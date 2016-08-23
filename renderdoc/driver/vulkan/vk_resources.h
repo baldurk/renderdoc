@@ -72,6 +72,9 @@ enum VkResourceType
   eResSurface
 };
 
+// VkDisplayKHR and VkDisplayModeKHR are both UNWRAPPED because there's no need to wrap them.
+// The only thing we need to wrap VkSurfaceKHR for is to get back the window from it later.
+
 // dummy standin for a typeless real resource
 // stored in a uint64_t, with function to cast back
 // if we know what type it is
@@ -544,6 +547,9 @@ struct WrappedVkSurfaceKHR : WrappedVkNonDispRes
   };
 };
 
+// VkDisplayKHR and VkDisplayModeKHR are both UNWRAPPED because there's no need to wrap them.
+// The only thing we need to wrap VkSurfaceKHR for is to get back the window from it later.
+
 // Note: we assume only the following resources can return duplicate handles (and so
 // on replay we need to handle two distinct ids with the same handle.
 // Other resources are discounted because they have 'state' or otherwise wouldn't make
@@ -629,6 +635,9 @@ UNWRAP_NONDISP_HELPER(VkFramebuffer)
 UNWRAP_NONDISP_HELPER(VkCommandPool)
 UNWRAP_NONDISP_HELPER(VkSwapchainKHR)
 UNWRAP_NONDISP_HELPER(VkSurfaceKHR)
+
+// VkDisplayKHR and VkDisplayModeKHR are both UNWRAPPED because there's no need to wrap them.
+// The only thing we need to wrap VkSurfaceKHR for is to get back the window from it later.
 
 #define WRAPPING_DEBUG 0
 

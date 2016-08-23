@@ -317,6 +317,9 @@ private:
   vector<uint32_t *> m_MemIdxMaps;
   void RemapMemoryIndices(VkPhysicalDeviceMemoryProperties *memProps, uint32_t **memIdxMap);
 
+  void WrapAndProcessCreatedSwapchain(VkDevice device, const VkSwapchainCreateInfoKHR *pCreateInfo,
+                                      VkSwapchainKHR *pSwapChain);
+
   struct
   {
     void Reset()
@@ -1334,4 +1337,40 @@ public:
                                                          uint32_t queueFamilyIndex, Display *dpy,
                                                          VisualID visualID);
 #endif
+
+  // VK_KHR_display and VK_KHR_display_swapchain. These have no library or include dependencies so
+  // wecan just compile them in on all platforms to reduce platform-specific code. They are mostly
+  // only actually used though on *nix.
+  VkResult vkGetPhysicalDeviceDisplayPropertiesKHR(VkPhysicalDevice physicalDevice,
+                                                   uint32_t *pPropertyCount,
+                                                   VkDisplayPropertiesKHR *pProperties);
+
+  VkResult vkGetPhysicalDeviceDisplayPlanePropertiesKHR(VkPhysicalDevice physicalDevice,
+                                                        uint32_t *pPropertyCount,
+                                                        VkDisplayPlanePropertiesKHR *pProperties);
+
+  VkResult vkGetDisplayPlaneSupportedDisplaysKHR(VkPhysicalDevice physicalDevice, uint32_t planeIndex,
+                                                 uint32_t *pDisplayCount, VkDisplayKHR *pDisplays);
+
+  VkResult vkGetDisplayModePropertiesKHR(VkPhysicalDevice physicalDevice, VkDisplayKHR display,
+                                         uint32_t *pPropertyCount,
+                                         VkDisplayModePropertiesKHR *pProperties);
+
+  VkResult vkCreateDisplayModeKHR(VkPhysicalDevice physicalDevice, VkDisplayKHR display,
+                                  const VkDisplayModeCreateInfoKHR *pCreateInfo,
+                                  const VkAllocationCallbacks *pAllocator, VkDisplayModeKHR *pMode);
+
+  VkResult vkGetDisplayPlaneCapabilitiesKHR(VkPhysicalDevice physicalDevice, VkDisplayModeKHR mode,
+                                            uint32_t planeIndex,
+                                            VkDisplayPlaneCapabilitiesKHR *pCapabilities);
+
+  VkResult vkCreateDisplayPlaneSurfaceKHR(VkInstance instance,
+                                          const VkDisplaySurfaceCreateInfoKHR *pCreateInfo,
+                                          const VkAllocationCallbacks *pAllocator,
+                                          VkSurfaceKHR *pSurface);
+
+  VkResult vkCreateSharedSwapchainsKHR(VkDevice device, uint32_t swapchainCount,
+                                       const VkSwapchainCreateInfoKHR *pCreateInfos,
+                                       const VkAllocationCallbacks *pAllocator,
+                                       VkSwapchainKHR *pSwapchains);
 };

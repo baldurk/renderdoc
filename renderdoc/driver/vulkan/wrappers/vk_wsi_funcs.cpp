@@ -295,6 +295,183 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(Serialiser *localSerialiser, 
   return true;
 }
 
+void WrappedVulkan::WrapAndProcessCreatedSwapchain(VkDevice device,
+                                                   const VkSwapchainCreateInfoKHR *pCreateInfo,
+                                                   VkSwapchainKHR *pSwapChain)
+{
+  ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pSwapChain);
+
+  if(m_State >= WRITING)
+  {
+    Chunk *chunk = NULL;
+
+    {
+      CACHE_THREAD_SERIALISER();
+
+      SCOPED_SERIALISE_CONTEXT(CREATE_SWAP_BUFFER);
+      Serialise_vkCreateSwapchainKHR(localSerialiser, device, pCreateInfo, NULL, pSwapChain);
+
+      chunk = scope.Get();
+    }
+
+    VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pSwapChain);
+    record->AddChunk(chunk);
+
+    record->swapInfo = new SwapchainInfo();
+    SwapchainInfo &swapInfo = *record->swapInfo;
+
+    // sneaky casting of window handle into record
+    swapInfo.wndHandle = (RENDERDOC_WindowHandle)GetRecord(pCreateInfo->surface);
+
+    {
+      SCOPED_LOCK(m_SwapLookupLock);
+      m_SwapLookup[swapInfo.wndHandle] = *pSwapChain;
+    }
+
+    RenderDoc::Inst().AddFrameCapturer(LayerDisp(m_Instance), swapInfo.wndHandle, this);
+
+    swapInfo.format = pCreateInfo->imageFormat;
+    swapInfo.extent = pCreateInfo->imageExtent;
+    swapInfo.arraySize = pCreateInfo->imageArrayLayers;
+
+    VkResult vkr = VK_SUCCESS;
+
+    const VkLayerDispatchTable *vt = ObjDisp(device);
+
+    {
+      VkAttachmentDescription attDesc = {
+          0,
+          pCreateInfo->imageFormat,
+          VK_SAMPLE_COUNT_1_BIT,
+          VK_ATTACHMENT_LOAD_OP_LOAD,
+          VK_ATTACHMENT_STORE_OP_STORE,
+          VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+          VK_ATTACHMENT_STORE_OP_DONT_CARE,
+          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+          VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+      };
+
+      VkAttachmentReference attRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+
+      VkSubpassDescription sub = {
+          0,    VK_PIPELINE_BIND_POINT_GRAPHICS,
+          0,    NULL,       // inputs
+          1,    &attRef,    // color
+          NULL,             // resolve
+          NULL,             // depth-stencil
+          0,    NULL,       // preserve
+      };
+
+      VkRenderPassCreateInfo rpinfo = {
+          VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+          NULL,
+          0,
+          1,
+          &attDesc,
+          1,
+          &sub,
+          0,
+          NULL,    // dependencies
+      };
+
+      vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, NULL, &swapInfo.rp);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      GetResourceManager()->WrapResource(Unwrap(device), swapInfo.rp);
+    }
+
+    // serialise out the swap chain images
+    {
+      uint32_t numSwapImages;
+      vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(*pSwapChain), &numSwapImages, NULL);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      swapInfo.lastPresent = 0;
+      swapInfo.images.resize(numSwapImages);
+      for(uint32_t i = 0; i < numSwapImages; i++)
+      {
+        swapInfo.images[i].im = VK_NULL_HANDLE;
+        swapInfo.images[i].view = VK_NULL_HANDLE;
+        swapInfo.images[i].fb = VK_NULL_HANDLE;
+      }
+
+      VkImage *images = new VkImage[numSwapImages];
+
+      // go through our own function so we assign these images IDs
+      vkr = vkGetSwapchainImagesKHR(device, *pSwapChain, &numSwapImages, images);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      for(uint32_t i = 0; i < numSwapImages; i++)
+      {
+        SwapchainInfo::SwapImage &swapImInfo = swapInfo.images[i];
+
+        // memory doesn't exist for genuine WSI created images
+        swapImInfo.im = images[i];
+
+        ResourceId imid = GetResID(images[i]);
+
+        VkImageSubresourceRange range;
+        range.baseMipLevel = range.baseArrayLayer = 0;
+        range.levelCount = 1;
+        range.layerCount = pCreateInfo->imageArrayLayers;
+        range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+        // fill out image info so we track resource state barriers
+        {
+          SCOPED_LOCK(m_ImageLayoutsLock);
+          m_ImageLayouts[imid].subresourceStates.clear();
+          m_ImageLayouts[imid].subresourceStates.push_back(
+              ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
+        }
+
+        {
+          VkImageViewCreateInfo info = {
+              VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+              NULL,
+              0,
+              Unwrap(images[i]),
+              VK_IMAGE_VIEW_TYPE_2D,
+              pCreateInfo->imageFormat,
+              {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+               VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
+              {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
+          };
+
+          vkr = vt->CreateImageView(Unwrap(device), &info, NULL, &swapImInfo.view);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+          GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.view);
+
+          VkFramebufferCreateInfo fbinfo = {
+              VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+              NULL,
+              0,
+              Unwrap(swapInfo.rp),
+              1,
+              UnwrapPtr(swapImInfo.view),
+              (uint32_t)pCreateInfo->imageExtent.width,
+              (uint32_t)pCreateInfo->imageExtent.height,
+              1,
+          };
+
+          vkr = vt->CreateFramebuffer(Unwrap(device), &fbinfo, NULL, &swapImInfo.fb);
+          RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+          GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.fb);
+        }
+      }
+
+      SAFE_DELETE_ARRAY(images);
+    }
+
+    FirstFrame(*pSwapChain);
+  }
+  else
+  {
+    GetResourceManager()->AddLiveResource(id, *pSwapChain);
+  }
+}
+
 VkResult WrappedVulkan::vkCreateSwapchainKHR(VkDevice device,
                                              const VkSwapchainCreateInfoKHR *pCreateInfo,
                                              const VkAllocationCallbacks *pAllocator,
@@ -311,179 +488,7 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(VkDevice device,
       ObjDisp(device)->CreateSwapchainKHR(Unwrap(device), &createInfo, pAllocator, pSwapChain);
 
   if(ret == VK_SUCCESS)
-  {
-    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pSwapChain);
-
-    if(m_State >= WRITING)
-    {
-      Chunk *chunk = NULL;
-
-      {
-        CACHE_THREAD_SERIALISER();
-
-        SCOPED_SERIALISE_CONTEXT(CREATE_SWAP_BUFFER);
-        Serialise_vkCreateSwapchainKHR(localSerialiser, device, pCreateInfo, NULL, pSwapChain);
-
-        chunk = scope.Get();
-      }
-
-      VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pSwapChain);
-      record->AddChunk(chunk);
-
-      record->swapInfo = new SwapchainInfo();
-      SwapchainInfo &swapInfo = *record->swapInfo;
-
-      // sneaky casting of window handle into record
-      swapInfo.wndHandle = (RENDERDOC_WindowHandle)GetRecord(pCreateInfo->surface);
-
-      {
-        SCOPED_LOCK(m_SwapLookupLock);
-        m_SwapLookup[swapInfo.wndHandle] = *pSwapChain;
-      }
-
-      RenderDoc::Inst().AddFrameCapturer(LayerDisp(m_Instance), swapInfo.wndHandle, this);
-
-      swapInfo.format = pCreateInfo->imageFormat;
-      swapInfo.extent = pCreateInfo->imageExtent;
-      swapInfo.arraySize = pCreateInfo->imageArrayLayers;
-
-      VkResult vkr = VK_SUCCESS;
-
-      const VkLayerDispatchTable *vt = ObjDisp(device);
-
-      {
-        VkAttachmentDescription attDesc = {
-            0,
-            pCreateInfo->imageFormat,
-            VK_SAMPLE_COUNT_1_BIT,
-            VK_ATTACHMENT_LOAD_OP_LOAD,
-            VK_ATTACHMENT_STORE_OP_STORE,
-            VK_ATTACHMENT_LOAD_OP_DONT_CARE,
-            VK_ATTACHMENT_STORE_OP_DONT_CARE,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-            VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
-        };
-
-        VkAttachmentReference attRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
-
-        VkSubpassDescription sub = {
-            0,    VK_PIPELINE_BIND_POINT_GRAPHICS,
-            0,    NULL,       // inputs
-            1,    &attRef,    // color
-            NULL,             // resolve
-            NULL,             // depth-stencil
-            0,    NULL,       // preserve
-        };
-
-        VkRenderPassCreateInfo rpinfo = {
-            VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
-            NULL,
-            0,
-            1,
-            &attDesc,
-            1,
-            &sub,
-            0,
-            NULL,    // dependencies
-        };
-
-        vkr = vt->CreateRenderPass(Unwrap(device), &rpinfo, NULL, &swapInfo.rp);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-        GetResourceManager()->WrapResource(Unwrap(device), swapInfo.rp);
-      }
-
-      // serialise out the swap chain images
-      {
-        uint32_t numSwapImages;
-        vkr = vt->GetSwapchainImagesKHR(Unwrap(device), Unwrap(*pSwapChain), &numSwapImages, NULL);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-        swapInfo.lastPresent = 0;
-        swapInfo.images.resize(numSwapImages);
-        for(uint32_t i = 0; i < numSwapImages; i++)
-        {
-          swapInfo.images[i].im = VK_NULL_HANDLE;
-          swapInfo.images[i].view = VK_NULL_HANDLE;
-          swapInfo.images[i].fb = VK_NULL_HANDLE;
-        }
-
-        VkImage *images = new VkImage[numSwapImages];
-
-        // go through our own function so we assign these images IDs
-        vkr = vkGetSwapchainImagesKHR(device, *pSwapChain, &numSwapImages, images);
-        RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-        for(uint32_t i = 0; i < numSwapImages; i++)
-        {
-          SwapchainInfo::SwapImage &swapImInfo = swapInfo.images[i];
-
-          // memory doesn't exist for genuine WSI created images
-          swapImInfo.im = images[i];
-
-          ResourceId imid = GetResID(images[i]);
-
-          VkImageSubresourceRange range;
-          range.baseMipLevel = range.baseArrayLayer = 0;
-          range.levelCount = 1;
-          range.layerCount = pCreateInfo->imageArrayLayers;
-          range.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-
-          // fill out image info so we track resource state barriers
-          {
-            SCOPED_LOCK(m_ImageLayoutsLock);
-            m_ImageLayouts[imid].subresourceStates.clear();
-            m_ImageLayouts[imid].subresourceStates.push_back(
-                ImageRegionState(range, UNKNOWN_PREV_IMG_LAYOUT, VK_IMAGE_LAYOUT_UNDEFINED));
-          }
-
-          {
-            VkImageViewCreateInfo info = {
-                VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-                NULL,
-                0,
-                Unwrap(images[i]),
-                VK_IMAGE_VIEW_TYPE_2D,
-                pCreateInfo->imageFormat,
-                {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
-                 VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
-                {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1},
-            };
-
-            vkr = vt->CreateImageView(Unwrap(device), &info, NULL, &swapImInfo.view);
-            RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-            GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.view);
-
-            VkFramebufferCreateInfo fbinfo = {
-                VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
-                NULL,
-                0,
-                Unwrap(swapInfo.rp),
-                1,
-                UnwrapPtr(swapImInfo.view),
-                (uint32_t)pCreateInfo->imageExtent.width,
-                (uint32_t)pCreateInfo->imageExtent.height,
-                1,
-            };
-
-            vkr = vt->CreateFramebuffer(Unwrap(device), &fbinfo, NULL, &swapImInfo.fb);
-            RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-            GetResourceManager()->WrapResource(Unwrap(device), swapImInfo.fb);
-          }
-        }
-
-        SAFE_DELETE_ARRAY(images);
-      }
-
-      FirstFrame(*pSwapChain);
-    }
-    else
-    {
-      GetResourceManager()->AddLiveResource(id, *pSwapChain);
-    }
-  }
+    WrapAndProcessCreatedSwapchain(device, pCreateInfo, pSwapChain);
 
   return ret;
 }
@@ -744,7 +749,8 @@ void WrappedVulkan::vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surfac
   WrappedVkSurfaceKHR *wrapper = GetWrapped(surface);
 
   // record pointer has window handle packed in
-  Keyboard::RemoveInputWindow((void *)wrapper->record);
+  if(wrapper->record)
+    Keyboard::RemoveInputWindow((void *)wrapper->record);
 
   // now set record pointer back to NULL so no-one tries to delete it
   wrapper->record = NULL;
@@ -753,4 +759,112 @@ void WrappedVulkan::vkDestroySurfaceKHR(VkInstance instance, VkSurfaceKHR surfac
 
   GetResourceManager()->ReleaseWrappedResource(surface, true);
   ObjDisp(instance)->DestroySurfaceKHR(Unwrap(instance), unwrappedObj, pAllocator);
+}
+
+// VK_KHR_display and VK_KHR_display_swapchain. These have no library or include dependencies so
+// wecan just compile them in on all platforms to reduce platform-specific code. They are mostly
+// only actually used though on *nix.
+
+VkResult WrappedVulkan::vkGetPhysicalDeviceDisplayPropertiesKHR(VkPhysicalDevice physicalDevice,
+                                                                uint32_t *pPropertyCount,
+                                                                VkDisplayPropertiesKHR *pProperties)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceDisplayPropertiesKHR(Unwrap(physicalDevice), pPropertyCount, pProperties);
+}
+
+VkResult WrappedVulkan::vkGetPhysicalDeviceDisplayPlanePropertiesKHR(
+    VkPhysicalDevice physicalDevice, uint32_t *pPropertyCount,
+    VkDisplayPlanePropertiesKHR *pProperties)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceDisplayPlanePropertiesKHR(Unwrap(physicalDevice), pPropertyCount,
+                                                   pProperties);
+}
+
+VkResult WrappedVulkan::vkGetDisplayPlaneSupportedDisplaysKHR(VkPhysicalDevice physicalDevice,
+                                                              uint32_t planeIndex,
+                                                              uint32_t *pDisplayCount,
+                                                              VkDisplayKHR *pDisplays)
+{
+  // we don't wrap the resulting displays since there's no data we need for them
+  return ObjDisp(physicalDevice)
+      ->GetDisplayPlaneSupportedDisplaysKHR(Unwrap(physicalDevice), planeIndex, pDisplayCount,
+                                            pDisplays);
+}
+
+VkResult WrappedVulkan::vkGetDisplayModePropertiesKHR(VkPhysicalDevice physicalDevice,
+                                                      VkDisplayKHR display, uint32_t *pPropertyCount,
+                                                      VkDisplayModePropertiesKHR *pProperties)
+{
+  // display is not wrapped since we have no need of any data associated with it
+  return ObjDisp(physicalDevice)
+      ->GetDisplayModePropertiesKHR(Unwrap(physicalDevice), display, pPropertyCount, pProperties);
+}
+
+VkResult WrappedVulkan::vkCreateDisplayModeKHR(VkPhysicalDevice physicalDevice, VkDisplayKHR display,
+                                               const VkDisplayModeCreateInfoKHR *pCreateInfo,
+                                               const VkAllocationCallbacks *pAllocator,
+                                               VkDisplayModeKHR *pMode)
+{
+  // we don't wrap the resulting mode since there's no data we need for it
+  return ObjDisp(physicalDevice)
+      ->CreateDisplayModeKHR(Unwrap(physicalDevice), display, pCreateInfo, pAllocator, pMode);
+}
+
+VkResult WrappedVulkan::vkGetDisplayPlaneCapabilitiesKHR(VkPhysicalDevice physicalDevice,
+                                                         VkDisplayModeKHR mode, uint32_t planeIndex,
+                                                         VkDisplayPlaneCapabilitiesKHR *pCapabilities)
+{
+  // mode is not wrapped since we have no need of any data associated with it
+  return ObjDisp(physicalDevice)
+      ->GetDisplayPlaneCapabilitiesKHR(Unwrap(physicalDevice), mode, planeIndex, pCapabilities);
+}
+
+VkResult WrappedVulkan::vkCreateDisplayPlaneSurfaceKHR(VkInstance instance,
+                                                       const VkDisplaySurfaceCreateInfoKHR *pCreateInfo,
+                                                       const VkAllocationCallbacks *pAllocator,
+                                                       VkSurfaceKHR *pSurface)
+{
+  // should not come in here at all on replay
+  RDCASSERT(m_State >= WRITING);
+
+  VkResult ret = ObjDisp(instance)->CreateDisplayPlaneSurfaceKHR(Unwrap(instance), pCreateInfo,
+                                                                 pAllocator, pSurface);
+
+  if(ret == VK_SUCCESS)
+  {
+    // we must wrap surfaces to be consistent with the rest of the code and surface handling,
+    // but there's nothing actually to do here - no meaningful data we care about here.
+    GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+  }
+
+  return ret;
+}
+
+VkResult WrappedVulkan::vkCreateSharedSwapchainsKHR(VkDevice device, uint32_t swapchainCount,
+                                                    const VkSwapchainCreateInfoKHR *pCreateInfos,
+                                                    const VkAllocationCallbacks *pAllocator,
+                                                    VkSwapchainKHR *pSwapchains)
+{
+  VkSwapchainCreateInfoKHR *unwrapped = GetTempArray<VkSwapchainCreateInfoKHR>(swapchainCount);
+  for(uint32_t i = 0; i < swapchainCount; i++)
+  {
+    unwrapped[i] = pCreateInfos[i];
+    // make sure we can readback to get the screenshot
+    unwrapped[i].imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    unwrapped[i].surface = Unwrap(unwrapped[i].surface);
+    unwrapped[i].oldSwapchain = Unwrap(unwrapped[i].oldSwapchain);
+  }
+
+  VkResult ret = ObjDisp(device)->CreateSharedSwapchainsKHR(Unwrap(device), swapchainCount,
+                                                            unwrapped, pAllocator, pSwapchains);
+
+  if(ret == VK_SUCCESS)
+  {
+    for(uint32_t i = 0; i < swapchainCount; i++)
+      WrapAndProcessCreatedSwapchain(device, pCreateInfos + i, pSwapchains + i);
+  }
+
+  return ret;
 }
