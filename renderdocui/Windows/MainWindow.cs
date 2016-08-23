@@ -710,6 +710,8 @@ namespace renderdocui.Windows
 
                 Thread thread = null;
 
+                string origFilename = filename;
+
                 // if driver is empty something went wrong loading the log, let it be handled as usual
                 // below. Otherwise indicate that support is missing.
                 if (driver.Length > 0 && support == ReplaySupport.Unsupported)
@@ -741,7 +743,7 @@ namespace renderdocui.Windows
                         {
                             filename = m_Core.Renderer.CopyCaptureToRemote(filename, this);
 
-                            local = false;
+                            // deliberately leave local as true so that we keep referring to the locally saved log
 
                             // some error
                             if (filename == "")
@@ -755,7 +757,7 @@ namespace renderdocui.Windows
                         }
                     }
 
-                    thread = Helpers.NewThread(new ThreadStart(() => m_Core.LoadLogfile(filename, temporary, local)));
+                    thread = Helpers.NewThread(new ThreadStart(() => m_Core.LoadLogfile(filename, origFilename, temporary, local)));
                 }
 
                 thread.Start();
@@ -763,7 +765,7 @@ namespace renderdocui.Windows
                 if(!remoteReplay)
                     m_Core.Config.LastLogPath = Path.GetDirectoryName(filename);
 
-                statusText.Text = "Loading " + filename + "...";
+                statusText.Text = "Loading " + origFilename + "...";
             }
         }
 

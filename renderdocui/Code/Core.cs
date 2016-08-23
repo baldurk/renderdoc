@@ -453,9 +453,11 @@ namespace renderdocui.Code
             }
         }
 
-        public void LoadLogfile(string logFile, bool temporary, bool local)
+        // generally logFile == origFilename, but if the log was transferred remotely then origFilename
+        // is the log locally before being copied we can present to the user in dialogs, etc.
+        public void LoadLogfile(string logFile, string origFilename, bool temporary, bool local)
         {
-            m_LogFile = logFile;
+            m_LogFile = origFilename;
 
             m_LogLocal = local;
 
@@ -474,7 +476,7 @@ namespace renderdocui.Code
 
             Thread modalThread = Helpers.NewThread(new ThreadStart(() =>
             {
-                modal.SetModalText(string.Format("Loading Log {0}.", m_LogFile));
+                modal.SetModalText(string.Format("Loading Log: {0}", origFilename));
 
                 AppWindow.BeginInvoke(new Action(() =>
                 {
@@ -517,7 +519,7 @@ namespace renderdocui.Code
                     errmsg = ((ReplayCreateStatus)m_Renderer.InitException.Data["status"]).Str();
 
                 MessageBox.Show(String.Format("{0}\nFailed to open file for replay: {1}.\n\n" +
-                                              "Check diagnostic log in Help menu for more details.", logFile, errmsg),
+                                              "Check diagnostic log in Help menu for more details.", origFilename, errmsg),
                                     "Error opening log", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
                 progressThread = false;
@@ -533,9 +535,9 @@ namespace renderdocui.Code
                 return;
             }
 
-            if (!temporary && local)
+            if (!temporary)
             {
-                m_Config.AddRecentFile(m_Config.RecentLogFiles, logFile, 10);
+                m_Config.AddRecentFile(m_Config.RecentLogFiles, origFilename, 10);
 
                 if (File.Exists(Core.ConfigFilename))
                     m_Config.Serialize(Core.ConfigFilename);
@@ -595,7 +597,7 @@ namespace renderdocui.Code
                 MessageBox.Show(String.Format("{0}\nThis log opened with degraded support - " +
                                                 "this could mean missing hardware support caused a fallback to software rendering.\n\n" +
                                                 "This warning will not appear every time this happens, " +
-                                                "check debug errors/warnings window for more details.", logFile),
+                                                "check debug errors/warnings window for more details.", origFilename),
                                 "Degraded support of log", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
             }
 
