@@ -310,7 +310,7 @@ private:
     if(ppExt)
       *ppExt = NULL;
 
-    return S_FALSE;
+    return E_FAIL;
   }
 };
 
