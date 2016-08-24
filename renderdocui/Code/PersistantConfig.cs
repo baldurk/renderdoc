@@ -68,6 +68,14 @@ namespace renderdocui.Code
                 ServerRunning = true;
                 VersionMismatch = Busy = false;
                 server.ShutdownConnection();
+
+                // since we can only have one active client at once on a remote server, we need
+                // to avoid DDOS'ing by doing multiple CheckStatus() one after the other so fast
+                // that the active client can't be properly shut down. Sleeping here for a short
+                // time gives that breathing room.
+                // Not the most elegant solution, but it is simple
+
+                Thread.Sleep(15);
             }
             catch (ReplayCreateException ex)
             {
