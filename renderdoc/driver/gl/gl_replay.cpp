@@ -2908,7 +2908,7 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
   GLenum fmt = texdetails.internalFormat;
   GLenum target = texdetails.curType;
 
-  if(IsCompressedFormat(target))
+  if(IsCompressedFormat(fmt))
   {
     if(target == eGL_TEXTURE_1D)
     {
