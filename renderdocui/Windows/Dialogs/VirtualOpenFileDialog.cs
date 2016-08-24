@@ -603,9 +603,9 @@ namespace renderdocui.Windows.Dialogs
         public FileOpenedEventArgs(bool NT, string fn)
         {
             if(NT)
-                m_fn = fn;
-            else
                 m_fn = fn.Replace('/', '\\');
+            else
+                m_fn = fn;
         }
 
         public string FileName
