@@ -88,6 +88,8 @@ public:
       m_Vendor = AMD;
     else if(physProps.vendorID == NV_PCI_ID)
       m_Vendor = NV;
+    else
+      m_Vendor = UNKNOWN;
 
     m_Major = VK_VERSION_MAJOR(physProps.driverVersion);
     m_Minor = VK_VERSION_MINOR(physProps.driverVersion);
@@ -113,6 +115,7 @@ private:
   {
     AMD,
     NV,
+	UNKNOWN
   } m_Vendor;
 
   uint32_t m_Major, m_Minor, m_Patch;
