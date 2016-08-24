@@ -1515,6 +1515,14 @@ namespace renderdocui.Windows
 
         private bool PromptSaveLog()
         {
+            try
+            {
+                saveDialog.InitialDirectory = m_Core.Config.DefaultCaptureSaveDirectory;
+            }
+            catch (Exception)
+            {
+            }
+
             DialogResult res = saveDialog.ShowDialog();
 
             if (res == DialogResult.OK)

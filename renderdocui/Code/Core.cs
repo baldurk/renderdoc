@@ -702,7 +702,7 @@ namespace renderdocui.Code
 
         public String TempLogFilename(String appname)
         {
-            string folder = Config.CaptureSavePath;
+            string folder = Config.TemporaryCaptureDirectory;
             try
             {
                 if (folder.Length == 0 || !Directory.Exists(folder))

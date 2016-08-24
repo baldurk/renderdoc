@@ -114,7 +114,10 @@ namespace renderdocui.Code
         public List<string> RecentCaptureSettings = new List<string>();
         public int CallstackLevelSkip = 0;
 
-        public string CaptureSavePath = "";
+        // for historical reasons, this was named CaptureSavePath
+        [XmlElement("CaptureSavePath")]
+        public string TemporaryCaptureDirectory = "";
+        public string DefaultCaptureSaveDirectory = "";
 
         public bool TextureViewer_ResetRange = false;
         public bool TextureViewer_PerTexSettings = true;

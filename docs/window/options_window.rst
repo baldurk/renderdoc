@@ -101,6 +101,14 @@ By default the system temporary directory is used, but if this lies on drive wit
   
 ---------------
 
+  | ``Default save directory for captures`` Default: ``Empty``
+
+This allows you to choose which directory the save dialog will default to when prompting to save a capture file. By default the value is empty, which means that it follows the system behaviour (e.g. to begin on whichever folder was last browsed to in a file dialog).
+
+The folder must exist, it will not be created when browsed to.
+
+---------------
+
   | ``Allow global process hooking`` Default: ``Disabled``
 
 This option enables the functionality allowing capturing of programs that aren't launched directly from RenderDoc, but are launched from somewhere else.
