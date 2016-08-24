@@ -54,6 +54,14 @@ namespace renderdocui.Code
 
         public void CheckStatus()
         {
+            // special case - this is the local context
+            if (Hostname == "localhost")
+            {
+                ServerRunning = false;
+                VersionMismatch = Busy = false;
+                return;
+            }
+
             try
             {
                 RemoteServer server = StaticExports.CreateRemoteServer(Hostname, 0);
