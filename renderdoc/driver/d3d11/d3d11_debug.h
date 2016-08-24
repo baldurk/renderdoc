@@ -127,7 +127,7 @@ public:
   void GetBufferData(ID3D11Buffer *buff, uint64_t offset, uint64_t length, vector<byte> &retData,
                      bool unwrap);
 
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
                        FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
                        float blackPoint, float whitePoint, size_t &dataSize);
 

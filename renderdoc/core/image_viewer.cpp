@@ -140,12 +140,12 @@ public:
   }
   vector<ResourceId> GetTextures() { return m_Proxy->GetTextures(); }
   FetchTexture GetTexture(ResourceId id) { return m_Proxy->GetTexture(m_TextureID); }
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
                        FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
                        float blackPoint, float whitePoint, size_t &dataSize)
   {
-    return m_Proxy->GetTextureData(m_TextureID, arrayIdx, mip, typeHint, resolve, forceRGBA8unorm,
-                                   blackPoint, whitePoint, dataSize);
+    return m_Proxy->GetTextureData(m_TextureID, arrayIdx, mip, forDiskSave, typeHint, resolve,
+                                   forceRGBA8unorm, blackPoint, whitePoint, dataSize);
   }
 
   // handle a couple of operations ourselves to return a simple fake log

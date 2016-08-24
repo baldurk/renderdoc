@@ -1450,12 +1450,13 @@ void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, 
   m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len, retData);
 }
 
-byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
                                   FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
                                   float blackPoint, float whitePoint, size_t &dataSize)
 {
-  return m_pDevice->GetDebugManager()->GetTextureData(
-      tex, arrayIdx, mip, typeHint, resolve, forceRGBA8unorm, blackPoint, whitePoint, dataSize);
+  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, forDiskSave, typeHint,
+                                                      resolve, forceRGBA8unorm, blackPoint,
+                                                      whitePoint, dataSize);
 }
 
 void D3D11Replay::ReplaceResource(ResourceId from, ResourceId to)

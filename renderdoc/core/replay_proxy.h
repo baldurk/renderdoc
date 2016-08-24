@@ -103,6 +103,8 @@ public:
     m_FromReplaySerialiser = NULL;
     m_ToReplaySerialiser = new Serialiser(NULL, Serialiser::WRITING, false);
     m_RemoteHasResolver = false;
+
+    GetAPIProperties();
   }
 
   ReplayProxy(Network::Socket *sock, IRemoteDriver *remote)
@@ -224,6 +226,15 @@ public:
       if(cfg.texid == ResourceId() || m_ProxyTextureIds[cfg.texid] == ResourceId())
         return false;
       cfg.texid = m_ProxyTextureIds[cfg.texid];
+
+      // due to OpenGL having origin bottom-left compared to the rest of the world,
+      // we need to flip going in or out of GL.
+      if((m_APIProps.pipelineType == eGraphicsAPI_OpenGL) !=
+         (m_APIProps.localRenderer == eGraphicsAPI_OpenGL))
+      {
+        cfg.FlipY = !cfg.FlipY;
+      }
+
       return m_Proxy->RenderTexture(cfg);
     }
 
@@ -238,7 +249,22 @@ public:
       EnsureTexCached(texture, sliceFace, mip);
       if(texture == ResourceId() || m_ProxyTextureIds[texture] == ResourceId())
         return;
-      m_Proxy->PickPixel(m_ProxyTextureIds[texture], x, y, sliceFace, mip, sample, typeHint, pixel);
+
+      texture = m_ProxyTextureIds[texture];
+
+      // due to OpenGL having origin bottom-left compared to the rest of the world,
+      // we need to flip going in or out of GL.
+      // This is a bit more annoying here as we don't have a bool to flip, we need to
+      // manually adjust y
+      if((m_APIProps.pipelineType == eGraphicsAPI_OpenGL) !=
+         (m_APIProps.localRenderer == eGraphicsAPI_OpenGL))
+      {
+        FetchTexture tex = m_Proxy->GetTexture(texture);
+        uint32_t mipHeight = RDCMAX(1U, tex.height >> mip);
+        y = (mipHeight - 1) - y;
+      }
+
+      m_Proxy->PickPixel(texture, x, y, sliceFace, mip, sample, typeHint, pixel);
     }
   }
 
@@ -393,7 +419,7 @@ public:
                             vector<ShaderVariable> &outvars, const vector<byte> &data);
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData);
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
                        FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
                        float blackPoint, float whitePoint, size_t &dataSize);
 
@@ -509,6 +535,8 @@ private:
   bool m_RemoteServer;
 
   bool m_RemoteHasResolver;
+
+  APIProperties m_APIProps;
 
   D3D11PipelineState m_D3D11PipelineState;
   GLPipelineState m_GLPipelineState;

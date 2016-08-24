@@ -2519,9 +2519,9 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 }
 
 byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32_t mip,
-                                        FormatComponentType typeHint, bool resolve,
-                                        bool forceRGBA8unorm, float blackPoint, float whitePoint,
-                                        size_t &dataSize)
+                                        bool forDiskSave, FormatComponentType typeHint,
+                                        bool resolve, bool forceRGBA8unorm, float blackPoint,
+                                        float whitePoint, size_t &dataSize)
 {
   ID3D11Resource *dummyTex = NULL;
 
