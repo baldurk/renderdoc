@@ -2790,18 +2790,22 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
 
   GLenum intFormat = MakeGLFormat(gl, templateTex.format);
 
+  GLenum binding = eGL_NONE;
+
   switch(templateTex.resType)
   {
     case eResType_None: break;
     case eResType_Buffer:
     case eResType_Texture1D:
     {
+      binding = eGL_TEXTURE_1D;
       gl.glBindTexture(eGL_TEXTURE_1D, tex);
       gl.glTextureStorage1DEXT(tex, eGL_TEXTURE_1D, templateTex.mips, intFormat, templateTex.width);
       break;
     }
     case eResType_Texture1DArray:
     {
+      binding = eGL_TEXTURE_1D_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_1D_ARRAY, tex);
       gl.glTextureStorage2DEXT(tex, eGL_TEXTURE_1D_ARRAY, templateTex.mips, intFormat,
                                templateTex.width, templateTex.arraysize);
@@ -2810,6 +2814,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     case eResType_TextureRect:
     case eResType_Texture2D:
     {
+      binding = eGL_TEXTURE_2D;
       gl.glBindTexture(eGL_TEXTURE_2D, tex);
       gl.glTextureStorage2DEXT(tex, eGL_TEXTURE_2D, templateTex.mips, intFormat, templateTex.width,
                                templateTex.height);
@@ -2817,6 +2822,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_Texture2DArray:
     {
+      binding = eGL_TEXTURE_2D_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, tex);
       gl.glTextureStorage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, templateTex.mips, intFormat,
                                templateTex.width, templateTex.height, templateTex.arraysize);
@@ -2824,6 +2830,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_Texture2DMS:
     {
+      binding = eGL_TEXTURE_2D_MULTISAMPLE;
       gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, tex);
       gl.glTextureStorage2DMultisampleEXT(tex, eGL_TEXTURE_2D_MULTISAMPLE, templateTex.msSamp,
                                           intFormat, templateTex.width, templateTex.height, GL_TRUE);
@@ -2831,6 +2838,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_Texture2DMSArray:
     {
+      binding = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, tex);
       gl.glTextureStorage3DMultisampleEXT(tex, eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, templateTex.msSamp,
                                           intFormat, templateTex.width, templateTex.height,
@@ -2839,6 +2847,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_Texture3D:
     {
+      binding = eGL_TEXTURE_3D;
       gl.glBindTexture(eGL_TEXTURE_3D, tex);
       gl.glTextureStorage3DEXT(tex, eGL_TEXTURE_3D, templateTex.mips, intFormat, templateTex.width,
                                templateTex.height, templateTex.depth);
@@ -2846,6 +2855,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_TextureCube:
     {
+      binding = eGL_TEXTURE_CUBE_MAP;
       gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, tex);
       gl.glTextureStorage2DEXT(tex, eGL_TEXTURE_CUBE_MAP, templateTex.mips, intFormat,
                                templateTex.width, templateTex.height);
@@ -2853,6 +2863,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_TextureCubeArray:
     {
+      binding = eGL_TEXTURE_CUBE_MAP_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_CUBE_MAP_ARRAY, tex);
       gl.glTextureStorage3DEXT(tex, eGL_TEXTURE_CUBE_MAP_ARRAY, templateTex.mips, intFormat,
                                templateTex.width, templateTex.height, templateTex.arraysize);
@@ -2863,6 +2874,19 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
       RDCERR("Invalid shader resource type");
       break;
     }
+  }
+
+  if(templateTex.format.bgraOrder && binding != eGL_NONE)
+  {
+    GLint bgraSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ALPHA};
+    GLint bgrSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ONE};
+
+    if(templateTex.format.compCount == 4)
+      gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgraSwizzle);
+    else if(templateTex.format.compCount == 3)
+      gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgrSwizzle);
+    else
+      RDCERR("Unexpected component count %d for BGRA order format", templateTex.format.compCount);
   }
 
   if(templateTex.customName)

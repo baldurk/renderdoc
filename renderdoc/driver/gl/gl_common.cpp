@@ -993,9 +993,6 @@ GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt)
         ret = eGL_RGBA8;
       else
         RDCERR("Unrecognised component type");
-
-      if(fmt.bgraOrder)
-        ret = eGL_BGRA;
     }
     else
     {
