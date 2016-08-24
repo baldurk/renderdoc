@@ -753,6 +753,50 @@ ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
     return ret;
   }
 
+  // handle certain non compressed but special formats
+  if(fmt == eGL_R11F_G11F_B10F)
+  {
+    ret.special = true;
+    ret.specialFormat = eSpecial_R11G11B10;
+    return ret;
+  }
+
+  if(fmt == eGL_RGB565)
+  {
+    ret.special = true;
+    ret.specialFormat = eSpecial_R5G6B5;
+    return ret;
+  }
+
+  if(fmt == eGL_RGB5_A1)
+  {
+    ret.special = true;
+    ret.specialFormat = eSpecial_R5G5B5A1;
+    return ret;
+  }
+
+  if(fmt == eGL_RGB9_E5)
+  {
+    ret.special = true;
+    ret.specialFormat = eSpecial_R9G9B9E5;
+    return ret;
+  }
+
+  if(fmt == eGL_RGBA4)
+  {
+    ret.special = true;
+    ret.specialFormat = eSpecial_R4G4B4A4;
+    return ret;
+  }
+
+  if(fmt == eGL_RGB10_A2 || fmt == eGL_RGB10_A2UI)
+  {
+    ret.special = true;
+    ret.specialFormat = eSpecial_R10G10B10A2;
+    ret.compType = fmt == eGL_RGB10_A2 ? eCompType_UNorm : eCompType_UInt;
+    return ret;
+  }
+
   ret.compByteWidth = 1;
   ret.compCount = 4;
   ret.compType = eCompType_Float;
