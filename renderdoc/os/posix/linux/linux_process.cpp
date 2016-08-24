@@ -45,7 +45,7 @@ int GetIdentPort(pid_t childPid)
   int totalWaitTime = 0;
 
   // try for a little while for the /proc entry to appear
-  while(totalWaitTime <= MAX_WAIT_TIME)
+  while(totalWaitTime < MAX_WAIT_TIME)
   {
     // back-off for each retry
     usleep(waitTime);
