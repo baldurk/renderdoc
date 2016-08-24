@@ -169,7 +169,7 @@ namespace renderdocui.Windows
             m_Core.AddLogProgressListener(this);
 
             m_MessageTick = new System.Threading.Timer(MessageCheck, this as object, 500, 500);
-            m_RemoteProbe = new System.Threading.Timer(RemoteProbe, this as object, 2500, 2500);
+            m_RemoteProbe = new System.Threading.Timer(RemoteProbe, this as object, 7500, 7500);
         }
 
         private void MainWindow_Load(object sender, EventArgs e)
