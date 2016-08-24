@@ -63,7 +63,7 @@ namespace renderdocui.Windows.Dialogs
             back.Enabled = forward.Enabled = up.Enabled = false;
         }
 
-        private string Directory { get { return NTPaths ? currentDir.Replace('/', '\\') : currentDir; } }
+        private string Directory { get { return currentDir.Replace('\\', '/'); } }
         private string FileName { get { return filename.Text.Trim(); } }
 
         private bool m_DirBrowse = false;
@@ -77,11 +77,11 @@ namespace renderdocui.Windows.Dialogs
             }
         }
 
-        public string ChosenPath
+        private string ChosenPath
         {
             get
             {
-                return Directory + (NTPaths ? "\\" : "/") + FileName;
+                return Directory + "/" + FileName;
             }
         }
 
@@ -102,7 +102,7 @@ namespace renderdocui.Windows.Dialogs
             {
                 for (int i = 0; i < roots.Count; i++)
                 {
-                    if (roots[i].Filename == path)
+                    if (roots[i].Filename == path || roots[i].Filename[0] + ":" == path)
                         return roots[i];
 
                     if (roots[i].Filename[0] == path[0])
@@ -220,8 +220,15 @@ namespace renderdocui.Windows.Dialogs
             }
         }
 
+        bool insideUpdateViews = false;
+
         private void UpdateViewsFromData()
         {
+            if(insideUpdateViews)
+                return;
+
+            insideUpdateViews = true;
+
             location.Text = Directory;
 
             directoryTree.BeginUpdate();
@@ -246,6 +253,8 @@ namespace renderdocui.Windows.Dialogs
 
             string[] components = Directory.Split('/');
 
+            DirectoryFileTreeNode node = null;
+
             // expand down to the current directory
             for (int i = 1; i < components.Length; i++)
             {
@@ -257,17 +266,23 @@ namespace renderdocui.Windows.Dialogs
                 if (dir == "")
                     dir = "/";
 
-                DirectoryFileTreeNode node = GetNode(dir);
+                node = GetNode(dir);
+                if (node == null || node.directoryNode == null)
+                    break;
                 node.directoryNode.Expand();
             }
 
-            directoryTree.SelectedNode = GetNode(Directory).directoryNode;
+            node = GetNode(Directory);
+            if (node != null && node.directoryNode != null)
+                directoryTree.SelectedNode = node.directoryNode;
 
             UpdateFileList();
 
             up.Enabled = !IsRoot;
             back.Enabled = history.Count > 0 && historyidx > 0;
             forward.Enabled = historyidx < history.Count - 1;
+
+            insideUpdateViews = false;
         }
 
         private bool ChangeDirectory(string dir, bool recordHistory)
@@ -279,6 +294,9 @@ namespace renderdocui.Windows.Dialogs
             dir = dir.Replace('\\', '/');
             if (dir[dir.Length - 1] == '/')
                 dir = dir.Substring(0, dir.Length - 1);
+
+            if (NTPaths)
+                dir = dir.Replace("://", ":/");
 
             DirectoryFileTreeNode node = GetNode(dir);
 
@@ -349,7 +367,10 @@ namespace renderdocui.Windows.Dialogs
 
         private void UpdateFileList()
         {
-            fileList.Items.Clear();
+            fileList.BeginUpdate();
+            fileList.Clear();
+            fileList.EndUpdate();
+
             currentFiles.Clear();
 
             // return, we haven't populated anything yet
@@ -365,6 +386,8 @@ namespace renderdocui.Windows.Dialogs
             
             if (FileName.IndexOf('*') != -1 || FileName.IndexOf('?') != -1)
                 match = Regex.Escape(FileName).Replace( @"\*", ".*" ).Replace( @"\?", "." );
+
+            fileList.BeginUpdate();
 
             foreach (var child in node.children)
             {
@@ -403,6 +426,8 @@ namespace renderdocui.Windows.Dialogs
 
                 currentFiles.Add(child);
             }
+
+            fileList.EndUpdate();
         }
 
         private bool TryOpenFile(bool doubleclick)
@@ -414,7 +439,7 @@ namespace renderdocui.Windows.Dialogs
 
                 if (node != null)
                 {
-                    OnOpened(new FileOpenedEventArgs(Directory));
+                    OnOpened(new FileOpenedEventArgs(NTPaths, Directory));
                     Close();
 
                     return true;
@@ -432,7 +457,7 @@ namespace renderdocui.Windows.Dialogs
                     return true;
                 }
 
-                OnOpened(new FileOpenedEventArgs(ChosenPath));
+                OnOpened(new FileOpenedEventArgs(NTPaths, ChosenPath));
                 Close();
 
                 return true;
@@ -575,9 +600,12 @@ namespace renderdocui.Windows.Dialogs
     {
         private string m_fn;
 
-        public FileOpenedEventArgs(string fn)
+        public FileOpenedEventArgs(bool NT, string fn)
         {
-            m_fn = fn;
+            if(NT)
+                m_fn = fn;
+            else
+                m_fn = fn.Replace('/', '\\');
         }
 
         public string FileName
