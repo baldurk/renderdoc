@@ -514,9 +514,7 @@ namespace renderdocui.Code
             // if the renderer isn't running, we hit a failure case so display an error message
             if (!m_Renderer.Running)
             {
-                string errmsg = "Unknown error message";
-                if (m_Renderer.InitException.Data.Contains("status"))
-                    errmsg = ((ReplayCreateStatus)m_Renderer.InitException.Data["status"]).Str();
+                string errmsg = m_Renderer.InitException.Status.Str();
 
                 MessageBox.Show(String.Format("{0}\nFailed to open file for replay: {1}.\n\n" +
                                               "Check diagnostic log in Help menu for more details.", origFilename, errmsg),

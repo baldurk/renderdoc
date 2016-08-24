@@ -1186,7 +1186,13 @@ namespace renderdocui.Windows
                             ? global::renderdocui.Properties.Resources.connect
                             : global::renderdocui.Properties.Resources.disconnect;
 
-                        if (host.VersionMismatch)
+                        if (m_Core.Renderer.InitException != null)
+                        {
+                            contextChooser.Image = global::renderdocui.Properties.Resources.cross;
+                            contextChooser.Text = "Replay Context: Local";
+                            statusText.Text = "Connection failed: " + m_Core.Renderer.InitException.Status.Str();
+                        }
+                        else if (host.VersionMismatch)
                         {
                             statusText.Text = "Remote server is not running RenderDoc " + VersionString;
                         }
