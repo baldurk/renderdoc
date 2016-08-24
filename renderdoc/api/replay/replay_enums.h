@@ -221,11 +221,11 @@ enum QualityHint
   eQuality_Fastest,
 };
 
-enum APIPipelineStateType
+enum GraphicsAPI
 {
-  ePipelineState_D3D11,
-  ePipelineState_OpenGL,
-  ePipelineState_Vulkan,
+  eGraphicsAPI_D3D11,
+  eGraphicsAPI_OpenGL,
+  eGraphicsAPI_Vulkan,
 };
 
 enum PrimitiveTopology

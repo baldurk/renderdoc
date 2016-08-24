@@ -169,7 +169,7 @@ namespace renderdocui.Windows
             m_Core.AddLogProgressListener(this);
 
             m_MessageTick = new System.Threading.Timer(MessageCheck, this as object, 500, 500);
-            m_RemoteProbe = new System.Threading.Timer(RemoteProbe, this as object, 2500, 2500);
+            m_RemoteProbe = new System.Threading.Timer(RemoteProbe, this as object, 7500, 7500);
         }
 
         private void MainWindow_Load(object sender, EventArgs e)
@@ -1186,7 +1186,13 @@ namespace renderdocui.Windows
                             ? global::renderdocui.Properties.Resources.connect
                             : global::renderdocui.Properties.Resources.disconnect;
 
-                        if (host.VersionMismatch)
+                        if (m_Core.Renderer.InitException != null)
+                        {
+                            contextChooser.Image = global::renderdocui.Properties.Resources.cross;
+                            contextChooser.Text = "Replay Context: Local";
+                            statusText.Text = "Connection failed: " + m_Core.Renderer.InitException.Status.Str();
+                        }
+                        else if (host.VersionMismatch)
                         {
                             statusText.Text = "Remote server is not running RenderDoc " + VersionString;
                         }
@@ -1515,6 +1521,14 @@ namespace renderdocui.Windows
 
         private bool PromptSaveLog()
         {
+            try
+            {
+                saveDialog.InitialDirectory = m_Core.Config.DefaultCaptureSaveDirectory;
+            }
+            catch (Exception)
+            {
+            }
+
             DialogResult res = saveDialog.ShowDialog();
 
             if (res == DialogResult.OK)

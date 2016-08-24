@@ -483,8 +483,8 @@ bool ReplayRenderer::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t 
   }
 
   size_t sz = 0;
-  byte *bytes =
-      m_pDevice->GetTextureData(liveId, arrayIdx, mip, eCompType_None, false, false, 0.0f, 0.0f, sz);
+  byte *bytes = m_pDevice->GetTextureData(liveId, arrayIdx, mip, false, eCompType_None, false,
+                                          false, 0.0f, 0.0f, sz);
 
   if(sz == 0 || bytes == NULL)
     create_array_uninit(*data, 0);
@@ -745,7 +745,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 
       size_t datasize = 0;
       byte *bytes =
-          m_pDevice->GetTextureData(liveid, slice, mip, sd.typeHint, resolveSamples, downcast,
+          m_pDevice->GetTextureData(liveid, slice, mip, true, sd.typeHint, resolveSamples, downcast,
                                     sd.comp.blackPoint, sd.comp.whitePoint, datasize);
 
       if(bytes == NULL)

@@ -324,7 +324,8 @@ APIProperties D3D12Replay::GetAPIProperties()
 {
   APIProperties ret;
 
-  ret.pipelineType = ePipelineState_D3D11;
+  ret.pipelineType = eGraphicsAPI_D3D11;
+  ret.localRenderer = eGraphicsAPI_D3D11;
   ret.degraded = false;
 
   return ret;
@@ -387,7 +388,7 @@ void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, 
 {
 }
 
-byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
                                   FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
                                   float blackPoint, float whitePoint, size_t &dataSize)
 {

@@ -87,7 +87,7 @@ namespace renderdocui.Code
             m_Vulkan = vk;
         }
 
-        public APIPipelineStateType DefaultType = APIPipelineStateType.D3D11;
+        public GraphicsAPI DefaultType = GraphicsAPI.D3D11;
 
         private bool LogLoaded
         {
@@ -101,7 +101,7 @@ namespace renderdocui.Code
         {
             get
             {
-                return LogLoaded && m_APIProps.pipelineType == APIPipelineStateType.D3D11 && m_D3D11 != null;
+                return LogLoaded && m_APIProps.pipelineType == GraphicsAPI.D3D11 && m_D3D11 != null;
             }
         }
 
@@ -109,7 +109,7 @@ namespace renderdocui.Code
         {
             get
             {
-                return LogLoaded && m_APIProps.pipelineType == APIPipelineStateType.OpenGL && m_GL != null;
+                return LogLoaded && m_APIProps.pipelineType == GraphicsAPI.OpenGL && m_GL != null;
             }
         }
 
@@ -117,7 +117,7 @@ namespace renderdocui.Code
         {
             get
             {
-                return LogLoaded && m_APIProps.pipelineType == APIPipelineStateType.Vulkan && m_Vulkan != null;
+                return LogLoaded && m_APIProps.pipelineType == GraphicsAPI.Vulkan && m_Vulkan != null;
             }
         }
 
@@ -190,7 +190,7 @@ namespace renderdocui.Code
 
         public string Abbrev(ShaderStageType stage)
         {
-            if (IsLogD3D11 || (!LogLoaded && DefaultType == APIPipelineStateType.D3D11))
+            if (IsLogD3D11 || (!LogLoaded && DefaultType == GraphicsAPI.D3D11))
             {
                 switch (stage)
                 {
@@ -202,8 +202,8 @@ namespace renderdocui.Code
                     case ShaderStageType.Compute: return "CS";
                 }
             }
-            else if (IsLogGL || (!LogLoaded && DefaultType == APIPipelineStateType.OpenGL) ||
-                     IsLogVK || (!LogLoaded && DefaultType == APIPipelineStateType.Vulkan))
+            else if (IsLogGL || (!LogLoaded && DefaultType == GraphicsAPI.OpenGL) ||
+                     IsLogVK || (!LogLoaded && DefaultType == GraphicsAPI.Vulkan))
             {
                 switch (stage)
                 {
@@ -221,8 +221,8 @@ namespace renderdocui.Code
 
         public string OutputAbbrev()
         {
-            if (IsLogGL || (!LogLoaded && DefaultType == APIPipelineStateType.OpenGL) ||
-                IsLogVK || (!LogLoaded && DefaultType == APIPipelineStateType.Vulkan))
+            if (IsLogGL || (!LogLoaded && DefaultType == GraphicsAPI.OpenGL) ||
+                IsLogVK || (!LogLoaded && DefaultType == GraphicsAPI.Vulkan))
             {
                 return "FB";
             }

@@ -88,7 +88,7 @@ public:
 
   virtual void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
                              vector<byte> &retData) = 0;
-  virtual byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+  virtual byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
                                FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
                                float blackPoint, float whitePoint, size_t &dataSize) = 0;
 

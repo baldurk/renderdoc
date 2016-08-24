@@ -102,7 +102,7 @@ namespace renderdocui.Windows.PipelineState
             }
 
             m_Current = m_D3D11;
-            m_Core.CurPipelineState.DefaultType = APIPipelineStateType.D3D11;
+            m_Core.CurPipelineState.DefaultType = GraphicsAPI.D3D11;
         }
 
         private void SetToGL()
@@ -119,7 +119,7 @@ namespace renderdocui.Windows.PipelineState
             }
 
             m_Current = m_GL;
-            m_Core.CurPipelineState.DefaultType = APIPipelineStateType.OpenGL;
+            m_Core.CurPipelineState.DefaultType = GraphicsAPI.OpenGL;
         }
 
         private void SetToVulkan()
@@ -136,16 +136,16 @@ namespace renderdocui.Windows.PipelineState
             }
 
             m_Current = m_Vulkan;
-            m_Core.CurPipelineState.DefaultType = APIPipelineStateType.Vulkan;
+            m_Core.CurPipelineState.DefaultType = GraphicsAPI.Vulkan;
         }
 
         public void OnLogfileLoaded()
         {
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.D3D11)
                 SetToD3D11();
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
                 SetToGL();
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan)
                 SetToVulkan();
 
             m_Current.OnLogfileLoaded();

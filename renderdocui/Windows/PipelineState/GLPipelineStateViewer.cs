@@ -291,7 +291,7 @@ namespace renderdocui.Windows.PipelineState
             }
             else
             {
-                string shaderName = stage.stage.Str(APIPipelineStateType.OpenGL) + " Shader";
+                string shaderName = stage.stage.Str(GraphicsAPI.OpenGL) + " Shader";
 
                 if (!stage.customShaderName && !stage.customProgramName && !stage.customPipelineName)
                 {
@@ -2470,7 +2470,7 @@ namespace renderdocui.Windows.PipelineState
                 }
                 else
                 {
-                    string shname = sh.stage.Str(APIPipelineStateType.OpenGL) + " Shader";
+                    string shname = sh.stage.Str(GraphicsAPI.OpenGL) + " Shader";
 
                     if (!sh.customShaderName && !sh.customProgramName && !sh.customPipelineName)
                     {

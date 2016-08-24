@@ -120,7 +120,8 @@ APIProperties GLReplay::GetAPIProperties()
 {
   APIProperties ret;
 
-  ret.pipelineType = ePipelineState_OpenGL;
+  ret.pipelineType = eGraphicsAPI_OpenGL;
+  ret.localRenderer = eGraphicsAPI_OpenGL;
   ret.degraded = false;
 
   return ret;
@@ -2215,7 +2216,7 @@ void GLReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32
                        outvars, data);
 }
 
-byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
                                FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
                                float blackPoint, float whitePoint, size_t &dataSize)
 {
@@ -2486,62 +2487,72 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
 
       m_pDriver->glGetTexImage(target, (GLint)mip, fmt, type, ret);
 
-      // need to vertically flip the image now to get conventional row ordering
-      // we either do this when copying out the slice of interest, or just
-      // on its own
-      size_t rowSize = GetByteSize(width, 1, 1, fmt, type);
-      byte *src, *dst;
+      // if we're saving to disk we make the decision to vertically flip any non-compressed
+      // images. This is a bit arbitrary, but really origin top-left is common for all disk
+      // formats so we do this flip from bottom-left origin. We only do this for saving to
+      // disk so that if we're transferring over the network etc for remote replay, the image
+      // order is consistent (and we just need to take care to apply an extra vertical flip
+      // for display when proxying).
 
-      // for arrays just extract the slice we're interested in.
-      if(texType == eGL_TEXTURE_2D_ARRAY || texType == eGL_TEXTURE_1D_ARRAY ||
-         texType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+      if(forDiskSave)
       {
-        dataSize = GetByteSize(width, height, 1, fmt, type);
-        byte *slice = new byte[dataSize];
+        // need to vertically flip the image now to get conventional row ordering
+        // we either do this when copying out the slice of interest, or just
+        // on its own
+        size_t rowSize = GetByteSize(width, 1, 1, fmt, type);
+        byte *src, *dst;
 
-        // src points to the last row in the array slice image
-        src = (ret + dataSize * arrayIdx) + (height - 1) * rowSize;
-        dst = slice;
-
-        // we do memcpy + vertical flip
-        // memcpy(slice, ret + dataSize*arrayIdx, dataSize);
-
-        for(GLsizei i = 0; i < height; i++)
+        // for arrays just extract the slice we're interested in.
+        if(texType == eGL_TEXTURE_2D_ARRAY || texType == eGL_TEXTURE_1D_ARRAY ||
+           texType == eGL_TEXTURE_CUBE_MAP_ARRAY)
         {
-          memcpy(dst, src, rowSize);
+          dataSize = GetByteSize(width, height, 1, fmt, type);
+          byte *slice = new byte[dataSize];
 
-          dst += rowSize;
-          src -= rowSize;
-        }
+          // src points to the last row in the array slice image
+          src = (ret + dataSize * arrayIdx) + (height - 1) * rowSize;
+          dst = slice;
 
-        delete[] ret;
+          // we do memcpy + vertical flip
+          // memcpy(slice, ret + dataSize*arrayIdx, dataSize);
 
-        ret = slice;
-      }
-      else
-      {
-        byte *row = new byte[rowSize];
-
-        size_t sliceSize = GetByteSize(width, height, 1, fmt, type);
-
-        // invert all slices in a 3D texture
-        for(GLsizei d = 0; d < depth; d++)
-        {
-          dst = ret + d * sliceSize;
-          src = dst + (height - 1) * rowSize;
-
-          for(GLsizei i = 0; i<height>> 1; i++)
+          for(GLsizei i = 0; i < height; i++)
           {
-            memcpy(row, src, rowSize);
-            memcpy(src, dst, rowSize);
-            memcpy(dst, row, rowSize);
+            memcpy(dst, src, rowSize);
 
             dst += rowSize;
             src -= rowSize;
           }
-        }
 
-        delete[] row;
+          delete[] ret;
+
+          ret = slice;
+        }
+        else
+        {
+          byte *row = new byte[rowSize];
+
+          size_t sliceSize = GetByteSize(width, height, 1, fmt, type);
+
+          // invert all slices in a 3D texture
+          for(GLsizei d = 0; d < depth; d++)
+          {
+            dst = ret + d * sliceSize;
+            src = dst + (height - 1) * rowSize;
+
+            for(GLsizei i = 0; i<height>> 1; i++)
+            {
+              memcpy(row, src, rowSize);
+              memcpy(src, dst, rowSize);
+              memcpy(dst, row, rowSize);
+
+              dst += rowSize;
+              src -= rowSize;
+            }
+          }
+
+          delete[] row;
+        }
       }
     }
 
@@ -2790,18 +2801,22 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
 
   GLenum intFormat = MakeGLFormat(gl, templateTex.format);
 
+  GLenum binding = eGL_NONE;
+
   switch(templateTex.resType)
   {
     case eResType_None: break;
     case eResType_Buffer:
     case eResType_Texture1D:
     {
+      binding = eGL_TEXTURE_1D;
       gl.glBindTexture(eGL_TEXTURE_1D, tex);
       gl.glTextureStorage1DEXT(tex, eGL_TEXTURE_1D, templateTex.mips, intFormat, templateTex.width);
       break;
     }
     case eResType_Texture1DArray:
     {
+      binding = eGL_TEXTURE_1D_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_1D_ARRAY, tex);
       gl.glTextureStorage2DEXT(tex, eGL_TEXTURE_1D_ARRAY, templateTex.mips, intFormat,
                                templateTex.width, templateTex.arraysize);
@@ -2810,6 +2825,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     case eResType_TextureRect:
     case eResType_Texture2D:
     {
+      binding = eGL_TEXTURE_2D;
       gl.glBindTexture(eGL_TEXTURE_2D, tex);
       gl.glTextureStorage2DEXT(tex, eGL_TEXTURE_2D, templateTex.mips, intFormat, templateTex.width,
                                templateTex.height);
@@ -2817,6 +2833,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_Texture2DArray:
     {
+      binding = eGL_TEXTURE_2D_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, tex);
       gl.glTextureStorage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, templateTex.mips, intFormat,
                                templateTex.width, templateTex.height, templateTex.arraysize);
@@ -2824,6 +2841,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_Texture2DMS:
     {
+      binding = eGL_TEXTURE_2D_MULTISAMPLE;
       gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, tex);
       gl.glTextureStorage2DMultisampleEXT(tex, eGL_TEXTURE_2D_MULTISAMPLE, templateTex.msSamp,
                                           intFormat, templateTex.width, templateTex.height, GL_TRUE);
@@ -2831,6 +2849,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_Texture2DMSArray:
     {
+      binding = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, tex);
       gl.glTextureStorage3DMultisampleEXT(tex, eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, templateTex.msSamp,
                                           intFormat, templateTex.width, templateTex.height,
@@ -2839,6 +2858,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_Texture3D:
     {
+      binding = eGL_TEXTURE_3D;
       gl.glBindTexture(eGL_TEXTURE_3D, tex);
       gl.glTextureStorage3DEXT(tex, eGL_TEXTURE_3D, templateTex.mips, intFormat, templateTex.width,
                                templateTex.height, templateTex.depth);
@@ -2846,6 +2866,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_TextureCube:
     {
+      binding = eGL_TEXTURE_CUBE_MAP;
       gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, tex);
       gl.glTextureStorage2DEXT(tex, eGL_TEXTURE_CUBE_MAP, templateTex.mips, intFormat,
                                templateTex.width, templateTex.height);
@@ -2853,6 +2874,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_TextureCubeArray:
     {
+      binding = eGL_TEXTURE_CUBE_MAP_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_CUBE_MAP_ARRAY, tex);
       gl.glTextureStorage3DEXT(tex, eGL_TEXTURE_CUBE_MAP_ARRAY, templateTex.mips, intFormat,
                                templateTex.width, templateTex.height, templateTex.arraysize);
@@ -2863,6 +2885,19 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
       RDCERR("Invalid shader resource type");
       break;
     }
+  }
+
+  if(templateTex.format.bgraOrder && binding != eGL_NONE)
+  {
+    GLint bgraSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ALPHA};
+    GLint bgrSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ONE};
+
+    if(templateTex.format.compCount == 4)
+      gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgraSwizzle);
+    else if(templateTex.format.compCount == 3)
+      gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgrSwizzle);
+    else
+      RDCERR("Unexpected component count %d for BGRA order format", templateTex.format.compCount);
   }
 
   if(templateTex.customName)
@@ -2883,7 +2918,7 @@ void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t
   GLenum fmt = texdetails.internalFormat;
   GLenum target = texdetails.curType;
 
-  if(IsCompressedFormat(target))
+  if(IsCompressedFormat(fmt))
   {
     if(target == eGL_TEXTURE_1D)
     {

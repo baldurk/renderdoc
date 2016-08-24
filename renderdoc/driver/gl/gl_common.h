@@ -130,6 +130,11 @@ const GLenum eGL_LIGHTING = (GLenum)0x0B50;
 const GLenum eGL_ALPHA_TEST = (GLenum)0x0BC0;
 const GLenum eGL_CLAMP = (GLenum)0x2900;
 
+// convenience, the script to pick these out doesn't find them since they are #define'd
+// to just straight integers not hex codes
+const GLenum eGL_ZERO = (GLenum)0;
+const GLenum eGL_ONE = (GLenum)1;
+
 class WrappedOpenGL;
 struct GLHookSet;
 

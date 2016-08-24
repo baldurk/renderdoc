@@ -1112,6 +1112,7 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
       gl.glBindTexture(eGL_TEXTURE_2D, GlyphTexture);
       gl.glTexImage2D(eGL_TEXTURE_2D, 0, texFmt, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, 0, eGL_RED,
                       eGL_UNSIGNED_BYTE, buf);
+      gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
       gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_LINEAR);
       gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
 

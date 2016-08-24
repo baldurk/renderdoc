@@ -235,11 +235,11 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
 
     TextureDisplay &d = m_TexDisplay;
 
-    if(m_Core->APIProps().pipelineType == ePipelineState_D3D11)
+    if(m_Core->APIProps().pipelineType == eGraphicsAPI_D3D11)
     {
       d.texid = m_Core->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
     }
-    else if(m_Core->APIProps().pipelineType == ePipelineState_OpenGL)
+    else if(m_Core->APIProps().pipelineType == eGraphicsAPI_OpenGL)
     {
       d.texid = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Color[0].Obj;
     }

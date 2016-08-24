@@ -224,7 +224,7 @@ namespace renderdoc
       Fastest,
     };
 
-    public enum APIPipelineStateType
+    public enum GraphicsAPI
     {
         D3D11,
         OpenGL,
@@ -685,9 +685,9 @@ namespace renderdoc
             return "Unknown resource type";
         }
 
-        public static string Str(this ResourceUsage usage, APIPipelineStateType apitype)
+        public static string Str(this ResourceUsage usage, GraphicsAPI apitype)
         {
-            if (apitype == APIPipelineStateType.D3D11)
+            if (apitype == GraphicsAPI.D3D11)
             {
                 switch (usage)
                 {
@@ -734,9 +734,9 @@ namespace renderdoc
                     case ResourceUsage.Barrier: return "Barrier";
                 }
             }
-            else if (apitype == APIPipelineStateType.OpenGL || apitype == APIPipelineStateType.Vulkan)
+            else if (apitype == GraphicsAPI.OpenGL || apitype == GraphicsAPI.Vulkan)
             {
-                bool vk = (apitype == APIPipelineStateType.Vulkan);
+                bool vk = (apitype == GraphicsAPI.Vulkan);
 
                 switch (usage)
                 {
@@ -787,9 +787,9 @@ namespace renderdoc
             return "Unknown Usage String";
         }
 
-        public static string Str(this ShaderStageType stage, APIPipelineStateType apitype)
+        public static string Str(this ShaderStageType stage, GraphicsAPI apitype)
         {
-            if (apitype == APIPipelineStateType.D3D11)
+            if (apitype == GraphicsAPI.D3D11)
             {
                 switch (stage)
                 {
@@ -801,7 +801,7 @@ namespace renderdoc
                     case ShaderStageType.Compute: return "Compute";
                 }
             }
-            else if (apitype == APIPipelineStateType.OpenGL || apitype == APIPipelineStateType.Vulkan)
+            else if (apitype == GraphicsAPI.OpenGL || apitype == GraphicsAPI.Vulkan)
             {
                 switch (stage)
                 {

@@ -229,13 +229,13 @@ namespace renderdocui.Controls
         {
             get
             {
-                APIPipelineStateType pipeType = APIPipelineStateType.D3D11;
+                GraphicsAPI pipeType = GraphicsAPI.D3D11;
                 if (m_Core != null && m_Core.APIProps != null)
                     pipeType = m_Core.APIProps.pipelineType;
 
                 string ret = String.Format("{0} {1} {2}",
                     Stage.Str(pipeType),
-                    pipeType == APIPipelineStateType.D3D11 ? "CB" : "UBO",
+                    pipeType == GraphicsAPI.D3D11 ? "CB" : "UBO",
                     Slot);
 
                 if (m_Core != null && m_Core.CurPipelineState.SupportsResourceArrays)

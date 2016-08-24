@@ -1057,9 +1057,10 @@ template <>
 void Serialiser::Serialise(const char *name, APIProperties &el)
 {
   Serialise("", el.pipelineType);
+  Serialise("", el.localRenderer);
   Serialise("", el.degraded);
 
-  SIZE_CHECK(APIProperties, 8);
+  SIZE_CHECK(APIProperties, 12);
 }
 
 template <>
@@ -1494,7 +1495,7 @@ string ToStrHelper<false, TextureDisplayOverlay>::Get(const TextureDisplayOverla
   return "<...>";
 }
 template <>
-string ToStrHelper<false, APIPipelineStateType>::Get(const APIPipelineStateType &el)
+string ToStrHelper<false, GraphicsAPI>::Get(const GraphicsAPI &el)
 {
   return "<...>";
 }
@@ -1718,7 +1719,8 @@ void ReplayProxy::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t 
     ResourceId proxyid = m_ProxyTextureIds[texid];
 
     size_t size;
-    byte *data = GetTextureData(texid, arrayIdx, mip, eCompType_None, false, false, 0.0f, 0.0f, size);
+    byte *data =
+        GetTextureData(texid, arrayIdx, mip, false, eCompType_None, false, false, 0.0f, 0.0f, size);
 
     if(data)
       m_Proxy->SetProxyTextureData(proxyid, arrayIdx, mip, data, size);
@@ -1817,7 +1819,7 @@ bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
     case eReplayProxy_GetTextureData:
     {
       size_t dummy;
-      GetTextureData(ResourceId(), 0, 0, eCompType_None, false, false, 0.0f, 0.0f, dummy);
+      GetTextureData(ResourceId(), 0, 0, false, eCompType_None, false, false, 0.0f, 0.0f, dummy);
       break;
     }
     case eReplayProxy_InitPostVS: InitPostVSBuffers(0); break;
@@ -1894,6 +1896,11 @@ APIProperties ReplayProxy::GetAPIProperties()
   }
 
   m_FromReplaySerialiser->Serialise("", ret);
+
+  if(!m_RemoteServer)
+    ret.localRenderer = m_Proxy->GetAPIProperties().localRenderer;
+
+  m_APIProps = ret;
 
   return ret;
 }
@@ -2287,13 +2294,14 @@ void ReplayProxy::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, 
   }
 }
 
-byte *ReplayProxy::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+byte *ReplayProxy::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
                                   FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
                                   float blackPoint, float whitePoint, size_t &dataSize)
 {
   m_ToReplaySerialiser->Serialise("", tex);
   m_ToReplaySerialiser->Serialise("", arrayIdx);
   m_ToReplaySerialiser->Serialise("", mip);
+  m_ToReplaySerialiser->Serialise("", forDiskSave);
   m_ToReplaySerialiser->Serialise("", typeHint);
   m_ToReplaySerialiser->Serialise("", resolve);
   m_ToReplaySerialiser->Serialise("", forceRGBA8unorm);
@@ -2302,8 +2310,8 @@ byte *ReplayProxy::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 
   if(m_RemoteServer)
   {
-    byte *data = m_Remote->GetTextureData(tex, arrayIdx, mip, typeHint, resolve, forceRGBA8unorm,
-                                          blackPoint, whitePoint, dataSize);
+    byte *data = m_Remote->GetTextureData(tex, arrayIdx, mip, forDiskSave, typeHint, resolve,
+                                          forceRGBA8unorm, blackPoint, whitePoint, dataSize);
 
     byte *compressed = new byte[LZ4_COMPRESSBOUND(dataSize)];
 

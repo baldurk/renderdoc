@@ -407,7 +407,12 @@ struct FetchDrawcall
 
 struct APIProperties
 {
-  APIPipelineStateType pipelineType;
+  // the pipeline type of the actual log/capture
+  GraphicsAPI pipelineType;
+  // the renderer used to render the log. For remote replay this could
+  // be different to the above, and lets the UI make decisions e.g. to
+  // flip rendering of images
+  GraphicsAPI localRenderer;
   bool32 degraded;
 };
 
