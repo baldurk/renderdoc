@@ -115,7 +115,7 @@ private:
   {
     AMD,
     NV,
-	UNKNOWN
+    UNKNOWN,
   } m_Vendor;
 
   uint32_t m_Major, m_Minor, m_Patch;
