@@ -647,7 +647,8 @@ APIProperties VulkanReplay::GetAPIProperties()
 {
   APIProperties ret;
 
-  ret.pipelineType = ePipelineState_Vulkan;
+  ret.pipelineType = eGraphicsAPI_Vulkan;
+  ret.localRenderer = eGraphicsAPI_Vulkan;
   ret.degraded = false;
 
   return ret;

@@ -773,14 +773,15 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public class APIProperties
     {
-        public APIPipelineStateType pipelineType;
+        public GraphicsAPI pipelineType;
+        public GraphicsAPI localRenderer;
         public bool degraded;
 
         public string ShaderExtension
         {
             get
             {
-                return pipelineType == APIPipelineStateType.D3D11 ? ".hlsl" : ".glsl";
+                return pipelineType == GraphicsAPI.D3D11 ? ".hlsl" : ".glsl";
             }
         }
     };

@@ -362,7 +362,8 @@ APIProperties D3D11Replay::GetAPIProperties()
 {
   APIProperties ret;
 
-  ret.pipelineType = ePipelineState_D3D11;
+  ret.pipelineType = eGraphicsAPI_D3D11;
+  ret.localRenderer = eGraphicsAPI_D3D11;
   ret.degraded = m_WARP;
 
   return ret;

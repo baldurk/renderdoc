@@ -695,7 +695,7 @@ namespace renderdocui.Windows
             m_PickedPoint = new Point(x, y);
 
             uint mipHeight = Math.Max(1, CurrentTexture.height >> (int)m_TexDisplay.mip);
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
                 m_PickedPoint.Y = (int)(mipHeight - 1) - m_PickedPoint.Y;
             if (m_TexDisplay.FlipY)
                 m_PickedPoint.Y = (int)(mipHeight - 1) - m_PickedPoint.Y;
@@ -906,7 +906,7 @@ namespace renderdocui.Windows
 
             string src = "";
 
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.D3D11)
             {
                 src = String.Format(
                     "float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0) : SV_Target0{0}" +
@@ -915,8 +915,8 @@ namespace renderdocui.Windows
                     "}}{0}"
                     , Environment.NewLine);
             }
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL ||
-                m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL ||
+                m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan)
             {
                 src = String.Format(
                     "#version 420 core{0}{0}" +
@@ -2092,7 +2092,7 @@ namespace renderdocui.Windows
             uint mipWidth = Math.Max(1, tex.width >> (int)m_TexDisplay.mip);
             uint mipHeight = Math.Max(1, tex.height >> (int)m_TexDisplay.mip);
 
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
                 y = (int)(mipHeight - 1) - y;
             if (m_TexDisplay.FlipY)
                 y = (int)(mipHeight - 1) - y;
@@ -2115,7 +2115,7 @@ namespace renderdocui.Windows
             {
                 x = m_PickedPoint.X >> (int)m_TexDisplay.mip;
                 y = m_PickedPoint.Y >> (int)m_TexDisplay.mip;
-                if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+                if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
                     y = (int)(mipHeight - 1) - y;
                 if (m_TexDisplay.FlipY)
                     y = (int)(mipHeight - 1) - y;
@@ -2739,7 +2739,7 @@ namespace renderdocui.Windows
 
                 uint mipHeight = Math.Max(1, CurrentTexture.height >> (int)m_TexDisplay.mip);
 
-                if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+                if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
                     p.Y = (int)(mipHeight - 1) - p.Y;
                 if (m_TexDisplay.FlipY)
                     p.Y = (int)(mipHeight - 1) - p.Y;

@@ -38,7 +38,9 @@ public:
     if(m_Proxy == NULL)
       RDCERR("Unexpectedly NULL proxy at creation of ImageViewer");
 
-    m_Props.pipelineType = ePipelineState_D3D11;
+    // start with props so that m_Props.localRenderer is correct
+    m_Props = m_Proxy->GetAPIProperties();
+    m_Props.pipelineType = eGraphicsAPI_D3D11;
     m_Props.degraded = false;
 
     m_FrameRecord.frameInfo.fileOffset = 0;

@@ -259,7 +259,7 @@ namespace renderdocui.Windows
             m_CloseCallback = closeCallback;
 
             if (m_Core.LogLoaded)
-                pointLinearSamplersToolStripMenuItem.Visible = (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11);
+                pointLinearSamplersToolStripMenuItem.Visible = (m_Core.APIProps.pipelineType == GraphicsAPI.D3D11);
 
             DockContent sel = null;
 
@@ -524,7 +524,7 @@ namespace renderdocui.Windows
             }
 
             {
-                m_DisassemblyView = MakeEditor("scintillaDisassem", disasm, m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan);
+                m_DisassemblyView = MakeEditor("scintillaDisassem", disasm, m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan);
                 m_DisassemblyView.IsReadOnly = true;
                 m_DisassemblyView.TabIndex = 0;
 
@@ -775,7 +775,7 @@ namespace renderdocui.Windows
             ((System.ComponentModel.ISupportInitialize)(scintilla1)).EndInit();
 
             string syntaxtype = m_Core.APIProps.ShaderExtension.Substring(1);
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan)
                 syntaxtype = "hlsl";
             var syntaxpath = Path.Combine(Core.ConfigDirectory, syntaxtype + ".xml");
 
@@ -1054,7 +1054,7 @@ namespace renderdocui.Windows
                         break;
                 }
             }
-            else if(m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+            else if(m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan)
             {
                 // for vulkan, highlight the word since SPIR-V doesn't have marked up
                 // registers etc.
@@ -1707,7 +1707,7 @@ namespace renderdocui.Windows
 
         public void OnLogfileLoaded()
         {
-            pointLinearSamplersToolStripMenuItem.Visible = (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11);
+            pointLinearSamplersToolStripMenuItem.Visible = (m_Core.APIProps.pipelineType == GraphicsAPI.D3D11);
         }
 
         public void OnEventSelected(UInt32 eventID)
@@ -2065,7 +2065,7 @@ namespace renderdocui.Windows
 
         private int GetPostVersionInsertPosition()
         {
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.D3D11)
                 return 0;
 
             int ver = CurrentScintilla.Text.IndexOf("#version");
@@ -2096,11 +2096,11 @@ namespace renderdocui.Windows
             if (CurrentScintilla == null)
                 return;
 
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.D3D11)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uniform uvec4 RENDERDOC_TexDim; // xyz == width, height, depth. w == # mips" + Environment.NewLine + Environment.NewLine);
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan)
                 InsertVulkanUBO();
             CurrentScintilla.CurrentPos = 0;
         }
@@ -2110,11 +2110,11 @@ namespace renderdocui.Windows
             if (CurrentScintilla == null)
                 return;
 
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan)
                 InsertVulkanUBO();
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.D3D11)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint RENDERDOC_SelectedMip; // selected mip in UI" + Environment.NewLine + Environment.NewLine);
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uniform uint RENDERDOC_SelectedMip; // selected mip in UI" + Environment.NewLine + Environment.NewLine);
             CurrentScintilla.CurrentPos = 0;
         }
@@ -2124,11 +2124,11 @@ namespace renderdocui.Windows
             if (CurrentScintilla == null)
                 return;
 
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan)
                 InsertVulkanUBO();
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.D3D11)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint RENDERDOC_SelectedSliceFace; // selected array slice or cubemap face in UI" + Environment.NewLine + Environment.NewLine);
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uniform uint RENDERDOC_SelectedSliceFace; // selected array slice or cubemap face in UI" + Environment.NewLine + Environment.NewLine);
             CurrentScintilla.CurrentPos = 0;
         }
@@ -2138,11 +2138,11 @@ namespace renderdocui.Windows
             if (CurrentScintilla == null)
                 return;
 
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan)
                 InsertVulkanUBO();
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.D3D11)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "int RENDERDOC_SelectedSample; // selected MSAA sample or -numSamples for resolve. See docs" + Environment.NewLine + Environment.NewLine);
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uniform int RENDERDOC_SelectedSample; // selected MSAA sample or -numSamples for resolve. See docs" + Environment.NewLine + Environment.NewLine);
             CurrentScintilla.CurrentPos = 0;
         }
@@ -2152,11 +2152,11 @@ namespace renderdocui.Windows
             if (CurrentScintilla == null)
                 return;
 
-            if(m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            if(m_Core.APIProps.pipelineType == GraphicsAPI.D3D11)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Depth, 5 = Depth + Stencil, 6 = Depth (MS), 7 = Depth + Stencil (MS)" + Environment.NewLine + Environment.NewLine);
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "uniform uint RENDERDOC_TextureType; // 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube, 5 = 1DArray, 6 = 2DArray, 7 = CubeArray, 8 = Rect, 9 = Buffer, 10 = 2DMS" + Environment.NewLine + Environment.NewLine);
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan)
                 InsertVulkanUBO();
             CurrentScintilla.CurrentPos = 0;
         }
@@ -2166,7 +2166,7 @@ namespace renderdocui.Windows
             if (CurrentScintilla == null)
                 return;
 
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.D3D11)
             {
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "// Samplers" + Environment.NewLine +
                                                 "SamplerState pointSampler : register(s0);" + Environment.NewLine +
@@ -2181,7 +2181,7 @@ namespace renderdocui.Windows
             if (CurrentScintilla == null)
                 return;
 
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.D3D11)
             {
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "// Textures" + Environment.NewLine +
                                                 "Texture1DArray<float4> texDisplayTex1DArray : register(t1);" + Environment.NewLine +
@@ -2205,7 +2205,7 @@ namespace renderdocui.Windows
                                                 "Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(t29);" + Environment.NewLine +
                                                 "// End Textures" + Environment.NewLine + Environment.NewLine);
             }
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
             {
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "// Textures" + Environment.NewLine +
                                                 "// Unsigned int samplers" + Environment.NewLine +
@@ -2244,7 +2244,7 @@ namespace renderdocui.Windows
                                                 "layout (binding = 9) uniform samplerBuffer texBuffer;" + Environment.NewLine +
                                                 "layout (binding = 10) uniform sampler2DMS tex2DMS;" + Environment.NewLine + Environment.NewLine);
             }
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.Vulkan)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan)
             {
                 CurrentScintilla.InsertText(GetPostVersionInsertPosition(), "// Textures" + Environment.NewLine +
                                                 "// Floating point samplers" + Environment.NewLine +

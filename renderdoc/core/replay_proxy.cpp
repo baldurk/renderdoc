@@ -1057,9 +1057,10 @@ template <>
 void Serialiser::Serialise(const char *name, APIProperties &el)
 {
   Serialise("", el.pipelineType);
+  Serialise("", el.localRenderer);
   Serialise("", el.degraded);
 
-  SIZE_CHECK(APIProperties, 8);
+  SIZE_CHECK(APIProperties, 12);
 }
 
 template <>
@@ -1494,7 +1495,7 @@ string ToStrHelper<false, TextureDisplayOverlay>::Get(const TextureDisplayOverla
   return "<...>";
 }
 template <>
-string ToStrHelper<false, APIPipelineStateType>::Get(const APIPipelineStateType &el)
+string ToStrHelper<false, GraphicsAPI>::Get(const GraphicsAPI &el)
 {
   return "<...>";
 }
@@ -1891,6 +1892,9 @@ APIProperties ReplayProxy::GetAPIProperties()
   {
     if(!SendReplayCommand(eReplayProxy_GetAPIProperties))
       return ret;
+
+    APIProperties local = m_Proxy->GetAPIProperties();
+    ret.localRenderer = local.localRenderer;
   }
 
   m_FromReplaySerialiser->Serialise("", ret);
