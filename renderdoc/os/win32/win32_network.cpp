@@ -326,7 +326,7 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
         timeval timeout;
         timeout.tv_sec = (timeoutMS / 1000);
         timeout.tv_usec = (timeoutMS % 1000) * 1000;
-        result = select(0, NULL, &set, NULL, &timeout);
+        result = select((int)s + 1, NULL, &set, NULL, &timeout);
 
         if(result <= 0)
         {
@@ -334,21 +334,12 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
           closesocket(s);
           continue;
         }
-        else
-        {
-          RDCDEBUG("connect before timeout");
-        }
       }
       else
       {
-        RDCDEBUG("problem other than blocking");
         closesocket(s);
         continue;
       }
-    }
-    else
-    {
-      RDCDEBUG("connected immediately");
     }
 
     BOOL nodelay = TRUE;
