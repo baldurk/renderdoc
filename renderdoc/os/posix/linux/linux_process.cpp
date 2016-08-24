@@ -27,6 +27,9 @@
 
 extern char **environ;
 
+#define INITIAL_WAIT_TIME 1000
+#define MAX_WAIT_TIME 63000
+
 char **GetCurrentEnvironment()
 {
   return environ;
@@ -38,11 +41,17 @@ int GetIdentPort(pid_t childPid)
 
   string procfile = StringFormat::Fmt("/proc/%d/net/tcp", (int)childPid);
 
+  int waitTime = INITIAL_WAIT_TIME;
+  int totalWaitTime = 0;
+
   // try for a little while for the /proc entry to appear
-  for(int retry = 0; retry < 10; retry++)
+  while(totalWaitTime <= MAX_WAIT_TIME)
   {
     // back-off for each retry
-    usleep(1000 + 500 * retry);
+    usleep(waitTime);
+
+    totalWaitTime += waitTime;
+    waitTime *= 2;
 
     FILE *f = FileIO::fopen(procfile.c_str(), "r");
 
