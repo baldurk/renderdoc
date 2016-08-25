@@ -2172,13 +2172,19 @@ bool WrappedID3D11DeviceContext::Serialise_SOSetTargets(UINT NumBuffers_,
 {
   SERIALISE_ELEMENT(uint32_t, NumBuffers, NumBuffers_);
 
-  SERIALISE_ELEMENT_ARR(uint32_t, Offsets, pOffsets, NumBuffers);
+  UINT DefaultOffsets[] = {
+      ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, ~0U, ~0U,
+  };
+  RDCCOMPILE_ASSERT(ARRAY_COUNT(DefaultOffsets) >= D3D11_SO_STREAM_COUNT,
+                    "Insufficiently sized array of default offsets");
+
+  SERIALISE_ELEMENT_ARR(uint32_t, Offsets, pOffsets ? pOffsets : DefaultOffsets, NumBuffers);
 
   ID3D11Buffer **Buffers = new ID3D11Buffer *[NumBuffers];
 
   for(UINT i = 0; i < NumBuffers; i++)
   {
-    SERIALISE_ELEMENT(ResourceId, id, GetIDForResource(ppSOTargets[i]));
+    SERIALISE_ELEMENT(ResourceId, id, ppSOTargets ? GetIDForResource(ppSOTargets[i]) : ResourceId());
 
     if(m_State <= EXECUTING && m_pDevice->GetResourceManager()->HasLiveResource(id))
       Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
@@ -2280,8 +2286,9 @@ void WrappedID3D11DeviceContext::SOSetTargets(UINT NumBuffers, ID3D11Buffer *con
 
   for(UINT b = 0; b < NumBuffers; b++)
   {
-    setbufs[b] = ppSOTargets[b];
-    setoffs[b] = pOffsets[b];
+    setbufs[b] = ppSOTargets ? ppSOTargets[b] : NULL;
+    // passing NULL for pOffsets seems to act like -1 => append
+    setoffs[b] = pOffsets ? pOffsets[b] : ~0U;
   }
 
   // end stream-out queries for outgoing targets
