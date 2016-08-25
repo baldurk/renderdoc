@@ -1943,6 +1943,32 @@ namespace renderdocui.Windows.PipelineState
                     }
                 }
 
+                ulong offs = 0;
+                ulong size = buf.length;
+
+                if (view != null)
+                {
+                    offs = view.FirstElement * view.ElementSize;
+                    size = view.NumElements * view.ElementSize;
+                }
+                else
+                {
+                    // last thing, see if it's a streamout buffer
+
+                    if (stage == m_Core.CurD3D11PipelineState.m_GS)
+                    {
+                        for(int i=0; i < m_Core.CurD3D11PipelineState.m_SO.Outputs.Length; i++)
+                        {
+                            if(buf.ID == m_Core.CurD3D11PipelineState.m_SO.Outputs[i].Buffer)
+                            {
+                                size -= m_Core.CurD3D11PipelineState.m_SO.Outputs[i].Offset;
+                                offs += m_Core.CurD3D11PipelineState.m_SO.Outputs[i].Offset;
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 if (deets != null)
                 {
                     ShaderResource[] resources = uav ? deets.ReadWriteResources : deets.ReadOnlyResources;
@@ -2022,9 +2048,9 @@ namespace renderdocui.Windows.PipelineState
                 {
                     var viewer = new BufferViewer(m_Core, false);
                     if (format.Length == 0)
-                        viewer.ViewRawBuffer(true, view.FirstElement * view.ElementSize, view.NumElements * view.ElementSize, buf.ID);
+                        viewer.ViewRawBuffer(true, offs, size, buf.ID);
                     else
-                        viewer.ViewRawBuffer(true, view.FirstElement * view.ElementSize, view.NumElements * view.ElementSize, buf.ID, format);
+                        viewer.ViewRawBuffer(true, offs, size, buf.ID, format);
                     viewer.Show(m_DockContent.DockPanel);
                 }
             }

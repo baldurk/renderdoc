@@ -2102,6 +2102,13 @@
             this.gsStreams.ViewOptions.Indent = 0;
             this.gsStreams.ViewOptions.ShowLine = false;
             this.gsStreams.ViewOptions.ShowPlusMinus = false;
+            this.gsStreams.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.textureCell_CellDoubleClick);
+            this.gsStreams.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.textureCell_CellDoubleClick);
+            this.gsStreams.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
+            this.gsStreams.Leave += new System.EventHandler(this.disableSelection_Leave);
+            this.gsStreams.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
+            this.gsStreams.MouseLeave += new System.EventHandler(this.textureCell_MouseLeave);
+            this.gsStreams.MouseMove += new System.Windows.Forms.MouseEventHandler(this.textureCell_MouseMove);
             // 
             // groupBox22
             // 
