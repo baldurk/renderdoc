@@ -35,8 +35,13 @@ endif()
 if(ANDROID)
     add_library(renderdoccmd SHARED ${sources})
 else()
+    set(CMAKE_SKIP_BUILD_RPATH TRUE)
+    set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
+    set(CMAKE_INSTALL_RPATH "$ORIGIN/")
+
     add_executable(renderdoccmd ${sources})
 endif()
+
 target_include_directories(renderdoccmd ${includes})
 target_link_libraries(renderdoccmd ${libraries})
 
