@@ -254,9 +254,12 @@ void rdclog_int(LogType type, const char *file, unsigned int line, const char *f
 
 const char *rdclog_getfilename();
 void rdclog_filename(const char *filename);
+void rdclog_enableoutput();
 
 #define RDCLOGFILE(fn) rdclog_filename(fn)
 #define RDCGETLOGFILE() rdclog_getfilename()
+
+#define RDCLOGOUTPUT() rdclog_enableoutput()
 
 #if(!defined(RELEASE) || defined(FORCE_DEBUG_LOGS)) && !defined(STRIP_DEBUG_LOGS)
 #define RDCDEBUG(...) rdclog(RDCLog_Debug, __VA_ARGS__)

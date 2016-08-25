@@ -272,6 +272,13 @@ void rdclog_filename(const char *filename)
     logfile() = filename;
 }
 
+static bool log_output_enabled = false;
+
+void rdclog_enableoutput()
+{
+  log_output_enabled = true;
+}
+
 void rdclog_flush()
 {
 }
@@ -287,12 +294,12 @@ void rdclogprint_int(LogType type, const char *fullMsg, const char *msg)
 #endif
 #if defined(OUTPUT_LOG_TO_STDOUT)
   // don't output debug messages to stdout/stderr
-  if(type != RDCLog_Debug)
+  if(type != RDCLog_Debug && log_output_enabled)
     OSUtility::WriteOutput(OSUtility::Output_StdOut, msg);
 #endif
 #if defined(OUTPUT_LOG_TO_STDERR)
   // don't output debug messages to stdout/stderr
-  if(type != RDCLog_Debug)
+  if(type != RDCLog_Debug && log_output_enabled)
     OSUtility::WriteOutput(OSUtility::Output_StdErr, msg);
 #endif
 #if defined(OUTPUT_LOG_TO_DISK)

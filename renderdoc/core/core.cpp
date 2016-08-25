@@ -322,6 +322,10 @@ void RenderDoc::Initialise()
       RecreateCrashHandler();
     }
   }
+
+  // begin printing to stdout/stderr after this point, earlier logging is debugging
+  // cruft that we don't want cluttering output
+  RDCLOGOUTPUT();
 }
 
 RenderDoc::~RenderDoc()
