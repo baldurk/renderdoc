@@ -120,7 +120,8 @@ static int command_usage(std::string command = "")
   if(!command.empty())
     std::cerr << command << " is not a valid command." << std::endl << std::endl;
 
-  std::cerr << "renderdoccmd <command> [args ...]" << std::endl << std::endl;
+  std::cerr << "Usage: renderdoccmd <command> [args ...]" << std::endl;
+  std::cerr << "Command line tool for capture & replay with RenderDoc." << std::endl << std::endl;
 
   std::cerr << "Command can be one of:" << std::endl;
 
