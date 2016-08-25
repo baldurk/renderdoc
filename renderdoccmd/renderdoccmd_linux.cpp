@@ -238,9 +238,67 @@ int main(int argc, char *argv[])
   signal(SIGINT, sig_handler);
   signal(SIGTERM, sig_handler);
 
-  // do any linux-specific setup here
+  // add compiled-in support to version line
+  {
+    string support = "APIs supported at compile-time: ";
+    int count = 0;
 
-  // process any linux-specific arguments here
+#if defined(RENDERDOC_SUPPORT_VULKAN)
+    support += "Vulkan, ";
+    count++;
+#endif
+
+#if defined(RENDERDOC_SUPPORT_GL)
+    support += "GL, ";
+    count++;
+#endif
+
+    if(count == 0)
+    {
+      support += "None.";
+    }
+    else
+    {
+      // remove trailing ', '
+      support.pop_back();
+      support.pop_back();
+      support += ".";
+    }
+
+    add_version_line(support);
+
+    support = "Windowing systems supported at compile-time: ";
+    count = 0;
+
+#if defined(RENDERDOC_WINDOWING_XLIB)
+    support += "xlib, ";
+    count++;
+#endif
+
+#if defined(RENDERDOC_WINDOWING_XCB)
+    support += "XCB, ";
+    count++;
+#endif
+
+#if defined(RENDERDOC_SUPPORT_VULKAN)
+    support += "Vulkan KHR_display, ";
+    count++;
+#endif
+
+    if(count == 0)
+    {
+      support += "None.";
+    }
+    else
+    {
+      // remove trailing ', '
+      support.pop_back();
+      support.pop_back();
+      support += ".";
+    }
+
+    add_version_line(support);
+  }
 
   return renderdoccmd(argc, argv);
 }

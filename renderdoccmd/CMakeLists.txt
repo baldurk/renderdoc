@@ -12,8 +12,6 @@ elseif(UNIX)
     list(APPEND sources renderdoccmd_linux.cpp)
 
     if(ENABLE_GL)
-        add_definitions(-DRENDERDOC_SUPPORT_GL)
-
         find_package(OpenGL REQUIRED)
         list(APPEND includes PRIVATE ${OPENGL_INCLUDE_DIR})
         list(APPEND libraries PRIVATE ${OPENGL_gl_LIBRARY})

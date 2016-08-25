@@ -37,6 +37,14 @@ option(ENABLE_XCB "Enable xcb windowing support" ON)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
+if(ENABLE_GL)
+    add_definitions(-DRENDERDOC_SUPPORT_GL)
+endif()
+
+if(ENABLE_VULKAN)
+    add_definitions(-DRENDERDOC_SUPPORT_VULKAN)
+endif()
+
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -fstrict-aliasing")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility=hidden -fvisibility-inlines-hidden")

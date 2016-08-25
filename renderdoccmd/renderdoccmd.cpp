@@ -153,6 +153,8 @@ static int command_usage(std::string command = "")
   return 2;
 }
 
+static std::vector<std::string> version_lines;
+
 struct VersionCommand : public Command
 {
   virtual void AddOptions(cmdline::parser &parser) {}
@@ -161,12 +163,20 @@ struct VersionCommand : public Command
   virtual bool IsCaptureCommand() { return false; }
   virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
   {
-    std::cout << "renderdoccmd " << RENDERDOC_GetVersionString()
-              << (sizeof(uintptr_t) == sizeof(uint64_t) ? " x64 " : " x86 ")
-              << RENDERDOC_GetCommitHash() << std::endl;
+    std::cout << "renderdoccmd " << (sizeof(uintptr_t) == sizeof(uint64_t) ? "x64 " : "x86 ")
+              << RENDERDOC_GetVersionString() << "-" << RENDERDOC_GetCommitHash() << std::endl;
+
+    for(size_t i = 0; i < version_lines.size(); i++)
+      std::cout << version_lines[i] << std::endl;
+
     return 0;
   }
 };
+
+void add_version_line(const std::string &str)
+{
+  version_lines.push_back(str);
+}
 
 struct HelpCommand : public Command
 {
