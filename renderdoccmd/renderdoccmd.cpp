@@ -548,11 +548,23 @@ int renderdoccmd(std::vector<std::string> &argv)
   {
     // add basic commands, and common aliases
     add_command("version", new VersionCommand());
+
     add_alias("--version", "version");
     add_alias("-v", "version");
+    // for windows
+    add_alias("/version", "version");
+    add_alias("/v", "version");
+
     add_command("help", new HelpCommand());
+
+    add_alias("--help", "help");
     add_alias("-h", "help");
     add_alias("-?", "help");
+
+    // for windows
+    add_alias("/help", "help");
+    add_alias("/h", "help");
+    add_alias("/?", "help");
 
     // add platform agnostic commands
     add_command("thumb", new ThumbCommand());
