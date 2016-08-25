@@ -39,6 +39,8 @@ extern "C" {
 #define LOGCAT_TAG "renderdoc"
 
 using std::string;
+using std::vector;
+using std::istringstream;
 
 struct android_app *android_state;
 
@@ -70,28 +72,57 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg
   }
 }
 
+// Returns the renderdoccmd arguments passed via am start
+// Examples: am start ... -e renderdoccmd "remoteserver"
+// -e renderdoccmd "replay /sdcard/capture.rdc"
+vector<string> getRenderdoccmdArgs()
+{
+  JNIEnv *env;
+  android_state->activity->vm->AttachCurrentThread(&env, 0);
+
+  jobject me = android_state->activity->clazz;
+
+  jclass acl = env->GetObjectClass(me);    // class pointer of NativeActivity
+  jmethodID giid = env->GetMethodID(acl, "getIntent", "()Landroid/content/Intent;");
+  jobject intent = env->CallObjectMethod(me, giid);    // Got our intent
+
+  jclass icl = env->GetObjectClass(intent);    // class pointer of Intent
+  jmethodID gseid =
+      env->GetMethodID(icl, "getStringExtra", "(Ljava/lang/String;)Ljava/lang/String;");
+
+  jstring jsParam1 =
+      (jstring)env->CallObjectMethod(intent, gseid, env->NewStringUTF("renderdoccmd"));
+
+  vector<string> ret;
+  if(!jsParam1)
+    return ret;    // No arg value found
+
+  ret.push_back("renderdoccmd");
+
+  const char *param1 = env->GetStringUTFChars(jsParam1, 0);
+  istringstream iss(param1);
+  while(iss)
+  {
+    string sub;
+    iss >> sub;
+    ret.push_back(sub);
+  }
+  return ret;
+}
+
 void handle_cmd(android_app *app, int32_t cmd)
 {
   switch(cmd)
   {
     case APP_CMD_INIT_WINDOW:
     {
-      // The window is being shown, get it ready.
-
-      __android_log_print(ANDROID_LOG_INFO, LOGCAT_TAG,
-                          "APP_CMD_INIT_WINDOW: android_state->window: %p", android_state->window);
-
-      const char *argv[] = {
-          "renderdoccmd", "replay", "/sdcard/capture.rdc",
-      };
-      int argc = sizeof(argv) / sizeof(argv[0]);
-      renderdoccmd(argc, (char **)argv);
+      vector<string> args = getRenderdoccmdArgs();
+      if(!args.size())
+        break;    // Nothing for APK to do.
+      renderdoccmd(args);
       break;
     }
-    case APP_CMD_TERM_WINDOW:
-      // The window is being hidden or closed, clean it up.
-      //	  DeleteVulkan();
-      break;
+    case APP_CMD_TERM_WINDOW: break;
     default: __android_log_print(ANDROID_LOG_INFO, LOGCAT_TAG, "event not handled: %d", cmd);
   }
 }
