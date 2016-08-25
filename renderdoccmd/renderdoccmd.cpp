@@ -506,12 +506,16 @@ struct ReplayCommand : public Command
           RENDERDOC_CreateReplayRenderer(filename.c_str(), &progress, &renderer);
 
       if(status == eReplayCreate_Success)
+      {
         DisplayRendererPreview(renderer, parser.get<uint32_t>("width"),
                                parser.get<uint32_t>("height"));
-      else
-        std::cerr << "Couldn't load and replay '" << filename << "'." << std::endl;
 
-      renderer->Shutdown();
+        renderer->Shutdown();
+      }
+      else
+      {
+        std::cerr << "Couldn't load and replay '" << filename << "'." << std::endl;
+      }
     }
     return 0;
   }
