@@ -279,6 +279,11 @@ if(ENABLE_GL)
     list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_gl>)
 endif()
 
+if(ENABLE_GLES)
+    add_subdirectory(driver/gles)
+    list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_gles>)
+endif()
+
 if(ENABLE_VULKAN)
     add_subdirectory(driver/vulkan)
     list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_vulkan>)

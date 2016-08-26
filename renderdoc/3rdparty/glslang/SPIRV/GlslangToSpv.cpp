@@ -5046,6 +5046,7 @@ spv::Id TGlslangToSpvTraverser::createShortCircuit(glslang::TOperator op, glslan
 
 // Return type Id of the imported set of extended instructions corresponds to the name.
 // Import this set if it has not been imported yet.
+/*
 spv::Id TGlslangToSpvTraverser::getExtBuiltins(const char* name)
 {
     if (extBuiltinMap.find(name) != extBuiltinMap.end())
@@ -5057,6 +5058,7 @@ spv::Id TGlslangToSpvTraverser::getExtBuiltins(const char* name)
         return extBuiltins;
     }
 }
+*/
 
 };  // end anonymous namespace
 
