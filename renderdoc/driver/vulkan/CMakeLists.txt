@@ -40,6 +40,12 @@ set(sources
 
 set(definitions ${RDOC_DEFINITIONS})
 
+# This must be specified separately because it needs to go in /etc regardless of what the install
+# prefix is, since the loader only looks in a set location (and /usr/share is reserved for distribution
+# packages). For people who want to 'make install' to another folder, perhaps for preparing a package,
+# they can set this variable to make sure it stays local
+set(VULKAN_LAYER_FOLDER /etc/vulkan/implicit_layer.d CACHE PATH "Path to install the vulkan layer file")
+
 if(ANDROID)
     list(APPEND sources vk_posix.cpp vk_android.cpp vk_tracelayer_android.cpp)
     list(APPEND definitions PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)
@@ -57,11 +63,11 @@ elseif(UNIX)
     set(json_in ${CMAKE_CURRENT_SOURCE_DIR}/renderdoc.json)
     set(json_out ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}/renderdoc_capture.json)
     add_custom_command(OUTPUT ${json_out}
-        COMMAND sed '{s%...renderdoc.dll%librenderdoc.so%}' < ${json_in} > ${json_out}
+        COMMAND sed '{s%...renderdoc.dll%${CMAKE_INSTALL_PREFIX}/lib/librenderdoc.so%}' < ${json_in} > ${json_out}
         DEPENDS ${json_in})
     add_custom_target(generate-json ALL DEPENDS ${json_out})
 
-    install (FILES ${json_out} DESTINATION share/vulkan/implicit_layer.d)
+    install (FILES ${json_out} DESTINATION ${VULKAN_LAYER_FOLDER})
 endif()
 
 # GCC 6.1 may or may not complain about enum reference casts

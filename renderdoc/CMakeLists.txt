@@ -228,7 +228,8 @@ set(data
     data/glsl/text.vert
     data/glsl/array2ms.comp
     data/glsl/ms2array.comp
-    data/sourcecodepro.ttf)
+    data/sourcecodepro.ttf
+    driver/vulkan/renderdoc.json)
 
 set(data_objects)
 
