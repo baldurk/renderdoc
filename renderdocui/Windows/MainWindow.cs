@@ -291,6 +291,9 @@ namespace renderdocui.Windows
 
             var me = (MainWindow)m;
 
+            if (!me.Created || me.IsDisposed)
+                return;
+
             // perform a probe of known remote hosts to see if they're running or not
             if (!me.m_Core.LogLoading && !me.m_Core.LogLoaded)
             {
@@ -368,8 +371,14 @@ namespace renderdocui.Windows
                 if (me.m_Core.Renderer.Remote != null)
                     me.m_Core.Renderer.PingRemote();
 
+                if(!me.Created || me.IsDisposed)
+                    return;
+
                 me.BeginInvoke(new Action(() =>
                 {
+                    if (!me.Created || me.IsDisposed)
+                        return;
+
                     if (me.m_Core.Renderer.Remote != null && !me.m_Core.Renderer.Remote.ServerRunning)
                     {
                         me.contextChooser.Image = global::renderdocui.Properties.Resources.cross;
