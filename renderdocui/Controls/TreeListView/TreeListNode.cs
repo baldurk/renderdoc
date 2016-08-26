@@ -222,6 +222,8 @@ namespace TreelistView
 			}
 			set
 			{
+				if (Owner == null)
+					return;
 				this[Owner.FieldIndex(fieldname)] = value;
 			}
 		}

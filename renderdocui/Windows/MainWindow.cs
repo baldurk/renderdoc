@@ -294,7 +294,7 @@ namespace renderdocui.Windows
             // perform a probe of known remote hosts to see if they're running or not
             if (!me.m_Core.LogLoading && !me.m_Core.LogLoaded)
             {
-                foreach (var host in me.m_Core.Config.RemoteHosts)
+                foreach (var host in me.m_Core.Config.RemoteHosts.ToArray())
                 {
                     // don't mess with a host we're connected to - this is handled anyway
                     if (host.Connected)
