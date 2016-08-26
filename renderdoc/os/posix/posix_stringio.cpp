@@ -130,8 +130,8 @@ string GetReplayAppFilename()
     }
   }
 
-  // out of ideas
-  return "";
+  // out of ideas, just return the filename and hope it's in PATH
+  return "qrenderdoc";
 }
 
 void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename,
