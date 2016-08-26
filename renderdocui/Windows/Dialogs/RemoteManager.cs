@@ -102,6 +102,8 @@ namespace renderdocui.Windows.Dialogs
         {
             InitializeComponent();
 
+            progressPicture.Image = global::renderdocui.Properties.Resources.hourglass;
+
             hosts_AfterSelect(hosts, new TreeViewEventArgs(null));
 
             Icon = global::renderdocui.Properties.Resources.icon;
@@ -133,10 +135,17 @@ namespace renderdocui.Windows.Dialogs
 
             hosts.Nodes.Add(node);
 
-            refresh.Enabled = false;
+            refreshOne.Enabled = refreshAll.Enabled = false;
+            UpdateLookupsStatus();
 
             Thread th = Helpers.NewThread(new ParameterizedThreadStart(LookupHostConnections));
             th.Start(node);
+        }
+
+        private void UpdateLookupsStatus()
+        {
+            lookupsProgressFlow.Visible = !refreshAll.Enabled;
+            remoteCountLabel.Text = String.Format("{0} lookups remaining", lookupsInProgress);
         }
 
         private static int lookupsInProgress = 0;
@@ -240,19 +249,28 @@ namespace renderdocui.Windows.Dialogs
         // (to stop flooding)
         private void LookupComplete()
         {
-            updateConnectButton();
-
             if (lookupsInProgress == 0)
-            {
-                refresh.Enabled = true;
-            }
+                refreshOne.Enabled = refreshAll.Enabled = true;
+
+            updateConnectButton();
+            UpdateLookupsStatus();
         }
+
+        private bool selectInProgress = false;
 
         private void hosts_AfterSelect(object sender, TreeViewEventArgs e)
         {
-            configHostname.Enabled = configRunCommand.Enabled =
-                setHostname.Enabled = setRunCommand.Enabled = false;
-            configHostname.Text = configRunCommand.Text = "";
+            if (selectInProgress)
+                return;
+
+            selectInProgress = true;
+
+            runCommand.Text = "";
+            hostname.Text = "";
+
+            deleteHost.Enabled = refreshOne.Enabled = false;
+            hostname.Enabled = addUpdateHost.Enabled = runCommand.Enabled = true;
+            addUpdateHost.Text = "Add";
 
             if (hosts.SelectedNode != null &&
                 hosts.SelectedNode.Tag != null)
@@ -261,21 +279,76 @@ namespace renderdocui.Windows.Dialogs
 
                 if (host != null)
                 {
+                    if (refreshAll.Enabled)
+                        refreshOne.Enabled = true;
+
+                    addUpdateHost.Text = "Update";
+
                     if (host.Hostname == "localhost")
                     {
-                        configHostname.Text = "localhost";
+                        hostname.Enabled = addUpdateHost.Enabled = runCommand.Enabled = false;
+                        hostname.Text = "localhost";
                     }
                     else
                     {
-                        configHostname.Enabled = configRunCommand.Enabled =
-                            setHostname.Enabled = setRunCommand.Enabled = true;
-                        configHostname.Text = host.Hostname;
-                        configRunCommand.Text = host.RunCommand;
+                        deleteHost.Enabled = true;
+                        runCommand.Text = host.RunCommand;
+                        hostname.Text = host.Hostname;
                     }
                 }
             }
 
             updateConnectButton();
+
+            selectInProgress = false;
+        }
+
+        private void hostname_TextChanged(object sender, EventArgs e)
+        {
+            if(selectInProgress)
+                return;
+
+            selectInProgress = true;
+
+            addUpdateHost.Text = "Add";
+            addUpdateHost.Enabled = true;
+            deleteHost.Enabled = refreshOne.Enabled = false;
+            hostname.Enabled = addUpdateHost.Enabled = runCommand.Enabled = true;
+
+            TreelistView.Node node = null;
+
+            foreach(var n in hosts.Nodes)
+            {
+                if(n["hostname"].ToString() == hostname.Text)
+                {
+                    if (refreshAll.Enabled)
+                        refreshOne.Enabled = true;
+
+                    addUpdateHost.Text = "Update";
+
+                    if (hostname.Text == "localhost")
+                    {
+                        hostname.Enabled = addUpdateHost.Enabled = runCommand.Enabled = false;
+                    }
+                    else
+                    {
+                        deleteHost.Enabled = true;
+                        runCommand.Text = (n.Tag as RemoteHost).RunCommand;
+                    }
+
+                    node = n;
+                    break;
+                }
+            }
+
+            if (hosts.SelectedNode != node)
+            {
+                hosts.FocusedNode = node;
+            }
+
+            updateConnectButton();
+
+            selectInProgress = false;
         }
 
         private void updateConnectButton()
@@ -284,13 +357,17 @@ namespace renderdocui.Windows.Dialogs
                 hosts.SelectedNode.Tag != null)
             {
                 connect.Enabled = true;
-                connect.Text = "Connect";
+                connect.Text = "Connect to App";
 
                 RemoteHost host = hosts.SelectedNode.Tag as RemoteHost;
 
                 if (host != null)
                 {
-                    if(host.ServerRunning)
+                    if (host.Hostname == "localhost")
+                    {
+                        connect.Enabled = false;
+                    }
+                    else if(host.ServerRunning)
                     {
                         connect.Text = "Shutdown";
 
@@ -312,7 +389,7 @@ namespace renderdocui.Windows.Dialogs
             }
         }
 
-        private void ConnectToHost(TreelistView.Node node)
+        private void ConnectToApp(TreelistView.Node node)
         {
             if (node != null &&
                 node.Tag != null)
@@ -346,6 +423,7 @@ namespace renderdocui.Windows.Dialogs
                 {
                     RemoteHost h = new RemoteHost();
                     h.Hostname = host;
+                    h.RunCommand = runCommand.Text;
 
                     m_Core.Config.RemoteHosts.Add(h);
                     m_Core.Config.Serialize(Core.ConfigFilename);
@@ -356,14 +434,32 @@ namespace renderdocui.Windows.Dialogs
                 }
             }
             hostname.Text = "";
+            hostname.Text = host;
+        }
+
+        private void SetRunCommand()
+        {
+            if (hosts.SelectedNode == null)
+                return;
+
+            RemoteHost h = hosts.SelectedNode.Tag as RemoteHost;
+
+            if (h != null)
+            {
+                h.RunCommand = runCommand.Text.Trim();
+                m_Core.Config.Serialize(Core.ConfigFilename);
+            }
         }
 
         private void connect_Click(object sender, EventArgs e)
         {
             TreelistView.Node node = hosts.SelectedNode;
+            if (node == null)
+                return;
+
             if (node.Tag is RemoteConnect)
             {
-                ConnectToHost(node);
+                ConnectToApp(node);
             }
             else if (node.Tag is RemoteHost)
             {
@@ -396,10 +492,12 @@ namespace renderdocui.Windows.Dialogs
                 else
                 {
                     // try to run
-                    refresh.Enabled = false;
+                    refreshOne.Enabled = refreshAll.Enabled = false;
 
                     Thread th = Helpers.NewThread(new ParameterizedThreadStart(RunRemoteServer));
                     th.Start(node);
+
+                    UpdateLookupsStatus();
                 }
             }
         }
@@ -407,20 +505,15 @@ namespace renderdocui.Windows.Dialogs
         private void hosts_NodeDoubleClicked(TreelistView.Node node)
         {
             if(node.Tag is RemoteConnect)
-                ConnectToHost(node);
+                ConnectToApp(node);
         }
 
-        private void addhost_Click(object sender, EventArgs e)
-        {
-            AddNewHost();
-        }
-
-        private void refresh_Click(object sender, EventArgs e)
+        private void refreshAll_Click(object sender, EventArgs e)
         {
             if (lookupsInProgress > 0)
                 return;
 
-            refresh.Enabled = false;
+            refreshOne.Enabled = refreshAll.Enabled = false;
 
             hosts.BeginUpdate();
             foreach (TreelistView.Node n in hosts.Nodes)
@@ -434,6 +527,62 @@ namespace renderdocui.Windows.Dialogs
                 th.Start(n);
             }
             hosts.EndUpdate();
+
+            UpdateLookupsStatus();
+        }
+
+        private void refreshOne_Click(object sender, EventArgs e)
+        {
+            if (lookupsInProgress > 0 || hosts.SelectedNode == null)
+                return;
+
+            refreshOne.Enabled = refreshAll.Enabled = false;
+
+            hosts.BeginUpdate();
+            TreelistView.Node n = hosts.SelectedNode;
+            {
+                n.Nodes.Clear();
+                n.Italic = true;
+                n.Image = global::renderdocui.Properties.Resources.hourglass;
+                n.Bold = false;
+
+                Thread th = Helpers.NewThread(new ParameterizedThreadStart(LookupHostConnections));
+                th.Start(n);
+            }
+            hosts.EndUpdate();
+
+            UpdateLookupsStatus();
+        }
+
+        private void deleteHost_Click(object sender, EventArgs e)
+        {
+            if(hosts.SelectedNode == null || hosts.SelectedNode.Parent != null)
+                return;
+
+            string hostname = hosts.SelectedNode["hostname"] as string;
+
+            if (hostname == "localhost")
+                return;
+
+            DialogResult res = MessageBox.Show(String.Format("Are you sure you wish to delete {0}?", hostname),
+                                               "Deleting host", MessageBoxButtons.YesNoCancel);
+
+            if (res == DialogResult.Cancel || res == DialogResult.No)
+                return;
+
+            if (res == DialogResult.Yes)
+            {
+                m_Core.Config.RemoteHosts.Remove(hosts.SelectedNode.Tag as RemoteHost);
+                m_Core.Config.Serialize(Core.ConfigFilename);
+                hosts.BeginUpdate();
+                hosts.Nodes.Remove(hosts.SelectedNode);
+                hosts.EndUpdate();
+
+                hosts.FocusedNode = null;
+
+                this.hostname.Text = "";
+                this.hostname.Text = hostname;
+            }
         }
 
         private void hosts_KeyDown(object sender, KeyEventArgs e)
@@ -441,63 +590,27 @@ namespace renderdocui.Windows.Dialogs
             if (e.KeyData == Keys.Return || e.KeyData == Keys.Enter)
             {
                 if (connect.Enabled)
-                {
-                    connect_Click(sender, new EventArgs());
-                }
+                    connect.PerformClick();
             }
-            if (e.KeyData == Keys.Delete && hosts.SelectedNode != null && hosts.SelectedNode.Parent == null)
-            {
-                string hostname = hosts.SelectedNode["hostname"] as string;
-
-                if(hostname == "localhost")
-                    return;
-
-                DialogResult res = MessageBox.Show(String.Format("Are you sure you wish to delete {0}?", hostname),
-                                                   "Deleting host", MessageBoxButtons.YesNoCancel);
-
-                if (res == DialogResult.Cancel || res == DialogResult.No)
-                    return;
-
-                if (res == DialogResult.Yes)
-                {
-                    m_Core.Config.RemoteHosts.Remove(hosts.SelectedNode.Tag as RemoteHost);
-                    m_Core.Config.Serialize(Core.ConfigFilename);
-                    hosts.BeginUpdate();
-                    hosts.Nodes.Remove(hosts.SelectedNode);
-                    hosts.EndUpdate();
-                }
-            }
+            if (e.KeyData == Keys.Delete)
+                deleteHost.PerformClick();
         }
 
         private void textbox_KeyPress(object sender, KeyPressEventArgs e)
         {
             if (e.KeyChar == '\n' || e.KeyChar == '\r')
             {
-                if(sender == hostname)
-                    addhost_Click(sender, new EventArgs());
-                if(sender == configHostname)
-                    setConfig_Click(setHostname, new EventArgs());
-                if(sender == configRunCommand)
-                    setConfig_Click(setRunCommand, new EventArgs());
+                if(addUpdateHost.Enabled)
+                    addUpdateHost.PerformClick();
             }
         }
 
-        private void setConfig_Click(object sender, EventArgs e)
+        private void addUpdateHost_Click(object sender, EventArgs e)
         {
-            int idx = m_Core.Config.RemoteHosts.IndexOf(hosts.SelectedNode.Tag as RemoteHost);
-
-            if(idx >= 0)
-            {
-                if (sender == setHostname)
-                    m_Core.Config.RemoteHosts[idx].Hostname = configHostname.Text.Trim();
-                if (sender == setRunCommand)
-                    m_Core.Config.RemoteHosts[idx].RunCommand = configRunCommand.Text.Trim();
-
-                m_Core.Config.Serialize(Core.ConfigFilename);
-                hosts.BeginUpdate();
-                hosts.SelectedNode["hostname"] = m_Core.Config.RemoteHosts[idx].Hostname;
-                hosts.EndUpdate();
-            }
+            if (hosts.SelectedNode != null && hosts.SelectedNode.Tag is RemoteHost)
+                SetRunCommand();
+            else
+                AddNewHost();
         }
     }
 }
