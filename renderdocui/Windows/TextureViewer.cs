@@ -1746,7 +1746,7 @@ namespace renderdocui.Windows
                 }
 
                 if (sliceFace.SelectedIndex == -1)
-                    sliceFace.SelectedIndex = prevFirstArraySlice;
+                    sliceFace.SelectedIndex = Helpers.Clamp(prevFirstArraySlice, 0, (int)numSlices - 1);
 
                 prevFirstArraySlice = firstArraySlice;
             }
