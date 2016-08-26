@@ -43,6 +43,11 @@ cp /c/Program\ Files\ \(x86\)/Windows\ Kits/8.1/Redist/D3D/x86/d3dcompiler_47.dl
 cp LICENSE.md Documentation/htmlhelp/*.chm dist/Release64/
 cp LICENSE.md Documentation/htmlhelp/*.chm dist/Release32/
 
+# Delete new VS2015 incremental pdb files, these are just build artifacts
+# and aren't needed for later symbol resolution etc
+find dist/Release{32,64}/ -iname '*.ipdb' -exec rm '{}' \;
+find dist/Release{32,64}/ -iname '*.iobj' -exec rm '{}' \;
+
 # Make a copy of the main distribution folder that has PDBs
 cp -R dist/Release64 dist/ReleasePDBs64
 cp -R dist/Release32 dist/ReleasePDBs32
