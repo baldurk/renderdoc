@@ -95,7 +95,7 @@ my @dllexportfuncs = ();
 my @glextfuncs = ();
 my @processed = ();
 
-my $typedefs = `egrep -h PFN[0-9A-Z_-]+PROC official/glcorearb.h official/glext.h`;
+my $typedefs = `grep -Eh PFN[0-9A-Z_-]+PROC official/glcorearb.h official/glext.h`;
 foreach my $typedef (split(/\n/, $typedefs))
 {
 	if($typedef =~ /^typedef (.*)\([A-Z *]* (.*)\) \((.*)\);/)

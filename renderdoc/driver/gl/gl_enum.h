@@ -25,9 +25,9 @@
 
 #pragma once
 
-// egrep -ih '#define[ \t]*[A-Z_0-9]*[ \t]*0x[0-9A-F]{4,}\s*$' glcorearb.h  glext.h  wglext.h
-// glxext.h
-//			| awk '{print $2" "$3}' | sed -e '{s%\(.*\) \(.*\)%\te\1 = \2,%g}' | awk ' !x[$0]++'
+// in official/
+// grep -Eih '#define[ \t]*[A-Z_0-9]*[ \t]*0x[0-9A-F]{4,}\s*$' *.h
+//    | awk '{print $2" "$3}' | sed -e '{s%\(.*\) \(.*\)%\te\1 = \2,%g}' | awk ' !x[$0]++'
 
 enum RDCGLenum
 {
