@@ -70,8 +70,6 @@ namespace renderdocui.Code
         private List<InvokeHandle> m_renderQueue;
         private InvokeHandle m_current = null;
 
-        private bool m_CopyInProgress = false;
-
         ////////////////////////////////////////////
         // Interface
 
@@ -108,7 +106,14 @@ namespace renderdocui.Code
             }
             else
             {
-                return m_Remote.ExecuteAndInject(app, workingDir, cmdLine, env, opts);
+                UInt32 ret = 0;
+
+                lock (m_Remote)
+                {
+                    ret = m_Remote.ExecuteAndInject(app, workingDir, cmdLine, env, opts);
+                }
+
+                return ret;
             }
         }
 
@@ -141,10 +146,17 @@ namespace renderdocui.Code
 
         public string[] GetRemoteSupport()
         {
-            if (m_Remote != null)
-                return m_Remote.RemoteSupportedReplays();
+            string[] ret = new string[0];
 
-            return new string[0];
+            if (m_Remote != null && !Running)
+            {
+                lock (m_Remote)
+                {
+                    ret = m_Remote.RemoteSupportedReplays();
+                }
+            }
+
+            return ret;
         }
 
         public delegate void DirectoryBrowseMethod(string path, DirectoryFile[] contents);
@@ -159,7 +171,15 @@ namespace renderdocui.Code
                     return;
                 }
 
-                cb(m_Remote.GetHomeFolder(), null);
+                string home = "";
+
+                // prevent pings while fetching remote FS data
+                lock (m_Remote)
+                {
+                    home = m_Remote.GetHomeFolder();
+                }
+
+                cb(home, null);
             }
         }
 
@@ -173,7 +193,15 @@ namespace renderdocui.Code
                     return;
                 }
 
-                cb(path, m_Remote.ListFolder(path));
+                DirectoryFile[] contents = new DirectoryFile[0];
+
+                // prevent pings while fetching remote FS data
+                lock(m_Remote)
+                {
+                    contents = m_Remote.ListFolder(path);
+                }
+
+                cb(path, contents);
             }
         }
 
@@ -220,11 +248,10 @@ namespace renderdocui.Code
                     Helpers.NewThread(new ThreadStart(() =>
                     {
                         // prevent pings while copying off-thread
-                        m_CopyInProgress = true;
-
-                        remotepath = m_Remote.CopyCaptureToRemote(localpath, ref progress);
-
-                        m_CopyInProgress = false;
+                        lock (m_Remote)
+                        {
+                            remotepath = m_Remote.CopyCaptureToRemote(localpath, ref progress);
+                        }
 
                         copied = true;
                     })).Start();
@@ -279,11 +306,10 @@ namespace renderdocui.Code
                     Helpers.NewThread(new ThreadStart(() =>
                     {
                         // prevent pings while copying off-thread
-                        m_CopyInProgress = true;
-
-                        m_Remote.CopyCaptureFromRemote(remotepath, localpath, ref progress);
-
-                        m_CopyInProgress = false;
+                        lock (m_Remote)
+                        {
+                            m_Remote.CopyCaptureFromRemote(remotepath, localpath, ref progress);
+                        }
 
                         copied = true;
                     })).Start();
@@ -342,14 +368,21 @@ namespace renderdocui.Code
 
         public void PingRemote()
         {
-            if(m_CopyInProgress)
-                return;
-
-            // must only happen on render thread if running
-            if ((!Running || m_Thread == Thread.CurrentThread) && m_Remote != null)
+            if (Monitor.TryEnter(m_Remote))
             {
-                if (!m_Remote.Ping())
-                    m_RemoteHost.ServerRunning = false;
+                try
+                {
+                    // must only happen on render thread if running
+                    if ((!Running || m_Thread == Thread.CurrentThread) && m_Remote != null)
+                    {
+                        if (!m_Remote.Ping())
+                            m_RemoteHost.ServerRunning = false;
+                    }
+                }
+                finally
+                {
+                    Monitor.Exit(m_Remote);
+                }
             }
         }
 
