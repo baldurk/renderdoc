@@ -1672,17 +1672,29 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(ID3D11View *pResourceView
       ID3D11DeviceChild *pLiveView = m_pDevice->GetResourceManager()->GetLiveResource(View);
 
       if(WrappedID3D11RenderTargetView1::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11RenderTargetView1 *)pLiveView)->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+      {
+        WrappedID3D11RenderTargetView1 *view = (WrappedID3D11RenderTargetView1 *)pLiveView;
+        m_ResourceUses[view->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear, view->GetResourceID()));
+      }
       else if(WrappedID3D11DepthStencilView::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11DepthStencilView *)pLiveView)->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+      {
+        WrappedID3D11DepthStencilView *view = (WrappedID3D11DepthStencilView *)pLiveView;
+        m_ResourceUses[view->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear, view->GetResourceID()));
+      }
       else if(WrappedID3D11ShaderResourceView1::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11ShaderResourceView1 *)pLiveView)->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+      {
+        WrappedID3D11ShaderResourceView1 *view = (WrappedID3D11ShaderResourceView1 *)pLiveView;
+        m_ResourceUses[view->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear, view->GetResourceID()));
+      }
       else if(WrappedID3D11UnorderedAccessView1::IsAlloc(pLiveView))
-        m_ResourceUses[((WrappedID3D11UnorderedAccessView1 *)pLiveView)->GetResourceResID()].push_back(
-            EventUsage(m_CurEventID, eUsage_Clear));
+      {
+        WrappedID3D11UnorderedAccessView1 *view = (WrappedID3D11UnorderedAccessView1 *)pLiveView;
+        m_ResourceUses[view->GetResourceResID()].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear, view->GetResourceID()));
+      }
     }
   }
 

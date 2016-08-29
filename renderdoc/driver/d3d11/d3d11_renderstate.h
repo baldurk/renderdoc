@@ -74,29 +74,23 @@ struct D3D11RenderState
       fullRange = true;
     }
 
+    // construct a range for a specific mip/slice. Used for easily checking if
+    // a view includes this mip/slice
+    ResourceRange(ID3D11Resource *res, UINT mip, UINT slice)
+    {
+      resource = res;
+      minMip = mip;
+      maxMip = mip;
+      minSlice = slice;
+      maxSlice = slice;
+      fullRange = false;
+    }
+
     // initialises the range with the contents of the view
     ResourceRange(ID3D11ShaderResourceView *srv);
     ResourceRange(ID3D11UnorderedAccessView *uav);
     ResourceRange(ID3D11RenderTargetView *rtv);
     ResourceRange(ID3D11DepthStencilView *dsv);
-
-    void SetMaxes(UINT numMips, UINT numSlices)
-    {
-      if(numMips == ~0U)
-        maxMip = ~0U;
-      else
-        maxMip = minMip + numMips - 1;
-
-      if(numSlices == ~0U)
-        maxSlice = ~0U;
-      else
-        maxSlice = minSlice + numSlices - 1;
-
-      // save this bool for faster intersection tests. Note that full range could also
-      // be true if maxMip == 12 or something, but since this is just a conservative
-      // early out we are only concerned with a common case.
-      fullRange = (minMip == 0 && minSlice == 0 && maxMip == ~0U && maxSlice == ~0U);
-    }
 
     bool Intersects(const ResourceRange &range) const
     {
@@ -124,6 +118,24 @@ struct D3D11RenderState
 
   private:
     ResourceRange();
+
+    void SetMaxes(UINT numMips, UINT numSlices)
+    {
+      if(numMips == ~0U)
+        maxMip = ~0U;
+      else
+        maxMip = minMip + numMips - 1;
+
+      if(numSlices == ~0U)
+        maxSlice = ~0U;
+      else
+        maxSlice = minSlice + numSlices - 1;
+
+      // save this bool for faster intersection tests. Note that full range could also
+      // be true if maxMip == 12 or something, but since this is just a conservative
+      // early out we are only concerned with a common case.
+      fullRange = (minMip == 0 && minSlice == 0 && maxMip == ~0U && maxSlice == ~0U);
+    }
 
     IUnknown *resource;
     UINT minMip;

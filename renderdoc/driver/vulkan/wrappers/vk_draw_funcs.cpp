@@ -1830,18 +1830,18 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(Serialiser *localSerialiser,
         for(size_t i = 0; i < rp.subpasses[state.subpass].colorAttachments.size(); i++)
         {
           uint32_t att = rp.subpasses[state.subpass].colorAttachments[i];
-          drawNode.resourceUsage.push_back(
-              std::make_pair(m_CreationInfo.m_ImageView[fb.attachments[att].view].image,
-                             EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+          drawNode.resourceUsage.push_back(std::make_pair(
+              m_CreationInfo.m_ImageView[fb.attachments[att].view].image,
+              EventUsage(drawNode.draw.eventID, eUsage_Clear, fb.attachments[att].view)));
         }
 
         if(draw.flags & eDraw_ClearDepthStencil &&
            rp.subpasses[state.subpass].depthstencilAttachment >= 0)
         {
           int32_t att = rp.subpasses[state.subpass].depthstencilAttachment;
-          drawNode.resourceUsage.push_back(
-              std::make_pair(m_CreationInfo.m_ImageView[fb.attachments[att].view].image,
-                             EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+          drawNode.resourceUsage.push_back(std::make_pair(
+              m_CreationInfo.m_ImageView[fb.attachments[att].view].image,
+              EventUsage(drawNode.draw.eventID, eUsage_Clear, fb.attachments[att].view)));
         }
       }
     }

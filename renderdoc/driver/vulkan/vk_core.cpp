@@ -2723,22 +2723,25 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
     for(size_t i = 0; i < rp.subpasses[state.subpass].inputAttachments.size(); i++)
     {
       uint32_t att = rp.subpasses[state.subpass].inputAttachments[i];
-      drawNode.resourceUsage.push_back(std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
-                                                      EventUsage(e, eUsage_InputTarget)));
+      drawNode.resourceUsage.push_back(
+          std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
+                         EventUsage(e, eUsage_InputTarget, fb.attachments[att].view)));
     }
 
     for(size_t i = 0; i < rp.subpasses[state.subpass].colorAttachments.size(); i++)
     {
       uint32_t att = rp.subpasses[state.subpass].colorAttachments[i];
-      drawNode.resourceUsage.push_back(std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
-                                                      EventUsage(e, eUsage_ColourTarget)));
+      drawNode.resourceUsage.push_back(
+          std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
+                         EventUsage(e, eUsage_ColourTarget, fb.attachments[att].view)));
     }
 
     if(rp.subpasses[state.subpass].depthstencilAttachment >= 0)
     {
       int32_t att = rp.subpasses[state.subpass].depthstencilAttachment;
-      drawNode.resourceUsage.push_back(std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
-                                                      EventUsage(e, eUsage_DepthStencilTarget)));
+      drawNode.resourceUsage.push_back(
+          std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
+                         EventUsage(e, eUsage_DepthStencilTarget, fb.attachments[att].view)));
     }
   }
 }

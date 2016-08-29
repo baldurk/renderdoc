@@ -318,6 +318,7 @@ struct EventUsage
 #ifdef __cplusplus
   EventUsage() : eventID(0), usage(eUsage_None) {}
   EventUsage(uint32_t e, ResourceUsage u) : eventID(e), usage(u) {}
+  EventUsage(uint32_t e, ResourceUsage u, ResourceId v) : eventID(e), usage(u), view(v) {}
   bool operator<(const EventUsage &o) const
   {
     if(eventID != o.eventID)
@@ -330,6 +331,7 @@ struct EventUsage
 
   uint32_t eventID;
   ResourceUsage usage;
+  ResourceId view;
 };
 
 struct FetchDrawcall

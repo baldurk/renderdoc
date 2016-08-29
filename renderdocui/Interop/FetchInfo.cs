@@ -543,6 +543,7 @@ namespace renderdoc
     {
         public UInt32 eventID;
         public ResourceUsage usage;
+        public ResourceId view;
     };
 
     [StructLayout(LayoutKind.Sequential)]

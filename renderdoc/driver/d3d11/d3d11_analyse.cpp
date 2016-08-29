@@ -5301,6 +5301,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     } while(hr == S_FALSE);
     RDCASSERTEQUAL(hr, S_OK);
 
+    D3D11RenderState::ResourceRange resourceRange(targetres, mip, slice);
+
     const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(events[i].eventID);
 
     bool clear = (draw->flags & eDraw_Clear);
@@ -5310,6 +5312,64 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
          events[i].usage == eUsage_CopyDst || events[i].usage == eUsage_Copy ||
          events[i].usage == eUsage_Resolve || events[i].usage == eUsage_ResolveDst ||
          events[i].usage == eUsage_GenMips);
+
+    if(events[i].view != ResourceId())
+    {
+      // if the access is through a view, check the mip/slice matches
+      bool used = false;
+
+      ID3D11DeviceChild *view = m_ResourceManager->GetCurrentResource(events[i].view);
+
+      if(WrappedID3D11RenderTargetView1::IsAlloc(view))
+      {
+        WrappedID3D11RenderTargetView1 *rtv = (WrappedID3D11RenderTargetView1 *)view;
+
+        D3D11RenderState::ResourceRange viewRange(rtv->GetReal());
+
+        if(viewRange.Intersects(resourceRange))
+          used = true;
+      }
+      else if(WrappedID3D11DepthStencilView::IsAlloc(view))
+      {
+        WrappedID3D11DepthStencilView *dsv = (WrappedID3D11DepthStencilView *)view;
+
+        D3D11RenderState::ResourceRange viewRange(dsv->GetReal());
+
+        if(viewRange.Intersects(resourceRange))
+          used = true;
+      }
+      else if(WrappedID3D11ShaderResourceView1::IsAlloc(view))
+      {
+        WrappedID3D11ShaderResourceView1 *srv = (WrappedID3D11ShaderResourceView1 *)view;
+
+        D3D11RenderState::ResourceRange viewRange(srv->GetReal());
+
+        if(viewRange.Intersects(resourceRange))
+          used = true;
+      }
+      else if(WrappedID3D11UnorderedAccessView1::IsAlloc(view))
+      {
+        WrappedID3D11UnorderedAccessView1 *uav = (WrappedID3D11UnorderedAccessView1 *)view;
+
+        D3D11RenderState::ResourceRange viewRange(uav->GetReal());
+
+        if(viewRange.Intersects(resourceRange))
+          used = true;
+      }
+      else
+      {
+        RDCWARN("Unexpected view type, ID %llu. Assuming used...", events[i].view);
+        used = true;
+      }
+
+      if(!used)
+      {
+        RDCDEBUG("Usage %d at %u didn't refer to the matching mip/slice (%u/%u)", events[i].usage,
+                 events[i].eventID, mip, slice);
+        occlData = 0;
+        clear = uavWrite = false;
+      }
+    }
 
     if(occlData > 0 || clear || uavWrite)
     {
@@ -5372,133 +5432,6 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
             if(curDSV)
               curDSV->Release();
-          }
-
-          // check that this selected mip/slice is the one being rendered to here
-          if(events[i].usage == eUsage_ColourTarget)
-          {
-            bool used = false;
-            for(int rtv = 0; rtv < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; rtv++)
-            {
-              if(curRTVs[rtv])
-              {
-                ID3D11Resource *res = NULL;
-                curRTVs[rtv]->GetResource(&res);
-
-                if(res != targetres)
-                  continue;
-
-                SAFE_RELEASE(res);
-
-                D3D11_RENDER_TARGET_VIEW_DESC desc;
-                curRTVs[rtv]->GetDesc(&desc);
-                if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1D &&
-                   desc.Texture1D.MipSlice == mip)
-                {
-                  used = true;
-                  break;
-                }
-                else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE1DARRAY &&
-                        desc.Texture1DArray.MipSlice == mip &&
-                        desc.Texture1DArray.FirstArraySlice <= slice &&
-                        desc.Texture1DArray.FirstArraySlice + desc.Texture1DArray.ArraySize > slice)
-                {
-                  used = true;
-                  break;
-                }
-                else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2D &&
-                        desc.Texture2D.MipSlice == mip)
-                {
-                  used = true;
-                  break;
-                }
-                else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2DARRAY &&
-                        desc.Texture2DArray.MipSlice == mip &&
-                        desc.Texture2DArray.FirstArraySlice <= slice &&
-                        desc.Texture2DArray.FirstArraySlice + desc.Texture2DArray.ArraySize > slice)
-                {
-                  used = true;
-                  break;
-                }
-                else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2DMS)
-                {
-                  used = true;
-                  break;
-                }
-                else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE2DMSARRAY &&
-                        desc.Texture2DMSArray.FirstArraySlice <= slice &&
-                        desc.Texture2DMSArray.FirstArraySlice + desc.Texture2DMSArray.ArraySize >
-                            slice)
-                {
-                  used = true;
-                  break;
-                }
-                else if(desc.ViewDimension == D3D11_RTV_DIMENSION_TEXTURE3D &&
-                        desc.Texture3D.MipSlice == mip && desc.Texture3D.FirstWSlice <= slice &&
-                        desc.Texture3D.FirstWSlice + desc.Texture3D.WSize > slice)
-                {
-                  used = true;
-                  break;
-                }
-              }
-            }
-            if(!used)
-              continue;
-          }
-          else if(events[i].usage == eUsage_DepthStencilTarget)
-          {
-            if(!curDSV)
-              continue;
-
-            ID3D11Resource *res = NULL;
-            curDSV->GetResource(&res);
-
-            if(res != targetres)
-              continue;
-
-            SAFE_RELEASE(res);
-
-            D3D11_DEPTH_STENCIL_VIEW_DESC desc;
-            curDSV->GetDesc(&desc);
-
-            bool used = false;
-
-            if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1D && desc.Texture1D.MipSlice == mip)
-            {
-              used = true;
-            }
-            else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE1DARRAY &&
-                    desc.Texture1DArray.MipSlice == mip &&
-                    desc.Texture1DArray.FirstArraySlice <= slice &&
-                    desc.Texture1DArray.FirstArraySlice + desc.Texture1DArray.ArraySize > slice)
-            {
-              used = true;
-            }
-            else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2D &&
-                    desc.Texture2D.MipSlice == mip)
-            {
-              used = true;
-            }
-            else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DARRAY &&
-                    desc.Texture2DArray.MipSlice == mip &&
-                    desc.Texture2DArray.FirstArraySlice <= slice &&
-                    desc.Texture2DArray.FirstArraySlice + desc.Texture2DArray.ArraySize > slice)
-            {
-              used = true;
-            }
-            else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DMS)
-            {
-              used = true;
-            }
-            else if(desc.ViewDimension == D3D11_DSV_DIMENSION_TEXTURE2DMSARRAY &&
-                    desc.Texture2DMSArray.FirstArraySlice <= slice &&
-                    desc.Texture2DMSArray.FirstArraySlice + desc.Texture2DMSArray.ArraySize > slice)
-            {
-              used = true;
-            }
-
-            if(!used)
-              continue;
           }
         }
 

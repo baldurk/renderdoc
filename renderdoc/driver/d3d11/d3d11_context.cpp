@@ -843,16 +843,27 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
             EventUsage(e, (ResourceUsage)(eUsage_VS_Constants + s)));
 
     for(int i = 0; i < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; i++)
+    {
       if(sh.Used_SRV(i))
-        m_ResourceUses[((WrappedID3D11ShaderResourceView1 *)sh.SRVs[i])->GetResourceResID()].push_back(
-            EventUsage(e, (ResourceUsage)(eUsage_VS_Resource + s)));
+      {
+        WrappedID3D11ShaderResourceView1 *view = (WrappedID3D11ShaderResourceView1 *)sh.SRVs[i];
+        m_ResourceUses[view->GetResourceResID()].push_back(
+            EventUsage(e, (ResourceUsage)(eUsage_VS_Resource + s), view->GetResourceID()));
+      }
+    }
 
     if(s == 5)
     {
       for(int i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
+      {
         if(pipe->CS.Used_UAV(i) && pipe->CSUAVs[i])
-          m_ResourceUses[((WrappedID3D11UnorderedAccessView1 *)pipe->CSUAVs[i])->GetResourceResID()]
-              .push_back(EventUsage(e, eUsage_CS_RWResource));
+        {
+          WrappedID3D11UnorderedAccessView1 *view =
+              (WrappedID3D11UnorderedAccessView1 *)pipe->CSUAVs[i];
+          m_ResourceUses[view->GetResourceResID()].push_back(
+              EventUsage(e, eUsage_CS_RWResource, view->GetResourceID()));
+        }
+      }
     }
   }
 
@@ -867,18 +878,32 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
   // OM
 
   for(int i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
+  {
     if(pipe->PS.Used_UAV(i) && pipe->OM.UAVs[i])
-      m_ResourceUses[((WrappedID3D11UnorderedAccessView1 *)pipe->OM.UAVs[i])->GetResourceResID()]
-          .push_back(EventUsage(e, eUsage_PS_RWResource));
+    {
+      WrappedID3D11UnorderedAccessView1 *view = (WrappedID3D11UnorderedAccessView1 *)pipe->OM.UAVs[i];
+      m_ResourceUses[view->GetResourceResID()].push_back(
+          EventUsage(e, eUsage_PS_RWResource, view->GetResourceID()));
+    }
+  }
 
   if(pipe->OM.DepthView)    // assuming for now that any DSV bound is used.
-    m_ResourceUses[((WrappedID3D11DepthStencilView *)pipe->OM.DepthView)->GetResourceResID()].push_back(
-        EventUsage(e, eUsage_DepthStencilTarget));
+  {
+    WrappedID3D11DepthStencilView *view = (WrappedID3D11DepthStencilView *)pipe->OM.DepthView;
+    m_ResourceUses[view->GetResourceResID()].push_back(
+        EventUsage(e, eUsage_DepthStencilTarget, view->GetResourceID()));
+  }
 
   for(int i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
+  {
     if(pipe->OM.RenderTargets[i])    // assuming for now that any RTV bound is used.
-      m_ResourceUses[((WrappedID3D11RenderTargetView1 *)pipe->OM.RenderTargets[i])->GetResourceResID()]
-          .push_back(EventUsage(e, eUsage_ColourTarget));
+    {
+      WrappedID3D11RenderTargetView1 *view =
+          (WrappedID3D11RenderTargetView1 *)pipe->OM.RenderTargets[i];
+      m_ResourceUses[view->GetResourceResID()].push_back(
+          EventUsage(e, eUsage_ColourTarget, view->GetResourceID()));
+    }
+  }
 }
 
 void WrappedID3D11DeviceContext::RefreshDrawcallIDs(DrawcallTreeNode &node)

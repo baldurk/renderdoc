@@ -6110,10 +6110,11 @@ bool WrappedID3D11DeviceContext::Serialise_GenerateMips(ID3D11ShaderResourceView
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(ShaderResourceView))
     {
-      id = ((WrappedID3D11ShaderResourceView1 *)m_pDevice->GetResourceManager()->GetLiveResource(
-                ShaderResourceView))
-               ->GetResourceResID();
-      m_ResourceUses[id].push_back(EventUsage(m_CurEventID, eUsage_GenMips));
+      WrappedID3D11ShaderResourceView1 *view =
+          (WrappedID3D11ShaderResourceView1 *)m_pDevice->GetResourceManager()->GetLiveResource(
+              ShaderResourceView);
+      id = view->GetResourceResID();
+      m_ResourceUses[id].push_back(EventUsage(m_CurEventID, eUsage_GenMips, view->GetResourceID()));
       id = m_pDevice->GetResourceManager()->GetOriginalID(id);
     }
 
@@ -6130,12 +6131,6 @@ bool WrappedID3D11DeviceContext::Serialise_GenerateMips(ID3D11ShaderResourceView
     draw.flags |= eDraw_GenMips;
 
     AddDrawcall(draw, true);
-
-    if(m_pDevice->GetResourceManager()->HasLiveResource(ShaderResourceView))
-      m_ResourceUses[((WrappedID3D11ShaderResourceView1 *)m_pDevice->GetResourceManager()
-                          ->GetLiveResource(ShaderResourceView))
-                         ->GetResourceResID()]
-          .push_back(EventUsage(m_CurEventID, eUsage_GenMips));
   }
 
   return true;
@@ -6298,10 +6293,12 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
     AddDrawcall(draw, true);
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
-      m_ResourceUses[((WrappedID3D11RenderTargetView1 *)m_pDevice->GetResourceManager()->GetLiveResource(
-                          View))
-                         ->GetResourceResID()]
-          .push_back(EventUsage(m_CurEventID, eUsage_Clear));
+    {
+      WrappedID3D11RenderTargetView1 *view =
+          (WrappedID3D11RenderTargetView1 *)m_pDevice->GetResourceManager()->GetLiveResource(View);
+      m_ResourceUses[view->GetResourceResID()].push_back(
+          EventUsage(m_CurEventID, eUsage_Clear, view->GetResourceID()));
+    }
   }
 
   return true;
@@ -6474,10 +6471,12 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewUint(
     AddDrawcall(draw, true);
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
-      m_ResourceUses[((WrappedID3D11UnorderedAccessView1 *)m_pDevice->GetResourceManager()
-                          ->GetLiveResource(View))
-                         ->GetResourceResID()]
-          .push_back(EventUsage(m_CurEventID, eUsage_Clear));
+    {
+      WrappedID3D11UnorderedAccessView1 *view =
+          (WrappedID3D11UnorderedAccessView1 *)m_pDevice->GetResourceManager()->GetLiveResource(View);
+      m_ResourceUses[view->GetResourceResID()].push_back(
+          EventUsage(m_CurEventID, eUsage_Clear, view->GetResourceID()));
+    }
   }
 
   return true;
@@ -6640,10 +6639,12 @@ bool WrappedID3D11DeviceContext::Serialise_ClearUnorderedAccessViewFloat(
     AddDrawcall(draw, true);
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
-      m_ResourceUses[((WrappedID3D11UnorderedAccessView1 *)m_pDevice->GetResourceManager()
-                          ->GetLiveResource(View))
-                         ->GetResourceResID()]
-          .push_back(EventUsage(m_CurEventID, eUsage_Clear));
+    {
+      WrappedID3D11UnorderedAccessView1 *view =
+          (WrappedID3D11UnorderedAccessView1 *)m_pDevice->GetResourceManager()->GetLiveResource(View);
+      m_ResourceUses[view->GetResourceResID()].push_back(
+          EventUsage(m_CurEventID, eUsage_Clear, view->GetResourceID()));
+    }
   }
 
   return true;
@@ -6792,9 +6793,12 @@ bool WrappedID3D11DeviceContext::Serialise_ClearDepthStencilView(
     AddDrawcall(draw, true);
 
     if(m_pDevice->GetResourceManager()->HasLiveResource(View))
-      m_ResourceUses[((WrappedID3D11DepthStencilView *)m_pDevice->GetResourceManager()->GetLiveResource(View))
-                         ->GetResourceResID()]
-          .push_back(EventUsage(m_CurEventID, eUsage_Clear));
+    {
+      WrappedID3D11DepthStencilView *view =
+          (WrappedID3D11DepthStencilView *)m_pDevice->GetResourceManager()->GetLiveResource(View);
+      m_ResourceUses[view->GetResourceResID()].push_back(
+          EventUsage(m_CurEventID, eUsage_Clear, view->GetResourceID()));
+    }
   }
 
   return true;
