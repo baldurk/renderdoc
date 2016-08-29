@@ -292,7 +292,7 @@ namespace renderdocui.Windows.Dialogs
 
             // normalise input
             dir = dir.Replace('\\', '/');
-            if (dir[dir.Length - 1] == '/')
+            if (dir.Length > 0 && dir[dir.Length - 1] == '/')
                 dir = dir.Substring(0, dir.Length - 1);
 
             if (NTPaths)
