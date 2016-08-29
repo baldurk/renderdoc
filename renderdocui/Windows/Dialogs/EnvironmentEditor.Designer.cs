@@ -298,6 +298,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.CancelButton = cancel;
             this.ClientSize = new System.Drawing.Size(673, 474);
             this.Controls.Add(tableLayoutPanel1);
             this.MaximizeBox = false;

@@ -259,6 +259,7 @@
             // 
             // cancel
             // 
+            cancel.DialogResult = System.Windows.Forms.DialogResult.Cancel;
             cancel.Location = new System.Drawing.Point(674, 448);
             cancel.Margin = new System.Windows.Forms.Padding(3, 3, 15, 15);
             cancel.Name = "cancel";
@@ -285,6 +286,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
+            this.CancelButton = cancel;
             this.ClientSize = new System.Drawing.Size(764, 486);
             this.Controls.Add(mainTable);
             this.MaximizeBox = false;
