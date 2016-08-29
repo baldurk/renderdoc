@@ -407,6 +407,8 @@ namespace renderdocui.Windows
         {
             m_IgnoreThreadClosed = true;
 
+            bool suppressRemoteWarning = false;
+
             foreach (ListViewItem i in captures.Items)
             {
                 var log = i.Tag as CaptureLog;
@@ -418,13 +420,44 @@ namespace renderdocui.Windows
                 captures.Focus();
                 i.Selected = true;
 
-                DialogResult res = MessageBox.Show(String.Format("Save this logfile from {0} at {1}?", log.exe, log.timestamp.ToString("T")),
-                                                    "Unsaved log", MessageBoxButtons.YesNoCancel);
+                DialogResult res = DialogResult.No;
+
+                if (!suppressRemoteWarning)
+                {
+                    res = MessageBox.Show(String.Format("Save this logfile from {0} at {1}?", log.exe, log.timestamp.ToString("T")),
+                                                        "Unsaved log", MessageBoxButtons.YesNoCancel);
+                }
 
                 if (res == DialogResult.Cancel)
                 {
                     m_IgnoreThreadClosed = false;
                     return false;
+                }
+
+                // we either have to save or delete the log. Make sure that if it's remote that we are able
+                // to by having an active replay context on that host.
+                if (suppressRemoteWarning == false &&
+                    (m_Core.Renderer.Remote == null ||
+                     m_Core.Renderer.Remote.Hostname != m_Host ||
+                     !m_Core.Renderer.Remote.Connected)
+                    )
+                {
+                    DialogResult res2 = MessageBox.Show(
+                        String.Format("This connection is to a remote host {0} and there is no active replay context on that host.\n", m_Host) +
+                        "Without an active replay context the capture cannot be " + (res == DialogResult.Yes ? "saved.\n\n" : "deleted.\n\n") +
+                        "Would you like to continue and discard this capture and any others, to be left in the temporary folder on the remote machine?",
+                        "No active replay context", MessageBoxButtons.YesNoCancel);
+
+                    if (res2 == DialogResult.Yes)
+                    {
+                        suppressRemoteWarning = true;
+                        res = DialogResult.No;
+                    }
+                    else
+                    {
+                        m_IgnoreThreadClosed = false;
+                        return false;
+                    }
                 }
 
                 if (res == DialogResult.Yes)
