@@ -175,7 +175,7 @@
             this.ShowInTaskbar = false;
             this.SizeGripStyle = System.Windows.Forms.SizeGripStyle.Hide;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
-            this.Text = "SuggestRemoteDialog";
+            this.Text = "Choose Remote Host?";
             tableLayout.ResumeLayout(false);
             topPanel.ResumeLayout(false);
             topPanel.PerformLayout();
