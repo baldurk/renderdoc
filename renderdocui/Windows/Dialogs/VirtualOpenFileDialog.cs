@@ -98,6 +98,23 @@ namespace renderdocui.Windows.Dialogs
             }
         }
 
+        private bool RemoteFailed = false;
+
+        private void CheckRemote(bool success)
+        {
+            if (!success && !RemoteFailed)
+            {
+                MessageBox.Show("Remote server disconnected during browsing.\n" +
+                    "You must close this file browser and restore the connection before continuing.",
+                    "Remote server disconnected",
+                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+
+                RemoteFailed = true;
+
+                BeginInvoke(new Action(UpdateViewsFromData));
+            }
+        }
+
         private DirectoryFileTreeNode GetNode(string path)
         {
             if (NTPaths)
@@ -136,7 +153,7 @@ namespace renderdocui.Windows.Dialogs
                 {
                     NTPaths = true;
 
-                    m_RM.ListFolder("/", (string p, DirectoryFile[] files) =>
+                    CheckRemote(m_RM.ListFolder("/", (string p, DirectoryFile[] files) =>
                     {
                         foreach (var root in files)
                         {
@@ -145,9 +162,9 @@ namespace renderdocui.Windows.Dialogs
                             node.IsDirectory = true;
                             roots.Add(node);
 
-                            m_RM.ListFolder(root.filename, (string a, DirectoryFile[] b) => { node.Populate(a, b); });
+                            CheckRemote(m_RM.ListFolder(root.filename, (string a, DirectoryFile[] b) => { node.Populate(a, b); }));
                         }
-                    });
+                    }));
                 }
                 else
                 {
@@ -157,7 +174,7 @@ namespace renderdocui.Windows.Dialogs
                     node.Path = node.Filename = "/";
                     node.IsDirectory = true;
                     roots.Add(node);
-                    m_RM.ListFolder("/", (string a, DirectoryFile[] b) => { node.Populate(a, b); });
+                   CheckRemote(m_RM.ListFolder("/", (string a, DirectoryFile[] b) => { node.Populate(a, b); }));
                 }
 
                 // we will populate the rest of the folders when expanding to the current directory
@@ -180,7 +197,7 @@ namespace renderdocui.Windows.Dialogs
 
             node.ChildrenPopulated = true;
 
-            m_RM.ListFolder(node.children[0].Path, (string path, DirectoryFile[] files) =>
+            CheckRemote(m_RM.ListFolder(node.children[0].Path, (string path, DirectoryFile[] files) =>
             {
                 node.children[0].Populate(path, files);
 
@@ -195,7 +212,7 @@ namespace renderdocui.Windows.Dialogs
                         node.children[i].Populate(a, b);
                     });
                 }
-            });
+            }));
 
             BeginInvoke(new Action(UpdateViewsFromData));
         }
@@ -232,6 +249,22 @@ namespace renderdocui.Windows.Dialogs
             insideUpdateViews = true;
 
             location.Text = Directory;
+
+            if (RemoteFailed)
+            {
+                directoryTree.BeginUpdate();
+                directoryTree.Nodes.Clear();
+                directoryTree.EndUpdate();
+
+                up.Enabled = back.Enabled = forward.Enabled =
+                    showHidden.Enabled = fileType.Enabled = open.Enabled =
+                    filename.Enabled = location.Enabled = false;
+
+                location.Text = filename.Text = "";
+
+                UpdateFileList();
+                return;
+            }
 
             directoryTree.BeginUpdate();
 
@@ -312,7 +345,7 @@ namespace renderdocui.Windows.Dialogs
             {
                 bool immediateError = false;
 
-                m_RM.ListFolder(dir, (string a, DirectoryFile[] b) =>
+                CheckRemote(m_RM.ListFolder(dir, (string a, DirectoryFile[] b) =>
                 {
                     if (b.Length == 1 && b[0].flags.HasFlag(DirectoryFileProperty.ErrorInvalidPath))
                     {
@@ -339,7 +372,7 @@ namespace renderdocui.Windows.Dialogs
                     currentDir = dir;
 
                     UpdateViewsFromData();
-                });
+                }));
 
                 if (immediateError)
                     return false;
@@ -376,7 +409,7 @@ namespace renderdocui.Windows.Dialogs
             currentFiles.Clear();
 
             // return, we haven't populated anything yet
-            if (roots.Count == 0)
+            if (roots.Count == 0 || RemoteFailed)
                 return;
 
             DirectoryFileTreeNode node = GetNode(Directory);

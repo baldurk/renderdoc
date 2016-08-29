@@ -183,14 +183,14 @@ namespace renderdocui.Code
             }
         }
 
-        public void ListFolder(string path, DirectoryBrowseMethod cb)
+        public bool ListFolder(string path, DirectoryBrowseMethod cb)
         {
             if (m_Remote != null)
             {
                 if (Running && m_Thread != Thread.CurrentThread)
                 {
                     BeginInvoke((ReplayRenderer r) => { cb(path, m_Remote.ListFolder(path)); });
-                    return;
+                    return true;
                 }
 
                 DirectoryFile[] contents = new DirectoryFile[0];
@@ -202,7 +202,11 @@ namespace renderdocui.Code
                 }
 
                 cb(path, contents);
+
+                return true;
             }
+
+            return false;
         }
 
         public string CopyCaptureToRemote(string localpath, Form window)
