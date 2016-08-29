@@ -1195,9 +1195,11 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
         // this is only relevant for non-immutable textures though
         GLint immut = 0;
-        gl.glGetTextureParameterivEXT(live, textype, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
 
-        if(immut == 0)
+        if(textype != eGL_TEXTURE_BUFFER)
+          gl.glGetTextureParameterivEXT(live, textype, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
+
+        if(textype != eGL_TEXTURE_BUFFER && immut == 0)
         {
           GLsizei w = (GLsizei)width;
           GLsizei h = (GLsizei)height;
