@@ -56,6 +56,8 @@ namespace renderdocui.Windows.Dialogs
         {
             InitializeComponent();
 
+            Icon = global::renderdocui.Properties.Resources.icon;
+
             m_RM = rm;
 
             showHidden.Checked = false;
