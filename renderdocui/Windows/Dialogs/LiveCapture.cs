@@ -658,6 +658,16 @@ namespace renderdocui.Windows
                 {
                     var log = captures.Items[0].Tag as CaptureLog;
 
+                    // only auto-open a non-local log if we are successfully connected
+                    // to this machine as a remote context
+                    if (!log.local)
+                    {
+                        if (m_Core.Renderer.Remote == null ||
+                           m_Host != m_Core.Renderer.Remote.Hostname ||
+                           !m_Core.Renderer.Remote.Connected)
+                            return;
+                    }
+
                     if (log.opened)
                         return;
 
