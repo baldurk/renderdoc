@@ -133,6 +133,14 @@ namespace renderdocui.Windows
             m_QueueCapture = true;
         }
 
+        public string Hostname
+        {
+            get
+            {
+                return m_Host;
+            }
+        }
+
         private void LiveCapture_Shown(object sender, EventArgs e)
         {
             m_ConnectThread = Helpers.NewThread(new ThreadStart(ConnectionThreadEntry));

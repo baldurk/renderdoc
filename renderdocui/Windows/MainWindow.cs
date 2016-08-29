@@ -1130,22 +1130,38 @@ namespace renderdocui.Windows
             if(item == null)
                 return;
 
+            RemoteHost host = item.Tag as RemoteHost;
+
             foreach (var live in m_LiveCaptures)
+            {
+                // allow live captures to this host to stay open, that way
+                // we can connect to a live capture, then switch into that
+                // context
+                if (live.Hostname == host.Hostname)
+                    continue;
+
                 if (live.CheckAllowClose() == false)
                     return;
+            }
 
             if (!PromptCloseLog())
                 return;
 
             foreach (var live in m_LiveCaptures.ToArray())
             {
+                // allow live captures to this host to stay open, that way
+                // we can connect to a live capture, then switch into that
+                // context
+                if (live.Hostname == host.Hostname)
+                    continue;
+
                 live.CleanItems();
                 live.Close();
             }
 
             m_Core.Renderer.DisconnectFromRemoteServer();
 
-            if (item.Tag == null)
+            if (host == null)
             {
                 contextChooser.Image = global::renderdocui.Properties.Resources.house;
                 contextChooser.Text = "Replay Context: Local";
@@ -1158,7 +1174,6 @@ namespace renderdocui.Windows
             }
             else
             {
-                RemoteHost host = item.Tag as RemoteHost;
                 contextChooser.Text = "Replay Context: " + host.Hostname;
                 contextChooser.Image = host.ServerRunning
                     ? global::renderdocui.Properties.Resources.connect
