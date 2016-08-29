@@ -1102,6 +1102,10 @@ namespace renderdocui.Windows
                 item.Click += new EventHandler(switchContext);
                 item.Tag = host;
 
+                // don't allow switching to the connected host
+                if (host.Connected)
+                    item.Enabled = false;
+
                 items[idx++] = item;
             }
 
