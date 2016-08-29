@@ -610,6 +610,27 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
   return internalFormat;
 }
 
+void GetFramebufferMipAndLayer(const GLHookSet &gl, GLenum framebuffer, GLenum attachment,
+                               GLint *mip, GLint *layer)
+{
+  gl.glGetFramebufferAttachmentParameteriv(framebuffer, attachment,
+                                           eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, mip);
+
+  GLenum face = eGL_NONE;
+  gl.glGetFramebufferAttachmentParameteriv(
+      framebuffer, attachment, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
+
+  if(face == 0)
+  {
+    gl.glGetFramebufferAttachmentParameteriv(framebuffer, attachment,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, layer);
+  }
+  else
+  {
+    *layer = CubeTargetIndex(face);
+  }
+}
+
 bool EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLenum &internalFormat,
                             GLenum &dataFormat)
 {
@@ -917,6 +938,22 @@ GLenum BufferBinding(GLenum target)
 
   RDCERR("Unexpected target %s", ToStr::Get(target).c_str());
   return eGL_NONE;
+}
+
+GLint CubeTargetIndex(GLenum face)
+{
+  switch(face)
+  {
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_X: return 0;
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_X: return 1;
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_Y: return 2;
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y: return 3;
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_Z: return 4;
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z: return 5;
+    default: break;
+  }
+
+  return 0;
 }
 
 GLenum TextureTarget(GLenum target)

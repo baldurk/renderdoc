@@ -318,14 +318,32 @@ bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
             res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &a.level);
         gl.glGetNamedFramebufferAttachmentParameterivEXT(
             res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_LAYERED, &layered);
-        gl.glGetNamedFramebufferAttachmentParameterivEXT(
-            res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, &a.layer);
+
+        a.layer = 0;
+        if(layered == 0)
+          gl.glGetNamedFramebufferAttachmentParameterivEXT(
+              res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, &a.layer);
       }
 
       a.layered = (layered != 0);
       a.renderbuffer = (type == eGL_RENDERBUFFER);
       a.obj = GetID(a.renderbuffer ? RenderbufferRes(res.Context, object)
                                    : TextureRes(res.Context, object));
+
+      if(!a.renderbuffer)
+      {
+        WrappedOpenGL::TextureData &details = m_GL->m_Textures[a.obj];
+
+        if(details.curType == eGL_TEXTURE_CUBE_MAP)
+        {
+          GLenum face;
+          gl.glGetNamedFramebufferAttachmentParameterivEXT(
+              res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
+              (GLint *)&face);
+
+          a.layer = CubeTargetIndex(face);
+        }
+      }
     }
 
     for(int i = 0; i < (int)ARRAY_COUNT(data->DrawBuffers); i++)
@@ -1830,10 +1848,39 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
         }
         else
         {
-          if(a.layered && obj)
+          if(!a.layered && obj)
           {
-            gl.glNamedFramebufferTextureLayerEXT(live.name, data->attachmentNames[i], obj, a.level,
-                                                 a.layer);
+            // we use old-style non-DSA for this because binding cubemap faces with EXT_dsa
+            // is completely messed up and broken
+
+            // if obj is a cubemap use face-specific targets
+            WrappedOpenGL::TextureData &details = m_GL->m_Textures[GetLiveID(a.obj)];
+
+            if(details.curType == eGL_TEXTURE_CUBE_MAP)
+            {
+              GLenum faces[] = {
+                  eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+                  eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+                  eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+              };
+
+              if(a.layer < 6)
+              {
+                gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, data->attachmentNames[i],
+                                          faces[a.layer], obj, a.level);
+              }
+              else
+              {
+                RDCWARN("Invalid layer %u used to bind cubemap to framebuffer. Binding POSITIVE_X");
+                gl.glFramebufferTexture2D(eGL_DRAW_FRAMEBUFFER, data->attachmentNames[i], faces[0],
+                                          obj, a.level);
+              }
+            }
+            else
+            {
+              gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, data->attachmentNames[i], obj,
+                                           a.level, a.layer);
+            }
           }
           else
           {

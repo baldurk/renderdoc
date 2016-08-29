@@ -1753,20 +1753,10 @@ void GLReplay::SavePipelineState()
           rm->GetID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i])));
 
       if(pipe.m_FB.m_DrawFBO.Color[i].Obj != ResourceId() && !rbCol[i])
-      {
-        gl.glGetFramebufferAttachmentParameteriv(
-            eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-            eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Mip);
-        gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER,
-                                                 GLenum(eGL_COLOR_ATTACHMENT0 + i),
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-                                                 (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Layer);
-        if(pipe.m_FB.m_DrawFBO.Color[i].Layer == 0)
-          gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER,
-                                                   GLenum(eGL_COLOR_ATTACHMENT0 + i),
-                                                   eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
-                                                   (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Layer);
-      }
+        GetFramebufferMipAndLayer(gl.GetHookset(), eGL_DRAW_FRAMEBUFFER,
+                                  GLenum(eGL_COLOR_ATTACHMENT0 + i),
+                                  (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Mip,
+                                  (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Layer);
     }
 
     pipe.m_FB.m_DrawFBO.Depth.Obj = rm->GetOriginalID(
@@ -1775,32 +1765,14 @@ void GLReplay::SavePipelineState()
         rm->GetID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
 
     if(pipe.m_FB.m_DrawFBO.Depth.Obj != ResourceId() && !rbDepth)
-    {
-      gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
-                                               (GLint *)&pipe.m_FB.m_DrawFBO.Depth.Mip);
-      gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-                                               (GLint *)&pipe.m_FB.m_DrawFBO.Depth.Layer);
-      if(pipe.m_FB.m_DrawFBO.Depth.Layer == 0)
-        gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
-                                                 (GLint *)&pipe.m_FB.m_DrawFBO.Depth.Layer);
-    }
+      GetFramebufferMipAndLayer(gl.GetHookset(), eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                (GLint *)&pipe.m_FB.m_DrawFBO.Depth.Mip,
+                                (GLint *)&pipe.m_FB.m_DrawFBO.Depth.Layer);
 
     if(pipe.m_FB.m_DrawFBO.Stencil.Obj != ResourceId() && !rbStencil)
-    {
-      gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
-                                               (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Mip);
-      gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-                                               (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Layer);
-      if(pipe.m_FB.m_DrawFBO.Stencil.Layer == 0)
-        gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
-                                                 (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Layer);
-    }
+      GetFramebufferMipAndLayer(gl.GetHookset(), eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Mip,
+                                (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Layer);
 
     create_array_uninit(pipe.m_FB.m_DrawFBO.DrawBuffers, numCols);
     for(GLint i = 0; i < numCols; i++)
@@ -1853,20 +1825,10 @@ void GLReplay::SavePipelineState()
           rm->GetID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i])));
 
       if(pipe.m_FB.m_ReadFBO.Color[i].Obj != ResourceId() && !rbCol[i])
-      {
-        gl.glGetFramebufferAttachmentParameteriv(
-            eGL_READ_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-            eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, (GLint *)&pipe.m_FB.m_ReadFBO.Color[i].Mip);
-        gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER,
-                                                 GLenum(eGL_COLOR_ATTACHMENT0 + i),
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-                                                 (GLint *)&pipe.m_FB.m_ReadFBO.Color[i].Layer);
-        if(pipe.m_FB.m_ReadFBO.Color[i].Layer == 0)
-          gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER,
-                                                   GLenum(eGL_COLOR_ATTACHMENT0 + i),
-                                                   eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
-                                                   (GLint *)&pipe.m_FB.m_ReadFBO.Color[i].Layer);
-      }
+        GetFramebufferMipAndLayer(gl.GetHookset(), eGL_READ_FRAMEBUFFER,
+                                  GLenum(eGL_COLOR_ATTACHMENT0 + i),
+                                  (GLint *)&pipe.m_FB.m_ReadFBO.Color[i].Mip,
+                                  (GLint *)&pipe.m_FB.m_ReadFBO.Color[i].Layer);
     }
 
     pipe.m_FB.m_ReadFBO.Depth.Obj = rm->GetOriginalID(
@@ -1875,32 +1837,14 @@ void GLReplay::SavePipelineState()
         rm->GetID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
 
     if(pipe.m_FB.m_ReadFBO.Depth.Obj != ResourceId() && !rbDepth)
-    {
-      gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
-                                               (GLint *)&pipe.m_FB.m_ReadFBO.Depth.Mip);
-      gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-                                               (GLint *)&pipe.m_FB.m_ReadFBO.Depth.Layer);
-      if(pipe.m_FB.m_ReadFBO.Depth.Layer == 0)
-        gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
-                                                 (GLint *)&pipe.m_FB.m_ReadFBO.Depth.Layer);
-    }
+      GetFramebufferMipAndLayer(gl.GetHookset(), eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                (GLint *)&pipe.m_FB.m_ReadFBO.Depth.Mip,
+                                (GLint *)&pipe.m_FB.m_ReadFBO.Depth.Layer);
 
     if(pipe.m_FB.m_ReadFBO.Stencil.Obj != ResourceId() && !rbStencil)
-    {
-      gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
-                                               (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Mip);
-      gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-                                               (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Layer);
-      if(pipe.m_FB.m_ReadFBO.Stencil.Layer == 0)
-        gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
-                                                 (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Layer);
-    }
+      GetFramebufferMipAndLayer(gl.GetHookset(), eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Mip,
+                                (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Layer);
 
     create_array_uninit(pipe.m_FB.m_ReadFBO.DrawBuffers, numCols);
     for(GLint i = 0; i < numCols; i++)
