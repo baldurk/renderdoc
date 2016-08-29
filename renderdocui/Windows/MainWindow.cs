@@ -338,7 +338,7 @@ namespace renderdocui.Windows
                         if (disconnected)
                         {
                             MessageBox.Show("Remote server disconnected during replaying of this capture.\n" +
-                                "The replay will now be non-functional. To restore you will have to close the capture, allow\n" +
+                                "The replay will now be non-functional. To restore you will have to close the capture, allow " +
                                 "RenderDoc to reconnect and load the capture again",
                                 "Remote server disconnected",
                                 MessageBoxButtons.OK, MessageBoxIcon.Error);
