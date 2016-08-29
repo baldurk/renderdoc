@@ -261,6 +261,9 @@ namespace renderdocui.Windows
                     connectionStatus.Text = "Connection closed";
                     connectionIcon.Image = global::renderdocui.Properties.Resources.disconnect;
 
+                    numFrames.Enabled = captureDelay.Enabled = captureFrame.Enabled =
+                        triggerCapture.Enabled = queueCap.Enabled = false;
+
                     ConnectionClosed();
                 });
             }
