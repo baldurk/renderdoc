@@ -77,7 +77,7 @@ If you want to get in touch with any feature requests, suggestions, comments etc
 
 Bug reports can be submitted directly via email, or also on the |github_issues_link| where you can also find the full source code.
 
-The |builds_link| always has the latest stable and beta build downloads, as well as builds made from the source code each night for the bleeding edge. Stable releases update relatively infrequently and are tested the most to ensure they're as reliable as possible. Beta releases update more often to expose the latest fixes and features from the source, but risk more bugs sneaking in.
+The |builds_link| always has the latest stable build downloads, as well as builds made from the source code each night for the bleeding edge. Stable releases update every month or so and are the typical releases to stick to for the most reliable experience.
 
 See Also
 --------
