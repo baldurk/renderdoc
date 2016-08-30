@@ -1,7 +1,7 @@
 In-application API
 ==================
 
-Reference for RenderDoc in-application API
+Reference for RenderDoc in-application API version 1.1.1
 
 .. |semver_link| raw:: html
 
@@ -17,7 +17,7 @@ This page describes the RenderDoc API exposed to applications being captured, bo
     Note that version numbers follow |semver_link| which means the implementation returned may have a higher minor and/or patch version than requested.
     
     :param RENDERDOC_Version version: is the version number of the API for which you want the interface struct.
-    :param void** outAPIPointers: will be filled with the address of the API's function pointer struct, if supported. E.g. if ``eRENDERDOC_API_Version_1_0_1`` is requested, outAPIPointers will be filled with ``RENDERDOC_API_1_0_1*``.
+    :param void** outAPIPointers: will be filled with the address of the API's function pointer struct, if supported. E.g. if ``eRENDERDOC_API_Version_1_1_1`` is requested, outAPIPointers will be filled with ``RENDERDOC_API_1_1_1*``.
     :return: The function returns 1 if the API version is valid and available, and the struct pointer is filled. The function returns 0 if the API version is invalid or not supported, or the pointer parameter is invalid.
 
 
@@ -58,7 +58,7 @@ This page describes the RenderDoc API exposed to applications being captured, bo
 
     specifies whether the application is allowed to enter exclusive fullscreen. Default is on.
 
-.. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_DebugDeviceMode
+.. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_APIValidation
 
     specifies whether (where possible) API-specific debugging is enabled. Default is off.
 
@@ -96,7 +96,7 @@ This page describes the RenderDoc API exposed to applications being captured, bo
 
 .. cpp:enumerator:: RENDERDOC_CaptureOption::eRENDERDOC_Option_DebugOutputMute
 
-    specifies whether to mute any API debug output messages when `DebugDeviceMode` is enabled. Default is on.
+    specifies whether to mute any API debug output messages when `APIValidation` is enabled. Default is on.
 
 
 .. cpp:function:: uint32_t GetCaptureOptionU32(RENDERDOC_CaptureOption opt)
@@ -287,17 +287,17 @@ The path follows the template set in :cpp:func:`SetLogFilePathTemplate` so it ma
 
     This function will trigger a capture as if the user had pressed one of the capture hotkeys. The capture will be taken from the next frame presented to whichever window is considered current.
 
-.. cpp:function:: uint32_t IsRemoteAccessConnected()
+.. cpp:function:: uint32_t IsTargetControlConnected()
 
     This function returns a value to indicate whether the RenderDoc UI is currently connected to the current process.
 
     :return: Returns ``1`` if the RenderDoc UI is currently connected, or ``0`` otherwise.
 
-.. cpp:function:: uint32_t LaunchReplayUI(uint32_t connectRemoteAccess, const char *cmdline)
+.. cpp:function:: uint32_t LaunchReplayUI(uint32_t connectTargetControl, const char *cmdline)
 
     This function will determine the closest matching replay UI executable for the current RenderDoc module and launch it.
 
-    :param uint32_t connectRemoteAccess: should be set to 1 if the UI should immediately connect to the application.
+    :param uint32_t connectTargetControl should be set to 1 if the UI should immediately connect to the application.
     :param const char* cmdline: is an optional UTF-8 null-terminated string to be appended to the command line, e.g. a capture filename. If this parameter is NULL, the command line will be unmodified.
     :return: If the UI was successfully launched, this function will return the PID of the new process. Otherwise it will return ``0``.
 
@@ -357,3 +357,9 @@ The path follows the template set in :cpp:func:`SetLogFilePathTemplate` so it ma
     Wildcard matching of `device` and `wndHandle` is described above in :cpp:func:`BeginFrameCapture`.
 
     There will be undefined results if there is not an active frame capture for the device/window combination.
+
+.. cpp:function:: void TriggerMultiFrameCapture(uint32_t numFrames)
+
+    This function will trigger multiple sequential frame captures as if the user had pressed one of the capture hotkeys before each frame. The captures will be taken from the next frames presented to whichever window is considered current.
+
+    :param uint32_t numFrames: the number of frames to capture, as an unsigned integer.
