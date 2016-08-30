@@ -131,6 +131,14 @@ This option will use a monospaced font for every place in the UI where any data 
 
 Changing this option will need the UI to be restarted before it takes effect.
 
+---------------
+
+  | ``Always replay logs locally`` Default: ``Disabled``
+
+Normally, when RenderDoc begins to load a capture file that was created on a different type of machine, it will prompt you to ask if you really want to replay it locally (and perhaps get different results or even failed loading), or if you'd like to choose a :doc:`replay context <../how/how_network_capture_replay>` to replay it remotely on the type of machine it was recorded.
+
+In that prompt you can choose to always replay logs locally, which enables this option. If enabled, RenderDoc will always just load the log locally.
+
 Core options
 ------------
 
