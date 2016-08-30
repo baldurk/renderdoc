@@ -222,6 +222,8 @@ void Serialiser::Serialise(const char *name, ShaderReflection &el)
 
   Serialise("", el.Disassembly);
 
+  Serialise("", el.RawBytes);
+
   Serialise("", el.InputSig);
   Serialise("", el.OutputSig);
 
@@ -232,7 +234,7 @@ void Serialiser::Serialise(const char *name, ShaderReflection &el)
 
   Serialise("", el.Interfaces);
 
-  SIZE_CHECK(ShaderReflection, 176);
+  SIZE_CHECK(ShaderReflection, 192);
 }
 
 template <>

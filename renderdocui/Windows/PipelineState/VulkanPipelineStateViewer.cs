@@ -125,9 +125,6 @@ namespace renderdocui.Windows.PipelineState
             viAttrs.Font = core.Config.PreferredFont;
             viBuffers.Font = core.Config.PreferredFont;
 
-            groupX.Font = groupY.Font = groupZ.Font = core.Config.PreferredFont;
-            threadX.Font = threadY.Font = threadZ.Font = core.Config.PreferredFont;
-
             vsShader.Font = vsResources.Font = vsCBuffers.Font = core.Config.PreferredFont;
             gsShader.Font = gsResources.Font = gsCBuffers.Font = core.Config.PreferredFont;
             hsShader.Font = hsResources.Font = hsCBuffers.Font = core.Config.PreferredFont;
@@ -2141,6 +2138,39 @@ namespace renderdocui.Windows.PipelineState
             s.Show(m_DockContent.DockPanel);
         }
 
+        private void shaderSave_Click(object sender, EventArgs e)
+        {
+            VulkanPipelineState.ShaderStage stage = GetStageForSender(sender);
+
+            if (stage == null) return;
+
+            ShaderReflection shaderDetails = stage.ShaderDetails;
+
+            if (stage.Shader == ResourceId.Null) return;
+
+            shaderSaveDialog.FileName = "";
+
+            DialogResult res = shaderSaveDialog.ShowDialog();
+
+            if (res == DialogResult.OK)
+            {
+                try
+                {
+                    FileStream writer = File.Create(shaderSaveDialog.FileName);
+
+                    writer.Write(shaderDetails.RawBytes, 0, shaderDetails.RawBytes.Length);
+
+                    writer.Flush();
+                    writer.Close();
+                }
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show("Couldn't save to " + shaderSaveDialog.FileName + Environment.NewLine + ex.ToString(), "Cannot save",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
+        }
+
         private void MakeShaderVariablesHLSL(bool cbufferContents, ShaderConstant[] vars, ref string struct_contents, ref string struct_defs)
         {
             var nl = Environment.NewLine;
@@ -3409,6 +3439,5 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
                 ExportHTML(exportDialog.FileName);
             }
         }
-
    }
 }

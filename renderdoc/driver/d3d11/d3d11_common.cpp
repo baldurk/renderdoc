@@ -134,6 +134,11 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 
   ret->Disassembly = dxbc->GetDisassembly();
 
+  if(dxbc->m_ShaderBlob.empty())
+    create_array_uninit(ret->RawBytes, 0);
+  else
+    create_array_init(ret->RawBytes, dxbc->m_ShaderBlob.size(), &dxbc->m_ShaderBlob[0]);
+
   ret->DispatchThreadsDimension[0] = dxbc->DispatchThreadsDimension[0];
   ret->DispatchThreadsDimension[1] = dxbc->DispatchThreadsDimension[1];
   ret->DispatchThreadsDimension[2] = dxbc->DispatchThreadsDimension[2];

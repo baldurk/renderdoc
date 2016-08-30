@@ -413,6 +413,9 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string Disassembly;
 
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public byte[] RawBytes;
+
         [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 3)]
         public UInt32[] DispatchThreadsDimension;
 

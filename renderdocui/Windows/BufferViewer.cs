@@ -2692,7 +2692,7 @@ namespace renderdocui.Windows
                 }
                 catch (System.Exception ex)
                 {
-                    MessageBox.Show("Couldn't save to " + csvSaveDialog.FileName + Environment.NewLine + ex.ToString(), "Cannot save",
+                    MessageBox.Show("Couldn't save to " + rawSaveDialog.FileName + Environment.NewLine + ex.ToString(), "Cannot save",
                                                     MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }

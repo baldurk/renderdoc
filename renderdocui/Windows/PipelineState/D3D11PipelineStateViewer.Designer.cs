@@ -31,216 +31,234 @@
             this.components = new System.ComponentModel.Container();
             System.Windows.Forms.ToolStripLabel toolStripLabel1;
             System.Windows.Forms.TableLayoutPanel toolstripTable;
-            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn2 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
-            TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Stride", "Stride")));
-            TreelistView.TreeListColumn treeListColumn4 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Offset", "Offset")));
-            TreelistView.TreeListColumn treeListColumn5 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("bytelen", "Byte Len")));
-            TreelistView.TreeListColumn treeListColumn6 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            TreelistView.TreeListColumn treeListColumn199 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn200 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
+            TreelistView.TreeListColumn treeListColumn201 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Stride", "Stride")));
+            TreelistView.TreeListColumn treeListColumn202 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Offset", "Offset")));
+            TreelistView.TreeListColumn treeListColumn203 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("bytelen", "Byte Len")));
+            TreelistView.TreeListColumn treeListColumn204 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
             System.Windows.Forms.GroupBox groupBox2;
-            TreelistView.TreeListColumn treeListColumn7 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn8 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Semantic Name", "Semantic")));
-            TreelistView.TreeListColumn treeListColumn9 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Index", "Index")));
-            TreelistView.TreeListColumn treeListColumn10 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
-            TreelistView.TreeListColumn treeListColumn11 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Input Slot", "Input Slot")));
-            TreelistView.TreeListColumn treeListColumn12 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Offset", "Offset")));
-            TreelistView.TreeListColumn treeListColumn13 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Class", "Class")));
-            TreelistView.TreeListColumn treeListColumn14 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Step Rate", "Step Rate")));
-            TreelistView.TreeListColumn treeListColumn15 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            TreelistView.TreeListColumn treeListColumn205 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn206 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Semantic Name", "Semantic")));
+            TreelistView.TreeListColumn treeListColumn207 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Index", "Index")));
+            TreelistView.TreeListColumn treeListColumn208 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
+            TreelistView.TreeListColumn treeListColumn209 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Input Slot", "Input Slot")));
+            TreelistView.TreeListColumn treeListColumn210 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Offset", "Offset")));
+            TreelistView.TreeListColumn treeListColumn211 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Class", "Class")));
+            TreelistView.TreeListColumn treeListColumn212 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Step Rate", "Step Rate")));
+            TreelistView.TreeListColumn treeListColumn213 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
             System.Windows.Forms.GroupBox groupBox39;
             System.Windows.Forms.FlowLayoutPanel flowLayoutPanel9;
             System.Windows.Forms.GroupBox groupBox44;
-            TreelistView.TreeListColumn treeListColumn16 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn17 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Interface", "Interface")));
-            TreelistView.TreeListColumn treeListColumn18 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Instance", "Instance")));
-            TreelistView.TreeListColumn treeListColumn19 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn20 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
-            TreelistView.TreeListColumn treeListColumn21 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn22 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
-            TreelistView.TreeListColumn treeListColumn23 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
-            TreelistView.TreeListColumn treeListColumn24 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
-            TreelistView.TreeListColumn treeListColumn25 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
-            TreelistView.TreeListColumn treeListColumn26 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
-            TreelistView.TreeListColumn treeListColumn27 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
-            TreelistView.TreeListColumn treeListColumn28 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn29 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Addressing", "Addressing")));
-            TreelistView.TreeListColumn treeListColumn30 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Filter", "Filter")));
-            TreelistView.TreeListColumn treeListColumn31 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("LOD Clamp", "LOD Clamp")));
-            TreelistView.TreeListColumn treeListColumn32 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mip Bias", "Mip Bias")));
-            TreelistView.TreeListColumn treeListColumn33 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn34 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
-            TreelistView.TreeListColumn treeListColumn35 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Vec4 Range", "Vec4 Range")));
-            TreelistView.TreeListColumn treeListColumn36 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Size", "Size")));
-            TreelistView.TreeListColumn treeListColumn37 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
-            TreelistView.TreeListColumn treeListColumn38 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn39 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Interface", "Interface")));
-            TreelistView.TreeListColumn treeListColumn40 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Instance", "Instance")));
-            TreelistView.TreeListColumn treeListColumn41 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn42 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
-            TreelistView.TreeListColumn treeListColumn43 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn44 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
-            TreelistView.TreeListColumn treeListColumn45 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
-            TreelistView.TreeListColumn treeListColumn46 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
-            TreelistView.TreeListColumn treeListColumn47 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
-            TreelistView.TreeListColumn treeListColumn48 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
-            TreelistView.TreeListColumn treeListColumn49 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
-            TreelistView.TreeListColumn treeListColumn50 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn51 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Addressing", "Addressing")));
-            TreelistView.TreeListColumn treeListColumn52 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Filter", "Filter")));
-            TreelistView.TreeListColumn treeListColumn53 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("LOD Clamp", "LOD Clamp")));
-            TreelistView.TreeListColumn treeListColumn54 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mip Bias", "Mip Bias")));
-            TreelistView.TreeListColumn treeListColumn55 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn56 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
-            TreelistView.TreeListColumn treeListColumn57 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Vec4 Range", "Vec4 Range")));
-            TreelistView.TreeListColumn treeListColumn58 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Size", "Size")));
-            TreelistView.TreeListColumn treeListColumn59 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
-            TreelistView.TreeListColumn treeListColumn60 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn61 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Interface", "Interface")));
-            TreelistView.TreeListColumn treeListColumn62 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Instance", "Instance")));
-            TreelistView.TreeListColumn treeListColumn63 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn64 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
-            TreelistView.TreeListColumn treeListColumn65 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn66 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
-            TreelistView.TreeListColumn treeListColumn67 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
-            TreelistView.TreeListColumn treeListColumn68 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
-            TreelistView.TreeListColumn treeListColumn69 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
-            TreelistView.TreeListColumn treeListColumn70 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
-            TreelistView.TreeListColumn treeListColumn71 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
-            TreelistView.TreeListColumn treeListColumn72 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn73 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Addressing", "Addressing")));
-            TreelistView.TreeListColumn treeListColumn74 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Filter", "Filter")));
-            TreelistView.TreeListColumn treeListColumn75 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("LOD Clamp", "LOD Clamp")));
-            TreelistView.TreeListColumn treeListColumn76 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mip Bias", "Mip Bias")));
-            TreelistView.TreeListColumn treeListColumn77 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn78 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
-            TreelistView.TreeListColumn treeListColumn79 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Vec4 Range", "Vec4 Range")));
-            TreelistView.TreeListColumn treeListColumn80 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Size", "Size")));
-            TreelistView.TreeListColumn treeListColumn81 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            System.Windows.Forms.Label label28;
+            System.Windows.Forms.Label label26;
+            System.Windows.Forms.Label label27;
+            TreelistView.TreeListColumn treeListColumn214 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn215 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Interface", "Interface")));
+            TreelistView.TreeListColumn treeListColumn216 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Instance", "Instance")));
+            TreelistView.TreeListColumn treeListColumn217 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn218 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
+            TreelistView.TreeListColumn treeListColumn219 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
+            TreelistView.TreeListColumn treeListColumn220 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
+            TreelistView.TreeListColumn treeListColumn221 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
+            TreelistView.TreeListColumn treeListColumn222 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
+            TreelistView.TreeListColumn treeListColumn223 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
+            TreelistView.TreeListColumn treeListColumn224 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
+            TreelistView.TreeListColumn treeListColumn225 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            TreelistView.TreeListColumn treeListColumn226 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn227 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Addressing", "Addressing")));
+            TreelistView.TreeListColumn treeListColumn228 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Filter", "Filter")));
+            TreelistView.TreeListColumn treeListColumn229 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("LOD Clamp", "LOD Clamp")));
+            TreelistView.TreeListColumn treeListColumn230 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mip Bias", "Mip Bias")));
+            TreelistView.TreeListColumn treeListColumn231 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn232 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
+            TreelistView.TreeListColumn treeListColumn233 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Vec4 Range", "Vec4 Range")));
+            TreelistView.TreeListColumn treeListColumn234 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Size", "Size")));
+            TreelistView.TreeListColumn treeListColumn235 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            System.Windows.Forms.Label label29;
+            System.Windows.Forms.Label label30;
+            System.Windows.Forms.Label label31;
+            TreelistView.TreeListColumn treeListColumn236 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn237 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Interface", "Interface")));
+            TreelistView.TreeListColumn treeListColumn238 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Instance", "Instance")));
+            TreelistView.TreeListColumn treeListColumn239 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn240 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
+            TreelistView.TreeListColumn treeListColumn241 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
+            TreelistView.TreeListColumn treeListColumn242 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
+            TreelistView.TreeListColumn treeListColumn243 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
+            TreelistView.TreeListColumn treeListColumn244 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
+            TreelistView.TreeListColumn treeListColumn245 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
+            TreelistView.TreeListColumn treeListColumn246 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
+            TreelistView.TreeListColumn treeListColumn247 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            TreelistView.TreeListColumn treeListColumn248 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn249 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Addressing", "Addressing")));
+            TreelistView.TreeListColumn treeListColumn250 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Filter", "Filter")));
+            TreelistView.TreeListColumn treeListColumn251 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("LOD Clamp", "LOD Clamp")));
+            TreelistView.TreeListColumn treeListColumn252 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mip Bias", "Mip Bias")));
+            TreelistView.TreeListColumn treeListColumn253 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn254 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
+            TreelistView.TreeListColumn treeListColumn255 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Vec4 Range", "Vec4 Range")));
+            TreelistView.TreeListColumn treeListColumn256 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Size", "Size")));
+            TreelistView.TreeListColumn treeListColumn257 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            System.Windows.Forms.Label label32;
+            System.Windows.Forms.Label label33;
+            System.Windows.Forms.Label label34;
+            TreelistView.TreeListColumn treeListColumn258 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn259 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Interface", "Interface")));
+            TreelistView.TreeListColumn treeListColumn260 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Instance", "Instance")));
+            TreelistView.TreeListColumn treeListColumn261 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn262 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
+            TreelistView.TreeListColumn treeListColumn263 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
+            TreelistView.TreeListColumn treeListColumn264 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
+            TreelistView.TreeListColumn treeListColumn265 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
+            TreelistView.TreeListColumn treeListColumn266 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
+            TreelistView.TreeListColumn treeListColumn267 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
+            TreelistView.TreeListColumn treeListColumn268 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
+            TreelistView.TreeListColumn treeListColumn269 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            TreelistView.TreeListColumn treeListColumn270 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn271 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Addressing", "Addressing")));
+            TreelistView.TreeListColumn treeListColumn272 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Filter", "Filter")));
+            TreelistView.TreeListColumn treeListColumn273 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("LOD Clamp", "LOD Clamp")));
+            TreelistView.TreeListColumn treeListColumn274 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mip Bias", "Mip Bias")));
+            TreelistView.TreeListColumn treeListColumn275 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn276 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
+            TreelistView.TreeListColumn treeListColumn277 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Vec4 Range", "Vec4 Range")));
+            TreelistView.TreeListColumn treeListColumn278 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Size", "Size")));
+            TreelistView.TreeListColumn treeListColumn279 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
             System.Windows.Forms.GroupBox groupBox45;
-            TreelistView.TreeListColumn treeListColumn82 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn83 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
-            TreelistView.TreeListColumn treeListColumn84 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Length", "Length")));
-            TreelistView.TreeListColumn treeListColumn85 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Offset", "Offset")));
-            TreelistView.TreeListColumn treeListColumn86 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
-            TreelistView.TreeListColumn treeListColumn87 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn88 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Interface", "Interface")));
-            TreelistView.TreeListColumn treeListColumn89 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Instance", "Instance")));
-            TreelistView.TreeListColumn treeListColumn90 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn91 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
-            TreelistView.TreeListColumn treeListColumn92 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn93 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
-            TreelistView.TreeListColumn treeListColumn94 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
-            TreelistView.TreeListColumn treeListColumn95 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
-            TreelistView.TreeListColumn treeListColumn96 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
-            TreelistView.TreeListColumn treeListColumn97 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
-            TreelistView.TreeListColumn treeListColumn98 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
-            TreelistView.TreeListColumn treeListColumn99 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn100 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Addressing", "Addressing")));
-            TreelistView.TreeListColumn treeListColumn101 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Filter", "Filter")));
-            TreelistView.TreeListColumn treeListColumn102 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("LOD Clamp", "LOD Clamp")));
-            TreelistView.TreeListColumn treeListColumn103 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mip Bias", "Mip Bias")));
-            TreelistView.TreeListColumn treeListColumn104 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn105 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
-            TreelistView.TreeListColumn treeListColumn106 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Vec4 Range", "Vec4 Range")));
-            TreelistView.TreeListColumn treeListColumn107 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Size", "Size")));
-            TreelistView.TreeListColumn treeListColumn108 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            TreelistView.TreeListColumn treeListColumn280 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn281 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
+            TreelistView.TreeListColumn treeListColumn282 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Length", "Length")));
+            TreelistView.TreeListColumn treeListColumn283 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Offset", "Offset")));
+            TreelistView.TreeListColumn treeListColumn284 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            System.Windows.Forms.Label label35;
+            System.Windows.Forms.Label label36;
+            System.Windows.Forms.Label label37;
+            TreelistView.TreeListColumn treeListColumn285 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn286 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Interface", "Interface")));
+            TreelistView.TreeListColumn treeListColumn287 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Instance", "Instance")));
+            TreelistView.TreeListColumn treeListColumn288 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn289 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
+            TreelistView.TreeListColumn treeListColumn290 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
+            TreelistView.TreeListColumn treeListColumn291 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
+            TreelistView.TreeListColumn treeListColumn292 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
+            TreelistView.TreeListColumn treeListColumn293 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
+            TreelistView.TreeListColumn treeListColumn294 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
+            TreelistView.TreeListColumn treeListColumn295 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
+            TreelistView.TreeListColumn treeListColumn296 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            TreelistView.TreeListColumn treeListColumn297 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn298 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Addressing", "Addressing")));
+            TreelistView.TreeListColumn treeListColumn299 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Filter", "Filter")));
+            TreelistView.TreeListColumn treeListColumn300 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("LOD Clamp", "LOD Clamp")));
+            TreelistView.TreeListColumn treeListColumn301 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mip Bias", "Mip Bias")));
+            TreelistView.TreeListColumn treeListColumn302 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn303 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
+            TreelistView.TreeListColumn treeListColumn304 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Vec4 Range", "Vec4 Range")));
+            TreelistView.TreeListColumn treeListColumn305 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Size", "Size")));
+            TreelistView.TreeListColumn treeListColumn306 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(D3D11PipelineStateViewer));
             System.Windows.Forms.Label label1;
             System.Windows.Forms.Label label15;
             System.Windows.Forms.Label label16;
             System.Windows.Forms.Label label17;
             System.Windows.Forms.Label label25;
-            TreelistView.TreeListColumn treeListColumn109 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn110 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("X", "X")));
-            TreelistView.TreeListColumn treeListColumn111 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Y", "Y")));
-            TreelistView.TreeListColumn treeListColumn112 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
-            TreelistView.TreeListColumn treeListColumn113 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
-            TreelistView.TreeListColumn treeListColumn114 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("MinDepth", "MinDepth")));
-            TreelistView.TreeListColumn treeListColumn115 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("MaxDepth", "MaxDepth")));
+            TreelistView.TreeListColumn treeListColumn307 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn308 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("X", "X")));
+            TreelistView.TreeListColumn treeListColumn309 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Y", "Y")));
+            TreelistView.TreeListColumn treeListColumn310 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
+            TreelistView.TreeListColumn treeListColumn311 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
+            TreelistView.TreeListColumn treeListColumn312 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("MinDepth", "MinDepth")));
+            TreelistView.TreeListColumn treeListColumn313 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("MaxDepth", "MaxDepth")));
             System.Windows.Forms.GroupBox groupBox42;
-            TreelistView.TreeListColumn treeListColumn116 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn117 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("X", "X")));
-            TreelistView.TreeListColumn treeListColumn118 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Y", "Y")));
-            TreelistView.TreeListColumn treeListColumn119 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
-            TreelistView.TreeListColumn treeListColumn120 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
-            TreelistView.TreeListColumn treeListColumn121 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn122 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Interface", "Interface")));
-            TreelistView.TreeListColumn treeListColumn123 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Instance", "Instance")));
-            TreelistView.TreeListColumn treeListColumn124 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn125 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
-            TreelistView.TreeListColumn treeListColumn126 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn127 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
-            TreelistView.TreeListColumn treeListColumn128 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
-            TreelistView.TreeListColumn treeListColumn129 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
-            TreelistView.TreeListColumn treeListColumn130 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
-            TreelistView.TreeListColumn treeListColumn131 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
-            TreelistView.TreeListColumn treeListColumn132 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
-            TreelistView.TreeListColumn treeListColumn133 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn134 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Addressing", "Addressing")));
-            TreelistView.TreeListColumn treeListColumn135 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Filter", "Filter")));
-            TreelistView.TreeListColumn treeListColumn136 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("LOD Clamp", "LOD Clamp")));
-            TreelistView.TreeListColumn treeListColumn137 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mip Bias", "Mip Bias")));
-            TreelistView.TreeListColumn treeListColumn138 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn139 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
-            TreelistView.TreeListColumn treeListColumn140 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Vec4 Range", "Vec4 Range")));
-            TreelistView.TreeListColumn treeListColumn141 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Size", "Size")));
-            TreelistView.TreeListColumn treeListColumn142 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
-            TreelistView.TreeListColumn treeListColumn143 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn144 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
-            TreelistView.TreeListColumn treeListColumn145 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn146 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
-            TreelistView.TreeListColumn treeListColumn147 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
-            TreelistView.TreeListColumn treeListColumn148 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
-            TreelistView.TreeListColumn treeListColumn149 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
-            TreelistView.TreeListColumn treeListColumn150 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
-            TreelistView.TreeListColumn treeListColumn151 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
-            TreelistView.TreeListColumn treeListColumn152 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn153 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Enabled", "Enabled")));
-            TreelistView.TreeListColumn treeListColumn154 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Logic", "Logic")));
-            TreelistView.TreeListColumn treeListColumn155 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Colour Src", "Colour Src")));
-            TreelistView.TreeListColumn treeListColumn156 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Colour Dst", "Colour Dst")));
-            TreelistView.TreeListColumn treeListColumn157 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Colour Op", "Colour Op")));
-            TreelistView.TreeListColumn treeListColumn158 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Alpha Src", "Alpha Src")));
-            TreelistView.TreeListColumn treeListColumn159 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Alpha Dst", "Alpha Dst")));
-            TreelistView.TreeListColumn treeListColumn160 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Alpha Op", "Alpha Op")));
-            TreelistView.TreeListColumn treeListColumn161 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Logic Op", "Logic Op")));
-            TreelistView.TreeListColumn treeListColumn162 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Write Mask", "Write Mask")));
-            TreelistView.TreeListColumn treeListColumn163 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Face", "Face")));
-            TreelistView.TreeListColumn treeListColumn164 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Func", "Func")));
-            TreelistView.TreeListColumn treeListColumn165 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Fail Op", "Fail Op")));
-            TreelistView.TreeListColumn treeListColumn166 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth Fail Op", "Depth Fail Op")));
-            TreelistView.TreeListColumn treeListColumn167 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Pass Op", "Pass Op")));
-            TreelistView.TreeListColumn treeListColumn168 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn169 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
-            TreelistView.TreeListColumn treeListColumn170 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn171 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
-            TreelistView.TreeListColumn treeListColumn172 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
-            TreelistView.TreeListColumn treeListColumn173 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
-            TreelistView.TreeListColumn treeListColumn174 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
-            TreelistView.TreeListColumn treeListColumn175 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
-            TreelistView.TreeListColumn treeListColumn176 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
-            TreelistView.TreeListColumn treeListColumn177 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn178 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Interface", "Interface")));
-            TreelistView.TreeListColumn treeListColumn179 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Instance", "Instance")));
-            TreelistView.TreeListColumn treeListColumn180 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn181 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
-            TreelistView.TreeListColumn treeListColumn182 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
-            TreelistView.TreeListColumn treeListColumn183 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
-            TreelistView.TreeListColumn treeListColumn184 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
-            TreelistView.TreeListColumn treeListColumn185 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
-            TreelistView.TreeListColumn treeListColumn186 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
-            TreelistView.TreeListColumn treeListColumn187 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
-            TreelistView.TreeListColumn treeListColumn188 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
-            TreelistView.TreeListColumn treeListColumn189 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn190 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Addressing", "Addressing")));
-            TreelistView.TreeListColumn treeListColumn191 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Filter", "Filter")));
-            TreelistView.TreeListColumn treeListColumn192 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("LOD Clamp", "LOD Clamp")));
-            TreelistView.TreeListColumn treeListColumn193 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mip Bias", "Mip Bias")));
-            TreelistView.TreeListColumn treeListColumn194 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
-            TreelistView.TreeListColumn treeListColumn195 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
-            TreelistView.TreeListColumn treeListColumn196 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Vec4 Range", "Vec4 Range")));
-            TreelistView.TreeListColumn treeListColumn197 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Size", "Size")));
-            TreelistView.TreeListColumn treeListColumn198 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            TreelistView.TreeListColumn treeListColumn314 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn315 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("X", "X")));
+            TreelistView.TreeListColumn treeListColumn316 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Y", "Y")));
+            TreelistView.TreeListColumn treeListColumn317 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
+            TreelistView.TreeListColumn treeListColumn318 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
+            System.Windows.Forms.Label label38;
+            System.Windows.Forms.Label label39;
+            System.Windows.Forms.Label label40;
+            TreelistView.TreeListColumn treeListColumn319 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn320 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Interface", "Interface")));
+            TreelistView.TreeListColumn treeListColumn321 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Instance", "Instance")));
+            TreelistView.TreeListColumn treeListColumn322 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn323 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
+            TreelistView.TreeListColumn treeListColumn324 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
+            TreelistView.TreeListColumn treeListColumn325 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
+            TreelistView.TreeListColumn treeListColumn326 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
+            TreelistView.TreeListColumn treeListColumn327 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
+            TreelistView.TreeListColumn treeListColumn328 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
+            TreelistView.TreeListColumn treeListColumn329 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
+            TreelistView.TreeListColumn treeListColumn330 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            TreelistView.TreeListColumn treeListColumn331 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn332 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Addressing", "Addressing")));
+            TreelistView.TreeListColumn treeListColumn333 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Filter", "Filter")));
+            TreelistView.TreeListColumn treeListColumn334 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("LOD Clamp", "LOD Clamp")));
+            TreelistView.TreeListColumn treeListColumn335 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mip Bias", "Mip Bias")));
+            TreelistView.TreeListColumn treeListColumn336 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn337 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
+            TreelistView.TreeListColumn treeListColumn338 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Vec4 Range", "Vec4 Range")));
+            TreelistView.TreeListColumn treeListColumn339 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Size", "Size")));
+            TreelistView.TreeListColumn treeListColumn340 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            TreelistView.TreeListColumn treeListColumn341 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn342 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
+            TreelistView.TreeListColumn treeListColumn343 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
+            TreelistView.TreeListColumn treeListColumn344 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
+            TreelistView.TreeListColumn treeListColumn345 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
+            TreelistView.TreeListColumn treeListColumn346 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
+            TreelistView.TreeListColumn treeListColumn347 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
+            TreelistView.TreeListColumn treeListColumn348 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
+            TreelistView.TreeListColumn treeListColumn349 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            TreelistView.TreeListColumn treeListColumn350 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn351 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Enabled", "Enabled")));
+            TreelistView.TreeListColumn treeListColumn352 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Logic", "Logic")));
+            TreelistView.TreeListColumn treeListColumn353 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Colour Src", "Colour Src")));
+            TreelistView.TreeListColumn treeListColumn354 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Colour Dst", "Colour Dst")));
+            TreelistView.TreeListColumn treeListColumn355 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Colour Op", "Colour Op")));
+            TreelistView.TreeListColumn treeListColumn356 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Alpha Src", "Alpha Src")));
+            TreelistView.TreeListColumn treeListColumn357 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Alpha Dst", "Alpha Dst")));
+            TreelistView.TreeListColumn treeListColumn358 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Alpha Op", "Alpha Op")));
+            TreelistView.TreeListColumn treeListColumn359 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Logic Op", "Logic Op")));
+            TreelistView.TreeListColumn treeListColumn360 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Write Mask", "Write Mask")));
+            TreelistView.TreeListColumn treeListColumn361 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Face", "Face")));
+            TreelistView.TreeListColumn treeListColumn362 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Func", "Func")));
+            TreelistView.TreeListColumn treeListColumn363 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Fail Op", "Fail Op")));
+            TreelistView.TreeListColumn treeListColumn364 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth Fail Op", "Depth Fail Op")));
+            TreelistView.TreeListColumn treeListColumn365 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Pass Op", "Pass Op")));
+            TreelistView.TreeListColumn treeListColumn366 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn367 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
+            TreelistView.TreeListColumn treeListColumn368 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
+            TreelistView.TreeListColumn treeListColumn369 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
+            TreelistView.TreeListColumn treeListColumn370 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
+            TreelistView.TreeListColumn treeListColumn371 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
+            TreelistView.TreeListColumn treeListColumn372 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
+            TreelistView.TreeListColumn treeListColumn373 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
+            TreelistView.TreeListColumn treeListColumn374 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            TreelistView.TreeListColumn treeListColumn375 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn376 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Interface", "Interface")));
+            TreelistView.TreeListColumn treeListColumn377 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Instance", "Instance")));
+            System.Windows.Forms.Label label41;
+            System.Windows.Forms.Label label42;
+            System.Windows.Forms.Label label43;
+            TreelistView.TreeListColumn treeListColumn378 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn379 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Resource", "Resource")));
+            TreelistView.TreeListColumn treeListColumn380 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Type", "Type")));
+            TreelistView.TreeListColumn treeListColumn381 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Width", "Width")));
+            TreelistView.TreeListColumn treeListColumn382 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Height", "Height")));
+            TreelistView.TreeListColumn treeListColumn383 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Depth", "Depth")));
+            TreelistView.TreeListColumn treeListColumn384 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Array Size", "Array Size")));
+            TreelistView.TreeListColumn treeListColumn385 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Format", "Format")));
+            TreelistView.TreeListColumn treeListColumn386 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
+            TreelistView.TreeListColumn treeListColumn387 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn388 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Addressing", "Addressing")));
+            TreelistView.TreeListColumn treeListColumn389 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Filter", "Filter")));
+            TreelistView.TreeListColumn treeListColumn390 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("LOD Clamp", "LOD Clamp")));
+            TreelistView.TreeListColumn treeListColumn391 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Mip Bias", "Mip Bias")));
+            TreelistView.TreeListColumn treeListColumn392 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Slot", "Slot")));
+            TreelistView.TreeListColumn treeListColumn393 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Buffer", "Buffer")));
+            TreelistView.TreeListColumn treeListColumn394 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Vec4 Range", "Vec4 Range")));
+            TreelistView.TreeListColumn treeListColumn395 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Size", "Size")));
+            TreelistView.TreeListColumn treeListColumn396 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Go", "Go")));
             this.pipeFlow = new renderdocui.Controls.PipelineFlowchart();
             this.flowLayoutPanel6 = new System.Windows.Forms.FlowLayoutPanel();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
@@ -271,6 +289,7 @@
             this.vsShader = new System.Windows.Forms.Label();
             this.vsShaderCog = new System.Windows.Forms.PictureBox();
             this.vsShaderEdit = new System.Windows.Forms.PictureBox();
+            this.vsShaderSave = new System.Windows.Forms.PictureBox();
             this.groupBox5 = new System.Windows.Forms.GroupBox();
             this.vsClasses = new TreelistView.TreeListView();
             this.groupBox7 = new System.Windows.Forms.GroupBox();
@@ -287,6 +306,7 @@
             this.hsShader = new System.Windows.Forms.Label();
             this.hsShaderCog = new System.Windows.Forms.PictureBox();
             this.hsShaderEdit = new System.Windows.Forms.PictureBox();
+            this.hsShaderSave = new System.Windows.Forms.PictureBox();
             this.groupBox11 = new System.Windows.Forms.GroupBox();
             this.hsClasses = new TreelistView.TreeListView();
             this.groupBox12 = new System.Windows.Forms.GroupBox();
@@ -303,6 +323,7 @@
             this.dsShader = new System.Windows.Forms.Label();
             this.dsShaderCog = new System.Windows.Forms.PictureBox();
             this.dsShaderEdit = new System.Windows.Forms.PictureBox();
+            this.dsShaderSave = new System.Windows.Forms.PictureBox();
             this.groupBox17 = new System.Windows.Forms.GroupBox();
             this.dsClasses = new TreelistView.TreeListView();
             this.groupBox18 = new System.Windows.Forms.GroupBox();
@@ -320,6 +341,7 @@
             this.gsShader = new System.Windows.Forms.Label();
             this.gsShaderCog = new System.Windows.Forms.PictureBox();
             this.gsShaderEdit = new System.Windows.Forms.PictureBox();
+            this.gsShaderSave = new System.Windows.Forms.PictureBox();
             this.geomClassGroupBox = new System.Windows.Forms.GroupBox();
             this.gsClasses = new TreelistView.TreeListView();
             this.groupBox24 = new System.Windows.Forms.GroupBox();
@@ -363,6 +385,7 @@
             this.psShader = new System.Windows.Forms.Label();
             this.psShaderCog = new System.Windows.Forms.PictureBox();
             this.psShaderEdit = new System.Windows.Forms.PictureBox();
+            this.psShaderSave = new System.Windows.Forms.PictureBox();
             this.pixelClassGroupBox = new System.Windows.Forms.GroupBox();
             this.psClasses = new TreelistView.TreeListView();
             this.groupBox28 = new System.Windows.Forms.GroupBox();
@@ -421,6 +444,7 @@
             this.csShader = new System.Windows.Forms.Label();
             this.csShaderCog = new System.Windows.Forms.PictureBox();
             this.csShaderEdit = new System.Windows.Forms.PictureBox();
+            this.csShaderSave = new System.Windows.Forms.PictureBox();
             this.computeDebugControls = new System.Windows.Forms.FlowLayoutPanel();
             this.label9 = new System.Windows.Forms.Label();
             this.groupX = new System.Windows.Forms.TextBox();
@@ -441,20 +465,39 @@
             this.showDisabled = new System.Windows.Forms.ToolStripMenuItem();
             this.showEmpty = new System.Windows.Forms.ToolStripMenuItem();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
-            this.exportDialog = new System.Windows.Forms.SaveFileDialog();
+            this.pipeExportDialog = new System.Windows.Forms.SaveFileDialog();
+            this.shaderSaveDialog = new System.Windows.Forms.SaveFileDialog();
             toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
             toolstripTable = new System.Windows.Forms.TableLayoutPanel();
             groupBox2 = new System.Windows.Forms.GroupBox();
             groupBox39 = new System.Windows.Forms.GroupBox();
             flowLayoutPanel9 = new System.Windows.Forms.FlowLayoutPanel();
             groupBox44 = new System.Windows.Forms.GroupBox();
+            label28 = new System.Windows.Forms.Label();
+            label26 = new System.Windows.Forms.Label();
+            label27 = new System.Windows.Forms.Label();
+            label29 = new System.Windows.Forms.Label();
+            label30 = new System.Windows.Forms.Label();
+            label31 = new System.Windows.Forms.Label();
+            label32 = new System.Windows.Forms.Label();
+            label33 = new System.Windows.Forms.Label();
+            label34 = new System.Windows.Forms.Label();
             groupBox45 = new System.Windows.Forms.GroupBox();
+            label35 = new System.Windows.Forms.Label();
+            label36 = new System.Windows.Forms.Label();
+            label37 = new System.Windows.Forms.Label();
             label1 = new System.Windows.Forms.Label();
             label15 = new System.Windows.Forms.Label();
             label16 = new System.Windows.Forms.Label();
             label17 = new System.Windows.Forms.Label();
             label25 = new System.Windows.Forms.Label();
             groupBox42 = new System.Windows.Forms.GroupBox();
+            label38 = new System.Windows.Forms.Label();
+            label39 = new System.Windows.Forms.Label();
+            label40 = new System.Windows.Forms.Label();
+            label41 = new System.Windows.Forms.Label();
+            label42 = new System.Windows.Forms.Label();
+            label43 = new System.Windows.Forms.Label();
             toolstripTable.SuspendLayout();
             this.flowLayoutPanel6.SuspendLayout();
             this.toolStrip1.SuspendLayout();
@@ -481,6 +524,7 @@
             this.flowLayoutPanel3.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.vsShaderCog)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.vsShaderEdit)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.vsShaderSave)).BeginInit();
             this.groupBox5.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.vsClasses)).BeginInit();
             this.groupBox7.SuspendLayout();
@@ -496,6 +540,7 @@
             this.flowLayoutPanel4.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.hsShaderCog)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.hsShaderEdit)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.hsShaderSave)).BeginInit();
             this.groupBox11.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.hsClasses)).BeginInit();
             this.groupBox12.SuspendLayout();
@@ -511,6 +556,7 @@
             this.flowLayoutPanel5.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dsShaderCog)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.dsShaderEdit)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dsShaderSave)).BeginInit();
             this.groupBox17.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dsClasses)).BeginInit();
             this.groupBox18.SuspendLayout();
@@ -528,6 +574,7 @@
             this.flowLayoutPanel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gsShaderCog)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.gsShaderEdit)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.gsShaderSave)).BeginInit();
             this.geomClassGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gsClasses)).BeginInit();
             this.groupBox24.SuspendLayout();
@@ -558,6 +605,7 @@
             this.flowLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.psShaderCog)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.psShaderEdit)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.psShaderSave)).BeginInit();
             this.pixelClassGroupBox.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.psClasses)).BeginInit();
             this.groupBox28.SuspendLayout();
@@ -598,6 +646,7 @@
             this.flowLayoutPanel7.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.csShaderCog)).BeginInit();
             ((System.ComponentModel.ISupportInitialize)(this.csShaderEdit)).BeginInit();
+            ((System.ComponentModel.ISupportInitialize)(this.csShaderSave)).BeginInit();
             this.computeDebugControls.SuspendLayout();
             this.groupBox34.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.csResources)).BeginInit();
@@ -628,7 +677,7 @@
             toolstripTable.RowStyles.Add(new System.Windows.Forms.RowStyle());
             toolstripTable.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 10F));
             toolstripTable.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 90F));
-            toolstripTable.Size = new System.Drawing.Size(1171, 738);
+            toolstripTable.Size = new System.Drawing.Size(1023, 738);
             toolstripTable.TabIndex = 2;
             // 
             // pipeFlow
@@ -640,7 +689,7 @@
             this.pipeFlow.Margin = new System.Windows.Forms.Padding(4, 4, 4, 4);
             this.pipeFlow.Name = "pipeFlow";
             this.pipeFlow.SelectedStage = 0;
-            this.pipeFlow.Size = new System.Drawing.Size(1163, 62);
+            this.pipeFlow.Size = new System.Drawing.Size(1015, 62);
             this.pipeFlow.TabIndex = 0;
             this.pipeFlow.SelectedStageChanged += new System.EventHandler<System.EventArgs>(this.pipeFlow_SelectedStageChanged);
             // 
@@ -721,7 +770,7 @@
             this.stageTabControl.Multiline = true;
             this.stageTabControl.Name = "stageTabControl";
             this.stageTabControl.SelectedIndex = 0;
-            this.stageTabControl.Size = new System.Drawing.Size(1165, 631);
+            this.stageTabControl.Size = new System.Drawing.Size(1017, 631);
             this.stageTabControl.TabIndex = 0;
             // 
             // tabIA
@@ -729,7 +778,7 @@
             this.tabIA.Controls.Add(this.panel1);
             this.tabIA.Location = new System.Drawing.Point(4, 22);
             this.tabIA.Name = "tabIA";
-            this.tabIA.Size = new System.Drawing.Size(1157, 605);
+            this.tabIA.Size = new System.Drawing.Size(1009, 605);
             this.tabIA.TabIndex = 0;
             this.tabIA.Text = "Input Assembler";
             this.tabIA.UseVisualStyleBackColor = true;
@@ -743,7 +792,7 @@
             this.panel1.Location = new System.Drawing.Point(0, 0);
             this.panel1.Margin = new System.Windows.Forms.Padding(0);
             this.panel1.Name = "panel1";
-            this.panel1.Size = new System.Drawing.Size(1157, 605);
+            this.panel1.Size = new System.Drawing.Size(1009, 605);
             this.panel1.TabIndex = 0;
             // 
             // tableLayoutPanel1
@@ -765,16 +814,16 @@
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 50F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 50F));
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(1157, 605);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(1009, 605);
             this.tableLayoutPanel1.TabIndex = 9;
             // 
             // groupBox1
             // 
             this.groupBox1.Controls.Add(this.tableLayoutPanel13);
             this.groupBox1.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.groupBox1.Location = new System.Drawing.Point(812, 330);
+            this.groupBox1.Location = new System.Drawing.Point(708, 330);
             this.groupBox1.Name = "groupBox1";
-            this.groupBox1.Size = new System.Drawing.Size(342, 272);
+            this.groupBox1.Size = new System.Drawing.Size(298, 272);
             this.groupBox1.TabIndex = 6;
             this.groupBox1.TabStop = false;
             this.groupBox1.Text = "Primitive Topology";
@@ -791,7 +840,7 @@
             this.tableLayoutPanel13.RowCount = 2;
             this.tableLayoutPanel13.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel13.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel13.Size = new System.Drawing.Size(336, 253);
+            this.tableLayoutPanel13.Size = new System.Drawing.Size(292, 253);
             this.tableLayoutPanel13.TabIndex = 2;
             // 
             // topologyDiagram
@@ -800,7 +849,7 @@
             this.topologyDiagram.Image = global::renderdocui.Properties.Resources.topo_trilist;
             this.topologyDiagram.Location = new System.Drawing.Point(3, 26);
             this.topologyDiagram.Name = "topologyDiagram";
-            this.topologyDiagram.Size = new System.Drawing.Size(330, 224);
+            this.topologyDiagram.Size = new System.Drawing.Size(286, 224);
             this.topologyDiagram.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
             this.topologyDiagram.TabIndex = 1;
             this.topologyDiagram.TabStop = false;
@@ -814,7 +863,7 @@
             this.topology.Font = new System.Drawing.Font("Tahoma", 14.25F);
             this.topology.Location = new System.Drawing.Point(3, 0);
             this.topology.Name = "topology";
-            this.topology.Size = new System.Drawing.Size(330, 23);
+            this.topology.Size = new System.Drawing.Size(286, 23);
             this.topology.TabIndex = 0;
             this.topology.Text = "Triangle List";
             this.topology.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
@@ -825,33 +874,33 @@
             this.groupBox4.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox4.Location = new System.Drawing.Point(3, 330);
             this.groupBox4.Name = "groupBox4";
-            this.groupBox4.Size = new System.Drawing.Size(572, 272);
+            this.groupBox4.Size = new System.Drawing.Size(498, 272);
             this.groupBox4.TabIndex = 8;
             this.groupBox4.TabStop = false;
             this.groupBox4.Text = "Buffers";
             // 
             // iabuffers
             // 
-            treeListColumn1.AutoSizeMinSize = 0;
-            treeListColumn1.Width = 60;
-            treeListColumn2.AutoSize = true;
-            treeListColumn2.AutoSizeMinSize = 100;
-            treeListColumn2.Width = 50;
-            treeListColumn3.AutoSizeMinSize = 0;
-            treeListColumn3.Width = 75;
-            treeListColumn4.AutoSizeMinSize = 0;
-            treeListColumn4.Width = 75;
-            treeListColumn5.AutoSizeMinSize = 0;
-            treeListColumn5.Width = 80;
-            treeListColumn6.AutoSizeMinSize = 0;
-            treeListColumn6.Width = 25;
+            treeListColumn199.AutoSizeMinSize = 0;
+            treeListColumn199.Width = 60;
+            treeListColumn200.AutoSize = true;
+            treeListColumn200.AutoSizeMinSize = 100;
+            treeListColumn200.Width = 50;
+            treeListColumn201.AutoSizeMinSize = 0;
+            treeListColumn201.Width = 75;
+            treeListColumn202.AutoSizeMinSize = 0;
+            treeListColumn202.Width = 75;
+            treeListColumn203.AutoSizeMinSize = 0;
+            treeListColumn203.Width = 80;
+            treeListColumn204.AutoSizeMinSize = 0;
+            treeListColumn204.Width = 25;
             this.iabuffers.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn1,
-            treeListColumn2,
-            treeListColumn3,
-            treeListColumn4,
-            treeListColumn5,
-            treeListColumn6});
+            treeListColumn199,
+            treeListColumn200,
+            treeListColumn201,
+            treeListColumn202,
+            treeListColumn203,
+            treeListColumn204});
             this.iabuffers.Cursor = System.Windows.Forms.Cursors.VSplit;
             this.iabuffers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.iabuffers.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -860,7 +909,7 @@
             this.iabuffers.Name = "iabuffers";
             this.iabuffers.RowOptions.ItemHeight = 20;
             this.iabuffers.RowOptions.ShowHeader = false;
-            this.iabuffers.Size = new System.Drawing.Size(566, 253);
+            this.iabuffers.Size = new System.Drawing.Size(492, 253);
             this.iabuffers.TabIndex = 10;
             this.iabuffers.Text = "treeListView1";
             this.iabuffers.TreeColumn = 5;
@@ -882,42 +931,42 @@
             groupBox2.Dock = System.Windows.Forms.DockStyle.Fill;
             groupBox2.Location = new System.Drawing.Point(3, 3);
             groupBox2.Name = "groupBox2";
-            groupBox2.Size = new System.Drawing.Size(1151, 271);
+            groupBox2.Size = new System.Drawing.Size(1003, 271);
             groupBox2.TabIndex = 9;
             groupBox2.TabStop = false;
             groupBox2.Text = "Input Layouts";
             // 
             // inputLayouts
             // 
-            treeListColumn7.AutoSizeMinSize = 0;
-            treeListColumn7.Width = 40;
-            treeListColumn8.AutoSizeMinSize = 0;
-            treeListColumn8.Width = 200;
-            treeListColumn9.AutoSize = true;
-            treeListColumn9.AutoSizeMinSize = 50;
-            treeListColumn9.Width = 75;
-            treeListColumn10.AutoSizeMinSize = 0;
-            treeListColumn10.Width = 150;
-            treeListColumn11.AutoSizeMinSize = 0;
-            treeListColumn11.Width = 80;
-            treeListColumn12.AutoSizeMinSize = 0;
-            treeListColumn12.Width = 150;
-            treeListColumn13.AutoSizeMinSize = 0;
-            treeListColumn13.Width = 90;
-            treeListColumn14.AutoSizeMinSize = 0;
-            treeListColumn14.Width = 75;
-            treeListColumn15.AutoSizeMinSize = 0;
-            treeListColumn15.Width = 25;
+            treeListColumn205.AutoSizeMinSize = 0;
+            treeListColumn205.Width = 40;
+            treeListColumn206.AutoSizeMinSize = 0;
+            treeListColumn206.Width = 200;
+            treeListColumn207.AutoSize = true;
+            treeListColumn207.AutoSizeMinSize = 50;
+            treeListColumn207.Width = 75;
+            treeListColumn208.AutoSizeMinSize = 0;
+            treeListColumn208.Width = 150;
+            treeListColumn209.AutoSizeMinSize = 0;
+            treeListColumn209.Width = 80;
+            treeListColumn210.AutoSizeMinSize = 0;
+            treeListColumn210.Width = 150;
+            treeListColumn211.AutoSizeMinSize = 0;
+            treeListColumn211.Width = 90;
+            treeListColumn212.AutoSizeMinSize = 0;
+            treeListColumn212.Width = 75;
+            treeListColumn213.AutoSizeMinSize = 0;
+            treeListColumn213.Width = 25;
             this.inputLayouts.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn7,
-            treeListColumn8,
-            treeListColumn9,
-            treeListColumn10,
-            treeListColumn11,
-            treeListColumn12,
-            treeListColumn13,
-            treeListColumn14,
-            treeListColumn15});
+            treeListColumn205,
+            treeListColumn206,
+            treeListColumn207,
+            treeListColumn208,
+            treeListColumn209,
+            treeListColumn210,
+            treeListColumn211,
+            treeListColumn212,
+            treeListColumn213});
             this.inputLayouts.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.inputLayouts.Dock = System.Windows.Forms.DockStyle.Fill;
             this.inputLayouts.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -926,7 +975,7 @@
             this.inputLayouts.Name = "inputLayouts";
             this.inputLayouts.RowOptions.ItemHeight = 20;
             this.inputLayouts.RowOptions.ShowHeader = false;
-            this.inputLayouts.Size = new System.Drawing.Size(1145, 252);
+            this.inputLayouts.Size = new System.Drawing.Size(997, 252);
             this.inputLayouts.TabIndex = 12;
             this.inputLayouts.Text = "Input Layouts";
             this.inputLayouts.TreeColumn = 8;
@@ -949,7 +998,7 @@
             groupBox39.Controls.Add(flowLayoutPanel9);
             groupBox39.Location = new System.Drawing.Point(3, 280);
             groupBox39.Name = "groupBox39";
-            groupBox39.Size = new System.Drawing.Size(1151, 44);
+            groupBox39.Size = new System.Drawing.Size(1003, 44);
             groupBox39.TabIndex = 10;
             groupBox39.TabStop = false;
             groupBox39.Text = "Input Layout Bytecode";
@@ -962,7 +1011,7 @@
             flowLayoutPanel9.Dock = System.Windows.Forms.DockStyle.Fill;
             flowLayoutPanel9.Location = new System.Drawing.Point(3, 16);
             flowLayoutPanel9.Name = "flowLayoutPanel9";
-            flowLayoutPanel9.Size = new System.Drawing.Size(1145, 25);
+            flowLayoutPanel9.Size = new System.Drawing.Size(997, 25);
             flowLayoutPanel9.TabIndex = 26;
             // 
             // iaBytecode
@@ -970,10 +1019,10 @@
             this.iaBytecode.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.iaBytecode.AutoSize = true;
             this.iaBytecode.BackColor = System.Drawing.SystemColors.Info;
-            this.iaBytecode.ForeColor = System.Drawing.SystemColors.InfoText;
             this.iaBytecode.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.iaBytecode.Cursor = System.Windows.Forms.Cursors.Hand;
             this.iaBytecode.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
+            this.iaBytecode.ForeColor = System.Drawing.SystemColors.InfoText;
             this.iaBytecode.Location = new System.Drawing.Point(3, 3);
             this.iaBytecode.MinimumSize = new System.Drawing.Size(300, 2);
             this.iaBytecode.Name = "iaBytecode";
@@ -1002,8 +1051,8 @@
             // 
             this.iaBytecodeMismatch.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.iaBytecodeMismatch.AutoSize = true;
-            this.iaBytecodeMismatch.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.iaBytecodeMismatch.BackColor = System.Drawing.Color.White;
+            this.iaBytecodeMismatch.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.iaBytecodeMismatch.ForeColor = System.Drawing.Color.Red;
             this.iaBytecodeMismatch.Location = new System.Drawing.Point(331, 2);
             this.iaBytecodeMismatch.Name = "iaBytecodeMismatch";
@@ -1016,9 +1065,9 @@
             // 
             groupBox44.Controls.Add(this.meshView);
             groupBox44.Dock = System.Windows.Forms.DockStyle.Fill;
-            groupBox44.Location = new System.Drawing.Point(581, 330);
+            groupBox44.Location = new System.Drawing.Point(507, 330);
             groupBox44.Name = "groupBox44";
-            groupBox44.Size = new System.Drawing.Size(225, 272);
+            groupBox44.Size = new System.Drawing.Size(195, 272);
             groupBox44.TabIndex = 11;
             groupBox44.TabStop = false;
             groupBox44.Text = "Mesh View";
@@ -1030,7 +1079,7 @@
             this.meshView.Image = global::renderdocui.Properties.Resources.wireframe_mesh;
             this.meshView.Location = new System.Drawing.Point(3, 16);
             this.meshView.Name = "meshView";
-            this.meshView.Size = new System.Drawing.Size(219, 253);
+            this.meshView.Size = new System.Drawing.Size(189, 253);
             this.meshView.SizeMode = System.Windows.Forms.PictureBoxSizeMode.CenterImage;
             this.meshView.TabIndex = 0;
             this.meshView.TabStop = false;
@@ -1044,7 +1093,7 @@
             this.tabVS.Controls.Add(this.panel2);
             this.tabVS.Location = new System.Drawing.Point(4, 22);
             this.tabVS.Name = "tabVS";
-            this.tabVS.Size = new System.Drawing.Size(1157, 605);
+            this.tabVS.Size = new System.Drawing.Size(1009, 605);
             this.tabVS.TabIndex = 1;
             this.tabVS.Text = "Vertex Shader";
             this.tabVS.UseVisualStyleBackColor = true;
@@ -1057,7 +1106,7 @@
             this.panel2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel2.Location = new System.Drawing.Point(0, 0);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(1157, 605);
+            this.panel2.Size = new System.Drawing.Size(1009, 605);
             this.panel2.TabIndex = 4;
             // 
             // tableLayoutPanel2
@@ -1079,7 +1128,7 @@
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.tableLayoutPanel2.Size = new System.Drawing.Size(1157, 605);
+            this.tableLayoutPanel2.Size = new System.Drawing.Size(1009, 605);
             this.tableLayoutPanel2.TabIndex = 1;
             // 
             // groupBox3
@@ -1089,7 +1138,7 @@
             this.groupBox3.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox3.Location = new System.Drawing.Point(3, 3);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(1151, 44);
+            this.groupBox3.Size = new System.Drawing.Size(1003, 44);
             this.groupBox3.TabIndex = 17;
             this.groupBox3.TabStop = false;
             this.groupBox3.Text = "Shader";
@@ -1098,11 +1147,15 @@
             // 
             this.flowLayoutPanel3.Controls.Add(this.vsShader);
             this.flowLayoutPanel3.Controls.Add(this.vsShaderCog);
+            this.flowLayoutPanel3.Controls.Add(label28);
             this.flowLayoutPanel3.Controls.Add(this.vsShaderEdit);
+            this.flowLayoutPanel3.Controls.Add(label26);
+            this.flowLayoutPanel3.Controls.Add(this.vsShaderSave);
+            this.flowLayoutPanel3.Controls.Add(label27);
             this.flowLayoutPanel3.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel3.Location = new System.Drawing.Point(3, 16);
             this.flowLayoutPanel3.Name = "flowLayoutPanel3";
-            this.flowLayoutPanel3.Size = new System.Drawing.Size(1145, 25);
+            this.flowLayoutPanel3.Size = new System.Drawing.Size(997, 25);
             this.flowLayoutPanel3.TabIndex = 25;
             // 
             // vsShader
@@ -1110,10 +1163,10 @@
             this.vsShader.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.vsShader.AutoSize = true;
             this.vsShader.BackColor = System.Drawing.SystemColors.Info;
-            this.vsShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.vsShader.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.vsShader.Cursor = System.Windows.Forms.Cursors.Hand;
             this.vsShader.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
+            this.vsShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.vsShader.Location = new System.Drawing.Point(3, 3);
             this.vsShader.MinimumSize = new System.Drawing.Size(300, 2);
             this.vsShader.Name = "vsShader";
@@ -1129,6 +1182,7 @@
             this.vsShaderCog.Cursor = System.Windows.Forms.Cursors.Hand;
             this.vsShaderCog.Image = global::renderdocui.Properties.Resources.action;
             this.vsShaderCog.Location = new System.Drawing.Point(309, 3);
+            this.vsShaderCog.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
             this.vsShaderCog.Name = "vsShaderCog";
             this.vsShaderCog.Size = new System.Drawing.Size(16, 16);
             this.vsShaderCog.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -1138,11 +1192,27 @@
             this.vsShaderCog.MouseEnter += new System.EventHandler(this.shaderCog_MouseEnter);
             this.vsShaderCog.MouseLeave += new System.EventHandler(this.shaderCog_MouseLeave);
             // 
+            // label28
+            // 
+            label28.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label28.AutoSize = true;
+            label28.Cursor = System.Windows.Forms.Cursors.Hand;
+            label28.Location = new System.Drawing.Point(325, 4);
+            label28.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label28.Name = "label28";
+            label28.Size = new System.Drawing.Size(30, 13);
+            label28.TabIndex = 30;
+            label28.Text = "View";
+            label28.Click += new System.EventHandler(this.shader_Click);
+            label28.MouseEnter += new System.EventHandler(this.shaderCog_MouseEnter);
+            label28.MouseLeave += new System.EventHandler(this.shaderCog_MouseLeave);
+            // 
             // vsShaderEdit
             // 
             this.vsShaderEdit.Cursor = System.Windows.Forms.Cursors.Hand;
             this.vsShaderEdit.Image = global::renderdocui.Properties.Resources.page_white_edit;
-            this.vsShaderEdit.Location = new System.Drawing.Point(331, 3);
+            this.vsShaderEdit.Location = new System.Drawing.Point(364, 3);
+            this.vsShaderEdit.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
             this.vsShaderEdit.Name = "vsShaderEdit";
             this.vsShaderEdit.Size = new System.Drawing.Size(16, 16);
             this.vsShaderEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -1151,6 +1221,48 @@
             this.toolTip.SetToolTip(this.vsShaderEdit, "HLSL edit and replace this shader");
             this.vsShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
+            // label26
+            // 
+            label26.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label26.AutoSize = true;
+            label26.Cursor = System.Windows.Forms.Cursors.Hand;
+            label26.Location = new System.Drawing.Point(380, 4);
+            label26.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label26.Name = "label26";
+            label26.Size = new System.Drawing.Size(25, 13);
+            label26.TabIndex = 28;
+            label26.Text = "Edit";
+            this.toolTip.SetToolTip(label26, "HLSL edit and replace this shader");
+            label26.Click += new System.EventHandler(this.shaderedit_Click);
+            // 
+            // vsShaderSave
+            // 
+            this.vsShaderSave.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.vsShaderSave.Image = global::renderdocui.Properties.Resources.save;
+            this.vsShaderSave.Location = new System.Drawing.Point(414, 3);
+            this.vsShaderSave.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
+            this.vsShaderSave.Name = "vsShaderSave";
+            this.vsShaderSave.Size = new System.Drawing.Size(16, 16);
+            this.vsShaderSave.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
+            this.vsShaderSave.TabIndex = 27;
+            this.vsShaderSave.TabStop = false;
+            this.toolTip.SetToolTip(this.vsShaderSave, "Save the bytecode blob to disk");
+            this.vsShaderSave.Click += new System.EventHandler(this.shaderSave_Click);
+            // 
+            // label27
+            // 
+            label27.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label27.AutoSize = true;
+            label27.Cursor = System.Windows.Forms.Cursors.Hand;
+            label27.Location = new System.Drawing.Point(430, 4);
+            label27.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label27.Name = "label27";
+            label27.Size = new System.Drawing.Size(32, 13);
+            label27.TabIndex = 29;
+            label27.Text = "Save";
+            this.toolTip.SetToolTip(label27, "Save the bytecode blob to disk");
+            label27.Click += new System.EventHandler(this.shaderSave_Click);
+            // 
             // groupBox5
             // 
             this.tableLayoutPanel2.SetColumnSpan(this.groupBox5, 2);
@@ -1158,31 +1270,31 @@
             this.groupBox5.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox5.Location = new System.Drawing.Point(3, 467);
             this.groupBox5.Name = "groupBox5";
-            this.groupBox5.Size = new System.Drawing.Size(1151, 135);
+            this.groupBox5.Size = new System.Drawing.Size(1003, 135);
             this.groupBox5.TabIndex = 16;
             this.groupBox5.TabStop = false;
             this.groupBox5.Text = "Class Instances";
             // 
             // vsClasses
             // 
-            treeListColumn16.AutoSizeMinSize = 0;
-            treeListColumn16.Width = 50;
-            treeListColumn17.AutoSizeMinSize = 0;
-            treeListColumn17.Width = 200;
-            treeListColumn18.AutoSize = true;
-            treeListColumn18.AutoSizeMinSize = 50;
-            treeListColumn18.Width = 60;
+            treeListColumn214.AutoSizeMinSize = 0;
+            treeListColumn214.Width = 50;
+            treeListColumn215.AutoSizeMinSize = 0;
+            treeListColumn215.Width = 200;
+            treeListColumn216.AutoSize = true;
+            treeListColumn216.AutoSizeMinSize = 50;
+            treeListColumn216.Width = 60;
             this.vsClasses.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn16,
-            treeListColumn17,
-            treeListColumn18});
+            treeListColumn214,
+            treeListColumn215,
+            treeListColumn216});
             this.vsClasses.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.vsClasses.Dock = System.Windows.Forms.DockStyle.Fill;
             this.vsClasses.Location = new System.Drawing.Point(3, 16);
             this.vsClasses.Name = "vsClasses";
             this.vsClasses.RowOptions.ItemHeight = 20;
             this.vsClasses.RowOptions.ShowHeader = false;
-            this.vsClasses.Size = new System.Drawing.Size(1145, 116);
+            this.vsClasses.Size = new System.Drawing.Size(997, 116);
             this.vsClasses.TabIndex = 4;
             this.vsClasses.Text = "Class Instances";
             this.vsClasses.TreeColumn = -1;
@@ -1199,42 +1311,42 @@
             this.groupBox7.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox7.Location = new System.Drawing.Point(3, 53);
             this.groupBox7.Name = "groupBox7";
-            this.groupBox7.Size = new System.Drawing.Size(1151, 132);
+            this.groupBox7.Size = new System.Drawing.Size(1003, 132);
             this.groupBox7.TabIndex = 14;
             this.groupBox7.TabStop = false;
             this.groupBox7.Text = "Resources";
             // 
             // vsResources
             // 
-            treeListColumn19.AutoSizeMinSize = 0;
-            treeListColumn19.Width = 120;
-            treeListColumn20.AutoSize = true;
-            treeListColumn20.AutoSizeMinSize = 150;
-            treeListColumn20.Width = 50;
-            treeListColumn21.AutoSizeMinSize = 0;
-            treeListColumn21.Width = 85;
-            treeListColumn22.AutoSizeMinSize = 0;
-            treeListColumn22.Width = 50;
-            treeListColumn23.AutoSizeMinSize = 0;
-            treeListColumn23.Width = 50;
-            treeListColumn24.AutoSizeMinSize = 0;
-            treeListColumn24.Width = 50;
-            treeListColumn25.AutoSizeMinSize = 0;
-            treeListColumn25.Width = 85;
-            treeListColumn26.AutoSizeMinSize = 0;
-            treeListColumn26.Width = 200;
-            treeListColumn27.AutoSizeMinSize = 0;
-            treeListColumn27.Width = 25;
+            treeListColumn217.AutoSizeMinSize = 0;
+            treeListColumn217.Width = 120;
+            treeListColumn218.AutoSize = true;
+            treeListColumn218.AutoSizeMinSize = 150;
+            treeListColumn218.Width = 50;
+            treeListColumn219.AutoSizeMinSize = 0;
+            treeListColumn219.Width = 85;
+            treeListColumn220.AutoSizeMinSize = 0;
+            treeListColumn220.Width = 50;
+            treeListColumn221.AutoSizeMinSize = 0;
+            treeListColumn221.Width = 50;
+            treeListColumn222.AutoSizeMinSize = 0;
+            treeListColumn222.Width = 50;
+            treeListColumn223.AutoSizeMinSize = 0;
+            treeListColumn223.Width = 85;
+            treeListColumn224.AutoSizeMinSize = 0;
+            treeListColumn224.Width = 200;
+            treeListColumn225.AutoSizeMinSize = 0;
+            treeListColumn225.Width = 25;
             this.vsResources.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn19,
-            treeListColumn20,
-            treeListColumn21,
-            treeListColumn22,
-            treeListColumn23,
-            treeListColumn24,
-            treeListColumn25,
-            treeListColumn26,
-            treeListColumn27});
+            treeListColumn217,
+            treeListColumn218,
+            treeListColumn219,
+            treeListColumn220,
+            treeListColumn221,
+            treeListColumn222,
+            treeListColumn223,
+            treeListColumn224,
+            treeListColumn225});
             this.vsResources.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.vsResources.Dock = System.Windows.Forms.DockStyle.Fill;
             this.vsResources.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -1244,7 +1356,7 @@
             this.vsResources.RowOptions.HoverHighlight = true;
             this.vsResources.RowOptions.ItemHeight = 20;
             this.vsResources.RowOptions.ShowHeader = false;
-            this.vsResources.Size = new System.Drawing.Size(1145, 113);
+            this.vsResources.Size = new System.Drawing.Size(997, 113);
             this.vsResources.TabIndex = 1;
             this.vsResources.Text = "Resources";
             this.vsResources.TreeColumn = 8;
@@ -1266,30 +1378,30 @@
             this.groupBox8.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox8.Location = new System.Drawing.Point(3, 191);
             this.groupBox8.Name = "groupBox8";
-            this.groupBox8.Size = new System.Drawing.Size(1151, 132);
+            this.groupBox8.Size = new System.Drawing.Size(1003, 132);
             this.groupBox8.TabIndex = 13;
             this.groupBox8.TabStop = false;
             this.groupBox8.Text = "Samplers";
             // 
             // vsSamplers
             // 
-            treeListColumn28.AutoSizeMinSize = 0;
-            treeListColumn28.Width = 120;
-            treeListColumn29.AutoSizeMinSize = 100;
-            treeListColumn29.Width = 200;
-            treeListColumn30.AutoSizeMinSize = 0;
-            treeListColumn30.Width = 250;
-            treeListColumn31.AutoSizeMinSize = 0;
-            treeListColumn31.Width = 90;
-            treeListColumn32.AutoSize = true;
-            treeListColumn32.AutoSizeMinSize = 50;
-            treeListColumn32.Width = 50;
+            treeListColumn226.AutoSizeMinSize = 0;
+            treeListColumn226.Width = 120;
+            treeListColumn227.AutoSizeMinSize = 100;
+            treeListColumn227.Width = 200;
+            treeListColumn228.AutoSizeMinSize = 0;
+            treeListColumn228.Width = 250;
+            treeListColumn229.AutoSizeMinSize = 0;
+            treeListColumn229.Width = 90;
+            treeListColumn230.AutoSize = true;
+            treeListColumn230.AutoSizeMinSize = 50;
+            treeListColumn230.Width = 50;
             this.vsSamplers.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn28,
-            treeListColumn29,
-            treeListColumn30,
-            treeListColumn31,
-            treeListColumn32});
+            treeListColumn226,
+            treeListColumn227,
+            treeListColumn228,
+            treeListColumn229,
+            treeListColumn230});
             this.vsSamplers.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.vsSamplers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.vsSamplers.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -1299,7 +1411,7 @@
             this.vsSamplers.RowOptions.HoverHighlight = true;
             this.vsSamplers.RowOptions.ItemHeight = 20;
             this.vsSamplers.RowOptions.ShowHeader = false;
-            this.vsSamplers.Size = new System.Drawing.Size(1145, 113);
+            this.vsSamplers.Size = new System.Drawing.Size(997, 113);
             this.vsSamplers.TabIndex = 12;
             this.vsSamplers.Text = "Samplers";
             this.vsSamplers.TreeColumn = -1;
@@ -1317,30 +1429,30 @@
             this.groupBox9.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox9.Location = new System.Drawing.Point(3, 329);
             this.groupBox9.Name = "groupBox9";
-            this.groupBox9.Size = new System.Drawing.Size(1151, 132);
+            this.groupBox9.Size = new System.Drawing.Size(1003, 132);
             this.groupBox9.TabIndex = 12;
             this.groupBox9.TabStop = false;
             this.groupBox9.Text = "Constant Buffers";
             // 
             // vsCBuffers
             // 
-            treeListColumn33.AutoSizeMinSize = 0;
-            treeListColumn33.Width = 120;
-            treeListColumn34.AutoSize = true;
-            treeListColumn34.AutoSizeMinSize = 100;
-            treeListColumn34.Width = 50;
-            treeListColumn35.AutoSizeMinSize = 0;
-            treeListColumn35.Width = 85;
-            treeListColumn36.AutoSizeMinSize = 0;
-            treeListColumn36.Width = 250;
-            treeListColumn37.AutoSizeMinSize = 0;
-            treeListColumn37.Width = 25;
+            treeListColumn231.AutoSizeMinSize = 0;
+            treeListColumn231.Width = 120;
+            treeListColumn232.AutoSize = true;
+            treeListColumn232.AutoSizeMinSize = 100;
+            treeListColumn232.Width = 50;
+            treeListColumn233.AutoSizeMinSize = 0;
+            treeListColumn233.Width = 85;
+            treeListColumn234.AutoSizeMinSize = 0;
+            treeListColumn234.Width = 250;
+            treeListColumn235.AutoSizeMinSize = 0;
+            treeListColumn235.Width = 25;
             this.vsCBuffers.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn33,
-            treeListColumn34,
-            treeListColumn35,
-            treeListColumn36,
-            treeListColumn37});
+            treeListColumn231,
+            treeListColumn232,
+            treeListColumn233,
+            treeListColumn234,
+            treeListColumn235});
             this.vsCBuffers.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.vsCBuffers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.vsCBuffers.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -1350,7 +1462,7 @@
             this.vsCBuffers.RowOptions.HoverHighlight = true;
             this.vsCBuffers.RowOptions.ItemHeight = 20;
             this.vsCBuffers.RowOptions.ShowHeader = false;
-            this.vsCBuffers.Size = new System.Drawing.Size(1145, 113);
+            this.vsCBuffers.Size = new System.Drawing.Size(997, 113);
             this.vsCBuffers.TabIndex = 11;
             this.vsCBuffers.Text = "Constant Buffers";
             this.vsCBuffers.TreeColumn = 4;
@@ -1368,7 +1480,7 @@
             this.tabHS.Controls.Add(this.panel3);
             this.tabHS.Location = new System.Drawing.Point(4, 22);
             this.tabHS.Name = "tabHS";
-            this.tabHS.Size = new System.Drawing.Size(1157, 605);
+            this.tabHS.Size = new System.Drawing.Size(1009, 605);
             this.tabHS.TabIndex = 2;
             this.tabHS.Text = "Hull Shader";
             this.tabHS.UseVisualStyleBackColor = true;
@@ -1381,7 +1493,7 @@
             this.panel3.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel3.Location = new System.Drawing.Point(0, 0);
             this.panel3.Name = "panel3";
-            this.panel3.Size = new System.Drawing.Size(1157, 605);
+            this.panel3.Size = new System.Drawing.Size(1009, 605);
             this.panel3.TabIndex = 4;
             // 
             // tableLayoutPanel3
@@ -1403,7 +1515,7 @@
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.tableLayoutPanel3.Size = new System.Drawing.Size(1157, 605);
+            this.tableLayoutPanel3.Size = new System.Drawing.Size(1009, 605);
             this.tableLayoutPanel3.TabIndex = 1;
             // 
             // groupBox10
@@ -1413,7 +1525,7 @@
             this.groupBox10.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox10.Location = new System.Drawing.Point(3, 3);
             this.groupBox10.Name = "groupBox10";
-            this.groupBox10.Size = new System.Drawing.Size(1151, 44);
+            this.groupBox10.Size = new System.Drawing.Size(1003, 44);
             this.groupBox10.TabIndex = 17;
             this.groupBox10.TabStop = false;
             this.groupBox10.Text = "Shader";
@@ -1422,11 +1534,15 @@
             // 
             this.flowLayoutPanel4.Controls.Add(this.hsShader);
             this.flowLayoutPanel4.Controls.Add(this.hsShaderCog);
+            this.flowLayoutPanel4.Controls.Add(label29);
             this.flowLayoutPanel4.Controls.Add(this.hsShaderEdit);
+            this.flowLayoutPanel4.Controls.Add(label30);
+            this.flowLayoutPanel4.Controls.Add(this.hsShaderSave);
+            this.flowLayoutPanel4.Controls.Add(label31);
             this.flowLayoutPanel4.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel4.Location = new System.Drawing.Point(3, 16);
             this.flowLayoutPanel4.Name = "flowLayoutPanel4";
-            this.flowLayoutPanel4.Size = new System.Drawing.Size(1145, 25);
+            this.flowLayoutPanel4.Size = new System.Drawing.Size(997, 25);
             this.flowLayoutPanel4.TabIndex = 25;
             // 
             // hsShader
@@ -1434,10 +1550,10 @@
             this.hsShader.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.hsShader.AutoSize = true;
             this.hsShader.BackColor = System.Drawing.SystemColors.Info;
-            this.hsShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.hsShader.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.hsShader.Cursor = System.Windows.Forms.Cursors.Hand;
             this.hsShader.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
+            this.hsShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.hsShader.Location = new System.Drawing.Point(3, 3);
             this.hsShader.MinimumSize = new System.Drawing.Size(300, 2);
             this.hsShader.Name = "hsShader";
@@ -1453,6 +1569,7 @@
             this.hsShaderCog.Cursor = System.Windows.Forms.Cursors.Hand;
             this.hsShaderCog.Image = global::renderdocui.Properties.Resources.action;
             this.hsShaderCog.Location = new System.Drawing.Point(309, 3);
+            this.hsShaderCog.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
             this.hsShaderCog.Name = "hsShaderCog";
             this.hsShaderCog.Size = new System.Drawing.Size(16, 16);
             this.hsShaderCog.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -1462,11 +1579,27 @@
             this.hsShaderCog.MouseEnter += new System.EventHandler(this.shaderCog_MouseEnter);
             this.hsShaderCog.MouseLeave += new System.EventHandler(this.shaderCog_MouseLeave);
             // 
+            // label29
+            // 
+            label29.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label29.AutoSize = true;
+            label29.Cursor = System.Windows.Forms.Cursors.Hand;
+            label29.Location = new System.Drawing.Point(325, 4);
+            label29.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label29.Name = "label29";
+            label29.Size = new System.Drawing.Size(30, 13);
+            label29.TabIndex = 33;
+            label29.Text = "View";
+            label29.Click += new System.EventHandler(this.shader_Click);
+            label29.MouseEnter += new System.EventHandler(this.shaderCog_MouseEnter);
+            label29.MouseLeave += new System.EventHandler(this.shaderCog_MouseLeave);
+            // 
             // hsShaderEdit
             // 
             this.hsShaderEdit.Cursor = System.Windows.Forms.Cursors.Hand;
             this.hsShaderEdit.Image = global::renderdocui.Properties.Resources.page_white_edit;
-            this.hsShaderEdit.Location = new System.Drawing.Point(331, 3);
+            this.hsShaderEdit.Location = new System.Drawing.Point(364, 3);
+            this.hsShaderEdit.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
             this.hsShaderEdit.Name = "hsShaderEdit";
             this.hsShaderEdit.Size = new System.Drawing.Size(16, 16);
             this.hsShaderEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -1475,6 +1608,48 @@
             this.toolTip.SetToolTip(this.hsShaderEdit, "HLSL edit and replace this shader");
             this.hsShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
+            // label30
+            // 
+            label30.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label30.AutoSize = true;
+            label30.Cursor = System.Windows.Forms.Cursors.Hand;
+            label30.Location = new System.Drawing.Point(380, 4);
+            label30.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label30.Name = "label30";
+            label30.Size = new System.Drawing.Size(25, 13);
+            label30.TabIndex = 31;
+            label30.Text = "Edit";
+            this.toolTip.SetToolTip(label30, "HLSL edit and replace this shader");
+            label30.Click += new System.EventHandler(this.shaderedit_Click);
+            // 
+            // hsShaderSave
+            // 
+            this.hsShaderSave.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.hsShaderSave.Image = global::renderdocui.Properties.Resources.save;
+            this.hsShaderSave.Location = new System.Drawing.Point(414, 3);
+            this.hsShaderSave.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
+            this.hsShaderSave.Name = "hsShaderSave";
+            this.hsShaderSave.Size = new System.Drawing.Size(16, 16);
+            this.hsShaderSave.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
+            this.hsShaderSave.TabIndex = 34;
+            this.hsShaderSave.TabStop = false;
+            this.toolTip.SetToolTip(this.hsShaderSave, "Save the bytecode blob to disk");
+            this.hsShaderSave.Click += new System.EventHandler(this.shaderSave_Click);
+            // 
+            // label31
+            // 
+            label31.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label31.AutoSize = true;
+            label31.Cursor = System.Windows.Forms.Cursors.Hand;
+            label31.Location = new System.Drawing.Point(430, 4);
+            label31.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label31.Name = "label31";
+            label31.Size = new System.Drawing.Size(32, 13);
+            label31.TabIndex = 32;
+            label31.Text = "Save";
+            this.toolTip.SetToolTip(label31, "Save the bytecode blob to disk");
+            label31.Click += new System.EventHandler(this.shaderSave_Click);
+            // 
             // groupBox11
             // 
             this.tableLayoutPanel3.SetColumnSpan(this.groupBox11, 2);
@@ -1482,31 +1657,31 @@
             this.groupBox11.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox11.Location = new System.Drawing.Point(3, 467);
             this.groupBox11.Name = "groupBox11";
-            this.groupBox11.Size = new System.Drawing.Size(1151, 135);
+            this.groupBox11.Size = new System.Drawing.Size(1003, 135);
             this.groupBox11.TabIndex = 16;
             this.groupBox11.TabStop = false;
             this.groupBox11.Text = "Class Instances";
             // 
             // hsClasses
             // 
-            treeListColumn38.AutoSizeMinSize = 0;
-            treeListColumn38.Width = 50;
-            treeListColumn39.AutoSizeMinSize = 0;
-            treeListColumn39.Width = 200;
-            treeListColumn40.AutoSize = true;
-            treeListColumn40.AutoSizeMinSize = 50;
-            treeListColumn40.Width = 60;
+            treeListColumn236.AutoSizeMinSize = 0;
+            treeListColumn236.Width = 50;
+            treeListColumn237.AutoSizeMinSize = 0;
+            treeListColumn237.Width = 200;
+            treeListColumn238.AutoSize = true;
+            treeListColumn238.AutoSizeMinSize = 50;
+            treeListColumn238.Width = 60;
             this.hsClasses.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn38,
-            treeListColumn39,
-            treeListColumn40});
+            treeListColumn236,
+            treeListColumn237,
+            treeListColumn238});
             this.hsClasses.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.hsClasses.Dock = System.Windows.Forms.DockStyle.Fill;
             this.hsClasses.Location = new System.Drawing.Point(3, 16);
             this.hsClasses.Name = "hsClasses";
             this.hsClasses.RowOptions.ItemHeight = 20;
             this.hsClasses.RowOptions.ShowHeader = false;
-            this.hsClasses.Size = new System.Drawing.Size(1145, 116);
+            this.hsClasses.Size = new System.Drawing.Size(997, 116);
             this.hsClasses.TabIndex = 4;
             this.hsClasses.Text = "Class Instances";
             this.hsClasses.TreeColumn = -1;
@@ -1523,42 +1698,42 @@
             this.groupBox12.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox12.Location = new System.Drawing.Point(3, 53);
             this.groupBox12.Name = "groupBox12";
-            this.groupBox12.Size = new System.Drawing.Size(1151, 132);
+            this.groupBox12.Size = new System.Drawing.Size(1003, 132);
             this.groupBox12.TabIndex = 14;
             this.groupBox12.TabStop = false;
             this.groupBox12.Text = "Resources";
             // 
             // hsResources
             // 
-            treeListColumn41.AutoSizeMinSize = 0;
-            treeListColumn41.Width = 120;
-            treeListColumn42.AutoSize = true;
-            treeListColumn42.AutoSizeMinSize = 150;
-            treeListColumn42.Width = 50;
-            treeListColumn43.AutoSizeMinSize = 0;
-            treeListColumn43.Width = 85;
-            treeListColumn44.AutoSizeMinSize = 0;
-            treeListColumn44.Width = 50;
-            treeListColumn45.AutoSizeMinSize = 0;
-            treeListColumn45.Width = 50;
-            treeListColumn46.AutoSizeMinSize = 0;
-            treeListColumn46.Width = 50;
-            treeListColumn47.AutoSizeMinSize = 0;
-            treeListColumn47.Width = 85;
-            treeListColumn48.AutoSizeMinSize = 0;
-            treeListColumn48.Width = 200;
-            treeListColumn49.AutoSizeMinSize = 0;
-            treeListColumn49.Width = 25;
+            treeListColumn239.AutoSizeMinSize = 0;
+            treeListColumn239.Width = 120;
+            treeListColumn240.AutoSize = true;
+            treeListColumn240.AutoSizeMinSize = 150;
+            treeListColumn240.Width = 50;
+            treeListColumn241.AutoSizeMinSize = 0;
+            treeListColumn241.Width = 85;
+            treeListColumn242.AutoSizeMinSize = 0;
+            treeListColumn242.Width = 50;
+            treeListColumn243.AutoSizeMinSize = 0;
+            treeListColumn243.Width = 50;
+            treeListColumn244.AutoSizeMinSize = 0;
+            treeListColumn244.Width = 50;
+            treeListColumn245.AutoSizeMinSize = 0;
+            treeListColumn245.Width = 85;
+            treeListColumn246.AutoSizeMinSize = 0;
+            treeListColumn246.Width = 200;
+            treeListColumn247.AutoSizeMinSize = 0;
+            treeListColumn247.Width = 25;
             this.hsResources.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn41,
-            treeListColumn42,
-            treeListColumn43,
-            treeListColumn44,
-            treeListColumn45,
-            treeListColumn46,
-            treeListColumn47,
-            treeListColumn48,
-            treeListColumn49});
+            treeListColumn239,
+            treeListColumn240,
+            treeListColumn241,
+            treeListColumn242,
+            treeListColumn243,
+            treeListColumn244,
+            treeListColumn245,
+            treeListColumn246,
+            treeListColumn247});
             this.hsResources.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.hsResources.Dock = System.Windows.Forms.DockStyle.Fill;
             this.hsResources.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -1568,7 +1743,7 @@
             this.hsResources.RowOptions.HoverHighlight = true;
             this.hsResources.RowOptions.ItemHeight = 20;
             this.hsResources.RowOptions.ShowHeader = false;
-            this.hsResources.Size = new System.Drawing.Size(1145, 113);
+            this.hsResources.Size = new System.Drawing.Size(997, 113);
             this.hsResources.TabIndex = 1;
             this.hsResources.Text = "Outputs";
             this.hsResources.TreeColumn = 8;
@@ -1590,30 +1765,30 @@
             this.groupBox14.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox14.Location = new System.Drawing.Point(3, 191);
             this.groupBox14.Name = "groupBox14";
-            this.groupBox14.Size = new System.Drawing.Size(1151, 132);
+            this.groupBox14.Size = new System.Drawing.Size(1003, 132);
             this.groupBox14.TabIndex = 13;
             this.groupBox14.TabStop = false;
             this.groupBox14.Text = "Samplers";
             // 
             // hsSamplers
             // 
-            treeListColumn50.AutoSizeMinSize = 0;
-            treeListColumn50.Width = 120;
-            treeListColumn51.AutoSizeMinSize = 100;
-            treeListColumn51.Width = 200;
-            treeListColumn52.AutoSizeMinSize = 0;
-            treeListColumn52.Width = 250;
-            treeListColumn53.AutoSizeMinSize = 0;
-            treeListColumn53.Width = 90;
-            treeListColumn54.AutoSize = true;
-            treeListColumn54.AutoSizeMinSize = 50;
-            treeListColumn54.Width = 50;
+            treeListColumn248.AutoSizeMinSize = 0;
+            treeListColumn248.Width = 120;
+            treeListColumn249.AutoSizeMinSize = 100;
+            treeListColumn249.Width = 200;
+            treeListColumn250.AutoSizeMinSize = 0;
+            treeListColumn250.Width = 250;
+            treeListColumn251.AutoSizeMinSize = 0;
+            treeListColumn251.Width = 90;
+            treeListColumn252.AutoSize = true;
+            treeListColumn252.AutoSizeMinSize = 50;
+            treeListColumn252.Width = 50;
             this.hsSamplers.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn50,
-            treeListColumn51,
-            treeListColumn52,
-            treeListColumn53,
-            treeListColumn54});
+            treeListColumn248,
+            treeListColumn249,
+            treeListColumn250,
+            treeListColumn251,
+            treeListColumn252});
             this.hsSamplers.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.hsSamplers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.hsSamplers.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -1623,7 +1798,7 @@
             this.hsSamplers.RowOptions.HoverHighlight = true;
             this.hsSamplers.RowOptions.ItemHeight = 20;
             this.hsSamplers.RowOptions.ShowHeader = false;
-            this.hsSamplers.Size = new System.Drawing.Size(1145, 113);
+            this.hsSamplers.Size = new System.Drawing.Size(997, 113);
             this.hsSamplers.TabIndex = 12;
             this.hsSamplers.Text = "Samplers";
             this.hsSamplers.TreeColumn = -1;
@@ -1641,30 +1816,30 @@
             this.groupBox15.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox15.Location = new System.Drawing.Point(3, 329);
             this.groupBox15.Name = "groupBox15";
-            this.groupBox15.Size = new System.Drawing.Size(1151, 132);
+            this.groupBox15.Size = new System.Drawing.Size(1003, 132);
             this.groupBox15.TabIndex = 12;
             this.groupBox15.TabStop = false;
             this.groupBox15.Text = "Constant Buffers";
             // 
             // hsCBuffers
             // 
-            treeListColumn55.AutoSizeMinSize = 0;
-            treeListColumn55.Width = 120;
-            treeListColumn56.AutoSize = true;
-            treeListColumn56.AutoSizeMinSize = 100;
-            treeListColumn56.Width = 50;
-            treeListColumn57.AutoSizeMinSize = 0;
-            treeListColumn57.Width = 85;
-            treeListColumn58.AutoSizeMinSize = 0;
-            treeListColumn58.Width = 250;
-            treeListColumn59.AutoSizeMinSize = 0;
-            treeListColumn59.Width = 25;
+            treeListColumn253.AutoSizeMinSize = 0;
+            treeListColumn253.Width = 120;
+            treeListColumn254.AutoSize = true;
+            treeListColumn254.AutoSizeMinSize = 100;
+            treeListColumn254.Width = 50;
+            treeListColumn255.AutoSizeMinSize = 0;
+            treeListColumn255.Width = 85;
+            treeListColumn256.AutoSizeMinSize = 0;
+            treeListColumn256.Width = 250;
+            treeListColumn257.AutoSizeMinSize = 0;
+            treeListColumn257.Width = 25;
             this.hsCBuffers.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn55,
-            treeListColumn56,
-            treeListColumn57,
-            treeListColumn58,
-            treeListColumn59});
+            treeListColumn253,
+            treeListColumn254,
+            treeListColumn255,
+            treeListColumn256,
+            treeListColumn257});
             this.hsCBuffers.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.hsCBuffers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.hsCBuffers.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -1674,7 +1849,7 @@
             this.hsCBuffers.RowOptions.HoverHighlight = true;
             this.hsCBuffers.RowOptions.ItemHeight = 20;
             this.hsCBuffers.RowOptions.ShowHeader = false;
-            this.hsCBuffers.Size = new System.Drawing.Size(1145, 113);
+            this.hsCBuffers.Size = new System.Drawing.Size(997, 113);
             this.hsCBuffers.TabIndex = 11;
             this.hsCBuffers.Text = "Constant Buffers";
             this.hsCBuffers.TreeColumn = 4;
@@ -1692,7 +1867,7 @@
             this.tabDS.Controls.Add(this.panel4);
             this.tabDS.Location = new System.Drawing.Point(4, 22);
             this.tabDS.Name = "tabDS";
-            this.tabDS.Size = new System.Drawing.Size(1157, 605);
+            this.tabDS.Size = new System.Drawing.Size(1009, 605);
             this.tabDS.TabIndex = 3;
             this.tabDS.Text = "Domain Shader";
             this.tabDS.UseVisualStyleBackColor = true;
@@ -1705,7 +1880,7 @@
             this.panel4.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel4.Location = new System.Drawing.Point(0, 0);
             this.panel4.Name = "panel4";
-            this.panel4.Size = new System.Drawing.Size(1157, 605);
+            this.panel4.Size = new System.Drawing.Size(1009, 605);
             this.panel4.TabIndex = 4;
             // 
             // tableLayoutPanel4
@@ -1727,7 +1902,7 @@
             this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.tableLayoutPanel4.Size = new System.Drawing.Size(1157, 605);
+            this.tableLayoutPanel4.Size = new System.Drawing.Size(1009, 605);
             this.tableLayoutPanel4.TabIndex = 1;
             // 
             // groupBox16
@@ -1737,7 +1912,7 @@
             this.groupBox16.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox16.Location = new System.Drawing.Point(3, 3);
             this.groupBox16.Name = "groupBox16";
-            this.groupBox16.Size = new System.Drawing.Size(1151, 44);
+            this.groupBox16.Size = new System.Drawing.Size(1003, 44);
             this.groupBox16.TabIndex = 17;
             this.groupBox16.TabStop = false;
             this.groupBox16.Text = "Shader";
@@ -1746,11 +1921,15 @@
             // 
             this.flowLayoutPanel5.Controls.Add(this.dsShader);
             this.flowLayoutPanel5.Controls.Add(this.dsShaderCog);
+            this.flowLayoutPanel5.Controls.Add(label32);
             this.flowLayoutPanel5.Controls.Add(this.dsShaderEdit);
+            this.flowLayoutPanel5.Controls.Add(label33);
+            this.flowLayoutPanel5.Controls.Add(this.dsShaderSave);
+            this.flowLayoutPanel5.Controls.Add(label34);
             this.flowLayoutPanel5.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel5.Location = new System.Drawing.Point(3, 16);
             this.flowLayoutPanel5.Name = "flowLayoutPanel5";
-            this.flowLayoutPanel5.Size = new System.Drawing.Size(1145, 25);
+            this.flowLayoutPanel5.Size = new System.Drawing.Size(997, 25);
             this.flowLayoutPanel5.TabIndex = 25;
             // 
             // dsShader
@@ -1758,10 +1937,10 @@
             this.dsShader.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.dsShader.AutoSize = true;
             this.dsShader.BackColor = System.Drawing.SystemColors.Info;
-            this.dsShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.dsShader.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.dsShader.Cursor = System.Windows.Forms.Cursors.Hand;
             this.dsShader.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
+            this.dsShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.dsShader.Location = new System.Drawing.Point(3, 3);
             this.dsShader.MinimumSize = new System.Drawing.Size(300, 2);
             this.dsShader.Name = "dsShader";
@@ -1777,6 +1956,7 @@
             this.dsShaderCog.Cursor = System.Windows.Forms.Cursors.Hand;
             this.dsShaderCog.Image = global::renderdocui.Properties.Resources.action;
             this.dsShaderCog.Location = new System.Drawing.Point(309, 3);
+            this.dsShaderCog.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
             this.dsShaderCog.Name = "dsShaderCog";
             this.dsShaderCog.Size = new System.Drawing.Size(16, 16);
             this.dsShaderCog.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -1786,11 +1966,27 @@
             this.dsShaderCog.MouseEnter += new System.EventHandler(this.shaderCog_MouseEnter);
             this.dsShaderCog.MouseLeave += new System.EventHandler(this.shaderCog_MouseLeave);
             // 
+            // label32
+            // 
+            label32.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label32.AutoSize = true;
+            label32.Cursor = System.Windows.Forms.Cursors.Hand;
+            label32.Location = new System.Drawing.Point(325, 4);
+            label32.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label32.Name = "label32";
+            label32.Size = new System.Drawing.Size(30, 13);
+            label32.TabIndex = 33;
+            label32.Text = "View";
+            label32.Click += new System.EventHandler(this.shader_Click);
+            label32.MouseEnter += new System.EventHandler(this.shaderCog_MouseEnter);
+            label32.MouseLeave += new System.EventHandler(this.shaderCog_MouseLeave);
+            // 
             // dsShaderEdit
             // 
             this.dsShaderEdit.Cursor = System.Windows.Forms.Cursors.Hand;
             this.dsShaderEdit.Image = global::renderdocui.Properties.Resources.page_white_edit;
-            this.dsShaderEdit.Location = new System.Drawing.Point(331, 3);
+            this.dsShaderEdit.Location = new System.Drawing.Point(364, 3);
+            this.dsShaderEdit.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
             this.dsShaderEdit.Name = "dsShaderEdit";
             this.dsShaderEdit.Size = new System.Drawing.Size(16, 16);
             this.dsShaderEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -1799,6 +1995,48 @@
             this.toolTip.SetToolTip(this.dsShaderEdit, "HLSL edit and replace this shader");
             this.dsShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
+            // label33
+            // 
+            label33.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label33.AutoSize = true;
+            label33.Cursor = System.Windows.Forms.Cursors.Hand;
+            label33.Location = new System.Drawing.Point(380, 4);
+            label33.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label33.Name = "label33";
+            label33.Size = new System.Drawing.Size(25, 13);
+            label33.TabIndex = 31;
+            label33.Text = "Edit";
+            this.toolTip.SetToolTip(label33, "HLSL edit and replace this shader");
+            label33.Click += new System.EventHandler(this.shaderedit_Click);
+            // 
+            // dsShaderSave
+            // 
+            this.dsShaderSave.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.dsShaderSave.Image = global::renderdocui.Properties.Resources.save;
+            this.dsShaderSave.Location = new System.Drawing.Point(414, 3);
+            this.dsShaderSave.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
+            this.dsShaderSave.Name = "dsShaderSave";
+            this.dsShaderSave.Size = new System.Drawing.Size(16, 16);
+            this.dsShaderSave.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
+            this.dsShaderSave.TabIndex = 34;
+            this.dsShaderSave.TabStop = false;
+            this.toolTip.SetToolTip(this.dsShaderSave, "Save the bytecode blob to disk");
+            this.dsShaderSave.Click += new System.EventHandler(this.shaderSave_Click);
+            // 
+            // label34
+            // 
+            label34.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label34.AutoSize = true;
+            label34.Cursor = System.Windows.Forms.Cursors.Hand;
+            label34.Location = new System.Drawing.Point(430, 4);
+            label34.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label34.Name = "label34";
+            label34.Size = new System.Drawing.Size(32, 13);
+            label34.TabIndex = 32;
+            label34.Text = "Save";
+            this.toolTip.SetToolTip(label34, "Save the bytecode blob to disk");
+            label34.Click += new System.EventHandler(this.shaderSave_Click);
+            // 
             // groupBox17
             // 
             this.tableLayoutPanel4.SetColumnSpan(this.groupBox17, 2);
@@ -1806,31 +2044,31 @@
             this.groupBox17.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox17.Location = new System.Drawing.Point(3, 467);
             this.groupBox17.Name = "groupBox17";
-            this.groupBox17.Size = new System.Drawing.Size(1151, 135);
+            this.groupBox17.Size = new System.Drawing.Size(1003, 135);
             this.groupBox17.TabIndex = 16;
             this.groupBox17.TabStop = false;
             this.groupBox17.Text = "Class Instances";
             // 
             // dsClasses
             // 
-            treeListColumn60.AutoSizeMinSize = 0;
-            treeListColumn60.Width = 50;
-            treeListColumn61.AutoSizeMinSize = 0;
-            treeListColumn61.Width = 200;
-            treeListColumn62.AutoSize = true;
-            treeListColumn62.AutoSizeMinSize = 50;
-            treeListColumn62.Width = 60;
+            treeListColumn258.AutoSizeMinSize = 0;
+            treeListColumn258.Width = 50;
+            treeListColumn259.AutoSizeMinSize = 0;
+            treeListColumn259.Width = 200;
+            treeListColumn260.AutoSize = true;
+            treeListColumn260.AutoSizeMinSize = 50;
+            treeListColumn260.Width = 60;
             this.dsClasses.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn60,
-            treeListColumn61,
-            treeListColumn62});
+            treeListColumn258,
+            treeListColumn259,
+            treeListColumn260});
             this.dsClasses.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.dsClasses.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dsClasses.Location = new System.Drawing.Point(3, 16);
             this.dsClasses.Name = "dsClasses";
             this.dsClasses.RowOptions.ItemHeight = 20;
             this.dsClasses.RowOptions.ShowHeader = false;
-            this.dsClasses.Size = new System.Drawing.Size(1145, 116);
+            this.dsClasses.Size = new System.Drawing.Size(997, 116);
             this.dsClasses.TabIndex = 4;
             this.dsClasses.Text = "Class Instances";
             this.dsClasses.TreeColumn = -1;
@@ -1847,42 +2085,42 @@
             this.groupBox18.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox18.Location = new System.Drawing.Point(3, 53);
             this.groupBox18.Name = "groupBox18";
-            this.groupBox18.Size = new System.Drawing.Size(1151, 132);
+            this.groupBox18.Size = new System.Drawing.Size(1003, 132);
             this.groupBox18.TabIndex = 14;
             this.groupBox18.TabStop = false;
             this.groupBox18.Text = "Resources";
             // 
             // dsResources
             // 
-            treeListColumn63.AutoSizeMinSize = 0;
-            treeListColumn63.Width = 120;
-            treeListColumn64.AutoSize = true;
-            treeListColumn64.AutoSizeMinSize = 150;
-            treeListColumn64.Width = 50;
-            treeListColumn65.AutoSizeMinSize = 0;
-            treeListColumn65.Width = 85;
-            treeListColumn66.AutoSizeMinSize = 0;
-            treeListColumn66.Width = 50;
-            treeListColumn67.AutoSizeMinSize = 0;
-            treeListColumn67.Width = 50;
-            treeListColumn68.AutoSizeMinSize = 0;
-            treeListColumn68.Width = 50;
-            treeListColumn69.AutoSizeMinSize = 0;
-            treeListColumn69.Width = 85;
-            treeListColumn70.AutoSizeMinSize = 0;
-            treeListColumn70.Width = 200;
-            treeListColumn71.AutoSizeMinSize = 0;
-            treeListColumn71.Width = 25;
+            treeListColumn261.AutoSizeMinSize = 0;
+            treeListColumn261.Width = 120;
+            treeListColumn262.AutoSize = true;
+            treeListColumn262.AutoSizeMinSize = 150;
+            treeListColumn262.Width = 50;
+            treeListColumn263.AutoSizeMinSize = 0;
+            treeListColumn263.Width = 85;
+            treeListColumn264.AutoSizeMinSize = 0;
+            treeListColumn264.Width = 50;
+            treeListColumn265.AutoSizeMinSize = 0;
+            treeListColumn265.Width = 50;
+            treeListColumn266.AutoSizeMinSize = 0;
+            treeListColumn266.Width = 50;
+            treeListColumn267.AutoSizeMinSize = 0;
+            treeListColumn267.Width = 85;
+            treeListColumn268.AutoSizeMinSize = 0;
+            treeListColumn268.Width = 200;
+            treeListColumn269.AutoSizeMinSize = 0;
+            treeListColumn269.Width = 25;
             this.dsResources.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn63,
-            treeListColumn64,
-            treeListColumn65,
-            treeListColumn66,
-            treeListColumn67,
-            treeListColumn68,
-            treeListColumn69,
-            treeListColumn70,
-            treeListColumn71});
+            treeListColumn261,
+            treeListColumn262,
+            treeListColumn263,
+            treeListColumn264,
+            treeListColumn265,
+            treeListColumn266,
+            treeListColumn267,
+            treeListColumn268,
+            treeListColumn269});
             this.dsResources.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.dsResources.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dsResources.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -1892,7 +2130,7 @@
             this.dsResources.RowOptions.HoverHighlight = true;
             this.dsResources.RowOptions.ItemHeight = 20;
             this.dsResources.RowOptions.ShowHeader = false;
-            this.dsResources.Size = new System.Drawing.Size(1145, 113);
+            this.dsResources.Size = new System.Drawing.Size(997, 113);
             this.dsResources.TabIndex = 1;
             this.dsResources.Text = "Outputs";
             this.dsResources.TreeColumn = 8;
@@ -1914,30 +2152,30 @@
             this.groupBox20.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox20.Location = new System.Drawing.Point(3, 191);
             this.groupBox20.Name = "groupBox20";
-            this.groupBox20.Size = new System.Drawing.Size(1151, 132);
+            this.groupBox20.Size = new System.Drawing.Size(1003, 132);
             this.groupBox20.TabIndex = 13;
             this.groupBox20.TabStop = false;
             this.groupBox20.Text = "Samplers";
             // 
             // dsSamplers
             // 
-            treeListColumn72.AutoSizeMinSize = 0;
-            treeListColumn72.Width = 120;
-            treeListColumn73.AutoSizeMinSize = 100;
-            treeListColumn73.Width = 200;
-            treeListColumn74.AutoSizeMinSize = 0;
-            treeListColumn74.Width = 250;
-            treeListColumn75.AutoSizeMinSize = 0;
-            treeListColumn75.Width = 90;
-            treeListColumn76.AutoSize = true;
-            treeListColumn76.AutoSizeMinSize = 50;
-            treeListColumn76.Width = 50;
+            treeListColumn270.AutoSizeMinSize = 0;
+            treeListColumn270.Width = 120;
+            treeListColumn271.AutoSizeMinSize = 100;
+            treeListColumn271.Width = 200;
+            treeListColumn272.AutoSizeMinSize = 0;
+            treeListColumn272.Width = 250;
+            treeListColumn273.AutoSizeMinSize = 0;
+            treeListColumn273.Width = 90;
+            treeListColumn274.AutoSize = true;
+            treeListColumn274.AutoSizeMinSize = 50;
+            treeListColumn274.Width = 50;
             this.dsSamplers.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn72,
-            treeListColumn73,
-            treeListColumn74,
-            treeListColumn75,
-            treeListColumn76});
+            treeListColumn270,
+            treeListColumn271,
+            treeListColumn272,
+            treeListColumn273,
+            treeListColumn274});
             this.dsSamplers.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.dsSamplers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dsSamplers.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -1947,7 +2185,7 @@
             this.dsSamplers.RowOptions.HoverHighlight = true;
             this.dsSamplers.RowOptions.ItemHeight = 20;
             this.dsSamplers.RowOptions.ShowHeader = false;
-            this.dsSamplers.Size = new System.Drawing.Size(1145, 113);
+            this.dsSamplers.Size = new System.Drawing.Size(997, 113);
             this.dsSamplers.TabIndex = 12;
             this.dsSamplers.Text = "Samplers";
             this.dsSamplers.TreeColumn = -1;
@@ -1965,30 +2203,30 @@
             this.groupBox21.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox21.Location = new System.Drawing.Point(3, 329);
             this.groupBox21.Name = "groupBox21";
-            this.groupBox21.Size = new System.Drawing.Size(1151, 132);
+            this.groupBox21.Size = new System.Drawing.Size(1003, 132);
             this.groupBox21.TabIndex = 12;
             this.groupBox21.TabStop = false;
             this.groupBox21.Text = "Constant Buffers";
             // 
             // dsCBuffers
             // 
-            treeListColumn77.AutoSizeMinSize = 0;
-            treeListColumn77.Width = 120;
-            treeListColumn78.AutoSize = true;
-            treeListColumn78.AutoSizeMinSize = 100;
-            treeListColumn78.Width = 50;
-            treeListColumn79.AutoSizeMinSize = 0;
-            treeListColumn79.Width = 85;
-            treeListColumn80.AutoSizeMinSize = 0;
-            treeListColumn80.Width = 250;
-            treeListColumn81.AutoSizeMinSize = 0;
-            treeListColumn81.Width = 25;
+            treeListColumn275.AutoSizeMinSize = 0;
+            treeListColumn275.Width = 120;
+            treeListColumn276.AutoSize = true;
+            treeListColumn276.AutoSizeMinSize = 100;
+            treeListColumn276.Width = 50;
+            treeListColumn277.AutoSizeMinSize = 0;
+            treeListColumn277.Width = 85;
+            treeListColumn278.AutoSizeMinSize = 0;
+            treeListColumn278.Width = 250;
+            treeListColumn279.AutoSizeMinSize = 0;
+            treeListColumn279.Width = 25;
             this.dsCBuffers.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn77,
-            treeListColumn78,
-            treeListColumn79,
-            treeListColumn80,
-            treeListColumn81});
+            treeListColumn275,
+            treeListColumn276,
+            treeListColumn277,
+            treeListColumn278,
+            treeListColumn279});
             this.dsCBuffers.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.dsCBuffers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dsCBuffers.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -1998,7 +2236,7 @@
             this.dsCBuffers.RowOptions.HoverHighlight = true;
             this.dsCBuffers.RowOptions.ItemHeight = 20;
             this.dsCBuffers.RowOptions.ShowHeader = false;
-            this.dsCBuffers.Size = new System.Drawing.Size(1145, 113);
+            this.dsCBuffers.Size = new System.Drawing.Size(997, 113);
             this.dsCBuffers.TabIndex = 11;
             this.dsCBuffers.Text = "Constant Buffers";
             this.dsCBuffers.TreeColumn = 4;
@@ -2016,7 +2254,7 @@
             this.tabGS.Controls.Add(this.panel5);
             this.tabGS.Location = new System.Drawing.Point(4, 22);
             this.tabGS.Name = "tabGS";
-            this.tabGS.Size = new System.Drawing.Size(1157, 605);
+            this.tabGS.Size = new System.Drawing.Size(1009, 605);
             this.tabGS.TabIndex = 4;
             this.tabGS.Text = "Geometry Shader";
             this.tabGS.UseVisualStyleBackColor = true;
@@ -2029,7 +2267,7 @@
             this.panel5.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel5.Location = new System.Drawing.Point(0, 0);
             this.panel5.Name = "panel5";
-            this.panel5.Size = new System.Drawing.Size(1157, 605);
+            this.panel5.Size = new System.Drawing.Size(1009, 605);
             this.panel5.TabIndex = 4;
             // 
             // geomTableLayout
@@ -2053,39 +2291,39 @@
             this.geomTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.geomTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.geomTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.geomTableLayout.Size = new System.Drawing.Size(1157, 605);
+            this.geomTableLayout.Size = new System.Drawing.Size(1009, 605);
             this.geomTableLayout.TabIndex = 1;
             // 
             // groupBox45
             // 
             groupBox45.Controls.Add(this.gsStreams);
             groupBox45.Dock = System.Windows.Forms.DockStyle.Fill;
-            groupBox45.Location = new System.Drawing.Point(581, 329);
+            groupBox45.Location = new System.Drawing.Point(507, 329);
             groupBox45.Name = "groupBox45";
-            groupBox45.Size = new System.Drawing.Size(573, 132);
+            groupBox45.Size = new System.Drawing.Size(499, 132);
             groupBox45.TabIndex = 20;
             groupBox45.TabStop = false;
             groupBox45.Text = "Stream Out";
             // 
             // gsStreams
             // 
-            treeListColumn82.AutoSizeMinSize = 0;
-            treeListColumn82.Width = 60;
-            treeListColumn83.AutoSize = true;
-            treeListColumn83.AutoSizeMinSize = 100;
-            treeListColumn83.Width = 50;
-            treeListColumn84.AutoSizeMinSize = 0;
-            treeListColumn84.Width = 75;
-            treeListColumn85.AutoSizeMinSize = 0;
-            treeListColumn85.Width = 75;
-            treeListColumn86.AutoSizeMinSize = 0;
-            treeListColumn86.Width = 25;
+            treeListColumn280.AutoSizeMinSize = 0;
+            treeListColumn280.Width = 60;
+            treeListColumn281.AutoSize = true;
+            treeListColumn281.AutoSizeMinSize = 100;
+            treeListColumn281.Width = 50;
+            treeListColumn282.AutoSizeMinSize = 0;
+            treeListColumn282.Width = 75;
+            treeListColumn283.AutoSizeMinSize = 0;
+            treeListColumn283.Width = 75;
+            treeListColumn284.AutoSizeMinSize = 0;
+            treeListColumn284.Width = 25;
             this.gsStreams.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn82,
-            treeListColumn83,
-            treeListColumn84,
-            treeListColumn85,
-            treeListColumn86});
+            treeListColumn280,
+            treeListColumn281,
+            treeListColumn282,
+            treeListColumn283,
+            treeListColumn284});
             this.gsStreams.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.gsStreams.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gsStreams.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -2095,7 +2333,7 @@
             this.gsStreams.RowOptions.HoverHighlight = true;
             this.gsStreams.RowOptions.ItemHeight = 20;
             this.gsStreams.RowOptions.ShowHeader = false;
-            this.gsStreams.Size = new System.Drawing.Size(567, 113);
+            this.gsStreams.Size = new System.Drawing.Size(493, 113);
             this.gsStreams.TabIndex = 19;
             this.gsStreams.Text = "treeListView1";
             this.gsStreams.TreeColumn = 4;
@@ -2117,7 +2355,7 @@
             this.groupBox22.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox22.Location = new System.Drawing.Point(3, 3);
             this.groupBox22.Name = "groupBox22";
-            this.groupBox22.Size = new System.Drawing.Size(1151, 44);
+            this.groupBox22.Size = new System.Drawing.Size(1003, 44);
             this.groupBox22.TabIndex = 17;
             this.groupBox22.TabStop = false;
             this.groupBox22.Text = "Shader";
@@ -2126,11 +2364,15 @@
             // 
             this.flowLayoutPanel2.Controls.Add(this.gsShader);
             this.flowLayoutPanel2.Controls.Add(this.gsShaderCog);
+            this.flowLayoutPanel2.Controls.Add(label35);
             this.flowLayoutPanel2.Controls.Add(this.gsShaderEdit);
+            this.flowLayoutPanel2.Controls.Add(label36);
+            this.flowLayoutPanel2.Controls.Add(this.gsShaderSave);
+            this.flowLayoutPanel2.Controls.Add(label37);
             this.flowLayoutPanel2.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel2.Location = new System.Drawing.Point(3, 16);
             this.flowLayoutPanel2.Name = "flowLayoutPanel2";
-            this.flowLayoutPanel2.Size = new System.Drawing.Size(1145, 25);
+            this.flowLayoutPanel2.Size = new System.Drawing.Size(997, 25);
             this.flowLayoutPanel2.TabIndex = 25;
             // 
             // gsShader
@@ -2138,10 +2380,10 @@
             this.gsShader.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.gsShader.AutoSize = true;
             this.gsShader.BackColor = System.Drawing.SystemColors.Info;
-            this.gsShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.gsShader.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.gsShader.Cursor = System.Windows.Forms.Cursors.Hand;
             this.gsShader.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
+            this.gsShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.gsShader.Location = new System.Drawing.Point(3, 3);
             this.gsShader.MinimumSize = new System.Drawing.Size(300, 2);
             this.gsShader.Name = "gsShader";
@@ -2157,6 +2399,7 @@
             this.gsShaderCog.Cursor = System.Windows.Forms.Cursors.Hand;
             this.gsShaderCog.Image = global::renderdocui.Properties.Resources.action;
             this.gsShaderCog.Location = new System.Drawing.Point(309, 3);
+            this.gsShaderCog.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
             this.gsShaderCog.Name = "gsShaderCog";
             this.gsShaderCog.Size = new System.Drawing.Size(16, 16);
             this.gsShaderCog.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -2166,11 +2409,27 @@
             this.gsShaderCog.MouseEnter += new System.EventHandler(this.shaderCog_MouseEnter);
             this.gsShaderCog.MouseLeave += new System.EventHandler(this.shaderCog_MouseLeave);
             // 
+            // label35
+            // 
+            label35.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label35.AutoSize = true;
+            label35.Cursor = System.Windows.Forms.Cursors.Hand;
+            label35.Location = new System.Drawing.Point(325, 4);
+            label35.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label35.Name = "label35";
+            label35.Size = new System.Drawing.Size(30, 13);
+            label35.TabIndex = 33;
+            label35.Text = "View";
+            label35.Click += new System.EventHandler(this.shader_Click);
+            label35.MouseEnter += new System.EventHandler(this.shaderCog_MouseEnter);
+            label35.MouseLeave += new System.EventHandler(this.shaderCog_MouseLeave);
+            // 
             // gsShaderEdit
             // 
             this.gsShaderEdit.Cursor = System.Windows.Forms.Cursors.Hand;
             this.gsShaderEdit.Image = global::renderdocui.Properties.Resources.page_white_edit;
-            this.gsShaderEdit.Location = new System.Drawing.Point(331, 3);
+            this.gsShaderEdit.Location = new System.Drawing.Point(364, 3);
+            this.gsShaderEdit.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
             this.gsShaderEdit.Name = "gsShaderEdit";
             this.gsShaderEdit.Size = new System.Drawing.Size(16, 16);
             this.gsShaderEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -2179,6 +2438,48 @@
             this.toolTip.SetToolTip(this.gsShaderEdit, "HLSL edit and replace this shader");
             this.gsShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
+            // label36
+            // 
+            label36.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label36.AutoSize = true;
+            label36.Cursor = System.Windows.Forms.Cursors.Hand;
+            label36.Location = new System.Drawing.Point(380, 4);
+            label36.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label36.Name = "label36";
+            label36.Size = new System.Drawing.Size(25, 13);
+            label36.TabIndex = 31;
+            label36.Text = "Edit";
+            this.toolTip.SetToolTip(label36, "HLSL edit and replace this shader");
+            label36.Click += new System.EventHandler(this.shaderedit_Click);
+            // 
+            // gsShaderSave
+            // 
+            this.gsShaderSave.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.gsShaderSave.Image = global::renderdocui.Properties.Resources.save;
+            this.gsShaderSave.Location = new System.Drawing.Point(414, 3);
+            this.gsShaderSave.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
+            this.gsShaderSave.Name = "gsShaderSave";
+            this.gsShaderSave.Size = new System.Drawing.Size(16, 16);
+            this.gsShaderSave.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
+            this.gsShaderSave.TabIndex = 34;
+            this.gsShaderSave.TabStop = false;
+            this.toolTip.SetToolTip(this.gsShaderSave, "Save the bytecode blob to disk");
+            this.gsShaderSave.Click += new System.EventHandler(this.shaderSave_Click);
+            // 
+            // label37
+            // 
+            label37.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label37.AutoSize = true;
+            label37.Cursor = System.Windows.Forms.Cursors.Hand;
+            label37.Location = new System.Drawing.Point(430, 4);
+            label37.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label37.Name = "label37";
+            label37.Size = new System.Drawing.Size(32, 13);
+            label37.TabIndex = 32;
+            label37.Text = "Save";
+            this.toolTip.SetToolTip(label37, "Save the bytecode blob to disk");
+            label37.Click += new System.EventHandler(this.shaderSave_Click);
+            // 
             // geomClassGroupBox
             // 
             this.geomTableLayout.SetColumnSpan(this.geomClassGroupBox, 2);
@@ -2186,31 +2487,31 @@
             this.geomClassGroupBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.geomClassGroupBox.Location = new System.Drawing.Point(3, 467);
             this.geomClassGroupBox.Name = "geomClassGroupBox";
-            this.geomClassGroupBox.Size = new System.Drawing.Size(1151, 135);
+            this.geomClassGroupBox.Size = new System.Drawing.Size(1003, 135);
             this.geomClassGroupBox.TabIndex = 16;
             this.geomClassGroupBox.TabStop = false;
             this.geomClassGroupBox.Text = "Class Instances";
             // 
             // gsClasses
             // 
-            treeListColumn87.AutoSizeMinSize = 0;
-            treeListColumn87.Width = 50;
-            treeListColumn88.AutoSizeMinSize = 0;
-            treeListColumn88.Width = 200;
-            treeListColumn89.AutoSize = true;
-            treeListColumn89.AutoSizeMinSize = 50;
-            treeListColumn89.Width = 60;
+            treeListColumn285.AutoSizeMinSize = 0;
+            treeListColumn285.Width = 50;
+            treeListColumn286.AutoSizeMinSize = 0;
+            treeListColumn286.Width = 200;
+            treeListColumn287.AutoSize = true;
+            treeListColumn287.AutoSizeMinSize = 50;
+            treeListColumn287.Width = 60;
             this.gsClasses.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn87,
-            treeListColumn88,
-            treeListColumn89});
+            treeListColumn285,
+            treeListColumn286,
+            treeListColumn287});
             this.gsClasses.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.gsClasses.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gsClasses.Location = new System.Drawing.Point(3, 16);
             this.gsClasses.Name = "gsClasses";
             this.gsClasses.RowOptions.ItemHeight = 20;
             this.gsClasses.RowOptions.ShowHeader = false;
-            this.gsClasses.Size = new System.Drawing.Size(1145, 116);
+            this.gsClasses.Size = new System.Drawing.Size(997, 116);
             this.gsClasses.TabIndex = 4;
             this.gsClasses.Text = "Class Instances";
             this.gsClasses.TreeColumn = -1;
@@ -2227,42 +2528,42 @@
             this.groupBox24.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox24.Location = new System.Drawing.Point(3, 53);
             this.groupBox24.Name = "groupBox24";
-            this.groupBox24.Size = new System.Drawing.Size(1151, 132);
+            this.groupBox24.Size = new System.Drawing.Size(1003, 132);
             this.groupBox24.TabIndex = 14;
             this.groupBox24.TabStop = false;
             this.groupBox24.Text = "Resources";
             // 
             // gsResources
             // 
-            treeListColumn90.AutoSizeMinSize = 0;
-            treeListColumn90.Width = 120;
-            treeListColumn91.AutoSize = true;
-            treeListColumn91.AutoSizeMinSize = 150;
-            treeListColumn91.Width = 50;
-            treeListColumn92.AutoSizeMinSize = 0;
-            treeListColumn92.Width = 85;
-            treeListColumn93.AutoSizeMinSize = 0;
-            treeListColumn93.Width = 50;
-            treeListColumn94.AutoSizeMinSize = 0;
-            treeListColumn94.Width = 50;
-            treeListColumn95.AutoSizeMinSize = 0;
-            treeListColumn95.Width = 50;
-            treeListColumn96.AutoSizeMinSize = 0;
-            treeListColumn96.Width = 85;
-            treeListColumn97.AutoSizeMinSize = 0;
-            treeListColumn97.Width = 200;
-            treeListColumn98.AutoSizeMinSize = 0;
-            treeListColumn98.Width = 25;
+            treeListColumn288.AutoSizeMinSize = 0;
+            treeListColumn288.Width = 120;
+            treeListColumn289.AutoSize = true;
+            treeListColumn289.AutoSizeMinSize = 150;
+            treeListColumn289.Width = 50;
+            treeListColumn290.AutoSizeMinSize = 0;
+            treeListColumn290.Width = 85;
+            treeListColumn291.AutoSizeMinSize = 0;
+            treeListColumn291.Width = 50;
+            treeListColumn292.AutoSizeMinSize = 0;
+            treeListColumn292.Width = 50;
+            treeListColumn293.AutoSizeMinSize = 0;
+            treeListColumn293.Width = 50;
+            treeListColumn294.AutoSizeMinSize = 0;
+            treeListColumn294.Width = 85;
+            treeListColumn295.AutoSizeMinSize = 0;
+            treeListColumn295.Width = 200;
+            treeListColumn296.AutoSizeMinSize = 0;
+            treeListColumn296.Width = 25;
             this.gsResources.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn90,
-            treeListColumn91,
-            treeListColumn92,
-            treeListColumn93,
-            treeListColumn94,
-            treeListColumn95,
-            treeListColumn96,
-            treeListColumn97,
-            treeListColumn98});
+            treeListColumn288,
+            treeListColumn289,
+            treeListColumn290,
+            treeListColumn291,
+            treeListColumn292,
+            treeListColumn293,
+            treeListColumn294,
+            treeListColumn295,
+            treeListColumn296});
             this.gsResources.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.gsResources.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gsResources.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -2272,7 +2573,7 @@
             this.gsResources.RowOptions.HoverHighlight = true;
             this.gsResources.RowOptions.ItemHeight = 20;
             this.gsResources.RowOptions.ShowHeader = false;
-            this.gsResources.Size = new System.Drawing.Size(1145, 113);
+            this.gsResources.Size = new System.Drawing.Size(997, 113);
             this.gsResources.TabIndex = 1;
             this.gsResources.Text = "Outputs";
             this.gsResources.TreeColumn = 8;
@@ -2294,30 +2595,30 @@
             this.groupBox25.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox25.Location = new System.Drawing.Point(3, 191);
             this.groupBox25.Name = "groupBox25";
-            this.groupBox25.Size = new System.Drawing.Size(1151, 132);
+            this.groupBox25.Size = new System.Drawing.Size(1003, 132);
             this.groupBox25.TabIndex = 13;
             this.groupBox25.TabStop = false;
             this.groupBox25.Text = "Samplers";
             // 
             // gsSamplers
             // 
-            treeListColumn99.AutoSizeMinSize = 0;
-            treeListColumn99.Width = 120;
-            treeListColumn100.AutoSizeMinSize = 100;
-            treeListColumn100.Width = 200;
-            treeListColumn101.AutoSizeMinSize = 0;
-            treeListColumn101.Width = 250;
-            treeListColumn102.AutoSizeMinSize = 0;
-            treeListColumn102.Width = 90;
-            treeListColumn103.AutoSize = true;
-            treeListColumn103.AutoSizeMinSize = 50;
-            treeListColumn103.Width = 50;
+            treeListColumn297.AutoSizeMinSize = 0;
+            treeListColumn297.Width = 120;
+            treeListColumn298.AutoSizeMinSize = 100;
+            treeListColumn298.Width = 200;
+            treeListColumn299.AutoSizeMinSize = 0;
+            treeListColumn299.Width = 250;
+            treeListColumn300.AutoSizeMinSize = 0;
+            treeListColumn300.Width = 90;
+            treeListColumn301.AutoSize = true;
+            treeListColumn301.AutoSizeMinSize = 50;
+            treeListColumn301.Width = 50;
             this.gsSamplers.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn99,
-            treeListColumn100,
-            treeListColumn101,
-            treeListColumn102,
-            treeListColumn103});
+            treeListColumn297,
+            treeListColumn298,
+            treeListColumn299,
+            treeListColumn300,
+            treeListColumn301});
             this.gsSamplers.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.gsSamplers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gsSamplers.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -2327,7 +2628,7 @@
             this.gsSamplers.RowOptions.HoverHighlight = true;
             this.gsSamplers.RowOptions.ItemHeight = 20;
             this.gsSamplers.RowOptions.ShowHeader = false;
-            this.gsSamplers.Size = new System.Drawing.Size(1145, 113);
+            this.gsSamplers.Size = new System.Drawing.Size(997, 113);
             this.gsSamplers.TabIndex = 12;
             this.gsSamplers.Text = "Samplers";
             this.gsSamplers.TreeColumn = -1;
@@ -2344,30 +2645,30 @@
             this.geomCBufGroupBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.geomCBufGroupBox.Location = new System.Drawing.Point(3, 329);
             this.geomCBufGroupBox.Name = "geomCBufGroupBox";
-            this.geomCBufGroupBox.Size = new System.Drawing.Size(572, 132);
+            this.geomCBufGroupBox.Size = new System.Drawing.Size(498, 132);
             this.geomCBufGroupBox.TabIndex = 12;
             this.geomCBufGroupBox.TabStop = false;
             this.geomCBufGroupBox.Text = "Constant Buffers";
             // 
             // gsCBuffers
             // 
-            treeListColumn104.AutoSizeMinSize = 0;
-            treeListColumn104.Width = 120;
-            treeListColumn105.AutoSize = true;
-            treeListColumn105.AutoSizeMinSize = 100;
-            treeListColumn105.Width = 50;
-            treeListColumn106.AutoSizeMinSize = 0;
-            treeListColumn106.Width = 75;
-            treeListColumn107.AutoSizeMinSize = 0;
-            treeListColumn107.Width = 250;
-            treeListColumn108.AutoSizeMinSize = 0;
-            treeListColumn108.Width = 25;
+            treeListColumn302.AutoSizeMinSize = 0;
+            treeListColumn302.Width = 120;
+            treeListColumn303.AutoSize = true;
+            treeListColumn303.AutoSizeMinSize = 100;
+            treeListColumn303.Width = 50;
+            treeListColumn304.AutoSizeMinSize = 0;
+            treeListColumn304.Width = 75;
+            treeListColumn305.AutoSizeMinSize = 0;
+            treeListColumn305.Width = 250;
+            treeListColumn306.AutoSizeMinSize = 0;
+            treeListColumn306.Width = 25;
             this.gsCBuffers.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn104,
-            treeListColumn105,
-            treeListColumn106,
-            treeListColumn107,
-            treeListColumn108});
+            treeListColumn302,
+            treeListColumn303,
+            treeListColumn304,
+            treeListColumn305,
+            treeListColumn306});
             this.gsCBuffers.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.gsCBuffers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.gsCBuffers.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -2377,7 +2678,7 @@
             this.gsCBuffers.RowOptions.HoverHighlight = true;
             this.gsCBuffers.RowOptions.ItemHeight = 20;
             this.gsCBuffers.RowOptions.ShowHeader = false;
-            this.gsCBuffers.Size = new System.Drawing.Size(566, 113);
+            this.gsCBuffers.Size = new System.Drawing.Size(492, 113);
             this.gsCBuffers.TabIndex = 11;
             this.gsCBuffers.Text = "Samplers";
             this.gsCBuffers.TreeColumn = 4;
@@ -2395,7 +2696,7 @@
             this.tabRS.Controls.Add(this.panel8);
             this.tabRS.Location = new System.Drawing.Point(4, 22);
             this.tabRS.Name = "tabRS";
-            this.tabRS.Size = new System.Drawing.Size(1157, 605);
+            this.tabRS.Size = new System.Drawing.Size(1009, 605);
             this.tabRS.TabIndex = 5;
             this.tabRS.Text = "Rasterizer";
             this.tabRS.UseVisualStyleBackColor = true;
@@ -2408,7 +2709,7 @@
             this.panel8.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel8.Location = new System.Drawing.Point(0, 0);
             this.panel8.Name = "panel8";
-            this.panel8.Size = new System.Drawing.Size(1157, 605);
+            this.panel8.Size = new System.Drawing.Size(1009, 605);
             this.panel8.TabIndex = 2;
             // 
             // tableLayoutPanel14
@@ -2427,7 +2728,7 @@
             this.tableLayoutPanel14.RowCount = 2;
             this.tableLayoutPanel14.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel14.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel14.Size = new System.Drawing.Size(1157, 605);
+            this.tableLayoutPanel14.Size = new System.Drawing.Size(1009, 605);
             this.tableLayoutPanel14.TabIndex = 1;
             // 
             // groupBox31
@@ -2439,7 +2740,7 @@
             this.groupBox31.Location = new System.Drawing.Point(3, 3);
             this.groupBox31.MinimumSize = new System.Drawing.Size(500, 0);
             this.groupBox31.Name = "groupBox31";
-            this.groupBox31.Size = new System.Drawing.Size(1151, 97);
+            this.groupBox31.Size = new System.Drawing.Size(1003, 97);
             this.groupBox31.TabIndex = 0;
             this.groupBox31.TabStop = false;
             this.groupBox31.Text = "Rasterizer State";
@@ -2456,7 +2757,7 @@
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
             this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 610F));
+            this.tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Absolute, 619F));
             this.tableLayoutPanel8.Controls.Add(this.forcedSampleCount, 7, 1);
             this.tableLayoutPanel8.Controls.Add(this.label14, 6, 1);
             this.tableLayoutPanel8.Controls.Add(this.frontCCW, 5, 0);
@@ -2489,7 +2790,7 @@
             this.tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
             this.tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 33.33333F));
             this.tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel8.Size = new System.Drawing.Size(1145, 78);
+            this.tableLayoutPanel8.Size = new System.Drawing.Size(997, 78);
             this.tableLayoutPanel8.TabIndex = 0;
             // 
             // forcedSampleCount
@@ -2758,36 +3059,36 @@
             this.groupBox32.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox32.Location = new System.Drawing.Point(3, 106);
             this.groupBox32.Name = "groupBox32";
-            this.groupBox32.Size = new System.Drawing.Size(572, 496);
+            this.groupBox32.Size = new System.Drawing.Size(498, 496);
             this.groupBox32.TabIndex = 1;
             this.groupBox32.TabStop = false;
             this.groupBox32.Text = "Viewports";
             // 
             // viewports
             // 
-            treeListColumn109.AutoSizeMinSize = 0;
-            treeListColumn109.Width = 50;
-            treeListColumn110.AutoSizeMinSize = 0;
-            treeListColumn110.Width = 50;
-            treeListColumn111.AutoSizeMinSize = 0;
-            treeListColumn111.Width = 50;
-            treeListColumn112.AutoSizeMinSize = 0;
-            treeListColumn112.Width = 50;
-            treeListColumn113.AutoSizeMinSize = 0;
-            treeListColumn113.Width = 50;
-            treeListColumn114.AutoSizeMinSize = 0;
-            treeListColumn114.Width = 70;
-            treeListColumn115.AutoSize = true;
-            treeListColumn115.AutoSizeMinSize = 60;
-            treeListColumn115.Width = 60;
+            treeListColumn307.AutoSizeMinSize = 0;
+            treeListColumn307.Width = 50;
+            treeListColumn308.AutoSizeMinSize = 0;
+            treeListColumn308.Width = 50;
+            treeListColumn309.AutoSizeMinSize = 0;
+            treeListColumn309.Width = 50;
+            treeListColumn310.AutoSizeMinSize = 0;
+            treeListColumn310.Width = 50;
+            treeListColumn311.AutoSizeMinSize = 0;
+            treeListColumn311.Width = 50;
+            treeListColumn312.AutoSizeMinSize = 0;
+            treeListColumn312.Width = 70;
+            treeListColumn313.AutoSize = true;
+            treeListColumn313.AutoSizeMinSize = 60;
+            treeListColumn313.Width = 60;
             this.viewports.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn109,
-            treeListColumn110,
-            treeListColumn111,
-            treeListColumn112,
-            treeListColumn113,
-            treeListColumn114,
-            treeListColumn115});
+            treeListColumn307,
+            treeListColumn308,
+            treeListColumn309,
+            treeListColumn310,
+            treeListColumn311,
+            treeListColumn312,
+            treeListColumn313});
             this.viewports.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.viewports.Dock = System.Windows.Forms.DockStyle.Fill;
             this.viewports.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -2796,7 +3097,7 @@
             this.viewports.Name = "viewports";
             this.viewports.RowOptions.ItemHeight = 20;
             this.viewports.RowOptions.ShowHeader = false;
-            this.viewports.Size = new System.Drawing.Size(566, 477);
+            this.viewports.Size = new System.Drawing.Size(492, 477);
             this.viewports.TabIndex = 0;
             this.viewports.Text = "Viewports";
             this.viewports.TreeColumn = -1;
@@ -2809,32 +3110,32 @@
             // 
             groupBox42.Controls.Add(this.scissors);
             groupBox42.Dock = System.Windows.Forms.DockStyle.Fill;
-            groupBox42.Location = new System.Drawing.Point(581, 106);
+            groupBox42.Location = new System.Drawing.Point(507, 106);
             groupBox42.Name = "groupBox42";
-            groupBox42.Size = new System.Drawing.Size(573, 496);
+            groupBox42.Size = new System.Drawing.Size(499, 496);
             groupBox42.TabIndex = 2;
             groupBox42.TabStop = false;
             groupBox42.Text = "Scissor Regions";
             // 
             // scissors
             // 
-            treeListColumn116.AutoSizeMinSize = 0;
-            treeListColumn116.Width = 50;
-            treeListColumn117.AutoSizeMinSize = 0;
-            treeListColumn117.Width = 50;
-            treeListColumn118.AutoSizeMinSize = 0;
-            treeListColumn118.Width = 50;
-            treeListColumn119.AutoSizeMinSize = 0;
-            treeListColumn119.Width = 50;
-            treeListColumn120.AutoSize = true;
-            treeListColumn120.AutoSizeMinSize = 50;
-            treeListColumn120.Width = 50;
+            treeListColumn314.AutoSizeMinSize = 0;
+            treeListColumn314.Width = 50;
+            treeListColumn315.AutoSizeMinSize = 0;
+            treeListColumn315.Width = 50;
+            treeListColumn316.AutoSizeMinSize = 0;
+            treeListColumn316.Width = 50;
+            treeListColumn317.AutoSizeMinSize = 0;
+            treeListColumn317.Width = 50;
+            treeListColumn318.AutoSize = true;
+            treeListColumn318.AutoSizeMinSize = 50;
+            treeListColumn318.Width = 50;
             this.scissors.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn116,
-            treeListColumn117,
-            treeListColumn118,
-            treeListColumn119,
-            treeListColumn120});
+            treeListColumn314,
+            treeListColumn315,
+            treeListColumn316,
+            treeListColumn317,
+            treeListColumn318});
             this.scissors.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.scissors.Dock = System.Windows.Forms.DockStyle.Fill;
             this.scissors.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -2843,7 +3144,7 @@
             this.scissors.Name = "scissors";
             this.scissors.RowOptions.ItemHeight = 20;
             this.scissors.RowOptions.ShowHeader = false;
-            this.scissors.Size = new System.Drawing.Size(567, 477);
+            this.scissors.Size = new System.Drawing.Size(493, 477);
             this.scissors.TabIndex = 1;
             this.scissors.Text = "Scissor Regions";
             this.scissors.TreeColumn = -1;
@@ -2857,7 +3158,7 @@
             this.tabPS.Controls.Add(this.panel6);
             this.tabPS.Location = new System.Drawing.Point(4, 22);
             this.tabPS.Name = "tabPS";
-            this.tabPS.Size = new System.Drawing.Size(1157, 605);
+            this.tabPS.Size = new System.Drawing.Size(1009, 605);
             this.tabPS.TabIndex = 6;
             this.tabPS.Text = "Pixel Shader";
             this.tabPS.UseVisualStyleBackColor = true;
@@ -2870,7 +3171,7 @@
             this.panel6.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel6.Location = new System.Drawing.Point(0, 0);
             this.panel6.Name = "panel6";
-            this.panel6.Size = new System.Drawing.Size(1157, 605);
+            this.panel6.Size = new System.Drawing.Size(1009, 605);
             this.panel6.TabIndex = 3;
             // 
             // pixelTableLayout
@@ -2892,7 +3193,7 @@
             this.pixelTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.pixelTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
             this.pixelTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 25F));
-            this.pixelTableLayout.Size = new System.Drawing.Size(1157, 605);
+            this.pixelTableLayout.Size = new System.Drawing.Size(1009, 605);
             this.pixelTableLayout.TabIndex = 1;
             // 
             // groupBox13
@@ -2902,7 +3203,7 @@
             this.groupBox13.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox13.Location = new System.Drawing.Point(3, 3);
             this.groupBox13.Name = "groupBox13";
-            this.groupBox13.Size = new System.Drawing.Size(1151, 44);
+            this.groupBox13.Size = new System.Drawing.Size(1003, 44);
             this.groupBox13.TabIndex = 17;
             this.groupBox13.TabStop = false;
             this.groupBox13.Text = "Shader";
@@ -2911,11 +3212,15 @@
             // 
             this.flowLayoutPanel1.Controls.Add(this.psShader);
             this.flowLayoutPanel1.Controls.Add(this.psShaderCog);
+            this.flowLayoutPanel1.Controls.Add(label38);
             this.flowLayoutPanel1.Controls.Add(this.psShaderEdit);
+            this.flowLayoutPanel1.Controls.Add(label39);
+            this.flowLayoutPanel1.Controls.Add(this.psShaderSave);
+            this.flowLayoutPanel1.Controls.Add(label40);
             this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel1.Location = new System.Drawing.Point(3, 16);
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
-            this.flowLayoutPanel1.Size = new System.Drawing.Size(1145, 25);
+            this.flowLayoutPanel1.Size = new System.Drawing.Size(997, 25);
             this.flowLayoutPanel1.TabIndex = 25;
             // 
             // psShader
@@ -2923,10 +3228,10 @@
             this.psShader.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.psShader.AutoSize = true;
             this.psShader.BackColor = System.Drawing.SystemColors.Info;
-            this.psShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.psShader.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.psShader.Cursor = System.Windows.Forms.Cursors.Hand;
             this.psShader.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
+            this.psShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.psShader.Location = new System.Drawing.Point(3, 3);
             this.psShader.MinimumSize = new System.Drawing.Size(300, 2);
             this.psShader.Name = "psShader";
@@ -2942,6 +3247,7 @@
             this.psShaderCog.Cursor = System.Windows.Forms.Cursors.Hand;
             this.psShaderCog.Image = global::renderdocui.Properties.Resources.action;
             this.psShaderCog.Location = new System.Drawing.Point(309, 3);
+            this.psShaderCog.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
             this.psShaderCog.Name = "psShaderCog";
             this.psShaderCog.Size = new System.Drawing.Size(16, 16);
             this.psShaderCog.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -2951,11 +3257,27 @@
             this.psShaderCog.MouseEnter += new System.EventHandler(this.shaderCog_MouseEnter);
             this.psShaderCog.MouseLeave += new System.EventHandler(this.shaderCog_MouseLeave);
             // 
+            // label38
+            // 
+            label38.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label38.AutoSize = true;
+            label38.Cursor = System.Windows.Forms.Cursors.Hand;
+            label38.Location = new System.Drawing.Point(325, 4);
+            label38.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label38.Name = "label38";
+            label38.Size = new System.Drawing.Size(30, 13);
+            label38.TabIndex = 33;
+            label38.Text = "View";
+            label38.Click += new System.EventHandler(this.shader_Click);
+            label38.MouseEnter += new System.EventHandler(this.shaderCog_MouseEnter);
+            label38.MouseLeave += new System.EventHandler(this.shaderCog_MouseLeave);
+            // 
             // psShaderEdit
             // 
             this.psShaderEdit.Cursor = System.Windows.Forms.Cursors.Hand;
             this.psShaderEdit.Image = global::renderdocui.Properties.Resources.page_white_edit;
-            this.psShaderEdit.Location = new System.Drawing.Point(331, 3);
+            this.psShaderEdit.Location = new System.Drawing.Point(364, 3);
+            this.psShaderEdit.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
             this.psShaderEdit.Name = "psShaderEdit";
             this.psShaderEdit.Size = new System.Drawing.Size(16, 16);
             this.psShaderEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -2964,6 +3286,48 @@
             this.toolTip.SetToolTip(this.psShaderEdit, "HLSL edit and replace this shader");
             this.psShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
             // 
+            // label39
+            // 
+            label39.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label39.AutoSize = true;
+            label39.Cursor = System.Windows.Forms.Cursors.Hand;
+            label39.Location = new System.Drawing.Point(380, 4);
+            label39.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label39.Name = "label39";
+            label39.Size = new System.Drawing.Size(25, 13);
+            label39.TabIndex = 31;
+            label39.Text = "Edit";
+            this.toolTip.SetToolTip(label39, "HLSL edit and replace this shader");
+            label39.Click += new System.EventHandler(this.shaderedit_Click);
+            // 
+            // psShaderSave
+            // 
+            this.psShaderSave.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.psShaderSave.Image = global::renderdocui.Properties.Resources.save;
+            this.psShaderSave.Location = new System.Drawing.Point(414, 3);
+            this.psShaderSave.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
+            this.psShaderSave.Name = "psShaderSave";
+            this.psShaderSave.Size = new System.Drawing.Size(16, 16);
+            this.psShaderSave.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
+            this.psShaderSave.TabIndex = 34;
+            this.psShaderSave.TabStop = false;
+            this.toolTip.SetToolTip(this.psShaderSave, "Save the bytecode blob to disk");
+            this.psShaderSave.Click += new System.EventHandler(this.shaderSave_Click);
+            // 
+            // label40
+            // 
+            label40.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label40.AutoSize = true;
+            label40.Cursor = System.Windows.Forms.Cursors.Hand;
+            label40.Location = new System.Drawing.Point(430, 4);
+            label40.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label40.Name = "label40";
+            label40.Size = new System.Drawing.Size(32, 13);
+            label40.TabIndex = 32;
+            label40.Text = "Save";
+            this.toolTip.SetToolTip(label40, "Save the bytecode blob to disk");
+            label40.Click += new System.EventHandler(this.shaderSave_Click);
+            // 
             // pixelClassGroupBox
             // 
             this.pixelTableLayout.SetColumnSpan(this.pixelClassGroupBox, 2);
@@ -2971,31 +3335,31 @@
             this.pixelClassGroupBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pixelClassGroupBox.Location = new System.Drawing.Point(3, 467);
             this.pixelClassGroupBox.Name = "pixelClassGroupBox";
-            this.pixelClassGroupBox.Size = new System.Drawing.Size(1151, 135);
+            this.pixelClassGroupBox.Size = new System.Drawing.Size(1003, 135);
             this.pixelClassGroupBox.TabIndex = 16;
             this.pixelClassGroupBox.TabStop = false;
             this.pixelClassGroupBox.Text = "Class Instances";
             // 
             // psClasses
             // 
-            treeListColumn121.AutoSizeMinSize = 0;
-            treeListColumn121.Width = 50;
-            treeListColumn122.AutoSizeMinSize = 0;
-            treeListColumn122.Width = 200;
-            treeListColumn123.AutoSize = true;
-            treeListColumn123.AutoSizeMinSize = 50;
-            treeListColumn123.Width = 60;
+            treeListColumn319.AutoSizeMinSize = 0;
+            treeListColumn319.Width = 50;
+            treeListColumn320.AutoSizeMinSize = 0;
+            treeListColumn320.Width = 200;
+            treeListColumn321.AutoSize = true;
+            treeListColumn321.AutoSizeMinSize = 50;
+            treeListColumn321.Width = 60;
             this.psClasses.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn121,
-            treeListColumn122,
-            treeListColumn123});
+            treeListColumn319,
+            treeListColumn320,
+            treeListColumn321});
             this.psClasses.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.psClasses.Dock = System.Windows.Forms.DockStyle.Fill;
             this.psClasses.Location = new System.Drawing.Point(3, 16);
             this.psClasses.Name = "psClasses";
             this.psClasses.RowOptions.ItemHeight = 20;
             this.psClasses.RowOptions.ShowHeader = false;
-            this.psClasses.Size = new System.Drawing.Size(1145, 116);
+            this.psClasses.Size = new System.Drawing.Size(997, 116);
             this.psClasses.TabIndex = 4;
             this.psClasses.Text = "Class Instances";
             this.psClasses.TreeColumn = -1;
@@ -3012,42 +3376,42 @@
             this.groupBox28.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox28.Location = new System.Drawing.Point(3, 53);
             this.groupBox28.Name = "groupBox28";
-            this.groupBox28.Size = new System.Drawing.Size(1151, 132);
+            this.groupBox28.Size = new System.Drawing.Size(1003, 132);
             this.groupBox28.TabIndex = 14;
             this.groupBox28.TabStop = false;
             this.groupBox28.Text = "Resources";
             // 
             // psResources
             // 
-            treeListColumn124.AutoSizeMinSize = 0;
-            treeListColumn124.Width = 120;
-            treeListColumn125.AutoSize = true;
-            treeListColumn125.AutoSizeMinSize = 150;
-            treeListColumn125.Width = 50;
-            treeListColumn126.AutoSizeMinSize = 0;
-            treeListColumn126.Width = 85;
-            treeListColumn127.AutoSizeMinSize = 0;
-            treeListColumn127.Width = 50;
-            treeListColumn128.AutoSizeMinSize = 0;
-            treeListColumn128.Width = 50;
-            treeListColumn129.AutoSizeMinSize = 0;
-            treeListColumn129.Width = 50;
-            treeListColumn130.AutoSizeMinSize = 0;
-            treeListColumn130.Width = 85;
-            treeListColumn131.AutoSizeMinSize = 0;
-            treeListColumn131.Width = 200;
-            treeListColumn132.AutoSizeMinSize = 0;
-            treeListColumn132.Width = 25;
+            treeListColumn322.AutoSizeMinSize = 0;
+            treeListColumn322.Width = 120;
+            treeListColumn323.AutoSize = true;
+            treeListColumn323.AutoSizeMinSize = 150;
+            treeListColumn323.Width = 50;
+            treeListColumn324.AutoSizeMinSize = 0;
+            treeListColumn324.Width = 85;
+            treeListColumn325.AutoSizeMinSize = 0;
+            treeListColumn325.Width = 50;
+            treeListColumn326.AutoSizeMinSize = 0;
+            treeListColumn326.Width = 50;
+            treeListColumn327.AutoSizeMinSize = 0;
+            treeListColumn327.Width = 50;
+            treeListColumn328.AutoSizeMinSize = 0;
+            treeListColumn328.Width = 85;
+            treeListColumn329.AutoSizeMinSize = 0;
+            treeListColumn329.Width = 200;
+            treeListColumn330.AutoSizeMinSize = 0;
+            treeListColumn330.Width = 25;
             this.psResources.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn124,
-            treeListColumn125,
-            treeListColumn126,
-            treeListColumn127,
-            treeListColumn128,
-            treeListColumn129,
-            treeListColumn130,
-            treeListColumn131,
-            treeListColumn132});
+            treeListColumn322,
+            treeListColumn323,
+            treeListColumn324,
+            treeListColumn325,
+            treeListColumn326,
+            treeListColumn327,
+            treeListColumn328,
+            treeListColumn329,
+            treeListColumn330});
             this.psResources.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.psResources.Dock = System.Windows.Forms.DockStyle.Fill;
             this.psResources.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -3057,7 +3421,7 @@
             this.psResources.RowOptions.HoverHighlight = true;
             this.psResources.RowOptions.ItemHeight = 20;
             this.psResources.RowOptions.ShowHeader = false;
-            this.psResources.Size = new System.Drawing.Size(1145, 113);
+            this.psResources.Size = new System.Drawing.Size(997, 113);
             this.psResources.TabIndex = 1;
             this.psResources.Text = "Outputs";
             this.psResources.TreeColumn = 8;
@@ -3079,30 +3443,30 @@
             this.groupBox29.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox29.Location = new System.Drawing.Point(3, 191);
             this.groupBox29.Name = "groupBox29";
-            this.groupBox29.Size = new System.Drawing.Size(1151, 132);
+            this.groupBox29.Size = new System.Drawing.Size(1003, 132);
             this.groupBox29.TabIndex = 13;
             this.groupBox29.TabStop = false;
             this.groupBox29.Text = "Samplers";
             // 
             // psSamplers
             // 
-            treeListColumn133.AutoSizeMinSize = 0;
-            treeListColumn133.Width = 120;
-            treeListColumn134.AutoSizeMinSize = 100;
-            treeListColumn134.Width = 200;
-            treeListColumn135.AutoSizeMinSize = 0;
-            treeListColumn135.Width = 250;
-            treeListColumn136.AutoSizeMinSize = 0;
-            treeListColumn136.Width = 90;
-            treeListColumn137.AutoSize = true;
-            treeListColumn137.AutoSizeMinSize = 50;
-            treeListColumn137.Width = 50;
+            treeListColumn331.AutoSizeMinSize = 0;
+            treeListColumn331.Width = 120;
+            treeListColumn332.AutoSizeMinSize = 100;
+            treeListColumn332.Width = 200;
+            treeListColumn333.AutoSizeMinSize = 0;
+            treeListColumn333.Width = 250;
+            treeListColumn334.AutoSizeMinSize = 0;
+            treeListColumn334.Width = 90;
+            treeListColumn335.AutoSize = true;
+            treeListColumn335.AutoSizeMinSize = 50;
+            treeListColumn335.Width = 50;
             this.psSamplers.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn133,
-            treeListColumn134,
-            treeListColumn135,
-            treeListColumn136,
-            treeListColumn137});
+            treeListColumn331,
+            treeListColumn332,
+            treeListColumn333,
+            treeListColumn334,
+            treeListColumn335});
             this.psSamplers.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.psSamplers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.psSamplers.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -3112,7 +3476,7 @@
             this.psSamplers.RowOptions.HoverHighlight = true;
             this.psSamplers.RowOptions.ItemHeight = 20;
             this.psSamplers.RowOptions.ShowHeader = false;
-            this.psSamplers.Size = new System.Drawing.Size(1145, 113);
+            this.psSamplers.Size = new System.Drawing.Size(997, 113);
             this.psSamplers.TabIndex = 12;
             this.psSamplers.Text = "Samplers";
             this.psSamplers.TreeColumn = -1;
@@ -3130,30 +3494,30 @@
             this.pixelCBufGroupBox.Dock = System.Windows.Forms.DockStyle.Fill;
             this.pixelCBufGroupBox.Location = new System.Drawing.Point(3, 329);
             this.pixelCBufGroupBox.Name = "pixelCBufGroupBox";
-            this.pixelCBufGroupBox.Size = new System.Drawing.Size(1151, 132);
+            this.pixelCBufGroupBox.Size = new System.Drawing.Size(1003, 132);
             this.pixelCBufGroupBox.TabIndex = 12;
             this.pixelCBufGroupBox.TabStop = false;
             this.pixelCBufGroupBox.Text = "Constant Buffers";
             // 
             // psCBuffers
             // 
-            treeListColumn138.AutoSizeMinSize = 0;
-            treeListColumn138.Width = 120;
-            treeListColumn139.AutoSize = true;
-            treeListColumn139.AutoSizeMinSize = 100;
-            treeListColumn139.Width = 50;
-            treeListColumn140.AutoSizeMinSize = 0;
-            treeListColumn140.Width = 85;
-            treeListColumn141.AutoSizeMinSize = 0;
-            treeListColumn141.Width = 250;
-            treeListColumn142.AutoSizeMinSize = 0;
-            treeListColumn142.Width = 25;
+            treeListColumn336.AutoSizeMinSize = 0;
+            treeListColumn336.Width = 120;
+            treeListColumn337.AutoSize = true;
+            treeListColumn337.AutoSizeMinSize = 100;
+            treeListColumn337.Width = 50;
+            treeListColumn338.AutoSizeMinSize = 0;
+            treeListColumn338.Width = 85;
+            treeListColumn339.AutoSizeMinSize = 0;
+            treeListColumn339.Width = 250;
+            treeListColumn340.AutoSizeMinSize = 0;
+            treeListColumn340.Width = 25;
             this.psCBuffers.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn138,
-            treeListColumn139,
-            treeListColumn140,
-            treeListColumn141,
-            treeListColumn142});
+            treeListColumn336,
+            treeListColumn337,
+            treeListColumn338,
+            treeListColumn339,
+            treeListColumn340});
             this.psCBuffers.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.psCBuffers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.psCBuffers.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -3163,7 +3527,7 @@
             this.psCBuffers.RowOptions.HoverHighlight = true;
             this.psCBuffers.RowOptions.ItemHeight = 20;
             this.psCBuffers.RowOptions.ShowHeader = false;
-            this.psCBuffers.Size = new System.Drawing.Size(1145, 113);
+            this.psCBuffers.Size = new System.Drawing.Size(997, 113);
             this.psCBuffers.TabIndex = 11;
             this.psCBuffers.Text = "Constant Buffers";
             this.psCBuffers.TreeColumn = 4;
@@ -3181,7 +3545,7 @@
             this.tabOM.Controls.Add(this.panel9);
             this.tabOM.Location = new System.Drawing.Point(4, 22);
             this.tabOM.Name = "tabOM";
-            this.tabOM.Size = new System.Drawing.Size(1157, 605);
+            this.tabOM.Size = new System.Drawing.Size(1009, 605);
             this.tabOM.TabIndex = 7;
             this.tabOM.Text = "Output Merger";
             this.tabOM.UseVisualStyleBackColor = true;
@@ -3194,7 +3558,7 @@
             this.panel9.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel9.Location = new System.Drawing.Point(0, 0);
             this.panel9.Name = "panel9";
-            this.panel9.Size = new System.Drawing.Size(1157, 605);
+            this.panel9.Size = new System.Drawing.Size(1009, 605);
             this.panel9.TabIndex = 1;
             // 
             // tableLayoutPanel9
@@ -3212,7 +3576,7 @@
             this.tableLayoutPanel9.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 60F));
             this.tableLayoutPanel9.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 40F));
             this.tableLayoutPanel9.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel9.Size = new System.Drawing.Size(1157, 605);
+            this.tableLayoutPanel9.Size = new System.Drawing.Size(1009, 605);
             this.tableLayoutPanel9.TabIndex = 0;
             // 
             // groupBox33
@@ -3221,42 +3585,42 @@
             this.groupBox33.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox33.Location = new System.Drawing.Point(3, 3);
             this.groupBox33.Name = "groupBox33";
-            this.groupBox33.Size = new System.Drawing.Size(1151, 270);
+            this.groupBox33.Size = new System.Drawing.Size(1003, 270);
             this.groupBox33.TabIndex = 15;
             this.groupBox33.TabStop = false;
             this.groupBox33.Text = "Render Targets && UAVs";
             // 
             // targetOutputs
             // 
-            treeListColumn143.AutoSizeMinSize = 0;
-            treeListColumn143.Width = 50;
-            treeListColumn144.AutoSize = true;
-            treeListColumn144.AutoSizeMinSize = 150;
-            treeListColumn144.Width = 50;
-            treeListColumn145.AutoSizeMinSize = 0;
-            treeListColumn145.Width = 75;
-            treeListColumn146.AutoSizeMinSize = 0;
-            treeListColumn146.Width = 50;
-            treeListColumn147.AutoSizeMinSize = 0;
-            treeListColumn147.Width = 50;
-            treeListColumn148.AutoSizeMinSize = 0;
-            treeListColumn148.Width = 50;
-            treeListColumn149.AutoSizeMinSize = 0;
-            treeListColumn149.Width = 85;
-            treeListColumn150.AutoSizeMinSize = 0;
-            treeListColumn150.Width = 200;
-            treeListColumn151.AutoSizeMinSize = 0;
-            treeListColumn151.Width = 25;
+            treeListColumn341.AutoSizeMinSize = 0;
+            treeListColumn341.Width = 50;
+            treeListColumn342.AutoSize = true;
+            treeListColumn342.AutoSizeMinSize = 150;
+            treeListColumn342.Width = 50;
+            treeListColumn343.AutoSizeMinSize = 0;
+            treeListColumn343.Width = 75;
+            treeListColumn344.AutoSizeMinSize = 0;
+            treeListColumn344.Width = 50;
+            treeListColumn345.AutoSizeMinSize = 0;
+            treeListColumn345.Width = 50;
+            treeListColumn346.AutoSizeMinSize = 0;
+            treeListColumn346.Width = 50;
+            treeListColumn347.AutoSizeMinSize = 0;
+            treeListColumn347.Width = 85;
+            treeListColumn348.AutoSizeMinSize = 0;
+            treeListColumn348.Width = 200;
+            treeListColumn349.AutoSizeMinSize = 0;
+            treeListColumn349.Width = 25;
             this.targetOutputs.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn143,
-            treeListColumn144,
-            treeListColumn145,
-            treeListColumn146,
-            treeListColumn147,
-            treeListColumn148,
-            treeListColumn149,
-            treeListColumn150,
-            treeListColumn151});
+            treeListColumn341,
+            treeListColumn342,
+            treeListColumn343,
+            treeListColumn344,
+            treeListColumn345,
+            treeListColumn346,
+            treeListColumn347,
+            treeListColumn348,
+            treeListColumn349});
             this.targetOutputs.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.targetOutputs.Dock = System.Windows.Forms.DockStyle.Fill;
             this.targetOutputs.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -3266,7 +3630,7 @@
             this.targetOutputs.RowOptions.HoverHighlight = true;
             this.targetOutputs.RowOptions.ItemHeight = 20;
             this.targetOutputs.RowOptions.ShowHeader = false;
-            this.targetOutputs.Size = new System.Drawing.Size(1145, 251);
+            this.targetOutputs.Size = new System.Drawing.Size(997, 251);
             this.targetOutputs.TabIndex = 0;
             this.targetOutputs.Text = "Outputs";
             this.targetOutputs.TreeColumn = 8;
@@ -3287,48 +3651,48 @@
             this.groupBox37.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox37.Location = new System.Drawing.Point(3, 279);
             this.groupBox37.Name = "groupBox37";
-            this.groupBox37.Size = new System.Drawing.Size(1151, 178);
+            this.groupBox37.Size = new System.Drawing.Size(1003, 178);
             this.groupBox37.TabIndex = 16;
             this.groupBox37.TabStop = false;
             this.groupBox37.Text = "Target Blends";
             // 
             // blendOperations
             // 
-            treeListColumn152.AutoSizeMinSize = 0;
-            treeListColumn152.Width = 50;
-            treeListColumn153.AutoSizeMinSize = 0;
-            treeListColumn153.Width = 60;
-            treeListColumn154.AutoSizeMinSize = 0;
-            treeListColumn154.Width = 50;
-            treeListColumn155.AutoSizeMinSize = 0;
-            treeListColumn155.Width = 100;
-            treeListColumn156.AutoSizeMinSize = 0;
-            treeListColumn156.Width = 100;
-            treeListColumn157.AutoSizeMinSize = 0;
-            treeListColumn157.Width = 135;
-            treeListColumn158.AutoSizeMinSize = 0;
-            treeListColumn158.Width = 100;
-            treeListColumn159.AutoSizeMinSize = 0;
-            treeListColumn159.Width = 100;
-            treeListColumn160.AutoSizeMinSize = 0;
-            treeListColumn160.Width = 100;
-            treeListColumn161.AutoSizeMinSize = 0;
-            treeListColumn161.Width = 80;
-            treeListColumn162.AutoSize = true;
-            treeListColumn162.AutoSizeMinSize = 60;
-            treeListColumn162.Width = 60;
+            treeListColumn350.AutoSizeMinSize = 0;
+            treeListColumn350.Width = 50;
+            treeListColumn351.AutoSizeMinSize = 0;
+            treeListColumn351.Width = 60;
+            treeListColumn352.AutoSizeMinSize = 0;
+            treeListColumn352.Width = 50;
+            treeListColumn353.AutoSizeMinSize = 0;
+            treeListColumn353.Width = 100;
+            treeListColumn354.AutoSizeMinSize = 0;
+            treeListColumn354.Width = 100;
+            treeListColumn355.AutoSizeMinSize = 0;
+            treeListColumn355.Width = 135;
+            treeListColumn356.AutoSizeMinSize = 0;
+            treeListColumn356.Width = 100;
+            treeListColumn357.AutoSizeMinSize = 0;
+            treeListColumn357.Width = 100;
+            treeListColumn358.AutoSizeMinSize = 0;
+            treeListColumn358.Width = 100;
+            treeListColumn359.AutoSizeMinSize = 0;
+            treeListColumn359.Width = 80;
+            treeListColumn360.AutoSize = true;
+            treeListColumn360.AutoSizeMinSize = 60;
+            treeListColumn360.Width = 60;
             this.blendOperations.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn152,
-            treeListColumn153,
-            treeListColumn154,
-            treeListColumn155,
-            treeListColumn156,
-            treeListColumn157,
-            treeListColumn158,
-            treeListColumn159,
-            treeListColumn160,
-            treeListColumn161,
-            treeListColumn162});
+            treeListColumn350,
+            treeListColumn351,
+            treeListColumn352,
+            treeListColumn353,
+            treeListColumn354,
+            treeListColumn355,
+            treeListColumn356,
+            treeListColumn357,
+            treeListColumn358,
+            treeListColumn359,
+            treeListColumn360});
             this.blendOperations.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.blendOperations.Dock = System.Windows.Forms.DockStyle.Fill;
             this.blendOperations.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -3338,7 +3702,7 @@
             this.blendOperations.RowOptions.HoverHighlight = true;
             this.blendOperations.RowOptions.ItemHeight = 20;
             this.blendOperations.RowOptions.ShowHeader = false;
-            this.blendOperations.Size = new System.Drawing.Size(1145, 159);
+            this.blendOperations.Size = new System.Drawing.Size(997, 159);
             this.blendOperations.TabIndex = 32;
             this.blendOperations.Text = "Outputs";
             this.blendOperations.TreeColumn = 7;
@@ -3361,7 +3725,7 @@
             this.tableLayoutPanel10.Name = "tableLayoutPanel10";
             this.tableLayoutPanel10.RowCount = 1;
             this.tableLayoutPanel10.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel10.Size = new System.Drawing.Size(1151, 139);
+            this.tableLayoutPanel10.Size = new System.Drawing.Size(1003, 139);
             this.tableLayoutPanel10.TabIndex = 17;
             // 
             // groupBox40
@@ -3745,23 +4109,23 @@
             // 
             // stencilFuncs
             // 
-            treeListColumn163.AutoSizeMinSize = 0;
-            treeListColumn163.Width = 50;
-            treeListColumn164.AutoSizeMinSize = 0;
-            treeListColumn164.Width = 60;
-            treeListColumn165.AutoSizeMinSize = 0;
-            treeListColumn165.Width = 75;
-            treeListColumn166.AutoSizeMinSize = 0;
-            treeListColumn166.Width = 75;
-            treeListColumn167.AutoSize = true;
-            treeListColumn167.AutoSizeMinSize = 50;
-            treeListColumn167.Width = 75;
+            treeListColumn361.AutoSizeMinSize = 0;
+            treeListColumn361.Width = 50;
+            treeListColumn362.AutoSizeMinSize = 0;
+            treeListColumn362.Width = 60;
+            treeListColumn363.AutoSizeMinSize = 0;
+            treeListColumn363.Width = 75;
+            treeListColumn364.AutoSizeMinSize = 0;
+            treeListColumn364.Width = 75;
+            treeListColumn365.AutoSize = true;
+            treeListColumn365.AutoSizeMinSize = 50;
+            treeListColumn365.Width = 75;
             this.stencilFuncs.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn163,
-            treeListColumn164,
-            treeListColumn165,
-            treeListColumn166,
-            treeListColumn167});
+            treeListColumn361,
+            treeListColumn362,
+            treeListColumn363,
+            treeListColumn364,
+            treeListColumn365});
             this.stencilFuncs.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.stencilFuncs.Location = new System.Drawing.Point(3, 33);
             this.stencilFuncs.Name = "stencilFuncs";
@@ -3779,7 +4143,7 @@
             this.tabCS.Controls.Add(this.panel7);
             this.tabCS.Location = new System.Drawing.Point(4, 22);
             this.tabCS.Name = "tabCS";
-            this.tabCS.Size = new System.Drawing.Size(1157, 605);
+            this.tabCS.Size = new System.Drawing.Size(1009, 605);
             this.tabCS.TabIndex = 8;
             this.tabCS.Text = "Compute Shader";
             this.tabCS.UseVisualStyleBackColor = true;
@@ -3792,7 +4156,7 @@
             this.panel7.Dock = System.Windows.Forms.DockStyle.Fill;
             this.panel7.Location = new System.Drawing.Point(0, 0);
             this.panel7.Name = "panel7";
-            this.panel7.Size = new System.Drawing.Size(1157, 605);
+            this.panel7.Size = new System.Drawing.Size(1009, 605);
             this.panel7.TabIndex = 4;
             // 
             // tableLayoutPanel7
@@ -3809,57 +4173,57 @@
             this.tableLayoutPanel7.Location = new System.Drawing.Point(0, 0);
             this.tableLayoutPanel7.Name = "tableLayoutPanel7";
             this.tableLayoutPanel7.RowCount = 5;
-            this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 60F));
+            this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
             this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
             this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
             this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
             this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 20F));
-            this.tableLayoutPanel7.Size = new System.Drawing.Size(1157, 605);
+            this.tableLayoutPanel7.Size = new System.Drawing.Size(1009, 605);
             this.tableLayoutPanel7.TabIndex = 1;
             // 
             // groupBox38
             // 
             this.groupBox38.Controls.Add(this.csUAVs);
             this.groupBox38.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.groupBox38.Location = new System.Drawing.Point(3, 172);
+            this.groupBox38.Location = new System.Drawing.Point(3, 182);
             this.groupBox38.Name = "groupBox38";
-            this.groupBox38.Size = new System.Drawing.Size(1151, 103);
+            this.groupBox38.Size = new System.Drawing.Size(1003, 100);
             this.groupBox38.TabIndex = 19;
             this.groupBox38.TabStop = false;
             this.groupBox38.Text = "UAVs";
             // 
             // csUAVs
             // 
-            treeListColumn168.AutoSizeMinSize = 0;
-            treeListColumn168.Width = 120;
-            treeListColumn169.AutoSize = true;
-            treeListColumn169.AutoSizeMinSize = 150;
-            treeListColumn169.Width = 50;
-            treeListColumn170.AutoSizeMinSize = 0;
-            treeListColumn170.Width = 75;
-            treeListColumn171.AutoSizeMinSize = 0;
-            treeListColumn171.Width = 50;
-            treeListColumn172.AutoSizeMinSize = 0;
-            treeListColumn172.Width = 50;
-            treeListColumn173.AutoSizeMinSize = 0;
-            treeListColumn173.Width = 50;
-            treeListColumn174.AutoSizeMinSize = 0;
-            treeListColumn174.Width = 85;
-            treeListColumn175.AutoSizeMinSize = 0;
-            treeListColumn175.Width = 200;
-            treeListColumn176.AutoSizeMinSize = 0;
-            treeListColumn176.Width = 25;
+            treeListColumn366.AutoSizeMinSize = 0;
+            treeListColumn366.Width = 120;
+            treeListColumn367.AutoSize = true;
+            treeListColumn367.AutoSizeMinSize = 150;
+            treeListColumn367.Width = 50;
+            treeListColumn368.AutoSizeMinSize = 0;
+            treeListColumn368.Width = 75;
+            treeListColumn369.AutoSizeMinSize = 0;
+            treeListColumn369.Width = 50;
+            treeListColumn370.AutoSizeMinSize = 0;
+            treeListColumn370.Width = 50;
+            treeListColumn371.AutoSizeMinSize = 0;
+            treeListColumn371.Width = 50;
+            treeListColumn372.AutoSizeMinSize = 0;
+            treeListColumn372.Width = 85;
+            treeListColumn373.AutoSizeMinSize = 0;
+            treeListColumn373.Width = 200;
+            treeListColumn374.AutoSizeMinSize = 0;
+            treeListColumn374.Width = 25;
             this.csUAVs.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn168,
-            treeListColumn169,
-            treeListColumn170,
-            treeListColumn171,
-            treeListColumn172,
-            treeListColumn173,
-            treeListColumn174,
-            treeListColumn175,
-            treeListColumn176});
+            treeListColumn366,
+            treeListColumn367,
+            treeListColumn368,
+            treeListColumn369,
+            treeListColumn370,
+            treeListColumn371,
+            treeListColumn372,
+            treeListColumn373,
+            treeListColumn374});
             this.csUAVs.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.csUAVs.Dock = System.Windows.Forms.DockStyle.Fill;
             this.csUAVs.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -3869,7 +4233,7 @@
             this.csUAVs.RowOptions.HoverHighlight = true;
             this.csUAVs.RowOptions.ItemHeight = 20;
             this.csUAVs.RowOptions.ShowHeader = false;
-            this.csUAVs.Size = new System.Drawing.Size(1145, 84);
+            this.csUAVs.Size = new System.Drawing.Size(997, 81);
             this.csUAVs.TabIndex = 1;
             this.csUAVs.Text = "Outputs";
             this.csUAVs.TreeColumn = 8;
@@ -3889,33 +4253,33 @@
             this.tableLayoutPanel7.SetColumnSpan(this.groupBox27, 2);
             this.groupBox27.Controls.Add(this.csClasses);
             this.groupBox27.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.groupBox27.Location = new System.Drawing.Point(3, 499);
+            this.groupBox27.Location = new System.Drawing.Point(3, 500);
             this.groupBox27.Name = "groupBox27";
-            this.groupBox27.Size = new System.Drawing.Size(1151, 103);
+            this.groupBox27.Size = new System.Drawing.Size(1003, 102);
             this.groupBox27.TabIndex = 18;
             this.groupBox27.TabStop = false;
             this.groupBox27.Text = "Class Instances";
             // 
             // csClasses
             // 
-            treeListColumn177.AutoSizeMinSize = 0;
-            treeListColumn177.Width = 50;
-            treeListColumn178.AutoSizeMinSize = 0;
-            treeListColumn178.Width = 200;
-            treeListColumn179.AutoSize = true;
-            treeListColumn179.AutoSizeMinSize = 50;
-            treeListColumn179.Width = 60;
+            treeListColumn375.AutoSizeMinSize = 0;
+            treeListColumn375.Width = 50;
+            treeListColumn376.AutoSizeMinSize = 0;
+            treeListColumn376.Width = 200;
+            treeListColumn377.AutoSize = true;
+            treeListColumn377.AutoSizeMinSize = 50;
+            treeListColumn377.Width = 60;
             this.csClasses.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn177,
-            treeListColumn178,
-            treeListColumn179});
+            treeListColumn375,
+            treeListColumn376,
+            treeListColumn377});
             this.csClasses.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.csClasses.Dock = System.Windows.Forms.DockStyle.Fill;
             this.csClasses.Location = new System.Drawing.Point(3, 16);
             this.csClasses.Name = "csClasses";
             this.csClasses.RowOptions.ItemHeight = 20;
             this.csClasses.RowOptions.ShowHeader = false;
-            this.csClasses.Size = new System.Drawing.Size(1145, 84);
+            this.csClasses.Size = new System.Drawing.Size(997, 83);
             this.csClasses.TabIndex = 4;
             this.csClasses.Text = "Class Instances";
             this.csClasses.TreeColumn = -1;
@@ -3927,25 +4291,36 @@
             // 
             // groupBox6
             // 
+            this.groupBox6.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.groupBox6.AutoSize = true;
+            this.groupBox6.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.groupBox6.Controls.Add(this.flowLayoutPanel7);
-            this.groupBox6.Dock = System.Windows.Forms.DockStyle.Fill;
             this.groupBox6.Location = new System.Drawing.Point(3, 3);
             this.groupBox6.Name = "groupBox6";
-            this.groupBox6.Size = new System.Drawing.Size(1151, 54);
+            this.groupBox6.Padding = new System.Windows.Forms.Padding(3, 3, 3, 0);
+            this.groupBox6.Size = new System.Drawing.Size(1003, 67);
             this.groupBox6.TabIndex = 17;
             this.groupBox6.TabStop = false;
             this.groupBox6.Text = "Shader";
             // 
             // flowLayoutPanel7
             // 
+            this.flowLayoutPanel7.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.flowLayoutPanel7.AutoSize = true;
             this.flowLayoutPanel7.Controls.Add(this.csShader);
             this.flowLayoutPanel7.Controls.Add(this.csShaderCog);
+            this.flowLayoutPanel7.Controls.Add(label41);
             this.flowLayoutPanel7.Controls.Add(this.csShaderEdit);
+            this.flowLayoutPanel7.Controls.Add(label42);
+            this.flowLayoutPanel7.Controls.Add(this.csShaderSave);
+            this.flowLayoutPanel7.Controls.Add(label43);
             this.flowLayoutPanel7.Controls.Add(this.computeDebugControls);
-            this.flowLayoutPanel7.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel7.Location = new System.Drawing.Point(3, 16);
+            this.flowLayoutPanel7.Margin = new System.Windows.Forms.Padding(3, 3, 3, 0);
             this.flowLayoutPanel7.Name = "flowLayoutPanel7";
-            this.flowLayoutPanel7.Size = new System.Drawing.Size(1145, 35);
+            this.flowLayoutPanel7.Size = new System.Drawing.Size(997, 38);
             this.flowLayoutPanel7.TabIndex = 25;
             // 
             // csShader
@@ -3953,10 +4328,10 @@
             this.csShader.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.csShader.AutoSize = true;
             this.csShader.BackColor = System.Drawing.SystemColors.Info;
-            this.csShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.csShader.BorderStyle = System.Windows.Forms.BorderStyle.FixedSingle;
             this.csShader.Cursor = System.Windows.Forms.Cursors.Hand;
             this.csShader.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F);
+            this.csShader.ForeColor = System.Drawing.SystemColors.InfoText;
             this.csShader.Location = new System.Drawing.Point(3, 11);
             this.csShader.MinimumSize = new System.Drawing.Size(300, 2);
             this.csShader.Name = "csShader";
@@ -3973,6 +4348,7 @@
             this.csShaderCog.Cursor = System.Windows.Forms.Cursors.Hand;
             this.csShaderCog.Image = global::renderdocui.Properties.Resources.action;
             this.csShaderCog.Location = new System.Drawing.Point(309, 11);
+            this.csShaderCog.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
             this.csShaderCog.Name = "csShaderCog";
             this.csShaderCog.Size = new System.Drawing.Size(16, 16);
             this.csShaderCog.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -3982,12 +4358,28 @@
             this.csShaderCog.MouseEnter += new System.EventHandler(this.shaderCog_MouseEnter);
             this.csShaderCog.MouseLeave += new System.EventHandler(this.shaderCog_MouseLeave);
             // 
+            // label41
+            // 
+            label41.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label41.AutoSize = true;
+            label41.Cursor = System.Windows.Forms.Cursors.Hand;
+            label41.Location = new System.Drawing.Point(325, 12);
+            label41.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label41.Name = "label41";
+            label41.Size = new System.Drawing.Size(30, 13);
+            label41.TabIndex = 39;
+            label41.Text = "View";
+            label41.Click += new System.EventHandler(this.shader_Click);
+            label41.MouseEnter += new System.EventHandler(this.shaderCog_MouseEnter);
+            label41.MouseLeave += new System.EventHandler(this.shaderCog_MouseLeave);
+            // 
             // csShaderEdit
             // 
             this.csShaderEdit.Anchor = System.Windows.Forms.AnchorStyles.Left;
             this.csShaderEdit.Cursor = System.Windows.Forms.Cursors.Hand;
             this.csShaderEdit.Image = global::renderdocui.Properties.Resources.page_white_edit;
-            this.csShaderEdit.Location = new System.Drawing.Point(331, 11);
+            this.csShaderEdit.Location = new System.Drawing.Point(364, 11);
+            this.csShaderEdit.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
             this.csShaderEdit.Name = "csShaderEdit";
             this.csShaderEdit.Size = new System.Drawing.Size(16, 16);
             this.csShaderEdit.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
@@ -3995,6 +4387,49 @@
             this.csShaderEdit.TabStop = false;
             this.toolTip.SetToolTip(this.csShaderEdit, "HLSL edit and replace this shader");
             this.csShaderEdit.Click += new System.EventHandler(this.shaderedit_Click);
+            // 
+            // label42
+            // 
+            label42.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label42.AutoSize = true;
+            label42.Cursor = System.Windows.Forms.Cursors.Hand;
+            label42.Location = new System.Drawing.Point(380, 12);
+            label42.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label42.Name = "label42";
+            label42.Size = new System.Drawing.Size(25, 13);
+            label42.TabIndex = 37;
+            label42.Text = "Edit";
+            this.toolTip.SetToolTip(label42, "HLSL edit and replace this shader");
+            label42.Click += new System.EventHandler(this.shaderedit_Click);
+            // 
+            // csShaderSave
+            // 
+            this.csShaderSave.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            this.csShaderSave.Cursor = System.Windows.Forms.Cursors.Hand;
+            this.csShaderSave.Image = global::renderdocui.Properties.Resources.save;
+            this.csShaderSave.Location = new System.Drawing.Point(414, 11);
+            this.csShaderSave.Margin = new System.Windows.Forms.Padding(3, 3, 0, 3);
+            this.csShaderSave.Name = "csShaderSave";
+            this.csShaderSave.Size = new System.Drawing.Size(16, 16);
+            this.csShaderSave.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
+            this.csShaderSave.TabIndex = 40;
+            this.csShaderSave.TabStop = false;
+            this.toolTip.SetToolTip(this.csShaderSave, "Save the bytecode blob to disk");
+            this.csShaderSave.Click += new System.EventHandler(this.shaderSave_Click);
+            // 
+            // label43
+            // 
+            label43.Anchor = System.Windows.Forms.AnchorStyles.Left;
+            label43.AutoSize = true;
+            label43.Cursor = System.Windows.Forms.Cursors.Hand;
+            label43.Location = new System.Drawing.Point(430, 12);
+            label43.Margin = new System.Windows.Forms.Padding(0, 0, 6, 0);
+            label43.Name = "label43";
+            label43.Size = new System.Drawing.Size(32, 13);
+            label43.TabIndex = 38;
+            label43.Text = "Save";
+            this.toolTip.SetToolTip(label43, "Save the bytecode blob to disk");
+            label43.Click += new System.EventHandler(this.shaderSave_Click);
             // 
             // computeDebugControls
             // 
@@ -4007,7 +4442,7 @@
             this.computeDebugControls.Controls.Add(this.threadY);
             this.computeDebugControls.Controls.Add(this.threadZ);
             this.computeDebugControls.Controls.Add(this.csDebug);
-            this.computeDebugControls.Location = new System.Drawing.Point(353, 3);
+            this.computeDebugControls.Location = new System.Drawing.Point(471, 3);
             this.computeDebugControls.Name = "computeDebugControls";
             this.computeDebugControls.Size = new System.Drawing.Size(498, 32);
             this.computeDebugControls.TabIndex = 35;
@@ -4102,44 +4537,44 @@
             // 
             this.groupBox34.Controls.Add(this.csResources);
             this.groupBox34.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.groupBox34.Location = new System.Drawing.Point(3, 63);
+            this.groupBox34.Location = new System.Drawing.Point(3, 76);
             this.groupBox34.Name = "groupBox34";
-            this.groupBox34.Size = new System.Drawing.Size(1151, 103);
+            this.groupBox34.Size = new System.Drawing.Size(1003, 100);
             this.groupBox34.TabIndex = 14;
             this.groupBox34.TabStop = false;
             this.groupBox34.Text = "Resources";
             // 
             // csResources
             // 
-            treeListColumn180.AutoSizeMinSize = 0;
-            treeListColumn180.Width = 120;
-            treeListColumn181.AutoSize = true;
-            treeListColumn181.AutoSizeMinSize = 150;
-            treeListColumn181.Width = 50;
-            treeListColumn182.AutoSizeMinSize = 0;
-            treeListColumn182.Width = 85;
-            treeListColumn183.AutoSizeMinSize = 0;
-            treeListColumn183.Width = 50;
-            treeListColumn184.AutoSizeMinSize = 0;
-            treeListColumn184.Width = 50;
-            treeListColumn185.AutoSizeMinSize = 0;
-            treeListColumn185.Width = 50;
-            treeListColumn186.AutoSizeMinSize = 0;
-            treeListColumn186.Width = 85;
-            treeListColumn187.AutoSizeMinSize = 0;
-            treeListColumn187.Width = 200;
-            treeListColumn188.AutoSizeMinSize = 0;
-            treeListColumn188.Width = 25;
+            treeListColumn378.AutoSizeMinSize = 0;
+            treeListColumn378.Width = 120;
+            treeListColumn379.AutoSize = true;
+            treeListColumn379.AutoSizeMinSize = 150;
+            treeListColumn379.Width = 50;
+            treeListColumn380.AutoSizeMinSize = 0;
+            treeListColumn380.Width = 85;
+            treeListColumn381.AutoSizeMinSize = 0;
+            treeListColumn381.Width = 50;
+            treeListColumn382.AutoSizeMinSize = 0;
+            treeListColumn382.Width = 50;
+            treeListColumn383.AutoSizeMinSize = 0;
+            treeListColumn383.Width = 50;
+            treeListColumn384.AutoSizeMinSize = 0;
+            treeListColumn384.Width = 85;
+            treeListColumn385.AutoSizeMinSize = 0;
+            treeListColumn385.Width = 200;
+            treeListColumn386.AutoSizeMinSize = 0;
+            treeListColumn386.Width = 25;
             this.csResources.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn180,
-            treeListColumn181,
-            treeListColumn182,
-            treeListColumn183,
-            treeListColumn184,
-            treeListColumn185,
-            treeListColumn186,
-            treeListColumn187,
-            treeListColumn188});
+            treeListColumn378,
+            treeListColumn379,
+            treeListColumn380,
+            treeListColumn381,
+            treeListColumn382,
+            treeListColumn383,
+            treeListColumn384,
+            treeListColumn385,
+            treeListColumn386});
             this.csResources.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.csResources.Dock = System.Windows.Forms.DockStyle.Fill;
             this.csResources.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -4149,7 +4584,7 @@
             this.csResources.RowOptions.HoverHighlight = true;
             this.csResources.RowOptions.ItemHeight = 20;
             this.csResources.RowOptions.ShowHeader = false;
-            this.csResources.Size = new System.Drawing.Size(1145, 84);
+            this.csResources.Size = new System.Drawing.Size(997, 81);
             this.csResources.TabIndex = 1;
             this.csResources.Text = "Outputs";
             this.csResources.TreeColumn = 8;
@@ -4168,32 +4603,32 @@
             // 
             this.groupBox35.Controls.Add(this.csSamplers);
             this.groupBox35.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.groupBox35.Location = new System.Drawing.Point(3, 281);
+            this.groupBox35.Location = new System.Drawing.Point(3, 288);
             this.groupBox35.Name = "groupBox35";
-            this.groupBox35.Size = new System.Drawing.Size(1151, 103);
+            this.groupBox35.Size = new System.Drawing.Size(1003, 100);
             this.groupBox35.TabIndex = 13;
             this.groupBox35.TabStop = false;
             this.groupBox35.Text = "Samplers";
             // 
             // csSamplers
             // 
-            treeListColumn189.AutoSizeMinSize = 0;
-            treeListColumn189.Width = 120;
-            treeListColumn190.AutoSizeMinSize = 100;
-            treeListColumn190.Width = 200;
-            treeListColumn191.AutoSizeMinSize = 0;
-            treeListColumn191.Width = 250;
-            treeListColumn192.AutoSizeMinSize = 0;
-            treeListColumn192.Width = 90;
-            treeListColumn193.AutoSize = true;
-            treeListColumn193.AutoSizeMinSize = 50;
-            treeListColumn193.Width = 50;
+            treeListColumn387.AutoSizeMinSize = 0;
+            treeListColumn387.Width = 120;
+            treeListColumn388.AutoSizeMinSize = 100;
+            treeListColumn388.Width = 200;
+            treeListColumn389.AutoSizeMinSize = 0;
+            treeListColumn389.Width = 250;
+            treeListColumn390.AutoSizeMinSize = 0;
+            treeListColumn390.Width = 90;
+            treeListColumn391.AutoSize = true;
+            treeListColumn391.AutoSizeMinSize = 50;
+            treeListColumn391.Width = 50;
             this.csSamplers.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn189,
-            treeListColumn190,
-            treeListColumn191,
-            treeListColumn192,
-            treeListColumn193});
+            treeListColumn387,
+            treeListColumn388,
+            treeListColumn389,
+            treeListColumn390,
+            treeListColumn391});
             this.csSamplers.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.csSamplers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.csSamplers.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -4203,7 +4638,7 @@
             this.csSamplers.RowOptions.HoverHighlight = true;
             this.csSamplers.RowOptions.ItemHeight = 20;
             this.csSamplers.RowOptions.ShowHeader = false;
-            this.csSamplers.Size = new System.Drawing.Size(1145, 84);
+            this.csSamplers.Size = new System.Drawing.Size(997, 81);
             this.csSamplers.TabIndex = 12;
             this.csSamplers.Text = "Samplers";
             this.csSamplers.TreeColumn = -1;
@@ -4218,32 +4653,32 @@
             // 
             this.groupBox36.Controls.Add(this.csCBuffers);
             this.groupBox36.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.groupBox36.Location = new System.Drawing.Point(3, 390);
+            this.groupBox36.Location = new System.Drawing.Point(3, 394);
             this.groupBox36.Name = "groupBox36";
-            this.groupBox36.Size = new System.Drawing.Size(1151, 103);
+            this.groupBox36.Size = new System.Drawing.Size(1003, 100);
             this.groupBox36.TabIndex = 12;
             this.groupBox36.TabStop = false;
             this.groupBox36.Text = "Constant Buffers";
             // 
             // csCBuffers
             // 
-            treeListColumn194.AutoSizeMinSize = 0;
-            treeListColumn194.Width = 120;
-            treeListColumn195.AutoSize = true;
-            treeListColumn195.AutoSizeMinSize = 100;
-            treeListColumn195.Width = 50;
-            treeListColumn196.AutoSizeMinSize = 0;
-            treeListColumn196.Width = 85;
-            treeListColumn197.AutoSizeMinSize = 0;
-            treeListColumn197.Width = 250;
-            treeListColumn198.AutoSizeMinSize = 0;
-            treeListColumn198.Width = 25;
+            treeListColumn392.AutoSizeMinSize = 0;
+            treeListColumn392.Width = 120;
+            treeListColumn393.AutoSize = true;
+            treeListColumn393.AutoSizeMinSize = 100;
+            treeListColumn393.Width = 50;
+            treeListColumn394.AutoSizeMinSize = 0;
+            treeListColumn394.Width = 85;
+            treeListColumn395.AutoSizeMinSize = 0;
+            treeListColumn395.Width = 250;
+            treeListColumn396.AutoSizeMinSize = 0;
+            treeListColumn396.Width = 25;
             this.csCBuffers.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn194,
-            treeListColumn195,
-            treeListColumn196,
-            treeListColumn197,
-            treeListColumn198});
+            treeListColumn392,
+            treeListColumn393,
+            treeListColumn394,
+            treeListColumn395,
+            treeListColumn396});
             this.csCBuffers.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.csCBuffers.Dock = System.Windows.Forms.DockStyle.Fill;
             this.csCBuffers.GridLineColour = System.Drawing.SystemColors.ControlDark;
@@ -4253,7 +4688,7 @@
             this.csCBuffers.RowOptions.HoverHighlight = true;
             this.csCBuffers.RowOptions.ItemHeight = 20;
             this.csCBuffers.RowOptions.ShowHeader = false;
-            this.csCBuffers.Size = new System.Drawing.Size(1145, 84);
+            this.csCBuffers.Size = new System.Drawing.Size(997, 81);
             this.csCBuffers.TabIndex = 11;
             this.csCBuffers.Text = "Constant Buffers";
             this.csCBuffers.TreeColumn = 4;
@@ -4295,11 +4730,18 @@
             this.toolTip.UseAnimation = false;
             this.toolTip.UseFading = false;
             // 
-            // exportDialog
+            // pipeExportDialog
             // 
-            this.exportDialog.DefaultExt = "html";
-            this.exportDialog.Filter = "HTML Files (*.html)|*.html";
-            this.exportDialog.Title = "Export pipeline state as HTML";
+            this.pipeExportDialog.DefaultExt = "html";
+            this.pipeExportDialog.Filter = "HTML Files (*.html)|*.html";
+            this.pipeExportDialog.Title = "Export pipeline state as HTML";
+            // 
+            // shaderSaveDialog
+            // 
+            this.shaderSaveDialog.DefaultExt = "dxbc";
+            this.shaderSaveDialog.Filter = "DXBC Shader Files (*.dxbc)|*.dxbc|Shader Binary Files (*.bin)|*.bin|All Files (*." +
+    "*)|*.*";
+            this.shaderSaveDialog.Title = "Save shader bytecode to file";
             // 
             // D3D11PipelineStateViewer
             // 
@@ -4308,7 +4750,7 @@
             this.Controls.Add(toolstripTable);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Name = "D3D11PipelineStateViewer";
-            this.Size = new System.Drawing.Size(1171, 738);
+            this.Size = new System.Drawing.Size(1023, 738);
             toolstripTable.ResumeLayout(false);
             toolstripTable.PerformLayout();
             this.flowLayoutPanel6.ResumeLayout(false);
@@ -4341,6 +4783,7 @@
             this.flowLayoutPanel3.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.vsShaderCog)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.vsShaderEdit)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.vsShaderSave)).EndInit();
             this.groupBox5.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.vsClasses)).EndInit();
             this.groupBox7.ResumeLayout(false);
@@ -4357,6 +4800,7 @@
             this.flowLayoutPanel4.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.hsShaderCog)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.hsShaderEdit)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.hsShaderSave)).EndInit();
             this.groupBox11.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.hsClasses)).EndInit();
             this.groupBox12.ResumeLayout(false);
@@ -4373,6 +4817,7 @@
             this.flowLayoutPanel5.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.dsShaderCog)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.dsShaderEdit)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.dsShaderSave)).EndInit();
             this.groupBox17.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.dsClasses)).EndInit();
             this.groupBox18.ResumeLayout(false);
@@ -4391,6 +4836,7 @@
             this.flowLayoutPanel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gsShaderCog)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.gsShaderEdit)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.gsShaderSave)).EndInit();
             this.geomClassGroupBox.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.gsClasses)).EndInit();
             this.groupBox24.ResumeLayout(false);
@@ -4423,6 +4869,7 @@
             this.flowLayoutPanel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.psShaderCog)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.psShaderEdit)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.psShaderSave)).EndInit();
             this.pixelClassGroupBox.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.psClasses)).EndInit();
             this.groupBox28.ResumeLayout(false);
@@ -4462,15 +4909,18 @@
             this.tabCS.ResumeLayout(false);
             this.panel7.ResumeLayout(false);
             this.tableLayoutPanel7.ResumeLayout(false);
+            this.tableLayoutPanel7.PerformLayout();
             this.groupBox38.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.csUAVs)).EndInit();
             this.groupBox27.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.csClasses)).EndInit();
             this.groupBox6.ResumeLayout(false);
+            this.groupBox6.PerformLayout();
             this.flowLayoutPanel7.ResumeLayout(false);
             this.flowLayoutPanel7.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.csShaderCog)).EndInit();
             ((System.ComponentModel.ISupportInitialize)(this.csShaderEdit)).EndInit();
+            ((System.ComponentModel.ISupportInitialize)(this.csShaderSave)).EndInit();
             this.computeDebugControls.ResumeLayout(false);
             this.computeDebugControls.PerformLayout();
             this.groupBox34.ResumeLayout(false);
@@ -4684,8 +5134,15 @@
         private System.Windows.Forms.PictureBox meshView;
         private System.Windows.Forms.Label iaBytecodeMismatch;
         private System.Windows.Forms.ToolStripButton export;
-        private System.Windows.Forms.SaveFileDialog exportDialog;
+        private System.Windows.Forms.SaveFileDialog pipeExportDialog;
         private TreelistView.TreeListView gsStreams;
         private System.Windows.Forms.PictureBox conservativeRaster;
+        private System.Windows.Forms.PictureBox vsShaderSave;
+        private System.Windows.Forms.SaveFileDialog shaderSaveDialog;
+        private System.Windows.Forms.PictureBox hsShaderSave;
+        private System.Windows.Forms.PictureBox dsShaderSave;
+        private System.Windows.Forms.PictureBox gsShaderSave;
+        private System.Windows.Forms.PictureBox psShaderSave;
+        private System.Windows.Forms.PictureBox csShaderSave;
     }
 }

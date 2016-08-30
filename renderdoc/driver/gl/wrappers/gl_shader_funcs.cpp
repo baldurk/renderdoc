@@ -35,6 +35,27 @@ void WrappedOpenGL::ShaderData::Compile(WrappedOpenGL &gl)
   if(type == eGL_VERTEX_SHADER)
     CheckVertexOutputUses(sources, pointSizeUsed, clipDistanceUsed);
 
+  {
+    string concatenated;
+
+    for(size_t i = 0; i < sources.size(); i++)
+    {
+      if(sources.size() > 1)
+      {
+        if(i > 0)
+          concatenated += "\n";
+        concatenated += "/////////////////////////////";
+        concatenated += StringFormat::Fmt("// Source file %u", (uint32_t)i);
+        concatenated += "/////////////////////////////";
+        concatenated += "\n";
+      }
+
+      concatenated += sources[i];
+    }
+
+    create_array_init(reflection.RawBytes, concatenated.size(), (byte *)concatenated.c_str());
+  }
+
   GLuint sepProg = prog;
 
   if(sepProg == 0)
