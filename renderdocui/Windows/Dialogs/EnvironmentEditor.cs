@@ -112,6 +112,10 @@ namespace renderdocui.Windows.Dialogs
                 variables.Nodes.Remove(variables.SelectedNode);
                 variables.EndUpdate();
                 variables.NodesSelection.Clear();
+
+                string text = varName.Text;
+                varName.Text = "";
+                varName.Text = text;
             }
         }
 
@@ -130,6 +134,9 @@ namespace renderdocui.Windows.Dialogs
                 mod.type = EnvironmentModificationType.Set;
 
             AddModification(mod, false);
+
+            varName.Text = "";
+            varName.Text = mod.variable;
         }
 
         public void AddModification(EnvironmentModification mod, bool silent)
@@ -174,6 +181,33 @@ namespace renderdocui.Windows.Dialogs
                     ret[i] = variables.Nodes[i].Tag as EnvironmentModification;
                 return ret;
             }
+        }
+
+        private void EnvironmentEditor_FormClosing(object sender, FormClosingEventArgs e)
+        {
+            int idx = ExistingIndex();
+
+            if(idx >= 0)
+                return;
+
+            DialogResult res = MessageBox.Show(
+                "You did not add the variable modification you were editing. Add it now?",
+                "Variable not added", MessageBoxButtons.YesNoCancel);
+
+            if (res == DialogResult.Yes)
+            {
+                addUpdate_Click(addUpdate, new EventArgs());
+            }
+            else if (res == DialogResult.Cancel)
+            {
+                e.Cancel = true;
+            }
+        }
+
+        private void variables_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Delete && delete.Enabled)
+                delete.PerformClick();
         }
     }
 }

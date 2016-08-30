@@ -29,9 +29,9 @@
         private void InitializeComponent()
         {
             System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
-            TreelistView.TreeListColumn treeListColumn1 = new TreelistView.TreeListColumn("Name", "Name");
-            TreelistView.TreeListColumn treeListColumn2 = new TreelistView.TreeListColumn("Modification", "Modification");
-            TreelistView.TreeListColumn treeListColumn3 = new TreelistView.TreeListColumn("Value", "Value");
+            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
+            TreelistView.TreeListColumn treeListColumn2 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Modification", "Modification")));
+            TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Value", "Value")));
             System.Windows.Forms.GroupBox groupBox2;
             System.Windows.Forms.Label label2;
             System.Windows.Forms.Label label1;
@@ -115,6 +115,7 @@
             this.variables.ViewOptions.ShowLine = false;
             this.variables.ViewOptions.ShowPlusMinus = false;
             this.variables.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.variables_AfterSelect);
+            this.variables.KeyDown += new System.Windows.Forms.KeyEventHandler(this.variables_KeyDown);
             // 
             // groupBox2
             // 
@@ -308,6 +309,7 @@
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Capture Environment Editor";
+            this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.EnvironmentEditor_FormClosing);
             this.Load += new System.EventHandler(this.EnvironmentEditor_Load);
             tableLayoutPanel1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.variables)).EndInit();
