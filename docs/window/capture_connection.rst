@@ -6,19 +6,19 @@ The Live capture window opens up when you launch a capture of a program, as well
 Attaching to an existing instance
 ---------------------------------
 
-After you've launched a program through RenderDoc and its hooks are added you can freely disconnect (by closing the live capture window) or close the main UI. You can then connect to this again later, either from the same computer or another computer connecting over the network.
+After you've launched a program through RenderDoc and its hooks are added you can freely disconnect (by closing the live capture window) or close the main UI. You can then connect to this again later, either from the same computer or another computer connecting over the network. For more information, see the page about :doc:`network capture and replay <../how/how_network_capture_replay>`.
 
-To connect to an existing hooked program, select Attach to Running Instance from the File menu. This opens up the attach window that allows you to select a remote host to connect to. By default localhost is already in the list, but you can add and remove other hosts.
+To connect to an existing hooked program, select Attach to Running Instance from the File menu. This opens up the remote host management window that allows you to select a remote host to connect to. localhost is always in the list, but you can add and remove other hosts.
 
 .. warning::
 
-	Please note that none of the connections RenderDoc makes or uses are encrypted or protected, so if this is a concern you should look into securing the connections by hand.
+	Please note that none of the connections RenderDoc makes or uses are encrypted or authenticated/protected, so if this is a concern you should look into securing the connections by hand.
 
-.. figure:: ../imgs/Screenshots/AttachInstance.png
+.. figure:: ../imgs/Screenshots/RemoteHostManager.png
 
 	Remote Hosts: Attaching to a running instance either locally or remotely.
 
-When the window opens, when you add a new host or when you click refresh then the hosts will be queried across the network to see if a connection exists. While this is in progress the host will be listed in italics and with a busy icon.
+When the window opens, when you add a new host, or when you click refresh then the hosts will be queried across the network to see if a connection exists. While this is in progress the host will be listed in italics and with a busy icon.
 
 Once a host has been scanned, if any instances are found then that host can be expanded to see the list, and details are listed about each instance. The name is OS-dependent but is usually the executable name. The API name is listed, as well as the username of any user that is already connected.
 
@@ -28,13 +28,28 @@ When you click connect, a live capture window will be opened up - just the same 
 
 	If you connect to a running instance, any existing user will be kicked off. Just seeing the instances running on a host will not.
 
+For more information about specifically a network capture-and-replay workflow, please see :doc:`../how/how_network_capture_replay`.
 
 Capture Connection window
 -------------------------
 
 When a capture is launched (or attached to) the connection window is opened in the main UI. If you end up only taking one capture and closing the program afterwards the connection window will automatically close - likewise if you take no captures at all. These cases don't need the management options the connection window provides.
 
-In addition to managing captures that have been taken, you can also trigger a capture (optionally with a countdown timer).
+While a program is running, a couple of tools are available for triggering specific captures, which can be used as well as the keystroke capture triggers in the application.
+
+.. figure:: ../imgs/Screenshots/LiveCaptureTools.png
+
+	Connection Window: Tools for triggering specific frame captures.
+
+Firstly you can trigger a capture, with an optional delay in seconds, and for an arbitrary number of frames. When you click ``Trigger Capture`` the delay will count down, and then the application will capture the selected number of sequential frames into separate captures. By default the delay is 0 seconds and only one frame is captured.
+
+Next you can trigger a specific frame number, if you know that a bug will happen at a given point.
+
+.. note::
+
+	Note, capturing a frame in RenderDoc will cause a noticable stall on any non-trivial application, so if you are investigating a timing issue often this can throw things off and hide the bug. However capturing multiple frames can be useful when you know a bug alternates every N frames, or you specifically want to debug how N sequential frames look and you know extreme frame times won't skew the results.
+
+During running or after the application has closed, all captures will appear as thumbnails here. As mentioned above, if only one capture is made and the application is closed the capture dialog will automatically begin to load it up in the UI. Otherwise you can use this window to browse the captures, save and delete any frame captures, and open them either in the currently running UI or in a new separate instance.
 
 .. figure:: ../imgs/Screenshots/MultipleCaptures.png
 
@@ -52,7 +67,7 @@ Double clicking on any capture will close any current open capture in the Render
 
 .. figure:: ../imgs/Screenshots/OpenCapNewInstance.png
 
-	New instance: Launch new RenderDoc instance to open this capture.<br />
+	New instance: Launch new RenderDoc instance to open this capture.
 
 Child Processes
 ---------------
@@ -64,3 +79,9 @@ RenderDoc has a particular handling of child processes to help you navigate to t
 
 
 If a process exits, instead of just closing the connection window if there have been no captures, instead RenderDoc looks at the child processes - if there is only one child process, it assume that process must be of interest and immediately switches to tracking that process. If there are *more* than one child process open, the capture connection window will stay open to give you a chance to double click on those child processes to open a new connection window.
+
+See Also
+--------
+
+* :doc:`../how/how_network_capture_replay`
+* :doc:`capture_log_attach`

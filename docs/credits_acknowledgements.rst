@@ -127,3 +127,10 @@ There have been many people who have helped in the creation of RenderDoc. Whethe
 * Dominik Witczak
 * Chia-I Wu
 * Cory Bloor
+* John McDonald
+* Pierre-Loup Griffais
+* Jason Mitchell
+* Michael Rennie
+* Ian Elliot
+* Callan McInally
+* Gordon Selley

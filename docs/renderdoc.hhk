@@ -100,7 +100,7 @@
 	<UL>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Capture across a network">
-				<param name="Local" value="window/capture_connection.html#attaching-to-an-existing-instance">
+				<param name="Local" value="how/how_network_capture_replay">
 		</OBJECT>
 		<LI> <OBJECT type="text/sitemap">
 				<param name="Keyword" value="Capture a Log">

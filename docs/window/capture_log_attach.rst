@@ -14,13 +14,25 @@ Capturing
 
 To capture a program you simply need to provide the details of the application to be launched.
 
-The Program section of the dialog prompts for the executable to be launched, the working directory, and any command-line arguments to be passed to the program.
+The Program section of the dialog prompts for the executable to be launched, the working directory, any command-line arguments to be passed to the program, and any modifications to the environment to make.
 
 .. figure:: ../imgs/Screenshots/CapturePathCmdline.png
 
   Program Capture: Configuring and launching an exe directly from RenderDoc.
 
-The ``...`` buttons next to the executable path and working directory can be used to browse through the file system. By default if the working directory box is left empty then the directory containing the executable will be used as the working directory.
+The ``...`` buttons next to the executable path and working directory can be used to browse through the file system. If you are working in :doc:`a remote context <../how/how_network_capture_replay>` then the file and directory browser will be replaced by one that browses in the file system of the remote context. By default if the working directory box is left empty then the directory containing the executable will be used as the working directory.
+
+The ``...`` button next to the environment variables line will open up a custom editor that allows you to specify any changes to the environment varibales that you'd like to make when launching the program. This could be used for example to set a configuration option, or perform necessary setup for correct running like configuring a path or setting the ``DISPLAY`` variable.
+
+.. figure:: ../imgs/Screenshots/CaptureEnvVarEditor.png
+
+  Environment Variables: changing the environment that the executable will run under.
+
+In the environment variable editor you can choose the name of the variable to change, and the value to use. Then you can choose the function to use.
+
+* ``Set`` will overwrite any existing value or create the variable with the value you specify.
+* ``Prepend`` and ``Append`` will add the value you specify to the start or beginning of the existing variable. If the variable does not already exist it will be created with the value.
+  When prepending or appending you can also choose the separator to apply, for example if you are modifying the ``PATH`` variable. You can choose either colons (``:``), semi-colons (``;``), platform style (``;`` on windows and ``:`` on other platforms), or no separator at all. If the variable does not exist, the separator won't be added, but if the variable does exist the separator will be added in between the existing value and the value you chose to add.
 
 When you are ready to capture simply click the ``Capture`` button in the bottom right.
 
@@ -182,3 +194,4 @@ See Also
 * :doc:`../getting_started/quick_start`
 * :doc:`../how/how_capture_callstack`
 * :doc:`../how/how_capture_log`
+* :doc:`../how/how_network_capture_replay`
