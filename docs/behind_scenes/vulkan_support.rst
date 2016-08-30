@@ -44,7 +44,6 @@ RenderDoc has initial support for Vulkan at the launch of version 1.0, but it co
 * Sparse textures are only supported for non-arrayed 2D textures with no mips.
 * Pixel history is not implemented.
 * Shader debugging is not currently supported.
-* Edit-and-continue of shaders and custom visualisation shaders are not supported.
 * Mesh output of geometry/tessellation shader stages is not available.
 
 Non-windows platforms
