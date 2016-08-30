@@ -1074,6 +1074,7 @@ void DXBCFile::GuessResources()
 
         break;
       }
+      case OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW:
       case OPCODE_DCL_RESOURCE_RAW:
       {
         ShaderInputBind desc;
@@ -1085,7 +1086,8 @@ void DXBCFile::GuessResources()
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
 
-        StringFormat::snprintf(buf, 63, "bytebuffer%u", idx);
+        StringFormat::snprintf(buf, 63, "%sbytebuffer%u",
+                               dcl.operand.type != TYPE_RESOURCE ? "rw" : "", idx);
 
         desc.name = buf;
         desc.type = dcl.operand.type == TYPE_RESOURCE ? ShaderInputBind::TYPE_BYTEADDRESS
