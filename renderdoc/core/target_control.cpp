@@ -39,6 +39,7 @@ enum PacketType
   ePacket_RegisterAPI,
   ePacket_TriggerCapture,
   ePacket_CopyCapture,
+  ePacket_DeleteCapture,
   ePacket_QueueCapture,
   ePacket_NewChild,
 };
@@ -176,6 +177,14 @@ void RenderDoc::TargetControlClientThread(void *s)
           recvser->Serialise("", frameNum);
 
           RenderDoc::Inst().QueueCapture(frameNum);
+        }
+        else if(type == ePacket_DeleteCapture)
+        {
+          uint32_t id = 0;
+          recvser->Serialise("", id);
+
+          // this means it will be deleted on shutdown
+          RenderDoc::Inst().MarkCaptureRetrieved(id);
         }
         else if(type == ePacket_CopyCapture)
         {
@@ -465,6 +474,19 @@ public:
     m_CaptureCopies[remoteID] = localpath;
   }
 
+  void DeleteCapture(uint32_t remoteID)
+  {
+    Serialiser ser("", Serialiser::WRITING, false);
+
+    ser.Serialise("", remoteID);
+
+    if(!SendPacket(m_Socket, ePacket_DeleteCapture, ser))
+    {
+      SAFE_DELETE(m_Socket);
+      return;
+    }
+  }
+
   void ReceiveMessage(TargetControlMessage *msg)
   {
     if(m_Socket == NULL)
@@ -662,6 +684,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_CopyCapture(TargetContr
                                                                      const char *localpath)
 {
   control->CopyCapture(remoteID, localpath);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_DeleteCapture(TargetControl *control,
+                                                                       uint32_t remoteID)
+{
+  control->DeleteCapture(remoteID);
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_ReceiveMessage(TargetControl *control,

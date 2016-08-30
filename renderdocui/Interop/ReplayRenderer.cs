@@ -1135,6 +1135,8 @@ namespace renderdoc
         private static extern void TargetControl_QueueCapture(IntPtr real, UInt32 frameNumber);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void TargetControl_CopyCapture(IntPtr real, UInt32 remoteID, IntPtr localpath);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void TargetControl_DeleteCapture(IntPtr real, UInt32 remoteID);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void TargetControl_ReceiveMessage(IntPtr real, IntPtr outmsg);
@@ -1211,6 +1213,11 @@ namespace renderdoc
             TargetControl_CopyCapture(m_Real, id, localpath_mem);
 
             CustomMarshal.Free(localpath_mem);
+        }
+
+        public void DeleteCapture(UInt32 id)
+        {
+            TargetControl_DeleteCapture(m_Real, id);
         }
 
         public void ReceiveMessage()

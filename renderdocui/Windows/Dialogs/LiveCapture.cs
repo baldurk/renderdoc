@@ -60,6 +60,10 @@ namespace renderdocui.Windows
         bool m_Disconnect = false;
         TargetControl m_Connection = null;
 
+        uint m_CopyLogID = uint.MaxValue;
+        string m_CopyLogLocalPath = "";
+        List<uint> m_DeleteLogs = new List<uint>();
+
         bool m_IgnoreThreadClosed = false;
 
         string m_Host;
@@ -197,6 +201,23 @@ namespace renderdocui.Windows
                         m_CaptureFrameNum = 0;
                     }
 
+                    if (m_CopyLogLocalPath != "")
+                    {
+                        m_Connection.CopyCapture(m_CopyLogID, m_CopyLogLocalPath);
+                        m_CopyLogLocalPath = "";
+                        m_CopyLogID = uint.MaxValue;
+                    }
+
+                    List<uint> dels = new List<uint>();
+                    lock (m_DeleteLogs)
+                    {
+                        dels.AddRange(m_DeleteLogs);
+                        m_DeleteLogs.Clear();
+                    }
+
+                    foreach(var del in dels)
+                        m_Connection.DeleteCapture(del);
+
                     if (m_Disconnect)
                     {
                         m_Connection.Shutdown();
@@ -236,6 +257,13 @@ namespace renderdocui.Windows
                     {
                         uint capID = m_Connection.CaptureFile.ID;
                         string path = m_Connection.CaptureFile.path;
+
+                        this.BeginInvoke((MethodInvoker)delegate
+                        {
+                            CaptureCopied(capID, path);
+                        });
+
+                        m_Connection.CaptureCopied = false;
                     }
 
                     if (m_Connection.ChildAdded)
@@ -363,8 +391,22 @@ namespace renderdocui.Windows
 
         private void OpenCapture(CaptureLog log)
         {
-            m_Main.LoadLogfile(log.path, !log.saved, log.local);
             log.opened = true;
+
+            if (!log.local &&
+               (m_Core.Renderer.Remote == null ||
+                m_Core.Renderer.Remote.Hostname != m_Host ||
+                !m_Core.Renderer.Remote.Connected)
+              )
+            {
+                MessageBox.Show(
+                    String.Format("This capture is on remote host {0} and there is no active replay context on that host.\n" +
+                        "You can either save the log locally, or switch to a replay context on {0}.\n\n", m_Host),
+                    "No active replay context", MessageBoxButtons.OK);
+                return;
+            }
+
+            m_Main.LoadLogfile(log.path, !log.saved, log.local);
         }
 
         private bool SaveCapture(CaptureLog log)
@@ -381,8 +423,25 @@ namespace renderdocui.Windows
                     {
                         File.Copy(log.path, path, true);
                     }
+                    else if (m_Connection.Connected)
+                    {
+                        // if we have a current live connection, prefer using it
+                        m_CopyLogLocalPath = path;
+                        m_CopyLogID = log.remoteID;
+                    }
                     else
                     {
+                        if (m_Core.Renderer.Remote == null ||
+                            m_Core.Renderer.Remote.Hostname != m_Host ||
+                            !m_Core.Renderer.Remote.Connected)
+                        {
+                            MessageBox.Show(
+                                String.Format("This capture is on remote host {0} and there is no active replay context on that host.\n" +
+                                "Without an active replay context the capture cannot be saved, try switching to a replay context on {0}.\n\n", m_Host),
+                                "No active replay context", MessageBoxButtons.OK);
+                            return false;
+                        }
+
                         m_Core.Renderer.CopyCaptureFromRemote(log.path, path, this);
                         m_Core.Renderer.DeleteCapture(log.path, false);
                     }
@@ -435,15 +494,15 @@ namespace renderdocui.Windows
                 }
 
                 // we either have to save or delete the log. Make sure that if it's remote that we are able
-                // to by having an active replay context on that host.
-                if (suppressRemoteWarning == false &&
+                // to by having an active connection or replay context on that host.
+                if (suppressRemoteWarning == false && !m_Connection.Connected &&
                     (m_Core.Renderer.Remote == null ||
                      m_Core.Renderer.Remote.Hostname != m_Host ||
                      !m_Core.Renderer.Remote.Connected)
                     )
                 {
                     DialogResult res2 = MessageBox.Show(
-                        String.Format("This connection is to a remote host {0} and there is no active replay context on that host.\n", m_Host) +
+                        String.Format("This capture is on remote host {0} and there is no active replay context on that host.\n", m_Host) +
                         "Without an active replay context the capture cannot be " + (res == DialogResult.Yes ? "saved.\n\n" : "deleted.\n\n") +
                         "Would you like to continue and discard this capture and any others, to be left in the temporary folder on the remote machine?",
                         "No active replay context", MessageBoxButtons.YesNoCancel);
@@ -492,7 +551,18 @@ namespace renderdocui.Windows
                         }
                         else
                         {
-                            m_Core.Renderer.DeleteCapture(log.path, log.local);
+                            // if connected, prefer using the live connection
+                            if (m_Connection.Connected && !log.local)
+                            {
+                                lock (m_DeleteLogs)
+                                {
+                                    m_DeleteLogs.Add(log.remoteID);
+                                }
+                            }
+                            else
+                            {
+                                m_Core.Renderer.DeleteCapture(log.path, log.local);
+                            }
                         }
                     }
                     catch (System.Exception)
@@ -512,6 +582,7 @@ namespace renderdocui.Windows
                 return;
             }
 
+            CleanItems();
             KillThread();
         }
 
@@ -532,8 +603,8 @@ namespace renderdocui.Windows
             captures.LargeImageList.Images.Clear();
             thumbs.Dispose();
 
-            KillThread();
             CleanItems();
+            KillThread();
         }
 
         private bool CheckAllowDelete()
@@ -577,7 +648,18 @@ namespace renderdocui.Windows
 
                 try
                 {
-                    m_Core.Renderer.DeleteCapture(log.path, log.local);
+                    // if connected, prefer using the live connection
+                    if (m_Connection.Connected && !log.local)
+                    {
+                        lock (m_DeleteLogs)
+                        {
+                            m_DeleteLogs.Add(log.remoteID);
+                        }
+                    }
+                    else
+                    {
+                        m_Core.Renderer.DeleteCapture(log.path, log.local);
+                    }
                 }
                 catch (System.Exception)
                 {
@@ -647,6 +729,22 @@ namespace renderdocui.Windows
             if (e.KeyCode == Keys.Delete)
             {
                 deleteCapture_Click(sender, null);
+            }
+        }
+
+        private void CaptureCopied(uint ID, string localPath)
+        {
+            foreach (ListViewItem item in captures.Items)
+            {
+                var log = item.Tag as CaptureLog;
+
+                if (log != null && log.remoteID == ID)
+                {
+                    log.local = true;
+                    log.path = localPath;
+                    item.SubItems[0].Text = log.exe;
+                    item.SubItems[0].Font = new Font(item.SubItems[0].Font, FontStyle.Regular);
+                }
             }
         }
 

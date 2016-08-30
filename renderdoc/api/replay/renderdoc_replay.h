@@ -435,6 +435,7 @@ struct ITargetControl
   virtual void TriggerCapture(uint32_t numFrames) = 0;
   virtual void QueueCapture(uint32_t frameNumber) = 0;
   virtual void CopyCapture(uint32_t remoteID, const char *localpath) = 0;
+  virtual void DeleteCapture(uint32_t remoteID) = 0;
 
   virtual void ReceiveMessage(TargetControlMessage *msg) = 0;
 };
@@ -467,6 +468,8 @@ extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_QueueCapture(TargetCont
 extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_CopyCapture(TargetControl *control,
                                                                      uint32_t remoteID,
                                                                      const char *localpath);
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_DeleteCapture(TargetControl *control,
+                                                                       uint32_t remoteID);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_ReceiveMessage(TargetControl *control,
                                                                         TargetControlMessage *msg);
