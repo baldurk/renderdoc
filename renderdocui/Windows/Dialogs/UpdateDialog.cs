@@ -62,7 +62,19 @@ namespace renderdocui.Windows.Dialogs
 
             updateNotes.Select(0, 0);
 
-            updateMetadata.Text = "v" + StaticExports.GetVersionString() +
+            string curver = "?.?";
+
+            try
+            {
+                curver = StaticExports.GetVersionString();
+            }
+            catch (System.Exception)
+            {
+                // probably StaticExports.GetVersionString is missing, which means an old
+                // version is running
+            }
+
+            updateMetadata.Text = "v" + curver +
                 Environment.NewLine + Environment.NewLine +
                 String.Format("v{0}", response_split[0]) +
                 Environment.NewLine + Environment.NewLine +

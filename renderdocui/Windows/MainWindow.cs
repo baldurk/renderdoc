@@ -1284,7 +1284,16 @@ namespace renderdocui.Windows
 
         private bool IsVersionMismatched()
         {
-            return "v" + StaticExports.GetVersionString() != VersionString;
+            try
+            {
+                return "v" + StaticExports.GetVersionString() != VersionString;
+            }
+            catch (System.Exception)
+            {
+                // probably StaticExports.GetVersionString is missing, which means an old
+                // version is running
+                return true;
+            }
         }
 
         private bool HandleMismatchedVersions()
