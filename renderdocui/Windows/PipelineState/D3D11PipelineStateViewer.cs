@@ -1916,32 +1916,63 @@ namespace renderdocui.Windows.PipelineState
                 int bind = -1;
                 bool uav = false;
 
-                for (int i = 0; i < stage.SRVs.Length; i++)
+                if (view == null)
                 {
-                    if (stage.SRVs[i].Resource == buf.ID)
+                    for (int i = 0; i < stage.SRVs.Length; i++)
                     {
-                        bind = i;
-                        view = stage.SRVs[i];
-                        break;
+                        if (stage.SRVs[i].Resource == buf.ID)
+                        {
+                            bind = i;
+                            view = stage.SRVs[i];
+                            break;
+                        }
+                    }
+
+                    for (int i = 0; i < stage.UAVs.Length; i++)
+                    {
+                        if (stage.UAVs[i].Resource == buf.ID)
+                        {
+                            bind = i;
+                            uav = true;
+                            view = stage.UAVs[i];
+                            break;
+                        }
+                        if (stage == m_Core.CurD3D11PipelineState.m_PS &&
+                            m_Core.CurD3D11PipelineState.m_OM.UAVs[i].Resource == buf.ID)
+                        {
+                            bind = i + (int)m_Core.CurD3D11PipelineState.m_OM.UAVStartSlot;
+                            uav = true;
+                            view = m_Core.CurD3D11PipelineState.m_OM.UAVs[i];
+                            break;
+                        }
                     }
                 }
-
-                for (int i = 0; i < stage.UAVs.Length; i++)
+                else
                 {
-                    if (stage.UAVs[i].Resource == buf.ID)
+                    for (int i = 0; i < stage.SRVs.Length; i++)
                     {
-                        bind = i;
-                        uav = true;
-                        view = stage.UAVs[i];
-                        break;
+                        if (stage.SRVs[i] == view)
+                        {
+                            bind = i;
+                            break;
+                        }
                     }
-                    if (stage == m_Core.CurD3D11PipelineState.m_PS &&
-                        m_Core.CurD3D11PipelineState.m_OM.UAVs[i].Resource == buf.ID)
+
+                    for (int i = 0; i < stage.UAVs.Length; i++)
                     {
-                        bind = i + (int)m_Core.CurD3D11PipelineState.m_OM.UAVStartSlot;
-                        uav = true;
-                        view = m_Core.CurD3D11PipelineState.m_OM.UAVs[i];
-                        break;
+                        if (stage.UAVs[i] == view)
+                        {
+                            bind = i;
+                            uav = true;
+                            break;
+                        }
+                        if (stage == m_Core.CurD3D11PipelineState.m_PS &&
+                            m_Core.CurD3D11PipelineState.m_OM.UAVs[i] == view)
+                        {
+                            bind = i + (int)m_Core.CurD3D11PipelineState.m_OM.UAVStartSlot;
+                            uav = true;
+                            break;
+                        }
                     }
                 }
 
