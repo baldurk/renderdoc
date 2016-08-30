@@ -418,14 +418,14 @@ namespace renderdocui.Windows.PipelineState
                                 name = bufs[t].name;
                                 typename = "Buffer";
 
-                                // for structured buffers, display how many 'elements' there are in the buffer
-                                if (r.ElementSize > 0)
-                                {
-                                    typename = "StructuredBuffer[" + (bufs[t].length / r.ElementSize) + "]";
-                                }
-                                else if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                                if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
                                 {
                                     typename = "ByteAddressBuffer";
+                                }
+                                else if (r.ElementSize > 0)
+                                {
+                                    // for structured buffers, display how many 'elements' there are in the buffer
+                                    typename = "StructuredBuffer[" + (bufs[t].length / r.ElementSize) + "]";
                                 }
 
                                 if (r.Flags.HasFlag(D3D11BufferViewFlags.Append) || r.Flags.HasFlag(D3D11BufferViewFlags.Counter))
@@ -1144,13 +1144,14 @@ namespace renderdocui.Windows.PipelineState
                                 name = bufs[t].name;
                                 typename = "Buffer";
 
-                                if (r.ElementSize > 0)
-                                {
-                                    typename = "RWStructuredBuffer[" + (bufs[t].length / r.ElementSize) + "]";
-                                }
-                                else if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                                if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
                                 {
                                     typename = "RWByteAddressBuffer";
+                                }
+                                else if (r.ElementSize > 0)
+                                {
+                                    // for structured buffers, display how many 'elements' there are in the buffer
+                                    typename = "RWStructuredBuffer[" + (bufs[t].length / r.ElementSize) + "]";
                                 }
 
                                 if (r.Flags.HasFlag(D3D11BufferViewFlags.Append) || r.Flags.HasFlag(D3D11BufferViewFlags.Counter))
@@ -1517,13 +1518,14 @@ namespace renderdocui.Windows.PipelineState
                                 name = bufs[t].name;
                                 typename = "Buffer";
 
-                                if (r.ElementSize > 0)
-                                {
-                                    typename = "RWStructuredBuffer[" + (bufs[t].length / r.ElementSize) + "]";
-                                }
-                                else if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                                if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
                                 {
                                     typename = "RWByteAddressBuffer";
+                                }
+                                else if (r.ElementSize > 0)
+                                {
+                                    // for structured buffers, display how many 'elements' there are in the buffer
+                                    typename = "RWStructuredBuffer[" + (bufs[t].length / r.ElementSize) + "]";
                                 }
 
                                 if (r.Flags.HasFlag(D3D11BufferViewFlags.Append) || r.Flags.HasFlag(D3D11BufferViewFlags.Counter))
@@ -3027,14 +3029,14 @@ namespace renderdocui.Windows.PipelineState
                     name = bufs[t].name;
                     typename = "Buffer";
 
-                    // for structured buffers, display how many 'elements' there are in the buffer
-                    if (view.ElementSize > 0)
-                    {
-                        typename = (rw ? "RWStructuredBuffer" : "StructuredBuffer") + "[" + (bufs[t].length / view.ElementSize) + "]";
-                    }
-                    else if (view.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                    if (view.Flags.HasFlag(D3D11BufferViewFlags.Raw))
                     {
                         typename = rw ? "RWByteAddressBuffer" : "ByteAddressBuffer";
+                    }
+                    else if (view.ElementSize > 0)
+                    {
+                        // for structured buffers, display how many 'elements' there are in the buffer
+                        typename = (rw ? "RWStructuredBuffer" : "StructuredBuffer") + "[" + (bufs[t].length / view.ElementSize) + "]";
                     }
 
                     if (view.Flags.HasFlag(D3D11BufferViewFlags.Append) || view.Flags.HasFlag(D3D11BufferViewFlags.Counter))
