@@ -234,7 +234,20 @@ set(data
 set(data_objects)
 
 if(UNIX)
-    add_executable(include-bin 3rdparty/include-bin/main.cpp)
+    # If we're cross-compiling, include-bin will get built for the target and we
+    # then can't execute it. Instead, we force calling c++ (which we can safely
+    # assume is present) directly to build the binary
+
+    if(CMAKE_CROSSCOMPILING)
+        set(HOST_NATIVE_CPP_COMPILER c++ CACHE STRING "Command to run to compile a .cpp into an executable. Default is just c++")
+
+        add_custom_command(OUTPUT ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
+            WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+            COMMAND ${HOST_NATIVE_CPP_COMPILER} 3rdparty/include-bin/main.cpp -o ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
+            DEPENDS 3rdparty/include-bin/main.cpp)
+    else()
+        add_executable(include-bin 3rdparty/include-bin/main.cpp)
+    endif()
 
     foreach(res ${data})
         set(in ${res})
@@ -246,7 +259,7 @@ if(UNIX)
             WORKING_DIRECTORY ${working_dir}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${out_src_dir}
             COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin ${in} ${out_src}
-            DEPENDS include-bin
+            DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
             DEPENDS ${res})
 
         list(APPEND data_objects ${out_src})
