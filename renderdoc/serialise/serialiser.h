@@ -592,7 +592,12 @@ private:
     }
 
     char *data = (char *)ReadBytes(sizeof(T));
+#if defined(_M_ARM) || defined(__arm__)
+    // Fetches on ARM have to be aligned according to the type size.
+    memcpy(&f, data, sizeof(T));
+#else
     f = *((T *)data);
+#endif
   }
 
   // no copies

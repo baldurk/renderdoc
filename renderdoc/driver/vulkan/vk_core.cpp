@@ -306,7 +306,7 @@ WrappedVulkan::WrappedVulkan(const char *logFilename) : m_RenderState(&m_Creatio
   m_Queue = VK_NULL_HANDLE;
   m_QueueFamilyIdx = 0;
   m_SupportedQueueFamily = 0;
-  m_DbgMsgCallback = NULL;
+  m_DbgMsgCallback = VK_NULL_HANDLE;
 
   m_HeaderChunk = NULL;
 
