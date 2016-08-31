@@ -105,7 +105,7 @@ public:
                            const SrcBarrierType &t, uint32_t nummips, uint32_t numslices);
 
   void RecordBarriers(vector<pair<ResourceId, ImageRegionState> > &states,
-                      map<ResourceId, ImageLayouts> &layouts, uint32_t numBarriers,
+                      const map<ResourceId, ImageLayouts> &layouts, uint32_t numBarriers,
                       const VkImageMemoryBarrier *barriers);
 
   void MergeBarriers(vector<pair<ResourceId, ImageRegionState> > &dststates,

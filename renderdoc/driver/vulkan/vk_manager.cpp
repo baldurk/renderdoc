@@ -199,7 +199,7 @@ void VulkanResourceManager::RecordSingleBarrier(vector<pair<ResourceId, ImageReg
 }
 
 void VulkanResourceManager::RecordBarriers(vector<pair<ResourceId, ImageRegionState> > &states,
-                                           map<ResourceId, ImageLayouts> &layouts,
+                                           const map<ResourceId, ImageLayouts> &layouts,
                                            uint32_t numBarriers, const VkImageMemoryBarrier *barriers)
 {
   TRDBG("Recording %u barriers", numBarriers);
@@ -218,10 +218,24 @@ void VulkanResourceManager::RecordBarriers(vector<pair<ResourceId, ImageRegionSt
 
     uint32_t nummips = t.subresourceRange.levelCount;
     uint32_t numslices = t.subresourceRange.layerCount;
+
+    auto it = layouts.find(id);
+
     if(nummips == VK_REMAINING_MIP_LEVELS)
-      nummips = layouts[id].levelCount - t.subresourceRange.baseMipLevel;
+    {
+      if(it != layouts.end())
+        nummips = it->second.levelCount - t.subresourceRange.baseMipLevel;
+      else
+        nummips = 1;
+    }
+
     if(numslices == VK_REMAINING_ARRAY_LAYERS)
-      numslices = layouts[id].layerCount - t.subresourceRange.baseArrayLayer;
+    {
+      if(it != layouts.end())
+        numslices = it->second.layerCount - t.subresourceRange.baseArrayLayer;
+      else
+        numslices = 1;
+    }
 
     RecordSingleBarrier(states, id, t, nummips, numslices);
   }
