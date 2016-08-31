@@ -407,7 +407,7 @@ void WrappedVulkan::InsertDrawsAndRefreshIDs(vector<VulkanDrawcallTreeNode> &cmd
   {
     if(cmdBufNodes[i].draw.flags & eDraw_PopMarker)
     {
-      RDCASSERT(GetDrawcallStack().size() > 1);
+      // RDCASSERT(GetDrawcallStack().size() > 1);
       if(GetDrawcallStack().size() > 1)
         GetDrawcallStack().pop_back();
 
