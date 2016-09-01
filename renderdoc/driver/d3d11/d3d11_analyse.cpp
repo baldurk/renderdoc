@@ -137,7 +137,9 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
         elemByteSize = 8;
         type = eVar_Double;
         break;
-      default: RDCERR("Unexpected type in constant buffer");
+      default:
+        RDCERR("Unexpected type %d for variable '%s' in cbuffer", invars[v].type.descriptor.type,
+               invars[v].name.c_str());
     }
 
     bool columnMajor = invars[v].type.descriptor.varClass == CLASS_MATRIX_COLUMNS;
