@@ -54,6 +54,9 @@ typedef XVisualInfo *(*PFNGLXGETVISUALFROMFBCONFIGPROC)(Display *dpy, GLXFBConfi
 typedef int (*PFNGLXGETCONFIGPROC)(Display *dpy, XVisualInfo *vis, int attrib, int *value);
 typedef Bool (*PFNGLXQUERYEXTENSIONPROC)(Display *dpy, int *errorBase, int *eventBase);
 typedef Bool (*PFNGLXISDIRECTPROC)(Display *dpy, GLXContext ctx);
+typedef const char *(*PFNGLXGETCLIENTSTRINGPROC)(Display *dpy, int name);
+typedef Bool (*PFNGLXQUERYVERSIONPROC)(Display *dpy, int *maj, int *min);
+typedef const char *(*PFNGLXQUERYEXTENSIONSSTRINGPROC)(Display *dpy, int screen);
 
 void *libGLdlsymHandle =
     RTLD_NEXT;    // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
@@ -511,6 +514,15 @@ public:
   PFNGLXGETCONFIGPROC glXGetConfig_real;
   PFNGLXGETVISUALFROMFBCONFIGPROC glXGetVisualFromFBConfig_real;
   PFNGLXQUERYEXTENSIONPROC glXQueryExtension_real;
+
+  PFNGLXGETFBCONFIGSPROC glXGetFBConfigs_real;
+  PFNGLXGETFBCONFIGATTRIBPROC glXGetFBConfigAttrib_real;
+  PFNGLXGETCLIENTSTRINGPROC glXGetClientString_real;
+  PFNGLXQUERYVERSIONPROC glXQueryVersion_real;
+  PFNGLXQUERYEXTENSIONSSTRINGPROC glXQueryExtensionsString_real;
+  PFNGLXCREATENEWCONTEXTPROC glXCreateNewContext_real;
+  PFNGLXCREATEWINDOWPROC glXCreateWindow_real;
+  PFNGLXDESTROYWINDOWPROC glXDestroyWindow_real;
 
   WrappedOpenGL *m_GLDriver;
 
@@ -1014,12 +1026,6 @@ __attribute__((visibility("default"))) void glXSwapBuffers(Display *dpy, GLXDraw
   OpenGLHook::glhooks.glXSwapBuffers_real(dpy, drawable);
 }
 
-__attribute__((visibility("default"))) Bool glXQueryExtension(Display *dpy, int *errorBase,
-                                                              int *eventBase)
-{
-  return OpenGLHook::glhooks.glXQueryExtension_real(dpy, errorBase, eventBase);
-}
-
 bool OpenGLHook::SetupHooks(GLHookSet &GL)
 {
   bool success = true;
@@ -1044,6 +1050,26 @@ bool OpenGLHook::SetupHooks(GLHookSet &GL)
         (PFNGLXGETVISUALFROMFBCONFIGPROC)dlsym(libGLdlsymHandle, "glXGetVisualFromFBConfig");
   if(glXQueryExtension_real == NULL)
     glXQueryExtension_real = (PFNGLXQUERYEXTENSIONPROC)dlsym(libGLdlsymHandle, "glXQueryExtension");
+  if(glXGetFBConfigs_real == NULL)
+    glXGetFBConfigs_real = (PFNGLXGETFBCONFIGSPROC)dlsym(libGLdlsymHandle, "glXGetFBConfigs");
+  if(glXGetFBConfigAttrib_real == NULL)
+    glXGetFBConfigAttrib_real =
+        (PFNGLXGETFBCONFIGATTRIBPROC)dlsym(libGLdlsymHandle, "glXGetFBConfigAttrib");
+  if(glXGetClientString_real == NULL)
+    glXGetClientString_real =
+        (PFNGLXGETCLIENTSTRINGPROC)dlsym(libGLdlsymHandle, "glXGetClientString");
+  if(glXQueryVersion_real == NULL)
+    glXQueryVersion_real = (PFNGLXQUERYVERSIONPROC)dlsym(libGLdlsymHandle, "glXQueryVersion");
+  if(glXQueryExtensionsString_real == NULL)
+    glXQueryExtensionsString_real =
+        (PFNGLXQUERYEXTENSIONSSTRINGPROC)dlsym(libGLdlsymHandle, "glXQueryExtensionsString");
+  if(glXCreateNewContext_real == NULL)
+    glXCreateNewContext_real =
+        (PFNGLXCREATENEWCONTEXTPROC)dlsym(libGLdlsymHandle, "glXCreateNewContext");
+  if(glXCreateWindow_real == NULL)
+    glXCreateWindow_real = (PFNGLXCREATEWINDOWPROC)dlsym(libGLdlsymHandle, "glXCreateWindow");
+  if(glXDestroyWindow_real == NULL)
+    glXDestroyWindow_real = (PFNGLXDESTROYWINDOWPROC)dlsym(libGLdlsymHandle, "glXDestroyWindow");
 
   return success;
 }
@@ -1110,9 +1136,72 @@ __attribute__((visibility("default"))) __GLXextFuncPtr glXGetProcAddressARB(cons
   return glXGetProcAddress(f);
 }
 
+__attribute__((visibility("default"))) GLXWindow glXCreateWindow(Display *dpy, GLXFBConfig config,
+                                                                 Window win, const int *attribList)
+{
+  GLXWindow ret = OpenGLHook::glhooks.glXCreateWindow_real(dpy, config, win, attribList);
+  return ret;
+}
+
+__attribute__((visibility("default"))) void glXDestroyWindow(Display *dpy, GLXWindow window)
+{
+  return OpenGLHook::glhooks.glXDestroyWindow_real(dpy, window);
+}
+
+// we also need to export the rest of the glX API, since we will have redirected any dlopen()
+// for libGL.so to ourselves, and dlsym() for any of these entry points must return a valid
+// function. We don't need to intercept them, so we just pass it along
+
+__attribute__((visibility("default"))) Bool glXQueryExtension(Display *dpy, int *errorBase,
+                                                              int *eventBase)
+{
+  return OpenGLHook::glhooks.glXQueryExtension_real(dpy, errorBase, eventBase);
+}
+
+__attribute__((visibility("default"))) GLXFBConfig *glXGetFBConfigs(Display *dpy, int screen,
+                                                                    int *nelements)
+{
+  return OpenGLHook::glhooks.glXGetFBConfigs_real(dpy, screen, nelements);
+}
+
+__attribute__((visibility("default"))) int glXGetFBConfigAttrib(Display *dpy, GLXFBConfig config,
+                                                                int attribute, int *value)
+{
+  return OpenGLHook::glhooks.glXGetFBConfigAttrib_real(dpy, config, attribute, value);
+}
+
+__attribute__((visibility("default"))) const char *glXGetClientString(Display *dpy, int name)
+{
+  return OpenGLHook::glhooks.glXGetClientString_real(dpy, name);
+}
+
+__attribute__((visibility("default"))) Bool glXQueryVersion(Display *dpy, int *maj, int *min)
+{
+  return OpenGLHook::glhooks.glXQueryVersion_real(dpy, maj, min);
+}
+
+__attribute__((visibility("default"))) const char *glXQueryExtensionsString(Display *dpy, int screen)
+{
+  return OpenGLHook::glhooks.glXQueryExtensionsString_real(dpy, screen);
+}
+
+__attribute__((visibility("default"))) GLXContext glXCreateNewContext(
+    Display *dpy, GLXFBConfig config, int renderType, GLXContext shareList, Bool direct)
+{
+  return OpenGLHook::glhooks.glXCreateNewContext_real(dpy, config, renderType, shareList, direct);
+}
+
+__attribute__((visibility("default"))) XVisualInfo *glXGetVisualFromFBConfig(Display *dpy,
+                                                                             GLXFBConfig config)
+{
+  return OpenGLHook::glhooks.glXGetVisualFromFBConfig_real(dpy, config);
+}
+
 bool OpenGLHook::PopulateHooks()
 {
   bool success = true;
+
+  SetupHooks(GL);
 
   if(glXGetProcAddress_real == NULL)
     glXGetProcAddress_real = (PFNGLXGETPROCADDRESSPROC)dlsym(libGLdlsymHandle, "glXGetProcAddress");
