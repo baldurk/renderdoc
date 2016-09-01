@@ -432,6 +432,31 @@ public:
   void OptionsUpdated(const char *libName) {}
   static OpenGLHook glhooks;
 
+  // see callsite in glXSwapBuffers for explanation of why this is necessary
+  XID UnwrapGLXWindow(XID id)
+  {
+    // if it's a GLXWindow
+    auto it = m_GLXWindowMap.find(id);
+
+    if(it != m_GLXWindowMap.end())
+    {
+      // return the drawable used at creation time
+      return it->second;
+    }
+
+    // otherwise just use the id as-is
+    return id;
+  }
+
+  void AddGLXWindow(GLXWindow glx, Window win) { m_GLXWindowMap[glx] = win; }
+  void RemoveGLXWindow(GLXWindow glx)
+  {
+    auto it = m_GLXWindowMap.find(glx);
+
+    if(it != m_GLXWindowMap.end())
+      m_GLXWindowMap.erase(it);
+  }
+
   const GLHookSet &GetRealGLFunctions()
   {
     if(!m_PopulatedHooks)
@@ -529,6 +554,8 @@ public:
   GLHookSet GL;
 
   set<GLXContext> m_Contexts;
+
+  map<XID, XID> m_GLXWindowMap;
 
   bool m_PopulatedHooks;
   bool m_HasHooks;
@@ -1014,10 +1041,18 @@ __attribute__((visibility("default"))) Bool glXMakeCurrent(Display *dpy, GLXDraw
 
 __attribute__((visibility("default"))) void glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 {
+  // if we use the GLXDrawable in XGetGeometry and it's a GLXWindow, then we get
+  // a BadDrawable error and things go south. Instead we track GLXWindows created
+  // in glXCreateWindow/glXDestroyWindow and look up the source window it was
+  // created from to use that.
+  // If the drawable didn't come through there, it just passes through unscathed
+  // through this function
+  Drawable d = OpenGLHook::glhooks.UnwrapGLXWindow(drawable);
+
   Window root;
   int x, y;
   unsigned int width, height, border_width, depth;
-  XGetGeometry(dpy, drawable, &root, &x, &y, &width, &height, &border_width, &depth);
+  XGetGeometry(dpy, d, &root, &x, &y, &width, &height, &border_width, &depth);
 
   OpenGLHook::glhooks.GetDriver()->WindowSize((void *)drawable, width, height);
 
@@ -1140,11 +1175,16 @@ __attribute__((visibility("default"))) GLXWindow glXCreateWindow(Display *dpy, G
                                                                  Window win, const int *attribList)
 {
   GLXWindow ret = OpenGLHook::glhooks.glXCreateWindow_real(dpy, config, win, attribList);
+
+  OpenGLHook::glhooks.AddGLXWindow(ret, win);
+
   return ret;
 }
 
 __attribute__((visibility("default"))) void glXDestroyWindow(Display *dpy, GLXWindow window)
 {
+  OpenGLHook::glhooks.RemoveGLXWindow(window);
+
   return OpenGLHook::glhooks.glXDestroyWindow_real(dpy, window);
 }
 
