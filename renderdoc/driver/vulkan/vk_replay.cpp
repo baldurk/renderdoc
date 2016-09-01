@@ -5180,11 +5180,15 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
   // if we have no tmpImage, we're copying directly from the real image
   if(tmpImage == VK_NULL_HANDLE)
   {
+    // ensure transfer has completed
+    srcimBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+
     // image layout back to normal
     for(size_t si = 0; si < layouts.subresourceStates.size(); si++)
     {
       srcimBarrier.subresourceRange = layouts.subresourceStates[si].subresourceRange;
       srcimBarrier.newLayout = layouts.subresourceStates[si].newLayout;
+      srcimBarrier.dstAccessMask = MakeAccessMask(srcimBarrier.newLayout);
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
     }
   }

@@ -570,7 +570,10 @@ private:
 
   void FirstFrame(VkSwapchainKHR swap);
 
+  std::vector<VkImageMemoryBarrier> GetImplicitRenderPassBarriers(uint32_t subpass = 0);
   string MakeRenderPassOpString(bool store);
+  void MakeSubpassLoadRP(VkRenderPassCreateInfo &info, const VkRenderPassCreateInfo *origInfo,
+                         uint32_t s);
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);

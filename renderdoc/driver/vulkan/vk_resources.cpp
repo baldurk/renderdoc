@@ -748,8 +748,8 @@ VkResourceRecord::~VkResourceRecord()
   if(resType == eResCommandBuffer)
     SAFE_DELETE(cmdInfo);
 
-  if(resType == eResFramebuffer)
-    SAFE_DELETE(imageAttachments);
+  if(resType == eResFramebuffer || resType == eResRenderPass)
+    SAFE_DELETE_ARRAY(imageAttachments);
 
   // only the descriptor set layout actually owns this pointer, descriptor sets
   // have a pointer to it but don't own it

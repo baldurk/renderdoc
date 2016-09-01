@@ -871,6 +871,8 @@ struct CmdBufferRecordingInfo
   VkDevice device;
   VkCommandBufferAllocateInfo allocInfo;
 
+  VkResourceRecord *framebuffer;
+
   vector<pair<ResourceId, ImageRegionState> > imgbarriers;
 
   // sparse resources referenced by this command buffer (at submit time
@@ -933,6 +935,17 @@ struct MemMapState
   bool mapCoherent;
   byte *mappedPtr;
   byte *refData;
+};
+
+struct AttachmentInfo
+{
+  VkResourceRecord *record;
+
+  // the implicit barrier applied from initialLayout to finalLayout across a render pass
+  // for render passes this is partial (doesn't contain the image pointer), the image
+  // and subresource range are filled in when creating the framebuffer, which is what is
+  // used to apply the barrier in EndRenderPass
+  VkImageMemoryBarrier barrier;
 };
 
 struct VkResourceRecord : public ResourceRecord
@@ -1046,18 +1059,82 @@ public:
     SwapchainInfo *swapInfo;                       // only for swapchains
     MemMapState *memMapState;                      // only for device memory
     CmdBufferRecordingInfo *cmdInfo;               // only for command buffers
-    VkResourceRecord **imageAttachments;           // only for framebuffers
+    AttachmentInfo *imageAttachments;              // only for framebuffers and render passes
     DescriptorSetData *descInfo;    // only for descriptor sets and descriptor set layouts
   };
 
   VkResourceRecord *bakedCommands;
 
-  static const int MaxImageAttachments = 9;    // 8 Colour and 1 Depth
+  static const int MaxImageAttachments = 17;    // 8 Input, 8 Colour and 1 Depth
 
   // pointer to either the pool this item is allocated from, or the children allocated
   // from this pool. Protected by the chunk lock
   VkResourceRecord *pool;
   vector<VkResourceRecord *> pooledChildren;
+
+  // we only need a couple of bytes to store the view's range,
+  // so just pack/unpack into bitfields
+  struct ViewRange
+  {
+    ViewRange &operator=(const VkImageSubresourceRange &range)
+    {
+      aspectMask = (uint32_t)range.aspectMask;
+      baseMipLevel = range.baseMipLevel;
+      baseArrayLayer = range.baseArrayLayer;
+
+      if(range.levelCount == VK_REMAINING_MIP_LEVELS)
+        levelCount = MipMaxValue;
+      else
+        levelCount = range.levelCount;
+
+      if(range.layerCount == VK_REMAINING_ARRAY_LAYERS)
+        layerCount = SliceMaxValue;
+      else
+        layerCount = range.layerCount;
+
+      return *this;
+    }
+
+    operator VkImageSubresourceRange() const
+    {
+      VkImageSubresourceRange ret;
+
+      ret.aspectMask = (VkImageAspectFlags)aspectMask;
+      ret.baseMipLevel = baseMipLevel;
+      ret.baseArrayLayer = baseArrayLayer;
+
+      if(levelCount == MipMaxValue)
+        ret.levelCount = VK_REMAINING_MIP_LEVELS;
+      else
+        ret.levelCount = levelCount;
+
+      if(layerCount == SliceMaxValue)
+        ret.layerCount = VK_REMAINING_ARRAY_LAYERS;
+      else
+        ret.layerCount = layerCount;
+
+      return ret;
+    }
+
+    // only need 4 bits for the aspects
+    uint32_t aspectMask : 4;
+
+    // 6 bits = refer to up to 62 mips = bloody huge textures.
+    // note we also need to pack in VK_REMAINING_MIPS etc so we can't
+    // necessarily use the maximum levelCount value (64)
+    uint32_t baseMipLevel : 6;
+    uint32_t levelCount : 6;
+
+    static const uint32_t MipMaxValue = 0x3f;
+
+    // 16 bits = refer to up to 64k array layers. This is less
+    // future proof than above, but at time of writing typical
+    // maxImageArrayLayers is 2048.
+    uint32_t baseArrayLayer : 16;
+    uint32_t layerCount : 16;
+
+    static const uint32_t SliceMaxValue = 0xffff;
+  } viewRange;
 };
 
 struct ImageLayouts

@@ -98,16 +98,13 @@ void VulkanRenderState::BeginRenderPassAndApplyState(VkCommandBuffer cmd)
   VkRenderPassBeginInfo rpbegin = {
       VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       NULL,
-      Unwrap(m_CreationInfo->m_RenderPass[renderPass].loadRP),
+      Unwrap(m_CreationInfo->m_RenderPass[renderPass].loadRPs[subpass]),
       Unwrap(GetResourceManager()->GetCurrentHandle<VkFramebuffer>(framebuffer)),
       renderArea,
       (uint32_t)m_CreationInfo->m_RenderPass[renderPass].attachments.size(),
       empty,
   };
   ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
-
-  for(uint32_t i = 0; i < subpass; i++)
-    ObjDisp(cmd)->CmdNextSubpass(Unwrap(cmd), VK_SUBPASS_CONTENTS_INLINE);
 
   BindPipeline(cmd);
 
@@ -306,10 +303,5 @@ void VulkanRenderState::BindPipeline(VkCommandBuffer cmd)
 
 void VulkanRenderState::EndRenderPass(VkCommandBuffer cmd)
 {
-  uint32_t numSubpasses = (uint32_t)m_CreationInfo->m_RenderPass[renderPass].subpasses.size();
-
-  for(uint32_t sub = subpass; sub < numSubpasses - 1; sub++)
-    ObjDisp(cmd)->CmdNextSubpass(Unwrap(cmd), VK_SUBPASS_CONTENTS_INLINE);
-
   ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
 }

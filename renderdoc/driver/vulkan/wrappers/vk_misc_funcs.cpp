@@ -24,6 +24,40 @@
 
 #include "../vk_core.h"
 
+void WrappedVulkan::MakeSubpassLoadRP(VkRenderPassCreateInfo &info,
+                                      const VkRenderPassCreateInfo *origInfo, uint32_t s)
+{
+  info.subpassCount = 1;
+  info.pSubpasses = origInfo->pSubpasses + s;
+
+  // remove any dependencies
+  info.dependencyCount = 0;
+
+  const VkSubpassDescription *sub = info.pSubpasses;
+  VkAttachmentDescription *att = (VkAttachmentDescription *)info.pAttachments;
+
+  // apply this subpass's attachment layouts to the initial and final layouts
+  // so that this RP doesn't perform any layout transitions
+  for(uint32_t a = 0; a < sub->colorAttachmentCount; a++)
+  {
+    att[sub->pColorAttachments[a].attachment].initialLayout =
+        att[sub->pColorAttachments[a].attachment].finalLayout = sub->pColorAttachments[a].layout;
+  }
+
+  for(uint32_t a = 0; a < sub->inputAttachmentCount; a++)
+  {
+    att[sub->pInputAttachments[a].attachment].initialLayout =
+        att[sub->pInputAttachments[a].attachment].finalLayout = sub->pInputAttachments[a].layout;
+  }
+
+  if(sub->pDepthStencilAttachment && sub->pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED)
+  {
+    att[sub->pDepthStencilAttachment->attachment].initialLayout =
+        att[sub->pDepthStencilAttachment->attachment].finalLayout =
+            sub->pDepthStencilAttachment->layout;
+  }
+}
+
 // note, for threading reasons we ensure to release the wrappers before
 // releasing the underlying object. Otherwise after releasing the vulkan object
 // that same handle could be returned by create on another thread, and we
@@ -501,20 +535,26 @@ VkResult WrappedVulkan::vkCreateFramebuffer(VkDevice device,
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pFramebuffer);
       record->AddChunk(chunk);
 
-      record->imageAttachments = new VkResourceRecord *[VkResourceRecord::MaxImageAttachments];
+      record->imageAttachments = new AttachmentInfo[VkResourceRecord::MaxImageAttachments];
       RDCASSERT(pCreateInfo->attachmentCount <= VkResourceRecord::MaxImageAttachments);
 
       RDCEraseMem(record->imageAttachments,
-                  sizeof(VkResourceRecord *) * VkResourceRecord::MaxImageAttachments);
+                  sizeof(AttachmentInfo) * VkResourceRecord::MaxImageAttachments);
 
-      if(pCreateInfo->renderPass != VK_NULL_HANDLE)
-        record->AddParent(GetRecord(pCreateInfo->renderPass));
+      VkResourceRecord *rpRecord = GetRecord(pCreateInfo->renderPass);
+
+      record->AddParent(rpRecord);
+
       for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
       {
         VkResourceRecord *attRecord = GetRecord(pCreateInfo->pAttachments[i]);
         record->AddParent(attRecord);
 
-        record->imageAttachments[i] = attRecord;
+        record->imageAttachments[i].record = attRecord;
+        record->imageAttachments[i].barrier = rpRecord->imageAttachments[i].barrier;
+        record->imageAttachments[i].barrier.image =
+            GetResourceManager()->GetCurrentHandle<VkImage>(attRecord->baseResource);
+        record->imageAttachments[i].barrier.subresourceRange = attRecord->viewRange;
       }
     }
     else
@@ -547,11 +587,19 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(Serialiser *localSerialiser, Vk
 
     // we want to store off the data so we can display it after the pass.
     // override any user-specified DONT_CARE.
+    // Likewise we don't want to throw away data before we're ready, so change
+    // any load ops to LOAD instead of DONT_CARE (which is valid!). We of course
+    // leave any LOAD_OP_CLEAR alone.
     VkAttachmentDescription *att = (VkAttachmentDescription *)info.pAttachments;
     for(uint32_t i = 0; i < info.attachmentCount; i++)
     {
       att[i].storeOp = VK_ATTACHMENT_STORE_OP_STORE;
       att[i].stencilStoreOp = VK_ATTACHMENT_STORE_OP_STORE;
+
+      if(att[i].loadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+        att[i].loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+      if(att[i].stencilLoadOp == VK_ATTACHMENT_LOAD_OP_DONT_CARE)
+        att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
 
       // renderpass can't start or end in presentable layout on replay
       ReplacePresentableImageLayout(att[i].initialLayout);
@@ -593,28 +641,39 @@ bool WrappedVulkan::Serialise_vkCreateRenderPass(Serialiser *localSerialiser, Vk
           att[i].stencilLoadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
         }
 
-        ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, NULL, &rpinfo.loadRP);
-        RDCASSERTEQUAL(ret, VK_SUCCESS);
+        VkRenderPassCreateInfo loadInfo = info;
 
-        // handle the loadRP being a duplicate
-        if(GetResourceManager()->HasWrapper(ToTypedHandle(rpinfo.loadRP)))
+        rpinfo.loadRPs.resize(info.subpassCount);
+
+        // create a render pass for each subpass that maintains attachment layouts
+        for(uint32_t s = 0; s < info.subpassCount; s++)
         {
-          // just fetch the existing wrapped object
-          rpinfo.loadRP =
-              (VkRenderPass)(uint64_t)GetResourceManager()->GetNonDispWrapper(rpinfo.loadRP);
+          MakeSubpassLoadRP(loadInfo, &info, s);
 
-          // destroy this instance of the duplicate, as we must have matching create/destroy
-          // calls and there won't be a wrapped resource hanging around to destroy this one.
-          ObjDisp(device)->DestroyRenderPass(Unwrap(device), rpinfo.loadRP, NULL);
+          ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, NULL, &rpinfo.loadRPs[s]);
+          RDCASSERTEQUAL(ret, VK_SUCCESS);
 
-          // don't need to ReplaceResource as no IDs are involved
-        }
-        else
-        {
-          ResourceId loadRPid = GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRP);
+          // handle the loadRP being a duplicate
+          if(GetResourceManager()->HasWrapper(ToTypedHandle(rpinfo.loadRPs[s])))
+          {
+            // just fetch the existing wrapped object
+            rpinfo.loadRPs[s] =
+                (VkRenderPass)(uint64_t)GetResourceManager()->GetNonDispWrapper(rpinfo.loadRPs[s]);
 
-          // register as a live-only resource, so it is cleaned up properly
-          GetResourceManager()->AddLiveResource(loadRPid, rpinfo.loadRP);
+            // destroy this instance of the duplicate, as we must have matching create/destroy
+            // calls and there won't be a wrapped resource hanging around to destroy this one.
+            ObjDisp(device)->DestroyRenderPass(Unwrap(device), rpinfo.loadRPs[s], NULL);
+
+            // don't need to ReplaceResource as no IDs are involved
+          }
+          else
+          {
+            ResourceId loadRPid =
+                GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRPs[s]);
+
+            // register as a live-only resource, so it is cleaned up properly
+            GetResourceManager()->AddLiveResource(loadRPid, rpinfo.loadRPs[s]);
+          }
         }
 
         m_CreationInfo.m_RenderPass[live] = rpinfo;
@@ -651,6 +710,20 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
 
       VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pRenderPass);
       record->AddChunk(chunk);
+
+      record->imageAttachments = new AttachmentInfo[VkResourceRecord::MaxImageAttachments];
+      RDCASSERT(pCreateInfo->attachmentCount <= VkResourceRecord::MaxImageAttachments);
+
+      RDCEraseMem(record->imageAttachments,
+                  sizeof(AttachmentInfo) * VkResourceRecord::MaxImageAttachments);
+
+      for(uint32_t i = 0; i < pCreateInfo->attachmentCount; i++)
+      {
+        record->imageAttachments[i].record = NULL;
+        record->imageAttachments[i].barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        record->imageAttachments[i].barrier.oldLayout = pCreateInfo->pAttachments[i].initialLayout;
+        record->imageAttachments[i].barrier.newLayout = pCreateInfo->pAttachments[i].finalLayout;
+      }
     }
     else
     {
@@ -676,13 +749,21 @@ VkResult WrappedVulkan::vkCreateRenderPass(VkDevice device, const VkRenderPassCr
 
       info.pAttachments = atts;
 
-      ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, NULL, &rpinfo.loadRP);
-      RDCASSERTEQUAL(ret, VK_SUCCESS);
+      rpinfo.loadRPs.resize(pCreateInfo->subpassCount);
 
-      ResourceId loadRPid = GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRP);
+      // create a render pass for each subpass that maintains attachment layouts
+      for(uint32_t s = 0; s < pCreateInfo->subpassCount; s++)
+      {
+        MakeSubpassLoadRP(info, pCreateInfo, s);
 
-      // register as a live-only resource, so it is cleaned up properly
-      GetResourceManager()->AddLiveResource(loadRPid, rpinfo.loadRP);
+        ret = ObjDisp(device)->CreateRenderPass(Unwrap(device), &info, NULL, &rpinfo.loadRPs[s]);
+        RDCASSERTEQUAL(ret, VK_SUCCESS);
+
+        ResourceId loadRPid = GetResourceManager()->WrapResource(Unwrap(device), rpinfo.loadRPs[s]);
+
+        // register as a live-only resource, so it is cleaned up properly
+        GetResourceManager()->AddLiveResource(loadRPid, rpinfo.loadRPs[s]);
+      }
 
       m_CreationInfo.m_RenderPass[id] = rpinfo;
     }

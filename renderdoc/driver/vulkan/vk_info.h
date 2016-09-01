@@ -197,24 +197,25 @@ struct VulkanCreationInfo
     void Init(VulkanResourceManager *resourceMan, VulkanCreationInfo &info,
               const VkRenderPassCreateInfo *pCreateInfo);
 
-    struct Attachment
-    {
-      VkAttachmentLoadOp loadOp;
-      VkAttachmentStoreOp storeOp;
-      VkAttachmentLoadOp stencilLoadOp;
-      VkAttachmentStoreOp stencilStoreOp;
-    };
-    vector<Attachment> attachments;
+    vector<VkAttachmentDescription> attachments;
 
     struct Subpass
     {
+      // these are split apart since they layout is
+      // rarely used but the indices are often used
       vector<uint32_t> inputAttachments;
       vector<uint32_t> colorAttachments;
       int32_t depthstencilAttachment;
+
+      vector<VkImageLayout> inputLayouts;
+      vector<VkImageLayout> colorLayouts;
+      VkImageLayout depthstencilLayout;
     };
     vector<Subpass> subpasses;
 
-    VkRenderPass loadRP;
+    // one for each subpass, as we preserve attachments
+    // in the layout that the subpass uses
+    vector<VkRenderPass> loadRPs;
   };
   map<ResourceId, RenderPass> m_RenderPass;
 
