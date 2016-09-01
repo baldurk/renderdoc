@@ -1878,10 +1878,17 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
                                           obj, a.level);
               }
             }
-            else
+            else if(details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY ||
+                    details.curType == eGL_TEXTURE_1D_ARRAY ||
+                    details.curType == eGL_TEXTURE_2D_ARRAY)
             {
               gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, data->attachmentNames[i], obj,
                                            a.level, a.layer);
+            }
+            else
+            {
+              RDCASSERT(a.layer == 0);
+              gl.glNamedFramebufferTextureEXT(live.name, data->attachmentNames[i], obj, a.level);
             }
           }
           else
