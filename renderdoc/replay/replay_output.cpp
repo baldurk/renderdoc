@@ -492,7 +492,12 @@ bool ReplayOutput::Display()
     disp.rangemin = 0.0f;
     disp.rangemax = 1.0f;
     disp.sliceFace = 0;
+    disp.offx = 0.0f;
+    disp.offy = 0.0f;
     disp.rawoutput = false;
+    disp.overlay = eTexOverlay_None;
+
+    disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector();
 
     if(m_Thumbnails[i].typeHint == eCompType_SNorm)
       disp.rangemin = -1.0f;
