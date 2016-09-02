@@ -479,8 +479,8 @@ VkResult WrappedVulkan::vkCreateSwapchainKHR(VkDevice device,
 {
   VkSwapchainCreateInfoKHR createInfo = *pCreateInfo;
 
-  // make sure we can readback to get the screenshot
-  createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+  // make sure we can readback to get the screenshot, and render to it for the text overlay
+  createInfo.imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
   createInfo.surface = Unwrap(createInfo.surface);
   createInfo.oldSwapchain = Unwrap(createInfo.oldSwapchain);
 
@@ -851,8 +851,8 @@ VkResult WrappedVulkan::vkCreateSharedSwapchainsKHR(VkDevice device, uint32_t sw
   for(uint32_t i = 0; i < swapchainCount; i++)
   {
     unwrapped[i] = pCreateInfos[i];
-    // make sure we can readback to get the screenshot
-    unwrapped[i].imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    // make sure we can readback to get the screenshot, and render to it for the text overlay
+    unwrapped[i].imageUsage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     unwrapped[i].surface = Unwrap(unwrapped[i].surface);
     unwrapped[i].oldSwapchain = Unwrap(unwrapped[i].oldSwapchain);
   }
