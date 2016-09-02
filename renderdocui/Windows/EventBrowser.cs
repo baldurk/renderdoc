@@ -235,9 +235,9 @@ namespace renderdocui.Windows
             return new TreelistView.Node(new object[] { "", "", text, -1.0 });
         }
 
-        private TreelistView.Node MakeNode(UInt32 minEID, UInt32 maxEID, UInt32 draw, string text, double duration)
+        private TreelistView.Node MakeNode(UInt32 minEID, UInt32 maxEID, UInt32 minDraw, UInt32 maxDraw, string text, double duration)
         {
-            return new TreelistView.Node(new object[] { String.Format("{0}-{1}", minEID, maxEID), draw, text, duration });
+            return new TreelistView.Node(new object[] { String.Format("{0}-{1}", minEID, maxEID), String.Format("{0}-{1}", minDraw, maxDraw), text, duration });
         }
 
         private TreelistView.Node MakeNode(UInt32 EID, UInt32 draw, string text, double duration)
@@ -253,6 +253,14 @@ namespace renderdocui.Windows
             return GetEndEventID(drawcall.children.Last());
         }
 
+        private uint GetEndDrawID(FetchDrawcall drawcall)
+        {
+            if (drawcall.children.Length == 0)
+                return drawcall.drawcallID;
+
+            return GetEndDrawID(drawcall.children.Last());
+        }
+
         private TreelistView.Node AddDrawcall(FetchDrawcall drawcall, TreelistView.Node root)
         {
             if (m_Core.Config.EventBrowser_HideEmpty)
@@ -265,7 +273,7 @@ namespace renderdocui.Windows
             TreelistView.Node drawNode = null;
             
             if(drawcall.children.Length > 0)
-                drawNode = MakeNode(eventNum, GetEndEventID(drawcall), drawcall.drawcallID, drawcall.name, 0.0);
+                drawNode = MakeNode(eventNum, GetEndEventID(drawcall), drawcall.drawcallID, GetEndDrawID(drawcall), drawcall.name, 0.0);
             else
                 drawNode = MakeNode(eventNum, drawcall.drawcallID, drawcall.name, 0.0);
 
