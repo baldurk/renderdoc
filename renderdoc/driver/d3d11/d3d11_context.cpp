@@ -1350,6 +1350,9 @@ void WrappedID3D11DeviceContext::FlattenLog()
   m_pSerialiser = new Serialiser(dst->GetSize(), dst->GetRawPtr(0), false);
   m_OwnSerialiser = true;
 
+  m_pSerialiser->SetDebugText(true);
+  m_pSerialiser->SetChunkNameLookup(&WrappedID3D11Device::GetChunkName);
+
   // tidy up the temporary serialisers
   SAFE_DELETE(dst);
   SAFE_DELETE(tmp);
