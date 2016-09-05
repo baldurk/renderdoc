@@ -495,7 +495,7 @@ namespace renderdocui.Windows
 
                 // we either have to save or delete the log. Make sure that if it's remote that we are able
                 // to by having an active connection or replay context on that host.
-                if (suppressRemoteWarning == false && !m_Connection.Connected &&
+                if (suppressRemoteWarning == false && !m_Connection.Connected && !log.local &&
                     (m_Core.Renderer.Remote == null ||
                      m_Core.Renderer.Remote.Hostname != m_Host ||
                      !m_Core.Renderer.Remote.Connected)
