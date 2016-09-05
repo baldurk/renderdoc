@@ -744,9 +744,9 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
 
     case RESTORE_STATE_AFTER_FINISH:
     {
-      D3D11RenderState state(m_pSerialiser);
-      state.Serialise(m_State, m_pDevice);
-      state.ApplyState(this);
+      D3D11RenderState rs(m_pSerialiser);
+      rs.Serialise(m_State, m_pDevice);
+      rs.ApplyState(this);
       break;
     }
 

@@ -4820,11 +4820,12 @@ void WrappedID3D11DeviceContext::ExecuteCommandList(ID3D11CommandList *pCommandL
 
   if(m_State == WRITING_CAPFRAME)
   {
-    SCOPED_SERIALISE_CONTEXT(EXECUTE_CMD_LIST);
-    m_pSerialiser->Serialise("context", m_ResourceID);
-    Serialise_ExecuteCommandList(pCommandList, RestoreContextState);
-
-    m_ContextRecord->AddChunk(scope.Get());
+    {
+      SCOPED_SERIALISE_CONTEXT(EXECUTE_CMD_LIST);
+      m_pSerialiser->Serialise("context", m_ResourceID);
+      Serialise_ExecuteCommandList(pCommandList, RestoreContextState);
+      m_ContextRecord->AddChunk(scope.Get());
+    }
 
     WrappedID3D11CommandList *wrapped = (WrappedID3D11CommandList *)pCommandList;
 
@@ -5105,11 +5106,12 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
 
     ID3D11CommandList *w = wrapped;
 
-    SCOPED_SERIALISE_CONTEXT(FINISH_CMD_LIST);
-    m_pSerialiser->Serialise("context", m_ResourceID);
-    Serialise_FinishCommandList(RestoreDeferredContextState, &w);
-
-    m_ContextRecord->AddChunk(scope.Get());
+    {
+      SCOPED_SERIALISE_CONTEXT(FINISH_CMD_LIST);
+      m_pSerialiser->Serialise("context", m_ResourceID);
+      Serialise_FinishCommandList(RestoreDeferredContextState, &w);
+      m_ContextRecord->AddChunk(scope.Get());
+    }
 
     D3D11ResourceRecord *r =
         m_pDevice->GetResourceManager()->GetResourceRecord(wrapped->GetResourceID());
