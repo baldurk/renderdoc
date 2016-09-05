@@ -195,6 +195,7 @@ const char *D3D11ChunkNames[] = {
     "IDXGISwapChain::Present",
 
     "ID3D11DeviceContext::ExecuteCommandList",
+    "ID3D11DeviceContext::FinishCommandList",
 };
 
 WRAPPED_POOL_INST(WrappedID3D11Device);

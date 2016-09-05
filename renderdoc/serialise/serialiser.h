@@ -113,7 +113,10 @@ public:
   // grab current contents of the serialiser into this chunk
   Chunk(Serialiser *ser, uint32_t chunkType, bool temp);
 
+  Chunk *Duplicate();
+
 private:
+  Chunk() {}
   // no copy semantics
   Chunk(const Chunk &);
   Chunk &operator=(const Chunk &);

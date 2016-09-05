@@ -316,13 +316,13 @@ namespace renderdocui.Code
 
             for (int i = 1; i < draws.Length; i++)
             {
-                if ((draws[refdraw].flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve | DrawcallFlags.SetMarker)) > 0)
+                if ((draws[refdraw].flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve | DrawcallFlags.SetMarker | DrawcallFlags.CmdList)) > 0)
                 {
                     refdraw = i;
                     continue;
                 }
 
-                if ((draws[i].flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve | DrawcallFlags.SetMarker)) > 0)
+                if ((draws[i].flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve | DrawcallFlags.SetMarker | DrawcallFlags.CmdList)) > 0)
                     continue;
 
                 if (PassEquivalent(draws[i], draws[refdraw]))

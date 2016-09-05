@@ -279,6 +279,25 @@ Chunk::Chunk(Serialiser *ser, uint32_t chunkType, bool temporary)
 #endif
 }
 
+Chunk *Chunk::Duplicate()
+{
+  Chunk *ret = new Chunk();
+  ret->m_DebugStr = m_DebugStr;
+  ret->m_Length = m_Length;
+  ret->m_ChunkType = m_ChunkType;
+  ret->m_Temporary = m_Temporary;
+  ret->m_AlignedData = m_AlignedData;
+
+  if(m_AlignedData)
+    ret->m_Data = Serialiser::AllocAlignedBuffer(m_Length);
+  else
+    ret->m_Data = new byte[m_Length];
+
+  memcpy(ret->m_Data, m_Data, m_Length);
+
+  return ret;
+}
+
 Chunk::~Chunk()
 {
 #if !defined(RELEASE)

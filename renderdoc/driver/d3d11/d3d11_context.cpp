@@ -435,10 +435,6 @@ void WrappedID3D11DeviceContext::AttemptCapture()
     m_SuccessfulCapture = true;
     m_FailureReason = CaptureSucceeded;
 
-    for(auto it = m_DeferredRecords.begin(); it != m_DeferredRecords.end(); ++it)
-      (*it)->Delete(m_pDevice->GetResourceManager());
-    m_DeferredRecords.clear();
-
     m_ContextRecord->LockChunks();
     while(m_ContextRecord->HasChunks())
     {
@@ -463,13 +459,6 @@ void WrappedID3D11DeviceContext::FinishCapture()
     m_SuccessfulCapture = false;
     m_FailureReason = CaptureSucceeded;
   }
-
-  for(auto it = m_DeferredRecords.begin(); it != m_DeferredRecords.end(); ++it)
-  {
-    m_ContextRecord->AddParent(*it);
-    (*it)->Delete(m_pDevice->GetResourceManager());
-  }
-  m_DeferredRecords.clear();
 }
 
 void WrappedID3D11DeviceContext::EndCaptureFrame()
@@ -563,10 +552,6 @@ void WrappedID3D11DeviceContext::CleanupCapture()
     m_FailureReason = CaptureSucceeded;
   }
 
-  for(auto it = m_DeferredRecords.begin(); it != m_DeferredRecords.end(); ++it)
-    (*it)->Delete(m_pDevice->GetResourceManager());
-  m_DeferredRecords.clear();
-
   m_ContextRecord->LockChunks();
   while(m_ContextRecord->HasChunks())
   {
@@ -600,7 +585,8 @@ void WrappedID3D11DeviceContext::EndFrame()
 {
   DrainAnnotationQueue();
 
-  m_pDevice->GetResourceManager()->FlushPendingDirty();
+  if(m_State == WRITING_IDLE)
+    m_pDevice->GetResourceManager()->FlushPendingDirty();
 }
 
 bool WrappedID3D11DeviceContext::IsFL11_1()
@@ -753,6 +739,14 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
         m_DeferredSavedState->ApplyState(this);
         SAFE_DELETE(m_DeferredSavedState);
       }
+      break;
+    }
+
+    case RESTORE_STATE_AFTER_FINISH:
+    {
+      D3D11RenderState state(m_pSerialiser);
+      state.Serialise(m_State, m_pDevice);
+      state.ApplyState(this);
       break;
     }
 

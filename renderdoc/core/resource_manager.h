@@ -202,6 +202,21 @@ struct ResourceRecord
     UnlockChunks();
   }
 
+  void AppendFrom(ResourceRecord *other)
+  {
+    LockChunks();
+    other->LockChunks();
+
+    for(auto it = other->m_Chunks.begin(); it != other->m_Chunks.end(); ++it)
+      AddChunk(it->second->Duplicate());
+
+    for(auto it = other->Parents.begin(); it != other->Parents.end(); ++it)
+      AddParent(*it);
+
+    other->UnlockChunks();
+    UnlockChunks();
+  }
+
   void DeleteChunks()
   {
     LockChunks();

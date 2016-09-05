@@ -194,7 +194,6 @@ private:
 
   bool m_NeedUpdateSubWorkaround;
 
-  set<D3D11ResourceRecord *> m_DeferredRecords;
   map<ResourceId, int> m_MapResourceRecordAllocs;
 
   set<ResourceId> m_MissingTracks;

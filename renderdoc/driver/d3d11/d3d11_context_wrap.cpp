@@ -4790,6 +4790,7 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(ID3D11CommandList 
 
   if(m_State <= EXECUTING && RestoreContextState)
   {
+    SAFE_DELETE(m_DeferredSavedState);
     m_DeferredSavedState = new D3D11RenderState(this);
   }
 
@@ -4843,13 +4844,18 @@ void WrappedID3D11DeviceContext::ExecuteCommandList(ID3D11CommandList *pCommandL
       D3D11ResourceRecord *cmdListRecord =
           m_pDevice->GetResourceManager()->GetResourceRecord(contextId);
 
-      if(m_DeferredRecords.find(cmdListRecord) == m_DeferredRecords.end())
-      {
-        m_DeferredRecords.insert(cmdListRecord);
-        cmdListRecord->AddRef();
-      }
-
+      // insert all the deferred chunks immediately following the execute chunk.
+      m_ContextRecord->AppendFrom(cmdListRecord);
       cmdListRecord->AddResourceReferences(m_pDevice->GetResourceManager());
+    }
+
+    if(RestoreContextState)
+    {
+      // insert a chunk to let us know on replay that we finished the command list's
+      // chunks and we can restore the state
+      SCOPED_SERIALISE_CONTEXT(RESTORE_STATE_AFTER_EXEC);
+      m_pSerialiser->Serialise("context", m_ResourceID);
+      m_ContextRecord->AddChunk(scope.Get());
     }
 
     m_CurrentPipelineState->MarkReferenced(this, false);
@@ -5110,6 +5116,17 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
     RDCASSERT(r);
 
     m_ContextRecord->SwapChunks(r);
+
+    // if we're supposed to restore, save the state to restore to now
+    if(RestoreDeferredContextState)
+    {
+      SCOPED_SERIALISE_CONTEXT(RESTORE_STATE_AFTER_FINISH);
+      m_pSerialiser->Serialise("context", m_ResourceID);
+      D3D11RenderState rs(*m_CurrentPipelineState);
+      rs.SetSerialiser(m_pSerialiser);
+      rs.Serialise(m_State, m_pDevice);
+      m_ContextRecord->AddChunk(scope.Get());
+    }
   }
   else if(m_State == WRITING_CAPFRAME && !m_SuccessfulCapture)
   {
