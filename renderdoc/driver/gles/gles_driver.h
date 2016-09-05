@@ -41,6 +41,7 @@ public:
     IMPLEMENT_FUNCTION_SERIALISED(void,  glClear(GLbitfield mask));
     IMPLEMENT_FUNCTION_SERIALISED(void,  glClearColor (GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha));
 
+    void GetDisplay(EGLNativeDisplayType display_id) { /* TODO */ }
     void CreateContext(void);
     bool SwapBuffers(EGLDisplay dpy, EGLSurface surface);
 

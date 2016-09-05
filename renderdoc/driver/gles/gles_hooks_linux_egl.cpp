@@ -87,6 +87,20 @@ typedef void ( *__extFuncPtr)(void);
 
   */
 
+typedef EGLDisplay (*PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
+
+__attribute__((visibility("default"))) EGLDisplay eglGetDisplay (EGLNativeDisplayType display)
+{
+    PFN_eglGetDisplay real_pfn = (PFN_eglGetDisplay)dlsym(RTLD_NEXT, "eglGetDisplay");
+    printf("REAL display: %p\n", real_pfn);
+
+    OpenGLHook::glhooks.GetDriver()->GetDisplay(display);
+
+    Keyboard::CloneDisplay(display);
+
+    return real_pfn(display);
+}
+
 typedef EGLContext (*eglCreateContext_pfn) (EGLDisplay dpy, EGLConfig config, EGLContext share_context, EGLint const * attrib_list);
 
 __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay display,

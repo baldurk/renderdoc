@@ -159,7 +159,7 @@ bool WrappedGLES::SwapBuffers(EGLDisplay dpy, EGLSurface surface)
 
     bool shouldTrigger = RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter);
     printf(" TRIGGER: %d (%d)\n", shouldTrigger ? 1 : 0, m_FrameCounter);
-    if ((shouldTrigger && m_State == WRITING_IDLE) || true)
+    if (shouldTrigger && (m_State == WRITING_IDLE))
     {
         RenderDoc::Inst().StartFrameCapture(NULL, NULL);
     }
