@@ -1341,7 +1341,7 @@ void WrappedID3D11DeviceContext::FlattenLog()
     }
   }
 
-  m_pSerialiser = new Serialiser(dst->GetSize(), dst->GetRawPtr(0), false);
+  m_pSerialiser = new Serialiser((size_t)dst->GetSize(), dst->GetRawPtr(0), false);
   m_OwnSerialiser = true;
 
   m_pSerialiser->SetDebugText(true);
