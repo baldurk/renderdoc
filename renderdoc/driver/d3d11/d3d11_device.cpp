@@ -369,6 +369,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   {
     m_State = WRITING_IDLE;
     m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
+
+    m_pSerialiser->SetDebugText(true);
   }
 
   m_ResourceManager = new D3D11ResourceManager(m_State, m_pSerialiser, this);
@@ -433,8 +435,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   }
 
   m_InitParams = *params;
-
-  SetContextFilter(ResourceId(), 0, 0);
 
   // ATI workaround - these dlls can get unloaded and cause a crash.
 
@@ -1025,8 +1025,6 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
     m_FrameRecord.frameInfo.fileOffset = offset;
     m_FrameRecord.frameInfo.firstEvent = m_pImmediateContext->GetEventID();
     m_FrameRecord.frameInfo.frameNumber = FrameNumber;
-    m_FrameRecord.frameInfo.immContextId =
-        GetResourceManager()->GetOriginalID(m_pImmediateContext->GetResourceID());
 
     FetchFrameStatistics &stats = m_FrameRecord.frameInfo.stats;
     RDCEraseEl(stats);
@@ -1132,8 +1130,7 @@ void WrappedID3D11Device::ReadLogInitialisation()
       break;
   }
 
-  SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.frameInfo.immContextId,
-                        m_FrameRecord.drawcallList, NULL, NULL);
+  SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.drawcallList, NULL, NULL);
 
 #if !defined(RELEASE)
   for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)
@@ -2325,13 +2322,6 @@ void WrappedID3D11Device::Apply_InitialState(ID3D11DeviceChild *live,
   }
 }
 
-void WrappedID3D11Device::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
-{
-  m_ReplayDefCtx = id;
-  m_FirstDefEv = firstDefEv;
-  m_LastDefEv = lastDefEv;
-}
-
 void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
                                     ReplayLogType replayType)
 {
@@ -2363,51 +2353,14 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   m_State = EXECUTING;
 
-  if(m_ReplayDefCtx == ResourceId())
-  {
-    if(replayType == eReplay_Full)
-      m_pImmediateContext->ReplayLog(EXECUTING, startEventID, endEventID, partial);
-    else if(replayType == eReplay_WithoutDraw)
-      m_pImmediateContext->ReplayLog(EXECUTING, startEventID, RDCMAX(1U, endEventID) - 1, partial);
-    else if(replayType == eReplay_OnlyDraw)
-      m_pImmediateContext->ReplayLog(EXECUTING, endEventID, endEventID, partial);
-    else
-      RDCFATAL("Unexpected replay type");
-  }
+  if(replayType == eReplay_Full)
+    m_pImmediateContext->ReplayLog(EXECUTING, startEventID, endEventID, partial);
+  else if(replayType == eReplay_WithoutDraw)
+    m_pImmediateContext->ReplayLog(EXECUTING, startEventID, RDCMAX(1U, endEventID) - 1, partial);
+  else if(replayType == eReplay_OnlyDraw)
+    m_pImmediateContext->ReplayLog(EXECUTING, endEventID, endEventID, partial);
   else
-  {
-    if(replayType == eReplay_Full || replayType == eReplay_WithoutDraw)
-    {
-      m_pImmediateContext->ReplayLog(EXECUTING, startEventID, endEventID, partial);
-    }
-
-    m_pSerialiser->SetOffset(offs);
-
-    header = (D3D11ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
-    m_pSerialiser->SkipCurrentChunk();
-    m_pSerialiser->PopContext(header);
-
-    m_pImmediateContext->ReplayFakeContext(m_ReplayDefCtx);
-
-    if(replayType == eReplay_Full)
-    {
-      m_pImmediateContext->ClearState();
-
-      m_pImmediateContext->ReplayLog(EXECUTING, m_FirstDefEv, m_LastDefEv, true);
-    }
-    else if(replayType == eReplay_WithoutDraw && m_LastDefEv - 1 >= m_FirstDefEv)
-    {
-      m_pImmediateContext->ClearState();
-
-      m_pImmediateContext->ReplayLog(EXECUTING, m_FirstDefEv, RDCMAX(m_LastDefEv, 1U) - 1, true);
-    }
-    else if(replayType == eReplay_OnlyDraw)
-    {
-      m_pImmediateContext->ReplayLog(EXECUTING, m_LastDefEv, m_LastDefEv, true);
-    }
-
-    m_pImmediateContext->ReplayFakeContext(ResourceId());
-  }
+    RDCFATAL("Unexpected replay type");
 }
 
 void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap)

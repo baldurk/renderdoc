@@ -138,10 +138,6 @@ ReplayRenderer::ReplayRenderer()
   m_pDevice = NULL;
 
   m_EventID = 100000;
-
-  m_DeferredCtx = ResourceId();
-  m_FirstDeferredEvent = 0;
-  m_LastDeferredEvent = 0;
 }
 
 ReplayRenderer::~ReplayRenderer()
@@ -164,25 +160,6 @@ ReplayRenderer::~ReplayRenderer()
   if(m_pDevice)
     m_pDevice->Shutdown();
   m_pDevice = NULL;
-}
-
-bool ReplayRenderer::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
-{
-  if(m_DeferredCtx == ResourceId() && id == ResourceId())
-    return true;
-
-  m_pDevice->SetContextFilter(id, firstDefEv, lastDefEv);
-
-  m_DeferredCtx = id;
-  m_FirstDeferredEvent = firstDefEv;
-  m_LastDeferredEvent = lastDefEv;
-
-  for(size_t i = 0; i < m_Outputs.size(); i++)
-    m_Outputs[i]->SetContextFilter(id, firstDefEv, lastDefEv);
-
-  SetFrameEvent(m_EventID, true);
-
-  return true;
 }
 
 bool ReplayRenderer::SetFrameEvent(uint32_t eventID, bool force)
@@ -247,14 +224,12 @@ bool ReplayRenderer::GetFrameInfo(FetchFrameInfo *info)
   return true;
 }
 
-FetchDrawcall *ReplayRenderer::GetDrawcallByEID(uint32_t eventID, uint32_t defEventID)
+FetchDrawcall *ReplayRenderer::GetDrawcallByEID(uint32_t eventID)
 {
-  uint32_t ev = defEventID > 0 ? defEventID : eventID;
-
-  if(ev >= m_Drawcalls.size())
+  if(eventID >= m_Drawcalls.size())
     return NULL;
 
-  return m_Drawcalls[ev];
+  return m_Drawcalls[eventID];
 }
 
 bool ReplayRenderer::GetDrawcalls(rdctype::array<FetchDrawcall> *draws)
@@ -396,7 +371,7 @@ bool ReplayRenderer::GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFor
   if(data == NULL)
     return false;
 
-  FetchDrawcall *draw = GetDrawcallByEID(m_EventID, m_LastDeferredEvent);
+  FetchDrawcall *draw = GetDrawcallByEID(m_EventID);
 
   MeshFormat ret;
   RDCEraseEl(ret);
@@ -1602,8 +1577,7 @@ ReplayCreateStatus ReplayRenderer::PostCreateInit(IReplayDriver *device)
 
   m_FrameRecord.frameInfo = fr.frameInfo;
   m_FrameRecord.m_DrawCallList = fr.drawcallList;
-  SetupDrawcallPointers(&m_Drawcalls, fr.frameInfo.immContextId, m_FrameRecord.m_DrawCallList, NULL,
-                        NULL);
+  SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.m_DrawCallList, NULL, NULL);
 
   return eReplayCreate_Success;
 }
@@ -1714,13 +1688,6 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_InitResolver(ReplayR
   return rend->InitResolver();
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetContextFilter(ReplayRenderer *rend,
-                                                                             ResourceId id,
-                                                                             uint32_t firstDefEv,
-                                                                             uint32_t lastDefEv)
-{
-  return rend->SetContextFilter(id, firstDefEv, lastDefEv);
-}
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetFrameEvent(ReplayRenderer *rend,
                                                                           uint32_t eventID,
                                                                           bool32 force)

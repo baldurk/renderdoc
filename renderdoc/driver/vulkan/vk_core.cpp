@@ -815,7 +815,6 @@ void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)
     m_FrameRecord.frameInfo.fileOffset = offset;
     m_FrameRecord.frameInfo.firstEvent = 1;    // m_pImmediateContext->GetEventID();
     m_FrameRecord.frameInfo.frameNumber = FrameNumber;
-    m_FrameRecord.frameInfo.immContextId = ResourceId();
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
 
     GetResourceManager()->CreateInitialContents();
@@ -1624,8 +1623,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
   {
     GetFrameRecord().drawcallList = m_ParentDrawcall.Bake();
 
-    SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().frameInfo.immContextId,
-                          GetFrameRecord().drawcallList, NULL, NULL);
+    SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().drawcallList, NULL, NULL);
 
     struct SortEID
     {

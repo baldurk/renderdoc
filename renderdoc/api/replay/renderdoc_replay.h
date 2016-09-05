@@ -229,7 +229,6 @@ struct IReplayRenderer
   virtual bool HasCallstacks() = 0;
   virtual bool InitResolver() = 0;
 
-  virtual bool SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv) = 0;
   virtual bool SetFrameEvent(uint32_t eventID, bool force) = 0;
   virtual bool GetD3D11PipelineState(D3D11PipelineState *state) = 0;
   virtual bool GetGLPipelineState(GLPipelineState *state) = 0;
@@ -321,10 +320,6 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_FileChanged(ReplayRend
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_HasCallstacks(ReplayRenderer *rend);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_InitResolver(ReplayRenderer *rend);
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetContextFilter(ReplayRenderer *rend,
-                                                                             ResourceId id,
-                                                                             uint32_t firstDefEv,
-                                                                             uint32_t lastDefEv);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetFrameEvent(ReplayRenderer *rend,
                                                                           uint32_t eventID,
                                                                           bool32 force);

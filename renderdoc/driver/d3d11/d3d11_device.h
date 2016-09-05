@@ -336,10 +336,6 @@ private:
   map<ID3D11InputLayout *, vector<D3D11_INPUT_ELEMENT_DESC> > m_LayoutDescs;
   map<ID3D11InputLayout *, WrappedShader *> m_LayoutShaders;
 
-  ResourceId m_ReplayDefCtx;
-  uint32_t m_FirstDefEv;
-  uint32_t m_LastDefEv;
-
   static WrappedID3D11Device *m_pCurrentWrappedDevice;
 
   map<WrappedIDXGISwapChain3 *, ID3D11RenderTargetView *> m_SwapChains;
@@ -425,7 +421,6 @@ public:
 
   void ReadLogInitialisation();
   void ProcessChunk(uint64_t offset, D3D11ChunkType context);
-  void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
 
   ////////////////////////////////////////////////////////////////

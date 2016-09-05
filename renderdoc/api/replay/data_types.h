@@ -308,7 +308,6 @@ struct FetchFrameInfo
   uint64_t persistentSize;
   uint64_t initDataSize;
   uint64_t captureTime;
-  ResourceId immContextId;
   FetchFrameStatistics stats;
   rdctype::array<DebugMessage> debugMessages;
 };
@@ -359,7 +358,6 @@ struct FetchDrawcall
     copySource = ResourceId();
     copyDestination = ResourceId();
 
-    context = ResourceId();
     parent = 0;
     previous = 0;
     next = 0;
@@ -392,8 +390,6 @@ struct FetchDrawcall
 
   ResourceId copySource;
   ResourceId copyDestination;
-
-  ResourceId context;
 
   int64_t parent;
 

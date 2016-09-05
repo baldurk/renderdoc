@@ -2839,7 +2839,6 @@ void WrappedOpenGL::Serialise_CaptureScope(uint64_t offset)
     m_FrameRecord.frameInfo.fileOffset = offset;
     m_FrameRecord.frameInfo.firstEvent = 1;    // m_pImmediateContext->GetEventID();
     m_FrameRecord.frameInfo.frameNumber = FrameNumber;
-    m_FrameRecord.frameInfo.immContextId = GetResourceManager()->GetOriginalID(m_ContextResourceID);
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
 
     GetResourceManager()->CreateInitialContents();
@@ -3785,8 +3784,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
     GetFrameRecord().drawcallList = m_ParentDrawcall.Bake();
     GetFrameRecord().frameInfo.debugMessages = GetDebugMessages();
 
-    SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().frameInfo.immContextId,
-                          GetFrameRecord().drawcallList, NULL, NULL);
+    SetupDrawcallPointers(&m_Drawcalls, GetFrameRecord().drawcallList, NULL, NULL);
 
     // it's easier to remove duplicate usages here than check it as we go.
     // this means if textures are bound in multiple places in the same draw
@@ -4125,9 +4123,6 @@ void WrappedOpenGL::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
   draw.eventID = m_CurEventID;
   draw.drawcallID = m_CurDrawcallID;
 
-  if(draw.context == ResourceId())
-    draw.context = GetResourceManager()->GetOriginalID(m_ContextResourceID);
-
   GLuint curCol[8] = {0};
   GLuint curDepth = 0;
 
@@ -4157,22 +4152,8 @@ void WrappedOpenGL::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
 
   if(hasEvents)
   {
-    vector<FetchAPIEvent> evs;
-    evs.reserve(m_CurEvents.size());
-    for(size_t i = 0; i < m_CurEvents.size();)
-    {
-      if(m_CurEvents[i].context == draw.context)
-      {
-        evs.push_back(m_CurEvents[i]);
-        m_CurEvents.erase(m_CurEvents.begin() + i);
-      }
-      else
-      {
-        i++;
-      }
-    }
-
-    draw.events = evs;
+    draw.events = m_CurEvents;
+    m_CurEvents.clear();
   }
 
   AddUsage(draw);

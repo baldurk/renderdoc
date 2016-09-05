@@ -65,7 +65,6 @@ namespace renderdocui.Code
         private string m_LogFile = "";
 
         private UInt32 m_EventID = 0;
-        private UInt32 m_DeferredEvent = 0;
 
         private APIProperties m_APIProperties = null;
 
@@ -123,7 +122,7 @@ namespace renderdocui.Code
 
         public APIProperties APIProps { get { return m_APIProperties; } }
 
-        public UInt32 CurEvent { get { return m_DeferredEvent > 0 ? m_DeferredEvent : m_EventID; } }
+        public UInt32 CurEvent { get { return m_EventID; } }
 
         public FetchDrawcall[] CurDrawcalls { get { return GetDrawcalls(); } }
 
@@ -225,10 +224,6 @@ namespace renderdocui.Code
 
             // don't group present with anything
             if ((a.flags & DrawcallFlags.Present) != (b.flags & DrawcallFlags.Present))
-                return false;
-
-            // don't group things run on different multithreaded contexts
-            if(a.context != b.context)
                 return false;
 
             // don't group things with different depth outputs
@@ -336,9 +331,7 @@ namespace renderdocui.Code
                 int end = i-1;
 
                 if (end - start < 2 ||
-                    draws[i].children.Length > 0 || draws[refdraw].children.Length > 0 ||
-                    draws[i].context != m_FrameInfo.immContextId ||
-                    draws[refdraw].context != m_FrameInfo.immContextId)
+                    draws[i].children.Length > 0 || draws[refdraw].children.Length > 0)
                 {
                     for (int j = start; j <= end; j++)
                         ret.Add(draws[j]);
@@ -367,7 +360,6 @@ namespace renderdocui.Code
                 mark.drawcallID = draws[start].drawcallID;
                 mark.markerColour = new float[] { 0.0f, 0.0f, 0.0f, 0.0f };
 
-                mark.context = draws[end].context;
                 mark.flags = DrawcallFlags.PushMarker;
                 mark.outputs = draws[end].outputs;
                 mark.depthOut = draws[end].depthOut;
@@ -892,37 +884,6 @@ namespace renderdocui.Code
 
         #region Log Browsing
 
-        // setting a context filter allows replaying of deferred events. You can set the deferred
-        // events to replay in a context, after replaying up to a given event on the main thread
-        public void SetContextFilter(ILogViewerForm exclude, UInt32 eventID,
-                                     ResourceId ctx, UInt32 firstDeferred, UInt32 lastDeferred)
-        {
-            m_EventID = eventID;
-
-            m_DeferredEvent = lastDeferred;
-
-            m_Renderer.Invoke((ReplayRenderer r) => { r.SetContextFilter(ctx, firstDeferred, lastDeferred); });
-            m_Renderer.Invoke((ReplayRenderer r) => {
-                r.SetFrameEvent(m_EventID, true);
-                m_D3D11PipelineState = r.GetD3D11PipelineState();
-                m_GLPipelineState = r.GetGLPipelineState();
-                m_VulkanPipelineState = r.GetVulkanPipelineState();
-                m_PipelineState.SetStates(m_APIProperties, m_D3D11PipelineState, m_GLPipelineState, m_VulkanPipelineState);
-            });
-
-            foreach (var logviewer in m_LogViewers)
-            {
-                if (logviewer == exclude)
-                    continue;
-
-                Control c = (Control)logviewer;
-                if (c.InvokeRequired)
-                    c.BeginInvoke(new Action(() => logviewer.OnEventSelected(eventID)));
-                else
-                    logviewer.OnEventSelected(eventID);
-            }
-        }
-
         public void RefreshStatus()
         {
             SetEventID(null, m_EventID, true);
@@ -937,9 +898,6 @@ namespace renderdocui.Code
         {
             m_EventID = eventID;
 
-            m_DeferredEvent = 0;
-
-            m_Renderer.Invoke((ReplayRenderer r) => { r.SetContextFilter(ResourceId.Null, 0, 0); });
             m_Renderer.Invoke((ReplayRenderer r) =>
             {
                 r.SetFrameEvent(m_EventID, force);

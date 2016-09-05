@@ -47,10 +47,6 @@ namespace renderdocui.Windows
             public UInt32 eventID = 0;
 
             public bool marker = false;
-
-            public ResourceId defCtx = ResourceId.Null;
-            public UInt32 firstDefEv = 0;
-            public UInt32 lastDefEv = 0;
         }
 
         private TreelistView.Node m_FrameNode = null;
@@ -668,11 +664,7 @@ namespace renderdocui.Windows
             if (eventView.SelectedNode.Tag != null)
             {
                 DeferredEvent def = eventView.SelectedNode.Tag as DeferredEvent;
-
-                if (def.defCtx != ResourceId.Null)
-                    m_Core.SetContextFilter(this, def.eventID, def.defCtx, def.firstDefEv, def.lastDefEv);
-                else
-                    m_Core.SetEventID(this, def.eventID);
+                m_Core.SetEventID(this, def.eventID);
             }
 
             HighlightBookmarks();

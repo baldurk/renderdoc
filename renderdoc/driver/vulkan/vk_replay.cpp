@@ -4566,11 +4566,6 @@ vector<EventUsage> VulkanReplay::GetUsage(ResourceId id)
   return m_pDriver->GetUsage(id);
 }
 
-void VulkanReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
-{
-  RDCERR("Should never hit SetContextFilter");
-}
-
 MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
   return GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);

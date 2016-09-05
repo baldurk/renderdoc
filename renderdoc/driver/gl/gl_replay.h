@@ -110,7 +110,6 @@ public:
   void FreeTargetResource(ResourceId id);
 
   void ReadLogInitialisation();
-  void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);

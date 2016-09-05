@@ -256,9 +256,8 @@ private:
 
   void AddUsage(const FetchDrawcall &d);
 
-  void AddEvent(D3D11ChunkType type, string description, ResourceId ctx = ResourceId());
+  void AddEvent(D3D11ChunkType type, string description);
   void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
-  void RefreshDrawcallIDs(DrawcallTreeNode &node);
 
   void RecordIndexBindStats(ID3D11Buffer *Buffer);
   void RecordVertexBindStats(UINT NumBuffers, ID3D11Buffer *Buffers[]);

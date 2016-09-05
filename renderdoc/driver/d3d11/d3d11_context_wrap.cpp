@@ -3710,9 +3710,6 @@ void WrappedID3D11DeviceContext::Serialise_DebugMessages()
       msg.messageID = ID;
       msg.description = Description;
 
-      if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
-        msg.eventID = m_pDevice->GetImmediateContext()->GetEventID();
-
       m_pDevice->AddDebugMessage(msg);
     }
   }

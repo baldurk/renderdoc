@@ -63,7 +63,6 @@ private:
   virtual ~ReplayOutput();
 
   void SetFrameEvent(int eventID);
-  void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
 
   void RefreshOverlay();
 
@@ -100,8 +99,6 @@ private:
   OutputPair m_PixelContext;
 
   uint32_t m_EventID;
-  uint32_t m_FirstDeferredEvent;
-  uint32_t m_LastDeferredEvent;
   OutputConfig m_Config;
 
   vector<uint32_t> passEvents;
@@ -134,7 +131,6 @@ public:
   bool HasCallstacks();
   bool InitResolver();
 
-  bool SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
   bool SetFrameEvent(uint32_t eventID, bool force);
 
   void FetchPipelineState();
@@ -202,7 +198,7 @@ public:
 private:
   ReplayCreateStatus PostCreateInit(IReplayDriver *device);
 
-  FetchDrawcall *GetDrawcallByEID(uint32_t eventID, uint32_t defEventID);
+  FetchDrawcall *GetDrawcallByEID(uint32_t eventID);
 
   IReplayDriver *GetDevice() { return m_pDevice; }
   struct FrameRecord
@@ -215,9 +211,6 @@ private:
   vector<FetchDrawcall *> m_Drawcalls;
 
   uint32_t m_EventID;
-  ResourceId m_DeferredCtx;
-  uint32_t m_FirstDeferredEvent;
-  uint32_t m_LastDeferredEvent;
 
   D3D11PipelineState m_D3D11PipelineState;
   GLPipelineState m_GLPipelineState;

@@ -156,7 +156,6 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 
         if(pBox && m_NeedUpdateSubWorkaround && GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
         {
-          RDCWARN("oops!");
           // apply the workaround for the data we're about to pass
 
           D3D11_BOX alignedBox = *pBox;

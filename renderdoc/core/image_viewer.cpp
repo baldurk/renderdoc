@@ -46,12 +46,10 @@ public:
     m_FrameRecord.frameInfo.fileOffset = 0;
     m_FrameRecord.frameInfo.firstEvent = 1;
     m_FrameRecord.frameInfo.frameNumber = 1;
-    m_FrameRecord.frameInfo.immContextId = ResourceId();
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
 
     create_array_uninit(m_FrameRecord.drawcallList, 1);
     FetchDrawcall &d = m_FrameRecord.drawcallList[0];
-    d.context = ResourceId();
     d.drawcallID = 1;
     d.eventID = 1;
     d.name = filename;
@@ -168,7 +166,6 @@ public:
   void SavePipelineState() {}
   GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
   VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
-  void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv) {}
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType) {}
   vector<uint32_t> GetPassEvents(uint32_t eventID) { return vector<uint32_t>(); }
   vector<EventUsage> GetUsage(ResourceId id) { return vector<EventUsage>(); }

@@ -93,11 +93,6 @@ namespace renderdocui.Windows
             {
                 foreach (var ev in draw.events)
                 {
-                    // hack until I have a proper interface. Skip events associated with this draw that
-                    // come from another context (means they will just be completely omitted/invisible).
-                    if (ev.context != draw.context)
-                        continue;
-
                     string[] lines = ev.eventDesc.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
 
                     TreelistView.Node root = new TreelistView.Node(new object[] { ev.eventID, lines[0] });

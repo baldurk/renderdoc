@@ -36,8 +36,7 @@ enum ReplayProxyPacket
   // peacefully with remote server packet numbers
   eReplayProxy_First = 0x1000,
 
-  eReplayProxy_SetCtxFilter = eReplayProxy_First,
-  eReplayProxy_ReplayLog,
+  eReplayProxy_ReplayLog = eReplayProxy_First,
 
   eReplayProxy_GetPassEvents,
 
@@ -399,7 +398,6 @@ public:
   D3D11PipelineState GetD3D11PipelineState() { return m_D3D11PipelineState; }
   GLPipelineState GetGLPipelineState() { return m_GLPipelineState; }
   VulkanPipelineState GetVulkanPipelineState() { return m_VulkanPipelineState; }
-  void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);

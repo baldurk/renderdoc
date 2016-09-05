@@ -132,6 +132,8 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   {
     m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
     m_State = WRITING_IDLE;
+
+    m_pSerialiser->SetDebugText(true);
   }
 
   m_OwnSerialiser = false;
@@ -925,39 +927,9 @@ void WrappedID3D11DeviceContext::AddUsage(const FetchDrawcall &d)
   }
 }
 
-void WrappedID3D11DeviceContext::RefreshDrawcallIDs(DrawcallTreeNode &node)
-{
-  if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
-  {
-    m_pDevice->GetImmediateContext()->RefreshDrawcallIDs(node);
-    return;
-  }
-
-  // assign new drawcall IDs
-  for(size_t i = 0; i < node.children.size(); i++)
-  {
-    m_CurEventID++;
-
-    node.children[i].draw.eventID = m_CurEventID;
-    node.children[i].draw.drawcallID = m_CurDrawcallID;
-
-    // markers don't increment drawcall ID
-    if((node.children[i].draw.flags & (eDraw_SetMarker | eDraw_PushMarker)) == 0)
-      m_CurDrawcallID++;
-
-    RefreshDrawcallIDs(node.children[i]);
-  }
-}
-
 void WrappedID3D11DeviceContext::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
 {
   FetchDrawcall draw = d;
-
-  if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
-  {
-    m_pDevice->GetImmediateContext()->AddDrawcall(draw, hasEvents);
-    return;
-  }
 
   m_AddedDrawcall = true;
 
@@ -1013,17 +985,8 @@ void WrappedID3D11DeviceContext::AddDrawcall(const FetchDrawcall &d, bool hasEve
     RDCERR("Somehow lost drawcall stack!");
 }
 
-void WrappedID3D11DeviceContext::AddEvent(D3D11ChunkType type, string description, ResourceId ctx)
+void WrappedID3D11DeviceContext::AddEvent(D3D11ChunkType type, string description)
 {
-  if(ctx == ResourceId())
-    ctx = m_pDevice->GetResourceManager()->GetOriginalID(m_ResourceID);
-
-  if(GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
-  {
-    m_pDevice->GetImmediateContext()->AddEvent(type, description, ctx);
-    return;
-  }
-
   FetchAPIEvent apievent;
 
   apievent.fileOffset = m_CurChunkOffset;

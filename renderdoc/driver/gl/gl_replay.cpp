@@ -3022,11 +3022,6 @@ vector<EventUsage> GLReplay::GetUsage(ResourceId id)
 
 #pragma endregion
 
-void GLReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
-{
-  GLNOTIMP("SetContextFilter");
-}
-
 vector<PixelModification> GLReplay::PixelHistory(vector<EventUsage> events, ResourceId target,
                                                  uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
                                                  uint32_t sampleIdx, FormatComponentType typeHint)

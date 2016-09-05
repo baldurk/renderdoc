@@ -1305,11 +1305,6 @@ void D3D11Replay::ReadLogInitialisation()
   m_pDevice->ReadLogInitialisation();
 }
 
-void D3D11Replay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
-{
-  m_pDevice->SetContextFilter(id, firstDefEv, lastDefEv);
-}
-
 void D3D11Replay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
   m_pDevice->ReplayLog(0, endEventID, replayType);

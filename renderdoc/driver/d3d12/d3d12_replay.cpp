@@ -53,11 +53,6 @@ void D3D12Replay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
   m_pDevice->ReplayLog(0, endEventID, replayType);
 }
 
-void D3D12Replay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
-{
-  RDCERR("Should never hit SetContextFilter");
-}
-
 vector<ResourceId> D3D12Replay::GetBuffers()
 {
   vector<ResourceId> ret;

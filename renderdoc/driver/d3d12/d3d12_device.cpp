@@ -878,7 +878,6 @@ void WrappedID3D12Device::Serialise_CaptureScope(uint64_t offset)
     m_FrameRecord.frameInfo.fileOffset = offset;
     m_FrameRecord.frameInfo.firstEvent = 1;
     m_FrameRecord.frameInfo.frameNumber = FrameNumber;
-    m_FrameRecord.frameInfo.immContextId = ResourceId();
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
 
     GetResourceManager()->CreateInitialContents();
@@ -1522,8 +1521,7 @@ void WrappedID3D12Device::ReadLogInitialisation()
 
     m_Queue->GetParentDrawcall().children.clear();
 
-    SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.frameInfo.immContextId,
-                          m_FrameRecord.drawcallList, NULL, NULL);
+    SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.drawcallList, NULL, NULL);
   }
 
 #if !defined(RELEASE)

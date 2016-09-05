@@ -1115,8 +1115,6 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
   Serialise("", el.indexByteWidth);
   Serialise("", el.topology);
 
-  Serialise("", el.context);
-
   Serialise("", el.copySource);
   Serialise("", el.copyDestination);
 
@@ -1130,7 +1128,7 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
   Serialise("", el.events);
   Serialise("", el.children);
 
-  SIZE_CHECK(FetchDrawcall, 256);
+  SIZE_CHECK(FetchDrawcall, 248);
 }
 
 template <>
@@ -1328,11 +1326,10 @@ void Serialiser::Serialise(const char *name, FetchFrameInfo &el)
   Serialise("", el.persistentSize);
   Serialise("", el.initDataSize);
   Serialise("", el.captureTime);
-  Serialise("", el.immContextId);
   Serialise("", el.stats);
   Serialise("", el.debugMessages);
 
-  SIZE_CHECK(FetchFrameInfo, 1208);
+  SIZE_CHECK(FetchFrameInfo, 1200);
 }
 
 template <>
@@ -1341,7 +1338,7 @@ void Serialiser::Serialise(const char *name, FetchFrameRecord &el)
   Serialise("", el.frameInfo);
   Serialise("", el.drawcallList);
 
-  SIZE_CHECK(FetchFrameRecord, 1224);
+  SIZE_CHECK(FetchFrameRecord, 1216);
 }
 
 template <>
@@ -1772,7 +1769,6 @@ bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
 
   switch(type)
   {
-    case eReplayProxy_SetCtxFilter: SetContextFilter(ResourceId(), 0, 0); break;
     case eReplayProxy_ReplayLog: ReplayLog(0, (ReplayLogType)0); break;
     case eReplayProxy_GetPassEvents: GetPassEvents(0); break;
     case eReplayProxy_GetAPIProperties: GetAPIProperties(); break;
@@ -2028,23 +2024,6 @@ void ReplayProxy::SavePipelineState()
   m_FromReplaySerialiser->Serialise("", m_D3D11PipelineState);
   m_FromReplaySerialiser->Serialise("", m_GLPipelineState);
   m_FromReplaySerialiser->Serialise("", m_VulkanPipelineState);
-}
-
-void ReplayProxy::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
-{
-  m_ToReplaySerialiser->Serialise("", id);
-  m_ToReplaySerialiser->Serialise("", firstDefEv);
-  m_ToReplaySerialiser->Serialise("", lastDefEv);
-
-  if(m_RemoteServer)
-  {
-    m_Remote->SetContextFilter(id, firstDefEv, lastDefEv);
-  }
-  else
-  {
-    if(!SendReplayCommand(eReplayProxy_SetCtxFilter))
-      return;
-  }
 }
 
 void ReplayProxy::ReplayLog(uint32_t endEventID, ReplayLogType replayType)

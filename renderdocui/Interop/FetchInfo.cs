@@ -502,7 +502,6 @@ namespace renderdoc
         public UInt64 persistentSize;
         public UInt64 initDataSize;
         public UInt64 captureTime;
-        public ResourceId immContextId;
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public FetchFrameStatistics stats;
 
@@ -610,8 +609,6 @@ namespace renderdoc
 
         public ResourceId copySource;
         public ResourceId copyDestination;
-
-        public ResourceId context;
 
         public Int64 parentDrawcall;
         public Int64 previousDrawcall;

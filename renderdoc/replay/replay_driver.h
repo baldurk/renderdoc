@@ -74,7 +74,6 @@ public:
   virtual FetchFrameRecord GetFrameRecord() = 0;
 
   virtual void ReadLogInitialisation() = 0;
-  virtual void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv) = 0;
   virtual void ReplayLog(uint32_t endEventID, ReplayLogType replayType) = 0;
 
   virtual vector<uint32_t> GetPassEvents(uint32_t eventID) = 0;
@@ -181,7 +180,7 @@ public:
 
 // utility function useful in any driver implementation
 template <typename FetchDrawcallContainer>
-FetchDrawcall *SetupDrawcallPointers(vector<FetchDrawcall *> *drawcallTable, ResourceId contextID,
+FetchDrawcall *SetupDrawcallPointers(vector<FetchDrawcall *> *drawcallTable,
                                      FetchDrawcallContainer &draws, FetchDrawcall *parent,
                                      FetchDrawcall *previous)
 {
@@ -197,14 +196,12 @@ FetchDrawcall *SetupDrawcallPointers(vector<FetchDrawcall *> *drawcallTable, Res
     {
       if(drawcallTable)
       {
-        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID ||
-                  draw->context != contextID);
+        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID);
         drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventID + 1)));
         (*drawcallTable)[draw->eventID] = draw;
       }
 
-      ret = previous =
-          SetupDrawcallPointers(drawcallTable, contextID, draw->children, draw, previous);
+      ret = previous = SetupDrawcallPointers(drawcallTable, draw->children, draw, previous);
     }
     else if(draw->flags & (eDraw_PushMarker | eDraw_SetMarker | eDraw_Present | eDraw_MultiDraw))
     {
@@ -212,8 +209,7 @@ FetchDrawcall *SetupDrawcallPointers(vector<FetchDrawcall *> *drawcallTable, Res
 
       if(drawcallTable)
       {
-        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID ||
-                  draw->context != contextID);
+        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID);
         drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventID + 1)));
         (*drawcallTable)[draw->eventID] = draw;
       }
@@ -226,8 +222,7 @@ FetchDrawcall *SetupDrawcallPointers(vector<FetchDrawcall *> *drawcallTable, Res
 
       if(drawcallTable)
       {
-        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID ||
-                  draw->context != contextID);
+        RDCASSERT(drawcallTable->empty() || draw->eventID > drawcallTable->back()->eventID);
         drawcallTable->resize(RDCMAX(drawcallTable->size(), size_t(draw->eventID + 1)));
         (*drawcallTable)[draw->eventID] = draw;
       }

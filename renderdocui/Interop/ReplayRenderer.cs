@@ -249,8 +249,6 @@ namespace renderdoc
         private static extern bool ReplayRenderer_InitResolver(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_SetContextFilter(IntPtr real, ResourceId id, UInt32 firstDefEv, UInt32 lastDefEv);
-        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_SetFrameEvent(IntPtr real, UInt32 eventID, bool force);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetD3D11PipelineState(IntPtr real, IntPtr mem);
@@ -372,8 +370,6 @@ namespace renderdoc
         public bool InitResolver()
         { return ReplayRenderer_InitResolver(m_Real); }
 
-        public bool SetContextFilter(ResourceId id, UInt32 firstDefEv, UInt32 lastDefEv)
-        { return ReplayRenderer_SetContextFilter(m_Real, id, firstDefEv, lastDefEv); }
         public bool SetFrameEvent(UInt32 eventID, bool force)
         { return ReplayRenderer_SetFrameEvent(m_Real, eventID, force); }
 
