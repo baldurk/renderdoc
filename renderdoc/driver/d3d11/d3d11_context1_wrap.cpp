@@ -152,60 +152,12 @@ bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pD
 
       if(flags == ~0U)
       {
-        byte *adjustedData = SourceData;
-
-        if(pBox && m_NeedUpdateSubWorkaround && GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
-        {
-          // apply the workaround for the data we're about to pass
-
-          D3D11_BOX alignedBox = *pBox;
-
-          DXGI_FORMAT fmt = DXGI_FORMAT_UNKNOWN;
-
-          if(WrappedID3D11Texture1D::IsAlloc(DestResource))
-          {
-            D3D11_TEXTURE1D_DESC desc;
-            ((WrappedID3D11Texture1D *)DestResource)->GetDesc(&desc);
-            fmt = desc.Format;
-          }
-          else if(WrappedID3D11Texture2D1::IsAlloc(DestResource))
-          {
-            D3D11_TEXTURE2D_DESC desc;
-            ((WrappedID3D11Texture2D1 *)DestResource)->GetDesc(&desc);
-            fmt = desc.Format;
-          }
-          else if(WrappedID3D11Texture3D1::IsAlloc(DestResource))
-          {
-            D3D11_TEXTURE3D_DESC desc;
-            ((WrappedID3D11Texture3D1 *)DestResource)->GetDesc(&desc);
-            fmt = desc.Format;
-          }
-          else
-          {
-            RDCASSERT(WrappedID3D11Buffer::IsAlloc(DestResource));
-          }
-
-          // convert from pixels to blocks
-          if(IsBlockFormat(fmt))
-          {
-            alignedBox.left /= 4;
-            alignedBox.right /= 4;
-            alignedBox.top /= 4;
-            alignedBox.bottom /= 4;
-          }
-
-          // if we couldn't get a format it's a buffer, so work in bytes
-          if(fmt != DXGI_FORMAT_UNKNOWN)
-            adjustedData = adjustedData - (alignedBox.front * SourceDepthPitch) -
-                           (alignedBox.top * SourceRowPitch) -
-                           (alignedBox.left * GetByteSize(1, 1, 1, fmt, 0));
-          else
-            adjustedData = adjustedData - alignedBox.left;
-        }
+        // don't need to apply update subresource workaround here because we never replay on
+        // deferred contexts, so the bug doesn't arise (we don't record-in the workaround).
 
         m_pRealContext->UpdateSubresource(
             m_pDevice->GetResourceManager()->UnwrapResource(DestResource), DestSubresource, pBox,
-            adjustedData, SourceRowPitch, SourceDepthPitch);
+            SourceData, SourceRowPitch, SourceDepthPitch);
       }
       else
       {
