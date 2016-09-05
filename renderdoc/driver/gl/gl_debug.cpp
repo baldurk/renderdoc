@@ -290,6 +290,14 @@ void GLReplay::InitDebugData()
     GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_quadwrite_frag),
                        support450 ? 450 : 420);
 
+    if(!support450)
+    {
+      // remove derivative control extension
+      size_t offs = fs[0].find("#extension GL_ARB_derivative_control");
+      if(offs != string::npos)
+        fs[0].insert(offs, "//");
+    }
+
     DebugData.quadoverdrawResolveProg = CreateShaderProgram(empty, fs);
 
     GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_quadresolve_frag), 420);
