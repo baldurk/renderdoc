@@ -208,6 +208,8 @@ private:
   bool m_SuccessfulCapture;
   bool m_EmptyCommandList;
 
+  bool m_PresentChunk;
+
   ResourceId m_FakeContext;
 
   bool m_DoStateVerify;
@@ -299,6 +301,9 @@ public:
   bool Serialise_BeginCaptureFrame(bool applyInitialState);
   void BeginCaptureFrame();
   void EndCaptureFrame();
+
+  // insert a fake chunk just to store these parameters
+  void Present(UINT SyncInterval, UINT Flags);
 
   void CleanupCapture();
   void FreeCaptureData();

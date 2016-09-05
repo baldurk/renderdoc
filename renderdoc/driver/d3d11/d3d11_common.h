@@ -344,6 +344,8 @@ enum D3D11ChunkType
   CREATE_RTV1,
   CREATE_UAV1,
 
+  SWAP_PRESENT,
+
   NUM_D3D11_CHUNKS,
 };
 

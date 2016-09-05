@@ -191,6 +191,8 @@ const char *D3D11ChunkNames[] = {
     "ID3D11Device3::CreateShaderResourceView1",
     "ID3D11Device3::CreateRenderTargetView1",
     "ID3D11Device3::CreateUnorderedAccessView1",
+
+    "IDXGISwapChain::Present",
 };
 
 WRAPPED_POOL_INST(WrappedID3D11Device);
@@ -3299,7 +3301,11 @@ HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
 
   // kill any current capture that isn't application defined
   if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
+  {
+    m_pImmediateContext->Present(SyncInterval, Flags);
+
     RenderDoc::Inst().EndFrameCapture((ID3D11Device *)this, swapdesc.OutputWindow);
+  }
 
   if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)
   {

@@ -154,6 +154,8 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   m_FailureReason = CaptureSucceeded;
   m_EmptyCommandList = true;
 
+  m_PresentChunk = false;
+
   m_DrawcallStack.push_back(&m_ParentDrawcall);
 
   m_CurEventID = 1;
@@ -490,6 +492,16 @@ void WrappedID3D11DeviceContext::EndCaptureFrame()
   m_ContextRecord->AddChunk(scope.Get());
 }
 
+void WrappedID3D11DeviceContext::Present(UINT SyncInterval, UINT Flags)
+{
+  SCOPED_SERIALISE_CONTEXT(SWAP_PRESENT);
+  m_pSerialiser->Serialise("context", m_ResourceID);
+  m_pSerialiser->Serialise("SyncInterval", SyncInterval);
+  m_pSerialiser->Serialise("Flags", Flags);
+
+  m_ContextRecord->AddChunk(scope.Get());
+}
+
 void WrappedID3D11DeviceContext::FreeCaptureData()
 {
   SCOPED_LOCK(m_pDevice->D3DLock());
@@ -747,6 +759,17 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
     case DISCARD_VIEW: context->Serialise_DiscardView(NULL); break;
     case DISCARD_VIEW1: context->Serialise_DiscardView1(NULL, NULL, 0); break;
 
+    case SWAP_PRESENT:
+    {
+      // we don't do anything with these parameters, they're just here to store
+      // them for user benefits
+      UINT SyncInterval = 0, Flags = 0;
+      m_pSerialiser->Serialise("SyncInterval", SyncInterval);
+      m_pSerialiser->Serialise("Flags", Flags);
+      m_PresentChunk = true;
+      break;
+    }
+
     case CONTEXT_CAPTURE_FOOTER:
     {
       bool HasCallstack = false;
@@ -766,7 +789,8 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
 
       if(m_State == READING)
       {
-        AddEvent(CONTEXT_CAPTURE_FOOTER, "IDXGISwapChain::Present()");
+        if(!m_PresentChunk)
+          AddEvent(CONTEXT_CAPTURE_FOOTER, "IDXGISwapChain::Present()");
 
         FetchDrawcall draw;
         draw.name = "Present()";
