@@ -8,6 +8,7 @@
 #include "gles_common.h"
 #include "gles_hookset.h"
 
+#include "gles_chunks.h"
 #include "gles_resources.h"
 #include "gles_manager.h"
 

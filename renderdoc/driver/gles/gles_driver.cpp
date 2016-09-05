@@ -59,8 +59,8 @@ WrappedGLES::WrappedGLES(const char *logfile, const GLHookSet &funcs, GLESInitPa
 
 WrappedGLES::~WrappedGLES()
 {
+    SAFE_DELETE(m_pSerialiser);
 }
-
 
 void WrappedGLES::StartFrameCapture(void *dev, void *wnd)
 {
@@ -84,10 +84,10 @@ bool WrappedGLES::EndFrameCapture(void *dev, void *wnd)
     uint32_t thwidth = 0;
     uint32_t thheight = 0;
 
-    Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(
+    Serialiser *fileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(
         m_FrameCounter, &m_InitParams, jpgbuf, len, thwidth, thheight);
 
-    GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
+    GetResourceManager()->InsertReferencedChunks(fileSerialiser);
 
     {
       RDCDEBUG("Getting Resource Record");
@@ -102,16 +102,16 @@ bool WrappedGLES::EndFrameCapture(void *dev, void *wnd)
       RDCDEBUG("Flushing %u records to file serialiser", (uint32_t)recordlist.size());
 
       for(auto it = recordlist.begin(); it != recordlist.end(); ++it)
-        m_pFileSerialiser->Insert(it->second);
+        fileSerialiser->Insert(it->second);
 
       RDCDEBUG("Done");
     }
 
-    m_pFileSerialiser->FlushToDisk();
+    fileSerialiser->FlushToDisk();
 
     RenderDoc::Inst().SuccessfullyWrittenLog();
 
-    SAFE_DELETE(m_pFileSerialiser);
+    SAFE_DELETE(fileSerialiser);
 
     m_State = WRITING_IDLE;
 
