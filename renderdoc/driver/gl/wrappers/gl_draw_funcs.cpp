@@ -3302,7 +3302,7 @@ bool WrappedOpenGL::Serialise_glClearNamedBufferDataEXT(GLuint buffer, GLenum in
 
   uint64_t val[4] = {0};
 
-  if(m_State >= WRITING)
+  if(m_State >= WRITING && data != NULL)
   {
     size_t s = 1;
     switch(Format)
