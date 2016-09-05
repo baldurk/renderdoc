@@ -4799,7 +4799,7 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(ID3D11CommandList 
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_CmdList | eDraw_SetMarker;
+    draw.flags |= eDraw_CmdList;
   }
 
   return true;
@@ -5045,7 +5045,7 @@ bool WrappedID3D11DeviceContext::Serialise_FinishCommandList(BOOL RestoreDeferre
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_CmdList | eDraw_SetMarker;
+    draw.flags |= eDraw_CmdList;
 
     AddDrawcall(draw, true);
   }
