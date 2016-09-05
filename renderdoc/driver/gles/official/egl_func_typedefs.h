@@ -7,18 +7,24 @@
 extern "C" {
 #endif
 
+typedef EGLDisplay (*PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
+typedef EGLBoolean (*PFN_eglBindAPI)(EGLenum api);
 typedef __eglMustCastToProperFunctionPointerType (*PFN_eglGetProcAddress)(const char *procname);
 typedef EGLBoolean (*PFN_eglSwapBuffers)(EGLDisplay dpy, EGLSurface surface);
+typedef EGLBoolean (*PFN_eglChooseConfig)(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config);
+typedef EGLContext (*PFN_eglCreateContext)(EGLDisplay dpy, EGLConfig config, EGLContext share_context, const EGLint *attrib_list);
+typedef EGLBoolean (*PFN_eglQuerySurface)(EGLDisplay dpy, EGLSurface surface, EGLint attribute, EGLint *value);
+typedef EGLBoolean (*PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value);
+typedef EGLBoolean (*PFN_eglInitialize)(EGLDisplay dpy, EGLint *major, EGLint *minor);
+typedef EGLBoolean (*PFN_eglMakeCurrent)(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx);
+typedef EGLSurface (*PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list);
 
 #if 0
-typedef EGLBoolean (*PFN_eglBindAPI)(EGLenum api);
 typedef EGLBoolean (*PFN_eglBindTexImage)(EGLDisplay dpy, EGLSurface surface, EGLint buffer);
-typedef EGLBoolean (*PFN_eglChooseConfig)(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config);
 typedef EGLint (*PFN_eglClientWaitSync)(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTime timeout);
 typedef EGLint (*PFN_eglClientWaitSyncKHR)(EGLDisplay dpy, EGLSyncKHR sync, EGLint flags, EGLTimeKHR timeout);
 typedef EGLint (*PFN_eglClientWaitSyncNV)(EGLSyncNV sync, EGLint flags, EGLTimeNV timeout);
 typedef EGLBoolean (*PFN_eglCopyBuffers)(EGLDisplay dpy, EGLSurface surface, EGLNativePixmapType target);
-typedef EGLContext (*PFN_eglCreateContext)(EGLDisplay dpy, EGLConfig config, EGLContext share_context, const EGLint *attrib_list);
 typedef EGLImageKHR (*PFN_eglCreateDRMImageMESA)(EGLDisplay dpy, const EGLint *attrib_list);
 typedef EGLSyncNV (*PFN_eglCreateFenceSyncNV)(EGLDisplay dpy, EGLenum condition, const EGLint *attrib_list);
 typedef EGLImage (*PFN_eglCreateImage)(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLAttrib *attrib_list);
@@ -39,7 +45,6 @@ typedef EGLSyncKHR (*PFN_eglCreateStreamSyncNV)(EGLDisplay dpy, EGLStreamKHR str
 typedef EGLSync (*PFN_eglCreateSync)(EGLDisplay dpy, EGLenum type, const EGLAttrib *attrib_list);
 typedef EGLSyncKHR (*PFN_eglCreateSyncKHR)(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list);
 typedef EGLSyncKHR (*PFN_eglCreateSync64KHR)(EGLDisplay dpy, EGLenum type, const EGLAttribKHR *attrib_list);
-typedef EGLSurface (*PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list);
 typedef EGLint (*PFN_eglDebugMessageControlKHR)(EGLDEBUGPROCKHR callback, const EGLAttrib *attrib_list);
 typedef EGLBoolean (*PFN_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
 typedef EGLBoolean (*PFN_eglDestroyImage)(EGLDisplay dpy, EGLImage image);
@@ -54,12 +59,10 @@ typedef EGLBoolean (*PFN_eglExportDMABUFImageMESA)(EGLDisplay dpy, EGLImageKHR i
 typedef EGLBoolean (*PFN_eglExportDMABUFImageQueryMESA)(EGLDisplay dpy, EGLImageKHR image, int *fourcc, int *num_planes, EGLuint64KHR *modifiers);
 typedef EGLBoolean (*PFN_eglExportDRMImageMESA)(EGLDisplay dpy, EGLImageKHR image, EGLint *name, EGLint *handle, EGLint *stride);
 typedef EGLBoolean (*PFN_eglFenceNV)(EGLSyncNV sync);
-typedef EGLBoolean (*PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value);
 typedef EGLBoolean (*PFN_eglGetConfigs)(EGLDisplay dpy, EGLConfig *configs, EGLint config_size, EGLint *num_config);
 typedef EGLContext (*PFN_eglGetCurrentContext)();
 typedef EGLDisplay (*PFN_eglGetCurrentDisplay)();
 typedef EGLSurface (*PFN_eglGetCurrentSurface)(EGLint readdraw);
-typedef EGLDisplay (*PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
 typedef EGLint (*PFN_eglGetError)();
 typedef EGLBoolean (*PFN_eglGetOutputLayersEXT)(EGLDisplay dpy, const EGLAttrib *attrib_list, EGLOutputLayerEXT *layers, EGLint max_layers, EGLint *num_layers);
 typedef EGLBoolean (*PFN_eglGetOutputPortsEXT)(EGLDisplay dpy, const EGLAttrib *attrib_list, EGLOutputPortEXT *ports, EGLint max_ports, EGLint *num_ports);
@@ -71,10 +74,8 @@ typedef EGLBoolean (*PFN_eglGetSyncAttribKHR)(EGLDisplay dpy, EGLSyncKHR sync, E
 typedef EGLBoolean (*PFN_eglGetSyncAttribNV)(EGLSyncNV sync, EGLint attribute, EGLint *value);
 typedef EGLuint64NV (*PFN_eglGetSystemTimeFrequencyNV)();
 typedef EGLuint64NV (*PFN_eglGetSystemTimeNV)();
-typedef EGLBoolean (*PFN_eglInitialize)(EGLDisplay dpy, EGLint *major, EGLint *minor);
 typedef EGLint (*PFN_eglLabelObjectKHR)(EGLDisplay display, EGLenum objectType, EGLObjectKHR object, EGLLabelKHR label);
 typedef EGLBoolean (*PFN_eglLockSurfaceKHR)(EGLDisplay dpy, EGLSurface surface, const EGLint *attrib_list);
-typedef EGLBoolean (*PFN_eglMakeCurrent)(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx);
 typedef EGLBoolean (*PFN_eglOutputLayerAttribEXT)(EGLDisplay dpy, EGLOutputLayerEXT layer, EGLint attribute, EGLAttrib value);
 typedef EGLBoolean (*PFN_eglOutputPortAttribEXT)(EGLDisplay dpy, EGLOutputPortEXT port, EGLint attribute, EGLAttrib value);
 typedef EGLBoolean (*PFN_eglPostSubBufferNV)(EGLDisplay dpy, EGLSurface surface, EGLint x, EGLint y, EGLint width, EGLint height);
@@ -99,7 +100,6 @@ typedef EGLBoolean (*PFN_eglQueryStreamMetadataNV)(EGLDisplay dpy, EGLStreamKHR 
 typedef EGLBoolean (*PFN_eglQueryStreamTimeKHR)(EGLDisplay dpy, EGLStreamKHR stream, EGLenum attribute, EGLTimeKHR *value);
 typedef EGLBoolean (*PFN_eglQueryStreamu64KHR)(EGLDisplay dpy, EGLStreamKHR stream, EGLenum attribute, EGLuint64KHR *value);
 typedef const char * (*PFN_eglQueryString)(EGLDisplay dpy, EGLint name);
-typedef EGLBoolean (*PFN_eglQuerySurface)(EGLDisplay dpy, EGLSurface surface, EGLint attribute, EGLint *value);
 typedef EGLBoolean (*PFN_eglQuerySurface64KHR)(EGLDisplay dpy, EGLSurface surface, EGLint attribute, EGLAttribKHR *value);
 typedef EGLBoolean (*PFN_eglQuerySurfacePointerANGLE)(EGLDisplay dpy, EGLSurface surface, EGLint attribute, void **value);
 typedef EGLBoolean (*PFN_eglReleaseTexImage)(EGLDisplay dpy, EGLSurface surface, EGLint buffer);

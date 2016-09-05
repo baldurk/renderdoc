@@ -134,6 +134,65 @@ const char *WrappedGLES::GetChunkName(uint32_t idx)
   return GLESChunkNames[idx - FIRST_CHUNK_ID];
 }
 
+void WrappedGLES::ReadLogInitialisation()
+{
+    m_pSerialiser->Rewind();
+
+    for (;;) {
+        uint64_t offset = m_pSerialiser->GetOffset();
+        GLESChunkType context = (GLESChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
+/*
+        if(context == CAPTURE_SCOPE)
+        {
+            // immediately read rest of log into memory
+            m_pSerialiser->SetPersistentBlock(offset);
+        }
+*/
+        ProcessChunk(offset, context);
+
+        m_pSerialiser->PopContext(context);
+
+        RenderDoc::Inst().SetProgress(FileInitialRead, float(offset) / float(m_pSerialiser->GetSize()));
+/*
+        if(context == CAPTURE_SCOPE)
+        {
+            GetResourceManager()->ApplyInitialContents();
+
+            ContextReplayLog(READING, 0, 0, false);
+        }
+
+        if(context == CAPTURE_SCOPE)
+            break;
+*/
+        if(m_pSerialiser->AtEnd())
+            break;
+    }
+}
+
+void WrappedGLES::ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
+{
+}
+
+void WrappedGLES::ProcessChunk(unsigned long offset, GLESChunkType chunk)
+{
+    printf("CALL: %s (%lu) (%d, %s)\n", __FUNCTION__, offset, chunk, GetChunkName(chunk));
+    switch (chunk)
+    {
+        case CLEAR: Serialise_glClear(0); break;
+        case CLEAR_COLOR: Serialise_glClearColor(0, 0, 0, 0); break;
+        default:
+        {
+            // ignore system chunks
+            if((int)chunk == (int)INITIAL_CONTENTS)
+                GetResourceManager()->Serialise_InitialState(ResourceId(), GLESResource(MakeNullResource));
+            else if((int)chunk < (int)FIRST_CHUNK_ID)
+                m_pSerialiser->SkipCurrentChunk();
+            else
+                printf("Unknown chunk: %d\n", chunk);
+        }
+    }
+}
+
 void WrappedGLES::CreateContext(void)
 {
     RenderDoc::Inst().AddDeviceFrameCapturer(this, this);

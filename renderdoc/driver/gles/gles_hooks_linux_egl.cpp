@@ -132,7 +132,7 @@ __attribute__((visibility("default"))) __eglMustCastToProperFunctionPointerType 
     if(realFunc == NULL)
        return realFunc;
 
-    //DLLExportHooks();
+    DLLExportHooks();
     //HookCheckGLExtensions();
 
     // at the moment the unsupported functions are all lowercase (as their name is generated from the

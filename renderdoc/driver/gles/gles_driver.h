@@ -54,7 +54,12 @@ public:
 
     static const char *GetChunkName(uint32_t idx);
 
+    void ReadLogInitialisation(void);
+    void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
+
 private:
+    void ProcessChunk(uint64_t offset, GLESChunkType context);
+
     GLESResourceManager *GetResourceManager() { return m_ResourceManager; }
 
     GLESResourceManager *m_ResourceManager;

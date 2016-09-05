@@ -3,6 +3,8 @@
 #include "core/core.h"
 #include "replay/replay_driver.h"
 
+#include "gles_common.h"
+
 class WrappedGLES;
 
 class GLESReplay : public IReplayDriver
@@ -10,6 +12,7 @@ class GLESReplay : public IReplayDriver
 public:
     GLESReplay(WrappedGLES* gles)
         : m_pDriver(gles)
+        , m_outputWindowIds(1)
      {}
 
     virtual void Shutdown() { }
@@ -104,7 +107,18 @@ public:
    virtual uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y);
 
 private:
+    void MakeCurrentReplayContext(GLESWindowingData*);
+
     WrappedGLES* m_pDriver;
+
+    struct OutputWindow : public GLESWindowingData
+    {
+        int width;
+        int height;
+    };
+
+    uint64_t m_outputWindowIds;
+    std::map<uint64_t, OutputWindow> m_outputWindows;
 };
 
 ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver);

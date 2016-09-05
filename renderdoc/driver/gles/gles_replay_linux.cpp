@@ -1,9 +1,17 @@
 #include "gles_replay.h"
+
+#include <dlfcn.h>
 #include "gles_driver.h"
+#include "official/egl_func_typedefs.h"
+
+static PFN_eglGetProcAddress eglGetProcAddress_real = NULL;
 
 ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
     RDCDEBUG("Creating an GLES replay device");
+
+    eglGetProcAddress_real = (PFN_eglGetProcAddress)dlsym(RTLD_NEXT, "eglGetProcAddress");
+
 
     GLESInitParams initParams;
     RDCDriver driverType = RDC_OpenGL;

@@ -2,11 +2,22 @@
 
 #include "core/resource_manager.h"
 
+
+enum NullInitialiser
+{
+  MakeNullResource
+};
+
 struct GLESResource
 {
   GLESResource()
   {
   }
+
+  GLESResource(NullInitialiser)
+  {
+  }
+
 
   bool operator==(const GLESResource &o) const
   {
@@ -23,6 +34,9 @@ struct GLESResource
 class GLESResourceRecord : public ResourceRecord
 {
 public:
+    static const NullInitialiser NullResource = MakeNullResource;
+
+
     GLESResourceRecord(ResourceId id)
         : ResourceRecord(id, true)
     {

@@ -1,6 +1,10 @@
+#define RENDERDOC_WINDOWING_XLIB 1
+
 #include "gles_replay.h"
 
 #include "gles_driver.h"
+#include "official/egl_func_typedefs.h"
+#include <dlfcn.h>
 
 APIProperties GLESReplay::GetAPIProperties()
 {
@@ -66,6 +70,7 @@ FetchFrameRecord GLESReplay::GetFrameRecord()
 
 void GLESReplay::ReadLogInitialisation()
 {
+    m_pDriver->ReadLogInitialisation();
 }
 
 void GLESReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
@@ -75,6 +80,7 @@ void GLESReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t l
 
 void GLESReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
+    m_pDriver->ReplayLog(0, endEventID, replayType);
 }
 
 vector<uint32_t> GLESReplay::GetPassEvents(uint32_t eventID)
@@ -231,9 +237,110 @@ vector<WindowingSystem> GLESReplay::GetSupportedWindowSystems()
     return ret;
 }
 
+#define REAL(NAME) NAME ##_real
+#define LOAD_SYM(NAME) REAL(NAME) = (PFN_##NAME)dlsym(RTLD_NEXT, #NAME)
+#define DEF_FUNC(NAME) static PFN_##NAME REAL(NAME) = NULL
+
+DEF_FUNC(eglBindAPI);
+DEF_FUNC(eglGetDisplay);
+DEF_FUNC(eglInitialize);
+DEF_FUNC(eglChooseConfig);
+DEF_FUNC(eglGetConfigAttrib);
+DEF_FUNC(eglCreateContext);
+DEF_FUNC(eglCreateWindowSurface);
+DEF_FUNC(eglQuerySurface);
+DEF_FUNC(eglMakeCurrent);
+
 uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
-    return 0;
+    Display *display = NULL;
+    Drawable draw = 0;
+
+    if(system == eWindowingSystem_Xlib)
+    {
+        XlibWindowData *xlib = (XlibWindowData *)data;
+
+        display = xlib->display;
+        draw = xlib->window;
+    }
+    else
+    {
+        RDCERR("Unexpected window system %u", system);
+    }
+
+    LOAD_SYM(eglBindAPI);
+    LOAD_SYM(eglGetDisplay);
+    LOAD_SYM(eglInitialize);
+    LOAD_SYM(eglChooseConfig);
+    LOAD_SYM(eglGetConfigAttrib);
+    LOAD_SYM(eglCreateContext);
+    LOAD_SYM(eglCreateWindowSurface);
+    LOAD_SYM(eglQuerySurface);
+    LOAD_SYM(eglMakeCurrent);
+
+    REAL(eglBindAPI)(EGL_OPENGL_ES_API);
+
+
+    EGLDisplay egl_display = eglGetDisplay_real(display);
+    if (!egl_display) {
+        printf("Error: eglGetDisplay() failed\n");
+        return -1;
+    }
+
+    int egl_major;
+    int egl_minor;
+
+    if (!eglInitialize_real(egl_display, &egl_major, &egl_minor)) {
+        printf("Error: eglInitialize() failed\n");
+         return -1;
+    }
+
+    static const EGLint attribs[] = {
+        EGL_RED_SIZE, 1,
+        EGL_GREEN_SIZE, 1,
+        EGL_BLUE_SIZE, 1,
+        EGL_DEPTH_SIZE, 1,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_NONE
+    };
+    EGLConfig config;
+    EGLint num_configs;
+
+    if (!REAL(eglChooseConfig)(egl_display, attribs, &config, 1, &num_configs)) {
+        printf("Error: couldn't get an EGL visual config\n");
+        return -1;
+    }
+
+    EGLint vid;
+    if (!REAL(eglGetConfigAttrib)(egl_display, config, EGL_NATIVE_VISUAL_ID, &vid)) {
+        printf("Error: eglGetConfigAttrib() failed\n");
+        return -1;
+    }
+
+    static const EGLint ctx_attribs[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 3,
+        EGL_NONE
+    };
+
+    EGLContext ctx = REAL(eglCreateContext)(egl_display, config, EGL_NO_CONTEXT, ctx_attribs);
+    EGLSurface surface = REAL(eglCreateWindowSurface)(egl_display, config, (EGLNativeWindowType)draw, NULL);
+
+    OutputWindow outputWin;
+    outputWin.context = ctx;
+    outputWin.surface = surface;
+    outputWin.display = display;
+
+    REAL(eglQuerySurface)(egl_display, surface, EGL_HEIGHT, &outputWin.height);
+    REAL(eglQuerySurface)(egl_display, surface, EGL_WIDTH, &outputWin.width);
+
+
+    printf("New output window (%dx%d)\n", outputWin.height, outputWin.width);
+    MakeCurrentReplayContext(&outputWin);
+
+    uint64_t windowId = m_outputWindowIds++;
+    m_outputWindows[windowId] = outputWin;
+
+    return windowId;
 }
 
 void GLESReplay::DestroyOutputWindow(uint64_t id)
@@ -356,5 +463,12 @@ uint32_t GLESReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32
 {
     return ~0U;
 }
+
+
+void GLESReplay::MakeCurrentReplayContext(GLESWindowingData* windowData)
+{
+    REAL(eglMakeCurrent)(windowData->display, windowData->surface, windowData->surface, windowData->context);
+}
+
 
 static DriverRegistration GLDriverRegistration(RDC_OpenGL, "GLES", &GLES_CreateReplayDevice);
