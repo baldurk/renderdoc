@@ -1382,6 +1382,25 @@ void WrappedVulkan::vkCmdBindDescriptorSets(VkCommandBuffer commandBuffer,
     record->AddChunk(scope.Get());
     record->MarkResourceFrameReferenced(GetResID(layout), eFrameRef_Read);
     record->cmdInfo->boundDescSets.insert(pDescriptorSets, pDescriptorSets + setCount);
+
+    // conservatively mark all writeable objects in the descriptor set as dirty here.
+    // Technically not all might be written although that required verifying what the
+    // shader does and is a large problem space. The binding could be overridden though
+    // but per Vulkan ethos we consider that the application's problem to solve. Plus,
+    // it would mean we'd need to dirty every drawcall instead of just every bind at
+    // lower frequency.
+    for(uint32_t i = 0; i < setCount; i++)
+    {
+      VkResourceRecord *descSet = GetRecord(pDescriptorSets[i]);
+
+      map<ResourceId, pair<uint32_t, FrameRefType> > &frameRefs = descSet->descInfo->bindFrameRefs;
+
+      for(auto it = frameRefs.begin(); it != frameRefs.end(); ++it)
+      {
+        if(it->second.second == eFrameRef_Write || it->second.second == eFrameRef_ReadBeforeWrite)
+          record->cmdInfo->dirtied.insert(it->first);
+      }
+    }
   }
 }
 
