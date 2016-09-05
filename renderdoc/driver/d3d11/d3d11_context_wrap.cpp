@@ -4787,26 +4787,14 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(ID3D11CommandList 
   SERIALISE_ELEMENT(uint8_t, RestoreContextState, RestoreContextState_ == TRUE);
   SERIALISE_ELEMENT(ResourceId, cmdList, GetIDForResource(pCommandList));
 
-  RDCASSERT(GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE);
-
-  if(m_State <= EXECUTING)
-  {
-    if(m_pDevice->GetResourceManager()->HasLiveResource(cmdList))
-      m_pRealContext->ExecuteCommandList(
-          UNWRAP(WrappedID3D11CommandList, m_pDevice->GetResourceManager()->GetLiveResource(cmdList)),
-          RestoreContextState);
-    else
-      RDCERR("Don't have command list serialised for %llu", cmdList);
-
-    if(!RestoreContextState)
-      m_CurrentPipelineState->Clear();
-
-    VerifyState();
-  }
-
   const string desc = m_pSerialiser->GetDebugStr();
 
   Serialise_DebugMessages();
+
+  if(m_State <= EXECUTING && RestoreContextState)
+  {
+    m_DeferredSavedState = new D3D11RenderState(this);
+  }
 
   if(m_State == READING)
   {
@@ -4814,21 +4802,7 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(ID3D11CommandList 
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_CmdList | eDraw_PushMarker;
-
-    AddDrawcall(draw, true);
-
-    auto cmdDrawChildren = m_CmdLists.find(cmdList);
-
-    if(!m_DrawcallStack.empty() && !m_DrawcallStack.back()->children.empty() &&
-       cmdDrawChildren != m_CmdLists.end())
-    {
-      m_DrawcallStack.back()->children.back().children = cmdDrawChildren->second.children;
-
-      // assign new drawcall IDs so that we don't get duplicates if this commandlist is executed
-      // again
-      RefreshDrawcallIDs(cmdDrawChildren->second);
-    }
+    draw.flags |= eDraw_CmdList | eDraw_SetMarker;
   }
 
   return true;
@@ -5063,29 +5037,6 @@ bool WrappedID3D11DeviceContext::Serialise_FinishCommandList(BOOL RestoreDeferre
   SERIALISE_ELEMENT(uint8_t, RestoreDeferredContextState, RestoreDeferredContextState_ == TRUE);
   SERIALISE_ELEMENT(ResourceId, cmdList, GetIDForResource(*ppCommandList));
 
-  if(m_State <= EXECUTING && GetType() == D3D11_DEVICE_CONTEXT_DEFERRED)
-  {
-    ID3D11CommandList *ret = NULL;
-    HRESULT hr = m_pRealContext->FinishCommandList(RestoreDeferredContextState, &ret);
-
-    if(!RestoreDeferredContextState)
-      m_CurrentPipelineState->Clear();
-
-    VerifyState();
-
-    if(FAILED(hr))
-      RDCERR("Failed on finishing command list, HRESULT: 0x%08x", hr);
-
-    RDCASSERT(SUCCEEDED(hr) && ret);
-
-    ret = new WrappedID3D11CommandList(ret, m_pDevice, this, true);
-
-    if(ret)
-    {
-      m_pDevice->GetResourceManager()->AddLiveResource(cmdList, ret);
-    }
-  }
-
   const string desc = m_pSerialiser->GetDebugStr();
 
   Serialise_DebugMessages();
@@ -5097,12 +5048,9 @@ bool WrappedID3D11DeviceContext::Serialise_FinishCommandList(BOOL RestoreDeferre
 
     FetchDrawcall draw;
     draw.name = name;
-    draw.flags |= eDraw_CmdList;
+    draw.flags |= eDraw_CmdList | eDraw_SetMarker;
 
     AddDrawcall(draw, true);
-
-    m_pDevice->GetImmediateContext()->m_CmdLists[cmdList] = m_ParentDrawcall;
-    m_ParentDrawcall.children.clear();
   }
 
   return true;

@@ -202,6 +202,7 @@ private:
   ResourceId m_ResourceID;
   D3D11ResourceRecord *m_ContextRecord;
 
+  bool m_OwnSerialiser;
   Serialiser *m_pSerialiser;
   LogState m_State;
   CaptureFailReason m_FailureReason;
@@ -214,6 +215,8 @@ private:
 
   bool m_DoStateVerify;
   D3D11RenderState *m_CurrentPipelineState;
+
+  D3D11RenderState *m_DeferredSavedState;
 
   vector<FetchAPIEvent> m_CurEvents, m_Events;
   bool m_AddedDrawcall;
@@ -242,6 +245,8 @@ private:
   map<ResourceId, DrawcallTreeNode> m_CmdLists;
 
   list<DrawcallTreeNode *> m_DrawcallStack;
+
+  void FlattenLog();
 
   const char *GetChunkName(D3D11ChunkType idx);
 

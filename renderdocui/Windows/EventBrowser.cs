@@ -302,22 +302,6 @@ namespace renderdocui.Windows
             def.eventID = eventNum;
             def.marker = (drawcall.flags & DrawcallFlags.SetMarker) != 0;
 
-            if (drawcall.context != m_Core.FrameInfo.immContextId)
-            {
-                def.defCtx = drawcall.context;
-                def.lastDefEv = drawcall.eventID;
-
-                FetchDrawcall parent = drawcall.parent;
-                while(!parent.name.Contains("ExecuteCommand"))
-                    parent = parent.parent;
-
-                def.eventID = parent.eventID-1;
-
-                def.firstDefEv = parent.children[0].eventID;
-                if(parent.children[0].events.Length > 0)
-                    def.firstDefEv = parent.children[0].events[0].eventID;
-            }
-
             drawNode.Tag = def;
 
             if (drawcall.children != null && drawcall.children.Length > 0)

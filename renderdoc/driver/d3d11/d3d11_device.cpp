@@ -193,6 +193,8 @@ const char *D3D11ChunkNames[] = {
     "ID3D11Device3::CreateUnorderedAccessView1",
 
     "IDXGISwapChain::Present",
+
+    "ID3D11DeviceContext::ExecuteCommandList",
 };
 
 WRAPPED_POOL_INST(WrappedID3D11Device);
@@ -229,6 +231,10 @@ const uint32_t D3D11InitParams::D3D11_OLD_VERSIONS[D3D11InitParams::D3D11_NUM_SU
     // from 0x8 to 0x9, we added the view creation details to clear calls in the device
     // record so that we can still perform the clear even if the view wasn't referenced.
     0x000008,
+    // from 0x9 to 0xA, we refactored deferred context handling - it's flattened on
+    // capture now. So on replay if deferred contexts are present, we go through a
+    // flattening stpe.
+    0x000009,
 };
 
 ReplayCreateStatus D3D11InitParams::Serialise()
