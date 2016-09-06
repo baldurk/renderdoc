@@ -146,6 +146,16 @@ void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offse
       continue;
     }
 
+    if(invars[v].type.descriptor.varClass == CLASS_OBJECT ||
+       invars[v].type.descriptor.varClass == CLASS_STRUCT ||
+       invars[v].type.descriptor.varClass == CLASS_INTERFACE_CLASS ||
+       invars[v].type.descriptor.varClass == CLASS_INTERFACE_POINTER)
+    {
+      RDCWARN("Unexpected variable '%s' of class '%u' in cbuffer, skipping.",
+              invars[v].name.c_str(), invars[v].type.descriptor.type);
+      continue;
+    }
+
     size_t elemByteSize = 4;
     VarType type = eVar_Float;
     switch(invars[v].type.descriptor.type)
