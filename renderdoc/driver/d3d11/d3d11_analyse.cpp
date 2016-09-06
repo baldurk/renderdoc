@@ -37,6 +37,28 @@
 #include "d3d11_debug.h"
 #include "d3d11_manager.h"
 
+// over this number of cycles and things get problematic
+#define SHADER_DEBUG_WARN_THRESHOLD 100000
+
+bool PromptDebugTimeout(DXBC::ProgramType prog, uint32_t cycleCounter)
+{
+  string msg = StringFormat::Fmt(
+      "RenderDoc's shader debugging has been running for over %u cycles, which indicates either a "
+      "very long-running loop, or possibly an infinite loop. Continuing could lead to extreme "
+      "memory allocations, slow UI or even crashes. Would you like to abort debugging to see what "
+      "has run so far?\n\n"
+      "Hit yes to abort debugging. Note that loading the resulting trace could take several "
+      "minutes.",
+      cycleCounter);
+
+  int ret = MessageBoxA(NULL, msg.c_str(), "Shader debugging timeout", MB_YESNO | MB_ICONWARNING);
+
+  if(ret == IDYES)
+    return true;
+
+  return false;
+}
+
 void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
                                              const vector<DXBC::CBufferVariable> &invars,
                                              vector<ShaderVariable> &outvars,
@@ -1202,7 +1224,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
 
   states.push_back((State)initialState);
 
-  for(;;)
+  for(int cycleCounter = 0;; cycleCounter++)
   {
     if(initialState.Finished())
       break;
@@ -1210,6 +1232,12 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
     initialState = initialState.GetNext(global, NULL);
 
     states.push_back((State)initialState);
+
+    if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
+    {
+      if(PromptDebugTimeout(DXBC::TYPE_VERTEX, cycleCounter))
+        break;
+    }
   }
 
   ret.states = states;
@@ -2001,6 +2029,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
   // marks any threads stalled waiting for others to catch up
   bool activeMask[4] = {true, true, true, true};
 
+  int cycleCounter = 0;
+
   // simulate lockstep until all threads are finished
   bool finished = true;
   do
@@ -2099,6 +2129,14 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
     }
 
     finished = curquad[destIdx].Finished();
+
+    cycleCounter++;
+
+    if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
+    {
+      if(PromptDebugTimeout(DXBC::TYPE_VERTEX, cycleCounter))
+        break;
+    }
   } while(!finished);
 
   traces[destIdx].states = states;
@@ -2156,7 +2194,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t eventID, uint32_t group
 
   states.push_back((State)initialState);
 
-  for(;;)
+  for(int cycleCounter = 0;; cycleCounter++)
   {
     if(initialState.Finished())
       break;
@@ -2164,6 +2202,12 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t eventID, uint32_t group
     initialState = initialState.GetNext(global, NULL);
 
     states.push_back((State)initialState);
+
+    if(cycleCounter == SHADER_DEBUG_WARN_THRESHOLD)
+    {
+      if(PromptDebugTimeout(DXBC::TYPE_VERTEX, cycleCounter))
+        break;
+    }
   }
 
   ret.states = states;
