@@ -1061,7 +1061,7 @@ static void CopyChunk(Serialiser *src, Serialiser *dst, uint64_t offsBegin)
   dst->RawWriteBytes(src->RawReadBytes(size_t(offsEnd - offsBegin)), size_t(offsEnd - offsBegin));
 }
 
-static void CopyUnmap(Serialiser *src, Serialiser *dst, Serialiser *tmp)
+static void CopyUnmap(uint32_t d3dLogVersion, Serialiser *src, Serialiser *dst, Serialiser *tmp)
 {
   ResourceId Resource;
   uint32_t Subresource = 0;
@@ -1096,6 +1096,9 @@ static void CopyUnmap(Serialiser *src, Serialiser *dst, Serialiser *tmp)
   src->Serialise("", DiffEnd);
   tmp->Serialise("", DiffEnd);
 
+  if(d3dLogVersion >= 0x000007)
+    src->AlignNextBuffer(32);
+
   src->SerialiseBuffer("", buf, len);
   tmp->SerialiseBuffer("", buf, len);
 
@@ -1107,7 +1110,8 @@ static void CopyUnmap(Serialiser *src, Serialiser *dst, Serialiser *tmp)
   dst->RawWriteBytes(tmp->GetRawPtr(0), size_t(tmp->GetOffset()));
 }
 
-static void CopyUpdateSubresource(Serialiser *src, Serialiser *dst, Serialiser *tmp)
+static void CopyUpdateSubresource(uint32_t d3dLogVersion, Serialiser *src, Serialiser *dst,
+                                  Serialiser *tmp)
 {
   ResourceId idx;
   uint32_t flags = 0;
@@ -1173,6 +1177,9 @@ static void CopyUpdateSubresource(Serialiser *src, Serialiser *dst, Serialiser *
     src->Serialise("", ResourceBufLen);
     tmp->Serialise("", ResourceBufLen);
 
+    if(d3dLogVersion >= 0x000007)
+      src->AlignNextBuffer(32);
+
     src->SerialiseBuffer("", buf, len);
     tmp->SerialiseBuffer("", buf, len);
   }
@@ -1232,12 +1239,12 @@ void WrappedID3D11DeviceContext::FlattenLog()
       if(chunk == UNMAP)
       {
         PadToAligned(dst, 64);
-        CopyUnmap(src, dst, tmp);
+        CopyUnmap(m_pDevice->GetLogVersion(), src, dst, tmp);
       }
       else if(chunk == UPDATE_SUBRESOURCE || chunk == UPDATE_SUBRESOURCE1)
       {
         PadToAligned(dst, 64);
-        CopyUpdateSubresource(src, dst, tmp);
+        CopyUpdateSubresource(m_pDevice->GetLogVersion(), src, dst, tmp);
       }
       else
       {
@@ -1309,12 +1316,12 @@ void WrappedID3D11DeviceContext::FlattenLog()
       if(chunk == UNMAP)
       {
         PadToAligned(deferred[ctx], 64);
-        CopyUnmap(src, deferred[ctx], tmp);
+        CopyUnmap(m_pDevice->GetLogVersion(), src, deferred[ctx], tmp);
       }
       else if(chunk == UPDATE_SUBRESOURCE || chunk == UPDATE_SUBRESOURCE1)
       {
         PadToAligned(deferred[ctx], 64);
-        CopyUpdateSubresource(src, deferred[ctx], tmp);
+        CopyUpdateSubresource(m_pDevice->GetLogVersion(), src, deferred[ctx], tmp);
       }
       else
       {
@@ -1363,8 +1370,12 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
   if(readType == READING && m_pDevice->GetNumDeferredContexts() &&
      m_pDevice->GetLogVersion() < 0x00000A)
   {
+    RDCLOG("Flattening log file");
+
     // flatten the log
     FlattenLog();
+
+    RDCLOG("Flattened");
   }
 
   m_DoStateVerify = true;
