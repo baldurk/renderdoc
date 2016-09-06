@@ -18,7 +18,7 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
 .. |dockpanel_link| raw:: html
 
-   <a href="http://dockpanelsuite.com/" target="_blank">TreeView with Columns</a>
+   <a href="http://dockpanelsuite.com/" target="_blank">DockPanel</a>
 
 .. |famfamfam_link| raw:: html
 
