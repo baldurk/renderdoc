@@ -290,7 +290,7 @@ namespace renderdocui.Code
 
             foreach (var d in draws)
             {
-                ret |= (d.flags & DrawcallFlags.PushMarker) > 0 && (d.flags & DrawcallFlags.CmdList) == 0;
+                ret |= (d.flags & DrawcallFlags.PushMarker) > 0 && (d.flags & DrawcallFlags.CmdList) == 0 && d.children.Length > 0;
                 ret |= ContainsMarker(d.children);
             }
 
