@@ -14,7 +14,7 @@ Quick Links:
 * **Documentation**: renderdoc.chm in the build, or https://renderdoc.org/docs
 * **Tutorials**: There are some video tutorials on Youtube: http://www.youtube.com/user/baldurkarlsson/
 * **Email contact**: [baldurk@baldurk.org](mailto:baldurk@baldurk.org)
-* **IRC channel**: #renderdoc on freenode
+* **IRC channel**: [#renderdoc on freenode](https://kiwiirc.com/client/irc.freenode.net/#renderdoc)
 * **Roadmap/future development**: [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
 * **Starting place for developing/contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
 * **Code of Conduct**: [contributor covenent](CODE_OF_CONDUCT.md)
@@ -49,10 +49,12 @@ Downloads
 
 There are [binary releases](https://renderdoc.org/builds) available, built from the release targets. If you just want to use the program and you ended up here, this is what you want :).
 
-It's recommended that if you're new you start with the stable builds. Beta builds are available for those who want more regular updates with the latest features and fixes, but might run into some bugs as well. Nightly builds are available every day from master branch here if you need it.
+It's recommended that if you're new you start with the stable builds. Nightly builds are available every day from master branch here if you need it, but correspondingly may be less stable.
 
 Documentation
 --------------
+
+The text documentation is available [online for the latest stable version](https://renderdoc.org/docs/), as well as in renderdoc.chm in any build. It's built from [restructured text with sphinx](docs).
 
 As mentioned above there are some [youtube videos](http://www.youtube.com/user/baldurkarlsson/) showing the use of some basic features and an introduction/overview.
 
