@@ -11,6 +11,8 @@ to make the change, other impacts, future work etc. Keeping the title
 to 72 characters means it will display fully in git log and github logs.
 ```
 
+Merge commits should not be included in pull requests as they just muddy the history, please rebase when bringing code up to date against latest master.
+
 Code formatting
 ---------------
 
