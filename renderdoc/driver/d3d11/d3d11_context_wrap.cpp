@@ -4801,6 +4801,8 @@ bool WrappedID3D11DeviceContext::Serialise_ExecuteCommandList(ID3D11CommandList 
     FetchDrawcall draw;
     draw.name = name;
     draw.flags |= eDraw_CmdList;
+
+    AddDrawcall(draw, true);
   }
 
   return true;
