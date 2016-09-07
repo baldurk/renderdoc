@@ -11,6 +11,9 @@ const char *GLESChunkNames[] = {
 
     "glClear",
     "glClearColor",
+    "glViewport",
+
+    "EndCapture",
 };
 
 WrappedGLES::WrappedGLES(const char *logfile, const GLHookSet &funcs, GLESInitParams &initParams)
@@ -79,6 +82,7 @@ bool WrappedGLES::EndFrameCapture(void *dev, void *wnd)
     if(m_State != WRITING_CAPFRAME)
         return true;
 
+    ContextEndFrame();
     byte *jpgbuf = NULL;
     int len = 0;
     uint32_t thwidth = 0;
@@ -130,7 +134,7 @@ const char *WrappedGLES::GetChunkName(uint32_t idx)
     return "Initial Contents";
   if(idx < FIRST_CHUNK_ID || idx >= NUM_GLES_CHUNKS)
     return "<unknown>";
-  printf("--> %d %d\n", idx, idx - FIRST_CHUNK_ID);
+  printf("Chunk info --> %d %d\n", idx, idx - FIRST_CHUNK_ID);
   return GLESChunkNames[idx - FIRST_CHUNK_ID];
 }
 
@@ -171,6 +175,20 @@ void WrappedGLES::ReadLogInitialisation()
 
 void WrappedGLES::ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
 {
+    printf("____ %s (%d, %d, %d)\n", __FUNCTION__, startEventID, endEventID, replayType);
+    m_pSerialiser->Rewind();
+    for (;;) {
+        uint64_t offset = m_pSerialiser->GetOffset();
+        GLESChunkType context = (GLESChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
+
+        ProcessChunk(offset, context);
+
+        m_pSerialiser->PopContext(context);
+
+        if(m_pSerialiser->AtEnd())
+            break;
+    }
+
 }
 
 void WrappedGLES::ProcessChunk(unsigned long offset, GLESChunkType chunk)
@@ -180,6 +198,26 @@ void WrappedGLES::ProcessChunk(unsigned long offset, GLESChunkType chunk)
     {
         case CLEAR: Serialise_glClear(0); break;
         case CLEAR_COLOR: Serialise_glClearColor(0, 0, 0, 0); break;
+        case VIEWPORT: Serialise_glViewport(0, 0, 0, 0); break;
+        case CONTEXT_CAPTURE_FOOTER:
+        {
+            bool HasCallstack = false;
+            m_pSerialiser->Serialise("HasCallstack", HasCallstack);
+
+            if(HasCallstack)
+            {
+                uint32_t numLevels = 0;
+                uint64_t *stack = NULL;
+
+                m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
+
+                m_pSerialiser->SetCallstack(stack, numLevels);
+
+                SAFE_DELETE_ARRAY(stack);
+            }
+
+            break;
+        }
         default:
         {
             // ignore system chunks
@@ -224,4 +262,26 @@ bool WrappedGLES::SwapBuffers(EGLDisplay dpy, EGLSurface surface)
     }
 
     return true;
+}
+
+void WrappedGLES::ContextEndFrame(void)
+{
+  SCOPED_SERIALISE_CONTEXT(CONTEXT_CAPTURE_FOOTER);
+
+  bool HasCallstack = RenderDoc::Inst().GetCaptureOptions().CaptureCallstacks != 0;
+  m_pSerialiser->Serialise("HasCallstack", HasCallstack);
+
+  if(HasCallstack)
+  {
+    Callstack::Stackwalk *call = Callstack::Collect();
+
+    uint32_t numLevels = (uint32_t)call->NumLevels();
+    uint64_t *stack = (uint64_t *)call->GetAddrs();
+
+    m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
+
+    delete call;
+  }
+
+  m_ContextRecord->AddChunk(scope.Get());
 }

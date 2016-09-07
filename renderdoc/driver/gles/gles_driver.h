@@ -41,6 +41,8 @@ public:
 
     IMPLEMENT_FUNCTION_SERIALISED(void,  glClear(GLbitfield mask));
     IMPLEMENT_FUNCTION_SERIALISED(void,  glClearColor (GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha));
+    IMPLEMENT_FUNCTION_SERIALISED(void,  glViewport (GLint x, GLint y, GLsizei width, GLsizei height));
+    IMPLEMENT_FUNCTION_SERIALISED(GLenum, glGetError());
 
     void GetDisplay(EGLNativeDisplayType display_id) { /* TODO */ }
     void CreateContext(void);
@@ -59,6 +61,7 @@ public:
 
 private:
     void ProcessChunk(uint64_t offset, GLESChunkType context);
+    void ContextEndFrame(void);
 
     GLESResourceManager *GetResourceManager() { return m_ResourceManager; }
 
@@ -68,7 +71,9 @@ private:
     GLESResourceRecord *m_ContextRecord;
 
     GLESReplay *m_Replay;
+public:
     const GLHookSet &m_Real;
+private:
 
     // internals
     GLESInitParams m_InitParams;

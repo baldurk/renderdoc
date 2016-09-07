@@ -108,6 +108,7 @@ public:
 
 private:
     void MakeCurrentReplayContext(GLESWindowingData*);
+    void SwapBuffers(GLESWindowingData* data);
 
     WrappedGLES* m_pDriver;
 

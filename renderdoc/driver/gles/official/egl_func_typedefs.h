@@ -18,6 +18,7 @@ typedef EGLBoolean (*PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config, E
 typedef EGLBoolean (*PFN_eglInitialize)(EGLDisplay dpy, EGLint *major, EGLint *minor);
 typedef EGLBoolean (*PFN_eglMakeCurrent)(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx);
 typedef EGLSurface (*PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list);
+typedef EGLint (*PFN_eglGetError)();
 
 #if 0
 typedef EGLBoolean (*PFN_eglBindTexImage)(EGLDisplay dpy, EGLSurface surface, EGLint buffer);

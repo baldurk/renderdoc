@@ -36,6 +36,8 @@
 #define DLLExportHooks() \
     HookInit(glClear); \
     HookInit(glClearColor); \
+    HookInit(glGetError); \
+    HookInit(glViewport); \
 
 
 
@@ -43,6 +45,8 @@
 #define HookCheckGLExtensions() \
     HookExtension(PFNGLCLEARPROC, glClear); \
     HookExtension(PFNGLCLEARCOLORPROC, glClearColor); \
+    HookExtension(PFNGLGETERRORPROC, glGetError); \
+    HookExtension(PFNGLVIEWPORTPROC, glViewport); \
 
 
 
@@ -50,6 +54,8 @@
 #define DefineDLLExportHooks() \
     HookWrapper1(void, glClear, GLbitfield, mask); \
     HookWrapper4(void, glClearColor, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
+    HookWrapper0(GLenum, glGetError); \
+    HookWrapper4(void, glViewport, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
 
 
 
@@ -118,7 +124,6 @@
     HookWrapper2(GLint, glgetattriblocation, GLuint, program, const GLchar *, name); \
     HookWrapper2(void, glgetbooleanv, GLenum, pname, GLboolean *, data); \
     HookWrapper3(void, glgetbufferparameteriv, GLenum, target, GLenum, pname, GLint *, params); \
-    HookWrapper0(GLenum, glgeterror); \
     HookWrapper2(void, glgetfloatv, GLenum, pname, GLfloat *, data); \
     HookWrapper4(void, glgetframebufferattachmentparameteriv, GLenum, target, GLenum, attachment, GLenum, pname, GLint *, params); \
     HookWrapper2(void, glgetintegerv, GLenum, pname, GLint *, data); \
@@ -199,7 +204,6 @@
     HookWrapper5(void, glvertexattrib4f, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
     HookWrapper2(void, glvertexattrib4fv, GLuint, index, const GLfloat *, v); \
     HookWrapper6(void, glvertexattribpointer, GLuint, index, GLint, size, GLenum, type, GLboolean, normalized, GLsizei, stride, const void *, pointer); \
-    HookWrapper4(void, glviewport, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
     HookWrapper1(void, glreadbuffer, GLenum, src); \
     HookWrapper6(void, gldrawrangeelements, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count, GLenum, type, const void *, indices); \
     HookWrapper10(void, glteximage3d, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
@@ -478,7 +482,6 @@
     HandleUnsupported(PFNGLGETATTRIBLOCATIONPROC, glgetattriblocation); \
     HandleUnsupported(PFNGLGETBOOLEANVPROC, glgetbooleanv); \
     HandleUnsupported(PFNGLGETBUFFERPARAMETERIVPROC, glgetbufferparameteriv); \
-    HandleUnsupported(PFNGLGETERRORPROC, glgeterror); \
     HandleUnsupported(PFNGLGETFLOATVPROC, glgetfloatv); \
     HandleUnsupported(PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC, glgetframebufferattachmentparameteriv); \
     HandleUnsupported(PFNGLGETINTEGERVPROC, glgetintegerv); \
@@ -559,7 +562,6 @@
     HandleUnsupported(PFNGLVERTEXATTRIB4FPROC, glvertexattrib4f); \
     HandleUnsupported(PFNGLVERTEXATTRIB4FVPROC, glvertexattrib4fv); \
     HandleUnsupported(PFNGLVERTEXATTRIBPOINTERPROC, glvertexattribpointer); \
-    HandleUnsupported(PFNGLVIEWPORTPROC, glviewport); \
     HandleUnsupported(PFNGLREADBUFFERPROC, glreadbuffer); \
     HandleUnsupported(PFNGLDRAWRANGEELEMENTSPROC, gldrawrangeelements); \
     HandleUnsupported(PFNGLTEXIMAGE3DPROC, glteximage3d); \

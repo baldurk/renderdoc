@@ -14,7 +14,8 @@ bool WrappedGLES::Serialise_glClear(GLbitfield mask)
 
     if (m_State <= EXECUTING)
     {
-        m_Real.glClear(mask);
+        printf("Executing real %s(%d)\n", "glClear", Mask);
+        m_Real.glClear(Mask);
     }
 
     return true;
@@ -43,6 +44,7 @@ bool WrappedGLES::Serialise_glClearColor(GLfloat red, GLfloat green, GLfloat blu
 
   if (m_State <= EXECUTING)
   {
+    printf("Executing real %s(%f, %f, %f, %f)\n", "glClearColor", r, g, b, a);
     m_Real.glClearColor(r, g, b, a);
   }
 
@@ -63,3 +65,32 @@ void WrappedGLES::glClearColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat
     }
 }
 
+bool WrappedGLES::Serialise_glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
+{
+    SERIALISE_ELEMENT(int32_t, X, x);
+    SERIALISE_ELEMENT(int32_t, Y, y);
+    SERIALISE_ELEMENT(uint32_t, W, width);
+    SERIALISE_ELEMENT(uint32_t, H, height);
+
+    if(m_State <= EXECUTING)
+    {
+        m_Real.glViewport(X, Y, W, H);
+    }
+
+    return true;
+}
+
+
+void WrappedGLES::glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
+{
+    printf("CALL: %s\n", __FUNCTION__);
+    m_Real.glViewport(x, y, width, height);
+
+    if(m_State == WRITING_CAPFRAME)
+    {
+        SCOPED_SERIALISE_CONTEXT(VIEWPORT);
+        Serialise_glViewport(x, y, width, height);
+
+        m_ContextRecord->AddChunk(scope.Get());
+    }
+}

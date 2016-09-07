@@ -250,6 +250,7 @@ DEF_FUNC(eglCreateContext);
 DEF_FUNC(eglCreateWindowSurface);
 DEF_FUNC(eglQuerySurface);
 DEF_FUNC(eglMakeCurrent);
+DEF_FUNC(eglGetError);
 
 uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
@@ -277,23 +278,27 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
     LOAD_SYM(eglCreateWindowSurface);
     LOAD_SYM(eglQuerySurface);
     LOAD_SYM(eglMakeCurrent);
+    LOAD_SYM(eglGetError);
 
-    REAL(eglBindAPI)(EGL_OPENGL_ES_API);
-
-
-    EGLDisplay egl_display = eglGetDisplay_real(display);
+    EGLDisplay egl_display = REAL(eglGetDisplay)(display);
     if (!egl_display) {
         printf("Error: eglGetDisplay() failed\n");
         return -1;
     }
+    printf("DISP EGL err: 0x%x\n", REAL(eglGetError)());
 
     int egl_major;
     int egl_minor;
 
-    if (!eglInitialize_real(egl_display, &egl_major, &egl_minor)) {
+    if (!REAL(eglInitialize)(egl_display, &egl_major, &egl_minor)) {
         printf("Error: eglInitialize() failed\n");
          return -1;
     }
+    printf("EGL init (%d, %d)\n", egl_major, egl_minor);
+    printf("Init EGL err: 0%x\n", REAL(eglGetError)());
+
+
+    REAL(eglBindAPI)(EGL_OPENGL_ES_API);
 
     static const EGLint attribs[] = {
         EGL_RED_SIZE, 1,
@@ -310,12 +315,15 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
         printf("Error: couldn't get an EGL visual config\n");
         return -1;
     }
+    printf("Choose config EGL err: 0x%x\n", REAL(eglGetError)());
 
     EGLint vid;
     if (!REAL(eglGetConfigAttrib)(egl_display, config, EGL_NATIVE_VISUAL_ID, &vid)) {
         printf("Error: eglGetConfigAttrib() failed\n");
         return -1;
     }
+    printf("Get attrib EGL err: 0x%x\n", REAL(eglGetError)());
+
 
     static const EGLint ctx_attribs[] = {
         EGL_CONTEXT_CLIENT_VERSION, 3,
@@ -323,18 +331,24 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
     };
 
     EGLContext ctx = REAL(eglCreateContext)(egl_display, config, EGL_NO_CONTEXT, ctx_attribs);
+    printf("Context EGL err: 0x%x\n", REAL(eglGetError)());
+
     EGLSurface surface = REAL(eglCreateWindowSurface)(egl_display, config, (EGLNativeWindowType)draw, NULL);
+    printf("Surface EGL err: 0x%x\n", REAL(eglGetError)());
+
 
     OutputWindow outputWin;
     outputWin.context = ctx;
     outputWin.surface = surface;
+    outputWin.eglDisplay = egl_display;
     outputWin.display = display;
 
     REAL(eglQuerySurface)(egl_display, surface, EGL_HEIGHT, &outputWin.height);
+    printf("Query H EGL err: 0x%x\n", REAL(eglGetError)());
     REAL(eglQuerySurface)(egl_display, surface, EGL_WIDTH, &outputWin.width);
-
-
+    printf("Query W EGL err: 0x%x\n", REAL(eglGetError)());
     printf("New output window (%dx%d)\n", outputWin.height, outputWin.width);
+
     MakeCurrentReplayContext(&outputWin);
 
     uint64_t windowId = m_outputWindowIds++;
@@ -375,6 +389,21 @@ bool GLESReplay::IsOutputWindowVisible(uint64_t id)
 
 void GLESReplay::FlipOutputWindow(uint64_t id)
 {
+    if(id == 0 || m_outputWindows.find(id) == m_outputWindows.end())
+        return;
+
+    OutputWindow &outw = m_outputWindows[id];
+
+    MakeCurrentReplayContext(&outw);
+
+    WrappedGLES &gl = *m_pDriver;
+
+    // go directly to real function so we don't try to bind the 'fake' backbuffer FBO.
+    printf("Viewport: (%dx%d)\n", outw.width, outw.height);
+    gl.glViewport(0, 0, outw.width, outw.height);
+    printf("ERR: %d\n", gl.glGetError());
+
+    SwapBuffers(&outw);
 }
 
 bool GLESReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
@@ -467,7 +496,13 @@ uint32_t GLESReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32
 
 void GLESReplay::MakeCurrentReplayContext(GLESWindowingData* windowData)
 {
-    REAL(eglMakeCurrent)(windowData->display, windowData->surface, windowData->surface, windowData->context);
+    bool success = REAL(eglMakeCurrent)(windowData->eglDisplay, windowData->surface, windowData->surface, windowData->context);
+    if (!success)
+    {
+        printf("Failed to make current context\n");
+    }
+    printf("Make current EGL err: 0x%x\n", REAL(eglGetError)());
+
 }
 
 

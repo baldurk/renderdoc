@@ -3,6 +3,7 @@ set(sources
     gles_manager.cpp
     gles_replay.cpp
     wrappers/gles_state_funcs.cpp
+    wrappers/gles_get_funcs.cpp
     )
 
 set(others

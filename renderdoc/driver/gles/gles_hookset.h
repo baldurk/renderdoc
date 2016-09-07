@@ -38,6 +38,8 @@ struct GLHookSet
   // ++ dllexport
   PFNGLCLEARPROC glClear;
   PFNGLCLEARCOLORPROC glClearColor;
+  PFNGLVIEWPORTPROC glViewport;
+  PFNGLGETERRORPROC glGetError;
   // --
 #if 0
   PFNGLCLEARDEPTHFPROC glClearDepthf;
@@ -95,7 +97,6 @@ struct GLHookSet
   PFNGLTEXPARAMETERFVPROC glTexParameterfv;
   PFNGLTEXPARAMETERIPROC glTexParameteri;
   PFNGLTEXPARAMETERIVPROC glTexParameteriv;
-  PFNGLVIEWPORTPROC glViewport;
 
   // this just means 'functions not dllexport on windows', not necessarily extensions.
   // note that for ARB_direct_state_access there is special treatment due to interaction with

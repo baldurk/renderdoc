@@ -20,6 +20,7 @@ struct GLESWindowingData
   void SetCtx(void *ctx) { context = (EGLContext)ctx; }
 
   Display *display;
+  EGLDisplay eglDisplay;
   EGLContext context;
   EGLSurface surface;
 };

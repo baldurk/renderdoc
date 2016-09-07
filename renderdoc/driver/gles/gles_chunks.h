@@ -8,6 +8,9 @@ enum GLESChunkType
 
     CLEAR,
     CLEAR_COLOR,
+    VIEWPORT,
+
+    CONTEXT_CAPTURE_FOOTER,
 
     NUM_GLES_CHUNKS,
 };
