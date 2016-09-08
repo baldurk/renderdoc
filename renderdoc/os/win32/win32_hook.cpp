@@ -493,6 +493,9 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
         if(found->origptr && *found->origptr == NULL)
           *found->origptr = (void *)GetProcAddress(mod, func);
 
+        if(*found->origptr == NULL)
+          return NULL;
+
         return (FARPROC)found->hookptr;
       }
     }
