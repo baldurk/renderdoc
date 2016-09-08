@@ -204,6 +204,7 @@ int32_t Dec32(volatile int32_t *i);
 int64_t Inc64(volatile int64_t *i);
 int64_t Dec64(volatile int64_t *i);
 int64_t ExchAdd64(volatile int64_t *i, int64_t a);
+int32_t CmpExch32(volatile int32_t *dest, int32_t exch, int32_t comp);
 };
 
 namespace Callstack
