@@ -1459,8 +1459,16 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
 
         if(stage != NULL)
         {
-          D3D11_MAPPED_SUBRESOURCE mapped;
-          HRESULT hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
+          D3D11_MAPPED_SUBRESOURCE mapped = {};
+          HRESULT hr = E_INVALIDARG;
+
+          if(stage)
+            hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
+          else
+            RDCERR(
+                "Didn't have stage resource for %llu when serialising initial state! "
+                "Dirty tracking is incorrect",
+                Id);
 
           if(FAILED(hr))
           {
@@ -1504,8 +1512,16 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
 
       ID3D11Buffer *stage = (ID3D11Buffer *)m_ResourceManager->GetInitialContents(Id).resource;
 
-      D3D11_MAPPED_SUBRESOURCE mapped;
-      HRESULT hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
+      D3D11_MAPPED_SUBRESOURCE mapped = {};
+      HRESULT hr = E_INVALIDARG;
+
+      if(stage)
+        hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
+      else
+        RDCERR(
+            "Didn't have stage resource for %llu when serialising initial state! "
+            "Dirty tracking is incorrect",
+            Id);
 
       if(FAILED(hr))
       {
@@ -1569,9 +1585,16 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
 
         if(m_State >= WRITING)
         {
-          D3D11_MAPPED_SUBRESOURCE mapped;
+          D3D11_MAPPED_SUBRESOURCE mapped = {};
+          HRESULT hr = E_INVALIDARG;
 
-          HRESULT hr = m_pImmediateContext->GetReal()->Map(stage, sub, D3D11_MAP_READ, 0, &mapped);
+          if(stage)
+            hr = m_pImmediateContext->GetReal()->Map(stage, sub, D3D11_MAP_READ, 0, &mapped);
+          else
+            RDCERR(
+                "Didn't have stage resource for %llu when serialising initial state! "
+                "Dirty tracking is incorrect",
+                Id);
 
           size_t dstPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
 
@@ -1715,9 +1738,16 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
 
         if(m_State >= WRITING)
         {
-          D3D11_MAPPED_SUBRESOURCE mapped;
+          D3D11_MAPPED_SUBRESOURCE mapped = {};
+          HRESULT hr = E_INVALIDARG;
 
-          HRESULT hr = m_pImmediateContext->GetReal()->Map(stage, sub, D3D11_MAP_READ, 0, &mapped);
+          if(stage)
+            hr = m_pImmediateContext->GetReal()->Map(stage, sub, D3D11_MAP_READ, 0, &mapped);
+          else
+            RDCERR(
+                "Didn't have stage resource for %llu when serialising initial state! "
+                "Dirty tracking is incorrect",
+                Id);
 
           size_t dstPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
           size_t len = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
@@ -1744,7 +1774,8 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
 
           m_pSerialiser->SerialiseBuffer("", inmemBuffer, len);
 
-          m_pImmediateContext->GetReal()->Unmap(stage, sub);
+          if(SUCCEEDED(hr))
+            m_pImmediateContext->GetReal()->Unmap(stage, sub);
         }
         else
         {
@@ -1884,9 +1915,16 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
 
         if(m_State >= WRITING)
         {
-          D3D11_MAPPED_SUBRESOURCE mapped;
+          D3D11_MAPPED_SUBRESOURCE mapped = {};
+          HRESULT hr = E_INVALIDARG;
 
-          HRESULT hr = m_pImmediateContext->GetReal()->Map(stage, sub, D3D11_MAP_READ, 0, &mapped);
+          if(stage)
+            hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
+          else
+            RDCERR(
+                "Didn't have stage resource for %llu when serialising initial state! "
+                "Dirty tracking is incorrect",
+                Id);
 
           size_t dstPitch = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
           size_t dstSlicePitch = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
@@ -1924,7 +1962,8 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
           size_t len = dstSlicePitch * desc.Depth;
           m_pSerialiser->SerialiseBuffer("", inmemBuffer, len);
 
-          m_pImmediateContext->GetReal()->Unmap(stage, 0);
+          if(SUCCEEDED(hr))
+            m_pImmediateContext->GetReal()->Unmap(stage, 0);
         }
         else
         {
@@ -2037,7 +2076,7 @@ void WrappedID3D11Device::Create_InitialState(ResourceId id, ID3D11DeviceChild *
         m_pImmediateContext->GetReal()->CopyStructureCount(
             stage, 0, UNWRAP(WrappedID3D11UnorderedAccessView1, uav));
 
-        D3D11_MAPPED_SUBRESOURCE mapped;
+        D3D11_MAPPED_SUBRESOURCE mapped = {};
         hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
 
         uint32_t countData = 0;
