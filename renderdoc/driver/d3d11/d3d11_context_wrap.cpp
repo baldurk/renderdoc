@@ -7897,6 +7897,8 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
             m_pDevice->GetResourceManager()->GetResourceRecord(GetIDForResource(pResource));
         RDCASSERT(record);
 
+        D3D11ResourceRecord *baserecord = record;
+
         if(record->NumSubResources > (int)Subresource)
           record = (D3D11ResourceRecord *)record->SubResources[Subresource];
 
@@ -7912,7 +7914,7 @@ void WrappedID3D11DeviceContext::Unmap(ID3D11Resource *pResource, UINT Subresour
 
           Chunk *chunk = scope.Get();
 
-          record->AddChunk(chunk);
+          baserecord->AddChunk(chunk);
           record->SetDataPtr(chunk->GetData());
 
           record->DataInSerialiser = true;
