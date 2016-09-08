@@ -375,6 +375,18 @@ void WrappedID3D11DeviceContext::MarkResourceReferenced(ResourceId id, FrameRefT
   }
 }
 
+void WrappedID3D11DeviceContext::MarkDirtyResource(ResourceId id)
+{
+  if(m_pRealContext->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
+  {
+    m_pDevice->GetResourceManager()->MarkDirtyResource(id);
+  }
+  else
+  {
+    m_DeferredDirty.insert(id);
+  }
+}
+
 void WrappedID3D11DeviceContext::VerifyState()
 {
 #if 0
@@ -567,7 +579,7 @@ void WrappedID3D11DeviceContext::CleanupCapture()
   for(auto it = m_MissingTracks.begin(); it != m_MissingTracks.end(); ++it)
   {
     if(m_pDevice->GetResourceManager()->HasResourceRecord(*it))
-      m_pDevice->GetResourceManager()->MarkDirtyResource(*it);
+      MarkDirtyResource(*it);
   }
 
   m_MissingTracks.clear();

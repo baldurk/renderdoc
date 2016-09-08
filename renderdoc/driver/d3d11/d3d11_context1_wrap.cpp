@@ -329,7 +329,7 @@ void WrappedID3D11DeviceContext::UpdateSubresource1(ID3D11Resource *pDstResource
   else
   {
     // just mark dirty
-    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pDstResource));
+    MarkDirtyResource(GetIDForResource(pDstResource));
   }
 
   m_pRealContext1->UpdateSubresource1(m_pDevice->GetResourceManager()->UnwrapResource(pDstResource),
@@ -412,7 +412,7 @@ void WrappedID3D11DeviceContext::CopySubresourceRegion1(ID3D11Resource *pDstReso
         m_pDevice->GetResourceManager()->GetResourceRecord(GetIDForResource(pDstResource));
     RDCASSERT(record);
 
-    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pDstResource));
+    MarkDirtyResource(GetIDForResource(pDstResource));
   }
 
   m_pRealContext1->CopySubresourceRegion1(
@@ -533,7 +533,7 @@ void WrappedID3D11DeviceContext::ClearView(ID3D11View *pView, const FLOAT Color[
     ID3D11Resource *viewRes = NULL;
     pView->GetResource(&viewRes);
 
-    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(viewRes));
+    MarkDirtyResource(GetIDForResource(viewRes));
 
     SAFE_RELEASE(viewRes);
   }
@@ -1584,7 +1584,7 @@ void WrappedID3D11DeviceContext::DiscardResource(ID3D11Resource *pResource)
   }
   else if(m_State >= WRITING)
   {
-    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(pResource));
+    MarkDirtyResource(GetIDForResource(pResource));
   }
 }
 
@@ -1703,7 +1703,7 @@ void WrappedID3D11DeviceContext::DiscardView(ID3D11View *pResourceView)
     ID3D11Resource *viewRes = NULL;
     pResourceView->GetResource(&viewRes);
 
-    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(viewRes));
+    MarkDirtyResource(GetIDForResource(viewRes));
 
     SAFE_RELEASE(viewRes);
   }
@@ -1819,7 +1819,7 @@ void WrappedID3D11DeviceContext::DiscardView1(ID3D11View *pResourceView, const D
     ID3D11Resource *viewRes = NULL;
     pResourceView->GetResource(&viewRes);
 
-    m_pDevice->GetResourceManager()->MarkDirtyResource(GetIDForResource(viewRes));
+    MarkDirtyResource(GetIDForResource(viewRes));
 
     SAFE_RELEASE(viewRes);
   }
