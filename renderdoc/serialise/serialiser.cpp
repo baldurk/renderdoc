@@ -295,6 +295,19 @@ Chunk *Chunk::Duplicate()
 
   memcpy(ret->m_Data, m_Data, m_Length);
 
+#if !defined(RELEASE)
+  int64_t newval = Atomic::Inc64(&m_LiveChunks);
+  Atomic::ExchAdd64(&m_TotalMem, m_Length);
+
+  if(newval > m_MaxChunks)
+  {
+    int breakpointme = 0;
+    (void)breakpointme;
+  }
+
+  m_MaxChunks = RDCMAX(newval, m_MaxChunks);
+#endif
+
   return ret;
 }
 
