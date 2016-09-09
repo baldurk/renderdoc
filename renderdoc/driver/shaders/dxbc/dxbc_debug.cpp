@@ -3679,6 +3679,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
                                                     "texture lookup ddy - using 0.0 instead",
                                                     s.nextInstruction - 1, op.str.c_str()));
         }
+      }
+
+      for(uint32_t i = 0; i < uv.columns; i++)
+      {
         if(texcoordType == 0 && (_isnan(uv.value.fv[i]) || !_finite(uv.value.fv[i])))
         {
           RDCWARN("NaN or Inf in texlookup");
