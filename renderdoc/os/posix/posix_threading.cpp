@@ -60,9 +60,9 @@ int64_t ExchAdd64(volatile int64_t *i, int64_t a)
   return __sync_add_and_fetch(i, int64_t(a));
 }
 
-int32_t CmpExch32(volatile int32_t *dest, int32_t exch, int32_t comp)
+int32_t CmpExch32(volatile int32_t *dest, int32_t oldVal, int32_t newVal)
 {
-  return __sync_val_compare_and_swap(dest, comp, exch);
+  return __sync_val_compare_and_swap(dest, oldVal, newVal);
 }
 };
 
