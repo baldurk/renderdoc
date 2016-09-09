@@ -2177,6 +2177,20 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
         // first apply implicit transitions to the right subpass
         std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
 
+        // don't transition from undefined, or contents will be discarded, instead transition from
+        // the current state.
+        for(size_t i = 0; i < imgBarriers.size(); i++)
+        {
+          if(imgBarriers[i].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+          {
+            // TODO find overlapping range and transition that instead
+            imgBarriers[i].oldLayout =
+                m_ImageLayouts[GetResourceManager()->GetNonDispWrapper(imgBarriers[i].image)->id]
+                    .subresourceStates[0]
+                    .newLayout;
+          }
+        }
+
         GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[GetResID(cmd)].imgbarriers,
                                              m_ImageLayouts, (uint32_t)imgBarriers.size(),
                                              &imgBarriers[0]);
