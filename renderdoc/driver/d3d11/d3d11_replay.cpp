@@ -1852,11 +1852,13 @@ ResourceId D3D11Replay::CreateProxyBuffer(const FetchBuffer &templateBuf)
     ID3D11Buffer *throwaway = NULL;
     D3D11_BUFFER_DESC desc;
 
-    desc.ByteWidth = (UINT)templateBuf.length;
+    // D3D11_BIND_CONSTANT_BUFFER size must be 16-byte aligned.
+    desc.ByteWidth = AlignUp((UINT)templateBuf.length, 16u);
     desc.CPUAccessFlags = 0;
     desc.MiscFlags = 0;
     desc.Usage = D3D11_USAGE_DEFAULT;
     desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    desc.StructureByteStride = 0;
 
     if(templateBuf.creationFlags & eBufferCreate_Indirect)
     {
@@ -1865,8 +1867,12 @@ ResourceId D3D11Replay::CreateProxyBuffer(const FetchBuffer &templateBuf)
     }
     if(templateBuf.creationFlags & eBufferCreate_IB)
       desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    if(templateBuf.creationFlags & eBufferCreate_CB)
-      desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    // D3D11_BIND_CONSTANT_BUFFER size must be <= 65536 on some drivers.
+    if(desc.ByteWidth <= D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16)
+    {
+      if(templateBuf.creationFlags & eBufferCreate_CB)
+        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    }
     if(templateBuf.creationFlags & eBufferCreate_UAV)
       desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
 
