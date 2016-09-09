@@ -2160,6 +2160,8 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     // has chosen a subsection that lies within a command buffer
     if(partial)
     {
+      m_State = EXECUTING;
+
       VkCommandBuffer cmd = m_Partial[Primary].outsideCmdBuffer = GetNextCmd();
 
       VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
@@ -2170,12 +2172,27 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
       rpWasActive = m_Partial[Primary].renderPassActive;
 
-      // if a render pass was active, begin it and set up the partial replay state
       if(m_Partial[Primary].renderPassActive)
+      {
+        // first apply implicit transitions to the right subpass
+        std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+
+        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[GetResID(cmd)].imgbarriers,
+                                             m_ImageLayouts, (uint32_t)imgBarriers.size(),
+                                             &imgBarriers[0]);
+
+        ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                                         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 0, NULL, 0, NULL,
+                                         (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+
+        // if a render pass was active, begin it and set up the partial replay state
         m_RenderState.BeginRenderPassAndApplyState(cmd);
-      // if we had a compute pipeline, need to bind that
+      }
       else if(m_RenderState.compute.pipeline != ResourceId())
+      {
+        // if we had a compute pipeline, need to bind that
         m_RenderState.BindPipeline(cmd);
+      }
     }
 
     if(replayType == eReplay_Full)
