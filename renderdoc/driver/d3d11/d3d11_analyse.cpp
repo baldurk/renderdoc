@@ -4599,14 +4599,17 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
   uint32_t shadoutsrcxyData[8];
   memcpy(shadoutsrcxyData, srcxyData, sizeof(srcxyData));
-  srcxyData[2] = multisampled ? sampleIdx : 0;
+
+  // shadout texture doesn't have slices/mips, just one of the right dimension
+  shadoutsrcxyData[2] = multisampled ? sampleIdx : 0;
+  shadoutsrcxyData[3] = 0;
 
   ID3D11Buffer *srcxyCBuf = MakeCBuffer(sizeof(srcxyData));
   ID3D11Buffer *shadoutsrcxyCBuf = MakeCBuffer(sizeof(shadoutsrcxyData));
   ID3D11Buffer *storexyCBuf = MakeCBuffer(sizeof(srcxyData));
 
   FillCBuffer(srcxyCBuf, srcxyData, sizeof(srcxyData));
-  FillCBuffer(shadoutsrcxyCBuf, srcxyData, sizeof(shadoutsrcxyData));
+  FillCBuffer(shadoutsrcxyCBuf, shadoutsrcxyData, sizeof(shadoutsrcxyData));
 
   // so we do:
   // per sample: orig depth --copy--> depthCopyXXX (created/upsized on demand) --CS pixel copy-->
