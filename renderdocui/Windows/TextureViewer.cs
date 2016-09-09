@@ -1331,7 +1331,8 @@ namespace renderdocui.Windows
                     FormatComponentType typeHint = resArray != null ? resArray[arrayIdx].typeHint : FormatComponentType.None;
 
                     bool used = key.used;
-                    bool skip = false;
+                    bool samplerBind = false;
+                    bool otherBind = false;
 
                     string bindName = "";
 
@@ -1340,11 +1341,20 @@ namespace renderdocui.Windows
                         if (bind.bindPoint == idx && bind.IsSRV)
                         {
                             bindName = bind.name;
+                            otherBind = true;
                             break;
+                        }
+
+                        if (bind.bindPoint == idx)
+                        {
+                            if(bind.IsSampler && !bind.IsSRV)
+                                samplerBind = true;
+                            else
+                                otherBind = true;
                         }
                     }
 
-                    if (skip)
+                    if (samplerBind && !otherBind)
                         continue;
 
                     if (copy)
