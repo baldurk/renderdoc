@@ -113,7 +113,9 @@ namespace renderdocui.Controls
                 if (float.IsInfinity(m_WhitePoint) || float.IsNaN(m_WhitePoint) ||
                     float.IsInfinity(m_BlackPoint) || float.IsNaN(m_BlackPoint) ||
                     float.IsInfinity(m_RangeMax) || float.IsNaN(m_RangeMax) ||
-                    float.IsInfinity(m_RangeMin) || float.IsNaN(m_RangeMin))
+                    float.IsInfinity(m_RangeMin) || float.IsNaN(m_RangeMin) ||
+                    float.IsInfinity(m_RangeMax - m_RangeMin) || float.IsNaN(m_RangeMax - m_RangeMin) ||
+                    float.IsInfinity(m_WhitePoint - m_BlackPoint) || float.IsNaN(m_WhitePoint - m_BlackPoint))
                 {
                     return false;
                 }
