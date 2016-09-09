@@ -2292,7 +2292,7 @@ string SPVModule::Disassemble(const string &entryPoint)
   {
     RDCASSERT(specConstants[i]->constant && specConstants[i]->constant->type);
 
-    uint32_t specId = 0;
+    uint32_t specId = ~0U;
 
     for(size_t d = 0; d < specConstants[i]->decorations.size(); d++)
     {
@@ -2303,7 +2303,7 @@ string SPVModule::Disassemble(const string &entryPoint)
       }
     }
 
-    if(specId == 0)
+    if(specId == ~0U)
     {
       RDCERR("Couldn't find specialisation index for spec constant");
       continue;
@@ -4247,7 +4247,7 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
       MakeConstantBlockVariable(cblock.variables[i], specConstants[i]->constant->type,
                                 specConstants[i]->str, specConstants[i]->decorations);
 
-      uint32_t specId = 0;
+      uint32_t specId = ~0U;
 
       for(size_t d = 0; d < specConstants[i]->decorations.size(); d++)
       {
@@ -4258,7 +4258,7 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
         }
       }
 
-      if(specId == 0)
+      if(specId == ~0U)
         RDCERR("Couldn't find specialisation index for spec constant");
 
       // put the specId in here since we don't have an actual offset for specialization constants.
