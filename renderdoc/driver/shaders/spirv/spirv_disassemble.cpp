@@ -4139,6 +4139,20 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
         {
           res.resType = eResType_None;
         }
+        else if(type->texdim == spv::DimSubpassData)
+        {
+          res.resType = eResType_Texture2D;
+          res.IsSRV = true;
+
+          if(sampledType->type == SPVTypeData::eFloat)
+            res.variableType.descriptor.type = eVar_Float;
+          else if(sampledType->type == SPVTypeData::eUInt)
+            res.variableType.descriptor.type = eVar_UInt;
+          else if(sampledType->type == SPVTypeData::eSInt)
+            res.variableType.descriptor.type = eVar_Int;
+          else
+            RDCERR("Unexpected base type of resource %u", sampledType->type);
+        }
         else
         {
           if(sampledType->type == SPVTypeData::eImage)
