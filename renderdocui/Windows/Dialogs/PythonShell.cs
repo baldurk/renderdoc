@@ -335,6 +335,8 @@ namespace renderdocui.Windows.Dialogs
             this.BeginInvoke(new Action(() =>
             {
                 scriptOutput.Text += output;
+                scriptOutput.SelectionStart = scriptOutput.TextLength;
+                scriptOutput.ScrollToCaret();
             }));
         }
         }
@@ -406,6 +408,8 @@ namespace renderdocui.Windows.Dialogs
                     pythonThread = null;
 
                     scriptOutput.Text += output;
+                    scriptOutput.SelectionStart = scriptOutput.TextLength;
+                    scriptOutput.ScrollToCaret();
 
                     SetLineNumber(linenum);
 
