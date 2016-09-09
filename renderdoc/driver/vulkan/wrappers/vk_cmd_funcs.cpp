@@ -963,7 +963,8 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(Serialiser *localSerialiser,
 
     AddEvent(NEXT_SUBPASS, desc);
     FetchDrawcall draw;
-    draw.name = StringFormat::Fmt("vkCmdNextSubpass() => %u", m_RenderState.subpass);
+    draw.name = StringFormat::Fmt("vkCmdNextSubpass() => %u",
+                                  m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
     draw.flags |= eDraw_PassBoundary | eDraw_BeginPass | eDraw_EndPass;
 
     AddDrawcall(draw, true);
