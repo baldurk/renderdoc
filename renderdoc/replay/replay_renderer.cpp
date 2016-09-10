@@ -1064,7 +1064,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
     else if(sd.destType == eFileType_HDR || sd.destType == eFileType_EXR)
     {
       float *fldata = NULL;
-      float *bgra[4] = {NULL, NULL, NULL, NULL};
+      float *abgr[4] = {NULL, NULL, NULL, NULL};
 
       if(sd.destType == eFileType_HDR)
       {
@@ -1072,10 +1072,10 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
       }
       else
       {
-        bgra[0] = new float[td.width * td.height];
-        bgra[1] = new float[td.width * td.height];
-        bgra[2] = new float[td.width * td.height];
-        bgra[3] = new float[td.width * td.height];
+        abgr[0] = new float[td.width * td.height];
+        abgr[1] = new float[td.width * td.height];
+        abgr[2] = new float[td.width * td.height];
+        abgr[3] = new float[td.width * td.height];
       }
 
       byte *srcData = subdata[0];
@@ -1168,10 +1168,10 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
           }
           else
           {
-            bgra[0][(y * td.width + x)] = b;
-            bgra[1][(y * td.width + x)] = g;
-            bgra[2][(y * td.width + x)] = r;
-            bgra[3][(y * td.width + x)] = a;
+            abgr[0][(y * td.width + x)] = a;
+            abgr[1][(y * td.width + x)] = b;
+            abgr[2][(y * td.width + x)] = g;
+            abgr[3][(y * td.width + x)] = r;
           }
         }
       }
@@ -1192,11 +1192,14 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
                            TINYEXR_PIXELTYPE_FLOAT, TINYEXR_PIXELTYPE_FLOAT};
         int reqTypes[4] = {TINYEXR_PIXELTYPE_HALF, TINYEXR_PIXELTYPE_HALF, TINYEXR_PIXELTYPE_HALF,
                            TINYEXR_PIXELTYPE_HALF};
-        const char *bgraNames[4] = {"B", "G", "R", "A"};
+
+        // must be in this order as many viewers don't pay attention to channels and just assume
+        // they are in this order
+        const char *bgraNames[4] = {"A", "B", "G", "R"};
 
         exrImage.num_channels = 4;
         exrImage.channel_names = bgraNames;
-        exrImage.images = (unsigned char **)bgra;
+        exrImage.images = (unsigned char **)abgr;
         exrImage.width = td.width;
         exrImage.height = td.height;
         exrImage.pixel_types = pixTypes;
@@ -1221,10 +1224,10 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
       }
       else
       {
-        delete[] bgra[0];
-        delete[] bgra[1];
-        delete[] bgra[2];
-        delete[] bgra[3];
+        delete[] abgr[0];
+        delete[] abgr[1];
+        delete[] abgr[2];
+        delete[] abgr[3];
       }
     }
 
