@@ -3793,7 +3793,7 @@ namespace renderdocui.Windows
 
                             // if the usage is different from the last, add a new entry,
                             // or if the previous draw link is broken.
-                            if (u.usage != us || curDraw.previous == null)
+                            if (u.usage != us || curDraw == null || curDraw.previous == null)
                             {
                                 distinct = true;
                             }
