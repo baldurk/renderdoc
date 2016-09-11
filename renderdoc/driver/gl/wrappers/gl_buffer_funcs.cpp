@@ -1190,8 +1190,8 @@ bool WrappedOpenGL::Serialise_glBindBuffersBase(GLenum target, GLuint first, GLs
   {
     SERIALISE_ELEMENT(ResourceId, id,
                       buffers && buffers[i]
-                      ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i]))
-                      : ResourceId());
+                          ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i]))
+                          : ResourceId());
 
     if(m_State <= EXECUTING)
     {

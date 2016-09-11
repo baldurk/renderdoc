@@ -212,7 +212,7 @@ void WrappedOpenGL::glBindSamplers(GLuint first, GLsizei count, const GLuint *sa
 
     m_ContextRecord->AddChunk(scope.Get());
     for(GLsizei i = 0; i < count; i++)
-      if (samplers != NULL && samplers[i] != 0)
+      if(samplers != NULL && samplers[i] != 0)
         GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), samplers[i]),
                                                           eFrameRef_Read);
   }
