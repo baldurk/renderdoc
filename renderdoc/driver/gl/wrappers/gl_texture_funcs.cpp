@@ -557,7 +557,10 @@ bool WrappedOpenGL::Serialise_glBindImageTextures(GLuint first, GLsizei count, c
 
   for(int32_t i = 0; i < Count; i++)
   {
-    SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), textures[i])));
+    SERIALISE_ELEMENT(ResourceId, id,
+                      textures && textures[i]
+                          ? GetResourceManager()->GetID(TextureRes(GetCtx(), textures[i]))
+                          : ResourceId());
 
     if(m_State <= EXECUTING)
     {
@@ -596,7 +599,7 @@ void WrappedOpenGL::glBindImageTextures(GLuint first, GLsizei count, const GLuin
     m_ContextRecord->AddChunk(scope.Get());
 
     for(GLsizei i = 0; i < count; i++)
-      if(textures[i])
+      if(textures != NULL && textures[i] != 0)
         GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), textures[i]),
                                                           eFrameRef_Read);
   }
