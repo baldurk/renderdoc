@@ -4401,7 +4401,7 @@ bool WrappedOpenGL::Serialise_glVertexAttrib(GLuint index, int count, GLenum typ
         else if(attr == Attrib_GLuint)
           m_Real.glVertexAttribI2uiv(idx, (GLuint *)value);
       }
-      else if(Count == 2)
+      else if(Count == 3)
       {
         if(attr == Attrib_GLint)
           m_Real.glVertexAttribI3iv(idx, (GLint *)value);
