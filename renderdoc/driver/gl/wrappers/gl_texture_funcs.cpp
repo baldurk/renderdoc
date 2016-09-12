@@ -631,6 +631,7 @@ bool WrappedOpenGL::Serialise_glTextureView(GLuint texture, GLenum target, GLuin
 
     m_Textures[liveTexId].curType = TextureTarget(Target);
     m_Textures[liveTexId].internalFormat = InternalFormat;
+    m_Textures[liveTexId].view = true;
     m_Textures[liveTexId].width = m_Textures[liveOrigId].width;
     m_Textures[liveTexId].height = m_Textures[liveOrigId].height;
     m_Textures[liveTexId].depth = m_Textures[liveOrigId].depth;
@@ -664,16 +665,26 @@ void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtext
 
     // illegal to re-type textures
     record->VerifyDataType(target);
+
+    // mark the underlying resource as dirty to avoid tracking dirty across
+    // aliased resources etc.
+    if(m_State == WRITING_IDLE)
+      GetResourceManager()->MarkDirtyResource(origrecord->GetResourceID());
+    else
+      m_MissingTracks.insert(origrecord->GetResourceID());
   }
-  else
+
   {
     ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
-    ResourceId origId = GetResourceManager()->GetID(TextureRes(GetCtx(), origtexture));
+    ResourceId viewedId = GetResourceManager()->GetID(TextureRes(GetCtx(), origtexture));
 
     m_Textures[texId].internalFormat = internalformat;
-    m_Textures[texId].width = m_Textures[origId].width;
-    m_Textures[texId].height = m_Textures[origId].height;
-    m_Textures[texId].depth = m_Textures[origId].depth;
+    m_Textures[texId].view = true;
+    m_Textures[texId].dimension = m_Textures[viewedId].dimension;
+    m_Textures[texId].width = m_Textures[viewedId].width;
+    m_Textures[texId].height = m_Textures[viewedId].height;
+    m_Textures[texId].depth = m_Textures[viewedId].depth;
+    m_Textures[texId].curType = TextureTarget(target);
   }
 }
 
