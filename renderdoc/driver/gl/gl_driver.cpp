@@ -2391,8 +2391,15 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
   if(ctxdata.Legacy())
     return;
 
+  // check if capturing multiple frames in a single file
+  bool isEndFrameCapture = true;
+  if(RenderDoc::Inst().IsSingleFileCapture())
+  {
+    isEndFrameCapture = RenderDoc::Inst().getCapFrame() == 0;
+  }
+
   // kill any current capture that isn't application defined
-  if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
+  if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture && isEndFrameCapture)
     RenderDoc::Inst().EndFrameCapture(ctxdata.ctx, windowHandle);
 
   if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)

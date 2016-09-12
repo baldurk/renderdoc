@@ -1144,7 +1144,7 @@ namespace renderdoc
         private static extern IntPtr TargetControl_GetBusyClient(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void TargetControl_TriggerCapture(IntPtr real, UInt32 numFrames);
+        private static extern void TargetControl_TriggerCapture(IntPtr real, UInt32 numFrames, bool isCaptureSingleFile);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void TargetControl_QueueCapture(IntPtr real, UInt32 frameNumber);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -1210,9 +1210,9 @@ namespace renderdoc
             m_Real = IntPtr.Zero;
         }
 
-        public void TriggerCapture(UInt32 numFrames)
+        public void TriggerCapture(UInt32 numFrames, bool isCaptureSingleFile)
         {
-            TargetControl_TriggerCapture(m_Real, numFrames);
+            TargetControl_TriggerCapture(m_Real, numFrames, isCaptureSingleFile);
         }
 
         public void QueueCapture(UInt32 frameNum)

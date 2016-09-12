@@ -727,8 +727,15 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
   RenderDoc::Inst().SetCurrentDriver(RDC_Vulkan);
 
+  // check if capturing multiple frames in a single file
+  bool isEndFrameCapture = true;
+  if(RenderDoc::Inst().IsSingleFileCapture())
+  {
+    isEndFrameCapture = RenderDoc::Inst().getCapFrame() == 0;
+  }
+
   // kill any current capture that isn't application defined
-  if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
+  if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture && isEndFrameCapture)
     RenderDoc::Inst().EndFrameCapture(LayerDisp(m_Instance), swapInfo.wndHandle);
 
   if(RenderDoc::Inst().ShouldTriggerCapture(m_FrameCounter) && m_State == WRITING_IDLE)

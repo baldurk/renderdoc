@@ -3397,8 +3397,15 @@ HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
 
   RenderDoc::Inst().SetCurrentDriver(RDC_D3D11);
 
+  // check if capturing multiple frames in a single file
+  bool isEndFrameCapture = true;
+  if(RenderDoc::Inst().IsSingleFileCapture())
+  {
+    isEndFrameCapture = RenderDoc::Inst().getCapFrame() == 0;
+  }
+
   // kill any current capture that isn't application defined
-  if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture)
+  if(m_State == WRITING_CAPFRAME && !m_AppControlledCapture && isEndFrameCapture)
   {
     m_pImmediateContext->Present(SyncInterval, Flags);
 

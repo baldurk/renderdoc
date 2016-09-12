@@ -105,12 +105,12 @@ static uint32_t GetCapture(uint32_t idx, char *logfile, uint32_t *pathlength, ui
 
 static void TriggerCapture()
 {
-  RenderDoc::Inst().TriggerCapture(1);
+  RenderDoc::Inst().TriggerCapture(1, false);
 }
 
-static void TriggerMultiFrameCapture(uint32_t numFrames)
+static void TriggerMultiFrameCapture(uint32_t numFrames, bool isCaptureSingleFile)
 {
-  RenderDoc::Inst().TriggerCapture(numFrames);
+  RenderDoc::Inst().TriggerCapture(numFrames, isCaptureSingleFile);
 }
 
 static uint32_t IsTargetControlConnected()
