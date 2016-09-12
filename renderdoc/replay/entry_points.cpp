@@ -477,6 +477,13 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
   if(host != NULL && host[0] != '\0')
     s = host;
 
+  if(!strncmp(host, "adb:", 4))
+  {
+    s = "127.0.0.1";
+
+    // could parse out an (optional) device name from host+4 here.
+  }
+
   // initial case is we're called with 0, start with the first port.
   // otherwise we're called with the last successful ident, so increment
   // before continuing to enumerate.

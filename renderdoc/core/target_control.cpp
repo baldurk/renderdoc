@@ -705,12 +705,22 @@ extern "C" RENDERDOC_API TargetControl *RENDERDOC_CC RENDERDOC_CreateTargetContr
   if(host != NULL && host[0] != '\0')
     s = host;
 
+  bool android = false;
+
+  if(!strncmp(host, "adb:", 4))
+  {
+    android = true;
+    s = "127.0.0.1";
+
+    // could parse out an (optional) device name from host+4 here.
+  }
+
   Network::Socket *sock = Network::CreateClientSocket(s.c_str(), ident & 0xffff, 750);
 
   if(sock == NULL)
     return NULL;
 
-  bool localhost = Network::GetIPOctet(sock->GetRemoteIP(), 0) == 127;
+  bool localhost = !android && (Network::GetIPOctet(sock->GetRemoteIP(), 0) == 127);
 
   TargetControl *remote = new TargetControl(sock, clientName, forceConnection != 0, localhost);
 
