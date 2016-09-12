@@ -121,7 +121,7 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
     outputWin.ctx = ctx;
     outputWin.eglDisplay = display;
     
-    OpenGLHook::glhooks.GetDriver()->CreateContext(outputWin, share_context, GLESInitParams(), false, false);
+    OpenGLHook::glhooks.GetDriver()->CreateContext(outputWin, share_context, GLESInitParams(), true, true);
     return ctx;
 }
 
@@ -157,3 +157,23 @@ __attribute__((visibility("default"))) EGLBoolean eglSwapBuffers(EGLDisplay dpy,
     return OpenGLHook::glhooks.m_eglSwapBuffers_real(dpy, surface);
 }
 
+
+__attribute__((visibility("default"))) EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface read, EGLContext context)
+{
+    Bool ret = OpenGLHook::glhooks.m_eglMakeCurrent_real(display, draw, read, context);
+
+    if(context && OpenGLHook::glhooks.m_Contexts.find(context) == OpenGLHook::glhooks.m_Contexts.end())
+    {
+        OpenGLHook::glhooks.m_Contexts.insert(context);
+        OpenGLHook::glhooks.PopulateHooks();
+    }
+
+    GLESWindowingData data;
+    data.eglDisplay = display;
+    data.surface = draw;
+    data.ctx = context;
+
+    OpenGLHook::glhooks.GetDriver()->ActivateContext(data);
+
+    return ret;    
+}

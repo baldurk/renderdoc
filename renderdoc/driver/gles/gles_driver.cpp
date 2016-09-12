@@ -1236,11 +1236,6 @@ void WrappedGLES::ContextData::CreateDebugData(const GLHookSet &gl)
   }
 }
 
-void WrappedGLES::CreateContext(void)
-{
-    RenderDoc::Inst().AddDeviceFrameCapturer(this, this);
-    RenderDoc::Inst().AddFrameCapturer(this, this, this);
-}
 
 void WrappedGLES::CreateContext(GLESWindowingData winData, void *shareContext,
                                   GLESInitParams initParams, bool core, bool attribsCreate)

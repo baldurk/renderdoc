@@ -431,6 +431,8 @@ public:
 
   PFN_eglGetProcAddress m_eglGetProcAddress_real;
   PFN_eglSwapBuffers m_eglSwapBuffers_real;
+  PFN_eglMakeCurrent m_eglMakeCurrent_real;
+
   WrappedGLES *m_GLESDriver;
 
   GLHookSet GL;
@@ -755,6 +757,9 @@ bool OpenGLHook::SetupHooks(GLHookSet &GL)
 
   if(m_eglSwapBuffers_real == NULL)
     m_eglSwapBuffers_real = (PFN_eglSwapBuffers)dlsym(libGLdlsymHandle, "eglSwapBuffers");
+
+  if(m_eglMakeCurrent_real == NULL)
+    m_eglMakeCurrent_real = (PFN_eglMakeCurrent)dlsym(libGLdlsymHandle, "eglMakeCurrent");
 
 #if 0
   if(glXCreateContext_real == NULL)
