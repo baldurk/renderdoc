@@ -726,7 +726,8 @@ namespace renderdoc
 
         public Int32 mip = -1;
 
-        public struct ComponentMapping
+        [StructLayout(LayoutKind.Sequential)]
+        public class ComponentMapping
         {
             public float blackPoint;
             public float whitePoint;
@@ -736,7 +737,7 @@ namespace renderdoc
         public ComponentMapping comp = new ComponentMapping();
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct SampleMapping
+        public class SampleMapping
         {
             public bool mapToArray;
 
@@ -746,7 +747,7 @@ namespace renderdoc
         public SampleMapping sample = new SampleMapping();
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct SliceMapping
+        public class SliceMapping
         {
             public Int32 sliceIndex;
 
