@@ -135,3 +135,14 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 }
 
 const char *VulkanLibraryName = "libvulkan.so.1";
+
+// embedded data file
+
+extern unsigned char driver_vulkan_renderdoc_json[];
+extern int driver_vulkan_renderdoc_json_len;
+
+extern "C" __attribute__((visibility("default"))) void RENDERDOC_GetLayerJSON(char **txt, int *len)
+{
+  *txt = (char *)driver_vulkan_renderdoc_json;
+  *len = driver_vulkan_renderdoc_json_len;
+}
