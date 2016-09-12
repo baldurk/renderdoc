@@ -117,7 +117,7 @@ namespace renderdocui.Windows
 
             m_ConnectThread = null;
 
-            Text = (m_Host.Length > 0 ? (m_Host + " - ") : "") + "Connecting...";
+            SetText("Connecting...");
             connectionStatus.Text = "Connecting...";
             connectionIcon.Image = global::renderdocui.Properties.Resources.hourglass;
 
@@ -168,13 +168,13 @@ namespace renderdocui.Windows
                         if (m_Connection.PID == 0)
                         {
                             connectionStatus.Text = String.Format("Connection established to {0} ({1})", m_Connection.Target, api);
-                            Text = String.Format("{0} ({1})", m_Connection.Target, api);
+                            SetText(String.Format("{0} ({1})", m_Connection.Target, api));
                         }
                         else
                         {
                             connectionStatus.Text = String.Format("Connection established to {0} [PID {1}] ({2})",
                                      m_Connection.Target, m_Connection.PID, api);
-                            Text = String.Format("{0} [PID {1}] ({2})", m_Connection.Target, m_Connection.PID, api);
+                            SetText(String.Format("{0} [PID {1}] ({2})", m_Connection.Target, m_Connection.PID, api));
                         }
                         connectionIcon.Image = global::renderdocui.Properties.Resources.connect;
                     });
@@ -230,7 +230,7 @@ namespace renderdocui.Windows
                         this.BeginInvoke((MethodInvoker)delegate
                         {
                             connectionStatus.Text = String.Format("Connection established to {0} ({1})", m_Connection.Target, m_Connection.API);
-                            Text = String.Format("{0} ({1})", m_Connection.Target, m_Connection.API);
+                            SetText(String.Format("{0} ({1})", m_Connection.Target, m_Connection.API));
                             connectionIcon.Image = global::renderdocui.Properties.Resources.connect;
                         });
 
@@ -307,7 +307,7 @@ namespace renderdocui.Windows
             {
                 this.BeginInvoke((MethodInvoker)delegate
                 {
-                    Text = (m_Host.Length > 0 ? (m_Host + " - ") : "") + "Connection failed";
+                    SetText("Connection failed");
                     connectionStatus.Text = "Connection failed";
                     connectionIcon.Image = global::renderdocui.Properties.Resources.delete;
 
@@ -929,5 +929,11 @@ namespace renderdocui.Windows
                 m_Main.ShowLiveCapture(live);
             }                
         }
+
+        private void SetText(String title)
+        {
+            Text = (m_Host.Length > 0 ? (m_Host + " - ") : "") + title;
+        }
+
     }
 }
