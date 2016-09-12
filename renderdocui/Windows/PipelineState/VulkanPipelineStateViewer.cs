@@ -2863,10 +2863,9 @@ namespace renderdocui.Windows.PipelineState
                             object[] sampDetails = MakeSampler("", "", descriptorBind);
                             rows.Add(new object[] {
                                 setname, slotname, name, bind.type,
-                                "", "", "",
+                                "", "", "", "",
                                 sampDetails[5],
-                                sampDetails[6],
-                                sampDetails[7]
+                                sampDetails[6]
                             });
                         }
                     }
