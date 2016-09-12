@@ -282,18 +282,18 @@ namespace renderdocui.Windows.Dialogs
                     if (refreshAll.Enabled)
                         refreshOne.Enabled = true;
 
-                    addUpdateHost.Text = "Update";
-
                     if (host.Hostname == "localhost")
                     {
-                        hostname.Enabled = addUpdateHost.Enabled = runCommand.Enabled = false;
-                        hostname.Text = "localhost";
+                        hostname.Text = "";
+                        runCommand.Text = "";
                     }
                     else
                     {
                         deleteHost.Enabled = true;
                         runCommand.Text = host.RunCommand;
                         hostname.Text = host.Hostname;
+
+                        addUpdateHost.Text = "Update";
                     }
                 }
             }
