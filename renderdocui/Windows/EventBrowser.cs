@@ -878,6 +878,25 @@ namespace renderdocui.Windows
             findHighlight.Enabled = false;
         }
 
+        private void findEvent_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.F3)
+            {
+                if (findHighlight.Enabled)
+                {
+                    findHighlight.Enabled = false;
+                    findHighlight_Tick(sender, null);
+                }
+
+                if (findEvent.Text.Length > 0)
+                {
+                    Find(e.Shift ? false : true);
+                }
+
+                e.Handled = true;
+            }
+        }
+
         private void findEvent_KeyPress(object sender, KeyPressEventArgs e)
         {
             // escape key
