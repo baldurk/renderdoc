@@ -30,7 +30,7 @@ sub uses_typedef
 
 my $printdefs = $ARGV[$1] eq "defs";
 
-open(HOOKSET, "<gles_hookset.h") || die "Couldn't open gles_hookset.h - run in driver/gl/";
+open(HOOKSET, "<gl_hookset.h") || die "Couldn't open gl_hookset.h - run in driver/gl/";
 
 my @unsupported = ();
 my @dllexport = ();
@@ -84,7 +84,7 @@ while(<HOOKSET>)
                }
                else
                {
-                       print "MALFORMED LINE IN gles_hookset.h: '$line'\n";
+                       print "MALFORMED LINE IN gl_hookset.h: '$line'\n";
                }
        }
 }
@@ -95,10 +95,10 @@ my @dllexportfuncs = ();
 my @glextfuncs = ();
 my @processed = ();
 
-my $typedefs = `egrep -h PFN[0-9A-Z_-]+PROC official/gl32.h`;
+my $typedefs = `egrep -h PFN[0-9A-Z_-]+PROC official/glcorearb.h official/glext.h`;
 foreach my $typedef (split(/\n/, $typedefs))
 {
-	if($typedef =~ /^typedef (.*)\([A-Z_ *]* (.*)\) \((.*)\);/)
+	if($typedef =~ /^typedef (.*)\([A-Z *]* (.*)\) \((.*)\);/)
 	{
 		my $returnType = trim($1);
 		my $def = $2;
@@ -210,7 +210,7 @@ print <<ENDOFHEADER;
 // next time that script is run.
 // \$ pwd
 // .../renderdoc/driver/gl
-// \$ ./gles_hookset.pl > gles_hookset_defs.h
+// \$ ./hookset.pl > gl_hookset_defs.h
 ENDOFHEADER
 
 print "////////////////////////////////////////////////////\n";
@@ -277,3 +277,4 @@ print "\n";
 print "\n";
 print "\n";
 print "\n";
+

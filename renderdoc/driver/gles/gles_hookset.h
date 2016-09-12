@@ -36,24 +36,12 @@ struct GLHookSet
   // will be returned and used.
 
   // ++ dllexport
+  PFNGLBINDTEXTUREPROC glBindTexture;
+  PFNGLBLENDFUNCPROC glBlendFunc;
   PFNGLCLEARPROC glClear;
   PFNGLCLEARCOLORPROC glClearColor;
-  PFNGLVIEWPORTPROC glViewport;
-  PFNGLGETERRORPROC glGetError;
-  // --
-#if 0
-  PFNGLCLEARDEPTHFPROC glClearDepthf;
+  PFNGLCLEARDEPTHPROC glClearDepth;
   PFNGLCLEARSTENCILPROC glClearStencil;
-  PFNGLGETERRORPROC glGetError;
-  PFNGLGETTEXLEVELPARAMETERIVPROC glGetTexLevelParameteriv;
-  PFNGLGETTEXLEVELPARAMETERFVPROC glGetTexLevelParameterfv;
-  PFNGLGETTEXPARAMETERFVPROC glGetTexParameterfv;
-  PFNGLGETTEXPARAMETERIVPROC glGetTexParameteriv;
-  PFNGLGETBOOLEANVPROC glGetBooleanv;
-  PFNGLGETFLOATVPROC glGetFloatv;
-  PFNGLGETINTEGERVPROC glGetIntegerv;
-  PFNGLGETPOINTERVPROC glGetPointerv;
-  PFNGLGETSTRINGPROC glGetString;
   PFNGLCOLORMASKPROC glColorMask;
   PFNGLCULLFACEPROC glCullFace;
   PFNGLDEPTHFUNCPROC glDepthFunc;
@@ -74,6 +62,18 @@ struct GLHookSet
   PFNGLDELETETEXTURESPROC glDeleteTextures;
   PFNGLISENABLEDPROC glIsEnabled;
   PFNGLISTEXTUREPROC glIsTexture;
+  PFNGLGETERRORPROC glGetError;
+  PFNGLGETTEXLEVELPARAMETERIVPROC glGetTexLevelParameteriv;
+  PFNGLGETTEXLEVELPARAMETERFVPROC glGetTexLevelParameterfv;
+  PFNGLGETTEXPARAMETERFVPROC glGetTexParameterfv;
+  PFNGLGETTEXPARAMETERIVPROC glGetTexParameteriv;
+  PFNGLGETTEXIMAGEPROC glGetTexImage;
+  PFNGLGETBOOLEANVPROC glGetBooleanv;
+  PFNGLGETFLOATVPROC glGetFloatv;
+  PFNGLGETDOUBLEVPROC glGetDoublev;
+  PFNGLGETINTEGERVPROC glGetIntegerv;
+  PFNGLGETPOINTERVPROC glGetPointerv;
+  PFNGLGETSTRINGPROC glGetString;
   PFNGLHINTPROC glHint;
   PFNGLLOGICOPPROC glLogicOp;
   PFNGLPIXELSTOREIPROC glPixelStorei;
@@ -97,12 +97,14 @@ struct GLHookSet
   PFNGLTEXPARAMETERFVPROC glTexParameterfv;
   PFNGLTEXPARAMETERIPROC glTexParameteri;
   PFNGLTEXPARAMETERIVPROC glTexParameteriv;
+  PFNGLVIEWPORTPROC glViewport;
+  // --
 
   // this just means 'functions not dllexport on windows', not necessarily extensions.
   // note that for ARB_direct_state_access there is special treatment due to interaction with
   // EXT_direct_state_access, so those functions are listed later in the extension section
   // rather than here in the core section where you'd expect
-  // + + glext
+  // ++ glext
   PFNGLACTIVETEXTUREPROC glActiveTexture;    // aliases glActiveTextureARB
   PFNGLTEXSTORAGE1DPROC glTexStorage1D;
   PFNGLTEXSTORAGE2DPROC glTexStorage2D;
@@ -934,8 +936,5 @@ struct GLHookSet
   PFNGLGETQUERYBUFFEROBJECTUI64VPROC glGetQueryBufferObjectui64v;
   PFNGLGETQUERYBUFFEROBJECTUIVPROC glGetQueryBufferObjectuiv;
 
-  // - -
-#endif
+  // --
 };
-
-const GLHookSet &GetRealGLFunctions();

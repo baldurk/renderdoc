@@ -91,6 +91,7 @@ typedef EGLDisplay (*PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
 
 __attribute__((visibility("default"))) EGLDisplay eglGetDisplay (EGLNativeDisplayType display)
 {
+    OpenGLHook::glhooks.PopulateHooks();
     PFN_eglGetDisplay real_pfn = (PFN_eglGetDisplay)dlsym(RTLD_NEXT, "eglGetDisplay");
     printf("REAL display: %p\n", real_pfn);
 
@@ -113,9 +114,15 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
     eglCreateContext_pfn real_pfn = (eglCreateContext_pfn)dlsym(RTLD_NEXT, "eglCreateContext");
     printf("REAL context: %p\n", real_pfn);
 
-    OpenGLHook::glhooks.GetDriver()->CreateContext();
+    
+    EGLContext ctx = real_pfn(display, config, share_context, attrib_list);
 
-    return real_pfn(display, config, share_context, attrib_list);
+    GLESWindowingData outputWin;
+    outputWin.ctx = ctx;
+    outputWin.eglDisplay = display;
+    
+    OpenGLHook::glhooks.GetDriver()->CreateContext(outputWin, share_context, GLESInitParams(), false, false);
+    return ctx;
 }
 
 
@@ -133,20 +140,20 @@ __attribute__((visibility("default"))) __eglMustCastToProperFunctionPointerType 
        return realFunc;
 
     DLLExportHooks();
-    //HookCheckGLExtensions();
+    HookCheckGLExtensions();
 
     // at the moment the unsupported functions are all lowercase (as their name is generated from the
     // typedef name).
     string lowername = strlower(string(func));
 
-    //CheckUnsupported();
+    CheckUnsupported();
 
     return realFunc;
 }
 
 __attribute__((visibility("default"))) EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
 {
-    OpenGLHook::glhooks.GetDriver()->SwapBuffers(dpy, surface);
+    OpenGLHook::glhooks.GetDriver()->SwapBuffers(surface);
     return OpenGLHook::glhooks.m_eglSwapBuffers_real(dpy, surface);
 }
 
