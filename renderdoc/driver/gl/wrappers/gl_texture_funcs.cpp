@@ -5422,14 +5422,17 @@ bool WrappedOpenGL::Serialise_glTextureBufferRangeEXT(GLuint texture, GLenum tar
       m_Textures[liveId].internalFormat = fmt;
     }
 
+    GLuint buf = 0;
+
+    if(GetResourceManager()->HasLiveResource(bufid))
+      buf = GetResourceManager()->GetLiveResource(bufid).name;
+
     if(Target != eGL_NONE)
       m_Real.glTextureBufferRangeEXT(GetResourceManager()->GetLiveResource(texid).name, Target, fmt,
-                                     GetResourceManager()->GetLiveResource(bufid).name,
-                                     (GLintptr)offs, (GLsizeiptr)Size);
+                                     buf, (GLintptr)offs, (GLsizeiptr)Size);
     else
-      m_Real.glTextureBufferRange(GetResourceManager()->GetLiveResource(texid).name, fmt,
-                                  GetResourceManager()->GetLiveResource(bufid).name, (GLintptr)offs,
-                                  (GLsizei)Size);
+      m_Real.glTextureBufferRange(GetResourceManager()->GetLiveResource(texid).name, fmt, buf,
+                                  (GLintptr)offs, (GLsizei)Size);
   }
 
   return true;
@@ -5449,11 +5452,26 @@ void WrappedOpenGL::Common_glTextureBufferRangeEXT(ResourceId texId, GLenum targ
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
     RDCASSERT(record);
 
+    ResourceId bufid = GetResourceManager()->GetID(BufferRes(GetCtx(), buffer));
+
     if(record->datatype == eGL_TEXTURE_BINDING_BUFFER &&
        m_Textures[texId].internalFormat == internalformat && m_State == WRITING_IDLE)
     {
       GetResourceManager()->MarkDirtyResource(texId);
-      GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+
+      if(bufid != ResourceId())
+      {
+        GetResourceManager()->MarkDirtyResource(bufid);
+
+        // this will lead to an accumulation of parents if the texture is continually rebound, but
+        // this is unavoidable as we don't want to add tons of infrastructure just to track this
+        // edge case.
+        GLResourceRecord *bufRecord = GetResourceManager()->GetResourceRecord(bufid);
+
+        if(bufRecord)
+          record->AddParent(bufRecord);
+      }
+
       return;
     }
 
@@ -5463,18 +5481,24 @@ void WrappedOpenGL::Common_glTextureBufferRangeEXT(ResourceId texId, GLenum targ
 
     if(m_State == WRITING_CAPFRAME)
     {
-      ResourceId bufid = GetResourceManager()->GetID(BufferRes(GetCtx(), buffer));
-
       m_ContextRecord->AddChunk(scope.Get());
       m_MissingTracks.insert(record->GetResourceID());
-      m_MissingTracks.insert(bufid);
       GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-      GetResourceManager()->MarkResourceFrameReferenced(bufid, eFrameRef_Read);
+
+      if(bufid != ResourceId())
+      {
+        m_MissingTracks.insert(bufid);
+        GetResourceManager()->MarkResourceFrameReferenced(bufid, eFrameRef_Read);
+      }
     }
     else
     {
       record->AddChunk(scope.Get());
-      record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+
+      GLResourceRecord *bufRecord = GetResourceManager()->GetResourceRecord(bufid);
+
+      if(bufRecord)
+        record->AddParent(bufRecord);
     }
   }
 
@@ -5588,11 +5612,26 @@ void WrappedOpenGL::Common_glTextureBufferEXT(ResourceId texId, GLenum target,
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
     RDCASSERT(record);
 
+    ResourceId bufid = GetResourceManager()->GetID(BufferRes(GetCtx(), buffer));
+
     if(record->datatype == eGL_TEXTURE_BINDING_BUFFER &&
        m_Textures[texId].internalFormat == internalformat && m_State == WRITING_IDLE)
     {
       GetResourceManager()->MarkDirtyResource(texId);
-      GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+
+      if(bufid != ResourceId())
+      {
+        GetResourceManager()->MarkDirtyResource(bufid);
+
+        // this will lead to an accumulation of parents if the texture is continually rebound, but
+        // this is unavoidable as we don't want to add tons of infrastructure just to track this
+        // edge case.
+        GLResourceRecord *bufRecord = GetResourceManager()->GetResourceRecord(bufid);
+
+        if(bufRecord)
+          record->AddParent(bufRecord);
+      }
+
       return;
     }
 
@@ -5603,27 +5642,41 @@ void WrappedOpenGL::Common_glTextureBufferEXT(ResourceId texId, GLenum target,
 
     if(m_State == WRITING_CAPFRAME)
     {
-      ResourceId bufid = GetResourceManager()->GetID(BufferRes(GetCtx(), buffer));
-
       m_ContextRecord->AddChunk(chunk);
       m_MissingTracks.insert(record->GetResourceID());
-      m_MissingTracks.insert(bufid);
       GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-      GetResourceManager()->MarkResourceFrameReferenced(bufid, eFrameRef_Read);
+
+      if(bufid != ResourceId())
+      {
+        m_MissingTracks.insert(bufid);
+        GetResourceManager()->MarkResourceFrameReferenced(bufid, eFrameRef_Read);
+      }
     }
     else
     {
       record->AddChunk(chunk);
-      record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+
+      GLResourceRecord *bufRecord = GetResourceManager()->GetResourceRecord(bufid);
+
+      if(bufRecord)
+        record->AddParent(bufRecord);
     }
   }
 
   {
-    uint32_t size = 1;
-    m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&size);
-    m_Textures[texId].width =
-        uint32_t(size) /
-        uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat)));
+    if(buffer != 0)
+    {
+      uint32_t size = 1;
+      m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&size);
+      m_Textures[texId].width =
+          uint32_t(size) /
+          uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat)));
+    }
+    else
+    {
+      m_Textures[texId].width = 1;
+    }
+
     m_Textures[texId].height = 1;
     m_Textures[texId].depth = 1;
     if(target != eGL_NONE)

@@ -1788,7 +1788,17 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
     }
     else
     {
-      GLuint buffer = GetLiveResource(state->texBuffer).name;
+      GLuint buffer = 0;
+
+      if(HasLiveResource(state->texBuffer))
+        buffer = GetLiveResource(state->texBuffer).name;
+
+      GLenum fmt = details.internalFormat;
+
+      // update width from here as it's authoratitive - the texture might have been resized in
+      // multiple rebinds that we will not have serialised before.
+      details.width =
+          state->texBufSize / uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt)));
 
       if(gl.glTextureBufferRangeEXT)
       {
