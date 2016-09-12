@@ -2458,6 +2458,9 @@ void VulkanDebugManager::RemoveReplacement(ResourceId id)
   // we're passed in the original ID but we want the live ID for comparison
   ResourceId liveid = GetResourceManager()->GetLiveID(id);
 
+  if(!GetResourceManager()->HasReplacement(id))
+    return;
+
   // remove the actual shader module replacements
   GetResourceManager()->RemoveReplacement(id);
   GetResourceManager()->RemoveReplacement(liveid);

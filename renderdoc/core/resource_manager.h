@@ -398,6 +398,7 @@ public:
 
   // when asked for a given id, return the resource for a replacement id
   void ReplaceResource(ResourceId from, ResourceId to);
+  bool HasReplacement(ResourceId from);
   void RemoveReplacement(ResourceId id);
 
   // fetch original ID for a real ID or vice-versa.
@@ -1119,6 +1120,14 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Replace
 
   if(HasLiveResource(to))
     m_Replacements[from] = to;
+}
+
+template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
+bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::HasReplacement(ResourceId from)
+{
+  SCOPED_LOCK(m_Lock);
+
+  return m_Replacements.find(from) != m_Replacements.end();
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
