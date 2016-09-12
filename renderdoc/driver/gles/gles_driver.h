@@ -514,7 +514,6 @@ public:
 
   void SuppressDebugMessages(bool suppress) { m_SuppressDebugMessages = suppress; }
   vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
-  void CreateContext();
   void CreateContext(GLESWindowingData winData, void *shareContext, GLESInitParams initParams,
                      bool core, bool attribsCreate);
   void RegisterContext(GLESWindowingData winData, void *shareContext, bool core, bool attribsCreate);

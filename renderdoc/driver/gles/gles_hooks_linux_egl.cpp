@@ -153,6 +153,13 @@ __attribute__((visibility("default"))) __eglMustCastToProperFunctionPointerType 
 
 __attribute__((visibility("default"))) EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
 {
+
+    int width;
+    int height;
+    OpenGLHook::glhooks.m_eglQuerySurface_real(dpy, surface, EGL_HEIGHT, &height);
+    OpenGLHook::glhooks.m_eglQuerySurface_real(dpy, surface, EGL_WIDTH, &width);
+    
+    OpenGLHook::glhooks.GetDriver()->WindowSize(surface, width, height);
     OpenGLHook::glhooks.GetDriver()->SwapBuffers(surface);
     return OpenGLHook::glhooks.m_eglSwapBuffers_real(dpy, surface);
 }

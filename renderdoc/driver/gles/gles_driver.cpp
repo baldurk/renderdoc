@@ -1236,7 +1236,6 @@ void WrappedGLES::ContextData::CreateDebugData(const GLHookSet &gl)
   }
 }
 
-
 void WrappedGLES::CreateContext(GLESWindowingData winData, void *shareContext,
                                   GLESInitParams initParams, bool core, bool attribsCreate)
 {
