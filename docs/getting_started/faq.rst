@@ -213,3 +213,12 @@ The path you specify (with the stripped shader, or at runtime) can be either abs
 The stripped shader file stored on disk can also be compressed with LZ4 to save space as often most of the size is made up for shader source text which compresses well. To do this, simply compress the contents of the file and prepend the pathname (either absolute or relative, specified in the shader blob or at runtime) with ``lz4#``.
 
 For example code using this method, check out :doc:`tips_tricks`.
+
+I want to debug a process that my program launches itself, how can I inject RenderDoc?
+--------------------------------------------------------------------------------------
+
+When launching a process in RenderDoc, by default only this process is debugged and any children it launches are not affected. This better ensures compatibility for the most common case where you are able to start the process to be debugged directly.
+
+In the case where your program launches sub-processes that you would like to debug, you can enable the ``Hook into Children`` capture option, which causes RenderDoc to recursively inject itself into all children (and grand-children, and so on). When you open a capture connection, the child processes will be displayed and you can open a connection to each child to locate the process you wish to debug.
+
+There are :ref:`more details available <child-process-hook>` in the documentation for the :doc:`../window/capture_log_attach` window.

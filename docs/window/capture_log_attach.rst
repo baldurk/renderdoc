@@ -154,6 +154,8 @@ This option is slightly different from the others in that it doesn't change anyt
 
 This option allows you to queue up a precise capture of a given frame number after the program has started.
 
+.. _child-process-hook:
+
 Child Processes
 ---------------
 
