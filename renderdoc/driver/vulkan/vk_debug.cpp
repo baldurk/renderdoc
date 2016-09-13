@@ -3032,6 +3032,7 @@ FloatVector VulkanDebugManager::InterpretVertex(byte *data, uint32_t vert, const
 uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x,
                                         uint32_t y, uint32_t w, uint32_t h)
 {
+#if 0
   VkDevice dev = m_pDriver->GetDev();
   const VkLayerDispatchTable *vt = ObjDisp(dev);
 
@@ -3316,6 +3317,8 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
   m_MeshPickResultReadback.Unmap();
 
   return ret;
+#endif
+  return 0;
 }
 
 void VulkanDebugManager::EndText(const TextPrintState &textstate)

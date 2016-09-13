@@ -132,15 +132,10 @@ INST_NAME(general);
 
 BINDING(0) uniform MeshPickUBOData
 {
-  vec2 coords;
-  vec2 viewport;
-
-  mat4 mvp;
-
+  vec3 rayPos;
   uint use_indices;
+  vec3 rayDir;
   uint numVerts;
-  uint unproject;
-  uint padding;
 }
 INST_NAME(meshpick);
 
