@@ -684,33 +684,33 @@ void ReplayOutput::DisplayTex()
 
   m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
   m_pDevice->ClearOutputWindowColour(m_MainOutput.outputID, color);
-
-  m_pDevice->RenderCheckerboard(
-      Vec3f(texDisplay.lightBackgroundColour.x, texDisplay.lightBackgroundColour.y,
-            texDisplay.lightBackgroundColour.z),
-      Vec3f(texDisplay.darkBackgroundColour.x, texDisplay.darkBackgroundColour.y,
-            texDisplay.darkBackgroundColour.z));
-
-  m_pDevice->RenderTexture(texDisplay);
-
-  if(m_RenderData.texDisplay.overlay != eTexOverlay_None && draw &&
-     m_pDevice->IsRenderOutput(m_RenderData.texDisplay.texid) &&
-     m_RenderData.texDisplay.overlay != eTexOverlay_NaN &&
-     m_RenderData.texDisplay.overlay != eTexOverlay_Clipping)
-  {
-    RDCASSERT(m_OverlayResourceId != ResourceId());
-    texDisplay.texid = m_pDevice->GetLiveID(m_OverlayResourceId);
-    texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
-    texDisplay.rawoutput = false;
-    texDisplay.CustomShader = ResourceId();
-    texDisplay.scale = m_RenderData.texDisplay.scale;
-    texDisplay.HDRMul = -1.0f;
-    texDisplay.FlipY = m_RenderData.texDisplay.FlipY;
-    texDisplay.rangemin = 0.0f;
-    texDisplay.rangemax = 1.0f;
-
-    m_pDevice->RenderTexture(texDisplay);
-  }
+//
+//  m_pDevice->RenderCheckerboard(
+//      Vec3f(texDisplay.lightBackgroundColour.x, texDisplay.lightBackgroundColour.y,
+//            texDisplay.lightBackgroundColour.z),
+//      Vec3f(texDisplay.darkBackgroundColour.x, texDisplay.darkBackgroundColour.y,
+//            texDisplay.darkBackgroundColour.z));
+//
+//  m_pDevice->RenderTexture(texDisplay);
+//
+//  if(m_RenderData.texDisplay.overlay != eTexOverlay_None && draw &&
+//     m_pDevice->IsRenderOutput(m_RenderData.texDisplay.texid) &&
+//     m_RenderData.texDisplay.overlay != eTexOverlay_NaN &&
+//     m_RenderData.texDisplay.overlay != eTexOverlay_Clipping)
+//  {
+//    RDCASSERT(m_OverlayResourceId != ResourceId());
+//    texDisplay.texid = m_pDevice->GetLiveID(m_OverlayResourceId);
+//    texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+//    texDisplay.rawoutput = false;
+//    texDisplay.CustomShader = ResourceId();
+//    texDisplay.scale = m_RenderData.texDisplay.scale;
+//    texDisplay.HDRMul = -1.0f;
+//    texDisplay.FlipY = m_RenderData.texDisplay.FlipY;
+//    texDisplay.rangemin = 0.0f;
+//    texDisplay.rangemax = 1.0f;
+//
+//    m_pDevice->RenderTexture(texDisplay);
+//  }
 }
 
 void ReplayOutput::DisplayMesh()

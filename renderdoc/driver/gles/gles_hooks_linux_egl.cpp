@@ -130,7 +130,7 @@ __attribute__((visibility("default"))) __eglMustCastToProperFunctionPointerType 
 {
     __eglMustCastToProperFunctionPointerType realFunc = OpenGLHook::glhooks.m_eglGetProcAddress_real(func);
 
-    printf("eglGetProcAddress('%s') -> real: %p\n", func, realFunc);
+    //printf("eglGetProcAddress('%s') -> real: %p\n", func, realFunc);
 
     if(!strcmp(func, "eglCreateContext"))
         return (__eglMustCastToProperFunctionPointerType)&eglCreateContext;

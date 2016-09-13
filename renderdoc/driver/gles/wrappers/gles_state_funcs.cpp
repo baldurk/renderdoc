@@ -493,6 +493,7 @@ bool WrappedGLES::Serialise_glClearColor(GLclampf red, GLclampf green, GLclampf 
   if(m_State <= EXECUTING)
   {
     m_Real.glClearColor(r, g, b, a);
+    printf("glClearColor error:%d\n" , m_Real.glGetError());
   }
 
   return true;

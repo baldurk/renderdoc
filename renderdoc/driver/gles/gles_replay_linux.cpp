@@ -54,6 +54,9 @@ DEF_FUNC(eglGetProcAddress);
 #define DEBUG_TOSTRING(x) DEBUG_STRINGIFY(x)
 #define DEBUG_LOCATION __FILE__ ":" DEBUG_TOSTRING(__LINE__)
 
+
+#define DEBUG
+
 #ifdef DEBUG
 #define EGL_RETURN_DEBUG(function) printEGLError(DEBUG_STRINGIFY(function), DEBUG_LOCATION)
 #define CALL_DEBUG() printf("CALL: (%s) : %s\n", DEBUG_LOCATION, __FUNCTION__)
@@ -98,6 +101,7 @@ void printEGLError(const char* const function, const char* const location)
 void GLESReplay::MakeCurrentReplayContext(GLESWindowingData *ctx)
 {
     CALL_DEBUG();
+    printf("mcrc: egldisplay:%p surface:%p ctx:%p\n", ctx->eglDisplay, ctx->surface, ctx->ctx);
     static GLESWindowingData *prev = NULL;
     if(REAL(eglMakeCurrent) && ctx && ctx != prev)
     {
@@ -113,6 +117,7 @@ void GLESReplay::SwapBuffers(GLESWindowingData* data)
     CALL_DEBUG();
     REAL(eglSwapBuffers)(data->eglDisplay, data->surface);
     EGL_RETURN_DEBUG(eglSwapBuffers);
+    printf("sb: egldisplay:%p surface:%p ctx:%p\n", data->eglDisplay, data->surface, data->ctx);
 }
 
 void GLESReplay::CloseReplayContext()
@@ -195,9 +200,22 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
 
     EGLContext ctx = REAL(eglCreateContext)(egl_display, config, EGL_NO_CONTEXT, ctx_attribs);
     EGL_RETURN_DEBUG(eglCreateContext);
-
-    EGLSurface surface = REAL(eglCreateWindowSurface)(egl_display, config, (EGLNativeWindowType)draw, NULL);
-    EGL_RETURN_DEBUG(eglCreateWindowSurface);
+    
+    EGLSurface surface = NULL;
+    
+    if (draw != 0) {
+        surface = REAL(eglCreateWindowSurface)(egl_display, config, (EGLNativeWindowType)draw, NULL);
+        EGL_RETURN_DEBUG(eglCreateWindowSurface);
+    }
+    else
+    {
+        static const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
+        surface = REAL(eglCreatePbufferSurface)(egl_display, config, pbAttribs);
+        EGL_RETURN_DEBUG(eglCreatePbufferSurface);
+    }
+    
+    if (!surface)
+        return -1;
 
     OutputWindow outputWin;
     outputWin.ctx = ctx;
@@ -211,7 +229,8 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
     printf("New output window (%dx%d)\n", outputWin.height, outputWin.width);
 
     MakeCurrentReplayContext(&outputWin);
-
+    //m_ReplayCtx = outputWin;
+    
     uint64_t windowId = m_OutputWindowIds++;
     m_OutputWindows[windowId] = outputWin;
 
