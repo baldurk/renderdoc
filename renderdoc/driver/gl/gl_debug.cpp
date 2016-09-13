@@ -1045,17 +1045,39 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
     PickMVP = projMat.Mul(camMat.Mul(guessProj.Inverse()));
   }
 
+  vec3 rayPos;
+  vec3 rayDir;
+  // convert mouse pos to world space ray
+  {
+    Matrix4f InversePickMVP = PickMVP.Inverse();
+
+    float pickX = ((float)x) / ((float)DebugData.outWidth);
+    float pickXCanonical = RDCLERP(-1.0f, 1.0f, pickX);
+
+    float pickY = ((float)y) / ((float)DebugData.outHeight);
+    // flip the Y axis
+    float pickYCanonical = RDCLERP(1.0f, -1.0f, pickY);
+
+    vec3 CameraToWorldNearPosition =
+        InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+    vec3 CameraToWorldFarPosition =
+        InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+    rayDir = (CameraToWorldFarPosition - CameraToWorldNearPosition);
+    rayDir.Normalise();
+    rayPos = CameraToWorldNearPosition;
+  }
+
   gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
   MeshPickUBOData *cdata =
       (MeshPickUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshPickUBOData),
                                              GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
 
-  cdata->coords = Vec2f((float)x, (float)y);
-  cdata->viewport = Vec2f(DebugData.outWidth, DebugData.outHeight);
+  cdata->rayPos = rayPos;
+  cdata->rayDir = rayDir;
   cdata->use_indices = cfg.position.idxByteWidth ? 1U : 0U;
   cdata->numVerts = cfg.position.numVerts;
-  cdata->unproject = cfg.position.unproject;
-  cdata->mvp = PickMVP;
+  // cdata->unproject = cfg.position.unproject;
+  // cdata->mvp = PickMVP;
 
   gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
@@ -1165,7 +1187,8 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
       (GLsizeiptr)(cfg.position.idxoffs + cfg.position.idxByteWidth * cfg.position.numVerts));
   gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 3, DebugData.pickResultBuf);
 
-  gl.glDispatchCompute(GLuint(cfg.position.numVerts / 128 + 1), 1, 1);
+  gl.glDispatchCompute(GLuint((cfg.position.numVerts / 3) / 128 + 1), 1,
+                       1);    // launch one thread per triangle
   gl.glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
   uint32_t numResults = 0;
@@ -1178,9 +1201,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
     struct PickResult
     {
       uint32_t vertid;
-      uint32_t idx;
-      float len;
-      float depth;
+      vec3 intersectionPoint;
     };
 
     byte *mapped = (byte *)gl.glMapNamedBufferEXT(DebugData.pickResultBuf, eGL_READ_ONLY);
@@ -1190,6 +1211,8 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
     PickResult *pickResults = (PickResult *)mapped;
 
     PickResult *closest = pickResults;
+    // distance from raycast hit to nearest worldspace position of the mouse
+    float closestPickDistance = (closest->intersectionPoint - rayPos).Length();
 
     // min with size of results buffer to protect against overflows
     for(uint32_t i = 1; i < RDCMIN((uint32_t)DebugRenderData::maxMeshPicks, numResults); i++)
@@ -1201,11 +1224,11 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
       // We could do something to try and disambiguate, but it's
       // never going to be intuitive, it's just going to flicker
       // confusingly.
-      if(pickResults[i].len < closest->len ||
-         (pickResults[i].len == closest->len && pickResults[i].depth < closest->depth) ||
-         (pickResults[i].len == closest->len && pickResults[i].depth == closest->depth &&
-          pickResults[i].vertid < closest->vertid))
+      float pickDistance = (pickResults[i].intersectionPoint - rayPos).Length();
+      if(pickDistance < closestPickDistance)
+      {
         closest = pickResults + i;
+      }
     }
 
     uint32_t ret = closest->vertid;
@@ -1627,7 +1650,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
   ubo->MipLevel = (int)cfg.mip;
   if(texDetails.curType != eGL_TEXTURE_3D)
-    ubo->Slice = (float)cfg.sliceFace;
+    ubo->Slice = (float)cfg.sliceFace + 0.001f;
   else
     ubo->Slice = (float)(cfg.sliceFace >> cfg.mip);
 

@@ -40,37 +40,87 @@ layout(binding = 3, std140) buffer pickresult_buffer
 
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
+bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C, 
+	vec3 RayPosition, vec3 RayDirection, out vec3 HitPosition)
+{
+	bool Result = false;
+
+	vec3 v0v1 = B - A;
+	vec3 v0v2 = C - A;
+	vec3 pvec = cross(RayDirection, v0v2);
+	float det = dot(v0v1, pvec);
+
+	// if the determinant is negative the triangle is backfacing
+	// if the determinant is close to 0, the ray misses the triangle
+	if (abs(det) > 0.000001f)
+	{
+		float invDet = 1 / det;
+
+		vec3 tvec = RayPosition - A;
+		vec3 qvec = cross(tvec, v0v1);
+		float u = dot(tvec, pvec) * invDet;
+		float v = dot(RayDirection, qvec) * invDet;
+
+		if (u > 0 && u < 1 &&
+			v > 0 && u + v < 1)
+		{
+			float t = dot(v0v2, qvec) * invDet;
+			HitPosition = RayPosition + (RayDirection * t);
+			//Info->Position = HitPosition;
+			Result = true;
+		}
+	}
+
+	return Result;
+}
+
 void main()
 {
 	uvec3 tid = gl_GlobalInvocationID;
 
-	uint vertid = tid.x;
+	uint vertid = tid.x * 3;
 
-	if(vertid >= meshpick.numVerts)
-		return;
+	// NOTE(james): when I turn on following early out the shader doesn't do anything.
+	// so I end up with a lot of duplicated work on smaller meshes
 
-	uint idx = meshpick.use_indices != 0u ? ib.data[vertid] : vertid;
+	//if(vertid >= meshpick.numVerts)
+	//	return;
+	vertid = uint(mod(float(vertid), float(meshpick.numVerts)));
+	
 
-	vec4 pos = vb.data[idx];
 
+	uint idx0 = meshpick.use_indices != 0u ? ib.data[vertid  ] : vertid;
+	uint idx1 = meshpick.use_indices != 0u ? ib.data[vertid+1] : vertid+1;
+	uint idx2 = meshpick.use_indices != 0u ? ib.data[vertid+2] : vertid+2;
+
+	vec4 pos0 = vb.data[idx0];
+	vec4 pos1 = vb.data[idx1];
+	vec4 pos2 = vb.data[idx2];
 #ifdef VULKAN
 	if(meshpick.unproject == 1u)
 		pos = vec4(pos.x, -pos.y, pos.z, pos.w);
 #endif
 
-	vec4 wpos = meshpick.mvp * pos;
-
-	wpos.xyz /= wpos.www;
-
-	wpos.xy *= vec2(1.0f, -1.0f);
-
-	vec2 scr = (wpos.xy + 1.0f) * 0.5f * meshpick.viewport;
-
-	// close to target co-ords? add to list
-	float len = length(scr - meshpick.coords);
-	if(len < 35.0f)
+	vec3 hitPosition;
+	bool hit = TriangleRayIntersect(pos0.xyz, pos1.xyz, pos2.xyz, 
+									meshpick.rayPos, meshpick.rayDir, hitPosition);
+	//push every vert of the triangle if its hit
+	if (hit)
 	{
+		float dist0 = distance(pos0.xyz, hitPosition);
+		float dist1 = distance(pos1.xyz, hitPosition);
+		float dist2 = distance(pos2.xyz, hitPosition);
+
 		uint result_idx = atomicAdd(pickresult.counter.x, 1u);
-		pickresult.results[result_idx] = uvec4(vertid, idx, floatBitsToUint(len), floatBitsToUint(wpos.z));
+		if (dist1 < dist0 && dist1 < dist2)
+		{
+			vertid +=1;
+		}
+		else if (dist2 < dist0 && dist2 < dist1)
+		{
+			vertid +=2;
+		}
+		pickresult.results[result_idx] = uvec4(vertid, 
+			floatBitsToUint(hitPosition.x), floatBitsToUint(hitPosition.y), floatBitsToUint(hitPosition.z));	
 	}
 }
