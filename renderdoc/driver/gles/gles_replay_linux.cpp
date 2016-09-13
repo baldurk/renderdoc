@@ -32,8 +32,7 @@
 #include "official/egl_func_typedefs.h"
 
 #define REAL(NAME) NAME ##_real
-#define LOAD_SYM(NAME) REAL(NAME) = (PFN_##NAME)dlsym(RTLD_NEXT, #NAME)
-#define DEF_FUNC(NAME) static PFN_##NAME REAL(NAME) = NULL
+#define DEF_FUNC(NAME) static PFN_##NAME REAL(NAME) = (PFN_##NAME)dlsym(RTLD_NEXT, #NAME)
 
 DEF_FUNC(eglSwapBuffers);
 DEF_FUNC(eglBindAPI);
@@ -46,51 +45,109 @@ DEF_FUNC(eglCreateWindowSurface);
 DEF_FUNC(eglQuerySurface);
 DEF_FUNC(eglMakeCurrent);
 DEF_FUNC(eglGetError);
+DEF_FUNC(eglDestroySurface);
+DEF_FUNC(eglDestroyContext);
+DEF_FUNC(eglCreatePbufferSurface);
+DEF_FUNC(eglGetProcAddress);
 
+#define DEBUG_STRINGIFY(x) #x
+#define DEBUG_TOSTRING(x) DEBUG_STRINGIFY(x)
+#define DEBUG_LOCATION __FILE__ ":" DEBUG_TOSTRING(__LINE__)
 
-static PFN_eglGetProcAddress eglGetProcAddress_real = NULL;
+#ifdef DEBUG
+#define EGL_RETURN_DEBUG(function) printEGLError(DEBUG_STRINGIFY(function), DEBUG_LOCATION)
+#define CALL_DEBUG() printf("CALL: (%s) : %s\n", DEBUG_LOCATION, __FUNCTION__)
+#else
+#define EGL_RETURN_DEBUG(function) while (false)
+#define CALL_DEBUG() while (false)
+#endif
+
 const GLHookSet &GetRealGLFunctions();
 
-
-
-void GLESReplay::SwapBuffers(GLESWindowingData* data)
+const char* getEGLErrorString(EGLint errorCode)
 {
-    printf("CALL: %s\n", __FUNCTION__);
-    REAL(eglSwapBuffers)(data->eglDisplay, data->surface);
-    printf("ERR: %d\n", m_pDriver->m_Real.glGetError());
+    switch (errorCode)
+    {
+        case EGL_SUCCESS                : return "The last function succeeded without error.";
+        case EGL_NOT_INITIALIZED        : return "EGL is not initialized, or could not be initialized, for the specified EGL display connection.";
+        case EGL_BAD_ACCESS             : return "EGL cannot access a requested resource (for example a context is bound in another thread).";
+        case EGL_BAD_ALLOC              : return "EGL failed to allocate resources for the requested operation.";
+        case EGL_BAD_ATTRIBUTE          : return "An unrecognized attribute or attribute value was passed in the attribute list.";
+        case EGL_BAD_CONTEXT            : return "An EGLContext argument does not name a valid EGL rendering context.";
+        case EGL_BAD_CONFIG             : return "An EGLConfig argument does not name a valid EGL frame buffer configuration.";
+        case EGL_BAD_CURRENT_SURFACE    : return "The current surface of the calling thread is a window, pixel buffer or pixmap that is no longer valid.";
+        case EGL_BAD_DISPLAY            : return "An EGLDisplay argument does not name a valid EGL display connection.";
+        case EGL_BAD_SURFACE            : return "An EGLSurface argument does not name a valid surface (window, pixel buffer or pixmap) configured for GL rendering.";
+        case EGL_BAD_MATCH              : return "Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).";
+        case EGL_BAD_PARAMETER          : return "One or more argument values are invalid.";
+        case EGL_BAD_NATIVE_PIXMAP      : return "A NativePixmapType argument does not refer to a valid native pixmap.";
+        case EGL_BAD_NATIVE_WINDOW      : return "A NativeWindowType argument does not refer to a valid native window.";
+        case EGL_CONTEXT_LOST           : return "A power management event has occurred. The application must destroy all contexts and reinitialise OpenGL ES state and objects to continue rendering.";
+        default                         : return "Unknown EGL error code!";
+    }
+    return "";
 }
 
-ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+void printEGLError(const char* const function, const char* const location)
 {
-    RDCDEBUG("Creating an GLES replay device");
-
-    eglGetProcAddress_real = (PFN_eglGetProcAddress)dlsym(RTLD_NEXT, "eglGetProcAddress");
-    LOAD_SYM(eglSwapBuffers);
-
-    GLESInitParams initParams;
-    RDCDriver driverType = RDC_OpenGL;
-    string driverName = "OpenGL";
-    uint64_t machineIdent = 0;
-    if(logfile)
-    {
-        auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
-                                                   (RDCInitParams *)&initParams);
-        if(status != eReplayCreate_Success)
-            return status;
-    }
-
-    WrappedGLES* gles = new WrappedGLES(logfile, GetRealGLFunctions());
-    gles->Initialise(initParams);
-    *driver = gles->GetReplay();
-    return eReplayCreate_Success;
+    EGLint errorCode = REAL(eglGetError)();
+    if (errorCode != EGL_SUCCESS)
+        printf("(%s): %s: %s\n", location, function, getEGLErrorString(errorCode));
 }
 
 void GLESReplay::MakeCurrentReplayContext(GLESWindowingData *ctx)
 {
+    CALL_DEBUG();
+    static GLESWindowingData *prev = NULL;
+    if(REAL(eglMakeCurrent) && ctx && ctx != prev)
+    {
+        prev = ctx;
+        REAL(eglMakeCurrent)(ctx->eglDisplay, ctx->surface, ctx->surface, ctx->ctx);
+        EGL_RETURN_DEBUG(eglMakeCurrent);
+        m_pDriver->ActivateContext(*ctx);
+    }
+}
+
+void GLESReplay::SwapBuffers(GLESWindowingData* data)
+{
+    CALL_DEBUG();
+    REAL(eglSwapBuffers)(data->eglDisplay, data->surface);
+    EGL_RETURN_DEBUG(eglSwapBuffers);
 }
 
 void GLESReplay::CloseReplayContext()
 {
+    REAL(eglDestroyContext)(m_ReplayCtx.eglDisplay, m_ReplayCtx.ctx);
+    EGL_RETURN_DEBUG(eglDestroyContext);
+}
+
+static bool getEGLDisplayAndConfig(Display * const display, EGLDisplay * const egl_display, EGLConfig * const config, const EGLint * const attribs)
+{
+    *egl_display = REAL(eglGetDisplay)(display);
+    EGL_RETURN_DEBUG(eglGetDisplay);
+    if (!egl_display)
+        return false;
+
+    int egl_major;
+    int egl_minor;
+
+    if (!REAL(eglInitialize)(*egl_display, &egl_major, &egl_minor)) {
+        EGL_RETURN_DEBUG(eglInitialize);
+        return false;
+    }
+    printf("EGL init (%d, %d)\n", egl_major, egl_minor);
+    
+    REAL(eglBindAPI)(EGL_OPENGL_ES_API);
+    EGL_RETURN_DEBUG(eglBindAPI);
+    
+    EGLint num_configs;
+    if (!REAL(eglChooseConfig)(*egl_display, attribs, config, 1, &num_configs)) {
+        EGL_RETURN_DEBUG(eglChooseConfig);
+        return false;
+    }
+
+    EGL_RETURN_DEBUG(eglChooseConfig);
+    return true;
 }
 
 uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
@@ -105,41 +162,17 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
         display = xlib->display;
         draw = xlib->window;
     }
+    else if(system == eWindowingSystem_Unknown)
+    {
+        // allow undefined so that internally we can create a window-less context
+        display = XOpenDisplay(NULL);
+        if(display == NULL)
+          return 0;
+    }    
     else
     {
         RDCERR("Unexpected window system %u", system);
     }
-
-    LOAD_SYM(eglBindAPI);
-    LOAD_SYM(eglGetDisplay);
-    LOAD_SYM(eglInitialize);
-    LOAD_SYM(eglChooseConfig);
-    LOAD_SYM(eglGetConfigAttrib);
-    LOAD_SYM(eglCreateContext);
-    LOAD_SYM(eglCreateWindowSurface);
-    LOAD_SYM(eglQuerySurface);
-    LOAD_SYM(eglMakeCurrent);
-    LOAD_SYM(eglGetError);
-
-    EGLDisplay egl_display = REAL(eglGetDisplay)(display);
-    if (!egl_display) {
-        printf("Error: eglGetDisplay() failed\n");
-        return -1;
-    }
-    printf("DISP EGL err: 0x%x\n", REAL(eglGetError)());
-
-    int egl_major;
-    int egl_minor;
-
-    if (!REAL(eglInitialize)(egl_display, &egl_major, &egl_minor)) {
-        printf("Error: eglInitialize() failed\n");
-         return -1;
-    }
-    printf("EGL init (%d, %d)\n", egl_major, egl_minor);
-    printf("Init EGL err: 0%x\n", REAL(eglGetError)());
-
-
-    REAL(eglBindAPI)(EGL_OPENGL_ES_API);
 
     static const EGLint attribs[] = {
         EGL_RED_SIZE, 1,
@@ -149,22 +182,11 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
         EGL_NONE
     };
+
+    EGLDisplay egl_display;
     EGLConfig config;
-    EGLint num_configs;
-
-    if (!REAL(eglChooseConfig)(egl_display, attribs, &config, 1, &num_configs)) {
-        printf("Error: couldn't get an EGL visual config\n");
+    if (!getEGLDisplayAndConfig(display, &egl_display, &config, attribs))
         return -1;
-    }
-    printf("Choose config EGL err: 0x%x\n", REAL(eglGetError)());
-
-    EGLint vid;
-    if (!REAL(eglGetConfigAttrib)(egl_display, config, EGL_NATIVE_VISUAL_ID, &vid)) {
-        printf("Error: eglGetConfigAttrib() failed\n");
-        return -1;
-    }
-    printf("Get attrib EGL err: 0x%x\n", REAL(eglGetError)());
-
 
     static const EGLint ctx_attribs[] = {
         EGL_CONTEXT_CLIENT_VERSION, 3,
@@ -172,22 +194,20 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
     };
 
     EGLContext ctx = REAL(eglCreateContext)(egl_display, config, EGL_NO_CONTEXT, ctx_attribs);
-    printf("Context EGL err: 0x%x\n", REAL(eglGetError)());
+    EGL_RETURN_DEBUG(eglCreateContext);
 
     EGLSurface surface = REAL(eglCreateWindowSurface)(egl_display, config, (EGLNativeWindowType)draw, NULL);
-    printf("Surface EGL err: 0x%x\n", REAL(eglGetError)());
-
+    EGL_RETURN_DEBUG(eglCreateWindowSurface);
 
     OutputWindow outputWin;
     outputWin.ctx = ctx;
     outputWin.surface = surface;
     outputWin.eglDisplay = egl_display;
-    outputWin.display = display;
 
     REAL(eglQuerySurface)(egl_display, surface, EGL_HEIGHT, &outputWin.height);
-    printf("Query H EGL err: 0x%x\n", REAL(eglGetError)());
+    EGL_RETURN_DEBUG(eglQuerySurface);
     REAL(eglQuerySurface)(egl_display, surface, EGL_WIDTH, &outputWin.width);
-    printf("Query W EGL err: 0x%x\n", REAL(eglGetError)());
+    EGL_RETURN_DEBUG(eglQuerySurface);
     printf("New output window (%dx%d)\n", outputWin.height, outputWin.width);
 
     MakeCurrentReplayContext(&outputWin);
@@ -200,11 +220,32 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
 
 void GLESReplay::DestroyOutputWindow(uint64_t id)
 {
- 
+    auto it = m_OutputWindows.find(id);
+    if(id == 0 || it == m_OutputWindows.end())
+        return;
+
+    OutputWindow &outw = it->second;
+
+    MakeCurrentReplayContext(&outw);
+
+    WrappedGLES &gl = *m_pDriver;
+    gl.glDeleteFramebuffers(1, &outw.BlitData.readFBO);
+
+    REAL(eglMakeCurrent)(outw.eglDisplay, 0, 0, NULL);
+    REAL(eglDestroySurface)(outw.eglDisplay, outw.surface);
+    
+    m_OutputWindows.erase(it); 
 }
 
 void GLESReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
 {
+    if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+        return;
+
+    OutputWindow &outw = m_OutputWindows[id];
+
+    REAL(eglQuerySurface)(outw.eglDisplay, outw.surface, EGL_HEIGHT, &h);
+    REAL(eglQuerySurface)(outw.eglDisplay, outw.surface, EGL_WIDTH, &w);
 }
 
 bool GLESReplay::IsOutputWindowVisible(uint64_t id)
@@ -217,3 +258,129 @@ bool GLESReplay::IsOutputWindowVisible(uint64_t id)
   return true;
 }
 
+ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+{
+    RDCDEBUG("Creating an GLES replay device");
+
+    GLESInitParams initParams;
+    RDCDriver driverType = RDC_OpenGL;
+    string driverName = "OpenGL";
+    uint64_t machineIdent = 0;
+    if(logfile)
+    {
+        auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
+                                                   (RDCInitParams *)&initParams);
+        if(status != eReplayCreate_Success)
+            return status;
+    }
+    
+    GLESReplay::PreContextInitCounters();
+    
+    Display * display = XOpenDisplay(NULL);
+    if (display == NULL)
+        return eReplayCreate_InternalError;
+
+    static const EGLint attribs[] = {
+        EGL_RED_SIZE, 1,
+        EGL_GREEN_SIZE, 1,
+        EGL_BLUE_SIZE, 1,
+        EGL_DEPTH_SIZE, 1,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_NONE
+    };
+
+    EGLDisplay egl_display;
+    EGLConfig config;
+    if (!getEGLDisplayAndConfig(display, &egl_display, &config, attribs))
+        return eReplayCreate_InternalError;
+
+    // don't care about pbuffer properties for same reason as backbuffer
+    static const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
+    EGLSurface pbuffer = REAL(eglCreatePbufferSurface)(egl_display, config, pbAttribs);
+    EGL_RETURN_DEBUG(eglCreatePbufferSurface);
+    if (pbuffer == 0)
+        return eReplayCreate_APIInitFailed;
+    
+    static const EGLint ctx_attribs[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 3,
+        EGL_NONE
+    };
+
+    EGLContext ctx = REAL(eglCreateContext)(egl_display, config, EGL_NO_CONTEXT, ctx_attribs);
+    EGL_RETURN_DEBUG(eglCreateContext);
+    if (ctx == 0)
+        return eReplayCreate_APIInitFailed;
+
+    
+    EGLBoolean res = REAL(eglMakeCurrent)(egl_display, pbuffer, pbuffer, ctx);
+    EGL_RETURN_DEBUG(eglMakeCurrent);
+    if(!res)
+    {
+//        glXDestroyPbufferProc(dpy, pbuffer);
+//        glXDestroyCtxProc(dpy, ctx);
+//        XFree(fbcfg);
+//        XCloseDisplay(dpy);
+        GLESReplay::PostContextShutdownCounters();
+        RDCERR("Couldn't make pbuffer & context current");
+        return eReplayCreate_APIInitFailed;
+    }
+
+//    bool dsa = false;
+//    bool bufstorage = false;
+//
+//    if(getStr)
+//      RDCLOG("Running GL replay on: %s / %s / %s", getStr(eGL_VENDOR), getStr(eGL_RENDERER),
+//             getStr(eGL_VERSION));
+//
+//    GLint numExts = 0;
+//    getInt(eGL_NUM_EXTENSIONS, &numExts);
+//    for(GLint e = 0; e < numExts; e++)
+//    {
+//      const char *ext = (const char *)getStri(eGL_EXTENSIONS, (GLuint)e);
+//
+//      RDCLOG("Extension % 3d: %s", e, ext);
+//
+//      if(!strcmp(ext, "GL_EXT_direct_state_access"))
+//        dsa = true;
+//      if(!strcmp(ext, "GL_ARB_buffer_storage"))
+//        bufstorage = true;
+//    }
+//
+//    if(!dsa)
+//      RDCERR(
+//          "RenderDoc requires EXT_direct_state_access availability, and it is not reported. Try "
+//          "updating your drivers.");
+//
+//    if(!bufstorage)
+//      RDCERR(
+//          "RenderDoc requires ARB_buffer_storage availability, and it is not reported. Try "
+//          "updating your drivers.");
+//
+//    if(!dsa || !bufstorage)
+//    {
+//      glXDestroyPbufferProc(dpy, pbuffer);
+//      glXDestroyCtxProc(dpy, ctx);
+//      XFree(fbcfg);
+//      XCloseDisplay(dpy);
+//      GLReplay::PostContextShutdownCounters();
+//      return eReplayCreate_APIHardwareUnsupported;
+//    }
+
+
+
+
+    WrappedGLES *gles = new WrappedGLES(logfile, GetRealGLFunctions());
+    gles->Initialise(initParams);
+    GLESReplay *replay = gles->GetReplay();
+    
+    replay->SetProxy(logfile == NULL);
+    
+    GLESWindowingData data;
+    data.eglDisplay = egl_display;
+    data.ctx = ctx;
+    data.surface = pbuffer;
+    replay->SetReplayData(data);    
+    
+    *driver = replay;
+    return eReplayCreate_Success;
+}

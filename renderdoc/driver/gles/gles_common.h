@@ -46,8 +46,7 @@
 struct GLESWindowingData
 {
   GLESWindowingData()
-    : display       (NULL)
-    , eglDisplay    (NULL)
+    : eglDisplay    (NULL)
     , ctx           (NULL)
     , surface       (0)
   {
@@ -55,7 +54,6 @@ struct GLESWindowingData
 
   void SetCtx(void *ctx) { this->ctx = (EGLContext)ctx; }
 
-  Display *display;
   EGLDisplay eglDisplay;
   EGLContext ctx;
   EGLSurface surface;

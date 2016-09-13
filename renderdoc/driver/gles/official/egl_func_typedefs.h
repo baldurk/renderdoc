@@ -19,6 +19,9 @@ typedef EGLBoolean (*PFN_eglInitialize)(EGLDisplay dpy, EGLint *major, EGLint *m
 typedef EGLBoolean (*PFN_eglMakeCurrent)(EGLDisplay dpy, EGLSurface draw, EGLSurface read, EGLContext ctx);
 typedef EGLSurface (*PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list);
 typedef EGLint (*PFN_eglGetError)();
+typedef EGLBoolean (*PFN_eglDestroySurface)(EGLDisplay dpy, EGLSurface surface);
+typedef EGLBoolean (*PFN_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
+typedef EGLSurface (*PFN_eglCreatePbufferSurface)(EGLDisplay dpy, EGLConfig config, const EGLint *attrib_list);
 
 #if 0
 typedef EGLBoolean (*PFN_eglBindTexImage)(EGLDisplay dpy, EGLSurface surface, EGLint buffer);
@@ -32,7 +35,6 @@ typedef EGLImage (*PFN_eglCreateImage)(EGLDisplay dpy, EGLContext ctx, EGLenum t
 typedef EGLImageKHR (*PFN_eglCreateImageKHR)(EGLDisplay dpy, EGLContext ctx, EGLenum target, EGLClientBuffer buffer, const EGLint *attrib_list);
 typedef EGLClientBuffer (*PFN_eglCreateNativeClientBufferANDROID)(const EGLint *attrib_list);
 typedef EGLSurface (*PFN_eglCreatePbufferFromClientBuffer)(EGLDisplay dpy, EGLenum buftype, EGLClientBuffer buffer, EGLConfig config, const EGLint *attrib_list);
-typedef EGLSurface (*PFN_eglCreatePbufferSurface)(EGLDisplay dpy, EGLConfig config, const EGLint *attrib_list);
 typedef EGLSurface (*PFN_eglCreatePixmapSurface)(EGLDisplay dpy, EGLConfig config, EGLNativePixmapType pixmap, const EGLint *attrib_list);
 typedef EGLSurface (*PFN_eglCreatePixmapSurfaceHI)(EGLDisplay dpy, EGLConfig config, struct EGLClientPixmapHI *pixmap);
 typedef EGLSurface (*PFN_eglCreatePlatformPixmapSurface)(EGLDisplay dpy, EGLConfig config, void *native_pixmap, const EGLAttrib *attrib_list);
@@ -47,11 +49,9 @@ typedef EGLSync (*PFN_eglCreateSync)(EGLDisplay dpy, EGLenum type, const EGLAttr
 typedef EGLSyncKHR (*PFN_eglCreateSyncKHR)(EGLDisplay dpy, EGLenum type, const EGLint *attrib_list);
 typedef EGLSyncKHR (*PFN_eglCreateSync64KHR)(EGLDisplay dpy, EGLenum type, const EGLAttribKHR *attrib_list);
 typedef EGLint (*PFN_eglDebugMessageControlKHR)(EGLDEBUGPROCKHR callback, const EGLAttrib *attrib_list);
-typedef EGLBoolean (*PFN_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
 typedef EGLBoolean (*PFN_eglDestroyImage)(EGLDisplay dpy, EGLImage image);
 typedef EGLBoolean (*PFN_eglDestroyImageKHR)(EGLDisplay dpy, EGLImageKHR image);
 typedef EGLBoolean (*PFN_eglDestroyStreamKHR)(EGLDisplay dpy, EGLStreamKHR stream);
-typedef EGLBoolean (*PFN_eglDestroySurface)(EGLDisplay dpy, EGLSurface surface);
 typedef EGLBoolean (*PFN_eglDestroySync)(EGLDisplay dpy, EGLSync sync);
 typedef EGLBoolean (*PFN_eglDestroySyncKHR)(EGLDisplay dpy, EGLSyncKHR sync);
 typedef EGLBoolean (*PFN_eglDestroySyncNV)(EGLSyncNV sync);
