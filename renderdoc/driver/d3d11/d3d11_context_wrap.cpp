@@ -4852,6 +4852,9 @@ void WrappedID3D11DeviceContext::ExecuteCommandList(ID3D11CommandList *pCommandL
       cmdListRecord->AddResourceReferences(m_pDevice->GetResourceManager());
     }
 
+    // still update dirty resources for subsequent captures
+    wrapped->MarkDirtyResources(m_MissingTracks);
+
     if(RestoreContextState)
     {
       // insert a chunk to let us know on replay that we finished the command list's
@@ -5163,6 +5166,9 @@ HRESULT WrappedID3D11DeviceContext::FinishCommandList(BOOL RestoreDeferredContex
     // mark that this command list is empty so that if we immediately try and capture
     // we pick up on that.
     m_EmptyCommandList = true;
+
+    // still need to propagate up dirty resources to the immediate context
+    wrapped->SetDirtyResources(m_DeferredDirty);
 
     RDCDEBUG(
         "Deferred Context %llu not capturing at the moment, Produced unsuccessful command list "

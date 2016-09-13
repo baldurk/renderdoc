@@ -1262,11 +1262,16 @@ public:
 
   WrappedID3D11DeviceContext *GetContext() { return m_pContext; }
   bool IsCaptured() { return m_Successful; }
-  void SetDirtyResources(set<ResourceId> dirty) { m_Dirty.swap(dirty); }
+  void SetDirtyResources(set<ResourceId> &dirty) { m_Dirty.swap(dirty); }
   void MarkDirtyResources(D3D11ResourceManager *manager)
   {
     for(auto it = m_Dirty.begin(); it != m_Dirty.end(); ++it)
       manager->MarkDirtyResource(*it);
+  }
+  void MarkDirtyResources(set<ResourceId> &missingTracks)
+  {
+    for(auto it = m_Dirty.begin(); it != m_Dirty.end(); ++it)
+      missingTracks.insert(*it);
   }
 
   //////////////////////////////
