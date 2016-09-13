@@ -141,10 +141,12 @@ void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &
   GetExecutableFilename(path);
 
   const char *mod = strrchr(path.c_str(), '/');
-  if(mod == NULL)
-    mod = "unknown";
-  else
+  if(mod != NULL)
     mod++;
+  else if(path.length())
+    mod = path.c_str();    // Keep Android package name i.e. org.company.app
+  else
+    mod = "unknown";
 
   target = string(mod);
 
