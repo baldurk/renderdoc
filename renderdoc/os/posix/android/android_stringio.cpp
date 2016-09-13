@@ -58,17 +58,12 @@ namespace FileIO
 {
 const char *GetTempRootPath()
 {
-  static string ret;
-  GetExecutableFilename(ret);
-
-  // This folder is writable even if the APK does not have manifest write permissions.
-  ret = "/data/data/" + ret + "/files";
-  return ret.c_str();
+  return "/sdcard";
 }
 
 string GetAppFolderFilename(const string &filename)
 {
-  return GetTempRootPath() + filename;
+  return GetTempRootPath() + string("/") + filename;
 }
 
 // For RenderDocCmd.apk, this returns "org.renderdoc.renderdoccmd"
