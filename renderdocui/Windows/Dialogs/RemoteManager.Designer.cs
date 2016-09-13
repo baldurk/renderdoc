@@ -310,8 +310,10 @@
             this.ClientSize = new System.Drawing.Size(602, 460);
             this.Controls.Add(tableLayoutPanel1);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
-            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedToolWindow;
+            this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedDialog;
             this.Name = "RemoteManager";
+            this.MinimizeBox = false;
+            this.MaximizeBox = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Remote Host Manager";
             tableLayoutPanel1.ResumeLayout(false);

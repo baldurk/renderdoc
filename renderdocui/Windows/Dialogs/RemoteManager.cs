@@ -371,7 +371,7 @@ namespace renderdocui.Windows.Dialogs
                     {
                         connect.Text = "Shutdown";
 
-                        if (host.Busy || host.Connected)
+                        if (host.Busy && !host.Connected)
                             connect.Enabled = false;
                     }
                     else
@@ -476,11 +476,19 @@ namespace renderdocui.Windows.Dialogs
                     // shut down
                     try
                     {
-                        RemoteServer server = StaticExports.CreateRemoteServer(host.Hostname, 0);
-                        server.ShutdownServerAndConnection();
-                        hosts.BeginUpdate();
-                        SetRemoteServerLive(node, false, false);
-                        hosts.EndUpdate();
+                        if (host.Connected)
+                        {
+                            m_Core.Renderer.ShutdownServer();
+                            SetRemoteServerLive(node, false, false);
+                        }
+                        else
+                        {
+                            RemoteServer server = StaticExports.CreateRemoteServer(host.Hostname, 0);
+                            server.ShutdownServerAndConnection();
+                            hosts.BeginUpdate();
+                            SetRemoteServerLive(node, false, false);
+                            hosts.EndUpdate();
+                        }
                     }
                     catch (Exception)
                     {

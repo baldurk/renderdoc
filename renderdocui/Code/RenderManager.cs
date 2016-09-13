@@ -370,8 +370,19 @@ namespace renderdocui.Code
             m_Remote = null;
         }
 
+        public void ShutdownServer()
+        {
+            if(m_Remote != null)
+                m_Remote.ShutdownServerAndConnection();
+
+            m_Remote = null;
+        }
+
         public void PingRemote()
         {
+            if (m_Remote == null)
+                return;
+
             if (Monitor.TryEnter(m_Remote))
             {
                 try
