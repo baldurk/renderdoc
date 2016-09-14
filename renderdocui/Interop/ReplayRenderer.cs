@@ -1233,6 +1233,9 @@ namespace renderdoc
                     CustomMarshal.Free(mem);
                 }
 
+                if (msg == null)
+                    return;
+
                 if (msg.Type == TargetControlMessageType.Disconnected)
                 {
                     m_Connected = false;

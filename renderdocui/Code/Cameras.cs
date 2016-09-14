@@ -55,8 +55,6 @@ namespace renderdocui.Code
 
             var me = (TimedUpdate)state;
 
-            if (me == null) return;
-
             if (me.m_Update != null) me.m_Update();
             if (me.m_CameraTick != null) me.m_CameraTick.Change(me.m_Rate, System.Threading.Timeout.Infinite);
         }
