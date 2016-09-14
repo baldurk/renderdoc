@@ -477,7 +477,7 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
   if(host != NULL && host[0] != '\0')
     s = host;
 
-  if(!strncmp(host, "adb:", 4))
+  if(host != NULL && !strncmp(host, "adb:", 4))
   {
     s = "127.0.0.1";
 

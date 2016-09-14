@@ -1187,7 +1187,7 @@ RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, RemoteSe
   if(host != NULL && host[0] != '\0')
     s = host;
 
-  if(!strncmp(host, "adb:", 4))
+  if(host != NULL && !strncmp(host, "adb:", 4))
   {
     s = "127.0.0.1";
 
