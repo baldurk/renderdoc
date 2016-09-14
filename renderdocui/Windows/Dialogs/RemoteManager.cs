@@ -139,10 +139,17 @@ namespace renderdocui.Windows.Dialogs
             hosts.Nodes.Add(node);
 
             refreshOne.Enabled = refreshAll.Enabled = false;
-            UpdateLookupsStatus();
+
+            {
+                lookupMutex.WaitOne();
+                lookupsInProgress++;
+                lookupMutex.ReleaseMutex();
+            }
 
             Thread th = Helpers.NewThread(new ParameterizedThreadStart(LookupHostConnections));
             th.Start(node);
+
+            UpdateLookupsStatus();
         }
 
         private void UpdateLookupsStatus()
@@ -170,12 +177,6 @@ namespace renderdocui.Windows.Dialogs
         // queries it for the API, target (usually executable name) and if any user is already connected
         private static void LookupHostConnections(object o)
         {
-            {
-                lookupMutex.WaitOne();
-                lookupsInProgress++;
-                lookupMutex.ReleaseMutex();
-            }
-
             TreelistView.Node node = o as TreelistView.Node;
 
             Control p = node.OwnerView;
@@ -504,6 +505,12 @@ namespace renderdocui.Windows.Dialogs
                 {
                     // try to run
                     refreshOne.Enabled = refreshAll.Enabled = false;
+
+                    {
+                        lookupMutex.WaitOne();
+                        lookupsInProgress++;
+                        lookupMutex.ReleaseMutex();
+                    }
 
                     Thread th = Helpers.NewThread(new ParameterizedThreadStart(RunRemoteServer));
                     th.Start(node);
