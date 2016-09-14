@@ -277,7 +277,7 @@ namespace renderdocui.Windows.Dialogs
         {
             try
             {
-                if (Directory.Exists(saveDirectory.Text))
+                if (Directory.Exists(saveDirectory.Text) || saveDirectory.Text == "")
                     m_Core.Config.DefaultCaptureSaveDirectory = saveDirectory.Text;
 
                 m_Core.Config.Serialize(Core.ConfigFilename);
