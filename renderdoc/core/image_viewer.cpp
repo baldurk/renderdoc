@@ -457,8 +457,6 @@ void ImageViewer::RefreshFile()
 
     FileIO::fread(&buffer[0], 1, buffer.size(), f);
 
-    FileIO::fclose(f);
-
     EXRImage exrImage;
     InitEXRImage(&exrImage);
 
@@ -471,6 +469,7 @@ void ImageViewer::RefreshFile()
       RDCERR(
           "EXR file detected, but couldn't load with ParseMultiChannelEXRHeaderFromMemory %d: '%s'",
           ret, err);
+      FileIO::fclose(f);
       return;
     }
 
@@ -520,6 +519,7 @@ void ImageViewer::RefreshFile()
     {
       free(data);
       RDCERR("EXR file detected, but couldn't load with LoadEXRFromMemory %d: '%s'", ret, err);
+      FileIO::fclose(f);
       return;
     }
   }
