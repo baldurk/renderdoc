@@ -114,7 +114,10 @@ namespace renderdocui.Windows.Dialogs
 
             m_Core = core;
             m_Main = main;
+        }
 
+        private void RemoteManager_Load(object sender, EventArgs e)
+        {
             hosts.BeginInit();
 
             foreach (var h in m_Core.Config.RemoteHosts)

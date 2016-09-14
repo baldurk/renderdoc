@@ -316,6 +316,7 @@
             this.MaximizeBox = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "Remote Host Manager";
+            this.Load += new System.EventHandler(this.RemoteManager_Load);
             tableLayoutPanel1.ResumeLayout(false);
             basicConfigBox.ResumeLayout(false);
             basicConfigBox.PerformLayout();
