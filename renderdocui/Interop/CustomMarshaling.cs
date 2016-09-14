@@ -161,7 +161,7 @@ namespace renderdoc
             // Get instance fields of the structure type. 
             FieldInfo[] fieldInfo = NonArrayType(field.FieldType).GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
 
-            int align = 0;
+            int align = 1;
 
             foreach (FieldInfo f in fieldInfo)
                 align = Math.Max(align, AlignOf(f));
@@ -290,7 +290,7 @@ namespace renderdoc
 
                 long size = 0;
 
-                int a = 0;
+                int a = 1;
 
                 foreach (FieldInfo field in fieldInfo)
                 {
