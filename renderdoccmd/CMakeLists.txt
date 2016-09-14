@@ -44,3 +44,8 @@ target_include_directories(renderdoccmd ${includes})
 target_link_libraries(renderdoccmd ${libraries})
 
 install (TARGETS renderdoccmd DESTINATION bin)
+
+add_custom_command(TARGET renderdoccmd POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/bin/)
+add_custom_command(TARGET renderdoccmd POST_BUILD
+	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoccmd> ${CMAKE_SOURCE_DIR}/bin/)

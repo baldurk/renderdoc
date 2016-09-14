@@ -5,7 +5,6 @@ CMAKE_PARAMS :=
 .PHONY: all clean
 
 all: renderdoc
-	@ln -sf "$(DST_DIR)/bin"
 	@mkdir -p "$(DST_DIR)" && cd "$(DST_DIR)" && \
 		cmake $(CMAKE_PARAMS) "$(SRC_DIR)" && \
 		$(MAKE)
