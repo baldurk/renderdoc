@@ -961,20 +961,42 @@ namespace renderdocui.Windows
             saveLogToolStripMenuItem.Enabled = false;
         }
 
+        private string lastSaveCapturePath = "";
+
         public string GetSavePath()
         {
-            try
+            if(m_Core.Config.DefaultCaptureSaveDirectory != "")
             {
-                saveDialog.InitialDirectory = m_Core.Config.DefaultCaptureSaveDirectory;
+                try
+                {
+                    if (lastSaveCapturePath == "")
+                        saveDialog.InitialDirectory = m_Core.Config.DefaultCaptureSaveDirectory;
+                    else
+                        saveDialog.InitialDirectory = lastSaveCapturePath;
+                }
+                catch (Exception)
+                {
+                }
             }
-            catch (Exception)
-            {
-            }
+
+            saveDialog.FileName = "";
 
             DialogResult res = saveDialog.ShowDialog();
 
             if (res == DialogResult.OK)
+            {
+                try
+                {
+                    string dir = Path.GetDirectoryName(saveDialog.FileName);
+                    if(Directory.Exists(dir))
+                        lastSaveCapturePath = dir;
+                }
+                catch (Exception)
+                {
+                }
+
                 return saveDialog.FileName;
+            }
 
             return "";
         }
@@ -1566,17 +1588,9 @@ namespace renderdocui.Windows
 
         private bool PromptSaveLog()
         {
-            try
-            {
-                saveDialog.InitialDirectory = m_Core.Config.DefaultCaptureSaveDirectory;
-            }
-            catch (Exception)
-            {
-            }
+            string saveFilename = GetSavePath();
 
-            DialogResult res = saveDialog.ShowDialog();
-
-            if (res == DialogResult.OK)
+            if (saveFilename != "")
             {
                 if (m_Core.IsLogLocal && !File.Exists(m_Core.LogFileName))
                 {
