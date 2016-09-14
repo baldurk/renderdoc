@@ -963,6 +963,14 @@ namespace renderdocui.Windows
 
         public string GetSavePath()
         {
+            try
+            {
+                saveDialog.InitialDirectory = m_Core.Config.DefaultCaptureSaveDirectory;
+            }
+            catch (Exception)
+            {
+            }
+
             DialogResult res = saveDialog.ShowDialog();
 
             if (res == DialogResult.OK)
