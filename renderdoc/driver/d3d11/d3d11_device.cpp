@@ -344,6 +344,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   m_FailedReason = CaptureSucceeded;
   m_Failures = 0;
 
+  m_ChunkAtomic = 0;
+
   m_FrameTimer.Restart();
 
   m_AppControlledCapture = false;
@@ -2917,6 +2919,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
     RDCDEBUG("Inserting Resource Serialisers");
 
+    LockForChunkFlushing();
+
     GetResourceManager()->InsertReferencedChunks(m_pFileSerialiser);
 
     GetResourceManager()->InsertInitialContentsChunks(m_pFileSerialiser);
@@ -2951,6 +2955,8 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
     }
 
     m_pFileSerialiser->FlushToDisk();
+
+    UnlockForChunkFlushing();
 
     SAFE_DELETE(m_pFileSerialiser);
 
@@ -3099,6 +3105,93 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
       m_pInfoQueue->ClearStoredMessages();
 
     return false;
+  }
+}
+
+void WrappedID3D11Device::LockForChunkFlushing()
+{
+  // wait for the value to be 0 (no-one messing with chunks right now) and set to -1
+  // to indicate that we're writing chunks and so no-one should try messing.
+  for(;;)
+  {
+    int32_t val = Atomic::CmpExch32(&m_ChunkAtomic, 0, -1);
+
+    // val was 0, so we replaced it, so we can stop
+    if(val == 0)
+      break;
+
+    // we don't support recursive locking, so negative value is invalid
+    if(val < 0)
+    {
+      RDCERR("Something went wrong! m_ChunkAtomic was %d before!", val);
+
+      // try and recover by just setting to -1 anyway and hope for the best
+      val = -1;
+      break;
+    }
+
+    // spin while val is positive
+  }
+}
+
+void WrappedID3D11Device::UnlockForChunkFlushing()
+{
+  // set value back to 0
+  int32_t val = Atomic::CmpExch32(&m_ChunkAtomic, -1, 0);
+
+  // should only come in here if we successfully grabbed the lock before. We don't
+  // support multiple flushing locks.
+  if(val != -1)
+  {
+    RDCERR("Something went wrong! m_ChunkAtomic was %d before, expected -1", val);
+
+    // try and recover by just setting to 0 anyway and hope for the best
+    val = 0;
+  }
+}
+
+void WrappedID3D11Device::LockForChunkRemoval()
+{
+  // wait for value to be non-negative (indicating that we're not using the chunks)
+  // and then increment it. Spin until we have incremented it.
+  for(;;)
+  {
+    int32_t prev = m_ChunkAtomic;
+
+    // spin while val is negative
+    if(prev < 0)
+      continue;
+
+    // try to increment the value
+    int32_t val = Atomic::CmpExch32(&m_ChunkAtomic, prev, prev + 1);
+
+    // val was prev. That means we incremented it so we can stop
+    if(val == prev)
+      break;
+  }
+}
+
+void WrappedID3D11Device::UnlockForChunkRemoval()
+{
+  // spin until we've decremented the value
+  for(;;)
+  {
+    int32_t prev = m_ChunkAtomic;
+
+    // val should always be positive because we locked it. Bail out if not
+    if(prev <= 0)
+    {
+      RDCERR("Something went wrong! m_ChunkAtomic was %d before, expected positive", prev);
+      // do nothing, hope it all goes OK
+      break;
+    }
+
+    // try to decrement the value
+    int32_t val = Atomic::CmpExch32(&m_ChunkAtomic, prev, prev - 1);
+
+    // val was prev. That means we decremented it so we can stop
+    if(val == prev)
+      break;
   }
 }
 
@@ -3444,6 +3537,8 @@ void WrappedID3D11Device::SetResourceName(ID3D11DeviceChild *res, const char *na
 
       Serialise_SetResourceName(res, name);
 
+      LockForChunkRemoval();
+
       // don't serialise many SetResourceName chunks to the
       // object record, but we can't afford to drop any.
       record->LockChunks();
@@ -3461,6 +3556,8 @@ void WrappedID3D11Device::SetResourceName(ID3D11DeviceChild *res, const char *na
         break;
       }
       record->UnlockChunks();
+
+      UnlockForChunkRemoval();
 
       record->AddChunk(scope.Get());
     }

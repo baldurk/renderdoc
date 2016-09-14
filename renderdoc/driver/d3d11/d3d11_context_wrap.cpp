@@ -5517,6 +5517,8 @@ void WrappedID3D11DeviceContext::CopyResource(ID3D11Resource *pDstResource,
         m_pSerialiser->Serialise("context", m_ResourceID);
         Serialise_CopyResource(pDstResource, pSrcResource);
 
+        m_pDevice->LockForChunkRemoval();
+
         record->LockChunks();
         for(;;)
         {
@@ -5536,6 +5538,8 @@ void WrappedID3D11DeviceContext::CopyResource(ID3D11Resource *pDstResource,
           break;
         }
         record->UnlockChunks();
+
+        m_pDevice->UnlockForChunkRemoval();
 
         record->AddChunk(scope.Get());
         record->AddParent(srcRecord);
@@ -6035,6 +6039,8 @@ void WrappedID3D11DeviceContext::ResolveSubresource(ID3D11Resource *pDstResource
     // This is usually the case for render target textures though.
     if(record->NumSubResources == 1)
     {
+      m_pDevice->LockForChunkRemoval();
+
       record->LockChunks();
       for(;;)
       {
@@ -6054,6 +6060,8 @@ void WrappedID3D11DeviceContext::ResolveSubresource(ID3D11Resource *pDstResource
         break;
       }
       record->UnlockChunks();
+
+      m_pDevice->UnlockForChunkRemoval();
     }
 
     record->AddChunk(scope.Get());
@@ -6323,6 +6331,8 @@ void WrappedID3D11DeviceContext::ClearRenderTargetView(ID3D11RenderTargetView *p
     D3D11ResourceRecord *record = m_pDevice->GetResourceManager()->GetResourceRecord(id);
     RDCASSERT(record);
 
+    m_pDevice->LockForChunkRemoval();
+
     record->LockChunks();
     for(;;)
     {
@@ -6342,6 +6352,8 @@ void WrappedID3D11DeviceContext::ClearRenderTargetView(ID3D11RenderTargetView *p
       break;
     }
     record->UnlockChunks();
+
+    m_pDevice->UnlockForChunkRemoval();
 
     record->AddChunk(scope.Get());
   }
@@ -6489,6 +6501,8 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewUint(
         m_pDevice->GetResourceManager()->GetResourceRecord(GetIDForResource(pUnorderedAccessView));
     RDCASSERT(record);
 
+    m_pDevice->LockForChunkRemoval();
+
     record->LockChunks();
     for(;;)
     {
@@ -6508,6 +6522,8 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewUint(
       break;
     }
     record->UnlockChunks();
+
+    m_pDevice->UnlockForChunkRemoval();
 
     record->AddChunk(scope.Get());
   }
@@ -6657,6 +6673,8 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewFloat(
         m_pDevice->GetResourceManager()->GetResourceRecord(GetIDForResource(pUnorderedAccessView));
     RDCASSERT(record);
 
+    m_pDevice->LockForChunkRemoval();
+
     record->LockChunks();
     for(;;)
     {
@@ -6676,6 +6694,8 @@ void WrappedID3D11DeviceContext::ClearUnorderedAccessViewFloat(
       break;
     }
     record->UnlockChunks();
+
+    m_pDevice->UnlockForChunkRemoval();
 
     record->AddChunk(scope.Get());
   }
@@ -6819,6 +6839,8 @@ void WrappedID3D11DeviceContext::ClearDepthStencilView(ID3D11DepthStencilView *p
         m_pDevice->GetResourceManager()->GetResourceRecord(GetIDForResource(pDepthStencilView));
     RDCASSERT(record);
 
+    m_pDevice->LockForChunkRemoval();
+
     record->LockChunks();
     for(;;)
     {
@@ -6838,6 +6860,8 @@ void WrappedID3D11DeviceContext::ClearDepthStencilView(ID3D11DepthStencilView *p
       break;
     }
     record->UnlockChunks();
+
+    m_pDevice->UnlockForChunkRemoval();
 
     record->AddChunk(scope.Get());
   }
