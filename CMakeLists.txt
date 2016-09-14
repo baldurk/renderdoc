@@ -49,7 +49,7 @@ project(RenderDoc CXX C)
 option(ENABLE_GL "Enable GL driver" OFF)
 option(ENABLE_VULKAN "Enable Vulkan driver" ON)
 option(ENABLE_RENDERDOCCMD "Enable renderdoccmd" ON)
-option(ENABLE_QRENDERDOC "Enable qrenderdoc" ON)
+option(ENABLE_QRENDERDOC "Enable qrenderdoc" OFF)
 option(ENABLE_GLES "Enable GLES driver" ON)
 
 option(ENABLE_XLIB "Enable xlib windowing support" ON)
@@ -91,6 +91,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 if(ENABLE_GL)
     add_definitions(-DRENDERDOC_SUPPORT_GL)
+endif()
+
+if(ENABLE_GLES)
+    add_definitions(-DRENDERDOC_SUPPORT_GLES)
 endif()
 
 if(ENABLE_VULKAN)

@@ -95,7 +95,6 @@ __attribute__((visibility("default"))) EGLDisplay eglGetDisplay (EGLNativeDispla
     PFN_eglGetDisplay real_pfn = (PFN_eglGetDisplay)dlsym(RTLD_NEXT, "eglGetDisplay");
     printf("REAL display: %p\n", real_pfn);
 
-    OpenGLHook::glhooks.GetDriver()->GetDisplay(display);
 
     Keyboard::CloneDisplay(display);
 

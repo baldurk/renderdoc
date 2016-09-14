@@ -753,6 +753,50 @@ ResourceFormat MakeResourceFormat(WrappedGLES &gl, GLenum target, GLenum fmt)
     return ret;
   }
 
+  // handle certain non compressed but special formats
+  if(fmt == eGL_R11F_G11F_B10F)
+  {
+    ret.special = true;
+    ret.specialFormat = eSpecial_R11G11B10;
+    return ret;
+  }
+
+  if(fmt == eGL_RGB565)
+  {
+    ret.special = true;
+    ret.specialFormat = eSpecial_R5G6B5;
+    return ret;
+  }
+
+  if(fmt == eGL_RGB5_A1)
+  {
+    ret.special = true;
+    ret.specialFormat = eSpecial_R5G5B5A1;
+    return ret;
+  }
+
+  if(fmt == eGL_RGB9_E5)
+  {
+    ret.special = true;
+    ret.specialFormat = eSpecial_R9G9B9E5;
+    return ret;
+  }
+
+  if(fmt == eGL_RGBA4)
+  {
+    ret.special = true;
+    ret.specialFormat = eSpecial_R4G4B4A4;
+    return ret;
+  }
+
+  if(fmt == eGL_RGB10_A2 || fmt == eGL_RGB10_A2UI)
+  {
+    ret.special = true;
+    ret.specialFormat = eSpecial_R10G10B10A2;
+    ret.compType = fmt == eGL_RGB10_A2 ? eCompType_UNorm : eCompType_UInt;
+    return ret;
+  }
+
   ret.compByteWidth = 1;
   ret.compCount = 4;
   ret.compType = eCompType_Float;
@@ -993,9 +1037,6 @@ GLenum MakeGLFormat(WrappedGLES &gl, ResourceFormat fmt)
         ret = eGL_RGBA8;
       else
         RDCERR("Unrecognised component type");
-
-      if(fmt.bgraOrder)
-        ret = eGL_BGRA;
     }
     else
     {
@@ -1830,12 +1871,12 @@ string ToStrHelper<false, RDCGLenum>::Get(const RDCGLenum &el)
 {
 #undef GLenum
 
-  // egrep -ih '#define[ \t]*[A-Z_0-9]*[ \t]*0x[0-9A-F]{4,}\s*$' glcorearb.h  glext.h  wglext.h
-  // glxext.h
-  //			| awk '{print $2" "$3}' | grep -v '_BIT[_ ]' | sed -e '{s# 0x0*# #g}' | awk -F"[. ]"
-  //'!a[$2]++'
-  //			| sed -e '{s%\(.*\) \(.*\)%\t\tTOSTR_CASE_STRINGIZE_GLENUM(\1)%g}' | grep -v _BIT | awk '
-  //! x[$0]++'
+  // in official/
+  // grep -Eih '#define[ \t]*[A-Z_0-9]*[ \t]*0x[0-9A-F]{4,}\s*$' *.h
+  //  | awk '{print $2" "$3}' | grep -v '_BIT[_ ]'
+  //  | sed -e '{s# 0x0*# #g}' | awk -F"[. ]" '!a[$2]++'
+  //  | sed -e '{s%\(.*\) \(.*\)%\t\tTOSTR_CASE_STRINGIZE_GLENUM(\1)%g}'
+  //  | grep -v _BIT | awk '!x[$0]++'
 
   RDCCOMPILE_ASSERT(sizeof(RDCGLenum) == sizeof(uint32_t),
                     "Enum isn't 32bits - serialising is a problem!");

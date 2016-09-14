@@ -1188,7 +1188,10 @@ bool WrappedGLES::Serialise_glBindBuffersBase(GLenum target, GLuint first, GLsiz
 
   for(int32_t i = 0; i < Count; i++)
   {
-    SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i])));
+    SERIALISE_ELEMENT(ResourceId, id,
+                      buffers && buffers[i]
+                          ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i]))
+                          : ResourceId());
 
     if(m_State <= EXECUTING)
     {
@@ -1329,9 +1332,12 @@ bool WrappedGLES::Serialise_glBindBuffersRange(GLenum target, GLuint first, GLsi
 
   for(int32_t i = 0; i < Count; i++)
   {
-    SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i])));
-    SERIALISE_ELEMENT(uint64_t, offset, (uint64_t)offsets[i]);
-    SERIALISE_ELEMENT(uint64_t, size, (uint64_t)sizes[i]);
+    SERIALISE_ELEMENT(ResourceId, id,
+                      buffers && buffers[i]
+                          ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i]))
+                          : ResourceId());
+    SERIALISE_ELEMENT(uint64_t, offset, buffers ? (uint64_t)offsets[i] : 0);
+    SERIALISE_ELEMENT(uint64_t, size, buffers ? (uint64_t)sizes[i] : 0);
 
     if(m_State <= EXECUTING)
     {
@@ -4064,9 +4070,12 @@ bool WrappedGLES::Serialise_glVertexArrayVertexBuffers(GLuint vaobj, GLuint firs
 
   for(int32_t i = 0; i < Count; i++)
   {
-    SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i])));
-    SERIALISE_ELEMENT(uint64_t, offset, (uint64_t)offsets[i]);
-    SERIALISE_ELEMENT(uint64_t, stride, (uint64_t)strides[i]);
+    SERIALISE_ELEMENT(ResourceId, id,
+                      buffers && buffers[i]
+                          ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffers[i]))
+                          : ResourceId());
+    SERIALISE_ELEMENT(uint64_t, offset, buffers ? 0 : (uint64_t)offsets[i]);
+    SERIALISE_ELEMENT(uint64_t, stride, buffers ? 0 : (uint64_t)strides[i]);
 
     if(m_State <= EXECUTING)
     {
@@ -4138,7 +4147,7 @@ void WrappedGLES::glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsizei
       {
         for(GLsizei i = 0; i < count; i++)
         {
-          if(buffers[i] != 0)
+          if(buffers != NULL && buffers[i] != 0)
           {
             GLResourceRecord *bufrecord =
                 GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
@@ -4182,7 +4191,7 @@ void WrappedGLES::glBindVertexBuffers(GLuint first, GLsizei count, const GLuint 
       {
         for(GLsizei i = 0; i < count; i++)
         {
-          if(buffers[i] != 0)
+          if(buffers != NULL && buffers[i] != 0)
           {
             GLResourceRecord *bufrecord =
                 GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffers[i]));
@@ -4392,7 +4401,7 @@ bool WrappedGLES::Serialise_glVertexAttrib(GLuint index, int count, GLenum type,
         else if(attr == Attrib_GLuint)
           m_Real.glVertexAttribI2uiv(idx, (GLuint *)value);
       }
-      else if(Count == 2)
+      else if(Count == 3)
       {
         if(attr == Attrib_GLint)
           m_Real.glVertexAttribI3iv(idx, (GLint *)value);

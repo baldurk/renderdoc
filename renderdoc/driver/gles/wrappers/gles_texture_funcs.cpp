@@ -557,7 +557,10 @@ bool WrappedGLES::Serialise_glBindImageTextures(GLuint first, GLsizei count, con
 
   for(int32_t i = 0; i < Count; i++)
   {
-    SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), textures[i])));
+    SERIALISE_ELEMENT(ResourceId, id,
+                      textures && textures[i]
+                          ? GetResourceManager()->GetID(TextureRes(GetCtx(), textures[i]))
+                          : ResourceId());
 
     if(m_State <= EXECUTING)
     {
@@ -596,7 +599,7 @@ void WrappedGLES::glBindImageTextures(GLuint first, GLsizei count, const GLuint 
     m_ContextRecord->AddChunk(scope.Get());
 
     for(GLsizei i = 0; i < count; i++)
-      if(textures[i])
+      if(textures != NULL && textures[i] != 0)
         GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), textures[i]),
                                                           eFrameRef_Read);
   }
@@ -628,6 +631,7 @@ bool WrappedGLES::Serialise_glTextureView(GLuint texture, GLenum target, GLuint 
 
     m_Textures[liveTexId].curType = TextureTarget(Target);
     m_Textures[liveTexId].internalFormat = InternalFormat;
+    m_Textures[liveTexId].view = true;
     m_Textures[liveTexId].width = m_Textures[liveOrigId].width;
     m_Textures[liveTexId].height = m_Textures[liveOrigId].height;
     m_Textures[liveTexId].depth = m_Textures[liveOrigId].depth;
@@ -661,16 +665,26 @@ void WrappedGLES::glTextureView(GLuint texture, GLenum target, GLuint origtextur
 
     // illegal to re-type textures
     record->VerifyDataType(target);
+
+    // mark the underlying resource as dirty to avoid tracking dirty across
+    // aliased resources etc.
+    if(m_State == WRITING_IDLE)
+      GetResourceManager()->MarkDirtyResource(origrecord->GetResourceID());
+    else
+      m_MissingTracks.insert(origrecord->GetResourceID());
   }
-  else
+
   {
     ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
-    ResourceId origId = GetResourceManager()->GetID(TextureRes(GetCtx(), origtexture));
+    ResourceId viewedId = GetResourceManager()->GetID(TextureRes(GetCtx(), origtexture));
 
     m_Textures[texId].internalFormat = internalformat;
-    m_Textures[texId].width = m_Textures[origId].width;
-    m_Textures[texId].height = m_Textures[origId].height;
-    m_Textures[texId].depth = m_Textures[origId].depth;
+    m_Textures[texId].view = true;
+    m_Textures[texId].dimension = m_Textures[viewedId].dimension;
+    m_Textures[texId].width = m_Textures[viewedId].width;
+    m_Textures[texId].height = m_Textures[viewedId].height;
+    m_Textures[texId].depth = m_Textures[viewedId].depth;
+    m_Textures[texId].curType = TextureTarget(target);
   }
 }
 
@@ -5408,14 +5422,17 @@ bool WrappedGLES::Serialise_glTextureBufferRangeEXT(GLuint texture, GLenum targe
       m_Textures[liveId].internalFormat = fmt;
     }
 
+    GLuint buf = 0;
+
+    if(GetResourceManager()->HasLiveResource(bufid))
+      buf = GetResourceManager()->GetLiveResource(bufid).name;
+
     if(Target != eGL_NONE)
       m_Real.glTextureBufferRangeEXT(GetResourceManager()->GetLiveResource(texid).name, Target, fmt,
-                                     GetResourceManager()->GetLiveResource(bufid).name,
-                                     (GLintptr)offs, (GLsizeiptr)Size);
+                                     buf, (GLintptr)offs, (GLsizeiptr)Size);
     else
-      m_Real.glTextureBufferRange(GetResourceManager()->GetLiveResource(texid).name, fmt,
-                                  GetResourceManager()->GetLiveResource(bufid).name, (GLintptr)offs,
-                                  (GLsizei)Size);
+      m_Real.glTextureBufferRange(GetResourceManager()->GetLiveResource(texid).name, fmt, buf,
+                                  (GLintptr)offs, (GLsizei)Size);
   }
 
   return true;
@@ -5435,11 +5452,26 @@ void WrappedGLES::Common_glTextureBufferRangeEXT(ResourceId texId, GLenum target
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
     RDCASSERT(record);
 
+    ResourceId bufid = GetResourceManager()->GetID(BufferRes(GetCtx(), buffer));
+
     if(record->datatype == eGL_TEXTURE_BINDING_BUFFER &&
        m_Textures[texId].internalFormat == internalformat && m_State == WRITING_IDLE)
     {
       GetResourceManager()->MarkDirtyResource(texId);
-      GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+
+      if(bufid != ResourceId())
+      {
+        GetResourceManager()->MarkDirtyResource(bufid);
+
+        // this will lead to an accumulation of parents if the texture is continually rebound, but
+        // this is unavoidable as we don't want to add tons of infrastructure just to track this
+        // edge case.
+        GLResourceRecord *bufRecord = GetResourceManager()->GetResourceRecord(bufid);
+
+        if(bufRecord)
+          record->AddParent(bufRecord);
+      }
+
       return;
     }
 
@@ -5449,18 +5481,24 @@ void WrappedGLES::Common_glTextureBufferRangeEXT(ResourceId texId, GLenum target
 
     if(m_State == WRITING_CAPFRAME)
     {
-      ResourceId bufid = GetResourceManager()->GetID(BufferRes(GetCtx(), buffer));
-
       m_ContextRecord->AddChunk(scope.Get());
       m_MissingTracks.insert(record->GetResourceID());
-      m_MissingTracks.insert(bufid);
       GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-      GetResourceManager()->MarkResourceFrameReferenced(bufid, eFrameRef_Read);
+
+      if(bufid != ResourceId())
+      {
+        m_MissingTracks.insert(bufid);
+        GetResourceManager()->MarkResourceFrameReferenced(bufid, eFrameRef_Read);
+      }
     }
     else
     {
       record->AddChunk(scope.Get());
-      record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+
+      GLResourceRecord *bufRecord = GetResourceManager()->GetResourceRecord(bufid);
+
+      if(bufRecord)
+        record->AddParent(bufRecord);
     }
   }
 
@@ -5574,11 +5612,26 @@ void WrappedGLES::Common_glTextureBufferEXT(ResourceId texId, GLenum target,
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
     RDCASSERT(record);
 
+    ResourceId bufid = GetResourceManager()->GetID(BufferRes(GetCtx(), buffer));
+
     if(record->datatype == eGL_TEXTURE_BINDING_BUFFER &&
        m_Textures[texId].internalFormat == internalformat && m_State == WRITING_IDLE)
     {
       GetResourceManager()->MarkDirtyResource(texId);
-      GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+
+      if(bufid != ResourceId())
+      {
+        GetResourceManager()->MarkDirtyResource(bufid);
+
+        // this will lead to an accumulation of parents if the texture is continually rebound, but
+        // this is unavoidable as we don't want to add tons of infrastructure just to track this
+        // edge case.
+        GLResourceRecord *bufRecord = GetResourceManager()->GetResourceRecord(bufid);
+
+        if(bufRecord)
+          record->AddParent(bufRecord);
+      }
+
       return;
     }
 
@@ -5589,27 +5642,41 @@ void WrappedGLES::Common_glTextureBufferEXT(ResourceId texId, GLenum target,
 
     if(m_State == WRITING_CAPFRAME)
     {
-      ResourceId bufid = GetResourceManager()->GetID(BufferRes(GetCtx(), buffer));
-
       m_ContextRecord->AddChunk(chunk);
       m_MissingTracks.insert(record->GetResourceID());
-      m_MissingTracks.insert(bufid);
       GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-      GetResourceManager()->MarkResourceFrameReferenced(bufid, eFrameRef_Read);
+
+      if(bufid != ResourceId())
+      {
+        m_MissingTracks.insert(bufid);
+        GetResourceManager()->MarkResourceFrameReferenced(bufid, eFrameRef_Read);
+      }
     }
     else
     {
       record->AddChunk(chunk);
-      record->AddParent(GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer)));
+
+      GLResourceRecord *bufRecord = GetResourceManager()->GetResourceRecord(bufid);
+
+      if(bufRecord)
+        record->AddParent(bufRecord);
     }
   }
 
   {
-    uint32_t size = 1;
-    m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&size);
-    m_Textures[texId].width =
-        uint32_t(size) /
-        uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat)));
+    if(buffer != 0)
+    {
+      uint32_t size = 1;
+      m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, (GLint *)&size);
+      m_Textures[texId].width =
+          uint32_t(size) /
+          uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(internalformat), GetDataType(internalformat)));
+    }
+    else
+    {
+      m_Textures[texId].width = 1;
+    }
+
     m_Textures[texId].height = 1;
     m_Textures[texId].depth = 1;
     if(target != eGL_NONE)

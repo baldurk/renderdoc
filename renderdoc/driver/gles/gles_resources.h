@@ -35,6 +35,8 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type);
 GLenum GetBaseFormat(GLenum internalFormat);
 GLenum GetDataType(GLenum internalFormat);
 GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat);
+void GetFramebufferMipAndLayer(const GLHookSet &gl, GLenum framebuffer, GLenum attachment,
+                               GLint *mip, GLint *layer);
 
 bool EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLenum &internalFormat,
                             GLenum &dataFormat);
@@ -53,6 +55,7 @@ bool IsUIntFormat(GLenum internalFormat);
 bool IsSIntFormat(GLenum internalFormat);
 bool IsSRGBFormat(GLenum internalFormat);
 
+GLint CubeTargetIndex(GLenum face);
 GLenum TextureBinding(GLenum target);
 GLenum TextureTarget(GLenum target);
 bool IsProxyTarget(GLenum target);

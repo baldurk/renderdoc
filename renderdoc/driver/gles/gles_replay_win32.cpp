@@ -496,12 +496,12 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     uint64_t ptrmask = 0;
 
     for(size_t j = 0; j < 64; j++)
-      if(ptr + j < num && ptrs[i + j])
+      if(ptr + j < num && ptrs[ptr + j])
         ptrmask |= 1ULL << (63 - j);
 
     ptr += 64;
 
-    RDCLOG("%64llb", ptrmask);
+    RDCLOG("%064llb", ptrmask);
   }
 
 // check for the presence of GL functions we will call unconditionally as part of the replay

@@ -110,7 +110,6 @@ public:
   void FreeTargetResource(ResourceId id);
 
   void ReadLogInitialisation();
-  void SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv);
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);
@@ -151,7 +150,7 @@ public:
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &ret);
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
                        FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
                        float blackPoint, float whitePoint, size_t &dataSize);
 
@@ -392,7 +391,7 @@ private:
   void SwapBuffers(GLESWindowingData *ctx);
   void CloseReplayContext();
 
-  uint64_t m_OutputWindowIds;
+  uint64_t m_OutputWindowID;
   map<uint64_t, OutputWindow> m_OutputWindows;
 
   bool m_Proxy;

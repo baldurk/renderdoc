@@ -3302,7 +3302,7 @@ bool WrappedGLES::Serialise_glClearNamedBufferDataEXT(GLuint buffer, GLenum inte
 
   uint64_t val[4] = {0};
 
-  if(m_State >= WRITING)
+  if(m_State >= WRITING && data != NULL)
   {
     size_t s = 1;
     switch(Format)
@@ -3532,10 +3532,8 @@ bool WrappedGLES::Serialise_glClear(GLbitfield mask)
 {
   SERIALISE_ELEMENT(uint32_t, Mask, mask);
 
-  if(m_State <= EXECUTING) {
+  if(m_State <= EXECUTING)
     m_Real.glClear(Mask);
-    printf("glClear: %d\n", m_Real.glGetError());
-  }
 
   const string desc = m_pSerialiser->GetDebugStr();
 

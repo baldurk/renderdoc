@@ -38,7 +38,20 @@
 #if defined(RENDERDOC_PLATFORM_WIN32)
 #include "official/wglext.h"
 
+struct GLWindowingData
+{
+  GLESWindowingData()
+  {
+    DC = NULL;
+    ctx = NULL;
+    wnd = NULL;
+  }
 
+  void SetCtx(void *c) { ctx = (HGLRC)c; }
+  HDC DC;
+  HGLRC ctx;
+  HWND wnd;
+};
 
 #elif defined(RENDERDOC_PLATFORM_LINUX)
 #include "official/egl.h"
@@ -113,6 +126,11 @@ const GLenum eGL_INTENSITY = (GLenum)0x8049;
 const GLenum eGL_LIGHTING = (GLenum)0x0B50;
 const GLenum eGL_ALPHA_TEST = (GLenum)0x0BC0;
 const GLenum eGL_CLAMP = (GLenum)0x2900;
+
+// convenience, the script to pick these out doesn't find them since they are #define'd
+// to just straight integers not hex codes
+const GLenum eGL_ZERO = (GLenum)0;
+const GLenum eGL_ONE = (GLenum)1;
 
 class WrappedGLES;
 struct GLHookSet;

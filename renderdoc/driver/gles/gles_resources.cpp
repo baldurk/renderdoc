@@ -30,7 +30,7 @@ size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalfor
 {
   if(!IsCompressedFormat(internalformat))
   {
-    RDCERR("Not compressed format");
+    RDCERR("Not compressed format %s", ToStr::Get(internalformat).c_str());
     return GetByteSize(w, h, d, GetBaseFormat(internalformat), GetDataType(internalformat));
   }
 
@@ -208,7 +208,7 @@ size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalfor
     return blocks[0] * blocks[1] * 16 * d;
   }
 
-  RDCERR("Unrecognised compressed format");
+  RDCERR("Unrecognised compressed format %s", ToStr::Get(internalformat).c_str());
   return GetByteSize(w, h, d, GetBaseFormat(internalformat), GetDataType(internalformat));
 }
 
@@ -250,7 +250,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
     case eGL_UNSIGNED_INT_24_8: return w * h * d * 4;
     case eGL_DEPTH32F_STENCIL8:
     case eGL_FLOAT_32_UNSIGNED_INT_24_8_REV: return w * h * d * 8;
-    default: RDCERR("Unhandled Byte Size type %d!", type); break;
+    default: RDCERR("Unhandled Byte Size type %s!", ToStr::Get(type).c_str()); break;
   }
 
   switch((int)format)
@@ -278,7 +278,7 @@ size_t GetByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum format, GLenum type)
     case eGL_RGBA_INTEGER:
     case eGL_BGRA:
     case eGL_BGRA_INTEGER: return w * h * d * elemSize * 4;
-    default: RDCERR("Unhandled Byte Size format %d!", format); break;
+    default: RDCERR("Unhandled Byte Size format %s!", ToStr::Get(type).c_str()); break;
   }
 
   RDCERR("Unhandled Byte Size case!");
@@ -371,7 +371,7 @@ GLenum GetBaseFormat(GLenum internalFormat)
     default: break;
   }
 
-  RDCERR("Unhandled Base Format case %d!", internalFormat);
+  RDCERR("Unhandled Base Format case %s!", ToStr::Get(internalFormat).c_str());
 
   return eGL_NONE;
 }
@@ -455,7 +455,7 @@ GLenum GetDataType(GLenum internalFormat)
     default: break;
   }
 
-  RDCERR("Unhandled Data Type case %d!", internalFormat);
+  RDCERR("Unhandled Data Type case %s!", ToStr::Get(internalFormat).c_str());
 
   return eGL_NONE;
 }
@@ -608,6 +608,27 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
   }
 
   return internalFormat;
+}
+
+void GetFramebufferMipAndLayer(const GLHookSet &gl, GLenum framebuffer, GLenum attachment,
+                               GLint *mip, GLint *layer)
+{
+  gl.glGetFramebufferAttachmentParameteriv(framebuffer, attachment,
+                                           eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, mip);
+
+  GLenum face = eGL_NONE;
+  gl.glGetFramebufferAttachmentParameteriv(
+      framebuffer, attachment, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE, (GLint *)&face);
+
+  if(face == 0)
+  {
+    gl.glGetFramebufferAttachmentParameteriv(framebuffer, attachment,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, layer);
+  }
+  else
+  {
+    *layer = CubeTargetIndex(face);
+  }
 }
 
 bool EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLenum &internalFormat,
@@ -889,7 +910,7 @@ GLenum TextureBinding(GLenum target)
     default: break;
   }
 
-  RDCERR("Unexpected target %x", target);
+  RDCERR("Unexpected target %s", ToStr::Get(target).c_str());
   return eGL_NONE;
 }
 
@@ -915,8 +936,24 @@ GLenum BufferBinding(GLenum target)
     default: break;
   }
 
-  RDCERR("Unexpected target %x", target);
+  RDCERR("Unexpected target %s", ToStr::Get(target).c_str());
   return eGL_NONE;
+}
+
+GLint CubeTargetIndex(GLenum face)
+{
+  switch(face)
+  {
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_X: return 0;
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_X: return 1;
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_Y: return 2;
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y: return 3;
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_Z: return 4;
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z: return 5;
+    default: break;
+  }
+
+  return 0;
 }
 
 GLenum TextureTarget(GLenum target)

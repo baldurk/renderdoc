@@ -243,6 +243,7 @@ private:
         : curType(eGL_NONE),
           dimension(0),
           emulated(false),
+          view(false),
           width(0),
           height(0),
           depth(0),
@@ -256,7 +257,7 @@ private:
     GLResource resource;
     GLenum curType;
     GLint dimension;
-    bool emulated;
+    bool emulated, view;
     GLint width, height, depth, samples;
     uint32_t creationFlags;
     GLenum internalFormat;
@@ -480,7 +481,6 @@ public:
   WrappedGLES(const char *logfile, const GLHookSet &funcs);
   virtual ~WrappedGLES();
 
-  void GetDisplay(EGLNativeDisplayType display_id) { /* TODO */ }
   static const char *GetChunkName(uint32_t idx);
   GLResourceManager *GetResourceManager() { return m_ResourceManager; }
   ResourceId GetDeviceResourceID() { return m_DeviceResourceID; }

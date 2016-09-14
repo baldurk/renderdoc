@@ -227,7 +227,6 @@ void GLESReplay::InitDebugData()
     MakeCurrentReplayContext(m_DebugCtx);
   }
   
-  return;
   WrappedGLES &gl = *m_pDriver;
 
   DebugData.outWidth = 0.0f;
@@ -290,6 +289,14 @@ void GLESReplay::InitDebugData()
 
     GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_quadwrite_frag),
                        support450 ? 450 : 420);
+
+    if(!support450)
+    {
+      // remove derivative control extension
+      size_t offs = fs[0].find("#extension GL_ARB_derivative_control");
+      if(offs != string::npos)
+        fs[0].insert(offs, "//");
+    }
 
     DebugData.quadoverdrawResolveProg = CreateShaderProgram(empty, fs);
 
@@ -1689,28 +1696,28 @@ bool GLESReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
 void GLESReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 {
-//  MakeCurrentReplayContext(m_DebugCtx);
-//
-//  WrappedGLES &gl = *m_pDriver;
-//
-//  gl.glUseProgram(DebugData.checkerProg);
-//
-//  gl.glDisable(eGL_DEPTH_TEST);
-//
-//  gl.glEnable(eGL_FRAMEBUFFER_SRGB);
-//
-//  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
-//
-//  Vec4f *ubo = (Vec4f *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(Vec4f) * 2,
-//                                            GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-//
-//  ubo[0] = Vec4f(light.x, light.y, light.z, 1.0f);
-//  ubo[1] = Vec4f(dark.x, dark.y, dark.z, 1.0f);
-//
-//  gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
-//
-//  gl.glBindVertexArray(DebugData.emptyVAO);
-//  gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+  MakeCurrentReplayContext(m_DebugCtx);
+
+  WrappedGLES &gl = *m_pDriver;
+
+  gl.glUseProgram(DebugData.checkerProg);
+
+  gl.glDisable(eGL_DEPTH_TEST);
+
+  gl.glEnable(eGL_FRAMEBUFFER_SRGB);
+
+  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
+
+  Vec4f *ubo = (Vec4f *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(Vec4f) * 2,
+                                            GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+
+  ubo[0] = Vec4f(light.x, light.y, light.z, 1.0f);
+  ubo[1] = Vec4f(dark.x, dark.y, dark.z, 1.0f);
+
+  gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
+
+  gl.glBindVertexArray(DebugData.emptyVAO);
+  gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
 }
 
 void GLESReplay::RenderHighlightBox(float w, float h, float scale)

@@ -177,7 +177,10 @@ bool WrappedGLES::Serialise_glBindSamplers(GLuint first, GLsizei count, const GL
 
   for(int32_t i = 0; i < Count; i++)
   {
-    SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), samplers[i])));
+    SERIALISE_ELEMENT(ResourceId, id,
+                      samplers && samplers[i]
+                          ? GetResourceManager()->GetID(SamplerRes(GetCtx(), samplers[i]))
+                          : ResourceId());
 
     if(m_State <= EXECUTING)
     {
@@ -209,8 +212,9 @@ void WrappedGLES::glBindSamplers(GLuint first, GLsizei count, const GLuint *samp
 
     m_ContextRecord->AddChunk(scope.Get());
     for(GLsizei i = 0; i < count; i++)
-      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), samplers[i]),
-                                                        eFrameRef_Read);
+      if(samplers != NULL && samplers[i] != 0)
+        GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), samplers[i]),
+                                                          eFrameRef_Read);
   }
 }
 

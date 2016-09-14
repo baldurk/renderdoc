@@ -43,7 +43,7 @@ GLESReplay::GLESReplay()
 
   m_DebugID = 0;
 
-  m_OutputWindowIds = 1;
+  m_OutputWindowID = 1;
 }
 
 void GLESReplay::Shutdown()
@@ -122,7 +122,8 @@ APIProperties GLESReplay::GetAPIProperties()
 {
   APIProperties ret;
 
-  ret.pipelineType = ePipelineState_OpenGL;
+  ret.pipelineType = eGraphicsAPI_OpenGL;
+  ret.localRenderer = eGraphicsAPI_OpenGL;
   ret.degraded = false;
 
   return ret;
@@ -371,12 +372,13 @@ void GLESReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, v
 
   uint64_t bufsize = buf.size;
 
-  if(len > 0 && offset + len > buf.size)
+  if(len > 0 && offset + len > bufsize)
   {
-    RDCWARN("Attempting to read off the end of the array. Will be clamped");
+    RDCWARN("Attempting to read off the end of the buffer (%llu %llu). Will be clamped (%llu)",
+            offset, len, bufsize);
 
-    if(offset < buf.size)
-      len = ~0ULL;    // min below will clamp to max size size
+    if(offset < bufsize)
+      len = ~0ULL;    // min below will clamp to max size
     else
       return;    // offset past buffer size, return empty array
   }
@@ -1753,20 +1755,10 @@ void GLESReplay::SavePipelineState()
           rm->GetID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i])));
 
       if(pipe.m_FB.m_DrawFBO.Color[i].Obj != ResourceId() && !rbCol[i])
-      {
-        gl.glGetFramebufferAttachmentParameteriv(
-            eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-            eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Mip);
-        gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER,
-                                                 GLenum(eGL_COLOR_ATTACHMENT0 + i),
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-                                                 (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Layer);
-        if(pipe.m_FB.m_DrawFBO.Color[i].Layer == 0)
-          gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER,
-                                                   GLenum(eGL_COLOR_ATTACHMENT0 + i),
-                                                   eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
-                                                   (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Layer);
-      }
+        GetFramebufferMipAndLayer(gl.GetHookset(), eGL_DRAW_FRAMEBUFFER,
+                                  GLenum(eGL_COLOR_ATTACHMENT0 + i),
+                                  (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Mip,
+                                  (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Layer);
     }
 
     pipe.m_FB.m_DrawFBO.Depth.Obj = rm->GetOriginalID(
@@ -1775,32 +1767,14 @@ void GLESReplay::SavePipelineState()
         rm->GetID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
 
     if(pipe.m_FB.m_DrawFBO.Depth.Obj != ResourceId() && !rbDepth)
-    {
-      gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
-                                               (GLint *)&pipe.m_FB.m_DrawFBO.Depth.Mip);
-      gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-                                               (GLint *)&pipe.m_FB.m_DrawFBO.Depth.Layer);
-      if(pipe.m_FB.m_DrawFBO.Depth.Layer == 0)
-        gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
-                                                 (GLint *)&pipe.m_FB.m_DrawFBO.Depth.Layer);
-    }
+      GetFramebufferMipAndLayer(gl.GetHookset(), eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                (GLint *)&pipe.m_FB.m_DrawFBO.Depth.Mip,
+                                (GLint *)&pipe.m_FB.m_DrawFBO.Depth.Layer);
 
     if(pipe.m_FB.m_DrawFBO.Stencil.Obj != ResourceId() && !rbStencil)
-    {
-      gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
-                                               (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Mip);
-      gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-                                               (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Layer);
-      if(pipe.m_FB.m_DrawFBO.Stencil.Layer == 0)
-        gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
-                                                 (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Layer);
-    }
+      GetFramebufferMipAndLayer(gl.GetHookset(), eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Mip,
+                                (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Layer);
 
     create_array_uninit(pipe.m_FB.m_DrawFBO.DrawBuffers, numCols);
     for(GLint i = 0; i < numCols; i++)
@@ -1853,20 +1827,10 @@ void GLESReplay::SavePipelineState()
           rm->GetID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i])));
 
       if(pipe.m_FB.m_ReadFBO.Color[i].Obj != ResourceId() && !rbCol[i])
-      {
-        gl.glGetFramebufferAttachmentParameteriv(
-            eGL_READ_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
-            eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, (GLint *)&pipe.m_FB.m_ReadFBO.Color[i].Mip);
-        gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER,
-                                                 GLenum(eGL_COLOR_ATTACHMENT0 + i),
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-                                                 (GLint *)&pipe.m_FB.m_ReadFBO.Color[i].Layer);
-        if(pipe.m_FB.m_ReadFBO.Color[i].Layer == 0)
-          gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER,
-                                                   GLenum(eGL_COLOR_ATTACHMENT0 + i),
-                                                   eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
-                                                   (GLint *)&pipe.m_FB.m_ReadFBO.Color[i].Layer);
-      }
+        GetFramebufferMipAndLayer(gl.GetHookset(), eGL_READ_FRAMEBUFFER,
+                                  GLenum(eGL_COLOR_ATTACHMENT0 + i),
+                                  (GLint *)&pipe.m_FB.m_ReadFBO.Color[i].Mip,
+                                  (GLint *)&pipe.m_FB.m_ReadFBO.Color[i].Layer);
     }
 
     pipe.m_FB.m_ReadFBO.Depth.Obj = rm->GetOriginalID(
@@ -1875,32 +1839,14 @@ void GLESReplay::SavePipelineState()
         rm->GetID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
 
     if(pipe.m_FB.m_ReadFBO.Depth.Obj != ResourceId() && !rbDepth)
-    {
-      gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
-                                               (GLint *)&pipe.m_FB.m_ReadFBO.Depth.Mip);
-      gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-                                               (GLint *)&pipe.m_FB.m_ReadFBO.Depth.Layer);
-      if(pipe.m_FB.m_ReadFBO.Depth.Layer == 0)
-        gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
-                                                 (GLint *)&pipe.m_FB.m_ReadFBO.Depth.Layer);
-    }
+      GetFramebufferMipAndLayer(gl.GetHookset(), eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                (GLint *)&pipe.m_FB.m_ReadFBO.Depth.Mip,
+                                (GLint *)&pipe.m_FB.m_ReadFBO.Depth.Layer);
 
     if(pipe.m_FB.m_ReadFBO.Stencil.Obj != ResourceId() && !rbStencil)
-    {
-      gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL,
-                                               (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Mip);
-      gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                               eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
-                                               (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Layer);
-      if(pipe.m_FB.m_ReadFBO.Stencil.Layer == 0)
-        gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
-                                                 eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER,
-                                                 (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Layer);
-    }
+      GetFramebufferMipAndLayer(gl.GetHookset(), eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Mip,
+                                (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Layer);
 
     create_array_uninit(pipe.m_FB.m_ReadFBO.DrawBuffers, numCols);
     for(GLint i = 0; i < numCols; i++)
@@ -2216,7 +2162,7 @@ void GLESReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint
                        outvars, data);
 }
 
-byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
                                FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
                                float blackPoint, float whitePoint, size_t &dataSize)
 {
@@ -2487,62 +2433,72 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
       m_pDriver->glGetTexImage(target, (GLint)mip, fmt, type, ret);
 
-      // need to vertically flip the image now to get conventional row ordering
-      // we either do this when copying out the slice of interest, or just
-      // on its own
-      size_t rowSize = GetByteSize(width, 1, 1, fmt, type);
-      byte *src, *dst;
+      // if we're saving to disk we make the decision to vertically flip any non-compressed
+      // images. This is a bit arbitrary, but really origin top-left is common for all disk
+      // formats so we do this flip from bottom-left origin. We only do this for saving to
+      // disk so that if we're transferring over the network etc for remote replay, the image
+      // order is consistent (and we just need to take care to apply an extra vertical flip
+      // for display when proxying).
 
-      // for arrays just extract the slice we're interested in.
-      if(texType == eGL_TEXTURE_2D_ARRAY || texType == eGL_TEXTURE_1D_ARRAY ||
-         texType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+      if(forDiskSave)
       {
-        dataSize = GetByteSize(width, height, 1, fmt, type);
-        byte *slice = new byte[dataSize];
+        // need to vertically flip the image now to get conventional row ordering
+        // we either do this when copying out the slice of interest, or just
+        // on its own
+        size_t rowSize = GetByteSize(width, 1, 1, fmt, type);
+        byte *src, *dst;
 
-        // src points to the last row in the array slice image
-        src = (ret + dataSize * arrayIdx) + (height - 1) * rowSize;
-        dst = slice;
-
-        // we do memcpy + vertical flip
-        // memcpy(slice, ret + dataSize*arrayIdx, dataSize);
-
-        for(GLsizei i = 0; i < height; i++)
+        // for arrays just extract the slice we're interested in.
+        if(texType == eGL_TEXTURE_2D_ARRAY || texType == eGL_TEXTURE_1D_ARRAY ||
+           texType == eGL_TEXTURE_CUBE_MAP_ARRAY)
         {
-          memcpy(dst, src, rowSize);
+          dataSize = GetByteSize(width, height, 1, fmt, type);
+          byte *slice = new byte[dataSize];
 
-          dst += rowSize;
-          src -= rowSize;
-        }
+          // src points to the last row in the array slice image
+          src = (ret + dataSize * arrayIdx) + (height - 1) * rowSize;
+          dst = slice;
 
-        delete[] ret;
+          // we do memcpy + vertical flip
+          // memcpy(slice, ret + dataSize*arrayIdx, dataSize);
 
-        ret = slice;
-      }
-      else
-      {
-        byte *row = new byte[rowSize];
-
-        size_t sliceSize = GetByteSize(width, height, 1, fmt, type);
-
-        // invert all slices in a 3D texture
-        for(GLsizei d = 0; d < depth; d++)
-        {
-          dst = ret + d * sliceSize;
-          src = dst + (height - 1) * rowSize;
-
-          for(GLsizei i = 0; i<height>> 1; i++)
+          for(GLsizei i = 0; i < height; i++)
           {
-            memcpy(row, src, rowSize);
-            memcpy(src, dst, rowSize);
-            memcpy(dst, row, rowSize);
+            memcpy(dst, src, rowSize);
 
             dst += rowSize;
             src -= rowSize;
           }
-        }
 
-        delete[] row;
+          delete[] ret;
+
+          ret = slice;
+        }
+        else
+        {
+          byte *row = new byte[rowSize];
+
+          size_t sliceSize = GetByteSize(width, height, 1, fmt, type);
+
+          // invert all slices in a 3D texture
+          for(GLsizei d = 0; d < depth; d++)
+          {
+            dst = ret + d * sliceSize;
+            src = dst + (height - 1) * rowSize;
+
+            for(GLsizei i = 0; i<height>> 1; i++)
+            {
+              memcpy(row, src, rowSize);
+              memcpy(src, dst, rowSize);
+              memcpy(dst, row, rowSize);
+
+              dst += rowSize;
+              src -= rowSize;
+            }
+          }
+
+          delete[] row;
+        }
       }
     }
 
@@ -2791,18 +2747,22 @@ ResourceId GLESReplay::CreateProxyTexture(const FetchTexture &templateTex)
 
   GLenum intFormat = MakeGLFormat(gl, templateTex.format);
 
+  GLenum binding = eGL_NONE;
+
   switch(templateTex.resType)
   {
     case eResType_None: break;
     case eResType_Buffer:
     case eResType_Texture1D:
     {
+      binding = eGL_TEXTURE_1D;
       gl.glBindTexture(eGL_TEXTURE_1D, tex);
       gl.glTextureStorage1DEXT(tex, eGL_TEXTURE_1D, templateTex.mips, intFormat, templateTex.width);
       break;
     }
     case eResType_Texture1DArray:
     {
+      binding = eGL_TEXTURE_1D_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_1D_ARRAY, tex);
       gl.glTextureStorage2DEXT(tex, eGL_TEXTURE_1D_ARRAY, templateTex.mips, intFormat,
                                templateTex.width, templateTex.arraysize);
@@ -2811,6 +2771,7 @@ ResourceId GLESReplay::CreateProxyTexture(const FetchTexture &templateTex)
     case eResType_TextureRect:
     case eResType_Texture2D:
     {
+      binding = eGL_TEXTURE_2D;
       gl.glBindTexture(eGL_TEXTURE_2D, tex);
       gl.glTextureStorage2DEXT(tex, eGL_TEXTURE_2D, templateTex.mips, intFormat, templateTex.width,
                                templateTex.height);
@@ -2818,6 +2779,7 @@ ResourceId GLESReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_Texture2DArray:
     {
+      binding = eGL_TEXTURE_2D_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, tex);
       gl.glTextureStorage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, templateTex.mips, intFormat,
                                templateTex.width, templateTex.height, templateTex.arraysize);
@@ -2825,6 +2787,7 @@ ResourceId GLESReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_Texture2DMS:
     {
+      binding = eGL_TEXTURE_2D_MULTISAMPLE;
       gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, tex);
       gl.glTextureStorage2DMultisampleEXT(tex, eGL_TEXTURE_2D_MULTISAMPLE, templateTex.msSamp,
                                           intFormat, templateTex.width, templateTex.height, GL_TRUE);
@@ -2832,6 +2795,7 @@ ResourceId GLESReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_Texture2DMSArray:
     {
+      binding = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, tex);
       gl.glTextureStorage3DMultisampleEXT(tex, eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, templateTex.msSamp,
                                           intFormat, templateTex.width, templateTex.height,
@@ -2840,6 +2804,7 @@ ResourceId GLESReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_Texture3D:
     {
+      binding = eGL_TEXTURE_3D;
       gl.glBindTexture(eGL_TEXTURE_3D, tex);
       gl.glTextureStorage3DEXT(tex, eGL_TEXTURE_3D, templateTex.mips, intFormat, templateTex.width,
                                templateTex.height, templateTex.depth);
@@ -2847,6 +2812,7 @@ ResourceId GLESReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_TextureCube:
     {
+      binding = eGL_TEXTURE_CUBE_MAP;
       gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, tex);
       gl.glTextureStorage2DEXT(tex, eGL_TEXTURE_CUBE_MAP, templateTex.mips, intFormat,
                                templateTex.width, templateTex.height);
@@ -2854,6 +2820,7 @@ ResourceId GLESReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
     case eResType_TextureCubeArray:
     {
+      binding = eGL_TEXTURE_CUBE_MAP_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_CUBE_MAP_ARRAY, tex);
       gl.glTextureStorage3DEXT(tex, eGL_TEXTURE_CUBE_MAP_ARRAY, templateTex.mips, intFormat,
                                templateTex.width, templateTex.height, templateTex.arraysize);
@@ -2864,6 +2831,19 @@ ResourceId GLESReplay::CreateProxyTexture(const FetchTexture &templateTex)
       RDCERR("Invalid shader resource type");
       break;
     }
+  }
+
+  if(templateTex.format.bgraOrder && binding != eGL_NONE)
+  {
+    GLint bgraSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ALPHA};
+    GLint bgrSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ONE};
+
+    if(templateTex.format.compCount == 4)
+      gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgraSwizzle);
+    else if(templateTex.format.compCount == 3)
+      gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgrSwizzle);
+    else
+      RDCERR("Unexpected component count %d for BGRA order format", templateTex.format.compCount);
   }
 
   if(templateTex.customName)
@@ -2884,7 +2864,7 @@ void GLESReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32
   GLenum fmt = texdetails.internalFormat;
   GLenum target = texdetails.curType;
 
-  if(IsCompressedFormat(target))
+  if(IsCompressedFormat(fmt))
   {
     if(target == eGL_TEXTURE_1D)
     {
@@ -3043,11 +3023,6 @@ vector<EventUsage> GLESReplay::GetUsage(ResourceId id)
 }
 
 #pragma endregion
-
-void GLESReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
-{
-  GLNOTIMP("SetContextFilter");
-}
 
 vector<PixelModification> GLESReplay::PixelHistory(vector<EventUsage> events, ResourceId target,
                                                  uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,

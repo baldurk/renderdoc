@@ -231,7 +231,7 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
     MakeCurrentReplayContext(&outputWin);
     //m_ReplayCtx = outputWin;
     
-    uint64_t windowId = m_OutputWindowIds++;
+    uint64_t windowId = m_OutputWindowID++;
     m_OutputWindows[windowId] = outputWin;
 
     return windowId;
