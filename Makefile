@@ -1,19 +1,13 @@
 SRC_DIR := $(shell pwd)
 DST_DIR := $(SRC_DIR)/build
+CMAKE_PARAMS :=
 
-.PHONY: all clean renderdoc qrenderdoc
+.PHONY: all clean
 
-all: renderdoc qrenderdoc
+all: renderdoc
 	@ln -sf "$(DST_DIR)/bin"
-
-renderdoc:
 	@mkdir -p "$(DST_DIR)" && cd "$(DST_DIR)" && \
-		cmake -DENABLE_QRENDERDOC=OFF "$(SRC_DIR)" && \
-		$(MAKE)
-
-qrenderdoc: renderdoc
-	@mkdir -p "$(DST_DIR)"/qrenderdoc && cd "$(DST_DIR)"/qrenderdoc && \
-		qmake "CONFIG+=debug" "DESTDIR=$(DST_DIR)/bin" "$(SRC_DIR)"/qrenderdoc && \
+		cmake $(CMAKE_PARAMS) "$(SRC_DIR)" && \
 		$(MAKE)
 
 clean:
