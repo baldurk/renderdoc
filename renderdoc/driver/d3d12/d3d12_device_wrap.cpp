@@ -840,14 +840,12 @@ void WrappedID3D12Device::CopyDescriptors(
   for(UINT i = 0; i < NumDestDescriptorRanges; i++)
     dstStarts[i] = Unwrap(pDestDescriptorRangeStarts[i]);
 
-  for(UINT i = 0; i < NumDestDescriptorRanges; i++)
+  for(UINT i = 0; i < NumSrcDescriptorRanges; i++)
     srcStarts[i] = Unwrap(pSrcDescriptorRangeStarts[i]);
 
   m_pDevice->CopyDescriptors(NumDestDescriptorRanges, dstStarts, pDestDescriptorRangeSizes,
                              NumSrcDescriptorRanges, srcStarts, pSrcDescriptorRangeSizes,
                              DescriptorHeapsType);
-
-  RDCUNIMPLEMENTED("CopyDescriptors does not copy our internal descriptor data");
 
   UINT srcRange = 0, dstRange = 0;
   UINT srcIdx = 0, dstIdx = 0;
@@ -873,13 +871,13 @@ void WrappedID3D12Device::CopyDescriptors(
         src = GetWrapped(pSrcDescriptorRangeStarts[srcRange]);
     }
 
-    if(dstIdx >= pDestDescriptorRangeSizes[srcRange])
+    if(dstIdx >= pDestDescriptorRangeSizes[dstRange])
     {
       dstRange++;
       dstIdx = 0;
 
       if(dstRange < NumDestDescriptorRanges)
-        dst = GetWrapped(pDestDescriptorRangeStarts[srcRange]);
+        dst = GetWrapped(pDestDescriptorRangeStarts[dstRange]);
     }
   }
 
