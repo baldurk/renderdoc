@@ -93,6 +93,8 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
   m_supersamplingX = 1.0f;
   m_supersamplingY = 1.0f;
 
+  m_width = m_height = 1;
+
   m_WrappedDevice = wrapper;
   ID3D11DeviceContext *ctx = NULL;
   m_WrappedDevice->GetImmediateContext(&ctx);

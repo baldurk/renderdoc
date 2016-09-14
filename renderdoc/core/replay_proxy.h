@@ -112,6 +112,8 @@ public:
     m_ToReplaySerialiser = NULL;
     m_FromReplaySerialiser = new Serialiser(NULL, Serialiser::WRITING, false);
     m_RemoteHasResolver = false;
+
+    RDCEraseEl(m_APIProps);
   }
 
   virtual ~ReplayProxy();

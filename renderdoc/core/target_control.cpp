@@ -376,6 +376,8 @@ public:
     PacketType type;
     vector<byte> payload;
 
+    m_PID = 0;
+
     {
       Serialiser ser("", Serialiser::WRITING, false);
 
@@ -391,8 +393,6 @@ public:
 
     Serialiser *ser = NULL;
     GetPacket(type, ser);
-
-    m_PID = 0;
 
     // failed handshaking
     if(m_Socket == NULL || ser == NULL)
