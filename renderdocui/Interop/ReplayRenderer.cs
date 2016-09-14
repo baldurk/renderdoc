@@ -961,7 +961,7 @@ namespace renderdoc
             CustomMarshal.Free(homepath_mem);
 
             // normalise to /s and with no trailing /s
-            home.Replace('\\', '/');
+            home = home.Replace('\\', '/');
             if (home[home.Length - 1] == '/')
                 home = home.Remove(0, home.Length - 1);
 
