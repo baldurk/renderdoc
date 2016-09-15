@@ -1282,8 +1282,9 @@ namespace renderdocui.Windows
                 prev.Tag = follow;
                 prev.SlotName = slotName;
                 prev.Visible = true;
+                prev.Selected = (m_Following == follow);
             }
-            else if (prev.Selected)
+            else if (m_Following == follow)
             {
                 FetchTexture tex = null;
 
@@ -1297,6 +1298,7 @@ namespace renderdocui.Windows
                     prev.Init();
                 else
                     prev.Init("Unused", tex.width, tex.height, tex.depth, tex.mips);
+                prev.Selected = true;
                 m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
                 {
                     m_Output.AddThumbnail(handle, ResourceId.Null, FormatComponentType.None);
