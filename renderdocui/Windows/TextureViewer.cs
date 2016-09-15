@@ -1654,7 +1654,6 @@ namespace renderdocui.Windows
             UI_UpdateStatusText();
 
             mipLevel.Items.Clear();
-            sliceFace.Items.Clear();
 
             m_TexDisplay.mip = 0;
             m_TexDisplay.sliceFace = 0;
@@ -1719,6 +1718,8 @@ namespace renderdocui.Windows
                 mipLevel.Enabled = true;
             }
 
+            sliceFace.Items.Clear();
+
             if (tex.numSubresources == tex.mips && tex.depth <= 1)
             {
                 sliceFace.Enabled = false;
@@ -1732,6 +1733,10 @@ namespace renderdocui.Windows
                 String[] cubeFaces = { "X+", "X-", "Y+", "Y-", "Z+", "Z-" };
 
                 UInt32 numSlices = (Math.Max(1, tex.depth) * tex.numSubresources) / tex.mips;
+
+                // for 3D textures, display the number of slices at this mip
+                if(tex.depth > 1)
+                    numSlices = Math.Max(1, tex.depth >> (int)mipLevel.SelectedIndex);
 
                 for (UInt32 i = 0; i < numSlices; i++)
                 {
@@ -3138,6 +3143,8 @@ namespace renderdocui.Windows
         {
             if (CurrentTexture == null) return;
 
+            uint prevSlice = m_TexDisplay.sliceFace;
+
             if (CurrentTexture.mips > 1)
             {
                 m_TexDisplay.mip = (UInt32)mipLevel.SelectedIndex;
@@ -3149,6 +3156,24 @@ namespace renderdocui.Windows
                 m_TexDisplay.sampleIdx = (UInt32)mipLevel.SelectedIndex;
                 if (mipLevel.SelectedIndex == CurrentTexture.msSamp)
                     m_TexDisplay.sampleIdx = ~0U;
+            }
+
+            // For 3D textures, update the slice list for this mip
+            if(CurrentTexture.depth > 1)
+            {
+                uint newSlice = prevSlice >> (int)m_TexDisplay.mip;
+
+                UInt32 numSlices = Math.Max(1, CurrentTexture.depth >> (int)m_TexDisplay.mip);
+
+                sliceFace.Items.Clear();
+
+                for (UInt32 i = 0; i < numSlices; i++)
+                    sliceFace.Items.Add("Slice " + i);
+
+                // changing sliceFace index will handle updating range & re-picking
+                sliceFace.SelectedIndex = Helpers.Clamp((int)newSlice, 0, sliceFace.Items.Count-1);
+
+                return;
             }
 
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
@@ -3178,6 +3203,9 @@ namespace renderdocui.Windows
         private void sliceFace_SelectedIndexChanged(object sender, EventArgs e)
         {
             m_TexDisplay.sliceFace = (UInt32)sliceFace.SelectedIndex;
+
+            if (CurrentTexture.depth > 1)
+                m_TexDisplay.sliceFace = (UInt32)(sliceFace.SelectedIndex << (int)m_TexDisplay.mip);
 
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
 
@@ -3616,6 +3644,9 @@ namespace renderdocui.Windows
             m_SaveDialog.saveData.typeHint = m_TexDisplay.typeHint;
             m_SaveDialog.saveData.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
             m_SaveDialog.saveData.mip = (int)m_TexDisplay.mip;
+
+            if(CurrentTexture != null && CurrentTexture.depth > 1)
+                m_SaveDialog.saveData.slice.sliceIndex = (int)m_TexDisplay.sliceFace >> (int)m_TexDisplay.mip;
 
             m_SaveDialog.saveData.channelExtract = -1;
             if (m_TexDisplay.Red && !m_TexDisplay.Green && !m_TexDisplay.Blue && !m_TexDisplay.Alpha)
