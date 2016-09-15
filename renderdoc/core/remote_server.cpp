@@ -1187,15 +1187,18 @@ RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, RemoteSe
   if(host != NULL && host[0] != '\0')
     s = host;
 
+  if(port == 0)
+    port = RENDERDOC_GetDefaultRemoteServerPort();
+
   if(host != NULL && !strncmp(host, "adb:", 4))
   {
     s = "127.0.0.1";
 
+    if(port == RENDERDOC_GetDefaultRemoteServerPort())
+      port += RenderDoc_AndroidPortOffset;
+
     // could parse out an (optional) device name from host+4 here.
   }
-
-  if(port == 0)
-    port = RENDERDOC_GetDefaultRemoteServerPort();
 
   Network::Socket *sock = NULL;
 

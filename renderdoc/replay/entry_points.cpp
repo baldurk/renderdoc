@@ -477,13 +477,6 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
   if(host != NULL && host[0] != '\0')
     s = host;
 
-  if(host != NULL && !strncmp(host, "adb:", 4))
-  {
-    s = "127.0.0.1";
-
-    // could parse out an (optional) device name from host+4 here.
-  }
-
   // initial case is we're called with 0, start with the first port.
   // otherwise we're called with the last successful ident, so increment
   // before continuing to enumerate.
@@ -492,7 +485,19 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
   else
     nextIdent++;
 
-  for(; nextIdent <= RenderDoc_LastTargetControlPort; nextIdent++)
+  uint32_t lastIdent = RenderDoc_LastTargetControlPort;
+  if(host != NULL && !strncmp(host, "adb:", 4))
+  {
+    if(nextIdent == RenderDoc_FirstTargetControlPort)
+      nextIdent += RenderDoc_AndroidPortOffset;
+    lastIdent += RenderDoc_AndroidPortOffset;
+
+    s = "127.0.0.1";
+
+    // could parse out an (optional) device name from host+4 here.
+  }
+
+  for(; nextIdent <= lastIdent; nextIdent++)
   {
     Network::Socket *sock = Network::CreateClientSocket(s.c_str(), (uint16_t)nextIdent, 250);
 
