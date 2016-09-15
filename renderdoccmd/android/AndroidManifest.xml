@@ -9,11 +9,7 @@
   <uses-permission android:name="android.permission.INTERNET" />
 
   <application android:label="RenderDocCmd" android:hasCode="true">
-    <activity android:name=".Loader" android:label="RenderDocCmdLoader" android:configChanges="orientation|keyboardHidden">
-      <meta-data android:name="android.app.lib_name" android:value="renderdoccmd"/>
-    </activity>
-
-    <activity android:name="android.app.NativeActivity" android:label="RenderDocCmd" android:configChanges="orientation|keyboardHidden">
+    <activity android:name=".Loader" android:label="RenderDocCmdLoader" android:exported="true" android:configChanges="orientation|keyboardHidden">
       <meta-data android:name="android.app.lib_name" android:value="renderdoccmd"/>
     </activity>
 
