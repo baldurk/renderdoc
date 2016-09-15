@@ -574,7 +574,12 @@ namespace renderdocui.Windows.PipelineState
                                 name = bufs[t].name;
                                 restype = ShaderResourceType.Buffer;
 
-                                tag = new BufferResTag(isrw, bindPoint, bufs[t].ID, descriptorBind.offset, descriptorBind.size);
+                                ulong descriptorLen = descriptorBind.size;
+
+                                if(descriptorLen == ulong.MaxValue)
+                                    descriptorLen = len - descriptorBind.offset;
+
+                                tag = new BufferResTag(isrw, bindPoint, bufs[t].ID, descriptorBind.offset, descriptorLen);
 
                                 if (HasImportantViewParams(descriptorBind, bufs[t]))
                                     viewDetails = true;
@@ -893,13 +898,19 @@ namespace renderdocui.Windows.PipelineState
                         length = descriptorBind.size;
 
                         for (int t = 0; t < bufs.Length; t++)
+                        {
                             if (bufs[t].ID == descriptorBind.res)
+                            {
                                 name = bufs[t].name;
+                                if(length == ulong.MaxValue)
+                                    length = bufs[t].length - descriptorBind.offset;
+                            }
+                        }
 
                         if (name == "")
                             name = "UBO " + descriptorBind.res.ToString();
 
-                        vecrange = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
+                        vecrange = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.offset + length);
                     }
 
                     string sizestr;
@@ -2738,8 +2749,13 @@ namespace renderdocui.Windows.PipelineState
                         }
 
                         FetchBuffer buf = m_Core.GetBuffer(id);
-                        if(buf != null)
+                        if (buf != null)
+                        {
                             name = buf.name;
+
+                            if (length == ulong.MaxValue)
+                                length = buf.length - byteOffset;
+                        }
 
                         if (name == "")
                             name = "UBO " + descriptorBind.res.ToString();
@@ -2847,7 +2863,12 @@ namespace renderdocui.Windows.PipelineState
                             format = "-";
                             name = buf.name;
 
-                            viewParams = String.Format("Byte Range: {0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
+                            ulong length = descriptorBind.size;
+
+                            if (length == ulong.MaxValue)
+                                length = buf.length - descriptorBind.offset;
+
+                            viewParams = String.Format("Byte Range: {0} - {1}", descriptorBind.offset, descriptorBind.offset + length);
                         }
 
                         if (bind.type != ShaderBindType.Sampler)
@@ -2964,7 +2985,12 @@ namespace renderdocui.Windows.PipelineState
                             format = "-";
                             name = buf.name;
 
-                            viewParams = String.Format("Byte Range: {0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
+                            ulong length = descriptorBind.size;
+
+                            if (length == ulong.MaxValue)
+                                length = buf.length - descriptorBind.offset;
+
+                            viewParams = String.Format("Byte Range: {0} - {1}", descriptorBind.offset, descriptorBind.offset + length);
                         }
 
                         rows.Add(new object[] { setname, slotname, name, bind.type, w, h, d, arr, format, viewParams });
