@@ -2947,7 +2947,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 
       int oldW = GetWidth(), oldH = GetHeight();
 
-      for(UINT i = 0; i < desc.Depth; i++)
+      for(UINT i = 0; i < (desc.Depth >> mip); i++)
       {
         rtvDesc.Texture3D.FirstWSlice = i;
         hr = m_WrappedDevice->CreateRenderTargetView(rtTex, &rtvDesc, &wrappedrtv);
@@ -2978,7 +2978,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
         texDisplay.mip = mip;
         texDisplay.sampleIdx = 0;
         texDisplay.CustomShader = ResourceId();
-        texDisplay.sliceFace = i;
+        texDisplay.sliceFace = i << mip;
         texDisplay.rangemin = blackPoint;
         texDisplay.rangemax = whitePoint;
         texDisplay.scale = 1.0f;
@@ -3026,6 +3026,22 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
     intercept.InitWrappedResource(dummyTex, subresource, ret);
     intercept.SetD3D(mapped);
     intercept.CopyFromD3D();
+
+    // for 3D textures if we wanted a particular slice (arrayIdx > 0)
+    // copy it into the beginning.
+    if(intercept.numSlices > 1 && arrayIdx > 0 && (int)arrayIdx < intercept.numSlices)
+    {
+      byte *dst = ret;
+      byte *src = ret + intercept.app.DepthPitch * arrayIdx;
+
+      for(int row = 0; row < intercept.numRows; row++)
+      {
+        memcpy(dst, src, intercept.app.RowPitch);
+
+        src += intercept.app.RowPitch;
+        dst += intercept.app.RowPitch;
+      }
+    }
   }
   else
   {

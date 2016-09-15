@@ -5114,6 +5114,13 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       },
   };
 
+  for(int i = 0; i < 2; i++)
+  {
+    copyregion[i].imageExtent.width = RDCMAX(1U, copyregion[i].imageExtent.width >> mip);
+    copyregion[i].imageExtent.height = RDCMAX(1U, copyregion[i].imageExtent.height >> mip);
+    copyregion[i].imageExtent.depth = RDCMAX(1U, copyregion[i].imageExtent.depth >> mip);
+  }
+
   // for most combined depth-stencil images this will be large enough for both to be copied
   // separately, but for D24S8 we need to add extra space since they won't be copied packed
   dataSize = GetByteSize(imInfo.extent.width, imInfo.extent.height, imInfo.extent.depth,
