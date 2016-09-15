@@ -1407,7 +1407,7 @@ namespace renderdocui.Windows
             if (IsDisposed) return;
 
             if (!CurrentTextureIsLocked || (CurrentTexture != null && m_TexDisplay.texid != CurrentTexture.ID))
-                UI_OnTextureSelectionChanged();
+                UI_OnTextureSelectionChanged(true);
 
             if (m_Output == null) return;
 
@@ -1561,7 +1561,7 @@ namespace renderdocui.Windows
                 rangeHistogram.SetRange(0.0f, 1.0f);
         }
 
-        private void UI_OnTextureSelectionChanged()
+        private void UI_OnTextureSelectionChanged(bool newdraw)
         {
             FetchTexture tex = CurrentTexture;
 
@@ -1687,7 +1687,9 @@ namespace renderdocui.Windows
                 mipLevelLabel.Text = "Mip";
 
                 int highestMip = -1;
-                if (!CurrentTextureIsLocked)
+
+                // only switch to the selected mip for outputs, and when changing drawcall
+                if (!CurrentTextureIsLocked && m_Following.Type != FollowType.ReadOnly && newdraw)
                     highestMip = m_Following.GetHighestMip(m_Core);
 
                 // assuming we get a valid mip for the highest mip, only switch to it
@@ -1747,7 +1749,8 @@ namespace renderdocui.Windows
                 }
 
                 int firstArraySlice = -1;
-                if (!CurrentTextureIsLocked)
+                // only switch to the selected mip for outputs, and when changing drawcall
+                if (!CurrentTextureIsLocked && m_Following.Type != FollowType.ReadOnly && newdraw)
                     firstArraySlice = m_Following.GetFirstArraySlice(m_Core);
 
                 // see above with highestMip and prevHighestMip for the logic behind this
@@ -1874,7 +1877,7 @@ namespace renderdocui.Windows
             if (d.Visible)
                 d.Controls.Add(renderToolstripContainer);
 
-            UI_OnTextureSelectionChanged();
+            UI_OnTextureSelectionChanged(false);
         }
 
         void PreviewPanel_FormClosing(object sender, FormClosingEventArgs e)
@@ -3886,7 +3889,7 @@ namespace renderdocui.Windows
 
                 if (id != ResourceId.Null)
                 {
-                    UI_OnTextureSelectionChanged();
+                    UI_OnTextureSelectionChanged(false);
                     m_PreviewPanel.Show();
                 }
             }
