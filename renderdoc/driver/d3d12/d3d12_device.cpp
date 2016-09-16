@@ -1048,7 +1048,181 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   const uint32_t maxSize = 1024;
 
   // gather backbuffer screenshot
-  (void)maxSize;
+  if(backbuffer != NULL)
+  {
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    D3D12_RESOURCE_DESC bufDesc;
+
+    bufDesc.Alignment = 0;
+    bufDesc.DepthOrArraySize = 1;
+    bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    bufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    bufDesc.Format = DXGI_FORMAT_UNKNOWN;
+    bufDesc.Height = 1;
+    bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    bufDesc.MipLevels = 1;
+    bufDesc.SampleDesc.Count = 1;
+    bufDesc.SampleDesc.Quality = 0;
+    bufDesc.Width = 1;
+
+    D3D12_RESOURCE_DESC desc = backbuffer->GetDesc();
+
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout = {};
+
+    m_pDevice->GetCopyableFootprints(&desc, 0, 1, 0, &layout, NULL, NULL, &bufDesc.Width);
+
+    ID3D12Resource *copyDst = NULL;
+    HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
+                                                    D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+                                                    __uuidof(ID3D12Resource), (void **)&copyDst);
+
+    if(SUCCEEDED(hr))
+    {
+      ID3D12GraphicsCommandList *list = Unwrap(GetNewList());
+
+      D3D12_RESOURCE_BARRIER barrier = {};
+
+      // we know there's only one subresource, and it will be in PRESENT state
+      barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      barrier.Transition.pResource = Unwrap(backbuffer);
+      barrier.Transition.Subresource = 0;
+      barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+      barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+      list->ResourceBarrier(1, &barrier);
+
+      // copy to readback buffer
+      D3D12_TEXTURE_COPY_LOCATION dst, src;
+
+      src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+      src.pResource = Unwrap(backbuffer);
+      src.SubresourceIndex = 0;
+
+      dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+      dst.pResource = copyDst;
+      dst.PlacedFootprint = layout;
+
+      list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+
+      // transition back
+      std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+      list->ResourceBarrier(1, &barrier);
+
+      list->Close();
+
+      ExecuteLists();
+      FlushLists();
+
+      byte *data = NULL;
+      HRESULT hr = copyDst->Map(0, NULL, (void **)&data);
+
+      if(SUCCEEDED(hr) && data)
+      {
+        ResourceFormat fmt = MakeResourceFormat(desc.Format);
+
+        float aspect = float(desc.Width) / float(desc.Height);
+
+        thwidth = RDCMIN(maxSize, (uint32_t)desc.Width);
+        thwidth &= ~0x7;    // align down to multiple of 8
+        thheight = uint32_t(float(thwidth) / aspect);
+
+        thpixels = new byte[3 * thwidth * thheight];
+
+        float widthf = float(desc.Width);
+        float heightf = float(desc.Height);
+
+        uint32_t stride = fmt.compByteWidth * fmt.compCount;
+
+        bool buf1010102 = false;
+        bool bufBGRA = (fmt.bgraOrder != false);
+
+        if(fmt.special && fmt.specialFormat == eSpecial_R10G10B10A2)
+        {
+          stride = 4;
+          buf1010102 = true;
+        }
+
+        byte *dst = thpixels;
+
+        for(uint32_t y = 0; y < thheight; y++)
+        {
+          for(uint32_t x = 0; x < thwidth; x++)
+          {
+            float xf = float(x) / float(thwidth);
+            float yf = float(y) / float(thheight);
+
+            byte *src = &data[stride * uint32_t(xf * widthf) +
+                              layout.Footprint.RowPitch * uint32_t(yf * heightf)];
+
+            if(buf1010102)
+            {
+              uint32_t *src1010102 = (uint32_t *)src;
+              Vec4f unorm = ConvertFromR10G10B10A2(*src1010102);
+              dst[0] = (byte)(unorm.x * 255.0f);
+              dst[1] = (byte)(unorm.y * 255.0f);
+              dst[2] = (byte)(unorm.z * 255.0f);
+            }
+            else if(bufBGRA)
+            {
+              dst[0] = src[2];
+              dst[1] = src[1];
+              dst[2] = src[0];
+            }
+            else if(fmt.compByteWidth == 2)    // R16G16B16A16 backbuffer
+            {
+              uint16_t *src16 = (uint16_t *)src;
+
+              float linearR = RDCCLAMP(ConvertFromHalf(src16[0]), 0.0f, 1.0f);
+              float linearG = RDCCLAMP(ConvertFromHalf(src16[1]), 0.0f, 1.0f);
+              float linearB = RDCCLAMP(ConvertFromHalf(src16[2]), 0.0f, 1.0f);
+
+              if(linearR < 0.0031308f)
+                dst[0] = byte(255.0f * (12.92f * linearR));
+              else
+                dst[0] = byte(255.0f * (1.055f * powf(linearR, 1.0f / 2.4f) - 0.055f));
+
+              if(linearG < 0.0031308f)
+                dst[1] = byte(255.0f * (12.92f * linearG));
+              else
+                dst[1] = byte(255.0f * (1.055f * powf(linearG, 1.0f / 2.4f) - 0.055f));
+
+              if(linearB < 0.0031308f)
+                dst[2] = byte(255.0f * (12.92f * linearB));
+              else
+                dst[2] = byte(255.0f * (1.055f * powf(linearB, 1.0f / 2.4f) - 0.055f));
+            }
+            else
+            {
+              dst[0] = src[0];
+              dst[1] = src[1];
+              dst[2] = src[2];
+            }
+
+            dst += 3;
+          }
+        }
+
+        copyDst->Unmap(0, NULL);
+      }
+      else
+      {
+        RDCERR("Couldn't map readback buffer: 0x%08x", hr);
+      }
+
+      SAFE_RELEASE(copyDst);
+    }
+    else
+    {
+      RDCERR("Couldn't create readback buffer: 0x%08x", hr);
+    }
+  }
 
   byte *jpgbuf = NULL;
   int len = thwidth * thheight;

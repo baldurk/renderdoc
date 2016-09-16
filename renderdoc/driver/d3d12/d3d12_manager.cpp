@@ -481,7 +481,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
           dst.pResource = copyDst;
           dst.PlacedFootprint = layouts[i];
 
-          list->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+          list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
         }
 
         // transition back
@@ -885,7 +885,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
             src.pResource = copySrc;
             src.PlacedFootprint = layouts[i];
 
-            list->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+            list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
           }
 
           delete[] layouts;
