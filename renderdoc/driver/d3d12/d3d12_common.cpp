@@ -826,6 +826,17 @@ void Serialiser::Serialise(const char *name, D3D12_HEAP_PROPERTIES &el)
 }
 
 template <>
+void Serialiser::Serialise(const char *name, D3D12_HEAP_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_HEAP_DESC", 0, true);
+
+  Serialise("SizeInBytes", el.SizeInBytes);
+  Serialise("Properties", el.Properties);
+  Serialise("Alignment", el.Alignment);
+  Serialise("Flags", el.Flags);
+}
+
+template <>
 void Serialiser::Serialise(const char *name, D3D12_DESCRIPTOR_HEAP_DESC &el)
 {
   ScopedContext scope(this, name, "D3D12_DESCRIPTOR_HEAP_DESC", 0, true);

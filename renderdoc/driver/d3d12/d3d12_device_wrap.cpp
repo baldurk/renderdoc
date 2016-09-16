@@ -723,10 +723,115 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
   return ret;
 }
 
+bool WrappedID3D12Device::Serialise_CreateHeap(const D3D12_HEAP_DESC *pDesc, REFIID riid,
+                                               void **ppvHeap)
+{
+  SERIALISE_ELEMENT(D3D12_HEAP_DESC, desc, *pDesc);
+  SERIALISE_ELEMENT(IID, guid, riid);
+  SERIALISE_ELEMENT(ResourceId, Res, ((WrappedID3D12Heap *)*ppvHeap)->GetResourceID());
+
+  if(m_State == READING)
+  {
+    ID3D12Heap *ret = NULL;
+    HRESULT hr = m_pDevice->CreateHeap(&desc, guid, (void **)&ret);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
+    }
+    else
+    {
+      ret = new WrappedID3D12Heap(ret, this);
+
+      GetResourceManager()->AddLiveResource(Res, ret);
+    }
+  }
+
+  return true;
+}
+
 HRESULT WrappedID3D12Device::CreateHeap(const D3D12_HEAP_DESC *pDesc, REFIID riid, void **ppvHeap)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
-  return m_pDevice->CreateHeap(pDesc, riid, ppvHeap);
+  if(ppvHeap == NULL)
+    return m_pDevice->CreateHeap(pDesc, riid, ppvHeap);
+
+  if(riid != __uuidof(ID3D12Heap))
+    return E_NOINTERFACE;
+
+  ID3D12Heap *real = NULL;
+  HRESULT ret = m_pDevice->CreateHeap(pDesc, riid, (void **)&real);
+
+  if(SUCCEEDED(ret))
+  {
+    SCOPED_LOCK(m_D3DLock);
+
+    WrappedID3D12Heap *wrapped = new WrappedID3D12Heap(real, this);
+
+    if(m_State >= WRITING)
+    {
+      SCOPED_SERIALISE_CONTEXT(CREATE_HEAP);
+      Serialise_CreateHeap(pDesc, riid, (void **)&wrapped);
+
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_Heap;
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      record->AddChunk(scope.Get());
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+    }
+
+    *ppvHeap = (ID3D12Heap *)wrapped;
+  }
+
+  return ret;
+}
+
+bool WrappedID3D12Device::Serialise_CreatePlacedResource(ID3D12Heap *pHeap, UINT64 HeapOffset,
+                                                         const D3D12_RESOURCE_DESC *pDesc,
+                                                         D3D12_RESOURCE_STATES InitialState,
+                                                         const D3D12_CLEAR_VALUE *pOptimizedClearValue,
+                                                         REFIID riid, void **ppvResource)
+{
+  SERIALISE_ELEMENT(ResourceId, Heap, GetResID(pHeap));
+  SERIALISE_ELEMENT(UINT64, Offset, HeapOffset);
+  SERIALISE_ELEMENT(D3D12_RESOURCE_DESC, desc, *pDesc);
+  SERIALISE_ELEMENT(D3D12_RESOURCE_STATES, state, InitialState);
+
+  SERIALISE_ELEMENT(bool, HasClearValue, pOptimizedClearValue != NULL);
+  SERIALISE_ELEMENT_OPT(D3D12_CLEAR_VALUE, clearVal, *pOptimizedClearValue, HasClearValue);
+
+  SERIALISE_ELEMENT(IID, guid, riid);
+  SERIALISE_ELEMENT(ResourceId, Res, ((WrappedID3D12Resource *)*ppvResource)->GetResourceID());
+
+  if(m_State == READING)
+  {
+    pHeap = GetResourceManager()->GetLiveAs<ID3D12Heap>(Heap);
+    pOptimizedClearValue = HasClearValue ? &clearVal : NULL;
+
+    ID3D12Resource *ret = NULL;
+    HRESULT hr = m_pDevice->CreatePlacedResource(Unwrap(pHeap), Offset, &desc, state,
+                                                 pOptimizedClearValue, guid, (void **)&ret);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
+    }
+    else
+    {
+      ret = new WrappedID3D12Resource(ret, this);
+
+      GetResourceManager()->AddLiveResource(Res, ret);
+
+      SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
+      states.resize(GetNumSubresources(&desc), state);
+    }
+  }
+
+  return true;
 }
 
 HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 HeapOffset,
@@ -735,9 +840,63 @@ HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 Heap
                                                   const D3D12_CLEAR_VALUE *pOptimizedClearValue,
                                                   REFIID riid, void **ppvResource)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
-  return m_pDevice->CreatePlacedResource(Unwrap(pHeap), HeapOffset, pDesc, InitialState,
-                                         pOptimizedClearValue, riid, ppvResource);
+  if(ppvResource == NULL)
+    return m_pDevice->CreatePlacedResource(Unwrap(pHeap), HeapOffset, pDesc, InitialState,
+                                           pOptimizedClearValue, riid, NULL);
+
+  if(riid != __uuidof(ID3D12Resource))
+    return E_NOINTERFACE;
+
+  ID3D12Resource *real = NULL;
+  HRESULT ret = m_pDevice->CreatePlacedResource(Unwrap(pHeap), HeapOffset, pDesc, InitialState,
+                                                pOptimizedClearValue, riid, (void **)&real);
+
+  if(SUCCEEDED(ret))
+  {
+    SCOPED_LOCK(m_D3DLock);
+
+    WrappedID3D12Resource *wrapped = new WrappedID3D12Resource(real, this);
+
+    if(m_State >= WRITING)
+    {
+      SCOPED_SERIALISE_CONTEXT(CREATE_PLACED_RESOURCE);
+      Serialise_CreatePlacedResource(pHeap, HeapOffset, pDesc, InitialState, pOptimizedClearValue,
+                                     riid, (void **)&wrapped);
+
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_Resource;
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      RDCASSERT(pHeap);
+
+      record->AddParent(GetRecord(pHeap));
+      record->AddChunk(scope.Get());
+
+      {
+        SCOPED_LOCK(m_CapTransitionLock);
+        if(m_State != WRITING_CAPFRAME)
+          GetResourceManager()->MarkDirtyResource(wrapped->GetResourceID());
+        else
+          GetResourceManager()->MarkPendingDirty(wrapped->GetResourceID());
+      }
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+    }
+
+    {
+      SCOPED_LOCK(m_ResourceStatesLock);
+      SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
+
+      states.resize(GetNumSubresources(pDesc), InitialState);
+    }
+
+    *ppvResource = (ID3D12Resource *)wrapped;
+  }
+
+  return ret;
 }
 
 HRESULT WrappedID3D12Device::CreateReservedResource(const D3D12_RESOURCE_DESC *pDesc,
