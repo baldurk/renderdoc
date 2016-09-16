@@ -540,7 +540,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *
 
     // DXGI swap chain back buffers can be freely cast as a special-case.
     // translate the format to a typeless format to allow for this.
-    // the original type will be stored in the texture below
+    // the original type is stored separately below
     Descriptor.Format = GetTypelessFormat(Descriptor.Format);
 
     HRESULT hr = S_OK;
@@ -570,6 +570,8 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *
       fakeBB->SetName(L"Swap Chain Buffer");
 
       GetResourceManager()->AddLiveResource(TexID, fakeBB);
+
+      m_BackbufferFormat = std::make_pair(wrapped->GetResourceID(), swapFormat);
 
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
@@ -610,6 +612,10 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
     record->DataInSerialiser = false;
     record->SpecialResource = true;
     record->Length = 0;
+
+    WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)pRes;
+
+    wrapped->SetResourceRecord(record);
 
     SCOPED_LOCK(m_D3DLock);
 

@@ -145,6 +145,18 @@ void D3D12Descriptor::Create(WrappedID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HAND
       if(desc->ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
       {
         desc = nonsamp.resource ? NULL : defaultSRV();
+
+        // fixup for backbuffers
+        if(dev->GetBackbufferFormat().first == GetResID(nonsamp.resource))
+        {
+          D3D12_SHADER_RESOURCE_VIEW_DESC bbDesc = {};
+          bbDesc.Format = dev->GetBackbufferFormat().second;
+          bbDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+          bbDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+          bbDesc.Texture2D.MipLevels = 1;
+          dev->CreateShaderResourceView(nonsamp.resource, &bbDesc, handle);
+          return;
+        }
       }
 
       dev->CreateShaderResourceView(nonsamp.resource, desc, handle);
@@ -156,6 +168,16 @@ void D3D12Descriptor::Create(WrappedID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HAND
       if(desc->ViewDimension == D3D12_RTV_DIMENSION_UNKNOWN)
       {
         desc = nonsamp.resource ? NULL : defaultRTV();
+
+        // fixup for backbuffers
+        if(dev->GetBackbufferFormat().first == GetResID(nonsamp.resource))
+        {
+          D3D12_RENDER_TARGET_VIEW_DESC bbDesc = {};
+          bbDesc.Format = dev->GetBackbufferFormat().second;
+          bbDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+          dev->CreateRenderTargetView(nonsamp.resource, &bbDesc, handle);
+          return;
+        }
       }
 
       dev->CreateRenderTargetView(nonsamp.resource, desc, handle);
@@ -178,6 +200,16 @@ void D3D12Descriptor::Create(WrappedID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HAND
       if(uavdesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
       {
         desc = nonsamp.resource ? NULL : defaultUAV();
+
+        // fixup for backbuffers
+        if(dev->GetBackbufferFormat().first == GetResID(nonsamp.resource))
+        {
+          D3D12_UNORDERED_ACCESS_VIEW_DESC bbDesc = {};
+          bbDesc.Format = dev->GetBackbufferFormat().second;
+          bbDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+          dev->CreateUnorderedAccessView(nonsamp.resource, NULL, &bbDesc, handle);
+          return;
+        }
       }
 
       dev->CreateUnorderedAccessView(nonsamp.resource, nonsamp.uav.counterResource, desc, handle);

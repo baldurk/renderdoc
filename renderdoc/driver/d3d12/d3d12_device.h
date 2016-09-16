@@ -288,6 +288,7 @@ private:
   };
 
   map<WrappedIDXGISwapChain3 *, SwapPresentInfo> m_SwapChains;
+  pair<ResourceId, DXGI_FORMAT> m_BackbufferFormat;
 
   WrappedIDXGISwapChain3 *m_LastSwap;
 
@@ -329,6 +330,7 @@ public:
     return m_ResourceStates[id];
   }
 
+  const pair<ResourceId, DXGI_FORMAT> GetBackbufferFormat() { return m_BackbufferFormat; }
   void SetLogFile(const char *logfile);
   void SetLogVersion(uint32_t fileversion) { m_InitParams.SerialiseVersion = fileversion; }
   D3D12Replay *GetReplay() { return &m_Replay; }
