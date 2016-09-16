@@ -486,7 +486,7 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
     {
       if(OrdinalAsString((void *)func))
       {
-        uint32_t ordinal = (uint16_t)func;
+        uint32_t ordinal = (uint16_t)(uintptr_t(func) & 0xffff);
 
         if(ordinal < it->second.OrdinalBase)
         {
