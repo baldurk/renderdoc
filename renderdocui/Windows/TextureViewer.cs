@@ -2803,29 +2803,34 @@ namespace renderdocui.Windows
 
             }
 
+            int increment = 1 << (int)m_TexDisplay.mip;
+
             if (e.KeyCode == Keys.Up && m_PickedPoint.Y > 0)
             {
-                m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y - 1);
+                m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y - increment);
                 nudged = true;
             }
             else if (e.KeyCode == Keys.Down && m_PickedPoint.Y < tex.height-1)
             {
-                m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y + 1);
+                m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y + increment);
                 nudged = true;
             }
             else if (e.KeyCode == Keys.Left && m_PickedPoint.X > 0)
             {
-                m_PickedPoint = new Point(m_PickedPoint.X - 1, m_PickedPoint.Y);
+                m_PickedPoint = new Point(m_PickedPoint.X - increment, m_PickedPoint.Y);
                 nudged = true;
             }
             else if (e.KeyCode == Keys.Right && m_PickedPoint.X < tex.width - 1)
             {
-                m_PickedPoint = new Point(m_PickedPoint.X + 1, m_PickedPoint.Y);
+                m_PickedPoint = new Point(m_PickedPoint.X + increment, m_PickedPoint.Y);
                 nudged = true;
             }
 
             if(nudged)
             {
+                m_PickedPoint = new Point(
+                    Helpers.Clamp(m_PickedPoint.X, 0, (int)tex.width-1),
+                    Helpers.Clamp(m_PickedPoint.Y, 0, (int)tex.height - 1));
                 e.Handled = true;
 
                 m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
