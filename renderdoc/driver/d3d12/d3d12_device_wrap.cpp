@@ -609,12 +609,12 @@ void WrappedID3D12Device::CreateSampler(const D3D12_SAMPLER_DESC *pDesc,
 
 bool WrappedID3D12Device::Serialise_CreateCommittedResource(
     const D3D12_HEAP_PROPERTIES *pHeapProperties, D3D12_HEAP_FLAGS HeapFlags,
-    const D3D12_RESOURCE_DESC *pResourceDesc, D3D12_RESOURCE_STATES InitialResourceState,
+    const D3D12_RESOURCE_DESC *pDesc, D3D12_RESOURCE_STATES InitialResourceState,
     const D3D12_CLEAR_VALUE *pOptimizedClearValue, REFIID riidResource, void **ppvResource)
 {
   SERIALISE_ELEMENT(D3D12_HEAP_PROPERTIES, props, *pHeapProperties);
   SERIALISE_ELEMENT(D3D12_HEAP_FLAGS, flags, HeapFlags);
-  SERIALISE_ELEMENT(D3D12_RESOURCE_DESC, desc, *pResourceDesc);
+  SERIALISE_ELEMENT(D3D12_RESOURCE_DESC, desc, *pDesc);
   SERIALISE_ELEMENT(D3D12_RESOURCE_STATES, state, InitialResourceState);
 
   SERIALISE_ELEMENT(bool, HasClearValue, pOptimizedClearValue != NULL);
@@ -651,23 +651,22 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
 
 HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES *pHeapProperties,
                                                      D3D12_HEAP_FLAGS HeapFlags,
-                                                     const D3D12_RESOURCE_DESC *pResourceDesc,
+                                                     const D3D12_RESOURCE_DESC *pDesc,
                                                      D3D12_RESOURCE_STATES InitialResourceState,
                                                      const D3D12_CLEAR_VALUE *pOptimizedClearValue,
                                                      REFIID riidResource, void **ppvResource)
 {
   if(ppvResource == NULL)
-    return m_pDevice->CreateCommittedResource(pHeapProperties, HeapFlags, pResourceDesc,
-                                              InitialResourceState, pOptimizedClearValue,
-                                              riidResource, NULL);
+    return m_pDevice->CreateCommittedResource(pHeapProperties, HeapFlags, pDesc, InitialResourceState,
+                                              pOptimizedClearValue, riidResource, NULL);
 
   if(riidResource != __uuidof(ID3D12Resource))
     return E_NOINTERFACE;
 
   ID3D12Resource *real = NULL;
-  HRESULT ret = m_pDevice->CreateCommittedResource(pHeapProperties, HeapFlags, pResourceDesc,
-                                                   InitialResourceState, pOptimizedClearValue,
-                                                   riidResource, (void **)&real);
+  HRESULT ret =
+      m_pDevice->CreateCommittedResource(pHeapProperties, HeapFlags, pDesc, InitialResourceState,
+                                         pOptimizedClearValue, riidResource, (void **)&real);
 
   if(SUCCEEDED(ret))
   {
@@ -678,9 +677,8 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
     if(m_State >= WRITING)
     {
       SCOPED_SERIALISE_CONTEXT(CREATE_COMMITTED_RESOURCE);
-      Serialise_CreateCommittedResource(pHeapProperties, HeapFlags, pResourceDesc,
-                                        InitialResourceState, pOptimizedClearValue, riidResource,
-                                        (void **)&wrapped);
+      Serialise_CreateCommittedResource(pHeapProperties, HeapFlags, pDesc, InitialResourceState,
+                                        pOptimizedClearValue, riidResource, (void **)&wrapped);
 
       D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
       record->type = Resource_Resource;
@@ -706,7 +704,7 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
       SCOPED_LOCK(m_ResourceStatesLock);
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-      states.resize(GetNumSubresources(pResourceDesc), InitialResourceState);
+      states.resize(GetNumSubresources(pDesc), InitialResourceState);
     }
 
     *ppvResource = (ID3D12Resource *)wrapped;

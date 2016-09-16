@@ -518,7 +518,7 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE,
                                 CreateCommittedResource(const D3D12_HEAP_PROPERTIES *pHeapProperties,
                                                         D3D12_HEAP_FLAGS HeapFlags,
-                                                        const D3D12_RESOURCE_DESC *pResourceDesc,
+                                                        const D3D12_RESOURCE_DESC *pDesc,
                                                         D3D12_RESOURCE_STATES InitialResourceState,
                                                         const D3D12_CLEAR_VALUE *pOptimizedClearValue,
                                                         REFIID riidResource, void **ppvResource));
