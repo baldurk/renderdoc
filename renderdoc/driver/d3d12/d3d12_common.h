@@ -199,67 +199,68 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
 
 #pragma region Chunks
 
-#define D3D12_CHUNKS                                                                         \
-  D3D12_CHUNK_MACRO(DEVICE_INIT = FIRST_CHUNK_ID, "ID3D12Device::Initialisation")            \
-  D3D12_CHUNK_MACRO(SET_RESOURCE_NAME, "ID3D12Object::SetName")                              \
-  D3D12_CHUNK_MACRO(RELEASE_RESOURCE, "IUnknown::Release")                                   \
-  D3D12_CHUNK_MACRO(CREATE_SWAP_BUFFER, "IDXGISwapChain::GetBuffer")                         \
-                                                                                             \
-  D3D12_CHUNK_MACRO(CAPTURE_SCOPE, "Capture")                                                \
-                                                                                             \
-  D3D12_CHUNK_MACRO(BEGIN_EVENT, "BeginEvent")                                               \
-  D3D12_CHUNK_MACRO(SET_MARKER, "SetMarker")                                                 \
-  D3D12_CHUNK_MACRO(END_EVENT, "EndEvent")                                                   \
-                                                                                             \
-  D3D12_CHUNK_MACRO(DEBUG_MESSAGES, "DebugMessageList")                                      \
-                                                                                             \
-  D3D12_CHUNK_MACRO(CONTEXT_CAPTURE_HEADER, "ContextBegin")                                  \
-  D3D12_CHUNK_MACRO(CONTEXT_CAPTURE_FOOTER, "ContextEnd")                                    \
-                                                                                             \
-  D3D12_CHUNK_MACRO(SET_SHADER_DEBUG_PATH, "SetShaderDebugPath")                             \
-                                                                                             \
-  D3D12_CHUNK_MACRO(CREATE_COMMAND_QUEUE, "ID3D12Device::CreateCommandQueue")                \
-  D3D12_CHUNK_MACRO(CREATE_COMMAND_ALLOCATOR, "ID3D12Device::CreateCommandAllocator")        \
-  D3D12_CHUNK_MACRO(CREATE_COMMAND_LIST, "ID3D12Device::CreateCommandList")                  \
-                                                                                             \
-  D3D12_CHUNK_MACRO(CREATE_GRAPHICS_PIPE, "ID3D12Device::CreateGraphicsPipeline")            \
-  D3D12_CHUNK_MACRO(CREATE_COMPUTE_PIPE, "ID3D12Device::CreateComputePipeline")              \
-  D3D12_CHUNK_MACRO(CREATE_DESCRIPTOR_HEAP, "ID3D12Device::CreateDescriptorHeap")            \
-  D3D12_CHUNK_MACRO(CREATE_ROOT_SIG, "ID3D12Device::CreateRootSignature")                    \
-                                                                                             \
-  D3D12_CHUNK_MACRO(CREATE_COMMITTED_RESOURCE, "ID3D12Device::CreateCommittedResource")      \
-                                                                                             \
-  D3D12_CHUNK_MACRO(CREATE_FENCE, "ID3D12Device::CreateFence")                               \
-                                                                                             \
-  D3D12_CHUNK_MACRO(CLOSE_LIST, "ID3D12GraphicsCommandList::Close")                          \
-  D3D12_CHUNK_MACRO(RESET_LIST, "ID3D12GraphicsCommandList::Reset")                          \
-                                                                                             \
-  D3D12_CHUNK_MACRO(RESOURCE_BARRIER, "ID3D12GraphicsCommandList::ResourceBarrier")          \
-                                                                                             \
-  D3D12_CHUNK_MACRO(DRAW_INDEXED_INST, "ID3D12GraphicsCommandList::DrawIndexedInstanced")    \
-  D3D12_CHUNK_MACRO(DRAW_INST, "ID3D12GraphicsCommandList::DrawInstanced")                   \
-  D3D12_CHUNK_MACRO(COPY_BUFFER, "ID3D12GraphicsCommandList::CopyBufferRegion")              \
-                                                                                             \
-  D3D12_CHUNK_MACRO(CLEAR_RTV, "ID3D12GraphicsCommandList::ClearRenderTargetView")           \
-  D3D12_CHUNK_MACRO(CLEAR_DSV, "ID3D12GraphicsCommandList::ClearDepthStencilView")           \
-                                                                                             \
-  D3D12_CHUNK_MACRO(SET_TOPOLOGY, "ID3D12GraphicsCommandList::IASetPrimitiveTopology")       \
-  D3D12_CHUNK_MACRO(SET_IBUFFER, "ID3D12GraphicsCommandList::IASetIndexBuffer")              \
-  D3D12_CHUNK_MACRO(SET_VBUFFERS, "ID3D12GraphicsCommandList::IASetVertexBuffers")           \
-  D3D12_CHUNK_MACRO(SET_VIEWPORTS, "ID3D12GraphicsCommandList::RSSetViewports")              \
-  D3D12_CHUNK_MACRO(SET_SCISSORS, "ID3D12GraphicsCommandList::RSSetScissors")                \
-  D3D12_CHUNK_MACRO(SET_PIPE, "ID3D12GraphicsCommandList::SetPipelineState")                 \
-  D3D12_CHUNK_MACRO(SET_DESC_HEAPS, "ID3D12GraphicsCommandList::SetDescriptorHeaps")         \
-  D3D12_CHUNK_MACRO(SET_RTVS, "ID3D12GraphicsCommandList::OMSetRenderTargets")               \
-  D3D12_CHUNK_MACRO(SET_GFX_ROOT_TABLE,                                                      \
-                    "ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable")             \
-  D3D12_CHUNK_MACRO(SET_GFX_ROOT_SIG, "ID3D12GraphicsCommandList::SetGraphicsRootSignature") \
-  D3D12_CHUNK_MACRO(SET_GFX_ROOT_CBV,                                                        \
-                    "ID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView")          \
-                                                                                             \
-  D3D12_CHUNK_MACRO(EXECUTE_CMD_LISTS, "ID3D12GraphicsCommandQueue::ExecuteCommandLists")    \
-  D3D12_CHUNK_MACRO(SIGNAL, "ID3D12GraphicsCommandQueue::Signal")                            \
-                                                                                             \
+#define D3D12_CHUNKS                                                                               \
+  D3D12_CHUNK_MACRO(DEVICE_INIT = FIRST_CHUNK_ID, "ID3D12Device::Initialisation")                  \
+  D3D12_CHUNK_MACRO(SET_RESOURCE_NAME, "ID3D12Object::SetName")                                    \
+  D3D12_CHUNK_MACRO(RELEASE_RESOURCE, "IUnknown::Release")                                         \
+  D3D12_CHUNK_MACRO(CREATE_SWAP_BUFFER, "IDXGISwapChain::GetBuffer")                               \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(CAPTURE_SCOPE, "Capture")                                                      \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(BEGIN_EVENT, "BeginEvent")                                                     \
+  D3D12_CHUNK_MACRO(SET_MARKER, "SetMarker")                                                       \
+  D3D12_CHUNK_MACRO(END_EVENT, "EndEvent")                                                         \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(DEBUG_MESSAGES, "DebugMessageList")                                            \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(CONTEXT_CAPTURE_HEADER, "ContextBegin")                                        \
+  D3D12_CHUNK_MACRO(CONTEXT_CAPTURE_FOOTER, "ContextEnd")                                          \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(SET_SHADER_DEBUG_PATH, "SetShaderDebugPath")                                   \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(CREATE_COMMAND_QUEUE, "ID3D12Device::CreateCommandQueue")                      \
+  D3D12_CHUNK_MACRO(CREATE_COMMAND_ALLOCATOR, "ID3D12Device::CreateCommandAllocator")              \
+  D3D12_CHUNK_MACRO(CREATE_COMMAND_LIST, "ID3D12Device::CreateCommandList")                        \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(CREATE_GRAPHICS_PIPE, "ID3D12Device::CreateGraphicsPipeline")                  \
+  D3D12_CHUNK_MACRO(CREATE_COMPUTE_PIPE, "ID3D12Device::CreateComputePipeline")                    \
+  D3D12_CHUNK_MACRO(CREATE_DESCRIPTOR_HEAP, "ID3D12Device::CreateDescriptorHeap")                  \
+  D3D12_CHUNK_MACRO(CREATE_ROOT_SIG, "ID3D12Device::CreateRootSignature")                          \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(CREATE_COMMITTED_RESOURCE, "ID3D12Device::CreateCommittedResource")            \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(CREATE_FENCE, "ID3D12Device::CreateFence")                                     \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(CLOSE_LIST, "ID3D12GraphicsCommandList::Close")                                \
+  D3D12_CHUNK_MACRO(RESET_LIST, "ID3D12GraphicsCommandList::Reset")                                \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(RESOURCE_BARRIER, "ID3D12GraphicsCommandList::ResourceBarrier")                \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(DRAW_INDEXED_INST, "ID3D12GraphicsCommandList::DrawIndexedInstanced")          \
+  D3D12_CHUNK_MACRO(DRAW_INST, "ID3D12GraphicsCommandList::DrawInstanced")                         \
+  D3D12_CHUNK_MACRO(COPY_BUFFER, "ID3D12GraphicsCommandList::CopyBufferRegion")                    \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(CLEAR_RTV, "ID3D12GraphicsCommandList::ClearRenderTargetView")                 \
+  D3D12_CHUNK_MACRO(CLEAR_DSV, "ID3D12GraphicsCommandList::ClearDepthStencilView")                 \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(SET_TOPOLOGY, "ID3D12GraphicsCommandList::IASetPrimitiveTopology")             \
+  D3D12_CHUNK_MACRO(SET_IBUFFER, "ID3D12GraphicsCommandList::IASetIndexBuffer")                    \
+  D3D12_CHUNK_MACRO(SET_VBUFFERS, "ID3D12GraphicsCommandList::IASetVertexBuffers")                 \
+  D3D12_CHUNK_MACRO(SET_VIEWPORTS, "ID3D12GraphicsCommandList::RSSetViewports")                    \
+  D3D12_CHUNK_MACRO(SET_SCISSORS, "ID3D12GraphicsCommandList::RSSetScissors")                      \
+  D3D12_CHUNK_MACRO(SET_PIPE, "ID3D12GraphicsCommandList::SetPipelineState")                       \
+  D3D12_CHUNK_MACRO(SET_DESC_HEAPS, "ID3D12GraphicsCommandList::SetDescriptorHeaps")               \
+  D3D12_CHUNK_MACRO(SET_RTVS, "ID3D12GraphicsCommandList::OMSetRenderTargets")                     \
+  D3D12_CHUNK_MACRO(SET_GFX_ROOT_TABLE,                                                            \
+                    "ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable")                   \
+  D3D12_CHUNK_MACRO(SET_GFX_ROOT_SIG, "ID3D12GraphicsCommandList::SetGraphicsRootSignature")       \
+  D3D12_CHUNK_MACRO(SET_GFX_ROOT_CONST, "ID3D12GraphicsCommandList::SetGraphicsRoot32BitConstant") \
+  D3D12_CHUNK_MACRO(SET_GFX_ROOT_CBV,                                                              \
+                    "ID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView")                \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(EXECUTE_CMD_LISTS, "ID3D12GraphicsCommandQueue::ExecuteCommandLists")          \
+  D3D12_CHUNK_MACRO(SIGNAL, "ID3D12GraphicsCommandQueue::Signal")                                  \
+                                                                                                   \
   D3D12_CHUNK_MACRO(NUM_D3D12_CHUNKS, "")
 
 enum D3D12ChunkType

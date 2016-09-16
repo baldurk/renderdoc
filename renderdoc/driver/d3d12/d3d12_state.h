@@ -58,17 +58,19 @@ struct D3D12RenderState
   {
     SignatureElement() : type(eRootUnknown), offset(0) {}
     SignatureElement(SignatureElementType t, ResourceId i, UINT64 o) : type(t), id(i), offset(o) {}
-    SignatureElement(UINT val) : type(eRootConst), offset(0) { constants.push_back(val); }
-    SignatureElement(UINT numVals, const void *vals, UINT destIdx)
+    SignatureElement(UINT offs, UINT val) : type(eRootConst), offset(offs)
     {
+      constants.push_back(val);
+    }
+    SignatureElement(UINT offs, UINT numVals, const void *vals, UINT destIdx)
+    {
+      type = eRootConst;
+      offset = offs;
       SetValues(numVals, vals, destIdx);
     }
 
     void SetValues(UINT numVals, const void *vals, UINT destIdx)
     {
-      type = eRootConst;
-      offset = 0;
-
       if(constants.size() < destIdx + numVals)
         constants.resize(destIdx + numVals);
 
@@ -80,9 +82,10 @@ struct D3D12RenderState
       if(type == eRootConst)
       {
         if(constants.size() == 1)
-          cmd->SetGraphicsRoot32BitConstant(slot, constants[0], 0);
+          cmd->SetGraphicsRoot32BitConstant(slot, constants[0], (UINT)offset);
         else
-          cmd->SetGraphicsRoot32BitConstants(slot, (UINT)constants.size(), &constants[0], 0);
+          cmd->SetGraphicsRoot32BitConstants(slot, (UINT)constants.size(), &constants[0],
+                                             (UINT)offset);
       }
       else if(type == eRootTable)
       {

@@ -295,6 +295,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
     case SET_GFX_ROOT_TABLE:
       m_ReplayList->Serialise_SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE());
       break;
+    case SET_GFX_ROOT_CONST: m_ReplayList->Serialise_SetGraphicsRoot32BitConstant(0, 0, 0); break;
     case SET_GFX_ROOT_CBV:
       m_ReplayList->Serialise_SetGraphicsRootConstantBufferView(0, D3D12_GPU_VIRTUAL_ADDRESS());
       break;

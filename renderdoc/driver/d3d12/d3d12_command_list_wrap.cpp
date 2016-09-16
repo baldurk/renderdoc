@@ -1141,12 +1141,50 @@ void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstant(UINT RootPara
   m_pReal->SetComputeRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues);
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstant(
+    UINT RootParameterIndex, UINT SrcData, UINT DestOffsetIn32BitValues)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(UINT, idx, RootParameterIndex);
+  SERIALISE_ELEMENT(UINT, val, SrcData);
+  SERIALISE_ELEMENT(UINT, offs, DestOffsetIn32BitValues);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->SetGraphicsRoot32BitConstant(idx, val, offs);
+
+      if(m_Cmd->m_RenderState.graphics.sigelems.size() < idx + 1)
+        m_Cmd->m_RenderState.graphics.sigelems.resize(idx + 1);
+
+      m_Cmd->m_RenderState.graphics.sigelems[idx] = D3D12RenderState::SignatureElement(offs, val);
+    }
+  }
+  else if(m_State == READING)
+  {
+    GetList(CommandList)->SetGraphicsRoot32BitConstant(idx, val, offs);
+  }
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstant(UINT RootParameterIndex,
                                                                     UINT SrcData,
                                                                     UINT DestOffsetIn32BitValues)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SetGraphicsRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SET_GFX_ROOT_CONST);
+    Serialise_SetGraphicsRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues);
+
+    m_ListRecord->AddChunk(scope.Get());
+  }
 }
 
 void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstants(UINT RootParameterIndex,
