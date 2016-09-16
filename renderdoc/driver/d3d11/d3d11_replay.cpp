@@ -1853,7 +1853,7 @@ ResourceId D3D11Replay::CreateProxyBuffer(const FetchBuffer &templateBuf)
     D3D11_BUFFER_DESC desc;
 
     // D3D11_BIND_CONSTANT_BUFFER size must be 16-byte aligned.
-    desc.ByteWidth = AlignUp((UINT)templateBuf.length, 16u);
+    desc.ByteWidth = AlignUp16((UINT)templateBuf.length);
     desc.CPUAccessFlags = 0;
     desc.MiscFlags = 0;
     desc.Usage = D3D11_USAGE_DEFAULT;
@@ -1914,7 +1914,7 @@ void D3D11Replay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSi
     D3D11_BUFFER_DESC desc;
     buf->GetDesc(&desc);
 
-    if(dataSize < desc.ByteWidth)
+    if(AlignUp16(dataSize) < desc.ByteWidth)
     {
       RDCERR("Insufficient data provided to SetProxyBufferData");
       return;
