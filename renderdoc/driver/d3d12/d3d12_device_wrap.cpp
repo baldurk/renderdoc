@@ -1049,12 +1049,93 @@ HRESULT WrappedID3D12Device::CreateQueryHeap(const D3D12_QUERY_HEAP_DESC *pDesc,
   return ret;
 }
 
+bool WrappedID3D12Device::Serialise_CreateCommandSignature(const D3D12_COMMAND_SIGNATURE_DESC *pDesc,
+                                                           ID3D12RootSignature *pRootSignature,
+                                                           REFIID riid, void **ppvCommandSignature)
+{
+  SERIALISE_ELEMENT(D3D12_COMMAND_SIGNATURE_DESC, desc, *pDesc);
+  SERIALISE_ELEMENT(ResourceId, RootSig, GetResID(pRootSignature));
+  SERIALISE_ELEMENT(IID, guid, riid);
+  SERIALISE_ELEMENT(ResourceId, CommandSig,
+                    ((WrappedID3D12CommandSignature *)*ppvCommandSignature)->GetResourceID());
+
+  if(m_State == READING)
+  {
+    pRootSignature = NULL;
+    if(RootSig != ResourceId())
+      pRootSignature = GetResourceManager()->GetLiveAs<ID3D12RootSignature>(RootSig);
+
+    ID3D12CommandSignature *ret = NULL;
+    HRESULT hr = m_pDevice->CreateCommandSignature(&desc, pRootSignature, guid, (void **)&ret);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
+    }
+    else
+    {
+      ret = new WrappedID3D12CommandSignature(ret, this);
+
+      GetResourceManager()->AddLiveResource(CommandSig, ret);
+    }
+  }
+
+  return true;
+}
+
 HRESULT WrappedID3D12Device::CreateCommandSignature(const D3D12_COMMAND_SIGNATURE_DESC *pDesc,
                                                     ID3D12RootSignature *pRootSignature,
                                                     REFIID riid, void **ppvCommandSignature)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
-  return m_pDevice->CreateCommandSignature(pDesc, Unwrap(pRootSignature), riid, ppvCommandSignature);
+  if(ppvCommandSignature == NULL)
+    return m_pDevice->CreateCommandSignature(pDesc, Unwrap(pRootSignature), riid, NULL);
+
+  if(riid != __uuidof(ID3D12CommandSignature))
+    return E_NOINTERFACE;
+
+  ID3D12CommandSignature *real = NULL;
+  HRESULT ret =
+      m_pDevice->CreateCommandSignature(pDesc, Unwrap(pRootSignature), riid, (void **)&real);
+
+  if(SUCCEEDED(ret))
+  {
+    SCOPED_LOCK(m_D3DLock);
+
+    if(GetResourceManager()->HasWrapper(real))
+    {
+      real->Release();
+      ID3D12CommandSignature *existing =
+          (ID3D12CommandSignature *)GetResourceManager()->GetWrapper(real);
+      existing->AddRef();
+      *ppvCommandSignature = existing;
+      return ret;
+    }
+
+    WrappedID3D12CommandSignature *wrapped = new WrappedID3D12CommandSignature(real, this);
+
+    if(m_State >= WRITING)
+    {
+      SCOPED_SERIALISE_CONTEXT(CREATE_COMMAND_SIG);
+      Serialise_CreateCommandSignature(pDesc, pRootSignature, riid, (void **)&wrapped);
+
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_CommandSignature;
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      if(pRootSignature)
+        record->AddParent(GetRecord(pRootSignature));
+      record->AddChunk(scope.Get());
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+    }
+
+    *ppvCommandSignature = (ID3D12CommandSignature *)wrapped;
+  }
+
+  return ret;
 }
 
 HRESULT WrappedID3D12Device::CreateSharedHandle(ID3D12DeviceChild *pObject,

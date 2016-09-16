@@ -483,6 +483,60 @@ void Serialiser::Deserialise(const D3D12_INPUT_LAYOUT_DESC *const el) const
 }
 
 template <>
+void Serialiser::Serialise(const char *name, D3D12_INDIRECT_ARGUMENT_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_INDIRECT_ARGUMENT_DESC", 0, true);
+
+  Serialise("Type", el.Type);
+
+  switch(el.Type)
+  {
+    case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
+    case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED:
+    case D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH:
+    case D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW:
+      // nothing to serialise
+      break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
+      Serialise("VertexBuffer.Slot", el.VertexBuffer.Slot);
+      break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT:
+      Serialise("Constant.RootParameterIndex", el.Constant.RootParameterIndex);
+      Serialise("Constant.DestOffsetIn32BitValues", el.Constant.DestOffsetIn32BitValues);
+      Serialise("Constant.Num32BitValuesToSet", el.Constant.Num32BitValuesToSet);
+      break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW:
+      Serialise("ConstantBufferView.RootParameterIndex", el.ConstantBufferView.RootParameterIndex);
+      break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW:
+      Serialise("ShaderResourceView.RootParameterIndex", el.ShaderResourceView.RootParameterIndex);
+      break;
+    case D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW:
+      Serialise("UnorderedAccessView.RootParameterIndex", el.UnorderedAccessView.RootParameterIndex);
+      break;
+    default: RDCERR("Unexpected indirect argument type: %u", el.Type); break;
+  }
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_COMMAND_SIGNATURE_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_COMMAND_SIGNATURE_DESC", 0, true);
+
+  Serialise("ByteStride", el.ByteStride);
+  Serialise("NodeMask", el.NodeMask);
+  SerialiseComplexArray("pArgumentDescs", (D3D12_INDIRECT_ARGUMENT_DESC *&)el.pArgumentDescs,
+                        el.NumArgumentDescs);
+}
+
+template <>
+void Serialiser::Deserialise(const D3D12_COMMAND_SIGNATURE_DESC *const el) const
+{
+  if(m_Mode == READING)
+    delete[] el->pArgumentDescs;
+}
+
+template <>
 void Serialiser::Serialise(const char *name, D3D12_GRAPHICS_PIPELINE_STATE_DESC &el)
 {
   ScopedContext scope(this, name, "D3D12_GRAPHICS_PIPELINE_STATE_DESC", 0, true);
@@ -1427,6 +1481,25 @@ string ToStrHelper<false, D3D12_PRIMITIVE_TOPOLOGY_TYPE>::Get(const D3D12_PRIMIT
   }
 
   return StringFormat::Fmt("D3D12_PRIMITIVE_TOPOLOGY_TYPE<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_INDIRECT_ARGUMENT_TYPE>::Get(const D3D12_INDIRECT_ARGUMENT_TYPE &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_DRAW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_INDEX_BUFFER_VIEW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_CONSTANT_BUFFER_VIEW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_SHADER_RESOURCE_VIEW)
+    TOSTR_CASE_STRINGIZE(D3D12_INDIRECT_ARGUMENT_TYPE_UNORDERED_ACCESS_VIEW)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_INDIRECT_ARGUMENT_TYPE<%d>", el);
 }
 
 string ToStrHelper<false, D3D12_COMMAND_LIST_TYPE>::Get(const D3D12_COMMAND_LIST_TYPE &el)

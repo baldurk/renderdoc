@@ -1604,6 +1604,7 @@ void WrappedID3D12Device::ProcessChunk(uint64_t offset, D3D12ChunkType context)
     case CREATE_COMPUTE_PIPE: Serialise_CreateComputePipelineState(NULL, IID(), NULL); break;
     case CREATE_DESCRIPTOR_HEAP: Serialise_CreateDescriptorHeap(NULL, IID(), NULL); break;
     case CREATE_ROOT_SIG: Serialise_CreateRootSignature(0, NULL, 0, IID(), NULL); break;
+    case CREATE_COMMAND_SIG: Serialise_CreateCommandSignature(NULL, NULL, IID(), NULL); break;
 
     case CREATE_HEAP: Serialise_CreateHeap(NULL, IID(), NULL); break;
     case CREATE_COMMITTED_RESOURCE:
