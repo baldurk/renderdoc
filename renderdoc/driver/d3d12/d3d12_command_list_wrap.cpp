@@ -795,17 +795,28 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(UINT NumBarrier
   if(m_State < WRITING)
     m_Cmd->m_LastCmdListID = CommandList;
 
+  vector<D3D12_RESOURCE_BARRIER> filtered;
   if(m_State <= READING)
   {
-    // TODO filter out any barriers for NULL resources
-    GetList(CommandList)->ResourceBarrier(num, barriers);
+    filtered.reserve(num);
+
+    // non-transition barriers allow NULLs, but for transition barriers filter out any that
+    // reference the NULL resource - this means the resource wasn't used elsewhere so was discarded
+    // from the capture
+    for(UINT i = 0; i < num; i++)
+      if(barriers[i].Type != D3D12_RESOURCE_BARRIER_TYPE_TRANSITION ||
+         barriers[i].Transition.pResource)
+        filtered.push_back(barriers[i]);
   }
+
   if(m_State == EXECUTING)
   {
     if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
     {
       ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
-      Unwrap(list)->ResourceBarrier(num, barriers);
+
+      if(!filtered.empty())
+        Unwrap(list)->ResourceBarrier((UINT)filtered.size(), &filtered[0]);
 
       ResourceId cmd = GetResID(list);
 
@@ -845,7 +856,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(UINT NumBarrier
   {
     ID3D12GraphicsCommandList *list = GetList(CommandList);
 
-    list->ResourceBarrier(num, barriers);
+    if(!filtered.empty())
+      list->ResourceBarrier((UINT)filtered.size(), &filtered[0]);
 
     ResourceId cmd = GetResID(list);
 
