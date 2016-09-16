@@ -92,7 +92,7 @@ void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_DEPTH_STENCIL_
 static D3D12_SHADER_RESOURCE_VIEW_DESC *defaultSRV()
 {
   static D3D12_SHADER_RESOURCE_VIEW_DESC ret = {};
-  ret.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  ret.Format = DXGI_FORMAT_R8_UNORM;
   ret.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
   ret.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
   ret.Texture2D.MipLevels = 1;
@@ -102,7 +102,7 @@ static D3D12_SHADER_RESOURCE_VIEW_DESC *defaultSRV()
 static D3D12_RENDER_TARGET_VIEW_DESC *defaultRTV()
 {
   static D3D12_RENDER_TARGET_VIEW_DESC ret = {};
-  ret.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  ret.Format = DXGI_FORMAT_R8_UNORM;
   ret.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
   return &ret;
 }
@@ -110,7 +110,7 @@ static D3D12_RENDER_TARGET_VIEW_DESC *defaultRTV()
 static D3D12_DEPTH_STENCIL_VIEW_DESC *defaultDSV()
 {
   static D3D12_DEPTH_STENCIL_VIEW_DESC ret = {};
-  ret.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  ret.Format = DXGI_FORMAT_D16_UNORM;
   ret.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
   return &ret;
 }
@@ -118,12 +118,13 @@ static D3D12_DEPTH_STENCIL_VIEW_DESC *defaultDSV()
 static D3D12_UNORDERED_ACCESS_VIEW_DESC *defaultUAV()
 {
   static D3D12_UNORDERED_ACCESS_VIEW_DESC ret = {};
-  ret.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  ret.Format = DXGI_FORMAT_R8_UNORM;
   ret.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
   return &ret;
 }
 
-void D3D12Descriptor::Create(WrappedID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12Device *dev,
+                             D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
   D3D12Descriptor::DescriptorType type = GetType();
 
@@ -218,9 +219,16 @@ void D3D12Descriptor::Create(WrappedID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HAND
     case D3D12Descriptor::TypeUndefined:
     {
       // initially descriptors are undefined. This way we just init with
-      // a null SRV descriptor so it's valid to copy around etc but is no
+      // a null descriptor so it's valid to copy around etc but is no
       // less undefined for the application to use
-      dev->CreateShaderResourceView(NULL, defaultSRV(), handle);
+
+      if(heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+        dev->CreateShaderResourceView(NULL, defaultSRV(), handle);
+      else if(heapType == D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
+        dev->CreateDepthStencilView(NULL, defaultDSV(), handle);
+      else if(heapType == D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
+        dev->CreateRenderTargetView(NULL, defaultRTV(), handle);
+
       break;
     }
   }
@@ -693,7 +701,7 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
 
       for(uint32_t i = 0; i < numElems; i++)
       {
-        descs[i].Create(m_Device, handle);
+        descs[i].Create(desc.Type, m_Device, handle);
 
         handle.ptr += increment;
       }
