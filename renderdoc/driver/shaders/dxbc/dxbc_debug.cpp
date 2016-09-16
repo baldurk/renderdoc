@@ -3950,7 +3950,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       else if(op.operation == OPCODE_SAMPLE_L)
       {
         // lod selection
-        StringFormat::snprintf(buf, 255, "%f", srcOpers[1].value.f.x);
+        StringFormat::snprintf(buf, 255, "%f", srcOpers[3].value.f.x);
 
         sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
         sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
@@ -4051,7 +4051,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       else if(op.operation == OPCODE_GATHER4_C || op.operation == OPCODE_GATHER4_PO_C)
       {
         // comparison value
-        StringFormat::snprintf(buf, 255, ", %f", srcOpers[3].value.f.x);
+        if(op.operation == OPCODE_GATHER4_C)
+          StringFormat::snprintf(buf, 255, ", %f", srcOpers[3].value.f.x);
+        else if(op.operation == OPCODE_GATHER4_PO_C)
+          StringFormat::snprintf(buf, 255, ", %f", srcOpers[4].value.f.x);
 
         sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
         sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
