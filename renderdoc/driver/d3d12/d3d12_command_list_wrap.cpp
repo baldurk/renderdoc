@@ -1778,7 +1778,7 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewUint(
     ID3D12Resource *pResource, const UINT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
   D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
-  m_pReal->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap), ViewCPUHandle,
+  m_pReal->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap), Unwrap(ViewCPUHandle),
                                         Unwrap(pResource), Values, NumRects, pRects);
 }
 
@@ -1787,7 +1787,7 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat(
     ID3D12Resource *pResource, const FLOAT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
   D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
-  m_pReal->ClearUnorderedAccessViewFloat(Unwrap(ViewGPUHandleInCurrentHeap), ViewCPUHandle,
+  m_pReal->ClearUnorderedAccessViewFloat(Unwrap(ViewGPUHandleInCurrentHeap), Unwrap(ViewCPUHandle),
                                          Unwrap(pResource), Values, NumRects, pRects);
 }
 
