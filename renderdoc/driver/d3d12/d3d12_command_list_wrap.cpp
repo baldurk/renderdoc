@@ -889,11 +889,20 @@ void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
   for(UINT i = 0; i < NumBarriers; i++)
   {
     barriers[i] = pBarriers[i];
-    barriers[i].Transition.pResource = Unwrap(barriers[i].Transition.pResource);
 
-    // hack while not all resources are wrapped
-    if(barriers[i].Transition.pResource == NULL)
-      barriers[i].Transition.pResource = pBarriers[i].Transition.pResource;
+    if(barriers[i].Type == D3D12_RESOURCE_BARRIER_TYPE_TRANSITION)
+    {
+      barriers[i].Transition.pResource = Unwrap(barriers[i].Transition.pResource);
+    }
+    else if(barriers[i].Type == D3D12_RESOURCE_BARRIER_TYPE_ALIASING)
+    {
+      barriers[i].Aliasing.pResourceBefore = Unwrap(barriers[i].Aliasing.pResourceBefore);
+      barriers[i].Aliasing.pResourceAfter = Unwrap(barriers[i].Aliasing.pResourceAfter);
+    }
+    else if(barriers[i].Type == D3D12_RESOURCE_BARRIER_TYPE_UAV)
+    {
+      barriers[i].UAV.pResource = Unwrap(barriers[i].UAV.pResource);
+    }
   }
 
   m_pReal->ResourceBarrier(NumBarriers, barriers);
