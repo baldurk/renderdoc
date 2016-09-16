@@ -1164,12 +1164,12 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
             float xf = float(x) / float(thwidth);
             float yf = float(y) / float(thheight);
 
-            byte *src = &data[stride * uint32_t(xf * widthf) +
-                              layout.Footprint.RowPitch * uint32_t(yf * heightf)];
+            byte *srcPixels = &data[stride * uint32_t(xf * widthf) +
+                                    layout.Footprint.RowPitch * uint32_t(yf * heightf)];
 
             if(buf1010102)
             {
-              uint32_t *src1010102 = (uint32_t *)src;
+              uint32_t *src1010102 = (uint32_t *)srcPixels;
               Vec4f unorm = ConvertFromR10G10B10A2(*src1010102);
               dstPixels[0] = (byte)(unorm.x * 255.0f);
               dstPixels[1] = (byte)(unorm.y * 255.0f);
@@ -1177,13 +1177,13 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
             }
             else if(bufBGRA)
             {
-              dstPixels[0] = src[2];
-              dstPixels[1] = src[1];
-              dstPixels[2] = src[0];
+              dstPixels[0] = srcPixels[2];
+              dstPixels[1] = srcPixels[1];
+              dstPixels[2] = srcPixels[0];
             }
             else if(fmt.compByteWidth == 2)    // R16G16B16A16 backbuffer
             {
-              uint16_t *src16 = (uint16_t *)src;
+              uint16_t *src16 = (uint16_t *)srcPixels;
 
               float linearR = RDCCLAMP(ConvertFromHalf(src16[0]), 0.0f, 1.0f);
               float linearG = RDCCLAMP(ConvertFromHalf(src16[1]), 0.0f, 1.0f);
@@ -1206,9 +1206,9 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
             }
             else
             {
-              dstPixels[0] = src[0];
-              dstPixels[1] = src[1];
-              dstPixels[2] = src[2];
+              dstPixels[0] = srcPixels[0];
+              dstPixels[1] = srcPixels[1];
+              dstPixels[2] = srcPixels[2];
             }
 
             dstPixels += 3;
