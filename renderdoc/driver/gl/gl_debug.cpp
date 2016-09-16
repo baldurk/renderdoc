@@ -1627,7 +1627,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
   ubo->MipLevel = (int)cfg.mip;
   if(texDetails.curType != eGL_TEXTURE_3D)
-    ubo->Slice = (float)cfg.sliceFace;
+    ubo->Slice = (float)cfg.sliceFace + 0.001f;
   else
     ubo->Slice = (float)(cfg.sliceFace >> cfg.mip);
 

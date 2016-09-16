@@ -3404,7 +3404,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
   if(details.texType == eTexType_3D)
   {
     pixelData.OutputDisplayFormat = RESTYPE_TEX3D;
-    pixelData.Slice = float(cfg.sliceFace) / float(details.texDepth);
+    pixelData.Slice = (float(cfg.sliceFace) / float(details.texDepth)) + 0.001f;
   }
   else if(details.texType == eTexType_1D)
   {

@@ -1223,7 +1223,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   data->MipLevel = (int)cfg.mip;
   data->Slice = 0;
   if(iminfo.type != VK_IMAGE_TYPE_3D)
-    data->Slice = (float)cfg.sliceFace;
+    data->Slice = (float)cfg.sliceFace + 0.001f;
   else
     data->Slice = (float)(cfg.sliceFace >> cfg.mip);
 
