@@ -214,6 +214,8 @@ private:
 
           RDCDEBUG("Enabling debug layer");
 
+// enable this to get GPU-based validation, where available, whenever we enable API validation
+#if 0
           ID3D12Debug1 *debug1 = NULL;
           hr = debug->QueryInterface(__uuidof(ID3D12Debug1), (void **)&debug1);
 
@@ -227,6 +229,7 @@ private:
           {
             RDCDEBUG("GPU-based validation not available");
           }
+#endif
         }
         else
         {
