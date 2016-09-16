@@ -2447,7 +2447,11 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
   {
     // All access mask/barrier messages.
     // These are just too spammy/false positive/unreliable to keep
-    if(isDS && messageCode == 12)
+    if(isDS && messageCode == 10)
+      return false;
+
+    // Ignore shader checker layer entirely
+    if(isSC)
       return false;
 
     // Memory is aliased between image and buffer
