@@ -461,6 +461,8 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       heapProps.CreationNodeMask = 1;
       heapProps.VisibleNodeMask = 1;
 
+      desc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
       ID3D12Resource *copyDst = NULL;
       HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
           &heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
