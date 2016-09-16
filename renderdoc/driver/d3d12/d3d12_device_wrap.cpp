@@ -725,6 +725,7 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
 
 HRESULT WrappedID3D12Device::CreateHeap(const D3D12_HEAP_DESC *pDesc, REFIID riid, void **ppvHeap)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   return m_pDevice->CreateHeap(pDesc, riid, ppvHeap);
 }
 
@@ -734,6 +735,7 @@ HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 Heap
                                                   const D3D12_CLEAR_VALUE *pOptimizedClearValue,
                                                   REFIID riid, void **ppvResource)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   return m_pDevice->CreatePlacedResource(Unwrap(pHeap), HeapOffset, pDesc, InitialState,
                                          pOptimizedClearValue, riid, ppvResource);
 }
@@ -743,6 +745,7 @@ HRESULT WrappedID3D12Device::CreateReservedResource(const D3D12_RESOURCE_DESC *p
                                                     const D3D12_CLEAR_VALUE *pOptimizedClearValue,
                                                     REFIID riid, void **ppvResource)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   return m_pDevice->CreateReservedResource(pDesc, InitialState, pOptimizedClearValue, riid,
                                            ppvResource);
 }
@@ -819,6 +822,7 @@ HRESULT WrappedID3D12Device::CreateFence(UINT64 InitialValue, D3D12_FENCE_FLAGS 
 HRESULT WrappedID3D12Device::CreateQueryHeap(const D3D12_QUERY_HEAP_DESC *pDesc, REFIID riid,
                                              void **ppvHeap)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   return m_pDevice->CreateQueryHeap(pDesc, riid, ppvHeap);
 }
 
@@ -826,6 +830,7 @@ HRESULT WrappedID3D12Device::CreateCommandSignature(const D3D12_COMMAND_SIGNATUR
                                                     ID3D12RootSignature *pRootSignature,
                                                     REFIID riid, void **ppvCommandSignature)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   return m_pDevice->CreateCommandSignature(pDesc, Unwrap(pRootSignature), riid, ppvCommandSignature);
 }
 
@@ -833,6 +838,7 @@ HRESULT WrappedID3D12Device::CreateSharedHandle(ID3D12DeviceChild *pObject,
                                                 const SECURITY_ATTRIBUTES *pAttributes,
                                                 DWORD Access, LPCWSTR Name, HANDLE *pHandle)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   return m_pDevice->CreateSharedHandle(Unwrap(pObject), pAttributes, Access, Name, pHandle);
 }
 
@@ -910,11 +916,13 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
 
 HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void **ppvObj)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   return m_pDevice->OpenSharedHandle(NTHandle, riid, ppvObj);
 }
 
 HRESULT WrappedID3D12Device::OpenSharedHandleByName(LPCWSTR Name, DWORD Access, HANDLE *pNTHandle)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   return m_pDevice->OpenSharedHandleByName(Name, Access, pNTHandle);
 }
 
@@ -969,9 +977,10 @@ void WrappedID3D12Device::GetResourceTiling(
     UINT *pNumSubresourceTilings, UINT FirstSubresourceTilingToGet,
     D3D12_SUBRESOURCE_TILING *pSubresourceTilingsForNonPackedMips)
 {
-  return m_pDevice->GetResourceTiling(
-      pTiledResource, pNumTilesForEntireResource, pPackedMipDesc, pStandardTileShapeForNonPackedMips,
-      pNumSubresourceTilings, FirstSubresourceTilingToGet, pSubresourceTilingsForNonPackedMips);
+  return m_pDevice->GetResourceTiling(Unwrap(pTiledResource), pNumTilesForEntireResource,
+                                      pPackedMipDesc, pStandardTileShapeForNonPackedMips,
+                                      pNumSubresourceTilings, FirstSubresourceTilingToGet,
+                                      pSubresourceTilingsForNonPackedMips);
 }
 
 HRESULT WrappedID3D12Device::SetStablePowerState(BOOL Enable)

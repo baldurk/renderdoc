@@ -462,6 +462,7 @@ void WrappedID3D12GraphicsCommandList::DrawIndexedInstanced(UINT IndexCountPerIn
 void WrappedID3D12GraphicsCommandList::Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY,
                                                 UINT ThreadGroupCountZ)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
 }
 
@@ -562,12 +563,15 @@ void WrappedID3D12GraphicsCommandList::CopyTextureRegion(const D3D12_TEXTURE_COP
   D3D12_TEXTURE_COPY_LOCATION src = *pSrc;
   src.pResource = Unwrap(src.pResource);
 
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
+
   m_pReal->CopyTextureRegion(&dst, DstX, DstY, DstZ, &src, pSrcBox);
 }
 
 void WrappedID3D12GraphicsCommandList::CopyResource(ID3D12Resource *pDstResource,
                                                     ID3D12Resource *pSrcResource)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
 }
 
@@ -576,6 +580,7 @@ void WrappedID3D12GraphicsCommandList::CopyTiles(
     const D3D12_TILE_REGION_SIZE *pTileRegionSize, ID3D12Resource *pBuffer,
     UINT64 BufferStartOffsetInBytes, D3D12_TILE_COPY_FLAGS Flags)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->CopyTiles(Unwrap(pTiledResource), pTileRegionStartCoordinate, pTileRegionSize,
                      Unwrap(pBuffer), BufferStartOffsetInBytes, Flags);
 }
@@ -585,6 +590,7 @@ void WrappedID3D12GraphicsCommandList::ResolveSubresource(ID3D12Resource *pDstRe
                                                           ID3D12Resource *pSrcResource,
                                                           UINT SrcSubresource, DXGI_FORMAT Format)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->ResolveSubresource(Unwrap(pDstResource), DstSubresource, Unwrap(pSrcResource),
                               SrcSubresource, Format);
 }
@@ -725,11 +731,13 @@ void WrappedID3D12GraphicsCommandList::RSSetScissorRects(UINT NumRects, const D3
 
 void WrappedID3D12GraphicsCommandList::OMSetBlendFactor(const FLOAT BlendFactor[4])
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->OMSetBlendFactor(BlendFactor);
 }
 
 void WrappedID3D12GraphicsCommandList::OMSetStencilRef(UINT StencilRef)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->OMSetStencilRef(StencilRef);
 }
 
@@ -906,6 +914,7 @@ void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
 
 void WrappedID3D12GraphicsCommandList::ExecuteBundle(ID3D12GraphicsCommandList *pCommandList)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->ExecuteBundle(Unwrap(pCommandList));
 }
 
@@ -981,6 +990,7 @@ void WrappedID3D12GraphicsCommandList::SetDescriptorHeaps(UINT NumDescriptorHeap
 
 void WrappedID3D12GraphicsCommandList::SetComputeRootSignature(ID3D12RootSignature *pRootSignature)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SetComputeRootSignature(Unwrap(pRootSignature));
 }
 
@@ -1033,6 +1043,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootSignature(ID3D12RootSignat
 void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
     UINT RootParameterIndex, D3D12_GPU_DESCRIPTOR_HANDLE BaseDescriptor)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SetComputeRootDescriptorTable(RootParameterIndex, Unwrap(BaseDescriptor));
 }
 
@@ -1126,6 +1137,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstant(UINT RootPara
                                                                    UINT SrcData,
                                                                    UINT DestOffsetIn32BitValues)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SetComputeRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues);
 }
 
@@ -1133,6 +1145,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstant(UINT RootPar
                                                                     UINT SrcData,
                                                                     UINT DestOffsetIn32BitValues)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SetGraphicsRoot32BitConstant(RootParameterIndex, SrcData, DestOffsetIn32BitValues);
 }
 
@@ -1141,6 +1154,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRoot32BitConstants(UINT RootPar
                                                                     const void *pSrcData,
                                                                     UINT DestOffsetIn32BitValues)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SetComputeRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData,
                                         DestOffsetIn32BitValues);
 }
@@ -1150,6 +1164,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstants(UINT RootPa
                                                                      const void *pSrcData,
                                                                      UINT DestOffsetIn32BitValues)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SetGraphicsRoot32BitConstants(RootParameterIndex, Num32BitValuesToSet, pSrcData,
                                          DestOffsetIn32BitValues);
 }
@@ -1157,6 +1172,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRoot32BitConstants(UINT RootPa
 void WrappedID3D12GraphicsCommandList::SetComputeRootConstantBufferView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SetComputeRootConstantBufferView(RootParameterIndex, BufferLocation);
 }
 
@@ -1226,24 +1242,28 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView(
 void WrappedID3D12GraphicsCommandList::SetComputeRootShaderResourceView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SetComputeRootShaderResourceView(RootParameterIndex, BufferLocation);
 }
 
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootShaderResourceView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SetGraphicsRootShaderResourceView(RootParameterIndex, BufferLocation);
 }
 
 void WrappedID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SetComputeRootUnorderedAccessView(RootParameterIndex, BufferLocation);
 }
 
 void WrappedID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView(
     UINT RootParameterIndex, D3D12_GPU_VIRTUAL_ADDRESS BufferLocation)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SetGraphicsRootUnorderedAccessView(RootParameterIndex, BufferLocation);
 }
 
@@ -1380,6 +1400,7 @@ void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT N
 void WrappedID3D12GraphicsCommandList::SOSetTargets(UINT StartSlot, UINT NumViews,
                                                     const D3D12_STREAM_OUTPUT_BUFFER_VIEW *pViews)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SOSetTargets(StartSlot, NumViews, pViews);
 }
 
@@ -1545,6 +1566,7 @@ void WrappedID3D12GraphicsCommandList::ClearDepthStencilView(
     D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView, D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth,
     UINT8 Stencil, UINT NumRects, const D3D12_RECT *pRects)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->ClearDepthStencilView(Unwrap(DepthStencilView), ClearFlags, Depth, Stencil, NumRects,
                                  pRects);
 }
@@ -1637,6 +1659,7 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewUint(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const UINT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap), ViewCPUHandle,
                                         Unwrap(pResource), Values, NumRects, pRects);
 }
@@ -1645,6 +1668,7 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const FLOAT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->ClearUnorderedAccessViewFloat(Unwrap(ViewGPUHandleInCurrentHeap), ViewCPUHandle,
                                          Unwrap(pResource), Values, NumRects, pRects);
 }
@@ -1652,18 +1676,21 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat(
 void WrappedID3D12GraphicsCommandList::DiscardResource(ID3D12Resource *pResource,
                                                        const D3D12_DISCARD_REGION *pRegion)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->DiscardResource(Unwrap(pResource), pRegion);
 }
 
 void WrappedID3D12GraphicsCommandList::BeginQuery(ID3D12QueryHeap *pQueryHeap,
                                                   D3D12_QUERY_TYPE Type, UINT Index)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->BeginQuery(Unwrap(pQueryHeap), Type, Index);
 }
 
 void WrappedID3D12GraphicsCommandList::EndQuery(ID3D12QueryHeap *pQueryHeap, D3D12_QUERY_TYPE Type,
                                                 UINT Index)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->EndQuery(Unwrap(pQueryHeap), Type, Index);
 }
 
@@ -1673,6 +1700,7 @@ void WrappedID3D12GraphicsCommandList::ResolveQueryData(ID3D12QueryHeap *pQueryH
                                                         ID3D12Resource *pDestinationBuffer,
                                                         UINT64 AlignedDestinationBufferOffset)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->ResolveQueryData(Unwrap(pQueryHeap), Type, StartIndex, NumQueries,
                             Unwrap(pDestinationBuffer), AlignedDestinationBufferOffset);
 }
@@ -1681,6 +1709,7 @@ void WrappedID3D12GraphicsCommandList::SetPredication(ID3D12Resource *pBuffer,
                                                       UINT64 AlignedBufferOffset,
                                                       D3D12_PREDICATION_OP Operation)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SetPredication(Unwrap(pBuffer), AlignedBufferOffset, Operation);
 }
 
@@ -1847,6 +1876,7 @@ void WrappedID3D12GraphicsCommandList::ExecuteIndirect(ID3D12CommandSignature *p
                                                        ID3D12Resource *pCountBuffer,
                                                        UINT64 CountBufferOffset)
 {
+  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->ExecuteIndirect(Unwrap(pCommandSignature), MaxCommandCount, Unwrap(pArgumentBuffer),
                            ArgumentBufferOffset, Unwrap(pCountBuffer), CountBufferOffset);
 }
