@@ -288,14 +288,14 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
 HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc,
                                                          REFIID riid, void **ppPipelineState)
 {
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC unwrappedDesc = *pDesc;
+  unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
+
   if(ppPipelineState == NULL)
-    return m_pDevice->CreateGraphicsPipelineState(pDesc, riid, NULL);
+    return m_pDevice->CreateGraphicsPipelineState(&unwrappedDesc, riid, NULL);
 
   if(riid != __uuidof(ID3D12PipelineState))
     return E_NOINTERFACE;
-
-  D3D12_GRAPHICS_PIPELINE_STATE_DESC unwrappedDesc = *pDesc;
-  unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
 
   ID3D12PipelineState *real = NULL;
   HRESULT ret = m_pDevice->CreateGraphicsPipelineState(&unwrappedDesc, riid, (void **)&real);
@@ -362,14 +362,17 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
 HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc,
                                                         REFIID riid, void **ppPipelineState)
 {
+  D3D12_COMPUTE_PIPELINE_STATE_DESC unwrappedDesc = *pDesc;
+  unwrappedDesc.pRootSignature = Unwrap(unwrappedDesc.pRootSignature);
+
   if(ppPipelineState == NULL)
-    return m_pDevice->CreateComputePipelineState(pDesc, riid, NULL);
+    return m_pDevice->CreateComputePipelineState(&unwrappedDesc, riid, NULL);
 
   if(riid != __uuidof(ID3D12PipelineState))
     return E_NOINTERFACE;
 
   ID3D12PipelineState *real = NULL;
-  HRESULT ret = m_pDevice->CreateComputePipelineState(pDesc, riid, (void **)&real);
+  HRESULT ret = m_pDevice->CreateComputePipelineState(&unwrappedDesc, riid, (void **)&real);
 
   if(SUCCEEDED(ret))
   {
