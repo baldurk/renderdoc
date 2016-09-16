@@ -59,11 +59,7 @@ void STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::SetMarker(LPCWSTR Name)
 HRESULT STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::QueryInterface(REFIID riid,
                                                                            void **ppvObject)
 {
-  // DEFINE_GUID(IID_ID3DUserDefinedAnnotation,0xb2daad8b,0x03d4,0x4dbf,0x95,0xeb,0x32,0xab,0x4b,0x63,0xd0,0xab);
-  static const GUID ID3D11UserDefinedAnnotation_uuid = {
-      0xb2daad8b, 0x03d4, 0x4dbf, {0x95, 0xeb, 0x32, 0xab, 0x4b, 0x63, 0xd0, 0xab}};
-
-  if(riid == ID3D11UserDefinedAnnotation_uuid)
+  if(riid == __uuidof(ID3DUserDefinedAnnotation))
   {
     *ppvObject = (void *)(ID3DUserDefinedAnnotation *)this;
     AddRef();
@@ -1572,11 +1568,6 @@ void WrappedID3D11DeviceContext::ClearMaps()
 
 HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid, void **ppvObject)
 {
-  // This doesn't seem to be in the headers yet. Will update when it appears.
-  // ID3D11Multithread UUID {0f0f0f0f-b0b0-c0c0-d0d0-e0e0e0e0e0e0}
-  static const GUID ID3D11Multithread_uuid = {
-      0x0f0f0f0f, 0xb0b0, 0xc0c0, {0xd0, 0xd0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0}};
-
   if(riid == __uuidof(IUnknown))
   {
     *ppvObject = (IUnknown *)(ID3D11DeviceContext *)this;
@@ -1637,7 +1628,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid
       return E_NOINTERFACE;
     }
   }
-  else if(riid == ID3D11Multithread_uuid)
+  else if(riid == __uuidof(ID3D11Multithread))
   {
     RDCWARN("ID3D11Multithread is not supported");
     return E_NOINTERFACE;
