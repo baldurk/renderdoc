@@ -304,12 +304,79 @@ void WrappedID3D12GraphicsCommandList::ClearState(ID3D12PipelineState *pPipeline
   m_pReal->ClearState(Unwrap(pPipelineState));
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(UINT VertexCountPerInstance,
+                                                               UINT InstanceCount,
+                                                               UINT StartVertexLocation,
+                                                               UINT StartInstanceLocation)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(UINT, vtxCount, VertexCountPerInstance);
+  SERIALISE_ELEMENT(UINT, instCount, InstanceCount);
+  SERIALISE_ELEMENT(UINT, startVtx, StartVertexLocation);
+  SERIALISE_ELEMENT(UINT, startInst, StartInstanceLocation);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  D3D12NOTIMP("Serialise_DebugMessages");
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+
+      uint32_t eventID = m_Cmd->HandlePreCallback(list);
+
+      Unwrap(list)->DrawInstanced(vtxCount, instCount, startVtx, startInst);
+
+      if(eventID && m_Cmd->m_DrawcallCallback->PostDraw(eventID, list))
+      {
+        Unwrap(list)->DrawInstanced(vtxCount, instCount, startVtx, startInst);
+        m_Cmd->m_DrawcallCallback->PostRedraw(eventID, list);
+      }
+    }
+  }
+  else if(m_State == READING)
+  {
+    GetList(CommandList)->DrawInstanced(vtxCount, instCount, startVtx, startInst);
+
+    const string desc = m_pSerialiser->GetDebugStr();
+
+    m_Cmd->AddEvent(DRAW_INST, desc);
+    string name = "DrawInstanced(" + ToStr::Get(vtxCount) + ", " + ToStr::Get(instCount) + ")";
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.numIndices = vtxCount;
+    draw.numInstances = instCount;
+    draw.indexOffset = 0;
+    draw.baseVertex = startVtx;
+    draw.instanceOffset = startInst;
+
+    draw.flags |= eDraw_Drawcall | eDraw_Instanced;
+
+    m_Cmd->AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::DrawInstanced(UINT VertexCountPerInstance,
                                                      UINT InstanceCount, UINT StartVertexLocation,
                                                      UINT StartInstanceLocation)
 {
   m_pReal->DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation,
                          StartInstanceLocation);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(DRAW_INST);
+    Serialise_DrawInstanced(VertexCountPerInstance, InstanceCount, StartVertexLocation,
+                            StartInstanceLocation);
+
+    m_ListRecord->AddChunk(scope.Get());
+  }
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT IndexCountPerInstance,
