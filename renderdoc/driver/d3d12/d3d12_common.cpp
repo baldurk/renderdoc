@@ -549,7 +549,11 @@ void Serialiser::Serialise(const char *name, D3D12_CONSTANT_BUFFER_VIEW_DESC &el
 
   if(m_Mode == READING)
   {
-    ID3D12Resource *res = rm->GetLiveAs<ID3D12Resource>(buffer);
+    ID3D12Resource *res = NULL;
+
+    if(buffer != ResourceId() && rm->HasLiveResource(buffer))
+      res = rm->GetLiveAs<ID3D12Resource>(buffer);
+
     if(res)
       el.BufferLocation = res->GetGPUVirtualAddress() + offs;
     else
