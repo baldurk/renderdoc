@@ -1684,19 +1684,160 @@ void WrappedID3D12GraphicsCommandList::SetPredication(ID3D12Resource *pBuffer,
   m_pReal->SetPredication(Unwrap(pBuffer), AlignedBufferOffset, Operation);
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(UINT Metadata, const void *pData, UINT Size)
+{
+  string markerText = "";
+
+  if(m_State >= WRITING && pData && Size)
+  {
+    static const UINT PIX_EVENT_UNICODE_VERSION = 0;
+    static const UINT PIX_EVENT_ANSI_VERSION = 1;
+
+    if(Metadata == PIX_EVENT_UNICODE_VERSION)
+    {
+      const wchar_t *w = (const wchar_t *)pData;
+      markerText = StringFormat::Wide2UTF8(std::wstring(w, w + Size));
+    }
+    else if(Metadata == PIX_EVENT_ANSI_VERSION)
+    {
+      const char *c = (const char *)pData;
+      markerText = string(c, c + Size);
+    }
+    else
+    {
+      RDCERR("Unexpected/unsupported Metadata value %u in SetMarker", Metadata);
+    }
+  }
+
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  m_pSerialiser->Serialise("MarkerText", markerText);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == READING)
+  {
+    FetchDrawcall draw;
+    draw.name = markerText;
+    draw.flags |= eDraw_SetMarker;
+
+    m_Cmd->AddDrawcall(draw, false);
+  }
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::SetMarker(UINT Metadata, const void *pData, UINT Size)
 {
   m_pReal->SetMarker(Metadata, pData, Size);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SET_MARKER);
+    Serialise_SetMarker(Metadata, pData, Size);
+
+    m_ListRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(UINT Metadata, const void *pData,
+                                                            UINT Size)
+{
+  string markerText = "";
+
+  if(m_State >= WRITING && pData && Size)
+  {
+    static const UINT PIX_EVENT_UNICODE_VERSION = 0;
+    static const UINT PIX_EVENT_ANSI_VERSION = 1;
+
+    if(Metadata == PIX_EVENT_UNICODE_VERSION)
+    {
+      const wchar_t *w = (const wchar_t *)pData;
+      markerText = StringFormat::Wide2UTF8(std::wstring(w, w + Size));
+    }
+    else if(Metadata == PIX_EVENT_ANSI_VERSION)
+    {
+      const char *c = (const char *)pData;
+      markerText = string(c, c + Size);
+    }
+    else
+    {
+      RDCERR("Unexpected/unsupported Metadata value %u in BeginEvent", Metadata);
+    }
+  }
+
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  m_pSerialiser->Serialise("MarkerText", markerText);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == READING)
+  {
+    FetchDrawcall draw;
+    draw.name = markerText;
+    draw.flags |= eDraw_PushMarker;
+
+    m_Cmd->AddDrawcall(draw, false);
+  }
+
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::BeginEvent(UINT Metadata, const void *pData, UINT Size)
 {
   m_pReal->BeginEvent(Metadata, pData, Size);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(BEGIN_EVENT);
+    Serialise_BeginEvent(Metadata, pData, Size);
+
+    m_ListRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent()
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == READING && !m_Cmd->m_BakedCmdListInfo[CommandList].curEvents.empty())
+  {
+    FetchDrawcall draw;
+    draw.name = "API Calls";
+    draw.flags = eDraw_SetMarker;
+
+    m_Cmd->AddDrawcall(draw, true);
+  }
+
+  if(m_State == READING)
+  {
+    // dummy draw that is consumed when this command buffer
+    // is being in-lined into the call stream
+    FetchDrawcall draw;
+    draw.name = "Pop()";
+    draw.flags = eDraw_PopMarker;
+
+    m_Cmd->AddDrawcall(draw, false);
+  }
+
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::EndEvent()
 {
   m_pReal->EndEvent();
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(END_EVENT);
+    Serialise_EndEvent();
+
+    m_ListRecord->AddChunk(scope.Get());
+  }
 }
 
 void WrappedID3D12GraphicsCommandList::ExecuteIndirect(ID3D12CommandSignature *pCommandSignature,

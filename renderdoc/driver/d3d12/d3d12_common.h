@@ -207,9 +207,9 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
                                                                                              \
   D3D12_CHUNK_MACRO(CAPTURE_SCOPE, "Capture")                                                \
                                                                                              \
-  D3D12_CHUNK_MACRO(PUSH_EVENT, "BeginEvent")                                                \
+  D3D12_CHUNK_MACRO(BEGIN_EVENT, "BeginEvent")                                               \
   D3D12_CHUNK_MACRO(SET_MARKER, "SetMarker")                                                 \
-  D3D12_CHUNK_MACRO(POP_EVENT, "EndEvent")                                                   \
+  D3D12_CHUNK_MACRO(END_EVENT, "EndEvent")                                                   \
                                                                                              \
   D3D12_CHUNK_MACRO(DEBUG_MESSAGES, "DebugMessageList")                                      \
                                                                                              \

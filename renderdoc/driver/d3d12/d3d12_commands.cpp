@@ -264,6 +264,10 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
 
     case RESOURCE_BARRIER: m_ReplayList->Serialise_ResourceBarrier(0, NULL); break;
 
+    case BEGIN_EVENT: m_ReplayList->Serialise_BeginEvent(0, NULL, 0); break;
+    case SET_MARKER: m_ReplayList->Serialise_SetMarker(0, NULL, 0); break;
+    case END_EVENT: m_ReplayList->Serialise_EndEvent(); break;
+
     case DRAW_INST: m_ReplayList->Serialise_DrawInstanced(0, 0, 0, 0); break;
     case DRAW_INDEXED_INST: m_ReplayList->Serialise_DrawIndexedInstanced(0, 0, 0, 0, 0); break;
     case COPY_BUFFER: m_ReplayList->Serialise_CopyBufferRegion(NULL, 0, NULL, 0, 0); break;
@@ -345,7 +349,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
   {
     // no push/pop necessary
   }
-  else if(m_State == READING && (chunk == PUSH_EVENT || chunk == POP_EVENT))
+  else if(m_State == READING && (chunk == BEGIN_EVENT || chunk == END_EVENT))
   {
     // don't add these events - they will be handled when inserted in-line into queue submit
   }
