@@ -1378,6 +1378,22 @@ string ToStrHelper<false, D3D12_TEXTURE_LAYOUT>::Get(const D3D12_TEXTURE_LAYOUT 
   return StringFormat::Fmt("D3D12_TEXTURE_LAYOUT<%d>", el);
 }
 
+string ToStrHelper<false, D3D12_CLEAR_FLAGS>::Get(const D3D12_CLEAR_FLAGS &el)
+{
+  string ret;
+
+  if(el & D3D12_CLEAR_FLAG_DEPTH)
+    ret += " | D3D12_CLEAR_FLAG_DEPTH";
+
+  if(el & D3D12_CLEAR_FLAG_STENCIL)
+    ret += " | D3D12_CLEAR_FLAG_STENCIL";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
+}
+
 string ToStrHelper<false, D3D12_BUFFER_SRV_FLAGS>::Get(const D3D12_BUFFER_SRV_FLAGS &el)
 {
   string ret;

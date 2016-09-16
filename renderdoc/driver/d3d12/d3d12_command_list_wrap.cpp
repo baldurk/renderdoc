@@ -1562,13 +1562,84 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
   }
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
+    D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView, D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth,
+    UINT8 Stencil, UINT NumRects, const D3D12_RECT *pRects)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(PortableHandle, dsv, ToPortableHandle(DepthStencilView));
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  SERIALISE_ELEMENT(D3D12_CLEAR_FLAGS, f, ClearFlags);
+  SERIALISE_ELEMENT(FLOAT, d, Depth);
+  SERIALISE_ELEMENT(UINT8, s, Stencil);
+  SERIALISE_ELEMENT(UINT, num, NumRects);
+  SERIALISE_ELEMENT_ARR(D3D12_RECT, rects, pRects, num);
+
+  if(m_State == EXECUTING)
+  {
+    DepthStencilView = CPUHandleFromPortableHandle(GetResourceManager(), dsv);
+
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))
+          ->ClearDepthStencilView(DepthStencilView, f, d, s, num, rects);
+    }
+  }
+  else if(m_State == READING)
+  {
+    DepthStencilView = CPUHandleFromPortableHandle(GetResourceManager(), dsv);
+
+    GetList(CommandList)->ClearDepthStencilView(DepthStencilView, f, d, s, num, rects);
+
+    const string desc = m_pSerialiser->GetDebugStr();
+
+    {
+      m_Cmd->AddEvent(CLEAR_DSV, desc);
+      string name = "ClearDepthStencilView(" + ToStr::Get(d) + "," + ToStr::Get(s) + ")";
+
+      FetchDrawcall draw;
+      draw.name = name;
+      draw.flags |= eDraw_Clear | eDraw_ClearDepthStencil;
+
+      m_Cmd->AddDrawcall(draw, true);
+
+      D3D12NOTIMP("Getting image for DSV to mark usage");
+
+      // D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+
+      // drawNode.resourceUsage.push_back(
+      //    std::make_pair(GetResID(image), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+    }
+  }
+
+  SAFE_DELETE_ARRAY(rects);
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::ClearDepthStencilView(
     D3D12_CPU_DESCRIPTOR_HANDLE DepthStencilView, D3D12_CLEAR_FLAGS ClearFlags, FLOAT Depth,
     UINT8 Stencil, UINT NumRects, const D3D12_RECT *pRects)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->ClearDepthStencilView(Unwrap(DepthStencilView), ClearFlags, Depth, Stencil, NumRects,
                                  pRects);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(CLEAR_DSV);
+    Serialise_ClearDepthStencilView(DepthStencilView, ClearFlags, Depth, Stencil, NumRects, pRects);
+
+    m_ListRecord->AddChunk(scope.Get());
+
+    {
+      D3D12Descriptor *desc = GetWrapped(DepthStencilView);
+      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Read);
+    }
+  }
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
