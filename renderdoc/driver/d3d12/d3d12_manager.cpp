@@ -470,6 +470,15 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
     if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
       D3D12_HEAP_PROPERTIES heapProps;
+      r->GetHeapProperties(&heapProps, NULL);
+
+      if(heapProps.Type == D3D12_HEAP_TYPE_READBACK)
+      {
+        // already on readback heap, just mark that we can map it directly and continue
+        SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(NULL, 1, NULL));
+        return true;
+      }
+
       heapProps.Type = D3D12_HEAP_TYPE_READBACK;
       heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
       heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
@@ -607,7 +616,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
   return false;
 }
 
-bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12DeviceChild *)
+bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12DeviceChild *liveRes)
 {
   D3D12ResourceRecord *record = NULL;
   if(m_State >= WRITING)
@@ -633,6 +642,11 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
       m_Device->FlushLists();
 
       ID3D12Resource *copiedBuffer = (ID3D12Resource *)initContents.resource;
+
+      if(initContents.num == 1)
+      {
+        copiedBuffer = (ID3D12Resource *)liveRes;
+      }
 
       byte dummy[4] = {};
       byte *ptr = NULL;
