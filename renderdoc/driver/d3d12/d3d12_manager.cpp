@@ -213,7 +213,14 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
         }
       }
 
-      dev->CreateUnorderedAccessView(nonsamp.resource, nonsamp.uav.counterResource, desc, handle);
+      // don't create a UAV with a counter resource but no main resource. This is fine because
+      // if the main resource wasn't present in the capture, this UAV isn't present - the counter
+      // must have been included for some other reference.
+      ID3D12Resource *counter = nonsamp.uav.counterResource;
+      if(nonsamp.resource == NULL)
+        counter = NULL;
+
+      dev->CreateUnorderedAccessView(nonsamp.resource, counter, desc, handle);
       break;
     }
     case D3D12Descriptor::TypeUndefined:
