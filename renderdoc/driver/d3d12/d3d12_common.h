@@ -181,6 +181,8 @@ void Serialiser::Serialise(const char *name, D3D12_HEAP_DESC &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D12_DESCRIPTOR_HEAP_DESC &el);
 template <>
+void Serialiser::Serialise(const char *name, D3D12_QUERY_HEAP_DESC &el);
+template <>
 void Serialiser::Serialise(const char *name, D3D12_SAMPLER_DESC &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D12_CONSTANT_BUFFER_VIEW_DESC &el);
@@ -229,10 +231,11 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
   D3D12_CHUNK_MACRO(CREATE_DESCRIPTOR_HEAP, "ID3D12Device::CreateDescriptorHeap")                  \
   D3D12_CHUNK_MACRO(CREATE_ROOT_SIG, "ID3D12Device::CreateRootSignature")                          \
                                                                                                    \
-  D3D12_CHUNK_MACRO(CREATE_HEAP, "ID3D12Device::CreateHrap")                                       \
+  D3D12_CHUNK_MACRO(CREATE_HEAP, "ID3D12Device::CreateHeap")                                       \
   D3D12_CHUNK_MACRO(CREATE_COMMITTED_RESOURCE, "ID3D12Device::CreateCommittedResource")            \
   D3D12_CHUNK_MACRO(CREATE_PLACED_RESOURCE, "ID3D12Device::CreatePlacedResource")                  \
                                                                                                    \
+  D3D12_CHUNK_MACRO(CREATE_QUERY_HEAP, "ID3D12Device::CreateQueryHeap")                            \
   D3D12_CHUNK_MACRO(CREATE_FENCE, "ID3D12Device::CreateFence")                                     \
                                                                                                    \
   D3D12_CHUNK_MACRO(CLOSE_LIST, "ID3D12GraphicsCommandList::Close")                                \

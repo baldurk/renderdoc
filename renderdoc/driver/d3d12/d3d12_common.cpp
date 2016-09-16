@@ -907,6 +907,16 @@ void Serialiser::Serialise(const char *name, D3D12_DESCRIPTOR_HEAP_DESC &el)
 }
 
 template <>
+void Serialiser::Serialise(const char *name, D3D12_QUERY_HEAP_DESC &el)
+{
+  ScopedContext scope(this, name, "D3D12_QUERY_HEAP_DESC", 0, true);
+
+  Serialise("Type", el.Type);
+  Serialise("Count", el.Count);
+  Serialise("NodeMask", el.NodeMask);
+}
+
+template <>
 void Serialiser::Serialise(const char *name, D3D12_CLEAR_VALUE &el)
 {
   ScopedContext scope(this, name, "D3D12_CLEAR_VALUE", 0, true);
@@ -1037,6 +1047,20 @@ string ToStrHelper<false, D3D12_MEMORY_POOL>::Get(const D3D12_MEMORY_POOL &el)
   }
 
   return StringFormat::Fmt("D3D12_MEMORY_POOL<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_QUERY_HEAP_TYPE>::Get(const D3D12_QUERY_HEAP_TYPE &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_QUERY_HEAP_TYPE_OCCLUSION)
+    TOSTR_CASE_STRINGIZE(D3D12_QUERY_HEAP_TYPE_TIMESTAMP)
+    TOSTR_CASE_STRINGIZE(D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS)
+    TOSTR_CASE_STRINGIZE(D3D12_QUERY_HEAP_TYPE_SO_STATISTICS)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_QUERY_HEAP_TYPE<%d>", el);
 }
 
 string ToStrHelper<false, D3D12_DESCRIPTOR_HEAP_TYPE>::Get(const D3D12_DESCRIPTOR_HEAP_TYPE &el)

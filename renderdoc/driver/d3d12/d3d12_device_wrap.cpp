@@ -981,11 +981,72 @@ HRESULT WrappedID3D12Device::CreateFence(UINT64 InitialValue, D3D12_FENCE_FLAGS 
   return ret;
 }
 
+bool WrappedID3D12Device::Serialise_CreateQueryHeap(const D3D12_QUERY_HEAP_DESC *pDesc, REFIID riid,
+                                                    void **ppvHeap)
+{
+  SERIALISE_ELEMENT(D3D12_QUERY_HEAP_DESC, desc, *pDesc);
+  SERIALISE_ELEMENT(IID, guid, riid);
+  SERIALISE_ELEMENT(ResourceId, QueryHeap, ((WrappedID3D12QueryHeap *)*ppvHeap)->GetResourceID());
+
+  if(m_State == READING)
+  {
+    ID3D12QueryHeap *ret = NULL;
+    HRESULT hr = m_pDevice->CreateQueryHeap(&desc, guid, (void **)&ret);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
+    }
+    else
+    {
+      ret = new WrappedID3D12QueryHeap(ret, this);
+
+      GetResourceManager()->AddLiveResource(QueryHeap, ret);
+    }
+  }
+
+  return true;
+}
+
 HRESULT WrappedID3D12Device::CreateQueryHeap(const D3D12_QUERY_HEAP_DESC *pDesc, REFIID riid,
                                              void **ppvHeap)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
-  return m_pDevice->CreateQueryHeap(pDesc, riid, ppvHeap);
+  if(ppvHeap == NULL)
+    return m_pDevice->CreateQueryHeap(pDesc, riid, NULL);
+
+  if(riid != __uuidof(ID3D12QueryHeap))
+    return E_NOINTERFACE;
+
+  ID3D12QueryHeap *real = NULL;
+  HRESULT ret = m_pDevice->CreateQueryHeap(pDesc, riid, (void **)&real);
+
+  if(SUCCEEDED(ret))
+  {
+    SCOPED_LOCK(m_D3DLock);
+
+    WrappedID3D12QueryHeap *wrapped = new WrappedID3D12QueryHeap(real, this);
+
+    if(m_State >= WRITING)
+    {
+      SCOPED_SERIALISE_CONTEXT(CREATE_QUERY_HEAP);
+      Serialise_CreateQueryHeap(pDesc, riid, (void **)&wrapped);
+
+      D3D12ResourceRecord *record = GetResourceManager()->AddResourceRecord(wrapped->GetResourceID());
+      record->type = Resource_QueryHeap;
+      record->Length = 0;
+      wrapped->SetResourceRecord(record);
+
+      record->AddChunk(scope.Get());
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
+    }
+
+    *ppvHeap = (ID3D12QueryHeap *)wrapped;
+  }
+
+  return ret;
 }
 
 HRESULT WrappedID3D12Device::CreateCommandSignature(const D3D12_COMMAND_SIGNATURE_DESC *pDesc,
