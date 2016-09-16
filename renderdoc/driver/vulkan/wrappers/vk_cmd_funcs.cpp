@@ -466,7 +466,12 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(Serialiser *localSerialiser,
   localSerialiser->Serialise("allocInfo", allocInfo);
 
   if(m_State < WRITING)
+  {
     device = GetResourceManager()->GetLiveHandle<VkDevice>(devId);
+
+    m_BakedCmdBufferInfo[cmdId].level = m_BakedCmdBufferInfo[bakeId].level = allocInfo.level;
+    m_BakedCmdBufferInfo[cmdId].beginFlags = m_BakedCmdBufferInfo[bakeId].beginFlags = info.flags;
+  }
 
   if(m_State == EXECUTING)
   {
@@ -2343,6 +2348,14 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
       parentCmdBufInfo.curEventID++;
 
       BakedCmdBufferInfo &cmdBufInfo = m_BakedCmdBufferInfo[cmdids[c]];
+
+      if(m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass == ResourceId() &&
+         (cmdBufInfo.beginFlags & VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT))
+      {
+        AddDebugMessage(
+            eDbgCategory_Execution, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+            "Executing a command buffer with RENDER_PASS_CONTINUE_BIT outside of render pass");
+      }
 
       // insert the baked command buffer in-line into this list of notes, assigning new event and
       // drawIDs

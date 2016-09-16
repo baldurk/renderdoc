@@ -1562,6 +1562,12 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
     m_FirstEventID = startEventID;
     m_LastEventID = endEventID;
+
+    // when selecting a marker we can get into an inconsistent state -
+    // make sure that we make things consistent again here, replay the event
+    // that we ended up selecting (the one that was closest)
+    if(startEventID == endEventID && m_RootEventID != m_FirstEventID)
+      m_FirstEventID = m_LastEventID = m_RootEventID;
   }
   else if(m_State == READING)
   {
@@ -2331,6 +2337,36 @@ vector<DebugMessage> WrappedVulkan::GetDebugMessages()
   vector<DebugMessage> ret;
   ret.swap(m_DebugMessages);
   return ret;
+}
+
+void WrappedVulkan::AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv,
+                                    DebugMessageSource src, std::string d)
+{
+  DebugMessage msg;
+  msg.eventID = 0;
+  if(m_State == EXECUTING)
+  {
+    // look up the EID this drawcall came from
+    DrawcallUse use(m_CurChunkOffset, 0);
+    auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+    RDCASSERT(it != m_DrawcallUses.end());
+
+    msg.eventID = it->eventID;
+  }
+  msg.messageID = 0;
+  msg.source = src;
+  msg.category = c;
+  msg.severity = sv;
+  msg.description = d;
+  AddDebugMessage(msg);
+}
+
+void WrappedVulkan::AddDebugMessage(DebugMessage msg)
+{
+  if(m_State == READING)
+    m_EventMessages.push_back(msg);
+  else
+    m_DebugMessages.push_back(msg);
 }
 
 VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,

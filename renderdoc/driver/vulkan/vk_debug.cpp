@@ -6350,7 +6350,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
   const VulkanRenderState &state = m_pDriver->m_RenderState;
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
 
-  if(state.graphics.pipeline == ResourceId())
+  if(state.graphics.pipeline == ResourceId() || state.renderPass == ResourceId())
     return;
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];

@@ -25,6 +25,46 @@
 #include "../vk_core.h"
 #include "../vk_debug.h"
 
+bool WrappedVulkan::IsDrawInRenderPass()
+{
+  ResourceId rp;
+
+  if(m_State == READING)
+    rp = m_BakedCmdBufferInfo[m_LastCmdBufferID].state.renderPass;
+  else
+    rp = m_RenderState.renderPass;
+
+  ResourceId cmdid = m_LastCmdBufferID;
+
+  bool rpActive = true;
+
+  if(m_State == EXECUTING)
+  {
+    cmdid = GetResID(RerecordCmdBuf(cmdid));
+
+    rpActive =
+        m_Partial[m_BakedCmdBufferInfo[cmdid].level == VK_COMMAND_BUFFER_LEVEL_PRIMARY ? Primary : Secondary]
+            .renderPassActive;
+  }
+
+  if(m_BakedCmdBufferInfo[cmdid].level == VK_COMMAND_BUFFER_LEVEL_PRIMARY &&
+     (rp == ResourceId() || !rpActive))
+  {
+    return false;
+  }
+  else if(m_BakedCmdBufferInfo[cmdid].level == VK_COMMAND_BUFFER_LEVEL_SECONDARY &&
+          (m_BakedCmdBufferInfo[cmdid].beginFlags &
+           VK_COMMAND_BUFFER_USAGE_RENDER_PASS_CONTINUE_BIT) == 0 &&
+          (rp == ResourceId() || !rpActive))
+  {
+    return false;
+  }
+
+  // assume a secondary buffer with RENDER_PASS_CONTINUE_BIT is in a render pass.
+
+  return true;
+}
+
 bool WrappedVulkan::Serialise_vkCmdDraw(Serialiser *localSerialiser, VkCommandBuffer commandBuffer,
                                         uint32_t vertexCount, uint32_t instanceCount,
                                         uint32_t firstVertex, uint32_t firstInstance)
@@ -42,7 +82,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(Serialiser *localSerialiser, VkCommandBu
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid) && m_RenderState.renderPass != ResourceId())
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
@@ -64,6 +104,13 @@ bool WrappedVulkan::Serialise_vkCmdDraw(Serialiser *localSerialiser, VkCommandBu
     ObjDisp(commandBuffer)->CmdDraw(Unwrap(commandBuffer), vtxCount, instCount, firstVtx, firstInst);
 
     const string desc = localSerialiser->GetDebugStr();
+
+    if(!IsDrawInRenderPass())
+    {
+      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+                      "Drawcall in happening outside of render pass, or in secondary command "
+                      "buffer without RENDER_PASS_CONTINUE_BIT");
+    }
 
     {
       AddEvent(DRAW, desc);
@@ -127,7 +174,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(Serialiser *localSerialiser,
 
   if(m_State == EXECUTING)
   {
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid) && IsDrawInRenderPass())
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
@@ -153,6 +200,13 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(Serialiser *localSerialiser,
         ->CmdDrawIndexed(Unwrap(commandBuffer), idxCount, instCount, firstIdx, vtxOffs, firstInst);
 
     const string desc = localSerialiser->GetDebugStr();
+
+    if(!IsDrawInRenderPass())
+    {
+      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+                      "Drawcall in happening outside of render pass, or in secondary command "
+                      "buffer without RENDER_PASS_CONTINUE_BIT");
+    }
 
     {
       AddEvent(DRAW_INDEXED, desc);
@@ -228,7 +282,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
     // for single draws, it's pretty simple
     buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid) && IsDrawInRenderPass())
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
@@ -271,7 +325,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
       uint32_t baseEventID = it->eventID;
 
       // when re-recording all, submit every drawcall individually to the callback
-      if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+      if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid) && IsDrawInRenderPass())
       {
         for(uint32_t i = 0; i < cnt; i++)
         {
@@ -314,14 +368,18 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
           cnt = 1;
         }
 
-        uint32_t eventID = HandlePreCallback(commandBuffer, false, drawidx + 1);
-
-        ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
-
-        if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+        if(IsDrawInRenderPass())
         {
+          uint32_t eventID = HandlePreCallback(commandBuffer, false, drawidx + 1);
+
           ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
-          m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+
+          if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+          {
+            ObjDisp(commandBuffer)
+                ->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+            m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+          }
         }
       }
     }
@@ -339,6 +397,13 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
                                      sizeof(VkDrawIndirectCommand) + (cnt - 1) * strd, argbuf);
 
     string name = "vkCmdDrawIndirect(" + ToStr::Get(cnt) + ")";
+
+    if(!IsDrawInRenderPass())
+    {
+      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+                      "Drawcall in happening outside of render pass, or in secondary command "
+                      "buffer without RENDER_PASS_CONTINUE_BIT");
+    }
 
     // for 'single' draws, don't do complex multi-draw just inline it
     if(cnt <= 1)
@@ -482,7 +547,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
     // for single draws, it's pretty simple
     buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
+    if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid) && IsDrawInRenderPass())
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
@@ -527,7 +592,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
       uint32_t baseEventID = it->eventID;
 
       // when re-recording all, submit every drawcall individually to the callback
-      if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
+      if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds() && IsDrawInRenderPass())
       {
         for(uint32_t i = 0; i < cnt; i++)
         {
@@ -584,16 +649,19 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
           }
         }
 
-        uint32_t eventID = HandlePreCallback(commandBuffer, false, drawidx + 1);
-
-        ObjDisp(commandBuffer)
-            ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
-
-        if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+        if(IsDrawInRenderPass())
         {
+          uint32_t eventID = HandlePreCallback(commandBuffer, false, drawidx + 1);
+
           ObjDisp(commandBuffer)
               ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
-          m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+
+          if(eventID && m_DrawcallCallback->PostDraw(eventID, commandBuffer))
+          {
+            ObjDisp(commandBuffer)
+                ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+            m_DrawcallCallback->PostRedraw(eventID, commandBuffer);
+          }
         }
       }
     }
@@ -611,6 +679,13 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
         GetResID(buffer), offs, sizeof(VkDrawIndexedIndirectCommand) + (cnt - 1) * strd, argbuf);
 
     string name = "vkCmdDrawIndexedIndirect(" + ToStr::Get(cnt) + ")";
+
+    if(!IsDrawInRenderPass())
+    {
+      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+                      "Drawcall in happening outside of render pass, or in secondary command "
+                      "buffer without RENDER_PASS_CONTINUE_BIT");
+    }
 
     // for 'single' draws, don't do complex multi-draw just inline it
     if(cnt <= 1)

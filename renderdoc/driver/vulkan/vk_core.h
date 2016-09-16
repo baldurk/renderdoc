@@ -191,6 +191,9 @@ private:
   vector<DebugMessage> m_DebugMessages;
   void Serialise_DebugMessages(Serialiser *localSerialiser, bool isDrawcall);
   vector<DebugMessage> GetDebugMessages();
+  void AddDebugMessage(DebugMessage msg);
+  void AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src,
+                       std::string d);
 
   enum
   {
@@ -368,11 +371,22 @@ private:
 
   struct BakedCmdBufferInfo
   {
-    BakedCmdBufferInfo() : draw(NULL), eventCount(0), curEventID(0), drawCount(0) {}
+    BakedCmdBufferInfo()
+        : draw(NULL),
+          eventCount(0),
+          curEventID(0),
+          drawCount(0),
+          level(VK_COMMAND_BUFFER_LEVEL_PRIMARY),
+          beginFlags(0)
+    {
+    }
     ~BakedCmdBufferInfo() { SAFE_DELETE(draw); }
     vector<FetchAPIEvent> curEvents;
     vector<DebugMessage> debugMessages;
     list<VulkanDrawcallTreeNode *> drawStack;
+
+    VkCommandBufferLevel level;
+    VkCommandBufferUsageFlags beginFlags;
 
     vector<pair<ResourceId, EventUsage> > resourceUsage;
 
@@ -574,6 +588,8 @@ private:
   string MakeRenderPassOpString(bool store);
   void MakeSubpassLoadRP(VkRenderPassCreateInfo &info, const VkRenderPassCreateInfo *origInfo,
                          uint32_t s);
+
+  bool IsDrawInRenderPass();
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);
