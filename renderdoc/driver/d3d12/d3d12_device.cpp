@@ -1127,7 +1127,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
       FlushLists();
 
       byte *data = NULL;
-      HRESULT hr = copyDst->Map(0, NULL, (void **)&data);
+      hr = copyDst->Map(0, NULL, (void **)&data);
 
       if(SUCCEEDED(hr) && data)
       {
@@ -1155,7 +1155,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
           buf1010102 = true;
         }
 
-        byte *dst = thpixels;
+        byte *dstPixels = thpixels;
 
         for(uint32_t y = 0; y < thheight; y++)
         {
@@ -1171,15 +1171,15 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
             {
               uint32_t *src1010102 = (uint32_t *)src;
               Vec4f unorm = ConvertFromR10G10B10A2(*src1010102);
-              dst[0] = (byte)(unorm.x * 255.0f);
-              dst[1] = (byte)(unorm.y * 255.0f);
-              dst[2] = (byte)(unorm.z * 255.0f);
+              dstPixels[0] = (byte)(unorm.x * 255.0f);
+              dstPixels[1] = (byte)(unorm.y * 255.0f);
+              dstPixels[2] = (byte)(unorm.z * 255.0f);
             }
             else if(bufBGRA)
             {
-              dst[0] = src[2];
-              dst[1] = src[1];
-              dst[2] = src[0];
+              dstPixels[0] = src[2];
+              dstPixels[1] = src[1];
+              dstPixels[2] = src[0];
             }
             else if(fmt.compByteWidth == 2)    // R16G16B16A16 backbuffer
             {
@@ -1190,28 +1190,28 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
               float linearB = RDCCLAMP(ConvertFromHalf(src16[2]), 0.0f, 1.0f);
 
               if(linearR < 0.0031308f)
-                dst[0] = byte(255.0f * (12.92f * linearR));
+                dstPixels[0] = byte(255.0f * (12.92f * linearR));
               else
-                dst[0] = byte(255.0f * (1.055f * powf(linearR, 1.0f / 2.4f) - 0.055f));
+                dstPixels[0] = byte(255.0f * (1.055f * powf(linearR, 1.0f / 2.4f) - 0.055f));
 
               if(linearG < 0.0031308f)
-                dst[1] = byte(255.0f * (12.92f * linearG));
+                dstPixels[1] = byte(255.0f * (12.92f * linearG));
               else
-                dst[1] = byte(255.0f * (1.055f * powf(linearG, 1.0f / 2.4f) - 0.055f));
+                dstPixels[1] = byte(255.0f * (1.055f * powf(linearG, 1.0f / 2.4f) - 0.055f));
 
               if(linearB < 0.0031308f)
-                dst[2] = byte(255.0f * (12.92f * linearB));
+                dstPixels[2] = byte(255.0f * (12.92f * linearB));
               else
-                dst[2] = byte(255.0f * (1.055f * powf(linearB, 1.0f / 2.4f) - 0.055f));
+                dstPixels[2] = byte(255.0f * (1.055f * powf(linearB, 1.0f / 2.4f) - 0.055f));
             }
             else
             {
-              dst[0] = src[0];
-              dst[1] = src[1];
-              dst[2] = src[2];
+              dstPixels[0] = src[0];
+              dstPixels[1] = src[1];
+              dstPixels[2] = src[2];
             }
 
-            dst += 3;
+            dstPixels += 3;
           }
         }
 
