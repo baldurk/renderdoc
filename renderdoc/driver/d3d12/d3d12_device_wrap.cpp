@@ -531,6 +531,16 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
   {
     SCOPED_LOCK(m_D3DLock);
 
+    // duplicate signatures can be returned, if Create is called with a previous equivalent blob
+    if(GetResourceManager()->HasWrapper(real))
+    {
+      real->Release();
+      ID3D12RootSignature *existing = (ID3D12RootSignature *)GetResourceManager()->GetWrapper(real);
+      existing->AddRef();
+      *ppvRootSignature = existing;
+      return ret;
+    }
+
     WrappedID3D12RootSignature *wrapped = new WrappedID3D12RootSignature(real, this);
 
     if(m_State >= WRITING)
