@@ -8,7 +8,7 @@
 /* this ALWAYS GENERATED file contains the definitions for the interfaces */
 
 
- /* File created by MIDL compiler version 8.00.0613 */
+ /* File created by MIDL compiler version 8.01.0618 */
 /* @@MIDL_FILE_HEADING(  ) */
 
 
@@ -49,6 +49,20 @@
 typedef interface ID3D11Device4 ID3D11Device4;
 
 #endif 	/* __ID3D11Device4_FWD_DEFINED__ */
+
+
+#ifndef __ID3D11Multithread_FWD_DEFINED__
+#define __ID3D11Multithread_FWD_DEFINED__
+typedef interface ID3D11Multithread ID3D11Multithread;
+
+#endif 	/* __ID3D11Multithread_FWD_DEFINED__ */
+
+
+#ifndef __ID3D11VideoContext2_FWD_DEFINED__
+#define __ID3D11VideoContext2_FWD_DEFINED__
+typedef interface ID3D11VideoContext2 ID3D11VideoContext2;
+
+#endif 	/* __ID3D11VideoContext2_FWD_DEFINED__ */
 
 
 /* header files for imported files */
@@ -901,16 +915,1310 @@ EXTERN_C const IID IID_ID3D11Device4;
 #endif 	/* __ID3D11Device4_INTERFACE_DEFINED__ */
 
 
-/* interface __MIDL_itf_d3d11_4_0000_0001 */
+#ifndef __ID3D11Multithread_INTERFACE_DEFINED__
+#define __ID3D11Multithread_INTERFACE_DEFINED__
+
+/* interface ID3D11Multithread */
+/* [unique][local][object][uuid] */ 
+
+
+EXTERN_C const IID IID_ID3D11Multithread;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("9B7E4E00-342C-4106-A19F-4F2704F689F0")
+    ID3D11Multithread : public IUnknown
+    {
+    public:
+        virtual void STDMETHODCALLTYPE Enter( void) = 0;
+        
+        virtual void STDMETHODCALLTYPE Leave( void) = 0;
+        
+        virtual BOOL STDMETHODCALLTYPE SetMultithreadProtected( 
+            /* [annotation] */ 
+            _In_  BOOL bMTProtect) = 0;
+        
+        virtual BOOL STDMETHODCALLTYPE GetMultithreadProtected( void) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct ID3D11MultithreadVtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            ID3D11Multithread * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            ID3D11Multithread * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            ID3D11Multithread * This);
+        
+        void ( STDMETHODCALLTYPE *Enter )( 
+            ID3D11Multithread * This);
+        
+        void ( STDMETHODCALLTYPE *Leave )( 
+            ID3D11Multithread * This);
+        
+        BOOL ( STDMETHODCALLTYPE *SetMultithreadProtected )( 
+            ID3D11Multithread * This,
+            /* [annotation] */ 
+            _In_  BOOL bMTProtect);
+        
+        BOOL ( STDMETHODCALLTYPE *GetMultithreadProtected )( 
+            ID3D11Multithread * This);
+        
+        END_INTERFACE
+    } ID3D11MultithreadVtbl;
+
+    interface ID3D11Multithread
+    {
+        CONST_VTBL struct ID3D11MultithreadVtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define ID3D11Multithread_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define ID3D11Multithread_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define ID3D11Multithread_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define ID3D11Multithread_Enter(This)	\
+    ( (This)->lpVtbl -> Enter(This) ) 
+
+#define ID3D11Multithread_Leave(This)	\
+    ( (This)->lpVtbl -> Leave(This) ) 
+
+#define ID3D11Multithread_SetMultithreadProtected(This,bMTProtect)	\
+    ( (This)->lpVtbl -> SetMultithreadProtected(This,bMTProtect) ) 
+
+#define ID3D11Multithread_GetMultithreadProtected(This)	\
+    ( (This)->lpVtbl -> GetMultithreadProtected(This) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __ID3D11Multithread_INTERFACE_DEFINED__ */
+
+
+#ifndef __ID3D11VideoContext2_INTERFACE_DEFINED__
+#define __ID3D11VideoContext2_INTERFACE_DEFINED__
+
+/* interface ID3D11VideoContext2 */
+/* [unique][local][object][uuid] */ 
+
+
+EXTERN_C const IID IID_ID3D11VideoContext2;
+
+#if defined(__cplusplus) && !defined(CINTERFACE)
+    
+    MIDL_INTERFACE("C4E7374C-6243-4D1B-AE87-52B4F740E261")
+    ID3D11VideoContext2 : public ID3D11VideoContext1
+    {
+    public:
+        virtual void STDMETHODCALLTYPE VideoProcessorSetOutputHDRMetaData( 
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  DXGI_HDR_METADATA_TYPE Type,
+            /* [annotation] */ 
+            _In_  UINT Size,
+            /* [annotation] */ 
+            _In_reads_bytes_opt_(Size)  const void *pHDRMetaData) = 0;
+        
+        virtual void STDMETHODCALLTYPE VideoProcessorGetOutputHDRMetaData( 
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _Out_  DXGI_HDR_METADATA_TYPE *pType,
+            /* [annotation] */ 
+            _In_  UINT Size,
+            /* [annotation] */ 
+            _Out_writes_bytes_opt_(Size)  void *pMetaData) = 0;
+        
+        virtual void STDMETHODCALLTYPE VideoProcessorSetStreamHDRMetaData( 
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  DXGI_HDR_METADATA_TYPE Type,
+            /* [annotation] */ 
+            _In_  UINT Size,
+            /* [annotation] */ 
+            _In_reads_bytes_opt_(Size)  const void *pHDRMetaData) = 0;
+        
+        virtual void STDMETHODCALLTYPE VideoProcessorGetStreamHDRMetaData( 
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  DXGI_HDR_METADATA_TYPE *pType,
+            /* [annotation] */ 
+            _In_  UINT Size,
+            /* [annotation] */ 
+            _Out_writes_bytes_opt_(Size)  void *pMetaData) = 0;
+        
+    };
+    
+    
+#else 	/* C style interface */
+
+    typedef struct ID3D11VideoContext2Vtbl
+    {
+        BEGIN_INTERFACE
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryInterface )( 
+            ID3D11VideoContext2 * This,
+            /* [in] */ REFIID riid,
+            /* [annotation][iid_is][out] */ 
+            _COM_Outptr_  void **ppvObject);
+        
+        ULONG ( STDMETHODCALLTYPE *AddRef )( 
+            ID3D11VideoContext2 * This);
+        
+        ULONG ( STDMETHODCALLTYPE *Release )( 
+            ID3D11VideoContext2 * This);
+        
+        void ( STDMETHODCALLTYPE *GetDevice )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _Outptr_  ID3D11Device **ppDevice);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetPrivateData )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  REFGUID guid,
+            /* [annotation] */ 
+            _Inout_  UINT *pDataSize,
+            /* [annotation] */ 
+            _Out_writes_bytes_opt_( *pDataSize )  void *pData);
+        
+        HRESULT ( STDMETHODCALLTYPE *SetPrivateData )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  REFGUID guid,
+            /* [annotation] */ 
+            _In_  UINT DataSize,
+            /* [annotation] */ 
+            _In_reads_bytes_opt_( DataSize )  const void *pData);
+        
+        HRESULT ( STDMETHODCALLTYPE *SetPrivateDataInterface )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  REFGUID guid,
+            /* [annotation] */ 
+            _In_opt_  const IUnknown *pData);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetDecoderBuffer )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoDecoder *pDecoder,
+            D3D11_VIDEO_DECODER_BUFFER_TYPE Type,
+            /* [annotation] */ 
+            _Out_  UINT *pBufferSize,
+            /* [annotation] */ 
+            _Outptr_result_bytebuffer_(*pBufferSize)  void **ppBuffer);
+        
+        HRESULT ( STDMETHODCALLTYPE *ReleaseDecoderBuffer )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoDecoder *pDecoder,
+            /* [annotation] */ 
+            _In_  D3D11_VIDEO_DECODER_BUFFER_TYPE Type);
+        
+        HRESULT ( STDMETHODCALLTYPE *DecoderBeginFrame )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoDecoder *pDecoder,
+            /* [annotation] */ 
+            _In_  ID3D11VideoDecoderOutputView *pView,
+            UINT ContentKeySize,
+            /* [annotation] */ 
+            _In_reads_bytes_opt_(ContentKeySize)  const void *pContentKey);
+        
+        HRESULT ( STDMETHODCALLTYPE *DecoderEndFrame )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoDecoder *pDecoder);
+        
+        HRESULT ( STDMETHODCALLTYPE *SubmitDecoderBuffers )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoDecoder *pDecoder,
+            /* [annotation] */ 
+            _In_  UINT NumBuffers,
+            /* [annotation] */ 
+            _In_reads_(NumBuffers)  const D3D11_VIDEO_DECODER_BUFFER_DESC *pBufferDesc);
+        
+        APP_DEPRECATED_HRESULT ( STDMETHODCALLTYPE *DecoderExtension )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoDecoder *pDecoder,
+            /* [annotation] */ 
+            _In_  const D3D11_VIDEO_DECODER_EXTENSION *pExtensionData);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetOutputTargetRect )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  BOOL Enable,
+            /* [annotation] */ 
+            _In_opt_  const RECT *pRect);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetOutputBackgroundColor )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  BOOL YCbCr,
+            /* [annotation] */ 
+            _In_  const D3D11_VIDEO_COLOR *pColor);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetOutputColorSpace )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  const D3D11_VIDEO_PROCESSOR_COLOR_SPACE *pColorSpace);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetOutputAlphaFillMode )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  D3D11_VIDEO_PROCESSOR_ALPHA_FILL_MODE AlphaFillMode,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetOutputConstriction )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  BOOL Enable,
+            /* [annotation] */ 
+            _In_  SIZE Size);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetOutputStereoMode )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  BOOL Enable);
+        
+        APP_DEPRECATED_HRESULT ( STDMETHODCALLTYPE *VideoProcessorSetOutputExtension )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  const GUID *pExtensionGuid,
+            /* [annotation] */ 
+            _In_  UINT DataSize,
+            /* [annotation] */ 
+            _In_  void *pData);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetOutputTargetRect )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _Out_  BOOL *Enabled,
+            /* [annotation] */ 
+            _Out_  RECT *pRect);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetOutputBackgroundColor )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _Out_  BOOL *pYCbCr,
+            /* [annotation] */ 
+            _Out_  D3D11_VIDEO_COLOR *pColor);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetOutputColorSpace )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _Out_  D3D11_VIDEO_PROCESSOR_COLOR_SPACE *pColorSpace);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetOutputAlphaFillMode )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _Out_  D3D11_VIDEO_PROCESSOR_ALPHA_FILL_MODE *pAlphaFillMode,
+            /* [annotation] */ 
+            _Out_  UINT *pStreamIndex);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetOutputConstriction )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _Out_  BOOL *pEnabled,
+            /* [annotation] */ 
+            _Out_  SIZE *pSize);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetOutputStereoMode )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _Out_  BOOL *pEnabled);
+        
+        APP_DEPRECATED_HRESULT ( STDMETHODCALLTYPE *VideoProcessorGetOutputExtension )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  const GUID *pExtensionGuid,
+            /* [annotation] */ 
+            _In_  UINT DataSize,
+            /* [annotation] */ 
+            _Out_writes_bytes_(DataSize)  void *pData);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamFrameFormat )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  D3D11_VIDEO_FRAME_FORMAT FrameFormat);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamColorSpace )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  const D3D11_VIDEO_PROCESSOR_COLOR_SPACE *pColorSpace);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamOutputRate )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  D3D11_VIDEO_PROCESSOR_OUTPUT_RATE OutputRate,
+            /* [annotation] */ 
+            _In_  BOOL RepeatFrame,
+            /* [annotation] */ 
+            _In_opt_  const DXGI_RATIONAL *pCustomRate);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamSourceRect )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  BOOL Enable,
+            /* [annotation] */ 
+            _In_opt_  const RECT *pRect);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamDestRect )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  BOOL Enable,
+            /* [annotation] */ 
+            _In_opt_  const RECT *pRect);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamAlpha )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  BOOL Enable,
+            /* [annotation] */ 
+            _In_  FLOAT Alpha);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamPalette )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  UINT Count,
+            /* [annotation] */ 
+            _In_reads_opt_(Count)  const UINT *pEntries);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamPixelAspectRatio )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  BOOL Enable,
+            /* [annotation] */ 
+            _In_opt_  const DXGI_RATIONAL *pSourceAspectRatio,
+            /* [annotation] */ 
+            _In_opt_  const DXGI_RATIONAL *pDestinationAspectRatio);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamLumaKey )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  BOOL Enable,
+            /* [annotation] */ 
+            _In_  FLOAT Lower,
+            /* [annotation] */ 
+            _In_  FLOAT Upper);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamStereoFormat )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  BOOL Enable,
+            /* [annotation] */ 
+            _In_  D3D11_VIDEO_PROCESSOR_STEREO_FORMAT Format,
+            /* [annotation] */ 
+            _In_  BOOL LeftViewFrame0,
+            /* [annotation] */ 
+            _In_  BOOL BaseViewFrame0,
+            /* [annotation] */ 
+            _In_  D3D11_VIDEO_PROCESSOR_STEREO_FLIP_MODE FlipMode,
+            /* [annotation] */ 
+            _In_  int MonoOffset);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamAutoProcessingMode )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  BOOL Enable);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamFilter )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  D3D11_VIDEO_PROCESSOR_FILTER Filter,
+            /* [annotation] */ 
+            _In_  BOOL Enable,
+            /* [annotation] */ 
+            _In_  int Level);
+        
+        APP_DEPRECATED_HRESULT ( STDMETHODCALLTYPE *VideoProcessorSetStreamExtension )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  const GUID *pExtensionGuid,
+            /* [annotation] */ 
+            _In_  UINT DataSize,
+            /* [annotation] */ 
+            _In_  void *pData);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamFrameFormat )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  D3D11_VIDEO_FRAME_FORMAT *pFrameFormat);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamColorSpace )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  D3D11_VIDEO_PROCESSOR_COLOR_SPACE *pColorSpace);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamOutputRate )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  D3D11_VIDEO_PROCESSOR_OUTPUT_RATE *pOutputRate,
+            /* [annotation] */ 
+            _Out_  BOOL *pRepeatFrame,
+            /* [annotation] */ 
+            _Out_  DXGI_RATIONAL *pCustomRate);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamSourceRect )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  BOOL *pEnabled,
+            /* [annotation] */ 
+            _Out_  RECT *pRect);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamDestRect )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  BOOL *pEnabled,
+            /* [annotation] */ 
+            _Out_  RECT *pRect);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamAlpha )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  BOOL *pEnabled,
+            /* [annotation] */ 
+            _Out_  FLOAT *pAlpha);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamPalette )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  UINT Count,
+            /* [annotation] */ 
+            _Out_writes_(Count)  UINT *pEntries);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamPixelAspectRatio )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  BOOL *pEnabled,
+            /* [annotation] */ 
+            _Out_  DXGI_RATIONAL *pSourceAspectRatio,
+            /* [annotation] */ 
+            _Out_  DXGI_RATIONAL *pDestinationAspectRatio);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamLumaKey )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  BOOL *pEnabled,
+            /* [annotation] */ 
+            _Out_  FLOAT *pLower,
+            /* [annotation] */ 
+            _Out_  FLOAT *pUpper);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamStereoFormat )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  BOOL *pEnable,
+            /* [annotation] */ 
+            _Out_  D3D11_VIDEO_PROCESSOR_STEREO_FORMAT *pFormat,
+            /* [annotation] */ 
+            _Out_  BOOL *pLeftViewFrame0,
+            /* [annotation] */ 
+            _Out_  BOOL *pBaseViewFrame0,
+            /* [annotation] */ 
+            _Out_  D3D11_VIDEO_PROCESSOR_STEREO_FLIP_MODE *pFlipMode,
+            /* [annotation] */ 
+            _Out_  int *MonoOffset);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamAutoProcessingMode )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  BOOL *pEnabled);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamFilter )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  D3D11_VIDEO_PROCESSOR_FILTER Filter,
+            /* [annotation] */ 
+            _Out_  BOOL *pEnabled,
+            /* [annotation] */ 
+            _Out_  int *pLevel);
+        
+        APP_DEPRECATED_HRESULT ( STDMETHODCALLTYPE *VideoProcessorGetStreamExtension )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  const GUID *pExtensionGuid,
+            /* [annotation] */ 
+            _In_  UINT DataSize,
+            /* [annotation] */ 
+            _Out_writes_bytes_(DataSize)  void *pData);
+        
+        HRESULT ( STDMETHODCALLTYPE *VideoProcessorBlt )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessorOutputView *pView,
+            /* [annotation] */ 
+            _In_  UINT OutputFrame,
+            /* [annotation] */ 
+            _In_  UINT StreamCount,
+            /* [annotation] */ 
+            _In_reads_(StreamCount)  const D3D11_VIDEO_PROCESSOR_STREAM *pStreams);
+        
+        HRESULT ( STDMETHODCALLTYPE *NegotiateCryptoSessionKeyExchange )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11CryptoSession *pCryptoSession,
+            /* [annotation] */ 
+            _In_  UINT DataSize,
+            /* [annotation] */ 
+            _Inout_updates_bytes_(DataSize)  void *pData);
+        
+        void ( STDMETHODCALLTYPE *EncryptionBlt )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11CryptoSession *pCryptoSession,
+            /* [annotation] */ 
+            _In_  ID3D11Texture2D *pSrcSurface,
+            /* [annotation] */ 
+            _In_  ID3D11Texture2D *pDstSurface,
+            /* [annotation] */ 
+            _In_  UINT IVSize,
+            /* [annotation] */ 
+            _Inout_opt_bytecount_(IVSize)  void *pIV);
+        
+        void ( STDMETHODCALLTYPE *DecryptionBlt )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11CryptoSession *pCryptoSession,
+            /* [annotation] */ 
+            _In_  ID3D11Texture2D *pSrcSurface,
+            /* [annotation] */ 
+            _In_  ID3D11Texture2D *pDstSurface,
+            /* [annotation] */ 
+            _In_opt_  D3D11_ENCRYPTED_BLOCK_INFO *pEncryptedBlockInfo,
+            /* [annotation] */ 
+            _In_  UINT ContentKeySize,
+            /* [annotation] */ 
+            _In_reads_bytes_opt_(ContentKeySize)  const void *pContentKey,
+            /* [annotation] */ 
+            _In_  UINT IVSize,
+            /* [annotation] */ 
+            _Inout_opt_bytecount_(IVSize)  void *pIV);
+        
+        void ( STDMETHODCALLTYPE *StartSessionKeyRefresh )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11CryptoSession *pCryptoSession,
+            /* [annotation] */ 
+            _In_  UINT RandomNumberSize,
+            /* [annotation] */ 
+            _Out_writes_bytes_(RandomNumberSize)  void *pRandomNumber);
+        
+        void ( STDMETHODCALLTYPE *FinishSessionKeyRefresh )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11CryptoSession *pCryptoSession);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetEncryptionBltKey )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11CryptoSession *pCryptoSession,
+            /* [annotation] */ 
+            _In_  UINT KeySize,
+            /* [annotation] */ 
+            _Out_writes_bytes_(KeySize)  void *pReadbackKey);
+        
+        HRESULT ( STDMETHODCALLTYPE *NegotiateAuthenticatedChannelKeyExchange )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11AuthenticatedChannel *pChannel,
+            /* [annotation] */ 
+            _In_  UINT DataSize,
+            /* [annotation] */ 
+            _Inout_updates_bytes_(DataSize)  void *pData);
+        
+        HRESULT ( STDMETHODCALLTYPE *QueryAuthenticatedChannel )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11AuthenticatedChannel *pChannel,
+            /* [annotation] */ 
+            _In_  UINT InputSize,
+            /* [annotation] */ 
+            _In_reads_bytes_(InputSize)  const void *pInput,
+            /* [annotation] */ 
+            _In_  UINT OutputSize,
+            /* [annotation] */ 
+            _Out_writes_bytes_(OutputSize)  void *pOutput);
+        
+        HRESULT ( STDMETHODCALLTYPE *ConfigureAuthenticatedChannel )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11AuthenticatedChannel *pChannel,
+            /* [annotation] */ 
+            _In_  UINT InputSize,
+            /* [annotation] */ 
+            _In_reads_bytes_(InputSize)  const void *pInput,
+            /* [annotation] */ 
+            _Out_  D3D11_AUTHENTICATED_CONFIGURE_OUTPUT *pOutput);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamRotation )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  BOOL Enable,
+            /* [annotation] */ 
+            _In_  D3D11_VIDEO_PROCESSOR_ROTATION Rotation);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamRotation )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  BOOL *pEnable,
+            /* [annotation] */ 
+            _Out_  D3D11_VIDEO_PROCESSOR_ROTATION *pRotation);
+        
+        HRESULT ( STDMETHODCALLTYPE *SubmitDecoderBuffers1 )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoDecoder *pDecoder,
+            /* [annotation] */ 
+            _In_  UINT NumBuffers,
+            /* [annotation] */ 
+            _In_reads_(NumBuffers)  const D3D11_VIDEO_DECODER_BUFFER_DESC1 *pBufferDesc);
+        
+        HRESULT ( STDMETHODCALLTYPE *GetDataForNewHardwareKey )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11CryptoSession *pCryptoSession,
+            /* [annotation] */ 
+            _In_  UINT PrivateInputSize,
+            /* [annotation] */ 
+            _In_reads_(PrivateInputSize)  const void *pPrivatInputData,
+            /* [annotation] */ 
+            _Out_  UINT64 *pPrivateOutputData);
+        
+        HRESULT ( STDMETHODCALLTYPE *CheckCryptoSessionStatus )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11CryptoSession *pCryptoSession,
+            /* [annotation] */ 
+            _Out_  D3D11_CRYPTO_SESSION_STATUS *pStatus);
+        
+        HRESULT ( STDMETHODCALLTYPE *DecoderEnableDownsampling )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoDecoder *pDecoder,
+            /* [annotation] */ 
+            _In_  DXGI_COLOR_SPACE_TYPE InputColorSpace,
+            /* [annotation] */ 
+            _In_  const D3D11_VIDEO_SAMPLE_DESC *pOutputDesc,
+            /* [annotation] */ 
+            _In_  UINT ReferenceFrameCount);
+        
+        HRESULT ( STDMETHODCALLTYPE *DecoderUpdateDownsampling )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoDecoder *pDecoder,
+            /* [annotation] */ 
+            _In_  const D3D11_VIDEO_SAMPLE_DESC *pOutputDesc);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetOutputColorSpace1 )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  DXGI_COLOR_SPACE_TYPE ColorSpace);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetOutputShaderUsage )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  BOOL ShaderUsage);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetOutputColorSpace1 )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _Out_  DXGI_COLOR_SPACE_TYPE *pColorSpace);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetOutputShaderUsage )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _Out_  BOOL *pShaderUsage);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamColorSpace1 )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  DXGI_COLOR_SPACE_TYPE ColorSpace);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamMirror )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  BOOL Enable,
+            /* [annotation] */ 
+            _In_  BOOL FlipHorizontal,
+            /* [annotation] */ 
+            _In_  BOOL FlipVertical);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamColorSpace1 )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  DXGI_COLOR_SPACE_TYPE *pColorSpace);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamMirror )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  BOOL *pEnable,
+            /* [annotation] */ 
+            _Out_  BOOL *pFlipHorizontal,
+            /* [annotation] */ 
+            _Out_  BOOL *pFlipVertical);
+        
+        HRESULT ( STDMETHODCALLTYPE *VideoProcessorGetBehaviorHints )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT OutputWidth,
+            /* [annotation] */ 
+            _In_  UINT OutputHeight,
+            /* [annotation] */ 
+            _In_  DXGI_FORMAT OutputFormat,
+            /* [annotation] */ 
+            _In_  UINT StreamCount,
+            /* [annotation] */ 
+            _In_reads_(StreamCount)  const D3D11_VIDEO_PROCESSOR_STREAM_BEHAVIOR_HINT *pStreams,
+            /* [annotation] */ 
+            _Out_  UINT *pBehaviorHints);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetOutputHDRMetaData )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  DXGI_HDR_METADATA_TYPE Type,
+            /* [annotation] */ 
+            _In_  UINT Size,
+            /* [annotation] */ 
+            _In_reads_bytes_opt_(Size)  const void *pHDRMetaData);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetOutputHDRMetaData )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _Out_  DXGI_HDR_METADATA_TYPE *pType,
+            /* [annotation] */ 
+            _In_  UINT Size,
+            /* [annotation] */ 
+            _Out_writes_bytes_opt_(Size)  void *pMetaData);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorSetStreamHDRMetaData )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _In_  DXGI_HDR_METADATA_TYPE Type,
+            /* [annotation] */ 
+            _In_  UINT Size,
+            /* [annotation] */ 
+            _In_reads_bytes_opt_(Size)  const void *pHDRMetaData);
+        
+        void ( STDMETHODCALLTYPE *VideoProcessorGetStreamHDRMetaData )( 
+            ID3D11VideoContext2 * This,
+            /* [annotation] */ 
+            _In_  ID3D11VideoProcessor *pVideoProcessor,
+            /* [annotation] */ 
+            _In_  UINT StreamIndex,
+            /* [annotation] */ 
+            _Out_  DXGI_HDR_METADATA_TYPE *pType,
+            /* [annotation] */ 
+            _In_  UINT Size,
+            /* [annotation] */ 
+            _Out_writes_bytes_opt_(Size)  void *pMetaData);
+        
+        END_INTERFACE
+    } ID3D11VideoContext2Vtbl;
+
+    interface ID3D11VideoContext2
+    {
+        CONST_VTBL struct ID3D11VideoContext2Vtbl *lpVtbl;
+    };
+
+    
+
+#ifdef COBJMACROS
+
+
+#define ID3D11VideoContext2_QueryInterface(This,riid,ppvObject)	\
+    ( (This)->lpVtbl -> QueryInterface(This,riid,ppvObject) ) 
+
+#define ID3D11VideoContext2_AddRef(This)	\
+    ( (This)->lpVtbl -> AddRef(This) ) 
+
+#define ID3D11VideoContext2_Release(This)	\
+    ( (This)->lpVtbl -> Release(This) ) 
+
+
+#define ID3D11VideoContext2_GetDevice(This,ppDevice)	\
+    ( (This)->lpVtbl -> GetDevice(This,ppDevice) ) 
+
+#define ID3D11VideoContext2_GetPrivateData(This,guid,pDataSize,pData)	\
+    ( (This)->lpVtbl -> GetPrivateData(This,guid,pDataSize,pData) ) 
+
+#define ID3D11VideoContext2_SetPrivateData(This,guid,DataSize,pData)	\
+    ( (This)->lpVtbl -> SetPrivateData(This,guid,DataSize,pData) ) 
+
+#define ID3D11VideoContext2_SetPrivateDataInterface(This,guid,pData)	\
+    ( (This)->lpVtbl -> SetPrivateDataInterface(This,guid,pData) ) 
+
+
+#define ID3D11VideoContext2_GetDecoderBuffer(This,pDecoder,Type,pBufferSize,ppBuffer)	\
+    ( (This)->lpVtbl -> GetDecoderBuffer(This,pDecoder,Type,pBufferSize,ppBuffer) ) 
+
+#define ID3D11VideoContext2_ReleaseDecoderBuffer(This,pDecoder,Type)	\
+    ( (This)->lpVtbl -> ReleaseDecoderBuffer(This,pDecoder,Type) ) 
+
+#define ID3D11VideoContext2_DecoderBeginFrame(This,pDecoder,pView,ContentKeySize,pContentKey)	\
+    ( (This)->lpVtbl -> DecoderBeginFrame(This,pDecoder,pView,ContentKeySize,pContentKey) ) 
+
+#define ID3D11VideoContext2_DecoderEndFrame(This,pDecoder)	\
+    ( (This)->lpVtbl -> DecoderEndFrame(This,pDecoder) ) 
+
+#define ID3D11VideoContext2_SubmitDecoderBuffers(This,pDecoder,NumBuffers,pBufferDesc)	\
+    ( (This)->lpVtbl -> SubmitDecoderBuffers(This,pDecoder,NumBuffers,pBufferDesc) ) 
+
+#define ID3D11VideoContext2_DecoderExtension(This,pDecoder,pExtensionData)	\
+    ( (This)->lpVtbl -> DecoderExtension(This,pDecoder,pExtensionData) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetOutputTargetRect(This,pVideoProcessor,Enable,pRect)	\
+    ( (This)->lpVtbl -> VideoProcessorSetOutputTargetRect(This,pVideoProcessor,Enable,pRect) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetOutputBackgroundColor(This,pVideoProcessor,YCbCr,pColor)	\
+    ( (This)->lpVtbl -> VideoProcessorSetOutputBackgroundColor(This,pVideoProcessor,YCbCr,pColor) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetOutputColorSpace(This,pVideoProcessor,pColorSpace)	\
+    ( (This)->lpVtbl -> VideoProcessorSetOutputColorSpace(This,pVideoProcessor,pColorSpace) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetOutputAlphaFillMode(This,pVideoProcessor,AlphaFillMode,StreamIndex)	\
+    ( (This)->lpVtbl -> VideoProcessorSetOutputAlphaFillMode(This,pVideoProcessor,AlphaFillMode,StreamIndex) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetOutputConstriction(This,pVideoProcessor,Enable,Size)	\
+    ( (This)->lpVtbl -> VideoProcessorSetOutputConstriction(This,pVideoProcessor,Enable,Size) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetOutputStereoMode(This,pVideoProcessor,Enable)	\
+    ( (This)->lpVtbl -> VideoProcessorSetOutputStereoMode(This,pVideoProcessor,Enable) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetOutputExtension(This,pVideoProcessor,pExtensionGuid,DataSize,pData)	\
+    ( (This)->lpVtbl -> VideoProcessorSetOutputExtension(This,pVideoProcessor,pExtensionGuid,DataSize,pData) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetOutputTargetRect(This,pVideoProcessor,Enabled,pRect)	\
+    ( (This)->lpVtbl -> VideoProcessorGetOutputTargetRect(This,pVideoProcessor,Enabled,pRect) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetOutputBackgroundColor(This,pVideoProcessor,pYCbCr,pColor)	\
+    ( (This)->lpVtbl -> VideoProcessorGetOutputBackgroundColor(This,pVideoProcessor,pYCbCr,pColor) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetOutputColorSpace(This,pVideoProcessor,pColorSpace)	\
+    ( (This)->lpVtbl -> VideoProcessorGetOutputColorSpace(This,pVideoProcessor,pColorSpace) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetOutputAlphaFillMode(This,pVideoProcessor,pAlphaFillMode,pStreamIndex)	\
+    ( (This)->lpVtbl -> VideoProcessorGetOutputAlphaFillMode(This,pVideoProcessor,pAlphaFillMode,pStreamIndex) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetOutputConstriction(This,pVideoProcessor,pEnabled,pSize)	\
+    ( (This)->lpVtbl -> VideoProcessorGetOutputConstriction(This,pVideoProcessor,pEnabled,pSize) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetOutputStereoMode(This,pVideoProcessor,pEnabled)	\
+    ( (This)->lpVtbl -> VideoProcessorGetOutputStereoMode(This,pVideoProcessor,pEnabled) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetOutputExtension(This,pVideoProcessor,pExtensionGuid,DataSize,pData)	\
+    ( (This)->lpVtbl -> VideoProcessorGetOutputExtension(This,pVideoProcessor,pExtensionGuid,DataSize,pData) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamFrameFormat(This,pVideoProcessor,StreamIndex,FrameFormat)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamFrameFormat(This,pVideoProcessor,StreamIndex,FrameFormat) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamColorSpace(This,pVideoProcessor,StreamIndex,pColorSpace)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamColorSpace(This,pVideoProcessor,StreamIndex,pColorSpace) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamOutputRate(This,pVideoProcessor,StreamIndex,OutputRate,RepeatFrame,pCustomRate)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamOutputRate(This,pVideoProcessor,StreamIndex,OutputRate,RepeatFrame,pCustomRate) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamSourceRect(This,pVideoProcessor,StreamIndex,Enable,pRect)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamSourceRect(This,pVideoProcessor,StreamIndex,Enable,pRect) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamDestRect(This,pVideoProcessor,StreamIndex,Enable,pRect)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamDestRect(This,pVideoProcessor,StreamIndex,Enable,pRect) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamAlpha(This,pVideoProcessor,StreamIndex,Enable,Alpha)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamAlpha(This,pVideoProcessor,StreamIndex,Enable,Alpha) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamPalette(This,pVideoProcessor,StreamIndex,Count,pEntries)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamPalette(This,pVideoProcessor,StreamIndex,Count,pEntries) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamPixelAspectRatio(This,pVideoProcessor,StreamIndex,Enable,pSourceAspectRatio,pDestinationAspectRatio)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamPixelAspectRatio(This,pVideoProcessor,StreamIndex,Enable,pSourceAspectRatio,pDestinationAspectRatio) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamLumaKey(This,pVideoProcessor,StreamIndex,Enable,Lower,Upper)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamLumaKey(This,pVideoProcessor,StreamIndex,Enable,Lower,Upper) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamStereoFormat(This,pVideoProcessor,StreamIndex,Enable,Format,LeftViewFrame0,BaseViewFrame0,FlipMode,MonoOffset)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamStereoFormat(This,pVideoProcessor,StreamIndex,Enable,Format,LeftViewFrame0,BaseViewFrame0,FlipMode,MonoOffset) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamAutoProcessingMode(This,pVideoProcessor,StreamIndex,Enable)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamAutoProcessingMode(This,pVideoProcessor,StreamIndex,Enable) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamFilter(This,pVideoProcessor,StreamIndex,Filter,Enable,Level)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamFilter(This,pVideoProcessor,StreamIndex,Filter,Enable,Level) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamExtension(This,pVideoProcessor,StreamIndex,pExtensionGuid,DataSize,pData)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamExtension(This,pVideoProcessor,StreamIndex,pExtensionGuid,DataSize,pData) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamFrameFormat(This,pVideoProcessor,StreamIndex,pFrameFormat)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamFrameFormat(This,pVideoProcessor,StreamIndex,pFrameFormat) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamColorSpace(This,pVideoProcessor,StreamIndex,pColorSpace)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamColorSpace(This,pVideoProcessor,StreamIndex,pColorSpace) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamOutputRate(This,pVideoProcessor,StreamIndex,pOutputRate,pRepeatFrame,pCustomRate)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamOutputRate(This,pVideoProcessor,StreamIndex,pOutputRate,pRepeatFrame,pCustomRate) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamSourceRect(This,pVideoProcessor,StreamIndex,pEnabled,pRect)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamSourceRect(This,pVideoProcessor,StreamIndex,pEnabled,pRect) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamDestRect(This,pVideoProcessor,StreamIndex,pEnabled,pRect)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamDestRect(This,pVideoProcessor,StreamIndex,pEnabled,pRect) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamAlpha(This,pVideoProcessor,StreamIndex,pEnabled,pAlpha)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamAlpha(This,pVideoProcessor,StreamIndex,pEnabled,pAlpha) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamPalette(This,pVideoProcessor,StreamIndex,Count,pEntries)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamPalette(This,pVideoProcessor,StreamIndex,Count,pEntries) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamPixelAspectRatio(This,pVideoProcessor,StreamIndex,pEnabled,pSourceAspectRatio,pDestinationAspectRatio)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamPixelAspectRatio(This,pVideoProcessor,StreamIndex,pEnabled,pSourceAspectRatio,pDestinationAspectRatio) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamLumaKey(This,pVideoProcessor,StreamIndex,pEnabled,pLower,pUpper)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamLumaKey(This,pVideoProcessor,StreamIndex,pEnabled,pLower,pUpper) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamStereoFormat(This,pVideoProcessor,StreamIndex,pEnable,pFormat,pLeftViewFrame0,pBaseViewFrame0,pFlipMode,MonoOffset)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamStereoFormat(This,pVideoProcessor,StreamIndex,pEnable,pFormat,pLeftViewFrame0,pBaseViewFrame0,pFlipMode,MonoOffset) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamAutoProcessingMode(This,pVideoProcessor,StreamIndex,pEnabled)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamAutoProcessingMode(This,pVideoProcessor,StreamIndex,pEnabled) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamFilter(This,pVideoProcessor,StreamIndex,Filter,pEnabled,pLevel)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamFilter(This,pVideoProcessor,StreamIndex,Filter,pEnabled,pLevel) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamExtension(This,pVideoProcessor,StreamIndex,pExtensionGuid,DataSize,pData)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamExtension(This,pVideoProcessor,StreamIndex,pExtensionGuid,DataSize,pData) ) 
+
+#define ID3D11VideoContext2_VideoProcessorBlt(This,pVideoProcessor,pView,OutputFrame,StreamCount,pStreams)	\
+    ( (This)->lpVtbl -> VideoProcessorBlt(This,pVideoProcessor,pView,OutputFrame,StreamCount,pStreams) ) 
+
+#define ID3D11VideoContext2_NegotiateCryptoSessionKeyExchange(This,pCryptoSession,DataSize,pData)	\
+    ( (This)->lpVtbl -> NegotiateCryptoSessionKeyExchange(This,pCryptoSession,DataSize,pData) ) 
+
+#define ID3D11VideoContext2_EncryptionBlt(This,pCryptoSession,pSrcSurface,pDstSurface,IVSize,pIV)	\
+    ( (This)->lpVtbl -> EncryptionBlt(This,pCryptoSession,pSrcSurface,pDstSurface,IVSize,pIV) ) 
+
+#define ID3D11VideoContext2_DecryptionBlt(This,pCryptoSession,pSrcSurface,pDstSurface,pEncryptedBlockInfo,ContentKeySize,pContentKey,IVSize,pIV)	\
+    ( (This)->lpVtbl -> DecryptionBlt(This,pCryptoSession,pSrcSurface,pDstSurface,pEncryptedBlockInfo,ContentKeySize,pContentKey,IVSize,pIV) ) 
+
+#define ID3D11VideoContext2_StartSessionKeyRefresh(This,pCryptoSession,RandomNumberSize,pRandomNumber)	\
+    ( (This)->lpVtbl -> StartSessionKeyRefresh(This,pCryptoSession,RandomNumberSize,pRandomNumber) ) 
+
+#define ID3D11VideoContext2_FinishSessionKeyRefresh(This,pCryptoSession)	\
+    ( (This)->lpVtbl -> FinishSessionKeyRefresh(This,pCryptoSession) ) 
+
+#define ID3D11VideoContext2_GetEncryptionBltKey(This,pCryptoSession,KeySize,pReadbackKey)	\
+    ( (This)->lpVtbl -> GetEncryptionBltKey(This,pCryptoSession,KeySize,pReadbackKey) ) 
+
+#define ID3D11VideoContext2_NegotiateAuthenticatedChannelKeyExchange(This,pChannel,DataSize,pData)	\
+    ( (This)->lpVtbl -> NegotiateAuthenticatedChannelKeyExchange(This,pChannel,DataSize,pData) ) 
+
+#define ID3D11VideoContext2_QueryAuthenticatedChannel(This,pChannel,InputSize,pInput,OutputSize,pOutput)	\
+    ( (This)->lpVtbl -> QueryAuthenticatedChannel(This,pChannel,InputSize,pInput,OutputSize,pOutput) ) 
+
+#define ID3D11VideoContext2_ConfigureAuthenticatedChannel(This,pChannel,InputSize,pInput,pOutput)	\
+    ( (This)->lpVtbl -> ConfigureAuthenticatedChannel(This,pChannel,InputSize,pInput,pOutput) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamRotation(This,pVideoProcessor,StreamIndex,Enable,Rotation)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamRotation(This,pVideoProcessor,StreamIndex,Enable,Rotation) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamRotation(This,pVideoProcessor,StreamIndex,pEnable,pRotation)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamRotation(This,pVideoProcessor,StreamIndex,pEnable,pRotation) ) 
+
+
+#define ID3D11VideoContext2_SubmitDecoderBuffers1(This,pDecoder,NumBuffers,pBufferDesc)	\
+    ( (This)->lpVtbl -> SubmitDecoderBuffers1(This,pDecoder,NumBuffers,pBufferDesc) ) 
+
+#define ID3D11VideoContext2_GetDataForNewHardwareKey(This,pCryptoSession,PrivateInputSize,pPrivatInputData,pPrivateOutputData)	\
+    ( (This)->lpVtbl -> GetDataForNewHardwareKey(This,pCryptoSession,PrivateInputSize,pPrivatInputData,pPrivateOutputData) ) 
+
+#define ID3D11VideoContext2_CheckCryptoSessionStatus(This,pCryptoSession,pStatus)	\
+    ( (This)->lpVtbl -> CheckCryptoSessionStatus(This,pCryptoSession,pStatus) ) 
+
+#define ID3D11VideoContext2_DecoderEnableDownsampling(This,pDecoder,InputColorSpace,pOutputDesc,ReferenceFrameCount)	\
+    ( (This)->lpVtbl -> DecoderEnableDownsampling(This,pDecoder,InputColorSpace,pOutputDesc,ReferenceFrameCount) ) 
+
+#define ID3D11VideoContext2_DecoderUpdateDownsampling(This,pDecoder,pOutputDesc)	\
+    ( (This)->lpVtbl -> DecoderUpdateDownsampling(This,pDecoder,pOutputDesc) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetOutputColorSpace1(This,pVideoProcessor,ColorSpace)	\
+    ( (This)->lpVtbl -> VideoProcessorSetOutputColorSpace1(This,pVideoProcessor,ColorSpace) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetOutputShaderUsage(This,pVideoProcessor,ShaderUsage)	\
+    ( (This)->lpVtbl -> VideoProcessorSetOutputShaderUsage(This,pVideoProcessor,ShaderUsage) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetOutputColorSpace1(This,pVideoProcessor,pColorSpace)	\
+    ( (This)->lpVtbl -> VideoProcessorGetOutputColorSpace1(This,pVideoProcessor,pColorSpace) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetOutputShaderUsage(This,pVideoProcessor,pShaderUsage)	\
+    ( (This)->lpVtbl -> VideoProcessorGetOutputShaderUsage(This,pVideoProcessor,pShaderUsage) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamColorSpace1(This,pVideoProcessor,StreamIndex,ColorSpace)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamColorSpace1(This,pVideoProcessor,StreamIndex,ColorSpace) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamMirror(This,pVideoProcessor,StreamIndex,Enable,FlipHorizontal,FlipVertical)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamMirror(This,pVideoProcessor,StreamIndex,Enable,FlipHorizontal,FlipVertical) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamColorSpace1(This,pVideoProcessor,StreamIndex,pColorSpace)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamColorSpace1(This,pVideoProcessor,StreamIndex,pColorSpace) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamMirror(This,pVideoProcessor,StreamIndex,pEnable,pFlipHorizontal,pFlipVertical)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamMirror(This,pVideoProcessor,StreamIndex,pEnable,pFlipHorizontal,pFlipVertical) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetBehaviorHints(This,pVideoProcessor,OutputWidth,OutputHeight,OutputFormat,StreamCount,pStreams,pBehaviorHints)	\
+    ( (This)->lpVtbl -> VideoProcessorGetBehaviorHints(This,pVideoProcessor,OutputWidth,OutputHeight,OutputFormat,StreamCount,pStreams,pBehaviorHints) ) 
+
+
+#define ID3D11VideoContext2_VideoProcessorSetOutputHDRMetaData(This,pVideoProcessor,Type,Size,pHDRMetaData)	\
+    ( (This)->lpVtbl -> VideoProcessorSetOutputHDRMetaData(This,pVideoProcessor,Type,Size,pHDRMetaData) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetOutputHDRMetaData(This,pVideoProcessor,pType,Size,pMetaData)	\
+    ( (This)->lpVtbl -> VideoProcessorGetOutputHDRMetaData(This,pVideoProcessor,pType,Size,pMetaData) ) 
+
+#define ID3D11VideoContext2_VideoProcessorSetStreamHDRMetaData(This,pVideoProcessor,StreamIndex,Type,Size,pHDRMetaData)	\
+    ( (This)->lpVtbl -> VideoProcessorSetStreamHDRMetaData(This,pVideoProcessor,StreamIndex,Type,Size,pHDRMetaData) ) 
+
+#define ID3D11VideoContext2_VideoProcessorGetStreamHDRMetaData(This,pVideoProcessor,StreamIndex,pType,Size,pMetaData)	\
+    ( (This)->lpVtbl -> VideoProcessorGetStreamHDRMetaData(This,pVideoProcessor,StreamIndex,pType,Size,pMetaData) ) 
+
+#endif /* COBJMACROS */
+
+
+#endif 	/* C style interface */
+
+
+
+
+#endif 	/* __ID3D11VideoContext2_INTERFACE_DEFINED__ */
+
+
+/* interface __MIDL_itf_d3d11_4_0000_0003 */
 /* [local] */ 
+
+typedef struct D3D11_FEATURE_DATA_D3D11_OPTIONS4
+    {
+    BOOL ExtendedNV12SharedTextureSupported;
+    } 	D3D11_FEATURE_DATA_D3D11_OPTIONS4;
 
 #endif /* WINAPI_FAMILY_PARTITION(WINAPI_PARTITION_APP) */
 #pragma endregion
 DEFINE_GUID(IID_ID3D11Device4,0x8992ab71,0x02e6,0x4b8d,0xba,0x48,0xb0,0x56,0xdc,0xda,0x42,0xc4);
+DEFINE_GUID(IID_ID3D11Multithread,0x9B7E4E00,0x342C,0x4106,0xA1,0x9F,0x4F,0x27,0x04,0xF6,0x89,0xF0);
+DEFINE_GUID(IID_ID3D11VideoContext2,0xC4E7374C,0x6243,0x4D1B,0xAE,0x87,0x52,0xB4,0xF7,0x40,0xE2,0x61);
 
 
-extern RPC_IF_HANDLE __MIDL_itf_d3d11_4_0000_0001_v0_0_c_ifspec;
-extern RPC_IF_HANDLE __MIDL_itf_d3d11_4_0000_0001_v0_0_s_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_d3d11_4_0000_0003_v0_0_c_ifspec;
+extern RPC_IF_HANDLE __MIDL_itf_d3d11_4_0000_0003_v0_0_s_ifspec;
 
 /* Additional Prototypes for ALL interfaces */
 
