@@ -66,7 +66,10 @@ typedef void GLvoid;
 typedef struct __GLsync *GLsync;
 typedef khronos_int64_t GLint64;
 typedef khronos_uint64_t GLuint64;
+// allow for overrides
+#ifndef GLenum
 typedef unsigned int GLenum;
+#endif
 typedef unsigned int GLuint;
 typedef char GLchar;
 typedef khronos_float_t GLfloat;

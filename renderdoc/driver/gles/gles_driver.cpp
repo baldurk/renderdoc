@@ -1262,6 +1262,14 @@ void WrappedGLES::RegisterContext(GLESWindowingData winData, void *shareContext,
 
 void WrappedGLES::ActivateContext(GLESWindowingData winData)
 {
+
+    {
+        const GLHookSet &gl = m_Real;
+        gl.glDebugMessageCallback(&DebugSnoopStatic, this);
+        gl.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
+        gl.glDebugMessageControl(eGL_DONT_CARE, eGL_DEBUG_TYPE_ERROR, eGL_DONT_CARE, 0, NULL, GL_TRUE);
+    }
+
   m_ActiveContexts[Threading::GetCurrentID()] = winData;
   if(winData.ctx)
   {
@@ -1308,7 +1316,7 @@ void WrappedGLES::ActivateContext(GLESWindowingData winData)
     }
 
     ContextData &ctxdata = m_ContextData[winData.ctx];
-
+    
     if(!ctxdata.built)
     {
       ctxdata.built = true;

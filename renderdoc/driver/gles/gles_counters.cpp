@@ -123,9 +123,9 @@ void GLESReplay::FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnod
 
     if(timer->obj)
     {
-      m_pDriver->glBeginQuery(eGL_TIME_ELAPSED, timer->obj);
+      m_pDriver->glBeginQuery(eGL_TIME_ELAPSED_EXT, timer->obj);
       m_pDriver->ReplayLog(ctx.eventStart, d.eventID, eReplay_OnlyDraw);
-      m_pDriver->glEndQuery(eGL_TIME_ELAPSED);
+      m_pDriver->glEndQuery(eGL_TIME_ELAPSED_EXT);
     }
     else
     {
@@ -164,10 +164,6 @@ vector<CounterResult> GLESReplay::FetchCounters(const vector<uint32_t> &counters
 
     double nanosToSecs = 1.0 / 1000000000.0;
 
-    GLuint prevbind = 0;
-    m_pDriver->glGetIntegerv(eGL_QUERY_BUFFER_BINDING, (GLint *)&prevbind);
-    m_pDriver->glBindBuffer(eGL_QUERY_BUFFER, 0);
-
     for(size_t i = 0; i < ctx.timers.size(); i++)
     {
       if(ctx.timers[i].obj)
@@ -185,7 +181,6 @@ vector<CounterResult> GLESReplay::FetchCounters(const vector<uint32_t> &counters
       }
     }
 
-    m_pDriver->glBindBuffer(eGL_QUERY_BUFFER, prevbind);
   }
 
   for(size_t i = 0; i < ctx.timers.size(); i++)

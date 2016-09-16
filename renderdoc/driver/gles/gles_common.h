@@ -25,6 +25,10 @@
 
 #pragma once
 
+#ifndef APIENTRY
+#define APIENTRY
+#endif
+
 // typed enum so that templates will pick up specialisations
 // header must be included before the official headers, so we/
 // separate it out to avoid clang-format sorting them differently
@@ -32,8 +36,8 @@
 #include "gles_enum.h"
 
 // official headers
-#include "official/glcorearb.h"
-#include "official/glext.h"
+#include "official/gl32.h"
+#include "official/gl2ext.h"
 
 #if defined(RENDERDOC_PLATFORM_WIN32)
 #include "official/wglext.h"
@@ -118,14 +122,6 @@ struct GLESWindowingData
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func) \
   ret func;                                      \
   bool CONCAT(Serialise_, func);
-
-// no longer in glcorearb.h or glext.h
-const GLenum eGL_LUMINANCE = (GLenum)0x1909;
-const GLenum eGL_LUMINANCE_ALPHA = (GLenum)0x190A;
-const GLenum eGL_INTENSITY = (GLenum)0x8049;
-const GLenum eGL_LIGHTING = (GLenum)0x0B50;
-const GLenum eGL_ALPHA_TEST = (GLenum)0x0BC0;
-const GLenum eGL_CLAMP = (GLenum)0x2900;
 
 // convenience, the script to pick these out doesn't find them since they are #define'd
 // to just straight integers not hex codes

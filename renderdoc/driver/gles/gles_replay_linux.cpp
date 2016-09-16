@@ -65,6 +65,12 @@ DEF_FUNC(eglGetProcAddress);
 #define CALL_DEBUG() while (false)
 #endif
 
+#define EGL_CONTEXT_FLAGS_KHR                              0x30FC
+
+#define EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR               0x00000001
+#define EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR  0x00000002
+#define EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR       0x00000004
+
 const GLHookSet &GetRealGLFunctions();
 
 const char* getEGLErrorString(EGLint errorCode)
@@ -100,8 +106,8 @@ void printEGLError(const char* const function, const char* const location)
 
 void GLESReplay::MakeCurrentReplayContext(GLESWindowingData *ctx)
 {
-    CALL_DEBUG();
-    printf("mcrc: egldisplay:%p surface:%p ctx:%p\n", ctx->eglDisplay, ctx->surface, ctx->ctx);
+    //CALL_DEBUG();
+    //printf("mcrc: egldisplay:%p surface:%p ctx:%p\n", ctx->eglDisplay, ctx->surface, ctx->ctx);
     static GLESWindowingData *prev = NULL;
     if(REAL(eglMakeCurrent) && ctx && ctx != prev)
     {
@@ -114,7 +120,7 @@ void GLESReplay::MakeCurrentReplayContext(GLESWindowingData *ctx)
 
 void GLESReplay::SwapBuffers(GLESWindowingData* data)
 {
-    CALL_DEBUG();
+    //CALL_DEBUG();
     REAL(eglSwapBuffers)(data->eglDisplay, data->surface);
     EGL_RETURN_DEBUG(eglSwapBuffers);
     printf("sb: egldisplay:%p surface:%p ctx:%p\n", data->eglDisplay, data->surface, data->ctx);
@@ -128,7 +134,7 @@ void GLESReplay::CloseReplayContext()
 
 static bool getEGLDisplayAndConfig(Display * const display, EGLDisplay * const egl_display, EGLConfig * const config, const EGLint * const attribs)
 {
-    *egl_display = REAL(eglGetDisplay)(display);
+    *egl_display = REAL(eglGetDisplay)(EGL_DEFAULT_DISPLAY);
     EGL_RETURN_DEBUG(eglGetDisplay);
     if (!egl_display)
         return false;
@@ -180,11 +186,14 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
     }
 
     static const EGLint attribs[] = {
-        EGL_RED_SIZE, 1,
-        EGL_GREEN_SIZE, 1,
-        EGL_BLUE_SIZE, 1,
-        EGL_DEPTH_SIZE, 1,
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_RED_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_BLUE_SIZE, 8,
+        EGL_SURFACE_TYPE, EGL_PBUFFER_BIT |  EGL_PIXMAP_BIT | EGL_WINDOW_BIT,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT,
+        EGL_CONFORMANT, EGL_OPENGL_ES3_BIT,
+        EGL_COLOR_BUFFER_TYPE, EGL_RGB_BUFFER,
+        
         EGL_NONE
     };
 
@@ -195,10 +204,12 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
 
     static const EGLint ctx_attribs[] = {
         EGL_CONTEXT_CLIENT_VERSION, 3,
+        EGL_CONTEXT_FLAGS_KHR, EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
         EGL_NONE
     };
-
-    EGLContext ctx = REAL(eglCreateContext)(egl_display, config, EGL_NO_CONTEXT, ctx_attribs);
+    printf("display:%p ctx:%p\n", egl_display, m_ReplayCtx.ctx);
+    //EGLContext ctx = REAL(eglCreateContext)(egl_display, config, EGL_NO_CONTEXT, ctx_attribs);
+    EGLContext ctx = REAL(eglCreateContext)(egl_display, config, m_ReplayCtx.ctx, ctx_attribs);
     EGL_RETURN_DEBUG(eglCreateContext);
     
     EGLSurface surface = NULL;
@@ -229,7 +240,6 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
     printf("New output window (%dx%d)\n", outputWin.height, outputWin.width);
 
     MakeCurrentReplayContext(&outputWin);
-    //m_ReplayCtx = outputWin;
     
     uint64_t windowId = m_OutputWindowID++;
     m_OutputWindows[windowId] = outputWin;
@@ -300,11 +310,12 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
         return eReplayCreate_InternalError;
 
     static const EGLint attribs[] = {
-        EGL_RED_SIZE, 1,
-        EGL_GREEN_SIZE, 1,
-        EGL_BLUE_SIZE, 1,
-        EGL_DEPTH_SIZE, 1,
-        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES2_BIT,
+        EGL_RED_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_BLUE_SIZE, 8,
+        EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT,
+        EGL_CONFORMANT, EGL_OPENGL_ES3_BIT,
+        EGL_SURFACE_TYPE, EGL_PBUFFER_BIT |  EGL_PIXMAP_BIT | EGL_WINDOW_BIT,
         EGL_NONE
     };
 
@@ -322,6 +333,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
     
     static const EGLint ctx_attribs[] = {
         EGL_CONTEXT_CLIENT_VERSION, 3,
+        EGL_CONTEXT_FLAGS_KHR, EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
         EGL_NONE
     };
 

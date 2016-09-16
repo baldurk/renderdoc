@@ -3533,8 +3533,11 @@ bool WrappedGLES::Serialise_glClear(GLbitfield mask)
   SERIALISE_ELEMENT(uint32_t, Mask, mask);
 
   if(m_State <= EXECUTING)
-    m_Real.glClear(Mask);
-
+  {
+    //m_Real.glClear(Mask);
+    m_Real.glClear(0xFFFFFFFF);
+    printf("glClear(): %d\n", m_Real.glGetError());
+  }
   const string desc = m_pSerialiser->GetDebugStr();
 
   Serialise_DebugMessages();
