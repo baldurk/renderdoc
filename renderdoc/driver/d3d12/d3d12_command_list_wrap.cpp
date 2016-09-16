@@ -209,6 +209,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
         m_Cmd->m_RerecordCmds[bakeId] = list;
         m_Cmd->m_RerecordCmds[CommandList] = list;
       }
+
+      m_Cmd->m_RenderState.pipe = GetResID(pInitialState);
     }
 
     m_Cmd->m_BakedCmdListInfo[CommandList].curEventID = 0;
