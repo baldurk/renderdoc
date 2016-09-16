@@ -571,6 +571,9 @@ void Serialiser::Serialise(const char *name, D3D12_SHADER_RESOURCE_VIEW_DESC &el
 
   switch(el.ViewDimension)
   {
+    case D3D12_SRV_DIMENSION_UNKNOWN:
+      // indicates an empty descriptor, which comes from a NULL parameter to Create.
+      break;
     case D3D12_SRV_DIMENSION_BUFFER:
       Serialise("Buffer.FirstElement", el.Buffer.FirstElement);
       Serialise("Buffer.NumElements", el.Buffer.NumElements);
@@ -641,6 +644,9 @@ void Serialiser::Serialise(const char *name, D3D12_RENDER_TARGET_VIEW_DESC &el)
 
   switch(el.ViewDimension)
   {
+    case D3D12_RTV_DIMENSION_UNKNOWN:
+      // indicates an empty descriptor, which comes from a NULL parameter to Create.
+      break;
     case D3D12_RTV_DIMENSION_BUFFER:
       Serialise("Buffer.FirstElement", el.Buffer.FirstElement);
       Serialise("Buffer.NumElements", el.Buffer.NumElements);
@@ -690,6 +696,9 @@ void Serialiser::Serialise(const char *name, D3D12_DEPTH_STENCIL_VIEW_DESC &el)
 
   switch(el.ViewDimension)
   {
+    case D3D12_DSV_DIMENSION_UNKNOWN:
+      // indicates an empty descriptor, which comes from a NULL parameter to Create.
+      break;
     case D3D12_DSV_DIMENSION_TEXTURE1D:
       Serialise("Texture1D.MipSlice", el.Texture1D.MipSlice);
       break;
@@ -727,6 +736,9 @@ void Serialiser::Serialise(const char *name, D3D12_UNORDERED_ACCESS_VIEW_DESC &e
 
   switch(el.ViewDimension)
   {
+    case D3D12_UAV_DIMENSION_UNKNOWN:
+      // indicates an empty descriptor, which comes from a NULL parameter to Create.
+      break;
     case D3D12_UAV_DIMENSION_BUFFER:
       Serialise("Buffer.FirstElement", el.Buffer.FirstElement);
       Serialise("Buffer.NumElements", el.Buffer.NumElements);

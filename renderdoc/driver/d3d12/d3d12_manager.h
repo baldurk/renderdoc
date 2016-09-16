@@ -148,7 +148,7 @@ struct D3D12Descriptor
   void Init(ID3D12Resource *pResource, const D3D12_RENDER_TARGET_VIEW_DESC *pDesc);
   void Init(ID3D12Resource *pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC *pDesc);
 
-  void Create(ID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HANDLE handle);
+  void Create(WrappedID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HANDLE handle);
   void CopyFrom(const D3D12Descriptor &src);
 
   union

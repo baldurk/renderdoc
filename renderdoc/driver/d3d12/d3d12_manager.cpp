@@ -88,7 +88,42 @@ void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_DEPTH_STENCIL_
     RDCEraseEl(nonsamp.dsv);
 }
 
-void D3D12Descriptor::Create(ID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+// these are used to create NULL descriptors where necessary
+static D3D12_SHADER_RESOURCE_VIEW_DESC *defaultSRV()
+{
+  static D3D12_SHADER_RESOURCE_VIEW_DESC ret = {};
+  ret.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  ret.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+  ret.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+  ret.Texture2D.MipLevels = 1;
+  return &ret;
+}
+
+static D3D12_RENDER_TARGET_VIEW_DESC *defaultRTV()
+{
+  static D3D12_RENDER_TARGET_VIEW_DESC ret = {};
+  ret.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  ret.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+  return &ret;
+}
+
+static D3D12_DEPTH_STENCIL_VIEW_DESC *defaultDSV()
+{
+  static D3D12_DEPTH_STENCIL_VIEW_DESC ret = {};
+  ret.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  ret.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+  return &ret;
+}
+
+static D3D12_UNORDERED_ACCESS_VIEW_DESC *defaultUAV()
+{
+  static D3D12_UNORDERED_ACCESS_VIEW_DESC ret = {};
+  ret.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+  ret.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+  return &ret;
+}
+
+void D3D12Descriptor::Create(WrappedID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
   D3D12Descriptor::DescriptorType type = GetType();
 
@@ -106,23 +141,46 @@ void D3D12Descriptor::Create(ID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HANDLE hand
     }
     case D3D12Descriptor::TypeSRV:
     {
-      dev->CreateShaderResourceView(nonsamp.resource, &nonsamp.srv, handle);
+      D3D12_SHADER_RESOURCE_VIEW_DESC *desc = &nonsamp.srv;
+      if(desc->ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
+      {
+        desc = nonsamp.resource ? NULL : defaultSRV();
+      }
+
+      dev->CreateShaderResourceView(nonsamp.resource, desc, handle);
       break;
     }
     case D3D12Descriptor::TypeRTV:
     {
-      dev->CreateRenderTargetView(nonsamp.resource, &nonsamp.rtv, handle);
+      D3D12_RENDER_TARGET_VIEW_DESC *desc = &nonsamp.rtv;
+      if(desc->ViewDimension == D3D12_RTV_DIMENSION_UNKNOWN)
+      {
+        desc = nonsamp.resource ? NULL : defaultRTV();
+      }
+
+      dev->CreateRenderTargetView(nonsamp.resource, desc, handle);
       break;
     }
     case D3D12Descriptor::TypeDSV:
     {
-      dev->CreateDepthStencilView(nonsamp.resource, &nonsamp.dsv, handle);
+      D3D12_DEPTH_STENCIL_VIEW_DESC *desc = &nonsamp.dsv;
+      if(desc->ViewDimension == D3D12_DSV_DIMENSION_UNKNOWN)
+        desc = nonsamp.resource ? NULL : defaultDSV();
+
+      dev->CreateDepthStencilView(nonsamp.resource, desc, handle);
       break;
     }
     case D3D12Descriptor::TypeUAV:
     {
-      D3D12_UNORDERED_ACCESS_VIEW_DESC desc = nonsamp.uav.desc.AsDesc();
-      dev->CreateUnorderedAccessView(nonsamp.resource, nonsamp.uav.counterResource, &desc, handle);
+      D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc = nonsamp.uav.desc.AsDesc();
+
+      D3D12_UNORDERED_ACCESS_VIEW_DESC *desc = &uavdesc;
+      if(uavdesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
+      {
+        desc = nonsamp.resource ? NULL : defaultUAV();
+      }
+
+      dev->CreateUnorderedAccessView(nonsamp.resource, nonsamp.uav.counterResource, desc, handle);
       break;
     }
     case D3D12Descriptor::TypeUndefined:
@@ -130,16 +188,7 @@ void D3D12Descriptor::Create(ID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HANDLE hand
       // initially descriptors are undefined. This way we just init with
       // a null SRV descriptor so it's valid to copy around etc but is no
       // less undefined for the application to use
-      D3D12_SHADER_RESOURCE_VIEW_DESC desc;
-      desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-      desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-      desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-      desc.Texture2D.MipLevels = 1;
-      desc.Texture2D.MostDetailedMip = 0;
-      desc.Texture2D.PlaneSlice = 0;
-      desc.Texture2D.ResourceMinLODClamp = 0.0f;
-
-      dev->CreateShaderResourceView(NULL, &desc, handle);
+      dev->CreateShaderResourceView(NULL, defaultSRV(), handle);
       break;
     }
   }
