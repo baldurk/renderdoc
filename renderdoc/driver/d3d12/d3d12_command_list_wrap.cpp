@@ -287,10 +287,13 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
       m_ListRecord->AddChunk(scope.Get());
     }
 
-    // add allocator and initial state (if there is one) as parents
-    m_ListRecord->AddParent(GetRecord(pAllocator));
+    // add allocator and initial state (if there is one) as frame refs. We can't add
+    // them as parents of the list record because it won't get directly referenced
+    // (just the baked commands), and we can't parent them onto the baked commands
+    // because that would pull them into the capture section.
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pAllocator), eFrameRef_Read);
     if(pInitialState)
-      m_ListRecord->AddParent(GetRecord(pInitialState));
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(pInitialState), eFrameRef_Read);
 
     if(firstTime)
       return S_OK;
