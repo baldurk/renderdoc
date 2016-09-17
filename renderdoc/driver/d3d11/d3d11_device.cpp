@@ -1921,7 +1921,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
           HRESULT hr = E_INVALIDARG;
 
           if(stage)
-            hr = m_pImmediateContext->GetReal()->Map(stage, 0, D3D11_MAP_READ, 0, &mapped);
+            hr = m_pImmediateContext->GetReal()->Map(stage, sub, D3D11_MAP_READ, 0, &mapped);
           else
             RDCERR(
                 "Didn't have stage resource for %llu when serialising initial state! "
@@ -1965,7 +1965,7 @@ bool WrappedID3D11Device::Serialise_InitialState(ResourceId resid, ID3D11DeviceC
           m_pSerialiser->SerialiseBuffer("", inmemBuffer, len);
 
           if(SUCCEEDED(hr))
-            m_pImmediateContext->GetReal()->Unmap(stage, 0);
+            m_pImmediateContext->GetReal()->Unmap(stage, sub);
         }
         else
         {
