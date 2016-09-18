@@ -74,11 +74,9 @@ bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C,
 	return Result;
 }
 
-void main()
+void trianglePath(uint threadID)
 {
-	uvec3 tid = gl_GlobalInvocationID;
-
-	uint vertid = tid.x;
+	uint vertid = threadID;
 
 	// NOTE(james): when I turn on following early out the shader doesn't do anything.
 	// so I end up with a lot of duplicated work on smaller meshes
@@ -92,14 +90,16 @@ void main()
 	uint idx2 = 0;
 	switch (meshpick.meshMode)
 	{
-		case MESH_TRIANGLE_LIST:{
+		case MESH_TRIANGLE_LIST:
+		{
 			vertid *= 3;
 			idx0 = meshpick.use_indices != 0u ? ib.data[vertid  ] : vertid;
 			idx1 = meshpick.use_indices != 0u ? ib.data[vertid+1] : vertid+1;
 			idx2 = meshpick.use_indices != 0u ? ib.data[vertid+2] : vertid+2;
 			break;
 		}
-		case MESH_TRIANGLE_STRIP:{
+		case MESH_TRIANGLE_STRIP:
+		{
 			idx0 = meshpick.use_indices != 0u ? ib.data[vertid  ] : vertid;
 			idx1 = meshpick.use_indices != 0u ? ib.data[vertid+1] : vertid+1;
 			idx2 = meshpick.use_indices != 0u ? ib.data[vertid+2] : vertid+2;
@@ -137,4 +137,52 @@ void main()
 		pickresult.results[result_idx] = uvec4(vertid, 
 			floatBitsToUint(hitPosition.x), floatBitsToUint(hitPosition.y), floatBitsToUint(hitPosition.z));	
 	}
+
+}
+
+void defaultPath(uint threadID)
+{
+	uint vertid = threadID;
+
+	if(vertid >= meshpick.numVerts)
+		return;
+
+	uint idx = meshpick.use_indices != 0u ? ib.data[vertid] : vertid;
+
+	vec4 pos = vb.data[idx];
+
+#ifdef VULKAN
+	if(meshpick.unproject == 1u)
+		pos = vec4(pos.x, -pos.y, pos.z, pos.w);
+#endif
+
+	vec4 wpos = meshpick.mvp * pos;
+
+	wpos.xyz /= wpos.www;
+
+	wpos.xy *= vec2(1.0f, -1.0f);
+
+	vec2 scr = (wpos.xy + 1.0f) * 0.5f * meshpick.viewport;
+
+	// close to target co-ords? add to list
+	float len = length(scr - meshpick.coords);
+	if(len < 35.0f)
+	{
+		uint result_idx = atomicAdd(pickresult.counter.x, 1u);
+		pickresult.results[result_idx] = uvec4(vertid, idx, floatBitsToUint(len), floatBitsToUint(wpos.z));
+	}
+}
+
+void main()
+{
+	if (meshpick.meshMode == MESH_TRIANGLE_LIST ||
+		meshpick.meshMode == MESH_TRIANGLE_STRIP)
+	{
+		trianglePath(gl_GlobalInvocationID.x);
+	}
+	else
+	{
+		defaultPath(gl_GlobalInvocationID.x);
+	}
+	
 }

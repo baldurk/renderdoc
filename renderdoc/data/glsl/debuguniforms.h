@@ -130,8 +130,9 @@ BINDING(0) uniform FontUBOData
 }
 INST_NAME(general);
 
-#define MESH_TRIANGLE_LIST 0
-#define MESH_TRIANGLE_STRIP 1
+#define MESH_OTHER 0    // this covers points and lines, logic is the same
+#define MESH_TRIANGLE_LIST 1
+#define MESH_TRIANGLE_STRIP 2
 BINDING(0) uniform MeshPickUBOData
 {
   vec3 rayPos;
@@ -140,8 +141,14 @@ BINDING(0) uniform MeshPickUBOData
   vec3 rayDir;
   uint numVerts;
 
-  int meshMode;//triangles, triangle strip, fan, etc...
-  vec3 padding;
+  vec2 coords;
+  vec2 viewport;
+
+  uint meshMode;    // triangles, triangle strip, fan, etc...
+  uint unproject;
+  vec2 padding;
+
+  mat4 mvp;
 }
 INST_NAME(meshpick);
 

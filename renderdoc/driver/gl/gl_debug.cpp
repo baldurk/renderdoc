@@ -1076,24 +1076,34 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
   cdata->rayDir = rayDir;
   cdata->use_indices = cfg.position.idxByteWidth ? 1U : 0U;
   cdata->numVerts = cfg.position.numVerts;
+
+  bool isTriangleMesh = false;
   switch(cfg.position.topo)
   {
     case eTopology_TriangleList:
     {
       cdata->meshMode = MESH_TRIANGLE_LIST;
+      isTriangleMesh = true;
       break;
     };
     case eTopology_TriangleStrip:
     {
       cdata->meshMode = MESH_TRIANGLE_STRIP;
+      isTriangleMesh = true;
       break;
     };
     default:
     {
-      cdata->meshMode = -1;
-      RDCWARN("Mesh type unsupported by picking");
+      cdata->meshMode = MESH_OTHER;
+      RDCWARN("Mesh type defaulting to screenspace point picking");
     };
   }
+
+  // line/point data
+  cdata->unproject = cfg.position.unproject;
+  cdata->mvp = PickMVP;
+  cdata->coords = Vec2f((float)x, (float)y);
+  cdata->viewport = Vec2f(DebugData.outWidth, DebugData.outHeight);
 
   gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
@@ -1213,44 +1223,88 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
 
   if(numResults > 0)
   {
-    struct PickResult
+    if(isTriangleMesh)
     {
-      uint32_t vertid;
-      vec3 intersectionPoint;
-    };
-
-    byte *mapped = (byte *)gl.glMapNamedBufferEXT(DebugData.pickResultBuf, eGL_READ_ONLY);
-
-    mapped += sizeof(uint32_t) * 4;
-
-    PickResult *pickResults = (PickResult *)mapped;
-
-    PickResult *closest = pickResults;
-    // distance from raycast hit to nearest worldspace position of the mouse
-    float closestPickDistance = (closest->intersectionPoint - rayPos).Length();
-
-    // min with size of results buffer to protect against overflows
-    for(uint32_t i = 1; i < RDCMIN((uint32_t)DebugRenderData::maxMeshPicks, numResults); i++)
-    {
-      // We need to keep the picking order consistent in the face
-      // of random buffer appends, when multiple vertices have the
-      // identical position (e.g. if UVs or normals are different).
-      //
-      // We could do something to try and disambiguate, but it's
-      // never going to be intuitive, it's just going to flicker
-      // confusingly.
-      float pickDistance = (pickResults[i].intersectionPoint - rayPos).Length();
-      if(pickDistance < closestPickDistance)
+      struct PickResult
       {
-        closest = pickResults + i;
+        uint32_t vertid;
+        vec3 intersectionPoint;
+      };
+
+      byte *mapped = (byte *)gl.glMapNamedBufferEXT(DebugData.pickResultBuf, eGL_READ_ONLY);
+
+      mapped += sizeof(uint32_t) * 4;
+
+      PickResult *pickResults = (PickResult *)mapped;
+
+      PickResult *closest = pickResults;
+      // distance from raycast hit to nearest worldspace position of the mouse
+      float closestPickDistance = (closest->intersectionPoint - rayPos).Length();
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN((uint32_t)DebugRenderData::maxMeshPicks, numResults); i++)
+      {
+        // We need to keep the picking order consistent in the face
+        // of random buffer appends, when multiple vertices have the
+        // identical position (e.g. if UVs or normals are different).
+        //
+        // We could do something to try and disambiguate, but it's
+        // never going to be intuitive, it's just going to flicker
+        // confusingly.
+        float pickDistance = (pickResults[i].intersectionPoint - rayPos).Length();
+        if(pickDistance < closestPickDistance)
+        {
+          closest = pickResults + i;
+        }
       }
+
+      uint32_t ret = closest->vertid;
+
+      gl.glUnmapNamedBufferEXT(DebugData.pickResultBuf);
+
+      return ret;
     }
+    else
+    {
+      struct PickResult
+      {
+        uint32_t vertid;
+        uint32_t idx;
+        float len;
+        float depth;
+      };
 
-    uint32_t ret = closest->vertid;
+      byte *mapped = (byte *)gl.glMapNamedBufferEXT(DebugData.pickResultBuf, eGL_READ_ONLY);
 
-    gl.glUnmapNamedBufferEXT(DebugData.pickResultBuf);
+      mapped += sizeof(uint32_t) * 4;
 
-    return ret;
+      PickResult *pickResults = (PickResult *)mapped;
+
+      PickResult *closest = pickResults;
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN((uint32_t)DebugRenderData::maxMeshPicks, numResults); i++)
+      {
+        // We need to keep the picking order consistent in the face
+        // of random buffer appends, when multiple vertices have the
+        // identical position (e.g. if UVs or normals are different).
+        //
+        // We could do something to try and disambiguate, but it's
+        // never going to be intuitive, it's just going to flicker
+        // confusingly.
+        if(pickResults[i].len < closest->len ||
+           (pickResults[i].len == closest->len && pickResults[i].depth < closest->depth) ||
+           (pickResults[i].len == closest->len && pickResults[i].depth == closest->depth &&
+            pickResults[i].vertid < closest->vertid))
+          closest = pickResults + i;
+      }
+
+      uint32_t ret = closest->vertid;
+
+      gl.glUnmapNamedBufferEXT(DebugData.pickResultBuf);
+
+      return ret;
+    }
   }
 
   return ~0U;
