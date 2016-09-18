@@ -1076,8 +1076,24 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
   cdata->rayDir = rayDir;
   cdata->use_indices = cfg.position.idxByteWidth ? 1U : 0U;
   cdata->numVerts = cfg.position.numVerts;
-  // cdata->unproject = cfg.position.unproject;
-  // cdata->mvp = PickMVP;
+  switch(cfg.position.topo)
+  {
+    case eTopology_TriangleList:
+    {
+      cdata->meshMode = MESH_TRIANGLE_LIST;
+      break;
+    };
+    case eTopology_TriangleStrip:
+    {
+      cdata->meshMode = MESH_TRIANGLE_STRIP;
+      break;
+    };
+    default:
+    {
+      cdata->meshMode = -1;
+      RDCWARN("Mesh type unsupported by picking");
+    };
+  }
 
   gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
@@ -1187,8 +1203,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
       (GLsizeiptr)(cfg.position.idxoffs + cfg.position.idxByteWidth * cfg.position.numVerts));
   gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 3, DebugData.pickResultBuf);
 
-  gl.glDispatchCompute(GLuint((cfg.position.numVerts / 3) / 128 + 1), 1,
-                       1);    // launch one thread per triangle
+  gl.glDispatchCompute(GLuint((cfg.position.numVerts) / 128 + 1), 1, 1);
   gl.glMemoryBarrier(GL_ATOMIC_COUNTER_BARRIER_BIT | GL_SHADER_STORAGE_BARRIER_BIT);
 
   uint32_t numResults = 0;

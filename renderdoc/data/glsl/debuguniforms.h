@@ -130,12 +130,18 @@ BINDING(0) uniform FontUBOData
 }
 INST_NAME(general);
 
+#define MESH_TRIANGLE_LIST 0
+#define MESH_TRIANGLE_STRIP 1
 BINDING(0) uniform MeshPickUBOData
 {
   vec3 rayPos;
   uint use_indices;
+
   vec3 rayDir;
   uint numVerts;
+
+  int meshMode;//triangles, triangle strip, fan, etc...
+  vec3 padding;
 }
 INST_NAME(meshpick);
 
