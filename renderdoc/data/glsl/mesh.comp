@@ -50,7 +50,7 @@ bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C,
 	vec3 pvec = cross(RayDirection, v0v2);
 	float det = dot(v0v1, pvec);
 
-	// if the determinant is negative the triangle is backfacing
+	// if the determinant is negative the triangle is backfacing, but we still take those!
 	// if the determinant is close to 0, the ray misses the triangle
 	if (abs(det) > 0.000001f)
 	{
@@ -78,7 +78,7 @@ void main()
 {
 	uvec3 tid = gl_GlobalInvocationID;
 
-	uint vertid = tid.x * 3;
+	uint vertid = tid.x;
 
 	// NOTE(james): when I turn on following early out the shader doesn't do anything.
 	// so I end up with a lot of duplicated work on smaller meshes
@@ -87,11 +87,25 @@ void main()
 	//	return;
 	vertid = uint(mod(float(vertid), float(meshpick.numVerts)));
 	
-
-
-	uint idx0 = meshpick.use_indices != 0u ? ib.data[vertid  ] : vertid;
-	uint idx1 = meshpick.use_indices != 0u ? ib.data[vertid+1] : vertid+1;
-	uint idx2 = meshpick.use_indices != 0u ? ib.data[vertid+2] : vertid+2;
+	uint idx0 = 0;
+	uint idx1 = 0;
+	uint idx2 = 0;
+	switch (meshpick.meshMode)
+	{
+		case MESH_TRIANGLE_LIST:{
+			vertid *= 3;
+			idx0 = meshpick.use_indices != 0u ? ib.data[vertid  ] : vertid;
+			idx1 = meshpick.use_indices != 0u ? ib.data[vertid+1] : vertid+1;
+			idx2 = meshpick.use_indices != 0u ? ib.data[vertid+2] : vertid+2;
+			break;
+		}
+		case MESH_TRIANGLE_STRIP:{
+			idx0 = meshpick.use_indices != 0u ? ib.data[vertid  ] : vertid;
+			idx1 = meshpick.use_indices != 0u ? ib.data[vertid+1] : vertid+1;
+			idx2 = meshpick.use_indices != 0u ? ib.data[vertid+2] : vertid+2;
+			break;
+		}
+	}
 
 	vec4 pos0 = vb.data[idx0];
 	vec4 pos1 = vb.data[idx1];
