@@ -62,19 +62,18 @@ struct D3D12RenderState
     {
       constants.push_back(val);
     }
-    SignatureElement(UINT offs, UINT numVals, const void *vals, UINT destIdx)
+    SignatureElement(UINT numVals, const void *vals, UINT offs)
     {
       type = eRootConst;
-      offset = offs;
-      SetValues(numVals, vals, destIdx);
+      SetValues(numVals, vals, offs);
     }
 
-    void SetValues(UINT numVals, const void *vals, UINT destIdx)
+    void SetValues(UINT numVals, const void *vals, UINT offs)
     {
-      if(constants.size() < destIdx + numVals)
-        constants.resize(destIdx + numVals);
+      if(constants.size() < offs + numVals)
+        constants.resize(offs + numVals);
 
-      memcpy(&constants[destIdx], vals, numVals * sizeof(UINT));
+      memcpy(&constants[offs], vals, numVals * sizeof(UINT));
     }
 
     void SetToCommandList(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot)
@@ -84,8 +83,7 @@ struct D3D12RenderState
         if(constants.size() == 1)
           cmd->SetGraphicsRoot32BitConstant(slot, constants[0], (UINT)offset);
         else
-          cmd->SetGraphicsRoot32BitConstants(slot, (UINT)constants.size(), &constants[0],
-                                             (UINT)offset);
+          cmd->SetGraphicsRoot32BitConstants(slot, (UINT)constants.size(), &constants[0], 0);
       }
       else if(type == eRootTable)
       {

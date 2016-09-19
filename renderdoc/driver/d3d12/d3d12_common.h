@@ -265,12 +265,32 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
   D3D12_CHUNK_MACRO(SET_PIPE, "ID3D12GraphicsCommandList::SetPipelineState")                       \
   D3D12_CHUNK_MACRO(SET_DESC_HEAPS, "ID3D12GraphicsCommandList::SetDescriptorHeaps")               \
   D3D12_CHUNK_MACRO(SET_RTVS, "ID3D12GraphicsCommandList::OMSetRenderTargets")                     \
+                                                                                                   \
   D3D12_CHUNK_MACRO(SET_GFX_ROOT_TABLE,                                                            \
                     "ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable")                   \
   D3D12_CHUNK_MACRO(SET_GFX_ROOT_SIG, "ID3D12GraphicsCommandList::SetGraphicsRootSignature")       \
   D3D12_CHUNK_MACRO(SET_GFX_ROOT_CONST, "ID3D12GraphicsCommandList::SetGraphicsRoot32BitConstant") \
+  D3D12_CHUNK_MACRO(SET_GFX_ROOT_CONSTS,                                                           \
+                    "ID3D12GraphicsCommandList::SetGraphicsRoot32BitConstants")                    \
   D3D12_CHUNK_MACRO(SET_GFX_ROOT_CBV,                                                              \
                     "ID3D12GraphicsCommandList::SetGraphicsRootConstantBufferView")                \
+  D3D12_CHUNK_MACRO(SET_GFX_ROOT_SRV,                                                              \
+                    "ID3D12GraphicsCommandList::SetGraphicsRootShaderResourceView")                \
+  D3D12_CHUNK_MACRO(SET_GFX_ROOT_UAV,                                                              \
+                    "ID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView")               \
+                                                                                                   \
+  D3D12_CHUNK_MACRO(SET_COMP_ROOT_TABLE,                                                           \
+                    "ID3D12GraphicsCommandList::SetComputeRootDescriptorTable")                    \
+  D3D12_CHUNK_MACRO(SET_COMP_ROOT_SIG, "ID3D12GraphicsCommandList::SetComputeRootSignature")       \
+  D3D12_CHUNK_MACRO(SET_COMP_ROOT_CONST, "ID3D12GraphicsCommandList::SetComputeRoot32BitConstant") \
+  D3D12_CHUNK_MACRO(SET_COMP_ROOT_CONSTS,                                                          \
+                    "ID3D12GraphicsCommandList::SetComputeRoot32BitConstants")                     \
+  D3D12_CHUNK_MACRO(SET_COMP_ROOT_CBV,                                                             \
+                    "ID3D12GraphicsCommandList::SetComputeRootConstantBufferView")                 \
+  D3D12_CHUNK_MACRO(SET_COMP_ROOT_SRV,                                                             \
+                    "ID3D12GraphicsCommandList::SetComputeRootShaderResourceView")                 \
+  D3D12_CHUNK_MACRO(SET_COMP_ROOT_UAV,                                                             \
+                    "ID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView")                \
                                                                                                    \
   D3D12_CHUNK_MACRO(EXECUTE_CMD_LISTS, "ID3D12GraphicsCommandQueue::ExecuteCommandLists")          \
   D3D12_CHUNK_MACRO(SIGNAL, "ID3D12GraphicsCommandQueue::Signal")                                  \

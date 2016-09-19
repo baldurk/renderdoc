@@ -291,13 +291,41 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
     case SET_PIPE: m_ReplayList->Serialise_SetPipelineState(NULL); break;
     case SET_RTVS: m_ReplayList->Serialise_OMSetRenderTargets(0, NULL, FALSE, NULL); break;
     case SET_DESC_HEAPS: m_ReplayList->Serialise_SetDescriptorHeaps(0, NULL); break;
+
     case SET_GFX_ROOT_SIG: m_ReplayList->Serialise_SetGraphicsRootSignature(NULL); break;
     case SET_GFX_ROOT_TABLE:
       m_ReplayList->Serialise_SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE());
       break;
     case SET_GFX_ROOT_CONST: m_ReplayList->Serialise_SetGraphicsRoot32BitConstant(0, 0, 0); break;
+    case SET_GFX_ROOT_CONSTS:
+      m_ReplayList->Serialise_SetGraphicsRoot32BitConstants(0, 0, NULL, 0);
+      break;
     case SET_GFX_ROOT_CBV:
       m_ReplayList->Serialise_SetGraphicsRootConstantBufferView(0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case SET_GFX_ROOT_SRV:
+      m_ReplayList->Serialise_SetGraphicsRootShaderResourceView(0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case SET_GFX_ROOT_UAV:
+      m_ReplayList->Serialise_SetGraphicsRootUnorderedAccessView(0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+
+    case SET_COMP_ROOT_SIG: m_ReplayList->Serialise_SetComputeRootSignature(NULL); break;
+    case SET_COMP_ROOT_TABLE:
+      m_ReplayList->Serialise_SetComputeRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE());
+      break;
+    case SET_COMP_ROOT_CONST: m_ReplayList->Serialise_SetComputeRoot32BitConstant(0, 0, 0); break;
+    case SET_COMP_ROOT_CONSTS:
+      m_ReplayList->Serialise_SetComputeRoot32BitConstants(0, 0, NULL, 0);
+      break;
+    case SET_COMP_ROOT_CBV:
+      m_ReplayList->Serialise_SetComputeRootConstantBufferView(0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case SET_COMP_ROOT_SRV:
+      m_ReplayList->Serialise_SetComputeRootShaderResourceView(0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case SET_COMP_ROOT_UAV:
+      m_ReplayList->Serialise_SetComputeRootUnorderedAccessView(0, D3D12_GPU_VIRTUAL_ADDRESS());
       break;
 
     case EXECUTE_CMD_LISTS: Serialise_ExecuteCommandLists(0, NULL); break;
@@ -515,7 +543,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
   m_ListRecord = NULL;
   m_Cmd = NULL;
 
-  m_CurRootSig = NULL;
+  m_CurGfxRootSig = NULL;
 
   if(!RenderDoc::Inst().IsReplayApp())
   {
