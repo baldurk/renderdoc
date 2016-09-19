@@ -1552,7 +1552,7 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
   srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
   srvDesc.Format = GetTypedFormat(resource->GetDesc().Format, cfg.typeHint);
   srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-  srvDesc.Texture2D.MipLevels = 1;
+  srvDesc.Texture2D.MipLevels = ~0U;
   srvDesc.Texture2D.MostDetailedMip = 0;
   srvDesc.Texture2D.PlaneSlice = 0;
   srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
