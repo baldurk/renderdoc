@@ -2825,11 +2825,49 @@ void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat(
   }
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(ID3D12Resource *pResource,
+                                                                 const D3D12_DISCARD_REGION *pRegion)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(ResourceId, res, GetResID(pResource));
+  SERIALISE_ELEMENT(BOOL, HasRegion, pRegion != NULL);
+  SERIALISE_ELEMENT_OPT(D3D12_DISCARD_REGION, region, *pRegion, HasRegion);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    pResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
+
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->DiscardResource(pResource, HasRegion ? &region : NULL);
+    }
+  }
+  else if(m_State == READING)
+  {
+    pResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
+
+    GetList(CommandList)->DiscardResource(pResource, HasRegion ? &region : NULL);
+  }
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::DiscardResource(ID3D12Resource *pResource,
                                                        const D3D12_DISCARD_REGION *pRegion)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->DiscardResource(Unwrap(pResource), pRegion);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(DISCARD_RESOURCE);
+    Serialise_DiscardResource(pResource, pRegion);
+
+    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Write);
+  }
 }
 
 #pragma endregion Clears

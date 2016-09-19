@@ -1022,6 +1022,17 @@ void Serialiser::Serialise(const char *name, D3D12_TEXTURE_COPY_LOCATION &el)
 }
 
 template <>
+void Serialiser::Serialise(const char *name, D3D12_DISCARD_REGION &el)
+{
+  ScopedContext scope(this, name, "D3D12_DISCARD_REGION", 0, true);
+
+  Serialise("FirstSubresource", el.FirstSubresource);
+  Serialise("NumSubresources", el.NumSubresources);
+
+  SerialiseComplexArray("pRects", (D3D12_RECT *&)el.pRects, el.NumRects);
+}
+
+template <>
 void Serialiser::Serialise(const char *name, D3D12_SAMPLER_DESC &el)
 {
   ScopedContext scope(this, name, "D3D12_SAMPLER_DESC", 0, true);

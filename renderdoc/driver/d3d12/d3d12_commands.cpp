@@ -296,6 +296,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
       m_ReplayList->Serialise_ClearUnorderedAccessViewFloat(
           D3D12_GPU_DESCRIPTOR_HANDLE(), D3D12_CPU_DESCRIPTOR_HANDLE(), NULL, NULL, 0, NULL);
       break;
+    case DISCARD_RESOURCE: m_ReplayList->Serialise_DiscardResource(NULL, NULL); break;
 
     case SET_TOPOLOGY:
       m_ReplayList->Serialise_IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED);
