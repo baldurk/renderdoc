@@ -1092,10 +1092,16 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
       isTriangleMesh = true;
       break;
     };
-    default:
+    case eTopology_TriangleFan:
+    {
+      cdata->meshMode = MESH_TRIANGLE_FAN;
+      isTriangleMesh = true;
+      break;
+    };
+    // TODO: TriangleList_Adj, TriangleStrip_Adj
+    default:    // points, lines, patchlists
     {
       cdata->meshMode = MESH_OTHER;
-      RDCWARN("Mesh type defaulting to screenspace point picking");
     };
   }
 
