@@ -1034,6 +1034,15 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootSignature(
       pRootSignature = GetResourceManager()->GetLiveAs<ID3D12RootSignature>(sig);
       Unwrap(m_Cmd->RerecordCmdList(CommandList))->SetComputeRootSignature(Unwrap(pRootSignature));
 
+      // From the docs
+      // (https://msdn.microsoft.com/en-us/library/windows/desktop/dn903950(v=vs.85).aspx)
+      // "If a root signature is changed on a command list, all previous root signature bindings
+      // become stale and all newly expected bindings must be set before Draw/Dispatch; otherwise,
+      // the behavior is undefined. If the root signature is redundantly set to the same one
+      // currently set, existing root signature bindings do not become stale."
+      if(m_Cmd->m_RenderState.compute.rootsig != GetResID(pRootSignature))
+        m_Cmd->m_RenderState.compute.sigelems.clear();
+
       m_Cmd->m_RenderState.compute.rootsig = GetResID(pRootSignature);
     }
   }
@@ -1456,6 +1465,15 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
     {
       pRootSignature = GetResourceManager()->GetLiveAs<ID3D12RootSignature>(sig);
       Unwrap(m_Cmd->RerecordCmdList(CommandList))->SetGraphicsRootSignature(Unwrap(pRootSignature));
+
+      // From the docs
+      // (https://msdn.microsoft.com/en-us/library/windows/desktop/dn903950(v=vs.85).aspx)
+      // "If a root signature is changed on a command list, all previous root signature bindings
+      // become stale and all newly expected bindings must be set before Draw/Dispatch; otherwise,
+      // the behavior is undefined. If the root signature is redundantly set to the same one
+      // currently set, existing root signature bindings do not become stale."
+      if(m_Cmd->m_RenderState.graphics.rootsig != GetResID(pRootSignature))
+        m_Cmd->m_RenderState.graphics.sigelems.clear();
 
       m_Cmd->m_RenderState.graphics.rootsig = GetResID(pRootSignature);
     }
