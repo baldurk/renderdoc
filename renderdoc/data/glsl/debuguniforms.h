@@ -133,6 +133,7 @@ INST_NAME(general);
 #define MESH_OTHER 0    // this covers points and lines, logic is the same
 #define MESH_TRIANGLE_LIST 1
 #define MESH_TRIANGLE_STRIP 2
+#define MESH_TRIANGLE_FAN 3
 BINDING(0) uniform MeshPickUBOData
 {
   vec3 rayPos;

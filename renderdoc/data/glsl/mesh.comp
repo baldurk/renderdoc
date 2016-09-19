@@ -108,6 +108,14 @@ void trianglePath(uint threadID)
 			idx2 = meshpick.use_indices != 0u ? ib.data[vertid+2] : vertid+2;
 			break;
 		}
+		case MESH_TRIANGLE_FAN:
+		{
+			vertid *= 2;
+			idx0 = meshpick.use_indices != 0u ? ib.data[0       ] : 0;
+			idx1 = meshpick.use_indices != 0u ? ib.data[vertid  ] : vertid;
+			idx2 = meshpick.use_indices != 0u ? ib.data[vertid+1] : vertid+1;
+			break;
+		}
 	}
 
 	vec4 pos0 = vb.data[idx0];
