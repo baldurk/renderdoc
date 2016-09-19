@@ -60,7 +60,8 @@ struct D3D12RenderState
     SignatureElement(SignatureElementType t, ResourceId i, UINT64 o) : type(t), id(i), offset(o) {}
     SignatureElement(UINT offs, UINT val) : type(eRootConst), offset(offs)
     {
-      constants.push_back(val);
+      type = eRootConst;
+      SetValues(1, &val, offs);
     }
     SignatureElement(UINT numVals, const void *vals, UINT offs)
     {
@@ -76,7 +77,7 @@ struct D3D12RenderState
       memcpy(&constants[offs], vals, numVals * sizeof(UINT));
     }
 
-    void SetToCommandList(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot)
+    void SetToGraphics(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot)
     {
       if(type == eRootConst)
       {
@@ -106,6 +107,40 @@ struct D3D12RenderState
       {
         ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
         cmd->SetGraphicsRootUnorderedAccessView(slot, res->GetGPUVirtualAddress() + offset);
+      }
+      else
+      {
+        RDCWARN("Unexpected root signature element of type '%u' - skipping.", type);
+      }
+    }
+
+    void SetToCompute(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot)
+    {
+      if(type == eRootConst)
+      {
+        cmd->SetComputeRoot32BitConstants(slot, (UINT)constants.size(), &constants[0], 0);
+      }
+      else if(type == eRootTable)
+      {
+        D3D12_GPU_DESCRIPTOR_HANDLE handle =
+            rm->GetCurrentAs<ID3D12DescriptorHeap>(id)->GetGPUDescriptorHandleForHeapStart();
+        handle.ptr += sizeof(D3D12Descriptor) * offset;
+        cmd->SetComputeRootDescriptorTable(slot, handle);
+      }
+      else if(type == eRootCBV)
+      {
+        ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
+        cmd->SetComputeRootConstantBufferView(slot, res->GetGPUVirtualAddress() + offset);
+      }
+      else if(type == eRootSRV)
+      {
+        ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
+        cmd->SetComputeRootShaderResourceView(slot, res->GetGPUVirtualAddress() + offset);
+      }
+      else if(type == eRootUAV)
+      {
+        ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
+        cmd->SetComputeRootUnorderedAccessView(slot, res->GetGPUVirtualAddress() + offset);
       }
       else
       {

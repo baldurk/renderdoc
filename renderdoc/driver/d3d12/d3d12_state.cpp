@@ -152,7 +152,7 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd)
         GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(graphics.rootsig));
 
     for(size_t i = 0; i < graphics.sigelems.size(); i++)
-      graphics.sigelems[i].SetToCommandList(GetResourceManager(), cmd, (UINT)i);
+      graphics.sigelems[i].SetToGraphics(GetResourceManager(), cmd, (UINT)i);
   }
 
   if(compute.rootsig != ResourceId())
@@ -161,6 +161,6 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd)
         GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(compute.rootsig));
 
     for(size_t i = 0; i < compute.sigelems.size(); i++)
-      compute.sigelems[i].SetToCommandList(GetResourceManager(), cmd, (UINT)i);
+      compute.sigelems[i].SetToCompute(GetResourceManager(), cmd, (UINT)i);
   }
 }
