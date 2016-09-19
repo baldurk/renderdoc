@@ -280,6 +280,14 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
       m_ReplayList->Serialise_ClearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE(),
                                                     D3D12_CLEAR_FLAGS(0), 0.0f, 0, 0, NULL);
       break;
+    case CLEAR_UAV_INT:
+      m_ReplayList->Serialise_ClearUnorderedAccessViewUint(
+          D3D12_GPU_DESCRIPTOR_HANDLE(), D3D12_CPU_DESCRIPTOR_HANDLE(), NULL, NULL, 0, NULL);
+      break;
+    case CLEAR_UAV_FLOAT:
+      m_ReplayList->Serialise_ClearUnorderedAccessViewFloat(
+          D3D12_GPU_DESCRIPTOR_HANDLE(), D3D12_CPU_DESCRIPTOR_HANDLE(), NULL, NULL, 0, NULL);
+      break;
 
     case SET_TOPOLOGY:
       m_ReplayList->Serialise_IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED);

@@ -1002,14 +1002,14 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
     {
       D3D12Descriptor *desc = GetWrapped(pRenderTargetDescriptors[i]);
       m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
-      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Write);
     }
 
     if(pDepthStencilDescriptor)
     {
       D3D12Descriptor *desc = GetWrapped(*pDepthStencilDescriptor);
       m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
-      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Write);
     }
   }
 }
@@ -2406,22 +2406,204 @@ void WrappedID3D12GraphicsCommandList::ClearRenderTargetView(
   }
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
+    D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
+    ID3D12Resource *pResource, const UINT Values[4], UINT NumRects, const D3D12_RECT *pRects)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(PortableHandle, gpuhandle, ToPortableHandle(ViewGPUHandleInCurrentHeap));
+  SERIALISE_ELEMENT(PortableHandle, cpuhandle, ToPortableHandle(ViewCPUHandle));
+  SERIALISE_ELEMENT(ResourceId, res, GetResID(pResource));
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  UINT vals[4] = {0};
+
+  if(m_State >= WRITING)
+    memcpy(vals, Values, sizeof(UINT) * 4);
+
+  m_pSerialiser->SerialisePODArray<4>("Values", vals);
+
+  SERIALISE_ELEMENT(UINT, num, NumRects);
+  SERIALISE_ELEMENT_ARR(D3D12_RECT, rects, pRects, num);
+
+  if(m_State == EXECUTING)
+  {
+    ViewGPUHandleInCurrentHeap = GPUHandleFromPortableHandle(GetResourceManager(), gpuhandle);
+    ViewCPUHandle = CPUHandleFromPortableHandle(GetResourceManager(), cpuhandle);
+    pResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
+
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))
+          ->ClearUnorderedAccessViewUint(ViewGPUHandleInCurrentHeap, ViewCPUHandle,
+                                         Unwrap(pResource), vals, num, rects);
+    }
+  }
+  else if(m_State == READING)
+  {
+    ViewGPUHandleInCurrentHeap = GPUHandleFromPortableHandle(GetResourceManager(), gpuhandle);
+    ViewCPUHandle = CPUHandleFromPortableHandle(GetResourceManager(), cpuhandle);
+    pResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
+
+    GetList(CommandList)
+        ->ClearUnorderedAccessViewUint(ViewGPUHandleInCurrentHeap, ViewCPUHandle, Unwrap(pResource),
+                                       vals, num, rects);
+
+    const string desc = m_pSerialiser->GetDebugStr();
+
+    {
+      m_Cmd->AddEvent(CLEAR_UAV_INT, desc);
+      string name = "ClearUnorderedAccessViewUint(" + ToStr::Get(vals[0]) + "," +
+                    ToStr::Get(vals[1]) + "," + ToStr::Get(vals[2]) + "," + ToStr::Get(vals[3]) +
+                    ")";
+
+      FetchDrawcall draw;
+      draw.name = name;
+      draw.flags |= eDraw_Clear;
+
+      m_Cmd->AddDrawcall(draw, true);
+
+      D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+
+      drawNode.resourceUsage.push_back(
+          std::make_pair(GetResID(pResource), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+    }
+  }
+
+  SAFE_DELETE_ARRAY(rects);
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewUint(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const UINT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->ClearUnorderedAccessViewUint(Unwrap(ViewGPUHandleInCurrentHeap), Unwrap(ViewCPUHandle),
                                         Unwrap(pResource), Values, NumRects, pRects);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(CLEAR_UAV_INT);
+    Serialise_ClearUnorderedAccessViewUint(ViewGPUHandleInCurrentHeap, ViewCPUHandle, pResource,
+                                           Values, NumRects, pRects);
+
+    m_ListRecord->AddChunk(scope.Get());
+
+    {
+      D3D12Descriptor *desc = GetWrapped(ViewGPUHandleInCurrentHeap);
+      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Write);
+
+      desc = GetWrapped(ViewCPUHandle);
+      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Write);
+
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Write);
+    }
+  }
+}
+
+bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
+    D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
+    ID3D12Resource *pResource, const FLOAT Values[4], UINT NumRects, const D3D12_RECT *pRects)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(PortableHandle, gpuhandle, ToPortableHandle(ViewGPUHandleInCurrentHeap));
+  SERIALISE_ELEMENT(PortableHandle, cpuhandle, ToPortableHandle(ViewCPUHandle));
+  SERIALISE_ELEMENT(ResourceId, res, GetResID(pResource));
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  FLOAT vals[4] = {0};
+
+  if(m_State >= WRITING)
+    memcpy(vals, Values, sizeof(FLOAT) * 4);
+
+  m_pSerialiser->SerialisePODArray<4>("Values", vals);
+
+  SERIALISE_ELEMENT(UINT, num, NumRects);
+  SERIALISE_ELEMENT_ARR(D3D12_RECT, rects, pRects, num);
+
+  if(m_State == EXECUTING)
+  {
+    ViewGPUHandleInCurrentHeap = GPUHandleFromPortableHandle(GetResourceManager(), gpuhandle);
+    ViewCPUHandle = CPUHandleFromPortableHandle(GetResourceManager(), cpuhandle);
+    pResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
+
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))
+          ->ClearUnorderedAccessViewFloat(ViewGPUHandleInCurrentHeap, ViewCPUHandle,
+                                          Unwrap(pResource), vals, num, rects);
+    }
+  }
+  else if(m_State == READING)
+  {
+    ViewGPUHandleInCurrentHeap = GPUHandleFromPortableHandle(GetResourceManager(), gpuhandle);
+    ViewCPUHandle = CPUHandleFromPortableHandle(GetResourceManager(), cpuhandle);
+    pResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
+
+    GetList(CommandList)
+        ->ClearUnorderedAccessViewFloat(ViewGPUHandleInCurrentHeap, ViewCPUHandle,
+                                        Unwrap(pResource), vals, num, rects);
+
+    const string desc = m_pSerialiser->GetDebugStr();
+
+    {
+      m_Cmd->AddEvent(CLEAR_UAV_INT, desc);
+      string name = "ClearUnorderedAccessViewFloat(" + ToStr::Get(vals[0]) + "," +
+                    ToStr::Get(vals[1]) + "," + ToStr::Get(vals[2]) + "," + ToStr::Get(vals[3]) +
+                    ")";
+
+      FetchDrawcall draw;
+      draw.name = name;
+      draw.flags |= eDraw_Clear;
+
+      m_Cmd->AddDrawcall(draw, true);
+
+      D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+
+      drawNode.resourceUsage.push_back(
+          std::make_pair(GetResID(pResource), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+    }
+  }
+
+  SAFE_DELETE_ARRAY(rects);
+
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::ClearUnorderedAccessViewFloat(
     D3D12_GPU_DESCRIPTOR_HANDLE ViewGPUHandleInCurrentHeap, D3D12_CPU_DESCRIPTOR_HANDLE ViewCPUHandle,
     ID3D12Resource *pResource, const FLOAT Values[4], UINT NumRects, const D3D12_RECT *pRects)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->ClearUnorderedAccessViewFloat(Unwrap(ViewGPUHandleInCurrentHeap), Unwrap(ViewCPUHandle),
                                          Unwrap(pResource), Values, NumRects, pRects);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(CLEAR_UAV_FLOAT);
+    Serialise_ClearUnorderedAccessViewFloat(ViewGPUHandleInCurrentHeap, ViewCPUHandle, pResource,
+                                            Values, NumRects, pRects);
+
+    m_ListRecord->AddChunk(scope.Get());
+
+    {
+      D3D12Descriptor *desc = GetWrapped(ViewGPUHandleInCurrentHeap);
+      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Write);
+
+      desc = GetWrapped(ViewCPUHandle);
+      m_ListRecord->MarkResourceFrameReferenced(desc->nonsamp.heap->GetResourceID(), eFrameRef_Read);
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(desc->nonsamp.resource), eFrameRef_Write);
+
+      m_ListRecord->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Write);
+    }
+  }
 }
 
 void WrappedID3D12GraphicsCommandList::DiscardResource(ID3D12Resource *pResource,
