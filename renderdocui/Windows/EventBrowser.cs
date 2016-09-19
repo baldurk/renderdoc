@@ -233,12 +233,12 @@ namespace renderdocui.Windows
 
         private TreelistView.Node MakeNode(UInt32 minEID, UInt32 maxEID, UInt32 minDraw, UInt32 maxDraw, string text, double duration)
         {
-            return new TreelistView.Node(new object[] { String.Format("{0}-{1}", minEID, maxEID), String.Format("{0}-{1}", minDraw, maxDraw), text, duration });
+            return new TreelistView.Node(new object[] { String.Format("{0}-{1}", minEID, maxEID), String.Format("{0}-{1}", minDraw, maxDraw), text.Replace("&", "&&"), duration });
         }
 
         private TreelistView.Node MakeNode(UInt32 EID, UInt32 draw, string text, double duration)
         {
-            return new TreelistView.Node(new object[] { EID, draw, text, duration });
+            return new TreelistView.Node(new object[] { EID, draw, text.Replace("&", "&&"), duration });
         }
 
         private uint GetEndEventID(FetchDrawcall drawcall)
