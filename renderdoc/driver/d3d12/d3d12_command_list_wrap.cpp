@@ -2214,17 +2214,135 @@ void WrappedID3D12GraphicsCommandList::DrawIndexedInstanced(UINT IndexCountPerIn
   }
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(UINT ThreadGroupCountX,
+                                                          UINT ThreadGroupCountY,
+                                                          UINT ThreadGroupCountZ)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(UINT, x, ThreadGroupCountX);
+  SERIALISE_ELEMENT(UINT, y, ThreadGroupCountY);
+  SERIALISE_ELEMENT(UINT, z, ThreadGroupCountZ);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  D3D12NOTIMP("Serialise_DebugMessages");
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+
+      uint32_t eventID = m_Cmd->HandlePreCallback(list, true);
+
+      Unwrap(list)->Dispatch(x, y, z);
+
+      if(eventID && m_Cmd->m_DrawcallCallback->PostDraw(eventID, list))
+      {
+        Unwrap(list)->Dispatch(x, y, z);
+        m_Cmd->m_DrawcallCallback->PostRedraw(eventID, list);
+      }
+    }
+  }
+  else if(m_State == READING)
+  {
+    GetList(CommandList)->Dispatch(x, y, z);
+
+    const string desc = m_pSerialiser->GetDebugStr();
+
+    m_Cmd->AddEvent(DISPATCH, desc);
+    string name = "Dispatch(" + ToStr::Get(x) + ", " + ToStr::Get(y) + ", " + ToStr::Get(z) + ")";
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.dispatchDimension[0] = x;
+    draw.dispatchDimension[1] = y;
+    draw.dispatchDimension[2] = z;
+
+    draw.flags |= eDraw_Dispatch;
+
+    m_Cmd->AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::Dispatch(UINT ThreadGroupCountX, UINT ThreadGroupCountY,
                                                 UINT ThreadGroupCountZ)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(DISPATCH);
+    Serialise_Dispatch(ThreadGroupCountX, ThreadGroupCountY, ThreadGroupCountZ);
+
+    m_ListRecord->AddChunk(scope.Get());
+  }
 }
 
 void WrappedID3D12GraphicsCommandList::ExecuteBundle(ID3D12GraphicsCommandList *pCommandList)
 {
   D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->ExecuteBundle(Unwrap(pCommandList));
+}
+
+bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
+    ID3D12CommandSignature *pCommandSignature, UINT MaxCommandCount, ID3D12Resource *pArgumentBuffer,
+    UINT64 ArgumentBufferOffset, ID3D12Resource *pCountBuffer, UINT64 CountBufferOffset)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(ResourceId, sig, GetResID(pCommandSignature));
+  SERIALISE_ELEMENT(UINT, maxCount, MaxCommandCount);
+  SERIALISE_ELEMENT(ResourceId, arg, GetResID(pArgumentBuffer));
+  SERIALISE_ELEMENT(UINT64, argOffs, ArgumentBufferOffset);
+  SERIALISE_ELEMENT(ResourceId, count, GetResID(pCountBuffer));
+  SERIALISE_ELEMENT(UINT64, countOffs, CountBufferOffset);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  D3D12NOTIMP("Serialise_DebugMessages");
+
+  if(m_State == EXECUTING)
+  {
+    pCommandSignature = GetResourceManager()->GetLiveAs<ID3D12CommandSignature>(sig);
+    pArgumentBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(arg);
+    pCountBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(count);
+
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+
+      Unwrap(list)->ExecuteIndirect(Unwrap(pCommandSignature), maxCount, Unwrap(pArgumentBuffer),
+                                    argOffs, Unwrap(pCountBuffer), countOffs);
+    }
+  }
+  else if(m_State == READING)
+  {
+    pCommandSignature = GetResourceManager()->GetLiveAs<ID3D12CommandSignature>(sig);
+    pArgumentBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(arg);
+    pCountBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(count);
+
+    GetList(CommandList)
+        ->ExecuteIndirect(Unwrap(pCommandSignature), maxCount, Unwrap(pArgumentBuffer), argOffs,
+                          Unwrap(pCountBuffer), countOffs);
+
+    const string desc = m_pSerialiser->GetDebugStr();
+
+    m_Cmd->AddEvent(EXEC_INDIRECT, desc);
+    string name = "ExecuteIndirect(...)";
+
+    FetchDrawcall draw;
+    draw.name = name;
+
+    draw.flags |= eDraw_CmdList;
+
+    m_Cmd->AddDrawcall(draw, true);
+  }
+
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::ExecuteIndirect(ID3D12CommandSignature *pCommandSignature,
@@ -2234,10 +2352,23 @@ void WrappedID3D12GraphicsCommandList::ExecuteIndirect(ID3D12CommandSignature *p
                                                        ID3D12Resource *pCountBuffer,
                                                        UINT64 CountBufferOffset)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->ExecuteIndirect(Unwrap(pCommandSignature), MaxCommandCount, Unwrap(pArgumentBuffer),
                            ArgumentBufferOffset, Unwrap(pCountBuffer), CountBufferOffset);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(EXEC_INDIRECT);
+    Serialise_ExecuteIndirect(pCommandSignature, MaxCommandCount, pArgumentBuffer,
+                              ArgumentBufferOffset, pCountBuffer, CountBufferOffset);
+
+    m_ListRecord->AddChunk(scope.Get());
+
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pCommandSignature), eFrameRef_Read);
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pArgumentBuffer), eFrameRef_Read);
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pCountBuffer), eFrameRef_Read);
+  }
 }
+
 #pragma endregion Draws
 
 #pragma region Clears
