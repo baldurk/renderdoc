@@ -52,7 +52,7 @@ bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C,
 
 	// if the determinant is negative the triangle is backfacing, but we still take those!
 	// if the determinant is close to 0, the ray misses the triangle
-	if (abs(det) > 0.000001f)
+	if (abs(det) > 0.00001)
 	{
 		float invDet = 1 / det;
 
@@ -61,13 +61,16 @@ bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C,
 		float u = dot(tvec, pvec) * invDet;
 		float v = dot(RayDirection, qvec) * invDet;
 
-		if (u > 0 && u < 1 &&
-			v > 0 && u + v < 1)
+		if (u >= 0 && u <= 1 &&
+			v >= 0 && u + v <= 1)
 		{
 			float t = dot(v0v2, qvec) * invDet;
-			HitPosition = RayPosition + (RayDirection * t);
-			//Info->Position = HitPosition;
-			Result = true;
+			if (t > 0.00001)
+			{
+				HitPosition = RayPosition + (RayDirection * t);
+				Result = true;
+			}
+
 		}
 	}
 
