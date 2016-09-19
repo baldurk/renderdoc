@@ -488,8 +488,8 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(UINT nodeMask,
                                                         void **ppvRootSignature)
 {
   SERIALISE_ELEMENT(UINT, mask, nodeMask);
-  SERIALISE_ELEMENT(uint32_t, BytecodeLen, (uint32_t)blobLengthInBytes);
-  SERIALISE_ELEMENT_BUF(byte *, ShaderBytecode, pBlobWithRootSignature, BytecodeLen);
+  SERIALISE_ELEMENT(uint32_t, blobLen, (uint32_t)blobLengthInBytes);
+  SERIALISE_ELEMENT_BUF(byte *, blobBytes, pBlobWithRootSignature, blobLen);
   SERIALISE_ELEMENT(IID, guid, riid);
   SERIALISE_ELEMENT(ResourceId, Sig,
                     ((WrappedID3D12RootSignature *)*ppvRootSignature)->GetResourceID());
@@ -497,8 +497,7 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(UINT nodeMask,
   if(m_State == READING)
   {
     ID3D12RootSignature *ret = NULL;
-    HRESULT hr =
-        m_pDevice->CreateRootSignature(mask, ShaderBytecode, BytecodeLen, guid, (void **)&ret);
+    HRESULT hr = m_pDevice->CreateRootSignature(mask, blobBytes, blobLen, guid, (void **)&ret);
 
     if(FAILED(hr))
     {
@@ -507,6 +506,10 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(UINT nodeMask,
     else
     {
       ret = new WrappedID3D12RootSignature(ret, this);
+
+      WrappedID3D12RootSignature *wrapped = (WrappedID3D12RootSignature *)ret;
+
+      wrapped->sig = D3D12DebugManager::GetRootSig(blobBytes, blobLen);
 
       GetResourceManager()->AddLiveResource(Sig, ret);
     }
