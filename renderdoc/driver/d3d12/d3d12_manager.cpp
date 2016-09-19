@@ -957,7 +957,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
           barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
           barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
           barrier.Transition.pResource = copyDst;
-          barrier.Transition.Subresource = 0;
+          barrier.Transition.Subresource = (UINT)i;
           barrier.Transition.StateBefore = m_Device->GetSubresourceStates(GetResID(live))[0];
           barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 
