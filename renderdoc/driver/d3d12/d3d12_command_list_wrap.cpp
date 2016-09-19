@@ -596,16 +596,86 @@ void WrappedID3D12GraphicsCommandList::RSSetScissorRects(UINT NumRects, const D3
   }
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_OMSetBlendFactor(const FLOAT BlendFactor[4])
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+
+  float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+  if(m_State >= WRITING && BlendFactor)
+    memcpy(factor, BlendFactor, sizeof(float) * 4);
+
+  m_pSerialiser->SerialisePODArray<4>("BlendFactor", factor);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->OMSetBlendFactor(factor);
+
+      memcpy(m_Cmd->m_RenderState.blendFactor, factor, sizeof(factor));
+    }
+  }
+  else if(m_State == READING)
+  {
+    GetList(CommandList)->OMSetBlendFactor(factor);
+  }
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::OMSetBlendFactor(const FLOAT BlendFactor[4])
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->OMSetBlendFactor(BlendFactor);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SET_BLENDFACTOR);
+    Serialise_OMSetBlendFactor(BlendFactor);
+
+    m_ListRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedID3D12GraphicsCommandList::Serialise_OMSetStencilRef(UINT StencilRef)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(UINT, ref, StencilRef);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->OMSetStencilRef(ref);
+
+      m_Cmd->m_RenderState.stencilRef = ref;
+    }
+  }
+  else if(m_State == READING)
+  {
+    GetList(CommandList)->OMSetStencilRef(ref);
+  }
+
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::OMSetStencilRef(UINT StencilRef)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->OMSetStencilRef(StencilRef);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SET_STENCIL);
+    Serialise_OMSetStencilRef(StencilRef);
+
+    m_ListRecord->AddChunk(scope.Get());
+  }
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_SetDescriptorHeaps(

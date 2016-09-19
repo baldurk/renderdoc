@@ -304,6 +304,8 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
     case SET_VBUFFERS: m_ReplayList->Serialise_IASetVertexBuffers(0, 0, NULL); break;
     case SET_VIEWPORTS: m_ReplayList->Serialise_RSSetViewports(0, NULL); break;
     case SET_SCISSORS: m_ReplayList->Serialise_RSSetScissorRects(0, NULL); break;
+    case SET_STENCIL: m_ReplayList->Serialise_OMSetStencilRef(0); break;
+    case SET_BLENDFACTOR: m_ReplayList->Serialise_OMSetBlendFactor(NULL); break;
     case SET_PIPE: m_ReplayList->Serialise_SetPipelineState(NULL); break;
     case SET_RTVS: m_ReplayList->Serialise_OMSetRenderTargets(0, NULL, FALSE, NULL); break;
     case SET_DESC_HEAPS: m_ReplayList->Serialise_SetDescriptorHeaps(0, NULL); break;

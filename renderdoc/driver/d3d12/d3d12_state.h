@@ -167,6 +167,8 @@ struct D3D12RenderState
   ResourceId pipe;
 
   D3D12_PRIMITIVE_TOPOLOGY topo;
+  UINT stencilRef;
+  float blendFactor[4];
 
   struct IdxBuffer
   {

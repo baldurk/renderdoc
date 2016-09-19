@@ -275,6 +275,8 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
   D3D12_CHUNK_MACRO(SET_PIPE, "ID3D12GraphicsCommandList::SetPipelineState")                       \
   D3D12_CHUNK_MACRO(SET_DESC_HEAPS, "ID3D12GraphicsCommandList::SetDescriptorHeaps")               \
   D3D12_CHUNK_MACRO(SET_RTVS, "ID3D12GraphicsCommandList::OMSetRenderTargets")                     \
+  D3D12_CHUNK_MACRO(SET_STENCIL, "ID3D12GraphicsCommandList::OMSetStencilRef")                     \
+  D3D12_CHUNK_MACRO(SET_BLENDFACTOR, "ID3D12GraphicsCommandList::OMSetBlendFactor")                \
                                                                                                    \
   D3D12_CHUNK_MACRO(SET_GFX_ROOT_TABLE,                                                            \
                     "ID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable")                   \
