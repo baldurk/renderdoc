@@ -157,6 +157,77 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Couldn't create sampler descriptor heap! 0x%08x", hr);
   }
 
+  {
+    D3D12_RESOURCE_DESC pickPixelDesc = {};
+    pickPixelDesc.Alignment = 0;
+    pickPixelDesc.DepthOrArraySize = 1;
+    pickPixelDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    pickPixelDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    pickPixelDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    pickPixelDesc.Height = 1;
+    pickPixelDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    pickPixelDesc.MipLevels = 1;
+    pickPixelDesc.SampleDesc.Count = 1;
+    pickPixelDesc.SampleDesc.Quality = 0;
+    pickPixelDesc.Width = 1;
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    hr = m_WrappedDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &pickPixelDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
+        __uuidof(ID3D12Resource), (void **)&m_PickPixelTex);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create rendering texture for pixel picking, HRESULT: 0x%08x", hr);
+      return;
+    }
+
+    m_PickPixelRTV = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+    m_PickPixelRTV.ptr +=
+        FIXED_RTV_PICK_PIXEL *
+        m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+    m_WrappedDevice->CreateRenderTargetView(m_PickPixelTex, NULL, m_PickPixelRTV);
+  }
+
+  {
+    D3D12_RESOURCE_DESC readbackDesc;
+    readbackDesc.Alignment = 0;
+    readbackDesc.DepthOrArraySize = 1;
+    readbackDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    readbackDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    readbackDesc.Format = DXGI_FORMAT_UNKNOWN;
+    readbackDesc.Height = 1;
+    readbackDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    readbackDesc.MipLevels = 1;
+    readbackDesc.SampleDesc.Count = 1;
+    readbackDesc.SampleDesc.Quality = 0;
+    readbackDesc.Width = m_ReadbackSize;
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    hr = m_WrappedDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &readbackDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+        __uuidof(ID3D12Resource), (void **)&m_ReadbackBuffer);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create readback buffer, HRESULT: 0x%08x", hr);
+      return;
+    }
+  }
+
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
 
   // create fixed samplers, point and linear
@@ -311,6 +382,18 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   {
     RDCERR("Couldn't create m_TexDisplayPipe! 0x%08x", hr);
   }
+
+  pipeDesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+  hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                    (void **)&m_TexDisplayF32Pipe);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't create m_TexDisplayF32Pipe! 0x%08x", hr);
+  }
+
+  pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
   pipeDesc.PS.BytecodeLength = CheckerboardPS->GetBufferSize();
   pipeDesc.PS.pShaderBytecode = CheckerboardPS->GetBufferPointer();
@@ -628,9 +711,14 @@ D3D12DebugManager::~D3D12DebugManager()
 
   SAFE_RELEASE(m_TexDisplayBlendPipe);
   SAFE_RELEASE(m_TexDisplayPipe);
+  SAFE_RELEASE(m_TexDisplayF32Pipe);
   SAFE_RELEASE(m_TexDisplayRootSig);
 
   SAFE_RELEASE(m_CheckerboardPipe);
+
+  SAFE_RELEASE(m_PickPixelTex);
+
+  SAFE_RELEASE(m_ReadbackBuffer);
 
   m_WrappedDevice->InternalRelease();
 
@@ -957,6 +1045,8 @@ uint64_t D3D12DebugManager::MakeOutputWindow(WindowingSystem system, void *data,
   outw.bbIdx = 0;
 
   outw.rtv = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+  outw.rtv.ptr += FIXED_RTV_COUNT *
+                  m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
   outw.rtv.ptr += SIZE_T(m_OutputWindowID) *
                   m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
@@ -1199,6 +1289,103 @@ void D3D12DebugManager::FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle)
   D3D12NOTIMP("Not freeing RTV's - will run out");
 }
 
+void D3D12DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
+                                  uint32_t mip, uint32_t sample, FormatComponentType typeHint,
+                                  float pixel[4])
+{
+  int oldW = GetWidth(), oldH = GetHeight();
+
+  SetOutputDimensions(1, 1, DXGI_FORMAT_R32G32B32A32_FLOAT);
+
+  {
+    TextureDisplay texDisplay;
+
+    texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+    texDisplay.HDRMul = -1.0f;
+    texDisplay.linearDisplayAsGamma = true;
+    texDisplay.FlipY = false;
+    texDisplay.mip = mip;
+    texDisplay.sampleIdx = sample;
+    texDisplay.CustomShader = ResourceId();
+    texDisplay.sliceFace = sliceFace;
+    texDisplay.rangemin = 0.0f;
+    texDisplay.rangemax = 1.0f;
+    texDisplay.scale = 1.0f;
+    texDisplay.texid = texture;
+    texDisplay.typeHint = typeHint;
+    texDisplay.rawoutput = true;
+    texDisplay.offx = -float(x);
+    texDisplay.offy = -float(y);
+
+    RenderTextureInternal(m_PickPixelRTV, texDisplay, false);
+  }
+
+  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+  D3D12_RESOURCE_BARRIER barrier = {};
+
+  barrier.Transition.pResource = m_PickPixelTex;
+  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+  list->ResourceBarrier(1, &barrier);
+
+  D3D12_TEXTURE_COPY_LOCATION dst = {}, src = {};
+
+  src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+  src.pResource = m_PickPixelTex;
+  src.SubresourceIndex = 0;
+
+  dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+  dst.pResource = m_ReadbackBuffer;
+  dst.PlacedFootprint.Offset = 0;
+  dst.PlacedFootprint.Footprint.Width = sizeof(Vec4f);
+  dst.PlacedFootprint.Footprint.Height = 1;
+  dst.PlacedFootprint.Footprint.Depth = 1;
+  dst.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  dst.PlacedFootprint.Footprint.RowPitch = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+
+  list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+
+  std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+
+  list->ResourceBarrier(1, &barrier);
+
+  list->Close();
+
+  m_WrappedDevice->ExecuteLists();
+  m_WrappedDevice->FlushLists();
+
+  D3D12_RANGE range = {0, sizeof(Vec4f)};
+
+  float *pix = NULL;
+  HRESULT hr = m_ReadbackBuffer->Map(0, &range, (void **)&pix);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to map picking stage tex %08x", hr);
+  }
+
+  if(pix == NULL)
+  {
+    RDCERR("Failed to map pick-pixel staging texture.");
+  }
+  else
+  {
+    pixel[0] = pix[0];
+    pixel[1] = pix[1];
+    pixel[2] = pix[2];
+    pixel[3] = pix[3];
+  }
+
+  SetOutputDimensions(oldW, oldH, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+
+  range.End = 0;
+
+  if(SUCCEEDED(hr))
+    m_ReadbackBuffer->Unmap(0, &range);
+}
+
 void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 {
   DebugVertexCBuffer vertexData;
@@ -1377,6 +1564,12 @@ void D3D12DebugManager::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
 }
 
 bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
+{
+  return RenderTextureInternal(m_OutputWindows[m_CurrentOutputWindow].rtv, cfg, blendAlpha);
+}
+
+bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg,
+                                              bool blendAlpha)
 {
   DebugVertexCBuffer vertexData;
   DebugPixelCBufferData pixelData;
@@ -1586,28 +1779,33 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
     barriers.push_back(b);
   }
 
-  OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];
-
   {
     ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
     if(!barriers.empty())
       list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
-    list->OMSetRenderTargets(1, &outw.rtv, TRUE, NULL);
+    list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
 
-    D3D12_VIEWPORT viewport = {0, 0, (float)outw.width, (float)outw.height, 0.0f, 1.0f};
+    D3D12_VIEWPORT viewport = {0, 0, (float)m_width, (float)m_height, 0.0f, 1.0f};
     list->RSSetViewports(1, &viewport);
 
-    D3D12_RECT scissor = {0, 0, outw.width, outw.height};
+    D3D12_RECT scissor = {0, 0, m_width, m_height};
     list->RSSetScissorRects(1, &scissor);
 
     list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
     if(cfg.rawoutput || !blendAlpha || cfg.CustomShader != ResourceId())
-      list->SetPipelineState(m_TexDisplayPipe);
+    {
+      if(m_BBFmtIdx == RGBA32_BACKBUFFER)
+        list->SetPipelineState(m_TexDisplayF32Pipe);
+      else
+        list->SetPipelineState(m_TexDisplayPipe);
+    }
     else
+    {
       list->SetPipelineState(m_TexDisplayBlendPipe);
+    }
 
     list->SetGraphicsRootSignature(m_TexDisplayRootSig);
 

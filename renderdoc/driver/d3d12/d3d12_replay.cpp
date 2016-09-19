@@ -243,6 +243,13 @@ bool D3D12Replay::RenderTexture(TextureDisplay cfg)
   return m_pDevice->GetDebugManager()->RenderTexture(cfg, true);
 }
 
+void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
+                            uint32_t mip, uint32_t sample, FormatComponentType typeHint,
+                            float pixel[4])
+{
+  m_pDevice->GetDebugManager()->PickPixel(texture, x, y, sliceFace, mip, sample, typeHint, pixel);
+}
+
 uint64_t D3D12Replay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
   return m_pDevice->GetDebugManager()->MakeOutputWindow(system, data, depth);
@@ -459,12 +466,6 @@ ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventID, uint32_t groupid[3],
 uint32_t D3D12Replay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
   return ~0U;
-}
-
-void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
-                            uint32_t mip, uint32_t sample, FormatComponentType typeHint,
-                            float pixel[4])
-{
 }
 
 ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FormatComponentType typeHint,

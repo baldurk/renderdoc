@@ -58,6 +58,8 @@ public:
       m_BBFmtIdx = BGRA8_BACKBUFFER;
     else if(fmt == DXGI_FORMAT_R16G16B16A16_FLOAT)
       m_BBFmtIdx = RGBA16_BACKBUFFER;
+    else if(fmt == DXGI_FORMAT_R32G32B32A32_FLOAT)
+      m_BBFmtIdx = RGBA32_BACKBUFFER;
     else
       m_BBFmtIdx = RGBA8_BACKBUFFER;
   }
@@ -67,6 +69,9 @@ public:
 
   void RenderCheckerboard(Vec3f light, Vec3f dark);
   bool RenderTexture(TextureDisplay cfg, bool blendAlpha);
+
+  void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
+                 uint32_t sample, FormatComponentType typeHint, float pixel[4]);
 
   D3D12_CPU_DESCRIPTOR_HANDLE AllocRTV();
   void FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle);
@@ -106,12 +111,20 @@ private:
   // index in SRV heap
   static const int FONT_SRV = 128;
 
+  enum
+  {
+    FIXED_RTV_PICK_PIXEL,
+    FIXED_RTV_CUSTOM_SHADER,
+    FIXED_RTV_COUNT,
+  };
+
   // indices for the pipelines, for the three possible backbuffer formats
   enum
   {
     BGRA8_BACKBUFFER = 0,
     RGBA8_BACKBUFFER,
     RGBA16_BACKBUFFER,
+    RGBA32_BACKBUFFER,
     FMTNUM_BACKBUFFER,
   } m_BBFmtIdx;
 
@@ -154,11 +167,19 @@ private:
   ID3D12Resource *m_GenericPSCbuffer;
 
   ID3D12PipelineState *m_TexDisplayPipe;
+  ID3D12PipelineState *m_TexDisplayF32Pipe;
   ID3D12PipelineState *m_TexDisplayBlendPipe;
 
   ID3D12RootSignature *m_TexDisplayRootSig;
 
   ID3D12PipelineState *m_CheckerboardPipe;
+
+  ID3D12Resource *m_PickPixelTex;
+  D3D12_CPU_DESCRIPTOR_HANDLE m_PickPixelRTV;
+
+  ID3D12Resource *m_ReadbackBuffer;
+
+  static const uint32_t m_ReadbackSize = 8 * 1024 * 1024;
 
   static const uint32_t m_ShaderCacheMagic = 0xbaafd1d1;
   static const uint32_t m_ShaderCacheVersion = 1;
@@ -167,11 +188,11 @@ private:
   map<uint32_t, ID3DBlob *> m_ShaderCache;
 
   void RenderTextInternal(ID3D12GraphicsCommandList *list, float x, float y, const char *text);
+  bool RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg, bool blendAlpha);
 
   string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
                        const char *profile, ID3DBlob **srcblob);
   static ID3DBlob *MakeRootSig(const vector<D3D12_ROOT_PARAMETER> &rootSig);
-
   int m_width, m_height;
 
   uint64_t m_OutputWindowID;
