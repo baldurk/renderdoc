@@ -381,7 +381,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(UINT NumBarrier
     if(!filtered.empty())
       list->ResourceBarrier((UINT)filtered.size(), &filtered[0]);
 
-    ResourceId cmd = GetResID(list);
+    ResourceId cmd = GetResID(GetResourceManager()->GetWrapper(list));
 
     // need to re-wrap the barriers
     for(UINT i = 0; i < num; i++)

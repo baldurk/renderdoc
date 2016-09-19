@@ -582,11 +582,25 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
     m_Cmd = m_pDevice->GetQueue()->GetCommandData();
   }
 
+  if(m_pReal)
+  {
+    bool ret = m_pDevice->GetResourceManager()->AddWrapper(this, m_pReal);
+    if(!ret)
+      RDCERR("Error adding wrapper for ID3D12GraphicsCommandList");
+  }
+
+  m_pDevice->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
+
   m_pDevice->SoftRef();
 }
 
 WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
 {
+  if(m_pReal)
+    m_pDevice->GetResourceManager()->RemoveWrapper(m_pReal);
+
+  m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
+
   SAFE_RELEASE(m_WrappedDebug.m_pReal);
   SAFE_RELEASE(m_pReal);
 }
