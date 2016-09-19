@@ -1011,6 +1011,11 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
           list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
         list->Close();
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+        m_Device->ExecuteLists();
+        m_Device->FlushLists(true);
+#endif
       }
     }
     else
