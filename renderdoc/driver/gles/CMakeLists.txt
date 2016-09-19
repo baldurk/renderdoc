@@ -18,9 +18,9 @@ set(sources
     gles_resources.h
     gles_shader_refl.cpp
     gles_shader_refl.h
-    official/glcorearb.h
-    official/glext.h
-    official/glxext.h
+    official/gl32.h
+    official/gl2ext.h
+    official/gl3platform.h
     official/wglext.h
     wrappers/gles_buffer_funcs.cpp
     wrappers/gles_debug_funcs.cpp

@@ -28,7 +28,6 @@
 
 void PixelUnpackState::Fetch(const GLHookSet *funcs, bool compressed)
 {
-  funcs->glGetIntegerv(eGL_UNPACK_SWAP_BYTES, &swapBytes);
   funcs->glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlength);
   funcs->glGetIntegerv(eGL_UNPACK_IMAGE_HEIGHT, &imageheight);
   funcs->glGetIntegerv(eGL_UNPACK_SKIP_PIXELS, &skipPixels);
@@ -38,16 +37,11 @@ void PixelUnpackState::Fetch(const GLHookSet *funcs, bool compressed)
 
   if(compressed)
   {
-    funcs->glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_WIDTH, &compressedBlockWidth);
-    funcs->glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_HEIGHT, &compressedBlockHeight);
-    funcs->glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_DEPTH, &compressedBlockDepth);
-    funcs->glGetIntegerv(eGL_UNPACK_COMPRESSED_BLOCK_SIZE, &compressedBlockSize);
   }
 }
 
 void PixelUnpackState::Apply(const GLHookSet *funcs, bool compressed)
 {
-  funcs->glPixelStorei(eGL_UNPACK_SWAP_BYTES, swapBytes);
   funcs->glPixelStorei(eGL_UNPACK_ROW_LENGTH, rowlength);
   funcs->glPixelStorei(eGL_UNPACK_IMAGE_HEIGHT, imageheight);
   funcs->glPixelStorei(eGL_UNPACK_SKIP_PIXELS, skipPixels);
@@ -57,10 +51,6 @@ void PixelUnpackState::Apply(const GLHookSet *funcs, bool compressed)
 
   if(compressed)
   {
-    funcs->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_WIDTH, compressedBlockWidth);
-    funcs->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_HEIGHT, compressedBlockHeight);
-    funcs->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_DEPTH, compressedBlockDepth);
-    funcs->glPixelStorei(eGL_UNPACK_COMPRESSED_BLOCK_SIZE, compressedBlockSize);
   }
 }
 
@@ -153,7 +143,6 @@ byte *PixelUnpackState::Unpack(byte *pixels, GLsizei width, GLsizei height, GLsi
     case eGL_UNSIGNED_INT:
     case eGL_INT:
     case eGL_FLOAT: elemSize = 4; break;
-    case eGL_DOUBLE: elemSize = 8; break;
     default: break;
   }
 
@@ -282,7 +271,7 @@ byte *PixelUnpackState::UnpackCompressed(byte *pixels, GLsizei width, GLsizei he
 }
 
 GLRenderState::GLRenderState(const GLHookSet *funcs, Serialiser *ser, LogState state)
-    : m_Real(funcs), m_pSerialiser(ser), m_State(state)
+    : m_Real(funcs), m_pSerialiser(ser)
 {
   Clear();
 }
@@ -501,38 +490,30 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
 
   {
     GLenum pnames[] = {
-        eGL_CLIP_DISTANCE0,
-        eGL_CLIP_DISTANCE1,
-        eGL_CLIP_DISTANCE2,
-        eGL_CLIP_DISTANCE3,
-        eGL_CLIP_DISTANCE4,
-        eGL_CLIP_DISTANCE5,
-        eGL_CLIP_DISTANCE6,
-        eGL_CLIP_DISTANCE7,
-        eGL_COLOR_LOGIC_OP,
+        eGL_CLIP_DISTANCE0_EXT,
+        eGL_CLIP_DISTANCE1_EXT,
+        eGL_CLIP_DISTANCE2_EXT,
+        eGL_CLIP_DISTANCE3_EXT,
+        eGL_CLIP_DISTANCE4_EXT,
+        eGL_CLIP_DISTANCE5_EXT,
+        eGL_CLIP_DISTANCE6_EXT,
+        eGL_CLIP_DISTANCE7_EXT,
         eGL_CULL_FACE,
-        eGL_DEPTH_CLAMP,
         eGL_DEPTH_TEST,
-        eGL_DEPTH_BOUNDS_TEST_EXT,
         eGL_DITHER,
-        eGL_FRAMEBUFFER_SRGB,
-        eGL_LINE_SMOOTH,
-        eGL_MULTISAMPLE,
-        eGL_POLYGON_SMOOTH,
+        eGL_FRAMEBUFFER_SRGB_EXT,
+        eGL_MULTISAMPLE_EXT,
         eGL_POLYGON_OFFSET_FILL,
-        eGL_POLYGON_OFFSET_LINE,
-        eGL_POLYGON_OFFSET_POINT,
-        eGL_PROGRAM_POINT_SIZE,
-        eGL_PRIMITIVE_RESTART,
+        eGL_POLYGON_OFFSET_LINE_NV,
+        eGL_POLYGON_OFFSET_POINT_NV,
         eGL_PRIMITIVE_RESTART_FIXED_INDEX,
         eGL_SAMPLE_ALPHA_TO_COVERAGE,
-        eGL_SAMPLE_ALPHA_TO_ONE,
+        eGL_SAMPLE_ALPHA_TO_ONE_EXT,
         eGL_SAMPLE_COVERAGE,
         eGL_SAMPLE_MASK,
         eGL_SAMPLE_SHADING,
         eGL_RASTER_MULTISAMPLE_EXT,
         eGL_STENCIL_TEST,
-        eGL_TEXTURE_CUBE_MAP_SEAMLESS,
         eGL_BLEND_ADVANCED_COHERENT_KHR,
         eGL_RASTERIZER_DISCARD,
     };
@@ -550,13 +531,6 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
 
       if(pnames[i] == eGL_RASTER_MULTISAMPLE_EXT &&
          !ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
-      {
-        Enabled[i] = false;
-        continue;
-      }
-
-      if(pnames[i] == eGL_DEPTH_BOUNDS_TEST_EXT &&
-         !ExtensionSupported[ExtensionSupported_EXT_depth_bounds_test])
       {
         Enabled[i] = false;
         continue;
@@ -580,13 +554,10 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
   {
     m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
-    m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_1D, (GLint *)&Tex1D[i]);
     m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&Tex2D[i]);
     m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_3D, (GLint *)&Tex3D[i]);
-    m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_1D_ARRAY, (GLint *)&Tex1DArray[i]);
     m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D_ARRAY, (GLint *)&Tex2DArray[i]);
     m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY, (GLint *)&TexCubeArray[i]);
-    m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_RECTANGLE, (GLint *)&TexRect[i]);
     m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_BUFFER, (GLint *)&TexBuffer[i]);
     m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP, (GLint *)&TexCube[i]);
     m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D_MULTISAMPLE, (GLint *)&Tex2DMS[i]);
@@ -623,24 +594,8 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
   for(GLuint i = 0; i < RDCMIN(maxNumAttribs, (GLuint)ARRAY_COUNT(GenericVertexAttribs)); i++)
     m_Real->glGetVertexAttribfv(i, eGL_CURRENT_VERTEX_ATTRIB, &GenericVertexAttribs[i].x);
 
-  m_Real->glGetFloatv(eGL_POINT_FADE_THRESHOLD_SIZE, &PointFadeThresholdSize);
-  m_Real->glGetIntegerv(eGL_POINT_SPRITE_COORD_ORIGIN, (GLint *)&PointSpriteOrigin);
   m_Real->glGetFloatv(eGL_LINE_WIDTH, &LineWidth);
-  m_Real->glGetFloatv(eGL_POINT_SIZE, &PointSize);
-
-  m_Real->glGetIntegerv(eGL_PRIMITIVE_RESTART_INDEX, (GLint *)&PrimitiveRestartIndex);
-  if(GLCoreVersion >= 45 || ExtensionSupported[ExtensionSupported_ARB_clip_control])
-  {
-    m_Real->glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
-    m_Real->glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
-  }
-  else
-  {
-    ClipOrigin = eGL_LOWER_LEFT;
-    ClipDepth = eGL_NEGATIVE_ONE_TO_ONE;
-  }
-  m_Real->glGetIntegerv(eGL_PROVOKING_VERTEX, (GLint *)&ProvokingVertex);
-
+  
   m_Real->glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&Program);
   m_Real->glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&Pipeline);
 
@@ -660,15 +615,6 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
       if(shs[s] != eGL_COMPUTE_SHADER || !VendorCheck[VendorCheck_AMD_pipeline_compute_query])
         m_Real->glGetProgramPipelineiv(Pipeline, shs[s], (GLint *)&prog);
     }
-
-    if(prog == 0)
-      continue;
-
-    m_Real->glGetProgramStageiv(prog, shs[s], eGL_ACTIVE_SUBROUTINE_UNIFORM_LOCATIONS,
-                                &Subroutines[s].numSubroutines);
-
-    for(GLint i = 0; i < Subroutines[s].numSubroutines; i++)
-      m_Real->glGetUniformSubroutineuiv(shs[s], i, &Subroutines[s].Values[0]);
   }
 
   m_Real->glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Array]);
@@ -681,11 +627,7 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
   m_Real->glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Pixel_Pack]);
   m_Real->glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING,
                         (GLint *)&BufferBindings[eBufIdx_Pixel_Unpack]);
-  m_Real->glGetIntegerv(eGL_QUERY_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Query]);
   m_Real->glGetIntegerv(eGL_TEXTURE_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Texture]);
-  if(ExtensionSupported[ExtensionSupported_ARB_indirect_parameters])
-    m_Real->glGetIntegerv(eGL_PARAMETER_BUFFER_BINDING_ARB,
-                          (GLint *)&BufferBindings[eBufIdx_Parameter]);
 
   struct
   {
@@ -746,7 +688,7 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
   m_Real->glGetFloatv(eGL_BLEND_COLOR, &BlendColor[0]);
 
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Viewports); i++)
-    m_Real->glGetFloati_v(eGL_VIEWPORT, i, &Viewports[i].x);
+    m_Real->glGetFloati_vOES(eGL_VIEWPORT, i, &Viewports[i].x);
 
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Scissors); i++)
   {
@@ -769,26 +711,16 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
   m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO);
 
   m_Real->glGetIntegerv(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, (GLint *)&Hints.Derivatives);
-  m_Real->glGetIntegerv(eGL_LINE_SMOOTH_HINT, (GLint *)&Hints.LineSmooth);
-  m_Real->glGetIntegerv(eGL_POLYGON_SMOOTH_HINT, (GLint *)&Hints.PolySmooth);
-  m_Real->glGetIntegerv(eGL_TEXTURE_COMPRESSION_HINT, (GLint *)&Hints.TexCompression);
 
   m_Real->glGetBooleanv(eGL_DEPTH_WRITEMASK, &DepthWriteMask);
   m_Real->glGetFloatv(eGL_DEPTH_CLEAR_VALUE, &DepthClearValue);
   m_Real->glGetIntegerv(eGL_DEPTH_FUNC, (GLint *)&DepthFunc);
 
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
-    m_Real->glGetDoublei_v(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
+    m_Real->glGetFloati_vOES(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
 
-  if(ExtensionSupported[ExtensionSupported_EXT_depth_bounds_test])
-  {
-    m_Real->glGetDoublev(eGL_DEPTH_BOUNDS_TEST_EXT, &DepthBounds.nearZ);
-  }
-  else
-  {
-    DepthBounds.nearZ = 0.0f;
-    DepthBounds.farZ = 1.0f;
-  }
+  DepthBounds.nearZ = 0.0f;
+  DepthBounds.farZ = 1.0f;
 
   {
     m_Real->glGetIntegerv(eGL_STENCIL_FUNC, (GLint *)&StencilFront.func);
@@ -839,14 +771,11 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
   else
     RasterFixed = false;
 
-  m_Real->glGetIntegerv(eGL_LOGIC_OP_MODE, (GLint *)&LogicOp);
-
   m_Real->glGetFloatv(eGL_COLOR_CLEAR_VALUE, &ColorClearValue.red);
 
   m_Real->glGetIntegerv(eGL_PATCH_VERTICES, &PatchParams.numVerts);
-  m_Real->glGetFloatv(eGL_PATCH_DEFAULT_INNER_LEVEL, &PatchParams.defaultInnerLevel[0]);
-  m_Real->glGetFloatv(eGL_PATCH_DEFAULT_OUTER_LEVEL, &PatchParams.defaultOuterLevel[0]);
 
+  // TODO PEPE AMD->NV
   if(!VendorCheck[VendorCheck_AMD_polygon_mode_query])
   {
     // This was listed in docs as enumeration[2] even though polygon mode can't be set independently
@@ -854,13 +783,13 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
     // and back faces for a while, so pass large enough array to be sure.
     // AMD driver claims this doesn't exist anymore in core, so don't return any value, set to
     // default GL_FILL to be safe
-    GLenum dummy[2] = {eGL_FILL, eGL_FILL};
-    m_Real->glGetIntegerv(eGL_POLYGON_MODE, (GLint *)&dummy);
+    GLenum dummy[2] = {eGL_FILL_NV, eGL_FILL_NV};
+    m_Real->glGetIntegerv(eGL_POLYGON_MODE_NV, (GLint *)&dummy);
     PolygonMode = dummy[0];
   }
   else
   {
-    PolygonMode = eGL_FILL;
+    PolygonMode = eGL_FILL_NV;
   }
 
   m_Real->glGetFloatv(eGL_POLYGON_OFFSET_FACTOR, &PolygonOffset[0]);
@@ -885,38 +814,30 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
 
   {
     GLenum pnames[] = {
-        eGL_CLIP_DISTANCE0,
-        eGL_CLIP_DISTANCE1,
-        eGL_CLIP_DISTANCE2,
-        eGL_CLIP_DISTANCE3,
-        eGL_CLIP_DISTANCE4,
-        eGL_CLIP_DISTANCE5,
-        eGL_CLIP_DISTANCE6,
-        eGL_CLIP_DISTANCE7,
-        eGL_COLOR_LOGIC_OP,
+        eGL_CLIP_DISTANCE0_EXT,
+        eGL_CLIP_DISTANCE1_EXT,
+        eGL_CLIP_DISTANCE2_EXT,
+        eGL_CLIP_DISTANCE3_EXT,
+        eGL_CLIP_DISTANCE4_EXT,
+        eGL_CLIP_DISTANCE5_EXT,
+        eGL_CLIP_DISTANCE6_EXT,
+        eGL_CLIP_DISTANCE7_EXT,
         eGL_CULL_FACE,
-        eGL_DEPTH_CLAMP,
         eGL_DEPTH_TEST,
-        eGL_DEPTH_BOUNDS_TEST_EXT,
         eGL_DITHER,
-        eGL_FRAMEBUFFER_SRGB,
-        eGL_LINE_SMOOTH,
-        eGL_MULTISAMPLE,
-        eGL_POLYGON_SMOOTH,
+        eGL_FRAMEBUFFER_SRGB_EXT,
+        eGL_MULTISAMPLE_EXT,
         eGL_POLYGON_OFFSET_FILL,
-        eGL_POLYGON_OFFSET_LINE,
-        eGL_POLYGON_OFFSET_POINT,
-        eGL_PROGRAM_POINT_SIZE,
-        eGL_PRIMITIVE_RESTART,
+        eGL_POLYGON_OFFSET_LINE_NV,
+        eGL_POLYGON_OFFSET_POINT_NV,
         eGL_PRIMITIVE_RESTART_FIXED_INDEX,
         eGL_SAMPLE_ALPHA_TO_COVERAGE,
-        eGL_SAMPLE_ALPHA_TO_ONE,
+        eGL_SAMPLE_ALPHA_TO_ONE_EXT,
         eGL_SAMPLE_COVERAGE,
         eGL_SAMPLE_MASK,
         eGL_SAMPLE_SHADING,
         eGL_RASTER_MULTISAMPLE_EXT,
         eGL_STENCIL_TEST,
-        eGL_TEXTURE_CUBE_MAP_SEAMLESS,
         eGL_BLEND_ADVANCED_COHERENT_KHR,
         eGL_RASTERIZER_DISCARD,
     };
@@ -933,10 +854,6 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
          !ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
         continue;
 
-      if(pnames[i] == eGL_DEPTH_BOUNDS_TEST_EXT &&
-         !ExtensionSupported[ExtensionSupported_EXT_depth_bounds_test])
-        continue;
-
       if(Enabled[i])
         m_Real->glEnable(pnames[i]);
       else
@@ -947,13 +864,10 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
   {
     m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
-    m_Real->glBindTexture(eGL_TEXTURE_1D, Tex1D[i]);
     m_Real->glBindTexture(eGL_TEXTURE_2D, Tex2D[i]);
     m_Real->glBindTexture(eGL_TEXTURE_3D, Tex3D[i]);
-    m_Real->glBindTexture(eGL_TEXTURE_1D_ARRAY, Tex1DArray[i]);
     m_Real->glBindTexture(eGL_TEXTURE_2D_ARRAY, Tex2DArray[i]);
     m_Real->glBindTexture(eGL_TEXTURE_CUBE_MAP_ARRAY, TexCubeArray[i]);
-    m_Real->glBindTexture(eGL_TEXTURE_RECTANGLE, TexRect[i]);
     m_Real->glBindTexture(eGL_TEXTURE_BUFFER, TexBuffer[i]);
     m_Real->glBindTexture(eGL_TEXTURE_CUBE_MAP, TexCube[i]);
     m_Real->glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, Tex2DMS[i]);
@@ -983,16 +897,8 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
   for(GLuint i = 0; i < RDCMIN(maxNumAttribs, (GLuint)ARRAY_COUNT(GenericVertexAttribs)); i++)
     m_Real->glVertexAttrib4fv(i, &GenericVertexAttribs[i].x);
 
-  m_Real->glPointParameterf(eGL_POINT_FADE_THRESHOLD_SIZE, PointFadeThresholdSize);
-  m_Real->glPointParameteri(eGL_POINT_SPRITE_COORD_ORIGIN, (GLint)PointSpriteOrigin);
   m_Real->glLineWidth(LineWidth);
-  m_Real->glPointSize(PointSize);
-
-  m_Real->glPrimitiveRestartIndex(PrimitiveRestartIndex);
-  if(m_Real->glClipControl)    // only available in 4.5+
-    m_Real->glClipControl(ClipOrigin, ClipDepth);
-  m_Real->glProvokingVertex(ProvokingVertex);
-
+  
   m_Real->glUseProgram(Program);
   m_Real->glBindProgramPipeline(Pipeline);
 
@@ -1001,9 +907,6 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
 
   RDCCOMPILE_ASSERT(ARRAY_COUNT(shs) == ARRAY_COUNT(Subroutines),
                     "Subroutine array not the right size");
-  for(size_t s = 0; s < ARRAY_COUNT(shs); s++)
-    if(Subroutines[s].numSubroutines > 0)
-      m_Real->glUniformSubroutinesuiv(shs[s], Subroutines[s].numSubroutines, Subroutines[s].Values);
 
   m_Real->glBindBuffer(eGL_ARRAY_BUFFER, BufferBindings[eBufIdx_Array]);
   m_Real->glBindBuffer(eGL_COPY_READ_BUFFER, BufferBindings[eBufIdx_Copy_Read]);
@@ -1012,10 +915,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
   m_Real->glBindBuffer(eGL_DISPATCH_INDIRECT_BUFFER, BufferBindings[eBufIdx_Dispatch_Indirect]);
   m_Real->glBindBuffer(eGL_PIXEL_PACK_BUFFER, BufferBindings[eBufIdx_Pixel_Pack]);
   m_Real->glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, BufferBindings[eBufIdx_Pixel_Unpack]);
-  m_Real->glBindBuffer(eGL_QUERY_BUFFER, BufferBindings[eBufIdx_Query]);
   m_Real->glBindBuffer(eGL_TEXTURE_BUFFER, BufferBindings[eBufIdx_Texture]);
-  if(ExtensionSupported[ExtensionSupported_ARB_indirect_parameters])
-    m_Real->glBindBuffer(eGL_PARAMETER_BUFFER_ARB, BufferBindings[eBufIdx_Parameter]);
 
   struct
   {
@@ -1076,11 +976,11 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
 
   m_Real->glBlendColor(BlendColor[0], BlendColor[1], BlendColor[2], BlendColor[3]);
 
-  m_Real->glViewportArrayv(0, ARRAY_COUNT(Viewports), &Viewports[0].x);
+  m_Real->glViewportArrayvNV(0, ARRAY_COUNT(Viewports), &Viewports[0].x);
 
   for(GLuint s = 0; s < (GLuint)ARRAY_COUNT(Scissors); ++s)
   {
-    m_Real->glScissorIndexedv(s, &Scissors[s].x);
+    m_Real->glScissorIndexedvNV(s, &Scissors[s].x);
 
     if(Scissors[s].enabled)
       m_Real->glEnablei(eGL_SCISSOR_TEST, s);
@@ -1097,19 +997,6 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
       numDBs++;
       DBs[i] = DrawBuffers[i];
 
-      if(m_State < WRITING)
-      {
-        // since we are faking the default framebuffer with our own
-        // to see the results, replace back/front/left/right with color attachment 0
-        if(DBs[i] == eGL_BACK_LEFT || DBs[i] == eGL_BACK_RIGHT || DBs[i] == eGL_FRONT_LEFT ||
-           DBs[i] == eGL_FRONT_RIGHT)
-          DBs[i] = eGL_COLOR_ATTACHMENT0;
-
-        // These aren't valid for glDrawBuffers but can be returned when we call glGet,
-        // assume they mean left implicitly
-        if(DBs[i] == eGL_BACK || DBs[i] == eGL_FRONT)
-          DBs[i] = eGL_COLOR_ATTACHMENT0;
-      }
     }
     else
     {
@@ -1129,22 +1016,16 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
   m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO);
 
   m_Real->glHint(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, Hints.Derivatives);
-  m_Real->glHint(eGL_LINE_SMOOTH_HINT, Hints.LineSmooth);
-  m_Real->glHint(eGL_POLYGON_SMOOTH_HINT, Hints.PolySmooth);
-  m_Real->glHint(eGL_TEXTURE_COMPRESSION_HINT, Hints.TexCompression);
 
   m_Real->glDepthMask(DepthWriteMask);
-  m_Real->glClearDepth(DepthClearValue);
+  m_Real->glClearDepthf(DepthClearValue);
   m_Real->glDepthFunc(DepthFunc);
 
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
   {
-    double v[2] = {DepthRanges[i].nearZ, DepthRanges[i].farZ};
-    m_Real->glDepthRangeArrayv(i, 1, v);
+    float v[2] = {DepthRanges[i].nearZ, DepthRanges[i].farZ};
+    m_Real->glDepthRangeArrayfvOES(i, 1, v);
   }
-
-  if(m_Real->glDepthBoundsEXT)    // extension, not always available
-    m_Real->glDepthBoundsEXT(DepthBounds.nearZ, DepthBounds.farZ);
 
   {
     m_Real->glStencilFuncSeparate(eGL_FRONT, StencilFront.func, StencilFront.ref,
@@ -1173,16 +1054,12 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
   if(ExtensionSupported[ExtensionSupported_EXT_raster_multisample] && m_Real->glRasterSamplesEXT)
     m_Real->glRasterSamplesEXT(RasterSamples, RasterFixed);
 
-  m_Real->glLogicOp(LogicOp);
-
   m_Real->glClearColor(ColorClearValue.red, ColorClearValue.green, ColorClearValue.blue,
                        ColorClearValue.alpha);
 
   m_Real->glPatchParameteri(eGL_PATCH_VERTICES, PatchParams.numVerts);
-  m_Real->glPatchParameterfv(eGL_PATCH_DEFAULT_INNER_LEVEL, PatchParams.defaultInnerLevel);
-  m_Real->glPatchParameterfv(eGL_PATCH_DEFAULT_OUTER_LEVEL, PatchParams.defaultOuterLevel);
 
-  m_Real->glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
+  m_Real->glPolygonModeNV(eGL_FRONT_AND_BACK, PolygonMode);
   if(ExtensionSupported[ExtensionSupported_EXT_polygon_offset_clamp] &&
      m_Real->glPolygonOffsetClampEXT)
     m_Real->glPolygonOffsetClampEXT(PolygonOffset[0], PolygonOffset[1], PolygonOffset[2]);

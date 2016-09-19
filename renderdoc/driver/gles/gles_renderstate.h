@@ -76,21 +76,14 @@ struct GLRenderState
     eEnabled_ClipDistance5,
     eEnabled_ClipDistance6,
     eEnabled_ClipDistance7,
-    eEnabled_ColorLogicOp,
     eEnabled_CullFace,
-    eEnabled_DepthClamp,
     eEnabled_DepthTest,
-    eEnabled_DepthBoundsEXT,
     eEnabled_Dither,
     eEnabled_FramebufferSRGB,
-    eEnabled_LineSmooth,
     eEnabled_Multisample,
-    eEnabled_PolySmooth,
     eEnabled_PolyOffsetFill,
     eEnabled_PolyOffsetLine,
     eEnabled_PolyOffsetPoint,
-    eEnabled_ProgramPointSize,
-    eEnabled_PrimitiveRestart,
     eEnabled_PrimitiveRestartFixedIndex,
     eEnabled_SampleAlphaToCoverage,
     eEnabled_SampleAlphaToOne,
@@ -100,7 +93,6 @@ struct GLRenderState
     eEnabled_RasterMultisample,
     // eEnabled_ScissorTest, handled below with scissor values
     eEnabled_StencilTest,
-    eEnabled_TexCubeSeamless,
     eEnabled_BlendCoherent,
     eEnabled_RasterizerDiscard,
     eEnabled_Count,
@@ -222,12 +214,12 @@ struct GLRenderState
   GLenum DepthFunc;
   struct
   {
-    double nearZ, farZ;
+    float nearZ, farZ;
   } DepthRanges[16];
 
   struct
   {
-    double nearZ, farZ;
+    float nearZ, farZ;
   } DepthBounds;
 
   struct
@@ -277,7 +269,6 @@ struct GLRenderState
 
 private:
   Serialiser *m_pSerialiser;
-  LogState m_State;
   const GLHookSet *m_Real;
 
   Serialiser *GetSerialiser() { return m_pSerialiser; }

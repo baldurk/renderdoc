@@ -352,7 +352,7 @@ void GLESReplay::FlipOutputWindow(uint64_t id)
                             outw.BlitData.backbuffer, 0);
   gl.glReadBuffer(eGL_COLOR_ATTACHMENT0);
 
-  gl.glEnable(eGL_FRAMEBUFFER_SRGB);
+  gl.glEnable(eGL_FRAMEBUFFER_SRGB_EXT);
 
   gl.glBlitFramebuffer(0, 0, outw.width, outw.height, 0, 0, outw.width, outw.height,
                        GL_COLOR_BUFFER_BIT, eGL_NEAREST);
@@ -403,8 +403,10 @@ void GLESReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, v
 
   gl.glBindBuffer(eGL_COPY_READ_BUFFER, buf.resource.name);
 
-  gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, (GLintptr)offset, (GLsizeiptr)len, &ret[0]);
-
+  void* data = gl.glMapBufferRange(eGL_COPY_READ_BUFFER, (GLintptr)offset, (GLsizeiptr)len, eGL_MAP_READ_BIT);
+  if (data != NULL)
+    memcpy(&ret[0], data, len);
+  gl.glUnmapBuffer(eGL_COPY_READ_BUFFER);
   gl.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf);
 }
 
@@ -517,12 +519,12 @@ void GLESReplay::CacheTexture(ResourceId id)
     levelQueryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
 
   GLint width = 1, height = 1, depth = 1, samples = 1;
-  gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_WIDTH, &width);
-  gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_HEIGHT,
-                                     &height);
-  gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_DEPTH, &depth);
-  gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_SAMPLES,
-                                     &samples);
+  // TODO PEPE
+  gl.glBindTexture(target, res.resource.name);
+  gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_WIDTH, &width);
+  gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_HEIGHT, &height);
+  gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_DEPTH, &depth);
+  gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_SAMPLES, &samples);
 
   // the above queries sometimes come back 0, if we have dimensions from creation functions, use
   // those
@@ -558,12 +560,9 @@ void GLESReplay::CacheTexture(ResourceId id)
   switch(target)
   {
     case eGL_TEXTURE_BUFFER: tex.resType = eResType_Buffer; break;
-    case eGL_TEXTURE_1D: tex.resType = eResType_Texture1D; break;
     case eGL_TEXTURE_2D: tex.resType = eResType_Texture2D; break;
     case eGL_TEXTURE_3D: tex.resType = eResType_Texture3D; break;
-    case eGL_TEXTURE_1D_ARRAY: tex.resType = eResType_Texture1DArray; break;
     case eGL_TEXTURE_2D_ARRAY: tex.resType = eResType_Texture2DArray; break;
-    case eGL_TEXTURE_RECTANGLE: tex.resType = eResType_TextureRect; break;
     case eGL_TEXTURE_2D_MULTISAMPLE: tex.resType = eResType_Texture2DMS; break;
     case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY: tex.resType = eResType_Texture2DMSArray; break;
     case eGL_TEXTURE_CUBE_MAP: tex.resType = eResType_TextureCube; break;
@@ -576,18 +575,11 @@ void GLESReplay::CacheTexture(ResourceId id)
 
   switch(target)
   {
-    case eGL_TEXTURE_1D:
     case eGL_TEXTURE_BUFFER:
       tex.dimension = 1;
       tex.width = (uint32_t)width;
       break;
-    case eGL_TEXTURE_1D_ARRAY:
-      tex.dimension = 1;
-      tex.width = (uint32_t)width;
-      tex.arraysize = depth;
-      break;
     case eGL_TEXTURE_2D:
-    case eGL_TEXTURE_RECTANGLE:
     case eGL_TEXTURE_2D_MULTISAMPLE:
     case eGL_TEXTURE_CUBE_MAP:
       tex.dimension = 2;
@@ -625,8 +617,9 @@ void GLESReplay::CacheTexture(ResourceId id)
 
   // surely this will be the same for each level... right? that would be insane if it wasn't
   GLint fmt = 0;
-  gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0,
-                                     eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
+  // TODO PEPE
+  gl.glBindTexture(target, res.resource.name);
+  gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
 
   tex.format = MakeResourceFormat(gl, target, (GLenum)fmt);
 
@@ -684,8 +677,9 @@ void GLESReplay::CacheTexture(ResourceId id)
     tex.msQual = tex.msSamp = 0;
     tex.byteSize = 0;
 
-    gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0,
-                                       eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.byteSize);
+    // TODO PEPE
+    gl.glBindTexture(target, res.resource.name);
+    gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.byteSize);
     tex.width = uint32_t(tex.byteSize / (tex.format.compByteWidth * tex.format.compCount));
 
     m_CachedTextures[id] = tex;
@@ -697,8 +691,9 @@ void GLESReplay::CacheTexture(ResourceId id)
   tex.numSubresources = tex.mips * tex.arraysize;
 
   GLint compressed;
-  gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_COMPRESSED,
-                                     &compressed);
+  // TODO PEPE
+  gl.glBindTexture(target, res.resource.name);
+  gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_COMPRESSED, &compressed);
   tex.byteSize = 0;
   for(uint32_t a = 0; a < tex.arraysize; a++)
   {
@@ -706,9 +701,7 @@ void GLESReplay::CacheTexture(ResourceId id)
     {
       if(compressed)
       {
-        gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, m,
-                                           eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compressed);
-        tex.byteSize += compressed;
+          // TODO PEPE
       }
       else if(tex.format.special)
       {
@@ -762,13 +755,11 @@ FetchBuffer GLESReplay::GetBuffer(ResourceId id)
     case eGL_UNIFORM_BUFFER: ret.creationFlags = eBufferCreate_CB; break;
     case eGL_SHADER_STORAGE_BUFFER: ret.creationFlags = eBufferCreate_UAV; break;
     case eGL_DRAW_INDIRECT_BUFFER:
-    case eGL_DISPATCH_INDIRECT_BUFFER:
-    case eGL_PARAMETER_BUFFER_ARB: ret.creationFlags = eBufferCreate_Indirect; break;
+    case eGL_DISPATCH_INDIRECT_BUFFER: ret.creationFlags = eBufferCreate_Indirect; break;
     case eGL_PIXEL_PACK_BUFFER:
     case eGL_PIXEL_UNPACK_BUFFER:
     case eGL_COPY_WRITE_BUFFER:
     case eGL_COPY_READ_BUFFER:
-    case eGL_QUERY_BUFFER:
     case eGL_TEXTURE_BUFFER:
     case eGL_TRANSFORM_FEEDBACK_BUFFER:
     case eGL_ATOMIC_COUNTER_BUFFER: break;
@@ -779,17 +770,7 @@ FetchBuffer GLESReplay::GetBuffer(ResourceId id)
   }
 
   GLint size = 0;
-  // if the type is NONE it's probably a DSA created buffer
-  if(res.curType == eGL_NONE)
-  {
-    // if we have the DSA entry point
-    if(gl.GetHookset().glGetNamedBufferParameterivEXT)
-      gl.glGetNamedBufferParameterivEXT(res.resource.name, eGL_BUFFER_SIZE, &size);
-  }
-  else
-  {
-    gl.glGetBufferParameteriv(res.curType, eGL_BUFFER_SIZE, &size);
-  }
+  gl.glGetBufferParameteriv(res.curType, eGL_BUFFER_SIZE, &size);
 
   ret.length = size;
 
@@ -856,7 +837,6 @@ void GLESReplay::SavePipelineState()
   gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);
   pipe.m_VtxIn.ibuffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, ibuffer)));
 
-  pipe.m_VtxIn.primitiveRestart = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart];
   pipe.m_VtxIn.restartIndex = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex]
                                   ? ~0U
                                   : rs.PrimitiveRestartIndex;
@@ -962,12 +942,6 @@ void GLESReplay::SavePipelineState()
         fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_FLOAT%d", fmt.compCount)
                                          : string("GL_FLOAT"));
         break;
-      case eGL_DOUBLE:
-        fmt.compByteWidth = 8;
-        fmt.compType = eCompType_Double;
-        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_DOUBLE%d", fmt.compCount)
-                                         : string("GL_DOUBLE"));
-        break;
       case eGL_HALF_FLOAT:
         fmt.compByteWidth = 2;
         fmt.compType = eCompType_Float;
@@ -997,7 +971,7 @@ void GLESReplay::SavePipelineState()
         break;
     }
 
-    if(fmt.compCount == eGL_BGRA)
+    if(fmt.compCount == eGL_BGRA_EXT)
     {
       fmt.compByteWidth = 1;
       fmt.compCount = 4;
@@ -1035,8 +1009,6 @@ void GLESReplay::SavePipelineState()
          sizeof(rs.PatchParams.defaultOuterLevel));
 
   pipe.m_VtxProcess.discard = rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard];
-  pipe.m_VtxProcess.clipOriginLowerLeft = (rs.ClipOrigin != eGL_UPPER_LEFT);
-  pipe.m_VtxProcess.clipNegativeOneToOne = (rs.ClipDepth != eGL_ZERO_TO_ONE);
   for(int i = 0; i < 8; i++)
     pipe.m_VtxProcess.clipPlanes[i] = rs.Enabled[GLRenderState::eEnabled_ClipDistance0 + i];
 
@@ -1192,10 +1164,10 @@ void GLESReplay::SavePipelineState()
   }
 
   GLint p = 0;
-  gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_PAUSED, &p);
+  gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_PAUSED, &p);
   pipe.m_Feedback.Paused = (p != 0);
 
-  gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_ACTIVE, &p);
+  gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_ACTIVE, &p);
   pipe.m_Feedback.Active = (p != 0);
 
   for(int i = 0; i < 6; i++)
@@ -1254,17 +1226,15 @@ void GLESReplay::SavePipelineState()
           {
             case eResType_None: target = eGL_NONE; break;
             case eResType_Buffer: target = eGL_TEXTURE_BUFFER; break;
-            case eResType_Texture1D: target = eGL_TEXTURE_1D; break;
-            case eResType_Texture1DArray: target = eGL_TEXTURE_1D_ARRAY; break;
             case eResType_Texture2D: target = eGL_TEXTURE_2D; break;
-            case eResType_TextureRect: target = eGL_TEXTURE_RECTANGLE; break;
             case eResType_Texture2DArray: target = eGL_TEXTURE_2D_ARRAY; break;
             case eResType_Texture2DMS: target = eGL_TEXTURE_2D_MULTISAMPLE; break;
             case eResType_Texture2DMSArray: target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY; break;
             case eResType_Texture3D: target = eGL_TEXTURE_3D; break;
             case eResType_TextureCube: target = eGL_TEXTURE_CUBE_MAP; break;
             case eResType_TextureCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
-            case eResType_Count: RDCERR("Invalid shader resource type"); break;
+            case eResType_Count: 
+            default: RDCERR("Invalid shader resource type"); break;
           }
 
           if(target != eGL_NONE)
@@ -1330,8 +1300,8 @@ void GLESReplay::SavePipelineState()
 
         if(target != eGL_TEXTURE_BUFFER)
         {
-          gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstMip);
-          gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LAYER, &firstSlice);
+          gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL_OES, &firstMip);
+          gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LAYER_OES, &firstSlice);
         }
 
         pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
@@ -1358,8 +1328,12 @@ void GLESReplay::SavePipelineState()
         }
 
         GLint swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
-        if(target != eGL_TEXTURE_BUFFER)
-          gl.glGetTexParameteriv(target, eGL_TEXTURE_SWIZZLE_RGBA, swizzles);
+        if(target != eGL_TEXTURE_BUFFER) {
+          gl.glGetTexParameteriv(target, eGL_TEXTURE_SWIZZLE_R, &swizzles[0]);
+          gl.glGetTexParameteriv(target, eGL_TEXTURE_SWIZZLE_G, &swizzles[1]);
+          gl.glGetTexParameteriv(target, eGL_TEXTURE_SWIZZLE_B, &swizzles[2]);
+          gl.glGetTexParameteriv(target, eGL_TEXTURE_SWIZZLE_A, &swizzles[3]);
+        }
 
         for(int i = 0; i < 4; i++)
         {
@@ -1419,14 +1393,6 @@ void GLESReplay::SavePipelineState()
 
           v = 0;
           if(samp != 0)
-            gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
-          else
-            gl.glGetTexParameteriv(target, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
-          pipe.Samplers[unit].SeamlessCube =
-              (v != 0 || rs.Enabled[GLRenderState::eEnabled_TexCubeSeamless]);
-
-          v = 0;
-          if(samp != 0)
             gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_FUNC, &v);
           else
             gl.glGetTexParameteriv(target, eGL_TEXTURE_COMPARE_FUNC, &v);
@@ -1455,7 +1421,6 @@ void GLESReplay::SavePipelineState()
 
           gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_LOD, &pipe.Samplers[unit].MaxLOD);
           gl.glGetTexParameterfv(target, eGL_TEXTURE_MIN_LOD, &pipe.Samplers[unit].MinLOD);
-          gl.glGetTexParameterfv(target, eGL_TEXTURE_LOD_BIAS, &pipe.Samplers[unit].MipLODBias);
         }
         else
         {
@@ -1603,15 +1568,15 @@ void GLESReplay::SavePipelineState()
     default:
       RDCWARN("Unexpected value for POLYGON_MODE %x", rs.PolygonMode);
     // fall through
-    case eGL_FILL:
+    case eGL_FILL_NV:
       pipe.m_Rasterizer.m_State.FillMode = eFill_Solid;
       polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetFill;
       break;
-    case eGL_LINE:
+    case eGL_LINE_NV:
       pipe.m_Rasterizer.m_State.FillMode = eFill_Wireframe;
       polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetLine;
       break;
-    case eGL_POINT:
+    case eGL_POINT_NV:
       pipe.m_Rasterizer.m_State.FillMode = eFill_Point;
       polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetPoint;
       break;
@@ -1648,7 +1613,6 @@ void GLESReplay::SavePipelineState()
 
   RDCASSERT(rs.FrontFace == eGL_CCW || rs.FrontFace == eGL_CW);
   pipe.m_Rasterizer.m_State.FrontCCW = rs.FrontFace == eGL_CCW;
-  pipe.m_Rasterizer.m_State.DepthClamp = rs.Enabled[GLRenderState::eEnabled_DepthClamp];
 
   pipe.m_Rasterizer.m_State.MultisampleEnable = rs.Enabled[GLRenderState::eEnabled_Multisample];
   pipe.m_Rasterizer.m_State.SampleShading = rs.Enabled[GLRenderState::eEnabled_SampleShading];
@@ -1663,21 +1627,14 @@ void GLESReplay::SavePipelineState()
   pipe.m_Rasterizer.m_State.SampleAlphaToOne = rs.Enabled[GLRenderState::eEnabled_SampleAlphaToOne];
   pipe.m_Rasterizer.m_State.MinSampleShadingRate = rs.MinSampleShading;
 
-  pipe.m_Rasterizer.m_State.ProgrammablePointSize = rs.Enabled[rs.eEnabled_ProgramPointSize];
   pipe.m_Rasterizer.m_State.PointSize = rs.PointSize;
   pipe.m_Rasterizer.m_State.LineWidth = rs.LineWidth;
-  pipe.m_Rasterizer.m_State.PointFadeThreshold = rs.PointFadeThresholdSize;
-  pipe.m_Rasterizer.m_State.PointOriginUpperLeft = (rs.PointSpriteOrigin != eGL_LOWER_LEFT);
 
   // depth and stencil states
 
   pipe.m_DepthState.DepthEnable = rs.Enabled[GLRenderState::eEnabled_DepthTest];
   pipe.m_DepthState.DepthWrites = rs.DepthWriteMask != 0;
   pipe.m_DepthState.DepthFunc = ToStr::Get(rs.DepthFunc).substr(3);
-
-  pipe.m_DepthState.DepthBounds = rs.Enabled[GLRenderState::eEnabled_DepthBoundsEXT];
-  pipe.m_DepthState.NearBound = rs.DepthBounds.nearZ;
-  pipe.m_DepthState.FarBound = rs.DepthBounds.farZ;
 
   pipe.m_StencilState.StencilEnable = rs.Enabled[GLRenderState::eEnabled_StencilTest];
   pipe.m_StencilState.m_FrontFace.ValueMask = rs.StencilFront.valuemask;
@@ -2193,14 +2150,14 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   if(texType == eGL_TEXTURE_BUFFER)
   {
     GLuint bufName = 0;
-    gl.glGetTextureLevelParameterivEXT(texname, texType, 0, eGL_TEXTURE_BUFFER_DATA_STORE_BINDING,
+    gl.glGetTexLevelParameteriv(texname, texType, 0, eGL_TEXTURE_BUFFER_DATA_STORE_BINDING,
                                        (GLint *)&bufName);
     ResourceId id = m_pDriver->GetResourceManager()->GetID(BufferRes(m_pDriver->GetCtx(), bufName));
 
     GLuint offs = 0, size = 0;
-    gl.glGetTextureLevelParameterivEXT(texname, texType, 0, eGL_TEXTURE_BUFFER_OFFSET,
+    gl.glGetTexLevelParameteriv(texname, texType, 0, eGL_TEXTURE_BUFFER_OFFSET,
                                        (GLint *)&offs);
-    gl.glGetTextureLevelParameterivEXT(texname, texType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&size);
+    gl.glGetTexLevelParameteriv(texname, texType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&size);
 
     vector<byte> data;
     GetBufferData(id, offs, size, data);
@@ -2624,9 +2581,9 @@ void GLESReplay::CreateCustomShaderTex(uint32_t w, uint32_t h)
   if(DebugData.customTex)
   {
     uint32_t oldw = 0, oldh = 0;
-    m_pDriver->glGetTextureLevelParameterivEXT(DebugData.customTex, eGL_TEXTURE_2D, 0,
+    m_pDriver->glGetTexLevelParameteriv(DebugData.customTex, eGL_TEXTURE_2D, 0,
                                                eGL_TEXTURE_WIDTH, (GLint *)&oldw);
-    m_pDriver->glGetTextureLevelParameterivEXT(DebugData.customTex, eGL_TEXTURE_2D, 0,
+    m_pDriver->glGetTexLevelParameteriv(DebugData.customTex, eGL_TEXTURE_2D, 0,
                                                eGL_TEXTURE_HEIGHT, (GLint *)&oldh);
 
     if(oldw == w && oldh == h)
