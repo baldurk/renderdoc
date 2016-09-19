@@ -2703,6 +2703,78 @@ void WrappedID3D12GraphicsCommandList::CopyBufferRegion(ID3D12Resource *pDstBuff
   }
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
+    const D3D12_TEXTURE_COPY_LOCATION *pDst, UINT DstX, UINT DstY, UINT DstZ,
+    const D3D12_TEXTURE_COPY_LOCATION *pSrc, const D3D12_BOX *pSrcBox)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(D3D12_TEXTURE_COPY_LOCATION, dst, *pDst);
+  SERIALISE_ELEMENT(UINT, dstX, DstX);
+  SERIALISE_ELEMENT(UINT, dstY, DstY);
+  SERIALISE_ELEMENT(UINT, dstZ, DstZ);
+  SERIALISE_ELEMENT(D3D12_TEXTURE_COPY_LOCATION, src, *pSrc);
+  SERIALISE_ELEMENT(bool, HasSrcBox, pSrcBox != NULL);
+  SERIALISE_ELEMENT_OPT(D3D12_BOX, box, *pSrcBox, HasSrcBox);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+      Unwrap(list)->CopyTextureRegion(&dst, dstX, dstY, dstZ, &src, HasSrcBox ? &box : NULL);
+    }
+  }
+  else if(m_State == READING)
+  {
+    ID3D12GraphicsCommandList *list = GetList(CommandList);
+
+    list->CopyTextureRegion(&dst, dstX, dstY, dstZ, &src, HasSrcBox ? &box : NULL);
+
+    const string desc = m_pSerialiser->GetDebugStr();
+
+    {
+      m_Cmd->AddEvent(COPY_TEXTURE, desc);
+
+      ResourceId liveSrc = GetResID(GetResourceManager()->GetWrapper(src.pResource));
+      ResourceId liveDst = GetResID(GetResourceManager()->GetWrapper(dst.pResource));
+
+      ResourceId origSrc = GetResourceManager()->GetOriginalID(liveSrc);
+      ResourceId origDst = GetResourceManager()->GetOriginalID(liveDst);
+
+      string name = "CopyTextureRegion(" + ToStr::Get(origSrc) + "," + ToStr::Get(origDst) + ")";
+
+      FetchDrawcall draw;
+      draw.name = name;
+      draw.flags |= eDraw_Copy;
+
+      draw.copySource = origSrc;
+      draw.copyDestination = origDst;
+
+      m_Cmd->AddDrawcall(draw, true);
+
+      D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+
+      if(origSrc == origDst)
+      {
+        drawNode.resourceUsage.push_back(
+            std::make_pair(liveSrc, EventUsage(drawNode.draw.eventID, eUsage_Copy)));
+      }
+      else
+      {
+        drawNode.resourceUsage.push_back(
+            std::make_pair(liveSrc, EventUsage(drawNode.draw.eventID, eUsage_CopySrc)));
+        drawNode.resourceUsage.push_back(
+            std::make_pair(liveDst, EventUsage(drawNode.draw.eventID, eUsage_CopyDst)));
+      }
+    }
+  }
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::CopyTextureRegion(const D3D12_TEXTURE_COPY_LOCATION *pDst,
                                                          UINT DstX, UINT DstY, UINT DstZ,
                                                          const D3D12_TEXTURE_COPY_LOCATION *pSrc,
@@ -2714,16 +2786,189 @@ void WrappedID3D12GraphicsCommandList::CopyTextureRegion(const D3D12_TEXTURE_COP
   D3D12_TEXTURE_COPY_LOCATION src = *pSrc;
   src.pResource = Unwrap(src.pResource);
 
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
-
   m_pReal->CopyTextureRegion(&dst, DstX, DstY, DstZ, &src, pSrcBox);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(COPY_TEXTURE);
+    Serialise_CopyTextureRegion(pDst, DstX, DstY, DstZ, pSrc, pSrcBox);
+
+    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pDst->pResource), eFrameRef_Write);
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrc->pResource), eFrameRef_Read);
+  }
+}
+
+bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(ID3D12Resource *pDstResource,
+                                                              ID3D12Resource *pSrcResource)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(ResourceId, dst, GetResID(pDstResource));
+  SERIALISE_ELEMENT(ResourceId, src, GetResID(pSrcResource));
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    pDstResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(dst);
+    pSrcResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(src);
+
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+      Unwrap(list)->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
+    }
+  }
+  else if(m_State == READING)
+  {
+    ID3D12GraphicsCommandList *list = GetList(CommandList);
+    pDstResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(dst);
+    pSrcResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(src);
+
+    Unwrap(list)->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
+
+    const string desc = m_pSerialiser->GetDebugStr();
+
+    {
+      m_Cmd->AddEvent(COPY_RESOURCE, desc);
+
+      string name = "CopyResource(" + ToStr::Get(src) + "," + ToStr::Get(dst) + ")";
+
+      FetchDrawcall draw;
+      draw.name = name;
+      draw.flags |= eDraw_Copy;
+
+      draw.copySource = src;
+      draw.copyDestination = dst;
+
+      m_Cmd->AddDrawcall(draw, true);
+
+      D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+
+      if(pSrcResource == pDstResource)
+      {
+        drawNode.resourceUsage.push_back(
+            std::make_pair(GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, eUsage_Copy)));
+      }
+      else
+      {
+        drawNode.resourceUsage.push_back(std::make_pair(
+            GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, eUsage_CopySrc)));
+        drawNode.resourceUsage.push_back(std::make_pair(
+            GetResID(pDstResource), EventUsage(drawNode.draw.eventID, eUsage_CopyDst)));
+      }
+    }
+  }
+
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::CopyResource(ID3D12Resource *pDstResource,
                                                     ID3D12Resource *pSrcResource)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(COPY_RESOURCE);
+    Serialise_CopyResource(pDstResource, pSrcResource);
+
+    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstResource), eFrameRef_Write);
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrcResource), eFrameRef_Read);
+  }
+}
+
+bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(ID3D12Resource *pDstResource,
+                                                                    UINT DstSubresource,
+                                                                    ID3D12Resource *pSrcResource,
+                                                                    UINT SrcSubresource,
+                                                                    DXGI_FORMAT Format)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(ResourceId, dst, GetResID(pDstResource));
+  SERIALISE_ELEMENT(UINT, dstSub, DstSubresource);
+  SERIALISE_ELEMENT(ResourceId, src, GetResID(pSrcResource));
+  SERIALISE_ELEMENT(UINT, srcSub, SrcSubresource);
+  SERIALISE_ELEMENT(DXGI_FORMAT, fmt, Format);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    pDstResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(dst);
+    pSrcResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(src);
+
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+      Unwrap(list)->ResolveSubresource(Unwrap(pDstResource), dstSub, Unwrap(pSrcResource), srcSub,
+                                       fmt);
+    }
+  }
+  else if(m_State == READING)
+  {
+    ID3D12GraphicsCommandList *list = GetList(CommandList);
+    pDstResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(dst);
+    pSrcResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(src);
+
+    Unwrap(list)->ResolveSubresource(Unwrap(pDstResource), dstSub, Unwrap(pSrcResource), srcSub, fmt);
+
+    const string desc = m_pSerialiser->GetDebugStr();
+
+    {
+      m_Cmd->AddEvent(RESOLVE_SUBRESOURCE, desc);
+
+      string name = "ResolveSubresource(" + ToStr::Get(src) + "," + ToStr::Get(dst) + ")";
+
+      FetchDrawcall draw;
+      draw.name = name;
+      draw.flags |= eUsage_Resolve;
+
+      draw.copySource = src;
+      draw.copyDestination = dst;
+
+      m_Cmd->AddDrawcall(draw, true);
+
+      D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+
+      if(pSrcResource == pDstResource)
+      {
+        drawNode.resourceUsage.push_back(std::make_pair(
+            GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, eUsage_Resolve)));
+      }
+      else
+      {
+        drawNode.resourceUsage.push_back(std::make_pair(
+            GetResID(pSrcResource), EventUsage(drawNode.draw.eventID, eUsage_ResolveSrc)));
+        drawNode.resourceUsage.push_back(std::make_pair(
+            GetResID(pDstResource), EventUsage(drawNode.draw.eventID, eUsage_ResolveDst)));
+      }
+    }
+  }
+
+  return true;
+}
+
+void WrappedID3D12GraphicsCommandList::ResolveSubresource(ID3D12Resource *pDstResource,
+                                                          UINT DstSubresource,
+                                                          ID3D12Resource *pSrcResource,
+                                                          UINT SrcSubresource, DXGI_FORMAT Format)
+{
+  m_pReal->ResolveSubresource(Unwrap(pDstResource), DstSubresource, Unwrap(pSrcResource),
+                              SrcSubresource, Format);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(RESOLVE_SUBRESOURCE);
+    Serialise_ResolveSubresource(pDstResource, DstSubresource, pSrcResource, SrcSubresource, Format);
+
+    m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pDstResource), eFrameRef_Write);
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pSrcResource), eFrameRef_Read);
+  }
 }
 
 void WrappedID3D12GraphicsCommandList::CopyTiles(
@@ -2734,16 +2979,6 @@ void WrappedID3D12GraphicsCommandList::CopyTiles(
   D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->CopyTiles(Unwrap(pTiledResource), pTileRegionStartCoordinate, pTileRegionSize,
                      Unwrap(pBuffer), BufferStartOffsetInBytes, Flags);
-}
-
-void WrappedID3D12GraphicsCommandList::ResolveSubresource(ID3D12Resource *pDstResource,
-                                                          UINT DstSubresource,
-                                                          ID3D12Resource *pSrcResource,
-                                                          UINT SrcSubresource, DXGI_FORMAT Format)
-{
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
-  m_pReal->ResolveSubresource(Unwrap(pDstResource), DstSubresource, Unwrap(pSrcResource),
-                              SrcSubresource, Format);
 }
 
 #pragma endregion Copies

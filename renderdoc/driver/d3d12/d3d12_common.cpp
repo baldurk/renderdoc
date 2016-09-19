@@ -989,6 +989,39 @@ void Serialiser::Serialise(const char *name, D3D12_CLEAR_VALUE &el)
 }
 
 template <>
+void Serialiser::Serialise(const char *name, D3D12_SUBRESOURCE_FOOTPRINT &el)
+{
+  ScopedContext scope(this, name, "D3D12_SUBRESOURCE_FOOTPRINT", 0, true);
+
+  Serialise("Format", el.Format);
+  Serialise("Width", el.Width);
+  Serialise("Height", el.Height);
+  Serialise("Depth", el.Depth);
+  Serialise("RowPitch", el.RowPitch);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12_TEXTURE_COPY_LOCATION &el)
+{
+  ScopedContext scope(this, name, "D3D12_TEXTURE_COPY_LOCATION", 0, true);
+
+  SerialiseObject(ID3D12Resource, "pResource", el.pResource);
+  Serialise("Type", el.Type);
+
+  switch(el.Type)
+  {
+    case D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT:
+      Serialise("PlacedFootprint.Footprint", el.PlacedFootprint.Footprint);
+      Serialise("PlacedFootprint.Offset", el.PlacedFootprint.Offset);
+      break;
+    case D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX:
+      Serialise("SubresourceIndex", el.SubresourceIndex);
+      break;
+    default: RDCERR("Unexpected texture copy type %d", el.Type); break;
+  }
+}
+
+template <>
 void Serialiser::Serialise(const char *name, D3D12_SAMPLER_DESC &el)
 {
   ScopedContext scope(this, name, "D3D12_SAMPLER_DESC", 0, true);
@@ -1009,6 +1042,12 @@ string ToStrHelper<false, D3D12_VIEWPORT>::Get(const D3D12_VIEWPORT &el)
 {
   return StringFormat::Fmt("Viewport<%.0fx%.0f+%.0f+%.0f z=%f->%f>", el.Width, el.Height,
                            el.TopLeftX, el.TopLeftY, el.MinDepth, el.MaxDepth);
+}
+
+string ToStrHelper<false, D3D12_BOX>::Get(const D3D12_BOX &el)
+{
+  return StringFormat::Fmt("Box<%u,%u,%u -> %u,%u,%u>", el.left, el.top, el.front, el.right,
+                           el.bottom, el.back);
 }
 
 string ToStrHelper<false, PortableHandle>::Get(const PortableHandle &el)
@@ -1514,6 +1553,18 @@ string ToStrHelper<false, D3D12_COMMAND_LIST_TYPE>::Get(const D3D12_COMMAND_LIST
   }
 
   return StringFormat::Fmt("D3D12_COMMAND_LIST_TYPE<%d>", el);
+}
+
+string ToStrHelper<false, D3D12_TEXTURE_COPY_TYPE>::Get(const D3D12_TEXTURE_COPY_TYPE &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX)
+    TOSTR_CASE_STRINGIZE(D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT)
+    default: break;
+  }
+
+  return StringFormat::Fmt("D3D12_TEXTURE_COPY_TYPE<%d>", el);
 }
 
 string ToStrHelper<false, D3D12_RESOURCE_DIMENSION>::Get(const D3D12_RESOURCE_DIMENSION &el)

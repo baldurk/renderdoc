@@ -202,6 +202,8 @@ template <>
 void Serialiser::Serialise(const char *name, D3D12_UNORDERED_ACCESS_VIEW_DESC &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D12_CLEAR_VALUE &el);
+template <>
+void Serialiser::Serialise(const char *name, D3D12_TEXTURE_COPY_LOCATION &el);
 
 struct D3D12Descriptor;
 template <>
@@ -253,6 +255,9 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
   D3D12_CHUNK_MACRO(DRAW_INDEXED_INST, "ID3D12GraphicsCommandList::DrawIndexedInstanced")          \
   D3D12_CHUNK_MACRO(DRAW_INST, "ID3D12GraphicsCommandList::DrawInstanced")                         \
   D3D12_CHUNK_MACRO(COPY_BUFFER, "ID3D12GraphicsCommandList::CopyBufferRegion")                    \
+  D3D12_CHUNK_MACRO(COPY_TEXTURE, "ID3D12GraphicsCommandList::CopyTextureRegion")                  \
+  D3D12_CHUNK_MACRO(COPY_RESOURCE, "ID3D12GraphicsCommandList::CopyResource")                      \
+  D3D12_CHUNK_MACRO(RESOLVE_SUBRESOURCE, "ID3D12GraphicsCommandList::ResolveSubresource")          \
                                                                                                    \
   D3D12_CHUNK_MACRO(CLEAR_RTV, "ID3D12GraphicsCommandList::ClearRenderTargetView")                 \
   D3D12_CHUNK_MACRO(CLEAR_DSV, "ID3D12GraphicsCommandList::ClearDepthStencilView")                 \
