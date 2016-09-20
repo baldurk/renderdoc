@@ -3217,57 +3217,56 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 {
   switch(context)
   {
-    case DEVICE_INIT:
-    {
-      SERIALISE_ELEMENT(ResourceId, immContextId, ResourceId());
-      SERIALISE_ELEMENT(ResourceId, vaoId, ResourceId());
-
-      GetResourceManager()->AddLiveResource(immContextId,
-                                            GLResource(NULL, eResSpecial, eSpecialResContext));
-      GetResourceManager()->AddLiveResource(vaoId, VertexArrayRes(NULL, 0));
-      break;
-    }
-    case GEN_TEXTURE: Serialise_glGenTextures(0, NULL); break;
-    case ACTIVE_TEXTURE: Serialise_glActiveTexture(eGL_NONE); break;
-    case BIND_TEXTURE: Serialise_glBindTexture(eGL_NONE, 0); break;
-    case BIND_IMAGE_TEXTURE: Serialise_glBindImageTexture(0, 0, 0, 0, 0, eGL_NONE, eGL_NONE); break;
-    case TEXSTORAGE1D: Serialise_glTextureStorage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0); break;
-    case TEXSTORAGE2D: Serialise_glTextureStorage2DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0); break;
-    case TEXSTORAGE3D: Serialise_glTextureStorage3DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0); break;
-    case TEXSTORAGE2DMS:
-      Serialise_glTexStorage2DMultisample(eGL_NONE, 0, eGL_NONE, 0, 0, GL_FALSE);
-      break;
-    case TEXSTORAGE3DMS:
-      Serialise_glTexStorage3DMultisample(eGL_NONE, 0, eGL_NONE, 0, 0, 0, GL_FALSE);
-      break;
-    case TEXIMAGE2D:
-      Serialise_glTexImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-      break;
-    case TEXIMAGE3D:
-      Serialise_glTexImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-      break;
-    case TEXSUBIMAGE2D:
-      Serialise_glTexSubImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-      break;
-    case TEXSUBIMAGE3D:
-      Serialise_glTexSubImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-      break;
-    case TEXIMAGE2D_COMPRESSED:
-      Serialise_glCompressedTexImage2D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, NULL);
-      break;
-    case TEXIMAGE3D_COMPRESSED:
-      Serialise_glCompressedTexImage3D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0, NULL);
-      break;
-    case TEXSUBIMAGE2D_COMPRESSED:
-      Serialise_glCompressedTexSubImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, 0, NULL);
-      break;
-    case TEXSUBIMAGE3D_COMPRESSED:
-      Serialise_glCompressedTexSubImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, 0, NULL);
-      break;
-    case TEXBUFFER: Serialise_glTexBuffer(eGL_NONE, eGL_NONE, 0); break;
-    case TEXBUFFER_RANGE: Serialise_glTexBufferRange(eGL_NONE, eGL_NONE, 0, 0, 0); break;
-    case PIXELSTORE: Serialise_glPixelStorei(eGL_NONE, 0); break;
-// TODO PEPE
+//    case DEVICE_INIT:
+//    {
+//      SERIALISE_ELEMENT(ResourceId, immContextId, ResourceId());
+//      SERIALISE_ELEMENT(ResourceId, vaoId, ResourceId());
+//
+//      GetResourceManager()->AddLiveResource(immContextId,
+//                                            GLResource(NULL, eResSpecial, eSpecialResContext));
+//      GetResourceManager()->AddLiveResource(vaoId, VertexArrayRes(NULL, 0));
+//      break;
+//    }
+//    case GEN_TEXTURE: Serialise_glGenTextures(0, NULL); break;
+//    case ACTIVE_TEXTURE: Serialise_glActiveTexture(eGL_NONE); break;
+//    case BIND_TEXTURE: Serialise_glBindTexture(eGL_NONE, 0); break;
+//    case BIND_IMAGE_TEXTURE: Serialise_glBindImageTexture(0, 0, 0, 0, 0, eGL_NONE, eGL_NONE); break;
+//    case TEXSTORAGE1D: Serialise_glTextureStorage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0); break;
+//    case TEXSTORAGE2D: Serialise_glTextureStorage2DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0); break;
+//    case TEXSTORAGE3D: Serialise_glTextureStorage3DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0); break;
+//    case TEXSTORAGE2DMS:
+//      Serialise_glTexStorage2DMultisample(eGL_NONE, 0, eGL_NONE, 0, 0, GL_FALSE);
+//      break;
+//    case TEXSTORAGE3DMS:
+//      Serialise_glTexStorage3DMultisample(eGL_NONE, 0, eGL_NONE, 0, 0, 0, GL_FALSE);
+//      break;
+//    case TEXIMAGE2D:
+//      Serialise_glTexImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
+//      break;
+//    case TEXIMAGE3D:
+//      Serialise_glTexImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
+//      break;
+//    case TEXSUBIMAGE2D:
+//      Serialise_glTexSubImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
+//      break;
+//    case TEXSUBIMAGE3D:
+//      Serialise_glTexSubImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
+//      break;
+//    case TEXIMAGE2D_COMPRESSED:
+//      Serialise_glCompressedTexImage2D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, NULL);
+//      break;
+//    case TEXIMAGE3D_COMPRESSED:
+//      Serialise_glCompressedTexImage3D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0, NULL);
+//      break;
+//    case TEXSUBIMAGE2D_COMPRESSED:
+//      Serialise_glCompressedTexSubImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, 0, NULL);
+//      break;
+//    case TEXSUBIMAGE3D_COMPRESSED:
+//      Serialise_glCompressedTexSubImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, 0, NULL);
+//      break;
+//    case TEXBUFFER: Serialise_glTexBuffer(eGL_NONE, eGL_NONE, 0); break;
+//    case TEXBUFFER_RANGE: Serialise_glTexBufferRange(eGL_NONE, eGL_NONE, 0, 0, 0); break;
+//    case PIXELSTORE: Serialise_glPixelStorei(eGL_NONE, 0); break;
 //    case TEXPARAMETERF: Serialise_glTextureParameterfEXT(0, eGL_NONE, eGL_NONE, 0); break;
 //    case TEXPARAMETERFV: Serialise_glTextureParameterfvEXT(0, eGL_NONE, eGL_NONE, NULL); break;
 //    case TEXPARAMETERI: Serialise_glTextureParameteriEXT(0, eGL_NONE, eGL_NONE, 0); break;
@@ -3350,10 +3349,10 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case END_CONDITIONAL: Serialise_glEndConditionalRender(); break;
 //    case QUERY_COUNTER: Serialise_glQueryCounter(0, eGL_NONE); break;
 //
-//    case CLEAR_COLOR: Serialise_glClearColor(0, 0, 0, 0); break;
+    case CLEAR_COLOR: Serialise_glClearColor(0, 0, 0, 0); break;
 //    case CLEAR_DEPTH: Serialise_glClearDepth(0); break;
 //    case CLEAR_STENCIL: Serialise_glClearStencil(0); break;
-//    case CLEAR: Serialise_glClear(0); break;
+    case CLEAR: Serialise_glClear(0); break;
 //    case CLEARBUFFERF: Serialise_glClearNamedFramebufferfv(0, eGL_NONE, 0, NULL); break;
 //    case CLEARBUFFERI: Serialise_glClearNamedFramebufferiv(0, eGL_NONE, 0, NULL); break;
 //    case CLEARBUFFERUI: Serialise_glClearNamedFramebufferuiv(0, eGL_NONE, 0, NULL); break;
