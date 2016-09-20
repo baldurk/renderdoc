@@ -3393,12 +3393,16 @@ void WrappedOpenGL::glClearBufferData(GLenum target, GLenum internalformat, GLen
   if(m_State == WRITING_CAPFRAME)
   {
     GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify implicit object at binding. Mismatched or bad GLuint?", record,
+                 target);
 
-    SCOPED_SERIALISE_CONTEXT(CLEARBUFFERDATA);
-    Serialise_glClearNamedBufferDataEXT(record->Resource.name, internalformat, format, type, data);
+    if(record)
+    {
+      SCOPED_SERIALISE_CONTEXT(CLEARBUFFERDATA);
+      Serialise_glClearNamedBufferDataEXT(record->Resource.name, internalformat, format, type, data);
 
-    m_ContextRecord->AddChunk(scope.Get());
+      m_ContextRecord->AddChunk(scope.Get());
+    }
   }
 }
 
@@ -3518,13 +3522,17 @@ void WrappedOpenGL::glClearBufferSubData(GLenum target, GLenum internalformat, G
   if(m_State == WRITING_CAPFRAME)
   {
     GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify implicit object at binding. Mismatched or bad GLuint?", record,
+                 target);
 
-    SCOPED_SERIALISE_CONTEXT(CLEARBUFFERSUBDATA);
-    Serialise_glClearNamedBufferSubDataEXT(record->Resource.name, internalformat, offset, size,
-                                           format, type, data);
+    if(record)
+    {
+      SCOPED_SERIALISE_CONTEXT(CLEARBUFFERSUBDATA);
+      Serialise_glClearNamedBufferSubDataEXT(record->Resource.name, internalformat, offset, size,
+                                             format, type, data);
 
-    m_ContextRecord->AddChunk(scope.Get());
+      m_ContextRecord->AddChunk(scope.Get());
+    }
   }
 }
 

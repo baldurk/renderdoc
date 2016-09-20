@@ -349,7 +349,10 @@ void WrappedOpenGL::Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr siz
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object used in function. Unbound or bad GLuint?", record);
+
+    if(record == NULL)
+      return;
 
     SCOPED_SERIALISE_CONTEXT(BUFFERSTORAGE);
     Serialise_glNamedBufferStorageEXT(record->Resource.name, size, data, flags);
@@ -485,7 +488,11 @@ void WrappedOpenGL::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const v
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 buffer);
+
+    if(record == NULL)
+      return;
 
     // detect buffer orphaning and just update backing store
     if(m_State == WRITING_IDLE && record->HasDataPtr() && size == (GLsizeiptr)record->Length &&
@@ -613,7 +620,11 @@ void WrappedOpenGL::glBufferData(GLenum target, GLsizeiptr size, const void *dat
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetCtxData().m_BufferRecord[idx];
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify implicit object at binding. Mismatched or bad GLuint?", record,
+                 target);
+
+    if(record == NULL)
+      return;
 
     // detect buffer orphaning and just update backing store
     if(m_State == WRITING_IDLE && record->HasDataPtr() && size == (GLsizeiptr)record->Length &&
@@ -746,7 +757,10 @@ void WrappedOpenGL::glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsi
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record);
+
+    if(record == NULL)
+      return;
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
        m_State != WRITING_CAPFRAME)
@@ -792,7 +806,11 @@ void WrappedOpenGL::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr s
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify implicit object at binding. Mismatched or bad GLuint?", record,
+                 target);
+
+    if(record == NULL)
+      return;
 
     GLResource res = record->Resource;
 
@@ -1943,7 +1961,8 @@ void *WrappedOpenGL::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify implicit object at binding. Mismatched or bad GLuint?", record,
+                 target);
 
     if(record)
       return glMapNamedBufferRangeEXT(record->Resource.name, offset, length, access);
@@ -1960,7 +1979,8 @@ void *WrappedOpenGL::glMapNamedBufferEXT(GLuint buffer, GLenum access)
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 buffer);
 
     if(record)
     {
@@ -1989,7 +2009,6 @@ void *WrappedOpenGL::glMapBuffer(GLenum target, GLenum access)
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-    RDCASSERT(record);
 
     if(record)
     {
@@ -2005,7 +2024,8 @@ void *WrappedOpenGL::glMapBuffer(GLenum target, GLenum access)
                                       accessBits);
     }
 
-    RDCERR("glMapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
+    RDCERR("glMapBuffer: Couldn't get resource record for target %s - no buffer bound?",
+           ToStr::Get(target).c_str());
   }
 
   return m_Real.glMapBuffer(target, access);
@@ -2221,12 +2241,12 @@ GLboolean WrappedOpenGL::glUnmapBuffer(GLenum target)
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-    RDCASSERT(record);
 
     if(record)
       return glUnmapNamedBufferEXT(record->Resource.name);
 
-    RDCERR("glUnmapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
+    RDCERR("glUnmapBuffer: Couldn't get resource record for target %s - no buffer bound?",
+           ToStr::Get(target).c_str());
   }
 
   return m_Real.glUnmapBuffer(target);
@@ -2293,7 +2313,8 @@ void WrappedOpenGL::glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr off
   // see above glMapNamedBufferRangeEXT for high-level explanation of how mapping is handled
 
   GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-  RDCASSERT(record);
+  RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+               buffer);
 
   // only need to pay attention to flushes when in capframe. Otherwise (see above) we
   // treat the map as a normal map, and let ALL modified regions go through, flushed or not,
@@ -2381,7 +2402,8 @@ void WrappedOpenGL::glFlushMappedBufferRange(GLenum target, GLintptr offset, GLs
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify implicit object at binding. Mismatched or bad GLuint?", record,
+                 target);
 
     if(record)
       return glFlushMappedNamedBufferRangeEXT(record->Resource.name, offset, length);

@@ -194,8 +194,11 @@ bool WrappedOpenGL::Serialise_glBindTexture(GLenum target, GLuint texture)
   if(m_State == WRITING_IDLE)
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
-    RDCASSERT(record);
-    record->datatype = TextureBinding(Target);
+    RDCASSERTMSG("Couldn't identify implicit object at binding. Mismatched or bad GLuint?", record,
+                 target);
+
+    if(record)
+      record->datatype = TextureBinding(Target);
   }
   else if(m_State < WRITING)
   {
@@ -654,7 +657,13 @@ void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtext
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
     GLResourceRecord *origrecord =
         GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), origtexture));
-    RDCASSERT(record && origrecord);
+
+    RDCASSERTMSG("Couldn't identify texture object. Unbound or bad GLuint?", record, texture);
+    RDCASSERTMSG("Couldn't identify origtexture object. Unbound or bad GLuint?", origrecord,
+                 origtexture);
+
+    if(record == NULL || origrecord == NULL)
+      return;
 
     SCOPED_SERIALISE_CONTEXT(TEXTURE_VIEW);
     Serialise_glTextureView(texture, target, origtexture, internalformat, minlevel, numlevels,
@@ -888,7 +897,12 @@ void WrappedOpenGL::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint s
         GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), srcName));
     GLResourceRecord *dstrecord =
         GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), dstName));
-    RDCASSERT(srcrecord && dstrecord);
+
+    RDCASSERTMSG("Couldn't identify src texture. Unbound or bad GLuint?", srcrecord, srcName);
+    RDCASSERTMSG("Couldn't identify dst texture. Unbound or bad GLuint?", dstrecord, dstName);
+
+    if(srcrecord == NULL || dstrecord == NULL)
+      return;
 
     SCOPED_SERIALISE_CONTEXT(COPY_SUBIMAGE);
     Serialise_glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName, dstTarget,

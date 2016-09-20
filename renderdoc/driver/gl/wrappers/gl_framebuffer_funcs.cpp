@@ -1835,12 +1835,16 @@ void WrappedOpenGL::glNamedRenderbufferStorageEXT(GLuint renderbuffer, GLenum in
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(rb);
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 renderbuffer);
 
-    SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGE);
-    Serialise_glNamedRenderbufferStorageEXT(record->Resource.name, internalformat, width, height);
+    if(record)
+    {
+      SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGE);
+      Serialise_glNamedRenderbufferStorageEXT(record->Resource.name, internalformat, width, height);
 
-    record->AddChunk(scope.Get());
+      record->AddChunk(scope.Get());
+    }
   }
 
   {
@@ -1866,12 +1870,15 @@ void WrappedOpenGL::glRenderbufferStorage(GLenum target, GLenum internalformat, 
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(rb);
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify implicit renderbuffer. Not bound?", record);
 
-    SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGE);
-    Serialise_glNamedRenderbufferStorageEXT(record->Resource.name, internalformat, width, height);
+    if(record)
+    {
+      SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGE);
+      Serialise_glNamedRenderbufferStorageEXT(record->Resource.name, internalformat, width, height);
 
-    record->AddChunk(scope.Get());
+      record->AddChunk(scope.Get());
+    }
   }
 
   {
@@ -1959,13 +1966,17 @@ void WrappedOpenGL::glNamedRenderbufferStorageMultisampleEXT(GLuint renderbuffer
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(rb);
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 renderbuffer);
 
-    SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGEMS);
-    Serialise_glNamedRenderbufferStorageMultisampleEXT(record->Resource.name, samples,
-                                                       internalformat, width, height);
+    if(record)
+    {
+      SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGEMS);
+      Serialise_glNamedRenderbufferStorageMultisampleEXT(record->Resource.name, samples,
+                                                         internalformat, width, height);
 
-    record->AddChunk(scope.Get());
+      record->AddChunk(scope.Get());
+    }
   }
 
   {
@@ -1992,13 +2003,16 @@ void WrappedOpenGL::glRenderbufferStorageMultisample(GLenum target, GLsizei samp
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(rb);
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify implicit renderbuffer. Not bound?", record);
 
-    SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGEMS);
-    Serialise_glNamedRenderbufferStorageMultisampleEXT(record->Resource.name, samples,
-                                                       internalformat, width, height);
+    if(record)
+    {
+      SCOPED_SERIALISE_CONTEXT(RENDERBUFFER_STORAGEMS);
+      Serialise_glNamedRenderbufferStorageMultisampleEXT(record->Resource.name, samples,
+                                                         internalformat, width, height);
 
-    record->AddChunk(scope.Get());
+      record->AddChunk(scope.Get());
+    }
   }
 
   {
