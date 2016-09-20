@@ -326,8 +326,8 @@ APIProperties D3D12Replay::GetAPIProperties()
 {
   APIProperties ret;
 
-  ret.pipelineType = eGraphicsAPI_D3D11;
-  ret.localRenderer = eGraphicsAPI_D3D11;
+  ret.pipelineType = eGraphicsAPI_D3D12;
+  ret.localRenderer = eGraphicsAPI_D3D12;
   ret.degraded = false;
 
   return ret;

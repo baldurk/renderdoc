@@ -31,19 +31,14 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public class D3D12PipelineState
     {
+        public ResourceId pipeline;
+        public bool customName;
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+        public string PipelineName;
+
         [StructLayout(LayoutKind.Sequential)]
         public class InputAssembler
         {
-            private void PostMarshal()
-            {
-                if (_ptr_Bytecode != IntPtr.Zero)
-                    Bytecode = (ShaderReflection)CustomMarshal.PtrToStructure(_ptr_Bytecode, typeof(ShaderReflection), false);
-                else
-                    Bytecode = null;
-
-                _ptr_Bytecode = IntPtr.Zero;
-            }
-
             [StructLayout(LayoutKind.Sequential)]
             public class LayoutInput
             {
@@ -59,20 +54,14 @@ namespace renderdoc
             };
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public LayoutInput[] layouts;
-            public ResourceId layout;
-            private IntPtr _ptr_Bytecode;
-            [CustomMarshalAs(CustomUnmanagedType.Skip)]
-            public ShaderReflection Bytecode;
-            public bool customName;
-            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
-            public string LayoutName;
 
             [StructLayout(LayoutKind.Sequential)]
             public class VertexBuffer
             {
                 public ResourceId Buffer;
+                public UInt64 Offset;
+                public UInt32 Size;
                 public UInt32 Stride;
-                public UInt32 Offset;
             };
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public VertexBuffer[] vbuffers;
@@ -81,10 +70,13 @@ namespace renderdoc
             public class IndexBuffer
             {
                 public ResourceId Buffer;
-                public UInt32 Offset;
+                public UInt64 Offset;
+                public UInt32 Size;
             };
             [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
             public IndexBuffer ibuffer;
+
+            public UInt32 indexStripCutValue;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public InputAssembler m_IA;
@@ -103,9 +95,7 @@ namespace renderdoc
             }
 
             public ResourceId Shader;
-            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
-            public string ShaderName;
-            public bool customName;
+            public bool Present;
             private IntPtr _ptr_ShaderDetails;
             [CustomMarshalAs(CustomUnmanagedType.Skip)]
             public ShaderReflection ShaderDetails;
@@ -113,94 +103,105 @@ namespace renderdoc
             public ShaderBindpointMapping BindpointMapping;
 
             public ShaderStageType stage;
-
-            [StructLayout(LayoutKind.Sequential)]
-            public class ResourceView
-            {
-                public ResourceId View;
-                public ResourceId Resource;
-                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
-                public string Type;
-                [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-                public ResourceFormat Format;
-
-                public bool Structured;
-                public UInt32 BufferStructCount;
-                public UInt32 ElementSize;
-
-                // Buffer (SRV)
-                public UInt32 ElementOffset;
-                public UInt32 ElementWidth;
-
-                // Buffer (UAV)
-                public UInt32 FirstElement;
-                public UInt32 NumElements;
-
-                // BufferEx
-                public D3DBufferViewFlags Flags;
-
-                // Texture
-                public UInt32 HighestMip;
-                public UInt32 NumMipLevels;
-
-                // Texture Array
-                public UInt32 ArraySize;
-                public UInt32 FirstArraySlice;
-            };
-            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public ResourceView[] SRVs;
-            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public ResourceView[] UAVs;
-
-            [StructLayout(LayoutKind.Sequential)]
-            public class Sampler
-            {
-                public ResourceId Samp;
-
-                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
-                public string SamplerName;
-                public bool customSamplerName;
-
-                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
-                public string AddressU, AddressV, AddressW;
-                [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
-                public float[] BorderColor;
-                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
-                public string Comparison;
-                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
-                public string Filter;
-                public bool UseBorder;
-                public bool UseComparison;
-                public UInt32 MaxAniso;
-                public float MaxLOD;
-                public float MinLOD;
-                public float MipLODBias;
-            };
-            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public Sampler[] Samplers;
-
-            [StructLayout(LayoutKind.Sequential)]
-            public class CBuffer
-            {
-                public ResourceId Buffer;
-                public UInt32 VecOffset;
-                public UInt32 VecCount;
-            };
-            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public CBuffer[] ConstantBuffers;
-
-            [StructLayout(LayoutKind.Sequential)]
-            public class ClassInstance
-            {
-                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
-                string name;
-            };
-
-            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public ClassInstance[] ClassInstances;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderStage m_VS, m_HS, m_DS, m_GS, m_PS, m_CS;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class ResourceView
+        {
+            public ResourceId Resource;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string Type;
+            [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+            public ResourceFormat Format;
+
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
+            public TextureSwizzle[] swizzle;
+
+            public D3DBufferViewFlags BufferFlags;
+            public UInt32 BufferStructCount;
+            public UInt32 ElementSize;
+            public UInt32 FirstElement;
+            public UInt32 NumElements;
+
+            public ResourceId CounterResource;
+            public UInt64 CounterByteOffset;
+
+            // Texture
+            public UInt32 HighestMip;
+            public UInt32 NumMipLevels;
+
+            // Texture Array
+            public UInt32 ArraySize;
+            public UInt32 FirstArraySlice;
+
+            public float MinLODClamp;
+        };
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class Sampler
+        {
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string AddressU, AddressV, AddressW;
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
+            public float[] BorderColor;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string Comparison;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string Filter;
+            public bool UseBorder;
+            public bool UseComparison;
+            public UInt32 MaxAniso;
+            public float MaxLOD;
+            public float MinLOD;
+            public float MipLODBias;
+        };
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class CBuffer
+        {
+            public ResourceId Buffer;
+            public UInt64 Offset;
+            public UInt32 ByteSize;
+        };
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class RootSignature
+        {
+            public ResourceId Obj;
+
+            [StructLayout(LayoutKind.Sequential)]
+            public class RootElem
+            {
+                public ShaderStageBits VisibilityMask;
+
+                public bool RootElement;
+
+                [StructLayout(LayoutKind.Sequential)]
+                public class Descriptor
+                {
+                    public UInt32 RegSpace;
+                    public UInt32 RegIndex;
+
+                    public ShaderBindType Type;
+
+                    [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+                    public UInt32[] Constants;
+
+                    [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+                    CBuffer ConstantBuffer;
+                    [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+                    ResourceView View;
+                };
+                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+                public Descriptor[] Descriptors;
+            };
+            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+            public RootElem[] Elements;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public RootSignature m_RootSig;
 
         [StructLayout(LayoutKind.Sequential)]
         public class Streamout
@@ -209,7 +210,11 @@ namespace renderdoc
             public class Output
             {
                 public ResourceId Buffer;
-                public UInt32 Offset;
+                public UInt64 Offset;
+                public UInt64 Size;
+
+                public ResourceId WrittenCountBuffer;
+                public UInt64 WrittenCountOffset;
             };
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public Output[] Outputs;
@@ -220,6 +225,8 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public class Rasterizer
         {
+            public UInt32 SampleMask;
+
             [StructLayout(LayoutKind.Sequential)]
             public class Viewport
             {
@@ -227,7 +234,6 @@ namespace renderdoc
                 public float[] TopLeft;
                 public float Width, Height;
                 public float MinDepth, MaxDepth;
-                public bool Enabled;
             };
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public Viewport[] Viewports;
@@ -236,7 +242,6 @@ namespace renderdoc
             public class Scissor
             {
                 public Int32 left, top, right, bottom;
-                public bool Enabled;
             };
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public Scissor[] Scissors;
@@ -244,7 +249,6 @@ namespace renderdoc
             [StructLayout(LayoutKind.Sequential)]
             public class RasterizerState
             {
-                public ResourceId State;
                 public TriangleFillMode FillMode;
                 public TriangleCullMode CullMode;
                 public bool FrontCCW;
@@ -252,7 +256,6 @@ namespace renderdoc
                 public float DepthBiasClamp;
                 public float SlopeScaledDepthBias;
                 public bool DepthClip;
-                public bool ScissorEnable;
                 public bool MultisampleEnable;
                 public bool AntialiasedLineEnable;
                 public UInt32 ForcedSampleCount;
@@ -270,11 +273,10 @@ namespace renderdoc
             [StructLayout(LayoutKind.Sequential)]
             public class DepthStencilState
             {
-                public ResourceId State;
                 public bool DepthEnable;
+                public bool DepthWrites;
                 [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string DepthFunc;
-                public bool DepthWrites;
                 public bool StencilEnable;
                 public byte StencilReadMask;
                 public byte StencilWriteMask;
@@ -302,8 +304,6 @@ namespace renderdoc
             [StructLayout(LayoutKind.Sequential)]
             public class BlendState
             {
-                public ResourceId State;
-
                 public bool AlphaToCoverage;
                 public bool IndependentBlend;
 
@@ -335,22 +335,20 @@ namespace renderdoc
 
                 [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
                 public float[] BlendFactor;
-                public UInt32 SampleMask;
             };
             [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
             public BlendState m_BlendState;
 
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public ShaderStage.ResourceView[] RenderTargets;
-
-            public UInt32 UAVStartSlot;
-            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public ShaderStage.ResourceView[] UAVs;
+            public ResourceView[] RenderTargets;
 
             [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-            public ShaderStage.ResourceView DepthTarget;
+            public ResourceView DepthTarget;
             public bool DepthReadOnly;
             public bool StencilReadOnly;
+
+            public UInt32 multiSampleCount;
+            public UInt32 multiSampleQuality;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public OutputMerger m_OM;

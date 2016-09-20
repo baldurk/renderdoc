@@ -453,8 +453,7 @@ namespace renderdocui.Windows.PipelineState
             if (!usedSlot && !stageBitsIncluded)
                 return;
 
-            // these are treated as uniform buffers
-            if (bindType == ShaderBindType.ReadOnlyBuffer)
+            if (bindType == ShaderBindType.ConstantBuffer)
                 return;
 
             // TODO - check compatibility between bindType and shaderRes.resType ?
@@ -808,7 +807,7 @@ namespace renderdocui.Windows.PipelineState
             }
 
             VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement[] slotBinds = null;
-            ShaderBindType bindType = ShaderBindType.ReadOnlyBuffer;
+            ShaderBindType bindType = ShaderBindType.ConstantBuffer;
             ShaderStageBits stageBits = (ShaderStageBits)0;
 
             if (bindset < pipe.DescSets.Length && bind < pipe.DescSets[bindset].bindings.Length)
@@ -825,8 +824,7 @@ namespace renderdocui.Windows.PipelineState
             if (!usedSlot && !stageBitsIncluded)
                 return;
 
-            // these are treated as uniform buffers
-            if (bindType != ShaderBindType.ReadOnlyBuffer)
+            if (bindType != ShaderBindType.ConstantBuffer)
                 return;
 
             // consider it filled if any array element is filled (or it's push constants)
@@ -1493,12 +1491,12 @@ namespace renderdocui.Windows.PipelineState
                     if (v.vp.Width == 0 || v.vp.Height == 0 || v.vp.MinDepth == v.vp.MaxDepth)
                         EmptyRow(node);
 
-                    i++;
-
                     node = scissors.Nodes.Add(new object[] { i, v.scissor.x, v.scissor.y, v.scissor.width, v.scissor.height });
 
                     if (v.scissor.width == 0 || v.scissor.height == 0)
                         EmptyRow(node);
+
+                    i++;
                 }
             }
 

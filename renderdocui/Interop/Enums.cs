@@ -93,6 +93,7 @@ namespace renderdoc
     public enum ShaderBindType
     {
         Unknown = 0,
+        ConstantBuffer,
         Sampler,
         ImageSampler,
         ReadOnlyImage,
@@ -856,6 +857,7 @@ namespace renderdoc
         {
             switch (bindType)
             {
+                case ShaderBindType.ConstantBuffer:   return "Constants";
                 case ShaderBindType.Sampler:          return "Sampler";
                 case ShaderBindType.ImageSampler:     return "Image&Sampler";
                 case ShaderBindType.ReadOnlyImage:    return "Image";

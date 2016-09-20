@@ -90,6 +90,7 @@ enum ShaderResourceType
 enum ShaderBindType
 {
   eBindType_Unknown = 0,
+  eBindType_ConstantBuffer,
   eBindType_Sampler,
   eBindType_ImageSampler,
   eBindType_ReadOnlyImage,

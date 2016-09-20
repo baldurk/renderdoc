@@ -28,10 +28,14 @@
 
 struct D3D12PipelineState
 {
-  D3D12PipelineState() {}
+  D3D12PipelineState() : customName(false) {}
+  ResourceId pipeline;
+  bool32 customName;
+  rdctype::str PipelineName;
+
   struct InputAssembler
   {
-    InputAssembler() : Bytecode(NULL), customName(false) {}
+    InputAssembler() : indexStripCutValue(0) {}
     struct LayoutInput
     {
       LayoutInput()
@@ -47,17 +51,14 @@ struct D3D12PipelineState
       uint32_t InstanceDataStepRate;
     };
     rdctype::array<LayoutInput> layouts;
-    ResourceId layout;
-    ShaderReflection *Bytecode;
-    bool32 customName;
-    rdctype::str LayoutName;
 
     struct VertexBuffer
     {
       VertexBuffer() : Buffer(), Stride(0), Offset(0) {}
       ResourceId Buffer;
+      uint64_t Offset;
+      uint32_t Size;
       uint32_t Stride;
-      uint32_t Offset;
     };
     rdctype::array<VertexBuffer> vbuffers;
 
@@ -65,137 +66,163 @@ struct D3D12PipelineState
     {
       IndexBuffer() : Buffer(), Offset(0) {}
       ResourceId Buffer;
-      uint32_t Offset;
+      uint64_t Offset;
+      uint32_t Size;
     } ibuffer;
+
+    uint32_t indexStripCutValue;
   } m_IA;
 
   struct ShaderStage
   {
-    ShaderStage() : Shader(), customName(false), ShaderDetails(NULL), stage(eShaderStage_Vertex) {}
-    ResourceId Shader;
-    rdctype::str ShaderName;
-    bool32 customName;
+    ShaderStage() : Present(false), ShaderDetails(NULL), stage(eShaderStage_Vertex) {}
+    bool32 Present;
     ShaderReflection *ShaderDetails;
     ShaderBindpointMapping BindpointMapping;
 
     ShaderStageType stage;
-
-    struct ResourceView
-    {
-      ResourceView()
-          : View(),
-            Resource(),
-            Format(),
-            Structured(false),
-            BufferStructCount(0),
-            ElementSize(0),
-            ElementOffset(0),
-            ElementWidth(0),
-            FirstElement(0),
-            NumElements(1),
-            Flags(0),
-            HighestMip(0),
-            NumMipLevels(1),
-            ArraySize(1),
-            FirstArraySlice(0)
-      {
-      }
-
-      ResourceId View;
-      ResourceId Resource;
-      rdctype::str Type;
-      ResourceFormat Format;
-
-      bool32 Structured;
-      uint32_t BufferStructCount;
-      uint32_t ElementSize;
-
-      // Buffer (SRV)
-      uint32_t ElementOffset;
-      uint32_t ElementWidth;
-
-      // Buffer (UAV)
-      uint32_t FirstElement;
-      uint32_t NumElements;
-
-      // BufferEx
-      uint32_t Flags;
-
-      // Texture
-      uint32_t HighestMip;
-      uint32_t NumMipLevels;
-
-      // Texture Array
-      uint32_t ArraySize;
-      uint32_t FirstArraySlice;
-    };
-    rdctype::array<ResourceView> SRVs;
-    rdctype::array<ResourceView> UAVs;
-
-    struct Sampler
-    {
-      Sampler()
-          : Samp(),
-            customSamplerName(false),
-            UseBorder(false),
-            UseComparison(false),
-            MaxAniso(0),
-            MaxLOD(0.0f),
-            MinLOD(0.0f),
-            MipLODBias(0.0f)
-      {
-        BorderColor[0] = BorderColor[1] = BorderColor[2] = BorderColor[3] = 0.0f;
-      }
-      ResourceId Samp;
-      rdctype::str SamplerName;
-      bool32 customSamplerName;
-      rdctype::str AddressU, AddressV, AddressW;
-      float BorderColor[4];
-      rdctype::str Comparison;
-      rdctype::str Filter;
-      bool32 UseBorder;
-      bool32 UseComparison;
-      uint32_t MaxAniso;
-      float MaxLOD;
-      float MinLOD;
-      float MipLODBias;
-    };
-    rdctype::array<Sampler> Samplers;
-
-    struct CBuffer
-    {
-      CBuffer() : Buffer(), VecOffset(0), VecCount(0) {}
-      ResourceId Buffer;
-      uint32_t VecOffset;
-      uint32_t VecCount;
-    };
-    rdctype::array<CBuffer> ConstantBuffers;
-
-    rdctype::array<rdctype::str> ClassInstances;
   } m_VS, m_HS, m_DS, m_GS, m_PS, m_CS;
+
+  struct ResourceView
+  {
+    ResourceView()
+        : Resource(),
+          Format(),
+          BufferFlags(0),
+          BufferStructCount(0),
+          ElementSize(0),
+          FirstElement(0),
+          NumElements(1),
+          CounterByteOffset(0),
+          HighestMip(0),
+          NumMipLevels(1),
+          ArraySize(1),
+          FirstArraySlice(0),
+          MinLODClamp(0.0f)
+    {
+      swizzle[0] = eSwizzle_Red;
+      swizzle[1] = eSwizzle_Green;
+      swizzle[2] = eSwizzle_Blue;
+      swizzle[3] = eSwizzle_Alpha;
+    }
+
+    ResourceId Resource;
+    rdctype::str Type;
+    ResourceFormat Format;
+
+    TextureSwizzle swizzle[4];
+    uint32_t BufferFlags;
+    uint32_t BufferStructCount;
+    uint32_t ElementSize;
+    uint64_t FirstElement;
+    uint32_t NumElements;
+
+    ResourceId CounterResource;
+    uint64_t CounterByteOffset;
+
+    // Texture
+    uint32_t HighestMip;
+    uint32_t NumMipLevels;
+
+    // Texture Array
+    uint32_t ArraySize;
+    uint32_t FirstArraySlice;
+
+    float MinLODClamp;
+  };
+
+  struct Sampler
+  {
+    Sampler()
+        : UseBorder(false),
+          UseComparison(false),
+          MaxAniso(0),
+          MaxLOD(0.0f),
+          MinLOD(0.0f),
+          MipLODBias(0.0f)
+    {
+      BorderColor[0] = BorderColor[1] = BorderColor[2] = BorderColor[3] = 0.0f;
+    }
+    rdctype::str AddressU, AddressV, AddressW;
+    float BorderColor[4];
+    rdctype::str Comparison;
+    rdctype::str Filter;
+    bool32 UseBorder;
+    bool32 UseComparison;
+    uint32_t MaxAniso;
+    float MaxLOD;
+    float MinLOD;
+    float MipLODBias;
+  };
+
+  struct CBuffer
+  {
+    CBuffer() : Buffer(), Offset(0), ByteSize(0) {}
+    ResourceId Buffer;
+    uint64_t Offset;
+    uint32_t ByteSize;
+  };
+
+  struct RootSignature
+  {
+    ResourceId obj;
+
+    struct RootElem
+    {
+      ShaderStageBits VisibilityMask;
+
+      // true for root constants and root descriptors
+      bool32 RootElement;
+
+      // for tables this is the expanded list of all the ranges and their values, for
+      // root constants and root descriptors there's only one element with their value
+      struct Descriptor
+      {
+        uint32_t RegSpace;
+        uint32_t RegIndex;
+
+        ShaderBindType Type;
+
+        rdctype::array<uint32_t> Constants;
+
+        CBuffer ConstantBuffer;
+        ResourceView View;
+      };
+      rdctype::array<Descriptor> Descriptors;
+    };
+
+    rdctype::array<RootElem> Elements;
+  } m_RootSig;
 
   struct Streamout
   {
     struct Output
     {
-      Output() : Buffer(), Offset(0) {}
+      Output() : Buffer(), Offset(0), Size(0), WrittenCountBuffer(), WrittenCountOffset(0) {}
       ResourceId Buffer;
-      uint32_t Offset;
+      uint64_t Offset;
+      uint64_t Size;
+
+      ResourceId WrittenCountBuffer;
+      uint64_t WrittenCountOffset;
     };
     rdctype::array<Output> Outputs;
   } m_SO;
 
   struct Rasterizer
   {
+    Rasterizer() : SampleMask(~0U) {}
+    uint32_t SampleMask;
+
     struct Viewport
     {
-      Viewport() : Width(0.0f), Height(0.0f), MinDepth(0.0f), MaxDepth(0.0f), Enabled(false)
+      Viewport() : Width(0.0f), Height(0.0f), MinDepth(0.0f), MaxDepth(0.0f)
       {
         TopLeft[0] = 0.0f;
         TopLeft[1] = 0.0f;
       }
-      Viewport(float TX, float TY, float W, float H, float MN, float MX, bool en)
-          : Width(W), Height(H), MinDepth(MN), MaxDepth(MX), Enabled(en)
+      Viewport(float TX, float TY, float W, float H, float MN, float MX)
+          : Width(W), Height(H), MinDepth(MN), MaxDepth(MX)
       {
         TopLeft[0] = TX;
         TopLeft[1] = TY;
@@ -203,41 +230,33 @@ struct D3D12PipelineState
       float TopLeft[2];
       float Width, Height;
       float MinDepth, MaxDepth;
-      bool32 Enabled;
     };
     rdctype::array<Viewport> Viewports;
 
     struct Scissor
     {
-      Scissor() : left(0), top(0), right(0), bottom(0), Enabled(false) {}
-      Scissor(int l, int t, int r, int b, bool en)
-          : left(l), top(t), right(r), bottom(b), Enabled(en)
-      {
-      }
+      Scissor() : left(0), top(0), right(0), bottom(0) {}
+      Scissor(int l, int t, int r, int b) : left(l), top(t), right(r), bottom(b) {}
       int32_t left, top, right, bottom;
-      bool32 Enabled;
     };
     rdctype::array<Scissor> Scissors;
 
     struct RasterizerState
     {
       RasterizerState()
-          : State(),
-            FillMode(eFill_Solid),
+          : FillMode(eFill_Solid),
             CullMode(eCull_None),
             FrontCCW(false),
             DepthBias(0),
             DepthBiasClamp(0.0f),
             SlopeScaledDepthBias(0.0f),
             DepthClip(false),
-            ScissorEnable(false),
             MultisampleEnable(false),
             AntialiasedLineEnable(false),
             ForcedSampleCount(0),
             ConservativeRasterization(false)
       {
       }
-      ResourceId State;
       TriangleFillMode FillMode;
       TriangleCullMode CullMode;
       bool32 FrontCCW;
@@ -245,7 +264,6 @@ struct D3D12PipelineState
       float DepthBiasClamp;
       float SlopeScaledDepthBias;
       bool32 DepthClip;
-      bool32 ScissorEnable;
       bool32 MultisampleEnable;
       bool32 AntialiasedLineEnable;
       uint32_t ForcedSampleCount;
@@ -255,23 +273,24 @@ struct D3D12PipelineState
 
   struct OutputMerger
   {
-    OutputMerger() : UAVStartSlot(0), DepthReadOnly(false), StencilReadOnly(false) {}
+    OutputMerger()
+        : DepthReadOnly(false), StencilReadOnly(false), multiSampleCount(1), multiSampleQuality(0)
+    {
+    }
     struct DepthStencilState
     {
       DepthStencilState()
-          : State(),
+          : DepthWrites(false),
             DepthEnable(false),
-            DepthWrites(false),
             StencilEnable(false),
             StencilReadMask(0),
             StencilWriteMask(0),
             StencilRef(0)
       {
       }
-      ResourceId State;
       bool32 DepthEnable;
-      rdctype::str DepthFunc;
       bool32 DepthWrites;
+      rdctype::str DepthFunc;
       bool32 StencilEnable;
       byte StencilReadMask;
       byte StencilWriteMask;
@@ -289,12 +308,10 @@ struct D3D12PipelineState
 
     struct BlendState
     {
-      BlendState() : AlphaToCoverage(false), IndependentBlend(false), SampleMask(0)
+      BlendState() : AlphaToCoverage(false), IndependentBlend(false)
       {
         BlendFactor[0] = BlendFactor[1] = BlendFactor[2] = BlendFactor[3] = 0.0f;
       }
-
-      ResourceId State;
 
       bool32 AlphaToCoverage;
       bool32 IndependentBlend;
@@ -318,16 +335,15 @@ struct D3D12PipelineState
       rdctype::array<RTBlend> Blends;
 
       float BlendFactor[4];
-      uint32_t SampleMask;
     } m_BlendState;
 
-    rdctype::array<ShaderStage::ResourceView> RenderTargets;
+    rdctype::array<ResourceView> RenderTargets;
 
-    uint32_t UAVStartSlot;
-    rdctype::array<ShaderStage::ResourceView> UAVs;
-
-    ShaderStage::ResourceView DepthTarget;
+    ResourceView DepthTarget;
     bool32 DepthReadOnly;
     bool32 StencilReadOnly;
+
+    uint32_t multiSampleCount;
+    uint32_t multiSampleQuality;
   } m_OM;
 };

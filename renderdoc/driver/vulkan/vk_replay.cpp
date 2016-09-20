@@ -3527,13 +3527,13 @@ void VulkanReplay::SavePipelineState()
                 dst.bindings[b].type = eBindType_ReadWriteTBuffer;
                 break;
               case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-                dst.bindings[b].type = eBindType_ReadOnlyBuffer;
+                dst.bindings[b].type = eBindType_ConstantBuffer;
                 break;
               case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
                 dst.bindings[b].type = eBindType_ReadWriteBuffer;
                 break;
               case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-                dst.bindings[b].type = eBindType_ReadOnlyBuffer;
+                dst.bindings[b].type = eBindType_ConstantBuffer;
                 dynamicOffset = true;
                 break;
               case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
