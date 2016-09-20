@@ -161,37 +161,48 @@ struct D3D12PipelineState
     ResourceId Buffer;
     uint64_t Offset;
     uint32_t ByteSize;
+
+    rdctype::array<uint32_t> Immediate;
   };
 
   struct RootSignature
   {
     ResourceId obj;
 
-    struct RootElem
+    // Immediate indicates either a root parameter (not in a table), or static samplers
+    // RootElement is the index in the original root signature that this descriptor came from.
+
+    struct CBufferDescriptor
     {
       ShaderStageBits VisibilityMask;
+      bool32 Immediate;
+      uint32_t RootElement;
 
-      // true for root constants and root descriptors
-      bool32 RootElement;
-
-      // for tables this is the expanded list of all the ranges and their values, for
-      // root constants and root descriptors there's only one element with their value
-      struct Descriptor
-      {
-        uint32_t RegSpace;
-        uint32_t RegIndex;
-
-        ShaderBindType Type;
-
-        rdctype::array<uint32_t> Constants;
-
-        CBuffer ConstantBuffer;
-        ResourceView View;
-      };
-      rdctype::array<Descriptor> Descriptors;
+      CBuffer obj;
     };
 
-    rdctype::array<RootElem> Elements;
+    struct ViewDescriptor
+    {
+      ShaderStageBits VisibilityMask;
+      bool32 Immediate;
+      uint32_t RootElement;
+
+      ResourceView obj;
+    };
+
+    struct SamplerDescriptor
+    {
+      ShaderStageBits VisibilityMask;
+      bool32 Immediate;
+      uint32_t RootElement;
+
+      Sampler obj;
+    };
+
+    rdctype::array<CBufferDescriptor> ConstantBuffers;
+    rdctype::array<SamplerDescriptor> Samplers;
+    rdctype::array<ViewDescriptor> SRVs;
+    rdctype::array<ViewDescriptor> UAVs;
   } m_RootSig;
 
   struct Streamout

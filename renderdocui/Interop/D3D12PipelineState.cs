@@ -164,6 +164,9 @@ namespace renderdoc
             public ResourceId Buffer;
             public UInt64 Offset;
             public UInt32 ByteSize;
+
+            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+            public UInt32[] Immediate;
         };
 
         [StructLayout(LayoutKind.Sequential)]
@@ -172,33 +175,46 @@ namespace renderdoc
             public ResourceId Obj;
 
             [StructLayout(LayoutKind.Sequential)]
-            public class RootElem
+            public class CBufferDescriptor
             {
                 public ShaderStageBits VisibilityMask;
+                public bool Immediate;
+                public UInt32 RootElement;
 
-                public bool RootElement;
-
-                [StructLayout(LayoutKind.Sequential)]
-                public class Descriptor
-                {
-                    public UInt32 RegSpace;
-                    public UInt32 RegIndex;
-
-                    public ShaderBindType Type;
-
-                    [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-                    public UInt32[] Constants;
-
-                    [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-                    CBuffer ConstantBuffer;
-                    [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-                    ResourceView View;
-                };
-                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-                public Descriptor[] Descriptors;
+                [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+                CBuffer obj;
             };
+
+            [StructLayout(LayoutKind.Sequential)]
+            public class ViewDescriptor
+            {
+                public ShaderStageBits VisibilityMask;
+                public bool Immediate;
+                public UInt32 RootElement;
+
+                [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+                ResourceView obj;
+            };
+
+            [StructLayout(LayoutKind.Sequential)]
+            public class SamplerDescriptor
+            {
+                public ShaderStageBits VisibilityMask;
+                public bool Immediate;
+                public UInt32 RootElement;
+
+                [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+                Sampler obj;
+            };
+
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public RootElem[] Elements;
+            public CBufferDescriptor[] ConstantBuffers;
+            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+            public SamplerDescriptor[] Samplers;
+            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+            public ViewDescriptor[] SRVs;
+            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+            public ViewDescriptor[] UAVs;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public RootSignature m_RootSig;
