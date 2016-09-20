@@ -853,7 +853,6 @@ typedef void (*GLGETINTEGERVPROC)(GLenum, GLint *);
 typedef void (*GLPUSHMATRIXPROC)();
 typedef void (*GLLOADIDENTITYPROC)();
 typedef void (*GLMATRIXMODEPROC)(GLenum);
-typedef void (*GLORTHOPROC)(GLdouble, GLdouble, GLdouble, GLdouble, GLdouble, GLdouble);
 typedef void (*GLPOPMATRIXPROC)();
 typedef void (*GLBEGINPROC)(GLenum);
 typedef void (*GLVERTEX2FPROC)(float, float);
@@ -864,7 +863,6 @@ static GLGETINTEGERVPROC getInt = NULL;
 static GLPUSHMATRIXPROC pushm = NULL;
 static GLLOADIDENTITYPROC loadident = NULL;
 static GLMATRIXMODEPROC matMode = NULL;
-static GLORTHOPROC ortho = NULL;
 static GLPOPMATRIXPROC popm = NULL;
 static GLBEGINPROC begin = NULL;
 static GLVERTEX2FPROC v2f = NULL;
@@ -893,9 +891,6 @@ bool immediateBegin(GLenum mode, float width, float height)
     matMode = (GLMATRIXMODEPROC)dlsym(RTLD_NEXT, "glMatrixMode");
     if(!matMode)
       return false;
-    ortho = (GLORTHOPROC)dlsym(RTLD_NEXT, "glOrtho");
-    if(!ortho)
-      return false;
     popm = (GLPOPMATRIXPROC)dlsym(RTLD_NEXT, "glPopMatrix");
     if(!popm)
       return false;
@@ -921,7 +916,8 @@ bool immediateBegin(GLenum mode, float width, float height)
   matMode(MAT_PROJ);
   pushm();
   loadident();
-  ortho(0.0, width, height, 0.0, -1.0, 1.0);
+  // TODO PEPE implement glOrtho functionality
+  // ortho(0.0, width, height, 0.0, -1.0, 1.0);
 
   matMode(MAT_MDVW);
   pushm();
