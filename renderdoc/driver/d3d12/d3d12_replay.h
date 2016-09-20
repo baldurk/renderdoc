@@ -59,6 +59,7 @@ public:
 
   void SavePipelineState() { MakePipelineState(); }
   D3D11PipelineState GetD3D11PipelineState() { return D3D11PipelineState(); }
+  D3D12PipelineState GetD3D12PipelineState() { return m_PipelineState; }
   GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
   VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
   void FreeTargetResource(ResourceId id);
@@ -160,11 +161,13 @@ public:
   Callstack::StackResolver *GetCallstackResolver();
 
 private:
-  D3D11PipelineState MakePipelineState();
+  void MakePipelineState();
 
   bool m_Proxy;
 
   vector<ID3D12Resource *> m_ProxyResources;
+
+  D3D12PipelineState m_PipelineState;
 
   WrappedID3D12Device *m_pDevice;
 };

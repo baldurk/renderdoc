@@ -1,8 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2015-2016 Baldur Karlsson
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2016 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -40,7 +39,7 @@ using renderdoc;
 
 namespace renderdocui.Windows.PipelineState
 {
-    public partial class D3D11PipelineStateViewer : UserControl, ILogViewerForm
+    public partial class D3D12PipelineStateViewer : UserControl, ILogViewerForm
     {
         private Core m_Core;
         private DockContent m_DockContent;
@@ -67,29 +66,29 @@ namespace renderdocui.Windows.PipelineState
 
         private class ViewTexTag
         {
-            public ViewTexTag(D3D11PipelineState.ShaderStage.ResourceView v, FetchTexture t)
+            public ViewTexTag(D3D12PipelineState.ShaderStage.ResourceView v, FetchTexture t)
             {
                 view = v;
                 tex = t;
             }
 
-            public D3D11PipelineState.ShaderStage.ResourceView view;
+            public D3D12PipelineState.ShaderStage.ResourceView view;
             public FetchTexture tex;
         };
 
         private class ViewBufTag
         {
-            public ViewBufTag(D3D11PipelineState.ShaderStage.ResourceView v, FetchBuffer b)
+            public ViewBufTag(D3D12PipelineState.ShaderStage.ResourceView v, FetchBuffer b)
             {
                 view = v;
                 buf = b;
             }
 
-            public D3D11PipelineState.ShaderStage.ResourceView view;
+            public D3D12PipelineState.ShaderStage.ResourceView view;
             public FetchBuffer buf;
         };
 
-        public D3D11PipelineStateViewer(Core core, DockContent c)
+        public D3D12PipelineStateViewer(Core core, DockContent c)
         {
             InitializeComponent();
 
@@ -254,7 +253,7 @@ namespace renderdocui.Windows.PipelineState
             m_ViewDetailNodes.Add(node);
         }
 
-        private bool HasImportantViewParams(D3D11PipelineState.ShaderStage.ResourceView view, FetchTexture tex)
+        private bool HasImportantViewParams(D3D12PipelineState.ShaderStage.ResourceView view, FetchTexture tex)
         {
             // we don't count 'upgrade typeless to typed' as important, we just display the typed format
             // in the row since there's no real hidden important information there. The formats can't be
@@ -274,7 +273,7 @@ namespace renderdocui.Windows.PipelineState
             return false;
         }
 
-        private bool HasImportantViewParams(D3D11PipelineState.ShaderStage.ResourceView view, FetchBuffer buf)
+        private bool HasImportantViewParams(D3D12PipelineState.ShaderStage.ResourceView view, FetchBuffer buf)
         {
             if (view.FirstElement > 0 || view.NumElements*view.ElementSize < buf.length)
                 return true;
@@ -294,7 +293,7 @@ namespace renderdocui.Windows.PipelineState
 
         // Set a shader stage's resources and values
         private void SetShaderState(FetchTexture[] texs, FetchBuffer[] bufs,
-                                    D3D11PipelineState.ShaderStage stage,
+                                    D3D12PipelineState.ShaderStage stage,
                                     Label shader, TreelistView.TreeListView resources, TreelistView.TreeListView samplers,
                                     TreelistView.TreeListView cbuffers, TreelistView.TreeListView classes)
         {
@@ -726,7 +725,7 @@ namespace renderdocui.Windows.PipelineState
 
             FetchTexture[] texs = m_Core.CurTextures;
             FetchBuffer[] bufs = m_Core.CurBuffers;
-            D3D11PipelineState state = m_Core.CurD3D11PipelineState;
+            D3D12PipelineState state = m_Core.CurD3D12PipelineState;
             FetchDrawcall draw = m_Core.CurDrawcall;
 
             HideViewDetailsTooltip();
@@ -833,7 +832,7 @@ namespace renderdocui.Windows.PipelineState
                 {
                     string byteOffs = l.ByteOffset.ToString();
 
-                    // D3D11 specific value
+                    // D3D12 specific value
                     if (l.ByteOffset == uint.MaxValue)
                     {
                         byteOffs = String.Format("APPEND_ALIGNED ({0})", layoutOffs[l.InputSlot]);
@@ -1870,11 +1869,11 @@ namespace renderdocui.Windows.PipelineState
         {
             object tag = node.Tag;
 
-            D3D11PipelineState.ShaderStage stage = GetStageForSender(node.OwnerView);
+            D3D12PipelineState.ShaderStage stage = GetStageForSender(node.OwnerView);
 
             if (stage == null) return;
 
-            D3D11PipelineState.ShaderStage.ResourceView view = null;
+            D3D12PipelineState.ShaderStage.ResourceView view = null;
 
             if (tag is ViewTexTag)
             {
@@ -1937,12 +1936,12 @@ namespace renderdocui.Windows.PipelineState
                             view = stage.UAVs[i];
                             break;
                         }
-                        if (stage == m_Core.CurD3D11PipelineState.m_PS &&
-                            m_Core.CurD3D11PipelineState.m_OM.UAVs[i].Resource == buf.ID)
+                        if (stage == m_Core.CurD3D12PipelineState.m_PS &&
+                            m_Core.CurD3D12PipelineState.m_OM.UAVs[i].Resource == buf.ID)
                         {
-                            bind = i + (int)m_Core.CurD3D11PipelineState.m_OM.UAVStartSlot;
+                            bind = i + (int)m_Core.CurD3D12PipelineState.m_OM.UAVStartSlot;
                             uav = true;
-                            view = m_Core.CurD3D11PipelineState.m_OM.UAVs[i];
+                            view = m_Core.CurD3D12PipelineState.m_OM.UAVs[i];
                             break;
                         }
                     }
@@ -1966,10 +1965,10 @@ namespace renderdocui.Windows.PipelineState
                             uav = true;
                             break;
                         }
-                        if (stage == m_Core.CurD3D11PipelineState.m_PS &&
-                            m_Core.CurD3D11PipelineState.m_OM.UAVs[i] == view)
+                        if (stage == m_Core.CurD3D12PipelineState.m_PS &&
+                            m_Core.CurD3D12PipelineState.m_OM.UAVs[i] == view)
                         {
-                            bind = i + (int)m_Core.CurD3D11PipelineState.m_OM.UAVStartSlot;
+                            bind = i + (int)m_Core.CurD3D12PipelineState.m_OM.UAVStartSlot;
                             uav = true;
                             break;
                         }
@@ -1988,14 +1987,14 @@ namespace renderdocui.Windows.PipelineState
                 {
                     // last thing, see if it's a streamout buffer
 
-                    if (stage == m_Core.CurD3D11PipelineState.m_GS)
+                    if (stage == m_Core.CurD3D12PipelineState.m_GS)
                     {
-                        for(int i=0; i < m_Core.CurD3D11PipelineState.m_SO.Outputs.Length; i++)
+                        for(int i=0; i < m_Core.CurD3D12PipelineState.m_SO.Outputs.Length; i++)
                         {
-                            if(buf.ID == m_Core.CurD3D11PipelineState.m_SO.Outputs[i].Buffer)
+                            if(buf.ID == m_Core.CurD3D12PipelineState.m_SO.Outputs[i].Buffer)
                             {
-                                size -= m_Core.CurD3D11PipelineState.m_SO.Outputs[i].Offset;
-                                offs += m_Core.CurD3D11PipelineState.m_SO.Outputs[i].Offset;
+                                size -= m_Core.CurD3D12PipelineState.m_SO.Outputs[i].Offset;
+                                offs += m_Core.CurD3D12PipelineState.m_SO.Outputs[i].Offset;
                                 break;
                             }
                         }
@@ -2193,9 +2192,9 @@ namespace renderdocui.Windows.PipelineState
             viewer.Show(m_DockContent.DockPanel);
         }
 
-        private D3D11PipelineState.ShaderStage GetStageForSender(object sender)
+        private D3D12PipelineState.ShaderStage GetStageForSender(object sender)
         {
-            D3D11PipelineState.ShaderStage stage = null;
+            D3D12PipelineState.ShaderStage stage = null;
 
             if (!m_Core.LogLoaded)
                 return null;
@@ -2205,19 +2204,19 @@ namespace renderdocui.Windows.PipelineState
             while (cur is Control)
             {
                 if (cur == tabVS)
-                    stage = m_Core.CurD3D11PipelineState.m_VS;
+                    stage = m_Core.CurD3D12PipelineState.m_VS;
                 else if (cur == tabGS)
-                    stage = m_Core.CurD3D11PipelineState.m_GS;
+                    stage = m_Core.CurD3D12PipelineState.m_GS;
                 else if (cur == tabHS)
-                    stage = m_Core.CurD3D11PipelineState.m_HS;
+                    stage = m_Core.CurD3D12PipelineState.m_HS;
                 else if (cur == tabDS)
-                    stage = m_Core.CurD3D11PipelineState.m_DS;
+                    stage = m_Core.CurD3D12PipelineState.m_DS;
                 else if (cur == tabPS)
-                    stage = m_Core.CurD3D11PipelineState.m_PS;
+                    stage = m_Core.CurD3D12PipelineState.m_PS;
                 else if (cur == tabCS)
-                    stage = m_Core.CurD3D11PipelineState.m_CS;
+                    stage = m_Core.CurD3D12PipelineState.m_CS;
                 else if (cur == tabOM)
-                    stage = m_Core.CurD3D11PipelineState.m_PS;
+                    stage = m_Core.CurD3D12PipelineState.m_PS;
 
                 if (stage != null)
                     return stage;
@@ -2239,17 +2238,17 @@ namespace renderdocui.Windows.PipelineState
         {
             if (sender == iaBytecode || sender == iaBytecodeCog)
             {
-                if(m_Core.CurD3D11PipelineState != null &&
-                    m_Core.CurD3D11PipelineState.m_IA.Bytecode != null)
+                if(m_Core.CurD3D12PipelineState != null &&
+                    m_Core.CurD3D12PipelineState.m_IA.Bytecode != null)
                 {
-                    (new ShaderViewer(m_Core, m_Core.CurD3D11PipelineState.m_IA.Bytecode, ShaderStageType.Vertex, null, ""))
+                    (new ShaderViewer(m_Core, m_Core.CurD3D12PipelineState.m_IA.Bytecode, ShaderStageType.Vertex, null, ""))
                         .Show(m_DockContent.DockPanel);
                 }
 
                 return;
             }
 
-            D3D11PipelineState.ShaderStage stage = GetStageForSender(sender);
+            D3D12PipelineState.ShaderStage stage = GetStageForSender(sender);
 
             if (stage == null) return;
 
@@ -2264,7 +2263,7 @@ namespace renderdocui.Windows.PipelineState
 
         private void shaderSave_Click(object sender, EventArgs e)
         {
-            D3D11PipelineState.ShaderStage stage = GetStageForSender(sender);
+            D3D12PipelineState.ShaderStage stage = GetStageForSender(sender);
 
             if (stage == null) return;
 
@@ -2333,7 +2332,7 @@ namespace renderdocui.Windows.PipelineState
         // HLSL source available for this shader.
         private void shaderedit_Click(object sender, EventArgs e)
         {
-            D3D11PipelineState.ShaderStage stage = GetStageForSender(sender);
+            D3D12PipelineState.ShaderStage stage = GetStageForSender(sender);
 
             if (stage == null) return;
 
@@ -2446,7 +2445,7 @@ namespace renderdocui.Windows.PipelineState
             if (files.Count == 0)
                 return;
 
-            D3D11PipelineStateViewer pipeviewer = this;
+            D3D12PipelineStateViewer pipeviewer = this;
 
             ShaderViewer sv = new ShaderViewer(m_Core, false, entryFunc, files,
 
@@ -2583,7 +2582,7 @@ namespace renderdocui.Windows.PipelineState
             sv.Show(m_DockContent.DockPanel);
         }
 
-        private void ShowCBuffer(D3D11PipelineState.ShaderStage stage, UInt32 slot)
+        private void ShowCBuffer(D3D12PipelineState.ShaderStage stage, UInt32 slot)
         {
             if (stage.ShaderDetails != null &&
                 (stage.ShaderDetails.ConstantBlocks.Length <= slot ||
@@ -2617,7 +2616,7 @@ namespace renderdocui.Windows.PipelineState
 
         private void cbuffers_NodeDoubleClicked(TreelistView.Node node)
         {
-            D3D11PipelineState.ShaderStage stage = GetStageForSender(node.OwnerView);
+            D3D12PipelineState.ShaderStage stage = GetStageForSender(node.OwnerView);
 
             if (stage != null && node.Tag is UInt32)
             {
@@ -2627,7 +2626,7 @@ namespace renderdocui.Windows.PipelineState
 
         private void CBuffers_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
-            D3D11PipelineState.ShaderStage stage = GetStageForSender(sender);
+            D3D12PipelineState.ShaderStage stage = GetStageForSender(sender);
 
             object tag = ((DataGridView)sender).Rows[e.RowIndex].Tag;
 
@@ -2676,8 +2675,8 @@ namespace renderdocui.Windows.PipelineState
         {
             if (sender == iaBytecode || sender == iaBytecodeCog)
             {
-                if (m_Core.CurD3D11PipelineState != null &&
-                    m_Core.CurD3D11PipelineState.m_IA.Bytecode != null)
+                if (m_Core.CurD3D12PipelineState != null &&
+                    m_Core.CurD3D12PipelineState.m_IA.Bytecode != null)
                     iaBytecodeCog.Image = global::renderdocui.Properties.Resources.action_hover;
 
                 return;
@@ -2685,7 +2684,7 @@ namespace renderdocui.Windows.PipelineState
 
             if (sender is PictureBox)
             {
-                D3D11PipelineState.ShaderStage stage = GetStageForSender(sender);
+                D3D12PipelineState.ShaderStage stage = GetStageForSender(sender);
 
                 if (stage != null && stage.Shader != ResourceId.Null)
                     (sender as PictureBox).Image = global::renderdocui.Properties.Resources.action_hover;
@@ -2693,7 +2692,7 @@ namespace renderdocui.Windows.PipelineState
 
             if (sender is Label)
             {
-                D3D11PipelineState.ShaderStage stage = GetStageForSender(sender);
+                D3D12PipelineState.ShaderStage stage = GetStageForSender(sender);
 
                 if (stage == null) return;
 
@@ -2722,7 +2721,7 @@ namespace renderdocui.Windows.PipelineState
 
             if (sender is Label)
             {
-                D3D11PipelineState.ShaderStage stage = GetStageForSender(sender);
+                D3D12PipelineState.ShaderStage stage = GetStageForSender(sender);
 
                 if (stage == null) return;
 
@@ -2745,9 +2744,9 @@ namespace renderdocui.Windows.PipelineState
             uint gx = 0, gy = 0, gz = 0;
             uint tx = 0, ty = 0, tz = 0;
 
-            if (m_Core.CurD3D11PipelineState == null ||
-                m_Core.CurD3D11PipelineState.m_CS.Shader == ResourceId.Null ||
-                m_Core.CurD3D11PipelineState.m_CS.ShaderDetails == null)
+            if (m_Core.CurD3D12PipelineState == null ||
+                m_Core.CurD3D12PipelineState.m_CS.Shader == ResourceId.Null ||
+                m_Core.CurD3D12PipelineState.m_CS.ShaderDetails == null)
                 return;
 
             if (uint.TryParse(groupX.Text, out gx) &&
@@ -2762,7 +2761,7 @@ namespace renderdocui.Windows.PipelineState
 
                 for (int i = 0; i < 3; i++)
                     if (threadsdim[i] == 0)
-                        threadsdim[i] = m_Core.CurD3D11PipelineState.m_CS.ShaderDetails.DispatchThreadsDimension[i];
+                        threadsdim[i] = m_Core.CurD3D12PipelineState.m_CS.ShaderDetails.DispatchThreadsDimension[i];
 
                 string debugContext = String.Format("Group [{0},{1},{2}] Thread [{3},{4},{5}]", gx, gy, gz, tx, ty, tz);
 
@@ -2784,7 +2783,7 @@ namespace renderdocui.Windows.PipelineState
 
                 ShaderDebugTrace trace = null;
 
-                ShaderReflection shaderDetails = m_Core.CurD3D11PipelineState.m_CS.ShaderDetails;
+                ShaderReflection shaderDetails = m_Core.CurD3D12PipelineState.m_CS.ShaderDetails;
 
                 m_Core.Renderer.Invoke((ReplayRenderer r) =>
                 {
@@ -2835,14 +2834,14 @@ namespace renderdocui.Windows.PipelineState
 
         private void inputLayouts_MouseMove(object sender, MouseEventArgs e)
         {
-            if (m_Core.CurD3D11PipelineState == null) return;
+            if (m_Core.CurD3D12PipelineState == null) return;
 
             Point mousePoint = inputLayouts.PointToClient(Cursor.Position);
             var hoverNode = inputLayouts.CalcHitNode(mousePoint);
 
             ia_MouseLeave(sender, e);
 
-            var IA = m_Core.CurD3D11PipelineState.m_IA;
+            var IA = m_Core.CurD3D12PipelineState.m_IA;
 
             if (hoverNode != null)
             {
@@ -2859,7 +2858,7 @@ namespace renderdocui.Windows.PipelineState
 
         private void HighlightIASlot(uint slot)
         {
-            var IA = m_Core.CurD3D11PipelineState.m_IA;
+            var IA = m_Core.CurD3D12PipelineState.m_IA;
         
             Color c = HSLColor(GetHueForVB((int)slot), 1.0f, 0.95f);
 
@@ -2908,7 +2907,7 @@ namespace renderdocui.Windows.PipelineState
 
         private void iabuffers_MouseMove(object sender, MouseEventArgs e)
         {
-            if (m_Core.CurD3D11PipelineState == null) return;
+            if (m_Core.CurD3D12PipelineState == null) return;
 
             Point mousePoint = iabuffers.PointToClient(Cursor.Position);
             var hoverNode = iabuffers.CalcHitNode(mousePoint);
@@ -2988,7 +2987,7 @@ namespace renderdocui.Windows.PipelineState
             ExportHTMLTable(writer, cols, new object[][] { rows });
         }
 
-        private object[] ExportViewHTML(D3D11PipelineState.ShaderStage.ResourceView view, int i, ShaderReflection refl, string extraParams)
+        private object[] ExportViewHTML(D3D12PipelineState.ShaderStage.ResourceView view, int i, ShaderReflection refl, string extraParams)
         {
             FetchTexture[] texs = m_Core.CurTextures;
             FetchBuffer[] bufs = m_Core.CurBuffers;
@@ -3127,7 +3126,7 @@ namespace renderdocui.Windows.PipelineState
                         viewParams };
         }
 
-        private void ExportHTML(XmlTextWriter writer, D3D11PipelineState.InputAssembler ia)
+        private void ExportHTML(XmlTextWriter writer, D3D12PipelineState.InputAssembler ia)
         {
             FetchBuffer[] bufs = m_Core.CurBuffers;
 
@@ -3226,7 +3225,7 @@ namespace renderdocui.Windows.PipelineState
             ExportHTMLTable(writer, new string[] { "Primitive Topology" }, new object[] { m_Core.CurDrawcall.topology.Str() });
         }
 
-        private void ExportHTML(XmlTextWriter writer, D3D11PipelineState.ShaderStage sh)
+        private void ExportHTML(XmlTextWriter writer, D3D12PipelineState.ShaderStage sh)
         {
             FetchBuffer[] bufs = m_Core.CurBuffers;
 
@@ -3316,7 +3315,7 @@ namespace renderdocui.Windows.PipelineState
 
                 for (int i = 0; i < sh.Samplers.Length; i++)
                 {
-                    D3D11PipelineState.ShaderStage.Sampler s = sh.Samplers[i];
+                    D3D12PipelineState.ShaderStage.Sampler s = sh.Samplers[i];
 
                     if (s.Samp == ResourceId.Null) continue;
 
@@ -3433,7 +3432,7 @@ namespace renderdocui.Windows.PipelineState
             }
         }
 
-        private void ExportHTML(XmlTextWriter writer, D3D11PipelineState.Streamout so)
+        private void ExportHTML(XmlTextWriter writer, D3D12PipelineState.Streamout so)
         {
             FetchBuffer[] bufs = m_Core.CurBuffers;
 
@@ -3475,7 +3474,7 @@ namespace renderdocui.Windows.PipelineState
             }
         }
 
-        private void ExportHTML(XmlTextWriter writer, D3D11PipelineState.Rasterizer rs)
+        private void ExportHTML(XmlTextWriter writer, D3D12PipelineState.Rasterizer rs)
         {
             {
                 writer.WriteStartElement("h3");
@@ -3545,7 +3544,7 @@ namespace renderdocui.Windows.PipelineState
             }
         }
 
-        private void ExportHTML(XmlTextWriter writer, D3D11PipelineState.OutputMerger om)
+        private void ExportHTML(XmlTextWriter writer, D3D12PipelineState.OutputMerger om)
         {
             {
                 writer.WriteStartElement("h3");
@@ -3670,7 +3669,7 @@ namespace renderdocui.Windows.PipelineState
                 {
                     if (om.UAVs[i - om.UAVStartSlot].View == ResourceId.Null) continue;
 
-                    rows.Add(ExportViewHTML(om.UAVs[i - om.UAVStartSlot], i, m_Core.CurD3D11PipelineState.m_PS.ShaderDetails, ""));
+                    rows.Add(ExportViewHTML(om.UAVs[i - om.UAVStartSlot], i, m_Core.CurD3D12PipelineState.m_PS.ShaderDetails, ""));
                 }
 
                 ExportHTMLTable(writer,
@@ -3730,7 +3729,7 @@ namespace renderdocui.Windows.PipelineState
                     writer.WriteStartElement("html");
                     writer.WriteAttributeString("lang", "en");
 
-                    var title = String.Format("{0} EID {1} - D3D11 Pipeline export", Path.GetFileName(m_Core.LogFileName), m_Core.CurEvent);
+                    var title = String.Format("{0} EID {1} - D3D12 Pipeline export", Path.GetFileName(m_Core.LogFileName), m_Core.CurEvent);
 
                     var css = @"
 /* If you think this css is ugly/bad, open a pull request! */
@@ -3855,16 +3854,16 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
 
                             switch(stage)
                             {
-                                case 0: ExportHTML(writer, m_Core.CurD3D11PipelineState.m_IA); break;
-                                case 1: ExportHTML(writer, m_Core.CurD3D11PipelineState.m_VS); break;
-                                case 2: ExportHTML(writer, m_Core.CurD3D11PipelineState.m_HS); break;
-                                case 3: ExportHTML(writer, m_Core.CurD3D11PipelineState.m_DS); break;
-                                case 4: ExportHTML(writer, m_Core.CurD3D11PipelineState.m_GS); break;
-                                case 5: ExportHTML(writer, m_Core.CurD3D11PipelineState.m_SO); break;
-                                case 6: ExportHTML(writer, m_Core.CurD3D11PipelineState.m_RS); break;
-                                case 7: ExportHTML(writer, m_Core.CurD3D11PipelineState.m_PS); break;
-                                case 8: ExportHTML(writer, m_Core.CurD3D11PipelineState.m_OM); break;
-                                case 9: ExportHTML(writer, m_Core.CurD3D11PipelineState.m_CS); break;
+                                case 0: ExportHTML(writer, m_Core.CurD3D12PipelineState.m_IA); break;
+                                case 1: ExportHTML(writer, m_Core.CurD3D12PipelineState.m_VS); break;
+                                case 2: ExportHTML(writer, m_Core.CurD3D12PipelineState.m_HS); break;
+                                case 3: ExportHTML(writer, m_Core.CurD3D12PipelineState.m_DS); break;
+                                case 4: ExportHTML(writer, m_Core.CurD3D12PipelineState.m_GS); break;
+                                case 5: ExportHTML(writer, m_Core.CurD3D12PipelineState.m_SO); break;
+                                case 6: ExportHTML(writer, m_Core.CurD3D12PipelineState.m_RS); break;
+                                case 7: ExportHTML(writer, m_Core.CurD3D12PipelineState.m_PS); break;
+                                case 8: ExportHTML(writer, m_Core.CurD3D12PipelineState.m_OM); break;
+                                case 9: ExportHTML(writer, m_Core.CurD3D12PipelineState.m_CS); break;
                             }
 
                             writer.WriteEndElement();

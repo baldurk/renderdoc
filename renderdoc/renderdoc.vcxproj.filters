@@ -249,6 +249,9 @@
     <ClInclude Include="data\glsl\vk_texsample.h">
       <Filter>Resources\glsl</Filter>
     </ClInclude>
+    <ClInclude Include="api\replay\d3d12_pipestate.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">

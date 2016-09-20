@@ -71,6 +71,7 @@ namespace renderdocui.Code
     public class CommonPipelineState
     {
         private D3D11PipelineState m_D3D11 = null;
+        private D3D12PipelineState m_D3D12 = null;
         private GLPipelineState m_GL = null;
         private VulkanPipelineState m_Vulkan = null;
         private APIProperties m_APIProps = null;
@@ -79,10 +80,11 @@ namespace renderdocui.Code
         {
         }
 
-        public void SetStates(APIProperties props, D3D11PipelineState d3d11, GLPipelineState gl, VulkanPipelineState vk)
+        public void SetStates(APIProperties props, D3D11PipelineState d3d11, D3D12PipelineState d3d12, GLPipelineState gl, VulkanPipelineState vk)
         {
             m_APIProps = props;
             m_D3D11 = d3d11;
+            m_D3D12 = d3d12;
             m_GL = gl;
             m_Vulkan = vk;
         }
@@ -93,7 +95,7 @@ namespace renderdocui.Code
         {
             get
             {
-                return m_D3D11 != null || m_GL != null || m_Vulkan != null;
+                return m_D3D11 != null || m_D3D12 != null || m_GL != null || m_Vulkan != null;
             }
         }
 
@@ -102,6 +104,14 @@ namespace renderdocui.Code
             get
             {
                 return LogLoaded && m_APIProps.pipelineType == GraphicsAPI.D3D11 && m_D3D11 != null;
+            }
+        }
+
+        private bool IsLogD3D12
+        {
+            get
+            {
+                return LogLoaded && m_APIProps.pipelineType == GraphicsAPI.D3D12 && m_D3D12 != null;
             }
         }
 

@@ -350,11 +350,8 @@ vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventID)
   return passEvents;
 }
 
-D3D11PipelineState D3D12Replay::MakePipelineState()
+void D3D12Replay::MakePipelineState()
 {
-  D3D11PipelineState ret;
-
-  return ret;
 }
 
 void D3D12Replay::InitPostVSBuffers(uint32_t eventID)

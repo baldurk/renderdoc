@@ -492,6 +492,16 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState &el)
 
 #pragma endregion D3D11 pipeline state
 
+#pragma region D3D12 pipeline state
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState &el)
+{
+  RDCUNIMPLEMENTED("Serialiser::Serialise<D3D12PipelineState>()");
+}
+
+#pragma endregion D3D12 pipeline state
+
 #pragma region OpenGL pipeline state
 
 template <>
@@ -2008,6 +2018,7 @@ void ReplayProxy::SavePipelineState()
   {
     m_Remote->SavePipelineState();
     m_D3D11PipelineState = m_Remote->GetD3D11PipelineState();
+    m_D3D12PipelineState = m_Remote->GetD3D12PipelineState();
     m_GLPipelineState = m_Remote->GetGLPipelineState();
     m_VulkanPipelineState = m_Remote->GetVulkanPipelineState();
   }
@@ -2017,11 +2028,13 @@ void ReplayProxy::SavePipelineState()
       return;
 
     m_D3D11PipelineState = D3D11PipelineState();
+    m_D3D12PipelineState = D3D12PipelineState();
     m_GLPipelineState = GLPipelineState();
     m_VulkanPipelineState = VulkanPipelineState();
   }
 
   m_FromReplaySerialiser->Serialise("", m_D3D11PipelineState);
+  m_FromReplaySerialiser->Serialise("", m_D3D12PipelineState);
   m_FromReplaySerialiser->Serialise("", m_GLPipelineState);
   m_FromReplaySerialiser->Serialise("", m_VulkanPipelineState);
 }

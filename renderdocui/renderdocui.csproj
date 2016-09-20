@@ -107,6 +107,7 @@
     <Compile Include="Code\CommonPipelineState.cs" />
     <Compile Include="Code\FormatElement.cs" />
     <Compile Include="Interop\Camera.cs" />
+    <Compile Include="Interop\D3D12PipelineState.cs" />
     <Compile Include="Interop\VulkanPipelineState.cs" />
     <Compile Include="Interop\Formatter.cs" />
     <Compile Include="Code\Helpers.cs" />
@@ -313,6 +314,12 @@
     <Compile Include="Windows\Dialogs\LiveCapture.Designer.cs">
       <DependentUpon>LiveCapture.cs</DependentUpon>
     </Compile>
+    <Compile Include="Windows\PipelineState\D3D12PipelineStateViewer.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Windows\PipelineState\D3D12PipelineStateViewer.Designer.cs">
+      <DependentUpon>D3D12PipelineStateViewer.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\PipelineState\VulkanPipelineStateViewer.cs">
       <SubType>UserControl</SubType>
     </Compile>
@@ -456,6 +463,10 @@
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\LiveCapture.resx">
       <DependentUpon>LiveCapture.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\PipelineState\D3D12PipelineStateViewer.resx">
+      <DependentUpon>D3D12PipelineStateViewer.cs</DependentUpon>
+      <SubType>Designer</SubType>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\PipelineState\VulkanPipelineStateViewer.resx">
       <DependentUpon>VulkanPipelineStateViewer.cs</DependentUpon>

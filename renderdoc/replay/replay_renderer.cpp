@@ -192,6 +192,17 @@ bool ReplayRenderer::GetD3D11PipelineState(D3D11PipelineState *state)
   return false;
 }
 
+bool ReplayRenderer::GetD3D12PipelineState(D3D12PipelineState *state)
+{
+  if(state)
+  {
+    *state = m_D3D12PipelineState;
+    return true;
+  }
+
+  return false;
+}
+
 bool ReplayRenderer::GetGLPipelineState(GLPipelineState *state)
 {
   if(state)
@@ -1611,6 +1622,7 @@ void ReplayRenderer::FetchPipelineState()
   m_pDevice->SavePipelineState();
 
   m_D3D11PipelineState = m_pDevice->GetD3D11PipelineState();
+  m_D3D12PipelineState = m_pDevice->GetD3D12PipelineState();
   m_GLPipelineState = m_pDevice->GetGLPipelineState();
   m_VulkanPipelineState = m_pDevice->GetVulkanPipelineState();
 
@@ -1618,6 +1630,17 @@ void ReplayRenderer::FetchPipelineState()
     D3D11PipelineState::ShaderStage *stages[] = {
         &m_D3D11PipelineState.m_VS, &m_D3D11PipelineState.m_HS, &m_D3D11PipelineState.m_DS,
         &m_D3D11PipelineState.m_GS, &m_D3D11PipelineState.m_PS, &m_D3D11PipelineState.m_CS,
+    };
+
+    for(int i = 0; i < 6; i++)
+      if(stages[i]->Shader != ResourceId())
+        stages[i]->ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stages[i]->Shader), "");
+  }
+
+  {
+    D3D12PipelineState::ShaderStage *stages[] = {
+        &m_D3D12PipelineState.m_VS, &m_D3D12PipelineState.m_HS, &m_D3D12PipelineState.m_DS,
+        &m_D3D12PipelineState.m_GS, &m_D3D12PipelineState.m_PS, &m_D3D12PipelineState.m_CS,
     };
 
     for(int i = 0; i < 6; i++)
@@ -1701,6 +1724,11 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 ReplayRenderer_GetD3D11PipelineState(ReplayRenderer *rend, D3D11PipelineState *state)
 {
   return rend->GetD3D11PipelineState(state);
+}
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+ReplayRenderer_GetD3D12PipelineState(ReplayRenderer *rend, D3D12PipelineState *state)
+{
+  return rend->GetD3D12PipelineState(state);
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetGLPipelineState(ReplayRenderer *rend,
                                                                                GLPipelineState *state)

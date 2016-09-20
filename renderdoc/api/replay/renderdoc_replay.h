@@ -136,6 +136,7 @@ struct ResourceId
 #include "capture_options.h"
 #include "control_types.h"
 #include "d3d11_pipestate.h"
+#include "d3d12_pipestate.h"
 #include "data_types.h"
 #include "gl_pipestate.h"
 #include "replay_enums.h"
@@ -231,6 +232,7 @@ struct IReplayRenderer
 
   virtual bool SetFrameEvent(uint32_t eventID, bool force) = 0;
   virtual bool GetD3D11PipelineState(D3D11PipelineState *state) = 0;
+  virtual bool GetD3D12PipelineState(D3D12PipelineState *state) = 0;
   virtual bool GetGLPipelineState(GLPipelineState *state) = 0;
   virtual bool GetVulkanPipelineState(VulkanPipelineState *state) = 0;
 
@@ -325,6 +327,8 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetFrameEvent(Replay
                                                                           bool32 force);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 ReplayRenderer_GetD3D11PipelineState(ReplayRenderer *rend, D3D11PipelineState *state);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+ReplayRenderer_GetD3D12PipelineState(ReplayRenderer *rend, D3D12PipelineState *state);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetGLPipelineState(ReplayRenderer *rend,
                                                                                GLPipelineState *state);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC

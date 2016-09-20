@@ -227,6 +227,7 @@ namespace renderdoc
     public enum GraphicsAPI
     {
         D3D11,
+        D3D12,
         OpenGL,
         Vulkan,
     };
@@ -301,7 +302,7 @@ namespace renderdoc
     };
 
     [Flags]
-    public enum D3D11BufferViewFlags
+    public enum D3DBufferViewFlags
     {
         Raw = 0x1,
         Append = 0x2,

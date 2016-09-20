@@ -253,6 +253,8 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetD3D11PipelineState(IntPtr real, IntPtr mem);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_GetD3D12PipelineState(IntPtr real, IntPtr mem);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetGLPipelineState(IntPtr real, IntPtr mem);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetVulkanPipelineState(IntPtr real, IntPtr mem);
@@ -399,6 +401,22 @@ namespace renderdoc
 
             if (success)
                 ret = (D3D11PipelineState)CustomMarshal.PtrToStructure(mem, typeof(D3D11PipelineState), true);
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public D3D12PipelineState GetD3D12PipelineState()
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(D3D12PipelineState));
+
+            bool success = ReplayRenderer_GetD3D12PipelineState(m_Real, mem);
+
+            D3D12PipelineState ret = null;
+
+            if (success)
+                ret = (D3D12PipelineState)CustomMarshal.PtrToStructure(mem, typeof(D3D12PipelineState), true);
 
             CustomMarshal.Free(mem);
 

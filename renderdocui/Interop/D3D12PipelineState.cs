@@ -29,7 +29,7 @@ using System.Runtime.InteropServices;
 namespace renderdoc
 {
     [StructLayout(LayoutKind.Sequential)]
-    public class D3D11PipelineState
+    public class D3D12PipelineState
     {
         [StructLayout(LayoutKind.Sequential)]
         public class InputAssembler

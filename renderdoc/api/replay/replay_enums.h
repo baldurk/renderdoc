@@ -224,6 +224,7 @@ enum QualityHint
 enum GraphicsAPI
 {
   eGraphicsAPI_D3D11,
+  eGraphicsAPI_D3D12,
   eGraphicsAPI_OpenGL,
   eGraphicsAPI_Vulkan,
 };
