@@ -189,8 +189,11 @@ static GLuint CreateSepProgram(WrappedGLES &gl, GLenum type, GLsizei numSources,
 
     if(paths == NULL)
       real.glCompileShader(shader);
-    else
-      real.glCompileShaderIncludeARB(shader, numPaths, paths, NULL);
+//    else
+//      real.glCompileShaderIncludeARB(shader, numPaths, paths, NULL);
+    // TODO pantos paths is always NULL, remove it
+    // includepaths param of MakeSeparableShaderProgram should also be removed
+    RDCASSERT(paths == NULL);
 
     program = real.glCreateProgram();
     if(program)
@@ -571,19 +574,6 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
     case eGL_FLOAT_MAT3x2:
     case eGL_FLOAT_MAT2x4:
     case eGL_FLOAT_MAT2x3: var.type.descriptor.type = eVar_Float; break;
-    case eGL_DOUBLE_VEC4:
-    case eGL_DOUBLE_VEC3:
-    case eGL_DOUBLE_VEC2:
-    case eGL_DOUBLE:
-    case eGL_DOUBLE_MAT4:
-    case eGL_DOUBLE_MAT3:
-    case eGL_DOUBLE_MAT2:
-    case eGL_DOUBLE_MAT4x2:
-    case eGL_DOUBLE_MAT4x3:
-    case eGL_DOUBLE_MAT3x4:
-    case eGL_DOUBLE_MAT3x2:
-    case eGL_DOUBLE_MAT2x4:
-    case eGL_DOUBLE_MAT2x3: var.type.descriptor.type = eVar_Double; break;
     case eGL_UNSIGNED_INT_VEC4:
     case eGL_UNSIGNED_INT_VEC3:
     case eGL_UNSIGNED_INT_VEC2:
@@ -607,23 +597,14 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
   switch(values[0])
   {
     case eGL_FLOAT_MAT4:
-    case eGL_DOUBLE_MAT4:
     case eGL_FLOAT_MAT2x4:
-    case eGL_DOUBLE_MAT2x4:
-    case eGL_FLOAT_MAT3x4:
-    case eGL_DOUBLE_MAT3x4: var.type.descriptor.rows = 4; break;
+    case eGL_FLOAT_MAT3x4: var.type.descriptor.rows = 4; break;
     case eGL_FLOAT_MAT3:
-    case eGL_DOUBLE_MAT3:
     case eGL_FLOAT_MAT4x3:
-    case eGL_DOUBLE_MAT4x3:
-    case eGL_FLOAT_MAT2x3:
-    case eGL_DOUBLE_MAT2x3: var.type.descriptor.rows = 3; break;
+    case eGL_FLOAT_MAT2x3: var.type.descriptor.rows = 3; break;
     case eGL_FLOAT_MAT2:
-    case eGL_DOUBLE_MAT2:
     case eGL_FLOAT_MAT4x2:
-    case eGL_DOUBLE_MAT4x2:
-    case eGL_FLOAT_MAT3x2:
-    case eGL_DOUBLE_MAT3x2: var.type.descriptor.rows = 2; break;
+    case eGL_FLOAT_MAT3x2: var.type.descriptor.rows = 2; break;
     default: break;
   }
 
@@ -634,10 +615,6 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
     case eGL_FLOAT_MAT4:
     case eGL_FLOAT_MAT4x2:
     case eGL_FLOAT_MAT4x3:
-    case eGL_DOUBLE_VEC4:
-    case eGL_DOUBLE_MAT4:
-    case eGL_DOUBLE_MAT4x2:
-    case eGL_DOUBLE_MAT4x3:
     case eGL_UNSIGNED_INT_VEC4:
     case eGL_BOOL_VEC4:
     case eGL_INT_VEC4: var.type.descriptor.cols = 4; break;
@@ -645,10 +622,6 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
     case eGL_FLOAT_MAT3:
     case eGL_FLOAT_MAT3x4:
     case eGL_FLOAT_MAT3x2:
-    case eGL_DOUBLE_VEC3:
-    case eGL_DOUBLE_MAT3:
-    case eGL_DOUBLE_MAT3x4:
-    case eGL_DOUBLE_MAT3x2:
     case eGL_UNSIGNED_INT_VEC3:
     case eGL_BOOL_VEC3:
     case eGL_INT_VEC3: var.type.descriptor.cols = 3; break;
@@ -656,15 +629,10 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
     case eGL_FLOAT_MAT2:
     case eGL_FLOAT_MAT2x4:
     case eGL_FLOAT_MAT2x3:
-    case eGL_DOUBLE_VEC2:
-    case eGL_DOUBLE_MAT2:
-    case eGL_DOUBLE_MAT2x4:
-    case eGL_DOUBLE_MAT2x3:
     case eGL_UNSIGNED_INT_VEC2:
     case eGL_BOOL_VEC2:
     case eGL_INT_VEC2: var.type.descriptor.cols = 2; break;
     case eGL_FLOAT:
-    case eGL_DOUBLE:
     case eGL_UNSIGNED_INT:
     case eGL_INT:
     case eGL_BOOL: var.type.descriptor.cols = 1; break;
@@ -687,19 +655,6 @@ void ReconstructVarTree(const GLHookSet &gl, GLenum query, GLuint sepProg, GLuin
     case eGL_FLOAT_MAT3x2: var.type.descriptor.name = "mat3x2"; break;
     case eGL_FLOAT_MAT2x4: var.type.descriptor.name = "mat2x4"; break;
     case eGL_FLOAT_MAT2x3: var.type.descriptor.name = "mat2x3"; break;
-    case eGL_DOUBLE_VEC4: var.type.descriptor.name = "dvec4"; break;
-    case eGL_DOUBLE_VEC3: var.type.descriptor.name = "dvec3"; break;
-    case eGL_DOUBLE_VEC2: var.type.descriptor.name = "dvec2"; break;
-    case eGL_DOUBLE: var.type.descriptor.name = "double"; break;
-    case eGL_DOUBLE_MAT4: var.type.descriptor.name = "dmat4"; break;
-    case eGL_DOUBLE_MAT3: var.type.descriptor.name = "dmat3"; break;
-    case eGL_DOUBLE_MAT2: var.type.descriptor.name = "dmat2"; break;
-    case eGL_DOUBLE_MAT4x2: var.type.descriptor.name = "dmat4x2"; break;
-    case eGL_DOUBLE_MAT4x3: var.type.descriptor.name = "dmat4x3"; break;
-    case eGL_DOUBLE_MAT3x4: var.type.descriptor.name = "dmat3x4"; break;
-    case eGL_DOUBLE_MAT3x2: var.type.descriptor.name = "dmat3x2"; break;
-    case eGL_DOUBLE_MAT2x4: var.type.descriptor.name = "dmat2x4"; break;
-    case eGL_DOUBLE_MAT2x3: var.type.descriptor.name = "dmat2x3"; break;
     case eGL_UNSIGNED_INT_VEC4: var.type.descriptor.name = "uvec4"; break;
     case eGL_UNSIGNED_INT_VEC3: var.type.descriptor.name = "uvec3"; break;
     case eGL_UNSIGNED_INT_VEC2: var.type.descriptor.name = "uvec2"; break;
@@ -926,30 +881,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       res.variableType.descriptor.name = "samplerBuffer";
       res.variableType.descriptor.type = eVar_Float;
     }
-    else if(values[0] == eGL_SAMPLER_1D)
-    {
-      res.resType = eResType_Texture1D;
-      res.variableType.descriptor.name = "sampler1D";
-      res.variableType.descriptor.type = eVar_Float;
-    }
-    else if(values[0] == eGL_SAMPLER_1D_ARRAY)
-    {
-      res.resType = eResType_Texture1DArray;
-      res.variableType.descriptor.name = "sampler1DArray";
-      res.variableType.descriptor.type = eVar_Float;
-    }
-    else if(values[0] == eGL_SAMPLER_1D_SHADOW)
-    {
-      res.resType = eResType_Texture1D;
-      res.variableType.descriptor.name = "sampler1DShadow";
-      res.variableType.descriptor.type = eVar_Float;
-    }
-    else if(values[0] == eGL_SAMPLER_1D_ARRAY_SHADOW)
-    {
-      res.resType = eResType_Texture1DArray;
-      res.variableType.descriptor.name = "sampler1DArrayShadow";
-      res.variableType.descriptor.type = eVar_Float;
-    }
     else if(values[0] == eGL_SAMPLER_2D)
     {
       res.resType = eResType_Texture2D;
@@ -972,18 +903,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     {
       res.resType = eResType_Texture2DArray;
       res.variableType.descriptor.name = "sampler2DArrayShadow";
-      res.variableType.descriptor.type = eVar_Float;
-    }
-    else if(values[0] == eGL_SAMPLER_2D_RECT)
-    {
-      res.resType = eResType_TextureRect;
-      res.variableType.descriptor.name = "sampler2DRect";
-      res.variableType.descriptor.type = eVar_Float;
-    }
-    else if(values[0] == eGL_SAMPLER_2D_RECT_SHADOW)
-    {
-      res.resType = eResType_TextureRect;
-      res.variableType.descriptor.name = "sampler2DRectShadow";
       res.variableType.descriptor.type = eVar_Float;
     }
     else if(values[0] == eGL_SAMPLER_3D)
@@ -1029,18 +948,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       res.variableType.descriptor.name = "isamplerBuffer";
       res.variableType.descriptor.type = eVar_Int;
     }
-    else if(values[0] == eGL_INT_SAMPLER_1D)
-    {
-      res.resType = eResType_Texture1D;
-      res.variableType.descriptor.name = "isampler1D";
-      res.variableType.descriptor.type = eVar_Int;
-    }
-    else if(values[0] == eGL_INT_SAMPLER_1D_ARRAY)
-    {
-      res.resType = eResType_Texture1DArray;
-      res.variableType.descriptor.name = "isampler1DArray";
-      res.variableType.descriptor.type = eVar_Int;
-    }
     else if(values[0] == eGL_INT_SAMPLER_2D)
     {
       res.resType = eResType_Texture2D;
@@ -1051,12 +958,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     {
       res.resType = eResType_Texture2DArray;
       res.variableType.descriptor.name = "isampler2DArray";
-      res.variableType.descriptor.type = eVar_Int;
-    }
-    else if(values[0] == eGL_INT_SAMPLER_2D_RECT)
-    {
-      res.resType = eResType_TextureRect;
-      res.variableType.descriptor.name = "isampler2DRect";
       res.variableType.descriptor.type = eVar_Int;
     }
     else if(values[0] == eGL_INT_SAMPLER_3D)
@@ -1096,18 +997,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       res.variableType.descriptor.name = "usamplerBuffer";
       res.variableType.descriptor.type = eVar_UInt;
     }
-    else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_1D)
-    {
-      res.resType = eResType_Texture1D;
-      res.variableType.descriptor.name = "usampler1D";
-      res.variableType.descriptor.type = eVar_UInt;
-    }
-    else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_1D_ARRAY)
-    {
-      res.resType = eResType_Texture1DArray;
-      res.variableType.descriptor.name = "usampler1DArray";
-      res.variableType.descriptor.type = eVar_UInt;
-    }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D)
     {
       res.resType = eResType_Texture2D;
@@ -1118,12 +1007,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     {
       res.resType = eResType_Texture2DArray;
       res.variableType.descriptor.name = "usampler2DArray";
-      res.variableType.descriptor.type = eVar_UInt;
-    }
-    else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_2D_RECT)
-    {
-      res.resType = eResType_TextureRect;
-      res.variableType.descriptor.name = "usampler2DRect";
       res.variableType.descriptor.type = eVar_UInt;
     }
     else if(values[0] == eGL_UNSIGNED_INT_SAMPLER_3D)
@@ -1165,22 +1048,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       res.IsSRV = false;
       IsReadWrite = true;
     }
-    else if(values[0] == eGL_IMAGE_1D)
-    {
-      res.resType = eResType_Texture1D;
-      res.variableType.descriptor.name = "image1D";
-      res.variableType.descriptor.type = eVar_Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
-    else if(values[0] == eGL_IMAGE_1D_ARRAY)
-    {
-      res.resType = eResType_Texture1DArray;
-      res.variableType.descriptor.name = "image1DArray";
-      res.variableType.descriptor.type = eVar_Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
     else if(values[0] == eGL_IMAGE_2D)
     {
       res.resType = eResType_Texture2D;
@@ -1193,14 +1060,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     {
       res.resType = eResType_Texture2DArray;
       res.variableType.descriptor.name = "image2DArray";
-      res.variableType.descriptor.type = eVar_Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
-    else if(values[0] == eGL_IMAGE_2D_RECT)
-    {
-      res.resType = eResType_TextureRect;
-      res.variableType.descriptor.name = "image2DRect";
       res.variableType.descriptor.type = eVar_Float;
       res.IsSRV = false;
       IsReadWrite = true;
@@ -1229,43 +1088,11 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       res.IsSRV = false;
       IsReadWrite = true;
     }
-    else if(values[0] == eGL_IMAGE_2D_MULTISAMPLE)
-    {
-      res.resType = eResType_Texture2DMS;
-      res.variableType.descriptor.name = "image2DMS";
-      res.variableType.descriptor.type = eVar_Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
-    else if(values[0] == eGL_IMAGE_2D_MULTISAMPLE_ARRAY)
-    {
-      res.resType = eResType_Texture2DMSArray;
-      res.variableType.descriptor.name = "image2DMSArray";
-      res.variableType.descriptor.type = eVar_Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
     // int images
     else if(values[0] == eGL_INT_IMAGE_BUFFER)
     {
       res.resType = eResType_Buffer;
       res.variableType.descriptor.name = "iimageBuffer";
-      res.variableType.descriptor.type = eVar_Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
-    else if(values[0] == eGL_INT_IMAGE_1D)
-    {
-      res.resType = eResType_Texture1D;
-      res.variableType.descriptor.name = "iimage1D";
-      res.variableType.descriptor.type = eVar_Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
-    else if(values[0] == eGL_INT_IMAGE_1D_ARRAY)
-    {
-      res.resType = eResType_Texture1DArray;
-      res.variableType.descriptor.name = "iimage1DArray";
       res.variableType.descriptor.type = eVar_Int;
       res.IsSRV = false;
       IsReadWrite = true;
@@ -1282,14 +1109,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     {
       res.resType = eResType_Texture2DArray;
       res.variableType.descriptor.name = "iimage2DArray";
-      res.variableType.descriptor.type = eVar_Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
-    else if(values[0] == eGL_INT_IMAGE_2D_RECT)
-    {
-      res.resType = eResType_TextureRect;
-      res.variableType.descriptor.name = "iimage2DRect";
       res.variableType.descriptor.type = eVar_Int;
       res.IsSRV = false;
       IsReadWrite = true;
@@ -1318,43 +1137,11 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       res.IsSRV = false;
       IsReadWrite = true;
     }
-    else if(values[0] == eGL_INT_IMAGE_2D_MULTISAMPLE)
-    {
-      res.resType = eResType_Texture2DMS;
-      res.variableType.descriptor.name = "iimage2DMS";
-      res.variableType.descriptor.type = eVar_Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
-    else if(values[0] == eGL_INT_IMAGE_2D_MULTISAMPLE_ARRAY)
-    {
-      res.resType = eResType_Texture2DMSArray;
-      res.variableType.descriptor.name = "iimage2DMSArray";
-      res.variableType.descriptor.type = eVar_Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
     // unsigned int images
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_BUFFER)
     {
       res.resType = eResType_Buffer;
       res.variableType.descriptor.name = "uimageBuffer";
-      res.variableType.descriptor.type = eVar_UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
-    else if(values[0] == eGL_UNSIGNED_INT_IMAGE_1D)
-    {
-      res.resType = eResType_Texture1D;
-      res.variableType.descriptor.name = "uimage1D";
-      res.variableType.descriptor.type = eVar_UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
-    else if(values[0] == eGL_UNSIGNED_INT_IMAGE_1D_ARRAY)
-    {
-      res.resType = eResType_Texture1DArray;
-      res.variableType.descriptor.name = "uimage1DArray";
       res.variableType.descriptor.type = eVar_UInt;
       res.IsSRV = false;
       IsReadWrite = true;
@@ -1371,14 +1158,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     {
       res.resType = eResType_Texture2DArray;
       res.variableType.descriptor.name = "uimage2DArray";
-      res.variableType.descriptor.type = eVar_UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
-    else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_RECT)
-    {
-      res.resType = eResType_TextureRect;
-      res.variableType.descriptor.name = "uimage2DRect";
       res.variableType.descriptor.type = eVar_UInt;
       res.IsSRV = false;
       IsReadWrite = true;
@@ -1403,22 +1182,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     {
       res.resType = eResType_TextureCubeArray;
       res.variableType.descriptor.name = "uimageCubeArray";
-      res.variableType.descriptor.type = eVar_UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
-    else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE)
-    {
-      res.resType = eResType_Texture2DMS;
-      res.variableType.descriptor.name = "uimage2DMS";
-      res.variableType.descriptor.type = eVar_UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
-    }
-    else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY)
-    {
-      res.resType = eResType_Texture2DMSArray;
-      res.variableType.descriptor.name = "uimage2DMSArray";
       res.variableType.descriptor.type = eVar_UInt;
       res.IsSRV = false;
       IsReadWrite = true;
@@ -1614,14 +1377,17 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       sigs.reserve(numInputs);
       for(GLint i = 0; i < numInputs; i++)
       {
-        GLenum props[] = {eGL_NAME_LENGTH, eGL_TYPE, eGL_LOCATION, eGL_LOCATION_COMPONENT};
+//        GLenum props[] = {eGL_NAME_LENGTH, eGL_TYPE, eGL_LOCATION, eGL_LOCATION_COMPONENT}; // TODO pantos
+        GLenum props[] = {eGL_NAME_LENGTH, eGL_TYPE, eGL_LOCATION};
         GLint values[] = {0, 0, 0, 0};
 
         GLsizei numSigProps = (GLsizei)ARRAY_COUNT(props);
 
+        // TODO pantos GL_LOCATION_COMPONENT exists in gles?
+        // https://www.khronos.org/opengles/sdk/docs/man32/html/glGetProgramResource.xhtml
         // GL_LOCATION_COMPONENT not supported on core <4.4 (or without GL_ARB_enhanced_layouts)
-        if(!ExtensionSupported[ExtensionSupported_ARB_enhanced_layouts] && GLCoreVersion < 44)
-          numSigProps--;
+//        if(!ExtensionSupported[ExtensionSupported_ARB_enhanced_layouts] && GLCoreVersion < 44)
+//          numSigProps--;
         gl.glGetProgramResourceiv(sepProg, sigEnum, i, numSigProps, props, numSigProps, NULL, values);
 
         char *nm = new char[values[0] + 1];
@@ -1639,31 +1405,18 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         switch(values[1])
         {
           case eGL_FLOAT:
-          case eGL_DOUBLE:
           case eGL_FLOAT_VEC2:
-          case eGL_DOUBLE_VEC2:
           case eGL_FLOAT_VEC3:
-          case eGL_DOUBLE_VEC3:
           case eGL_FLOAT_VEC4:
-          case eGL_DOUBLE_VEC4:
           case eGL_FLOAT_MAT4:
-          case eGL_DOUBLE_MAT4:
           case eGL_FLOAT_MAT4x3:
-          case eGL_DOUBLE_MAT4x3:
           case eGL_FLOAT_MAT4x2:
-          case eGL_DOUBLE_MAT4x2:
           case eGL_FLOAT_MAT3:
-          case eGL_DOUBLE_MAT3:
           case eGL_FLOAT_MAT3x4:
-          case eGL_DOUBLE_MAT3x4:
           case eGL_FLOAT_MAT3x2:
-          case eGL_DOUBLE_MAT3x2:
           case eGL_FLOAT_MAT2:
-          case eGL_DOUBLE_MAT2:
           case eGL_FLOAT_MAT2x3:
-          case eGL_DOUBLE_MAT2x3:
-          case eGL_FLOAT_MAT2x4:
-          case eGL_DOUBLE_MAT2x4: sig.compType = eCompType_Float; break;
+          case eGL_FLOAT_MAT2x4: sig.compType = eCompType_Float; break;
           case eGL_INT:
           case eGL_INT_VEC2:
           case eGL_INT_VEC3:
@@ -1684,7 +1437,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         switch(values[1])
         {
           case eGL_FLOAT:
-          case eGL_DOUBLE:
           case eGL_INT:
           case eGL_UNSIGNED_INT:
           case eGL_BOOL:
@@ -1692,7 +1444,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
             sig.regChannelMask = 0x1;
             break;
           case eGL_FLOAT_VEC2:
-          case eGL_DOUBLE_VEC2:
           case eGL_INT_VEC2:
           case eGL_UNSIGNED_INT_VEC2:
           case eGL_BOOL_VEC2:
@@ -1700,7 +1451,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
             sig.regChannelMask = 0x3;
             break;
           case eGL_FLOAT_VEC3:
-          case eGL_DOUBLE_VEC3:
           case eGL_INT_VEC3:
           case eGL_UNSIGNED_INT_VEC3:
           case eGL_BOOL_VEC3:
@@ -1708,7 +1458,6 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
             sig.regChannelMask = 0x7;
             break;
           case eGL_FLOAT_VEC4:
-          case eGL_DOUBLE_VEC4:
           case eGL_INT_VEC4:
           case eGL_UNSIGNED_INT_VEC4:
           case eGL_BOOL_VEC4:
@@ -1716,55 +1465,46 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
             sig.regChannelMask = 0xf;
             break;
           case eGL_FLOAT_MAT4:
-          case eGL_DOUBLE_MAT4:
             sig.compCount = 4;
             rows = 4;
             sig.regChannelMask = 0xf;
             break;
           case eGL_FLOAT_MAT4x3:
-          case eGL_DOUBLE_MAT4x3:
             sig.compCount = 4;
             rows = 3;
             sig.regChannelMask = 0xf;
             break;
           case eGL_FLOAT_MAT4x2:
-          case eGL_DOUBLE_MAT4x2:
             sig.compCount = 4;
             rows = 2;
             sig.regChannelMask = 0xf;
             break;
           case eGL_FLOAT_MAT3:
-          case eGL_DOUBLE_MAT3:
             sig.compCount = 3;
             rows = 3;
             sig.regChannelMask = 0x7;
             break;
           case eGL_FLOAT_MAT3x4:
-          case eGL_DOUBLE_MAT3x4:
             sig.compCount = 3;
             rows = 2;
             sig.regChannelMask = 0x7;
             break;
           case eGL_FLOAT_MAT3x2:
-          case eGL_DOUBLE_MAT3x2:
             sig.compCount = 3;
             rows = 2;
             sig.regChannelMask = 0x7;
             break;
           case eGL_FLOAT_MAT2:
-          case eGL_DOUBLE_MAT2:
             sig.compCount = 2;
             rows = 2;
             sig.regChannelMask = 0x3;
             break;
           case eGL_FLOAT_MAT2x3:
-          case eGL_DOUBLE_MAT2x3:
             sig.compCount = 2;
             rows = 3;
             sig.regChannelMask = 0x3;
             break;
           case eGL_FLOAT_MAT2x4:
-          case eGL_DOUBLE_MAT2x4:
             sig.compCount = 2;
             rows = 4;
             sig.regChannelMask = 0x3;
@@ -2056,6 +1796,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
         }
         else
         {
+
           GLenum prop = eGL_ATOMIC_COUNTER_BUFFER_INDEX;
           GLuint atomicIndex;
           gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, idx, 1, &prop, 1, NULL,
@@ -2068,25 +1809,26 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
             mapping.ReadWriteResources[i].used = false;
             mapping.ReadWriteResources[i].arraySize = 1;
           }
-          else
-          {
-            const GLenum atomicRefEnum[] = {
-                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_VERTEX_SHADER,
-                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_CONTROL_SHADER,
-                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_EVALUATION_SHADER,
-                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_GEOMETRY_SHADER,
-                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_FRAGMENT_SHADER,
-                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER,
-            };
-            mapping.ReadWriteResources[i].bindset = 0;
-            gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex,
-                                                eGL_ATOMIC_COUNTER_BUFFER_BINDING,
-                                                &mapping.ReadWriteResources[i].bind);
-            GLint used = 0;
-            gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, atomicRefEnum[shadIdx], &used);
-            mapping.ReadWriteResources[i].used = (used != 0);
-            mapping.ReadWriteResources[i].arraySize = 1;
-          }
+          // TODO pantos glGetActiveAtomicCounterBufferiv does not exist in gles?
+//          else
+//          {
+//            const GLenum atomicRefEnum[] = {
+//                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_VERTEX_SHADER,
+//                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_CONTROL_SHADER,
+//                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_EVALUATION_SHADER,
+//                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_GEOMETRY_SHADER,
+//                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_FRAGMENT_SHADER,
+//                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER,
+//            };
+//            mapping.ReadWriteResources[i].bindset = 0;
+//            gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex,
+//                                                eGL_ATOMIC_COUNTER_BUFFER_BINDING,
+//                                                &mapping.ReadWriteResources[i].bind);
+//            GLint used = 0;
+//            gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, atomicRefEnum[shadIdx], &used);
+//            mapping.ReadWriteResources[i].used = (used != 0);
+//            mapping.ReadWriteResources[i].arraySize = 1;
+//          }
         }
       }
       else
