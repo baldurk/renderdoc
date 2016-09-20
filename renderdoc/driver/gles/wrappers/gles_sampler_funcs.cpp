@@ -27,58 +27,58 @@
 #include "common/common.h"
 #include "serialise/string_utils.h"
 
-//bool WrappedGLES::Serialise_glGenSamplers(GLsizei n, GLuint *samplers)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), *samplers)));
-//
-//  if(m_State == READING)
-//  {
-//    GLuint real = 0;
-//    m_Real.glGenSamplers(1, &real);
-//    m_Real.glBindSampler(0, real);
-//    m_Real.glBindSampler(0, 0);
-//
-//    GLResource res = SamplerRes(GetCtx(), real);
-//
-//    ResourceId live = m_ResourceManager->RegisterResource(res);
-//    GetResourceManager()->AddLiveResource(id, res);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glGenSamplers(GLsizei count, GLuint *samplers)
-//{
-//  m_Real.glGenSamplers(count, samplers);
-//
-//  for(GLsizei i = 0; i < count; i++)
-//  {
-//    GLResource res = SamplerRes(GetCtx(), samplers[i]);
-//    ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//    if(m_State >= WRITING)
-//    {
-//      Chunk *chunk = NULL;
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(GEN_SAMPLERS);
-//        Serialise_glGenSamplers(1, samplers + i);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//      RDCASSERT(record);
-//
-//      record->AddChunk(chunk);
-//    }
-//    else
-//    {
-//      GetResourceManager()->AddLiveResource(id, res);
-//    }
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glGenSamplers(GLsizei n, GLuint *samplers)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), *samplers)));
+
+  if(m_State == READING)
+  {
+    GLuint real = 0;
+    m_Real.glGenSamplers(1, &real);
+    m_Real.glBindSampler(0, real);
+    m_Real.glBindSampler(0, 0);
+
+    GLResource res = SamplerRes(GetCtx(), real);
+
+    ResourceId live = m_ResourceManager->RegisterResource(res);
+    GetResourceManager()->AddLiveResource(id, res);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glGenSamplers(GLsizei count, GLuint *samplers)
+{
+  m_Real.glGenSamplers(count, samplers);
+
+  for(GLsizei i = 0; i < count; i++)
+  {
+    GLResource res = SamplerRes(GetCtx(), samplers[i]);
+    ResourceId id = GetResourceManager()->RegisterResource(res);
+
+    if(m_State >= WRITING)
+    {
+      Chunk *chunk = NULL;
+
+      {
+        SCOPED_SERIALISE_CONTEXT(GEN_SAMPLERS);
+        Serialise_glGenSamplers(1, samplers + i);
+
+        chunk = scope.Get();
+      }
+
+      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      RDCASSERT(record);
+
+      record->AddChunk(chunk);
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(id, res);
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glCreateSamplers(GLsizei n, GLuint *samplers)
 //{
 //  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), *samplers)));
@@ -128,44 +128,44 @@
 //    }
 //  }
 //}
-//
-//bool WrappedGLES::Serialise_glBindSampler(GLuint unit, GLuint sampler)
-//{
-//  SERIALISE_ELEMENT(uint32_t, Unit, unit);
-//  SERIALISE_ELEMENT(ResourceId, id, sampler
-//                                        ? GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler))
-//                                        : ResourceId());
-//
-//  if(m_State < WRITING)
-//  {
-//    if(id == ResourceId())
-//    {
-//      m_Real.glBindSampler(Unit, 0);
-//    }
-//    else
-//    {
-//      GLResource res = GetResourceManager()->GetLiveResource(id);
-//      m_Real.glBindSampler(Unit, res.name);
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBindSampler(GLuint unit, GLuint sampler)
-//{
-//  m_Real.glBindSampler(unit, sampler);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BIND_SAMPLER);
-//    Serialise_glBindSampler(unit, sampler);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler), eFrameRef_Read);
-//  }
-//}
-//
+
+bool WrappedGLES::Serialise_glBindSampler(GLuint unit, GLuint sampler)
+{
+  SERIALISE_ELEMENT(uint32_t, Unit, unit);
+  SERIALISE_ELEMENT(ResourceId, id, sampler
+                                        ? GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler))
+                                        : ResourceId());
+
+  if(m_State < WRITING)
+  {
+    if(id == ResourceId())
+    {
+      m_Real.glBindSampler(Unit, 0);
+    }
+    else
+    {
+      GLResource res = GetResourceManager()->GetLiveResource(id);
+      m_Real.glBindSampler(Unit, res.name);
+    }
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBindSampler(GLuint unit, GLuint sampler)
+{
+  m_Real.glBindSampler(unit, sampler);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BIND_SAMPLER);
+    Serialise_glBindSampler(unit, sampler);
+
+    m_ContextRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler), eFrameRef_Read);
+  }
+}
+
 //bool WrappedGLES::Serialise_glBindSamplers(GLuint first, GLsizei count, const GLuint *samplers)
 //{
 //  SERIALISE_ELEMENT(uint32_t, First, first);
@@ -217,67 +217,67 @@
 //                                                          eFrameRef_Read);
 //  }
 //}
-//
-//bool WrappedGLES::Serialise_glSamplerParameteri(GLuint sampler, GLenum pname, GLint param)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//
-//  int32_t ParamValue = 0;
-//
-//  RDCCOMPILE_ASSERT(sizeof(int32_t) == sizeof(GLenum),
-//                    "int32_t isn't the same size as GLenum - aliased serialising will break");
-//  // special case a few parameters to serialise their value as an enum, not an int
-//  if(PName == GL_TEXTURE_WRAP_S || PName == GL_TEXTURE_WRAP_T || PName == GL_TEXTURE_WRAP_R ||
-//     PName == GL_TEXTURE_MIN_FILTER || PName == GL_TEXTURE_MAG_FILTER ||
-//     PName == GL_TEXTURE_COMPARE_MODE || PName == GL_TEXTURE_COMPARE_FUNC)
-//  {
-//    SERIALISE_ELEMENT(GLenum, Param, (GLenum)param);
-//
-//    ParamValue = (int32_t)Param;
-//  }
-//  else
-//  {
-//    SERIALISE_ELEMENT(int32_t, Param, param);
-//
-//    ParamValue = Param;
-//  }
-//
-//  if(m_State < WRITING)
-//  {
-//    GLResource res = GetResourceManager()->GetLiveResource(id);
-//    m_Real.glSamplerParameteri(res.name, PName, ParamValue);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glSamplerParameteri(GLuint sampler, GLenum pname, GLint param)
-//{
-//  m_Real.glSamplerParameteri(sampler, pname, param);
-//
-//  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
-//  if(param == eGL_CLAMP)
+
+bool WrappedGLES::Serialise_glSamplerParameteri(GLuint sampler, GLenum pname, GLint param)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
+  SERIALISE_ELEMENT(GLenum, PName, pname);
+
+  int32_t ParamValue = 0;
+
+  RDCCOMPILE_ASSERT(sizeof(int32_t) == sizeof(GLenum),
+                    "int32_t isn't the same size as GLenum - aliased serialising will break");
+  // special case a few parameters to serialise their value as an enum, not an int
+  if(PName == GL_TEXTURE_WRAP_S || PName == GL_TEXTURE_WRAP_T || PName == GL_TEXTURE_WRAP_R ||
+     PName == GL_TEXTURE_MIN_FILTER || PName == GL_TEXTURE_MAG_FILTER ||
+     PName == GL_TEXTURE_COMPARE_MODE || PName == GL_TEXTURE_COMPARE_FUNC)
+  {
+    SERIALISE_ELEMENT(GLenum, Param, (GLenum)param);
+
+    ParamValue = (int32_t)Param;
+  }
+  else
+  {
+    SERIALISE_ELEMENT(int32_t, Param, param);
+
+    ParamValue = Param;
+  }
+
+  if(m_State < WRITING)
+  {
+    GLResource res = GetResourceManager()->GetLiveResource(id);
+    m_Real.glSamplerParameteri(res.name, PName, ParamValue);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glSamplerParameteri(GLuint sampler, GLenum pname, GLint param)
+{
+  m_Real.glSamplerParameteri(sampler, pname, param);
+
+  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+//  if(param == eGL_CLAMP) // TODO pantos
 //    param = eGL_CLAMP_TO_EDGE;
-//
-//  if(m_State >= WRITING)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERI);
-//    Serialise_glSamplerParameteri(sampler, pname, param);
-//
-//    if(m_State == WRITING_IDLE)
-//    {
-//      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
-//    }
-//    else
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
-//                                                        eFrameRef_Read);
-//    }
-//  }
-//}
-//
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERI);
+    Serialise_glSamplerParameteri(sampler, pname, param);
+
+    if(m_State == WRITING_IDLE)
+    {
+      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+    }
+    else
+    {
+      m_ContextRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
+                                                        eFrameRef_Read);
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
 //{
 //  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
@@ -499,19 +499,19 @@
 //    }
 //  }
 //}
-//
-//void WrappedGLES::glDeleteSamplers(GLsizei n, const GLuint *ids)
-//{
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = SamplerRes(GetCtx(), ids[i]);
-//    if(GetResourceManager()->HasCurrentResource(res))
-//    {
-//      if(GetResourceManager()->HasResourceRecord(res))
-//        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
-//      GetResourceManager()->UnregisterResource(res);
-//    }
-//  }
-//
-//  m_Real.glDeleteSamplers(n, ids);
-//}
+
+void WrappedGLES::glDeleteSamplers(GLsizei n, const GLuint *ids)
+{
+  for(GLsizei i = 0; i < n; i++)
+  {
+    GLResource res = SamplerRes(GetCtx(), ids[i]);
+    if(GetResourceManager()->HasCurrentResource(res))
+    {
+      if(GetResourceManager()->HasResourceRecord(res))
+        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+      GetResourceManager()->UnregisterResource(res);
+    }
+  }
+
+  m_Real.glDeleteSamplers(n, ids);
+}

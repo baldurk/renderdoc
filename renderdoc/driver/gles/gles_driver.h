@@ -527,6 +527,14 @@ public:
 
   #include "gles_driver_function_serialize_defs.inl"
   
+
+  // TODO pantos
+  bool Serialise_glCreateShader(GLuint real, GLenum type);
+  bool Serialise_glCreateShaderProgramv(GLuint real, GLenum type, GLsizei count,
+                                        const GLchar *const *strings);
+  bool Serialise_glCreateProgram(GLuint real);
+
+
   enum AttribType
   {
     Attrib_GLdouble = 0x01,

@@ -88,538 +88,538 @@
 //    }
 //  }
 //}
-//
-//#pragma region Shaders
-//
-//bool WrappedGLES::Serialise_glCreateShader(GLuint shader, GLenum type)
-//{
-//  SERIALISE_ELEMENT(GLenum, Type, type);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
-//
-//  if(m_State == READING)
-//  {
-//    GLuint real = m_Real.glCreateShader(Type);
-//
-//    GLResource res = ShaderRes(GetCtx(), real);
-//
-//    ResourceId liveId = GetResourceManager()->RegisterResource(res);
-//
-//    m_Shaders[liveId].type = Type;
-//
-//    GetResourceManager()->AddLiveResource(id, res);
-//  }
-//
-//  return true;
-//}
-//
-//GLuint WrappedGLES::glCreateShader(GLenum type)
-//{
-//  GLuint real = m_Real.glCreateShader(type);
-//
-//  GLResource res = ShaderRes(GetCtx(), real);
-//  ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//  if(m_State >= WRITING)
-//  {
-//    Chunk *chunk = NULL;
-//
-//    {
-//      SCOPED_SERIALISE_CONTEXT(CREATE_SHADER);
-//      Serialise_glCreateShader(real, type);
-//
-//      chunk = scope.Get();
-//    }
-//
-//    GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//    RDCASSERT(record);
-//
-//    record->AddChunk(chunk);
-//  }
-//  else
-//  {
-//    GetResourceManager()->AddLiveResource(id, res);
-//
-//    m_Shaders[id].type = type;
-//  }
-//
-//  return real;
-//}
-//
-//bool WrappedGLES::Serialise_glShaderSource(GLuint shader, GLsizei count,
-//                                             const GLchar *const *source, const GLint *length)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
-//  SERIALISE_ELEMENT(uint32_t, Count, count);
-//
-//  vector<string> srcs;
-//
-//  for(uint32_t i = 0; i < Count; i++)
-//  {
-//    string s;
-//    if(source && source[i])
-//      s = (length && length[i] > 0) ? string(source[i], source[i] + length[i]) : string(source[i]);
-//
-//    m_pSerialiser->SerialiseString("source", s);
-//
-//    if(m_State == READING)
-//      srcs.push_back(s);
-//  }
-//
-//  if(m_State == READING)
-//  {
-//    size_t numStrings = srcs.size();
-//
-//    const char **strings = new const char *[numStrings];
-//    for(size_t i = 0; i < numStrings; i++)
-//      strings[i] = srcs[i].c_str();
-//
-//    ResourceId liveId = GetResourceManager()->GetLiveID(id);
-//
-//    m_Shaders[liveId].sources.clear();
-//    m_Shaders[liveId].sources.reserve(Count);
-//
-//    for(uint32_t i = 0; i < Count; i++)
-//      m_Shaders[liveId].sources.push_back(strings[i]);
-//
-//    m_Real.glShaderSource(GetResourceManager()->GetLiveResource(id).name, Count, strings, NULL);
-//
-//    delete[] strings;
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glShaderSource(GLuint shader, GLsizei count, const GLchar *const *string,
-//                                   const GLint *length)
-//{
-//  m_Real.glShaderSource(shader, count, string, length);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
-//    RDCASSERT(record);
-//    {
-//      SCOPED_SERIALISE_CONTEXT(SHADERSOURCE);
-//      Serialise_glShaderSource(shader, count, string, length);
-//
-//      record->AddChunk(scope.Get());
-//    }
-//  }
-//  else
-//  {
-//    ResourceId id = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
-//    m_Shaders[id].sources.clear();
-//    m_Shaders[id].sources.reserve(count);
-//
-//    for(GLsizei i = 0; i < count; i++)
-//      m_Shaders[id].sources.push_back(string[i]);
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glCompileShader(GLuint shader)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
-//
-//  if(m_State == READING)
-//  {
-//    ResourceId liveId = GetResourceManager()->GetLiveID(id);
-//
-//    m_Shaders[liveId].Compile(*this);
-//
-//    m_Real.glCompileShader(GetResourceManager()->GetLiveResource(id).name);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glCompileShader(GLuint shader)
-//{
-//  m_Real.glCompileShader(shader);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
-//    RDCASSERT(record);
-//    {
-//      SCOPED_SERIALISE_CONTEXT(COMPILESHADER);
-//      Serialise_glCompileShader(shader);
-//
-//      record->AddChunk(scope.Get());
-//    }
-//  }
-//  else
-//  {
-//    m_Shaders[GetResourceManager()->GetID(ShaderRes(GetCtx(), shader))].Compile(*this);
-//  }
-//}
-//
+
+#pragma region Shaders
+
+bool WrappedGLES::Serialise_glCreateShader(GLuint shader, GLenum type)
+{
+  SERIALISE_ELEMENT(GLenum, Type, type);
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
+
+  if(m_State == READING)
+  {
+    GLuint real = m_Real.glCreateShader(Type);
+
+    GLResource res = ShaderRes(GetCtx(), real);
+
+    ResourceId liveId = GetResourceManager()->RegisterResource(res);
+
+    m_Shaders[liveId].type = Type;
+
+    GetResourceManager()->AddLiveResource(id, res);
+  }
+
+  return true;
+}
+
+GLuint WrappedGLES::glCreateShader(GLenum type)
+{
+  GLuint real = m_Real.glCreateShader(type);
+
+  GLResource res = ShaderRes(GetCtx(), real);
+  ResourceId id = GetResourceManager()->RegisterResource(res);
+
+  if(m_State >= WRITING)
+  {
+    Chunk *chunk = NULL;
+
+    {
+      SCOPED_SERIALISE_CONTEXT(CREATE_SHADER);
+      Serialise_glCreateShader(real, type);
+
+      chunk = scope.Get();
+    }
+
+    GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+    RDCASSERT(record);
+
+    record->AddChunk(chunk);
+  }
+  else
+  {
+    GetResourceManager()->AddLiveResource(id, res);
+
+    m_Shaders[id].type = type;
+  }
+
+  return real;
+}
+
+bool WrappedGLES::Serialise_glShaderSource(GLuint shader, GLsizei count,
+                                             const GLchar *const *source, const GLint *length)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
+  SERIALISE_ELEMENT(uint32_t, Count, count);
+
+  vector<string> srcs;
+
+  for(uint32_t i = 0; i < Count; i++)
+  {
+    string s;
+    if(source && source[i])
+      s = (length && length[i] > 0) ? string(source[i], source[i] + length[i]) : string(source[i]);
+
+    m_pSerialiser->SerialiseString("source", s);
+
+    if(m_State == READING)
+      srcs.push_back(s);
+  }
+
+  if(m_State == READING)
+  {
+    size_t numStrings = srcs.size();
+
+    const char **strings = new const char *[numStrings];
+    for(size_t i = 0; i < numStrings; i++)
+      strings[i] = srcs[i].c_str();
+
+    ResourceId liveId = GetResourceManager()->GetLiveID(id);
+
+    m_Shaders[liveId].sources.clear();
+    m_Shaders[liveId].sources.reserve(Count);
+
+    for(uint32_t i = 0; i < Count; i++)
+      m_Shaders[liveId].sources.push_back(strings[i]);
+
+    m_Real.glShaderSource(GetResourceManager()->GetLiveResource(id).name, Count, strings, NULL);
+
+    delete[] strings;
+  }
+
+  return true;
+}
+
+void WrappedGLES::glShaderSource(GLuint shader, GLsizei count, const GLchar *const *string,
+                                   const GLint *length)
+{
+  m_Real.glShaderSource(shader, count, string, length);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
+    RDCASSERT(record);
+    {
+      SCOPED_SERIALISE_CONTEXT(SHADERSOURCE);
+      Serialise_glShaderSource(shader, count, string, length);
+
+      record->AddChunk(scope.Get());
+    }
+  }
+  else
+  {
+    ResourceId id = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
+    m_Shaders[id].sources.clear();
+    m_Shaders[id].sources.reserve(count);
+
+    for(GLsizei i = 0; i < count; i++)
+      m_Shaders[id].sources.push_back(string[i]);
+  }
+}
+
+bool WrappedGLES::Serialise_glCompileShader(GLuint shader)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
+
+  if(m_State == READING)
+  {
+    ResourceId liveId = GetResourceManager()->GetLiveID(id);
+
+    m_Shaders[liveId].Compile(*this);
+
+    m_Real.glCompileShader(GetResourceManager()->GetLiveResource(id).name);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glCompileShader(GLuint shader)
+{
+  m_Real.glCompileShader(shader);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
+    RDCASSERT(record);
+    {
+      SCOPED_SERIALISE_CONTEXT(COMPILESHADER);
+      Serialise_glCompileShader(shader);
+
+      record->AddChunk(scope.Get());
+    }
+  }
+  else
+  {
+    m_Shaders[GetResourceManager()->GetID(ShaderRes(GetCtx(), shader))].Compile(*this);
+  }
+}
+
 //void WrappedGLES::glReleaseShaderCompiler()
 //{
 //  m_Real.glReleaseShaderCompiler();
 //}
-//
-//void WrappedGLES::glDeleteShader(GLuint shader)
-//{
-//  m_Real.glDeleteShader(shader);
-//
-//  GLResource res = ShaderRes(GetCtx(), shader);
-//  if(GetResourceManager()->HasCurrentResource(res))
-//  {
-//    if(GetResourceManager()->HasResourceRecord(res))
-//      GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
-//    GetResourceManager()->UnregisterResource(res);
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glAttachShader(GLuint program, GLuint shader)
-//{
-//  SERIALISE_ELEMENT(ResourceId, progid, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
-//  SERIALISE_ELEMENT(ResourceId, shadid, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
-//
-//  if(m_State == READING)
-//  {
-//    ResourceId liveProgId = GetResourceManager()->GetLiveID(progid);
-//    ResourceId liveShadId = GetResourceManager()->GetLiveID(shadid);
-//
-//    m_Programs[liveProgId].shaders.push_back(liveShadId);
-//
-//    m_Real.glAttachShader(GetResourceManager()->GetLiveResource(progid).name,
-//                          GetResourceManager()->GetLiveResource(shadid).name);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glAttachShader(GLuint program, GLuint shader)
-//{
-//  m_Real.glAttachShader(program, shader);
-//
-//  if(m_State >= WRITING && program != 0 && shader != 0)
-//  {
-//    GLResourceRecord *progRecord =
-//        GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-//    GLResourceRecord *shadRecord =
-//        GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
-//    RDCASSERT(progRecord && shadRecord);
-//    if(progRecord && shadRecord)
-//    {
-//      SCOPED_SERIALISE_CONTEXT(ATTACHSHADER);
-//      Serialise_glAttachShader(program, shader);
-//
-//      progRecord->AddParent(shadRecord);
-//      progRecord->AddChunk(scope.Get());
-//    }
-//  }
-//  else
-//  {
-//    ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
-//    ResourceId shadid = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
-//    m_Programs[progid].shaders.push_back(shadid);
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glDetachShader(GLuint program, GLuint shader)
-//{
-//  SERIALISE_ELEMENT(ResourceId, progid, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
-//  SERIALISE_ELEMENT(ResourceId, shadid, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
-//
-//  if(m_State == READING)
-//  {
-//    ResourceId liveProgId = GetResourceManager()->GetLiveID(progid);
-//    ResourceId liveShadId = GetResourceManager()->GetLiveID(shadid);
-//
-//    if(!m_Programs[liveProgId].linked)
-//    {
-//      for(auto it = m_Programs[liveProgId].shaders.begin();
-//          it != m_Programs[liveProgId].shaders.end(); ++it)
-//      {
-//        if(*it == liveShadId)
-//        {
-//          m_Programs[liveProgId].shaders.erase(it);
-//          break;
-//        }
-//      }
-//    }
-//
-//    m_Real.glDetachShader(GetResourceManager()->GetLiveResource(progid).name,
-//                          GetResourceManager()->GetLiveResource(shadid).name);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDetachShader(GLuint program, GLuint shader)
-//{
-//  m_Real.glDetachShader(program, shader);
-//
-//  // check that shader still exists, it might have been deleted. If it has, it's not too important
-//  // that we detach the shader (only important if the program will attach it elsewhere).
-//  if(m_State >= WRITING && program != 0 && shader != 0 &&
-//     GetResourceManager()->HasCurrentResource(ShaderRes(GetCtx(), shader)))
-//  {
-//    GLResourceRecord *progRecord =
-//        GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-//    RDCASSERT(progRecord);
-//    {
-//      SCOPED_SERIALISE_CONTEXT(DETACHSHADER);
-//      Serialise_glDetachShader(program, shader);
-//
-//      progRecord->AddChunk(scope.Get());
-//    }
-//  }
-//  else
-//  {
-//    ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
-//    ResourceId shadid = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
-//
-//    if(!m_Programs[progid].linked)
-//    {
-//      for(auto it = m_Programs[progid].shaders.begin(); it != m_Programs[progid].shaders.end(); ++it)
-//      {
-//        if(*it == shadid)
-//        {
-//          m_Programs[progid].shaders.erase(it);
-//          break;
-//        }
-//      }
-//    }
-//  }
-//}
-//
-//#pragma endregion
-//
-//#pragma region Programs
-//
-//bool WrappedGLES::Serialise_glCreateShaderProgramv(GLuint program, GLenum type, GLsizei count,
-//                                                     const GLchar *const *strings)
-//{
-//  SERIALISE_ELEMENT(GLenum, Type, type);
-//  SERIALISE_ELEMENT(int32_t, Count, count);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
-//
-//  vector<string> src;
-//
-//  for(int32_t i = 0; i < Count; i++)
-//  {
-//    string s;
-//    if(m_State >= WRITING)
-//      s = strings[i];
-//    m_pSerialiser->SerialiseString("Source", s);
-//    if(m_State < WRITING)
-//      src.push_back(s);
-//  }
-//
-//  if(m_State == READING)
-//  {
-//    char **sources = new char *[Count];
-//
-//    for(int32_t i = 0; i < Count; i++)
-//      sources[i] = &src[i][0];
-//
-//    GLuint real = m_Real.glCreateShaderProgramv(Type, Count, sources);
-//    // we want a separate program that we can mess about with for making overlays
-//    // and relink without having to worry about restoring the 'real' program state.
-//    GLuint sepprog = MakeSeparableShaderProgram(*this, Type, src, NULL);
-//
-//    delete[] sources;
-//
-//    GLResource res = ProgramRes(GetCtx(), real);
-//
-//    ResourceId liveId = m_ResourceManager->RegisterResource(res);
-//
-//    auto &progDetails = m_Programs[liveId];
-//
-//    progDetails.linked = true;
-//    progDetails.shaders.push_back(liveId);
-//    progDetails.stageShaders[ShaderIdx(Type)] = liveId;
-//
-//    auto &shadDetails = m_Shaders[liveId];
-//
-//    shadDetails.type = Type;
-//    shadDetails.sources.swap(src);
-//    shadDetails.prog = sepprog;
-//
-//    shadDetails.Compile(*this);
-//
-//    GetResourceManager()->AddLiveResource(id, res);
-//  }
-//
-//  return true;
-//}
-//
-//GLuint WrappedGLES::glCreateShaderProgramv(GLenum type, GLsizei count, const GLchar *const *strings)
-//{
-//  GLuint real = m_Real.glCreateShaderProgramv(type, count, strings);
-//
-//  GLResource res = ProgramRes(GetCtx(), real);
-//  ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//  if(m_State >= WRITING)
-//  {
-//    Chunk *chunk = NULL;
-//
-//    {
-//      SCOPED_SERIALISE_CONTEXT(CREATE_SHADERPROGRAM);
-//      Serialise_glCreateShaderProgramv(real, type, count, strings);
-//
-//      chunk = scope.Get();
-//    }
-//
-//    GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//    RDCASSERT(record);
-//
-//    // we always want to mark programs as dirty so we can serialise their
-//    // locations as initial state (and form a remapping table)
-//    GetResourceManager()->MarkDirtyResource(id);
-//
-//    record->AddChunk(chunk);
-//  }
-//  else
-//  {
-//    GetResourceManager()->AddLiveResource(id, res);
-//
-//    vector<string> src;
-//    for(GLsizei i = 0; i < count; i++)
-//      src.push_back(strings[i]);
-//
-//    GLuint sepprog = MakeSeparableShaderProgram(*this, type, src, NULL);
-//
-//    auto &progDetails = m_Programs[id];
-//
-//    progDetails.linked = true;
-//    progDetails.shaders.push_back(id);
-//    progDetails.stageShaders[ShaderIdx(type)] = id;
-//
-//    auto &shadDetails = m_Shaders[id];
-//
-//    shadDetails.type = type;
-//    shadDetails.sources.swap(src);
-//    shadDetails.prog = sepprog;
-//
-//    shadDetails.Compile(*this);
-//  }
-//
-//  return real;
-//}
-//
-//bool WrappedGLES::Serialise_glCreateProgram(GLuint program)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
-//
-//  if(m_State == READING)
-//  {
-//    GLuint real = m_Real.glCreateProgram();
-//
-//    GLResource res = ProgramRes(GetCtx(), real);
-//
-//    ResourceId liveId = m_ResourceManager->RegisterResource(res);
-//
-//    m_Programs[liveId].linked = false;
-//
-//    GetResourceManager()->AddLiveResource(id, res);
-//  }
-//
-//  return true;
-//}
-//
-//GLuint WrappedGLES::glCreateProgram()
-//{
-//  GLuint real = m_Real.glCreateProgram();
-//
-//  GLResource res = ProgramRes(GetCtx(), real);
-//  ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//  if(m_State >= WRITING)
-//  {
-//    Chunk *chunk = NULL;
-//
-//    {
-//      SCOPED_SERIALISE_CONTEXT(CREATE_PROGRAM);
-//      Serialise_glCreateProgram(real);
-//
-//      chunk = scope.Get();
-//    }
-//
-//    GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//    RDCASSERT(record);
-//
-//    // we always want to mark programs as dirty so we can serialise their
-//    // locations as initial state (and form a remapping table)
-//    GetResourceManager()->MarkDirtyResource(id);
-//
-//    record->AddChunk(chunk);
-//  }
-//  else
-//  {
-//    GetResourceManager()->AddLiveResource(id, res);
-//
-//    m_Programs[id].linked = false;
-//  }
-//
-//  return real;
-//}
-//
-//bool WrappedGLES::Serialise_glLinkProgram(GLuint program)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
-//
-//  if(m_State == READING)
-//  {
-//    ResourceId progid = GetResourceManager()->GetLiveID(id);
-//
-//    ProgramData &progDetails = m_Programs[progid];
-//
-//    progDetails.linked = true;
-//
-//    for(size_t s = 0; s < 6; s++)
-//    {
-//      for(size_t sh = 0; sh < progDetails.shaders.size(); sh++)
-//      {
-//        if(m_Shaders[progDetails.shaders[sh]].type == ShaderEnum(s))
-//          progDetails.stageShaders[s] = progDetails.shaders[sh];
-//      }
-//    }
-//
-//    m_Real.glLinkProgram(GetResourceManager()->GetLiveResource(id).name);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glLinkProgram(GLuint program)
-//{
-//  m_Real.glLinkProgram(program);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-//    RDCASSERT(record);
-//    {
-//      SCOPED_SERIALISE_CONTEXT(LINKPROGRAM);
-//      Serialise_glLinkProgram(program);
-//
-//      record->AddChunk(scope.Get());
-//    }
-//  }
-//  else
-//  {
-//    ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
-//
-//    ProgramData &progDetails = m_Programs[progid];
-//
-//    progDetails.linked = true;
-//
-//    for(size_t s = 0; s < 6; s++)
-//    {
-//      for(size_t sh = 0; sh < progDetails.shaders.size(); sh++)
-//      {
-//        if(m_Shaders[progDetails.shaders[sh]].type == ShaderEnum(s))
-//          progDetails.stageShaders[s] = progDetails.shaders[sh];
-//      }
-//    }
-//  }
-//}
-//
+
+void WrappedGLES::glDeleteShader(GLuint shader)
+{
+  m_Real.glDeleteShader(shader);
+
+  GLResource res = ShaderRes(GetCtx(), shader);
+  if(GetResourceManager()->HasCurrentResource(res))
+  {
+    if(GetResourceManager()->HasResourceRecord(res))
+      GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+    GetResourceManager()->UnregisterResource(res);
+  }
+}
+
+bool WrappedGLES::Serialise_glAttachShader(GLuint program, GLuint shader)
+{
+  SERIALISE_ELEMENT(ResourceId, progid, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+  SERIALISE_ELEMENT(ResourceId, shadid, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
+
+  if(m_State == READING)
+  {
+    ResourceId liveProgId = GetResourceManager()->GetLiveID(progid);
+    ResourceId liveShadId = GetResourceManager()->GetLiveID(shadid);
+
+    m_Programs[liveProgId].shaders.push_back(liveShadId);
+
+    m_Real.glAttachShader(GetResourceManager()->GetLiveResource(progid).name,
+                          GetResourceManager()->GetLiveResource(shadid).name);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glAttachShader(GLuint program, GLuint shader)
+{
+  m_Real.glAttachShader(program, shader);
+
+  if(m_State >= WRITING && program != 0 && shader != 0)
+  {
+    GLResourceRecord *progRecord =
+        GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
+    GLResourceRecord *shadRecord =
+        GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
+    RDCASSERT(progRecord && shadRecord);
+    if(progRecord && shadRecord)
+    {
+      SCOPED_SERIALISE_CONTEXT(ATTACHSHADER);
+      Serialise_glAttachShader(program, shader);
+
+      progRecord->AddParent(shadRecord);
+      progRecord->AddChunk(scope.Get());
+    }
+  }
+  else
+  {
+    ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
+    ResourceId shadid = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
+    m_Programs[progid].shaders.push_back(shadid);
+  }
+}
+
+bool WrappedGLES::Serialise_glDetachShader(GLuint program, GLuint shader)
+{
+  SERIALISE_ELEMENT(ResourceId, progid, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+  SERIALISE_ELEMENT(ResourceId, shadid, GetResourceManager()->GetID(ShaderRes(GetCtx(), shader)));
+
+  if(m_State == READING)
+  {
+    ResourceId liveProgId = GetResourceManager()->GetLiveID(progid);
+    ResourceId liveShadId = GetResourceManager()->GetLiveID(shadid);
+
+    if(!m_Programs[liveProgId].linked)
+    {
+      for(auto it = m_Programs[liveProgId].shaders.begin();
+          it != m_Programs[liveProgId].shaders.end(); ++it)
+      {
+        if(*it == liveShadId)
+        {
+          m_Programs[liveProgId].shaders.erase(it);
+          break;
+        }
+      }
+    }
+
+    m_Real.glDetachShader(GetResourceManager()->GetLiveResource(progid).name,
+                          GetResourceManager()->GetLiveResource(shadid).name);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glDetachShader(GLuint program, GLuint shader)
+{
+  m_Real.glDetachShader(program, shader);
+
+  // check that shader still exists, it might have been deleted. If it has, it's not too important
+  // that we detach the shader (only important if the program will attach it elsewhere).
+  if(m_State >= WRITING && program != 0 && shader != 0 &&
+     GetResourceManager()->HasCurrentResource(ShaderRes(GetCtx(), shader)))
+  {
+    GLResourceRecord *progRecord =
+        GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
+    RDCASSERT(progRecord);
+    {
+      SCOPED_SERIALISE_CONTEXT(DETACHSHADER);
+      Serialise_glDetachShader(program, shader);
+
+      progRecord->AddChunk(scope.Get());
+    }
+  }
+  else
+  {
+    ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
+    ResourceId shadid = GetResourceManager()->GetID(ShaderRes(GetCtx(), shader));
+
+    if(!m_Programs[progid].linked)
+    {
+      for(auto it = m_Programs[progid].shaders.begin(); it != m_Programs[progid].shaders.end(); ++it)
+      {
+        if(*it == shadid)
+        {
+          m_Programs[progid].shaders.erase(it);
+          break;
+        }
+      }
+    }
+  }
+}
+
+#pragma endregion
+
+#pragma region Programs
+
+bool WrappedGLES::Serialise_glCreateShaderProgramv(GLuint program, GLenum type, GLsizei count,
+                                                     const GLchar *const *strings)
+{
+  SERIALISE_ELEMENT(GLenum, Type, type);
+  SERIALISE_ELEMENT(int32_t, Count, count);
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+
+  vector<string> src;
+
+  for(int32_t i = 0; i < Count; i++)
+  {
+    string s;
+    if(m_State >= WRITING)
+      s = strings[i];
+    m_pSerialiser->SerialiseString("Source", s);
+    if(m_State < WRITING)
+      src.push_back(s);
+  }
+
+  if(m_State == READING)
+  {
+    char **sources = new char *[Count];
+
+    for(int32_t i = 0; i < Count; i++)
+      sources[i] = &src[i][0];
+
+    GLuint real = m_Real.glCreateShaderProgramv(Type, Count, sources);
+    // we want a separate program that we can mess about with for making overlays
+    // and relink without having to worry about restoring the 'real' program state.
+    GLuint sepprog = MakeSeparableShaderProgram(*this, Type, src, NULL);
+
+    delete[] sources;
+
+    GLResource res = ProgramRes(GetCtx(), real);
+
+    ResourceId liveId = m_ResourceManager->RegisterResource(res);
+
+    auto &progDetails = m_Programs[liveId];
+
+    progDetails.linked = true;
+    progDetails.shaders.push_back(liveId);
+    progDetails.stageShaders[ShaderIdx(Type)] = liveId;
+
+    auto &shadDetails = m_Shaders[liveId];
+
+    shadDetails.type = Type;
+    shadDetails.sources.swap(src);
+    shadDetails.prog = sepprog;
+
+    shadDetails.Compile(*this);
+
+    GetResourceManager()->AddLiveResource(id, res);
+  }
+
+  return true;
+}
+
+GLuint WrappedGLES::glCreateShaderProgramv(GLenum type, GLsizei count, const GLchar *const *strings)
+{
+  GLuint real = m_Real.glCreateShaderProgramv(type, count, strings);
+
+  GLResource res = ProgramRes(GetCtx(), real);
+  ResourceId id = GetResourceManager()->RegisterResource(res);
+
+  if(m_State >= WRITING)
+  {
+    Chunk *chunk = NULL;
+
+    {
+      SCOPED_SERIALISE_CONTEXT(CREATE_SHADERPROGRAM);
+      Serialise_glCreateShaderProgramv(real, type, count, strings);
+
+      chunk = scope.Get();
+    }
+
+    GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+    RDCASSERT(record);
+
+    // we always want to mark programs as dirty so we can serialise their
+    // locations as initial state (and form a remapping table)
+    GetResourceManager()->MarkDirtyResource(id);
+
+    record->AddChunk(chunk);
+  }
+  else
+  {
+    GetResourceManager()->AddLiveResource(id, res);
+
+    vector<string> src;
+    for(GLsizei i = 0; i < count; i++)
+      src.push_back(strings[i]);
+
+    GLuint sepprog = MakeSeparableShaderProgram(*this, type, src, NULL);
+
+    auto &progDetails = m_Programs[id];
+
+    progDetails.linked = true;
+    progDetails.shaders.push_back(id);
+    progDetails.stageShaders[ShaderIdx(type)] = id;
+
+    auto &shadDetails = m_Shaders[id];
+
+    shadDetails.type = type;
+    shadDetails.sources.swap(src);
+    shadDetails.prog = sepprog;
+
+    shadDetails.Compile(*this);
+  }
+
+  return real;
+}
+
+bool WrappedGLES::Serialise_glCreateProgram(GLuint program)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+
+  if(m_State == READING)
+  {
+    GLuint real = m_Real.glCreateProgram();
+
+    GLResource res = ProgramRes(GetCtx(), real);
+
+    ResourceId liveId = m_ResourceManager->RegisterResource(res);
+
+    m_Programs[liveId].linked = false;
+
+    GetResourceManager()->AddLiveResource(id, res);
+  }
+
+  return true;
+}
+
+GLuint WrappedGLES::glCreateProgram()
+{
+  GLuint real = m_Real.glCreateProgram();
+
+  GLResource res = ProgramRes(GetCtx(), real);
+  ResourceId id = GetResourceManager()->RegisterResource(res);
+
+  if(m_State >= WRITING)
+  {
+    Chunk *chunk = NULL;
+
+    {
+      SCOPED_SERIALISE_CONTEXT(CREATE_PROGRAM);
+      Serialise_glCreateProgram(real);
+
+      chunk = scope.Get();
+    }
+
+    GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+    RDCASSERT(record);
+
+    // we always want to mark programs as dirty so we can serialise their
+    // locations as initial state (and form a remapping table)
+    GetResourceManager()->MarkDirtyResource(id);
+
+    record->AddChunk(chunk);
+  }
+  else
+  {
+    GetResourceManager()->AddLiveResource(id, res);
+
+    m_Programs[id].linked = false;
+  }
+
+  return real;
+}
+
+bool WrappedGLES::Serialise_glLinkProgram(GLuint program)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+
+  if(m_State == READING)
+  {
+    ResourceId progid = GetResourceManager()->GetLiveID(id);
+
+    ProgramData &progDetails = m_Programs[progid];
+
+    progDetails.linked = true;
+
+    for(size_t s = 0; s < 6; s++)
+    {
+      for(size_t sh = 0; sh < progDetails.shaders.size(); sh++)
+      {
+        if(m_Shaders[progDetails.shaders[sh]].type == ShaderEnum(s))
+          progDetails.stageShaders[s] = progDetails.shaders[sh];
+      }
+    }
+
+    m_Real.glLinkProgram(GetResourceManager()->GetLiveResource(id).name);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glLinkProgram(GLuint program)
+{
+  m_Real.glLinkProgram(program);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
+    RDCASSERT(record);
+    {
+      SCOPED_SERIALISE_CONTEXT(LINKPROGRAM);
+      Serialise_glLinkProgram(program);
+
+      record->AddChunk(scope.Get());
+    }
+  }
+  else
+  {
+    ResourceId progid = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
+
+    ProgramData &progDetails = m_Programs[progid];
+
+    progDetails.linked = true;
+
+    for(size_t s = 0; s < 6; s++)
+    {
+      for(size_t sh = 0; sh < progDetails.shaders.size(); sh++)
+      {
+        if(m_Shaders[progDetails.shaders[sh]].type == ShaderEnum(s))
+          progDetails.stageShaders[s] = progDetails.shaders[sh];
+      }
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glUniformBlockBinding(GLuint program, GLuint uniformBlockIndex,
 //                                                    GLuint uniformBlockBinding)
 //{
@@ -817,135 +817,135 @@
 //    }
 //  }
 //}
-//
-//bool WrappedGLES::Serialise_glTransformFeedbackVaryings(GLuint program, GLsizei count,
-//                                                          const GLchar *const *varyings,
-//                                                          GLenum bufferMode)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
-//  SERIALISE_ELEMENT(uint32_t, Count, count);
-//  SERIALISE_ELEMENT(GLenum, Mode, bufferMode);
-//
-//  string *vars = m_State >= WRITING ? NULL : new string[Count];
-//  char **varstrs = m_State >= WRITING ? NULL : new char *[Count];
-//
-//  for(uint32_t c = 0; c < Count; c++)
-//  {
-//    string v = varyings && varyings[c] ? varyings[c] : "";
-//    m_pSerialiser->Serialise("Varying", v);
-//    if(vars)
-//    {
-//      vars[c] = v;
-//      varstrs[c] = (char *)vars[c].c_str();
-//    }
-//  }
-//
-//  if(m_State == READING)
-//  {
-//    m_Real.glTransformFeedbackVaryings(GetResourceManager()->GetLiveResource(id).name, Count,
-//                                       varstrs, Mode);
-//  }
-//
-//  SAFE_DELETE_ARRAY(vars);
-//  SAFE_DELETE_ARRAY(varstrs);
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glTransformFeedbackVaryings(GLuint program, GLsizei count,
-//                                                const GLchar *const *varyings, GLenum bufferMode)
-//{
-//  m_Real.glTransformFeedbackVaryings(program, count, varyings, bufferMode);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-//    RDCASSERT(record);
-//    {
-//      SCOPED_SERIALISE_CONTEXT(FEEDBACK_VARYINGS);
-//      Serialise_glTransformFeedbackVaryings(program, count, varyings, bufferMode);
-//
-//      record->AddChunk(scope.Get());
-//    }
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glProgramParameteri(GLuint program, GLenum pname, GLint value)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//  SERIALISE_ELEMENT(int32_t, Value, value);
-//
-//  if(m_State == READING)
-//  {
-//    m_Real.glProgramParameteri(GetResourceManager()->GetLiveResource(id).name, PName, Value);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glProgramParameteri(GLuint program, GLenum pname, GLint value)
-//{
-//  m_Real.glProgramParameteri(program, pname, value);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-//    RDCASSERT(record);
-//    {
-//      SCOPED_SERIALISE_CONTEXT(PROGRAMPARAMETER);
-//      Serialise_glProgramParameteri(program, pname, value);
-//
-//      record->AddChunk(scope.Get());
-//    }
-//  }
-//}
-//
-//void WrappedGLES::glDeleteProgram(GLuint program)
-//{
-//  m_Real.glDeleteProgram(program);
-//
-//  GLResource res = ProgramRes(GetCtx(), program);
-//  if(GetResourceManager()->HasCurrentResource(res))
-//  {
-//    GetResourceManager()->MarkCleanResource(res);
-//    if(GetResourceManager()->HasResourceRecord(res))
-//      GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
-//    GetResourceManager()->UnregisterResource(res);
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glUseProgram(GLuint program)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(id == ResourceId())
-//      m_Real.glUseProgram(0);
-//    else
-//      m_Real.glUseProgram(GetResourceManager()->GetLiveResource(id).name);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glUseProgram(GLuint program)
-//{
-//  m_Real.glUseProgram(program);
-//
-//  GetCtxData().m_Program = program;
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(USEPROGRAM);
-//    Serialise_glUseProgram(program);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    GetResourceManager()->MarkResourceFrameReferenced(ProgramRes(GetCtx(), program), eFrameRef_Read);
-//  }
-//}
-//
+
+bool WrappedGLES::Serialise_glTransformFeedbackVaryings(GLuint program, GLsizei count,
+                                                          const GLchar *const *varyings,
+                                                          GLenum bufferMode)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+  SERIALISE_ELEMENT(uint32_t, Count, count);
+  SERIALISE_ELEMENT(GLenum, Mode, bufferMode);
+
+  string *vars = m_State >= WRITING ? NULL : new string[Count];
+  char **varstrs = m_State >= WRITING ? NULL : new char *[Count];
+
+  for(uint32_t c = 0; c < Count; c++)
+  {
+    string v = varyings && varyings[c] ? varyings[c] : "";
+    m_pSerialiser->Serialise("Varying", v);
+    if(vars)
+    {
+      vars[c] = v;
+      varstrs[c] = (char *)vars[c].c_str();
+    }
+  }
+
+  if(m_State == READING)
+  {
+    m_Real.glTransformFeedbackVaryings(GetResourceManager()->GetLiveResource(id).name, Count,
+                                       varstrs, Mode);
+  }
+
+  SAFE_DELETE_ARRAY(vars);
+  SAFE_DELETE_ARRAY(varstrs);
+
+  return true;
+}
+
+void WrappedGLES::glTransformFeedbackVaryings(GLuint program, GLsizei count,
+                                                const GLchar *const *varyings, GLenum bufferMode)
+{
+  m_Real.glTransformFeedbackVaryings(program, count, varyings, bufferMode);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
+    RDCASSERT(record);
+    {
+      SCOPED_SERIALISE_CONTEXT(FEEDBACK_VARYINGS);
+      Serialise_glTransformFeedbackVaryings(program, count, varyings, bufferMode);
+
+      record->AddChunk(scope.Get());
+    }
+  }
+}
+
+bool WrappedGLES::Serialise_glProgramParameteri(GLuint program, GLenum pname, GLint value)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+  SERIALISE_ELEMENT(GLenum, PName, pname);
+  SERIALISE_ELEMENT(int32_t, Value, value);
+
+  if(m_State == READING)
+  {
+    m_Real.glProgramParameteri(GetResourceManager()->GetLiveResource(id).name, PName, Value);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glProgramParameteri(GLuint program, GLenum pname, GLint value)
+{
+  m_Real.glProgramParameteri(program, pname, value);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
+    RDCASSERT(record);
+    {
+      SCOPED_SERIALISE_CONTEXT(PROGRAMPARAMETER);
+      Serialise_glProgramParameteri(program, pname, value);
+
+      record->AddChunk(scope.Get());
+    }
+  }
+}
+
+void WrappedGLES::glDeleteProgram(GLuint program)
+{
+  m_Real.glDeleteProgram(program);
+
+  GLResource res = ProgramRes(GetCtx(), program);
+  if(GetResourceManager()->HasCurrentResource(res))
+  {
+    GetResourceManager()->MarkCleanResource(res);
+    if(GetResourceManager()->HasResourceRecord(res))
+      GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+    GetResourceManager()->UnregisterResource(res);
+  }
+}
+
+bool WrappedGLES::Serialise_glUseProgram(GLuint program)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+
+  if(m_State <= EXECUTING)
+  {
+    if(id == ResourceId())
+      m_Real.glUseProgram(0);
+    else
+      m_Real.glUseProgram(GetResourceManager()->GetLiveResource(id).name);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glUseProgram(GLuint program)
+{
+  m_Real.glUseProgram(program);
+
+  GetCtxData().m_Program = program;
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(USEPROGRAM);
+    Serialise_glUseProgram(program);
+
+    m_ContextRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(ProgramRes(GetCtx(), program), eFrameRef_Read);
+  }
+}
+
 //void WrappedGLES::glValidateProgram(GLuint program)
 //{
 //  m_Real.glValidateProgram(program);
@@ -977,266 +977,266 @@
 //    m_Real.glProgramBinary(program, binaryFormat, binary, length);
 //  }
 //}
-//
-//#pragma endregion
-//
-//#pragma region Program Pipelines
-//
-//static const uint64_t marker_glUseProgramStages_hack = 0xffbbcc0014151617ULL;
-//
-//bool WrappedGLES::Serialise_glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
-//{
-//  if(GetLogVersion() >= 0x000011)
-//  {
-//    // this marker value is used below to identify where the serialised data sits.
-//    SERIALISE_ELEMENT(uint64_t, marker, marker_glUseProgramStages_hack);
-//  }
-//  SERIALISE_ELEMENT(ResourceId, pipe,
-//                    GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline)));
-//  SERIALISE_ELEMENT(uint32_t, Stages, stages);
-//  SERIALISE_ELEMENT(
-//      ResourceId, prog,
-//      (program ? GetResourceManager()->GetID(ProgramRes(GetCtx(), program)) : ResourceId()));
-//
-//  if(m_State < WRITING)
-//  {
-//    if(prog != ResourceId())
-//    {
-//      ResourceId livePipeId = GetResourceManager()->GetLiveID(pipe);
-//      ResourceId liveProgId = GetResourceManager()->GetLiveID(prog);
-//
-//      PipelineData &pipeDetails = m_Pipelines[livePipeId];
-//      ProgramData &progDetails = m_Programs[liveProgId];
-//
-//      for(size_t s = 0; s < 6; s++)
-//      {
-//        if(Stages & ShaderBit(s))
-//        {
-//          for(size_t sh = 0; sh < progDetails.shaders.size(); sh++)
-//          {
-//            if(m_Shaders[progDetails.shaders[sh]].type == ShaderEnum(s))
-//            {
-//              pipeDetails.stagePrograms[s] = liveProgId;
-//              pipeDetails.stageShaders[s] = progDetails.shaders[sh];
-//              break;
-//            }
-//          }
-//        }
-//      }
-//
-//      m_Real.glUseProgramStages(GetResourceManager()->GetLiveResource(pipe).name, Stages,
-//                                GetResourceManager()->GetLiveResource(prog).name);
-//    }
-//    else
-//    {
-//      ResourceId livePipeId = GetResourceManager()->GetLiveID(pipe);
-//      PipelineData &pipeDetails = m_Pipelines[livePipeId];
-//
-//      for(size_t s = 0; s < 6; s++)
-//      {
-//        if(Stages & ShaderBit(s))
-//        {
-//          pipeDetails.stagePrograms[s] = ResourceId();
-//          pipeDetails.stageShaders[s] = ResourceId();
-//        }
-//      }
-//
-//      m_Real.glUseProgramStages(GetResourceManager()->GetLiveResource(pipe).name, Stages, 0);
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
-//{
-//  m_Real.glUseProgramStages(pipeline, stages, program);
-//
-//  if(m_State > WRITING)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(USE_PROGRAMSTAGES);
-//    Serialise_glUseProgramStages(pipeline, stages, program);
-//
-//    GLResourceRecord *record =
-//        GetResourceManager()->GetResourceRecord(ProgramPipeRes(GetCtx(), pipeline));
-//    RDCASSERT(record);
-//
-//    Chunk *chunk = scope.Get();
-//
-//    if(m_State == WRITING_CAPFRAME)
-//    {
-//      m_ContextRecord->AddChunk(chunk);
-//    }
-//    else
-//    {
-//      // USE_PROGRAMSTAGES is one of the few kinds of chunk that are
-//      // recorded to pipeline records, so we can probably find previous
-//      // uses (if it's been constantly rebound instead of once at init
-//      // time) that can be popped as redundant.
-//      // We do have to be careful though to make sure we only remove
-//      // redundant calls, not other different USE_PROGRAMSTAGES calls!
-//      struct FilterChunkClass
-//      {
-//        FilterChunkClass(uint32_t s) : stages(s) {}
-//        uint32_t stages;
-//
-//        // this is kind of a hack, but it would be really awkward
-//        // to make a general solution just for this one case, and
-//        // we also can't really afford to drop it entirely.
-//        // we search for the marker serialised above, skip over the
-//        // pipeline id (as it will be the same in all chunks in this
-//        // record), and check if the Stages bitfield afterwards is
-//        // the same - if so we remove that chunk as replaced by
-//        // this one
-//        bool operator()(Chunk *c) const
-//        {
-//          if(c->GetChunkType() != USE_PROGRAMSTAGES)
-//            return false;
-//
-//          byte *b = c->GetData();
-//          byte *end = b + c->GetLength();
-//
-//          // 'fast' path, rather than searching byte-by-byte from
-//          // the start to be safe, check the exact difference it should
-//          // always be first.
-//          if(*(uint64_t *)(b + 6) == marker_glUseProgramStages_hack)
-//            b += 6;
-//
-//          while(b + sizeof(uint64_t) < end)
-//          {
-//            uint64_t *marker = (uint64_t *)b;
-//            if(*marker == marker_glUseProgramStages_hack)
-//            {
-//              // increment to point to pipeline id
-//              marker++;
-//              // increment to point to stages field
-//              marker++;
-//
-//              // now compare
-//              uint32_t *chunkStages = (uint32_t *)marker;
-//
-//              if(*chunkStages == stages)
-//                return true;
-//              return false;
-//            }
-//
-//            b++;
-//          }
-//          RDCERR(
-//              "Didn't find marker value! This should not happen, check "
-//              "Serialise_glUseProgramStages serialisation");
-//          return false;
-//        }
-//      };
-//      record->FilterChunks(FilterChunkClass(stages));
-//
-//      record->AddChunk(chunk);
-//    }
-//
-//    if(program)
-//    {
-//      GLResourceRecord *progrecord =
-//          GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-//      RDCASSERT(progrecord);
-//      record->AddParent(progrecord);
-//    }
-//  }
-//  else
-//  {
-//    if(program)
-//    {
-//      ResourceId pipeID = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline));
-//      ResourceId progID = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
-//
-//      PipelineData &pipeDetails = m_Pipelines[pipeID];
-//      ProgramData &progDetails = m_Programs[progID];
-//
-//      for(size_t s = 0; s < 6; s++)
-//      {
-//        if(stages & ShaderBit(s))
-//        {
-//          for(size_t sh = 0; sh < progDetails.shaders.size(); sh++)
-//          {
-//            if(m_Shaders[progDetails.shaders[sh]].type == ShaderEnum(s))
-//            {
-//              pipeDetails.stagePrograms[s] = progID;
-//              pipeDetails.stageShaders[s] = progDetails.shaders[sh];
-//              break;
-//            }
-//          }
-//        }
-//      }
-//    }
-//    else
-//    {
-//      ResourceId pipeID = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline));
-//      PipelineData &pipeDetails = m_Pipelines[pipeID];
-//
-//      for(size_t s = 0; s < 6; s++)
-//      {
-//        if(stages & ShaderBit(s))
-//        {
-//          pipeDetails.stagePrograms[s] = ResourceId();
-//          pipeDetails.stageShaders[s] = ResourceId();
-//        }
-//      }
-//    }
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glGenProgramPipelines(GLsizei n, GLuint *pipelines)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id,
-//                    GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), *pipelines)));
-//
-//  if(m_State == READING)
-//  {
-//    GLuint real = 0;
-//    m_Real.glGenProgramPipelines(1, &real);
-//    m_Real.glBindProgramPipeline(real);
-//    m_Real.glBindProgramPipeline(0);
-//
-//    GLResource res = ProgramPipeRes(GetCtx(), real);
-//
-//    ResourceId live = m_ResourceManager->RegisterResource(res);
-//    GetResourceManager()->AddLiveResource(id, res);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glGenProgramPipelines(GLsizei n, GLuint *pipelines)
-//{
-//  m_Real.glGenProgramPipelines(n, pipelines);
-//
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = ProgramPipeRes(GetCtx(), pipelines[i]);
-//    ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//    if(m_State >= WRITING)
-//    {
-//      Chunk *chunk = NULL;
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(GEN_PROGRAMPIPE);
-//        Serialise_glGenProgramPipelines(1, pipelines + i);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//      RDCASSERT(record);
-//
-//      record->AddChunk(chunk);
-//    }
-//    else
-//    {
-//      GetResourceManager()->AddLiveResource(id, res);
-//    }
-//  }
-//}
-//
+
+#pragma endregion
+
+#pragma region Program Pipelines
+
+static const uint64_t marker_glUseProgramStages_hack = 0xffbbcc0014151617ULL;
+
+bool WrappedGLES::Serialise_glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
+{
+  if(GetLogVersion() >= 0x000011)
+  {
+    // this marker value is used below to identify where the serialised data sits.
+    SERIALISE_ELEMENT(uint64_t, marker, marker_glUseProgramStages_hack);
+  }
+  SERIALISE_ELEMENT(ResourceId, pipe,
+                    GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline)));
+  SERIALISE_ELEMENT(uint32_t, Stages, stages);
+  SERIALISE_ELEMENT(
+      ResourceId, prog,
+      (program ? GetResourceManager()->GetID(ProgramRes(GetCtx(), program)) : ResourceId()));
+
+  if(m_State < WRITING)
+  {
+    if(prog != ResourceId())
+    {
+      ResourceId livePipeId = GetResourceManager()->GetLiveID(pipe);
+      ResourceId liveProgId = GetResourceManager()->GetLiveID(prog);
+
+      PipelineData &pipeDetails = m_Pipelines[livePipeId];
+      ProgramData &progDetails = m_Programs[liveProgId];
+
+      for(size_t s = 0; s < 6; s++)
+      {
+        if(Stages & ShaderBit(s))
+        {
+          for(size_t sh = 0; sh < progDetails.shaders.size(); sh++)
+          {
+            if(m_Shaders[progDetails.shaders[sh]].type == ShaderEnum(s))
+            {
+              pipeDetails.stagePrograms[s] = liveProgId;
+              pipeDetails.stageShaders[s] = progDetails.shaders[sh];
+              break;
+            }
+          }
+        }
+      }
+
+      m_Real.glUseProgramStages(GetResourceManager()->GetLiveResource(pipe).name, Stages,
+                                GetResourceManager()->GetLiveResource(prog).name);
+    }
+    else
+    {
+      ResourceId livePipeId = GetResourceManager()->GetLiveID(pipe);
+      PipelineData &pipeDetails = m_Pipelines[livePipeId];
+
+      for(size_t s = 0; s < 6; s++)
+      {
+        if(Stages & ShaderBit(s))
+        {
+          pipeDetails.stagePrograms[s] = ResourceId();
+          pipeDetails.stageShaders[s] = ResourceId();
+        }
+      }
+
+      m_Real.glUseProgramStages(GetResourceManager()->GetLiveResource(pipe).name, Stages, 0);
+    }
+  }
+
+  return true;
+}
+
+void WrappedGLES::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuint program)
+{
+  m_Real.glUseProgramStages(pipeline, stages, program);
+
+  if(m_State > WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(USE_PROGRAMSTAGES);
+    Serialise_glUseProgramStages(pipeline, stages, program);
+
+    GLResourceRecord *record =
+        GetResourceManager()->GetResourceRecord(ProgramPipeRes(GetCtx(), pipeline));
+    RDCASSERT(record);
+
+    Chunk *chunk = scope.Get();
+
+    if(m_State == WRITING_CAPFRAME)
+    {
+      m_ContextRecord->AddChunk(chunk);
+    }
+    else
+    {
+      // USE_PROGRAMSTAGES is one of the few kinds of chunk that are
+      // recorded to pipeline records, so we can probably find previous
+      // uses (if it's been constantly rebound instead of once at init
+      // time) that can be popped as redundant.
+      // We do have to be careful though to make sure we only remove
+      // redundant calls, not other different USE_PROGRAMSTAGES calls!
+      struct FilterChunkClass
+      {
+        FilterChunkClass(uint32_t s) : stages(s) {}
+        uint32_t stages;
+
+        // this is kind of a hack, but it would be really awkward
+        // to make a general solution just for this one case, and
+        // we also can't really afford to drop it entirely.
+        // we search for the marker serialised above, skip over the
+        // pipeline id (as it will be the same in all chunks in this
+        // record), and check if the Stages bitfield afterwards is
+        // the same - if so we remove that chunk as replaced by
+        // this one
+        bool operator()(Chunk *c) const
+        {
+          if(c->GetChunkType() != USE_PROGRAMSTAGES)
+            return false;
+
+          byte *b = c->GetData();
+          byte *end = b + c->GetLength();
+
+          // 'fast' path, rather than searching byte-by-byte from
+          // the start to be safe, check the exact difference it should
+          // always be first.
+          if(*(uint64_t *)(b + 6) == marker_glUseProgramStages_hack)
+            b += 6;
+
+          while(b + sizeof(uint64_t) < end)
+          {
+            uint64_t *marker = (uint64_t *)b;
+            if(*marker == marker_glUseProgramStages_hack)
+            {
+              // increment to point to pipeline id
+              marker++;
+              // increment to point to stages field
+              marker++;
+
+              // now compare
+              uint32_t *chunkStages = (uint32_t *)marker;
+
+              if(*chunkStages == stages)
+                return true;
+              return false;
+            }
+
+            b++;
+          }
+          RDCERR(
+              "Didn't find marker value! This should not happen, check "
+              "Serialise_glUseProgramStages serialisation");
+          return false;
+        }
+      };
+      record->FilterChunks(FilterChunkClass(stages));
+
+      record->AddChunk(chunk);
+    }
+
+    if(program)
+    {
+      GLResourceRecord *progrecord =
+          GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
+      RDCASSERT(progrecord);
+      record->AddParent(progrecord);
+    }
+  }
+  else
+  {
+    if(program)
+    {
+      ResourceId pipeID = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline));
+      ResourceId progID = GetResourceManager()->GetID(ProgramRes(GetCtx(), program));
+
+      PipelineData &pipeDetails = m_Pipelines[pipeID];
+      ProgramData &progDetails = m_Programs[progID];
+
+      for(size_t s = 0; s < 6; s++)
+      {
+        if(stages & ShaderBit(s))
+        {
+          for(size_t sh = 0; sh < progDetails.shaders.size(); sh++)
+          {
+            if(m_Shaders[progDetails.shaders[sh]].type == ShaderEnum(s))
+            {
+              pipeDetails.stagePrograms[s] = progID;
+              pipeDetails.stageShaders[s] = progDetails.shaders[sh];
+              break;
+            }
+          }
+        }
+      }
+    }
+    else
+    {
+      ResourceId pipeID = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline));
+      PipelineData &pipeDetails = m_Pipelines[pipeID];
+
+      for(size_t s = 0; s < 6; s++)
+      {
+        if(stages & ShaderBit(s))
+        {
+          pipeDetails.stagePrograms[s] = ResourceId();
+          pipeDetails.stageShaders[s] = ResourceId();
+        }
+      }
+    }
+  }
+}
+
+bool WrappedGLES::Serialise_glGenProgramPipelines(GLsizei n, GLuint *pipelines)
+{
+  SERIALISE_ELEMENT(ResourceId, id,
+                    GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), *pipelines)));
+
+  if(m_State == READING)
+  {
+    GLuint real = 0;
+    m_Real.glGenProgramPipelines(1, &real);
+    m_Real.glBindProgramPipeline(real);
+    m_Real.glBindProgramPipeline(0);
+
+    GLResource res = ProgramPipeRes(GetCtx(), real);
+
+    ResourceId live = m_ResourceManager->RegisterResource(res);
+    GetResourceManager()->AddLiveResource(id, res);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glGenProgramPipelines(GLsizei n, GLuint *pipelines)
+{
+  m_Real.glGenProgramPipelines(n, pipelines);
+
+  for(GLsizei i = 0; i < n; i++)
+  {
+    GLResource res = ProgramPipeRes(GetCtx(), pipelines[i]);
+    ResourceId id = GetResourceManager()->RegisterResource(res);
+
+    if(m_State >= WRITING)
+    {
+      Chunk *chunk = NULL;
+
+      {
+        SCOPED_SERIALISE_CONTEXT(GEN_PROGRAMPIPE);
+        Serialise_glGenProgramPipelines(1, pipelines + i);
+
+        chunk = scope.Get();
+      }
+
+      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      RDCASSERT(record);
+
+      record->AddChunk(chunk);
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(id, res);
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glCreateProgramPipelines(GLsizei n, GLuint *pipelines)
 //{
 //  SERIALISE_ELEMENT(ResourceId, id,
@@ -1287,46 +1287,46 @@
 //    }
 //  }
 //}
-//
-//bool WrappedGLES::Serialise_glBindProgramPipeline(GLuint pipeline)
-//{
-//  SERIALISE_ELEMENT(
-//      ResourceId, id,
-//      (pipeline ? GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline)) : ResourceId()));
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(id == ResourceId())
-//    {
-//      m_Real.glBindProgramPipeline(0);
-//    }
-//    else
-//    {
-//      GLuint live = GetResourceManager()->GetLiveResource(id).name;
-//      m_Real.glBindProgramPipeline(live);
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBindProgramPipeline(GLuint pipeline)
-//{
-//  m_Real.glBindProgramPipeline(pipeline);
-//
-//  GetCtxData().m_ProgramPipeline = pipeline;
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BIND_PROGRAMPIPE);
-//    Serialise_glBindProgramPipeline(pipeline);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    GetResourceManager()->MarkResourceFrameReferenced(ProgramPipeRes(GetCtx(), pipeline),
-//                                                      eFrameRef_Read);
-//  }
-//}
-//
+
+bool WrappedGLES::Serialise_glBindProgramPipeline(GLuint pipeline)
+{
+  SERIALISE_ELEMENT(
+      ResourceId, id,
+      (pipeline ? GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), pipeline)) : ResourceId()));
+
+  if(m_State <= EXECUTING)
+  {
+    if(id == ResourceId())
+    {
+      m_Real.glBindProgramPipeline(0);
+    }
+    else
+    {
+      GLuint live = GetResourceManager()->GetLiveResource(id).name;
+      m_Real.glBindProgramPipeline(live);
+    }
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBindProgramPipeline(GLuint pipeline)
+{
+  m_Real.glBindProgramPipeline(pipeline);
+
+  GetCtxData().m_ProgramPipeline = pipeline;
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BIND_PROGRAMPIPE);
+    Serialise_glBindProgramPipeline(pipeline);
+
+    m_ContextRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(ProgramPipeRes(GetCtx(), pipeline),
+                                                      eFrameRef_Read);
+  }
+}
+
 //void WrappedGLES::glActiveShaderProgram(GLuint pipeline, GLuint program)
 //{
 //  m_Real.glActiveShaderProgram(pipeline, program);
@@ -1359,27 +1359,27 @@
 //
 //  return 0;
 //}
-//
-//void WrappedGLES::glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
-//{
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = ProgramPipeRes(GetCtx(), pipelines[i]);
-//    if(GetResourceManager()->HasCurrentResource(res))
-//    {
-//      if(GetResourceManager()->HasResourceRecord(res))
-//        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
-//      GetResourceManager()->UnregisterResource(res);
-//    }
-//  }
-//
-//  m_Real.glDeleteProgramPipelines(n, pipelines);
-//}
-//
-//#pragma endregion
-//
-//#pragma region ARB_shading_language_include
-//
+
+void WrappedGLES::glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
+{
+  for(GLsizei i = 0; i < n; i++)
+  {
+    GLResource res = ProgramPipeRes(GetCtx(), pipelines[i]);
+    if(GetResourceManager()->HasCurrentResource(res))
+    {
+      if(GetResourceManager()->HasResourceRecord(res))
+        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+      GetResourceManager()->UnregisterResource(res);
+    }
+  }
+
+  m_Real.glDeleteProgramPipelines(n, pipelines);
+}
+
+#pragma endregion
+
+#pragma region ARB_shading_language_include
+
 //bool WrappedGLES::Serialise_glCompileShaderIncludeARB(GLuint shader, GLsizei count,
 //                                                        const GLchar *const *path,
 //                                                        const GLint *length)
@@ -1528,5 +1528,5 @@
 //    m_DeviceRecord->AddChunk(scope.Get());
 //  }
 //}
-//
-//#pragma endregion
+
+#pragma endregion

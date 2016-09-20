@@ -153,57 +153,57 @@
 //  if(GetResourceManager()->HasCurrentResource(id))
 //    GetResourceManager()->UnregisterResource(GetResourceManager()->GetCurrentResource(id));
 //}
-//
-//bool WrappedGLES::Serialise_glGenQueries(GLsizei n, GLuint *ids)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), *ids)));
-//
-//  if(m_State == READING)
-//  {
-//    GLuint real = 0;
-//    m_Real.glGenQueries(1, &real);
-//
-//    GLResource res = QueryRes(GetCtx(), real);
-//
-//    ResourceId live = m_ResourceManager->RegisterResource(res);
-//    GetResourceManager()->AddLiveResource(id, res);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glGenQueries(GLsizei count, GLuint *ids)
-//{
-//  m_Real.glGenQueries(count, ids);
-//
-//  for(GLsizei i = 0; i < count; i++)
-//  {
-//    GLResource res = QueryRes(GetCtx(), ids[i]);
-//    ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//    if(m_State >= WRITING)
-//    {
-//      Chunk *chunk = NULL;
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(GEN_QUERIES);
-//        Serialise_glGenQueries(1, ids + i);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//      RDCASSERT(record);
-//
-//      record->AddChunk(chunk);
-//    }
-//    else
-//    {
-//      GetResourceManager()->AddLiveResource(id, res);
-//    }
-//  }
-//}
-//
+
+bool WrappedGLES::Serialise_glGenQueries(GLsizei n, GLuint *ids)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), *ids)));
+
+  if(m_State == READING)
+  {
+    GLuint real = 0;
+    m_Real.glGenQueries(1, &real);
+
+    GLResource res = QueryRes(GetCtx(), real);
+
+    ResourceId live = m_ResourceManager->RegisterResource(res);
+    GetResourceManager()->AddLiveResource(id, res);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glGenQueries(GLsizei count, GLuint *ids)
+{
+  m_Real.glGenQueries(count, ids);
+
+  for(GLsizei i = 0; i < count; i++)
+  {
+    GLResource res = QueryRes(GetCtx(), ids[i]);
+    ResourceId id = GetResourceManager()->RegisterResource(res);
+
+    if(m_State >= WRITING)
+    {
+      Chunk *chunk = NULL;
+
+      {
+        SCOPED_SERIALISE_CONTEXT(GEN_QUERIES);
+        Serialise_glGenQueries(1, ids + i);
+
+        chunk = scope.Get();
+      }
+
+      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      RDCASSERT(record);
+
+      record->AddChunk(chunk);
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(id, res);
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glCreateQueries(GLenum target, GLsizei n, GLuint *ids)
 //{
 //  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), *ids)));
@@ -254,36 +254,36 @@
 //    }
 //  }
 //}
-//
-//bool WrappedGLES::Serialise_glBeginQuery(GLenum target, GLuint qid)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), qid)));
-//
-//  if(m_State < WRITING)
-//  {
-//    m_Real.glBeginQuery(Target, GetResourceManager()->GetLiveResource(id).name);
-//    m_ActiveQueries[QueryIdx(Target)][0] = true;
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBeginQuery(GLenum target, GLuint id)
-//{
-//  m_Real.glBeginQuery(target, id);
-//  m_ActiveQueries[QueryIdx(target)][0] = true;
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BEGIN_QUERY);
-//    Serialise_glBeginQuery(target, id);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), id), eFrameRef_Read);
-//  }
-//}
-//
+
+bool WrappedGLES::Serialise_glBeginQuery(GLenum target, GLuint qid)
+{
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), qid)));
+
+  if(m_State < WRITING)
+  {
+    m_Real.glBeginQuery(Target, GetResourceManager()->GetLiveResource(id).name);
+    m_ActiveQueries[QueryIdx(Target)][0] = true;
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBeginQuery(GLenum target, GLuint id)
+{
+  m_Real.glBeginQuery(target, id);
+  m_ActiveQueries[QueryIdx(target)][0] = true;
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BEGIN_QUERY);
+    Serialise_glBeginQuery(target, id);
+
+    m_ContextRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), id), eFrameRef_Read);
+  }
+}
+
 //bool WrappedGLES::Serialise_glBeginQueryIndexed(GLenum target, GLuint index, GLuint qid)
 //{
 //  SERIALISE_ELEMENT(GLenum, Target, target);
@@ -313,34 +313,34 @@
 //    GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), id), eFrameRef_Read);
 //  }
 //}
-//
-//bool WrappedGLES::Serialise_glEndQuery(GLenum target)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//
-//  if(m_State < WRITING)
-//  {
-//    m_ActiveQueries[QueryIdx(Target)][0] = false;
-//    m_Real.glEndQuery(Target);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glEndQuery(GLenum target)
-//{
-//  m_Real.glEndQuery(target);
-//  m_ActiveQueries[QueryIdx(target)][0] = false;
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(END_QUERY);
-//    Serialise_glEndQuery(target);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+
+bool WrappedGLES::Serialise_glEndQuery(GLenum target)
+{
+  SERIALISE_ELEMENT(GLenum, Target, target);
+
+  if(m_State < WRITING)
+  {
+    m_ActiveQueries[QueryIdx(Target)][0] = false;
+    m_Real.glEndQuery(Target);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glEndQuery(GLenum target)
+{
+  m_Real.glEndQuery(target);
+  m_ActiveQueries[QueryIdx(target)][0] = false;
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(END_QUERY);
+    Serialise_glEndQuery(target);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
 //bool WrappedGLES::Serialise_glEndQueryIndexed(GLenum target, GLuint index)
 //{
 //  SERIALISE_ELEMENT(GLenum, Target, target);
@@ -451,18 +451,18 @@
 //  }
 //}
 //
-//void WrappedGLES::glDeleteQueries(GLsizei n, const GLuint *ids)
-//{
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = QueryRes(GetCtx(), ids[i]);
-//    if(GetResourceManager()->HasCurrentResource(res))
-//    {
-//      if(GetResourceManager()->HasResourceRecord(res))
-//        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
-//      GetResourceManager()->UnregisterResource(res);
-//    }
-//  }
-//
-//  m_Real.glDeleteQueries(n, ids);
-//}
+void WrappedGLES::glDeleteQueries(GLsizei n, const GLuint *ids)
+{
+  for(GLsizei i = 0; i < n; i++)
+  {
+    GLResource res = QueryRes(GetCtx(), ids[i]);
+    if(GetResourceManager()->HasCurrentResource(res))
+    {
+      if(GetResourceManager()->HasResourceRecord(res))
+        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+      GetResourceManager()->UnregisterResource(res);
+    }
+  }
+
+  m_Real.glDeleteQueries(n, ids);
+}
