@@ -73,9 +73,11 @@ int main(int argc, char *argv[])
 
   QApplication a(argc, argv_mod);
 
-  delete[] argv_mod;
-
   Core core(filename, remoteHost, remoteIdent, temp);
 
-  return a.exec();
+  int ret = a.exec();
+
+  delete[] argv_mod;
+
+  return ret;
 }
