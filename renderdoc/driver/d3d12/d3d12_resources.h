@@ -416,6 +416,114 @@ class WrappedID3D12PipelineState : public WrappedDeviceChild12<ID3D12PipelineSta
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12PipelineState);
 
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC *graphics;
+  D3D12_COMPUTE_PIPELINE_STATE_DESC *compute;
+
+  struct DXBCKey
+  {
+    DXBCKey(const D3D12_SHADER_BYTECODE &byteCode)
+    {
+      byteLen = (uint32_t)byteCode.BytecodeLength;
+      DXBC::DXBCFile::GetHash(hash, byteCode.pShaderBytecode, byteCode.BytecodeLength);
+    }
+
+    // assume that byte length + hash is enough to uniquely identify a shader bytecode
+    uint32_t byteLen;
+    uint32_t hash[4];
+
+    bool operator<(const DXBCKey &o) const
+    {
+      if(byteLen != o.byteLen)
+        return byteLen < o.byteLen;
+
+      for(size_t i = 0; i < 4; i++)
+        if(hash[i] != o.hash[i])
+          return hash[i] < o.hash[i];
+
+      return false;
+    }
+
+    bool operator==(const DXBCKey &o) const
+    {
+      return byteLen == o.byteLen && hash[0] == o.hash[0] && hash[1] == o.hash[1] &&
+             hash[2] == o.hash[2] && hash[3] == o.hash[3];
+    }
+  };
+
+  class ShaderEntry
+  {
+  public:
+    ShaderEntry() : m_DebugInfoSearchPaths(NULL), m_DXBCFile(NULL), m_Details(NULL) {}
+    ShaderEntry(const D3D12_SHADER_BYTECODE &byteCode)
+    {
+      const byte *code = (const byte *)byteCode.pShaderBytecode;
+      m_Bytecode.assign(code, code + byteCode.BytecodeLength);
+      m_DebugInfoSearchPaths = NULL;
+      m_DXBCFile = NULL;
+      m_Details = NULL;
+
+      m_RefCount = 1;
+    }
+    ~ShaderEntry()
+    {
+      m_Bytecode.clear();
+      SAFE_DELETE(m_DXBCFile);
+      SAFE_DELETE(m_Details);
+    }
+
+    void AddRef() { m_RefCount++; }
+    bool Release()
+    {
+      m_RefCount--;
+      if(m_RefCount <= 0)
+      {
+        delete this;
+        return true;
+      }
+
+      return false;
+    }
+
+    void SetDebugInfoPath(vector<std::string> *searchPaths, const std::string &path)
+    {
+      m_DebugInfoSearchPaths = searchPaths;
+      m_DebugInfoPath = path;
+    }
+
+    DXBC::DXBCFile *GetDXBC()
+    {
+      if(m_DXBCFile == NULL && !m_Bytecode.empty())
+      {
+        TryReplaceOriginalByteCode();
+        m_DXBCFile = new DXBC::DXBCFile((const void *)&m_Bytecode[0], m_Bytecode.size());
+      }
+      return m_DXBCFile;
+    }
+    ShaderReflection *GetDetails()
+    {
+      if(m_Details == NULL && GetDXBC() != NULL)
+        m_Details = MakeShaderReflection(m_DXBCFile);
+      return m_Details;
+    }
+
+  private:
+    ShaderEntry(const ShaderEntry &e);
+    void TryReplaceOriginalByteCode();
+    ShaderEntry &operator=(const ShaderEntry &e);
+
+    int m_RefCount;
+
+    std::string m_DebugInfoPath;
+    vector<std::string> *m_DebugInfoSearchPaths;
+
+    vector<byte> m_Bytecode;
+
+    DXBC::DXBCFile *m_DXBCFile;
+    ShaderReflection *m_Details;
+  };
+
+  static map<DXBCKey, ShaderEntry *> m_Shaders;
+
   enum
   {
     TypeEnum = Resource_PipelineState,
@@ -424,8 +532,57 @@ public:
   WrappedID3D12PipelineState(ID3D12PipelineState *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
+    graphics = NULL;
   }
-  virtual ~WrappedID3D12PipelineState() { Shutdown(); }
+  virtual ~WrappedID3D12PipelineState()
+  {
+    Shutdown();
+
+    if(graphics)
+    {
+      DXBCKey *vs = (DXBCKey *)graphics->VS.pShaderBytecode;
+      DXBCKey *hs = (DXBCKey *)graphics->HS.pShaderBytecode;
+      DXBCKey *ds = (DXBCKey *)graphics->DS.pShaderBytecode;
+      DXBCKey *gs = (DXBCKey *)graphics->GS.pShaderBytecode;
+      DXBCKey *ps = (DXBCKey *)graphics->PS.pShaderBytecode;
+
+      if(m_Shaders[*vs]->Release())
+        m_Shaders.erase(*vs);
+
+      if(m_Shaders[*hs]->Release())
+        m_Shaders.erase(*hs);
+
+      if(m_Shaders[*ds]->Release())
+        m_Shaders.erase(*ds);
+
+      if(m_Shaders[*gs]->Release())
+        m_Shaders.erase(*gs);
+
+      if(m_Shaders[*ps]->Release())
+        m_Shaders.erase(*ps);
+
+      SAFE_DELETE(vs);
+      SAFE_DELETE(hs);
+      SAFE_DELETE(ds);
+      SAFE_DELETE(gs);
+      SAFE_DELETE(ps);
+
+      SAFE_DELETE(graphics);
+    }
+
+    if(compute)
+    {
+      DXBCKey *cs = (DXBCKey *)compute->CS.pShaderBytecode;
+
+      if(m_Shaders[*cs]->Release())
+        m_Shaders.erase(*cs);
+
+      SAFE_DELETE(cs);
+
+      SAFE_DELETE(compute);
+    }
+  }
+
   //////////////////////////////
   // implement ID3D12PipelineState
 

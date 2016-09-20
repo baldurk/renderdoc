@@ -288,13 +288,6 @@ void Serialiser::Serialise(const char *name, D3D12_SHADER_BYTECODE &el)
 }
 
 template <>
-void Serialiser::Deserialise(const D3D12_SHADER_BYTECODE *const el) const
-{
-  if(m_Mode == READING)
-    delete[](byte *)(el->pShaderBytecode);
-}
-
-template <>
 void Serialiser::Serialise(const char *name, D3D12_SO_DECLARATION_ENTRY &el)
 {
   ScopedContext scope(this, name, "D3D12_SO_DECLARATION_ENTRY", 0, true);
@@ -570,6 +563,19 @@ void Serialiser::Serialise(const char *name, D3D12_GRAPHICS_PIPELINE_STATE_DESC 
 }
 
 template <>
+void Serialiser::Deserialise(const D3D12_GRAPHICS_PIPELINE_STATE_DESC *const el) const
+{
+  if(m_Mode == READING)
+  {
+    delete[](byte *)(el->VS.pShaderBytecode);
+    delete[](byte *)(el->PS.pShaderBytecode);
+    delete[](byte *)(el->DS.pShaderBytecode);
+    delete[](byte *)(el->HS.pShaderBytecode);
+    delete[](byte *)(el->GS.pShaderBytecode);
+  }
+}
+
+template <>
 void Serialiser::Serialise(const char *name, D3D12_COMPUTE_PIPELINE_STATE_DESC &el)
 {
   ScopedContext scope(this, name, "D3D12_COMPUTE_PIPELINE_STATE_DESC", 0, true);
@@ -584,6 +590,13 @@ void Serialiser::Serialise(const char *name, D3D12_COMPUTE_PIPELINE_STATE_DESC &
     el.CachedPSO.CachedBlobSizeInBytes = 0;
     el.CachedPSO.pCachedBlob = NULL;
   }
+}
+
+template <>
+void Serialiser::Deserialise(const D3D12_COMPUTE_PIPELINE_STATE_DESC *const el) const
+{
+  if(m_Mode == READING)
+    delete[](byte *)(el->CS.pShaderBytecode);
 }
 
 template <>
@@ -1030,6 +1043,13 @@ void Serialiser::Serialise(const char *name, D3D12_DISCARD_REGION &el)
   Serialise("NumSubresources", el.NumSubresources);
 
   SerialiseComplexArray("pRects", (D3D12_RECT *&)el.pRects, el.NumRects);
+}
+
+template <>
+void Serialiser::Deserialise(const D3D12_DISCARD_REGION *const el) const
+{
+  if(m_Mode == READING)
+    delete[] el->pRects;
 }
 
 template <>

@@ -33,6 +33,8 @@
 #include "driver/shaders/dxbc/dxbc_compile.h"
 #include "serialise/serialiser.h"
 
+ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc);
+
 // similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the
 // debugbreak.
 #define D3D12NOTIMP(...)                                \
@@ -167,7 +169,11 @@ void Serialiser::Serialise(const char *name, D3D12_SHADER_BYTECODE &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D12_GRAPHICS_PIPELINE_STATE_DESC &el);
 template <>
+void Serialiser::Deserialise(const D3D12_GRAPHICS_PIPELINE_STATE_DESC *const el) const;
+template <>
 void Serialiser::Serialise(const char *name, D3D12_COMPUTE_PIPELINE_STATE_DESC &el);
+template <>
+void Serialiser::Deserialise(const D3D12_COMPUTE_PIPELINE_STATE_DESC *const el) const;
 template <>
 void Serialiser::Serialise(const char *name, D3D12_INDEX_BUFFER_VIEW &el);
 template <>
@@ -206,6 +212,8 @@ template <>
 void Serialiser::Serialise(const char *name, D3D12_TEXTURE_COPY_LOCATION &el);
 template <>
 void Serialiser::Serialise(const char *name, D3D12_DISCARD_REGION &el);
+template <>
+void Serialiser::Deserialise(const D3D12_DISCARD_REGION *const el) const;
 
 struct D3D12Descriptor;
 template <>

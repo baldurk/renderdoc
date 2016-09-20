@@ -370,6 +370,8 @@ public:
   const ASMOperation &GetInstruction(size_t i) { return m_Instructions[i]; }
   size_t NumOperands(OpcodeType op);
 
+  static void GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength);
+
   static bool CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength);
   static string GetDebugBinaryPath(const void *ByteCode, size_t ByteCodeLength);
 

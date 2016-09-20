@@ -28,6 +28,8 @@
 
 std::vector<WrappedID3D12Resource::AddressRange> WrappedID3D12Resource::m_Addresses;
 std::map<ResourceId, WrappedID3D12Resource *> WrappedID3D12Resource::m_List;
+std::map<WrappedID3D12PipelineState::DXBCKey, WrappedID3D12PipelineState::ShaderEntry *>
+    WrappedID3D12PipelineState::m_Shaders;
 
 #undef D3D12_TYPE_MACRO
 #define D3D12_TYPE_MACRO(iface) WRAPPED_POOL_INST(CONCAT(Wrapped, iface));

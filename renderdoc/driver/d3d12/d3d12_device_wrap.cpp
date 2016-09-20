@@ -278,6 +278,36 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
     {
       ret = new WrappedID3D12PipelineState(ret, this);
 
+      WrappedID3D12PipelineState *wrapped = (WrappedID3D12PipelineState *)ret;
+
+      wrapped->graphics = new D3D12_GRAPHICS_PIPELINE_STATE_DESC(Descriptor);
+
+      D3D12_SHADER_BYTECODE *shaders[] = {
+          &wrapped->graphics->VS, &wrapped->graphics->HS, &wrapped->graphics->DS,
+          &wrapped->graphics->GS, &wrapped->graphics->PS,
+      };
+
+      for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
+      {
+        if(shaders[i]->BytecodeLength == 0)
+        {
+          shaders[i]->pShaderBytecode = NULL;
+        }
+        else
+        {
+          WrappedID3D12PipelineState::DXBCKey *key =
+              new WrappedID3D12PipelineState::DXBCKey(*shaders[i]);
+
+          if(WrappedID3D12PipelineState::m_Shaders[*key] == NULL)
+            WrappedID3D12PipelineState::m_Shaders[*key] =
+                new WrappedID3D12PipelineState::ShaderEntry(*shaders[i]);
+          else
+            WrappedID3D12PipelineState::m_Shaders[*key]->AddRef();
+
+          shaders[i]->pShaderBytecode = key;
+        }
+      }
+
       GetResourceManager()->AddLiveResource(Pipe, ret);
     }
   }
@@ -351,6 +381,21 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
     else
     {
       ret = new WrappedID3D12PipelineState(ret, this);
+
+      WrappedID3D12PipelineState *wrapped = (WrappedID3D12PipelineState *)ret;
+
+      wrapped->compute = new D3D12_COMPUTE_PIPELINE_STATE_DESC(Descriptor);
+
+      WrappedID3D12PipelineState::DXBCKey *key =
+          new WrappedID3D12PipelineState::DXBCKey(wrapped->compute->CS);
+
+      if(WrappedID3D12PipelineState::m_Shaders[*key] == NULL)
+        WrappedID3D12PipelineState::m_Shaders[*key] =
+            new WrappedID3D12PipelineState::ShaderEntry(wrapped->compute->CS);
+      else
+        WrappedID3D12PipelineState::m_Shaders[*key]->AddRef();
+
+      wrapped->compute->CS.pShaderBytecode = key;
 
       GetResourceManager()->AddLiveResource(Pipe, ret);
     }

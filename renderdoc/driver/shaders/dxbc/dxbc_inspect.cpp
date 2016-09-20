@@ -448,6 +448,19 @@ CBufferVariableType DXBCFile::ParseRDEFType(RDEFHeader *h, char *chunkContents, 
   return ret;
 }
 
+void DXBCFile::GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLength)
+{
+  if(BytecodeLength < sizeof(FileHeader))
+  {
+    memset(hash, 0, sizeof(uint32_t) * 4);
+    return;
+  }
+
+  FileHeader *header = (FileHeader *)ByteCode;
+
+  memcmp(hash, header->hashValue, sizeof(header->hashValue));
+}
+
 bool DXBCFile::CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength)
 {
   FileHeader *header = (FileHeader *)ByteCode;
