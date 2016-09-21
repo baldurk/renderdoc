@@ -165,7 +165,7 @@ public:
 private:
   void MakePipelineState();
 
-  void FillResourceView(D3D12PipelineState::ResourceView &view, const PortableHandle &resHandle);
+  void FillResourceView(D3D12PipelineState::ResourceView &view, D3D12Descriptor *desc);
 
   bool m_Proxy;
 

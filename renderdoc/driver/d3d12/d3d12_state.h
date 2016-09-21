@@ -168,7 +168,7 @@ struct D3D12RenderState
   };
   vector<StreamOut> streamouts;
 
-  struct Pipeline
+  struct RootSignature
   {
     ResourceId rootsig;
 

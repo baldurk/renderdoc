@@ -647,12 +647,15 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
           samp.Filter = ToStr::Get(desc.Filter);
           samp.MaxAniso = 0;
           if(desc.Filter == D3D11_FILTER_ANISOTROPIC ||
-             desc.Filter == D3D11_FILTER_COMPARISON_ANISOTROPIC)
+             desc.Filter == D3D11_FILTER_COMPARISON_ANISOTROPIC ||
+             desc.Filter == D3D11_FILTER_MINIMUM_ANISOTROPIC ||
+             desc.Filter == D3D11_FILTER_MAXIMUM_ANISOTROPIC)
             samp.MaxAniso = desc.MaxAnisotropy;
           samp.MaxLOD = desc.MaxLOD;
           samp.MinLOD = desc.MinLOD;
           samp.MipLODBias = desc.MipLODBias;
-          samp.UseComparison = (desc.Filter >= D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT);
+          samp.UseComparison = (desc.Filter >= D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT &&
+                                desc.Filter <= D3D11_FILTER_COMPARISON_ANISOTROPIC);
           samp.UseBorder = (desc.AddressU == D3D11_TEXTURE_ADDRESS_BORDER ||
                             desc.AddressV == D3D11_TEXTURE_ADDRESS_BORDER ||
                             desc.AddressW == D3D11_TEXTURE_ADDRESS_BORDER);

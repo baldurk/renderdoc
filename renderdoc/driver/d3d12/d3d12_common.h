@@ -57,6 +57,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
 // buffer replay is happening
 #define VERBOSE_PARTIAL_REPLAY
 
+ShaderStageBits ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility);
 UINT GetNumSubresources(const D3D12_RESOURCE_DESC *desc);
 
 class WrappedID3D12Device;
@@ -125,7 +126,7 @@ public:
 
 struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER
 {
-  void MakeFrom(const D3D12_ROOT_PARAMETER &param)
+  void MakeFrom(const D3D12_ROOT_PARAMETER &param, UINT &numSpaces)
   {
     ParameterType = param.ParameterType;
     ShaderVisibility = param.ShaderVisibility;
@@ -138,10 +139,22 @@ struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER
     {
       ranges.resize(param.DescriptorTable.NumDescriptorRanges);
       for(size_t i = 0; i < ranges.size(); i++)
+      {
         ranges[i] = param.DescriptorTable.pDescriptorRanges[i];
+
+        numSpaces = RDCMAX(numSpaces, ranges[i].RegisterSpace + 1);
+      }
 
       DescriptorTable.NumDescriptorRanges = (UINT)ranges.size();
       DescriptorTable.pDescriptorRanges = &ranges[0];
+    }
+    else if(ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
+    {
+      numSpaces = RDCMAX(numSpaces, Constants.RegisterSpace + 1);
+    }
+    else
+    {
+      numSpaces = RDCMAX(numSpaces, Descriptor.RegisterSpace + 1);
     }
   }
 
@@ -150,6 +163,8 @@ struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER
 
 struct D3D12RootSignature
 {
+  D3D12RootSignature() : numSpaces(0) {}
+  uint32_t numSpaces;
   vector<D3D12RootSignatureParameter> params;
   vector<D3D12_STATIC_SAMPLER_DESC> samplers;
 };

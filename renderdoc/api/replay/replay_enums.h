@@ -320,6 +320,7 @@ enum ShaderStageType
 
 enum ShaderStageBits
 {
+  eStageBits_None = 0,
   eStageBits_Vertex = 1 << eShaderStage_Vertex,
   eStageBits_Hull = 1 << eShaderStage_Hull,
   eStageBits_Tess_Control = 1 << eShaderStage_Tess_Control,
@@ -329,6 +330,9 @@ enum ShaderStageBits
   eStageBits_Pixel = 1 << eShaderStage_Pixel,
   eStageBits_Fragment = 1 << eShaderStage_Fragment,
   eStageBits_Compute = 1 << eShaderStage_Compute,
+  eStageBits_All = eStageBits_Vertex | eStageBits_Hull | eStageBits_Domain | eStageBits_Geometry |
+                   eStageBits_Pixel |
+                   eStageBits_Compute,
 };
 
 enum DebugMessageCategory

@@ -109,6 +109,10 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public class ResourceView
         {
+            public ShaderStageBits VisibilityMask;
+            public bool Immediate;
+            public UInt32 RootElement;
+
             public ResourceId Resource;
             [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string Type;
@@ -141,6 +145,10 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public class Sampler
         {
+            public ShaderStageBits VisibilityMask;
+            public bool Immediate;
+            public UInt32 RootElement;
+
             [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string AddressU, AddressV, AddressW;
             [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
@@ -160,12 +168,16 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public class CBuffer
         {
+            public ShaderStageBits VisibilityMask;
+            public bool Immediate;
+            public UInt32 RootElement;
+
             public ResourceId Buffer;
             public UInt64 Offset;
             public UInt32 ByteSize;
 
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public UInt32[] Immediate;
+            public UInt32[] RootValues;
         };
 
         [StructLayout(LayoutKind.Sequential)]
@@ -174,46 +186,20 @@ namespace renderdoc
             public ResourceId Obj;
 
             [StructLayout(LayoutKind.Sequential)]
-            public class CBufferDescriptor
+            public class RegisterSpace
             {
-                public ShaderStageBits VisibilityMask;
-                public bool Immediate;
-                public UInt32 RootElement;
-
-                [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-                CBuffer obj;
-            };
-
-            [StructLayout(LayoutKind.Sequential)]
-            public class ViewDescriptor
-            {
-                public ShaderStageBits VisibilityMask;
-                public bool Immediate;
-                public UInt32 RootElement;
-
-                [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-                ResourceView obj;
-            };
-
-            [StructLayout(LayoutKind.Sequential)]
-            public class SamplerDescriptor
-            {
-                public ShaderStageBits VisibilityMask;
-                public bool Immediate;
-                public UInt32 RootElement;
-
-                [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-                Sampler obj;
+                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+                public CBuffer[] ConstantBuffers;
+                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+                public Sampler[] Samplers;
+                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+                public ResourceView[] SRVs;
+                [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+                public ResourceView[] UAVs;
             };
 
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public CBufferDescriptor[] ConstantBuffers;
-            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public SamplerDescriptor[] Samplers;
-            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public ViewDescriptor[] SRVs;
-            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-            public ViewDescriptor[] UAVs;
+            public RegisterSpace[] Spaces;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public RootSignature m_RootSig;

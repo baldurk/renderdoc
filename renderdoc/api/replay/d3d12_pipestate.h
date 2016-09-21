@@ -83,10 +83,16 @@ struct D3D12PipelineState
     ShaderStageType stage;
   } m_VS, m_HS, m_DS, m_GS, m_PS, m_CS;
 
+  // Immediate indicates either a root parameter (not in a table), or static samplers
+  // RootElement is the index in the original root signature that this descriptor came from.
+
   struct ResourceView
   {
     ResourceView()
-        : Resource(),
+        : VisibilityMask(),
+          Immediate(0),
+          RootElement(0),
+          Resource(),
           Format(),
           BufferFlags(0),
           BufferStructCount(0),
@@ -106,6 +112,12 @@ struct D3D12PipelineState
       swizzle[3] = eSwizzle_Alpha;
     }
 
+    // parameters from descriptor
+    ShaderStageBits VisibilityMask;
+    bool32 Immediate;
+    uint32_t RootElement;
+
+    // parameters from resource/view
     ResourceId Resource;
     rdctype::str Type;
     ResourceFormat Format;
@@ -134,7 +146,10 @@ struct D3D12PipelineState
   struct Sampler
   {
     Sampler()
-        : UseBorder(false),
+        : VisibilityMask(),
+          Immediate(0),
+          RootElement(0),
+          UseBorder(false),
           UseComparison(false),
           MaxAniso(0),
           MaxLOD(0.0f),
@@ -143,6 +158,13 @@ struct D3D12PipelineState
     {
       BorderColor[0] = BorderColor[1] = BorderColor[2] = BorderColor[3] = 0.0f;
     }
+
+    // parameters from descriptor
+    ShaderStageBits VisibilityMask;
+    bool32 Immediate;
+    uint32_t RootElement;
+
+    // parameters from resource/view
     rdctype::str AddressU, AddressV, AddressW;
     float BorderColor[4];
     rdctype::str Comparison;
@@ -157,52 +179,32 @@ struct D3D12PipelineState
 
   struct CBuffer
   {
-    CBuffer() : Buffer(), Offset(0), ByteSize(0) {}
+    CBuffer() : VisibilityMask(), Immediate(0), RootElement(0), Buffer(), Offset(0), ByteSize(0) {}
+    // parameters from descriptor
+    ShaderStageBits VisibilityMask;
+    bool32 Immediate;
+    uint32_t RootElement;
+
+    // parameters from resource/view
     ResourceId Buffer;
     uint64_t Offset;
     uint32_t ByteSize;
 
-    rdctype::array<uint32_t> Immediate;
+    rdctype::array<uint32_t> RootValues;
   };
 
   struct RootSignature
   {
     ResourceId obj;
 
-    // Immediate indicates either a root parameter (not in a table), or static samplers
-    // RootElement is the index in the original root signature that this descriptor came from.
-
-    struct CBufferDescriptor
+    struct RegisterSpace
     {
-      ShaderStageBits VisibilityMask;
-      bool32 Immediate;
-      uint32_t RootElement;
-
-      CBuffer obj;
+      rdctype::array<CBuffer> ConstantBuffers;
+      rdctype::array<Sampler> Samplers;
+      rdctype::array<ResourceView> SRVs;
+      rdctype::array<ResourceView> UAVs;
     };
-
-    struct ViewDescriptor
-    {
-      ShaderStageBits VisibilityMask;
-      bool32 Immediate;
-      uint32_t RootElement;
-
-      ResourceView obj;
-    };
-
-    struct SamplerDescriptor
-    {
-      ShaderStageBits VisibilityMask;
-      bool32 Immediate;
-      uint32_t RootElement;
-
-      Sampler obj;
-    };
-
-    rdctype::array<CBufferDescriptor> ConstantBuffers;
-    rdctype::array<SamplerDescriptor> Samplers;
-    rdctype::array<ViewDescriptor> SRVs;
-    rdctype::array<ViewDescriptor> UAVs;
+    rdctype::array<RegisterSpace> Spaces;
   } m_RootSig;
 
   struct Streamout

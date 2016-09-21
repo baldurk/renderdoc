@@ -830,10 +830,15 @@ D3D12RootSignature D3D12DebugManager::GetRootSig(const void *data, size_t dataSi
   ret.params.resize(desc->NumParameters);
 
   for(size_t i = 0; i < ret.params.size(); i++)
-    ret.params[i].MakeFrom(desc->pParameters[i]);
+    ret.params[i].MakeFrom(desc->pParameters[i], ret.numSpaces);
 
   if(desc->NumStaticSamplers > 0)
+  {
     ret.samplers.assign(desc->pStaticSamplers, desc->pStaticSamplers + desc->NumStaticSamplers);
+
+    for(size_t i = 0; i < ret.samplers.size(); i++)
+      ret.numSpaces = RDCMAX(ret.numSpaces, ret.samplers[i].RegisterSpace + 1);
+  }
 
   SAFE_RELEASE(deser);
 
