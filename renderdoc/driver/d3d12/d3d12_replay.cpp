@@ -974,25 +974,16 @@ void D3D12Replay::MakePipelineState()
           src.ConservativeRaster == D3D12_CONSERVATIVE_RASTERIZATION_MODE_ON;
     }
 
-    size_t i = 0;
-    create_array_uninit(state.m_RS.Scissors,
-                        D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
-    for(i = 0; i < rs.scissors.size(); i++)
+    create_array_uninit(state.m_RS.Scissors, rs.scissors.size());
+    for(size_t i = 0; i < rs.scissors.size(); i++)
       state.m_RS.Scissors[i] = D3D12PipelineState::Rasterizer::Scissor(
           rs.scissors[i].left, rs.scissors[i].top, rs.scissors[i].right, rs.scissors[i].bottom);
 
-    for(; i < D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE; i++)
-      state.m_RS.Scissors[i] = D3D12PipelineState::Rasterizer::Scissor(0, 0, 0, 0);
-
-    create_array_uninit(state.m_RS.Viewports,
-                        D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
-    for(i = 0; i < rs.views.size(); i++)
+    create_array_uninit(state.m_RS.Viewports, rs.views.size());
+    for(size_t i = 0; i < rs.views.size(); i++)
       state.m_RS.Viewports[i] = D3D12PipelineState::Rasterizer::Viewport(
           rs.views[i].TopLeftX, rs.views[i].TopLeftY, rs.views[i].Width, rs.views[i].Height,
           rs.views[i].MinDepth, rs.views[i].MaxDepth);
-
-    for(; i < D3D12_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE; i++)
-      state.m_RS.Viewports[i] = D3D12PipelineState::Rasterizer::Viewport(0, 0, 0, 0, 0, 0);
 
     /////////////////////////////////////////////////
     // Output Merger
