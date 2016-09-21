@@ -1222,7 +1222,7 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
   gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 1, DebugData.pickVBBuf);
   gl.glBindBufferRange(
       eGL_SHADER_STORAGE_BUFFER, 2, DebugData.pickIBBuf, (GLintptr)cfg.position.idxoffs,
-      (GLsizeiptr)(cfg.position.idxoffs + cfg.position.idxByteWidth * cfg.position.numVerts));
+      (GLsizeiptr)(cfg.position.idxoffs + sizeof(uint32_t) * cfg.position.numVerts));
   gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, 3, DebugData.pickResultBuf);
 
   gl.glDispatchCompute(GLuint((cfg.position.numVerts) / 128 + 1), 1, 1);
