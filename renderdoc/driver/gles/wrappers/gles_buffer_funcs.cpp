@@ -29,61 +29,61 @@
 
 #pragma region Buffers
 
-//bool WrappedGLES::Serialise_glGenBuffers(GLsizei n, GLuint *buffers)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), *buffers)));
-//
-//  if(m_State == READING)
-//  {
-//    GLuint real = 0;
-//    m_Real.glGenBuffers(1, &real);
-//
-//    GLResource res = BufferRes(GetCtx(), real);
-//
-//    ResourceId live = m_ResourceManager->RegisterResource(res);
-//    GetResourceManager()->AddLiveResource(id, res);
-//
-//    m_Buffers[live].resource = res;
-//    m_Buffers[live].curType = eGL_NONE;
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glGenBuffers(GLsizei n, GLuint *buffers)
-//{
-//  m_Real.glGenBuffers(n, buffers);
-//
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = BufferRes(GetCtx(), buffers[i]);
-//    ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//    if(m_State >= WRITING)
-//    {
-//      Chunk *chunk = NULL;
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(GEN_BUFFER);
-//        Serialise_glGenBuffers(1, buffers + i);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//      RDCASSERT(record);
-//
-//      record->AddChunk(chunk);
-//    }
-//    else
-//    {
-//      GetResourceManager()->AddLiveResource(id, res);
-//      m_Buffers[id].resource = res;
-//      m_Buffers[id].curType = eGL_NONE;
-//    }
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glGenBuffers(GLsizei n, GLuint *buffers)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), *buffers)));
+
+  if(m_State == READING)
+  {
+    GLuint real = 0;
+    m_Real.glGenBuffers(1, &real);
+
+    GLResource res = BufferRes(GetCtx(), real);
+
+    ResourceId live = m_ResourceManager->RegisterResource(res);
+    GetResourceManager()->AddLiveResource(id, res);
+
+    m_Buffers[live].resource = res;
+    m_Buffers[live].curType = eGL_NONE;
+  }
+
+  return true;
+}
+
+void WrappedGLES::glGenBuffers(GLsizei n, GLuint *buffers)
+{
+  m_Real.glGenBuffers(n, buffers);
+
+  for(GLsizei i = 0; i < n; i++)
+  {
+    GLResource res = BufferRes(GetCtx(), buffers[i]);
+    ResourceId id = GetResourceManager()->RegisterResource(res);
+
+    if(m_State >= WRITING)
+    {
+      Chunk *chunk = NULL;
+
+      {
+        SCOPED_SERIALISE_CONTEXT(GEN_BUFFER);
+        Serialise_glGenBuffers(1, buffers + i);
+
+        chunk = scope.Get();
+      }
+
+      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      RDCASSERT(record);
+
+      record->AddChunk(chunk);
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(id, res);
+      m_Buffers[id].resource = res;
+      m_Buffers[id].curType = eGL_NONE;
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glCreateBuffers(GLsizei n, GLuint *buffers)
 //{
 //  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), *buffers)));
@@ -139,178 +139,180 @@
 //  }
 //}
 //
-//bool WrappedGLES::Serialise_glBindBuffer(GLenum target, GLuint buffer)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(ResourceId, Id, (buffer ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))
-//                                            : ResourceId()));
-//
-//  if(m_State >= WRITING)
-//  {
-//    if(Id != ResourceId())
-//      GetResourceManager()->GetResourceRecord(Id)->datatype = Target;
-//  }
-//  else if(m_State < WRITING)
-//  {
-//    if(Target == eGL_NONE)
-//    {
-//      // ...
-//    }
-//    else if(Id == ResourceId())
-//    {
-//      m_Real.glBindBuffer(Target, 0);
-//    }
-//    else
-//    {
-//      // if we're just reading, make sure not to trample state (e.g. element array buffer
-//      // binding in a VAO), since this is just a bind-to-create chunk.
-//      GLuint prevbuf = 0;
-//      if(m_State == READING && m_CurEventID == 0 && Target != eGL_NONE)
-//        m_Real.glGetIntegerv(BufferBinding(Target), (GLint *)&prevbuf);
-//
-//      GLResource res = GetResourceManager()->GetLiveResource(Id);
-//      m_Real.glBindBuffer(Target, res.name);
-//
-//      m_Buffers[GetResourceManager()->GetLiveID(Id)].curType = Target;
-//
-//      if(m_State == READING && m_CurEventID == 0 && Target != eGL_NONE)
-//        m_Real.glBindBuffer(Target, prevbuf);
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBindBuffer(GLenum target, GLuint buffer)
-//{
-//  m_Real.glBindBuffer(target, buffer);
-//
-//  ContextData &cd = GetCtxData();
-//
-//  size_t idx = BufferIdx(target);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    Chunk *chunk = NULL;
-//
-//    if(buffer == 0)
-//      cd.m_BufferRecord[idx] = NULL;
-//    else
-//      cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-//
-//    {
-//      SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
-//      Serialise_glBindBuffer(target, buffer);
-//
-//      chunk = scope.Get();
-//    }
-//
-//    if(buffer)
-//    {
-//      FrameRefType refType = eFrameRef_Read;
-//
-//      // these targets write to the buffer
-//      if(target == eGL_ATOMIC_COUNTER_BUFFER || target == eGL_COPY_WRITE_BUFFER ||
-//         target == eGL_PIXEL_PACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
-//         target == eGL_TRANSFORM_FEEDBACK_BUFFER)
-//        refType = eFrameRef_ReadBeforeWrite;
-//
-//      GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(),
-//                                                        refType);
-//    }
-//
-//    m_ContextRecord->AddChunk(chunk);
-//  }
-//
-//  if(buffer == 0)
-//  {
-//    cd.m_BufferRecord[idx] = NULL;
-//    return;
-//  }
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *r = cd.m_BufferRecord[idx] =
-//        GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-//
-//    // it's legal to re-type buffers, generate another BindBuffer chunk to rename
-//    if(r->datatype != target)
-//    {
-//      Chunk *chunk = NULL;
-//
-//      r->LockChunks();
-//      for(;;)
-//      {
-//        Chunk *end = r->GetLastChunk();
-//
-//        if(end->GetChunkType() == BIND_BUFFER)
-//        {
-//          SAFE_DELETE(end);
-//
-//          r->PopChunk();
-//
-//          continue;
-//        }
-//
-//        break;
-//      }
-//      r->UnlockChunks();
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
-//        Serialise_glBindBuffer(target, buffer);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      r->AddChunk(chunk);
-//    }
-//
-//    // element array buffer binding is vertex array record state, record there (if we've not just
-//    // stopped)
-//    if(m_State == WRITING_IDLE && target == eGL_ELEMENT_ARRAY_BUFFER &&
-//       RecordUpdateCheck(cd.m_VertexArrayRecord))
-//    {
-//      GLuint vao = cd.m_VertexArrayRecord->Resource.name;
-//
-//      // use glVertexArrayElementBuffer to ensure the vertex array is bound when we bind the
-//      // element buffer
-//      SCOPED_SERIALISE_CONTEXT(VAO_ELEMENT_BUFFER);
-//      Serialise_glVertexArrayElementBuffer(vao, buffer);
-//
-//      cd.m_VertexArrayRecord->AddChunk(scope.Get());
-//    }
-//
-//    // store as transform feedback record state
-//    if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
-//       RecordUpdateCheck(cd.m_FeedbackRecord))
-//    {
-//      GLuint feedback = cd.m_FeedbackRecord->Resource.name;
-//
-//      // use glTransformFeedbackBufferBase to ensure the feedback object is bound when we bind the
-//      // buffer
-//      SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_BASE);
-//      Serialise_glTransformFeedbackBufferBase(feedback, 0, buffer);
-//
-//      cd.m_FeedbackRecord->AddChunk(scope.Get());
-//    }
-//
-//    // immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
-//    if(target == eGL_TRANSFORM_FEEDBACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
-//       target == eGL_ATOMIC_COUNTER_BUFFER)
-//    {
-//      if(m_State == WRITING_IDLE)
-//        GetResourceManager()->MarkDirtyResource(r->GetResourceID());
-//      else
-//        m_MissingTracks.insert(r->GetResourceID());
-//    }
-//  }
-//  else
-//  {
-//    m_Buffers[GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))].curType = target;
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glBindBuffer(GLenum target, GLuint buffer)
+{
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(ResourceId, Id, (buffer ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))
+                                            : ResourceId()));
+
+  if(m_State >= WRITING)
+  {
+    if(Id != ResourceId())
+      GetResourceManager()->GetResourceRecord(Id)->datatype = Target;
+  }
+  else if(m_State < WRITING)
+  {
+    if(Target == eGL_NONE)
+    {
+      // ...
+    }
+    else if(Id == ResourceId())
+    {
+      m_Real.glBindBuffer(Target, 0);
+    }
+    else
+    {
+      // if we're just reading, make sure not to trample state (e.g. element array buffer
+      // binding in a VAO), since this is just a bind-to-create chunk.
+      GLuint prevbuf = 0;
+      if(m_State == READING && m_CurEventID == 0 && Target != eGL_NONE)
+        m_Real.glGetIntegerv(BufferBinding(Target), (GLint *)&prevbuf);
+
+      GLResource res = GetResourceManager()->GetLiveResource(Id);
+      m_Real.glBindBuffer(Target, res.name);
+
+      m_Buffers[GetResourceManager()->GetLiveID(Id)].curType = Target;
+
+      if(m_State == READING && m_CurEventID == 0 && Target != eGL_NONE)
+        m_Real.glBindBuffer(Target, prevbuf);
+    }
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBindBuffer(GLenum target, GLuint buffer)
+{
+  m_Real.glBindBuffer(target, buffer);
+
+  ContextData &cd = GetCtxData();
+
+  size_t idx = BufferIdx(target);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    Chunk *chunk = NULL;
+
+    if(buffer == 0)
+      cd.m_BufferRecord[idx] = NULL;
+    else
+      cd.m_BufferRecord[idx] = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+
+    {
+      SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
+      Serialise_glBindBuffer(target, buffer);
+
+      chunk = scope.Get();
+    }
+
+    if(buffer)
+    {
+      FrameRefType refType = eFrameRef_Read;
+
+      // these targets write to the buffer
+      if(target == eGL_ATOMIC_COUNTER_BUFFER || target == eGL_COPY_WRITE_BUFFER ||
+         target == eGL_PIXEL_PACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
+         target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+        refType = eFrameRef_ReadBeforeWrite;
+
+      GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(),
+                                                        refType);
+    }
+
+    m_ContextRecord->AddChunk(chunk);
+  }
+
+  if(buffer == 0)
+  {
+    cd.m_BufferRecord[idx] = NULL;
+    return;
+  }
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *r = cd.m_BufferRecord[idx] =
+        GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+
+    // it's legal to re-type buffers, generate another BindBuffer chunk to rename
+    if(r->datatype != target)
+    {
+      Chunk *chunk = NULL;
+
+      r->LockChunks();
+      for(;;)
+      {
+        Chunk *end = r->GetLastChunk();
+
+        if(end->GetChunkType() == BIND_BUFFER)
+        {
+          SAFE_DELETE(end);
+
+          r->PopChunk();
+
+          continue;
+        }
+
+        break;
+      }
+      r->UnlockChunks();
+
+      {
+        SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
+        Serialise_glBindBuffer(target, buffer);
+
+        chunk = scope.Get();
+      }
+
+      r->AddChunk(chunk);
+    }
+
+    // element array buffer binding is vertex array record state, record there (if we've not just
+    // stopped)
+    if(m_State == WRITING_IDLE && target == eGL_ELEMENT_ARRAY_BUFFER &&
+       RecordUpdateCheck(cd.m_VertexArrayRecord))
+    {
+      GLuint vao = cd.m_VertexArrayRecord->Resource.name;
+
+      // use glVertexArrayElementBuffer to ensure the vertex array is bound when we bind the
+      // element buffer
+      SCOPED_SERIALISE_CONTEXT(VAO_ELEMENT_BUFFER);
+      // TODO PEPE ????
+      // Serialise_glVertexArrayElementBuffer(vao, buffer);
+
+      cd.m_VertexArrayRecord->AddChunk(scope.Get());
+    }
+
+    // store as transform feedback record state
+    if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
+       RecordUpdateCheck(cd.m_FeedbackRecord))
+    {
+      GLuint feedback = cd.m_FeedbackRecord->Resource.name;
+
+      // use glTransformFeedbackBufferBase to ensure the feedback object is bound when we bind the
+      // buffer
+      SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_BASE);
+      // TODO PEPE ????
+      //Serialise_glTransformFeedbackBufferBase(feedback, 0, buffer);
+
+      cd.m_FeedbackRecord->AddChunk(scope.Get());
+    }
+
+    // immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
+    if(target == eGL_TRANSFORM_FEEDBACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
+       target == eGL_ATOMIC_COUNTER_BUFFER)
+    {
+      if(m_State == WRITING_IDLE)
+        GetResourceManager()->MarkDirtyResource(r->GetResourceID());
+      else
+        m_MissingTracks.insert(r->GetResourceID());
+    }
+  }
+  else
+  {
+    m_Buffers[GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))].curType = target;
+  }
+}
+
 //bool WrappedGLES::Serialise_glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size,
 //                                                      const void *data, GLbitfield flags)
 //{
@@ -412,28 +414,33 @@
 //  glNamedBufferStorageEXT(buffer, size, data, flags);
 //}
 //
-//void WrappedGLES::glBufferStorage(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)
-//{
-//  byte *dummy = NULL;
-//
-//  if(m_State >= WRITING && data == NULL)
-//  {
-//    dummy = new byte[size];
-//    memset(dummy, 0xdd, size);
-//    data = dummy;
-//  }
-//
-//  m_Real.glBufferStorage(target, size, data, flags);
-//
-//  if(m_State >= WRITING)
-//    Common_glNamedBufferStorageEXT(GetCtxData().m_BufferRecord[BufferIdx(target)]->GetResourceID(),
-//                                   size, data, flags);
-//  else
-//    RDCERR("Internal buffers should be allocated via dsa interfaces");
-//
-//  SAFE_DELETE_ARRAY(dummy);
-//}
-//
+
+bool WrappedGLES::Serialise_glBufferStorageEXT(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)
+{
+    // TODO PEPE
+    return true;
+}
+void WrappedGLES::glBufferStorageEXT(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)
+{
+  byte *dummy = NULL;
+
+  if(m_State >= WRITING && data == NULL)
+  {
+    dummy = new byte[size];
+    memset(dummy, 0xdd, size);
+    data = dummy;
+  }
+
+  m_Real.glBufferStorageEXT(target, size, data, flags);
+
+  if(m_State >= WRITING)
+    Serialise_glBufferStorageEXT(target, size, data, flags);
+  else
+    RDCERR("Internal buffers should be allocated via dsa interfaces");
+
+  SAFE_DELETE_ARRAY(dummy);
+}
+
 //bool WrappedGLES::Serialise_glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const void *data,
 //                                                   GLenum usage)
 //{
@@ -595,129 +602,137 @@
 //  glNamedBufferDataEXT(buffer, size, data, usage);
 //}
 //
-//void WrappedGLES::glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage)
-//{
-//  byte *dummy = NULL;
-//
-//  if(m_State >= WRITING && data == NULL)
-//  {
-//    dummy = new byte[size];
-//    memset(dummy, 0xdd, size);
-//    data = dummy;
-//  }
-//
-//  m_Real.glBufferData(target, size, data, usage);
-//
-//  size_t idx = BufferIdx(target);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetCtxData().m_BufferRecord[idx];
-//    RDCASSERT(record);
-//
-//    // detect buffer orphaning and just update backing store
-//    if(m_State == WRITING_IDLE && record->HasDataPtr() && size == (GLsizeiptr)record->Length &&
-//       usage == record->usage)
-//    {
-//      if(data)
-//        memcpy(record->GetDataPtr(), data, (size_t)size);
-//      else
-//        memset(record->GetDataPtr(), 0xbe, (size_t)size);
-//
-//      SAFE_DELETE_ARRAY(dummy);
-//
-//      return;
-//    }
-//
-//    GLuint buffer = record->Resource.name;
-//
-//    // if we're recreating the buffer, clear the record and add new chunks. Normally
-//    // we would just mark this record as dirty and pick it up on the capture frame as initial
-//    // data, but we don't support (if it's even possible) querying out size etc.
-//    // we need to add only the chunks required - glGenBuffers, glBindBuffer to current target,
-//    // and this buffer storage. All other chunks have no effect
-//    if(m_State == WRITING_IDLE &&
-//       (record->HasDataPtr() || (record->Length > 0 && size != (GLsizeiptr)record->Length)))
-//    {
-//      // we need to maintain chunk ordering, so fetch the first two chunk IDs.
-//      // We should have at least two by this point - glGenBuffers and whatever gave the record
-//      // a size before.
-//      RDCASSERT(record->NumChunks() >= 2);
-//
-//      // remove all but the first two chunks
-//      while(record->NumChunks() > 2)
-//      {
-//        Chunk *c = record->GetLastChunk();
-//        SAFE_DELETE(c);
-//        record->PopChunk();
-//      }
-//
-//      int32_t id2 = record->GetLastChunkID();
-//      {
-//        Chunk *c = record->GetLastChunk();
-//        SAFE_DELETE(c);
-//        record->PopChunk();
-//      }
-//
-//      int32_t id1 = record->GetLastChunkID();
-//      {
-//        Chunk *c = record->GetLastChunk();
-//        SAFE_DELETE(c);
-//        record->PopChunk();
-//      }
-//
-//      RDCASSERT(!record->HasChunks());
-//
-//      // add glGenBuffers chunk
-//      {
-//        SCOPED_SERIALISE_CONTEXT(GEN_BUFFER);
-//        Serialise_glGenBuffers(1, &buffer);
-//
-//        record->AddChunk(scope.Get(), id1);
-//      }
-//
-//      // add glBindBuffer chunk
-//      {
-//        SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
-//        Serialise_glBindBuffer(record->datatype, buffer);
-//
-//        record->AddChunk(scope.Get(), id2);
-//      }
-//
-//      // we're about to add the buffer data chunk
-//    }
-//
-//    SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
-//    Serialise_glNamedBufferDataEXT(buffer, size, data, usage);
-//
-//    Chunk *chunk = scope.Get();
-//
-//    // if we've already created this is a renaming/data updating call. It should go in
-//    // the frame record so we can 'update' the buffer as it goes in the frame.
-//    // if we haven't created the buffer at all, it could be a mid-frame create and we
-//    // should place it in the resource record, to happen before the frame.
-//    if(m_State == WRITING_CAPFRAME && record->GetDataPtr())
-//    {
-//      // we could perhaps substitute this for a 'fake' glBufferSubData chunk?
-//      m_ContextRecord->AddChunk(chunk);
-//      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Write);
-//    }
-//    else
-//    {
-//      record->AddChunk(chunk);
-//      record->SetDataPtr(chunk->GetData());
-//      record->Length = size;
-//      record->usage = usage;
-//      record->DataInSerialiser = true;
-//    }
-//  }
-//  else
-//  {
-//    RDCERR("Internal buffers should be allocated via dsa interfaces");
-//  }
-//
-//  SAFE_DELETE_ARRAY(dummy);
-//}
+
+
+bool WrappedGLES::Serialise_glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage)
+{
+    // TODO PEPE
+    return true;
+}
+
+void WrappedGLES::glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage)
+{
+  byte *dummy = NULL;
+
+  if(m_State >= WRITING && data == NULL)
+  {
+    dummy = new byte[size];
+    memset(dummy, 0xdd, size);
+    data = dummy;
+  }
+
+  m_Real.glBufferData(target, size, data, usage);
+
+  size_t idx = BufferIdx(target);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetCtxData().m_BufferRecord[idx];
+    RDCASSERT(record);
+
+    // detect buffer orphaning and just update backing store
+    if(m_State == WRITING_IDLE && record->HasDataPtr() && size == (GLsizeiptr)record->Length &&
+       usage == record->usage)
+    {
+      if(data)
+        memcpy(record->GetDataPtr(), data, (size_t)size);
+      else
+        memset(record->GetDataPtr(), 0xbe, (size_t)size);
+
+      SAFE_DELETE_ARRAY(dummy);
+
+      return;
+    }
+
+    GLuint buffer = record->Resource.name;
+
+    // if we're recreating the buffer, clear the record and add new chunks. Normally
+    // we would just mark this record as dirty and pick it up on the capture frame as initial
+    // data, but we don't support (if it's even possible) querying out size etc.
+    // we need to add only the chunks required - glGenBuffers, glBindBuffer to current target,
+    // and this buffer storage. All other chunks have no effect
+    if(m_State == WRITING_IDLE &&
+       (record->HasDataPtr() || (record->Length > 0 && size != (GLsizeiptr)record->Length)))
+    {
+      // we need to maintain chunk ordering, so fetch the first two chunk IDs.
+      // We should have at least two by this point - glGenBuffers and whatever gave the record
+      // a size before.
+      RDCASSERT(record->NumChunks() >= 2);
+
+      // remove all but the first two chunks
+      while(record->NumChunks() > 2)
+      {
+        Chunk *c = record->GetLastChunk();
+        SAFE_DELETE(c);
+        record->PopChunk();
+      }
+
+      int32_t id2 = record->GetLastChunkID();
+      {
+        Chunk *c = record->GetLastChunk();
+        SAFE_DELETE(c);
+        record->PopChunk();
+      }
+
+      int32_t id1 = record->GetLastChunkID();
+      {
+        Chunk *c = record->GetLastChunk();
+        SAFE_DELETE(c);
+        record->PopChunk();
+      }
+
+      RDCASSERT(!record->HasChunks());
+
+      // add glGenBuffers chunk
+      {
+        SCOPED_SERIALISE_CONTEXT(GEN_BUFFER);
+        Serialise_glGenBuffers(1, &buffer);
+
+        record->AddChunk(scope.Get(), id1);
+      }
+
+      // add glBindBuffer chunk
+      {
+        SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
+        Serialise_glBindBuffer(record->datatype, buffer);
+
+        record->AddChunk(scope.Get(), id2);
+      }
+
+      // we're about to add the buffer data chunk
+    }
+
+    SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
+    Serialise_glBufferData(target, size, data, usage);
+
+    Chunk *chunk = scope.Get();
+
+    // if we've already created this is a renaming/data updating call. It should go in
+    // the frame record so we can 'update' the buffer as it goes in the frame.
+    // if we haven't created the buffer at all, it could be a mid-frame create and we
+    // should place it in the resource record, to happen before the frame.
+    if(m_State == WRITING_CAPFRAME && record->GetDataPtr())
+    {
+      // we could perhaps substitute this for a 'fake' glBufferSubData chunk?
+      m_ContextRecord->AddChunk(chunk);
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Write);
+    }
+    else
+    {
+      record->AddChunk(chunk);
+      record->SetDataPtr(chunk->GetData());
+      record->Length = size;
+      record->usage = usage;
+      record->DataInSerialiser = true;
+    }
+  }
+  else
+  {
+    RDCERR("Internal buffers should be allocated via dsa interfaces");
+  }
+
+  SAFE_DELETE_ARRAY(dummy);
+}
 //
 //bool WrappedGLES::Serialise_glNamedBufferSubDataEXT(GLuint buffer, GLintptr offset,
 //                                                      GLsizeiptr size, const void *data)
@@ -785,46 +800,54 @@
 //  glNamedBufferSubDataEXT(buffer, offset, size, data);
 //}
 //
-//void WrappedGLES::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data)
-//{
-//  m_Real.glBufferSubData(target, offset, size, data);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-//    RDCASSERT(record);
-//
-//    GLResource res = record->Resource;
-//
-//    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-//       m_State != WRITING_CAPFRAME)
-//      return;
-//
-//    SCOPED_SERIALISE_CONTEXT(BUFFERSUBDATA);
-//    Serialise_glNamedBufferSubDataEXT(res.name, offset, size, data);
-//
-//    Chunk *chunk = scope.Get();
-//
-//    if(m_State == WRITING_CAPFRAME)
-//    {
-//      m_ContextRecord->AddChunk(chunk);
-//      m_MissingTracks.insert(record->GetResourceID());
-//      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
-//                                                        eFrameRef_ReadBeforeWrite);
-//    }
-//    else
-//    {
-//      record->AddChunk(chunk);
-//      record->UpdateCount++;
-//
-//      if(record->UpdateCount > 10)
-//      {
-//        m_HighTrafficResources.insert(record->GetResourceID());
-//        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//      }
-//    }
-//  }
-//}
+                            
+bool WrappedGLES::Serialise_glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data)
+{
+    // TODO PEPE
+    return true;
+}
+
+
+void WrappedGLES::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data)
+{
+  m_Real.glBufferSubData(target, offset, size, data);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+    RDCASSERT(record);
+
+    GLResource res = record->Resource;
+
+    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+       m_State != WRITING_CAPFRAME)
+      return;
+
+    SCOPED_SERIALISE_CONTEXT(BUFFERSUBDATA);
+    //Serialise_glBufferSubData(target, offset, size, data);
+
+    Chunk *chunk = scope.Get();
+
+    if(m_State == WRITING_CAPFRAME)
+    {
+      m_ContextRecord->AddChunk(chunk);
+      m_MissingTracks.insert(record->GetResourceID());
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                        eFrameRef_ReadBeforeWrite);
+    }
+    else
+    {
+      record->AddChunk(chunk);
+      record->UpdateCount++;
+
+      if(record->UpdateCount > 10)
+      {
+        m_HighTrafficResources.insert(record->GetResourceID());
+        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+      }
+    }
+  }
+}
 //
 //bool WrappedGLES::Serialise_glNamedCopyBufferSubDataEXT(GLuint readBuffer, GLuint writeBuffer,
 //                                                          GLintptr readOffset, GLintptr writeOffset,
@@ -963,109 +986,95 @@
 //  }
 //}
 //
-//bool WrappedGLES::Serialise_glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(uint32_t, Index, index);
-//  SERIALISE_ELEMENT(ResourceId, id, (buffer ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))
-//                                            : ResourceId()));
-//
-//  if(m_State < WRITING)
-//  {
-//    if(id == ResourceId())
-//    {
-//      m_Real.glBindBuffer(Target, 0);
-//    }
-//    else
-//    {
-//      GLResource res = GetResourceManager()->GetLiveResource(id);
-//      m_Real.glBindBufferBase(Target, Index, res.name);
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
-//{
-//  ContextData &cd = GetCtxData();
-//
-//  if(m_State >= WRITING)
-//  {
-//    size_t idx = BufferIdx(target);
-//
-//    GLResourceRecord *r = NULL;
-//
-//    if(buffer == 0)
-//      r = cd.m_BufferRecord[idx] = NULL;
-//    else
-//      r = cd.m_BufferRecord[idx] =
-//          GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-//
-//    if(buffer && m_State == WRITING_CAPFRAME)
-//    {
-//      FrameRefType refType = eFrameRef_Read;
-//
-//      // these targets write to the buffer
-//      if(target == eGL_ATOMIC_COUNTER_BUFFER || target == eGL_COPY_WRITE_BUFFER ||
-//         target == eGL_PIXEL_PACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
-//         target == eGL_TRANSFORM_FEEDBACK_BUFFER)
-//        refType = eFrameRef_ReadBeforeWrite;
-//
-//      GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(),
-//                                                        refType);
-//    }
-//
-//    // it's legal to re-type buffers, generate another BindBuffer chunk to rename
-//    if(r && r->datatype != target)
-//    {
-//      Chunk *chunk = NULL;
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
-//        Serialise_glBindBuffer(target, buffer);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      r->AddChunk(chunk);
-//    }
-//
-//    // store as transform feedback record state
-//    if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
-//       RecordUpdateCheck(cd.m_FeedbackRecord))
-//    {
-//      GLuint feedback = cd.m_FeedbackRecord->Resource.name;
-//
-//      // use glTransformFeedbackBufferBase to ensure the feedback object is bound when we bind the
-//      // buffer
-//      SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_BASE);
-//      Serialise_glTransformFeedbackBufferBase(feedback, index, buffer);
-//
-//      cd.m_FeedbackRecord->AddChunk(scope.Get());
-//    }
-//
-//    // immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
-//    if(r && (target == eGL_TRANSFORM_FEEDBACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
-//             target == eGL_ATOMIC_COUNTER_BUFFER))
-//    {
-//      if(m_State == WRITING_CAPFRAME)
-//        m_MissingTracks.insert(r->GetResourceID());
-//      else
-//        GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
-//    }
-//
-//    if(m_State == WRITING_CAPFRAME)
-//    {
-//      SCOPED_SERIALISE_CONTEXT(BIND_BUFFER_BASE);
-//      Serialise_glBindBufferBase(target, index, buffer);
-//
-//      m_ContextRecord->AddChunk(scope.Get());
-//    }
-//  }
-//
-//  m_Real.glBindBufferBase(target, index, buffer);
-//}
+bool WrappedGLES::Serialise_glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
+{
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(uint32_t, Index, index);
+  SERIALISE_ELEMENT(ResourceId, id, (buffer ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))
+                                            : ResourceId()));
+
+  if(m_State < WRITING)
+  {
+    if(id == ResourceId())
+    {
+      m_Real.glBindBuffer(Target, 0);
+    }
+    else
+    {
+      GLResource res = GetResourceManager()->GetLiveResource(id);
+      m_Real.glBindBufferBase(Target, Index, res.name);
+    }
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
+{
+  ContextData &cd = GetCtxData();
+
+  if(m_State >= WRITING)
+  {
+    size_t idx = BufferIdx(target);
+
+    GLResourceRecord *r = NULL;
+
+    if(buffer == 0)
+      r = cd.m_BufferRecord[idx] = NULL;
+    else
+      r = cd.m_BufferRecord[idx] =
+          GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+
+    if(buffer && m_State == WRITING_CAPFRAME)
+    {
+      FrameRefType refType = eFrameRef_Read;
+
+      // these targets write to the buffer
+      if(target == eGL_ATOMIC_COUNTER_BUFFER || target == eGL_COPY_WRITE_BUFFER ||
+         target == eGL_PIXEL_PACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
+         target == eGL_TRANSFORM_FEEDBACK_BUFFER)
+        refType = eFrameRef_ReadBeforeWrite;
+
+      GetResourceManager()->MarkResourceFrameReferenced(cd.m_BufferRecord[idx]->GetResourceID(),
+                                                        refType);
+    }
+
+    // it's legal to re-type buffers, generate another BindBuffer chunk to rename
+    if(r && r->datatype != target)
+    {
+      Chunk *chunk = NULL;
+
+      {
+        SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
+        Serialise_glBindBuffer(target, buffer);
+
+        chunk = scope.Get();
+      }
+
+      r->AddChunk(chunk);
+    }
+
+    // immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
+    if(r && (target == eGL_TRANSFORM_FEEDBACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
+             target == eGL_ATOMIC_COUNTER_BUFFER))
+    {
+      if(m_State == WRITING_CAPFRAME)
+        m_MissingTracks.insert(r->GetResourceID());
+      else
+        GetResourceManager()->MarkDirtyResource(BufferRes(GetCtx(), buffer));
+    }
+
+    if(m_State == WRITING_CAPFRAME)
+    {
+      SCOPED_SERIALISE_CONTEXT(BIND_BUFFER_BASE);
+      Serialise_glBindBufferBase(target, index, buffer);
+
+      m_ContextRecord->AddChunk(scope.Get());
+    }
+  }
+
+  m_Real.glBindBufferBase(target, index, buffer);
+}
 //
 //bool WrappedGLES::Serialise_glBindBufferRange(GLenum target, GLuint index, GLuint buffer,
 //                                                GLintptr offset, GLsizeiptr size)
@@ -2214,24 +2223,32 @@
 //  return m_Real.glUnmapNamedBufferEXT(buffer);
 //}
 //
-//GLboolean WrappedGLES::glUnmapBuffer(GLenum target)
-//{
-//  // see above glMapNamedBufferRangeEXT for high-level explanation of how mapping is handled
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-//    RDCASSERT(record);
-//
-//    if(record)
-//      return glUnmapNamedBufferEXT(record->Resource.name);
-//
-//    RDCERR("glUnmapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
-//  }
-//
-//  return m_Real.glUnmapBuffer(target);
-//}
-//
+
+bool WrappedGLES::Serialise_glUnmapBuffer(GLenum target)
+{
+    // TODO PEPE
+    return true;
+}
+
+GLboolean WrappedGLES::glUnmapBuffer(GLenum target)
+{
+  // see above glMapNamedBufferRangeEXT for high-level explanation of how mapping is handled
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+    RDCASSERT(record);
+
+    if(record) {
+        // TODO PEPE
+    }
+
+    RDCERR("glUnmapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
+  }
+
+  return m_Real.glUnmapBuffer(target);
+}
+
 //bool WrappedGLES::Serialise_glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr offset,
 //                                                               GLsizeiptr length)
 //{
@@ -2427,58 +2444,58 @@
 //
 //#pragma region Transform Feedback
 //
-//bool WrappedGLES::Serialise_glGenTransformFeedbacks(GLsizei n, GLuint *ids)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(FeedbackRes(GetCtx(), *ids)));
-//
-//  if(m_State == READING)
-//  {
-//    GLuint real = 0;
-//    m_Real.glGenTransformFeedbacks(1, &real);
-//    m_Real.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, real);
-//    m_Real.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, 0);
-//
-//    GLResource res = FeedbackRes(GetCtx(), real);
-//
-//    m_ResourceManager->RegisterResource(res);
-//    GetResourceManager()->AddLiveResource(id, res);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glGenTransformFeedbacks(GLsizei n, GLuint *ids)
-//{
-//  m_Real.glGenTransformFeedbacks(n, ids);
-//
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = FeedbackRes(GetCtx(), ids[i]);
-//    ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//    if(m_State >= WRITING)
-//    {
-//      Chunk *chunk = NULL;
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(GEN_FEEDBACK);
-//        Serialise_glGenTransformFeedbacks(1, ids + i);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//      RDCASSERT(record);
-//
-//      record->AddChunk(chunk);
-//    }
-//    else
-//    {
-//      GetResourceManager()->AddLiveResource(id, res);
-//    }
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glGenTransformFeedbacks(GLsizei n, GLuint *ids)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(FeedbackRes(GetCtx(), *ids)));
+
+  if(m_State == READING)
+  {
+    GLuint real = 0;
+    m_Real.glGenTransformFeedbacks(1, &real);
+    m_Real.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, real);
+    m_Real.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, 0);
+
+    GLResource res = FeedbackRes(GetCtx(), real);
+
+    m_ResourceManager->RegisterResource(res);
+    GetResourceManager()->AddLiveResource(id, res);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glGenTransformFeedbacks(GLsizei n, GLuint *ids)
+{
+  m_Real.glGenTransformFeedbacks(n, ids);
+
+  for(GLsizei i = 0; i < n; i++)
+  {
+    GLResource res = FeedbackRes(GetCtx(), ids[i]);
+    ResourceId id = GetResourceManager()->RegisterResource(res);
+
+    if(m_State >= WRITING)
+    {
+      Chunk *chunk = NULL;
+
+      {
+        SCOPED_SERIALISE_CONTEXT(GEN_FEEDBACK);
+        Serialise_glGenTransformFeedbacks(1, ids + i);
+
+        chunk = scope.Get();
+      }
+
+      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      RDCASSERT(record);
+
+      record->AddChunk(chunk);
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(id, res);
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glCreateTransformFeedbacks(GLsizei n, GLuint *ids)
 //{
 //  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(FeedbackRes(GetCtx(), *ids)));
@@ -2529,23 +2546,23 @@
 //  }
 //}
 //
-//void WrappedGLES::glDeleteTransformFeedbacks(GLsizei n, const GLuint *ids)
-//{
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = FeedbackRes(GetCtx(), ids[i]);
-//    if(GetResourceManager()->HasCurrentResource(res))
-//    {
-//      GetResourceManager()->MarkCleanResource(res);
-//      if(GetResourceManager()->HasResourceRecord(res))
-//        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
-//      GetResourceManager()->UnregisterResource(res);
-//    }
-//  }
-//
-//  m_Real.glDeleteTransformFeedbacks(n, ids);
-//}
-//
+void WrappedGLES::glDeleteTransformFeedbacks(GLsizei n, const GLuint *ids)
+{
+  for(GLsizei i = 0; i < n; i++)
+  {
+    GLResource res = FeedbackRes(GetCtx(), ids[i]);
+    if(GetResourceManager()->HasCurrentResource(res))
+    {
+      GetResourceManager()->MarkCleanResource(res);
+      if(GetResourceManager()->HasResourceRecord(res))
+        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+      GetResourceManager()->UnregisterResource(res);
+    }
+  }
+
+  m_Real.glDeleteTransformFeedbacks(n, ids);
+}
+
 //bool WrappedGLES::Serialise_glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLuint buffer)
 //{
 //  SERIALISE_ELEMENT(uint32_t, idx, index);
@@ -2658,80 +2675,80 @@
 //  }
 //}
 //
-//bool WrappedGLES::Serialise_glBindTransformFeedback(GLenum target, GLuint id)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(ResourceId, fid, GetResourceManager()->GetID(FeedbackRes(GetCtx(), id)));
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(fid != ResourceId())
-//      m_Real.glBindTransformFeedback(Target, GetResourceManager()->GetLiveResource(fid).name);
-//    else
-//      m_Real.glBindTransformFeedback(Target, 0);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBindTransformFeedback(GLenum target, GLuint id)
-//{
-//  m_Real.glBindTransformFeedback(target, id);
-//
-//  GLResourceRecord *record = NULL;
-//
-//  if(m_State >= WRITING)
-//  {
-//    if(id == 0)
-//    {
-//      GetCtxData().m_FeedbackRecord = record = NULL;
-//    }
-//    else
-//    {
-//      GetCtxData().m_FeedbackRecord = record =
-//          GetResourceManager()->GetResourceRecord(FeedbackRes(GetCtx(), id));
-//    }
-//  }
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BIND_FEEDBACK);
-//    Serialise_glBindTransformFeedback(target, id);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//
-//    if(record)
-//      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glBeginTransformFeedback(GLenum primitiveMode)
-//{
-//  SERIALISE_ELEMENT(GLenum, Mode, primitiveMode);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glBeginTransformFeedback(Mode);
-//    m_ActiveFeedback = true;
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBeginTransformFeedback(GLenum primitiveMode)
-//{
-//  m_Real.glBeginTransformFeedback(primitiveMode);
-//  m_ActiveFeedback = true;
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BEGIN_FEEDBACK);
-//    Serialise_glBeginTransformFeedback(primitiveMode);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glBindTransformFeedback(GLenum target, GLuint id)
+{
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(ResourceId, fid, GetResourceManager()->GetID(FeedbackRes(GetCtx(), id)));
+
+  if(m_State <= EXECUTING)
+  {
+    if(fid != ResourceId())
+      m_Real.glBindTransformFeedback(Target, GetResourceManager()->GetLiveResource(fid).name);
+    else
+      m_Real.glBindTransformFeedback(Target, 0);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBindTransformFeedback(GLenum target, GLuint id)
+{
+  m_Real.glBindTransformFeedback(target, id);
+
+  GLResourceRecord *record = NULL;
+
+  if(m_State >= WRITING)
+  {
+    if(id == 0)
+    {
+      GetCtxData().m_FeedbackRecord = record = NULL;
+    }
+    else
+    {
+      GetCtxData().m_FeedbackRecord = record =
+          GetResourceManager()->GetResourceRecord(FeedbackRes(GetCtx(), id));
+    }
+  }
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BIND_FEEDBACK);
+    Serialise_glBindTransformFeedback(target, id);
+
+    m_ContextRecord->AddChunk(scope.Get());
+
+    if(record)
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+  }
+}
+
+bool WrappedGLES::Serialise_glBeginTransformFeedback(GLenum primitiveMode)
+{
+  SERIALISE_ELEMENT(GLenum, Mode, primitiveMode);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glBeginTransformFeedback(Mode);
+    m_ActiveFeedback = true;
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBeginTransformFeedback(GLenum primitiveMode)
+{
+  m_Real.glBeginTransformFeedback(primitiveMode);
+  m_ActiveFeedback = true;
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BEGIN_FEEDBACK);
+    Serialise_glBeginTransformFeedback(primitiveMode);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
 //bool WrappedGLES::Serialise_glPauseTransformFeedback()
 //{
 //  if(m_State <= EXECUTING)
@@ -2778,31 +2795,31 @@
 //  }
 //}
 //
-//bool WrappedGLES::Serialise_glEndTransformFeedback()
-//{
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glEndTransformFeedback();
-//    m_ActiveFeedback = false;
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glEndTransformFeedback()
-//{
-//  m_Real.glEndTransformFeedback();
-//  m_ActiveFeedback = false;
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(END_FEEDBACK);
-//    Serialise_glEndTransformFeedback();
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glEndTransformFeedback()
+{
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glEndTransformFeedback();
+    m_ActiveFeedback = false;
+  }
+
+  return true;
+}
+
+void WrappedGLES::glEndTransformFeedback()
+{
+  m_Real.glEndTransformFeedback();
+  m_ActiveFeedback = false;
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(END_FEEDBACK);
+    Serialise_glEndTransformFeedback();
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
 //#pragma endregion
 //
 //#pragma region Vertex Arrays
@@ -2903,39 +2920,40 @@
 //  }
 //}
 //
-//void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
-//                                          GLboolean normalized, GLsizei stride, const void *pointer)
-//{
-//  m_Real.glVertexAttribPointer(index, size, type, normalized, stride, pointer);
-//
-//  if(m_State >= WRITING)
-//  {
-//    ContextData &cd = GetCtxData();
-//    GLResourceRecord *bufrecord = cd.m_BufferRecord[BufferIdx(eGL_ARRAY_BUFFER)];
-//    GLResourceRecord *varecord = cd.m_VertexArrayRecord;
-//    GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
-//
-//    if(r)
-//    {
-//      if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
-//        return;
-//      if(m_State == WRITING_CAPFRAME && varecord)
-//        GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-//      if(m_State == WRITING_CAPFRAME && bufrecord)
-//        GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
+void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
+                                          GLboolean normalized, GLsizei stride, const void *pointer)
+{
+  m_Real.glVertexAttribPointer(index, size, type, normalized, stride, pointer);
+
+  if(m_State >= WRITING)
+  {
+    ContextData &cd = GetCtxData();
+    GLResourceRecord *bufrecord = cd.m_BufferRecord[BufferIdx(eGL_ARRAY_BUFFER)];
+    GLResourceRecord *varecord = cd.m_VertexArrayRecord;
+    GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
+
+    if(r)
+    {
+      if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
+        return;
+      if(m_State == WRITING_CAPFRAME && varecord)
+        GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
+      if(m_State == WRITING_CAPFRAME && bufrecord)
+        GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
+
+      {
+        SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
+// TODO PEPE ???
 //        Serialise_glVertexArrayVertexAttribOffsetEXT(
 //            varecord ? varecord->Resource.name : 0, bufrecord ? bufrecord->Resource.name : 0, index,
 //            size, type, normalized, stride, (GLintptr)pointer);
-//
-//        r->AddChunk(scope.Get());
-//      }
-//    }
-//  }
-//}
-//
+
+        r->AddChunk(scope.Get());
+      }
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glVertexArrayVertexAttribIOffsetEXT(GLuint vaobj, GLuint buffer,
 //                                                                  GLuint index, GLint size,
 //                                                                  GLenum type, GLsizei stride,
@@ -3366,35 +3384,41 @@
 //  }
 //}
 //
-//void WrappedGLES::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum type,
-//                                          GLuint relativeoffset)
-//{
-//  m_Real.glVertexAttribIFormat(attribindex, size, type, relativeoffset);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
-//
-//    GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
-//
-//    if(r)
-//    {
-//      if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
-//        return;
-//      if(m_State == WRITING_CAPFRAME && varecord)
-//        GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
-//        Serialise_glVertexArrayVertexAttribIFormatEXT(varecord ? varecord->Resource.name : 0,
-//                                                      attribindex, size, type, relativeoffset);
-//
-//        r->AddChunk(scope.Get());
-//      }
-//    }
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum type,
+                                          GLuint relativeoffset)
+{
+    return true;
+}
+
+void WrappedGLES::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum type,
+                                          GLuint relativeoffset)
+{
+  m_Real.glVertexAttribIFormat(attribindex, size, type, relativeoffset);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
+
+    GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
+
+    if(r)
+    {
+      if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
+        return;
+      if(m_State == WRITING_CAPFRAME && varecord)
+        GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
+
+      {
+        SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIFORMAT);
+        
+        Serialise_glVertexAttribIFormat(attribindex, size, type, relativeoffset);
+
+        r->AddChunk(scope.Get());
+      }
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glVertexArrayVertexAttribLFormatEXT(GLuint vaobj, GLuint attribindex,
 //                                                                  GLint size, GLenum type,
 //                                                                  GLuint relativeoffset)
@@ -3617,33 +3641,39 @@
 //  }
 //}
 //
-//void WrappedGLES::glEnableVertexAttribArray(GLuint index)
-//{
-//  m_Real.glEnableVertexAttribArray(index);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
-//
-//    GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
-//
-//    if(r)
-//    {
-//      if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
-//        return;
-//      if(m_State == WRITING_CAPFRAME && varecord)
-//        GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
-//        Serialise_glEnableVertexArrayAttribEXT(varecord ? varecord->Resource.name : 0, index);
-//
-//        r->AddChunk(scope.Get());
-//      }
-//    }
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glEnableVertexAttribArray(GLuint index)
+{
+    // TODO PEPE
+    return true;
+}
+
+void WrappedGLES::glEnableVertexAttribArray(GLuint index)
+{
+  m_Real.glEnableVertexAttribArray(index);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
+
+    GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
+
+    if(r)
+    {
+      if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
+        return;
+      if(m_State == WRITING_CAPFRAME && varecord)
+        GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
+
+      {
+        SCOPED_SERIALISE_CONTEXT(ENABLEVERTEXATTRIBARRAY);
+        Serialise_glEnableVertexAttribArray(index);
+
+        r->AddChunk(scope.Get());
+      }
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glDisableVertexArrayAttribEXT(GLuint vaobj, GLuint index)
 //{
 //  SERIALISE_ELEMENT(uint32_t, Index, index);
@@ -3699,85 +3729,91 @@
 //  }
 //}
 //
-//void WrappedGLES::glDisableVertexAttribArray(GLuint index)
-//{
-//  m_Real.glDisableVertexAttribArray(index);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
-//
-//    GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
-//
-//    if(r)
-//    {
-//      if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
-//        return;
-//      if(m_State == WRITING_CAPFRAME && varecord)
-//        GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
-//        Serialise_glDisableVertexArrayAttribEXT(varecord ? varecord->Resource.name : 0, index);
-//
-//        r->AddChunk(scope.Get());
-//      }
-//    }
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glGenVertexArrays(GLsizei n, GLuint *arrays)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(VertexArrayRes(GetCtx(), *arrays)));
-//
-//  if(m_State == READING)
-//  {
-//    GLuint real = 0;
-//    m_Real.glGenVertexArrays(1, &real);
-//    m_Real.glBindVertexArray(real);
-//    m_Real.glBindVertexArray(0);
-//
-//    GLResource res = VertexArrayRes(GetCtx(), real);
-//
-//    m_ResourceManager->RegisterResource(res);
-//    GetResourceManager()->AddLiveResource(id, res);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glGenVertexArrays(GLsizei n, GLuint *arrays)
-//{
-//  m_Real.glGenVertexArrays(n, arrays);
-//
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = VertexArrayRes(GetCtx(), arrays[i]);
-//    ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//    if(m_State >= WRITING)
-//    {
-//      Chunk *chunk = NULL;
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(GEN_VERTEXARRAY);
-//        Serialise_glGenVertexArrays(1, arrays + i);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//      RDCASSERT(record);
-//
-//      record->AddChunk(chunk);
-//    }
-//    else
-//    {
-//      GetResourceManager()->AddLiveResource(id, res);
-//    }
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glDisableVertexAttribArray(GLuint index)
+{
+    // TODO PEPE
+    return true;
+}
+
+void WrappedGLES::glDisableVertexAttribArray(GLuint index)
+{
+  m_Real.glDisableVertexAttribArray(index);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
+
+    GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
+
+    if(r)
+    {
+      if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
+        return;
+      if(m_State == WRITING_CAPFRAME && varecord)
+        GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
+
+      {
+        SCOPED_SERIALISE_CONTEXT(DISABLEVERTEXATTRIBARRAY);
+        Serialise_glDisableVertexAttribArray(index);
+
+        r->AddChunk(scope.Get());
+      }
+    }
+  }
+}
+
+bool WrappedGLES::Serialise_glGenVertexArrays(GLsizei n, GLuint *arrays)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(VertexArrayRes(GetCtx(), *arrays)));
+
+  if(m_State == READING)
+  {
+    GLuint real = 0;
+    m_Real.glGenVertexArrays(1, &real);
+    m_Real.glBindVertexArray(real);
+    m_Real.glBindVertexArray(0);
+
+    GLResource res = VertexArrayRes(GetCtx(), real);
+
+    m_ResourceManager->RegisterResource(res);
+    GetResourceManager()->AddLiveResource(id, res);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glGenVertexArrays(GLsizei n, GLuint *arrays)
+{
+  m_Real.glGenVertexArrays(n, arrays);
+
+  for(GLsizei i = 0; i < n; i++)
+  {
+    GLResource res = VertexArrayRes(GetCtx(), arrays[i]);
+    ResourceId id = GetResourceManager()->RegisterResource(res);
+
+    if(m_State >= WRITING)
+    {
+      Chunk *chunk = NULL;
+
+      {
+        SCOPED_SERIALISE_CONTEXT(GEN_VERTEXARRAY);
+        Serialise_glGenVertexArrays(1, arrays + i);
+
+        chunk = scope.Get();
+      }
+
+      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      RDCASSERT(record);
+
+      record->AddChunk(chunk);
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(id, res);
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glCreateVertexArrays(GLsizei n, GLuint *arrays)
 //{
 //  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(VertexArrayRes(GetCtx(), *arrays)));
@@ -3828,57 +3864,57 @@
 //  }
 //}
 //
-//bool WrappedGLES::Serialise_glBindVertexArray(GLuint array)
-//{
-//  SERIALISE_ELEMENT(
-//      ResourceId, id,
-//      (array ? GetResourceManager()->GetID(VertexArrayRes(GetCtx(), array)) : ResourceId()));
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(id == ResourceId())
-//    {
-//      m_Real.glBindVertexArray(m_FakeVAO);
-//    }
-//    else
-//    {
-//      GLuint live = GetResourceManager()->GetLiveResource(id).name;
-//      m_Real.glBindVertexArray(live);
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBindVertexArray(GLuint array)
-//{
-//  m_Real.glBindVertexArray(array);
-//
-//  GLResourceRecord *record = NULL;
-//
-//  if(m_State >= WRITING)
-//  {
-//    if(array == 0)
-//    {
-//      GetCtxData().m_VertexArrayRecord = record = NULL;
-//    }
-//    else
-//    {
-//      GetCtxData().m_VertexArrayRecord = record =
-//          GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), array));
-//    }
-//  }
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BIND_VERTEXARRAY);
-//    Serialise_glBindVertexArray(array);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    if(record)
-//      GetResourceManager()->MarkVAOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
-//  }
-//}
+bool WrappedGLES::Serialise_glBindVertexArray(GLuint array)
+{
+  SERIALISE_ELEMENT(
+      ResourceId, id,
+      (array ? GetResourceManager()->GetID(VertexArrayRes(GetCtx(), array)) : ResourceId()));
+
+  if(m_State <= EXECUTING)
+  {
+    if(id == ResourceId())
+    {
+      m_Real.glBindVertexArray(m_FakeVAO);
+    }
+    else
+    {
+      GLuint live = GetResourceManager()->GetLiveResource(id).name;
+      m_Real.glBindVertexArray(live);
+    }
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBindVertexArray(GLuint array)
+{
+  m_Real.glBindVertexArray(array);
+
+  GLResourceRecord *record = NULL;
+
+  if(m_State >= WRITING)
+  {
+    if(array == 0)
+    {
+      GetCtxData().m_VertexArrayRecord = record = NULL;
+    }
+    else
+    {
+      GetCtxData().m_VertexArrayRecord = record =
+          GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), array));
+    }
+  }
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BIND_VERTEXARRAY);
+    Serialise_glBindVertexArray(array);
+
+    m_ContextRecord->AddChunk(scope.Get());
+    if(record)
+      GetResourceManager()->MarkVAOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+  }
+}
 //
 //bool WrappedGLES::Serialise_glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer)
 //{
@@ -4012,40 +4048,46 @@
 //    }
 //  }
 //}
-//
-//void WrappedGLES::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset,
-//                                       GLsizei stride)
-//{
-//  m_Real.glBindVertexBuffer(bindingindex, buffer, offset, stride);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
-//    GLResourceRecord *bufrecord =
-//        GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-//
-//    GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
-//
-//    if(r)
-//    {
-//      if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
-//        return;
-//      if(m_State == WRITING_CAPFRAME && varecord)
-//        GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-//      if(m_State == WRITING_CAPFRAME && bufrecord)
-//        GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFER);
-//        Serialise_glVertexArrayBindVertexBufferEXT(varecord ? varecord->Resource.name : 0,
-//                                                   bindingindex, buffer, offset, stride);
-//
-//        r->AddChunk(scope.Get());
-//      }
-//    }
-//  }
-//}
-//
+
+bool WrappedGLES::Serialise_glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset,
+                                       GLsizei stride)
+{
+    // TODO PEPE
+    return true;
+}
+
+void WrappedGLES::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset,
+                                       GLsizei stride)
+{
+  m_Real.glBindVertexBuffer(bindingindex, buffer, offset, stride);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
+    GLResourceRecord *bufrecord =
+        GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
+
+    GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
+
+    if(r)
+    {
+      if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
+        return;
+      if(m_State == WRITING_CAPFRAME && varecord)
+        GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
+      if(m_State == WRITING_CAPFRAME && bufrecord)
+        GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
+
+      {
+        SCOPED_SERIALISE_CONTEXT(BIND_VERTEXBUFFER);
+        Serialise_glBindVertexBuffer(bindingindex, buffer, offset, stride);
+
+        r->AddChunk(scope.Get());
+      }
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsizei count,
 //                                                         const GLuint *buffers,
 //                                                         const GLintptr *offsets,
@@ -4281,57 +4323,58 @@
 //  }
 //}
 //
-//void WrappedGLES::glDeleteBuffers(GLsizei n, const GLuint *buffers)
-//{
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = BufferRes(GetCtx(), buffers[i]);
-//    if(GetResourceManager()->HasCurrentResource(res))
-//    {
-//      GLResourceRecord *record = GetResourceManager()->GetResourceRecord(res);
-//      if(record)
-//      {
-//        // if we have a persistent pointer, make sure to unmap it
-//        if(record->Map.persistentPtr)
-//        {
-//          m_PersistentMaps.erase(record);
-//          if(record->Map.access & GL_MAP_COHERENT_BIT)
-//            m_CoherentMaps.erase(record);
-//
-//          m_Real.glUnmapNamedBufferEXT(res.name);
-//        }
-//
-//        // free any shadow storage
-//        record->FreeShadowStorage();
-//      }
-//
-//      GetResourceManager()->MarkCleanResource(res);
-//      if(GetResourceManager()->HasResourceRecord(res))
-//        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
-//      GetResourceManager()->UnregisterResource(res);
-//    }
-//  }
-//
-//  m_Real.glDeleteBuffers(n, buffers);
-//}
-//
-//void WrappedGLES::glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
-//{
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = VertexArrayRes(GetCtx(), arrays[i]);
-//    if(GetResourceManager()->HasCurrentResource(res))
-//    {
-//      GetResourceManager()->MarkCleanResource(res);
-//      if(GetResourceManager()->HasResourceRecord(res))
-//        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
-//      GetResourceManager()->UnregisterResource(res);
-//    }
-//  }
-//
-//  m_Real.glDeleteVertexArrays(n, arrays);
-//}
-//
+void WrappedGLES::glDeleteBuffers(GLsizei n, const GLuint *buffers)
+{
+  for(GLsizei i = 0; i < n; i++)
+  {
+    GLResource res = BufferRes(GetCtx(), buffers[i]);
+    if(GetResourceManager()->HasCurrentResource(res))
+    {
+      GLResourceRecord *record = GetResourceManager()->GetResourceRecord(res);
+      if(record)
+      {
+        // if we have a persistent pointer, make sure to unmap it
+        if(record->Map.persistentPtr)
+        {
+          m_PersistentMaps.erase(record);
+          if(record->Map.access & GL_MAP_COHERENT_BIT_EXT)
+            m_CoherentMaps.erase(record);
+
+          // TODO PEPE
+          // m_Real.glUnmapNamedBufferEXT(res.name);
+        }
+
+        // free any shadow storage
+        record->FreeShadowStorage();
+      }
+
+      GetResourceManager()->MarkCleanResource(res);
+      if(GetResourceManager()->HasResourceRecord(res))
+        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+      GetResourceManager()->UnregisterResource(res);
+    }
+  }
+
+  m_Real.glDeleteBuffers(n, buffers);
+}
+
+void WrappedGLES::glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
+{
+  for(GLsizei i = 0; i < n; i++)
+  {
+    GLResource res = VertexArrayRes(GetCtx(), arrays[i]);
+    if(GetResourceManager()->HasCurrentResource(res))
+    {
+      GetResourceManager()->MarkCleanResource(res);
+      if(GetResourceManager()->HasResourceRecord(res))
+        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+      GetResourceManager()->UnregisterResource(res);
+    }
+  }
+
+  m_Real.glDeleteVertexArrays(n, arrays);
+}
+
 //#pragma endregion
 //
 //#pragma region Horrible glVertexAttrib variants

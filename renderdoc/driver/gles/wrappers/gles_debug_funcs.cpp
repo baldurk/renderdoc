@@ -27,74 +27,74 @@
 #include "common/common.h"
 #include "serialise/string_utils.h"
 
-//bool WrappedGLES::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsizei length,
-//                                            const GLchar *label)
-//{
-//  ResourceId liveid;
-//
-//  bool extvariant = false;
-//
-//  string Label;
-//  if(m_State >= WRITING)
-//  {
-//    if(length == 0)
-//      Label = "";
-//    else
-//      Label = string(label, label + (length > 0 ? length : strlen(label)));
-//
-//    switch(identifier)
-//    {
-//      case eGL_TEXTURE: liveid = GetResourceManager()->GetID(TextureRes(GetCtx(), name)); break;
-//      case eGL_BUFFER_OBJECT_EXT: extvariant = true;
-//      case eGL_BUFFER: liveid = GetResourceManager()->GetID(BufferRes(GetCtx(), name)); break;
-//      case eGL_PROGRAM_OBJECT_EXT: extvariant = true;
-//      case eGL_PROGRAM: liveid = GetResourceManager()->GetID(ProgramRes(GetCtx(), name)); break;
-//      case eGL_PROGRAM_PIPELINE_OBJECT_EXT: extvariant = true;
-//      case eGL_PROGRAM_PIPELINE:
-//        liveid = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), name));
-//        break;
-//      case eGL_VERTEX_ARRAY_OBJECT_EXT: extvariant = true;
-//      case eGL_VERTEX_ARRAY:
-//        liveid = GetResourceManager()->GetID(VertexArrayRes(GetCtx(), name));
-//        break;
-//      case eGL_SHADER_OBJECT_EXT: extvariant = true;
-//      case eGL_SHADER: liveid = GetResourceManager()->GetID(ShaderRes(GetCtx(), name)); break;
-//      case eGL_QUERY_OBJECT_EXT: extvariant = true;
-//      case eGL_QUERY: liveid = GetResourceManager()->GetID(QueryRes(GetCtx(), name)); break;
-//      case eGL_TRANSFORM_FEEDBACK:
-//        liveid = GetResourceManager()->GetID(FeedbackRes(GetCtx(), name));
-//        break;
-//      case eGL_SAMPLER: liveid = GetResourceManager()->GetID(SamplerRes(GetCtx(), name)); break;
-//      case eGL_RENDERBUFFER:
-//        liveid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), name));
-//        break;
-//      case eGL_FRAMEBUFFER:
-//        liveid = GetResourceManager()->GetID(FramebufferRes(GetCtx(), name));
-//        break;
-//      default: RDCERR("Unhandled namespace in glObjectLabel");
-//    }
-//  }
-//
-//  SERIALISE_ELEMENT(GLenum, Identifier, identifier);
-//  SERIALISE_ELEMENT(ResourceId, id, liveid);
-//  SERIALISE_ELEMENT(uint32_t, Length, length);
-//  SERIALISE_ELEMENT(bool, HasLabel, label != NULL);
-//
-//  m_pSerialiser->SerialiseString("label", Label);
-//
-//  if(m_State == READING && GetResourceManager()->HasLiveResource(id))
-//  {
-//    GLResource res = GetResourceManager()->GetLiveResource(id);
-//
-//    if(extvariant && m_Real.glLabelObjectEXT)
-//      m_Real.glLabelObjectEXT(Identifier, res.name, Length, HasLabel ? Label.c_str() : NULL);
-//    else
-//      m_Real.glObjectLabel(Identifier, res.name, Length, HasLabel ? Label.c_str() : NULL);
-//  }
-//
-//  return true;
-//}
-//
+bool WrappedGLES::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsizei length,
+                                            const GLchar *label)
+{
+  ResourceId liveid;
+
+  bool extvariant = false;
+
+  string Label;
+  if(m_State >= WRITING)
+  {
+    if(length == 0)
+      Label = "";
+    else
+      Label = string(label, label + (length > 0 ? length : strlen(label)));
+
+    switch(identifier)
+    {
+      case eGL_TEXTURE: liveid = GetResourceManager()->GetID(TextureRes(GetCtx(), name)); break;
+      case eGL_BUFFER_OBJECT_EXT: extvariant = true;
+      case eGL_BUFFER: liveid = GetResourceManager()->GetID(BufferRes(GetCtx(), name)); break;
+      case eGL_PROGRAM_OBJECT_EXT: extvariant = true;
+      case eGL_PROGRAM: liveid = GetResourceManager()->GetID(ProgramRes(GetCtx(), name)); break;
+      case eGL_PROGRAM_PIPELINE_OBJECT_EXT: extvariant = true;
+      case eGL_PROGRAM_PIPELINE:
+        liveid = GetResourceManager()->GetID(ProgramPipeRes(GetCtx(), name));
+        break;
+      case eGL_VERTEX_ARRAY_OBJECT_EXT: extvariant = true;
+      case eGL_VERTEX_ARRAY:
+        liveid = GetResourceManager()->GetID(VertexArrayRes(GetCtx(), name));
+        break;
+      case eGL_SHADER_OBJECT_EXT: extvariant = true;
+      case eGL_SHADER: liveid = GetResourceManager()->GetID(ShaderRes(GetCtx(), name)); break;
+      case eGL_QUERY_OBJECT_EXT: extvariant = true;
+      case eGL_QUERY: liveid = GetResourceManager()->GetID(QueryRes(GetCtx(), name)); break;
+      case eGL_TRANSFORM_FEEDBACK:
+        liveid = GetResourceManager()->GetID(FeedbackRes(GetCtx(), name));
+        break;
+      case eGL_SAMPLER: liveid = GetResourceManager()->GetID(SamplerRes(GetCtx(), name)); break;
+      case eGL_RENDERBUFFER:
+        liveid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), name));
+        break;
+      case eGL_FRAMEBUFFER:
+        liveid = GetResourceManager()->GetID(FramebufferRes(GetCtx(), name));
+        break;
+      default: RDCERR("Unhandled namespace in glObjectLabel");
+    }
+  }
+
+  SERIALISE_ELEMENT(GLenum, Identifier, identifier);
+  SERIALISE_ELEMENT(ResourceId, id, liveid);
+  SERIALISE_ELEMENT(uint32_t, Length, length);
+  SERIALISE_ELEMENT(bool, HasLabel, label != NULL);
+
+  m_pSerialiser->SerialiseString("label", Label);
+
+  if(m_State == READING && GetResourceManager()->HasLiveResource(id))
+  {
+    GLResource res = GetResourceManager()->GetLiveResource(id);
+
+    if(extvariant && m_Real.glLabelObjectEXT)
+      m_Real.glLabelObjectEXT(Identifier, res.name, Length, HasLabel ? Label.c_str() : NULL);
+    else
+      m_Real.glObjectLabel(Identifier, res.name, Length, HasLabel ? Label.c_str() : NULL);
+  }
+
+  return true;
+}
+
 //void WrappedGLES::glLabelObjectEXT(GLenum identifier, GLuint name, GLsizei length,
 //                                     const GLchar *label)
 //{
@@ -109,19 +109,19 @@
 //  }
 //}
 //
-//void WrappedGLES::glObjectLabel(GLenum identifier, GLuint name, GLsizei length, const GLchar *label)
-//{
-//  m_Real.glObjectLabel(identifier, name, length, label);
-//
-//  if(m_State >= WRITING)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(OBJECT_LABEL);
-//    Serialise_glObjectLabel(identifier, name, length, label);
-//
-//    m_DeviceRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+void WrappedGLES::glObjectLabel(GLenum identifier, GLuint name, GLsizei length, const GLchar *label)
+{
+  m_Real.glObjectLabel(identifier, name, length, label);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(OBJECT_LABEL);
+    Serialise_glObjectLabel(identifier, name, length, label);
+
+    m_DeviceRecord->AddChunk(scope.Get());
+  }
+}
+
 //void WrappedGLES::glObjectPtrLabel(const void *ptr, GLsizei length, const GLchar *label)
 //{
 //  m_Real.glObjectPtrLabel(ptr, length, label);
