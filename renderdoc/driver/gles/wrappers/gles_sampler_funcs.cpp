@@ -257,8 +257,8 @@ void WrappedGLES::glSamplerParameteri(GLuint sampler, GLenum pname, GLint param)
   m_Real.glSamplerParameteri(sampler, pname, param);
 
   // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
-//  if(param == eGL_CLAMP) // TODO pantos
-//    param = eGL_CLAMP_TO_EDGE;
+  if(param == eGL_CLAMP)
+    param = eGL_CLAMP_TO_EDGE;
 
   if(m_State >= WRITING)
   {

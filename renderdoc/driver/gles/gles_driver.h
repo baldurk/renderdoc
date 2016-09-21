@@ -599,7 +599,7 @@ public:
     MAT4x3dv,
   };
 
-  
+
   // utility handling functions for glDraw*Elements* to handle pointers to indices being
   // passed directly, with no index buffer bound. It's not allowed in core profile but
   // it's fairly common and not too hard to support

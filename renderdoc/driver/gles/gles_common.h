@@ -123,6 +123,9 @@ struct GLESWindowingData
   ret func;                                      \
   bool CONCAT(Serialise_, func);
 
+// TODO pantos copied from gl_common.h
+const GLenum eGL_CLAMP = (GLenum)0x2900;
+
 // convenience, the script to pick these out doesn't find them since they are #define'd
 // to just straight integers not hex codes
 const GLenum eGL_ZERO = (GLenum)0;
