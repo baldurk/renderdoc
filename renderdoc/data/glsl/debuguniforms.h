@@ -134,6 +134,8 @@ INST_NAME(general);
 #define MESH_TRIANGLE_LIST 1
 #define MESH_TRIANGLE_STRIP 2
 #define MESH_TRIANGLE_FAN 3
+#define MESH_TRIANGLE_LIST_ADJ 4
+#define MESH_TRIANGLE_STRIP_ADJ 5
 BINDING(0) uniform MeshPickUBOData
 {
   vec3 rayPos;

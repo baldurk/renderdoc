@@ -1076,32 +1076,38 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
   cdata->rayDir = rayDir;
   cdata->use_indices = cfg.position.idxByteWidth ? 1U : 0U;
   cdata->numVerts = cfg.position.numVerts;
-
-  bool isTriangleMesh = false;
+  bool isTriangleMesh = true;
   switch(cfg.position.topo)
   {
     case eTopology_TriangleList:
     {
       cdata->meshMode = MESH_TRIANGLE_LIST;
-      isTriangleMesh = true;
       break;
     };
     case eTopology_TriangleStrip:
     {
       cdata->meshMode = MESH_TRIANGLE_STRIP;
-      isTriangleMesh = true;
       break;
     };
     case eTopology_TriangleFan:
     {
       cdata->meshMode = MESH_TRIANGLE_FAN;
-      isTriangleMesh = true;
       break;
     };
-    // TODO: TriangleList_Adj, TriangleStrip_Adj
-    default:    // points, lines, patchlists
+    case eTopology_TriangleList_Adj:
+    {
+      cdata->meshMode = MESH_TRIANGLE_LIST_ADJ;
+      break;
+    };
+    case eTopology_TriangleStrip_Adj:
+    {
+      cdata->meshMode = MESH_TRIANGLE_STRIP_ADJ;
+      break;
+    };
+    default:    // points, lines, patchlists, unknown
     {
       cdata->meshMode = MESH_OTHER;
+      isTriangleMesh = false;
     };
   }
 
