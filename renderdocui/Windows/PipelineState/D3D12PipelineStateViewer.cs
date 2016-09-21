@@ -300,12 +300,12 @@ namespace renderdocui.Windows.PipelineState
             D3D12PipelineState state = m_Core.CurD3D12PipelineState;
             ShaderReflection shaderDetails = stage.ShaderDetails;
 
-            if (!stage.Present)
+            if (stage.Shader == ResourceId.Null)
                 shader.Text = "Unbound";
             else if (state.customName)
                 shader.Text = state.PipelineName + " - " + m_Core.CurPipelineState.Abbrev(stage.stage);
             else
-                shader.Text = stage.stage.Str(GraphicsAPI.D3D12);
+                shader.Text = state.PipelineName + " - " + stage.stage.Str(GraphicsAPI.D3D12) + " Shader";
 
             if (shaderDetails != null && shaderDetails.DebugInfo.entryFunc.Length > 0 && shaderDetails.DebugInfo.files.Length > 0)
             {
@@ -439,7 +439,7 @@ namespace renderdocui.Windows.PipelineState
 
                     bool iaUsed = false;
 
-                    if (state.m_VS.Present)
+                    if (state.m_VS.Shader != ResourceId.Null)
                     {
                         for (int ia = 0; ia < state.m_VS.ShaderDetails.InputSig.Length; ia++)
                         {
@@ -2469,7 +2469,7 @@ namespace renderdocui.Windows.PipelineState
 
                 string shadername = "Unknown";
 
-                if (!sh.Present)
+                if (sh.Shader == ResourceId.Null)
                     shadername = "Unbound";
                 else if (state.customName)
                     shadername = state.PipelineName + " - " + m_Core.CurPipelineState.Abbrev(sh.stage);

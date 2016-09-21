@@ -1643,12 +1643,9 @@ void ReplayRenderer::FetchPipelineState()
         &m_D3D12PipelineState.m_GS, &m_D3D12PipelineState.m_PS, &m_D3D12PipelineState.m_CS,
     };
 
-    const char *stageNames[] = {"VS", "HS", "DS", "GS", "PS", "CS"};
-
     for(int i = 0; i < 6; i++)
-      if(stages[i]->Present)
-        stages[i]->ShaderDetails =
-            m_pDevice->GetShader(m_pDevice->GetLiveID(m_D3D12PipelineState.pipeline), stageNames[i]);
+      if(stages[i]->Shader != ResourceId())
+        stages[i]->ShaderDetails = m_pDevice->GetShader(m_pDevice->GetLiveID(stages[i]->Shader), "");
   }
 
   {

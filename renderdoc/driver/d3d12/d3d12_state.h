@@ -157,6 +157,17 @@ struct D3D12RenderState
 
   vector<ResourceId> heaps;
 
+  struct StreamOut
+  {
+    ResourceId buf;
+    UINT64 offs;
+    UINT64 size;
+
+    ResourceId countbuf;
+    UINT64 countoffs;
+  };
+  vector<StreamOut> streamouts;
+
   struct Pipeline
   {
     ResourceId rootsig;

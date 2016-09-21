@@ -31,6 +31,8 @@
 
 class WrappedID3D12Device;
 
+struct PortableHandle;
+
 class D3D12Replay : public IReplayDriver
 {
 public:
@@ -162,6 +164,8 @@ public:
 
 private:
   void MakePipelineState();
+
+  void FillResourceView(D3D12PipelineState::ResourceView &view, const PortableHandle &resHandle);
 
   bool m_Proxy;
 

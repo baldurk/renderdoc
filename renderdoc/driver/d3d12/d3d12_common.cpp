@@ -28,6 +28,10 @@
 #include "d3d12_manager.h"
 #include "d3d12_resources.h"
 
+void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
+                          ShaderBindpointMapping *mapping)
+{
+}
 enum D3D12ResourceBarrierSubresource
 {
   D3D12AllSubresources = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES

@@ -33,7 +33,8 @@
 #include "driver/shaders/dxbc/dxbc_compile.h"
 #include "serialise/serialiser.h"
 
-ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc);
+void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
+                          ShaderBindpointMapping *mapping);
 
 // similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the
 // debugbreak.

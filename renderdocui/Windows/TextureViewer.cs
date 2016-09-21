@@ -1476,6 +1476,9 @@ namespace renderdocui.Windows
                 ShaderReflection details = Following.GetReflection(m_Core, stage);
                 ShaderBindpointMapping mapping = Following.GetMapping(m_Core, stage);
 
+                if (mapping == null)
+                    continue;
+
                 InitStageResourcePreviews(stage,
                     details != null ? details.ReadWriteResources : new ShaderResource[0],
                     mapping.ReadWriteResources,

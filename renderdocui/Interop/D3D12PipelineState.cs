@@ -95,7 +95,6 @@ namespace renderdoc
             }
 
             public ResourceId Shader;
-            public bool Present;
             private IntPtr _ptr_ShaderDetails;
             [CustomMarshalAs(CustomUnmanagedType.Skip)]
             public ShaderReflection ShaderDetails;
@@ -122,7 +121,7 @@ namespace renderdoc
             public D3DBufferViewFlags BufferFlags;
             public UInt32 BufferStructCount;
             public UInt32 ElementSize;
-            public UInt32 FirstElement;
+            public UInt64 FirstElement;
             public UInt32 NumElements;
 
             public ResourceId CounterResource;

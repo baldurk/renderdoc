@@ -75,8 +75,8 @@ struct D3D12PipelineState
 
   struct ShaderStage
   {
-    ShaderStage() : Present(false), ShaderDetails(NULL), stage(eShaderStage_Vertex) {}
-    bool32 Present;
+    ShaderStage() : ShaderDetails(NULL), stage(eShaderStage_Vertex) {}
+    ResourceId Shader;
     ShaderReflection *ShaderDetails;
     ShaderBindpointMapping BindpointMapping;
 
