@@ -309,7 +309,27 @@ uintptr_t FindRemoteDLL(DWORD pid, wstring libName)
 
   if(ret == 0)
   {
-    RDCERR("Couldn't find module '%ls' among %d modules", libName.c_str(), numModules);
+    HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+
+    DWORD exitCode = 0;
+
+    if(h)
+      GetExitCodeProcess(h, &exitCode);
+
+    if(h == NULL || exitCode != STILL_ACTIVE)
+    {
+      RDCERR(
+          "Error injecting into remote process with PID %u which is no longer available.\n"
+          "Possibly the process has crashed during early startup?",
+          pid);
+    }
+    else
+    {
+      RDCERR("Couldn't find module '%ls' among %d modules", libName.c_str(), numModules);
+    }
+
+    if(h)
+      CloseHandle(h);
   }
 
   CloseHandle(hModuleSnap);
