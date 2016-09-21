@@ -3568,18 +3568,17 @@ uint32_t CalculateMinimumByteSize(const rdctype::array<ShaderConstant> &variable
 
   const ShaderConstant &last = variables[variables.count - 1];
 
+  // find its offset
+  uint32_t byteOffset = last.reg.vec * sizeof(Vec4f) + last.reg.comp * sizeof(float);
+
+  // arrays are easy
+  if(last.type.descriptor.arrayStride > 0)
+    return byteOffset + last.type.descriptor.arrayStride * last.type.descriptor.elements;
+
   if(last.type.members.count == 0)
   {
     // this is the last basic member
-
-    // find its offset
-    uint32_t byteOffset = last.reg.vec * sizeof(Vec4f) + last.reg.comp * sizeof(float);
-
     // now calculate its size and return offset + size
-
-    // arrays are easy
-    if(last.type.descriptor.arrayStride > 0)
-      return byteOffset + last.type.descriptor.arrayStride * last.type.descriptor.elements;
 
     RDCASSERT(last.type.descriptor.elements <= 1);
 
@@ -3614,7 +3613,7 @@ uint32_t CalculateMinimumByteSize(const rdctype::array<ShaderConstant> &variable
   else
   {
     // if this is a struct type, recurse
-    return CalculateMinimumByteSize(last.type.members);
+    return byteOffset + CalculateMinimumByteSize(last.type.members);
   }
 }
 
