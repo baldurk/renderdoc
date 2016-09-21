@@ -27,59 +27,59 @@
 #include "common/common.h"
 #include "serialise/string_utils.h"
 
-//bool WrappedGLES::Serialise_glGenFramebuffers(GLsizei n, GLuint *framebuffers)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id,
-//                    GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)));
-//
-//  if(m_State == READING)
-//  {
-//    GLuint real = 0;
-//    m_Real.glGenFramebuffers(1, &real);
-//    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, real);
-//    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
-//
-//    GLResource res = FramebufferRes(GetCtx(), real);
-//
-//    ResourceId live = m_ResourceManager->RegisterResource(res);
-//    GetResourceManager()->AddLiveResource(id, res);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glGenFramebuffers(GLsizei n, GLuint *framebuffers)
-//{
-//  m_Real.glGenFramebuffers(n, framebuffers);
-//
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = FramebufferRes(GetCtx(), framebuffers[i]);
-//    ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//    if(m_State >= WRITING)
-//    {
-//      Chunk *chunk = NULL;
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(GEN_FRAMEBUFFERS);
-//        Serialise_glGenFramebuffers(1, framebuffers + i);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//      RDCASSERT(record);
-//
-//      record->AddChunk(chunk);
-//    }
-//    else
-//    {
-//      GetResourceManager()->AddLiveResource(id, res);
-//    }
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glGenFramebuffers(GLsizei n, GLuint *framebuffers)
+{
+  SERIALISE_ELEMENT(ResourceId, id,
+                    GetResourceManager()->GetID(FramebufferRes(GetCtx(), *framebuffers)));
+
+  if(m_State == READING)
+  {
+    GLuint real = 0;
+    m_Real.glGenFramebuffers(1, &real);
+    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, real);
+    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
+
+    GLResource res = FramebufferRes(GetCtx(), real);
+
+    ResourceId live = m_ResourceManager->RegisterResource(res);
+    GetResourceManager()->AddLiveResource(id, res);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glGenFramebuffers(GLsizei n, GLuint *framebuffers)
+{
+  m_Real.glGenFramebuffers(n, framebuffers);
+
+  for(GLsizei i = 0; i < n; i++)
+  {
+    GLResource res = FramebufferRes(GetCtx(), framebuffers[i]);
+    ResourceId id = GetResourceManager()->RegisterResource(res);
+
+    if(m_State >= WRITING)
+    {
+      Chunk *chunk = NULL;
+
+      {
+        SCOPED_SERIALISE_CONTEXT(GEN_FRAMEBUFFERS);
+        Serialise_glGenFramebuffers(1, framebuffers + i);
+
+        chunk = scope.Get();
+      }
+
+      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
+      RDCASSERT(record);
+
+      record->AddChunk(chunk);
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(id, res);
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glCreateFramebuffers(GLsizei n, GLuint *framebuffers)
 //{
 //  SERIALISE_ELEMENT(ResourceId, id,
@@ -505,69 +505,77 @@
 //  }
 //}
 //
-//void WrappedGLES::glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget,
-//                                           GLuint texture, GLint level)
-//{
-//  m_Real.glFramebufferTexture2D(target, attachment, textarget, texture, level);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = m_DeviceRecord;
-//
-//    if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
-//    {
-//      if(GetCtxData().m_DrawFramebufferRecord)
-//        record = GetCtxData().m_DrawFramebufferRecord;
-//    }
-//    else
-//    {
-//      if(GetCtxData().m_ReadFramebufferRecord)
-//        record = GetCtxData().m_ReadFramebufferRecord;
-//    }
-//
-//    if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
-//    {
-//      ResourceRecord *texrecord =
-//          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-//      if(m_State == WRITING_IDLE)
-//        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-//      else
-//        m_MissingTracks.insert(texrecord->GetResourceID());
-//    }
-//
-//    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-//       m_State != WRITING_CAPFRAME)
-//      return;
-//
-//    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX2D);
-//    Serialise_glNamedFramebufferTexture2DEXT(record->Resource.name, attachment, textarget, texture,
-//                                             level);
-//
-//    if(m_State == WRITING_IDLE)
-//    {
-//      record->AddChunk(scope.Get());
-//
-//      if(record != m_DeviceRecord)
-//      {
-//        record->UpdateCount++;
-//
-//        if(record->UpdateCount > 10)
-//        {
-//          m_HighTrafficResources.insert(record->GetResourceID());
-//          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//        }
-//      }
-//    }
-//    else
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
-//      GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
-//                                                        eFrameRef_Read);
-//    }
-//  }
-//}
-//
+
+bool WrappedGLES::Serialise_glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget,
+                                           GLuint texture, GLint level)
+{
+    // TODO PEPE
+    return true;
+}
+
+void WrappedGLES::glFramebufferTexture2D(GLenum target, GLenum attachment, GLenum textarget,
+                                           GLuint texture, GLint level)
+{
+  m_Real.glFramebufferTexture2D(target, attachment, textarget, texture, level);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = m_DeviceRecord;
+
+    if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
+    {
+      if(GetCtxData().m_DrawFramebufferRecord)
+        record = GetCtxData().m_DrawFramebufferRecord;
+    }
+    else
+    {
+      if(GetCtxData().m_ReadFramebufferRecord)
+        record = GetCtxData().m_ReadFramebufferRecord;
+    }
+
+    if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
+    {
+      ResourceRecord *texrecord =
+          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+      if(m_State == WRITING_IDLE)
+        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
+      else
+        m_MissingTracks.insert(texrecord->GetResourceID());
+    }
+
+    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+       m_State != WRITING_CAPFRAME)
+      return;
+
+    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX2D);
+    Serialise_glFramebufferTexture2D(target, attachment, textarget, texture,
+                                             level);
+
+    if(m_State == WRITING_IDLE)
+    {
+      record->AddChunk(scope.Get());
+
+      if(record != m_DeviceRecord)
+      {
+        record->UpdateCount++;
+
+        if(record->UpdateCount > 10)
+        {
+          m_HighTrafficResources.insert(record->GetResourceID());
+          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+        }
+      }
+    }
+    else
+    {
+      m_ContextRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+      GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
+                                                        eFrameRef_Read);
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glNamedFramebufferTexture3DEXT(GLuint framebuffer, GLenum attachment,
 //                                                             GLenum textarget, GLuint texture,
 //                                                             GLint level, GLint zoffset)
@@ -655,68 +663,76 @@
 //  }
 //}
 //
-//void WrappedGLES::glFramebufferTexture3D(GLenum target, GLenum attachment, GLenum textarget,
-//                                           GLuint texture, GLint level, GLint zoffset)
-//{
-//  m_Real.glFramebufferTexture3D(target, attachment, textarget, texture, level, zoffset);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = m_DeviceRecord;
-//
-//    if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
-//    {
-//      if(GetCtxData().m_DrawFramebufferRecord)
-//        record = GetCtxData().m_DrawFramebufferRecord;
-//    }
-//    else
-//    {
-//      if(GetCtxData().m_ReadFramebufferRecord)
-//        record = GetCtxData().m_ReadFramebufferRecord;
-//    }
-//
-//    if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
-//    {
-//      ResourceRecord *texrecord =
-//          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-//      if(m_State == WRITING_IDLE)
-//        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-//      else
-//        m_MissingTracks.insert(texrecord->GetResourceID());
-//    }
-//
-//    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-//       m_State != WRITING_CAPFRAME)
-//      return;
-//
-//    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX3D);
-//    Serialise_glNamedFramebufferTexture3DEXT(record->Resource.name, attachment, textarget, texture,
-//                                             level, zoffset);
-//
-//    if(m_State == WRITING_IDLE)
-//    {
-//      record->AddChunk(scope.Get());
-//
-//      if(record != m_DeviceRecord)
-//      {
-//        record->UpdateCount++;
-//
-//        if(record->UpdateCount > 10)
-//        {
-//          m_HighTrafficResources.insert(record->GetResourceID());
-//          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//        }
-//      }
-//    }
-//    else
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
-//      GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
-//                                                        eFrameRef_Read);
-//    }
-//  }
-//}
+bool WrappedGLES::Serialise_glFramebufferTexture3DOES(GLenum target, GLenum attachment, GLenum textarget,
+                                           GLuint texture, GLint level, GLint zoffset)
+{
+    // TODO PEPE
+    return true;
+}
+
+
+void WrappedGLES::glFramebufferTexture3DOES(GLenum target, GLenum attachment, GLenum textarget,
+                                           GLuint texture, GLint level, GLint zoffset)
+{
+  m_Real.glFramebufferTexture3DOES(target, attachment, textarget, texture, level, zoffset);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = m_DeviceRecord;
+
+    if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
+    {
+      if(GetCtxData().m_DrawFramebufferRecord)
+        record = GetCtxData().m_DrawFramebufferRecord;
+    }
+    else
+    {
+      if(GetCtxData().m_ReadFramebufferRecord)
+        record = GetCtxData().m_ReadFramebufferRecord;
+    }
+
+    if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
+    {
+      ResourceRecord *texrecord =
+          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+      if(m_State == WRITING_IDLE)
+        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
+      else
+        m_MissingTracks.insert(texrecord->GetResourceID());
+    }
+
+    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+       m_State != WRITING_CAPFRAME)
+      return;
+
+    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX3D);
+    Serialise_glFramebufferTexture3DOES(target, attachment, textarget, texture,
+                                             level, zoffset);
+
+    if(m_State == WRITING_IDLE)
+    {
+      record->AddChunk(scope.Get());
+
+      if(record != m_DeviceRecord)
+      {
+        record->UpdateCount++;
+
+        if(record->UpdateCount > 10)
+        {
+          m_HighTrafficResources.insert(record->GetResourceID());
+          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+        }
+      }
+    }
+    else
+    {
+      m_ContextRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+      GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
+                                                        eFrameRef_Read);
+    }
+  }
+}
 //bool WrappedGLES::Serialise_glNamedFramebufferRenderbufferEXT(GLuint framebuffer, GLenum attachment,
 //                                                                GLenum renderbuffertarget,
 //                                                                GLuint renderbuffer)
@@ -929,69 +945,76 @@
 //  }
 //}
 //
-//void WrappedGLES::glFramebufferTextureLayer(GLenum target, GLenum attachment, GLuint texture,
-//                                              GLint level, GLint layer)
-//{
-//  m_Real.glFramebufferTextureLayer(target, attachment, texture, level, layer);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = m_DeviceRecord;
-//
-//    if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
-//    {
-//      if(GetCtxData().m_DrawFramebufferRecord)
-//        record = GetCtxData().m_DrawFramebufferRecord;
-//    }
-//    else
-//    {
-//      if(GetCtxData().m_ReadFramebufferRecord)
-//        record = GetCtxData().m_ReadFramebufferRecord;
-//    }
-//
-//    if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
-//    {
-//      ResourceRecord *texrecord =
-//          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-//      if(m_State == WRITING_IDLE)
-//        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-//      else
-//        m_MissingTracks.insert(texrecord->GetResourceID());
-//    }
-//
-//    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-//       m_State != WRITING_CAPFRAME)
-//      return;
-//
-//    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEXLAYER);
-//    Serialise_glNamedFramebufferTextureLayerEXT(record->Resource.name, attachment, texture, level,
-//                                                layer);
-//
-//    if(m_State == WRITING_IDLE)
-//    {
-//      record->AddChunk(scope.Get());
-//
-//      if(record != m_DeviceRecord)
-//      {
-//        record->UpdateCount++;
-//
-//        if(record->UpdateCount > 10)
-//        {
-//          m_HighTrafficResources.insert(record->GetResourceID());
-//          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//        }
-//      }
-//    }
-//    else
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
-//      GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
-//                                                        eFrameRef_Read);
-//    }
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glFramebufferTextureLayer(GLenum target, GLenum attachment, GLuint texture,
+                                              GLint level, GLint layer)
+{
+    // TODO PEPE
+    return true;
+}
+
+void WrappedGLES::glFramebufferTextureLayer(GLenum target, GLenum attachment, GLuint texture,
+                                              GLint level, GLint layer)
+{
+  m_Real.glFramebufferTextureLayer(target, attachment, texture, level, layer);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = m_DeviceRecord;
+
+    if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
+    {
+      if(GetCtxData().m_DrawFramebufferRecord)
+        record = GetCtxData().m_DrawFramebufferRecord;
+    }
+    else
+    {
+      if(GetCtxData().m_ReadFramebufferRecord)
+        record = GetCtxData().m_ReadFramebufferRecord;
+    }
+
+    if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
+    {
+      ResourceRecord *texrecord =
+          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+      if(m_State == WRITING_IDLE)
+        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
+      else
+        m_MissingTracks.insert(texrecord->GetResourceID());
+    }
+
+    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+       m_State != WRITING_CAPFRAME)
+      return;
+
+    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEXLAYER);
+    Serialise_glFramebufferTextureLayer(target, attachment, texture, level,
+                                                layer);
+
+    if(m_State == WRITING_IDLE)
+    {
+      record->AddChunk(scope.Get());
+
+      if(record != m_DeviceRecord)
+      {
+        record->UpdateCount++;
+
+        if(record->UpdateCount > 10)
+        {
+          m_HighTrafficResources.insert(record->GetResourceID());
+          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+        }
+      }
+    }
+    else
+    {
+      m_ContextRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+      GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
+                                                        eFrameRef_Read);
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glNamedFramebufferParameteriEXT(GLuint framebuffer, GLenum pname,
 //                                                              GLint param)
 //{
@@ -1111,78 +1134,84 @@
 //  }
 //}
 //
-//void WrappedGLES::glReadBuffer(GLenum mode)
-//{
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *readrecord = GetCtxData().m_ReadFramebufferRecord;
-//    if(m_State == WRITING_CAPFRAME)
-//    {
-//      SCOPED_SERIALISE_CONTEXT(READ_BUFFER);
-//      Serialise_glFramebufferReadBufferEXT(readrecord ? readrecord->Resource.name : 0, mode);
-//
-//      m_ContextRecord->AddChunk(scope.Get());
-//      if(readrecord)
-//        GetResourceManager()->MarkFBOReferenced(readrecord->Resource, eFrameRef_ReadBeforeWrite);
-//    }
-//    else
-//    {
-//      if(readrecord)
-//        GetResourceManager()->MarkDirtyResource(readrecord->GetResourceID());
-//    }
-//  }
-//
-//  m_Real.glReadBuffer(mode);
-//}
-//
-//bool WrappedGLES::Serialise_glBindFramebuffer(GLenum target, GLuint framebuffer)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(ResourceId, Id,
-//                    (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer))
-//                                 : ResourceId()));
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(Id == ResourceId())
-//    {
-//      m_Real.glBindFramebuffer(Target, m_FakeBB_FBO);
-//    }
-//    else
-//    {
-//      GLResource res = GetResourceManager()->GetLiveResource(Id);
-//      m_Real.glBindFramebuffer(Target, res.name);
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBindFramebuffer(GLenum target, GLuint framebuffer)
-//{
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BIND_FRAMEBUFFER);
-//    Serialise_glBindFramebuffer(target, framebuffer);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
-//                                            eFrameRef_ReadBeforeWrite);
-//  }
-//
-//  if(framebuffer == 0 && m_State < WRITING)
-//    framebuffer = m_FakeBB_FBO;
-//
-//  if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
-//    GetCtxData().m_DrawFramebufferRecord =
-//        GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
-//  else
-//    GetCtxData().m_ReadFramebufferRecord =
-//        GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
-//
-//  m_Real.glBindFramebuffer(target, framebuffer);
-//}
-//
+bool WrappedGLES::Serialise_glReadBuffer(GLenum mode)
+{
+    // TODO PEPE
+    return true;
+}
+
+void WrappedGLES::glReadBuffer(GLenum mode)
+{
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *readrecord = GetCtxData().m_ReadFramebufferRecord;
+    if(m_State == WRITING_CAPFRAME)
+    {
+      SCOPED_SERIALISE_CONTEXT(READ_BUFFER);
+      Serialise_glReadBuffer(mode);
+
+      m_ContextRecord->AddChunk(scope.Get());
+      if(readrecord)
+        GetResourceManager()->MarkFBOReferenced(readrecord->Resource, eFrameRef_ReadBeforeWrite);
+    }
+    else
+    {
+      if(readrecord)
+        GetResourceManager()->MarkDirtyResource(readrecord->GetResourceID());
+    }
+  }
+
+  m_Real.glReadBuffer(mode);
+}
+
+bool WrappedGLES::Serialise_glBindFramebuffer(GLenum target, GLuint framebuffer)
+{
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(ResourceId, Id,
+                    (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer))
+                                 : ResourceId()));
+
+  if(m_State <= EXECUTING)
+  {
+    if(Id == ResourceId())
+    {
+      m_Real.glBindFramebuffer(Target, m_FakeBB_FBO);
+    }
+    else
+    {
+      GLResource res = GetResourceManager()->GetLiveResource(Id);
+      m_Real.glBindFramebuffer(Target, res.name);
+    }
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBindFramebuffer(GLenum target, GLuint framebuffer)
+{
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BIND_FRAMEBUFFER);
+    Serialise_glBindFramebuffer(target, framebuffer);
+
+    m_ContextRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
+                                            eFrameRef_ReadBeforeWrite);
+  }
+
+  if(framebuffer == 0 && m_State < WRITING)
+    framebuffer = m_FakeBB_FBO;
+
+  if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
+    GetCtxData().m_DrawFramebufferRecord =
+        GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+  else
+    GetCtxData().m_ReadFramebufferRecord =
+        GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+
+  m_Real.glBindFramebuffer(target, framebuffer);
+}
+
 //bool WrappedGLES::Serialise_glFramebufferDrawBufferEXT(GLuint framebuffer, GLenum buf)
 //{
 //  SERIALISE_ELEMENT(ResourceId, Id,
@@ -1584,52 +1613,60 @@
 //                                dstY0, dstX1, dstY1, mask, filter);
 //}
 //
-//void WrappedGLES::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
-//                                      GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
-//                                      GLbitfield mask, GLenum filter)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    GLuint readFramebuffer = 0, drawFramebuffer = 0;
-//
-//    if(GetCtxData().m_ReadFramebufferRecord)
-//      readFramebuffer = GetCtxData().m_ReadFramebufferRecord->Resource.name;
-//    if(GetCtxData().m_DrawFramebufferRecord)
-//      drawFramebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
-//
-//    SCOPED_SERIALISE_CONTEXT(BLIT_FRAMEBUFFER);
-//    Serialise_glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1,
-//                                     dstX0, dstY0, dstX1, dstY1, mask, filter);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), readFramebuffer),
-//                                            eFrameRef_ReadBeforeWrite);
-//    GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), drawFramebuffer),
-//                                            eFrameRef_ReadBeforeWrite);
-//  }
-//
-//  m_Real.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
-//}
-//
-//void WrappedGLES::glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
-//{
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = FramebufferRes(GetCtx(), framebuffers[i]);
-//    if(GetResourceManager()->HasCurrentResource(res))
-//    {
-//      GetResourceManager()->MarkCleanResource(res);
-//      if(GetResourceManager()->HasResourceRecord(res))
-//        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
-//      GetResourceManager()->UnregisterResource(res);
-//    }
-//  }
-//
-//  m_Real.glDeleteFramebuffers(n, framebuffers);
-//}
-//
+bool WrappedGLES::Serialise_glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
+                                      GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+                                      GLbitfield mask, GLenum filter)
+{
+    // TODO PEPE
+    return true;
+}
+
+void WrappedGLES::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
+                                      GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+                                      GLbitfield mask, GLenum filter)
+{
+  CoherentMapImplicitBarrier();
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    GLuint readFramebuffer = 0, drawFramebuffer = 0;
+
+    if(GetCtxData().m_ReadFramebufferRecord)
+      readFramebuffer = GetCtxData().m_ReadFramebufferRecord->Resource.name;
+    if(GetCtxData().m_DrawFramebufferRecord)
+      drawFramebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
+
+    SCOPED_SERIALISE_CONTEXT(BLIT_FRAMEBUFFER);
+    Serialise_glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1,
+                                dstX0, dstY0, dstX1, dstY1, mask, filter);
+
+    m_ContextRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), readFramebuffer),
+                                            eFrameRef_ReadBeforeWrite);
+    GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), drawFramebuffer),
+                                            eFrameRef_ReadBeforeWrite);
+  }
+
+  m_Real.glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1, dstX0, dstY0, dstX1, dstY1, mask, filter);
+}
+
+void WrappedGLES::glDeleteFramebuffers(GLsizei n, const GLuint *framebuffers)
+{
+  for(GLsizei i = 0; i < n; i++)
+  {
+    GLResource res = FramebufferRes(GetCtx(), framebuffers[i]);
+    if(GetResourceManager()->HasCurrentResource(res))
+    {
+      GetResourceManager()->MarkCleanResource(res);
+      if(GetResourceManager()->HasResourceRecord(res))
+        GetResourceManager()->GetResourceRecord(res)->Delete(GetResourceManager());
+      GetResourceManager()->UnregisterResource(res);
+    }
+  }
+
+  m_Real.glDeleteFramebuffers(n, framebuffers);
+}
+
 //bool WrappedGLES::Serialise_glGenRenderbuffers(GLsizei n, GLuint *renderbuffers)
 //{
 //  SERIALISE_ELEMENT(ResourceId, id,

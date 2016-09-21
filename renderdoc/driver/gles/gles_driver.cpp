@@ -1263,6 +1263,7 @@ void WrappedGLES::RegisterContext(GLESWindowingData winData, void *shareContext,
 void WrappedGLES::ActivateContext(GLESWindowingData winData)
 {
 
+    // PEPE
     {
         const GLHookSet &gl = m_Real;
         gl.glDebugMessageCallback(&DebugSnoopStatic, this);

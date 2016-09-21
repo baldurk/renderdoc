@@ -26,115 +26,115 @@
 #include "../gles_driver.h"
 #include "common/common.h"
 #include "serialise/string_utils.h"
-//
-//GLenum WrappedGLES::glGetError()
-//{
-//  return m_Real.glGetError();
-//}
-//
-//GLenum WrappedGLES::glGetGraphicsResetStatus()
-//{
-//  return m_Real.glGetGraphicsResetStatus();
-//}
-//
-//GLuint WrappedGLES::glGetDebugMessageLog(GLuint count, GLsizei bufSize, GLenum *sources,
-//                                           GLenum *types, GLuint *ids, GLenum *severities,
-//                                           GLsizei *lengths, GLchar *messageLog)
-//{
-//  return m_Real.glGetDebugMessageLog(count, bufSize, sources, types, ids, severities, lengths,
-//                                     messageLog);
-//}
-//
-//void WrappedGLES::glFlush()
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glFlush();
-//}
-//
-//void WrappedGLES::glFinish()
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glFinish();
-//}
-//
-//GLboolean WrappedGLES::glIsEnabled(GLenum cap)
-//{
-//  if(cap == eGL_DEBUG_TOOL_EXT)
-//    return true;
-//
-//  return m_Real.glIsEnabled(cap);
-//}
-//
-//GLboolean WrappedGLES::glIsTexture(GLuint texture)
-//{
-//  return m_Real.glIsTexture(texture);
-//}
-//
-//GLboolean WrappedGLES::glIsEnabledi(GLenum target, GLuint index)
-//{
-//  if(target == eGL_DEBUG_TOOL_EXT)
-//    return true;
-//
-//  return m_Real.glIsEnabledi(target, index);
-//}
-//
-//GLboolean WrappedGLES::glIsBuffer(GLuint buffer)
-//{
-//  return m_Real.glIsBuffer(buffer);
-//}
-//
-//GLboolean WrappedGLES::glIsFramebuffer(GLuint framebuffer)
-//{
-//  return m_Real.glIsFramebuffer(framebuffer);
-//}
-//
-//GLboolean WrappedGLES::glIsProgram(GLuint program)
-//{
-//  return m_Real.glIsProgram(program);
-//}
-//
-//GLboolean WrappedGLES::glIsProgramPipeline(GLuint pipeline)
-//{
-//  return m_Real.glIsProgramPipeline(pipeline);
-//}
-//
-//GLboolean WrappedGLES::glIsQuery(GLuint id)
-//{
-//  return m_Real.glIsQuery(id);
-//}
-//
-//GLboolean WrappedGLES::glIsRenderbuffer(GLuint renderbuffer)
-//{
-//  return m_Real.glIsRenderbuffer(renderbuffer);
-//}
-//
-//GLboolean WrappedGLES::glIsSampler(GLuint sampler)
-//{
-//  return m_Real.glIsSampler(sampler);
-//}
-//
-//GLboolean WrappedGLES::glIsShader(GLuint shader)
-//{
-//  return m_Real.glIsShader(shader);
-//}
-//
-//GLboolean WrappedGLES::glIsSync(GLsync sync)
-//{
-//  return m_Real.glIsSync(sync);
-//}
-//
-//GLboolean WrappedGLES::glIsTransformFeedback(GLuint id)
-//{
-//  return m_Real.glIsTransformFeedback(id);
-//}
-//
-//GLboolean WrappedGLES::glIsVertexArray(GLuint array)
-//{
-//  return m_Real.glIsVertexArray(array);
-//}
-//
+
+GLenum WrappedGLES::glGetError()
+{
+  return m_Real.glGetError();
+}
+
+GLenum WrappedGLES::glGetGraphicsResetStatus()
+{
+  return m_Real.glGetGraphicsResetStatus();
+}
+
+GLuint WrappedGLES::glGetDebugMessageLog(GLuint count, GLsizei bufSize, GLenum *sources,
+                                           GLenum *types, GLuint *ids, GLenum *severities,
+                                           GLsizei *lengths, GLchar *messageLog)
+{
+  return m_Real.glGetDebugMessageLog(count, bufSize, sources, types, ids, severities, lengths,
+                                     messageLog);
+}
+
+void WrappedGLES::glFlush()
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glFlush();
+}
+
+void WrappedGLES::glFinish()
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glFinish();
+}
+
+GLboolean WrappedGLES::glIsEnabled(GLenum cap)
+{
+  if(cap == eGL_DEBUG_TOOL_EXT)
+    return true;
+
+  return m_Real.glIsEnabled(cap);
+}
+
+GLboolean WrappedGLES::glIsTexture(GLuint texture)
+{
+  return m_Real.glIsTexture(texture);
+}
+
+GLboolean WrappedGLES::glIsEnabledi(GLenum target, GLuint index)
+{
+  if(target == eGL_DEBUG_TOOL_EXT)
+    return true;
+
+  return m_Real.glIsEnabledi(target, index);
+}
+
+GLboolean WrappedGLES::glIsBuffer(GLuint buffer)
+{
+  return m_Real.glIsBuffer(buffer);
+}
+
+GLboolean WrappedGLES::glIsFramebuffer(GLuint framebuffer)
+{
+  return m_Real.glIsFramebuffer(framebuffer);
+}
+
+GLboolean WrappedGLES::glIsProgram(GLuint program)
+{
+  return m_Real.glIsProgram(program);
+}
+
+GLboolean WrappedGLES::glIsProgramPipeline(GLuint pipeline)
+{
+  return m_Real.glIsProgramPipeline(pipeline);
+}
+
+GLboolean WrappedGLES::glIsQuery(GLuint id)
+{
+  return m_Real.glIsQuery(id);
+}
+
+GLboolean WrappedGLES::glIsRenderbuffer(GLuint renderbuffer)
+{
+  return m_Real.glIsRenderbuffer(renderbuffer);
+}
+
+GLboolean WrappedGLES::glIsSampler(GLuint sampler)
+{
+  return m_Real.glIsSampler(sampler);
+}
+
+GLboolean WrappedGLES::glIsShader(GLuint shader)
+{
+  return m_Real.glIsShader(shader);
+}
+
+GLboolean WrappedGLES::glIsSync(GLsync sync)
+{
+  return m_Real.glIsSync(sync);
+}
+
+GLboolean WrappedGLES::glIsTransformFeedback(GLuint id)
+{
+  return m_Real.glIsTransformFeedback(id);
+}
+
+GLboolean WrappedGLES::glIsVertexArray(GLuint array)
+{
+  return m_Real.glIsVertexArray(array);
+}
+
 //GLboolean WrappedGLES::glIsNamedStringARB(GLint namelen, const GLchar *name)
 //{
 //  return m_Real.glIsNamedStringARB(namelen, name);
@@ -160,30 +160,24 @@
 //    m_Real.glGetPointerv(pname, params);
 //}
 //
-//void WrappedGLES::glGetIntegerv(GLenum pname, GLint *params)
-//{
-//  if(pname == eGL_MIN_MAP_BUFFER_ALIGNMENT)
-//  {
-//    if(params)
-//      *params = (GLint)64;
-//    return;
-//  }
-//  else if(pname == eGL_NUM_EXTENSIONS)
-//  {
-//    if(params)
-//      *params = (GLint)GetCtxData().glExts.size();
-//    return;
-//  }
-//  else if(pname == eGL_DEBUG_TOOL_PURPOSE_EXT)
-//  {
-//    if(params)
-//      *params = GLint(eGL_DEBUG_TOOL_FRAME_CAPTURE_BIT_EXT);
-//    return;
-//  }
-//
-//  m_Real.glGetIntegerv(pname, params);
-//}
-//
+void WrappedGLES::glGetIntegerv(GLenum pname, GLint *params)
+{
+  if(pname == eGL_NUM_EXTENSIONS)
+  {
+    if(params)
+      *params = (GLint)GetCtxData().glExts.size();
+    return;
+  }
+  else if(pname == eGL_DEBUG_TOOL_PURPOSE_EXT)
+  {
+    if(params)
+      *params = GLint(eGL_DEBUG_TOOL_FRAME_CAPTURE_BIT_EXT);
+    return;
+  }
+
+  m_Real.glGetIntegerv(pname, params);
+}
+
 //void WrappedGLES::glGetBooleanv(GLenum pname, GLboolean *data)
 //{
 //  m_Real.glGetBooleanv(pname, data);
@@ -206,75 +200,58 @@
 //  m_Real.glGetInteger64v(pname, data);
 //}
 //
-//void WrappedGLES::glGetBooleani_v(GLenum pname, GLuint index, GLboolean *data)
-//{
-//  m_Real.glGetBooleani_v(pname, index, data);
-//}
-//
-//void WrappedGLES::glGetIntegeri_v(GLenum pname, GLuint index, GLint *data)
-//{
-//  if(pname == eGL_MIN_MAP_BUFFER_ALIGNMENT)
-//  {
-//    if(data)
-//      *data = (GLint)64;
-//    return;
-//  }
-//  else if(pname == eGL_DEBUG_TOOL_PURPOSE_EXT)
-//  {
-//    if(data)
-//      *data = GLint(eGL_DEBUG_TOOL_FRAME_CAPTURE_BIT_EXT);
-//    return;
-//  }
-//  m_Real.glGetIntegeri_v(pname, index, data);
-//}
-//
-//void WrappedGLES::glGetFloati_v(GLenum pname, GLuint index, GLfloat *data)
-//{
-//  m_Real.glGetFloati_v(pname, index, data);
-//}
-//
-//void WrappedGLES::glGetDoublei_v(GLenum pname, GLuint index, GLdouble *data)
-//{
-//  m_Real.glGetDoublei_v(pname, index, data);
-//}
-//
-//void WrappedGLES::glGetInteger64i_v(GLenum pname, GLuint index, GLint64 *data)
-//{
-//  if(pname == eGL_MIN_MAP_BUFFER_ALIGNMENT)
-//  {
-//    if(data)
-//      *data = (GLint64)64;
-//    return;
-//  }
-//  else if(pname == eGL_DEBUG_TOOL_PURPOSE_EXT)
-//  {
-//    if(data)
-//      *data = GLint64(eGL_DEBUG_TOOL_FRAME_CAPTURE_BIT_EXT);
-//    return;
-//  }
-//  m_Real.glGetInteger64i_v(pname, index, data);
-//}
-//
-//void WrappedGLES::glGetTexLevelParameteriv(GLenum target, GLint level, GLenum pname, GLint *params)
-//{
-//  m_Real.glGetTexLevelParameteriv(target, level, pname, params);
-//}
-//
-//void WrappedGLES::glGetTexLevelParameterfv(GLenum target, GLint level, GLenum pname, GLfloat *params)
-//{
-//  m_Real.glGetTexLevelParameterfv(target, level, pname, params);
-//}
-//
-//void WrappedGLES::glGetTexParameterfv(GLenum target, GLenum pname, GLfloat *params)
-//{
-//  m_Real.glGetTexParameterfv(target, pname, params);
-//}
-//
-//void WrappedGLES::glGetTexParameteriv(GLenum target, GLenum pname, GLint *params)
-//{
-//  m_Real.glGetTexParameteriv(target, pname, params);
-//}
-//
+void WrappedGLES::glGetBooleani_v(GLenum pname, GLuint index, GLboolean *data)
+{
+  m_Real.glGetBooleani_v(pname, index, data);
+}
+
+void WrappedGLES::glGetIntegeri_v(GLenum pname, GLuint index, GLint *data)
+{
+  if(pname == eGL_DEBUG_TOOL_PURPOSE_EXT)
+  {
+    if(data)
+      *data = GLint(eGL_DEBUG_TOOL_FRAME_CAPTURE_BIT_EXT);
+    return;
+  }
+  m_Real.glGetIntegeri_v(pname, index, data);
+}
+
+void WrappedGLES::glGetFloati_vNV(GLenum pname, GLuint index, GLfloat *data)
+{
+  m_Real.glGetFloati_vNV(pname, index, data);
+}
+
+void WrappedGLES::glGetInteger64i_v(GLenum pname, GLuint index, GLint64 *data)
+{
+  if(pname == eGL_DEBUG_TOOL_PURPOSE_EXT)
+  {
+    if(data)
+      *data = GLint64(eGL_DEBUG_TOOL_FRAME_CAPTURE_BIT_EXT);
+    return;
+  }
+  m_Real.glGetInteger64i_v(pname, index, data);
+}
+
+void WrappedGLES::glGetTexLevelParameteriv(GLenum target, GLint level, GLenum pname, GLint *params)
+{
+  m_Real.glGetTexLevelParameteriv(target, level, pname, params);
+}
+
+void WrappedGLES::glGetTexLevelParameterfv(GLenum target, GLint level, GLenum pname, GLfloat *params)
+{
+  m_Real.glGetTexLevelParameterfv(target, level, pname, params);
+}
+
+void WrappedGLES::glGetTexParameterfv(GLenum target, GLenum pname, GLfloat *params)
+{
+  m_Real.glGetTexParameterfv(target, pname, params);
+}
+
+void WrappedGLES::glGetTexParameteriv(GLenum target, GLenum pname, GLint *params)
+{
+  m_Real.glGetTexParameteriv(target, pname, params);
+}
+
 //void WrappedGLES::glGetTextureLevelParameterfv(GLuint texture, GLint level, GLenum pname,
 //                                                 GLfloat *params)
 //{
@@ -307,16 +284,16 @@
 //  m_Real.glGetTextureParameteriv(texture, pname, params);
 //}
 //
-//void WrappedGLES::glGetTexParameterIiv(GLenum target, GLenum pname, GLint *params)
-//{
-//  m_Real.glGetTexParameterIiv(target, pname, params);
-//}
-//
-//void WrappedGLES::glGetTexParameterIuiv(GLenum target, GLenum pname, GLuint *params)
-//{
-//  m_Real.glGetTexParameterIuiv(target, pname, params);
-//}
-//
+void WrappedGLES::glGetTexParameterIiv(GLenum target, GLenum pname, GLint *params)
+{
+  m_Real.glGetTexParameterIiv(target, pname, params);
+}
+
+void WrappedGLES::glGetTexParameterIuiv(GLenum target, GLenum pname, GLuint *params)
+{
+  m_Real.glGetTexParameterIuiv(target, pname, params);
+}
+
 //void WrappedGLES::glGetTexImage(GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
 //{
 //  CoherentMapImplicitBarrier();
@@ -405,26 +382,26 @@
 //  m_Real.glGetSamplerParameterIuiv(sampler, pname, params);
 //}
 //
-//void WrappedGLES::glGetSamplerParameterfv(GLuint sampler, GLenum pname, GLfloat *params)
-//{
-//  m_Real.glGetSamplerParameterfv(sampler, pname, params);
-//}
-//
-//void WrappedGLES::glGetSamplerParameteriv(GLuint sampler, GLenum pname, GLint *params)
-//{
-//  m_Real.glGetSamplerParameteriv(sampler, pname, params);
-//}
-//
+void WrappedGLES::glGetSamplerParameterfv(GLuint sampler, GLenum pname, GLfloat *params)
+{
+  m_Real.glGetSamplerParameterfv(sampler, pname, params);
+}
+
+void WrappedGLES::glGetSamplerParameteriv(GLuint sampler, GLenum pname, GLint *params)
+{
+  m_Real.glGetSamplerParameteriv(sampler, pname, params);
+}
+
 //void WrappedGLES::glGetBufferParameteri64v(GLenum target, GLenum pname, GLint64 *params)
 //{
 //  m_Real.glGetBufferParameteri64v(target, pname, params);
 //}
-//
-//void WrappedGLES::glGetBufferParameteriv(GLenum target, GLenum pname, GLint *params)
-//{
-//  m_Real.glGetBufferParameteriv(target, pname, params);
-//}
-//
+
+void WrappedGLES::glGetBufferParameteriv(GLenum target, GLenum pname, GLint *params)
+{
+  m_Real.glGetBufferParameteriv(target, pname, params);
+}
+
 //void WrappedGLES::glGetBufferPointerv(GLenum target, GLenum pname, void **params)
 //{
 //  CoherentMapImplicitBarrier();
@@ -460,11 +437,11 @@
 //  m_Real.glGetBufferSubData(target, offset, size, data);
 //}
 //
-//void WrappedGLES::glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
-//{
-//  m_Real.glGetQueryObjectuiv(id, pname, params);
-//}
-//
+void WrappedGLES::glGetQueryObjectuiv(GLuint id, GLenum pname, GLuint *params)
+{
+  m_Real.glGetQueryObjectuiv(id, pname, params);
+}
+
 //void WrappedGLES::glGetQueryObjectui64v(GLuint id, GLenum pname, GLuint64 *params)
 //{
 //  m_Real.glGetQueryObjectui64v(id, pname, params);
@@ -532,38 +509,38 @@
 //  return m_Real.glGetString(name);
 //}
 //
-//const GLubyte *WrappedGLES::glGetStringi(GLenum name, GLuint i)
-//{
-//  if(name == eGL_EXTENSIONS)
-//  {
-//    if((size_t)i < GetCtxData().glExts.size())
-//      return (const GLubyte *)GetCtxData().glExts[i].c_str();
-//
-//    return (const GLubyte *)"";
-//  }
-//  else if(name == eGL_DEBUG_TOOL_NAME_EXT)
-//  {
-//    return (const GLubyte *)"RenderDoc";
-//  }
-//  return m_Real.glGetStringi(name, i);
-//}
-//
-//void WrappedGLES::glGetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
-//                                                          GLenum pname, GLint *params)
-//{
-//  m_Real.glGetFramebufferAttachmentParameteriv(target, attachment, pname, params);
-//}
-//
-//GLenum WrappedGLES::glCheckFramebufferStatus(GLenum target)
-//{
-//  return m_Real.glCheckFramebufferStatus(target);
-//}
-//
-//void WrappedGLES::glGetVertexAttribiv(GLuint index, GLenum pname, GLint *params)
-//{
-//  m_Real.glGetVertexAttribiv(index, pname, params);
-//}
-//
+const GLubyte *WrappedGLES::glGetStringi(GLenum name, GLuint i)
+{
+  if(name == eGL_EXTENSIONS)
+  {
+    if((size_t)i < GetCtxData().glExts.size())
+      return (const GLubyte *)GetCtxData().glExts[i].c_str();
+
+    return (const GLubyte *)"";
+  }
+  else if(name == eGL_DEBUG_TOOL_NAME_EXT)
+  {
+    return (const GLubyte *)"RenderDoc";
+  }
+  return m_Real.glGetStringi(name, i);
+}
+
+void WrappedGLES::glGetFramebufferAttachmentParameteriv(GLenum target, GLenum attachment,
+                                                          GLenum pname, GLint *params)
+{
+  m_Real.glGetFramebufferAttachmentParameteriv(target, attachment, pname, params);
+}
+
+GLenum WrappedGLES::glCheckFramebufferStatus(GLenum target)
+{
+  return m_Real.glCheckFramebufferStatus(target);
+}
+
+void WrappedGLES::glGetVertexAttribiv(GLuint index, GLenum pname, GLint *params)
+{
+  m_Real.glGetVertexAttribiv(index, pname, params);
+}
+
 //void WrappedGLES::glGetVertexAttribPointerv(GLuint index, GLenum pname, void **pointer)
 //{
 //  m_Real.glGetVertexAttribPointerv(index, pname, pointer);
@@ -584,12 +561,12 @@
 //  m_Real.glGetMultisamplefv(pname, index, val);
 //}
 //
-//void WrappedGLES::glGetObjectLabel(GLenum identifier, GLuint name, GLsizei bufSize,
-//                                     GLsizei *length, GLchar *label)
-//{
-//  m_Real.glGetObjectLabel(identifier, name, bufSize, length, label);
-//}
-//
+void WrappedGLES::glGetObjectLabel(GLenum identifier, GLuint name, GLsizei bufSize,
+                                     GLsizei *length, GLchar *label)
+{
+  m_Real.glGetObjectLabel(identifier, name, bufSize, length, label);
+}
+
 //void WrappedGLES::glGetObjectLabelEXT(GLenum identifier, GLuint name, GLsizei bufSize,
 //                                        GLsizei *length, GLchar *label)
 //{
@@ -602,17 +579,17 @@
 //  m_Real.glGetObjectPtrLabel(ptr, bufSize, length, label);
 //}
 //
-//void WrappedGLES::glGetShaderiv(GLuint shader, GLenum pname, GLint *params)
-//{
-//  m_Real.glGetShaderiv(shader, pname, params);
-//}
-//
-//void WrappedGLES::glGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei *length,
-//                                       GLchar *infoLog)
-//{
-//  m_Real.glGetShaderInfoLog(shader, bufSize, length, infoLog);
-//}
-//
+void WrappedGLES::glGetShaderiv(GLuint shader, GLenum pname, GLint *params)
+{
+  m_Real.glGetShaderiv(shader, pname, params);
+}
+
+void WrappedGLES::glGetShaderInfoLog(GLuint shader, GLsizei bufSize, GLsizei *length,
+                                       GLchar *infoLog)
+{
+  m_Real.glGetShaderInfoLog(shader, bufSize, length, infoLog);
+}
+
 //void WrappedGLES::glGetShaderPrecisionFormat(GLenum shadertype, GLenum precisiontype,
 //                                               GLint *range, GLint *precision)
 //{
@@ -630,11 +607,11 @@
 //  m_Real.glGetAttachedShaders(program, maxCount, count, shaders);
 //}
 //
-//void WrappedGLES::glGetProgramiv(GLuint program, GLenum pname, GLint *params)
-//{
-//  m_Real.glGetProgramiv(program, pname, params);
-//}
-//
+void WrappedGLES::glGetProgramiv(GLuint program, GLenum pname, GLint *params)
+{
+  m_Real.glGetProgramiv(program, pname, params);
+}
+
 //void WrappedGLES::glGetProgramStageiv(GLuint program, GLenum shadertype, GLenum pname, GLint *values)
 //{
 //  m_Real.glGetProgramStageiv(program, shadertype, pname, values);
@@ -646,12 +623,12 @@
 //  m_Real.glGetProgramBinary(program, bufSize, length, binaryFormat, binary);
 //}
 //
-//void WrappedGLES::glGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei *length,
-//                                        GLchar *infoLog)
-//{
-//  m_Real.glGetProgramInfoLog(program, bufSize, length, infoLog);
-//}
-//
+void WrappedGLES::glGetProgramInfoLog(GLuint program, GLsizei bufSize, GLsizei *length,
+                                        GLchar *infoLog)
+{
+  m_Real.glGetProgramInfoLog(program, bufSize, length, infoLog);
+}
+
 //void WrappedGLES::glGetProgramPipelineiv(GLuint pipeline, GLenum pname, GLint *params)
 //{
 //  m_Real.glGetProgramPipelineiv(pipeline, pname, params);
@@ -669,20 +646,20 @@
 //  m_Real.glGetProgramInterfaceiv(program, programInterface, pname, params);
 //}
 //
-//GLuint WrappedGLES::glGetProgramResourceIndex(GLuint program, GLenum programInterface,
-//                                                const GLchar *name)
-//{
-//  return m_Real.glGetProgramResourceIndex(program, programInterface, name);
-//}
-//
-//void WrappedGLES::glGetProgramResourceiv(GLuint program, GLenum programInterface, GLuint index,
-//                                           GLsizei propCount, const GLenum *props, GLsizei bufSize,
-//                                           GLsizei *length, GLint *params)
-//{
-//  m_Real.glGetProgramResourceiv(program, programInterface, index, propCount, props, bufSize, length,
-//                                params);
-//}
-//
+GLuint WrappedGLES::glGetProgramResourceIndex(GLuint program, GLenum programInterface,
+                                                const GLchar *name)
+{
+  return m_Real.glGetProgramResourceIndex(program, programInterface, name);
+}
+
+void WrappedGLES::glGetProgramResourceiv(GLuint program, GLenum programInterface, GLuint index,
+                                           GLsizei propCount, const GLenum *props, GLsizei bufSize,
+                                           GLsizei *length, GLint *params)
+{
+  m_Real.glGetProgramResourceiv(program, programInterface, index, propCount, props, bufSize, length,
+                                params);
+}
+
 //void WrappedGLES::glGetProgramResourceName(GLuint program, GLenum programInterface, GLuint index,
 //                                             GLsizei bufSize, GLsizei *length, GLchar *name)
 //{
@@ -713,11 +690,11 @@
 //  return m_Real.glGetNamedStringivARB(namelen, name, pname, params);
 //}
 //
-//GLint WrappedGLES::glGetUniformLocation(GLuint program, const GLchar *name)
-//{
-//  return m_Real.glGetUniformLocation(program, name);
-//}
-//
+GLint WrappedGLES::glGetUniformLocation(GLuint program, const GLchar *name)
+{
+  return m_Real.glGetUniformLocation(program, name);
+}
+
 //void WrappedGLES::glGetUniformIndices(GLuint program, GLsizei uniformCount,
 //                                        const GLchar *const *uniformNames, GLuint *uniformIndices)
 //{
@@ -811,21 +788,21 @@
 //  m_Real.glGetActiveAtomicCounterBufferiv(program, bufferIndex, pname, params);
 //}
 //
-//void WrappedGLES::glGetUniformfv(GLuint program, GLint location, GLfloat *params)
-//{
-//  m_Real.glGetUniformfv(program, location, params);
-//}
-//
-//void WrappedGLES::glGetUniformiv(GLuint program, GLint location, GLint *params)
-//{
-//  m_Real.glGetUniformiv(program, location, params);
-//}
-//
-//void WrappedGLES::glGetUniformuiv(GLuint program, GLint location, GLuint *params)
-//{
-//  m_Real.glGetUniformuiv(program, location, params);
-//}
-//
+void WrappedGLES::glGetUniformfv(GLuint program, GLint location, GLfloat *params)
+{
+  m_Real.glGetUniformfv(program, location, params);
+}
+
+void WrappedGLES::glGetUniformiv(GLuint program, GLint location, GLint *params)
+{
+  m_Real.glGetUniformiv(program, location, params);
+}
+
+void WrappedGLES::glGetUniformuiv(GLuint program, GLint location, GLuint *params)
+{
+  m_Real.glGetUniformuiv(program, location, params);
+}
+
 //void WrappedGLES::glGetUniformdv(GLuint program, GLint location, GLdouble *params)
 //{
 //  m_Real.glGetUniformdv(program, location, params);
@@ -887,11 +864,11 @@
 //  m_Real.glGetVertexAttribdv(index, pname, params);
 //}
 //
-//void WrappedGLES::glGetVertexAttribfv(GLuint index, GLenum pname, GLfloat *params)
-//{
-//  m_Real.glGetVertexAttribfv(index, pname, params);
-//}
-//
+void WrappedGLES::glGetVertexAttribfv(GLuint index, GLenum pname, GLfloat *params)
+{
+  m_Real.glGetVertexAttribfv(index, pname, params);
+}
+
 //void WrappedGLES::glClampColor(GLenum target, GLenum clamp)
 //{
 //  m_Real.glClampColor(target, clamp);

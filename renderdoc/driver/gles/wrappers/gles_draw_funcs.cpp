@@ -874,91 +874,91 @@ void WrappedGLES::glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GLint first,
   }
 }
 
-//bool WrappedGLES::Check_preElements()
-//{
-//  GLint idxbuf = 0;
-//  m_Real.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
-//
-//  if(idxbuf == 0)
-//  {
-//    AddDebugMessage(eDbgCategory_Undefined, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
-//                    "No index buffer bound at indexed draw!.");
-//    return false;
-//  }
-//
-//  return true;
-//}
-//
-//byte *WrappedGLES::Common_preElements(GLsizei Count, GLenum Type, uint64_t &IdxOffset)
-//{
-//  GLint idxbuf = 0;
-//  // while writing, check to see if an index buffer is bound
-//  if(m_State >= WRITING)
-//    m_Real.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
-//
-//  // serialise whether we're reading indices as memory
-//  SERIALISE_ELEMENT(bool, IndicesFromMemory, idxbuf == 0);
-//
-//  if(IndicesFromMemory)
-//  {
-//    uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
-//                                                           ? 2
-//                                                           : /*Type == eGL_UNSIGNED_INT*/ 4;
-//
-//    // serialise the actual data (IdxOffset is a pointer not an offset in this case)
-//    SERIALISE_ELEMENT_BUF(byte *, idxdata, (void *)IdxOffset, size_t(IdxSize * Count));
-//
-//    if(m_State <= EXECUTING)
-//    {
-//      GLsizeiptr idxlen = GLsizeiptr(IdxSize * Count);
-//
-//      // resize fake index buffer if necessary
-//      if(idxlen > m_FakeIdxSize)
-//      {
-//        m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
-//        m_Real.glDeleteBuffers(1, &m_FakeIdxBuf);
-//
-//        m_FakeIdxSize = idxlen;
-//
-//        m_Real.glGenBuffers(1, &m_FakeIdxBuf);
-//        m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
-//        m_Real.glNamedBufferStorageEXT(m_FakeIdxBuf, m_FakeIdxSize, NULL, GL_DYNAMIC_STORAGE_BIT);
-//      }
-//
-//      // bind and update fake index buffer, to draw from the 'immediate' index data
-//      m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
-//
-//      m_Real.glNamedBufferSubDataEXT(m_FakeIdxBuf, 0, idxlen, idxdata);
-//
-//      // Set offset to 0 - means we read data from start of our fake index buffer
-//      IdxOffset = 0;
-//
-//      // we'll delete this later (only when replaying)
-//      return idxdata;
-//    }
-//
-//    // can just return NULL, since we don't need to do any cleanup or deletion
-//  }
-//
-//  return NULL;
-//}
-//
-//void WrappedGLES::Common_postElements(byte *idxDelete)
-//{
-//  // unbind temporary fake index buffer we used to pass 'immediate' index data
-//  if(idxDelete)
-//  {
-//    m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
-//
-//    AddDebugMessage(eDbgCategory_Deprecated, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
-//                    "Assuming GL core profile is used then specifying indices as a raw array, "
-//                    "not as offset into element array buffer, is illegal.");
-//
-//    // delete serialised data
-//    SAFE_DELETE_ARRAY(idxDelete);
-//  }
-//}
-//
+bool WrappedGLES::Check_preElements()
+{
+  GLint idxbuf = 0;
+  m_Real.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
+
+  if(idxbuf == 0)
+  {
+    AddDebugMessage(eDbgCategory_Undefined, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+                    "No index buffer bound at indexed draw!.");
+    return false;
+  }
+
+  return true;
+}
+
+byte *WrappedGLES::Common_preElements(GLsizei Count, GLenum Type, uint64_t &IdxOffset)
+{
+  GLint idxbuf = 0;
+  // while writing, check to see if an index buffer is bound
+  if(m_State >= WRITING)
+    m_Real.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &idxbuf);
+
+  // serialise whether we're reading indices as memory
+  SERIALISE_ELEMENT(bool, IndicesFromMemory, idxbuf == 0);
+
+  if(IndicesFromMemory)
+  {
+    uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
+                                                           ? 2
+                                                           : /*Type == eGL_UNSIGNED_INT*/ 4;
+
+    // serialise the actual data (IdxOffset is a pointer not an offset in this case)
+    SERIALISE_ELEMENT_BUF(byte *, idxdata, (void *)IdxOffset, size_t(IdxSize * Count));
+
+    if(m_State <= EXECUTING)
+    {
+      GLsizeiptr idxlen = GLsizeiptr(IdxSize * Count);
+
+      // resize fake index buffer if necessary
+      if(idxlen > m_FakeIdxSize)
+      {
+        m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
+        m_Real.glDeleteBuffers(1, &m_FakeIdxBuf);
+
+        m_FakeIdxSize = idxlen;
+
+        m_Real.glGenBuffers(1, &m_FakeIdxBuf);
+        m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
+        m_Real.glBufferStorageEXT(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxSize, NULL, GL_DYNAMIC_STORAGE_BIT_EXT);
+      }
+
+      // bind and update fake index buffer, to draw from the 'immediate' index data
+      m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
+
+      m_Real.glBufferSubData(eGL_ELEMENT_ARRAY_BUFFER, 0, idxlen, idxdata);
+
+      // Set offset to 0 - means we read data from start of our fake index buffer
+      IdxOffset = 0;
+
+      // we'll delete this later (only when replaying)
+      return idxdata;
+    }
+
+    // can just return NULL, since we don't need to do any cleanup or deletion
+  }
+
+  return NULL;
+}
+
+void WrappedGLES::Common_postElements(byte *idxDelete)
+{
+  // unbind temporary fake index buffer we used to pass 'immediate' index data
+  if(idxDelete)
+  {
+    m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
+
+    AddDebugMessage(eDbgCategory_Deprecated, eDbgSeverity_High, eDbgSource_IncorrectAPIUse,
+                    "Assuming GL core profile is used then specifying indices as a raw array, "
+                    "not as offset into element array buffer, is illegal.");
+
+    // delete serialised data
+    SAFE_DELETE_ARRAY(idxDelete);
+  }
+}
+
 //bool WrappedGLES::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum type,
 //                                             const void *indices)
 //{
