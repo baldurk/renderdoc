@@ -1434,41 +1434,41 @@ void WrappedGLES::glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
   }
 }
 
-//bool WrappedGLES::Serialise_glViewportArrayv(GLuint index, GLuint count, const GLfloat *v)
-//{
-//  SERIALISE_ELEMENT(uint32_t, idx, index);
-//  SERIALISE_ELEMENT(uint32_t, cnt, count);
-//  SERIALISE_ELEMENT_ARR(GLfloat, views, v, cnt * 4);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glViewportArrayv(idx, cnt, views);
-//  }
-//
-//  delete[] views;
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glViewportArrayv(GLuint index, GLuint count, const GLfloat *v)
-//{
-//  m_Real.glViewportArrayv(index, count, v);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(VIEWPORT_ARRAY);
-//    Serialise_glViewportArrayv(index, count, v);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//void WrappedGLES::glViewportIndexedf(GLuint index, GLfloat x, GLfloat y, GLfloat w, GLfloat h)
-//{
-//  const float v[4] = {x, y, w, h};
-//  glViewportArrayv(index, 1, v);
-//}
-//
+bool WrappedGLES::Serialise_glViewportArrayvOES(GLuint index, GLsizei count, const GLfloat *v)
+{
+  SERIALISE_ELEMENT(uint32_t, idx, index);
+  SERIALISE_ELEMENT(uint32_t, cnt, count);
+  SERIALISE_ELEMENT_ARR(GLfloat, views, v, cnt * 4);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glViewportArrayvOES(idx, cnt, views);
+  }
+
+  delete[] views;
+
+  return true;
+}
+
+void WrappedGLES::glViewportArrayvOES(GLuint index, GLsizei count, const GLfloat *v)
+{
+  m_Real.glViewportArrayvOES(index, count, v);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(VIEWPORT_ARRAY);
+    Serialise_glViewportArrayvOES(index, count, v);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+void WrappedGLES::glViewportIndexedfOES(GLuint index, GLfloat x, GLfloat y, GLfloat w, GLfloat h)
+{
+  const float v[4] = {x, y, w, h};
+  glViewportArrayvOES(index, 1, v);
+}
+
 //void WrappedGLES::glViewportIndexedfv(GLuint index, const GLfloat *v)
 //{
 //  glViewportArrayv(index, 1, v);
@@ -1543,31 +1543,31 @@ void WrappedGLES::glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
 //  glScissorArrayv(index, 1, v);
 //}
 //
-//bool WrappedGLES::Serialise_glPolygonMode(GLenum face, GLenum mode)
-//{
-//  SERIALISE_ELEMENT(GLenum, f, face);
-//  SERIALISE_ELEMENT(GLenum, m, mode);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glPolygonMode(f, m);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glPolygonMode(GLenum face, GLenum mode)
-//{
-//  m_Real.glPolygonMode(face, mode);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(POLYGON_MODE);
-//    Serialise_glPolygonMode(face, mode);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
+bool WrappedGLES::Serialise_glPolygonModeNV(GLenum face, GLenum mode)
+{
+  SERIALISE_ELEMENT(GLenum, f, face);
+  SERIALISE_ELEMENT(GLenum, m, mode);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glPolygonModeNV(f, m);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glPolygonModeNV(GLenum face, GLenum mode)
+{
+  m_Real.glPolygonModeNV(face, mode);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(POLYGON_MODE);
+    Serialise_glPolygonModeNV(face, mode);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
 //
 //bool WrappedGLES::Serialise_glPolygonOffset(GLfloat factor, GLfloat units)
 //{

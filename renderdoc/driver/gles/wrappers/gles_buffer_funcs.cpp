@@ -1944,25 +1944,27 @@ void WrappedGLES::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 //  return glMapNamedBufferRangeEXT(buffer, offset, length, access);
 //}
 //
-//void *WrappedGLES::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length,
-//                                      GLbitfield access)
-//{
-//  // see above glMapNamedBufferRangeEXT for high-level explanation of how mapping is handled
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-//    RDCASSERT(record);
-//
-//    if(record)
-//      return glMapNamedBufferRangeEXT(record->Resource.name, offset, length, access);
-//
-//    RDCERR("glMapBufferRange: Couldn't get resource record for target %x - no buffer bound?", target);
-//  }
-//
-//  return m_Real.glMapBufferRange(target, offset, length, access);
-//}
-//
+void *WrappedGLES::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length,
+                                      GLbitfield access)
+{
+  // see above glMapNamedBufferRangeEXT for high-level explanation of how mapping is handled
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+    RDCASSERT(record);
+
+    // TODO PEPE
+    // if(record)
+    //  return glMapNamedBufferRangeEXT(record->Resource.name, offset, length, access);
+    return NULL;
+
+    RDCERR("glMapBufferRange: Couldn't get resource record for target %x - no buffer bound?", target);
+  }
+
+  return m_Real.glMapBufferRange(target, offset, length, access);
+}
+
 //// the glMapBuffer functions are equivalent to glMapBufferRange - so we just pass through
 //void *WrappedGLES::glMapNamedBufferEXT(GLuint buffer, GLenum access)
 //{
@@ -1991,34 +1993,36 @@ void WrappedGLES::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 //  return m_Real.glMapNamedBufferEXT(buffer, access);
 //}
 //
-//void *WrappedGLES::glMapBuffer(GLenum target, GLenum access)
-//{
-//  // see above glMapNamedBufferRangeEXT for high-level explanation of how mapping is handled
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-//    RDCASSERT(record);
-//
-//    if(record)
-//    {
-//      GLbitfield accessBits = 0;
-//
-//      if(access == eGL_READ_ONLY)
-//        accessBits = eGL_MAP_READ_BIT;
-//      else if(access == eGL_WRITE_ONLY)
-//        accessBits = eGL_MAP_WRITE_BIT;
-//      else if(access == eGL_READ_WRITE)
-//        accessBits = eGL_MAP_READ_BIT | eGL_MAP_WRITE_BIT;
-//      return glMapNamedBufferRangeEXT(record->Resource.name, 0, (GLsizeiptr)record->Length,
-//                                      accessBits);
-//    }
-//
-//    RDCERR("glMapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
-//  }
-//
-//  return m_Real.glMapBuffer(target, access);
-//}
+void *WrappedGLES::glMapBufferOES(GLenum target, GLenum access)
+{
+  // see above glMapNamedBufferRangeEXT for high-level explanation of how mapping is handled
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+    RDCASSERT(record);
+
+    if(record)
+    {
+      GLbitfield accessBits = 0;
+
+      if(access == eGL_READ_ONLY)
+        accessBits = eGL_MAP_READ_BIT;
+      else if(access == eGL_WRITE_ONLY)
+        accessBits = eGL_MAP_WRITE_BIT;
+      else if(access == eGL_READ_WRITE)
+        accessBits = eGL_MAP_READ_BIT | eGL_MAP_WRITE_BIT;
+      // TODO PEPE
+      //return glMapNamedBufferRangeEXT(record->Resource.name, 0, (GLsizeiptr)record->Length,
+      //                                accessBits);
+      return NULL;
+    }
+
+    RDCERR("glMapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
+  }
+
+  return m_Real.glMapBufferOES(target, access);
+}
 //
 //bool WrappedGLES::Serialise_glUnmapNamedBufferEXT(GLuint buffer)
 //{
@@ -2241,12 +2245,18 @@ GLboolean WrappedGLES::glUnmapBuffer(GLenum target)
 
     if(record) {
         // TODO PEPE
+        return true;
     }
 
     RDCERR("glUnmapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
   }
 
   return m_Real.glUnmapBuffer(target);
+}
+
+GLboolean WrappedGLES::glUnmapBufferOES(GLenum target)
+{
+  return glUnmapBuffer(target);
 }
 
 //bool WrappedGLES::Serialise_glFlushMappedNamedBufferRangeEXT(GLuint buffer, GLintptr offset,
@@ -2411,34 +2421,36 @@ GLboolean WrappedGLES::glUnmapBuffer(GLenum target)
 //  return m_Real.glFlushMappedBufferRange(target, offset, length);
 //}
 //
-//void WrappedGLES::PersistentMapMemoryBarrier(const set<GLResourceRecord *> &maps)
-//{
-//  // this function iterates over all the maps, checking for any changes between
-//  // the shadow pointers, and propogates that to 'real' GL
-//
-//  for(set<GLResourceRecord *>::const_iterator it = maps.begin(); it != maps.end(); ++it)
-//  {
-//    GLResourceRecord *record = *it;
-//
-//    RDCASSERT(record && record->Map.persistentPtr);
-//
-//    size_t diffStart = 0, diffEnd = 0;
-//    bool found = FindDiffRange(record->GetShadowPtr(0), record->GetShadowPtr(1),
-//                               (size_t)record->Length, diffStart, diffEnd);
-//    if(found)
-//    {
-//      // update the modified region in the 'comparison' shadow buffer for next check
-//      memcpy(record->GetShadowPtr(1) + diffStart, record->GetShadowPtr(0) + diffStart,
-//             diffEnd - diffStart);
-//
-//      // we use our own flush function so it will serialise chunks when necessary, and it
-//      // also handles copying into the persistent mapped pointer and flushing the real GL
-//      // buffer
+void WrappedGLES::PersistentMapMemoryBarrier(const set<GLResourceRecord *> &maps)
+{
+  // this function iterates over all the maps, checking for any changes between
+  // the shadow pointers, and propogates that to 'real' GL
+
+  for(set<GLResourceRecord *>::const_iterator it = maps.begin(); it != maps.end(); ++it)
+  {
+    GLResourceRecord *record = *it;
+
+    RDCASSERT(record && record->Map.persistentPtr);
+
+    size_t diffStart = 0, diffEnd = 0;
+    bool found = FindDiffRange(record->GetShadowPtr(0), record->GetShadowPtr(1),
+                               (size_t)record->Length, diffStart, diffEnd);
+    if(found)
+    {
+      // update the modified region in the 'comparison' shadow buffer for next check
+      memcpy(record->GetShadowPtr(1) + diffStart, record->GetShadowPtr(0) + diffStart,
+             diffEnd - diffStart);
+
+      // we use our own flush function so it will serialise chunks when necessary, and it
+      // also handles copying into the persistent mapped pointer and flushing the real GL
+      // buffer
+      // TODO PEPE what kind of buffer it is?
+      // glFlushMappedBufferRange(?, GLintptr(diffStart), GLsizeiptr(diffEnd - diffStart))
 //      glFlushMappedNamedBufferRangeEXT(record->Resource.name, GLintptr(diffStart),
 //                                       GLsizeiptr(diffEnd - diffStart));
-//    }
-//  }
-//}
+    }
+  }
+}
 //
 //#pragma endregion
 //
@@ -3302,37 +3314,43 @@ void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 //    }
 //  }
 //}
-//
-//void WrappedGLES::glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type,
-//                                         GLboolean normalized, GLuint relativeoffset)
-//{
-//  m_Real.glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
-//
-//    GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
-//
-//    if(r)
-//    {
-//      if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
-//        return;
-//      if(m_State == WRITING_CAPFRAME && varecord)
-//        GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBFORMAT);
-//        Serialise_glVertexArrayVertexAttribFormatEXT(varecord ? varecord->Resource.name : 0,
-//                                                     attribindex, size, type, normalized,
-//                                                     relativeoffset);
-//
-//        r->AddChunk(scope.Get());
-//      }
-//    }
-//  }
-//}
-//
+
+
+bool WrappedGLES::Serialise_glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type,
+                                         GLboolean normalized, GLuint relativeoffset)
+{
+    // TODO PEPE
+    return true;
+}
+
+void WrappedGLES::glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type,
+                                         GLboolean normalized, GLuint relativeoffset)
+{
+  m_Real.glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *varecord = GetCtxData().m_VertexArrayRecord;
+
+    GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
+
+    if(r)
+    {
+      if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
+        return;
+      if(m_State == WRITING_CAPFRAME && varecord)
+        GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
+
+      {
+        SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBFORMAT);
+        Serialise_glVertexAttribFormat(attribindex, size, type, normalized, relativeoffset);
+
+        r->AddChunk(scope.Get());
+      }
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glVertexArrayVertexAttribIFormatEXT(GLuint vaobj, GLuint attribindex,
 //                                                                  GLint size, GLenum type,
 //                                                                  GLuint relativeoffset)

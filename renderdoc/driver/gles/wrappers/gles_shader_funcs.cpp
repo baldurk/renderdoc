@@ -29,65 +29,56 @@
 #include "driver/shaders/spirv/spirv_common.h"
 #include "serialise/string_utils.h"
 
-//void WrappedGLES::ShaderData::Compile(WrappedGLES &gl)
-//{
-//  bool pointSizeUsed = false, clipDistanceUsed = false;
-//  if(type == eGL_VERTEX_SHADER)
-//    CheckVertexOutputUses(sources, pointSizeUsed, clipDistanceUsed);
-//
-//  {
-//    string concatenated;
-//
-//    for(size_t i = 0; i < sources.size(); i++)
-//    {
-//      if(sources.size() > 1)
-//      {
-//        if(i > 0)
-//          concatenated += "\n";
-//        concatenated += "/////////////////////////////";
-//        concatenated += StringFormat::Fmt("// Source file %u", (uint32_t)i);
-//        concatenated += "/////////////////////////////";
-//        concatenated += "\n";
-//      }
-//
-//      concatenated += sources[i];
-//    }
-//
-//    create_array_init(reflection.RawBytes, concatenated.size(), (byte *)concatenated.c_str());
-//  }
-//
-//  GLuint sepProg = prog;
-//
-//  if(sepProg == 0)
-//    sepProg = MakeSeparableShaderProgram(gl, type, sources, NULL);
-//
-//  if(sepProg == 0)
-//  {
-//    RDCERR(
-//        "Couldn't make separable program for shader via patching - functionality will be broken.");
-//  }
-//  else
-//  {
-//    prog = sepProg;
-//    MakeShaderReflection(gl.GetHookset(), type, sepProg, reflection, pointSizeUsed, clipDistanceUsed);
-//
-//    vector<uint32_t> spirvwords;
-//
-//    string s = CompileSPIRV(SPIRVShaderStage(ShaderIdx(type)), sources, spirvwords);
-//    if(!spirvwords.empty())
-//      ParseSPIRV(&spirvwords.front(), spirvwords.size(), spirv);
-//
-//    // for classic GL, entry point is always main
-//    reflection.Disassembly = spirv.Disassemble("main");
-//
-//    create_array_uninit(reflection.DebugInfo.files, sources.size());
-//    for(size_t i = 0; i < sources.size(); i++)
-//    {
-//      reflection.DebugInfo.files[i].first = StringFormat::Fmt("source%u.glsl", (uint32_t)i);
-//      reflection.DebugInfo.files[i].second = sources[i];
-//    }
-//  }
-//}
+void WrappedGLES::ShaderData::Compile(WrappedGLES &gl)
+{
+  bool pointSizeUsed = false, clipDistanceUsed = false;
+  if(type == eGL_VERTEX_SHADER)
+    CheckVertexOutputUses(sources, pointSizeUsed, clipDistanceUsed);
+
+  {
+    string concatenated;
+
+    for(size_t i = 0; i < sources.size(); i++)
+    {
+      if(sources.size() > 1)
+      {
+        if(i > 0)
+          concatenated += "\n";
+        concatenated += "/////////////////////////////";
+        concatenated += StringFormat::Fmt("// Source file %u", (uint32_t)i);
+        concatenated += "/////////////////////////////";
+        concatenated += "\n";
+      }
+
+      concatenated += sources[i];
+    }
+
+    create_array_init(reflection.RawBytes, concatenated.size(), (byte *)concatenated.c_str());
+  }
+
+  GLuint sepProg = prog;
+
+  if(sepProg == 0)
+    sepProg = MakeSeparableShaderProgram(gl, type, sources, NULL);
+
+  if(sepProg == 0)
+  {
+    RDCERR(
+        "Couldn't make separable program for shader via patching - functionality will be broken.");
+  }
+  else
+  {
+    prog = sepProg;
+    MakeShaderReflection(gl.GetHookset(), type, sepProg, reflection, pointSizeUsed, clipDistanceUsed);
+
+    create_array_uninit(reflection.DebugInfo.files, sources.size());
+    for(size_t i = 0; i < sources.size(); i++)
+    {
+      reflection.DebugInfo.files[i].first = StringFormat::Fmt("source%u.glsl", (uint32_t)i);
+      reflection.DebugInfo.files[i].second = sources[i];
+    }
+  }
+}
 
 #pragma region Shaders
 
