@@ -143,15 +143,15 @@ void trianglePath(uint threadID)
 #endif
 
 	vec3 hitPosition;
-	bool hit = TriangleRayIntersect(pos0.xyz, pos1.xyz, pos2.xyz, 
+	bool hit = TriangleRayIntersect(pos0.xyz/pos0.w, pos1.xyz/pos1.w, pos2.xyz/pos2.w, 
 									meshpick.rayPos, meshpick.rayDir, 
 									/*out*/ hitPosition);
 	
 	if (hit)
 	{
-		float dist0 = distance(pos0.xyz, hitPosition);
-		float dist1 = distance(pos1.xyz, hitPosition);
-		float dist2 = distance(pos2.xyz, hitPosition);
+		float dist0 = distance(pos0.xyz/pos0.w, hitPosition);
+		float dist1 = distance(pos1.xyz/pos1.w, hitPosition);
+		float dist2 = distance(pos2.xyz/pos2.w, hitPosition);
 
 		uint result_idx = atomicAdd(pickresult.counter.x, 1u);
 
