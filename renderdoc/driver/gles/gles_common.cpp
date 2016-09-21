@@ -1505,19 +1505,15 @@ string ToStrHelper<false, WrappedGLES::UniformType>::Get(const WrappedGLES::Unif
       VEC2STR(1fv)
       VEC2STR(1iv)
       VEC2STR(1uiv)
-      VEC2STR(1dv)
       VEC2STR(2fv)
       VEC2STR(2iv)
       VEC2STR(2uiv)
-      VEC2STR(2dv)
       VEC2STR(3fv)
       VEC2STR(3iv)
       VEC2STR(3uiv)
-      VEC2STR(3dv)
       VEC2STR(4fv)
       VEC2STR(4iv)
       VEC2STR(4uiv)
-      VEC2STR(4dv)
 #undef VEC2STR
 
 #define MAT2STR(suffix) \
@@ -1531,15 +1527,6 @@ string ToStrHelper<false, WrappedGLES::UniformType>::Get(const WrappedGLES::Unif
       MAT2STR(4fv)
       MAT2STR(4x2fv)
       MAT2STR(4x3fv)
-      MAT2STR(2dv)
-      MAT2STR(2x3dv)
-      MAT2STR(2x4dv)
-      MAT2STR(3dv)
-      MAT2STR(3x2dv)
-      MAT2STR(3x4dv)
-      MAT2STR(4dv)
-      MAT2STR(4x2dv)
-      MAT2STR(4x3dv)
 #undef MAT2STR
 
     default: break;

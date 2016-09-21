@@ -1331,34 +1331,34 @@ void WrappedGLES::glBindProgramPipeline(GLuint pipeline)
 //{
 //  m_Real.glActiveShaderProgram(pipeline, program);
 //}
-//
-//GLuint WrappedGLES::GetUniformProgram()
-//{
-//  ContextData &cd = GetCtxData();
-//
-//  // program gets first dibs, if one is bound then that's where glUniform* calls go.
-//  if(cd.m_Program != 0)
-//  {
-//    return cd.m_Program;
-//  }
-//  else if(cd.m_ProgramPipeline != 0)
-//  {
-//    GLuint ret = 0;
-//
-//    // otherwise, query the active program for the pipeline (could cache this above in
-//    // glActiveShaderProgram)
-//    // we do this query every time instead of caching the result, since I think it's unlikely that
-//    // we'll ever
-//    // hit this path (most people using separable programs will use the glProgramUniform*
-//    // interface).
-//    // That way we don't pay the cost of a potentially expensive query unless we really need it.
-//    m_Real.glGetProgramPipelineiv(cd.m_ProgramPipeline, eGL_ACTIVE_PROGRAM, (GLint *)&ret);
-//
-//    return ret;
-//  }
-//
-//  return 0;
-//}
+
+GLuint WrappedGLES::GetUniformProgram()
+{
+  ContextData &cd = GetCtxData();
+
+  // program gets first dibs, if one is bound then that's where glUniform* calls go.
+  if(cd.m_Program != 0)
+  {
+    return cd.m_Program;
+  }
+  else if(cd.m_ProgramPipeline != 0)
+  {
+    GLuint ret = 0;
+
+    // otherwise, query the active program for the pipeline (could cache this above in
+    // glActiveShaderProgram)
+    // we do this query every time instead of caching the result, since I think it's unlikely that
+    // we'll ever
+    // hit this path (most people using separable programs will use the glProgramUniform*
+    // interface).
+    // That way we don't pay the cost of a potentially expensive query unless we really need it.
+    m_Real.glGetProgramPipelineiv(cd.m_ProgramPipeline, eGL_ACTIVE_PROGRAM, (GLint *)&ret);
+
+    return ret;
+  }
+
+  return 0;
+}
 
 void WrappedGLES::glDeleteProgramPipelines(GLsizei n, const GLuint *pipelines)
 {

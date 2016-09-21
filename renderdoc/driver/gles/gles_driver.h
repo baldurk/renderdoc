@@ -561,22 +561,18 @@ public:
     VEC1fv,
     VEC1iv,
     VEC1uiv,
-    VEC1dv,
 
     VEC2fv,
     VEC2iv,
     VEC2uiv,
-    VEC2dv,
 
     VEC3fv,
     VEC3iv,
     VEC3uiv,
-    VEC3dv,
 
     VEC4fv,
     VEC4iv,
     VEC4uiv,
-    VEC4dv,
 
     MAT2fv,
     MAT2x3fv,
@@ -587,18 +583,12 @@ public:
     MAT4fv,
     MAT4x2fv,
     MAT4x3fv,
-
-    MAT2dv,
-    MAT2x3dv,
-    MAT2x4dv,
-    MAT3dv,
-    MAT3x2dv,
-    MAT3x4dv,
-    MAT4dv,
-    MAT4x2dv,
-    MAT4x3dv,
   };
 
+  bool Serialise_glProgramUniformMatrix(GLuint program, GLint location, GLsizei count,
+                                        GLboolean transpose, const void *value, UniformType type);
+  bool Serialise_glProgramUniformVector(GLuint program, GLint location, GLsizei count,
+                                        const void *value, UniformType type);
 
   // utility handling functions for glDraw*Elements* to handle pointers to indices being
   // passed directly, with no index buffer bound. It's not allowed in core profile but
