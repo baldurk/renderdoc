@@ -519,7 +519,9 @@ void GLESReplay::CacheTexture(ResourceId id)
     levelQueryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
 
   GLint width = 1, height = 1, depth = 1, samples = 1;
-  // TODO PEPE
+  
+  GLuint oldBinding;
+  gl.glGetIntegerv(TextureBinding(target), (GLint*)&oldBinding);   // TODO PEPE TextureBinding(TextureTarget(res.curType)) ?=  res.curType
   gl.glBindTexture(target, res.resource.name);
   gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_WIDTH, &width);
   gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_HEIGHT, &height);
@@ -617,8 +619,6 @@ void GLESReplay::CacheTexture(ResourceId id)
 
   // surely this will be the same for each level... right? that would be insane if it wasn't
   GLint fmt = 0;
-  // TODO PEPE
-  gl.glBindTexture(target, res.resource.name);
   gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
 
   tex.format = MakeResourceFormat(gl, target, (GLenum)fmt);
@@ -677,12 +677,12 @@ void GLESReplay::CacheTexture(ResourceId id)
     tex.msQual = tex.msSamp = 0;
     tex.byteSize = 0;
 
-    // TODO PEPE
-    gl.glBindTexture(target, res.resource.name);
     gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.byteSize);
     tex.width = uint32_t(tex.byteSize / (tex.format.compByteWidth * tex.format.compCount));
 
     m_CachedTextures[id] = tex;
+    gl.glBindTexture(target, oldBinding);
+
     return;
   }
 
@@ -691,8 +691,6 @@ void GLESReplay::CacheTexture(ResourceId id)
   tex.numSubresources = tex.mips * tex.arraysize;
 
   GLint compressed;
-  // TODO PEPE
-  gl.glBindTexture(target, res.resource.name);
   gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_COMPRESSED, &compressed);
   tex.byteSize = 0;
   for(uint32_t a = 0; a < tex.arraysize; a++)
@@ -718,6 +716,7 @@ void GLESReplay::CacheTexture(ResourceId id)
   }
 
   m_CachedTextures[id] = tex;
+  gl.glBindTexture(target, oldBinding);
 }
 
 FetchBuffer GLESReplay::GetBuffer(ResourceId id)
@@ -2146,7 +2145,8 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   if(texType == eGL_TEXTURE_BUFFER)
   {
     GLuint bufName = 0;
-    // TODO PEPE
+    GLuint oldBinding;
+    gl.glGetIntegerv(TextureBinding(texType), (GLint*)&oldBinding);    
     gl.glBindTexture(texType, texname);
     gl.glGetTexLevelParameteriv(texType, 0, eGL_TEXTURE_BUFFER_DATA_STORE_BINDING,
                                        (GLint *)&bufName);
@@ -2156,14 +2156,15 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     gl.glGetTexLevelParameteriv(texType, 0, eGL_TEXTURE_BUFFER_OFFSET,
                                        (GLint *)&offs);
     gl.glGetTexLevelParameteriv(texType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&size);
-
+    gl.glBindTexture(texType, oldBinding);
+    
     vector<byte> data;
     GetBufferData(id, offs, size, data);
 
     dataSize = data.size();
     ret = new byte[dataSize];
     memcpy(ret, &data[0], dataSize);
-
+    
     return ret;
   }
 
@@ -2572,11 +2573,14 @@ void GLESReplay::CreateCustomShaderTex(uint32_t w, uint32_t h)
   if(DebugData.customTex)
   {
     uint32_t oldw = 0, oldh = 0;
-    // TODO PEPE
+    
+    GLuint oldBinding;
+    m_pDriver->glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint*)&oldBinding);    
     m_pDriver->glBindTexture(eGL_TEXTURE_2D, DebugData.customTex);
     m_pDriver->glGetTexLevelParameteriv(eGL_TEXTURE_2D, 0, eGL_TEXTURE_WIDTH, (GLint *)&oldw);
     m_pDriver->glGetTexLevelParameteriv(eGL_TEXTURE_2D, 0, eGL_TEXTURE_HEIGHT, (GLint *)&oldh);
-
+    m_pDriver->glBindTexture(eGL_TEXTURE_2D, oldBinding);
+    
     if(oldw == w && oldh == h)
       return;
 
@@ -2810,19 +2814,20 @@ void GLESReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32
   GLenum fmt = texdetails.internalFormat;
   GLenum target = texdetails.curType;
 
+  GLuint oldBinding;
+  gl.glGetIntegerv(TextureBinding(target), (GLint*)&oldBinding);
+
   if(IsCompressedFormat(fmt))
   {
    
     if(target == eGL_TEXTURE_2D)
     {
-      // TODO PEPE
       gl.glBindTexture(target, tex);
       gl.glCompressedTexSubImage2D(target, (GLint)mip, 0, 0, texdetails.width,
                                           texdetails.height, fmt, (GLsizei)dataSize, data);
     }
     else if(target == eGL_TEXTURE_2D_ARRAY || target == eGL_TEXTURE_CUBE_MAP_ARRAY)
     {
-      // TODO PEPE
       gl.glBindTexture(target, tex);
       gl.glCompressedTexSubImage3D(target, (GLint)mip, 0, 0, (GLint)arrayIdx,
                                           texdetails.width, texdetails.height, 1, fmt,
@@ -2830,7 +2835,6 @@ void GLESReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32
     }
     else if(target == eGL_TEXTURE_3D)
     {
-      // TODO PEPE
       gl.glBindTexture(target, tex);
       gl.glCompressedTexSubImage3D(target, (GLint)mip, 0, 0, 0, texdetails.width,
                                           texdetails.height, texdetails.depth, fmt,
@@ -2846,7 +2850,6 @@ void GLESReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32
 
       RDCASSERT(arrayIdx < ARRAY_COUNT(targets));
       target = targets[arrayIdx];
-      // TODO PEPE
       gl.glBindTexture(target, tex);
       gl.glCompressedTexSubImage2D(target, (GLint)mip, 0, 0, texdetails.width,
                                           texdetails.height, fmt, (GLsizei)dataSize, data);
@@ -2872,26 +2875,24 @@ void GLESReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32
     if(dataSize < GetByteSize(texdetails.width, texdetails.height, depth, baseformat, datatype))
     {
       RDCERR("Insufficient data provided to SetProxyTextureData");
+      gl.glBindTexture(target, oldBinding);
       return;
     }
 
     if(target == eGL_TEXTURE_2D)
     {
-      // TODO PEPE
       gl.glBindTexture(target, tex);
       gl.glTexSubImage2D(target, (GLint)mip, 0, 0, texdetails.width, texdetails.height,
                                 baseformat, datatype, data);
     }
     else if(target == eGL_TEXTURE_2D_ARRAY || target == eGL_TEXTURE_CUBE_MAP_ARRAY)
     {
-      // TODO PEPE
       gl.glBindTexture(target, tex);
       gl.glTexSubImage3D(target, (GLint)mip, 0, 0, (GLint)arrayIdx, texdetails.width,
                                 texdetails.height, 1, baseformat, datatype, data);
     }
     else if(target == eGL_TEXTURE_3D)
     {
-      // TODO PEPE
       gl.glBindTexture(target, tex);
       gl.glTexSubImage3D(target, (GLint)mip, 0, 0, 0, texdetails.width,
                                 texdetails.height, texdetails.depth, baseformat, datatype, data);
@@ -2906,7 +2907,6 @@ void GLESReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32
 
       RDCASSERT(arrayIdx < ARRAY_COUNT(targets));
       target = targets[arrayIdx];
-      // TODO PEPE
       gl.glBindTexture(target, tex);
       gl.glTexSubImage2D(target, (GLint)mip, 0, 0, texdetails.width, texdetails.height,
                                 baseformat, datatype, data);
@@ -2920,6 +2920,7 @@ void GLESReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32
       RDCUNIMPLEMENTED("multisampled proxy textures");
     }
   }
+  gl.glBindTexture(target, oldBinding);
 }
 
 ResourceId GLESReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)

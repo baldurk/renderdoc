@@ -226,9 +226,9 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
   GLenum type = eGL_TEXTURE;
   GLuint name = 0;
 
-  // TODO PEPE
-  gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, res.name);
-  gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, res.name);
+  GLuint oldBinding;
+  gl.glGetIntegerv(eGL_FRAMEBUFFER_BINDING, (GLint*)&oldBinding);
+  gl.glBindFramebuffer(eGL_FRAMEBUFFER, res.name);
   for(int c = 0; c < numCols; c++)
   {
     gl.glGetFramebufferAttachmentParameteriv(eGL_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + c),
@@ -269,6 +269,8 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
     else
       MarkResourceFrameReferenced(TextureRes(res.Context, name), ref);
   }
+  
+  gl.glBindFramebuffer(eGL_FRAMEBUFFER, oldBinding);
 }
 
 bool GLResourceManager::SerialisableResource(ResourceId id, GLResourceRecord *record)
@@ -634,7 +636,9 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       int mips =
           GetNumMips(gl, details.curType, res.name, details.width, details.height, details.depth);
 
-      // TODO PEPE save and reload the already binded texture
+      
+      GLuint oldBinding;
+      gl.glGetIntegerv(TextureBinding(details.curType), (GLint*)&oldBinding);
       gl.glBindTexture(details.curType, tex);
 
       // create texture of identical format/size to store initial contents
@@ -672,12 +676,11 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       // We set max_level to mips - 1 (so mips=1 means MAX_LEVEL=0). Then restore it to the 'real'
       // value we fetched above
       int maxlevel = mips - 1;
-
-      //  TODO PEPE
+      
       gl.glBindTexture(details.curType, res.name);
       gl.glTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL,
                                  (GLint *)&maxlevel);
-
+      
       bool iscomp = IsCompressedFormat(details.internalFormat);
 
       bool avoidCopySubImage = false;
@@ -820,10 +823,9 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         gl.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, pixelUnpackBuffer);
       }
 
-      // TODO PEPE
-      gl.glBindTexture(details.curType, res.name);
       gl.glTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL,
                                  (GLint *)&state->maxLevel);
+      gl.glBindTexture(TextureBinding(details.curType), oldBinding);
     }
 
     SetInitialContents(origid, InitialContentData(TextureRes(res.Context, tex), 0, (byte *)state));
@@ -831,7 +833,8 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
   else
   {
     // record texbuffer only state
-    // TODO PEPE
+    GLuint oldBinding;
+    gl.glGetIntegerv(TextureBinding(details.curType), (GLint*)&oldBinding);
     gl.glBindTexture(details.curType, res.name);
 
     GLuint bufName = 0;
@@ -845,6 +848,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
                                        (GLint *)&state->texBufSize);
 
     SetInitialContents(origid, InitialContentData(GLResource(MakeNullResource), 0, (byte *)state));
+    gl.glBindTexture(TextureBinding(details.curType), oldBinding);
   }
 }
 
@@ -1158,9 +1162,11 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         GLint immut = 0;
 
         if(textype != eGL_TEXTURE_BUFFER) {
-          // TODO PEPE 
+          GLuint oldBinding;
+          gl.glGetIntegerv(BufferBinding(textype), (GLint*)&oldBinding);
           gl.glBindTexture(textype, live);
           gl.glGetTexParameteriv(textype, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
+          gl.glBindTexture(textype, oldBinding);
         }
 
         if(textype != eGL_TEXTURE_BUFFER && immut == 0)
@@ -1198,7 +1204,8 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
             {
               for(int t = 0; t < count; t++)
               {
-                // TODO PEPE
+                GLuint oldBinding;
+                gl.glGetIntegerv(TextureBinding(targets[t]), (GLint*)&oldBinding);
                 gl.glBindTexture(targets[t], live);
                 if(isCompressed)
                 {
@@ -1225,6 +1232,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
                                            (GLsizei)h, (GLsizei)d, 0, GetBaseFormat(internalformat),
                                            GetDataType(internalformat), NULL);
                 }
+                gl.glBindTexture(targets[t], oldBinding);
               }
             }
           }
@@ -1234,20 +1242,15 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
         if(textype != eGL_TEXTURE_BUFFER && !details.view)
         {
-          GLuint prevtex = 0;
-          gl.glGetIntegerv(TextureBinding(textype), (GLint *)&prevtex);
-
           gl.glGenTextures(1, &tex);
-          gl.glBindTexture(textype, tex);
-
-          gl.glBindTexture(textype, prevtex);
         }
 
         GLenum dummy;
         EmulateLuminanceFormat(gl, tex, textype, internalformat, dummy);
         // TODO PEPE
-        gl.glBindTexture(textype, tex);
 
+        GLuint oldBinding = 0;
+        
         // create texture of identical format/size to store initial contents
         if(textype == eGL_TEXTURE_BUFFER || details.view)
         {
@@ -1255,23 +1258,35 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         }
         else if(textype == eGL_TEXTURE_2D_MULTISAMPLE)
         {
+          gl.glGetIntegerv(TextureBinding(textype), (GLint*)&oldBinding);
+          gl.glBindTexture(textype, tex);
           gl.glTexStorage2DMultisample(textype, samples, internalformat, width, height,
                                               GL_TRUE);
+          gl.glBindTexture(textype, oldBinding);
           mips = 1;
         }
         else if(textype == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
         {
+          gl.glGetIntegerv(TextureBinding(textype), (GLint*)&oldBinding);
+          gl.glBindTexture(textype, tex);
           gl.glTexStorage3DMultisample(textype, samples, internalformat, width, height,
                                               depth, GL_TRUE);
+          gl.glBindTexture(textype, oldBinding);
           mips = 1;
         }
         else if(dim == 2)
         {
+          gl.glGetIntegerv(TextureBinding(textype), (GLint*)&oldBinding);
+          gl.glBindTexture(textype, tex);
           gl.glTexStorage2D(textype, mips, internalformat, width, height);
+          gl.glBindTexture(textype, oldBinding);
         }
         else if(dim == 3)
         {
+          gl.glGetIntegerv(TextureBinding(textype), (GLint*)&oldBinding);
+          gl.glBindTexture(textype, tex);
           gl.glTexStorage3D(textype, mips, internalformat, width, height, depth);
+          gl.glBindTexture(textype, oldBinding);
         }
 
         if(textype == eGL_TEXTURE_BUFFER || details.view)
@@ -1309,7 +1324,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
               byte *buf = NULL;
 
               m_pSerialiser->SerialiseBuffer("image", buf, size);
-              // TODO PEPE
+              gl.glGetIntegerv(TextureBinding(targets[trg]), (GLint*)&oldBinding);
               gl.glBindTexture(targets[trg], tex);
               if(dim == 2)
                 gl.glCompressedTexSubImage2D(targets[trg], i, 0, 0, w, h,
@@ -1317,6 +1332,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
               else if(dim == 3)
                 gl.glCompressedTexSubImage3D(targets[trg], i, 0, 0, 0, w, h, d,
                                                     internalformat, (GLsizei)size, buf);
+              gl.glBindTexture(targets[trg], oldBinding);
 
               delete[] buf;
             }
@@ -1360,13 +1376,14 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
               byte *buf = NULL;
               m_pSerialiser->SerialiseBuffer("image", buf, size);
 
-              // TODO PEPE
+              gl.glGetIntegerv(TextureBinding(targets[trg]), (GLint*)&oldBinding);
               gl.glBindTexture(targets[trg], tex);
 
               if(dim == 2)
                 gl.glTexSubImage2D(targets[trg], i, 0, 0, w, h, fmt, type, buf);
               else if(dim == 3)
                 gl.glTexSubImage3D(targets[trg], i, 0, 0, 0, w, h, d, fmt, type, buf);
+              gl.glBindTexture(targets[trg], oldBinding);
 
               delete[] buf;
             }
@@ -1524,11 +1541,13 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
         // We set max_level to mips - 1 (so mips=1 means MAX_LEVEL=0). Then below where we set the
         // texture state, the correct MAX_LEVEL is set to whatever the program had.
         int maxlevel = mips - 1;
-        // TODO PEPE
+        
+        GLuint oldBinding;
+        gl.glGetIntegerv(TextureBinding(details.curType), (GLint*)&oldBinding);
         gl.glBindTexture(details.curType, live.name);
         gl.glTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL,
                                    (GLint *)&maxlevel);
-
+        gl.glBindTexture(details.curType, oldBinding);
         bool iscomp = IsCompressedFormat(details.internalFormat);
 
         bool avoidCopySubImage = false;
@@ -1664,7 +1683,8 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
       bool ms = (details.curType == eGL_TEXTURE_2D_MULTISAMPLE ||
                  details.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY);
 
-      // TODO PEPE
+      GLuint oldBinding;
+      gl.glGetIntegerv(TextureBinding(details.curType), (GLint*)&oldBinding);
       gl.glBindTexture(details.curType, live.name);
       
       if(state->depthMode == eGL_DEPTH_COMPONENT || state->depthMode == eGL_STENCIL_INDEX)
@@ -1709,6 +1729,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
         gl.glTexParameterfv(details.curType, eGL_TEXTURE_BORDER_COLOR,
                                    state->border);
       }
+      gl.glBindTexture(details.curType, oldBinding);
     }
     else
     {
@@ -1727,31 +1748,36 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
       if(gl.glTexBufferRange)
       {
         // restore texbuffer only state
-        // TODO PEPE 
-        gl.glBindTexture(eGL_TEXTURE_BUFFER, live.name);
+        GLuint oldBinding;
+        gl.glGetIntegerv(eGL_TEXTURE_BUFFER_BINDING, (GLint*)&oldBinding);
+        gl.glBindBuffer(eGL_TEXTURE_BUFFER, buffer);
         gl.glTexBufferRange(eGL_TEXTURE_BUFFER, details.internalFormat, buffer,
                                    state->texBufOffs, state->texBufSize);
+        gl.glBindBuffer(eGL_TEXTURE_BUFFER, oldBinding);
       }
       else
       {
-// TODO PEPE what  kind of buffer?
-//        uint32_t bufSize = 0;
-//        gl.glGetBufferParameteriv(buffer, eGL_BUFFER_SIZE, (GLint *)&bufSize);
-//        if(state->texBufOffs > 0 || state->texBufSize > bufSize)
-//        {
-//          const char *msg =
-//              "glTextureBufferRangeEXT is not supported on your GL implementation, but is needed "
-//              "for correct replay.\n"
-//              "The original capture created a texture buffer with a range - replay will use the "
-//              "whole buffer, which is likely incorrect.";
-//          RDCERR("%s", msg);
-//          m_GL->AddDebugMessage(eDbgCategory_Resource_Manipulation, eDbgSeverity_High,
-//                                eDbgSource_IncorrectAPIUse, msg);
-//        }
+        GLuint oldBinding;
+        gl.glGetIntegerv(eGL_TEXTURE_BUFFER_BINDING, (GLint*)&oldBinding);
+        gl.glBindBuffer(eGL_TEXTURE_BUFFER, buffer);
 
-        // TODO PEPE
-        gl.glBindTexture(eGL_TEXTURE_BUFFER, live.name);
+        uint32_t bufSize = 0;
+        gl.glGetBufferParameteriv(eGL_TEXTURE_BUFFER, eGL_BUFFER_SIZE, (GLint *)&bufSize);
+        if(state->texBufOffs > 0 || state->texBufSize > bufSize)
+        {
+          const char *msg =
+              "glTextureBufferRangeEXT is not supported on your GL implementation, but is needed "
+              "for correct replay.\n"
+              "The original capture created a texture buffer with a range - replay will use the "
+              "whole buffer, which is likely incorrect.";
+          RDCERR("%s", msg);
+          m_GL->AddDebugMessage(eDbgCategory_Resource_Manipulation, eDbgSeverity_High,
+                                eDbgSource_IncorrectAPIUse, msg);
+        }
+
         gl.glTexBuffer(eGL_TEXTURE_BUFFER, details.internalFormat, buffer);
+        gl.glBindBuffer(eGL_TEXTURE_BUFFER, oldBinding);
+        
       }
     }
   }
@@ -1780,8 +1806,6 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
         if(a.renderbuffer && obj)
         {
-          // TODO PEPE
-          gl.glBindFramebuffer(eGL_FRAMEBUFFER, live.name);
           gl.glFramebufferRenderbuffer(eGL_FRAMEBUFFER, data->attachmentNames[i],
                                                eGL_RENDERBUFFER, obj);
         }
@@ -1824,15 +1848,11 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
             else
             {
               RDCASSERT(a.layer == 0);
-              // TODO PEPE
-              gl.glBindFramebuffer(eGL_FRAMEBUFFER, live.name);
               gl.glFramebufferTexture(eGL_FRAMEBUFFER, data->attachmentNames[i], obj, a.level);
             }
           }
           else
           {
-            // TODO PEPE
-            gl.glBindFramebuffer(eGL_FRAMEBUFFER, live.name);
             gl.glFramebufferTexture(eGL_FRAMEBUFFER, data->attachmentNames[i], obj, a.level);
           }
         }

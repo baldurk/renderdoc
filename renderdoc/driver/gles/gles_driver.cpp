@@ -1263,7 +1263,7 @@ void WrappedGLES::RegisterContext(GLESWindowingData winData, void *shareContext,
 void WrappedGLES::ActivateContext(GLESWindowingData winData)
 {
 
-    // PEPE
+    // PEPE DEBUG
     {
         const GLHookSet &gl = m_Real;
         gl.glDebugMessageCallback(&DebugSnoopStatic, this);
@@ -1457,8 +1457,6 @@ struct RenderTextState
       enableBits[4] = gl.glIsEnabled(eGL_SCISSOR_TEST) != 0;
       enableBits[5] = gl.glIsEnabled(eGL_TEXTURE_2D) != 0;
     }
-
-    // TODO PEPE ClipOrigin and ClipDepth must be set
 
     if(modern)
     {

@@ -407,7 +407,9 @@ int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint 
   int mips = 1;
 
   GLint immut = 0;
-  gl.glBindTexture(target, tex); // TODO CHECK PEPE
+  GLuint oldBinding;
+  gl.glGetIntegerv(TextureBinding(target), (GLint*)&oldBinding);  
+  gl.glBindTexture(target, tex);
   gl.glGetTexParameteriv(target, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
 
   if(immut)
@@ -437,7 +439,7 @@ int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint 
       }
     }
   }
-
+  gl.glBindTexture(target, oldBinding);
   return RDCMAX(1, mips);
 }
 
@@ -616,11 +618,14 @@ bool EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLen
   }
 
   if(tex) {
-    gl.glBindTexture(target, tex);  // TODO PEPE CHECK
+    GLuint oldBinding;
+    gl.glGetIntegerv(TextureBinding(target), (GLint*)&oldBinding);
+    gl.glBindTexture(target, tex);
     gl.glTexParameteri(target, eGL_TEXTURE_SWIZZLE_R, swizzle[0]);
     gl.glTexParameteri(target, eGL_TEXTURE_SWIZZLE_G, swizzle[1]);
     gl.glTexParameteri(target, eGL_TEXTURE_SWIZZLE_B, swizzle[2]);
     gl.glTexParameteri(target, eGL_TEXTURE_SWIZZLE_A, swizzle[3]);
+    gl.glBindTexture(target, oldBinding);
   }
 
   return true;

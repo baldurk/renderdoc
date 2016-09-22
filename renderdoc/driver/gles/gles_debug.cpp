@@ -342,14 +342,18 @@ void GLESReplay::InitDebugData()
   gl.glSamplerParameteri(DebugData.pointNoMipSampler, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
 
   gl.glGenBuffers(ARRAY_COUNT(DebugData.UBOs), DebugData.UBOs);
+  GLuint oldBinding;
+  gl.glGetIntegerv(eGL_UNIFORM_BUFFER_BINDING, (GLint*)&oldBinding);
   for(size_t i = 0; i < ARRAY_COUNT(DebugData.UBOs); i++)
   {
     gl.glBindBuffer(eGL_UNIFORM_BUFFER, DebugData.UBOs[i]);
-    gl.glBufferData(eGL_UNIFORM_BUFFER, 512, NULL, eGL_DYNAMIC_DRAW);   // TODO CHECK PEPE
+    gl.glBufferData(eGL_UNIFORM_BUFFER, 512, NULL, eGL_DYNAMIC_DRAW);  
+    
     RDCCOMPILE_ASSERT(sizeof(TexDisplayUBOData) < 512, "texdisplay UBO too large");
     RDCCOMPILE_ASSERT(sizeof(FontUBOData) < 512, "texdisplay UBO too large");
     RDCCOMPILE_ASSERT(sizeof(HistogramUBOData) < 512, "texdisplay UBO too large");
   }
+  gl.glBindBuffer(eGL_UNIFORM_BUFFER, oldBinding);
 
   DebugData.overlayTexWidth = DebugData.overlayTexHeight = 0;
   DebugData.overlayTex = DebugData.overlayFBO = 0;
@@ -2858,7 +2862,8 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
   }
 
   // get buffer data from buffer attached to feedback object
-  // TODO PEPE
+  GLuint oldBinding;
+  gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, (GLint*)&oldBinding);
   gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
   float *data = (float *)gl.glMapBufferOES(eGL_TRANSFORM_FEEDBACK_BUFFER, eGL_READ_ONLY);
 
@@ -2949,7 +2954,8 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
       break;
     }
   }
-
+  
+  
   // if we didn't find anything, all z's and w's were identical.
   // If the z is positive and w greater for the first element then
   // we detect this projection as reversed z with infinite far plane
@@ -2958,9 +2964,8 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
     nearp = pos0->z;
     farp = FLT_MAX;
   }
-  // TODO PEPE
-  gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
   gl.glUnmapBufferOES(eGL_TRANSFORM_FEEDBACK_BUFFER);
+  gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, oldBinding);
 
   // store everything out to the PostVS data cache
   m_PostVSData[eventID].vsin.topo = drawcall->topology;
@@ -3250,7 +3255,8 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
       }
 
       // get buffer data from buffer attached to feedback object
-      // TODO PEPE
+      GLuint oldBinding;
+      gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, (GLint*)&oldBinding);
       gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
       data = (float *)gl.glMapBufferOES(eGL_TRANSFORM_FEEDBACK_BUFFER, eGL_READ_ONLY);
 
@@ -3372,8 +3378,8 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
         farp = FLT_MAX;
       }
 
-      gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
       gl.glUnmapBufferOES(eGL_TRANSFORM_FEEDBACK_BUFFER);
+      gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, oldBinding);
 
       // store everything out to the PostVS data cache
       m_PostVSData[eventID].gsout.buf = lastoutBuffer;
