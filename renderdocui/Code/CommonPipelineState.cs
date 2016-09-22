@@ -142,6 +142,9 @@ namespace renderdocui.Code
                     if (IsLogD3D11)
                         return m_D3D11 != null && m_D3D11.m_HS.Shader != ResourceId.Null;
 
+                    if (IsLogD3D12)
+                        return m_D3D12 != null && m_D3D12.m_HS.Shader != ResourceId.Null;
+
                     if (IsLogGL)
                         return m_GL != null && m_GL.m_TES.Shader != ResourceId.Null;
 
@@ -165,7 +168,7 @@ namespace renderdocui.Code
         {
             get
             {
-                return LogLoaded && IsLogVK;
+                return LogLoaded && (IsLogVK || IsLogD3D12);
             }
         }
 
@@ -177,13 +180,7 @@ namespace renderdocui.Code
         {
             get
             {
-                if (LogLoaded)
-                {
-                    if (IsLogVK)
-                        return true;
-                }
-
-                return false;
+                return LogLoaded && IsLogVK;
             }
         }
 
@@ -193,6 +190,9 @@ namespace renderdocui.Code
             {
                 if (IsLogVK && m_Vulkan.Images.ContainsKey(id))
                     return m_Vulkan.Images[id].layouts[0].name;
+
+                if (IsLogD3D12)
+                    return "TODO";
             }
 
             return "Unknown";
@@ -200,7 +200,8 @@ namespace renderdocui.Code
 
         public string Abbrev(ShaderStageType stage)
         {
-            if (IsLogD3D11 || (!LogLoaded && DefaultType == GraphicsAPI.D3D11))
+            if (IsLogD3D11 || (!LogLoaded && DefaultType == GraphicsAPI.D3D11) ||
+                IsLogD3D12 || (!LogLoaded && DefaultType == GraphicsAPI.D3D12))
             {
                 switch (stage)
                 {
@@ -259,6 +260,13 @@ namespace renderdocui.Code
                     ret.width = m_D3D11.m_RS.Viewports[0].Width;
                     ret.height = m_D3D11.m_RS.Viewports[0].Height;
                 }
+                else if (IsLogD3D12 && m_D3D12.m_RS.Viewports.Length > 0)
+                {
+                    ret.x = m_D3D12.m_RS.Viewports[0].TopLeft[0];
+                    ret.y = m_D3D12.m_RS.Viewports[0].TopLeft[1];
+                    ret.width = m_D3D12.m_RS.Viewports[0].Width;
+                    ret.height = m_D3D12.m_RS.Viewports[0].Height;
+                }
                 else if (IsLogGL && m_GL.m_RS.Viewports.Length > 0)
                 {
                     ret.x = m_GL.m_RS.Viewports[0].Left;
@@ -292,6 +300,18 @@ namespace renderdocui.Code
                         case ShaderStageType.Geometry: return m_D3D11.m_GS.BindpointMapping;
                         case ShaderStageType.Pixel: return m_D3D11.m_PS.BindpointMapping;
                         case ShaderStageType.Compute: return m_D3D11.m_CS.BindpointMapping;
+                    }
+                }
+                else if (IsLogD3D12)
+                {
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: return m_D3D12.m_VS.BindpointMapping;
+                        case ShaderStageType.Domain: return m_D3D12.m_DS.BindpointMapping;
+                        case ShaderStageType.Hull: return m_D3D12.m_HS.BindpointMapping;
+                        case ShaderStageType.Geometry: return m_D3D12.m_GS.BindpointMapping;
+                        case ShaderStageType.Pixel: return m_D3D12.m_PS.BindpointMapping;
+                        case ShaderStageType.Compute: return m_D3D12.m_CS.BindpointMapping;
                     }
                 }
                 else if (IsLogGL)
@@ -337,6 +357,18 @@ namespace renderdocui.Code
                         case ShaderStageType.Geometry: return m_D3D11.m_GS.ShaderDetails;
                         case ShaderStageType.Pixel: return m_D3D11.m_PS.ShaderDetails;
                         case ShaderStageType.Compute: return m_D3D11.m_CS.ShaderDetails;
+                    }
+                }
+                else if (IsLogD3D12)
+                {
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: return m_D3D12.m_VS.ShaderDetails;
+                        case ShaderStageType.Domain: return m_D3D12.m_DS.ShaderDetails;
+                        case ShaderStageType.Hull: return m_D3D12.m_HS.ShaderDetails;
+                        case ShaderStageType.Geometry: return m_D3D12.m_GS.ShaderDetails;
+                        case ShaderStageType.Pixel: return m_D3D12.m_PS.ShaderDetails;
+                        case ShaderStageType.Compute: return m_D3D12.m_CS.ShaderDetails;
                     }
                 }
                 else if (IsLogGL)
@@ -402,6 +434,18 @@ namespace renderdocui.Code
                         case ShaderStageType.Compute: return m_D3D11.m_CS.Shader;
                     }
                 }
+                else if (IsLogD3D12)
+                {
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: return m_D3D12.m_VS.Shader;
+                        case ShaderStageType.Domain: return m_D3D12.m_DS.Shader;
+                        case ShaderStageType.Hull: return m_D3D12.m_HS.Shader;
+                        case ShaderStageType.Geometry: return m_D3D12.m_GS.Shader;
+                        case ShaderStageType.Pixel: return m_D3D12.m_PS.Shader;
+                        case ShaderStageType.Compute: return m_D3D12.m_CS.Shader;
+                    }
+                }
                 else if (IsLogGL)
                 {
                     switch (stage)
@@ -447,16 +491,28 @@ namespace renderdocui.Code
                         case ShaderStageType.Compute: return m_D3D11.m_CS.ShaderName;
                     }
                 }
+                else if (IsLogD3D12)
+                {
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: return m_D3D12.PipelineName + " VS";
+                        case ShaderStageType.Domain: return m_D3D12.PipelineName + " DS";
+                        case ShaderStageType.Hull: return m_D3D12.PipelineName + " HS";
+                        case ShaderStageType.Geometry: return m_D3D12.PipelineName + " GS";
+                        case ShaderStageType.Pixel: return m_D3D12.PipelineName + " PS";
+                        case ShaderStageType.Compute: return m_D3D12.PipelineName + " CS";
+                    }
+                }
                 else if (IsLogGL)
                 {
                     switch (stage)
                     {
-                        case ShaderStageType.Vertex: return String.Format("Shader {0}", m_GL.m_VS.Shader);
-                        case ShaderStageType.Tess_Control: return String.Format("Shader {0}", m_GL.m_TCS.Shader);
-                        case ShaderStageType.Tess_Eval: return String.Format("Shader {0}", m_GL.m_TES.Shader);
-                        case ShaderStageType.Geometry: return String.Format("Shader {0}", m_GL.m_GS.Shader);
-                        case ShaderStageType.Fragment: return String.Format("Shader {0}", m_GL.m_FS.Shader);
-                        case ShaderStageType.Compute: return String.Format("Shader {0}", m_GL.m_CS.Shader);
+                        case ShaderStageType.Vertex: return m_GL.m_VS.ShaderName;
+                        case ShaderStageType.Tess_Control: return m_GL.m_TCS.ShaderName;
+                        case ShaderStageType.Tess_Eval: return m_GL.m_TES.ShaderName;
+                        case ShaderStageType.Geometry: return m_GL.m_GS.ShaderName;
+                        case ShaderStageType.Fragment: return m_GL.m_FS.ShaderName;
+                        case ShaderStageType.Compute: return m_GL.m_CS.ShaderName;
                     }
                 }
                 else if (IsLogVK)
@@ -484,6 +540,13 @@ namespace renderdocui.Code
                 {
                     buf = m_D3D11.m_IA.ibuffer.Buffer;
                     ByteOffset = m_D3D11.m_IA.ibuffer.Offset;
+
+                    return;
+                }
+                else if (IsLogD3D12)
+                {
+                    buf = m_D3D12.m_IA.ibuffer.Buffer;
+                    ByteOffset = m_D3D12.m_IA.ibuffer.Offset;
 
                     return;
                 }
@@ -516,6 +579,10 @@ namespace renderdocui.Code
                     // D3D11 this is always enabled
                     return true;
                 }
+                else if (IsLogD3D12)
+                {
+                    return m_D3D12.m_IA.indexStripCutValue != 0;
+                }
                 else if (IsLogGL)
                 {
                     return m_GL.m_VtxIn.primitiveRestart;
@@ -537,6 +604,10 @@ namespace renderdocui.Code
                 {
                     // D3D11 or Vulkan this is always '-1' in whichever size of index we're using
                     return indexByteWidth == 2 ? ushort.MaxValue : uint.MaxValue;
+                }
+                else if (IsLogD3D12)
+                {
+                    return m_D3D12.m_IA.indexStripCutValue;
                 }
                 else if (IsLogGL)
                 {
@@ -564,6 +635,18 @@ namespace renderdocui.Code
                         ret[i].Buffer = m_D3D11.m_IA.vbuffers[i].Buffer;
                         ret[i].ByteOffset = m_D3D11.m_IA.vbuffers[i].Offset;
                         ret[i].ByteStride = m_D3D11.m_IA.vbuffers[i].Stride;
+                    }
+
+                    return ret;
+                }
+                else if (IsLogD3D12)
+                {
+                    BoundVBuffer[] ret = new BoundVBuffer[m_D3D12.m_IA.vbuffers.Length];
+                    for (int i = 0; i < m_D3D12.m_IA.vbuffers.Length; i++)
+                    {
+                        ret[i].Buffer = m_D3D12.m_IA.vbuffers[i].Buffer;
+                        ret[i].ByteOffset = m_D3D12.m_IA.vbuffers[i].Offset;
+                        ret[i].ByteStride = m_D3D12.m_IA.vbuffers[i].Stride;
                     }
 
                     return ret;
@@ -645,6 +728,60 @@ namespace renderdocui.Code
                             {
                                 if (m_D3D11.m_IA.Bytecode.InputSig[ia].semanticName.ToUpperInvariant() == layouts[i].SemanticName.ToUpperInvariant() &&
                                     m_D3D11.m_IA.Bytecode.InputSig[ia].semanticIndex == layouts[i].SemanticIndex)
+                                {
+                                    ret[i].Used = true;
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    return ret;
+                }
+                else if (IsLogD3D12)
+                {
+                    uint[] byteOffs = new uint[128];
+                    for (int i = 0; i < 128; i++)
+                        byteOffs[i] = 0;
+
+                    var layouts = m_D3D12.m_IA.layouts;
+
+                    VertexInputAttribute[] ret = new VertexInputAttribute[layouts.Length];
+                    for (int i = 0; i < layouts.Length; i++)
+                    {
+                        bool needsSemanticIdx = false;
+                        for (int j = 0; j < layouts.Length; j++)
+                        {
+                            if (i != j && layouts[i].SemanticName == layouts[j].SemanticName)
+                            {
+                                needsSemanticIdx = true;
+                                break;
+                            }
+                        }
+
+                        uint offs = layouts[i].ByteOffset;
+                        if (offs == uint.MaxValue) // APPEND_ALIGNED
+                            offs = byteOffs[layouts[i].InputSlot];
+                        else
+                            byteOffs[layouts[i].InputSlot] = offs = layouts[i].ByteOffset;
+
+                        byteOffs[layouts[i].InputSlot] += layouts[i].Format.compByteWidth * layouts[i].Format.compCount;
+
+                        ret[i].Name = layouts[i].SemanticName + (needsSemanticIdx ? layouts[i].SemanticIndex.ToString() : "");
+                        ret[i].VertexBuffer = (int)layouts[i].InputSlot;
+                        ret[i].RelativeByteOffset = offs;
+                        ret[i].PerInstance = layouts[i].PerInstance;
+                        ret[i].InstanceRate = (int)layouts[i].InstanceDataStepRate;
+                        ret[i].Format = layouts[i].Format;
+                        ret[i].GenericValue = null;
+                        ret[i].Used = false;
+
+                        if (m_D3D12.m_VS.ShaderDetails != null)
+                        {
+                            for (int ia = 0; ia < m_D3D12.m_VS.ShaderDetails.InputSig.Length; ia++)
+                            {
+                                if (m_D3D12.m_VS.ShaderDetails.InputSig[ia].semanticName.ToUpperInvariant() == layouts[i].SemanticName.ToUpperInvariant() &&
+                                    m_D3D12.m_VS.ShaderDetails.InputSig[ia].semanticIndex == layouts[i].SemanticIndex)
                                 {
                                     ret[i].Used = true;
                                     break;
@@ -815,6 +952,33 @@ namespace renderdocui.Code
                         return;
                     }
                 }
+                else if (IsLogD3D12)
+                {
+                    D3D12PipelineState.ShaderStage s = null;
+
+                    switch (stage)
+                    {
+                        case ShaderStageType.Vertex: s = m_D3D12.m_VS; break;
+                        case ShaderStageType.Domain: s = m_D3D12.m_DS; break;
+                        case ShaderStageType.Hull: s = m_D3D12.m_HS; break;
+                        case ShaderStageType.Geometry: s = m_D3D12.m_GS; break;
+                        case ShaderStageType.Pixel: s = m_D3D12.m_PS; break;
+                        case ShaderStageType.Compute: s = m_D3D12.m_CS; break;
+                    }
+
+                    if (s.ShaderDetails != null && BufIdx < s.ShaderDetails.ConstantBlocks.Length)
+                    {
+                        var bind = s.BindpointMapping.ConstantBlocks[s.ShaderDetails.ConstantBlocks[BufIdx].bindPoint];
+
+                        var descriptor = m_D3D12.m_RootSig.Spaces[bind.bindset].ConstantBuffers[bind.bind];
+
+                        buf = descriptor.Buffer;
+                        ByteOffset = descriptor.Offset;
+                        ByteSize = descriptor.ByteSize;
+
+                        return;
+                    }
+                }
                 else if (IsLogGL)
                 {
                     GLPipelineState.ShaderStage s = null;
@@ -929,6 +1093,34 @@ namespace renderdocui.Code
 
                     return ret;
                 }
+                else if (IsLogD3D12)
+                {
+                    ShaderStageBits mask = (ShaderStageBits)(1 << (int)stage);
+
+                    for (int space = 0; space < m_D3D12.m_RootSig.Spaces.Length; space++)
+                    {
+                        for (int reg = 0; reg < m_D3D12.m_RootSig.Spaces[space].SRVs.Length; reg++)
+                        {
+                            var bind = m_D3D12.m_RootSig.Spaces[space].SRVs[reg];
+
+                            if ((bind.VisibilityMask & mask) == mask)
+                            {
+                                var key = new BindpointMap(space, reg);
+                                var val = new BoundResource[1];
+
+                                val[0] = new BoundResource();
+                                val[0].Id = bind.Resource;
+                                val[0].HighestMip = (int)bind.HighestMip;
+                                val[0].FirstSlice = (int)bind.FirstArraySlice;
+                                val[0].typeHint = bind.Format.compType;
+
+                                ret.Add(key, val);
+                            }
+                        }
+                    }
+
+                    return ret;
+                }
                 else if (IsLogGL)
                 {
                     for (int i = 0; i < m_GL.Textures.Length; i++)
@@ -1032,6 +1224,34 @@ namespace renderdocui.Code
 
                     return ret;
                 }
+                else if (IsLogD3D12)
+                {
+                    ShaderStageBits mask = (ShaderStageBits)(1 << (int)stage);
+
+                    for (int space = 0; space < m_D3D12.m_RootSig.Spaces.Length; space++)
+                    {
+                        for (int reg = 0; reg < m_D3D12.m_RootSig.Spaces[space].UAVs.Length; reg++)
+                        {
+                            var bind = m_D3D12.m_RootSig.Spaces[space].UAVs[reg];
+
+                            if ((bind.VisibilityMask & mask) == mask)
+                            {
+                                var key = new BindpointMap(space, reg);
+                                var val = new BoundResource[1];
+
+                                val[0] = new BoundResource();
+                                val[0].Id = bind.Resource;
+                                val[0].HighestMip = (int)bind.HighestMip;
+                                val[0].FirstSlice = (int)bind.FirstArraySlice;
+                                val[0].typeHint = bind.Format.compType;
+
+                                ret.Add(key, val);
+                            }
+                        }
+                    }
+
+                    return ret;
+                }
                 else if (IsLogGL)
                 {
                     for (int i = 0; i < m_GL.Images.Length; i++)
@@ -1106,6 +1326,15 @@ namespace renderdocui.Code
                     ret.typeHint = m_D3D11.m_OM.DepthTarget.Format.compType;
                     return ret;
                 }
+                else if (IsLogD3D12)
+                {
+                    var ret = new BoundResource();
+                    ret.Id = m_D3D12.m_OM.DepthTarget.Resource;
+                    ret.HighestMip = (int)m_D3D12.m_OM.DepthTarget.HighestMip;
+                    ret.FirstSlice = (int)m_D3D12.m_OM.DepthTarget.FirstArraySlice;
+                    ret.typeHint = m_D3D12.m_OM.DepthTarget.Format.compType;
+                    return ret;
+                }
                 else if (IsLogGL)
                 {
                     var ret = new BoundResource();
@@ -1151,6 +1380,20 @@ namespace renderdocui.Code
                         ret[i].HighestMip = (int)m_D3D11.m_OM.RenderTargets[i].HighestMip;
                         ret[i].FirstSlice = (int)m_D3D11.m_OM.RenderTargets[i].FirstArraySlice;
                         ret[i].typeHint = m_D3D11.m_OM.RenderTargets[i].Format.compType;
+                    }
+
+                    return ret;
+                }
+                else if (IsLogD3D12)
+                {
+                    BoundResource[] ret = new BoundResource[m_D3D12.m_OM.RenderTargets.Length];
+                    for (int i = 0; i < m_D3D12.m_OM.RenderTargets.Length; i++)
+                    {
+                        ret[i] = new BoundResource();
+                        ret[i].Id = m_D3D12.m_OM.RenderTargets[i].Resource;
+                        ret[i].HighestMip = (int)m_D3D12.m_OM.RenderTargets[i].HighestMip;
+                        ret[i].FirstSlice = (int)m_D3D12.m_OM.RenderTargets[i].FirstArraySlice;
+                        ret[i].typeHint = m_D3D12.m_OM.RenderTargets[i].Format.compType;
                     }
 
                     return ret;
