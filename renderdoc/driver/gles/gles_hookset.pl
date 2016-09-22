@@ -40,6 +40,9 @@ my $current = \@unsupported;
 
 my @used = ();
 
+# TODO pantos remove hack
+my @implemented_funcs = split(/\n/, `grep -h "WrappedGLES::gl" wrappers/*.cpp | grep -v "^//" | grep -o "gl\\w*" | sort`);
+
 while(<HOOKSET>)
 {
 	my $line = $_;
@@ -68,6 +71,12 @@ while(<HOOKSET>)
 			my $typedef = $1;
 			my $name = $2;
 			my $aliases = $4;
+
+			# TODO pantos
+			if(not grep { $_ eq $name } @implemented_funcs)
+			{
+				next;
+			}
 
                        my @alias_split = split(/, */, $aliases);
 
