@@ -4760,7 +4760,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       texDisplay.scale = 1.0f;
       texDisplay.texid = tex;
       texDisplay.typeHint = eCompType_None;
-      texDisplay.rawoutput = true;
+      texDisplay.rawoutput = false;
       texDisplay.offx = 0;
       texDisplay.offy = 0;
 
@@ -4809,7 +4809,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
           &clearval,
       };
 
-      RenderTextureInternal(texDisplay, rpbegin, true);
+      RenderTextureInternal(texDisplay, rpbegin, false);
     }
 
     m_DebugWidth = oldW;
