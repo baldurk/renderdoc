@@ -35,6 +35,7 @@ open(HOOKSET, "<gles_hookset.h") || die "Couldn't open gles_hookset.h - run in d
 my @unsupported = ();
 my @dllexport = ();
 my @glext = ();
+my @namemap = ();
 
 my $current = \@unsupported;
 
@@ -72,7 +73,10 @@ while(<HOOKSET>)
 			my $name = $2;
 			my $aliases = $4;
 
-			# TODO pantos
+            my %variablemap = (name => $name, typedef => $typedef);
+            push @namemap, { %variablemap};
+			
+            # TODO pantos
 			if(not grep { $_ eq $name } @implemented_funcs)
 			{
 				next;
@@ -129,8 +133,15 @@ foreach my $typedef (split(/\n/, $typedefs))
 
 		$current = \@unsupported;
 		my $name = $def;
-		$name =~ s/^PFN(.*)PROC$/$1/g;
-		$name = lc($name); # todo, fetch the proper name instead of using lowercase (and insensitive compare)
+        foreach (@namemap)
+        {
+            if ($_->{'typedef'} eq $def)
+            {
+                $name = $_->{'name'};
+                last;
+            }
+        }
+        
 		my $aliases = "";
 
 		if($isused)

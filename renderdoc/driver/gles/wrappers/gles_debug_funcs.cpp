@@ -137,21 +137,21 @@ void WrappedGLES::glObjectLabel(GLenum identifier, GLuint name, GLsizei length, 
 //  }
 //}
 //
-//void WrappedGLES::glDebugMessageCallback(GLDEBUGPROC callback, const void *userParam)
-//{
-//  m_RealDebugFunc = callback;
-//  m_RealDebugFuncParam = userParam;
-//
-//  m_Real.glDebugMessageCallback(&DebugSnoopStatic, this);
-//}
-//
-//void WrappedGLES::glDebugMessageControl(GLenum source, GLenum type, GLenum severity,
-//                                          GLsizei count, const GLuint *ids, GLboolean enabled)
-//{
-//  // we could exert control over debug messages here
-//  m_Real.glDebugMessageControl(source, type, severity, count, ids, enabled);
-//}
-//
+void WrappedGLES::glDebugMessageCallback(GLDEBUGPROC callback, const void *userParam)
+{
+  m_RealDebugFunc = callback;
+  m_RealDebugFuncParam = userParam;
+
+  m_Real.glDebugMessageCallback(&DebugSnoopStatic, this);
+}
+
+void WrappedGLES::glDebugMessageControl(GLenum source, GLenum type, GLenum severity,
+                                          GLsizei count, const GLuint *ids, GLboolean enabled)
+{
+  // we could exert control over debug messages here
+  m_Real.glDebugMessageControl(source, type, severity, count, ids, enabled);
+}
+
 //bool WrappedGLES::Serialise_glDebugMessageInsert(GLenum source, GLenum type, GLuint id,
 //                                                   GLenum severity, GLsizei length, const GLchar *buf)
 //{
