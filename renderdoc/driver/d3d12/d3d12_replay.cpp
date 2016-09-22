@@ -702,6 +702,8 @@ void D3D12Replay::MakePipelineState()
 
           D3D12Descriptor *desc = (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr;
 
+          desc += e.offset;
+
           UINT offset = range.OffsetInDescriptorsFromTableStart;
 
           if(range.OffsetInDescriptorsFromTableStart == D3D12_DESCRIPTOR_RANGE_OFFSET_APPEND)
