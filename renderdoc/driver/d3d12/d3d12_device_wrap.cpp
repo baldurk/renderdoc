@@ -370,6 +370,8 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
       WrappedID3D12PipelineState *wrapped = new WrappedID3D12PipelineState(ret, this);
       ret = wrapped;
 
+      wrapped->compute = new D3D12_COMPUTE_PIPELINE_STATE_DESC(Descriptor);
+
       wrapped->compute->CS.pShaderBytecode =
           WrappedID3D12PipelineState::AddShader(wrapped->compute->CS, this);
 
