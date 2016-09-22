@@ -1033,6 +1033,25 @@ void D3D12Replay::MakePipelineState()
       state.m_OM.m_State.m_BackFace.FailOp = ToStr::Get(src.BackFace.StencilFailOp);
     }
   }
+
+  // resource states
+  {
+    const map<ResourceId, SubresourceStateVector> &states = m_pDevice->GetSubresourceStates();
+    create_array_uninit(state.Resources, states.size());
+    size_t i = 0;
+    for(auto it = states.begin(); it != states.end(); ++it)
+    {
+      D3D12PipelineState::ResourceData &res = state.Resources[i];
+
+      res.id = rm->GetOriginalID(it->first);
+
+      create_array_uninit(res.states, it->second.size());
+      for(size_t l = 0; l < it->second.size(); l++)
+        res.states[l].name = ToStr::Get(it->second[l]);
+
+      i++;
+    }
+  }
 }
 
 void D3D12Replay::RenderCheckerboard(Vec3f light, Vec3f dark)

@@ -359,4 +359,16 @@ struct D3D12PipelineState
     uint32_t multiSampleCount;
     uint32_t multiSampleQuality;
   } m_OM;
+
+  struct ResourceData
+  {
+    ResourceId id;
+
+    struct ResourceState
+    {
+      rdctype::str name;
+    };
+    rdctype::array<ResourceState> states;
+  };
+  rdctype::array<ResourceData> Resources;
 };

@@ -246,10 +246,13 @@ namespace renderdocui.Windows.PipelineState
             node.Italic = true;
         }
 
-        private void ViewDetailsRow(TreelistView.Node node)
+        private void ViewDetailsRow(TreelistView.Node node, bool highlight)
         {
-            node.BackColor = Color.Aquamarine;
-            node.ForeColor = Color.Black;
+            if (highlight)
+            {
+                node.BackColor = Color.Aquamarine;
+                node.ForeColor = Color.Black;
+            }
             m_ViewDetailNodes.Add(node);
         }
 
@@ -460,8 +463,7 @@ namespace renderdocui.Windows.PipelineState
                 if (!usedSlot)
                     InactiveRow(node);
 
-                if (viewDetails)
-                    ViewDetailsRow(node);
+                ViewDetailsRow(node, viewDetails);
             }
         }
 
@@ -1254,8 +1256,7 @@ namespace renderdocui.Windows.PipelineState
                         {
                             targets[i] = true;
 
-                            if (viewDetails)
-                                ViewDetailsRow(node);
+                            ViewDetailsRow(node, viewDetails);
                         }
                     }
 
@@ -1318,8 +1319,7 @@ namespace renderdocui.Windows.PipelineState
                 node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
                 node.Tag = tag;
 
-                if (viewDetails)
-                    ViewDetailsRow(node);
+                ViewDetailsRow(node, viewDetails);
 
                 if (state.m_OM.DepthTarget.Resource == ResourceId.Null)
                     EmptyRow(node);
@@ -1517,8 +1517,8 @@ namespace renderdocui.Windows.PipelineState
 
                     if (tex != null)
                     {
-                        //if (m_Core.CurD3D12PipelineState.ResourceStates.ContainsKey(tex.tex.ID))
-                            //text += String.Format("Texture is in the '{0}' state\n\n", m_Core.CurVulkanPipelineState.ResourceStates[tex.tex.ID].states[0].name);
+                        if (m_Core.CurD3D12PipelineState.Resources.ContainsKey(tex.tex.ID))
+                            text += String.Format("Texture is in the '{0}' state\n\n", m_Core.CurD3D12PipelineState.Resources[tex.tex.ID].states[0].name);
 
                         if (tex.tex.format != tex.view.Format)
                             text += String.Format("The texture is format {0}, the view treats it as {1}.\n",
@@ -1549,8 +1549,8 @@ namespace renderdocui.Windows.PipelineState
                     }
                     else if (buf != null)
                     {
-                        //if (m_Core.CurD3D12PipelineState.ResourceStates.ContainsKey(buf.tex.ID))
-                            //text += String.Format("Texture is in the '{0}' state\n\n", m_Core.CurVulkanPipelineState.ResourceStates[buf.tex.ID].states[0].name);
+                        if (m_Core.CurD3D12PipelineState.Resources.ContainsKey(buf.buf.ID))
+                            text += String.Format("Texture is in the '{0}' state\n\n", m_Core.CurD3D12PipelineState.Resources[buf.buf.ID].states[0].name);
 
                         text += String.Format("The view covers bytes {0}-{1} ({2} elements).\nThe buffer is {3} bytes in length ({4} elements).",
                             buf.view.FirstElement * buf.view.ElementSize,

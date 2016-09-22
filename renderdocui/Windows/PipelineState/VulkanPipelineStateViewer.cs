@@ -255,8 +255,11 @@ namespace renderdocui.Windows.PipelineState
 
         private void ViewDetailsRow(TreelistView.Node node, bool highlight)
         {
-            if(highlight)
+            if (highlight)
+            {
                 node.BackColor = Color.Aquamarine;
+                node.ForeColor = Color.Black;
+            }
             m_ViewDetailNodes.Add(node);
         }
 

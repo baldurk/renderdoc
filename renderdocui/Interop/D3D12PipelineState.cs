@@ -25,6 +25,7 @@
 
 using System;
 using System.Runtime.InteropServices;
+using System.Collections.Generic;
 
 namespace renderdoc
 {
@@ -353,5 +354,36 @@ namespace renderdoc
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public OutputMerger m_OM;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public class ResourceData
+        {
+            public ResourceId id;
+
+            [StructLayout(LayoutKind.Sequential)]
+            public class ResourceState
+            {
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                public string name;
+            };
+
+            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+            public ResourceState[] states;
+        };
+
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        private ResourceData[] Resources_;
+
+        // add to dictionary for convenience
+        private void PostMarshal()
+        {
+            Resources = new Dictionary<ResourceId, ResourceData>();
+
+            foreach (ResourceData i in Resources_)
+                Resources.Add(i.id, i);
+        }
+
+        [CustomMarshalAs(CustomUnmanagedType.Skip)]
+        public Dictionary<ResourceId, ResourceData> Resources;
     };
 }

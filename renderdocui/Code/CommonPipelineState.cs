@@ -191,8 +191,8 @@ namespace renderdocui.Code
                 if (IsLogVK && m_Vulkan.Images.ContainsKey(id))
                     return m_Vulkan.Images[id].layouts[0].name;
 
-                if (IsLogD3D12)
-                    return "TODO";
+                if (IsLogD3D12 && m_D3D12.Resources.ContainsKey(id))
+                    return m_D3D12.Resources[id].states[0].name;
             }
 
             return "Unknown";
