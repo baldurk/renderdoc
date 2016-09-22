@@ -435,9 +435,7 @@ void WrappedGLES::glBufferStorageEXT(GLenum target, GLsizeiptr size, const void 
 
   if(m_State >= WRITING)
     Serialise_glBufferStorageEXT(target, size, data, flags);
-  else
-    RDCERR("Internal buffers should be allocated via dsa interfaces");
-
+  
   SAFE_DELETE_ARRAY(dummy);
 }
 
@@ -725,10 +723,6 @@ void WrappedGLES::glBufferData(GLenum target, GLsizeiptr size, const void *data,
       record->usage = usage;
       record->DataInSerialiser = true;
     }
-  }
-  else
-  {
-    RDCERR("Internal buffers should be allocated via dsa interfaces");
   }
 
   SAFE_DELETE_ARRAY(dummy);

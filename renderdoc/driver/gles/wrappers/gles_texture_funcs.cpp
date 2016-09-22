@@ -3818,11 +3818,7 @@ void WrappedGLES::glTexStorage2D(GLenum target, GLsizei levels, GLenum internalf
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
-  if(m_State < WRITING)
-  {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
-  }
-  else
+  if(m_State >= WRITING)
   {
     // TODO pantos
 //    GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
@@ -4102,11 +4098,7 @@ void WrappedGLES::glTexStorage2DMultisample(GLenum target, GLsizei samples, GLen
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
-  if(m_State < WRITING)
-  {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
-  }
-  else
+  if(m_State >= WRITING)
   {
     // TODO pantos
 //    GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
@@ -4282,11 +4274,7 @@ void WrappedGLES::glTexStorage3DMultisample(GLenum target, GLsizei samples, GLen
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
-  if(m_State < WRITING)
-  {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
-  }
-  else
+  if(m_State >= WRITING)
   {
     // TODO pantos
 //    GLResourceRecord *record = GetCtxData().GetActiveTexRecord();

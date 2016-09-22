@@ -3216,16 +3216,16 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 {
   switch(context)
   {
-//    case DEVICE_INIT:
-//    {
-//      SERIALISE_ELEMENT(ResourceId, immContextId, ResourceId());
-//      SERIALISE_ELEMENT(ResourceId, vaoId, ResourceId());
-//
-//      GetResourceManager()->AddLiveResource(immContextId,
-//                                            GLResource(NULL, eResSpecial, eSpecialResContext));
-//      GetResourceManager()->AddLiveResource(vaoId, VertexArrayRes(NULL, 0));
-//      break;
-//    }
+    case DEVICE_INIT:
+      {
+        SERIALISE_ELEMENT(ResourceId, immContextId, ResourceId());
+        SERIALISE_ELEMENT(ResourceId, vaoId, ResourceId());
+
+        GetResourceManager()->AddLiveResource(immContextId,
+                                            GLResource(NULL, eResSpecial, eSpecialResContext));
+        GetResourceManager()->AddLiveResource(vaoId, VertexArrayRes(NULL, 0));
+        break;
+      }
 //    case GEN_TEXTURE: Serialise_glGenTextures(0, NULL); break;
 //    case ACTIVE_TEXTURE: Serialise_glActiveTexture(eGL_NONE); break;
 //    case BIND_TEXTURE: Serialise_glBindTexture(eGL_NONE, 0); break;
@@ -3585,52 +3585,52 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case FEEDBACK_BUFFER_BASE: Serialise_glTransformFeedbackBufferBase(0, 0, 0); break;
 //    case FEEDBACK_BUFFER_RANGE: Serialise_glTransformFeedbackBufferRange(0, 0, 0, 0, 0); break;
 //
-//    case OBJECT_LABEL: Serialise_glObjectLabel(eGL_NONE, 0, 0, NULL); break;
+    case OBJECT_LABEL: Serialise_glObjectLabel(eGL_NONE, 0, 0, NULL); break;
 //    case BEGIN_EVENT: Serialise_glPushDebugGroup(eGL_NONE, 0, 0, NULL); break;
 //    case SET_MARKER:
 //      Serialise_glDebugMessageInsert(eGL_NONE, eGL_NONE, 0, eGL_NONE, 0, NULL);
 //      break;
 //    case END_EVENT: Serialise_glPopDebugGroup(); break;
 //
-//    case CAPTURE_SCOPE: Serialise_CaptureScope(offset); break;
-//    case CONTEXT_CAPTURE_HEADER:
-//      // normally this would be handled as a special case when we start processing the frame,
-//      // but it can be emitted mid-frame if MakeCurrent is called on a different context.
-//      // when processed here, we always want to apply the contents
-//      Serialise_BeginCaptureFrame(true);
-//      break;
-//    case CONTEXT_CAPTURE_FOOTER:
-//    {
-//      bool HasCallstack = false;
-//      m_pSerialiser->Serialise("HasCallstack", HasCallstack);
-//
-//      if(HasCallstack)
-//      {
-//        uint32_t numLevels = 0;
-//        uint64_t *stack = NULL;
-//
-//        m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
-//
-//        m_pSerialiser->SetCallstack(stack, numLevels);
-//
-//        SAFE_DELETE_ARRAY(stack);
-//      }
-//
-//      if(m_State == READING)
-//      {
-//        AddEvent(CONTEXT_CAPTURE_FOOTER, "SwapBuffers()");
-//
-//        FetchDrawcall draw;
-//        draw.name = "SwapBuffers()";
-//        draw.flags |= eDraw_Present;
-//
-//        draw.copyDestination = GetResourceManager()->GetOriginalID(
-//            GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color)));
-//
-//        AddDrawcall(draw, true);
-//      }
-//    }
-//    break;
+    case CAPTURE_SCOPE: Serialise_CaptureScope(offset); break;
+    case CONTEXT_CAPTURE_HEADER:
+      // normally this would be handled as a special case when we start processing the frame,
+      // but it can be emitted mid-frame if MakeCurrent is called on a different context.
+      // when processed here, we always want to apply the contents
+      Serialise_BeginCaptureFrame(true);
+      break;
+    case CONTEXT_CAPTURE_FOOTER:
+    {
+      bool HasCallstack = false;
+      m_pSerialiser->Serialise("HasCallstack", HasCallstack);
+
+      if(HasCallstack)
+      {
+        uint32_t numLevels = 0;
+        uint64_t *stack = NULL;
+
+        m_pSerialiser->SerialisePODArray("callstack", stack, numLevels);
+
+        m_pSerialiser->SetCallstack(stack, numLevels);
+
+        SAFE_DELETE_ARRAY(stack);
+      }
+
+      if(m_State == READING)
+      {
+        AddEvent(CONTEXT_CAPTURE_FOOTER, "SwapBuffers()");
+
+        FetchDrawcall draw;
+        draw.name = "SwapBuffers()";
+        draw.flags |= eDraw_Present;
+
+        draw.copyDestination = GetResourceManager()->GetOriginalID(
+            GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color)));
+
+        AddDrawcall(draw, true);
+      }
+    }
+    break;
     default:
       // ignore system chunks
       if((int)context == (int)INITIAL_CONTENTS)
@@ -3638,7 +3638,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
       else if((int)context < (int)FIRST_CHUNK_ID)
         m_pSerialiser->SkipCurrentChunk();
       else
-        RDCERR("Unrecognised Chunk type %d", context);
+        RDCERR("Unrecognised Chunk type %s (%d)", WrappedGLES::GetChunkName(context), context);
       break;
   }
 }
