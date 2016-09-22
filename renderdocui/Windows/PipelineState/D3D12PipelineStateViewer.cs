@@ -639,6 +639,9 @@ namespace renderdocui.Windows.PipelineState
                             lodbias = s.MipLODBias;
                         }
 
+                        if (!stageVisible)
+                            filter += " (Not visible)";
+
                         var node = samplers.Nodes.Add(new object[] { rootel, bind.bindset, regname, addressing,
                                                                      filter, lodclamp, lodbias.ToString() });
 
@@ -730,6 +733,9 @@ namespace renderdocui.Windows.PipelineState
 
                         if (length < byteSize)
                             filledSlot = false;
+
+                        if (!stageVisible)
+                            name += " (Not visible)";
 
                         var node = cbuffers.Nodes.Add(new object[] { rootel, bind.bindset, regname, name, offset, sizestr });
 
