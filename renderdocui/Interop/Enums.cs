@@ -334,6 +334,7 @@ namespace renderdoc
     [Flags]
     public enum ShaderStageBits
     {
+        None         = 0,
         Vertex       = (1 << ShaderStageType.Vertex),
         Hull         = (1 << ShaderStageType.Hull),
         Tess_Control = (1 << ShaderStageType.Tess_Control),
@@ -343,6 +344,7 @@ namespace renderdoc
         Pixel        = (1 << ShaderStageType.Pixel),
         Fragment     = (1 << ShaderStageType.Fragment),
         Compute      = (1 << ShaderStageType.Compute),
+        All          = (Vertex | Hull | Domain | Geometry | Pixel | Fragment | Compute),
     };
 
     public enum DebugMessageSource

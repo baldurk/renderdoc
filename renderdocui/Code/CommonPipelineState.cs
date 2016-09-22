@@ -970,6 +970,15 @@ namespace renderdocui.Code
                     {
                         var bind = s.BindpointMapping.ConstantBlocks[s.ShaderDetails.ConstantBlocks[BufIdx].bindPoint];
 
+                        if (bind.bindset >= m_D3D12.m_RootSig.Spaces.Length ||
+                           bind.bind >= m_D3D12.m_RootSig.Spaces[bind.bindset].ConstantBuffers.Length)
+                        {
+                            buf = ResourceId.Null;
+                            ByteOffset = 0;
+                            ByteSize = 0;
+                            return;
+                        }
+
                         var descriptor = m_D3D12.m_RootSig.Spaces[bind.bindset].ConstantBuffers[bind.bind];
 
                         buf = descriptor.Buffer;

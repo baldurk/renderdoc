@@ -955,6 +955,10 @@ void D3D12Replay::MakePipelineState()
         if(rs.rtSingle)
           desc += i;
 
+        view.RootElement = (uint32_t)i;
+        view.Immediate = false;
+        view.VisibilityMask = eStageBits_All;
+
         FillResourceView(view, desc);
       }
     }
@@ -967,6 +971,10 @@ void D3D12Replay::MakePipelineState()
         WrappedID3D12DescriptorHeap *heap = rm->GetLiveAs<WrappedID3D12DescriptorHeap>(rs.dsv.heap);
         D3D12Descriptor *desc =
             (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr + rs.dsv.index;
+
+        view.RootElement = 0;
+        view.Immediate = false;
+        view.VisibilityMask = eStageBits_All;
 
         FillResourceView(view, desc);
       }
