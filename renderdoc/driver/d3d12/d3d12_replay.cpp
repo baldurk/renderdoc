@@ -526,7 +526,7 @@ void D3D12Replay::FillRegisterSpaces(
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV)
     {
       D3D12PipelineState::CBuffer &cb =
-          resize_and_add(spaces[p.Constants.RegisterSpace].cbuffers, p.Constants.ShaderRegister);
+          resize_and_add(spaces[p.Descriptor.RegisterSpace].cbuffers, p.Descriptor.ShaderRegister);
       cb.Immediate = true;
       cb.RootElement = (uint32_t)rootEl;
 
@@ -546,7 +546,7 @@ void D3D12Replay::FillRegisterSpaces(
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV)
     {
       D3D12PipelineState::ResourceView &view =
-          resize_and_add(spaces[p.Constants.RegisterSpace].srvs, p.Constants.ShaderRegister);
+          resize_and_add(spaces[p.Descriptor.RegisterSpace].srvs, p.Descriptor.ShaderRegister);
       view.Immediate = true;
       view.RootElement = (uint32_t)rootEl;
 
@@ -571,7 +571,7 @@ void D3D12Replay::FillRegisterSpaces(
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
     {
       D3D12PipelineState::ResourceView &view =
-          resize_and_add(spaces[p.Constants.RegisterSpace].uavs, p.Constants.ShaderRegister);
+          resize_and_add(spaces[p.Descriptor.RegisterSpace].uavs, p.Descriptor.ShaderRegister);
       view.Immediate = true;
       view.RootElement = (uint32_t)rootEl;
 
