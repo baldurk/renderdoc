@@ -271,7 +271,7 @@ byte *PixelUnpackState::UnpackCompressed(byte *pixels, GLsizei width, GLsizei he
 }
 
 GLRenderState::GLRenderState(const GLHookSet *funcs, Serialiser *ser, LogState state)
-    : m_Real(funcs), m_pSerialiser(ser)
+    : m_Real(funcs), m_pSerialiser(ser), m_State(state)
 {
   Clear();
 }
@@ -797,14 +797,10 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
 
   m_Real->glGetIntegerv(eGL_PATCH_VERTICES, &PatchParams.numVerts);
 
-  // TODO PEPE AMD->NV
-  if(!VendorCheck[VendorCheck_AMD_polygon_mode_query])
+  if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
   {
     // This was listed in docs as enumeration[2] even though polygon mode can't be set independently
-    // for front
-    // and back faces for a while, so pass large enough array to be sure.
-    // AMD driver claims this doesn't exist anymore in core, so don't return any value, set to
-    // default GL_FILL to be safe
+    // for front and back faces for a while, so pass large enough array to be sure.
     GLenum dummy[2] = {eGL_FILL_NV, eGL_FILL_NV};
     m_Real->glGetIntegerv(eGL_POLYGON_MODE_NV, (GLint *)&dummy);
     PolygonMode = dummy[0];
@@ -1034,6 +1030,13 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
       numDBs++;
       DBs[i] = DrawBuffers[i];
 
+      if(m_State < WRITING)
+      {
+        // These aren't valid for glDrawBuffers but can be returned when we call glGet,
+        // assume they mean left implicitly
+        if(DBs[i] == eGL_BACK)
+          DBs[i] = eGL_COLOR_ATTACHMENT0;
+      }
     }
     else
     {
