@@ -318,7 +318,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(UINT NumBarrier
     m_Cmd->m_LastCmdListID = CommandList;
 
   vector<D3D12_RESOURCE_BARRIER> filtered;
-  if(m_State <= READING)
+  if(m_State <= EXECUTING)
   {
     filtered.reserve(num);
 
