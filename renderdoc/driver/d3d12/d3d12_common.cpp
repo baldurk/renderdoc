@@ -312,13 +312,13 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
 
     if(IsReadWrite)
     {
+      mapping->ReadWriteResources[rwidx] = map;
       refl->ReadWriteResources[rwidx++] = res;
-      mapping->ReadWriteResources[i] = map;
     }
     else
     {
+      mapping->ReadOnlyResources[roidx] = map;
       refl->ReadOnlyResources[roidx++] = res;
-      mapping->ReadOnlyResources[i] = map;
     }
   }
 
