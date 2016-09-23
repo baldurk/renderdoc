@@ -383,7 +383,8 @@ void D3D12Replay::FillResourceView(D3D12PipelineState::ResourceView &view, D3D12
         view.NumElements = desc->nonsamp.srv.Buffer.NumElements;
 
         view.BufferFlags = desc->nonsamp.srv.Buffer.Flags;
-        view.ElementSize = desc->nonsamp.srv.Buffer.StructureByteStride;
+        if(desc->nonsamp.srv.Buffer.StructureByteStride > 0)
+          view.ElementSize = desc->nonsamp.srv.Buffer.StructureByteStride;
       }
       else if(desc->nonsamp.srv.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE1D)
       {
@@ -442,7 +443,8 @@ void D3D12Replay::FillResourceView(D3D12PipelineState::ResourceView &view, D3D12
         view.NumElements = uav.Buffer.NumElements;
 
         view.BufferFlags = uav.Buffer.Flags;
-        view.ElementSize = uav.Buffer.StructureByteStride;
+        if(uav.Buffer.StructureByteStride > 0)
+          view.ElementSize = uav.Buffer.StructureByteStride;
 
         view.CounterByteOffset = uav.Buffer.CounterOffsetInBytes;
       }
