@@ -467,7 +467,13 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
     D3D12_RESOURCE_DESC desc = r->GetDesc();
 
-    if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && desc.SampleDesc.Count > 1)
+    {
+      D3D12NOTIMP("Multisampled initial contents");
+      SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(NULL, 2, NULL));
+      return true;
+    }
+    else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
       D3D12_HEAP_PROPERTIES heapProps;
       r->GetHeapProperties(&heapProps, NULL);
@@ -648,6 +654,12 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
         copiedBuffer = (ID3D12Resource *)liveRes;
       }
 
+      if(initContents.num == 2)
+      {
+        D3D12NOTIMP("Multisampled initial contents");
+        return true;
+      }
+
       byte dummy[4] = {};
       byte *ptr = NULL;
       size_t size = 0;
@@ -733,6 +745,14 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
     }
     else if(type == Resource_Resource)
     {
+      D3D12_RESOURCE_DESC resDesc = ((ID3D12Resource *)res)->GetDesc();
+
+      if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && resDesc.SampleDesc.Count > 1)
+      {
+        D3D12NOTIMP("Multisampled initial contents");
+        return true;
+      }
+
       uint64_t size = 0;
 
       m_pSerialiser->Serialise("NumBytes", size);
