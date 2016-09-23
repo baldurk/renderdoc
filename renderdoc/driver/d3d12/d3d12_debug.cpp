@@ -1793,14 +1793,20 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     length = RDCMIN(length, desc.Width - offset);
   }
 
+  if(sizeof(size_t) == sizeof(uint32_t) && offset + length > 0xfffffff)
+  {
+    RDCERR("Trying to read back too much data on 32-bit build. Try running on 64-bit.");
+    return;
+  }
+
   uint64_t outOffs = 0;
 
-  ret.resize(length);
+  ret.resize((size_t)length);
 
   // directly CPU mappable (and possibly invalid to transition and copy from), so just memcpy
   if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD || heapProps.Type == D3D12_HEAP_TYPE_READBACK)
   {
-    D3D12_RANGE range = {offset, offset + length};
+    D3D12_RANGE range = {(size_t)offset, size_t(offset + length)};
 
     byte *data = NULL;
     HRESULT hr = buffer->Map(0, &range, (void **)&data);
@@ -1841,7 +1847,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     m_WrappedDevice->ExecuteLists();
     m_WrappedDevice->FlushLists();
 
-    D3D12_RANGE range = {0, chunkSize};
+    D3D12_RANGE range = {0, (size_t)chunkSize};
 
     void *data = NULL;
     HRESULT hr = m_ReadbackBuffer->Map(0, &range, &data);
@@ -1853,7 +1859,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     }
     else
     {
-      memcpy(&ret[outOffs], data, chunkSize);
+      memcpy(&ret[outOffs], data, (size_t)chunkSize);
 
       range.End = 0;
 
