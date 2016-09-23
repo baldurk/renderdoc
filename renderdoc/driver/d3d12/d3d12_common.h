@@ -258,7 +258,6 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
                                                                                                    \
   D3D12_CHUNK_MACRO(CREATE_COMMAND_QUEUE, "ID3D12Device::CreateCommandQueue")                      \
   D3D12_CHUNK_MACRO(CREATE_COMMAND_ALLOCATOR, "ID3D12Device::CreateCommandAllocator")              \
-  D3D12_CHUNK_MACRO(CREATE_COMMAND_LIST, "ID3D12Device::CreateCommandList")                        \
                                                                                                    \
   D3D12_CHUNK_MACRO(CREATE_GRAPHICS_PIPE, "ID3D12Device::CreateGraphicsPipeline")                  \
   D3D12_CHUNK_MACRO(CREATE_COMPUTE_PIPE, "ID3D12Device::CreateComputePipeline")                    \

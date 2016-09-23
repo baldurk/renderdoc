@@ -181,43 +181,6 @@ HRESULT WrappedID3D12Device::CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE type
   return ret;
 }
 
-bool WrappedID3D12Device::Serialise_CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST_TYPE type,
-                                                      ID3D12CommandAllocator *pCommandAllocator,
-                                                      ID3D12PipelineState *pInitialState,
-                                                      REFIID riid, void **ppCommandList)
-{
-  SERIALISE_ELEMENT(UINT, Mask, nodeMask);
-  SERIALISE_ELEMENT(D3D12_COMMAND_LIST_TYPE, ListType, type);
-  SERIALISE_ELEMENT(ResourceId, Allocator, GetResID(pCommandAllocator));
-  SERIALISE_ELEMENT(ResourceId, State, GetResID(pInitialState));
-  SERIALISE_ELEMENT(IID, guid, riid);
-  SERIALISE_ELEMENT(ResourceId, List,
-                    ((WrappedID3D12GraphicsCommandList *)*ppCommandList)->GetResourceID());
-
-  if(m_State == READING)
-  {
-    pCommandAllocator = GetResourceManager()->GetLiveAs<ID3D12CommandAllocator>(Allocator);
-    pInitialState = GetResourceManager()->GetLiveAs<ID3D12PipelineState>(State);
-
-    ID3D12GraphicsCommandList *ret = NULL;
-    HRESULT hr = m_pDevice->CreateCommandList(Mask, ListType, Unwrap(pCommandAllocator),
-                                              Unwrap(pInitialState), guid, (void **)&ret);
-
-    if(FAILED(hr))
-    {
-      RDCERR("Failed on resource serialise-creation, HRESULT: 0x%08x", hr);
-    }
-    else
-    {
-      ret = new WrappedID3D12GraphicsCommandList(ret, this, m_pSerialiser, m_State);
-
-      GetResourceManager()->AddLiveResource(List, ret);
-    }
-  }
-
-  return true;
-}
-
 HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST_TYPE type,
                                                ID3D12CommandAllocator *pCommandAllocator,
                                                ID3D12PipelineState *pInitialState, REFIID riid,
@@ -236,8 +199,6 @@ HRESULT WrappedID3D12Device::CreateCommandList(UINT nodeMask, D3D12_COMMAND_LIST
 
   if(SUCCEEDED(ret))
   {
-    SCOPED_LOCK(m_D3DLock);
-
     WrappedID3D12GraphicsCommandList *wrapped =
         new WrappedID3D12GraphicsCommandList(real, this, m_pSerialiser, m_State);
 

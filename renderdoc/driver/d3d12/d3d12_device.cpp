@@ -1604,9 +1604,6 @@ void WrappedID3D12Device::ProcessChunk(uint64_t offset, D3D12ChunkType context)
     case CREATE_COMMAND_ALLOCATOR:
       Serialise_CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID(), NULL);
       break;
-    case CREATE_COMMAND_LIST:
-      Serialise_CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, NULL, NULL, IID(), NULL);
-      break;
 
     case CREATE_GRAPHICS_PIPE: Serialise_CreateGraphicsPipelineState(NULL, IID(), NULL); break;
     case CREATE_COMPUTE_PIPE: Serialise_CreateComputePipelineState(NULL, IID(), NULL); break;
