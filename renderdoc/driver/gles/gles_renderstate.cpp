@@ -802,7 +802,8 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
     // This was listed in docs as enumeration[2] even though polygon mode can't be set independently
     // for front and back faces for a while, so pass large enough array to be sure.
     GLenum dummy[2] = {eGL_FILL_NV, eGL_FILL_NV};
-    m_Real->glGetIntegerv(eGL_POLYGON_MODE_NV, (GLint *)&dummy);
+    // TODO PEPE
+    //m_Real->glGetIntegerv(eGL_POLYGON_MODE_NV, (GLint *)&dummy);
     PolygonMode = dummy[0];
   }
   else

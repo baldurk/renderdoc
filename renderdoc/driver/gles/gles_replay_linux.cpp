@@ -350,58 +350,10 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
     EGL_RETURN_DEBUG(eglMakeCurrent);
     if(!res)
     {
-//        glXDestroyPbufferProc(dpy, pbuffer);
-//        glXDestroyCtxProc(dpy, ctx);
-//        XFree(fbcfg);
-//        XCloseDisplay(dpy);
         GLESReplay::PostContextShutdownCounters();
         RDCERR("Couldn't make pbuffer & context current");
         return eReplayCreate_APIInitFailed;
     }
-
-//    bool dsa = false;
-//    bool bufstorage = false;
-//
-//    if(getStr)
-//      RDCLOG("Running GL replay on: %s / %s / %s", getStr(eGL_VENDOR), getStr(eGL_RENDERER),
-//             getStr(eGL_VERSION));
-//
-//    GLint numExts = 0;
-//    getInt(eGL_NUM_EXTENSIONS, &numExts);
-//    for(GLint e = 0; e < numExts; e++)
-//    {
-//      const char *ext = (const char *)getStri(eGL_EXTENSIONS, (GLuint)e);
-//
-//      RDCLOG("Extension % 3d: %s", e, ext);
-//
-//      if(!strcmp(ext, "GL_EXT_direct_state_access"))
-//        dsa = true;
-//      if(!strcmp(ext, "GL_ARB_buffer_storage"))
-//        bufstorage = true;
-//    }
-//
-//    if(!dsa)
-//      RDCERR(
-//          "RenderDoc requires EXT_direct_state_access availability, and it is not reported. Try "
-//          "updating your drivers.");
-//
-//    if(!bufstorage)
-//      RDCERR(
-//          "RenderDoc requires ARB_buffer_storage availability, and it is not reported. Try "
-//          "updating your drivers.");
-//
-//    if(!dsa || !bufstorage)
-//    {
-//      glXDestroyPbufferProc(dpy, pbuffer);
-//      glXDestroyCtxProc(dpy, ctx);
-//      XFree(fbcfg);
-//      XCloseDisplay(dpy);
-//      GLReplay::PostContextShutdownCounters();
-//      return eReplayCreate_APIHardwareUnsupported;
-//    }
-
-
-
 
     WrappedGLES *gles = new WrappedGLES(logfile, GetRealGLFunctions());
     gles->Initialise(initParams);

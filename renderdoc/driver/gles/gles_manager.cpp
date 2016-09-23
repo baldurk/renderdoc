@@ -1247,8 +1247,6 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
         GLenum dummy;
         EmulateLuminanceFormat(gl, tex, textype, internalformat, dummy);
-        // TODO PEPE
-
         GLuint oldBinding = 0;
         
         // create texture of identical format/size to store initial contents
