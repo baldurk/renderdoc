@@ -1391,6 +1391,362 @@ void D3D12DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
     m_ReadbackBuffer->Unmap(0, &range);
 }
 
+void D3D12DebugManager::FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
+                                             const vector<DXBC::CBufferVariable> &invars,
+                                             vector<ShaderVariable> &outvars,
+                                             const vector<byte> &data)
+{
+  using namespace DXBC;
+  using namespace ShaderDebug;
+
+  size_t o = offset;
+
+  for(size_t v = 0; v < invars.size(); v++)
+  {
+    size_t vec = o + invars[v].descriptor.offset / 16;
+    size_t comp = (invars[v].descriptor.offset - (invars[v].descriptor.offset & ~0xf)) / 4;
+    size_t sz = RDCMAX(1U, invars[v].type.descriptor.bytesize / 16);
+
+    offset = vec + sz;
+
+    string basename = prefix + invars[v].name;
+
+    uint32_t rows = invars[v].type.descriptor.rows;
+    uint32_t cols = invars[v].type.descriptor.cols;
+    uint32_t elems = RDCMAX(1U, invars[v].type.descriptor.elements);
+
+    if(!invars[v].type.members.empty())
+    {
+      char buf[64] = {0};
+      StringFormat::snprintf(buf, 63, "[%d]", elems);
+
+      ShaderVariable var;
+      var.name = basename;
+      var.rows = var.columns = 0;
+      var.type = eVar_Float;
+
+      std::vector<ShaderVariable> varmembers;
+
+      if(elems > 1)
+      {
+        for(uint32_t i = 0; i < elems; i++)
+        {
+          StringFormat::snprintf(buf, 63, "[%d]", i);
+
+          if(flatten)
+          {
+            FillCBufferVariables(basename + buf + ".", vec, flatten, invars[v].type.members,
+                                 outvars, data);
+          }
+          else
+          {
+            ShaderVariable vr;
+            vr.name = basename + buf;
+            vr.rows = vr.columns = 0;
+            vr.type = eVar_Float;
+
+            std::vector<ShaderVariable> mems;
+
+            FillCBufferVariables("", vec, flatten, invars[v].type.members, mems, data);
+
+            vr.isStruct = true;
+
+            vr.members = mems;
+
+            varmembers.push_back(vr);
+          }
+        }
+
+        var.isStruct = false;
+      }
+      else
+      {
+        var.isStruct = true;
+
+        if(flatten)
+          FillCBufferVariables(basename + ".", vec, flatten, invars[v].type.members, outvars, data);
+        else
+          FillCBufferVariables("", vec, flatten, invars[v].type.members, varmembers, data);
+      }
+
+      if(!flatten)
+      {
+        var.members = varmembers;
+        outvars.push_back(var);
+      }
+
+      continue;
+    }
+
+    if(invars[v].type.descriptor.varClass == CLASS_OBJECT ||
+       invars[v].type.descriptor.varClass == CLASS_STRUCT ||
+       invars[v].type.descriptor.varClass == CLASS_INTERFACE_CLASS ||
+       invars[v].type.descriptor.varClass == CLASS_INTERFACE_POINTER)
+    {
+      RDCWARN("Unexpected variable '%s' of class '%u' in cbuffer, skipping.",
+              invars[v].name.c_str(), invars[v].type.descriptor.type);
+      continue;
+    }
+
+    size_t elemByteSize = 4;
+    VarType type = eVar_Float;
+    switch(invars[v].type.descriptor.type)
+    {
+      case VARTYPE_INT: type = eVar_Int; break;
+      case VARTYPE_FLOAT: type = eVar_Float; break;
+      case VARTYPE_BOOL:
+      case VARTYPE_UINT:
+      case VARTYPE_UINT8: type = eVar_UInt; break;
+      case VARTYPE_DOUBLE:
+        elemByteSize = 8;
+        type = eVar_Double;
+        break;
+      default:
+        RDCERR("Unexpected type %d for variable '%s' in cbuffer", invars[v].type.descriptor.type,
+               invars[v].name.c_str());
+    }
+
+    bool columnMajor = invars[v].type.descriptor.varClass == CLASS_MATRIX_COLUMNS;
+
+    size_t outIdx = vec;
+    if(!flatten)
+    {
+      outIdx = outvars.size();
+      outvars.resize(RDCMAX(outIdx + 1, outvars.size()));
+    }
+    else
+    {
+      if(columnMajor)
+        outvars.resize(RDCMAX(outIdx + cols * elems, outvars.size()));
+      else
+        outvars.resize(RDCMAX(outIdx + rows * elems, outvars.size()));
+    }
+
+    size_t dataOffset = vec * sizeof(Vec4f) + comp * sizeof(float);
+
+    if(outvars[outIdx].name.count > 0)
+    {
+      RDCASSERT(flatten);
+
+      RDCASSERT(outvars[vec].rows == 1);
+      RDCASSERT(outvars[vec].columns == comp);
+      RDCASSERT(rows == 1);
+
+      string combinedName = outvars[outIdx].name.elems;
+      combinedName += ", " + basename;
+      outvars[outIdx].name = combinedName;
+      outvars[outIdx].rows = 1;
+      outvars[outIdx].isStruct = false;
+      outvars[outIdx].columns += cols;
+
+      if(dataOffset < data.size())
+      {
+        const byte *d = &data[dataOffset];
+
+        memcpy(&outvars[outIdx].value.uv[comp], d,
+               RDCMIN(data.size() - dataOffset, elemByteSize * cols));
+      }
+    }
+    else
+    {
+      outvars[outIdx].name = basename;
+      outvars[outIdx].rows = 1;
+      outvars[outIdx].type = type;
+      outvars[outIdx].isStruct = false;
+      outvars[outIdx].columns = cols;
+
+      ShaderVariable &var = outvars[outIdx];
+
+      bool isArray = invars[v].type.descriptor.elements > 1;
+
+      if(rows * elems == 1)
+      {
+        if(dataOffset < data.size())
+        {
+          const byte *d = &data[dataOffset];
+
+          memcpy(&outvars[outIdx].value.uv[flatten ? comp : 0], d,
+                 RDCMIN(data.size() - dataOffset, elemByteSize * cols));
+        }
+      }
+      else if(!isArray && !flatten)
+      {
+        outvars[outIdx].rows = rows;
+
+        if(dataOffset < data.size())
+        {
+          const byte *d = &data[dataOffset];
+
+          RDCASSERT(rows <= 4 && rows * cols <= 16);
+
+          if(columnMajor)
+          {
+            uint32_t tmp[16] = {0};
+
+            // matrices always have 4 columns, for padding reasons (the same reason arrays
+            // put every element on a new vec4)
+            for(uint32_t c = 0; c < cols; c++)
+            {
+              size_t srcoffs = 4 * elemByteSize * c;
+              size_t dstoffs = rows * elemByteSize * c;
+              memcpy((byte *)(tmp) + dstoffs, d + srcoffs,
+                     RDCMIN(data.size() - dataOffset + srcoffs, elemByteSize * rows));
+            }
+
+            // transpose
+            for(size_t r = 0; r < rows; r++)
+              for(size_t c = 0; c < cols; c++)
+                outvars[outIdx].value.uv[r * cols + c] = tmp[c * rows + r];
+          }
+          else    // CLASS_MATRIX_ROWS or other data not to transpose.
+          {
+            // matrices always have 4 columns, for padding reasons (the same reason arrays
+            // put every element on a new vec4)
+            for(uint32_t r = 0; r < rows; r++)
+            {
+              size_t srcoffs = 4 * elemByteSize * r;
+              size_t dstoffs = cols * elemByteSize * r;
+              memcpy((byte *)(&outvars[outIdx].value.uv[0]) + dstoffs, d + srcoffs,
+                     RDCMIN(data.size() - dataOffset + srcoffs, elemByteSize * cols));
+            }
+          }
+        }
+      }
+      else if(rows * elems > 1)
+      {
+        char buf[64] = {0};
+
+        var.name = outvars[outIdx].name;
+
+        vector<ShaderVariable> varmembers;
+        vector<ShaderVariable> *out = &outvars;
+        size_t rowCopy = 1;
+
+        uint32_t registers = rows;
+        uint32_t regLen = cols;
+        const char *regName = "row";
+
+        string base = outvars[outIdx].name.elems;
+
+        if(!flatten)
+        {
+          var.rows = 0;
+          var.columns = 0;
+          outIdx = 0;
+          out = &varmembers;
+          varmembers.resize(elems);
+          rowCopy = rows;
+          rows = 1;
+          registers = 1;
+        }
+        else
+        {
+          if(columnMajor)
+          {
+            registers = cols;
+            regLen = rows;
+            regName = "col";
+          }
+        }
+
+        size_t rowDataOffset = vec * sizeof(Vec4f);
+
+        for(size_t r = 0; r < registers * elems; r++)
+        {
+          if(isArray && registers > 1)
+            StringFormat::snprintf(buf, 63, "[%d].%s%d", r / registers, regName, r % registers);
+          else if(registers > 1)
+            StringFormat::snprintf(buf, 63, ".%s%d", regName, r);
+          else
+            StringFormat::snprintf(buf, 63, "[%d]", r);
+
+          (*out)[outIdx + r].name = base + buf;
+          (*out)[outIdx + r].rows = (uint32_t)rowCopy;
+          (*out)[outIdx + r].type = type;
+          (*out)[outIdx + r].isStruct = false;
+          (*out)[outIdx + r].columns = regLen;
+
+          size_t totalSize = 0;
+
+          if(flatten)
+          {
+            totalSize = elemByteSize * regLen;
+          }
+          else
+          {
+            // in a matrix, each major element before the last takes up a full
+            // vec4 at least
+            size_t vecSize = elemByteSize * 4;
+
+            if(columnMajor)
+              totalSize = vecSize * (cols - 1) + elemByteSize * rowCopy;
+            else
+              totalSize = vecSize * (rowCopy - 1) + elemByteSize * cols;
+          }
+
+          if((rowDataOffset % sizeof(Vec4f) != 0) &&
+             (rowDataOffset / sizeof(Vec4f) != (rowDataOffset + totalSize) / sizeof(Vec4f)))
+          {
+            rowDataOffset = AlignUp(rowDataOffset, sizeof(Vec4f));
+          }
+
+          if(rowDataOffset < data.size())
+          {
+            const byte *d = &data[rowDataOffset];
+
+            memcpy(&((*out)[outIdx + r].value.uv[0]), d,
+                   RDCMIN(data.size() - rowDataOffset, totalSize));
+
+            if(!flatten && columnMajor)
+            {
+              ShaderVariable tmp = (*out)[outIdx + r];
+
+              size_t transposeRows = rowCopy > 1 ? 4 : 1;
+
+              // transpose
+              for(size_t ri = 0; ri < transposeRows; ri++)
+                for(size_t ci = 0; ci < cols; ci++)
+                  (*out)[outIdx + r].value.uv[ri * cols + ci] = tmp.value.uv[ci * transposeRows + ri];
+            }
+          }
+
+          if(flatten)
+          {
+            rowDataOffset += sizeof(Vec4f);
+          }
+          else
+          {
+            if(columnMajor)
+              rowDataOffset += sizeof(Vec4f) * (cols - 1) + sizeof(float) * rowCopy;
+            else
+              rowDataOffset += sizeof(Vec4f) * (rowCopy - 1) + sizeof(float) * cols;
+          }
+        }
+
+        if(!flatten)
+        {
+          var.isStruct = false;
+          var.members = varmembers;
+        }
+      }
+    }
+  }
+}
+
+void D3D12DebugManager::FillCBufferVariables(const vector<DXBC::CBufferVariable> &invars,
+                                             vector<ShaderVariable> &outvars, bool flattenVec4s,
+                                             const vector<byte> &data)
+{
+  size_t zero = 0;
+
+  vector<ShaderVariable> v;
+  FillCBufferVariables("", zero, flattenVec4s, invars, v, data);
+
+  outvars.reserve(v.size());
+  for(size_t i = 0; i < v.size(); i++)
+    outvars.push_back(v[i]);
+}
+
 void D3D12DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length,
                                       vector<byte> &retData)
 {

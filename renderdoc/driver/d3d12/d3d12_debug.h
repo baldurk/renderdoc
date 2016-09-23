@@ -26,6 +26,7 @@
 
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
+#include "driver/shaders/dxbc/dxbc_debug.h"
 #include "replay/replay_driver.h"
 #include "d3d12_common.h"
 
@@ -72,6 +73,10 @@ public:
 
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
                  uint32_t sample, FormatComponentType typeHint, float pixel[4]);
+
+  void FillCBufferVariables(const vector<DXBC::CBufferVariable> &invars,
+                            vector<ShaderVariable> &outvars, bool flattenVec4s,
+                            const vector<byte> &data);
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);
   void GetBufferData(ID3D12Resource *buff, uint64_t offset, uint64_t length, vector<byte> &retData);
@@ -189,6 +194,10 @@ private:
 
   bool m_ShaderCacheDirty, m_CacheShaders;
   map<uint32_t, ID3DBlob *> m_ShaderCache;
+
+  void FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
+                            const vector<DXBC::CBufferVariable> &invars,
+                            vector<ShaderVariable> &outvars, const vector<byte> &data);
 
   void RenderTextInternal(ID3D12GraphicsCommandList *list, float x, float y, const char *text);
   bool RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg, bool blendAlpha);
