@@ -171,6 +171,8 @@ enum ExtensionCheckEnum
   ExtensionSupported_EXT_raster_multisample,
   ExtensionSupported_ARB_indirect_parameters,
   ExtensionSupported_EXT_depth_bounds_test,
+  ExtensionSupported_EXT_clip_cull_distance,
+  ExtensionSupported_NV_polygon_mode,
   ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];

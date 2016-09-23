@@ -423,7 +423,6 @@ public:
     {
         GLESInitParams initParams;
         m_GLESDriver = new WrappedGLES("", GL);
-        m_GLESDriver->Initialise(initParams);
     }
 
     return m_GLESDriver;

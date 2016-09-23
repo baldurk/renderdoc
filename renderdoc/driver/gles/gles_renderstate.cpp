@@ -536,6 +536,28 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
         continue;
       }
 
+      if((pnames[i] == eGL_CLIP_DISTANCE0_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE1_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE2_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE3_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE4_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE5_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE6_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE7_EXT) &&
+         !ExtensionSupported[ExtensionSupported_EXT_clip_cull_distance])
+      {
+         Enabled[i] = false;
+         continue;
+      }
+
+      if((pnames[i] == eGL_POLYGON_OFFSET_LINE_NV || 
+          pnames[i] == eGL_POLYGON_OFFSET_POINT_NV) &&
+         !ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+      {
+         Enabled[i] = false;
+         continue;
+      }
+
       Enabled[i] = (m_Real->glIsEnabled(pnames[i]) == GL_TRUE);
     }
   }
@@ -854,6 +876,21 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
          !ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
         continue;
 
+      if((pnames[i] == eGL_CLIP_DISTANCE0_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE1_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE2_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE3_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE4_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE5_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE6_EXT || 
+          pnames[i] == eGL_CLIP_DISTANCE7_EXT) &&
+         !ExtensionSupported[ExtensionSupported_EXT_clip_cull_distance])
+        continue;
+
+      if((pnames[i] == eGL_POLYGON_OFFSET_LINE_NV || 
+          pnames[i] == eGL_POLYGON_OFFSET_POINT_NV))
+        continue;
+        
       if(Enabled[i])
         m_Real->glEnable(pnames[i]);
       else

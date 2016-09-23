@@ -80,6 +80,8 @@ void DoVendorChecks(const GLHookSet &gl, GLESWindowingData context)
       EXT_CHECK(EXT_raster_multisample);
       EXT_CHECK(ARB_indirect_parameters);
       EXT_CHECK(EXT_depth_bounds_test);
+      EXT_CHECK(EXT_clip_cull_distance);
+      EXT_CHECK(NV_polygon_mode);
 
 #undef EXT_CHECK
     }
