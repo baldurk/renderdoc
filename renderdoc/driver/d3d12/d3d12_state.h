@@ -108,10 +108,6 @@ struct D3D12RenderState
         ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
         cmd->SetGraphicsRootUnorderedAccessView(slot, res->GetGPUVirtualAddress() + offset);
       }
-      else
-      {
-        RDCWARN("Unexpected root signature element of type '%u' - skipping.", type);
-      }
     }
 
     void SetToCompute(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot)
@@ -141,10 +137,6 @@ struct D3D12RenderState
       {
         ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
         cmd->SetComputeRootUnorderedAccessView(slot, res->GetGPUVirtualAddress() + offset);
-      }
-      else
-      {
-        RDCWARN("Unexpected root signature element of type '%u' - skipping.", type);
       }
     }
 
