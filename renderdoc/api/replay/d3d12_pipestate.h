@@ -33,6 +33,8 @@ struct D3D12PipelineState
   bool32 customName;
   rdctype::str PipelineName;
 
+  ResourceId rootSig;
+
   struct InputAssembler
   {
     InputAssembler() : indexStripCutValue(0) {}
@@ -73,25 +75,14 @@ struct D3D12PipelineState
     uint32_t indexStripCutValue;
   } m_IA;
 
-  struct ShaderStage
-  {
-    ShaderStage() : ShaderDetails(NULL), stage(eShaderStage_Vertex) {}
-    ResourceId Shader;
-    ShaderReflection *ShaderDetails;
-    ShaderBindpointMapping BindpointMapping;
-
-    ShaderStageType stage;
-  } m_VS, m_HS, m_DS, m_GS, m_PS, m_CS;
-
   // Immediate indicates either a root parameter (not in a table), or static samplers
   // RootElement is the index in the original root signature that this descriptor came from.
 
   struct ResourceView
   {
     ResourceView()
-        : VisibilityMask(),
-          Immediate(0),
-          RootElement(0),
+        : Immediate(0),
+          RootElement(~0U),
           Resource(),
           Format(),
           BufferFlags(0),
@@ -113,7 +104,6 @@ struct D3D12PipelineState
     }
 
     // parameters from descriptor
-    ShaderStageBits VisibilityMask;
     bool32 Immediate;
     uint32_t RootElement;
 
@@ -146,9 +136,8 @@ struct D3D12PipelineState
   struct Sampler
   {
     Sampler()
-        : VisibilityMask(),
-          Immediate(0),
-          RootElement(0),
+        : Immediate(0),
+          RootElement(~0U),
           UseBorder(false),
           UseComparison(false),
           MaxAniso(0),
@@ -160,7 +149,6 @@ struct D3D12PipelineState
     }
 
     // parameters from descriptor
-    ShaderStageBits VisibilityMask;
     bool32 Immediate;
     uint32_t RootElement;
 
@@ -179,9 +167,8 @@ struct D3D12PipelineState
 
   struct CBuffer
   {
-    CBuffer() : VisibilityMask(), Immediate(0), RootElement(0), Buffer(), Offset(0), ByteSize(0) {}
+    CBuffer() : Immediate(0), RootElement(~0U), Buffer(), Offset(0), ByteSize(0) {}
     // parameters from descriptor
-    ShaderStageBits VisibilityMask;
     bool32 Immediate;
     uint32_t RootElement;
 
@@ -193,9 +180,14 @@ struct D3D12PipelineState
     rdctype::array<uint32_t> RootValues;
   };
 
-  struct RootSignature
+  struct ShaderStage
   {
-    ResourceId obj;
+    ShaderStage() : ShaderDetails(NULL), stage(eShaderStage_Vertex) {}
+    ResourceId Shader;
+    ShaderReflection *ShaderDetails;
+    ShaderBindpointMapping BindpointMapping;
+
+    ShaderStageType stage;
 
     struct RegisterSpace
     {
@@ -205,7 +197,7 @@ struct D3D12PipelineState
       rdctype::array<ResourceView> UAVs;
     };
     rdctype::array<RegisterSpace> Spaces;
-  } m_RootSig;
+  } m_VS, m_HS, m_DS, m_GS, m_PS, m_CS;
 
   struct Streamout
   {

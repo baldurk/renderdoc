@@ -96,6 +96,28 @@ namespace renderdocui.Windows.PipelineState
             public ShaderResource res;
         };
 
+        private class CBufTag
+        {
+            public CBufTag(uint slot)
+            {
+                idx = slot;
+                space = 0;
+                reg = 0;
+            }
+
+            public CBufTag(int s, int r)
+            {
+                idx = uint.MaxValue;
+                space = s;
+                reg = r;
+            }
+
+            public uint idx;
+
+            public int space;
+            public int reg;
+        };
+
         public D3D12PipelineStateViewer(Core core, DockContent c)
         {
             InitializeComponent();
@@ -256,7 +278,7 @@ namespace renderdocui.Windows.PipelineState
             m_ViewDetailNodes.Add(node);
         }
 
-        private bool HasImportantViewParams(D3D12PipelineState.ResourceView view, FetchTexture tex, ShaderStageBits stageMask)
+        private bool HasImportantViewParams(D3D12PipelineState.ResourceView view, FetchTexture tex)
         {
             // we don't count 'upgrade typeless to typed' as important, we just display the typed format
             // in the row since there's no real hidden important information there. The formats can't be
@@ -273,18 +295,12 @@ namespace renderdocui.Windows.PipelineState
             if (view.Format.compType != FormatComponentType.None && view.Format != tex.format)
                 return true;
 
-            if (!view.VisibilityMask.HasFlag(stageMask))
-                return true;
-
             return false;
         }
 
-        private bool HasImportantViewParams(D3D12PipelineState.ResourceView view, FetchBuffer buf, ShaderStageBits stageMask)
+        private bool HasImportantViewParams(D3D12PipelineState.ResourceView view, FetchBuffer buf)
         {
             if (view.FirstElement > 0 || view.NumElements*view.ElementSize < buf.length)
-                return true;
-
-            if (!view.VisibilityMask.HasFlag(stageMask))
                 return true;
 
             return false;
@@ -300,40 +316,45 @@ namespace renderdocui.Windows.PipelineState
             cbuffers.Nodes.Clear();
         }
 
-        private void AddResourceRow(TreelistView.TreeListView list, ShaderStageBits stageMask, BindpointMap bind, ShaderResource shaderInput, bool uav)
+        private void AddResourceRow(D3D12PipelineState.ShaderStage stage,
+                                    TreelistView.TreeListView list,
+                                    int space, int reg, bool uav)
         {
             D3D12PipelineState state = m_Core.CurD3D12PipelineState;
             FetchTexture[] texs = m_Core.CurTextures;
             FetchBuffer[] bufs = m_Core.CurBuffers;
 
-            string rootel = "--";
+            BindpointMap bind = null;
+            ShaderResource shaderInput = null;
 
-            D3D12PipelineState.ResourceView r = null;
+            D3D12PipelineState.ResourceView r = uav ? stage.Spaces[space].UAVs[reg] : stage.Spaces[space].SRVs[reg];
 
-            if (uav)
+            // consider this register to not exist - it's in a gap defined by sparse root signature elements
+            if (r.RootElement == uint.MaxValue)
+                return;
+
+            if (stage.BindpointMapping != null && stage.ShaderDetails != null)
             {
-                if (bind.bindset < state.m_RootSig.Spaces.Length &&
-                   bind.bind < state.m_RootSig.Spaces[bind.bindset].UAVs.Length)
+                BindpointMap[] binds = uav ? stage.BindpointMapping.ReadWriteResources : stage.BindpointMapping.ReadOnlyResources;
+                ShaderResource[] resources = uav ? stage.ShaderDetails.ReadWriteResources : stage.ShaderDetails.ReadOnlyResources;
+                for (int i=0; i < binds.Length; i++)
                 {
-                    r = state.m_RootSig.Spaces[bind.bindset].UAVs[bind.bind];
+                    var b = binds[i];
+                    var res = resources[i];
+
+                    if (b.bindset == space && b.bind == reg && !res.IsSampler)
+                    {
+                        bind = b;
+                        shaderInput = res;
+                        break;
+                    }
                 }
             }
-            else
-            {
-                if (bind.bindset < state.m_RootSig.Spaces.Length &&
-                   bind.bind < state.m_RootSig.Spaces[bind.bindset].SRVs.Length)
-                {
-                    r = state.m_RootSig.Spaces[bind.bindset].SRVs[bind.bind];
-                }
-            }
 
-            if (r != null)
-                rootel = r.Immediate ? String.Format("#{0} Direct", r.RootElement) : rootel = String.Format("#{0} Table", r.RootElement);
+            string rootel = r.Immediate ? String.Format("#{0} Direct", r.RootElement) : rootel = String.Format("#{0} Table", r.RootElement);
 
-            bool stageVisible = r != null && r.VisibilityMask.HasFlag(stageMask);
-
-            bool filledSlot = (r != null && r.Resource != ResourceId.Null && stageVisible);
-            bool usedSlot = bind.used;
+            bool filledSlot = r.Resource != ResourceId.Null;
+            bool usedSlot = (bind != null && bind.used);
 
             // show if
             if (usedSlot || // it's referenced by the shader - regardless of empty or not
@@ -341,7 +362,7 @@ namespace renderdocui.Windows.PipelineState
                 (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
                 )
             {
-                string regname = bind.bind.ToString();
+                string regname = reg.ToString();
 
                 if (shaderInput != null && shaderInput.name.Length > 0)
                     regname += ": " + shaderInput.name;
@@ -394,7 +415,7 @@ namespace renderdocui.Windows.PipelineState
 
                             tag = new ViewTexTag(r, texs[t], true, shaderInput);
 
-                            if (HasImportantViewParams(r, texs[t], stageMask))
+                            if (HasImportantViewParams(r, texs[t]))
                                 viewDetails = true;
                         }
                     }
@@ -445,13 +466,13 @@ namespace renderdocui.Windows.PipelineState
 
                             tag = new ViewBufTag(r, bufs[t], true, shaderInput);
 
-                            if (HasImportantViewParams(r, bufs[t], stageMask))
+                            if (HasImportantViewParams(r, bufs[t]))
                                 viewDetails = true;
                         }
                     }
                 }
 
-                var node = list.Nodes.Add(new object[] { rootel, bind.bindset, regname, name, typename, w, h, d, a, format });
+                var node = list.Nodes.Add(new object[] { rootel, space, regname, name, typename, w, h, d, a, format });
 
                 node.Image = global::renderdocui.Properties.Resources.action;
                 node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
@@ -479,8 +500,6 @@ namespace renderdocui.Windows.PipelineState
             ShaderReflection shaderDetails = stage.ShaderDetails;
             ShaderBindpointMapping bindpointMapping = stage.BindpointMapping;
 
-            ShaderStageBits stageMask = (ShaderStageBits)(1 << (int)stage.stage);
-
             if (stage.Shader == ResourceId.Null)
                 shader.Text = "Unbound";
             else if (state.customName)
@@ -506,14 +525,11 @@ namespace renderdocui.Windows.PipelineState
             vs = resources.VScrollValue();
             resources.BeginUpdate();
             resources.Nodes.Clear();
-            if (shaderDetails != null)
+            for (int space = 0; space < stage.Spaces.Length; space++)
             {
-                for (int i = 0; i < shaderDetails.ReadOnlyResources.Length; i++)
+                for (int reg = 0; reg < stage.Spaces[space].SRVs.Length; reg++)
                 {
-                    if (shaderDetails.ReadOnlyResources[i].IsSampler)
-                        continue;
-
-                    AddResourceRow(resources, stageMask, bindpointMapping.ReadOnlyResources[i], shaderDetails.ReadOnlyResources[i], false);
+                    AddResourceRow(stage, resources, space, reg, false);
                 }
             }
             resources.EndUpdate();
@@ -523,11 +539,11 @@ namespace renderdocui.Windows.PipelineState
             vs = uavs.VScrollValue();
             uavs.BeginUpdate();
             uavs.Nodes.Clear();
-            if (shaderDetails != null)
+            for (int space = 0; space < stage.Spaces.Length; space++)
             {
-                for (int i = 0; i < shaderDetails.ReadWriteResources.Length; i++)
+                for (int reg = 0; reg < stage.Spaces[space].UAVs.Length; reg++)
                 {
-                    AddResourceRow(resources, stageMask, bindpointMapping.ReadWriteResources[i], shaderDetails.ReadWriteResources[i], true);
+                    AddResourceRow(stage, resources, space, reg, true);
                 }
             }
             uavs.EndUpdate();
@@ -537,32 +553,39 @@ namespace renderdocui.Windows.PipelineState
             vs = samplers.VScrollValue();
             samplers.BeginUpdate();
             samplers.Nodes.Clear();
-            if (shaderDetails != null)
+            for (int space = 0; space < stage.Spaces.Length; space++)
             {
-                for(int i=0; i < shaderDetails.ReadOnlyResources.Length; i++)
+                for (int reg = 0; reg < stage.Spaces[space].Samplers.Length; reg++)
                 {
-                    ShaderResource shaderInput = shaderDetails.ReadOnlyResources[i];
+                    D3D12PipelineState.Sampler s = stage.Spaces[space].Samplers[reg];
 
-                    if (!shaderInput.IsSampler)
+                    // consider this register to not exist - it's in a gap defined by sparse root signature elements
+                    if (s.RootElement == uint.MaxValue)
                         continue;
 
-                    BindpointMap bind = bindpointMapping.ReadOnlyResources[i];
+                    BindpointMap bind = null;
+                    ShaderResource shaderInput = null;
 
-                    D3D12PipelineState.Sampler s = null;
-
-                    string rootel = "--";
-
-                    if (bind.bindset < state.m_RootSig.Spaces.Length &&
-                       bind.bind < state.m_RootSig.Spaces[bind.bindset].Samplers.Length)
+                    if (stage.BindpointMapping != null && stage.ShaderDetails != null)
                     {
-                        s = state.m_RootSig.Spaces[bind.bindset].Samplers[bind.bind];
-                        rootel = s.Immediate ? String.Format("#{0} Static", s.RootElement) : String.Format("#{0} Table", s.RootElement);
+                        for (int i = 0; i < stage.BindpointMapping.ReadOnlyResources.Length; i++)
+                        {
+                            var b = stage.BindpointMapping.ReadOnlyResources[i];
+                            var res = stage.ShaderDetails.ReadOnlyResources[i];
+
+                            if (b.bindset == space && b.bind == reg && res.IsSampler)
+                            {
+                                bind = b;
+                                shaderInput = res;
+                                break;
+                            }
+                        }
                     }
 
-                    bool stageVisible = s != null && s.VisibilityMask.HasFlag(stageMask);
+                    string rootel = s.Immediate ? String.Format("#{0} Static", s.RootElement) : String.Format("#{0} Table", s.RootElement);
 
-                    bool filledSlot = (s != null && s.AddressU.Length > 0 && stageVisible);
-                    bool usedSlot = bind.used;
+                    bool filledSlot = (s.AddressU.Length > 0);
+                    bool usedSlot = (bind != null && bind.used);
 
                     // show if
                     if (usedSlot || // it's referenced by the shader - regardless of empty or not
@@ -570,7 +593,7 @@ namespace renderdocui.Windows.PipelineState
                         (showEmpty.Checked && !filledSlot) // it's empty, and we have "show empty"
                         )
                     {
-                        string regname = bind.bind.ToString();
+                        string regname = reg.ToString();
 
                         if (shaderInput != null && shaderInput.name.Length > 0)
                             regname += ": " + shaderInput.name;
@@ -639,10 +662,7 @@ namespace renderdocui.Windows.PipelineState
                             lodbias = s.MipLODBias;
                         }
 
-                        if (!stageVisible)
-                            filter += " (Not visible)";
-
-                        var node = samplers.Nodes.Add(new object[] { rootel, bind.bindset, regname, addressing,
+                        var node = samplers.Nodes.Add(new object[] { rootel, space, regname, addressing,
                                                                      filter, lodclamp, lodbias.ToString() });
 
                         if (!filledSlot)
@@ -660,40 +680,57 @@ namespace renderdocui.Windows.PipelineState
             vs = cbuffers.VScrollValue();
             cbuffers.BeginUpdate();
             cbuffers.Nodes.Clear();
-            if(shaderDetails != null)
+            for (int space = 0; space < stage.Spaces.Length; space++)
             {
-                for (int i = 0; i < shaderDetails.ConstantBlocks.Length; i++)
+                for (int reg = 0; reg < stage.Spaces[space].ConstantBuffers.Length; reg++)
                 {
-                    ConstantBlock shaderCBuf = shaderDetails.ConstantBlocks[i];
+                    D3D12PipelineState.CBuffer b = stage.Spaces[space].ConstantBuffers[reg];
 
-                    BindpointMap bind = bindpointMapping.ConstantBlocks[i];
+                    // consider this register to not exist - it's in a gap defined by sparse root signature elements
+                    if (b.RootElement == uint.MaxValue)
+                        continue;
 
-                    D3D12PipelineState.CBuffer b = null;
+                    BindpointMap bind = null;
+                    ConstantBlock shaderCBuf = null;
 
-                    string rootel = "--";
+                    object tag = null;
 
-                    if (bind.bindset < state.m_RootSig.Spaces.Length &&
-                       bind.bind < state.m_RootSig.Spaces[bind.bindset].ConstantBuffers.Length)
+                    if (stage.BindpointMapping != null && stage.ShaderDetails != null)
                     {
-                        b = state.m_RootSig.Spaces[bind.bindset].ConstantBuffers[bind.bind];
+                        for (int i = 0; i < stage.BindpointMapping.ConstantBlocks.Length; i++)
+                        {
+                            var bd = stage.BindpointMapping.ConstantBlocks[i];
+                            var res = stage.ShaderDetails.ConstantBlocks[i];
 
-                        if (b.Immediate)
-                        {
-                            if (b.RootValues.Length > 0)
-                                rootel = String.Format("#{0} Consts", b.RootElement);
-                            else
-                                rootel = String.Format("#{0} Direct", b.RootElement);
-                        }
-                        else
-                        {
-                            rootel = String.Format("#{0} Table", b.RootElement);
+                            if (bd.bindset == space && bd.bind == reg)
+                            {
+                                bind = bd;
+                                shaderCBuf = res;
+                                tag = new CBufTag((uint)i);
+                                break;
+                            }
                         }
                     }
 
-                    bool stageVisible = b != null && b.VisibilityMask.HasFlag(stageMask);
+                    if(tag == null)
+                        tag = new CBufTag(space, reg);
 
-                    bool filledSlot = (b != null && b.Buffer != ResourceId.Null && stageVisible);
-                    bool usedSlot = bind.used;
+                    string rootel;
+
+                    if (b.Immediate)
+                    {
+                        if (b.RootValues.Length > 0)
+                            rootel = String.Format("#{0} Consts", b.RootElement);
+                        else
+                            rootel = String.Format("#{0} Direct", b.RootElement);
+                    }
+                    else
+                    {
+                        rootel = String.Format("#{0} Table", b.RootElement);
+                    }
+
+                    bool filledSlot = (b.Buffer != ResourceId.Null);
+                    bool usedSlot = (bind != null && bind.used);
 
                     // show if
                     if (usedSlot || // it's referenced by the shader - regardless of empty or not
@@ -707,20 +744,23 @@ namespace renderdocui.Windows.PipelineState
                         int numvars = shaderCBuf != null ? shaderCBuf.variables.Length : 0;
                         UInt32 byteSize = shaderCBuf != null ? shaderCBuf.byteSize : 0;
 
+                        if (b.Immediate && b.RootValues.Length > 0)
+                            byteSize = (UInt32)(b.RootValues.Length * 4);
+
                         if (!filledSlot)
                             name = "Empty";
 
                         if (b != null)
                         {
+                            offset = b.Offset;
+                            length = b.ByteSize;
+
                             for (int t = 0; t < bufs.Length; t++)
                                 if (bufs[t].ID == b.Buffer)
                                     name = bufs[t].name;
-
-                            offset = b.Offset;
-                            length = b.ByteSize;
                         }
 
-                        string regname = bind.bind.ToString();
+                        string regname = reg.ToString();
 
                         if (shaderCBuf != null && shaderCBuf.name.Length > 0)
                             regname += ": " + shaderCBuf.name;
@@ -734,14 +774,11 @@ namespace renderdocui.Windows.PipelineState
                         if (length < byteSize)
                             filledSlot = false;
 
-                        if (!stageVisible)
-                            name += " (Not visible)";
-
-                        var node = cbuffers.Nodes.Add(new object[] { rootel, bind.bindset, regname, name, offset, sizestr });
+                        var node = cbuffers.Nodes.Add(new object[] { rootel, space, regname, name, offset, sizestr });
 
                         node.Image = global::renderdocui.Properties.Resources.action;
                         node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
-                        node.Tag = (UInt32)i;
+                        node.Tag = tag;
 
                         if (!filledSlot)
                             EmptyRow(node);
@@ -1241,7 +1278,7 @@ namespace renderdocui.Windows.PipelineState
                                     format = "Viewed as " + p.Format.ToString();
                                 }
 
-                                if (HasImportantViewParams(p, texs[t], ShaderStageBits.All))
+                                if (HasImportantViewParams(p, texs[t]))
                                     viewDetails = true;
 
                                 tag = new ViewTexTag(p, texs[t], false, null);
@@ -1312,7 +1349,7 @@ namespace renderdocui.Windows.PipelineState
                             format = "Viewed as " + state.m_OM.DepthTarget.Format.ToString();
                         }
 
-                        if (HasImportantViewParams(state.m_OM.DepthTarget, texs[t], ShaderStageBits.All))
+                        if (HasImportantViewParams(state.m_OM.DepthTarget, texs[t]))
                             viewDetails = true;
 
                         tag = new ViewTexTag(state.m_OM.DepthTarget, texs[t], false, null);
@@ -1549,9 +1586,6 @@ namespace renderdocui.Windows.PipelineState
                                 text += String.Format("The texture has {0} array slices, the view covers slices {1}-{2}.\n",
                                     tex.tex.arraysize, tex.view.FirstArraySlice, tex.view.FirstArraySlice + tex.view.ArraySize);
                         }
-
-                        if (!tex.view.VisibilityMask.HasFlag(stageMask))
-                            text += "Root element not visible at this shader stage.\n";
                     }
                     else if (buf != null)
                     {
@@ -1564,9 +1598,6 @@ namespace renderdocui.Windows.PipelineState
                             buf.view.NumElements,
                             buf.buf.length,
                             buf.buf.length / buf.view.ElementSize);
-
-                        if (!buf.view.VisibilityMask.HasFlag(stageMask))
-                            text += "Root element not visible at this shader stage.\n";
                     }
 
                     toolTip.Show(text.TrimEnd(), view, e.Location.X + Cursor.Size.Width, y);
@@ -2212,38 +2243,28 @@ namespace renderdocui.Windows.PipelineState
             sv.Show(m_DockContent.DockPanel);
         }
 
-        private void ShowCBuffer(D3D12PipelineState.ShaderStage stage, UInt32 slot)
+        private void ShowCBuffer(D3D12PipelineState.ShaderStage stage, CBufTag tag)
         {
-            if (stage.ShaderDetails != null &&
-                stage.BindpointMapping != null &&
-                (stage.ShaderDetails.ConstantBlocks.Length <= slot ||
-                 stage.ShaderDetails.ConstantBlocks[slot].name.Length == 0)
-               )
+            if (tag.idx == uint.MaxValue)
             {
                 // unused cbuffer, open regular buffer viewer
                 var viewer = new BufferViewer(m_Core, false);
 
-                var bind = stage.BindpointMapping.ConstantBlocks[slot];
-
-                if (bind.bindset >= m_Core.CurD3D12PipelineState.m_RootSig.Spaces.Length ||
-                    bind.bind >= m_Core.CurD3D12PipelineState.m_RootSig.Spaces[bind.bindset].ConstantBuffers.Length)
-                    return;
-
-                var buf = m_Core.CurD3D12PipelineState.m_RootSig.Spaces[bind.bindset].ConstantBuffers[bind.bind];
+                var buf = stage.Spaces[tag.space].ConstantBuffers[tag.reg];
                 viewer.ViewRawBuffer(true, buf.Offset, buf.ByteSize, buf.Buffer);
                 viewer.Show(m_DockContent.DockPanel);
 
                 return;
             }
 
-            var existing = ConstantBufferPreviewer.Has(stage.stage, slot, 0);
+            var existing = ConstantBufferPreviewer.Has(stage.stage, tag.idx, 0);
             if (existing != null)
             {
                 existing.Show();
                 return;
             }
 
-            var prev = new ConstantBufferPreviewer(m_Core, stage.stage, slot, 0);
+            var prev = new ConstantBufferPreviewer(m_Core, stage.stage, tag.idx, 0);
 
             prev.ShowDock(m_DockContent.Pane, DockAlignment.Right, 0.3);
         }
@@ -2252,9 +2273,9 @@ namespace renderdocui.Windows.PipelineState
         {
             D3D12PipelineState.ShaderStage stage = GetStageForSender(node.OwnerView);
 
-            if (stage != null && node.Tag is UInt32)
+            if (stage != null && node.Tag is CBufTag)
             {
-                ShowCBuffer(stage, (UInt32)node.Tag);
+                ShowCBuffer(stage, (CBufTag)node.Tag);
             }
         }
 
@@ -2264,9 +2285,9 @@ namespace renderdocui.Windows.PipelineState
 
             object tag = ((DataGridView)sender).Rows[e.RowIndex].Tag;
 
-            if (stage != null && tag is UInt32)
+            if (stage != null && tag is CBufTag)
             {
-                ShowCBuffer(stage, (UInt32)tag);
+                ShowCBuffer(stage, (CBufTag)tag);
             }
         }
 

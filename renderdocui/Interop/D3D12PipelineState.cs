@@ -37,6 +37,8 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string PipelineName;
 
+        public ResourceId rootSig;
+
         [StructLayout(LayoutKind.Sequential)]
         public class InputAssembler
         {
@@ -83,34 +85,8 @@ namespace renderdoc
         public InputAssembler m_IA;
 
         [StructLayout(LayoutKind.Sequential)]
-        public class ShaderStage
-        {
-            private void PostMarshal()
-            {
-                if (_ptr_ShaderDetails != IntPtr.Zero)
-                    ShaderDetails = (ShaderReflection)CustomMarshal.PtrToStructure(_ptr_ShaderDetails, typeof(ShaderReflection), false);
-                else
-                    ShaderDetails = null;
-
-                _ptr_ShaderDetails = IntPtr.Zero;
-            }
-
-            public ResourceId Shader;
-            private IntPtr _ptr_ShaderDetails;
-            [CustomMarshalAs(CustomUnmanagedType.Skip)]
-            public ShaderReflection ShaderDetails;
-            [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-            public ShaderBindpointMapping BindpointMapping;
-
-            public ShaderStageType stage;
-        };
-        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-        public ShaderStage m_VS, m_HS, m_DS, m_GS, m_PS, m_CS;
-
-        [StructLayout(LayoutKind.Sequential)]
         public class ResourceView
         {
-            public ShaderStageBits VisibilityMask;
             public bool Immediate;
             public UInt32 RootElement;
 
@@ -146,7 +122,6 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public class Sampler
         {
-            public ShaderStageBits VisibilityMask;
             public bool Immediate;
             public UInt32 RootElement;
 
@@ -169,7 +144,6 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public class CBuffer
         {
-            public ShaderStageBits VisibilityMask;
             public bool Immediate;
             public UInt32 RootElement;
 
@@ -182,9 +156,26 @@ namespace renderdoc
         };
 
         [StructLayout(LayoutKind.Sequential)]
-        public class RootSignature
+        public class ShaderStage
         {
-            public ResourceId Obj;
+            private void PostMarshal()
+            {
+                if (_ptr_ShaderDetails != IntPtr.Zero)
+                    ShaderDetails = (ShaderReflection)CustomMarshal.PtrToStructure(_ptr_ShaderDetails, typeof(ShaderReflection), false);
+                else
+                    ShaderDetails = null;
+
+                _ptr_ShaderDetails = IntPtr.Zero;
+            }
+
+            public ResourceId Shader;
+            private IntPtr _ptr_ShaderDetails;
+            [CustomMarshalAs(CustomUnmanagedType.Skip)]
+            public ShaderReflection ShaderDetails;
+            [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+            public ShaderBindpointMapping BindpointMapping;
+
+            public ShaderStageType stage;
 
             [StructLayout(LayoutKind.Sequential)]
             public class RegisterSpace
@@ -203,7 +194,7 @@ namespace renderdoc
             public RegisterSpace[] Spaces;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-        public RootSignature m_RootSig;
+        public ShaderStage m_VS, m_HS, m_DS, m_GS, m_PS, m_CS;
 
         [StructLayout(LayoutKind.Sequential)]
         public class Streamout

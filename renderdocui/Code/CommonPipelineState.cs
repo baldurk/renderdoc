@@ -970,8 +970,8 @@ namespace renderdocui.Code
                     {
                         var bind = s.BindpointMapping.ConstantBlocks[s.ShaderDetails.ConstantBlocks[BufIdx].bindPoint];
 
-                        if (bind.bindset >= m_D3D12.m_RootSig.Spaces.Length ||
-                           bind.bind >= m_D3D12.m_RootSig.Spaces[bind.bindset].ConstantBuffers.Length)
+                        if (bind.bindset >= s.Spaces.Length ||
+                           bind.bind >= s.Spaces[bind.bindset].ConstantBuffers.Length)
                         {
                             buf = ResourceId.Null;
                             ByteOffset = 0;
@@ -979,7 +979,7 @@ namespace renderdocui.Code
                             return;
                         }
 
-                        var descriptor = m_D3D12.m_RootSig.Spaces[bind.bindset].ConstantBuffers[bind.bind];
+                        var descriptor = s.Spaces[bind.bindset].ConstantBuffers[bind.bind];
 
                         buf = descriptor.Buffer;
                         ByteOffset = descriptor.Offset;
@@ -1104,27 +1104,33 @@ namespace renderdocui.Code
                 }
                 else if (IsLogD3D12)
                 {
-                    ShaderStageBits mask = (ShaderStageBits)(1 << (int)stage);
+                    D3D12PipelineState.ShaderStage s = null;
 
-                    for (int space = 0; space < m_D3D12.m_RootSig.Spaces.Length; space++)
+                    switch (stage)
                     {
-                        for (int reg = 0; reg < m_D3D12.m_RootSig.Spaces[space].SRVs.Length; reg++)
+                        case ShaderStageType.Vertex: s = m_D3D12.m_VS; break;
+                        case ShaderStageType.Domain: s = m_D3D12.m_DS; break;
+                        case ShaderStageType.Hull: s = m_D3D12.m_HS; break;
+                        case ShaderStageType.Geometry: s = m_D3D12.m_GS; break;
+                        case ShaderStageType.Pixel: s = m_D3D12.m_PS; break;
+                        case ShaderStageType.Compute: s = m_D3D12.m_CS; break;
+                    }
+
+                    for (int space = 0; space < s.Spaces.Length; space++)
+                    {
+                        for (int reg = 0; reg < s.Spaces[space].SRVs.Length; reg++)
                         {
-                            var bind = m_D3D12.m_RootSig.Spaces[space].SRVs[reg];
+                            var bind = s.Spaces[space].SRVs[reg];
+                            var key = new BindpointMap(space, reg);
+                            var val = new BoundResource();
 
-                            if ((bind.VisibilityMask & mask) == mask)
-                            {
-                                var key = new BindpointMap(space, reg);
-                                var val = new BoundResource[1];
+                            val = new BoundResource();
+                            val.Id = bind.Resource;
+                            val.HighestMip = (int)bind.HighestMip;
+                            val.FirstSlice = (int)bind.FirstArraySlice;
+                            val.typeHint = bind.Format.compType;
 
-                                val[0] = new BoundResource();
-                                val[0].Id = bind.Resource;
-                                val[0].HighestMip = (int)bind.HighestMip;
-                                val[0].FirstSlice = (int)bind.FirstArraySlice;
-                                val[0].typeHint = bind.Format.compType;
-
-                                ret.Add(key, val);
-                            }
+                            ret.Add(key, new BoundResource[] { val });
                         }
                     }
 
@@ -1235,27 +1241,33 @@ namespace renderdocui.Code
                 }
                 else if (IsLogD3D12)
                 {
-                    ShaderStageBits mask = (ShaderStageBits)(1 << (int)stage);
+                    D3D12PipelineState.ShaderStage s = null;
 
-                    for (int space = 0; space < m_D3D12.m_RootSig.Spaces.Length; space++)
+                    switch (stage)
                     {
-                        for (int reg = 0; reg < m_D3D12.m_RootSig.Spaces[space].UAVs.Length; reg++)
+                        case ShaderStageType.Vertex: s = m_D3D12.m_VS; break;
+                        case ShaderStageType.Domain: s = m_D3D12.m_DS; break;
+                        case ShaderStageType.Hull: s = m_D3D12.m_HS; break;
+                        case ShaderStageType.Geometry: s = m_D3D12.m_GS; break;
+                        case ShaderStageType.Pixel: s = m_D3D12.m_PS; break;
+                        case ShaderStageType.Compute: s = m_D3D12.m_CS; break;
+                    }
+
+                    for (int space = 0; space < s.Spaces.Length; space++)
+                    {
+                        for (int reg = 0; reg < s.Spaces[space].UAVs.Length; reg++)
                         {
-                            var bind = m_D3D12.m_RootSig.Spaces[space].UAVs[reg];
+                            var bind = s.Spaces[space].UAVs[reg];
+                            var key = new BindpointMap(space, reg);
+                            var val = new BoundResource();
 
-                            if ((bind.VisibilityMask & mask) == mask)
-                            {
-                                var key = new BindpointMap(space, reg);
-                                var val = new BoundResource[1];
+                            val = new BoundResource();
+                            val.Id = bind.Resource;
+                            val.HighestMip = (int)bind.HighestMip;
+                            val.FirstSlice = (int)bind.FirstArraySlice;
+                            val.typeHint = bind.Format.compType;
 
-                                val[0] = new BoundResource();
-                                val[0].Id = bind.Resource;
-                                val[0].HighestMip = (int)bind.HighestMip;
-                                val[0].FirstSlice = (int)bind.FirstArraySlice;
-                                val[0].typeHint = bind.Format.compType;
-
-                                ret.Add(key, val);
-                            }
+                            ret.Add(key, new BoundResource[] { val });
                         }
                     }
 

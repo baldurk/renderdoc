@@ -28,6 +28,7 @@
 #include "core/core.h"
 #include "replay/replay_driver.h"
 #include "d3d12_common.h"
+#include "d3d12_state.h"
 
 class WrappedID3D12Device;
 
@@ -165,6 +166,9 @@ public:
 private:
   void MakePipelineState();
 
+  void FillRegisterSpaces(const D3D12RenderState::RootSignature &rootSig,
+                          rdctype::array<D3D12PipelineState::ShaderStage::RegisterSpace> &spaces,
+                          D3D12_SHADER_VISIBILITY visibility);
   void FillResourceView(D3D12PipelineState::ResourceView &view, D3D12Descriptor *desc);
 
   bool m_Proxy;
