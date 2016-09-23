@@ -2902,11 +2902,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(ID3D12Resource
   }
   else if(m_State == READING)
   {
-    ID3D12GraphicsCommandList *list = GetList(CommandList);
     pDstBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(dst);
     pSrcBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(src);
 
-    list->CopyBufferRegion(Unwrap(pDstBuffer), dstoffs, Unwrap(pSrcBuffer), srcoffs, num);
+    GetList(CommandList)->CopyBufferRegion(Unwrap(pDstBuffer), dstoffs, Unwrap(pSrcBuffer), srcoffs, num);
 
     const string desc = m_pSerialiser->GetDebugStr();
 
@@ -2986,9 +2985,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
   }
   else if(m_State == READING)
   {
-    ID3D12GraphicsCommandList *list = GetList(CommandList);
-
-    list->CopyTextureRegion(&dst, dstX, dstY, dstZ, &src, HasSrcBox ? &box : NULL);
+    GetList(CommandList)->CopyTextureRegion(&dst, dstX, dstY, dstZ, &src, HasSrcBox ? &box : NULL);
 
     const string desc = m_pSerialiser->GetDebugStr();
 
@@ -3079,11 +3076,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(ID3D12Resource *pD
   }
   else if(m_State == READING)
   {
-    ID3D12GraphicsCommandList *list = GetList(CommandList);
     pDstResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(dst);
     pSrcResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(src);
 
-    Unwrap(list)->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
+    GetList(CommandList)->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
 
     const string desc = m_pSerialiser->GetDebugStr();
 
@@ -3167,11 +3163,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(ID3D12Resour
   }
   else if(m_State == READING)
   {
-    ID3D12GraphicsCommandList *list = GetList(CommandList);
     pDstResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(dst);
     pSrcResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(src);
 
-    Unwrap(list)->ResolveSubresource(Unwrap(pDstResource), dstSub, Unwrap(pSrcResource), srcSub, fmt);
+    GetList(CommandList)
+        ->ResolveSubresource(Unwrap(pDstResource), dstSub, Unwrap(pSrcResource), srcSub, fmt);
 
     const string desc = m_pSerialiser->GetDebugStr();
 
