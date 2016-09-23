@@ -1793,11 +1793,13 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     length = RDCMIN(length, desc.Width - offset);
   }
 
-  if(sizeof(size_t) == sizeof(uint32_t) && offset + length > 0xfffffff)
+#ifndef RDC64BIT
+  if(offset + length > 0xfffffff)
   {
     RDCERR("Trying to read back too much data on 32-bit build. Try running on 64-bit.");
     return;
   }
+#endif
 
   uint64_t outOffs = 0;
 
@@ -1817,7 +1819,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
       return;
     }
 
-    memcpy(&ret[0], data + offset, length);
+    memcpy(&ret[0], data + offset, (size_t)length);
 
     range.Begin = range.End = 0;
 
@@ -1859,7 +1861,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     }
     else
     {
-      memcpy(&ret[outOffs], data, (size_t)chunkSize);
+      memcpy(&ret[(size_t)outOffs], data, (size_t)chunkSize);
 
       range.End = 0;
 
