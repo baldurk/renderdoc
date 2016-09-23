@@ -278,6 +278,14 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
       D3D12_MESSAGE_ID mute[] = {
           // super spammy, mostly just perf warning, and impossible to fix for our cases
           D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+          D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE,
+
+          // caused often by an over-declaration in the root signature to match between
+          // different shaders, and in some descriptors are entirely skipped. We rely on
+          // the user to get this right - if the error is non-fatal, any real problems
+          // will be potentially highlighted in the pipeline view
+          D3D12_MESSAGE_ID_INVALID_DESCRIPTOR_HANDLE,
+          D3D12_MESSAGE_ID_COMMAND_LIST_DESCRIPTOR_TABLE_NOT_SET,
       };
 
       D3D12_INFO_QUEUE_FILTER filter = {};
