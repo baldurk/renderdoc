@@ -971,7 +971,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
           ->OMSetRenderTargets(num, rtHandles, singlehandle ? TRUE : FALSE,
                                dsv.heap != ResourceId() ? &dsvHandle : NULL);
 
-      m_Cmd->m_RenderState.rts.resize(num);
+      m_Cmd->m_RenderState.rts.resize(numHandles);
 
       for(UINT i = 0; i < numHandles; i++)
         m_Cmd->m_RenderState.rts[i] = rts[i];
