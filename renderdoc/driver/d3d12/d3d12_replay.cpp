@@ -816,7 +816,7 @@ void D3D12Replay::MakePipelineState()
 {
   const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
-  D3D12PipelineState &state = m_PipelineState;
+  D3D12PipelineState state;
 
   /////////////////////////////////////////////////
   // Input Assembler
@@ -1119,6 +1119,8 @@ void D3D12Replay::MakePipelineState()
       i++;
     }
   }
+
+  m_PipelineState = state;
 }
 
 void D3D12Replay::RenderCheckerboard(Vec3f light, Vec3f dark)
