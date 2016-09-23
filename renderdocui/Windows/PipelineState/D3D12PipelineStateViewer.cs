@@ -730,6 +730,9 @@ namespace renderdocui.Windows.PipelineState
                     }
 
                     bool filledSlot = (b.Buffer != ResourceId.Null);
+                    if (b.Immediate && b.RootValues.Length > 0)
+                        filledSlot = true;
+
                     bool usedSlot = (bind != null && bind.used);
 
                     // show if
