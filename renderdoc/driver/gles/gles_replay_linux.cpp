@@ -240,6 +240,9 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
     printf("New output window (%dx%d)\n", outputWin.height, outputWin.width);
 
     MakeCurrentReplayContext(&outputWin);
+
+    InitOutputWindow(outputWin);
+    CreateOutputWindowBackbuffer(outputWin, depth);
     
     uint64_t windowId = m_OutputWindowID++;
     m_OutputWindows[windowId] = outputWin;
