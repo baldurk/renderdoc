@@ -2225,12 +2225,27 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
 
   D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
   srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-  srvDesc.Format = GetTypedFormat(resource->GetDesc().Format, cfg.typeHint);
+  srvDesc.Format = GetTypedFormat(resourceDesc.Format, cfg.typeHint);
   srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
   srvDesc.Texture2D.MipLevels = ~0U;
   srvDesc.Texture2D.MostDetailedMip = 0;
   srvDesc.Texture2D.PlaneSlice = 0;
   srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+  // can't display depth textures directly yet
+  if(IsDepthFormat(srvDesc.Format) && !IsTypelessFormat(srvDesc.Format))
+    return true;
+
+  // or non-2D
+  if(resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+    return true;
+
+  if(resource->GetDesc().SampleDesc.Count > 1)
+  {
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+    srv.ptr +=
+        7 * m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+  }
 
   m_WrappedDevice->CreateShaderResourceView(resource, &srvDesc, srv);
 
