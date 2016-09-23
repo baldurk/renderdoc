@@ -73,6 +73,9 @@ public:
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
                  uint32_t sample, FormatComponentType typeHint, float pixel[4]);
 
+  void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);
+  void GetBufferData(ID3D12Resource *buff, uint64_t offset, uint64_t length, vector<byte> &retData);
+
   D3D12_CPU_DESCRIPTOR_HANDLE AllocRTV();
   void FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 
@@ -179,7 +182,7 @@ private:
 
   ID3D12Resource *m_ReadbackBuffer;
 
-  static const uint32_t m_ReadbackSize = 8 * 1024 * 1024;
+  static const uint64_t m_ReadbackSize = 16 * 1024 * 1024;
 
   static const uint32_t m_ShaderCacheMagic = 0xbaafd1d1;
   static const uint32_t m_ShaderCacheVersion = 1;

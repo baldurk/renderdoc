@@ -57,6 +57,17 @@ void D3D12Replay::ReadLogInitialisation()
   m_pDevice->ReadLogInitialisation();
 }
 
+APIProperties D3D12Replay::GetAPIProperties()
+{
+  APIProperties ret;
+
+  ret.pipelineType = eGraphicsAPI_D3D12;
+  ret.localRenderer = eGraphicsAPI_D3D12;
+  ret.degraded = false;
+
+  return ret;
+}
+
 void D3D12Replay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
   m_pDevice->ReplayLog(0, endEventID, replayType);
@@ -1135,6 +1146,11 @@ bool D3D12Replay::RenderTexture(TextureDisplay cfg)
   return m_pDevice->GetDebugManager()->RenderTexture(cfg, true);
 }
 
+void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData)
+{
+  m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len, retData);
+}
+
 void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
                             uint32_t mip, uint32_t sample, FormatComponentType typeHint,
                             float pixel[4])
@@ -1214,17 +1230,6 @@ Callstack::StackResolver *D3D12Replay::GetCallstackResolver()
 
 #pragma region not yet implemented
 
-APIProperties D3D12Replay::GetAPIProperties()
-{
-  APIProperties ret;
-
-  ret.pipelineType = eGraphicsAPI_D3D12;
-  ret.localRenderer = eGraphicsAPI_D3D12;
-  ret.degraded = false;
-
-  return ret;
-}
-
 vector<DebugMessage> D3D12Replay::GetDebugMessages()
 {
   return vector<DebugMessage>();
@@ -1264,10 +1269,6 @@ bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
 MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
   return MeshFormat();
-}
-
-void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData)
-{
 }
 
 byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,

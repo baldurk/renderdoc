@@ -1391,6 +1391,102 @@ void D3D12DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
     m_ReadbackBuffer->Unmap(0, &range);
 }
 
+void D3D12DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length,
+                                      vector<byte> &retData)
+{
+  auto it = WrappedID3D12Resource::m_List.find(buff);
+
+  if(it == WrappedID3D12Resource::m_List.end())
+  {
+    RDCERR("Getting buffer data for unknown buffer %llu!", buff);
+    return;
+  }
+
+  WrappedID3D12Resource *buffer = it->second;
+
+  RDCASSERT(buffer);
+
+  GetBufferData(buffer, offset, length, retData);
+}
+
+void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, uint64_t length,
+                                      vector<byte> &ret)
+{
+  if(buffer == NULL)
+    return;
+
+  D3D12_RESOURCE_DESC desc = buffer->GetDesc();
+
+  if(offset >= desc.Width)
+  {
+    // can't read past the end of the buffer, return empty
+    return;
+  }
+
+  if(length == 0)
+  {
+    length = desc.Width - offset;
+  }
+
+  if(length > 0 && offset + length > desc.Width)
+  {
+    RDCWARN("Attempting to read off the end of the buffer (%llu %llu). Will be clamped (%llu)",
+            offset, length, desc.Width);
+    length = RDCMIN(length, desc.Width - offset);
+  }
+
+  uint64_t outOffs = 0;
+
+  ret.resize(length);
+
+  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+  D3D12_RESOURCE_BARRIER barrier = {};
+
+  barrier.Transition.pResource = buffer;
+  barrier.Transition.StateBefore = m_WrappedDevice->GetSubresourceStates(GetResID(buffer))[0];
+  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+  list->ResourceBarrier(1, &barrier);
+
+  while(length > 0)
+  {
+    uint64_t chunkSize = RDCMIN(length, m_ReadbackSize);
+
+    list->CopyBufferRegion(m_ReadbackBuffer, 0, buffer, offset, chunkSize);
+
+    list->Close();
+
+    m_WrappedDevice->ExecuteLists();
+    m_WrappedDevice->FlushLists();
+
+    D3D12_RANGE range = {0, chunkSize};
+
+    void *data;
+    HRESULT hr = m_ReadbackBuffer->Map(0, &range, &data);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to map bufferdata buffer %08x", hr);
+      return;
+    }
+    else
+    {
+      memcpy(&ret[outOffs], data, chunkSize);
+
+      range.End = 0;
+
+      m_ReadbackBuffer->Unmap(0, &range);
+    }
+
+    outOffs += chunkSize;
+    length -= chunkSize;
+
+    if(length > 0)
+      list = m_WrappedDevice->GetNewList();
+  }
+}
+
 void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 {
   DebugVertexCBuffer vertexData;
