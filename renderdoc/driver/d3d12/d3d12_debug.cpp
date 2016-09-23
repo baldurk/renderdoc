@@ -1416,6 +1416,8 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     return;
 
   D3D12_RESOURCE_DESC desc = buffer->GetDesc();
+  D3D12_HEAP_PROPERTIES heapProps;
+  buffer->GetHeapProperties(&heapProps, NULL);
 
   if(offset >= desc.Width)
   {
@@ -1438,6 +1440,29 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
   uint64_t outOffs = 0;
 
   ret.resize(length);
+
+  // directly CPU mappable (and possibly invalid to transition and copy from), so just memcpy
+  if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD || heapProps.Type == D3D12_HEAP_TYPE_READBACK)
+  {
+    D3D12_RANGE range = {offset, offset + length};
+
+    byte *data = NULL;
+    HRESULT hr = buffer->Map(0, &range, (void **)&data);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to map buffer directly for readback %08x", hr);
+      return;
+    }
+
+    memcpy(&ret[0], data + offset, length);
+
+    range.Begin = range.End = 0;
+
+    buffer->Unmap(0, &range);
+
+    return;
+  }
 
   ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
@@ -1462,7 +1487,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
 
     D3D12_RANGE range = {0, chunkSize};
 
-    void *data;
+    void *data = NULL;
     HRESULT hr = m_ReadbackBuffer->Map(0, &range, &data);
 
     if(FAILED(hr))
