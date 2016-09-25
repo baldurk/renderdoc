@@ -139,7 +139,11 @@ void trianglePath(uint threadID)
 	vec4 pos2 = meshpick.use_indices != 0u ? vb.data[ib.data[vertid2]] : vb.data[vertid2];
 #ifdef VULKAN
 	if(meshpick.unproject == 1u)
-		pos = vec4(pos.x, -pos.y, pos.z, pos.w);
+    {
+        pos0 = vec4(pos0.x, -pos0.y, pos0.z, pos0.w);
+        pos1 = vec4(pos1.x, -pos1.y, pos1.z, pos1.w);
+        pos2 = vec4(pos2.x, -pos2.y, pos2.z, pos2.w);
+    }
 #endif
 
 	vec3 hitPosition;
