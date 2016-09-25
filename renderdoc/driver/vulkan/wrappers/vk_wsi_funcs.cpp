@@ -539,32 +539,7 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
   if(m_State == WRITING_IDLE)
   {
-    m_FrameTimes.push_back(m_FrameTimer.GetMilliseconds());
-    m_TotalTime += m_FrameTimes.back();
-    m_FrameTimer.Restart();
-
-    // update every second
-    if(m_TotalTime > 1000.0)
-    {
-      m_MinFrametime = 10000.0;
-      m_MaxFrametime = 0.0;
-      m_AvgFrametime = 0.0;
-
-      m_TotalTime = 0.0;
-
-      for(size_t i = 0; i < m_FrameTimes.size(); i++)
-      {
-        m_AvgFrametime += m_FrameTimes[i];
-        if(m_FrameTimes[i] < m_MinFrametime)
-          m_MinFrametime = m_FrameTimes[i];
-        if(m_FrameTimes[i] > m_MaxFrametime)
-          m_MaxFrametime = m_FrameTimes[i];
-      }
-
-      m_AvgFrametime /= double(m_FrameTimes.size());
-
-      m_FrameTimes.clear();
-    }
+    m_FrameTimer.UpdateTimers();
 
     uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
@@ -645,8 +620,10 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
         }
         if(overlay & eRENDERDOC_Overlay_FrameRate)
         {
-          overlayText += StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)", m_AvgFrametime,
-                                           m_MinFrametime, m_MaxFrametime, 1000.0f / m_AvgFrametime);
+          overlayText += StringFormat::Fmt(
+              " %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)", m_FrameTimer.GetAvgFrameTime(),
+              m_FrameTimer.GetMinFrameTime(), m_FrameTimer.GetMaxFrameTime(),
+              1000.0f / m_FrameTimer.GetAvgFrameTime());
         }
 
         float y = 0.0f;

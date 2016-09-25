@@ -253,13 +253,11 @@ private:
 
   uint32_t m_FrameCounter;
 
-  PerformanceTimer m_FrameTimer;
-  vector<double> m_FrameTimes;
-  double m_TotalTime, m_AvgFrametime, m_MinFrametime, m_MaxFrametime;
-
   vector<FetchFrameInfo> m_CapturedFrames;
   FetchFrameRecord m_FrameRecord;
   vector<FetchDrawcall *> m_Drawcalls;
+
+  FrameTimer m_FrameTimer;
 
   struct PhysicalDeviceData
   {

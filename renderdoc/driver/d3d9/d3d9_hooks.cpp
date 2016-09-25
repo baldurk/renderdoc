@@ -27,6 +27,7 @@
 #include "hooks/hooks.h"
 
 #include "driver/dx/official/d3d9.h"
+#include "d3d9_device.h"
 
 #define DLL_NAME "d3d9.dll"
 
@@ -135,9 +136,11 @@ private:
 
   static IDirect3D9 *WINAPI Create9_hook(UINT SDKVersion)
   {
-    RDCWARN("App creating d3d9 %x device - not hooked!", SDKVersion);
+    RDCLOG("App creating d3d9 %x", SDKVersion);
 
-    return d3d9hooks.Create9()(SDKVersion);
+    IDirect3D9 *realD3D = d3d9hooks.Create9()(SDKVersion);
+
+    return new WrappedD3D9(realD3D);
   }
 };
 

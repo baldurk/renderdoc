@@ -346,11 +346,9 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   m_ChunkAtomic = 0;
 
-  m_FrameTimer.Restart();
-
   m_AppControlledCapture = false;
 
-  m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
+  m_FrameTimer.InitTimers();
 
 #if defined(RELEASE)
   const bool debugSerialiser = false;
@@ -3239,32 +3237,7 @@ HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
   {
     D3D11RenderState old = *m_pImmediateContext->GetCurrentPipelineState();
 
-    m_FrameTimes.push_back(m_FrameTimer.GetMilliseconds());
-    m_TotalTime += m_FrameTimes.back();
-    m_FrameTimer.Restart();
-
-    // update every second
-    if(m_TotalTime > 1000.0)
-    {
-      m_MinFrametime = 10000.0;
-      m_MaxFrametime = 0.0;
-      m_AvgFrametime = 0.0;
-
-      m_TotalTime = 0.0;
-
-      for(size_t i = 0; i < m_FrameTimes.size(); i++)
-      {
-        m_AvgFrametime += m_FrameTimes[i];
-        if(m_FrameTimes[i] < m_MinFrametime)
-          m_MinFrametime = m_FrameTimes[i];
-        if(m_FrameTimes[i] > m_MaxFrametime)
-          m_MaxFrametime = m_FrameTimes[i];
-      }
-
-      m_AvgFrametime /= double(m_FrameTimes.size());
-
-      m_FrameTimes.clear();
-    }
+    m_FrameTimer.UpdateTimers();
 
     uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
@@ -3312,10 +3285,11 @@ HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
         }
         if(overlay & eRENDERDOC_Overlay_FrameRate)
         {
-          overlayText += StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)", m_AvgFrametime,
-                                           m_MinFrametime, m_MaxFrametime,
-                                           // max with 0.01ms so that we don't divide by zero
-                                           1000.0f / RDCMAX(0.01, m_AvgFrametime));
+          overlayText += StringFormat::Fmt(
+              " %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)", m_FrameTimer.GetAvgFrameTime(),
+              m_FrameTimer.GetMinFrameTime(), m_FrameTimer.GetMaxFrameTime(),
+              // max with 0.01ms so that we don't divide by zero
+              1000.0f / RDCMAX(0.01, m_FrameTimer.GetAvgFrameTime()));
         }
 
         float y = 0.0f;

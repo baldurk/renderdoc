@@ -175,12 +175,10 @@ private:
   CaptureFailReason m_FailedReason;
   uint32_t m_Failures;
 
+  FrameTimer m_FrameTimer;
+
   CaptureFailReason m_FailureReason;
   bool m_SuccessfulCapture;
-
-  PerformanceTimer m_FrameTimer;
-  vector<double> m_FrameTimes;
-  double m_TotalTime, m_AvgFrametime, m_MinFrametime, m_MaxFrametime;
 
   set<ResourceId> m_HighTrafficResources;
 

@@ -269,13 +269,11 @@ WrappedVulkan::WrappedVulkan(const char *logFilename) : m_RenderState(&m_Creatio
 
   m_AppControlledCapture = false;
 
-  m_FrameTimer.Restart();
-
   threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
   tempMemoryTLSSlot = Threading::AllocateTLSSlot();
   debugMessageSinkTLSSlot = Threading::AllocateTLSSlot();
 
-  m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
+  m_FrameTimer.InitTimers();
 
   m_RootEventID = 1;
   m_RootDrawcallID = 1;
