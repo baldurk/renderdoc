@@ -23,9 +23,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "driver/dx/official/d3d9.h"
 #include "driver/d3d11/d3d11_device.h"
 #include "hooks/hooks.h"
+
+#include "driver/dx/official/d3d9.h"
 
 #define DLL_NAME "d3d9.dll"
 
