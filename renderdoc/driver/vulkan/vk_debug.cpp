@@ -3029,7 +3029,6 @@ FloatVector VulkanDebugManager::InterpretVertex(byte *data, uint32_t vert, const
 uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x,
                                         uint32_t y, uint32_t w, uint32_t h)
 {
-#if 0
   VkDevice dev = m_pDriver->GetDev();
   const VkLayerDispatchTable *vt = ObjDisp(dev);
 
@@ -3062,16 +3061,74 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
     PickMVP = projMat.Mul(camMat.Mul(guessProj.Inverse()));
   }
 
+  vec3 rayPos;
+  vec3 rayDir;
+  // convert mouse pos to world space ray
+  {
+    Matrix4f InversePickMVP = PickMVP.Inverse();
+
+    float pickX = ((float)x) / ((float)w);
+    float pickXCanonical = RDCLERP(-1.0f, 1.0f, pickX);
+
+    float pickY = ((float)y) / ((float)h);
+    // flip the Y axis
+    float pickYCanonical = RDCLERP(1.0f, -1.0f, pickY);
+
+    vec3 CameraToWorldNearPosition =
+        InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+    vec3 CameraToWorldFarPosition =
+        InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+    rayDir = (CameraToWorldFarPosition - CameraToWorldNearPosition);
+    rayDir.Normalise();
+    rayPos = CameraToWorldNearPosition;
+  }
+
   MeshPickUBOData *ubo = (MeshPickUBOData *)m_MeshPickUBO.Map();
 
-  ubo->coords.x = (float)x;
-  ubo->coords.y = (float)y;
-  ubo->viewport.x = (float)w;
-  ubo->viewport.y = (float)h;
-  ubo->mvp = PickMVP;
+  ubo->rayPos = rayPos;
+  ubo->rayDir = rayDir;
   ubo->use_indices = cfg.position.idxByteWidth ? 1U : 0U;
   ubo->numVerts = cfg.position.numVerts;
+  bool isTriangleMesh = true;
+  switch(cfg.position.topo)
+  {
+    case eTopology_TriangleList:
+    {
+      ubo->meshMode = MESH_TRIANGLE_LIST;
+      break;
+    };
+    case eTopology_TriangleStrip:
+    {
+      ubo->meshMode = MESH_TRIANGLE_STRIP;
+      break;
+    };
+    case eTopology_TriangleFan:
+    {
+      ubo->meshMode = MESH_TRIANGLE_FAN;
+      break;
+    };
+    case eTopology_TriangleList_Adj:
+    {
+      ubo->meshMode = MESH_TRIANGLE_LIST_ADJ;
+      break;
+    };
+    case eTopology_TriangleStrip_Adj:
+    {
+      ubo->meshMode = MESH_TRIANGLE_STRIP_ADJ;
+      break;
+    };
+    default:    // points, lines, patchlists, unknown
+    {
+      ubo->meshMode = MESH_OTHER;
+      isTriangleMesh = false;
+    };
+  }
+
+  // line/point data
   ubo->unproject = cfg.position.unproject;
+  ubo->mvp = PickMVP;
+  ubo->coords = Vec2f((float)x, (float)y);
+  ubo->viewport = Vec2f((float)w, (float)h);
 
   m_MeshPickUBO.Unmap();
 
@@ -3277,45 +3334,77 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
 
   uint32_t ret = ~0U;
 
-  struct PickResult
-  {
-    uint32_t vertid;
-    uint32_t idx;
-    float len;
-    float depth;
-  };
-
-  PickResult *pickResults = (PickResult *)(pickResultData + 4);
-
   if(numResults > 0)
   {
-    PickResult *closest = pickResults;
-
-    // min with size of results buffer to protect against overflows
-    for(uint32_t i = 1; i < RDCMIN((uint32_t)maxMeshPicks, numResults); i++)
+    if(isTriangleMesh)
     {
-      // We need to keep the picking order consistent in the face
-      // of random buffer appends, when multiple vertices have the
-      // identical position (e.g. if UVs or normals are different).
-      //
-      // We could do something to try and disambiguate, but it's
-      // never going to be intuitive, it's just going to flicker
-      // confusingly.
-      if(pickResults[i].len < closest->len ||
-         (pickResults[i].len == closest->len && pickResults[i].depth < closest->depth) ||
-         (pickResults[i].len == closest->len && pickResults[i].depth == closest->depth &&
-          pickResults[i].vertid < closest->vertid))
-        closest = pickResults + i;
-    }
+      struct PickResult
+      {
+        uint32_t vertid;
+        vec3 intersectionPoint;
+      };
 
-    ret = closest->vertid;
+      PickResult *pickResults = (PickResult *)(pickResultData + 4);
+
+      PickResult *closest = pickResults;
+      // distance from raycast hit to nearest worldspace position of the mouse
+      float closestPickDistance = (closest->intersectionPoint - rayPos).Length();
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN((uint32_t)maxMeshPicks, numResults); i++)
+      {
+        // We need to keep the picking order consistent in the face
+        // of random buffer appends, when multiple vertices have the
+        // identical position (e.g. if UVs or normals are different).
+        //
+        // We could do something to try and disambiguate, but it's
+        // never going to be intuitive, it's just going to flicker
+        // confusingly.
+        float pickDistance = (pickResults[i].intersectionPoint - rayPos).Length();
+        if(pickDistance < closestPickDistance)
+        {
+          closest = pickResults + i;
+        }
+      }
+      ret = closest->vertid;
+    }
+    else
+    {
+      struct PickResult
+      {
+        uint32_t vertid;
+        uint32_t idx;
+        float len;
+        float depth;
+      };
+
+      PickResult *pickResults = (PickResult *)(pickResultData + 4);
+
+      PickResult *closest = pickResults;
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN((uint32_t)maxMeshPicks, numResults); i++)
+      {
+        // We need to keep the picking order consistent in the face
+        // of random buffer appends, when multiple vertices have the
+        // identical position (e.g. if UVs or normals are different).
+        //
+        // We could do something to try and disambiguate, but it's
+        // never going to be intuitive, it's just going to flicker
+        // confusingly.
+        if(pickResults[i].len < closest->len ||
+           (pickResults[i].len == closest->len && pickResults[i].depth < closest->depth) ||
+           (pickResults[i].len == closest->len && pickResults[i].depth == closest->depth &&
+            pickResults[i].vertid < closest->vertid))
+          closest = pickResults + i;
+      }
+      ret = closest->vertid;
+    }
   }
 
   m_MeshPickResultReadback.Unmap();
 
   return ret;
-#endif
-  return 0;
 }
 
 void VulkanDebugManager::EndText(const TextPrintState &textstate)
