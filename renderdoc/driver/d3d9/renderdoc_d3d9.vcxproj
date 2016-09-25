@@ -19,10 +19,10 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{F1E59A05-60D4-4927-9E57-DD191EAE90EF}</ProjectGuid>
+    <ProjectGuid>{44044776-9469-4079-B587-ABFFF6574AA4}</ProjectGuid>
     <Keyword>Win32Proj</Keyword>
-    <RootNamespace>renderdoc_d3d11</RootNamespace>
-    <ProjectName>d3d11</ProjectName>
+    <RootNamespace>renderdoc_d3d9</RootNamespace>
+    <ProjectName>d3d9</ProjectName>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development|Win32'" Label="Configuration">
@@ -184,56 +184,14 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="d3d11_analyse.cpp" />
-    <ClCompile Include="d3d11_common.cpp" />
-    <ClCompile Include="d3d11_context.cpp" />
-    <ClCompile Include="d3d11_context1_wrap.cpp" />
-    <ClCompile Include="d3d11_context2_wrap.cpp" />
-    <ClCompile Include="d3d11_context3_wrap.cpp" />
-    <ClCompile Include="d3d11_context_wrap.cpp" />
-    <ClCompile Include="d3d11_counters.cpp" />
-    <ClCompile Include="d3d11_debug.cpp" />
-    <ClCompile Include="d3d11_device.cpp" />
-    <ClCompile Include="d3d11_device1_wrap.cpp" />
-    <ClCompile Include="d3d11_device2_wrap.cpp" />
-    <ClCompile Include="d3d11_device3_wrap.cpp" />
-    <ClCompile Include="d3d11_device_wrap.cpp" />
-    <ClCompile Include="d3d11_hooks.cpp" />
-    <ClCompile Include="d3d11_manager.cpp" />
-    <ClCompile Include="d3d11_renderstate.cpp" />
-    <ClCompile Include="d3d11_replay.cpp" />
-    <ClCompile Include="d3d11_resources.cpp" />
+    <ClCompile Include="d3d9_hooks.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\dx\official\amd\AmdDxExt.h" />
-    <ClInclude Include="..\dx\official\amd\AmdDxExtApi.h" />
-    <ClInclude Include="..\dx\official\amd\AmdDxExtIface.h" />
-    <ClInclude Include="d3d11_common.h" />
-    <ClInclude Include="d3d11_context.h" />
-    <ClInclude Include="d3d11_debug.h" />
-    <ClInclude Include="d3d11_device.h" />
-    <ClInclude Include="d3d11_manager.h" />
-    <ClInclude Include="d3d11_renderstate.h" />
-    <ClInclude Include="d3d11_replay.h" />
-    <ClInclude Include="d3d11_resources.h" />
-    <ClInclude Include="..\dx\official\d3d11.h" />
-    <ClInclude Include="..\dx\official\d3d11_1.h" />
-    <ClInclude Include="..\dx\official\d3d11_2.h" />
-    <ClInclude Include="..\dx\official\d3d11_3.h" />
-    <ClInclude Include="..\dx\official\d3d11_4.h" />
-    <ClInclude Include="..\dx\official\d3d11sdklayers.h" />
+    <ClInclude Include="..\dx\official\d3d9.h" />
+    <ClInclude Include="..\dx\official\d3d9caps.h" />
+    <ClInclude Include="..\dx\official\d3d9types.h" />
     <ClInclude Include="..\dx\official\d3dcommon.h" />
     <ClInclude Include="..\dx\official\d3dcompiler.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\shaders\dxbc\renderdoc_dxbc.vcxproj">
-      <Project>{c43ff27e-a155-4852-88ec-5ce9334c07a8}</Project>
-      <Private>false</Private>
-      <ReferenceOutputAssembly>true</ReferenceOutputAssembly>
-      <CopyLocalSatelliteAssemblies>false</CopyLocalSatelliteAssemblies>
-      <LinkLibraryDependencies>false</LinkLibraryDependencies>
-      <UseLibraryDependencyInputs>false</UseLibraryDependencyInputs>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
