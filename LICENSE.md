@@ -98,3 +98,7 @@ RenderDoc also uses several external libraries and components which include thei
 - [include-bin](https://github.com/Marqin/include-bin)
   distributed under the zlib license.
   Copyright 2016, Hubert Jarosz
+
+- [plthook](https://github.com/kubo/plthook)
+  distributed under the 2-clause BSD license.
+  Copyright 2013-2014, Kubo Takehiro

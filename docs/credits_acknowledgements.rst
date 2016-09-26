@@ -74,7 +74,11 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
 .. |cmdline_link| raw:: html
 
-   <a href="https://github.com/tanakh/cmdline target="_blank">cmdline</a>
+   <a href="https://github.com/tanakh/cmdline" target="_blank">cmdline</a>
+
+.. |plthook_link| raw:: html
+
+   <a href="https://github.com/kubo/plthook" target="_blank">plthook</a>
 
 * |mhook_link| DLL hooking library, used to inject RenderDoc into applications
 * |treeview_link| An invaluable control filling a much needed niche in .NET winforms.
@@ -93,6 +97,7 @@ The following libraries and components are incorporated into RenderDoc, listed h
 * |glslang_link| Used for compiling GLSL to SPIR-V.
 * |qt_link| Used for QRenderDoc replay UI program.
 * |cmdline_link| Used for parsing command line arguments to renderdoccmd.
+* |plthook_link| Used for hooking some libraries loaded with DEEPBIND on linux.
 
 Thanks
 ------
