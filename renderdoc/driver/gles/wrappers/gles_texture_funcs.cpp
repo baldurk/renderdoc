@@ -3732,18 +3732,18 @@ void WrappedGLES::glActiveTexture(GLenum texture)
 //  return true;
 //}
 //
-//void WrappedGLES::Common_glTextureStorage2DEXT(ResourceId texId, GLenum target, GLsizei levels,
-//                                                 GLenum internalformat, GLsizei width, GLsizei height)
-//{
-//  if(texId == ResourceId())
-//    return;
-//
-//  // proxy formats are used for querying texture capabilities, don't serialise these
-//  if(IsProxyTarget(target) || internalformat == 0)
-//    return;
-//
-//  internalformat = GetSizedFormat(m_Real, target, internalformat);
-//
+void WrappedGLES::Common_glTextureStorage2DEXT(ResourceId texId, GLenum target, GLsizei levels,
+                                                 GLenum internalformat, GLsizei width, GLsizei height)
+{
+  if(texId == ResourceId())
+    return;
+
+  if(internalformat == 0)
+    return;
+
+  internalformat = GetSizedFormat(m_Real, target, internalformat);
+
+// TODO PEPE
 //  if(m_State >= WRITING)
 //  {
 //    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
@@ -3758,20 +3758,20 @@ void WrappedGLES::glActiveTexture(GLenum texture)
 //    // illegal to re-type textures
 //    record->VerifyDataType(target);
 //  }
-//
-//  {
-//    m_Textures[texId].width = width;
-//    m_Textures[texId].height = height;
-//    m_Textures[texId].depth = 1;
-//    if(target != eGL_NONE)
-//      m_Textures[texId].curType = TextureTarget(target);
-//    else
-//      m_Textures[texId].curType =
-//          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
-//    m_Textures[texId].dimension = 2;
-//    m_Textures[texId].internalFormat = internalformat;
-//  }
-//}
+
+  {
+    m_Textures[texId].width = width;
+    m_Textures[texId].height = height;
+    m_Textures[texId].depth = 1;
+    if(target != eGL_NONE)
+      m_Textures[texId].curType = TextureTarget(target);
+    else
+      m_Textures[texId].curType =
+          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
+    m_Textures[texId].dimension = 2;
+    m_Textures[texId].internalFormat = internalformat;
+  }
+}
 
 bool WrappedGLES::Serialise_glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei levels,
                                                   GLenum internalformat, GLsizei width, GLsizei height)
@@ -3785,9 +3785,8 @@ void WrappedGLES::glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei l
 {
   m_Real.glTextureStorage2DEXT(texture, target, levels, internalformat, width, height);
 
-  // TODO pantos
-//  Common_glTextureStorage2DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target,
-//                               levels, internalformat, width, height);
+  Common_glTextureStorage2DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target,
+                               levels, internalformat, width, height);
 }
 
 //void WrappedGLES::glTextureStorage2D(GLuint texture, GLsizei levels, GLenum internalformat,
