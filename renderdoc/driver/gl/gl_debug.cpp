@@ -1007,6 +1007,7 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   return true;
 }
 
+// TODO: VS_Out triangles doesn't pick correctly if you look back on the frustrum, (gl as well)
 uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
   WrappedOpenGL &gl = *m_pDriver;
@@ -1256,13 +1257,6 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
       // min with size of results buffer to protect against overflows
       for(uint32_t i = 1; i < RDCMIN((uint32_t)DebugRenderData::maxMeshPicks, numResults); i++)
       {
-        // We need to keep the picking order consistent in the face
-        // of random buffer appends, when multiple vertices have the
-        // identical position (e.g. if UVs or normals are different).
-        //
-        // We could do something to try and disambiguate, but it's
-        // never going to be intuitive, it's just going to flicker
-        // confusingly.
         float pickDistance = (pickResults[i].intersectionPoint - rayPos).Length();
         if(pickDistance < closestPickDistance)
         {
@@ -1270,11 +1264,9 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
         }
       }
 
-      uint32_t ret = closest->vertid;
-
       gl.glUnmapNamedBufferEXT(DebugData.pickResultBuf);
 
-      return ret;
+      return closest->vertid;
     }
     else
     {
@@ -1311,11 +1303,9 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
           closest = pickResults + i;
       }
 
-      uint32_t ret = closest->vertid;
-
       gl.glUnmapNamedBufferEXT(DebugData.pickResultBuf);
 
-      return ret;
+      return closest->vertid;
     }
   }
 

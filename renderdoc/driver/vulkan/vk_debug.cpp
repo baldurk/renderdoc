@@ -3029,6 +3029,8 @@ FloatVector VulkanDebugManager::InterpretVertex(byte *data, uint32_t vert, const
   return ret;
 }
 
+// TODO: VS_Out triangles doesn't pick correctly if you look back on the frustrum
+// TODO: Point meshes don't pick correctly
 uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x,
                                         uint32_t y, uint32_t w, uint32_t h)
 {
@@ -3093,6 +3095,7 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
   ubo->use_indices = cfg.position.idxByteWidth ? 1U : 0U;
   ubo->numVerts = cfg.position.numVerts;
   bool isTriangleMesh = true;
+
   switch(cfg.position.topo)
   {
     case eTopology_TriangleList:
@@ -3356,13 +3359,6 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
       // min with size of results buffer to protect against overflows
       for(uint32_t i = 1; i < RDCMIN((uint32_t)maxMeshPicks, numResults); i++)
       {
-        // We need to keep the picking order consistent in the face
-        // of random buffer appends, when multiple vertices have the
-        // identical position (e.g. if UVs or normals are different).
-        //
-        // We could do something to try and disambiguate, but it's
-        // never going to be intuitive, it's just going to flicker
-        // confusingly.
         float pickDistance = (pickResults[i].intersectionPoint - rayPos).Length();
         if(pickDistance < closestPickDistance)
         {
