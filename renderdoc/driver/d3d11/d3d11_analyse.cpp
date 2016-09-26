@@ -2179,16 +2179,28 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
   D3D11RenderStateTracker tracker(m_WrappedContext);
 
+#define MESH_OTHER 0    // this covers points and lines, logic is the same
+#define MESH_TRIANGLE_LIST 1
+#define MESH_TRIANGLE_STRIP 2
+#define MESH_TRIANGLE_FAN 3
+#define MESH_TRIANGLE_LIST_ADJ 4
+#define MESH_TRIANGLE_STRIP_ADJ 5
   struct MeshPickData
   {
+    Vec3f RayPos;
+    uint32_t PickIdx;
+
+    Vec3f RayDir;
+    uint32_t PickNumVerts;
+
     Vec2f PickCoords;
     Vec2f PickViewport;
 
+    uint32_t MeshMode;
+    Vec3f Padding;
+
     Matrix4f PickMVP;
 
-    uint32_t PickIdx;
-    uint32_t PickNumVerts;
-    uint32_t PickPadding[2];
   } cbuf;
 
   cbuf.PickCoords = Vec2f((float)x, (float)y);
@@ -2224,6 +2236,65 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
       guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
 
     cbuf.PickMVP = projMat.Mul(camMat.Mul(guessProj.Inverse()));
+  }
+
+  Vec3f RayPos;
+  Vec3f RayDir;
+  // convert mouse pos to world space ray
+  {
+    Matrix4f InversePickMVP = cbuf.PickMVP.Inverse();
+
+    float pickX = ((float)x) / ((float)GetWidth());
+    float pickXCanonical = RDCLERP(-1.0f, 1.0f, pickX);
+
+    float pickY = ((float)y) / ((float)GetHeight());
+    // flip the Y axis
+    float pickYCanonical = RDCLERP(1.0f, -1.0f, pickY);
+
+    Vec3f CameraToWorldNearPosition =
+        InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+    Vec3f CameraToWorldFarPosition =
+        InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+    RayDir = (CameraToWorldFarPosition - CameraToWorldNearPosition);
+    RayDir.Normalise();
+    RayPos = CameraToWorldNearPosition;
+  }
+
+  cbuf.RayPos = RayPos;
+  cbuf.RayDir = RayDir;
+  bool isTriangleMesh = true;
+  switch(cfg.position.topo)
+  {
+    case eTopology_TriangleList:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_LIST;
+      break;
+    };
+    case eTopology_TriangleStrip:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_STRIP;
+      break;
+    };
+    case eTopology_TriangleFan:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_FAN;
+      break;
+    };
+    case eTopology_TriangleList_Adj:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_LIST_ADJ;
+      break;
+    };
+    case eTopology_TriangleStrip_Adj:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_STRIP_ADJ;
+      break;
+    };
+    default:    // points, lines, patchlists, unknown
+    {
+      cbuf.MeshMode = MESH_OTHER;
+      isTriangleMesh = false;
+    };
   }
 
   ID3D11Buffer *vb = NULL, *ib = NULL;
@@ -2391,38 +2462,70 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
   if(numResults > 0)
   {
-    GetBufferData(m_DebugRender.PickResultBuf, 0, 0, results, false);
-
-    struct PickResult
+    if(isTriangleMesh)
     {
-      uint32_t vertid;
-      uint32_t idx;
-      float len;
-      float depth;
-    };
+      struct PickResult
+      {
+        uint32_t vertid;
+        Vec3f intersectionPoint;
+      };
 
-    PickResult *pickResults = (PickResult *)&results[0];
+      GetBufferData(m_DebugRender.PickResultBuf, 0, 0, results, false);
 
-    PickResult *closest = pickResults;
+      PickResult *pickResults = (PickResult *)&results[0];
 
-    // min with size of results buffer to protect against overflows
-    for(uint32_t i = 1; i < RDCMIN(DebugRenderData::maxMeshPicks, numResults); i++)
-    {
-      // We need to keep the picking order consistent in the face
-      // of random buffer appends, when multiple vertices have the
-      // identical position (e.g. if UVs or normals are different).
-      //
-      // We could do something to try and disambiguate, but it's
-      // never going to be intuitive, it's just going to flicker
-      // confusingly.
-      if(pickResults[i].len < closest->len ||
-         (pickResults[i].len == closest->len && pickResults[i].depth < closest->depth) ||
-         (pickResults[i].len == closest->len && pickResults[i].depth == closest->depth &&
-          pickResults[i].vertid < closest->vertid))
-        closest = pickResults + i;
+      PickResult *closest = pickResults;
+
+      // distance from raycast hit to nearest worldspace position of the mouse
+      float closestPickDistance = (closest->intersectionPoint - RayPos).Length();
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN((uint32_t)DebugRenderData::maxMeshPicks, numResults); i++)
+      {
+        float pickDistance = (pickResults[i].intersectionPoint - RayPos).Length();
+        if(pickDistance < closestPickDistance)
+        {
+          closest = pickResults + i;
+        }
+      }
+
+      return closest->vertid;
     }
+    else
+    {
+      struct PickResult
+      {
+        uint32_t vertid;
+        uint32_t idx;
+        float len;
+        float depth;
+      };
 
-    return closest->vertid;
+      GetBufferData(m_DebugRender.PickResultBuf, 0, 0, results, false);
+
+      PickResult *pickResults = (PickResult *)&results[0];
+
+      PickResult *closest = pickResults;
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN((uint32_t)DebugRenderData::maxMeshPicks, numResults); i++)
+      {
+        // We need to keep the picking order consistent in the face
+        // of random buffer appends, when multiple vertices have the
+        // identical position (e.g. if UVs or normals are different).
+        //
+        // We could do something to try and disambiguate, but it's
+        // never going to be intuitive, it's just going to flicker
+        // confusingly.
+        if(pickResults[i].len < closest->len ||
+           (pickResults[i].len == closest->len && pickResults[i].depth < closest->depth) ||
+           (pickResults[i].len == closest->len && pickResults[i].depth == closest->depth &&
+            pickResults[i].vertid < closest->vertid))
+          closest = pickResults + i;
+      }
+
+      return closest->vertid;
+    }
   }
 
   return ~0U;
