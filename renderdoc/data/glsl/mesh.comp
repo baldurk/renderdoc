@@ -79,11 +79,6 @@ bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C,
 
 void trianglePath(uint threadID)
 {
-	// NOTE(james): when I turn on following early out the shader doesn't do anything.
-	// so I end up with a lot of duplicated work on smaller meshes
-
-	//if(threadID >= meshpick.numVerts)
-	//	return;
 	uint vertid = uint(mod(float(threadID), float(meshpick.numVerts)));
 	
 	uint vertid0 = 0;
@@ -137,6 +132,7 @@ void trianglePath(uint threadID)
 	vec4 pos0 = meshpick.use_indices != 0u ? vb.data[ib.data[vertid0]] : vb.data[vertid0];
 	vec4 pos1 = meshpick.use_indices != 0u ? vb.data[ib.data[vertid1]] : vb.data[vertid1];
 	vec4 pos2 = meshpick.use_indices != 0u ? vb.data[ib.data[vertid2]] : vb.data[vertid2];
+
 #ifdef VULKAN
 	if(meshpick.unproject == 1u)
     {
@@ -151,6 +147,8 @@ void trianglePath(uint threadID)
 									meshpick.rayPos, meshpick.rayDir, 
 									/*out*/ hitPosition);
 	
+    // ray hit a triangle, so return the vertex that was closest 
+    // to the triangle/ray intersection point
 	if (hit)
 	{
 		float dist0 = distance(pos0.xyz/pos0.w, hitPosition);
