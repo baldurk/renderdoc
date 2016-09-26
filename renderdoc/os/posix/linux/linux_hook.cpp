@@ -22,13 +22,14 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "posix_hook.h"
 #include <dlfcn.h>
 #include <string.h>
 #include <map>
 #include <string>
+#include "3rdparty/plthook/plthook.h"
 #include "common/threading.h"
 #include "os/os_specific.h"
+#include "os/posix/posix_hook.h"
 #include "serialise/string_utils.h"
 
 // depending on symbol resolution, dlopen could get called really early.
@@ -36,7 +37,7 @@
 static uint32_t hookInited = 0;
 #define HOOK_MAGIC_NUMBER 0xAAF00F00
 
-void LinuxHookInit()
+void PosixHookInit()
 {
   hookInited = HOOK_MAGIC_NUMBER;
 }
@@ -46,11 +47,13 @@ Threading::CriticalSection libLock;
 
 static std::map<std::string, dlopenCallback> libraryHooks;
 
-void LinuxHookLibrary(const char *name, dlopenCallback cb)
+void PosixHookLibrary(const char *name, dlopenCallback cb)
 {
   SCOPED_LOCK(libLock);
   libraryHooks[name] = cb;
 }
+
+void plthook_lib(void *handle);
 
 typedef void *(*DLOPENPROC)(const char *, int);
 DLOPENPROC realdlopen = NULL;
@@ -60,7 +63,13 @@ __attribute__((visibility("default"))) void *dlopen(const char *filename, int fl
   if(hookInited != HOOK_MAGIC_NUMBER)
   {
     DLOPENPROC passthru = (DLOPENPROC)dlsym(RTLD_NEXT, "dlopen");
-    return passthru(filename, flag);
+
+    void *ret = passthru(filename, flag);
+
+    if(filename && ret && (flag & RTLD_DEEPBIND))
+      plthook_lib(ret);
+
+    return ret;
   }
 
   SCOPED_LOCK(libLock);
@@ -71,6 +80,9 @@ __attribute__((visibility("default"))) void *dlopen(const char *filename, int fl
 
   if(filename && ret)
   {
+    if(flag & RTLD_DEEPBIND)
+      plthook_lib(ret);
+
     for(auto it = libraryHooks.begin(); it != libraryHooks.end(); ++it)
     {
       if(strstr(filename, it->first.c_str()))
@@ -85,4 +97,17 @@ __attribute__((visibility("default"))) void *dlopen(const char *filename, int fl
   }
 
   return ret;
+}
+
+void plthook_lib(void *handle)
+{
+  plthook_t *plthook = NULL;
+
+  // minimal error handling as we can't do much more than log the error, and since this is
+  // 'best-effort' attempt to hook the unhookable, we just try and allow it to fail.
+  if(plthook_open_by_handle(&plthook, handle))
+    return;
+
+  plthook_replace(plthook, "dlopen", (void *)dlopen, NULL);
+  plthook_close(plthook);
 }

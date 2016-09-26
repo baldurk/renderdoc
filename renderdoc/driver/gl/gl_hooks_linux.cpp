@@ -416,7 +416,7 @@ public:
       return false;
 
     if(libName)
-      LinuxHookLibrary("libGL.so", &libHooked);
+      PosixHookLibrary("libGL.so", &libHooked);
 
     bool success = SetupHooks(GL);
 

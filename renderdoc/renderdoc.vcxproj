@@ -223,6 +223,7 @@
     <ClInclude Include="3rdparty\jpeg-compressor\jpgd.h" />
     <ClInclude Include="3rdparty\jpeg-compressor\jpge.h" />
     <ClInclude Include="3rdparty\lz4\lz4.h" />
+    <ClInclude Include="3rdparty\plthook\plthook.h" />
     <ClInclude Include="3rdparty\stb\stb_image.h" />
     <ClInclude Include="3rdparty\stb\stb_image_write.h" />
     <ClInclude Include="3rdparty\stb\stb_truetype.h" />
@@ -286,6 +287,9 @@
     <ClCompile Include="3rdparty\jpeg-compressor\jpgd.cpp" />
     <ClCompile Include="3rdparty\jpeg-compressor\jpge.cpp" />
     <ClCompile Include="3rdparty\lz4\lz4.c" />
+    <ClCompile Include="3rdparty\plthook\plthook_elf.c">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="3rdparty\stb\stb_impl.c" />
     <ClCompile Include="3rdparty\tinyexr\tinyexr.cpp" />
     <ClCompile Include="common\common.cpp" />
@@ -304,6 +308,9 @@
     <ClCompile Include="os\posix\android\android_callstack.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="os\posix\android\android_hook.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="os\posix\android\android_process.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -314,6 +321,9 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="os\posix\apple\apple_callstack.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_hook.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="os\posix\apple\apple_process.cpp">
@@ -328,6 +338,9 @@
     <ClCompile Include="os\posix\linux\linux_callstack.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_hook.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="os\posix\linux\linux_process.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -335,9 +348,6 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="os\posix\linux\linux_threading.cpp">
-      <ExcludedFromBuild>true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="os\posix\posix_hook.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="os\posix\posix_libentry.cpp">
