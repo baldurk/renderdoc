@@ -107,7 +107,8 @@ void printEGLError(const char* const function, const char* const location)
 void GLESReplay::MakeCurrentReplayContext(GLESWindowingData *ctx)
 {
     //CALL_DEBUG();
-    //printf("mcrc: egldisplay:%p surface:%p ctx:%p\n", ctx->eglDisplay, ctx->surface, ctx->ctx);
+    if (ctx != NULL)
+      printf("mcrc: egldisplay:%p surface:%p ctx:%p\n", ctx->eglDisplay, ctx->surface, ctx->ctx);
     static GLESWindowingData *prev = NULL;
     if(REAL(eglMakeCurrent) && ctx && ctx != prev)
     {

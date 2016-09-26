@@ -34,9 +34,22 @@
 #include "gles_driver.h"
 #include "gles_replay.h"
 #include "gles_resources.h"
+#include <fstream>
 
 #define OPENGL 1
 #include "data/glsl/debuguniforms.h"
+
+template <typename T>
+void dump_to_file(const string& name, const T& t)
+{
+  std::ofstream file;
+  file.open (name);
+  if (file) {
+    for (auto& s : t)
+      file << s << std::endl;
+    file.close();
+  }
+}
 
 GLuint GLESReplay::CreateCShaderProgram(const vector<string> &csSources)
 {
@@ -54,6 +67,9 @@ GLuint GLESReplay::CreateCShaderProgram(const vector<string> &csSources)
   for(size_t i = 0; i < csSources.size(); i++)
     srcs.push_back(csSources[i].c_str());
 
+  static int counter = 0;
+  dump_to_file("errpr1-" + std::to_string(counter), srcs);
+
   gl.glShaderSource(cs, (GLsizei)srcs.size(), &srcs[0], NULL);
 
   gl.glCompileShader(cs);
@@ -65,9 +81,10 @@ GLuint GLESReplay::CreateCShaderProgram(const vector<string> &csSources)
   if(status == 0)
   {
     gl.glGetShaderInfoLog(cs, 1024, NULL, buffer);
-    RDCERR("Shader error: %s", buffer);
+    RDCERR("1-%d Shader error: %s", counter, buffer);
   }
-
+  counter++;
+  
   GLuint ret = gl.glCreateProgram();
 
   gl.glAttachShader(ret, cs);
@@ -120,6 +137,9 @@ GLuint GLESReplay::CreateShaderProgram(const vector<string> &vsSources,
     for(size_t i = 0; i < vsSources.size(); i++)
       srcs.push_back(vsSources[i].c_str());
 
+    static int counter = 0;
+    dump_to_file("errpr2-" + std::to_string(counter), srcs);
+
     gl.glShaderSource(vs, (GLsizei)srcs.size(), &srcs[0], NULL);
 
     gl.glCompileShader(vs);
@@ -128,8 +148,9 @@ GLuint GLESReplay::CreateShaderProgram(const vector<string> &vsSources,
     if(status == 0)
     {
       gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
-      RDCERR("Shader error: %s", buffer);
+      RDCERR("2-%d Shader error: %s", counter, buffer);
     }
+    counter++;
   }
 
   if(!fsSources.empty())
@@ -140,7 +161,9 @@ GLuint GLESReplay::CreateShaderProgram(const vector<string> &vsSources,
     srcs.reserve(fsSources.size());
     for(size_t i = 0; i < fsSources.size(); i++)
       srcs.push_back(fsSources[i].c_str());
-
+    static int counter = 0;
+    
+    dump_to_file("errpr3-" + std::to_string(counter), srcs);
     gl.glShaderSource(fs, (GLsizei)srcs.size(), &srcs[0], NULL);
 
     gl.glCompileShader(fs);
@@ -148,9 +171,10 @@ GLuint GLESReplay::CreateShaderProgram(const vector<string> &vsSources,
     gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
     if(status == 0)
     {
-      gl.glGetShaderInfoLog(fs, 1024, NULL, buffer);
-      RDCERR("Shader error: %s", buffer);
+      gl.glGetShaderInfoLog(fs, 8192, NULL, buffer);
+      RDCERR("3-%d Shader error: %s", counter, buffer);
     }
+    counter++;
   }
 
   if(!gsSources.empty())
@@ -162,6 +186,9 @@ GLuint GLESReplay::CreateShaderProgram(const vector<string> &vsSources,
     for(size_t i = 0; i < gsSources.size(); i++)
       srcs.push_back(gsSources[i].c_str());
 
+    static int counter = 0;
+    dump_to_file("errpr4-" + std::to_string(counter), srcs);
+
     gl.glShaderSource(gs, (GLsizei)srcs.size(), &srcs[0], NULL);
 
     gl.glCompileShader(gs);
@@ -170,8 +197,9 @@ GLuint GLESReplay::CreateShaderProgram(const vector<string> &vsSources,
     if(status == 0)
     {
       gl.glGetShaderInfoLog(gs, 1024, NULL, buffer);
-      RDCERR("Shader error: %s", buffer);
+      RDCERR("4-%d Shader error: %s", counter, buffer);
     }
+    counter++;
   }
 
   GLuint ret = gl.glCreateProgram();
@@ -240,7 +268,7 @@ void GLESReplay::InitDebugData()
   vector<string> cs;
 
   GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
-
+  dump_to_file("vs_program", vs);
   DebugData.texDisplayVSProg = CreateShaderProgram(vs, empty);
 
   for(int i = 0; i < 3; i++)
@@ -251,7 +279,10 @@ void GLESReplay::InitDebugData()
     GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_texdisplay_frag), 420);
 
     DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
+    
+    dump_to_file("fs_program" + string(1, '0' + i), fs);
   }
+
 
   GLint numsl = 1;
 
@@ -1540,7 +1571,6 @@ bool GLESReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   if(cfg.texid != DebugData.CustomShaderTexID)
     clampmaxlevel[0] = GLint(m_CachedTextures[cfg.texid].mips - 1);
 
-  gl.glBindTexture(target, texname);
   gl.glGetTexParameteriv(target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
 
   // need to ensure texture is mipmap complete by clamping TEXTURE_MAX_LEVEL.
@@ -1682,10 +1712,16 @@ bool GLESReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   gl.glEnable(eGL_FRAMEBUFFER_SRGB_EXT);
 
   gl.glBindVertexArray(DebugData.emptyVAO);
+  gl.m_Real.glValidateProgramPipeline(DebugData.texDisplayPipe);
+  GLint status;
+  gl.m_Real.glGetProgramPipelineiv(DebugData.texDisplayPipe, eGL_VALIDATE_STATUS, &status);
+  char buffer[2000] = { 0 };
+  GLsizei length;
+  gl.m_Real.glGetProgramPipelineInfoLog(DebugData.texDisplayPipe, 2000, &length, buffer);
+  printf("X:%s\n", buffer);
   gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
 
   if(maxlevel[0] >= 0) {
-    gl.glBindTexture(target, texname);
     gl.glTexParameteriv(target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
   }
 
