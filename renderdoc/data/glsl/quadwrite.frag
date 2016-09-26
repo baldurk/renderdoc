@@ -37,7 +37,7 @@
 // descriptor set will be patched from 0 to whichever descriptor set we're using in code
 layout(set = 0, binding = 0, r32ui) uniform coherent uimage2DArray overdrawImage;
 #else // OPENGL
-layout(binding = 0, r32ui) uniform coherent uimage2DArray overdrawImage;
+layout(binding = 0, r32ui) uniform mediump coherent uimage2DArray overdrawImage;
 #endif
 layout(early_fragment_tests) in;
 
@@ -50,15 +50,16 @@ void main()
 	// "Shader Amortization using Pixel Quad Message Passing", Eric Penner, GPU Pro 2.)
 	uvec2 p = uvec2(uint(gl_FragCoord.x) & 1u, uint(gl_FragCoord.y) & 1u);
 	ivec2 sign = ivec2(p.x > 0u ? -1 : 1, p.y > 0u ? -1 : 1);
-	uint c1 = c0 + sign.x*int(dFdxFine(c0));
-	uint c2 = c0 + sign.y*int(dFdyFine(c0));
-	uint c3 = c2 + sign.x*int(dFdxFine(c2));
+	uint c1 = c0 + uint(sign.x*int(dFdx(float(c0))));
+	uint c2 = c0 + uint(sign.y*int(dFdy(float(c0))));
+	uint c3 = c2 + uint(sign.x*int(dFdx(float(c2))));
 
 	// Count the live pixels, minus 1 (zero indexing)
-	uint pixelCount = c0 + c1 + c2 + c3 - 1;
+	uint pixelCount = c0 + c1 + c2 + c3 - 1u;
 
 	ivec3 quad = ivec3(gl_FragCoord.xy*0.5, pixelCount);
-	imageAtomicAdd(overdrawImage, quad, 1);
+	// TODO PEPE
+    //imageAtomicAdd(overdrawImage, quad, 1);
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

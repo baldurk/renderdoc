@@ -30,7 +30,7 @@ void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
                         bool uniforms)
 {
   sources.resize(4);
-  sources[0] = StringFormat::Fmt("#version %d core\n", version);
+  sources[0] = StringFormat::Fmt("#version 320 es\n", version);
 
   // hoist up any #extension directives
   size_t extsearch = 0;

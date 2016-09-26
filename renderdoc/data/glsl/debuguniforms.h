@@ -74,6 +74,7 @@ struct Vec4u
 #define BINDING(b) layout(binding = b, std140)
 #define VERTEX_ID gl_VertexID
 #define INSTANCE_ID gl_InstanceID
+precision mediump float;
 
 #endif
 

@@ -170,41 +170,45 @@ void main(void)
 		   return;
 		}
 
-		if(pre_range_col.r < 0 || pre_range_col.g < 0 || pre_range_col.b < 0 || pre_range_col.a < 0)
+		if(pre_range_col.r < 0.0f || pre_range_col.g < 0.0f || pre_range_col.b < 0.0f || pre_range_col.a < 0.0f)
 		{
 		   color_out = vec4(0, 0, 1, 1);
 		   return;
 		}
 		
-		col = vec4(dot(col.xyz, vec3(0.2126, 0.7152, 0.0722)).xxx, 1);
+		float d = dot(col.xyz, vec3(0.2126, 0.7152, 0.0722));
+        col = vec4(d, d, d, 1);
 	}
 	else if((texdisplay.OutputDisplayFormat & TEXDISPLAY_CLIPPING) > 0)
 	{
-		if(col.r < 0 || col.g < 0 || col.b < 0 || col.a < 0)
+		if(col.r < 0.0f || col.g < 0.0f || col.b < 0.0f || col.a < 0.0f)
 		{
 		   color_out = vec4(1, 0, 0, 1);
 		   return;
 		}
 
-		if(col.r > (1+FLT_EPSILON) || col.g > (1+FLT_EPSILON) || col.b > (1+FLT_EPSILON) || col.a > (1+FLT_EPSILON))
+		if(col.r > (1.0f+FLT_EPSILON) || col.g > (1.0f+FLT_EPSILON) || col.b > (1.0f+FLT_EPSILON) || col.a > (1.0f+FLT_EPSILON))
 		{
 		   color_out = vec4(0, 1, 0, 1);
 		   return;
 		}
-		
-		col = vec4(dot(col.xyz, vec3(0.2126, 0.7152, 0.0722)).xxx, 1);
+		float d = dot(col.xyz, vec3(0.2126, 0.7152, 0.0722));
+		col = vec4(d, d, d, 1);
 	}
 	else
 	{
 		// if only one channel is selected
-		if(dot(texdisplay.Channels, 1.0f.xxxx) == 1.0f)
+		if(dot(texdisplay.Channels, vec4(1.0f)) == 1.0f)
 		{
 			// if it's alpha, just move it into rgb
 			// otherwise, select the channel that's on and replicate it across all channels
-			if(texdisplay.Channels.a == 1)
+			if(texdisplay.Channels.a == 1.0f)
 				col = vec4(col.aaa, 1);
 			else
-				col = vec4(dot(col.rgb, 1.0f.xxx).xxx, 1.0f);
+            {
+                float d = dot(col.rgb, vec3(1.0f));
+				col = vec4(d, d, d, 1.0f);
+            }
 		}
 	}
 	

@@ -36,16 +36,16 @@ layout (location = 1) out vec4 norm;
 
 void main(void)
 {
-	vec2 psprite[4] =
-	{
+	vec2 psprite[4] = vec2[]
+	(
 		vec2(-1.0f, -1.0f),
 		vec2(-1.0f,  1.0f),
 		vec2( 1.0f, -1.0f),
 		vec2( 1.0f,  1.0f)
-	};
+	);
 
 	vec4 pos = position;
-	if(Mesh.homogenousInput == 0)
+	if(Mesh.homogenousInput == 0u)
 	{
 		pos = vec4(position.xyz, 1);
 	}

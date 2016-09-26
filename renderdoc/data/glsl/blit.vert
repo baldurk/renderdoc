@@ -32,10 +32,10 @@ layout (location = 0) out vec2 uv;
 
 void main(void)
 {
-    const vec4 verts[4] = vec4[4](vec4(-1.0, -1.0, 0.5, 1.0),
-                                  vec4( 1.0, -1.0, 0.5, 1.0),
-                                  vec4(-1.0,  1.0, 0.5, 1.0),
-                                  vec4( 1.0,  1.0, 0.5, 1.0));
+    const vec4 verts[4] = vec4[](vec4(-1.0, -1.0, 0.5, 1.0),
+                                 vec4( 1.0, -1.0, 0.5, 1.0),
+                                 vec4(-1.0,  1.0, 0.5, 1.0),
+                                 vec4( 1.0,  1.0, 0.5, 1.0));
 
     gl_Position = verts[VERTEX_ID];
     uv = gl_Position.xy * 0.5f + 0.5f;

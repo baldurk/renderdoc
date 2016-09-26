@@ -25,6 +25,7 @@
 // outer code will hoist this up to just after the #version
 //#extension GL_EXT_geometry_shader : enable
 //#extension GL_OES_geometry_shader : enable
+//#extension GL_EXT_geometry_point_size : enable
 
 layout(triangles, invocations = 1) in;
 layout(triangle_strip, max_vertices = 3) out;

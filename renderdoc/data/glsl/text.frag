@@ -45,5 +45,5 @@ void main(void)
 		text = texture(tex0, uv.xy).x;
 	}
 
-	color_out = vec4(text.xxx, clamp(text + 0.5f, 0.0f, 1.0f));
+	color_out = vec4(text, text, text, clamp(text + 0.5f, 0.0f, 1.0f));
 }

@@ -47,16 +47,16 @@ vec3 CalcCubeCoord(vec2 uv, int face)
 
 // these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
 
-layout(binding = 1) uniform usampler1D texUInt1D;
-layout(binding = 2) uniform usampler2D texUInt2D;
-layout(binding = 3) uniform usampler3D texUInt3D;
+//layout(binding = 1) uniform usampler1D texUInt1D;
+layout(binding = 2) uniform lowp usampler2D texUInt2D;
+layout(binding = 3) uniform lowp usampler3D texUInt3D;
 // cube = 4
-layout(binding = 5) uniform usampler1DArray texUInt1DArray;
-layout(binding = 6) uniform usampler2DArray texUInt2DArray;
+//layout(binding = 5) uniform usampler1DArray texUInt1DArray;
+layout(binding = 6) uniform lowp usampler2DArray texUInt2DArray;
 // cube array = 7
-layout(binding = 8) uniform usampler2DRect texUInt2DRect;
-layout(binding = 9) uniform usamplerBuffer texUIntBuffer;
-layout(binding = 10) uniform usampler2DMS texUInt2DMS;
+//layout(binding = 8) uniform usampler2DRect texUInt2DRect;
+layout(binding = 9) uniform lowp usamplerBuffer texUIntBuffer;
+layout(binding = 10) uniform lowp usampler2DMS texUInt2DMS;
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
@@ -66,21 +66,9 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
 uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
   uvec4 col;
-  if(type == RESTYPE_TEX1D)
-  {
-    col = texelFetch(texUInt1D, int(pos.x * texRes.x), mipLevel);
-  }
-  else if(type == RESTYPE_TEX1DARRAY)
-  {
-    col = texelFetch(texUInt1DArray, ivec2(pos.x * texRes.x, slice), mipLevel);
-  }
-  else if(type == RESTYPE_TEX2D)
+  if(type == RESTYPE_TEX2D)
   {
     col = texelFetch(texUInt2D, ivec2(pos * texRes.xy), mipLevel);
-  }
-  else if(type == RESTYPE_TEXRECT)
-  {
-    col = texelFetch(texUInt2DRect, ivec2(pos * texRes.xy));
   }
   else if(type == RESTYPE_TEXBUFFER)
   {
@@ -114,16 +102,16 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 
 // these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
 
-layout(binding = 1) uniform isampler1D texSInt1D;
-layout(binding = 2) uniform isampler2D texSInt2D;
-layout(binding = 3) uniform isampler3D texSInt3D;
+//layout(binding = 1) uniform isampler1D texSInt1D;
+layout(binding = 2) uniform lowp isampler2D texSInt2D;
+layout(binding = 3) uniform lowp isampler3D texSInt3D;
 // cube = 4
-layout(binding = 5) uniform isampler1DArray texSInt1DArray;
-layout(binding = 6) uniform isampler2DArray texSInt2DArray;
+//layout(binding = 5) uniform isampler1DArray texSInt1DArray;
+layout(binding = 6) uniform lowp isampler2DArray texSInt2DArray;
 // cube array = 7
-layout(binding = 8) uniform isampler2DRect texSInt2DRect;
-layout(binding = 9) uniform isamplerBuffer texSIntBuffer;
-layout(binding = 10) uniform isampler2DMS texSInt2DMS;
+//layout(binding = 8) uniform isampler2DRect texSInt2DRect;
+layout(binding = 9) uniform lowp isamplerBuffer texSIntBuffer;
+layout(binding = 10) uniform lowp isampler2DMS texSInt2DMS;
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
@@ -138,21 +126,9 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
   ivec4 col;
-  if(type == RESTYPE_TEX1D)
-  {
-    col = texelFetch(texSInt1D, int(pos.x * texRes.x), mipLevel);
-  }
-  else if(type == RESTYPE_TEX1DARRAY)
-  {
-    col = texelFetch(texSInt1DArray, ivec2(pos.x * texRes.x, slice), mipLevel);
-  }
-  else if(type == RESTYPE_TEX2D)
+  if(type == RESTYPE_TEX2D)
   {
     col = texelFetch(texSInt2D, ivec2(pos * texRes.xy), mipLevel);
-  }
-  else if(type == RESTYPE_TEXRECT)
-  {
-    col = texelFetch(texSInt2DRect, ivec2(pos * texRes.xy));
   }
   else if(type == RESTYPE_TEXBUFFER)
   {
@@ -181,35 +157,25 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 
 // these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
 
-layout(binding = 1) uniform sampler1D tex1D;
-layout(binding = 2) uniform sampler2D tex2D;
-layout(binding = 3) uniform sampler3D tex3D;
-layout(binding = 4) uniform samplerCube texCube;
-layout(binding = 5) uniform sampler1DArray tex1DArray;
-layout(binding = 6) uniform sampler2DArray tex2DArray;
-layout(binding = 7) uniform samplerCubeArray texCubeArray;
-layout(binding = 8) uniform sampler2DRect tex2DRect;
-layout(binding = 9) uniform samplerBuffer texBuffer;
-layout(binding = 10) uniform sampler2DMS tex2DMS;
+//layout(binding = 1) uniform sampler1D tex1D;
+layout(binding = 2) uniform lowp sampler2D tex2D;
+layout(binding = 3) uniform lowp sampler3D tex3D;
+layout(binding = 4) uniform lowp samplerCube texCube;
+//layout(binding = 5) uniform sampler1DArray tex1DArray;
+layout(binding = 6) uniform lowp sampler2DArray tex2DArray;
+layout(binding = 7) uniform lowp samplerCubeArray texCubeArray;
+//layout(binding = 8) uniform sampler2DRect tex2DRect;
+layout(binding = 9) uniform lowp samplerBuffer texBuffer;
+layout(binding = 10) uniform lowp sampler2DMS tex2DMS;
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
   vec4 col;
-  if(type == RESTYPE_TEX1D)
+  if(type == RESTYPE_TEX2D)
   {
-    col = textureLod(tex1D, pos.x, float(mipLevel));
-  }
-  else if(type == RESTYPE_TEX1DARRAY)
-  {
-    col = textureLod(tex1DArray, vec2(pos.x, slice), float(mipLevel));
-  }
-  else if(type == RESTYPE_TEX2D)
-  {
-    col = textureLod(tex2D, pos, float(mipLevel));
-  }
-  else if(type == RESTYPE_TEXRECT)
-  {
-    col = texelFetch(tex2DRect, ivec2(pos * texRes.xy));
+    ivec2 size = textureSize(tex2D, mipLevel);
+
+    col = textureLod(tex2D, pos / vec2(size), float(mipLevel));
   }
   else if(type == RESTYPE_TEXBUFFER)
   {
