@@ -1,9 +1,5 @@
 cmake_minimum_required(VERSION 2.8.12)
 
-if(WIN32)
-    message(FATAL_ERROR "CMake is not needed on Windows, just open and build renderdoc.sln")
-endif()
-
 # disallow in-source builds because we have a top-level wrapper Makefile
 if(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
     message(FATAL_ERROR "In-source builds not allowed")
@@ -33,6 +29,10 @@ option(ENABLE_QRENDERDOC "Enable qrenderdoc" ON)
 
 option(ENABLE_XLIB "Enable xlib windowing support" ON)
 option(ENABLE_XCB "Enable xcb windowing support" ON)
+
+if(WIN32)
+    message(FATAL_ERROR "CMake is not needed on Windows, just open and build renderdoc.sln")
+endif()
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
