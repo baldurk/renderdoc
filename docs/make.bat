@@ -120,7 +120,7 @@ if "%1" == "json" (
 )
 
 if "%1" == "htmlhelp" (
-	%SPHINXBUILD% -b htmlhelp %ALLSPHINXOPTS% %BUILDDIR%/htmlhelp
+	%SPHINXBUILD% -b htmlhelp -t htmlhelp %ALLSPHINXOPTS% %BUILDDIR%/htmlhelp
 	if errorlevel 1 exit /b 1
 	REM Copy handwritten index file to output, overwriting auto-generated one
 	copy renderdoc.hhk %BUILDDIR%\htmlhelp\
