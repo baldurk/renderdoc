@@ -33,6 +33,7 @@
 #include "replay/type_helpers.h"
 #include "serialise/string_utils.h"
 #include "stb/stb_truetype.h"
+#include <fstream>
 
 #define OPENGL 1
 #include "data/glsl/debuguniforms.h"
@@ -41,6 +42,19 @@ const int firstChar = int(' ') + 1;
 const int lastChar = 127;
 const int numChars = lastChar - firstChar;
 const float charPixelHeight = 20.0f;
+
+template <typename T>
+void dump_to_file(const string& name, const T& t)
+{
+  std::ofstream file;
+  file.open (name);
+  if (file) {
+    for (auto& s : t)
+      file << s << std::endl;
+    file.close();
+  }
+}
+
 
 stbtt_bakedchar chardata[numChars];
 
@@ -1197,6 +1211,12 @@ void WrappedGLES::ContextData::CreateDebugData(const GLHookSet &gl)
 
       gl.glCompileShader(vert);
       gl.glCompileShader(frag);
+      
+      static int counter_v = 0;
+      dump_to_file("errpr5-" + std::to_string(counter_v), vsc);
+
+      static int counter_f = 0;
+      dump_to_file("errpr6-" + std::to_string(counter_f), fsc);
 
       char buffer[1024] = {0};
       GLint status = 0;
@@ -1205,14 +1225,14 @@ void WrappedGLES::ContextData::CreateDebugData(const GLHookSet &gl)
       if(status == 0)
       {
         gl.glGetShaderInfoLog(vert, 1024, NULL, buffer);
-        RDCERR("Shader error: %s", buffer);
+        RDCERR("5-%d Shader error: %s", counter_v, buffer);
       }
 
       gl.glGetShaderiv(frag, eGL_COMPILE_STATUS, &status);
       if(status == 0)
       {
         gl.glGetShaderInfoLog(frag, 1024, NULL, buffer);
-        RDCERR("Shader error: %s", buffer);
+        RDCERR("6-%d Shader error: %s", counter_f, buffer);
       }
 
       Program = gl.glCreateProgram();
