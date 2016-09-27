@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 layout (location = 0) out vec4 color_out;
+layout (location = 0) in vec2 uv;
 
 //#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
 
