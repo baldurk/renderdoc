@@ -8,55 +8,76 @@ RenderDoc wouldn't have been possible without both the tools and libraries that 
 
 The following libraries and components are incorporated into RenderDoc, listed here in no particular order. Thanks go out to the developers and contributors behind each of these libraries who generously donated their work to other free projects!
 
-* `TreeView with Columns <http://www.codeproject.com/Articles/23746/TreeView-with-Columns>`_
+* `TreeView with Columns <http://www.codeproject.com/Articles/23746/TreeView-with-Columns>`_ - Copyright 2008 by jkristia, distributed under the `CPOL license <http://www.codeproject.com/info/cpol10.aspx>`_.
+
   An invaluable control filling a much needed niche in .NET winforms.
 
-* `DockPanel <http://dockpanelsuite.com/>`_
+* `DockPanel <http://dockpanelsuite.com/>`_ - Copyright 2007 Weifen Luo, distributed under the MIT license.
+
   A mature and stable library that adds the docking and flexibility of RenderDoc's UI.
 
-* `famfamfam Silk Icon set <http://www.famfamfam.com/lab/icons/silk/>`_
+* `famfamfam Silk Icon set <http://www.famfamfam.com/lab/icons/silk/>`_ - Authored by Mark James, distributed under Creative Commons Attribution 2.5.
+
   Lending an air of professionalism and artistic quality to the UI, the Silk icon set is used throughout RenderDoc.
 
-* `Scintilla.NET <http://scintillanet.codeplex.com/>`_
-  and by extension `Scintilla <http://www.scintilla.org/>`_ provide a powerful text editor for the shader viewers.
+* `Scintilla.NET <http://scintillanet.codeplex.com/>`_ - ScintillaNET Copyright 2002-2006 Garrett Serack, `Scintilla <http://www.scintilla.org/>`_ Copyright 1998-2006 Neil Hodgson, distributed under the MIT license.
 
-* `Google Breakpad <https://chromium.googlesource.com/breakpad/breakpad/>`_
+  Scintilla and the wrapper Scintilla.NET provide a powerful text editor for the shader viewers.
+
+* `Google Breakpad <https://chromium.googlesource.com/breakpad/breakpad/>`_ - Copyright 2006 Google Inc, distributed under the New BSD License (3 Clause).
+
   provides a rock-solid crash handling and reporting base that help keep RenderDoc stable.
 
-* `miniz <https://code.google.com/p/miniz/>`_
+* `miniz <https://code.google.com/p/miniz/>`_ - Released to the Public Domain by Rich Geldreich.
+
   Public domain zip library is used to compress the crash reports for sending.
 
-* `ILM's half implementation <https://github.com/openexr/openexr/tree/master/IlmBase/Half>`_
+* `ILM's half implementation <https://github.com/openexr/openexr/tree/master/IlmBase/Half>`_ - Copyright 2002 Industrial Light & Magic, a division of Lucas Digital Ltd. LLC, distributed under BSD license.
+
   Used for decoding half data for display.
 
-* `jpeg-compressor <https://code.google.com/p/jpeg-compressor/>`_
+* `jpeg-compressor <https://code.google.com/p/jpeg-compressor/>`_ - Released to the Public Domain by Rich Geldreich.
+
   Used to compress screenshots into jpg format for thumbnail previews.
 
-* `lz4 <https://github.com/Cyan4973/lz4>`_
+* `lz4 <https://github.com/Cyan4973/lz4>`_ - Copyright 2013 Yann Collet, distributed under the New BSD License (3 Clause).
+
   compresses large data transfers (textures and buffers) when going across network connections as well as in the capture files themselves.
 
-* `stb <https://github.com/nothings/stb>`_
+* `stb <https://github.com/nothings/stb>`_ - Released to the Public Domain by Sean Barrett.
+
   Used to read and write various image formats.
 
-* `Source Code Pro <https://github.com/adobe-fonts/source-code-pro>`_
+* `Source Code Pro <https://github.com/adobe-fonts/source-code-pro>`_ - Copyright 2010, 2012 Adobe Systems Incorporated, distributed under the SIL Open Font License 1.1.
+
   Font used for the in-program overlay.
 
-* `IronPython <http://ironpython.net/>`_
+* `IronPython <http://ironpython.net/>`_ - Copyright IronPython Team, distributed under the Apache 2.0 license.
+
   Used for the Python shell/integration in the UI.
 
-* `tinyexr <https://github.com/syoyo/tinyexr>`_
+* `tinyexr <https://github.com/syoyo/tinyexr>`_ - Copyright 2014 Syoyo Fujita, distributed under the New BSD License (3 Clause).
+
   Used for the OpenEXR file loading and saving.
 
-* `glslang <https://github.com/KhronosGroup/glslang>`_
+* `glslang <https://github.com/KhronosGroup/glslang>`_ - Copyright 2002-2005 3Dlabs Inc. Ltd, Copyright 2012-2013 LunarG, Inc, distributed under the New BSD License (3 Clause).
+
   Used for compiling GLSL to SPIR-V.
 
-* `Qt <http://www.qt.io/>`_
+* `Qt <http://www.qt.io/>`_ - Copyright 2015 The Qt Company Ltd, distributed under the GNU Lesser General Public License (LGPL) version 2.1.
+
   Used for QRenderDoc replay UI program.
 
-* `cmdline <https://github.com/tanakh/cmdline>`_
+* `cmdline <https://github.com/tanakh/cmdline>`_ - Copyright 2009 Hideyuki Tanaka, distributed under the New BSD License (3 Clause).
+
   Used for parsing command line arguments to renderdoccmd.
 
-* `plthook <https://github.com/kubo/plthook>`_
+* `include-bin <https://github.com/tanakh/cmdline>`_ - Copyright 2016 Hubert Jarosz, distributed under the zlib license.
+
+  Used to compile in data files embedded into the source on non-Windows platforms.
+
+* `plthook <https://github.com/kubo/plthook>`_ - Copyright 2013-2014 Kubo Takehiro, distributed under the 2-clause BSD license.
+
   Used for hooking some libraries loaded with DEEPBIND on linux.
 
 Thanks
