@@ -38,6 +38,6 @@ install:
   - git diff --exit-code
 
 script:
-  - sh ./hash_version.sh
+  - sh ./scripts/hash_version.sh
   - if [[ "$CODE_BUILD" == "1" ]]; then make ; fi
   - if [[ "$DOCS_BUILD" == "1" ]]; then cd docs/ && make html ; fi
