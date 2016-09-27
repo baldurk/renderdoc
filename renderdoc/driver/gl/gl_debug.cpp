@@ -1061,9 +1061,15 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
 
     vec3 CameraToWorldNearPosition =
         InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+
     vec3 CameraToWorldFarPosition =
         InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+
     rayDir = (CameraToWorldFarPosition - CameraToWorldNearPosition);
+    if(cfg.position.unproject && cfg.cam->GetForward().z < 0)
+    {
+      rayDir = -rayDir;
+    }
     rayDir.Normalise();
     rayPos = CameraToWorldNearPosition;
   }

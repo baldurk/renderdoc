@@ -2256,6 +2256,10 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     Vec3f CameraToWorldFarPosition =
         InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
     RayDir = (CameraToWorldFarPosition - CameraToWorldNearPosition);
+    if(cfg.position.unproject && cfg.cam->GetForward().z < 0)
+    {
+      RayDir = -RayDir;
+    }
     RayDir.Normalise();
     RayPos = CameraToWorldNearPosition;
   }
