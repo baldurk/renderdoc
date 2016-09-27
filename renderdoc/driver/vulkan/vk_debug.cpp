@@ -3029,7 +3029,6 @@ FloatVector VulkanDebugManager::InterpretVertex(byte *data, uint32_t vert, const
   return ret;
 }
 
-// TODO: VS_Out triangles doesn't pick correctly if you look back on the frustrum
 // TODO: Point meshes don't pick correctly
 uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x,
                                         uint32_t y, uint32_t w, uint32_t h)
@@ -3084,6 +3083,10 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
     vec3 CameraToWorldFarPosition =
         InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
     rayDir = (CameraToWorldFarPosition - CameraToWorldNearPosition);
+    if(cfg.position.unproject && cfg.cam->GetForward().z < 0)
+    {
+      rayDir = -rayDir;
+    }
     rayDir.Normalise();
     rayPos = CameraToWorldNearPosition;
   }

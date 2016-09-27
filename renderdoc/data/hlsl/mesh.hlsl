@@ -195,9 +195,6 @@ void trianglePath(uint threadID)
 	uint vertid0 = 0;
 	uint vertid1 = 0;
 	uint vertid2 = 0;
-	uint idx0 = 0;
-	uint idx1 = 0;
-	uint idx2 = 0;
 	switch (PickMeshMode)
 	{
 		case MESH_TRIANGLE_LIST:
