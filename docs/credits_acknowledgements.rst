@@ -8,96 +8,56 @@ RenderDoc wouldn't have been possible without both the tools and libraries that 
 
 The following libraries and components are incorporated into RenderDoc, listed here in no particular order. Thanks go out to the developers and contributors behind each of these libraries who generously donated their work to other free projects!
 
-.. |mhook_link| raw:: html
+* `TreeView with Columns <http://www.codeproject.com/Articles/23746/TreeView-with-Columns>`_
+  An invaluable control filling a much needed niche in .NET winforms.
 
-   <a href="http://codefromthe70s.org/mhook23.aspx" target="_blank">mhook</a>
+* `DockPanel <http://dockpanelsuite.com/>`_
+  A mature and stable library that adds the docking and flexibility of RenderDoc's UI.
 
-.. |treeview_link| raw:: html
+* `famfamfam Silk Icon set <http://www.famfamfam.com/lab/icons/silk/>`_
+  Lending an air of professionalism and artistic quality to the UI, the Silk icon set is used throughout RenderDoc.
 
-   <a href="http://www.codeproject.com/Articles/23746/TreeView-with-Columns" target="_blank">TreeView with Columns</a>
+* `Scintilla.NET <http://scintillanet.codeplex.com/>`_
+  and by extension `Scintilla <http://www.scintilla.org/>`_ provide a powerful text editor for the shader viewers.
 
-.. |dockpanel_link| raw:: html
+* `Google Breakpad <https://chromium.googlesource.com/breakpad/breakpad/>`_
+  provides a rock-solid crash handling and reporting base that help keep RenderDoc stable.
 
-   <a href="http://dockpanelsuite.com/" target="_blank">DockPanel</a>
+* `miniz <https://code.google.com/p/miniz/>`_
+  Public domain zip library is used to compress the crash reports for sending.
 
-.. |famfamfam_link| raw:: html
+* `ILM's half implementation <https://github.com/openexr/openexr/tree/master/IlmBase/Half>`_
+  Used for decoding half data for display.
 
-   <a href="http://www.famfamfam.com/lab/icons/silk/" target="_blank">famfamfam Silk Icon set</a>
+* `jpeg-compressor <https://code.google.com/p/jpeg-compressor/>`_
+  Used to compress screenshots into jpg format for thumbnail previews.
 
-.. |scintilla_link| raw:: html
+* `lz4 <https://github.com/Cyan4973/lz4>`_
+  compresses large data transfers (textures and buffers) when going across network connections as well as in the capture files themselves.
 
-   <a href="http://scintillanet.codeplex.com/" target="_blank">Scintilla.NET</a>
+* `stb <https://github.com/nothings/stb>`_
+  Used to read and write various image formats.
 
-.. |breakpad_link| raw:: html
+* `Source Code Pro <https://github.com/adobe-fonts/source-code-pro>`_
+  Font used for the in-program overlay.
 
-   <a href="https://code.google.com/p/google-breakpad/" target="_blank">Google Breakpad</a>
+* `IronPython <http://ironpython.net/>`_
+  Used for the Python shell/integration in the UI.
 
-.. |miniz_link| raw:: html
+* `tinyexr <https://github.com/syoyo/tinyexr>`_
+  Used for the OpenEXR file loading and saving.
 
-   <a href="https://code.google.com/p/miniz/" target="_blank">miniz</a>
+* `glslang <https://github.com/KhronosGroup/glslang>`_
+  Used for compiling GLSL to SPIR-V.
 
-.. |ilm_link| raw:: html
+* `Qt <http://www.qt.io/>`_
+  Used for QRenderDoc replay UI program.
 
-   <a href="https://github.com/openexr/openexr/tree/master/IlmBase/Half" target="_blank">ILM's half implementation</a>
+* `cmdline <https://github.com/tanakh/cmdline>`_
+  Used for parsing command line arguments to renderdoccmd.
 
-.. |jpeg_link| raw:: html
-
-   <a href="https://code.google.com/p/jpeg-compressor/" target="_blank">jpeg-compressor</a>
-
-.. |lz4_link| raw:: html
-
-   <a href="https://code.google.com/p/lz4/" target="_blank">lz4</a>
-
-.. |stb_link| raw:: html
-
-   <a href="https://github.com/nothings/stb" target="_blank">stb</a>
-
-.. |sourcecodepro_link| raw:: html
-
-   <a href="https://github.com/adobe-fonts/source-code-pro" target="_blank">Source Code Pro</a>
-
-.. |ironpython_link| raw:: html
-
-   <a href="http://ironpython.net/" target="_blank">IronPython</a>
-
-.. |tinyexr_link| raw:: html
-
-   <a href="https://github.com/syoyo/tinyexr" target="_blank">tinyexr</a>
-
-.. |glslang_link| raw:: html
-
-   <a href="https://github.com/KhronosGroup/glslang" target="_blank">glslang</a>
-
-.. |qt_link| raw:: html
-
-   <a href="http://www.qt.io/" target="_blank">Qt</a>
-
-.. |cmdline_link| raw:: html
-
-   <a href="https://github.com/tanakh/cmdline" target="_blank">cmdline</a>
-
-.. |plthook_link| raw:: html
-
-   <a href="https://github.com/kubo/plthook" target="_blank">plthook</a>
-
-* |mhook_link| DLL hooking library, used to inject RenderDoc into applications
-* |treeview_link| An invaluable control filling a much needed niche in .NET winforms.
-* |dockpanel_link| A mature and stable library that adds the docking and flexibility of RenderDoc's UI.
-* |famfamfam_link| Lending an air of professionalism and artistic quality to the UI, the Silk icon set is used throughout RenderDoc.
-* |scintilla_link| and by extension Scintilla provide a powerful text editor for the shader viewers.
-* |breakpad_link| provides a rock-solid crash handling and reporting base that help keep RenderDoc stable.
-* |miniz_link| Public domain zip library is used to compress the crash reports for sending.
-* |ilm_link| Used for decoding half data for display.
-* |jpeg_link| Used to compress screenshots into jpg format for thumbnail previews.
-* |lz4_link| compresses large data transfers (textures and buffers) when going across network connections.
-* |stb_link| Used to read and write various image formats.
-* |sourcecodepro_link| Font used for the in-program overlay.
-* |ironpython_link| Used for the Python shell/integration in the UI.
-* |tinyexr_link| Used for the OpenEXR file loading and saving.
-* |glslang_link| Used for compiling GLSL to SPIR-V.
-* |qt_link| Used for QRenderDoc replay UI program.
-* |cmdline_link| Used for parsing command line arguments to renderdoccmd.
-* |plthook_link| Used for hooking some libraries loaded with DEEPBIND on linux.
+* `plthook <https://github.com/kubo/plthook>`_
+  Used for hooking some libraries loaded with DEEPBIND on linux.
 
 Thanks
 ------
