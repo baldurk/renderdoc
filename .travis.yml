@@ -39,5 +39,5 @@ install:
 
 script:
   - sh ./scripts/hash_version.sh
-  - if [[ "$CODE_BUILD" == "1" ]]; then make ; fi
+  - if [[ "$CODE_BUILD" == "1" ]]; then mkdir build && cd build && cmake -DCMAKE_BUILD_TYPE=Debug .. && make ; fi
   - if [[ "$DOCS_BUILD" == "1" ]]; then cd docs/ && make html ; fi
