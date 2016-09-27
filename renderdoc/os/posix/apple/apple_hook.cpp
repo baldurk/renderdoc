@@ -22,6 +22,8 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include "os/posix/posix_hook.h"
+
 void PosixHookInit()
 {
 }
