@@ -18,7 +18,7 @@ Quick Links:
 * **Roadmap/future development**: [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
 * **Starting place for developing/contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
 * **Code of Conduct**: [contributor covenent](CODE_OF_CONDUCT.md)
-* **How to compile**: [COMPILE.md](COMPILE.md)
+* **How to compile**: [compilation instructions](CONTRIBUTING.md#compiling)
 
 Screenshots
 --------------
@@ -70,10 +70,10 @@ RenderDoc is released under the MIT license, see [LICENSE.md](LICENSE.md) for fu
 Building
 --------------
 
-Building RenderDoc is fairly straight forward. See [COMPILE.md](COMPILE.md) for more details.
+Building RenderDoc is fairly straight forward. See [CONTRIBUTING.md](CONTRIBUTING.md#compiling) for more details.
 
 Contributing & Development
 --------------
 
-I've added some notes on how to contribute, as well as where to get started looking through the code in [CONTRIBUTING.md](CONTRIBUTING.md) - also look at [COMPILE.md](COMPILE.md) for details on how to set up to build renderdoc.
+I've added some notes on how to contribute, as well as where to get started looking through the code in [CONTRIBUTING.md](CONTRIBUTING.md) - as well as details on how to set up to build renderdoc.
 

@@ -23,6 +23,66 @@ Copyright / Contributor License Agreement
 
 Any code you submit will become part of the repository and be distributed under the [RenderDoc license](LICENSE.md). By submitting code to the project you agree that the code is your own work and that you have the ability to give it to the project. You also agree by submitting your code that you grant all transferrable rights to the code to the project maintainer, including for example re-licensing the code, modifying the code, distributing in source or binary forms.
 
+Compiling
+--------------
+
+### Windows
+
+The main [renderdoc.sln](renderdoc.sln) is a VS2010 solution. It should also compile in newer versions like the [free VS2015 community](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx), just select to update the compilers.
+
+There should be no external dependencies, all libraries/headers needed to build are included in the git checkout.
+
+Development configuration is recommended for day-to-day dev. It's debuggable but not too slow. Release configuration is then obviously what you should build for any builds you'll send out to people or if you want to evaluate performance.
+
+#### Visual Studio Visualisers
+
+You might find these visualisers useful, going under your [Visualizer] section in autoexp.dat:
+
+    rdctype::str { preview([$e.elems,s]) stringview([$e.elems,s]) }
+
+    rdctype::array<*> {
+        preview ( #( "[",$e.count,"] {", #array(expr: $e.elems[$i], size: $e.count), "}") )
+        children ( #( #([size] : $e.count), #array(expr: $e.elems[$i], size: $e.count) ) )
+    }
+
+### Linux
+
+Currently linux supports gcc-4.8 and clang-3.5, as these are the compilers used in CI builds. Once the linux port is more mature, more compilers can be supported, although only within reason. Distribution packages should be built with the `Release` CMake build type so that warnings do not trigger errors.
+
+From the root, you can run:
+
+```
+cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild -H.
+make -C build
+```
+
+or
+
+```
+mkdir build &&
+   cd build &&
+   cmake -DCMAKE_BUILD_TYPE=Debug .. &&
+   make
+```
+
+as you prefer. There is no longer a root Makefile to run with `make` but it just ran these steps anyway. Configuration is as usual for cmake, you can override the compiler with environment variables `CC` and `CXX`, and there are some options you can toggle in the root CMakeLists files such as `cmake -DENABLE_GL=OFF`.
+
+Requirements are linking against -lX11 and -lGL. For qrenderdoc you need qt5 along with the 'x11extras' package.
+
+This is the apt-get line you'd need to install the requirements on Ubuntu 14.04:
+
+```
+sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev qt5-default libqt5x11extras5-dev libxcb-keysyms1-dev cmake
+```
+
+For Archlinux (as of 2016.08.04) you'll need:
+
+```
+sudo pacman -S libx11 libx11-xcb xcb-util-keysyms mesa mesa-libgl qt5-base qt5-x11extras cmake
+```
+
+If you know the required packages for another distribution, please share (or pull request this file!)
+
 Contributing & Development
 --------------------------
 
@@ -33,8 +93,6 @@ If you have a change you'd like to see make it into mainline, create a fork of r
 We can discuss changes if there need to be any, then merge it in. Please make sure your changes are fully rebased against master when you create the pull request.
 
 If you're tackling anything large then please contact me and post an issue so that everyone knows you're working on it and there's not duplicated effort. *Specifically* if you want to extend RenderDoc to a platform or API that it doesn't already support please get in touch, as there might already be code that isn't committed yet. Particularly if this is not a public API that anyone can write against.
-
-To get started compiling there are instructions in [COMPILE.md](COMPILE.md)
 
 Code of Conduct
 --------------
