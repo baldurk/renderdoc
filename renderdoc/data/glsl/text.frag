@@ -34,7 +34,7 @@ layout (location = 1) in vec2 glyphuv;
 
 void main(void)
 {
-	float text = 0;
+	float text = 0.0f;
 
 	if(glyphuv.x >= 0.0f && glyphuv.x <= 1.0f &&
 	   glyphuv.y >= 0.0f && glyphuv.y <= 1.0f)

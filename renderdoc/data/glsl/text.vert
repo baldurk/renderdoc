@@ -39,9 +39,9 @@ void main(void)
                                   vec3( 1.0,  1.0, 0.5));
 
 	vec3 pos = verts[VERTEX_ID];
-	uint strindex = INSTANCE_ID;
+	uint strindex = uint(INSTANCE_ID);
 	
-	vec2 charPos = vec2(strindex + pos.x + general.TextPosition.x, pos.y + general.TextPosition.y);
+	vec2 charPos = vec2(float(strindex) + pos.x + general.TextPosition.x, pos.y + general.TextPosition.y);
 
 	FontGlyphData G = glyphs.data[ str.chars[strindex].x ];
 	
