@@ -77,7 +77,7 @@ while(<HOOKSET>)
             push @namemap, { %variablemap};
             
             # TODO pantos
-            if(not grep { $_ eq $name } @implemented_funcs)
+            if((not grep { $_ eq $name } @implemented_funcs) && ($name !~ /^gl(Program)?Uniform(Matrix)?\d.*[a-z]$/))
             {
                 next;
             }
