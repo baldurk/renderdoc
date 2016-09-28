@@ -17,15 +17,15 @@ sub uniq {
 
 sub uses_typedef
 {
-       return 1 if $_[0]{'typedef'} eq $_[1];
-       return 1 if ("PFN" . uc($_[0]{'name'}) . "PROC") eq $_[1];
+    return 1 if $_[0]{'typedef'} eq $_[1];
+    return 1 if ("PFN" . uc($_[0]{'name'}) . "PROC") eq $_[1];
 
-       foreach my $a (@{$_[0]{'aliases'}})
-       {
-               return 1 if ("PFN" . uc($a) . "PROC") eq $_[1];
-       }
+    foreach my $a (@{$_[0]{'aliases'}})
+    {
+        return 1 if ("PFN" . uc($a) . "PROC") eq $_[1];
+    }
 
-       return 0;
+    return 0;
 }
 
 my $printdefs = $ARGV[$1] eq "defs";
@@ -46,60 +46,60 @@ my @implemented_funcs = split(/\n/, `grep -h "WrappedGLES::gl" wrappers/*.cpp | 
 
 while(<HOOKSET>)
 {
-	my $line = $_;
+    my $line = $_;
 
-	if($line =~ /\/\/ --/)
-	{
-               $current = \@unsupported;
-	}
-	elsif($line =~ /\/\/ \+\+ ([a-z]*)/)
-	{
-               $current = \@dllexport if $1 eq "dllexport";
-               $current = \@glext if $1 eq "glext";
-	}
-	elsif($line =~ /^\s*\/\/.*/)
-	{
-		# skip comments
-	}
-	elsif($line =~ /^\s*$/)
-	{
-		# skip blank lines
-	}
-       elsif($current != \@unsupported)
-	{
-		if($line =~ /(PFN.*PROC) (.*);( \/\/ aliases )?([a-zA-Z0-9_ ,]*)?/)
-		{
-			my $typedef = $1;
-			my $name = $2;
-			my $aliases = $4;
+    if($line =~ /\/\/ --/)
+    {
+        $current = \@unsupported;
+    }
+    elsif($line =~ /\/\/ \+\+ ([a-z]*)/)
+    {
+        $current = \@dllexport if $1 eq "dllexport";
+        $current = \@glext if $1 eq "glext";
+    }
+    elsif($line =~ /^\s*\/\/.*/)
+    {
+        # skip comments
+    }
+    elsif($line =~ /^\s*$/)
+    {
+        # skip blank lines
+    }
+    elsif($current != \@unsupported)
+    {
+        if($line =~ /(PFN.*PROC) (.*);( \/\/ aliases )?([a-zA-Z0-9_ ,]*)?/)
+        {
+            my $typedef = $1;
+            my $name = $2;
+            my $aliases = $4;
 
             my %variablemap = (name => $name, typedef => $typedef);
             push @namemap, { %variablemap};
-			
+            
             # TODO pantos
-			if(not grep { $_ eq $name } @implemented_funcs)
-			{
-				next;
-			}
+            if(not grep { $_ eq $name } @implemented_funcs)
+            {
+                next;
+            }
 
-                       my @alias_split = split(/, */, $aliases);
+            my @alias_split = split(/, */, $aliases);
 
-                       my %hook = (name => $name, typedef => $typedef, aliases => \@alias_split, processed => 0);
+            my %hook = (name => $name, typedef => $typedef, aliases => \@alias_split, processed => 0);
 
-                       push @{$current}, { %hook };
+            push @{$current}, { %hook };
 
-                       push @used, $typedef;
-                       push @used, "PFN" . uc($name) . "PROC";
-                       foreach my $a (@alias_split)
-			{
-                               push @used, "PFN" . uc($a) . "PROC";
-                       }
-               }
-               else
-               {
-                       print "MALFORMED LINE IN gles_hookset.h: '$line'\n";
-               }
-       }
+            push @used, $typedef;
+            push @used, "PFN" . uc($name) . "PROC";
+            foreach my $a (@alias_split)
+            {
+                push @used, "PFN" . uc($a) . "PROC";
+            }
+        }
+        else
+        {
+            print "MALFORMED LINE IN gles_hookset.h: '$line'\n";
+        }
+    }
 }
 
 @used = uniq(@used);
@@ -111,28 +111,28 @@ my @processed = ();
 my $typedefs = `egrep -h PFN[0-9A-Z_-]+PROC official/gl32.h official/gl2ext.h`;
 foreach my $typedef (split(/\n/, $typedefs))
 {
-	if($typedef =~ /^typedef (.*)\([A-Z_ *]* (.*)\) \((.*)\);/)
-	{
-		my $returnType = trim($1);
-		my $def = $2;
-		my $args = $3;
-		$args = "" if $args eq "void";
+    if($typedef =~ /^typedef (.*)\([A-Z_ *]* (.*)\) \((.*)\);/)
+    {
+        my $returnType = trim($1);
+        my $def = $2;
+        my $args = $3;
+        $args = "" if $args eq "void";
 
-		# glPathGlyphIndexRangeNV has an array parameter - GLuint baseAndCount[2]
-		# just transform these to pointer parameters, it's equivalent.
-		$args =~ s/([A-Za-z_][a-zA-Z_0-9]*) ([A-Za-z_][a-zA-Z_0-9]*)\[[0-9]*\]/$1 *$2/g;
+        # glPathGlyphIndexRangeNV has an array parameter - GLuint baseAndCount[2]
+        # just transform these to pointer parameters, it's equivalent.
+        $args =~ s/([A-Za-z_][a-zA-Z_0-9]*) ([A-Za-z_][a-zA-Z_0-9]*)\[[0-9]*\]/$1 *$2/g;
 
-		my $origargs = $args;
-		$args =~ s/ *([a-zA-Z_][a-zA-Z_0-9]*)(,|\Z)/, $1$2/g;
+        my $origargs = $args;
+        $args =~ s/ *([a-zA-Z_][a-zA-Z_0-9]*)(,|\Z)/, $1$2/g;
 
-		my $argcount = () = $args =~ /,/g;
+        my $argcount = () = $args =~ /,/g;
 
-		$argcount = floor(($argcount + 1)/2);
+        $argcount = floor(($argcount + 1)/2);
 
-		my $isused = grep {$_ eq $def} @used;
+        my $isused = grep {$_ eq $def} @used;
 
-		$current = \@unsupported;
-		my $name = $def;
+        $current = \@unsupported;
+        my $name = $def;
         foreach (@namemap)
         {
             if ($_->{'typedef'} eq $def)
@@ -142,60 +142,60 @@ foreach my $typedef (split(/\n/, $typedefs))
             }
         }
         
-		my $aliases = "";
+        my $aliases = "";
 
-		if($isused)
-		{
-			my @res = grep {uses_typedef($_, $def)} @dllexport;
+        if($isused)
+        {
+            my @res = grep {uses_typedef($_, $def)} @dllexport;
 
-			if(scalar @res)
-			{
-				$name = $res[0]{'name'};
-				$aliases = $res[0]{'aliases'};
+            if(scalar @res)
+            {
+                $name = $res[0]{'name'};
+                $aliases = $res[0]{'aliases'};
 
-				$current = \@dllexportfuncs;
-			}
-			else
-			{
-				@res = grep {uses_typedef($_, $def)} @glext;
-				print "SCRIPT ERROR: '$def' reported as used but can't find matching definition\n" if not scalar @res;
+                $current = \@dllexportfuncs;
+            }
+            else
+            {
+                @res = grep {uses_typedef($_, $def)} @glext;
+                print "SCRIPT ERROR: '$def' reported as used but can't find matching definition\n" if not scalar @res;
 
-				$name = $res[0]{'name'};
-				$aliases = $res[0]{'aliases'};
+                $name = $res[0]{'name'};
+                $aliases = $res[0]{'aliases'};
 
-				$current = \@glextfuncs;
-			}
-		}
+                $current = \@glextfuncs;
+            }
+        }
 
-		my $funcdefmacro = "HookWrapper$argcount($returnType, $name";
-		$funcdefmacro .= ", $args" if $args ne "";
-		$funcdefmacro .= ");";
+        my $funcdefmacro = "HookWrapper$argcount($returnType, $name";
+        $funcdefmacro .= ", $args" if $args ne "";
+        $funcdefmacro .= ");";
 
-		if(not grep {$_ eq $name} @processed)
-		{
-			my %func = ('name', $name, 'typedef', $def, 'macro', $funcdefmacro, 'ret', $returnType, 'args', $origargs, 'aliases', $aliases);
+        if(not grep {$_ eq $name} @processed)
+        {
+            my %func = ('name', $name, 'typedef', $def, 'macro', $funcdefmacro, 'ret', $returnType, 'args', $origargs, 'aliases', $aliases);
 
-			push @{$current}, { %func };
-			push @processed, $name;
-		}
-	}
+            push @{$current}, { %func };
+            push @processed, $name;
+        }
+    }
 }
 
 close(HOOKSET);
 
 if($printdefs)
 {
-       foreach my $el (@dllexportfuncs)
-	{
-		print "        IMPLEMENT_FUNCTION_SERIALISED($el->{ret}, $el->{name}($el->{args}));\n";
-	}
-	print "\n";
-       foreach my $el (@glextfuncs)
-	{
-		print "        IMPLEMENT_FUNCTION_SERIALISED($el->{ret}, $el->{name}($el->{args}));\n";
-	}
-	print "\n";
-	exit;
+    foreach my $el (@dllexportfuncs)
+    {
+        print "        IMPLEMENT_FUNCTION_SERIALISED($el->{ret}, $el->{name}($el->{args}));\n";
+    }
+    print "\n";
+    foreach my $el (@glextfuncs)
+    {
+        print "        IMPLEMENT_FUNCTION_SERIALISED($el->{ret}, $el->{name}($el->{args}));\n";
+    }
+    print "\n";
+    exit;
 }
 
 print <<ENDOFHEADER;
@@ -239,7 +239,7 @@ print "// dllexport functions\n";
 print "#define DLLExportHooks() \\\n";
 foreach my $el (@dllexportfuncs)
 {
-	print "    HookInit($el->{name}); \\\n"
+    print "    HookInit($el->{name}); \\\n"
 }
 print "\n";
 print "\n";
@@ -248,15 +248,15 @@ print "// gl extensions\n";
 print "#define HookCheckGLExtensions() \\\n";
 foreach my $el (@glextfuncs)
 {
-	print "    HookExtension($el->{typedef}, $el->{name}); \\\n";
-       foreach(@{$el->{aliases}})
-	{
-		print "    HookExtensionAlias($el->{typedef}, $el->{name}, $_); \\\n";
-	}
+    print "    HookExtension($el->{typedef}, $el->{name}); \\\n";
+    foreach(@{$el->{aliases}})
+    {
+        print "    HookExtensionAlias($el->{typedef}, $el->{name}, $_); \\\n";
+    }
 }
 foreach my $el (@dllexportfuncs)
 {
-	print "    HookExtension($el->{typedef}, $el->{name}); \\\n"
+    print "    HookExtension($el->{typedef}, $el->{name}); \\\n"
 }
 print "\n";
 print "\n";
@@ -265,7 +265,7 @@ print "// dllexport functions\n";
 print "#define DefineDLLExportHooks() \\\n";
 foreach my $el (@dllexportfuncs)
 {
-	print "    $el->{macro} \\\n"
+    print "    $el->{macro} \\\n"
 }
 print "\n";
 print "\n";
@@ -274,7 +274,7 @@ print "// gl extensions\n";
 print "#define DefineGLExtensionHooks() \\\n";
 foreach my $el (@glextfuncs)
 {
-	print "    $el->{macro} \\\n"
+    print "    $el->{macro} \\\n"
 }
 print "\n";
 print "\n";
