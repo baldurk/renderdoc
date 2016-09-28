@@ -304,6 +304,22 @@ size_t ShaderIdx(GLenum buf)
   return 0;
 }
 
+string ShaderName(GLenum id)
+{
+  switch(id)
+  {
+    case eGL_VERTEX_SHADER: return "vertex";
+    case eGL_TESS_CONTROL_SHADER: return "tess_control";
+    case eGL_TESS_EVALUATION_SHADER: return "tess_evaluation";
+    case eGL_GEOMETRY_SHADER: return "geometry";
+    case eGL_FRAGMENT_SHADER: return "fragment";
+    case eGL_COMPUTE_SHADER: return "compute";
+    default: RDCERR("Unexpected enum as shader enum: %s", ToStr::Get(id).c_str());
+  }
+
+  return "";
+}
+
 GLenum ShaderBit(size_t idx)
 {
   GLenum enums[] = {

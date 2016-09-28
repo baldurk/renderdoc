@@ -51,6 +51,35 @@ void dump_to_file(const string& name, const T& t)
   }
 }
 
+static GLuint CompileShader(WrappedGLES &gl, GLenum type, const vector<string>& sources)
+{
+    static int counter = 0;
+
+    char buffer[1024];
+    GLint status = 0;
+
+    GLuint shader = gl.glCreateShader(type);
+
+    vector<const char *> srcs;
+    srcs.reserve(sources.size());
+    for(size_t i = 0; i < sources.size(); i++)
+      srcs.push_back(sources[i].c_str());
+
+    dump_to_file("_shader_" + ShaderName(type) + "-" + std::to_string(counter), srcs);
+
+    gl.glShaderSource(shader, (GLsizei)srcs.size(), &srcs[0], NULL);
+    gl.glCompileShader(shader);
+
+    gl.glGetShaderiv(shader, eGL_COMPILE_STATUS, &status);
+    if(status == 0)
+    {
+      gl.glGetShaderInfoLog(shader, 1024, NULL, buffer);
+      RDCERR("%d-%d Shader error: %s", type, counter, buffer);
+    }
+
+    return shader;
+}
+
 GLuint GLESReplay::CreateCShaderProgram(const vector<string> &csSources)
 {
   if(m_pDriver == NULL)
@@ -58,48 +87,23 @@ GLuint GLESReplay::CreateCShaderProgram(const vector<string> &csSources)
 
   MakeCurrentReplayContext(m_DebugCtx);
 
+  GLint status = 0;
   WrappedGLES &gl = *m_pDriver;
 
-  GLuint cs = gl.glCreateShader(eGL_COMPUTE_SHADER);
-
-  vector<const char *> srcs;
-  srcs.reserve(csSources.size());
-  for(size_t i = 0; i < csSources.size(); i++)
-    srcs.push_back(csSources[i].c_str());
-
-  static int counter = 0;
-  // dump_to_file("errpr1-" + std::to_string(counter), srcs);
-
-  gl.glShaderSource(cs, (GLsizei)srcs.size(), &srcs[0], NULL);
-
-  gl.glCompileShader(cs);
-
-  char buffer[1024];
-  GLint status = 0;
-
-  gl.glGetShaderiv(cs, eGL_COMPILE_STATUS, &status);
-  if(status == 0)
-  {
-    gl.glGetShaderInfoLog(cs, 1024, NULL, buffer);
-    RDCERR("1-%d Shader error: %s", counter, buffer);
-  }
-  counter++;
-  
+  GLuint cs = CompileShader(gl, eGL_COMPUTE_SHADER, csSources);
   GLuint ret = gl.glCreateProgram();
-
   gl.glAttachShader(ret, cs);
-
   gl.glLinkProgram(ret);
 
   gl.glGetProgramiv(ret, eGL_LINK_STATUS, &status);
   if(status == 0)
   {
+    char buffer[1024];
     gl.glGetProgramInfoLog(ret, 1024, NULL, buffer);
     RDCERR("Link error: %s", buffer);
   }
 
   gl.glDetachShader(ret, cs);
-
   gl.glDeleteShader(cs);
 
   return ret;
@@ -125,99 +129,34 @@ GLuint GLESReplay::CreateShaderProgram(const vector<string> &vsSources,
   GLuint fs = 0;
   GLuint gs = 0;
 
-  char buffer[1024];
-  GLint status = 0;
+  GLuint ret = gl.glCreateProgram();
 
   if(!vsSources.empty())
   {
-    vs = gl.glCreateShader(eGL_VERTEX_SHADER);
-
-    vector<const char *> srcs;
-    srcs.reserve(vsSources.size());
-    for(size_t i = 0; i < vsSources.size(); i++)
-      srcs.push_back(vsSources[i].c_str());
-
-    static int counter = 0;
-    // dump_to_file("errpr2-" + std::to_string(counter), srcs);
-
-    gl.glShaderSource(vs, (GLsizei)srcs.size(), &srcs[0], NULL);
-
-    gl.glCompileShader(vs);
-
-    gl.glGetShaderiv(vs, eGL_COMPILE_STATUS, &status);
-    if(status == 0)
-    {
-      gl.glGetShaderInfoLog(vs, 1024, NULL, buffer);
-      RDCERR("2-%d Shader error: %s", counter, buffer);
-    }
-    counter++;
+    vs = CompileShader(gl, eGL_VERTEX_SHADER, vsSources);
+    gl.glAttachShader(ret, vs);
   }
 
   if(!fsSources.empty())
   {
-    fs = gl.glCreateShader(eGL_FRAGMENT_SHADER);
-
-    vector<const char *> srcs;
-    srcs.reserve(fsSources.size());
-    for(size_t i = 0; i < fsSources.size(); i++)
-      srcs.push_back(fsSources[i].c_str());
-    static int counter = 0;
-    
-    // dump_to_file("errpr3-" + std::to_string(counter), srcs);
-    gl.glShaderSource(fs, (GLsizei)srcs.size(), &srcs[0], NULL);
-
-    gl.glCompileShader(fs);
-
-    gl.glGetShaderiv(fs, eGL_COMPILE_STATUS, &status);
-    if(status == 0)
-    {
-      gl.glGetShaderInfoLog(fs, 8192, NULL, buffer);
-      RDCERR("3-%d Shader error: %s", counter, buffer);
-    }
-    counter++;
+    fs = CompileShader(gl, eGL_FRAGMENT_SHADER, fsSources);
+    gl.glAttachShader(ret, fs);
   }
 
   if(!gsSources.empty())
   {
-    gs = gl.glCreateShader(eGL_GEOMETRY_SHADER);
-
-    vector<const char *> srcs;
-    srcs.reserve(gsSources.size());
-    for(size_t i = 0; i < gsSources.size(); i++)
-      srcs.push_back(gsSources[i].c_str());
-
-    static int counter = 0;
-    // dump_to_file("errpr4-" + std::to_string(counter), srcs);
-
-    gl.glShaderSource(gs, (GLsizei)srcs.size(), &srcs[0], NULL);
-
-    gl.glCompileShader(gs);
-
-    gl.glGetShaderiv(gs, eGL_COMPILE_STATUS, &status);
-    if(status == 0)
-    {
-      gl.glGetShaderInfoLog(gs, 1024, NULL, buffer);
-      RDCERR("4-%d Shader error: %s", counter, buffer);
-    }
-    counter++;
+    gs = CompileShader(gl, eGL_GEOMETRY_SHADER, gsSources);
+    gl.glAttachShader(ret, gs);
   }
 
-  GLuint ret = gl.glCreateProgram();
-
-  if(vs)
-    gl.glAttachShader(ret, vs);
-  if(fs)
-    gl.glAttachShader(ret, fs);
-  if(gs)
-    gl.glAttachShader(ret, gs);
-
   gl.glProgramParameteri(ret, eGL_PROGRAM_SEPARABLE, GL_TRUE);
-
   gl.glLinkProgram(ret);
 
+  GLint status = 0;
   gl.glGetProgramiv(ret, eGL_LINK_STATUS, &status);
   if(status == 0)
   {
+    char buffer[1024];
     gl.glGetProgramInfoLog(ret, 1024, NULL, buffer);
     RDCERR("Shader error: %s", buffer);
   }
@@ -268,7 +207,7 @@ void GLESReplay::InitDebugData()
   vector<string> cs;
 
   GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
-  // dump_to_file("vs_program", vs);
+  dump_to_file("_shader_glsl_blit_vert", vs);
   DebugData.texDisplayVSProg = CreateShaderProgram(vs, empty);
 
   for(int i = 0; i < 3; i++)
@@ -279,8 +218,7 @@ void GLESReplay::InitDebugData()
     GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_texdisplay_frag), 420);
 
     DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
-    
-    // dump_to_file("fs_program" + string(1, '0' + i), fs);
+    dump_to_file("_shader_glsl_texdisplay_frag_" + std::to_string(i), fs);
   }
 
 
