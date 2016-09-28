@@ -140,9 +140,19 @@ void trianglePath(uint threadID)
 #endif
 
 	vec3 hitPosition;
-	bool hit = TriangleRayIntersect(pos0.xyz/pos0.w, pos1.xyz/pos1.w, pos2.xyz/pos2.w,
+	bool hit;
+	if (meshpick.unproject == 1u)
+	{
+		hit = TriangleRayIntersect(pos0.xyz / pos0.w, pos1.xyz / pos1.w, pos2.xyz / pos2.w,
 									meshpick.rayPos, meshpick.rayDir,
 									/*out*/ hitPosition);
+	}
+	else
+	{
+		hit = TriangleRayIntersect(pos0.xyz, pos1.xyz, pos2.xyz,
+									meshpick.rayPos, meshpick.rayDir,
+									/*out*/ hitPosition);
+	}
 
 	// ray hit a triangle, so return the vertex that was closest
 	// to the triangle/ray intersection point
