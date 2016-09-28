@@ -2193,7 +2193,8 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     Vec2f PickViewport;
 
     uint32_t MeshMode;
-    Vec3f Padding;
+	uint32_t PickUnproject;
+	float2 Padding;
 
     Matrix4f PickMVP;
 
@@ -2203,6 +2204,7 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
   cbuf.PickViewport = Vec2f((float)GetWidth(), (float)GetHeight());
   cbuf.PickIdx = cfg.position.idxByteWidth ? 1 : 0;
   cbuf.PickNumVerts = cfg.position.numVerts;
+  cbuf.PickUnproject = cfg.position.unproject ? 1 : 0;
 
   Matrix4f projMat =
       Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(GetWidth()) / float(GetHeight()));

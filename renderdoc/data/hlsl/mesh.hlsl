@@ -143,7 +143,8 @@ cbuffer MeshPickData : register(b0)
 	float2 PickViewport;
 
 	uint PickMeshMode;
-	float3 Padding;
+	uint PickUnproject;
+	float2 Padding;
 
 	row_major float4x4 PickMVP;
 };
@@ -232,11 +233,22 @@ void trianglePath(uint threadID)
 	float4 pos0 = PickIdx ? vertex[index[vertid0]] : vertex[vertid0];
 	float4 pos1 = PickIdx ? vertex[index[vertid1]] : vertex[vertid1];
 	float4 pos2 = PickIdx ? vertex[index[vertid2]] : vertex[vertid2];
+	
 
 	float3 hitPosition;
-	bool hit = TriangleRayIntersect(pos0.xyz/pos0.w, pos1.xyz/pos1.w, pos2.xyz/pos2.w, 
-									PickRayPos, PickRayDir, 
-									/*out*/ hitPosition);
+	bool hit;
+	if (PickUnproject == 1)
+	{
+		hit = TriangleRayIntersect(pos0.xyz / pos0.w, pos1.xyz / pos1.w, pos2.xyz / pos2.w,
+			PickRayPos, PickRayDir,
+			/*out*/ hitPosition);
+	}
+	else
+	{
+		hit = TriangleRayIntersect(pos0.xyz, pos1.xyz, pos2.xyz,
+			PickRayPos, PickRayDir,
+			/*out*/ hitPosition);
+	}
 	
 	// ray hit a triangle, so return the vertex that was closest 
 	// to the triangle/ray intersection point
