@@ -27,7 +27,6 @@
 #include <algorithm>
 #include "common/common.h"
 #include "data/glsl_shaders.h"
-#include "driver/shaders/spirv/spirv_common.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/vec.h"
 #include "replay/type_helpers.h"
@@ -813,9 +812,6 @@ WrappedGLES::WrappedGLES(const char *logfile, const GLHookSet &funcs) : m_Real(f
     m_DeviceRecord = m_ContextRecord = NULL;
 
     ResourceIDGen::SetReplayResourceIDs();
-
-    InitSPIRVCompiler();
-    RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
   }
 
   m_FakeBB_FBO = 0;

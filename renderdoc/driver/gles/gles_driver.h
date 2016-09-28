@@ -29,7 +29,6 @@
 #include "common/common.h"
 #include "common/timing.h"
 #include "core/core.h"
-#include "driver/shaders/spirv/spirv_common.h"
 #include "replay/replay_driver.h"
 #include "gles_common.h"
 #include "gles_hookset.h"
@@ -279,7 +278,6 @@ private:
     GLenum type;
     vector<string> sources;
     vector<string> includepaths;
-    SPVModule spirv;
     ShaderReflection reflection;
     GLuint prog;
 
