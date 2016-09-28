@@ -4612,25 +4612,26 @@ void WrappedGLES::glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
 //
 //  return true;
 //}
-//
-//#define ATTRIB_FUNC(count, suffix, TypeOr, paramtype, ...)                      \
-//                                                                                \
-//  void WrappedGLES::CONCAT(glVertexAttrib, suffix)(GLuint index, __VA_ARGS__) \
-//                                                                                \
-//  {                                                                             \
-//    m_Real.CONCAT(glVertexAttrib, suffix)(index, ARRAYLIST);                    \
-//                                                                                \
-//    if(m_State >= WRITING_CAPFRAME)                                             \
-//    {                                                                           \
-//      SCOPED_SERIALISE_CONTEXT(VERTEXATTRIB_GENERIC);                           \
-//      const paramtype vals[] = {ARRAYLIST};                                     \
-//      Serialise_glVertexAttrib(index, count, eGL_NONE, GL_FALSE, vals,          \
-//                               TypeOr | CONCAT(Attrib_, paramtype));            \
-//                                                                                \
-//      m_ContextRecord->AddChunk(scope.Get());                                   \
-//    }                                                                           \
-//  }
-//
+/*
+#define ATTRIB_FUNC(count, suffix, TypeOr, paramtype, ...)                      \
+                                                                                \
+  void WrappedGLES::CONCAT(glVertexAttrib, suffix)(GLuint index, __VA_ARGS__) \
+                                                                                \
+  {                                                                             \
+    m_Real.CONCAT(glVertexAttrib, suffix)(index, ARRAYLIST);                    \
+                                                                                \
+    if(m_State >= WRITING_CAPFRAME)                                             \
+    {                                                                           \
+      SCOPED_SERIALISE_CONTEXT(VERTEXATTRIB_GENERIC);                           \
+      const paramtype vals[] = {ARRAYLIST};                                     \
+      Serialise_glVertexAttrib(index, count, eGL_NONE, GL_FALSE, vals,          \
+                               TypeOr | CONCAT(Attrib_, paramtype));            \
+                                                                                \
+      m_ContextRecord->AddChunk(scope.Get());                                   \
+    }                                                                           \
+  }
+*/
+
 //#define ARRAYLIST x
 //
 //ATTRIB_FUNC(1, 1f, 0, GLfloat, GLfloat x)
@@ -4671,24 +4672,25 @@ void WrappedGLES::glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
 //ATTRIB_FUNC(4, I4ui, Attrib_I, GLuint, GLuint x, GLuint y, GLuint z, GLuint w)
 //ATTRIB_FUNC(4, 4Nub, Attrib_N, GLubyte, GLubyte x, GLubyte y, GLubyte z, GLubyte w)
 //
-//#undef ATTRIB_FUNC
-//#define ATTRIB_FUNC(count, suffix, TypeOr, paramtype)                                      \
-//                                                                                           \
-//  void WrappedGLES::CONCAT(glVertexAttrib, suffix)(GLuint index, const paramtype *value) \
-//                                                                                           \
-//  {                                                                                        \
-//    m_Real.CONCAT(glVertexAttrib, suffix)(index, value);                                   \
-//                                                                                           \
-//    if(m_State >= WRITING_CAPFRAME)                                                        \
-//    {                                                                                      \
-//      SCOPED_SERIALISE_CONTEXT(VERTEXATTRIB_GENERIC);                                      \
-//      Serialise_glVertexAttrib(index, count, eGL_NONE, GL_FALSE, value,                    \
-//                               TypeOr | CONCAT(Attrib_, paramtype));                       \
-//                                                                                           \
-//      m_ContextRecord->AddChunk(scope.Get());                                              \
-//    }                                                                                      \
-//  }
-//
+/*
+#undef ATTRIB_FUNC
+#define ATTRIB_FUNC(count, suffix, TypeOr, paramtype)                                      \
+                                                                                           \
+  void WrappedGLES::CONCAT(glVertexAttrib, suffix)(GLuint index, const paramtype *value) \
+                                                                                           \
+  {                                                                                        \
+    m_Real.CONCAT(glVertexAttrib, suffix)(index, value);                                   \
+                                                                                           \
+    if(m_State >= WRITING_CAPFRAME)                                                        \
+    {                                                                                      \
+      SCOPED_SERIALISE_CONTEXT(VERTEXATTRIB_GENERIC);                                      \
+      Serialise_glVertexAttrib(index, count, eGL_NONE, GL_FALSE, value,                    \
+                               TypeOr | CONCAT(Attrib_, paramtype));                       \
+                                                                                           \
+      m_ContextRecord->AddChunk(scope.Get());                                              \
+    }                                                                                      \
+  }
+*/
 //ATTRIB_FUNC(1, 1dv, 0, GLdouble)
 //ATTRIB_FUNC(2, 2dv, 0, GLdouble)
 //ATTRIB_FUNC(3, 3dv, 0, GLdouble)
@@ -4732,25 +4734,25 @@ void WrappedGLES::glDeleteVertexArrays(GLsizei n, const GLuint *arrays)
 //ATTRIB_FUNC(4, 4Nubv, Attrib_N, GLubyte)
 //ATTRIB_FUNC(4, 4Nuiv, Attrib_N, GLuint)
 //ATTRIB_FUNC(4, 4Nusv, Attrib_N, GLushort)
-//
-//#undef ATTRIB_FUNC
-//#define ATTRIB_FUNC(count, suffix, funcparam, passparam)                                   \
-//                                                                                           \
-//  void WrappedGLES::CONCAT(CONCAT(glVertexAttribP, count), suffix)(                      \
-//      GLuint index, GLenum type, GLboolean normalized, funcparam)                          \
-//                                                                                           \
-//  {                                                                                        \
-//    m_Real.CONCAT(CONCAT(glVertexAttribP, count), suffix)(index, type, normalized, value); \
-//                                                                                           \
-//    if(m_State >= WRITING_CAPFRAME)                                                        \
-//    {                                                                                      \
-//      SCOPED_SERIALISE_CONTEXT(VERTEXATTRIB_GENERIC);                                      \
-//      Serialise_glVertexAttrib(index, count, type, normalized, passparam, Attrib_packed);  \
-//                                                                                           \
-//      m_ContextRecord->AddChunk(scope.Get());                                              \
-//    }                                                                                      \
-//  }
-//
+/*
+#undef ATTRIB_FUNC
+#define ATTRIB_FUNC(count, suffix, funcparam, passparam)                                   \
+                                                                                           \
+  void WrappedGLES::CONCAT(CONCAT(glVertexAttribP, count), suffix)(                      \
+      GLuint index, GLenum type, GLboolean normalized, funcparam)                          \
+                                                                                           \
+  {                                                                                        \
+    m_Real.CONCAT(CONCAT(glVertexAttribP, count), suffix)(index, type, normalized, value); \
+                                                                                           \
+    if(m_State >= WRITING_CAPFRAME)                                                        \
+    {                                                                                      \
+      SCOPED_SERIALISE_CONTEXT(VERTEXATTRIB_GENERIC);                                      \
+      Serialise_glVertexAttrib(index, count, type, normalized, passparam, Attrib_packed);  \
+                                                                                           \
+      m_ContextRecord->AddChunk(scope.Get());                                              \
+    }                                                                                      \
+  }
+*/
 //ATTRIB_FUNC(1, ui, GLuint value, &value)
 //ATTRIB_FUNC(2, ui, GLuint value, &value)
 //ATTRIB_FUNC(3, ui, GLuint value, &value)
