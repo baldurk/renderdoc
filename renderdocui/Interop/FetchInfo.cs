@@ -180,7 +180,7 @@ namespace renderdoc
             if ((object)y == null) return (object)x == null;
 
             if (x.special || y.special)
-                return x.special == y.special && x.specialFormat == y.specialFormat;
+                return x.special == y.special && x.specialFormat == y.specialFormat && x.compType == y.compType;
 
             return x.compCount == y.compCount &&
                 x.compByteWidth == y.compByteWidth &&

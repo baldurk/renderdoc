@@ -58,7 +58,7 @@ struct ResourceFormat
   bool operator==(const ResourceFormat &r) const
   {
     if(special || r.special)
-      return special == r.special && specialFormat == r.specialFormat;
+      return special == r.special && specialFormat == r.specialFormat && compType == r.compType;
 
     return compCount == r.compCount && compByteWidth == r.compByteWidth && compType == r.compType &&
            bgraOrder == r.bgraOrder && srgbCorrected == r.srgbCorrected;
