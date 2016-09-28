@@ -156,3 +156,9 @@ cbuffer HistogramCBufferData REG(b0)
 #define HGRAM_TILES_PER_BLOCK 32
 
 #define HGRAM_NUM_BUCKETS 256
+
+#define MESH_OTHER 0    // this covers points and lines, logic is the same
+#define MESH_TRIANGLE_LIST 1
+#define MESH_TRIANGLE_STRIP 2
+#define MESH_TRIANGLE_LIST_ADJ 3
+#define MESH_TRIANGLE_STRIP_ADJ 4

@@ -130,12 +130,6 @@ BINDING(0) uniform FontUBOData
 }
 INST_NAME(general);
 
-#define MESH_OTHER 0    // this covers points and lines, logic is the same
-#define MESH_TRIANGLE_LIST 1
-#define MESH_TRIANGLE_STRIP 2
-#define MESH_TRIANGLE_FAN 3
-#define MESH_TRIANGLE_LIST_ADJ 4
-#define MESH_TRIANGLE_STRIP_ADJ 5
 BINDING(0) uniform MeshPickUBOData
 {
   vec3 rayPos;
@@ -266,3 +260,10 @@ INST_NAME(texdisplay);
 #define HGRAM_TILES_PER_BLOCK 10u
 
 #define HGRAM_NUM_BUCKETS 256u
+
+#define MESH_OTHER 0    // this covers points and lines, logic is the same
+#define MESH_TRIANGLE_LIST 1
+#define MESH_TRIANGLE_STRIP 2
+#define MESH_TRIANGLE_FAN 3
+#define MESH_TRIANGLE_LIST_ADJ 4
+#define MESH_TRIANGLE_STRIP_ADJ 5
