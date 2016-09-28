@@ -139,7 +139,8 @@ public:
     RDCERR("Resource being deleted through wrong pool - 0x%p not a member of %s", p,
            GetTypeName<WrapType>::Name());
 #else
-      RDCERR("Resource being deleted through wrong pool - 0x%p not a member of 0x%p", p, &m_ImmediatePool.items[0]));
+    RDCERR("Resource being deleted through wrong pool - 0x%p not a member of 0x%p", p,
+           &m_ImmediatePool.items[0]);
 #endif
   }
 
