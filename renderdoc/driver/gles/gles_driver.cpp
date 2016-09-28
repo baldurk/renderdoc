@@ -3234,6 +3234,8 @@ void WrappedGLES::ReadLogInitialisation()
 
 void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 {
+
+  // printf("processing chunk: %s (%d)\n", WrappedGLES::GetChunkName(context), context);
   switch(context)
   {
     case DEVICE_INIT:
@@ -3248,7 +3250,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
       }
 //    case GEN_TEXTURE: Serialise_glGenTextures(0, NULL); break;
 //    case ACTIVE_TEXTURE: Serialise_glActiveTexture(eGL_NONE); break;
-//    case BIND_TEXTURE: Serialise_glBindTexture(eGL_NONE, 0); break;
+    case BIND_TEXTURE: Serialise_glBindTexture(eGL_NONE, 0); break;
 //    case BIND_IMAGE_TEXTURE: Serialise_glBindImageTexture(0, 0, 0, 0, 0, eGL_NONE, eGL_NONE); break;
 //    case TEXSTORAGE1D: Serialise_glTextureStorage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0); break;
 //    case TEXSTORAGE2D: Serialise_glTextureStorage2DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0); break;
@@ -3311,12 +3313,12 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //      break;
 //    case TEXTURE_VIEW: Serialise_glTextureView(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0); break;
 //
-//    case CREATE_SHADER: Serialise_glCreateShader(0, eGL_NONE); break;
-//    case CREATE_PROGRAM: Serialise_glCreateProgram(0); break;
+    case CREATE_SHADER: Serialise_glCreateShader(0, eGL_NONE); break;
+    case CREATE_PROGRAM: Serialise_glCreateProgram(0); break;
 //    case CREATE_SHADERPROGRAM: Serialise_glCreateShaderProgramv(0, eGL_NONE, 0, NULL); break;
-//    case COMPILESHADER: Serialise_glCompileShader(0); break;
-//    case SHADERSOURCE: Serialise_glShaderSource(0, 0, NULL, NULL); break;
-//    case ATTACHSHADER: Serialise_glAttachShader(0, 0); break;
+    case COMPILESHADER: Serialise_glCompileShader(0); break;
+    case SHADERSOURCE: Serialise_glShaderSource(0, 0, NULL, NULL); break;
+    case ATTACHSHADER: Serialise_glAttachShader(0, 0); break;
 //    case DETACHSHADER: Serialise_glDetachShader(0, 0); break;
 //    case USEPROGRAM: Serialise_glUseProgram(0); break;
 //    case PROGRAMPARAMETER: Serialise_glProgramParameteri(0, eGL_NONE, 0); break;
@@ -3332,10 +3334,10 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case PROGRAMUNIFORM_VECTOR:
 //      Serialise_glProgramUniformVector(0, eGL_NONE, 0, 0, UNIFORM_UNKNOWN);
 //      break;
-//    case PROGRAMUNIFORM_MATRIX:
-//      Serialise_glProgramUniformMatrix(0, 0, 0, 0, NULL, UNIFORM_UNKNOWN);
-//      break;
-//    case LINKPROGRAM: Serialise_glLinkProgram(0); break;
+    case PROGRAMUNIFORM_MATRIX:
+      Serialise_glProgramUniformMatrix(0, 0, 0, 0, NULL, UNIFORM_UNKNOWN);
+      break;
+    case LINKPROGRAM: Serialise_glLinkProgram(0); break;
 //
 //    case NAMEDSTRING: Serialise_glNamedStringARB(eGL_NONE, 0, NULL, 0, NULL); break;
 //    case DELETENAMEDSTRING: Serialise_glDeleteNamedStringARB(0, NULL); break;
@@ -3461,7 +3463,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case MEMORY_BARRIER: Serialise_glMemoryBarrier(0); break;
 //    case MEMORY_BARRIER_BY_REGION: Serialise_glMemoryBarrierByRegion(0); break;
 //    case TEXTURE_BARRIER: Serialise_glTextureBarrier(); break;
-//    case DRAWARRAYS: Serialise_glDrawArrays(eGL_NONE, 0, 0); break;
+    case DRAWARRAYS: Serialise_glDrawArrays(eGL_NONE, 0, 0); break;
 //    case DRAWARRAYS_INDIRECT: Serialise_glDrawArraysIndirect(eGL_NONE, 0); break;
 //    case DRAWARRAYS_INSTANCED: Serialise_glDrawArraysInstanced(eGL_NONE, 0, 0, 0); break;
 //    case DRAWARRAYS_INSTANCEDBASEINSTANCE:
@@ -3559,33 +3561,33 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case BIND_SAMPLER: Serialise_glBindSampler(0, 0); break;
 //    case BIND_SAMPLERS: Serialise_glBindSamplers(0, 0, NULL); break;
 //
-//    case GEN_BUFFER: Serialise_glGenBuffers(0, NULL); break;
+    case GEN_BUFFER: Serialise_glGenBuffers(0, NULL); break;
 //    case CREATE_BUFFER: Serialise_glCreateBuffers(0, NULL); break;
-//    case BIND_BUFFER: Serialise_glBindBuffer(eGL_NONE, 0); break;
+    case BIND_BUFFER: Serialise_glBindBuffer(eGL_NONE, 0); break;
 //    case BIND_BUFFER_BASE: Serialise_glBindBufferBase(eGL_NONE, 0, 0); break;
 //    case BIND_BUFFER_RANGE: Serialise_glBindBufferRange(eGL_NONE, 0, 0, 0, 0); break;
 //    case BIND_BUFFERS_BASE: Serialise_glBindBuffersBase(eGL_NONE, 0, 0, NULL); break;
 //    case BIND_BUFFERS_RANGE: Serialise_glBindBuffersRange(eGL_NONE, 0, 0, NULL, NULL, NULL); break;
 //    case BUFFERSTORAGE: Serialise_glNamedBufferStorageEXT(0, 0, NULL, 0); break;
-//    case BUFFERDATA: Serialise_glNamedBufferDataEXT(eGL_NONE, 0, NULL, eGL_NONE); break;
+    case BUFFERDATA: Serialise_glBufferData(eGL_NONE, 0, NULL, eGL_NONE); break;
 //    case BUFFERSUBDATA: Serialise_glNamedBufferSubDataEXT(0, 0, 0, NULL); break;
 //    case COPYBUFFERSUBDATA: Serialise_glNamedCopyBufferSubDataEXT(0, 0, 0, 0, 0); break;
 //    case UNMAP: Serialise_glUnmapNamedBufferEXT(eGL_NONE); break;
 //    case FLUSHMAP: Serialise_glFlushMappedNamedBufferRangeEXT(0, 0, 0); break;
-//    case GEN_VERTEXARRAY: Serialise_glGenVertexArrays(0, NULL); break;
+    case GEN_VERTEXARRAY: Serialise_glGenVertexArrays(0, NULL); break;
 //    case CREATE_VERTEXARRAY: Serialise_glCreateVertexArrays(0, NULL); break;
-//    case BIND_VERTEXARRAY: Serialise_glBindVertexArray(0); break;
-//    case VERTEXATTRIBPOINTER:
-//      Serialise_glVertexArrayVertexAttribOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0, 0);
-//      break;
+    case BIND_VERTEXARRAY: Serialise_glBindVertexArray(0); break;
+    case VERTEXATTRIBPOINTER:
+      Serialise_glVertexAttribPointer(0, 0, eGL_NONE, 0, 0, 0);
+      break;
 //    case VERTEXATTRIBIPOINTER:
 //      Serialise_glVertexArrayVertexAttribIOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0);
 //      break;
 //    case VERTEXATTRIBLPOINTER:
 //      Serialise_glVertexArrayVertexAttribLOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0);
 //      break;
-//    case ENABLEVERTEXATTRIBARRAY: Serialise_glEnableVertexArrayAttribEXT(0, 0); break;
-//    case DISABLEVERTEXATTRIBARRAY: Serialise_glDisableVertexArrayAttribEXT(0, 0); break;
+    case ENABLEVERTEXATTRIBARRAY: Serialise_glEnableVertexAttribArray(0); break;
+    case DISABLEVERTEXATTRIBARRAY: Serialise_glDisableVertexAttribArray(0); break;
 //    case VERTEXATTRIB_GENERIC:
 //      Serialise_glVertexAttrib(0, 0, eGL_NONE, GL_FALSE, NULL, Attrib_packed);
 //      break;

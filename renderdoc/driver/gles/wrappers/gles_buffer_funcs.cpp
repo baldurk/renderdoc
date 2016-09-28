@@ -162,19 +162,13 @@ bool WrappedGLES::Serialise_glBindBuffer(GLenum target, GLuint buffer)
     }
     else
     {
-      // if we're just reading, make sure not to trample state (e.g. element array buffer
-      // binding in a VAO), since this is just a bind-to-create chunk.
-      GLuint prevbuf = 0;
-      if(m_State == READING && m_CurEventID == 0 && Target != eGL_NONE)
-        m_Real.glGetIntegerv(BufferBinding(Target), (GLint *)&prevbuf);
-
       GLResource res = GetResourceManager()->GetLiveResource(Id);
       m_Real.glBindBuffer(Target, res.name);
 
       m_Buffers[GetResourceManager()->GetLiveID(Id)].curType = Target;
-
-      if(m_State == READING && m_CurEventID == 0 && Target != eGL_NONE)
-        m_Real.glBindBuffer(Target, prevbuf);
+      // TODO PEPE fix the new 
+      GetCtxData().m_BufferRecord[BufferIdx(Target)] = new GLResourceRecord(Id);
+      
     }
   }
 
@@ -604,8 +598,35 @@ void WrappedGLES::glBufferStorageEXT(GLenum target, GLsizeiptr size, const void 
 
 bool WrappedGLES::Serialise_glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage)
 {
-    // TODO PEPE
-    return true;
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
+
+  // for satisfying GL_MIN_MAP_BUFFER_ALIGNMENT
+  m_pSerialiser->AlignNextBuffer(64);
+
+  SERIALISE_ELEMENT_BUF(byte *, bytes, data, (size_t)Bytesize);
+
+  uint64_t offs = m_pSerialiser->GetOffset();
+
+  SERIALISE_ELEMENT(GLenum, Usage, usage);
+
+  if(m_State < WRITING)
+  {
+    m_Real.glBufferData(Target, (GLsizeiptr)Bytesize, bytes, Usage);
+    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(Target)];
+    if (record)
+      m_Buffers[GetResourceManager()->GetLiveID(record->GetResourceID())].size = Bytesize;
+
+    SAFE_DELETE_ARRAY(bytes);
+  }
+  else if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+    record->DataInSerialiser = true;
+    record->SetDataOffset(offs - Bytesize);
+  }
+
+  return true;
 }
 
 void WrappedGLES::glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage)
@@ -2926,6 +2947,26 @@ void WrappedGLES::glEndTransformFeedback()
 //  }
 //}
 //
+
+bool WrappedGLES::Serialise_glVertexAttribPointer(GLuint index, GLint size, GLenum type,
+                                                  GLboolean normalized, GLsizei stride, const void *pointer)
+{
+
+  SERIALISE_ELEMENT(uint32_t, Index, index);
+  SERIALISE_ELEMENT(int32_t, Size, size);
+  SERIALISE_ELEMENT(GLenum, Type, type);
+  SERIALISE_ELEMENT(uint8_t, Norm, normalized);
+  SERIALISE_ELEMENT(uint32_t, Stride, stride);
+  SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)pointer);
+
+  if(m_State < WRITING)
+  {
+     m_Real.glVertexAttribPointer(Index, Size, Type, Norm, Stride, (const void*)Offset);
+  }
+  return true;
+}
+
+
 void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
                                           GLboolean normalized, GLsizei stride, const void *pointer)
 {
@@ -2948,11 +2989,10 @@ void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
       {
+          
         SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
-// TODO PEPE ???
-//        Serialise_glVertexArrayVertexAttribOffsetEXT(
-//            varecord ? varecord->Resource.name : 0, bufrecord ? bufrecord->Resource.name : 0, index,
-//            size, type, normalized, stride, (GLintptr)pointer);
+        // TODO PEPE Check
+        Serialise_glVertexAttribPointer(index, size, type, normalized, stride, pointer);
 
         r->AddChunk(scope.Get());
       }
@@ -3655,7 +3695,11 @@ void WrappedGLES::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum t
 //
 bool WrappedGLES::Serialise_glEnableVertexAttribArray(GLuint index)
 {
-    // TODO PEPE
+    SERIALISE_ELEMENT(uint32_t, Index, index);
+    if(m_State < WRITING)
+    {
+        m_Real.glEnableVertexAttribArray(Index);
+    }
     return true;
 }
 
@@ -3743,7 +3787,11 @@ void WrappedGLES::glEnableVertexAttribArray(GLuint index)
 //
 bool WrappedGLES::Serialise_glDisableVertexAttribArray(GLuint index)
 {
-    // TODO PEPE
+    SERIALISE_ELEMENT(uint32_t, Index, index);
+    if(m_State < WRITING)
+    {
+        m_Real.glDisableVertexAttribArray(Index);
+    }
     return true;
 }
 
@@ -3915,14 +3963,11 @@ void WrappedGLES::glBindVertexArray(GLuint array)
       GetCtxData().m_VertexArrayRecord = record =
           GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), array));
     }
-  }
-
-  if(m_State == WRITING_CAPFRAME)
-  {
+    
     SCOPED_SERIALISE_CONTEXT(BIND_VERTEXARRAY);
     Serialise_glBindVertexArray(array);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    record->AddChunk(scope.Get());
     if(record)
       GetResourceManager()->MarkVAOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
   }
