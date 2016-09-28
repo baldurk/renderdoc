@@ -1007,7 +1007,6 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   return true;
 }
 
-// TODO: VS_Out triangles doesn't pick correctly if you look back on the frustrum, (gl as well)
 uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
   WrappedOpenGL &gl = *m_pDriver;

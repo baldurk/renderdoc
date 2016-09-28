@@ -68,20 +68,20 @@ wireframeV2F RENDERDOC_MeshVS(meshA2V IN, uint vid : SV_VertexID)
 [maxvertexcount(3)]
 void RENDERDOC_MeshGS(triangle wireframeV2F input[3], inout TriangleStream<wireframeV2F> TriStream)
 {
-    wireframeV2F output;
+	wireframeV2F output;
 
-    float4 faceEdgeA = mul(input[1].pos, InvProj) - mul(input[0].pos, InvProj);
-    float4 faceEdgeB = mul(input[2].pos, InvProj) - mul(input[0].pos, InvProj);
-    float3 faceNormal = normalize( cross(faceEdgeA.xyz, faceEdgeB.xyz) );
+	float4 faceEdgeA = mul(input[1].pos, InvProj) - mul(input[0].pos, InvProj);
+	float4 faceEdgeB = mul(input[2].pos, InvProj) - mul(input[0].pos, InvProj);
+	float3 faceNormal = normalize( cross(faceEdgeA.xyz, faceEdgeB.xyz) );
 
-    for(int i=0; i<3; i++)
-    {
-        output.pos = input[i].pos;
-        output.norm = faceNormal;
-        output.secondary = input[i].secondary;
-        TriStream.Append(output);
-    }
-    TriStream.RestartStrip();
+	for(int i=0; i<3; i++)
+	{
+		output.pos = input[i].pos;
+		output.norm = faceNormal;
+		output.secondary = input[i].secondary;
+		TriStream.Append(output);
+	}
+	TriStream.RestartStrip();
 }
 
 float4 RENDERDOC_MeshPS(wireframeV2F IN) : SV_Target0
@@ -124,9 +124,8 @@ wireframeV2F RENDERDOC_WireframeVS(float3 pos : POSITION, uint vid : SV_VertexID
 #define MESH_OTHER 0    // this covers points and lines, logic is the same
 #define MESH_TRIANGLE_LIST 1
 #define MESH_TRIANGLE_STRIP 2
-#define MESH_TRIANGLE_FAN 3
-#define MESH_TRIANGLE_LIST_ADJ 4
-#define MESH_TRIANGLE_STRIP_ADJ 5
+#define MESH_TRIANGLE_LIST_ADJ 3
+#define MESH_TRIANGLE_STRIP_ADJ 4
 
 Buffer<uint> index : register(t0);
 Buffer<float4> vertex : register(t1);
@@ -134,17 +133,17 @@ AppendStructuredBuffer<uint4> pickresult : register(u0);
 
 cbuffer MeshPickData : register(b0)
 {
-    float3 PickRayPos;
-    uint PickIdx;
+	float3 PickRayPos;
+	uint PickIdx;
 
-    float3 PickRayDir;
-    uint PickNumVerts;
+	float3 PickRayDir;
+	uint PickNumVerts;
 
 	float2 PickCoords;
 	float2 PickViewport;
 
-    uint PickMeshMode;
-    float3 Padding;
+	uint PickMeshMode;
+	float3 Padding;
 
 	row_major float4x4 PickMVP;
 };
@@ -212,13 +211,6 @@ void trianglePath(uint threadID)
 			vertid2 = vertid+2;
 			break;
 		}
-		case MESH_TRIANGLE_FAN:
-		{
-			vertid0 = 0;
-			vertid1 = vertid+1;
-			vertid2 = vertid+2;
-			break;
-		}
 		case MESH_TRIANGLE_LIST_ADJ:
 		{
 			vertid *= 6;
@@ -246,8 +238,8 @@ void trianglePath(uint threadID)
 									PickRayPos, PickRayDir, 
 									/*out*/ hitPosition);
 	
-    // ray hit a triangle, so return the vertex that was closest 
-    // to the triangle/ray intersection point
+	// ray hit a triangle, so return the vertex that was closest 
+	// to the triangle/ray intersection point
 	if (hit)
 	{
 		float dist0 = distance(pos0.xyz/pos0.w, hitPosition);
@@ -263,8 +255,8 @@ void trianglePath(uint threadID)
 		{
 			meshVert = vertid2;
 		}
-        pickresult.Append(uint4(meshVert, 
-                          asuint(hitPosition.x), asuint(hitPosition.y), asuint(hitPosition.z)));
+		pickresult.Append(uint4(meshVert, 
+						  asuint(hitPosition.x), asuint(hitPosition.y), asuint(hitPosition.z)));
 	}
 
 }
@@ -292,14 +284,14 @@ void defaultPath(uint threadID)
 	float len = length(scr - PickCoords);
 	if(len < 35.0f)
 	{
-        pickresult.Append(uint4(vertid, idx, asuint(len), asuint(wpos.z)));
+		pickresult.Append(uint4(vertid, idx, asuint(len), asuint(wpos.z)));
 	}
 }
 
 [numthreads(1024, 1, 1)]
 void RENDERDOC_MeshPickCS(uint3 tid : SV_DispatchThreadID)
 {
-    if (PickMeshMode == MESH_OTHER)
+	if (PickMeshMode == MESH_OTHER)
 	{
 		defaultPath(tid.x);
 	}
@@ -308,28 +300,3 @@ void RENDERDOC_MeshPickCS(uint3 tid : SV_DispatchThreadID)
 		trianglePath(tid.x);
 	}
 }
-
-//
-//
-//
-/*
-	uint vertid = tid.x;
-
-	if(vertid >= PickNumVerts)
-		return;
-
-	uint idx = PickIdx ? index[vertid] : vertid;
-
-	float4 pos = vertex[idx];
-
-	float4 wpos = mul(pos, PickMVP);
-
-	wpos.xyz /= wpos.w;
-
-	float2 scr = (wpos.xy*float2(1.0f, -1.0f) + 1.0f) * 0.5f * PickViewport;
-
-	// close to target co-ords? add to list
-	float len = length(scr - PickCoords);
-	if(len < 25.0f)
-		pickresult.Append(uint4(vertid, idx, asuint(len), asuint(wpos.z)));
-*/

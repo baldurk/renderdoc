@@ -37,6 +37,8 @@
 #include "d3d11_debug.h"
 #include "d3d11_manager.h"
 
+#include "data/hlsl/debugcbuffers.h"
+
 void D3D11DebugManager::FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
                                              const vector<DXBC::CBufferVariable> &invars,
                                              vector<ShaderVariable> &outvars,
@@ -2179,12 +2181,6 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
   D3D11RenderStateTracker tracker(m_WrappedContext);
 
-#define MESH_OTHER 0    // this covers points and lines, logic is the same
-#define MESH_TRIANGLE_LIST 1
-#define MESH_TRIANGLE_STRIP 2
-#define MESH_TRIANGLE_FAN 3
-#define MESH_TRIANGLE_LIST_ADJ 4
-#define MESH_TRIANGLE_STRIP_ADJ 5
   struct MeshPickData
   {
     Vec3f RayPos;
@@ -2277,11 +2273,6 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     case eTopology_TriangleStrip:
     {
       cbuf.MeshMode = MESH_TRIANGLE_STRIP;
-      break;
-    };
-    case eTopology_TriangleFan:
-    {
-      cbuf.MeshMode = MESH_TRIANGLE_FAN;
       break;
     };
     case eTopology_TriangleList_Adj:
@@ -3196,8 +3187,6 @@ void D3D11DebugManager::CreateCustomShaderTex(uint32_t w, uint32_t h)
     m_CustomShaderResourceId = GetIDForResource(m_CustomShaderTex);
   }
 }
-
-#include "data/hlsl/debugcbuffers.h"
 
 ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
                                             TextureDisplayOverlay overlay, uint32_t eventID,

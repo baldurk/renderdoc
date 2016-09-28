@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -40,7 +40,7 @@ layout(binding = 3, std140) buffer pickresult_buffer
 
 layout (local_size_x = 128, local_size_y = 1, local_size_z = 1) in;
 
-bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C, 
+bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C,
 	vec3 RayPosition, vec3 RayDirection, out vec3 HitPosition)
 {
 	bool Result = false;
@@ -80,7 +80,7 @@ bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C,
 void trianglePath(uint threadID)
 {
 	uint vertid = uint(mod(float(threadID), float(meshpick.numVerts)));
-	
+
 	uint vertid0 = 0;
 	uint vertid1 = 0;
 	uint vertid2 = 0;
@@ -132,20 +132,20 @@ void trianglePath(uint threadID)
 
 #ifdef VULKAN
 	if(meshpick.unproject == 1u)
-    {
-        pos0 = vec4(pos0.x, -pos0.y, pos0.z, pos0.w);
-        pos1 = vec4(pos1.x, -pos1.y, pos1.z, pos1.w);
-        pos2 = vec4(pos2.x, -pos2.y, pos2.z, pos2.w);
-    }
+	{
+		pos0 = vec4(pos0.x, -pos0.y, pos0.z, pos0.w);
+		pos1 = vec4(pos1.x, -pos1.y, pos1.z, pos1.w);
+		pos2 = vec4(pos2.x, -pos2.y, pos2.z, pos2.w);
+	}
 #endif
 
 	vec3 hitPosition;
-	bool hit = TriangleRayIntersect(pos0.xyz/pos0.w, pos1.xyz/pos1.w, pos2.xyz/pos2.w, 
-									meshpick.rayPos, meshpick.rayDir, 
+	bool hit = TriangleRayIntersect(pos0.xyz/pos0.w, pos1.xyz/pos1.w, pos2.xyz/pos2.w,
+									meshpick.rayPos, meshpick.rayDir,
 									/*out*/ hitPosition);
-	
-    // ray hit a triangle, so return the vertex that was closest 
-    // to the triangle/ray intersection point
+
+	// ray hit a triangle, so return the vertex that was closest
+	// to the triangle/ray intersection point
 	if (hit)
 	{
 		float dist0 = distance(pos0.xyz/pos0.w, hitPosition);
@@ -163,8 +163,8 @@ void trianglePath(uint threadID)
 		{
 			meshVert = vertid2;
 		}
-		pickresult.results[result_idx] = uvec4(meshVert, 
-			floatBitsToUint(hitPosition.x), floatBitsToUint(hitPosition.y), floatBitsToUint(hitPosition.z));	
+		pickresult.results[result_idx] = uvec4(meshVert,
+			floatBitsToUint(hitPosition.x), floatBitsToUint(hitPosition.y), floatBitsToUint(hitPosition.z));
 	}
 
 }
@@ -204,7 +204,6 @@ void defaultPath(uint threadID)
 
 void main()
 {
-
 	if (meshpick.meshMode == MESH_OTHER)
 	{
 		defaultPath(gl_GlobalInvocationID.x);
