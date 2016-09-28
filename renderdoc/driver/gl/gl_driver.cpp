@@ -758,7 +758,9 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs) : m_Re
     if(m_Real.glDebugMessageCallback)
     {
       m_Real.glDebugMessageCallback(&DebugSnoopStatic, this);
+#if !defined(RELEASE)
       m_Real.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
+#endif
     }
   }
   else

@@ -169,7 +169,11 @@ uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool dep
   attribs[i++] = WGL_CONTEXT_MINOR_VERSION_ARB;
   attribs[i++] = 3;
   attribs[i++] = WGL_CONTEXT_FLAGS_ARB;
+#if defined(_RELEASE)
+  attribs[i++] = 0;
+#else
   attribs[i++] = WGL_CONTEXT_DEBUG_BIT_ARB;
+#endif
   attribs[i++] = WGL_CONTEXT_PROFILE_MASK_ARB;
   attribs[i++] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
 
@@ -402,7 +406,11 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   attribs[i++] = WGL_CONTEXT_MINOR_VERSION_ARB;
   attribs[i++] = 3;
   attribs[i++] = WGL_CONTEXT_FLAGS_ARB;
+#if defined(_RELEASE)
+  attribs[i++] = 0;
+#else
   attribs[i++] = WGL_CONTEXT_DEBUG_BIT_ARB;
+#endif
   attribs[i++] = WGL_CONTEXT_PROFILE_MASK_ARB;
   attribs[i++] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
 
