@@ -51,6 +51,19 @@ void dump_to_file(const string& name, const T& t)
   }
 }
 
+static void dumpProgramPipelineStatus(WrappedGLES &gl, GLuint pipeline)
+{
+  char buffer[2000] = { 0 };
+  GLsizei length;
+  GLint status = 0;
+
+  const GLHookSet &real = gl.GetHookset();
+  real.glValidateProgramPipeline(pipeline);
+  real.glGetProgramPipelineiv(pipeline, eGL_VALIDATE_STATUS, &status);
+  real.glGetProgramPipelineInfoLog(pipeline, 2000, &length, buffer);
+  printf("Program Pipeline validate status: %s\n", buffer);
+}
+
 static GLuint CompileShader(WrappedGLES &gl, GLenum type, const vector<string>& sources)
 {
     static int counter = 0;
@@ -1452,8 +1465,7 @@ bool GLESReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
   gl.glUseProgram(0);
   gl.glUseProgramStages(DebugData.texDisplayPipe, eGL_VERTEX_SHADER_BIT, DebugData.texDisplayVSProg);
-  gl.glUseProgramStages(DebugData.texDisplayPipe, eGL_FRAGMENT_SHADER_BIT,
-                        DebugData.texDisplayProg[intIdx]);
+  gl.glUseProgramStages(DebugData.texDisplayPipe, eGL_FRAGMENT_SHADER_BIT, DebugData.texDisplayProg[intIdx]);
 
   if(cfg.CustomShader != ResourceId() && gl.GetResourceManager()->HasCurrentResource(cfg.CustomShader))
   {
@@ -1646,17 +1658,11 @@ bool GLESReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
   }
 
   gl.glDisable(eGL_DEPTH_TEST);
-
   gl.glEnable(eGL_FRAMEBUFFER_SRGB_EXT);
-
   gl.glBindVertexArray(DebugData.emptyVAO);
-  gl.m_Real.glValidateProgramPipeline(DebugData.texDisplayPipe);
-  GLint status;
-  gl.m_Real.glGetProgramPipelineiv(DebugData.texDisplayPipe, eGL_VALIDATE_STATUS, &status);
-  char buffer[2000] = { 0 };
-  GLsizei length;
-  gl.m_Real.glGetProgramPipelineInfoLog(DebugData.texDisplayPipe, 2000, &length, buffer);
-  printf("X:%s\n", buffer);
+
+  dumpProgramPipelineStatus(gl, DebugData.texDisplayPipe);
+
   gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
 
   if(maxlevel[0] >= 0) {
