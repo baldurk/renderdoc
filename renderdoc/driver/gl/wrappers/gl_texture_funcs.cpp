@@ -671,6 +671,7 @@ void WrappedOpenGL::glTextureView(GLuint texture, GLenum target, GLuint origtext
 
     record->AddChunk(scope.Get());
     record->AddParent(origrecord);
+    origrecord->viewTextures.insert(record->GetResourceID());
 
     // illegal to re-type textures
     record->VerifyDataType(target);
@@ -5483,7 +5484,10 @@ void WrappedOpenGL::Common_glTextureBufferRangeEXT(ResourceId texId, GLenum targ
         GLResourceRecord *bufRecord = GetResourceManager()->GetResourceRecord(bufid);
 
         if(bufRecord)
+        {
           record->AddParent(bufRecord);
+          bufRecord->viewTextures.insert(record->GetResourceID());
+        }
       }
 
       return;
@@ -5512,7 +5516,10 @@ void WrappedOpenGL::Common_glTextureBufferRangeEXT(ResourceId texId, GLenum targ
       GLResourceRecord *bufRecord = GetResourceManager()->GetResourceRecord(bufid);
 
       if(bufRecord)
+      {
         record->AddParent(bufRecord);
+        bufRecord->viewTextures.insert(record->GetResourceID());
+      }
     }
   }
 
@@ -5643,7 +5650,10 @@ void WrappedOpenGL::Common_glTextureBufferEXT(ResourceId texId, GLenum target,
         GLResourceRecord *bufRecord = GetResourceManager()->GetResourceRecord(bufid);
 
         if(bufRecord)
+        {
           record->AddParent(bufRecord);
+          bufRecord->viewTextures.insert(record->GetResourceID());
+        }
       }
 
       return;
@@ -5673,7 +5683,10 @@ void WrappedOpenGL::Common_glTextureBufferEXT(ResourceId texId, GLenum target,
       GLResourceRecord *bufRecord = GetResourceManager()->GetResourceRecord(bufid);
 
       if(bufRecord)
+      {
         record->AddParent(bufRecord);
+        bufRecord->viewTextures.insert(record->GetResourceID());
+      }
     }
   }
 

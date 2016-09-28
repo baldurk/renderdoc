@@ -431,7 +431,7 @@ bool D3D12ResourceManager::ResourceTypeRelease(ID3D12DeviceChild *res)
   return true;
 }
 
-bool D3D12ResourceManager::Force_InitialState(ID3D12DeviceChild *res)
+bool D3D12ResourceManager::Force_InitialState(ID3D12DeviceChild *res, bool prepare)
 {
   return false;
 }

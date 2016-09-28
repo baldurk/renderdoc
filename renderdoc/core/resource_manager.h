@@ -427,7 +427,7 @@ protected:
 
   virtual bool ResourceTypeRelease(WrappedResourceType res) = 0;
 
-  virtual bool Force_InitialState(WrappedResourceType res) = 0;
+  virtual bool Force_InitialState(WrappedResourceType res, bool prepare) = 0;
   virtual bool AllowDeletedResource_InitialState() { return false; }
   virtual bool Need_InitialStateChunk(WrappedResourceType res) = 0;
   virtual bool Prepare_InitialState(WrappedResourceType res) = 0;
@@ -943,7 +943,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Prepare
     if(it->second == (WrappedResourceType)RecordType::NullResource)
       continue;
 
-    if(Force_InitialState(it->second))
+    if(Force_InitialState(it->second, true))
     {
       prepared++;
       Prepare_InitialState(it->second);
@@ -1049,7 +1049,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
     if(it->second == (WrappedResourceType)RecordType::NullResource)
       continue;
 
-    if(Force_InitialState(it->second))
+    if(Force_InitialState(it->second, false))
     {
       dirty++;
 

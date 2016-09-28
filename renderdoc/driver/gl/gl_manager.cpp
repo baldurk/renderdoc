@@ -888,8 +888,41 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
   }
 }
 
-bool GLResourceManager::Force_InitialState(GLResource res)
+bool GLResourceManager::Force_InitialState(GLResource res, bool prepare)
 {
+  if(res.Namespace != eResBuffer && res.Namespace != eResTexture)
+    return false;
+
+  // don't need to force anything if we're already including all resources
+  if(RenderDoc::Inst().GetCaptureOptions().RefAllResources)
+    return false;
+
+  GLResourceRecord *record = GetResourceRecord(res);
+
+  // if we have some viewers, check to see if they were referenced but we weren't, and force our own
+  // initial state inclusion.
+  if(record && !record->viewTextures.empty())
+  {
+    // need to prepare all such resources, just in case for the worst case.
+    if(prepare)
+      return true;
+
+    // if this data resource was referenced already, just skip
+    if(m_FrameReferencedResources.find(record->GetResourceID()) != m_FrameReferencedResources.end())
+      return false;
+
+    // see if any of our viewers were referenced
+    for(auto it = record->viewTextures.begin(); it != record->viewTextures.end(); ++it)
+    {
+      // if so, return true to force our inclusion, for the benefit of the view
+      if(m_FrameReferencedResources.find(*it) != m_FrameReferencedResources.end())
+      {
+        RDCDEBUG("Forcing inclusion of %llu for %llu", record->GetResourceID(), *it);
+        return true;
+      }
+    }
+  }
+
   return false;
 }
 

@@ -252,7 +252,7 @@ private:
 
   bool ResourceTypeRelease(WrappedVkRes *res);
 
-  bool Force_InitialState(WrappedVkRes *res);
+  bool Force_InitialState(WrappedVkRes *res, bool prepare);
   bool AllowDeletedResource_InitialState() { return true; }
   bool Need_InitialStateChunk(WrappedVkRes *res);
   bool Prepare_InitialState(WrappedVkRes *res);

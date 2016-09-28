@@ -323,7 +323,7 @@ private:
 
   bool ResourceTypeRelease(ID3D12DeviceChild *res);
 
-  bool Force_InitialState(ID3D12DeviceChild *res);
+  bool Force_InitialState(ID3D12DeviceChild *res, bool prepare);
   bool Need_InitialStateChunk(ID3D12DeviceChild *res);
   bool Prepare_InitialState(ID3D12DeviceChild *res);
   void Create_InitialState(ResourceId id, ID3D12DeviceChild *live, bool hasData);

@@ -258,6 +258,13 @@ struct GLResourceRecord : public ResourceRecord
   GLenum datatype;
   GLenum usage;
 
+  // for texture buffers and texture views, this points from the data texture (or buffer)
+  // to the view texture. When preparing resource initial states, we force initial states
+  // for anything that is viewed if the viewer is frame referenced. Otherwise we might
+  // lose the underlying data for the view.
+  // Since it's 1-to-many, we keep a set here.
+  set<ResourceId> viewTextures;
+
   GLResource Resource;
 
   void AllocShadowStorage(size_t size)

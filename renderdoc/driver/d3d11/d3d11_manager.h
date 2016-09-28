@@ -187,7 +187,7 @@ private:
 
   bool ResourceTypeRelease(ID3D11DeviceChild *res);
 
-  bool Force_InitialState(ID3D11DeviceChild *res);
+  bool Force_InitialState(ID3D11DeviceChild *res, bool prepare);
   bool Need_InitialStateChunk(ID3D11DeviceChild *res);
   bool Prepare_InitialState(ID3D11DeviceChild *res);
   bool Serialise_InitialState(ResourceId resid, ID3D11DeviceChild *res);
