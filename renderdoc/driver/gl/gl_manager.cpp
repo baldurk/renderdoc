@@ -277,7 +277,7 @@ bool GLResourceManager::SerialisableResource(ResourceId id, GLResourceRecord *re
 
 bool GLResourceManager::Need_InitialStateChunk(GLResource res)
 {
-  return res.Namespace != eResBuffer;
+  return true;
 }
 
 bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
@@ -437,15 +437,32 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
   if(res.Namespace == eResBuffer)
   {
-    GLResourceRecord *record = GetResourceRecord(res);
+    // get the length of the buffer
+    uint32_t length = 1;
+    gl.glGetNamedBufferParameterivEXT(res.name, eGL_BUFFER_SIZE, (GLint *)&length);
 
-    // TODO copy this to an immutable buffer elsewhere and SetInitialContents() it.
-    // then only do the readback in Serialise_InitialState
+    // save old bindings
+    GLuint oldbuf1 = 0, oldbuf2 = 0;
+    gl.glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING, (GLint *)&oldbuf1);
+    gl.glGetIntegerv(eGL_COPY_WRITE_BUFFER_BINDING, (GLint *)&oldbuf2);
 
-    GLint length;
-    gl.glGetNamedBufferParameterivEXT(res.name, eGL_BUFFER_SIZE, &length);
+    // create a new buffer big enough to hold the contents
+    GLuint buf = 0;
+    gl.glGenBuffers(1, &buf);
+    gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, buf);
+    gl.glBufferStorage(eGL_COPY_WRITE_BUFFER, (GLsizeiptr)length, NULL, GL_MAP_READ_BIT);
 
-    gl.glGetNamedBufferSubDataEXT(res.name, 0, length, record->GetDataPtr());
+    // bind the live buffer for copying
+    gl.glBindBuffer(eGL_COPY_READ_BUFFER, res.name);
+
+    // do the actual copy
+    gl.glCopyBufferSubData(eGL_COPY_READ_BUFFER, eGL_COPY_WRITE_BUFFER, 0, 0, (GLsizeiptr)length);
+
+    // restore old bindings
+    gl.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf1);
+    gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, oldbuf2);
+
+    SetInitialContents(Id, InitialContentData(BufferRes(res.Context, buf), length, NULL));
   }
   else if(res.Namespace == eResProgram)
   {
@@ -878,19 +895,7 @@ bool GLResourceManager::Force_InitialState(GLResource res)
 
 bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 {
-  ResourceId Id = ResourceId();
-
-  if(m_State >= WRITING)
-  {
-    Id = GetID(res);
-
-    if(res.Namespace != eResBuffer)
-      m_pSerialiser->Serialise("Id", Id);
-  }
-  else
-  {
-    m_pSerialiser->Serialise("Id", Id);
-  }
+  SERIALISE_ELEMENT(ResourceId, Id, GetID(res));
 
   if(m_State < WRITING)
   {
@@ -904,7 +909,68 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
   if(res.Namespace == eResBuffer)
   {
-    // Nothing to serialize
+    // Buffers didn't have serialised initial contents before at all, so although
+    // this is newly added it's also backwards compatible.
+    if(m_State >= WRITING)
+    {
+      InitialContentData contents = GetInitialContents(Id);
+      GLuint buf = contents.resource.name;
+      uint32_t len = contents.num;
+
+      m_pSerialiser->Serialise("len", len);
+
+      // save old binding
+      GLuint oldbuf = 0;
+      gl.glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING, (GLint *)&oldbuf);
+
+      // bind the live buffer for readback
+      gl.glBindBuffer(eGL_COPY_READ_BUFFER, buf);
+
+      byte *readback = (byte *)gl.glMapBuffer(eGL_COPY_READ_BUFFER, eGL_READ_ONLY);
+
+      size_t sz = (size_t)len;
+
+      // readback if possible and serialise
+      if(readback)
+      {
+        m_pSerialiser->SerialiseBuffer("buf", readback, sz);
+
+        gl.glUnmapBuffer(eGL_COPY_READ_BUFFER);
+      }
+      else
+      {
+        RDCERR("Couldn't map initial contents buffer for readback!");
+
+        byte *dummy = new byte[len];
+        memset(dummy, 0xfe, len);
+
+        m_pSerialiser->SerialiseBuffer("buf", dummy, sz);
+
+        SAFE_DELETE_ARRAY(dummy);
+      }
+
+      // restore old binding
+      gl.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf);
+    }
+    else
+    {
+      SERIALISE_ELEMENT(uint32_t, len, 0);
+
+      size_t size = 0;
+      byte *data = NULL;
+
+      m_pSerialiser->SerialiseBuffer("buf", data, size);
+
+      // create a new buffer big enough to hold the contents
+      GLuint buf = 0;
+      gl.glGenBuffers(1, &buf);
+      gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, buf);
+      gl.glBufferStorage(eGL_COPY_WRITE_BUFFER, (GLsizeiptr)len, data, 0);
+
+      SAFE_DELETE_ARRAY(data);
+
+      SetInitialContents(Id, InitialContentData(BufferRes(m_GL->GetCtx(), buf), len, NULL));
+    }
   }
   else if(res.Namespace == eResProgram)
   {
@@ -1553,7 +1619,28 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 {
   const GLHookSet &gl = m_GL->m_Real;
 
-  if(live.Namespace == eResTexture)
+  if(live.Namespace == eResBuffer)
+  {
+    // save old bindings
+    GLuint oldbuf1 = 0, oldbuf2 = 0;
+    gl.glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING, (GLint *)&oldbuf1);
+    gl.glGetIntegerv(eGL_COPY_WRITE_BUFFER_BINDING, (GLint *)&oldbuf2);
+
+    // bind the immutable contents for copying
+    gl.glBindBuffer(eGL_COPY_READ_BUFFER, initial.resource.name);
+
+    // bind the live buffer for copying
+    gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, live.name);
+
+    // do the actual copy
+    gl.glCopyBufferSubData(eGL_COPY_READ_BUFFER, eGL_COPY_WRITE_BUFFER, 0, 0,
+                           (GLsizeiptr)initial.num);
+
+    // restore old bindings
+    gl.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf1);
+    gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, oldbuf2);
+  }
+  else if(live.Namespace == eResTexture)
   {
     ResourceId Id = GetID(live);
     WrappedOpenGL::TextureData &details = m_GL->m_Textures[Id];
