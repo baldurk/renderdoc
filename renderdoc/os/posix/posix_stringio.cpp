@@ -169,14 +169,14 @@ void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &
   char temp_filename[2048] = {0};
 
   snprintf(temp_filename, sizeof(temp_filename) - 1, "%s/%s_%04d.%02d.%02d_%02d.%02d.rdc",
-           GetTempRootPath(), mod, 1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour,
+           temp_folder, mod, 1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour,
            now.tm_min);
 
   capture_filename = string(temp_filename);
 
   snprintf(temp_filename, sizeof(temp_filename) - 1, "%s/%s_%04d.%02d.%02d_%02d.%02d.%02d.log",
-           GetTempRootPath(), logBaseName, 1900 + now.tm_year, now.tm_mon + 1, now.tm_mday,
-           now.tm_hour, now.tm_min, now.tm_sec);
+           temp_folder, logBaseName, 1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour,
+           now.tm_min, now.tm_sec);
 
   logging_filename = string(temp_filename);
 }
