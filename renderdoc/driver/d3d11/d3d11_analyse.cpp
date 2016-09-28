@@ -2574,10 +2574,8 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
   m_pImmediateContext->Unmap(m_DebugRender.PickPixelStageTex, 0);
 }
 
-byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32_t mip,
-                                        bool forDiskSave, FormatComponentType typeHint,
-                                        bool resolve, bool forceRGBA8unorm, float blackPoint,
-                                        float whitePoint, size_t &dataSize)
+byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                        const GetTextureDataParams &params, size_t &dataSize)
 {
   ID3D11Resource *dummyTex = NULL;
 
@@ -2587,10 +2585,10 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
   dataSize = 0;
   size_t bytesize = 0;
 
-  if(WrappedID3D11Texture1D::m_TextureList.find(id) != WrappedID3D11Texture1D::m_TextureList.end())
+  if(WrappedID3D11Texture1D::m_TextureList.find(tex) != WrappedID3D11Texture1D::m_TextureList.end())
   {
     WrappedID3D11Texture1D *wrapTex =
-        (WrappedID3D11Texture1D *)WrappedID3D11Texture1D::m_TextureList[id].m_Texture;
+        (WrappedID3D11Texture1D *)WrappedID3D11Texture1D::m_TextureList[tex].m_Texture;
 
     D3D11_TEXTURE1D_DESC desc = {0};
     wrapTex->GetDesc(&desc);
@@ -2607,8 +2605,10 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
     if(mip >= mips || arrayIdx >= desc.ArraySize)
       return NULL;
 
-    if(forceRGBA8unorm)
+    if(params.remap)
     {
+      RDCASSERT(params.remap == eRemap_RGBA8);
+
       desc.Format =
           IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
       desc.ArraySize = 1;
@@ -2628,8 +2628,10 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 
     bytesize = GetByteSize(desc.Width, 1, 1, desc.Format, mip);
 
-    if(forceRGBA8unorm)
+    if(params.remap)
     {
+      RDCASSERT(params.remap == eRemap_RGBA8);
+
       subresource = mip;
 
       desc.CPUAccessFlags = 0;
@@ -2686,11 +2688,11 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
         texDisplay.sampleIdx = 0;
         texDisplay.CustomShader = ResourceId();
         texDisplay.sliceFace = arrayIdx;
-        texDisplay.rangemin = blackPoint;
-        texDisplay.rangemax = whitePoint;
+        texDisplay.rangemin = params.blackPoint;
+        texDisplay.rangemax = params.whitePoint;
         texDisplay.scale = 1.0f;
-        texDisplay.texid = id;
-        texDisplay.typeHint = typeHint;
+        texDisplay.texid = tex;
+        texDisplay.typeHint = params.typeHint;
         texDisplay.rawoutput = false;
         texDisplay.offx = 0;
         texDisplay.offy = 0;
@@ -2711,11 +2713,11 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
       m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture1D, d), wrapTex->GetReal());
     }
   }
-  else if(WrappedID3D11Texture2D1::m_TextureList.find(id) !=
+  else if(WrappedID3D11Texture2D1::m_TextureList.find(tex) !=
           WrappedID3D11Texture2D1::m_TextureList.end())
   {
     WrappedID3D11Texture2D1 *wrapTex =
-        (WrappedID3D11Texture2D1 *)WrappedID3D11Texture2D1::m_TextureList[id].m_Texture;
+        (WrappedID3D11Texture2D1 *)WrappedID3D11Texture2D1::m_TextureList[tex].m_Texture;
 
     D3D11_TEXTURE2D_DESC desc = {0};
     wrapTex->GetDesc(&desc);
@@ -2743,8 +2745,10 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
     if(mip >= mips || arrayIdx >= desc.ArraySize)
       return NULL;
 
-    if(forceRGBA8unorm)
+    if(params.remap)
     {
+      RDCASSERT(params.remap == eRemap_RGBA8);
+
       desc.Format =
           IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
       desc.ArraySize = 1;
@@ -2764,8 +2768,10 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 
     bytesize = GetByteSize(desc.Width, desc.Height, 1, desc.Format, mip);
 
-    if(forceRGBA8unorm)
+    if(params.remap)
     {
+      RDCASSERT(params.remap == eRemap_RGBA8);
+
       subresource = mip;
 
       desc.CPUAccessFlags = 0;
@@ -2820,14 +2826,14 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
         texDisplay.overlay = eTexOverlay_None;
         texDisplay.FlipY = false;
         texDisplay.mip = mip;
-        texDisplay.sampleIdx = resolve ? ~0U : arrayIdx;
+        texDisplay.sampleIdx = params.resolve ? ~0U : arrayIdx;
         texDisplay.CustomShader = ResourceId();
         texDisplay.sliceFace = arrayIdx;
-        texDisplay.rangemin = blackPoint;
-        texDisplay.rangemax = whitePoint;
+        texDisplay.rangemin = params.blackPoint;
+        texDisplay.rangemax = params.whitePoint;
         texDisplay.scale = 1.0f;
-        texDisplay.texid = id;
-        texDisplay.typeHint = typeHint;
+        texDisplay.texid = tex;
+        texDisplay.typeHint = params.typeHint;
         texDisplay.rawoutput = false;
         texDisplay.offx = 0;
         texDisplay.offy = 0;
@@ -2843,7 +2849,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 
       SAFE_RELEASE(wrappedrtv);
     }
-    else if(wasms && resolve)
+    else if(wasms && params.resolve)
     {
       desc.Usage = D3D11_USAGE_DEFAULT;
       desc.CPUAccessFlags = 0;
@@ -2875,11 +2881,11 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
       m_pImmediateContext->CopyResource(UNWRAP(WrappedID3D11Texture2D1, d), wrapTex->GetReal());
     }
   }
-  else if(WrappedID3D11Texture3D1::m_TextureList.find(id) !=
+  else if(WrappedID3D11Texture3D1::m_TextureList.find(tex) !=
           WrappedID3D11Texture3D1::m_TextureList.end())
   {
     WrappedID3D11Texture3D1 *wrapTex =
-        (WrappedID3D11Texture3D1 *)WrappedID3D11Texture3D1::m_TextureList[id].m_Texture;
+        (WrappedID3D11Texture3D1 *)WrappedID3D11Texture3D1::m_TextureList[tex].m_Texture;
 
     D3D11_TEXTURE3D_DESC desc = {0};
     wrapTex->GetDesc(&desc);
@@ -2896,9 +2902,13 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
     if(mip >= mips)
       return NULL;
 
-    if(forceRGBA8unorm)
+    if(params.remap)
+    {
+      RDCASSERT(params.remap == eRemap_RGBA8);
+
       desc.Format =
           IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+    }
 
     subresource = mip;
 
@@ -2914,8 +2924,10 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
 
     bytesize = GetByteSize(desc.Width, desc.Height, desc.Depth, desc.Format, mip);
 
-    if(forceRGBA8unorm)
+    if(params.remap)
     {
+      RDCASSERT(params.remap == eRemap_RGBA8);
+
       subresource = mip;
 
       desc.CPUAccessFlags = 0;
@@ -2979,11 +2991,11 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
         texDisplay.sampleIdx = 0;
         texDisplay.CustomShader = ResourceId();
         texDisplay.sliceFace = i << mip;
-        texDisplay.rangemin = blackPoint;
-        texDisplay.rangemax = whitePoint;
+        texDisplay.rangemin = params.blackPoint;
+        texDisplay.rangemax = params.whitePoint;
         texDisplay.scale = 1.0f;
-        texDisplay.texid = id;
-        texDisplay.typeHint = typeHint;
+        texDisplay.texid = tex;
+        texDisplay.typeHint = params.typeHint;
         texDisplay.rawoutput = false;
         texDisplay.offx = 0;
         texDisplay.offy = 0;
@@ -3006,7 +3018,7 @@ byte *D3D11DebugManager::GetTextureData(ResourceId id, uint32_t arrayIdx, uint32
   }
   else
   {
-    RDCERR("Trying to get texture data for unknown ID %llu!", id);
+    RDCERR("Trying to get texture data for unknown ID %llu!", tex);
     dataSize = 0;
     return new byte[0];
   }

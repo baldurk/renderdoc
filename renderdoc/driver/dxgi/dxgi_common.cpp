@@ -1389,9 +1389,11 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
         RDCERR("Video format not unambiguously encoded");
         ret = DXGI_FORMAT_AYUV;
         break;
-      case eSpecial_S8: RDCERR("D3D has no stencil-only format"); break;
-      case eSpecial_D16S8: RDCERR("D3D has no D16S8 format"); break;
-      default: RDCERR("Unrecognised/unsupported special format %u", fmt.specialFormat); break;
+      case eSpecial_S8:       // D3D has no stencil-only format
+      case eSpecial_D16S8:    // D3D has no D16S8 format
+      default:
+        // Return unknown to choose texture remap
+        break;
     }
   }
   else if(fmt.compCount == 4)
@@ -1412,8 +1414,14 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
   {
     if(fmt.compByteWidth == 4)
       ret = DXGI_FORMAT_R32G32B32_TYPELESS;
-    // else if(fmt.compByteWidth == 2) ret = DXGI_FORMAT_R16G16B16_TYPELESS; // format doesn't exist
-    // else if(fmt.compByteWidth == 1) ret = DXGI_FORMAT_R8G8B8_TYPELESS; // format doesn't exist
+    else if(fmt.compByteWidth == 2)
+    {
+      // DXGI_FORMAT_R16G16B16_TYPELESS doesn't exist, return unknown to choose texture remap
+    }
+    else if(fmt.compByteWidth == 1)
+    {
+      // DXGI_FORMAT_R8G8B8_TYPELESS doesn't exist
+    }
     else
       RDCERR("Unrecognised 3-component byte width: %d", fmt.compByteWidth);
   }
@@ -1463,9 +1471,6 @@ DXGI_FORMAT MakeDXGIFormat(ResourceFormat fmt)
 
   if(fmt.srgbCorrected)
     ret = GetSRGBFormat(ret);
-
-  if(ret == DXGI_FORMAT_UNKNOWN)
-    RDCERR("No known DXGI_FORMAT corresponding to resource format!");
 
   return ret;
 }

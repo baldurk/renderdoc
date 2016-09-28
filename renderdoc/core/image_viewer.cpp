@@ -138,12 +138,10 @@ public:
   }
   vector<ResourceId> GetTextures() { return m_Proxy->GetTextures(); }
   FetchTexture GetTexture(ResourceId id) { return m_Proxy->GetTexture(m_TextureID); }
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
-                       FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
-                       float blackPoint, float whitePoint, size_t &dataSize)
+  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                       const GetTextureDataParams &params, size_t &dataSize)
   {
-    return m_Proxy->GetTextureData(m_TextureID, arrayIdx, mip, forDiskSave, typeHint, resolve,
-                                   forceRGBA8unorm, blackPoint, whitePoint, dataSize);
+    return m_Proxy->GetTextureData(m_TextureID, arrayIdx, mip, params, dataSize);
   }
 
   // handle a couple of operations ourselves to return a simple fake log
@@ -250,7 +248,7 @@ public:
   {
     RDCERR("Calling proxy-render functions on an image viewer");
   }
-
+  bool IsTextureSupported(const ResourceFormat &format) { return true; }
   ResourceId CreateProxyBuffer(const FetchBuffer &templateBuf)
   {
     RDCERR("Calling proxy-render functions on an image viewer");

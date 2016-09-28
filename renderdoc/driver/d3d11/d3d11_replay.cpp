@@ -1448,13 +1448,10 @@ void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, 
   m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len, retData);
 }
 
-byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
-                                  FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
-                                  float blackPoint, float whitePoint, size_t &dataSize)
+byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                  const GetTextureDataParams &params, size_t &dataSize)
 {
-  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, forDiskSave, typeHint,
-                                                      resolve, forceRGBA8unorm, blackPoint,
-                                                      whitePoint, dataSize);
+  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, dataSize);
 }
 
 void D3D11Replay::ReplaceResource(ResourceId from, ResourceId to)
@@ -1843,6 +1840,11 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
   {
     RDCERR("Invalid texture id passed to SetProxyTextureData");
   }
+}
+
+bool D3D11Replay::IsTextureSupported(const ResourceFormat &format)
+{
+  return MakeDXGIFormat(format) != DXGI_FORMAT_UNKNOWN;
 }
 
 ResourceId D3D11Replay::CreateProxyBuffer(const FetchBuffer &templateBuf)

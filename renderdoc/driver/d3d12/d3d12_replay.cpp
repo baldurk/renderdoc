@@ -1271,9 +1271,8 @@ MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, Mesh
   return MeshFormat();
 }
 
-byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
-                                  FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
-                                  float blackPoint, float whitePoint, size_t &dataSize)
+byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                  const GetTextureDataParams &params, size_t &dataSize)
 {
   dataSize = 0;
   return NULL;
@@ -1453,6 +1452,11 @@ ResourceId D3D12Replay::CreateProxyTexture(const FetchTexture &templateTex)
 void D3D12Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
                                       size_t dataSize)
 {
+}
+
+bool D3D12Replay::IsTextureSupported(const ResourceFormat &format)
+{
+  return MakeDXGIFormat(format) != DXGI_FORMAT_UNKNOWN;
 }
 
 ResourceId D3D12Replay::CreateProxyBuffer(const FetchBuffer &templateBuf)

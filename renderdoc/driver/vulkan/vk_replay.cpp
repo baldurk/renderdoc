@@ -4571,9 +4571,8 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, Mes
   return GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);
 }
 
-byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
-                                   FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
-                                   float blackPoint, float whitePoint, size_t &dataSize)
+byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                   const GetTextureDataParams &params, size_t &dataSize)
 {
   bool wasms = false;
 
@@ -4640,7 +4639,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     wasms = true;
   }
 
-  if(forceRGBA8unorm)
+  if(params.remap)
   {
     // force readback texture to RGBA8 unorm
     imCreateInfo.format =
@@ -4752,11 +4751,11 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       texDisplay.FlipY = false;
       texDisplay.mip = mip;
       texDisplay.sampleIdx =
-          imCreateInfo.imageType == VK_IMAGE_TYPE_3D ? 0 : (resolve ? ~0U : arrayIdx);
+          imCreateInfo.imageType == VK_IMAGE_TYPE_3D ? 0 : (params.resolve ? ~0U : arrayIdx);
       texDisplay.CustomShader = ResourceId();
       texDisplay.sliceFace = imCreateInfo.imageType == VK_IMAGE_TYPE_3D ? i : arrayIdx;
-      texDisplay.rangemin = blackPoint;
-      texDisplay.rangemax = whitePoint;
+      texDisplay.rangemin = params.blackPoint;
+      texDisplay.rangemax = params.whitePoint;
       texDisplay.scale = 1.0f;
       texDisplay.texid = tex;
       texDisplay.typeHint = eCompType_None;
@@ -4840,7 +4839,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     isDepth = false;
     isStencil = false;
   }
-  else if(wasms && resolve)
+  else if(wasms && params.resolve)
   {
     // force to 1 array slice, 1 mip
     imCreateInfo.arrayLayers = 1;
@@ -5544,6 +5543,11 @@ void VulkanReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint
                                        byte *data, size_t dataSize)
 {
   VULKANNOTIMP("SetProxyTextureData");
+}
+
+bool VulkanReplay::IsTextureSupported(const ResourceFormat &format)
+{
+  return true;
 }
 
 ResourceId VulkanReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)
