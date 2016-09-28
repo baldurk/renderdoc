@@ -1736,9 +1736,12 @@ void ReplayProxy::RemapProxyTextureIfNeeded(ResourceFormat &format, GetTextureDa
     {
       case eSpecial_S8:
       case eSpecial_D16S8: params.remap = eRemap_D32S8; break;
+      case eSpecial_ASTC:
+      case eSpecial_EAC:
+      case eSpecial_ETC2: params.remap = eRemap_RGBA8;
       default:
-        // Remap ASTC/ETC/EAC
-        params.remap = eRemap_RGBA8;
+        RDCERR("Don't know how to remap special format %u, falling back to RGBA32");
+        params.remap = eRemap_RGBA32;
         break;
     }
     format.special = false;
