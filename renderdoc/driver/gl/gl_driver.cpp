@@ -3147,7 +3147,7 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
     }
   }
 
-  if(m_RealDebugFunc)
+  if(m_RealDebugFunc && !RenderDoc::Inst().GetCaptureOptions().DebugOutputMute)
     m_RealDebugFunc(source, type, id, severity, length, message, m_RealDebugFuncParam);
 }
 
