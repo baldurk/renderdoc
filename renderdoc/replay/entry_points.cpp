@@ -402,9 +402,10 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartGlobalHook(const char 
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(
-    uint32_t pid, const char *logfile, const CaptureOptions *opts, bool32 waitForExit)
+    uint32_t pid, void *env, const char *logfile, const CaptureOptions *opts, bool32 waitForExit)
 {
-  return Process::InjectIntoProcess(pid, logfile, opts, waitForExit != 0);
+  return Process::InjectIntoProcess(pid, (Process::EnvironmentModification *)env, logfile, opts,
+                                    waitForExit != 0);
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename, byte *buf,

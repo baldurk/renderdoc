@@ -637,7 +637,7 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine, void *env,
                            const char *logfile, const CaptureOptions *opts, bool32 waitForExit);
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(
-    uint32_t pid, const char *logfile, const CaptureOptions *opts, bool32 waitForExit);
+    uint32_t pid, void *env, const char *logfile, const CaptureOptions *opts, bool32 waitForExit);
 
 //////////////////////////////////////////////////////////////////////////
 // Miscellaneous!

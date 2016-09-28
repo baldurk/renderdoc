@@ -1022,14 +1022,14 @@ namespace renderdocui.Windows
             return live;
         }
 
-        private LiveCapture OnInjectTrigger(UInt32 PID, string name, CaptureOptions opts)
+        private LiveCapture OnInjectTrigger(UInt32 PID, EnvironmentModification[] env, string name, CaptureOptions opts)
         {
             if (!PromptCloseLog())
                 return null;
 
             string logfile = m_Core.TempLogFilename(name);
 
-            UInt32 ret = StaticExports.InjectIntoProcess(PID, logfile, opts);
+            UInt32 ret = StaticExports.InjectIntoProcess(PID, env, logfile, opts);
 
             if (ret == 0)
             {

@@ -62,7 +62,7 @@ namespace renderdoc
                                                                     IntPtr logfile, CaptureOptions opts, bool waitForExit);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern UInt32 RENDERDOC_InjectIntoProcess(UInt32 pid, IntPtr logfile, CaptureOptions opts, bool waitForExit);
+        private static extern UInt32 RENDERDOC_InjectIntoProcess(UInt32 pid, IntPtr env, IntPtr logfile, CaptureOptions opts, bool waitForExit);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr RENDERDOC_CreateTargetControl(IntPtr host, UInt32 ident, IntPtr clientName, bool forceConnection);
@@ -191,11 +191,26 @@ namespace renderdoc
             return ret;
         }
 
-        public static UInt32 InjectIntoProcess(UInt32 pid, string logfile, CaptureOptions opts)
+        public static UInt32 InjectIntoProcess(UInt32 pid, EnvironmentModification[] env, string logfile, CaptureOptions opts)
         {
             IntPtr logfile_mem = CustomMarshal.MakeUTF8String(logfile);
 
-            UInt32 ret = RENDERDOC_InjectIntoProcess(pid, logfile_mem, opts, false);
+            IntPtr env_mem = RENDERDOC_MakeEnvironmentModificationList(env.Length);
+
+            for (int i = 0; i < env.Length; i++)
+            {
+                IntPtr var_mem = CustomMarshal.MakeUTF8String(env[i].variable);
+                IntPtr val_mem = CustomMarshal.MakeUTF8String(env[i].value);
+
+                RENDERDOC_SetEnvironmentModification(env_mem, i, var_mem, val_mem, env[i].type, env[i].separator);
+
+                CustomMarshal.Free(var_mem);
+                CustomMarshal.Free(val_mem);
+            }
+
+            UInt32 ret = RENDERDOC_InjectIntoProcess(pid, env_mem, logfile_mem, opts, false);
+
+            RENDERDOC_FreeEnvironmentModificationList(env_mem);
 
             CustomMarshal.Free(logfile_mem);
 

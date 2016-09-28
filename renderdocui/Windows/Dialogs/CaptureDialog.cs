@@ -260,7 +260,7 @@ namespace renderdocui.Windows.Dialogs
         #region Callbacks
 
         public delegate LiveCapture OnCaptureMethod(string exe, string workingDir, string cmdLine, EnvironmentModification[] env, CaptureOptions opts);
-        public delegate LiveCapture OnInjectMethod(UInt32 PID, string name, CaptureOptions opts);
+        public delegate LiveCapture OnInjectMethod(UInt32 PID, EnvironmentModification[] env, string name, CaptureOptions opts);
 
         private OnCaptureMethod m_CaptureCallback = null;
         private OnInjectMethod m_InjectCallback = null;
@@ -445,7 +445,7 @@ namespace renderdocui.Windows.Dialogs
                 string name = item.SubItems[1].Text;
                 UInt32 PID = (UInt32)item.Tag;
 
-                var live = m_InjectCallback(PID, name, GetSettings().Options);
+                var live = m_InjectCallback(PID, GetSettings().Environment, name, GetSettings().Options);
 
                 if (queueFrameCap.Checked && live != null)
                     live.QueueCapture((int)queuedCapFrame.Value);

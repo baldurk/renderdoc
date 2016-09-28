@@ -146,7 +146,7 @@ private:
       if(inject)
       {
         // inherit logfile and capture options
-        uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
+        uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId, NULL,
                                                      RenderDoc::Inst().GetLogFile(),
                                                      &RenderDoc::Inst().GetCaptureOptions(), false);
 
@@ -233,7 +233,7 @@ private:
       if(inject)
       {
         // inherit logfile and capture options
-        uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId,
+        uint32_t ident = RENDERDOC_InjectIntoProcess(lpProcessInformation->dwProcessId, NULL,
                                                      RenderDoc::Inst().GetLogFile(),
                                                      &RenderDoc::Inst().GetCaptureOptions(), false);
 
