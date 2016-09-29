@@ -927,12 +927,13 @@ void WrappedGLES::glUseProgram(GLuint program)
 
   GetCtxData().m_Program = program;
 
-  if(m_State == WRITING_CAPFRAME)
+  if(m_State >= WRITING)
   {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
     SCOPED_SERIALISE_CONTEXT(USEPROGRAM);
     Serialise_glUseProgram(program);
 
-    m_ContextRecord->AddChunk(scope.Get());
+    record->AddChunk(scope.Get());
     GetResourceManager()->MarkResourceFrameReferenced(ProgramRes(GetCtx(), program), eFrameRef_Read);
   }
 }

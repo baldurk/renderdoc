@@ -3320,7 +3320,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case SHADERSOURCE: Serialise_glShaderSource(0, 0, NULL, NULL); break;
     case ATTACHSHADER: Serialise_glAttachShader(0, 0); break;
 //    case DETACHSHADER: Serialise_glDetachShader(0, 0); break;
-//    case USEPROGRAM: Serialise_glUseProgram(0); break;
+    case USEPROGRAM: Serialise_glUseProgram(0); break;
 //    case PROGRAMPARAMETER: Serialise_glProgramParameteri(0, eGL_NONE, 0); break;
 //    case FEEDBACK_VARYINGS: Serialise_glTransformFeedbackVaryings(0, 0, NULL, eGL_NONE); break;
 //    case BINDATTRIB_LOCATION: Serialise_glBindAttribLocation(0, 0, NULL); break;
