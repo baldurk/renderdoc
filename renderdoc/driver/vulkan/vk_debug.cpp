@@ -3036,7 +3036,7 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
   Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(w) / float(h));
 
   Matrix4f camMat = cfg.cam ? cfg.cam->GetMatrix() : Matrix4f::Identity();
-  Matrix4f PickMVP = projMat.Mul(camMat);
+  Matrix4f pickMVP = projMat.Mul(camMat);
 
   ResourceFormat resFmt;
   resFmt.compByteWidth = cfg.position.compByteWidth;
@@ -3049,6 +3049,7 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
     resFmt.specialFormat = cfg.position.specialFormat;
   }
 
+  Matrix4f pickMVPProj;
   if(cfg.position.unproject)
   {
     // the derivation of the projection matrix might not be right (hell, it could be an
@@ -3059,14 +3060,14 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
     if(cfg.ortho)
       guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
 
-    PickMVP = projMat.Mul(camMat.Mul(guessProj.Inverse()));
+    pickMVPProj = projMat.Mul(camMat.Mul(guessProj.Inverse()));
   }
 
   vec3 rayPos;
   vec3 rayDir;
   // convert mouse pos to world space ray
   {
-    Matrix4f InversePickMVP = PickMVP.Inverse();
+    Matrix4f inversePickMVP = pickMVP.Inverse();
 
     float pickX = ((float)x) / ((float)w);
     float pickXCanonical = RDCLERP(-1.0f, 1.0f, pickX);
@@ -3075,17 +3076,41 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
     // flip the Y axis
     float pickYCanonical = RDCLERP(1.0f, -1.0f, pickY);
 
-    vec3 CameraToWorldNearPosition =
-        InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
-    vec3 CameraToWorldFarPosition =
-        InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
-    rayDir = (CameraToWorldFarPosition - CameraToWorldNearPosition);
-    if(cfg.position.unproject && cfg.cam->GetForward().z < 0)
+    vec3 cameraToWorldNearPosition =
+        inversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+
+    vec3 cameraToWorldFarPosition =
+        inversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+
+    vec3 testDir = (cameraToWorldFarPosition - cameraToWorldNearPosition);
+    testDir.Normalise();
+
+    /* Calculate the ray direction first in the regular way (above), so we can use the
+    the output for testing if the ray we are picking is negative or not. This is similar
+    to checking against the forward direction of the camera, but more robust
+    */
+    if(cfg.position.unproject)
     {
-      rayDir = -rayDir;
+      Matrix4f inversePickMVPGuess = pickMVPProj.Inverse();
+
+      vec3 nearPosProj = inversePickMVPGuess.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+
+      vec3 farPosProj = inversePickMVPGuess.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+
+      rayDir = (farPosProj - nearPosProj);
+      rayDir.Normalise();
+
+      if(testDir.z < 0)
+      {
+        rayDir = -rayDir;
+      }
+      rayPos = nearPosProj;
     }
-    rayDir.Normalise();
-    rayPos = CameraToWorldNearPosition;
+    else
+    {
+      rayDir = testDir;
+      rayPos = cameraToWorldNearPosition;
+    }
   }
 
   MeshPickUBOData *ubo = (MeshPickUBOData *)m_MeshPickUBO.Map();
@@ -3132,7 +3157,7 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
 
   // line/point data
   ubo->unproject = cfg.position.unproject;
-  ubo->mvp = PickMVP;
+  ubo->mvp = cfg.position.unproject ? pickMVPProj : pickMVP;
   ubo->coords = Vec2f((float)x, (float)y);
   ubo->viewport = Vec2f((float)w, (float)h);
 
