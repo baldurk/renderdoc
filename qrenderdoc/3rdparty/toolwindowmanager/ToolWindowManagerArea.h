@@ -57,6 +57,8 @@ public:
    */
   QList<QWidget*> toolWindows();
 
+  ToolWindowManager* manager() { return m_manager; }
+
   /*!
    * Updates the \a toolWindow to its current properties and title.
    */

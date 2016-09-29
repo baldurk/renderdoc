@@ -44,6 +44,8 @@ public:
   //! Removes the wrapper.
   virtual ~ToolWindowManagerWrapper();
 
+  ToolWindowManager* manager() { return m_manager; }
+
 protected:
   //! Reimplemented to register hiding of contained tool windows when user closes the floating window.
   virtual void closeEvent(QCloseEvent *);

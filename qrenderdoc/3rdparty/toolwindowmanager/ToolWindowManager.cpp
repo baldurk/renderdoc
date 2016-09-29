@@ -548,7 +548,44 @@ void ToolWindowManager::findSuggestions(ToolWindowManagerWrapper* wrapper) {
   QPoint globalPos = QCursor::pos();
   QList<QWidget*> candidates;
   foreach(QSplitter* splitter, wrapper->findChildren<QSplitter*>()) {
-    candidates << splitter;
+    // make sure this is one of our layout splitters, not a proper widget or a splitter
+    // from another manager. We walk the parents, expecting either a QSplitter or QTabWidget
+    // at each time until we reach an area.
+
+    QWidget *w = splitter;
+
+    bool valid = false;
+
+    while(w)
+    {
+      QWidget *parent = w->parentWidget();
+
+      QSplitter *parentSplitter = qobject_cast<QSplitter*>(parent);
+      QTabWidget *parentTab = qobject_cast<QTabWidget*>(parent);
+
+      // keep recursing up what looks like our hierarchy
+      if(parentSplitter || parentTab)
+      {
+        w = parent;
+        continue;
+      }
+
+      ToolWindowManagerArea* area = qobject_cast<ToolWindowManagerArea*>(parent);
+      ToolWindowManagerWrapper* wrapper = qobject_cast<ToolWindowManagerWrapper*>(parent);
+
+      // if it's an area or wrapper, check if it's ours
+      if(area)
+        valid = area->manager() == this;
+      else if(wrapper)
+        valid = wrapper->manager() == this;
+
+      // we're done now, whether we checked for validity, or if we
+      // found something that's none of the above
+      break;
+    }
+
+    if(valid)
+      candidates << splitter;
   }
   foreach(ToolWindowManagerArea* area, m_areas) {
     if (area->topLevelWidget() == wrapper->topLevelWidget()) {
