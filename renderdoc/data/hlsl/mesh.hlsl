@@ -68,38 +68,38 @@ wireframeV2F RENDERDOC_MeshVS(meshA2V IN, uint vid : SV_VertexID)
 [maxvertexcount(3)]
 void RENDERDOC_MeshGS(triangle wireframeV2F input[3], inout TriangleStream<wireframeV2F> TriStream)
 {
-	wireframeV2F output;
+    wireframeV2F output;
 
-	float4 faceEdgeA = mul(input[1].pos, InvProj) - mul(input[0].pos, InvProj);
-	float4 faceEdgeB = mul(input[2].pos, InvProj) - mul(input[0].pos, InvProj);
-	float3 faceNormal = normalize( cross(faceEdgeA.xyz, faceEdgeB.xyz) );
+    float4 faceEdgeA = mul(input[1].pos, InvProj) - mul(input[0].pos, InvProj);
+    float4 faceEdgeB = mul(input[2].pos, InvProj) - mul(input[0].pos, InvProj);
+    float3 faceNormal = normalize( cross(faceEdgeA.xyz, faceEdgeB.xyz) );
 
-	for(int i=0; i<3; i++)
-	{
-		output.pos = input[i].pos;
-		output.norm = faceNormal;
-		output.secondary = input[i].secondary;
-		TriStream.Append(output);
-	}
-	TriStream.RestartStrip();
+    for(int i=0; i<3; i++)
+    {
+        output.pos = input[i].pos;
+        output.norm = faceNormal;
+        output.secondary = input[i].secondary;
+        TriStream.Append(output);
+    }
+    TriStream.RestartStrip();
 }
 
 float4 RENDERDOC_MeshPS(wireframeV2F IN) : SV_Target0
 {
-  uint type = OutputDisplayFormat;
+	uint type = OutputDisplayFormat;
 
-  if(type == MESHDISPLAY_SECONDARY)
-    return float4(IN.secondary.xyz, 1);
-  else if(type == MESHDISPLAY_SECONDARY_ALPHA)
-    return float4(IN.secondary.www, 1);
-  else if(type == MESHDISPLAY_FACELIT)
-  {
-    float3 lightDir = normalize(float3(0, -0.3f, -1));
+	if(type == MESHDISPLAY_SECONDARY)
+		return float4(IN.secondary.xyz, 1);
+	else if(type == MESHDISPLAY_SECONDARY_ALPHA)
+		return float4(IN.secondary.www, 1);
+	else if(type == MESHDISPLAY_FACELIT)
+	{
+		float3 lightDir = normalize(float3(0, -0.3f, -1));
 
-    return float4(WireframeColour.xyz*abs(dot(lightDir, IN.norm)), 1);
-  }
-  else //if(type == MESHDISPLAY_SOLID)
-    return float4(WireframeColour.xyz, 1);
+		return float4(WireframeColour.xyz*abs(dot(lightDir, IN.norm)), 1);
+	}
+	else //if(type == MESHDISPLAY_SOLID)
+		return float4(WireframeColour.xyz, 1);
 }
 
 wireframeV2F RENDERDOC_WireframeVS(float3 pos : POSITION, uint vid : SV_VertexID)
