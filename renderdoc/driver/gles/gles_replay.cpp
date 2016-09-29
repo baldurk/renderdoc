@@ -2380,8 +2380,74 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       dataSize = GetByteSize(width, height, depth, fmt, type);
       ret = new byte[dataSize];
 
-      // TODO PEPE (Read back the texture somehow
-      //m_pDriver->glGetTexImage(target, (GLint)mip, fmt, type, ret);
+//      m_pDriver->glGetTexImage(target, (GLint)mip, fmt, type, ret);
+      // TODO pantos check whether this gives back the same as glGetTexImage
+      {
+        MakeCurrentReplayContext(m_DebugCtx);
+
+        GLuint fbtex = 0;
+        GLuint oldTex2DBinding = 0;
+        float oldW = DebugData.outWidth;
+        float oldH = DebugData.outHeight;
+
+        gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint*)&oldTex2DBinding);
+
+        DebugData.outWidth = float(width);
+        DebugData.outHeight = float(height);
+
+        // create temporary texture
+        gl.glGenTextures(1, &fbtex);
+        gl.glBindTexture(eGL_TEXTURE_2D, fbtex);
+
+        gl.glTexStorage2D(eGL_TEXTURE_2D, 1, intFormat, width, height);
+        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+
+        // create temp framebuffer
+        GLuint fbo = 0;
+        gl.glGenFramebuffers(1, &fbo);
+
+        gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
+        gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D, fbtex, 0);
+
+        float clr[] = {0.0f, 0.0f, 0.0f, 0.0f};
+        gl.glClearBufferfv(eGL_COLOR, 0, clr);
+
+        gl.glViewport(0, 0, width, height);
+
+        TextureDisplay texDisplay;
+
+        texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+        texDisplay.FlipY = false;
+        texDisplay.HDRMul = -1.0f;
+        texDisplay.linearDisplayAsGamma = false;
+        texDisplay.mip = mip;
+        texDisplay.sampleIdx = ~0U;
+        texDisplay.CustomShader = ResourceId();
+        texDisplay.sliceFace = 0;
+        texDisplay.rangemin = 0.0f;
+        texDisplay.rangemax = 1.0f;
+        texDisplay.scale = 1.0f;
+        texDisplay.texid = tex;
+        texDisplay.typeHint = typeHint;
+        texDisplay.rawoutput = true;
+        texDisplay.offx = 0.0f;
+        texDisplay.offy = 0.0f;
+
+        RenderTextureInternal(texDisplay, false);
+
+        gl.glReadPixels(0, 0, width, height, fmt, type, (void*)ret);
+
+        gl.glDeleteTextures(1, &fbtex);
+        gl.glDeleteFramebuffers(1, &fbo);
+
+        gl.glBindTexture(eGL_TEXTURE_2D, oldTex2DBinding);
+
+        DebugData.outWidth = oldW;
+        DebugData.outHeight = oldH;
+      }
 
       // if we're saving to disk we make the decision to vertically flip any non-compressed
       // images. This is a bit arbitrary, but really origin top-left is common for all disk

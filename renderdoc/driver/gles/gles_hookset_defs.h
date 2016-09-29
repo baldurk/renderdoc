@@ -93,6 +93,7 @@
     HookInit(glIsShader); \
     HookInit(glIsTexture); \
     HookInit(glLinkProgram); \
+    HookInit(glReadPixels); \
     HookInit(glShaderSource); \
     HookInit(glStencilMask); \
     HookInit(glStencilMaskSeparate); \
@@ -319,6 +320,7 @@
     HookExtension(PFNGLISSHADERPROC, glIsShader); \
     HookExtension(PFNGLISTEXTUREPROC, glIsTexture); \
     HookExtension(PFNGLLINKPROGRAMPROC, glLinkProgram); \
+    HookExtension(PFNGLREADPIXELSPROC, glReadPixels); \
     HookExtension(PFNGLSHADERSOURCEPROC, glShaderSource); \
     HookExtension(PFNGLSTENCILMASKPROC, glStencilMask); \
     HookExtension(PFNGLSTENCILMASKSEPARATEPROC, glStencilMaskSeparate); \
@@ -529,6 +531,7 @@
     HookWrapper1(GLboolean, glIsShader, GLuint, shader); \
     HookWrapper1(GLboolean, glIsTexture, GLuint, texture); \
     HookWrapper1(void, glLinkProgram, GLuint, program); \
+    HookWrapper7(void, glReadPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, void *, pixels); \
     HookWrapper4(void, glShaderSource, GLuint, shader, GLsizei, count, const GLchar *const*, string, const GLint *, length); \
     HookWrapper1(void, glStencilMask, GLuint, mask); \
     HookWrapper2(void, glStencilMaskSeparate, GLenum, face, GLuint, mask); \
@@ -731,7 +734,6 @@
     HookWrapper1(void, glLineWidth, GLfloat, width); \
     HookWrapper2(void, glPixelStorei, GLenum, pname, GLint, param); \
     HookWrapper2(void, glPolygonOffset, GLfloat, factor, GLfloat, units); \
-    HookWrapper7(void, glReadPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, void *, pixels); \
     HookWrapper0(void, glReleaseShaderCompiler); \
     HookWrapper4(void, glRenderbufferStorage, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper2(void, glSampleCoverage, GLfloat, value, GLboolean, invert); \
@@ -1292,7 +1294,6 @@
     HandleUnsupported(PFNGLLINEWIDTHPROC, glLineWidth); \
     HandleUnsupported(PFNGLPIXELSTOREIPROC, glPixelStorei); \
     HandleUnsupported(PFNGLPOLYGONOFFSETPROC, glPolygonOffset); \
-    HandleUnsupported(PFNGLREADPIXELSPROC, glReadPixels); \
     HandleUnsupported(PFNGLRELEASESHADERCOMPILERPROC, glReleaseShaderCompiler); \
     HandleUnsupported(PFNGLRENDERBUFFERSTORAGEPROC, glRenderbufferStorage); \
     HandleUnsupported(PFNGLSAMPLECOVERAGEPROC, glSampleCoverage); \

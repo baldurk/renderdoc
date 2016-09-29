@@ -596,6 +596,27 @@ ResourceFormat MakeResourceFormat(WrappedGLES &gl, GLenum target, GLenum fmt)
     return ret;
   }
 
+  { // TODO pantos implement the code below and remove this hack
+    if (fmt == eGL_SRGB8_ALPHA8) {
+      ret.compByteWidth = 1;
+      ret.compCount = 4;
+      ret.compType = eCompType_UInt;
+      ret.srgbCorrected = true;
+      return ret;
+    }
+
+    if (fmt == eGL_DEPTH32F_STENCIL8) {
+      ret.compByteWidth = 1;
+      ret.compCount = 4;
+      ret.compType = eCompType_Depth;
+      ret.specialFormat = eSpecial_D32S8;
+      ret.special = true;
+      return ret;
+    }
+  }
+
+  RDCERR("Unhandled resource format %#x", fmt);
+
   ret.compByteWidth = 1;
   ret.compCount = 4;
   ret.compType = eCompType_Float;

@@ -874,13 +874,13 @@ void WrappedGLES::glGetVertexAttribfv(GLuint index, GLenum pname, GLfloat *param
 //  m_Real.glClampColor(target, clamp);
 //}
 //
-//void WrappedGLES::glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
-//                                 GLenum type, void *pixels)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glReadPixels(x, y, width, height, format, type, pixels);
-//}
+void WrappedGLES::glReadPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
+                                 GLenum type, void *pixels)
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glReadPixels(x, y, width, height, format, type, pixels);
+}
 //
 //void WrappedGLES::glReadnPixels(GLint x, GLint y, GLsizei width, GLsizei height, GLenum format,
 //                                  GLenum type, GLsizei bufSize, void *pixels)
