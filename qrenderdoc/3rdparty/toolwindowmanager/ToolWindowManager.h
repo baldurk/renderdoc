@@ -144,7 +144,7 @@ public:
      * Creates an area reference of the given \a type. If \a type requires specifying
      * area, it should be given in \a area argument. Otherwise \a area should have default value (0).
      */
-    AreaReference(AreaReferenceType type = NoArea, ToolWindowManagerArea* area = 0);
+    AreaReference(AreaReferenceType type = NoArea, ToolWindowManagerArea* area = 0, float percentage = 0.5f);
     //! Returns type of the reference.
     AreaReferenceType type() const { return m_type; }
     //! Returns area of the reference, or 0 if it was not specified.
@@ -153,7 +153,9 @@ public:
   private:
     AreaReferenceType m_type;
     QWidget* m_widget;
+    float m_percentage;
     QWidget* widget() const { return m_widget; }
+    float percentage() const { return m_percentage; }
     AreaReference(AreaReferenceType type, QWidget* widget);
     void setWidget(QWidget* widget);
 
