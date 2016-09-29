@@ -164,8 +164,10 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
     bool useParentSplitter = false;
     int indexInParentSplitter = 0;
     QList<QRect> parentSplitterGeometries;
+    QList<int> parentSplitterSizes;
     if (parentSplitter) {
       indexInParentSplitter = parentSplitter->indexOf(area.widget());
+      parentSplitterSizes = parentSplitter->sizes();
       for(int i = 0; i < parentSplitter->count(); i++) {
         parentSplitterGeometries.push_back(parentSplitter->widget(i)->geometry());
       }
@@ -182,6 +184,10 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
       ToolWindowManagerArea* newArea = createArea();
       newArea->addToolWindows(toolWindows);
       parentSplitter->insertWidget(indexInParentSplitter, newArea);
+
+      for(int i = 0; i < qMin(parentSplitter->count(), parentSplitterGeometries.count()); i++) {
+        parentSplitter->widget(i)->setGeometry(parentSplitterGeometries[i]);
+      }
     } else {
       area.widget()->hide();
       area.widget()->setParent(0);
@@ -223,9 +229,14 @@ void ToolWindowManager::moveToolWindows(QList<QWidget *> toolWindows,
       if (parentSplitter) {
         parentSplitter->insertWidget(indexInParentSplitter, splitter);
 
-        for(int i = 0; i < qMin(parentSplitter->count(), parentSplitterGeometries.count()); i++) {
+        for (int i = 0; i < qMin(parentSplitter->count(), parentSplitterGeometries.count()); i++) {
           parentSplitter->widget(i)->setGeometry(parentSplitterGeometries[i]);
         }
+
+        if (parentSplitterSizes.count() > 0 && parentSplitterSizes[0] != 0) {
+          parentSplitter->setSizes(parentSplitterSizes);
+        }
+
       } else {
         wrapper->layout()->addWidget(splitter);
       }
