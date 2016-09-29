@@ -2250,8 +2250,8 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     Vec2f PickViewport;
 
     uint32_t MeshMode;
-	uint32_t PickUnproject;
-	float2 Padding;
+    uint32_t PickUnproject;
+    Vec2f Padding;
 
     Matrix4f PickMVP;
 
@@ -2267,7 +2267,8 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
       Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(GetWidth()) / float(GetHeight()));
 
   Matrix4f camMat = cfg.cam ? cfg.cam->GetMatrix() : Matrix4f::Identity();
-  cbuf.PickMVP = projMat.Mul(camMat);
+
+  Matrix4f pickMVP = projMat.Mul(camMat);
 
   ResourceFormat resFmt;
   resFmt.compByteWidth = cfg.position.compByteWidth;
@@ -2280,6 +2281,7 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     resFmt.specialFormat = cfg.position.specialFormat;
   }
 
+  Matrix4f pickMVPProj;
   if(cfg.position.unproject)
   {
     // the derivation of the projection matrix might not be right (hell, it could be an
@@ -2290,14 +2292,14 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     if(cfg.ortho)
       guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
 
-    cbuf.PickMVP = projMat.Mul(camMat.Mul(guessProj.Inverse()));
+    pickMVPProj = projMat.Mul(camMat.Mul(guessProj.Inverse()));
   }
 
-  Vec3f RayPos;
-  Vec3f RayDir;
+  Vec3f rayPos;
+  Vec3f rayDir;
   // convert mouse pos to world space ray
   {
-    Matrix4f InversePickMVP = cbuf.PickMVP.Inverse();
+    Matrix4f inversePickMVP = pickMVP.Inverse();
 
     float pickX = ((float)x) / ((float)GetWidth());
     float pickXCanonical = RDCLERP(-1.0f, 1.0f, pickX);
@@ -2306,21 +2308,48 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     // flip the Y axis
     float pickYCanonical = RDCLERP(1.0f, -1.0f, pickY);
 
-    Vec3f CameraToWorldNearPosition =
-        InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
-    Vec3f CameraToWorldFarPosition =
-        InversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
-    RayDir = (CameraToWorldFarPosition - CameraToWorldNearPosition);
-    if(cfg.position.unproject && cfg.cam->GetForward().z < 0)
+    Vec3f cameraToWorldNearPosition =
+        inversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+
+    Vec3f cameraToWorldFarPosition =
+        inversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+
+    Vec3f testDir = (cameraToWorldFarPosition - cameraToWorldNearPosition);
+    testDir.Normalise();
+
+    /* Calculate the ray direction first in the regular way (above), so we can use the
+    the output for testing if the ray we are picking is negative or not. This is similar
+    to checking against the forward direction of the camera, but more robust
+    */
+    if(cfg.position.unproject)
     {
-      RayDir = -RayDir;
+      Matrix4f inversePickMVPGuess = pickMVPProj.Inverse();
+
+      Vec3f nearPosProj = inversePickMVPGuess.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+
+      Vec3f farPosProj = inversePickMVPGuess.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+
+      rayDir = (farPosProj - nearPosProj);
+      rayDir.Normalise();
+
+      if(testDir.z < 0)
+      {
+        rayDir = -rayDir;
+      }
+      rayPos = nearPosProj;
     }
-    RayDir.Normalise();
-    RayPos = CameraToWorldNearPosition;
+    else
+    {
+      rayDir = testDir;
+      rayPos = cameraToWorldNearPosition;
+    }
   }
 
-  cbuf.RayPos = RayPos;
-  cbuf.RayDir = RayDir;
+  cbuf.RayPos = rayPos;
+  cbuf.RayDir = rayDir;
+
+  cbuf.PickMVP = cfg.position.unproject ? pickMVPProj : pickMVP;
+
   bool isTriangleMesh = true;
   switch(cfg.position.topo)
   {
@@ -2531,12 +2560,12 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
       PickResult *closest = pickResults;
 
       // distance from raycast hit to nearest worldspace position of the mouse
-      float closestPickDistance = (closest->intersectionPoint - RayPos).Length();
+      float closestPickDistance = (closest->intersectionPoint - rayPos).Length();
 
       // min with size of results buffer to protect against overflows
       for(uint32_t i = 1; i < RDCMIN((uint32_t)DebugRenderData::maxMeshPicks, numResults); i++)
       {
-        float pickDistance = (pickResults[i].intersectionPoint - RayPos).Length();
+        float pickDistance = (pickResults[i].intersectionPoint - rayPos).Length();
         if(pickDistance < closestPickDistance)
         {
           closest = pickResults + i;
