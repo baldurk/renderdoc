@@ -37,6 +37,8 @@
 #include "d3d11_debug.h"
 #include "d3d11_manager.h"
 
+#include "data/hlsl/debugcbuffers.h"
+
 // over this number of cycles and things get problematic
 #define SHADER_DEBUG_WARN_THRESHOLD 100000
 
@@ -2235,26 +2237,35 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
   struct MeshPickData
   {
+    Vec3f RayPos;
+    uint32_t PickIdx;
+
+    Vec3f RayDir;
+    uint32_t PickNumVerts;
+
     Vec2f PickCoords;
     Vec2f PickViewport;
 
+    uint32_t MeshMode;
+    uint32_t PickUnproject;
+    Vec2f Padding;
+
     Matrix4f PickMVP;
 
-    uint32_t PickIdx;
-    uint32_t PickNumVerts;
-    uint32_t PickPadding[2];
   } cbuf;
 
   cbuf.PickCoords = Vec2f((float)x, (float)y);
   cbuf.PickViewport = Vec2f((float)GetWidth(), (float)GetHeight());
   cbuf.PickIdx = cfg.position.idxByteWidth ? 1 : 0;
   cbuf.PickNumVerts = cfg.position.numVerts;
+  cbuf.PickUnproject = cfg.position.unproject ? 1 : 0;
 
   Matrix4f projMat =
       Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(GetWidth()) / float(GetHeight()));
 
   Matrix4f camMat = cfg.cam ? cfg.cam->GetMatrix() : Matrix4f::Identity();
-  cbuf.PickMVP = projMat.Mul(camMat);
+
+  Matrix4f pickMVP = projMat.Mul(camMat);
 
   ResourceFormat resFmt;
   resFmt.compByteWidth = cfg.position.compByteWidth;
@@ -2267,6 +2278,7 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     resFmt.specialFormat = cfg.position.specialFormat;
   }
 
+  Matrix4f pickMVPProj;
   if(cfg.position.unproject)
   {
     // the derivation of the projection matrix might not be right (hell, it could be an
@@ -2277,7 +2289,92 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     if(cfg.ortho)
       guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
 
-    cbuf.PickMVP = projMat.Mul(camMat.Mul(guessProj.Inverse()));
+    pickMVPProj = projMat.Mul(camMat.Mul(guessProj.Inverse()));
+  }
+
+  Vec3f rayPos;
+  Vec3f rayDir;
+  // convert mouse pos to world space ray
+  {
+    Matrix4f inversePickMVP = pickMVP.Inverse();
+
+    float pickX = ((float)x) / ((float)GetWidth());
+    float pickXCanonical = RDCLERP(-1.0f, 1.0f, pickX);
+
+    float pickY = ((float)y) / ((float)GetHeight());
+    // flip the Y axis
+    float pickYCanonical = RDCLERP(1.0f, -1.0f, pickY);
+
+    Vec3f cameraToWorldNearPosition =
+        inversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+
+    Vec3f cameraToWorldFarPosition =
+        inversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+
+    Vec3f testDir = (cameraToWorldFarPosition - cameraToWorldNearPosition);
+    testDir.Normalise();
+
+    /* Calculate the ray direction first in the regular way (above), so we can use the
+    the output for testing if the ray we are picking is negative or not. This is similar
+    to checking against the forward direction of the camera, but more robust
+    */
+    if(cfg.position.unproject)
+    {
+      Matrix4f inversePickMVPGuess = pickMVPProj.Inverse();
+
+      Vec3f nearPosProj = inversePickMVPGuess.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+
+      Vec3f farPosProj = inversePickMVPGuess.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+
+      rayDir = (farPosProj - nearPosProj);
+      rayDir.Normalise();
+
+      if(testDir.z < 0)
+      {
+        rayDir = -rayDir;
+      }
+      rayPos = nearPosProj;
+    }
+    else
+    {
+      rayDir = testDir;
+      rayPos = cameraToWorldNearPosition;
+    }
+  }
+
+  cbuf.RayPos = rayPos;
+  cbuf.RayDir = rayDir;
+
+  cbuf.PickMVP = cfg.position.unproject ? pickMVPProj : pickMVP;
+
+  bool isTriangleMesh = true;
+  switch(cfg.position.topo)
+  {
+    case eTopology_TriangleList:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_LIST;
+      break;
+    };
+    case eTopology_TriangleStrip:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_STRIP;
+      break;
+    };
+    case eTopology_TriangleList_Adj:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_LIST_ADJ;
+      break;
+    };
+    case eTopology_TriangleStrip_Adj:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_STRIP_ADJ;
+      break;
+    };
+    default:    // points, lines, patchlists, unknown
+    {
+      cbuf.MeshMode = MESH_OTHER;
+      isTriangleMesh = false;
+    };
   }
 
   ID3D11Buffer *vb = NULL, *ib = NULL;
@@ -2445,38 +2542,70 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
   if(numResults > 0)
   {
-    GetBufferData(m_DebugRender.PickResultBuf, 0, 0, results, false);
-
-    struct PickResult
+    if(isTriangleMesh)
     {
-      uint32_t vertid;
-      uint32_t idx;
-      float len;
-      float depth;
-    };
+      struct PickResult
+      {
+        uint32_t vertid;
+        Vec3f intersectionPoint;
+      };
 
-    PickResult *pickResults = (PickResult *)&results[0];
+      GetBufferData(m_DebugRender.PickResultBuf, 0, 0, results, false);
 
-    PickResult *closest = pickResults;
+      PickResult *pickResults = (PickResult *)&results[0];
 
-    // min with size of results buffer to protect against overflows
-    for(uint32_t i = 1; i < RDCMIN(DebugRenderData::maxMeshPicks, numResults); i++)
-    {
-      // We need to keep the picking order consistent in the face
-      // of random buffer appends, when multiple vertices have the
-      // identical position (e.g. if UVs or normals are different).
-      //
-      // We could do something to try and disambiguate, but it's
-      // never going to be intuitive, it's just going to flicker
-      // confusingly.
-      if(pickResults[i].len < closest->len ||
-         (pickResults[i].len == closest->len && pickResults[i].depth < closest->depth) ||
-         (pickResults[i].len == closest->len && pickResults[i].depth == closest->depth &&
-          pickResults[i].vertid < closest->vertid))
-        closest = pickResults + i;
+      PickResult *closest = pickResults;
+
+      // distance from raycast hit to nearest worldspace position of the mouse
+      float closestPickDistance = (closest->intersectionPoint - rayPos).Length();
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN((uint32_t)DebugRenderData::maxMeshPicks, numResults); i++)
+      {
+        float pickDistance = (pickResults[i].intersectionPoint - rayPos).Length();
+        if(pickDistance < closestPickDistance)
+        {
+          closest = pickResults + i;
+        }
+      }
+
+      return closest->vertid;
     }
+    else
+    {
+      struct PickResult
+      {
+        uint32_t vertid;
+        uint32_t idx;
+        float len;
+        float depth;
+      };
 
-    return closest->vertid;
+      GetBufferData(m_DebugRender.PickResultBuf, 0, 0, results, false);
+
+      PickResult *pickResults = (PickResult *)&results[0];
+
+      PickResult *closest = pickResults;
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN((uint32_t)DebugRenderData::maxMeshPicks, numResults); i++)
+      {
+        // We need to keep the picking order consistent in the face
+        // of random buffer appends, when multiple vertices have the
+        // identical position (e.g. if UVs or normals are different).
+        //
+        // We could do something to try and disambiguate, but it's
+        // never going to be intuitive, it's just going to flicker
+        // confusingly.
+        if(pickResults[i].len < closest->len ||
+           (pickResults[i].len == closest->len && pickResults[i].depth < closest->depth) ||
+           (pickResults[i].len == closest->len && pickResults[i].depth == closest->depth &&
+            pickResults[i].vertid < closest->vertid))
+          closest = pickResults + i;
+      }
+
+      return closest->vertid;
+    }
   }
 
   return ~0U;
@@ -3171,8 +3300,6 @@ void D3D11DebugManager::CreateCustomShaderTex(uint32_t w, uint32_t h)
     m_CustomShaderResourceId = GetIDForResource(m_CustomShaderTex);
   }
 }
-
-#include "data/hlsl/debugcbuffers.h"
 
 ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
                                             TextureDisplayOverlay overlay, uint32_t eventID,

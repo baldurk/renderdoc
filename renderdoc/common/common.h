@@ -122,6 +122,12 @@ T RDCMAX(const T &a, const T &b)
 }
 
 template <typename T>
+T RDCLERP(const T &a, const T &b, const T &step)
+{
+  return (1.0f - step) * a + step * b;
+}
+
+template <typename T>
 inline T AlignUp4(T x)
 {
   return (x + 0x3) & (~0x3);
