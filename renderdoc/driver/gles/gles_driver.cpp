@@ -3323,7 +3323,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case USEPROGRAM: Serialise_glUseProgram(0); break;
 //    case PROGRAMPARAMETER: Serialise_glProgramParameteri(0, eGL_NONE, 0); break;
 //    case FEEDBACK_VARYINGS: Serialise_glTransformFeedbackVaryings(0, 0, NULL, eGL_NONE); break;
-//    case BINDATTRIB_LOCATION: Serialise_glBindAttribLocation(0, 0, NULL); break;
+    case BINDATTRIB_LOCATION: Serialise_glBindAttribLocation(0, 0, NULL); break;
 //    case BINDFRAGDATA_LOCATION: Serialise_glBindFragDataLocation(0, 0, NULL); break;
 //    case BINDFRAGDATA_LOCATION_INDEXED:
 //      Serialise_glBindFragDataLocationIndexed(0, 0, 0, NULL);

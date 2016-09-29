@@ -36,6 +36,7 @@
 #define DLLExportHooks() \
     HookInit(glActiveTexture); \
     HookInit(glAttachShader); \
+    HookInit(glBindAttribLocation); \
     HookInit(glBindBuffer); \
     HookInit(glBindFramebuffer); \
     HookInit(glBindTexture); \
@@ -261,6 +262,7 @@
     HookExtension(PFNGLGETFLOATI_VNVPROC, glGetFloati_vNV); \
     HookExtension(PFNGLACTIVETEXTUREPROC, glActiveTexture); \
     HookExtension(PFNGLATTACHSHADERPROC, glAttachShader); \
+    HookExtension(PFNGLBINDATTRIBLOCATIONPROC, glBindAttribLocation); \
     HookExtension(PFNGLBINDBUFFERPROC, glBindBuffer); \
     HookExtension(PFNGLBINDFRAMEBUFFERPROC, glBindFramebuffer); \
     HookExtension(PFNGLBINDTEXTUREPROC, glBindTexture); \
@@ -470,6 +472,7 @@
 #define DefineDLLExportHooks() \
     HookWrapper1(void, glActiveTexture, GLenum, texture); \
     HookWrapper2(void, glAttachShader, GLuint, program, GLuint, shader); \
+    HookWrapper3(void, glBindAttribLocation, GLuint, program, GLuint, index, const GLchar *, name); \
     HookWrapper2(void, glBindBuffer, GLenum, target, GLuint, buffer); \
     HookWrapper2(void, glBindFramebuffer, GLenum, target, GLuint, framebuffer); \
     HookWrapper2(void, glBindTexture, GLenum, target, GLuint, texture); \
@@ -695,7 +698,6 @@
 
 // unsupported entry points - used for dummy functions
 #define DefineUnsupportedDummies() \
-    HookWrapper3(void, glBindAttribLocation, GLuint, program, GLuint, index, const GLchar *, name); \
     HookWrapper2(void, glBindRenderbuffer, GLenum, target, GLuint, renderbuffer); \
     HookWrapper4(void, glBlendColor, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
     HookWrapper1(void, glBlendEquation, GLenum, mode); \
@@ -1257,7 +1259,6 @@
 
 
 #define CheckUnsupported() \
-    HandleUnsupported(PFNGLBINDATTRIBLOCATIONPROC, glBindAttribLocation); \
     HandleUnsupported(PFNGLBINDRENDERBUFFERPROC, glBindRenderbuffer); \
     HandleUnsupported(PFNGLBLENDCOLORPROC, glBlendColor); \
     HandleUnsupported(PFNGLBLENDEQUATIONPROC, glBlendEquation); \

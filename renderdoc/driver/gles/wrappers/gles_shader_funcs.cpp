@@ -678,39 +678,39 @@ void WrappedGLES::glLinkProgram(GLuint program)
 //  }
 //}
 //
-//bool WrappedGLES::Serialise_glBindAttribLocation(GLuint program, GLuint index, const GLchar *name_)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
-//  SERIALISE_ELEMENT(uint32_t, idx, index);
-//
-//  string name = name_ ? name_ : "";
-//  m_pSerialiser->Serialise("Name", name);
-//
-//  if(m_State == READING)
-//  {
-//    m_Real.glBindAttribLocation(GetResourceManager()->GetLiveResource(id).name, idx, name.c_str());
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBindAttribLocation(GLuint program, GLuint index, const GLchar *name)
-//{
-//  m_Real.glBindAttribLocation(program, index, name);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-//    RDCASSERT(record);
-//    {
-//      SCOPED_SERIALISE_CONTEXT(BINDATTRIB_LOCATION);
-//      Serialise_glBindAttribLocation(program, index, name);
-//
-//      record->AddChunk(scope.Get());
-//    }
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glBindAttribLocation(GLuint program, GLuint index, const GLchar *name_)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
+  SERIALISE_ELEMENT(uint32_t, idx, index);
+
+  string name = name_ ? name_ : "";
+  m_pSerialiser->Serialise("Name", name);
+
+  if(m_State == READING)
+  {
+    m_Real.glBindAttribLocation(GetResourceManager()->GetLiveResource(id).name, idx, name.c_str());
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBindAttribLocation(GLuint program, GLuint index, const GLchar *name)
+{
+  m_Real.glBindAttribLocation(program, index, name);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
+    RDCASSERT(record);
+    {
+      SCOPED_SERIALISE_CONTEXT(BINDATTRIB_LOCATION);
+      Serialise_glBindAttribLocation(program, index, name);
+
+      record->AddChunk(scope.Get());
+    }
+  }
+}
+
 //bool WrappedGLES::Serialise_glBindFragDataLocation(GLuint program, GLuint color, const GLchar *name_)
 //{
 //  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(ProgramRes(GetCtx(), program)));
