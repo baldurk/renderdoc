@@ -173,6 +173,8 @@ enum ExtensionCheckEnum
   ExtensionSupported_EXT_depth_bounds_test,
   ExtensionSupported_EXT_clip_cull_distance,
   ExtensionSupported_NV_polygon_mode,
+  ExtensionSupported_NV_viewport_array,
+  ExtensionSupported_OES_viewport_array,
   ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];

@@ -82,6 +82,8 @@ void DoVendorChecks(const GLHookSet &gl, GLESWindowingData context)
       EXT_CHECK(EXT_depth_bounds_test);
       EXT_CHECK(EXT_clip_cull_distance);
       EXT_CHECK(NV_polygon_mode);
+      EXT_CHECK(NV_viewport_array);
+      EXT_CHECK(OES_viewport_array);
 
 #undef EXT_CHECK
     }

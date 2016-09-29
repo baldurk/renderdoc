@@ -709,15 +709,36 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
 
   m_Real->glGetFloatv(eGL_BLEND_COLOR, &BlendColor[0]);
 
-  for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Viewports); i++)
-    m_Real->glGetFloati_vOES(eGL_VIEWPORT, i, &Viewports[i].x);
-
-  for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Scissors); i++)
+  if (ExtensionSupported[ExtensionSupported_OES_viewport_array])
   {
-    m_Real->glGetIntegeri_v(eGL_SCISSOR_BOX, i, &Scissors[i].x);
-    Scissors[i].enabled = (m_Real->glIsEnabledi(eGL_SCISSOR_TEST, i) == GL_TRUE);
+    for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Viewports); i++)
+      m_Real->glGetFloati_vOES(eGL_VIEWPORT, i, &Viewports[i].x);
+      
+  } 
+  else if (ExtensionSupported[ExtensionSupported_NV_viewport_array])
+  {
+    for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Viewports); i++)
+      m_Real->glGetFloati_vNV(eGL_VIEWPORT, i, &Viewports[i].x);
+  }
+  else
+  {
+    m_Real->glGetFloatv(eGL_VIEWPORT, &Viewports[0].x);
   }
 
+  if (ExtensionSupported[ExtensionSupported_OES_viewport_array] || ExtensionSupported[ExtensionSupported_NV_viewport_array])
+  {
+    for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Scissors); i++)
+    {
+      m_Real->glGetIntegeri_v(eGL_SCISSOR_BOX, i, &Scissors[i].x);
+      Scissors[i].enabled = (m_Real->glIsEnabledi(eGL_SCISSOR_TEST, i) == GL_TRUE);
+    }
+  }
+  else
+  { 
+    m_Real->glGetIntegerv(eGL_SCISSOR_BOX, &Scissors[0].x);
+    Scissors[0].enabled = (m_Real->glIsEnabled(eGL_SCISSOR_TEST) == GL_TRUE);
+  }
+  
   m_Real->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&DrawFBO);
   m_Real->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&ReadFBO);
 
@@ -1010,18 +1031,41 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
 
   m_Real->glBlendColor(BlendColor[0], BlendColor[1], BlendColor[2], BlendColor[3]);
 
-  m_Real->glViewportArrayvNV(0, ARRAY_COUNT(Viewports), &Viewports[0].x);
-
-  for(GLuint s = 0; s < (GLuint)ARRAY_COUNT(Scissors); ++s)
+  if (ExtensionSupported[ExtensionSupported_OES_viewport_array])
   {
-    m_Real->glScissorIndexedvNV(s, &Scissors[s].x);
+    m_Real->glViewportArrayvOES(0, ARRAY_COUNT(Viewports), &Viewports[0].x);
 
-    if(Scissors[s].enabled)
-      m_Real->glEnablei(eGL_SCISSOR_TEST, s);
-    else
-      m_Real->glDisablei(eGL_SCISSOR_TEST, s);
+    for(GLuint s = 0; s < (GLuint)ARRAY_COUNT(Scissors); ++s)
+    {
+      m_Real->glScissorIndexedvOES(s, &Scissors[s].x);
+
+      if(Scissors[s].enabled)
+        m_Real->glEnablei(eGL_SCISSOR_TEST, s);
+      else
+        m_Real->glDisablei(eGL_SCISSOR_TEST, s);
+    }
+    
   }
+  else if (ExtensionSupported[ExtensionSupported_NV_viewport_array])
+  {
+    m_Real->glViewportArrayvNV(0, ARRAY_COUNT(Viewports), &Viewports[0].x);
 
+    for(GLuint s = 0; s < (GLuint)ARRAY_COUNT(Scissors); ++s)
+    {
+      m_Real->glScissorIndexedvNV(s, &Scissors[s].x);
+
+      if(Scissors[s].enabled)
+        m_Real->glEnablei(eGL_SCISSOR_TEST, s);
+      else
+        m_Real->glDisablei(eGL_SCISSOR_TEST, s);
+    }
+  }
+  else 
+  {
+    m_Real->glViewport(Viewports[0].x, Viewports[0].y, Viewports[0].width, Viewports[0].height);
+    m_Real->glScissor(Scissors[0].x, Scissors[0].y, Scissors[0].width, Scissors[0].height);
+  }
+  
   GLenum DBs[8] = {eGL_NONE};
   uint32_t numDBs = 0;
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(DrawBuffers); i++)
