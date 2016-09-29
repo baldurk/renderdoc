@@ -15,6 +15,15 @@
 #include <QX11Info>
 #endif
 
+struct Formatter
+{
+  static QString Format(float f) { return QString::number(f); }
+  static QString Format(double d) { return QString::number(d); }
+  static QString Format(uint32_t u) { return QString::number(u); }
+  static QString Format(uint16_t u) { return QString::number(u); }
+  static QString Format(int32_t i) { return QString::number(i); }
+};
+
 TextureViewer::TextureViewer(Core *core, QWidget *parent)
     : QFrame(parent), ui(new Ui::TextureViewer), m_Core(core)
 {
@@ -26,11 +35,15 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
   ui->pixelContext->SetOutput(NULL);
   m_Output = NULL;
 
+  m_PickedPoint = QPoint(-1, -1);
+  m_HighWaterStatusLength = 0;
+
   QWidget *renderContainer = ui->renderContainer;
 
-  QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &TextureViewer::on_render_clicked);
+  QObject::connect(ui->render, &CustomPaintWidget::clicked, this,
+                   &TextureViewer::on_render_mousemove);
   QObject::connect(ui->render, &CustomPaintWidget::mouseMove, this,
-                   &TextureViewer::on_render_clicked);
+                   &TextureViewer::on_render_mousemove);
 
   ui->dockarea->addToolWindow(ui->renderContainer, ToolWindowManager::EmptySpace);
   ui->dockarea->setToolWindowProperties(renderContainer, ToolWindowManager::DisallowUserDocking |
@@ -131,39 +144,294 @@ TextureViewer::~TextureViewer()
   delete ui;
 }
 
-void TextureViewer::on_render_clicked(QMouseEvent *e)
+void TextureViewer::RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pickValue,
+                                         PixelValue &realValue)
 {
-  uint32_t x = (uint32_t)e->x();
-  uint32_t y = (uint32_t)e->y();
+  // FetchTexture tex = CurrentTexture;
 
-  if(e->buttons() & Qt::RightButton)
+  // if (tex == null) return;
+
+  // if (m_TexDisplay.FlipY)
+  // y = (tex.height - 1) - y;
+
+  m_Output->PickPixel(m_TexDisplay.texid, true, x, y, m_TexDisplay.sliceFace, m_TexDisplay.mip,
+                      m_TexDisplay.sampleIdx, &pickValue);
+
+  if(m_TexDisplay.CustomShader != ResourceId())
+    m_Output->PickPixel(m_TexDisplay.texid, false, x, y, m_TexDisplay.sliceFace, m_TexDisplay.mip,
+                        m_TexDisplay.sampleIdx, &realValue);
+}
+
+void TextureViewer::RT_PickPixelsAndUpdate()
+{
+  PixelValue pickValue, realValue;
+
+  uint32_t x = (uint32_t)m_PickedPoint.x();
+  uint32_t y = (uint32_t)m_PickedPoint.y();
+
+  RT_FetchCurrentPixel(x, y, pickValue, realValue);
+
+  m_Output->SetPixelContextLocation(x, y);
+
+  m_CurHoverValue = pickValue;
+
+  m_CurPixelValue = pickValue;
+  m_CurRealValue = realValue;
+
+  GUIInvoke::call([this]() { UI_UpdateStatusText(); });
+}
+
+void TextureViewer::RT_PickHoverAndUpdate()
+{
+  PixelValue pickValue, realValue;
+
+  uint32_t x = (uint32_t)m_CurHoverPixel.x();
+  uint32_t y = (uint32_t)m_CurHoverPixel.y();
+
+  RT_FetchCurrentPixel(x, y, pickValue, realValue);
+
+  m_CurHoverValue = pickValue;
+
+  GUIInvoke::call([this]() { UI_UpdateStatusText(); });
+}
+
+void TextureViewer::UI_UpdateStatusText()
+{
+  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+  if(texptr == NULL)
+    return;
+
+  FetchTexture &tex = *texptr;
+
+  bool dsv =
+      ((tex.creationFlags & eTextureCreate_DSV) != 0) || (tex.format.compType == eCompType_Depth);
+  bool uintTex = (tex.format.compType == eCompType_UInt);
+  bool sintTex = (tex.format.compType == eCompType_SInt);
+
+  if(m_TexDisplay.overlay == eTexOverlay_QuadOverdrawPass ||
+     m_TexDisplay.overlay == eTexOverlay_QuadOverdrawDraw)
   {
-    m_Core->Renderer()->AsyncInvoke([this, x, y](IReplayRenderer *) {
-
-      ResourceId id = m_TexDisplay.texid;
-
-      PixelValue val;
-      ReplayOutput_PickPixel(m_Output, id, false, x, y, 0, 0, 0, &val);
-
-      QString str = QString("Pixel %1 %2 %3 %4")
-                        .arg(val.value_f[0])
-                        .arg(val.value_f[1])
-                        .arg(val.value_f[2])
-                        .arg(val.value_f[3]);
-
-      GUIInvoke::call([this, str, val]() {
-        ui->statusText->setText(str);
-        QPalette Pal(palette());
-
-        // set black background
-        Pal.setColor(
-            QPalette::Background,
-            QColor(int(val.value_f[0] * 255), int(val.value_f[1] * 255), int(val.value_f[2] * 255)));
-        ui->pickSwatch->setAutoFillBackground(true);
-        ui->pickSwatch->setPalette(Pal);
-      });
-    });
+    dsv = false;
+    uintTex = false;
+    sintTex = true;
   }
+
+  QColor swatchColor;
+
+  if(dsv || uintTex || sintTex)
+  {
+    swatchColor = QColor(0, 0, 0);
+  }
+  else
+  {
+    float r = qBound(0.0f, m_CurHoverValue.value_f[0], 1.0f);
+    float g = qBound(0.0f, m_CurHoverValue.value_f[1], 1.0f);
+    float b = qBound(0.0f, m_CurHoverValue.value_f[2], 1.0f);
+
+    if(tex.format.srgbCorrected || (tex.creationFlags & eTextureCreate_SwapBuffer) > 0)
+    {
+      r = powf(r, 1.0f / 2.2f);
+      g = powf(g, 1.0f / 2.2f);
+      b = powf(b, 1.0f / 2.2f);
+    }
+
+    swatchColor = QColor(int(255.0f * r), int(255.0f * g), int(255.0f * b));
+  }
+
+  {
+    QPalette Pal(palette());
+
+    Pal.setColor(QPalette::Background, swatchColor);
+
+    ui->pickSwatch->setAutoFillBackground(true);
+    ui->pickSwatch->setPalette(Pal);
+  }
+
+  int y = m_CurHoverPixel.y() >> (int)m_TexDisplay.mip;
+
+  uint mipWidth = qMax(1U, tex.width >> (int)m_TexDisplay.mip);
+  uint mipHeight = qMax(1U, tex.height >> (int)m_TexDisplay.mip);
+
+  if(m_Core->APIProps().pipelineType == eGraphicsAPI_OpenGL)
+    y = (int)(mipHeight - 1) - y;
+  if(m_TexDisplay.FlipY)
+    y = (int)(mipHeight - 1) - y;
+
+  y = qMax(0, y);
+
+  int x = m_CurHoverPixel.x() >> (int)m_TexDisplay.mip;
+  float invWidth = mipWidth > 0 ? 1.0f / mipWidth : 0.0f;
+  float invHeight = mipHeight > 0 ? 1.0f / mipHeight : 0.0f;
+
+  QString hoverCoords = QString("%1, %2 (%3, %4)")
+                            .arg(x, 4)
+                            .arg(y, 4)
+                            .arg((x * invWidth), 5, 'f', 4)
+                            .arg((y * invHeight), 5, 'f', 4);
+
+  QString statusText = "Hover - " + hoverCoords;
+
+  uint32_t hoverX = (uint32_t)m_CurHoverPixel.x();
+  uint32_t hoverY = (uint32_t)m_CurHoverPixel.y();
+
+  if(hoverX > tex.width || hoverY > tex.height || hoverX < 0 || hoverY < 0)
+    statusText = "Hover - [" + hoverCoords + "]";
+
+  if(m_PickedPoint.x() >= 0)
+  {
+    x = m_PickedPoint.x() >> (int)m_TexDisplay.mip;
+    y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
+    if(m_Core->APIProps().pipelineType == eGraphicsAPI_OpenGL)
+      y = (int)(mipHeight - 1) - y;
+    if(m_TexDisplay.FlipY)
+      y = (int)(mipHeight - 1) - y;
+
+    y = qMax(0, y);
+
+    statusText += " - Right click - " + QString("%1, %2: ").arg(x, 4).arg(y, 4);
+
+    PixelValue val = m_CurPixelValue;
+
+    if(m_TexDisplay.CustomShader != ResourceId())
+    {
+      statusText += Formatter::Format(val.value_f[0]) + ", " + Formatter::Format(val.value_f[1]) +
+                    ", " + Formatter::Format(val.value_f[2]) + ", " +
+                    Formatter::Format(val.value_f[3]);
+
+      val = m_CurRealValue;
+
+      statusText += " (Real: ";
+    }
+
+    if(dsv)
+    {
+      statusText += "Depth ";
+      if(uintTex)
+      {
+        if(tex.format.compByteWidth == 2)
+          statusText += Formatter::Format(val.value_u16[0]);
+        else
+          statusText += Formatter::Format(val.value_u[0]);
+      }
+      else
+      {
+        statusText += Formatter::Format(val.value_f[0]);
+      }
+
+      int stencil = (int)(255.0f * val.value_f[1]);
+
+      statusText += QString(", Stencil %1 / 0x%2").arg(stencil).arg(stencil, 0, 16);
+    }
+    else
+    {
+      if(uintTex)
+      {
+        statusText += Formatter::Format(val.value_u[0]) + ", " + Formatter::Format(val.value_u[1]) +
+                      ", " + Formatter::Format(val.value_u[2]) + ", " +
+                      Formatter::Format(val.value_u[3]);
+      }
+      else if(sintTex)
+      {
+        statusText += Formatter::Format(val.value_i[0]) + ", " + Formatter::Format(val.value_i[1]) +
+                      ", " + Formatter::Format(val.value_i[2]) + ", " +
+                      Formatter::Format(val.value_i[3]);
+      }
+      else
+      {
+        statusText += Formatter::Format(val.value_f[0]) + ", " + Formatter::Format(val.value_f[1]) +
+                      ", " + Formatter::Format(val.value_f[2]) + ", " +
+                      Formatter::Format(val.value_f[3]);
+      }
+    }
+
+    if(m_TexDisplay.CustomShader != ResourceId())
+      statusText += ")";
+
+    // PixelPicked = true;
+  }
+  else
+  {
+    statusText += " - Right click to pick a pixel";
+
+    m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
+      if(m_Output != NULL)
+        m_Output->DisablePixelContext();
+    });
+
+    // PixelPicked = false;
+  }
+
+  // try and keep status text consistent by sticking to the high water mark
+  // of length (prevents nasty oscillation when the length of the string is
+  // just popping over/under enough to overflow onto the next line).
+
+  if(statusText.length() > m_HighWaterStatusLength)
+    m_HighWaterStatusLength = statusText.length();
+
+  if(statusText.length() < m_HighWaterStatusLength)
+    statusText += QString(m_HighWaterStatusLength - statusText.length(), ' ');
+
+  ui->statusText->setText(statusText);
+}
+
+void TextureViewer::on_render_mousemove(QMouseEvent *e)
+{
+  m_CurHoverPixel.setX(int(((float)e->x() - m_TexDisplay.offx) / m_TexDisplay.scale));
+  m_CurHoverPixel.setY(int(((float)e->y() - m_TexDisplay.offy) / m_TexDisplay.scale));
+
+  if(m_TexDisplay.texid != ResourceId())
+  {
+    FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+
+    if(texptr != NULL)
+    {
+      if(e->buttons() & Qt::RightButton)
+      {
+        // ui->render->setCursor(cross);
+
+        m_PickedPoint = m_CurHoverPixel;
+
+        m_PickedPoint.setX(qBound(0, m_PickedPoint.x(), (int)texptr->width - 1));
+        m_PickedPoint.setY(qBound(0, m_PickedPoint.y(), (int)texptr->height - 1));
+
+        m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
+          if(m_Output != NULL)
+            RT_PickPixelsAndUpdate();
+        });
+      }
+      else if(e->buttons() == Qt::NoButton)
+      {
+        m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
+          if(m_Output != NULL)
+            RT_PickHoverAndUpdate();
+        });
+      }
+    }
+  }
+
+  QPoint curpos = QCursor::pos();
+
+  // QWidget *p = ui->renderContainer;
+
+  if(e->buttons() & Qt::LeftButton)
+  {
+    /*
+    if (qAbs(m_DragStartPos.x() - curpos.x()) > p.HorizontalScroll.SmallChange ||
+      qAbs(m_DragStartPos.y() - curpos.y()) > p.VerticalScroll.SmallChange)
+    {
+      ScrollPosition = new Point(m_DragStartScroll.X + (curpos.X - m_DragStartPos.X),
+        m_DragStartScroll.Y + (curpos.Y - m_DragStartPos.Y));
+    }*/
+
+    // ui->render->setCursor(move2D);
+  }
+
+  if(e->buttons() == Qt::NoButton)
+  {
+    // ui->render->setCursor(default);
+  }
+
+  UI_UpdateStatusText();
 }
 
 void TextureViewer::OnLogfileLoaded()
