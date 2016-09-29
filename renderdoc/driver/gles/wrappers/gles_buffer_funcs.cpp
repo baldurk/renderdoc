@@ -166,8 +166,7 @@ bool WrappedGLES::Serialise_glBindBuffer(GLenum target, GLuint buffer)
       m_Real.glBindBuffer(Target, res.name);
 
       m_Buffers[GetResourceManager()->GetLiveID(Id)].curType = Target;
-      // TODO PEPE fix the new 
-      GetCtxData().m_BufferRecord[BufferIdx(Target)] = new GLResourceRecord(Id);
+      GetCtxData().m_BufferRecord[BufferIdx(Target)] = GetResourceManager()->AddResourceRecord(Id);
       
     }
   }
