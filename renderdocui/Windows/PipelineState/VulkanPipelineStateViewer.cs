@@ -2231,10 +2231,158 @@ namespace renderdocui.Windows.PipelineState
 
             var files = new Dictionary<string, string>();
 
-            // use disassembly for now. It's not compilable GLSL but it's better than
-            // starting with a blank canvas
-            files.Add("Disassembly", shaderDetails.Disassembly);
+            if (m_Core.Config.ExternalDisassemblerEnabled)
+            {
+                BackgroundWorker bgWorker = new BackgroundWorker();
+                extDisassemblerProgBar.Visible = true;
+                bgWorker.RunWorkerCompleted += (obj, eventArgs) =>
+                {
+                    if((bool)eventArgs.Result == true)
+                    {
+                        ShowShaderViewer(stage, files);
+                    }
+                    extDisassemblerProgBar.Visible = false;
+                };
+                bgWorker.DoWork += (obj, eventArgs) =>
+                {
+                    eventArgs.Result = true;
 
+                    //try to use the external disassembler to get back the shader source
+                    string spv_bin_file = "spv_bin.spv";
+                    string spv_disas_file = "spv_disas.txt";
+
+                    spv_bin_file = Path.Combine(Path.GetTempPath(), spv_bin_file);
+                    spv_disas_file = Path.Combine(Path.GetTempPath(), spv_disas_file);
+
+                    //replace the {spv_bin} tag with the correct SPIR-V binary source
+                    string args = m_Core.Config.GetDefaultExternalDisassembler().args;
+                    if (args.Contains(ExternalDisassembler.SPV_BIN_TAG))
+                    {
+                        args = args.Replace(ExternalDisassembler.SPV_BIN_TAG, spv_bin_file);
+
+                        //write to temp file
+                        try
+                        {
+                            // Open file for reading
+                            using (FileStream fileStream =
+                                new FileStream(spv_bin_file, FileMode.Create,
+                                                        FileAccess.Write))
+                            {
+                                // Writes a block of bytes to this stream using data from
+                                // a byte array.
+                                fileStream.Write(shaderDetails.RawBytes, 0, shaderDetails.RawBytes.Length);
+
+                                // close file stream
+                                fileStream.Close();
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            // Error
+                            MessageBox.Show("Couldn't save SPIR-V binary to file: " + spv_bin_file +
+                                Environment.NewLine + ex.ToString(), "Cannot save",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                            eventArgs.Result = false;
+                        }
+                    }
+                    else
+                    {
+                        MessageBox.Show("Please indicate the " + ExternalDisassembler.SPV_BIN_TAG +
+                            " in the arguments list!", "Error disassembling",
+                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        eventArgs.Result = false;
+                    }
+                    bool useStdout = true;
+                    if (args.Contains(ExternalDisassembler.SPV_DISAS_TAG))
+                    {
+                        args = args.Replace(ExternalDisassembler.SPV_DISAS_TAG, spv_disas_file);
+                        useStdout = false;
+                    }
+                    // else we assume the disassembler will return the result to stdout
+
+                    //check if any errors
+                    if ((bool)eventArgs.Result == false)
+                        return;
+
+                    //run the disassembler
+                    try
+                    {
+                        using (System.Diagnostics.Process disassemblerProcess = new System.Diagnostics.Process())
+                        {
+                            disassemblerProcess.StartInfo.WindowStyle = System.Diagnostics.ProcessWindowStyle.Hidden;
+                            //settings up parameters for the install process
+                            disassemblerProcess.StartInfo.FileName = m_Core.Config.GetDefaultExternalDisassembler().executable;
+
+                            disassemblerProcess.StartInfo.Arguments = args;
+                            disassemblerProcess.StartInfo.RedirectStandardOutput = true;
+                            disassemblerProcess.StartInfo.UseShellExecute = false;
+                            disassemblerProcess.StartInfo.CreateNoWindow = true;
+
+                            disassemblerProcess.Start();
+
+                            string shaderDisassembly = "";
+                            if(useStdout)
+                            {
+                                StringBuilder q = new StringBuilder();
+                                while (!disassemblerProcess.HasExited)
+                                {
+                                    q.Append(disassemblerProcess.StandardOutput.ReadToEnd());
+                                }
+                                shaderDisassembly = q.ToString();
+                            } else
+                            {
+                                //read from the output file after the process has finished
+                                bool ok = disassemblerProcess.WaitForExit(5*1000); //wait for 5 sec max
+                                if(ok)
+                                {
+                                    shaderDisassembly = File.ReadAllText(spv_disas_file);
+                                }
+                                else
+                                {
+                                    eventArgs.Result = false;
+                                }
+                            }
+
+                            files.Add("Disassembly", shaderDisassembly);
+
+                            // Check for sucessful completion
+                            if (disassemblerProcess.ExitCode != 0)
+                            {
+                                MessageBox.Show("Error wile running external disassembler: " + m_Core.Config.GetDefaultExternalDisassembler().name +
+                                                        Environment.NewLine + "Return code: " + disassemblerProcess.ExitCode, "Error disassembling",
+                                                        MessageBoxButtons.OK, MessageBoxIcon.Error);
+                                eventArgs.Result = false;
+                            }
+                        }
+
+                        //delete the temp files
+                        if(File.Exists(spv_bin_file))
+                            File.Delete(spv_bin_file);
+                        if(File.Exists(spv_disas_file))
+                            File.Delete(spv_disas_file);
+                    }
+                    catch (Exception ex)
+                    { 
+                        // Error
+                        MessageBox.Show("Error using external disassembler: " + m_Core.Config.GetDefaultExternalDisassembler().name + 
+                                                    Environment.NewLine + ex.ToString(), "Error disassembling",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        eventArgs.Result = false;
+                    }
+                };
+                bgWorker.RunWorkerAsync();
+            }
+            else
+            {
+                // use disassembly for now. It's not compilable GLSL but it's better than
+                // starting with a blank canvas
+                files.Add("Disassembly", shaderDetails.Disassembly);
+                ShowShaderViewer(stage, files);
+            }
+        }
+
+        private void ShowShaderViewer(VulkanPipelineState.ShaderStage stage, Dictionary<String, String> files)
+        {
             VulkanPipelineStateViewer pipeviewer = this;
 
             ShaderViewer sv = new ShaderViewer(m_Core, false, "main", files,
@@ -2253,7 +2401,7 @@ namespace renderdocui.Windows.PipelineState
                     string errs = "";
 
                     ResourceId from = stage.Shader;
-                    ResourceId to = r.BuildTargetShader("main", compileSource, shaderDetails.DebugInfo.compileFlags, stage.stage, out errs);
+                    ResourceId to = r.BuildTargetShader("main", compileSource, stage.ShaderDetails.DebugInfo.compileFlags, stage.stage, out errs);
 
                     viewer.BeginInvoke((MethodInvoker)delegate { viewer.ShowErrors(errs); });
                     if (to == ResourceId.Null)

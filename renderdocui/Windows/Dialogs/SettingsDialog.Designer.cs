@@ -42,9 +42,9 @@
             System.Windows.Forms.Label label5;
             System.Windows.Forms.Label label7;
             System.Windows.Forms.Label label3;
-            System.Windows.Forms.Label label11;
             System.Windows.Forms.Label label15;
             System.Windows.Forms.Label label18;
+            System.Windows.Forms.Label label11;
             System.Windows.Forms.TableLayoutPanel tableLayoutPanel6;
             System.Windows.Forms.Label label19;
             System.Windows.Forms.GroupBox groupBox2;
@@ -57,9 +57,6 @@
             System.Windows.Forms.Label label16;
             System.Windows.Forms.Label label17;
             TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Section", "Section")));
-            this.ok = new System.Windows.Forms.Button();
-            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
-            this.browserCaptureDialog = new System.Windows.Forms.FolderBrowserDialog();
             this.settingsTabs = new renderdocui.Controls.TablessControl();
             this.generalTab = new System.Windows.Forms.TabPage();
             this.AllowGlobalHook = new System.Windows.Forms.CheckBox();
@@ -75,6 +72,7 @@
             this.AlwaysReplayLocally = new System.Windows.Forms.CheckBox();
             this.browseSaveCaptureDirectory = new System.Windows.Forms.Button();
             this.saveDirectory = new System.Windows.Forms.TextBox();
+            this.tempDirectory = new System.Windows.Forms.TextBox();
             this.corePage = new System.Windows.Forms.TabPage();
             this.groupBox5 = new System.Windows.Forms.GroupBox();
             this.chooseSearchPaths = new System.Windows.Forms.Button();
@@ -84,6 +82,16 @@
             this.TextureViewer_PerTexSettings = new System.Windows.Forms.CheckBox();
             this.label14 = new System.Windows.Forms.Label();
             this.shadViewTab = new System.Windows.Forms.TabPage();
+            this.groupBox6 = new System.Windows.Forms.GroupBox();
+            this.tableLayoutPanel7 = new System.Windows.Forms.TableLayoutPanel();
+            this.label23 = new System.Windows.Forms.Label();
+            this.externalDisassemblerEnabledCheckbox = new System.Windows.Forms.CheckBox();
+            this.label21 = new System.Windows.Forms.Label();
+            this.label22 = new System.Windows.Forms.Label();
+            this.externalDisassemblePath = new System.Windows.Forms.TextBox();
+            this.browseExtDisasemble = new System.Windows.Forms.Button();
+            this.externalDisassemblerArgs = new System.Windows.Forms.TextBox();
+            this.label24 = new System.Windows.Forms.Label();
             this.tableLayoutPanel4 = new System.Windows.Forms.TableLayoutPanel();
             this.ShaderViewer_FriendlyNaming = new System.Windows.Forms.CheckBox();
             this.eventTab = new System.Windows.Forms.TabPage();
@@ -93,7 +101,10 @@
             this.EventBrowser_ApplyColours = new System.Windows.Forms.CheckBox();
             this.EventBrowser_ColourEventRow = new System.Windows.Forms.CheckBox();
             this.pagesTree = new TreelistView.TreeListView();
-            this.tempDirectory = new System.Windows.Forms.TextBox();
+            this.ok = new System.Windows.Forms.Button();
+            this.toolTip = new System.Windows.Forms.ToolTip(this.components);
+            this.browserCaptureDialog = new System.Windows.Forms.FolderBrowserDialog();
+            this.browseExtDisassembleDialog = new System.Windows.Forms.OpenFileDialog();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             groupBox1 = new System.Windows.Forms.GroupBox();
             tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
@@ -106,9 +117,9 @@
             label5 = new System.Windows.Forms.Label();
             label7 = new System.Windows.Forms.Label();
             label3 = new System.Windows.Forms.Label();
-            label11 = new System.Windows.Forms.Label();
             label15 = new System.Windows.Forms.Label();
             label18 = new System.Windows.Forms.Label();
+            label11 = new System.Windows.Forms.Label();
             tableLayoutPanel6 = new System.Windows.Forms.TableLayoutPanel();
             label19 = new System.Windows.Forms.Label();
             groupBox2 = new System.Windows.Forms.GroupBox();
@@ -137,6 +148,8 @@
             this.tableLayoutPanel3.SuspendLayout();
             this.shadViewTab.SuspendLayout();
             groupBox3.SuspendLayout();
+            this.groupBox6.SuspendLayout();
+            this.tableLayoutPanel7.SuspendLayout();
             this.tableLayoutPanel4.SuspendLayout();
             this.eventTab.SuspendLayout();
             groupBox4.SuspendLayout();
@@ -160,21 +173,6 @@
             tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             tableLayoutPanel1.Size = new System.Drawing.Size(537, 451);
             tableLayoutPanel1.TabIndex = 1;
-            // 
-            // ok
-            // 
-            this.ok.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.ok.Location = new System.Drawing.Point(459, 425);
-            this.ok.Name = "ok";
-            this.ok.Size = new System.Drawing.Size(75, 23);
-            this.ok.TabIndex = 100;
-            this.ok.Text = "OK";
-            this.ok.UseVisualStyleBackColor = true;
-            this.ok.Click += new System.EventHandler(this.ok_Click);
-            // 
-            // browserCaptureDialog
-            // 
-            this.browserCaptureDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
             // 
             // settingsTabs
             // 
@@ -539,22 +537,6 @@
             this.CheckUpdate_AllowChecks.UseVisualStyleBackColor = true;
             this.CheckUpdate_AllowChecks.CheckedChanged += new System.EventHandler(this.CheckUpdate_AllowChecks_CheckedChanged);
             // 
-            // label11
-            // 
-            label11.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
-            | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            label11.AutoSize = true;
-            label11.Location = new System.Drawing.Point(3, 162);
-            label11.MinimumSize = new System.Drawing.Size(0, 20);
-            label11.Name = "label11";
-            label11.Size = new System.Drawing.Size(229, 20);
-            label11.TabIndex = 14;
-            label11.Text = "Directory for temporary capture files";
-            label11.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.toolTip.SetToolTip(label11, "Changes the directory where capture files are saved after being created, until sa" +
-        "ved manually or deleted.\r\n\r\nDefaults to %TEMP%.");
-            // 
             // browseTempCaptureDirectory
             // 
             this.browseTempCaptureDirectory.Anchor = System.Windows.Forms.AnchorStyles.Right;
@@ -646,6 +628,34 @@
             this.toolTip.SetToolTip(this.saveDirectory, "Changes the default directory for the save dialog when saving capture files.\r\n\r\nD" +
         "efaults to blank, which follows system default behaviour.");
             this.saveDirectory.TextChanged += new System.EventHandler(this.saveDirectory_TextChanged);
+            // 
+            // label11
+            // 
+            label11.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            label11.AutoSize = true;
+            label11.Location = new System.Drawing.Point(3, 162);
+            label11.MinimumSize = new System.Drawing.Size(0, 20);
+            label11.Name = "label11";
+            label11.Size = new System.Drawing.Size(229, 20);
+            label11.TabIndex = 14;
+            label11.Text = "Directory for temporary capture files";
+            label11.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.toolTip.SetToolTip(label11, "Changes the directory where capture files are saved after being created, until sa" +
+        "ved manually or deleted.\r\n\r\nDefaults to %TEMP%.");
+            // 
+            // tempDirectory
+            // 
+            this.tempDirectory.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.tempDirectory.Location = new System.Drawing.Point(3, 185);
+            this.tempDirectory.Name = "tempDirectory";
+            this.tempDirectory.Size = new System.Drawing.Size(229, 20);
+            this.tempDirectory.TabIndex = 24;
+            this.toolTip.SetToolTip(this.tempDirectory, "Changes the directory where capture files are saved after being created, until sa" +
+        "ved manually or deleted.\r\n\r\nDefaults to %TEMP%.");
+            this.tempDirectory.TextChanged += new System.EventHandler(this.tempDirectory_TextChanged);
             // 
             // corePage
             // 
@@ -826,6 +836,7 @@
             // 
             // groupBox3
             // 
+            groupBox3.Controls.Add(this.groupBox6);
             groupBox3.Controls.Add(this.tableLayoutPanel4);
             groupBox3.Dock = System.Windows.Forms.DockStyle.Fill;
             groupBox3.Location = new System.Drawing.Point(3, 3);
@@ -835,6 +846,123 @@
             groupBox3.TabStop = false;
             groupBox3.Text = "Shader Viewer";
             // 
+            // groupBox6
+            // 
+            this.groupBox6.Controls.Add(this.tableLayoutPanel7);
+            this.groupBox6.Dock = System.Windows.Forms.DockStyle.Top;
+            this.groupBox6.Location = new System.Drawing.Point(3, 60);
+            this.groupBox6.Name = "groupBox6";
+            this.groupBox6.Size = new System.Drawing.Size(331, 166);
+            this.groupBox6.TabIndex = 46;
+            this.groupBox6.TabStop = false;
+            this.groupBox6.Text = "Vulkan";
+            // 
+            // tableLayoutPanel7
+            // 
+            this.tableLayoutPanel7.ColumnCount = 2;
+            this.tableLayoutPanel7.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 80F));
+            this.tableLayoutPanel7.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
+            this.tableLayoutPanel7.Controls.Add(this.label23, 0, 3);
+            this.tableLayoutPanel7.Controls.Add(this.externalDisassemblerEnabledCheckbox, 1, 0);
+            this.tableLayoutPanel7.Controls.Add(this.label21, 0, 0);
+            this.tableLayoutPanel7.Controls.Add(this.label22, 0, 1);
+            this.tableLayoutPanel7.Controls.Add(this.externalDisassemblePath, 0, 2);
+            this.tableLayoutPanel7.Controls.Add(this.browseExtDisasemble, 1, 2);
+            this.tableLayoutPanel7.Controls.Add(this.externalDisassemblerArgs, 0, 4);
+            this.tableLayoutPanel7.Controls.Add(this.label24, 0, 5);
+            this.tableLayoutPanel7.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tableLayoutPanel7.Location = new System.Drawing.Point(3, 16);
+            this.tableLayoutPanel7.Name = "tableLayoutPanel7";
+            this.tableLayoutPanel7.RowCount = 6;
+            this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel7.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            this.tableLayoutPanel7.Size = new System.Drawing.Size(325, 147);
+            this.tableLayoutPanel7.TabIndex = 0;
+            // 
+            // label23
+            // 
+            this.label23.AutoSize = true;
+            this.label23.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.label23.Location = new System.Drawing.Point(3, 62);
+            this.label23.Name = "label23";
+            this.label23.Size = new System.Drawing.Size(254, 13);
+            this.label23.TabIndex = 50;
+            this.label23.Text = "Specify the command line arguments";
+            // 
+            // externalDisassemblerEnabledCheckbox
+            // 
+            this.externalDisassemblerEnabledCheckbox.AutoSize = true;
+            this.externalDisassemblerEnabledCheckbox.Location = new System.Drawing.Point(263, 3);
+            this.externalDisassemblerEnabledCheckbox.Name = "externalDisassemblerEnabledCheckbox";
+            this.externalDisassemblerEnabledCheckbox.Size = new System.Drawing.Size(15, 14);
+            this.externalDisassemblerEnabledCheckbox.TabIndex = 44;
+            this.externalDisassemblerEnabledCheckbox.UseVisualStyleBackColor = true;
+            this.externalDisassemblerEnabledCheckbox.CheckedChanged += new System.EventHandler(this.externalDisassemblerEnabledCheckbox_CheckedChanged);
+            // 
+            // label21
+            // 
+            this.label21.AutoSize = true;
+            this.label21.Location = new System.Drawing.Point(3, 0);
+            this.label21.Name = "label21";
+            this.label21.Size = new System.Drawing.Size(146, 13);
+            this.label21.TabIndex = 45;
+            this.label21.Text = "Vulkan External Disassembler";
+            // 
+            // label22
+            // 
+            this.label22.AutoSize = true;
+            this.label22.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.label22.Location = new System.Drawing.Point(3, 20);
+            this.label22.Name = "label22";
+            this.label22.Size = new System.Drawing.Size(254, 13);
+            this.label22.TabIndex = 49;
+            this.label22.Text = "Select external SPIR-V disassembler executable";
+            // 
+            // externalDisassemblePath
+            // 
+            this.externalDisassemblePath.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.externalDisassemblePath.Location = new System.Drawing.Point(3, 36);
+            this.externalDisassemblePath.Name = "externalDisassemblePath";
+            this.externalDisassemblePath.ReadOnly = false;
+            this.externalDisassemblePath.Size = new System.Drawing.Size(254, 20);
+            this.externalDisassemblePath.TabIndex = 47;
+            this.externalDisassemblePath.TextChanged += new System.EventHandler(this.externalDisassemblePath_TextChanged);
+            // 
+            // browseExtDisasemble
+            // 
+            this.browseExtDisasemble.Dock = System.Windows.Forms.DockStyle.Left;
+            this.browseExtDisasemble.Location = new System.Drawing.Point(263, 36);
+            this.browseExtDisasemble.Name = "browseExtDisasemble";
+            this.browseExtDisasemble.Size = new System.Drawing.Size(57, 23);
+            this.browseExtDisasemble.TabIndex = 48;
+            this.browseExtDisasemble.Text = "Browse";
+            this.browseExtDisasemble.UseVisualStyleBackColor = true;
+            this.browseExtDisasemble.Click += new System.EventHandler(this.browseExtDisasemble_Click);
+            // 
+            // externalDisassemblerArgs
+            // 
+            this.externalDisassemblerArgs.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.externalDisassemblerArgs.Location = new System.Drawing.Point(3, 78);
+            this.externalDisassemblerArgs.Name = "externalDisassemblerArgs";
+            this.externalDisassemblerArgs.Size = new System.Drawing.Size(254, 20);
+            this.externalDisassemblerArgs.TabIndex = 46;
+            this.externalDisassemblerArgs.TextChanged += new System.EventHandler(this.textBox1_TextChanged);
+            // 
+            // label24
+            // 
+            this.label24.AutoSize = true;
+            this.label24.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.label24.Location = new System.Drawing.Point(3, 101);
+            this.label24.Name = "label24";
+            this.label24.Size = new System.Drawing.Size(254, 46);
+            this.label24.TabIndex = 51;
+            this.label24.Text = "NOTE: Use the {spv_bin} and {spv_disas} tags to indicate to the external disassembler the input SP" +
+    "IR-V binary and the output SPIR-V disassembly respectively.";
+            // 
             // tableLayoutPanel4
             // 
             this.tableLayoutPanel4.ColumnCount = 2;
@@ -842,13 +970,14 @@
             this.tableLayoutPanel4.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 20F));
             this.tableLayoutPanel4.Controls.Add(this.ShaderViewer_FriendlyNaming, 1, 0);
             this.tableLayoutPanel4.Controls.Add(label12, 0, 0);
-            this.tableLayoutPanel4.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.tableLayoutPanel4.Dock = System.Windows.Forms.DockStyle.Top;
             this.tableLayoutPanel4.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanel4.Name = "tableLayoutPanel4";
             this.tableLayoutPanel4.RowCount = 2;
             this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel4.Size = new System.Drawing.Size(331, 383);
+            this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel4.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            this.tableLayoutPanel4.Size = new System.Drawing.Size(331, 44);
             this.tableLayoutPanel4.TabIndex = 1;
             // 
             // ShaderViewer_FriendlyNaming
@@ -1049,17 +1178,20 @@
             this.pagesTree.ViewOptions.ShowPlusMinus = false;
             this.pagesTree.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.pagesTree_AfterSelect);
             // 
-            // tempDirectory
+            // ok
             // 
-            this.tempDirectory.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
-            this.tempDirectory.Location = new System.Drawing.Point(3, 185);
-            this.tempDirectory.Name = "tempDirectory";
-            this.tempDirectory.Size = new System.Drawing.Size(229, 20);
-            this.tempDirectory.TabIndex = 24;
-            this.toolTip.SetToolTip(this.tempDirectory, "Changes the directory where capture files are saved after being created, until sa" +
-        "ved manually or deleted.\r\n\r\nDefaults to %TEMP%.");
-            this.tempDirectory.TextChanged += new System.EventHandler(this.tempDirectory_TextChanged);
+            this.ok.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
+            this.ok.Location = new System.Drawing.Point(459, 425);
+            this.ok.Name = "ok";
+            this.ok.Size = new System.Drawing.Size(75, 23);
+            this.ok.TabIndex = 100;
+            this.ok.Text = "OK";
+            this.ok.UseVisualStyleBackColor = true;
+            this.ok.Click += new System.EventHandler(this.ok_Click);
+            // 
+            // browserCaptureDialog
+            // 
+            this.browserCaptureDialog.RootFolder = System.Environment.SpecialFolder.MyComputer;
             // 
             // SettingsDialog
             // 
@@ -1091,6 +1223,9 @@
             this.tableLayoutPanel3.PerformLayout();
             this.shadViewTab.ResumeLayout(false);
             groupBox3.ResumeLayout(false);
+            this.groupBox6.ResumeLayout(false);
+            this.tableLayoutPanel7.ResumeLayout(false);
+            this.tableLayoutPanel7.PerformLayout();
             this.tableLayoutPanel4.ResumeLayout(false);
             this.tableLayoutPanel4.PerformLayout();
             this.eventTab.ResumeLayout(false);
@@ -1141,5 +1276,16 @@
         private System.Windows.Forms.Button browseSaveCaptureDirectory;
         private System.Windows.Forms.TextBox saveDirectory;
         private System.Windows.Forms.TextBox tempDirectory;
+        private System.Windows.Forms.CheckBox externalDisassemblerEnabledCheckbox;
+        private System.Windows.Forms.Label label21;
+        private System.Windows.Forms.GroupBox groupBox6;
+        private System.Windows.Forms.TableLayoutPanel tableLayoutPanel7;
+        private System.Windows.Forms.TextBox externalDisassemblerArgs;
+        private System.Windows.Forms.TextBox externalDisassemblePath;
+        private System.Windows.Forms.Button browseExtDisasemble;
+        private System.Windows.Forms.OpenFileDialog browseExtDisassembleDialog;
+        private System.Windows.Forms.Label label23;
+        private System.Windows.Forms.Label label22;
+        private System.Windows.Forms.Label label24;
     }
 }
