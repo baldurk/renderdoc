@@ -86,20 +86,20 @@ void RENDERDOC_MeshGS(triangle wireframeV2F input[3], inout TriangleStream<wiref
 
 float4 RENDERDOC_MeshPS(wireframeV2F IN) : SV_Target0
 {
-	uint type = OutputDisplayFormat;
+  uint type = OutputDisplayFormat;
 
-	if(type == MESHDISPLAY_SECONDARY)
-		return float4(IN.secondary.xyz, 1);
-	else if(type == MESHDISPLAY_SECONDARY_ALPHA)
-		return float4(IN.secondary.www, 1);
-	else if(type == MESHDISPLAY_FACELIT)
-	{
-		float3 lightDir = normalize(float3(0, -0.3f, -1));
+  if(type == MESHDISPLAY_SECONDARY)
+    return float4(IN.secondary.xyz, 1);
+  else if(type == MESHDISPLAY_SECONDARY_ALPHA)
+    return float4(IN.secondary.www, 1);
+  else if(type == MESHDISPLAY_FACELIT)
+  {
+    float3 lightDir = normalize(float3(0, -0.3f, -1));
 
-		return float4(WireframeColour.xyz*abs(dot(lightDir, IN.norm)), 1);
-	}
-	else //if(type == MESHDISPLAY_SOLID)
-		return float4(WireframeColour.xyz, 1);
+    return float4(WireframeColour.xyz*abs(dot(lightDir, IN.norm)), 1);
+  }
+  else //if(type == MESHDISPLAY_SOLID)
+    return float4(WireframeColour.xyz, 1);
 }
 
 wireframeV2F RENDERDOC_WireframeVS(float3 pos : POSITION, uint vid : SV_VertexID)
@@ -119,13 +119,6 @@ wireframeV2F RENDERDOC_WireframeVS(float3 pos : POSITION, uint vid : SV_VertexID
 
 	return OUT;
 }
-
-
-#define MESH_OTHER 0    // this covers points and lines, logic is the same
-#define MESH_TRIANGLE_LIST 1
-#define MESH_TRIANGLE_STRIP 2
-#define MESH_TRIANGLE_LIST_ADJ 3
-#define MESH_TRIANGLE_STRIP_ADJ 4
 
 Buffer<uint> index : register(t0);
 Buffer<float4> vertex : register(t1);
@@ -286,8 +279,9 @@ void defaultPath(uint threadID)
 
 	float4 wpos = mul(pos, PickMVP);
 
-	wpos.xyz /= wpos.www;
-
+  if (PickUnproject == 1)
+    wpos.xyz /= wpos.www;
+	
 	wpos.xy *= float2(1.0f, -1.0f);
 
 	float2 scr = (wpos.xy + 1.0f) * 0.5f * PickViewport;
