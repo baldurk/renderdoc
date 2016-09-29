@@ -209,6 +209,7 @@
             this.showDisabledToolitem = new System.Windows.Forms.ToolStripButton();
             this.showEmptyToolitem = new System.Windows.Forms.ToolStripButton();
             this.export = new System.Windows.Forms.ToolStripButton();
+			this.extDisassemblerProgBar = new System.Windows.Forms.ProgressBar();
             this.stageTabControl = new renderdocui.Controls.TablessControl();
             this.tabIA = new System.Windows.Forms.TabPage();
             this.panel1 = new System.Windows.Forms.Panel();
@@ -529,6 +530,7 @@
             toolstripTable.Controls.Add(this.pipeFlow, 0, 1);
             toolstripTable.Controls.Add(this.flowLayoutPanel6, 0, 0);
             toolstripTable.Controls.Add(this.stageTabControl, 0, 2);
+			toolstripTable.Controls.Add(this.extDisassemblerProgBar, 0, 2);
             toolstripTable.Dock = System.Windows.Forms.DockStyle.Fill;
             toolstripTable.Location = new System.Drawing.Point(0, 0);
             toolstripTable.Name = "toolstripTable";
@@ -608,7 +610,17 @@
             this.export.Name = "export";
             this.export.Size = new System.Drawing.Size(59, 22);
             this.export.Text = "Export";
-            this.export.Click += new System.EventHandler(this.export_Click);
+            this.export.Click += new System.EventHandler(this.export_Click);			
+			// 
+            // extDisassemblerProgBar
+            // 
+            this.extDisassemblerProgBar.Dock = System.Windows.Forms.DockStyle.Bottom;
+            this.extDisassemblerProgBar.Location = new System.Drawing.Point(3, 574);
+            this.extDisassemblerProgBar.Name = "extDisassemblerProgBar";
+            this.extDisassemblerProgBar.Size = new System.Drawing.Size(1106, 23);
+            this.extDisassemblerProgBar.TabIndex = 2;
+            this.extDisassemblerProgBar.Style = System.Windows.Forms.ProgressBarStyle.Marquee;
+            this.extDisassemblerProgBar.Visible = false;			
             // 
             // stageTabControl
             // 
@@ -3985,5 +3997,6 @@
         private System.Windows.Forms.PictureBox gsShaderSave;
         private System.Windows.Forms.PictureBox psShaderSave;
         private System.Windows.Forms.PictureBox csShaderSave;
+		private System.Windows.Forms.ProgressBar extDisassemblerProgBar;
     }
 }

@@ -121,6 +121,52 @@ namespace renderdocui.Code
     }
 
     [Serializable]
+    public class ExternalDisassembler
+    {
+        //indicates to the system that this placeholder points to the SPIR-V binary
+        [NonSerialized]
+        public static readonly string SPV_BIN_TAG = "{spv_bin}";
+        //indicates to the system that this placeholder points to the disassembled SPIR-V
+        [NonSerialized]
+        public static readonly string SPV_DISAS_TAG = "{spv_disas}";
+        //The TAGs below are for future usage to help identify in the argument list,
+        //the shader entry point and the shader stage (for flexibility)
+        [NonSerialized]
+        public static readonly string SPV_ENTRY_POINT_TAG = "{spv_entry_point}";
+        [NonSerialized]
+        public static readonly string SPV_SHADER_STAGE_TAG = "{spv_shader_stage}";
+
+        public ExternalDisassembler(uint id, string name, 
+            string executable, string args)
+        {
+            this.id = id;
+            this.name = name;
+            this.executable = executable;
+            this.args = args;
+        }
+
+        protected ExternalDisassembler()
+        {
+
+        }
+
+        public uint id { get; set; }
+        public string name { get; set; }
+        public string executable { get; set; }
+        public string args { get; set; }
+
+        public override bool Equals(object obj)
+        {
+            return obj.GetType() == typeof(ExternalDisassembler) && id == ((ExternalDisassembler)obj).id;
+        }
+
+        public override int GetHashCode()
+        {
+            return GetType().GetHashCode() ^ id.GetHashCode();
+        }
+    }
+
+    [Serializable]
     public class PersistantConfig
     {
         public string LastLogPath = "";
@@ -134,6 +180,36 @@ namespace renderdocui.Code
         [XmlElement("CaptureSavePath")]
         public string TemporaryCaptureDirectory = "";
         public string DefaultCaptureSaveDirectory = "";
+
+        //The list should contain all the pre-configured, external, SPIR-V disassemblers
+        [XmlIgnore] // not directly serializable
+        private Dictionary<int, ExternalDisassembler> ExternalDisassemblers = new Dictionary<int, ExternalDisassembler>();
+        public List<SerializableKeyValuePair<int, ExternalDisassembler>> ExternalDisassemblersValues = new List<SerializableKeyValuePair<int, ExternalDisassembler>>();
+        public bool ExternalDisassemblerEnabled = false;
+
+        public void SetExternalDisassemblers(int id, ExternalDisassembler value)
+        {
+            ExternalDisassemblers[id] = value;
+        }
+
+        public ExternalDisassembler GetExternalDisassembler(int id)
+        {
+            if (ExternalDisassemblers.ContainsKey(id))
+                return ExternalDisassemblers[id];
+
+            return null;
+        }
+
+        //the default disassembler is at 0
+        public ExternalDisassembler GetDefaultExternalDisassembler()
+        {
+            if(!ExternalDisassemblers.ContainsKey(0))
+            {
+                //Add default external disassembler at key 0
+                ExternalDisassemblers.Add(0, new ExternalDisassembler(0, "SPIRV-Cross", "", ""));
+            }
+            return ExternalDisassemblers[0];
+        }
 
         public bool TextureViewer_ResetRange = false;
         public bool TextureViewer_PerTexSettings = true;
@@ -261,6 +337,11 @@ namespace renderdocui.Code
                 foreach (var kv in ConfigSettings)
                     ConfigSettingsValues.Add(new SerializableKeyValuePair<string, string>(kv.Key, kv.Value));
 
+                //external disassemblers
+                ExternalDisassemblersValues.Clear();
+                foreach (var kv in ExternalDisassemblers)
+                    ExternalDisassemblersValues.Add(new SerializableKeyValuePair<int, ExternalDisassembler>(kv.Key, kv.Value));
+
                 XmlSerializer xs = new XmlSerializer(this.GetType());
                 StreamWriter writer = File.CreateText(file);
                 xs.Serialize(writer, this);
@@ -287,6 +368,15 @@ namespace renderdocui.Code
                     kv.Value != null)
                 {
                     c.SetConfigSetting(kv.Key, kv.Value);
+                }
+            }
+
+            //external disassemblers
+            foreach (var kv in c.ExternalDisassemblersValues)
+            {
+                if (kv.Key >= 0 && kv.Value != null)
+                {
+                    c.SetExternalDisassemblers(kv.Key, kv.Value);
                 }
             }
 
