@@ -927,9 +927,12 @@ void WrappedGLES::glUseProgram(GLuint program)
 
   GetCtxData().m_Program = program;
 
-  if(m_State >= WRITING)
+  // TODO PEPE Check this: && program != 0
+  if(m_State >= WRITING && program != 0)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
+    RDCASSERT(record);
+
     SCOPED_SERIALISE_CONTEXT(USEPROGRAM);
     Serialise_glUseProgram(program);
 
