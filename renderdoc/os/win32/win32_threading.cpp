@@ -72,6 +72,11 @@ int64_t ExchAdd64(volatile int64_t *i, int64_t a)
 {
   return (int64_t)InterlockedExchangeAdd64((volatile LONG64 *)i, a);
 }
+
+int32_t CmpExch32(volatile int32_t *dest, int32_t oldVal, int32_t newVal)
+{
+  return (int32_t)InterlockedCompareExchange((volatile LONG *)dest, newVal, oldVal);
+}
 };
 
 namespace Threading

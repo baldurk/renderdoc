@@ -77,9 +77,11 @@
             this.exePath = new System.Windows.Forms.TextBox();
             this.pidRefresh = new System.Windows.Forms.Button();
             this.pidList = new System.Windows.Forms.ListView();
+            this.winTitle = ((System.Windows.Forms.ColumnHeader)(new System.Windows.Forms.ColumnHeader()));
             this.environmentDisplay = new System.Windows.Forms.TextBox();
             this.setEnv = new System.Windows.Forms.Button();
-            this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
+            this.processFilter = new System.Windows.Forms.TextBox();
+            this.mainTableLayout = new System.Windows.Forms.TableLayoutPanel();
             this.programGroup = new System.Windows.Forms.GroupBox();
             this.processGroup = new System.Windows.Forms.GroupBox();
             this.vulkanLayerWarn = new System.Windows.Forms.Button();
@@ -100,7 +102,7 @@
             this.panel3.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.DelayForDebugger)).BeginInit();
             this.panel2.SuspendLayout();
-            this.tableLayoutPanel2.SuspendLayout();
+            this.mainTableLayout.SuspendLayout();
             this.programGroup.SuspendLayout();
             this.processGroup.SuspendLayout();
             this.SuspendLayout();
@@ -132,15 +134,16 @@
             // name
             // 
             name.Text = "Name";
-            name.Width = 430;
+            name.Width = 120;
             // 
             // label5
             // 
             label5.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            label5.AutoEllipsis = true;
             label5.Location = new System.Drawing.Point(9, 16);
             label5.Name = "label5";
-            label5.Size = new System.Drawing.Size(478, 23);
+            label5.Size = new System.Drawing.Size(179, 23);
             label5.TabIndex = 3;
             label5.Text = "NOTE: Injecting only works when the process has not used the target API";
             // 
@@ -183,10 +186,10 @@
             this.actionsGroup.AutoSize = true;
             this.actionsGroup.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.actionsGroup.Controls.Add(this.actionsFlow);
-            this.actionsGroup.Location = new System.Drawing.Point(10, 584);
+            this.actionsGroup.Location = new System.Drawing.Point(10, 511);
             this.actionsGroup.Margin = new System.Windows.Forms.Padding(10);
             this.actionsGroup.Name = "actionsGroup";
-            this.actionsGroup.Size = new System.Drawing.Size(200, 65);
+            this.actionsGroup.Size = new System.Drawing.Size(195, 65);
             this.actionsGroup.TabIndex = 11;
             this.actionsGroup.TabStop = false;
             this.actionsGroup.Text = "Actions";
@@ -243,10 +246,10 @@
             this.globalGroup.AutoSize = true;
             this.globalGroup.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.globalGroup.Controls.Add(this.globalFlow);
-            this.globalGroup.Location = new System.Drawing.Point(10, 669);
+            this.globalGroup.Location = new System.Drawing.Point(10, 596);
             this.globalGroup.Margin = new System.Windows.Forms.Padding(10);
             this.globalGroup.Name = "globalGroup";
-            this.globalGroup.Size = new System.Drawing.Size(200, 80);
+            this.globalGroup.Size = new System.Drawing.Size(195, 80);
             this.globalGroup.TabIndex = 12;
             this.globalGroup.TabStop = false;
             this.globalGroup.Text = "Global Process Hook";
@@ -282,10 +285,10 @@
             this.capOptsGroup.AutoSize = true;
             this.capOptsGroup.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
             this.capOptsGroup.Controls.Add(this.capOptsFlow);
-            this.capOptsGroup.Location = new System.Drawing.Point(10, 451);
+            this.capOptsGroup.Location = new System.Drawing.Point(10, 378);
             this.capOptsGroup.Margin = new System.Windows.Forms.Padding(10);
             this.capOptsGroup.Name = "capOptsGroup";
-            this.capOptsGroup.Size = new System.Drawing.Size(200, 113);
+            this.capOptsGroup.Size = new System.Drawing.Size(195, 113);
             this.capOptsGroup.TabIndex = 4;
             this.capOptsGroup.TabStop = false;
             this.capOptsGroup.Text = "Capture Options";
@@ -468,9 +471,9 @@
             this.panel2.Controls.Add(this.save);
             this.panel2.Controls.Add(this.close);
             this.panel2.Controls.Add(this.capture);
-            this.panel2.Location = new System.Drawing.Point(3, 762);
+            this.panel2.Location = new System.Drawing.Point(3, 689);
             this.panel2.Name = "panel2";
-            this.panel2.Size = new System.Drawing.Size(214, 26);
+            this.panel2.Size = new System.Drawing.Size(209, 26);
             this.panel2.TabIndex = 8;
             // 
             // load
@@ -500,7 +503,7 @@
             // close
             // 
             this.close.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.close.Location = new System.Drawing.Point(167, 3);
+            this.close.Location = new System.Drawing.Point(161, 3);
             this.close.Margin = new System.Windows.Forms.Padding(0);
             this.close.Name = "close";
             this.close.Size = new System.Drawing.Size(41, 23);
@@ -512,7 +515,7 @@
             // capture
             // 
             this.capture.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.capture.Location = new System.Drawing.Point(110, 3);
+            this.capture.Location = new System.Drawing.Point(104, 3);
             this.capture.Margin = new System.Windows.Forms.Padding(0);
             this.capture.Name = "capture";
             this.capture.Size = new System.Drawing.Size(52, 23);
@@ -553,14 +556,14 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.cmdline.Location = new System.Drawing.Point(137, 71);
             this.cmdline.Name = "cmdline";
-            this.cmdline.Size = new System.Drawing.Size(57, 20);
+            this.cmdline.Size = new System.Drawing.Size(51, 20);
             this.cmdline.TabIndex = 4;
             this.toolTip.SetToolTip(this.cmdline, "The command-line that will be passed to the executable on launch");
             // 
             // workDirBrowse
             // 
             this.workDirBrowse.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.workDirBrowse.Location = new System.Drawing.Point(170, 45);
+            this.workDirBrowse.Location = new System.Drawing.Point(164, 45);
             this.workDirBrowse.Name = "workDirBrowse";
             this.workDirBrowse.Size = new System.Drawing.Size(24, 20);
             this.workDirBrowse.TabIndex = 3;
@@ -575,7 +578,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.workDirPath.Location = new System.Drawing.Point(137, 45);
             this.workDirPath.Name = "workDirPath";
-            this.workDirPath.Size = new System.Drawing.Size(27, 20);
+            this.workDirPath.Size = new System.Drawing.Size(22, 20);
             this.workDirPath.TabIndex = 2;
             this.toolTip.SetToolTip(this.workDirPath, "The working directory the executable will be launched in");
             this.workDirPath.TextChanged += new System.EventHandler(this.workDirPath_TextChanged);
@@ -585,7 +588,7 @@
             // exeBrowse
             // 
             this.exeBrowse.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.exeBrowse.Location = new System.Drawing.Point(170, 18);
+            this.exeBrowse.Location = new System.Drawing.Point(164, 18);
             this.exeBrowse.Name = "exeBrowse";
             this.exeBrowse.Size = new System.Drawing.Size(24, 20);
             this.exeBrowse.TabIndex = 1;
@@ -601,7 +604,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.exePath.Location = new System.Drawing.Point(137, 19);
             this.exePath.Name = "exePath";
-            this.exePath.Size = new System.Drawing.Size(27, 20);
+            this.exePath.Size = new System.Drawing.Size(22, 20);
             this.exePath.TabIndex = 0;
             this.toolTip.SetToolTip(this.exePath, "The executable file to launch");
             this.exePath.TextChanged += new System.EventHandler(this.exePath_TextChanged);
@@ -611,7 +614,7 @@
             // pidRefresh
             // 
             this.pidRefresh.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.pidRefresh.Location = new System.Drawing.Point(415, 180);
+            this.pidRefresh.Location = new System.Drawing.Point(113, 118);
             this.pidRefresh.Name = "pidRefresh";
             this.pidRefresh.Size = new System.Drawing.Size(75, 23);
             this.pidRefresh.TabIndex = 6;
@@ -622,23 +625,32 @@
             // 
             // pidList
             // 
-            this.pidList.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.pidList.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
+            | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.pidList.Columns.AddRange(new System.Windows.Forms.ColumnHeader[] {
+            name,
             pid,
-            name});
+            this.winTitle});
             this.pidList.FullRowSelect = true;
             this.pidList.GridLines = true;
-            this.pidList.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.Nonclickable;
             this.pidList.HideSelection = false;
+            this.pidList.LabelWrap = false;
             this.pidList.Location = new System.Drawing.Point(6, 42);
             this.pidList.MultiSelect = false;
             this.pidList.Name = "pidList";
-            this.pidList.Size = new System.Drawing.Size(188, 129);
+            this.pidList.Size = new System.Drawing.Size(182, 70);
             this.pidList.TabIndex = 5;
             this.toolTip.SetToolTip(this.pidList, "Select the process to inject into - must not yet have utilised the target API");
             this.pidList.UseCompatibleStateImageBehavior = false;
             this.pidList.View = System.Windows.Forms.View.Details;
+            this.pidList.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.pidList_ColumnClick);
+            this.pidList.Resize += new System.EventHandler(this.pidList_Resize);
+            // 
+            // winTitle
+            // 
+            this.winTitle.Text = "Window Title";
+            this.winTitle.Width = 599;
             // 
             // environmentDisplay
             // 
@@ -649,14 +661,14 @@
             this.environmentDisplay.Location = new System.Drawing.Point(137, 97);
             this.environmentDisplay.Name = "environmentDisplay";
             this.environmentDisplay.ReadOnly = true;
-            this.environmentDisplay.Size = new System.Drawing.Size(27, 20);
+            this.environmentDisplay.Size = new System.Drawing.Size(22, 20);
             this.environmentDisplay.TabIndex = 9;
             this.toolTip.SetToolTip(this.environmentDisplay, "The working directory the executable will be launched in");
             // 
             // setEnv
             // 
             this.setEnv.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Right)));
-            this.setEnv.Location = new System.Drawing.Point(170, 96);
+            this.setEnv.Location = new System.Drawing.Point(164, 96);
             this.setEnv.Name = "setEnv";
             this.setEnv.Size = new System.Drawing.Size(24, 20);
             this.setEnv.TabIndex = 10;
@@ -665,33 +677,45 @@
             this.setEnv.UseVisualStyleBackColor = true;
             this.setEnv.Click += new System.EventHandler(this.setEnv_Click);
             // 
-            // tableLayoutPanel2
+            // processFilter
             // 
-            this.tableLayoutPanel2.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            this.processFilter.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
-            this.tableLayoutPanel2.AutoSize = true;
-            this.tableLayoutPanel2.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
-            this.tableLayoutPanel2.ColumnCount = 1;
-            this.tableLayoutPanel2.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel2.Controls.Add(this.programGroup, 0, 0);
-            this.tableLayoutPanel2.Controls.Add(this.panel2, 0, 6);
-            this.tableLayoutPanel2.Controls.Add(this.capOptsGroup, 0, 3);
-            this.tableLayoutPanel2.Controls.Add(this.processGroup, 0, 1);
-            this.tableLayoutPanel2.Controls.Add(this.actionsGroup, 0, 4);
-            this.tableLayoutPanel2.Controls.Add(this.globalGroup, 0, 5);
-            this.tableLayoutPanel2.Controls.Add(this.vulkanLayerWarn, 0, 2);
-            this.tableLayoutPanel2.Location = new System.Drawing.Point(0, 0);
-            this.tableLayoutPanel2.Name = "tableLayoutPanel2";
-            this.tableLayoutPanel2.RowCount = 7;
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel2.Size = new System.Drawing.Size(220, 791);
-            this.tableLayoutPanel2.TabIndex = 8;
+            this.processFilter.Location = new System.Drawing.Point(6, 120);
+            this.processFilter.Name = "processFilter";
+            this.processFilter.Size = new System.Drawing.Size(103, 20);
+            this.processFilter.TabIndex = 7;
+            this.toolTip.SetToolTip(this.processFilter, "The working directory the executable will be launched in");
+            this.processFilter.TextChanged += new System.EventHandler(this.processFilter_TextChanged);
+            this.processFilter.Enter += new System.EventHandler(this.processFilter_Enter);
+            this.processFilter.Leave += new System.EventHandler(this.processFilter_Leave);
+            // 
+            // mainTableLayout
+            // 
+            this.mainTableLayout.AutoSizeMode = System.Windows.Forms.AutoSizeMode.GrowAndShrink;
+            this.mainTableLayout.ColumnCount = 1;
+            this.mainTableLayout.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.mainTableLayout.Controls.Add(this.programGroup, 0, 0);
+            this.mainTableLayout.Controls.Add(this.panel2, 0, 6);
+            this.mainTableLayout.Controls.Add(this.capOptsGroup, 0, 3);
+            this.mainTableLayout.Controls.Add(this.processGroup, 0, 1);
+            this.mainTableLayout.Controls.Add(this.actionsGroup, 0, 4);
+            this.mainTableLayout.Controls.Add(this.globalGroup, 0, 5);
+            this.mainTableLayout.Controls.Add(this.vulkanLayerWarn, 0, 2);
+            this.mainTableLayout.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.mainTableLayout.Location = new System.Drawing.Point(0, 0);
+            this.mainTableLayout.Name = "mainTableLayout";
+            this.mainTableLayout.RowCount = 7;
+            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.mainTableLayout.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.mainTableLayout.Size = new System.Drawing.Size(215, 718);
+            this.mainTableLayout.TabIndex = 8;
+            this.mainTableLayout.Layout += new System.Windows.Forms.LayoutEventHandler(this.mainTableLayout_Layout);
             // 
             // programGroup
             // 
@@ -711,22 +735,23 @@
             this.programGroup.Location = new System.Drawing.Point(10, 10);
             this.programGroup.Margin = new System.Windows.Forms.Padding(10);
             this.programGroup.Name = "programGroup";
-            this.programGroup.Size = new System.Drawing.Size(200, 134);
+            this.programGroup.Size = new System.Drawing.Size(195, 134);
             this.programGroup.TabIndex = 10;
             this.programGroup.TabStop = false;
             this.programGroup.Text = "Program";
             // 
             // processGroup
             // 
-            this.processGroup.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
-            | System.Windows.Forms.AnchorStyles.Right)));
+            this.processGroup.Controls.Add(this.processFilter);
             this.processGroup.Controls.Add(label5);
             this.processGroup.Controls.Add(this.pidList);
             this.processGroup.Controls.Add(this.pidRefresh);
+            this.processGroup.Dock = System.Windows.Forms.DockStyle.Fill;
             this.processGroup.Location = new System.Drawing.Point(10, 164);
             this.processGroup.Margin = new System.Windows.Forms.Padding(10);
+            this.processGroup.MinimumSize = new System.Drawing.Size(0, 150);
             this.processGroup.Name = "processGroup";
-            this.processGroup.Size = new System.Drawing.Size(200, 209);
+            this.processGroup.Size = new System.Drawing.Size(195, 150);
             this.processGroup.TabIndex = 9;
             this.processGroup.TabStop = false;
             this.processGroup.Text = "Process";
@@ -740,10 +765,10 @@
             this.vulkanLayerWarn.FlatStyle = System.Windows.Forms.FlatStyle.Flat;
             this.vulkanLayerWarn.Image = global::renderdocui.Properties.Resources.information;
             this.vulkanLayerWarn.ImageAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.vulkanLayerWarn.Location = new System.Drawing.Point(3, 393);
+            this.vulkanLayerWarn.Location = new System.Drawing.Point(3, 320);
             this.vulkanLayerWarn.Margin = new System.Windows.Forms.Padding(3, 10, 3, 10);
             this.vulkanLayerWarn.Name = "vulkanLayerWarn";
-            this.vulkanLayerWarn.Size = new System.Drawing.Size(214, 38);
+            this.vulkanLayerWarn.Size = new System.Drawing.Size(209, 38);
             this.vulkanLayerWarn.TabIndex = 13;
             this.vulkanLayerWarn.Text = "Warning: Vulkan capture is not configured. Click here to set up Vulkan capture.";
             this.vulkanLayerWarn.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
@@ -757,8 +782,8 @@
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.AutoScroll = true;
             this.AutoScrollMinSize = new System.Drawing.Size(215, 0);
-            this.ClientSize = new System.Drawing.Size(230, 754);
-            this.Controls.Add(this.tableLayoutPanel2);
+            this.ClientSize = new System.Drawing.Size(196, 734);
+            this.Controls.Add(this.mainTableLayout);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Name = "CaptureDialog";
             this.ShowHint = WeifenLuo.WinFormsUI.Docking.DockState.Document;
@@ -779,13 +804,13 @@
             this.panel3.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.DelayForDebugger)).EndInit();
             this.panel2.ResumeLayout(false);
-            this.tableLayoutPanel2.ResumeLayout(false);
-            this.tableLayoutPanel2.PerformLayout();
+            this.mainTableLayout.ResumeLayout(false);
+            this.mainTableLayout.PerformLayout();
             this.programGroup.ResumeLayout(false);
             this.programGroup.PerformLayout();
             this.processGroup.ResumeLayout(false);
+            this.processGroup.PerformLayout();
             this.ResumeLayout(false);
-            this.PerformLayout();
 
         }
 
@@ -815,7 +840,7 @@
         private System.Windows.Forms.CheckBox AutoStart;
         private System.Windows.Forms.ToolTip toolTip;
         private System.Windows.Forms.FlowLayoutPanel capOptsFlow;
-        private System.Windows.Forms.TableLayoutPanel tableLayoutPanel2;
+        private System.Windows.Forms.TableLayoutPanel mainTableLayout;
         private System.Windows.Forms.GroupBox programGroup;
         private System.Windows.Forms.TextBox cmdline;
         private System.Windows.Forms.Button workDirBrowse;
@@ -838,6 +863,8 @@
         private System.Windows.Forms.Button vulkanLayerWarn;
         private System.Windows.Forms.Button setEnv;
         private System.Windows.Forms.TextBox environmentDisplay;
+        private System.Windows.Forms.ColumnHeader winTitle;
+        private System.Windows.Forms.TextBox processFilter;
 
     }
 }

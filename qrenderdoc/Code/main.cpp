@@ -1,4 +1,5 @@
 #include <QApplication>
+#include <QDir>
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
@@ -56,9 +57,27 @@ int main(int argc, char *argv[])
       filename = "";
   }
 
-  QApplication a(argc, argv);
+  argc += 2;
+
+  char **argv_mod = new char *[argc];
+
+  for(int i = 0; i < argc - 2; i++)
+    argv_mod[i] = argv[i];
+
+  char arg[] = "-platformpluginpath";
+  QString path = QFileInfo(argv[0]).absoluteDir().absolutePath();
+  QByteArray pathChars = path.toUtf8();
+
+  argv_mod[argc - 2] = arg;
+  argv_mod[argc - 1] = pathChars.data();
+
+  QApplication a(argc, argv_mod);
 
   Core core(filename, remoteHost, remoteIdent, temp);
 
-  return a.exec();
+  int ret = a.exec();
+
+  delete[] argv_mod;
+
+  return ret;
 }

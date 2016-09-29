@@ -416,7 +416,7 @@ public:
       return false;
 
     if(libName)
-      LinuxHookLibrary("libGL.so", &libHooked);
+      PosixHookLibrary("libGL.so", &libHooked);
 
     bool success = SetupHooks(GL);
 
@@ -462,6 +462,15 @@ public:
     if(!m_PopulatedHooks)
       m_PopulatedHooks = PopulateHooks();
     return GL;
+  }
+
+  void SetupExportedFunctions()
+  {
+    // in the replay application we need to call SetupHooks to ensure that all of our exported
+    // functions like glXCreateContext etc have the 'real' pointers to call into, otherwise even the
+    // replay app will resolve to our hooks first before the real libGL and call in.
+    if(RenderDoc::Inst().IsReplayApp())
+      SetupHooks(GL);
   }
 
   void MakeContextCurrent(GLWindowingData data)
@@ -869,6 +878,9 @@ DefineUnsupportedDummies();
 __attribute__((visibility("default"))) GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis,
                                                                    GLXContext shareList, Bool direct)
 {
+  if(OpenGLHook::glhooks.glXCreateContext_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   GLXContext ret = OpenGLHook::glhooks.glXCreateContext_real(dpy, vis, shareList, direct);
 
   // don't continue if context creation failed
@@ -909,6 +921,9 @@ __attribute__((visibility("default"))) GLXContext glXCreateContext(Display *dpy,
 
 __attribute__((visibility("default"))) void glXDestroyContext(Display *dpy, GLXContext ctx)
 {
+  if(OpenGLHook::glhooks.glXDestroyContext_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   OpenGLHook::glhooks.GetDriver()->DeleteContext(ctx);
 
   OpenGLHook::glhooks.glXDestroyContext_real(dpy, ctx);
@@ -974,6 +989,9 @@ __attribute__((visibility("default"))) GLXContext glXCreateContextAttribsARB(
     a += 2;
   }
 
+  if(OpenGLHook::glhooks.glXCreateContextAttribsARB_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   GLXContext ret =
       OpenGLHook::glhooks.glXCreateContextAttribsARB_real(dpy, config, shareList, direct, attribs);
 
@@ -1020,6 +1038,9 @@ __attribute__((visibility("default"))) GLXContext glXCreateContextAttribsARB(
 __attribute__((visibility("default"))) Bool glXMakeCurrent(Display *dpy, GLXDrawable drawable,
                                                            GLXContext ctx)
 {
+  if(OpenGLHook::glhooks.glXMakeCurrent_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   Bool ret = OpenGLHook::glhooks.glXMakeCurrent_real(dpy, drawable, ctx);
 
   if(ctx && OpenGLHook::glhooks.m_Contexts.find(ctx) == OpenGLHook::glhooks.m_Contexts.end())
@@ -1041,6 +1062,9 @@ __attribute__((visibility("default"))) Bool glXMakeCurrent(Display *dpy, GLXDraw
 
 __attribute__((visibility("default"))) void glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 {
+  if(OpenGLHook::glhooks.glXSwapBuffers_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   // if we use the GLXDrawable in XGetGeometry and it's a GLXWindow, then we get
   // a BadDrawable error and things go south. Instead we track GLXWindows created
   // in glXCreateWindow/glXDestroyWindow and look up the source window it was
@@ -1111,6 +1135,9 @@ bool OpenGLHook::SetupHooks(GLHookSet &GL)
 
 __attribute__((visibility("default"))) __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
 {
+  if(OpenGLHook::glhooks.glXGetProcAddress_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   __GLXextFuncPtr realFunc = OpenGLHook::glhooks.glXGetProcAddress_real(f);
   const char *func = (const char *)f;
 
@@ -1174,6 +1201,9 @@ __attribute__((visibility("default"))) __GLXextFuncPtr glXGetProcAddressARB(cons
 __attribute__((visibility("default"))) GLXWindow glXCreateWindow(Display *dpy, GLXFBConfig config,
                                                                  Window win, const int *attribList)
 {
+  if(OpenGLHook::glhooks.glXCreateWindow_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   GLXWindow ret = OpenGLHook::glhooks.glXCreateWindow_real(dpy, config, win, attribList);
 
   OpenGLHook::glhooks.AddGLXWindow(ret, win);
@@ -1183,6 +1213,9 @@ __attribute__((visibility("default"))) GLXWindow glXCreateWindow(Display *dpy, G
 
 __attribute__((visibility("default"))) void glXDestroyWindow(Display *dpy, GLXWindow window)
 {
+  if(OpenGLHook::glhooks.glXDestroyWindow_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   OpenGLHook::glhooks.RemoveGLXWindow(window);
 
   return OpenGLHook::glhooks.glXDestroyWindow_real(dpy, window);
@@ -1195,45 +1228,69 @@ __attribute__((visibility("default"))) void glXDestroyWindow(Display *dpy, GLXWi
 __attribute__((visibility("default"))) Bool glXQueryExtension(Display *dpy, int *errorBase,
                                                               int *eventBase)
 {
+  if(OpenGLHook::glhooks.glXQueryExtension_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   return OpenGLHook::glhooks.glXQueryExtension_real(dpy, errorBase, eventBase);
 }
 
 __attribute__((visibility("default"))) GLXFBConfig *glXGetFBConfigs(Display *dpy, int screen,
                                                                     int *nelements)
 {
+  if(OpenGLHook::glhooks.glXGetFBConfigs_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   return OpenGLHook::glhooks.glXGetFBConfigs_real(dpy, screen, nelements);
 }
 
 __attribute__((visibility("default"))) int glXGetFBConfigAttrib(Display *dpy, GLXFBConfig config,
                                                                 int attribute, int *value)
 {
+  if(OpenGLHook::glhooks.glXGetFBConfigAttrib_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   return OpenGLHook::glhooks.glXGetFBConfigAttrib_real(dpy, config, attribute, value);
 }
 
 __attribute__((visibility("default"))) const char *glXGetClientString(Display *dpy, int name)
 {
+  if(OpenGLHook::glhooks.glXGetClientString_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   return OpenGLHook::glhooks.glXGetClientString_real(dpy, name);
 }
 
 __attribute__((visibility("default"))) Bool glXQueryVersion(Display *dpy, int *maj, int *min)
 {
+  if(OpenGLHook::glhooks.glXQueryVersion_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   return OpenGLHook::glhooks.glXQueryVersion_real(dpy, maj, min);
 }
 
 __attribute__((visibility("default"))) const char *glXQueryExtensionsString(Display *dpy, int screen)
 {
+  if(OpenGLHook::glhooks.glXQueryExtensionsString_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   return OpenGLHook::glhooks.glXQueryExtensionsString_real(dpy, screen);
 }
 
 __attribute__((visibility("default"))) GLXContext glXCreateNewContext(
     Display *dpy, GLXFBConfig config, int renderType, GLXContext shareList, Bool direct)
 {
+  if(OpenGLHook::glhooks.glXCreateNewContext_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   return OpenGLHook::glhooks.glXCreateNewContext_real(dpy, config, renderType, shareList, direct);
 }
 
 __attribute__((visibility("default"))) XVisualInfo *glXGetVisualFromFBConfig(Display *dpy,
                                                                              GLXFBConfig config)
 {
+  if(OpenGLHook::glhooks.glXGetVisualFromFBConfig_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
   return OpenGLHook::glhooks.glXGetVisualFromFBConfig_real(dpy, config);
 }
 

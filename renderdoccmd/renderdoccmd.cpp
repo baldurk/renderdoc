@@ -374,8 +374,8 @@ struct InjectCommand : public Command
 
     std::cout << "Injecting into PID " << PID << std::endl;
 
-    uint32_t ident = RENDERDOC_InjectIntoProcess(PID, logFile.empty() ? "" : logFile.c_str(), &opts,
-                                                 parser.exist("wait-for-exit"));
+    uint32_t ident = RENDERDOC_InjectIntoProcess(PID, NULL, logFile.empty() ? "" : logFile.c_str(),
+                                                 &opts, parser.exist("wait-for-exit"));
 
     if(ident == 0)
     {
@@ -539,6 +539,7 @@ struct Cap32For64Command : public Command
     parser.add<uint32_t>("pid", 0, "");
     parser.add<string>("log", 0, "");
     parser.add<string>("capopts", 0, "");
+    parser.stop_at_rest(true);
   }
   virtual const char *Description() { return "Internal use only!"; }
   virtual bool IsInternalOnly() { return true; }
@@ -548,8 +549,87 @@ struct Cap32For64Command : public Command
     CaptureOptions cmdopts;
     readCapOpts(parser.get<string>("capopts").c_str(), &cmdopts);
 
-    return RENDERDOC_InjectIntoProcess(parser.get<uint32_t>("pid"),
-                                       parser.get<string>("log").c_str(), &cmdopts, false);
+    std::vector<std::string> rest = parser.rest();
+
+    if(rest.size() % 3 != 0)
+    {
+      std::cerr << "Invalid generated cap32for64 command rest.size() == " << rest.size() << std::endl;
+      return 0;
+    }
+
+    int numEnvs = int(rest.size() / 3);
+
+    void *env = RENDERDOC_MakeEnvironmentModificationList(numEnvs);
+
+    for(int i = 0; i < numEnvs; i++)
+    {
+      string typeString = rest[i * 3 + 0];
+
+      EnvironmentModificationType type = eEnvMod_Set;
+      EnvironmentSeparator sep = eEnvSep_None;
+
+      if(typeString == "+env-replace")
+      {
+        type = eEnvMod_Set;
+        sep = eEnvSep_None;
+      }
+      else if(typeString == "+env-append-platform")
+      {
+        type = eEnvMod_Append;
+        sep = eEnvSep_Platform;
+      }
+      else if(typeString == "+env-append-semicolon")
+      {
+        type = eEnvMod_Append;
+        sep = eEnvSep_SemiColon;
+      }
+      else if(typeString == "+env-append-colon")
+      {
+        type = eEnvMod_Append;
+        sep = eEnvSep_Colon;
+      }
+      else if(typeString == "+env-append")
+      {
+        type = eEnvMod_Append;
+        sep = eEnvSep_None;
+      }
+      else if(typeString == "+env-prepend-platform")
+      {
+        type = eEnvMod_Prepend;
+        sep = eEnvSep_Platform;
+      }
+      else if(typeString == "+env-prepend-semicolon")
+      {
+        type = eEnvMod_Prepend;
+        sep = eEnvSep_SemiColon;
+      }
+      else if(typeString == "+env-prepend-colon")
+      {
+        type = eEnvMod_Prepend;
+        sep = eEnvSep_Colon;
+      }
+      else if(typeString == "+env-prepend")
+      {
+        type = eEnvMod_Prepend;
+        sep = eEnvSep_None;
+      }
+      else
+      {
+        std::cerr << "Invalid generated cap32for64 env '" << rest[i * 3 + 0] << std::endl;
+        RENDERDOC_FreeEnvironmentModificationList(env);
+        return 0;
+      }
+
+      RENDERDOC_SetEnvironmentModification(env, i, rest[i * 3 + 1].c_str(), rest[i * 3 + 2].c_str(),
+                                           type, sep);
+    }
+
+    int ret = RENDERDOC_InjectIntoProcess(parser.get<uint32_t>("pid"), env,
+                                          parser.get<string>("log").c_str(), &cmdopts, false);
+
+    RENDERDOC_FreeEnvironmentModificationList(env);
+
+    return ret;
   }
 };
 

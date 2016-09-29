@@ -254,7 +254,7 @@ namespace renderdoc
             }
         }
 
-		public string D3D11SemanticString
+        public string D3DSemanticString
         {
             get
             {

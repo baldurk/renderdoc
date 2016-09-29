@@ -56,9 +56,53 @@ namespace renderdocui.Windows.Dialogs
             public EnvironmentModification[] Environment = new EnvironmentModification[0];
         }
 
+        private class ProcessSorter : System.Collections.IComparer
+        {
+            public ProcessSorter(int col, SortOrder order)
+            {
+                Column = col;
+                Sorting = order;
+            }
+
+            public int Compare(object x, object y)
+            {
+                ListViewItem a = x as ListViewItem;
+                ListViewItem b = y as ListViewItem;
+
+                if(a == null || b == null)
+                    return -1;
+
+                // PID
+                if (Column == 1)
+                {
+                    int aPID = int.Parse(a.SubItems[Column].Text);
+                    int bPID = int.Parse(b.SubItems[Column].Text);
+
+                    if(aPID == bPID)
+                        return 0;
+
+                    if(Sorting == SortOrder.Ascending)
+                        return (aPID < bPID) ? 1 : -1;
+                    else
+                        return (aPID < bPID) ? -1 : 1;
+                }
+
+                if (Sorting == SortOrder.Ascending)
+                    return String.Compare(a.SubItems[Column].Text, b.SubItems[Column].Text);
+                else
+                    return -String.Compare(a.SubItems[Column].Text, b.SubItems[Column].Text);
+            }
+
+            public int Column;
+            public SortOrder Sorting;
+        }
+
+        ProcessSorter m_ProcessSorter = new ProcessSorter(0, SortOrder.Ascending);
+
         private EnvironmentModification[] m_EnvModifications = new EnvironmentModification[0];
 
         private bool workDirHint = true;
+        private bool processFilterHint = true;
 
         private Core m_Core;
 
@@ -150,6 +194,9 @@ namespace renderdocui.Windows.Dialogs
 
                     globalGroup.Visible = false;
 
+                    mainTableLayout.RowStyles[1].SizeType = SizeType.Percent;
+                    mainTableLayout.RowStyles[1].Height = 100.0f;
+
                     capture.Text = "Inject";
 
                     FillProcessList();
@@ -160,6 +207,9 @@ namespace renderdocui.Windows.Dialogs
                 {
                     processGroup.Visible = false;
                     programGroup.Visible = true;
+
+                    mainTableLayout.RowStyles[1].SizeType = SizeType.Absolute;
+                    mainTableLayout.RowStyles[1].Height = 1.0f;
 
                     globalGroup.Visible = m_Core.Config.AllowGlobalHook;
 
@@ -195,6 +245,13 @@ namespace renderdocui.Windows.Dialogs
             workDirHint = true;
             workDirPath.ForeColor = SystemColors.GrayText;
 
+            processFilterHint = true;
+            processFilter.ForeColor = SystemColors.GrayText;
+            processFilter_Leave(processFilter, new EventArgs());
+
+            m_ProcessSorter.Sorting = SortOrder.Ascending;
+            pidList.ListViewItemSorter = m_ProcessSorter;
+
             SetSettings(defaults);
 
             UpdateGlobalHook();
@@ -203,7 +260,7 @@ namespace renderdocui.Windows.Dialogs
         #region Callbacks
 
         public delegate LiveCapture OnCaptureMethod(string exe, string workingDir, string cmdLine, EnvironmentModification[] env, CaptureOptions opts);
-        public delegate LiveCapture OnInjectMethod(UInt32 PID, string name, CaptureOptions opts);
+        public delegate LiveCapture OnInjectMethod(UInt32 PID, EnvironmentModification[] env, string name, CaptureOptions opts);
 
         private OnCaptureMethod m_CaptureCallback = null;
         private OnInjectMethod m_InjectCallback = null;
@@ -247,25 +304,97 @@ namespace renderdocui.Windows.Dialogs
             }
         }
 
+        private void AutoSizeLastColumn(ListView view)
+        {
+            // magic -2 value indicates it should fill to fit the width
+            view.Columns[view.Columns.Count - 1].Width = -2;
+        }
+
         private void FillProcessList()
         {
             Process[] processes = Process.GetProcesses();
-
-            Array.Sort(processes, (a, b) => String.Compare(a.ProcessName, b.ProcessName));
             
-            // magic -2 value indicates it should fill to fit the width
-            pidList.Columns[pidList.Columns.Count - 1].Width = -2;
+            AutoSizeLastColumn(pidList);
+
+            pidList.BeginUpdate();
 
             pidList.Items.Clear();
             foreach (var p in processes)
             {
-                var item = new ListViewItem(new string[] { p.Id.ToString(), p.ProcessName });
+                string[] values = new string[] { p.ProcessName, p.Id.ToString(), p.MainWindowTitle };
+
+                if (!processFilterHint && processFilter.Text.Length != 0)
+                {
+                    bool match = false;
+
+                    foreach(var v in values)
+                        if (v.Contains(processFilter.Text))
+                            match = true;
+
+                    if(!match)
+                        continue;
+                }
+
+                var item = new ListViewItem(values);
                 item.Tag = (UInt32)p.Id;
+
                 pidList.Items.Add(item);
             }
 
+            pidList.EndUpdate();
+
             pidList.SelectedIndices.Clear();
-            pidList.SelectedIndices.Add(0);
+            if(pidList.Items.Count > 0)
+                pidList.SelectedIndices.Add(0);
+        }
+
+        private void pidList_ColumnClick(object sender, ColumnClickEventArgs e)
+        {
+            if(e.Column == m_ProcessSorter.Column)
+            {
+                if (m_ProcessSorter.Sorting == SortOrder.Ascending)
+                    m_ProcessSorter.Sorting = SortOrder.Descending;
+                else
+                    m_ProcessSorter.Sorting = SortOrder.Ascending;
+            }
+            else
+            {
+                m_ProcessSorter = new ProcessSorter(e.Column, m_ProcessSorter.Sorting);
+                pidList.ListViewItemSorter = m_ProcessSorter;
+            }
+
+            pidList.Sort();
+        }
+
+        private void pidList_Resize(object sender, EventArgs e)
+        {
+            AutoSizeLastColumn(pidList);
+        }
+
+        private void processFilter_Enter(object sender, EventArgs e)
+        {
+            if (processFilterHint)
+            {
+                processFilter.ForeColor = SystemColors.WindowText;
+                processFilter.Text = "";
+            }
+
+            processFilterHint = false;
+        }
+
+        private void processFilter_Leave(object sender, EventArgs e)
+        {
+            if (processFilter.Text.Length == 0)
+            {
+                processFilterHint = true;
+                processFilter.ForeColor = SystemColors.GrayText;
+                processFilter.Text = "Filter process list by PID or name";
+            }
+        }
+
+        private void processFilter_TextChanged(object sender, EventArgs e)
+        {
+            FillProcessList();
         }
 
         #endregion
@@ -316,7 +445,7 @@ namespace renderdocui.Windows.Dialogs
                 string name = item.SubItems[1].Text;
                 UInt32 PID = (UInt32)item.Tag;
 
-                var live = m_InjectCallback(PID, name, GetSettings().Options);
+                var live = m_InjectCallback(PID, GetSettings().Environment, name, GetSettings().Options);
 
                 if (queueFrameCap.Checked && live != null)
                     live.QueueCapture((int)queuedCapFrame.Value);
@@ -1098,6 +1227,22 @@ namespace renderdocui.Windows.Dialogs
                 Helpers.RegisterVulkanLayer();
 
                 vulkanLayerWarn.Visible = !Helpers.CheckVulkanLayerRegistration();
+            }
+        }
+
+        private void mainTableLayout_Layout(object sender, LayoutEventArgs e)
+        {
+            // bit of a hack to stop the table layout completely breaking.
+            // in InjectMode make sure the main table layout doesn't get small enough to
+            // reduce the processGroup to its minimum size
+            if (InjectMode)
+            {
+                int margin = processGroup.ClientRectangle.Height - (processGroup.MinimumSize.Height + 20);
+
+                if (processGroup.ClientRectangle.Height < processGroup.MinimumSize.Height + 20)
+                    margin = 0;
+
+                mainTableLayout.MinimumSize = new Size(0, mainTableLayout.ClientRectangle.Height - margin);
             }
         }
     }

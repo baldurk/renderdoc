@@ -1282,8 +1282,9 @@ namespace renderdocui.Windows
                 prev.Tag = follow;
                 prev.SlotName = slotName;
                 prev.Visible = true;
+                prev.Selected = (m_Following == follow);
             }
-            else if (prev.Selected)
+            else if (m_Following == follow)
             {
                 FetchTexture tex = null;
 
@@ -1297,6 +1298,7 @@ namespace renderdocui.Windows
                     prev.Init();
                 else
                     prev.Init("Unused", tex.width, tex.height, tex.depth, tex.mips);
+                prev.Selected = true;
                 m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
                 {
                     m_Output.AddThumbnail(handle, ResourceId.Null, FormatComponentType.None);
@@ -1331,7 +1333,8 @@ namespace renderdocui.Windows
                     FormatComponentType typeHint = resArray != null ? resArray[arrayIdx].typeHint : FormatComponentType.None;
 
                     bool used = key.used;
-                    bool skip = false;
+                    bool samplerBind = false;
+                    bool otherBind = false;
 
                     string bindName = "";
 
@@ -1340,11 +1343,20 @@ namespace renderdocui.Windows
                         if (bind.bindPoint == idx && bind.IsSRV)
                         {
                             bindName = bind.name;
+                            otherBind = true;
                             break;
+                        }
+
+                        if (bind.bindPoint == idx)
+                        {
+                            if(bind.IsSampler && !bind.IsSRV)
+                                samplerBind = true;
+                            else
+                                otherBind = true;
                         }
                     }
 
-                    if (skip)
+                    if (samplerBind && !otherBind)
                         continue;
 
                     if (copy)
@@ -1395,7 +1407,7 @@ namespace renderdocui.Windows
             if (IsDisposed) return;
 
             if (!CurrentTextureIsLocked || (CurrentTexture != null && m_TexDisplay.texid != CurrentTexture.ID))
-                UI_OnTextureSelectionChanged();
+                UI_OnTextureSelectionChanged(true);
 
             if (m_Output == null) return;
 
@@ -1463,6 +1475,9 @@ namespace renderdocui.Windows
 
                 ShaderReflection details = Following.GetReflection(m_Core, stage);
                 ShaderBindpointMapping mapping = Following.GetMapping(m_Core, stage);
+
+                if (mapping == null)
+                    continue;
 
                 InitStageResourcePreviews(stage,
                     details != null ? details.ReadWriteResources : new ShaderResource[0],
@@ -1549,7 +1564,7 @@ namespace renderdocui.Windows
                 rangeHistogram.SetRange(0.0f, 1.0f);
         }
 
-        private void UI_OnTextureSelectionChanged()
+        private void UI_OnTextureSelectionChanged(bool newdraw)
         {
             FetchTexture tex = CurrentTexture;
 
@@ -1642,7 +1657,6 @@ namespace renderdocui.Windows
             UI_UpdateStatusText();
 
             mipLevel.Items.Clear();
-            sliceFace.Items.Clear();
 
             m_TexDisplay.mip = 0;
             m_TexDisplay.sliceFace = 0;
@@ -1675,7 +1689,9 @@ namespace renderdocui.Windows
                 mipLevelLabel.Text = "Mip";
 
                 int highestMip = -1;
-                if (!CurrentTextureIsLocked)
+
+                // only switch to the selected mip for outputs, and when changing drawcall
+                if (!CurrentTextureIsLocked && m_Following.Type != FollowType.ReadOnly && newdraw)
                     highestMip = m_Following.GetHighestMip(m_Core);
 
                 // assuming we get a valid mip for the highest mip, only switch to it
@@ -1705,6 +1721,8 @@ namespace renderdocui.Windows
                 mipLevel.Enabled = true;
             }
 
+            sliceFace.Items.Clear();
+
             if (tex.numSubresources == tex.mips && tex.depth <= 1)
             {
                 sliceFace.Enabled = false;
@@ -1718,6 +1736,10 @@ namespace renderdocui.Windows
                 String[] cubeFaces = { "X+", "X-", "Y+", "Y-", "Z+", "Z-" };
 
                 UInt32 numSlices = (Math.Max(1, tex.depth) * tex.numSubresources) / tex.mips;
+
+                // for 3D textures, display the number of slices at this mip
+                if(tex.depth > 1)
+                    numSlices = Math.Max(1, tex.depth >> (int)mipLevel.SelectedIndex);
 
                 for (UInt32 i = 0; i < numSlices; i++)
                 {
@@ -1735,7 +1757,8 @@ namespace renderdocui.Windows
                 }
 
                 int firstArraySlice = -1;
-                if (!CurrentTextureIsLocked)
+                // only switch to the selected mip for outputs, and when changing drawcall
+                if (!CurrentTextureIsLocked && m_Following.Type != FollowType.ReadOnly && newdraw)
                     firstArraySlice = m_Following.GetFirstArraySlice(m_Core);
 
                 // see above with highestMip and prevHighestMip for the logic behind this
@@ -1862,7 +1885,7 @@ namespace renderdocui.Windows
             if (d.Visible)
                 d.Controls.Add(renderToolstripContainer);
 
-            UI_OnTextureSelectionChanged();
+            UI_OnTextureSelectionChanged(false);
         }
 
         void PreviewPanel_FormClosing(object sender, FormClosingEventArgs e)
@@ -2783,29 +2806,34 @@ namespace renderdocui.Windows
 
             }
 
+            int increment = 1 << (int)m_TexDisplay.mip;
+
             if (e.KeyCode == Keys.Up && m_PickedPoint.Y > 0)
             {
-                m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y - 1);
+                m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y - increment);
                 nudged = true;
             }
             else if (e.KeyCode == Keys.Down && m_PickedPoint.Y < tex.height-1)
             {
-                m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y + 1);
+                m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y + increment);
                 nudged = true;
             }
             else if (e.KeyCode == Keys.Left && m_PickedPoint.X > 0)
             {
-                m_PickedPoint = new Point(m_PickedPoint.X - 1, m_PickedPoint.Y);
+                m_PickedPoint = new Point(m_PickedPoint.X - increment, m_PickedPoint.Y);
                 nudged = true;
             }
             else if (e.KeyCode == Keys.Right && m_PickedPoint.X < tex.width - 1)
             {
-                m_PickedPoint = new Point(m_PickedPoint.X + 1, m_PickedPoint.Y);
+                m_PickedPoint = new Point(m_PickedPoint.X + increment, m_PickedPoint.Y);
                 nudged = true;
             }
 
             if(nudged)
             {
+                m_PickedPoint = new Point(
+                    Helpers.Clamp(m_PickedPoint.X, 0, (int)tex.width-1),
+                    Helpers.Clamp(m_PickedPoint.Y, 0, (int)tex.height - 1));
                 e.Handled = true;
 
                 m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
@@ -3123,6 +3151,8 @@ namespace renderdocui.Windows
         {
             if (CurrentTexture == null) return;
 
+            uint prevSlice = m_TexDisplay.sliceFace;
+
             if (CurrentTexture.mips > 1)
             {
                 m_TexDisplay.mip = (UInt32)mipLevel.SelectedIndex;
@@ -3134,6 +3164,24 @@ namespace renderdocui.Windows
                 m_TexDisplay.sampleIdx = (UInt32)mipLevel.SelectedIndex;
                 if (mipLevel.SelectedIndex == CurrentTexture.msSamp)
                     m_TexDisplay.sampleIdx = ~0U;
+            }
+
+            // For 3D textures, update the slice list for this mip
+            if(CurrentTexture.depth > 1)
+            {
+                uint newSlice = prevSlice >> (int)m_TexDisplay.mip;
+
+                UInt32 numSlices = Math.Max(1, CurrentTexture.depth >> (int)m_TexDisplay.mip);
+
+                sliceFace.Items.Clear();
+
+                for (UInt32 i = 0; i < numSlices; i++)
+                    sliceFace.Items.Add("Slice " + i);
+
+                // changing sliceFace index will handle updating range & re-picking
+                sliceFace.SelectedIndex = Helpers.Clamp((int)newSlice, 0, sliceFace.Items.Count-1);
+
+                return;
             }
 
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
@@ -3163,6 +3211,9 @@ namespace renderdocui.Windows
         private void sliceFace_SelectedIndexChanged(object sender, EventArgs e)
         {
             m_TexDisplay.sliceFace = (UInt32)sliceFace.SelectedIndex;
+
+            if (CurrentTexture.depth > 1)
+                m_TexDisplay.sliceFace = (UInt32)(sliceFace.SelectedIndex << (int)m_TexDisplay.mip);
 
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
 
@@ -3602,6 +3653,9 @@ namespace renderdocui.Windows
             m_SaveDialog.saveData.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
             m_SaveDialog.saveData.mip = (int)m_TexDisplay.mip;
 
+            if(CurrentTexture != null && CurrentTexture.depth > 1)
+                m_SaveDialog.saveData.slice.sliceIndex = (int)m_TexDisplay.sliceFace >> (int)m_TexDisplay.mip;
+
             m_SaveDialog.saveData.channelExtract = -1;
             if (m_TexDisplay.Red && !m_TexDisplay.Green && !m_TexDisplay.Blue && !m_TexDisplay.Alpha)
                 m_SaveDialog.saveData.channelExtract = 0;
@@ -3783,7 +3837,7 @@ namespace renderdocui.Windows
 
                             // if the usage is different from the last, add a new entry,
                             // or if the previous draw link is broken.
-                            if (u.usage != us || curDraw.previous == null)
+                            if (u.usage != us || curDraw == null || curDraw.previous == null)
                             {
                                 distinct = true;
                             }
@@ -3874,7 +3928,7 @@ namespace renderdocui.Windows
 
                 if (id != ResourceId.Null)
                 {
-                    UI_OnTextureSelectionChanged();
+                    UI_OnTextureSelectionChanged(false);
                     m_PreviewPanel.Show();
                 }
             }

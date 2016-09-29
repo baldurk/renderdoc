@@ -88,7 +88,43 @@ void D3D12Descriptor::Init(ID3D12Resource *pResource, const D3D12_DEPTH_STENCIL_
     RDCEraseEl(nonsamp.dsv);
 }
 
-void D3D12Descriptor::Create(ID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HANDLE handle)
+// these are used to create NULL descriptors where necessary
+static D3D12_SHADER_RESOURCE_VIEW_DESC *defaultSRV()
+{
+  static D3D12_SHADER_RESOURCE_VIEW_DESC ret = {};
+  ret.Format = DXGI_FORMAT_R8_UNORM;
+  ret.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+  ret.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+  ret.Texture2D.MipLevels = 1;
+  return &ret;
+}
+
+static D3D12_RENDER_TARGET_VIEW_DESC *defaultRTV()
+{
+  static D3D12_RENDER_TARGET_VIEW_DESC ret = {};
+  ret.Format = DXGI_FORMAT_R8_UNORM;
+  ret.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+  return &ret;
+}
+
+static D3D12_DEPTH_STENCIL_VIEW_DESC *defaultDSV()
+{
+  static D3D12_DEPTH_STENCIL_VIEW_DESC ret = {};
+  ret.Format = DXGI_FORMAT_D16_UNORM;
+  ret.ViewDimension = D3D12_DSV_DIMENSION_TEXTURE2D;
+  return &ret;
+}
+
+static D3D12_UNORDERED_ACCESS_VIEW_DESC *defaultUAV()
+{
+  static D3D12_UNORDERED_ACCESS_VIEW_DESC ret = {};
+  ret.Format = DXGI_FORMAT_R8_UNORM;
+  ret.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+  return &ret;
+}
+
+void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12Device *dev,
+                             D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
   D3D12Descriptor::DescriptorType type = GetType();
 
@@ -106,40 +142,100 @@ void D3D12Descriptor::Create(ID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HANDLE hand
     }
     case D3D12Descriptor::TypeSRV:
     {
-      dev->CreateShaderResourceView(nonsamp.resource, &nonsamp.srv, handle);
+      D3D12_SHADER_RESOURCE_VIEW_DESC *desc = &nonsamp.srv;
+      if(desc->ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
+      {
+        desc = nonsamp.resource ? NULL : defaultSRV();
+
+        // fixup for backbuffers
+        if(dev->GetBackbufferFormat().first == GetResID(nonsamp.resource))
+        {
+          D3D12_SHADER_RESOURCE_VIEW_DESC bbDesc = {};
+          bbDesc.Format = dev->GetBackbufferFormat().second;
+          bbDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+          bbDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+          bbDesc.Texture2D.MipLevels = 1;
+          dev->CreateShaderResourceView(nonsamp.resource, &bbDesc, handle);
+          return;
+        }
+      }
+
+      dev->CreateShaderResourceView(nonsamp.resource, desc, handle);
       break;
     }
     case D3D12Descriptor::TypeRTV:
     {
-      dev->CreateRenderTargetView(nonsamp.resource, &nonsamp.rtv, handle);
+      D3D12_RENDER_TARGET_VIEW_DESC *desc = &nonsamp.rtv;
+      if(desc->ViewDimension == D3D12_RTV_DIMENSION_UNKNOWN)
+      {
+        desc = nonsamp.resource ? NULL : defaultRTV();
+
+        // fixup for backbuffers
+        if(dev->GetBackbufferFormat().first == GetResID(nonsamp.resource))
+        {
+          D3D12_RENDER_TARGET_VIEW_DESC bbDesc = {};
+          bbDesc.Format = dev->GetBackbufferFormat().second;
+          bbDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+          dev->CreateRenderTargetView(nonsamp.resource, &bbDesc, handle);
+          return;
+        }
+      }
+
+      dev->CreateRenderTargetView(nonsamp.resource, desc, handle);
       break;
     }
     case D3D12Descriptor::TypeDSV:
     {
-      dev->CreateDepthStencilView(nonsamp.resource, &nonsamp.dsv, handle);
+      D3D12_DEPTH_STENCIL_VIEW_DESC *desc = &nonsamp.dsv;
+      if(desc->ViewDimension == D3D12_DSV_DIMENSION_UNKNOWN)
+        desc = nonsamp.resource ? NULL : defaultDSV();
+
+      dev->CreateDepthStencilView(nonsamp.resource, desc, handle);
       break;
     }
     case D3D12Descriptor::TypeUAV:
     {
-      D3D12_UNORDERED_ACCESS_VIEW_DESC desc = nonsamp.uav.desc.AsDesc();
-      dev->CreateUnorderedAccessView(nonsamp.resource, nonsamp.uav.counterResource, &desc, handle);
+      D3D12_UNORDERED_ACCESS_VIEW_DESC uavdesc = nonsamp.uav.desc.AsDesc();
+
+      D3D12_UNORDERED_ACCESS_VIEW_DESC *desc = &uavdesc;
+      if(uavdesc.ViewDimension == D3D12_SRV_DIMENSION_UNKNOWN)
+      {
+        desc = nonsamp.resource ? NULL : defaultUAV();
+
+        // fixup for backbuffers
+        if(dev->GetBackbufferFormat().first == GetResID(nonsamp.resource))
+        {
+          D3D12_UNORDERED_ACCESS_VIEW_DESC bbDesc = {};
+          bbDesc.Format = dev->GetBackbufferFormat().second;
+          bbDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
+          dev->CreateUnorderedAccessView(nonsamp.resource, NULL, &bbDesc, handle);
+          return;
+        }
+      }
+
+      // don't create a UAV with a counter resource but no main resource. This is fine because
+      // if the main resource wasn't present in the capture, this UAV isn't present - the counter
+      // must have been included for some other reference.
+      ID3D12Resource *counter = nonsamp.uav.counterResource;
+      if(nonsamp.resource == NULL)
+        counter = NULL;
+
+      dev->CreateUnorderedAccessView(nonsamp.resource, counter, desc, handle);
       break;
     }
     case D3D12Descriptor::TypeUndefined:
     {
       // initially descriptors are undefined. This way we just init with
-      // a null SRV descriptor so it's valid to copy around etc but is no
+      // a null descriptor so it's valid to copy around etc but is no
       // less undefined for the application to use
-      D3D12_SHADER_RESOURCE_VIEW_DESC desc;
-      desc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-      desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-      desc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-      desc.Texture2D.MipLevels = 1;
-      desc.Texture2D.MostDetailedMip = 0;
-      desc.Texture2D.PlaneSlice = 0;
-      desc.Texture2D.ResourceMinLODClamp = 0.0f;
 
-      dev->CreateShaderResourceView(NULL, &desc, handle);
+      if(heapType == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+        dev->CreateShaderResourceView(NULL, defaultSRV(), handle);
+      else if(heapType == D3D12_DESCRIPTOR_HEAP_TYPE_DSV)
+        dev->CreateDepthStencilView(NULL, defaultDSV(), handle);
+      else if(heapType == D3D12_DESCRIPTOR_HEAP_TYPE_RTV)
+        dev->CreateRenderTargetView(NULL, defaultRTV(), handle);
+
       break;
     }
   }
@@ -335,7 +431,7 @@ bool D3D12ResourceManager::ResourceTypeRelease(ID3D12DeviceChild *res)
   return true;
 }
 
-bool D3D12ResourceManager::Force_InitialState(ID3D12DeviceChild *res)
+bool D3D12ResourceManager::Force_InitialState(ID3D12DeviceChild *res, bool prepare)
 {
   return false;
 }
@@ -371,14 +467,31 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
     D3D12_RESOURCE_DESC desc = r->GetDesc();
 
-    if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && desc.SampleDesc.Count > 1)
+    {
+      D3D12NOTIMP("Multisampled initial contents");
+      SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(NULL, 2, NULL));
+      return true;
+    }
+    else if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
       D3D12_HEAP_PROPERTIES heapProps;
+      r->GetHeapProperties(&heapProps, NULL);
+
+      if(heapProps.Type == D3D12_HEAP_TYPE_READBACK)
+      {
+        // already on readback heap, just mark that we can map it directly and continue
+        SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(NULL, 1, NULL));
+        return true;
+      }
+
       heapProps.Type = D3D12_HEAP_TYPE_READBACK;
       heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
       heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
       heapProps.CreationNodeMask = 1;
       heapProps.VisibleNodeMask = 1;
+
+      desc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
       ID3D12Resource *copyDst = NULL;
       HRESULT hr = m_Device->GetReal()->CreateCommittedResource(
@@ -481,7 +594,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
           dst.pResource = copyDst;
           dst.PlacedFootprint = layouts[i];
 
-          list->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+          list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
         }
 
         // transition back
@@ -509,7 +622,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
   return false;
 }
 
-bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12DeviceChild *)
+bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12DeviceChild *liveRes)
 {
   D3D12ResourceRecord *record = NULL;
   if(m_State >= WRITING)
@@ -535,6 +648,17 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
       m_Device->FlushLists();
 
       ID3D12Resource *copiedBuffer = (ID3D12Resource *)initContents.resource;
+
+      if(initContents.num == 1)
+      {
+        copiedBuffer = (ID3D12Resource *)liveRes;
+      }
+
+      if(initContents.num == 2)
+      {
+        D3D12NOTIMP("Multisampled initial contents");
+        return true;
+      }
 
       byte dummy[4] = {};
       byte *ptr = NULL;
@@ -610,7 +734,7 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
 
       for(uint32_t i = 0; i < numElems; i++)
       {
-        descs[i].Create(m_Device, handle);
+        descs[i].Create(desc.Type, m_Device, handle);
 
         handle.ptr += increment;
       }
@@ -621,6 +745,14 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
     }
     else if(type == Resource_Resource)
     {
+      D3D12_RESOURCE_DESC resDesc = ((ID3D12Resource *)res)->GetDesc();
+
+      if(resDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && resDesc.SampleDesc.Count > 1)
+      {
+        D3D12NOTIMP("Multisampled initial contents");
+        return true;
+      }
+
       uint64_t size = 0;
 
       m_pSerialiser->Serialise("NumBytes", size);
@@ -845,8 +977,8 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
           barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
           barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
           barrier.Transition.pResource = copyDst;
-          barrier.Transition.Subresource = 0;
-          barrier.Transition.StateBefore = m_Device->GetSubresourceStates(GetResID(live))[0];
+          barrier.Transition.Subresource = (UINT)i;
+          barrier.Transition.StateBefore = states[i];
           barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 
           barriers.push_back(barrier);
@@ -885,7 +1017,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
             src.pResource = copySrc;
             src.PlacedFootprint = layouts[i];
 
-            list->CopyTextureRegion(&dst, 0, 0, 0, &src, nullptr);
+            list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
           }
 
           delete[] layouts;
@@ -899,6 +1031,11 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
           list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
         list->Close();
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+        m_Device->ExecuteLists();
+        m_Device->FlushLists(true);
+#endif
       }
     }
     else

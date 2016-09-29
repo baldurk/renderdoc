@@ -24,6 +24,11 @@
 
 #pragma once
 
+//////////////////////////////////////////////////////////////////////////////////////////////////
+//
+// Documentation for the API is available at https://renderdoc.org/docs/in_application_api.html
+//
+
 #if !defined(RENDERDOC_NO_STDINT)
 #include <stdint.h>
 #endif

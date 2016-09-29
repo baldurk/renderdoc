@@ -48,7 +48,7 @@ private:
   D3D12ResourceRecord *m_pRecord;
 };
 
-extern const GUID RENDERDOC_ID3D11ShaderGUID_ShaderDebugMagicValue;
+extern const GUID RENDERDOC_ID3D12ShaderGUID_ShaderDebugMagicValue;
 
 template <typename NestedType, typename NestedType1 = NestedType, typename NestedType2 = NestedType1>
 class WrappedDeviceChild12 : public RefCounter12<NestedType>, public NestedType2, public TrackedResource
@@ -61,16 +61,21 @@ protected:
   {
     m_pDevice->SoftRef();
 
-    bool ret = m_pDevice->GetResourceManager()->AddWrapper(this, real);
-    if(!ret)
-      RDCERR("Error adding wrapper for type %s", ToStr::Get(__uuidof(NestedType)).c_str());
+    if(real)
+    {
+      bool ret = m_pDevice->GetResourceManager()->AddWrapper(this, real);
+      if(!ret)
+        RDCERR("Error adding wrapper for type %s", ToStr::Get(__uuidof(NestedType)).c_str());
+    }
 
     m_pDevice->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
   }
 
   virtual void Shutdown()
   {
-    m_pDevice->GetResourceManager()->RemoveWrapper(m_pReal);
+    if(m_pReal)
+      m_pDevice->GetResourceManager()->RemoveWrapper(m_pReal);
+
     m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
     m_pDevice->ReleaseResource((NestedType *)this);
     SAFE_RELEASE(m_pReal);
@@ -225,7 +230,7 @@ public:
 
   HRESULT STDMETHODCALLTYPE SetPrivateData(REFGUID guid, UINT DataSize, const void *pData)
   {
-    if(guid == RENDERDOC_ID3D11ShaderGUID_ShaderDebugMagicValue)
+    if(guid == RENDERDOC_ID3D12ShaderGUID_ShaderDebugMagicValue)
       return m_pDevice->SetShaderDebugPath(this, (const char *)pData);
 
     if(guid == WKPDID_D3DDebugObjectName)
@@ -416,16 +421,184 @@ class WrappedID3D12PipelineState : public WrappedDeviceChild12<ID3D12PipelineSta
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12PipelineState);
 
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC *graphics;
+  D3D12_COMPUTE_PIPELINE_STATE_DESC *compute;
+
+  bool IsGraphics() { return graphics != NULL; }
+  bool IsCompute() { return compute != NULL; }
+  struct DXBCKey
+  {
+    DXBCKey(const D3D12_SHADER_BYTECODE &byteCode)
+    {
+      byteLen = (uint32_t)byteCode.BytecodeLength;
+      DXBC::DXBCFile::GetHash(hash, byteCode.pShaderBytecode, byteCode.BytecodeLength);
+    }
+
+    // assume that byte length + hash is enough to uniquely identify a shader bytecode
+    uint32_t byteLen;
+    uint32_t hash[4];
+
+    bool operator<(const DXBCKey &o) const
+    {
+      if(byteLen != o.byteLen)
+        return byteLen < o.byteLen;
+
+      for(size_t i = 0; i < 4; i++)
+        if(hash[i] != o.hash[i])
+          return hash[i] < o.hash[i];
+
+      return false;
+    }
+
+    bool operator==(const DXBCKey &o) const
+    {
+      return byteLen == o.byteLen && hash[0] == o.hash[0] && hash[1] == o.hash[1] &&
+             hash[2] == o.hash[2] && hash[3] == o.hash[3];
+    }
+  };
+
+  class ShaderEntry : public WrappedDeviceChild12<ID3D12DeviceChild>
+  {
+  public:
+    static const int AllocPoolCount = 16384;
+    static const int AllocMaxByteSize = 8 * 1024 * 1024;
+    ALLOCATE_WITH_WRAPPED_POOL(ShaderEntry, AllocPoolCount, AllocMaxByteSize);
+
+    ShaderEntry(const D3D12_SHADER_BYTECODE &byteCode, WrappedID3D12Device *device)
+        : WrappedDeviceChild12(NULL, device), m_Key(byteCode)
+    {
+      const byte *code = (const byte *)byteCode.pShaderBytecode;
+      m_Bytecode.assign(code, code + byteCode.BytecodeLength);
+      m_DebugInfoSearchPaths = NULL;
+      m_DXBCFile = NULL;
+
+      device->GetResourceManager()->AddLiveResource(GetResourceID(), this);
+
+      m_Built = false;
+    }
+
+    virtual ~ShaderEntry()
+    {
+      m_Bytecode.clear();
+      SAFE_DELETE(m_DXBCFile);
+      Shutdown();
+    }
+
+    DXBCKey GetKey() { return m_Key; }
+    void SetDebugInfoPath(vector<std::string> *searchPaths, const std::string &path)
+    {
+      m_DebugInfoSearchPaths = searchPaths;
+      m_DebugInfoPath = path;
+    }
+
+    DXBC::DXBCFile *GetDXBC()
+    {
+      if(m_DXBCFile == NULL && !m_Bytecode.empty())
+      {
+        TryReplaceOriginalByteCode();
+        m_DXBCFile = new DXBC::DXBCFile((const void *)&m_Bytecode[0], m_Bytecode.size());
+      }
+      return m_DXBCFile;
+    }
+    ShaderReflection &GetDetails()
+    {
+      if(!m_Built && GetDXBC() != NULL)
+        MakeShaderReflection(m_DXBCFile, &m_Details, &m_Mapping);
+      m_Built = true;
+      return m_Details;
+    }
+    const ShaderBindpointMapping &GetMapping()
+    {
+      if(!m_Built && GetDXBC() != NULL)
+        MakeShaderReflection(m_DXBCFile, &m_Details, &m_Mapping);
+      m_Built = true;
+      return m_Mapping;
+    }
+
+  private:
+    ShaderEntry(const ShaderEntry &e);
+    void TryReplaceOriginalByteCode();
+    ShaderEntry &operator=(const ShaderEntry &e);
+
+    DXBCKey m_Key;
+
+    std::string m_DebugInfoPath;
+    vector<std::string> *m_DebugInfoSearchPaths;
+
+    vector<byte> m_Bytecode;
+
+    bool m_Built;
+    DXBC::DXBCFile *m_DXBCFile;
+    ShaderReflection m_Details;
+    ShaderBindpointMapping m_Mapping;
+  };
+
   enum
   {
     TypeEnum = Resource_PipelineState,
   };
 
+  static ShaderEntry *AddShader(const D3D12_SHADER_BYTECODE &byteCode, WrappedID3D12Device *device)
+  {
+    DXBCKey key(byteCode);
+    ShaderEntry *shader = m_Shaders[key];
+
+    if(shader == NULL)
+      shader = m_Shaders[key] = new ShaderEntry(byteCode, device);
+    else
+      shader->AddRef();
+
+    return shader;
+  }
+
+  static void ReleaseShader(ShaderEntry *shader)
+  {
+    if(shader == NULL)
+      return;
+
+    DXBCKey key = shader->GetKey();
+
+    if(shader->Release() == 0)
+      m_Shaders.erase(key);
+  }
+
   WrappedID3D12PipelineState(ID3D12PipelineState *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
+    graphics = NULL;
+    compute = NULL;
   }
-  virtual ~WrappedID3D12PipelineState() { Shutdown(); }
+  virtual ~WrappedID3D12PipelineState()
+  {
+    Shutdown();
+
+    if(graphics)
+    {
+      ShaderEntry *vs = (ShaderEntry *)graphics->VS.pShaderBytecode;
+      ShaderEntry *hs = (ShaderEntry *)graphics->HS.pShaderBytecode;
+      ShaderEntry *ds = (ShaderEntry *)graphics->DS.pShaderBytecode;
+      ShaderEntry *gs = (ShaderEntry *)graphics->GS.pShaderBytecode;
+      ShaderEntry *ps = (ShaderEntry *)graphics->PS.pShaderBytecode;
+
+      ReleaseShader(vs);
+      ReleaseShader(hs);
+      ReleaseShader(ds);
+      ReleaseShader(gs);
+      ReleaseShader(ps);
+
+      SAFE_DELETE(graphics);
+    }
+
+    if(compute)
+    {
+      ShaderEntry *cs = (ShaderEntry *)compute->CS.pShaderBytecode;
+
+      ReleaseShader(cs);
+
+      SAFE_DELETE(compute);
+    }
+  }
+
   //////////////////////////////
   // implement ID3D12PipelineState
 
@@ -433,6 +606,9 @@ public:
   {
     return m_pReal->GetCachedBlob(ppBlob);
   }
+
+private:
+  static map<DXBCKey, ShaderEntry *> m_Shaders;
 };
 
 class WrappedID3D12QueryHeap : public WrappedDeviceChild12<ID3D12QueryHeap>

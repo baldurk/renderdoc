@@ -93,6 +93,8 @@ D3D11DebugManager::D3D11DebugManager(WrappedID3D11Device *wrapper)
   m_supersamplingX = 1.0f;
   m_supersamplingY = 1.0f;
 
+  m_width = m_height = 1;
+
   m_WrappedDevice = wrapper;
   ID3D11DeviceContext *ctx = NULL;
   m_WrappedDevice->GetImmediateContext(&ctx);
@@ -3402,7 +3404,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
   if(details.texType == eTexType_3D)
   {
     pixelData.OutputDisplayFormat = RESTYPE_TEX3D;
-    pixelData.Slice = float(cfg.sliceFace) / float(details.texDepth);
+    pixelData.Slice = (float(cfg.sliceFace) / float(details.texDepth)) + 0.001f;
   }
   else if(details.texType == eTexType_1D)
   {

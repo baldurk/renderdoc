@@ -309,7 +309,27 @@ uintptr_t FindRemoteDLL(DWORD pid, wstring libName)
 
   if(ret == 0)
   {
-    RDCERR("Couldn't find module '%ls' among %d modules", libName.c_str(), numModules);
+    HANDLE h = OpenProcess(PROCESS_QUERY_INFORMATION, FALSE, pid);
+
+    DWORD exitCode = 0;
+
+    if(h)
+      GetExitCodeProcess(h, &exitCode);
+
+    if(h == NULL || exitCode != STILL_ACTIVE)
+    {
+      RDCERR(
+          "Error injecting into remote process with PID %u which is no longer available.\n"
+          "Possibly the process has crashed during early startup?",
+          pid);
+    }
+    else
+    {
+      RDCERR("Couldn't find module '%ls' among %d modules", libName.c_str(), numModules);
+    }
+
+    if(h)
+      CloseHandle(h);
   }
 
   CloseHandle(hModuleSnap);
@@ -419,8 +439,8 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
   return pi;
 }
 
-uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts,
-                                    bool waitForExit)
+uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, const char *logfile,
+                                    const CaptureOptions *opts, bool waitForExit)
 {
   CaptureOptions options;
   if(opts)
@@ -519,8 +539,6 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const Cap
     pSec.nLength = sizeof(pSec);
     tSec.nLength = sizeof(tSec);
 
-    wchar_t *paramsAlloc = new wchar_t[2048];
-
     // serialise to string with two chars per byte
     string optstr;
     {
@@ -533,13 +551,78 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const Cap
       }
     }
 
+    wchar_t *paramsAlloc = new wchar_t[2048];
+
     _snwprintf_s(paramsAlloc, 2047, 2047,
                  L"\"%ls\" cap32for64 --pid=%d --log=\"%ls\" --capopts=\"%hs\"", renderdocPath, pid,
                  wlogfile.c_str(), optstr.c_str());
 
     paramsAlloc[2047] = 0;
 
-    BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, false, CREATE_SUSPENDED, NULL,
+    wchar_t *commandLine = paramsAlloc;
+
+    wstring cmdWithEnv;
+
+    if(env)
+    {
+      cmdWithEnv = paramsAlloc;
+
+      for(;;)
+      {
+        string name = trim(env->name);
+        string value = env->value;
+        ModificationType type = env->type;
+
+        if(name == "")
+          break;
+
+        cmdWithEnv += L" +env-";
+        switch(type)
+        {
+          case eEnvModification_Replace: cmdWithEnv += L"replace "; break;
+
+          case eEnvModification_AppendPlatform: cmdWithEnv += L"append-platform "; break;
+
+          case eEnvModification_AppendSemiColon: cmdWithEnv += L"append-semicolon "; break;
+          case eEnvModification_AppendColon: cmdWithEnv += L"append-colon "; break;
+          case eEnvModification_Append: cmdWithEnv += L"append "; break;
+
+          case eEnvModification_PrependPlatform: cmdWithEnv += L"prepend-platform "; break;
+
+          case eEnvModification_PrependSemiColon: cmdWithEnv += L"prepend-semicolon "; break;
+          case eEnvModification_PrependColon: cmdWithEnv += L"prepend-colon "; break;
+          case eEnvModification_Prepend: cmdWithEnv += L"prepend "; break;
+        }
+
+        // escape the parameters
+        for(auto it = name.begin(); it != name.end(); ++it)
+        {
+          if(*it == '"')
+            it = name.insert(it, '\\') + 1;
+        }
+
+        for(auto it = value.begin(); it != value.end(); ++it)
+        {
+          if(*it == '"')
+            it = value.insert(it, '\\') + 1;
+        }
+
+        if(name.back() == '\\')
+          name += "\\";
+
+        if(value.back() == '\\')
+          value += "\\";
+
+        cmdWithEnv += L"\"" + StringFormat::UTF82Wide(name) + L"\" ";
+        cmdWithEnv += L"\"" + StringFormat::UTF82Wide(value) + L"\" ";
+
+        env++;
+      }
+
+      commandLine = (wchar_t *)cmdWithEnv.c_str();
+    }
+
+    BOOL retValue = CreateProcessW(NULL, commandLine, &pSec, &tSec, false, CREATE_SUSPENDED, NULL,
                                    NULL, &si, &pi);
 
     SAFE_DELETE_ARRAY(paramsAlloc);
@@ -590,6 +673,31 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const Cap
 
     InjectFunctionCall(hProcess, loc, "RENDERDOC_GetTargetControlIdent", &controlident,
                        sizeof(controlident));
+
+    if(env)
+    {
+      for(;;)
+      {
+        string name = trim(env->name);
+        string value = env->value;
+        ModificationType type = env->type;
+
+        if(name == "")
+          break;
+
+        InjectFunctionCall(hProcess, loc, "RENDERDOC_EnvModName", (void *)name.c_str(),
+                           name.size() + 1);
+        InjectFunctionCall(hProcess, loc, "RENDERDOC_EnvModValue", (void *)value.c_str(),
+                           value.size() + 1);
+        InjectFunctionCall(hProcess, loc, "RENDERDOC_EnvMod", &type, sizeof(type));
+
+        env++;
+      }
+
+      // parameter is unused
+      InjectFunctionCall(hProcess, loc, "RENDERDOC_ApplyEnvMods", env,
+                         sizeof(EnvironmentModification));
+    }
   }
 
   if(waitForExit)
@@ -637,54 +745,17 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   if(pi.dwProcessId == 0)
     return 0;
 
-  uint32_t ret = InjectIntoProcess(pi.dwProcessId, logfile, opts, false);
+  uint32_t ret = InjectIntoProcess(pi.dwProcessId, env, logfile, opts, false);
+
+  CloseHandle(pi.hProcess);
+  ResumeThread(pi.hThread);
+  ResumeThread(pi.hThread);
 
   if(ret == 0)
   {
-    ResumeThread(pi.hThread);
     CloseHandle(pi.hThread);
-    CloseHandle(pi.hProcess);
     return 0;
   }
-
-  if(env)
-  {
-    uintptr_t loc = FindRemoteDLL(pi.dwProcessId, L"renderdoc.dll");
-
-    if(loc == 0)
-    {
-      RDCERR("Can't locate renderdoc.dll in remote PID %d", pi.dwProcessId);
-    }
-    else
-    {
-      for(;;)
-      {
-        string name = trim(env->name);
-        string value = env->value;
-        ModificationType type = env->type;
-
-        if(name == "")
-          break;
-
-        InjectFunctionCall(pi.hProcess, loc, "RENDERDOC_EnvModName", (void *)name.c_str(),
-                           name.size() + 1);
-        InjectFunctionCall(pi.hProcess, loc, "RENDERDOC_EnvModValue", (void *)value.c_str(),
-                           value.size() + 1);
-        InjectFunctionCall(pi.hProcess, loc, "RENDERDOC_EnvMod", &type, sizeof(type));
-
-        env++;
-      }
-
-      // parameter is unused
-      InjectFunctionCall(pi.hProcess, loc, "RENDERDOC_ApplyEnvMods", env,
-                         sizeof(EnvironmentModification));
-    }
-  }
-
-  // done with it
-  CloseHandle(pi.hProcess);
-
-  ResumeThread(pi.hThread);
 
   if(waitForExit)
     WaitForSingleObject(pi.hThread, INFINITE);

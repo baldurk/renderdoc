@@ -58,7 +58,7 @@ namespace renderdocui.Windows
 
         private int SliceForString(string s, UInt32 value, UInt32 maximum)
         {
-            if (value == 0)
+            if (value == 0 || maximum == 0)
                 return 0;
 
             float ratio = (float)value / maximum;

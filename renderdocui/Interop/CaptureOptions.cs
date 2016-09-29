@@ -57,9 +57,9 @@ namespace renderdoc
             return !(x == y);
         }
 
-        public static ResourceId Null = new ResourceId(0, true);
+        public static ResourceId Null = new ResourceId(0);
 
-        private ResourceId(UInt64 id, bool explicitConstruct)
+        public ResourceId(UInt64 id)
         {
             m_ID = id;
         }

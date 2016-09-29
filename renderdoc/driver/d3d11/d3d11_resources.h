@@ -1242,6 +1242,9 @@ class WrappedID3D11CommandList : public WrappedDeviceChild11<ID3D11CommandList>
   WrappedID3D11DeviceContext *m_pContext;
   bool m_Successful;    // indicates whether we have all of the commands serialised for this command
                         // list
+
+  set<ResourceId> m_Dirty;
+
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D11CommandList);
 
@@ -1259,6 +1262,18 @@ public:
 
   WrappedID3D11DeviceContext *GetContext() { return m_pContext; }
   bool IsCaptured() { return m_Successful; }
+  void SetDirtyResources(set<ResourceId> &dirty) { m_Dirty.swap(dirty); }
+  void MarkDirtyResources(D3D11ResourceManager *manager)
+  {
+    for(auto it = m_Dirty.begin(); it != m_Dirty.end(); ++it)
+      manager->MarkDirtyResource(*it);
+  }
+  void MarkDirtyResources(set<ResourceId> &missingTracks)
+  {
+    for(auto it = m_Dirty.begin(); it != m_Dirty.end(); ++it)
+      missingTracks.insert(*it);
+  }
+
   //////////////////////////////
   // implement ID3D11CommandList
 

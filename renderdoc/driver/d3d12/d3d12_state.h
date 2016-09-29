@@ -58,29 +58,31 @@ struct D3D12RenderState
   {
     SignatureElement() : type(eRootUnknown), offset(0) {}
     SignatureElement(SignatureElementType t, ResourceId i, UINT64 o) : type(t), id(i), offset(o) {}
-    SignatureElement(UINT val) : type(eRootConst), offset(0) { constants.push_back(val); }
-    SignatureElement(UINT numVals, const void *vals, UINT destIdx)
-    {
-      SetValues(numVals, vals, destIdx);
-    }
-
-    void SetValues(UINT numVals, const void *vals, UINT destIdx)
+    SignatureElement(UINT offs, UINT val) : type(eRootConst), offset(offs)
     {
       type = eRootConst;
-      offset = 0;
-
-      if(constants.size() < destIdx + numVals)
-        constants.resize(destIdx + numVals);
-
-      memcpy(&constants[destIdx], vals, numVals * sizeof(UINT));
+      SetValues(1, &val, offs);
+    }
+    SignatureElement(UINT numVals, const void *vals, UINT offs)
+    {
+      type = eRootConst;
+      SetValues(numVals, vals, offs);
     }
 
-    void SetToCommandList(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot)
+    void SetValues(UINT numVals, const void *vals, UINT offs)
+    {
+      if(constants.size() < offs + numVals)
+        constants.resize(offs + numVals);
+
+      memcpy(&constants[offs], vals, numVals * sizeof(UINT));
+    }
+
+    void SetToGraphics(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot)
     {
       if(type == eRootConst)
       {
         if(constants.size() == 1)
-          cmd->SetGraphicsRoot32BitConstant(slot, constants[0], 0);
+          cmd->SetGraphicsRoot32BitConstant(slot, constants[0], (UINT)offset);
         else
           cmd->SetGraphicsRoot32BitConstants(slot, (UINT)constants.size(), &constants[0], 0);
       }
@@ -106,9 +108,35 @@ struct D3D12RenderState
         ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
         cmd->SetGraphicsRootUnorderedAccessView(slot, res->GetGPUVirtualAddress() + offset);
       }
-      else
+    }
+
+    void SetToCompute(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot)
+    {
+      if(type == eRootConst)
       {
-        RDCWARN("Unexpected root signature element of type '%u' - skipping.", type);
+        cmd->SetComputeRoot32BitConstants(slot, (UINT)constants.size(), &constants[0], 0);
+      }
+      else if(type == eRootTable)
+      {
+        D3D12_GPU_DESCRIPTOR_HANDLE handle =
+            rm->GetCurrentAs<ID3D12DescriptorHeap>(id)->GetGPUDescriptorHandleForHeapStart();
+        handle.ptr += sizeof(D3D12Descriptor) * offset;
+        cmd->SetComputeRootDescriptorTable(slot, handle);
+      }
+      else if(type == eRootCBV)
+      {
+        ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
+        cmd->SetComputeRootConstantBufferView(slot, res->GetGPUVirtualAddress() + offset);
+      }
+      else if(type == eRootSRV)
+      {
+        ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
+        cmd->SetComputeRootShaderResourceView(slot, res->GetGPUVirtualAddress() + offset);
+      }
+      else if(type == eRootUAV)
+      {
+        ID3D12Resource *res = rm->GetCurrentAs<ID3D12Resource>(id);
+        cmd->SetComputeRootUnorderedAccessView(slot, res->GetGPUVirtualAddress() + offset);
       }
     }
 
@@ -121,7 +149,18 @@ struct D3D12RenderState
 
   vector<ResourceId> heaps;
 
-  struct Pipeline
+  struct StreamOut
+  {
+    ResourceId buf;
+    UINT64 offs;
+    UINT64 size;
+
+    ResourceId countbuf;
+    UINT64 countoffs;
+  };
+  vector<StreamOut> streamouts;
+
+  struct RootSignature
   {
     ResourceId rootsig;
 
@@ -131,6 +170,8 @@ struct D3D12RenderState
   ResourceId pipe;
 
   D3D12_PRIMITIVE_TOPOLOGY topo;
+  UINT stencilRef;
+  float blendFactor[4];
 
   struct IdxBuffer
   {

@@ -4,18 +4,12 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui widgets
 
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
+lessThan(QT_MAJOR_VERSION, 5): error("requires Qt 5")
 
 TARGET = qrenderdoc
 TEMPLATE = app
-
-# Temp files into .obj
-MOC_DIR = .obj
-UI_DIR = .obj
-RCC_DIR = .obj
-OBJECTS_DIR = .obj
 
 # include path for core renderdoc API
 INCLUDEPATH += $$_PRO_FILE_PWD_/../renderdoc/api/replay
@@ -35,9 +29,27 @@ win32 {
 		Debug:DESTDIR = $$_PRO_FILE_PWD_/../Win32/Development
 		Release:DESTDIR = $$_PRO_FILE_PWD_/../Win32/Release
 
+		Debug:MOC_DIR = $$_PRO_FILE_PWD_/Win32/Development
+		Release:MOC_DIR = $$_PRO_FILE_PWD_/Win32/Release
+		Debug:UI_DIR = $$_PRO_FILE_PWD_/Win32/Development
+		Release:UI_DIR = $$_PRO_FILE_PWD_/Win32/Release
+		Debug:RCC_DIR = $$_PRO_FILE_PWD_/Win32/Development
+		Release:RCC_DIR = $$_PRO_FILE_PWD_/Win32/Release
+		Debug:OBJECTS_DIR = $$_PRO_FILE_PWD_/Win32/Development
+		Release:OBJECTS_DIR = $$_PRO_FILE_PWD_/Win32/Release
+
 	} else {
 		Debug:DESTDIR = $$_PRO_FILE_PWD_/../x64/Development
 		Release:DESTDIR = $$_PRO_FILE_PWD_/../x64/Release
+
+		Debug:MOC_DIR = $$_PRO_FILE_PWD_/x64/Development
+		Release:MOC_DIR = $$_PRO_FILE_PWD_/x64/Release
+		Debug:UI_DIR = $$_PRO_FILE_PWD_/x64/Development
+		Release:UI_DIR = $$_PRO_FILE_PWD_/x64/Release
+		Debug:RCC_DIR = $$_PRO_FILE_PWD_/x64/Development
+		Release:RCC_DIR = $$_PRO_FILE_PWD_/x64/Release
+		Debug:OBJECTS_DIR = $$_PRO_FILE_PWD_/x64/Development
+		Release:OBJECTS_DIR = $$_PRO_FILE_PWD_/x64/Release
 	}
 
 	# Link against the core library
@@ -50,6 +62,12 @@ win32 {
 	isEmpty(DESTDIR) {
 		DESTDIR = $$_PRO_FILE_PWD_/../bin
 	}
+
+	# Temp files into .obj
+	MOC_DIR = .obj
+	UI_DIR = .obj
+	RCC_DIR = .obj
+	OBJECTS_DIR = .obj
 
 	# Link against the core library
 	LIBS += -L$$DESTDIR -lrenderdoc

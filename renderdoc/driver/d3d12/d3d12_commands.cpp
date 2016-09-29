@@ -264,13 +264,39 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
 
     case RESOURCE_BARRIER: m_ReplayList->Serialise_ResourceBarrier(0, NULL); break;
 
+    case BEGIN_EVENT: m_ReplayList->Serialise_BeginEvent(0, NULL, 0); break;
+    case SET_MARKER: m_ReplayList->Serialise_SetMarker(0, NULL, 0); break;
+    case END_EVENT: m_ReplayList->Serialise_EndEvent(); break;
+
+    case DRAW_INST: m_ReplayList->Serialise_DrawInstanced(0, 0, 0, 0); break;
     case DRAW_INDEXED_INST: m_ReplayList->Serialise_DrawIndexedInstanced(0, 0, 0, 0, 0); break;
+    case DISPATCH: m_ReplayList->Serialise_Dispatch(0, 0, 0); break;
+    case EXEC_INDIRECT: m_ReplayList->Serialise_ExecuteIndirect(NULL, 0, NULL, 0, NULL, 0); break;
+
     case COPY_BUFFER: m_ReplayList->Serialise_CopyBufferRegion(NULL, 0, NULL, 0, 0); break;
+    case COPY_TEXTURE: m_ReplayList->Serialise_CopyTextureRegion(NULL, 0, 0, 0, NULL, NULL); break;
+    case COPY_RESOURCE: m_ReplayList->Serialise_CopyResource(NULL, NULL); break;
+    case RESOLVE_SUBRESOURCE:
+      m_ReplayList->Serialise_ResolveSubresource(NULL, 0, NULL, 0, DXGI_FORMAT_UNKNOWN);
+      break;
 
     case CLEAR_RTV:
       m_ReplayList->Serialise_ClearRenderTargetView(D3D12_CPU_DESCRIPTOR_HANDLE(), (FLOAT *)NULL, 0,
                                                     NULL);
       break;
+    case CLEAR_DSV:
+      m_ReplayList->Serialise_ClearDepthStencilView(D3D12_CPU_DESCRIPTOR_HANDLE(),
+                                                    D3D12_CLEAR_FLAGS(0), 0.0f, 0, 0, NULL);
+      break;
+    case CLEAR_UAV_INT:
+      m_ReplayList->Serialise_ClearUnorderedAccessViewUint(
+          D3D12_GPU_DESCRIPTOR_HANDLE(), D3D12_CPU_DESCRIPTOR_HANDLE(), NULL, NULL, 0, NULL);
+      break;
+    case CLEAR_UAV_FLOAT:
+      m_ReplayList->Serialise_ClearUnorderedAccessViewFloat(
+          D3D12_GPU_DESCRIPTOR_HANDLE(), D3D12_CPU_DESCRIPTOR_HANDLE(), NULL, NULL, 0, NULL);
+      break;
+    case DISCARD_RESOURCE: m_ReplayList->Serialise_DiscardResource(NULL, NULL); break;
 
     case SET_TOPOLOGY:
       m_ReplayList->Serialise_IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_UNDEFINED);
@@ -279,15 +305,46 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
     case SET_VBUFFERS: m_ReplayList->Serialise_IASetVertexBuffers(0, 0, NULL); break;
     case SET_VIEWPORTS: m_ReplayList->Serialise_RSSetViewports(0, NULL); break;
     case SET_SCISSORS: m_ReplayList->Serialise_RSSetScissorRects(0, NULL); break;
+    case SET_STENCIL: m_ReplayList->Serialise_OMSetStencilRef(0); break;
+    case SET_BLENDFACTOR: m_ReplayList->Serialise_OMSetBlendFactor(NULL); break;
     case SET_PIPE: m_ReplayList->Serialise_SetPipelineState(NULL); break;
     case SET_RTVS: m_ReplayList->Serialise_OMSetRenderTargets(0, NULL, FALSE, NULL); break;
     case SET_DESC_HEAPS: m_ReplayList->Serialise_SetDescriptorHeaps(0, NULL); break;
+
     case SET_GFX_ROOT_SIG: m_ReplayList->Serialise_SetGraphicsRootSignature(NULL); break;
     case SET_GFX_ROOT_TABLE:
       m_ReplayList->Serialise_SetGraphicsRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE());
       break;
+    case SET_GFX_ROOT_CONST: m_ReplayList->Serialise_SetGraphicsRoot32BitConstant(0, 0, 0); break;
+    case SET_GFX_ROOT_CONSTS:
+      m_ReplayList->Serialise_SetGraphicsRoot32BitConstants(0, 0, NULL, 0);
+      break;
     case SET_GFX_ROOT_CBV:
       m_ReplayList->Serialise_SetGraphicsRootConstantBufferView(0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case SET_GFX_ROOT_SRV:
+      m_ReplayList->Serialise_SetGraphicsRootShaderResourceView(0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case SET_GFX_ROOT_UAV:
+      m_ReplayList->Serialise_SetGraphicsRootUnorderedAccessView(0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+
+    case SET_COMP_ROOT_SIG: m_ReplayList->Serialise_SetComputeRootSignature(NULL); break;
+    case SET_COMP_ROOT_TABLE:
+      m_ReplayList->Serialise_SetComputeRootDescriptorTable(0, D3D12_GPU_DESCRIPTOR_HANDLE());
+      break;
+    case SET_COMP_ROOT_CONST: m_ReplayList->Serialise_SetComputeRoot32BitConstant(0, 0, 0); break;
+    case SET_COMP_ROOT_CONSTS:
+      m_ReplayList->Serialise_SetComputeRoot32BitConstants(0, 0, NULL, 0);
+      break;
+    case SET_COMP_ROOT_CBV:
+      m_ReplayList->Serialise_SetComputeRootConstantBufferView(0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case SET_COMP_ROOT_SRV:
+      m_ReplayList->Serialise_SetComputeRootShaderResourceView(0, D3D12_GPU_VIRTUAL_ADDRESS());
+      break;
+    case SET_COMP_ROOT_UAV:
+      m_ReplayList->Serialise_SetComputeRootUnorderedAccessView(0, D3D12_GPU_VIRTUAL_ADDRESS());
       break;
 
     case EXECUTE_CMD_LISTS: Serialise_ExecuteCommandLists(0, NULL); break;
@@ -344,7 +401,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
   {
     // no push/pop necessary
   }
-  else if(m_State == READING && (chunk == PUSH_EVENT || chunk == POP_EVENT))
+  else if(m_State == READING && (chunk == BEGIN_EVENT || chunk == END_EVENT))
   {
     // don't add these events - they will be handled when inserted in-line into queue submit
   }
@@ -505,7 +562,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
   m_ListRecord = NULL;
   m_Cmd = NULL;
 
-  m_CurRootSig = NULL;
+  m_CurGfxRootSig = NULL;
 
   if(!RenderDoc::Inst().IsReplayApp())
   {
@@ -525,11 +582,25 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
     m_Cmd = m_pDevice->GetQueue()->GetCommandData();
   }
 
+  if(m_pReal)
+  {
+    bool ret = m_pDevice->GetResourceManager()->AddWrapper(this, m_pReal);
+    if(!ret)
+      RDCERR("Error adding wrapper for ID3D12GraphicsCommandList");
+  }
+
+  m_pDevice->GetResourceManager()->AddCurrentResource(GetResourceID(), this);
+
   m_pDevice->SoftRef();
 }
 
 WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
 {
+  if(m_pReal)
+    m_pDevice->GetResourceManager()->RemoveWrapper(m_pReal);
+
+  m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
+
   SAFE_RELEASE(m_WrappedDebug.m_pReal);
   SAFE_RELEASE(m_pReal);
 }

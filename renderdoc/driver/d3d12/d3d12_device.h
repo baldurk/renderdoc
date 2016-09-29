@@ -288,6 +288,7 @@ private:
   };
 
   map<WrappedIDXGISwapChain3 *, SwapPresentInfo> m_SwapChains;
+  pair<ResourceId, DXGI_FORMAT> m_BackbufferFormat;
 
   WrappedIDXGISwapChain3 *m_LastSwap;
 
@@ -328,7 +329,8 @@ public:
   {
     return m_ResourceStates[id];
   }
-
+  const map<ResourceId, SubresourceStateVector> &GetSubresourceStates() { return m_ResourceStates; }
+  const pair<ResourceId, DXGI_FORMAT> GetBackbufferFormat() { return m_BackbufferFormat; }
   void SetLogFile(const char *logfile);
   void SetLogVersion(uint32_t fileversion) { m_InitParams.SerialiseVersion = fileversion; }
   D3D12Replay *GetReplay() { return &m_Replay; }
@@ -516,7 +518,7 @@ public:
   IMPLEMENT_FUNCTION_SERIALISED(virtual HRESULT STDMETHODCALLTYPE,
                                 CreateCommittedResource(const D3D12_HEAP_PROPERTIES *pHeapProperties,
                                                         D3D12_HEAP_FLAGS HeapFlags,
-                                                        const D3D12_RESOURCE_DESC *pResourceDesc,
+                                                        const D3D12_RESOURCE_DESC *pDesc,
                                                         D3D12_RESOURCE_STATES InitialResourceState,
                                                         const D3D12_CLEAR_VALUE *pOptimizedClearValue,
                                                         REFIID riidResource, void **ppvResource));

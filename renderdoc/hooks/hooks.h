@@ -66,7 +66,7 @@ private:
 // just need this for dlsym
 #include <dlfcn.h>
 
-#define HOOKS_BEGIN() LinuxHookInit()
+#define HOOKS_BEGIN() PosixHookInit()
 #define HOOKS_END()
 #define HOOKS_REMOVE()
 

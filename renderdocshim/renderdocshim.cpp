@@ -128,7 +128,7 @@ void CheckHook()
     else
     {
       LOGPRINT(L"renderdocshim: NOT Hooking into '");
-      LOGPRINT(data->exepath);
+      LOGPRINT(exepath);
       LOGPRINT(L"', based on '");
       LOGPRINT(data->pathmatchstring);
       LOGPRINT(L"'\n");
@@ -165,11 +165,6 @@ BOOL APIENTRY dll_entry(HMODULE hModule, DWORD ul_reason_for_call, LPVOID lpRese
     // create a thread so that we can perform more complex actions (DllMain must be minimal
     // in size, even this is a bit dodgy).
     CreateThread(NULL, 0, (LPTHREAD_START_ROUTINE)&CheckHookThread, (LPVOID)hModule, 0, NULL);
-
-    // Sleep on this thread a bit, as we want to call CheckHook() before any real work is done.
-    // Note it is important we don't try to *synchronise* on CheckHookThread, as that can easily
-    // cause deadlocks, crashes, etc.
-    Sleep(500);
   }
 
   return TRUE;

@@ -564,7 +564,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       false,
   };
 
-  VkRect2D scissor = {{0, 0}, {4096, 4096}};
+  VkRect2D scissor = {{0, 0}, {16384, 16384}};
 
   VkPipelineViewportStateCreateInfo vp = {
       VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, NULL, 0, 1, NULL, 1, &scissor};
@@ -2458,6 +2458,9 @@ void VulkanDebugManager::RemoveReplacement(ResourceId id)
   // we're passed in the original ID but we want the live ID for comparison
   ResourceId liveid = GetResourceManager()->GetLiveID(id);
 
+  if(!GetResourceManager()->HasReplacement(id))
+    return;
+
   // remove the actual shader module replacements
   GetResourceManager()->RemoveReplacement(id);
   GetResourceManager()->RemoveReplacement(liveid);
@@ -2728,7 +2731,7 @@ void VulkanDebugManager::CreateCustomShaderPipeline(ResourceId shader)
       false,
   };
 
-  VkRect2D scissor = {{0, 0}, {4096, 4096}};
+  VkRect2D scissor = {{0, 0}, {16384, 16384}};
 
   VkPipelineViewportStateCreateInfo vp = {
       VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, NULL, 0, 1, NULL, 1, &scissor};
@@ -4374,8 +4377,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
       VkRect2D &sc = (VkRect2D &)pipeCreateInfo.pViewportState->pScissors[i];
       sc.offset.x = 0;
       sc.offset.y = 0;
-      sc.extent.width = 4096;
-      sc.extent.height = 4096;
+      sc.extent.width = 16384;
+      sc.extent.height = 16384;
     }
 
     // set our renderpass and shader
@@ -4431,8 +4434,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
     {
       m_pDriver->m_RenderState.scissors[i].offset.x = 0;
       m_pDriver->m_RenderState.scissors[i].offset.x = 0;
-      m_pDriver->m_RenderState.scissors[i].extent.width = 4096;
-      m_pDriver->m_RenderState.scissors[i].extent.height = 4096;
+      m_pDriver->m_RenderState.scissors[i].extent.width = 16384;
+      m_pDriver->m_RenderState.scissors[i].extent.height = 16384;
     }
 
     if(overlay == eTexOverlay_Wireframe)
@@ -4650,8 +4653,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
       VkRect2D &sc = (VkRect2D &)pipeCreateInfo.pViewportState->pScissors[i];
       sc.offset.x = 0;
       sc.offset.y = 0;
-      sc.extent.width = 4096;
-      sc.extent.height = 4096;
+      sc.extent.width = 16384;
+      sc.extent.height = 16384;
     }
 
     // set our renderpass and shader
@@ -4715,8 +4718,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
     {
       m_pDriver->m_RenderState.scissors[i].offset.x = 0;
       m_pDriver->m_RenderState.scissors[i].offset.x = 0;
-      m_pDriver->m_RenderState.scissors[i].extent.width = 4096;
-      m_pDriver->m_RenderState.scissors[i].extent.height = 4096;
+      m_pDriver->m_RenderState.scissors[i].extent.width = 16384;
+      m_pDriver->m_RenderState.scissors[i].extent.height = 16384;
     }
 
     m_pDriver->ReplayLog(0, eventID, eReplay_OnlyDraw);
@@ -4909,8 +4912,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
       VkRect2D &sc = (VkRect2D &)pipeCreateInfo.pViewportState->pScissors[i];
       sc.offset.x = 0;
       sc.offset.y = 0;
-      sc.extent.width = 4096;
-      sc.extent.height = 4096;
+      sc.extent.width = 16384;
+      sc.extent.height = 16384;
     }
 
     // set our renderpass and shader
@@ -4982,8 +4985,8 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
     {
       m_pDriver->m_RenderState.scissors[i].offset.x = 0;
       m_pDriver->m_RenderState.scissors[i].offset.x = 0;
-      m_pDriver->m_RenderState.scissors[i].extent.width = 4096;
-      m_pDriver->m_RenderState.scissors[i].extent.height = 4096;
+      m_pDriver->m_RenderState.scissors[i].extent.width = 16384;
+      m_pDriver->m_RenderState.scissors[i].extent.height = 16384;
     }
 
     m_pDriver->ReplayLog(0, eventID, eReplay_OnlyDraw);
@@ -5480,7 +5483,7 @@ MeshDisplayPipelines VulkanDebugManager::CacheMeshDisplayPipelines(const MeshFor
       false,
   };
 
-  VkRect2D scissor = {{0, 0}, {4096, 4096}};
+  VkRect2D scissor = {{0, 0}, {16384, 16384}};
 
   VkPipelineViewportStateCreateInfo vp = {
       VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO, NULL, 0, 1, NULL, 1, &scissor};
@@ -6463,7 +6466,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
   const VulkanRenderState &state = m_pDriver->m_RenderState;
   VulkanCreationInfo &creationInfo = m_pDriver->m_CreationInfo;
 
-  if(state.graphics.pipeline == ResourceId())
+  if(state.graphics.pipeline == ResourceId() || state.renderPass == ResourceId())
     return;
 
   const VulkanCreationInfo::Pipeline &pipeInfo = creationInfo.m_Pipeline[state.graphics.pipeline];

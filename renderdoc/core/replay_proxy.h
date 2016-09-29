@@ -112,6 +112,8 @@ public:
     m_ToReplaySerialiser = NULL;
     m_FromReplaySerialiser = new Serialiser(NULL, Serialiser::WRITING, false);
     m_RemoteHasResolver = false;
+
+    RDCEraseEl(m_APIProps);
   }
 
   virtual ~ReplayProxy();
@@ -192,9 +194,9 @@ public:
     if(m_Proxy)
     {
       EnsureTexCached(texid, sliceFace, mip);
-      if(texid == ResourceId() || m_ProxyTextureIds[texid] == ResourceId())
+      if(texid == ResourceId() || m_ProxyTextures[texid] == ResourceId())
         return false;
-      return m_Proxy->GetMinMax(m_ProxyTextureIds[texid], sliceFace, mip, sample, typeHint, minval,
+      return m_Proxy->GetMinMax(m_ProxyTextures[texid], sliceFace, mip, sample, typeHint, minval,
                                 maxval);
     }
 
@@ -208,10 +210,10 @@ public:
     if(m_Proxy)
     {
       EnsureTexCached(texid, sliceFace, mip);
-      if(texid == ResourceId() || m_ProxyTextureIds[texid] == ResourceId())
+      if(texid == ResourceId() || m_ProxyTextures[texid] == ResourceId())
         return false;
-      return m_Proxy->GetHistogram(m_ProxyTextureIds[texid], sliceFace, mip, sample, typeHint,
-                                   minval, maxval, channels, histogram);
+      return m_Proxy->GetHistogram(m_ProxyTextures[texid], sliceFace, mip, sample, typeHint, minval,
+                                   maxval, channels, histogram);
     }
 
     return false;
@@ -222,9 +224,9 @@ public:
     if(m_Proxy)
     {
       EnsureTexCached(cfg.texid, cfg.sliceFace, cfg.mip);
-      if(cfg.texid == ResourceId() || m_ProxyTextureIds[cfg.texid] == ResourceId())
+      if(cfg.texid == ResourceId() || m_ProxyTextures[cfg.texid] == ResourceId())
         return false;
-      cfg.texid = m_ProxyTextureIds[cfg.texid];
+      cfg.texid = m_ProxyTextures[cfg.texid];
 
       // due to OpenGL having origin bottom-left compared to the rest of the world,
       // we need to flip going in or out of GL.
@@ -246,10 +248,10 @@ public:
     if(m_Proxy)
     {
       EnsureTexCached(texture, sliceFace, mip);
-      if(texture == ResourceId() || m_ProxyTextureIds[texture] == ResourceId())
+      if(texture == ResourceId() || m_ProxyTextures[texture] == ResourceId())
         return;
 
-      texture = m_ProxyTextureIds[texture];
+      texture = m_ProxyTextures[texture];
 
       // due to OpenGL having origin bottom-left compared to the rest of the world,
       // we need to flip going in or out of GL.
@@ -369,13 +371,13 @@ public:
     if(m_Proxy)
     {
       EnsureTexCached(texid, 0, mip);
-      if(texid == ResourceId() || m_ProxyTextureIds[texid] == ResourceId())
+      if(texid == ResourceId() || m_ProxyTextures[texid] == ResourceId())
         return ResourceId();
-      texid = m_ProxyTextureIds[texid];
+      texid = m_ProxyTextures[texid];
       ResourceId customResourceId =
           m_Proxy->ApplyCustomShader(shader, texid, mip, arrayIdx, sampleIdx, typeHint);
       m_LocalTextures.insert(customResourceId);
-      m_ProxyTextureIds[customResourceId] = customResourceId;
+      m_ProxyTextures[customResourceId] = customResourceId;
       return customResourceId;
     }
 
@@ -396,6 +398,7 @@ public:
 
   void SavePipelineState();
   D3D11PipelineState GetD3D11PipelineState() { return m_D3D11PipelineState; }
+  D3D12PipelineState GetD3D12PipelineState() { return m_D3D12PipelineState; }
   GLPipelineState GetGLPipelineState() { return m_GLPipelineState; }
   VulkanPipelineState GetVulkanPipelineState() { return m_VulkanPipelineState; }
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
@@ -417,9 +420,8 @@ public:
                             vector<ShaderVariable> &outvars, const vector<byte> &data);
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData);
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
-                       FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
-                       float blackPoint, float whitePoint, size_t &dataSize);
+  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                       const GetTextureDataParams &params, size_t &dataSize);
 
   void InitPostVSBuffers(uint32_t eventID);
   void InitPostVSBuffers(const vector<uint32_t> &passEvents);
@@ -467,6 +469,7 @@ public:
     RDCERR("Calling proxy-render functions on a proxy serialiser");
   }
 
+  bool IsTextureSupported(const ResourceFormat &format) { return true; }
   ResourceId CreateProxyBuffer(const FetchBuffer &templateBuf)
   {
     RDCERR("Calling proxy-render functions on a proxy serialiser");
@@ -482,6 +485,7 @@ private:
   bool SendReplayCommand(ReplayProxyPacket type);
 
   void EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip);
+  void RemapProxyTextureIfNeeded(ResourceFormat &format, GetTextureDataParams &params);
   void EnsureBufCached(ResourceId bufid);
 
   struct TextureCacheEntry
@@ -501,7 +505,19 @@ private:
   };
   set<TextureCacheEntry> m_TextureProxyCache;
   set<ResourceId> m_LocalTextures;
-  map<ResourceId, ResourceId> m_ProxyTextureIds;
+
+  struct ProxyTextureProperties
+  {
+    ResourceId id;
+    GetTextureDataParams params;
+
+    ProxyTextureProperties() {}
+    // Create a proxy Id with the default get-data parameters.
+    ProxyTextureProperties(ResourceId proxyid) : id(proxyid) {}
+    operator ResourceId() const { return id; }
+    bool operator==(const ResourceId &other) const { return id == other; }
+  };
+  map<ResourceId, ProxyTextureProperties> m_ProxyTextures;
 
   set<ResourceId> m_BufferProxyCache;
   map<ResourceId, ResourceId> m_ProxyBufferIds;
@@ -537,6 +553,7 @@ private:
   APIProperties m_APIProps;
 
   D3D11PipelineState m_D3D11PipelineState;
+  D3D12PipelineState m_D3D12PipelineState;
   GLPipelineState m_GLPipelineState;
   VulkanPipelineState m_VulkanPipelineState;
 };

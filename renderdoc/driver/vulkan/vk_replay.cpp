@@ -1223,7 +1223,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
   data->MipLevel = (int)cfg.mip;
   data->Slice = 0;
   if(iminfo.type != VK_IMAGE_TYPE_3D)
-    data->Slice = (float)cfg.sliceFace;
+    data->Slice = (float)cfg.sliceFace + 0.001f;
   else
     data->Slice = (float)(cfg.sliceFace >> cfg.mip);
 
@@ -3527,13 +3527,13 @@ void VulkanReplay::SavePipelineState()
                 dst.bindings[b].type = eBindType_ReadWriteTBuffer;
                 break;
               case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER:
-                dst.bindings[b].type = eBindType_ReadOnlyBuffer;
+                dst.bindings[b].type = eBindType_ConstantBuffer;
                 break;
               case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER:
                 dst.bindings[b].type = eBindType_ReadWriteBuffer;
                 break;
               case VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC:
-                dst.bindings[b].type = eBindType_ReadOnlyBuffer;
+                dst.bindings[b].type = eBindType_ConstantBuffer;
                 dynamicOffset = true;
                 break;
               case VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC:
@@ -4571,9 +4571,8 @@ MeshFormat VulkanReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, Mes
   return GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);
 }
 
-byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
-                                   FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
-                                   float blackPoint, float whitePoint, size_t &dataSize)
+byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                   const GetTextureDataParams &params, size_t &dataSize)
 {
   bool wasms = false;
 
@@ -4640,7 +4639,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     wasms = true;
   }
 
-  if(forceRGBA8unorm)
+  if(params.remap)
   {
     // force readback texture to RGBA8 unorm
     imCreateInfo.format =
@@ -4752,15 +4751,15 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
       texDisplay.FlipY = false;
       texDisplay.mip = mip;
       texDisplay.sampleIdx =
-          imCreateInfo.imageType == VK_IMAGE_TYPE_3D ? 0 : (resolve ? ~0U : arrayIdx);
+          imCreateInfo.imageType == VK_IMAGE_TYPE_3D ? 0 : (params.resolve ? ~0U : arrayIdx);
       texDisplay.CustomShader = ResourceId();
       texDisplay.sliceFace = imCreateInfo.imageType == VK_IMAGE_TYPE_3D ? i : arrayIdx;
-      texDisplay.rangemin = blackPoint;
-      texDisplay.rangemax = whitePoint;
+      texDisplay.rangemin = params.blackPoint;
+      texDisplay.rangemax = params.whitePoint;
       texDisplay.scale = 1.0f;
       texDisplay.texid = tex;
       texDisplay.typeHint = eCompType_None;
-      texDisplay.rawoutput = true;
+      texDisplay.rawoutput = false;
       texDisplay.offx = 0;
       texDisplay.offy = 0;
 
@@ -4809,7 +4808,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
           &clearval,
       };
 
-      RenderTextureInternal(texDisplay, rpbegin, true);
+      RenderTextureInternal(texDisplay, rpbegin, false);
     }
 
     m_DebugWidth = oldW;
@@ -4840,7 +4839,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     isDepth = false;
     isStencil = false;
   }
-  else if(wasms && resolve)
+  else if(wasms && params.resolve)
   {
     // force to 1 array slice, 1 mip
     imCreateInfo.arrayLayers = 1;
@@ -5113,6 +5112,13 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
           imCreateInfo.extent,
       },
   };
+
+  for(int i = 0; i < 2; i++)
+  {
+    copyregion[i].imageExtent.width = RDCMAX(1U, copyregion[i].imageExtent.width >> mip);
+    copyregion[i].imageExtent.height = RDCMAX(1U, copyregion[i].imageExtent.height >> mip);
+    copyregion[i].imageExtent.depth = RDCMAX(1U, copyregion[i].imageExtent.depth >> mip);
+  }
 
   // for most combined depth-stencil images this will be large enough for both to be copied
   // separately, but for D24S8 we need to add extra space since they won't be copied packed
@@ -5537,6 +5543,11 @@ void VulkanReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint
                                        byte *data, size_t dataSize)
 {
   VULKANNOTIMP("SetProxyTextureData");
+}
+
+bool VulkanReplay::IsTextureSupported(const ResourceFormat &format)
+{
+  return true;
 }
 
 ResourceId VulkanReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)

@@ -48,6 +48,7 @@ Abstract:
 #define _Outptr_result_maybenull_
 #define _Outptr_result_bytebuffer_(size)
 #define _Out_writes_all_opt_(size)
+#define _Out_writes_all_(size)
 #define _COM_Outptr_
 #define _COM_Outptr_opt_
 #define _COM_Outptr_opt_result_maybenull_

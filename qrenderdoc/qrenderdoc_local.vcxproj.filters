@@ -1,0 +1,386 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Form Files">
+      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
+      <Extensions>ui</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;moc;h;def;odl;idl;res;</Extensions>
+    </Filter>
+    <Filter Include="Generated Files">
+      <UniqueIdentifier>{71ED8ED8-ACB9-4CE9-BBE1-E00B30144E11}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;moc;h;def;odl;idl;res;</Extensions>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource Files">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Forms">
+      <UniqueIdentifier>{99349809-55BA-4b9d-BF79-8FDBB0286EB3}</UniqueIdentifier>
+      <Extensions>ui</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Resources">
+      <UniqueIdentifier>{D9D6E242-F8AF-46E4-B9FD-80ECBC20BA3E}</UniqueIdentifier>
+      <Extensions>qrc;*</Extensions>
+      <ParseFiles>false</ParseFiles>
+    </Filter>
+    <Filter Include="Resources\Files">
+      <UniqueIdentifier>{c6877252-7f18-4c63-a2f7-66b1913d8ada}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty">
+      <UniqueIdentifier>{476acc91-c8c7-4ba7-9835-c0b566f562dd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\ToolWindowManager">
+      <UniqueIdentifier>{6c205a59-af2f-49ab-bcbf-e83799ce89a3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\FlowLayout">
+      <UniqueIdentifier>{c820ead5-74a1-4010-86bb-d5d77b5d13fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Code">
+      <UniqueIdentifier>{96c62ca7-39e7-4fca-a6a4-c8e1c3e2a324}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Windows">
+      <UniqueIdentifier>{897f728c-8a11-41c3-ba6f-75815d9e06db}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Windows\Dialogs">
+      <UniqueIdentifier>{06b18b38-7ec5-4195-8230-f5be6348ecfb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Widgets">
+      <UniqueIdentifier>{633cf7bf-24ec-4927-835b-f6e96e21c288}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="generated\moc_EventBrowser.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_LineEditFocusWidget.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_MainWindow.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_TextureViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_ToolWindowManager.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_ToolWindowManagerArea.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_ToolWindowManagerWrapper.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\qrc_resources.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_AboutDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_Core.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_CustomPaintWidget.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManager.cpp">
+      <Filter>3rdparty\ToolWindowManager</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManagerArea.cpp">
+      <Filter>3rdparty\ToolWindowManager</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManagerWrapper.cpp">
+      <Filter>3rdparty\ToolWindowManager</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\flowlayout\FlowLayout.cpp">
+      <Filter>3rdparty\FlowLayout</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\Core.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\main.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\AboutDialog.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\CustomPaintWidget.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\MainWindow.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\TextureViewer.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\EventBrowser.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\LineEditFocusWidget.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\RenderManager.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
+      <Filter>3rdparty\FlowLayout</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\RenderManager.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\AboutDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\Core.h">
+      <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\CustomPaintWidget.h">
+      <Filter>Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\EventBrowser.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\LineEditFocusWidget.h">
+      <Filter>Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\MainWindow.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\TextureViewer.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManager.h">
+      <Filter>3rdparty\ToolWindowManager</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManagerArea.h">
+      <Filter>3rdparty\ToolWindowManager</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManagerWrapper.h">
+      <Filter>3rdparty\ToolWindowManager</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="resources.qrc">
+      <Filter>Resources</Filter>
+    </None>
+    <None Include="Resources\128.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\accept.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\add.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\arrow_in.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\arrow_join.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\arrow_undo.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\asterisk_orange.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\chart_curve.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\cog.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\cog_go.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\color_wheel.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\connect.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\cross.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\crosshatch.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\delete.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\disconnect.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\find.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\fit_window.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\flag_green.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\flip_y.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\folder_page.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\glsl.xml">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\hlsl.xml">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\hourglass.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\icon.ico">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\information.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\new_window.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\page_white_database.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\page_white_delete.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\page_white_edit.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\page_white_link.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\plugin_add.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\red_x_16.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\RightArrow_Gray_16x16.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\RightArrow_Green_16x16.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\runback.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\runcursor.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\runfwd.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\save.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\stepnext.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\stepprev.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\tick.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\time.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\timeline_marker.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\topologies\topo_linelist.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\topologies\topo_linelist_adj.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\topologies\topo_linestrip.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\topologies\topo_linestrip_adj.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\topologies\topo_patch.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\topologies\topo_pointlist.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\topologies\topo_trilist.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\topologies\topo_trilist_adj.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\topologies\topo_tristrip.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\topologies\topo_tristrip_adj.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\wand.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\wireframe_mesh.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\wrench.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\zoom.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Windows\AboutDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </None>
+    <None Include="Windows\EventBrowser.ui">
+      <Filter>Windows</Filter>
+    </None>
+    <None Include="Windows\MainWindow.ui">
+      <Filter>Windows</Filter>
+    </None>
+    <None Include="Windows\TextureViewer.ui">
+      <Filter>Windows</Filter>
+    </None>
+    <None Include="3rdparty\Qt\bin32\qwindows.dll" />
+    <None Include="3rdparty\Qt\bin32\Qt5Core.dll" />
+    <None Include="3rdparty\Qt\bin32\Qt5Gui.dll" />
+    <None Include="3rdparty\Qt\bin32\Qt5Widgets.dll" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="generated\ui_AboutDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_EventBrowser.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_MainWindow.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_TextureViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

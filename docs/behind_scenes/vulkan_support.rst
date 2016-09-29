@@ -3,11 +3,7 @@ Vulkan Support
 
 This page documents the support of Vulkan in RenderDoc. This gives an overview of what RenderDoc is capable of, and primarily lists information that is relevant. You might also be interested in the :doc:`full list of features <../getting_started/features>`.
 
-.. |github_vulkan_link| raw:: html
-
-   <a href="https://github.com/baldurk/renderdoc/wiki/Vulkan" target="_blank">GitHub wiki</a>
-
-The latest information and up-to-date support is always available on the |github_vulkan_link|.
+The latest information and up-to-date support is always available on the `GitHub wiki <https://github.com/baldurk/renderdoc/wiki/Vulkan>`_.
 
 Vulkan capture
 --------------

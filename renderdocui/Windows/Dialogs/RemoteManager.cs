@@ -114,7 +114,10 @@ namespace renderdocui.Windows.Dialogs
 
             m_Core = core;
             m_Main = main;
+        }
 
+        private void RemoteManager_Load(object sender, EventArgs e)
+        {
             hosts.BeginInit();
 
             foreach (var h in m_Core.Config.RemoteHosts)
@@ -136,10 +139,17 @@ namespace renderdocui.Windows.Dialogs
             hosts.Nodes.Add(node);
 
             refreshOne.Enabled = refreshAll.Enabled = false;
-            UpdateLookupsStatus();
+
+            {
+                lookupMutex.WaitOne();
+                lookupsInProgress++;
+                lookupMutex.ReleaseMutex();
+            }
 
             Thread th = Helpers.NewThread(new ParameterizedThreadStart(LookupHostConnections));
             th.Start(node);
+
+            UpdateLookupsStatus();
         }
 
         private void UpdateLookupsStatus()
@@ -167,12 +177,6 @@ namespace renderdocui.Windows.Dialogs
         // queries it for the API, target (usually executable name) and if any user is already connected
         private static void LookupHostConnections(object o)
         {
-            {
-                lookupMutex.WaitOne();
-                lookupsInProgress++;
-                lookupMutex.ReleaseMutex();
-            }
-
             TreelistView.Node node = o as TreelistView.Node;
 
             Control p = node.OwnerView;
@@ -282,18 +286,18 @@ namespace renderdocui.Windows.Dialogs
                     if (refreshAll.Enabled)
                         refreshOne.Enabled = true;
 
-                    addUpdateHost.Text = "Update";
-
                     if (host.Hostname == "localhost")
                     {
-                        hostname.Enabled = addUpdateHost.Enabled = runCommand.Enabled = false;
-                        hostname.Text = "localhost";
+                        hostname.Text = "";
+                        runCommand.Text = "";
                     }
                     else
                     {
                         deleteHost.Enabled = true;
                         runCommand.Text = host.RunCommand;
                         hostname.Text = host.Hostname;
+
+                        addUpdateHost.Text = "Update";
                     }
                 }
             }
@@ -371,7 +375,7 @@ namespace renderdocui.Windows.Dialogs
                     {
                         connect.Text = "Shutdown";
 
-                        if (host.Busy || host.Connected)
+                        if (host.Busy && !host.Connected)
                             connect.Enabled = false;
                     }
                     else
@@ -476,11 +480,19 @@ namespace renderdocui.Windows.Dialogs
                     // shut down
                     try
                     {
-                        RemoteServer server = StaticExports.CreateRemoteServer(host.Hostname, 0);
-                        server.ShutdownServerAndConnection();
-                        hosts.BeginUpdate();
-                        SetRemoteServerLive(node, false, false);
-                        hosts.EndUpdate();
+                        if (host.Connected)
+                        {
+                            m_Core.Renderer.ShutdownServer();
+                            SetRemoteServerLive(node, false, false);
+                        }
+                        else
+                        {
+                            RemoteServer server = StaticExports.CreateRemoteServer(host.Hostname, 0);
+                            server.ShutdownServerAndConnection();
+                            hosts.BeginUpdate();
+                            SetRemoteServerLive(node, false, false);
+                            hosts.EndUpdate();
+                        }
                     }
                     catch (Exception)
                     {
@@ -493,6 +505,12 @@ namespace renderdocui.Windows.Dialogs
                 {
                     // try to run
                     refreshOne.Enabled = refreshAll.Enabled = false;
+
+                    {
+                        lookupMutex.WaitOne();
+                        lookupsInProgress++;
+                        lookupMutex.ReleaseMutex();
+                    }
 
                     Thread th = Helpers.NewThread(new ParameterizedThreadStart(RunRemoteServer));
                     th.Start(node);

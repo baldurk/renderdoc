@@ -294,3 +294,10 @@ html_context = {
     'show_source': False,
     'html_show_sourcelink': False,
 }
+
+# We need 1.5 and above for the htmlhelp links to be handled properly without
+# needing separate ugly _blank links. If you don't care about that, you can
+# disable this
+if(tags.has('htmlhelp')):
+	print("**** We require sphinx 1.5 for htmlhelp build to have the fix for issue #2550 ****")
+	needs_sphinx = '1.5'

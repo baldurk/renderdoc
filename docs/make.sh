@@ -102,7 +102,7 @@ if [ $1 == "json" ]; then
 fi
 
 if [ $1 == "htmlhelp" ]; then
-	$SPHINXBUILD -b htmlhelp $ALLSPHINXOPTS $BUILDDIR/htmlhelp
+	$SPHINXBUILD -b htmlhelp -t htmlhelp $ALLSPHINXOPTS $BUILDDIR/htmlhelp
 	if [ $? != 0 ]; then exit 1; fi
 	# Copy handwritten index file to output, overwriting auto-generated one
 	cp renderdoc.hhk $BUILDDIR/htmlhelp

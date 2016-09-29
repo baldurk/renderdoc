@@ -229,7 +229,10 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version ver
   int ret = 0;
   int major = 0, minor = 0, patch = 0;
 
+  string supportedVersions = "";
+
 #define API_VERSION_HANDLE(enumver, actualver)                     \
+  supportedVersions += " " STRINGIZE(CONCAT(API_, enumver));       \
   if(version == CONCAT(eRENDERDOC_API_Version_, enumver))          \
   {                                                                \
     CONCAT(Init_, actualver)();                                    \
@@ -253,6 +256,7 @@ extern "C" RENDERDOC_API int RENDERDOC_CC RENDERDOC_GetAPI(RENDERDOC_Version ver
     return 1;
   }
 
-  RDCERR("Unrecognised API version '%d'", version);
+  RDCERR("Unrecognised API version '%d'. Supported versions:%s", version, supportedVersions.c_str());
+
   return 0;
 }

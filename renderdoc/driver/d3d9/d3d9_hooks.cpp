@@ -26,6 +26,8 @@
 #include "driver/d3d11/d3d11_device.h"
 #include "hooks/hooks.h"
 
+#include "driver/dx/official/d3d9.h"
+
 #define DLL_NAME "d3d9.dll"
 
 typedef int(WINAPI *PFN_BEGIN_EVENT)(DWORD, WCHAR *);
@@ -33,8 +35,6 @@ typedef int(WINAPI *PFN_END_EVENT)();
 typedef int(WINAPI *PFN_SET_MARKER_EVENT)(DWORD, WCHAR *);
 typedef void(WINAPI *PFN_SET_OPTIONS)(DWORD);
 typedef DWORD(WINAPI *PFN_GET_OPTIONS)();
-
-struct IDirect3D9;
 
 typedef IDirect3D9 *(WINAPI *PFN_D3D9_CREATE)(UINT);
 

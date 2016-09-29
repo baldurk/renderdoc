@@ -278,6 +278,14 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
       D3D12_MESSAGE_ID mute[] = {
           // super spammy, mostly just perf warning, and impossible to fix for our cases
           D3D12_MESSAGE_ID_CLEARRENDERTARGETVIEW_MISMATCHINGCLEARVALUE,
+          D3D12_MESSAGE_ID_CLEARDEPTHSTENCILVIEW_MISMATCHINGCLEARVALUE,
+
+          // caused often by an over-declaration in the root signature to match between
+          // different shaders, and in some descriptors are entirely skipped. We rely on
+          // the user to get this right - if the error is non-fatal, any real problems
+          // will be potentially highlighted in the pipeline view
+          D3D12_MESSAGE_ID_INVALID_DESCRIPTOR_HANDLE,
+          D3D12_MESSAGE_ID_COMMAND_LIST_DESCRIPTOR_TABLE_NOT_SET,
       };
 
       D3D12_INFO_QUEUE_FILTER filter = {};
@@ -540,7 +548,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *
 
     // DXGI swap chain back buffers can be freely cast as a special-case.
     // translate the format to a typeless format to allow for this.
-    // the original type will be stored in the texture below
+    // the original type is stored separately below
     Descriptor.Format = GetTypelessFormat(Descriptor.Format);
 
     HRESULT hr = S_OK;
@@ -570,6 +578,8 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *
       fakeBB->SetName(L"Swap Chain Buffer");
 
       GetResourceManager()->AddLiveResource(TexID, fakeBB);
+
+      m_BackbufferFormat = std::make_pair(wrapped->GetResourceID(), swapFormat);
 
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
@@ -610,6 +620,10 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
     record->DataInSerialiser = false;
     record->SpecialResource = true;
     record->Length = 0;
+
+    WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)pRes;
+
+    wrapped->SetResourceRecord(record);
 
     SCOPED_LOCK(m_D3DLock);
 
@@ -1048,7 +1062,181 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   const uint32_t maxSize = 1024;
 
   // gather backbuffer screenshot
-  (void)maxSize;
+  if(backbuffer != NULL)
+  {
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    D3D12_RESOURCE_DESC bufDesc;
+
+    bufDesc.Alignment = 0;
+    bufDesc.DepthOrArraySize = 1;
+    bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    bufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    bufDesc.Format = DXGI_FORMAT_UNKNOWN;
+    bufDesc.Height = 1;
+    bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    bufDesc.MipLevels = 1;
+    bufDesc.SampleDesc.Count = 1;
+    bufDesc.SampleDesc.Quality = 0;
+    bufDesc.Width = 1;
+
+    D3D12_RESOURCE_DESC desc = backbuffer->GetDesc();
+
+    D3D12_PLACED_SUBRESOURCE_FOOTPRINT layout = {};
+
+    m_pDevice->GetCopyableFootprints(&desc, 0, 1, 0, &layout, NULL, NULL, &bufDesc.Width);
+
+    ID3D12Resource *copyDst = NULL;
+    HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
+                                                    D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+                                                    __uuidof(ID3D12Resource), (void **)&copyDst);
+
+    if(SUCCEEDED(hr))
+    {
+      ID3D12GraphicsCommandList *list = Unwrap(GetNewList());
+
+      D3D12_RESOURCE_BARRIER barrier = {};
+
+      // we know there's only one subresource, and it will be in PRESENT state
+      barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      barrier.Transition.pResource = Unwrap(backbuffer);
+      barrier.Transition.Subresource = 0;
+      barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
+      barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+      list->ResourceBarrier(1, &barrier);
+
+      // copy to readback buffer
+      D3D12_TEXTURE_COPY_LOCATION dst, src;
+
+      src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+      src.pResource = Unwrap(backbuffer);
+      src.SubresourceIndex = 0;
+
+      dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+      dst.pResource = copyDst;
+      dst.PlacedFootprint = layout;
+
+      list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+
+      // transition back
+      std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+      list->ResourceBarrier(1, &barrier);
+
+      list->Close();
+
+      ExecuteLists();
+      FlushLists();
+
+      byte *data = NULL;
+      hr = copyDst->Map(0, NULL, (void **)&data);
+
+      if(SUCCEEDED(hr) && data)
+      {
+        ResourceFormat fmt = MakeResourceFormat(desc.Format);
+
+        float aspect = float(desc.Width) / float(desc.Height);
+
+        thwidth = RDCMIN(maxSize, (uint32_t)desc.Width);
+        thwidth &= ~0x7;    // align down to multiple of 8
+        thheight = uint32_t(float(thwidth) / aspect);
+
+        thpixels = new byte[3 * thwidth * thheight];
+
+        float widthf = float(desc.Width);
+        float heightf = float(desc.Height);
+
+        uint32_t stride = fmt.compByteWidth * fmt.compCount;
+
+        bool buf1010102 = false;
+        bool bufBGRA = (fmt.bgraOrder != false);
+
+        if(fmt.special && fmt.specialFormat == eSpecial_R10G10B10A2)
+        {
+          stride = 4;
+          buf1010102 = true;
+        }
+
+        byte *dstPixels = thpixels;
+
+        for(uint32_t y = 0; y < thheight; y++)
+        {
+          for(uint32_t x = 0; x < thwidth; x++)
+          {
+            float xf = float(x) / float(thwidth);
+            float yf = float(y) / float(thheight);
+
+            byte *srcPixels = &data[stride * uint32_t(xf * widthf) +
+                                    layout.Footprint.RowPitch * uint32_t(yf * heightf)];
+
+            if(buf1010102)
+            {
+              uint32_t *src1010102 = (uint32_t *)srcPixels;
+              Vec4f unorm = ConvertFromR10G10B10A2(*src1010102);
+              dstPixels[0] = (byte)(unorm.x * 255.0f);
+              dstPixels[1] = (byte)(unorm.y * 255.0f);
+              dstPixels[2] = (byte)(unorm.z * 255.0f);
+            }
+            else if(bufBGRA)
+            {
+              dstPixels[0] = srcPixels[2];
+              dstPixels[1] = srcPixels[1];
+              dstPixels[2] = srcPixels[0];
+            }
+            else if(fmt.compByteWidth == 2)    // R16G16B16A16 backbuffer
+            {
+              uint16_t *src16 = (uint16_t *)srcPixels;
+
+              float linearR = RDCCLAMP(ConvertFromHalf(src16[0]), 0.0f, 1.0f);
+              float linearG = RDCCLAMP(ConvertFromHalf(src16[1]), 0.0f, 1.0f);
+              float linearB = RDCCLAMP(ConvertFromHalf(src16[2]), 0.0f, 1.0f);
+
+              if(linearR < 0.0031308f)
+                dstPixels[0] = byte(255.0f * (12.92f * linearR));
+              else
+                dstPixels[0] = byte(255.0f * (1.055f * powf(linearR, 1.0f / 2.4f) - 0.055f));
+
+              if(linearG < 0.0031308f)
+                dstPixels[1] = byte(255.0f * (12.92f * linearG));
+              else
+                dstPixels[1] = byte(255.0f * (1.055f * powf(linearG, 1.0f / 2.4f) - 0.055f));
+
+              if(linearB < 0.0031308f)
+                dstPixels[2] = byte(255.0f * (12.92f * linearB));
+              else
+                dstPixels[2] = byte(255.0f * (1.055f * powf(linearB, 1.0f / 2.4f) - 0.055f));
+            }
+            else
+            {
+              dstPixels[0] = srcPixels[0];
+              dstPixels[1] = srcPixels[1];
+              dstPixels[2] = srcPixels[2];
+            }
+
+            dstPixels += 3;
+          }
+        }
+
+        copyDst->Unmap(0, NULL);
+      }
+      else
+      {
+        RDCERR("Couldn't map readback buffer: 0x%08x", hr);
+      }
+
+      SAFE_RELEASE(copyDst);
+    }
+    else
+    {
+      RDCERR("Couldn't create readback buffer: 0x%08x", hr);
+    }
+  }
 
   byte *jpgbuf = NULL;
   int len = thwidth * thheight;
@@ -1391,10 +1579,10 @@ void WrappedID3D12Device::SetLogFile(const char *logfile)
 {
   m_pSerialiser = new Serialiser(logfile, Serialiser::READING, false);
   m_pSerialiser->SetChunkNameLookup(&GetChunkName);
-  m_pSerialiser->SetUserData(m_ResourceManager);
 
   SAFE_DELETE(m_ResourceManager);
   m_ResourceManager = new D3D12ResourceManager(m_State, m_pSerialiser, this);
+  m_pSerialiser->SetUserData(m_ResourceManager);
 }
 
 const FetchDrawcall *WrappedID3D12Device::GetDrawcall(uint32_t eventID)
@@ -1416,20 +1604,23 @@ void WrappedID3D12Device::ProcessChunk(uint64_t offset, D3D12ChunkType context)
     case CREATE_COMMAND_ALLOCATOR:
       Serialise_CreateCommandAllocator(D3D12_COMMAND_LIST_TYPE_DIRECT, IID(), NULL);
       break;
-    case CREATE_COMMAND_LIST:
-      Serialise_CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, NULL, NULL, IID(), NULL);
-      break;
 
     case CREATE_GRAPHICS_PIPE: Serialise_CreateGraphicsPipelineState(NULL, IID(), NULL); break;
     case CREATE_COMPUTE_PIPE: Serialise_CreateComputePipelineState(NULL, IID(), NULL); break;
     case CREATE_DESCRIPTOR_HEAP: Serialise_CreateDescriptorHeap(NULL, IID(), NULL); break;
     case CREATE_ROOT_SIG: Serialise_CreateRootSignature(0, NULL, 0, IID(), NULL); break;
+    case CREATE_COMMAND_SIG: Serialise_CreateCommandSignature(NULL, NULL, IID(), NULL); break;
 
+    case CREATE_HEAP: Serialise_CreateHeap(NULL, IID(), NULL); break;
     case CREATE_COMMITTED_RESOURCE:
       Serialise_CreateCommittedResource(NULL, D3D12_HEAP_FLAG_NONE, NULL,
                                         D3D12_RESOURCE_STATE_COMMON, NULL, IID(), NULL);
       break;
+    case CREATE_PLACED_RESOURCE:
+      Serialise_CreatePlacedResource(NULL, 0, NULL, D3D12_RESOURCE_STATE_COMMON, NULL, IID(), NULL);
+      break;
 
+    case CREATE_QUERY_HEAP: Serialise_CreateQueryHeap(NULL, IID(), NULL); break;
     case CREATE_FENCE: Serialise_CreateFence(0, D3D12_FENCE_FLAG_NONE, IID(), NULL); break;
 
     case SET_RESOURCE_NAME: Serialise_SetResourceName(0x0, ""); break;

@@ -322,6 +322,7 @@ Socket *CreateClientSocket(const char *host, uint16_t port, int timeoutMS)
       }
       else
       {
+        RDCWARN("Error connecting to %s:%d - %d", host, port, err);
         close(s);
         continue;
       }

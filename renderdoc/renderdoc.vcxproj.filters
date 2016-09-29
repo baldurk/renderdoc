@@ -79,6 +79,9 @@
     <Filter Include="Resources\glsl">
       <UniqueIdentifier>{188ad934-e74f-4805-b74b-167f8760fab6}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\plthook">
+      <UniqueIdentifier>{1d6900f0-278c-4801-a720-f7deafc63fe9}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="maths\camera.h">
@@ -249,6 +252,12 @@
     <ClInclude Include="data\glsl\vk_texsample.h">
       <Filter>Resources\glsl</Filter>
     </ClInclude>
+    <ClInclude Include="api\replay\d3d12_pipestate.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\plthook\plthook.h">
+      <Filter>3rdparty\plthook</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">
@@ -365,9 +374,6 @@
     <ClCompile Include="os\posix\linux\linux_stringio.cpp">
       <Filter>OS\Posix\Linux</Filter>
     </ClCompile>
-    <ClCompile Include="os\posix\posix_hook.cpp">
-      <Filter>OS\Posix</Filter>
-    </ClCompile>
     <ClCompile Include="os\posix\posix_libentry.cpp">
       <Filter>OS\Posix</Filter>
     </ClCompile>
@@ -415,6 +421,18 @@
     </ClCompile>
     <ClCompile Include="core\target_control.cpp">
       <Filter>Core\networking</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\plthook\plthook_elf.c">
+      <Filter>3rdparty\plthook</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_hook.cpp">
+      <Filter>OS\Posix\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\android\android_hook.cpp">
+      <Filter>OS\Posix\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_hook.cpp">
+      <Filter>OS\Posix\Apple</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

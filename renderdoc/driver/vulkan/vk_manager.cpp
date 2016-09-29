@@ -527,7 +527,7 @@ void VulkanResourceManager::ApplyBarriers(vector<pair<ResourceId, ImageRegionSta
   }
 }
 
-bool VulkanResourceManager::Force_InitialState(WrappedVkRes *res)
+bool VulkanResourceManager::Force_InitialState(WrappedVkRes *res, bool prepare)
 {
   return false;
 }

@@ -480,7 +480,8 @@ namespace renderdocui.Windows
 
             var disasm = shader != null ? shader.Disassembly : "";
 
-            if (m_Core.Config.ShaderViewer_FriendlyNaming && m_ShaderDetails != null)
+            if (m_Core.Config.ShaderViewer_FriendlyNaming && m_ShaderDetails != null &&
+                m_Core.APIProps.pipelineType == GraphicsAPI.D3D11)
             {
                 for (int i = 0; i < m_ShaderDetails.ConstantBlocks.Length; i++)
                 {

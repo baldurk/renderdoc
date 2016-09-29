@@ -51,14 +51,34 @@ void Daemonise()
   daemon(1, 0);
 }
 
-// this is included as a data file in librenderdoc.so
-extern unsigned char driver_vulkan_renderdoc_json[];
-extern int driver_vulkan_renderdoc_json_len;
+// this is exported from vk_linux.cpp
+
+#if defined(RENDERDOC_SUPPORT_VULKAN)
+
+extern "C" void RENDERDOC_GetLayerJSON(char **txt, int *len);
+
+#else
+
+// just for ease of compiling, define a dummy function
+
+void RENDERDOC_GetLayerJSON(char **txt, int *len)
+{
+  static char dummy[] = "";
+  *txt = dummy;
+  *len = 0;
+}
+
+#endif
 
 static string GenerateJSON(const string &sopath)
 {
-  char *txt = (char *)driver_vulkan_renderdoc_json;
-  int len = driver_vulkan_renderdoc_json_len;
+  char *txt = NULL;
+  int len = 0;
+
+  RENDERDOC_GetLayerJSON(&txt, &len);
+
+  if(len <= 0)
+    return "";
 
   string json = string(txt, txt + len);
 
@@ -277,7 +297,7 @@ struct VulkanRegisterCommand : public Command
   string libPath;
 };
 
-static void VerifyVulkanLayer(int argc, char *argv[])
+void VerifyVulkanLayer(int argc, char *argv[])
 {
   // see if the user has suppressed all this checking as a "I know what I'm doing" measure
 

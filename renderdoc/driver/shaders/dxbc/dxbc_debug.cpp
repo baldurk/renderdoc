@@ -1455,11 +1455,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
                ShaderVariable("", sqrtf(srcOpers[0].value.f.x), sqrtf(srcOpers[0].value.f.y),
                               sqrtf(srcOpers[0].value.f.z), sqrtf(srcOpers[0].value.f.w)));
       break;
-    case OPCODE_RCP:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", 1.0f / srcOpers[0].value.f.x, 1.0f / srcOpers[0].value.f.y,
-                              1.0f / srcOpers[0].value.f.z, 1.0f / srcOpers[0].value.f.w));
-      break;
     case OPCODE_DRCP:
     {
       double ds[2] = {0.0, 0.0};
@@ -1473,38 +1468,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       s.SetDst(op.operands[0], op, r);
       break;
     }
-    case OPCODE_RSQ:
-      s.SetDst(op.operands[0], op, ShaderVariable("", 1.0f / sqrtf(srcOpers[0].value.f.x),
-                                                  1.0f / sqrtf(srcOpers[0].value.f.y),
-                                                  1.0f / sqrtf(srcOpers[0].value.f.z),
-                                                  1.0f / sqrtf(srcOpers[0].value.f.w)));
-      break;
-    case OPCODE_EXP:
-      s.SetDst(
-          op.operands[0], op,
-          ShaderVariable("", powf(2.0f, srcOpers[0].value.f.x), powf(2.0f, srcOpers[0].value.f.y),
-                         powf(2.0f, srcOpers[0].value.f.z), powf(2.0f, srcOpers[0].value.f.w)));
-      break;
-    case OPCODE_LOG:
-      s.SetDst(op.operands[0], op, ShaderVariable("", logf(srcOpers[0].value.f.x) / logf(2.0f),
-                                                  logf(srcOpers[0].value.f.y) / logf(2.0f),
-                                                  logf(srcOpers[0].value.f.z) / logf(2.0f),
-                                                  logf(srcOpers[0].value.f.w) / logf(2.0f)));
-      break;
-    case OPCODE_SINCOS:
-      if(op.operands[0].type != TYPE_NULL)
-      {
-        s.SetDst(op.operands[0], op,
-                 ShaderVariable("", sinf(srcOpers[1].value.f.x), sinf(srcOpers[1].value.f.y),
-                                sinf(srcOpers[1].value.f.z), sinf(srcOpers[1].value.f.w)));
-      }
-      if(op.operands[1].type != TYPE_NULL)
-      {
-        s.SetDst(op.operands[1], op,
-                 ShaderVariable("", cosf(srcOpers[1].value.f.x), cosf(srcOpers[1].value.f.y),
-                                cosf(srcOpers[1].value.f.z), cosf(srcOpers[1].value.f.w)));
-      }
-      break;
 
     case OPCODE_ISHL:
       s.SetDst(op.operands[0], op, ShaderVariable("", srcOpers[0].value.i.x << srcOpers[1].value.i.x,
@@ -1637,6 +1600,197 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       s.SetDst(op.operands[0], op, ShaderVariable("", ~srcOpers[0].value.u.x, ~srcOpers[0].value.u.y,
                                                   ~srcOpers[0].value.u.z, ~srcOpers[0].value.u.w));
       break;
+
+    /////////////////////////////////////////////////////////////////////////////////////////////////////
+    // transcendental functions with loose ULP requirements, so we pass them to the GPU to get
+    // more accurate (well, LESS accurate but more representative) answers.
+
+    case OPCODE_RCP:
+    case OPCODE_RSQ:
+    case OPCODE_EXP:
+    case OPCODE_LOG:
+    case OPCODE_SINCOS:
+    {
+      string csProgram =
+          "RWBuffer<float4> outval : register(u0);\n"
+          "cbuffer srcOper : register(b0) { float4 inval; };\n"
+          "[numthreads(1, 1, 1)]\n"
+          "void main() {\n";
+
+      switch(op.operation)
+      {
+        case OPCODE_RCP: csProgram += "outval[0] = rcp(inval);\n"; break;
+        case OPCODE_RSQ: csProgram += "outval[0] = rsqrt(inval);\n"; break;
+        case OPCODE_EXP: csProgram += "outval[0] = exp2(inval);\n"; break;
+        case OPCODE_LOG: csProgram += "outval[0] = log2(inval);\n"; break;
+        case OPCODE_SINCOS: csProgram += "sincos(inval, outval[0], outval[1]);\n"; break;
+      }
+
+      csProgram += "}\n";
+
+      ID3D11ComputeShader *cs =
+          device->GetDebugManager()->MakeCShader(csProgram.c_str(), "main", "cs_5_0");
+
+      ID3D11DeviceContext *context = NULL;
+
+      device->GetReal()->GetImmediateContext(&context);
+
+      // back up CB/UAV on CS slot 0
+
+      ID3D11Buffer *prevCB = NULL;
+      ID3D11UnorderedAccessView *prevUAV = NULL;
+
+      context->CSGetConstantBuffers(0, 1, &prevCB);
+      context->CSGetUnorderedAccessViews(0, 1, &prevUAV);
+
+      ID3D11Buffer *constBuf = NULL;
+
+      D3D11_BUFFER_DESC cdesc;
+
+      cdesc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+      cdesc.CPUAccessFlags = 0;
+      cdesc.MiscFlags = 0;
+      cdesc.StructureByteStride = sizeof(Vec4f);
+      cdesc.ByteWidth = sizeof(Vec4f);
+      cdesc.Usage = D3D11_USAGE_DEFAULT;
+
+      D3D11_SUBRESOURCE_DATA operData = {};
+      operData.pSysMem = &srcOpers[0].value.uv[0];
+      operData.SysMemPitch = sizeof(Vec4f);
+      operData.SysMemSlicePitch = sizeof(Vec4f);
+
+      if(op.operation == OPCODE_SINCOS)
+        operData.pSysMem = &srcOpers[1].value.uv[0];
+
+      HRESULT hr = S_OK;
+
+      hr = device->GetReal()->CreateBuffer(&cdesc, &operData, &constBuf);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create constant buf %08x", hr);
+        return s;
+      }
+
+      context->CSSetConstantBuffers(0, 1, &constBuf);
+
+      context->CSSetShader(cs, NULL, 0);
+
+      ID3D11UnorderedAccessView *uav = NULL;
+
+      ID3D11Buffer *uavBuf = NULL;
+      ID3D11Buffer *copyBuf = NULL;
+
+      D3D11_BUFFER_DESC bdesc;
+
+      bdesc.BindFlags = D3D11_BIND_UNORDERED_ACCESS;
+      bdesc.CPUAccessFlags = 0;
+      bdesc.MiscFlags = 0;
+      bdesc.StructureByteStride = sizeof(Vec4f);
+      bdesc.ByteWidth = sizeof(Vec4f) * 2;
+      bdesc.Usage = D3D11_USAGE_DEFAULT;
+
+      hr = device->GetReal()->CreateBuffer(&bdesc, NULL, &uavBuf);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create UAV buf %08x", hr);
+        return s;
+      }
+
+      bdesc.BindFlags = 0;
+      bdesc.CPUAccessFlags = D3D11_CPU_ACCESS_READ;
+      bdesc.Usage = D3D11_USAGE_STAGING;
+
+      hr = device->GetReal()->CreateBuffer(&bdesc, NULL, &copyBuf);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create copy buf %08x", hr);
+        return s;
+      }
+
+      D3D11_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+
+      uavDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      uavDesc.ViewDimension = D3D11_UAV_DIMENSION_BUFFER;
+      uavDesc.Buffer.FirstElement = 0;
+      uavDesc.Buffer.NumElements = 2;
+      uavDesc.Buffer.Flags = 0;
+
+      hr = device->GetReal()->CreateUnorderedAccessView(uavBuf, &uavDesc, &uav);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create uav %08x", hr);
+        return s;
+      }
+
+      context->CSSetUnorderedAccessViews(0, 1, &uav, NULL);
+      context->Dispatch(1, 1, 1);
+
+      context->CopyResource(copyBuf, uavBuf);
+
+      D3D11_MAPPED_SUBRESOURCE mapped;
+      hr = context->Map(copyBuf, 0, D3D11_MAP_READ, 0, &mapped);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to map results %08x", hr);
+        return s;
+      }
+
+      ShaderVariable calcResultA("calcA", 0.0f, 0.0f, 0.0f, 0.0f);
+      ShaderVariable calcResultB("calcB", 0.0f, 0.0f, 0.0f, 0.0f);
+
+      uint32_t *resA = (uint32_t *)mapped.pData;
+      uint32_t *resB = resA + 4;
+
+      memcpy(calcResultA.value.uv, resA, sizeof(uint32_t) * 4);
+      memcpy(calcResultB.value.uv, resB, sizeof(uint32_t) * 4);
+
+      context->Unmap(copyBuf, 0);
+
+      float logval = logf(srcOpers[0].value.f.x) / logf(2.0f);
+      float rcpval = 1.0f / (srcOpers[0].value.f.x);
+      float rsqval = 1.0f / sqrtf(srcOpers[0].value.f.x);
+      float expval = powf(2.0f, srcOpers[0].value.f.x);
+      float sinval = sinf(srcOpers[1].value.f.x);
+      float cosval = cosf(srcOpers[1].value.f.x);
+
+      logval += rcpval + rsqval + expval + sinval + cosval;
+
+      SAFE_RELEASE(constBuf);
+      SAFE_RELEASE(uavBuf);
+      SAFE_RELEASE(copyBuf);
+      SAFE_RELEASE(uav);
+      SAFE_RELEASE(cs);
+
+      // restore whatever was on CS slot 0 before we messed with it
+
+      UINT append[] = {~0U};
+      context->CSSetConstantBuffers(0, 1, &prevCB);
+      context->CSSetUnorderedAccessViews(0, 1, &prevUAV, append);
+
+      SAFE_RELEASE(context);
+
+      SAFE_RELEASE(prevCB);
+      SAFE_RELEASE(prevUAV);
+
+      if(op.operation == OPCODE_SINCOS)
+      {
+        if(op.operands[0].type != TYPE_NULL)
+          s.SetDst(op.operands[0], op, calcResultA);
+        if(op.operands[1].type != TYPE_NULL)
+          s.SetDst(op.operands[1], op, calcResultB);
+      }
+      else
+      {
+        s.SetDst(op.operands[0], op, calcResultA);
+      }
+
+      break;
+    }
 
     /////////////////////////////////////////////////////////////////////////////////////////////////////
     // Misc
@@ -3679,6 +3833,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
                                                     "texture lookup ddy - using 0.0 instead",
                                                     s.nextInstruction - 1, op.str.c_str()));
         }
+      }
+
+      for(uint32_t i = 0; i < uv.columns; i++)
+      {
         if(texcoordType == 0 && (_isnan(uv.value.fv[i]) || !_finite(uv.value.fv[i])))
         {
           RDCWARN("NaN or Inf in texlookup");
@@ -3792,7 +3950,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       else if(op.operation == OPCODE_SAMPLE_L)
       {
         // lod selection
-        StringFormat::snprintf(buf, 255, "%f", srcOpers[1].value.f.x);
+        StringFormat::snprintf(buf, 255, "%f", srcOpers[3].value.f.x);
 
         sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
         sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
@@ -3893,7 +4051,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       else if(op.operation == OPCODE_GATHER4_C || op.operation == OPCODE_GATHER4_PO_C)
       {
         // comparison value
-        StringFormat::snprintf(buf, 255, ", %f", srcOpers[3].value.f.x);
+        if(op.operation == OPCODE_GATHER4_C)
+          StringFormat::snprintf(buf, 255, ", %f", srcOpers[3].value.f.x);
+        else if(op.operation == OPCODE_GATHER4_PO_C)
+          StringFormat::snprintf(buf, 255, ", %f", srcOpers[4].value.f.x);
 
         sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
         sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";

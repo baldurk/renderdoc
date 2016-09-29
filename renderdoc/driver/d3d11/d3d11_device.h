@@ -289,6 +289,8 @@ private:
   RefCounter m_SoftRefCounter;
   bool m_Alive;
 
+  int32_t m_ChunkAtomic;
+
   D3D11DebugManager *m_DebugManager;
   D3D11ResourceManager *m_ResourceManager;
 
@@ -389,6 +391,11 @@ public:
   FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
   FetchFrameStatistics &GetFrameStats() { return m_FrameRecord.frameInfo.stats; }
   const FetchDrawcall *GetDrawcall(uint32_t eventID);
+
+  void LockForChunkFlushing();
+  void UnlockForChunkFlushing();
+  void LockForChunkRemoval();
+  void UnlockForChunkRemoval();
 
   void FirstFrame(WrappedIDXGISwapChain3 *swapChain);
 

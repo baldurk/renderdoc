@@ -169,6 +169,8 @@ private:
     }
   };
 
+  set<ResourceId> m_DeferredDirty;
+
   set<ResourceId> m_HighTrafficResources;
   map<MappedResource, MapIntercept> m_OpenMaps;
 
@@ -304,6 +306,8 @@ public:
   bool Serialise_BeginCaptureFrame(bool applyInitialState);
   void BeginCaptureFrame();
   void EndCaptureFrame();
+
+  void MarkDirtyResource(ResourceId id);
 
   // insert a fake chunk just to store these parameters
   void Present(UINT SyncInterval, UINT Flags);

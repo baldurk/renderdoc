@@ -7,6 +7,7 @@ Development64/
 Release32/
 Release64/
 build/
+build-*/
 dist/
 Resources/*.png
 qrenderdoc/Makefile*

@@ -243,6 +243,7 @@ private:
         : curType(eGL_NONE),
           dimension(0),
           emulated(false),
+          view(false),
           width(0),
           height(0),
           depth(0),
@@ -256,7 +257,7 @@ private:
     GLResource resource;
     GLenum curType;
     GLint dimension;
-    bool emulated;
+    bool emulated, view;
     GLint width, height, depth, samples;
     uint32_t creationFlags;
     GLenum internalFormat;

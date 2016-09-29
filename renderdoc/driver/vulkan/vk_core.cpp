@@ -1562,6 +1562,12 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
     m_FirstEventID = startEventID;
     m_LastEventID = endEventID;
+
+    // when selecting a marker we can get into an inconsistent state -
+    // make sure that we make things consistent again here, replay the event
+    // that we ended up selecting (the one that was closest)
+    if(startEventID == endEventID && m_RootEventID != m_FirstEventID)
+      m_FirstEventID = m_LastEventID = m_RootEventID;
   }
   else if(m_State == READING)
   {
@@ -2160,6 +2166,8 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
     // has chosen a subsection that lies within a command buffer
     if(partial)
     {
+      m_State = EXECUTING;
+
       VkCommandBuffer cmd = m_Partial[Primary].outsideCmdBuffer = GetNextCmd();
 
       VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
@@ -2170,12 +2178,41 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
       rpWasActive = m_Partial[Primary].renderPassActive;
 
-      // if a render pass was active, begin it and set up the partial replay state
       if(m_Partial[Primary].renderPassActive)
+      {
+        // first apply implicit transitions to the right subpass
+        std::vector<VkImageMemoryBarrier> imgBarriers = GetImplicitRenderPassBarriers();
+
+        // don't transition from undefined, or contents will be discarded, instead transition from
+        // the current state.
+        for(size_t i = 0; i < imgBarriers.size(); i++)
+        {
+          if(imgBarriers[i].oldLayout == VK_IMAGE_LAYOUT_UNDEFINED)
+          {
+            // TODO find overlapping range and transition that instead
+            imgBarriers[i].oldLayout =
+                m_ImageLayouts[GetResourceManager()->GetNonDispWrapper(imgBarriers[i].image)->id]
+                    .subresourceStates[0]
+                    .newLayout;
+          }
+        }
+
+        GetResourceManager()->RecordBarriers(m_BakedCmdBufferInfo[GetResID(cmd)].imgbarriers,
+                                             m_ImageLayouts, (uint32_t)imgBarriers.size(),
+                                             &imgBarriers[0]);
+
+        ObjDisp(cmd)->CmdPipelineBarrier(Unwrap(cmd), VK_PIPELINE_STAGE_ALL_COMMANDS_BIT,
+                                         VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, false, 0, NULL, 0, NULL,
+                                         (uint32_t)imgBarriers.size(), &imgBarriers[0]);
+
+        // if a render pass was active, begin it and set up the partial replay state
         m_RenderState.BeginRenderPassAndApplyState(cmd);
-      // if we had a compute pipeline, need to bind that
+      }
       else if(m_RenderState.compute.pipeline != ResourceId())
+      {
+        // if we had a compute pipeline, need to bind that
         m_RenderState.BindPipeline(cmd);
+      }
     }
 
     if(replayType == eReplay_Full)
@@ -2302,6 +2339,36 @@ vector<DebugMessage> WrappedVulkan::GetDebugMessages()
   return ret;
 }
 
+void WrappedVulkan::AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv,
+                                    DebugMessageSource src, std::string d)
+{
+  DebugMessage msg;
+  msg.eventID = 0;
+  if(m_State == EXECUTING)
+  {
+    // look up the EID this drawcall came from
+    DrawcallUse use(m_CurChunkOffset, 0);
+    auto it = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
+    RDCASSERT(it != m_DrawcallUses.end());
+
+    msg.eventID = it->eventID;
+  }
+  msg.messageID = 0;
+  msg.source = src;
+  msg.category = c;
+  msg.severity = sv;
+  msg.description = d;
+  AddDebugMessage(msg);
+}
+
+void WrappedVulkan::AddDebugMessage(DebugMessage msg)
+{
+  if(m_State == READING)
+    m_EventMessages.push_back(msg);
+  else
+    m_DebugMessages.push_back(msg);
+}
+
 VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
                                       VkDebugReportObjectTypeEXT objectType, uint64_t object,
                                       size_t location, int32_t messageCode,
@@ -2380,7 +2447,11 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
   {
     // All access mask/barrier messages.
     // These are just too spammy/false positive/unreliable to keep
-    if(isDS && messageCode == 12)
+    if(isDS && messageCode == 10)
+      return false;
+
+    // Ignore shader checker layer entirely
+    if(isSC)
       return false;
 
     // Memory is aliased between image and buffer

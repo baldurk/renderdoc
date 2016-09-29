@@ -46,6 +46,9 @@ D3D12RenderState::D3D12RenderState()
 
   topo = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
+  stencilRef = 0;
+  RDCEraseEl(blendFactor);
+
   RDCEraseEl(ibuffer);
   vbuffers.clear();
 }
@@ -69,6 +72,8 @@ D3D12RenderState &D3D12RenderState::operator=(const D3D12RenderState &o)
   compute.sigelems = o.compute.sigelems;
 
   topo = o.topo;
+  stencilRef = o.stencilRef;
+  memcpy(blendFactor, o.blendFactor, sizeof(blendFactor));
 
   ibuffer = o.ibuffer;
   vbuffers = o.vbuffers;
@@ -89,6 +94,9 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd)
 
   if(topo != D3D_PRIMITIVE_TOPOLOGY_UNDEFINED)
     cmd->IASetPrimitiveTopology(topo);
+
+  cmd->OMSetStencilRef(stencilRef);
+  cmd->OMSetBlendFactor(blendFactor);
 
   if(ibuffer.buf != ResourceId())
   {
@@ -152,7 +160,7 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd)
         GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(graphics.rootsig));
 
     for(size_t i = 0; i < graphics.sigelems.size(); i++)
-      graphics.sigelems[i].SetToCommandList(GetResourceManager(), cmd, (UINT)i);
+      graphics.sigelems[i].SetToGraphics(GetResourceManager(), cmd, (UINT)i);
   }
 
   if(compute.rootsig != ResourceId())
@@ -161,6 +169,6 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd)
         GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(compute.rootsig));
 
     for(size_t i = 0; i < compute.sigelems.size(); i++)
-      compute.sigelems[i].SetToCommandList(GetResourceManager(), cmd, (UINT)i);
+      compute.sigelems[i].SetToCompute(GetResourceManager(), cmd, (UINT)i);
   }
 }

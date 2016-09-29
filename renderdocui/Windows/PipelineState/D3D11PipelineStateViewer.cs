@@ -71,10 +71,15 @@ namespace renderdocui.Windows.PipelineState
             {
                 view = v;
                 tex = t;
+
+                DepthReadOnly = false;
+                StencilReadOnly = false;
             }
 
             public D3D11PipelineState.ShaderStage.ResourceView view;
             public FetchTexture tex;
+
+            public bool DepthReadOnly, StencilReadOnly;
         };
 
         private class ViewBufTag
@@ -418,7 +423,7 @@ namespace renderdocui.Windows.PipelineState
                                 name = bufs[t].name;
                                 typename = "Buffer";
 
-                                if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                                if (r.Flags.HasFlag(D3DBufferViewFlags.Raw))
                                 {
                                     typename = "ByteAddressBuffer";
                                 }
@@ -428,7 +433,7 @@ namespace renderdocui.Windows.PipelineState
                                     typename = "StructuredBuffer[" + (bufs[t].length / r.ElementSize) + "]";
                                 }
 
-                                if (r.Flags.HasFlag(D3D11BufferViewFlags.Append) || r.Flags.HasFlag(D3D11BufferViewFlags.Counter))
+                                if (r.Flags.HasFlag(D3DBufferViewFlags.Append) || r.Flags.HasFlag(D3DBufferViewFlags.Counter))
                                 {
                                     typename += " (Count: " + r.BufferStructCount + ")";
                                 }
@@ -1144,7 +1149,7 @@ namespace renderdocui.Windows.PipelineState
                                 name = bufs[t].name;
                                 typename = "Buffer";
 
-                                if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                                if (r.Flags.HasFlag(D3DBufferViewFlags.Raw))
                                 {
                                     typename = "RWByteAddressBuffer";
                                 }
@@ -1154,7 +1159,7 @@ namespace renderdocui.Windows.PipelineState
                                     typename = "RWStructuredBuffer[" + (bufs[t].length / r.ElementSize) + "]";
                                 }
 
-                                if (r.Flags.HasFlag(D3D11BufferViewFlags.Append) || r.Flags.HasFlag(D3D11BufferViewFlags.Counter))
+                                if (r.Flags.HasFlag(D3DBufferViewFlags.Append) || r.Flags.HasFlag(D3DBufferViewFlags.Counter))
                                 {
                                     typename += " (Count: " + r.BufferStructCount + ")";
                                 }
@@ -1518,7 +1523,7 @@ namespace renderdocui.Windows.PipelineState
                                 name = bufs[t].name;
                                 typename = "Buffer";
 
-                                if (r.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                                if (r.Flags.HasFlag(D3DBufferViewFlags.Raw))
                                 {
                                     typename = "RWByteAddressBuffer";
                                 }
@@ -1528,7 +1533,7 @@ namespace renderdocui.Windows.PipelineState
                                     typename = "RWStructuredBuffer[" + (bufs[t].length / r.ElementSize) + "]";
                                 }
 
-                                if (r.Flags.HasFlag(D3D11BufferViewFlags.Append) || r.Flags.HasFlag(D3D11BufferViewFlags.Counter))
+                                if (r.Flags.HasFlag(D3DBufferViewFlags.Append) || r.Flags.HasFlag(D3DBufferViewFlags.Counter))
                                 {
                                     typename += " (Count: " + r.BufferStructCount + ")";
                                 }
@@ -1614,10 +1619,16 @@ namespace renderdocui.Windows.PipelineState
                             format = "Viewed as " + state.m_OM.DepthTarget.Format.ToString();
                         }
 
-                        if (HasImportantViewParams(state.m_OM.DepthTarget, texs[t]))
+                        if (HasImportantViewParams(state.m_OM.DepthTarget, texs[t]) ||
+                            state.m_OM.DepthReadOnly || state.m_OM.StencilReadOnly)
                             viewDetails = true;
 
-                        tag = new ViewTexTag(state.m_OM.DepthTarget, texs[t]);
+                        ViewTexTag textag = new ViewTexTag(state.m_OM.DepthTarget, texs[t]);
+
+                        textag.DepthReadOnly = state.m_OM.DepthReadOnly;
+                        textag.StencilReadOnly = state.m_OM.StencilReadOnly;
+
+                        tag = textag;
                     }
                 }
 
@@ -1823,6 +1834,12 @@ namespace renderdocui.Windows.PipelineState
                         if (tex.tex.format != tex.view.Format)
                             text += String.Format("The texture is format {0}, the view treats it as {1}.\n",
                                 tex.tex.format, tex.view.Format);
+
+                        if (tex.DepthReadOnly)
+                            text += "Depth component is read-only\n";
+
+                        if (tex.StencilReadOnly)
+                            text += "Stencil component is read-only\n";
 
                         if (tex.tex.mips > 1 && (tex.tex.mips != tex.view.NumMipLevels || tex.view.HighestMip > 0))
                         {
@@ -2053,7 +2070,7 @@ namespace renderdocui.Windows.PipelineState
                                             }
                                         }
 
-                                        if (view.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                                        if (view.Flags.HasFlag(D3DBufferViewFlags.Raw))
                                             format = "xint";
 
                                         format += view.Format.compCount;
@@ -2428,12 +2445,12 @@ namespace renderdocui.Windows.PipelineState
 
                 hlsl += String.Format("struct {0}Input{1}{{{1}", shType, nl);
                 foreach(var sig in shaderDetails.InputSig)
-                    hlsl += String.Format("\t{0} {1} : {2};" + nl, sig.TypeString, sig.varName.Length > 0 ? sig.varName : ("param" + sig.regIndex), sig.D3D11SemanticString);
+                    hlsl += String.Format("\t{0} {1} : {2};" + nl, sig.TypeString, sig.varName.Length > 0 ? sig.varName : ("param" + sig.regIndex), sig.D3DSemanticString);
                 hlsl += "};" + nl2;
 
                 hlsl += String.Format("struct {0}Output{1}{{{1}", shType, nl);
                 foreach (var sig in shaderDetails.OutputSig)
-                    hlsl += String.Format("\t{0} {1} : {2};" + nl, sig.TypeString, sig.varName.Length > 0 ? sig.varName : ("param" + sig.regIndex), sig.D3D11SemanticString);
+                    hlsl += String.Format("\t{0} {1} : {2};" + nl, sig.TypeString, sig.varName.Length > 0 ? sig.varName : ("param" + sig.regIndex), sig.D3DSemanticString);
                 hlsl += "};" + nl2;
 
                 hlsl += String.Format("{0}Output {1}(in {0}Input IN){2}{{{2}\t{0}Output OUT = ({0}Output)0;{2}{2}\t// ...{2}{2}\treturn OUT;{2}}}{2}", shType, entryFunc, nl);
@@ -3060,7 +3077,7 @@ namespace renderdocui.Windows.PipelineState
                     name = bufs[t].name;
                     typename = "Buffer";
 
-                    if (view.Flags.HasFlag(D3D11BufferViewFlags.Raw))
+                    if (view.Flags.HasFlag(D3DBufferViewFlags.Raw))
                     {
                         typename = rw ? "RWByteAddressBuffer" : "ByteAddressBuffer";
                     }
@@ -3070,7 +3087,7 @@ namespace renderdocui.Windows.PipelineState
                         typename = (rw ? "RWStructuredBuffer" : "StructuredBuffer") + "[" + (bufs[t].length / view.ElementSize) + "]";
                     }
 
-                    if (view.Flags.HasFlag(D3D11BufferViewFlags.Append) || view.Flags.HasFlag(D3D11BufferViewFlags.Counter))
+                    if (view.Flags.HasFlag(D3DBufferViewFlags.Append) || view.Flags.HasFlag(D3DBufferViewFlags.Counter))
                     {
                         typename += " (Count: " + view.BufferStructCount + ")";
                     }

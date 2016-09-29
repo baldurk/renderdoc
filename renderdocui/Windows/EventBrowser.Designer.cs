@@ -300,6 +300,7 @@
             this.findEvent.ToolTipText = "Find an event by type or name";
             this.findEvent.Leave += new System.EventHandler(this.jumpFind_Leave);
             this.findEvent.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.findEvent_KeyPress);
+            this.findEvent.KeyDown += new System.Windows.Forms.KeyEventHandler(findEvent_KeyDown);
             this.findEvent.TextChanged += new System.EventHandler(this.findEvent_TextChanged);
             // 
             // closeFind

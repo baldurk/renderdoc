@@ -64,6 +64,7 @@ public:
 
   void SavePipelineState() { m_CurPipelineState = MakePipelineState(); }
   D3D11PipelineState GetD3D11PipelineState() { return m_CurPipelineState; }
+  D3D12PipelineState GetD3D12PipelineState() { return D3D12PipelineState(); }
   GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
   VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
   void FreeTargetResource(ResourceId id);
@@ -105,9 +106,8 @@ public:
   MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
 
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData);
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
-                       FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
-                       float blackPoint, float whitePoint, size_t &dataSize);
+  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                       const GetTextureDataParams &params, size_t &dataSize);
 
   void BuildTargetShader(string source, string entry, const uint32_t compileFlags,
                          ShaderStageType type, ResourceId *id, string *errors);
@@ -121,6 +121,7 @@ public:
   ResourceId CreateProxyTexture(const FetchTexture &templateTex);
   void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
                            size_t dataSize);
+  bool IsTextureSupported(const ResourceFormat &format);
 
   ResourceId CreateProxyBuffer(const FetchBuffer &templateBuf);
   void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize);

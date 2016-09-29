@@ -197,7 +197,9 @@ void WrappedOpenGL::glShaderSource(GLuint shader, GLsizei count, const GLchar *c
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 shader);
+    if(record)
     {
       SCOPED_SERIALISE_CONTEXT(SHADERSOURCE);
       Serialise_glShaderSource(shader, count, string, length);
@@ -239,7 +241,9 @@ void WrappedOpenGL::glCompileShader(GLuint shader)
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 shader);
+    if(record)
     {
       SCOPED_SERIALISE_CONTEXT(COMPILESHADER);
       Serialise_glCompileShader(shader);
@@ -593,7 +597,9 @@ void WrappedOpenGL::glLinkProgram(GLuint program)
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 program);
+    if(record)
     {
       SCOPED_SERIALISE_CONTEXT(LINKPROGRAM);
       Serialise_glLinkProgram(program);
@@ -643,7 +649,9 @@ void WrappedOpenGL::glUniformBlockBinding(GLuint program, GLuint uniformBlockInd
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 program);
+    if(record)
     {
       SCOPED_SERIALISE_CONTEXT(UNIFORM_BLOCKBIND);
       Serialise_glUniformBlockBinding(program, uniformBlockIndex, uniformBlockBinding);
@@ -677,7 +685,9 @@ void WrappedOpenGL::glShaderStorageBlockBinding(GLuint program, GLuint storageBl
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 program);
+    if(record)
     {
       SCOPED_SERIALISE_CONTEXT(STORAGE_BLOCKBIND);
       Serialise_glShaderStorageBlockBinding(program, storageBlockIndex, storageBlockBinding);
@@ -710,7 +720,9 @@ void WrappedOpenGL::glBindAttribLocation(GLuint program, GLuint index, const GLc
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 program);
+    if(record)
     {
       SCOPED_SERIALISE_CONTEXT(BINDATTRIB_LOCATION);
       Serialise_glBindAttribLocation(program, index, name);
@@ -743,7 +755,9 @@ void WrappedOpenGL::glBindFragDataLocation(GLuint program, GLuint color, const G
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 program);
+    if(record)
     {
       SCOPED_SERIALISE_CONTEXT(BINDFRAGDATA_LOCATION);
       Serialise_glBindFragDataLocation(program, color, name);
@@ -808,7 +822,9 @@ void WrappedOpenGL::glBindFragDataLocationIndexed(GLuint program, GLuint colorNu
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 program);
+    if(record)
     {
       SCOPED_SERIALISE_CONTEXT(BINDFRAGDATA_LOCATION_INDEXED);
       Serialise_glBindFragDataLocationIndexed(program, colorNumber, index, name);
@@ -860,7 +876,9 @@ void WrappedOpenGL::glTransformFeedbackVaryings(GLuint program, GLsizei count,
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 program);
+    if(record)
     {
       SCOPED_SERIALISE_CONTEXT(FEEDBACK_VARYINGS);
       Serialise_glTransformFeedbackVaryings(program, count, varyings, bufferMode);
@@ -891,7 +909,9 @@ void WrappedOpenGL::glProgramParameteri(GLuint program, GLenum pname, GLint valu
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 program);
+    if(record)
     {
       SCOPED_SERIALISE_CONTEXT(PROGRAMPARAMETER);
       Serialise_glProgramParameteri(program, pname, value);
@@ -1059,7 +1079,11 @@ void WrappedOpenGL::glUseProgramStages(GLuint pipeline, GLbitfield stages, GLuin
 
     GLResourceRecord *record =
         GetResourceManager()->GetResourceRecord(ProgramPipeRes(GetCtx(), pipeline));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 pipeline);
+
+    if(record == NULL)
+      return;
 
     Chunk *chunk = scope.Get();
 
@@ -1438,7 +1462,9 @@ void WrappedOpenGL::glCompileShaderIncludeARB(GLuint shader, GLsizei count,
   if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(ShaderRes(GetCtx(), shader));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 shader);
+    if(record)
     {
       SCOPED_SERIALISE_CONTEXT(COMPILESHADERINCLUDE);
       Serialise_glCompileShaderIncludeARB(shader, count, path, length);

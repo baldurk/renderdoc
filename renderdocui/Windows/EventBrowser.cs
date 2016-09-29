@@ -233,12 +233,14 @@ namespace renderdocui.Windows
 
         private TreelistView.Node MakeNode(UInt32 minEID, UInt32 maxEID, UInt32 minDraw, UInt32 maxDraw, string text, double duration)
         {
-            return new TreelistView.Node(new object[] { String.Format("{0}-{1}", minEID, maxEID), String.Format("{0}-{1}", minDraw, maxDraw), text, duration });
+            string eidString = (maxEID == minEID) ? maxEID.ToString() : String.Format("{0}-{1}", minEID, maxEID);
+            string drawString = (maxDraw == minDraw) ? maxDraw.ToString() : String.Format("{0}-{1}", minDraw, maxDraw);
+            return new TreelistView.Node(new object[] {eidString, drawString, text.Replace("&", "&&"), duration });
         }
 
         private TreelistView.Node MakeNode(UInt32 EID, UInt32 draw, string text, double duration)
         {
-            return new TreelistView.Node(new object[] { EID, draw, text, duration });
+            return new TreelistView.Node(new object[] { EID, draw, text.Replace("&", "&&"), duration });
         }
 
         private uint GetEndEventID(FetchDrawcall drawcall)
@@ -612,8 +614,8 @@ namespace renderdocui.Windows
 
         private int FindEvent(TreelistView.NodeCollection nodes, string filter, UInt32 after, bool forward)
         {
-			if(nodes == null) return -1;
-		
+            if(nodes == null) return -1;
+        
             for (int i = forward ? 0 : nodes.Count - 1;
                  i >= 0 && i < nodes.Count;
                  i += forward ? 1 : -1)
@@ -876,6 +878,25 @@ namespace renderdocui.Windows
                 findEvent.BackColor = Color.Red;
 
             findHighlight.Enabled = false;
+        }
+
+        private void findEvent_KeyDown(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.F3)
+            {
+                if (findHighlight.Enabled)
+                {
+                    findHighlight.Enabled = false;
+                    findHighlight_Tick(sender, null);
+                }
+
+                if (findEvent.Text.Length > 0)
+                {
+                    Find(e.Shift ? false : true);
+                }
+
+                e.Handled = true;
+            }
         }
 
         private void findEvent_KeyPress(object sender, KeyPressEventArgs e)

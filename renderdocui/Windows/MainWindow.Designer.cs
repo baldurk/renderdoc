@@ -84,7 +84,7 @@
             this.pythonShellToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.eventViewerToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.textureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.D3D11PipelineStateToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.PipelineStateToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.aPIInspectorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.meshOutputToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.debugMessagesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -280,7 +280,7 @@
             this.pythonShellToolStripMenuItem,
             this.eventViewerToolStripMenuItem,
             this.textureToolStripMenuItem,
-            this.D3D11PipelineStateToolStripMenuItem,
+            this.PipelineStateToolStripMenuItem,
             this.aPIInspectorToolStripMenuItem,
             this.meshOutputToolStripMenuItem,
             this.debugMessagesToolStripMenuItem,
@@ -470,10 +470,10 @@
             // 
             // D3D11PipelineStateToolStripMenuItem
             // 
-            this.D3D11PipelineStateToolStripMenuItem.Name = "D3D11PipelineStateToolStripMenuItem";
-            this.D3D11PipelineStateToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
-            this.D3D11PipelineStateToolStripMenuItem.Text = "&Pipeline State";
-            this.D3D11PipelineStateToolStripMenuItem.Click += new System.EventHandler(this.PipelineStateToolStripMenuItem_Click);
+            this.PipelineStateToolStripMenuItem.Name = "D3D11PipelineStateToolStripMenuItem";
+            this.PipelineStateToolStripMenuItem.Size = new System.Drawing.Size(192, 22);
+            this.PipelineStateToolStripMenuItem.Text = "&Pipeline State";
+            this.PipelineStateToolStripMenuItem.Click += new System.EventHandler(this.PipelineStateToolStripMenuItem_Click);
             // 
             // aPIInspectorToolStripMenuItem
             // 
@@ -868,7 +868,7 @@
         private System.Windows.Forms.ToolStripMenuItem layoutSave6;
         private System.Windows.Forms.ToolStripMenuItem layoutLoadDefault;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
-        private System.Windows.Forms.ToolStripMenuItem D3D11PipelineStateToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem PipelineStateToolStripMenuItem;
         private System.Windows.Forms.OpenFileDialog openDialog;
         private System.Windows.Forms.ToolStripContainer toolStripContainer1;
         private System.Windows.Forms.StatusStrip statusStrip;

@@ -255,8 +255,11 @@ namespace renderdocui.Windows.PipelineState
 
         private void ViewDetailsRow(TreelistView.Node node, bool highlight)
         {
-            if(highlight)
+            if (highlight)
+            {
                 node.BackColor = Color.Aquamarine;
+                node.ForeColor = Color.Black;
+            }
             m_ViewDetailNodes.Add(node);
         }
 
@@ -453,8 +456,7 @@ namespace renderdocui.Windows.PipelineState
             if (!usedSlot && !stageBitsIncluded)
                 return;
 
-            // these are treated as uniform buffers
-            if (bindType == ShaderBindType.ReadOnlyBuffer)
+            if (bindType == ShaderBindType.ConstantBuffer)
                 return;
 
             // TODO - check compatibility between bindType and shaderRes.resType ?
@@ -574,7 +576,12 @@ namespace renderdocui.Windows.PipelineState
                                 name = bufs[t].name;
                                 restype = ShaderResourceType.Buffer;
 
-                                tag = new BufferResTag(isrw, bindPoint, bufs[t].ID, descriptorBind.offset, descriptorBind.size);
+                                ulong descriptorLen = descriptorBind.size;
+
+                                if(descriptorLen == ulong.MaxValue)
+                                    descriptorLen = len - descriptorBind.offset;
+
+                                tag = new BufferResTag(isrw, bindPoint, bufs[t].ID, descriptorBind.offset, descriptorLen);
 
                                 if (HasImportantViewParams(descriptorBind, bufs[t]))
                                     viewDetails = true;
@@ -803,7 +810,7 @@ namespace renderdocui.Windows.PipelineState
             }
 
             VulkanPipelineState.Pipeline.DescriptorSet.DescriptorBinding.BindingElement[] slotBinds = null;
-            ShaderBindType bindType = ShaderBindType.ReadOnlyBuffer;
+            ShaderBindType bindType = ShaderBindType.ConstantBuffer;
             ShaderStageBits stageBits = (ShaderStageBits)0;
 
             if (bindset < pipe.DescSets.Length && bind < pipe.DescSets[bindset].bindings.Length)
@@ -820,8 +827,7 @@ namespace renderdocui.Windows.PipelineState
             if (!usedSlot && !stageBitsIncluded)
                 return;
 
-            // these are treated as uniform buffers
-            if (bindType != ShaderBindType.ReadOnlyBuffer)
+            if (bindType != ShaderBindType.ConstantBuffer)
                 return;
 
             // consider it filled if any array element is filled (or it's push constants)
@@ -893,13 +899,19 @@ namespace renderdocui.Windows.PipelineState
                         length = descriptorBind.size;
 
                         for (int t = 0; t < bufs.Length; t++)
+                        {
                             if (bufs[t].ID == descriptorBind.res)
+                            {
                                 name = bufs[t].name;
+                                if(length == ulong.MaxValue)
+                                    length = bufs[t].length - descriptorBind.offset;
+                            }
+                        }
 
                         if (name == "")
                             name = "UBO " + descriptorBind.res.ToString();
 
-                        vecrange = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
+                        vecrange = String.Format("{0} - {1}", descriptorBind.offset, descriptorBind.offset + length);
                     }
 
                     string sizestr;
@@ -1482,12 +1494,12 @@ namespace renderdocui.Windows.PipelineState
                     if (v.vp.Width == 0 || v.vp.Height == 0 || v.vp.MinDepth == v.vp.MaxDepth)
                         EmptyRow(node);
 
-                    i++;
-
                     node = scissors.Nodes.Add(new object[] { i, v.scissor.x, v.scissor.y, v.scissor.width, v.scissor.height });
 
                     if (v.scissor.width == 0 || v.scissor.height == 0)
                         EmptyRow(node);
+
+                    i++;
                 }
             }
 
@@ -2738,8 +2750,13 @@ namespace renderdocui.Windows.PipelineState
                         }
 
                         FetchBuffer buf = m_Core.GetBuffer(id);
-                        if(buf != null)
+                        if (buf != null)
+                        {
                             name = buf.name;
+
+                            if (length == ulong.MaxValue)
+                                length = buf.length - byteOffset;
+                        }
 
                         if (name == "")
                             name = "UBO " + descriptorBind.res.ToString();
@@ -2847,7 +2864,12 @@ namespace renderdocui.Windows.PipelineState
                             format = "-";
                             name = buf.name;
 
-                            viewParams = String.Format("Byte Range: {0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
+                            ulong length = descriptorBind.size;
+
+                            if (length == ulong.MaxValue)
+                                length = buf.length - descriptorBind.offset;
+
+                            viewParams = String.Format("Byte Range: {0} - {1}", descriptorBind.offset, descriptorBind.offset + length);
                         }
 
                         if (bind.type != ShaderBindType.Sampler)
@@ -2863,10 +2885,9 @@ namespace renderdocui.Windows.PipelineState
                             object[] sampDetails = MakeSampler("", "", descriptorBind);
                             rows.Add(new object[] {
                                 setname, slotname, name, bind.type,
-                                "", "", "",
+                                "", "", "", "",
                                 sampDetails[5],
-                                sampDetails[6],
-                                sampDetails[7]
+                                sampDetails[6]
                             });
                         }
                     }
@@ -2965,7 +2986,12 @@ namespace renderdocui.Windows.PipelineState
                             format = "-";
                             name = buf.name;
 
-                            viewParams = String.Format("Byte Range: {0} - {1}", descriptorBind.offset, descriptorBind.offset + descriptorBind.size);
+                            ulong length = descriptorBind.size;
+
+                            if (length == ulong.MaxValue)
+                                length = buf.length - descriptorBind.offset;
+
+                            viewParams = String.Format("Byte Range: {0} - {1}", descriptorBind.offset, descriptorBind.offset + length);
                         }
 
                         rows.Add(new object[] { setname, slotname, name, bind.type, w, h, d, arr, format, viewParams });

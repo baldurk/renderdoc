@@ -2,6 +2,12 @@
 
 AUTOBUILD=1
 
+if [ ! -f LICENSE.md ]; then
+	echo "This script should be run from the root of the checkout.";
+	echo "e.g. ./scripts/dist.sh";
+	exit;
+fi
+
 if [ $# -ne 1 ] || [ $1 != "autobuild" ]; then
 	AUTOBUILD=0
 	echo "=== Building standalone folders. Hit enter when each prompt is satisfied"
@@ -12,7 +18,7 @@ if [ $# -ne 1 ] || [ $1 != "autobuild" ]; then
 	echo "Have you built the python libraries? (cd renderdocui/3rdparty/ironpython/ && ./compilelibs.sh /path/to/IronPython)"
 	read;
 
-	echo "Have you marked the git commit hash in version info? (hash_version.sh)"
+	echo "Have you marked the git commit hash in version info? (./scripts/hash_version.sh)"
 	read;
 
 	echo "Now compile 32-bit and 64-bit Release builds."

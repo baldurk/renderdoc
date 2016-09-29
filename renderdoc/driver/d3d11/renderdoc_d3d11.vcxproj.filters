@@ -69,9 +69,6 @@
     <ClCompile Include="d3d11_common.cpp">
       <Filter>Util</Filter>
     </ClCompile>
-    <ClCompile Include="d3d9_hooks.cpp">
-      <Filter>Hooks</Filter>
-    </ClCompile>
     <ClCompile Include="d3d11_hooks.cpp">
       <Filter>Hooks</Filter>
     </ClCompile>

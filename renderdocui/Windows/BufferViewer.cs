@@ -1440,7 +1440,7 @@ namespace renderdocui.Windows
             Column.HeaderText = "IDX";
             Column.ReadOnly = true;
             Column.Frozen = true;
-            Column.Width = 50;
+            Column.Width = 75;
             Column.DividerWidth = 10;
             Column.SortMode = DataGridViewColumnSortMode.Programmatic;
             Column.DefaultCellStyle.Padding = new Padding(0, 2, 0, 2);

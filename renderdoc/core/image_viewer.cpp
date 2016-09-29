@@ -138,12 +138,10 @@ public:
   }
   vector<ResourceId> GetTextures() { return m_Proxy->GetTextures(); }
   FetchTexture GetTexture(ResourceId id) { return m_Proxy->GetTexture(m_TextureID); }
-  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
-                       FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
-                       float blackPoint, float whitePoint, size_t &dataSize)
+  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                       const GetTextureDataParams &params, size_t &dataSize)
   {
-    return m_Proxy->GetTextureData(m_TextureID, arrayIdx, mip, forDiskSave, typeHint, resolve,
-                                   forceRGBA8unorm, blackPoint, whitePoint, dataSize);
+    return m_Proxy->GetTextureData(m_TextureID, arrayIdx, mip, params, dataSize);
   }
 
   // handle a couple of operations ourselves to return a simple fake log
@@ -164,6 +162,7 @@ public:
     return ret;
   }
   void SavePipelineState() {}
+  D3D12PipelineState GetD3D12PipelineState() { return D3D12PipelineState(); }
   GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
   VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType) {}
@@ -249,7 +248,7 @@ public:
   {
     RDCERR("Calling proxy-render functions on an image viewer");
   }
-
+  bool IsTextureSupported(const ResourceFormat &format) { return true; }
   ResourceId CreateProxyBuffer(const FetchBuffer &templateBuf)
   {
     RDCERR("Calling proxy-render functions on an image viewer");
@@ -457,8 +456,6 @@ void ImageViewer::RefreshFile()
 
     FileIO::fread(&buffer[0], 1, buffer.size(), f);
 
-    FileIO::fclose(f);
-
     EXRImage exrImage;
     InitEXRImage(&exrImage);
 
@@ -471,6 +468,7 @@ void ImageViewer::RefreshFile()
       RDCERR(
           "EXR file detected, but couldn't load with ParseMultiChannelEXRHeaderFromMemory %d: '%s'",
           ret, err);
+      FileIO::fclose(f);
       return;
     }
 
@@ -520,6 +518,7 @@ void ImageViewer::RefreshFile()
     {
       free(data);
       RDCERR("EXR file detected, but couldn't load with LoadEXRFromMemory %d: '%s'", ret, err);
+      FileIO::fclose(f);
       return;
     }
   }

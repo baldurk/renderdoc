@@ -39,7 +39,7 @@ ID3DDevice *GetD3D12DeviceIfAlloc(IUnknown *dev)
 }
 
 // dummy class to present to the user, while we maintain control
-class WrappedID3D12Debug : public RefCounter12<ID3D12Debug>, public ID3D12Debug
+class WrappedID3D12Debug : public RefCounter12<ID3D12Debug>, public ID3D12Debug, public ID3D12Debug1
 {
 public:
   WrappedID3D12Debug() : RefCounter12(NULL) {}
@@ -62,13 +62,23 @@ public:
       AddRef();
       return S_OK;
     }
+    if(riid == __uuidof(ID3D12Debug1))
+    {
+      *ppvObject = (ID3D12Debug1 *)this;
+      AddRef();
+      return S_OK;
+    }
 
-    return RefCounter12::QueryInterface(riid, ppvObject);
+    return E_NOINTERFACE;
   }
 
   //////////////////////////////
   // Implement ID3D12Debug
   virtual void STDMETHODCALLTYPE EnableDebugLayer() {}
+  //////////////////////////////
+  // Implement ID3D12Debug1
+  virtual void STDMETHODCALLTYPE SetEnableGPUBasedValidation(BOOL Enable) {}
+  virtual void STDMETHODCALLTYPE SetEnableSynchronizedCommandQueueValidation(BOOL Enable) {}
 };
 
 class D3D12Hook : LibraryHook
@@ -199,9 +209,32 @@ private:
         HRESULT hr = getfn(__uuidof(ID3D12Debug), (void **)&debug);
 
         if(SUCCEEDED(hr) && debug)
+        {
           debug->EnableDebugLayer();
+
+          RDCDEBUG("Enabling debug layer");
+
+// enable this to get GPU-based validation, where available, whenever we enable API validation
+#if 0
+          ID3D12Debug1 *debug1 = NULL;
+          hr = debug->QueryInterface(__uuidof(ID3D12Debug1), (void **)&debug1);
+
+          if(SUCCEEDED(hr) && debug1)
+          {
+            RDCDEBUG("Enabling GPU-based validation");
+            debug1->SetEnableGPUBasedValidation(true);
+            SAFE_RELEASE(debug1);
+          }
+          else
+          {
+            RDCDEBUG("GPU-based validation not available");
+          }
+#endif
+        }
         else
+        {
           RDCERR("Couldn't enable debug layer: %x", hr);
+        }
 
         SAFE_RELEASE(debug);
       }

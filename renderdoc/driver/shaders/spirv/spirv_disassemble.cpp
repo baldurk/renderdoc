@@ -2292,7 +2292,7 @@ string SPVModule::Disassemble(const string &entryPoint)
   {
     RDCASSERT(specConstants[i]->constant && specConstants[i]->constant->type);
 
-    uint32_t specId = 0;
+    uint32_t specId = ~0U;
 
     for(size_t d = 0; d < specConstants[i]->decorations.size(); d++)
     {
@@ -2303,7 +2303,7 @@ string SPVModule::Disassemble(const string &entryPoint)
       }
     }
 
-    if(specId == 0)
+    if(specId == ~0U)
     {
       RDCERR("Couldn't find specialisation index for spec constant");
       continue;
@@ -3568,18 +3568,17 @@ uint32_t CalculateMinimumByteSize(const rdctype::array<ShaderConstant> &variable
 
   const ShaderConstant &last = variables[variables.count - 1];
 
+  // find its offset
+  uint32_t byteOffset = last.reg.vec * sizeof(Vec4f) + last.reg.comp * sizeof(float);
+
+  // arrays are easy
+  if(last.type.descriptor.arrayStride > 0)
+    return byteOffset + last.type.descriptor.arrayStride * last.type.descriptor.elements;
+
   if(last.type.members.count == 0)
   {
     // this is the last basic member
-
-    // find its offset
-    uint32_t byteOffset = last.reg.vec * sizeof(Vec4f) + last.reg.comp * sizeof(float);
-
     // now calculate its size and return offset + size
-
-    // arrays are easy
-    if(last.type.descriptor.arrayStride > 0)
-      return byteOffset + last.type.descriptor.arrayStride * last.type.descriptor.elements;
 
     RDCASSERT(last.type.descriptor.elements <= 1);
 
@@ -3614,7 +3613,7 @@ uint32_t CalculateMinimumByteSize(const rdctype::array<ShaderConstant> &variable
   else
   {
     // if this is a struct type, recurse
-    return CalculateMinimumByteSize(last.type.members);
+    return byteOffset + CalculateMinimumByteSize(last.type.members);
   }
 }
 
@@ -4139,6 +4138,20 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
         {
           res.resType = eResType_None;
         }
+        else if(type->texdim == spv::DimSubpassData)
+        {
+          res.resType = eResType_Texture2D;
+          res.IsSRV = true;
+
+          if(sampledType->type == SPVTypeData::eFloat)
+            res.variableType.descriptor.type = eVar_Float;
+          else if(sampledType->type == SPVTypeData::eUInt)
+            res.variableType.descriptor.type = eVar_UInt;
+          else if(sampledType->type == SPVTypeData::eSInt)
+            res.variableType.descriptor.type = eVar_Int;
+          else
+            RDCERR("Unexpected base type of resource %u", sampledType->type);
+        }
         else
         {
           if(sampledType->type == SPVTypeData::eImage)
@@ -4247,7 +4260,7 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
       MakeConstantBlockVariable(cblock.variables[i], specConstants[i]->constant->type,
                                 specConstants[i]->str, specConstants[i]->decorations);
 
-      uint32_t specId = 0;
+      uint32_t specId = ~0U;
 
       for(size_t d = 0; d < specConstants[i]->decorations.size(); d++)
       {
@@ -4258,7 +4271,7 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
         }
       }
 
-      if(specId == 0)
+      if(specId == ~0U)
         RDCERR("Couldn't find specialisation index for spec constant");
 
       // put the specId in here since we don't have an actual offset for specialization constants.

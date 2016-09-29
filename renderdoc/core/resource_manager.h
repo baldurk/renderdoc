@@ -398,6 +398,7 @@ public:
 
   // when asked for a given id, return the resource for a replacement id
   void ReplaceResource(ResourceId from, ResourceId to);
+  bool HasReplacement(ResourceId from);
   void RemoveReplacement(ResourceId id);
 
   // fetch original ID for a real ID or vice-versa.
@@ -426,7 +427,7 @@ protected:
 
   virtual bool ResourceTypeRelease(WrappedResourceType res) = 0;
 
-  virtual bool Force_InitialState(WrappedResourceType res) = 0;
+  virtual bool Force_InitialState(WrappedResourceType res, bool prepare) = 0;
   virtual bool AllowDeletedResource_InitialState() { return false; }
   virtual bool Need_InitialStateChunk(WrappedResourceType res) = 0;
   virtual bool Prepare_InitialState(WrappedResourceType res) = 0;
@@ -942,7 +943,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Prepare
     if(it->second == (WrappedResourceType)RecordType::NullResource)
       continue;
 
-    if(Force_InitialState(it->second))
+    if(Force_InitialState(it->second, true))
     {
       prepared++;
       Prepare_InitialState(it->second);
@@ -1048,7 +1049,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
     if(it->second == (WrappedResourceType)RecordType::NullResource)
       continue;
 
-    if(Force_InitialState(it->second))
+    if(Force_InitialState(it->second, false))
     {
       dirty++;
 
@@ -1119,6 +1120,14 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Replace
 
   if(HasLiveResource(to))
     m_Replacements[from] = to;
+}
+
+template <typename WrappedResourceType, typename RealResourceType, typename RecordType>
+bool ResourceManager<WrappedResourceType, RealResourceType, RecordType>::HasReplacement(ResourceId from)
+{
+  SCOPED_LOCK(m_Lock);
+
+  return m_Replacements.find(from) != m_Replacements.end();
 }
 
 template <typename WrappedResourceType, typename RealResourceType, typename RecordType>

@@ -158,7 +158,7 @@ void D3D11RenderState::ReleaseRefs()
   RDCEraseEl(CSUAVs);
 }
 
-void D3D11RenderState::MarkDirty(D3D11ResourceManager *manager) const
+void D3D11RenderState::MarkDirty(WrappedID3D11DeviceContext *ctx) const
 {
   for(UINT i = 0; i < D3D11_1_UAV_SLOT_COUNT; i++)
   {
@@ -166,13 +166,13 @@ void D3D11RenderState::MarkDirty(D3D11ResourceManager *manager) const
     if(CSUAVs[i])
     {
       CSUAVs[i]->GetResource(&res);
-      manager->MarkDirtyResource(GetIDForResource(res));
+      ctx->MarkDirtyResource(GetIDForResource(res));
       SAFE_RELEASE(res);
     }
   }
 
   for(UINT i = 0; i < D3D11_SO_BUFFER_SLOT_COUNT; i++)
-    manager->MarkDirtyResource(GetIDForResource(SO.Buffers[i]));
+    ctx->MarkDirtyResource(GetIDForResource(SO.Buffers[i]));
 
   for(UINT i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
   {
@@ -180,7 +180,7 @@ void D3D11RenderState::MarkDirty(D3D11ResourceManager *manager) const
     if(OM.RenderTargets[i])
     {
       OM.RenderTargets[i]->GetResource(&res);
-      manager->MarkDirtyResource(GetIDForResource(res));
+      ctx->MarkDirtyResource(GetIDForResource(res));
       SAFE_RELEASE(res);
     }
   }
@@ -191,7 +191,7 @@ void D3D11RenderState::MarkDirty(D3D11ResourceManager *manager) const
     if(OM.UAVs[i])
     {
       OM.UAVs[i]->GetResource(&res);
-      manager->MarkDirtyResource(GetIDForResource(res));
+      ctx->MarkDirtyResource(GetIDForResource(res));
       SAFE_RELEASE(res);
     }
   }
@@ -201,7 +201,7 @@ void D3D11RenderState::MarkDirty(D3D11ResourceManager *manager) const
     if(OM.DepthView)
     {
       OM.DepthView->GetResource(&res);
-      manager->MarkDirtyResource(GetIDForResource(res));
+      ctx->MarkDirtyResource(GetIDForResource(res));
       SAFE_RELEASE(res);
     }
   }

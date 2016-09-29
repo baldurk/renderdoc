@@ -8,17 +8,19 @@ RenderDoc
 
 Welcome to RenderDoc - a graphics debugger, currently available for D3D11, Vulkan and OpenGL development on windows. 
 
+If you have any questions, suggetions or problems or you can [create an issue](https://github.com/baldurk/renderdoc/issues/new) here on github, [email me directly](mailto:baldurk@baldurk.org) or [come into IRC](https://kiwiirc.com/client/irc.freenode.net/#renderdoc) to discuss it.
+
 Quick Links:
 
 * **Downloads**: https://renderdoc.org/builds
-* **Documentation**: renderdoc.chm in the build, or https://renderdoc.org/docs
-* **Tutorials**: There are some video tutorials on Youtube: http://www.youtube.com/user/baldurkarlsson/
+* **Documentation**: [renderdoc.chm](https://renderdoc.org/docs/renderdoc.chm) in builds, or https://renderdoc.org/docs
+* **Tutorial Videos**: http://www.youtube.com/user/baldurkarlsson/
 * **Email contact**: [baldurk@baldurk.org](mailto:baldurk@baldurk.org)
-* **IRC channel**: #renderdoc on freenode
+* **IRC channel**: [#renderdoc on freenode](https://kiwiirc.com/client/irc.freenode.net/#renderdoc)
 * **Roadmap/future development**: [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
 * **Starting place for developing/contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
-* **Code of Conduct**: [contributor covenent](CODE_OF_CONDUCT.md)
-* **How to compile**: [COMPILE.md](COMPILE.md)
+* **How to compile**: [Compilation instructions](CONTRIBUTING.md#compiling)
+* **Code of Conduct**: [Contributor Covenent](CODE_OF_CONDUCT.md)
 
 Screenshots
 --------------
@@ -39,20 +41,24 @@ API Support
 | OpenGL Pre-3.2   | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
 | D3D10            | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
 | D3D9             | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| OpenGL ES (2&3)  | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| Metal            | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
 
 * D3D11 has full feature support and is stable & tested. Feature Level 11 hardware is assumed - Radeon 4000/5000+, GeForce 400+, Intel Ivy Bridge, falling back to WARP software emulation if this hardware isn't present.
 * \*OpenGL is only explicitly supported for the core profile 3.2+ subset of features, check the [OpenGL wiki page](https://github.com/baldurk/renderdoc/wiki/OpenGL) for details.
-* \*\*A Qt version of the UI is planned, with some [implementation notes on the wiki](https://github.com/baldurk/renderdoc/wiki/QRenderDoc-Notes).
+* \*\*A Qt UI [is in progress](qrenderdoc), with some [implementation notes on the wiki](https://github.com/baldurk/renderdoc/wiki/QRenderDoc-Notes).
 
 Downloads
 --------------
 
 There are [binary releases](https://renderdoc.org/builds) available, built from the release targets. If you just want to use the program and you ended up here, this is what you want :).
 
-It's recommended that if you're new you start with the stable builds. Beta builds are available for those who want more regular updates with the latest features and fixes, but might run into some bugs as well. Nightly builds are available every day from master branch here if you need it.
+It's recommended that if you're new you start with the stable builds. Nightly builds are available every day from master branch here if you need it, but correspondingly may be less stable.
 
 Documentation
 --------------
+
+The text documentation is available [online for the latest stable version](https://renderdoc.org/docs/), as well as in [renderdoc.chm](https://renderdoc.org/docs/renderdoc.chm) in any build. It's built from [restructured text with sphinx](docs).
 
 As mentioned above there are some [youtube videos](http://www.youtube.com/user/baldurkarlsson/) showing the use of some basic features and an introduction/overview.
 
@@ -63,13 +69,10 @@ License
 
 RenderDoc is released under the MIT license, see [LICENSE.md](LICENSE.md) for full text as well as 3rd party library acknowledgements.
 
-Building
---------------
-
-Building RenderDoc is fairly straight forward. See [COMPILE.md](COMPILE.md) for more details.
-
 Contributing & Development
 --------------
 
-I've added some notes on how to contribute, as well as where to get started looking through the code in [CONTRIBUTING.md](CONTRIBUTING.md) - also look at [COMPILE.md](COMPILE.md) for details on how to set up to build renderdoc.
+Building RenderDoc is fairly straight forward. See [CONTRIBUTING.md](CONTRIBUTING.md#compiling) for more details.
+
+I've added some notes on how to contribute, as well as where to get started looking through the code in [CONTRIBUTING.md](CONTRIBUTING.md).
 

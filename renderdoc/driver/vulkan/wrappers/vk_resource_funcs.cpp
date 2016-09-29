@@ -1011,8 +1011,6 @@ bool WrappedVulkan::Serialise_vkCreateImage(Serialiser *localSerialiser, VkDevic
       range.baseMipLevel = range.baseArrayLayer = 0;
       range.levelCount = info.mipLevels;
       range.layerCount = info.arrayLayers;
-      if(info.imageType == VK_IMAGE_TYPE_3D)
-        range.layerCount = info.extent.depth;
 
       ImageLayouts &layouts = m_ImageLayouts[live];
       layouts.subresourceStates.clear();
@@ -1138,8 +1136,6 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
     range.baseMipLevel = range.baseArrayLayer = 0;
     range.levelCount = pCreateInfo->mipLevels;
     range.layerCount = pCreateInfo->arrayLayers;
-    if(pCreateInfo->imageType == VK_IMAGE_TYPE_3D)
-      range.layerCount = pCreateInfo->extent.depth;
 
     ImageLayouts *layout = NULL;
     {

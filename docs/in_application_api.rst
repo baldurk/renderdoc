@@ -3,18 +3,24 @@ In-application API
 
 Reference for RenderDoc in-application API version 1.1.1
 
-.. |semver_link| raw:: html
-
-   <a href="http://semver.org" target="_blank">semantic versioning</a>
+Make sure to use a matching API header for your build - if you use a newer header, the API version may not be available. All RenderDoc builds supporting this API ship the header in their root directory.
 
 This page describes the RenderDoc API exposed to applications being captured, both in overall organisation as well as a specific reference on each function.
+
+To begin using the API you need to fetch the ``RENDERDOC_GetAPI`` function. You should do this dynamically, it is not recommended to actually link against RenderDoc's DLL as it's intended to be injected or loaded at runtime. The header does not declare ``RENDERDOC_GetAPI``, it declares a function pointer typedef ``pRENDERDOC_GetAPI`` that you can use.
+
+The two common ways to integrate RenderDoc are either to passively check if the DLL is loaded, and use the API. This lets you continue to use RenderDoc entirely as normal, launching your program through the UI, but you can access additional functionality to e.g. trigger captures at custom times.
+
+To do this you'll use your platforms dynamic library functions to see if the library is open already - e.g. ``GetModuleHandle`` on Windows, or ``dlopen`` with the ``RTLD_NOLOAD`` flag if available on \*nix systems. Just searching for the module name - ``renderdoc.dll`` or ``librenderdoc.so`` is sufficient here, so you don't need to know the path to where RenderDoc is running from. Then you can use ``GetProcAddress`` or ``dlsym`` to fetch the ``RENDERDOC_GetAPI`` function using the typedef above.
+
+The other way is a closer integration, where your code will explicitly load up RenderDoc. This needs more care taken as it can be a bit more complex. You will need to locate the RenderDoc module yourself, and load it as soon as possible after startup of your program. Due to the nature of RenderDoc's API hooking, the earlier you can load it the better in general. Once you've loaded it you can fetch the  ``RENDERDOC_GetAPI`` entry point as above, and use the API as normal.
 
 .. cpp:function:: int RENDERDOC_GetAPI(RENDERDOC_Version version, void **outAPIPointers)
 
 
     This function is the only entry point actually exported from the RenderDoc module. You call this function with the desired API version, and pass it the address of a pointer to the appropriate struct type. If successful, RenderDoc will set the pointer to point to a struct containing the function pointers for the API functions (detailed below) and return 1.
 
-    Note that version numbers follow |semver_link| which means the implementation returned may have a higher minor and/or patch version than requested.
+    Note that version numbers follow `semantic versioning <http://semver.org>`_ which means the implementation returned may have a higher minor and/or patch version than requested.
     
     :param RENDERDOC_Version version: is the version number of the API for which you want the interface struct.
     :param void** outAPIPointers: will be filled with the address of the API's function pointer struct, if supported. E.g. if ``eRENDERDOC_API_Version_1_1_1`` is requested, outAPIPointers will be filled with ``RENDERDOC_API_1_1_1*``.
@@ -24,7 +30,7 @@ This page describes the RenderDoc API exposed to applications being captured, bo
 .. cpp:function:: void GetAPIVersion(int *major, int *minor, int *patch)
 
 
-    This function returns the actual API version of the implementation returned. Version numbers follow |semver_link| which means the implementation returned may have a higher minor and/or patch version than requested: New patch versions are identical and backwards compatible in functionality. New minor versions add new functionality in a backwards compatible way.
+    This function returns the actual API version of the implementation returned. Version numbers follow `semantic versioning <http://semver.org>`_ which means the implementation returned may have a higher minor and/or patch version than requested: New patch versions are identical and backwards compatible in functionality. New minor versions add new functionality in a backwards compatible way.
 
     :param int* major: will be filled with the major version of the implementation's version.
     :param int* minor: will be filled with the minor version of the implementation's version.

@@ -89,7 +89,7 @@ bool D3D11ResourceManager::ResourceTypeRelease(ID3D11DeviceChild *res)
   return true;
 }
 
-bool D3D11ResourceManager::Force_InitialState(ID3D11DeviceChild *res)
+bool D3D11ResourceManager::Force_InitialState(ID3D11DeviceChild *res, bool prepare)
 {
   return IdentifyTypeByPtr(res) == Resource_UnorderedAccessView;
 }

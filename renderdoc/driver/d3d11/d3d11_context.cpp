@@ -59,11 +59,7 @@ void STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::SetMarker(LPCWSTR Name)
 HRESULT STDMETHODCALLTYPE WrappedID3DUserDefinedAnnotation::QueryInterface(REFIID riid,
                                                                            void **ppvObject)
 {
-  // DEFINE_GUID(IID_ID3DUserDefinedAnnotation,0xb2daad8b,0x03d4,0x4dbf,0x95,0xeb,0x32,0xab,0x4b,0x63,0xd0,0xab);
-  static const GUID ID3D11UserDefinedAnnotation_uuid = {
-      0xb2daad8b, 0x03d4, 0x4dbf, {0x95, 0xeb, 0x32, 0xab, 0x4b, 0x63, 0xd0, 0xab}};
-
-  if(riid == ID3D11UserDefinedAnnotation_uuid)
+  if(riid == __uuidof(ID3DUserDefinedAnnotation))
   {
     *ppvObject = (void *)(ID3DUserDefinedAnnotation *)this;
     AddRef();
@@ -375,6 +371,18 @@ void WrappedID3D11DeviceContext::MarkResourceReferenced(ResourceId id, FrameRefT
   }
 }
 
+void WrappedID3D11DeviceContext::MarkDirtyResource(ResourceId id)
+{
+  if(m_pRealContext->GetType() == D3D11_DEVICE_CONTEXT_IMMEDIATE)
+  {
+    m_pDevice->GetResourceManager()->MarkDirtyResource(id);
+  }
+  else
+  {
+    m_DeferredDirty.insert(id);
+  }
+}
+
 void WrappedID3D11DeviceContext::VerifyState()
 {
 #if 0
@@ -567,7 +575,7 @@ void WrappedID3D11DeviceContext::CleanupCapture()
   for(auto it = m_MissingTracks.begin(); it != m_MissingTracks.end(); ++it)
   {
     if(m_pDevice->GetResourceManager()->HasResourceRecord(*it))
-      m_pDevice->GetResourceManager()->MarkDirtyResource(*it);
+      MarkDirtyResource(*it);
   }
 
   m_MissingTracks.clear();
@@ -1061,7 +1069,7 @@ static void CopyChunk(Serialiser *src, Serialiser *dst, uint64_t offsBegin)
   dst->RawWriteBytes(src->RawReadBytes(size_t(offsEnd - offsBegin)), size_t(offsEnd - offsBegin));
 }
 
-static void CopyUnmap(Serialiser *src, Serialiser *dst, Serialiser *tmp)
+static void CopyUnmap(uint32_t d3dLogVersion, Serialiser *src, Serialiser *dst, Serialiser *tmp)
 {
   ResourceId Resource;
   uint32_t Subresource = 0;
@@ -1096,6 +1104,9 @@ static void CopyUnmap(Serialiser *src, Serialiser *dst, Serialiser *tmp)
   src->Serialise("", DiffEnd);
   tmp->Serialise("", DiffEnd);
 
+  if(d3dLogVersion >= 0x000007)
+    src->AlignNextBuffer(32);
+
   src->SerialiseBuffer("", buf, len);
   tmp->SerialiseBuffer("", buf, len);
 
@@ -1107,7 +1118,8 @@ static void CopyUnmap(Serialiser *src, Serialiser *dst, Serialiser *tmp)
   dst->RawWriteBytes(tmp->GetRawPtr(0), size_t(tmp->GetOffset()));
 }
 
-static void CopyUpdateSubresource(Serialiser *src, Serialiser *dst, Serialiser *tmp)
+static void CopyUpdateSubresource(uint32_t d3dLogVersion, Serialiser *src, Serialiser *dst,
+                                  Serialiser *tmp)
 {
   ResourceId idx;
   uint32_t flags = 0;
@@ -1173,6 +1185,9 @@ static void CopyUpdateSubresource(Serialiser *src, Serialiser *dst, Serialiser *
     src->Serialise("", ResourceBufLen);
     tmp->Serialise("", ResourceBufLen);
 
+    if(d3dLogVersion >= 0x000007)
+      src->AlignNextBuffer(32);
+
     src->SerialiseBuffer("", buf, len);
     tmp->SerialiseBuffer("", buf, len);
   }
@@ -1232,12 +1247,12 @@ void WrappedID3D11DeviceContext::FlattenLog()
       if(chunk == UNMAP)
       {
         PadToAligned(dst, 64);
-        CopyUnmap(src, dst, tmp);
+        CopyUnmap(m_pDevice->GetLogVersion(), src, dst, tmp);
       }
       else if(chunk == UPDATE_SUBRESOURCE || chunk == UPDATE_SUBRESOURCE1)
       {
         PadToAligned(dst, 64);
-        CopyUpdateSubresource(src, dst, tmp);
+        CopyUpdateSubresource(m_pDevice->GetLogVersion(), src, dst, tmp);
       }
       else
       {
@@ -1309,12 +1324,12 @@ void WrappedID3D11DeviceContext::FlattenLog()
       if(chunk == UNMAP)
       {
         PadToAligned(deferred[ctx], 64);
-        CopyUnmap(src, deferred[ctx], tmp);
+        CopyUnmap(m_pDevice->GetLogVersion(), src, deferred[ctx], tmp);
       }
       else if(chunk == UPDATE_SUBRESOURCE || chunk == UPDATE_SUBRESOURCE1)
       {
         PadToAligned(deferred[ctx], 64);
-        CopyUpdateSubresource(src, deferred[ctx], tmp);
+        CopyUpdateSubresource(m_pDevice->GetLogVersion(), src, deferred[ctx], tmp);
       }
       else
       {
@@ -1363,8 +1378,12 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
   if(readType == READING && m_pDevice->GetNumDeferredContexts() &&
      m_pDevice->GetLogVersion() < 0x00000A)
   {
+    RDCLOG("Flattening log file");
+
     // flatten the log
     FlattenLog();
+
+    RDCLOG("Flattened");
   }
 
   m_DoStateVerify = true;
@@ -1549,11 +1568,6 @@ void WrappedID3D11DeviceContext::ClearMaps()
 
 HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid, void **ppvObject)
 {
-  // This doesn't seem to be in the headers yet. Will update when it appears.
-  // ID3D11Multithread UUID {0f0f0f0f-b0b0-c0c0-d0d0-e0e0e0e0e0e0}
-  static const GUID ID3D11Multithread_uuid = {
-      0x0f0f0f0f, 0xb0b0, 0xc0c0, {0xd0, 0xd0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0, 0xe0}};
-
   if(riid == __uuidof(IUnknown))
   {
     *ppvObject = (IUnknown *)(ID3D11DeviceContext *)this;
@@ -1614,7 +1628,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid
       return E_NOINTERFACE;
     }
   }
-  else if(riid == ID3D11Multithread_uuid)
+  else if(riid == __uuidof(ID3D11Multithread))
   {
     RDCWARN("ID3D11Multithread is not supported");
     return E_NOINTERFACE;

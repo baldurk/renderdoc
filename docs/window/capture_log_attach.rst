@@ -154,6 +154,8 @@ This option is slightly different from the others in that it doesn't change anyt
 
 This option allows you to queue up a precise capture of a given frame number after the program has started.
 
+.. _child-process-hook:
+
 Child Processes
 ---------------
 
@@ -178,11 +180,7 @@ When you've entered a path, or filename, in the executable text at the top of th
 
 The shim dll will load, create a thread that checks to see if the process matches the path or filename specified, and then unload. If the process matches it will also inject RenderDoc and capturing will continue as normal. At this point you should *first disable the global hook*, then you can use the 'Attach to running instance' menu option to continue as normal.
 
-.. |appinit_link| raw:: html
-
-   <a href="http://support2.microsoft.com/kb/197571" target="_blank">AppInit_DLLs</a>
-
-RenderDoc implements this behaviour by modifying the |appinit_link| registry key to reference RenderDoc's dlls. This is not a particularly safe method but it's the only reliable method to do what we want. The shim dll is deliberately made as small and thin as possible, referencing only ``kernel32.dll``, to minimise any risks.
+RenderDoc implements this behaviour by modifying the `AppInit_DLLs <http://support2.microsoft.com/kb/197571>`_ registry key to reference RenderDoc's dlls. This is not a particularly safe method but it's the only reliable method to do what we want. The shim dll is deliberately made as small and thin as possible, referencing only ``kernel32.dll``, to minimise any risks.
 
 If RenderDoc crashes or something otherwise goes wrong while these registry keys are modified, the shim dll will continue to be injected into every process which is certainly not desireable. Should anything go wrong, RenderDoc writes a ``.reg`` file that restores the registry to its previous state in ``%TEMP%``.
 

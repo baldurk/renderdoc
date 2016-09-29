@@ -148,7 +148,8 @@ struct D3D12Descriptor
   void Init(ID3D12Resource *pResource, const D3D12_RENDER_TARGET_VIEW_DESC *pDesc);
   void Init(ID3D12Resource *pResource, const D3D12_DEPTH_STENCIL_VIEW_DESC *pDesc);
 
-  void Create(ID3D12Device *dev, D3D12_CPU_DESCRIPTOR_HANDLE handle);
+  void Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12Device *dev,
+              D3D12_CPU_DESCRIPTOR_HANDLE handle);
   void CopyFrom(const D3D12Descriptor &src);
 
   union
@@ -322,7 +323,7 @@ private:
 
   bool ResourceTypeRelease(ID3D12DeviceChild *res);
 
-  bool Force_InitialState(ID3D12DeviceChild *res);
+  bool Force_InitialState(ID3D12DeviceChild *res, bool prepare);
   bool Need_InitialStateChunk(ID3D12DeviceChild *res);
   bool Prepare_InitialState(ID3D12DeviceChild *res);
   void Create_InitialState(ResourceId id, ID3D12DeviceChild *live, bool hasData);

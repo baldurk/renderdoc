@@ -341,8 +341,8 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   return childPid;
 }
 
-uint32_t Process::InjectIntoProcess(uint32_t pid, const char *logfile, const CaptureOptions *opts,
-                                    bool waitForExit)
+uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, const char *logfile,
+                                    const CaptureOptions *opts, bool waitForExit)
 {
   RDCUNIMPLEMENTED("Injecting into already running processes on linux");
   return 0;

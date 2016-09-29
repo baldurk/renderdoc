@@ -492,6 +492,16 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState &el)
 
 #pragma endregion D3D11 pipeline state
 
+#pragma region D3D12 pipeline state
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState &el)
+{
+  RDCUNIMPLEMENTED("Serialiser::Serialise<D3D12PipelineState>()");
+}
+
+#pragma endregion D3D12 pipeline state
+
 #pragma region OpenGL pipeline state
 
 template <>
@@ -1697,6 +1707,79 @@ bool ReplayProxy::SendReplayCommand(ReplayProxyPacket type)
   return true;
 }
 
+template <>
+string ToStrHelper<false, RemapTextureEnum>::Get(const RemapTextureEnum &el)
+{
+  switch(el)
+  {
+    TOSTR_CASE_STRINGIZE(eRemap_None)
+    TOSTR_CASE_STRINGIZE(eRemap_RGBA8)
+    TOSTR_CASE_STRINGIZE(eRemap_RGBA16)
+    TOSTR_CASE_STRINGIZE(eRemap_RGBA32)
+    TOSTR_CASE_STRINGIZE(eRemap_D32S8)
+    default: break;
+  }
+
+  return StringFormat::Fmt("RemapTextureEnum<%d>", el);
+}
+
+// If a remap is required, modify the params that are used when getting the proxy texture data
+// for replay on the current driver.
+void ReplayProxy::RemapProxyTextureIfNeeded(ResourceFormat &format, GetTextureDataParams &params)
+{
+  if(m_Proxy->IsTextureSupported(format))
+    return;
+
+  if(format.special)
+  {
+    switch(format.specialFormat)
+    {
+      case eSpecial_S8:
+      case eSpecial_D16S8: params.remap = eRemap_D32S8; break;
+      case eSpecial_ASTC:
+      case eSpecial_EAC:
+      case eSpecial_ETC2: params.remap = eRemap_RGBA8; break;
+      default:
+        RDCERR("Don't know how to remap special format %u, falling back to RGBA32");
+        params.remap = eRemap_RGBA32;
+        break;
+    }
+    format.special = false;
+  }
+  else
+  {
+    if(format.compByteWidth == 4)
+      params.remap = eRemap_RGBA32;
+    else if(format.compByteWidth == 2)
+      params.remap = eRemap_RGBA16;
+    else if(format.compByteWidth == 1)
+      params.remap = eRemap_RGBA8;
+  }
+
+  switch(params.remap)
+  {
+    case eRemap_None: RDCERR("IsTextureSupported == false, but we have no remap"); break;
+    case eRemap_RGBA8:
+      format.compCount = 4;
+      format.compByteWidth = 1;
+      format.compType = eCompType_UNorm;
+      // Range adaptation is only needed when remapping a higher precision format down to RGBA8.
+      params.whitePoint = 1.0f;
+      break;
+    case eRemap_RGBA16:
+      format.compCount = 4;
+      format.compByteWidth = 2;
+      format.compType = eCompType_UNorm;
+      break;
+    case eRemap_RGBA32:
+      format.compCount = 4;
+      format.compByteWidth = 4;
+      format.compType = eCompType_Float;
+      break;
+    case eRemap_D32S8: RDCERR("Remapping depth/stencil formats not implemented."); break;
+  }
+}
+
 void ReplayProxy::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t mip)
 {
   if(!m_Socket->Connected())
@@ -1709,20 +1792,24 @@ void ReplayProxy::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t 
 
   if(m_TextureProxyCache.find(entry) == m_TextureProxyCache.end())
   {
-    if(m_ProxyTextureIds.find(texid) == m_ProxyTextureIds.end())
+    if(m_ProxyTextures.find(texid) == m_ProxyTextures.end())
     {
       FetchTexture tex = GetTexture(texid);
-      m_ProxyTextureIds[texid] = m_Proxy->CreateProxyTexture(tex);
+
+      ProxyTextureProperties proxy;
+      RemapProxyTextureIfNeeded(tex.format, proxy.params);
+
+      proxy.id = m_Proxy->CreateProxyTexture(tex);
+      m_ProxyTextures[texid] = proxy;
     }
 
-    ResourceId proxyid = m_ProxyTextureIds[texid];
+    const ProxyTextureProperties &proxy = m_ProxyTextures[texid];
 
     size_t size;
-    byte *data =
-        GetTextureData(texid, arrayIdx, mip, false, eCompType_None, false, false, 0.0f, 0.0f, size);
+    byte *data = GetTextureData(texid, arrayIdx, mip, proxy.params, size);
 
     if(data)
-      m_Proxy->SetProxyTextureData(proxyid, arrayIdx, mip, data, size);
+      m_Proxy->SetProxyTextureData(proxy.id, arrayIdx, mip, data, size);
 
     delete[] data;
 
@@ -1817,7 +1904,7 @@ bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
     case eReplayProxy_GetTextureData:
     {
       size_t dummy;
-      GetTextureData(ResourceId(), 0, 0, false, eCompType_None, false, false, 0.0f, 0.0f, dummy);
+      GetTextureData(ResourceId(), 0, 0, GetTextureDataParams(), dummy);
       break;
     }
     case eReplayProxy_InitPostVS: InitPostVSBuffers(0); break;
@@ -1943,7 +2030,7 @@ vector<DebugMessage> ReplayProxy::GetDebugMessages()
 
 FetchTexture ReplayProxy::GetTexture(ResourceId id)
 {
-  FetchTexture ret;
+  FetchTexture ret = {};
 
   m_ToReplaySerialiser->Serialise("", id);
 
@@ -1983,7 +2070,7 @@ vector<ResourceId> ReplayProxy::GetBuffers()
 
 FetchBuffer ReplayProxy::GetBuffer(ResourceId id)
 {
-  FetchBuffer ret;
+  FetchBuffer ret = {};
 
   m_ToReplaySerialiser->Serialise("", id);
 
@@ -2008,6 +2095,7 @@ void ReplayProxy::SavePipelineState()
   {
     m_Remote->SavePipelineState();
     m_D3D11PipelineState = m_Remote->GetD3D11PipelineState();
+    m_D3D12PipelineState = m_Remote->GetD3D12PipelineState();
     m_GLPipelineState = m_Remote->GetGLPipelineState();
     m_VulkanPipelineState = m_Remote->GetVulkanPipelineState();
   }
@@ -2017,11 +2105,13 @@ void ReplayProxy::SavePipelineState()
       return;
 
     m_D3D11PipelineState = D3D11PipelineState();
+    m_D3D12PipelineState = D3D12PipelineState();
     m_GLPipelineState = GLPipelineState();
     m_VulkanPipelineState = VulkanPipelineState();
   }
 
   m_FromReplaySerialiser->Serialise("", m_D3D11PipelineState);
+  m_FromReplaySerialiser->Serialise("", m_D3D12PipelineState);
   m_FromReplaySerialiser->Serialise("", m_GLPipelineState);
   m_FromReplaySerialiser->Serialise("", m_VulkanPipelineState);
 }
@@ -2275,24 +2365,24 @@ void ReplayProxy::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, 
   }
 }
 
-byte *ReplayProxy::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
-                                  FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
-                                  float blackPoint, float whitePoint, size_t &dataSize)
+byte *ReplayProxy::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                  const GetTextureDataParams &_params, size_t &dataSize)
 {
+  GetTextureDataParams params = _params;    // Serialiser is non-const
+
   m_ToReplaySerialiser->Serialise("", tex);
   m_ToReplaySerialiser->Serialise("", arrayIdx);
   m_ToReplaySerialiser->Serialise("", mip);
-  m_ToReplaySerialiser->Serialise("", forDiskSave);
-  m_ToReplaySerialiser->Serialise("", typeHint);
-  m_ToReplaySerialiser->Serialise("", resolve);
-  m_ToReplaySerialiser->Serialise("", forceRGBA8unorm);
-  m_ToReplaySerialiser->Serialise("", blackPoint);
-  m_ToReplaySerialiser->Serialise("", whitePoint);
+  m_ToReplaySerialiser->Serialise("", params.forDiskSave);
+  m_ToReplaySerialiser->Serialise("", params.typeHint);
+  m_ToReplaySerialiser->Serialise("", params.resolve);
+  m_ToReplaySerialiser->Serialise("", params.remap);
+  m_ToReplaySerialiser->Serialise("", params.blackPoint);
+  m_ToReplaySerialiser->Serialise("", params.whitePoint);
 
   if(m_RemoteServer)
   {
-    byte *data = m_Remote->GetTextureData(tex, arrayIdx, mip, forDiskSave, typeHint, resolve,
-                                          forceRGBA8unorm, blackPoint, whitePoint, dataSize);
+    byte *data = m_Remote->GetTextureData(tex, arrayIdx, mip, params, dataSize);
 
     byte *compressed = new byte[LZ4_COMPRESSBOUND(dataSize)];
 
@@ -2373,7 +2463,7 @@ void ReplayProxy::InitPostVSBuffers(const vector<uint32_t> &events)
 
 MeshFormat ReplayProxy::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
-  MeshFormat ret;
+  MeshFormat ret = {};
 
   m_ToReplaySerialiser->Serialise("", eventID);
   m_ToReplaySerialiser->Serialise("", instID);

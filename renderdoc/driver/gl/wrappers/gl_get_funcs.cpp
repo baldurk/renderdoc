@@ -433,7 +433,8 @@ void WrappedOpenGL::glGetBufferPointerv(GLenum target, GLenum pname, void **para
   if(pname == eGL_BUFFER_MAP_POINTER)
   {
     GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify implicit object at binding. Mismatched or bad GLuint?", record,
+                 target);
 
     if(record)
     {
@@ -1141,7 +1142,8 @@ void WrappedOpenGL::glGetNamedBufferPointervEXT(GLuint buffer, GLenum pname, voi
   if(pname == eGL_BUFFER_MAP_POINTER)
   {
     GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-    RDCASSERT(record);
+    RDCASSERTMSG("Couldn't identify object passed to function. Mismatched or bad GLuint?", record,
+                 buffer);
 
     if(record)
     {

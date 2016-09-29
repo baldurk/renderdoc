@@ -74,6 +74,7 @@ namespace renderdocui.Code
         private FetchTexture[] m_Textures = null;
 
         private D3D11PipelineState m_D3D11PipelineState = null;
+        private D3D12PipelineState m_D3D12PipelineState = null;
         private GLPipelineState m_GLPipelineState = null;
         private VulkanPipelineState m_VulkanPipelineState = null;
         private CommonPipelineState m_PipelineState = new CommonPipelineState();
@@ -174,6 +175,7 @@ namespace renderdocui.Code
 
         // direct access (note that only one of these will be valid for a log, check APIProps.pipelineType)
         public D3D11PipelineState CurD3D11PipelineState { get { return m_D3D11PipelineState; } }
+        public D3D12PipelineState CurD3D12PipelineState { get { return m_D3D12PipelineState; } }
         public GLPipelineState CurGLPipelineState { get { return m_GLPipelineState; } }
         public VulkanPipelineState CurVulkanPipelineState { get { return m_VulkanPipelineState; } }
         public CommonPipelineState CurPipelineState { get { return m_PipelineState; } }
@@ -290,7 +292,7 @@ namespace renderdocui.Code
 
             foreach (var d in draws)
             {
-                ret |= (d.flags & DrawcallFlags.PushMarker) > 0 && (d.flags & DrawcallFlags.CmdList) == 0;
+                ret |= (d.flags & DrawcallFlags.PushMarker) > 0 && (d.flags & DrawcallFlags.CmdList) == 0 && d.children.Length > 0;
                 ret |= ContainsMarker(d.children);
             }
 
@@ -565,9 +567,10 @@ namespace renderdocui.Code
                 postloadProgress = 0.9f;
 
                 m_D3D11PipelineState = r.GetD3D11PipelineState();
+                m_D3D12PipelineState = r.GetD3D12PipelineState();
                 m_GLPipelineState = r.GetGLPipelineState();
                 m_VulkanPipelineState = r.GetVulkanPipelineState();
-                m_PipelineState.SetStates(m_APIProperties, m_D3D11PipelineState, m_GLPipelineState, m_VulkanPipelineState);
+                m_PipelineState.SetStates(m_APIProperties, m_D3D11PipelineState, m_D3D12PipelineState, m_GLPipelineState, m_VulkanPipelineState);
 
                 UnreadMessageCount = 0;
                 AddMessages(m_FrameInfo.debugMessages);
@@ -669,7 +672,7 @@ namespace renderdocui.Code
             m_D3D11PipelineState = null;
             m_GLPipelineState = null;
             m_VulkanPipelineState = null;
-            m_PipelineState.SetStates(null, null, null, null);
+            m_PipelineState.SetStates(null, null,null, null, null);
 
             DebugMessages.Clear();
             UnreadMessageCount = 0;
@@ -902,9 +905,10 @@ namespace renderdocui.Code
             {
                 r.SetFrameEvent(m_EventID, force);
                 m_D3D11PipelineState = r.GetD3D11PipelineState();
+                m_D3D12PipelineState = r.GetD3D12PipelineState();
                 m_GLPipelineState = r.GetGLPipelineState();
                 m_VulkanPipelineState = r.GetVulkanPipelineState();
-                m_PipelineState.SetStates(m_APIProperties, m_D3D11PipelineState, m_GLPipelineState, m_VulkanPipelineState);
+                m_PipelineState.SetStates(m_APIProperties, m_D3D11PipelineState, m_D3D12PipelineState, m_GLPipelineState, m_VulkanPipelineState);
             });
 
             foreach (var logviewer in m_LogViewers)

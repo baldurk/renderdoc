@@ -93,7 +93,7 @@ json:
 
 .PHONY: htmlhelp
 htmlhelp:
-	$(SPHINXBUILD) -b htmlhelp $(ALLSPHINXOPTS) $(BUILDDIR)/htmlhelp
+	$(SPHINXBUILD) -b htmlhelp -t htmlhelp $(ALLSPHINXOPTS) $(BUILDDIR)/htmlhelp
 	# Copy handwritten index file to output, overwriting auto-generated one
 	@cp renderdoc.hhk $(BUILDDIR)/htmlhelp
 	# Copy introduction page over index.html

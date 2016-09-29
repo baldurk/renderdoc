@@ -1,7 +1,23 @@
 cmake_minimum_required(VERSION 2.8.12)
 
-if(WIN32)
-    message(FATAL_ERROR "CMake is not needed on Windows, just open and build renderdoc.sln")
+# Configure some stuff that needs to be set really early
+if(BUILD_ANDROID)
+    set(CMAKE_TOOLCHAIN_FILE
+        "${CMAKE_SOURCE_DIR}/scripts/android.toolchain.cmake"
+        CACHE STRING
+        "The Android toolchain file")
+
+    # Default to arm64 if nothing is specified on the command line.
+    set(ANDROID_ABI "arm64-v8a" CACHE STRING "The Android ABI to build for")
+
+    # This will be overridden later, we just need to set it now so that the
+    # configuration will continue on to where the toolchain is available
+    if(WIN32)
+        set(CMAKE_MAKE_PROGRAM
+            "android-make-not-found"
+            CACHE STRING
+            "The path to the NDK's make.exe to use")
+    endif()
 endif()
 
 # disallow in-source builds because we have a top-level wrapper Makefile
@@ -34,6 +50,37 @@ option(ENABLE_QRENDERDOC "Enable qrenderdoc" ON)
 option(ENABLE_XLIB "Enable xlib windowing support" ON)
 option(ENABLE_XCB "Enable xcb windowing support" ON)
 
+if(WIN32)
+    message(FATAL_ERROR "CMake is not needed on Windows, just open and build renderdoc.sln")
+endif()
+
+if(ANDROID)
+    message(STATUS "Disabling GL driver on android - no support for EGL/GLES")
+    set(ENABLE_GL OFF CACHE BOOL "" FORCE)
+
+    # Android doesn't support the Qt UI for obvious reasons
+    message(STATUS "Disabling qrenderdoc for android build")
+    set(ENABLE_QRENDERDOC OFF CACHE BOOL "" FORCE)
+
+    message(STATUS "Using Android ABI ${ANDROID_ABI}")
+    message(STATUS "Using Android native API level ${ANDROID_NATIVE_API_LEVEL}")
+
+    if(CMAKE_HOST_SYSTEM_NAME STREQUAL "Windows")
+        set(MAKE_SEARCH_DIRS "windows-x86_64" "windows")
+
+        # For windows, we need to use the make program in the NDK
+        foreach(dir ${MAKE_SEARCH_DIRS})
+            set(__makepath "${ANDROID_NDK}/prebuilt/${dir}/bin/make.exe")
+            if( EXISTS "${__makepath}" )
+                set(CMAKE_MAKE_PROGRAM "${__makepath}" CACHE STRING "" FORCE)
+                break()
+            endif()
+        endforeach()
+
+        message(STATUS "Using build tool ${CMAKE_MAKE_PROGRAM}")
+    endif()
+endif()
+
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
@@ -43,6 +90,10 @@ endif()
 
 if(ENABLE_VULKAN)
     add_definitions(-DRENDERDOC_SUPPORT_VULKAN)
+endif()
+
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+    add_definitions(-D_RELEASE)
 endif()
 
 if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")

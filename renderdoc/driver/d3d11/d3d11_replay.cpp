@@ -647,12 +647,15 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
           samp.Filter = ToStr::Get(desc.Filter);
           samp.MaxAniso = 0;
           if(desc.Filter == D3D11_FILTER_ANISOTROPIC ||
-             desc.Filter == D3D11_FILTER_COMPARISON_ANISOTROPIC)
+             desc.Filter == D3D11_FILTER_COMPARISON_ANISOTROPIC ||
+             desc.Filter == D3D11_FILTER_MINIMUM_ANISOTROPIC ||
+             desc.Filter == D3D11_FILTER_MAXIMUM_ANISOTROPIC)
             samp.MaxAniso = desc.MaxAnisotropy;
           samp.MaxLOD = desc.MaxLOD;
           samp.MinLOD = desc.MinLOD;
           samp.MipLODBias = desc.MipLODBias;
-          samp.UseComparison = (desc.Filter >= D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT);
+          samp.UseComparison = (desc.Filter >= D3D11_FILTER_COMPARISON_MIN_MAG_MIP_POINT &&
+                                desc.Filter <= D3D11_FILTER_COMPARISON_ANISOTROPIC);
           samp.UseBorder = (desc.AddressU == D3D11_TEXTURE_ADDRESS_BORDER ||
                             desc.AddressV == D3D11_TEXTURE_ADDRESS_BORDER ||
                             desc.AddressW == D3D11_TEXTURE_ADDRESS_BORDER);
@@ -1445,13 +1448,10 @@ void D3D11Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, 
   m_pDevice->GetDebugManager()->GetBufferData(buff, offset, len, retData);
 }
 
-byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
-                                  FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
-                                  float blackPoint, float whitePoint, size_t &dataSize)
+byte *D3D11Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                  const GetTextureDataParams &params, size_t &dataSize)
 {
-  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, forDiskSave, typeHint,
-                                                      resolve, forceRGBA8unorm, blackPoint,
-                                                      whitePoint, dataSize);
+  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, dataSize);
 }
 
 void D3D11Replay::ReplaceResource(ResourceId from, ResourceId to)
@@ -1842,6 +1842,11 @@ void D3D11Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
   }
 }
 
+bool D3D11Replay::IsTextureSupported(const ResourceFormat &format)
+{
+  return MakeDXGIFormat(format) != DXGI_FORMAT_UNKNOWN;
+}
+
 ResourceId D3D11Replay::CreateProxyBuffer(const FetchBuffer &templateBuf)
 {
   ResourceId ret;
@@ -1852,11 +1857,13 @@ ResourceId D3D11Replay::CreateProxyBuffer(const FetchBuffer &templateBuf)
     ID3D11Buffer *throwaway = NULL;
     D3D11_BUFFER_DESC desc;
 
-    desc.ByteWidth = (UINT)templateBuf.length;
+    // D3D11_BIND_CONSTANT_BUFFER size must be 16-byte aligned.
+    desc.ByteWidth = AlignUp16((UINT)templateBuf.length);
     desc.CPUAccessFlags = 0;
     desc.MiscFlags = 0;
     desc.Usage = D3D11_USAGE_DEFAULT;
     desc.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+    desc.StructureByteStride = 0;
 
     if(templateBuf.creationFlags & eBufferCreate_Indirect)
     {
@@ -1865,8 +1872,12 @@ ResourceId D3D11Replay::CreateProxyBuffer(const FetchBuffer &templateBuf)
     }
     if(templateBuf.creationFlags & eBufferCreate_IB)
       desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
-    if(templateBuf.creationFlags & eBufferCreate_CB)
-      desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    // D3D11_BIND_CONSTANT_BUFFER size must be <= 65536 on some drivers.
+    if(desc.ByteWidth <= D3D11_REQ_CONSTANT_BUFFER_ELEMENT_COUNT * 16)
+    {
+      if(templateBuf.creationFlags & eBufferCreate_CB)
+        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+    }
     if(templateBuf.creationFlags & eBufferCreate_UAV)
       desc.BindFlags = D3D11_BIND_UNORDERED_ACCESS | D3D11_BIND_SHADER_RESOURCE;
 
@@ -1908,7 +1919,7 @@ void D3D11Replay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSi
     D3D11_BUFFER_DESC desc;
     buf->GetDesc(&desc);
 
-    if(dataSize < desc.ByteWidth)
+    if(AlignUp16(dataSize) < desc.ByteWidth)
     {
       RDCERR("Insufficient data provided to SetProxyBufferData");
       return;

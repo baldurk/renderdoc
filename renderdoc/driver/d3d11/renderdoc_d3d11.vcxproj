@@ -203,7 +203,6 @@
     <ClCompile Include="d3d11_renderstate.cpp" />
     <ClCompile Include="d3d11_replay.cpp" />
     <ClCompile Include="d3d11_resources.cpp" />
-    <ClCompile Include="d3d9_hooks.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\dx\official\amd\AmdDxExt.h" />

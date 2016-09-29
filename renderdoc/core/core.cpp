@@ -276,6 +276,12 @@ void RenderDoc::Initialise()
 
       m_TargetControlThreadShutdown = false;
       m_RemoteThread = Threading::CreateThread(TargetControlServerThread, (void *)sock);
+
+      RDCLOG("Listening for target control on %u", port);
+    }
+    else
+    {
+      RDCWARN("Couldn't open socket for target control");
     }
   }
 

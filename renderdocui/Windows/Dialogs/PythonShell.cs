@@ -119,9 +119,21 @@ namespace renderdocui.Windows.Dialogs
 
         private ScriptScope NewScope(ScriptEngine engine)
         {
+            engine.Runtime.LoadAssembly(typeof(PythonShell).Assembly);
+
             var scope = engine.CreateScope();
 
-            scope.SetVariable("renderdoc", m_Core);
+            scope.SetVariable("pyrenderdoc", m_Core);
+
+            // try to import the RenderDoc namespace.
+            // This isn't equivalent to scope.ImportModule
+            try
+            {
+                engine.CreateScriptSourceFromString("import renderdoc").Execute(scope);
+            }
+            catch (Exception)
+            {
+            }
 
             return scope;
         }
@@ -288,7 +300,9 @@ namespace renderdocui.Windows.Dialogs
         private void clearCmd_Click(object sender, EventArgs e)
         {
             interactiveOutput.Text = String.Format("RenderDoc Python console, powered by IronPython {0}{1}" +
-                                "The 'renderdoc' object is the Core class instance.{1}", IronPython.CurrentVersion.AssemblyFileVersion, Environment.NewLine);
+                                "The 'pyrenderdoc' object is the Core class instance.{1}" +
+                                "The 'renderdoc' module is available, as the matching namespace in C#.{1}",
+                                IronPython.CurrentVersion.AssemblyFileVersion, Environment.NewLine);
 
             shellscope = NewScope(pythonengine);
         }
@@ -321,6 +335,8 @@ namespace renderdocui.Windows.Dialogs
             this.BeginInvoke(new Action(() =>
             {
                 scriptOutput.Text += output;
+                scriptOutput.SelectionStart = scriptOutput.TextLength;
+                scriptOutput.ScrollToCaret();
             }));
         }
         }
@@ -392,6 +408,8 @@ namespace renderdocui.Windows.Dialogs
                     pythonThread = null;
 
                     scriptOutput.Text += output;
+                    scriptOutput.SelectionStart = scriptOutput.TextLength;
+                    scriptOutput.ScrollToCaret();
 
                     SetLineNumber(linenum);
 
@@ -495,7 +513,9 @@ namespace renderdocui.Windows.Dialogs
         private void newScript_Click(object sender, EventArgs e)
         {
             scriptEditor.Text = String.Format("# RenderDoc Python scripts, powered by IronPython {0}\n" +
-                                "# The 'renderdoc' object is the Core class instance.\n\n", IronPython.CurrentVersion.AssemblyFileVersion);
+                                "# The 'pyrenderdoc' object is the Core class instance.\n" +
+                                "# The 'renderdoc' module is available, as the matching namespace in C#\n\n",
+                                IronPython.CurrentVersion.AssemblyFileVersion);
 
             scriptEditor.Text = scriptEditor.Text.Replace("\n", Environment.NewLine);
         }

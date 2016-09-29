@@ -157,6 +157,77 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Couldn't create sampler descriptor heap! 0x%08x", hr);
   }
 
+  {
+    D3D12_RESOURCE_DESC pickPixelDesc = {};
+    pickPixelDesc.Alignment = 0;
+    pickPixelDesc.DepthOrArraySize = 1;
+    pickPixelDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    pickPixelDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+    pickPixelDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    pickPixelDesc.Height = 1;
+    pickPixelDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    pickPixelDesc.MipLevels = 1;
+    pickPixelDesc.SampleDesc.Count = 1;
+    pickPixelDesc.SampleDesc.Quality = 0;
+    pickPixelDesc.Width = 1;
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    hr = m_WrappedDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &pickPixelDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
+        __uuidof(ID3D12Resource), (void **)&m_PickPixelTex);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create rendering texture for pixel picking, HRESULT: 0x%08x", hr);
+      return;
+    }
+
+    m_PickPixelRTV = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+    m_PickPixelRTV.ptr +=
+        FIXED_RTV_PICK_PIXEL *
+        m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+
+    m_WrappedDevice->CreateRenderTargetView(m_PickPixelTex, NULL, m_PickPixelRTV);
+  }
+
+  {
+    D3D12_RESOURCE_DESC readbackDesc;
+    readbackDesc.Alignment = 0;
+    readbackDesc.DepthOrArraySize = 1;
+    readbackDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    readbackDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    readbackDesc.Format = DXGI_FORMAT_UNKNOWN;
+    readbackDesc.Height = 1;
+    readbackDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    readbackDesc.MipLevels = 1;
+    readbackDesc.SampleDesc.Count = 1;
+    readbackDesc.SampleDesc.Quality = 0;
+    readbackDesc.Width = m_ReadbackSize;
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    hr = m_WrappedDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &readbackDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+        __uuidof(ID3D12Resource), (void **)&m_ReadbackBuffer);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create readback buffer, HRESULT: 0x%08x", hr);
+      return;
+    }
+  }
+
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
 
   // create fixed samplers, point and linear
@@ -311,6 +382,18 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   {
     RDCERR("Couldn't create m_TexDisplayPipe! 0x%08x", hr);
   }
+
+  pipeDesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+  hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                    (void **)&m_TexDisplayF32Pipe);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't create m_TexDisplayF32Pipe! 0x%08x", hr);
+  }
+
+  pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
   pipeDesc.PS.BytecodeLength = CheckerboardPS->GetBufferSize();
   pipeDesc.PS.pShaderBytecode = CheckerboardPS->GetBufferPointer();
@@ -628,9 +711,14 @@ D3D12DebugManager::~D3D12DebugManager()
 
   SAFE_RELEASE(m_TexDisplayBlendPipe);
   SAFE_RELEASE(m_TexDisplayPipe);
+  SAFE_RELEASE(m_TexDisplayF32Pipe);
   SAFE_RELEASE(m_TexDisplayRootSig);
 
   SAFE_RELEASE(m_CheckerboardPipe);
+
+  SAFE_RELEASE(m_PickPixelTex);
+
+  SAFE_RELEASE(m_ReadbackBuffer);
 
   m_WrappedDevice->InternalRelease();
 
@@ -742,10 +830,15 @@ D3D12RootSignature D3D12DebugManager::GetRootSig(const void *data, size_t dataSi
   ret.params.resize(desc->NumParameters);
 
   for(size_t i = 0; i < ret.params.size(); i++)
-    ret.params[i].MakeFrom(desc->pParameters[i]);
+    ret.params[i].MakeFrom(desc->pParameters[i], ret.numSpaces);
 
   if(desc->NumStaticSamplers > 0)
+  {
     ret.samplers.assign(desc->pStaticSamplers, desc->pStaticSamplers + desc->NumStaticSamplers);
+
+    for(size_t i = 0; i < ret.samplers.size(); i++)
+      ret.numSpaces = RDCMAX(ret.numSpaces, ret.samplers[i].RegisterSpace + 1);
+  }
 
   SAFE_RELEASE(deser);
 
@@ -957,6 +1050,8 @@ uint64_t D3D12DebugManager::MakeOutputWindow(WindowingSystem system, void *data,
   outw.bbIdx = 0;
 
   outw.rtv = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+  outw.rtv.ptr += FIXED_RTV_COUNT *
+                  m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
   outw.rtv.ptr += SIZE_T(m_OutputWindowID) *
                   m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
@@ -1199,6 +1294,588 @@ void D3D12DebugManager::FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle)
   D3D12NOTIMP("Not freeing RTV's - will run out");
 }
 
+void D3D12DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
+                                  uint32_t mip, uint32_t sample, FormatComponentType typeHint,
+                                  float pixel[4])
+{
+  int oldW = GetWidth(), oldH = GetHeight();
+
+  SetOutputDimensions(1, 1, DXGI_FORMAT_R32G32B32A32_FLOAT);
+
+  {
+    TextureDisplay texDisplay;
+
+    texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+    texDisplay.HDRMul = -1.0f;
+    texDisplay.linearDisplayAsGamma = true;
+    texDisplay.FlipY = false;
+    texDisplay.mip = mip;
+    texDisplay.sampleIdx = sample;
+    texDisplay.CustomShader = ResourceId();
+    texDisplay.sliceFace = sliceFace;
+    texDisplay.rangemin = 0.0f;
+    texDisplay.rangemax = 1.0f;
+    texDisplay.scale = 1.0f;
+    texDisplay.texid = texture;
+    texDisplay.typeHint = typeHint;
+    texDisplay.rawoutput = true;
+    texDisplay.offx = -float(x);
+    texDisplay.offy = -float(y);
+
+    RenderTextureInternal(m_PickPixelRTV, texDisplay, false);
+  }
+
+  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+  D3D12_RESOURCE_BARRIER barrier = {};
+
+  barrier.Transition.pResource = m_PickPixelTex;
+  barrier.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+  list->ResourceBarrier(1, &barrier);
+
+  D3D12_TEXTURE_COPY_LOCATION dst = {}, src = {};
+
+  src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+  src.pResource = m_PickPixelTex;
+  src.SubresourceIndex = 0;
+
+  dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+  dst.pResource = m_ReadbackBuffer;
+  dst.PlacedFootprint.Offset = 0;
+  dst.PlacedFootprint.Footprint.Width = sizeof(Vec4f);
+  dst.PlacedFootprint.Footprint.Height = 1;
+  dst.PlacedFootprint.Footprint.Depth = 1;
+  dst.PlacedFootprint.Footprint.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+  dst.PlacedFootprint.Footprint.RowPitch = D3D12_TEXTURE_DATA_PITCH_ALIGNMENT;
+
+  list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+
+  std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+
+  list->ResourceBarrier(1, &barrier);
+
+  list->Close();
+
+  m_WrappedDevice->ExecuteLists();
+  m_WrappedDevice->FlushLists();
+
+  D3D12_RANGE range = {0, sizeof(Vec4f)};
+
+  float *pix = NULL;
+  HRESULT hr = m_ReadbackBuffer->Map(0, &range, (void **)&pix);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to map picking stage tex %08x", hr);
+  }
+
+  if(pix == NULL)
+  {
+    RDCERR("Failed to map pick-pixel staging texture.");
+  }
+  else
+  {
+    pixel[0] = pix[0];
+    pixel[1] = pix[1];
+    pixel[2] = pix[2];
+    pixel[3] = pix[3];
+  }
+
+  SetOutputDimensions(oldW, oldH, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+
+  range.End = 0;
+
+  if(SUCCEEDED(hr))
+    m_ReadbackBuffer->Unmap(0, &range);
+}
+
+void D3D12DebugManager::FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
+                                             const vector<DXBC::CBufferVariable> &invars,
+                                             vector<ShaderVariable> &outvars,
+                                             const vector<byte> &data)
+{
+  using namespace DXBC;
+  using namespace ShaderDebug;
+
+  size_t o = offset;
+
+  for(size_t v = 0; v < invars.size(); v++)
+  {
+    size_t vec = o + invars[v].descriptor.offset / 16;
+    size_t comp = (invars[v].descriptor.offset - (invars[v].descriptor.offset & ~0xf)) / 4;
+    size_t sz = RDCMAX(1U, invars[v].type.descriptor.bytesize / 16);
+
+    offset = vec + sz;
+
+    string basename = prefix + invars[v].name;
+
+    uint32_t rows = invars[v].type.descriptor.rows;
+    uint32_t cols = invars[v].type.descriptor.cols;
+    uint32_t elems = RDCMAX(1U, invars[v].type.descriptor.elements);
+
+    if(!invars[v].type.members.empty())
+    {
+      char buf[64] = {0};
+      StringFormat::snprintf(buf, 63, "[%d]", elems);
+
+      ShaderVariable var;
+      var.name = basename;
+      var.rows = var.columns = 0;
+      var.type = eVar_Float;
+
+      std::vector<ShaderVariable> varmembers;
+
+      if(elems > 1)
+      {
+        for(uint32_t i = 0; i < elems; i++)
+        {
+          StringFormat::snprintf(buf, 63, "[%d]", i);
+
+          if(flatten)
+          {
+            FillCBufferVariables(basename + buf + ".", vec, flatten, invars[v].type.members,
+                                 outvars, data);
+          }
+          else
+          {
+            ShaderVariable vr;
+            vr.name = basename + buf;
+            vr.rows = vr.columns = 0;
+            vr.type = eVar_Float;
+
+            std::vector<ShaderVariable> mems;
+
+            FillCBufferVariables("", vec, flatten, invars[v].type.members, mems, data);
+
+            vr.isStruct = true;
+
+            vr.members = mems;
+
+            varmembers.push_back(vr);
+          }
+        }
+
+        var.isStruct = false;
+      }
+      else
+      {
+        var.isStruct = true;
+
+        if(flatten)
+          FillCBufferVariables(basename + ".", vec, flatten, invars[v].type.members, outvars, data);
+        else
+          FillCBufferVariables("", vec, flatten, invars[v].type.members, varmembers, data);
+      }
+
+      if(!flatten)
+      {
+        var.members = varmembers;
+        outvars.push_back(var);
+      }
+
+      continue;
+    }
+
+    if(invars[v].type.descriptor.varClass == CLASS_OBJECT ||
+       invars[v].type.descriptor.varClass == CLASS_STRUCT ||
+       invars[v].type.descriptor.varClass == CLASS_INTERFACE_CLASS ||
+       invars[v].type.descriptor.varClass == CLASS_INTERFACE_POINTER)
+    {
+      RDCWARN("Unexpected variable '%s' of class '%u' in cbuffer, skipping.",
+              invars[v].name.c_str(), invars[v].type.descriptor.type);
+      continue;
+    }
+
+    size_t elemByteSize = 4;
+    VarType type = eVar_Float;
+    switch(invars[v].type.descriptor.type)
+    {
+      case VARTYPE_INT: type = eVar_Int; break;
+      case VARTYPE_FLOAT: type = eVar_Float; break;
+      case VARTYPE_BOOL:
+      case VARTYPE_UINT:
+      case VARTYPE_UINT8: type = eVar_UInt; break;
+      case VARTYPE_DOUBLE:
+        elemByteSize = 8;
+        type = eVar_Double;
+        break;
+      default:
+        RDCERR("Unexpected type %d for variable '%s' in cbuffer", invars[v].type.descriptor.type,
+               invars[v].name.c_str());
+    }
+
+    bool columnMajor = invars[v].type.descriptor.varClass == CLASS_MATRIX_COLUMNS;
+
+    size_t outIdx = vec;
+    if(!flatten)
+    {
+      outIdx = outvars.size();
+      outvars.resize(RDCMAX(outIdx + 1, outvars.size()));
+    }
+    else
+    {
+      if(columnMajor)
+        outvars.resize(RDCMAX(outIdx + cols * elems, outvars.size()));
+      else
+        outvars.resize(RDCMAX(outIdx + rows * elems, outvars.size()));
+    }
+
+    size_t dataOffset = vec * sizeof(Vec4f) + comp * sizeof(float);
+
+    if(outvars[outIdx].name.count > 0)
+    {
+      RDCASSERT(flatten);
+
+      RDCASSERT(outvars[vec].rows == 1);
+      RDCASSERT(outvars[vec].columns == comp);
+      RDCASSERT(rows == 1);
+
+      string combinedName = outvars[outIdx].name.elems;
+      combinedName += ", " + basename;
+      outvars[outIdx].name = combinedName;
+      outvars[outIdx].rows = 1;
+      outvars[outIdx].isStruct = false;
+      outvars[outIdx].columns += cols;
+
+      if(dataOffset < data.size())
+      {
+        const byte *d = &data[dataOffset];
+
+        memcpy(&outvars[outIdx].value.uv[comp], d,
+               RDCMIN(data.size() - dataOffset, elemByteSize * cols));
+      }
+    }
+    else
+    {
+      outvars[outIdx].name = basename;
+      outvars[outIdx].rows = 1;
+      outvars[outIdx].type = type;
+      outvars[outIdx].isStruct = false;
+      outvars[outIdx].columns = cols;
+
+      ShaderVariable &var = outvars[outIdx];
+
+      bool isArray = invars[v].type.descriptor.elements > 1;
+
+      if(rows * elems == 1)
+      {
+        if(dataOffset < data.size())
+        {
+          const byte *d = &data[dataOffset];
+
+          memcpy(&outvars[outIdx].value.uv[flatten ? comp : 0], d,
+                 RDCMIN(data.size() - dataOffset, elemByteSize * cols));
+        }
+      }
+      else if(!isArray && !flatten)
+      {
+        outvars[outIdx].rows = rows;
+
+        if(dataOffset < data.size())
+        {
+          const byte *d = &data[dataOffset];
+
+          RDCASSERT(rows <= 4 && rows * cols <= 16);
+
+          if(columnMajor)
+          {
+            uint32_t tmp[16] = {0};
+
+            // matrices always have 4 columns, for padding reasons (the same reason arrays
+            // put every element on a new vec4)
+            for(uint32_t c = 0; c < cols; c++)
+            {
+              size_t srcoffs = 4 * elemByteSize * c;
+              size_t dstoffs = rows * elemByteSize * c;
+              memcpy((byte *)(tmp) + dstoffs, d + srcoffs,
+                     RDCMIN(data.size() - dataOffset + srcoffs, elemByteSize * rows));
+            }
+
+            // transpose
+            for(size_t r = 0; r < rows; r++)
+              for(size_t c = 0; c < cols; c++)
+                outvars[outIdx].value.uv[r * cols + c] = tmp[c * rows + r];
+          }
+          else    // CLASS_MATRIX_ROWS or other data not to transpose.
+          {
+            // matrices always have 4 columns, for padding reasons (the same reason arrays
+            // put every element on a new vec4)
+            for(uint32_t r = 0; r < rows; r++)
+            {
+              size_t srcoffs = 4 * elemByteSize * r;
+              size_t dstoffs = cols * elemByteSize * r;
+              memcpy((byte *)(&outvars[outIdx].value.uv[0]) + dstoffs, d + srcoffs,
+                     RDCMIN(data.size() - dataOffset + srcoffs, elemByteSize * cols));
+            }
+          }
+        }
+      }
+      else if(rows * elems > 1)
+      {
+        char buf[64] = {0};
+
+        var.name = outvars[outIdx].name;
+
+        vector<ShaderVariable> varmembers;
+        vector<ShaderVariable> *out = &outvars;
+        size_t rowCopy = 1;
+
+        uint32_t registers = rows;
+        uint32_t regLen = cols;
+        const char *regName = "row";
+
+        string base = outvars[outIdx].name.elems;
+
+        if(!flatten)
+        {
+          var.rows = 0;
+          var.columns = 0;
+          outIdx = 0;
+          out = &varmembers;
+          varmembers.resize(elems);
+          rowCopy = rows;
+          rows = 1;
+          registers = 1;
+        }
+        else
+        {
+          if(columnMajor)
+          {
+            registers = cols;
+            regLen = rows;
+            regName = "col";
+          }
+        }
+
+        size_t rowDataOffset = vec * sizeof(Vec4f);
+
+        for(size_t r = 0; r < registers * elems; r++)
+        {
+          if(isArray && registers > 1)
+            StringFormat::snprintf(buf, 63, "[%d].%s%d", r / registers, regName, r % registers);
+          else if(registers > 1)
+            StringFormat::snprintf(buf, 63, ".%s%d", regName, r);
+          else
+            StringFormat::snprintf(buf, 63, "[%d]", r);
+
+          (*out)[outIdx + r].name = base + buf;
+          (*out)[outIdx + r].rows = (uint32_t)rowCopy;
+          (*out)[outIdx + r].type = type;
+          (*out)[outIdx + r].isStruct = false;
+          (*out)[outIdx + r].columns = regLen;
+
+          size_t totalSize = 0;
+
+          if(flatten)
+          {
+            totalSize = elemByteSize * regLen;
+          }
+          else
+          {
+            // in a matrix, each major element before the last takes up a full
+            // vec4 at least
+            size_t vecSize = elemByteSize * 4;
+
+            if(columnMajor)
+              totalSize = vecSize * (cols - 1) + elemByteSize * rowCopy;
+            else
+              totalSize = vecSize * (rowCopy - 1) + elemByteSize * cols;
+          }
+
+          if((rowDataOffset % sizeof(Vec4f) != 0) &&
+             (rowDataOffset / sizeof(Vec4f) != (rowDataOffset + totalSize) / sizeof(Vec4f)))
+          {
+            rowDataOffset = AlignUp(rowDataOffset, sizeof(Vec4f));
+          }
+
+          if(rowDataOffset < data.size())
+          {
+            const byte *d = &data[rowDataOffset];
+
+            memcpy(&((*out)[outIdx + r].value.uv[0]), d,
+                   RDCMIN(data.size() - rowDataOffset, totalSize));
+
+            if(!flatten && columnMajor)
+            {
+              ShaderVariable tmp = (*out)[outIdx + r];
+
+              size_t transposeRows = rowCopy > 1 ? 4 : 1;
+
+              // transpose
+              for(size_t ri = 0; ri < transposeRows; ri++)
+                for(size_t ci = 0; ci < cols; ci++)
+                  (*out)[outIdx + r].value.uv[ri * cols + ci] = tmp.value.uv[ci * transposeRows + ri];
+            }
+          }
+
+          if(flatten)
+          {
+            rowDataOffset += sizeof(Vec4f);
+          }
+          else
+          {
+            if(columnMajor)
+              rowDataOffset += sizeof(Vec4f) * (cols - 1) + sizeof(float) * rowCopy;
+            else
+              rowDataOffset += sizeof(Vec4f) * (rowCopy - 1) + sizeof(float) * cols;
+          }
+        }
+
+        if(!flatten)
+        {
+          var.isStruct = false;
+          var.members = varmembers;
+        }
+      }
+    }
+  }
+}
+
+void D3D12DebugManager::FillCBufferVariables(const vector<DXBC::CBufferVariable> &invars,
+                                             vector<ShaderVariable> &outvars, bool flattenVec4s,
+                                             const vector<byte> &data)
+{
+  size_t zero = 0;
+
+  vector<ShaderVariable> v;
+  FillCBufferVariables("", zero, flattenVec4s, invars, v, data);
+
+  outvars.reserve(v.size());
+  for(size_t i = 0; i < v.size(); i++)
+    outvars.push_back(v[i]);
+}
+
+void D3D12DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length,
+                                      vector<byte> &retData)
+{
+  auto it = WrappedID3D12Resource::m_List.find(buff);
+
+  if(it == WrappedID3D12Resource::m_List.end())
+  {
+    RDCERR("Getting buffer data for unknown buffer %llu!", buff);
+    return;
+  }
+
+  WrappedID3D12Resource *buffer = it->second;
+
+  RDCASSERT(buffer);
+
+  GetBufferData(buffer, offset, length, retData);
+}
+
+void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, uint64_t length,
+                                      vector<byte> &ret)
+{
+  if(buffer == NULL)
+    return;
+
+  D3D12_RESOURCE_DESC desc = buffer->GetDesc();
+  D3D12_HEAP_PROPERTIES heapProps;
+  buffer->GetHeapProperties(&heapProps, NULL);
+
+  if(offset >= desc.Width)
+  {
+    // can't read past the end of the buffer, return empty
+    return;
+  }
+
+  if(length == 0)
+  {
+    length = desc.Width - offset;
+  }
+
+  if(length > 0 && offset + length > desc.Width)
+  {
+    RDCWARN("Attempting to read off the end of the buffer (%llu %llu). Will be clamped (%llu)",
+            offset, length, desc.Width);
+    length = RDCMIN(length, desc.Width - offset);
+  }
+
+#ifndef RDC64BIT
+  if(offset + length > 0xfffffff)
+  {
+    RDCERR("Trying to read back too much data on 32-bit build. Try running on 64-bit.");
+    return;
+  }
+#endif
+
+  uint64_t outOffs = 0;
+
+  ret.resize((size_t)length);
+
+  // directly CPU mappable (and possibly invalid to transition and copy from), so just memcpy
+  if(heapProps.Type == D3D12_HEAP_TYPE_UPLOAD || heapProps.Type == D3D12_HEAP_TYPE_READBACK)
+  {
+    D3D12_RANGE range = {(size_t)offset, size_t(offset + length)};
+
+    byte *data = NULL;
+    HRESULT hr = buffer->Map(0, &range, (void **)&data);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to map buffer directly for readback %08x", hr);
+      return;
+    }
+
+    memcpy(&ret[0], data + offset, (size_t)length);
+
+    range.Begin = range.End = 0;
+
+    buffer->Unmap(0, &range);
+
+    return;
+  }
+
+  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+  D3D12_RESOURCE_BARRIER barrier = {};
+
+  barrier.Transition.pResource = buffer;
+  barrier.Transition.StateBefore = m_WrappedDevice->GetSubresourceStates(GetResID(buffer))[0];
+  barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+  list->ResourceBarrier(1, &barrier);
+
+  while(length > 0)
+  {
+    uint64_t chunkSize = RDCMIN(length, m_ReadbackSize);
+
+    list->CopyBufferRegion(m_ReadbackBuffer, 0, buffer, offset, chunkSize);
+
+    list->Close();
+
+    m_WrappedDevice->ExecuteLists();
+    m_WrappedDevice->FlushLists();
+
+    D3D12_RANGE range = {0, (size_t)chunkSize};
+
+    void *data = NULL;
+    HRESULT hr = m_ReadbackBuffer->Map(0, &range, &data);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to map bufferdata buffer %08x", hr);
+      return;
+    }
+    else
+    {
+      memcpy(&ret[(size_t)outOffs], data, (size_t)chunkSize);
+
+      range.End = 0;
+
+      m_ReadbackBuffer->Unmap(0, &range);
+    }
+
+    outOffs += chunkSize;
+    length -= chunkSize;
+
+    if(length > 0)
+      list = m_WrappedDevice->GetNewList();
+  }
+}
+
 void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 {
   DebugVertexCBuffer vertexData;
@@ -1378,6 +2055,12 @@ void D3D12DebugManager::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
 
 bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 {
+  return RenderTextureInternal(m_OutputWindows[m_CurrentOutputWindow].rtv, cfg, blendAlpha);
+}
+
+bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg,
+                                              bool blendAlpha)
+{
   DebugVertexCBuffer vertexData;
   DebugPixelCBufferData pixelData;
 
@@ -1550,12 +2233,27 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
   D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
   srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-  srvDesc.Format = GetTypedFormat(resource->GetDesc().Format, cfg.typeHint);
+  srvDesc.Format = GetTypedFormat(resourceDesc.Format, cfg.typeHint);
   srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-  srvDesc.Texture2D.MipLevels = 1;
+  srvDesc.Texture2D.MipLevels = ~0U;
   srvDesc.Texture2D.MostDetailedMip = 0;
   srvDesc.Texture2D.PlaneSlice = 0;
   srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+
+  // can't display depth textures directly yet
+  if(IsDepthFormat(srvDesc.Format) && !IsTypelessFormat(srvDesc.Format))
+    return true;
+
+  // or non-2D
+  if(resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+    return true;
+
+  if(resource->GetDesc().SampleDesc.Count > 1)
+  {
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
+    srv.ptr +=
+        7 * m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+  }
 
   m_WrappedDevice->CreateShaderResourceView(resource, &srvDesc, srv);
 
@@ -1586,28 +2284,33 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
     barriers.push_back(b);
   }
 
-  OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];
-
   {
     ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
     if(!barriers.empty())
       list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
-    list->OMSetRenderTargets(1, &outw.rtv, TRUE, NULL);
+    list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
 
-    D3D12_VIEWPORT viewport = {0, 0, (float)outw.width, (float)outw.height, 0.0f, 1.0f};
+    D3D12_VIEWPORT viewport = {0, 0, (float)m_width, (float)m_height, 0.0f, 1.0f};
     list->RSSetViewports(1, &viewport);
 
-    D3D12_RECT scissor = {0, 0, outw.width, outw.height};
+    D3D12_RECT scissor = {0, 0, m_width, m_height};
     list->RSSetScissorRects(1, &scissor);
 
     list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
     if(cfg.rawoutput || !blendAlpha || cfg.CustomShader != ResourceId())
-      list->SetPipelineState(m_TexDisplayPipe);
+    {
+      if(m_BBFmtIdx == RGBA32_BACKBUFFER)
+        list->SetPipelineState(m_TexDisplayF32Pipe);
+      else
+        list->SetPipelineState(m_TexDisplayPipe);
+    }
     else
+    {
       list->SetPipelineState(m_TexDisplayBlendPipe);
+    }
 
     list->SetGraphicsRootSignature(m_TexDisplayRootSig);
 

@@ -12,3 +12,6 @@
   }
 }
 
+.wy-plain-list-disc li, .rst-content .section ul li, .rst-content .toctree-wrapper ul li, article ul li, .wy-plain-list-decimal li, .rst-content .section ol li, .rst-content ol.arabic li, article ol li {
+	font-size: 16px;
+}

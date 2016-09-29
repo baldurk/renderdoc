@@ -27,11 +27,7 @@ All of the good names were taken :-(.
 Who can I contact about bugs, feature requests, other queries?
 --------------------------------------------------------------
 
-.. |github_link| raw:: html
-
-   <a href="https://github.com/baldurk/renderdoc" target="_blank">github repository</a>
-
-At the moment there's just me at the wheel - feel free to `contact me <mailto:baldurk@baldurk.org?subject=RenderDoc%20feedback>`__ if you have anything you'd like to ask or suggest. I use a |github_link| for tracking bugs and feature requests so that's the best place to file an issue.
+At the moment there's just me at the wheel - feel free to `contact me <mailto:baldurk@baldurk.org?subject=RenderDoc%20feedback>`__ if you have anything you'd like to ask or suggest. I use a `GitHub repository <https://github.com/baldurk/renderdoc>`_ for tracking bugs and feature requests so that's the best place to file an issue.
 
 I work on RenderDoc in my spare time but I am happy to help with anything and work with you if you have any issues that need attention.
 
@@ -78,7 +74,7 @@ RenderDoc also uses TCP and UDP ports ``39920`` for remote replay connections, f
 Where can I get the source to RenderDoc?
 ----------------------------------------
 
-RenderDoc is licensed under the MIT license and the source is available on |github_link|.
+RenderDoc is licensed under the MIT license and the source is available on `GitHub <https://github.com/baldurk/renderdoc>`_.
 
 What are the requirements for RenderDoc?
 ----------------------------------------
@@ -178,11 +174,7 @@ In addition to those:
 
 Querying an ``ID3D11Device`` for UUID ``{A7AA6116-9C8D-4BBA-9083-B4D816B71B78}`` will return an ``IUnknown*`` and ``S_OK`` when RenderDoc is present.
 
-.. |debug_tool_link| raw:: html
-
-   <a href="https://renderdoc.org/debug_tool.txt" target="_blank">GL_EXT_debug_tool</a>
-
-|debug_tool_link| is implemented on RenderDoc, which is an extension I've proposed for this purpose (identifying when and which tool is injected in your program). It allows you to query for the presence name and type of a debug tool that's currently hooked. At the time of writing only RenderDoc implements this as I've only just proposed the extension publicly, but in future you can use the queries described in that spec.
+`GL_EXT_debug_tool <https://renderdoc.org/debug_tool.txt>`_ is implemented on RenderDoc, which is an extension I've proposed for this purpose (identifying when and which tool is injected in your program). It allows you to query for the presence name and type of a debug tool that's currently hooked. At the time of writing only RenderDoc implements this as I've only just proposed the extension publicly, but in future you can use the queries described in that spec.
 
 .. note::
 
@@ -213,3 +205,12 @@ The path you specify (with the stripped shader, or at runtime) can be either abs
 The stripped shader file stored on disk can also be compressed with LZ4 to save space as often most of the size is made up for shader source text which compresses well. To do this, simply compress the contents of the file and prepend the pathname (either absolute or relative, specified in the shader blob or at runtime) with ``lz4#``.
 
 For example code using this method, check out :doc:`tips_tricks`.
+
+I want to debug a process that my program launches itself, how can I inject RenderDoc?
+--------------------------------------------------------------------------------------
+
+When launching a process in RenderDoc, by default only this process is debugged and any children it launches are not affected. This better ensures compatibility for the most common case where you are able to start the process to be debugged directly.
+
+In the case where your program launches sub-processes that you would like to debug, you can enable the ``Hook into Children`` capture option, which causes RenderDoc to recursively inject itself into all children (and grand-children, and so on). When you open a capture connection, the child processes will be displayed and you can open a connection to each child to locate the process you wish to debug.
+
+There are :ref:`more details available <child-process-hook>` in the documentation for the :doc:`../window/capture_log_attach` window.

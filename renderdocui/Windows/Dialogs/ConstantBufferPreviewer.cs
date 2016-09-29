@@ -161,7 +161,7 @@ namespace renderdocui.Controls
 
         private void SetVariables(ShaderVariable[] vars)
         {
-            if (this.InvokeRequired)
+            if (this.InvokeRequired || variables.InvokeRequired)
             {
                 this.BeginInvoke(new Action(() => { SetVariables(vars); }));
                 return;

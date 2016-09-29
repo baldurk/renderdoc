@@ -758,7 +758,9 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs) : m_Re
     if(m_Real.glDebugMessageCallback)
     {
       m_Real.glDebugMessageCallback(&DebugSnoopStatic, this);
+#if !defined(RELEASE)
       m_Real.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
+#endif
     }
   }
   else
@@ -3147,7 +3149,7 @@ void WrappedOpenGL::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum sev
     }
   }
 
-  if(m_RealDebugFunc)
+  if(m_RealDebugFunc && !RenderDoc::Inst().GetCaptureOptions().DebugOutputMute)
     m_RealDebugFunc(source, type, id, severity, length, message, m_RealDebugFuncParam);
 }
 
