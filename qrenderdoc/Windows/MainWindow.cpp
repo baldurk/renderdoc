@@ -18,8 +18,9 @@ MainWindow::MainWindow(Core *core) : QMainWindow(NULL), ui(new Ui::MainWindow), 
   TextureViewer *textureviewer = new TextureViewer(core);
 
   ui->toolWindowManager->addToolWindow(
-      textureviewer, ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
-                                                      ui->toolWindowManager->areaOf(eventbrowser)));
+      textureviewer,
+      ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
+                                       ui->toolWindowManager->areaOf(eventbrowser), 0.75f));
 
   ui->toolWindowManager->setRubberBandLineWidth(50);
 }

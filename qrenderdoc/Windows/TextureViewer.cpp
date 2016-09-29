@@ -69,9 +69,9 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
   ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking |
   ToolWindowManager::HideCloseButton);*/
 
-  ui->dockarea->addToolWindow(
-      ui->resourceThumbs, ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
-                                                           ui->dockarea->areaOf(renderContainer)));
+  ui->dockarea->addToolWindow(ui->resourceThumbs, ToolWindowManager::AreaReference(
+                                                      ToolWindowManager::RightOf,
+                                                      ui->dockarea->areaOf(renderContainer), 0.25f));
   ui->dockarea->setToolWindowProperties(ui->resourceThumbs, ToolWindowManager::HideCloseButton);
 
   ui->dockarea->addToolWindow(
@@ -80,9 +80,10 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
   ui->dockarea->setToolWindowProperties(ui->targetThumbs, ToolWindowManager::HideCloseButton);
 
   // need to add a way to make this less than 50% programmatically
-  ui->dockarea->addToolWindow(ui->pixelContextLayout, ToolWindowManager::AreaReference(
-                                                          ToolWindowManager::BottomOf,
-                                                          ui->dockarea->areaOf(ui->targetThumbs)));
+  ui->dockarea->addToolWindow(
+      ui->pixelContextLayout,
+      ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
+                                       ui->dockarea->areaOf(ui->targetThumbs), 0.25f));
   ui->dockarea->setToolWindowProperties(ui->pixelContextLayout, ToolWindowManager::HideCloseButton);
 
   ui->dockarea->setAllowFloatingWindow(false);
