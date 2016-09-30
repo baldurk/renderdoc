@@ -83,6 +83,8 @@ void EventBrowser::OnLogfileLoaded()
   ui->events->insertTopLevelItem(0, frame);
 
   ui->events->expandItem(frame);
+
+  m_Core->SetEventID(this, lastEID);
 }
 
 void EventBrowser::OnLogfileClosed()
