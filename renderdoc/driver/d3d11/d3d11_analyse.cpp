@@ -1781,6 +1781,9 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
     return empty;
   }
 
+  // replay back to where we were, so we don't pick up modifications by this event in UAVs
+  m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
+
   ShaderDebugTrace traces[4];
 
   GlobalState global;
