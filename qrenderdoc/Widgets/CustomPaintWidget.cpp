@@ -24,6 +24,11 @@ void CustomPaintWidget::mouseMoveEvent(QMouseEvent *e)
   emit mouseMove(e);
 }
 
+void CustomPaintWidget::wheelEvent(QWheelEvent *e)
+{
+  emit mouseWheel(e);
+}
+
 void CustomPaintWidget::resizeEvent(QResizeEvent *e)
 {
   emit resize(e);
@@ -33,7 +38,7 @@ void CustomPaintWidget::paintEvent(QPaintEvent *e)
 {
   if(m_Output)
   {
-    m_Core->Renderer()->BlockInvoke([this](IReplayRenderer *r) { m_Output->Display(); });
+    m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *r) { m_Output->Display(); });
   }
   else
   {

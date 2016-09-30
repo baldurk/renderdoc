@@ -40,7 +40,12 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
 
   QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &TextureViewer::render_mouseClick);
   QObject::connect(ui->render, &CustomPaintWidget::mouseMove, this, &TextureViewer::render_mouseMove);
+  QObject::connect(ui->render, &CustomPaintWidget::mouseWheel, this,
+                   &TextureViewer::render_mouseWheel);
   QObject::connect(ui->render, &CustomPaintWidget::resize, this, &TextureViewer::render_resize);
+
+  QObject::connect(ui->zoomOption->lineEdit(), &QLineEdit::returnPressed, this,
+                   &TextureViewer::on_zoomOption_returnPressed);
 
   ui->dockarea->addToolWindow(ui->renderContainer, ToolWindowManager::EmptySpace);
   ui->dockarea->setToolWindowProperties(renderContainer, ToolWindowManager::DisallowUserDocking |
@@ -149,6 +154,11 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
   statusflow->addWidget(ui->statusText);
 
   ui->statusbar->addWidget(statusflowWidget);
+
+  ui->zoomOption->addItems({"10%", "25%", "50%", "75%", "100%", "200%", "400%", "800%"});
+
+  ui->zoomOption->setCurrentText("");
+  ui->fitToWindow->toggle();
 
   UI_UpdateTextureDetails();
 }
@@ -508,7 +518,22 @@ void TextureViewer::UI_UpdateTextureDetails()
 
 void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 {
+  UI_UpdateFittedScale();
   UI_UpdateTextureDetails();
+}
+
+void TextureViewer::render_mouseWheel(QWheelEvent *e)
+{
+  QPoint cursorPos = e->pos();
+
+  setFitToWindow(false);
+
+  // scroll in logarithmic scale
+  double logScale = logf(m_TexDisplay.scale);
+  logScale += e->delta() / 2500.0;
+  UI_SetScale((float)expf(logScale), cursorPos.x(), cursorPos.y());
+
+  e->accept();
 }
 
 void TextureViewer::render_mouseMove(QMouseEvent *e)
@@ -586,7 +611,7 @@ void TextureViewer::render_mouseClick(QMouseEvent *e)
 
 void TextureViewer::render_resize(QResizeEvent *e)
 {
-  // UI_UpdateFittedScale();
+  UI_UpdateFittedScale();
   UI_CalcScrollbars();
 
   m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { RT_UpdateAndDisplay(); });
@@ -623,8 +648,11 @@ QPoint TextureViewer::getScrollPosition()
 
 void TextureViewer::setScrollPosition(const QPoint &pos)
 {
-  m_TexDisplay.offx = qBound(CurMaxScrollX(), (float)pos.x(), 0.0f);
-  m_TexDisplay.offy = qBound(CurMaxScrollY(), (float)pos.y(), 0.0f);
+  m_TexDisplay.offx = qMax(CurMaxScrollX(), (float)pos.x());
+  m_TexDisplay.offy = qMax(CurMaxScrollY(), (float)pos.y());
+
+  m_TexDisplay.offx = qMin(0.0f, m_TexDisplay.offx);
+  m_TexDisplay.offy = qMin(0.0f, m_TexDisplay.offy);
 
   if(ScrollUpdateScrollbars)
   {
@@ -820,4 +848,116 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
   // if (!CurrentTextureIsLocked || (CurrentTexture != null && m_TexDisplay.texid !=
   // CurrentTexture.ID))
   UI_OnTextureSelectionChanged(true);
+}
+
+float TextureViewer::GetFitScale()
+{
+  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+
+  if(texptr == NULL)
+    return 1.0f;
+
+  float xscale = (float)ui->render->width() / (float)texptr->width;
+  float yscale = (float)ui->render->height() / (float)texptr->height;
+  return qMin(xscale, yscale);
+}
+
+void TextureViewer::UI_UpdateFittedScale()
+{
+  if(ui->fitToWindow->isChecked())
+    UI_SetScale(1.0f);
+}
+
+void TextureViewer::UI_SetScale(float s)
+{
+  UI_SetScale(s, ui->render->width() / 2, ui->render->height() / 2);
+}
+
+void TextureViewer::UI_SetScale(float s, int x, int y)
+{
+  if(ui->fitToWindow->isChecked())
+    s = GetFitScale();
+
+  float prevScale = m_TexDisplay.scale;
+
+  m_TexDisplay.scale = qBound(0.1f, s, 256.0f);
+
+  m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { RT_UpdateAndDisplay(); });
+
+  float scaleDelta = (m_TexDisplay.scale / prevScale);
+
+  QPoint newPos = getScrollPosition();
+
+  newPos -= QPoint(x, y);
+  newPos = QPoint((int)(newPos.x() * scaleDelta), (int)(newPos.y() * scaleDelta));
+  newPos += QPoint(x, y);
+
+  setScrollPosition(newPos);
+
+  setCurrentZoomValue(m_TexDisplay.scale);
+
+  UI_CalcScrollbars();
+}
+
+void TextureViewer::setCurrentZoomValue(float zoom)
+{
+  ui->zoomOption->setCurrentText(QString::number(ceil(zoom * 100)) + "%");
+}
+
+float TextureViewer::getCurrentZoomValue()
+{
+  if(ui->fitToWindow->isChecked())
+    return m_TexDisplay.scale;
+
+  QString zoomText = ui->zoomOption->currentText().replace('%', ' ');
+
+  bool ok = false;
+  int zoom = zoomText.toInt(&ok);
+
+  if(!ok)
+    zoom = 100;
+
+  return (float)(zoom) / 100.0f;
+}
+
+void TextureViewer::setFitToWindow(bool checked)
+{
+  if(checked)
+  {
+    UI_UpdateFittedScale();
+    ui->fitToWindow->setChecked(true);
+  }
+  else if(!checked)
+  {
+    ui->fitToWindow->setChecked(false);
+    float curScale = m_TexDisplay.scale;
+    ui->zoomOption->setCurrentText("");
+    setCurrentZoomValue(curScale);
+  }
+}
+
+void TextureViewer::on_fitToWindow_toggled(bool checked)
+{
+  UI_UpdateFittedScale();
+}
+
+void TextureViewer::on_zoomExactSize_clicked()
+{
+  ui->fitToWindow->setChecked(false);
+  UI_SetScale(1.0f);
+}
+
+void TextureViewer::on_zoomOption_currentIndexChanged(int index)
+{
+  if(index >= 0)
+  {
+    setFitToWindow(false);
+    ui->zoomOption->setCurrentText(ui->zoomOption->itemText(index));
+    UI_SetScale(getCurrentZoomValue());
+  }
+}
+
+void TextureViewer::on_zoomOption_returnPressed()
+{
+  UI_SetScale(getCurrentZoomValue());
 }

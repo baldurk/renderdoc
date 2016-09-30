@@ -187,8 +187,8 @@
   <widget class="QFrame" name="overlayToolbar">
    <property name="geometry">
     <rect>
-     <x>200</x>
-     <y>145</y>
+     <x>240</x>
+     <y>140</y>
      <width>129</width>
      <height>28</height>
     </rect>
@@ -238,7 +238,7 @@
     <rect>
      <x>3</x>
      <y>145</y>
-     <width>191</width>
+     <width>221</width>
      <height>28</height>
     </rect>
    </property>
@@ -271,14 +271,39 @@
      <number>2</number>
     </property>
     <item>
-     <widget class="QLabel" name="label_2">
+     <widget class="QLabel" name="zoomLabel">
       <property name="text">
        <string>Zoom</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_14">
+     <widget class="QToolButton" name="zoomExactSize">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
+      <property name="text">
+       <string>1:1</string>
+      </property>
+      <property name="checkable">
+       <bool>false</bool>
+      </property>
+      <property name="checked">
+       <bool>false</bool>
+      </property>
+      <property name="toolButtonStyle">
+       <enum>Qt::ToolButtonTextBesideIcon</enum>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="fitToWindow">
+      <property name="enabled">
+       <bool>true</bool>
+      </property>
       <property name="text">
        <string>Fit</string>
       </property>
@@ -301,10 +326,17 @@
      </widget>
     </item>
     <item>
-     <widget class="QComboBox" name="comboBox_3"/>
+     <widget class="QComboBox" name="zoomOption">
+      <property name="editable">
+       <bool>true</bool>
+      </property>
+      <property name="insertPolicy">
+       <enum>QComboBox::NoInsert</enum>
+      </property>
+     </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_15">
+     <widget class="QToolButton" name="flip_y">
       <property name="text">
        <string/>
       </property>

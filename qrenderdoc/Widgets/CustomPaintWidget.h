@@ -22,10 +22,12 @@ signals:
   void clicked(QMouseEvent *e);
   void mouseMove(QMouseEvent *e);
   void resize(QResizeEvent *e);
+  void mouseWheel(QWheelEvent *e);
 
 private slots:
   void mousePressEvent(QMouseEvent *e) override;
   void mouseMoveEvent(QMouseEvent *e) override;
+  void wheelEvent(QWheelEvent *e) override;
   void resizeEvent(QResizeEvent *e) override;
 
 public slots:
