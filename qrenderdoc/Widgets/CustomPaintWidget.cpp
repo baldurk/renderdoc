@@ -6,6 +6,7 @@ CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
 {
   m_Output = NULL;
   setAttribute(Qt::WA_PaintOnScreen);
+  setMouseTracking(true);
 }
 
 CustomPaintWidget::~CustomPaintWidget()

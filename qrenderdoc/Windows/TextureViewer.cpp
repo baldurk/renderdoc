@@ -136,6 +136,22 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
   Ui_TextureViewer *u = ui;
   u->pixelcontextgrid->setAlignment(u->pushButton, Qt::AlignCenter);
   u->pixelcontextgrid->setAlignment(u->pushButton_2, Qt::AlignCenter);
+
+  QWidget *statusflowWidget = new QWidget(this);
+
+  FlowLayout *statusflow = new FlowLayout(statusflowWidget, 0, 3, 0);
+
+  statusflowWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+  ui->statusbar->removeWidget(ui->texStatusDim);
+  ui->statusbar->removeWidget(ui->pickSwatch);
+  ui->statusbar->removeWidget(ui->statusText);
+
+  statusflow->addWidget(ui->texStatusDim);
+  statusflow->addWidget(ui->pickSwatch);
+  statusflow->addWidget(ui->statusText);
+
+  ui->statusbar->addWidget(statusflowWidget);
 }
 
 TextureViewer::~TextureViewer()
@@ -387,7 +403,7 @@ void TextureViewer::on_render_mousemove(QMouseEvent *e)
     {
       if(e->buttons() & Qt::RightButton)
       {
-        // ui->render->setCursor(cross);
+        ui->render->setCursor(QCursor(Qt::CrossCursor));
 
         m_PickedPoint = m_CurHoverPixel;
 
@@ -423,12 +439,12 @@ void TextureViewer::on_render_mousemove(QMouseEvent *e)
         m_DragStartScroll.Y + (curpos.Y - m_DragStartPos.Y));
     }*/
 
-    // ui->render->setCursor(move2D);
+    ui->render->setCursor(QCursor(Qt::SizeAllCursor));
   }
 
   if(e->buttons() == Qt::NoButton)
   {
-    // ui->render->setCursor(default);
+    ui->render->setCursor(QCursor(Qt::ArrowCursor));
   }
 
   UI_UpdateStatusText();
@@ -534,7 +550,7 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
     d.FlipY = false;
     d.rangemin = 0.0f;
     d.rangemax = 1.0f;
-    d.scale = -1.0f;
+    d.scale = 1.0f;
     d.offx = 0.0f;
     d.offy = 0.0f;
     d.sliceFace = 0;
