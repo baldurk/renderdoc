@@ -927,21 +927,13 @@ void WrappedGLES::glUseProgram(GLuint program)
 
   GetCtxData().m_Program = program;
 
-  if(m_State >= WRITING)
+  if(m_State == WRITING_CAPFRAME)
   {
-    GLResourceRecord *record = m_State == WRITING_CAPFRAME ? m_ContextRecord : GetResourceManager()->GetResourceRecord(ProgramRes(GetCtx(), program));
-    
-    // TODO PEPE check this condition and handle the 0 program in writing_idle mode?
-    RDCASSERT(record || (m_State != WRITING_CAPFRAME));
-    if (record)
-    {
-      SCOPED_SERIALISE_CONTEXT(USEPROGRAM);
-      Serialise_glUseProgram(program);
+    SCOPED_SERIALISE_CONTEXT(USEPROGRAM);
+    Serialise_glUseProgram(program);
 
-      record->AddChunk(scope.Get());
-      GetResourceManager()->MarkResourceFrameReferenced(ProgramRes(GetCtx(), program), eFrameRef_Read);
-      
-    }
+    m_ContextRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(ProgramRes(GetCtx(), program), eFrameRef_Read);
   }
 }
 
