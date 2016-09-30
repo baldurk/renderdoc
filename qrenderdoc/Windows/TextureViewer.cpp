@@ -152,6 +152,8 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
   statusflow->addWidget(ui->statusText);
 
   ui->statusbar->addWidget(statusflowWidget);
+
+  UI_UpdateTextureDetails();
 }
 
 TextureViewer::~TextureViewer()
@@ -390,6 +392,120 @@ void TextureViewer::UI_UpdateStatusText()
   ui->statusText->setText(statusText);
 }
 
+void TextureViewer::UI_UpdateTextureDetails()
+{
+  QString status;
+
+  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+  if(texptr == NULL)
+  {
+    ui->texStatusDim->setText(status);
+    return;
+  }
+
+  FetchTexture &current = *texptr;
+
+#if 0
+  ResourceId followID = m_Following.GetResourceId(m_Core);
+
+  {
+    bool found = false;
+
+    string name = "";
+
+    foreach(var t in m_Core.CurTextures)
+    {
+      if (t.ID == followID)
+      {
+        name = t.name;
+        found = true;
+      }
+    }
+
+    foreach(var b in m_Core.CurBuffers)
+    {
+      if (b.ID == followID)
+      {
+        name = b.name;
+        found = true;
+      }
+    }
+
+    if (followID == ResourceId.Null)
+    {
+      m_PreviewPanel.Text = "Unbound";
+    }
+    else if (found)
+    {
+      switch (m_Following.Type)
+      {
+        case FollowType.OutputColour:
+          m_PreviewPanel.Text = string.Format("Cur Output {0} - {1}", m_Following.index, name);
+          break;
+        case FollowType.OutputDepth:
+          m_PreviewPanel.Text = string.Format("Cur Depth Output - {0}", name);
+          break;
+        case FollowType.ReadWrite:
+          m_PreviewPanel.Text = string.Format("Cur RW Output - {0}", name);
+          break;
+        case FollowType.ReadOnly:
+          m_PreviewPanel.Text = string.Format("Cur Input {0} - {1}", m_Following.index, name);
+          break;
+      }
+    }
+    else
+    {
+      switch (m_Following.Type)
+      {
+        case FollowType.OutputColour:
+          m_PreviewPanel.Text = string.Format("Cur Output {0}", m_Following.index);
+          break;
+        case FollowType.OutputDepth:
+          m_PreviewPanel.Text = string.Format("Cur Depth Output");
+          break;
+        case FollowType.ReadWrite:
+          m_PreviewPanel.Text = string.Format("Cur RW Output");
+          break;
+        case FollowType.ReadOnly:
+          m_PreviewPanel.Text = string.Format("Cur Input {0}", m_Following.index);
+          break;
+      }
+    }
+  }
+#endif
+
+  status = QString(current.name.elems) + " - ";
+
+  if(current.dimension >= 1)
+    status += QString::number(current.width);
+  if(current.dimension >= 2)
+    status += "x" + QString::number(current.height);
+  if(current.dimension >= 3)
+    status += "x" + QString::number(current.depth);
+
+  if(current.arraysize > 1)
+    status += "[" + QString::number(current.arraysize) + "]";
+
+  if(current.msQual > 0 || current.msSamp > 1)
+    status += QString(" MS{%1x %2Q}").arg(current.msSamp).arg(current.msQual);
+
+  status += QString(" %1 mips").arg(current.mips);
+
+  status += " - " + QString(current.format.strname.elems);
+
+  if(current.format.compType != m_TexDisplay.typeHint && m_TexDisplay.typeHint != eCompType_None)
+  {
+    status += " Viewed as TODO";    // m_TexDisplay.typeHint.Str();
+  }
+
+  ui->texStatusDim->setText(status);
+}
+
+void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
+{
+  UI_UpdateTextureDetails();
+}
+
 void TextureViewer::on_render_mousemove(QMouseEvent *e)
 {
   m_CurHoverPixel.setX(int(((float)e->x() - m_TexDisplay.offx) / m_TexDisplay.scale));
@@ -512,61 +628,67 @@ void TextureViewer::OnLogfileClosed()
 {
   m_Output = NULL;
   ui->render->SetOutput(NULL);
+
+  UI_UpdateTextureDetails();
 }
 
 void TextureViewer::OnEventSelected(uint32_t eventID)
 {
+  TextureDisplay &d = m_TexDisplay;
+
+  if(m_Core->APIProps().pipelineType == eGraphicsAPI_D3D11)
+  {
+    d.texid = m_Core->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
+  }
+  else if(m_Core->APIProps().pipelineType == eGraphicsAPI_OpenGL)
+  {
+    d.texid = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Color[0].Obj;
+  }
+  else
+  {
+    const VulkanPipelineState &pipe = m_Core->CurVulkanPipelineState;
+    if(pipe.Pass.renderpass.colorAttachments.count > 0)
+      d.texid = pipe.Pass.framebuffer.attachments[pipe.Pass.renderpass.colorAttachments[0]].img;
+
+    if(d.texid == ResourceId())
+    {
+      const FetchDrawcall *draw = m_Core->CurDrawcall();
+      if(draw)
+        d.texid = draw->copyDestination;
+    }
+  }
+
+  d.mip = 0;
+  d.sampleIdx = ~0U;
+  d.overlay = eTexOverlay_None;
+  d.CustomShader = ResourceId();
+  d.HDRMul = -1.0f;
+  d.linearDisplayAsGamma = true;
+  d.FlipY = false;
+  d.rangemin = 0.0f;
+  d.rangemax = 1.0f;
+  d.scale = 1.0f;
+  d.offx = 0.0f;
+  d.offy = 0.0f;
+  d.sliceFace = 0;
+  d.rawoutput = false;
+  d.lightBackgroundColour = d.darkBackgroundColour = FloatVector(0.0f, 0.0f, 0.0f, 0.0f);
+  d.Red = d.Green = d.Blue = true;
+  d.Alpha = false;
+
   m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
-
-    TextureDisplay &d = m_TexDisplay;
-
-    if(m_Core->APIProps().pipelineType == eGraphicsAPI_D3D11)
-    {
-      d.texid = m_Core->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
-    }
-    else if(m_Core->APIProps().pipelineType == eGraphicsAPI_OpenGL)
-    {
-      d.texid = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Color[0].Obj;
-    }
-    else
-    {
-      const VulkanPipelineState &pipe = m_Core->CurVulkanPipelineState;
-      if(pipe.Pass.renderpass.colorAttachments.count > 0)
-        d.texid = pipe.Pass.framebuffer.attachments[pipe.Pass.renderpass.colorAttachments[0]].img;
-
-      if(d.texid == ResourceId())
-      {
-        const FetchDrawcall *draw = m_Core->CurDrawcall();
-        if(draw)
-          d.texid = draw->copyDestination;
-      }
-    }
-    d.mip = 0;
-    d.sampleIdx = ~0U;
-    d.overlay = eTexOverlay_None;
-    d.CustomShader = ResourceId();
-    d.HDRMul = -1.0f;
-    d.linearDisplayAsGamma = true;
-    d.FlipY = false;
-    d.rangemin = 0.0f;
-    d.rangemax = 1.0f;
-    d.scale = 1.0f;
-    d.offx = 0.0f;
-    d.offy = 0.0f;
-    d.sliceFace = 0;
-    d.rawoutput = false;
-    d.lightBackgroundColour = d.darkBackgroundColour = FloatVector(0.0f, 0.0f, 0.0f, 0.0f);
-    d.Red = d.Green = d.Blue = true;
-    d.Alpha = false;
-    m_Output->SetTextureDisplay(d);
-
-    FetchTexture *tex = m_Core->GetTexture(d.texid);
-
-    GUIInvoke::call([this, tex]() {
-      if(tex)
-        ui->renderContainer->setWindowTitle(tr(tex->name.elems));
-
-      ui->render->update();
-    });
+    if(m_Output != NULL)
+      m_Output->SetTextureDisplay(m_TexDisplay);
   });
+
+  FetchTexture *tex = m_Core->GetTexture(d.texid);
+
+  if(tex)
+    ui->renderContainer->setWindowTitle(tr(tex->name.elems));
+
+  // if (!CurrentTextureIsLocked || (CurrentTexture != null && m_TexDisplay.texid !=
+  // CurrentTexture.ID))
+  UI_OnTextureSelectionChanged(true);
+
+  ui->render->update();
 }

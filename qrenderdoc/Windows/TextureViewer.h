@@ -32,6 +32,8 @@ private:
   void RT_PickHoverAndUpdate();
 
   void UI_UpdateStatusText();
+  void UI_UpdateTextureDetails();
+  void UI_OnTextureSelectionChanged(bool newdraw);
 
   QPoint m_DragStartScroll;
   QPoint m_DragStartPos;
