@@ -3962,13 +3962,18 @@ void WrappedGLES::glBindVertexArray(GLuint array)
       GetCtxData().m_VertexArrayRecord = record =
           GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), array));
     }
-    
+  }
+  
+  if(m_State == WRITING_CAPFRAME)
+    record = m_ContextRecord;
+  
+  // TODO PEPE what to do when we are in writing_idle mode and array is 0?
+  if(record)
+  {
     SCOPED_SERIALISE_CONTEXT(BIND_VERTEXARRAY);
     Serialise_glBindVertexArray(array);
-
     record->AddChunk(scope.Get());
-    if(record)
-      GetResourceManager()->MarkVAOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+    GetResourceManager()->MarkVAOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
   }
 }
 //
