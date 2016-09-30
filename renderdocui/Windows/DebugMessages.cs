@@ -76,7 +76,7 @@ namespace renderdocui.Windows
             m_NumMessages = 0;
             messages.RowCount = 0;
 
-            messages.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCells;
+            messages.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
 
             RefreshMessageList();
         }
