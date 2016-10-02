@@ -5691,9 +5691,6 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
       cmd = m_pDriver->GetNextCmd();
 
-      VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
-                                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
-
       vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
@@ -5757,9 +5754,9 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
             const VkPipelineDynamicStateCreateInfo *dyn = pipeCreateInfo.pDynamicState;
 
-            for(uint32_t i = 0; dyn && i < dyn->dynamicStateCount; i++)
+            for(uint32_t dynState = 0; dyn && i < dyn->dynamicStateCount; dynState++)
             {
-              VkDynamicState d = dyn->pDynamicStates[i];
+              VkDynamicState d = dyn->pDynamicStates[dynState];
 
               if(!state.views.empty() && d == VK_DYNAMIC_STATE_VIEWPORT)
               {

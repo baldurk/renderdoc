@@ -3873,8 +3873,8 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
     layoutdesc[1].InputSlot = 1;
     layoutdesc[1].InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
 
-    HRESULT hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_DebugRender.MeshHomogVSBytecode,
-                                              m_DebugRender.MeshHomogVSBytelen, &m_MeshDisplayLayout);
+    hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_DebugRender.MeshHomogVSBytecode,
+                                      m_DebugRender.MeshHomogVSBytelen, &m_MeshDisplayLayout);
 
     if(FAILED(hr))
     {
