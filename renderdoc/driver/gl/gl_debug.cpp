@@ -298,7 +298,7 @@ void GLReplay::InitDebugData()
         fs[0].insert(offs, "//");
     }
 
-    DebugData.quadoverdrawResolveProg = CreateShaderProgram(empty, fs);
+    DebugData.quadoverdrawFSProg = CreateShaderProgram(empty, fs);
 
     GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_quadresolve_frag), 420);
 
@@ -2322,6 +2322,11 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
 
       if(!events.empty())
       {
+        if(overlay == eTexOverlay_QuadOverdrawPass)
+          ReplayLog(events[0], eReplay_WithoutDraw);
+        else
+          rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
+
         GLuint replacefbo = 0;
         GLuint quadtexs[3] = {0};
         gl.glGenFramebuffers(1, &replacefbo);
@@ -2363,12 +2368,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
         gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, quadtexs[1], 0);
 
-        if(overlay == eTexOverlay_QuadOverdrawPass)
-          ReplayLog(events[0], eReplay_WithoutDraw);
-        else
-          rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
-
-        GLuint lastProg = 0, lastPipe = 0;
         for(size_t i = 0; i < events.size(); i++)
         {
           GLint depthwritemask = 1;
@@ -2422,9 +2421,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
           gl.glUseProgram(0);
           gl.glBindProgramPipeline(DebugData.overlayPipe);
 
-          lastProg = prog;
-          lastPipe = pipe;
-
           gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curdrawfbo);
           gl.glBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,
                                texDetails.height, GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT,
@@ -2466,10 +2462,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
           gl.glUseProgram(DebugData.quadoverdrawResolveProg);
           gl.glBindProgramPipeline(0);
 
-          GLint rampLoc =
-              gl.glGetUniformLocation(DebugData.quadoverdrawResolveProg, "overdrawRampColours");
-          gl.glProgramUniform4fv(DebugData.quadoverdrawResolveProg, rampLoc,
-                                 ARRAY_COUNT(overdrawRamp), (float *)&overdrawRamp[0].x);
+          gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 1, DebugData.UBOs[0]);
+
+          Vec4f *v = (Vec4f *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(overdrawRamp),
+                                                  GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+          memcpy(v, overdrawRamp, sizeof(overdrawRamp));
+          gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
 
           // modify our fbo to attach the overlay texture instead
           gl.glBindFramebuffer(eGL_FRAMEBUFFER, replacefbo);
