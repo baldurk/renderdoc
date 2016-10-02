@@ -35,6 +35,8 @@
 #define RESOURCE_glsl_mesh_comp         421
 #define RESOURCE_glsl_array2ms_comp     422
 #define RESOURCE_glsl_ms2array_comp     423
+#define RESOURCE_glsl_trisize_geom      424
+#define RESOURCE_glsl_trisize_frag      425
 
 #if !defined(STRINGIZE)
 #define STRINGIZE2(a) #a

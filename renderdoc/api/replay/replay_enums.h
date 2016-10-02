@@ -168,6 +168,8 @@ enum TextureDisplayOverlay
   eTexOverlay_ClearBeforeDraw,
   eTexOverlay_QuadOverdrawPass,
   eTexOverlay_QuadOverdrawDraw,
+  eTexOverlay_TriangleSizePass,
+  eTexOverlay_TriangleSizeDraw,
 };
 
 enum FileType

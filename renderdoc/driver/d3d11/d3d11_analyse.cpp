@@ -3854,6 +3854,167 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       }
     }
   }
+  else if(overlay == eTexOverlay_TriangleSizeDraw || overlay == eTexOverlay_TriangleSizePass)
+  {
+    SCOPED_TIMER("Triangle size");
+
+    // ensure it will be recreated on next use
+    SAFE_RELEASE(m_MeshDisplayLayout);
+    m_PrevMeshFmt = ResourceFormat();
+
+    D3D11_INPUT_ELEMENT_DESC layoutdesc[2] = {};
+
+    layoutdesc[0].SemanticName = "pos";
+    layoutdesc[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+    // dummy for vertex shader
+    layoutdesc[1].SemanticName = "sec";
+    layoutdesc[1].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    layoutdesc[1].InputSlot = 1;
+    layoutdesc[1].InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
+
+    HRESULT hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_DebugRender.MeshHomogVSBytecode,
+                                              m_DebugRender.MeshHomogVSBytelen, &m_MeshDisplayLayout);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create m_MeshDisplayLayout %08x", hr);
+      m_MeshDisplayLayout = NULL;
+    }
+
+    DebugVertexCBuffer vertexData = {};
+    vertexData.LineStrip = 0;
+    vertexData.ModelViewProj = Matrix4f::Identity();
+    vertexData.SpriteSize = Vec2f();
+    FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
+
+    ID3D11Buffer *psbuf = MakeCBuffer(&overdrawRamp[0].x, sizeof(overdrawRamp));
+
+    Vec4f viewport = Vec4f((float)details.texWidth, (float)details.texHeight);
+    ID3D11Buffer *gsbuf = MakeCBuffer(&viewport.x, sizeof(viewport));
+
+    float overlayConsts[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    m_pImmediateContext->ClearRenderTargetView(rtv, overlayConsts);
+
+    vector<uint32_t> events = passEvents;
+
+    if(overlay == eTexOverlay_TriangleSizeDraw)
+      events.clear();
+
+    events.push_back(eventID);
+
+    if(overlay == eTexOverlay_TriangleSizePass)
+      m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
+
+    events.push_back(eventID);
+
+    for(size_t i = 0; i < events.size(); i++)
+    {
+      D3D11RenderState oldstate = *m_WrappedContext->GetCurrentPipelineState();
+
+      D3D11_DEPTH_STENCIL_DESC dsdesc = {
+          /*DepthEnable =*/TRUE,
+          /*DepthWriteMask =*/D3D11_DEPTH_WRITE_MASK_ALL,
+          /*DepthFunc =*/D3D11_COMPARISON_LESS,
+          /*StencilEnable =*/FALSE,
+          /*StencilReadMask =*/D3D11_DEFAULT_STENCIL_READ_MASK,
+          /*StencilWriteMask =*/D3D11_DEFAULT_STENCIL_WRITE_MASK,
+          /*FrontFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP,
+                          D3D11_COMPARISON_ALWAYS},
+          /*BackFace =*/{D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP, D3D11_STENCIL_OP_KEEP,
+                         D3D11_COMPARISON_ALWAYS},
+      };
+      ID3D11DepthStencilState *ds = NULL;
+
+      if(oldstate.OM.DepthStencilState)
+        oldstate.OM.DepthStencilState->GetDesc(&dsdesc);
+
+      dsdesc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ZERO;
+      dsdesc.StencilWriteMask = 0;
+
+      m_WrappedDevice->CreateDepthStencilState(&dsdesc, &ds);
+
+      m_WrappedContext->OMSetDepthStencilState(ds, oldstate.OM.StencRef);
+
+      SAFE_RELEASE(ds);
+
+      const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(events[i]);
+
+      for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
+      {
+        MeshFormat fmt = GetPostVSBuffers(events[i], inst, eMeshDataStage_GSOut);
+        if(fmt.buf == ResourceId())
+          fmt = GetPostVSBuffers(events[i], inst, eMeshDataStage_VSOut);
+
+        if(fmt.buf != ResourceId())
+        {
+          D3D11_PRIMITIVE_TOPOLOGY topo = MakeD3DPrimitiveTopology(fmt.topo);
+
+          ID3D11Buffer *ibuf = NULL;
+          DXGI_FORMAT ifmt = DXGI_FORMAT_R16_UINT;
+          UINT ioffs = (UINT)fmt.idxoffs;
+
+          ID3D11Buffer *vbs[2] = {NULL, NULL};
+          UINT str[2] = {fmt.stride, 4};
+          UINT offs[2] = {(UINT)fmt.offset, 0};
+
+          {
+            auto it = WrappedID3D11Buffer::m_BufferList.find(fmt.buf);
+
+            if(it != WrappedID3D11Buffer::m_BufferList.end())
+              vbs[0] = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+
+            it = WrappedID3D11Buffer::m_BufferList.find(fmt.idxbuf);
+
+            if(it != WrappedID3D11Buffer::m_BufferList.end())
+              ibuf = UNWRAP(WrappedID3D11Buffer, it->second.m_Buffer);
+
+            if(fmt.idxByteWidth == 4)
+              ifmt = DXGI_FORMAT_R32_UINT;
+          }
+
+          m_pImmediateContext->IASetVertexBuffers(0, 1, vbs, str, offs);
+          if(ibuf)
+            m_pImmediateContext->IASetIndexBuffer(ibuf, ifmt, ioffs);
+          else
+            m_pImmediateContext->IASetIndexBuffer(NULL, DXGI_FORMAT_UNKNOWN, NULL);
+
+          m_pImmediateContext->IASetPrimitiveTopology(topo);
+
+          m_pImmediateContext->IASetInputLayout(m_MeshDisplayLayout);
+          m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
+          m_pImmediateContext->PSSetConstantBuffers(0, 1, &psbuf);
+          m_pImmediateContext->GSSetConstantBuffers(0, 1, &gsbuf);
+          m_pImmediateContext->VSSetShader(m_DebugRender.WireframeHomogVS, NULL, 0);
+          m_pImmediateContext->GSSetShader(m_DebugRender.TriangleSizeGS, NULL, 0);
+          m_pImmediateContext->PSSetShader(m_DebugRender.TriangleSizePS, NULL, 0);
+          m_pImmediateContext->HSSetShader(NULL, NULL, 0);
+          m_pImmediateContext->DSSetShader(NULL, NULL, 0);
+          m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
+          m_pImmediateContext->OMSetRenderTargets(
+              1, &rtv, UNWRAP(WrappedID3D11DepthStencilView, oldstate.OM.DepthView));
+
+          if(ibuf)
+            m_pImmediateContext->DrawIndexed(fmt.numVerts, 0, fmt.baseVertex);
+          else
+            m_pImmediateContext->Draw(fmt.numVerts, 0);
+        }
+      }
+
+      oldstate.ApplyState(m_WrappedContext);
+
+      if(overlay == eTexOverlay_TriangleSizePass)
+      {
+        m_WrappedDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
+
+        if(i + 1 < events.size())
+          m_WrappedDevice->ReplayLog(events[i], events[i + 1], eReplay_WithoutDraw);
+      }
+    }
+
+    if(overlay == eTexOverlay_TriangleSizePass)
+      m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
+  }
   else if(overlay == eTexOverlay_QuadOverdrawPass || overlay == eTexOverlay_QuadOverdrawDraw)
   {
     SCOPED_TIMER("Quad Overdraw");

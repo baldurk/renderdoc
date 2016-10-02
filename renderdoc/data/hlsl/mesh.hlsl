@@ -65,6 +65,64 @@ wireframeV2F RENDERDOC_MeshVS(meshA2V IN, uint vid : SV_VertexID)
 	return OUT;
 }
 
+struct triSizeV2F
+{
+	float4 pos : SV_Position;
+	float pixarea : PixArea;
+};
+
+cbuffer viewportCBuf : register(b0)
+{
+	float4 viewport;
+};
+
+[maxvertexcount(3)]
+void RENDERDOC_TriangleSizeGS(triangle wireframeV2F input[3], inout TriangleStream<triSizeV2F> TriStream)
+{
+	triSizeV2F output;
+
+	float2 a = input[0].pos.xy / input[0].pos.w;
+	float2 b = input[1].pos.xy / input[1].pos.w;
+	float2 c = input[2].pos.xy / input[2].pos.w;
+
+	a = (a * 0.5f + 0.5f) * viewport.xy;
+	b = (b * 0.5f + 0.5f) * viewport.xy;
+	c = (c * 0.5f + 0.5f) * viewport.xy;
+
+	float ab = length(a - b);
+	float bc = length(b - c);
+	float ca = length(c - a);
+
+	float s = (ab + bc + ca) / 2.0f;
+
+	float area = sqrt( s * (s - ab) * (s - bc) * (s - ca) );
+
+	for(int i=0; i<3; i++)
+	{
+		output.pos = input[i].pos;
+		output.pixarea = area;
+		TriStream.Append(output);
+	}
+	TriStream.RestartStrip();
+}
+
+#define NUM_RAMP_COLOURS 128
+
+cbuffer triangleRampCBuf : register(b0)
+{
+	const float4 overdrawRampColours[NUM_RAMP_COLOURS];
+};
+
+float4 RENDERDOC_TriangleSizePS(triSizeV2F IN) : SV_Target0
+{
+	// bucket triangle area
+	float area = max(IN.pixarea, 0.001f);
+
+	int bucket = 2 + int( floor(20.0f - 20.1f * (1.0f - exp(-0.4f * area) ) ) );
+
+	return overdrawRampColours[bucket];
+}
+
 [maxvertexcount(3)]
 void RENDERDOC_MeshGS(triangle wireframeV2F input[3], inout TriangleStream<wireframeV2F> TriStream)
 {

@@ -447,6 +447,8 @@ private:
       SAFE_RELEASE(MeshVS);
       SAFE_RELEASE(MeshGS);
       SAFE_RELEASE(MeshPS);
+      SAFE_RELEASE(TriangleSizeGS);
+      SAFE_RELEASE(TriangleSizePS);
       SAFE_RELEASE(FullscreenVS);
       SAFE_RELEASE(WireframeVS);
       SAFE_RELEASE(WireframeHomogVS);
@@ -528,8 +530,9 @@ private:
     ID3D11Buffer *GenericPSCBuffer;
     ID3D11Buffer *PublicCBuffers[20];
     ID3D11VertexShader *GenericVS, *WireframeVS, *MeshVS, *WireframeHomogVS, *FullscreenVS;
-    ID3D11GeometryShader *MeshGS;
-    ID3D11PixelShader *TexDisplayPS, *OverlayPS, *WireframePS, *MeshPS, *CheckerboardPS;
+    ID3D11GeometryShader *MeshGS, *TriangleSizeGS;
+    ID3D11PixelShader *TexDisplayPS, *OverlayPS, *WireframePS, *MeshPS, *CheckerboardPS,
+        *TriangleSizePS;
     ID3D11PixelShader *OutlinePS;
     ID3D11PixelShader *CopyMSToArrayPS, *CopyArrayToMSPS;
     ID3D11PixelShader *FloatCopyMSToArrayPS, *FloatCopyArrayToMSPS;

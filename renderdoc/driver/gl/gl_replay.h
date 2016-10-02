@@ -312,6 +312,7 @@ private:
 
     GLuint meshProg;
     GLuint meshgsProg;
+    GLuint trisizeProg;
 
     GLuint meshVAO;
     GLuint axisVAO;
@@ -337,7 +338,7 @@ private:
     GLuint overlayPipe;
     GLint overlayTexWidth, overlayTexHeight;
 
-    GLuint UBOs[2];
+    GLuint UBOs[3];
 
     GLuint readFBO;
 

@@ -271,6 +271,13 @@ public:
   VkPipeline m_QuadResolvePipeline[8];
   vector<uint32_t> *m_QuadSPIRV;
 
+  GPUBuffer m_TriSizeUBO;
+  VkDescriptorSetLayout m_TriSizeDescSetLayout;
+  VkDescriptorSet m_TriSizeDescSet;
+  VkPipelineLayout m_TriSizePipeLayout;
+  VkShaderModule m_TriSizeGSModule;
+  VkShaderModule m_TriSizeFSModule;
+
   VkDescriptorSetLayout m_MeshDescSetLayout;
   VkPipelineLayout m_MeshPipeLayout;
   VkDescriptorSet m_MeshDescSet;

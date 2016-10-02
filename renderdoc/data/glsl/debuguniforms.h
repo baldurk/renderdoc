@@ -106,6 +106,8 @@ BINDING(0) uniform MeshUBOData
   uint displayFormat;
   uint homogenousInput;
   vec2 pointSpriteSize;
+  uint rawoutput;
+  vec3 padding;
 }
 INST_NAME(Mesh);
 

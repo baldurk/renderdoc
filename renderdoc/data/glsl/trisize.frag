@@ -21,54 +21,24 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
+ 
+#define NUM_RAMP_COLOURS 128
 
-layout (location = 0) in vec4 position;
-layout (location = 1) in vec4 IN_secondary;
-
-out gl_PerVertex
+layout(binding = 1) uniform OverdrawRampColors
 {
-	vec4 gl_Position;
-	float gl_PointSize;
-};
+	vec4 colors[NUM_RAMP_COLOURS];
+} ramp;
 
-layout (location = 0) out vec4 OUT_secondary;
-layout (location = 1) out vec4 norm;
+layout (location = 0) in float pixarea;
+
+layout (location = 0) out vec4 color_out;
 
 void main(void)
 {
-	vec2 psprite[4] =
-	{
-		vec2(-1.0f, -1.0f),
-		vec2(-1.0f,  1.0f),
-		vec2( 1.0f, -1.0f),
-		vec2( 1.0f,  1.0f)
-	};
+	// bucket triangle area
+	float area = max(pixarea, 0.001f);
 
-	vec4 pos = position;
-	if(Mesh.homogenousInput == 0)
-	{
-		pos = vec4(position.xyz, 1);
-	}
-	else
-	{
-#ifdef VULKAN
-		pos = vec4(position.x, -position.y, position.z, position.w);
-#endif
-	}
-
-	gl_Position = Mesh.mvp * pos;
-	gl_Position.xy += Mesh.pointSpriteSize.xy*0.01f*psprite[VERTEX_ID%4]*gl_Position.w;
-	OUT_secondary = IN_secondary;
-	norm = vec4(0, 0, 1, 1);
-
-#ifdef VULKAN
-	// GL->VK conventions
-	gl_Position.y = -gl_Position.y;
-	if(Mesh.rawoutput == 0)
-	{
-		gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
-	}
-
-	gl_PointSize = 4.0f;
-#endif
+	int bucket = 2 + int( floor(20.0f - 20.1f * (1.0f - exp(-0.4f * area) ) ) );
+	
+	color_out = ramp.colors[bucket];
 }

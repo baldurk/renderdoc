@@ -133,6 +133,8 @@ RESOURCE_glsl_quadwrite_frag    TYPE_EMBED   "glsl/quadwrite.frag"
 RESOURCE_glsl_mesh_comp         TYPE_EMBED   "glsl/mesh.comp"
 RESOURCE_glsl_array2ms_comp     TYPE_EMBED   "glsl/array2ms.comp"
 RESOURCE_glsl_ms2array_comp     TYPE_EMBED   "glsl/ms2array.comp"
+RESOURCE_glsl_trisize_geom      TYPE_EMBED   "glsl/trisize.geom"
+RESOURCE_glsl_trisize_frag      TYPE_EMBED   "glsl/trisize.frag"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

@@ -407,6 +407,8 @@
     <None Include="data\glsl\texdisplay.frag" />
     <None Include="data\glsl\text.frag" />
     <None Include="data\glsl\text.vert" />
+    <None Include="data\glsl\trisize.frag" />
+    <None Include="data\glsl\trisize.geom" />
     <None Include="data\hlsl\debugcommon.hlsl" />
     <None Include="data\hlsl\debugdisplay.hlsl" />
     <None Include="data\hlsl\debugtext.hlsl" />

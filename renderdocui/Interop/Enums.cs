@@ -171,6 +171,8 @@ namespace renderdoc
         ClearBeforeDraw,
         QuadOverdrawPass,
         QuadOverdrawDraw,
+        TriangleSizePass,
+        TriangleSizeDraw,
     };
 
     public enum FileType

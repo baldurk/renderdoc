@@ -230,6 +230,8 @@ set(data
     data/glsl/text.vert
     data/glsl/array2ms.comp
     data/glsl/ms2array.comp
+    data/glsl/trisize.frag
+    data/glsl/trisize.geom
     data/sourcecodepro.ttf
     driver/vulkan/renderdoc.json)
 

@@ -22,8 +22,19 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-layout (location = 0) in vec4 position;
-layout (location = 1) in vec4 IN_secondary;
+layout(triangles, invocations = 1) in;
+layout(triangle_strip, max_vertices = 3) out;
+
+layout (location = 0) in vec4 IN_secondary[3];
+layout (location = 1) in vec4 IN_norm[3];
+
+layout (location = 0) out float OUT_pixarea;
+
+in gl_PerVertex
+{
+  vec4 gl_Position;
+  float gl_PointSize;
+} gl_in[];
 
 out gl_PerVertex
 {
@@ -31,44 +42,34 @@ out gl_PerVertex
 	float gl_PointSize;
 };
 
-layout (location = 0) out vec4 OUT_secondary;
-layout (location = 1) out vec4 norm;
-
-void main(void)
+layout(binding = 2) uniform ViewportSizeUBO
 {
-	vec2 psprite[4] =
-	{
-		vec2(-1.0f, -1.0f),
-		vec2(-1.0f,  1.0f),
-		vec2( 1.0f, -1.0f),
-		vec2( 1.0f,  1.0f)
-	};
+	vec4 size;
+} viewport;
 
-	vec4 pos = position;
-	if(Mesh.homogenousInput == 0)
-	{
-		pos = vec4(position.xyz, 1);
-	}
-	else
-	{
-#ifdef VULKAN
-		pos = vec4(position.x, -position.y, position.z, position.w);
-#endif
-	}
+void main()
+{
+	vec2 a = gl_in[0].gl_Position.xy / gl_in[0].gl_Position.w;
+	vec2 b = gl_in[1].gl_Position.xy / gl_in[1].gl_Position.w;
+	vec2 c = gl_in[2].gl_Position.xy / gl_in[2].gl_Position.w;
 
-	gl_Position = Mesh.mvp * pos;
-	gl_Position.xy += Mesh.pointSpriteSize.xy*0.01f*psprite[VERTEX_ID%4]*gl_Position.w;
-	OUT_secondary = IN_secondary;
-	norm = vec4(0, 0, 1, 1);
+	a = (a * 0.5f + 0.5f) * viewport.size.xy;
+	b = (b * 0.5f + 0.5f) * viewport.size.xy;
+	c = (c * 0.5f + 0.5f) * viewport.size.xy;
 
-#ifdef VULKAN
-	// GL->VK conventions
-	gl_Position.y = -gl_Position.y;
-	if(Mesh.rawoutput == 0)
-	{
-		gl_Position.z = (gl_Position.z + gl_Position.w) / 2.0;
-	}
+	float ab = length(a - b);
+	float bc = length(b - c);
+	float ca = length(c - a);
 
-	gl_PointSize = 4.0f;
-#endif
+	float s = (ab + bc + ca) / 2.0f;
+
+	float area = sqrt( s * (s - ab) * (s - bc) * (s - ca) );
+
+    for(int i=0; i < 3; i++)
+    {
+		gl_Position = gl_in[i].gl_Position;
+		OUT_pixarea = area;
+        EmitVertex();
+    }
+    EndPrimitive();
 }

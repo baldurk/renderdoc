@@ -43,7 +43,7 @@ Current Common Feature set
     * Tabbed view for locking a view of a particular resource over time.
     * Pixel value picking.
     * Save (in theory) any type of texture and format to various formats, dds as well as regular png/jpg.
-    * Several debug overlays for render targets - Wireframe, Depth pass/fail, Stencil pass/fail, Clipping (below black/above white points), NaN/-ve/INF highlight, quad overdraw.
+    * Several debug overlays for render targets - Wireframe, Depth pass/fail, Stencil pass/fail, Clipping (below black/above white points), NaN/-ve/INF highlight, quad overdraw, triangle size.
 
 * Custom visualisation shader support - e.g. decode custom packed formats or gbuffers.
 * Hot shader editing and replacement.

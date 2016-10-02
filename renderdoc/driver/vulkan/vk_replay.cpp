@@ -1788,6 +1788,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
         data->homogenousInput = cfg.position.unproject;
         data->pointSpriteSize = Vec2f(0.0f, 0.0f);
         data->displayFormat = MESHDISPLAY_SOLID;
+        data->rawoutput = 0;
 
         GetDebugManager()->m_MeshUBO.Unmap();
 
@@ -1918,6 +1919,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     data->homogenousInput = cfg.position.unproject;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
     data->displayFormat = (uint32_t)solidShadeMode;
+    data->rawoutput = 0;
 
     if(solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
       data->displayFormat = MESHDISPLAY_SECONDARY_ALPHA;
@@ -1965,6 +1967,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     data->displayFormat = (uint32_t)eShade_Solid;
     data->homogenousInput = cfg.position.unproject;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+    data->rawoutput = 0;
 
     GetDebugManager()->m_MeshUBO.Unmap();
 
@@ -2052,6 +2055,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     data->displayFormat = (uint32_t)eShade_Solid;
     data->homogenousInput = 0;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+    data->rawoutput = 0;
 
     GetDebugManager()->m_MeshUBO.Unmap();
 
@@ -2080,6 +2084,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     data->displayFormat = (uint32_t)eShade_Solid;
     data->homogenousInput = 0;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+    data->rawoutput = 0;
 
     GetDebugManager()->m_MeshUBO.Unmap();
 
@@ -2100,6 +2105,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     data->displayFormat = (uint32_t)eShade_Solid;
     data->homogenousInput = 0;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+    data->rawoutput = 0;
 
     GetDebugManager()->m_MeshUBO.Unmap();
 
@@ -2115,6 +2121,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     data->displayFormat = (uint32_t)eShade_Solid;
     data->homogenousInput = 0;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+    data->rawoutput = 0;
 
     GetDebugManager()->m_MeshUBO.Unmap();
 
@@ -2139,6 +2146,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
     data->displayFormat = (uint32_t)eShade_Solid;
     data->homogenousInput = 0;
     data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+    data->rawoutput = 0;
 
     GetDebugManager()->m_MeshUBO.Unmap();
 
@@ -2576,7 +2584,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
       else
         ModelViewProj = projMat.Mul(camMat);
 
-      MeshUBOData uniforms;
+      MeshUBOData uniforms = {};
       uniforms.mvp = ModelViewProj;
       uniforms.color = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
       uniforms.displayFormat = (uint32_t)eShade_Solid;

@@ -592,7 +592,9 @@
             "Clear Before Pass",
             "Clear Before Draw",
             "Quad Overdraw (Pass)",
-            "Quad Overdraw (Draw)"});
+            "Quad Overdraw (Draw)",
+            "Triangle Size (Pass)",
+            "Triangle Size (Draw)"});
             this.overlay.Name = "overlay";
             this.overlay.Size = new System.Drawing.Size(121, 25);
             this.overlay.SelectedIndexChanged += new System.EventHandler(this.overlay_SelectedIndexChanged);

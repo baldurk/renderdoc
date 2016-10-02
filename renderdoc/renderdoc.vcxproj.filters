@@ -511,6 +511,12 @@
     <None Include="data\glsl\text.vert">
       <Filter>Resources\glsl</Filter>
     </None>
+    <None Include="data\glsl\trisize.geom">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\trisize.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

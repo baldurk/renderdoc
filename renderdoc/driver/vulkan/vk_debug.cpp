@@ -302,6 +302,12 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   RDCEraseEl(m_QuadResolvePipeline);
   m_QuadSPIRV = NULL;
 
+  m_TriSizeDescSetLayout = VK_NULL_HANDLE;
+  m_TriSizeDescSet = VK_NULL_HANDLE;
+  m_TriSizePipeLayout = VK_NULL_HANDLE;
+  m_TriSizeGSModule = VK_NULL_HANDLE;
+  m_TriSizeFSModule = VK_NULL_HANDLE;
+
   m_MeshDescSetLayout = VK_NULL_HANDLE;
   m_MeshPipeLayout = VK_NULL_HANDLE;
   m_MeshDescSet = VK_NULL_HANDLE;
@@ -405,7 +411,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO,
       NULL,
       0,
-      9 + ARRAY_COUNT(m_TexDisplayDescSet),
+      10 + ARRAY_COUNT(m_TexDisplayDescSet),
       ARRAY_COUNT(replayDescPoolTypes),
       &replayDescPoolTypes[0],
   };
@@ -666,7 +672,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   };
 
   // declare a few more misc things that are needed on both paths
-  VkDescriptorBufferInfo bufInfo[7];
+  VkDescriptorBufferInfo bufInfo[8];
   RDCEraseEl(bufInfo);
 
   vector<string> sources;
@@ -1216,6 +1222,32 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   {
     VkDescriptorSetLayoutBinding layoutBinding[] = {
         {
+            0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL,
+        },
+        {
+            1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL,
+        },
+        {
+            2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL,
+        },
+    };
+
+    VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
+        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+        NULL,
+        0,
+        ARRAY_COUNT(layoutBinding),
+        &layoutBinding[0],
+    };
+
+    vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL,
+                                                 &m_TriSizeDescSetLayout);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  {
+    VkDescriptorSetLayoutBinding layoutBinding[] = {
+        {
             0, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL,
         },
         {
@@ -1295,6 +1327,11 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_QuadResolvePipeLayout);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+  pipeLayoutInfo.pSetLayouts = &m_TriSizeDescSetLayout;
+
+  vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_TriSizePipeLayout);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
   pipeLayoutInfo.pSetLayouts = &m_OutlineDescSetLayout;
 
   vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_OutlinePipeLayout);
@@ -1332,6 +1369,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   descSetAllocInfo.pSetLayouts = &m_QuadDescSetLayout;
   vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_QuadDescSet);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  descSetAllocInfo.pSetLayouts = &m_TriSizeDescSetLayout;
+  vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_TriSizeDescSet);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   descSetAllocInfo.pSetLayouts = &m_OutlineDescSetLayout;
@@ -1390,12 +1431,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       GetEmbeddedResource(glsl_histogram_comp),   GetEmbeddedResource(glsl_outline_frag),
       GetEmbeddedResource(glsl_quadresolve_frag), GetEmbeddedResource(glsl_quadwrite_frag),
       GetEmbeddedResource(glsl_mesh_comp),        GetEmbeddedResource(glsl_ms2array_comp),
+      GetEmbeddedResource(glsl_trisize_geom),     GetEmbeddedResource(glsl_trisize_frag),
   };
 
   SPIRVShaderStage shaderStages[] = {
-      eSPIRVVertex,   eSPIRVFragment, eSPIRVFragment, eSPIRVVertex,  eSPIRVGeometry,
-      eSPIRVFragment, eSPIRVCompute,  eSPIRVCompute,  eSPIRVCompute, eSPIRVFragment,
-      eSPIRVFragment, eSPIRVFragment, eSPIRVCompute,  eSPIRVCompute,
+      eSPIRVVertex,  eSPIRVFragment, eSPIRVFragment, eSPIRVVertex,   eSPIRVGeometry, eSPIRVFragment,
+      eSPIRVCompute, eSPIRVCompute,  eSPIRVCompute,  eSPIRVFragment, eSPIRVFragment, eSPIRVFragment,
+      eSPIRVCompute, eSPIRVCompute,  eSPIRVGeometry, eSPIRVFragment,
   };
 
   enum shaderIdx
@@ -1414,6 +1456,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     QUADWRITEFS,
     MESHCS,
     MS2ARRAYCS,
+    TRISIZEGS,
+    TRISIZEFS,
     NUM_SHADERS,
   };
 
@@ -1733,6 +1777,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     {
       m_MeshModules[2] = module[i];
     }
+    else if(i == TRISIZEGS)
+    {
+      m_TriSizeGSModule = module[i];
+    }
+    else if(i == TRISIZEFS)
+    {
+      m_TriSizeFSModule = module[i];
+    }
     else if(i == BLITVS)
     {
       m_BlitVSModule = module[i];
@@ -1918,6 +1970,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   void *ramp = m_OverdrawRampUBO.Map();
   memcpy(ramp, overdrawRamp, sizeof(overdrawRamp));
   m_OverdrawRampUBO.Unmap();
+
+  m_TriSizeUBO.Create(driver, dev, sizeof(Vec4f), 4096, 0);
 
   // pick pixel data
   {
@@ -2115,6 +2169,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_MeshPickUBO.FillDescriptor(bufInfo[4]);
   m_MeshPickResult.FillDescriptor(bufInfo[5]);
   m_ArrayMSUBO.FillDescriptor(bufInfo[6]);
+  m_TriSizeUBO.FillDescriptor(bufInfo[7]);
 
   VkWriteDescriptorSet analysisSetWrites[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_CheckerboardDescSet), 0, 0, 1,
@@ -2131,6 +2186,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &bufInfo[5], NULL},
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 2, 0, 1,
        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufInfo[6], NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_TriSizeDescSet), 1, 0, 1,
+       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufInfo[3], NULL},
   };
 
   ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(analysisSetWrites), analysisSetWrites,
@@ -2172,6 +2229,9 @@ VulkanDebugManager::~VulkanDebugManager()
 
   for(size_t i = 0; i < ARRAY_COUNT(m_MeshModules); i++)
     m_pDriver->vkDestroyShaderModule(dev, m_MeshModules[i], NULL);
+
+  m_pDriver->vkDestroyShaderModule(dev, m_TriSizeGSModule, NULL);
+  m_pDriver->vkDestroyShaderModule(dev, m_TriSizeFSModule, NULL);
 
   m_pDriver->vkDestroyDescriptorPool(dev, m_DescriptorPool, NULL);
 
@@ -2293,6 +2353,9 @@ VulkanDebugManager::~VulkanDebugManager()
   m_pDriver->vkDestroyImageView(dev, m_OverlayImageView, NULL);
   m_pDriver->vkDestroyImage(dev, m_OverlayImage, NULL);
   m_pDriver->vkFreeMemory(dev, m_OverlayImageMem, NULL);
+
+  m_pDriver->vkDestroyDescriptorSetLayout(dev, m_TriSizeDescSetLayout, NULL);
+  m_pDriver->vkDestroyPipelineLayout(dev, m_TriSizePipeLayout, NULL);
 
   m_pDriver->vkDestroyDescriptorSetLayout(dev, m_QuadDescSetLayout, NULL);
   m_pDriver->vkDestroyPipelineLayout(dev, m_QuadResolvePipeLayout, NULL);
@@ -5359,6 +5422,433 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
     // restore back to normal
     m_pDriver->ReplayLog(0, eventID, eReplay_WithoutDraw);
+
+    cmd = m_pDriver->GetNextCmd();
+
+    vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+  else if(overlay == eTexOverlay_TriangleSizePass || overlay == eTexOverlay_TriangleSizeDraw)
+  {
+    VulkanRenderState prevstate = m_pDriver->m_RenderState;
+
+    {
+      SCOPED_TIMER("Triangle Size");
+
+      float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
+
+      VkImageMemoryBarrier barrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                      NULL,
+                                      VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
+                                      VK_ACCESS_TRANSFER_WRITE_BIT,
+                                      VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+                                      VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                      VK_QUEUE_FAMILY_IGNORED,
+                                      VK_QUEUE_FAMILY_IGNORED,
+                                      Unwrap(m_OverlayImage),
+                                      {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1}};
+
+      DoPipelineBarrier(cmd, 1, &barrier);
+
+      vt->CmdClearColorImage(Unwrap(cmd), Unwrap(m_OverlayImage),
+                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, (VkClearColorValue *)black, 1,
+                             &subresourceRange);
+
+      std::swap(barrier.oldLayout, barrier.newLayout);
+      std::swap(barrier.srcAccessMask, barrier.dstAccessMask);
+      barrier.dstAccessMask |= VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+      DoPipelineBarrier(cmd, 1, &barrier);
+
+      // end this cmd buffer so the image is in the right state for the next part
+      vkr = vt->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+      m_pDriver->SubmitCmds();
+#endif
+
+      vector<uint32_t> events = passEvents;
+
+      if(overlay == eTexOverlay_TriangleSizeDraw)
+        events.clear();
+
+      while(!events.empty())
+      {
+        const FetchDrawcall *draw = m_pDriver->GetDrawcall(events[0]);
+
+        // remove any non-drawcalls, like the pass boundary.
+        if((draw->flags & eDraw_Drawcall) == 0)
+          events.erase(events.begin());
+        else
+          break;
+      }
+
+      events.push_back(eventID);
+
+      m_pDriver->ReplayLog(0, events[0], eReplay_WithoutDraw);
+
+      VulkanRenderState &state = m_pDriver->GetRenderState();
+
+      uint32_t meshOffs = 0;
+      MeshUBOData *data = (MeshUBOData *)m_MeshUBO.Map(&meshOffs);
+
+      data->mvp = Matrix4f::Identity();
+      data->invProj = Matrix4f::Identity();
+      data->color = Vec4f();
+      data->homogenousInput = 1;
+      data->pointSpriteSize = Vec2f(0.0f, 0.0f);
+      data->displayFormat = 0;
+      data->rawoutput = 1;
+      data->padding = Vec3f();
+      m_MeshUBO.Unmap();
+
+      uint32_t viewOffs = 0;
+      Vec4f *ubo = (Vec4f *)m_TriSizeUBO.Map(&viewOffs);
+      *ubo = Vec4f(state.views[0].width, state.views[0].height);
+      m_TriSizeUBO.Unmap();
+
+      uint32_t offsets[2] = {meshOffs, viewOffs};
+
+      VkDescriptorBufferInfo bufdesc;
+      m_MeshUBO.FillDescriptor(bufdesc);
+
+      VkWriteDescriptorSet write = {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET,
+                                    NULL,
+                                    Unwrap(m_TriSizeDescSet),
+                                    0,
+                                    0,
+                                    1,
+                                    VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC,
+                                    NULL,
+                                    &bufdesc,
+                                    NULL};
+      vt->UpdateDescriptorSets(Unwrap(m_Device), 1, &write, 0, NULL);
+
+      m_TriSizeUBO.FillDescriptor(bufdesc);
+      write.dstBinding = 2;
+      vt->UpdateDescriptorSets(Unwrap(m_Device), 1, &write, 0, NULL);
+
+      VkRenderPass RP = m_OverlayNoDepthRP;
+      VkFramebuffer FB = m_OverlayNoDepthFB;
+
+      VulkanCreationInfo &createinfo = m_pDriver->m_CreationInfo;
+
+      RDCASSERT(state.subpass < createinfo.m_RenderPass[state.renderPass].subpasses.size());
+      int32_t dsIdx =
+          createinfo.m_RenderPass[state.renderPass].subpasses[state.subpass].depthstencilAttachment;
+
+      bool depthUsed = false;
+
+      // make a renderpass and framebuffer for rendering to overlay color and using
+      // depth buffer from the orignial render
+      if(dsIdx >= 0 && dsIdx < (int32_t)createinfo.m_Framebuffer[state.framebuffer].attachments.size())
+      {
+        depthUsed = true;
+
+        VkAttachmentDescription attDescs[] = {
+            {0, VK_FORMAT_R16G16B16A16_SFLOAT, VK_SAMPLE_COUNT_1_BIT, VK_ATTACHMENT_LOAD_OP_LOAD,
+             VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_LOAD_OP_DONT_CARE,
+             VK_ATTACHMENT_STORE_OP_DONT_CARE, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
+             VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL},
+            {0, VK_FORMAT_UNDEFINED, VK_SAMPLE_COUNT_1_BIT,    // will patch this just below
+             VK_ATTACHMENT_LOAD_OP_LOAD, VK_ATTACHMENT_STORE_OP_STORE, VK_ATTACHMENT_LOAD_OP_LOAD,
+             VK_ATTACHMENT_STORE_OP_STORE, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL,
+             VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL},
+        };
+
+        ResourceId depthView = createinfo.m_Framebuffer[state.framebuffer].attachments[dsIdx].view;
+        ResourceId depthIm = createinfo.m_ImageView[depthView].image;
+
+        attDescs[1].format = createinfo.m_Image[depthIm].format;
+        attDescs[0].samples = attDescs[1].samples = iminfo.samples;
+
+        VkAttachmentReference colRef = {0, VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL};
+        VkAttachmentReference dsRef = {1, VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL};
+
+        VkSubpassDescription sub = {
+            0,      VK_PIPELINE_BIND_POINT_GRAPHICS,
+            0,      NULL,       // inputs
+            1,      &colRef,    // color
+            NULL,               // resolve
+            &dsRef,             // depth-stencil
+            0,      NULL,       // preserve
+        };
+
+        VkRenderPassCreateInfo rpinfo = {
+            VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+            NULL,
+            0,
+            2,
+            attDescs,
+            1,
+            &sub,
+            0,
+            NULL,    // dependencies
+        };
+
+        vkr = m_pDriver->vkCreateRenderPass(m_Device, &rpinfo, NULL, &RP);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        VkImageView views[] = {
+            m_OverlayImageView, GetResourceManager()->GetCurrentHandle<VkImageView>(depthView),
+        };
+
+        // Create framebuffer rendering just to overlay image, no depth
+        VkFramebufferCreateInfo fbinfo = {
+            VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+            NULL,
+            0,
+            RP,
+            2,
+            views,
+            (uint32_t)m_OverlayDim.width,
+            (uint32_t)m_OverlayDim.height,
+            1,
+        };
+
+        vkr = m_pDriver->vkCreateFramebuffer(m_Device, &fbinfo, NULL, &FB);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      }
+
+      VkGraphicsPipelineCreateInfo pipeCreateInfo;
+
+      MakeGraphicsPipelineInfo(pipeCreateInfo, state.graphics.pipeline);
+
+      VkPipelineShaderStageCreateInfo stages[3] = {
+          {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_VERTEX_BIT,
+           m_MeshModules[0], "main", NULL},
+          {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0,
+           VK_SHADER_STAGE_FRAGMENT_BIT, m_TriSizeFSModule, "main", NULL},
+          {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0,
+           VK_SHADER_STAGE_GEOMETRY_BIT, m_TriSizeGSModule, "main", NULL},
+      };
+
+      VkPipelineInputAssemblyStateCreateInfo ia = {
+          VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO};
+      ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
+      VkVertexInputBindingDescription binds[] = {// primary
+                                                 {0, 0, VK_VERTEX_INPUT_RATE_VERTEX},
+                                                 // secondary
+                                                 {1, 0, VK_VERTEX_INPUT_RATE_VERTEX}};
+
+      VkVertexInputAttributeDescription vertAttrs[] = {
+          {
+              0, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0,
+          },
+          {
+              1, 0, VK_FORMAT_R32G32B32A32_SFLOAT, 0,
+          },
+      };
+
+      VkPipelineVertexInputStateCreateInfo vi = {
+          VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO,
+          NULL,
+          0,
+          1,
+          binds,
+          2,
+          vertAttrs,
+      };
+
+      VkPipelineColorBlendAttachmentState attState = {
+          false,
+          VK_BLEND_FACTOR_ONE,
+          VK_BLEND_FACTOR_ZERO,
+          VK_BLEND_OP_ADD,
+          VK_BLEND_FACTOR_ONE,
+          VK_BLEND_FACTOR_ZERO,
+          VK_BLEND_OP_ADD,
+          0xf,
+      };
+
+      VkPipelineColorBlendStateCreateInfo cb = {
+          VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO,
+          NULL,
+          0,
+          false,
+          VK_LOGIC_OP_NO_OP,
+          1,
+          &attState,
+          {1.0f, 1.0f, 1.0f, 1.0f}};
+
+      pipeCreateInfo.stageCount = 3;
+      pipeCreateInfo.pStages = stages;
+      pipeCreateInfo.pTessellationState = NULL;
+      pipeCreateInfo.renderPass = RP;
+      pipeCreateInfo.subpass = 0;
+      pipeCreateInfo.layout = m_TriSizePipeLayout;
+      pipeCreateInfo.basePipelineHandle = VK_NULL_HANDLE;
+      pipeCreateInfo.basePipelineIndex = 0;
+      pipeCreateInfo.pInputAssemblyState = &ia;
+      pipeCreateInfo.pVertexInputState = &vi;
+      pipeCreateInfo.pColorBlendState = &cb;
+
+      typedef std::pair<uint32_t, PrimitiveTopology> PipeKey;
+
+      map<PipeKey, VkPipeline> pipes;
+
+      cmd = m_pDriver->GetNextCmd();
+
+      VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                            VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+      vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      VkClearValue clearval = {};
+      VkRenderPassBeginInfo rpbegin = {
+          VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
+          NULL,
+          Unwrap(RP),
+          Unwrap(FB),
+          {{
+               0, 0,
+           },
+           m_OverlayDim},
+          1,
+          &clearval,
+      };
+      vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+
+      VkViewport viewport = {0.0f, 0.0f, (float)m_OverlayDim.width, (float)m_OverlayDim.height,
+                             0.0f, 1.0f};
+      vt->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
+
+      for(size_t i = 0; i < events.size(); i++)
+      {
+        const FetchDrawcall *draw = m_pDriver->GetDrawcall(events[i]);
+
+        for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
+        {
+          MeshFormat fmt = GetPostVSBuffers(events[i], inst, eMeshDataStage_GSOut);
+          if(fmt.buf == ResourceId())
+            fmt = GetPostVSBuffers(events[i], inst, eMeshDataStage_VSOut);
+
+          if(fmt.buf != ResourceId())
+          {
+            ia.topology = MakeVkPrimitiveTopology(fmt.topo);
+
+            binds[0].stride = binds[1].stride = fmt.stride;
+
+            PipeKey key = std::make_pair(fmt.stride, fmt.topo);
+            VkPipeline pipe = pipes[key];
+
+            if(pipe == VK_NULL_HANDLE)
+            {
+              vkr = m_pDriver->vkCreateGraphicsPipelines(m_Device, VK_NULL_HANDLE, 1,
+                                                         &pipeCreateInfo, NULL, &pipe);
+              RDCASSERTEQUAL(vkr, VK_SUCCESS);
+            }
+
+            VkBuffer vb = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(fmt.buf);
+
+            VkDeviceSize offs = fmt.offset;
+            vt->CmdBindVertexBuffers(Unwrap(cmd), 0, 1, UnwrapPtr(vb), &offs);
+
+            pipes[key] = pipe;
+
+            vt->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                      Unwrap(m_TriSizePipeLayout), 0, 1,
+                                      UnwrapPtr(m_TriSizeDescSet), 2, offsets);
+
+            vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
+
+            const VkPipelineDynamicStateCreateInfo *dyn = pipeCreateInfo.pDynamicState;
+
+            for(uint32_t i = 0; dyn && i < dyn->dynamicStateCount; i++)
+            {
+              VkDynamicState d = dyn->pDynamicStates[i];
+
+              if(!state.views.empty() && d == VK_DYNAMIC_STATE_VIEWPORT)
+              {
+                vt->CmdSetViewport(Unwrap(cmd), 0, (uint32_t)state.views.size(), &state.views[0]);
+              }
+              else if(!state.scissors.empty() && d == VK_DYNAMIC_STATE_SCISSOR)
+              {
+                vt->CmdSetScissor(Unwrap(cmd), 0, (uint32_t)state.scissors.size(),
+                                  &state.scissors[0]);
+              }
+              else if(d == VK_DYNAMIC_STATE_LINE_WIDTH)
+              {
+                vt->CmdSetLineWidth(Unwrap(cmd), state.lineWidth);
+              }
+              else if(d == VK_DYNAMIC_STATE_DEPTH_BIAS)
+              {
+                vt->CmdSetDepthBias(Unwrap(cmd), state.bias.depth, state.bias.biasclamp,
+                                    state.bias.slope);
+              }
+              else if(d == VK_DYNAMIC_STATE_BLEND_CONSTANTS)
+              {
+                vt->CmdSetBlendConstants(Unwrap(cmd), state.blendConst);
+              }
+              else if(d == VK_DYNAMIC_STATE_DEPTH_BOUNDS)
+              {
+                vt->CmdSetDepthBounds(Unwrap(cmd), state.mindepth, state.maxdepth);
+              }
+              else if(d == VK_DYNAMIC_STATE_STENCIL_COMPARE_MASK)
+              {
+                vt->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT,
+                                             state.back.compare);
+                vt->CmdSetStencilCompareMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT,
+                                             state.front.compare);
+              }
+              else if(d == VK_DYNAMIC_STATE_STENCIL_WRITE_MASK)
+              {
+                vt->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.back.write);
+                vt->CmdSetStencilWriteMask(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, state.front.write);
+              }
+              else if(d == VK_DYNAMIC_STATE_STENCIL_REFERENCE)
+              {
+                vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_BACK_BIT, state.back.ref);
+                vt->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FACE_FRONT_BIT, state.front.ref);
+              }
+            }
+
+            if(fmt.idxByteWidth)
+            {
+              VkIndexType idxtype = VK_INDEX_TYPE_UINT16;
+              if(fmt.idxByteWidth == 4)
+                idxtype = VK_INDEX_TYPE_UINT32;
+
+              if(fmt.idxbuf != ResourceId())
+              {
+                VkBuffer ib = m_pDriver->GetResourceManager()->GetCurrentHandle<VkBuffer>(fmt.idxbuf);
+
+                vt->CmdBindIndexBuffer(Unwrap(cmd), Unwrap(ib), fmt.idxoffs, idxtype);
+                vt->CmdDrawIndexed(Unwrap(cmd), fmt.numVerts, 1, 0, fmt.baseVertex, 0);
+              }
+            }
+            else
+            {
+              vt->CmdDraw(Unwrap(cmd), fmt.numVerts, 1, 0, 0);
+            }
+          }
+        }
+      }
+
+      vkr = vt->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      m_pDriver->SubmitCmds();
+      m_pDriver->FlushQ();
+
+      if(depthUsed)
+      {
+        m_pDriver->vkDestroyFramebuffer(m_Device, FB, NULL);
+        m_pDriver->vkDestroyRenderPass(m_Device, RP, NULL);
+      }
+
+      for(auto it = pipes.begin(); it != pipes.end(); ++it)
+        m_pDriver->vkDestroyPipeline(m_Device, it->second, NULL);
+    }
+
+    // restore back to normal
+    m_pDriver->ReplayLog(0, eventID, eReplay_WithoutDraw);
+
+    // restore state
+    m_pDriver->m_RenderState = prevstate;
 
     cmd = m_pDriver->GetNextCmd();
 
