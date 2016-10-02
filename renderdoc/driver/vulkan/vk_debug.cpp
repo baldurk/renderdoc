@@ -1765,6 +1765,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     // we pick RGBA8 formats to be guaranteed they will be supported
     VkFormat formats[] = {VK_FORMAT_R8G8B8A8_UNORM, VK_FORMAT_R8G8B8A8_UINT, VK_FORMAT_R8G8B8A8_SINT};
     VkImageType types[] = {VK_IMAGE_TYPE_1D, VK_IMAGE_TYPE_2D, VK_IMAGE_TYPE_3D, VK_IMAGE_TYPE_2D};
+    VkImageViewType viewtypes[] = {VK_IMAGE_VIEW_TYPE_1D_ARRAY, VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+                                   VK_IMAGE_VIEW_TYPE_3D, VK_IMAGE_VIEW_TYPE_2D};
     VkSampleCountFlagBits sampleCounts[] = {VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_1_BIT,
                                             VK_SAMPLE_COUNT_1_BIT, VK_SAMPLE_COUNT_4_BIT};
 
@@ -1876,7 +1878,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
             NULL,
             0,
             m_TexDisplayDummyImages[index],
-            VkImageViewType(int(types[type])),    // image/view type enums overlap for 1D/2D/3D
+            viewtypes[type],
             formats[fmt],
             {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
              VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY},
@@ -1884,13 +1886,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
                 VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1,
             },
         };
-
-        RDCCOMPILE_ASSERT((uint32_t)VK_IMAGE_TYPE_1D == (uint32_t)VK_IMAGE_VIEW_TYPE_1D,
-                          "Image/view type enums don't overlap!");
-        RDCCOMPILE_ASSERT((uint32_t)VK_IMAGE_TYPE_2D == (uint32_t)VK_IMAGE_VIEW_TYPE_2D,
-                          "Image/view type enums don't overlap!");
-        RDCCOMPILE_ASSERT((uint32_t)VK_IMAGE_TYPE_3D == (uint32_t)VK_IMAGE_VIEW_TYPE_3D,
-                          "Image/view type enums don't overlap!");
 
         vkr = m_pDriver->vkCreateImageView(dev, &viewInfo, NULL, &m_TexDisplayDummyImageViews[index]);
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
