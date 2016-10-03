@@ -36,6 +36,11 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
 
   m_PickedPoint = QPoint(-1, -1);
 
+  memset(&m_TexDisplay, 0, sizeof(m_TexDisplay));
+  m_TexDisplay.sampleIdx = ~0U;
+  m_TexDisplay.linearDisplayAsGamma = true;
+  m_TexDisplay.rangemax = 1.0f;
+
   QWidget *renderContainer = ui->renderContainer;
 
   QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &TextureViewer::render_mouseClick);
@@ -127,7 +132,7 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
   ui->dockarea->setAllowFloatingWindow(false);
   ui->dockarea->setRubberBandLineWidth(50);
 
-  renderContainer->setWindowTitle(tr("OM RenderTarget 0 - GBuffer Colour"));
+  renderContainer->setWindowTitle(tr("Unbound"));
   ui->pixelContextLayout->setWindowTitle(tr("Pixel Context"));
   ui->targetThumbs->setWindowTitle(tr("OM Targets"));
   ui->resourceThumbs->setWindowTitle(tr("PS Resources"));
@@ -178,7 +183,18 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
 
   ui->statusbar->addWidget(statusflowWidget);
 
+  ui->channels->addItems({tr("RGBA"), tr("RGBM"), tr("Custom")});
+
   ui->zoomOption->addItems({"10%", "25%", "50%", "75%", "100%", "200%", "400%", "800%"});
+
+  ui->hdrMul->addItems({"2", "4", "8", "16", "32", "128"});
+
+  ui->overlay->addItems({tr("None"), tr("Highlight Drawcall"), tr("Wireframe Mesh"),
+                         tr("Depth Test"), tr("Stencil Test"), tr("Backface Cull"),
+                         tr("Viewport/Scissor Region"), tr("NaN/INF/-ve Display"), tr("Clipping"),
+                         tr("Clear Before Pass"), tr("Clear Before Draw"),
+                         tr("Quad Overdraw (Pass)"), tr("Quad Overdraw (Draw)"),
+                         tr("Triangle Size (Pass)"), tr("Triangle Size (Draw)")});
 
   ui->zoomOption->setCurrentText("");
   ui->fitToWindow->toggle();
@@ -325,13 +341,13 @@ void TextureViewer::UI_UpdateStatusText()
                             .arg((x * invWidth), 5, 'f', 4)
                             .arg((y * invHeight), 5, 'f', 4);
 
-  QString statusText = "Hover - " + hoverCoords;
+  QString statusText = tr("Hover - ") + hoverCoords;
 
   uint32_t hoverX = (uint32_t)m_CurHoverPixel.x();
   uint32_t hoverY = (uint32_t)m_CurHoverPixel.y();
 
   if(hoverX > tex.width || hoverY > tex.height || hoverX < 0 || hoverY < 0)
-    statusText = "Hover - [" + hoverCoords + "]";
+    statusText = tr("Hover - ") + "[" + hoverCoords + "]";
 
   if(m_PickedPoint.x() >= 0)
   {
@@ -344,7 +360,7 @@ void TextureViewer::UI_UpdateStatusText()
 
     y = qMax(0, y);
 
-    statusText += " - Right click - " + QString("%1, %2: ").arg(x, 4).arg(y, 4);
+    statusText += tr(" - Right click - ") + QString("%1, %2: ").arg(x, 4).arg(y, 4);
 
     PixelValue val = m_CurPixelValue;
 
@@ -356,12 +372,12 @@ void TextureViewer::UI_UpdateStatusText()
 
       val = m_CurRealValue;
 
-      statusText += " (Real: ";
+      statusText += tr(" (Real: ");
     }
 
     if(dsv)
     {
-      statusText += "Depth ";
+      statusText += tr("Depth ");
       if(uintTex)
       {
         if(tex.format.compByteWidth == 2)
@@ -376,7 +392,7 @@ void TextureViewer::UI_UpdateStatusText()
 
       int stencil = (int)(255.0f * val.value_f[1]);
 
-      statusText += QString(", Stencil %1 / 0x%2").arg(stencil).arg(stencil, 0, 16);
+      statusText += tr(", Stencil %1 / 0x%2").arg(stencil).arg(stencil, 0, 16);
     }
     else
     {
@@ -407,12 +423,12 @@ void TextureViewer::UI_UpdateStatusText()
   }
   else
   {
-    statusText += " - Right click to pick a pixel";
+    statusText += tr(" - Right click to pick a pixel");
 
-    m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
-      if(m_Output != NULL)
-        m_Output->DisablePixelContext();
-    });
+    if(m_Output != NULL)
+    {
+      m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { m_Output->DisablePixelContext(); });
+    }
 
     // PixelPicked = false;
   }
@@ -438,12 +454,16 @@ void TextureViewer::UI_UpdateTextureDetails()
   if(texptr == NULL)
   {
     ui->texStatusDim->setText(status);
+
+    ui->renderContainer->setWindowTitle(tr("Unbound"));
     return;
   }
 
   FetchTexture &current = *texptr;
 
-#if 0
+#if 1
+  ui->renderContainer->setWindowTitle(tr(current.name.elems));
+#else
   ResourceId followID = m_Following.GetResourceId(m_Core);
 
   {
@@ -453,7 +473,7 @@ void TextureViewer::UI_UpdateTextureDetails()
 
     foreach(var t in m_Core.CurTextures)
     {
-      if (t.ID == followID)
+      if(t.ID == followID)
       {
         name = t.name;
         found = true;
@@ -462,20 +482,20 @@ void TextureViewer::UI_UpdateTextureDetails()
 
     foreach(var b in m_Core.CurBuffers)
     {
-      if (b.ID == followID)
+      if(b.ID == followID)
       {
         name = b.name;
         found = true;
       }
     }
 
-    if (followID == ResourceId.Null)
+    if(followID == ResourceId.Null)
     {
       m_PreviewPanel.Text = "Unbound";
     }
-    else if (found)
+    else if(found)
     {
-      switch (m_Following.Type)
+      switch(m_Following.Type)
       {
         case FollowType.OutputColour:
           m_PreviewPanel.Text = string.Format("Cur Output {0} - {1}", m_Following.index, name);
@@ -493,17 +513,13 @@ void TextureViewer::UI_UpdateTextureDetails()
     }
     else
     {
-      switch (m_Following.Type)
+      switch(m_Following.Type)
       {
         case FollowType.OutputColour:
           m_PreviewPanel.Text = string.Format("Cur Output {0}", m_Following.index);
           break;
-        case FollowType.OutputDepth:
-          m_PreviewPanel.Text = string.Format("Cur Depth Output");
-          break;
-        case FollowType.ReadWrite:
-          m_PreviewPanel.Text = string.Format("Cur RW Output");
-          break;
+        case FollowType.OutputDepth: m_PreviewPanel.Text = string.Format("Cur Depth Output"); break;
+        case FollowType.ReadWrite: m_PreviewPanel.Text = string.Format("Cur RW Output"); break;
         case FollowType.ReadOnly:
           m_PreviewPanel.Text = string.Format("Cur Input {0}", m_Following.index);
           break;
@@ -533,7 +549,7 @@ void TextureViewer::UI_UpdateTextureDetails()
 
   if(current.format.compType != m_TexDisplay.typeHint && m_TexDisplay.typeHint != eCompType_None)
   {
-    status += " Viewed as TODO";    // m_TexDisplay.typeHint.Str();
+    status += tr(" Viewed as TODO");    // m_TexDisplay.typeHint.Str();
   }
 
   ui->texStatusDim->setText(status);
@@ -543,161 +559,186 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 {
   UI_UpdateFittedScale();
   UI_UpdateTextureDetails();
+  UI_UpdateChannels();
 }
 
 void TextureViewer::UI_UpdateChannels()
 {
   FetchTexture *tex = m_Core->GetTexture(m_TexDisplay.texid);
 
-  /*
-  if (tex != NULL && (tex.creationFlags & TextureCreationFlags.SwapBuffer) != 0)
+#define SHOW(widget) widget->setVisible(true)
+#define HIDE(widget) widget->setVisible(false)
+#define ENABLE(widget) widget->setEnabled(true)
+#define DISABLE(widget) widget->setEnabled(false)
+
+  if(tex != NULL && (tex->creationFlags & eTextureCreate_SwapBuffer))
   {
     // swapbuffer is always srgb for 8-bit types, linear for 16-bit types
-    gammaDisplay.Enabled = false;
+    DISABLE(ui->gammaDisplay);
 
-    if (tex.format.compByteWidth == 2 && !tex.format.special)
+    if(tex->format.compByteWidth == 2 && !tex->format.special)
       m_TexDisplay.linearDisplayAsGamma = false;
     else
       m_TexDisplay.linearDisplayAsGamma = true;
   }
   else
   {
-    if (tex != null && !tex.format.srgbCorrected)
-      gammaDisplay.Enabled = true;
+    if(tex != NULL && !tex->format.srgbCorrected)
+      ENABLE(ui->gammaDisplay);
     else
-      gammaDisplay.Enabled = false;
+      DISABLE(ui->gammaDisplay);
 
-    m_TexDisplay.linearDisplayAsGamma = !gammaDisplay.Enabled || gammaDisplay.Checked;
+    m_TexDisplay.linearDisplayAsGamma =
+        !ui->gammaDisplay->isEnabled() || ui->gammaDisplay->isChecked();
   }
 
-  if (tex != null && tex.format.srgbCorrected)
+  if(tex != NULL && tex->format.srgbCorrected)
     m_TexDisplay.linearDisplayAsGamma = false;
 
   bool dsv = false;
-  if (tex != null)
-    dsv = ((tex.creationFlags & TextureCreationFlags.DSV) != 0) || (tex.format.compType ==
-  FormatComponentType.Depth);
+  if(tex != NULL)
+    dsv = ((tex->creationFlags & eTextureCreate_DSV) != 0) ||
+          (tex->format.compType == eCompType_Depth);
 
-  if (dsv &&
-    (string)channels.SelectedItem != "Custom")
+  if(dsv && ui->channels->currentIndex() != 2)
   {
-    customRed.Visible = false;
-    customGreen.Visible = false;
-    customBlue.Visible = false;
-    customAlpha.Visible = false;
-    mulLabel.Visible = false;
-    hdrMul.Visible = false;
-    customShader.Visible = false;
-    customCreate.Visible = false;
-    customEdit.Visible = false;
-    customDelete.Visible = false;
-    depthStencilToolstrip.Visible = true;
+    // Depth display (when not using custom)
 
-    backcolorPick.Visible = false;
-    checkerBack.Visible = false;
+    HIDE(ui->channelRed);
+    HIDE(ui->channelGreen);
+    HIDE(ui->channelBlue);
+    HIDE(ui->channelAlpha);
+    HIDE(ui->mulSep);
+    HIDE(ui->mulLabel);
+    HIDE(ui->hdrMul);
+    HIDE(ui->customShader);
+    HIDE(ui->customCreate);
+    HIDE(ui->customEdit);
+    HIDE(ui->customDelete);
+    SHOW(ui->depthStencilSep);
+    SHOW(ui->depthDisplay);
+    SHOW(ui->stencilDisplay);
 
-    mulSep.Visible = false;
-
-    m_TexDisplay.Red = depthDisplay.Checked;
-    m_TexDisplay.Green = stencilDisplay.Checked;
+    m_TexDisplay.Red = ui->depthDisplay->isChecked();
+    m_TexDisplay.Green = ui->stencilDisplay->isChecked();
     m_TexDisplay.Blue = false;
     m_TexDisplay.Alpha = false;
 
-    m_TexDisplay.HDRMul = -1.0f;
-    if (m_TexDisplay.CustomShader != ResourceId.Null) { m_CurPixelValue = null; m_CurRealValue =
-  null; UI_UpdateStatusText(); }
-    m_TexDisplay.CustomShader = ResourceId.Null;
-  }
-  else if ((string)channels.SelectedItem == "RGBA" || !m_Core.LogLoaded)
-  {
-    customRed.Visible = true;
-    customGreen.Visible = true;
-    customBlue.Visible = true;
-    customAlpha.Visible = true;
-    mulLabel.Visible = false;
-    hdrMul.Visible = false;
-    customShader.Visible = false;
-    customCreate.Visible = false;
-    customEdit.Visible = false;
-    customDelete.Visible = false;
-    depthStencilToolstrip.Visible = false;
-
-    backcolorPick.Visible = true;
-    checkerBack.Visible = true;
-
-    mulSep.Visible = false;
-
-    m_TexDisplay.Red = customRed.Checked;
-    m_TexDisplay.Green = customGreen.Checked;
-    m_TexDisplay.Blue = customBlue.Checked;
-    m_TexDisplay.Alpha = customAlpha.Checked;
+    if(m_TexDisplay.Red == m_TexDisplay.Green && !m_TexDisplay.Red)
+    {
+      m_TexDisplay.Red = true;
+      ui->depthDisplay->setChecked(true);
+    }
 
     m_TexDisplay.HDRMul = -1.0f;
-    if (m_TexDisplay.CustomShader != ResourceId.Null) { m_CurPixelValue = null; m_CurRealValue =
-  null; UI_UpdateStatusText(); }
-    m_TexDisplay.CustomShader = ResourceId.Null;
+    if(m_TexDisplay.CustomShader != ResourceId())
+    {
+      memset(m_CurPixelValue.value_f, 0, sizeof(float) * 4);
+      memset(m_CurRealValue.value_f, 0, sizeof(float) * 4);
+      UI_UpdateStatusText();
+    }
+    m_TexDisplay.CustomShader = ResourceId();
   }
-  else if ((string)channels.SelectedItem == "RGBM")
+  else if(ui->channels->currentIndex() == 0 || !m_Core->LogLoaded())
   {
-    customRed.Visible = true;
-    customGreen.Visible = true;
-    customBlue.Visible = true;
-    customAlpha.Visible = false;
-    mulLabel.Visible = true;
-    hdrMul.Visible = true;
-    customShader.Visible = false;
-    customCreate.Visible = false;
-    customEdit.Visible = false;
-    customDelete.Visible = false;
-    depthStencilToolstrip.Visible = false;
+    // RGBA
+    SHOW(ui->channelRed);
+    SHOW(ui->channelGreen);
+    SHOW(ui->channelBlue);
+    SHOW(ui->channelAlpha);
+    HIDE(ui->mulSep);
+    HIDE(ui->mulLabel);
+    HIDE(ui->hdrMul);
+    HIDE(ui->customShader);
+    HIDE(ui->customCreate);
+    HIDE(ui->customEdit);
+    HIDE(ui->customDelete);
+    HIDE(ui->depthStencilSep);
+    HIDE(ui->depthDisplay);
+    HIDE(ui->stencilDisplay);
 
-    backcolorPick.Visible = false;
-    checkerBack.Visible = false;
+    m_TexDisplay.Red = ui->channelRed->isChecked();
+    m_TexDisplay.Green = ui->channelGreen->isChecked();
+    m_TexDisplay.Blue = ui->channelBlue->isChecked();
+    m_TexDisplay.Alpha = ui->channelAlpha->isChecked();
 
-    mulSep.Visible = true;
+    m_TexDisplay.HDRMul = -1.0f;
+    if(m_TexDisplay.CustomShader != ResourceId())
+    {
+      memset(m_CurPixelValue.value_f, 0, sizeof(float) * 4);
+      memset(m_CurRealValue.value_f, 0, sizeof(float) * 4);
+      UI_UpdateStatusText();
+    }
+    m_TexDisplay.CustomShader = ResourceId();
+  }
+  else if(ui->channels->currentIndex() == 1)
+  {
+    // RGBM
+    SHOW(ui->channelRed);
+    SHOW(ui->channelGreen);
+    SHOW(ui->channelBlue);
+    HIDE(ui->channelAlpha);
+    SHOW(ui->mulSep);
+    SHOW(ui->mulLabel);
+    SHOW(ui->hdrMul);
+    HIDE(ui->customShader);
+    HIDE(ui->customCreate);
+    HIDE(ui->customEdit);
+    HIDE(ui->customDelete);
+    HIDE(ui->depthStencilSep);
+    HIDE(ui->depthDisplay);
+    HIDE(ui->stencilDisplay);
 
-    m_TexDisplay.Red = customRed.Checked;
-    m_TexDisplay.Green = customGreen.Checked;
-    m_TexDisplay.Blue = customBlue.Checked;
+    m_TexDisplay.Red = ui->channelRed->isChecked();
+    m_TexDisplay.Green = ui->channelGreen->isChecked();
+    m_TexDisplay.Blue = ui->channelBlue->isChecked();
     m_TexDisplay.Alpha = false;
 
-    float mul = 32.0f;
+    bool ok = false;
+    float mul = ui->hdrMul->currentText().toFloat(&ok);
 
-    if (!float.TryParse(hdrMul.Text, out mul))
-      hdrMul.Text = mul.ToString();
+    if(!ok)
+    {
+      mul = 32.0f;
+      ui->hdrMul->setCurrentText("32");
+    }
 
     m_TexDisplay.HDRMul = mul;
-    if (m_TexDisplay.CustomShader != ResourceId.Null) { m_CurPixelValue = null; m_CurRealValue =
-  null; UI_UpdateStatusText(); }
-    m_TexDisplay.CustomShader = ResourceId.Null;
+    if(m_TexDisplay.CustomShader != ResourceId())
+    {
+      memset(m_CurPixelValue.value_f, 0, sizeof(float) * 4);
+      memset(m_CurRealValue.value_f, 0, sizeof(float) * 4);
+      UI_UpdateStatusText();
+    }
+    m_TexDisplay.CustomShader = ResourceId();
   }
-  else if ((string)channels.SelectedItem == "Custom")
+  else if(ui->channels->currentIndex() == 2)
   {
-    customRed.Visible = true;
-    customGreen.Visible = true;
-    customBlue.Visible = true;
-    customAlpha.Visible = true;
-    mulLabel.Visible = false;
-    hdrMul.Visible = false;
-    customShader.Visible = true;
-    customCreate.Visible = true;
-    customEdit.Visible = true;
-    customDelete.Visible = true;
-    depthStencilToolstrip.Visible = false;
+    // custom shaders
+    SHOW(ui->channelRed);
+    SHOW(ui->channelGreen);
+    SHOW(ui->channelBlue);
+    SHOW(ui->channelAlpha);
+    HIDE(ui->mulSep);
+    HIDE(ui->mulLabel);
+    HIDE(ui->hdrMul);
+    SHOW(ui->customShader);
+    SHOW(ui->customCreate);
+    SHOW(ui->customEdit);
+    SHOW(ui->customDelete);
+    HIDE(ui->depthStencilSep);
+    HIDE(ui->depthDisplay);
+    HIDE(ui->stencilDisplay);
 
-    backcolorPick.Visible = false;
-    checkerBack.Visible = false;
-
-    mulSep.Visible = false;
-
-    m_TexDisplay.Red = customRed.Checked;
-    m_TexDisplay.Green = customGreen.Checked;
-    m_TexDisplay.Blue = customBlue.Checked;
-    m_TexDisplay.Alpha = customAlpha.Checked;
+    m_TexDisplay.Red = ui->channelRed->isChecked();
+    m_TexDisplay.Green = ui->channelGreen->isChecked();
+    m_TexDisplay.Blue = ui->channelBlue->isChecked();
+    m_TexDisplay.Alpha = ui->channelAlpha->isChecked();
 
     m_TexDisplay.HDRMul = -1.0f;
 
-    m_TexDisplay.CustomShader = ResourceId.Null;
+    m_TexDisplay.CustomShader = ResourceId();
+    /*
     if (m_CustomShaders.ContainsKey(customShader.Text.ToUpperInvariant()))
     {
       if (m_TexDisplay.CustomShader == ResourceId.Null) { m_CurPixelValue = null; m_CurRealValue =
@@ -708,14 +749,18 @@ void TextureViewer::UI_UpdateChannels()
     else
     {
       customDelete.Enabled = customEdit.Enabled = false;
-    }
+    }*/
   }
+
+#undef HIDE
+#undef SHOW
+#undef ENABLE
+#undef DISABLE
 
   m_TexDisplay.FlipY = ui->flip_y->isChecked();
 
-  m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { RT_UpdateAndDisplay(); });
-  // m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { RT_UpdateVisualRange(); });
-  */
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+  // INVOKE_MEMFN(RT_UpdateVisualRange);
 }
 
 void TextureViewer::render_mouseWheel(QWheelEvent *e)
@@ -734,6 +779,9 @@ void TextureViewer::render_mouseWheel(QWheelEvent *e)
 
 void TextureViewer::render_mouseMove(QMouseEvent *e)
 {
+  if(m_Output == NULL)
+    return;
+
   m_CurHoverPixel.setX(int(((float)e->x() - m_TexDisplay.offx) / m_TexDisplay.scale));
   m_CurHoverPixel.setY(int(((float)e->y() - m_TexDisplay.offy) / m_TexDisplay.scale));
 
@@ -752,17 +800,11 @@ void TextureViewer::render_mouseMove(QMouseEvent *e)
         m_PickedPoint.setX(qBound(0, m_PickedPoint.x(), (int)texptr->width - 1));
         m_PickedPoint.setY(qBound(0, m_PickedPoint.y(), (int)texptr->height - 1));
 
-        m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
-          if(m_Output != NULL)
-            RT_PickPixelsAndUpdate();
-        });
+        INVOKE_MEMFN(RT_PickPixelsAndUpdate);
       }
       else if(e->buttons() == Qt::NoButton)
       {
-        m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
-          if(m_Output != NULL)
-            RT_PickHoverAndUpdate();
-        });
+        INVOKE_MEMFN(RT_PickHoverAndUpdate);
       }
     }
   }
@@ -810,7 +852,7 @@ void TextureViewer::render_resize(QResizeEvent *e)
   UI_UpdateFittedScale();
   UI_CalcScrollbars();
 
-  m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { RT_UpdateAndDisplay(); });
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
 float TextureViewer::CurMaxScrollX()
@@ -859,7 +901,7 @@ void TextureViewer::setScrollPosition(const QPoint &pos)
       ui->renderVScroll->setValue(qBound(0, int(m_TexDisplay.offy), ui->renderVScroll->maximum()));
   }
 
-  m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { RT_UpdateAndDisplay(); });
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
 void TextureViewer::UI_CalcScrollbars()
@@ -992,21 +1034,37 @@ void TextureViewer::OnLogfileClosed()
 
 void TextureViewer::OnEventSelected(uint32_t eventID)
 {
-  TextureDisplay &d = m_TexDisplay;
+  // if (!CurrentTextureIsLocked || (CurrentTexture != null && m_TexDisplay.texid !=
+  // CurrentTexture.ID))
+  UI_OnTextureSelectionChanged(true);
 
+  if(m_Output == NULL)
+    return;
+
+  // hack to select texture until we have thumbnails & following
+  TextureDisplay &d = m_TexDisplay;
   if(m_Core->APIProps().pipelineType == eGraphicsAPI_D3D11)
   {
     d.texid = m_Core->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
+
+    if(d.texid == ResourceId())
+      d.texid = m_Core->CurD3D11PipelineState.m_OM.DepthTarget.Resource;
   }
   else if(m_Core->APIProps().pipelineType == eGraphicsAPI_OpenGL)
   {
     d.texid = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Color[0].Obj;
+
+    if(d.texid == ResourceId())
+      d.texid = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Depth.Obj;
   }
   else
   {
     const VulkanPipelineState &pipe = m_Core->CurVulkanPipelineState;
     if(pipe.Pass.renderpass.colorAttachments.count > 0)
       d.texid = pipe.Pass.framebuffer.attachments[pipe.Pass.renderpass.colorAttachments[0]].img;
+
+    if(pipe.Pass.renderpass.depthstencilAttachment != -1)
+      d.texid = pipe.Pass.framebuffer.attachments[pipe.Pass.renderpass.depthstencilAttachment].img;
 
     if(d.texid == ResourceId())
     {
@@ -1016,34 +1074,7 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
     }
   }
 
-  d.mip = 0;
-  d.sampleIdx = ~0U;
-  d.overlay = eTexOverlay_None;
-  d.CustomShader = ResourceId();
-  d.HDRMul = -1.0f;
-  d.linearDisplayAsGamma = true;
-  d.FlipY = false;
-  d.rangemin = 0.0f;
-  d.rangemax = 1.0f;
-  d.scale = 1.0f;
-  d.offx = 0.0f;
-  d.offy = 0.0f;
-  d.sliceFace = 0;
-  d.rawoutput = false;
-  d.lightBackgroundColour = d.darkBackgroundColour = FloatVector(0.0f, 0.0f, 0.0f, 0.0f);
-  d.Red = d.Green = d.Blue = true;
-  d.Alpha = false;
-
-  m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { RT_UpdateAndDisplay(); });
-
-  FetchTexture *tex = m_Core->GetTexture(d.texid);
-
-  if(tex)
-    ui->renderContainer->setWindowTitle(tr(tex->name.elems));
-
-  // if (!CurrentTextureIsLocked || (CurrentTexture != null && m_TexDisplay.texid !=
-  // CurrentTexture.ID))
-  UI_OnTextureSelectionChanged(true);
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
 float TextureViewer::GetFitScale()
@@ -1078,7 +1109,7 @@ void TextureViewer::UI_SetScale(float s, int x, int y)
 
   m_TexDisplay.scale = qBound(0.1f, s, 256.0f);
 
-  m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { RT_UpdateAndDisplay(); });
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
 
   float scaleDelta = (m_TexDisplay.scale / prevScale);
 
@@ -1160,6 +1191,12 @@ void TextureViewer::on_zoomOption_returnPressed()
 
 void TextureViewer::on_overlay_currentIndexChanged(int index)
 {
+  m_TexDisplay.overlay = eTexOverlay_None;
+
+  if(ui->overlay->currentIndex() > 0)
+    m_TexDisplay.overlay = (TextureDisplayOverlay)ui->overlay->currentIndex();
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
 void TextureViewer::on_zoomRange_clicked()
