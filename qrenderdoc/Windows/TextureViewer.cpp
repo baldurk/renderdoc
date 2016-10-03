@@ -1,19 +1,8 @@
-#if defined(__linux__)
-#define RENDERDOC_WINDOWING_XLIB 1
-#define RENDERDOC_WINDOWING_XCB 1
-#endif
 
 #include "TextureViewer.h"
 #include "Code/Core.h"
 #include "FlowLayout.h"
 #include "ui_TextureViewer.h"
-
-#if defined(__linux__)
-#include <GL/glx.h>
-#include <X11/Xlib.h>
-#include <xcb/xcb.h>
-#include <QX11Info>
-#endif
 
 struct Formatter
 {
@@ -968,55 +957,15 @@ void TextureViewer::on_renderVScroll_valueChanged(int position)
 
 void TextureViewer::OnLogfileLoaded()
 {
-#if defined(WIN32)
+  WId renderID = ui->render->winId();
+  WId contextID = ui->pixelContext->winId();
 
-  WindowingSystem system = eWindowingSystem_Win32;
-  HWND wnd = (HWND)ui->render->winId();
+  m_Core->Renderer()->BlockInvoke([renderID, contextID, this](IReplayRenderer *r) {
+    m_Output = r->CreateOutput(m_Core->m_CurWinSystem, m_Core->FillWindowingData(renderID),
+                               eOutputType_TexDisplay);
 
-#elif defined(__linux__)
+    m_Output->SetPixelContext(m_Core->m_CurWinSystem, m_Core->FillWindowingData(contextID));
 
-  XCBWindowData xcb = {
-      QX11Info::connection(), (xcb_window_t)ui->render->winId(),
-  };
-
-  XlibWindowData xlib = {QX11Info::display(), (Drawable)ui->render->winId()};
-
-  rdctype::array<WindowingSystem> systems;
-  m_Core->Renderer()->BlockInvoke(
-      [&systems](IReplayRenderer *r) { r->GetSupportedWindowSystems(&systems); });
-
-  WindowingSystem system = eWindowingSystem_Unknown;
-  void *wnd = NULL;
-
-  // prefer XCB
-  for(int32_t i = 0; i < systems.count; i++)
-  {
-    if(systems[i] == eWindowingSystem_XCB)
-    {
-      system = eWindowingSystem_XCB;
-      wnd = &xcb;
-      break;
-    }
-  }
-
-  for(int32_t i = 0; wnd == NULL && i < systems.count; i++)
-  {
-    if(systems[i] == eWindowingSystem_Xlib)
-    {
-      system = eWindowingSystem_Xlib;
-      wnd = &xlib;
-      break;
-    }
-  }
-
-#else
-
-#error "Unknown platform"
-
-#endif
-
-  m_Core->Renderer()->BlockInvoke([system, wnd, this](IReplayRenderer *r) {
-    m_Output = r->CreateOutput(system, wnd, eOutputType_TexDisplay);
     ui->render->SetOutput(m_Core, m_Output);
 
     OutputConfig c = {eOutputType_TexDisplay};

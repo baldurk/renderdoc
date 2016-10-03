@@ -6,6 +6,13 @@
 #include <QTimer>
 #include "Windows/MainWindow.h"
 
+#if defined(RENDERDOC_PLATFORM_LINUX)
+#include <GL/glx.h>
+#include <X11/Xlib.h>
+#include <xcb/xcb.h>
+#include <QX11Info>
+#endif
+
 Core::Core(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp)
 {
   m_LogLoaded = false;
@@ -90,6 +97,29 @@ void Core::LoadLogfile(int proxyRenderer, QString replayHost, QString logFile, b
 
     postloadProgress = 0.4f;
 
+    r->GetSupportedWindowSystems(&m_WinSystems);
+
+#if defined(RENDERDOC_PLATFORM_WIN32)
+    m_CurWinSystem = eWindowingSystem_Win32;
+#elif defined(RENDERDOC_PLATFORM_LINUX)
+    m_CurWinSystem = eWindowingSystem_Xlib;
+
+    // prefer XCB, if supported
+    for(int32_t i = 0; i < m_WinSystems.count; i++)
+    {
+      if(m_WinSystems[i] == eWindowingSystem_XCB)
+      {
+        m_CurWinSystem = eWindowingSystem_XCB;
+        break;
+      }
+    }
+
+    if(m_CurWinSystem == eWindowingSystem_XCB)
+      m_XCBConnection = QX11Info::connection();
+    else
+      m_X11Display = QX11Info::display();
+#endif
+
     r->GetBuffers(&m_BufferList);
     for(int i = 0; i < m_BufferList.count; i++)
       m_Buffers[m_BufferList[i].ID] = &m_BufferList[i];
@@ -150,6 +180,32 @@ void Core::SetEventID(ILogViewerForm *exclude, uint32_t eventID)
 
     logviewer->OnEventSelected(eventID);
   }
+}
+
+void *Core::FillWindowingData(WId widget)
+{
+#if defined(WIN32)
+
+  return (void *)widget;
+
+#elif defined(RENDERDOC_PLATFORM_LINUX)
+
+  static XCBWindowData xcb = {
+      m_X11Connection, (xcb_window_t)widget,
+  };
+
+  static XlibWindowData xlib = {m_X11Display, (Drawable)widget};
+
+  if(m_CurWinSystem == eWindowingSystem_XCB)
+    return &xcb;
+  else
+    return &xlib;
+
+#else
+
+#error "Unknown platform"
+
+#endif
 }
 
 void GUIInvoke::call(const std::function<void()> &f)

@@ -4,6 +4,7 @@
 #include <QList>
 #include <QMap>
 #include <QString>
+#include <QtWidgets/QWidget>
 #include "RenderManager.h"
 
 struct ILogViewerForm
@@ -95,6 +96,9 @@ public:
       DebugMessages.push_back(msgs[i]);
   }
 
+  WindowingSystem m_CurWinSystem;
+  void *FillWindowingData(WId widget);
+
   D3D11PipelineState CurD3D11PipelineState;
   GLPipelineState CurGLPipelineState;
   VulkanPipelineState CurVulkanPipelineState;
@@ -139,6 +143,13 @@ private:
   rdctype::array<FetchTexture> m_TextureList;
   QMap<ResourceId, FetchBuffer *> m_Buffers;
   rdctype::array<FetchBuffer> m_BufferList;
+
+  rdctype::array<WindowingSystem> m_WinSystems;
+
+#if defined(RENDERDOC_PLATFORM_LINUX)
+  xcb_connection_t *m_XCBConnection;
+  Display *m_X11Display;
+#endif
 
   // Windows
   MainWindow *m_MainWindow;
