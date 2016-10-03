@@ -82,9 +82,8 @@ void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
 
   m_RenderLock.lock();
   m_RenderQueue.push_back(cmd);
-  m_RenderLock.unlock();
-
   m_RenderCondition.wakeAll();
+  m_RenderLock.unlock();
 }
 
 void RenderManager::run()
@@ -109,7 +108,7 @@ void RenderManager::run()
     // unlock again.
     {
       m_RenderLock.lock();
-      m_RenderCondition.wait(&m_RenderLock);
+      m_RenderCondition.wait(&m_RenderLock, 10);
       m_RenderQueue.swap(queue);
       m_RenderLock.unlock();
     }
