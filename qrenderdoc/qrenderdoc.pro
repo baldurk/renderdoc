@@ -90,7 +90,7 @@ SOURCES += Code/main.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
     Code/RenderManager.cpp \
     Code/Core.cpp \
-    Widgets/LineEditFocusWidget.cpp \
+    Widgets/RDLineEdit.cpp \
     3rdparty/flowlayout/FlowLayout.cpp \
     Widgets/ResourcePreview.cpp
 
@@ -104,7 +104,7 @@ HEADERS  += Windows/MainWindow.h \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h \
     Code/Core.h \
     Code/RenderManager.h \
-    Widgets/LineEditFocusWidget.h \
+    Widgets/RDLineEdit.h \
     3rdparty/flowlayout/FlowLayout.h \
     Widgets/ResourcePreview.h
 

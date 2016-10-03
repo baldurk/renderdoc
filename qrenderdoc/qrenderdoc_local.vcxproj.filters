@@ -66,7 +66,7 @@
     <ClCompile Include="generated\moc_EventBrowser.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_LineEditFocusWidget.cpp">
+    <ClCompile Include="generated\moc_RDLineEdit.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="generated\moc_MainWindow.cpp">
@@ -129,7 +129,7 @@
     <ClCompile Include="Windows\EventBrowser.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
-    <ClCompile Include="Widgets\LineEditFocusWidget.cpp">
+    <ClCompile Include="Widgets\RDLineEdit.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
     <ClCompile Include="Code\RenderManager.cpp">
@@ -161,7 +161,7 @@
     <ClInclude Include="Windows\EventBrowser.h">
       <Filter>Windows</Filter>
     </ClInclude>
-    <ClInclude Include="Widgets\LineEditFocusWidget.h">
+    <ClInclude Include="Widgets\RDLineEdit.h">
       <Filter>Widgets</Filter>
     </ClInclude>
     <ClInclude Include="Windows\MainWindow.h">

@@ -46,8 +46,8 @@ EventBrowser::EventBrowser(Core *core, QWidget *parent)
 
   QObject::connect(ui->closeFind, &QToolButton::clicked, this, &EventBrowser::on_HideFindJump);
   QObject::connect(ui->closeJump, &QToolButton::clicked, this, &EventBrowser::on_HideFindJump);
-  QObject::connect(ui->jumpToEID, &LineEditFocusWidget::leave, this, &EventBrowser::on_HideFindJump);
-  QObject::connect(ui->findEvent, &LineEditFocusWidget::leave, this, &EventBrowser::on_HideFindJump);
+  QObject::connect(ui->jumpToEID, &RDLineEdit::leave, this, &EventBrowser::on_HideFindJump);
+  QObject::connect(ui->findEvent, &RDLineEdit::leave, this, &EventBrowser::on_HideFindJump);
   ui->jumpStrip->hide();
   ui->findStrip->hide();
   ui->bookmarkStrip->hide();

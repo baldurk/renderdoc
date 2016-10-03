@@ -280,7 +280,7 @@
     <ClCompile Include="generated\moc_Core.cpp" />
     <ClCompile Include="generated\moc_CustomPaintWidget.cpp" />
     <ClCompile Include="generated\moc_EventBrowser.cpp" />
-    <ClCompile Include="generated\moc_LineEditFocusWidget.cpp" />
+    <ClCompile Include="generated\moc_RDLineEdit.cpp" />
     <ClCompile Include="generated\moc_MainWindow.cpp" />
     <ClCompile Include="generated\moc_ResourcePreview.cpp" />
     <ClCompile Include="generated\moc_TextureViewer.cpp" />
@@ -296,7 +296,7 @@
     <ClCompile Include="3rdparty\flowlayout\FlowLayout.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
-    <ClCompile Include="Widgets\LineEditFocusWidget.cpp" />
+    <ClCompile Include="Widgets\RDLineEdit.cpp" />
     <ClCompile Include="Windows\MainWindow.cpp" />
     <ClCompile Include="Code\RenderManager.cpp" />
     <ClCompile Include="Windows\TextureViewer.cpp" />
@@ -323,7 +323,7 @@
     <ClInclude Include="Widgets\CustomPaintWidget.h" />
     <ClInclude Include="Windows\EventBrowser.h" />
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h" />
-    <ClInclude Include="Widgets\LineEditFocusWidget.h" />
+    <ClInclude Include="Widgets\RDLineEdit.h" />
     <ClInclude Include="Windows\MainWindow.h" />
     <ClInclude Include="Code\RenderManager.h" />
     <ClInclude Include="Windows\TextureViewer.h" />

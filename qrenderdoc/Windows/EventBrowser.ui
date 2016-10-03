@@ -236,7 +236,7 @@
           <number>0</number>
          </property>
          <item>
-          <widget class="LineEditFocusWidget" name="jumpToEID">
+          <widget class="RDLineEdit" name="jumpToEID">
            <property name="minimumSize">
             <size>
              <width>0</width>
@@ -349,7 +349,7 @@
           <number>0</number>
          </property>
          <item>
-          <widget class="LineEditFocusWidget" name="findEvent">
+          <widget class="RDLineEdit" name="findEvent">
            <property name="minimumSize">
             <size>
              <width>0</width>
@@ -559,9 +559,9 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>LineEditFocusWidget</class>
+   <class>RDLineEdit</class>
    <extends>QLineEdit</extends>
-   <header>Widgets/LineEditFocusWidget.h</header>
+   <header>Widgets/RDLineEdit.h</header>
   </customwidget>
  </customwidgets>
  <resources>

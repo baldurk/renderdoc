@@ -1,13 +1,13 @@
 #pragma once
 #include <QLineEdit>
 
-class LineEditFocusWidget : public QLineEdit
+class RDLineEdit : public QLineEdit
 {
 private:
   Q_OBJECT
 public:
-  explicit LineEditFocusWidget(QWidget *parent = 0);
-  ~LineEditFocusWidget();
+  explicit RDLineEdit(QWidget *parent = 0);
+  ~RDLineEdit();
 
 signals:
   void enter();
