@@ -40,6 +40,7 @@ Core::Core(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool
 
 Core::~Core()
 {
+  m_Renderer.CloseThread();
   delete m_MainWindow;
 }
 
