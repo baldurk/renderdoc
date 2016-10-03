@@ -46,6 +46,9 @@ private slots:
 
   void on_channelsWidget_toggled(bool checked) { UI_UpdateChannels(); }
   void on_channelsWidget_selected(int index) { UI_UpdateChannels(); }
+  void on_backcolorPick_clicked();
+  void on_checkerBack_clicked();
+
 private:
   void RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pickValue, PixelValue &realValue);
   void RT_PickPixelsAndUpdate();

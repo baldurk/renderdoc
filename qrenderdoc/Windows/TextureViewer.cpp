@@ -1,5 +1,6 @@
 
 #include "TextureViewer.h"
+#include <QColorDialog>
 #include "Code/Core.h"
 #include "FlowLayout.h"
 #include "ui_TextureViewer.h"
@@ -29,6 +30,8 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
   m_TexDisplay.sampleIdx = ~0U;
   m_TexDisplay.linearDisplayAsGamma = true;
   m_TexDisplay.rangemax = 1.0f;
+
+  on_checkerBack_clicked();
 
   QWidget *renderContainer = ui->renderContainer;
 
@@ -1162,4 +1165,44 @@ void TextureViewer::on_reset01_clicked()
 
 void TextureViewer::on_visualiseRange_clicked()
 {
+}
+
+void TextureViewer::on_backcolorPick_clicked()
+{
+  QColor col = QColorDialog::getColor(Qt::black, this, tr("Choose background colour"));
+
+  if(!col.isValid())
+    col = QColor(0, 0, 0);
+
+  col = col.toRgb();
+  m_TexDisplay.darkBackgroundColour = m_TexDisplay.lightBackgroundColour =
+      FloatVector(col.redF(), col.greenF(), col.blueF(), 1.0f);
+
+  ui->backcolorPick->setChecked(true);
+  ui->checkerBack->setChecked(false);
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+
+  if(m_Output == NULL)
+  {
+    ui->render->update();
+    ui->pixelcontextgrid->update();
+  }
+}
+
+void TextureViewer::on_checkerBack_clicked()
+{
+  ui->checkerBack->setChecked(true);
+  ui->backcolorPick->setChecked(false);
+
+  m_TexDisplay.lightBackgroundColour = FloatVector(0.81f, 0.81f, 0.81f, 1.0f);
+  m_TexDisplay.darkBackgroundColour = FloatVector(0.57f, 0.57f, 0.57f, 1.0f);
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+
+  if(m_Output == NULL)
+  {
+    ui->render->update();
+    ui->pixelcontextgrid->update();
+  }
 }
