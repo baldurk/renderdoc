@@ -141,6 +141,12 @@
     <ClCompile Include="generated\moc_ResourcePreview.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\RDLabel.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_RDLabel.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -184,6 +190,9 @@
     </ClInclude>
     <ClInclude Include="generated\ui_ResourcePreview.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\RDLabel.h">
+      <Filter>Widgets</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

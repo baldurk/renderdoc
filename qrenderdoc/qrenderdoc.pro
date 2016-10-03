@@ -92,7 +92,8 @@ SOURCES += Code/main.cpp \
     Code/Core.cpp \
     Widgets/RDLineEdit.cpp \
     3rdparty/flowlayout/FlowLayout.cpp \
-    Widgets/ResourcePreview.cpp
+    Widgets/ResourcePreview.cpp \
+    Widgets/RDLabel.cpp
 
 HEADERS  += Windows/MainWindow.h \
     Windows/EventBrowser.h \
@@ -106,7 +107,8 @@ HEADERS  += Windows/MainWindow.h \
     Code/RenderManager.h \
     Widgets/RDLineEdit.h \
     3rdparty/flowlayout/FlowLayout.h \
-    Widgets/ResourcePreview.h
+    Widgets/ResourcePreview.h \
+    Widgets/RDLabel.h
 
 FORMS    += Windows/MainWindow.ui \
     Windows/EventBrowser.ui \
