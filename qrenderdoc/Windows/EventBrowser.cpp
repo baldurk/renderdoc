@@ -12,6 +12,7 @@ enum
   COL_CURRENT,
   COL_FIND,
   COL_BOOKMARK,
+  COL_SELECT_EID,
 };
 
 EventBrowser::EventBrowser(Core *core, QWidget *parent)
@@ -76,9 +77,11 @@ void EventBrowser::OnLogfileLoaded()
   framestart->setData(COL_CURRENT, Qt::UserRole, QVariant(false));
   framestart->setData(COL_FIND, Qt::UserRole, QVariant(false));
   framestart->setData(COL_BOOKMARK, Qt::UserRole, QVariant(false));
+  framestart->setData(COL_SELECT_EID, Qt::UserRole, QVariant(0));
 
   uint lastEID = AddDrawcalls(frame, m_Core->CurDrawcalls());
   frame->setData(COL_EID, Qt::UserRole, QVariant(lastEID));
+  frame->setData(COL_SELECT_EID, Qt::UserRole, QVariant(lastEID));
 
   ui->events->insertTopLevelItem(0, frame);
 
@@ -106,13 +109,22 @@ uint EventBrowser::AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<Fe
     QTreeWidgetItem *child = new QTreeWidgetItem(
         parent,
         QStringList{QString(draws[i].name.elems), QString("%1").arg(draws[i].eventID), "0.0"});
+
     lastEID = AddDrawcalls(child, draws[i].children);
+
     if(lastEID == 0)
+    {
       lastEID = draws[i].eventID;
+
+      if((draws[i].flags & eDraw_SetMarker) && i + 1 < draws.count)
+        lastEID = draws[i + 1].eventID;
+    }
+
     child->setData(COL_EID, Qt::UserRole, QVariant(lastEID));
     child->setData(COL_CURRENT, Qt::UserRole, QVariant(false));
     child->setData(COL_FIND, Qt::UserRole, QVariant(false));
     child->setData(COL_BOOKMARK, Qt::UserRole, QVariant(false));
+    child->setData(COL_SELECT_EID, Qt::UserRole, QVariant(lastEID));
   }
 
   return lastEID;
@@ -130,7 +142,7 @@ void EventBrowser::SetDrawcallTimes(QTreeWidgetItem *node,
   // look up leaf nodes in the dictionary
   if(node->childCount() == 0)
   {
-    uint eid = node->data(COL_EID, Qt::UserRole).toUInt();
+    uint eid = node->data(COL_SELECT_EID, Qt::UserRole).toUInt();
 
     duration = -1.0;
 
@@ -211,7 +223,7 @@ void EventBrowser::on_events_currentItemChanged(QTreeWidgetItem *current, QTreeW
   current->setData(COL_CURRENT, Qt::UserRole, QVariant(true));
   RefreshIcon(current);
 
-  uint EID = current->data(COL_EID, Qt::UserRole).toUInt();
+  uint EID = current->data(COL_SELECT_EID, Qt::UserRole).toUInt();
 
   m_Core->SetEventID(this, EID);
 }
@@ -308,8 +320,8 @@ bool EventBrowser::FindEventNode(QTreeWidgetItem *&found, QTreeWidgetItem *paren
   {
     QTreeWidgetItem *n = parent->child(i);
 
-    uint nEID = n->data(COL_EID, Qt::UserRole).toUInt();
-    uint fEID = found ? found->data(COL_EID, Qt::UserRole).toUInt() : 0;
+    uint nEID = n->data(COL_SELECT_EID, Qt::UserRole).toUInt();
+    uint fEID = found ? found->data(COL_SELECT_EID, Qt::UserRole).toUInt() : 0;
 
     if(nEID >= eventID && (found == NULL || nEID <= fEID))
       found = n;
@@ -419,7 +431,7 @@ QTreeWidgetItem *EventBrowser::FindNode(QTreeWidgetItem *parent, QString filter,
   {
     QTreeWidgetItem *n = parent->child(i);
 
-    uint eid = n->data(COL_EID, Qt::UserRole).toUInt();
+    uint eid = n->data(COL_SELECT_EID, Qt::UserRole).toUInt();
 
     if(eid > after && n->text(COL_NAME).contains(filter, Qt::CaseInsensitive))
       return n;
@@ -446,7 +458,7 @@ int EventBrowser::FindEvent(QTreeWidgetItem *parent, QString filter, uint32_t af
   {
     auto n = parent->child(i);
 
-    uint eid = n->data(COL_EID, Qt::UserRole).toUInt();
+    uint eid = n->data(COL_SELECT_EID, Qt::UserRole).toUInt();
 
     bool matchesAfter = (forward && eid > after) || (!forward && eid < after);
 
@@ -484,7 +496,7 @@ void EventBrowser::Find(bool forward)
 
   uint32_t curEID = m_Core->CurEvent();
   if(!ui->events->selectedItems().isEmpty())
-    curEID = ui->events->selectedItems()[0]->data(COL_EID, Qt::UserRole).toUInt();
+    curEID = ui->events->selectedItems()[0]->data(COL_SELECT_EID, Qt::UserRole).toUInt();
 
   int eid = FindEvent(ui->findEvent->text(), curEID, forward);
   if(eid >= 0)
