@@ -78,7 +78,7 @@ sudo apt-get install libx11-dev libx11-xcb-dev mesa-common-dev libgl1-mesa-dev q
 For Archlinux (as of 2016.08.04) you'll need:
 
 ```
-sudo pacman -S libx11 libx11-xcb xcb-util-keysyms mesa mesa-libgl qt5-base qt5-x11extras cmake
+sudo pacman -S libx11 libxcb xcb-util-keysyms mesa libgl qt5-base qt5-x11extras cmake
 ```
 
 If you know the required packages for another distribution, please share (or pull request this file!)
