@@ -549,9 +549,154 @@ void TextureViewer::UI_UpdateTextureDetails()
 
 void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 {
+  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+
+  // reset high-water mark
+  m_HighWaterStatusLength = 0;
+
+  if(texptr == NULL)
+    return;
+
+  FetchTexture &tex = *texptr;
+
+  bool newtex = true;
+
+  // refresh scroll position
+  setScrollPosition(getScrollPosition());
+
+  UI_UpdateStatusText();
+
+  ui->mipLevel->clear();
+
+  m_TexDisplay.mip = 0;
+  m_TexDisplay.sliceFace = 0;
+
+  bool usemipsettings = true;
+  bool useslicesettings = true;
+
+  if(tex.msSamp > 1)
+  {
+    for(uint32_t i = 0; i < tex.msSamp; i++)
+      ui->mipLevel->addItem(QString("Sample %1").arg(i));
+
+    // add an option to display unweighted average resolved value,
+    // to get an idea of how the samples average
+    if(tex.format.compType != eCompType_UInt && tex.format.compType != eCompType_SInt &&
+       tex.format.compType != eCompType_Depth && (tex.creationFlags & eTextureCreate_DSV) == 0)
+      ui->mipLevel->addItem(tr("Average val"));
+
+    ui->mipLabel->setText(tr("Sample"));
+
+    ui->mipLevel->setCurrentIndex(0);
+  }
+  else
+  {
+    for(uint32_t i = 0; i < tex.mips; i++)
+      ui->mipLevel->addItem(QString::number(i) + QString(" - ") +
+                            QString::number(qMax(1U, tex.width >> i)) + QString("x") +
+                            QString::number(qMax(1U, tex.height >> i)));
+
+    ui->mipLabel->setText(tr("Mip"));
+
+    int highestMip = -1;
+
+    // only switch to the selected mip for outputs, and when changing drawcall
+    /*
+    if (!CurrentTextureIsLocked && m_Following.Type != FollowType.ReadOnly && newdraw)
+      highestMip = m_Following.GetHighestMip(m_Core);
+      */
+
+    // assuming we get a valid mip for the highest mip, only switch to it
+    // if we've selected a new texture, or if it's different than the last mip.
+    // This prevents the case where the user has clicked on another mip and
+    // we don't want to snap their view back when stepping between events with the
+    // same mip used. But it does mean that if they are stepping between
+    // events with different mips used, then we will update in that case.
+    if(highestMip >= 0 && (newtex || highestMip != m_PrevHighestMip))
+    {
+      usemipsettings = false;
+      ui->mipLevel->setCurrentIndex(qBound(0, highestMip, (int)tex.mips - 1));
+    }
+
+    if(ui->mipLevel->currentIndex() == -1)
+      ui->mipLevel->setCurrentIndex(qBound(0, m_PrevHighestMip, (int)tex.mips - 1));
+
+    m_PrevHighestMip = highestMip;
+  }
+
+  if(tex.mips == 1 && tex.msSamp <= 1)
+    ui->mipLevel->setEnabled(false);
+  else
+    ui->mipLevel->setEnabled(true);
+
+  ui->sliceFace->clear();
+
+  if(tex.numSubresources == tex.mips && tex.depth <= 1)
+  {
+    ui->sliceFace->setEnabled(false);
+  }
+  else
+  {
+    ui->mipLevel->setEnabled(true);
+
+    QString cubeFaces[] = {"X+", "X-", "Y+", "Y-", "Z+", "Z-"};
+
+    uint32_t numSlices = (qMax(1U, tex.depth) * tex.numSubresources) / tex.mips;
+
+    // for 3D textures, display the number of slices at this mip
+    if(tex.depth > 1)
+      numSlices = qMax(1u, tex.depth >> (int)ui->mipLevel->currentIndex());
+
+    for(uint32_t i = 0; i < numSlices; i++)
+    {
+      if(tex.cubemap)
+      {
+        QString name = cubeFaces[i % 6];
+        if(numSlices > 6)
+          name = QString("[%1] %2").arg(i / 6).arg(
+              cubeFaces[i % 6]);    // Front 1, Back 2, 3, 4 etc for cube arrays
+        ui->sliceFace->addItem(name);
+      }
+      else
+      {
+        ui->sliceFace->addItem(tr("Slice ") + i);
+      }
+    }
+
+    int firstArraySlice = -1;
+    // only switch to the selected mip for outputs, and when changing drawcall
+    /*
+    if (!CurrentTextureIsLocked && m_Following.Type != FollowType.ReadOnly && newdraw)
+      firstArraySlice = m_Following.GetFirstArraySlice(m_Core);
+      */
+
+    // see above with highestMip and prevHighestMip for the logic behind this
+    if(firstArraySlice >= 0 && (newtex || firstArraySlice != m_PrevFirstArraySlice))
+    {
+      useslicesettings = false;
+      ui->sliceFace->setCurrentIndex(qBound(0, firstArraySlice, (int)numSlices - 1));
+    }
+
+    if(ui->sliceFace->currentIndex() == -1)
+      ui->sliceFace->setCurrentIndex(qBound(0, m_PrevFirstArraySlice, (int)numSlices - 1));
+
+    m_PrevFirstArraySlice = firstArraySlice;
+  }
+
   UI_UpdateFittedScale();
   UI_UpdateTextureDetails();
   UI_UpdateChannels();
+
+  m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
+    // RT_UpdateVisualRange(r);
+
+    RT_UpdateAndDisplay();
+
+    if(m_Output != NULL)
+      RT_PickPixelsAndUpdate();
+
+    // TODO - GetUsage and update TimelineBar
+  });
 }
 
 void TextureViewer::UI_UpdateChannels()
@@ -1205,4 +1350,83 @@ void TextureViewer::on_checkerBack_clicked()
     ui->render->update();
     ui->pixelcontextgrid->update();
   }
+}
+
+void TextureViewer::on_mipLevel_currentIndexChanged(int index)
+{
+  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+  if(texptr == NULL)
+    return;
+
+  FetchTexture &tex = *texptr;
+
+  uint prevSlice = m_TexDisplay.sliceFace;
+
+  if(tex.mips > 1)
+  {
+    m_TexDisplay.mip = (uint32_t)index;
+    m_TexDisplay.sampleIdx = 0;
+  }
+  else
+  {
+    m_TexDisplay.mip = 0;
+    m_TexDisplay.sampleIdx = (uint32_t)index;
+    if(m_TexDisplay.sampleIdx == tex.msSamp)
+      m_TexDisplay.sampleIdx = ~0U;
+  }
+
+  // For 3D textures, update the slice list for this mip
+  if(tex.depth > 1)
+  {
+    uint32_t newSlice = prevSlice >> (int)m_TexDisplay.mip;
+
+    uint32_t numSlices = qMax(1U, tex.depth >> (int)m_TexDisplay.mip);
+
+    ui->sliceFace->clear();
+
+    for(uint32_t i = 0; i < numSlices; i++)
+      ui->sliceFace->addItem(tr("Slice ") + i);
+
+    // changing sliceFace index will handle updating range & re-picking
+    ui->sliceFace->setCurrentIndex((int)qBound(0U, newSlice, numSlices - 1));
+
+    return;
+  }
+
+  // INVOKE_MEMFN(RT_UpdateVisualRange);
+
+  if(m_Output != NULL && m_PickedPoint.x() >= 0 && m_PickedPoint.y() >= 0)
+  {
+    m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
+      if(m_Output != NULL)
+        RT_PickPixelsAndUpdate();
+    });
+  }
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
+void TextureViewer::on_sliceFace_currentIndexChanged(int index)
+{
+  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+  if(texptr == NULL)
+    return;
+
+  FetchTexture &tex = *texptr;
+  m_TexDisplay.sliceFace = (uint32_t)index;
+
+  if(tex.depth > 1)
+    m_TexDisplay.sliceFace = (uint32_t)(index << (int)m_TexDisplay.mip);
+
+  // INVOKE_MEMFN(RT_UpdateVisualRange);
+
+  if(m_Output != NULL && m_PickedPoint.x() >= 0 && m_PickedPoint.y() >= 0)
+  {
+    m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
+      if(m_Output != NULL)
+        RT_PickPixelsAndUpdate();
+    });
+  }
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
 }

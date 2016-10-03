@@ -528,7 +528,14 @@
      </widget>
     </item>
     <item>
-     <widget class="QComboBox" name="mipLevel"/>
+     <widget class="QComboBox" name="mipLevel">
+      <property name="maxVisibleItems">
+       <number>20</number>
+      </property>
+      <property name="sizeAdjustPolicy">
+       <enum>QComboBox::AdjustToContents</enum>
+      </property>
+     </widget>
     </item>
     <item>
      <widget class="QLabel" name="sliceFaceLabel">
@@ -538,7 +545,14 @@
      </widget>
     </item>
     <item>
-     <widget class="QComboBox" name="sliceFace"/>
+     <widget class="QComboBox" name="sliceFace">
+      <property name="maxVisibleItems">
+       <number>20</number>
+      </property>
+      <property name="sizeAdjustPolicy">
+       <enum>QComboBox::AdjustToContents</enum>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -709,6 +723,9 @@
       </property>
       <property name="currentText">
        <string>128</string>
+      </property>
+      <property name="insertPolicy">
+       <enum>QComboBox::NoInsert</enum>
       </property>
      </widget>
     </item>

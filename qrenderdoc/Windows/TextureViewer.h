@@ -37,6 +37,9 @@ private slots:
   void on_zoomOption_currentIndexChanged(int index);
   void on_zoomOption_returnPressed();
 
+  void on_mipLevel_currentIndexChanged(int index);
+  void on_sliceFace_currentIndexChanged(int index);
+
   void on_overlay_currentIndexChanged(int index);
 
   void on_zoomRange_clicked();
@@ -92,6 +95,8 @@ private:
   PixelValue m_CurHoverValue;
 
   int m_HighWaterStatusLength = 0;
+  int m_PrevFirstArraySlice = -1;
+  int m_PrevHighestMip = -1;
 
   Ui::TextureViewer *ui;
   Core *m_Core = NULL;
