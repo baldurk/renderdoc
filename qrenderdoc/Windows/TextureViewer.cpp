@@ -25,8 +25,6 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
   ui->render->SetOutput(m_Core, NULL);
   ui->pixelContext->SetOutput(m_Core, NULL);
 
-  m_PickedPoint = QPoint(-1, -1);
-
   memset(&m_TexDisplay, 0, sizeof(m_TexDisplay));
   m_TexDisplay.sampleIdx = ~0U;
   m_TexDisplay.linearDisplayAsGamma = true;
