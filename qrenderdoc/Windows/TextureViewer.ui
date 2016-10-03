@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>591</width>
+    <width>775</width>
     <height>571</height>
    </rect>
   </property>
@@ -82,14 +82,14 @@
      <number>2</number>
     </property>
     <item>
-     <widget class="QLabel" name="label_5">
+     <widget class="QLabel" name="rangeLabel">
       <property name="text">
        <string>Range</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="lineEdit">
+     <widget class="QLineEdit" name="rangeBlack">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
         <horstretch>0</horstretch>
@@ -108,7 +108,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="lineEdit_2">
+     <widget class="QLineEdit" name="rangeWhite">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
         <horstretch>0</horstretch>
@@ -127,7 +127,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_16">
+     <widget class="QToolButton" name="zoomRange">
       <property name="text">
        <string/>
       </property>
@@ -141,7 +141,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_18">
+     <widget class="QToolButton" name="autoFit">
       <property name="text">
        <string/>
       </property>
@@ -155,7 +155,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_17">
+     <widget class="QToolButton" name="reset01">
       <property name="text">
        <string>...</string>
       </property>
@@ -169,13 +169,16 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_3">
+     <widget class="QToolButton" name="visualiseRange">
       <property name="text">
        <string>...</string>
       </property>
       <property name="icon">
        <iconset resource="../resources.qrc">
         <normaloff>:/Resources/chart_curve.png</normaloff>:/Resources/chart_curve.png</iconset>
+      </property>
+      <property name="checkable">
+       <bool>true</bool>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -207,7 +210,7 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_8">
     <property name="spacing">
-     <number>3</number>
+     <number>2</number>
     </property>
     <property name="leftMargin">
      <number>6</number>
@@ -222,14 +225,18 @@
      <number>2</number>
     </property>
     <item>
-     <widget class="QLabel" name="label_4">
+     <widget class="QLabel" name="overlayLabel">
       <property name="text">
        <string>Overlay</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QComboBox" name="comboBox_4"/>
+     <widget class="QComboBox" name="overlay">
+      <property name="maxVisibleItems">
+       <number>20</number>
+      </property>
+     </widget>
     </item>
    </layout>
   </widget>
@@ -256,7 +263,7 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_9">
     <property name="spacing">
-     <number>3</number>
+     <number>2</number>
     </property>
     <property name="leftMargin">
      <number>6</number>
@@ -357,9 +364,9 @@
   <widget class="QFrame" name="actionToolbar">
    <property name="geometry">
     <rect>
-     <x>340</x>
+     <x>330</x>
      <y>40</y>
-     <width>101</width>
+     <width>149</width>
      <height>28</height>
     </rect>
    </property>
@@ -377,7 +384,7 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_4">
     <property name="spacing">
-     <number>3</number>
+     <number>2</number>
     </property>
     <property name="leftMargin">
      <number>6</number>
@@ -392,14 +399,14 @@
      <number>2</number>
     </property>
     <item>
-     <widget class="QLabel" name="label_6">
+     <widget class="QLabel" name="actionLabel">
       <property name="text">
        <string>Actions</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton">
+     <widget class="QToolButton" name="saveTex">
       <property name="text">
        <string/>
       </property>
@@ -413,13 +420,41 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_2">
+     <widget class="QToolButton" name="texListShow">
       <property name="text">
        <string/>
       </property>
       <property name="icon">
        <iconset resource="../resources.qrc">
         <normaloff>:/Resources/page_white_link.png</normaloff>:/Resources/page_white_link.png</iconset>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="viewTexBuffer">
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset resource="../resources.qrc">
+        <normaloff>:/Resources/page_white_code.png</normaloff>:/Resources/page_white_code.png</iconset>
+      </property>
+      <property name="autoRaise">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QToolButton" name="texListShow_2">
+      <property name="text">
+       <string/>
+      </property>
+      <property name="icon">
+       <iconset resource="../resources.qrc">
+        <normaloff>:/Resources/find.png</normaloff>:/Resources/find.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -433,9 +468,15 @@
     <rect>
      <x>10</x>
      <y>40</y>
-     <width>304</width>
+     <width>299</width>
      <height>28</height>
     </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
    </property>
    <property name="minimumSize">
     <size>
@@ -451,7 +492,7 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_6">
     <property name="spacing">
-     <number>3</number>
+     <number>2</number>
     </property>
     <property name="leftMargin">
      <number>6</number>
@@ -466,7 +507,7 @@
      <number>2</number>
     </property>
     <item>
-     <widget class="QLabel" name="label_3">
+     <widget class="QLabel" name="subResLabel">
       <property name="text">
        <string>Subresource</string>
       </property>
@@ -480,24 +521,24 @@
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label_8">
+     <widget class="QLabel" name="mipLabel">
       <property name="text">
        <string>Mip</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QComboBox" name="comboBox_2"/>
+     <widget class="QComboBox" name="mipLevel"/>
     </item>
     <item>
-     <widget class="QLabel" name="label_9">
+     <widget class="QLabel" name="sliceFaceLabel">
       <property name="text">
        <string>Slice/Face</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QComboBox" name="comboBox_7"/>
+     <widget class="QComboBox" name="sliceFace"/>
     </item>
    </layout>
   </widget>
@@ -506,9 +547,15 @@
     <rect>
      <x>3</x>
      <y>3</y>
-     <width>579</width>
+     <width>701</width>
      <height>28</height>
     </rect>
+   </property>
+   <property name="sizePolicy">
+    <sizepolicy hsizetype="Minimum" vsizetype="Fixed">
+     <horstretch>0</horstretch>
+     <verstretch>0</verstretch>
+    </sizepolicy>
    </property>
    <property name="minimumSize">
     <size>
@@ -524,7 +571,7 @@
    </property>
    <layout class="QHBoxLayout" name="horizontalLayout_5">
     <property name="spacing">
-     <number>3</number>
+     <number>2</number>
     </property>
     <property name="leftMargin">
      <number>6</number>
@@ -539,28 +586,28 @@
      <number>2</number>
     </property>
     <item>
-     <widget class="QLabel" name="label">
+     <widget class="QLabel" name="channelLabel">
       <property name="text">
        <string>Channels</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QComboBox" name="comboBox">
+     <widget class="QComboBox" name="channels">
       <property name="frame">
        <bool>true</bool>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="Line" name="line_2">
+     <widget class="Line" name="depthStencilSep">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_7">
+     <widget class="QToolButton" name="channelRed">
       <property name="text">
        <string>R</string>
       </property>
@@ -576,7 +623,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_6">
+     <widget class="QToolButton" name="channelGreen">
       <property name="text">
        <string>G</string>
       </property>
@@ -592,7 +639,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_5">
+     <widget class="QToolButton" name="channelBlue">
       <property name="text">
        <string>B</string>
       </property>
@@ -611,7 +658,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_4">
+     <widget class="QToolButton" name="channelAlpha">
       <property name="text">
        <string>A</string>
       </property>
@@ -624,21 +671,21 @@
      </widget>
     </item>
     <item>
-     <widget class="Line" name="line_3">
+     <widget class="Line" name="mulSep">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QLabel" name="label_7">
+     <widget class="QLabel" name="mulLabel">
       <property name="text">
        <string>Mul:</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QComboBox" name="comboBox_5">
+     <widget class="QComboBox" name="hdrMul">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
         <horstretch>0</horstretch>
@@ -666,7 +713,28 @@
      </widget>
     </item>
     <item>
-     <widget class="QComboBox" name="comboBox_6">
+     <widget class="Line" name="line_2">
+      <property name="orientation">
+       <enum>Qt::Vertical</enum>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QRadioButton" name="depthDisplay">
+      <property name="text">
+       <string>Depth</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QRadioButton" name="stencilDisplay">
+      <property name="text">
+       <string>Stencil</string>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QComboBox" name="customShader">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
         <horstretch>0</horstretch>
@@ -682,7 +750,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_9">
+     <widget class="QToolButton" name="customCreate">
       <property name="text">
        <string/>
       </property>
@@ -696,7 +764,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_11">
+     <widget class="QToolButton" name="customEdit">
       <property name="text">
        <string/>
       </property>
@@ -710,7 +778,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_8">
+     <widget class="QToolButton" name="customDelete">
       <property name="text">
        <string/>
       </property>
@@ -724,7 +792,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_12">
+     <widget class="QToolButton" name="backcolorPick">
       <property name="text">
        <string/>
       </property>
@@ -741,7 +809,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_10">
+     <widget class="QToolButton" name="checkerBack">
       <property name="text">
        <string/>
       </property>
@@ -761,14 +829,14 @@
      </widget>
     </item>
     <item>
-     <widget class="Line" name="line_4">
+     <widget class="Line" name="gammaSep">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="toolButton_13">
+     <widget class="QToolButton" name="gammaDisplay">
       <property name="minimumSize">
        <size>
         <width>23</width>
@@ -964,14 +1032,14 @@
        </widget>
       </item>
       <item row="1" column="0">
-       <widget class="QPushButton" name="pushButton">
+       <widget class="QPushButton" name="pixelHistory">
         <property name="text">
          <string>History</string>
         </property>
        </widget>
       </item>
       <item row="1" column="1">
-       <widget class="QPushButton" name="pushButton_2">
+       <widget class="QPushButton" name="debugPixelContext">
         <property name="text">
          <string>Debug</string>
         </property>

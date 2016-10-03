@@ -37,6 +37,15 @@ private slots:
   void on_zoomOption_currentIndexChanged(int index);
   void on_zoomOption_returnPressed();
 
+  void on_overlay_currentIndexChanged(int index);
+
+  void on_zoomRange_clicked();
+  void on_autoFit_clicked();
+  void on_reset01_clicked();
+  void on_visualiseRange_clicked();
+
+  void on_channelsWidget_toggled(bool checked) { UI_UpdateChannels(); }
+  void on_channelsWidget_selected(int index) { UI_UpdateChannels(); }
 private:
   void RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pickValue, PixelValue &realValue);
   void RT_PickPixelsAndUpdate();
@@ -46,6 +55,8 @@ private:
   void UI_UpdateStatusText();
   void UI_UpdateTextureDetails();
   void UI_OnTextureSelectionChanged(bool newdraw);
+
+  void UI_UpdateChannels();
 
   void setFitToWindow(bool checked);
 

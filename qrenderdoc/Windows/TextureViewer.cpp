@@ -47,6 +47,29 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
   QObject::connect(ui->zoomOption->lineEdit(), &QLineEdit::returnPressed, this,
                    &TextureViewer::on_zoomOption_returnPressed);
 
+  QObject::connect(ui->depthDisplay, &QToolButton::toggled, this,
+                   &TextureViewer::on_channelsWidget_toggled);
+  QObject::connect(ui->stencilDisplay, &QToolButton::toggled, this,
+                   &TextureViewer::on_channelsWidget_toggled);
+  QObject::connect(ui->flip_y, &QToolButton::toggled, this,
+                   &TextureViewer::on_channelsWidget_toggled);
+  QObject::connect(ui->channelRed, &QToolButton::toggled, this,
+                   &TextureViewer::on_channelsWidget_toggled);
+  QObject::connect(ui->channelGreen, &QToolButton::toggled, this,
+                   &TextureViewer::on_channelsWidget_toggled);
+  QObject::connect(ui->channelBlue, &QToolButton::toggled, this,
+                   &TextureViewer::on_channelsWidget_toggled);
+  QObject::connect(ui->channelAlpha, &QToolButton::toggled, this,
+                   &TextureViewer::on_channelsWidget_toggled);
+  QObject::connect(ui->gammaDisplay, &QToolButton::toggled, this,
+                   &TextureViewer::on_channelsWidget_toggled);
+  QObject::connect(ui->channels, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+                   &TextureViewer::on_channelsWidget_selected);
+  QObject::connect(ui->hdrMul, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+                   &TextureViewer::on_channelsWidget_selected);
+  QObject::connect(ui->customShader, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+                   &TextureViewer::on_channelsWidget_selected);
+
   ui->dockarea->addToolWindow(ui->renderContainer, ToolWindowManager::EmptySpace);
   ui->dockarea->setToolWindowProperties(renderContainer, ToolWindowManager::DisallowUserDocking |
                                                              ToolWindowManager::HideCloseButton |
@@ -136,8 +159,8 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
   vertical->addWidget(ui->dockarea);
 
   Ui_TextureViewer *u = ui;
-  u->pixelcontextgrid->setAlignment(u->pushButton, Qt::AlignCenter);
-  u->pixelcontextgrid->setAlignment(u->pushButton_2, Qt::AlignCenter);
+  u->pixelcontextgrid->setAlignment(u->pixelHistory, Qt::AlignCenter);
+  u->pixelcontextgrid->setAlignment(u->debugPixelContext, Qt::AlignCenter);
 
   QWidget *statusflowWidget = new QWidget(this);
 
@@ -520,6 +543,179 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 {
   UI_UpdateFittedScale();
   UI_UpdateTextureDetails();
+}
+
+void TextureViewer::UI_UpdateChannels()
+{
+  FetchTexture *tex = m_Core->GetTexture(m_TexDisplay.texid);
+
+  /*
+  if (tex != NULL && (tex.creationFlags & TextureCreationFlags.SwapBuffer) != 0)
+  {
+    // swapbuffer is always srgb for 8-bit types, linear for 16-bit types
+    gammaDisplay.Enabled = false;
+
+    if (tex.format.compByteWidth == 2 && !tex.format.special)
+      m_TexDisplay.linearDisplayAsGamma = false;
+    else
+      m_TexDisplay.linearDisplayAsGamma = true;
+  }
+  else
+  {
+    if (tex != null && !tex.format.srgbCorrected)
+      gammaDisplay.Enabled = true;
+    else
+      gammaDisplay.Enabled = false;
+
+    m_TexDisplay.linearDisplayAsGamma = !gammaDisplay.Enabled || gammaDisplay.Checked;
+  }
+
+  if (tex != null && tex.format.srgbCorrected)
+    m_TexDisplay.linearDisplayAsGamma = false;
+
+  bool dsv = false;
+  if (tex != null)
+    dsv = ((tex.creationFlags & TextureCreationFlags.DSV) != 0) || (tex.format.compType ==
+  FormatComponentType.Depth);
+
+  if (dsv &&
+    (string)channels.SelectedItem != "Custom")
+  {
+    customRed.Visible = false;
+    customGreen.Visible = false;
+    customBlue.Visible = false;
+    customAlpha.Visible = false;
+    mulLabel.Visible = false;
+    hdrMul.Visible = false;
+    customShader.Visible = false;
+    customCreate.Visible = false;
+    customEdit.Visible = false;
+    customDelete.Visible = false;
+    depthStencilToolstrip.Visible = true;
+
+    backcolorPick.Visible = false;
+    checkerBack.Visible = false;
+
+    mulSep.Visible = false;
+
+    m_TexDisplay.Red = depthDisplay.Checked;
+    m_TexDisplay.Green = stencilDisplay.Checked;
+    m_TexDisplay.Blue = false;
+    m_TexDisplay.Alpha = false;
+
+    m_TexDisplay.HDRMul = -1.0f;
+    if (m_TexDisplay.CustomShader != ResourceId.Null) { m_CurPixelValue = null; m_CurRealValue =
+  null; UI_UpdateStatusText(); }
+    m_TexDisplay.CustomShader = ResourceId.Null;
+  }
+  else if ((string)channels.SelectedItem == "RGBA" || !m_Core.LogLoaded)
+  {
+    customRed.Visible = true;
+    customGreen.Visible = true;
+    customBlue.Visible = true;
+    customAlpha.Visible = true;
+    mulLabel.Visible = false;
+    hdrMul.Visible = false;
+    customShader.Visible = false;
+    customCreate.Visible = false;
+    customEdit.Visible = false;
+    customDelete.Visible = false;
+    depthStencilToolstrip.Visible = false;
+
+    backcolorPick.Visible = true;
+    checkerBack.Visible = true;
+
+    mulSep.Visible = false;
+
+    m_TexDisplay.Red = customRed.Checked;
+    m_TexDisplay.Green = customGreen.Checked;
+    m_TexDisplay.Blue = customBlue.Checked;
+    m_TexDisplay.Alpha = customAlpha.Checked;
+
+    m_TexDisplay.HDRMul = -1.0f;
+    if (m_TexDisplay.CustomShader != ResourceId.Null) { m_CurPixelValue = null; m_CurRealValue =
+  null; UI_UpdateStatusText(); }
+    m_TexDisplay.CustomShader = ResourceId.Null;
+  }
+  else if ((string)channels.SelectedItem == "RGBM")
+  {
+    customRed.Visible = true;
+    customGreen.Visible = true;
+    customBlue.Visible = true;
+    customAlpha.Visible = false;
+    mulLabel.Visible = true;
+    hdrMul.Visible = true;
+    customShader.Visible = false;
+    customCreate.Visible = false;
+    customEdit.Visible = false;
+    customDelete.Visible = false;
+    depthStencilToolstrip.Visible = false;
+
+    backcolorPick.Visible = false;
+    checkerBack.Visible = false;
+
+    mulSep.Visible = true;
+
+    m_TexDisplay.Red = customRed.Checked;
+    m_TexDisplay.Green = customGreen.Checked;
+    m_TexDisplay.Blue = customBlue.Checked;
+    m_TexDisplay.Alpha = false;
+
+    float mul = 32.0f;
+
+    if (!float.TryParse(hdrMul.Text, out mul))
+      hdrMul.Text = mul.ToString();
+
+    m_TexDisplay.HDRMul = mul;
+    if (m_TexDisplay.CustomShader != ResourceId.Null) { m_CurPixelValue = null; m_CurRealValue =
+  null; UI_UpdateStatusText(); }
+    m_TexDisplay.CustomShader = ResourceId.Null;
+  }
+  else if ((string)channels.SelectedItem == "Custom")
+  {
+    customRed.Visible = true;
+    customGreen.Visible = true;
+    customBlue.Visible = true;
+    customAlpha.Visible = true;
+    mulLabel.Visible = false;
+    hdrMul.Visible = false;
+    customShader.Visible = true;
+    customCreate.Visible = true;
+    customEdit.Visible = true;
+    customDelete.Visible = true;
+    depthStencilToolstrip.Visible = false;
+
+    backcolorPick.Visible = false;
+    checkerBack.Visible = false;
+
+    mulSep.Visible = false;
+
+    m_TexDisplay.Red = customRed.Checked;
+    m_TexDisplay.Green = customGreen.Checked;
+    m_TexDisplay.Blue = customBlue.Checked;
+    m_TexDisplay.Alpha = customAlpha.Checked;
+
+    m_TexDisplay.HDRMul = -1.0f;
+
+    m_TexDisplay.CustomShader = ResourceId.Null;
+    if (m_CustomShaders.ContainsKey(customShader.Text.ToUpperInvariant()))
+    {
+      if (m_TexDisplay.CustomShader == ResourceId.Null) { m_CurPixelValue = null; m_CurRealValue =
+  null; UI_UpdateStatusText(); }
+      m_TexDisplay.CustomShader = m_CustomShaders[customShader.Text.ToUpperInvariant()];
+      customDelete.Enabled = customEdit.Enabled = true;
+    }
+    else
+    {
+      customDelete.Enabled = customEdit.Enabled = false;
+    }
+  }
+
+  m_TexDisplay.FlipY = ui->flip_y->isChecked();
+
+  m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { RT_UpdateAndDisplay(); });
+  // m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { RT_UpdateVisualRange(); });
+  */
 }
 
 void TextureViewer::render_mouseWheel(QWheelEvent *e)
@@ -960,4 +1156,24 @@ void TextureViewer::on_zoomOption_currentIndexChanged(int index)
 void TextureViewer::on_zoomOption_returnPressed()
 {
   UI_SetScale(getCurrentZoomValue());
+}
+
+void TextureViewer::on_overlay_currentIndexChanged(int index)
+{
+}
+
+void TextureViewer::on_zoomRange_clicked()
+{
+}
+
+void TextureViewer::on_autoFit_clicked()
+{
+}
+
+void TextureViewer::on_reset01_clicked()
+{
+}
+
+void TextureViewer::on_visualiseRange_clicked()
+{
 }
