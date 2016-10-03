@@ -2965,6 +2965,25 @@ bool WrappedGLES::Serialise_glVertexAttribPointer(GLuint index, GLint size, GLen
   return true;
 }
 
+bool WrappedGLES::Serialise_glVertexAttribDirectPointer(GLuint index, GLint size, GLenum type,
+                                                  GLboolean normalized, GLsizei stride, const void *pointer, size_t attribDataSize)
+{
+  SERIALISE_ELEMENT(uint32_t, Index, index);
+  SERIALISE_ELEMENT(int32_t, Size, size);
+  SERIALISE_ELEMENT(GLenum, Type, type);
+  SERIALISE_ELEMENT(uint8_t, Norm, normalized);
+  SERIALISE_ELEMENT(uint32_t, Stride, stride);
+  SERIALISE_ELEMENT_BUF(byte *, bytes, pointer, attribDataSize);
+  
+  if(m_State < WRITING)
+  {
+     m_Real.glVertexAttribPointer(Index, Size, Type, Norm, Stride, (const void*)bytes);
+     // TODO PEPE
+     // SAFE_DELTE_ARRAY(bytes);
+  }
+  
+  return true;
+}
 
 void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
                                           GLboolean normalized, GLsizei stride, const void *pointer)
@@ -2973,11 +2992,12 @@ void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 
   if(m_State >= WRITING)
   {
+    
     ContextData &cd = GetCtxData();
     GLResourceRecord *bufrecord = cd.m_BufferRecord[BufferIdx(eGL_ARRAY_BUFFER)];
     GLResourceRecord *varecord = cd.m_VertexArrayRecord;
     GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
-
+          
     if(r)
     {
       if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
@@ -2987,7 +3007,7 @@ void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
       if(m_State == WRITING_CAPFRAME && bufrecord)
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
-      {
+      if (bufrecord != NULL) {
           
         SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
         // TODO PEPE Check

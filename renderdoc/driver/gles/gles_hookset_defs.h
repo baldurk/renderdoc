@@ -97,6 +97,7 @@
     HookInit(glShaderSource); \
     HookInit(glStencilMask); \
     HookInit(glStencilMaskSeparate); \
+    HookInit(glTexImage2D); \
     HookInit(glTexParameteri); \
     HookInit(glTexParameteriv); \
     HookInit(glTexSubImage2D); \
@@ -324,6 +325,7 @@
     HookExtension(PFNGLSHADERSOURCEPROC, glShaderSource); \
     HookExtension(PFNGLSTENCILMASKPROC, glStencilMask); \
     HookExtension(PFNGLSTENCILMASKSEPARATEPROC, glStencilMaskSeparate); \
+    HookExtension(PFNGLTEXIMAGE2DPROC, glTexImage2D); \
     HookExtension(PFNGLTEXPARAMETERIPROC, glTexParameteri); \
     HookExtension(PFNGLTEXPARAMETERIVPROC, glTexParameteriv); \
     HookExtension(PFNGLTEXSUBIMAGE2DPROC, glTexSubImage2D); \
@@ -535,6 +537,7 @@
     HookWrapper4(void, glShaderSource, GLuint, shader, GLsizei, count, const GLchar *const*, string, const GLint *, length); \
     HookWrapper1(void, glStencilMask, GLuint, mask); \
     HookWrapper2(void, glStencilMaskSeparate, GLenum, face, GLuint, mask); \
+    HookWrapper9(void, glTexImage2D, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLsizei, height, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper3(void, glTexParameteri, GLenum, target, GLenum, pname, GLint, param); \
     HookWrapper3(void, glTexParameteriv, GLenum, target, GLenum, pname, const GLint *, params); \
     HookWrapper9(void, glTexSubImage2D, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, const void *, pixels); \
@@ -743,7 +746,6 @@
     HookWrapper4(void, glStencilFuncSeparate, GLenum, face, GLenum, func, GLint, ref, GLuint, mask); \
     HookWrapper3(void, glStencilOp, GLenum, fail, GLenum, zfail, GLenum, zpass); \
     HookWrapper4(void, glStencilOpSeparate, GLenum, face, GLenum, sfail, GLenum, dpfail, GLenum, dppass); \
-    HookWrapper9(void, glTexImage2D, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLsizei, height, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper3(void, glTexParameterf, GLenum, target, GLenum, pname, GLfloat, param); \
     HookWrapper3(void, glTexParameterfv, GLenum, target, GLenum, pname, const GLfloat *, params); \
     HookWrapper1(void, glValidateProgram, GLuint, program); \
@@ -1303,7 +1305,6 @@
     HandleUnsupported(PFNGLSTENCILFUNCSEPARATEPROC, glStencilFuncSeparate); \
     HandleUnsupported(PFNGLSTENCILOPPROC, glStencilOp); \
     HandleUnsupported(PFNGLSTENCILOPSEPARATEPROC, glStencilOpSeparate); \
-    HandleUnsupported(PFNGLTEXIMAGE2DPROC, glTexImage2D); \
     HandleUnsupported(PFNGLTEXPARAMETERFPROC, glTexParameterf); \
     HandleUnsupported(PFNGLTEXPARAMETERFVPROC, glTexParameterfv); \
     HandleUnsupported(PFNGLVALIDATEPROGRAMPROC, glValidateProgram); \

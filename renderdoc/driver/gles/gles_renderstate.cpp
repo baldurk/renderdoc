@@ -288,19 +288,13 @@ void GLRenderState::MarkReferenced(WrappedGLES *gl, bool initial) const
 
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
   {
-    manager->MarkResourceFrameReferenced(TextureRes(ctx, Tex1D[i]),
-                                         initial ? eFrameRef_Unknown : eFrameRef_Read);
     manager->MarkResourceFrameReferenced(TextureRes(ctx, Tex2D[i]),
                                          initial ? eFrameRef_Unknown : eFrameRef_Read);
     manager->MarkResourceFrameReferenced(TextureRes(ctx, Tex3D[i]),
                                          initial ? eFrameRef_Unknown : eFrameRef_Read);
-    manager->MarkResourceFrameReferenced(TextureRes(ctx, Tex1DArray[i]),
-                                         initial ? eFrameRef_Unknown : eFrameRef_Read);
     manager->MarkResourceFrameReferenced(TextureRes(ctx, Tex2DArray[i]),
                                          initial ? eFrameRef_Unknown : eFrameRef_Read);
     manager->MarkResourceFrameReferenced(TextureRes(ctx, TexCubeArray[i]),
-                                         initial ? eFrameRef_Unknown : eFrameRef_Read);
-    manager->MarkResourceFrameReferenced(TextureRes(ctx, TexRect[i]),
                                          initial ? eFrameRef_Unknown : eFrameRef_Read);
     manager->MarkResourceFrameReferenced(TextureRes(ctx, TexBuffer[i]),
                                          initial ? eFrameRef_Unknown : eFrameRef_Read);
@@ -565,12 +559,10 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
   m_Real->glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
 
   RDCCOMPILE_ASSERT(
-      sizeof(Tex1D) == sizeof(Tex2D) && sizeof(Tex2D) == sizeof(Tex3D) &&
-          sizeof(Tex3D) == sizeof(Tex1DArray) && sizeof(Tex1DArray) == sizeof(Tex2DArray) &&
-          sizeof(Tex2DArray) == sizeof(TexCubeArray) && sizeof(TexCubeArray) == sizeof(TexRect) &&
-          sizeof(TexRect) == sizeof(TexBuffer) && sizeof(TexBuffer) == sizeof(TexCube) &&
-          sizeof(TexCube) == sizeof(Tex2DMS) && sizeof(Tex2DMS) == sizeof(Tex2DMSArray) &&
-          sizeof(Tex2DMSArray) == sizeof(Samplers),
+      sizeof(Tex2D) == sizeof(Tex3D) && sizeof(Tex3D) == sizeof(Tex2DArray) && 
+          sizeof(Tex2DArray) == sizeof(TexCubeArray) && sizeof(TexCubeArray) == sizeof(TexBuffer) &&
+          sizeof(TexBuffer) == sizeof(TexCube) && sizeof(TexCube) == sizeof(Tex2DMS) && 
+          sizeof(Tex2DMS) == sizeof(Tex2DMSArray) && sizeof(Tex2DMSArray) == sizeof(Samplers),
       "All texture arrays should be identically sized");
 
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
@@ -1165,13 +1157,10 @@ void GLRenderState::Clear()
 
   RDCEraseEl(Enabled);
 
-  RDCEraseEl(Tex1D);
   RDCEraseEl(Tex2D);
   RDCEraseEl(Tex3D);
-  RDCEraseEl(Tex1DArray);
   RDCEraseEl(Tex2DArray);
   RDCEraseEl(TexCubeArray);
-  RDCEraseEl(TexRect);
   RDCEraseEl(TexBuffer);
   RDCEraseEl(TexCube);
   RDCEraseEl(Tex2DMS);
@@ -1260,18 +1249,15 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedGLES *gl)
   ResourceId ids[128];
 
   GLuint *texArrays[] = {
-      Tex1D,   Tex2D,     Tex3D,   Tex1DArray, Tex2DArray,   TexCubeArray,
-      TexRect, TexBuffer, TexCube, Tex2DMS,    Tex2DMSArray,
+      Tex2D,     Tex3D,   Tex2DArray,   TexCubeArray,
+      TexBuffer, TexCube, Tex2DMS,    Tex2DMSArray,
   };
 
   const char *names[] = {
-      "GL_TEXTURE_BINDING_1D",
       "GL_TEXTURE_BINDING_2D",
       "GL_TEXTURE_BINDING_3D",
-      "GL_TEXTURE_BINDING_1D_ARRAY",
       "GL_TEXTURE_BINDING_2D_ARRAY",
       "GL_TEXTURE_BINDING_CUBE_MAP_ARRAY",
-      "GL_TEXTURE_BINDING_RECTANGLE",
       "GL_TEXTURE_BINDING_BUFFER",
       "GL_TEXTURE_BINDING_CUBE_MAP",
       "GL_TEXTURE_BINDING_2D_MULTISAMPLE",
@@ -1329,8 +1315,9 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedGLES *gl)
     if(state < WRITING && ID != ResourceId())
       VAO = rm->GetLiveResource(ID).name;
 
-    if(VAO == 0)
-      VAO = gl->GetFakeVAO();
+// TODO PEPE CHECK
+//    if(VAO == 0)
+//      VAO = gl->GetFakeVAO();
   }
 
   {

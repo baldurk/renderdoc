@@ -102,13 +102,10 @@ struct GLRenderState
 
   bool Enabled[eEnabled_Count];
 
-  uint32_t Tex1D[128];
   uint32_t Tex2D[128];
   uint32_t Tex3D[128];
-  uint32_t Tex1DArray[128];
   uint32_t Tex2DArray[128];
   uint32_t TexCubeArray[128];
-  uint32_t TexRect[128];
   uint32_t TexBuffer[128];
   uint32_t TexCube[128];
   uint32_t Tex2DMS[128];

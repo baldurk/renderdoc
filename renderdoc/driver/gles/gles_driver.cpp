@@ -306,6 +306,7 @@ const char *GLChunkNames[] = {
     "glBindVertexArray",
     "glVertexAttrib*",
     "glVertexAttribPointer",
+    "glVertexAttribDirectPointer",
     "glVertexAttribIPointer",
     "glVertexAttribLPointer",
     "glEnableVertexAttribArray",
@@ -3248,8 +3249,8 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
         GetResourceManager()->AddLiveResource(vaoId, VertexArrayRes(NULL, 0));
         break;
       }
-//    case GEN_TEXTURE: Serialise_glGenTextures(0, NULL); break;
-//    case ACTIVE_TEXTURE: Serialise_glActiveTexture(eGL_NONE); break;
+    case GEN_TEXTURE: Serialise_glGenTextures(0, NULL); break;
+    case ACTIVE_TEXTURE: Serialise_glActiveTexture(eGL_NONE); break;
     case BIND_TEXTURE: Serialise_glBindTexture(eGL_NONE, 0); break;
 //    case BIND_IMAGE_TEXTURE: Serialise_glBindImageTexture(0, 0, 0, 0, 0, eGL_NONE, eGL_NONE); break;
 //    case TEXSTORAGE1D: Serialise_glTextureStorage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0); break;
@@ -3261,9 +3262,9 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case TEXSTORAGE3DMS:
 //      Serialise_glTexStorage3DMultisample(eGL_NONE, 0, eGL_NONE, 0, 0, 0, GL_FALSE);
 //      break;
-//    case TEXIMAGE2D:
-//      Serialise_glTexImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-//      break;
+    case TEXIMAGE2D:
+      Serialise_glTexImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
+      break;
 //    case TEXIMAGE3D:
 //      Serialise_glTexImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
 //      break;
@@ -3290,7 +3291,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case PIXELSTORE: Serialise_glPixelStorei(eGL_NONE, 0); break;
 //    case TEXPARAMETERF: Serialise_glTextureParameterfEXT(0, eGL_NONE, eGL_NONE, 0); break;
 //    case TEXPARAMETERFV: Serialise_glTextureParameterfvEXT(0, eGL_NONE, eGL_NONE, NULL); break;
-//    case TEXPARAMETERI: Serialise_glTextureParameteriEXT(0, eGL_NONE, eGL_NONE, 0); break;
+    case TEXPARAMETERI: Serialise_glTexParameteri(eGL_NONE, eGL_NONE, 0); break;
 //    case TEXPARAMETERIV: Serialise_glTextureParameterivEXT(0, eGL_NONE, eGL_NONE, NULL); break;
 //    case TEXPARAMETERIIV: Serialise_glTextureParameterIivEXT(0, eGL_NONE, eGL_NONE, NULL); break;
 //    case TEXPARAMETERIUIV: Serialise_glTextureParameterIuivEXT(0, eGL_NONE, eGL_NONE, NULL); break;
@@ -3331,9 +3332,9 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case UNIFORM_BLOCKBIND: Serialise_glUniformBlockBinding(0, 0, 0); break;
 //    case STORAGE_BLOCKBIND: Serialise_glShaderStorageBlockBinding(0, 0, 0); break;
 //    case UNIFORM_SUBROUTINE: Serialise_glUniformSubroutinesuiv(eGL_NONE, 0, NULL); break;
-//    case PROGRAMUNIFORM_VECTOR:
-//      Serialise_glProgramUniformVector(0, eGL_NONE, 0, 0, UNIFORM_UNKNOWN);
-//      break;
+    case PROGRAMUNIFORM_VECTOR:
+      Serialise_glProgramUniformVector(0, eGL_NONE, 0, 0, UNIFORM_UNKNOWN);
+      break;
     case PROGRAMUNIFORM_MATRIX:
       Serialise_glProgramUniformMatrix(0, 0, 0, 0, NULL, UNIFORM_UNKNOWN);
       break;
@@ -3393,8 +3394,8 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case POLYGON_OFFSET_CLAMP: Serialise_glPolygonOffsetClampEXT(0, 0, 0); break;
 //    case CULL_FACE: Serialise_glCullFace(eGL_NONE); break;
 //    case HINT: Serialise_glHint(eGL_NONE, eGL_NONE); break;
-//    case ENABLE: Serialise_glEnable(eGL_NONE); break;
-//    case DISABLE: Serialise_glDisable(eGL_NONE); break;
+    case ENABLE: Serialise_glEnable(eGL_NONE); break;
+    case DISABLE: Serialise_glDisable(eGL_NONE); break;
 //    case ENABLEI: Serialise_glEnablei(eGL_NONE, 0); break;
 //    case DISABLEI: Serialise_glDisablei(eGL_NONE, 0); break;
 //    case FRONT_FACE: Serialise_glFrontFace(eGL_NONE); break;
@@ -3430,8 +3431,8 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case SAMPLE_COVERAGE: Serialise_glSampleCoverage(0.0f, 0); break;
 //    case MIN_SAMPLE_SHADING: Serialise_glMinSampleShading(0.0f); break;
 //    case RASTER_SAMPLES: Serialise_glRasterSamplesEXT(0, 0); break;
-//    case DEPTH_FUNC: Serialise_glDepthFunc(eGL_NONE); break;
-//    case DEPTH_MASK: Serialise_glDepthMask(0); break;
+    case DEPTH_FUNC: Serialise_glDepthFunc(eGL_NONE); break;
+    case DEPTH_MASK: Serialise_glDepthMask(0); break;
 //    case DEPTH_RANGE: Serialise_glDepthRange(0, 0); break;
 //    case DEPTH_RANGEF: Serialise_glDepthRangef(0, 0); break;
 //    case DEPTH_RANGE_IDX: Serialise_glDepthRangeIndexed(0, 0.0, 0.0); break;
@@ -3579,6 +3580,9 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case BIND_VERTEXARRAY: Serialise_glBindVertexArray(0); break;
     case VERTEXATTRIBPOINTER:
       Serialise_glVertexAttribPointer(0, 0, eGL_NONE, 0, 0, 0);
+      break;
+    case VERTEXATTRIBDIRECTPOINTER:
+      Serialise_glVertexAttribDirectPointer(0, 0, eGL_NONE, 0, 0, 0, 0);
       break;
 //    case VERTEXATTRIBIPOINTER:
 //      Serialise_glVertexArrayVertexAttribIOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0);
@@ -3960,21 +3964,9 @@ void WrappedGLES::AddUsage(const FetchDrawcall &d)
               texList = rs.TexBuffer;
               listSize = (int32_t)ARRAY_COUNT(rs.TexBuffer);
               break;
-            case eResType_Texture1D:
-              texList = rs.Tex1D;
-              listSize = (int32_t)ARRAY_COUNT(rs.Tex1D);
-              break;
-            case eResType_Texture1DArray:
-              texList = rs.Tex1DArray;
-              listSize = (int32_t)ARRAY_COUNT(rs.Tex1DArray);
-              break;
             case eResType_Texture2D:
               texList = rs.Tex2D;
               listSize = (int32_t)ARRAY_COUNT(rs.Tex2D);
-              break;
-            case eResType_TextureRect:
-              texList = rs.TexRect;
-              listSize = (int32_t)ARRAY_COUNT(rs.TexRect);
               break;
             case eResType_Texture2DArray:
               texList = rs.Tex2DArray;
@@ -4000,6 +3992,7 @@ void WrappedGLES::AddUsage(const FetchDrawcall &d)
               texList = rs.TexCubeArray;
               listSize = (int32_t)ARRAY_COUNT(rs.TexCubeArray);
               break;
+            default:
             case eResType_Count: RDCERR("Invalid shader resource type"); break;
           }
 

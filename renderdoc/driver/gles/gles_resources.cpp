@@ -852,3 +852,21 @@ GLenum TextureTarget(GLenum target)
 
   return target;
 }
+
+int TextureTargetIndex(GLenum target)
+{
+  switch(target)
+  {
+    case eGL_TEXTURE_2D:                    return 0;
+    case eGL_TEXTURE_2D_ARRAY:              return 1;
+    case eGL_TEXTURE_2D_MULTISAMPLE:        return 2;
+    case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY:  return 3;
+    case eGL_TEXTURE_3D:                    return 4;
+    case eGL_TEXTURE_CUBE_MAP:              return 5;
+    case eGL_TEXTURE_CUBE_MAP_ARRAY:        return 6;
+    case eGL_TEXTURE_BUFFER:                return 7;
+    default:
+      RDCERR("Unexpected target %s", ToStr::Get(target).c_str());
+  }
+  return -1;
+}

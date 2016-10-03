@@ -414,7 +414,8 @@ private:
     string glExtsString;
 
     // state
-    GLResourceRecord *m_TextureRecord[256];    // TODO this needs on per texture type :(
+    static const int numberOfTextureTargetTypes = 8;
+    GLResourceRecord *m_TextureRecord[32][numberOfTextureTargetTypes];    // TODO this needs on per texture type :(
     GLResourceRecord *m_BufferRecord[16];
     GLResourceRecord *m_VertexArrayRecord;
     GLResourceRecord *m_FeedbackRecord;
@@ -425,7 +426,7 @@ private:
     GLuint m_ProgramPipeline;
     GLuint m_Program;
 
-    GLResourceRecord *GetActiveTexRecord() { return m_TextureRecord[m_TextureUnit]; }
+    GLResourceRecord *GetActiveTexRecord(GLenum target) { return m_TextureRecord[m_TextureUnit][TextureTargetIndex(target)]; }
   };
 
   map<void *, ContextData> m_ContextData;
@@ -472,6 +473,12 @@ private:
   map<void *, BackbufferImage *> m_BackbufferImages;
 
   vector<string> globalExts;
+
+  void writeFakeVertexAttribPointer(GLsizei count);
+  bool Serialise_glVertexAttribDirectPointer(GLuint index, GLint size, GLenum type,
+                                             GLboolean normalized, GLsizei stride, const void *pointer, size_t attribDataSize);
+
+
 
   // no copy semantics
   WrappedGLES(const WrappedGLES &);

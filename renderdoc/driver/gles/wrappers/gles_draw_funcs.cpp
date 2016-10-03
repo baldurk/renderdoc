@@ -614,6 +614,86 @@
 //  }
 //}
 
+
+
+size_t calculateVertexPointerSize(GLint size, GLenum type, GLsizei stride, GLsizei count)
+{
+    if (count == 0)
+      return 0;
+
+    if (size > 4) {
+      //os::log("apitrace: warning: %s: unexpected size 0x%04X\n", __FUNCTION__, size);
+    }
+
+    GLsizei elementSize = size;
+    switch (type)
+    {
+      case eGL_UNSIGNED_BYTE:
+      case eGL_BYTE: 
+        // elementSize = size;
+        break;
+      case eGL_UNSIGNED_SHORT:
+      case eGL_SHORT:
+      case eGL_HALF_FLOAT:
+        elementSize *= 2; 
+        break;
+      case eGL_UNSIGNED_INT:
+      case eGL_INT:
+      case eGL_FLOAT: 
+      case eGL_FIXED:
+        elementSize *= 4; break;
+      default:
+        RDCERR("Unexpected type %x", type);
+        break;
+      case eGL_UNSIGNED_INT_10_10_10_2_OES:
+      case eGL_UNSIGNED_INT_2_10_10_10_REV: 
+        elementSize *= 4;
+        break;
+    }
+
+    if (stride == 0)
+      stride = elementSize;
+    
+    return stride * (count - 1) + elementSize;  
+}
+
+
+void WrappedGLES::writeFakeVertexAttribPointer(GLsizei count)
+{
+    // void APIENTRY glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid * pointer)
+    GLint maxVertexAttrib = 0;
+    m_Real.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &maxVertexAttrib);
+    for (GLint index = 0; index < maxVertexAttrib; ++index)
+    {
+        GLint enabled = 0;
+        m_Real.glGetVertexAttribiv(index, eGL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
+        if (enabled) {
+            GLint binding = 0;
+            m_Real.glGetVertexAttribiv(index, eGL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, &binding);
+            if (binding == 0) {
+              GLint size = 0;
+              m_Real.glGetVertexAttribiv(index, eGL_VERTEX_ATTRIB_ARRAY_SIZE, &size);
+              GLint type = 0;
+              m_Real.glGetVertexAttribiv(index, eGL_VERTEX_ATTRIB_ARRAY_TYPE, &type);
+              GLint normalized = 0;
+              m_Real.glGetVertexAttribiv(index, eGL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
+              GLint stride = 0;
+              m_Real.glGetVertexAttribiv(index, eGL_VERTEX_ATTRIB_ARRAY_STRIDE, &stride);
+              GLvoid * pointer = 0;
+              m_Real.glGetVertexAttribPointerv(index, eGL_VERTEX_ATTRIB_ARRAY_POINTER, &pointer);
+              size_t attribDataSize = calculateVertexPointerSize(size, GLenum(type), stride, count);
+                
+              SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBDIRECTPOINTER);
+
+              Serialise_glVertexAttribDirectPointer(index, size, GLenum(type), normalized, stride, pointer, attribDataSize);
+
+              m_ContextRecord->AddChunk(scope.Get());
+                
+            }
+        }
+    }
+}
+
 bool WrappedGLES::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
   SERIALISE_ELEMENT(GLenum, Mode, mode);
@@ -660,6 +740,8 @@ void WrappedGLES::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 
   if(m_State == WRITING_CAPFRAME)
   {
+    writeFakeVertexAttribPointer(count);
+    
     SCOPED_SERIALISE_CONTEXT(DRAWARRAYS);
     Serialise_glDrawArrays(mode, first, count);
 
