@@ -62,12 +62,17 @@ void RenderManager::CloseThread()
 
   m_RenderCondition.wakeAll();
 
+  if(m_Thread == NULL)
+    return;
+
   // wait for the thread to close and clean up
   while(m_Thread->isRunning())
   {
   }
 
   m_Thread->deleteLater();
+
+  m_Thread = NULL;
 }
 
 void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
