@@ -1066,13 +1066,13 @@
     </item>
    </layout>
   </widget>
-  <widget class="QScrollArea" name="resourceThumbs">
+  <widget class="QScrollArea" name="inputThumbs">
    <property name="geometry">
     <rect>
      <x>430</x>
      <y>460</y>
-     <width>120</width>
-     <height>80</height>
+     <width>121</width>
+     <height>81</height>
     </rect>
    </property>
    <property name="frameShape">
@@ -1081,21 +1081,41 @@
    <property name="frameShadow">
     <enum>QFrame::Plain</enum>
    </property>
+   <property name="horizontalScrollBarPolicy">
+    <enum>Qt::ScrollBarAlwaysOff</enum>
+   </property>
    <property name="widgetResizable">
     <bool>true</bool>
    </property>
-   <widget class="QWidget" name="scrollAreaWidgetContents">
+   <widget class="QWidget" name="inputThumbList">
     <property name="geometry">
      <rect>
       <x>0</x>
       <y>0</y>
-      <width>118</width>
-      <height>78</height>
+      <width>119</width>
+      <height>79</height>
      </rect>
     </property>
+    <layout class="QVBoxLayout" name="inputThumbLayout">
+     <property name="spacing">
+      <number>10</number>
+     </property>
+     <property name="leftMargin">
+      <number>5</number>
+     </property>
+     <property name="topMargin">
+      <number>5</number>
+     </property>
+     <property name="rightMargin">
+      <number>5</number>
+     </property>
+     <property name="bottomMargin">
+      <number>5</number>
+     </property>
+    </layout>
    </widget>
   </widget>
-  <widget class="QScrollArea" name="targetThumbs">
+  <widget class="QScrollArea" name="outputThumbs">
    <property name="geometry">
     <rect>
      <x>290</x>
@@ -1110,10 +1130,13 @@
    <property name="frameShadow">
     <enum>QFrame::Plain</enum>
    </property>
+   <property name="horizontalScrollBarPolicy">
+    <enum>Qt::ScrollBarAlwaysOff</enum>
+   </property>
    <property name="widgetResizable">
     <bool>true</bool>
    </property>
-   <widget class="QWidget" name="scrollAreaWidgetContents_2">
+   <widget class="QWidget" name="outputThumbList">
     <property name="geometry">
      <rect>
       <x>0</x>

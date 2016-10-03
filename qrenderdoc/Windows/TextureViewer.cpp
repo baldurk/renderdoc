@@ -2,6 +2,7 @@
 #include "TextureViewer.h"
 #include <QColorDialog>
 #include "Code/Core.h"
+#include "Widgets/ResourcePreview.h"
 #include "FlowLayout.h"
 #include "ui_TextureViewer.h"
 
@@ -104,21 +105,21 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
   ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking |
   ToolWindowManager::HideCloseButton);*/
 
-  ui->dockarea->addToolWindow(ui->resourceThumbs, ToolWindowManager::AreaReference(
-                                                      ToolWindowManager::RightOf,
-                                                      ui->dockarea->areaOf(renderContainer), 0.25f));
-  ui->dockarea->setToolWindowProperties(ui->resourceThumbs, ToolWindowManager::HideCloseButton);
+  ui->dockarea->addToolWindow(ui->inputThumbs, ToolWindowManager::AreaReference(
+                                                   ToolWindowManager::RightOf,
+                                                   ui->dockarea->areaOf(renderContainer), 0.25f));
+  ui->dockarea->setToolWindowProperties(ui->inputThumbs, ToolWindowManager::HideCloseButton);
 
   ui->dockarea->addToolWindow(
-      ui->targetThumbs, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
-                                                         ui->dockarea->areaOf(ui->resourceThumbs)));
-  ui->dockarea->setToolWindowProperties(ui->targetThumbs, ToolWindowManager::HideCloseButton);
+      ui->outputThumbs, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                                         ui->dockarea->areaOf(ui->inputThumbs)));
+  ui->dockarea->setToolWindowProperties(ui->outputThumbs, ToolWindowManager::HideCloseButton);
 
   // need to add a way to make this less than 50% programmatically
   ui->dockarea->addToolWindow(
       ui->pixelContextLayout,
       ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
-                                       ui->dockarea->areaOf(ui->targetThumbs), 0.25f));
+                                       ui->dockarea->areaOf(ui->outputThumbs), 0.25f));
   ui->dockarea->setToolWindowProperties(ui->pixelContextLayout, ToolWindowManager::HideCloseButton);
 
   ui->dockarea->setAllowFloatingWindow(false);
@@ -126,8 +127,8 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
 
   renderContainer->setWindowTitle(tr("Unbound"));
   ui->pixelContextLayout->setWindowTitle(tr("Pixel Context"));
-  ui->targetThumbs->setWindowTitle(tr("OM Targets"));
-  ui->resourceThumbs->setWindowTitle(tr("PS Resources"));
+  ui->outputThumbs->setWindowTitle(tr("Outputs"));
+  ui->inputThumbs->setWindowTitle(tr("Inputs"));
 
   QVBoxLayout *vertical = new QVBoxLayout(this);
 
