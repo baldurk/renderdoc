@@ -12,6 +12,10 @@
 struct IReplayRenderer;
 class LambdaThread;
 
+// simple helper for the common case of 'we just need to run this on the render thread
+#define INVOKE_MEMFN(function) \
+  m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { function(); });
+
 class RenderManager
 {
 public:
