@@ -91,7 +91,8 @@ SOURCES += Code/main.cpp \
     Code/RenderManager.cpp \
     Code/Core.cpp \
     Widgets/LineEditFocusWidget.cpp \
-    3rdparty/flowlayout/FlowLayout.cpp
+    3rdparty/flowlayout/FlowLayout.cpp \
+    Widgets/ResourcePreview.cpp
 
 HEADERS  += Windows/MainWindow.h \
     Windows/EventBrowser.h \
@@ -104,12 +105,14 @@ HEADERS  += Windows/MainWindow.h \
     Code/Core.h \
     Code/RenderManager.h \
     Widgets/LineEditFocusWidget.h \
-    3rdparty/flowlayout/FlowLayout.h
+    3rdparty/flowlayout/FlowLayout.h \
+    Widgets/ResourcePreview.h
 
 FORMS    += Windows/MainWindow.ui \
     Windows/EventBrowser.ui \
     Windows/TextureViewer.ui \
-    Windows/AboutDialog.ui
+    Windows/AboutDialog.ui \
+    Widgets/ResourcePreview.ui
 
 RESOURCES += \
     resources.qrc

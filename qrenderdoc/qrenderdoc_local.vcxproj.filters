@@ -135,6 +135,12 @@
     <ClCompile Include="Code\RenderManager.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\ResourcePreview.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_ResourcePreview.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -172,6 +178,12 @@
     </ClInclude>
     <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManagerWrapper.h">
       <Filter>3rdparty\ToolWindowManager</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\ResourcePreview.h">
+      <Filter>Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_ResourcePreview.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -368,6 +380,9 @@
     <None Include="3rdparty\Qt\bin32\Qt5Core.dll" />
     <None Include="3rdparty\Qt\bin32\Qt5Gui.dll" />
     <None Include="3rdparty\Qt\bin32\Qt5Widgets.dll" />
+    <None Include="Widgets\ResourcePreview.ui">
+      <Filter>Widgets</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="generated\ui_AboutDialog.h">

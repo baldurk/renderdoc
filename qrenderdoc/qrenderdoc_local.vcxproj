@@ -282,11 +282,13 @@
     <ClCompile Include="generated\moc_EventBrowser.cpp" />
     <ClCompile Include="generated\moc_LineEditFocusWidget.cpp" />
     <ClCompile Include="generated\moc_MainWindow.cpp" />
+    <ClCompile Include="generated\moc_ResourcePreview.cpp" />
     <ClCompile Include="generated\moc_TextureViewer.cpp" />
     <ClCompile Include="generated\moc_ToolWindowManager.cpp" />
     <ClCompile Include="generated\moc_ToolWindowManagerArea.cpp" />
     <ClCompile Include="generated\moc_ToolWindowManagerWrapper.cpp" />
     <ClCompile Include="generated\qrc_resources.cpp" />
+    <ClCompile Include="Widgets\ResourcePreview.cpp" />
     <ClCompile Include="Windows\AboutDialog.cpp" />
     <ClCompile Include="Code\Core.cpp" />
     <ClCompile Include="Widgets\CustomPaintWidget.cpp" />
@@ -313,7 +315,9 @@
     <ClInclude Include="generated\ui_AboutDialog.h" />
     <ClInclude Include="generated\ui_EventBrowser.h" />
     <ClInclude Include="generated\ui_MainWindow.h" />
+    <ClInclude Include="generated\ui_ResourcePreview.h" />
     <ClInclude Include="generated\ui_TextureViewer.h" />
+    <ClInclude Include="Widgets\ResourcePreview.h" />
     <ClInclude Include="Windows\AboutDialog.h" />
     <ClInclude Include="Code\Core.h" />
     <ClInclude Include="Widgets\CustomPaintWidget.h" />
@@ -328,6 +332,7 @@
     <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManagerWrapper.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Widgets\ResourcePreview.ui" />
     <None Include="Windows\AboutDialog.ui" />
     <None Include="Windows\EventBrowser.ui" />
     <None Include="Windows\MainWindow.ui" />
