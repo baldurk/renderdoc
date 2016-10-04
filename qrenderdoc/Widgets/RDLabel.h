@@ -34,7 +34,7 @@ public:
   ~RDLabel();
 
 signals:
-  void clicked();
+  void clicked(QMouseEvent *event);
 
 public slots:
 

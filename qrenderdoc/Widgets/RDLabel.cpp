@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "RDLabel.h"
+#include <QMouseEvent>
 
 RDLabel::RDLabel(QWidget *parent) : QLabel(parent)
 {
@@ -34,5 +35,5 @@ RDLabel::~RDLabel()
 
 void RDLabel::mousePressEvent(QMouseEvent *event)
 {
-  emit(clicked());
+  emit(clicked(event));
 }
