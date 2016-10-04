@@ -95,7 +95,6 @@ SOURCES += Code/main.cpp \
     Widgets/ResourcePreview.cpp \
     Widgets/RDLabel.cpp \
     Widgets/ThumbnailStrip.cpp \
-    Code/CaptureContext.cpp \
     Code/CommonPipelineState.cpp
 
 HEADERS  += Windows/MainWindow.h \
@@ -113,7 +112,6 @@ HEADERS  += Windows/MainWindow.h \
     Widgets/ResourcePreview.h \
     Widgets/RDLabel.h \
     Widgets/ThumbnailStrip.h \
-    Code/CaptureContext.h \
     Code/CommonPipelineState.h
 
 FORMS    += Windows/MainWindow.ui \
