@@ -475,10 +475,6 @@ private:
   vector<string> globalExts;
 
   void writeFakeVertexAttribPointer(GLsizei count);
-  bool Serialise_glVertexAttribDirectPointer(GLuint index, GLint size, GLenum type,
-                                             GLboolean normalized, GLsizei stride, const void *pointer, size_t attribDataSize);
-
-
 
   // no copy semantics
   WrappedGLES(const WrappedGLES &);
@@ -540,6 +536,9 @@ public:
   bool Serialise_glCreateShaderProgramv(GLuint real, GLenum type, GLsizei count,
                                         const GLchar *const *strings);
   bool Serialise_glCreateProgram(GLuint real);
+  
+  bool Serialise_glVertexAttribPointer(GLuint index, GLint size, GLenum type,
+                                       GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize);
 
 
   enum AttribType

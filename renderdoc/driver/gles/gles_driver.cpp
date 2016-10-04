@@ -306,7 +306,6 @@ const char *GLChunkNames[] = {
     "glBindVertexArray",
     "glVertexAttrib*",
     "glVertexAttribPointer",
-    "glVertexAttribDirectPointer",
     "glVertexAttribIPointer",
     "glVertexAttribLPointer",
     "glEnableVertexAttribArray",
@@ -1214,10 +1213,10 @@ void WrappedGLES::ContextData::CreateDebugData(const GLHookSet &gl)
       gl.glCompileShader(frag);
       
       static int counter_v = 0;
-      dump_to_file("errpr5-" + std::to_string(counter_v), vsc);
+      // dump_to_file("errpr5-" + std::to_string(counter_v), vsc);
 
       static int counter_f = 0;
-      dump_to_file("errpr6-" + std::to_string(counter_f), fsc);
+      // dump_to_file("errpr6-" + std::to_string(counter_f), fsc);
 
       char buffer[1024] = {0};
       GLint status = 0;
@@ -3579,10 +3578,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case CREATE_VERTEXARRAY: Serialise_glCreateVertexArrays(0, NULL); break;
     case BIND_VERTEXARRAY: Serialise_glBindVertexArray(0); break;
     case VERTEXATTRIBPOINTER:
-      Serialise_glVertexAttribPointer(0, 0, eGL_NONE, 0, 0, 0);
-      break;
-    case VERTEXATTRIBDIRECTPOINTER:
-      Serialise_glVertexAttribDirectPointer(0, 0, eGL_NONE, 0, 0, 0, 0);
+      Serialise_glVertexAttribPointer(0, 0, eGL_NONE, 0, 0, 0, 0);
       break;
 //    case VERTEXATTRIBIPOINTER:
 //      Serialise_glVertexArrayVertexAttribIOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0);

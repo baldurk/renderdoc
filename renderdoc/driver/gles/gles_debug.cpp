@@ -68,7 +68,7 @@ GLuint GLESReplay::CreateCShaderProgram(const vector<string> &csSources)
     srcs.push_back(csSources[i].c_str());
 
   static int counter = 0;
-  dump_to_file("errpr1-" + std::to_string(counter), srcs);
+  // dump_to_file("errpr1-" + std::to_string(counter), srcs);
 
   gl.glShaderSource(cs, (GLsizei)srcs.size(), &srcs[0], NULL);
 
@@ -138,7 +138,7 @@ GLuint GLESReplay::CreateShaderProgram(const vector<string> &vsSources,
       srcs.push_back(vsSources[i].c_str());
 
     static int counter = 0;
-    dump_to_file("errpr2-" + std::to_string(counter), srcs);
+    // dump_to_file("errpr2-" + std::to_string(counter), srcs);
 
     gl.glShaderSource(vs, (GLsizei)srcs.size(), &srcs[0], NULL);
 
@@ -163,7 +163,7 @@ GLuint GLESReplay::CreateShaderProgram(const vector<string> &vsSources,
       srcs.push_back(fsSources[i].c_str());
     static int counter = 0;
     
-    dump_to_file("errpr3-" + std::to_string(counter), srcs);
+    // dump_to_file("errpr3-" + std::to_string(counter), srcs);
     gl.glShaderSource(fs, (GLsizei)srcs.size(), &srcs[0], NULL);
 
     gl.glCompileShader(fs);
@@ -187,7 +187,7 @@ GLuint GLESReplay::CreateShaderProgram(const vector<string> &vsSources,
       srcs.push_back(gsSources[i].c_str());
 
     static int counter = 0;
-    dump_to_file("errpr4-" + std::to_string(counter), srcs);
+    // dump_to_file("errpr4-" + std::to_string(counter), srcs);
 
     gl.glShaderSource(gs, (GLsizei)srcs.size(), &srcs[0], NULL);
 
@@ -268,7 +268,7 @@ void GLESReplay::InitDebugData()
   vector<string> cs;
 
   GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
-  dump_to_file("vs_program", vs);
+  // dump_to_file("vs_program", vs);
   DebugData.texDisplayVSProg = CreateShaderProgram(vs, empty);
 
   for(int i = 0; i < 3; i++)
@@ -280,7 +280,7 @@ void GLESReplay::InitDebugData()
 
     DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
     
-    dump_to_file("fs_program" + string(1, '0' + i), fs);
+    // dump_to_file("fs_program" + string(1, '0' + i), fs);
   }
 
 

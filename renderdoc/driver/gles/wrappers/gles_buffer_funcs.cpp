@@ -2948,7 +2948,7 @@ void WrappedGLES::glEndTransformFeedback()
 //
 
 bool WrappedGLES::Serialise_glVertexAttribPointer(GLuint index, GLint size, GLenum type,
-                                                  GLboolean normalized, GLsizei stride, const void *pointer)
+                                                  GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize)
 {
 
   SERIALISE_ELEMENT(uint32_t, Index, index);
@@ -2956,32 +2956,21 @@ bool WrappedGLES::Serialise_glVertexAttribPointer(GLuint index, GLint size, GLen
   SERIALISE_ELEMENT(GLenum, Type, type);
   SERIALISE_ELEMENT(uint8_t, Norm, normalized);
   SERIALISE_ELEMENT(uint32_t, Stride, stride);
+  SERIALISE_ELEMENT(bool, LocalData, dataSize != 0);
   SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)pointer);
+  SERIALISE_ELEMENT_BUF(byte *, bytes, pointer, dataSize);
 
   if(m_State < WRITING)
   {
-     m_Real.glVertexAttribPointer(Index, Size, Type, Norm, Stride, (const void*)Offset);
+    if (LocalData) 
+      m_Real.glVertexAttribPointer(Index, Size, Type, Norm, Stride, (const void*)bytes);
+    else
+      m_Real.glVertexAttribPointer(Index, Size, Type, Norm, Stride, (const void*)Offset);
   }
-  return true;
-}
+  
+  // TODO PEPE record the address of the allocated byte array to be able to relase it
+  // SAFE_DELTE_ARRAY(bytes);
 
-bool WrappedGLES::Serialise_glVertexAttribDirectPointer(GLuint index, GLint size, GLenum type,
-                                                  GLboolean normalized, GLsizei stride, const void *pointer, size_t attribDataSize)
-{
-  SERIALISE_ELEMENT(uint32_t, Index, index);
-  SERIALISE_ELEMENT(int32_t, Size, size);
-  SERIALISE_ELEMENT(GLenum, Type, type);
-  SERIALISE_ELEMENT(uint8_t, Norm, normalized);
-  SERIALISE_ELEMENT(uint32_t, Stride, stride);
-  SERIALISE_ELEMENT_BUF(byte *, bytes, pointer, attribDataSize);
-  
-  if(m_State < WRITING)
-  {
-     m_Real.glVertexAttribPointer(Index, Size, Type, Norm, Stride, (const void*)bytes);
-     // TODO PEPE
-     // SAFE_DELTE_ARRAY(bytes);
-  }
-  
   return true;
 }
 
@@ -3008,11 +2997,8 @@ void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
       if (bufrecord != NULL) {
-          
         SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
-        // TODO PEPE Check
-        Serialise_glVertexAttribPointer(index, size, type, normalized, stride, pointer);
-
+        Serialise_glVertexAttribPointer(index, size, type, normalized, stride, pointer, 0);
         r->AddChunk(scope.Get());
       }
     }

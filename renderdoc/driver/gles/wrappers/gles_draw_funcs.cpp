@@ -683,10 +683,8 @@ void WrappedGLES::writeFakeVertexAttribPointer(GLsizei count)
               m_Real.glGetVertexAttribPointerv(index, eGL_VERTEX_ATTRIB_ARRAY_POINTER, &pointer);
               size_t attribDataSize = calculateVertexPointerSize(size, GLenum(type), stride, count);
                 
-              SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBDIRECTPOINTER);
-
-              Serialise_glVertexAttribDirectPointer(index, size, GLenum(type), normalized, stride, pointer, attribDataSize);
-
+              SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
+              Serialise_glVertexAttribPointer(index, size, GLenum(type), normalized, stride, pointer, attribDataSize);
               m_ContextRecord->AddChunk(scope.Get());
                 
             }
