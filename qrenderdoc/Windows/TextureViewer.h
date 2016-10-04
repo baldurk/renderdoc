@@ -34,6 +34,10 @@ namespace Ui
 class TextureViewer;
 }
 
+class ResourcePreview;
+class ThumbnailStrip;
+struct Following;
+
 class TextureViewer : public QFrame, public ILogViewerForm
 {
 private:
@@ -52,6 +56,8 @@ private slots:
   void render_mouseMove(QMouseEvent *e);
   void render_mouseWheel(QWheelEvent *e);
   void render_resize(QResizeEvent *e);
+
+  void on_thumb_clicked(QMouseEvent *);
 
   void on_renderHScroll_valueChanged(int position);
   void on_renderVScroll_valueChanged(int position);
@@ -87,6 +93,18 @@ private:
   void UI_OnTextureSelectionChanged(bool newdraw);
 
   void UI_UpdateChannels();
+
+  ResourcePreview *UI_CreateThumbnail(ThumbnailStrip *strip);
+  void UI_CreateThumbnails();
+  void InitResourcePreview(ResourcePreview *prev, ResourceId id, FormatComponentType typeHint,
+                           bool force, Following &follow, const QString &bindName,
+                           const QString &slotName);
+
+  void InitStageResourcePreviews(ShaderStageType stage,
+                                 const rdctype::array<ShaderResource> &resourceDetails,
+                                 const rdctype::array<BindpointMap> &mapping,
+                                 QMap<BindpointMap, QVector<BoundResource>> &ResList,
+                                 ThumbnailStrip *prevs, int &prevIndex, bool copy, bool rw);
 
   void setFitToWindow(bool checked);
 

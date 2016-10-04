@@ -38,6 +38,263 @@ struct Formatter
   static QString Format(int32_t i) { return QString::number(i); }
 };
 
+enum struct FollowType
+{
+  OutputColour,
+  OutputDepth,
+  ReadWrite,
+  ReadOnly
+};
+
+struct Following
+{
+  FollowType Type;
+  ShaderStageType Stage;
+  int index;
+  int arrayEl;
+
+  static const Following Default;
+
+  Following()
+  {
+    Type = FollowType::OutputColour;
+    Stage = eShaderStage_Pixel;
+    index = 0;
+    arrayEl = 0;
+  }
+
+  Following(FollowType t, ShaderStageType s, int i, int a)
+  {
+    Type = t;
+    Stage = s;
+    index = i;
+    arrayEl = a;
+  }
+
+  bool operator==(const Following &o)
+  {
+    return Type == o.Type && Stage == o.Stage && index == o.index;
+  }
+  bool operator!=(const Following &o) { return !(*this == o); }
+  static void GetDrawContext(CaptureContext *ctx, bool &copy, bool &compute)
+  {
+    const FetchDrawcall *curDraw = ctx->CurDrawcall();
+    copy = curDraw != NULL && (curDraw->flags & (eDraw_Copy | eDraw_Resolve));
+    compute = curDraw != NULL && (curDraw->flags & eDraw_Dispatch) &&
+              ctx->CurPipelineState.GetShader(eShaderStage_Compute) != ResourceId();
+  }
+
+  int GetHighestMip(CaptureContext *ctx) { return GetBoundResource(ctx, arrayEl).HighestMip; }
+  int GetFirstArraySlice(CaptureContext *ctx) { return GetBoundResource(ctx, arrayEl).FirstSlice; }
+  FormatComponentType GetTypeHint(CaptureContext *ctx)
+  {
+    return GetBoundResource(ctx, arrayEl).typeHint;
+  }
+
+  ResourceId GetResourceId(CaptureContext *ctx) { return GetBoundResource(ctx, arrayEl).Id; }
+  BoundResource GetBoundResource(CaptureContext *ctx, int arrayIdx)
+  {
+    BoundResource ret;
+
+    if(Type == FollowType::OutputColour)
+    {
+      auto outputs = GetOutputTargets(ctx);
+
+      if(index < outputs.size())
+        ret = outputs[index];
+    }
+    else if(Type == FollowType::OutputDepth)
+    {
+      ret = GetDepthTarget(ctx);
+    }
+    else if(Type == FollowType::ReadWrite)
+    {
+      auto rw = GetReadWriteResources(ctx);
+
+      ShaderBindpointMapping mapping = GetMapping(ctx);
+
+      if(index < mapping.ReadWriteResources.count)
+      {
+        BindpointMap &key = mapping.ReadWriteResources[index];
+
+        if(rw.contains(key))
+          ret = rw[key][arrayIdx];
+      }
+    }
+    else if(Type == FollowType::ReadOnly)
+    {
+      auto ro = GetReadOnlyResources(ctx);
+
+      ShaderBindpointMapping mapping = GetMapping(ctx);
+
+      if(index < mapping.ReadOnlyResources.count)
+      {
+        BindpointMap &key = mapping.ReadOnlyResources[index];
+
+        if(ro.contains(key))
+          ret = ro[key][arrayIdx];
+      }
+    }
+
+    return ret;
+  }
+
+  static QVector<BoundResource> GetOutputTargets(CaptureContext *ctx)
+  {
+    const FetchDrawcall *curDraw = ctx->CurDrawcall();
+    bool copy = false, compute = false;
+    GetDrawContext(ctx, copy, compute);
+
+    if(copy)
+    {
+      return {BoundResource(curDraw->copyDestination)};
+    }
+    else if(compute)
+    {
+      return {};
+    }
+    else
+    {
+      QVector<BoundResource> ret = ctx->CurPipelineState.GetOutputTargets();
+
+      if(ret.isEmpty() && curDraw != NULL && (curDraw->flags & eDraw_Present))
+      {
+        if(curDraw->copyDestination != ResourceId())
+          return {BoundResource(curDraw->copyDestination)};
+
+        auto &texlist = ctx->GetTextures();
+        for(int i = 0; i < texlist.count; i++)
+          if((texlist[i].creationFlags & eTextureCreate_SwapBuffer))
+            return {BoundResource(texlist[i].ID)};
+      }
+
+      return ret;
+    }
+  }
+
+  static BoundResource GetDepthTarget(CaptureContext *ctx)
+  {
+    bool copy = false, compute = false;
+    GetDrawContext(ctx, copy, compute);
+
+    if(copy || compute)
+      return BoundResource(ResourceId());
+    else
+      return ctx->CurPipelineState.GetDepthTarget();
+  }
+
+  QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext *ctx)
+  {
+    return GetReadWriteResources(ctx, Stage);
+  }
+
+  static QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext *ctx,
+                                                                          ShaderStageType stage)
+  {
+    bool copy = false, compute = false;
+    GetDrawContext(ctx, copy, compute);
+
+    if(copy)
+    {
+      return QMap<BindpointMap, QVector<BoundResource>>();
+    }
+    else if(compute)
+    {
+      // only return compute resources for one stage
+      if(stage == eShaderStage_Pixel || stage == eShaderStage_Compute)
+        return ctx->CurPipelineState.GetReadWriteResources(eShaderStage_Compute);
+      else
+        return QMap<BindpointMap, QVector<BoundResource>>();
+    }
+    else
+    {
+      return ctx->CurPipelineState.GetReadWriteResources(stage);
+    }
+  }
+
+  QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext *ctx)
+  {
+    return GetReadOnlyResources(ctx, Stage);
+  }
+
+  static QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext *ctx,
+                                                                         ShaderStageType stage)
+  {
+    const FetchDrawcall *curDraw = ctx->CurDrawcall();
+    bool copy = false, compute = false;
+    GetDrawContext(ctx, copy, compute);
+
+    if(copy)
+    {
+      QMap<BindpointMap, QVector<BoundResource>> ret;
+
+      // only return copy source for one stage
+      if(stage == eShaderStage_Pixel)
+        ret[BindpointMap(0, 0)] = {BoundResource(curDraw->copySource)};
+
+      return ret;
+    }
+    else if(compute)
+    {
+      // only return compute resources for one stage
+      if(stage == eShaderStage_Pixel || stage == eShaderStage_Compute)
+        return ctx->CurPipelineState.GetReadOnlyResources(eShaderStage_Compute);
+      else
+        return QMap<BindpointMap, QVector<BoundResource>>();
+    }
+    else
+    {
+      return ctx->CurPipelineState.GetReadOnlyResources(stage);
+    }
+  }
+
+  ShaderReflection *GetReflection(CaptureContext *ctx) { return GetReflection(ctx, Stage); }
+  static ShaderReflection *GetReflection(CaptureContext *ctx, ShaderStageType stage)
+  {
+    bool copy = false, compute = false;
+    GetDrawContext(ctx, copy, compute);
+
+    if(copy)
+      return NULL;
+    else if(compute)
+      return ctx->CurPipelineState.GetShaderReflection(eShaderStage_Compute);
+    else
+      return ctx->CurPipelineState.GetShaderReflection(stage);
+  }
+
+  ShaderBindpointMapping GetMapping(CaptureContext *ctx) { return GetMapping(ctx, Stage); }
+  static ShaderBindpointMapping GetMapping(CaptureContext *ctx, ShaderStageType stage)
+  {
+    bool copy = false, compute = false;
+    GetDrawContext(ctx, copy, compute);
+
+    if(copy)
+    {
+      ShaderBindpointMapping mapping;
+
+      // for PS only add a single mapping to get the copy source
+      if(stage == eShaderStage_Pixel)
+        mapping.ReadOnlyResources = {BindpointMap(0, 0)};
+
+      return mapping;
+    }
+    else if(compute)
+    {
+      return ctx->CurPipelineState.GetBindpointMapping(eShaderStage_Compute);
+    }
+    else
+    {
+      return ctx->CurPipelineState.GetBindpointMapping(stage);
+    }
+  }
+};
+
+Q_DECLARE_METATYPE(Following);
+
+const Following Following::Default = Following();
+
+Following m_Following = Following::Default;
+
 TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::TextureViewer), m_Ctx(ctx)
 {
@@ -475,53 +732,38 @@ void TextureViewer::UI_UpdateTextureDetails()
 
   FetchTexture &current = *texptr;
 
-#if 1
-  ui->renderContainer->setWindowTitle(tr(current.name.elems));
-#else
   ResourceId followID = m_Following.GetResourceId(m_Ctx);
 
   {
-    bool found = false;
+    FetchTexture *followtex = m_Ctx->GetTexture(followID);
+    FetchBuffer *followbuf = m_Ctx->GetBuffer(followID);
 
-    string name = "";
+    QString title;
 
-    foreach(var t in m_Ctx.CurTextures)
+    if(followID == ResourceId())
     {
-      if(t.ID == followID)
-      {
-        name = t.name;
-        found = true;
-      }
+      title = tr("Unbound");
     }
+    else if(followtex || followbuf)
+    {
+      QString name;
 
-    foreach(var b in m_Ctx.CurBuffers)
-    {
-      if(b.ID == followID)
-      {
-        name = b.name;
-        found = true;
-      }
-    }
+      if(followtex)
+        name = followtex->name.elems;
+      else
+        name = followbuf->name.elems;
 
-    if(followID == ResourceId.Null)
-    {
-      m_PreviewPanel.Text = "Unbound";
-    }
-    else if(found)
-    {
       switch(m_Following.Type)
       {
-        case FollowType.OutputColour:
-          m_PreviewPanel.Text = string.Format("Cur Output {0} - {1}", m_Following.index, name);
+        case FollowType::OutputColour:
+          title = QString(tr("Cur Output %1 - %2")).arg(m_Following.index).arg(name);
           break;
-        case FollowType.OutputDepth:
-          m_PreviewPanel.Text = string.Format("Cur Depth Output - {0}", name);
+        case FollowType::OutputDepth: title = QString(tr("Cur Depth Output - %1")).arg(name); break;
+        case FollowType::ReadWrite:
+          title = QString(tr("Cur RW Output %1 - %2")).arg(m_Following.index).arg(name);
           break;
-        case FollowType.ReadWrite:
-          m_PreviewPanel.Text = string.Format("Cur RW Output - {0}", name);
-          break;
-        case FollowType.ReadOnly:
-          m_PreviewPanel.Text = string.Format("Cur Input {0} - {1}", m_Following.index, name);
+        case FollowType::ReadOnly:
+          title = QString(tr("Cur Input %1 - %2")).arg(m_Following.index).arg(name);
           break;
       }
     }
@@ -529,18 +771,21 @@ void TextureViewer::UI_UpdateTextureDetails()
     {
       switch(m_Following.Type)
       {
-        case FollowType.OutputColour:
-          m_PreviewPanel.Text = string.Format("Cur Output {0}", m_Following.index);
+        case FollowType::OutputColour:
+          title = QString(tr("Cur Output %1")).arg(m_Following.index);
           break;
-        case FollowType.OutputDepth: m_PreviewPanel.Text = string.Format("Cur Depth Output"); break;
-        case FollowType.ReadWrite: m_PreviewPanel.Text = string.Format("Cur RW Output"); break;
-        case FollowType.ReadOnly:
-          m_PreviewPanel.Text = string.Format("Cur Input {0}", m_Following.index);
+        case FollowType::OutputDepth: title = QString(tr("Cur Depth Output")); break;
+        case FollowType::ReadWrite:
+          title = QString(tr("Cur RW Output %1")).arg(m_Following.index);
+          break;
+        case FollowType::ReadOnly:
+          title = QString(tr("Cur Input %1")).arg(m_Following.index);
           break;
       }
     }
+
+    ui->renderContainer->setWindowTitle(title);
   }
-#endif
 
   status = QString(current.name.elems) + " - ";
 
@@ -571,6 +816,8 @@ void TextureViewer::UI_UpdateTextureDetails()
 
 void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 {
+  m_TexDisplay.texid = m_Following.GetResourceId(m_Ctx);
+
   FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
 
   // reset high-water mark
@@ -922,6 +1169,246 @@ void TextureViewer::UI_UpdateChannels()
   // INVOKE_MEMFN(RT_UpdateVisualRange);
 }
 
+ResourcePreview *TextureViewer::UI_CreateThumbnail(ThumbnailStrip *strip)
+{
+  ResourcePreview *prev = new ResourcePreview(m_Ctx, m_Output);
+  // prev.MouseClick += thumbsLayout_MouseClick;
+  // prev.MouseDoubleClick += thumbsLayout_MouseDoubleClick;
+
+  QObject::connect(prev, &ResourcePreview::clicked, this, &TextureViewer::on_thumb_clicked);
+
+  prev->setActive(false);
+  strip->AddPreview(prev);
+  return prev;
+}
+
+void TextureViewer::UI_CreateThumbnails()
+{
+  if(!ui->outputThumbs->GetThumbs().isEmpty())
+    return;
+
+  // these will expand, but we make sure that there is a good set reserved
+  for(int i = 0; i < 9; i++)
+  {
+    ResourcePreview *prev = UI_CreateThumbnail(ui->outputThumbs);
+
+    if(i == 0)
+      prev->setSelected(true);
+  }
+
+  for(int i = 0; i < 128; i++)
+    UI_CreateThumbnail(ui->inputThumbs);
+}
+
+void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id,
+                                        FormatComponentType typeHint, bool force, Following &follow,
+                                        const QString &bindName, const QString &slotName)
+{
+  if(id != ResourceId() || force)
+  {
+    FetchTexture *texptr = m_Ctx->GetTexture(id);
+    FetchBuffer *bufptr = m_Ctx->GetBuffer(id);
+
+    if(texptr != NULL)
+    {
+      QString fullname = bindName;
+      if(texptr->customName)
+      {
+        if(!fullname.isEmpty())
+          fullname += " = ";
+        fullname += texptr->name.elems;
+      }
+      if(fullname.isEmpty())
+        fullname = texptr->name.elems;
+
+      prev->setResourceName(fullname);
+      WId handle = prev->thumbWinId();
+      m_Ctx->Renderer()->AsyncInvoke([this, handle, id, typeHint](IReplayRenderer *) {
+        m_Output->AddThumbnail(m_Ctx->m_CurWinSystem, m_Ctx->FillWindowingData(handle), id, typeHint);
+      });
+    }
+    else if(bufptr != NULL)
+    {
+      QString fullname = bindName;
+      if(texptr->customName)
+      {
+        if(!fullname.isEmpty())
+          fullname += " = ";
+        fullname += bufptr->name.elems;
+      }
+      if(fullname.isEmpty())
+        fullname = bufptr->name.elems;
+
+      prev->setResourceName(fullname);
+      WId handle = prev->thumbWinId();
+      m_Ctx->Renderer()->AsyncInvoke([this, handle](IReplayRenderer *) {
+        m_Output->AddThumbnail(m_Ctx->m_CurWinSystem, m_Ctx->FillWindowingData(handle),
+                               ResourceId(), eCompType_None);
+      });
+    }
+    else
+    {
+      prev->setResourceName("");
+      WId handle = prev->thumbWinId();
+      m_Ctx->Renderer()->AsyncInvoke([this, handle](IReplayRenderer *) {
+        m_Output->AddThumbnail(m_Ctx->m_CurWinSystem, m_Ctx->FillWindowingData(handle),
+                               ResourceId(), eCompType_None);
+      });
+    }
+
+    prev->setProperty("f", QVariant::fromValue(follow));
+    prev->setSlotName(slotName);
+    prev->setActive(true);
+    prev->setSelected(m_Following == follow);
+  }
+  else if(m_Following == follow)
+  {
+    prev->setResourceName(tr("Unused"));
+    prev->setActive(true);
+    prev->setSelected(true);
+
+    WId handle = prev->thumbWinId();
+    m_Ctx->Renderer()->AsyncInvoke([this, handle](IReplayRenderer *) {
+      m_Output->AddThumbnail(m_Ctx->m_CurWinSystem, m_Ctx->FillWindowingData(handle), ResourceId(),
+                             eCompType_None);
+    });
+  }
+  else
+  {
+    prev->setResourceName("");
+    prev->setActive(false);
+    prev->setSelected(false);
+  }
+}
+
+void TextureViewer::InitStageResourcePreviews(ShaderStageType stage,
+                                              const rdctype::array<ShaderResource> &resourceDetails,
+                                              const rdctype::array<BindpointMap> &mapping,
+                                              QMap<BindpointMap, QVector<BoundResource>> &ResList,
+                                              ThumbnailStrip *prevs, int &prevIndex, bool copy,
+                                              bool rw)
+{
+  for(int idx = 0; idx < mapping.count; idx++)
+  {
+    const BindpointMap &key = mapping[idx];
+
+    const QVector<BoundResource> *resArray = NULL;
+
+    if(ResList.contains(key))
+      resArray = &ResList[key];
+
+    int arrayLen = resArray != NULL ? resArray->size() : 1;
+
+    for(int arrayIdx = 0; arrayIdx < arrayLen; arrayIdx++)
+    {
+      ResourceId id = resArray != NULL ? resArray->at(arrayIdx).Id : ResourceId();
+      FormatComponentType typeHint =
+          resArray != NULL ? resArray->at(arrayIdx).typeHint : eCompType_None;
+
+      bool used = key.used;
+      bool samplerBind = false;
+      bool otherBind = false;
+
+      QString bindName;
+
+      for(int b = 0; b < resourceDetails.count; b++)
+      {
+        const ShaderResource &bind = resourceDetails[b];
+        if(bind.bindPoint == idx && bind.IsSRV)
+        {
+          bindName = bind.name.elems;
+          otherBind = true;
+          break;
+        }
+
+        if(bind.bindPoint == idx)
+        {
+          if(bind.IsSampler && !bind.IsSRV)
+            samplerBind = true;
+          else
+            otherBind = true;
+        }
+      }
+
+      if(samplerBind && !otherBind)
+        continue;
+
+      if(copy)
+      {
+        used = true;
+        bindName = "Source";
+      }
+
+      Following follow(rw ? FollowType::ReadWrite : FollowType::ReadOnly, stage, idx, arrayIdx);
+      QString slotName =
+          QString("%1 %2%3").arg(m_Ctx->CurPipelineState.Abbrev(stage)).arg(rw ? "RW " : "").arg(idx);
+
+      if(arrayLen > 1)
+        slotName += QString("[%1]").arg(arrayIdx);
+
+      if(copy)
+        slotName = "SRC";
+
+      const bool showDisabled = false;    // showDisabled.Checked
+      const bool showEmpty = false;       // showEmpty.Checked
+
+      // show if
+      bool show =
+          (used ||    // it's referenced by the shader - regardless of empty or not
+           (showDisabled && !used &&
+            id != ResourceId()) ||    // it's bound, but not referenced, and we have "show disabled"
+           (showEmpty && id == ResourceId())    // it's empty, and we have "show empty"
+           );
+
+      ResourcePreview *prev = NULL;
+
+      if(prevIndex < prevs->GetThumbs().size())
+      {
+        prev = prevs->GetThumbs()[prevIndex];
+      }
+      else
+      {
+        // don't create it if we're not actually going to show it
+        if(!show)
+          continue;
+
+        prev = UI_CreateThumbnail(prevs);
+      }
+
+      prevIndex++;
+
+      InitResourcePreview(prev, show ? id : ResourceId(), typeHint, show, follow, bindName, slotName);
+    }
+  }
+}
+
+void TextureViewer::on_thumb_clicked(QMouseEvent *e)
+{
+  if(e->buttons() & Qt::LeftButton)
+  {
+    ResourcePreview *prev = qobject_cast<ResourcePreview *>(QObject::sender());
+
+    Following follow = prev->property("f").value<Following>();
+
+    for(ResourcePreview *p : ui->outputThumbs->GetThumbs())
+      p->setSelected(false);
+
+    for(ResourcePreview *p : ui->inputThumbs->GetThumbs())
+      p->setSelected(false);
+
+    m_Following = follow;
+    prev->setSelected(true);
+
+    ResourceId id = m_Following.GetResourceId(m_Ctx);
+
+    if(id != ResourceId())
+    {
+      UI_OnTextureSelectionChanged(false);
+      ui->renderContainer->show();
+    }
+  }
+}
+
 void TextureViewer::render_mouseWheel(QWheelEvent *e)
 {
   QPoint cursorPos = e->pos();
@@ -1160,38 +1647,108 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
   if(m_Output == NULL)
     return;
 
-  // hack to select texture until we have thumbnails & following
-  TextureDisplay &d = m_TexDisplay;
-  if(m_Ctx->APIProps().pipelineType == eGraphicsAPI_D3D11)
+  UI_CreateThumbnails();
+
+  QVector<BoundResource> RTs = Following::GetOutputTargets(m_Ctx);
+  BoundResource Depth = Following::GetDepthTarget(m_Ctx);
+
+  int outIndex = 0;
+  int inIndex = 0;
+
+  bool copy = false, compute = false;
+  Following::GetDrawContext(m_Ctx, copy, compute);
+
+  for(int rt = 0; rt < RTs.size(); rt++)
   {
-    d.texid = m_Ctx->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
+    ResourcePreview *prev;
 
-    if(d.texid == ResourceId())
-      d.texid = m_Ctx->CurD3D11PipelineState.m_OM.DepthTarget.Resource;
+    if(outIndex < ui->outputThumbs->GetThumbs().size())
+      prev = ui->outputThumbs->GetThumbs()[outIndex];
+    else
+      prev = UI_CreateThumbnail(ui->outputThumbs);
+
+    outIndex++;
+
+    Following follow(FollowType::OutputColour, eShaderStage_Pixel, rt, 0);
+    QString bindName = copy ? tr("Destination") : "";
+    QString slotName =
+        copy ? tr("DST") : (m_Ctx->CurPipelineState.OutputAbbrev() + QString::number(rt));
+
+    InitResourcePreview(prev, RTs[rt].Id, RTs[rt].typeHint, false, follow, bindName, slotName);
   }
-  else if(m_Ctx->APIProps().pipelineType == eGraphicsAPI_OpenGL)
+
+  // depth
   {
-    d.texid = m_Ctx->CurGLPipelineState.m_FB.m_DrawFBO.Color[0].Obj;
+    ResourcePreview *prev;
 
-    if(d.texid == ResourceId())
-      d.texid = m_Ctx->CurGLPipelineState.m_FB.m_DrawFBO.Depth.Obj;
+    if(outIndex < ui->outputThumbs->GetThumbs().size())
+      prev = ui->outputThumbs->GetThumbs()[outIndex];
+    else
+      prev = UI_CreateThumbnail(ui->outputThumbs);
+
+    outIndex++;
+
+    Following follow(FollowType::OutputDepth, eShaderStage_Pixel, 0, 0);
+
+    InitResourcePreview(prev, Depth.Id, Depth.typeHint, false, follow, "", tr("DS"));
   }
-  else
+
+  ShaderStageType stages[] = {eShaderStage_Vertex, eShaderStage_Hull, eShaderStage_Domain,
+                              eShaderStage_Geometry, eShaderStage_Pixel};
+
+  int count = 5;
+
+  if(compute)
   {
-    const VulkanPipelineState &pipe = m_Ctx->CurVulkanPipelineState;
-    if(pipe.Pass.renderpass.colorAttachments.count > 0)
-      d.texid = pipe.Pass.framebuffer.attachments[pipe.Pass.renderpass.colorAttachments[0]].img;
-
-    if(pipe.Pass.renderpass.depthstencilAttachment != -1)
-      d.texid = pipe.Pass.framebuffer.attachments[pipe.Pass.renderpass.depthstencilAttachment].img;
-
-    if(d.texid == ResourceId())
-    {
-      const FetchDrawcall *draw = m_Ctx->CurDrawcall();
-      if(draw)
-        d.texid = draw->copyDestination;
-    }
+    stages[0] = eShaderStage_Compute;
+    count = 1;
   }
+
+  const rdctype::array<ShaderResource> empty;
+
+  // display resources used for all stages
+  for(int i = 0; i < count; i++)
+  {
+    ShaderStageType stage = stages[i];
+
+    QMap<BindpointMap, QVector<BoundResource>> RWs = Following::GetReadWriteResources(m_Ctx, stage);
+    QMap<BindpointMap, QVector<BoundResource>> ROs = Following::GetReadOnlyResources(m_Ctx, stage);
+
+    ShaderReflection *details = Following::GetReflection(m_Ctx, stage);
+    ShaderBindpointMapping mapping = Following::GetMapping(m_Ctx, stage);
+
+    InitStageResourcePreviews(stage, details != NULL ? details->ReadWriteResources : empty,
+                              mapping.ReadWriteResources, RWs, ui->outputThumbs, outIndex, copy,
+                              true);
+
+    InitStageResourcePreviews(stage, details != NULL ? details->ReadOnlyResources : empty,
+                              mapping.ReadOnlyResources, ROs, ui->inputThumbs, inIndex, copy, false);
+  }
+
+  // hide others
+  const QVector<ResourcePreview *> &outThumbs = ui->outputThumbs->GetThumbs();
+
+  for(; outIndex < outThumbs.size(); outIndex++)
+  {
+    ResourcePreview *prev = outThumbs[outIndex];
+    prev->setResourceName("");
+    prev->setActive(false);
+    prev->setSelected(false);
+  }
+
+  ui->outputThumbs->RefreshLayout();
+
+  const QVector<ResourcePreview *> &inThumbs = ui->inputThumbs->GetThumbs();
+
+  for(; inIndex < inThumbs.size(); inIndex++)
+  {
+    ResourcePreview *prev = inThumbs[inIndex];
+    prev->setResourceName("");
+    prev->setActive(false);
+    prev->setSelected(false);
+  }
+
+  ui->inputThumbs->RefreshLayout();
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
