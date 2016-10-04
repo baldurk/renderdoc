@@ -1,6 +1,6 @@
 #include "CustomPaintWidget.h"
 #include <QPainter>
-#include "Code/Core.h"
+#include "Code/CaptureContext.h"
 #include "renderdoc_replay.h"
 
 CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
@@ -38,7 +38,7 @@ void CustomPaintWidget::paintEvent(QPaintEvent *e)
 {
   if(m_Output)
   {
-    m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *r) { m_Output->Display(); });
+    m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) { m_Output->Display(); });
   }
   else
   {

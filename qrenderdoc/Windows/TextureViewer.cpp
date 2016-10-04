@@ -1,7 +1,7 @@
 
 #include "TextureViewer.h"
 #include <QColorDialog>
-#include "Code/Core.h"
+#include "Code/CaptureContext.h"
 #include "Widgets/ResourcePreview.h"
 #include "FlowLayout.h"
 #include "ui_TextureViewer.h"
@@ -15,15 +15,15 @@ struct Formatter
   static QString Format(int32_t i) { return QString::number(i); }
 };
 
-TextureViewer::TextureViewer(Core *core, QWidget *parent)
-    : QFrame(parent), ui(new Ui::TextureViewer), m_Core(core)
+TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
+    : QFrame(parent), ui(new Ui::TextureViewer), m_Ctx(ctx)
 {
   ui->setupUi(this);
 
-  m_Core->AddLogViewer(this);
+  m_Ctx->AddLogViewer(this);
 
-  ui->render->SetOutput(m_Core, NULL);
-  ui->pixelContext->SetOutput(m_Core, NULL);
+  ui->render->SetOutput(m_Ctx, NULL);
+  ui->pixelContext->SetOutput(m_Ctx, NULL);
 
   memset(&m_TexDisplay, 0, sizeof(m_TexDisplay));
   m_TexDisplay.sampleIdx = ~0U;
@@ -195,7 +195,7 @@ TextureViewer::TextureViewer(Core *core, QWidget *parent)
 
 TextureViewer::~TextureViewer()
 {
-  m_Core->RemoveLogViewer(this);
+  m_Ctx->RemoveLogViewer(this);
   delete ui;
 }
 
@@ -260,7 +260,7 @@ void TextureViewer::RT_UpdateAndDisplay()
 
 void TextureViewer::UI_UpdateStatusText()
 {
-  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
   if(texptr == NULL)
     return;
 
@@ -315,7 +315,7 @@ void TextureViewer::UI_UpdateStatusText()
   uint mipWidth = qMax(1U, tex.width >> (int)m_TexDisplay.mip);
   uint mipHeight = qMax(1U, tex.height >> (int)m_TexDisplay.mip);
 
-  if(m_Core->APIProps().pipelineType == eGraphicsAPI_OpenGL)
+  if(m_Ctx->APIProps().pipelineType == eGraphicsAPI_OpenGL)
     y = (int)(mipHeight - 1) - y;
   if(m_TexDisplay.FlipY)
     y = (int)(mipHeight - 1) - y;
@@ -344,7 +344,7 @@ void TextureViewer::UI_UpdateStatusText()
   {
     x = m_PickedPoint.x() >> (int)m_TexDisplay.mip;
     y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
-    if(m_Core->APIProps().pipelineType == eGraphicsAPI_OpenGL)
+    if(m_Ctx->APIProps().pipelineType == eGraphicsAPI_OpenGL)
       y = (int)(mipHeight - 1) - y;
     if(m_TexDisplay.FlipY)
       y = (int)(mipHeight - 1) - y;
@@ -418,7 +418,7 @@ void TextureViewer::UI_UpdateStatusText()
 
     if(m_Output != NULL)
     {
-      m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { m_Output->DisablePixelContext(); });
+      m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *) { m_Output->DisablePixelContext(); });
     }
 
     // PixelPicked = false;
@@ -441,7 +441,7 @@ void TextureViewer::UI_UpdateTextureDetails()
 {
   QString status;
 
-  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
   if(texptr == NULL)
   {
     ui->texStatusDim->setText(status);
@@ -455,14 +455,14 @@ void TextureViewer::UI_UpdateTextureDetails()
 #if 1
   ui->renderContainer->setWindowTitle(tr(current.name.elems));
 #else
-  ResourceId followID = m_Following.GetResourceId(m_Core);
+  ResourceId followID = m_Following.GetResourceId(m_Ctx);
 
   {
     bool found = false;
 
     string name = "";
 
-    foreach(var t in m_Core.CurTextures)
+    foreach(var t in m_Ctx.CurTextures)
     {
       if(t.ID == followID)
       {
@@ -471,7 +471,7 @@ void TextureViewer::UI_UpdateTextureDetails()
       }
     }
 
-    foreach(var b in m_Core.CurBuffers)
+    foreach(var b in m_Ctx.CurBuffers)
     {
       if(b.ID == followID)
       {
@@ -548,7 +548,7 @@ void TextureViewer::UI_UpdateTextureDetails()
 
 void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 {
-  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
 
   // reset high-water mark
   m_HighWaterStatusLength = 0;
@@ -602,7 +602,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
     // only switch to the selected mip for outputs, and when changing drawcall
     /*
     if (!CurrentTextureIsLocked && m_Following.Type != FollowType.ReadOnly && newdraw)
-      highestMip = m_Following.GetHighestMip(m_Core);
+      highestMip = m_Following.GetHighestMip(m_Ctx);
       */
 
     // assuming we get a valid mip for the highest mip, only switch to it
@@ -666,7 +666,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
     // only switch to the selected mip for outputs, and when changing drawcall
     /*
     if (!CurrentTextureIsLocked && m_Following.Type != FollowType.ReadOnly && newdraw)
-      firstArraySlice = m_Following.GetFirstArraySlice(m_Core);
+      firstArraySlice = m_Following.GetFirstArraySlice(m_Ctx);
       */
 
     // see above with highestMip and prevHighestMip for the logic behind this
@@ -686,7 +686,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
   UI_UpdateTextureDetails();
   UI_UpdateChannels();
 
-  m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
+  m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
     // RT_UpdateVisualRange(r);
 
     RT_UpdateAndDisplay();
@@ -700,7 +700,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
 void TextureViewer::UI_UpdateChannels()
 {
-  FetchTexture *tex = m_Core->GetTexture(m_TexDisplay.texid);
+  FetchTexture *tex = m_Ctx->GetTexture(m_TexDisplay.texid);
 
 #define SHOW(widget) widget->setVisible(true)
 #define HIDE(widget) widget->setVisible(false)
@@ -775,7 +775,7 @@ void TextureViewer::UI_UpdateChannels()
     }
     m_TexDisplay.CustomShader = ResourceId();
   }
-  else if(ui->channels->currentIndex() == 0 || !m_Core->LogLoaded())
+  else if(ui->channels->currentIndex() == 0 || !m_Ctx->LogLoaded())
   {
     // RGBA
     SHOW(ui->channelRed);
@@ -923,7 +923,7 @@ void TextureViewer::render_mouseMove(QMouseEvent *e)
 
   if(m_TexDisplay.texid != ResourceId())
   {
-    FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+    FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
 
     if(texptr != NULL)
     {
@@ -993,7 +993,7 @@ void TextureViewer::render_resize(QResizeEvent *e)
 
 float TextureViewer::CurMaxScrollX()
 {
-  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
 
   QSizeF size(1.0f, 1.0f);
 
@@ -1005,7 +1005,7 @@ float TextureViewer::CurMaxScrollX()
 
 float TextureViewer::CurMaxScrollY()
 {
-  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
 
   QSizeF size(1.0f, 1.0f);
 
@@ -1042,7 +1042,7 @@ void TextureViewer::setScrollPosition(const QPoint &pos)
 
 void TextureViewer::UI_CalcScrollbars()
 {
-  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
 
   QSizeF size(1.0f, 1.0f);
 
@@ -1107,13 +1107,13 @@ void TextureViewer::OnLogfileLoaded()
   WId renderID = ui->render->winId();
   WId contextID = ui->pixelContext->winId();
 
-  m_Core->Renderer()->BlockInvoke([renderID, contextID, this](IReplayRenderer *r) {
-    m_Output = r->CreateOutput(m_Core->m_CurWinSystem, m_Core->FillWindowingData(renderID),
+  m_Ctx->Renderer()->BlockInvoke([renderID, contextID, this](IReplayRenderer *r) {
+    m_Output = r->CreateOutput(m_Ctx->m_CurWinSystem, m_Ctx->FillWindowingData(renderID),
                                eOutputType_TexDisplay);
 
-    m_Output->SetPixelContext(m_Core->m_CurWinSystem, m_Core->FillWindowingData(contextID));
+    m_Output->SetPixelContext(m_Ctx->m_CurWinSystem, m_Ctx->FillWindowingData(contextID));
 
-    ui->render->SetOutput(m_Core, m_Output);
+    ui->render->SetOutput(m_Ctx, m_Output);
 
     OutputConfig c = {eOutputType_TexDisplay};
     m_Output->SetOutputConfig(c);
@@ -1123,7 +1123,7 @@ void TextureViewer::OnLogfileLoaded()
 void TextureViewer::OnLogfileClosed()
 {
   m_Output = NULL;
-  ui->render->SetOutput(m_Core, NULL);
+  ui->render->SetOutput(m_Ctx, NULL);
 
   UI_UpdateTextureDetails();
 }
@@ -1139,23 +1139,23 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
 
   // hack to select texture until we have thumbnails & following
   TextureDisplay &d = m_TexDisplay;
-  if(m_Core->APIProps().pipelineType == eGraphicsAPI_D3D11)
+  if(m_Ctx->APIProps().pipelineType == eGraphicsAPI_D3D11)
   {
-    d.texid = m_Core->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
+    d.texid = m_Ctx->CurD3D11PipelineState.m_OM.RenderTargets[0].Resource;
 
     if(d.texid == ResourceId())
-      d.texid = m_Core->CurD3D11PipelineState.m_OM.DepthTarget.Resource;
+      d.texid = m_Ctx->CurD3D11PipelineState.m_OM.DepthTarget.Resource;
   }
-  else if(m_Core->APIProps().pipelineType == eGraphicsAPI_OpenGL)
+  else if(m_Ctx->APIProps().pipelineType == eGraphicsAPI_OpenGL)
   {
-    d.texid = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Color[0].Obj;
+    d.texid = m_Ctx->CurGLPipelineState.m_FB.m_DrawFBO.Color[0].Obj;
 
     if(d.texid == ResourceId())
-      d.texid = m_Core->CurGLPipelineState.m_FB.m_DrawFBO.Depth.Obj;
+      d.texid = m_Ctx->CurGLPipelineState.m_FB.m_DrawFBO.Depth.Obj;
   }
   else
   {
-    const VulkanPipelineState &pipe = m_Core->CurVulkanPipelineState;
+    const VulkanPipelineState &pipe = m_Ctx->CurVulkanPipelineState;
     if(pipe.Pass.renderpass.colorAttachments.count > 0)
       d.texid = pipe.Pass.framebuffer.attachments[pipe.Pass.renderpass.colorAttachments[0]].img;
 
@@ -1164,7 +1164,7 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
 
     if(d.texid == ResourceId())
     {
-      const FetchDrawcall *draw = m_Core->CurDrawcall();
+      const FetchDrawcall *draw = m_Ctx->CurDrawcall();
       if(draw)
         d.texid = draw->copyDestination;
     }
@@ -1175,7 +1175,7 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
 
 float TextureViewer::GetFitScale()
 {
-  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
 
   if(texptr == NULL)
     return 1.0f;
@@ -1353,7 +1353,7 @@ void TextureViewer::on_checkerBack_clicked()
 
 void TextureViewer::on_mipLevel_currentIndexChanged(int index)
 {
-  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
   if(texptr == NULL)
     return;
 
@@ -1396,7 +1396,7 @@ void TextureViewer::on_mipLevel_currentIndexChanged(int index)
 
   if(m_Output != NULL && m_PickedPoint.x() >= 0 && m_PickedPoint.y() >= 0)
   {
-    m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
+    m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
       if(m_Output != NULL)
         RT_PickPixelsAndUpdate();
     });
@@ -1407,7 +1407,7 @@ void TextureViewer::on_mipLevel_currentIndexChanged(int index)
 
 void TextureViewer::on_sliceFace_currentIndexChanged(int index)
 {
-  FetchTexture *texptr = m_Core->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
   if(texptr == NULL)
     return;
 
@@ -1421,7 +1421,7 @@ void TextureViewer::on_sliceFace_currentIndexChanged(int index)
 
   if(m_Output != NULL && m_PickedPoint.x() >= 0 && m_PickedPoint.y() >= 0)
   {
-    m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
+    m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
       if(m_Output != NULL)
         RT_PickPixelsAndUpdate();
     });

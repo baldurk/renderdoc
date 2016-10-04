@@ -1,4 +1,4 @@
-#include "Core.h"
+#include "CaptureContext.h"
 #include <QApplication>
 #include <QFileInfo>
 #include <QMessageBox>
@@ -13,7 +13,8 @@
 #include <QX11Info>
 #endif
 
-Core::Core(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp)
+CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent,
+                               bool temp)
 {
   m_LogLoaded = false;
   m_LoadInProgress = false;
@@ -38,18 +39,19 @@ Core::Core(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool
   }
 }
 
-Core::~Core()
+CaptureContext::~CaptureContext()
 {
   m_Renderer.CloseThread();
   delete m_MainWindow;
 }
 
-void Core::LoadLogfile(QString logFile, bool temporary)
+void CaptureContext::LoadLogfile(QString logFile, bool temporary)
 {
   LoadLogfile(-1, "", logFile, temporary);
 }
 
-void Core::LoadLogfile(int proxyRenderer, QString replayHost, QString logFile, bool temporary)
+void CaptureContext::LoadLogfile(int proxyRenderer, QString replayHost, QString logFile,
+                                 bool temporary)
 {
   m_LogFile = logFile;
 
@@ -162,7 +164,7 @@ void Core::LoadLogfile(int proxyRenderer, QString replayHost, QString logFile, b
   m_LoadInProgress = false;
 }
 
-void Core::SetEventID(ILogViewerForm *exclude, uint32_t eventID)
+void CaptureContext::SetEventID(ILogViewerForm *exclude, uint32_t eventID)
 {
   m_EventID = eventID;
 
@@ -183,7 +185,7 @@ void Core::SetEventID(ILogViewerForm *exclude, uint32_t eventID)
   }
 }
 
-void *Core::FillWindowingData(WId widget)
+void *CaptureContext::FillWindowingData(WId widget)
 {
 #if defined(WIN32)
 

@@ -3,7 +3,7 @@
 #include <QWidget>
 
 struct IReplayOutput;
-class Core;
+class CaptureContext;
 
 class CustomPaintWidget : public QWidget
 {
@@ -13,9 +13,9 @@ public:
   explicit CustomPaintWidget(QWidget *parent = 0);
   ~CustomPaintWidget();
 
-  void SetOutput(Core *c, IReplayOutput *out)
+  void SetOutput(CaptureContext *c, IReplayOutput *out)
   {
-    m_Core = c;
+    m_Ctx = c;
     m_Output = out;
   }
 signals:
@@ -35,6 +35,6 @@ public slots:
 protected:
   void paintEvent(QPaintEvent *e);
   QPaintEngine *paintEngine() const { return NULL; }
-  Core *m_Core;
+  CaptureContext *m_Ctx;
   IReplayOutput *m_Output;
 };

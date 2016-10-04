@@ -1,5 +1,4 @@
-#ifndef RENDERMANAGER_H
-#define RENDERMANAGER_H
+#pragma once
 
 #include <QMutex>
 #include <QQueue>
@@ -14,7 +13,7 @@ class LambdaThread;
 
 // simple helper for the common case of 'we just need to run this on the render thread
 #define INVOKE_MEMFN(function) \
-  m_Core->Renderer()->AsyncInvoke([this](IReplayRenderer *) { function(); });
+  m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *) { function(); });
 
 class RenderManager
 {
@@ -65,5 +64,3 @@ private:
   LambdaThread *m_Thread;
   ReplayCreateStatus m_CreateStatus;
 };
-
-#endif    // RENDERMANAGER_H

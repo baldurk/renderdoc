@@ -3,7 +3,7 @@
 
 #include <QFrame>
 #include <QIcon>
-#include "Code/Core.h"
+#include "Code/CaptureContext.h"
 
 namespace Ui
 {
@@ -19,7 +19,7 @@ private:
   Q_OBJECT
 
 public:
-  explicit EventBrowser(Core *core, QWidget *parent = 0);
+  explicit EventBrowser(CaptureContext *ctx, QWidget *parent = 0);
   ~EventBrowser();
 
   void OnLogfileLoaded();
@@ -81,7 +81,7 @@ private:
   void RefreshIcon(QTreeWidgetItem *item);
 
   Ui::EventBrowser *ui;
-  Core *m_Core;
+  CaptureContext *m_Ctx;
 };
 
 #endif    // EVENTBROWSER_H

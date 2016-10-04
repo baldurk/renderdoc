@@ -1,5 +1,4 @@
-#ifndef CORE_H
-#define CORE_H
+#pragma once
 
 #include <QList>
 #include <QMap>
@@ -22,11 +21,11 @@ struct ILogLoadProgressListener
 
 class MainWindow;
 
-class Core
+class CaptureContext
 {
 public:
-  Core(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp);
-  ~Core();
+  CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp);
+  ~CaptureContext();
 
   //////////////////////////////////////////////////////////////////////////////
   // Control functions
@@ -229,5 +228,3 @@ public:
     return m_Size;
   }
 };
-
-#endif    // CORE_H

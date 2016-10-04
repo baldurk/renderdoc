@@ -1,7 +1,7 @@
 #include "ResourcePreview.h"
 #include "ui_ResourcePreview.h"
 
-ResourcePreview::ResourcePreview(Core *c, IReplayOutput *output, QWidget *parent)
+ResourcePreview::ResourcePreview(CaptureContext *c, IReplayOutput *output, QWidget *parent)
     : QFrame(parent), ui(new Ui::ResourcePreview)
 {
   ui->setupUi(this);

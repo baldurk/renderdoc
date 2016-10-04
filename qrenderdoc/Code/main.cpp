@@ -3,7 +3,7 @@
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
-#include "Code/Core.h"
+#include "Code/CaptureContext.h"
 #include "Windows/MainWindow.h"
 
 int main(int argc, char *argv[])
@@ -73,7 +73,7 @@ int main(int argc, char *argv[])
 
   QApplication a(argc, argv_mod);
 
-  Core core(filename, remoteHost, remoteIdent, temp);
+  CaptureContext ctx(filename, remoteHost, remoteIdent, temp);
 
   int ret = a.exec();
 

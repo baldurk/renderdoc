@@ -67,9 +67,6 @@
     <ClCompile Include="generated\moc_AboutDialog.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_Core.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="generated\moc_CustomPaintWidget.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
@@ -84,9 +81,6 @@
     </ClCompile>
     <ClCompile Include="3rdparty\flowlayout\FlowLayout.cpp">
       <Filter>3rdparty\FlowLayout</Filter>
-    </ClCompile>
-    <ClCompile Include="Code\Core.cpp">
-      <Filter>Code</Filter>
     </ClCompile>
     <ClCompile Include="Code\main.cpp">
       <Filter>Code</Filter>
@@ -130,6 +124,12 @@
     <ClCompile Include="generated\moc_ThumbnailStrip.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Code\CaptureContext.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_CaptureContext.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -140,9 +140,6 @@
     </ClInclude>
     <ClInclude Include="Windows\AboutDialog.h">
       <Filter>Windows\Dialogs</Filter>
-    </ClInclude>
-    <ClInclude Include="Code\Core.h">
-      <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="Widgets\CustomPaintWidget.h">
       <Filter>Widgets</Filter>
@@ -182,6 +179,9 @@
     </ClInclude>
     <ClInclude Include="generated\ui_ThumbnailStrip.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\CaptureContext.h">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

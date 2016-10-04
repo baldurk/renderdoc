@@ -1,21 +1,21 @@
 #include "MainWindow.h"
 #include <QFileDialog>
 #include <QFileInfo>
-#include "Code/Core.h"
+#include "Code/CaptureContext.h"
 #include "Windows/AboutDialog.h"
 #include "EventBrowser.h"
 #include "TextureViewer.h"
 #include "ui_MainWindow.h"
 
-MainWindow::MainWindow(Core *core) : QMainWindow(NULL), ui(new Ui::MainWindow), m_Core(core)
+MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::MainWindow), m_Ctx(ctx)
 {
   ui->setupUi(this);
 
-  EventBrowser *eventbrowser = new EventBrowser(core);
+  EventBrowser *eventbrowser = new EventBrowser(ctx);
 
   ui->toolWindowManager->addToolWindow(eventbrowser, ToolWindowManager::EmptySpace);
 
-  TextureViewer *textureviewer = new TextureViewer(core);
+  TextureViewer *textureviewer = new TextureViewer(ctx);
 
   ui->toolWindowManager->addToolWindow(
       textureviewer,
@@ -46,7 +46,7 @@ void MainWindow::on_action_Open_Log_triggered()
   if(filename != "" && checkFile.exists() && checkFile.isFile())
   {
     LambdaThread *thread =
-        new LambdaThread([filename, this]() { m_Core->LoadLogfile(filename, false); });
+        new LambdaThread([filename, this]() { m_Ctx->LoadLogfile(filename, false); });
     thread->start();
   }
 }

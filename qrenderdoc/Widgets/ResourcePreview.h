@@ -9,14 +9,14 @@ class ResourcePreview;
 }
 
 struct IReplayOutput;
-class Core;
+class CaptureContext;
 
 class ResourcePreview : public QFrame
 {
   Q_OBJECT
 
 public:
-  explicit ResourcePreview(Core *c, IReplayOutput *output, QWidget *parent = 0);
+  explicit ResourcePreview(CaptureContext *c, IReplayOutput *output, QWidget *parent = 0);
   ~ResourcePreview();
 
   void setSlotName(const QString &n);

@@ -1,6 +1,6 @@
 #include "RenderManager.h"
 #include <QMutexLocker>
-#include "Core.h"
+#include "CaptureContext.h"
 
 RenderManager::RenderManager()
 {

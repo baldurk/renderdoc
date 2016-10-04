@@ -9,7 +9,7 @@ namespace Ui
 class MainWindow;
 }
 
-class Core;
+class CaptureContext;
 
 class MainWindow : public QMainWindow
 {
@@ -17,7 +17,7 @@ private:
   Q_OBJECT
 
 public:
-  explicit MainWindow(Core *core);
+  explicit MainWindow(CaptureContext *ctx);
   ~MainWindow();
 
 private slots:
@@ -27,7 +27,7 @@ private slots:
 
 private:
   Ui::MainWindow *ui;
-  Core *m_Core;
+  CaptureContext *m_Ctx;
 };
 
 #endif    // MAINWINDOW_H

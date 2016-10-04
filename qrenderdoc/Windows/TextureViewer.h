@@ -3,7 +3,7 @@
 
 #include <QFrame>
 #include <QMouseEvent>
-#include "Code/Core.h"
+#include "Code/CaptureContext.h"
 
 namespace Ui
 {
@@ -16,7 +16,7 @@ private:
   Q_OBJECT
 
 public:
-  explicit TextureViewer(Core *core, QWidget *parent = 0);
+  explicit TextureViewer(CaptureContext *ctx, QWidget *parent = 0);
   ~TextureViewer();
 
   void OnLogfileLoaded();
@@ -99,7 +99,7 @@ private:
   int m_PrevHighestMip = -1;
 
   Ui::TextureViewer *ui;
-  Core *m_Core = NULL;
+  CaptureContext *m_Ctx = NULL;
   IReplayOutput *m_Output = NULL;
 
   TextureDisplay m_TexDisplay;
