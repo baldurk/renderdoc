@@ -617,7 +617,7 @@ void TextureViewer::UI_UpdateStatusText()
   uint32_t hoverX = (uint32_t)m_CurHoverPixel.x();
   uint32_t hoverY = (uint32_t)m_CurHoverPixel.y();
 
-  if(hoverX > tex.width || hoverY > tex.height || hoverX < 0 || hoverY < 0)
+  if(hoverX > tex.width || hoverY > tex.height)
     statusText = tr("Hover - ") + "[" + hoverCoords + "]";
 
   if(m_PickedPoint.x() >= 0)
@@ -951,6 +951,9 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
     m_PrevFirstArraySlice = firstArraySlice;
   }
+
+  (void)usemipsettings;
+  (void)useslicesettings;
 
   UI_UpdateFittedScale();
   UI_UpdateTextureDetails();

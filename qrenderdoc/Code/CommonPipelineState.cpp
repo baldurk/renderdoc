@@ -53,6 +53,7 @@ QString CommonPipelineState::Abbrev(ShaderStageType stage)
       case eShaderStage_Geometry: return "GS";
       case eShaderStage_Pixel: return "PS";
       case eShaderStage_Compute: return "CS";
+      default: break;
     }
   }
   else if(IsLogGL() || (!LogLoaded() && DefaultType == eGraphicsAPI_OpenGL) || IsLogVK() ||
@@ -66,6 +67,7 @@ QString CommonPipelineState::Abbrev(ShaderStageType stage)
       case eShaderStage_Geometry: return "GS";
       case eShaderStage_Fragment: return "FS";
       case eShaderStage_Compute: return "CS";
+      default: break;
     }
   }
 
@@ -140,6 +142,7 @@ ShaderBindpointMapping CommonPipelineState::GetBindpointMapping(ShaderStageType 
         case eShaderStage_Geometry: return m_D3D11->m_GS.BindpointMapping;
         case eShaderStage_Pixel: return m_D3D11->m_PS.BindpointMapping;
         case eShaderStage_Compute: return m_D3D11->m_CS.BindpointMapping;
+        default: break;
       }
     }
     else if(IsLogD3D12())
@@ -152,6 +155,7 @@ ShaderBindpointMapping CommonPipelineState::GetBindpointMapping(ShaderStageType 
         case eShaderStage_Geometry: return m_D3D12->m_GS.BindpointMapping;
         case eShaderStage_Pixel: return m_D3D12->m_PS.BindpointMapping;
         case eShaderStage_Compute: return m_D3D12->m_CS.BindpointMapping;
+        default: break;
       }
     }
     else if(IsLogGL())
@@ -164,6 +168,7 @@ ShaderBindpointMapping CommonPipelineState::GetBindpointMapping(ShaderStageType 
         case eShaderStage_Geometry: return m_GL->m_GS.BindpointMapping;
         case eShaderStage_Fragment: return m_GL->m_FS.BindpointMapping;
         case eShaderStage_Compute: return m_GL->m_CS.BindpointMapping;
+        default: break;
       }
     }
     else if(IsLogVK())
@@ -176,6 +181,7 @@ ShaderBindpointMapping CommonPipelineState::GetBindpointMapping(ShaderStageType 
         case eShaderStage_Geometry: return m_Vulkan->GS.BindpointMapping;
         case eShaderStage_Fragment: return m_Vulkan->FS.BindpointMapping;
         case eShaderStage_Compute: return m_Vulkan->CS.BindpointMapping;
+        default: break;
       }
     }
   }
@@ -197,6 +203,7 @@ ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStageType stage
         case eShaderStage_Geometry: return m_D3D11->m_GS.ShaderDetails;
         case eShaderStage_Pixel: return m_D3D11->m_PS.ShaderDetails;
         case eShaderStage_Compute: return m_D3D11->m_CS.ShaderDetails;
+        default: break;
       }
     }
     else if(IsLogD3D12())
@@ -209,6 +216,7 @@ ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStageType stage
         case eShaderStage_Geometry: return m_D3D12->m_GS.ShaderDetails;
         case eShaderStage_Pixel: return m_D3D12->m_PS.ShaderDetails;
         case eShaderStage_Compute: return m_D3D12->m_CS.ShaderDetails;
+        default: break;
       }
     }
     else if(IsLogGL())
@@ -221,6 +229,7 @@ ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStageType stage
         case eShaderStage_Geometry: return m_GL->m_GS.ShaderDetails;
         case eShaderStage_Fragment: return m_GL->m_FS.ShaderDetails;
         case eShaderStage_Compute: return m_GL->m_CS.ShaderDetails;
+        default: break;
       }
     }
     else if(IsLogVK())
@@ -233,6 +242,7 @@ ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStageType stage
         case eShaderStage_Geometry: return m_Vulkan->GS.ShaderDetails;
         case eShaderStage_Fragment: return m_Vulkan->FS.ShaderDetails;
         case eShaderStage_Compute: return m_Vulkan->CS.ShaderDetails;
+        default: break;
       }
     }
   }
@@ -252,6 +262,7 @@ QString CommonPipelineState::GetShaderEntryPoint(ShaderStageType stage)
       case eShaderStage_Geometry: return m_Vulkan->GS.entryPoint.elems;
       case eShaderStage_Fragment: return m_Vulkan->FS.entryPoint.elems;
       case eShaderStage_Compute: return m_Vulkan->CS.entryPoint.elems;
+      default: break;
     }
   }
 
@@ -272,6 +283,7 @@ ResourceId CommonPipelineState::GetShader(ShaderStageType stage)
         case eShaderStage_Geometry: return m_D3D11->m_GS.Shader;
         case eShaderStage_Pixel: return m_D3D11->m_PS.Shader;
         case eShaderStage_Compute: return m_D3D11->m_CS.Shader;
+        default: break;
       }
     }
     else if(IsLogD3D12())
@@ -284,6 +296,7 @@ ResourceId CommonPipelineState::GetShader(ShaderStageType stage)
         case eShaderStage_Geometry: return m_D3D12->m_GS.Shader;
         case eShaderStage_Pixel: return m_D3D12->m_PS.Shader;
         case eShaderStage_Compute: return m_D3D12->m_CS.Shader;
+        default: break;
       }
     }
     else if(IsLogGL())
@@ -296,6 +309,7 @@ ResourceId CommonPipelineState::GetShader(ShaderStageType stage)
         case eShaderStage_Geometry: return m_GL->m_GS.Shader;
         case eShaderStage_Fragment: return m_GL->m_FS.Shader;
         case eShaderStage_Compute: return m_GL->m_CS.Shader;
+        default: break;
       }
     }
     else if(IsLogVK())
@@ -308,6 +322,7 @@ ResourceId CommonPipelineState::GetShader(ShaderStageType stage)
         case eShaderStage_Geometry: return m_Vulkan->GS.Shader;
         case eShaderStage_Fragment: return m_Vulkan->FS.Shader;
         case eShaderStage_Compute: return m_Vulkan->CS.Shader;
+        default: break;
       }
     }
   }
@@ -329,6 +344,7 @@ QString CommonPipelineState::GetShaderName(ShaderStageType stage)
         case eShaderStage_Geometry: return m_D3D11->m_GS.ShaderName.elems;
         case eShaderStage_Pixel: return m_D3D11->m_PS.ShaderName.elems;
         case eShaderStage_Compute: return m_D3D11->m_CS.ShaderName.elems;
+        default: break;
       }
     }
     else if(IsLogD3D12())
@@ -341,6 +357,7 @@ QString CommonPipelineState::GetShaderName(ShaderStageType stage)
         case eShaderStage_Geometry: return QString(m_D3D12->PipelineName.elems) + " GS";
         case eShaderStage_Pixel: return QString(m_D3D12->PipelineName.elems) + " PS";
         case eShaderStage_Compute: return QString(m_D3D12->PipelineName.elems) + " CS";
+        default: break;
       }
     }
     else if(IsLogGL())
@@ -353,6 +370,7 @@ QString CommonPipelineState::GetShaderName(ShaderStageType stage)
         case eShaderStage_Geometry: return m_GL->m_GS.ShaderName.elems;
         case eShaderStage_Fragment: return m_GL->m_FS.ShaderName.elems;
         case eShaderStage_Compute: return m_GL->m_CS.ShaderName.elems;
+        default: break;
       }
     }
     else if(IsLogVK())
@@ -365,6 +383,7 @@ QString CommonPipelineState::GetShaderName(ShaderStageType stage)
         case eShaderStage_Geometry: return m_Vulkan->GS.ShaderName.elems;
         case eShaderStage_Pixel: return m_Vulkan->FS.ShaderName.elems;
         case eShaderStage_Compute: return m_Vulkan->CS.ShaderName.elems;
+        default: break;
       }
     }
   }
