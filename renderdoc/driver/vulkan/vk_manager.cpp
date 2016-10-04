@@ -317,6 +317,9 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &
   // erase any do-nothing barriers
   for(auto it = barriers.begin(); it != barriers.end();)
   {
+    if(it->oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
+      it->oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
     if(it->oldLayout == it->newLayout)
       it = barriers.erase(it);
     else
@@ -424,6 +427,8 @@ void VulkanResourceManager::ApplyBarriers(vector<pair<ResourceId, ImageRegionSta
                     t.oldLayout == VK_IMAGE_LAYOUT_UNDEFINED); // can barrier from UNDEFINED to any
           state
           */
+          if(it->oldLayout == UNKNOWN_PREV_IMG_LAYOUT)
+            it->oldLayout = t.oldLayout;
           t.oldLayout = it->newLayout;
           it->newLayout = t.newLayout;
 
