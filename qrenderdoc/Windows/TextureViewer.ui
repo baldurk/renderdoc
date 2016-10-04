@@ -1066,86 +1066,25 @@
     </item>
    </layout>
   </widget>
-  <widget class="QScrollArea" name="inputThumbs">
+  <widget class="ThumbnailStrip" name="inputThumbs" native="true">
    <property name="geometry">
     <rect>
-     <x>430</x>
-     <y>460</y>
-     <width>121</width>
-     <height>81</height>
-    </rect>
-   </property>
-   <property name="frameShape">
-    <enum>QFrame::Panel</enum>
-   </property>
-   <property name="frameShadow">
-    <enum>QFrame::Plain</enum>
-   </property>
-   <property name="horizontalScrollBarPolicy">
-    <enum>Qt::ScrollBarAlwaysOff</enum>
-   </property>
-   <property name="widgetResizable">
-    <bool>true</bool>
-   </property>
-   <widget class="QWidget" name="inputThumbList">
-    <property name="geometry">
-     <rect>
-      <x>0</x>
-      <y>0</y>
-      <width>119</width>
-      <height>79</height>
-     </rect>
-    </property>
-    <layout class="QVBoxLayout" name="inputThumbLayout">
-     <property name="spacing">
-      <number>10</number>
-     </property>
-     <property name="leftMargin">
-      <number>5</number>
-     </property>
-     <property name="topMargin">
-      <number>5</number>
-     </property>
-     <property name="rightMargin">
-      <number>5</number>
-     </property>
-     <property name="bottomMargin">
-      <number>5</number>
-     </property>
-    </layout>
-   </widget>
-  </widget>
-  <widget class="QScrollArea" name="outputThumbs">
-   <property name="geometry">
-    <rect>
-     <x>290</x>
+     <x>300</x>
      <y>460</y>
      <width>120</width>
      <height>80</height>
     </rect>
    </property>
-   <property name="frameShape">
-    <enum>QFrame::Panel</enum>
+  </widget>
+  <widget class="ThumbnailStrip" name="outputThumbs" native="true">
+   <property name="geometry">
+    <rect>
+     <x>440</x>
+     <y>460</y>
+     <width>120</width>
+     <height>80</height>
+    </rect>
    </property>
-   <property name="frameShadow">
-    <enum>QFrame::Plain</enum>
-   </property>
-   <property name="horizontalScrollBarPolicy">
-    <enum>Qt::ScrollBarAlwaysOff</enum>
-   </property>
-   <property name="widgetResizable">
-    <bool>true</bool>
-   </property>
-   <widget class="QWidget" name="outputThumbList">
-    <property name="geometry">
-     <rect>
-      <x>0</x>
-      <y>0</y>
-      <width>118</width>
-      <height>78</height>
-     </rect>
-    </property>
-   </widget>
   </widget>
  </widget>
  <customwidgets>
@@ -1158,6 +1097,12 @@
    <class>ToolWindowManager</class>
    <extends>QWidget</extends>
    <header>ToolWindowManager.h</header>
+  </customwidget>
+  <customwidget>
+   <class>ThumbnailStrip</class>
+   <extends>QWidget</extends>
+   <header>Widgets/ThumbnailStrip.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>

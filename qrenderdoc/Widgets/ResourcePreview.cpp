@@ -10,3 +10,11 @@ ResourcePreview::~ResourcePreview()
 {
   delete ui;
 }
+
+void ResourcePreview::SetSize(QSize s)
+{
+  setFixedWidth(s.width());
+  setFixedHeight(s.height());
+  setMinimumSize(s);
+  setMaximumSize(s);
+}
