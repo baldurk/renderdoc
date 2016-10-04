@@ -331,12 +331,14 @@ GLInitParams::GLInitParams()
 }
 
 // handling for these versions is scattered throughout the code (as relevant to enable/disable bits
-// of serialisation
-// and set some defaults if necessary).
+// of serialisation and set some defaults if necessary).
 // Here we list which non-current versions we support, and what changed
 const uint32_t GLInitParams::GL_OLD_VERSIONS[GLInitParams::GL_NUM_SUPPORTED_OLD_VERSIONS] = {
     0x000010,    // from 0x10 to 0x11, we added a dummy marker value used to identify serialised
                  // data in glUseProgramStages (hack :( )
+    0x000011,    // We added initial contents for buffers in this version, we don't have to do
+                 // anything special to support older logs, just make sure we don't open new logs
+                 // in an older version.
 };
 
 ReplayCreateStatus GLInitParams::Serialise()
