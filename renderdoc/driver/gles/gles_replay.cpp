@@ -2385,6 +2385,26 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       {
         MakeCurrentReplayContext(m_DebugCtx);
 
+#if 1
+        GLuint prevfbo = 0;
+        GLuint fbo = 0;
+
+        gl.glGetIntegerv(eGL_FRAMEBUFFER_BINDING, (GLint *)&prevfbo);
+        gl.glGenFramebuffers(1, &fbo);
+        gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
+
+        // TODO pantos 3d, arrays?
+        if (texType == eGL_TEXTURE_CUBE_MAP) {
+          gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, texname, mip);
+        } else {
+          gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texname, mip);
+        }
+
+        gl.glReadPixels(0, 0, width, height, fmt, type, (void *)ret);
+
+        gl.glBindFramebuffer(eGL_FRAMEBUFFER, prevfbo);
+        gl.glDeleteFramebuffers(1, &fbo);
+#else
         GLuint fbtex = 0;
         GLuint oldTex2DBinding = 0;
         float oldW = DebugData.outWidth;
@@ -2447,6 +2467,7 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
         DebugData.outWidth = oldW;
         DebugData.outHeight = oldH;
+#endif
       }
 
       // if we're saving to disk we make the decision to vertically flip any non-compressed
