@@ -83,7 +83,7 @@ void ThumbnailStrip::RefreshLayout()
       ui->scrollArea->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
       for(ResourcePreview *c : m_Thumbnails)
-        c->SetSize(QSize(aspectWidth, avail.height()));
+        c->setSize(QSize(aspectWidth, avail.height()));
     }
     else
     {
@@ -99,7 +99,7 @@ void ThumbnailStrip::RefreshLayout()
       hs->setEnabled(totalWidth > avail.width());
 
       for(ResourcePreview *c : m_Thumbnails)
-        c->SetSize(QSize(aspectWidth, avail.height()));
+        c->setSize(QSize(aspectWidth, avail.height()));
     }
   }
   else
@@ -125,7 +125,7 @@ void ThumbnailStrip::RefreshLayout()
       ui->scrollArea->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
 
       for(ResourcePreview *c : m_Thumbnails)
-        c->SetSize(QSize(avail.width(), aspectHeight));
+        c->setSize(QSize(avail.width(), aspectHeight));
     }
     else
     {
@@ -141,7 +141,7 @@ void ThumbnailStrip::RefreshLayout()
       vs->setEnabled(totalHeight > avail.height());
 
       for(ResourcePreview *c : m_Thumbnails)
-        c->SetSize(QSize(avail.width(), aspectHeight));
+        c->setSize(QSize(avail.width(), aspectHeight));
     }
   }
 }

@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
  <class>ResourcePreview</class>
- <widget class="QWidget" name="ResourcePreview">
+ <widget class="QFrame" name="ResourcePreview">
   <property name="geometry">
    <rect>
     <x>0</x>
@@ -30,6 +30,15 @@
   </property>
   <property name="windowTitle">
    <string>Form</string>
+  </property>
+  <property name="frameShape">
+   <enum>QFrame::Box</enum>
+  </property>
+  <property name="lineWidth">
+   <number>4</number>
+  </property>
+  <property name="midLineWidth">
+   <number>4</number>
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <property name="leftMargin">
@@ -71,6 +80,12 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>32</height>
+      </size>
+     </property>
      <property name="font">
       <font>
        <pointsize>12</pointsize>
@@ -94,6 +109,12 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>32</height>
+      </size>
+     </property>
      <property name="font">
       <font>
        <pointsize>10</pointsize>
@@ -105,8 +126,11 @@
      <property name="alignment">
       <set>Qt::AlignCenter</set>
      </property>
+     <property name="wordWrap">
+      <bool>true</bool>
+     </property>
      <property name="margin">
-      <number>6</number>
+      <number>0</number>
      </property>
     </widget>
    </item>

@@ -1,20 +1,28 @@
 #ifndef RESOURCEPREVIEW_H
 #define RESOURCEPREVIEW_H
 
-#include <QWidget>
+#include <QFrame>
 
 namespace Ui
 {
 class ResourcePreview;
 }
 
-class ResourcePreview : public QWidget
+struct IReplayOutput;
+class Core;
+
+class ResourcePreview : public QFrame
 {
   Q_OBJECT
 
 public:
-  explicit ResourcePreview(QWidget *parent = 0);
+  explicit ResourcePreview(Core *c, IReplayOutput *output, QWidget *parent = 0);
   ~ResourcePreview();
+
+  void setSlotName(const QString &n);
+  void setResourceName(const QString &n);
+
+  WId thumbWinId();
 
   void setActive(bool b)
   {
@@ -25,7 +33,9 @@ public:
       hide();
   }
   bool isActive() { return m_Active; }
-  void SetSize(QSize s);
+  void setSize(QSize s);
+
+  void setSelected(bool sel);
 
 private:
   Ui::ResourcePreview *ui;
