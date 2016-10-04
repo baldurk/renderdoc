@@ -89,7 +89,7 @@ SOURCES += Code/main.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
     Code/RenderManager.cpp \
-    Code/Core.cpp \
+    Code/CaptureContext.cpp \
     Widgets/RDLineEdit.cpp \
     3rdparty/flowlayout/FlowLayout.cpp \
     Widgets/ResourcePreview.cpp \
@@ -106,7 +106,7 @@ HEADERS  += Windows/MainWindow.h \
     3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h \
-    Code/Core.h \
+    Code/CaptureContext.h \
     Code/RenderManager.h \
     Widgets/RDLineEdit.h \
     3rdparty/flowlayout/FlowLayout.h \
