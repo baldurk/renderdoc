@@ -30,13 +30,6 @@
 #include <QTimer>
 #include "Windows/MainWindow.h"
 
-#if defined(RENDERDOC_PLATFORM_LINUX)
-#include <GL/glx.h>
-#include <X11/Xlib.h>
-#include <xcb/xcb.h>
-#include <QX11Info>
-#endif
-
 CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent,
                                bool temp)
 {
