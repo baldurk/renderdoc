@@ -160,9 +160,11 @@ void CaptureContext::LoadLogfile(int proxyRenderer, QString replayHost, QString 
     postloadProgress = 0.9f;
 
     r->GetD3D11PipelineState(&CurD3D11PipelineState);
+    r->GetD3D12PipelineState(&CurD3D12PipelineState);
     r->GetGLPipelineState(&CurGLPipelineState);
     r->GetVulkanPipelineState(&CurVulkanPipelineState);
-    // CurPipelineState.SetStates(m_APIProps, CurD3D11PipelineState, CurGLPipelineState);
+    CurPipelineState.SetStates(m_APIProps, &CurD3D11PipelineState, &CurD3D12PipelineState,
+                               &CurGLPipelineState, &CurVulkanPipelineState);
 
     UnreadMessageCount = 0;
     AddMessages(m_FrameInfo.debugMessages);
@@ -195,9 +197,11 @@ void CaptureContext::SetEventID(ILogViewerForm *exclude, uint32_t eventID)
   m_Renderer.BlockInvoke([eventID, this](IReplayRenderer *r) {
     r->SetFrameEvent(eventID, false);
     r->GetD3D11PipelineState(&CurD3D11PipelineState);
+    r->GetD3D12PipelineState(&CurD3D12PipelineState);
     r->GetGLPipelineState(&CurGLPipelineState);
     r->GetVulkanPipelineState(&CurVulkanPipelineState);
-    // CurPipelineState.SetStates(m_APIProps, CurD3D11PipelineState, CurGLPipelineState);
+    CurPipelineState.SetStates(m_APIProps, &CurD3D11PipelineState, &CurD3D12PipelineState,
+                               &CurGLPipelineState, &CurVulkanPipelineState);
   });
 
   for(ILogViewerForm *logviewer : m_LogViewers)

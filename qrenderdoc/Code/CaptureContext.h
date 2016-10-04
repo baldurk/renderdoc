@@ -124,6 +124,7 @@ public:
   void *FillWindowingData(WId widget);
 
   D3D11PipelineState CurD3D11PipelineState;
+  D3D12PipelineState CurD3D12PipelineState;
   GLPipelineState CurGLPipelineState;
   VulkanPipelineState CurVulkanPipelineState;
   CommonPipelineState CurPipelineState;
