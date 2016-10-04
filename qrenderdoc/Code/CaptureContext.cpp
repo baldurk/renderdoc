@@ -215,7 +215,7 @@ void *CaptureContext::FillWindowingData(WId widget)
 #elif defined(RENDERDOC_PLATFORM_LINUX)
 
   static XCBWindowData xcb = {
-      m_X11Connection, (xcb_window_t)widget,
+      m_XCBConnection, (xcb_window_t)widget,
   };
 
   static XlibWindowData xlib = {m_X11Display, (Drawable)widget};
