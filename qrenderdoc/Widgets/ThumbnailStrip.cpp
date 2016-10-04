@@ -71,6 +71,11 @@ void ThumbnailStrip::mousePressEvent(QMouseEvent *event)
   emit(mouseClick(event));
 }
 
+void ThumbnailStrip::showEvent(QShowEvent *event)
+{
+  RefreshLayout();
+}
+
 void ThumbnailStrip::RefreshLayout()
 {
   QRect avail = geometry();

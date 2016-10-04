@@ -55,6 +55,7 @@ signals:
 private:
   void resizeEvent(QResizeEvent *event) override;
   void mousePressEvent(QMouseEvent *event) override;
+  void showEvent(QShowEvent *event) override;
 
   QVector<ResourcePreview *> m_Thumbnails;
 
