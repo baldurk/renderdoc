@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "ResourcePreview.h"
+#include <QMouseEvent>
 #include "ui_ResourcePreview.h"
 
 ResourcePreview::ResourcePreview(CaptureContext *c, IReplayOutput *output, QWidget *parent)
@@ -43,11 +44,20 @@ ResourcePreview::ResourcePreview(CaptureContext *c, IReplayOutput *output, QWidg
   ui->slotLabel->setPalette(Pal);
   ui->descriptionLabel->setAutoFillBackground(true);
   ui->descriptionLabel->setPalette(Pal);
+
+  QObject::connect(ui->thumbnail, &CustomPaintWidget::clicked, this, &ResourcePreview::clickEvent);
+  QObject::connect(ui->slotLabel, &RDLabel::clicked, this, &ResourcePreview::clickEvent);
+  QObject::connect(ui->descriptionLabel, &RDLabel::clicked, this, &ResourcePreview::clickEvent);
 }
 
 ResourcePreview::~ResourcePreview()
 {
   delete ui;
+}
+
+void ResourcePreview::clickEvent(QMouseEvent *e)
+{
+  emit clicked(e);
 }
 
 void ResourcePreview::setSlotName(const QString &n)

@@ -43,8 +43,14 @@ public:
   explicit ResourcePreview(CaptureContext *c, IReplayOutput *output, QWidget *parent = 0);
   ~ResourcePreview();
 
+signals:
+  void clicked(QMouseEvent *e);
+
+public:
   void setSlotName(const QString &n);
   void setResourceName(const QString &n);
+
+  void clickEvent(QMouseEvent *e);
 
   WId thumbWinId();
 
