@@ -53,6 +53,10 @@ public:
   bool SetPixelContextLocation(uint32_t x, uint32_t y);
   void DisablePixelContext();
 
+  bool GetMinMax(PixelValue *minval, PixelValue *maxval);
+  bool GetHistogram(float minval, float maxval, bool channels[4],
+                    rdctype::array<uint32_t> *histogram);
+
   ResourceId GetCustomShaderTexID() { return m_CustomShaderResourceId; }
   bool PickPixel(ResourceId texID, bool customShader, uint32_t x, uint32_t y, uint32_t sliceFace,
                  uint32_t mip, uint32_t sample, PixelValue *val);
@@ -171,12 +175,6 @@ public:
   bool DebugThread(uint32_t groupid[3], uint32_t threadid[3], ShaderDebugTrace *trace);
 
   bool GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFormat *data);
-
-  bool GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                 FormatComponentType typeHint, PixelValue *minval, PixelValue *maxval);
-  bool GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                    FormatComponentType typeHint, float minval, float maxval, bool channels[4],
-                    rdctype::array<uint32_t> *histogram);
 
   bool GetUsage(ResourceId id, rdctype::array<EventUsage> *usage);
 

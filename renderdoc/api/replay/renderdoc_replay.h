@@ -162,6 +162,10 @@ struct IReplayOutput
   virtual bool SetPixelContextLocation(uint32_t x, uint32_t y) = 0;
   virtual void DisablePixelContext() = 0;
 
+  virtual bool GetMinMax(PixelValue *minval, PixelValue *maxval) = 0;
+  virtual bool GetHistogram(float minval, float maxval, bool channels[4],
+                            rdctype::array<uint32_t> *histogram) = 0;
+
   virtual bool PickPixel(ResourceId texID, bool customShader, uint32_t x, uint32_t y,
                          uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val) = 0;
 };
@@ -204,6 +208,13 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_DisablePixelContext(Repl
 
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_GetCustomShaderTexID(ReplayOutput *output,
                                                                              ResourceId *id);
+
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_GetMinMax(ReplayOutput *output,
+                                                                    PixelValue *minval,
+                                                                    PixelValue *maxval);
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+ReplayOutput_GetHistogram(ReplayOutput *output, float minval, float maxval, bool32 channels[4],
+                          rdctype::array<uint32_t> *histogram);
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_PickPixel(
     ReplayOutput *output, ResourceId texID, bool32 customShader, uint32_t x, uint32_t y,
@@ -278,12 +289,6 @@ struct IReplayRenderer
   virtual bool SaveTexture(const TextureSave &saveData, const char *path) = 0;
 
   virtual bool GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFormat *data) = 0;
-
-  virtual bool GetMinMax(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                         FormatComponentType typeHint, PixelValue *minval, PixelValue *maxval) = 0;
-  virtual bool GetHistogram(ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            FormatComponentType typeHint, float minval, float maxval,
-                            bool channels[4], rdctype::array<uint32_t> *histogram) = 0;
 
   virtual bool GetBufferData(ResourceId buff, uint64_t offset, uint64_t len,
                              rdctype::array<byte> *data) = 0;
@@ -404,14 +409,6 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetPostVSData(Replay
                                                                           uint32_t instID,
                                                                           MeshDataStage stage,
                                                                           MeshFormat *data);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetMinMax(
-    ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-    FormatComponentType typeHint, PixelValue *minval, PixelValue *maxval);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetHistogram(ReplayRenderer *rend, ResourceId tex, uint32_t sliceFace, uint32_t mip,
-                            uint32_t sample, FormatComponentType typeHint, float minval,
-                            float maxval, bool32 channels[4], rdctype::array<uint32_t> *histogram);
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetBufferData(
     ReplayRenderer *rend, ResourceId buff, uint64_t offset, uint64_t len, rdctype::array<byte> *data);

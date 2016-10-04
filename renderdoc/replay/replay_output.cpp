@@ -292,6 +292,68 @@ bool ReplayOutput::AddThumbnail(WindowingSystem system, void *data, ResourceId t
   return true;
 }
 
+bool ReplayOutput::GetMinMax(PixelValue *minval, PixelValue *maxval)
+{
+  PixelValue *a = minval;
+  PixelValue *b = maxval;
+
+  PixelValue dummy;
+
+  if(a == NULL)
+    a = &dummy;
+  if(b == NULL)
+    b = &dummy;
+
+  ResourceId tex = m_pDevice->GetLiveID(m_RenderData.texDisplay.texid);
+
+  FormatComponentType typeHint = m_RenderData.texDisplay.typeHint;
+  uint32_t slice = m_RenderData.texDisplay.sliceFace;
+  uint32_t mip = m_RenderData.texDisplay.mip;
+  uint32_t sample = m_RenderData.texDisplay.sampleIdx;
+
+  if(m_RenderData.texDisplay.CustomShader != ResourceId() && m_CustomShaderResourceId != ResourceId())
+  {
+    tex = m_CustomShaderResourceId;
+    typeHint = eCompType_None;
+    slice = 0;
+    sample = 0;
+  }
+
+  return m_pDevice->GetMinMax(tex, slice, mip, sample, typeHint, &a->value_f[0], &b->value_f[0]);
+}
+
+bool ReplayOutput::GetHistogram(float minval, float maxval, bool channels[4],
+                                rdctype::array<uint32_t> *histogram)
+{
+  if(histogram == NULL)
+    return false;
+
+  vector<uint32_t> hist;
+
+  ResourceId tex = m_pDevice->GetLiveID(m_RenderData.texDisplay.texid);
+
+  FormatComponentType typeHint = m_RenderData.texDisplay.typeHint;
+  uint32_t slice = m_RenderData.texDisplay.sliceFace;
+  uint32_t mip = m_RenderData.texDisplay.mip;
+  uint32_t sample = m_RenderData.texDisplay.sampleIdx;
+
+  if(m_RenderData.texDisplay.CustomShader != ResourceId() && m_CustomShaderResourceId != ResourceId())
+  {
+    tex = m_CustomShaderResourceId;
+    typeHint = eCompType_None;
+    slice = 0;
+    sample = 0;
+  }
+
+  bool ret =
+      m_pDevice->GetHistogram(tex, slice, mip, sample, typeHint, minval, maxval, channels, hist);
+
+  if(ret)
+    *histogram = hist;
+
+  return ret;
+}
+
 bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint32_t y,
                              uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *ret)
 {
@@ -811,6 +873,20 @@ extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_GetCustomShaderTexID(Rep
 {
   if(id)
     *id = output->GetCustomShaderTexID();
+}
+
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_GetMinMax(ReplayOutput *output,
+                                                                    PixelValue *minval,
+                                                                    PixelValue *maxval)
+{
+  return output->GetMinMax(minval, maxval);
+}
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+ReplayOutput_GetHistogram(ReplayOutput *output, float minval, float maxval, bool32 channels[4],
+                          rdctype::array<uint32_t> *histogram)
+{
+  bool chans[4] = {channels[0] != 0, channels[1] != 0, channels[2] != 0, channels[3] != 0};
+  return output->GetHistogram(minval, maxval, chans, histogram);
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_PickPixel(

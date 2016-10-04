@@ -3331,16 +3331,13 @@ namespace renderdocui.Windows
         private void AutoFitRange()
         {
             // no log loaded or buffer/empty texture currently being viewed - don't autofit
-            if (!m_Core.LogLoaded || CurrentTexture == null)
+            if (!m_Core.LogLoaded || CurrentTexture == null || m_Output == null)
                 return;
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
                 PixelValue min, max;
-                bool success = r.GetMinMax(m_TexDisplay.texid,
-                    m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx,
-                    m_TexDisplay.typeHint,
-                    out min, out max);
+                bool success = m_Output.GetMinMax(out min, out max);
 
                 if (success)
                 {
@@ -3350,6 +3347,11 @@ namespace renderdocui.Windows
                     bool changeRange = false;
 
                     ResourceFormat fmt = CurrentTexture.format;
+
+                    if (m_TexDisplay.CustomShader != ResourceId.Null)
+                    {
+                        fmt.compType = FormatComponentType.Float;
+                    }
 
                     for (int i = 0; i < 4; i++)
                     {
@@ -3424,17 +3426,17 @@ namespace renderdocui.Windows
 
         private void RT_UpdateVisualRange(ReplayRenderer r)
         {
-            if (!m_Visualise || CurrentTexture == null) return;
+            if (!m_Visualise || CurrentTexture == null || m_Output == null) return;
 
             ResourceFormat fmt = CurrentTexture.format;
+
+            if (m_TexDisplay.CustomShader != ResourceId.Null)
+                fmt.compCount = 4;
 
             bool success = true;
 
             uint[] histogram;
-            success = r.GetHistogram(m_TexDisplay.texid,
-                                     m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx,
-                                     m_TexDisplay.typeHint,
-                                     rangeHistogram.RangeMin, rangeHistogram.RangeMax,
+            success = m_Output.GetHistogram(rangeHistogram.RangeMin, rangeHistogram.RangeMax,
                                      m_TexDisplay.Red,
                                      m_TexDisplay.Green && fmt.compCount > 1,
                                      m_TexDisplay.Blue && fmt.compCount > 2,
