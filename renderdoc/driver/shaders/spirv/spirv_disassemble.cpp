@@ -4020,7 +4020,7 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
           cblock.name = StringFormat::Fmt("uniforms%u", inst->id);
         cblock.bufferBacked = !pushConst;
 
-        BindpointMap bindmap = {0};
+        BindpointMap bindmap;
         // set can be implicitly 0, but the binding must be set explicitly.
         // If no binding is found, we set -1 and sort to the end of the resources
         // list as it's not bound anywhere (most likely, declared but not used)
@@ -4182,7 +4182,7 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
         res.variableType.descriptor.rowMajorStorage = false;
         res.variableType.descriptor.rowMajorStorage = false;
 
-        BindpointMap bindmap = {0};
+        BindpointMap bindmap;
         // set can be implicitly 0, but the binding must be set explicitly.
         // If no binding is found, we set -1 and sort to the end of the resources
         // list as it's not bound anywhere (most likely, declared but not used)
@@ -4243,7 +4243,7 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
     cblock.bufferBacked = false;
     cblock.byteSize = 0;
 
-    BindpointMap bindmap = {0};
+    BindpointMap bindmap;
 
     // set something crazy so this doesn't overlap with a real buffer binding
     // also identify this as specialization constant data

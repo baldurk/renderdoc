@@ -94,7 +94,9 @@ SOURCES += Code/main.cpp \
     3rdparty/flowlayout/FlowLayout.cpp \
     Widgets/ResourcePreview.cpp \
     Widgets/RDLabel.cpp \
-    Widgets/ThumbnailStrip.cpp
+    Widgets/ThumbnailStrip.cpp \
+    Code/CaptureContext.cpp \
+    Code/CommonPipelineState.cpp
 
 HEADERS  += Windows/MainWindow.h \
     Windows/EventBrowser.h \
@@ -110,7 +112,9 @@ HEADERS  += Windows/MainWindow.h \
     3rdparty/flowlayout/FlowLayout.h \
     Widgets/ResourcePreview.h \
     Widgets/RDLabel.h \
-    Widgets/ThumbnailStrip.h
+    Widgets/ThumbnailStrip.h \
+    Code/CaptureContext.h \
+    Code/CommonPipelineState.h
 
 FORMS    += Windows/MainWindow.ui \
     Windows/EventBrowser.ui \

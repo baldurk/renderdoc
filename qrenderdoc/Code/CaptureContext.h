@@ -28,6 +28,7 @@
 #include <QMap>
 #include <QString>
 #include <QtWidgets/QWidget>
+#include "CommonPipelineState.h"
 #include "RenderManager.h"
 
 struct ILogViewerForm
@@ -125,7 +126,7 @@ public:
   D3D11PipelineState CurD3D11PipelineState;
   GLPipelineState CurGLPipelineState;
   VulkanPipelineState CurVulkanPipelineState;
-  // CommonPipelineState CurPipelineState;
+  CommonPipelineState CurPipelineState;
 
 private:
   RenderManager m_Renderer;

@@ -276,6 +276,7 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="Code\CommonPipelineState.cpp" />
     <ClCompile Include="generated\moc_AboutDialog.cpp" />
     <ClCompile Include="generated\moc_CaptureContext.cpp" />
     <ClCompile Include="generated\moc_CustomPaintWidget.cpp" />
@@ -316,6 +317,7 @@
     <ClCompile Include="Code\main.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Code\CommonPipelineState.h" />
     <ClInclude Include="generated\ui_AboutDialog.h" />
     <ClInclude Include="generated\ui_EventBrowser.h" />
     <ClInclude Include="generated\ui_MainWindow.h" />

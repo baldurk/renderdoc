@@ -170,7 +170,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     cb.byteSize = dxbc->m_CBuffers[i].descriptor.byteSize;
     cb.bindPoint = (uint32_t)c;
 
-    BindpointMap map = {};
+    BindpointMap map;
     map.arraySize = 1;
     map.bind = (int32_t)i;
     map.used = true;
@@ -305,7 +305,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
 
     res.bindPoint = IsReadWrite ? rwidx : roidx;
 
-    BindpointMap map = {};
+    BindpointMap map;
     map.arraySize = 1;
     map.bind = r.bindPoint;
     map.used = true;

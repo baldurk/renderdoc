@@ -265,6 +265,31 @@ struct ShaderReflection
 
 struct BindpointMap
 {
+#ifdef __cplusplus
+  BindpointMap()
+  {
+    bindset = 0;
+    bind = 0;
+    used = false;
+    arraySize = 1;
+  }
+
+  BindpointMap(int32_t s, int32_t b)
+  {
+    bindset = s;
+    bind = b;
+    used = false;
+    arraySize = 1;
+  }
+
+  bool operator<(const BindpointMap &o) const
+  {
+    if(bindset != o.bindset)
+      return bindset < o.bindset;
+    return bind < o.bind;
+  }
+#endif
+
   int32_t bindset;
   int32_t bind;
   bool32 used;
