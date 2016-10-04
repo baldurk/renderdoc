@@ -65,9 +65,10 @@ typedef uint32_t bool32;
 
 #if defined(RENDERDOC_WINDOWING_XLIB)
 
-#include <X11/Xlib.h>
-
-#undef None
+// can't include xlib.h here as it defines a ton of crap like None
+// and Bool etc which can interfere with other headers
+typedef struct _XDisplay Display;
+typedef unsigned long Drawable;
 
 struct XlibWindowData
 {
@@ -79,9 +80,8 @@ struct XlibWindowData
 
 #if defined(RENDERDOC_WINDOWING_XCB)
 
-#include <xcb/xcb.h>
-
-#undef None
+struct xcb_connection_t;
+typedef uint32_t xcb_window_t;
 
 struct XCBWindowData
 {

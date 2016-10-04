@@ -32,8 +32,6 @@
 #include "RenderManager.h"
 
 #if defined(RENDERDOC_PLATFORM_LINUX)
-#include <X11/Xlib.h>
-#include <xcb/xcb.h>
 #include <QX11Info>
 #endif
 
