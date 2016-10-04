@@ -166,8 +166,7 @@ bool WrappedGLES::Serialise_glBindBuffer(GLenum target, GLuint buffer)
       m_Real.glBindBuffer(Target, res.name);
 
       m_Buffers[GetResourceManager()->GetLiveID(Id)].curType = Target;
-      GetCtxData().m_BufferRecord[BufferIdx(Target)] = GetResourceManager()->AddResourceRecord(Id);
-      
+      GetCtxData().m_BufferRecord[BufferIdx(Target)] = GetResourceManager()->GetResourceRecord(GetResourceManager()->GetLiveID(Id));
     }
   }
 
