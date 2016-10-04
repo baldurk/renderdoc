@@ -756,136 +756,138 @@ void WrappedGLES::glDrawArrays(GLenum mode, GLint first, GLsizei count)
   }
 }
 
-//bool WrappedGLES::Serialise_glDrawArraysIndirect(GLenum mode, const void *indirect)
-//{
-//  SERIALISE_ELEMENT(GLenum, Mode, mode);
-//  SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)indirect);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glDrawArraysIndirect(Mode, (const void *)Offset);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    DrawArraysIndirectCommand params;
-//    m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)Offset, sizeof(params), &params);
-//
-//    AddEvent(DRAWARRAYS_INDIRECT, desc);
-//    string name = "glDrawArraysIndirect(" + ToStr::Get(params.count) + ", " +
-//                  ToStr::Get(params.instanceCount) + ">)";
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.numIndices = params.count;
-//    draw.numInstances = params.instanceCount;
-//    draw.vertexOffset = params.first;
-//    draw.instanceOffset = params.baseInstance;
-//
-//    draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_Indirect;
-//
-//    draw.topology = MakePrimitiveTopology(m_Real, Mode);
-//
-//    AddDrawcall(draw, true);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDrawArraysIndirect(GLenum mode, const void *indirect)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glDrawArraysIndirect(mode, indirect);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DRAWARRAYS_INDIRECT);
-//    Serialise_glDrawArraysIndirect(mode, indirect);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.FetchState(GetCtx(), this);
-//    state.MarkReferenced(this, false);
-//  }
-//  else if(m_State == WRITING_IDLE)
-//  {
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.MarkDirty(this);
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count,
-//                                                    GLsizei instancecount)
-//{
-//  SERIALISE_ELEMENT(GLenum, Mode, mode);
-//  SERIALISE_ELEMENT(int32_t, First, first);
-//  SERIALISE_ELEMENT(uint32_t, Count, count);
-//  SERIALISE_ELEMENT(uint32_t, InstanceCount, instancecount);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glDrawArraysInstanced(Mode, First, Count, InstanceCount);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(DRAWARRAYS_INSTANCED, desc);
-//    string name =
-//        "glDrawArraysInstanced(" + ToStr::Get(Count) + ", " + ToStr::Get(InstanceCount) + ")";
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.numIndices = Count;
-//    draw.numInstances = InstanceCount;
-//    draw.indexOffset = 0;
-//    draw.vertexOffset = First;
-//    draw.instanceOffset = 0;
-//
-//    draw.flags |= eDraw_Drawcall | eDraw_Instanced;
-//
-//    draw.topology = MakePrimitiveTopology(m_Real, Mode);
-//
-//    AddDrawcall(draw, true);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count,
-//                                          GLsizei instancecount)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glDrawArraysInstanced(mode, first, count, instancecount);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DRAWARRAYS_INSTANCED);
-//    Serialise_glDrawArraysInstanced(mode, first, count, instancecount);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.FetchState(GetCtx(), this);
-//    state.MarkReferenced(this, false);
-//  }
-//  else if(m_State == WRITING_IDLE)
-//  {
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.MarkDirty(this);
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glDrawArraysIndirect(GLenum mode, const void *indirect)
+{
+  SERIALISE_ELEMENT(GLenum, Mode, mode);
+  SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)indirect);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glDrawArraysIndirect(Mode, (const void *)Offset);
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    DrawArraysIndirectCommand params;
+    void* data = m_Real.glMapBufferRange(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)Offset, sizeof(params), eGL_MAP_READ_BIT);
+    if (data != NULL)
+      memcpy(&params, data, sizeof(params));
+
+    AddEvent(DRAWARRAYS_INDIRECT, desc);
+    string name = "glDrawArraysIndirect(" + ToStr::Get(params.count) + ", " +
+                  ToStr::Get(params.instanceCount) + ">)";
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.numIndices = params.count;
+    draw.numInstances = params.instanceCount;
+    draw.vertexOffset = params.first;
+    draw.instanceOffset = params.baseInstance;
+
+    draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_Indirect;
+
+    draw.topology = MakePrimitiveTopology(m_Real, Mode);
+
+    AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glDrawArraysIndirect(GLenum mode, const void *indirect)
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glDrawArraysIndirect(mode, indirect);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DRAWARRAYS_INDIRECT);
+    Serialise_glDrawArraysIndirect(mode, indirect);
+
+    m_ContextRecord->AddChunk(scope.Get());
+
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.FetchState(GetCtx(), this);
+    state.MarkReferenced(this, false);
+  }
+  else if(m_State == WRITING_IDLE)
+  {
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.MarkDirty(this);
+  }
+}
+
+bool WrappedGLES::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count,
+                                                    GLsizei instancecount)
+{
+  SERIALISE_ELEMENT(GLenum, Mode, mode);
+  SERIALISE_ELEMENT(int32_t, First, first);
+  SERIALISE_ELEMENT(uint32_t, Count, count);
+  SERIALISE_ELEMENT(uint32_t, InstanceCount, instancecount);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glDrawArraysInstanced(Mode, First, Count, InstanceCount);
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(DRAWARRAYS_INSTANCED, desc);
+    string name =
+        "glDrawArraysInstanced(" + ToStr::Get(Count) + ", " + ToStr::Get(InstanceCount) + ")";
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.numIndices = Count;
+    draw.numInstances = InstanceCount;
+    draw.indexOffset = 0;
+    draw.vertexOffset = First;
+    draw.instanceOffset = 0;
+
+    draw.flags |= eDraw_Drawcall | eDraw_Instanced;
+
+    draw.topology = MakePrimitiveTopology(m_Real, Mode);
+
+    AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count,
+                                          GLsizei instancecount)
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glDrawArraysInstanced(mode, first, count, instancecount);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DRAWARRAYS_INSTANCED);
+    Serialise_glDrawArraysInstanced(mode, first, count, instancecount);
+
+    m_ContextRecord->AddChunk(scope.Get());
+
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.FetchState(GetCtx(), this);
+    state.MarkReferenced(this, false);
+  }
+  else if(m_State == WRITING_IDLE)
+  {
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.MarkDirty(this);
+  }
+}
+
 bool WrappedGLES::Serialise_glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GLint first,
                                                                 GLsizei count, GLsizei instancecount,
                                                                 GLuint baseinstance)

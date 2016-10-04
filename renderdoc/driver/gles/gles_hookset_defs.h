@@ -167,6 +167,7 @@
     HookInit(glClearBufferfv); \
     HookInit(glClearBufferfi); \
     HookInit(glGetStringi); \
+    HookInit(glDrawArraysInstanced); \
     HookInit(glIsSync); \
     HookInit(glGetInteger64i_v); \
     HookInit(glGenSamplers); \
@@ -182,6 +183,7 @@
     HookInit(glIsTransformFeedback); \
     HookInit(glProgramParameteri); \
     HookInit(glTexStorage2D); \
+    HookInit(glDrawArraysIndirect); \
     HookInit(glGetProgramResourceIndex); \
     HookInit(glGetProgramResourceiv); \
     HookInit(glUseProgramStages); \
@@ -397,6 +399,7 @@
     HookExtension(PFNGLCLEARBUFFERFVPROC, glClearBufferfv); \
     HookExtension(PFNGLCLEARBUFFERFIPROC, glClearBufferfi); \
     HookExtension(PFNGLGETSTRINGIPROC, glGetStringi); \
+    HookExtension(PFNGLDRAWARRAYSINSTANCEDPROC, glDrawArraysInstanced); \
     HookExtension(PFNGLISSYNCPROC, glIsSync); \
     HookExtension(PFNGLGETINTEGER64I_VPROC, glGetInteger64i_v); \
     HookExtension(PFNGLGENSAMPLERSPROC, glGenSamplers); \
@@ -412,6 +415,7 @@
     HookExtension(PFNGLISTRANSFORMFEEDBACKPROC, glIsTransformFeedback); \
     HookExtension(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri); \
     HookExtension(PFNGLTEXSTORAGE2DPROC, glTexStorage2D); \
+    HookExtension(PFNGLDRAWARRAYSINDIRECTPROC, glDrawArraysIndirect); \
     HookExtension(PFNGLGETPROGRAMRESOURCEINDEXPROC, glGetProgramResourceIndex); \
     HookExtension(PFNGLGETPROGRAMRESOURCEIVPROC, glGetProgramResourceiv); \
     HookExtension(PFNGLUSEPROGRAMSTAGESPROC, glUseProgramStages); \
@@ -613,6 +617,7 @@
     HookWrapper3(void, glClearBufferfv, GLenum, buffer, GLint, drawbuffer, const GLfloat *, value); \
     HookWrapper4(void, glClearBufferfi, GLenum, buffer, GLint, drawbuffer, GLfloat, depth, GLint, stencil); \
     HookWrapper2(const GLubyte *, glGetStringi, GLenum, name, GLuint, index); \
+    HookWrapper4(void, glDrawArraysInstanced, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount); \
     HookWrapper1(GLboolean, glIsSync, GLsync, sync); \
     HookWrapper3(void, glGetInteger64i_v, GLenum, target, GLuint, index, GLint64 *, data); \
     HookWrapper2(void, glGenSamplers, GLsizei, count, GLuint *, samplers); \
@@ -628,6 +633,7 @@
     HookWrapper1(GLboolean, glIsTransformFeedback, GLuint, id); \
     HookWrapper3(void, glProgramParameteri, GLuint, program, GLenum, pname, GLint, value); \
     HookWrapper5(void, glTexStorage2D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+    HookWrapper2(void, glDrawArraysIndirect, GLenum, mode, const void *, indirect); \
     HookWrapper3(GLuint, glGetProgramResourceIndex, GLuint, program, GLenum, programInterface, const GLchar *, name); \
     HookWrapper8(void, glGetProgramResourceiv, GLuint, program, GLenum, programInterface, GLuint, index, GLsizei, propCount, const GLenum *, props, GLsizei, bufSize, GLsizei *, length, GLint *, params); \
     HookWrapper3(void, glUseProgramStages, GLuint, pipeline, GLbitfield, stages, GLuint, program); \
@@ -792,7 +798,6 @@
     HookWrapper4(void, glGetActiveUniformBlockiv, GLuint, program, GLuint, uniformBlockIndex, GLenum, pname, GLint *, params); \
     HookWrapper5(void, glGetActiveUniformBlockName, GLuint, program, GLuint, uniformBlockIndex, GLsizei, bufSize, GLsizei *, length, GLchar *, uniformBlockName); \
     HookWrapper3(void, glUniformBlockBinding, GLuint, program, GLuint, uniformBlockIndex, GLuint, uniformBlockBinding); \
-    HookWrapper4(void, glDrawArraysInstanced, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount); \
     HookWrapper5(void, glDrawElementsInstanced, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount); \
     HookWrapper2(GLsync, glFenceSync, GLenum, condition, GLbitfield, flags); \
     HookWrapper1(void, glDeleteSync, GLsync, sync); \
@@ -815,7 +820,6 @@
     HookWrapper5(void, glGetInternalformativ, GLenum, target, GLenum, internalformat, GLenum, pname, GLsizei, bufSize, GLint *, params); \
     HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
     HookWrapper1(void, glDispatchComputeIndirect, GLintptr, indirect); \
-    HookWrapper2(void, glDrawArraysIndirect, GLenum, mode, const void *, indirect); \
     HookWrapper3(void, glDrawElementsIndirect, GLenum, mode, GLenum, type, const void *, indirect); \
     HookWrapper3(void, glFramebufferParameteri, GLenum, target, GLenum, pname, GLint, param); \
     HookWrapper3(void, glGetFramebufferParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
@@ -1346,7 +1350,6 @@
     HandleUnsupported(PFNGLGETACTIVEUNIFORMBLOCKIVPROC, glGetActiveUniformBlockiv); \
     HandleUnsupported(PFNGLGETACTIVEUNIFORMBLOCKNAMEPROC, glGetActiveUniformBlockName); \
     HandleUnsupported(PFNGLUNIFORMBLOCKBINDINGPROC, glUniformBlockBinding); \
-    HandleUnsupported(PFNGLDRAWARRAYSINSTANCEDPROC, glDrawArraysInstanced); \
     HandleUnsupported(PFNGLDRAWELEMENTSINSTANCEDPROC, glDrawElementsInstanced); \
     HandleUnsupported(PFNGLFENCESYNCPROC, glFenceSync); \
     HandleUnsupported(PFNGLDELETESYNCPROC, glDeleteSync); \
@@ -1369,7 +1372,6 @@
     HandleUnsupported(PFNGLGETINTERNALFORMATIVPROC, glGetInternalformativ); \
     HandleUnsupported(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
     HandleUnsupported(PFNGLDISPATCHCOMPUTEINDIRECTPROC, glDispatchComputeIndirect); \
-    HandleUnsupported(PFNGLDRAWARRAYSINDIRECTPROC, glDrawArraysIndirect); \
     HandleUnsupported(PFNGLDRAWELEMENTSINDIRECTPROC, glDrawElementsIndirect); \
     HandleUnsupported(PFNGLFRAMEBUFFERPARAMETERIPROC, glFramebufferParameteri); \
     HandleUnsupported(PFNGLGETFRAMEBUFFERPARAMETERIVPROC, glGetFramebufferParameteriv); \

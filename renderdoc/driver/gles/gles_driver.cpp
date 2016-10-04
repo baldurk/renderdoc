@@ -3464,11 +3464,11 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case MEMORY_BARRIER_BY_REGION: Serialise_glMemoryBarrierByRegion(0); break;
 //    case TEXTURE_BARRIER: Serialise_glTextureBarrier(); break;
     case DRAWARRAYS: Serialise_glDrawArrays(eGL_NONE, 0, 0); break;
-//    case DRAWARRAYS_INDIRECT: Serialise_glDrawArraysIndirect(eGL_NONE, 0); break;
-//    case DRAWARRAYS_INSTANCED: Serialise_glDrawArraysInstanced(eGL_NONE, 0, 0, 0); break;
-//    case DRAWARRAYS_INSTANCEDBASEINSTANCE:
-//      Serialise_glDrawArraysInstancedBaseInstance(eGL_NONE, 0, 0, 0, 0);
-//      break;
+    case DRAWARRAYS_INDIRECT: Serialise_glDrawArraysIndirect(eGL_NONE, 0); break;
+    case DRAWARRAYS_INSTANCED: Serialise_glDrawArraysInstanced(eGL_NONE, 0, 0, 0); break;
+    case DRAWARRAYS_INSTANCEDBASEINSTANCE:
+      Serialise_glDrawArraysInstancedBaseInstanceEXT(eGL_NONE, 0, 0, 0, 0);
+      break;
 //    case DRAWELEMENTS: Serialise_glDrawElements(eGL_NONE, 0, eGL_NONE, NULL); break;
 //    case DRAWELEMENTS_INDIRECT: Serialise_glDrawElementsIndirect(eGL_NONE, eGL_NONE, 0); break;
 //    case DRAWRANGEELEMENTS: Serialise_glDrawRangeElements(eGL_NONE, 0, 0, 0, eGL_NONE, NULL); break;
