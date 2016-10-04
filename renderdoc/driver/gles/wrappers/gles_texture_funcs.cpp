@@ -105,68 +105,6 @@ void WrappedGLES::glGenTextures(GLsizei n, GLuint *textures)
   }
 }
 
-//bool WrappedGLES::Serialise_glCreateTextures(GLenum target, GLsizei n, GLuint *textures)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), *textures)));
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//
-//  if(m_State == READING)
-//  {
-//    GLuint real = 0;
-//    m_Real.glCreateTextures(Target, 1, &real);
-//
-//    GLResource res = TextureRes(GetCtx(), real);
-//
-//    ResourceId live = m_ResourceManager->RegisterResource(res);
-//    GetResourceManager()->AddLiveResource(id, res);
-//
-//    m_Textures[live].resource = res;
-//    m_Textures[live].curType = TextureTarget(Target);
-//    m_Textures[live].creationFlags |= eTextureCreate_SRV;
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glCreateTextures(GLenum target, GLsizei n, GLuint *textures)
-//{
-//  m_Real.glCreateTextures(target, n, textures);
-//
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = TextureRes(GetCtx(), textures[i]);
-//    ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//    if(m_State >= WRITING)
-//    {
-//      Chunk *chunk = NULL;
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(CREATE_TEXTURE);
-//        Serialise_glCreateTextures(target, 1, textures + i);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//      RDCASSERT(record);
-//
-//      record->datatype = TextureBinding(target);
-//      m_Textures[id].resource = res;
-//      m_Textures[id].curType = TextureTarget(target);
-//
-//      record->AddChunk(chunk);
-//    }
-//    else
-//    {
-//      GetResourceManager()->AddLiveResource(id, res);
-//      m_Textures[id].resource = res;
-//      m_Textures[id].curType = TextureTarget(target);
-//      m_Textures[id].creationFlags |= eTextureCreate_SRV;
-//    }
-//  }
-//}
-
 void WrappedGLES::glDeleteTextures(GLsizei n, const GLuint *textures)
 {
   for(GLsizei i = 0; i < n; i++)
@@ -280,226 +218,6 @@ void WrappedGLES::glBindTexture(GLenum target, GLuint texture)
   }
 }
 
-//bool WrappedGLES::Serialise_glBindTextures(GLuint first, GLsizei count, const GLuint *textures)
-//{
-//  SERIALISE_ELEMENT(uint32_t, First, first);
-//  SERIALISE_ELEMENT(int32_t, Count, count);
-//
-//  GLuint *texs = NULL;
-//  if(m_State <= EXECUTING)
-//    texs = new GLuint[Count];
-//
-//  for(int32_t i = 0; i < Count; i++)
-//  {
-//    SERIALISE_ELEMENT(ResourceId, id,
-//                      textures && textures[i]
-//                          ? GetResourceManager()->GetID(TextureRes(GetCtx(), textures[i]))
-//                          : ResourceId());
-//
-//    if(m_State <= EXECUTING)
-//    {
-//      if(id != ResourceId())
-//      {
-//        texs[i] = GetResourceManager()->GetLiveResource(id).name;
-//        if(m_State == READING)
-//          m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= eTextureCreate_SRV;
-//      }
-//      else
-//      {
-//        texs[i] = 0;
-//      }
-//    }
-//  }
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glBindTextures(First, Count, texs);
-//
-//    delete[] texs;
-//  }
-//
-//  return true;
-//}
-//
-//// glBindTextures doesn't provide a target, so can't be used to "init" a texture from glGenTextures
-//// which makes our lives a bit easier
-//void WrappedGLES::glBindTextures(GLuint first, GLsizei count, const GLuint *textures)
-//{
-//  m_Real.glBindTextures(first, count, textures);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BIND_TEXTURES);
-//    Serialise_glBindTextures(first, count, textures);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//
-//    for(GLsizei i = 0; i < count; i++)
-//      if(textures[i])
-//        GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), textures[i]),
-//                                                          eFrameRef_Read);
-//  }
-//
-//  if(m_State >= WRITING)
-//  {
-//    for(GLsizei i = 0; i < count; i++)
-//    {
-//      if(textures == NULL || textures[i] == 0)
-//        GetCtxData().m_TextureRecord[first + i] = 0;
-//      else
-//        GetCtxData().m_TextureRecord[first + i] =
-//            GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), textures[i]));
-//    }
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint texture)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(uint32_t, Unit, texunit - eGL_TEXTURE0);
-//  SERIALISE_ELEMENT(
-//      ResourceId, Id,
-//      (texture ? GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) : ResourceId()));
-//
-//  if(m_State == WRITING_IDLE)
-//  {
-//    GetCtxData().m_TextureRecord[Unit]->datatype = TextureBinding(Target);
-//  }
-//  else if(m_State < WRITING)
-//  {
-//    if(Id == ResourceId())
-//    {
-//      m_Real.glBindMultiTextureEXT(GLenum(eGL_TEXTURE0 + Unit), Target, 0);
-//    }
-//    else
-//    {
-//      GLResource res = GetResourceManager()->GetLiveResource(Id);
-//      m_Real.glBindMultiTextureEXT(GLenum(eGL_TEXTURE0 + Unit), Target, res.name);
-//
-//      if(m_State == READING)
-//      {
-//        m_Textures[GetResourceManager()->GetLiveID(Id)].curType = TextureTarget(Target);
-//        m_Textures[GetResourceManager()->GetLiveID(Id)].creationFlags |= eTextureCreate_SRV;
-//      }
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBindMultiTextureEXT(GLenum texunit, GLenum target, GLuint texture)
-//{
-//  m_Real.glBindMultiTextureEXT(texunit, target, texture);
-//
-//  if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
-//    return;
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    Chunk *chunk = NULL;
-//
-//    {
-//      SCOPED_SERIALISE_CONTEXT(BIND_MULTI_TEX);
-//      Serialise_glBindMultiTextureEXT(texunit, target, texture);
-//
-//      chunk = scope.Get();
-//    }
-//
-//    m_ContextRecord->AddChunk(chunk);
-//    GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
-//  }
-//  else if(m_State < WRITING)
-//  {
-//    m_Textures[GetResourceManager()->GetID(TextureRes(GetCtx(), texture))].curType =
-//        TextureTarget(target);
-//  }
-//
-//  ContextData &cd = GetCtxData();
-//
-//  if(texture == 0)
-//  {
-//    cd.m_TextureRecord[texunit - eGL_TEXTURE0] = NULL;
-//    return;
-//  }
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *r = cd.m_TextureRecord[texunit - eGL_TEXTURE0] =
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-//
-//    if(r->datatype)
-//    {
-//      // it's illegal to retype a texture
-//      RDCASSERT(r->datatype == TextureBinding(target));
-//    }
-//    else
-//    {
-//      Chunk *chunk = NULL;
-//
-//      // this is just a 'typing' bind, so doesn't need to be to the right slot, just anywhere.
-//      {
-//        SCOPED_SERIALISE_CONTEXT(BIND_TEXTURE);
-//        Serialise_glBindTexture(target, texture);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      r->AddChunk(chunk);
-//    }
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glBindTextureUnit(GLuint texunit, GLuint texture)
-//{
-//  SERIALISE_ELEMENT(uint32_t, Unit, texunit);
-//  SERIALISE_ELEMENT(
-//      ResourceId, Id,
-//      (texture ? GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) : ResourceId()));
-//
-//  if(m_State < WRITING)
-//  {
-//    if(Id == ResourceId())
-//    {
-//      m_Real.glBindTextureUnit(Unit, 0);
-//    }
-//    else
-//    {
-//      GLResource res = GetResourceManager()->GetLiveResource(Id);
-//      m_Real.glBindTextureUnit(Unit, res.name);
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBindTextureUnit(GLuint unit, GLuint texture)
-//{
-//  m_Real.glBindTextureUnit(unit, texture);
-//
-//  if(texture != 0 && GetResourceManager()->GetID(TextureRes(GetCtx(), texture)) == ResourceId())
-//    return;
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BIND_TEXTURE_UNIT);
-//    Serialise_glBindTextureUnit(unit, texture);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture), eFrameRef_Read);
-//  }
-//
-//  if(m_State >= WRITING)
-//  {
-//    ContextData &cd = GetCtxData();
-//
-//    if(texture == 0)
-//      cd.m_TextureRecord[unit] = NULL;
-//    else
-//      cd.m_TextureRecord[unit] =
-//          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-//  }
-//}
-
 bool WrappedGLES::Serialise_glBindImageTexture(GLuint unit, GLuint texture, GLint level,
                                                  GLboolean layered, GLint layer, GLenum access,
                                                  GLenum format)
@@ -546,771 +264,351 @@ void WrappedGLES::glBindImageTexture(GLuint unit, GLuint texture, GLint level, G
   }
 }
 
-//bool WrappedGLES::Serialise_glBindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
-//{
-//  SERIALISE_ELEMENT(uint32_t, First, first);
-//  SERIALISE_ELEMENT(int32_t, Count, count);
-//
-//  GLuint *texs = NULL;
-//  if(m_State <= EXECUTING)
-//    texs = new GLuint[Count];
-//
-//  for(int32_t i = 0; i < Count; i++)
-//  {
-//    SERIALISE_ELEMENT(ResourceId, id,
-//                      textures && textures[i]
-//                          ? GetResourceManager()->GetID(TextureRes(GetCtx(), textures[i]))
-//                          : ResourceId());
-//
-//    if(m_State <= EXECUTING)
-//    {
-//      if(id != ResourceId())
-//      {
-//        texs[i] = GetResourceManager()->GetLiveResource(id).name;
-//        if(m_State == READING)
-//          m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= eTextureCreate_UAV;
-//      }
-//      else
-//      {
-//        texs[i] = 0;
-//      }
-//    }
-//  }
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glBindImageTextures(First, Count, texs);
-//
-//    delete[] texs;
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBindImageTextures(GLuint first, GLsizei count, const GLuint *textures)
-//{
-//  m_Real.glBindImageTextures(first, count, textures);
-//
-//  if(m_State >= WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BIND_IMAGE_TEXTURES);
-//    Serialise_glBindImageTextures(first, count, textures);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//
-//    for(GLsizei i = 0; i < count; i++)
-//      if(textures != NULL && textures[i] != 0)
-//        GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), textures[i]),
-//                                                          eFrameRef_Read);
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glTextureView(GLuint texture, GLenum target, GLuint origtexture,
-//                                            GLenum internalformat, GLuint minlevel,
-//                                            GLuint numlevels, GLuint minlayer, GLuint numlayers)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(GLenum, InternalFormat, internalformat);
-//  SERIALISE_ELEMENT(uint32_t, MinLevel, minlevel);
-//  SERIALISE_ELEMENT(uint32_t, NumLevels, numlevels);
-//  SERIALISE_ELEMENT(uint32_t, MinLayer, minlayer);
-//  SERIALISE_ELEMENT(uint32_t, NumLayers, numlayers);
-//  SERIALISE_ELEMENT(ResourceId, texid, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//  SERIALISE_ELEMENT(ResourceId, origid,
-//                    GetResourceManager()->GetID(TextureRes(GetCtx(), origtexture)));
-//
-//  if(m_State == READING)
-//  {
-//    GLResource tex = GetResourceManager()->GetLiveResource(texid);
-//    GLResource origtex = GetResourceManager()->GetLiveResource(origid);
-//    m_Real.glTextureView(tex.name, Target, origtex.name, InternalFormat, MinLevel, NumLevels,
-//                         MinLayer, NumLayers);
-//
-//    ResourceId liveTexId = GetResourceManager()->GetLiveID(texid);
-//    ResourceId liveOrigId = GetResourceManager()->GetLiveID(origid);
-//
-//    m_Textures[liveTexId].curType = TextureTarget(Target);
-//    m_Textures[liveTexId].internalFormat = InternalFormat;
-//    m_Textures[liveTexId].view = true;
-//    m_Textures[liveTexId].width = m_Textures[liveOrigId].width;
-//    m_Textures[liveTexId].height = m_Textures[liveOrigId].height;
-//    m_Textures[liveTexId].depth = m_Textures[liveOrigId].depth;
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glTextureView(GLuint texture, GLenum target, GLuint origtexture,
-//                                  GLenum internalformat, GLuint minlevel, GLuint numlevels,
-//                                  GLuint minlayer, GLuint numlayers)
-//{
-//  internalformat = GetSizedFormat(m_Real, target, internalformat);
-//
-//  m_Real.glTextureView(texture, target, origtexture, internalformat, minlevel, numlevels, minlayer,
-//                       numlayers);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-//    GLResourceRecord *origrecord =
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), origtexture));
-//    RDCASSERT(record && origrecord);
-//
-//    SCOPED_SERIALISE_CONTEXT(TEXTURE_VIEW);
-//    Serialise_glTextureView(texture, target, origtexture, internalformat, minlevel, numlevels,
-//                            minlayer, numlayers);
-//
-//    record->AddChunk(scope.Get());
-//    record->AddParent(origrecord);
-//
-//    // illegal to re-type textures
-//    record->VerifyDataType(target);
-//
-//    // mark the underlying resource as dirty to avoid tracking dirty across
-//    // aliased resources etc.
-//    if(m_State == WRITING_IDLE)
-//      GetResourceManager()->MarkDirtyResource(origrecord->GetResourceID());
-//    else
-//      m_MissingTracks.insert(origrecord->GetResourceID());
-//  }
-//
-//  {
-//    ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
-//    ResourceId viewedId = GetResourceManager()->GetID(TextureRes(GetCtx(), origtexture));
-//
-//    m_Textures[texId].internalFormat = internalformat;
-//    m_Textures[texId].view = true;
-//    m_Textures[texId].dimension = m_Textures[viewedId].dimension;
-//    m_Textures[texId].width = m_Textures[viewedId].width;
-//    m_Textures[texId].height = m_Textures[viewedId].height;
-//    m_Textures[texId].depth = m_Textures[viewedId].depth;
-//    m_Textures[texId].curType = TextureTarget(target);
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glGenerateTextureMipmapEXT(GLuint texture, GLenum target)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(Target != eGL_NONE)
-//      m_Real.glGenerateTextureMipmapEXT(GetResourceManager()->GetLiveResource(id).name, Target);
-//    else
-//      m_Real.glGenerateTextureMipmap(GetResourceManager()->GetLiveResource(id).name);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(GENERATE_MIPMAP, desc);
-//    string name = "glGenerateMipmap(" + ToStr::Get(id) + ")";
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.flags |= eDraw_GenMips;
-//
-//    AddDrawcall(draw, true);
-//
-//    m_ResourceUses[GetResourceManager()->GetLiveID(id)].push_back(
-//        EventUsage(m_CurEventID, eUsage_GenMips));
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glGenerateTextureMipmapEXT(GLResourceRecord *record, GLenum target)
-//{
-//  if(!record)
-//  {
-//    RDCERR(
-//        "Called texture function with invalid/unrecognised texture, or no texture bound to "
-//        "implicit slot");
-//    return;
-//  }
-//
-//  CoherentMapImplicitBarrier();
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(GENERATE_MIPMAP);
-//    Serialise_glGenerateTextureMipmapEXT(record->Resource.name, target);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    m_MissingTracks.insert(record->GetResourceID());
-//    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-//  }
-//  else if(m_State == WRITING_IDLE)
-//  {
-//    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//  }
-//}
-//
-//void WrappedGLES::glGenerateTextureMipmapEXT(GLuint texture, GLenum target)
-//{
-//  m_Real.glGenerateTextureMipmapEXT(texture, target);
-//
-//  if(m_State >= WRITING)
-//    Common_glGenerateTextureMipmapEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target);
-//}
-//
-//void WrappedGLES::glGenerateTextureMipmap(GLuint texture)
-//{
-//  m_Real.glGenerateTextureMipmap(texture);
-//
-//  if(m_State >= WRITING)
-//    Common_glGenerateTextureMipmapEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eGL_NONE);
-//}
-//
-//void WrappedGLES::glGenerateMipmap(GLenum target)
-//{
-//  m_Real.glGenerateMipmap(target);
-//
-//  if(m_State >= WRITING)
-//    Common_glGenerateTextureMipmapEXT(GetCtxData().GetActiveTexRecord(), target);
-//}
-//
-//void WrappedGLES::glGenerateMultiTexMipmapEXT(GLenum texunit, GLenum target)
-//{
-//  m_Real.glGenerateMultiTexMipmapEXT(texunit, target);
-//
-//  if(m_State >= WRITING)
-//    Common_glGenerateTextureMipmapEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target);
-//}
-//
-//void WrappedGLES::glInvalidateTexImage(GLuint texture, GLint level)
-//{
-//  m_Real.glInvalidateTexImage(texture, level);
-//
-//  if(m_State == WRITING_IDLE)
-//    GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
-//  else
-//    m_MissingTracks.insert(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//}
-//
-//void WrappedGLES::glInvalidateTexSubImage(GLuint texture, GLint level, GLint xoffset,
-//                                            GLint yoffset, GLint zoffset, GLsizei width,
-//                                            GLsizei height, GLsizei depth)
-//{
-//  m_Real.glInvalidateTexSubImage(texture, level, xoffset, yoffset, zoffset, width, height, depth);
-//
-//  if(m_State == WRITING_IDLE)
-//    GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), texture));
-//  else
-//    m_MissingTracks.insert(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//}
-//
-//bool WrappedGLES::Serialise_glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
-//                                                 GLint srcX, GLint srcY, GLint srcZ, GLuint dstName,
-//                                                 GLenum dstTarget, GLint dstLevel, GLint dstX,
-//                                                 GLint dstY, GLint dstZ, GLsizei srcWidth,
-//                                                 GLsizei srcHeight, GLsizei srcDepth)
-//{
-//  SERIALISE_ELEMENT(ResourceId, srcid, GetResourceManager()->GetID(TextureRes(GetCtx(), srcName)));
-//  SERIALISE_ELEMENT(ResourceId, dstid, GetResourceManager()->GetID(TextureRes(GetCtx(), dstName)));
-//  SERIALISE_ELEMENT(GLenum, SourceTarget, srcTarget);
-//  SERIALISE_ELEMENT(GLenum, DestTarget, dstTarget);
-//  SERIALISE_ELEMENT(uint32_t, SourceLevel, srcLevel);
-//  SERIALISE_ELEMENT(uint32_t, SourceX, srcX);
-//  SERIALISE_ELEMENT(uint32_t, SourceY, srcY);
-//  SERIALISE_ELEMENT(uint32_t, SourceZ, srcZ);
-//  SERIALISE_ELEMENT(uint32_t, SourceWidth, srcWidth);
-//  SERIALISE_ELEMENT(uint32_t, SourceHeight, srcHeight);
-//  SERIALISE_ELEMENT(uint32_t, SourceDepth, srcDepth);
-//  SERIALISE_ELEMENT(uint32_t, DestLevel, dstLevel);
-//  SERIALISE_ELEMENT(uint32_t, DestX, dstX);
-//  SERIALISE_ELEMENT(uint32_t, DestY, dstY);
-//  SERIALISE_ELEMENT(uint32_t, DestZ, dstZ);
-//
-//  if(m_State < WRITING)
-//  {
-//    GLResource srcres = GetResourceManager()->GetLiveResource(srcid);
-//    GLResource dstres = GetResourceManager()->GetLiveResource(dstid);
-//    m_Real.glCopyImageSubData(srcres.name, SourceTarget, SourceLevel, SourceX, SourceY, SourceZ,
-//                              dstres.name, DestTarget, DestLevel, DestX, DestY, DestZ, SourceWidth,
-//                              SourceHeight, SourceDepth);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(COPY_SUBIMAGE, desc);
-//    string name = "glCopyImageSubData(" + ToStr::Get(srcid) + ", " + ToStr::Get(dstid) + ")";
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.flags |= eDraw_Copy;
-//
-//    draw.copySource = srcid;
-//    draw.copyDestination = dstid;
-//
-//    AddDrawcall(draw, true);
-//
-//    if(srcid == dstid)
-//    {
-//      m_ResourceUses[GetResourceManager()->GetLiveID(srcid)].push_back(
-//          EventUsage(m_CurEventID, eUsage_Copy));
-//    }
-//    else
-//    {
-//      m_ResourceUses[GetResourceManager()->GetLiveID(srcid)].push_back(
-//          EventUsage(m_CurEventID, eUsage_CopySrc));
-//      m_ResourceUses[GetResourceManager()->GetLiveID(dstid)].push_back(
-//          EventUsage(m_CurEventID, eUsage_CopyDst));
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX,
-//                                       GLint srcY, GLint srcZ, GLuint dstName, GLenum dstTarget,
-//                                       GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ,
-//                                       GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName, dstTarget,
-//                            dstLevel, dstX, dstY, dstZ, srcWidth, srcHeight, srcDepth);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    GLResourceRecord *srcrecord =
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), srcName));
-//    GLResourceRecord *dstrecord =
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), dstName));
-//    RDCASSERT(srcrecord && dstrecord);
-//
-//    SCOPED_SERIALISE_CONTEXT(COPY_SUBIMAGE);
-//    Serialise_glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName, dstTarget,
-//                                 dstLevel, dstX, dstY, dstZ, srcWidth, srcHeight, srcDepth);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    m_MissingTracks.insert(dstrecord->GetResourceID());
-//    GetResourceManager()->MarkResourceFrameReferenced(dstrecord->GetResourceID(), eFrameRef_Read);
-//    GetResourceManager()->MarkResourceFrameReferenced(srcrecord->GetResourceID(), eFrameRef_Read);
-//  }
-//  else if(m_State == WRITING_IDLE)
-//  {
-//    GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), dstName));
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glCopyTextureSubImage1DEXT(GLuint texture, GLenum target, GLint level,
-//                                                         GLint xoffset, GLint x, GLint y,
-//                                                         GLsizei width)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(int32_t, Level, level);
-//  SERIALISE_ELEMENT(int32_t, Xoffset, xoffset);
-//  SERIALISE_ELEMENT(int32_t, X, x);
-//  SERIALISE_ELEMENT(int32_t, Y, y);
-//  SERIALISE_ELEMENT(int32_t, Width, width);
-//
-//  if(m_State < WRITING)
-//  {
-//    if(Target != eGL_NONE)
-//      m_Real.glCopyTextureSubImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target,
-//                                        Level, Xoffset, X, Y, Width);
-//    else
-//      m_Real.glCopyTextureSubImage1D(GetResourceManager()->GetLiveResource(id).name, Level, Xoffset,
-//                                     X, Y, Width);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glCopyTextureSubImage1DEXT(GLResourceRecord *record, GLenum target,
-//                                                      GLint level, GLint xoffset, GLint x, GLint y,
-//                                                      GLsizei width)
-//{
-//  if(!record)
-//  {
-//    RDCERR(
-//        "Called texture function with invalid/unrecognised texture, or no texture bound to "
-//        "implicit slot");
-//    return;
-//  }
-//
-//  CoherentMapImplicitBarrier();
-//
-//  if(m_State == WRITING_IDLE)
-//  {
-//    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//  }
-//  else if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(COPY_SUBIMAGE1D);
-//    Serialise_glCopyTextureSubImage1DEXT(record->Resource.name, target, level, xoffset, x, y, width);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    m_MissingTracks.insert(record->GetResourceID());
-//    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-//  }
-//}
-//
-//void WrappedGLES::glCopyTextureSubImage1DEXT(GLuint texture, GLenum target, GLint level,
-//                                               GLint xoffset, GLint x, GLint y, GLsizei width)
-//{
-//  m_Real.glCopyTextureSubImage1DEXT(texture, target, level, xoffset, x, y, width);
-//
-//  if(m_State >= WRITING)
-//    Common_glCopyTextureSubImage1DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target, level,
-//        xoffset, x, y, width);
-//}
-//
-//void WrappedGLES::glCopyTextureSubImage1D(GLuint texture, GLint level, GLint xoffset, GLint x,
-//                                            GLint y, GLsizei width)
-//{
-//  m_Real.glCopyTextureSubImage1D(texture, level, xoffset, x, y, width);
-//
-//  if(m_State >= WRITING)
-//    Common_glCopyTextureSubImage1DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eGL_NONE, level,
-//        xoffset, x, y, width);
-//}
-//
-//void WrappedGLES::glCopyMultiTexSubImage1DEXT(GLenum texunit, GLenum target, GLint level,
-//                                                GLint xoffset, GLint x, GLint y, GLsizei width)
-//{
-//  m_Real.glCopyMultiTexSubImage1DEXT(texunit, target, level, xoffset, x, y, width);
-//
-//  if(m_State >= WRITING)
-//    Common_glCopyTextureSubImage1DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
-//                                      level, xoffset, x, y, width);
-//}
-//
-//void WrappedGLES::glCopyTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLint x, GLint y,
-//                                        GLsizei width)
-//{
-//  m_Real.glCopyTexSubImage1D(target, level, xoffset, x, y, width);
-//
-//  if(m_State >= WRITING)
-//    Common_glCopyTextureSubImage1DEXT(GetCtxData().GetActiveTexRecord(), eGL_NONE, level, xoffset,
-//                                      x, y, width);
-//}
-//
-//bool WrappedGLES::Serialise_glCopyTextureSubImage2DEXT(GLuint texture, GLenum target, GLint level,
-//                                                         GLint xoffset, GLint yoffset, GLint x,
-//                                                         GLint y, GLsizei width, GLsizei height)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(int32_t, Level, level);
-//  SERIALISE_ELEMENT(int32_t, Xoffset, xoffset);
-//  SERIALISE_ELEMENT(int32_t, Yoffset, yoffset);
-//  SERIALISE_ELEMENT(int32_t, X, x);
-//  SERIALISE_ELEMENT(int32_t, Y, y);
-//  SERIALISE_ELEMENT(int32_t, Width, width);
-//  SERIALISE_ELEMENT(int32_t, Height, height);
-//
-//  if(m_State < WRITING)
-//  {
-//    if(Target != eGL_NONE)
-//      m_Real.glCopyTextureSubImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target,
-//                                        Level, Xoffset, Yoffset, X, Y, Width, Height);
-//    else
-//      m_Real.glCopyTextureSubImage2D(GetResourceManager()->GetLiveResource(id).name, Level, Xoffset,
-//                                     Yoffset, X, Y, Width, Height);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glCopyTextureSubImage2DEXT(GLResourceRecord *record, GLenum target,
-//                                                      GLint level, GLint xoffset, GLint yoffset,
-//                                                      GLint x, GLint y, GLsizei width, GLsizei height)
-//{
-//  if(!record)
-//  {
-//    RDCERR(
-//        "Called texture function with invalid/unrecognised texture, or no texture bound to "
-//        "implicit slot");
-//    return;
-//  }
-//
-//  CoherentMapImplicitBarrier();
-//
-//  if(m_State == WRITING_IDLE)
-//  {
-//    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//  }
-//  else if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(COPY_SUBIMAGE2D);
-//    Serialise_glCopyTextureSubImage2DEXT(record->Resource.name, target, level, xoffset, yoffset, x,
-//                                         y, width, height);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    m_MissingTracks.insert(record->GetResourceID());
-//    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-//  }
-//}
-//
-//void WrappedGLES::glCopyTextureSubImage2DEXT(GLuint texture, GLenum target, GLint level,
-//                                               GLint xoffset, GLint yoffset, GLint x, GLint y,
-//                                               GLsizei width, GLsizei height)
-//{
-//  m_Real.glCopyTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, x, y, width, height);
-//
-//  if(m_State >= WRITING)
-//    Common_glCopyTextureSubImage2DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target, level,
-//        xoffset, yoffset, x, y, width, height);
-//}
-//
-//void WrappedGLES::glCopyTextureSubImage2D(GLuint texture, GLint level, GLint xoffset, GLint yoffset,
-//                                            GLint x, GLint y, GLsizei width, GLsizei height)
-//{
-//  m_Real.glCopyTextureSubImage2D(texture, level, xoffset, yoffset, x, y, width, height);
-//
-//  if(m_State >= WRITING)
-//    Common_glCopyTextureSubImage2DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eGL_NONE, level,
-//        xoffset, yoffset, x, y, width, height);
-//}
-//
-//void WrappedGLES::glCopyMultiTexSubImage2DEXT(GLenum texunit, GLenum target, GLint level,
-//                                                GLint xoffset, GLint yoffset, GLint x, GLint y,
-//                                                GLsizei width, GLsizei height)
-//{
-//  m_Real.glCopyMultiTexSubImage2DEXT(texunit, target, level, xoffset, yoffset, x, y, width, height);
-//
-//  if(m_State >= WRITING)
-//    Common_glCopyTextureSubImage2DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
-//                                      level, xoffset, yoffset, x, y, width, height);
-//}
-//
-//void WrappedGLES::glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-//                                        GLint x, GLint y, GLsizei width, GLsizei height)
-//{
-//  m_Real.glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
-//
-//  if(m_State >= WRITING)
-//    Common_glCopyTextureSubImage2DEXT(GetCtxData().GetActiveTexRecord(), target, level, xoffset,
-//                                      yoffset, x, y, width, height);
-//}
-//
-//bool WrappedGLES::Serialise_glCopyTextureSubImage3DEXT(GLuint texture, GLenum target, GLint level,
-//                                                         GLint xoffset, GLint yoffset,
-//                                                         GLint zoffset, GLint x, GLint y,
-//                                                         GLsizei width, GLsizei height)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(int32_t, Level, level);
-//  SERIALISE_ELEMENT(int32_t, Xoffset, xoffset);
-//  SERIALISE_ELEMENT(int32_t, Yoffset, yoffset);
-//  SERIALISE_ELEMENT(int32_t, Zoffset, zoffset);
-//  SERIALISE_ELEMENT(int32_t, X, x);
-//  SERIALISE_ELEMENT(int32_t, Y, y);
-//  SERIALISE_ELEMENT(int32_t, Width, width);
-//  SERIALISE_ELEMENT(int32_t, Height, height);
-//
-//  if(m_State < WRITING)
-//  {
-//    if(Target != eGL_NONE)
-//      m_Real.glCopyTextureSubImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target,
-//                                        Level, Xoffset, Yoffset, Zoffset, X, Y, Width, Height);
-//    else
-//      m_Real.glCopyTextureSubImage3D(GetResourceManager()->GetLiveResource(id).name, Level, Xoffset,
-//                                     Yoffset, Zoffset, X, Y, Width, Height);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glCopyTextureSubImage3DEXT(GLResourceRecord *record, GLenum target,
-//                                                      GLint level, GLint xoffset, GLint yoffset,
-//                                                      GLint zoffset, GLint x, GLint y,
-//                                                      GLsizei width, GLsizei height)
-//{
-//  if(!record)
-//  {
-//    RDCERR(
-//        "Called texture function with invalid/unrecognised texture, or no texture bound to "
-//        "implicit slot");
-//    return;
-//  }
-//
-//  CoherentMapImplicitBarrier();
-//
-//  if(m_State == WRITING_IDLE)
-//  {
-//    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//    m_MissingTracks.insert(record->GetResourceID());
-//  }
-//  else if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(COPY_SUBIMAGE3D);
-//    Serialise_glCopyTextureSubImage3DEXT(record->Resource.name, target, level, xoffset, yoffset,
-//                                         zoffset, x, y, width, height);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    m_MissingTracks.insert(record->GetResourceID());
-//    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-//  }
-//}
-//
-//void WrappedGLES::glCopyTextureSubImage3DEXT(GLuint texture, GLenum target, GLint level,
-//                                               GLint xoffset, GLint yoffset, GLint zoffset, GLint x,
-//                                               GLint y, GLsizei width, GLsizei height)
-//{
-//  m_Real.glCopyTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, x, y, width,
-//                                    height);
-//
-//  if(m_State >= WRITING)
-//    Common_glCopyTextureSubImage3DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target, level,
-//        xoffset, yoffset, zoffset, x, y, width, height);
-//}
-//
-//void WrappedGLES::glCopyTextureSubImage3D(GLuint texture, GLint level, GLint xoffset,
-//                                            GLint yoffset, GLint zoffset, GLint x, GLint y,
-//                                            GLsizei width, GLsizei height)
-//{
-//  m_Real.glCopyTextureSubImage3D(texture, level, xoffset, yoffset, zoffset, x, y, width, height);
-//
-//  if(m_State >= WRITING)
-//    Common_glCopyTextureSubImage3DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eGL_NONE, level,
-//        xoffset, yoffset, zoffset, x, y, width, height);
-//}
-//
-//void WrappedGLES::glCopyMultiTexSubImage3DEXT(GLenum texunit, GLenum target, GLint level,
-//                                                GLint xoffset, GLint yoffset, GLint zoffset,
-//                                                GLint x, GLint y, GLsizei width, GLsizei height)
-//{
-//  m_Real.glCopyMultiTexSubImage3DEXT(texunit, target, level, xoffset, yoffset, zoffset, x, y, width,
-//                                     height);
-//
-//  if(m_State >= WRITING)
-//    Common_glCopyTextureSubImage3DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
-//                                      level, xoffset, yoffset, zoffset, x, y, width, height);
-//}
-//
-//void WrappedGLES::glCopyTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-//                                        GLint zoffset, GLint x, GLint y, GLsizei width,
-//                                        GLsizei height)
-//{
-//  m_Real.glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height);
-//
-//  if(m_State >= WRITING)
-//    Common_glCopyTextureSubImage3DEXT(GetCtxData().GetActiveTexRecord(), target, level, xoffset,
-//                                      yoffset, zoffset, x, y, width, height);
-//}
-//
-//bool WrappedGLES::Serialise_glTextureParameteriEXT(GLuint texture, GLenum target, GLenum pname,
-//                                                     GLint param)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//
-//  int32_t ParamValue = 0;
-//
-//  RDCCOMPILE_ASSERT(sizeof(int32_t) == sizeof(GLenum),
-//                    "int32_t isn't the same size as GLenum - aliased serialising will break");
-//  // special case a few parameters to serialise their value as an enum, not an int
-//  if(PName == GL_DEPTH_STENCIL_TEXTURE_MODE || PName == GL_TEXTURE_COMPARE_FUNC ||
-//     PName == GL_TEXTURE_COMPARE_MODE || PName == GL_TEXTURE_MIN_FILTER ||
-//     PName == GL_TEXTURE_MAG_FILTER || PName == GL_TEXTURE_SWIZZLE_R ||
-//     PName == GL_TEXTURE_SWIZZLE_G || PName == GL_TEXTURE_SWIZZLE_B || PName == GL_TEXTURE_SWIZZLE_A ||
-//     PName == GL_TEXTURE_WRAP_S || PName == GL_TEXTURE_WRAP_T || PName == GL_TEXTURE_WRAP_R)
-//  {
-//    SERIALISE_ELEMENT(GLenum, Param, (GLenum)param);
-//
-//    ParamValue = (int32_t)Param;
-//  }
-//  else
-//  {
-//    SERIALISE_ELEMENT(int32_t, Param, param);
-//
-//    ParamValue = Param;
-//  }
-//
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//
-//  if(m_State < WRITING)
-//  {
-//    if(Target != eGL_NONE)
-//      m_Real.glTextureParameteriEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName,
-//                                    ParamValue);
-//    else
-//      m_Real.glTextureParameteri(GetResourceManager()->GetLiveResource(id).name, PName, ParamValue);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glTextureParameteriEXT(GLResourceRecord *record, GLenum target,
-//                                                  GLenum pname, GLint param)
-//{
-//  if(!record)
-//  {
-//    RDCERR(
-//        "Called texture function with invalid/unrecognised texture, or no texture bound to "
-//        "implicit slot");
-//    return;
-//  }
-//
-//  if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-//     m_State != WRITING_CAPFRAME)
-//    return;
-//
-//  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
-//  if(param == eGL_CLAMP)
-//    param = eGL_CLAMP_TO_EDGE;
-//
-//  SCOPED_SERIALISE_CONTEXT(TEXPARAMETERI);
-//  Serialise_glTextureParameteriEXT(record->Resource.name, target, pname, param);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    m_ContextRecord->AddChunk(scope.Get());
-//    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-//  }
-//  else
-//  {
-//    record->AddChunk(scope.Get());
-//    record->UpdateCount++;
-//
-//    if(record->UpdateCount > 12)
-//    {
-//      m_HighTrafficResources.insert(record->GetResourceID());
-//      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//    }
-//  }
-//}
-//
-//void WrappedGLES::glTextureParameteri(GLuint texture, GLenum pname, GLint param)
-//{
-//  m_Real.glTextureParameteri(texture, pname, param);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureParameteriEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eGL_NONE, pname,
-//        param);
-//}
-//
-//void WrappedGLES::glTextureParameteriEXT(GLuint texture, GLenum target, GLenum pname, GLint param)
-//{
-//  m_Real.glTextureParameteriEXT(texture, target, pname, param);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureParameteriEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target, pname, param);
-//}
+bool WrappedGLES::Serialise_glTextureViewEXT(GLuint texture, GLenum target, GLuint origtexture,
+                                             GLenum internalformat, GLuint minlevel,
+                                             GLuint numlevels, GLuint minlayer, GLuint numlayers)
+{
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(GLenum, InternalFormat, internalformat);
+  SERIALISE_ELEMENT(uint32_t, MinLevel, minlevel);
+  SERIALISE_ELEMENT(uint32_t, NumLevels, numlevels);
+  SERIALISE_ELEMENT(uint32_t, MinLayer, minlayer);
+  SERIALISE_ELEMENT(uint32_t, NumLayers, numlayers);
+  SERIALISE_ELEMENT(ResourceId, texid, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+  SERIALISE_ELEMENT(ResourceId, origid,
+                    GetResourceManager()->GetID(TextureRes(GetCtx(), origtexture)));
+
+  if(m_State == READING)
+  {
+    GLResource tex = GetResourceManager()->GetLiveResource(texid);
+    GLResource origtex = GetResourceManager()->GetLiveResource(origid);
+    m_Real.glTextureViewEXT(tex.name, Target, origtex.name, InternalFormat, MinLevel, NumLevels,
+                            MinLayer, NumLayers);
+
+    ResourceId liveTexId = GetResourceManager()->GetLiveID(texid);
+    ResourceId liveOrigId = GetResourceManager()->GetLiveID(origid);
+
+    m_Textures[liveTexId].curType = TextureTarget(Target);
+    m_Textures[liveTexId].internalFormat = InternalFormat;
+    m_Textures[liveTexId].view = true;
+    m_Textures[liveTexId].width = m_Textures[liveOrigId].width;
+    m_Textures[liveTexId].height = m_Textures[liveOrigId].height;
+    m_Textures[liveTexId].depth = m_Textures[liveOrigId].depth;
+  }
+
+  return true;
+}
+
+void WrappedGLES::glTextureViewEXT(GLuint texture, GLenum target, GLuint origtexture,
+                                   GLenum internalformat, GLuint minlevel, GLuint numlevels,
+                                   GLuint minlayer, GLuint numlayers)
+{
+  internalformat = GetSizedFormat(m_Real, target, internalformat);
+
+  m_Real.glTextureViewEXT(texture, target, origtexture, internalformat, minlevel, numlevels, minlayer,
+                          numlayers);
+
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
+    GLResourceRecord *origrecord =
+        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), origtexture));
+    RDCASSERT(record && origrecord);
+
+    SCOPED_SERIALISE_CONTEXT(TEXTURE_VIEW);
+    Serialise_glTextureViewEXT(texture, target, origtexture, internalformat, minlevel, numlevels,
+                               minlayer, numlayers);
+
+    record->AddChunk(scope.Get());
+    record->AddParent(origrecord);
+
+    // illegal to re-type textures
+    record->VerifyDataType(target);
+
+    // mark the underlying resource as dirty to avoid tracking dirty across
+    // aliased resources etc.
+    if(m_State == WRITING_IDLE)
+      GetResourceManager()->MarkDirtyResource(origrecord->GetResourceID());
+    else
+      m_MissingTracks.insert(origrecord->GetResourceID());
+  }
+
+  {
+    ResourceId texId = GetResourceManager()->GetID(TextureRes(GetCtx(), texture));
+    ResourceId viewedId = GetResourceManager()->GetID(TextureRes(GetCtx(), origtexture));
+
+    m_Textures[texId].internalFormat = internalformat;
+    m_Textures[texId].view = true;
+    m_Textures[texId].dimension = m_Textures[viewedId].dimension;
+    m_Textures[texId].width = m_Textures[viewedId].width;
+    m_Textures[texId].height = m_Textures[viewedId].height;
+    m_Textures[texId].depth = m_Textures[viewedId].depth;
+    m_Textures[texId].curType = TextureTarget(target);
+  }
+}
+
+bool WrappedGLES::Serialise_glGenerateMipmap(GLenum target)
+{
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
+
+  if(m_State <= EXECUTING)
+  {
+      m_Real.glGenerateMipmap(Target);
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(GENERATE_MIPMAP, desc);
+    string name = "glGenerateMipmap(" + ToStr::Get(id) + ")";
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.flags |= eDraw_GenMips;
+
+    // TODO PEPE check wether this call is needed.
+    //AddDrawcall(draw, true);
+
+    m_ResourceUses[GetResourceManager()->GetLiveID(id)].push_back(
+        EventUsage(m_CurEventID, eUsage_GenMips));
+  }
+
+  return true;
+}
+
+void WrappedGLES::glGenerateMipmap(GLenum target)
+{
+  m_Real.glGenerateMipmap(target);
+
+  CoherentMapImplicitBarrier();
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
+    RDCASSERT(record);
+    
+    if(m_State == WRITING_CAPFRAME)
+    {
+      SCOPED_SERIALISE_CONTEXT(GENERATE_MIPMAP);
+      glGenerateMipmap(target);
+
+      m_ContextRecord->AddChunk(scope.Get());
+      m_MissingTracks.insert(record->GetResourceID());
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+    }
+    else if(m_State == WRITING_IDLE)
+    {
+      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+    }
+    
+  }
+}
+
+bool WrappedGLES::Serialise_glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel,
+                                                 GLint srcX, GLint srcY, GLint srcZ, GLuint dstName,
+                                                 GLenum dstTarget, GLint dstLevel, GLint dstX,
+                                                 GLint dstY, GLint dstZ, GLsizei srcWidth,
+                                                 GLsizei srcHeight, GLsizei srcDepth)
+{
+  SERIALISE_ELEMENT(ResourceId, srcid, GetResourceManager()->GetID(TextureRes(GetCtx(), srcName)));
+  SERIALISE_ELEMENT(ResourceId, dstid, GetResourceManager()->GetID(TextureRes(GetCtx(), dstName)));
+  SERIALISE_ELEMENT(GLenum, SourceTarget, srcTarget);
+  SERIALISE_ELEMENT(GLenum, DestTarget, dstTarget);
+  SERIALISE_ELEMENT(uint32_t, SourceLevel, srcLevel);
+  SERIALISE_ELEMENT(uint32_t, SourceX, srcX);
+  SERIALISE_ELEMENT(uint32_t, SourceY, srcY);
+  SERIALISE_ELEMENT(uint32_t, SourceZ, srcZ);
+  SERIALISE_ELEMENT(uint32_t, SourceWidth, srcWidth);
+  SERIALISE_ELEMENT(uint32_t, SourceHeight, srcHeight);
+  SERIALISE_ELEMENT(uint32_t, SourceDepth, srcDepth);
+  SERIALISE_ELEMENT(uint32_t, DestLevel, dstLevel);
+  SERIALISE_ELEMENT(uint32_t, DestX, dstX);
+  SERIALISE_ELEMENT(uint32_t, DestY, dstY);
+  SERIALISE_ELEMENT(uint32_t, DestZ, dstZ);
+
+  if(m_State < WRITING)
+  {
+    GLResource srcres = GetResourceManager()->GetLiveResource(srcid);
+    GLResource dstres = GetResourceManager()->GetLiveResource(dstid);
+    m_Real.glCopyImageSubData(srcres.name, SourceTarget, SourceLevel, SourceX, SourceY, SourceZ,
+                              dstres.name, DestTarget, DestLevel, DestX, DestY, DestZ, SourceWidth,
+                              SourceHeight, SourceDepth);
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(COPY_SUBIMAGE, desc);
+    string name = "glCopyImageSubData(" + ToStr::Get(srcid) + ", " + ToStr::Get(dstid) + ")";
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.flags |= eDraw_Copy;
+
+    draw.copySource = srcid;
+    draw.copyDestination = dstid;
+
+    AddDrawcall(draw, true);
+
+    if(srcid == dstid)
+    {
+      m_ResourceUses[GetResourceManager()->GetLiveID(srcid)].push_back(
+          EventUsage(m_CurEventID, eUsage_Copy));
+    }
+    else
+    {
+      m_ResourceUses[GetResourceManager()->GetLiveID(srcid)].push_back(
+          EventUsage(m_CurEventID, eUsage_CopySrc));
+      m_ResourceUses[GetResourceManager()->GetLiveID(dstid)].push_back(
+          EventUsage(m_CurEventID, eUsage_CopyDst));
+    }
+  }
+
+  return true;
+}
+
+void WrappedGLES::glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLevel, GLint srcX,
+                                       GLint srcY, GLint srcZ, GLuint dstName, GLenum dstTarget,
+                                       GLint dstLevel, GLint dstX, GLint dstY, GLint dstZ,
+                                       GLsizei srcWidth, GLsizei srcHeight, GLsizei srcDepth)
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName, dstTarget,
+                            dstLevel, dstX, dstY, dstZ, srcWidth, srcHeight, srcDepth);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    GLResourceRecord *srcrecord =
+        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), srcName));
+    GLResourceRecord *dstrecord =
+        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), dstName));
+    RDCASSERT(srcrecord && dstrecord);
+
+    SCOPED_SERIALISE_CONTEXT(COPY_SUBIMAGE);
+    Serialise_glCopyImageSubData(srcName, srcTarget, srcLevel, srcX, srcY, srcZ, dstName, dstTarget,
+                                 dstLevel, dstX, dstY, dstZ, srcWidth, srcHeight, srcDepth);
+
+    m_ContextRecord->AddChunk(scope.Get());
+    m_MissingTracks.insert(dstrecord->GetResourceID());
+    GetResourceManager()->MarkResourceFrameReferenced(dstrecord->GetResourceID(), eFrameRef_Read);
+    GetResourceManager()->MarkResourceFrameReferenced(srcrecord->GetResourceID(), eFrameRef_Read);
+  }
+  else if(m_State == WRITING_IDLE)
+  {
+    GetResourceManager()->MarkDirtyResource(TextureRes(GetCtx(), dstName));
+  }
+}
+
+
+bool WrappedGLES::Serialise_glCopyTexSubImage2D(GLenum target, GLint level,
+                                                GLint xoffset, GLint yoffset, GLint x,
+                                                GLint y, GLsizei width, GLsizei height)
+{
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(int32_t, Level, level);
+  SERIALISE_ELEMENT(int32_t, Xoffset, xoffset);
+  SERIALISE_ELEMENT(int32_t, Yoffset, yoffset);
+  SERIALISE_ELEMENT(int32_t, X, x);
+  SERIALISE_ELEMENT(int32_t, Y, y);
+  SERIALISE_ELEMENT(int32_t, Width, width);
+  SERIALISE_ELEMENT(int32_t, Height, height);
+
+  if(m_State < WRITING)
+  {
+    m_Real.glCopyTexSubImage2D(Target, Level, Xoffset, Yoffset, X, Y, Width, Height);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+                                      GLint x, GLint y, GLsizei width, GLsizei height)
+{
+  m_Real.glCopyTexSubImage2D(target, level, xoffset, yoffset, x, y, width, height);
+
+  if(m_State >= WRITING)
+  {
+    CoherentMapImplicitBarrier();
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
+    RDCASSERT(record);
+    
+    if(m_State == WRITING_IDLE)
+    {
+      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+    }
+    else if(m_State == WRITING_CAPFRAME)
+    {
+      SCOPED_SERIALISE_CONTEXT(COPY_SUBIMAGE2D);
+      Serialise_glCopyTexSubImage2D(target, level, xoffset, yoffset, x,
+                                    y, width, height);
+
+      m_ContextRecord->AddChunk(scope.Get());
+      m_MissingTracks.insert(record->GetResourceID());
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+    }
+  }
+}
+
+bool WrappedGLES::Serialise_glCopyTexSubImage3D(GLenum target, GLint level,
+                                                GLint xoffset, GLint yoffset,
+                                                GLint zoffset, GLint x, GLint y,
+                                                GLsizei width, GLsizei height)
+{
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(int32_t, Level, level);
+  SERIALISE_ELEMENT(int32_t, Xoffset, xoffset);
+  SERIALISE_ELEMENT(int32_t, Yoffset, yoffset);
+  SERIALISE_ELEMENT(int32_t, Zoffset, zoffset);
+  SERIALISE_ELEMENT(int32_t, X, x);
+  SERIALISE_ELEMENT(int32_t, Y, y);
+  SERIALISE_ELEMENT(int32_t, Width, width);
+  SERIALISE_ELEMENT(int32_t, Height, height);
+
+  if(m_State < WRITING)
+  {
+      m_Real.glCopyTexSubImage3D(Target, Level, Xoffset, Yoffset, Zoffset, X, Y, Width, Height);
+  }
+
+  return true;
+}
+
+
+void WrappedGLES::glCopyTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
+                                        GLint zoffset, GLint x, GLint y, GLsizei width,
+                                        GLsizei height)
+{
+  m_Real.glCopyTexSubImage3D(target, level, xoffset, yoffset, zoffset, x, y, width, height);
+
+  if(m_State >= WRITING)
+  {
+    CoherentMapImplicitBarrier();
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
+    RDCASSERT(record);
+
+    if(m_State == WRITING_IDLE)
+    {
+      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+      m_MissingTracks.insert(record->GetResourceID());
+    }
+    else if(m_State == WRITING_CAPFRAME)
+    {
+      SCOPED_SERIALISE_CONTEXT(COPY_SUBIMAGE3D);
+      Serialise_glCopyTexSubImage3D(target, level, xoffset, yoffset,
+                                           zoffset, x, y, width, height);
+
+      m_ContextRecord->AddChunk(scope.Get());
+      m_MissingTracks.insert(record->GetResourceID());
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+    }
+  }
+}
 
 bool WrappedGLES::Serialise_glTexParameteri(GLenum target, GLenum pname, GLint param)
 {
@@ -1363,104 +661,20 @@ void WrappedGLES::glTexParameteri(GLenum target, GLenum pname, GLint param)
   }
 }
 
-//void WrappedGLES::glMultiTexParameteriEXT(GLenum texunit, GLenum target, GLenum pname, GLint param)
-//{
-//  m_Real.glMultiTexParameteriEXT(texunit, target, pname, param);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureParameteriEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
-//                                  pname, param);
-//}
-//
-//bool WrappedGLES::Serialise_glTextureParameterivEXT(GLuint texture, GLenum target, GLenum pname,
-//                                                      const GLint *params)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//  const size_t nParams =
-//      (PName == eGL_TEXTURE_BORDER_COLOR || PName == eGL_TEXTURE_SWIZZLE_RGBA ? 4U : 1U);
-//  SERIALISE_ELEMENT_ARR(int32_t, Params, params, nParams);
-//
-//  if(m_State < WRITING)
-//  {
-//    if(Target != eGL_NONE)
-//      m_Real.glTextureParameterivEXT(GetResourceManager()->GetLiveResource(id).name, Target, PName,
-//                                     Params);
-//    else
-//      m_Real.glTextureParameteriv(GetResourceManager()->GetLiveResource(id).name, PName, Params);
-//  }
-//
-//  delete[] Params;
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glTextureParameterivEXT(GLResourceRecord *record, GLenum target,
-//                                                   GLenum pname, const GLint *params)
-//{
-//  if(!record)
-//  {
-//    RDCERR(
-//        "Called texture function with invalid/unrecognised texture, or no texture bound to "
-//        "implicit slot");
-//    return;
-//  }
-//
-//  if(m_State != WRITING_CAPFRAME &&
-//     m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end())
-//    return;
-//
-//  GLint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
-//  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
-//  if(*params == eGL_CLAMP)
-//    params = clamptoedge;
-//
-//  SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIV);
-//  Serialise_glTextureParameterivEXT(record->Resource.name, target, pname, params);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    m_ContextRecord->AddChunk(scope.Get());
-//    GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-//  }
-//  else
-//  {
-//    record->AddChunk(scope.Get());
-//    record->UpdateCount++;
-//
-//    if(record->UpdateCount > 12)
-//    {
-//      m_HighTrafficResources.insert(record->GetResourceID());
-//      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//    }
-//  }
-//}
-//
-//void WrappedGLES::glTextureParameterivEXT(GLuint texture, GLenum target, GLenum pname,
-//                                            const GLint *params)
-//{
-//  m_Real.glTextureParameterivEXT(texture, target, pname, params);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureParameterivEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target, pname,
-//        params);
-//}
-//
-//void WrappedGLES::glTextureParameteriv(GLuint texture, GLenum pname, const GLint *params)
-//{
-//  m_Real.glTextureParameteriv(texture, pname, params);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureParameterivEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eGL_NONE, pname,
-//        params);
-//}
-
 bool WrappedGLES::Serialise_glTexParameteriv(GLenum target, GLenum pname, const GLint *params)
 {
-  // TODO pantos
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(GLenum, PName, pname);
+  const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
+  SERIALISE_ELEMENT_ARR(int32_t, Params, params, nParams);
+
+  if(m_State < WRITING)
+  {
+      m_Real.glTexParameteriv(Target, PName, Params);
+  }
+
+  delete[] Params;
+
   return true;
 }
 
@@ -1468,20 +682,42 @@ void WrappedGLES::glTexParameteriv(GLenum target, GLenum pname, const GLint *par
 {
   m_Real.glTexParameteriv(target, pname, params);
 
-  // TODO pantos
-//  if(m_State >= WRITING)
-//    Common_glTextureParameterivEXT(GetCtxData().GetActiveTexRecord(), target, pname, params);
+  if(m_State >= WRITING)
+  {
+
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
+    RDCASSERT(record);
+    
+    if(m_State != WRITING_CAPFRAME && m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end())
+      return;
+
+    GLint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
+    // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+    if(*params == eGL_CLAMP)
+      params = clamptoedge;
+
+    SCOPED_SERIALISE_CONTEXT(TEXPARAMETERIV);
+    Serialise_glTexParameteriv(target, pname, params);
+
+    if(m_State == WRITING_CAPFRAME)
+    {
+      m_ContextRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+    }
+    else
+    {
+      record->AddChunk(scope.Get());
+      record->UpdateCount++;
+
+      if(record->UpdateCount > 12)
+      {
+        m_HighTrafficResources.insert(record->GetResourceID());
+        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+      }
+    }
+  }
 }
 
-//void WrappedGLES::glMultiTexParameterivEXT(GLenum texunit, GLenum target, GLenum pname,
-//                                             const GLint *params)
-//{
-//  m_Real.glMultiTexParameterivEXT(texunit, target, pname, params);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureParameterivEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
-//                                   pname, params);
-//}
 //
 //bool WrappedGLES::Serialise_glTextureParameterIivEXT(GLuint texture, GLenum target, GLenum pname,
 //                                                       const GLint *params)
