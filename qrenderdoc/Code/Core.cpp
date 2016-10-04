@@ -148,7 +148,7 @@ void Core::LoadLogfile(int proxyRenderer, QString replayHost, QString logFile, b
 
   m_LogLoaded = true;
 
-  QList<ILogViewerForm *> logviewers(m_LogViewers);
+  QVector<ILogViewerForm *> logviewers(m_LogViewers);
 
   GUIInvoke::blockcall([&logviewers]() {
     // notify all the registers log viewers that a log has been loaded

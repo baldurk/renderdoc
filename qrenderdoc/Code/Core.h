@@ -87,7 +87,7 @@ public:
   const rdctype::array<FetchTexture> &GetTextures() { return m_TextureList; }
   FetchBuffer *GetBuffer(ResourceId id) { return m_Buffers[id]; }
   const rdctype::array<FetchBuffer> &GetBuffers() { return m_BufferList; }
-  QList<DebugMessage> DebugMessages;
+  QVector<DebugMessage> DebugMessages;
   int UnreadMessageCount;
   void AddMessages(rdctype::array<DebugMessage> &msgs)
   {
@@ -107,8 +107,8 @@ public:
 private:
   RenderManager m_Renderer;
 
-  QList<ILogViewerForm *> m_LogViewers;
-  QList<ILogLoadProgressListener *> m_ProgressListeners;
+  QVector<ILogViewerForm *> m_LogViewers;
+  QVector<ILogLoadProgressListener *> m_ProgressListeners;
 
   bool m_LogLoaded, m_LoadInProgress;
   QString m_LogFile;
