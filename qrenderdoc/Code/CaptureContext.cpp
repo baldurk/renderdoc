@@ -93,15 +93,15 @@ void CaptureContext::LoadLogfile(int proxyRenderer, QString replayHost, QString 
     errmsg = status;
 
     if(proxyRenderer >= 0)
-      QMessageBox::critical(NULL, "Error opening log",
-                            QString("%1\nFailed to transfer and replay on remote host %2: %3.\n\n"
-                                    "Check diagnostic log in Help menu for more details.")
-                                .arg(logFile, replayHost, errmsg));
+      RDDialog::critical(NULL, "Error opening log",
+                         QString("%1\nFailed to transfer and replay on remote host %2: %3.\n\n"
+                                 "Check diagnostic log in Help menu for more details.")
+                             .arg(logFile, replayHost, errmsg));
     else
-      QMessageBox::critical(NULL, "Error opening log",
-                            QString("%1\nFailed to open logfile for replay: %1.\n\n"
-                                    "Check diagnostic log in Help menu for more details.")
-                                .arg(logFile, errmsg));
+      RDDialog::critical(NULL, "Error opening log",
+                         QString("%1\nFailed to open logfile for replay: %1.\n\n"
+                                 "Check diagnostic log in Help menu for more details.")
+                             .arg(logFile, errmsg));
 
     m_LoadInProgress = false;
 
@@ -267,4 +267,90 @@ void GUIInvoke::blockcall(const std::function<void()> &f)
   GUIInvoke *invoke = new GUIInvoke(f);
   invoke->moveToThread(qApp->thread());
   QMetaObject::invokeMethod(invoke, "doInvoke", Qt::BlockingQueuedConnection);
+}
+
+void RDDialog::show(QDialog *dialog)
+{
+  dialog->setWindowModality(Qt::ApplicationModal);
+  dialog->show();
+  QEventLoop loop;
+  while(dialog->isVisible())
+  {
+    loop.processEvents(QEventLoop::WaitForMoreEvents);
+    QCoreApplication::sendPostedEvents();
+  }
+}
+
+QMessageBox::StandardButton RDDialog::messageBox(QMessageBox::Icon icon, QWidget *parent,
+                                                 const QString &title, const QString &text,
+                                                 QMessageBox::StandardButtons buttons,
+                                                 QMessageBox::StandardButton defaultButton)
+{
+  QMessageBox mb(icon, title, text, buttons, parent);
+  mb.setDefaultButton(defaultButton);
+  show(&mb);
+  return mb.standardButton(mb.clickedButton());
+}
+
+QString RDDialog::getExistingDirectory(QWidget *parent, const QString &caption, const QString &dir,
+                                       QFileDialog::Options options)
+{
+  QFileDialog fd(parent, caption, dir, QString());
+  fd.setAcceptMode(QFileDialog::AcceptOpen);
+  fd.setFileMode(QFileDialog::DirectoryOnly);
+  fd.setOptions(options);
+  show(&fd);
+
+  if(fd.result() == QFileDialog::Accepted)
+  {
+    QStringList files = fd.selectedFiles();
+    if(!files.isEmpty())
+      return files[0];
+  }
+
+  return QString();
+}
+
+QString RDDialog::getOpenFileName(QWidget *parent, const QString &caption, const QString &dir,
+                                  const QString &filter, QString *selectedFilter,
+                                  QFileDialog::Options options)
+{
+  QFileDialog fd(parent, caption, dir, filter);
+  fd.setAcceptMode(QFileDialog::AcceptOpen);
+  fd.setOptions(options);
+  show(&fd);
+
+  if(fd.result() == QFileDialog::Accepted)
+  {
+    if(selectedFilter)
+      *selectedFilter = fd.selectedNameFilter();
+
+    QStringList files = fd.selectedFiles();
+    if(!files.isEmpty())
+      return files[0];
+  }
+
+  return QString();
+}
+
+QString RDDialog::getSaveFileName(QWidget *parent, const QString &caption, const QString &dir,
+                                  const QString &filter, QString *selectedFilter,
+                                  QFileDialog::Options options)
+{
+  QFileDialog fd(parent, caption, dir, filter);
+  fd.setAcceptMode(QFileDialog::AcceptSave);
+  fd.setOptions(options);
+  show(&fd);
+
+  if(fd.result() == QFileDialog::Accepted)
+  {
+    if(selectedFilter)
+      *selectedFilter = fd.selectedNameFilter();
+
+    QStringList files = fd.selectedFiles();
+    if(!files.isEmpty())
+      return files[0];
+  }
+
+  return QString();
 }

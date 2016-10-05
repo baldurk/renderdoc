@@ -62,9 +62,9 @@ void MainWindow::on_action_Exit_triggered()
 void MainWindow::on_action_Open_Log_triggered()
 {
   QString filename =
-      QFileDialog::getOpenFileName(this, "Select Logfile to open", "",
-                                   "Log Files (*.rdc);;Image Files (*.dds *.hdr *.exr *.bmp *.jpg "
-                                   "*.jpeg *.png *.tga *.gif *.psd;;All Files (*.*)");
+      RDDialog::getOpenFileName(this, "Select Logfile to open", "",
+                                "Log Files (*.rdc);;Image Files (*.dds *.hdr *.exr *.bmp *.jpg "
+                                "*.jpeg *.png *.tga *.gif *.psd;;All Files (*.*)");
 
   QFileInfo checkFile(filename);
   if(filename != "" && checkFile.exists() && checkFile.isFile())
@@ -78,5 +78,5 @@ void MainWindow::on_action_Open_Log_triggered()
 void MainWindow::on_action_About_triggered()
 {
   AboutDialog about(this);
-  about.exec();
+  RDDialog::show(&about);
 }

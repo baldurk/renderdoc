@@ -24,8 +24,10 @@
 
 #pragma once
 
+#include <QFileDialog>
 #include <QList>
 #include <QMap>
+#include <QMessageBox>
 #include <QString>
 #include <QtWidgets/QWidget>
 #include "CommonPipelineState.h"
@@ -241,6 +243,63 @@ public:
 
   void start(QThread::Priority prio = QThread::InheritPriority) { m_Thread->start(prio); }
   bool isRunning() { return m_Thread->isRunning(); }
+};
+
+// helper for doing a manual blocking invoke of a dialog
+struct RDDialog
+{
+  static void show(QDialog *dialog);
+  static QMessageBox::StandardButton messageBox(
+      QMessageBox::Icon, QWidget *parent, const QString &title, const QString &text,
+      QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+      QMessageBox::StandardButton defaultButton = QMessageBox::NoButton);
+
+  static QMessageBox::StandardButton information(
+      QWidget *parent, const QString &title, const QString &text,
+      QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+      QMessageBox::StandardButton defaultButton = QMessageBox::NoButton)
+  {
+    return messageBox(QMessageBox::Information, parent, title, text, buttons, defaultButton);
+  }
+
+  static QMessageBox::StandardButton question(
+      QWidget *parent, const QString &title, const QString &text,
+      QMessageBox::StandardButtons buttons = QMessageBox::StandardButtons(QMessageBox::Yes |
+                                                                          QMessageBox::No),
+      QMessageBox::StandardButton defaultButton = QMessageBox::NoButton)
+  {
+    return messageBox(QMessageBox::Question, parent, title, text, buttons, defaultButton);
+  }
+
+  static QMessageBox::StandardButton warning(
+      QWidget *parent, const QString &title, const QString &text,
+      QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+      QMessageBox::StandardButton defaultButton = QMessageBox::NoButton)
+  {
+    return messageBox(QMessageBox::Warning, parent, title, text, buttons, defaultButton);
+  }
+
+  static QMessageBox::StandardButton critical(
+      QWidget *parent, const QString &title, const QString &text,
+      QMessageBox::StandardButtons buttons = QMessageBox::Ok,
+      QMessageBox::StandardButton defaultButton = QMessageBox::NoButton)
+  {
+    return messageBox(QMessageBox::Critical, parent, title, text, buttons, defaultButton);
+  }
+
+  static QString getExistingDirectory(QWidget *parent = NULL, const QString &caption = QString(),
+                                      const QString &dir = QString(),
+                                      QFileDialog::Options options = QFileDialog::ShowDirsOnly);
+
+  static QString getOpenFileName(QWidget *parent = NULL, const QString &caption = QString(),
+                                 const QString &dir = QString(), const QString &filter = QString(),
+                                 QString *selectedFilter = NULL,
+                                 QFileDialog::Options options = QFileDialog::Options());
+
+  static QString getSaveFileName(QWidget *parent = NULL, const QString &caption = QString(),
+                                 const QString &dir = QString(), const QString &filter = QString(),
+                                 QString *selectedFilter = NULL,
+                                 QFileDialog::Options options = QFileDialog::Options());
 };
 
 // useful delegate for enforcing a given size
