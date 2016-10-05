@@ -622,7 +622,7 @@ size_t calculateVertexPointerSize(GLint size, GLenum type, GLsizei stride, GLsiz
       return 0;
 
     if (size > 4) {
-      //os::log("apitrace: warning: %s: unexpected size 0x%04X\n", __FUNCTION__, size);
+      RDCERR("Unexpected size greater than 4!");
     }
 
     GLsizei elementSize = size;
