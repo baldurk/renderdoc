@@ -813,8 +813,9 @@ bool OpenGLHook::PopulateHooks()
   DLLExportHooks();
   HookCheckGLExtensions();
 
+// TODO PEPE
 #define HandleUnsupported(funcPtrType, function)                                 \
-  if(GL.function == NULL)                                                                    \
+  if(GL.function == NULL)                                                        \
     GL.function = (funcPtrType)m_eglGetProcAddress_real(STRINGIZE(function));
 
   CheckUnsupported();

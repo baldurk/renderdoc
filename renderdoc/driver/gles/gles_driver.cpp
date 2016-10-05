@@ -3248,9 +3248,9 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case ACTIVE_TEXTURE: Serialise_glActiveTexture(eGL_NONE); break;
     case BIND_TEXTURE: Serialise_glBindTexture(eGL_NONE, 0); break;
 //    case BIND_IMAGE_TEXTURE: Serialise_glBindImageTexture(0, 0, 0, 0, 0, eGL_NONE, eGL_NONE); break;
-//    case TEXSTORAGE1D: Serialise_glTextureStorage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0); break;
-//    case TEXSTORAGE2D: Serialise_glTextureStorage2DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0); break;
-//    case TEXSTORAGE3D: Serialise_glTextureStorage3DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0); break;
+    case TEXSTORAGE1D: Serialise_glTextureStorage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0); break;
+    case TEXSTORAGE2D: Serialise_glTextureStorage2DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0); break;
+    case TEXSTORAGE3D: Serialise_glTextureStorage3DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0); break;
 //    case TEXSTORAGE2DMS:
 //      Serialise_glTexStorage2DMultisample(eGL_NONE, 0, eGL_NONE, 0, 0, GL_FALSE);
 //      break;
@@ -3260,21 +3260,21 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case TEXIMAGE2D:
       Serialise_glTexImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
       break;
-//    case TEXIMAGE3D:
-//      Serialise_glTexImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-//      break;
+    case TEXIMAGE3D:
+      Serialise_glTexImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
+      break;
 //    case TEXSUBIMAGE2D:
 //      Serialise_glTexSubImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
 //      break;
 //    case TEXSUBIMAGE3D:
 //      Serialise_glTexSubImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
 //      break;
-//    case TEXIMAGE2D_COMPRESSED:
-//      Serialise_glCompressedTexImage2D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, NULL);
-//      break;
-//    case TEXIMAGE3D_COMPRESSED:
-//      Serialise_glCompressedTexImage3D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0, NULL);
-//      break;
+    case TEXIMAGE2D_COMPRESSED:
+      Serialise_glCompressedTexImage2D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, NULL);
+      break;
+    case TEXIMAGE3D_COMPRESSED:
+      Serialise_glCompressedTexImage3D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0, NULL);
+      break;
 //    case TEXSUBIMAGE2D_COMPRESSED:
 //      Serialise_glCompressedTexSubImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, 0, NULL);
 //      break;
@@ -3284,12 +3284,12 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case TEXBUFFER: Serialise_glTexBuffer(eGL_NONE, eGL_NONE, 0); break;
 //    case TEXBUFFER_RANGE: Serialise_glTexBufferRange(eGL_NONE, eGL_NONE, 0, 0, 0); break;
 //    case PIXELSTORE: Serialise_glPixelStorei(eGL_NONE, 0); break;
-//    case TEXPARAMETERF: Serialise_glTextureParameterfEXT(0, eGL_NONE, eGL_NONE, 0); break;
-//    case TEXPARAMETERFV: Serialise_glTextureParameterfvEXT(0, eGL_NONE, eGL_NONE, NULL); break;
+    case TEXPARAMETERF: Serialise_glTexParameterf(eGL_NONE, eGL_NONE, 0); break;
+    case TEXPARAMETERFV: Serialise_glTexParameterfv(eGL_NONE, eGL_NONE, NULL); break;
     case TEXPARAMETERI: Serialise_glTexParameteri(eGL_NONE, eGL_NONE, 0); break;
-//    case TEXPARAMETERIV: Serialise_glTextureParameterivEXT(0, eGL_NONE, eGL_NONE, NULL); break;
-//    case TEXPARAMETERIIV: Serialise_glTextureParameterIivEXT(0, eGL_NONE, eGL_NONE, NULL); break;
-//    case TEXPARAMETERIUIV: Serialise_glTextureParameterIuivEXT(0, eGL_NONE, eGL_NONE, NULL); break;
+    case TEXPARAMETERIV: Serialise_glTexParameteriv(eGL_NONE, eGL_NONE, NULL); break;
+    case TEXPARAMETERIIV: Serialise_glTexParameterIiv(eGL_NONE, eGL_NONE, NULL); break;
+    case TEXPARAMETERIUIV: Serialise_glTexParameterIuiv(eGL_NONE, eGL_NONE, NULL); break;
 //    case GENERATE_MIPMAP: Serialise_glGenerateTextureMipmapEXT(0, eGL_NONE); break;
 //    case COPY_SUBIMAGE:
 //      Serialise_glCopyImageSubData(0, eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0);
@@ -3297,9 +3297,9 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case COPY_IMAGE1D:
 //      Serialise_glCopyTextureImage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0);
 //      break;
-//    case COPY_IMAGE2D:
-//      Serialise_glCopyTextureImage2DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0);
-//      break;
+    case COPY_IMAGE2D:
+      Serialise_glCopyTexImage2D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0);
+      break;
 //    case COPY_SUBIMAGE1D: Serialise_glCopyTextureSubImage1DEXT(0, eGL_NONE, 0, 0, 0, 0, 0); break;
 //    case COPY_SUBIMAGE2D:
 //      Serialise_glCopyTextureSubImage2DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0);
@@ -3307,8 +3307,8 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case COPY_SUBIMAGE3D:
 //      Serialise_glCopyTextureSubImage3DEXT(0, eGL_NONE, 0, 0, 0, 0, 0, 0, 0, 0);
 //      break;
-//    case TEXTURE_VIEW: Serialise_glTextureView(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0); break;
-//
+    case TEXTURE_VIEW: Serialise_glTextureViewEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0); break;
+
     case CREATE_SHADER: Serialise_glCreateShader(0, eGL_NONE); break;
     case CREATE_PROGRAM: Serialise_glCreateProgram(0); break;
 //    case CREATE_SHADERPROGRAM: Serialise_glCreateShaderProgramv(0, eGL_NONE, 0, NULL); break;

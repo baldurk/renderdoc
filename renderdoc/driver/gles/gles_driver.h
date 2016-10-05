@@ -473,6 +473,12 @@ private:
   vector<string> globalExts;
 
   void writeFakeVertexAttribPointer(GLsizei count);
+ 
+  template<typename TP, typename TF>
+  bool Serialise_Common_glTexParameter_v(GLenum target, GLenum pname, const TP *params, TF GLHookSet::*function);
+
+  template <typename TP, typename TF>
+  void Common_glTexParameter_v(GLenum target, GLenum pname, const TP *params, TF GLHookSet::*function, const GLChunkType chunkType);
 
   // no copy semantics
   WrappedGLES(const WrappedGLES &);
