@@ -56,6 +56,8 @@ public:
   CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp);
   ~CaptureContext();
 
+  bool isRunning();
+
   //////////////////////////////////////////////////////////////////////////////
   // Control functions
 

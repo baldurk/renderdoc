@@ -95,13 +95,19 @@ int main(int argc, char *argv[])
   argv_mod[argc - 2] = arg;
   argv_mod[argc - 1] = pathChars.data();
 
-  QApplication a(argc, argv_mod);
+  QApplication application(argc, argv_mod);
 
-  CaptureContext ctx(filename, remoteHost, remoteIdent, temp);
+  {
+    CaptureContext ctx(filename, remoteHost, remoteIdent, temp);
 
-  int ret = a.exec();
+    while(ctx.isRunning())
+    {
+      application.processEvents(QEventLoop::WaitForMoreEvents);
+      QCoreApplication::sendPostedEvents();
+    }
+  }
 
   delete[] argv_mod;
 
-  return ret;
+  return 0;
 }

@@ -62,6 +62,11 @@ CaptureContext::~CaptureContext()
   delete m_MainWindow;
 }
 
+bool CaptureContext::isRunning()
+{
+  return m_MainWindow && m_MainWindow->isVisible();
+}
+
 void CaptureContext::LoadLogfile(QString logFile, bool temporary)
 {
   LoadLogfile(-1, "", logFile, temporary);
