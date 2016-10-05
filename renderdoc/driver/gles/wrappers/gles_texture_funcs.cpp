@@ -2182,364 +2182,90 @@ void WrappedGLES::glTexStorage3DMultisample(GLenum target, GLsizei samples, GLen
 }
 
 #pragma endregion
-//
-//#pragma region Texture upload(glTexSubImage *)
-//
-//bool WrappedGLES::Serialise_glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint level,
-//                                                     GLint xoffset, GLsizei width, GLenum format,
-//                                                     GLenum type, const void *pixels)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(int32_t, Level, level);
-//  SERIALISE_ELEMENT(int32_t, xoff, xoffset);
-//  SERIALISE_ELEMENT(uint32_t, Width, width);
-//  SERIALISE_ELEMENT(GLenum, Format, format);
-//  SERIALISE_ELEMENT(GLenum, Type, type);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//
-//  GLint unpackbuf = 0;
-//  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
-//
-//  SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
-//
-//  byte *unpackedPixels = NULL;
-//  byte *srcPixels = NULL;
-//
-//  if(m_State >= WRITING && pixels && !UnpackBufBound)
-//  {
-//    PixelUnpackState unpack;
-//    unpack.Fetch(&m_Real, false);
-//
-//    if(unpack.FastPath(Width, 0, 0, Format, Type))
-//      srcPixels = (byte *)pixels;
-//    else
-//      srcPixels = unpackedPixels = unpack.Unpack((byte *)pixels, Width, 0, 0, format, type);
-//  }
-//
-//  size_t subimageSize = GetByteSize(Width, 1, 1, Format, Type);
-//
-//  SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, subimageSize, !UnpackBufBound);
-//  SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
-//
-//  SAFE_DELETE_ARRAY(unpackedPixels);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    GLint align = 1;
-//    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
-//    {
-//      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-//      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-//      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
-//    }
-//
-//    if(Format == eGL_LUMINANCE)
-//    {
-//      Format = eGL_RED;
-//    }
-//    else if(Format == eGL_LUMINANCE_ALPHA)
-//    {
-//      Format = eGL_RG;
-//    }
-//    else if(Format == eGL_ALPHA)
-//    {
-//      // check if format was converted from alpha-only format to R8, and substitute
-//      ResourceId liveId = GetResourceManager()->GetLiveID(id);
-//      if(m_Textures[liveId].internalFormat == eGL_R8)
-//        Format = eGL_RED;
-//    }
-//
-//    if(Target != eGL_NONE)
-//      m_Real.glTextureSubImage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level,
-//                                    xoff, Width, Format, Type, buf ? buf : (const void *)bufoffs);
-//    else
-//      m_Real.glTextureSubImage1D(GetResourceManager()->GetLiveResource(id).name, Level, xoff, Width,
-//                                 Format, Type, buf ? buf : (const void *)bufoffs);
-//
-//    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
-//    {
-//      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
-//      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
-//    }
-//
-//    SAFE_DELETE_ARRAY(buf);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glTextureSubImage1DEXT(GLResourceRecord *record, GLenum target,
-//                                                  GLint level, GLint xoffset, GLsizei width,
-//                                                  GLenum format, GLenum type, const void *pixels)
-//{
-//  if(!record)
-//  {
-//    RDCERR(
-//        "Called texture function with invalid/unrecognised texture, or no texture bound to "
-//        "implicit slot");
-//    return;
-//  }
-//
-//  CoherentMapImplicitBarrier();
-//
-//  // proxy formats are used for querying texture capabilities, don't serialise these
-//  if(IsProxyTarget(format))
-//    return;
-//
-//  GLint unpackbuf = 0;
-//  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
-//
-//  if(m_State == WRITING_IDLE && unpackbuf != 0)
-//  {
-//    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//  }
-//  else
-//  {
-//    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-//       m_State == WRITING_IDLE)
-//      return;
-//
-//    SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D);
-//    Serialise_glTextureSubImage1DEXT(record->Resource.name, target, level, xoffset, width, format,
-//                                     type, pixels);
-//
-//    if(m_State == WRITING_CAPFRAME)
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      m_MissingTracks.insert(record->GetResourceID());
-//      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-//    }
-//    else
-//    {
-//      record->AddChunk(scope.Get());
-//      record->UpdateCount++;
-//
-//      if(record->UpdateCount > 60)
-//      {
-//        m_HighTrafficResources.insert(record->GetResourceID());
-//        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//      }
-//    }
-//  }
-//}
-//
-//void WrappedGLES::glTextureSubImage1DEXT(GLuint texture, GLenum target, GLint level,
-//                                           GLint xoffset, GLsizei width, GLenum format, GLenum type,
-//                                           const void *pixels)
-//{
-//  m_Real.glTextureSubImage1DEXT(texture, target, level, xoffset, width, format, type, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureSubImage1DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target, level,
-//        xoffset, width, format, type, pixels);
-//}
-//
-//void WrappedGLES::glTextureSubImage1D(GLuint texture, GLint level, GLint xoffset, GLsizei width,
-//                                        GLenum format, GLenum type, const void *pixels)
-//{
-//  m_Real.glTextureSubImage1D(texture, level, xoffset, width, format, type, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureSubImage1DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eGL_NONE, level,
-//        xoffset, width, format, type, pixels);
-//}
-//
-//void WrappedGLES::glTexSubImage1D(GLenum target, GLint level, GLint xoffset, GLsizei width,
-//                                    GLenum format, GLenum type, const void *pixels)
-//{
-//  m_Real.glTexSubImage1D(target, level, xoffset, width, format, type, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureSubImage1DEXT(GetCtxData().GetActiveTexRecord(), target, level, xoffset, width,
-//                                  format, type, pixels);
-//}
-//
-//void WrappedGLES::glMultiTexSubImage1DEXT(GLenum texunit, GLenum target, GLint level,
-//                                            GLint xoffset, GLsizei width, GLenum format,
-//                                            GLenum type, const void *pixels)
-//{
-//  m_Real.glMultiTexSubImage1DEXT(texunit, target, level, xoffset, width, format, type, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureSubImage1DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
-//                                  level, xoffset, width, format, type, pixels);
-//}
-//
-//bool WrappedGLES::Serialise_glTextureSubImage2DEXT(GLuint texture, GLenum target, GLint level,
-//                                                     GLint xoffset, GLint yoffset, GLsizei width,
-//                                                     GLsizei height, GLenum format, GLenum type,
-//                                                     const void *pixels)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(int32_t, Level, level);
-//  SERIALISE_ELEMENT(int32_t, xoff, xoffset);
-//  SERIALISE_ELEMENT(int32_t, yoff, yoffset);
-//  SERIALISE_ELEMENT(uint32_t, Width, width);
-//  SERIALISE_ELEMENT(uint32_t, Height, height);
-//  SERIALISE_ELEMENT(GLenum, Format, format);
-//  SERIALISE_ELEMENT(GLenum, Type, type);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//
-//  GLint unpackbuf = 0;
-//  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
-//
-//  SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
-//
-//  byte *unpackedPixels = NULL;
-//  byte *srcPixels = NULL;
-//
-//  if(m_State >= WRITING && pixels && !UnpackBufBound)
-//  {
-//    PixelUnpackState unpack;
-//    unpack.Fetch(&m_Real, false);
-//
-//    if(unpack.FastPath(Width, Height, 0, Format, Type))
-//      srcPixels = (byte *)pixels;
-//    else
-//      srcPixels = unpackedPixels = unpack.Unpack((byte *)pixels, Width, Height, 0, Format, Type);
-//  }
-//
-//  size_t subimageSize = GetByteSize(Width, Height, 1, Format, Type);
-//
-//  SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, subimageSize, !UnpackBufBound);
-//  SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
-//
-//  SAFE_DELETE_ARRAY(unpackedPixels);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    GLint align = 1;
-//    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
-//    {
-//      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-//      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-//      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
-//    }
-//
-//    if(Format == eGL_LUMINANCE)
-//    {
-//      Format = eGL_RED;
-//    }
-//    else if(Format == eGL_LUMINANCE_ALPHA)
-//    {
-//      Format = eGL_RG;
-//    }
-//    else if(Format == eGL_ALPHA)
-//    {
-//      // check if format was converted from alpha-only format to R8, and substitute
-//      ResourceId liveId = GetResourceManager()->GetLiveID(id);
-//      if(m_Textures[liveId].internalFormat == eGL_R8)
-//        Format = eGL_RED;
-//    }
-//
-//    if(Target != eGL_NONE)
-//      m_Real.glTextureSubImage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level,
-//                                    xoff, yoff, Width, Height, Format, Type,
-//                                    buf ? buf : (const void *)bufoffs);
-//    else
-//      m_Real.glTextureSubImage2D(GetResourceManager()->GetLiveResource(id).name, Level, xoff, yoff,
-//                                 Width, Height, Format, Type, buf ? buf : (const void *)bufoffs);
-//
-//    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
-//    {
-//      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
-//      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
-//    }
-//
-//    SAFE_DELETE_ARRAY(buf);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glTextureSubImage2DEXT(GLResourceRecord *record, GLenum target,
-//                                                  GLint level, GLint xoffset, GLint yoffset,
-//                                                  GLsizei width, GLsizei height, GLenum format,
-//                                                  GLenum type, const void *pixels)
-//{
-//  if(!record)
-//  {
-//    RDCERR(
-//        "Called texture function with invalid/unrecognised texture, or no texture bound to "
-//        "implicit slot");
-//    return;
-//  }
-//
-//  CoherentMapImplicitBarrier();
-//
-//  // proxy formats are used for querying texture capabilities, don't serialise these
-//  if(IsProxyTarget(format))
-//    return;
-//
-//  GLint unpackbuf = 0;
-//  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
-//
-//  if(m_State == WRITING_IDLE && unpackbuf != 0)
-//  {
-//    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//  }
-//  else
-//  {
-//    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-//       m_State == WRITING_IDLE)
-//      return;
-//
-//    SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D);
-//    Serialise_glTextureSubImage2DEXT(record->Resource.name, target, level, xoffset, yoffset, width,
-//                                     height, format, type, pixels);
-//
-//    if(m_State == WRITING_CAPFRAME)
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      m_MissingTracks.insert(record->GetResourceID());
-//      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-//    }
-//    else
-//    {
-//      record->AddChunk(scope.Get());
-//      record->UpdateCount++;
-//
-//      if(record->UpdateCount > 60)
-//      {
-//        m_HighTrafficResources.insert(record->GetResourceID());
-//        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//      }
-//    }
-//  }
-//}
-//
-//void WrappedGLES::glTextureSubImage2DEXT(GLuint texture, GLenum target, GLint level, GLint xoffset,
-//                                           GLint yoffset, GLsizei width, GLsizei height,
-//                                           GLenum format, GLenum type, const void *pixels)
-//{
-//  m_Real.glTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width, height, format,
-//                                type, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureSubImage2DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target, level,
-//        xoffset, yoffset, width, height, format, type, pixels);
-//}
-//
-//void WrappedGLES::glTextureSubImage2D(GLuint texture, GLint level, GLint xoffset, GLint yoffset,
-//                                        GLsizei width, GLsizei height, GLenum format, GLenum type,
-//                                        const void *pixels)
-//{
-//  m_Real.glTextureSubImage2D(texture, level, xoffset, yoffset, width, height, format, type, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureSubImage2DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eGL_NONE, level,
-//        xoffset, yoffset, width, height, format, type, pixels);
-//}
 
-bool WrappedGLES::Serialise_glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-                                            GLsizei width, GLsizei height, GLenum format, GLenum type,
+#pragma region Texture upload(glTexSubImage *)
+
+bool WrappedGLES::Serialise_glTexSubImage2D(GLenum target, GLint level,
+                                            GLint xoffset, GLint yoffset, GLsizei width,
+                                            GLsizei height, GLenum format, GLenum type,
                                             const void *pixels)
 {
-  // TODO pantos
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(int32_t, Level, level);
+  SERIALISE_ELEMENT(int32_t, xoff, xoffset);
+  SERIALISE_ELEMENT(int32_t, yoff, yoffset);
+  SERIALISE_ELEMENT(uint32_t, Width, width);
+  SERIALISE_ELEMENT(uint32_t, Height, height);
+  SERIALISE_ELEMENT(GLenum, Format, format);
+  SERIALISE_ELEMENT(GLenum, Type, type);
+  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
+
+  GLint unpackbuf = 0;
+  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
+
+  SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
+
+  byte *unpackedPixels = NULL;
+  byte *srcPixels = NULL;
+
+  if(m_State >= WRITING && pixels && !UnpackBufBound)
+  {
+    PixelUnpackState unpack;
+    unpack.Fetch(&m_Real, false);
+
+    if(unpack.FastPath(Width, Height, 0, Format, Type))
+      srcPixels = (byte *)pixels;
+    else
+      srcPixels = unpackedPixels = unpack.Unpack((byte *)pixels, Width, Height, 0, Format, Type);
+  }
+
+  size_t subimageSize = GetByteSize(Width, Height, 1, Format, Type);
+
+  SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, subimageSize, !UnpackBufBound);
+  SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
+
+  SAFE_DELETE_ARRAY(unpackedPixels);
+
+  if(m_State <= EXECUTING)
+  {
+    GLint align = 1;
+    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    {
+      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+    }
+
+    if(Format == eGL_LUMINANCE)
+    {
+      Format = eGL_RED;
+    }
+    else if(Format == eGL_LUMINANCE_ALPHA)
+    {
+      Format = eGL_RG;
+    }
+    else if(Format == eGL_ALPHA)
+    {
+      // check if format was converted from alpha-only format to R8, and substitute
+      ResourceId liveId = GetResourceManager()->GetLiveID(id);
+      if(m_Textures[liveId].internalFormat == eGL_R8)
+        Format = eGL_RED;
+    }
+
+    m_Real.glTexSubImage2D(Target, Level,
+                           xoff, yoff, Width, Height, Format, Type,
+                           buf ? buf : (const void *)bufoffs);
+
+    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    {
+      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+    }
+
+    SAFE_DELETE_ARRAY(buf);
+  }
+
   return true;
 }
 
@@ -2549,114 +2275,138 @@ void WrappedGLES::glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLi
 {
   m_Real.glTexSubImage2D(target, level, xoffset, yoffset, width, height, format, type, pixels);
 
-  // TODO pantos
-//  if(m_State >= WRITING)
-//    Common_glTextureSubImage2DEXT(GetCtxData().GetActiveTexRecord(), target, level, xoffset,
-//                                  yoffset, width, height, format, type, pixels);
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
+    if(record == NULL)
+      RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+
+    CoherentMapImplicitBarrier();
+
+    GLint unpackbuf = 0;
+    m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
+
+    if(m_State == WRITING_IDLE && unpackbuf != 0)
+    {
+      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+    }
+    else
+    {
+      if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+         m_State == WRITING_IDLE)
+        return;
+
+      SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D);
+      Serialise_glTexSubImage2D(target, level, xoffset, yoffset, width,
+                                height, format, type, pixels);
+
+      if(m_State == WRITING_CAPFRAME)
+      {
+        m_ContextRecord->AddChunk(scope.Get());
+        m_MissingTracks.insert(record->GetResourceID());
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+      }
+      else
+      {
+        record->AddChunk(scope.Get());
+        record->UpdateCount++;
+
+        if(record->UpdateCount > 60)
+        {
+          m_HighTrafficResources.insert(record->GetResourceID());
+          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+        }
+      }
+    }
+  }
 }
 
-//void WrappedGLES::glMultiTexSubImage2DEXT(GLenum texunit, GLenum target, GLint level, GLint xoffset,
-//                                            GLint yoffset, GLsizei width, GLsizei height,
-//                                            GLenum format, GLenum type, const void *pixels)
-//{
-//  m_Real.glMultiTexSubImage2DEXT(texunit, target, level, xoffset, yoffset, width, height, format,
-//                                 type, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureSubImage2DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
-//                                  level, xoffset, yoffset, width, height, format, type, pixels);
-//}
-//
-//bool WrappedGLES::Serialise_glTextureSubImage3DEXT(GLuint texture, GLenum target, GLint level,
-//                                                     GLint xoffset, GLint yoffset, GLint zoffset,
-//                                                     GLsizei width, GLsizei height, GLsizei depth,
-//                                                     GLenum format, GLenum type, const void *pixels)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(int32_t, Level, level);
-//  SERIALISE_ELEMENT(int32_t, xoff, xoffset);
-//  SERIALISE_ELEMENT(int32_t, yoff, yoffset);
-//  SERIALISE_ELEMENT(int32_t, zoff, zoffset);
-//  SERIALISE_ELEMENT(uint32_t, Width, width);
-//  SERIALISE_ELEMENT(uint32_t, Height, height);
-//  SERIALISE_ELEMENT(uint32_t, Depth, depth);
-//  SERIALISE_ELEMENT(GLenum, Format, format);
-//  SERIALISE_ELEMENT(GLenum, Type, type);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//
-//  GLint unpackbuf = 0;
-//  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
-//
-//  SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
-//
-//  byte *unpackedPixels = NULL;
-//  byte *srcPixels = NULL;
-//
-//  if(m_State >= WRITING && pixels && !UnpackBufBound)
-//  {
-//    PixelUnpackState unpack;
-//    unpack.Fetch(&m_Real, false);
-//
-//    if(unpack.FastPath(Width, Height, Depth, Format, Type))
-//      srcPixels = (byte *)pixels;
-//    else
-//      srcPixels = unpackedPixels = unpack.Unpack((byte *)pixels, Width, Height, Depth, Format, Type);
-//  }
-//
-//  size_t subimageSize = GetByteSize(Width, Height, Depth, Format, Type);
-//
-//  SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, subimageSize, !UnpackBufBound);
-//  SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
-//
-//  SAFE_DELETE_ARRAY(unpackedPixels);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    GLint align = 1;
-//    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
-//    {
-//      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-//      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-//      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
-//    }
-//
-//    if(Format == eGL_LUMINANCE)
-//    {
-//      Format = eGL_RED;
-//    }
-//    else if(Format == eGL_LUMINANCE_ALPHA)
-//    {
-//      Format = eGL_RG;
-//    }
-//    else if(Format == eGL_ALPHA)
-//    {
-//      // check if format was converted from alpha-only format to R8, and substitute
-//      ResourceId liveId = GetResourceManager()->GetLiveID(id);
-//      if(m_Textures[liveId].internalFormat == eGL_R8)
-//        Format = eGL_RED;
-//    }
-//
-//    if(Target != eGL_NONE)
-//      m_Real.glTextureSubImage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Level,
-//                                    xoff, yoff, zoff, Width, Height, Depth, Format, Type,
-//                                    buf ? buf : (const void *)bufoffs);
-//    else
-//      m_Real.glTextureSubImage3D(GetResourceManager()->GetLiveResource(id).name, Level, xoff, yoff,
-//                                 zoff, Width, Height, Depth, Format, Type,
-//                                 buf ? buf : (const void *)bufoffs);
-//
-//    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
-//    {
-//      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
-//      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
-//    }
-//
-//    SAFE_DELETE_ARRAY(buf);
-//  }
-//
-//  return true;
-//}
-//
+bool WrappedGLES::Serialise_glTexSubImage3D(GLenum target, GLint level,
+                                            GLint xoffset, GLint yoffset, GLint zoffset,
+                                            GLsizei width, GLsizei height, GLsizei depth,
+                                            GLenum format, GLenum type, const void *pixels)
+{
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(int32_t, Level, level);
+  SERIALISE_ELEMENT(int32_t, xoff, xoffset);
+  SERIALISE_ELEMENT(int32_t, yoff, yoffset);
+  SERIALISE_ELEMENT(int32_t, zoff, zoffset);
+  SERIALISE_ELEMENT(uint32_t, Width, width);
+  SERIALISE_ELEMENT(uint32_t, Height, height);
+  SERIALISE_ELEMENT(uint32_t, Depth, depth);
+  SERIALISE_ELEMENT(GLenum, Format, format);
+  SERIALISE_ELEMENT(GLenum, Type, type);
+  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
+
+  GLint unpackbuf = 0;
+  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
+
+  SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
+
+  byte *unpackedPixels = NULL;
+  byte *srcPixels = NULL;
+
+  if(m_State >= WRITING && pixels && !UnpackBufBound)
+  {
+    PixelUnpackState unpack;
+    unpack.Fetch(&m_Real, false);
+
+    if(unpack.FastPath(Width, Height, Depth, Format, Type))
+      srcPixels = (byte *)pixels;
+    else
+      srcPixels = unpackedPixels = unpack.Unpack((byte *)pixels, Width, Height, Depth, Format, Type);
+  }
+
+  size_t subimageSize = GetByteSize(Width, Height, Depth, Format, Type);
+
+  SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, subimageSize, !UnpackBufBound);
+  SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
+
+  SAFE_DELETE_ARRAY(unpackedPixels);
+
+  if(m_State <= EXECUTING)
+  {
+    GLint align = 1;
+    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    {
+      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+    }
+
+    if(Format == eGL_LUMINANCE)
+    {
+      Format = eGL_RED;
+    }
+    else if(Format == eGL_LUMINANCE_ALPHA)
+    {
+      Format = eGL_RG;
+    }
+    else if(Format == eGL_ALPHA)
+    {
+      // check if format was converted from alpha-only format to R8, and substitute
+      ResourceId liveId = GetResourceManager()->GetLiveID(id);
+      if(m_Textures[liveId].internalFormat == eGL_R8)
+        Format = eGL_RED;
+    }
+
+    m_Real.glTexSubImage3D(Target, Level,
+                           xoff, yoff, zoff, Width, Height, Depth, Format, Type,
+                           buf ? buf : (const void *)bufoffs);
+
+    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    {
+      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+    }
+
+    SAFE_DELETE_ARRAY(buf);
+  }
+
+  return true;
+}
+
 //void WrappedGLES::Common_glTextureSubImage3DEXT(GLResourceRecord *record, GLenum target,
 //                                                  GLint level, GLint xoffset, GLint yoffset,
 //                                                  GLint zoffset, GLsizei width, GLsizei height,
@@ -2714,40 +2464,6 @@ void WrappedGLES::glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLi
 //  }
 //}
 //
-//void WrappedGLES::glTextureSubImage3DEXT(GLuint texture, GLenum target, GLint level,
-//                                           GLint xoffset, GLint yoffset, GLint zoffset,
-//                                           GLsizei width, GLsizei height, GLsizei depth,
-//                                           GLenum format, GLenum type, const void *pixels)
-//{
-//  m_Real.glTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, width, height,
-//                                depth, format, type, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureSubImage3DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target, level,
-//        xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
-//}
-//
-//void WrappedGLES::glTextureSubImage3D(GLuint texture, GLint level, GLint xoffset, GLint yoffset,
-//                                        GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,
-//                                        GLenum format, GLenum type, const void *pixels)
-//{
-//  m_Real.glTextureSubImage3D(texture, level, xoffset, yoffset, zoffset, width, height, depth,
-//                             format, type, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureSubImage3DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eGL_NONE, level,
-//        xoffset, yoffset, zoffset, width, height, depth, format, type, pixels);
-//}
-
-bool WrappedGLES::Serialise_glTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
-                                            GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,
-                                            GLenum format, GLenum type, const void *pixels)
-{
-  // TODO pantos
-  return true;
-}
 
 void WrappedGLES::glTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
                                     GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,
@@ -2756,362 +2472,119 @@ void WrappedGLES::glTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLi
   m_Real.glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth, format,
                          type, pixels);
 
-  // TODO pantos
-//  if(m_State >= WRITING)
-//    Common_glTextureSubImage3DEXT(GetCtxData().GetActiveTexRecord(), target, level, xoffset,
-//                                  yoffset, zoffset, width, height, depth, format, type, pixels);
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
+    if(record == NULL)
+      RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+
+    CoherentMapImplicitBarrier();
+
+    GLint unpackbuf = 0;
+    m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
+
+    if(m_State == WRITING_IDLE && unpackbuf != 0)
+    {
+      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+    }
+    else
+    {
+      if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+         m_State == WRITING_IDLE)
+        return;
+
+      SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D);
+      Serialise_glTexSubImage3D(target, level, xoffset, yoffset,
+                                zoffset, width, height, depth, format, type, pixels);
+
+      if(m_State == WRITING_CAPFRAME)
+      {
+        m_ContextRecord->AddChunk(scope.Get());
+        m_MissingTracks.insert(record->GetResourceID());
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+      }
+      else
+      {
+        record->AddChunk(scope.Get());
+        record->UpdateCount++;
+
+        if(record->UpdateCount > 60)
+        {
+          m_HighTrafficResources.insert(record->GetResourceID());
+          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+        }
+      }
+    }
+  }
 }
 
-//void WrappedGLES::glMultiTexSubImage3DEXT(GLenum texunit, GLenum target, GLint level,
-//                                            GLint xoffset, GLint yoffset, GLint zoffset,
-//                                            GLsizei width, GLsizei height, GLsizei depth,
-//                                            GLenum format, GLenum type, const void *pixels)
-//{
-//  m_Real.glMultiTexSubImage3DEXT(texunit, target, level, xoffset, yoffset, zoffset, width, height,
-//                                 depth, format, type, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glTextureSubImage3DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0], target,
-//                                  level, xoffset, yoffset, zoffset, width, height, depth, format,
-//                                  type, pixels);
-//}
-//
-//bool WrappedGLES::Serialise_glCompressedTextureSubImage1DEXT(GLuint texture, GLenum target,
-//                                                               GLint level, GLint xoffset,
-//                                                               GLsizei width, GLenum format,
-//                                                               GLsizei imageSize, const void *pixels)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(int32_t, Level, level);
-//  SERIALISE_ELEMENT(int32_t, xoff, xoffset);
-//  SERIALISE_ELEMENT(uint32_t, Width, width);
-//  SERIALISE_ELEMENT(GLenum, fmt, format);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//
-//  GLint unpackbuf = 0;
-//  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
-//
-//  SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
-//
-//  byte *unpackedPixels = NULL;
-//  byte *srcPixels = NULL;
-//
-//  if(m_State >= WRITING && pixels && !UnpackBufBound)
-//  {
-//    PixelUnpackState unpack;
-//    unpack.Fetch(&m_Real, true);
-//
-//    if(unpack.FastPathCompressed(Width, 0, 0))
-//      srcPixels = (byte *)pixels;
-//    else
-//      srcPixels = unpackedPixels = unpack.UnpackCompressed((byte *)pixels, Width, 0, 0, imageSize);
-//  }
-//
-//  SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
-//  SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, byteSize, !UnpackBufBound);
-//  SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
-//
-//  SAFE_DELETE_ARRAY(unpackedPixels);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    GLint align = 1;
-//    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
-//    {
-//      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-//      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-//      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
-//    }
-//
-//    if(Target != eGL_NONE)
-//      m_Real.glCompressedTextureSubImage1DEXT(GetResourceManager()->GetLiveResource(id).name,
-//                                              Target, Level, xoff, Width, fmt, byteSize,
-//                                              buf ? buf : (const void *)bufoffs);
-//    else
-//      m_Real.glCompressedTextureSubImage1D(GetResourceManager()->GetLiveResource(id).name, Level,
-//                                           xoff, Width, fmt, byteSize,
-//                                           buf ? buf : (const void *)bufoffs);
-//
-//    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
-//    {
-//      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
-//      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
-//    }
-//
-//    SAFE_DELETE_ARRAY(buf);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glCompressedTextureSubImage1DEXT(GLResourceRecord *record, GLenum target,
-//                                                            GLint level, GLint xoffset,
-//                                                            GLsizei width, GLenum format,
-//                                                            GLsizei imageSize, const void *pixels)
-//{
-//  if(!record)
-//  {
-//    RDCERR(
-//        "Called texture function with invalid/unrecognised texture, or no texture bound to "
-//        "implicit slot");
-//    return;
-//  }
-//
-//  CoherentMapImplicitBarrier();
-//
-//  // proxy formats are used for querying texture capabilities, don't serialise these
-//  if(IsProxyTarget(format))
-//    return;
-//
-//  GLint unpackbuf = 0;
-//  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
-//
-//  if(m_State == WRITING_IDLE && unpackbuf != 0)
-//  {
-//    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//  }
-//  else
-//  {
-//    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-//       m_State == WRITING_IDLE)
-//      return;
-//
-//    SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE1D_COMPRESSED);
-//    Serialise_glCompressedTextureSubImage1DEXT(record->Resource.name, target, level, xoffset, width,
-//                                               format, imageSize, pixels);
-//
-//    if(m_State == WRITING_CAPFRAME)
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      m_MissingTracks.insert(record->GetResourceID());
-//      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-//    }
-//    else
-//    {
-//      record->AddChunk(scope.Get());
-//      record->UpdateCount++;
-//
-//      if(record->UpdateCount > 60)
-//      {
-//        m_HighTrafficResources.insert(record->GetResourceID());
-//        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//      }
-//    }
-//  }
-//}
-//
-//void WrappedGLES::glCompressedTextureSubImage1DEXT(GLuint texture, GLenum target, GLint level,
-//                                                     GLint xoffset, GLsizei width, GLenum format,
-//                                                     GLsizei imageSize, const void *pixels)
-//{
-//  m_Real.glCompressedTextureSubImage1DEXT(texture, target, level, xoffset, width, format, imageSize,
-//                                          pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glCompressedTextureSubImage1DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target, level,
-//        xoffset, width, format, imageSize, pixels);
-//}
-//
-//void WrappedGLES::glCompressedTextureSubImage1D(GLuint texture, GLint level, GLint xoffset,
-//                                                  GLsizei width, GLenum format, GLsizei imageSize,
-//                                                  const void *pixels)
-//{
-//  m_Real.glCompressedTextureSubImage1D(texture, level, xoffset, width, format, imageSize, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glCompressedTextureSubImage1DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eGL_NONE, level,
-//        xoffset, width, format, imageSize, pixels);
-//}
-//
-//void WrappedGLES::glCompressedTexSubImage1D(GLenum target, GLint level, GLint xoffset,
-//                                              GLsizei width, GLenum format, GLsizei imageSize,
-//                                              const void *pixels)
-//{
-//  m_Real.glCompressedTexSubImage1D(target, level, xoffset, width, format, imageSize, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glCompressedTextureSubImage1DEXT(GetCtxData().GetActiveTexRecord(), target, level,
-//                                            xoffset, width, format, imageSize, pixels);
-//}
-//
-//void WrappedGLES::glCompressedMultiTexSubImage1DEXT(GLenum texunit, GLenum target, GLint level,
-//                                                      GLint xoffset, GLsizei width, GLenum format,
-//                                                      GLsizei imageSize, const void *pixels)
-//{
-//  m_Real.glCompressedMultiTexSubImage1DEXT(texunit, target, level, xoffset, width, format,
-//                                           imageSize, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glCompressedTextureSubImage1DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0],
-//                                            target, level, xoffset, width, format, imageSize, pixels);
-//}
-//
-//bool WrappedGLES::Serialise_glCompressedTextureSubImage2DEXT(GLuint texture, GLenum target,
-//                                                               GLint level, GLint xoffset,
-//                                                               GLint yoffset, GLsizei width,
-//                                                               GLsizei height, GLenum format,
-//                                                               GLsizei imageSize, const void *pixels)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(int32_t, Level, level);
-//  SERIALISE_ELEMENT(int32_t, xoff, xoffset);
-//  SERIALISE_ELEMENT(int32_t, yoff, yoffset);
-//  SERIALISE_ELEMENT(uint32_t, Width, width);
-//  SERIALISE_ELEMENT(uint32_t, Height, height);
-//  SERIALISE_ELEMENT(GLenum, fmt, format);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//
-//  GLint unpackbuf = 0;
-//  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
-//
-//  SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
-//
-//  byte *unpackedPixels = NULL;
-//  byte *srcPixels = NULL;
-//
-//  if(m_State >= WRITING && pixels && !UnpackBufBound)
-//  {
-//    PixelUnpackState unpack;
-//    unpack.Fetch(&m_Real, true);
-//
-//    if(unpack.FastPathCompressed(Width, Height, 0))
-//      srcPixels = (byte *)pixels;
-//    else
-//      srcPixels = unpackedPixels =
-//          unpack.UnpackCompressed((byte *)pixels, Width, Height, 0, imageSize);
-//  }
-//
-//  SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
-//  SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, byteSize, !UnpackBufBound);
-//  SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
-//
-//  SAFE_DELETE_ARRAY(unpackedPixels);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    GLint align = 1;
-//    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
-//    {
-//      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-//      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-//      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
-//    }
-//
-//    if(Target != eGL_NONE)
-//      m_Real.glCompressedTextureSubImage2DEXT(GetResourceManager()->GetLiveResource(id).name,
-//                                              Target, Level, xoff, yoff, Width, Height, fmt,
-//                                              byteSize, buf ? buf : (const void *)bufoffs);
-//    else
-//      m_Real.glCompressedTextureSubImage2D(GetResourceManager()->GetLiveResource(id).name, Level,
-//                                           xoff, yoff, Width, Height, fmt, byteSize,
-//                                           buf ? buf : (const void *)bufoffs);
-//
-//    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
-//    {
-//      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
-//      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
-//    }
-//
-//    SAFE_DELETE_ARRAY(buf);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glCompressedTextureSubImage2DEXT(GLResourceRecord *record, GLenum target,
-//                                                            GLint level, GLint xoffset,
-//                                                            GLint yoffset, GLsizei width,
-//                                                            GLsizei height, GLenum format,
-//                                                            GLsizei imageSize, const void *pixels)
-//{
-//  if(!record)
-//  {
-//    RDCERR(
-//        "Called texture function with invalid/unrecognised texture, or no texture bound to "
-//        "implicit slot");
-//    return;
-//  }
-//
-//  CoherentMapImplicitBarrier();
-//
-//  // proxy formats are used for querying texture capabilities, don't serialise these
-//  if(IsProxyTarget(format))
-//    return;
-//
-//  GLint unpackbuf = 0;
-//  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
-//
-//  if(m_State == WRITING_IDLE && unpackbuf != 0)
-//  {
-//    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//  }
-//  else
-//  {
-//    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-//       m_State == WRITING_IDLE)
-//      return;
-//
-//    SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D_COMPRESSED);
-//    Serialise_glCompressedTextureSubImage2DEXT(record->Resource.name, target, level, xoffset,
-//                                               yoffset, width, height, format, imageSize, pixels);
-//
-//    if(m_State == WRITING_CAPFRAME)
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      m_MissingTracks.insert(record->GetResourceID());
-//      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-//    }
-//    else
-//    {
-//      record->AddChunk(scope.Get());
-//      record->UpdateCount++;
-//
-//      if(record->UpdateCount > 60)
-//      {
-//        m_HighTrafficResources.insert(record->GetResourceID());
-//        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//      }
-//    }
-//  }
-//}
-//
-//void WrappedGLES::glCompressedTextureSubImage2DEXT(GLuint texture, GLenum target, GLint level,
-//                                                     GLint xoffset, GLint yoffset, GLsizei width,
-//                                                     GLsizei height, GLenum format,
-//                                                     GLsizei imageSize, const void *pixels)
-//{
-//  m_Real.glCompressedTextureSubImage2DEXT(texture, target, level, xoffset, yoffset, width, height,
-//                                          format, imageSize, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glCompressedTextureSubImage2DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target, level,
-//        xoffset, yoffset, width, height, format, imageSize, pixels);
-//}
-//
-//void WrappedGLES::glCompressedTextureSubImage2D(GLuint texture, GLint level, GLint xoffset,
-//                                                  GLint yoffset, GLsizei width, GLsizei height,
-//                                                  GLenum format, GLsizei imageSize,
-//                                                  const void *pixels)
-//{
-//  m_Real.glCompressedTextureSubImage2D(texture, level, xoffset, yoffset, width, height, format,
-//                                       imageSize, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glCompressedTextureSubImage2DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eGL_NONE, level,
-//        xoffset, yoffset, width, height, format, imageSize, pixels);
-//}
-
-bool WrappedGLES::Serialise_glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset,
-                                                      GLint yoffset, GLsizei width, GLsizei height,
-                                                      GLenum format, GLsizei imageSize, const void *pixels)
+bool WrappedGLES::Serialise_glCompressedTexSubImage2D(GLenum target,
+                                                      GLint level, GLint xoffset,
+                                                      GLint yoffset, GLsizei width,
+                                                      GLsizei height, GLenum format,
+                                                      GLsizei imageSize, const void *pixels)
 {
-  // TODO pantos
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(int32_t, Level, level);
+  SERIALISE_ELEMENT(int32_t, xoff, xoffset);
+  SERIALISE_ELEMENT(int32_t, yoff, yoffset);
+  SERIALISE_ELEMENT(uint32_t, Width, width);
+  SERIALISE_ELEMENT(uint32_t, Height, height);
+  SERIALISE_ELEMENT(GLenum, fmt, format);
+  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
+
+  GLint unpackbuf = 0;
+  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
+
+  SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
+
+  byte *unpackedPixels = NULL;
+  byte *srcPixels = NULL;
+
+  if(m_State >= WRITING && pixels && !UnpackBufBound)
+  {
+    PixelUnpackState unpack;
+    unpack.Fetch(&m_Real, true);
+
+    if(unpack.FastPathCompressed(Width, Height, 0))
+      srcPixels = (byte *)pixels;
+    else
+      srcPixels = unpackedPixels =
+          unpack.UnpackCompressed((byte *)pixels, Width, Height, 0, imageSize);
+  }
+
+  SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
+  SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, byteSize, !UnpackBufBound);
+  SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
+
+  SAFE_DELETE_ARRAY(unpackedPixels);
+
+  if(m_State <= EXECUTING)
+  {
+    GLint align = 1;
+    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    {
+      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+    }
+
+    m_Real.glCompressedTexSubImage2D(Target, Level, xoff, yoff, Width, Height, fmt,
+                                     byteSize, buf ? buf : (const void *)bufoffs);
+
+    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    {
+      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+    }
+
+    SAFE_DELETE_ARRAY(buf);
+  }
+
   return true;
 }
+
 
 void WrappedGLES::glCompressedTexSubImage2D(GLenum target, GLint level, GLint xoffset,
                                               GLint yoffset, GLsizei width, GLsizei height,
@@ -3120,195 +2593,119 @@ void WrappedGLES::glCompressedTexSubImage2D(GLenum target, GLint level, GLint xo
   m_Real.glCompressedTexSubImage2D(target, level, xoffset, yoffset, width, height, format,
                                    imageSize, pixels);
 
-  // TODO pantos
-//  if(m_State >= WRITING)
-//    Common_glCompressedTextureSubImage2DEXT(GetCtxData().GetActiveTexRecord(), target, level, xoffset,
-//                                            yoffset, width, height, format, imageSize, pixels);
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
+    if(record == NULL)
+      RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+
+    CoherentMapImplicitBarrier();
+
+    GLint unpackbuf = 0;
+    m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
+
+    if(m_State == WRITING_IDLE && unpackbuf != 0)
+    {
+      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+    }
+    else
+    {
+      if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+         m_State == WRITING_IDLE)
+        return;
+
+      SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE2D_COMPRESSED);
+      Serialise_glCompressedTexSubImage2D(target, level, xoffset,
+                                          yoffset, width, height, format, imageSize, pixels);
+
+      if(m_State == WRITING_CAPFRAME)
+      {
+        m_ContextRecord->AddChunk(scope.Get());
+        m_MissingTracks.insert(record->GetResourceID());
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+      }
+      else
+      {
+        record->AddChunk(scope.Get());
+        record->UpdateCount++;
+
+        if(record->UpdateCount > 60)
+        {
+          m_HighTrafficResources.insert(record->GetResourceID());
+          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+        }
+      }
+    }
+  }
 }
 
-//void WrappedGLES::glCompressedMultiTexSubImage2DEXT(GLenum texunit, GLenum target, GLint level,
-//                                                      GLint xoffset, GLint yoffset, GLsizei width,
-//                                                      GLsizei height, GLenum format,
-//                                                      GLsizei imageSize, const void *pixels)
-//{
-//  m_Real.glCompressedMultiTexSubImage2DEXT(texunit, target, level, xoffset, yoffset, width, height,
-//                                           format, imageSize, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glCompressedTextureSubImage2DEXT(GetCtxData().m_TextureRecord[texunit - eGL_TEXTURE0],
-//                                            target, level, xoffset, yoffset, width, height, format,
-//                                            imageSize, pixels);
-//}
-//
-//bool WrappedGLES::Serialise_glCompressedTextureSubImage3DEXT(GLuint texture, GLenum target,
-//                                                               GLint level, GLint xoffset,
-//                                                               GLint yoffset, GLint zoffset,
-//                                                               GLsizei width, GLsizei height,
-//                                                               GLsizei depth, GLenum format,
-//                                                               GLsizei imageSize, const void *pixels)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(int32_t, Level, level);
-//  SERIALISE_ELEMENT(int32_t, xoff, xoffset);
-//  SERIALISE_ELEMENT(int32_t, yoff, yoffset);
-//  SERIALISE_ELEMENT(int32_t, zoff, zoffset);
-//  SERIALISE_ELEMENT(uint32_t, Width, width);
-//  SERIALISE_ELEMENT(uint32_t, Height, height);
-//  SERIALISE_ELEMENT(uint32_t, Depth, depth);
-//  SERIALISE_ELEMENT(GLenum, fmt, format);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//
-//  GLint unpackbuf = 0;
-//  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
-//
-//  SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
-//
-//  byte *unpackedPixels = NULL;
-//  byte *srcPixels = NULL;
-//
-//  if(m_State >= WRITING && pixels && !UnpackBufBound)
-//  {
-//    PixelUnpackState unpack;
-//    unpack.Fetch(&m_Real, true);
-//
-//    if(unpack.FastPathCompressed(Width, Height, Depth))
-//      srcPixels = (byte *)pixels;
-//    else
-//      srcPixels = unpackedPixels =
-//          unpack.UnpackCompressed((byte *)pixels, Width, Height, Depth, imageSize);
-//  }
-//
-//  SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
-//  SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, byteSize, !UnpackBufBound);
-//  SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
-//
-//  SAFE_DELETE_ARRAY(unpackedPixels);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    GLint align = 1;
-//    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
-//    {
-//      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-//      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-//      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
-//    }
-//
-//    if(Target != eGL_NONE)
-//      m_Real.glCompressedTextureSubImage3DEXT(GetResourceManager()->GetLiveResource(id).name,
-//                                              Target, Level, xoff, yoff, zoff, Width, Height, Depth,
-//                                              fmt, byteSize, buf ? buf : (const void *)bufoffs);
-//    else
-//      m_Real.glCompressedTextureSubImage3D(GetResourceManager()->GetLiveResource(id).name, Level,
-//                                           xoff, yoff, zoff, Width, Height, Depth, fmt, byteSize,
-//                                           buf ? buf : (const void *)bufoffs);
-//
-//    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
-//    {
-//      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
-//      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
-//    }
-//
-//    SAFE_DELETE_ARRAY(buf);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glCompressedTextureSubImage3DEXT(GLResourceRecord *record, GLenum target,
-//                                                            GLint level, GLint xoffset,
-//                                                            GLint yoffset, GLint zoffset,
-//                                                            GLsizei width, GLsizei height,
-//                                                            GLsizei depth, GLenum format,
-//                                                            GLsizei imageSize, const void *pixels)
-//{
-//  if(!record)
-//  {
-//    RDCERR(
-//        "Called texture function with invalid/unrecognised texture, or no texture bound to "
-//        "implicit slot");
-//    return;
-//  }
-//
-//  CoherentMapImplicitBarrier();
-//
-//  // proxy formats are used for querying texture capabilities, don't serialise these
-//  if(IsProxyTarget(format))
-//    return;
-//
-//  GLint unpackbuf = 0;
-//  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
-//
-//  if(m_State == WRITING_IDLE && unpackbuf != 0)
-//  {
-//    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//  }
-//  else
-//  {
-//    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-//       m_State == WRITING_IDLE)
-//      return;
-//
-//    SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D_COMPRESSED);
-//    Serialise_glCompressedTextureSubImage3DEXT(record->Resource.name, target, level, xoffset,
-//                                               yoffset, zoffset, width, height, depth, format,
-//                                               imageSize, pixels);
-//
-//    if(m_State == WRITING_CAPFRAME)
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      m_MissingTracks.insert(record->GetResourceID());
-//      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-//    }
-//    else
-//    {
-//      record->AddChunk(scope.Get());
-//      record->UpdateCount++;
-//
-//      if(record->UpdateCount > 60)
-//      {
-//        m_HighTrafficResources.insert(record->GetResourceID());
-//        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//      }
-//    }
-//  }
-//}
-//
-//void WrappedGLES::glCompressedTextureSubImage3DEXT(GLuint texture, GLenum target, GLint level,
-//                                                     GLint xoffset, GLint yoffset, GLint zoffset,
-//                                                     GLsizei width, GLsizei height, GLsizei depth,
-//                                                     GLenum format, GLsizei imageSize,
-//                                                     const void *pixels)
-//{
-//  m_Real.glCompressedTextureSubImage3DEXT(texture, target, level, xoffset, yoffset, zoffset, width,
-//                                          height, depth, format, imageSize, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glCompressedTextureSubImage3DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), target, level,
-//        xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels);
-//}
-//
-//void WrappedGLES::glCompressedTextureSubImage3D(GLuint texture, GLint level, GLint xoffset,
-//                                                  GLint yoffset, GLint zoffset, GLsizei width,
-//                                                  GLsizei height, GLsizei depth, GLenum format,
-//                                                  GLsizei imageSize, const void *pixels)
-//{
-//  m_Real.glCompressedTextureSubImage3D(texture, level, xoffset, yoffset, zoffset, width, height,
-//                                       depth, format, imageSize, pixels);
-//
-//  if(m_State >= WRITING)
-//    Common_glCompressedTextureSubImage3DEXT(
-//        GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture)), eGL_NONE, level,
-//        xoffset, yoffset, zoffset, width, height, depth, format, imageSize, pixels);
-//}
-
-bool WrappedGLES::Serialise_glCompressedTexSubImage3D(GLenum target, GLint level, GLint xoffset,
-                                                      GLint yoffset, GLint zoffset, GLsizei width,
-                                                      GLsizei height, GLsizei depth, GLenum format,
+bool WrappedGLES::Serialise_glCompressedTexSubImage3D(GLenum target,
+                                                      GLint level, GLint xoffset,
+                                                      GLint yoffset, GLint zoffset,
+                                                      GLsizei width, GLsizei height,
+                                                      GLsizei depth, GLenum format,
                                                       GLsizei imageSize, const void *pixels)
 {
-  // TODO pantos
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(int32_t, Level, level);
+  SERIALISE_ELEMENT(int32_t, xoff, xoffset);
+  SERIALISE_ELEMENT(int32_t, yoff, yoffset);
+  SERIALISE_ELEMENT(int32_t, zoff, zoffset);
+  SERIALISE_ELEMENT(uint32_t, Width, width);
+  SERIALISE_ELEMENT(uint32_t, Height, height);
+  SERIALISE_ELEMENT(uint32_t, Depth, depth);
+  SERIALISE_ELEMENT(GLenum, fmt, format);
+  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
+
+  GLint unpackbuf = 0;
+  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
+
+  SERIALISE_ELEMENT(bool, UnpackBufBound, unpackbuf != 0);
+
+  byte *unpackedPixels = NULL;
+  byte *srcPixels = NULL;
+
+  if(m_State >= WRITING && pixels && !UnpackBufBound)
+  {
+    PixelUnpackState unpack;
+    unpack.Fetch(&m_Real, true);
+
+    if(unpack.FastPathCompressed(Width, Height, Depth))
+      srcPixels = (byte *)pixels;
+    else
+      srcPixels = unpackedPixels =
+          unpack.UnpackCompressed((byte *)pixels, Width, Height, Depth, imageSize);
+  }
+
+  SERIALISE_ELEMENT(uint32_t, byteSize, imageSize);
+  SERIALISE_ELEMENT_BUF_OPT(byte *, buf, srcPixels, byteSize, !UnpackBufBound);
+  SERIALISE_ELEMENT(uint64_t, bufoffs, (uint64_t)pixels);
+
+  SAFE_DELETE_ARRAY(unpackedPixels);
+
+  if(m_State <= EXECUTING)
+  {
+    GLint align = 1;
+    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    {
+      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
+      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
+      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+    }
+
+    m_Real.glCompressedTexSubImage3D(Target, Level, xoff, yoff, zoff, Width, Height, Depth,
+                                     fmt, byteSize, buf ? buf : (const void *)bufoffs);
+
+    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    {
+      m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
+      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+    }
+
+    SAFE_DELETE_ARRAY(buf);
+  }
+
   return true;
 }
 
@@ -3320,11 +2717,51 @@ void WrappedGLES::glCompressedTexSubImage3D(GLenum target, GLint level, GLint xo
   m_Real.glCompressedTexSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth,
                                    format, imageSize, pixels);
 
-  // TODO pantos
-//  if(m_State >= WRITING)
-//    Common_glCompressedTextureSubImage3DEXT(GetCtxData().GetActiveTexRecord(), target, level,
-//                                            xoffset, yoffset, zoffset, width, height, depth, format,
-//                                            imageSize, pixels);
+  if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
+    if(record == NULL)
+      RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+
+    CoherentMapImplicitBarrier();
+
+    GLint unpackbuf = 0;
+    m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
+
+    if(m_State == WRITING_IDLE && unpackbuf != 0)
+    {
+      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+    }
+    else
+    {
+      if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
+         m_State == WRITING_IDLE)
+        return;
+
+      SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D_COMPRESSED);
+      Serialise_glCompressedTexSubImage3D(target, level, xoffset,
+                                          yoffset, zoffset, width, height, depth, format,
+                                          imageSize, pixels);
+
+      if(m_State == WRITING_CAPFRAME)
+      {
+        m_ContextRecord->AddChunk(scope.Get());
+        m_MissingTracks.insert(record->GetResourceID());
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
+      }
+      else
+      {
+        record->AddChunk(scope.Get());
+        record->UpdateCount++;
+
+        if(record->UpdateCount > 60)
+        {
+          m_HighTrafficResources.insert(record->GetResourceID());
+          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+        }
+      }
+    }
+  }
 }
 
 //void WrappedGLES::glCompressedMultiTexSubImage3DEXT(GLenum texunit, GLenum target, GLint level,

@@ -3263,24 +3263,24 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case TEXIMAGE3D:
       Serialise_glTexImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
       break;
-//    case TEXSUBIMAGE2D:
-//      Serialise_glTexSubImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-//      break;
-//    case TEXSUBIMAGE3D:
-//      Serialise_glTexSubImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-//      break;
+    case TEXSUBIMAGE2D:
+      Serialise_glTexSubImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
+      break;
+    case TEXSUBIMAGE3D:
+      Serialise_glTexSubImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
+      break;
     case TEXIMAGE2D_COMPRESSED:
       Serialise_glCompressedTexImage2D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, NULL);
       break;
     case TEXIMAGE3D_COMPRESSED:
       Serialise_glCompressedTexImage3D(eGL_NONE, 0, eGL_NONE, 0, 0, 0, 0, 0, NULL);
       break;
-//    case TEXSUBIMAGE2D_COMPRESSED:
-//      Serialise_glCompressedTexSubImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, 0, NULL);
-//      break;
-//    case TEXSUBIMAGE3D_COMPRESSED:
-//      Serialise_glCompressedTexSubImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, 0, NULL);
-//      break;
+    case TEXSUBIMAGE2D_COMPRESSED:
+      Serialise_glCompressedTexSubImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, 0, NULL);
+      break;
+    case TEXSUBIMAGE3D_COMPRESSED:
+      Serialise_glCompressedTexSubImage3D(eGL_NONE, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, 0, NULL);
+      break;
 //    case TEXBUFFER: Serialise_glTexBuffer(eGL_NONE, eGL_NONE, 0); break;
 //    case TEXBUFFER_RANGE: Serialise_glTexBufferRange(eGL_NONE, eGL_NONE, 0, 0, 0); break;
 //    case PIXELSTORE: Serialise_glPixelStorei(eGL_NONE, 0); break;
