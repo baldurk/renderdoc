@@ -1233,7 +1233,7 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id,
     else if(bufptr != NULL)
     {
       QString fullname = bindName;
-      if(texptr->customName)
+      if(bufptr->customName)
       {
         if(!fullname.isEmpty())
           fullname += " = ";
