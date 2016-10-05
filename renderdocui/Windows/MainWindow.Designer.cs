@@ -95,6 +95,7 @@
             this.toolStripSeparator11 = new System.Windows.Forms.ToolStripSeparator();
             this.optionsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.manageRemote = new System.Windows.Forms.ToolStripMenuItem();
+            this.startAndroidRemoteServerToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.helpToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewDocsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.viewLogFileToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -118,6 +119,7 @@
             this.statusProgress = new System.Windows.Forms.ToolStripProgressBar();
             this.dockPanel = new WeifenLuo.WinFormsUI.Docking.DockPanel();
             this.saveDialog = new System.Windows.Forms.SaveFileDialog();
+            this.toolStripSeparator13 = new System.Windows.Forms.ToolStripSeparator();
             this.menuStrip1.SuspendLayout();
             this.toolStripContainer1.BottomToolStripPanel.SuspendLayout();
             this.toolStripContainer1.ContentPanel.SuspendLayout();
@@ -516,7 +518,9 @@
             this.resolveSymbolsToolStripMenuItem,
             this.toolStripSeparator11,
             this.optionsToolStripMenuItem,
-            this.manageRemote});
+            this.manageRemote,
+            this.toolStripSeparator13,
+            this.startAndroidRemoteServerToolStripMenuItem});
             this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
             this.toolsToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
             this.toolsToolStripMenuItem.Text = "&Tools";
@@ -804,6 +808,18 @@
             this.saveDialog.Filter = "Log Files (*.rdc)|*.rdc";
             this.saveDialog.Title = "Save Log As";
             // 
+            // toolStripSeparator13
+            // 
+            this.toolStripSeparator13.Name = "toolStripSeparator13";
+            this.toolStripSeparator13.Size = new System.Drawing.Size(271, 6);
+            //
+            // startAndroidRemoteServerToolStripMenuItem
+            //
+            this.startAndroidRemoteServerToolStripMenuItem.Name = "startAndroidRemoteServerToolStripMenuItem";
+            this.startAndroidRemoteServerToolStripMenuItem.Size = new System.Drawing.Size(274, 26);
+            this.startAndroidRemoteServerToolStripMenuItem.Text = "Start Android Remote Server";
+            this.startAndroidRemoteServerToolStripMenuItem.Click += new System.EventHandler(this.startAndroidRemoteServerToolStripMenuItem_Click);
+            // 
             // MainWindow
             // 
             this.AllowDrop = true;
@@ -907,11 +923,13 @@
         private System.Windows.Forms.ToolStripMenuItem pythonShellToolStripMenuItem;
         private System.Windows.Forms.ToolStripStatusLabel statusIcon;
         private System.Windows.Forms.ToolStripMenuItem manageRemote;
+        private System.Windows.Forms.ToolStripMenuItem startAndroidRemoteServerToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem checkForUpdatesToolStripMenuItem;
         private System.Windows.Forms.ToolStripMenuItem showTipsToolStripMenuItem;
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator12;
         private System.Windows.Forms.ToolStripMenuItem statisticsViewerToolStripMenuItem;
         private System.Windows.Forms.ToolStripDropDownButton contextChooser;
         private System.Windows.Forms.ToolStripMenuItem localContext;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator13;
     }
 }

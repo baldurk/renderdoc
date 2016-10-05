@@ -1943,5 +1943,15 @@ namespace renderdocui.Windows
         }
 
     #endregion
+
+        private void startAndroidRemoteServerToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            // /K to keep the window open after finishing.
+            // We want to see the output, e.g. to see if adb is on the path.
+            ProcessStartInfo processInfo = new ProcessStartInfo("cmd.exe", "/K android_remoteserver.bat");
+
+            Process process = Process.Start(processInfo);
+            process.Close();
+        }
     }
 }
