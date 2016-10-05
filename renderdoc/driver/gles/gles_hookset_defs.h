@@ -256,6 +256,8 @@
     HookInit(glTexParameterIuiv); \
     HookInit(glGetTexParameterIiv); \
     HookInit(glGetTexParameterIuiv); \
+    HookInit(glTexBuffer); \
+    HookInit(glTexBufferRange); \
     HookInit(glTexStorage3DMultisample); \
 
 
@@ -500,6 +502,8 @@
     HookExtension(PFNGLTEXPARAMETERIUIVPROC, glTexParameterIuiv); \
     HookExtension(PFNGLGETTEXPARAMETERIIVPROC, glGetTexParameterIiv); \
     HookExtension(PFNGLGETTEXPARAMETERIUIVPROC, glGetTexParameterIuiv); \
+    HookExtension(PFNGLTEXBUFFERPROC, glTexBuffer); \
+    HookExtension(PFNGLTEXBUFFERRANGEPROC, glTexBufferRange); \
     HookExtension(PFNGLTEXSTORAGE3DMULTISAMPLEPROC, glTexStorage3DMultisample); \
 
 
@@ -728,6 +732,8 @@
     HookWrapper3(void, glTexParameterIuiv, GLenum, target, GLenum, pname, const GLuint *, params); \
     HookWrapper3(void, glGetTexParameterIiv, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetTexParameterIuiv, GLenum, target, GLenum, pname, GLuint *, params); \
+    HookWrapper3(void, glTexBuffer, GLenum, target, GLenum, internalformat, GLuint, buffer); \
+    HookWrapper5(void, glTexBufferRange, GLenum, target, GLenum, internalformat, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
     HookWrapper7(void, glTexStorage3DMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedsamplelocations); \
 
 
@@ -888,8 +894,6 @@
     HookWrapper3(void, glSamplerParameterIuiv, GLuint, sampler, GLenum, pname, const GLuint *, param); \
     HookWrapper3(void, glGetSamplerParameterIiv, GLuint, sampler, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetSamplerParameterIuiv, GLuint, sampler, GLenum, pname, GLuint *, params); \
-    HookWrapper3(void, glTexBuffer, GLenum, target, GLenum, internalformat, GLuint, buffer); \
-    HookWrapper5(void, glTexBufferRange, GLenum, target, GLenum, internalformat, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
     HookWrapper0(void, glBlendBarrierKHR); \
     HookWrapper6(void, glDebugMessageControlKHR, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
     HookWrapper6(void, glDebugMessageInsertKHR, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
@@ -1428,8 +1432,6 @@
     HandleUnsupported(PFNGLSAMPLERPARAMETERIUIVPROC, glSamplerParameterIuiv); \
     HandleUnsupported(PFNGLGETSAMPLERPARAMETERIIVPROC, glGetSamplerParameterIiv); \
     HandleUnsupported(PFNGLGETSAMPLERPARAMETERIUIVPROC, glGetSamplerParameterIuiv); \
-    HandleUnsupported(PFNGLTEXBUFFERPROC, glTexBuffer); \
-    HandleUnsupported(PFNGLTEXBUFFERRANGEPROC, glTexBufferRange); \
     HandleUnsupported(PFNGLBLENDBARRIERKHRPROC, glBlendBarrierKHR); \
     HandleUnsupported(PFNGLDEBUGMESSAGECONTROLKHRPROC, glDebugMessageControlKHR); \
     HandleUnsupported(PFNGLDEBUGMESSAGEINSERTKHRPROC, glDebugMessageInsertKHR); \
