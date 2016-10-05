@@ -3251,12 +3251,12 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case TEXSTORAGE1D: Serialise_glTextureStorage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0); break;
     case TEXSTORAGE2D: Serialise_glTextureStorage2DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0); break;
     case TEXSTORAGE3D: Serialise_glTextureStorage3DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0); break;
-//    case TEXSTORAGE2DMS:
-//      Serialise_glTexStorage2DMultisample(eGL_NONE, 0, eGL_NONE, 0, 0, GL_FALSE);
-//      break;
-//    case TEXSTORAGE3DMS:
-//      Serialise_glTexStorage3DMultisample(eGL_NONE, 0, eGL_NONE, 0, 0, 0, GL_FALSE);
-//      break;
+    case TEXSTORAGE2DMS:
+      Serialise_glTexStorage2DMultisample(eGL_NONE, 0, eGL_NONE, 0, 0, GL_FALSE);
+      break;
+    case TEXSTORAGE3DMS:
+      Serialise_glTexStorage3DMultisample(eGL_NONE, 0, eGL_NONE, 0, 0, 0, GL_FALSE);
+      break;
     case TEXIMAGE2D:
       Serialise_glTexImage2D(eGL_NONE, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
       break;

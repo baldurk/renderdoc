@@ -2010,126 +2010,40 @@ void WrappedGLES::glTexStorage3D(GLenum target, GLsizei levels, GLenum internalf
   }
 }
 
-//bool WrappedGLES::Serialise_glTextureStorage2DMultisampleEXT(GLuint texture, GLenum target,
-//                                                               GLsizei samples, GLenum internalformat,
-//                                                               GLsizei width, GLsizei height,
-//                                                               GLboolean fixedsamplelocations)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(uint32_t, Samples, samples);
-//  SERIALISE_ELEMENT(GLenum, Format, internalformat);
-//  SERIALISE_ELEMENT(uint32_t, Width, width);
-//  SERIALISE_ELEMENT(uint32_t, Height, height);
-//  SERIALISE_ELEMENT(bool, Fixedlocs, fixedsamplelocations != 0);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//
-//  if(m_State == READING)
-//  {
-//    GLenum dummy = eGL_NONE;
-//    bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name,
-//                                           Target, Format, dummy);
-//
-//    ResourceId liveId = GetResourceManager()->GetLiveID(id);
-//    m_Textures[liveId].width = Width;
-//    m_Textures[liveId].height = Height;
-//    m_Textures[liveId].depth = 1;
-//    m_Textures[liveId].samples = Samples;
-//    if(Target != eGL_NONE)
-//      m_Textures[liveId].curType = TextureTarget(Target);
-//    m_Textures[liveId].dimension = 2;
-//    m_Textures[liveId].internalFormat = Format;
-//    m_Textures[liveId].emulated = emulated;
-//
-//    if(Target != eGL_NONE)
-//      m_Real.glTextureStorage2DMultisampleEXT(GetResourceManager()->GetLiveResource(id).name,
-//                                              Target, Samples, Format, Width, Height,
-//                                              Fixedlocs ? GL_TRUE : GL_FALSE);
-//    else
-//      m_Real.glTextureStorage2DMultisample(GetResourceManager()->GetLiveResource(id).name, Samples,
-//                                           Format, Width, Height, Fixedlocs ? GL_TRUE : GL_FALSE);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glTextureStorage2DMultisampleEXT(ResourceId texId, GLenum target,
-//                                                            GLsizei samples, GLenum internalformat,
-//                                                            GLsizei width, GLsizei height,
-//                                                            GLboolean fixedsamplelocations)
-//{
-//  if(texId == ResourceId())
-//    return;
-//
-//  // proxy formats are used for querying texture capabilities, don't serialise these
-//  if(IsProxyTarget(target) || internalformat == 0)
-//    return;
-//
-//  internalformat = GetSizedFormat(m_Real, target, internalformat);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
-//    RDCASSERT(record);
-//
-//    SCOPED_SERIALISE_CONTEXT(TEXSTORAGE2DMS);
-//    Serialise_glTextureStorage2DMultisampleEXT(record->Resource.name, target, samples,
-//                                               internalformat, width, height, fixedsamplelocations);
-//
-//    record->AddChunk(scope.Get());
-//
-//    // illegal to re-type textures
-//    record->VerifyDataType(target);
-//  }
-//
-//  {
-//    m_Textures[texId].width = width;
-//    m_Textures[texId].height = height;
-//    m_Textures[texId].depth = 1;
-//    m_Textures[texId].samples = samples;
-//    if(target != eGL_NONE)
-//      m_Textures[texId].curType = TextureTarget(target);
-//    else
-//      m_Textures[texId].curType =
-//          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
-//    m_Textures[texId].dimension = 2;
-//    m_Textures[texId].internalFormat = internalformat;
-//  }
-//}
-//
-//void WrappedGLES::glTextureStorage2DMultisampleEXT(GLuint texture, GLenum target, GLsizei samples,
-//                                                     GLenum internalformat, GLsizei width,
-//                                                     GLsizei height, GLboolean fixedsamplelocations)
-//{
-//  m_Real.glTextureStorage2DMultisampleEXT(texture, target, samples, internalformat, width, height,
-//                                          fixedsamplelocations);
-//
-//  Common_glTextureStorage2DMultisampleEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)),
-//                                          target, samples, internalformat, width, height,
-//                                          fixedsamplelocations);
-//}
-//
-//void WrappedGLES::glTextureStorage2DMultisample(GLuint texture, GLsizei samples,
-//                                                  GLenum internalformat, GLsizei width,
-//                                                  GLsizei height, GLboolean fixedsamplelocations)
-//{
-//  m_Real.glTextureStorage2DMultisample(texture, samples, internalformat, width, height,
-//                                       fixedsamplelocations);
-//
-//  // saves on queries of the currently bound texture to this target, as we don't have records on
-//  // replay
-//  if(m_State < WRITING)
-//    RDCERR("Internal textures should be allocated via dsa interfaces");
-//  else
-//    Common_glTextureStorage2DMultisampleEXT(
-//        GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, samples,
-//        internalformat, width, height, fixedsamplelocations);
-//}
-
-bool WrappedGLES::Serialise_glTexStorage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat,
+bool WrappedGLES::Serialise_glTexStorage2DMultisample(GLenum target,
+                                                      GLsizei samples, GLenum internalformat,
                                                       GLsizei width, GLsizei height,
                                                       GLboolean fixedsamplelocations)
 {
-  // TODO pantos
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(uint32_t, Samples, samples);
+  SERIALISE_ELEMENT(GLenum, Format, internalformat);
+  SERIALISE_ELEMENT(uint32_t, Width, width);
+  SERIALISE_ELEMENT(uint32_t, Height, height);
+  SERIALISE_ELEMENT(bool, Fixedlocs, fixedsamplelocations != 0);
+  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
+
+  if(m_State == READING)
+  {
+    GLenum dummy = eGL_NONE;
+    bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name,
+                                           Target, Format, dummy);
+
+    ResourceId liveId = GetResourceManager()->GetLiveID(id);
+    m_Textures[liveId].width = Width;
+    m_Textures[liveId].height = Height;
+    m_Textures[liveId].depth = 1;
+    m_Textures[liveId].samples = Samples;
+    m_Textures[liveId].curType = TextureTarget(Target);
+    m_Textures[liveId].dimension = 2;
+    m_Textures[liveId].internalFormat = Format;
+    m_Textures[liveId].emulated = emulated;
+
+    m_Real.glTexStorage2DMultisample(Target, Samples, Format, Width, Height,
+                                     Fixedlocs ? GL_TRUE : GL_FALSE);
+  }
+
   return true;
 }
 
@@ -2142,170 +2056,81 @@ void WrappedGLES::glTexStorage2DMultisample(GLenum target, GLsizei samples, GLen
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
-  if(m_State >= WRITING)
+  if(m_State < WRITING)
   {
-    // TODO pantos
-//    GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
-//    if(record != NULL)
-//      Common_glTextureStorage2DMultisampleEXT(record->GetResourceID(), target, samples,
-//                                              internalformat, width, height, fixedsamplelocations);
-//    else
-//      RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+    RDCERR("Internal textures should be allocated via dsa interfaces");
+  }
+  else
+  {
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
+    if(record == NULL)
+      RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+    ResourceId texId = record->GetResourceID();
+
+    if(internalformat == 0)
+      return;
+
+    internalformat = GetSizedFormat(m_Real, target, internalformat);
+
+
+    SCOPED_SERIALISE_CONTEXT(TEXSTORAGE2DMS);
+    Serialise_glTexStorage2DMultisample(target, samples,
+                                        internalformat, width, height, fixedsamplelocations);
+
+    record->AddChunk(scope.Get());
+
+    // illegal to re-type textures
+    record->VerifyDataType(target);
+
+    {
+      m_Textures[texId].width = width;
+      m_Textures[texId].height = height;
+      m_Textures[texId].depth = 1;
+      m_Textures[texId].samples = samples;
+      m_Textures[texId].curType = TextureTarget(target);
+      m_Textures[texId].dimension = 2;
+      m_Textures[texId].internalFormat = internalformat;
+    }
+
   }
 }
 
-//void WrappedGLES::glTexImage2DMultisample(GLenum target, GLsizei samples, GLenum internalformat,
-//                                            GLsizei width, GLsizei height,
-//                                            GLboolean fixedsamplelocations)
-//{
-//  m_Real.glTexImage2DMultisample(target, samples, internalformat, width, height,
-//                                 fixedsamplelocations);
-//
-//  // saves on queries of the currently bound texture to this target, as we don't have records on
-//  // replay
-//  if(m_State < WRITING)
-//  {
-//    RDCERR("Internal textures should be allocated via dsa interfaces");
-//  }
-//  else
-//  {
-//    // assuming texstorage is equivalent to teximage (this is not true in the case where someone
-//    // tries to re-size an image by re-calling teximage).
-//    GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
-//    if(record != NULL)
-//      Common_glTextureStorage2DMultisampleEXT(record->GetResourceID(), target, samples,
-//                                              internalformat, width, height, fixedsamplelocations);
-//    else
-//      RDCERR("Calling non-DSA texture function with no texture bound to active slot");
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glTextureStorage3DMultisampleEXT(GLuint texture, GLenum target,
-//                                                               GLsizei samples,
-//                                                               GLenum internalformat, GLsizei width,
-//                                                               GLsizei height, GLsizei depth,
-//                                                               GLboolean fixedsamplelocations)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(uint32_t, Samples, samples);
-//  SERIALISE_ELEMENT(GLenum, Format, internalformat);
-//  SERIALISE_ELEMENT(uint32_t, Width, width);
-//  SERIALISE_ELEMENT(uint32_t, Height, height);
-//  SERIALISE_ELEMENT(uint32_t, Depth, depth);
-//  SERIALISE_ELEMENT(bool, Fixedlocs, fixedsamplelocations != 0);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//
-//  if(m_State == READING)
-//  {
-//    GLenum dummy = eGL_NONE;
-//    bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name,
-//                                           Target, Format, dummy);
-//
-//    ResourceId liveId = GetResourceManager()->GetLiveID(id);
-//    m_Textures[liveId].width = Width;
-//    m_Textures[liveId].height = Height;
-//    m_Textures[liveId].depth = Depth;
-//    m_Textures[liveId].samples = Samples;
-//    if(Target != eGL_NONE)
-//      m_Textures[liveId].curType = TextureTarget(Target);
-//    m_Textures[liveId].dimension = 2;
-//    m_Textures[liveId].internalFormat = Format;
-//    m_Textures[liveId].emulated = emulated;
-//
-//    if(Target != eGL_NONE)
-//      m_Real.glTextureStorage3DMultisampleEXT(GetResourceManager()->GetLiveResource(id).name,
-//                                              Target, Samples, Format, Width, Height, Depth,
-//                                              Fixedlocs ? GL_TRUE : GL_FALSE);
-//    else
-//      m_Real.glTextureStorage3DMultisample(GetResourceManager()->GetLiveResource(id).name, Samples,
-//                                           Format, Width, Height, Depth,
-//                                           Fixedlocs ? GL_TRUE : GL_FALSE);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glTextureStorage3DMultisampleEXT(ResourceId texId, GLenum target,
-//                                                            GLsizei samples, GLenum internalformat,
-//                                                            GLsizei width, GLsizei height,
-//                                                            GLsizei depth,
-//                                                            GLboolean fixedsamplelocations)
-//{
-//  if(texId == ResourceId())
-//    return;
-//
-//  // proxy formats are used for querying texture capabilities, don't serialise these
-//  if(IsProxyTarget(target) || internalformat == 0)
-//    return;
-//
-//  internalformat = GetSizedFormat(m_Real, target, internalformat);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(texId);
-//    RDCASSERT(record);
-//
-//    SCOPED_SERIALISE_CONTEXT(TEXSTORAGE3DMS);
-//    Serialise_glTextureStorage3DMultisampleEXT(record->Resource.name, target, samples, internalformat,
-//                                               width, height, depth, fixedsamplelocations);
-//
-//    record->AddChunk(scope.Get());
-//
-//    // illegal to re-type textures
-//    record->VerifyDataType(target);
-//  }
-//
-//  {
-//    m_Textures[texId].width = width;
-//    m_Textures[texId].height = height;
-//    m_Textures[texId].depth = depth;
-//    m_Textures[texId].samples = samples;
-//    if(target != eGL_NONE)
-//      m_Textures[texId].curType = TextureTarget(target);
-//    else
-//      m_Textures[texId].curType =
-//          TextureTarget(GetResourceManager()->GetResourceRecord(texId)->datatype);
-//    m_Textures[texId].dimension = 3;
-//    m_Textures[texId].internalFormat = internalformat;
-//  }
-//}
-//
-//void WrappedGLES::glTextureStorage3DMultisampleEXT(GLuint texture, GLenum target, GLsizei samples,
-//                                                     GLenum internalformat, GLsizei width,
-//                                                     GLsizei height, GLsizei depth,
-//                                                     GLboolean fixedsamplelocations)
-//{
-//  m_Real.glTextureStorage3DMultisampleEXT(texture, target, samples, internalformat, width, height,
-//                                          depth, fixedsamplelocations);
-//
-//  Common_glTextureStorage3DMultisampleEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)),
-//                                          target, samples, internalformat, width, height, depth,
-//                                          fixedsamplelocations);
-//}
-//
-//void WrappedGLES::glTextureStorage3DMultisample(GLuint texture, GLsizei samples,
-//                                                  GLenum internalformat, GLsizei width,
-//                                                  GLsizei height, GLsizei depth,
-//                                                  GLboolean fixedsamplelocations)
-//{
-//  m_Real.glTextureStorage3DMultisample(texture, samples, internalformat, width, height, depth,
-//                                       fixedsamplelocations);
-//
-//  // saves on queries of the currently bound texture to this target, as we don't have records on
-//  // replay
-//  if(m_State < WRITING)
-//    RDCERR("Internal textures should be allocated via dsa interfaces");
-//  else
-//    Common_glTextureStorage3DMultisampleEXT(
-//        GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), eGL_NONE, samples,
-//        internalformat, width, height, depth, fixedsamplelocations);
-//}
-
-bool WrappedGLES::Serialise_glTexStorage3DMultisample(GLenum target, GLsizei samples, GLenum internalformat,
-                                                      GLsizei width, GLsizei height, GLsizei depth,
+bool WrappedGLES::Serialise_glTexStorage3DMultisample(GLenum target,
+                                                      GLsizei samples,
+                                                      GLenum internalformat, GLsizei width,
+                                                      GLsizei height, GLsizei depth,
                                                       GLboolean fixedsamplelocations)
 {
-  // TODO pantos
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(uint32_t, Samples, samples);
+  SERIALISE_ELEMENT(GLenum, Format, internalformat);
+  SERIALISE_ELEMENT(uint32_t, Width, width);
+  SERIALISE_ELEMENT(uint32_t, Height, height);
+  SERIALISE_ELEMENT(uint32_t, Depth, depth);
+  SERIALISE_ELEMENT(bool, Fixedlocs, fixedsamplelocations != 0);
+  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
+
+  if(m_State == READING)
+  {
+    GLenum dummy = eGL_NONE;
+    bool emulated = EmulateLuminanceFormat(m_Real, GetResourceManager()->GetLiveResource(id).name,
+                                           Target, Format, dummy);
+
+    ResourceId liveId = GetResourceManager()->GetLiveID(id);
+    m_Textures[liveId].width = Width;
+    m_Textures[liveId].height = Height;
+    m_Textures[liveId].depth = Depth;
+    m_Textures[liveId].samples = Samples;
+    m_Textures[liveId].curType = TextureTarget(Target);
+    m_Textures[liveId].dimension = 2;
+    m_Textures[liveId].internalFormat = Format;
+    m_Textures[liveId].emulated = emulated;
+
+    m_Real.glTexStorage3DMultisample(Target, Samples, Format, Width, Height, Depth,
+                                         Fixedlocs ? GL_TRUE : GL_FALSE);
+  }
+
   return true;
 }
 
@@ -2318,46 +2143,44 @@ void WrappedGLES::glTexStorage3DMultisample(GLenum target, GLsizei samples, GLen
 
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
-  if(m_State >= WRITING)
+  if(m_State < WRITING)
   {
-    // TODO pantos
-//    GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
-//    if(record != NULL)
-//      Common_glTextureStorage3DMultisampleEXT(record->GetResourceID(), target, samples,
-//                                              internalformat, width, height, depth,
-//                                              fixedsamplelocations);
-//    else
-//      RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+    RDCERR("Internal textures should be allocated via dsa interfaces");
+  }
+  else
+  {
+    GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
+    if(record == NULL)
+      RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+    ResourceId texId = record->GetResourceID();
+    
+    if(internalformat == 0)
+      return;
+
+    internalformat = GetSizedFormat(m_Real, target, internalformat);
+
+    SCOPED_SERIALISE_CONTEXT(TEXSTORAGE3DMS);
+    Serialise_glTexStorage3DMultisample(target, samples, internalformat,
+                                               width, height, depth, fixedsamplelocations);
+
+    record->AddChunk(scope.Get());
+
+    // illegal to re-type textures
+    record->VerifyDataType(target);
+
+    {
+      m_Textures[texId].width = width;
+      m_Textures[texId].height = height;
+      m_Textures[texId].depth = depth;
+      m_Textures[texId].samples = samples;
+      m_Textures[texId].curType = TextureTarget(target);
+      m_Textures[texId].dimension = 3;
+      m_Textures[texId].internalFormat = internalformat;
+    }
+      
   }
 }
 
-//void WrappedGLES::glTexImage3DMultisample(GLenum target, GLsizei samples, GLenum internalformat,
-//                                            GLsizei width, GLsizei height, GLsizei depth,
-//                                            GLboolean fixedsamplelocations)
-//{
-//  m_Real.glTexImage3DMultisample(target, samples, internalformat, width, height, depth,
-//                                 fixedsamplelocations);
-//
-//  // saves on queries of the currently bound texture to this target, as we don't have records on
-//  // replay
-//  if(m_State < WRITING)
-//  {
-//    RDCERR("Internal textures should be allocated via dsa interfaces");
-//  }
-//  else
-//  {
-//    // assuming texstorage is equivalent to teximage (this is not true in the case where someone
-//    // tries to re-size an image by re-calling teximage).
-//    GLResourceRecord *record = GetCtxData().GetActiveTexRecord();
-//    if(record != NULL)
-//      Common_glTextureStorage3DMultisampleEXT(record->GetResourceID(), target, samples,
-//                                              internalformat, width, height, depth,
-//                                              fixedsamplelocations);
-//    else
-//      RDCERR("Calling non-DSA texture function with no texture bound to active slot");
-//  }
-//}
-//
 #pragma endregion
 //
 //#pragma region Texture upload(glTexSubImage *)
