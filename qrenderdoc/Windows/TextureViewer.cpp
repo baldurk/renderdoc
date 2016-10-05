@@ -1355,19 +1355,27 @@ void TextureViewer::InitStageResourcePreviews(ShaderStageType stage,
       const bool showDisabled = false;    // showDisabled.Checked
       const bool showEmpty = false;       // showEmpty.Checked
 
-      // show if
-      bool show =
-          (used ||    // it's referenced by the shader - regardless of empty or not
-           (showDisabled && !used &&
-            id != ResourceId()) ||    // it's bound, but not referenced, and we have "show disabled"
-           (showEmpty && id == ResourceId())    // it's empty, and we have "show empty"
-           );
+      // show if it's referenced by the shader - regardless of empty or not
+      bool show = used;
+
+      // it's bound, but not referenced, and we have "show disabled"
+      show = show || (showDisabled && !used && id != ResourceId());
+
+      // it's empty, and we have "show empty"
+      show = show || (showEmpty && id == ResourceId());
+
+      // it's the one we're following
+      show = show || (follow == m_Following);
 
       ResourcePreview *prev = NULL;
 
       if(prevIndex < prevs->GetThumbs().size())
       {
         prev = prevs->GetThumbs()[prevIndex];
+
+        // don't use it if we're not actually going to show it
+        if(!show && !prev->isActive())
+          continue;
       }
       else
       {
