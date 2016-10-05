@@ -2881,8 +2881,9 @@ byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
     {
       RDCASSERT(params.remap == eRemap_RGBA8);
 
-      desc.Format =
-          IsSRGBFormat(desc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB : DXGI_FORMAT_R8G8B8A8_UNORM;
+      desc.Format = (IsSRGBFormat(desc.Format) || wrapTex->m_RealDescriptor)
+                        ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+                        : DXGI_FORMAT_R8G8B8A8_UNORM;
       desc.ArraySize = 1;
     }
 
