@@ -3247,7 +3247,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case GEN_TEXTURE: Serialise_glGenTextures(0, NULL); break;
     case ACTIVE_TEXTURE: Serialise_glActiveTexture(eGL_NONE); break;
     case BIND_TEXTURE: Serialise_glBindTexture(eGL_NONE, 0); break;
-//    case BIND_IMAGE_TEXTURE: Serialise_glBindImageTexture(0, 0, 0, 0, 0, eGL_NONE, eGL_NONE); break;
+    case BIND_IMAGE_TEXTURE: Serialise_glBindImageTexture(0, 0, 0, 0, 0, eGL_NONE, eGL_NONE); break;
     case TEXSTORAGE1D: Serialise_glTextureStorage1DEXT(0, eGL_NONE, 0, eGL_NONE, 0); break;
     case TEXSTORAGE2D: Serialise_glTextureStorage2DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0); break;
     case TEXSTORAGE3D: Serialise_glTextureStorage3DEXT(0, eGL_NONE, 0, eGL_NONE, 0, 0, 0); break;
@@ -3283,7 +3283,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
       break;
     case TEXBUFFER: Serialise_glTexBuffer(eGL_NONE, eGL_NONE, 0); break;
     case TEXBUFFER_RANGE: Serialise_glTexBufferRange(eGL_NONE, eGL_NONE, 0, 0, 0); break;
-//    case PIXELSTORE: Serialise_glPixelStorei(eGL_NONE, 0); break;
+    case PIXELSTORE: Serialise_glPixelStorei(eGL_NONE, 0); break;
     case TEXPARAMETERF: Serialise_glTexParameterf(eGL_NONE, eGL_NONE, 0); break;
     case TEXPARAMETERFV: Serialise_glTexParameterfv(eGL_NONE, eGL_NONE, NULL); break;
     case TEXPARAMETERI: Serialise_glTexParameteri(eGL_NONE, eGL_NONE, 0); break;
