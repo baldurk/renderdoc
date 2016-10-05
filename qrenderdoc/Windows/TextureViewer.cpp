@@ -38,262 +38,277 @@ struct Formatter
   static QString Format(int32_t i) { return QString::number(i); }
 };
 
-enum struct FollowType
+float area(const QSizeF &s)
 {
-  OutputColour,
-  OutputDepth,
-  ReadWrite,
-  ReadOnly
-};
+  return s.width() * s.height();
+}
 
-struct Following
+float aspect(const QSizeF &s)
 {
-  FollowType Type;
-  ShaderStageType Stage;
-  int index;
-  int arrayEl;
-
-  static const Following Default;
-
-  Following()
-  {
-    Type = FollowType::OutputColour;
-    Stage = eShaderStage_Pixel;
-    index = 0;
-    arrayEl = 0;
-  }
-
-  Following(FollowType t, ShaderStageType s, int i, int a)
-  {
-    Type = t;
-    Stage = s;
-    index = i;
-    arrayEl = a;
-  }
-
-  bool operator==(const Following &o)
-  {
-    return Type == o.Type && Stage == o.Stage && index == o.index;
-  }
-  bool operator!=(const Following &o) { return !(*this == o); }
-  static void GetDrawContext(CaptureContext *ctx, bool &copy, bool &compute)
-  {
-    const FetchDrawcall *curDraw = ctx->CurDrawcall();
-    copy = curDraw != NULL && (curDraw->flags & (eDraw_Copy | eDraw_Resolve));
-    compute = curDraw != NULL && (curDraw->flags & eDraw_Dispatch) &&
-              ctx->CurPipelineState.GetShader(eShaderStage_Compute) != ResourceId();
-  }
-
-  int GetHighestMip(CaptureContext *ctx) { return GetBoundResource(ctx, arrayEl).HighestMip; }
-  int GetFirstArraySlice(CaptureContext *ctx) { return GetBoundResource(ctx, arrayEl).FirstSlice; }
-  FormatComponentType GetTypeHint(CaptureContext *ctx)
-  {
-    return GetBoundResource(ctx, arrayEl).typeHint;
-  }
-
-  ResourceId GetResourceId(CaptureContext *ctx) { return GetBoundResource(ctx, arrayEl).Id; }
-  BoundResource GetBoundResource(CaptureContext *ctx, int arrayIdx)
-  {
-    BoundResource ret;
-
-    if(Type == FollowType::OutputColour)
-    {
-      auto outputs = GetOutputTargets(ctx);
-
-      if(index < outputs.size())
-        ret = outputs[index];
-    }
-    else if(Type == FollowType::OutputDepth)
-    {
-      ret = GetDepthTarget(ctx);
-    }
-    else if(Type == FollowType::ReadWrite)
-    {
-      auto rw = GetReadWriteResources(ctx);
-
-      ShaderBindpointMapping mapping = GetMapping(ctx);
-
-      if(index < mapping.ReadWriteResources.count)
-      {
-        BindpointMap &key = mapping.ReadWriteResources[index];
-
-        if(rw.contains(key))
-          ret = rw[key][arrayIdx];
-      }
-    }
-    else if(Type == FollowType::ReadOnly)
-    {
-      auto ro = GetReadOnlyResources(ctx);
-
-      ShaderBindpointMapping mapping = GetMapping(ctx);
-
-      if(index < mapping.ReadOnlyResources.count)
-      {
-        BindpointMap &key = mapping.ReadOnlyResources[index];
-
-        if(ro.contains(key))
-          ret = ro[key][arrayIdx];
-      }
-    }
-
-    return ret;
-  }
-
-  static QVector<BoundResource> GetOutputTargets(CaptureContext *ctx)
-  {
-    const FetchDrawcall *curDraw = ctx->CurDrawcall();
-    bool copy = false, compute = false;
-    GetDrawContext(ctx, copy, compute);
-
-    if(copy)
-    {
-      return {BoundResource(curDraw->copyDestination)};
-    }
-    else if(compute)
-    {
-      return {};
-    }
-    else
-    {
-      QVector<BoundResource> ret = ctx->CurPipelineState.GetOutputTargets();
-
-      if(ret.isEmpty() && curDraw != NULL && (curDraw->flags & eDraw_Present))
-      {
-        if(curDraw->copyDestination != ResourceId())
-          return {BoundResource(curDraw->copyDestination)};
-
-        auto &texlist = ctx->GetTextures();
-        for(int i = 0; i < texlist.count; i++)
-          if((texlist[i].creationFlags & eTextureCreate_SwapBuffer))
-            return {BoundResource(texlist[i].ID)};
-      }
-
-      return ret;
-    }
-  }
-
-  static BoundResource GetDepthTarget(CaptureContext *ctx)
-  {
-    bool copy = false, compute = false;
-    GetDrawContext(ctx, copy, compute);
-
-    if(copy || compute)
-      return BoundResource(ResourceId());
-    else
-      return ctx->CurPipelineState.GetDepthTarget();
-  }
-
-  QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext *ctx)
-  {
-    return GetReadWriteResources(ctx, Stage);
-  }
-
-  static QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext *ctx,
-                                                                          ShaderStageType stage)
-  {
-    bool copy = false, compute = false;
-    GetDrawContext(ctx, copy, compute);
-
-    if(copy)
-    {
-      return QMap<BindpointMap, QVector<BoundResource>>();
-    }
-    else if(compute)
-    {
-      // only return compute resources for one stage
-      if(stage == eShaderStage_Pixel || stage == eShaderStage_Compute)
-        return ctx->CurPipelineState.GetReadWriteResources(eShaderStage_Compute);
-      else
-        return QMap<BindpointMap, QVector<BoundResource>>();
-    }
-    else
-    {
-      return ctx->CurPipelineState.GetReadWriteResources(stage);
-    }
-  }
-
-  QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext *ctx)
-  {
-    return GetReadOnlyResources(ctx, Stage);
-  }
-
-  static QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext *ctx,
-                                                                         ShaderStageType stage)
-  {
-    const FetchDrawcall *curDraw = ctx->CurDrawcall();
-    bool copy = false, compute = false;
-    GetDrawContext(ctx, copy, compute);
-
-    if(copy)
-    {
-      QMap<BindpointMap, QVector<BoundResource>> ret;
-
-      // only return copy source for one stage
-      if(stage == eShaderStage_Pixel)
-        ret[BindpointMap(0, 0)] = {BoundResource(curDraw->copySource)};
-
-      return ret;
-    }
-    else if(compute)
-    {
-      // only return compute resources for one stage
-      if(stage == eShaderStage_Pixel || stage == eShaderStage_Compute)
-        return ctx->CurPipelineState.GetReadOnlyResources(eShaderStage_Compute);
-      else
-        return QMap<BindpointMap, QVector<BoundResource>>();
-    }
-    else
-    {
-      return ctx->CurPipelineState.GetReadOnlyResources(stage);
-    }
-  }
-
-  ShaderReflection *GetReflection(CaptureContext *ctx) { return GetReflection(ctx, Stage); }
-  static ShaderReflection *GetReflection(CaptureContext *ctx, ShaderStageType stage)
-  {
-    bool copy = false, compute = false;
-    GetDrawContext(ctx, copy, compute);
-
-    if(copy)
-      return NULL;
-    else if(compute)
-      return ctx->CurPipelineState.GetShaderReflection(eShaderStage_Compute);
-    else
-      return ctx->CurPipelineState.GetShaderReflection(stage);
-  }
-
-  ShaderBindpointMapping GetMapping(CaptureContext *ctx) { return GetMapping(ctx, Stage); }
-  static ShaderBindpointMapping GetMapping(CaptureContext *ctx, ShaderStageType stage)
-  {
-    bool copy = false, compute = false;
-    GetDrawContext(ctx, copy, compute);
-
-    if(copy)
-    {
-      ShaderBindpointMapping mapping;
-
-      // for PS only add a single mapping to get the copy source
-      if(stage == eShaderStage_Pixel)
-        mapping.ReadOnlyResources = {BindpointMap(0, 0)};
-
-      return mapping;
-    }
-    else if(compute)
-    {
-      return ctx->CurPipelineState.GetBindpointMapping(eShaderStage_Compute);
-    }
-    else
-    {
-      return ctx->CurPipelineState.GetBindpointMapping(stage);
-    }
-  }
-};
+  return s.width() / s.height();
+}
 
 Q_DECLARE_METATYPE(Following);
 
 const Following Following::Default = Following();
 
-Following m_Following = Following::Default;
+Following::Following(FollowType t, ShaderStageType s, int i, int a)
+{
+  Type = t;
+  Stage = s;
+  index = i;
+  arrayEl = a;
+}
+
+Following::Following()
+{
+  Type = FollowType::OutputColour;
+  Stage = eShaderStage_Pixel;
+  index = 0;
+  arrayEl = 0;
+}
+
+bool Following::operator!=(const Following &o)
+{
+  return !(*this == o);
+}
+
+bool Following::operator==(const Following &o)
+{
+  return Type == o.Type && Stage == o.Stage && index == o.index;
+}
+
+void Following::GetDrawContext(CaptureContext *ctx, bool &copy, bool &compute)
+{
+  const FetchDrawcall *curDraw = ctx->CurDrawcall();
+  copy = curDraw != NULL && (curDraw->flags & (eDraw_Copy | eDraw_Resolve));
+  compute = curDraw != NULL && (curDraw->flags & eDraw_Dispatch) &&
+            ctx->CurPipelineState.GetShader(eShaderStage_Compute) != ResourceId();
+}
+
+int Following::GetHighestMip(CaptureContext *ctx)
+{
+  return GetBoundResource(ctx, arrayEl).HighestMip;
+}
+
+int Following::GetFirstArraySlice(CaptureContext *ctx)
+{
+  return GetBoundResource(ctx, arrayEl).FirstSlice;
+}
+
+FormatComponentType Following::GetTypeHint(CaptureContext *ctx)
+{
+  return GetBoundResource(ctx, arrayEl).typeHint;
+}
+
+ResourceId Following::GetResourceId(CaptureContext *ctx)
+{
+  return GetBoundResource(ctx, arrayEl).Id;
+}
+
+BoundResource Following::GetBoundResource(CaptureContext *ctx, int arrayIdx)
+{
+  BoundResource ret;
+
+  if(Type == FollowType::OutputColour)
+  {
+    auto outputs = GetOutputTargets(ctx);
+
+    if(index < outputs.size())
+      ret = outputs[index];
+  }
+  else if(Type == FollowType::OutputDepth)
+  {
+    ret = GetDepthTarget(ctx);
+  }
+  else if(Type == FollowType::ReadWrite)
+  {
+    auto rw = GetReadWriteResources(ctx);
+
+    ShaderBindpointMapping mapping = GetMapping(ctx);
+
+    if(index < mapping.ReadWriteResources.count)
+    {
+      BindpointMap &key = mapping.ReadWriteResources[index];
+
+      if(rw.contains(key))
+        ret = rw[key][arrayIdx];
+    }
+  }
+  else if(Type == FollowType::ReadOnly)
+  {
+    auto ro = GetReadOnlyResources(ctx);
+
+    ShaderBindpointMapping mapping = GetMapping(ctx);
+
+    if(index < mapping.ReadOnlyResources.count)
+    {
+      BindpointMap &key = mapping.ReadOnlyResources[index];
+
+      if(ro.contains(key))
+        ret = ro[key][arrayIdx];
+    }
+  }
+
+  return ret;
+}
+
+QVector<BoundResource> Following::GetOutputTargets(CaptureContext *ctx)
+{
+  const FetchDrawcall *curDraw = ctx->CurDrawcall();
+  bool copy = false, compute = false;
+  GetDrawContext(ctx, copy, compute);
+
+  if(copy)
+  {
+    return {BoundResource(curDraw->copyDestination)};
+  }
+  else if(compute)
+  {
+    return {};
+  }
+  else
+  {
+    QVector<BoundResource> ret = ctx->CurPipelineState.GetOutputTargets();
+
+    if(ret.isEmpty() && curDraw != NULL && (curDraw->flags & eDraw_Present))
+    {
+      if(curDraw->copyDestination != ResourceId())
+        return {BoundResource(curDraw->copyDestination)};
+
+      auto &texlist = ctx->GetTextures();
+      for(int i = 0; i < texlist.count; i++)
+        if((texlist[i].creationFlags & eTextureCreate_SwapBuffer))
+          return {BoundResource(texlist[i].ID)};
+    }
+
+    return ret;
+  }
+}
+
+BoundResource Following::GetDepthTarget(CaptureContext *ctx)
+{
+  bool copy = false, compute = false;
+  GetDrawContext(ctx, copy, compute);
+
+  if(copy || compute)
+    return BoundResource(ResourceId());
+  else
+    return ctx->CurPipelineState.GetDepthTarget();
+}
+
+QMap<BindpointMap, QVector<BoundResource>> Following::GetReadWriteResources(CaptureContext *ctx,
+                                                                            ShaderStageType stage)
+{
+  bool copy = false, compute = false;
+  GetDrawContext(ctx, copy, compute);
+
+  if(copy)
+  {
+    return QMap<BindpointMap, QVector<BoundResource>>();
+  }
+  else if(compute)
+  {
+    // only return compute resources for one stage
+    if(stage == eShaderStage_Pixel || stage == eShaderStage_Compute)
+      return ctx->CurPipelineState.GetReadWriteResources(eShaderStage_Compute);
+    else
+      return QMap<BindpointMap, QVector<BoundResource>>();
+  }
+  else
+  {
+    return ctx->CurPipelineState.GetReadWriteResources(stage);
+  }
+}
+
+QMap<BindpointMap, QVector<BoundResource>> Following::GetReadWriteResources(CaptureContext *ctx)
+{
+  return GetReadWriteResources(ctx, Stage);
+}
+
+QMap<BindpointMap, QVector<BoundResource>> Following::GetReadOnlyResources(CaptureContext *ctx,
+                                                                           ShaderStageType stage)
+{
+  const FetchDrawcall *curDraw = ctx->CurDrawcall();
+  bool copy = false, compute = false;
+  GetDrawContext(ctx, copy, compute);
+
+  if(copy)
+  {
+    QMap<BindpointMap, QVector<BoundResource>> ret;
+
+    // only return copy source for one stage
+    if(stage == eShaderStage_Pixel)
+      ret[BindpointMap(0, 0)] = {BoundResource(curDraw->copySource)};
+
+    return ret;
+  }
+  else if(compute)
+  {
+    // only return compute resources for one stage
+    if(stage == eShaderStage_Pixel || stage == eShaderStage_Compute)
+      return ctx->CurPipelineState.GetReadOnlyResources(eShaderStage_Compute);
+    else
+      return QMap<BindpointMap, QVector<BoundResource>>();
+  }
+  else
+  {
+    return ctx->CurPipelineState.GetReadOnlyResources(stage);
+  }
+}
+
+QMap<BindpointMap, QVector<BoundResource>> Following::GetReadOnlyResources(CaptureContext *ctx)
+{
+  return GetReadOnlyResources(ctx, Stage);
+}
+
+ShaderReflection *Following::GetReflection(CaptureContext *ctx, ShaderStageType stage)
+{
+  bool copy = false, compute = false;
+  GetDrawContext(ctx, copy, compute);
+
+  if(copy)
+    return NULL;
+  else if(compute)
+    return ctx->CurPipelineState.GetShaderReflection(eShaderStage_Compute);
+  else
+    return ctx->CurPipelineState.GetShaderReflection(stage);
+}
+
+ShaderReflection *Following::GetReflection(CaptureContext *ctx)
+{
+  return GetReflection(ctx, Stage);
+}
+
+ShaderBindpointMapping Following::GetMapping(CaptureContext *ctx, ShaderStageType stage)
+{
+  bool copy = false, compute = false;
+  GetDrawContext(ctx, copy, compute);
+
+  if(copy)
+  {
+    ShaderBindpointMapping mapping;
+
+    // for PS only add a single mapping to get the copy source
+    if(stage == eShaderStage_Pixel)
+      mapping.ReadOnlyResources = {BindpointMap(0, 0)};
+
+    return mapping;
+  }
+  else if(compute)
+  {
+    return ctx->CurPipelineState.GetBindpointMapping(eShaderStage_Compute);
+  }
+  else
+  {
+    return ctx->CurPipelineState.GetBindpointMapping(stage);
+  }
+}
+
+ShaderBindpointMapping Following::GetMapping(CaptureContext *ctx)
+{
+  return GetMapping(ctx, Stage);
+}
 
 TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::TextureViewer), m_Ctx(ctx)
@@ -816,9 +831,7 @@ void TextureViewer::UI_UpdateTextureDetails()
 
 void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 {
-  m_TexDisplay.texid = m_Following.GetResourceId(m_Ctx);
-
-  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = m_Ctx->GetTexture(m_Following.GetResourceId(m_Ctx));
 
   // reset high-water mark
   m_HighWaterStatusLength = 0;
@@ -828,7 +841,79 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
   FetchTexture &tex = *texptr;
 
-  bool newtex = true;
+  bool newtex = (m_TexDisplay.texid != tex.ID);
+
+  // save settings for this current texture
+  // if (m_Ctx->Config.TextureViewer_PerTexSettings)
+  {
+    m_TextureSettings[m_TexDisplay.texid].r = ui->channelRed->isChecked();
+    m_TextureSettings[m_TexDisplay.texid].g = ui->channelGreen->isChecked();
+    m_TextureSettings[m_TexDisplay.texid].b = ui->channelBlue->isChecked();
+    m_TextureSettings[m_TexDisplay.texid].a = ui->channelAlpha->isChecked();
+
+    m_TextureSettings[m_TexDisplay.texid].displayType = ui->channels->currentIndex();
+    m_TextureSettings[m_TexDisplay.texid].customShader = ui->customShader->currentText();
+
+    m_TextureSettings[m_TexDisplay.texid].depth = ui->depthDisplay->isChecked();
+    m_TextureSettings[m_TexDisplay.texid].stencil = ui->stencilDisplay->isChecked();
+
+    m_TextureSettings[m_TexDisplay.texid].mip = ui->mipLevel->currentIndex();
+    m_TextureSettings[m_TexDisplay.texid].slice = ui->sliceFace->currentIndex();
+
+    m_TextureSettings[m_TexDisplay.texid].minrange = 0.0f;    // rangeHistogram->blackPoint();
+    m_TextureSettings[m_TexDisplay.texid].maxrange = 1.0f;    // rangeHistogram->whitePoint();
+
+    m_TextureSettings[m_TexDisplay.texid].typeHint = m_Following.GetTypeHint(m_Ctx);
+  }
+
+  m_TexDisplay.texid = tex.ID;
+
+  // interpret the texture according to the currently following type.
+  if(!currentTextureIsLocked())
+    m_TexDisplay.typeHint = m_Following.GetTypeHint(m_Ctx);
+  else
+    m_TexDisplay.typeHint = eCompType_None;
+
+  // if there is no such type or it isn't being followed, use the last seen interpretation
+  if(m_TexDisplay.typeHint == eCompType_None && m_TextureSettings.contains(m_TexDisplay.texid))
+    m_TexDisplay.typeHint = m_TextureSettings[m_TexDisplay.texid].typeHint;
+
+  // try to maintain the pan in the new texture. If the new texture
+  // is approx an integer multiple of the old texture, just changing
+  // the scale will keep everything the same. This is useful for
+  // downsample chains and things where you're flipping back and forth
+  // between overlapping textures, but even in the non-integer case
+  // pan will be kept approximately the same.
+  QSizeF curSize((float)tex.width, (float)tex.height);
+  float curArea = area(curSize);
+  float prevArea = area(m_PrevSize);
+
+  if(prevArea > 0.0f)
+  {
+    float prevX = m_TexDisplay.offx;
+    float prevY = m_TexDisplay.offy;
+
+    // allow slight difference in aspect ratio for rounding errors
+    // in downscales (e.g. 1680x1050 -> 840x525 -> 420x262 in the
+    // last downscale the ratios are 1.6 and 1.603053435).
+    if(qAbs(aspect(curSize) - aspect(m_PrevSize)) < 0.01f)
+    {
+      m_TexDisplay.scale *= m_PrevSize.width() / curSize.width();
+      setCurrentZoomValue(m_TexDisplay.scale);
+    }
+    else
+    {
+      // this scale factor is arbitrary really, only intention is to have
+      // integer scales come out precisely, other 'similar' sizes will be
+      // similar ish
+      float scaleFactor = (float)(sqrt(curArea) / sqrt(prevArea));
+
+      m_TexDisplay.offx = prevX * scaleFactor;
+      m_TexDisplay.offy = prevY * scaleFactor;
+    }
+  }
+
+  m_PrevSize = curSize;
 
   // refresh scroll position
   setScrollPosition(getScrollPosition());
@@ -870,10 +955,8 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
     int highestMip = -1;
 
     // only switch to the selected mip for outputs, and when changing drawcall
-    /*
-    if (!CurrentTextureIsLocked && m_Following.Type != FollowType.ReadOnly && newdraw)
+    if(!currentTextureIsLocked() && m_Following.Type != FollowType::ReadOnly && newdraw)
       highestMip = m_Following.GetHighestMip(m_Ctx);
-      */
 
     // assuming we get a valid mip for the highest mip, only switch to it
     // if we've selected a new texture, or if it's different than the last mip.
@@ -934,10 +1017,8 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
     int firstArraySlice = -1;
     // only switch to the selected mip for outputs, and when changing drawcall
-    /*
-    if (!CurrentTextureIsLocked && m_Following.Type != FollowType.ReadOnly && newdraw)
+    if(!currentTextureIsLocked() && m_Following.Type != FollowType::ReadOnly && newdraw)
       firstArraySlice = m_Following.GetFirstArraySlice(m_Ctx);
-      */
 
     // see above with highestMip and prevHighestMip for the logic behind this
     if(firstArraySlice >= 0 && (newtex || firstArraySlice != m_PrevFirstArraySlice))
@@ -952,12 +1033,75 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
     m_PrevFirstArraySlice = firstArraySlice;
   }
 
-  (void)usemipsettings;
-  (void)useslicesettings;
+  // because slice and mip are specially set above, we restore any per-tex settings to apply
+  // even if we don't switch to a new texture.
+  // Note that if the slice or mip was changed because that slice or mip is the selected one
+  // at the API level, we leave this alone.
+  if(/*m_Ctx->Config.TextureViewer_PerTexSettings &&*/ m_TextureSettings.contains(tex.ID))
+  {
+    if(usemipsettings)
+      ui->mipLevel->setCurrentIndex(m_TextureSettings[tex.ID].mip);
+
+    if(useslicesettings)
+      ui->sliceFace->setCurrentIndex(m_TextureSettings[tex.ID].slice);
+  }
+
+  // handling for if we've switched to a new texture
+  if(newtex)
+  {
+    // if we save certain settings per-texture, restore them (if we have any)
+    if(/*m_Ctx->Config.TextureViewer_PerTexSettings &&*/ m_TextureSettings.contains(tex.ID))
+    {
+      ui->channels->setCurrentIndex(m_TextureSettings[tex.ID].displayType);
+
+      ui->customShader->setCurrentText(m_TextureSettings[tex.ID].customShader);
+
+      ui->channelRed->setChecked(m_TextureSettings[tex.ID].r);
+      ui->channelGreen->setChecked(m_TextureSettings[tex.ID].g);
+      ui->channelBlue->setChecked(m_TextureSettings[tex.ID].b);
+      ui->channelAlpha->setChecked(m_TextureSettings[tex.ID].a);
+
+      ui->depthDisplay->setChecked(m_TextureSettings[tex.ID].depth);
+      ui->stencilDisplay->setChecked(m_TextureSettings[tex.ID].stencil);
+
+      // norangePaint = true;
+      // rangeHistogram.SetRange(m_TextureSettings[m_TexDisplay.texid].minrange,
+      // m_TextureSettings[m_TexDisplay.texid].maxrange);
+      // norangePaint = false;
+    }
+    else    // if (m_Ctx->Config.TextureViewer_PerTexSettings)
+    {
+      // if we are using per-tex settings, reset back to RGB
+      ui->channels->setCurrentIndex(0);
+
+      ui->customShader->setCurrentText("");
+
+      ui->channelRed->setChecked(true);
+      ui->channelGreen->setChecked(true);
+      ui->channelBlue->setChecked(true);
+      ui->channelAlpha->setChecked(false);
+
+      ui->depthDisplay->setChecked(true);
+      ui->stencilDisplay->setChecked(false);
+
+      // norangePaint = true;
+      // UI_SetHistogramRange(tex, m_TexDisplay.typeHint);
+      // norangePaint = false;
+    }
+
+    // reset the range if desired
+    // if (m_Core.Config.TextureViewer_ResetRange)
+    {
+      // UI_SetHistogramRange(tex, m_TexDisplay.typeHint);
+    }
+  }
 
   UI_UpdateFittedScale();
   UI_UpdateTextureDetails();
   UI_UpdateChannels();
+
+  // if (ui->autoFit->isChecked())
+  // AutoFitRange();
 
   m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
     // RT_UpdateVisualRange(r);
@@ -1646,14 +1790,17 @@ void TextureViewer::OnLogfileClosed()
   m_Output = NULL;
   ui->render->SetOutput(m_Ctx, NULL);
 
+  m_TextureSettings.clear();
+
   UI_UpdateTextureDetails();
 }
 
 void TextureViewer::OnEventSelected(uint32_t eventID)
 {
-  // if (!CurrentTextureIsLocked || (CurrentTexture != null && m_TexDisplay.texid !=
-  // CurrentTexture.ID))
-  UI_OnTextureSelectionChanged(true);
+  FetchTexture *CurrentTexture = m_Ctx->GetTexture(m_Following.GetResourceId(m_Ctx));
+  if(!currentTextureIsLocked() ||
+     (CurrentTexture != NULL && m_TexDisplay.texid != CurrentTexture->ID))
+    UI_OnTextureSelectionChanged(true);
 
   if(m_Output == NULL)
     return;

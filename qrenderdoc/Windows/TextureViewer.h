@@ -36,7 +36,81 @@ class TextureViewer;
 
 class ResourcePreview;
 class ThumbnailStrip;
-struct Following;
+
+enum struct FollowType
+{
+  OutputColour,
+  OutputDepth,
+  ReadWrite,
+  ReadOnly
+};
+
+struct Following
+{
+  FollowType Type;
+  ShaderStageType Stage;
+  int index;
+  int arrayEl;
+
+  static const Following Default;
+
+  Following();
+
+  Following(FollowType t, ShaderStageType s, int i, int a);
+
+  bool operator==(const Following &o);
+  bool operator!=(const Following &o);
+  static void GetDrawContext(CaptureContext *ctx, bool &copy, bool &compute);
+
+  int GetHighestMip(CaptureContext *ctx);
+  int GetFirstArraySlice(CaptureContext *ctx);
+  FormatComponentType GetTypeHint(CaptureContext *ctx);
+
+  ResourceId GetResourceId(CaptureContext *ctx);
+  BoundResource GetBoundResource(CaptureContext *ctx, int arrayIdx);
+
+  static QVector<BoundResource> GetOutputTargets(CaptureContext *ctx);
+
+  static BoundResource GetDepthTarget(CaptureContext *ctx);
+
+  QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext *ctx);
+
+  static QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext *ctx,
+                                                                          ShaderStageType stage);
+
+  QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext *ctx);
+
+  static QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext *ctx,
+                                                                         ShaderStageType stage);
+
+  ShaderReflection *GetReflection(CaptureContext *ctx);
+  static ShaderReflection *GetReflection(CaptureContext *ctx, ShaderStageType stage);
+
+  ShaderBindpointMapping GetMapping(CaptureContext *ctx);
+  static ShaderBindpointMapping GetMapping(CaptureContext *ctx, ShaderStageType stage);
+};
+
+struct TexSettings
+{
+  TexSettings()
+  {
+    r = g = b = true;
+    a = false;
+    mip = 0;
+    slice = 0;
+    minrange = 0.0f;
+    maxrange = 1.0f;
+    typeHint = eCompType_None;
+  }
+
+  int displayType;    // RGBA, RGBM, Custom
+  QString customShader;
+  bool r, g, b, a;
+  bool depth, stencil;
+  int mip, slice;
+  float minrange, maxrange;
+  FormatComponentType typeHint;
+};
 
 class TextureViewer : public QFrame, public ILogViewerForm
 {
@@ -106,6 +180,7 @@ private:
                                  QMap<BindpointMap, QVector<BoundResource>> &ResList,
                                  ThumbnailStrip *prevs, int &prevIndex, bool copy, bool rw);
 
+  bool currentTextureIsLocked() { return false; }
   void setFitToWindow(bool checked);
 
   void setCurrentZoomValue(float zoom);
@@ -132,6 +207,8 @@ private:
   QPoint m_CurHoverPixel;
   QPoint m_PickedPoint;
 
+  QSizeF m_PrevSize;
+
   PixelValue m_CurRealValue;
   PixelValue m_CurPixelValue;
   PixelValue m_CurHoverValue;
@@ -143,6 +220,9 @@ private:
   Ui::TextureViewer *ui;
   CaptureContext *m_Ctx = NULL;
   IReplayOutput *m_Output = NULL;
+
+  Following m_Following = Following::Default;
+  QMap<ResourceId, TexSettings> m_TextureSettings;
 
   TextureDisplay m_TexDisplay;
 };
