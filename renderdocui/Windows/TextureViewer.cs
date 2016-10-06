@@ -3184,6 +3184,7 @@ namespace renderdocui.Windows
                 return;
             }
 
+            m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
 
             if (m_Output != null && m_PickedPoint.X >= 0 && m_PickedPoint.Y >= 0)
@@ -3194,8 +3195,6 @@ namespace renderdocui.Windows
                         RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
                 });
             }
-
-            m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
         }
 
         private void overlay_SelectedIndexChanged(object sender, EventArgs e)
@@ -3215,6 +3214,7 @@ namespace renderdocui.Windows
             if (CurrentTexture.depth > 1)
                 m_TexDisplay.sliceFace = (UInt32)(sliceFace.SelectedIndex << (int)m_TexDisplay.mip);
 
+            m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
 
             if (m_Output != null && m_PickedPoint.X >= 0 && m_PickedPoint.Y >= 0)
@@ -3226,7 +3226,6 @@ namespace renderdocui.Windows
                 });
             }
 
-            m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
         }
 
         private void updateChannelsHandler(object sender, EventArgs e)
