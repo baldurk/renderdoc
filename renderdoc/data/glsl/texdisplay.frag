@@ -69,7 +69,12 @@ void main(void)
 
 	scr -= texdisplay.Position.xy;
 
+	scr /= texdisplay.TextureResolutionPS.xy;
+
 	scr /= texdisplay.Scale;
+
+	scr /= vec2(texdisplay.MipShift, texdisplay.MipShift);
+	vec2 scr2 = scr;
 
 #ifdef VULKAN
 	if(texType == RESTYPE_TEX1D)
@@ -78,13 +83,13 @@ void main(void)
 #endif
 	{
 		// by convention display 1D textures as 100 high
-		if(scr.x < 0.0f || scr.x > texdisplay.TextureResolutionPS.x || scr.y < 0.0f || scr.y > 100.0f)
+		if(scr2.x < 0.0f || scr2.x > 1.0f || scr2.y < 0.0f || scr2.y > 100.0f)
 		   discard;
 	}
 	else
 	{
-		if(scr.x < 0.0f || scr.y < 0.0f ||
-		   scr.x > texdisplay.TextureResolutionPS.x || scr.y > texdisplay.TextureResolutionPS.y)
+		if(scr2.x < 0.0f || scr2.y < 0.0f ||
+		   scr2.x > 1.0f || scr2.y > 1.0f)
 		{
 			discard;
 		}
@@ -97,7 +102,7 @@ void main(void)
 #endif
 
 	if (texdisplay.FlipY != defaultFlipY)
-		scr.y = texdisplay.TextureResolutionPS.y - scr.y;
+		scr.y = 1.0f - scr.y;
 
 	if(uintTex)
 	{

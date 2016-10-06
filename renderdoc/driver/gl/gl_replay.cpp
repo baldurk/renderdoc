@@ -2305,7 +2305,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
 
       gl.glViewport(0, 0, width, height);
 
-      RenderTextureInternal(texDisplay, false);
+      RenderTextureInternal(texDisplay, 0);
     }
 
     DebugData.outWidth = oldW;
@@ -2625,7 +2625,7 @@ ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint
   disp.scale = 1.0f;
   disp.sliceFace = arrayIdx;
 
-  RenderTextureInternal(disp, false);
+  RenderTextureInternal(disp, eTexDisplay_MipShift);
 
   return DebugData.CustomShaderTexID;
 }

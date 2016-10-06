@@ -68,52 +68,38 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   uvec4 col;
   if(type == RESTYPE_TEX1D)
   {
-    int size = textureSize(texUInt1D, mipLevel);
-
-    col = texelFetch(texUInt1D, int(pos.x), mipLevel);
+    col = texelFetch(texUInt1D, int(pos.x * texRes.x), mipLevel);
   }
   else if(type == RESTYPE_TEX1DARRAY)
   {
-    ivec2 size = textureSize(texUInt1DArray, mipLevel);
-
-    col = texelFetch(texUInt1DArray, ivec2(pos.x, slice), mipLevel);
+    col = texelFetch(texUInt1DArray, ivec2(pos.x * texRes.x, slice), mipLevel);
   }
   else if(type == RESTYPE_TEX2D)
   {
-    ivec2 size = textureSize(texUInt2D, mipLevel);
-
-    col = texelFetch(texUInt2D, ivec2(pos), mipLevel);
+    col = texelFetch(texUInt2D, ivec2(pos * texRes.xy), mipLevel);
   }
   else if(type == RESTYPE_TEXRECT)
   {
-    ivec2 size = textureSize(texUInt2DRect);
-
-    col = texelFetch(texUInt2DRect, ivec2(pos));
+    col = texelFetch(texUInt2DRect, ivec2(pos * texRes.xy));
   }
   else if(type == RESTYPE_TEXBUFFER)
   {
-    col = texelFetch(texUIntBuffer, int(pos.x));
+    col = texelFetch(texUIntBuffer, int(pos.x * texRes.x));
   }
   else if(type == RESTYPE_TEX2DMS)
   {
-    ivec2 size = textureSize(texUInt2DMS);
-
     if(sampleIdx < 0)
       sampleIdx = 0;
 
-    col = texelFetch(texUInt2DMS, ivec2(pos), sampleIdx);
+    col = texelFetch(texUInt2DMS, ivec2(pos * texRes.xy), sampleIdx);
   }
   else if(type == RESTYPE_TEX2DARRAY)
   {
-    ivec3 size = textureSize(texUInt2DArray, mipLevel);
-
-    col = texelFetch(texUInt2DArray, ivec3(pos, slice), mipLevel);
+    col = texelFetch(texUInt2DArray, ivec3(pos * texRes.xy, slice), mipLevel);
   }
   else    // if (type == RESTYPE_TEX3D)
   {
-    ivec3 size = textureSize(texUInt3D, mipLevel);
-
-    col = texelFetch(texUInt3D, ivec3(pos, slice), mipLevel);
+    col = texelFetch(texUInt3D, ivec3(pos * texRes.xy, slice), mipLevel);
   }
 
   return col;
@@ -154,52 +140,38 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   ivec4 col;
   if(type == RESTYPE_TEX1D)
   {
-    int size = textureSize(texSInt1D, mipLevel);
-
-    col = texelFetch(texSInt1D, int(pos.x), mipLevel);
+    col = texelFetch(texSInt1D, int(pos.x * texRes.x), mipLevel);
   }
   else if(type == RESTYPE_TEX1DARRAY)
   {
-    ivec2 size = textureSize(texSInt1DArray, mipLevel);
-
-    col = texelFetch(texSInt1DArray, ivec2(pos.x, slice), mipLevel);
+    col = texelFetch(texSInt1DArray, ivec2(pos.x * texRes.x, slice), mipLevel);
   }
   else if(type == RESTYPE_TEX2D)
   {
-    ivec2 size = textureSize(texSInt2D, mipLevel);
-
-    col = texelFetch(texSInt2D, ivec2(pos), mipLevel);
+    col = texelFetch(texSInt2D, ivec2(pos * texRes.xy), mipLevel);
   }
   else if(type == RESTYPE_TEXRECT)
   {
-    ivec2 size = textureSize(texSInt2DRect);
-
-    col = texelFetch(texSInt2DRect, ivec2(pos));
+    col = texelFetch(texSInt2DRect, ivec2(pos * texRes.xy));
   }
   else if(type == RESTYPE_TEXBUFFER)
   {
-    col = texelFetch(texSIntBuffer, int(pos.x));
+    col = texelFetch(texSIntBuffer, int(pos.x * texRes.x));
   }
   else if(type == RESTYPE_TEX2DMS)
   {
-    ivec2 size = textureSize(texSInt2DMS);
-
     if(sampleIdx < 0)
       sampleIdx = 0;
 
-    col = texelFetch(texSInt2DMS, ivec2(pos), sampleIdx);
+    col = texelFetch(texSInt2DMS, ivec2(pos * texRes.xy), sampleIdx);
   }
   else if(type == RESTYPE_TEX2DARRAY)
   {
-    ivec3 size = textureSize(texSInt2DArray, mipLevel);
-
-    col = texelFetch(texSInt2DArray, ivec3(pos, slice), mipLevel);
+    col = texelFetch(texSInt2DArray, ivec3(pos * texRes.xy, slice), mipLevel);
   }
   else    // if (type == RESTYPE_TEX3D)
   {
-    ivec3 size = textureSize(texSInt3D, mipLevel);
-
-    col = texelFetch(texSInt3D, ivec3(pos, slice), mipLevel);
+    col = texelFetch(texSInt3D, ivec3(pos * texRes.xy, slice), mipLevel);
   }
 
   return col;
@@ -225,36 +197,26 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   vec4 col;
   if(type == RESTYPE_TEX1D)
   {
-    int size = textureSize(tex1D, mipLevel);
-
-    col = textureLod(tex1D, pos.x / size, float(mipLevel));
+    col = textureLod(tex1D, pos.x, float(mipLevel));
   }
   else if(type == RESTYPE_TEX1DARRAY)
   {
-    ivec2 size = textureSize(tex1DArray, mipLevel);
-
-    col = textureLod(tex1DArray, vec2(pos.x / size.x, slice), float(mipLevel));
+    col = textureLod(tex1DArray, vec2(pos.x, slice), float(mipLevel));
   }
   else if(type == RESTYPE_TEX2D)
   {
-    ivec2 size = textureSize(tex2D, mipLevel);
-
-    col = textureLod(tex2D, pos / size, float(mipLevel));
+    col = textureLod(tex2D, pos, float(mipLevel));
   }
   else if(type == RESTYPE_TEXRECT)
   {
-    ivec2 size = textureSize(tex2DRect);
-
-    col = texelFetch(tex2DRect, ivec2(pos));
+    col = texelFetch(tex2DRect, ivec2(pos * texRes.xy));
   }
   else if(type == RESTYPE_TEXBUFFER)
   {
-    col = texelFetch(texBuffer, int(pos.x));
+    col = texelFetch(texBuffer, int(pos.x * texRes.x));
   }
   else if(type == RESTYPE_TEX2DMS)
   {
-    ivec2 size = textureSize(tex2DMS);
-
     if(sampleIdx < 0)
     {
       int sampleCount = -sampleIdx;
@@ -264,77 +226,69 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
       // sampleCount seems to produce crazy artifacts on nvidia - probably a compiler bug
       if(sampleCount == 2)
       {
-        col += 0.5f * texelFetch(tex2DMS, ivec2(pos), 0);
-        col += 0.5f * texelFetch(tex2DMS, ivec2(pos), 1);
+        col += 0.5f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 0);
+        col += 0.5f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 1);
       }
       else if(sampleCount == 4)
       {
-        col += 0.25f * texelFetch(tex2DMS, ivec2(pos), 0);
-        col += 0.25f * texelFetch(tex2DMS, ivec2(pos), 1);
-        col += 0.25f * texelFetch(tex2DMS, ivec2(pos), 2);
-        col += 0.25f * texelFetch(tex2DMS, ivec2(pos), 3);
+        col += 0.25f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 0);
+        col += 0.25f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 1);
+        col += 0.25f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 2);
+        col += 0.25f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 3);
       }
       else if(sampleCount == 8)
       {
-        col += 0.125f * texelFetch(tex2DMS, ivec2(pos), 0);
-        col += 0.125f * texelFetch(tex2DMS, ivec2(pos), 1);
-        col += 0.125f * texelFetch(tex2DMS, ivec2(pos), 2);
-        col += 0.125f * texelFetch(tex2DMS, ivec2(pos), 3);
-        col += 0.125f * texelFetch(tex2DMS, ivec2(pos), 4);
-        col += 0.125f * texelFetch(tex2DMS, ivec2(pos), 5);
-        col += 0.125f * texelFetch(tex2DMS, ivec2(pos), 6);
-        col += 0.125f * texelFetch(tex2DMS, ivec2(pos), 7);
+        col += 0.125f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 0);
+        col += 0.125f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 1);
+        col += 0.125f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 2);
+        col += 0.125f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 3);
+        col += 0.125f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 4);
+        col += 0.125f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 5);
+        col += 0.125f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 6);
+        col += 0.125f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 7);
       }
       else if(sampleCount == 16)
       {
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 0);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 1);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 2);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 3);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 4);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 5);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 6);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 7);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 8);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 9);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 10);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 11);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 12);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 13);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 14);
-        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos), 15);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 0);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 1);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 2);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 3);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 4);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 5);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 6);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 7);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 8);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 9);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 10);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 11);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 12);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 13);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 14);
+        col += 0.0625f * texelFetch(tex2DMS, ivec2(pos * texRes.xy), 15);
       }
     }
     else
     {
-      col = texelFetch(tex2DMS, ivec2(pos), sampleIdx);
+      col = texelFetch(tex2DMS, ivec2(pos * texRes.xy), sampleIdx);
     }
   }
   else if(type == RESTYPE_TEX2DARRAY)
   {
-    ivec3 size = textureSize(tex2DArray, mipLevel);
-
-    col = textureLod(tex2DArray, vec3(pos / size.xy, slice), float(mipLevel));
+    col = textureLod(tex2DArray, vec3(pos, slice), float(mipLevel));
   }
   else if(type == RESTYPE_TEX3D)
   {
-    ivec3 size = textureSize(tex3D, mipLevel);
-
-    col = textureLod(tex3D, vec3(pos / size.xy, slice / size.z), float(mipLevel));
+    col = textureLod(tex3D, vec3(pos, slice / texRes.z), float(mipLevel));
   }
   else if(type == RESTYPE_TEXCUBE)
   {
-    ivec2 size = textureSize(texCube, mipLevel);
-
-    vec3 cubeCoord = CalcCubeCoord(pos / size, int(slice));
+    vec3 cubeCoord = CalcCubeCoord(pos, int(slice));
 
     col = textureLod(texCube, cubeCoord, float(mipLevel));
   }
   else    // type == RESTYPE_TEXCUBEARRAY
   {
-    ivec3 size = textureSize(texCubeArray, mipLevel);
-
-    vec3 cubeCoord = CalcCubeCoord(pos / size.xy, int(slice) % 6);
+    vec3 cubeCoord = CalcCubeCoord(pos, int(slice) % 6);
     vec4 arrayCoord = vec4(cubeCoord, int(slice) / 6);
 
     col = textureLod(texCubeArray, arrayCoord, float(mipLevel));

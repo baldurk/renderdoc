@@ -22,26 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-vec3 CalcCubeCoord(vec2 uv, int face)
-{
-  // From table 8.19 in GL4.5 spec
-  // Map UVs to [-0.5, 0.5] and rotate
-  uv -= vec2(0.5);
-  vec3 coord;
-  if(face == CUBEMAP_FACE_POS_X)
-    coord = vec3(0.5, -uv.y, -uv.x);
-  else if(face == CUBEMAP_FACE_NEG_X)
-    coord = vec3(-0.5, -uv.y, uv.x);
-  else if(face == CUBEMAP_FACE_POS_Y)
-    coord = vec3(uv.x, 0.5, uv.y);
-  else if(face == CUBEMAP_FACE_NEG_Y)
-    coord = vec3(uv.x, -0.5, -uv.y);
-  else if(face == CUBEMAP_FACE_POS_Z)
-    coord = vec3(uv.x, -uv.y, 0.5);
-  else    // face == CUBEMAP_FACE_NEG_Z
-    coord = vec3(-uv.x, -uv.y, -0.5);
-  return coord;
-}
 // these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
 
 // binding = 5 + RESTYPE_x
@@ -56,15 +36,15 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
 
   if(type == RESTYPE_TEX1D)
   {
-    col = textureLod(tex1DArray, vec2(pos.x / texRes.x, slice), float(mipLevel));
+    col = textureLod(tex1DArray, vec2(pos.x, slice), float(mipLevel));
   }
   else if(type == RESTYPE_TEX2D)
   {
-    col = textureLod(tex2DArray, vec3(pos / texRes.xy, slice), float(mipLevel));
+    col = textureLod(tex2DArray, vec3(pos, slice), float(mipLevel));
   }
   else if(type == RESTYPE_TEX3D)
   {
-    col = textureLod(tex3D, vec3(pos / texRes.xy, slice / texRes.z), float(mipLevel));
+    col = textureLod(tex3D, vec3(pos, slice / texRes.z), float(mipLevel));
   }
   else if(type == RESTYPE_TEX2DMS)
   {
@@ -79,13 +59,13 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
 
       // worst resolve you've seen in your life
       for(int i = 0; i < sampleCount; i++)
-        col += texelFetch(tex2DMS, ivec2(pos), i);
+        col += texelFetch(tex2DMS, ivec2(pos * texRes.xy), i);
 
       col /= float(sampleCount);
     }
     else
     {
-      col = texelFetch(tex2DMS, ivec2(pos), sampleIdx);
+      col = texelFetch(tex2DMS, ivec2(pos * texRes.xy), sampleIdx);
     }
 #endif
   }
@@ -108,22 +88,22 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 #ifndef NO_TEXEL_FETCH
   if(type == RESTYPE_TEX1D)
   {
-    col = texelFetch(texUInt1DArray, ivec2(pos.x, slice), mipLevel);
+    col = texelFetch(texUInt1DArray, ivec2(pos.x * texRes.x, slice), mipLevel);
   }
   else if(type == RESTYPE_TEX2D)
   {
-    col = texelFetch(texUInt2DArray, ivec3(pos, slice), mipLevel);
+    col = texelFetch(texUInt2DArray, ivec3(pos * texRes.xy, slice), mipLevel);
   }
   else if(type == RESTYPE_TEX3D)
   {
-    col = texelFetch(texUInt3D, ivec3(pos, slice), mipLevel);
+    col = texelFetch(texUInt3D, ivec3(pos * texRes.xy, slice), mipLevel);
   }
   else if(type == RESTYPE_TEX2DMS)
   {
     if(sampleIdx < 0)
       sampleIdx = 0;
 
-    col = texelFetch(texUInt2DMS, ivec2(pos), sampleIdx);
+    col = texelFetch(texUInt2DMS, ivec2(pos * texRes.xy), sampleIdx);
   }
 #endif
 
@@ -145,22 +125,22 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 #ifndef NO_TEXEL_FETCH
   if(type == RESTYPE_TEX1D)
   {
-    col = texelFetch(texSInt1DArray, ivec2(pos.x, slice), mipLevel);
+    col = texelFetch(texSInt1DArray, ivec2(pos.x * texRes.x, slice), mipLevel);
   }
   else if(type == RESTYPE_TEX2D)
   {
-    col = texelFetch(texSInt2DArray, ivec3(pos, slice), mipLevel);
+    col = texelFetch(texSInt2DArray, ivec3(pos * texRes.xy, slice), mipLevel);
   }
   else if(type == RESTYPE_TEX3D)
   {
-    col = texelFetch(texSInt3D, ivec3(pos, slice), mipLevel);
+    col = texelFetch(texSInt3D, ivec3(pos * texRes.xy, slice), mipLevel);
   }
   else if(type == RESTYPE_TEX2DMS)
   {
     if(sampleIdx < 0)
       sampleIdx = 0;
 
-    col = texelFetch(texSInt2DMS, ivec2(pos), sampleIdx);
+    col = texelFetch(texSInt2DMS, ivec2(pos * texRes.xy), sampleIdx);
   }
 #endif
 

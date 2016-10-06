@@ -195,7 +195,8 @@ BINDING(0) uniform TexDisplayUBOData
   float Slice;
 
   int SampleIdx;
-  vec3 Padding;
+  float MipShift;
+  vec2 Padding;
 }
 INST_NAME(texdisplay);
 

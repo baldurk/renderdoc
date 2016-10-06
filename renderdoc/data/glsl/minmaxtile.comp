@@ -63,7 +63,7 @@ void main()
 		{
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
-				uvec4 data = SampleTextureUInt4(texType, vec2(x, y),
+				uvec4 data = SampleTextureUInt4(texType, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy,
 												histogram_minmax.HistogramSlice,
 												histogram_minmax.HistogramMip,
 												histogram_minmax.HistogramSample,
@@ -95,7 +95,7 @@ void main()
 		{
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
-				ivec4 data = SampleTextureSInt4(texType, vec2(x, y),
+				ivec4 data = SampleTextureSInt4(texType, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy,
 												histogram_minmax.HistogramSlice,
 												histogram_minmax.HistogramMip,
 												histogram_minmax.HistogramSample,
@@ -127,7 +127,7 @@ void main()
 		{
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
-				vec4 data = SampleTextureFloat4(texType, vec2(x, y),
+				vec4 data = SampleTextureFloat4(texType, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy,
 												histogram_minmax.HistogramSlice,
 												histogram_minmax.HistogramMip,
 												histogram_minmax.HistogramSample,

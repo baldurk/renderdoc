@@ -331,7 +331,14 @@ private:
 
   WrappedVulkan *m_pDriver;
 
-  bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, bool f32render);
+  enum TexDisplayFlags
+  {
+    eTexDisplay_F32Render = 0x1,
+    eTexDisplay_BlendAlpha = 0x2,
+    eTexDisplay_MipShift = 0x4,
+  };
+
+  bool RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginInfo rpbegin, int flags);
 
   void CreateTexImageView(VkImageAspectFlags aspectFlags, VkImage liveIm,
                           VulkanCreationInfo::Image &iminfo);
