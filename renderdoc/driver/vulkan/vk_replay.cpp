@@ -4136,7 +4136,10 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width) >> mip, 1U);
   data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height) >> mip, 1U);
   data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.arrayLayers) >> mip, 1U);
-  data->HistogramSlice = (float)sliceFace;
+  if(iminfo.type != VK_IMAGE_TYPE_3D)
+    data->HistogramSlice = (float)sliceFace + 0.001f;
+  else
+    data->HistogramSlice = (float)(sliceFace >> mip);
   data->HistogramMip = (int)mip;
   data->HistogramNumSamples = iminfo.samples;
   data->HistogramSample = (int)RDCCLAMP(sample, 0U, uint32_t(iminfo.samples) - 1);
@@ -4145,9 +4148,6 @@ bool VulkanReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip,
   data->HistogramMin = 0.0f;
   data->HistogramMax = 1.0f;
   data->HistogramChannels = 0xf;
-
-  if(iminfo.type == VK_IMAGE_TYPE_3D)
-    data->HistogramSlice = float(sliceFace) / float(iminfo.extent.depth);
 
   GetDebugManager()->m_HistogramUBO.Unmap();
 
@@ -4381,7 +4381,10 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
   data->HistogramTextureResolution.x = (float)RDCMAX(uint32_t(iminfo.extent.width) >> mip, 1U);
   data->HistogramTextureResolution.y = (float)RDCMAX(uint32_t(iminfo.extent.height) >> mip, 1U);
   data->HistogramTextureResolution.z = (float)RDCMAX(uint32_t(iminfo.arrayLayers) >> mip, 1U);
-  data->HistogramSlice = (float)sliceFace;
+  if(iminfo.type != VK_IMAGE_TYPE_3D)
+    data->HistogramSlice = (float)sliceFace + 0.001f;
+  else
+    data->HistogramSlice = (float)(sliceFace >> mip);
   data->HistogramMip = (int)mip;
   data->HistogramNumSamples = iminfo.samples;
   data->HistogramSample = (int)RDCCLAMP(sample, 0U, uint32_t(iminfo.samples) - 1);
@@ -4406,9 +4409,6 @@ bool VulkanReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t m
 
   data->HistogramChannels = chans;
   data->HistogramFlags = 0;
-
-  if(iminfo.type == VK_IMAGE_TYPE_3D)
-    data->HistogramSlice = float(sliceFace) / float(iminfo.extent.depth);
 
   GetDebugManager()->m_HistogramUBO.Unmap();
 

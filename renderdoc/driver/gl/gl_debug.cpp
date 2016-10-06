@@ -671,7 +671,7 @@ void GLReplay::DeleteDebugData()
 bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                          FormatComponentType typeHint, float *minval, float *maxval)
 {
-  if(m_pDriver->m_Textures.find(texid) == m_pDriver->m_Textures.end())
+  if(texid == ResourceId() || m_pDriver->m_Textures.find(texid) == m_pDriver->m_Textures.end())
     return false;
 
   auto &texDetails = m_pDriver->m_Textures[texid];
@@ -744,7 +744,10 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
   cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width >> mip, 1U);
   cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height >> mip, 1U);
   cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth >> mip, 1U);
-  cdata->HistogramSlice = (float)sliceFace;
+  if(texDetails.curType != eGL_TEXTURE_3D)
+    cdata->HistogramSlice = (float)sliceFace + 0.001f;
+  else
+    cdata->HistogramSlice = (float)(sliceFace >> mip);
   cdata->HistogramMip = (int)mip;
   cdata->HistogramNumSamples = texDetails.samples;
   cdata->HistogramSample = (int)RDCCLAMP(sample, 0U, details.msSamp - 1);
@@ -766,9 +769,6 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
     progIdx |= TEXDISPLAY_SINT_TEX;
     intIdx = 2;
   }
-
-  if(details.dimension == 3)
-    cdata->HistogramSlice = float(sliceFace) / float(details.depth);
 
   int blocksX = (int)ceil(cdata->HistogramTextureResolution.x /
                           float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
@@ -839,7 +839,7 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
                             FormatComponentType typeHint, float minval, float maxval,
                             bool channels[4], vector<uint32_t> &histogram)
 {
-  if(minval >= maxval)
+  if(minval >= maxval || texid == ResourceId())
     return false;
 
   if(m_pDriver->m_Textures.find(texid) == m_pDriver->m_Textures.end())
@@ -915,7 +915,10 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
   cdata->HistogramTextureResolution.x = (float)RDCMAX(details.width >> mip, 1U);
   cdata->HistogramTextureResolution.y = (float)RDCMAX(details.height >> mip, 1U);
   cdata->HistogramTextureResolution.z = (float)RDCMAX(details.depth >> mip, 1U);
-  cdata->HistogramSlice = (float)sliceFace;
+  if(texDetails.curType != eGL_TEXTURE_3D)
+    cdata->HistogramSlice = (float)sliceFace + 0.001f;
+  else
+    cdata->HistogramSlice = (float)(sliceFace >> mip);
   cdata->HistogramMip = mip;
   cdata->HistogramNumSamples = texDetails.samples;
   cdata->HistogramSample = (int)RDCCLAMP(sample, 0U, details.msSamp - 1);
@@ -951,9 +954,6 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
     progIdx |= TEXDISPLAY_SINT_TEX;
     intIdx = 2;
   }
-
-  if(details.dimension == 3)
-    cdata->HistogramSlice = float(sliceFace) / float(details.depth);
 
   int blocksX = (int)ceil(cdata->HistogramTextureResolution.x /
                           float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
