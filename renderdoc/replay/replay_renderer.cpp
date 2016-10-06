@@ -623,7 +623,8 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
   // for DDS don't downcast, for non-HDR always downcast if we're not already RGBA8 unorm
   // for HDR&EXR we can convert from most regular types as well as 10.10.10.2 and 11.11.10
   if((sd.destType != eFileType_DDS && sd.destType != eFileType_HDR && sd.destType != eFileType_EXR &&
-      (td.format.compByteWidth != 1 || td.format.compType != eCompType_UNorm || td.format.bgraOrder)) ||
+      (td.format.compByteWidth != 1 || td.format.compCount != 4 ||
+       td.format.compType != eCompType_UNorm || td.format.bgraOrder)) ||
      downcast || (sd.destType != eFileType_DDS && td.format.special &&
                   td.format.specialFormat != eSpecial_R10G10B10A2 &&
                   td.format.specialFormat != eSpecial_R11G11B10))
