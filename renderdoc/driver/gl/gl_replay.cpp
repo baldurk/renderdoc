@@ -421,6 +421,18 @@ bool GLReplay::IsRenderOutput(ResourceId id)
   return false;
 }
 
+FetchTexture GLReplay::GetTexture(ResourceId id)
+{
+  auto it = m_CachedTextures.find(id);
+  if(it == m_CachedTextures.end())
+  {
+    CacheTexture(id);
+    return m_CachedTextures[id];
+  }
+
+  return it->second;
+}
+
 void GLReplay::CacheTexture(ResourceId id)
 {
   FetchTexture tex;
