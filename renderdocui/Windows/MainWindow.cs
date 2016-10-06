@@ -1182,7 +1182,7 @@ namespace renderdocui.Windows
                 // allow live captures to this host to stay open, that way
                 // we can connect to a live capture, then switch into that
                 // context
-                if (live.Hostname == host.Hostname)
+                if (host != null && live.Hostname == host.Hostname)
                     continue;
 
                 live.CleanItems();
