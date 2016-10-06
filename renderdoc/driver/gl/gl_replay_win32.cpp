@@ -805,6 +805,12 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   WrappedOpenGL *gl = new WrappedOpenGL(logfile, real);
   gl->Initialise(initParams);
 
+  if(gl->GetSerialiser()->HasError())
+  {
+    delete gl;
+    return eReplayCreate_FileIOFailed;
+  }
+
   RDCLOG("Created device.");
   GLReplay *replay = gl->GetReplay();
   replay->SetProxy(logfile == NULL);

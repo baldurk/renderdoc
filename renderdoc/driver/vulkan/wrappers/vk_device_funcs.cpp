@@ -84,6 +84,9 @@ static void StripUnwantedLayers(vector<string> &Layers)
 
 ReplayCreateStatus WrappedVulkan::Initialise(VkInitParams &params)
 {
+  if(m_pSerialiser->HasError())
+    return eReplayCreate_FileIOFailed;
+
   m_InitParams = params;
 
   params.AppName = string("RenderDoc @ ") + params.AppName;

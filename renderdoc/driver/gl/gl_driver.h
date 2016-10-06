@@ -330,7 +330,6 @@ private:
 
   ResourceId m_FakeVAOID;
 
-  Serialiser *GetSerialiser() { return m_pSerialiser; }
   uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
   void ProcessChunk(uint64_t offset, GLChunkType context);
   void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
@@ -504,6 +503,7 @@ public:
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
   void ReadLogInitialisation();
 
+  Serialiser *GetSerialiser() { return m_pSerialiser; }
   GLuint GetFakeBBFBO() { return m_FakeBB_FBO; }
   GLuint GetFakeVAO() { return m_FakeVAO; }
   FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
