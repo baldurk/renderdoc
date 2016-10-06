@@ -243,7 +243,7 @@ public:
   }
 
   void start(QThread::Priority prio = QThread::InheritPriority) { m_Thread->start(prio); }
-  bool isRunning() { return m_Thread && m_Thread->isRunning(); }
+  bool isRunning() { return m_Thread; }
 };
 
 // helper for doing a manual blocking invoke of a dialog
