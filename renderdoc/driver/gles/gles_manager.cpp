@@ -1064,41 +1064,40 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
           gl.glBindTexture(t, tex);
 
-// TODO PEPE Needed to implement texture read functionality (glGetTexImage)
-//          for(int i = 0; i < mips; i++)
-//          {
-//            int w = RDCMAX(details.width >> i, 1);
-//            int h = RDCMAX(details.height >> i, 1);
-//            int d = RDCMAX(details.depth >> i, 1);
-//
-//            if(t == eGL_TEXTURE_CUBE_MAP_ARRAY || t == eGL_TEXTURE_1D_ARRAY ||
-//               t == eGL_TEXTURE_2D_ARRAY)
-//              d = details.depth;
-//
-//            size = GetByteSize(w, h, d, fmt, type);
-//
-//            GLenum targets[] = {
-//                eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-//                eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-//                eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
-//            };
-//
-//            int count = ARRAY_COUNT(targets);
-//
-//            if(t != eGL_TEXTURE_CUBE_MAP)
-//            {
-//              targets[0] = t;
-//              count = 1;
-//            }
-//
-//            for(int trg = 0; trg < count; trg++)
-//            {
-//              // we avoid glGetTextureImageEXT as it seems buggy for cubemap faces
-//              gl.glGetTexImage(targets[trg], i, fmt, type, buf);
-//
-//              m_pSerialiser->SerialiseBuffer("image", buf, size);
-//            }
-//          }
+          for(int i = 0; i < mips; i++)
+          {
+            int w = RDCMAX(details.width >> i, 1);
+            int h = RDCMAX(details.height >> i, 1);
+            int d = RDCMAX(details.depth >> i, 1);
+
+            if(t == eGL_TEXTURE_CUBE_MAP_ARRAY || t == eGL_TEXTURE_2D_ARRAY)
+              d = details.depth;
+
+            size = GetByteSize(w, h, d, fmt, type);
+
+            GLenum targets[] = {
+                eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+                eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+                eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+            };
+
+            int count = ARRAY_COUNT(targets);
+
+            if(t != eGL_TEXTURE_CUBE_MAP)
+            {
+              targets[0] = t;
+              count = 1;
+            }
+
+            for(int trg = 0; trg < count; trg++)
+            {
+              // we avoid glGetTextureImageEXT as it seems buggy for cubemap faces
+              // TODO PEPE Needed to implement texture read functionality (glGetTexImage)
+              //gl.glGetTexImage(targets[trg], i, fmt, type, buf);
+
+              m_pSerialiser->SerialiseBuffer("image", buf, size);
+            }
+          }
 
           gl.glBindTexture(t, prevtex);
 
