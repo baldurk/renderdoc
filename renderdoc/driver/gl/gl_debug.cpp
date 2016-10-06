@@ -1180,14 +1180,21 @@ uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t
     }
 
     byte *idxs = new byte[cfg.position.numVerts * cfg.position.idxByteWidth];
+    memset(idxs, 0, cfg.position.numVerts * cfg.position.idxByteWidth);
     uint32_t *outidxs = NULL;
 
     if(cfg.position.idxByteWidth < 4)
       outidxs = new uint32_t[cfg.position.numVerts];
 
     gl.glBindBuffer(eGL_COPY_READ_BUFFER, ib);
+
+    GLint bufsize = 0;
+    gl.glGetBufferParameteriv(eGL_COPY_READ_BUFFER, eGL_BUFFER_SIZE, &bufsize);
+
     gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, (GLintptr)cfg.position.idxoffs,
-                          cfg.position.numVerts * cfg.position.idxByteWidth, idxs);
+                          RDCMIN(uint32_t(bufsize) - uint32_t(cfg.position.idxoffs),
+                                 cfg.position.numVerts * cfg.position.idxByteWidth),
+                          idxs);
 
     uint16_t *idxs16 = (uint16_t *)idxs;
 

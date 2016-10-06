@@ -3252,6 +3252,8 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
 
     uint32_t *outidxs = (uint32_t *)m_MeshPickIBUpload.Map();
 
+    memset(outidxs, 0, m_MeshPickIBSize);
+
     uint16_t *idxs16 = (uint16_t *)&idxs[0];
     uint32_t *idxs32 = (uint32_t *)&idxs[0];
 
@@ -3259,12 +3261,16 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
     // has to deal with one type
     if(cfg.position.idxByteWidth == 2)
     {
-      for(uint32_t i = 0; i < cfg.position.numVerts; i++)
+      size_t bufsize = idxs.size() / 2;
+
+      for(uint32_t i = 0; i < bufsize && i < cfg.position.numVerts; i++)
         outidxs[i] = idxs16[i];
     }
     else
     {
-      memcpy(outidxs, idxs32, cfg.position.numVerts * sizeof(uint32_t));
+      size_t bufsize = idxs.size() / 4;
+
+      memcpy(outidxs, idxs32, RDCMIN(bufsize, cfg.position.numVerts * sizeof(uint32_t)));
     }
 
     m_MeshPickIBUpload.Unmap();
