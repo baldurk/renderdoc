@@ -481,7 +481,7 @@ void GLReplay::CacheTexture(ResourceId id)
     tex.numSubresources = 1;
     tex.creationFlags = eTextureCreate_RTV;
     tex.msQual = 0;
-    tex.msSamp = res.samples;
+    tex.msSamp = RDCMAX(1, res.samples);
 
     tex.format = MakeResourceFormat(gl, eGL_TEXTURE_2D, res.internalFormat);
 
@@ -606,7 +606,7 @@ void GLReplay::CacheTexture(ResourceId id)
       tex.depth = 1;
       tex.arraysize = (target == eGL_TEXTURE_CUBE_MAP ? 6 : 1);
       tex.cubemap = (target == eGL_TEXTURE_CUBE_MAP);
-      tex.msSamp = (target == eGL_TEXTURE_2D_MULTISAMPLE ? samples : 1);
+      tex.msSamp = RDCMAX(1, target == eGL_TEXTURE_2D_MULTISAMPLE ? samples : 1);
       break;
     case eGL_TEXTURE_2D_ARRAY:
     case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY:
@@ -617,7 +617,7 @@ void GLReplay::CacheTexture(ResourceId id)
       tex.depth = 1;
       tex.arraysize = depth;
       tex.cubemap = (target == eGL_TEXTURE_CUBE_MAP_ARRAY);
-      tex.msSamp = (target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ? samples : 1);
+      tex.msSamp = RDCMAX(1, target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ? samples : 1);
       break;
     case eGL_TEXTURE_3D:
       tex.dimension = 3;
@@ -691,7 +691,8 @@ void GLReplay::CacheTexture(ResourceId id)
     tex.arraysize = 1;
     tex.numSubresources = 1;
     tex.creationFlags = eTextureCreate_SRV;
-    tex.msQual = tex.msSamp = 0;
+    tex.msQual = 0;
+    tex.msSamp = 1;
     tex.byteSize = 0;
 
     gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0,

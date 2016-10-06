@@ -809,7 +809,7 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
   ret.byteSize *= ret.arraysize;
 
   ret.msQual = 0;
-  ret.msSamp = iminfo.samples;
+  ret.msSamp = RDCMAX(1U, (uint32_t)iminfo.samples);
 
   ret.format = MakeResourceFormat(iminfo.format);
 

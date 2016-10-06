@@ -154,7 +154,7 @@ FetchTexture D3D12Replay::GetTexture(ResourceId id)
   ret.numSubresources = GetNumSubresources(&desc);
   ret.mips = desc.MipLevels;
   ret.msQual = desc.SampleDesc.Quality;
-  ret.msSamp = desc.SampleDesc.Count;
+  ret.msSamp = RDCMAX(1U, desc.SampleDesc.Count);
   ret.byteSize = 0;
   for(uint32_t i = 0; i < ret.mips; i++)
     ret.byteSize += GetByteSize(ret.width, ret.height, ret.depth, desc.Format, i);

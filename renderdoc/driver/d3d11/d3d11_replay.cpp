@@ -172,7 +172,7 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
     tex.arraysize = desc.ArraySize;
 
     tex.msQual = desc.SampleDesc.Quality;
-    tex.msSamp = desc.SampleDesc.Count;
+    tex.msSamp = RDCMAX(1U, desc.SampleDesc.Count);
 
     tex.resType = tex.arraysize > 1 ? eResType_Texture2DArray : eResType_Texture2D;
     if(tex.cubemap)
@@ -1672,7 +1672,7 @@ ResourceId D3D11Replay::CreateProxyTexture(const FetchTexture &templateTex)
     desc.Usage = D3D11_USAGE_DEFAULT;
     desc.Width = templateTex.width;
     desc.Height = templateTex.height;
-    desc.SampleDesc.Count = templateTex.msSamp;
+    desc.SampleDesc.Count = RDCMAX(1U, templateTex.msSamp);
     desc.SampleDesc.Quality = templateTex.msQual;
 
     if(templateTex.creationFlags & eTextureCreate_DSV || IsDepthFormat(desc.Format))
