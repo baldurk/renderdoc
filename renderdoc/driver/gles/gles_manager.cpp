@@ -1163,7 +1163,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
         if(textype != eGL_TEXTURE_BUFFER) {
           GLuint oldBinding;
-          gl.glGetIntegerv(BufferBinding(textype), (GLint*)&oldBinding);
+          gl.glGetIntegerv(TextureBinding(textype), (GLint*)&oldBinding);
           gl.glBindTexture(textype, live);
           gl.glGetTexParameteriv(textype, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
           gl.glBindTexture(textype, oldBinding);
