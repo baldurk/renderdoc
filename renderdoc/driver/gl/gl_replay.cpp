@@ -2319,6 +2319,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
       depth = 1;
     arraysize = 1;
     samples = 1;
+    mip = 0;
 
     gl.glDeleteFramebuffers(1, &fbo);
   }
