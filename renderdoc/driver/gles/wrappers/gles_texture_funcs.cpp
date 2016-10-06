@@ -1011,7 +1011,7 @@ void WrappedGLES::glTexImage2D(GLenum target, GLint level, GLint internalformat,
   // replay
   if(m_State < WRITING)
   {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
+    return;
   }
   else
   {
@@ -1166,7 +1166,7 @@ void WrappedGLES::glTexImage3D(GLenum target, GLint level, GLint internalformat,
   // replay
   if(m_State < WRITING)
   {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
+    return; 
   }
   else
   {
@@ -1351,7 +1351,7 @@ void WrappedGLES::glCompressedTexImage2D(GLenum target, GLint level, GLenum inte
   // replay
   if(m_State < WRITING)
   {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
+    return; 
   }
   else
   {
@@ -1514,7 +1514,7 @@ void WrappedGLES::glCompressedTexImage3D(GLenum target, GLint level, GLenum inte
 
   if(m_State < WRITING)
   {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
+    return; 
   }
   else
   {
@@ -1630,7 +1630,7 @@ void WrappedGLES::glCopyTexImage2D(GLenum target, GLint level, GLenum internalfo
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
   if(m_State < WRITING)
-    RDCERR("Internal textures should be allocated via dsa interfaces");
+    return; 
   else
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
@@ -1772,7 +1772,7 @@ void WrappedGLES::glTexStorage1DEXT(GLenum target, GLsizei levels, GLenum intern
   // replay
   if(m_State < WRITING)
   {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
+    return; 
   }
   else
   {
@@ -1869,7 +1869,7 @@ void WrappedGLES::glTexStorage2D(GLenum target, GLsizei levels, GLenum internalf
 
   if(m_State < WRITING)
   {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
+    return; 
   }
   else
   {
@@ -1973,7 +1973,7 @@ void WrappedGLES::glTexStorage3D(GLenum target, GLsizei levels, GLenum internalf
   // replay
   if(m_State < WRITING)
   {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
+    return;
   }
   else
   {
@@ -2034,7 +2034,7 @@ void WrappedGLES::glTexStorage2DMultisample(GLenum target, GLsizei samples, GLen
   // replay
   if(m_State < WRITING)
   {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
+    return;
   }
   else
   {
@@ -2121,7 +2121,7 @@ void WrappedGLES::glTexStorage3DMultisample(GLenum target, GLsizei samples, GLen
   // replay
   if(m_State < WRITING)
   {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
+    return;
   }
   else
   {
@@ -2790,7 +2790,7 @@ void WrappedGLES::glTexBufferRange(GLenum target, GLenum internalformat, GLuint 
   // replay
   if(m_State < WRITING)
   {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
+    return;
   }
   else
   {
@@ -2914,7 +2914,7 @@ void WrappedGLES::glTexBuffer(GLenum target, GLenum internalformat, GLuint buffe
   // replay
   if(m_State < WRITING)
   {
-    RDCERR("Internal textures should be allocated via dsa interfaces");
+    return;
   }
   else
   {
