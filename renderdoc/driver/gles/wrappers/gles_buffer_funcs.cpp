@@ -260,6 +260,7 @@ void WrappedGLES::glBindBuffer(GLenum target, GLuint buffer)
 
     // element array buffer binding is vertex array record state, record there (if we've not just
     // stopped)
+#if 0 // TODO pantos
     if(m_State == WRITING_IDLE && target == eGL_ELEMENT_ARRAY_BUFFER &&
        RecordUpdateCheck(cd.m_VertexArrayRecord))
     {
@@ -273,6 +274,7 @@ void WrappedGLES::glBindBuffer(GLenum target, GLuint buffer)
 
       cd.m_VertexArrayRecord->AddChunk(scope.Get());
     }
+#endif
 
     // store as transform feedback record state
     if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
