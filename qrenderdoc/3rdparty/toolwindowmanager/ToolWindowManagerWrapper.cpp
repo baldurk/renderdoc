@@ -66,7 +66,7 @@ QVariantMap ToolWindowManagerWrapper::saveState() {
   }
   QVariantMap result;
   result["geometry"] = saveGeometry();
-  QSplitter* splitter = findChild<QSplitter*>();
+  QSplitter* splitter = findChild<QSplitter*>(QString(), Qt::FindDirectChildrenOnly);
   if (splitter) {
     result["splitter"] = m_manager->saveSplitterState(splitter);
   } else {
