@@ -79,7 +79,7 @@ win32 {
 	DEFINES += RENDERDOC_PLATFORM_POSIX RENDERDOC_PLATFORM_LINUX RENDERDOC_WINDOWING_XLIB RENDERDOC_WINDOWING_XCB
 }
 
-SOURCES += Code/main.cpp \
+SOURCES += Code/qrenderdoc.cpp \
     Windows/MainWindow.cpp \
     Windows/EventBrowser.cpp \
     Windows/TextureViewer.cpp \

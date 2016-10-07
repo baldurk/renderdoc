@@ -82,7 +82,7 @@
     <ClCompile Include="3rdparty\flowlayout\FlowLayout.cpp">
       <Filter>3rdparty\FlowLayout</Filter>
     </ClCompile>
-    <ClCompile Include="Code\main.cpp">
+    <ClCompile Include="Code\qrenderdoc.cpp">
       <Filter>Code</Filter>
     </ClCompile>
     <ClCompile Include="Windows\AboutDialog.cpp">
