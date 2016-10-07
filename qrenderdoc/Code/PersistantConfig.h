@@ -39,69 +39,69 @@ typedef QMap<QString, QString> QStringMap;
   access:                                               \
   type name;
 
-#define CONFIG_SETTINGS()                                                                \
-  \
-CONFIG_SETTING_VAL(public, QString, QString, LastLogPath, "")                            \
-  \
-CONFIG_SETTING(public, QVariantList, QList<QString>, RecentLogFiles)                     \
-  \
-CONFIG_SETTING_VAL(public, QString, QString, LastCapturePath, "")                        \
-  \
-CONFIG_SETTING_VAL(public, QString, QString, LastCaptureExe, "")                         \
-  \
-CONFIG_SETTING(public, QVariantList, QList<QString>, RecentCaptureSettings)              \
-  \
-CONFIG_SETTING_VAL(public, int, int, CallstackLevelSkip, 0)                              \
-  \
-CONFIG_SETTING_VAL(public, QString, QString, TemporaryCaptureDirectory, "")              \
-  \
-CONFIG_SETTING_VAL(public, QString, QString, DefaultCaptureSaveDirectory, "")            \
-  \
-CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_ResetRange, false)                  \
-  \
-CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_PerTexSettings, true)               \
-  \
-CONFIG_SETTING_VAL(public, bool, bool, ShaderViewer_FriendlyNaming, true)                \
-  \
-CONFIG_SETTING_VAL(public, bool, bool, AlwaysReplayLocally, false)                       \
-  \
-CONFIG_SETTING_VAL(public, int, int, LocalProxy, 0)                                      \
-  \
-CONFIG_SETTING_VAL(public, int, TimeUnit, EventBrowser_TimeUnit, TimeUnit::Microseconds) \
-  \
-CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideEmpty, false)                    \
-  \
-CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ApplyColours, true)                  \
-  \
-CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ColourEventRow, true)                \
-  \
-CONFIG_SETTING_VAL(public, int, int, Formatter_MinFigures, 2)                            \
-  \
-CONFIG_SETTING_VAL(public, int, int, Formatter_MaxFigures, 5)                            \
-  \
-CONFIG_SETTING_VAL(public, int, int, Formatter_NegExp, 5)                                \
-  \
-CONFIG_SETTING_VAL(public, int, int, Formatter_PosExp, 7)                                \
-  \
-CONFIG_SETTING_VAL(public, bool, bool, Font_PreferMonospaced, false)                     \
-  \
-CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_AllowChecks, true)                    \
-  \
-CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_UpdateAvailable, false)               \
-  \
-CONFIG_SETTING_VAL(public, QString, QString, CheckUpdate_UpdateResponse, "")             \
-  \
-CONFIG_SETTING_VAL(public, QDateTime, QDateTime, CheckUpdate_LastUpdate,                 \
-                   QDateTime(QDate(2012, 06, 27), QTime(0, 0, 0)))                       \
-  \
-CONFIG_SETTING_VAL(public, QDateTime, QDateTime, DegradedLog_LastUpdate,                 \
-                   QDateTime(QDate(2015, 01, 01), QTime(0, 0, 0)))                       \
-  \
-CONFIG_SETTING_VAL(public, bool, bool, Tips_SeenFirst, false)                            \
-  \
-CONFIG_SETTING_VAL(public, bool, bool, AllowGlobalHook, false)                           \
-  \
-CONFIG_SETTING(private, QVariantMap, QStringMap, ConfigSettings)
+#define CONFIG_SETTINGS()                                                                  \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, QString, QString, LastLogPath, "")                            \
+                                                                                           \
+  CONFIG_SETTING(public, QVariantList, QList<QString>, RecentLogFiles)                     \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, QString, QString, LastCapturePath, "")                        \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, QString, QString, LastCaptureExe, "")                         \
+                                                                                           \
+  CONFIG_SETTING(public, QVariantList, QList<QString>, RecentCaptureSettings)              \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, int, int, CallstackLevelSkip, 0)                              \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, QString, QString, TemporaryCaptureDirectory, "")              \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, QString, QString, DefaultCaptureSaveDirectory, "")            \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_ResetRange, false)                  \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, TextureViewer_PerTexSettings, true)               \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, ShaderViewer_FriendlyNaming, true)                \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, AlwaysReplayLocally, false)                       \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, int, int, LocalProxy, 0)                                      \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, int, TimeUnit, EventBrowser_TimeUnit, TimeUnit::Microseconds) \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideEmpty, false)                    \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ApplyColours, true)                  \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ColourEventRow, true)                \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, int, int, Formatter_MinFigures, 2)                            \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, int, int, Formatter_MaxFigures, 5)                            \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, int, int, Formatter_NegExp, 5)                                \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, int, int, Formatter_PosExp, 7)                                \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, Font_PreferMonospaced, false)                     \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_AllowChecks, true)                    \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_UpdateAvailable, false)               \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, QString, QString, CheckUpdate_UpdateResponse, "")             \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, QDateTime, QDateTime, CheckUpdate_LastUpdate,                 \
+                     QDateTime(QDate(2012, 06, 27), QTime(0, 0, 0)))                       \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, QDateTime, QDateTime, DegradedLog_LastUpdate,                 \
+                     QDateTime(QDate(2015, 01, 01), QTime(0, 0, 0)))                       \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, Tips_SeenFirst, false)                            \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, bool, bool, AllowGlobalHook, false)                           \
+                                                                                           \
+  CONFIG_SETTING(private, QVariantMap, QStringMap, ConfigSettings)
 
 class PersistantConfig
 {
