@@ -327,6 +327,11 @@ void ToolWindowManager::restoreState(const QVariant &data) {
     ToolWindowManagerWrapper* wrapper = new ToolWindowManagerWrapper(this);
     wrapper->restoreState(windowData.toMap());
     wrapper->show();
+    if(wrapper->windowState() && Qt::WindowMaximized)
+    {
+      wrapper->setWindowState(0);
+      wrapper->setWindowState(Qt::WindowMaximized);
+    }
   }
   simplifyLayout();
   foreach(QWidget* toolWindow, m_toolWindows) {
