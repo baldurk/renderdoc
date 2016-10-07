@@ -565,7 +565,9 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
   }
   else if(details.curType != eGL_TEXTURE_BUFFER)
   {
+    GLuint oldtex = 0;
     GLenum binding = TextureBinding(details.curType);
+    gl.glGetIntegerv(binding, (GLint *)&oldtex);
     gl.glBindTexture(details.curType, res.name);
     
     bool ms = (details.curType == eGL_TEXTURE_2D_MULTISAMPLE ||
@@ -614,6 +616,8 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
                                     &state->border[0]);
     }
 
+    gl.glBindTexture(details.curType, oldtex);
+    
     // we only copy contents for non-views
     GLuint tex = 0;
 
