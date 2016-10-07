@@ -291,13 +291,13 @@ void ToolWindowManager::setAllowFloatingWindow(bool allow) {
   m_allowFloatingWindow = allow;
 }
 
-QVariant ToolWindowManager::saveState() {
+QVariantMap ToolWindowManager::saveState() {
   QVariantMap result;
   result["toolWindowManagerStateFormat"] = 1;
   ToolWindowManagerWrapper* mainWrapper = findChild<ToolWindowManagerWrapper*>();
   if (!mainWrapper) {
     qWarning("can't find main wrapper");
-    return QVariant();
+    return QVariantMap();
   }
   result["mainWrapper"] = mainWrapper->saveState();
   QVariantList floatingWindowsData;
@@ -309,9 +309,8 @@ QVariant ToolWindowManager::saveState() {
   return result;
 }
 
-void ToolWindowManager::restoreState(const QVariant &data) {
-  if (!data.isValid()) { return; }
-  QVariantMap dataMap = data.toMap();
+void ToolWindowManager::restoreState(const QVariantMap &dataMap) {
+  if (dataMap.isEmpty()) { return; }
   if (dataMap["toolWindowManagerStateFormat"].toInt() != 1) {
     qWarning("state format is not recognized");
     return;

@@ -233,12 +233,12 @@ public:
   /*!
    * \brief saveState
    */
-  QVariant saveState();
+  QVariantMap saveState();
 
   /*!
    * \brief restoreState
    */
-  void restoreState(const QVariant& data);
+  void restoreState(const QVariantMap& data);
 
 
   /*! \cond PRIVATE */
