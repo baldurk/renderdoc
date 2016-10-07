@@ -23,7 +23,6 @@
  ******************************************************************************/
 
 #include "ThumbnailStrip.h"
-#include <QDebug>
 #include <QScrollBar>
 #include "Widgets/ResourcePreview.h"
 #include "ui_ThumbnailStrip.h"

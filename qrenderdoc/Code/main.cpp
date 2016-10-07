@@ -30,9 +30,27 @@
 #include "Code/CaptureContext.h"
 #include "Windows/MainWindow.h"
 
+void sharedLogOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
+{
+  LogMessageType logtype = eLogType_Comment;
+
+  switch(type)
+  {
+    case QtDebugMsg: logtype = eLogType_Debug; break;
+    case QtInfoMsg: logtype = eLogType_Comment; break;
+    case QtWarningMsg: logtype = eLogType_Warning; break;
+    case QtCriticalMsg: logtype = eLogType_Error; break;
+    case QtFatalMsg: logtype = eLogType_Fatal; break;
+  }
+
+  RENDERDOC_LogMessage(logtype, "QTRD", context.file, context.line, msg.toUtf8().data());
+}
+
 int main(int argc, char *argv[])
 {
-  RENDERDOC_LogText("QRenderDoc initialising.");
+  qInstallMessageHandler(sharedLogOutput);
+
+  qInfo() << "QRenderDoc initialising.";
 
   QString filename = "";
   bool temp = false;

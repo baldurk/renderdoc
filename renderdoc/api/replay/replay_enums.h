@@ -554,3 +554,15 @@ enum EnvironmentSeparator
   eEnvSep_Colon,
   eEnvSep_None,
 };
+
+// matches enum in common.h
+enum LogMessageType
+{
+  eLogType_First = -1,
+  eLogType_Debug,
+  eLogType_Comment,
+  eLogType_Warning,
+  eLogType_Error,
+  eLogType_Fatal,
+  eLogType_NumTypes,
+};

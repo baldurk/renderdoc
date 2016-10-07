@@ -253,10 +253,15 @@ void rdclog_flush();
 // fatal error messages from within the more complex log function).
 void rdclogprint_int(LogType type, const char *fullMsg, const char *msg);
 
-// printf() style main logger function
-void rdclog_int(LogType type, const char *file, unsigned int line, const char *fmt, ...);
+#if !defined(RDCLOG_PROJECT)
+#define RDCLOG_PROJECT "RDOC"
+#endif
 
-#define rdclog(type, ...) rdclog_int(type, __FILE__, __LINE__, __VA_ARGS__)
+// printf() style main logger function
+void rdclog_int(LogType type, const char *project, const char *file, unsigned int line,
+                const char *fmt, ...);
+
+#define rdclog(type, ...) rdclog_int(type, RDCLOG_PROJECT, __FILE__, __LINE__, __VA_ARGS__)
 
 const char *rdclog_getfilename();
 void rdclog_filename(const char *filename);

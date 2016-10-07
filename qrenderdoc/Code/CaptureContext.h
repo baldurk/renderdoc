@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <QDebug>
 #include <QFileDialog>
 #include <QList>
 #include <QMap>

@@ -81,7 +81,7 @@ float SRGB8_lookuptable[256] = {
 
 void rdcassert(const char *msg, const char *file, unsigned int line, const char *func)
 {
-  rdclog_int(RDCLog_Error, file, line, "Assertion failed: %s", msg);
+  rdclog_int(RDCLog_Error, RDCLOG_PROJECT, file, line, "Assertion failed: %s", msg);
 }
 
 #if 0
@@ -319,7 +319,8 @@ void rdclogprint_int(LogType type, const char *fullMsg, const char *msg)
 const size_t rdclog_outBufSize = 4 * 1024;
 static char rdclog_outputBuffer[rdclog_outBufSize + 1];
 
-void rdclog_int(LogType type, const char *file, unsigned int line, const char *fmt, ...)
+void rdclog_int(LogType type, const char *project, const char *file, unsigned int line,
+                const char *fmt, ...)
 {
   if(type <= RDCLog_First || type >= RDCLog_NumTypes)
   {
@@ -329,8 +330,6 @@ void rdclog_int(LogType type, const char *file, unsigned int line, const char *f
 
   va_list args;
   va_start(args, fmt);
-
-  const char *name = "RENDERDOC: ";
 
   char timestamp[64] = {0};
 #if defined(INCLUDE_TIMESTAMP_IN_LOG)
@@ -357,7 +356,7 @@ void rdclog_int(LogType type, const char *file, unsigned int line, const char *f
   char *output = rdclog_outputBuffer;
   size_t available = rdclog_outBufSize;
 
-  int numWritten = StringFormat::snprintf(output, available, "%s %s%s%s - ", name, timestamp,
+  int numWritten = StringFormat::snprintf(output, available, "% 4s: %s%s%s - ", project, timestamp,
                                           location, typestr[type]);
 
   if(numWritten < 0)
