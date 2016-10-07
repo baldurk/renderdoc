@@ -125,21 +125,15 @@ public:
   void OnLogfileClosed();
   void OnEventSelected(uint32_t eventID);
 
+
 private slots:
-  void render_mouseClick(QMouseEvent *e);
-  void render_mouseMove(QMouseEvent *e);
-  void render_mouseWheel(QWheelEvent *e);
-  void render_resize(QResizeEvent *e);
-
-  void on_thumb_clicked(QMouseEvent *);
-
+  // automatic slots
   void on_renderHScroll_valueChanged(int position);
   void on_renderVScroll_valueChanged(int position);
 
   void on_fitToWindow_toggled(bool checked);
   void on_zoomExactSize_clicked();
   void on_zoomOption_currentIndexChanged(int index);
-  void on_zoomOption_returnPressed();
 
   void on_mipLevel_currentIndexChanged(int index);
   void on_sliceFace_currentIndexChanged(int index);
@@ -150,12 +144,21 @@ private slots:
   void on_autoFit_clicked();
   void on_reset01_clicked();
   void on_visualiseRange_clicked();
-
-  void on_channelsWidget_toggled(bool checked) { UI_UpdateChannels(); }
-  void on_channelsWidget_selected(int index) { UI_UpdateChannels(); }
   void on_backcolorPick_clicked();
   void on_checkerBack_clicked();
 
+  // manual slots
+  void render_mouseClick(QMouseEvent *e);
+  void render_mouseMove(QMouseEvent *e);
+  void render_mouseWheel(QWheelEvent *e);
+  void render_resize(QResizeEvent *e);
+
+  void thumb_clicked(QMouseEvent *);
+
+  void zoomOption_returnPressed();
+
+  void channelsWidget_toggled(bool checked) { UI_UpdateChannels(); }
+  void channelsWidget_selected(int index) { UI_UpdateChannels(); }
 private:
   void RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pickValue, PixelValue &realValue);
   void RT_PickPixelsAndUpdate();

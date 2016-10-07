@@ -66,7 +66,7 @@ EventBrowser::EventBrowser(CaptureContext *ctx, QWidget *parent)
   m_FindHighlight = new QTimer(this);
   m_FindHighlight->setInterval(400);
   m_FindHighlight->setSingleShot(true);
-  connect(m_FindHighlight, SIGNAL(timeout()), this, SLOT(on_findHighlight_timeout()));
+  connect(m_FindHighlight, &QTimer::timeout, this, &EventBrowser::findHighlight_timeout);
 
   QObject::connect(ui->closeFind, &QToolButton::clicked, this, &EventBrowser::on_HideFindJump);
   QObject::connect(ui->closeJump, &QToolButton::clicked, this, &EventBrowser::on_HideFindJump);
@@ -273,7 +273,7 @@ void EventBrowser::on_jumpToEID_returnPressed()
   }
 }
 
-void EventBrowser::on_findHighlight_timeout()
+void EventBrowser::findHighlight_timeout()
 {
   ClearFindIcons();
 
@@ -306,7 +306,7 @@ void EventBrowser::on_findEvent_returnPressed()
   {
     // manually fire it instantly
     m_FindHighlight->stop();
-    on_findHighlight_timeout();
+    findHighlight_timeout();
   }
 
   if(!ui->findEvent->text().isEmpty())

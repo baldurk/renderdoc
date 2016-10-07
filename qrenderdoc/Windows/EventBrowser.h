@@ -51,29 +51,21 @@ public:
   void OnEventSelected(uint32_t eventID);
 
 private slots:
+  // automatic slots
   void on_find_clicked();
-
   void on_gotoEID_clicked();
-
   void on_timeDraws_clicked();
-
   void on_toolButton_clicked();
-
   void on_HideFindJump();
-
   void on_jumpToEID_returnPressed();
-
   void on_findEvent_returnPressed();
-
   void on_findEvent_textEdited(const QString &arg1);
-
   void on_events_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
-
   void on_findNext_clicked();
-
   void on_findPrev_clicked();
 
-  void on_findHighlight_timeout();
+  // manual slots
+  void findHighlight_timeout();
 
 private:
   uint AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<FetchDrawcall> &draws);

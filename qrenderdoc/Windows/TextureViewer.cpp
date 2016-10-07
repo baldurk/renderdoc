@@ -337,30 +337,29 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
   QObject::connect(ui->render, &CustomPaintWidget::resize, this, &TextureViewer::render_resize);
 
   QObject::connect(ui->zoomOption->lineEdit(), &QLineEdit::returnPressed, this,
-                   &TextureViewer::on_zoomOption_returnPressed);
+                   &TextureViewer::zoomOption_returnPressed);
 
   QObject::connect(ui->depthDisplay, &QToolButton::toggled, this,
-                   &TextureViewer::on_channelsWidget_toggled);
+                   &TextureViewer::channelsWidget_toggled);
   QObject::connect(ui->stencilDisplay, &QToolButton::toggled, this,
-                   &TextureViewer::on_channelsWidget_toggled);
-  QObject::connect(ui->flip_y, &QToolButton::toggled, this,
-                   &TextureViewer::on_channelsWidget_toggled);
+                   &TextureViewer::channelsWidget_toggled);
+  QObject::connect(ui->flip_y, &QToolButton::toggled, this, &TextureViewer::channelsWidget_toggled);
   QObject::connect(ui->channelRed, &QToolButton::toggled, this,
-                   &TextureViewer::on_channelsWidget_toggled);
+                   &TextureViewer::channelsWidget_toggled);
   QObject::connect(ui->channelGreen, &QToolButton::toggled, this,
-                   &TextureViewer::on_channelsWidget_toggled);
+                   &TextureViewer::channelsWidget_toggled);
   QObject::connect(ui->channelBlue, &QToolButton::toggled, this,
-                   &TextureViewer::on_channelsWidget_toggled);
+                   &TextureViewer::channelsWidget_toggled);
   QObject::connect(ui->channelAlpha, &QToolButton::toggled, this,
-                   &TextureViewer::on_channelsWidget_toggled);
+                   &TextureViewer::channelsWidget_toggled);
   QObject::connect(ui->gammaDisplay, &QToolButton::toggled, this,
-                   &TextureViewer::on_channelsWidget_toggled);
+                   &TextureViewer::channelsWidget_toggled);
   QObject::connect(ui->channels, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-                   &TextureViewer::on_channelsWidget_selected);
+                   &TextureViewer::channelsWidget_selected);
   QObject::connect(ui->hdrMul, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-                   &TextureViewer::on_channelsWidget_selected);
+                   &TextureViewer::channelsWidget_selected);
   QObject::connect(ui->customShader, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-                   &TextureViewer::on_channelsWidget_selected);
+                   &TextureViewer::channelsWidget_selected);
 
   ui->dockarea->addToolWindow(ui->renderContainer, ToolWindowManager::EmptySpace);
   ui->dockarea->setToolWindowProperties(renderContainer, ToolWindowManager::DisallowUserDocking |
@@ -1323,7 +1322,7 @@ ResourcePreview *TextureViewer::UI_CreateThumbnail(ThumbnailStrip *strip)
   // prev.MouseClick += thumbsLayout_MouseClick;
   // prev.MouseDoubleClick += thumbsLayout_MouseDoubleClick;
 
-  QObject::connect(prev, &ResourcePreview::clicked, this, &TextureViewer::on_thumb_clicked);
+  QObject::connect(prev, &ResourcePreview::clicked, this, &TextureViewer::thumb_clicked);
 
   prev->setActive(false);
   strip->AddPreview(prev);
@@ -1538,7 +1537,7 @@ void TextureViewer::InitStageResourcePreviews(ShaderStageType stage,
   }
 }
 
-void TextureViewer::on_thumb_clicked(QMouseEvent *e)
+void TextureViewer::thumb_clicked(QMouseEvent *e)
 {
   if(e->buttons() & Qt::LeftButton)
   {
@@ -2019,7 +2018,7 @@ void TextureViewer::on_zoomOption_currentIndexChanged(int index)
   }
 }
 
-void TextureViewer::on_zoomOption_returnPressed()
+void TextureViewer::zoomOption_returnPressed()
 {
   UI_SetScale(getCurrentZoomValue());
 }

@@ -240,7 +240,7 @@ public:
     m_Thread = new QThread();
     m_func = f;
     moveToThread(m_Thread);
-    connect(m_Thread, SIGNAL(started()), this, SLOT(process()));
+    QObject::connect(m_Thread, &QThread::started, this, &LambdaThread::process);
   }
 
   void start(QThread::Priority prio = QThread::InheritPriority) { m_Thread->start(prio); }
