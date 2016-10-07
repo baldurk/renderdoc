@@ -371,7 +371,7 @@ bool WrappedGLES::Serialise_glGenerateMipmap(GLenum target)
     draw.flags |= eDraw_GenMips;
 
     // TODO PEPE check wether this call is needed.
-    //AddDrawcall(draw, true);
+    AddDrawcall(draw, true);
 
     m_ResourceUses[GetResourceManager()->GetLiveID(id)].push_back(
         EventUsage(m_CurEventID, eUsage_GenMips));
@@ -393,7 +393,7 @@ void WrappedGLES::glGenerateMipmap(GLenum target)
     if(m_State == WRITING_CAPFRAME)
     {
       SCOPED_SERIALISE_CONTEXT(GENERATE_MIPMAP);
-      glGenerateMipmap(target);
+      Serialise_glGenerateMipmap(target);
 
       m_ContextRecord->AddChunk(scope.Get());
       m_MissingTracks.insert(record->GetResourceID());
@@ -1874,6 +1874,7 @@ void WrappedGLES::glTexStorage2D(GLenum target, GLsizei levels, GLenum internalf
   else
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
+    // TODO PEPE using extension method instead of the standard one can be a problem in case the extension is not available.
     if(record != NULL)
       Common_glTextureStorage2DEXT(record->GetResourceID(), target,
                                    levels, internalformat, width, height);
