@@ -53,15 +53,18 @@ void dump_to_file(const string& name, const T& t)
 
 static void dumpProgramPipelineStatus(WrappedGLES &gl, GLuint pipeline)
 {
-  char buffer[2000] = { 0 };
   GLsizei length;
   GLint status = 0;
 
   const GLHookSet &real = gl.GetHookset();
   real.glValidateProgramPipeline(pipeline);
   real.glGetProgramPipelineiv(pipeline, eGL_VALIDATE_STATUS, &status);
-  real.glGetProgramPipelineInfoLog(pipeline, 2000, &length, buffer);
-  printf("Program Pipeline validate status: %s\n", buffer);
+
+  if (status != GL_TRUE) {
+    char buffer[2000] = { 0 };
+    real.glGetProgramPipelineInfoLog(pipeline, 2000, &length, buffer);
+    printf("Program Pipeline validate status: %s\n", buffer);
+  }
 }
 
 static GLuint CompileShader(WrappedGLES &gl, GLenum type, const vector<string>& sources)
