@@ -443,7 +443,7 @@ void ToolWindowManager::startDrag(const QList<QWidget *> &toolWindows) {
 
 QVariantMap ToolWindowManager::saveSplitterState(QSplitter *splitter) {
   QVariantMap result;
-  result["state"] = splitter->saveState();
+  result["state"] = splitter->saveState().toBase64();
   result["type"] = "splitter";
   QVariantList items;
   for(int i = 0; i < splitter->count(); i++) {
@@ -485,7 +485,7 @@ QSplitter *ToolWindowManager::restoreSplitterState(const QVariantMap &data) {
       qWarning("unknown item type");
     }
   }
-  splitter->restoreState(data["state"].toByteArray());
+  splitter->restoreState(QByteArray::fromBase64(data["state"].toByteArray()));
   return splitter;
 }
 

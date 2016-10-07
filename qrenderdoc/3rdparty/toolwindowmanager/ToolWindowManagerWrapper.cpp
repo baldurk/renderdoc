@@ -65,7 +65,7 @@ QVariantMap ToolWindowManagerWrapper::saveState() {
     return QVariantMap();
   }
   QVariantMap result;
-  result["geometry"] = saveGeometry();
+  result["geometry"] = saveGeometry().toBase64();
   QSplitter* splitter = findChild<QSplitter*>(QString(), Qt::FindDirectChildrenOnly);
   if (splitter) {
     result["splitter"] = m_manager->saveSplitterState(splitter);
@@ -82,7 +82,7 @@ QVariantMap ToolWindowManagerWrapper::saveState() {
 }
 
 void ToolWindowManagerWrapper::restoreState(const QVariantMap &data) {
-  restoreGeometry(data["geometry"].toByteArray());
+  restoreGeometry(QByteArray::fromBase64(data["geometry"].toByteArray()));
   if (layout()->count() > 0) {
     qWarning("wrapper is not empty");
     return;
