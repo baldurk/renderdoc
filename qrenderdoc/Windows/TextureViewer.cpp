@@ -317,10 +317,10 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
-  m_Ctx->AddLogViewer(this);
-
   ui->render->SetOutput(m_Ctx, NULL);
   ui->pixelContext->SetOutput(m_Ctx, NULL);
+
+  m_Ctx->AddLogViewer(this);
 
   memset(&m_TexDisplay, 0, sizeof(m_TexDisplay));
   m_TexDisplay.sampleIdx = ~0U;
