@@ -513,7 +513,7 @@ void TextureViewer::RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pic
                         m_TexDisplay.sampleIdx, &realValue);
 }
 
-void TextureViewer::RT_PickPixelsAndUpdate()
+void TextureViewer::RT_PickPixelsAndUpdate(IReplayRenderer *)
 {
   PixelValue pickValue, realValue;
 
@@ -532,7 +532,7 @@ void TextureViewer::RT_PickPixelsAndUpdate()
   GUIInvoke::call([this]() { UI_UpdateStatusText(); });
 }
 
-void TextureViewer::RT_PickHoverAndUpdate()
+void TextureViewer::RT_PickHoverAndUpdate(IReplayRenderer *)
 {
   PixelValue pickValue, realValue;
 
@@ -546,7 +546,7 @@ void TextureViewer::RT_PickHoverAndUpdate()
   GUIInvoke::call([this]() { UI_UpdateStatusText(); });
 }
 
-void TextureViewer::RT_UpdateAndDisplay()
+void TextureViewer::RT_UpdateAndDisplay(IReplayRenderer *)
 {
   if(m_Output != NULL)
     m_Output->SetTextureDisplay(m_TexDisplay);
@@ -1104,13 +1104,13 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
   // if (ui->autoFit->isChecked())
   // AutoFitRange();
 
-  m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
+  m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) {
     // RT_UpdateVisualRange(r);
 
-    RT_UpdateAndDisplay();
+    RT_UpdateAndDisplay(r);
 
     if(m_Output != NULL)
-      RT_PickPixelsAndUpdate();
+      RT_PickPixelsAndUpdate(r);
 
     // TODO - GetUsage and update TimelineBar
   });
@@ -1915,6 +1915,9 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
   ui->inputThumbs->RefreshLayout();
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
+
+  // if(autoFit.Checked)
+  // AutoFitRange();
 }
 
 QVariant TextureViewer::persistData()
@@ -2186,10 +2189,7 @@ void TextureViewer::on_mipLevel_currentIndexChanged(int index)
 
   if(m_Output != NULL && m_PickedPoint.x() >= 0 && m_PickedPoint.y() >= 0)
   {
-    m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
-      if(m_Output != NULL)
-        RT_PickPixelsAndUpdate();
-    });
+    INVOKE_MEMFN(RT_PickPixelsAndUpdate);
   }
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
@@ -2211,10 +2211,7 @@ void TextureViewer::on_sliceFace_currentIndexChanged(int index)
 
   if(m_Output != NULL && m_PickedPoint.x() >= 0 && m_PickedPoint.y() >= 0)
   {
-    m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *) {
-      if(m_Output != NULL)
-        RT_PickPixelsAndUpdate();
-    });
+    INVOKE_MEMFN(RT_PickPixelsAndUpdate);
   }
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);

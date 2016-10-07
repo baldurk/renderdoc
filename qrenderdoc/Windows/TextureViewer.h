@@ -156,6 +156,7 @@ private slots:
   void render_mouseMove(QMouseEvent *e);
   void render_mouseWheel(QWheelEvent *e);
   void render_resize(QResizeEvent *e);
+  void render_keyPress(QKeyEvent *e);
 
   void thumb_clicked(QMouseEvent *);
 
@@ -165,9 +166,9 @@ private slots:
   void channelsWidget_selected(int index) { UI_UpdateChannels(); }
 private:
   void RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pickValue, PixelValue &realValue);
-  void RT_PickPixelsAndUpdate();
-  void RT_PickHoverAndUpdate();
-  void RT_UpdateAndDisplay();
+  void RT_PickPixelsAndUpdate(IReplayRenderer *);
+  void RT_PickHoverAndUpdate(IReplayRenderer *);
+  void RT_UpdateAndDisplay(IReplayRenderer *);
 
   void UI_UpdateStatusText();
   void UI_UpdateTextureDetails();
