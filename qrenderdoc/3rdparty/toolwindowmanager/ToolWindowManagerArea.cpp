@@ -155,33 +155,42 @@ QVariantMap ToolWindowManagerArea::saveState() {
   QVariantMap result;
   result["type"] = "area";
   result["currentIndex"] = currentIndex();
-  QStringList objectNames;
+  QVariantList objects;
+  objects.reserve(count());
   for(int i = 0; i < count(); i++) {
-    QString name = widget(i)->objectName();
+    QWidget *w = widget(i);
+    QString name = w->objectName();
     if (name.isEmpty()) {
       qWarning("cannot save state of tool window without object name");
     } else {
-      objectNames << name;
+      QVariantMap objectData;
+      objectData["name"] = name;
+      objectData["data"] = w->property("persistData");
+      objects.push_back(objectData);
     }
   }
-  result["objectNames"] = objectNames;
+  result["objects"] = objects;
   return result;
 }
 
 void ToolWindowManagerArea::restoreState(const QVariantMap &data) {
-  foreach(QVariant objectNameValue, data["objectNames"].toList()) {
-    QString objectName = objectNameValue.toString();
+  foreach(QVariant object, data["objects"].toList()) {
+    QVariantMap objectData = object.toMap();
+    if (objectData.isEmpty()) { continue; }
+    QString objectName = objectData["name"].toString();
     if (objectName.isEmpty()) { continue; }
-    bool found = false;
+    QWidget *t = NULL;
     foreach(QWidget* toolWindow, m_manager->m_toolWindows) {
       if (toolWindow->objectName() == objectName) {
-        addToolWindow(toolWindow);
-        found = true;
+        t = toolWindow;
         break;
       }
     }
-    if (!found) {
-      qWarning("tool window with name '%s' not found", objectName.toLocal8Bit().constData());
+    if (t) {
+        t->setProperty("persistData", objectData["data"]);
+        addToolWindow(t);
+    } else {
+      qWarning("tool window with name '%s' not found or created", objectName.toLocal8Bit().constData());
     }
   }
   setCurrentIndex(data["currentIndex"].toInt());
