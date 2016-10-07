@@ -862,7 +862,13 @@ int TextureTargetIndex(GLenum target)
     case eGL_TEXTURE_2D_MULTISAMPLE:        return 2;
     case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY:  return 3;
     case eGL_TEXTURE_3D:                    return 4;
-    case eGL_TEXTURE_CUBE_MAP:              return 5;
+    case eGL_TEXTURE_CUBE_MAP:              
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_X:
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+    case eGL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+    case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z:   return 5;
     case eGL_TEXTURE_CUBE_MAP_ARRAY:        return 6;
     case eGL_TEXTURE_BUFFER:                return 7;
     default:
