@@ -35,6 +35,8 @@
 #include <QVariant>
 #include <QLabel>
 
+#include <functional>
+
 class ToolWindowManagerArea;
 class ToolWindowManagerWrapper;
 
@@ -240,6 +242,12 @@ public:
    */
   void restoreState(const QVariantMap& data);
 
+  typedef std::function<QWidget*(const QString &)> CreateCallback;
+
+  void setToolWindowCreateCallback(const CreateCallback &cb) { m_createCallback = cb; }
+  QWidget *createToolWindow(const QString& objectName);
+
+  bool checkValidSplitter(QWidget *w);
 
   /*! \cond PRIVATE */
   void setSuggestionSwitchInterval(int msec);
@@ -288,6 +296,8 @@ private:
   int m_dropCurrentSuggestionIndex; // index of currently displayed drop suggestion
                                     // (e.g. always 0 if there is only one possible drop location)
   QTimer m_dropSuggestionSwitchTimer; // used for switching drop suggestions
+
+  CreateCallback m_createCallback;
 
   // last widget used for adding tool windows, or 0 if there isn't one
   // (warning: may contain pointer to deleted object)

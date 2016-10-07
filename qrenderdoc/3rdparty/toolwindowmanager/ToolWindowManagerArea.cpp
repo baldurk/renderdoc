@@ -186,6 +186,7 @@ void ToolWindowManagerArea::restoreState(const QVariantMap &data) {
         break;
       }
     }
+    if (t == NULL) t = m_manager->createToolWindow(objectName);
     if (t) {
         t->setProperty("persistData", objectData["data"]);
         addToolWindow(t);

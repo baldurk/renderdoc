@@ -66,6 +66,7 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
   m_dropSuggestionSwitchTimer.setInterval(1000);
   m_dropCurrentSuggestionIndex = 0;
   m_allowFloatingWindow = true;
+  m_createCallback = NULL;
 
   m_rectRubberBand = new QRubberBand(QRubberBand::Rectangle, this);
   m_lineRubberBand = new QRubberBand(QRubberBand::Line, this);
@@ -269,6 +270,21 @@ void ToolWindowManager::removeToolWindow(QWidget *toolWindow) {
   moveToolWindow(toolWindow, NoArea);
   m_toolWindows.removeOne(toolWindow);
   m_toolWindowProperties.remove(toolWindow);
+}
+
+QWidget* ToolWindowManager::createToolWindow(const QString& objectName)
+{
+  if (m_createCallback) {
+    QWidget *toolWindow = m_createCallback(objectName);
+    if(toolWindow) {
+      m_toolWindows << toolWindow;
+      m_toolWindowProperties[toolWindow] = ToolWindowProperty(0);
+      QObject::connect(toolWindow, &QWidget::windowTitleChanged, this, &ToolWindowManager::windowTitleChanged);
+      return toolWindow;
+    }
+  }
+
+  return NULL;
 }
 
 void ToolWindowManager::setSuggestionSwitchInterval(int msec) {
