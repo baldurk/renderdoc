@@ -58,6 +58,11 @@ void CustomPaintWidget::resizeEvent(QResizeEvent *e)
   emit resize(e);
 }
 
+void CustomPaintWidget::keyPressEvent(QKeyEvent *e)
+{
+  emit keyPress(e);
+}
+
 void CustomPaintWidget::paintEvent(QPaintEvent *e)
 {
   if(m_Output)

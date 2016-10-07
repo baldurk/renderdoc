@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "TextureViewer.h"
+#include <QClipboard>
 #include <QColorDialog>
 #include <QJsonDocument>
 #include "Code/CaptureContext.h"
@@ -336,6 +337,10 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
   QObject::connect(ui->render, &CustomPaintWidget::mouseWheel, this,
                    &TextureViewer::render_mouseWheel);
   QObject::connect(ui->render, &CustomPaintWidget::resize, this, &TextureViewer::render_resize);
+  QObject::connect(ui->render, &CustomPaintWidget::keyPress, this, &TextureViewer::render_keyPress);
+
+  QObject::connect(ui->pixelContext, &CustomPaintWidget::keyPress, this,
+                   &TextureViewer::render_keyPress);
 
   QObject::connect(ui->zoomOption->lineEdit(), &QLineEdit::returnPressed, this,
                    &TextureViewer::zoomOption_returnPressed);
@@ -1655,6 +1660,62 @@ void TextureViewer::render_resize(QResizeEvent *e)
   UI_CalcScrollbars();
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
+void TextureViewer::render_keyPress(QKeyEvent *e)
+{
+  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
+
+  if(texptr == NULL)
+    return;
+
+  if((e->modifiers() & Qt::ControlModifier) && e->key() == Qt::Key_C)
+  {
+    QClipboard *clipboard = QApplication::clipboard();
+    clipboard->setText(ui->texStatusDim->text() + " | " + ui->statusText->text());
+  }
+
+  if(!m_Ctx->LogLoaded())
+    return;
+
+  bool nudged = false;
+
+  int increment = 1 << (int)m_TexDisplay.mip;
+
+  if(e->key() == Qt::Key_Up && m_PickedPoint.y() > 0)
+  {
+    m_PickedPoint -= QPoint(0, increment);
+    nudged = true;
+  }
+  else if(e->key() == Qt::Key_Down && m_PickedPoint.y() < (int)texptr->height - 1)
+  {
+    m_PickedPoint += QPoint(0, increment);
+    nudged = true;
+  }
+  else if(e->key() == Qt::Key_Left && m_PickedPoint.x() > 0)
+  {
+    m_PickedPoint -= QPoint(increment, 0);
+    nudged = true;
+  }
+  else if(e->key() == Qt::Key_Right && m_PickedPoint.x() < (int)texptr->height - 1)
+  {
+    m_PickedPoint += QPoint(increment, 0);
+    nudged = true;
+  }
+
+  if(nudged)
+  {
+    m_PickedPoint = QPoint(qBound(0, m_PickedPoint.x(), (int)texptr->width - 1),
+                           qBound(0, m_PickedPoint.y(), (int)texptr->height - 1));
+    e->accept();
+
+    m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) {
+      RT_PickPixelsAndUpdate(r);
+      RT_UpdateAndDisplay(r);
+    });
+
+    UI_UpdateStatusText();
+  }
 }
 
 float TextureViewer::CurMaxScrollX()
