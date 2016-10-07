@@ -825,7 +825,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
 
       gl.glTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL,
                                  (GLint *)&state->maxLevel);
-      gl.glBindTexture(TextureBinding(details.curType), oldBinding);
+      gl.glBindTexture(details.curType, oldBinding);
     }
 
     SetInitialContents(origid, InitialContentData(TextureRes(res.Context, tex), 0, (byte *)state));
@@ -1092,9 +1092,30 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
             for(int trg = 0; trg < count; trg++)
             {
               // we avoid glGetTextureImageEXT as it seems buggy for cubemap faces
+              
+              
+              // ***************** gl.glGetTexImage(targets[trg], i, fmt, type, buf) **************************
               // TODO PEPE Needed to implement texture read functionality (glGetTexImage)
-              //gl.glGetTexImage(targets[trg], i, fmt, type, buf);
+              
+              GLuint prevfbo = 0;
+              GLuint fbo = 0;
 
+              gl.glGetIntegerv(eGL_FRAMEBUFFER_BINDING, (GLint *)&prevfbo);
+              gl.glGenFramebuffers(1, &fbo);
+              gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
+
+              // TODO pantos 3d, arrays?
+              if (t == eGL_TEXTURE_CUBE_MAP) {
+                gl.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, targets[trg], tex, i);
+              } else {
+                gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, tex, i);
+              }
+
+              gl.glReadPixels(0, 0, width, height, fmt, type, (void *)buf);
+
+              gl.glBindFramebuffer(eGL_FRAMEBUFFER, prevfbo);
+              gl.glDeleteFramebuffers(1, &fbo);
+              // ***************** gl.glGetTexImage(targets[trg], i, fmt, type, buf) **************************
               m_pSerialiser->SerialiseBuffer("image", buf, size);
             }
           }
