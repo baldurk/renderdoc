@@ -247,15 +247,15 @@ void WrappedGLES::glBindBuffer(GLenum target, GLuint buffer)
         break;
       }
       r->UnlockChunks();
+    }
 
-      {
-        SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
-        Serialise_glBindBuffer(target, buffer);
+    // Always serialize out the BindBuffer
+    // TODO(elecro): double check if this is really ok.
+    {
+      SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
+      Serialise_glBindBuffer(target, buffer);
 
-        chunk = scope.Get();
-      }
-
-      r->AddChunk(chunk);
+      r->AddChunk(scope.Get());
     }
 
     // element array buffer binding is vertex array record state, record there (if we've not just
