@@ -3395,7 +3395,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case DISABLE: Serialise_glDisable(eGL_NONE); break;
 //    case ENABLEI: Serialise_glEnablei(eGL_NONE, 0); break;
 //    case DISABLEI: Serialise_glDisablei(eGL_NONE, 0); break;
-//    case FRONT_FACE: Serialise_glFrontFace(eGL_NONE); break;
+    case FRONT_FACE: Serialise_glFrontFace(eGL_NONE); break;
 //    case BLEND_FUNC: Serialise_glBlendFunc(eGL_NONE, eGL_NONE); break;
 //    case BLEND_FUNCI: Serialise_glBlendFunci(0, eGL_NONE, eGL_NONE); break;
 //    case BLEND_COLOR: Serialise_glBlendColor(0, 0, 0, 0); break;

@@ -941,31 +941,31 @@ void WrappedGLES::glDisablei(GLenum cap, GLuint index)
 //  }
 //}
 //
-//bool WrappedGLES::Serialise_glFrontFace(GLenum mode)
-//{
-//  SERIALISE_ELEMENT(GLenum, m, mode);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glFrontFace(m);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glFrontFace(GLenum mode)
-//{
-//  m_Real.glFrontFace(mode);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(FRONT_FACE);
-//    Serialise_glFrontFace(mode);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glFrontFace(GLenum mode)
+{
+  SERIALISE_ELEMENT(GLenum, m, mode);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glFrontFace(m);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glFrontFace(GLenum mode)
+{
+  m_Real.glFrontFace(mode);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(FRONT_FACE);
+    Serialise_glFrontFace(mode);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
 //bool WrappedGLES::Serialise_glCullFace(GLenum mode)
 //{
 //  SERIALISE_ELEMENT(GLenum, m, mode);

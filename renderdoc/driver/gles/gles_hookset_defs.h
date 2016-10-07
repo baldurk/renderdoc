@@ -71,6 +71,7 @@
     HookInit(glFinish); \
     HookInit(glFlush); \
     HookInit(glFramebufferTexture2D); \
+    HookInit(glFrontFace); \
     HookInit(glGenBuffers); \
     HookInit(glGenerateMipmap); \
     HookInit(glGenFramebuffers); \
@@ -324,6 +325,7 @@
     HookExtension(PFNGLFINISHPROC, glFinish); \
     HookExtension(PFNGLFLUSHPROC, glFlush); \
     HookExtension(PFNGLFRAMEBUFFERTEXTURE2DPROC, glFramebufferTexture2D); \
+    HookExtension(PFNGLFRONTFACEPROC, glFrontFace); \
     HookExtension(PFNGLGENBUFFERSPROC, glGenBuffers); \
     HookExtension(PFNGLGENERATEMIPMAPPROC, glGenerateMipmap); \
     HookExtension(PFNGLGENFRAMEBUFFERSPROC, glGenFramebuffers); \
@@ -560,6 +562,7 @@
     HookWrapper0(void, glFinish); \
     HookWrapper0(void, glFlush); \
     HookWrapper5(void, glFramebufferTexture2D, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level); \
+    HookWrapper1(void, glFrontFace, GLenum, mode); \
     HookWrapper2(void, glGenBuffers, GLsizei, n, GLuint *, buffers); \
     HookWrapper1(void, glGenerateMipmap, GLenum, target); \
     HookWrapper2(void, glGenFramebuffers, GLsizei, n, GLuint *, framebuffers); \
@@ -792,7 +795,6 @@
     HookWrapper2(void, glDeleteRenderbuffers, GLsizei, n, const GLuint *, renderbuffers); \
     HookWrapper2(void, glDepthRangef, GLfloat, n, GLfloat, f); \
     HookWrapper4(void, glFramebufferRenderbuffer, GLenum, target, GLenum, attachment, GLenum, renderbuffertarget, GLuint, renderbuffer); \
-    HookWrapper1(void, glFrontFace, GLenum, mode); \
     HookWrapper2(void, glGenRenderbuffers, GLsizei, n, GLuint *, renderbuffers); \
     HookWrapper7(void, glGetActiveAttrib, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \
     HookWrapper7(void, glGetActiveUniform, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \
@@ -1323,7 +1325,6 @@
     HandleUnsupported(PFNGLDELETERENDERBUFFERSPROC, glDeleteRenderbuffers); \
     HandleUnsupported(PFNGLDEPTHRANGEFPROC, glDepthRangef); \
     HandleUnsupported(PFNGLFRAMEBUFFERRENDERBUFFERPROC, glFramebufferRenderbuffer); \
-    HandleUnsupported(PFNGLFRONTFACEPROC, glFrontFace); \
     HandleUnsupported(PFNGLGENRENDERBUFFERSPROC, glGenRenderbuffers); \
     HandleUnsupported(PFNGLGETACTIVEATTRIBPROC, glGetActiveAttrib); \
     HandleUnsupported(PFNGLGETACTIVEUNIFORMPROC, glGetActiveUniform); \
