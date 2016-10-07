@@ -1229,8 +1229,8 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
               for(int t = 0; t < count; t++)
               {
                 GLuint oldBinding;
-                gl.glGetIntegerv(TextureBinding(targets[t]), (GLint*)&oldBinding);
-                gl.glBindTexture(targets[t], live);
+                gl.glGetIntegerv(TextureBinding(textype), (GLint*)&oldBinding);
+                gl.glBindTexture(textype, live);
                 if(isCompressed)
                 {
                   GLsizei compSize = (GLsizei)GetCompressedByteSize(w, h, d, internalformat, m);
@@ -1256,7 +1256,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
                                            (GLsizei)h, (GLsizei)d, 0, GetBaseFormat(internalformat),
                                            GetDataType(internalformat), NULL);
                 }
-                gl.glBindTexture(targets[t], oldBinding);
+                gl.glBindTexture(textype, oldBinding);
               }
             }
           }
@@ -1340,24 +1340,27 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
               count = 1;
             }
 
+            gl.glGetIntegerv(TextureBinding(textype), (GLint*)&oldBinding);
+            gl.glBindTexture(textype, tex);
+
             for(int trg = 0; trg < count; trg++)
             {
               size_t size = 0;
               byte *buf = NULL;
 
               m_pSerialiser->SerialiseBuffer("image", buf, size);
-              gl.glGetIntegerv(TextureBinding(targets[trg]), (GLint*)&oldBinding);
-              gl.glBindTexture(targets[trg], tex);
               if(dim == 2)
                 gl.glCompressedTexSubImage2D(targets[trg], i, 0, 0, w, h,
                                                     internalformat, (GLsizei)size, buf);
               else if(dim == 3)
                 gl.glCompressedTexSubImage3D(targets[trg], i, 0, 0, 0, w, h, d,
                                                     internalformat, (GLsizei)size, buf);
-              gl.glBindTexture(targets[trg], oldBinding);
 
               delete[] buf;
             }
+
+            gl.glBindTexture(textype, oldBinding);
+
           }
         }
         else if(samples > 1)
@@ -1392,23 +1395,24 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
               count = 1;
             }
 
+            gl.glGetIntegerv(TextureBinding(textype), (GLint*)&oldBinding);
+            gl.glBindTexture(textype, tex);
+
             for(int trg = 0; trg < count; trg++)
             {
               size_t size = 0;
               byte *buf = NULL;
               m_pSerialiser->SerialiseBuffer("image", buf, size);
 
-              gl.glGetIntegerv(TextureBinding(targets[trg]), (GLint*)&oldBinding);
-              gl.glBindTexture(targets[trg], tex);
-
               if(dim == 2)
                 gl.glTexSubImage2D(targets[trg], i, 0, 0, w, h, fmt, type, buf);
               else if(dim == 3)
                 gl.glTexSubImage3D(targets[trg], i, 0, 0, 0, w, h, d, fmt, type, buf);
-              gl.glBindTexture(targets[trg], oldBinding);
 
               delete[] buf;
             }
+            
+            gl.glBindTexture(textype, oldBinding);
           }
         }
 
