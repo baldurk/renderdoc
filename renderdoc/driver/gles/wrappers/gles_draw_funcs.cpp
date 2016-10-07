@@ -1099,6 +1099,8 @@ void WrappedGLES::glDrawElements(GLenum mode, GLsizei count, GLenum type, const 
 
   if(m_State == WRITING_CAPFRAME)
   {
+    writeFakeVertexAttribPointer(count);
+
     SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS);
     Serialise_glDrawElements(mode, count, type, indices);
 
@@ -1191,164 +1193,164 @@ void WrappedGLES::glDrawElementsIndirect(GLenum mode, GLenum type, const void *i
   }
 }
 
-//bool WrappedGLES::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLuint end,
-//                                                  GLsizei count, GLenum type, const void *indices)
-//{
-//  SERIALISE_ELEMENT(GLenum, Mode, mode);
-//  SERIALISE_ELEMENT(uint32_t, Start, start);
-//  SERIALISE_ELEMENT(uint32_t, End, end);
-//  SERIALISE_ELEMENT(uint32_t, Count, count);
-//  SERIALISE_ELEMENT(GLenum, Type, type);
-//  SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
-//
-//  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(Check_preElements())
-//      m_Real.glDrawRangeElements(Mode, Start, End, Count, Type, (const void *)IdxOffset);
-//
-//    Common_postElements(idxDelete);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(DRAWRANGEELEMENTS, desc);
-//    string name = "glDrawRangeElements(" + ToStr::Get(Count) + ")";
-//
-//    uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
-//                                                           ? 2
-//                                                           : /*Type == eGL_UNSIGNED_INT*/ 4;
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.numIndices = Count;
-//    draw.numInstances = 1;
-//    draw.indexOffset = uint32_t(IdxOffset) / IdxSize;
-//    draw.vertexOffset = 0;
-//    draw.instanceOffset = 0;
-//
-//    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
-//
-//    draw.topology = MakePrimitiveTopology(m_Real, Mode);
-//    draw.indexByteWidth = IdxSize;
-//
-//    AddDrawcall(draw, true);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count,
-//                                        GLenum type, const void *indices)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glDrawRangeElements(mode, start, end, count, type, indices);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DRAWRANGEELEMENTS);
-//    Serialise_glDrawRangeElements(mode, start, end, count, type, indices);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.FetchState(GetCtx(), this);
-//    state.MarkReferenced(this, false);
-//  }
-//  else if(m_State == WRITING_IDLE)
-//  {
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.MarkDirty(this);
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end,
-//                                                            GLsizei count, GLenum type,
-//                                                            const void *indices, GLint basevertex)
-//{
-//  SERIALISE_ELEMENT(GLenum, Mode, mode);
-//  SERIALISE_ELEMENT(uint32_t, Start, start);
-//  SERIALISE_ELEMENT(uint32_t, End, end);
-//  SERIALISE_ELEMENT(uint32_t, Count, count);
-//  SERIALISE_ELEMENT(GLenum, Type, type);
-//  SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
-//  SERIALISE_ELEMENT(uint32_t, BaseVtx, basevertex);
-//
-//  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(Check_preElements())
-//      m_Real.glDrawRangeElementsBaseVertex(Mode, Start, End, Count, Type, (const void *)IdxOffset,
-//                                           BaseVtx);
-//
-//    Common_postElements(idxDelete);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(DRAWRANGEELEMENTSBASEVERTEX, desc);
-//    string name = "glDrawRangeElementsBaseVertex(" + ToStr::Get(Count) + ")";
-//
-//    uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
-//                                                           ? 2
-//                                                           : /*Type == eGL_UNSIGNED_INT*/ 4;
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.numIndices = Count;
-//    draw.numInstances = 1;
-//    draw.indexOffset = uint32_t(IdxOffset) / IdxSize;
-//    draw.baseVertex = BaseVtx;
-//    draw.instanceOffset = 0;
-//
-//    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
-//
-//    draw.topology = MakePrimitiveTopology(m_Real, Mode);
-//    draw.indexByteWidth = IdxSize;
-//
-//    AddDrawcall(draw, true);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end,
-//                                                  GLsizei count, GLenum type, const void *indices,
-//                                                  GLint basevertex)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DRAWRANGEELEMENTSBASEVERTEX);
-//    Serialise_glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.FetchState(GetCtx(), this);
-//    state.MarkReferenced(this, false);
-//  }
-//  else if(m_State == WRITING_IDLE)
-//  {
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.MarkDirty(this);
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLuint end,
+                                                  GLsizei count, GLenum type, const void *indices)
+{
+  SERIALISE_ELEMENT(GLenum, Mode, mode);
+  SERIALISE_ELEMENT(uint32_t, Start, start);
+  SERIALISE_ELEMENT(uint32_t, End, end);
+  SERIALISE_ELEMENT(uint32_t, Count, count);
+  SERIALISE_ELEMENT(GLenum, Type, type);
+  SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
+
+  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
+
+  if(m_State <= EXECUTING)
+  {
+    if(Check_preElements())
+      m_Real.glDrawRangeElements(Mode, Start, End, Count, Type, (const void *)IdxOffset);
+
+    Common_postElements(idxDelete);
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(DRAWRANGEELEMENTS, desc);
+    string name = "glDrawRangeElements(" + ToStr::Get(Count) + ")";
+
+    uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
+                                                           ? 2
+                                                           : /*Type == eGL_UNSIGNED_INT*/ 4;
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.numIndices = Count;
+    draw.numInstances = 1;
+    draw.indexOffset = uint32_t(IdxOffset) / IdxSize;
+    draw.vertexOffset = 0;
+    draw.instanceOffset = 0;
+
+    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+
+    draw.topology = MakePrimitiveTopology(m_Real, Mode);
+    draw.indexByteWidth = IdxSize;
+
+    AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLsizei count,
+                                        GLenum type, const void *indices)
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glDrawRangeElements(mode, start, end, count, type, indices);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DRAWRANGEELEMENTS);
+    Serialise_glDrawRangeElements(mode, start, end, count, type, indices);
+
+    m_ContextRecord->AddChunk(scope.Get());
+
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.FetchState(GetCtx(), this);
+    state.MarkReferenced(this, false);
+  }
+  else if(m_State == WRITING_IDLE)
+  {
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.MarkDirty(this);
+  }
+}
+
+bool WrappedGLES::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end,
+                                                            GLsizei count, GLenum type,
+                                                            const void *indices, GLint basevertex)
+{
+  SERIALISE_ELEMENT(GLenum, Mode, mode);
+  SERIALISE_ELEMENT(uint32_t, Start, start);
+  SERIALISE_ELEMENT(uint32_t, End, end);
+  SERIALISE_ELEMENT(uint32_t, Count, count);
+  SERIALISE_ELEMENT(GLenum, Type, type);
+  SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
+  SERIALISE_ELEMENT(uint32_t, BaseVtx, basevertex);
+
+  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
+
+  if(m_State <= EXECUTING)
+  {
+    if(Check_preElements())
+      m_Real.glDrawRangeElementsBaseVertex(Mode, Start, End, Count, Type, (const void *)IdxOffset,
+                                           BaseVtx);
+
+    Common_postElements(idxDelete);
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(DRAWRANGEELEMENTSBASEVERTEX, desc);
+    string name = "glDrawRangeElementsBaseVertex(" + ToStr::Get(Count) + ")";
+
+    uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
+                                                           ? 2
+                                                           : /*Type == eGL_UNSIGNED_INT*/ 4;
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.numIndices = Count;
+    draw.numInstances = 1;
+    draw.indexOffset = uint32_t(IdxOffset) / IdxSize;
+    draw.baseVertex = BaseVtx;
+    draw.instanceOffset = 0;
+
+    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+
+    draw.topology = MakePrimitiveTopology(m_Real, Mode);
+    draw.indexByteWidth = IdxSize;
+
+    AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuint end,
+                                                  GLsizei count, GLenum type, const void *indices,
+                                                  GLint basevertex)
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DRAWRANGEELEMENTSBASEVERTEX);
+    Serialise_glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex);
+
+    m_ContextRecord->AddChunk(scope.Get());
+
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.FetchState(GetCtx(), this);
+    state.MarkReferenced(this, false);
+  }
+  else if(m_State == WRITING_IDLE)
+  {
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.MarkDirty(this);
+  }
+}
+
 bool WrappedGLES::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
                                                        const void *indices, GLint basevertex)
 {
@@ -1425,247 +1427,247 @@ void WrappedGLES::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum ty
   }
 }
 
-//bool WrappedGLES::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum type,
-//                                                      const void *indices, GLsizei instancecount)
-//{
-//  SERIALISE_ELEMENT(GLenum, Mode, mode);
-//  SERIALISE_ELEMENT(uint32_t, Count, count);
-//  SERIALISE_ELEMENT(GLenum, Type, type);
-//  SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
-//  SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
-//
-//  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(Check_preElements())
-//      m_Real.glDrawElementsInstanced(Mode, Count, Type, (const void *)IdxOffset, InstCount);
-//
-//    Common_postElements(idxDelete);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(DRAWELEMENTS_INSTANCED, desc);
-//    string name = "glDrawElementsInstanced(" + ToStr::Get(Count) + ")";
-//
-//    uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
-//                                                           ? 2
-//                                                           : /*Type == eGL_UNSIGNED_INT*/ 4;
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.numIndices = Count;
-//    draw.numInstances = InstCount;
-//    draw.indexOffset = uint32_t(IdxOffset) / IdxSize;
-//    draw.vertexOffset = 0;
-//    draw.instanceOffset = 0;
-//
-//    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
-//
-//    draw.topology = MakePrimitiveTopology(m_Real, Mode);
-//    draw.indexByteWidth = IdxSize;
-//
-//    AddDrawcall(draw, true);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum type,
-//                                            const void *indices, GLsizei instancecount)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glDrawElementsInstanced(mode, count, type, indices, instancecount);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCED);
-//    Serialise_glDrawElementsInstanced(mode, count, type, indices, instancecount);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.FetchState(GetCtx(), this);
-//    state.MarkReferenced(this, false);
-//  }
-//  else if(m_State == WRITING_IDLE)
-//  {
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.MarkDirty(this);
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei count,
-//                                                                  GLenum type, const void *indices,
-//                                                                  GLsizei instancecount,
-//                                                                  GLuint baseinstance)
-//{
-//  SERIALISE_ELEMENT(GLenum, Mode, mode);
-//  SERIALISE_ELEMENT(uint32_t, Count, count);
-//  SERIALISE_ELEMENT(GLenum, Type, type);
-//  SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
-//  SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
-//  SERIALISE_ELEMENT(uint32_t, BaseInstance, baseinstance);
-//
-//  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(Check_preElements())
-//      m_Real.glDrawElementsInstancedBaseInstance(Mode, Count, Type, (const void *)IdxOffset,
-//                                                 InstCount, BaseInstance);
-//
-//    Common_postElements(idxDelete);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(DRAWELEMENTS_INSTANCEDBASEINSTANCE, desc);
-//    string name = "glDrawElementsInstancedBaseInstance(" + ToStr::Get(Count) + ")";
-//
-//    uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
-//                                                           ? 2
-//                                                           : /*Type == eGL_UNSIGNED_INT*/ 4;
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.numIndices = Count;
-//    draw.numInstances = InstCount;
-//    draw.indexOffset = uint32_t(IdxOffset) / IdxSize;
-//    draw.vertexOffset = 0;
-//    draw.instanceOffset = BaseInstance;
-//
-//    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
-//
-//    draw.topology = MakePrimitiveTopology(m_Real, Mode);
-//    draw.indexByteWidth = IdxSize;
-//
-//    AddDrawcall(draw, true);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDrawElementsInstancedBaseInstance(GLenum mode, GLsizei count, GLenum type,
-//                                                        const void *indices, GLsizei instancecount,
-//                                                        GLuint baseinstance)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glDrawElementsInstancedBaseInstance(mode, count, type, indices, instancecount, baseinstance);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCEDBASEINSTANCE);
-//    Serialise_glDrawElementsInstancedBaseInstance(mode, count, type, indices, instancecount,
-//                                                  baseinstance);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.FetchState(GetCtx(), this);
-//    state.MarkReferenced(this, false);
-//  }
-//  else if(m_State == WRITING_IDLE)
-//  {
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.MarkDirty(this);
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count,
-//                                                                GLenum type, const void *indices,
-//                                                                GLsizei instancecount,
-//                                                                GLint basevertex)
-//{
-//  SERIALISE_ELEMENT(GLenum, Mode, mode);
-//  SERIALISE_ELEMENT(uint32_t, Count, count);
-//  SERIALISE_ELEMENT(GLenum, Type, type);
-//  SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
-//  SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
-//  SERIALISE_ELEMENT(int32_t, BaseVertex, basevertex);
-//
-//  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(Check_preElements())
-//      m_Real.glDrawElementsInstancedBaseVertex(Mode, Count, Type, (const void *)IdxOffset,
-//                                               InstCount, BaseVertex);
-//
-//    Common_postElements(idxDelete);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(DRAWELEMENTS_INSTANCEDBASEVERTEX, desc);
-//    string name = "glDrawElementsInstancedBaseVertex(" + ToStr::Get(Count) + ", " +
-//                  ToStr::Get(InstCount) + ")";
-//
-//    uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
-//                                                           ? 2
-//                                                           : /*Type == eGL_UNSIGNED_INT*/ 4;
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.numIndices = Count;
-//    draw.numInstances = InstCount;
-//    draw.indexOffset = uint32_t(IdxOffset) / IdxSize;
-//    draw.baseVertex = BaseVertex;
-//    draw.instanceOffset = 0;
-//
-//    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
-//
-//    draw.topology = MakePrimitiveTopology(m_Real, Mode);
-//    draw.indexByteWidth = IdxSize;
-//
-//    AddDrawcall(draw, true);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count, GLenum type,
-//                                                      const void *indices, GLsizei instancecount,
-//                                                      GLint basevertex)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glDrawElementsInstancedBaseVertex(mode, count, type, indices, instancecount, basevertex);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCEDBASEVERTEX);
-//    Serialise_glDrawElementsInstancedBaseVertex(mode, count, type, indices, instancecount,
-//                                                basevertex);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.FetchState(GetCtx(), this);
-//    state.MarkReferenced(this, false);
-//  }
-//  else if(m_State == WRITING_IDLE)
-//  {
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.MarkDirty(this);
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum type,
+                                                      const void *indices, GLsizei instancecount)
+{
+  SERIALISE_ELEMENT(GLenum, Mode, mode);
+  SERIALISE_ELEMENT(uint32_t, Count, count);
+  SERIALISE_ELEMENT(GLenum, Type, type);
+  SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
+  SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
+
+  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
+
+  if(m_State <= EXECUTING)
+  {
+    if(Check_preElements())
+      m_Real.glDrawElementsInstanced(Mode, Count, Type, (const void *)IdxOffset, InstCount);
+
+    Common_postElements(idxDelete);
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(DRAWELEMENTS_INSTANCED, desc);
+    string name = "glDrawElementsInstanced(" + ToStr::Get(Count) + ")";
+
+    uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
+                                                           ? 2
+                                                           : /*Type == eGL_UNSIGNED_INT*/ 4;
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.numIndices = Count;
+    draw.numInstances = InstCount;
+    draw.indexOffset = uint32_t(IdxOffset) / IdxSize;
+    draw.vertexOffset = 0;
+    draw.instanceOffset = 0;
+
+    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+
+    draw.topology = MakePrimitiveTopology(m_Real, Mode);
+    draw.indexByteWidth = IdxSize;
+
+    AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum type,
+                                            const void *indices, GLsizei instancecount)
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glDrawElementsInstanced(mode, count, type, indices, instancecount);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCED);
+    Serialise_glDrawElementsInstanced(mode, count, type, indices, instancecount);
+
+    m_ContextRecord->AddChunk(scope.Get());
+
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.FetchState(GetCtx(), this);
+    state.MarkReferenced(this, false);
+  }
+  else if(m_State == WRITING_IDLE)
+  {
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.MarkDirty(this);
+  }
+}
+
+bool WrappedGLES::Serialise_glDrawElementsInstancedBaseInstanceEXT(GLenum mode, GLsizei count,
+                                                                  GLenum type, const void *indices,
+                                                                  GLsizei instancecount,
+                                                                  GLuint baseinstance)
+{
+  SERIALISE_ELEMENT(GLenum, Mode, mode);
+  SERIALISE_ELEMENT(uint32_t, Count, count);
+  SERIALISE_ELEMENT(GLenum, Type, type);
+  SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
+  SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
+  SERIALISE_ELEMENT(uint32_t, BaseInstance, baseinstance);
+
+  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
+
+  if(m_State <= EXECUTING)
+  {
+    if(Check_preElements())
+      m_Real.glDrawElementsInstancedBaseInstanceEXT(Mode, Count, Type, (const void *)IdxOffset,
+                                                 InstCount, BaseInstance);
+
+    Common_postElements(idxDelete);
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(DRAWELEMENTS_INSTANCEDBASEINSTANCE, desc);
+    string name = "glDrawElementsInstancedBaseInstance(" + ToStr::Get(Count) + ")";
+
+    uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
+                                                           ? 2
+                                                           : /*Type == eGL_UNSIGNED_INT*/ 4;
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.numIndices = Count;
+    draw.numInstances = InstCount;
+    draw.indexOffset = uint32_t(IdxOffset) / IdxSize;
+    draw.vertexOffset = 0;
+    draw.instanceOffset = BaseInstance;
+
+    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+
+    draw.topology = MakePrimitiveTopology(m_Real, Mode);
+    draw.indexByteWidth = IdxSize;
+
+    AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glDrawElementsInstancedBaseInstanceEXT(GLenum mode, GLsizei count, GLenum type,
+                                                        const void *indices, GLsizei instancecount,
+                                                        GLuint baseinstance)
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glDrawElementsInstancedBaseInstanceEXT(mode, count, type, indices, instancecount, baseinstance);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCEDBASEINSTANCE);
+    Serialise_glDrawElementsInstancedBaseInstanceEXT(mode, count, type, indices, instancecount,
+                                                  baseinstance);
+
+    m_ContextRecord->AddChunk(scope.Get());
+
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.FetchState(GetCtx(), this);
+    state.MarkReferenced(this, false);
+  }
+  else if(m_State == WRITING_IDLE)
+  {
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.MarkDirty(this);
+  }
+}
+
+bool WrappedGLES::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count,
+                                                                GLenum type, const void *indices,
+                                                                GLsizei instancecount,
+                                                                GLint basevertex)
+{
+  SERIALISE_ELEMENT(GLenum, Mode, mode);
+  SERIALISE_ELEMENT(uint32_t, Count, count);
+  SERIALISE_ELEMENT(GLenum, Type, type);
+  SERIALISE_ELEMENT(uint64_t, IdxOffset, (uint64_t)indices);
+  SERIALISE_ELEMENT(uint32_t, InstCount, instancecount);
+  SERIALISE_ELEMENT(int32_t, BaseVertex, basevertex);
+
+  byte *idxDelete = Common_preElements(Count, Type, IdxOffset);
+
+  if(m_State <= EXECUTING)
+  {
+    if(Check_preElements())
+      m_Real.glDrawElementsInstancedBaseVertex(Mode, Count, Type, (const void *)IdxOffset,
+                                               InstCount, BaseVertex);
+
+    Common_postElements(idxDelete);
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(DRAWELEMENTS_INSTANCEDBASEVERTEX, desc);
+    string name = "glDrawElementsInstancedBaseVertex(" + ToStr::Get(Count) + ", " +
+                  ToStr::Get(InstCount) + ")";
+
+    uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
+                                                           ? 2
+                                                           : /*Type == eGL_UNSIGNED_INT*/ 4;
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.numIndices = Count;
+    draw.numInstances = InstCount;
+    draw.indexOffset = uint32_t(IdxOffset) / IdxSize;
+    draw.baseVertex = BaseVertex;
+    draw.instanceOffset = 0;
+
+    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+
+    draw.topology = MakePrimitiveTopology(m_Real, Mode);
+    draw.indexByteWidth = IdxSize;
+
+    AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count, GLenum type,
+                                                      const void *indices, GLsizei instancecount,
+                                                      GLint basevertex)
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glDrawElementsInstancedBaseVertex(mode, count, type, indices, instancecount, basevertex);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCEDBASEVERTEX);
+    Serialise_glDrawElementsInstancedBaseVertex(mode, count, type, indices, instancecount,
+                                                basevertex);
+
+    m_ContextRecord->AddChunk(scope.Get());
+
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.FetchState(GetCtx(), this);
+    state.MarkReferenced(this, false);
+  }
+  else if(m_State == WRITING_IDLE)
+  {
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.MarkDirty(this);
+  }
+}
+
 bool WrappedGLES::Serialise_glDrawElementsInstancedBaseVertexBaseInstanceEXT(
     GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount,
     GLint basevertex, GLuint baseinstance)

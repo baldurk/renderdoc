@@ -3469,25 +3469,25 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
       break;
     case DRAWELEMENTS: Serialise_glDrawElements(eGL_NONE, 0, eGL_NONE, NULL); break;
     case DRAWELEMENTS_INDIRECT: Serialise_glDrawElementsIndirect(eGL_NONE, eGL_NONE, 0); break;
-//    case DRAWRANGEELEMENTS: Serialise_glDrawRangeElements(eGL_NONE, 0, 0, 0, eGL_NONE, NULL); break;
-//    case DRAWRANGEELEMENTSBASEVERTEX:
-//      Serialise_glDrawRangeElementsBaseVertex(eGL_NONE, 0, 0, 0, eGL_NONE, NULL, 0);
-//      break;
-//    case DRAWELEMENTS_INSTANCED:
-//      Serialise_glDrawElementsInstanced(eGL_NONE, 0, eGL_NONE, NULL, 0);
-//      break;
-//    case DRAWELEMENTS_INSTANCEDBASEINSTANCE:
-//      Serialise_glDrawElementsInstancedBaseInstance(eGL_NONE, 0, eGL_NONE, NULL, 0, 0);
-//      break;
-//    case DRAWELEMENTS_BASEVERTEX:
-//      Serialise_glDrawElementsBaseVertex(eGL_NONE, 0, eGL_NONE, NULL, 0);
-//      break;
-//    case DRAWELEMENTS_INSTANCEDBASEVERTEX:
-//      Serialise_glDrawElementsInstancedBaseVertex(eGL_NONE, 0, eGL_NONE, NULL, 0, 0);
-//      break;
-//    case DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE:
-//      Serialise_glDrawElementsInstancedBaseVertexBaseInstance(eGL_NONE, 0, eGL_NONE, NULL, 0, 0, 0);
-//      break;
+    case DRAWRANGEELEMENTS: Serialise_glDrawRangeElements(eGL_NONE, 0, 0, 0, eGL_NONE, NULL); break;
+    case DRAWRANGEELEMENTSBASEVERTEX:
+      Serialise_glDrawRangeElementsBaseVertex(eGL_NONE, 0, 0, 0, eGL_NONE, NULL, 0);
+      break;
+    case DRAWELEMENTS_INSTANCED:
+      Serialise_glDrawElementsInstanced(eGL_NONE, 0, eGL_NONE, NULL, 0);
+      break;
+    case DRAWELEMENTS_INSTANCEDBASEINSTANCE:
+      Serialise_glDrawElementsInstancedBaseInstanceEXT(eGL_NONE, 0, eGL_NONE, NULL, 0, 0);
+      break;
+    case DRAWELEMENTS_BASEVERTEX:
+      Serialise_glDrawElementsBaseVertex(eGL_NONE, 0, eGL_NONE, NULL, 0);
+      break;
+    case DRAWELEMENTS_INSTANCEDBASEVERTEX:
+      Serialise_glDrawElementsInstancedBaseVertex(eGL_NONE, 0, eGL_NONE, NULL, 0, 0);
+      break;
+    case DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE:
+      Serialise_glDrawElementsInstancedBaseVertexBaseInstanceEXT(eGL_NONE, 0, eGL_NONE, NULL, 0, 0, 0);
+      break;
 //    case DRAW_FEEDBACK: Serialise_glDrawTransformFeedback(eGL_NONE, 0); break;
 //    case DRAW_FEEDBACK_INSTANCED: Serialise_glDrawTransformFeedbackInstanced(eGL_NONE, 0, 0); break;
 //    case DRAW_FEEDBACK_STREAM: Serialise_glDrawTransformFeedbackStream(eGL_NONE, 0, 0); break;
