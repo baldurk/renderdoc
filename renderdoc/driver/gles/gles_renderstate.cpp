@@ -1136,7 +1136,9 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
 
   m_Real->glPatchParameteri(eGL_PATCH_VERTICES, PatchParams.numVerts);
 
-  m_Real->glPolygonModeNV(eGL_FRONT_AND_BACK, PolygonMode);
+  if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+    m_Real->glPolygonModeNV(eGL_FRONT_AND_BACK, PolygonMode);
+  
   if(ExtensionSupported[ExtensionSupported_EXT_polygon_offset_clamp] &&
      m_Real->glPolygonOffsetClampEXT)
     m_Real->glPolygonOffsetClampEXT(PolygonOffset[0], PolygonOffset[1], PolygonOffset[2]);

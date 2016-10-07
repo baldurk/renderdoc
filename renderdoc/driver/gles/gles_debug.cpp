@@ -1891,7 +1891,8 @@ ResourceId GLESReplay::RenderOverlay(ResourceId texid, FormatComponentType typeH
   gl.glDisable(eGL_SCISSOR_TEST);
   gl.glDepthMask(GL_FALSE);
   gl.glDisable(eGL_CULL_FACE);
-  gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
+  if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+    gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
   gl.glDisable(eGL_DEPTH_TEST);
   gl.glDisable(eGL_STENCIL_TEST);
   gl.glStencilMask(0);
@@ -1922,7 +1923,8 @@ ResourceId GLESReplay::RenderOverlay(ResourceId texid, FormatComponentType typeH
     wireCol[3] = 1.0f;
     gl.glProgramUniform4fv(DebugData.fixedcolFSProg, colLoc, 1, wireCol);
 
-    gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_LINE_NV);
+    if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+      gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_LINE_NV);
 
     ReplayLog(eventID, eReplay_OnlyDraw);
   }
@@ -2339,7 +2341,8 @@ ResourceId GLESReplay::RenderOverlay(ResourceId texid, FormatComponentType typeH
           gl.glDisable(eGL_SCISSOR_TEST);
           gl.glDepthMask(GL_FALSE);
           gl.glDisable(eGL_CULL_FACE);
-          gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
+          if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+            gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
           gl.glDisable(eGL_DEPTH_TEST);
           gl.glDisable(eGL_STENCIL_TEST);
           gl.glStencilMask(0);
@@ -3620,7 +3623,8 @@ void GLESReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondar
   {
     uboParams.displayFormat = MESHDISPLAY_SOLID;
 
-    gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_LINE_NV);
+    if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+      gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_LINE_NV);
 
     // secondary draws have to come from gl_Position which is float4
     gl.glVertexAttribFormat(0, 4, eGL_FLOAT, GL_FALSE, 0);
@@ -3805,7 +3809,8 @@ void GLESReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondar
     if(cfg.second.buf != ResourceId())
       gl.glEnableVertexAttribArray(1);
 
-    gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
+    if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+      gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
 
     if(cfg.position.idxByteWidth)
     {
@@ -3844,7 +3849,8 @@ void GLESReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondar
 
     uboParams.displayFormat = MESHDISPLAY_SOLID;
 
-    gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_LINE_NV);
+    if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+      gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_LINE_NV);
 
     uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                 GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
@@ -3967,7 +3973,8 @@ void GLESReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondar
     gl.glDrawArrays(eGL_LINES, 0, 24);
   }
 
-  gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
+  if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+    gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
 
   // show highlighted vertex
   if(cfg.highlightVert != ~0U)

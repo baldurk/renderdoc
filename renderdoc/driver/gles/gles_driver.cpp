@@ -1497,13 +1497,14 @@ struct RenderTextState
       gl.glGetIntegerv(eGL_BLEND_DST_ALPHA, (GLint *)&DestinationAlpha);
     }
 
-    if(!VendorCheck[VendorCheck_AMD_polygon_mode_query])
+    if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
     {
       GLenum dummy[2] = {eGL_FILL_NV, eGL_FILL_NV};
       // docs suggest this is enumeration[2] even though polygon mode can't be set independently for
       // front
       // and back faces.
-      gl.glGetIntegerv(eGL_POLYGON_MODE_NV, (GLint *)&dummy);
+      // TODO PEPE
+      // gl.glGetIntegerv(eGL_POLYGON_MODE_NV, (GLint *)&dummy);
       PolygonMode = dummy[0];
     }
     else
@@ -1595,7 +1596,8 @@ struct RenderTextState
       gl.glBlendEquationSeparate(EquationRGB, EquationAlpha);
     }
 
-    gl.glPolygonModeNV(eGL_FRONT_AND_BACK, PolygonMode);
+    if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+      gl.glPolygonModeNV(eGL_FRONT_AND_BACK, PolygonMode);
 
     if(modern)
       gl.glViewportIndexedfNV(0, Viewportf[0], Viewportf[1], Viewportf[2], Viewportf[3]);
@@ -1751,7 +1753,9 @@ void WrappedGLES::RenderOverlayStr(float x, float y, const char *text)
     // set viewport & scissor
     gl.glViewportIndexedfNV(0, 0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
     gl.glDisablei(eGL_SCISSOR_TEST, 0);
-    gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
+    
+    if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+      gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
 
     // bind UBOs
     gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.GeneralUBO);
@@ -1797,7 +1801,9 @@ void WrappedGLES::RenderOverlayStr(float x, float y, const char *text)
     // set viewport & scissor
     gl.glViewport(0, 0, (GLsizei)m_InitParams.width, (GLsizei)m_InitParams.height);
     gl.glDisable(eGL_SCISSOR_TEST);
-    gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
+    
+    if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+      gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
 
     // bind textures
     gl.glActiveTexture(eGL_TEXTURE0);
