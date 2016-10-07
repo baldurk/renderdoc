@@ -41,7 +41,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1300</width>
+     <width>1200</width>
      <height>18</height>
     </rect>
    </property>
@@ -80,39 +80,39 @@
      <property name="title">
       <string>&amp;Save Layout</string>
      </property>
-     <addaction name="action_Default_Layout"/>
+     <addaction name="action_Save_Default_Layout"/>
      <addaction name="separator"/>
-     <addaction name="actionLayout_2"/>
-     <addaction name="actionLayout_3"/>
-     <addaction name="actionLayout_4"/>
-     <addaction name="actionLayout_5"/>
-     <addaction name="actionLayout_6"/>
-     <addaction name="actionLayout_7"/>
+     <addaction name="action_Save_Layout_1"/>
+     <addaction name="action_Save_Layout_2"/>
+     <addaction name="action_Save_Layout_3"/>
+     <addaction name="action_Save_Layout_4"/>
+     <addaction name="action_Save_Layout_5"/>
+     <addaction name="action_Save_Layout_6"/>
     </widget>
     <widget class="QMenu" name="menu_Load_Layout">
      <property name="title">
       <string>&amp;Load Layout</string>
      </property>
-     <addaction name="action_Default_Layout_2"/>
+     <addaction name="action_Load_Default_Layout"/>
      <addaction name="separator"/>
-     <addaction name="actionLayout_8"/>
-     <addaction name="actionLayout_9"/>
-     <addaction name="actionLayout_10"/>
-     <addaction name="actionLayout_11"/>
-     <addaction name="actionLayout_12"/>
-     <addaction name="actionLayout_13"/>
+     <addaction name="action_Load_Layout_1"/>
+     <addaction name="action_Load_Layout_2"/>
+     <addaction name="action_Load_Layout_3"/>
+     <addaction name="action_Load_Layout_4"/>
+     <addaction name="action_Load_Layout_5"/>
+     <addaction name="action_Load_Layout_6"/>
     </widget>
     <addaction name="menu_Save_Layout"/>
     <addaction name="menu_Load_Layout"/>
     <addaction name="separator"/>
-    <addaction name="actionP_ython_Shell"/>
+    <addaction name="action_Python_Shell"/>
     <addaction name="action_Event_Viewer"/>
     <addaction name="action_Texture_Viewer"/>
     <addaction name="action_Pipeline_State"/>
     <addaction name="action_API_Inspector"/>
     <addaction name="action_Mesh_Output"/>
-    <addaction name="actionLog_Errors_and_Warnings"/>
-    <addaction name="actionT_imeline"/>
+    <addaction name="action_Errors_and_Warnings"/>
+    <addaction name="action_Timeline"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
     <property name="title">
@@ -194,7 +194,7 @@
     <string>Alt+F4</string>
    </property>
   </action>
-  <action name="actionP_ython_Shell">
+  <action name="action_Python_Shell">
    <property name="text">
     <string>P&amp;ython Shell</string>
    </property>
@@ -224,12 +224,12 @@
     <string>&amp;Mesh Output</string>
    </property>
   </action>
-  <action name="actionLog_Errors_and_Warnings">
+  <action name="action_Errors_and_Warnings">
    <property name="text">
     <string>Log Errors and &amp;Warnings</string>
    </property>
   </action>
-  <action name="actionT_imeline">
+  <action name="action_Timeline">
    <property name="text">
     <string>T&amp;imeline</string>
    </property>
@@ -239,32 +239,32 @@
     <string>Layout 1</string>
    </property>
   </action>
-  <action name="action_Default_Layout">
+  <action name="action_Save_Default_Layout">
    <property name="text">
     <string>&amp;Default Layout</string>
    </property>
   </action>
-  <action name="action_Default_Layout_2">
+  <action name="action_Load_Default_Layout">
    <property name="text">
     <string>&amp;Default Layout</string>
    </property>
   </action>
-  <action name="actionLayout_2">
+  <action name="action_Save_Layout_1">
    <property name="text">
     <string>Layout &amp;1</string>
    </property>
   </action>
-  <action name="actionLayout_3">
+  <action name="action_Save_Layout_2">
    <property name="text">
     <string>Layout &amp;2</string>
    </property>
   </action>
-  <action name="actionLayout_4">
+  <action name="action_Save_Layout_3">
    <property name="text">
     <string>Layout &amp;3</string>
    </property>
   </action>
-  <action name="actionLayout_5">
+  <action name="action_Save_Layout_4">
    <property name="text">
     <string>Layout &amp;4</string>
    </property>
@@ -274,42 +274,42 @@
     <string>Layout &amp;5</string>
    </property>
   </action>
-  <action name="actionLayout_6">
+  <action name="action_Save_Layout_5">
    <property name="text">
     <string>Layout &amp;5</string>
    </property>
   </action>
-  <action name="actionLayout_7">
+  <action name="action_Save_Layout_6">
    <property name="text">
     <string>Layout &amp;6</string>
    </property>
   </action>
-  <action name="actionLayout_8">
+  <action name="action_Load_Layout_1">
    <property name="text">
     <string>Layout &amp;1</string>
    </property>
   </action>
-  <action name="actionLayout_9">
+  <action name="action_Load_Layout_2">
    <property name="text">
     <string>Layout &amp;2</string>
    </property>
   </action>
-  <action name="actionLayout_10">
+  <action name="action_Load_Layout_3">
    <property name="text">
     <string>Layout &amp;3</string>
    </property>
   </action>
-  <action name="actionLayout_11">
+  <action name="action_Load_Layout_4">
    <property name="text">
     <string>Layout &amp;4</string>
    </property>
   </action>
-  <action name="actionLayout_12">
+  <action name="action_Load_Layout_5">
    <property name="text">
     <string>Layout &amp;5</string>
    </property>
   </action>
-  <action name="actionLayout_13">
+  <action name="action_Load_Layout_6">
    <property name="text">
     <string>Layout &amp;6</string>
    </property>

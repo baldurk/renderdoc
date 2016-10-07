@@ -27,6 +27,7 @@
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QMetaObject>
+#include <QStandardPaths>
 #include <QTimer>
 #include "Windows/MainWindow.h"
 
@@ -65,6 +66,17 @@ CaptureContext::~CaptureContext()
 bool CaptureContext::isRunning()
 {
   return m_MainWindow && m_MainWindow->isVisible();
+}
+
+QString CaptureContext::ConfigFile(const QString &filename)
+{
+  QString path = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+
+  QDir dir(path);
+  if(!dir.exists())
+    dir.mkdir(".");
+
+  return QDir::cleanPath(dir.absoluteFilePath(filename));
 }
 
 void CaptureContext::LoadLogfile(QString logFile, bool temporary)

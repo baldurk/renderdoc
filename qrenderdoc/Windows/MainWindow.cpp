@@ -25,6 +25,7 @@
 #include "MainWindow.h"
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QJsonDocument>
 #include "Code/CaptureContext.h"
 #include "Windows/AboutDialog.h"
 #include "EventBrowser.h"
@@ -35,23 +36,87 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
 {
   ui->setupUi(this);
 
-  EventBrowser *eventbrowser = new EventBrowser(ctx);
+  QObject::connect(ui->action_Load_Default_Layout, &QAction::triggered, this,
+                   &MainWindow::loadLayout_triggered);
+  QObject::connect(ui->action_Load_Layout_1, &QAction::triggered, this,
+                   &MainWindow::loadLayout_triggered);
+  QObject::connect(ui->action_Load_Layout_2, &QAction::triggered, this,
+                   &MainWindow::loadLayout_triggered);
+  QObject::connect(ui->action_Load_Layout_3, &QAction::triggered, this,
+                   &MainWindow::loadLayout_triggered);
+  QObject::connect(ui->action_Load_Layout_4, &QAction::triggered, this,
+                   &MainWindow::loadLayout_triggered);
+  QObject::connect(ui->action_Load_Layout_5, &QAction::triggered, this,
+                   &MainWindow::loadLayout_triggered);
+  QObject::connect(ui->action_Load_Layout_6, &QAction::triggered, this,
+                   &MainWindow::loadLayout_triggered);
 
-  ui->toolWindowManager->addToolWindow(eventbrowser, ToolWindowManager::EmptySpace);
-
-  TextureViewer *textureviewer = new TextureViewer(ctx);
-
-  ui->toolWindowManager->addToolWindow(
-      textureviewer,
-      ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
-                                       ui->toolWindowManager->areaOf(eventbrowser), 0.75f));
+  QObject::connect(ui->action_Save_Default_Layout, &QAction::triggered, this,
+                   &MainWindow::saveLayout_triggered);
+  QObject::connect(ui->action_Save_Layout_1, &QAction::triggered, this,
+                   &MainWindow::saveLayout_triggered);
+  QObject::connect(ui->action_Save_Layout_2, &QAction::triggered, this,
+                   &MainWindow::saveLayout_triggered);
+  QObject::connect(ui->action_Save_Layout_3, &QAction::triggered, this,
+                   &MainWindow::saveLayout_triggered);
+  QObject::connect(ui->action_Save_Layout_4, &QAction::triggered, this,
+                   &MainWindow::saveLayout_triggered);
+  QObject::connect(ui->action_Save_Layout_5, &QAction::triggered, this,
+                   &MainWindow::saveLayout_triggered);
+  QObject::connect(ui->action_Save_Layout_6, &QAction::triggered, this,
+                   &MainWindow::saveLayout_triggered);
 
   ui->toolWindowManager->setRubberBandLineWidth(50);
+  ui->toolWindowManager->setToolWindowCreateCallback([this](const QString &objectName) -> QWidget * {
+    if(objectName == "textureViewer")
+    {
+      TextureViewer *textureViewer = new TextureViewer(m_Ctx);
+      textureViewer->setObjectName("textureViewer");
+      return textureViewer;
+    }
+    else if(objectName == "eventBrowser")
+    {
+      EventBrowser *eventBrowser = new EventBrowser(m_Ctx);
+      eventBrowser->setObjectName("eventBrowser");
+      return eventBrowser;
+    }
+
+    return NULL;
+  });
+
+  bool loaded = LoadLayout(0);
+
+  // create default layout if layout failed to load
+  if(!loaded)
+  {
+    EventBrowser *eventBrowser = new EventBrowser(m_Ctx);
+    eventBrowser->setObjectName("eventBrowser");
+
+    ui->toolWindowManager->addToolWindow(eventBrowser, ToolWindowManager::EmptySpace);
+
+    TextureViewer *textureViewer = new TextureViewer(m_Ctx);
+    textureViewer->setObjectName("textureViewer");
+
+    ui->toolWindowManager->addToolWindow(
+        textureViewer,
+        ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
+                                         ui->toolWindowManager->areaOf(eventBrowser), 0.75f));
+  }
 }
 
 MainWindow::~MainWindow()
 {
   delete ui;
+}
+
+QString MainWindow::GetLayoutPath(int layout)
+{
+  QString filename = "DefaultLayout.config";
+
+  if(layout > 0)
+    filename = QString("Layout%1.config").arg(layout);
+
+  return m_Ctx->ConfigFile(filename);
 }
 
 void MainWindow::on_action_Exit_triggered()
@@ -79,4 +144,176 @@ void MainWindow::on_action_About_triggered()
 {
   AboutDialog about(this);
   RDDialog::show(&about);
+}
+
+void MainWindow::on_action_Mesh_Output_triggered()
+{
+}
+
+void MainWindow::on_action_Event_Viewer_triggered()
+{
+  EventBrowser *eventBrowser = new EventBrowser(m_Ctx);
+  eventBrowser->setObjectName("eventBrowser");
+
+  ui->toolWindowManager->addToolWindow(eventBrowser, ToolWindowManager::EmptySpace);
+}
+
+void MainWindow::on_action_Texture_Viewer_triggered()
+{
+  TextureViewer *textureViewer = new TextureViewer(m_Ctx);
+  textureViewer->setObjectName("textureViewer");
+
+  ui->toolWindowManager->addToolWindow(textureViewer, ToolWindowManager::EmptySpace);
+}
+
+void MainWindow::saveLayout_triggered()
+{
+  LoadSaveLayout(qobject_cast<QAction *>(QObject::sender()), true);
+}
+
+void MainWindow::loadLayout_triggered()
+{
+  LoadSaveLayout(qobject_cast<QAction *>(QObject::sender()), false);
+}
+
+void MainWindow::closeEvent(QCloseEvent *event)
+{
+  SaveLayout(0);
+}
+
+void MainWindow::LoadSaveLayout(QAction *action, bool save)
+{
+  if(action == NULL)
+  {
+    qWarning() << "NULL action passed to LoadSaveLayout - bad signal?";
+    return;
+  }
+
+  bool success = false;
+
+  if(action == ui->action_Save_Default_Layout)
+  {
+    success = SaveLayout(0);
+  }
+  else if(action == ui->action_Load_Default_Layout)
+  {
+    success = LoadLayout(0);
+  }
+  else
+  {
+    QString name = action->objectName();
+    name.remove(0, name.size() - 1);
+    int idx = name.toInt();
+
+    if(idx > 0)
+    {
+      if(save)
+        success = SaveLayout(idx);
+      else
+        success = LoadLayout(idx);
+    }
+  }
+
+  if(!success)
+  {
+    if(save)
+      RDDialog::critical(this, "Error saving layout", "Couldn't save layout");
+    else
+      RDDialog::critical(this, "Error loading layout", "Couldn't load layout");
+  }
+}
+
+QVariantMap MainWindow::saveState()
+{
+  QVariantMap state = ui->toolWindowManager->saveState();
+
+  // marker that this is indeed a valid state to load from
+  state["renderdocLayoutData"] = 1;
+
+  state["mainWindowGeometry"] = saveGeometry().toBase64();
+
+  return state;
+}
+
+bool MainWindow::restoreState(QVariantMap &state)
+{
+  restoreGeometry(QByteArray::fromBase64(state["mainWindowGeometry"].toByteArray()));
+
+  ui->toolWindowManager->restoreState(state);
+
+  return true;
+}
+
+bool MainWindow::SaveLayout(int layout)
+{
+  QString path = GetLayoutPath(layout);
+
+  QVariantMap state = saveState();
+
+  QFile f(path);
+  if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+  {
+    QJsonDocument doc = QJsonDocument::fromVariant(state);
+
+    if(doc.isEmpty() || doc.isNull())
+    {
+      qCritical() << "Failed to convert state data to JSON document";
+      return false;
+    }
+
+    QByteArray jsontext = doc.toJson(QJsonDocument::Indented);
+
+    qint64 ret = f.write(jsontext);
+
+    if(ret != jsontext.size())
+    {
+      qCritical() << "Failed to write JSON data to file: " << ret << " " << f.errorString();
+      return false;
+    }
+
+    return true;
+  }
+
+  qWarning() << "Couldn't write to " << path << " " << f.errorString();
+
+  return false;
+}
+
+bool MainWindow::LoadLayout(int layout)
+{
+  QString path = GetLayoutPath(layout);
+
+  QFile f(path);
+  if(f.open(QIODevice::ReadOnly | QIODevice::Text))
+  {
+    QByteArray json = f.readAll();
+
+    if(json.isEmpty())
+    {
+      qCritical() << "Read invalid empty JSON data from file " << f.errorString();
+      return false;
+    }
+
+    QJsonDocument doc = QJsonDocument::fromJson(json);
+
+    if(doc.isEmpty() || doc.isNull())
+    {
+      qCritical() << "Failed to convert file to JSON document";
+      return false;
+    }
+
+    QVariantMap state = doc.toVariant().toMap();
+
+    if(state.isEmpty() || !state.contains("renderdocLayoutData"))
+    {
+      qCritical() << "Converted state data is invalid or unrecognised";
+      return false;
+    }
+
+    return restoreState(state);
+  }
+
+  qInfo() << "Couldn't load layout from " << path << " " << f.errorString();
+
+  return false;
 }

@@ -61,6 +61,10 @@ public:
 
   bool isRunning();
 
+  QString ConfigFile(const QString &filename);
+
+  QString TempLogFilename(QString appname);
+
   //////////////////////////////////////////////////////////////////////////////
   // Control functions
 
@@ -72,8 +76,6 @@ public:
   void LoadLogfile(int proxyRenderer, QString replayHost, QString logFile, bool temporary);
 
   void CloseLogfile();
-
-  QString TempLogFilename(QString appname);
 
   void SetEventID(ILogViewerForm *exclude, uint32_t eventID);
 

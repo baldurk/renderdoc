@@ -45,13 +45,31 @@ public:
   ~MainWindow();
 
 private slots:
+  // automatic slots
   void on_action_Exit_triggered();
   void on_action_About_triggered();
   void on_action_Open_Log_triggered();
+  void on_action_Mesh_Output_triggered();
+  void on_action_Event_Viewer_triggered();
+  void on_action_Texture_Viewer_triggered();
+
+  // manual slots
+  void saveLayout_triggered();
+  void loadLayout_triggered();
 
 private:
+  void closeEvent(QCloseEvent *event) override;
+
   Ui::MainWindow *ui;
   CaptureContext *m_Ctx;
+
+  QVariantMap saveState();
+  bool restoreState(QVariantMap &state);
+
+  QString GetLayoutPath(int layout);
+  void LoadSaveLayout(QAction *action, bool save);
+  bool LoadLayout(int layout);
+  bool SaveLayout(int layout);
 };
 
 #endif    // MAINWINDOW_H
