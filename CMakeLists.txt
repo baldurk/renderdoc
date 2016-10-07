@@ -7,8 +7,12 @@ if(BUILD_ANDROID)
         CACHE STRING
         "The Android toolchain file")
 
-    # Default to arm64 if nothing is specified on the command line.
-    set(ANDROID_ABI "arm64-v8a" CACHE STRING "The Android ABI to build for")
+    # Set same default API level for ANDROID_ABI=armeabi-v7a as for arm64-v8a.
+    set( ANDROID_DEFAULT_NDK_API_LEVEL_arm 21 )
+
+    # Default to arm32 if nothing is specified on the command line.
+    # Options are {armeabi-v7a,arm64-v8a}
+    set(ANDROID_ABI "armeabi-v7a" CACHE STRING "The Android ABI to build for")
 
     # This will be overridden later, we just need to set it now so that the
     # configuration will continue on to where the toolchain is available
