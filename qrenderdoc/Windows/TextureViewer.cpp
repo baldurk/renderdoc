@@ -176,10 +176,11 @@ QVector<BoundResource> Following::GetOutputTargets(CaptureContext *ctx)
       if(curDraw->copyDestination != ResourceId())
         return {BoundResource(curDraw->copyDestination)};
 
-      auto &texlist = ctx->GetTextures();
-      for(int i = 0; i < texlist.count; i++)
-        if((texlist[i].creationFlags & eTextureCreate_SwapBuffer))
-          return {BoundResource(texlist[i].ID)};
+      for(const FetchTexture &tex : ctx->GetTextures())
+      {
+        if(tex.creationFlags & eTextureCreate_SwapBuffer)
+          return {BoundResource(tex.ID)};
+      }
     }
 
     return ret;
@@ -764,9 +765,9 @@ void TextureViewer::UI_UpdateTextureDetails()
       QString name;
 
       if(followtex)
-        name = followtex->name.elems;
+        name = followtex->name;
       else
-        name = followbuf->name.elems;
+        name = followbuf->name;
 
       switch(m_Following.Type)
       {
@@ -802,7 +803,7 @@ void TextureViewer::UI_UpdateTextureDetails()
     ui->renderContainer->setWindowTitle(title);
   }
 
-  status = QString(current.name.elems) + " - ";
+  status = QString(current.name) + " - ";
 
   if(current.dimension >= 1)
     status += QString::number(current.width);
@@ -819,7 +820,7 @@ void TextureViewer::UI_UpdateTextureDetails()
 
   status += QString(" %1 mips").arg(current.mips);
 
-  status += " - " + QString(current.format.strname.elems);
+  status += " - " + QString(current.format.strname);
 
   if(current.format.compType != m_TexDisplay.typeHint && m_TexDisplay.typeHint != eCompType_None)
   {
@@ -1363,10 +1364,10 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id,
       {
         if(!fullname.isEmpty())
           fullname += " = ";
-        fullname += texptr->name.elems;
+        fullname += texptr->name;
       }
       if(fullname.isEmpty())
-        fullname = texptr->name.elems;
+        fullname = texptr->name;
 
       prev->setResourceName(fullname);
       WId handle = prev->thumbWinId();
@@ -1381,10 +1382,10 @@ void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id,
       {
         if(!fullname.isEmpty())
           fullname += " = ";
-        fullname += bufptr->name.elems;
+        fullname += bufptr->name;
       }
       if(fullname.isEmpty())
-        fullname = bufptr->name.elems;
+        fullname = bufptr->name;
 
       prev->setResourceName(fullname);
       WId handle = prev->thumbWinId();
@@ -1463,7 +1464,7 @@ void TextureViewer::InitStageResourcePreviews(ShaderStageType stage,
         const ShaderResource &bind = resourceDetails[b];
         if(bind.bindPoint == idx && bind.IsSRV)
         {
-          bindName = bind.name.elems;
+          bindName = bind.name;
           otherBind = true;
           break;
         }

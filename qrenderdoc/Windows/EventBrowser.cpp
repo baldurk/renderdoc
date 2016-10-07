@@ -131,8 +131,7 @@ uint EventBrowser::AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<Fe
   for(int32_t i = 0; i < draws.count; i++)
   {
     QTreeWidgetItem *child = new QTreeWidgetItem(
-        parent,
-        QStringList{QString(draws[i].name.elems), QString("%1").arg(draws[i].eventID), "0.0"});
+        parent, QStringList{QString(draws[i].name), QString("%1").arg(draws[i].eventID), "0.0"});
 
     lastEID = AddDrawcalls(child, draws[i].children);
 
@@ -170,10 +169,10 @@ void EventBrowser::SetDrawcallTimes(QTreeWidgetItem *node,
 
     duration = -1.0;
 
-    for(int32_t i = 0; i < results.count; i++)
+    for(const CounterResult &r : results)
     {
-      if(results[i].eventID == eid)
-        duration = results[i].value.d;
+      if(r.eventID == eid)
+        duration = r.value.d;
     }
 
     node->setText(COL_DURATION, duration < 0.0f ? "" : QString::number(duration * 1000000.0));

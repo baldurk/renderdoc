@@ -130,9 +130,9 @@ void CaptureContext::LoadLogfile(int proxyRenderer, QString replayHost, QString 
     m_CurWinSystem = eWindowingSystem_Xlib;
 
     // prefer XCB, if supported
-    for(int32_t i = 0; i < m_WinSystems.count; i++)
+    for(WindowingSystem sys : m_WinSystems)
     {
-      if(m_WinSystems[i] == eWindowingSystem_XCB)
+      if(sys == eWindowingSystem_XCB)
       {
         m_CurWinSystem = eWindowingSystem_XCB;
         break;
@@ -146,14 +146,14 @@ void CaptureContext::LoadLogfile(int proxyRenderer, QString replayHost, QString 
 #endif
 
     r->GetBuffers(&m_BufferList);
-    for(int i = 0; i < m_BufferList.count; i++)
-      m_Buffers[m_BufferList[i].ID] = &m_BufferList[i];
+    for(FetchBuffer &b : m_BufferList)
+      m_Buffers[b.ID] = &b;
 
     postloadProgress = 0.8f;
 
     r->GetTextures(&m_TextureList);
-    for(int i = 0; i < m_TextureList.count; i++)
-      m_Textures[m_TextureList[i].ID] = &m_TextureList[i];
+    for(FetchTexture &t : m_TextureList)
+      m_Textures[t.ID] = &t;
 
     postloadProgress = 0.9f;
 

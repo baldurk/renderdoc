@@ -124,8 +124,8 @@ public:
   void AddMessages(rdctype::array<DebugMessage> &msgs)
   {
     UnreadMessageCount += msgs.count;
-    for(int i = 0; i < msgs.count; i++)
-      DebugMessages.push_back(msgs[i]);
+    for(DebugMessage &msg : msgs)
+      DebugMessages.push_back(msg);
   }
 
   WindowingSystem m_CurWinSystem;
@@ -150,17 +150,17 @@ private:
 
   const FetchDrawcall *GetDrawcall(const rdctype::array<FetchDrawcall> &draws, uint32_t eventID)
   {
-    for(int i = 0; i < draws.count; i++)
+    for(const FetchDrawcall &d : draws)
     {
-      if(draws[i].children.count > 0)
+      if(!d.children.empty())
       {
-        const FetchDrawcall *draw = GetDrawcall(draws[i].children, eventID);
+        const FetchDrawcall *draw = GetDrawcall(d.children, eventID);
         if(draw != NULL)
           return draw;
       }
 
-      if(draws[i].eventID == eventID)
-        return &draws[i];
+      if(d.eventID == eventID)
+        return &d;
     }
 
     return NULL;

@@ -75,8 +75,6 @@ struct array
 
   T &operator[](size_t i) { return elems[i]; }
   const T &operator[](size_t i) const { return elems[i]; }
-  // to help simple template specializations for vector/rdctype::array
-  size_t size() { return (size_t)count; }
   array(const T *const in)
   {
     elems = 0;
@@ -135,6 +133,14 @@ struct array
     }
     return *this;
   }
+
+  // provide some of the familiar stl interface
+  size_t size() const { return (size_t)count; }
+  bool empty() const { return count == 0; }
+  T *begin() { return elems ? elems : end(); }
+  T *end() { return elems ? elems + count : NULL; }
+  const T *begin() const { return elems ? elems : end(); }
+  const T *end() const { return elems ? elems + count : NULL; }
 };
 
 struct str : public rdctype::array<char>
@@ -168,6 +174,9 @@ struct str : public rdctype::array<char>
 
     return *this;
   }
+
+  operator const char *() const { return elems ? elems : ""; }
+  const char *c_str() const { return elems ? elems : ""; }
 };
 
 };    // namespace rdctype
