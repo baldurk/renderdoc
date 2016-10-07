@@ -428,12 +428,18 @@ HMODULE WINAPI Hooked_LoadLibraryExA(LPCSTR lpLibFileName, HANDLE fileHandle, DW
   if(flags == 0 && GetModuleHandleA(lpLibFileName))
     dohook = false;
 
+  SetLastError(S_OK);
+
   // we can use the function naked, as when setting up the hook for LoadLibraryExA, our own module
   // was excluded from IAT patching
   HMODULE mod = LoadLibraryExA(lpLibFileName, fileHandle, flags);
 
+  DWORD err = GetLastError();
+
   if(dohook)
     HookAllModules();
+
+  SetLastError(err);
 
   return mod;
 }
@@ -444,12 +450,18 @@ HMODULE WINAPI Hooked_LoadLibraryExW(LPCWSTR lpLibFileName, HANDLE fileHandle, D
   if(flags == 0 && GetModuleHandleW(lpLibFileName))
     dohook = false;
 
+  SetLastError(S_OK);
+
   // we can use the function naked, as when setting up the hook for LoadLibraryExA, our own module
   // was excluded from IAT patching
   HMODULE mod = LoadLibraryExW(lpLibFileName, fileHandle, flags);
 
+  DWORD err = GetLastError();
+
   if(dohook)
     HookAllModules();
+
+  SetLastError(err);
 
   return mod;
 }
@@ -492,6 +504,8 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
         {
           RDCERR("Unexpected ordinal - lower than ordinalbase %u for %s",
                  (uint32_t)it->second.OrdinalBase, it->first.c_str());
+
+          SetLastError(S_OK);
           return GetProcAddress(mod, func);
         }
 
@@ -501,6 +515,8 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
         {
           RDCERR("Unexpected ordinal - higher than fetched ordinal names (%u) for %s",
                  (uint32_t)it->second.OrdinalNames.size(), it->first.c_str());
+
+          SetLastError(S_OK);
           return GetProcAddress(mod, func);
         }
 
@@ -516,6 +532,8 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
         if(found->origptr && *found->origptr == NULL)
           *found->origptr = (void *)GetProcAddress(mod, func);
 
+        SetLastError(S_OK);
+
         if(found->origptr && *found->origptr == NULL)
           return NULL;
 
@@ -523,6 +541,8 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
       }
     }
   }
+
+  SetLastError(S_OK);
 
   return GetProcAddress(mod, func);
 }
