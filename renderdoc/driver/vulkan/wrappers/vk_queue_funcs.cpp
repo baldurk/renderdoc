@@ -467,20 +467,23 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
   byte *memory = GetTempMemory(tempmemSize);
 
   VkSubmitInfo *unwrappedSubmits = (VkSubmitInfo *)memory;
-  VkSemaphore *unwrappedWaitSems = (VkSemaphore *)(unwrappedSubmits + submitCount);
+  memory += sizeof(VkSubmitInfo) * submitCount;
 
   for(uint32_t i = 0; i < submitCount; i++)
   {
     RDCASSERT(pSubmits[i].sType == VK_STRUCTURE_TYPE_SUBMIT_INFO && pSubmits[i].pNext == NULL);
     unwrappedSubmits[i] = pSubmits[i];
 
+    VkSemaphore *unwrappedWaitSems = (VkSemaphore *)memory;
+    memory += sizeof(VkSemaphore) * unwrappedSubmits[i].waitSemaphoreCount;
+
     unwrappedSubmits[i].pWaitSemaphores =
         unwrappedSubmits[i].waitSemaphoreCount ? unwrappedWaitSems : NULL;
     for(uint32_t o = 0; o < unwrappedSubmits[i].waitSemaphoreCount; o++)
       unwrappedWaitSems[o] = Unwrap(pSubmits[i].pWaitSemaphores[o]);
-    unwrappedWaitSems += unwrappedSubmits[i].waitSemaphoreCount;
 
-    VkCommandBuffer *unwrappedCommandBuffers = (VkCommandBuffer *)unwrappedWaitSems;
+    VkCommandBuffer *unwrappedCommandBuffers = (VkCommandBuffer *)memory;
+    memory += sizeof(VkCommandBuffer) * unwrappedSubmits[i].commandBufferCount;
 
     unwrappedSubmits[i].pCommandBuffers =
         unwrappedSubmits[i].commandBufferCount ? unwrappedCommandBuffers : NULL;
@@ -488,7 +491,8 @@ VkResult WrappedVulkan::vkQueueSubmit(VkQueue queue, uint32_t submitCount,
       unwrappedCommandBuffers[o] = Unwrap(pSubmits[i].pCommandBuffers[o]);
     unwrappedCommandBuffers += unwrappedSubmits[i].commandBufferCount;
 
-    VkSemaphore *unwrappedSignalSems = (VkSemaphore *)unwrappedCommandBuffers;
+    VkSemaphore *unwrappedSignalSems = (VkSemaphore *)memory;
+    memory += sizeof(VkSemaphore) * unwrappedSubmits[i].signalSemaphoreCount;
 
     unwrappedSubmits[i].pSignalSemaphores =
         unwrappedSubmits[i].signalSemaphoreCount ? unwrappedSignalSems : NULL;
