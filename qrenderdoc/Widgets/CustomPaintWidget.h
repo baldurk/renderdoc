@@ -35,13 +35,22 @@ private:
   Q_OBJECT
 public:
   explicit CustomPaintWidget(QWidget *parent = 0);
+  explicit CustomPaintWidget(CaptureContext *c, QWidget *parent = 0);
   ~CustomPaintWidget();
 
-  void SetOutput(CaptureContext *c, IReplayOutput *out)
+  // this is needed to solve a chicken-and-egg problem. We need to recreate the widget
+  // whenever we go from custom rendering to painting (e.g. log loaded or closed). But
+  // we need the widget to have been recreated before we create the output, so we can
+  // pass in the winId.
+  // So we go by whether or not we have a CaptureContext * and go on faith that the
+  // output will be set before any painting work has to happen.
+  void setOutput(IReplayOutput *out) { m_Output = out; }
+  void setColours(QColor dark, QColor light)
   {
-    m_Ctx = c;
-    m_Output = out;
+    m_Dark = dark;
+    m_Light = light;
   }
+
 signals:
   void clicked(QMouseEvent *e);
   void mouseMove(QMouseEvent *e);
@@ -60,7 +69,9 @@ public slots:
 
 protected:
   void paintEvent(QPaintEvent *e);
-  QPaintEngine *paintEngine() const { return NULL; }
+  QPaintEngine *paintEngine() const { return m_Ctx ? NULL : QWidget::paintEngine(); }
   CaptureContext *m_Ctx;
   IReplayOutput *m_Output;
+  QColor m_Dark;
+  QColor m_Light;
 };

@@ -29,7 +29,18 @@
 
 CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
 {
+  m_Ctx = NULL;
   m_Output = NULL;
+  setAttribute(Qt::WA_OpaquePaintEvent);
+  setAttribute(Qt::WA_PaintOnScreen);
+  setMouseTracking(true);
+}
+
+CustomPaintWidget::CustomPaintWidget(CaptureContext *c, QWidget *parent) : QWidget(parent)
+{
+  m_Ctx = c;
+  m_Output = NULL;
+  setAttribute(Qt::WA_OpaquePaintEvent);
   setAttribute(Qt::WA_PaintOnScreen);
   setMouseTracking(true);
 }
@@ -65,14 +76,30 @@ void CustomPaintWidget::keyPressEvent(QKeyEvent *e)
 
 void CustomPaintWidget::paintEvent(QPaintEvent *e)
 {
-  if(m_Output)
+  if(m_Ctx)
   {
-    m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) { m_Output->Display(); });
+    if(m_Output != NULL)
+      m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) { m_Output->Display(); });
+  }
+  else if(m_Dark == m_Light)
+  {
+    QPainter p(this);
+    p.fillRect(rect(), m_Dark);
   }
   else
   {
+    int numX = (int)ceil((float)rect().width() / 64.0f);
+    int numY = (int)ceil((float)rect().height() / 64.0f);
+
     QPainter p(this);
-    p.setBrush(QBrush(Qt::black));
-    p.drawRect(rect());
+    for(int x = 0; x < numX; x++)
+    {
+      for(int y = 0; y < numY; y++)
+      {
+        QColor &col = ((x % 2) == (y % 2)) ? m_Dark : m_Light;
+
+        p.fillRect(QRect(x * 64, y * 64, 64, 64), col);
+      }
+    }
   }
 }

@@ -31,7 +31,15 @@ ResourcePreview::ResourcePreview(CaptureContext *c, IReplayOutput *output, QWidg
 {
   ui->setupUi(this);
 
-  ui->thumbnail->SetOutput(c, output);
+  CustomPaintWidget *thumb = new CustomPaintWidget(c, this);
+  thumb->setOutput(output);
+  thumb->setObjectName(ui->thumbnail->objectName());
+  thumb->setSizePolicy(ui->thumbnail->sizePolicy());
+  thumb->setMinimumSize(QSize(0, 0));
+
+  delete ui->thumbnail;
+  ui->thumbnail = thumb;
+  ui->gridLayout->addWidget(ui->thumbnail, 0, 0, 1, 2);
 
   QPalette Pal(ui->slotLabel->palette());
 

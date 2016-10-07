@@ -43,13 +43,13 @@ ThumbnailStrip::~ThumbnailStrip()
   delete ui;
 }
 
-void ThumbnailStrip::AddPreview(ResourcePreview *prev)
+void ThumbnailStrip::addThumb(ResourcePreview *prev)
 {
   layout->addWidget(prev);
   m_Thumbnails.push_back(prev);
 }
 
-void ThumbnailStrip::ClearThumbnails()
+void ThumbnailStrip::clearThumbs()
 {
   for(ResourcePreview *p : m_Thumbnails)
   {
@@ -62,7 +62,7 @@ void ThumbnailStrip::ClearThumbnails()
 
 void ThumbnailStrip::resizeEvent(QResizeEvent *event)
 {
-  RefreshLayout();
+  refreshLayout();
 }
 
 void ThumbnailStrip::mousePressEvent(QMouseEvent *event)
@@ -72,10 +72,10 @@ void ThumbnailStrip::mousePressEvent(QMouseEvent *event)
 
 void ThumbnailStrip::showEvent(QShowEvent *event)
 {
-  RefreshLayout();
+  refreshLayout();
 }
 
-void ThumbnailStrip::RefreshLayout()
+void ThumbnailStrip::refreshLayout()
 {
   QRect avail = geometry();
   avail.adjust(6, 6, -6, -6);

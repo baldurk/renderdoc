@@ -170,6 +170,8 @@ private:
   void RT_PickHoverAndUpdate(IReplayRenderer *);
   void RT_UpdateAndDisplay(IReplayRenderer *);
 
+  void UI_RecreatePanels();
+
   void UI_UpdateStatusText();
   void UI_UpdateTextureDetails();
   void UI_OnTextureSelectionChanged(bool newdraw);

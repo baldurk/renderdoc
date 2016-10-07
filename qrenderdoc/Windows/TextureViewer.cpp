@@ -318,9 +318,6 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
-  ui->render->SetOutput(m_Ctx, NULL);
-  ui->pixelContext->SetOutput(m_Ctx, NULL);
-
   m_Ctx->AddLogViewer(this);
 
   memset(&m_TexDisplay, 0, sizeof(m_TexDisplay));
@@ -329,18 +326,6 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
   m_TexDisplay.rangemax = 1.0f;
 
   on_checkerBack_clicked();
-
-  QWidget *renderContainer = ui->renderContainer;
-
-  QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &TextureViewer::render_mouseClick);
-  QObject::connect(ui->render, &CustomPaintWidget::mouseMove, this, &TextureViewer::render_mouseMove);
-  QObject::connect(ui->render, &CustomPaintWidget::mouseWheel, this,
-                   &TextureViewer::render_mouseWheel);
-  QObject::connect(ui->render, &CustomPaintWidget::resize, this, &TextureViewer::render_resize);
-  QObject::connect(ui->render, &CustomPaintWidget::keyPress, this, &TextureViewer::render_keyPress);
-
-  QObject::connect(ui->pixelContext, &CustomPaintWidget::keyPress, this,
-                   &TextureViewer::render_keyPress);
 
   QObject::connect(ui->zoomOption->lineEdit(), &QLineEdit::returnPressed, this,
                    &TextureViewer::zoomOption_returnPressed);
@@ -366,6 +351,8 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
                    &TextureViewer::channelsWidget_selected);
   QObject::connect(ui->customShader, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
                    &TextureViewer::channelsWidget_selected);
+
+  QWidget *renderContainer = ui->renderContainer;
 
   ui->dockarea->addToolWindow(ui->renderContainer, ToolWindowManager::EmptySpace);
   ui->dockarea->setToolWindowProperties(renderContainer, ToolWindowManager::DisallowUserDocking |
@@ -1331,13 +1318,13 @@ ResourcePreview *TextureViewer::UI_CreateThumbnail(ThumbnailStrip *strip)
   QObject::connect(prev, &ResourcePreview::clicked, this, &TextureViewer::thumb_clicked);
 
   prev->setActive(false);
-  strip->AddPreview(prev);
+  strip->addThumb(prev);
   return prev;
 }
 
 void TextureViewer::UI_CreateThumbnails()
 {
-  if(!ui->outputThumbs->GetThumbs().isEmpty())
+  if(!ui->outputThumbs->thumbs().isEmpty())
     return;
 
   // these will expand, but we make sure that there is a good set reserved
@@ -1519,9 +1506,9 @@ void TextureViewer::InitStageResourcePreviews(ShaderStageType stage,
 
       ResourcePreview *prev = NULL;
 
-      if(prevIndex < prevs->GetThumbs().size())
+      if(prevIndex < prevs->thumbs().size())
       {
-        prev = prevs->GetThumbs()[prevIndex];
+        prev = prevs->thumbs()[prevIndex];
 
         // don't use it if we're not actually going to show it
         if(!show && !prev->isActive())
@@ -1551,10 +1538,10 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
 
     Following follow = prev->property("f").value<Following>();
 
-    for(ResourcePreview *p : ui->outputThumbs->GetThumbs())
+    for(ResourcePreview *p : ui->outputThumbs->thumbs())
       p->setSelected(false);
 
-    for(ResourcePreview *p : ui->inputThumbs->GetThumbs())
+    for(ResourcePreview *p : ui->inputThumbs->thumbs())
       p->setSelected(false);
 
     m_Following = follow;
@@ -1829,8 +1816,50 @@ void TextureViewer::on_renderVScroll_valueChanged(int position)
   ScrollUpdateScrollbars = true;
 }
 
+void TextureViewer::UI_RecreatePanels()
+{
+  CaptureContext *ctx = m_Ctx;
+
+  // while a log is loaded, pass NULL into the widget
+  if(!ctx->LogLoaded())
+    ctx = NULL;
+
+  {
+    CustomPaintWidget *render = new CustomPaintWidget(ctx, ui->renderContainer);
+    render->setObjectName(ui->render->objectName());
+    render->setSizePolicy(ui->render->sizePolicy());
+    delete ui->render;
+    ui->render = render;
+    ui->gridLayout->addWidget(render, 1, 0, 1, 1);
+  }
+
+  {
+    CustomPaintWidget *pixelContext = new CustomPaintWidget(ctx, ui->pixelContextLayout);
+    pixelContext->setObjectName(ui->pixelContext->objectName());
+    pixelContext->setSizePolicy(ui->pixelContext->sizePolicy());
+    delete ui->pixelContext;
+    ui->pixelContext = pixelContext;
+    ui->pixelcontextgrid->addWidget(pixelContext, 0, 0, 1, 2);
+  }
+
+  ui->render->setColours(darkBack, lightBack);
+  ui->pixelContext->setColours(darkBack, lightBack);
+
+  QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &TextureViewer::render_mouseClick);
+  QObject::connect(ui->render, &CustomPaintWidget::mouseMove, this, &TextureViewer::render_mouseMove);
+  QObject::connect(ui->render, &CustomPaintWidget::mouseWheel, this,
+                   &TextureViewer::render_mouseWheel);
+  QObject::connect(ui->render, &CustomPaintWidget::resize, this, &TextureViewer::render_resize);
+  QObject::connect(ui->render, &CustomPaintWidget::keyPress, this, &TextureViewer::render_keyPress);
+
+  QObject::connect(ui->pixelContext, &CustomPaintWidget::keyPress, this,
+                   &TextureViewer::render_keyPress);
+}
+
 void TextureViewer::OnLogfileLoaded()
 {
+  UI_RecreatePanels();
+
   WId renderID = ui->render->winId();
   WId contextID = ui->pixelContext->winId();
 
@@ -1845,7 +1874,8 @@ void TextureViewer::OnLogfileLoaded()
 
     m_Output->SetPixelContext(m_Ctx->m_CurWinSystem, m_Ctx->FillWindowingData(contextID));
 
-    ui->render->SetOutput(m_Ctx, m_Output);
+    ui->render->setOutput(m_Output);
+    ui->pixelContext->setOutput(m_Output);
 
     OutputConfig c = {eOutputType_TexDisplay};
     m_Output->SetOutputConfig(c);
@@ -1855,7 +1885,10 @@ void TextureViewer::OnLogfileLoaded()
 void TextureViewer::OnLogfileClosed()
 {
   m_Output = NULL;
-  ui->render->SetOutput(m_Ctx, NULL);
+
+  UI_RecreatePanels();
+
+  ui->inputThumbs->clearThumbs();
 
   m_TextureSettings.clear();
 
@@ -1887,8 +1920,8 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
   {
     ResourcePreview *prev;
 
-    if(outIndex < ui->outputThumbs->GetThumbs().size())
-      prev = ui->outputThumbs->GetThumbs()[outIndex];
+    if(outIndex < ui->outputThumbs->thumbs().size())
+      prev = ui->outputThumbs->thumbs()[outIndex];
     else
       prev = UI_CreateThumbnail(ui->outputThumbs);
 
@@ -1906,8 +1939,8 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
   {
     ResourcePreview *prev;
 
-    if(outIndex < ui->outputThumbs->GetThumbs().size())
-      prev = ui->outputThumbs->GetThumbs()[outIndex];
+    if(outIndex < ui->outputThumbs->thumbs().size())
+      prev = ui->outputThumbs->thumbs()[outIndex];
     else
       prev = UI_CreateThumbnail(ui->outputThumbs);
 
@@ -1951,7 +1984,7 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
   }
 
   // hide others
-  const QVector<ResourcePreview *> &outThumbs = ui->outputThumbs->GetThumbs();
+  const QVector<ResourcePreview *> &outThumbs = ui->outputThumbs->thumbs();
 
   for(; outIndex < outThumbs.size(); outIndex++)
   {
@@ -1961,9 +1994,9 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
     prev->setSelected(false);
   }
 
-  ui->outputThumbs->RefreshLayout();
+  ui->outputThumbs->refreshLayout();
 
-  const QVector<ResourcePreview *> &inThumbs = ui->inputThumbs->GetThumbs();
+  const QVector<ResourcePreview *> &inThumbs = ui->inputThumbs->thumbs();
 
   for(; inIndex < inThumbs.size(); inIndex++)
   {
@@ -1973,7 +2006,7 @@ void TextureViewer::OnEventSelected(uint32_t eventID)
     prev->setSelected(false);
   }
 
-  ui->inputThumbs->RefreshLayout();
+  ui->inputThumbs->refreshLayout();
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 
@@ -2013,6 +2046,9 @@ void TextureViewer::setPersistData(const QVariant &persistData)
       FloatVector(darkBack.redF(), darkBack.greenF(), darkBack.blueF(), 1.0f);
   m_TexDisplay.lightBackgroundColour =
       FloatVector(lightBack.redF(), lightBack.greenF(), lightBack.blueF(), 1.0f);
+
+  ui->render->setColours(darkBack, lightBack);
+  ui->pixelContext->setColours(darkBack, lightBack);
 
   ui->dockarea->restoreState(state);
 }
@@ -2168,6 +2204,9 @@ void TextureViewer::on_backcolorPick_clicked()
 
   darkBack = lightBack = col;
 
+  ui->render->setColours(darkBack, lightBack);
+  ui->pixelContext->setColours(darkBack, lightBack);
+
   ui->backcolorPick->setChecked(true);
   ui->checkerBack->setChecked(false);
 
@@ -2195,6 +2234,9 @@ void TextureViewer::on_checkerBack_clicked()
   lightBack = QColor::fromRgb(int(m_TexDisplay.lightBackgroundColour.x * 255.0f),
                               int(m_TexDisplay.lightBackgroundColour.y * 255.0f),
                               int(m_TexDisplay.lightBackgroundColour.z * 255.0f));
+
+  ui->render->setColours(darkBack, lightBack);
+  ui->pixelContext->setColours(darkBack, lightBack);
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 

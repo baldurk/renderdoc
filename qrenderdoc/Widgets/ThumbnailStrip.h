@@ -43,11 +43,11 @@ public:
   explicit ThumbnailStrip(QWidget *parent = 0);
   ~ThumbnailStrip();
 
-  void AddPreview(ResourcePreview *prev);
+  void addThumb(ResourcePreview *prev);
 
-  void ClearThumbnails();
-  const QVector<ResourcePreview *> &GetThumbs() { return m_Thumbnails; }
-  void RefreshLayout();
+  void clearThumbs();
+  const QVector<ResourcePreview *> &thumbs() { return m_Thumbnails; }
+  void refreshLayout();
 
 signals:
   void mouseClick(QMouseEvent *event);

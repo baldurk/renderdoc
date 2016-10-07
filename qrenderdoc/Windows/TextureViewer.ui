@@ -932,9 +932,6 @@
           <verstretch>0</verstretch>
          </sizepolicy>
         </property>
-        <property name="styleSheet">
-         <string notr="true"/>
-        </property>
        </widget>
       </item>
       <item row="1" column="1">
@@ -1095,14 +1092,14 @@
  </widget>
  <customwidgets>
   <customwidget>
-   <class>CustomPaintWidget</class>
-   <extends>QWidget</extends>
-   <header>Widgets/CustomPaintWidget.h</header>
-  </customwidget>
-  <customwidget>
    <class>ToolWindowManager</class>
    <extends>QWidget</extends>
    <header>ToolWindowManager.h</header>
+  </customwidget>
+  <customwidget>
+   <class>CustomPaintWidget</class>
+   <extends>QWidget</extends>
+   <header>Widgets/CustomPaintWidget.h</header>
   </customwidget>
   <customwidget>
    <class>ThumbnailStrip</class>
