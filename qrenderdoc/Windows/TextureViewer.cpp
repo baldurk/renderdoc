@@ -837,7 +837,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
   bool newtex = (m_TexDisplay.texid != tex.ID);
 
   // save settings for this current texture
-  // if (m_Ctx->Config.TextureViewer_PerTexSettings)
+  if(m_Ctx->Config.TextureViewer_PerTexSettings)
   {
     m_TextureSettings[m_TexDisplay.texid].r = ui->channelRed->isChecked();
     m_TextureSettings[m_TexDisplay.texid].g = ui->channelGreen->isChecked();
@@ -1030,7 +1030,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
   // even if we don't switch to a new texture.
   // Note that if the slice or mip was changed because that slice or mip is the selected one
   // at the API level, we leave this alone.
-  if(/*m_Ctx->Config.TextureViewer_PerTexSettings &&*/ m_TextureSettings.contains(tex.ID))
+  if(m_Ctx->Config.TextureViewer_PerTexSettings && m_TextureSettings.contains(tex.ID))
   {
     if(usemipsettings)
       ui->mipLevel->setCurrentIndex(m_TextureSettings[tex.ID].mip);
@@ -1043,7 +1043,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
   if(newtex)
   {
     // if we save certain settings per-texture, restore them (if we have any)
-    if(/*m_Ctx->Config.TextureViewer_PerTexSettings &&*/ m_TextureSettings.contains(tex.ID))
+    if(m_Ctx->Config.TextureViewer_PerTexSettings && m_TextureSettings.contains(tex.ID))
     {
       ui->channels->setCurrentIndex(m_TextureSettings[tex.ID].displayType);
 
@@ -1062,7 +1062,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
       // m_TextureSettings[m_TexDisplay.texid].maxrange);
       // norangePaint = false;
     }
-    else    // if (m_Ctx->Config.TextureViewer_PerTexSettings)
+    else if(m_Ctx->Config.TextureViewer_PerTexSettings)
     {
       // if we are using per-tex settings, reset back to RGB
       ui->channels->setCurrentIndex(0);
@@ -1083,7 +1083,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
     }
 
     // reset the range if desired
-    // if (m_Core.Config.TextureViewer_ResetRange)
+    if(m_Ctx->Config.TextureViewer_ResetRange)
     {
       // UI_SetHistogramRange(tex, m_TexDisplay.typeHint);
     }
