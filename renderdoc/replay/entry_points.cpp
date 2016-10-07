@@ -288,8 +288,9 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogMessageType t
                                                                 const char *project, const char *file,
                                                                 unsigned int line, const char *text)
 {
-  RDCCOMPILE_ASSERT(eLogType_First == RDCLog_First && eLogType_NumTypes == eLogType_NumTypes,
-                    "Log type enum is out of sync");
+  RDCCOMPILE_ASSERT(
+      (int)eLogType_First == (int)RDCLog_First && (int)eLogType_NumTypes == (int)eLogType_NumTypes,
+      "Log type enum is out of sync");
   rdclog_int((LogType)type, project, file, line, "%s", text);
 }
 
