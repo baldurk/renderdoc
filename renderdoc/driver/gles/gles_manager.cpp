@@ -1115,7 +1115,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
                 gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, tex, i);
               }
 
-              gl.glReadPixels(0, 0, width, height, fmt, type, (void *)buf);
+              gl.glReadPixels(0, 0, w, h, fmt, type, (void *)buf);
 
               gl.glBindFramebuffer(eGL_FRAMEBUFFER, prevfbo);
               gl.glDeleteFramebuffers(1, &fbo);
