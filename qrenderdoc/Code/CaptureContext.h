@@ -32,6 +32,7 @@
 #include <QString>
 #include <QtWidgets/QWidget>
 #include "CommonPipelineState.h"
+#include "PersistantConfig.h"
 #include "RenderManager.h"
 
 #if defined(RENDERDOC_PLATFORM_LINUX)
@@ -56,14 +57,15 @@ class MainWindow;
 class CaptureContext
 {
 public:
-  CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp);
+  CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent, bool temp,
+                 PersistantConfig &cfg);
   ~CaptureContext();
 
   bool isRunning();
 
-  QString ConfigFile(const QString &filename);
+  static QString ConfigFile(const QString &filename);
 
-  QString TempLogFilename(QString appname);
+  static QString TempLogFilename(QString appname);
 
   //////////////////////////////////////////////////////////////////////////////
   // Control functions
@@ -139,6 +141,8 @@ public:
   GLPipelineState CurGLPipelineState;
   VulkanPipelineState CurVulkanPipelineState;
   CommonPipelineState CurPipelineState;
+
+  PersistantConfig &Config;
 
 private:
   RenderManager m_Renderer;

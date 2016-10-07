@@ -32,7 +32,8 @@
 #include "Windows/MainWindow.h"
 
 CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent,
-                               bool temp)
+                               bool temp, PersistantConfig &cfg)
+    : Config(cfg)
 {
   m_LogLoaded = false;
   m_LoadInProgress = false;

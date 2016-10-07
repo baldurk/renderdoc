@@ -227,9 +227,6 @@ QVariantMap MainWindow::saveState()
 {
   QVariantMap state = ui->toolWindowManager->saveState();
 
-  // marker that this is indeed a valid state to load from
-  state["renderdocLayoutData"] = 1;
-
   state["mainWindowGeometry"] = saveGeometry().toBase64();
 
   return state;
@@ -249,6 +246,9 @@ bool MainWindow::SaveLayout(int layout)
   QString path = GetLayoutPath(layout);
 
   QVariantMap state = saveState();
+
+  // marker that this is indeed a valid state to load from
+  state["renderdocLayoutData"] = 1;
 
   QFile f(path);
   if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))

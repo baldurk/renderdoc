@@ -116,13 +116,30 @@ int main(int argc, char *argv[])
   QApplication application(argc, argv_mod);
 
   {
-    CaptureContext ctx(filename, remoteHost, remoteIdent, temp);
+    PersistantConfig config;
+
+    QString configFilename = CaptureContext::ConfigFile("UI.config");
+
+    if(!config.Deserialize(configFilename))
+    {
+      RDDialog::critical(
+          NULL, "Error loading config",
+          QString(
+              "Error loading config file\n%1\nA default config is loaded and will be saved out.")
+              .arg(configFilename));
+    }
+
+    config.SetupFormatting();
+
+    CaptureContext ctx(filename, remoteHost, remoteIdent, temp, config);
 
     while(ctx.isRunning())
     {
       application.processEvents(QEventLoop::WaitForMoreEvents);
       QCoreApplication::sendPostedEvents();
     }
+
+    config.Serialize(configFilename);
   }
 
   delete[] argv_mod;

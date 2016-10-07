@@ -133,6 +133,9 @@
     <ClCompile Include="Code\CommonPipelineState.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Code\PersistantConfig.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -188,6 +191,9 @@
     </ClInclude>
     <ClInclude Include="Code\CommonPipelineState.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\PersistantConfig.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
