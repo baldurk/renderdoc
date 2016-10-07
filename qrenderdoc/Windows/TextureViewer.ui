@@ -334,6 +334,12 @@
     </item>
     <item>
      <widget class="QComboBox" name="zoomOption">
+      <property name="minimumSize">
+       <size>
+        <width>70</width>
+        <height>0</height>
+       </size>
+      </property>
       <property name="editable">
        <bool>true</bool>
       </property>
