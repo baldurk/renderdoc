@@ -117,6 +117,8 @@ class TextureViewer : public QFrame, public ILogViewerForm
 private:
   Q_OBJECT
 
+  Q_PROPERTY(QVariant persistData READ persistData WRITE setPersistData DESIGNABLE false SCRIPTABLE false)
+
 public:
   explicit TextureViewer(CaptureContext *ctx, QWidget *parent = 0);
   ~TextureViewer();
@@ -125,6 +127,8 @@ public:
   void OnLogfileClosed();
   void OnEventSelected(uint32_t eventID);
 
+  QVariant persistData();
+  void setPersistData(const QVariant &persistData);
 
 private slots:
   // automatic slots
@@ -215,6 +219,9 @@ private:
   PixelValue m_CurRealValue;
   PixelValue m_CurPixelValue;
   PixelValue m_CurHoverValue;
+
+  QColor darkBack;
+  QColor lightBack;
 
   int m_HighWaterStatusLength = 0;
   int m_PrevFirstArraySlice = -1;
