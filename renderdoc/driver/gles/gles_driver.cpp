@@ -366,7 +366,7 @@ ReplayCreateStatus GLESInitParams::Serialise()
       {
         oldsupported = true;
         RDCWARN(
-            "Old OpenGL serialise version %d, latest is %d. Loading with possibly degraded "
+            "Old OpenGL ES serialise version %d, latest is %d. Loading with possibly degraded "
             "features/support.",
             ver, GL_SERIALISE_VERSION);
       }
@@ -374,7 +374,7 @@ ReplayCreateStatus GLESInitParams::Serialise()
 
     if(!oldsupported)
     {
-      RDCERR("Incompatible OpenGL serialise version, expected %d got %d", GL_SERIALISE_VERSION, ver);
+      RDCERR("Incompatible OpenGL ES serialise version, expected %d got %d", GL_SERIALISE_VERSION, ver);
       return eReplayCreate_APIIncompatibleVersion;
     }
   }
@@ -2222,7 +2222,7 @@ void WrappedGLES::SwapBuffers(void *surface)
       {
         vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetCaptureKeys();
 
-        string overlayText = "OpenGL.";
+        string overlayText = "OpenGL ES.";
 
         if(ctxdata.Modern())
         {
@@ -2277,7 +2277,7 @@ void WrappedGLES::SwapBuffers(void *surface)
                               "Context not created via CreateContextAttribs. Capturing disabled.");
             y += 1.0f;
           }
-          RenderOverlayText(0.0f, y, "Only OpenGL 3.2+ contexts are supported.");
+          RenderOverlayText(0.0f, y, "Only OpenGL ES 2.0+ contexts are supported.");
           y += 1.0f;
         }
         else if(!ctxdata.isCore)
@@ -2328,7 +2328,7 @@ void WrappedGLES::SwapBuffers(void *surface)
       {
         vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetFocusKeys();
 
-        string str = "OpenGL. Inactive window.";
+        string str = "OpenGL ES. Inactive window.";
 
         if(ctxdata.Modern())
         {
@@ -2351,7 +2351,7 @@ void WrappedGLES::SwapBuffers(void *surface)
           {
             str += "\nContext not created via CreateContextAttribs. Capturing disabled.\n";
           }
-          str += "Only OpenGL 3.2+ contexts are supported.";
+          str += "Only OpenGL ES 2.0+ contexts are supported.";
         }
 
         RenderOverlayText(0.0f, 0.0f, str.c_str());
