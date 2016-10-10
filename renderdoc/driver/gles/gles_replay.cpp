@@ -523,10 +523,10 @@ void GLESReplay::CacheTexture(ResourceId id)
   GLuint oldBinding;
   gl.glGetIntegerv(TextureBinding(target), (GLint*)&oldBinding);   // TODO PEPE TextureBinding(TextureTarget(res.curType)) ?=  res.curType
   gl.glBindTexture(target, res.resource.name);
-  gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_WIDTH, &width);
-  gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_HEIGHT, &height);
-  gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_DEPTH, &depth);
-  gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_SAMPLES, &samples);
+  gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_WIDTH, &width);
+  gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_HEIGHT, &height);
+  gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_DEPTH, &depth);
+  gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_SAMPLES, &samples);
 
   // the above queries sometimes come back 0, if we have dimensions from creation functions, use
   // those
