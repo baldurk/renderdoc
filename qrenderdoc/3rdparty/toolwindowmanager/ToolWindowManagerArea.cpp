@@ -35,6 +35,7 @@ ToolWindowManagerArea::ToolWindowManagerArea(ToolWindowManager *manager, QWidget
   m_dragCanStart = false;
   m_tabDragCanStart = false;
   m_inTabMoved = false;
+  m_userCanDrop = true;
   setMovable(true);
   setTabsClosable(true);
   setDocumentMode(true);

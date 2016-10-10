@@ -1463,6 +1463,8 @@ void TextureViewer::SetupTextureTabs()
                    &TextureViewer::textureTab_Changed);
   QObject::connect(textureTabs, &QTabWidget::tabCloseRequested, this,
                    &TextureViewer::textureTab_Closing);
+
+  textureTabs->disableUserDrop();
 }
 
 void TextureViewer::textureTab_Changed(int index)

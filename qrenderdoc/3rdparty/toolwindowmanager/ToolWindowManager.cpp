@@ -656,7 +656,7 @@ void ToolWindowManager::findSuggestions(ToolWindowManagerWrapper* wrapper) {
         m_suggestions << AreaReference(side, widget);
       }
     }
-    if (area && area->rect().contains(area->mapFromGlobal(globalPos))) {
+    if (area && area->allowUserDrop() && area->rect().contains(area->mapFromGlobal(globalPos))) {
       m_suggestions << AreaReference(AddTo, area);
     }
   }
