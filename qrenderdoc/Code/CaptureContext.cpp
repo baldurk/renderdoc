@@ -25,6 +25,7 @@
 #include "CaptureContext.h"
 #include <QApplication>
 #include <QFileInfo>
+#include <QMenu>
 #include <QMessageBox>
 #include <QMetaObject>
 #include <QStandardPaths>
@@ -280,6 +281,18 @@ void GUIInvoke::blockcall(const std::function<void()> &f)
   GUIInvoke *invoke = new GUIInvoke(f);
   invoke->moveToThread(qApp->thread());
   QMetaObject::invokeMethod(invoke, "doInvoke", Qt::BlockingQueuedConnection);
+}
+
+void RDDialog::show(QMenu *menu, QPoint pos)
+{
+  menu->setWindowModality(Qt::ApplicationModal);
+  menu->popup(pos);
+  QEventLoop loop;
+  while(menu->isVisible())
+  {
+    loop.processEvents(QEventLoop::WaitForMoreEvents);
+    QCoreApplication::sendPostedEvents();
+  }
 }
 
 void RDDialog::show(QDialog *dialog)

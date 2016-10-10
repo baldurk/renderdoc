@@ -253,9 +253,12 @@ public:
   bool isRunning() { return m_Thread; }
 };
 
+class QMenu;
+
 // helper for doing a manual blocking invoke of a dialog
 struct RDDialog
 {
+  static void show(QMenu *menu, QPoint pos);
   static void show(QDialog *dialog);
   static QMessageBox::StandardButton messageBox(
       QMessageBox::Icon, QWidget *parent, const QString &title, const QString &text,
