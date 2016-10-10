@@ -3395,7 +3395,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case ENABLEI: Serialise_glEnablei(eGL_NONE, 0); break;
 //    case DISABLEI: Serialise_glDisablei(eGL_NONE, 0); break;
     case FRONT_FACE: Serialise_glFrontFace(eGL_NONE); break;
-//    case BLEND_FUNC: Serialise_glBlendFunc(eGL_NONE, eGL_NONE); break;
+    case BLEND_FUNC: Serialise_glBlendFunc(eGL_NONE, eGL_NONE); break;
 //    case BLEND_FUNCI: Serialise_glBlendFunci(0, eGL_NONE, eGL_NONE); break;
 //    case BLEND_COLOR: Serialise_glBlendColor(0, 0, 0, 0); break;
 //    case BLEND_FUNC_SEP:
@@ -3413,9 +3413,9 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case LOGIC_OP: Serialise_glLogicOp(eGL_NONE); break;
 //
 //    case STENCIL_OP: Serialise_glStencilOp(eGL_NONE, eGL_NONE, eGL_NONE); break;
-//    case STENCIL_OP_SEP:
-//      Serialise_glStencilOpSeparate(eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
-//      break;
+    case STENCIL_OP_SEP:
+      Serialise_glStencilOpSeparate(eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
+      break;
 //    case STENCIL_FUNC: Serialise_glStencilFunc(eGL_NONE, 0, 0); break;
 //    case STENCIL_FUNC_SEP: Serialise_glStencilFuncSeparate(eGL_NONE, eGL_NONE, 0, 0); break;
 //    case STENCIL_MASK: Serialise_glStencilMask(0); break;
@@ -3424,7 +3424,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case COLOR_MASK: Serialise_glColorMask(0, 0, 0, 0); break;
 //    case COLOR_MASKI: Serialise_glColorMaski(0, 0, 0, 0, 0); break;
 //    case SAMPLE_MASK: Serialise_glSampleMaski(0, 0); break;
-//    case SAMPLE_COVERAGE: Serialise_glSampleCoverage(0.0f, 0); break;
+    case SAMPLE_COVERAGE: Serialise_glSampleCoverage(0.0f, 0); break;
 //    case MIN_SAMPLE_SHADING: Serialise_glMinSampleShading(0.0f); break;
 //    case RASTER_SAMPLES: Serialise_glRasterSamplesEXT(0, 0); break;
     case DEPTH_FUNC: Serialise_glDepthFunc(eGL_NONE); break;

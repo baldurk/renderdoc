@@ -101,9 +101,11 @@
     HookInit(glLinkProgram); \
     HookInit(glPixelStorei); \
     HookInit(glReadPixels); \
+    HookInit(glSampleCoverage); \
     HookInit(glShaderSource); \
     HookInit(glStencilMask); \
     HookInit(glStencilMaskSeparate); \
+    HookInit(glStencilOpSeparate); \
     HookInit(glTexImage2D); \
     HookInit(glTexParameterf); \
     HookInit(glTexParameterfv); \
@@ -355,9 +357,11 @@
     HookExtension(PFNGLLINKPROGRAMPROC, glLinkProgram); \
     HookExtension(PFNGLPIXELSTOREIPROC, glPixelStorei); \
     HookExtension(PFNGLREADPIXELSPROC, glReadPixels); \
+    HookExtension(PFNGLSAMPLECOVERAGEPROC, glSampleCoverage); \
     HookExtension(PFNGLSHADERSOURCEPROC, glShaderSource); \
     HookExtension(PFNGLSTENCILMASKPROC, glStencilMask); \
     HookExtension(PFNGLSTENCILMASKSEPARATEPROC, glStencilMaskSeparate); \
+    HookExtension(PFNGLSTENCILOPSEPARATEPROC, glStencilOpSeparate); \
     HookExtension(PFNGLTEXIMAGE2DPROC, glTexImage2D); \
     HookExtension(PFNGLTEXPARAMETERFPROC, glTexParameterf); \
     HookExtension(PFNGLTEXPARAMETERFVPROC, glTexParameterfv); \
@@ -592,9 +596,11 @@
     HookWrapper1(void, glLinkProgram, GLuint, program); \
     HookWrapper2(void, glPixelStorei, GLenum, pname, GLint, param); \
     HookWrapper7(void, glReadPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, void *, pixels); \
+    HookWrapper2(void, glSampleCoverage, GLfloat, value, GLboolean, invert); \
     HookWrapper4(void, glShaderSource, GLuint, shader, GLsizei, count, const GLchar *const*, string, const GLint *, length); \
     HookWrapper1(void, glStencilMask, GLuint, mask); \
     HookWrapper2(void, glStencilMaskSeparate, GLenum, face, GLuint, mask); \
+    HookWrapper4(void, glStencilOpSeparate, GLenum, face, GLenum, sfail, GLenum, dpfail, GLenum, dppass); \
     HookWrapper9(void, glTexImage2D, GLenum, target, GLint, level, GLint, internalformat, GLsizei, width, GLsizei, height, GLint, border, GLenum, format, GLenum, type, const void *, pixels); \
     HookWrapper3(void, glTexParameterf, GLenum, target, GLenum, pname, GLfloat, param); \
     HookWrapper3(void, glTexParameterfv, GLenum, target, GLenum, pname, const GLfloat *, params); \
@@ -812,13 +818,11 @@
     HookWrapper2(void, glPolygonOffset, GLfloat, factor, GLfloat, units); \
     HookWrapper0(void, glReleaseShaderCompiler); \
     HookWrapper4(void, glRenderbufferStorage, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height); \
-    HookWrapper2(void, glSampleCoverage, GLfloat, value, GLboolean, invert); \
     HookWrapper4(void, glScissor, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
     HookWrapper5(void, glShaderBinary, GLsizei, count, const GLuint *, shaders, GLenum, binaryformat, const void *, binary, GLsizei, length); \
     HookWrapper3(void, glStencilFunc, GLenum, func, GLint, ref, GLuint, mask); \
     HookWrapper4(void, glStencilFuncSeparate, GLenum, face, GLenum, func, GLint, ref, GLuint, mask); \
     HookWrapper3(void, glStencilOp, GLenum, fail, GLenum, zfail, GLenum, zpass); \
-    HookWrapper4(void, glStencilOpSeparate, GLenum, face, GLenum, sfail, GLenum, dpfail, GLenum, dppass); \
     HookWrapper1(void, glValidateProgram, GLuint, program); \
     HookWrapper2(void, glVertexAttrib1f, GLuint, index, GLfloat, x); \
     HookWrapper2(void, glVertexAttrib1fv, GLuint, index, const GLfloat *, v); \
@@ -1342,13 +1346,11 @@
     HandleUnsupported(PFNGLPOLYGONOFFSETPROC, glPolygonOffset); \
     HandleUnsupported(PFNGLRELEASESHADERCOMPILERPROC, glReleaseShaderCompiler); \
     HandleUnsupported(PFNGLRENDERBUFFERSTORAGEPROC, glRenderbufferStorage); \
-    HandleUnsupported(PFNGLSAMPLECOVERAGEPROC, glSampleCoverage); \
     HandleUnsupported(PFNGLSCISSORPROC, glScissor); \
     HandleUnsupported(PFNGLSHADERBINARYPROC, glShaderBinary); \
     HandleUnsupported(PFNGLSTENCILFUNCPROC, glStencilFunc); \
     HandleUnsupported(PFNGLSTENCILFUNCSEPARATEPROC, glStencilFuncSeparate); \
     HandleUnsupported(PFNGLSTENCILOPPROC, glStencilOp); \
-    HandleUnsupported(PFNGLSTENCILOPSEPARATEPROC, glStencilOpSeparate); \
     HandleUnsupported(PFNGLVALIDATEPROGRAMPROC, glValidateProgram); \
     HandleUnsupported(PFNGLVERTEXATTRIB1FPROC, glVertexAttrib1f); \
     HandleUnsupported(PFNGLVERTEXATTRIB1FVPROC, glVertexAttrib1fv); \

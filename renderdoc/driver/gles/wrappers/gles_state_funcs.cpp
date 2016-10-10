@@ -454,35 +454,35 @@ void WrappedGLES::glStencilMaskSeparate(GLenum face, GLuint mask)
 //  }
 //}
 //
-//bool WrappedGLES::Serialise_glStencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail,
-//                                                  GLenum dppass)
-//{
-//  SERIALISE_ELEMENT(GLenum, Face, face);
-//  SERIALISE_ELEMENT(GLenum, sf, sfail);
-//  SERIALISE_ELEMENT(GLenum, zf, dpfail);
-//  SERIALISE_ELEMENT(GLenum, p, dppass);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glStencilOpSeparate(Face, sf, zf, p);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glStencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass)
-//{
-//  m_Real.glStencilOpSeparate(face, sfail, dpfail, dppass);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(STENCIL_OP_SEP);
-//    Serialise_glStencilOpSeparate(face, sfail, dpfail, dppass);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glStencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail,
+                                                  GLenum dppass)
+{
+  SERIALISE_ELEMENT(GLenum, Face, face);
+  SERIALISE_ELEMENT(GLenum, sf, sfail);
+  SERIALISE_ELEMENT(GLenum, zf, dpfail);
+  SERIALISE_ELEMENT(GLenum, p, dppass);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glStencilOpSeparate(Face, sf, zf, p);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glStencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail, GLenum dppass)
+{
+  m_Real.glStencilOpSeparate(face, sfail, dpfail, dppass);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(STENCIL_OP_SEP);
+    Serialise_glStencilOpSeparate(face, sfail, dpfail, dppass);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
 bool WrappedGLES::Serialise_glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLclampf alpha)
 {
   SERIALISE_ELEMENT(float, r, red);
@@ -1103,32 +1103,32 @@ void WrappedGLES::glColorMask(GLboolean red, GLboolean green, GLboolean blue, GL
 //  }
 //}
 //
-//bool WrappedGLES::Serialise_glSampleCoverage(GLfloat value, GLboolean invert)
-//{
-//  SERIALISE_ELEMENT(float, Value, value);
-//  SERIALISE_ELEMENT(bool, Invert, invert != 0);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glSampleCoverage(Value, Invert ? GL_TRUE : GL_FALSE);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glSampleCoverage(GLfloat value, GLboolean invert)
-//{
-//  m_Real.glSampleCoverage(value, invert);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(SAMPLE_COVERAGE);
-//    Serialise_glSampleCoverage(value, invert);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glSampleCoverage(GLfloat value, GLboolean invert)
+{
+  SERIALISE_ELEMENT(float, Value, value);
+  SERIALISE_ELEMENT(bool, Invert, invert != 0);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glSampleCoverage(Value, Invert ? GL_TRUE : GL_FALSE);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glSampleCoverage(GLfloat value, GLboolean invert)
+{
+  m_Real.glSampleCoverage(value, invert);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(SAMPLE_COVERAGE);
+    Serialise_glSampleCoverage(value, invert);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
 //bool WrappedGLES::Serialise_glMinSampleShading(GLfloat value)
 //{
 //  SERIALISE_ELEMENT(float, Value, value);
