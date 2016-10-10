@@ -2374,7 +2374,7 @@ void WrappedGLES::SwapBuffers(void *surface)
   if(!activeWindow)
     return;
 
-  RenderDoc::Inst().SetCurrentDriver(RDC_OpenGL);
+  RenderDoc::Inst().SetCurrentDriver(RDC_OpenGLES);
 
   // only allow capturing on 'modern' created contexts
   if(ctxdata.Legacy())
@@ -2435,7 +2435,7 @@ void WrappedGLES::StartFrameCapture(void *dev, void *surface)
   if(m_State != WRITING_IDLE)
     return;
 
-  RenderDoc::Inst().SetCurrentDriver(RDC_OpenGL);
+  RenderDoc::Inst().SetCurrentDriver(RDC_OpenGLES);
 
   m_State = WRITING_CAPFRAME;
 

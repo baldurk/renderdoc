@@ -3087,4 +3087,4 @@ const GLHookSet &GetRealGLFunctions();
 // defined in gl_replay_<platform>.cpp
 ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
 
-static DriverRegistration GLDriverRegistration(RDC_OpenGL, "OpenGL", &GLES_CreateReplayDevice);
+static DriverRegistration GLDriverRegistration(RDC_OpenGLES, "OpenGLES", &GLES_CreateReplayDevice);

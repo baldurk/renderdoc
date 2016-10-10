@@ -291,8 +291,8 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
     RDCDEBUG("Creating an GLES replay device");
 
     GLESInitParams initParams;
-    RDCDriver driverType = RDC_OpenGL;
-    string driverName = "OpenGL";
+    RDCDriver driverType = RDC_OpenGLES;
+    string driverName = "OpenGLES";
     uint64_t machineIdent = 0;
     if(logfile)
     {
