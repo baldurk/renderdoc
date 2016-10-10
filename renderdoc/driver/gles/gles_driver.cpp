@@ -2123,7 +2123,6 @@ void WrappedGLES::FreeTargetResource(ResourceId id)
 
 void WrappedGLES::SwapBuffers(void *surface)
 {
-  printf("CALL: %s\n", __FUNCTION__);
   if(m_State == WRITING_IDLE)
     RenderDoc::Inst().Tick();
 
