@@ -78,9 +78,6 @@
         <iconset resource="../resources.qrc">
          <normaloff>:/Resources/find.png</normaloff>:/Resources/find.png</iconset>
        </property>
-       <property name="shortcut">
-        <string>Ctrl+F</string>
-       </property>
        <property name="checkable">
         <bool>false</bool>
        </property>
@@ -101,9 +98,6 @@
         <iconset resource="../resources.qrc">
          <normaloff>:/Resources/flag_green.png</normaloff>:/Resources/flag_green.png</iconset>
        </property>
-       <property name="shortcut">
-        <string>Ctrl+G</string>
-       </property>
        <property name="autoRaise">
         <bool>true</bool>
        </property>
@@ -118,9 +112,6 @@
         <iconset resource="../resources.qrc">
          <normaloff>:/Resources/time.png</normaloff>:/Resources/time.png</iconset>
        </property>
-       <property name="shortcut">
-        <string>Ctrl+T</string>
-       </property>
        <property name="autoRaise">
         <bool>true</bool>
        </property>
@@ -134,9 +125,6 @@
        <property name="icon">
         <iconset resource="../resources.qrc">
          <normaloff>:/Resources/asterisk_orange.png</normaloff>:/Resources/asterisk_orange.png</iconset>
-       </property>
-       <property name="shortcut">
-        <string>Ctrl+B</string>
        </property>
        <property name="autoRaise">
         <bool>true</bool>

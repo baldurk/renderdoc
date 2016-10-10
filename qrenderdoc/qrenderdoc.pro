@@ -96,7 +96,9 @@ SOURCES += Code/qrenderdoc.cpp \
     Widgets/ResourcePreview.cpp \
     Widgets/RDLabel.cpp \
     Widgets/ThumbnailStrip.cpp \
-    Code/CommonPipelineState.cpp
+    Code/CommonPipelineState.cpp \
+    Widgets/TextureGoto.cpp \
+    Widgets/RDDoubleSpinBox.cpp
 
 HEADERS  += Windows/MainWindow.h \
     Windows/EventBrowser.h \
@@ -114,7 +116,9 @@ HEADERS  += Windows/MainWindow.h \
     Widgets/ResourcePreview.h \
     Widgets/RDLabel.h \
     Widgets/ThumbnailStrip.h \
-    Code/CommonPipelineState.h
+    Code/CommonPipelineState.h \
+    Widgets/TextureGoto.h \
+    Widgets/RDDoubleSpinBox.h
 
 FORMS    += Windows/MainWindow.ui \
     Windows/EventBrowser.ui \

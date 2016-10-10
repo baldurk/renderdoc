@@ -30,6 +30,7 @@
 #include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Code/CaptureContext.h"
 #include "Widgets/ResourcePreview.h"
+#include "Widgets/TextureGoto.h"
 #include "FlowLayout.h"
 #include "ui_TextureViewer.h"
 
@@ -402,6 +403,8 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
   ui->outputThumbs->setWindowTitle(tr("Outputs"));
   ui->inputThumbs->setWindowTitle(tr("Inputs"));
 
+  m_Goto = new TextureGoto(this, [this](QPoint p) { GotoLocation(p.x(), p.y()); });
+
   QVBoxLayout *vertical = new QVBoxLayout(this);
 
   vertical->setSpacing(3);
@@ -478,12 +481,13 @@ TextureViewer::~TextureViewer()
 void TextureViewer::RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pickValue,
                                          PixelValue &realValue)
 {
-  // FetchTexture tex = CurrentTexture;
+  FetchTexture *texptr = GetCurrentTexture();
 
-  // if (tex == null) return;
+  if(texptr == NULL)
+    return;
 
-  // if (m_TexDisplay.FlipY)
-  // y = (tex.height - 1) - y;
+  if(m_TexDisplay.FlipY)
+    y = (texptr->height - 1) - y;
 
   m_Output->PickPixel(m_TexDisplay.texid, true, x, y, m_TexDisplay.sliceFace, m_TexDisplay.mip,
                       m_TexDisplay.sampleIdx, &pickValue);
@@ -1403,6 +1407,31 @@ void TextureViewer::UI_CreateThumbnails()
     UI_CreateThumbnail(ui->inputThumbs);
 }
 
+void TextureViewer::GotoLocation(int x, int y)
+{
+  if(!m_Ctx->LogLoaded())
+    return;
+
+  FetchTexture *tex = GetCurrentTexture();
+
+  if(tex == NULL)
+    return;
+
+  m_PickedPoint = QPoint(x, y);
+
+  uint32_t mipHeight = qMax(1U, tex->height >> (int)m_TexDisplay.mip);
+  if(m_Ctx->APIProps().pipelineType == eGraphicsAPI_OpenGL)
+    m_PickedPoint.setY((int)(mipHeight - 1) - m_PickedPoint.y());
+  if(m_TexDisplay.FlipY)
+    m_PickedPoint.setY((int)(mipHeight - 1) - m_PickedPoint.x());
+
+  if(m_Output != NULL)
+    INVOKE_MEMFN(RT_PickPixelsAndUpdate);
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+
+  UI_UpdateStatusText();
+}
+
 void TextureViewer::ViewTexture(ResourceId ID, bool focus)
 {
   if(QThread::currentThread() != QCoreApplication::instance()->thread())
@@ -2002,6 +2031,11 @@ void TextureViewer::render_keyPress(QKeyEvent *e)
 
   if(!m_Ctx->LogLoaded())
     return;
+
+  if((e->modifiers() & Qt::ControlModifier) && e->key() == Qt::Key_G)
+  {
+    ShowGotoPopup();
+  }
 
   bool nudged = false;
 
@@ -2670,4 +2704,40 @@ void TextureViewer::on_sliceFace_currentIndexChanged(int index)
   }
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
+void TextureViewer::on_locationGoto_clicked()
+{
+  ShowGotoPopup();
+}
+
+void TextureViewer::ShowGotoPopup()
+{
+  FetchTexture *texptr = GetCurrentTexture();
+
+  if(texptr)
+  {
+    QPoint p = m_PickedPoint;
+
+    uint32_t mipHeight = qMax(1U, texptr->height >> (int)m_TexDisplay.mip);
+
+    if(m_Ctx->APIProps().pipelineType == eGraphicsAPI_OpenGL)
+      p.setY((int)(mipHeight - 1) - p.y());
+    if(m_TexDisplay.FlipY)
+      p.setY((int)(mipHeight - 1) - p.y());
+
+    m_Goto->show(ui->render, p);
+  }
+}
+
+void TextureViewer::on_viewTexBuffer_clicked()
+{
+}
+
+void TextureViewer::on_texListShow_clicked()
+{
+}
+
+void TextureViewer::on_saveTex_clicked()
+{
 }

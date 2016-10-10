@@ -136,6 +136,18 @@
     <ClCompile Include="Code\PersistantConfig.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\TextureGoto.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_TextureGoto.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_RDDoubleSpinBox.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\RDDoubleSpinBox.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -194,6 +206,12 @@
     </ClInclude>
     <ClInclude Include="Code\PersistantConfig.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\TextureGoto.h">
+      <Filter>Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\RDDoubleSpinBox.h">
+      <Filter>Widgets</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

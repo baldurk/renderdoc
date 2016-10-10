@@ -454,7 +454,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QToolButton" name="texListShow_2">
+     <widget class="QToolButton" name="locationGoto">
       <property name="text">
        <string/>
       </property>
