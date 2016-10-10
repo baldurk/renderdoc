@@ -202,12 +202,12 @@ void CaptureContext::LoadLogfile(int proxyRenderer, QString replayHost, QString 
   m_LoadInProgress = false;
 }
 
-void CaptureContext::SetEventID(ILogViewerForm *exclude, uint32_t eventID)
+void CaptureContext::SetEventID(ILogViewerForm *exclude, uint32_t eventID, bool force)
 {
   m_EventID = eventID;
 
-  m_Renderer.BlockInvoke([eventID, this](IReplayRenderer *r) {
-    r->SetFrameEvent(eventID, false);
+  m_Renderer.BlockInvoke([this, eventID, force](IReplayRenderer *r) {
+    r->SetFrameEvent(eventID, force);
     r->GetD3D11PipelineState(&CurD3D11PipelineState);
     r->GetD3D12PipelineState(&CurD3D12PipelineState);
     r->GetGLPipelineState(&CurGLPipelineState);

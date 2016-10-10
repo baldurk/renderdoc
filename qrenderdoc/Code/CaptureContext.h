@@ -79,8 +79,8 @@ public:
 
   void CloseLogfile();
 
-  void SetEventID(ILogViewerForm *exclude, uint32_t eventID);
-
+  void SetEventID(ILogViewerForm *exclude, uint32_t eventID, bool force = false);
+  void RefreshStatus() { SetEventID(NULL, m_EventID, true); }
   void AddLogProgressListener(ILogLoadProgressListener *p);
 
   void AddLogViewer(ILogViewerForm *f)
@@ -133,6 +133,7 @@ public:
       DebugMessages.push_back(msg);
   }
 
+  const FetchDrawcall *GetDrawcall(uint32_t eventID) { return GetDrawcall(m_Drawcalls, eventID); }
   WindowingSystem m_CurWinSystem;
   void *FillWindowingData(WId widget);
 
@@ -173,7 +174,6 @@ private:
     return NULL;
   }
 
-  const FetchDrawcall *GetDrawcall(uint32_t eventID) { return GetDrawcall(m_Drawcalls, eventID); }
   rdctype::array<FetchDrawcall> m_Drawcalls;
 
   APIProperties m_APIProps;
