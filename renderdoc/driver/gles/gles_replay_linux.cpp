@@ -106,9 +106,6 @@ void printEGLError(const char* const function, const char* const location)
 
 void GLESReplay::MakeCurrentReplayContext(GLESWindowingData *ctx)
 {
-    //CALL_DEBUG();
-    if (ctx != NULL)
-      printf("mcrc: egldisplay:%p surface:%p ctx:%p\n", ctx->eglDisplay, ctx->surface, ctx->ctx);
     static GLESWindowingData *prev = NULL;
     if(REAL(eglMakeCurrent) && ctx && ctx != prev)
     {
@@ -121,10 +118,8 @@ void GLESReplay::MakeCurrentReplayContext(GLESWindowingData *ctx)
 
 void GLESReplay::SwapBuffers(GLESWindowingData* data)
 {
-    //CALL_DEBUG();
     REAL(eglSwapBuffers)(data->eglDisplay, data->surface);
     EGL_RETURN_DEBUG(eglSwapBuffers);
-    printf("sb: egldisplay:%p surface:%p ctx:%p\n", data->eglDisplay, data->surface, data->ctx);
 }
 
 void GLESReplay::CloseReplayContext()
@@ -148,10 +143,10 @@ static bool getEGLDisplayAndConfig(Display * const display, EGLDisplay * const e
         return false;
     }
     printf("EGL init (%d, %d)\n", egl_major, egl_minor);
-    
+
     REAL(eglBindAPI)(EGL_OPENGL_ES_API);
     EGL_RETURN_DEBUG(eglBindAPI);
-    
+
     EGLint num_configs;
     if (!REAL(eglChooseConfig)(*egl_display, attribs, config, 1, &num_configs)) {
         EGL_RETURN_DEBUG(eglChooseConfig);
@@ -180,7 +175,7 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
         display = XOpenDisplay(NULL);
         if(display == NULL)
           return 0;
-    }    
+    }
     else
     {
         RDCERR("Unexpected window system %u", system);
@@ -194,7 +189,7 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
         EGL_RENDERABLE_TYPE, EGL_OPENGL_ES3_BIT,
         EGL_CONFORMANT, EGL_OPENGL_ES3_BIT,
         EGL_COLOR_BUFFER_TYPE, EGL_RGB_BUFFER,
-        
+
         EGL_NONE
     };
 
@@ -212,9 +207,9 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
     //EGLContext ctx = REAL(eglCreateContext)(egl_display, config, EGL_NO_CONTEXT, ctx_attribs);
     EGLContext ctx = REAL(eglCreateContext)(egl_display, config, m_ReplayCtx.ctx, ctx_attribs);
     EGL_RETURN_DEBUG(eglCreateContext);
-    
+
     EGLSurface surface = NULL;
-    
+
     if (draw != 0) {
         surface = REAL(eglCreateWindowSurface)(egl_display, config, (EGLNativeWindowType)draw, NULL);
         EGL_RETURN_DEBUG(eglCreateWindowSurface);
@@ -225,7 +220,7 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
         surface = REAL(eglCreatePbufferSurface)(egl_display, config, pbAttribs);
         EGL_RETURN_DEBUG(eglCreatePbufferSurface);
     }
-    
+
     if (!surface)
         return -1;
 
@@ -238,13 +233,13 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
     EGL_RETURN_DEBUG(eglQuerySurface);
     REAL(eglQuerySurface)(egl_display, surface, EGL_WIDTH, &outputWin.width);
     EGL_RETURN_DEBUG(eglQuerySurface);
-    printf("New output window (%dx%d)\n", outputWin.height, outputWin.width);
+    printf("New output window (%dx%d)\n", outputWin.width, outputWin.height);
 
     MakeCurrentReplayContext(&outputWin);
 
     InitOutputWindow(outputWin);
     CreateOutputWindowBackbuffer(outputWin, depth);
-    
+
     uint64_t windowId = m_OutputWindowID++;
     m_OutputWindows[windowId] = outputWin;
 
