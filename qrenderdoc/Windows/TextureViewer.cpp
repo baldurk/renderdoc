@@ -2082,11 +2082,15 @@ void TextureViewer::setScrollPosition(const QPoint &pos)
 
   if(ScrollUpdateScrollbars)
   {
+    ScrollUpdateScrollbars = false;
+
     if(ui->renderHScroll->isEnabled())
-      ui->renderHScroll->setValue(qBound(0, int(m_TexDisplay.offx), ui->renderHScroll->maximum()));
+      ui->renderHScroll->setValue(qBound(0, -int(m_TexDisplay.offx), ui->renderHScroll->maximum()));
 
     if(ui->renderVScroll->isEnabled())
-      ui->renderVScroll->setValue(qBound(0, int(m_TexDisplay.offy), ui->renderVScroll->maximum()));
+      ui->renderVScroll->setValue(qBound(0, -int(m_TexDisplay.offy), ui->renderVScroll->maximum()));
+
+    ScrollUpdateScrollbars = true;
   }
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
@@ -2114,6 +2118,7 @@ void TextureViewer::UI_CalcScrollbars()
     ui->renderHScroll->setMaximum(
         (int)ceil(size.width() * m_TexDisplay.scale - (float)ui->render->width()));
     ui->renderHScroll->setPageStep(qMax(1, ui->renderHScroll->maximum() / 6));
+    ui->renderHScroll->setSingleStep(int(m_TexDisplay.scale));
   }
 
   if((int)floor(size.height() * m_TexDisplay.scale) <= ui->render->height())
@@ -2127,11 +2132,15 @@ void TextureViewer::UI_CalcScrollbars()
     ui->renderVScroll->setMaximum(
         (int)ceil(size.height() * m_TexDisplay.scale - (float)ui->render->height()));
     ui->renderVScroll->setPageStep(qMax(1, ui->renderVScroll->maximum() / 6));
+    ui->renderVScroll->setSingleStep(int(m_TexDisplay.scale));
   }
 }
 
 void TextureViewer::on_renderHScroll_valueChanged(int position)
 {
+  if(!ScrollUpdateScrollbars)
+    return;
+
   ScrollUpdateScrollbars = false;
 
   {
@@ -2144,6 +2153,9 @@ void TextureViewer::on_renderHScroll_valueChanged(int position)
 
 void TextureViewer::on_renderVScroll_valueChanged(int position)
 {
+  if(!ScrollUpdateScrollbars)
+    return;
+
   ScrollUpdateScrollbars = false;
 
   {
