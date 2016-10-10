@@ -1089,6 +1089,101 @@
     </rect>
    </property>
   </widget>
+  <widget class="QFrame" name="textureListFrame">
+   <property name="geometry">
+    <rect>
+     <x>480</x>
+     <y>60</y>
+     <width>274</width>
+     <height>244</height>
+    </rect>
+   </property>
+   <property name="frameShape">
+    <enum>QFrame::NoFrame</enum>
+   </property>
+   <property name="frameShadow">
+    <enum>QFrame::Plain</enum>
+   </property>
+   <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>6</number>
+    </property>
+    <property name="leftMargin">
+     <number>3</number>
+    </property>
+    <property name="topMargin">
+     <number>3</number>
+    </property>
+    <property name="rightMargin">
+     <number>3</number>
+    </property>
+    <property name="bottomMargin">
+     <number>3</number>
+    </property>
+    <item>
+     <layout class="QHBoxLayout" name="textureListControls">
+      <property name="spacing">
+       <number>0</number>
+      </property>
+      <item>
+       <widget class="QComboBox" name="textureListFilter">
+        <property name="sizePolicy">
+         <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+          <horstretch>0</horstretch>
+          <verstretch>0</verstretch>
+         </sizepolicy>
+        </property>
+        <property name="editable">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QToolButton" name="cancelTextureListFilter">
+        <property name="text">
+         <string/>
+        </property>
+        <property name="icon">
+         <iconset resource="../resources.qrc">
+          <normaloff>:/Resources/cross.png</normaloff>:/Resources/cross.png</iconset>
+        </property>
+        <property name="autoRaise">
+         <bool>true</bool>
+        </property>
+       </widget>
+      </item>
+     </layout>
+    </item>
+    <item>
+     <widget class="RDListView" name="textureList">
+      <property name="frameShape">
+       <enum>QFrame::Box</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Sunken</enum>
+      </property>
+      <property name="editTriggers">
+       <set>QAbstractItemView::NoEditTriggers</set>
+      </property>
+      <property name="showDropIndicator" stdset="0">
+       <bool>false</bool>
+      </property>
+      <property name="defaultDropAction">
+       <enum>Qt::CopyAction</enum>
+      </property>
+      <property name="selectionMode">
+       <enum>QAbstractItemView::NoSelection</enum>
+      </property>
+      <property name="viewMode">
+       <enum>QListView::ListMode</enum>
+      </property>
+      <property name="uniformItemSizes">
+       <bool>true</bool>
+      </property>
+     </widget>
+    </item>
+   </layout>
+  </widget>
  </widget>
  <customwidgets>
   <customwidget>
@@ -1106,6 +1201,11 @@
    <extends>QWidget</extends>
    <header>Widgets/ThumbnailStrip.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>RDListView</class>
+   <extends>QListView</extends>
+   <header>Widgets/RDListView.h</header>
   </customwidget>
  </customwidgets>
  <resources>

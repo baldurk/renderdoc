@@ -145,7 +145,6 @@ private slots:
 
   void on_mipLevel_currentIndexChanged(int index);
   void on_sliceFace_currentIndexChanged(int index);
-
   void on_overlay_currentIndexChanged(int index);
 
   void on_zoomRange_clicked();
@@ -154,6 +153,16 @@ private slots:
   void on_visualiseRange_clicked();
   void on_backcolorPick_clicked();
   void on_checkerBack_clicked();
+
+  void on_locationGoto_clicked();
+  void on_viewTexBuffer_clicked();
+  void on_texListShow_clicked();
+  void on_saveTex_clicked();
+
+  void on_cancelTextureListFilter_clicked();
+  void on_textureListFilter_editTextChanged(const QString &text);
+  void on_textureListFilter_currentIndexChanged(int index);
+  void on_textureList_clicked(const QModelIndex &index);
 
   // manual slots
   void render_mouseClick(QMouseEvent *e);
@@ -175,11 +184,6 @@ private slots:
 
   void channelsWidget_toggled(bool checked) { UI_UpdateChannels(); }
   void channelsWidget_selected(int index) { UI_UpdateChannels(); }
-  void on_locationGoto_clicked();
-  void on_viewTexBuffer_clicked();
-  void on_texListShow_clicked();
-  void on_saveTex_clicked();
-
 private:
   void RT_FetchCurrentPixel(uint32_t x, uint32_t y, PixelValue &pickValue, PixelValue &realValue);
   void RT_PickPixelsAndUpdate(IReplayRenderer *);

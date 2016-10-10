@@ -27,6 +27,8 @@
 #include <QColorDialog>
 #include <QJsonDocument>
 #include <QMenu>
+#include <QPainter>
+#include <QStyledItemDelegate>
 #include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Code/CaptureContext.h"
 #include "Widgets/ResourcePreview.h"
@@ -317,6 +319,140 @@ ShaderBindpointMapping Following::GetMapping(CaptureContext *ctx)
   return GetMapping(ctx, Stage);
 }
 
+class TextureListItemModel : public QAbstractItemModel
+{
+public:
+  enum FilterType
+  {
+    Textures,
+    RenderTargets,
+    String
+  };
+
+  TextureListItemModel(QObject *parent) : QAbstractItemModel(parent) {}
+  void reset(FilterType type, const QString &filter, CaptureContext *ctx)
+  {
+    const rdctype::array<FetchTexture> src = ctx->GetTextures();
+
+    texs.clear();
+    texs.reserve(src.count);
+
+    emit beginResetModel();
+
+    int rtFlags = eTextureCreate_RTV | eTextureCreate_DSV;
+
+    for(const FetchTexture &t : src)
+    {
+      if(type == Textures)
+      {
+        if((t.creationFlags & rtFlags) == 0)
+          texs.push_back(t);
+      }
+      else if(type == RenderTargets)
+      {
+        if((t.creationFlags & rtFlags))
+          texs.push_back(t);
+      }
+      else
+      {
+        if(filter.isEmpty())
+          texs.push_back(t);
+        else if(QString(t.name).contains(filter, Qt::CaseInsensitive))
+          texs.push_back(t);
+      }
+    }
+
+    emit endResetModel();
+  }
+
+  QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override
+  {
+    if(row < 0 || row >= rowCount())
+      return QModelIndex();
+
+    return createIndex(row, 0);
+  }
+
+  QModelIndex parent(const QModelIndex &index) const override { return QModelIndex(); }
+  int rowCount(const QModelIndex &parent = QModelIndex()) const override { return texs.count(); }
+  int columnCount(const QModelIndex &parent = QModelIndex()) const override { return 1; }
+  Qt::ItemFlags flags(const QModelIndex &index) const override
+  {
+    if(!index.isValid())
+      return 0;
+
+    return QAbstractItemModel::flags(index);
+  }
+
+  QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override
+  {
+    if(index.isValid())
+    {
+      if(role == Qt::DisplayRole)
+      {
+        if(index.row() >= 0 && index.row() < texs.count())
+          return QVariant(texs[index.row()].name);
+      }
+
+      if(role == Qt::UserRole)
+      {
+        return QVariant::fromValue(texs[index.row()].ID);
+      }
+
+      if(role == Qt::DecorationRole)
+      {
+        QIcon goArrow;
+        goArrow.addFile(QStringLiteral(":/Resources/RightArrow_Gray_16x16.png"), QSize(),
+                        QIcon::Normal, QIcon::Off);
+        goArrow.addFile(QStringLiteral(":/Resources/RightArrow_Green_16x16.png"), QSize(),
+                        QIcon::Active, QIcon::Off);
+        return QVariant(goArrow);
+      }
+    }
+
+    return QVariant();
+  }
+
+private:
+  QVector<FetchTexture> texs;
+};
+
+class TextureListItemDelegate : public QItemDelegate
+{
+public:
+  TextureListItemDelegate(QObject *parent = 0) : QItemDelegate(parent) {}
+  void paint(QPainter *painter, const QStyleOptionViewItem &opt, const QModelIndex &index) const override
+  {
+    if(index.isValid())
+    {
+      QStyleOptionViewItem option = opt;
+      option.decorationAlignment = Qt::AlignBaseline | Qt::AlignRight;
+      painter->eraseRect(option.rect);
+
+      QIcon icon = index.model()->data(index, Qt::DecorationRole).value<QIcon>();
+
+      drawBackground(painter, option, index);
+      if(option.state & QStyle::State_MouseOver)
+        drawDecoration(painter, option, option.rect,
+                       icon.pixmap(option.decorationSize, QIcon::Active));
+      else
+        drawDecoration(painter, option, option.rect,
+                       icon.pixmap(option.decorationSize, QIcon::Normal));
+      drawDisplay(painter, option, option.rect,
+                  index.model()->data(index, Qt::DisplayRole).toString());
+      drawFocus(painter, option, option.rect);
+
+      if(option.state & QStyle::State_MouseOver)
+      {
+        QRect r = option.rect;
+        r.adjust(0, 0, -1, -1);
+
+        painter->drawRect(r);
+      }
+    }
+  }
+};
+
 FetchTexture *TextureViewer::GetCurrentTexture()
 {
   if(!m_Ctx->LogLoaded())
@@ -395,6 +531,8 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
                                        ui->dockarea->areaOf(ui->outputThumbs), 0.25f));
   ui->dockarea->setToolWindowProperties(ui->pixelContextLayout, ToolWindowManager::HideCloseButton);
 
+  ui->dockarea->addToolWindow(ui->textureListFrame, ToolWindowManager::NoArea);
+
   ui->dockarea->setAllowFloatingWindow(false);
   ui->dockarea->setRubberBandLineWidth(50);
 
@@ -402,6 +540,9 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
   ui->pixelContextLayout->setWindowTitle(tr("Pixel Context"));
   ui->outputThumbs->setWindowTitle(tr("Outputs"));
   ui->inputThumbs->setWindowTitle(tr("Inputs"));
+  ui->textureListFrame->setWindowTitle(tr("Texture List"));
+
+  ui->textureList->setHoverCursor(Qt::PointingHandCursor);
 
   m_Goto = new TextureGoto(this, [this](QPoint p) { GotoLocation(p.x(), p.y()); });
 
@@ -463,6 +604,12 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
                          tr("Clear Before Pass"), tr("Clear Before Draw"),
                          tr("Quad Overdraw (Pass)"), tr("Quad Overdraw (Draw)"),
                          tr("Triangle Size (Pass)"), tr("Triangle Size (Draw)")});
+
+  ui->textureListFilter->addItems({"", "Textures", "Render Targets"});
+
+  ui->textureList->setModel(new TextureListItemModel(this));
+  ui->textureList->setItemDelegate(new TextureListItemDelegate(ui->textureList));
+  ui->textureList->viewport()->setAttribute(Qt::WA_Hover);
 
   ui->zoomOption->setCurrentText("");
   ui->fitToWindow->toggle();
@@ -1986,7 +2133,7 @@ void TextureViewer::render_mouseMove(QMouseEvent *e)
 
   if(e->buttons() == Qt::NoButton)
   {
-    ui->render->setCursor(QCursor(Qt::ArrowCursor));
+    ui->render->unsetCursor();
   }
 
   UI_UpdateStatusText();
@@ -2246,6 +2393,10 @@ void TextureViewer::OnLogfileLoaded()
 
   WId renderID = ui->render->winId();
   WId contextID = ui->pixelContext->winId();
+
+  TextureListItemModel *model = (TextureListItemModel *)ui->textureList->model();
+
+  model->reset(TextureListItemModel::String, "", m_Ctx);
 
   m_TexDisplay.darkBackgroundColour =
       FloatVector(darkBack.redF(), darkBack.greenF(), darkBack.blueF(), 1.0f);
@@ -2734,10 +2885,58 @@ void TextureViewer::on_viewTexBuffer_clicked()
 {
 }
 
-void TextureViewer::on_texListShow_clicked()
+void TextureViewer::on_saveTex_clicked()
 {
 }
 
-void TextureViewer::on_saveTex_clicked()
+void TextureViewer::on_texListShow_clicked()
 {
+  if(ui->textureListFrame->isVisible())
+  {
+    ui->dockarea->moveToolWindow(ui->textureListFrame, ToolWindowManager::NoArea);
+  }
+  else
+  {
+    ui->textureListFilter->setCurrentText("");
+    ui->dockarea->moveToolWindow(
+        ui->textureListFrame,
+        ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
+                                         ui->dockarea->areaOf(ui->renderContainer), 0.2f));
+  }
+}
+
+void TextureViewer::on_cancelTextureListFilter_clicked()
+{
+  ui->textureListFilter->setCurrentText("");
+}
+
+void TextureViewer::on_textureListFilter_editTextChanged(const QString &text)
+{
+  TextureListItemModel *model = (TextureListItemModel *)ui->textureList->model();
+
+  if(model == NULL)
+    return;
+
+  model->reset(TextureListItemModel::String, text, m_Ctx);
+}
+
+void TextureViewer::on_textureListFilter_currentIndexChanged(int index)
+{
+  TextureListItemModel *model = (TextureListItemModel *)ui->textureList->model();
+
+  if(model == NULL)
+    return;
+
+  if(ui->textureListFilter->currentIndex() == 1)
+    model->reset(TextureListItemModel::Textures, "", m_Ctx);
+  else if(ui->textureListFilter->currentIndex() == 2)
+    model->reset(TextureListItemModel::RenderTargets, "", m_Ctx);
+  else
+    model->reset(TextureListItemModel::String, ui->textureListFilter->currentText(), m_Ctx);
+}
+
+void TextureViewer::on_textureList_clicked(const QModelIndex &index)
+{
+  ResourceId id = index.model()->data(index, Qt::UserRole).value<ResourceId>();
+  ViewTexture(id, false);
 }

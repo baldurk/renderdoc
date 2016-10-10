@@ -148,6 +148,12 @@
     <ClCompile Include="Widgets\RDDoubleSpinBox.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
+    <ClCompile Include="generated\moc_RDListView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\RDListView.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -211,6 +217,9 @@
       <Filter>Widgets</Filter>
     </ClInclude>
     <ClInclude Include="Widgets\RDDoubleSpinBox.h">
+      <Filter>Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\RDListView.h">
       <Filter>Widgets</Filter>
     </ClInclude>
   </ItemGroup>

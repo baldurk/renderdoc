@@ -286,6 +286,7 @@
     <ClCompile Include="generated\moc_RDLabel.cpp" />
     <ClCompile Include="generated\moc_RDLineEdit.cpp" />
     <ClCompile Include="generated\moc_MainWindow.cpp" />
+    <ClCompile Include="generated\moc_RDListView.cpp" />
     <ClCompile Include="generated\moc_ResourcePreview.cpp" />
     <ClCompile Include="generated\moc_TextureGoto.cpp" />
     <ClCompile Include="generated\moc_TextureViewer.cpp" />
@@ -296,6 +297,7 @@
     <ClCompile Include="generated\qrc_resources.cpp" />
     <ClCompile Include="Widgets\RDDoubleSpinBox.cpp" />
     <ClCompile Include="Widgets\RDLabel.cpp" />
+    <ClCompile Include="Widgets\RDListView.cpp" />
     <ClCompile Include="Widgets\ResourcePreview.cpp" />
     <ClCompile Include="Widgets\TextureGoto.cpp" />
     <ClCompile Include="Widgets\ThumbnailStrip.cpp" />
@@ -332,6 +334,7 @@
     <ClInclude Include="generated\ui_ThumbnailStrip.h" />
     <ClInclude Include="Widgets\RDDoubleSpinBox.h" />
     <ClInclude Include="Widgets\RDLabel.h" />
+    <ClInclude Include="Widgets\RDListView.h" />
     <ClInclude Include="Widgets\ResourcePreview.h" />
     <ClInclude Include="Widgets\TextureGoto.h" />
     <ClInclude Include="Widgets\ThumbnailStrip.h" />
