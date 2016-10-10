@@ -124,7 +124,7 @@ void RenderManager::run()
   if(renderer == NULL)
     return;
 
-  RENDERDOC_LogText(QString("QRenderDoc - renderer created for %1").arg(m_Logfile).toUtf8());
+  qInfo() << QString("QRenderDoc - renderer created for %1").arg(m_Logfile);
 
   m_Running = true;
 

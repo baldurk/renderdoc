@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <QDebug>
 #include <QMap>
 #include <QString>
 #include <QVector>
@@ -191,7 +192,7 @@ private:
     if(stage == eShaderStage_Compute)
       return m_D3D11->m_CS;
 
-    RENDERDOC_LogText("Error - invalid stage");
+    qCritical() << "Error - invalid stage " << (int)stage;
     return m_D3D11->m_CS;
   }
 
@@ -210,7 +211,7 @@ private:
     if(stage == eShaderStage_Compute)
       return m_D3D12->m_CS;
 
-    RENDERDOC_LogText("Error - invalid stage");
+    qCritical() << "Error - invalid stage " << (int)stage;
     return m_D3D12->m_CS;
   }
 
@@ -229,7 +230,7 @@ private:
     if(stage == eShaderStage_Compute)
       return m_GL->m_CS;
 
-    RENDERDOC_LogText("Error - invalid stage");
+    qCritical() << "Error - invalid stage " << (int)stage;
     return m_GL->m_CS;
   }
 
@@ -248,7 +249,7 @@ private:
     if(stage == eShaderStage_Compute)
       return m_Vulkan->CS;
 
-    RENDERDOC_LogText("Error - invalid stage");
+    qCritical() << "Error - invalid stage " << (int)stage;
     return m_Vulkan->CS;
   }
 };
