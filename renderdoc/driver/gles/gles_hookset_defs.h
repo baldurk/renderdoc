@@ -76,14 +76,24 @@
     HookInit(glGenerateMipmap); \
     HookInit(glGenFramebuffers); \
     HookInit(glGenTextures); \
+    HookInit(glGetActiveAttrib); \
+    HookInit(glGetActiveUniform); \
+    HookInit(glGetAttachedShaders); \
+    HookInit(glGetAttribLocation); \
+    HookInit(glGetBooleanv); \
     HookInit(glGetBufferParameteriv); \
     HookInit(glGetError); \
+    HookInit(glGetFloatv); \
     HookInit(glGetFramebufferAttachmentParameteriv); \
     HookInit(glGetIntegerv); \
     HookInit(glGetProgramiv); \
     HookInit(glGetProgramInfoLog); \
+    HookInit(glGetRenderbufferParameteriv); \
     HookInit(glGetShaderiv); \
     HookInit(glGetShaderInfoLog); \
+    HookInit(glGetShaderPrecisionFormat); \
+    HookInit(glGetShaderSource); \
+    HookInit(glGetString); \
     HookInit(glGetTexParameterfv); \
     HookInit(glGetTexParameteriv); \
     HookInit(glGetUniformfv); \
@@ -91,6 +101,7 @@
     HookInit(glGetUniformLocation); \
     HookInit(glGetVertexAttribfv); \
     HookInit(glGetVertexAttribiv); \
+    HookInit(glGetVertexAttribPointerv); \
     HookInit(glIsBuffer); \
     HookInit(glIsEnabled); \
     HookInit(glIsFramebuffer); \
@@ -146,8 +157,10 @@
     HookInit(glIsQuery); \
     HookInit(glBeginQuery); \
     HookInit(glEndQuery); \
+    HookInit(glGetQueryiv); \
     HookInit(glGetQueryObjectuiv); \
     HookInit(glUnmapBuffer); \
+    HookInit(glGetBufferPointerv); \
     HookInit(glUniformMatrix2x3fv); \
     HookInit(glUniformMatrix3x2fv); \
     HookInit(glUniformMatrix2x4fv); \
@@ -166,7 +179,11 @@
     HookInit(glEndTransformFeedback); \
     HookInit(glBindBufferBase); \
     HookInit(glTransformFeedbackVaryings); \
+    HookInit(glGetTransformFeedbackVarying); \
+    HookInit(glGetVertexAttribIiv); \
+    HookInit(glGetVertexAttribIuiv); \
     HookInit(glGetUniformuiv); \
+    HookInit(glGetFragDataLocation); \
     HookInit(glUniform1ui); \
     HookInit(glUniform2ui); \
     HookInit(glUniform3ui); \
@@ -179,10 +196,17 @@
     HookInit(glClearBufferfv); \
     HookInit(glClearBufferfi); \
     HookInit(glGetStringi); \
+    HookInit(glGetActiveUniformsiv); \
+    HookInit(glGetUniformBlockIndex); \
+    HookInit(glGetActiveUniformBlockiv); \
+    HookInit(glGetActiveUniformBlockName); \
     HookInit(glDrawArraysInstanced); \
     HookInit(glDrawElementsInstanced); \
     HookInit(glIsSync); \
+    HookInit(glGetInteger64v); \
+    HookInit(glGetSynciv); \
     HookInit(glGetInteger64i_v); \
+    HookInit(glGetBufferParameteri64v); \
     HookInit(glGenSamplers); \
     HookInit(glDeleteSamplers); \
     HookInit(glIsSampler); \
@@ -194,19 +218,26 @@
     HookInit(glDeleteTransformFeedbacks); \
     HookInit(glGenTransformFeedbacks); \
     HookInit(glIsTransformFeedback); \
+    HookInit(glGetProgramBinary); \
     HookInit(glProgramParameteri); \
     HookInit(glTexStorage2D); \
     HookInit(glTexStorage3D); \
+    HookInit(glGetInternalformativ); \
     HookInit(glDrawArraysIndirect); \
     HookInit(glDrawElementsIndirect); \
+    HookInit(glGetFramebufferParameteriv); \
+    HookInit(glGetProgramInterfaceiv); \
     HookInit(glGetProgramResourceIndex); \
+    HookInit(glGetProgramResourceName); \
     HookInit(glGetProgramResourceiv); \
+    HookInit(glGetProgramResourceLocation); \
     HookInit(glUseProgramStages); \
     HookInit(glCreateShaderProgramv); \
     HookInit(glBindProgramPipeline); \
     HookInit(glDeleteProgramPipelines); \
     HookInit(glGenProgramPipelines); \
     HookInit(glIsProgramPipeline); \
+    HookInit(glGetProgramPipelineiv); \
     HookInit(glProgramUniform1i); \
     HookInit(glProgramUniform2i); \
     HookInit(glProgramUniform3i); \
@@ -240,9 +271,11 @@
     HookInit(glProgramUniformMatrix4x2fv); \
     HookInit(glProgramUniformMatrix3x4fv); \
     HookInit(glProgramUniformMatrix4x3fv); \
+    HookInit(glGetProgramPipelineInfoLog); \
     HookInit(glBindImageTexture); \
     HookInit(glGetBooleani_v); \
     HookInit(glTexStorage2DMultisample); \
+    HookInit(glGetMultisamplefv); \
     HookInit(glGetTexLevelParameteriv); \
     HookInit(glGetTexLevelParameterfv); \
     HookInit(glBindVertexBuffer); \
@@ -254,6 +287,8 @@
     HookInit(glGetDebugMessageLog); \
     HookInit(glObjectLabel); \
     HookInit(glGetObjectLabel); \
+    HookInit(glGetObjectPtrLabel); \
+    HookInit(glGetPointerv); \
     HookInit(glDisablei); \
     HookInit(glIsEnabledi); \
     HookInit(glDrawElementsBaseVertex); \
@@ -261,10 +296,16 @@
     HookInit(glDrawElementsInstancedBaseVertex); \
     HookInit(glFramebufferTexture); \
     HookInit(glGetGraphicsResetStatus); \
+    HookInit(glReadnPixels); \
+    HookInit(glGetnUniformfv); \
+    HookInit(glGetnUniformiv); \
+    HookInit(glGetnUniformuiv); \
     HookInit(glTexParameterIiv); \
     HookInit(glTexParameterIuiv); \
     HookInit(glGetTexParameterIiv); \
     HookInit(glGetTexParameterIuiv); \
+    HookInit(glGetSamplerParameterIiv); \
+    HookInit(glGetSamplerParameterIuiv); \
     HookInit(glTexBuffer); \
     HookInit(glTexBufferRange); \
     HookInit(glTexStorage3DMultisample); \
@@ -282,7 +323,13 @@
     HookExtension(PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEEXTPROC, glDrawArraysInstancedBaseInstanceEXT); \
     HookExtension(PFNGLDRAWELEMENTSINSTANCEDBASEINSTANCEEXTPROC, glDrawElementsInstancedBaseInstanceEXT); \
     HookExtension(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEEXTPROC, glDrawElementsInstancedBaseVertexBaseInstanceEXT); \
+    HookExtension(PFNGLGETPROGRAMRESOURCELOCATIONINDEXEXTPROC, glGetProgramResourceLocationIndexEXT); \
+    HookExtension(PFNGLGETFRAGDATAINDEXEXTPROC, glGetFragDataIndexEXT); \
     HookExtension(PFNGLBUFFERSTORAGEEXTPROC, glBufferStorageEXT); \
+    HookExtension(PFNGLGETOBJECTLABELEXTPROC, glGetObjectLabelEXT); \
+    HookExtension(PFNGLGETQUERYOBJECTIVEXTPROC, glGetQueryObjectivEXT); \
+    HookExtension(PFNGLGETQUERYOBJECTI64VEXTPROC, glGetQueryObjecti64vEXT); \
+    HookExtension(PFNGLGETQUERYOBJECTUI64VEXTPROC, glGetQueryObjectui64vEXT); \
     HookExtension(PFNGLTEXSTORAGE1DEXTPROC, glTexStorage1DEXT); \
     HookExtension(PFNGLTEXTURESTORAGE1DEXTPROC, glTextureStorage1DEXT); \
     HookExtension(PFNGLTEXTURESTORAGE2DEXTPROC, glTextureStorage2DEXT); \
@@ -332,14 +379,24 @@
     HookExtension(PFNGLGENERATEMIPMAPPROC, glGenerateMipmap); \
     HookExtension(PFNGLGENFRAMEBUFFERSPROC, glGenFramebuffers); \
     HookExtension(PFNGLGENTEXTURESPROC, glGenTextures); \
+    HookExtension(PFNGLGETACTIVEATTRIBPROC, glGetActiveAttrib); \
+    HookExtension(PFNGLGETACTIVEUNIFORMPROC, glGetActiveUniform); \
+    HookExtension(PFNGLGETATTACHEDSHADERSPROC, glGetAttachedShaders); \
+    HookExtension(PFNGLGETATTRIBLOCATIONPROC, glGetAttribLocation); \
+    HookExtension(PFNGLGETBOOLEANVPROC, glGetBooleanv); \
     HookExtension(PFNGLGETBUFFERPARAMETERIVPROC, glGetBufferParameteriv); \
     HookExtension(PFNGLGETERRORPROC, glGetError); \
+    HookExtension(PFNGLGETFLOATVPROC, glGetFloatv); \
     HookExtension(PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC, glGetFramebufferAttachmentParameteriv); \
     HookExtension(PFNGLGETINTEGERVPROC, glGetIntegerv); \
     HookExtension(PFNGLGETPROGRAMIVPROC, glGetProgramiv); \
     HookExtension(PFNGLGETPROGRAMINFOLOGPROC, glGetProgramInfoLog); \
+    HookExtension(PFNGLGETRENDERBUFFERPARAMETERIVPROC, glGetRenderbufferParameteriv); \
     HookExtension(PFNGLGETSHADERIVPROC, glGetShaderiv); \
     HookExtension(PFNGLGETSHADERINFOLOGPROC, glGetShaderInfoLog); \
+    HookExtension(PFNGLGETSHADERPRECISIONFORMATPROC, glGetShaderPrecisionFormat); \
+    HookExtension(PFNGLGETSHADERSOURCEPROC, glGetShaderSource); \
+    HookExtension(PFNGLGETSTRINGPROC, glGetString); \
     HookExtension(PFNGLGETTEXPARAMETERFVPROC, glGetTexParameterfv); \
     HookExtension(PFNGLGETTEXPARAMETERIVPROC, glGetTexParameteriv); \
     HookExtension(PFNGLGETUNIFORMFVPROC, glGetUniformfv); \
@@ -347,6 +404,7 @@
     HookExtension(PFNGLGETUNIFORMLOCATIONPROC, glGetUniformLocation); \
     HookExtension(PFNGLGETVERTEXATTRIBFVPROC, glGetVertexAttribfv); \
     HookExtension(PFNGLGETVERTEXATTRIBIVPROC, glGetVertexAttribiv); \
+    HookExtension(PFNGLGETVERTEXATTRIBPOINTERVPROC, glGetVertexAttribPointerv); \
     HookExtension(PFNGLISBUFFERPROC, glIsBuffer); \
     HookExtension(PFNGLISENABLEDPROC, glIsEnabled); \
     HookExtension(PFNGLISFRAMEBUFFERPROC, glIsFramebuffer); \
@@ -402,8 +460,10 @@
     HookExtension(PFNGLISQUERYPROC, glIsQuery); \
     HookExtension(PFNGLBEGINQUERYPROC, glBeginQuery); \
     HookExtension(PFNGLENDQUERYPROC, glEndQuery); \
+    HookExtension(PFNGLGETQUERYIVPROC, glGetQueryiv); \
     HookExtension(PFNGLGETQUERYOBJECTUIVPROC, glGetQueryObjectuiv); \
     HookExtension(PFNGLUNMAPBUFFERPROC, glUnmapBuffer); \
+    HookExtension(PFNGLGETBUFFERPOINTERVPROC, glGetBufferPointerv); \
     HookExtension(PFNGLUNIFORMMATRIX2X3FVPROC, glUniformMatrix2x3fv); \
     HookExtension(PFNGLUNIFORMMATRIX3X2FVPROC, glUniformMatrix3x2fv); \
     HookExtension(PFNGLUNIFORMMATRIX2X4FVPROC, glUniformMatrix2x4fv); \
@@ -422,7 +482,11 @@
     HookExtension(PFNGLENDTRANSFORMFEEDBACKPROC, glEndTransformFeedback); \
     HookExtension(PFNGLBINDBUFFERBASEPROC, glBindBufferBase); \
     HookExtension(PFNGLTRANSFORMFEEDBACKVARYINGSPROC, glTransformFeedbackVaryings); \
+    HookExtension(PFNGLGETTRANSFORMFEEDBACKVARYINGPROC, glGetTransformFeedbackVarying); \
+    HookExtension(PFNGLGETVERTEXATTRIBIIVPROC, glGetVertexAttribIiv); \
+    HookExtension(PFNGLGETVERTEXATTRIBIUIVPROC, glGetVertexAttribIuiv); \
     HookExtension(PFNGLGETUNIFORMUIVPROC, glGetUniformuiv); \
+    HookExtension(PFNGLGETFRAGDATALOCATIONPROC, glGetFragDataLocation); \
     HookExtension(PFNGLUNIFORM1UIPROC, glUniform1ui); \
     HookExtension(PFNGLUNIFORM2UIPROC, glUniform2ui); \
     HookExtension(PFNGLUNIFORM3UIPROC, glUniform3ui); \
@@ -435,10 +499,17 @@
     HookExtension(PFNGLCLEARBUFFERFVPROC, glClearBufferfv); \
     HookExtension(PFNGLCLEARBUFFERFIPROC, glClearBufferfi); \
     HookExtension(PFNGLGETSTRINGIPROC, glGetStringi); \
+    HookExtension(PFNGLGETACTIVEUNIFORMSIVPROC, glGetActiveUniformsiv); \
+    HookExtension(PFNGLGETUNIFORMBLOCKINDEXPROC, glGetUniformBlockIndex); \
+    HookExtension(PFNGLGETACTIVEUNIFORMBLOCKIVPROC, glGetActiveUniformBlockiv); \
+    HookExtension(PFNGLGETACTIVEUNIFORMBLOCKNAMEPROC, glGetActiveUniformBlockName); \
     HookExtension(PFNGLDRAWARRAYSINSTANCEDPROC, glDrawArraysInstanced); \
     HookExtension(PFNGLDRAWELEMENTSINSTANCEDPROC, glDrawElementsInstanced); \
     HookExtension(PFNGLISSYNCPROC, glIsSync); \
+    HookExtension(PFNGLGETINTEGER64VPROC, glGetInteger64v); \
+    HookExtension(PFNGLGETSYNCIVPROC, glGetSynciv); \
     HookExtension(PFNGLGETINTEGER64I_VPROC, glGetInteger64i_v); \
+    HookExtension(PFNGLGETBUFFERPARAMETERI64VPROC, glGetBufferParameteri64v); \
     HookExtension(PFNGLGENSAMPLERSPROC, glGenSamplers); \
     HookExtension(PFNGLDELETESAMPLERSPROC, glDeleteSamplers); \
     HookExtension(PFNGLISSAMPLERPROC, glIsSampler); \
@@ -450,19 +521,26 @@
     HookExtension(PFNGLDELETETRANSFORMFEEDBACKSPROC, glDeleteTransformFeedbacks); \
     HookExtension(PFNGLGENTRANSFORMFEEDBACKSPROC, glGenTransformFeedbacks); \
     HookExtension(PFNGLISTRANSFORMFEEDBACKPROC, glIsTransformFeedback); \
+    HookExtension(PFNGLGETPROGRAMBINARYPROC, glGetProgramBinary); \
     HookExtension(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri); \
     HookExtension(PFNGLTEXSTORAGE2DPROC, glTexStorage2D); \
     HookExtension(PFNGLTEXSTORAGE3DPROC, glTexStorage3D); \
+    HookExtension(PFNGLGETINTERNALFORMATIVPROC, glGetInternalformativ); \
     HookExtension(PFNGLDRAWARRAYSINDIRECTPROC, glDrawArraysIndirect); \
     HookExtension(PFNGLDRAWELEMENTSINDIRECTPROC, glDrawElementsIndirect); \
+    HookExtension(PFNGLGETFRAMEBUFFERPARAMETERIVPROC, glGetFramebufferParameteriv); \
+    HookExtension(PFNGLGETPROGRAMINTERFACEIVPROC, glGetProgramInterfaceiv); \
     HookExtension(PFNGLGETPROGRAMRESOURCEINDEXPROC, glGetProgramResourceIndex); \
+    HookExtension(PFNGLGETPROGRAMRESOURCENAMEPROC, glGetProgramResourceName); \
     HookExtension(PFNGLGETPROGRAMRESOURCEIVPROC, glGetProgramResourceiv); \
+    HookExtension(PFNGLGETPROGRAMRESOURCELOCATIONPROC, glGetProgramResourceLocation); \
     HookExtension(PFNGLUSEPROGRAMSTAGESPROC, glUseProgramStages); \
     HookExtension(PFNGLCREATESHADERPROGRAMVPROC, glCreateShaderProgramv); \
     HookExtension(PFNGLBINDPROGRAMPIPELINEPROC, glBindProgramPipeline); \
     HookExtension(PFNGLDELETEPROGRAMPIPELINESPROC, glDeleteProgramPipelines); \
     HookExtension(PFNGLGENPROGRAMPIPELINESPROC, glGenProgramPipelines); \
     HookExtension(PFNGLISPROGRAMPIPELINEPROC, glIsProgramPipeline); \
+    HookExtension(PFNGLGETPROGRAMPIPELINEIVPROC, glGetProgramPipelineiv); \
     HookExtension(PFNGLPROGRAMUNIFORM1IPROC, glProgramUniform1i); \
     HookExtension(PFNGLPROGRAMUNIFORM2IPROC, glProgramUniform2i); \
     HookExtension(PFNGLPROGRAMUNIFORM3IPROC, glProgramUniform3i); \
@@ -496,9 +574,11 @@
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX4X2FVPROC, glProgramUniformMatrix4x2fv); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX3X4FVPROC, glProgramUniformMatrix3x4fv); \
     HookExtension(PFNGLPROGRAMUNIFORMMATRIX4X3FVPROC, glProgramUniformMatrix4x3fv); \
+    HookExtension(PFNGLGETPROGRAMPIPELINEINFOLOGPROC, glGetProgramPipelineInfoLog); \
     HookExtension(PFNGLBINDIMAGETEXTUREPROC, glBindImageTexture); \
     HookExtension(PFNGLGETBOOLEANI_VPROC, glGetBooleani_v); \
     HookExtension(PFNGLTEXSTORAGE2DMULTISAMPLEPROC, glTexStorage2DMultisample); \
+    HookExtension(PFNGLGETMULTISAMPLEFVPROC, glGetMultisamplefv); \
     HookExtension(PFNGLGETTEXLEVELPARAMETERIVPROC, glGetTexLevelParameteriv); \
     HookExtension(PFNGLGETTEXLEVELPARAMETERFVPROC, glGetTexLevelParameterfv); \
     HookExtension(PFNGLBINDVERTEXBUFFERPROC, glBindVertexBuffer); \
@@ -510,6 +590,8 @@
     HookExtension(PFNGLGETDEBUGMESSAGELOGPROC, glGetDebugMessageLog); \
     HookExtension(PFNGLOBJECTLABELPROC, glObjectLabel); \
     HookExtension(PFNGLGETOBJECTLABELPROC, glGetObjectLabel); \
+    HookExtension(PFNGLGETOBJECTPTRLABELPROC, glGetObjectPtrLabel); \
+    HookExtension(PFNGLGETPOINTERVPROC, glGetPointerv); \
     HookExtension(PFNGLDISABLEIPROC, glDisablei); \
     HookExtension(PFNGLISENABLEDIPROC, glIsEnabledi); \
     HookExtension(PFNGLDRAWELEMENTSBASEVERTEXPROC, glDrawElementsBaseVertex); \
@@ -517,10 +599,16 @@
     HookExtension(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC, glDrawElementsInstancedBaseVertex); \
     HookExtension(PFNGLFRAMEBUFFERTEXTUREPROC, glFramebufferTexture); \
     HookExtension(PFNGLGETGRAPHICSRESETSTATUSPROC, glGetGraphicsResetStatus); \
+    HookExtension(PFNGLREADNPIXELSPROC, glReadnPixels); \
+    HookExtension(PFNGLGETNUNIFORMFVPROC, glGetnUniformfv); \
+    HookExtension(PFNGLGETNUNIFORMIVPROC, glGetnUniformiv); \
+    HookExtension(PFNGLGETNUNIFORMUIVPROC, glGetnUniformuiv); \
     HookExtension(PFNGLTEXPARAMETERIIVPROC, glTexParameterIiv); \
     HookExtension(PFNGLTEXPARAMETERIUIVPROC, glTexParameterIuiv); \
     HookExtension(PFNGLGETTEXPARAMETERIIVPROC, glGetTexParameterIiv); \
     HookExtension(PFNGLGETTEXPARAMETERIUIVPROC, glGetTexParameterIuiv); \
+    HookExtension(PFNGLGETSAMPLERPARAMETERIIVPROC, glGetSamplerParameterIiv); \
+    HookExtension(PFNGLGETSAMPLERPARAMETERIUIVPROC, glGetSamplerParameterIuiv); \
     HookExtension(PFNGLTEXBUFFERPROC, glTexBuffer); \
     HookExtension(PFNGLTEXBUFFERRANGEPROC, glTexBufferRange); \
     HookExtension(PFNGLTEXSTORAGE3DMULTISAMPLEPROC, glTexStorage3DMultisample); \
@@ -571,14 +659,24 @@
     HookWrapper1(void, glGenerateMipmap, GLenum, target); \
     HookWrapper2(void, glGenFramebuffers, GLsizei, n, GLuint *, framebuffers); \
     HookWrapper2(void, glGenTextures, GLsizei, n, GLuint *, textures); \
+    HookWrapper7(void, glGetActiveAttrib, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \
+    HookWrapper7(void, glGetActiveUniform, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \
+    HookWrapper4(void, glGetAttachedShaders, GLuint, program, GLsizei, maxCount, GLsizei *, count, GLuint *, shaders); \
+    HookWrapper2(GLint, glGetAttribLocation, GLuint, program, const GLchar *, name); \
+    HookWrapper2(void, glGetBooleanv, GLenum, pname, GLboolean *, data); \
     HookWrapper3(void, glGetBufferParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper0(GLenum, glGetError); \
+    HookWrapper2(void, glGetFloatv, GLenum, pname, GLfloat *, data); \
     HookWrapper4(void, glGetFramebufferAttachmentParameteriv, GLenum, target, GLenum, attachment, GLenum, pname, GLint *, params); \
     HookWrapper2(void, glGetIntegerv, GLenum, pname, GLint *, data); \
     HookWrapper3(void, glGetProgramiv, GLuint, program, GLenum, pname, GLint *, params); \
     HookWrapper4(void, glGetProgramInfoLog, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLchar *, infoLog); \
+    HookWrapper3(void, glGetRenderbufferParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetShaderiv, GLuint, shader, GLenum, pname, GLint *, params); \
     HookWrapper4(void, glGetShaderInfoLog, GLuint, shader, GLsizei, bufSize, GLsizei *, length, GLchar *, infoLog); \
+    HookWrapper4(void, glGetShaderPrecisionFormat, GLenum, shadertype, GLenum, precisiontype, GLint *, range, GLint *, precision); \
+    HookWrapper4(void, glGetShaderSource, GLuint, shader, GLsizei, bufSize, GLsizei *, length, GLchar *, source); \
+    HookWrapper1(const GLubyte *, glGetString, GLenum, name); \
     HookWrapper3(void, glGetTexParameterfv, GLenum, target, GLenum, pname, GLfloat *, params); \
     HookWrapper3(void, glGetTexParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetUniformfv, GLuint, program, GLint, location, GLfloat *, params); \
@@ -586,6 +684,7 @@
     HookWrapper2(GLint, glGetUniformLocation, GLuint, program, const GLchar *, name); \
     HookWrapper3(void, glGetVertexAttribfv, GLuint, index, GLenum, pname, GLfloat *, params); \
     HookWrapper3(void, glGetVertexAttribiv, GLuint, index, GLenum, pname, GLint *, params); \
+    HookWrapper3(void, glGetVertexAttribPointerv, GLuint, index, GLenum, pname, void **, pointer); \
     HookWrapper1(GLboolean, glIsBuffer, GLuint, buffer); \
     HookWrapper1(GLboolean, glIsEnabled, GLenum, cap); \
     HookWrapper1(GLboolean, glIsFramebuffer, GLuint, framebuffer); \
@@ -641,8 +740,10 @@
     HookWrapper1(GLboolean, glIsQuery, GLuint, id); \
     HookWrapper2(void, glBeginQuery, GLenum, target, GLuint, id); \
     HookWrapper1(void, glEndQuery, GLenum, target); \
+    HookWrapper3(void, glGetQueryiv, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetQueryObjectuiv, GLuint, id, GLenum, pname, GLuint *, params); \
     HookWrapper1(GLboolean, glUnmapBuffer, GLenum, target); \
+    HookWrapper3(void, glGetBufferPointerv, GLenum, target, GLenum, pname, void **, params); \
     HookWrapper4(void, glUniformMatrix2x3fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper4(void, glUniformMatrix3x2fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper4(void, glUniformMatrix2x4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
@@ -661,7 +762,11 @@
     HookWrapper0(void, glEndTransformFeedback); \
     HookWrapper3(void, glBindBufferBase, GLenum, target, GLuint, index, GLuint, buffer); \
     HookWrapper4(void, glTransformFeedbackVaryings, GLuint, program, GLsizei, count, const GLchar *const*, varyings, GLenum, bufferMode); \
+    HookWrapper7(void, glGetTransformFeedbackVarying, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLsizei *, size, GLenum *, type, GLchar *, name); \
+    HookWrapper3(void, glGetVertexAttribIiv, GLuint, index, GLenum, pname, GLint *, params); \
+    HookWrapper3(void, glGetVertexAttribIuiv, GLuint, index, GLenum, pname, GLuint *, params); \
     HookWrapper3(void, glGetUniformuiv, GLuint, program, GLint, location, GLuint *, params); \
+    HookWrapper2(GLint, glGetFragDataLocation, GLuint, program, const GLchar *, name); \
     HookWrapper2(void, glUniform1ui, GLint, location, GLuint, v0); \
     HookWrapper3(void, glUniform2ui, GLint, location, GLuint, v0, GLuint, v1); \
     HookWrapper4(void, glUniform3ui, GLint, location, GLuint, v0, GLuint, v1, GLuint, v2); \
@@ -674,10 +779,17 @@
     HookWrapper3(void, glClearBufferfv, GLenum, buffer, GLint, drawbuffer, const GLfloat *, value); \
     HookWrapper4(void, glClearBufferfi, GLenum, buffer, GLint, drawbuffer, GLfloat, depth, GLint, stencil); \
     HookWrapper2(const GLubyte *, glGetStringi, GLenum, name, GLuint, index); \
+    HookWrapper5(void, glGetActiveUniformsiv, GLuint, program, GLsizei, uniformCount, const GLuint *, uniformIndices, GLenum, pname, GLint *, params); \
+    HookWrapper2(GLuint, glGetUniformBlockIndex, GLuint, program, const GLchar *, uniformBlockName); \
+    HookWrapper4(void, glGetActiveUniformBlockiv, GLuint, program, GLuint, uniformBlockIndex, GLenum, pname, GLint *, params); \
+    HookWrapper5(void, glGetActiveUniformBlockName, GLuint, program, GLuint, uniformBlockIndex, GLsizei, bufSize, GLsizei *, length, GLchar *, uniformBlockName); \
     HookWrapper4(void, glDrawArraysInstanced, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount); \
     HookWrapper5(void, glDrawElementsInstanced, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount); \
     HookWrapper1(GLboolean, glIsSync, GLsync, sync); \
+    HookWrapper2(void, glGetInteger64v, GLenum, pname, GLint64 *, data); \
+    HookWrapper5(void, glGetSynciv, GLsync, sync, GLenum, pname, GLsizei, bufSize, GLsizei *, length, GLint *, values); \
     HookWrapper3(void, glGetInteger64i_v, GLenum, target, GLuint, index, GLint64 *, data); \
+    HookWrapper3(void, glGetBufferParameteri64v, GLenum, target, GLenum, pname, GLint64 *, params); \
     HookWrapper2(void, glGenSamplers, GLsizei, count, GLuint *, samplers); \
     HookWrapper2(void, glDeleteSamplers, GLsizei, count, const GLuint *, samplers); \
     HookWrapper1(GLboolean, glIsSampler, GLuint, sampler); \
@@ -689,19 +801,26 @@
     HookWrapper2(void, glDeleteTransformFeedbacks, GLsizei, n, const GLuint *, ids); \
     HookWrapper2(void, glGenTransformFeedbacks, GLsizei, n, GLuint *, ids); \
     HookWrapper1(GLboolean, glIsTransformFeedback, GLuint, id); \
+    HookWrapper5(void, glGetProgramBinary, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLenum *, binaryFormat, void *, binary); \
     HookWrapper3(void, glProgramParameteri, GLuint, program, GLenum, pname, GLint, value); \
     HookWrapper5(void, glTexStorage2D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper6(void, glTexStorage3D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth); \
+    HookWrapper5(void, glGetInternalformativ, GLenum, target, GLenum, internalformat, GLenum, pname, GLsizei, bufSize, GLint *, params); \
     HookWrapper2(void, glDrawArraysIndirect, GLenum, mode, const void *, indirect); \
     HookWrapper3(void, glDrawElementsIndirect, GLenum, mode, GLenum, type, const void *, indirect); \
+    HookWrapper3(void, glGetFramebufferParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
+    HookWrapper4(void, glGetProgramInterfaceiv, GLuint, program, GLenum, programInterface, GLenum, pname, GLint *, params); \
     HookWrapper3(GLuint, glGetProgramResourceIndex, GLuint, program, GLenum, programInterface, const GLchar *, name); \
+    HookWrapper6(void, glGetProgramResourceName, GLuint, program, GLenum, programInterface, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLchar *, name); \
     HookWrapper8(void, glGetProgramResourceiv, GLuint, program, GLenum, programInterface, GLuint, index, GLsizei, propCount, const GLenum *, props, GLsizei, bufSize, GLsizei *, length, GLint *, params); \
+    HookWrapper3(GLint, glGetProgramResourceLocation, GLuint, program, GLenum, programInterface, const GLchar *, name); \
     HookWrapper3(void, glUseProgramStages, GLuint, pipeline, GLbitfield, stages, GLuint, program); \
     HookWrapper3(GLuint, glCreateShaderProgramv, GLenum, type, GLsizei, count, const GLchar *const*, strings); \
     HookWrapper1(void, glBindProgramPipeline, GLuint, pipeline); \
     HookWrapper2(void, glDeleteProgramPipelines, GLsizei, n, const GLuint *, pipelines); \
     HookWrapper2(void, glGenProgramPipelines, GLsizei, n, GLuint *, pipelines); \
     HookWrapper1(GLboolean, glIsProgramPipeline, GLuint, pipeline); \
+    HookWrapper3(void, glGetProgramPipelineiv, GLuint, pipeline, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glProgramUniform1i, GLuint, program, GLint, location, GLint, v0); \
     HookWrapper4(void, glProgramUniform2i, GLuint, program, GLint, location, GLint, v0, GLint, v1); \
     HookWrapper5(void, glProgramUniform3i, GLuint, program, GLint, location, GLint, v0, GLint, v1, GLint, v2); \
@@ -735,9 +854,11 @@
     HookWrapper5(void, glProgramUniformMatrix4x2fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper5(void, glProgramUniformMatrix3x4fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper5(void, glProgramUniformMatrix4x3fv, GLuint, program, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
+    HookWrapper4(void, glGetProgramPipelineInfoLog, GLuint, pipeline, GLsizei, bufSize, GLsizei *, length, GLchar *, infoLog); \
     HookWrapper7(void, glBindImageTexture, GLuint, unit, GLuint, texture, GLint, level, GLboolean, layered, GLint, layer, GLenum, access, GLenum, format); \
     HookWrapper3(void, glGetBooleani_v, GLenum, target, GLuint, index, GLboolean *, data); \
     HookWrapper6(void, glTexStorage2DMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height, GLboolean, fixedsamplelocations); \
+    HookWrapper3(void, glGetMultisamplefv, GLenum, pname, GLuint, index, GLfloat *, val); \
     HookWrapper4(void, glGetTexLevelParameteriv, GLenum, target, GLint, level, GLenum, pname, GLint *, params); \
     HookWrapper4(void, glGetTexLevelParameterfv, GLenum, target, GLint, level, GLenum, pname, GLfloat *, params); \
     HookWrapper4(void, glBindVertexBuffer, GLuint, bindingindex, GLuint, buffer, GLintptr, offset, GLsizei, stride); \
@@ -749,6 +870,8 @@
     HookWrapper8(GLuint, glGetDebugMessageLog, GLuint, count, GLsizei, bufSize, GLenum *, sources, GLenum *, types, GLuint *, ids, GLenum *, severities, GLsizei *, lengths, GLchar *, messageLog); \
     HookWrapper4(void, glObjectLabel, GLenum, identifier, GLuint, name, GLsizei, length, const GLchar *, label); \
     HookWrapper5(void, glGetObjectLabel, GLenum, identifier, GLuint, name, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
+    HookWrapper4(void, glGetObjectPtrLabel, const void *, ptr, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
+    HookWrapper2(void, glGetPointerv, GLenum, pname, void **, params); \
     HookWrapper2(void, glDisablei, GLenum, target, GLuint, index); \
     HookWrapper2(GLboolean, glIsEnabledi, GLenum, target, GLuint, index); \
     HookWrapper5(void, glDrawElementsBaseVertex, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
@@ -756,10 +879,16 @@
     HookWrapper6(void, glDrawElementsInstancedBaseVertex, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex); \
     HookWrapper4(void, glFramebufferTexture, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level); \
     HookWrapper0(GLenum, glGetGraphicsResetStatus); \
+    HookWrapper8(void, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
+    HookWrapper4(void, glGetnUniformfv, GLuint, program, GLint, location, GLsizei, bufSize, GLfloat *, params); \
+    HookWrapper4(void, glGetnUniformiv, GLuint, program, GLint, location, GLsizei, bufSize, GLint *, params); \
+    HookWrapper4(void, glGetnUniformuiv, GLuint, program, GLint, location, GLsizei, bufSize, GLuint *, params); \
     HookWrapper3(void, glTexParameterIiv, GLenum, target, GLenum, pname, const GLint *, params); \
     HookWrapper3(void, glTexParameterIuiv, GLenum, target, GLenum, pname, const GLuint *, params); \
     HookWrapper3(void, glGetTexParameterIiv, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetTexParameterIuiv, GLenum, target, GLenum, pname, GLuint *, params); \
+    HookWrapper3(void, glGetSamplerParameterIiv, GLuint, sampler, GLenum, pname, GLint *, params); \
+    HookWrapper3(void, glGetSamplerParameterIuiv, GLuint, sampler, GLenum, pname, GLuint *, params); \
     HookWrapper3(void, glTexBuffer, GLenum, target, GLenum, internalformat, GLuint, buffer); \
     HookWrapper5(void, glTexBufferRange, GLenum, target, GLenum, internalformat, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
     HookWrapper7(void, glTexStorage3DMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth, GLboolean, fixedsamplelocations); \
@@ -777,7 +906,13 @@
     HookWrapper5(void, glDrawArraysInstancedBaseInstanceEXT, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount, GLuint, baseinstance); \
     HookWrapper6(void, glDrawElementsInstancedBaseInstanceEXT, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLuint, baseinstance); \
     HookWrapper7(void, glDrawElementsInstancedBaseVertexBaseInstanceEXT, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex, GLuint, baseinstance); \
+    HookWrapper3(GLint, glGetProgramResourceLocationIndexEXT, GLuint, program, GLenum, programInterface, const GLchar *, name); \
+    HookWrapper2(GLint, glGetFragDataIndexEXT, GLuint, program, const GLchar *, name); \
     HookWrapper4(void, glBufferStorageEXT, GLenum, target, GLsizeiptr, size, const void *, data, GLbitfield, flags); \
+    HookWrapper5(void, glGetObjectLabelEXT, GLenum, type, GLuint, object, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
+    HookWrapper3(void, glGetQueryObjectivEXT, GLuint, id, GLenum, pname, GLint *, params); \
+    HookWrapper3(void, glGetQueryObjecti64vEXT, GLuint, id, GLenum, pname, GLint64 *, params); \
+    HookWrapper3(void, glGetQueryObjectui64vEXT, GLuint, id, GLenum, pname, GLuint64 *, params); \
     HookWrapper4(void, glTexStorage1DEXT, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width); \
     HookWrapper5(void, glTextureStorage1DEXT, GLuint, texture, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width); \
     HookWrapper6(void, glTextureStorage2DEXT, GLuint, texture, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
@@ -802,17 +937,6 @@
     HookWrapper2(void, glDepthRangef, GLfloat, n, GLfloat, f); \
     HookWrapper4(void, glFramebufferRenderbuffer, GLenum, target, GLenum, attachment, GLenum, renderbuffertarget, GLuint, renderbuffer); \
     HookWrapper2(void, glGenRenderbuffers, GLsizei, n, GLuint *, renderbuffers); \
-    HookWrapper7(void, glGetActiveAttrib, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \
-    HookWrapper7(void, glGetActiveUniform, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \
-    HookWrapper4(void, glGetAttachedShaders, GLuint, program, GLsizei, maxCount, GLsizei *, count, GLuint *, shaders); \
-    HookWrapper2(GLint, glGetAttribLocation, GLuint, program, const GLchar *, name); \
-    HookWrapper2(void, glGetBooleanv, GLenum, pname, GLboolean *, data); \
-    HookWrapper2(void, glGetFloatv, GLenum, pname, GLfloat *, data); \
-    HookWrapper3(void, glGetRenderbufferParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
-    HookWrapper4(void, glGetShaderPrecisionFormat, GLenum, shadertype, GLenum, precisiontype, GLint *, range, GLint *, precision); \
-    HookWrapper4(void, glGetShaderSource, GLuint, shader, GLsizei, bufSize, GLsizei *, length, GLchar *, source); \
-    HookWrapper1(const GLubyte *, glGetString, GLenum, name); \
-    HookWrapper3(void, glGetVertexAttribPointerv, GLuint, index, GLenum, pname, void **, pointer); \
     HookWrapper2(void, glHint, GLenum, target, GLenum, mode); \
     HookWrapper1(void, glLineWidth, GLfloat, width); \
     HookWrapper2(void, glPolygonOffset, GLfloat, factor, GLfloat, units); \
@@ -832,61 +956,39 @@
     HookWrapper2(void, glVertexAttrib3fv, GLuint, index, const GLfloat *, v); \
     HookWrapper5(void, glVertexAttrib4f, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
     HookWrapper2(void, glVertexAttrib4fv, GLuint, index, const GLfloat *, v); \
-    HookWrapper3(void, glGetQueryiv, GLenum, target, GLenum, pname, GLint *, params); \
-    HookWrapper3(void, glGetBufferPointerv, GLenum, target, GLenum, pname, void **, params); \
     HookWrapper2(void, glDrawBuffers, GLsizei, n, const GLenum *, bufs); \
     HookWrapper5(void, glRenderbufferStorageMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper3(void, glFlushMappedBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
     HookWrapper5(void, glBindBufferRange, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
-    HookWrapper7(void, glGetTransformFeedbackVarying, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLsizei *, size, GLenum *, type, GLchar *, name); \
     HookWrapper5(void, glVertexAttribIPointer, GLuint, index, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
-    HookWrapper3(void, glGetVertexAttribIiv, GLuint, index, GLenum, pname, GLint *, params); \
-    HookWrapper3(void, glGetVertexAttribIuiv, GLuint, index, GLenum, pname, GLuint *, params); \
     HookWrapper5(void, glVertexAttribI4i, GLuint, index, GLint, x, GLint, y, GLint, z, GLint, w); \
     HookWrapper5(void, glVertexAttribI4ui, GLuint, index, GLuint, x, GLuint, y, GLuint, z, GLuint, w); \
     HookWrapper2(void, glVertexAttribI4iv, GLuint, index, const GLint *, v); \
     HookWrapper2(void, glVertexAttribI4uiv, GLuint, index, const GLuint *, v); \
-    HookWrapper2(GLint, glGetFragDataLocation, GLuint, program, const GLchar *, name); \
     HookWrapper3(void, glClearBufferuiv, GLenum, buffer, GLint, drawbuffer, const GLuint *, value); \
     HookWrapper5(void, glCopyBufferSubData, GLenum, readTarget, GLenum, writeTarget, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
     HookWrapper4(void, glGetUniformIndices, GLuint, program, GLsizei, uniformCount, const GLchar *const*, uniformNames, GLuint *, uniformIndices); \
-    HookWrapper5(void, glGetActiveUniformsiv, GLuint, program, GLsizei, uniformCount, const GLuint *, uniformIndices, GLenum, pname, GLint *, params); \
-    HookWrapper2(GLuint, glGetUniformBlockIndex, GLuint, program, const GLchar *, uniformBlockName); \
-    HookWrapper4(void, glGetActiveUniformBlockiv, GLuint, program, GLuint, uniformBlockIndex, GLenum, pname, GLint *, params); \
-    HookWrapper5(void, glGetActiveUniformBlockName, GLuint, program, GLuint, uniformBlockIndex, GLsizei, bufSize, GLsizei *, length, GLchar *, uniformBlockName); \
     HookWrapper3(void, glUniformBlockBinding, GLuint, program, GLuint, uniformBlockIndex, GLuint, uniformBlockBinding); \
     HookWrapper2(GLsync, glFenceSync, GLenum, condition, GLbitfield, flags); \
     HookWrapper1(void, glDeleteSync, GLsync, sync); \
     HookWrapper3(GLenum, glClientWaitSync, GLsync, sync, GLbitfield, flags, GLuint64, timeout); \
     HookWrapper3(void, glWaitSync, GLsync, sync, GLbitfield, flags, GLuint64, timeout); \
-    HookWrapper2(void, glGetInteger64v, GLenum, pname, GLint64 *, data); \
-    HookWrapper5(void, glGetSynciv, GLsync, sync, GLenum, pname, GLsizei, bufSize, GLsizei *, length, GLint *, values); \
-    HookWrapper3(void, glGetBufferParameteri64v, GLenum, target, GLenum, pname, GLint64 *, params); \
     HookWrapper3(void, glSamplerParameteriv, GLuint, sampler, GLenum, pname, const GLint *, param); \
     HookWrapper3(void, glSamplerParameterf, GLuint, sampler, GLenum, pname, GLfloat, param); \
     HookWrapper3(void, glSamplerParameterfv, GLuint, sampler, GLenum, pname, const GLfloat *, param); \
     HookWrapper2(void, glVertexAttribDivisor, GLuint, index, GLuint, divisor); \
     HookWrapper0(void, glPauseTransformFeedback); \
     HookWrapper0(void, glResumeTransformFeedback); \
-    HookWrapper5(void, glGetProgramBinary, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLenum *, binaryFormat, void *, binary); \
     HookWrapper4(void, glProgramBinary, GLuint, program, GLenum, binaryFormat, const void *, binary, GLsizei, length); \
     HookWrapper3(void, glInvalidateFramebuffer, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
     HookWrapper7(void, glInvalidateSubFramebuffer, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
-    HookWrapper5(void, glGetInternalformativ, GLenum, target, GLenum, internalformat, GLenum, pname, GLsizei, bufSize, GLint *, params); \
     HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
     HookWrapper1(void, glDispatchComputeIndirect, GLintptr, indirect); \
     HookWrapper3(void, glFramebufferParameteri, GLenum, target, GLenum, pname, GLint, param); \
-    HookWrapper3(void, glGetFramebufferParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
-    HookWrapper4(void, glGetProgramInterfaceiv, GLuint, program, GLenum, programInterface, GLenum, pname, GLint *, params); \
-    HookWrapper6(void, glGetProgramResourceName, GLuint, program, GLenum, programInterface, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLchar *, name); \
-    HookWrapper3(GLint, glGetProgramResourceLocation, GLuint, program, GLenum, programInterface, const GLchar *, name); \
     HookWrapper2(void, glActiveShaderProgram, GLuint, pipeline, GLuint, program); \
-    HookWrapper3(void, glGetProgramPipelineiv, GLuint, pipeline, GLenum, pname, GLint *, params); \
     HookWrapper1(void, glValidateProgramPipeline, GLuint, pipeline); \
-    HookWrapper4(void, glGetProgramPipelineInfoLog, GLuint, pipeline, GLsizei, bufSize, GLsizei *, length, GLchar *, infoLog); \
     HookWrapper1(void, glMemoryBarrier, GLbitfield, barriers); \
     HookWrapper1(void, glMemoryBarrierByRegion, GLbitfield, barriers); \
-    HookWrapper3(void, glGetMultisamplefv, GLenum, pname, GLuint, index, GLfloat *, val); \
     HookWrapper2(void, glSampleMaski, GLuint, maskNumber, GLbitfield, mask); \
     HookWrapper2(void, glVertexAttribBinding, GLuint, attribindex, GLuint, bindingindex); \
     HookWrapper2(void, glVertexBindingDivisor, GLuint, bindingindex, GLuint, divisor); \
@@ -895,8 +997,6 @@
     HookWrapper4(void, glPushDebugGroup, GLenum, source, GLuint, id, GLsizei, length, const GLchar *, message); \
     HookWrapper0(void, glPopDebugGroup); \
     HookWrapper3(void, glObjectPtrLabel, const void *, ptr, GLsizei, length, const GLchar *, label); \
-    HookWrapper4(void, glGetObjectPtrLabel, const void *, ptr, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
-    HookWrapper2(void, glGetPointerv, GLenum, pname, void **, params); \
     HookWrapper2(void, glEnablei, GLenum, target, GLuint, index); \
     HookWrapper2(void, glBlendEquationi, GLuint, buf, GLenum, mode); \
     HookWrapper3(void, glBlendEquationSeparatei, GLuint, buf, GLenum, modeRGB, GLenum, modeAlpha); \
@@ -904,16 +1004,10 @@
     HookWrapper5(void, glBlendFuncSeparatei, GLuint, buf, GLenum, srcRGB, GLenum, dstRGB, GLenum, srcAlpha, GLenum, dstAlpha); \
     HookWrapper5(void, glColorMaski, GLuint, index, GLboolean, r, GLboolean, g, GLboolean, b, GLboolean, a); \
     HookWrapper8(void, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
-    HookWrapper8(void, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
-    HookWrapper4(void, glGetnUniformfv, GLuint, program, GLint, location, GLsizei, bufSize, GLfloat *, params); \
-    HookWrapper4(void, glGetnUniformiv, GLuint, program, GLint, location, GLsizei, bufSize, GLint *, params); \
-    HookWrapper4(void, glGetnUniformuiv, GLuint, program, GLint, location, GLsizei, bufSize, GLuint *, params); \
     HookWrapper1(void, glMinSampleShading, GLfloat, value); \
     HookWrapper2(void, glPatchParameteri, GLenum, pname, GLint, value); \
     HookWrapper3(void, glSamplerParameterIiv, GLuint, sampler, GLenum, pname, const GLint *, param); \
     HookWrapper3(void, glSamplerParameterIuiv, GLuint, sampler, GLenum, pname, const GLuint *, param); \
-    HookWrapper3(void, glGetSamplerParameterIiv, GLuint, sampler, GLenum, pname, GLint *, params); \
-    HookWrapper3(void, glGetSamplerParameterIuiv, GLuint, sampler, GLenum, pname, GLuint *, params); \
     HookWrapper0(void, glBlendBarrierKHR); \
     HookWrapper6(void, glDebugMessageControlKHR, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
     HookWrapper6(void, glDebugMessageInsertKHR, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
@@ -1009,11 +1103,8 @@
     HookWrapper5(void, glGetSyncivAPPLE, GLsync, sync, GLenum, pname, GLsizei, bufSize, GLsizei *, length, GLint *, values); \
     HookWrapper4(void, glBindFragDataLocationIndexedEXT, GLuint, program, GLuint, colorNumber, GLuint, index, const GLchar *, name); \
     HookWrapper3(void, glBindFragDataLocationEXT, GLuint, program, GLuint, color, const GLchar *, name); \
-    HookWrapper3(GLint, glGetProgramResourceLocationIndexEXT, GLuint, program, GLenum, programInterface, const GLchar *, name); \
-    HookWrapper2(GLint, glGetFragDataIndexEXT, GLuint, program, const GLchar *, name); \
     HookWrapper15(void, glCopyImageSubDataEXT, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
     HookWrapper4(void, glLabelObjectEXT, GLenum, type, GLuint, object, GLsizei, length, const GLchar *, label); \
-    HookWrapper5(void, glGetObjectLabelEXT, GLenum, type, GLuint, object, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
     HookWrapper2(void, glInsertEventMarkerEXT, GLsizei, length, const GLchar *, marker); \
     HookWrapper2(void, glPushGroupMarkerEXT, GLsizei, length, const GLchar *, marker); \
     HookWrapper0(void, glPopGroupMarkerEXT); \
@@ -1025,10 +1116,7 @@
     HookWrapper1(void, glEndQueryEXT, GLenum, target); \
     HookWrapper2(void, glQueryCounterEXT, GLuint, id, GLenum, target); \
     HookWrapper3(void, glGetQueryivEXT, GLenum, target, GLenum, pname, GLint *, params); \
-    HookWrapper3(void, glGetQueryObjectivEXT, GLuint, id, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetQueryObjectuivEXT, GLuint, id, GLenum, pname, GLuint *, params); \
-    HookWrapper3(void, glGetQueryObjecti64vEXT, GLuint, id, GLenum, pname, GLint64 *, params); \
-    HookWrapper3(void, glGetQueryObjectui64vEXT, GLuint, id, GLenum, pname, GLuint64 *, params); \
     HookWrapper2(void, glDrawBuffersEXT, GLsizei, n, const GLenum *, bufs); \
     HookWrapper2(void, glEnableiEXT, GLenum, target, GLuint, index); \
     HookWrapper2(void, glDisableiEXT, GLenum, target, GLuint, index); \
@@ -1330,17 +1418,6 @@
     HandleUnsupported(PFNGLDEPTHRANGEFPROC, glDepthRangef); \
     HandleUnsupported(PFNGLFRAMEBUFFERRENDERBUFFERPROC, glFramebufferRenderbuffer); \
     HandleUnsupported(PFNGLGENRENDERBUFFERSPROC, glGenRenderbuffers); \
-    HandleUnsupported(PFNGLGETACTIVEATTRIBPROC, glGetActiveAttrib); \
-    HandleUnsupported(PFNGLGETACTIVEUNIFORMPROC, glGetActiveUniform); \
-    HandleUnsupported(PFNGLGETATTACHEDSHADERSPROC, glGetAttachedShaders); \
-    HandleUnsupported(PFNGLGETATTRIBLOCATIONPROC, glGetAttribLocation); \
-    HandleUnsupported(PFNGLGETBOOLEANVPROC, glGetBooleanv); \
-    HandleUnsupported(PFNGLGETFLOATVPROC, glGetFloatv); \
-    HandleUnsupported(PFNGLGETRENDERBUFFERPARAMETERIVPROC, glGetRenderbufferParameteriv); \
-    HandleUnsupported(PFNGLGETSHADERPRECISIONFORMATPROC, glGetShaderPrecisionFormat); \
-    HandleUnsupported(PFNGLGETSHADERSOURCEPROC, glGetShaderSource); \
-    HandleUnsupported(PFNGLGETSTRINGPROC, glGetString); \
-    HandleUnsupported(PFNGLGETVERTEXATTRIBPOINTERVPROC, glGetVertexAttribPointerv); \
     HandleUnsupported(PFNGLHINTPROC, glHint); \
     HandleUnsupported(PFNGLLINEWIDTHPROC, glLineWidth); \
     HandleUnsupported(PFNGLPOLYGONOFFSETPROC, glPolygonOffset); \
@@ -1360,61 +1437,39 @@
     HandleUnsupported(PFNGLVERTEXATTRIB3FVPROC, glVertexAttrib3fv); \
     HandleUnsupported(PFNGLVERTEXATTRIB4FPROC, glVertexAttrib4f); \
     HandleUnsupported(PFNGLVERTEXATTRIB4FVPROC, glVertexAttrib4fv); \
-    HandleUnsupported(PFNGLGETQUERYIVPROC, glGetQueryiv); \
-    HandleUnsupported(PFNGLGETBUFFERPOINTERVPROC, glGetBufferPointerv); \
     HandleUnsupported(PFNGLDRAWBUFFERSPROC, glDrawBuffers); \
     HandleUnsupported(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC, glRenderbufferStorageMultisample); \
     HandleUnsupported(PFNGLFLUSHMAPPEDBUFFERRANGEPROC, glFlushMappedBufferRange); \
     HandleUnsupported(PFNGLBINDBUFFERRANGEPROC, glBindBufferRange); \
-    HandleUnsupported(PFNGLGETTRANSFORMFEEDBACKVARYINGPROC, glGetTransformFeedbackVarying); \
     HandleUnsupported(PFNGLVERTEXATTRIBIPOINTERPROC, glVertexAttribIPointer); \
-    HandleUnsupported(PFNGLGETVERTEXATTRIBIIVPROC, glGetVertexAttribIiv); \
-    HandleUnsupported(PFNGLGETVERTEXATTRIBIUIVPROC, glGetVertexAttribIuiv); \
     HandleUnsupported(PFNGLVERTEXATTRIBI4IPROC, glVertexAttribI4i); \
     HandleUnsupported(PFNGLVERTEXATTRIBI4UIPROC, glVertexAttribI4ui); \
     HandleUnsupported(PFNGLVERTEXATTRIBI4IVPROC, glVertexAttribI4iv); \
     HandleUnsupported(PFNGLVERTEXATTRIBI4UIVPROC, glVertexAttribI4uiv); \
-    HandleUnsupported(PFNGLGETFRAGDATALOCATIONPROC, glGetFragDataLocation); \
     HandleUnsupported(PFNGLCLEARBUFFERUIVPROC, glClearBufferuiv); \
     HandleUnsupported(PFNGLCOPYBUFFERSUBDATAPROC, glCopyBufferSubData); \
     HandleUnsupported(PFNGLGETUNIFORMINDICESPROC, glGetUniformIndices); \
-    HandleUnsupported(PFNGLGETACTIVEUNIFORMSIVPROC, glGetActiveUniformsiv); \
-    HandleUnsupported(PFNGLGETUNIFORMBLOCKINDEXPROC, glGetUniformBlockIndex); \
-    HandleUnsupported(PFNGLGETACTIVEUNIFORMBLOCKIVPROC, glGetActiveUniformBlockiv); \
-    HandleUnsupported(PFNGLGETACTIVEUNIFORMBLOCKNAMEPROC, glGetActiveUniformBlockName); \
     HandleUnsupported(PFNGLUNIFORMBLOCKBINDINGPROC, glUniformBlockBinding); \
     HandleUnsupported(PFNGLFENCESYNCPROC, glFenceSync); \
     HandleUnsupported(PFNGLDELETESYNCPROC, glDeleteSync); \
     HandleUnsupported(PFNGLCLIENTWAITSYNCPROC, glClientWaitSync); \
     HandleUnsupported(PFNGLWAITSYNCPROC, glWaitSync); \
-    HandleUnsupported(PFNGLGETINTEGER64VPROC, glGetInteger64v); \
-    HandleUnsupported(PFNGLGETSYNCIVPROC, glGetSynciv); \
-    HandleUnsupported(PFNGLGETBUFFERPARAMETERI64VPROC, glGetBufferParameteri64v); \
     HandleUnsupported(PFNGLSAMPLERPARAMETERIVPROC, glSamplerParameteriv); \
     HandleUnsupported(PFNGLSAMPLERPARAMETERFPROC, glSamplerParameterf); \
     HandleUnsupported(PFNGLSAMPLERPARAMETERFVPROC, glSamplerParameterfv); \
     HandleUnsupported(PFNGLVERTEXATTRIBDIVISORPROC, glVertexAttribDivisor); \
     HandleUnsupported(PFNGLPAUSETRANSFORMFEEDBACKPROC, glPauseTransformFeedback); \
     HandleUnsupported(PFNGLRESUMETRANSFORMFEEDBACKPROC, glResumeTransformFeedback); \
-    HandleUnsupported(PFNGLGETPROGRAMBINARYPROC, glGetProgramBinary); \
     HandleUnsupported(PFNGLPROGRAMBINARYPROC, glProgramBinary); \
     HandleUnsupported(PFNGLINVALIDATEFRAMEBUFFERPROC, glInvalidateFramebuffer); \
     HandleUnsupported(PFNGLINVALIDATESUBFRAMEBUFFERPROC, glInvalidateSubFramebuffer); \
-    HandleUnsupported(PFNGLGETINTERNALFORMATIVPROC, glGetInternalformativ); \
     HandleUnsupported(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
     HandleUnsupported(PFNGLDISPATCHCOMPUTEINDIRECTPROC, glDispatchComputeIndirect); \
     HandleUnsupported(PFNGLFRAMEBUFFERPARAMETERIPROC, glFramebufferParameteri); \
-    HandleUnsupported(PFNGLGETFRAMEBUFFERPARAMETERIVPROC, glGetFramebufferParameteriv); \
-    HandleUnsupported(PFNGLGETPROGRAMINTERFACEIVPROC, glGetProgramInterfaceiv); \
-    HandleUnsupported(PFNGLGETPROGRAMRESOURCENAMEPROC, glGetProgramResourceName); \
-    HandleUnsupported(PFNGLGETPROGRAMRESOURCELOCATIONPROC, glGetProgramResourceLocation); \
     HandleUnsupported(PFNGLACTIVESHADERPROGRAMPROC, glActiveShaderProgram); \
-    HandleUnsupported(PFNGLGETPROGRAMPIPELINEIVPROC, glGetProgramPipelineiv); \
     HandleUnsupported(PFNGLVALIDATEPROGRAMPIPELINEPROC, glValidateProgramPipeline); \
-    HandleUnsupported(PFNGLGETPROGRAMPIPELINEINFOLOGPROC, glGetProgramPipelineInfoLog); \
     HandleUnsupported(PFNGLMEMORYBARRIERPROC, glMemoryBarrier); \
     HandleUnsupported(PFNGLMEMORYBARRIERBYREGIONPROC, glMemoryBarrierByRegion); \
-    HandleUnsupported(PFNGLGETMULTISAMPLEFVPROC, glGetMultisamplefv); \
     HandleUnsupported(PFNGLSAMPLEMASKIPROC, glSampleMaski); \
     HandleUnsupported(PFNGLVERTEXATTRIBBINDINGPROC, glVertexAttribBinding); \
     HandleUnsupported(PFNGLVERTEXBINDINGDIVISORPROC, glVertexBindingDivisor); \
@@ -1423,8 +1478,6 @@
     HandleUnsupported(PFNGLPUSHDEBUGGROUPPROC, glPushDebugGroup); \
     HandleUnsupported(PFNGLPOPDEBUGGROUPPROC, glPopDebugGroup); \
     HandleUnsupported(PFNGLOBJECTPTRLABELPROC, glObjectPtrLabel); \
-    HandleUnsupported(PFNGLGETOBJECTPTRLABELPROC, glGetObjectPtrLabel); \
-    HandleUnsupported(PFNGLGETPOINTERVPROC, glGetPointerv); \
     HandleUnsupported(PFNGLENABLEIPROC, glEnablei); \
     HandleUnsupported(PFNGLBLENDEQUATIONIPROC, glBlendEquationi); \
     HandleUnsupported(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei); \
@@ -1432,16 +1485,10 @@
     HandleUnsupported(PFNGLBLENDFUNCSEPARATEIPROC, glBlendFuncSeparatei); \
     HandleUnsupported(PFNGLCOLORMASKIPROC, glColorMaski); \
     HandleUnsupported(PFNGLPRIMITIVEBOUNDINGBOXPROC, glPrimitiveBoundingBox); \
-    HandleUnsupported(PFNGLREADNPIXELSPROC, glReadnPixels); \
-    HandleUnsupported(PFNGLGETNUNIFORMFVPROC, glGetnUniformfv); \
-    HandleUnsupported(PFNGLGETNUNIFORMIVPROC, glGetnUniformiv); \
-    HandleUnsupported(PFNGLGETNUNIFORMUIVPROC, glGetnUniformuiv); \
     HandleUnsupported(PFNGLMINSAMPLESHADINGPROC, glMinSampleShading); \
     HandleUnsupported(PFNGLPATCHPARAMETERIPROC, glPatchParameteri); \
     HandleUnsupported(PFNGLSAMPLERPARAMETERIIVPROC, glSamplerParameterIiv); \
     HandleUnsupported(PFNGLSAMPLERPARAMETERIUIVPROC, glSamplerParameterIuiv); \
-    HandleUnsupported(PFNGLGETSAMPLERPARAMETERIIVPROC, glGetSamplerParameterIiv); \
-    HandleUnsupported(PFNGLGETSAMPLERPARAMETERIUIVPROC, glGetSamplerParameterIuiv); \
     HandleUnsupported(PFNGLBLENDBARRIERKHRPROC, glBlendBarrierKHR); \
     HandleUnsupported(PFNGLDEBUGMESSAGECONTROLKHRPROC, glDebugMessageControlKHR); \
     HandleUnsupported(PFNGLDEBUGMESSAGEINSERTKHRPROC, glDebugMessageInsertKHR); \
@@ -1537,11 +1584,8 @@
     HandleUnsupported(PFNGLGETSYNCIVAPPLEPROC, glGetSyncivAPPLE); \
     HandleUnsupported(PFNGLBINDFRAGDATALOCATIONINDEXEDEXTPROC, glBindFragDataLocationIndexedEXT); \
     HandleUnsupported(PFNGLBINDFRAGDATALOCATIONEXTPROC, glBindFragDataLocationEXT); \
-    HandleUnsupported(PFNGLGETPROGRAMRESOURCELOCATIONINDEXEXTPROC, glGetProgramResourceLocationIndexEXT); \
-    HandleUnsupported(PFNGLGETFRAGDATAINDEXEXTPROC, glGetFragDataIndexEXT); \
     HandleUnsupported(PFNGLCOPYIMAGESUBDATAEXTPROC, glCopyImageSubDataEXT); \
     HandleUnsupported(PFNGLLABELOBJECTEXTPROC, glLabelObjectEXT); \
-    HandleUnsupported(PFNGLGETOBJECTLABELEXTPROC, glGetObjectLabelEXT); \
     HandleUnsupported(PFNGLINSERTEVENTMARKEREXTPROC, glInsertEventMarkerEXT); \
     HandleUnsupported(PFNGLPUSHGROUPMARKEREXTPROC, glPushGroupMarkerEXT); \
     HandleUnsupported(PFNGLPOPGROUPMARKEREXTPROC, glPopGroupMarkerEXT); \
@@ -1553,10 +1597,7 @@
     HandleUnsupported(PFNGLENDQUERYEXTPROC, glEndQueryEXT); \
     HandleUnsupported(PFNGLQUERYCOUNTEREXTPROC, glQueryCounterEXT); \
     HandleUnsupported(PFNGLGETQUERYIVEXTPROC, glGetQueryivEXT); \
-    HandleUnsupported(PFNGLGETQUERYOBJECTIVEXTPROC, glGetQueryObjectivEXT); \
     HandleUnsupported(PFNGLGETQUERYOBJECTUIVEXTPROC, glGetQueryObjectuivEXT); \
-    HandleUnsupported(PFNGLGETQUERYOBJECTI64VEXTPROC, glGetQueryObjecti64vEXT); \
-    HandleUnsupported(PFNGLGETQUERYOBJECTUI64VEXTPROC, glGetQueryObjectui64vEXT); \
     HandleUnsupported(PFNGLDRAWBUFFERSEXTPROC, glDrawBuffersEXT); \
     HandleUnsupported(PFNGLENABLEIEXTPROC, glEnableiEXT); \
     HandleUnsupported(PFNGLDISABLEIEXTPROC, glDisableiEXT); \
