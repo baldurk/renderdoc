@@ -45,12 +45,14 @@ public:
 
 signals:
   void clicked(QMouseEvent *e);
+  void doubleClicked(QMouseEvent *e);
 
 public:
   void setSlotName(const QString &n);
   void setResourceName(const QString &n);
 
   void clickEvent(QMouseEvent *e);
+  void doubleClickEvent(QMouseEvent *e);
 
   WId thumbWinId();
 

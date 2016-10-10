@@ -56,6 +56,12 @@ ResourcePreview::ResourcePreview(CaptureContext *c, IReplayOutput *output, QWidg
   QObject::connect(ui->thumbnail, &CustomPaintWidget::clicked, this, &ResourcePreview::clickEvent);
   QObject::connect(ui->slotLabel, &RDLabel::clicked, this, &ResourcePreview::clickEvent);
   QObject::connect(ui->descriptionLabel, &RDLabel::clicked, this, &ResourcePreview::clickEvent);
+
+  QObject::connect(ui->thumbnail, &CustomPaintWidget::doubleClicked, this,
+                   &ResourcePreview::doubleClickEvent);
+  QObject::connect(ui->slotLabel, &RDLabel::doubleClicked, this, &ResourcePreview::doubleClickEvent);
+  QObject::connect(ui->descriptionLabel, &RDLabel::doubleClicked, this,
+                   &ResourcePreview::doubleClickEvent);
 }
 
 ResourcePreview::~ResourcePreview()
@@ -66,6 +72,11 @@ ResourcePreview::~ResourcePreview()
 void ResourcePreview::clickEvent(QMouseEvent *e)
 {
   emit clicked(e);
+}
+
+void ResourcePreview::doubleClickEvent(QMouseEvent *e)
+{
+  emit doubleClicked(e);
 }
 
 void ResourcePreview::setSlotName(const QString &n)

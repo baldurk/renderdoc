@@ -53,13 +53,15 @@ public:
 
 signals:
   void clicked(QMouseEvent *e);
+  void doubleClicked(QMouseEvent *e);
   void mouseMove(QMouseEvent *e);
   void resize(QResizeEvent *e);
   void mouseWheel(QWheelEvent *e);
   void keyPress(QKeyEvent *e);
 
-private slots:
+private:
   void mousePressEvent(QMouseEvent *e) override;
+  void mouseDoubleClickEvent(QMouseEvent *event) override;
   void mouseMoveEvent(QMouseEvent *e) override;
   void wheelEvent(QWheelEvent *e) override;
   void resizeEvent(QResizeEvent *e) override;

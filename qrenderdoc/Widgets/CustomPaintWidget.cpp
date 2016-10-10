@@ -54,6 +54,11 @@ void CustomPaintWidget::mousePressEvent(QMouseEvent *e)
   emit clicked(e);
 }
 
+void CustomPaintWidget::mouseDoubleClickEvent(QMouseEvent *event)
+{
+  emit(doubleClicked(event));
+}
+
 void CustomPaintWidget::mouseMoveEvent(QMouseEvent *e)
 {
   emit mouseMove(e);
