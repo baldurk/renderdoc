@@ -127,6 +127,8 @@ public:
   void OnLogfileClosed();
   void OnEventSelected(uint32_t eventID);
 
+  void ViewTexture(ResourceId ID, bool focus);
+
   QVariant persistData();
   void setPersistData(const QVariant &persistData);
 
@@ -158,7 +160,14 @@ private slots:
   void render_resize(QResizeEvent *e);
   void render_keyPress(QKeyEvent *e);
 
+  void textureTab_Changed(int index);
+  void textureTab_Closing(int index);
+
   void thumb_clicked(QMouseEvent *);
+  void thumb_doubleClicked(QMouseEvent *);
+  void texContextItem_triggered();
+  void showDisabled_triggered();
+  void showEmpty_triggered();
 
   void zoomOption_returnPressed();
 
@@ -178,6 +187,8 @@ private:
 
   void UI_UpdateChannels();
 
+  void SetupTextureTabs();
+
   ResourcePreview *UI_CreateThumbnail(ThumbnailStrip *strip);
   void UI_CreateThumbnails();
   void InitResourcePreview(ResourcePreview *prev, ResourceId id, FormatComponentType typeHint,
@@ -190,7 +201,10 @@ private:
                                  QMap<BindpointMap, QVector<BoundResource>> &ResList,
                                  ThumbnailStrip *prevs, int &prevIndex, bool copy, bool rw);
 
-  bool currentTextureIsLocked() { return false; }
+  void AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t end, ResourceUsage usage);
+  void OpenResourceContextMenu(ResourceId id, const rdctype::array<EventUsage> &usage);
+
+  bool currentTextureIsLocked() { return m_LockedId != ResourceId(); }
   void setFitToWindow(bool checked);
 
   void setCurrentZoomValue(float zoom);
@@ -205,6 +219,8 @@ private:
 
   QPoint getScrollPosition();
   void setScrollPosition(const QPoint &pos);
+
+  FetchTexture *GetCurrentTexture();
 
   void UI_UpdateFittedScale();
   void UI_SetScale(float s);
@@ -229,6 +245,12 @@ private:
   int m_HighWaterStatusLength = 0;
   int m_PrevFirstArraySlice = -1;
   int m_PrevHighestMip = -1;
+
+  bool m_ShowEmpty = false;
+  bool m_ShowDisabled = false;
+
+  ResourceId m_LockedId;
+  QMap<ResourceId, QWidget *> m_LockedTabs;
 
   Ui::TextureViewer *ui;
   CaptureContext *m_Ctx = NULL;

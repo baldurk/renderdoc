@@ -26,6 +26,8 @@
 #include <QClipboard>
 #include <QColorDialog>
 #include <QJsonDocument>
+#include <QMenu>
+#include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Code/CaptureContext.h"
 #include "Widgets/ResourcePreview.h"
 #include "FlowLayout.h"
@@ -51,6 +53,7 @@ float aspect(const QSizeF &s)
 }
 
 Q_DECLARE_METATYPE(Following);
+Q_DECLARE_METATYPE(ResourceId);
 
 const Following Following::Default = Following();
 
@@ -313,6 +316,21 @@ ShaderBindpointMapping Following::GetMapping(CaptureContext *ctx)
   return GetMapping(ctx, Stage);
 }
 
+FetchTexture *TextureViewer::GetCurrentTexture()
+{
+  if(!m_Ctx->LogLoaded())
+    return NULL;
+
+  ResourceId id = m_LockedId;
+  if(id == ResourceId())
+    id = m_Following.GetResourceId(m_Ctx);
+
+  if(id == ResourceId())
+    id = m_TexDisplay.texid;
+
+  return m_Ctx->GetTexture(id);
+}
+
 TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::TextureViewer), m_Ctx(ctx)
 {
@@ -358,38 +376,6 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
   ui->dockarea->setToolWindowProperties(renderContainer, ToolWindowManager::DisallowUserDocking |
                                                              ToolWindowManager::HideCloseButton |
                                                              ToolWindowManager::DisableDraggableTab);
-
-  ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo,
-                                       ui->dockarea->areaOf(renderContainer));
-
-  /*
-  QWidget *lockedTabTest = new QWidget(this);
-  lockedTabTest->setWindowTitle(tr("Locked Tab #1"));
-
-  ui->dockarea->addToolWindow(lockedTabTest, ref);
-  ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking |
-  ToolWindowManager::HideCloseButton);
-
-  lockedTabTest = new QWidget(this);
-  lockedTabTest->setWindowTitle(tr("Locked Tab #2"));
-
-  ui->dockarea->addToolWindow(lockedTabTest, ref);
-  ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking |
-  ToolWindowManager::HideCloseButton);
-
-  lockedTabTest = new QWidget(this);
-  lockedTabTest->setWindowTitle(tr("Locked Tab #3"));
-
-  ui->dockarea->addToolWindow(lockedTabTest, ref);
-  ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking |
-  ToolWindowManager::HideCloseButton);
-
-  lockedTabTest = new QWidget(this);
-  lockedTabTest->setWindowTitle(tr("Locked Tab #4"));
-
-  ui->dockarea->addToolWindow(lockedTabTest, ref);
-  ui->dockarea->setToolWindowProperties(lockedTabTest, ToolWindowManager::DisallowUserDocking |
-  ToolWindowManager::HideCloseButton);*/
 
   ui->dockarea->addToolWindow(ui->inputThumbs, ToolWindowManager::AreaReference(
                                                    ToolWindowManager::RightOf,
@@ -479,6 +465,8 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
   ui->fitToWindow->toggle();
 
   UI_UpdateTextureDetails();
+
+  SetupTextureTabs();
 }
 
 TextureViewer::~TextureViewer()
@@ -548,7 +536,7 @@ void TextureViewer::RT_UpdateAndDisplay(IReplayRenderer *)
 
 void TextureViewer::UI_UpdateStatusText()
 {
-  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = GetCurrentTexture();
   if(texptr == NULL)
     return;
 
@@ -600,8 +588,8 @@ void TextureViewer::UI_UpdateStatusText()
 
   int y = m_CurHoverPixel.y() >> (int)m_TexDisplay.mip;
 
-  uint mipWidth = qMax(1U, tex.width >> (int)m_TexDisplay.mip);
-  uint mipHeight = qMax(1U, tex.height >> (int)m_TexDisplay.mip);
+  uint32_t mipWidth = qMax(1U, tex.width >> (int)m_TexDisplay.mip);
+  uint32_t mipHeight = qMax(1U, tex.height >> (int)m_TexDisplay.mip);
 
   if(m_Ctx->APIProps().pipelineType == eGraphicsAPI_OpenGL)
     y = (int)(mipHeight - 1) - y;
@@ -729,7 +717,7 @@ void TextureViewer::UI_UpdateTextureDetails()
 {
   QString status;
 
-  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = GetCurrentTexture();
   if(texptr == NULL)
   {
     ui->texStatusDim->setText(status);
@@ -824,7 +812,7 @@ void TextureViewer::UI_UpdateTextureDetails()
 
 void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 {
-  FetchTexture *texptr = m_Ctx->GetTexture(m_Following.GetResourceId(m_Ctx));
+  FetchTexture *texptr = GetCurrentTexture();
 
   // reset high-water mark
   m_HighWaterStatusLength = 0;
@@ -1110,7 +1098,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
 void TextureViewer::UI_UpdateChannels()
 {
-  FetchTexture *tex = m_Ctx->GetTexture(m_TexDisplay.texid);
+  FetchTexture *tex = GetCurrentTexture();
 
 #define SHOW(widget) widget->setVisible(true)
 #define HIDE(widget) widget->setVisible(false)
@@ -1309,13 +1297,88 @@ void TextureViewer::UI_UpdateChannels()
   // INVOKE_MEMFN(RT_UpdateVisualRange);
 }
 
+void TextureViewer::SetupTextureTabs()
+{
+  ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
+
+  QIcon tabIcon;
+  tabIcon.addFile(QStringLiteral(":/Resources/icon.ico"), QSize(), QIcon::Normal, QIcon::Off);
+
+  textureTabs->setTabIcon(0, tabIcon);
+
+  textureTabs->setElideMode(Qt::ElideRight);
+
+  QObject::connect(textureTabs, &QTabWidget::currentChanged, this,
+                   &TextureViewer::textureTab_Changed);
+  QObject::connect(textureTabs, &QTabWidget::tabCloseRequested, this,
+                   &TextureViewer::textureTab_Closing);
+}
+
+void TextureViewer::textureTab_Changed(int index)
+{
+  ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
+
+  QWidget *w = textureTabs->widget(index);
+
+  if(w)
+  {
+    w->setLayout(ui->renderLayout);
+
+    if(w == ui->renderContainer)
+      m_LockedId = ResourceId();
+    else
+      m_LockedId = w->property("id").value<ResourceId>();
+  }
+
+  UI_OnTextureSelectionChanged(false);
+}
+
+void TextureViewer::textureTab_Closing(int index)
+{
+  ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
+  if(index > 0)
+  {
+    // this callback happens AFTER the widget has already been removed unfortunately, so
+    // we need to search through the locked tab list to see which one was removed to be
+    // able to delete it properly.
+    QList<ResourceId> ids = m_LockedTabs.keys();
+    for(int i = 0; i < textureTabs->count(); i++)
+    {
+      QWidget *w = textureTabs->widget(i);
+      ResourceId id = w->property("id").value<ResourceId>();
+      ids.removeOne(id);
+    }
+
+    if(ids.count() != 1)
+      qWarning() << "Expected only one removed tab, got " << ids.count();
+
+    for(ResourceId id : ids)
+    {
+      delete m_LockedTabs[id];
+      m_LockedTabs.remove(id);
+    }
+
+    textureTabs->setCurrentIndex(index - 1);
+    textureTabs->widget(index - 1)->show();
+
+    return;
+  }
+
+  // should never get here - tab 0 is the dynamic tab which is uncloseable.
+  qCritical() << "Somehow closing dynamic tab?";
+  if(textureTabs->count() > 1)
+  {
+    textureTabs->setCurrentIndex(1);
+    textureTabs->widget(1)->show();
+  }
+}
+
 ResourcePreview *TextureViewer::UI_CreateThumbnail(ThumbnailStrip *strip)
 {
   ResourcePreview *prev = new ResourcePreview(m_Ctx, m_Output);
-  // prev.MouseClick += thumbsLayout_MouseClick;
-  // prev.MouseDoubleClick += thumbsLayout_MouseDoubleClick;
 
   QObject::connect(prev, &ResourcePreview::clicked, this, &TextureViewer::thumb_clicked);
+  QObject::connect(prev, &ResourcePreview::doubleClicked, this, &TextureViewer::thumb_doubleClicked);
 
   prev->setActive(false);
   strip->addThumb(prev);
@@ -1338,6 +1401,244 @@ void TextureViewer::UI_CreateThumbnails()
 
   for(int i = 0; i < 128; i++)
     UI_CreateThumbnail(ui->inputThumbs);
+}
+
+void TextureViewer::ViewTexture(ResourceId ID, bool focus)
+{
+  if(QThread::currentThread() != QCoreApplication::instance()->thread())
+  {
+    GUIInvoke::call([this, ID, focus] { this->ViewTexture(ID, focus); });
+    return;
+  }
+
+  if(m_LockedTabs.contains(ID))
+  {
+    if(focus)
+      show();
+
+    QWidget *w = m_LockedTabs[ID];
+    ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
+
+    int idx = textureTabs->indexOf(w);
+
+    if(idx >= 0)
+      textureTabs->setCurrentIndex(idx);
+
+    INVOKE_MEMFN(RT_UpdateAndDisplay);
+    return;
+  }
+
+  FetchTexture *tex = m_Ctx->GetTexture(ID);
+  if(tex)
+  {
+    QWidget *lockedContainer = new QWidget(this);
+    lockedContainer->setWindowTitle(QString(tex->name));
+
+    ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
+
+    ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, textureTabs);
+
+    ui->dockarea->addToolWindow(lockedContainer, ref);
+    ui->dockarea->setToolWindowProperties(lockedContainer, ToolWindowManager::DisallowUserDocking);
+
+    lockedContainer->setLayout(ui->renderLayout);
+
+    QIcon lockedIcon;
+    lockedIcon.addFile(QStringLiteral(":/Resources/page_white_link.png"), QSize(), QIcon::Normal,
+                       QIcon::Off);
+
+    int idx = textureTabs->indexOf(lockedContainer);
+
+    if(idx >= 0)
+      textureTabs->setTabIcon(idx, lockedIcon);
+    else
+      qCritical() << "Couldn't get tab index of new tab to set icon";
+
+    lockedContainer->setProperty("id", QVariant::fromValue(ID));
+
+    // newPanel.DockHandler.TabPageContextMenuStrip = tabContextMenu;
+
+    if(focus)
+      show();
+
+    m_LockedTabs[ID] = lockedContainer;
+
+    INVOKE_MEMFN(RT_UpdateAndDisplay);
+    return;
+  }
+
+  FetchBuffer *buf = m_Ctx->GetBuffer(ID);
+  if(buf)
+  {
+    // load in BufferViewer
+  }
+}
+
+void TextureViewer::texContextItem_triggered()
+{
+  QAction *act = qobject_cast<QAction *>(QObject::sender());
+
+  QVariant eid = act->property("eid");
+  if(eid.isValid())
+  {
+    m_Ctx->SetEventID(NULL, eid.toUInt());
+    return;
+  }
+
+  QVariant id = act->property("id");
+  if(id.isValid())
+  {
+    ViewTexture(id.value<ResourceId>(), false);
+    return;
+  }
+}
+
+void TextureViewer::showDisabled_triggered()
+{
+  m_ShowDisabled = !m_ShowDisabled;
+
+  if(m_Ctx->LogLoaded())
+    m_Ctx->RefreshStatus();
+}
+
+void TextureViewer::showEmpty_triggered()
+{
+  m_ShowEmpty = !m_ShowEmpty;
+
+  if(m_Ctx->LogLoaded())
+    m_Ctx->RefreshStatus();
+}
+
+void TextureViewer::AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t end,
+                                          ResourceUsage usage)
+{
+  QAction *item = NULL;
+
+  if(start == end)
+    item = new QAction(
+        "EID " + QString::number(start) + ": " + "TODO" /*usage.Str(m_Core.APIProps.pipelineType)*/,
+        this);
+  else
+    item = new QAction("EID " + QString::number(start) + "-" + QString::number(end) + ": " +
+                           "TODO" /*usage.Str(m_Core.APIProps.pipelineType)*/,
+                       this);
+
+  QObject::connect(item, &QAction::triggered, this, &TextureViewer::texContextItem_triggered);
+  item->setProperty("eid", QVariant(end));
+
+  menu.addAction(item);
+}
+
+void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdctype::array<EventUsage> &usage)
+{
+  QMenu contextMenu(this);
+
+  QAction showDisabled(tr("Show Disabled"), this);
+  QAction showEmpty(tr("Show Empty"), this);
+  QAction openLockedTab(tr("Open new Locked Tab"), this);
+  QAction usageTitle(tr("Used:"), this);
+  QAction imageLayout(this);
+
+  QIcon goArrow;
+  goArrow.addFile(QStringLiteral(":/Resources/RightArrow_Green_16x16.png"), QSize(), QIcon::Normal,
+                  QIcon::Off);
+  openLockedTab.setIcon(goArrow);
+
+  showDisabled.setChecked(m_ShowDisabled);
+  showDisabled.setChecked(m_ShowEmpty);
+
+  contextMenu.addAction(&showDisabled);
+  contextMenu.addAction(&showEmpty);
+
+  QObject::connect(&showDisabled, &QAction::triggered, this, &TextureViewer::showDisabled_triggered);
+  QObject::connect(&showEmpty, &QAction::triggered, this, &TextureViewer::showEmpty_triggered);
+
+  if(m_Ctx->CurPipelineState.SupportsBarriers())
+  {
+    contextMenu.addSeparator();
+    imageLayout.setText(tr("Image is in layout ") + m_Ctx->CurPipelineState.GetImageLayout(id));
+    contextMenu.addAction(&imageLayout);
+  }
+
+  if(id != ResourceId())
+  {
+    contextMenu.addSeparator();
+    contextMenu.addAction(&openLockedTab);
+    contextMenu.addSeparator();
+    contextMenu.addAction(&usageTitle);
+
+    openLockedTab.setProperty("id", QVariant::fromValue(id));
+
+    QObject::connect(&openLockedTab, &QAction::triggered, this,
+                     &TextureViewer::texContextItem_triggered);
+
+    uint32_t start = 0;
+    uint32_t end = 0;
+    ResourceUsage us = eUsage_IndexBuffer;
+
+    for(const EventUsage u : usage)
+    {
+      if(start == 0)
+      {
+        start = end = u.eventID;
+        us = u.usage;
+        continue;
+      }
+
+      const FetchDrawcall *curDraw = m_Ctx->GetDrawcall(u.eventID);
+
+      bool distinct = false;
+
+      // if the usage is different from the last, add a new entry,
+      // or if the previous draw link is broken.
+      if(u.usage != us || curDraw == NULL || curDraw->previous == NULL)
+      {
+        distinct = true;
+      }
+      else
+      {
+        // otherwise search back through real draws, to see if the
+        // last event was where we were - otherwise it's a new
+        // distinct set of drawcalls and should have a separate
+        // entry in the context menu
+        const FetchDrawcall *prev = m_Ctx->GetDrawcall(curDraw->previous);
+
+        while(prev != NULL && prev->eventID > end)
+        {
+          if((prev->flags & (eDraw_Dispatch | eDraw_Drawcall | eDraw_CmdList)) == 0)
+          {
+            prev = m_Ctx->GetDrawcall(prev->previous);
+          }
+          else
+          {
+            distinct = true;
+            break;
+          }
+
+          if(prev == NULL)
+            distinct = true;
+        }
+      }
+
+      if(distinct)
+      {
+        AddResourceUsageEntry(contextMenu, start, end, us);
+        start = end = u.eventID;
+        us = u.usage;
+      }
+
+      end = u.eventID;
+    }
+
+    if(start != 0)
+      AddResourceUsageEntry(contextMenu, start, end, us);
+
+    RDDialog::show(&contextMenu, QCursor::pos());
+  }
+  else
+  {
+    RDDialog::show(&contextMenu, QCursor::pos());
+  }
 }
 
 void TextureViewer::InitResourcePreview(ResourcePreview *prev, ResourceId id,
@@ -1489,17 +1790,14 @@ void TextureViewer::InitStageResourcePreviews(ShaderStageType stage,
       if(copy)
         slotName = "SRC";
 
-      const bool showDisabled = false;    // showDisabled.Checked
-      const bool showEmpty = false;       // showEmpty.Checked
-
       // show if it's referenced by the shader - regardless of empty or not
       bool show = used;
 
       // it's bound, but not referenced, and we have "show disabled"
-      show = show || (showDisabled && !used && id != ResourceId());
+      show = show || (m_ShowDisabled && !used && id != ResourceId());
 
       // it's empty, and we have "show empty"
-      show = show || (showEmpty && id == ResourceId());
+      show = show || (m_ShowEmpty && id == ResourceId());
 
       // it's the one we're following
       show = show || (follow == m_Following);
@@ -1530,6 +1828,17 @@ void TextureViewer::InitStageResourcePreviews(ShaderStageType stage,
   }
 }
 
+void TextureViewer::thumb_doubleClicked(QMouseEvent *e)
+{
+  if(e->buttons() & Qt::LeftButton)
+  {
+    ResourceId id = m_Following.GetResourceId(m_Ctx);
+
+    if(id != ResourceId())
+      ViewTexture(id, false);
+  }
+}
+
 void TextureViewer::thumb_clicked(QMouseEvent *e)
 {
   if(e->buttons() & Qt::LeftButton)
@@ -1553,6 +1862,35 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
     {
       UI_OnTextureSelectionChanged(false);
       ui->renderContainer->show();
+    }
+  }
+
+  if(e->buttons() & Qt::RightButton)
+  {
+    ResourcePreview *prev = qobject_cast<ResourcePreview *>(QObject::sender());
+
+    Following follow = prev->property("f").value<Following>();
+
+    ResourceId id = follow.GetResourceId(m_Ctx);
+
+    if(id == ResourceId() && follow == m_Following)
+      id = m_TexDisplay.texid;
+
+    rdctype::array<EventUsage> empty;
+
+    if(id == ResourceId())
+    {
+      OpenResourceContextMenu(id, empty);
+    }
+    else
+    {
+      m_Ctx->Renderer()->AsyncInvoke([this, id](IReplayRenderer *r) {
+        rdctype::array<EventUsage> usage;
+
+        r->GetUsage(id, &usage);
+
+        GUIInvoke::call([this, id, usage]() { OpenResourceContextMenu(id, usage); });
+      });
     }
   }
 }
@@ -1581,7 +1919,7 @@ void TextureViewer::render_mouseMove(QMouseEvent *e)
 
   if(m_TexDisplay.texid != ResourceId())
   {
-    FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
+    FetchTexture *texptr = GetCurrentTexture();
 
     if(texptr != NULL)
     {
@@ -1651,7 +1989,7 @@ void TextureViewer::render_resize(QResizeEvent *e)
 
 void TextureViewer::render_keyPress(QKeyEvent *e)
 {
-  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = GetCurrentTexture();
 
   if(texptr == NULL)
     return;
@@ -1707,7 +2045,7 @@ void TextureViewer::render_keyPress(QKeyEvent *e)
 
 float TextureViewer::CurMaxScrollX()
 {
-  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = GetCurrentTexture();
 
   QSizeF size(1.0f, 1.0f);
 
@@ -1719,7 +2057,7 @@ float TextureViewer::CurMaxScrollX()
 
 float TextureViewer::CurMaxScrollY()
 {
-  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = GetCurrentTexture();
 
   QSizeF size(1.0f, 1.0f);
 
@@ -1756,7 +2094,7 @@ void TextureViewer::setScrollPosition(const QPoint &pos)
 
 void TextureViewer::UI_CalcScrollbars()
 {
-  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = GetCurrentTexture();
 
   QSizeF size(1.0f, 1.0f);
 
@@ -1897,7 +2235,7 @@ void TextureViewer::OnLogfileClosed()
 
 void TextureViewer::OnEventSelected(uint32_t eventID)
 {
-  FetchTexture *CurrentTexture = m_Ctx->GetTexture(m_Following.GetResourceId(m_Ctx));
+  FetchTexture *CurrentTexture = GetCurrentTexture();
   if(!currentTextureIsLocked() ||
      (CurrentTexture != NULL && m_TexDisplay.texid != CurrentTexture->ID))
     UI_OnTextureSelectionChanged(true);
@@ -2051,11 +2389,13 @@ void TextureViewer::setPersistData(const QVariant &persistData)
   ui->pixelContext->setColours(darkBack, lightBack);
 
   ui->dockarea->restoreState(state);
+
+  SetupTextureTabs();
 }
 
 float TextureViewer::GetFitScale()
 {
-  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = GetCurrentTexture();
 
   if(texptr == NULL)
     return 1.0f;
@@ -2249,13 +2589,13 @@ void TextureViewer::on_checkerBack_clicked()
 
 void TextureViewer::on_mipLevel_currentIndexChanged(int index)
 {
-  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = GetCurrentTexture();
   if(texptr == NULL)
     return;
 
   FetchTexture &tex = *texptr;
 
-  uint prevSlice = m_TexDisplay.sliceFace;
+  uint32_t prevSlice = m_TexDisplay.sliceFace;
 
   if(tex.mips > 1)
   {
@@ -2300,7 +2640,7 @@ void TextureViewer::on_mipLevel_currentIndexChanged(int index)
 
 void TextureViewer::on_sliceFace_currentIndexChanged(int index)
 {
-  FetchTexture *texptr = m_Ctx->GetTexture(m_TexDisplay.texid);
+  FetchTexture *texptr = GetCurrentTexture();
   if(texptr == NULL)
     return;
 

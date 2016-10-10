@@ -903,7 +903,7 @@
      <height>100</height>
     </size>
    </property>
-   <layout class="QVBoxLayout" name="verticalLayout">
+   <layout class="QVBoxLayout" name="renderLayout">
     <property name="spacing">
      <number>0</number>
     </property>
