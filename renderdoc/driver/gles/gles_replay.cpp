@@ -619,7 +619,7 @@ void GLESReplay::CacheTexture(ResourceId id)
 
   // surely this will be the same for each level... right? that would be insane if it wasn't
   GLint fmt = 0;
-  gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
+  gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
 
   tex.format = MakeResourceFormat(gl, target, (GLenum)fmt);
 
@@ -677,7 +677,7 @@ void GLESReplay::CacheTexture(ResourceId id)
     tex.msQual = tex.msSamp = 0;
     tex.byteSize = 0;
 
-    gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.byteSize);
+    gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.byteSize);
     tex.width = uint32_t(tex.byteSize / (tex.format.compByteWidth * tex.format.compCount));
 
     m_CachedTextures[id] = tex;
@@ -691,7 +691,7 @@ void GLESReplay::CacheTexture(ResourceId id)
   tex.numSubresources = tex.mips * tex.arraysize;
 
   GLint compressed;
-  gl.glGetTexLevelParameteriv(target, 0, eGL_TEXTURE_COMPRESSED, &compressed);
+  gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_COMPRESSED, &compressed);
   tex.byteSize = 0;
   for(uint32_t a = 0; a < tex.arraysize; a++)
   {
@@ -699,7 +699,8 @@ void GLESReplay::CacheTexture(ResourceId id)
     {
       if(compressed)
       {
-          // TODO PEPE
+        // TODO PEPE
+        RDCERR ("Unhandled compressed format! (TODO)");
       }
       else if(tex.format.special)
       {
