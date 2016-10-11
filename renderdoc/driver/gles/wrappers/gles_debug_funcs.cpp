@@ -95,20 +95,20 @@ bool WrappedGLES::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsize
   return true;
 }
 
-//void WrappedGLES::glLabelObjectEXT(GLenum identifier, GLuint name, GLsizei length,
-//                                     const GLchar *label)
-//{
-//  m_Real.glLabelObjectEXT(identifier, name, length, label);
-//
-//  if(m_State >= WRITING)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(OBJECT_LABEL);
-//    Serialise_glObjectLabel(identifier, name, length, label);
-//
-//    m_DeviceRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+void WrappedGLES::glLabelObjectEXT(GLenum identifier, GLuint name, GLsizei length,
+                                     const GLchar *label)
+{
+  m_Real.glLabelObjectEXT(identifier, name, length, label);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(OBJECT_LABEL);
+    Serialise_glObjectLabel(identifier, name, length, label);
+
+    m_DeviceRecord->AddChunk(scope.Get());
+  }
+}
+
 void WrappedGLES::glObjectLabel(GLenum identifier, GLuint name, GLsizei length, const GLchar *label)
 {
   m_Real.glObjectLabel(identifier, name, length, label);
@@ -122,21 +122,21 @@ void WrappedGLES::glObjectLabel(GLenum identifier, GLuint name, GLsizei length, 
   }
 }
 
-//void WrappedGLES::glObjectPtrLabel(const void *ptr, GLsizei length, const GLchar *label)
-//{
-//  m_Real.glObjectPtrLabel(ptr, length, label);
-//
-//  if(m_State >= WRITING)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(OBJECT_LABEL);
-//    ResourceId id = GetResourceManager()->GetSyncID((GLsync)ptr);
-//    Serialise_glObjectLabel(eGL_SYNC_FENCE, GetResourceManager()->GetCurrentResource(id).name,
-//                            length, label);
-//
-//    m_DeviceRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+void WrappedGLES::glObjectPtrLabel(const void *ptr, GLsizei length, const GLchar *label)
+{
+  m_Real.glObjectPtrLabel(ptr, length, label);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(OBJECT_LABEL);
+    ResourceId id = GetResourceManager()->GetSyncID((GLsync)ptr);
+    Serialise_glObjectLabel(eGL_SYNC_FENCE, GetResourceManager()->GetCurrentResource(id).name,
+                            length, label);
+
+    m_DeviceRecord->AddChunk(scope.Get());
+  }
+}
+
 void WrappedGLES::glDebugMessageCallback(GLDEBUGPROC callback, const void *userParam)
 {
   m_RealDebugFunc = callback;
@@ -152,142 +152,126 @@ void WrappedGLES::glDebugMessageControl(GLenum source, GLenum type, GLenum sever
   m_Real.glDebugMessageControl(source, type, severity, count, ids, enabled);
 }
 
-//bool WrappedGLES::Serialise_glDebugMessageInsert(GLenum source, GLenum type, GLuint id,
-//                                                   GLenum severity, GLsizei length, const GLchar *buf)
-//{
-//  string name = buf ? string(buf, buf + (length > 0 ? length : strlen(buf))) : "";
-//
-//  m_pSerialiser->Serialise("Name", name);
-//
-//  if(m_State == READING)
-//  {
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.flags |= eDraw_SetMarker;
-//
-//    AddDrawcall(draw, false);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity,
-//                                         GLsizei length, const GLchar *buf)
-//{
-//  if(m_State == WRITING_CAPFRAME && type == eGL_DEBUG_TYPE_MARKER)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(SET_MARKER);
-//    Serialise_glDebugMessageInsert(source, type, id, severity, length, buf);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//
-//  m_Real.glDebugMessageInsert(source, type, id, severity, length, buf);
-//}
-//
-//void WrappedGLES::glPushGroupMarkerEXT(GLsizei length, const GLchar *marker)
-//{
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BEGIN_EVENT);
-//    Serialise_glPushDebugGroup(eGL_NONE, 0, length, marker);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//void WrappedGLES::glPopGroupMarkerEXT()
-//{
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(END_EVENT);
-//    Serialise_glPopDebugGroup();
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//void WrappedGLES::glInsertEventMarkerEXT(GLsizei length, const GLchar *marker)
-//{
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(SET_MARKER);
-//    Serialise_glDebugMessageInsert(eGL_NONE, eGL_NONE, 0, eGL_NONE, length, marker);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//void WrappedGLES::glFrameTerminatorGREMEDY()
-//{
-//  SwapBuffers(NULL);
-//}
-//
-//void WrappedGLES::glStringMarkerGREMEDY(GLsizei len, const void *string)
-//{
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(SET_MARKER);
-//    Serialise_glDebugMessageInsert(eGL_NONE, eGL_NONE, 0, eGL_NONE, len, (const GLchar *)string);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glPushDebugGroup(GLenum source, GLuint id, GLsizei length,
-//                                               const GLchar *message)
-//{
-//  string name = message ? string(message, message + (length > 0 ? length : strlen(message))) : "";
-//
-//  m_pSerialiser->Serialise("Name", name);
-//
-//  if(m_State == READING)
-//  {
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.flags |= eDraw_PushMarker;
-//
-//    AddDrawcall(draw, false);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar *message)
-//{
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BEGIN_EVENT);
-//    Serialise_glPushDebugGroup(source, id, length, message);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//
-//  m_Real.glPushDebugGroup(source, id, length, message);
-//}
-//
-//bool WrappedGLES::Serialise_glPopDebugGroup()
-//{
-//  if(m_State == READING && !m_CurEvents.empty())
-//  {
-//    FetchDrawcall draw;
-//    draw.name = "API Calls";
-//    draw.flags |= eDraw_SetMarker;
-//
-//    AddDrawcall(draw, true);
-//  }
-//
-//  return true;
-//}
-//void WrappedGLES::glPopDebugGroup()
-//{
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(END_EVENT);
-//    Serialise_glPopDebugGroup();
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//
-//  m_Real.glPopDebugGroup();
-//}
+bool WrappedGLES::Serialise_glDebugMessageInsert(GLenum source, GLenum type, GLuint id,
+                                                   GLenum severity, GLsizei length, const GLchar *buf)
+{
+  string name = buf ? string(buf, buf + (length > 0 ? length : strlen(buf))) : "";
+
+  m_pSerialiser->Serialise("Name", name);
+
+  if(m_State == READING)
+  {
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.flags |= eDraw_SetMarker;
+
+    AddDrawcall(draw, false);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glDebugMessageInsert(GLenum source, GLenum type, GLuint id, GLenum severity,
+                                         GLsizei length, const GLchar *buf)
+{
+  if(m_State == WRITING_CAPFRAME && type == eGL_DEBUG_TYPE_MARKER)
+  {
+    SCOPED_SERIALISE_CONTEXT(SET_MARKER);
+    Serialise_glDebugMessageInsert(source, type, id, severity, length, buf);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+
+  m_Real.glDebugMessageInsert(source, type, id, severity, length, buf);
+}
+
+void WrappedGLES::glPushGroupMarkerEXT(GLsizei length, const GLchar *marker)
+{
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BEGIN_EVENT);
+    Serialise_glPushDebugGroup(eGL_NONE, 0, length, marker);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+void WrappedGLES::glPopGroupMarkerEXT()
+{
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(END_EVENT);
+    Serialise_glPopDebugGroup();
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+void WrappedGLES::glInsertEventMarkerEXT(GLsizei length, const GLchar *marker)
+{
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(SET_MARKER);
+    Serialise_glDebugMessageInsert(eGL_NONE, eGL_NONE, 0, eGL_NONE, length, marker);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glPushDebugGroup(GLenum source, GLuint id, GLsizei length,
+                                               const GLchar *message)
+{
+  string name = message ? string(message, message + (length > 0 ? length : strlen(message))) : "";
+
+  m_pSerialiser->Serialise("Name", name);
+
+  if(m_State == READING)
+  {
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.flags |= eDraw_PushMarker;
+
+    AddDrawcall(draw, false);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glPushDebugGroup(GLenum source, GLuint id, GLsizei length, const GLchar *message)
+{
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BEGIN_EVENT);
+    Serialise_glPushDebugGroup(source, id, length, message);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+
+  m_Real.glPushDebugGroup(source, id, length, message);
+}
+
+bool WrappedGLES::Serialise_glPopDebugGroup()
+{
+  if(m_State == READING && !m_CurEvents.empty())
+  {
+    FetchDrawcall draw;
+    draw.name = "API Calls";
+    draw.flags |= eDraw_SetMarker;
+
+    AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+void WrappedGLES::glPopDebugGroup()
+{
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(END_EVENT);
+    Serialise_glPopDebugGroup();
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+
+  m_Real.glPopDebugGroup();
+}

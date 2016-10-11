@@ -283,10 +283,14 @@
     HookInit(glVertexAttribIFormat); \
     HookInit(glCopyImageSubData); \
     HookInit(glDebugMessageControl); \
+    HookInit(glDebugMessageInsert); \
     HookInit(glDebugMessageCallback); \
     HookInit(glGetDebugMessageLog); \
+    HookInit(glPushDebugGroup); \
+    HookInit(glPopDebugGroup); \
     HookInit(glObjectLabel); \
     HookInit(glGetObjectLabel); \
+    HookInit(glObjectPtrLabel); \
     HookInit(glGetObjectPtrLabel); \
     HookInit(glGetPointerv); \
     HookInit(glDisablei); \
@@ -326,7 +330,11 @@
     HookExtension(PFNGLGETPROGRAMRESOURCELOCATIONINDEXEXTPROC, glGetProgramResourceLocationIndexEXT); \
     HookExtension(PFNGLGETFRAGDATAINDEXEXTPROC, glGetFragDataIndexEXT); \
     HookExtension(PFNGLBUFFERSTORAGEEXTPROC, glBufferStorageEXT); \
+    HookExtension(PFNGLLABELOBJECTEXTPROC, glLabelObjectEXT); \
     HookExtension(PFNGLGETOBJECTLABELEXTPROC, glGetObjectLabelEXT); \
+    HookExtension(PFNGLINSERTEVENTMARKEREXTPROC, glInsertEventMarkerEXT); \
+    HookExtension(PFNGLPUSHGROUPMARKEREXTPROC, glPushGroupMarkerEXT); \
+    HookExtension(PFNGLPOPGROUPMARKEREXTPROC, glPopGroupMarkerEXT); \
     HookExtension(PFNGLGETQUERYOBJECTIVEXTPROC, glGetQueryObjectivEXT); \
     HookExtension(PFNGLGETQUERYOBJECTI64VEXTPROC, glGetQueryObjecti64vEXT); \
     HookExtension(PFNGLGETQUERYOBJECTUI64VEXTPROC, glGetQueryObjectui64vEXT); \
@@ -586,10 +594,14 @@
     HookExtension(PFNGLVERTEXATTRIBIFORMATPROC, glVertexAttribIFormat); \
     HookExtension(PFNGLCOPYIMAGESUBDATAPROC, glCopyImageSubData); \
     HookExtension(PFNGLDEBUGMESSAGECONTROLPROC, glDebugMessageControl); \
+    HookExtension(PFNGLDEBUGMESSAGEINSERTPROC, glDebugMessageInsert); \
     HookExtension(PFNGLDEBUGMESSAGECALLBACKPROC, glDebugMessageCallback); \
     HookExtension(PFNGLGETDEBUGMESSAGELOGPROC, glGetDebugMessageLog); \
+    HookExtension(PFNGLPUSHDEBUGGROUPPROC, glPushDebugGroup); \
+    HookExtension(PFNGLPOPDEBUGGROUPPROC, glPopDebugGroup); \
     HookExtension(PFNGLOBJECTLABELPROC, glObjectLabel); \
     HookExtension(PFNGLGETOBJECTLABELPROC, glGetObjectLabel); \
+    HookExtension(PFNGLOBJECTPTRLABELPROC, glObjectPtrLabel); \
     HookExtension(PFNGLGETOBJECTPTRLABELPROC, glGetObjectPtrLabel); \
     HookExtension(PFNGLGETPOINTERVPROC, glGetPointerv); \
     HookExtension(PFNGLDISABLEIPROC, glDisablei); \
@@ -866,10 +878,14 @@
     HookWrapper4(void, glVertexAttribIFormat, GLuint, attribindex, GLint, size, GLenum, type, GLuint, relativeoffset); \
     HookWrapper15(void, glCopyImageSubData, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
     HookWrapper6(void, glDebugMessageControl, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
+    HookWrapper6(void, glDebugMessageInsert, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
     HookWrapper2(void, glDebugMessageCallback, GLDEBUGPROC, callback, const void *, userParam); \
     HookWrapper8(GLuint, glGetDebugMessageLog, GLuint, count, GLsizei, bufSize, GLenum *, sources, GLenum *, types, GLuint *, ids, GLenum *, severities, GLsizei *, lengths, GLchar *, messageLog); \
+    HookWrapper4(void, glPushDebugGroup, GLenum, source, GLuint, id, GLsizei, length, const GLchar *, message); \
+    HookWrapper0(void, glPopDebugGroup); \
     HookWrapper4(void, glObjectLabel, GLenum, identifier, GLuint, name, GLsizei, length, const GLchar *, label); \
     HookWrapper5(void, glGetObjectLabel, GLenum, identifier, GLuint, name, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
+    HookWrapper3(void, glObjectPtrLabel, const void *, ptr, GLsizei, length, const GLchar *, label); \
     HookWrapper4(void, glGetObjectPtrLabel, const void *, ptr, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
     HookWrapper2(void, glGetPointerv, GLenum, pname, void **, params); \
     HookWrapper2(void, glDisablei, GLenum, target, GLuint, index); \
@@ -909,7 +925,11 @@
     HookWrapper3(GLint, glGetProgramResourceLocationIndexEXT, GLuint, program, GLenum, programInterface, const GLchar *, name); \
     HookWrapper2(GLint, glGetFragDataIndexEXT, GLuint, program, const GLchar *, name); \
     HookWrapper4(void, glBufferStorageEXT, GLenum, target, GLsizeiptr, size, const void *, data, GLbitfield, flags); \
+    HookWrapper4(void, glLabelObjectEXT, GLenum, type, GLuint, object, GLsizei, length, const GLchar *, label); \
     HookWrapper5(void, glGetObjectLabelEXT, GLenum, type, GLuint, object, GLsizei, bufSize, GLsizei *, length, GLchar *, label); \
+    HookWrapper2(void, glInsertEventMarkerEXT, GLsizei, length, const GLchar *, marker); \
+    HookWrapper2(void, glPushGroupMarkerEXT, GLsizei, length, const GLchar *, marker); \
+    HookWrapper0(void, glPopGroupMarkerEXT); \
     HookWrapper3(void, glGetQueryObjectivEXT, GLuint, id, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetQueryObjecti64vEXT, GLuint, id, GLenum, pname, GLint64 *, params); \
     HookWrapper3(void, glGetQueryObjectui64vEXT, GLuint, id, GLenum, pname, GLuint64 *, params); \
@@ -993,10 +1013,6 @@
     HookWrapper2(void, glVertexAttribBinding, GLuint, attribindex, GLuint, bindingindex); \
     HookWrapper2(void, glVertexBindingDivisor, GLuint, bindingindex, GLuint, divisor); \
     HookWrapper0(void, glBlendBarrier); \
-    HookWrapper6(void, glDebugMessageInsert, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
-    HookWrapper4(void, glPushDebugGroup, GLenum, source, GLuint, id, GLsizei, length, const GLchar *, message); \
-    HookWrapper0(void, glPopDebugGroup); \
-    HookWrapper3(void, glObjectPtrLabel, const void *, ptr, GLsizei, length, const GLchar *, label); \
     HookWrapper2(void, glEnablei, GLenum, target, GLuint, index); \
     HookWrapper2(void, glBlendEquationi, GLuint, buf, GLenum, mode); \
     HookWrapper3(void, glBlendEquationSeparatei, GLuint, buf, GLenum, modeRGB, GLenum, modeAlpha); \
@@ -1104,10 +1120,6 @@
     HookWrapper4(void, glBindFragDataLocationIndexedEXT, GLuint, program, GLuint, colorNumber, GLuint, index, const GLchar *, name); \
     HookWrapper3(void, glBindFragDataLocationEXT, GLuint, program, GLuint, color, const GLchar *, name); \
     HookWrapper15(void, glCopyImageSubDataEXT, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
-    HookWrapper4(void, glLabelObjectEXT, GLenum, type, GLuint, object, GLsizei, length, const GLchar *, label); \
-    HookWrapper2(void, glInsertEventMarkerEXT, GLsizei, length, const GLchar *, marker); \
-    HookWrapper2(void, glPushGroupMarkerEXT, GLsizei, length, const GLchar *, marker); \
-    HookWrapper0(void, glPopGroupMarkerEXT); \
     HookWrapper3(void, glDiscardFrameBufferEXT, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
     HookWrapper2(void, glGenQueriesEXT, GLsizei, n, GLuint *, ids); \
     HookWrapper2(void, glDeleteQueriesEXT, GLsizei, n, const GLuint *, ids); \
@@ -1474,10 +1486,6 @@
     HandleUnsupported(PFNGLVERTEXATTRIBBINDINGPROC, glVertexAttribBinding); \
     HandleUnsupported(PFNGLVERTEXBINDINGDIVISORPROC, glVertexBindingDivisor); \
     HandleUnsupported(PFNGLBLENDBARRIERPROC, glBlendBarrier); \
-    HandleUnsupported(PFNGLDEBUGMESSAGEINSERTPROC, glDebugMessageInsert); \
-    HandleUnsupported(PFNGLPUSHDEBUGGROUPPROC, glPushDebugGroup); \
-    HandleUnsupported(PFNGLPOPDEBUGGROUPPROC, glPopDebugGroup); \
-    HandleUnsupported(PFNGLOBJECTPTRLABELPROC, glObjectPtrLabel); \
     HandleUnsupported(PFNGLENABLEIPROC, glEnablei); \
     HandleUnsupported(PFNGLBLENDEQUATIONIPROC, glBlendEquationi); \
     HandleUnsupported(PFNGLBLENDEQUATIONSEPARATEIPROC, glBlendEquationSeparatei); \
@@ -1585,10 +1593,6 @@
     HandleUnsupported(PFNGLBINDFRAGDATALOCATIONINDEXEDEXTPROC, glBindFragDataLocationIndexedEXT); \
     HandleUnsupported(PFNGLBINDFRAGDATALOCATIONEXTPROC, glBindFragDataLocationEXT); \
     HandleUnsupported(PFNGLCOPYIMAGESUBDATAEXTPROC, glCopyImageSubDataEXT); \
-    HandleUnsupported(PFNGLLABELOBJECTEXTPROC, glLabelObjectEXT); \
-    HandleUnsupported(PFNGLINSERTEVENTMARKEREXTPROC, glInsertEventMarkerEXT); \
-    HandleUnsupported(PFNGLPUSHGROUPMARKEREXTPROC, glPushGroupMarkerEXT); \
-    HandleUnsupported(PFNGLPOPGROUPMARKEREXTPROC, glPopGroupMarkerEXT); \
     HandleUnsupported(PFNGLDISCARDFRAMEBUFFEREXTPROC, glDiscardFrameBufferEXT); \
     HandleUnsupported(PFNGLGENQUERIESEXTPROC, glGenQueriesEXT); \
     HandleUnsupported(PFNGLDELETEQUERIESEXTPROC, glDeleteQueriesEXT); \
