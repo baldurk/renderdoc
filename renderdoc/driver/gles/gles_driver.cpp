@@ -3312,22 +3312,20 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 
     case CREATE_SHADER: Serialise_glCreateShader(0, eGL_NONE); break;
     case CREATE_PROGRAM: Serialise_glCreateProgram(0); break;
-//    case CREATE_SHADERPROGRAM: Serialise_glCreateShaderProgramv(0, eGL_NONE, 0, NULL); break;
+    case CREATE_SHADERPROGRAM: Serialise_glCreateShaderProgramv(0, eGL_NONE, 0, NULL); break;
     case COMPILESHADER: Serialise_glCompileShader(0); break;
     case SHADERSOURCE: Serialise_glShaderSource(0, 0, NULL, NULL); break;
     case ATTACHSHADER: Serialise_glAttachShader(0, 0); break;
-//    case DETACHSHADER: Serialise_glDetachShader(0, 0); break;
+    case DETACHSHADER: Serialise_glDetachShader(0, 0); break;
     case USEPROGRAM: Serialise_glUseProgram(0); break;
-//    case PROGRAMPARAMETER: Serialise_glProgramParameteri(0, eGL_NONE, 0); break;
-//    case FEEDBACK_VARYINGS: Serialise_glTransformFeedbackVaryings(0, 0, NULL, eGL_NONE); break;
+    case PROGRAMPARAMETER: Serialise_glProgramParameteri(0, eGL_NONE, 0); break;
+    case FEEDBACK_VARYINGS: Serialise_glTransformFeedbackVaryings(0, 0, NULL, eGL_NONE); break;
     case BINDATTRIB_LOCATION: Serialise_glBindAttribLocation(0, 0, NULL); break;
-//    case BINDFRAGDATA_LOCATION: Serialise_glBindFragDataLocation(0, 0, NULL); break;
-//    case BINDFRAGDATA_LOCATION_INDEXED:
-//      Serialise_glBindFragDataLocationIndexed(0, 0, 0, NULL);
-//      break;
-//    case UNIFORM_BLOCKBIND: Serialise_glUniformBlockBinding(0, 0, 0); break;
-//    case STORAGE_BLOCKBIND: Serialise_glShaderStorageBlockBinding(0, 0, 0); break;
-//    case UNIFORM_SUBROUTINE: Serialise_glUniformSubroutinesuiv(eGL_NONE, 0, NULL); break;
+    case BINDFRAGDATA_LOCATION: Serialise_glBindFragDataLocationEXT(0, 0, NULL); break;
+    case BINDFRAGDATA_LOCATION_INDEXED:
+      Serialise_glBindFragDataLocationIndexedEXT(0, 0, 0, NULL);
+      break;
+    case UNIFORM_BLOCKBIND: Serialise_glUniformBlockBinding(0, 0, 0); break;
     case PROGRAMUNIFORM_VECTOR:
       Serialise_glProgramUniformVector(0, eGL_NONE, 0, 0, UNIFORM_UNKNOWN);
       break;
@@ -3336,12 +3334,8 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
       break;
     case LINKPROGRAM: Serialise_glLinkProgram(0); break;
 //
-//    case NAMEDSTRING: Serialise_glNamedStringARB(eGL_NONE, 0, NULL, 0, NULL); break;
-//    case DELETENAMEDSTRING: Serialise_glDeleteNamedStringARB(0, NULL); break;
-//    case COMPILESHADERINCLUDE: Serialise_glCompileShaderIncludeARB(0, 0, NULL, NULL); break;
 //
-//    case GEN_FEEDBACK: Serialise_glGenTransformFeedbacks(0, NULL); break;
-//    case CREATE_FEEDBACK: Serialise_glCreateTransformFeedbacks(0, NULL); break;
+    case GEN_FEEDBACK: Serialise_glGenTransformFeedbacks(0, NULL); break;
 //    case BIND_FEEDBACK: Serialise_glBindTransformFeedback(eGL_NONE, 0); break;
 //    case BEGIN_FEEDBACK: Serialise_glBeginTransformFeedback(eGL_NONE); break;
 //    case END_FEEDBACK: Serialise_glEndTransformFeedback(); break;
@@ -3353,105 +3347,77 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case USE_PROGRAMSTAGES: Serialise_glUseProgramStages(0, 0, 0); break;
 //    case BIND_PROGRAMPIPE: Serialise_glBindProgramPipeline(0); break;
 //
-//    case FENCE_SYNC: Serialise_glFenceSync(NULL, eGL_NONE, 0); break;
-//    case CLIENTWAIT_SYNC: Serialise_glClientWaitSync(NULL, 0, 0); break;
-//    case WAIT_SYNC: Serialise_glWaitSync(NULL, 0, 0); break;
-//
-//    case GEN_QUERIES: Serialise_glGenQueries(0, NULL); break;
-//    case CREATE_QUERIES: Serialise_glCreateQueries(eGL_NONE, 0, NULL); break;
-//    case BEGIN_QUERY: Serialise_glBeginQuery(eGL_NONE, 0); break;
-//    case BEGIN_QUERY_INDEXED: Serialise_glBeginQueryIndexed(eGL_NONE, 0, 0); break;
-//    case END_QUERY: Serialise_glEndQuery(eGL_NONE); break;
-//    case END_QUERY_INDEXED: Serialise_glEndQueryIndexed(eGL_NONE, 0); break;
-//    case BEGIN_CONDITIONAL: Serialise_glBeginConditionalRender(0, eGL_NONE); break;
-//    case END_CONDITIONAL: Serialise_glEndConditionalRender(); break;
-//    case QUERY_COUNTER: Serialise_glQueryCounter(0, eGL_NONE); break;
+    case FENCE_SYNC: Serialise_glFenceSync(NULL, eGL_NONE, 0); break;
+    case CLIENTWAIT_SYNC: Serialise_glClientWaitSync(NULL, 0, 0); break;
+    case WAIT_SYNC: Serialise_glWaitSync(NULL, 0, 0); break;
+
+    case GEN_QUERIES: Serialise_glGenQueries(0, NULL); break;
+    case BEGIN_QUERY: Serialise_glBeginQuery(eGL_NONE, 0); break;
+    case END_QUERY: Serialise_glEndQuery(eGL_NONE); break;
+    case BEGIN_CONDITIONAL: Serialise_glBeginConditionalRenderNV(0, eGL_NONE); break;
+    case END_CONDITIONAL: Serialise_glEndConditionalRenderNV(); break;
+    case QUERY_COUNTER: Serialise_glQueryCounterEXT(0, eGL_NONE); break;
 //
     case CLEAR_COLOR: Serialise_glClearColor(0, 0, 0, 0); break;
-//    case CLEAR_DEPTH: Serialise_glClearDepth(0); break;
-//    case CLEAR_STENCIL: Serialise_glClearStencil(0); break;
+    case CLEAR_DEPTH: Serialise_glClearDepthf(0); break;
+    case CLEAR_STENCIL: Serialise_glClearStencil(0); break;
     case CLEAR: Serialise_glClear(0); break;
-//    case CLEARBUFFERF: Serialise_glClearNamedFramebufferfv(0, eGL_NONE, 0, NULL); break;
-//    case CLEARBUFFERI: Serialise_glClearNamedFramebufferiv(0, eGL_NONE, 0, NULL); break;
-//    case CLEARBUFFERUI: Serialise_glClearNamedFramebufferuiv(0, eGL_NONE, 0, NULL); break;
-//    case CLEARBUFFERFI: Serialise_glClearNamedFramebufferfi(0, eGL_NONE, 0, 0); break;
 //    case CLEARBUFFERDATA:
 //      Serialise_glClearNamedBufferDataEXT(0, eGL_NONE, eGL_NONE, eGL_NONE, NULL);
 //      break;
 //    case CLEARBUFFERSUBDATA:
 //      Serialise_glClearNamedBufferSubDataEXT(0, eGL_NONE, 0, 0, eGL_NONE, eGL_NONE, NULL);
 //      break;
-//    case CLEARTEXIMAGE: Serialise_glClearTexImage(0, 0, eGL_NONE, eGL_NONE, NULL); break;
-//    case CLEARTEXSUBIMAGE:
-//      Serialise_glClearTexSubImage(0, 0, 0, 0, 0, 0, 0, 0, eGL_NONE, eGL_NONE, NULL);
-//      break;
-//    case POLYGON_MODE: Serialise_glPolygonMode(eGL_NONE, eGL_NONE); break;
-//    case POLYGON_OFFSET: Serialise_glPolygonOffset(0, 0); break;
-//    case POLYGON_OFFSET_CLAMP: Serialise_glPolygonOffsetClampEXT(0, 0, 0); break;
-//    case CULL_FACE: Serialise_glCullFace(eGL_NONE); break;
-//    case HINT: Serialise_glHint(eGL_NONE, eGL_NONE); break;
+    case POLYGON_MODE: Serialise_glPolygonModeNV(eGL_NONE, eGL_NONE); break;
+    case POLYGON_OFFSET: Serialise_glPolygonOffset(0, 0); break;
+    case POLYGON_OFFSET_CLAMP: Serialise_glPolygonOffsetClampEXT(0, 0, 0); break;
+    case CULL_FACE: Serialise_glCullFace(eGL_NONE); break;
+    case HINT: Serialise_glHint(eGL_NONE, eGL_NONE); break;
     case ENABLE: Serialise_glEnable(eGL_NONE); break;
     case DISABLE: Serialise_glDisable(eGL_NONE); break;
-//    case ENABLEI: Serialise_glEnablei(eGL_NONE, 0); break;
-//    case DISABLEI: Serialise_glDisablei(eGL_NONE, 0); break;
+    case ENABLEI: Serialise_glEnablei(eGL_NONE, 0); break;
+    case DISABLEI: Serialise_glDisablei(eGL_NONE, 0); break;
     case FRONT_FACE: Serialise_glFrontFace(eGL_NONE); break;
     case BLEND_FUNC: Serialise_glBlendFunc(eGL_NONE, eGL_NONE); break;
-//    case BLEND_FUNCI: Serialise_glBlendFunci(0, eGL_NONE, eGL_NONE); break;
-//    case BLEND_COLOR: Serialise_glBlendColor(0, 0, 0, 0); break;
-//    case BLEND_FUNC_SEP:
-//      Serialise_glBlendFuncSeparate(eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
-//      break;
-//    case BLEND_FUNC_SEPI:
-//      Serialise_glBlendFuncSeparatei(0, eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
-//      break;
-//    case BLEND_EQ: Serialise_glBlendEquation(eGL_NONE); break;
-//    case BLEND_EQI: Serialise_glBlendEquationi(0, eGL_NONE); break;
-//    case BLEND_EQ_SEP: Serialise_glBlendEquationSeparate(eGL_NONE, eGL_NONE); break;
-//    case BLEND_EQ_SEPI: Serialise_glBlendEquationSeparatei(0, eGL_NONE, eGL_NONE); break;
-//    case BLEND_BARRIER: Serialise_glBlendBarrierKHR(); break;
-//
-//    case LOGIC_OP: Serialise_glLogicOp(eGL_NONE); break;
-//
-//    case STENCIL_OP: Serialise_glStencilOp(eGL_NONE, eGL_NONE, eGL_NONE); break;
+    case BLEND_FUNCI: Serialise_glBlendFunci(0, eGL_NONE, eGL_NONE); break;
+    case BLEND_COLOR: Serialise_glBlendColor(0, 0, 0, 0); break;
+    case BLEND_FUNC_SEP:
+      Serialise_glBlendFuncSeparate(eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
+      break;
+    case BLEND_FUNC_SEPI:
+      Serialise_glBlendFuncSeparatei(0, eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
+      break;
+    case BLEND_EQ: Serialise_glBlendEquation(eGL_NONE); break;
+    case BLEND_EQI: Serialise_glBlendEquationi(0, eGL_NONE); break;
+    case BLEND_EQ_SEP: Serialise_glBlendEquationSeparate(eGL_NONE, eGL_NONE); break;
+    case BLEND_EQ_SEPI: Serialise_glBlendEquationSeparatei(0, eGL_NONE, eGL_NONE); break;
+    case BLEND_BARRIER: Serialise_glBlendBarrierKHR(); break;
+    case STENCIL_OP: Serialise_glStencilOp(eGL_NONE, eGL_NONE, eGL_NONE); break;
     case STENCIL_OP_SEP:
       Serialise_glStencilOpSeparate(eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
       break;
-//    case STENCIL_FUNC: Serialise_glStencilFunc(eGL_NONE, 0, 0); break;
-//    case STENCIL_FUNC_SEP: Serialise_glStencilFuncSeparate(eGL_NONE, eGL_NONE, 0, 0); break;
-//    case STENCIL_MASK: Serialise_glStencilMask(0); break;
-//    case STENCIL_MASK_SEP: Serialise_glStencilMaskSeparate(eGL_NONE, 0); break;
-//
-//    case COLOR_MASK: Serialise_glColorMask(0, 0, 0, 0); break;
-//    case COLOR_MASKI: Serialise_glColorMaski(0, 0, 0, 0, 0); break;
-//    case SAMPLE_MASK: Serialise_glSampleMaski(0, 0); break;
+    case STENCIL_FUNC: Serialise_glStencilFunc(eGL_NONE, 0, 0); break;
+    case STENCIL_FUNC_SEP: Serialise_glStencilFuncSeparate(eGL_NONE, eGL_NONE, 0, 0); break;
+    case STENCIL_MASK: Serialise_glStencilMask(0); break;
+    case STENCIL_MASK_SEP: Serialise_glStencilMaskSeparate(eGL_NONE, 0); break;
+
+    case COLOR_MASK: Serialise_glColorMask(0, 0, 0, 0); break;
+    case COLOR_MASKI: Serialise_glColorMaski(0, 0, 0, 0, 0); break;
+    case SAMPLE_MASK: Serialise_glSampleMaski(0, 0); break;
     case SAMPLE_COVERAGE: Serialise_glSampleCoverage(0.0f, 0); break;
-//    case MIN_SAMPLE_SHADING: Serialise_glMinSampleShading(0.0f); break;
-//    case RASTER_SAMPLES: Serialise_glRasterSamplesEXT(0, 0); break;
+    case MIN_SAMPLE_SHADING: Serialise_glMinSampleShading(0.0f); break;
+    case RASTER_SAMPLES: Serialise_glRasterSamplesEXT(0, 0); break;
     case DEPTH_FUNC: Serialise_glDepthFunc(eGL_NONE); break;
     case DEPTH_MASK: Serialise_glDepthMask(0); break;
-//    case DEPTH_RANGE: Serialise_glDepthRange(0, 0); break;
-//    case DEPTH_RANGEF: Serialise_glDepthRangef(0, 0); break;
-//    case DEPTH_RANGE_IDX: Serialise_glDepthRangeIndexed(0, 0.0, 0.0); break;
-//    case DEPTH_RANGEARRAY: Serialise_glDepthRangeArrayv(0, 0, NULL); break;
-//    case DEPTH_BOUNDS: Serialise_glDepthBoundsEXT(0, 0); break;
-//    case CLIP_CONTROL: Serialise_glClipControl(eGL_NONE, eGL_NONE); break;
-//    case PROVOKING_VERTEX: Serialise_glProvokingVertex(eGL_NONE); break;
-//    case PRIMITIVE_RESTART: Serialise_glPrimitiveRestartIndex(0); break;
-//    case PATCH_PARAMI: Serialise_glPatchParameteri(eGL_NONE, 0); break;
-//    case PATCH_PARAMFV: Serialise_glPatchParameterfv(eGL_NONE, NULL); break;
-//    case LINE_WIDTH: Serialise_glLineWidth(0.0f); break;
-//    case POINT_SIZE: Serialise_glPointSize(0.0f); break;
-//    case POINT_PARAMF: Serialise_glPointParameterf(eGL_NONE, 0.0f); break;
-//    case POINT_PARAMFV: Serialise_glPointParameterfv(eGL_NONE, NULL); break;
-//    case POINT_PARAMI: Serialise_glPointParameteri(eGL_NONE, 0); break;
-//    case POINT_PARAMIV: Serialise_glPointParameteriv(eGL_NONE, NULL); break;
-//    case VIEWPORT: Serialise_glViewport(0, 0, 0, 0); break;
-//    case VIEWPORT_ARRAY: Serialise_glViewportArrayv(0, 0, 0); break;
-//    case SCISSOR: Serialise_glScissor(0, 0, 0, 0); break;
-//    case SCISSOR_ARRAY: Serialise_glScissorArrayv(0, 0, 0); break;
-//    case BIND_VERTEXBUFFER: Serialise_glVertexArrayBindVertexBufferEXT(0, 0, 0, 0, 0); break;
-//    case BIND_VERTEXBUFFERS: Serialise_glVertexArrayVertexBuffers(0, 0, 0, NULL, NULL, NULL); break;
-//    case VERTEXBINDINGDIVISOR: Serialise_glVertexArrayVertexBindingDivisorEXT(0, 0, 0); break;
+    case DEPTH_RANGEF: Serialise_glDepthRangef(0, 0); break;
+    case DEPTH_RANGE_IDX: Serialise_glDepthRangeIndexedfNV(0, 0.0, 0.0); break;
+    case DEPTH_RANGEARRAY: Serialise_glDepthRangeArrayfvNV(0, 0, NULL); break;
+    case PATCH_PARAMI: Serialise_glPatchParameteri(eGL_NONE, 0); break;
+    case LINE_WIDTH: Serialise_glLineWidth(0.0f); break;
+    case VIEWPORT: Serialise_glViewport(0, 0, 0, 0); break;
+    case VIEWPORT_ARRAY: Serialise_glViewportArrayvOES(0, 0, 0); break;
+    case SCISSOR: Serialise_glScissor(0, 0, 0, 0); break;
+    case SCISSOR_ARRAY: Serialise_glScissorArrayvNV(0, 0, 0); break;
 //    case DISPATCH_COMPUTE: Serialise_glDispatchCompute(0, 0, 0); break;
 //    case DISPATCH_COMPUTE_GROUP_SIZE:
 //      Serialise_glDispatchComputeGroupSizeARB(0, 0, 0, 0, 0, 0);
@@ -3547,16 +3513,14 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //      Serialise_glNamedRenderbufferStorageMultisampleEXT(0, 0, eGL_NONE, 0, 0);
 //      break;
 //
-//    case GEN_SAMPLERS: Serialise_glGenSamplers(0, NULL); break;
-//    case CREATE_SAMPLERS: Serialise_glCreateSamplers(0, NULL); break;
-//    case SAMPLER_PARAMETERI: Serialise_glSamplerParameteri(0, eGL_NONE, 0); break;
-//    case SAMPLER_PARAMETERF: Serialise_glSamplerParameterf(0, eGL_NONE, 0); break;
-//    case SAMPLER_PARAMETERIV: Serialise_glSamplerParameteriv(0, eGL_NONE, NULL); break;
-//    case SAMPLER_PARAMETERFV: Serialise_glSamplerParameterfv(0, eGL_NONE, NULL); break;
-//    case SAMPLER_PARAMETERIIV: Serialise_glSamplerParameterIiv(0, eGL_NONE, NULL); break;
-//    case SAMPLER_PARAMETERIUIV: Serialise_glSamplerParameterIuiv(0, eGL_NONE, NULL); break;
-//    case BIND_SAMPLER: Serialise_glBindSampler(0, 0); break;
-//    case BIND_SAMPLERS: Serialise_glBindSamplers(0, 0, NULL); break;
+    case GEN_SAMPLERS: Serialise_glGenSamplers(0, NULL); break;
+    case SAMPLER_PARAMETERI: Serialise_glSamplerParameteri(0, eGL_NONE, 0); break;
+    case SAMPLER_PARAMETERF: Serialise_glSamplerParameterf(0, eGL_NONE, 0); break;
+    case SAMPLER_PARAMETERIV: Serialise_glSamplerParameteriv(0, eGL_NONE, NULL); break;
+    case SAMPLER_PARAMETERFV: Serialise_glSamplerParameterfv(0, eGL_NONE, NULL); break;
+    case SAMPLER_PARAMETERIIV: Serialise_glSamplerParameterIiv(0, eGL_NONE, NULL); break;
+    case SAMPLER_PARAMETERIUIV: Serialise_glSamplerParameterIuiv(0, eGL_NONE, NULL); break;
+    case BIND_SAMPLER: Serialise_glBindSampler(0, 0); break;
 //
     case GEN_BUFFER: Serialise_glGenBuffers(0, NULL); break;
 //    case CREATE_BUFFER: Serialise_glCreateBuffers(0, NULL); break;
@@ -3605,12 +3569,12 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case FEEDBACK_BUFFER_RANGE: Serialise_glTransformFeedbackBufferRange(0, 0, 0, 0, 0); break;
 //
     case OBJECT_LABEL: Serialise_glObjectLabel(eGL_NONE, 0, 0, NULL); break;
-//    case BEGIN_EVENT: Serialise_glPushDebugGroup(eGL_NONE, 0, 0, NULL); break;
-//    case SET_MARKER:
-//      Serialise_glDebugMessageInsert(eGL_NONE, eGL_NONE, 0, eGL_NONE, 0, NULL);
-//      break;
-//    case END_EVENT: Serialise_glPopDebugGroup(); break;
-//
+    case BEGIN_EVENT: Serialise_glPushDebugGroup(eGL_NONE, 0, 0, NULL); break;
+    case SET_MARKER:
+      Serialise_glDebugMessageInsert(eGL_NONE, eGL_NONE, 0, eGL_NONE, 0, NULL);
+      break;
+    case END_EVENT: Serialise_glPopDebugGroup(); break;
+
     case CAPTURE_SCOPE: Serialise_CaptureScope(offset); break;
     case CONTEXT_CAPTURE_HEADER:
       // normally this would be handled as a special case when we start processing the frame,
