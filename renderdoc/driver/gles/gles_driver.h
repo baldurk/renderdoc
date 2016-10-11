@@ -413,7 +413,7 @@ private:
 
     // state
     static const int numberOfTextureTargetTypes = 8;
-    GLResourceRecord *m_TextureRecord[32][numberOfTextureTargetTypes];    // TODO this needs on per texture type :(
+    GLResourceRecord *m_TextureRecord[32][numberOfTextureTargetTypes];
     GLResourceRecord *m_BufferRecord[16];
     GLResourceRecord *m_VertexArrayRecord;
     GLResourceRecord *m_FeedbackRecord;
@@ -425,6 +425,7 @@ private:
     GLuint m_Program;
 
     GLResourceRecord *GetActiveTexRecord(GLenum target) { return m_TextureRecord[m_TextureUnit][TextureTargetIndex(target)]; }
+    GLResourceRecord *GetActiveBufferRecord(GLenum target) { return m_BufferRecord[BufferIdx(target)]; }
   };
 
   map<void *, ContextData> m_ContextData;

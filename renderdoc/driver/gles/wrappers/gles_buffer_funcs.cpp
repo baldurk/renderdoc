@@ -84,61 +84,6 @@ void WrappedGLES::glGenBuffers(GLsizei n, GLuint *buffers)
   }
 }
 
-//bool WrappedGLES::Serialise_glCreateBuffers(GLsizei n, GLuint *buffers)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), *buffers)));
-//
-//  if(m_State == READING)
-//  {
-//    GLuint real = 0;
-//    m_Real.glCreateBuffers(1, &real);
-//
-//    GLResource res = BufferRes(GetCtx(), real);
-//
-//    ResourceId live = m_ResourceManager->RegisterResource(res);
-//    GetResourceManager()->AddLiveResource(id, res);
-//
-//    m_Buffers[live].resource = res;
-//    m_Buffers[live].curType = eGL_NONE;
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glCreateBuffers(GLsizei n, GLuint *buffers)
-//{
-//  m_Real.glCreateBuffers(n, buffers);
-//
-//  for(GLsizei i = 0; i < n; i++)
-//  {
-//    GLResource res = BufferRes(GetCtx(), buffers[i]);
-//    ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//    if(m_State >= WRITING)
-//    {
-//      Chunk *chunk = NULL;
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(CREATE_BUFFER);
-//        Serialise_glCreateBuffers(1, buffers + i);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//      RDCASSERT(record);
-//
-//      record->AddChunk(chunk);
-//    }
-//    else
-//    {
-//      GetResourceManager()->AddLiveResource(id, res);
-//      m_Buffers[id].resource = res;
-//      m_Buffers[id].curType = eGL_NONE;
-//    }
-//  }
-//}
-//
 bool WrappedGLES::Serialise_glBindBuffer(GLenum target, GLuint buffer)
 {
   SERIALISE_ELEMENT(GLenum, Target, target);
@@ -152,11 +97,7 @@ bool WrappedGLES::Serialise_glBindBuffer(GLenum target, GLuint buffer)
   }
   else if(m_State < WRITING)
   {
-    if(Target == eGL_NONE)
-    {
-      // ...
-    }
-    else if(Id == ResourceId())
+    if(Id == ResourceId())
     {
       m_Real.glBindBuffer(Target, 0);
     }
@@ -164,9 +105,13 @@ bool WrappedGLES::Serialise_glBindBuffer(GLenum target, GLuint buffer)
     {
       GLResource res = GetResourceManager()->GetLiveResource(Id);
       m_Real.glBindBuffer(Target, res.name);
-
-      m_Buffers[GetResourceManager()->GetLiveID(Id)].curType = Target;
-      GetCtxData().m_BufferRecord[BufferIdx(Target)] = GetResourceManager()->GetResourceRecord(GetResourceManager()->GetLiveID(Id));
+      
+      ResourceId liveId = GetResourceManager()->GetLiveID(Id);
+      m_Buffers[liveId].curType = Target;
+      
+      // PEPE: Doing the same aproach as at the textures. The ResourceId of the bound buffer is 
+      // saved in the chunk so it is no longer needed to track the bindings in read mode.
+      // GetCtxData().m_BufferRecord[BufferIdx(Target)] = GetResourceManager()->GetResourceRecord(liveId);
     }
   }
 
@@ -307,112 +252,35 @@ void WrappedGLES::glBindBuffer(GLenum target, GLuint buffer)
   }
 }
 
-//bool WrappedGLES::Serialise_glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size,
-//                                                      const void *data, GLbitfield flags)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
-//  SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
-//
-//  // for satisfying GL_MIN_MAP_BUFFER_ALIGNMENT
-//  m_pSerialiser->AlignNextBuffer(64);
-//
-//  SERIALISE_ELEMENT_BUF(byte *, bytes, data, (size_t)Bytesize);
-//
-//  uint64_t offs = m_pSerialiser->GetOffset();
-//
-//  SERIALISE_ELEMENT(uint32_t, Flags, flags);
-//
-//  if(m_State < WRITING)
-//  {
-//    GLResource res = GetResourceManager()->GetLiveResource(id);
-//    m_Real.glNamedBufferStorageEXT(res.name, (GLsizeiptr)Bytesize, bytes, Flags);
-//
-//    m_Buffers[GetResourceManager()->GetLiveID(id)].size = Bytesize;
-//
-//    SAFE_DELETE_ARRAY(bytes);
-//  }
-//  else if(m_State >= WRITING)
-//  {
-//    GetResourceManager()->GetResourceRecord(id)->SetDataOffset(offs - Bytesize);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr size, const void *data,
-//                                                   GLbitfield flags)
-//{
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-//    RDCASSERT(record);
-//
-//    SCOPED_SERIALISE_CONTEXT(BUFFERSTORAGE);
-//    Serialise_glNamedBufferStorageEXT(record->Resource.name, size, data, flags);
-//
-//    Chunk *chunk = scope.Get();
-//
-//    {
-//      record->AddChunk(chunk);
-//      record->SetDataPtr(chunk->GetData());
-//      record->Length = (int32_t)size;
-//      record->DataInSerialiser = true;
-//    }
-//
-//    // We immediately map the whole range with appropriate flags, to be copied into whenever we
-//    // need to propogate changes. Note: Coherent buffers are not mapped coherent, but this is
-//    // because the user code isn't writing into them anyway and we're inserting invisible sync
-//    // points - so there's no need for it to be coherently mapped (and there's no requirement
-//    // that a buffer declared as coherent must ALWAYS be mapped as coherent).
-//    if(flags & GL_MAP_PERSISTENT_BIT)
-//    {
-//      record->Map.persistentPtr = (byte *)m_Real.glMapNamedBufferRangeEXT(
-//          record->Resource.name, 0, size,
-//          GL_MAP_WRITE_BIT | GL_MAP_FLUSH_EXPLICIT_BIT | GL_MAP_PERSISTENT_BIT);
-//      RDCASSERT(record->Map.persistentPtr);
-//
-//      // persistent maps always need both sets of shadow storage, so allocate up front.
-//      record->AllocShadowStorage(size);
-//    }
-//  }
-//  else
-//  {
-//    m_Buffers[id].size = size;
-//  }
-//}
-//
-//void WrappedGLES::glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr size, const void *data,
-//                                            GLbitfield flags)
-//{
-//  byte *dummy = NULL;
-//
-//  if(m_State >= WRITING && data == NULL)
-//  {
-//    dummy = new byte[size];
-//    memset(dummy, 0xdd, size);
-//    data = dummy;
-//  }
-//
-//  m_Real.glNamedBufferStorageEXT(buffer, size, data, flags);
-//
-//  Common_glNamedBufferStorageEXT(GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)), size,
-//                                 data, flags);
-//
-//  SAFE_DELETE_ARRAY(dummy);
-//}
-//
-//void WrappedGLES::glNamedBufferStorage(GLuint buffer, GLsizeiptr size, const void *data,
-//                                         GLbitfield flags)
-//{
-//  // only difference to EXT function is size parameter, so just upcast
-//  glNamedBufferStorageEXT(buffer, size, data, flags);
-//}
-//
-
 bool WrappedGLES::Serialise_glBufferStorageEXT(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)
 {
-    // TODO PEPE
-    return true;
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveBufferRecord(target)->GetResourceID());
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
+
+  // for satisfying GL_MIN_MAP_BUFFER_ALIGNMENT
+  m_pSerialiser->AlignNextBuffer(64);
+
+  SERIALISE_ELEMENT_BUF(byte *, bytes, data, (size_t)Bytesize);
+
+  uint64_t offs = m_pSerialiser->GetOffset();
+
+  SERIALISE_ELEMENT(uint32_t, Flags, flags);
+
+  if(m_State < WRITING)
+  {
+    GLResource res = GetResourceManager()->GetLiveResource(id);
+    m_Real.glBufferStorageEXT(Target, (GLsizeiptr)Bytesize, bytes, Flags);
+
+    m_Buffers[GetResourceManager()->GetLiveID(id)].size = Bytesize;
+
+    SAFE_DELETE_ARRAY(bytes);
+  }
+  else if(m_State >= WRITING)
+  {
+    GetResourceManager()->GetResourceRecord(id)->SetDataOffset(offs - Bytesize);
+  }
+  return true;
 }
 void WrappedGLES::glBufferStorageEXT(GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)
 {
@@ -428,176 +296,53 @@ void WrappedGLES::glBufferStorageEXT(GLenum target, GLsizeiptr size, const void 
   m_Real.glBufferStorageEXT(target, size, data, flags);
 
   if(m_State >= WRITING)
+  {
+    GLResourceRecord *record = GetCtxData().GetActiveBufferRecord(target);
+    if (record == NULL)
+      RDCERR("Calling non-DSA buffer function with no buffer bound to active slot");
+
+    SCOPED_SERIALISE_CONTEXT(BUFFERSTORAGE);
     Serialise_glBufferStorageEXT(target, size, data, flags);
+
+    Chunk *chunk = scope.Get();
+
+    {
+      record->AddChunk(chunk);
+      record->SetDataPtr(chunk->GetData());
+      record->Length = (int32_t)size;
+      record->DataInSerialiser = true;
+    }
+
+    // We immediately map the whole range with appropriate flags, to be copied into whenever we
+    // need to propogate changes. Note: Coherent buffers are not mapped coherent, but this is
+    // because the user code isn't writing into them anyway and we're inserting invisible sync
+    // points - so there's no need for it to be coherently mapped (and there's no requirement
+    // that a buffer declared as coherent must ALWAYS be mapped as coherent).
+    if(flags & eGL_MAP_PERSISTENT_BIT_EXT)
+    {
+      record->Map.persistentPtr = (byte *)m_Real.glMapBufferRangeEXT(
+          target, 0, size,
+          eGL_MAP_WRITE_BIT | eGL_MAP_FLUSH_EXPLICIT_BIT | eGL_MAP_PERSISTENT_BIT_EXT);
+      RDCASSERT(record->Map.persistentPtr);
+
+      // persistent maps always need both sets of shadow storage, so allocate up front.
+      record->AllocShadowStorage(size);
+    }
+  }
+  else
+  {
+    // TODO PEPE  
+    // m_Buffers[record->GetResourceID()].size = size;
+    RDCWARN("TODO PEPE %s:%d", __FILE__ ,__LINE__);
+  }
+
   
   SAFE_DELETE_ARRAY(dummy);
 }
 
-//bool WrappedGLES::Serialise_glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const void *data,
-//                                                   GLenum usage)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
-//  SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
-//
-//  // for satisfying GL_MIN_MAP_BUFFER_ALIGNMENT
-//  m_pSerialiser->AlignNextBuffer(64);
-//
-//  SERIALISE_ELEMENT_BUF(byte *, bytes, data, (size_t)Bytesize);
-//
-//  uint64_t offs = m_pSerialiser->GetOffset();
-//
-//  SERIALISE_ELEMENT(GLenum, Usage, usage);
-//
-//  if(m_State < WRITING)
-//  {
-//    GLResource res = GetResourceManager()->GetLiveResource(id);
-//    m_Real.glNamedBufferDataEXT(res.name, (GLsizeiptr)Bytesize, bytes, Usage);
-//
-//    m_Buffers[GetResourceManager()->GetLiveID(id)].size = Bytesize;
-//
-//    SAFE_DELETE_ARRAY(bytes);
-//  }
-//  else if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
-//    record->DataInSerialiser = true;
-//    record->SetDataOffset(offs - Bytesize);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glNamedBufferDataEXT(GLuint buffer, GLsizeiptr size, const void *data,
-//                                         GLenum usage)
-//{
-//  byte *dummy = NULL;
-//
-//  if(m_State >= WRITING && data == NULL)
-//  {
-//    dummy = new byte[size];
-//    memset(dummy, 0xdd, size);
-//    data = dummy;
-//  }
-//
-//  m_Real.glNamedBufferDataEXT(buffer, size, data, usage);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-//    RDCASSERT(record);
-//
-//    // detect buffer orphaning and just update backing store
-//    if(m_State == WRITING_IDLE && record->HasDataPtr() && size == (GLsizeiptr)record->Length &&
-//       usage == record->usage)
-//    {
-//      if(data)
-//        memcpy(record->GetDataPtr(), data, (size_t)size);
-//      else
-//        memset(record->GetDataPtr(), 0xbe, (size_t)size);
-//
-//      SAFE_DELETE_ARRAY(dummy);
-//
-//      return;
-//    }
-//
-//    // if we're recreating the buffer, clear the record and add new chunks. Normally
-//    // we would just mark this record as dirty and pick it up on the capture frame as initial
-//    // data, but we don't support (if it's even possible) querying out size etc.
-//    // we need to add only the chunks required - glGenBuffers, glBindBuffer to current target,
-//    // and this buffer storage. All other chunks have no effect
-//    if(m_State == WRITING_IDLE &&
-//       (record->HasDataPtr() || (record->Length > 0 && size != (GLsizeiptr)record->Length)))
-//    {
-//      // we need to maintain chunk ordering, so fetch the first two chunk IDs.
-//      // We should have at least two by this point - glGenBuffers and whatever gave the record
-//      // a size before.
-//      RDCASSERT(record->NumChunks() >= 2);
-//
-//      // remove all but the first two chunks
-//      while(record->NumChunks() > 2)
-//      {
-//        Chunk *c = record->GetLastChunk();
-//        SAFE_DELETE(c);
-//        record->PopChunk();
-//      }
-//
-//      int32_t id2 = record->GetLastChunkID();
-//      {
-//        Chunk *c = record->GetLastChunk();
-//        SAFE_DELETE(c);
-//        record->PopChunk();
-//      }
-//
-//      int32_t id1 = record->GetLastChunkID();
-//      {
-//        Chunk *c = record->GetLastChunk();
-//        SAFE_DELETE(c);
-//        record->PopChunk();
-//      }
-//
-//      RDCASSERT(!record->HasChunks());
-//
-//      // add glGenBuffers chunk
-//      {
-//        SCOPED_SERIALISE_CONTEXT(GEN_BUFFER);
-//        Serialise_glGenBuffers(1, &buffer);
-//
-//        record->AddChunk(scope.Get(), id1);
-//      }
-//
-//      // add glBindBuffer chunk
-//      {
-//        SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
-//        Serialise_glBindBuffer(record->datatype, buffer);
-//
-//        record->AddChunk(scope.Get(), id2);
-//      }
-//
-//      // we're about to add the buffer data chunk
-//    }
-//
-//    SCOPED_SERIALISE_CONTEXT(BUFFERDATA);
-//    Serialise_glNamedBufferDataEXT(buffer, size, data, usage);
-//
-//    Chunk *chunk = scope.Get();
-//
-//    // if we've already created this is a renaming/data updating call. It should go in
-//    // the frame record so we can 'update' the buffer as it goes in the frame.
-//    // if we haven't created the buffer at all, it could be a mid-frame create and we
-//    // should place it in the resource record, to happen before the frame.
-//    if(m_State == WRITING_CAPFRAME && record->HasDataPtr())
-//    {
-//      // we could perhaps substitute this for a 'fake' glBufferSubData chunk?
-//      m_ContextRecord->AddChunk(chunk);
-//      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Write);
-//    }
-//    else
-//    {
-//      record->AddChunk(chunk);
-//      record->SetDataPtr(chunk->GetData());
-//      record->Length = (int32_t)size;
-//      record->usage = usage;
-//      record->DataInSerialiser = true;
-//    }
-//  }
-//  else
-//  {
-//    m_Buffers[GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))].size = size;
-//  }
-//
-//  SAFE_DELETE_ARRAY(dummy);
-//}
-//
-//void WrappedGLES::glNamedBufferData(GLuint buffer, GLsizeiptr size, const void *data, GLenum usage)
-//{
-//  // only difference to EXT function is size parameter, so just upcast
-//  glNamedBufferDataEXT(buffer, size, data, usage);
-//}
-//
-
-
 bool WrappedGLES::Serialise_glBufferData(GLenum target, GLsizeiptr size, const void *data, GLenum usage)
 {
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveBufferRecord(target)->GetResourceID());
   SERIALISE_ELEMENT(GLenum, Target, target);
   SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
 
@@ -612,16 +357,16 @@ bool WrappedGLES::Serialise_glBufferData(GLenum target, GLsizeiptr size, const v
 
   if(m_State < WRITING)
   {
+    GLResource res = GetResourceManager()->GetLiveResource(id);
     m_Real.glBufferData(Target, (GLsizeiptr)Bytesize, bytes, Usage);
-    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(Target)];
-    if (record)
-      m_Buffers[GetResourceManager()->GetLiveID(record->GetResourceID())].size = Bytesize;
+
+    m_Buffers[GetResourceManager()->GetLiveID(id)].size = Bytesize;
 
     SAFE_DELETE_ARRAY(bytes);
   }
   else if(m_State >= WRITING)
   {
-    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(id);
     record->DataInSerialiser = true;
     record->SetDataOffset(offs - Bytesize);
   }
@@ -807,21 +552,25 @@ void WrappedGLES::glBufferData(GLenum target, GLsizeiptr size, const void *data,
 //    }
 //  }
 //}
-//
-//void WrappedGLES::glNamedBufferSubData(GLuint buffer, GLintptr offset, GLsizeiptr size,
-//                                         const void *data)
-//{
-//  // only difference to EXT function is size parameter, so just upcast
-//  glNamedBufferSubDataEXT(buffer, offset, size, data);
-//}
-//
                             
 bool WrappedGLES::Serialise_glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data)
 {
-    // TODO PEPE
-    return true;
-}
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveBufferRecord(target)->GetResourceID());
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)offset);
+  SERIALISE_ELEMENT(uint64_t, Bytesize, (uint64_t)size);
+  SERIALISE_ELEMENT_BUF(byte *, bytes, data, (size_t)Bytesize);
 
+  if(m_State < WRITING)
+  {
+    GLResource res = GetResourceManager()->GetLiveResource(id);
+    m_Real.glBufferSubData(Target, (GLintptr)Offset, (GLsizeiptr)Bytesize, bytes);
+
+    SAFE_DELETE_ARRAY(bytes);
+  }
+
+  return true;
+}
 
 void WrappedGLES::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, const void *data)
 {
@@ -829,8 +578,9 @@ void WrappedGLES::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr siz
 
   if(m_State >= WRITING)
   {
-    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-    RDCASSERT(record);
+    GLResourceRecord *record = GetCtxData().GetActiveBufferRecord(target);
+    if (record == NULL)
+      RDCERR("Calling non-DSA buffer function with no buffer bound to active slot");
 
     GLResource res = record->Resource;
 
@@ -839,7 +589,7 @@ void WrappedGLES::glBufferSubData(GLenum target, GLintptr offset, GLsizeiptr siz
       return;
 
     SCOPED_SERIALISE_CONTEXT(BUFFERSUBDATA);
-    //Serialise_glBufferSubData(target, offset, size, data);
+    Serialise_glBufferSubData(target, offset, size, data);
 
     Chunk *chunk = scope.Get();
 
@@ -1778,187 +1528,6 @@ void WrappedGLES::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
 // *
 // ************************************************************************/
 //
-//void *WrappedGLES::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GLsizeiptr length,
-//                                              GLbitfield access)
-//{
-//  // see above for high-level explanation of how mapping is handled
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-//
-//    bool directMap = false;
-//
-//    // first check if we've already given up on these buffers
-//    if(m_State != WRITING_CAPFRAME &&
-//       m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end())
-//      directMap = true;
-//
-//    if(!directMap && m_State != WRITING_CAPFRAME &&
-//       GetResourceManager()->IsResourceDirty(record->GetResourceID()))
-//      directMap = true;
-//
-//    bool invalidateMap = (access & (GL_MAP_INVALIDATE_BUFFER_BIT | GL_MAP_INVALIDATE_RANGE_BIT)) != 0;
-//    bool flushExplicitMap = (access & GL_MAP_FLUSH_EXPLICIT_BIT) != 0;
-//
-//    // if this map is writing and doesn't invalidate, or is flush explicit, map directly
-//    if(!directMap && (!invalidateMap || flushExplicitMap) && (access & GL_MAP_WRITE_BIT) &&
-//       m_State != WRITING_CAPFRAME)
-//      directMap = true;
-//
-//    // persistent maps must ALWAYS be intercepted
-//    if(access & GL_MAP_PERSISTENT_BIT)
-//      directMap = false;
-//
-//    if(directMap)
-//    {
-//      m_HighTrafficResources.insert(record->GetResourceID());
-//      GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//    }
-//
-//    record->Map.offset = offset;
-//    record->Map.length = length;
-//    record->Map.access = access;
-//    record->Map.invalidate = invalidateMap;
-//
-//    // store a list of all persistent maps, and subset of all coherent maps
-//    if(access & GL_MAP_PERSISTENT_BIT)
-//    {
-//      Atomic::Inc64(&record->Map.persistentMaps);
-//      m_PersistentMaps.insert(record);
-//      if(record->Map.access & GL_MAP_COHERENT_BIT)
-//        m_CoherentMaps.insert(record);
-//    }
-//
-//    // if we're doing a direct map, pass onto GL and return
-//    if(directMap)
-//    {
-//      record->Map.ptr = (byte *)m_Real.glMapNamedBufferRangeEXT(buffer, offset, length, access);
-//      record->Map.status = GLResourceRecord::Mapped_Ignore_Real;
-//
-//      return record->Map.ptr;
-//    }
-//
-//    // only squirrel away read-only maps, read-write can just be treated as write-only
-//    if((access & (GL_MAP_READ_BIT | GL_MAP_WRITE_BIT)) == GL_MAP_READ_BIT)
-//    {
-//      byte *ptr = record->GetDataPtr();
-//
-//      if(record->Map.persistentPtr)
-//        ptr = record->GetShadowPtr(0);
-//
-//      RDCASSERT(ptr);
-//
-//      ptr += offset;
-//
-//      m_Real.glGetNamedBufferSubDataEXT(buffer, offset, length, ptr);
-//
-//      record->Map.ptr = ptr;
-//      record->Map.status = GLResourceRecord::Mapped_Read;
-//
-//      return ptr;
-//    }
-//
-//    // below here, handle write maps to the backing store
-//    byte *ptr = record->GetDataPtr();
-//
-//    RDCASSERT(ptr);
-//    {
-//      // persistent maps get particular handling
-//      if(access & GL_MAP_PERSISTENT_BIT)
-//      {
-//        // persistent pointers are always into the shadow storage, this way we can use the backing
-//        // store for 'initial' buffer contents as with any other buffer. We also need to keep a
-//        // comparison & modified buffer in case the application calls glMemoryBarrier(..) at any
-//        // time.
-//
-//        // if we're invalidating, mark the whole range as 0xcc
-//        if(invalidateMap)
-//        {
-//          memset(record->GetShadowPtr(0) + offset, 0xcc, length);
-//          memset(record->GetShadowPtr(1) + offset, 0xcc, length);
-//        }
-//
-//        record->Map.ptr = ptr = record->GetShadowPtr(0) + offset;
-//        record->Map.status = GLResourceRecord::Mapped_Write;
-//      }
-//      else if(m_State == WRITING_CAPFRAME)
-//      {
-//        byte *shadow = (byte *)record->GetShadowPtr(0);
-//
-//        // if we don't have a shadow pointer, need to allocate & initialise
-//        if(shadow == NULL)
-//        {
-//          GLint buflength;
-//          m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &buflength);
-//
-//          // allocate our shadow storage
-//          record->AllocShadowStorage(buflength);
-//          shadow = (byte *)record->GetShadowPtr(0);
-//
-//          // if we're not invalidating, we need the existing contents
-//          if(!invalidateMap)
-//          {
-//            // need to fetch the whole buffer's contents, not just the mapped range,
-//            // as next time we won't re-fetch and might need the rest of the contents
-//            if(GetResourceManager()->IsResourceDirty(record->GetResourceID()))
-//            {
-//              // Perhaps we could get these contents from the frame initial state buffer?
-//
-//              m_Real.glGetNamedBufferSubDataEXT(buffer, 0, buflength, shadow);
-//            }
-//            else
-//            {
-//              memcpy(shadow, record->GetDataPtr(), buflength);
-//            }
-//          }
-//
-//          // copy into second shadow buffer ready for comparison later
-//          memcpy(record->GetShadowPtr(1), shadow, buflength);
-//        }
-//
-//        // if we're invalidating, mark the whole range as 0xcc
-//        if(invalidateMap)
-//        {
-//          memset(shadow + offset, 0xcc, length);
-//          memset(record->GetShadowPtr(1) + offset, 0xcc, length);
-//        }
-//
-//        record->Map.ptr = ptr = shadow;
-//        record->Map.status = GLResourceRecord::Mapped_Write;
-//      }
-//      else if(m_State == WRITING_IDLE)
-//      {
-//        // return buffer backing store pointer, offsetted
-//        ptr += offset;
-//
-//        record->Map.ptr = ptr;
-//        record->Map.status = GLResourceRecord::Mapped_Write;
-//
-//        record->UpdateCount++;
-//
-//        // mark as high-traffic if we update it often enough
-//        if(record->UpdateCount > 60)
-//        {
-//          m_HighTrafficResources.insert(record->GetResourceID());
-//          GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//        }
-//      }
-//    }
-//
-//    return ptr;
-//  }
-//
-//  return m_Real.glMapNamedBufferRangeEXT(buffer, offset, length, access);
-//}
-//
-//void *WrappedGLES::glMapNamedBufferRange(GLuint buffer, GLintptr offset, GLsizeiptr length,
-//                                           GLbitfield access)
-//{
-//  // only difference to EXT function is size parameter, so just upcast
-//  return glMapNamedBufferRangeEXT(buffer, offset, length, access);
-//}
-//
 void *WrappedGLES::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr length,
                                       GLbitfield access)
 {
@@ -1966,57 +1535,186 @@ void *WrappedGLES::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr l
 
   if(m_State >= WRITING)
   {
-    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-    RDCASSERT(record);
+    GLResourceRecord *record = GetCtxData().GetActiveBufferRecord(target);
+    if (record)
+    {
+      bool directMap = false;
 
-    // TODO PEPE
-    // if(record)
-    //  return glMapNamedBufferRangeEXT(record->Resource.name, offset, length, access);
-    return NULL;
+      // first check if we've already given up on these buffers
+      if(m_State != WRITING_CAPFRAME &&
+         m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end())
+        directMap = true;
 
+      if(!directMap && m_State != WRITING_CAPFRAME &&
+         GetResourceManager()->IsResourceDirty(record->GetResourceID()))
+        directMap = true;
+
+      bool invalidateMap = (access & (eGL_MAP_INVALIDATE_BUFFER_BIT | eGL_MAP_INVALIDATE_RANGE_BIT)) != 0;
+      bool flushExplicitMap = (access & eGL_MAP_FLUSH_EXPLICIT_BIT) != 0;
+
+      // if this map is writing and doesn't invalidate, or is flush explicit, map directly
+      if(!directMap && (!invalidateMap || flushExplicitMap) && (access & GL_MAP_WRITE_BIT) &&
+         m_State != WRITING_CAPFRAME)
+        directMap = true;
+
+      // persistent maps must ALWAYS be intercepted
+      if(access & eGL_MAP_PERSISTENT_BIT_EXT)
+        directMap = false;
+
+      if(directMap)
+      {
+        m_HighTrafficResources.insert(record->GetResourceID());
+        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+      }
+
+      record->Map.offset = offset;
+      record->Map.length = length;
+      record->Map.access = access;
+      record->Map.invalidate = invalidateMap;
+
+      // store a list of all persistent maps, and subset of all coherent maps
+      if(access & eGL_MAP_PERSISTENT_BIT_EXT)
+      {
+        Atomic::Inc64(&record->Map.persistentMaps);
+        m_PersistentMaps.insert(record);
+        if(record->Map.access & eGL_MAP_COHERENT_BIT_EXT)
+          m_CoherentMaps.insert(record);
+      }
+
+      // if we're doing a direct map, pass onto GL and return
+      if(directMap)
+      {
+        record->Map.ptr = (byte *)m_Real.glMapBufferRange(target, offset, length, access);
+        record->Map.status = GLResourceRecord::Mapped_Ignore_Real;
+
+        return record->Map.ptr;
+      }
+
+      // only squirrel away read-only maps, read-write can just be treated as write-only
+      if((access & (eGL_MAP_READ_BIT | eGL_MAP_WRITE_BIT)) == eGL_MAP_READ_BIT)
+      {
+        byte *ptr = record->GetDataPtr();
+
+        if(record->Map.persistentPtr)
+          ptr = record->GetShadowPtr(0);
+
+        RDCASSERT(ptr);
+
+        ptr += offset;
+
+        // TODO PEPE
+        // m_Real.glGetNamedBufferSubDataEXT(buffer, offset, length, ptr);
+        RDCWARN("TODO PEPE %s:%d", __FILE__ ,__LINE__);
+
+        record->Map.ptr = ptr;
+        record->Map.status = GLResourceRecord::Mapped_Read;
+
+        return ptr;
+      }
+
+      // below here, handle write maps to the backing store
+      byte *ptr = record->GetDataPtr();
+
+      RDCASSERT(ptr);
+      {
+        // persistent maps get particular handling
+        if(access & eGL_MAP_PERSISTENT_BIT_EXT)
+        {
+          // persistent pointers are always into the shadow storage, this way we can use the backing
+          // store for 'initial' buffer contents as with any other buffer. We also need to keep a
+          // comparison & modified buffer in case the application calls glMemoryBarrier(..) at any
+          // time.
+
+          // if we're invalidating, mark the whole range as 0xcc
+          if(invalidateMap)
+          {
+            memset(record->GetShadowPtr(0) + offset, 0xcc, length);
+            memset(record->GetShadowPtr(1) + offset, 0xcc, length);
+          }
+
+          record->Map.ptr = ptr = record->GetShadowPtr(0) + offset;
+          record->Map.status = GLResourceRecord::Mapped_Write;
+        }
+        else if(m_State == WRITING_CAPFRAME)
+        {
+          byte *shadow = (byte *)record->GetShadowPtr(0);
+
+          // if we don't have a shadow pointer, need to allocate & initialise
+          if(shadow == NULL)
+          {
+            GLint buflength;
+            m_Real.glGetBufferParameteriv(target, eGL_BUFFER_SIZE, &buflength);
+
+            // allocate our shadow storage
+            record->AllocShadowStorage(buflength);
+            shadow = (byte *)record->GetShadowPtr(0);
+
+            // if we're not invalidating, we need the existing contents
+            if(!invalidateMap)
+            {
+              // need to fetch the whole buffer's contents, not just the mapped range,
+              // as next time we won't re-fetch and might need the rest of the contents
+              if(GetResourceManager()->IsResourceDirty(record->GetResourceID()))
+              {
+                // Perhaps we could get these contents from the frame initial state buffer?
+
+                // TODO PEPE
+                // m_Real.glGetNamedBufferSubDataEXT(buffer, 0, buflength, shadow);
+                RDCWARN("TODO PEPE %s:%d", __FILE__ ,__LINE__);
+              }
+              else
+              {
+                memcpy(shadow, record->GetDataPtr(), buflength);
+              }
+            }
+
+            // copy into second shadow buffer ready for comparison later
+            memcpy(record->GetShadowPtr(1), shadow, buflength);
+          }
+
+          // if we're invalidating, mark the whole range as 0xcc
+          if(invalidateMap)
+          {
+            memset(shadow + offset, 0xcc, length);
+            memset(record->GetShadowPtr(1) + offset, 0xcc, length);
+          }
+
+          record->Map.ptr = ptr = shadow;
+          record->Map.status = GLResourceRecord::Mapped_Write;
+        }
+        else if(m_State == WRITING_IDLE)
+        {
+          // return buffer backing store pointer, offsetted
+          ptr += offset;
+
+          record->Map.ptr = ptr;
+          record->Map.status = GLResourceRecord::Mapped_Write;
+
+          record->UpdateCount++;
+
+          // mark as high-traffic if we update it often enough
+          if(record->UpdateCount > 60)
+          {
+            m_HighTrafficResources.insert(record->GetResourceID());
+            GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+          }
+        }
+      }
+
+      return ptr;
+    }
     RDCERR("glMapBufferRange: Couldn't get resource record for target %x - no buffer bound?", target);
   }
-
   return m_Real.glMapBufferRange(target, offset, length, access);
 }
 
-//// the glMapBuffer functions are equivalent to glMapBufferRange - so we just pass through
-//void *WrappedGLES::glMapNamedBufferEXT(GLuint buffer, GLenum access)
-//{
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-//    RDCASSERT(record);
-//
-//    if(record)
-//    {
-//      GLbitfield accessBits = 0;
-//
-//      if(access == eGL_READ_ONLY)
-//        accessBits = eGL_MAP_READ_BIT;
-//      else if(access == eGL_WRITE_ONLY)
-//        accessBits = eGL_MAP_WRITE_BIT;
-//      else if(access == eGL_READ_WRITE)
-//        accessBits = eGL_MAP_READ_BIT | eGL_MAP_WRITE_BIT;
-//      return glMapNamedBufferRangeEXT(record->Resource.name, 0, (GLsizeiptr)record->Length,
-//                                      accessBits);
-//    }
-//
-//    RDCERR("glMapNamedBufferEXT: Couldn't get resource record for buffer %x!", buffer);
-//  }
-//
-//  return m_Real.glMapNamedBufferEXT(buffer, access);
-//}
-//
 void *WrappedGLES::glMapBufferOES(GLenum target, GLenum access)
 {
   // see above glMapNamedBufferRangeEXT for high-level explanation of how mapping is handled
 
   if(m_State >= WRITING)
   {
-    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-    RDCASSERT(record);
-
+    GLResourceRecord *record = GetCtxData().GetActiveBufferRecord(target);
     if(record)
     {
       GLbitfield accessBits = 0;
@@ -2027,10 +1725,7 @@ void *WrappedGLES::glMapBufferOES(GLenum target, GLenum access)
         accessBits = eGL_MAP_WRITE_BIT;
       else if(access == eGL_READ_WRITE)
         accessBits = eGL_MAP_READ_BIT | eGL_MAP_WRITE_BIT;
-      // TODO PEPE
-      //return glMapNamedBufferRangeEXT(record->Resource.name, 0, (GLsizeiptr)record->Length,
-      //                                accessBits);
-      return NULL;
+      return glMapBufferRange(target, 0, (GLsizeiptr)record->Length, accessBits);
     }
 
     RDCERR("glMapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
@@ -2038,215 +1733,97 @@ void *WrappedGLES::glMapBufferOES(GLenum target, GLenum access)
 
   return m_Real.glMapBufferOES(target, access);
 }
-//
-//bool WrappedGLES::Serialise_glUnmapNamedBufferEXT(GLuint buffer)
-//{
-//  // see above glMapNamedBufferRangeEXT for high-level explanation of how mapping is handled
-//
-//  GLResourceRecord *record = NULL;
-//
-//  if(m_State >= WRITING)
-//    record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-//
-//  SERIALISE_ELEMENT(ResourceId, bufID, record->GetResourceID());
-//  SERIALISE_ELEMENT(uint64_t, offs, record->Map.offset);
-//  SERIALISE_ELEMENT(uint64_t, len, record->Map.length);
-//
-//  size_t diffStart = 0;
-//  size_t diffEnd = (size_t)len;
-//
-//  if(m_State == WRITING_CAPFRAME &&
-//     // don't bother checking diff range for tiny buffers
-//     len > 512 &&
-//     // if the map has a sub-range specified, trust the user to have specified
-//     // a minimal range, similar to glFlushMappedBufferRange, so don't find diff
-//     // range.
-//     record->Map.offset == 0 && record->Map.length == (GLsizeiptr)record->Length &&
-//     // similarly for invalidate maps, we want to update the whole buffer
-//     !record->Map.invalidate)
-//  {
-//    bool found = FindDiffRange(record->Map.ptr, record->GetShadowPtr(1) + offs, (size_t)len,
-//                               diffStart, diffEnd);
-//    if(found)
-//    {
-//      static size_t saved = 0;
-//
-//      saved += (size_t)len - (diffEnd - diffStart);
-//
-//      RDCDEBUG("Mapped resource size %u, difference: %u -> %u. Total bytes saved so far: %u",
-//               (uint32_t)len, (uint32_t)diffStart, (uint32_t)diffEnd, (uint32_t)saved);
-//
-//      len = diffEnd - diffStart;
-//    }
-//    else
-//    {
-//      diffStart = 0;
-//      diffEnd = 0;
-//
-//      len = 1;
-//    }
-//  }
-//
-//  if(m_State == WRITING_CAPFRAME && record->GetShadowPtr(1))
-//  {
-//    memcpy(record->GetShadowPtr(1) + diffStart, record->Map.ptr + diffStart, diffEnd - diffStart);
-//  }
-//
-//  if(m_State == WRITING_IDLE)
-//  {
-//    diffStart = 0;
-//    diffEnd = (size_t)len;
-//  }
-//
-//  SERIALISE_ELEMENT(uint32_t, DiffStart, (uint32_t)diffStart);
-//  SERIALISE_ELEMENT(uint32_t, DiffEnd, (uint32_t)diffEnd);
-//
-//  SERIALISE_ELEMENT_BUF(byte *, data, record->Map.ptr + diffStart, (size_t)len);
-//
-//  if(m_State < WRITING)
-//  {
-//    GLResource res = GetResourceManager()->GetLiveResource(bufID);
-//    buffer = res.name;
-//  }
-//
-//  if(DiffEnd > DiffStart)
-//  {
-//    if(record && record->Map.persistentPtr)
-//    {
-//      // if we have a persistent mapped pointer, copy the range into the 'real' memory and
-//      // do a flush. Note the persistent pointer is always to the base of the buffer so we
-//      // need to account for the offset
-//
-//      memcpy(record->Map.persistentPtr + offs + DiffStart, record->Map.ptr + DiffStart,
-//             DiffEnd - DiffStart);
-//      m_Real.glFlushMappedNamedBufferRangeEXT(buffer, GLintptr(offs + DiffStart),
-//                                              DiffEnd - DiffStart);
-//    }
-//    else
-//    {
-//      void *ptr = m_Real.glMapNamedBufferRangeEXT(
-//          buffer, (GLintptr)(offs + DiffStart), GLsizeiptr(DiffEnd - DiffStart), GL_MAP_WRITE_BIT);
-//      memcpy(ptr, data, size_t(DiffEnd - DiffStart));
-//      m_Real.glUnmapNamedBufferEXT(buffer);
-//    }
-//  }
-//
-//  if(m_State < WRITING)
-//    delete[] data;
-//
-//  return true;
-//}
-//
-//GLboolean WrappedGLES::glUnmapNamedBufferEXT(GLuint buffer)
-//{
-//  // see above glMapNamedBufferRangeEXT for high-level explanation of how mapping is handled
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
-//    auto status = record->Map.status;
-//
-//    if(m_State == WRITING_CAPFRAME)
-//    {
-//      m_MissingTracks.insert(record->GetResourceID());
-//      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
-//                                                        eFrameRef_ReadBeforeWrite);
-//    }
-//
-//    GLboolean ret = GL_TRUE;
-//
-//    switch(status)
-//    {
-//      case GLResourceRecord::Unmapped:
-//        RDCERR("Unmapped buffer being passed to glUnmapBuffer");
-//        break;
-//      case GLResourceRecord::Mapped_Read:
-//        // can ignore
-//        break;
-//      case GLResourceRecord::Mapped_Ignore_Real:
-//        if(m_State == WRITING_CAPFRAME)
-//        {
-//          RDCERR(
-//              "Failed to cap frame - we saw an Unmap() that we didn't capture the corresponding "
-//              "Map() for");
-//          m_SuccessfulCapture = false;
-//          m_FailureReason = CaptureFailed_UncappedUnmap;
-//        }
-//        // need to do the real unmap
-//        ret = m_Real.glUnmapNamedBufferEXT(buffer);
-//        break;
-//      case GLResourceRecord::Mapped_Write:
-//      {
-//        if(record->Map.access & GL_MAP_FLUSH_EXPLICIT_BIT)
-//        {
-//          // do nothing, any flushes that happened were handled,
-//          // and we won't do any other updates here or make a chunk.
-//        }
-//        else if(m_State == WRITING_CAPFRAME)
-//        {
-//          SCOPED_SERIALISE_CONTEXT(UNMAP);
-//          Serialise_glUnmapNamedBufferEXT(buffer);
-//          m_ContextRecord->AddChunk(scope.Get());
-//        }
-//        else if(m_State == WRITING_IDLE)
-//        {
-//          if(record->Map.persistentPtr)
-//          {
-//            // if we have a persistent mapped pointer, copy the range into the 'real' memory and
-//            // do a flush. Note the persistent pointer is always to the base of the buffer so we
-//            // need to account for the offset
-//
-//            memcpy(record->Map.persistentPtr + record->Map.offset, record->Map.ptr,
-//                   record->Map.length);
-//            m_Real.glFlushMappedNamedBufferRangeEXT(buffer, record->Map.offset, record->Map.length);
-//
-//            // update shadow storage
-//            memcpy(record->GetShadowPtr(1) + record->Map.offset, record->Map.ptr, record->Map.length);
-//
-//            GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//          }
-//          else
-//          {
-//            // if we are here for WRITING_IDLE, the app wrote directly into our backing
-//            // store memory. Just need to copy the data across to GL, no other work needed
-//            void *ptr =
-//                m_Real.glMapNamedBufferRangeEXT(buffer, (GLintptr)record->Map.offset,
-//                                                GLsizeiptr(record->Map.length), GL_MAP_WRITE_BIT);
-//            memcpy(ptr, record->Map.ptr, record->Map.length);
-//            m_Real.glUnmapNamedBufferEXT(buffer);
-//          }
-//        }
-//
-//        break;
-//      }
-//    }
-//
-//    // keep list of persistent & coherent maps up to date if we've
-//    // made the last unmap to a buffer
-//    if(record->Map.access & GL_MAP_PERSISTENT_BIT)
-//    {
-//      int64_t ref = Atomic::Dec64(&record->Map.persistentMaps);
-//      if(ref == 0)
-//      {
-//        m_PersistentMaps.erase(record);
-//        if(record->Map.access & GL_MAP_COHERENT_BIT)
-//          m_CoherentMaps.erase(record);
-//      }
-//    }
-//
-//    record->Map.status = GLResourceRecord::Unmapped;
-//
-//    return ret;
-//  }
-//
-//  return m_Real.glUnmapNamedBufferEXT(buffer);
-//}
-//
 
 bool WrappedGLES::Serialise_glUnmapBuffer(GLenum target)
 {
-    // TODO PEPE
-    return true;
+  // see above glMapNamedBufferRangeEXT for high-level explanation of how mapping is handled
+
+  GLResourceRecord *record = NULL;
+
+  if(m_State >= WRITING)
+    record = GetCtxData().GetActiveBufferRecord(target);
+
+  SERIALISE_ELEMENT(ResourceId, bufID, record->GetResourceID());
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(uint64_t, offs, record->Map.offset);
+  SERIALISE_ELEMENT(uint64_t, len, record->Map.length);
+
+  size_t diffStart = 0;
+  size_t diffEnd = (size_t)len;
+
+  if(m_State == WRITING_CAPFRAME &&
+     // don't bother checking diff range for tiny buffers
+     len > 512 &&
+     // if the map has a sub-range specified, trust the user to have specified
+     // a minimal range, similar to glFlushMappedBufferRange, so don't find diff
+     // range.
+     record->Map.offset == 0 && record->Map.length == (GLsizeiptr)record->Length &&
+     // similarly for invalidate maps, we want to update the whole buffer
+     !record->Map.invalidate)
+  {
+    bool found = FindDiffRange(record->Map.ptr, record->GetShadowPtr(1) + offs, (size_t)len,
+                               diffStart, diffEnd);
+    if(found)
+    {
+      static size_t saved = 0;
+
+      saved += (size_t)len - (diffEnd - diffStart);
+
+      RDCDEBUG("Mapped resource size %u, difference: %u -> %u. Total bytes saved so far: %u",
+               (uint32_t)len, (uint32_t)diffStart, (uint32_t)diffEnd, (uint32_t)saved);
+
+      len = diffEnd - diffStart;
+    }
+    else
+    {
+      diffStart = 0;
+      diffEnd = 0;
+
+      len = 1;
+    }
+  }
+
+  if(m_State == WRITING_CAPFRAME && record->GetShadowPtr(1))
+  {
+    memcpy(record->GetShadowPtr(1) + diffStart, record->Map.ptr + diffStart, diffEnd - diffStart);
+  }
+
+  if(m_State == WRITING_IDLE)
+  {
+    diffStart = 0;
+    diffEnd = (size_t)len;
+  }
+
+  SERIALISE_ELEMENT(uint32_t, DiffStart, (uint32_t)diffStart);
+  SERIALISE_ELEMENT(uint32_t, DiffEnd, (uint32_t)diffEnd);
+
+  SERIALISE_ELEMENT_BUF(byte *, data, record->Map.ptr + diffStart, (size_t)len);
+
+  if(DiffEnd > DiffStart)
+  {
+    if(record && record->Map.persistentPtr)
+    {
+      // if we have a persistent mapped pointer, copy the range into the 'real' memory and
+      // do a flush. Note the persistent pointer is always to the base of the buffer so we
+      // need to account for the offset
+
+      memcpy(record->Map.persistentPtr + offs + DiffStart, record->Map.ptr + DiffStart,
+             DiffEnd - DiffStart);
+      m_Real.glFlushMappedBufferRangeEXT(Target, GLintptr(offs + DiffStart),
+                                              DiffEnd - DiffStart);
+    }
+    else
+    {
+      void *ptr = m_Real.glMapBufferRangeEXT(Target, (GLintptr)(offs + DiffStart), GLsizeiptr(DiffEnd - DiffStart), GL_MAP_WRITE_BIT);
+      memcpy(ptr, data, size_t(DiffEnd - DiffStart));
+      m_Real.glUnmapBuffer(Target);
+    }
+  }
+
+  if(m_State < WRITING)
+    delete[] data;
+
+  return true;
 }
 
 GLboolean WrappedGLES::glUnmapBuffer(GLenum target)
@@ -2255,12 +1832,104 @@ GLboolean WrappedGLES::glUnmapBuffer(GLenum target)
 
   if(m_State >= WRITING)
   {
-    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
+    GLResourceRecord *record = GetCtxData().GetActiveBufferRecord(target);
     RDCASSERT(record);
 
     if(record) {
-        // TODO PEPE
-        return true;
+
+      auto status = record->Map.status;
+
+      if(m_State == WRITING_CAPFRAME)
+      {
+        m_MissingTracks.insert(record->GetResourceID());
+        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(),
+                                                          eFrameRef_ReadBeforeWrite);
+      }
+
+      GLboolean ret = GL_TRUE;
+
+      switch(status)
+      {
+        case GLResourceRecord::Unmapped:
+          RDCERR("Unmapped buffer being passed to glUnmapBuffer");
+          break;
+        case GLResourceRecord::Mapped_Read:
+          // can ignore
+          break;
+        case GLResourceRecord::Mapped_Ignore_Real:
+          if(m_State == WRITING_CAPFRAME)
+          {
+            RDCERR(
+                "Failed to cap frame - we saw an Unmap() that we didn't capture the corresponding "
+                "Map() for");
+            m_SuccessfulCapture = false;
+            m_FailureReason = CaptureFailed_UncappedUnmap;
+          }
+          // need to do the real unmap
+          ret = m_Real.glUnmapBuffer(target);
+          break;
+        case GLResourceRecord::Mapped_Write:
+        {
+          if(record->Map.access & GL_MAP_FLUSH_EXPLICIT_BIT)
+          {
+            // do nothing, any flushes that happened were handled,
+            // and we won't do any other updates here or make a chunk.
+          }
+          else if(m_State == WRITING_CAPFRAME)
+          {
+            SCOPED_SERIALISE_CONTEXT(UNMAP);
+            Serialise_glUnmapBuffer(target);
+            m_ContextRecord->AddChunk(scope.Get());
+          }
+          else if(m_State == WRITING_IDLE)
+          {
+            if(record->Map.persistentPtr)
+            {
+              // if we have a persistent mapped pointer, copy the range into the 'real' memory and
+              // do a flush. Note the persistent pointer is always to the base of the buffer so we
+              // need to account for the offset
+
+              memcpy(record->Map.persistentPtr + record->Map.offset, record->Map.ptr,
+                     record->Map.length);
+              m_Real.glFlushMappedBufferRangeEXT(target, record->Map.offset, record->Map.length);
+
+              // update shadow storage
+              memcpy(record->GetShadowPtr(1) + record->Map.offset, record->Map.ptr, record->Map.length);
+
+              GetResourceManager()->MarkDirtyResource(record->GetResourceID());
+            }
+            else
+            {
+              // if we are here for WRITING_IDLE, the app wrote directly into our backing
+              // store memory. Just need to copy the data across to GL, no other work needed
+              void *ptr =
+                  m_Real.glMapBufferRangeEXT(target, (GLintptr)record->Map.offset,
+                                                  GLsizeiptr(record->Map.length), GL_MAP_WRITE_BIT);
+              memcpy(ptr, record->Map.ptr, record->Map.length);
+              m_Real.glUnmapBuffer(target);
+            }
+          }
+
+          break;
+        }
+      }
+
+      // keep list of persistent & coherent maps up to date if we've
+      // made the last unmap to a buffer
+      if(record->Map.access & eGL_MAP_PERSISTENT_BIT_EXT)
+      {
+        int64_t ref = Atomic::Dec64(&record->Map.persistentMaps);
+        if(ref == 0)
+        {
+          m_PersistentMaps.erase(record);
+          if(record->Map.access & eGL_MAP_COHERENT_BIT_EXT)
+            m_CoherentMaps.erase(record);
+        }
+      }
+
+      record->Map.status = GLResourceRecord::Unmapped;
+
+      return ret;
     }
 
     RDCERR("glUnmapBuffer: Couldn't get resource record for target %x - no buffer bound?", target);
@@ -2971,6 +2640,7 @@ bool WrappedGLES::Serialise_glVertexAttribPointer(GLuint index, GLint size, GLen
   
   // TODO PEPE record the address of the allocated byte array to be able to relase it
   // SAFE_DELTE_ARRAY(bytes);
+  RDCWARN("TODO PEPE %s:%d", __FILE__ ,__LINE__);
 
   return true;
 }
@@ -2984,7 +2654,7 @@ void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
   {
     
     ContextData &cd = GetCtxData();
-    GLResourceRecord *bufrecord = cd.m_BufferRecord[BufferIdx(eGL_ARRAY_BUFFER)];
+    GLResourceRecord *bufrecord = cd.GetActiveBufferRecord(eGL_ARRAY_BUFFER);
     GLResourceRecord *varecord = cd.m_VertexArrayRecord;
     GLResourceRecord *r = m_State == WRITING_CAPFRAME ? m_ContextRecord : varecord;
           
@@ -3359,8 +3029,19 @@ void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 bool WrappedGLES::Serialise_glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type,
                                          GLboolean normalized, GLuint relativeoffset)
 {
-    // TODO PEPE
-    return true;
+  SERIALISE_ELEMENT(uint32_t, Index, attribindex);
+  SERIALISE_ELEMENT(int32_t, Size, size);
+  SERIALISE_ELEMENT(bool, Norm, normalized ? true : false);
+  SERIALISE_ELEMENT(GLenum, Type, type);
+  SERIALISE_ELEMENT(uint32_t, Offset, relativeoffset);
+
+  if(m_State < WRITING)
+  {
+
+    m_Real.glVertexAttribFormat(Index, Size, Type, Norm, Offset);
+  }
+
+  return true;
 }
 
 void WrappedGLES::glVertexAttribFormat(GLuint attribindex, GLint size, GLenum type,
@@ -3836,8 +3517,6 @@ bool WrappedGLES::Serialise_glGenVertexArrays(GLsizei n, GLuint *arrays)
   {
     GLuint real = 0;
     m_Real.glGenVertexArrays(1, &real);
-    m_Real.glBindVertexArray(real);
-    m_Real.glBindVertexArray(0);
 
     GLResource res = VertexArrayRes(GetCtx(), real);
 
@@ -4120,8 +3799,25 @@ void WrappedGLES::glBindVertexArray(GLuint array)
 bool WrappedGLES::Serialise_glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset,
                                        GLsizei stride)
 {
-    // TODO PEPE
-    return true;
+  SERIALISE_ELEMENT(uint32_t, idx, bindingindex);
+  SERIALISE_ELEMENT(ResourceId, id, (buffer ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffer))
+                                            : ResourceId()));
+  SERIALISE_ELEMENT(uint64_t, offs, offset);
+  SERIALISE_ELEMENT(uint64_t, str, stride);
+
+  if(m_State <= EXECUTING)
+  {
+    GLuint live = 0;
+    if(id != ResourceId() && GetResourceManager()->HasLiveResource(id))
+    {
+      live = GetResourceManager()->GetLiveResource(id).name;
+      m_Buffers[GetResourceManager()->GetLiveID(id)].curType = eGL_ARRAY_BUFFER;
+    }
+
+    m_Real.glBindVertexBuffer(idx, live, (GLintptr)offs, (GLsizei)str);
+  }
+
+  return true;
 }
 
 void WrappedGLES::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset,
@@ -4405,11 +4101,14 @@ void WrappedGLES::glDeleteBuffers(GLsizei n, const GLuint *buffers)
         if(record->Map.persistentPtr)
         {
           m_PersistentMaps.erase(record);
-          if(record->Map.access & GL_MAP_COHERENT_BIT_EXT)
+          if(record->Map.access & eGL_MAP_COHERENT_BIT_EXT)
             m_CoherentMaps.erase(record);
 
-          // TODO PEPE
-          // m_Real.glUnmapNamedBufferEXT(res.name);
+          GLint prevBinding;
+          m_Real.glGetIntegerv(BufferBinding(record->datatype), &prevBinding);
+          m_Real.glBindBuffer(record->datatype, res.name);
+          m_Real.glUnmapBuffer(record->datatype);
+          m_Real.glBindBuffer(record->datatype, prevBinding);
         }
 
         // free any shadow storage
