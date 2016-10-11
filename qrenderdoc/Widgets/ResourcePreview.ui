@@ -145,7 +145,7 @@
   <customwidget>
    <class>RDLabel</class>
    <extends>QLabel</extends>
-   <header>Widgets/RDLabel.h</header>
+   <header>Widgets/Extended/RDLabel.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

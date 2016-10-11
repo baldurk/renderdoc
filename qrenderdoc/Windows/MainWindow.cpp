@@ -27,7 +27,7 @@
 #include <QFileInfo>
 #include <QJsonDocument>
 #include "Code/CaptureContext.h"
-#include "Windows/AboutDialog.h"
+#include "Windows/Dialogs/AboutDialog.h"
 #include "EventBrowser.h"
 #include "TextureViewer.h"
 #include "ui_MainWindow.h"

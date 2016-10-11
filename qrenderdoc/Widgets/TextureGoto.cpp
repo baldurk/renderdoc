@@ -28,7 +28,7 @@
 #include <QFocusEvent>
 #include <QGridLayout>
 #include <QLabel>
-#include "Widgets/RDDoubleSpinBox.h"
+#include "Widgets/Extended/RDDoubleSpinBox.h"
 
 TextureGoto::TextureGoto(QWidget *parent, std::function<void(QPoint)> callback) : QDialog(parent)
 {

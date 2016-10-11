@@ -79,55 +79,55 @@ win32 {
 	DEFINES += RENDERDOC_PLATFORM_POSIX RENDERDOC_PLATFORM_LINUX RENDERDOC_WINDOWING_XLIB RENDERDOC_WINDOWING_XCB
 }
 
-SOURCES += Code/qrenderdoc.cpp \
+SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
+    3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
+    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
+    3rdparty/flowlayout/FlowLayout.cpp \
+    Code/qrenderdoc.cpp \
+    Code/RenderManager.cpp \
+    Code/CommonPipelineState.cpp \
+    Code/PersistantConfig.cpp \
+    Code/CaptureContext.cpp \
+    Windows/Dialogs/AboutDialog.cpp \
     Windows/MainWindow.cpp \
     Windows/EventBrowser.cpp \
     Windows/TextureViewer.cpp \
-    Windows/AboutDialog.cpp \
+    Widgets/Extended/RDLineEdit.cpp \
+    Widgets/Extended/RDLabel.cpp \
+    Widgets/Extended/RDDoubleSpinBox.cpp \
+    Widgets/Extended/RDListView.cpp \
     Widgets/CustomPaintWidget.cpp \
-    3rdparty/toolwindowmanager/ToolWindowManager.cpp \
-    3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
-    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
-    Code/RenderManager.cpp \
-    Code/PersistantConfig.cpp \
-    Code/CaptureContext.cpp \
-    Widgets/RDLineEdit.cpp \
-    3rdparty/flowlayout/FlowLayout.cpp \
     Widgets/ResourcePreview.cpp \
-    Widgets/RDLabel.cpp \
     Widgets/ThumbnailStrip.cpp \
-    Code/CommonPipelineState.cpp \
     Widgets/TextureGoto.cpp \
-    Widgets/RDDoubleSpinBox.cpp \
-    Widgets/RDListView.cpp \
     Widgets/RangeHistogram.cpp
 
-HEADERS  += Windows/MainWindow.h \
-    Windows/EventBrowser.h \
-    Windows/TextureViewer.h \
-    Windows/AboutDialog.h \
-    Widgets/CustomPaintWidget.h \
-    3rdparty/toolwindowmanager/ToolWindowManager.h \
+HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h \
+    3rdparty/flowlayout/FlowLayout.h \
     Code/CaptureContext.h \
     Code/RenderManager.h \
     Code/PersistantConfig.h \
-    Widgets/RDLineEdit.h \
-    3rdparty/flowlayout/FlowLayout.h \
-    Widgets/ResourcePreview.h \
-    Widgets/RDLabel.h \
-    Widgets/ThumbnailStrip.h \
     Code/CommonPipelineState.h \
+    Windows/Dialogs/AboutDialog.h \
+    Windows/MainWindow.h \
+    Windows/EventBrowser.h \
+    Windows/TextureViewer.h \
+    Widgets/Extended/RDLineEdit.h \
+    Widgets/Extended/RDLabel.h \
+    Widgets/Extended/RDDoubleSpinBox.h \
+    Widgets/Extended/RDListView.h \
+    Widgets/CustomPaintWidget.h \
+    Widgets/ResourcePreview.h \
+    Widgets/ThumbnailStrip.h \
     Widgets/TextureGoto.h \
-    Widgets/RDDoubleSpinBox.h \
-    Widgets/RDListView.h \
     Widgets/RangeHistogram.h
 
-FORMS    += Windows/MainWindow.ui \
+FORMS    += Windows/Dialogs/AboutDialog.ui \
+    Windows/MainWindow.ui \
     Windows/EventBrowser.ui \
     Windows/TextureViewer.ui \
-    Windows/AboutDialog.ui \
     Widgets/ResourcePreview.ui \
     Widgets/ThumbnailStrip.ui
 

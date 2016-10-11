@@ -549,7 +549,7 @@
   <customwidget>
    <class>RDLineEdit</class>
    <extends>QLineEdit</extends>
-   <header>Widgets/RDLineEdit.h</header>
+   <header>Widgets/Extended/RDLineEdit.h</header>
   </customwidget>
  </customwidgets>
  <resources>

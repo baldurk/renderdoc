@@ -1245,12 +1245,12 @@
   <customwidget>
    <class>RDLineEdit</class>
    <extends>QLineEdit</extends>
-   <header>Widgets/RDLineEdit.h</header>
+   <header>Widgets/Extended/RDLineEdit.h</header>
   </customwidget>
   <customwidget>
    <class>RDListView</class>
    <extends>QListView</extends>
-   <header>Widgets/RDListView.h</header>
+   <header>Widgets/Extended/RDListView.h</header>
   </customwidget>
   <customwidget>
    <class>RangeHistogram</class>

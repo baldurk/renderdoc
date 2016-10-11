@@ -297,20 +297,20 @@
     <ClCompile Include="generated\moc_ToolWindowManagerWrapper.cpp" />
     <ClCompile Include="generated\qrc_resources.cpp" />
     <ClCompile Include="Widgets\RangeHistogram.cpp" />
-    <ClCompile Include="Widgets\RDDoubleSpinBox.cpp" />
-    <ClCompile Include="Widgets\RDLabel.cpp" />
-    <ClCompile Include="Widgets\RDListView.cpp" />
+    <ClCompile Include="Widgets\Extended\RDDoubleSpinBox.cpp" />
+    <ClCompile Include="Widgets\Extended\RDLabel.cpp" />
+    <ClCompile Include="Widgets\Extended\RDListView.cpp" />
     <ClCompile Include="Widgets\ResourcePreview.cpp" />
     <ClCompile Include="Widgets\TextureGoto.cpp" />
     <ClCompile Include="Widgets\ThumbnailStrip.cpp" />
-    <ClCompile Include="Windows\AboutDialog.cpp" />
     <ClCompile Include="Code\CaptureContext.cpp" />
     <ClCompile Include="Widgets\CustomPaintWidget.cpp" />
+    <ClCompile Include="Windows\Dialogs\AboutDialog.cpp" />
     <ClCompile Include="Windows\EventBrowser.cpp" />
     <ClCompile Include="3rdparty\flowlayout\FlowLayout.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
-    <ClCompile Include="Widgets\RDLineEdit.cpp" />
+    <ClCompile Include="Widgets\Extended\RDLineEdit.cpp" />
     <ClCompile Include="Windows\MainWindow.cpp" />
     <ClCompile Include="Code\RenderManager.cpp" />
     <ClCompile Include="Windows\TextureViewer.cpp" />
@@ -335,18 +335,18 @@
     <ClInclude Include="generated\ui_TextureViewer.h" />
     <ClInclude Include="generated\ui_ThumbnailStrip.h" />
     <ClInclude Include="Widgets\RangeHistogram.h" />
-    <ClInclude Include="Widgets\RDDoubleSpinBox.h" />
-    <ClInclude Include="Widgets\RDLabel.h" />
-    <ClInclude Include="Widgets\RDListView.h" />
+    <ClInclude Include="Widgets\Extended\RDDoubleSpinBox.h" />
+    <ClInclude Include="Widgets\Extended\RDLabel.h" />
+    <ClInclude Include="Widgets\Extended\RDListView.h" />
     <ClInclude Include="Widgets\ResourcePreview.h" />
     <ClInclude Include="Widgets\TextureGoto.h" />
     <ClInclude Include="Widgets\ThumbnailStrip.h" />
-    <ClInclude Include="Windows\AboutDialog.h" />
     <ClInclude Include="Code\CaptureContext.h" />
     <ClInclude Include="Widgets\CustomPaintWidget.h" />
+    <ClInclude Include="Windows\Dialogs\AboutDialog.h" />
     <ClInclude Include="Windows\EventBrowser.h" />
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h" />
-    <ClInclude Include="Widgets\RDLineEdit.h" />
+    <ClInclude Include="Widgets\Extended\RDLineEdit.h" />
     <ClInclude Include="Windows\MainWindow.h" />
     <ClInclude Include="Code\RenderManager.h" />
     <ClInclude Include="Windows\TextureViewer.h" />
@@ -357,7 +357,7 @@
   <ItemGroup>
     <None Include="Widgets\ResourcePreview.ui" />
     <None Include="Widgets\ThumbnailStrip.ui" />
-    <None Include="Windows\AboutDialog.ui" />
+    <None Include="Windows\Dialogs\AboutDialog.ui" />
     <None Include="Windows\EventBrowser.ui" />
     <None Include="Windows\MainWindow.ui" />
     <None Include="Windows\TextureViewer.ui" />

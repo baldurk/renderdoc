@@ -88,9 +88,6 @@
     <ClCompile Include="Code\qrenderdoc.cpp">
       <Filter>Code</Filter>
     </ClCompile>
-    <ClCompile Include="Windows\AboutDialog.cpp">
-      <Filter>Windows\Dialogs</Filter>
-    </ClCompile>
     <ClCompile Include="Widgets\CustomPaintWidget.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
@@ -151,17 +148,20 @@
     <ClCompile Include="generated\moc_RangeHistogram.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
-    <ClCompile Include="Widgets\RDDoubleSpinBox.cpp">
+    <ClCompile Include="Widgets\Extended\RDDoubleSpinBox.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
-    <ClCompile Include="Widgets\RDLabel.cpp">
+    <ClCompile Include="Widgets\Extended\RDLabel.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
-    <ClCompile Include="Widgets\RDLineEdit.cpp">
+    <ClCompile Include="Widgets\Extended\RDLineEdit.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
-    <ClCompile Include="Widgets\RDListView.cpp">
+    <ClCompile Include="Widgets\Extended\RDListView.cpp">
       <Filter>Widgets\Extended</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\Dialogs\AboutDialog.cpp">
+      <Filter>Windows\Dialogs</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -170,9 +170,6 @@
     </ClInclude>
     <ClInclude Include="Code\RenderManager.h">
       <Filter>Code</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\AboutDialog.h">
-      <Filter>Windows\Dialogs</Filter>
     </ClInclude>
     <ClInclude Include="Widgets\CustomPaintWidget.h">
       <Filter>Widgets</Filter>
@@ -222,17 +219,20 @@
     <ClInclude Include="Widgets\RangeHistogram.h">
       <Filter>Widgets</Filter>
     </ClInclude>
-    <ClInclude Include="Widgets\RDDoubleSpinBox.h">
+    <ClInclude Include="Widgets\Extended\RDDoubleSpinBox.h">
       <Filter>Widgets\Extended</Filter>
     </ClInclude>
-    <ClInclude Include="Widgets\RDLabel.h">
+    <ClInclude Include="Widgets\Extended\RDLabel.h">
       <Filter>Widgets\Extended</Filter>
     </ClInclude>
-    <ClInclude Include="Widgets\RDLineEdit.h">
+    <ClInclude Include="Widgets\Extended\RDLineEdit.h">
       <Filter>Widgets\Extended</Filter>
     </ClInclude>
-    <ClInclude Include="Widgets\RDListView.h">
+    <ClInclude Include="Widgets\Extended\RDListView.h">
       <Filter>Widgets\Extended</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\Dialogs\AboutDialog.h">
+      <Filter>Windows\Dialogs</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -412,9 +412,6 @@
     </None>
     <None Include="Resources\zoom.png">
       <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Windows\AboutDialog.ui">
-      <Filter>Windows\Dialogs</Filter>
     </None>
     <None Include="Windows\EventBrowser.ui">
       <Filter>Windows</Filter>
