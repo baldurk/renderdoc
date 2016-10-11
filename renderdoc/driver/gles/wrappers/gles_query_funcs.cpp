@@ -27,132 +27,132 @@
 #include "common/common.h"
 #include "serialise/string_utils.h"
 
-//bool WrappedGLES::Serialise_glFenceSync(GLsync real, GLenum condition, GLbitfield flags)
-//{
-//  SERIALISE_ELEMENT(GLenum, Condition, condition);
-//  SERIALISE_ELEMENT(uint32_t, Flags, flags);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetSyncID(real));
-//
-//  if(m_State < WRITING)
-//  {
-//    real = m_Real.glFenceSync(Condition, Flags);
-//
-//    GLuint name = 0;
-//    ResourceId liveid = ResourceId();
-//    GetResourceManager()->RegisterSync(GetCtx(), real, name, liveid);
-//
-//    GLResource res = SyncRes(GetCtx(), name);
-//
-//    ResourceId live = m_ResourceManager->RegisterResource(res);
-//    GetResourceManager()->AddLiveResource(id, res);
-//  }
-//
-//  return true;
-//}
-//
-//GLsync WrappedGLES::glFenceSync(GLenum condition, GLbitfield flags)
-//{
-//  GLsync sync = m_Real.glFenceSync(condition, flags);
-//
-//  GLuint name = 0;
-//  ResourceId id = ResourceId();
-//  GetResourceManager()->RegisterSync(GetCtx(), sync, name, id);
-//  GLResource res = SyncRes(GetCtx(), name);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    Chunk *chunk = NULL;
-//
-//    {
-//      SCOPED_SERIALISE_CONTEXT(FENCE_SYNC);
-//      Serialise_glFenceSync(sync, condition, flags);
-//
-//      chunk = scope.Get();
-//    }
-//
-//    m_ContextRecord->AddChunk(chunk);
-//  }
-//  else
-//  {
-//    GetResourceManager()->AddLiveResource(id, res);
-//  }
-//
-//  return sync;
-//}
-//
-//bool WrappedGLES::Serialise_glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
-//{
-//  SERIALISE_ELEMENT(uint32_t, Flags, flags);
-//  SERIALISE_ELEMENT(uint64_t, Timeout, timeout);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetSyncID(sync));
-//
-//  if(m_State < WRITING)
-//  {
-//    if(GetResourceManager()->HasLiveResource(id))
-//    {
-//      GLResource res = GetResourceManager()->GetLiveResource(id);
-//      m_Real.glClientWaitSync(GetResourceManager()->GetSync(res.name), Flags, Timeout);
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//GLenum WrappedGLES::glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
-//{
-//  GLenum ret = m_Real.glClientWaitSync(sync, flags, timeout);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(CLIENTWAIT_SYNC);
-//    Serialise_glClientWaitSync(sync, flags, timeout);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//
-//  return ret;
-//}
-//
-//bool WrappedGLES::Serialise_glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
-//{
-//  SERIALISE_ELEMENT(uint32_t, Flags, flags);
-//  SERIALISE_ELEMENT(uint64_t, Timeout, timeout);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetSyncID(sync));
-//
-//  if(m_State < WRITING)
-//  {
-//    if(GetResourceManager()->HasLiveResource(id))
-//    {
-//      GLResource res = GetResourceManager()->GetLiveResource(id);
-//      m_Real.glWaitSync(GetResourceManager()->GetSync(res.name), Flags, Timeout);
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
-//{
-//  m_Real.glWaitSync(sync, flags, timeout);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(WAIT_SYNC);
-//    Serialise_glWaitSync(sync, flags, timeout);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//void WrappedGLES::glDeleteSync(GLsync sync)
-//{
-//  m_Real.glDeleteSync(sync);
-//
-//  ResourceId id = GetResourceManager()->GetSyncID(sync);
-//
-//  if(GetResourceManager()->HasCurrentResource(id))
-//    GetResourceManager()->UnregisterResource(GetResourceManager()->GetCurrentResource(id));
-//}
+bool WrappedGLES::Serialise_glFenceSync(GLsync real, GLenum condition, GLbitfield flags)
+{
+  SERIALISE_ELEMENT(GLenum, Condition, condition);
+  SERIALISE_ELEMENT(uint32_t, Flags, flags);
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetSyncID(real));
+
+  if(m_State < WRITING)
+  {
+    real = m_Real.glFenceSync(Condition, Flags);
+
+    GLuint name = 0;
+    ResourceId liveid = ResourceId();
+    GetResourceManager()->RegisterSync(GetCtx(), real, name, liveid);
+
+    GLResource res = SyncRes(GetCtx(), name);
+
+    ResourceId live = m_ResourceManager->RegisterResource(res);
+    GetResourceManager()->AddLiveResource(id, res);
+  }
+
+  return true;
+}
+
+GLsync WrappedGLES::glFenceSync(GLenum condition, GLbitfield flags)
+{
+  GLsync sync = m_Real.glFenceSync(condition, flags);
+
+  GLuint name = 0;
+  ResourceId id = ResourceId();
+  GetResourceManager()->RegisterSync(GetCtx(), sync, name, id);
+  GLResource res = SyncRes(GetCtx(), name);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    Chunk *chunk = NULL;
+
+    {
+      SCOPED_SERIALISE_CONTEXT(FENCE_SYNC);
+      Serialise_glFenceSync(sync, condition, flags);
+
+      chunk = scope.Get();
+    }
+
+    m_ContextRecord->AddChunk(chunk);
+  }
+  else
+  {
+    GetResourceManager()->AddLiveResource(id, res);
+  }
+
+  return sync;
+}
+
+bool WrappedGLES::Serialise_glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
+{
+  SERIALISE_ELEMENT(uint32_t, Flags, flags);
+  SERIALISE_ELEMENT(uint64_t, Timeout, timeout);
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetSyncID(sync));
+
+  if(m_State < WRITING)
+  {
+    if(GetResourceManager()->HasLiveResource(id))
+    {
+      GLResource res = GetResourceManager()->GetLiveResource(id);
+      m_Real.glClientWaitSync(GetResourceManager()->GetSync(res.name), Flags, Timeout);
+    }
+  }
+
+  return true;
+}
+
+GLenum WrappedGLES::glClientWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
+{
+  GLenum ret = m_Real.glClientWaitSync(sync, flags, timeout);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(CLIENTWAIT_SYNC);
+    Serialise_glClientWaitSync(sync, flags, timeout);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+
+  return ret;
+}
+
+bool WrappedGLES::Serialise_glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
+{
+  SERIALISE_ELEMENT(uint32_t, Flags, flags);
+  SERIALISE_ELEMENT(uint64_t, Timeout, timeout);
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetSyncID(sync));
+
+  if(m_State < WRITING)
+  {
+    if(GetResourceManager()->HasLiveResource(id))
+    {
+      GLResource res = GetResourceManager()->GetLiveResource(id);
+      m_Real.glWaitSync(GetResourceManager()->GetSync(res.name), Flags, Timeout);
+    }
+  }
+
+  return true;
+}
+
+void WrappedGLES::glWaitSync(GLsync sync, GLbitfield flags, GLuint64 timeout)
+{
+  m_Real.glWaitSync(sync, flags, timeout);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(WAIT_SYNC);
+    Serialise_glWaitSync(sync, flags, timeout);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+void WrappedGLES::glDeleteSync(GLsync sync)
+{
+  m_Real.glDeleteSync(sync);
+
+  ResourceId id = GetResourceManager()->GetSyncID(sync);
+
+  if(GetResourceManager()->HasCurrentResource(id))
+    GetResourceManager()->UnregisterResource(GetResourceManager()->GetCurrentResource(id));
+}
 
 bool WrappedGLES::Serialise_glGenQueries(GLsizei n, GLuint *ids)
 {
@@ -204,57 +204,6 @@ void WrappedGLES::glGenQueries(GLsizei count, GLuint *ids)
   }
 }
 
-//bool WrappedGLES::Serialise_glCreateQueries(GLenum target, GLsizei n, GLuint *ids)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), *ids)));
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//
-//  if(m_State == READING)
-//  {
-//    GLuint real = 0;
-//    m_Real.glCreateQueries(Target, 1, &real);
-//
-//    GLResource res = QueryRes(GetCtx(), real);
-//
-//    ResourceId live = m_ResourceManager->RegisterResource(res);
-//    GetResourceManager()->AddLiveResource(id, res);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glCreateQueries(GLenum target, GLsizei count, GLuint *ids)
-//{
-//  m_Real.glCreateQueries(target, count, ids);
-//
-//  for(GLsizei i = 0; i < count; i++)
-//  {
-//    GLResource res = QueryRes(GetCtx(), ids[i]);
-//    ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//    if(m_State >= WRITING)
-//    {
-//      Chunk *chunk = NULL;
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(CREATE_QUERIES);
-//        Serialise_glCreateQueries(target, 1, ids + i);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//      RDCASSERT(record);
-//
-//      record->AddChunk(chunk);
-//    }
-//    else
-//    {
-//      GetResourceManager()->AddLiveResource(id, res);
-//    }
-//  }
-//}
-
 bool WrappedGLES::Serialise_glBeginQuery(GLenum target, GLuint qid)
 {
   SERIALISE_ELEMENT(GLenum, Target, target);
@@ -284,36 +233,6 @@ void WrappedGLES::glBeginQuery(GLenum target, GLuint id)
   }
 }
 
-//bool WrappedGLES::Serialise_glBeginQueryIndexed(GLenum target, GLuint index, GLuint qid)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(uint32_t, Index, index);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), qid)));
-//
-//  if(m_State < WRITING)
-//  {
-//    m_Real.glBeginQueryIndexed(Target, Index, GetResourceManager()->GetLiveResource(id).name);
-//    m_ActiveQueries[QueryIdx(Target)][Index] = true;
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBeginQueryIndexed(GLenum target, GLuint index, GLuint id)
-//{
-//  m_Real.glBeginQueryIndexed(target, index, id);
-//  m_ActiveQueries[QueryIdx(target)][index] = true;
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BEGIN_QUERY_INDEXED);
-//    Serialise_glBeginQueryIndexed(target, index, id);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), id), eFrameRef_Read);
-//  }
-//}
-
 bool WrappedGLES::Serialise_glEndQuery(GLenum target)
 {
   SERIALISE_ELEMENT(GLenum, Target, target);
@@ -341,116 +260,88 @@ void WrappedGLES::glEndQuery(GLenum target)
   }
 }
 
-//bool WrappedGLES::Serialise_glEndQueryIndexed(GLenum target, GLuint index)
-//{
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//  SERIALISE_ELEMENT(uint32_t, Index, index);
-//
-//  if(m_State < WRITING)
-//  {
-//    m_Real.glEndQueryIndexed(Target, Index);
-//    m_ActiveQueries[QueryIdx(Target)][Index] = false;
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glEndQueryIndexed(GLenum target, GLuint index)
-//{
-//  m_Real.glEndQueryIndexed(target, index);
-//  m_ActiveQueries[QueryIdx(target)][index] = false;
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(END_QUERY_INDEXED);
-//    Serialise_glEndQueryIndexed(target, index);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glBeginConditionalRender(GLuint id, GLenum mode)
-//{
-//  SERIALISE_ELEMENT(ResourceId, qid, GetResourceManager()->GetID(QueryRes(GetCtx(), id)));
-//  SERIALISE_ELEMENT(GLenum, Mode, mode);
-//
-//  if(m_State < WRITING)
-//  {
-//    m_ActiveConditional = true;
-//    m_Real.glBeginConditionalRender(GetResourceManager()->GetLiveResource(qid).name, Mode);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBeginConditionalRender(GLuint id, GLenum mode)
-//{
-//  m_Real.glBeginConditionalRender(id, mode);
-//
-//  m_ActiveConditional = true;
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BEGIN_CONDITIONAL);
-//    Serialise_glBeginConditionalRender(id, mode);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), id), eFrameRef_Read);
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glEndConditionalRender()
-//{
-//  if(m_State < WRITING)
-//  {
-//    m_ActiveConditional = false;
-//    m_Real.glEndConditionalRender();
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glEndConditionalRender()
-//{
-//  m_Real.glEndConditionalRender();
-//  m_ActiveConditional = false;
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(END_CONDITIONAL);
-//    Serialise_glEndConditionalRender();
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glQueryCounter(GLuint query, GLenum target)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), query)));
-//  SERIALISE_ELEMENT(GLenum, Target, target);
-//
-//  if(m_State < WRITING)
-//  {
-//    m_Real.glQueryCounter(GetResourceManager()->GetLiveResource(id).name, Target);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glQueryCounter(GLuint query, GLenum target)
-//{
-//  m_Real.glQueryCounter(query, target);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(QUERY_COUNTER);
-//    Serialise_glQueryCounter(query, target);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), query), eFrameRef_Read);
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glBeginConditionalRenderNV(GLuint id, GLenum mode)
+{
+  SERIALISE_ELEMENT(ResourceId, qid, GetResourceManager()->GetID(QueryRes(GetCtx(), id)));
+  SERIALISE_ELEMENT(GLenum, Mode, mode);
+
+  if(m_State < WRITING)
+  {
+    m_ActiveConditional = true;
+    m_Real.glBeginConditionalRenderNV(GetResourceManager()->GetLiveResource(qid).name, Mode);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBeginConditionalRenderNV(GLuint id, GLenum mode)
+{
+  m_Real.glBeginConditionalRenderNV(id, mode);
+
+  m_ActiveConditional = true;
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BEGIN_CONDITIONAL);
+    Serialise_glBeginConditionalRenderNV(id, mode);
+
+    m_ContextRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), id), eFrameRef_Read);
+  }
+}
+
+bool WrappedGLES::Serialise_glEndConditionalRenderNV()
+{
+  if(m_State < WRITING)
+  {
+    m_ActiveConditional = false;
+    m_Real.glEndConditionalRenderNV();
+  }
+
+  return true;
+}
+
+void WrappedGLES::glEndConditionalRenderNV()
+{
+  m_Real.glEndConditionalRenderNV();
+  m_ActiveConditional = false;
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(END_CONDITIONAL);
+    Serialise_glEndConditionalRenderNV();
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glQueryCounterEXT(GLuint query, GLenum target)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(QueryRes(GetCtx(), query)));
+  SERIALISE_ELEMENT(GLenum, Target, target);
+
+  if(m_State < WRITING)
+  {
+    m_Real.glQueryCounterEXT(GetResourceManager()->GetLiveResource(id).name, Target);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glQueryCounterEXT(GLuint query, GLenum target)
+{
+  m_Real.glQueryCounterEXT(query, target);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(QUERY_COUNTER);
+    Serialise_glQueryCounterEXT(query, target);
+
+    m_ContextRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(QueryRes(GetCtx(), query), eFrameRef_Read);
+  }
+}
+
 void WrappedGLES::glDeleteQueries(GLsizei n, const GLuint *ids)
 {
   for(GLsizei i = 0; i < n; i++)

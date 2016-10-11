@@ -202,7 +202,11 @@
     HookInit(glGetActiveUniformBlockName); \
     HookInit(glDrawArraysInstanced); \
     HookInit(glDrawElementsInstanced); \
+    HookInit(glFenceSync); \
     HookInit(glIsSync); \
+    HookInit(glDeleteSync); \
+    HookInit(glClientWaitSync); \
+    HookInit(glWaitSync); \
     HookInit(glGetInteger64v); \
     HookInit(glGetSynciv); \
     HookInit(glGetInteger64i_v); \
@@ -335,6 +339,7 @@
     HookExtension(PFNGLINSERTEVENTMARKEREXTPROC, glInsertEventMarkerEXT); \
     HookExtension(PFNGLPUSHGROUPMARKEREXTPROC, glPushGroupMarkerEXT); \
     HookExtension(PFNGLPOPGROUPMARKEREXTPROC, glPopGroupMarkerEXT); \
+    HookExtension(PFNGLQUERYCOUNTEREXTPROC, glQueryCounterEXT); \
     HookExtension(PFNGLGETQUERYOBJECTIVEXTPROC, glGetQueryObjectivEXT); \
     HookExtension(PFNGLGETQUERYOBJECTI64VEXTPROC, glGetQueryObjecti64vEXT); \
     HookExtension(PFNGLGETQUERYOBJECTUI64VEXTPROC, glGetQueryObjectui64vEXT); \
@@ -343,6 +348,8 @@
     HookExtension(PFNGLTEXTURESTORAGE2DEXTPROC, glTextureStorage2DEXT); \
     HookExtension(PFNGLTEXTURESTORAGE3DEXTPROC, glTextureStorage3DEXT); \
     HookExtension(PFNGLTEXTUREVIEWEXTPROC, glTextureViewEXT); \
+    HookExtension(PFNGLBEGINCONDITIONALRENDERNVPROC, glBeginConditionalRenderNV); \
+    HookExtension(PFNGLENDCONDITIONALRENDERNVPROC, glEndConditionalRenderNV); \
     HookExtension(PFNGLPOLYGONMODENVPROC, glPolygonModeNV); \
     HookExtension(PFNGLGETFLOATI_VNVPROC, glGetFloati_vNV); \
     HookExtension(PFNGLACTIVETEXTUREPROC, glActiveTexture); \
@@ -513,7 +520,11 @@
     HookExtension(PFNGLGETACTIVEUNIFORMBLOCKNAMEPROC, glGetActiveUniformBlockName); \
     HookExtension(PFNGLDRAWARRAYSINSTANCEDPROC, glDrawArraysInstanced); \
     HookExtension(PFNGLDRAWELEMENTSINSTANCEDPROC, glDrawElementsInstanced); \
+    HookExtension(PFNGLFENCESYNCPROC, glFenceSync); \
     HookExtension(PFNGLISSYNCPROC, glIsSync); \
+    HookExtension(PFNGLDELETESYNCPROC, glDeleteSync); \
+    HookExtension(PFNGLCLIENTWAITSYNCPROC, glClientWaitSync); \
+    HookExtension(PFNGLWAITSYNCPROC, glWaitSync); \
     HookExtension(PFNGLGETINTEGER64VPROC, glGetInteger64v); \
     HookExtension(PFNGLGETSYNCIVPROC, glGetSynciv); \
     HookExtension(PFNGLGETINTEGER64I_VPROC, glGetInteger64i_v); \
@@ -797,7 +808,11 @@
     HookWrapper5(void, glGetActiveUniformBlockName, GLuint, program, GLuint, uniformBlockIndex, GLsizei, bufSize, GLsizei *, length, GLchar *, uniformBlockName); \
     HookWrapper4(void, glDrawArraysInstanced, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount); \
     HookWrapper5(void, glDrawElementsInstanced, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount); \
+    HookWrapper2(GLsync, glFenceSync, GLenum, condition, GLbitfield, flags); \
     HookWrapper1(GLboolean, glIsSync, GLsync, sync); \
+    HookWrapper1(void, glDeleteSync, GLsync, sync); \
+    HookWrapper3(GLenum, glClientWaitSync, GLsync, sync, GLbitfield, flags, GLuint64, timeout); \
+    HookWrapper3(void, glWaitSync, GLsync, sync, GLbitfield, flags, GLuint64, timeout); \
     HookWrapper2(void, glGetInteger64v, GLenum, pname, GLint64 *, data); \
     HookWrapper5(void, glGetSynciv, GLsync, sync, GLenum, pname, GLsizei, bufSize, GLsizei *, length, GLint *, values); \
     HookWrapper3(void, glGetInteger64i_v, GLenum, target, GLuint, index, GLint64 *, data); \
@@ -930,6 +945,7 @@
     HookWrapper2(void, glInsertEventMarkerEXT, GLsizei, length, const GLchar *, marker); \
     HookWrapper2(void, glPushGroupMarkerEXT, GLsizei, length, const GLchar *, marker); \
     HookWrapper0(void, glPopGroupMarkerEXT); \
+    HookWrapper2(void, glQueryCounterEXT, GLuint, id, GLenum, target); \
     HookWrapper3(void, glGetQueryObjectivEXT, GLuint, id, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetQueryObjecti64vEXT, GLuint, id, GLenum, pname, GLint64 *, params); \
     HookWrapper3(void, glGetQueryObjectui64vEXT, GLuint, id, GLenum, pname, GLuint64 *, params); \
@@ -938,6 +954,8 @@
     HookWrapper6(void, glTextureStorage2DEXT, GLuint, texture, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper7(void, glTextureStorage3DEXT, GLuint, texture, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth); \
     HookWrapper8(void, glTextureViewEXT, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
+    HookWrapper2(void, glBeginConditionalRenderNV, GLuint, id, GLenum, mode); \
+    HookWrapper0(void, glEndConditionalRenderNV); \
     HookWrapper2(void, glPolygonModeNV, GLenum, face, GLenum, mode); \
     HookWrapper3(void, glGetFloati_vNV, GLenum, target, GLuint, index, GLfloat *, data); \
 
@@ -989,10 +1007,6 @@
     HookWrapper5(void, glCopyBufferSubData, GLenum, readTarget, GLenum, writeTarget, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
     HookWrapper4(void, glGetUniformIndices, GLuint, program, GLsizei, uniformCount, const GLchar *const*, uniformNames, GLuint *, uniformIndices); \
     HookWrapper3(void, glUniformBlockBinding, GLuint, program, GLuint, uniformBlockIndex, GLuint, uniformBlockBinding); \
-    HookWrapper2(GLsync, glFenceSync, GLenum, condition, GLbitfield, flags); \
-    HookWrapper1(void, glDeleteSync, GLsync, sync); \
-    HookWrapper3(GLenum, glClientWaitSync, GLsync, sync, GLbitfield, flags, GLuint64, timeout); \
-    HookWrapper3(void, glWaitSync, GLsync, sync, GLbitfield, flags, GLuint64, timeout); \
     HookWrapper3(void, glSamplerParameteriv, GLuint, sampler, GLenum, pname, const GLint *, param); \
     HookWrapper3(void, glSamplerParameterf, GLuint, sampler, GLenum, pname, GLfloat, param); \
     HookWrapper3(void, glSamplerParameterfv, GLuint, sampler, GLenum, pname, const GLfloat *, param); \
@@ -1126,7 +1140,6 @@
     HookWrapper1(GLboolean, glIsQueryEXT, GLuint, id); \
     HookWrapper2(void, glBeginQueryExt, GLenum, target, GLuint, id); \
     HookWrapper1(void, glEndQueryEXT, GLenum, target); \
-    HookWrapper2(void, glQueryCounterEXT, GLuint, id, GLenum, target); \
     HookWrapper3(void, glGetQueryivEXT, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetQueryObjectuivEXT, GLuint, id, GLenum, pname, GLuint *, params); \
     HookWrapper2(void, glDrawBuffersEXT, GLsizei, n, const GLenum *, bufs); \
@@ -1256,8 +1269,6 @@
     HookWrapper1(GLboolean, glIsImageHandleResidentNV, GLuint64, handle); \
     HookWrapper2(void, glBlendParameteriNV, GLenum, pname, GLint, value); \
     HookWrapper0(void, glBlendBarrierNV); \
-    HookWrapper2(void, glBeginConditionalRenderNV, GLuint, id, GLenum, mode); \
-    HookWrapper0(void, glEndConditionalRenderNV); \
     HookWrapper2(void, glSubpixelPrecisionBiasNV, GLuint, xbits, GLuint, ybits); \
     HookWrapper2(void, glConservativeRasterParameteriNV, GLenum, pname, GLint, param); \
     HookWrapper5(void, glCopyBufferSubDataNV, GLenum, readTarget, GLenum, writeTarget, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
@@ -1462,10 +1473,6 @@
     HandleUnsupported(PFNGLCOPYBUFFERSUBDATAPROC, glCopyBufferSubData); \
     HandleUnsupported(PFNGLGETUNIFORMINDICESPROC, glGetUniformIndices); \
     HandleUnsupported(PFNGLUNIFORMBLOCKBINDINGPROC, glUniformBlockBinding); \
-    HandleUnsupported(PFNGLFENCESYNCPROC, glFenceSync); \
-    HandleUnsupported(PFNGLDELETESYNCPROC, glDeleteSync); \
-    HandleUnsupported(PFNGLCLIENTWAITSYNCPROC, glClientWaitSync); \
-    HandleUnsupported(PFNGLWAITSYNCPROC, glWaitSync); \
     HandleUnsupported(PFNGLSAMPLERPARAMETERIVPROC, glSamplerParameteriv); \
     HandleUnsupported(PFNGLSAMPLERPARAMETERFPROC, glSamplerParameterf); \
     HandleUnsupported(PFNGLSAMPLERPARAMETERFVPROC, glSamplerParameterfv); \
@@ -1599,7 +1606,6 @@
     HandleUnsupported(PFNGLISQUERYEXTPROC, glIsQueryEXT); \
     HandleUnsupported(PFNGLBEGINQUERYEXTPROC, glBeginQueryExt); \
     HandleUnsupported(PFNGLENDQUERYEXTPROC, glEndQueryEXT); \
-    HandleUnsupported(PFNGLQUERYCOUNTEREXTPROC, glQueryCounterEXT); \
     HandleUnsupported(PFNGLGETQUERYIVEXTPROC, glGetQueryivEXT); \
     HandleUnsupported(PFNGLGETQUERYOBJECTUIVEXTPROC, glGetQueryObjectuivEXT); \
     HandleUnsupported(PFNGLDRAWBUFFERSEXTPROC, glDrawBuffersEXT); \
@@ -1729,8 +1735,6 @@
     HandleUnsupported(PFNGLISIMAGEHANDLERESIDENTNVPROC, glIsImageHandleResidentNV); \
     HandleUnsupported(PFNGLBLENDPARAMETERINVPROC, glBlendParameteriNV); \
     HandleUnsupported(PFNGLBLENDBARRIERNVPROC, glBlendBarrierNV); \
-    HandleUnsupported(PFNGLBEGINCONDITIONALRENDERNVPROC, glBeginConditionalRenderNV); \
-    HandleUnsupported(PFNGLENDCONDITIONALRENDERNVPROC, glEndConditionalRenderNV); \
     HandleUnsupported(PFNGLSUBPIXELPRECISIONBIASNVPROC, glSubpixelPrecisionBiasNV); \
     HandleUnsupported(PFNGLCONSERVATIVERASTERPARAMETERINVPROC, glConservativeRasterParameteriNV); \
     HandleUnsupported(PFNGLCOPYBUFFERSUBDATANVPROC, glCopyBufferSubDataNV); \
