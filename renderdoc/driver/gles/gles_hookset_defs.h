@@ -216,6 +216,9 @@
     HookInit(glIsSampler); \
     HookInit(glBindSampler); \
     HookInit(glSamplerParameteri); \
+    HookInit(glSamplerParameteriv); \
+    HookInit(glSamplerParameterf); \
+    HookInit(glSamplerParameterfv); \
     HookInit(glGetSamplerParameteriv); \
     HookInit(glGetSamplerParameterfv); \
     HookInit(glBindTransformFeedback); \
@@ -312,6 +315,8 @@
     HookInit(glTexParameterIuiv); \
     HookInit(glGetTexParameterIiv); \
     HookInit(glGetTexParameterIuiv); \
+    HookInit(glSamplerParameterIiv); \
+    HookInit(glSamplerParameterIuiv); \
     HookInit(glGetSamplerParameterIiv); \
     HookInit(glGetSamplerParameterIuiv); \
     HookInit(glTexBuffer); \
@@ -534,6 +539,9 @@
     HookExtension(PFNGLISSAMPLERPROC, glIsSampler); \
     HookExtension(PFNGLBINDSAMPLERPROC, glBindSampler); \
     HookExtension(PFNGLSAMPLERPARAMETERIPROC, glSamplerParameteri); \
+    HookExtension(PFNGLSAMPLERPARAMETERIVPROC, glSamplerParameteriv); \
+    HookExtension(PFNGLSAMPLERPARAMETERFPROC, glSamplerParameterf); \
+    HookExtension(PFNGLSAMPLERPARAMETERFVPROC, glSamplerParameterfv); \
     HookExtension(PFNGLGETSAMPLERPARAMETERIVPROC, glGetSamplerParameteriv); \
     HookExtension(PFNGLGETSAMPLERPARAMETERFVPROC, glGetSamplerParameterfv); \
     HookExtension(PFNGLBINDTRANSFORMFEEDBACKPROC, glBindTransformFeedback); \
@@ -630,6 +638,8 @@
     HookExtension(PFNGLTEXPARAMETERIUIVPROC, glTexParameterIuiv); \
     HookExtension(PFNGLGETTEXPARAMETERIIVPROC, glGetTexParameterIiv); \
     HookExtension(PFNGLGETTEXPARAMETERIUIVPROC, glGetTexParameterIuiv); \
+    HookExtension(PFNGLSAMPLERPARAMETERIIVPROC, glSamplerParameterIiv); \
+    HookExtension(PFNGLSAMPLERPARAMETERIUIVPROC, glSamplerParameterIuiv); \
     HookExtension(PFNGLGETSAMPLERPARAMETERIIVPROC, glGetSamplerParameterIiv); \
     HookExtension(PFNGLGETSAMPLERPARAMETERIUIVPROC, glGetSamplerParameterIuiv); \
     HookExtension(PFNGLTEXBUFFERPROC, glTexBuffer); \
@@ -822,6 +832,9 @@
     HookWrapper1(GLboolean, glIsSampler, GLuint, sampler); \
     HookWrapper2(void, glBindSampler, GLuint, unit, GLuint, sampler); \
     HookWrapper3(void, glSamplerParameteri, GLuint, sampler, GLenum, pname, GLint, param); \
+    HookWrapper3(void, glSamplerParameteriv, GLuint, sampler, GLenum, pname, const GLint *, param); \
+    HookWrapper3(void, glSamplerParameterf, GLuint, sampler, GLenum, pname, GLfloat, param); \
+    HookWrapper3(void, glSamplerParameterfv, GLuint, sampler, GLenum, pname, const GLfloat *, param); \
     HookWrapper3(void, glGetSamplerParameteriv, GLuint, sampler, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetSamplerParameterfv, GLuint, sampler, GLenum, pname, GLfloat *, params); \
     HookWrapper2(void, glBindTransformFeedback, GLenum, target, GLuint, id); \
@@ -918,6 +931,8 @@
     HookWrapper3(void, glTexParameterIuiv, GLenum, target, GLenum, pname, const GLuint *, params); \
     HookWrapper3(void, glGetTexParameterIiv, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetTexParameterIuiv, GLenum, target, GLenum, pname, GLuint *, params); \
+    HookWrapper3(void, glSamplerParameterIiv, GLuint, sampler, GLenum, pname, const GLint *, param); \
+    HookWrapper3(void, glSamplerParameterIuiv, GLuint, sampler, GLenum, pname, const GLuint *, param); \
     HookWrapper3(void, glGetSamplerParameterIiv, GLuint, sampler, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetSamplerParameterIuiv, GLuint, sampler, GLenum, pname, GLuint *, params); \
     HookWrapper3(void, glTexBuffer, GLenum, target, GLenum, internalformat, GLuint, buffer); \
@@ -1007,9 +1022,6 @@
     HookWrapper5(void, glCopyBufferSubData, GLenum, readTarget, GLenum, writeTarget, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
     HookWrapper4(void, glGetUniformIndices, GLuint, program, GLsizei, uniformCount, const GLchar *const*, uniformNames, GLuint *, uniformIndices); \
     HookWrapper3(void, glUniformBlockBinding, GLuint, program, GLuint, uniformBlockIndex, GLuint, uniformBlockBinding); \
-    HookWrapper3(void, glSamplerParameteriv, GLuint, sampler, GLenum, pname, const GLint *, param); \
-    HookWrapper3(void, glSamplerParameterf, GLuint, sampler, GLenum, pname, GLfloat, param); \
-    HookWrapper3(void, glSamplerParameterfv, GLuint, sampler, GLenum, pname, const GLfloat *, param); \
     HookWrapper2(void, glVertexAttribDivisor, GLuint, index, GLuint, divisor); \
     HookWrapper0(void, glPauseTransformFeedback); \
     HookWrapper0(void, glResumeTransformFeedback); \
@@ -1036,8 +1048,6 @@
     HookWrapper8(void, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
     HookWrapper1(void, glMinSampleShading, GLfloat, value); \
     HookWrapper2(void, glPatchParameteri, GLenum, pname, GLint, value); \
-    HookWrapper3(void, glSamplerParameterIiv, GLuint, sampler, GLenum, pname, const GLint *, param); \
-    HookWrapper3(void, glSamplerParameterIuiv, GLuint, sampler, GLenum, pname, const GLuint *, param); \
     HookWrapper0(void, glBlendBarrierKHR); \
     HookWrapper6(void, glDebugMessageControlKHR, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
     HookWrapper6(void, glDebugMessageInsertKHR, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
@@ -1473,9 +1483,6 @@
     HandleUnsupported(PFNGLCOPYBUFFERSUBDATAPROC, glCopyBufferSubData); \
     HandleUnsupported(PFNGLGETUNIFORMINDICESPROC, glGetUniformIndices); \
     HandleUnsupported(PFNGLUNIFORMBLOCKBINDINGPROC, glUniformBlockBinding); \
-    HandleUnsupported(PFNGLSAMPLERPARAMETERIVPROC, glSamplerParameteriv); \
-    HandleUnsupported(PFNGLSAMPLERPARAMETERFPROC, glSamplerParameterf); \
-    HandleUnsupported(PFNGLSAMPLERPARAMETERFVPROC, glSamplerParameterfv); \
     HandleUnsupported(PFNGLVERTEXATTRIBDIVISORPROC, glVertexAttribDivisor); \
     HandleUnsupported(PFNGLPAUSETRANSFORMFEEDBACKPROC, glPauseTransformFeedback); \
     HandleUnsupported(PFNGLRESUMETRANSFORMFEEDBACKPROC, glResumeTransformFeedback); \
@@ -1502,8 +1509,6 @@
     HandleUnsupported(PFNGLPRIMITIVEBOUNDINGBOXPROC, glPrimitiveBoundingBox); \
     HandleUnsupported(PFNGLMINSAMPLESHADINGPROC, glMinSampleShading); \
     HandleUnsupported(PFNGLPATCHPARAMETERIPROC, glPatchParameteri); \
-    HandleUnsupported(PFNGLSAMPLERPARAMETERIIVPROC, glSamplerParameterIiv); \
-    HandleUnsupported(PFNGLSAMPLERPARAMETERIUIVPROC, glSamplerParameterIuiv); \
     HandleUnsupported(PFNGLBLENDBARRIERKHRPROC, glBlendBarrierKHR); \
     HandleUnsupported(PFNGLDEBUGMESSAGECONTROLKHRPROC, glDebugMessageControlKHR); \
     HandleUnsupported(PFNGLDEBUGMESSAGEINSERTKHRPROC, glDebugMessageInsertKHR); \

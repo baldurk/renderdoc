@@ -79,56 +79,6 @@ void WrappedGLES::glGenSamplers(GLsizei count, GLuint *samplers)
   }
 }
 
-//bool WrappedGLES::Serialise_glCreateSamplers(GLsizei n, GLuint *samplers)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), *samplers)));
-//
-//  if(m_State == READING)
-//  {
-//    GLuint real = 0;
-//    m_Real.glCreateSamplers(1, &real);
-//
-//    GLResource res = SamplerRes(GetCtx(), real);
-//
-//    ResourceId live = m_ResourceManager->RegisterResource(res);
-//    GetResourceManager()->AddLiveResource(id, res);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glCreateSamplers(GLsizei count, GLuint *samplers)
-//{
-//  m_Real.glCreateSamplers(count, samplers);
-//
-//  for(GLsizei i = 0; i < count; i++)
-//  {
-//    GLResource res = SamplerRes(GetCtx(), samplers[i]);
-//    ResourceId id = GetResourceManager()->RegisterResource(res);
-//
-//    if(m_State >= WRITING)
-//    {
-//      Chunk *chunk = NULL;
-//
-//      {
-//        SCOPED_SERIALISE_CONTEXT(CREATE_SAMPLERS);
-//        Serialise_glCreateSamplers(1, samplers + i);
-//
-//        chunk = scope.Get();
-//      }
-//
-//      GLResourceRecord *record = GetResourceManager()->AddResourceRecord(id);
-//      RDCASSERT(record);
-//
-//      record->AddChunk(chunk);
-//    }
-//    else
-//    {
-//      GetResourceManager()->AddLiveResource(id, res);
-//    }
-//  }
-//}
-
 bool WrappedGLES::Serialise_glBindSampler(GLuint unit, GLuint sampler)
 {
   SERIALISE_ELEMENT(uint32_t, Unit, unit);
@@ -165,58 +115,6 @@ void WrappedGLES::glBindSampler(GLuint unit, GLuint sampler)
     GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler), eFrameRef_Read);
   }
 }
-
-//bool WrappedGLES::Serialise_glBindSamplers(GLuint first, GLsizei count, const GLuint *samplers)
-//{
-//  SERIALISE_ELEMENT(uint32_t, First, first);
-//  SERIALISE_ELEMENT(int32_t, Count, count);
-//
-//  GLuint *samps = NULL;
-//  if(m_State <= EXECUTING)
-//    samps = new GLuint[Count];
-//
-//  for(int32_t i = 0; i < Count; i++)
-//  {
-//    SERIALISE_ELEMENT(ResourceId, id,
-//                      samplers && samplers[i]
-//                          ? GetResourceManager()->GetID(SamplerRes(GetCtx(), samplers[i]))
-//                          : ResourceId());
-//
-//    if(m_State <= EXECUTING)
-//    {
-//      if(id != ResourceId())
-//        samps[i] = GetResourceManager()->GetLiveResource(id).name;
-//      else
-//        samps[i] = 0;
-//    }
-//  }
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glBindSamplers(First, Count, samps);
-//
-//    delete[] samps;
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBindSamplers(GLuint first, GLsizei count, const GLuint *samplers)
-//{
-//  m_Real.glBindSamplers(first, count, samplers);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BIND_SAMPLERS);
-//    Serialise_glBindSamplers(first, count, samplers);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    for(GLsizei i = 0; i < count; i++)
-//      if(samplers != NULL && samplers[i] != 0)
-//        GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), samplers[i]),
-//                                                          eFrameRef_Read);
-//  }
-//}
 
 bool WrappedGLES::Serialise_glSamplerParameteri(GLuint sampler, GLenum pname, GLint param)
 {
@@ -278,227 +176,227 @@ void WrappedGLES::glSamplerParameteri(GLuint sampler, GLenum pname, GLint param)
   }
 }
 
-//bool WrappedGLES::Serialise_glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//  SERIALISE_ELEMENT(float, Param, param);
-//
-//  if(m_State < WRITING)
-//  {
-//    GLResource res = GetResourceManager()->GetLiveResource(id);
-//    m_Real.glSamplerParameterf(res.name, PName, Param);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
-//{
-//  m_Real.glSamplerParameterf(sampler, pname, param);
-//
-//  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
-//  if(param == (float)eGL_CLAMP)
-//    param = (float)eGL_CLAMP_TO_EDGE;
-//
-//  if(m_State >= WRITING)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERF);
-//    Serialise_glSamplerParameterf(sampler, pname, param);
-//
-//    if(m_State == WRITING_IDLE)
-//    {
-//      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
-//    }
-//    else
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
-//                                                        eFrameRef_Read);
-//    }
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glSamplerParameteriv(GLuint sampler, GLenum pname, const GLint *params)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//  const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
-//  SERIALISE_ELEMENT_ARR(int32_t, Params, params, nParams);
-//
-//  if(m_State < WRITING)
-//  {
-//    GLResource res = GetResourceManager()->GetLiveResource(id);
-//    m_Real.glSamplerParameteriv(res.name, PName, Params);
-//  }
-//
-//  delete[] Params;
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glSamplerParameteriv(GLuint sampler, GLenum pname, const GLint *params)
-//{
-//  m_Real.glSamplerParameteriv(sampler, pname, params);
-//
-//  GLint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
-//  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
-//  if(*params == eGL_CLAMP)
-//    params = clamptoedge;
-//
-//  if(m_State >= WRITING)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERIV);
-//    Serialise_glSamplerParameteriv(sampler, pname, params);
-//
-//    if(m_State == WRITING_IDLE)
-//    {
-//      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
-//    }
-//    else
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
-//                                                        eFrameRef_Read);
-//    }
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glSamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *params)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//  const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
-//  SERIALISE_ELEMENT_ARR(float, Params, params, nParams);
-//
-//  if(m_State < WRITING)
-//  {
-//    GLResource res = GetResourceManager()->GetLiveResource(id);
-//    m_Real.glSamplerParameterfv(res.name, PName, Params);
-//  }
-//
-//  delete[] Params;
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glSamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *params)
-//{
-//  m_Real.glSamplerParameterfv(sampler, pname, params);
-//
-//  GLfloat clamptoedge[4] = {(float)eGL_CLAMP_TO_EDGE};
-//  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
-//  if(*params == (float)eGL_CLAMP)
-//    params = clamptoedge;
-//
-//  if(m_State >= WRITING)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERFV);
-//    Serialise_glSamplerParameterfv(sampler, pname, params);
-//
-//    if(m_State == WRITING_IDLE)
-//    {
-//      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
-//    }
-//    else
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
-//                                                        eFrameRef_Read);
-//    }
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glSamplerParameterIiv(GLuint sampler, GLenum pname, const GLint *params)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//  const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
-//  SERIALISE_ELEMENT_ARR(int32_t, Params, params, nParams);
-//
-//  if(m_State < WRITING)
-//  {
-//    GLResource res = GetResourceManager()->GetLiveResource(id);
-//    m_Real.glSamplerParameterIiv(res.name, PName, Params);
-//  }
-//
-//  delete[] Params;
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glSamplerParameterIiv(GLuint sampler, GLenum pname, const GLint *params)
-//{
-//  m_Real.glSamplerParameterIiv(sampler, pname, params);
-//
-//  GLint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
-//  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
-//  if(*params == eGL_CLAMP)
-//    params = clamptoedge;
-//
-//  if(m_State >= WRITING)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERIIV);
-//    Serialise_glSamplerParameterIiv(sampler, pname, params);
-//
-//    if(m_State == WRITING_IDLE)
-//    {
-//      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
-//    }
-//    else
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
-//                                                        eFrameRef_Read);
-//    }
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glSamplerParameterIuiv(GLuint sampler, GLenum pname,
-//                                                     const GLuint *params)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//  const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
-//  SERIALISE_ELEMENT_ARR(uint32_t, Params, params, nParams);
-//
-//  if(m_State < WRITING)
-//  {
-//    GLResource res = GetResourceManager()->GetLiveResource(id);
-//    m_Real.glSamplerParameterIuiv(res.name, PName, Params);
-//  }
-//
-//  delete[] Params;
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glSamplerParameterIuiv(GLuint sampler, GLenum pname, const GLuint *params)
-//{
-//  m_Real.glSamplerParameterIuiv(sampler, pname, params);
-//
-//  GLuint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
-//  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
-//  if(*params == eGL_CLAMP)
-//    params = clamptoedge;
-//
-//  if(m_State >= WRITING)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERIUIV);
-//    Serialise_glSamplerParameterIuiv(sampler, pname, params);
-//
-//    if(m_State == WRITING_IDLE)
-//    {
-//      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
-//    }
-//    else
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
-//                                                        eFrameRef_Read);
-//    }
-//  }
-//}
+bool WrappedGLES::Serialise_glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
+  SERIALISE_ELEMENT(GLenum, PName, pname);
+  SERIALISE_ELEMENT(float, Param, param);
+
+  if(m_State < WRITING)
+  {
+    GLResource res = GetResourceManager()->GetLiveResource(id);
+    m_Real.glSamplerParameterf(res.name, PName, Param);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glSamplerParameterf(GLuint sampler, GLenum pname, GLfloat param)
+{
+  m_Real.glSamplerParameterf(sampler, pname, param);
+
+  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+  if(param == (float)eGL_CLAMP)
+    param = (float)eGL_CLAMP_TO_EDGE;
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERF);
+    Serialise_glSamplerParameterf(sampler, pname, param);
+
+    if(m_State == WRITING_IDLE)
+    {
+      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+    }
+    else
+    {
+      m_ContextRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
+                                                        eFrameRef_Read);
+    }
+  }
+}
+
+bool WrappedGLES::Serialise_glSamplerParameteriv(GLuint sampler, GLenum pname, const GLint *params)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
+  SERIALISE_ELEMENT(GLenum, PName, pname);
+  const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
+  SERIALISE_ELEMENT_ARR(int32_t, Params, params, nParams);
+
+  if(m_State < WRITING)
+  {
+    GLResource res = GetResourceManager()->GetLiveResource(id);
+    m_Real.glSamplerParameteriv(res.name, PName, Params);
+  }
+
+  delete[] Params;
+
+  return true;
+}
+
+void WrappedGLES::glSamplerParameteriv(GLuint sampler, GLenum pname, const GLint *params)
+{
+  m_Real.glSamplerParameteriv(sampler, pname, params);
+
+  GLint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
+  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+  if(*params == eGL_CLAMP)
+    params = clamptoedge;
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERIV);
+    Serialise_glSamplerParameteriv(sampler, pname, params);
+
+    if(m_State == WRITING_IDLE)
+    {
+      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+    }
+    else
+    {
+      m_ContextRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
+                                                        eFrameRef_Read);
+    }
+  }
+}
+
+bool WrappedGLES::Serialise_glSamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *params)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
+  SERIALISE_ELEMENT(GLenum, PName, pname);
+  const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
+  SERIALISE_ELEMENT_ARR(float, Params, params, nParams);
+
+  if(m_State < WRITING)
+  {
+    GLResource res = GetResourceManager()->GetLiveResource(id);
+    m_Real.glSamplerParameterfv(res.name, PName, Params);
+  }
+
+  delete[] Params;
+
+  return true;
+}
+
+void WrappedGLES::glSamplerParameterfv(GLuint sampler, GLenum pname, const GLfloat *params)
+{
+  m_Real.glSamplerParameterfv(sampler, pname, params);
+
+  GLfloat clamptoedge[4] = {(float)eGL_CLAMP_TO_EDGE};
+  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+  if(*params == (float)eGL_CLAMP)
+    params = clamptoedge;
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERFV);
+    Serialise_glSamplerParameterfv(sampler, pname, params);
+
+    if(m_State == WRITING_IDLE)
+    {
+      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+    }
+    else
+    {
+      m_ContextRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
+                                                        eFrameRef_Read);
+    }
+  }
+}
+
+bool WrappedGLES::Serialise_glSamplerParameterIiv(GLuint sampler, GLenum pname, const GLint *params)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
+  SERIALISE_ELEMENT(GLenum, PName, pname);
+  const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
+  SERIALISE_ELEMENT_ARR(int32_t, Params, params, nParams);
+
+  if(m_State < WRITING)
+  {
+    GLResource res = GetResourceManager()->GetLiveResource(id);
+    m_Real.glSamplerParameterIiv(res.name, PName, Params);
+  }
+
+  delete[] Params;
+
+  return true;
+}
+
+void WrappedGLES::glSamplerParameterIiv(GLuint sampler, GLenum pname, const GLint *params)
+{
+  m_Real.glSamplerParameterIiv(sampler, pname, params);
+
+  GLint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
+  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+  if(*params == eGL_CLAMP)
+    params = clamptoedge;
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERIIV);
+    Serialise_glSamplerParameterIiv(sampler, pname, params);
+
+    if(m_State == WRITING_IDLE)
+    {
+      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+    }
+    else
+    {
+      m_ContextRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
+                                                        eFrameRef_Read);
+    }
+  }
+}
+
+bool WrappedGLES::Serialise_glSamplerParameterIuiv(GLuint sampler, GLenum pname,
+                                                     const GLuint *params)
+{
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(SamplerRes(GetCtx(), sampler)));
+  SERIALISE_ELEMENT(GLenum, PName, pname);
+  const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
+  SERIALISE_ELEMENT_ARR(uint32_t, Params, params, nParams);
+
+  if(m_State < WRITING)
+  {
+    GLResource res = GetResourceManager()->GetLiveResource(id);
+    m_Real.glSamplerParameterIuiv(res.name, PName, Params);
+  }
+
+  delete[] Params;
+
+  return true;
+}
+
+void WrappedGLES::glSamplerParameterIuiv(GLuint sampler, GLenum pname, const GLuint *params)
+{
+  m_Real.glSamplerParameterIuiv(sampler, pname, params);
+
+  GLuint clamptoedge[4] = {eGL_CLAMP_TO_EDGE};
+  // CLAMP isn't supported (border texels gone), assume they meant CLAMP_TO_EDGE
+  if(*params == eGL_CLAMP)
+    params = clamptoedge;
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SAMPLER_PARAMETERIUIV);
+    Serialise_glSamplerParameterIuiv(sampler, pname, params);
+
+    if(m_State == WRITING_IDLE)
+    {
+      GetResourceManager()->GetResourceRecord(SamplerRes(GetCtx(), sampler))->AddChunk(scope.Get());
+    }
+    else
+    {
+      m_ContextRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(SamplerRes(GetCtx(), sampler),
+                                                        eFrameRef_Read);
+    }
+  }
+}
 
 void WrappedGLES::glDeleteSamplers(GLsizei n, const GLuint *ids)
 {
