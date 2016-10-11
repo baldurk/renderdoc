@@ -36,10 +36,12 @@ public:
 signals:
   void enter();
   void leave();
+  void keyPress(QKeyEvent *e);
 
 public slots:
 
 protected:
   void focusInEvent(QFocusEvent *e);
   void focusOutEvent(QFocusEvent *e);
+  void keyPressEvent(QKeyEvent *e);
 };

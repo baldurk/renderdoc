@@ -43,3 +43,9 @@ void RDLineEdit::focusOutEvent(QFocusEvent *e)
   QLineEdit::focusOutEvent(e);
   emit(leave());
 }
+
+void RDLineEdit::keyPressEvent(QKeyEvent *e)
+{
+  QLineEdit::keyPressEvent(e);
+  emit(keyPress(e));
+}
