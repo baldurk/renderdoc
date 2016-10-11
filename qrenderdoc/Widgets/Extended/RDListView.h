@@ -22,8 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef RDLISTVIEW_H
-#define RDLISTVIEW_H
+#pragma once
 
 #include <QListView>
 
@@ -44,5 +43,3 @@ private:
 
   Qt::CursorShape m_Shape = Qt::ArrowCursor;
 };
-
-#endif    // RDLISTVIEW_H

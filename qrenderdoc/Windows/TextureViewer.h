@@ -22,8 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef TEXTUREVIEWER_H
-#define TEXTUREVIEWER_H
+#pragma once
 
 #include <QFrame>
 #include <QMouseEvent>
@@ -291,5 +290,3 @@ private:
 
   TextureDisplay m_TexDisplay;
 };
-
-#endif    // TEXTUREVIEWER_H

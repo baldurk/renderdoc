@@ -22,8 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef EVENTBROWSER_H
-#define EVENTBROWSER_H
+#pragma once
 
 #include <QFrame>
 #include <QIcon>
@@ -99,5 +98,3 @@ private:
   Ui::EventBrowser *ui;
   CaptureContext *m_Ctx;
 };
-
-#endif    // EVENTBROWSER_H

@@ -22,8 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef THUMBNAILSTRIP_H
-#define THUMBNAILSTRIP_H
+#pragma once
 
 #include <QWidget>
 
@@ -63,5 +62,3 @@ private:
 
   Ui::ThumbnailStrip *ui;
 };
-
-#endif    // THUMBNAILSTRIP_H

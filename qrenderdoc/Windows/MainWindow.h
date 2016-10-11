@@ -22,8 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef MAINWINDOW_H
-#define MAINWINDOW_H
+#pragma once
 
 #include <stdint.h>
 #include <QMainWindow>
@@ -71,5 +70,3 @@ private:
   bool LoadLayout(int layout);
   bool SaveLayout(int layout);
 };
-
-#endif    // MAINWINDOW_H

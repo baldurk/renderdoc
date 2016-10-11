@@ -22,8 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef RANGEHISTOGRAM_H
-#define RANGEHISTOGRAM_H
+#pragma once
 
 #include <QWidget>
 
@@ -95,5 +94,3 @@ private:
 
   float m_MinRangeSize = 1.0e-6f;
 };
-
-#endif    // RANGEHISTOGRAM_H

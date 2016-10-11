@@ -22,8 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef ABOUTDIALOG_H
-#define ABOUTDIALOG_H
+#pragma once
 
 #include <QDialog>
 
@@ -42,5 +41,3 @@ public:
 private:
   Ui::AboutDialog *ui;
 };
-
-#endif

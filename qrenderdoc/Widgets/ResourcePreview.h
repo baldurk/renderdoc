@@ -22,8 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifndef RESOURCEPREVIEW_H
-#define RESOURCEPREVIEW_H
+#pragma once
 
 #include <QFrame>
 
@@ -74,5 +73,3 @@ private:
 
   bool m_Active;
 };
-
-#endif    // RESOURCEPREVIEW_H
