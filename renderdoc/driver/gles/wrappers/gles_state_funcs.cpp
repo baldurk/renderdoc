@@ -53,328 +53,303 @@ void WrappedGLES::glBlendFunc(GLenum sfactor, GLenum dfactor)
   }
 }
 
-//bool WrappedGLES::Serialise_glBlendFunci(GLuint buf, GLenum src, GLenum dst)
-//{
-//  SERIALISE_ELEMENT(GLuint, b, buf);
-//  SERIALISE_ELEMENT(GLenum, s, src);
-//  SERIALISE_ELEMENT(GLenum, d, dst);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glBlendFunci(b, s, d);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBlendFunci(GLuint buf, GLenum src, GLenum dst)
-//{
-//  m_Real.glBlendFunci(buf, src, dst);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BLEND_FUNCI);
-//    Serialise_glBlendFunci(buf, src, dst);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
-//{
-//  SERIALISE_ELEMENT(float, r, red);
-//  SERIALISE_ELEMENT(float, g, green);
-//  SERIALISE_ELEMENT(float, b, blue);
-//  SERIALISE_ELEMENT(float, a, alpha);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glBlendColor(r, g, b, a);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
-//{
-//  m_Real.glBlendColor(red, green, blue, alpha);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BLEND_COLOR);
-//    Serialise_glBlendColor(red, green, blue, alpha);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB,
-//                                                  GLenum sfactorAlpha, GLenum dfactorAlpha)
-//{
-//  SERIALISE_ELEMENT(GLenum, s1, sfactorRGB);
-//  SERIALISE_ELEMENT(GLenum, d1, dfactorRGB);
-//  SERIALISE_ELEMENT(GLenum, s2, sfactorAlpha);
-//  SERIALISE_ELEMENT(GLenum, d2, dfactorAlpha);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glBlendFuncSeparate(s1, d1, s2, d2);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha,
-//                                        GLenum dfactorAlpha)
-//{
-//  m_Real.glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BLEND_FUNC_SEP);
-//    Serialise_glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glBlendFuncSeparatei(GLuint buf, GLenum sfactorRGB, GLenum dfactorRGB,
-//                                                   GLenum sfactorAlpha, GLenum dfactorAlpha)
-//{
-//  SERIALISE_ELEMENT(uint32_t, b, buf);
-//  SERIALISE_ELEMENT(GLenum, s1, sfactorRGB);
-//  SERIALISE_ELEMENT(GLenum, d1, dfactorRGB);
-//  SERIALISE_ELEMENT(GLenum, s2, sfactorAlpha);
-//  SERIALISE_ELEMENT(GLenum, d2, dfactorAlpha);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glBlendFuncSeparatei(b, s1, d1, s2, d2);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBlendFuncSeparatei(GLuint buf, GLenum sfactorRGB, GLenum dfactorRGB,
-//                                         GLenum sfactorAlpha, GLenum dfactorAlpha)
-//{
-//  m_Real.glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BLEND_FUNC_SEPI);
-//    Serialise_glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glBlendEquation(GLenum mode)
-//{
-//  SERIALISE_ELEMENT(GLenum, m, mode);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glBlendEquation(m);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBlendEquation(GLenum mode)
-//{
-//  m_Real.glBlendEquation(mode);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BLEND_EQ);
-//    Serialise_glBlendEquation(mode);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glBlendEquationi(GLuint buf, GLenum mode)
-//{
-//  SERIALISE_ELEMENT(uint32_t, b, buf);
-//  SERIALISE_ELEMENT(GLenum, m, mode);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glBlendEquationi(b, m);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBlendEquationi(GLuint buf, GLenum mode)
-//{
-//  m_Real.glBlendEquationi(buf, mode);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BLEND_EQI);
-//    Serialise_glBlendEquationi(buf, mode);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
-//{
-//  SERIALISE_ELEMENT(GLenum, m1, modeRGB);
-//  SERIALISE_ELEMENT(GLenum, m2, modeAlpha);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glBlendEquationSeparate(m1, m2);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
-//{
-//  m_Real.glBlendEquationSeparate(modeRGB, modeAlpha);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BLEND_EQ_SEP);
-//    Serialise_glBlendEquationSeparate(modeRGB, modeAlpha);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
-//{
-//  SERIALISE_ELEMENT(uint32_t, b, buf);
-//  SERIALISE_ELEMENT(GLenum, m1, modeRGB);
-//  SERIALISE_ELEMENT(GLenum, m2, modeAlpha);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glBlendEquationSeparatei(b, m1, m2);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
-//{
-//  m_Real.glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BLEND_EQ_SEPI);
-//    Serialise_glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glBlendBarrierKHR()
-//{
-//  if(m_State <= EXECUTING)
-//    m_Real.glBlendBarrierKHR();
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBlendBarrierKHR()
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glBlendBarrierKHR();
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BLEND_BARRIER);
-//    Serialise_glBlendBarrierKHR();
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glLogicOp(GLenum opcode)
-//{
-//  SERIALISE_ELEMENT(GLenum, Op, opcode);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glLogicOp(Op);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glLogicOp(GLenum opcode)
-//{
-//  m_Real.glLogicOp(opcode);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(LOGIC_OP);
-//    Serialise_glLogicOp(opcode);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glStencilFunc(GLenum func, GLint ref, GLuint mask)
-//{
-//  SERIALISE_ELEMENT(GLenum, f, func);
-//  SERIALISE_ELEMENT(int32_t, Ref, ref);
-//  SERIALISE_ELEMENT(uint32_t, Mask, mask);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glStencilFunc(f, Ref, Mask);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glStencilFunc(GLenum func, GLint ref, GLuint mask)
-//{
-//  m_Real.glStencilFunc(func, ref, mask);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(STENCIL_FUNC);
-//    Serialise_glStencilFunc(func, ref, mask);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glStencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
-//{
-//  SERIALISE_ELEMENT(GLenum, Face, face);
-//  SERIALISE_ELEMENT(GLenum, f, func);
-//  SERIALISE_ELEMENT(int32_t, Ref, ref);
-//  SERIALISE_ELEMENT(uint32_t, Mask, mask);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glStencilFuncSeparate(Face, f, Ref, Mask);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glStencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
-//{
-//  m_Real.glStencilFuncSeparate(face, func, ref, mask);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(STENCIL_FUNC_SEP);
-//    Serialise_glStencilFuncSeparate(face, func, ref, mask);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
+bool WrappedGLES::Serialise_glBlendFunci(GLuint buf, GLenum src, GLenum dst)
+{
+  SERIALISE_ELEMENT(GLuint, b, buf);
+  SERIALISE_ELEMENT(GLenum, s, src);
+  SERIALISE_ELEMENT(GLenum, d, dst);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glBlendFunci(b, s, d);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBlendFunci(GLuint buf, GLenum src, GLenum dst)
+{
+  m_Real.glBlendFunci(buf, src, dst);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BLEND_FUNCI);
+    Serialise_glBlendFunci(buf, src, dst);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
+{
+  SERIALISE_ELEMENT(float, r, red);
+  SERIALISE_ELEMENT(float, g, green);
+  SERIALISE_ELEMENT(float, b, blue);
+  SERIALISE_ELEMENT(float, a, alpha);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glBlendColor(r, g, b, a);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBlendColor(GLfloat red, GLfloat green, GLfloat blue, GLfloat alpha)
+{
+  m_Real.glBlendColor(red, green, blue, alpha);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BLEND_COLOR);
+    Serialise_glBlendColor(red, green, blue, alpha);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB,
+                                                  GLenum sfactorAlpha, GLenum dfactorAlpha)
+{
+  SERIALISE_ELEMENT(GLenum, s1, sfactorRGB);
+  SERIALISE_ELEMENT(GLenum, d1, dfactorRGB);
+  SERIALISE_ELEMENT(GLenum, s2, sfactorAlpha);
+  SERIALISE_ELEMENT(GLenum, d2, dfactorAlpha);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glBlendFuncSeparate(s1, d1, s2, d2);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBlendFuncSeparate(GLenum sfactorRGB, GLenum dfactorRGB, GLenum sfactorAlpha,
+                                        GLenum dfactorAlpha)
+{
+  m_Real.glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BLEND_FUNC_SEP);
+    Serialise_glBlendFuncSeparate(sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glBlendFuncSeparatei(GLuint buf, GLenum sfactorRGB, GLenum dfactorRGB,
+                                                   GLenum sfactorAlpha, GLenum dfactorAlpha)
+{
+  SERIALISE_ELEMENT(uint32_t, b, buf);
+  SERIALISE_ELEMENT(GLenum, s1, sfactorRGB);
+  SERIALISE_ELEMENT(GLenum, d1, dfactorRGB);
+  SERIALISE_ELEMENT(GLenum, s2, sfactorAlpha);
+  SERIALISE_ELEMENT(GLenum, d2, dfactorAlpha);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glBlendFuncSeparatei(b, s1, d1, s2, d2);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBlendFuncSeparatei(GLuint buf, GLenum sfactorRGB, GLenum dfactorRGB,
+                                         GLenum sfactorAlpha, GLenum dfactorAlpha)
+{
+  m_Real.glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BLEND_FUNC_SEPI);
+    Serialise_glBlendFuncSeparatei(buf, sfactorRGB, dfactorRGB, sfactorAlpha, dfactorAlpha);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glBlendEquation(GLenum mode)
+{
+  SERIALISE_ELEMENT(GLenum, m, mode);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glBlendEquation(m);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBlendEquation(GLenum mode)
+{
+  m_Real.glBlendEquation(mode);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BLEND_EQ);
+    Serialise_glBlendEquation(mode);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glBlendEquationi(GLuint buf, GLenum mode)
+{
+  SERIALISE_ELEMENT(uint32_t, b, buf);
+  SERIALISE_ELEMENT(GLenum, m, mode);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glBlendEquationi(b, m);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBlendEquationi(GLuint buf, GLenum mode)
+{
+  m_Real.glBlendEquationi(buf, mode);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BLEND_EQI);
+    Serialise_glBlendEquationi(buf, mode);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
+{
+  SERIALISE_ELEMENT(GLenum, m1, modeRGB);
+  SERIALISE_ELEMENT(GLenum, m2, modeAlpha);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glBlendEquationSeparate(m1, m2);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBlendEquationSeparate(GLenum modeRGB, GLenum modeAlpha)
+{
+  m_Real.glBlendEquationSeparate(modeRGB, modeAlpha);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BLEND_EQ_SEP);
+    Serialise_glBlendEquationSeparate(modeRGB, modeAlpha);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
+{
+  SERIALISE_ELEMENT(uint32_t, b, buf);
+  SERIALISE_ELEMENT(GLenum, m1, modeRGB);
+  SERIALISE_ELEMENT(GLenum, m2, modeAlpha);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glBlendEquationSeparatei(b, m1, m2);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum modeAlpha)
+{
+  m_Real.glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BLEND_EQ_SEPI);
+    Serialise_glBlendEquationSeparatei(buf, modeRGB, modeAlpha);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glBlendBarrierKHR()
+{
+  if(m_State <= EXECUTING)
+    m_Real.glBlendBarrierKHR();
+
+  return true;
+}
+
+void WrappedGLES::glBlendBarrierKHR()
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glBlendBarrierKHR();
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BLEND_BARRIER);
+    Serialise_glBlendBarrierKHR();
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glStencilFunc(GLenum func, GLint ref, GLuint mask)
+{
+  SERIALISE_ELEMENT(GLenum, f, func);
+  SERIALISE_ELEMENT(int32_t, Ref, ref);
+  SERIALISE_ELEMENT(uint32_t, Mask, mask);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glStencilFunc(f, Ref, Mask);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glStencilFunc(GLenum func, GLint ref, GLuint mask)
+{
+  m_Real.glStencilFunc(func, ref, mask);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(STENCIL_FUNC);
+    Serialise_glStencilFunc(func, ref, mask);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glStencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
+{
+  SERIALISE_ELEMENT(GLenum, Face, face);
+  SERIALISE_ELEMENT(GLenum, f, func);
+  SERIALISE_ELEMENT(int32_t, Ref, ref);
+  SERIALISE_ELEMENT(uint32_t, Mask, mask);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glStencilFuncSeparate(Face, f, Ref, Mask);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glStencilFuncSeparate(GLenum face, GLenum func, GLint ref, GLuint mask)
+{
+  m_Real.glStencilFuncSeparate(face, func, ref, mask);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(STENCIL_FUNC_SEP);
+    Serialise_glStencilFuncSeparate(face, func, ref, mask);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
 
 bool WrappedGLES::Serialise_glStencilMask(GLuint mask)
 {
@@ -427,33 +402,33 @@ void WrappedGLES::glStencilMaskSeparate(GLenum face, GLuint mask)
   }
 }
 
-//bool WrappedGLES::Serialise_glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
-//{
-//  SERIALISE_ELEMENT(GLenum, f, fail);
-//  SERIALISE_ELEMENT(GLenum, zf, zfail);
-//  SERIALISE_ELEMENT(GLenum, p, zpass);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glStencilOp(f, zf, p);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
-//{
-//  m_Real.glStencilOp(fail, zfail, zpass);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(STENCIL_OP);
-//    Serialise_glStencilOp(fail, zfail, zpass);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
+{
+  SERIALISE_ELEMENT(GLenum, f, fail);
+  SERIALISE_ELEMENT(GLenum, zf, zfail);
+  SERIALISE_ELEMENT(GLenum, p, zpass);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glStencilOp(f, zf, p);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glStencilOp(GLenum fail, GLenum zfail, GLenum zpass)
+{
+  m_Real.glStencilOp(fail, zfail, zpass);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(STENCIL_OP);
+    Serialise_glStencilOp(fail, zfail, zpass);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
 bool WrappedGLES::Serialise_glStencilOpSeparate(GLenum face, GLenum sfail, GLenum dpfail,
                                                   GLenum dppass)
 {
@@ -510,69 +485,56 @@ void WrappedGLES::glClearColor(GLclampf red, GLclampf green, GLclampf blue, GLcl
     m_ContextRecord->AddChunk(scope.Get());
   }
 }
-//
-//bool WrappedGLES::Serialise_glClearStencil(GLint stencil)
-//{
-//  SERIALISE_ELEMENT(uint32_t, s, (uint32_t)stencil);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glClearStencil((GLint)s);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glClearStencil(GLint stencil)
-//{
-//  m_Real.glClearStencil(stencil);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(CLEAR_STENCIL);
-//    Serialise_glClearStencil(stencil);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glClearDepth(GLdouble depth)
-//{
-//  SERIALISE_ELEMENT(double, d, depth);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glClearDepth(d);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glClearDepth(GLdouble depth)
-//{
-//  m_Real.glClearDepth(depth);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(CLEAR_DEPTH);
-//    Serialise_glClearDepth(depth);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//void WrappedGLES::glClearDepthf(GLfloat depth)
-//{
-//  m_Real.glClearDepthf(depth);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(CLEAR_DEPTH);
-//    Serialise_glClearDepth(depth);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
+
+bool WrappedGLES::Serialise_glClearStencil(GLint stencil)
+{
+  SERIALISE_ELEMENT(uint32_t, s, (uint32_t)stencil);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glClearStencil((GLint)s);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glClearStencil(GLint stencil)
+{
+  m_Real.glClearStencil(stencil);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(CLEAR_STENCIL);
+    Serialise_glClearStencil(stencil);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glClearDepthf(GLfloat depth)
+{
+  SERIALISE_ELEMENT(float, d, depth);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glClearDepthf(d);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glClearDepthf(GLfloat depth)
+{
+  m_Real.glClearDepthf(depth);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(CLEAR_DEPTH);
+    Serialise_glClearDepthf(depth);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
 
 bool WrappedGLES::Serialise_glDepthFunc(GLenum func)
 {
@@ -624,209 +586,83 @@ void WrappedGLES::glDepthMask(GLboolean flag)
   }
 }
 
-//bool WrappedGLES::Serialise_glDepthRange(GLdouble nearVal, GLdouble farVal)
-//{
-//  SERIALISE_ELEMENT(GLdouble, n, nearVal);
-//  SERIALISE_ELEMENT(GLdouble, f, farVal);
-//
-//  if(m_State <= EXECUTING)
-//    m_Real.glDepthRange(n, f);
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDepthRange(GLdouble nearVal, GLdouble farVal)
-//{
-//  m_Real.glDepthRange(nearVal, farVal);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DEPTH_RANGE);
-//    Serialise_glDepthRange(nearVal, farVal);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glDepthRangef(GLfloat nearVal, GLfloat farVal)
-//{
-//  SERIALISE_ELEMENT(GLfloat, n, nearVal);
-//  SERIALISE_ELEMENT(GLfloat, f, farVal);
-//
-//  if(m_State <= EXECUTING)
-//    m_Real.glDepthRangef(n, f);
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDepthRangef(GLfloat nearVal, GLfloat farVal)
-//{
-//  m_Real.glDepthRangef(nearVal, farVal);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DEPTH_RANGEF);
-//    Serialise_glDepthRangef(nearVal, farVal);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glDepthRangeIndexed(GLuint index, GLdouble nearVal, GLdouble farVal)
-//{
-//  SERIALISE_ELEMENT(GLuint, i, index);
-//  SERIALISE_ELEMENT(GLdouble, n, nearVal);
-//  SERIALISE_ELEMENT(GLdouble, f, farVal);
-//
-//  if(m_State <= EXECUTING)
-//    m_Real.glDepthRangeIndexed(i, n, f);
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDepthRangeIndexed(GLuint index, GLdouble nearVal, GLdouble farVal)
-//{
-//  m_Real.glDepthRangeIndexed(index, nearVal, farVal);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DEPTH_RANGE_IDX);
-//    Serialise_glDepthRangeIndexed(index, nearVal, farVal);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glDepthRangeArrayv(GLuint first, GLsizei count, const GLdouble *v)
-//{
-//  SERIALISE_ELEMENT(uint32_t, idx, first);
-//  SERIALISE_ELEMENT(uint32_t, cnt, count);
-//  SERIALISE_ELEMENT_ARR(GLdouble, ranges, v, cnt * 2);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glDepthRangeArrayv(idx, cnt, ranges);
-//  }
-//
-//  delete[] ranges;
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDepthRangeArrayv(GLuint first, GLsizei count, const GLdouble *v)
-//{
-//  m_Real.glDepthRangeArrayv(first, count, v);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DEPTH_RANGEARRAY);
-//    Serialise_glDepthRangeArrayv(first, count, v);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glDepthBoundsEXT(GLclampd nearVal, GLclampd farVal)
-//{
-//  SERIALISE_ELEMENT(GLdouble, n, nearVal);
-//  SERIALISE_ELEMENT(GLdouble, f, farVal);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glDepthBoundsEXT(n, f);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDepthBoundsEXT(GLclampd nearVal, GLclampd farVal)
-//{
-//  m_Real.glDepthBoundsEXT(nearVal, farVal);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DEPTH_BOUNDS);
-//    Serialise_glDepthBoundsEXT(nearVal, farVal);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glClipControl(GLenum origin, GLenum depth)
-//{
-//  SERIALISE_ELEMENT(GLenum, o, origin);
-//  SERIALISE_ELEMENT(GLenum, d, depth);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glClipControl(o, d);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glClipControl(GLenum origin, GLenum depth)
-//{
-//  m_Real.glClipControl(origin, depth);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(CLIP_CONTROL);
-//    Serialise_glClipControl(origin, depth);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glProvokingVertex(GLenum mode)
-//{
-//  SERIALISE_ELEMENT(GLenum, m, mode);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glProvokingVertex(m);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glProvokingVertex(GLenum mode)
-//{
-//  m_Real.glProvokingVertex(mode);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(PROVOKING_VERTEX);
-//    Serialise_glProvokingVertex(mode);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glPrimitiveRestartIndex(GLuint index)
-//{
-//  SERIALISE_ELEMENT(GLuint, i, index);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glPrimitiveRestartIndex(i);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glPrimitiveRestartIndex(GLuint index)
-//{
-//  m_Real.glPrimitiveRestartIndex(index);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(PRIMITIVE_RESTART);
-//    Serialise_glPrimitiveRestartIndex(index);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
+bool WrappedGLES::Serialise_glDepthRangef(GLfloat nearVal, GLfloat farVal)
+{
+  SERIALISE_ELEMENT(GLfloat, n, nearVal);
+  SERIALISE_ELEMENT(GLfloat, f, farVal);
+
+  if(m_State <= EXECUTING)
+    m_Real.glDepthRangef(n, f);
+
+  return true;
+}
+
+void WrappedGLES::glDepthRangef(GLfloat nearVal, GLfloat farVal)
+{
+  m_Real.glDepthRangef(nearVal, farVal);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DEPTH_RANGEF);
+    Serialise_glDepthRangef(nearVal, farVal);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glDepthRangeIndexedfNV(GLuint index, GLfloat nearVal, GLfloat farVal)
+{
+  SERIALISE_ELEMENT(GLuint, i, index);
+  SERIALISE_ELEMENT(GLfloat, n, nearVal);
+  SERIALISE_ELEMENT(GLfloat, f, farVal);
+
+  if(m_State <= EXECUTING)
+    m_Real.glDepthRangeIndexedfNV(i, n, f);
+
+  return true;
+}
+
+void WrappedGLES::glDepthRangeIndexedfNV(GLuint index, GLfloat nearVal, GLfloat farVal)
+{
+  m_Real.glDepthRangeIndexedfNV(index, nearVal, farVal);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DEPTH_RANGE_IDX);
+    Serialise_glDepthRangeIndexedfNV(index, nearVal, farVal);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glDepthRangeArrayfvNV(GLuint first, GLsizei count, const GLfloat *v)
+{
+  SERIALISE_ELEMENT(uint32_t, idx, first);
+  SERIALISE_ELEMENT(uint32_t, cnt, count);
+  SERIALISE_ELEMENT_ARR(GLfloat, ranges, v, cnt * 2);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glDepthRangeArrayfvNV(idx, cnt, ranges);
+  }
+
+  delete[] ranges;
+
+  return true;
+}
+
+void WrappedGLES::glDepthRangeArrayfvNV(GLuint first, GLsizei count, const GLfloat *v)
+{
+  m_Real.glDepthRangeArrayfvNV(first, count, v);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DEPTH_RANGEARRAY);
+    Serialise_glDepthRangeArrayfvNV(first, count, v);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
 
 bool WrappedGLES::Serialise_glDisable(GLenum cap)
 {
@@ -915,32 +751,32 @@ void WrappedGLES::glDisablei(GLenum cap, GLuint index)
   }
 }
 
-//bool WrappedGLES::Serialise_glEnablei(GLenum cap, GLuint index)
-//{
-//  SERIALISE_ELEMENT(GLenum, c, cap);
-//  SERIALISE_ELEMENT(uint32_t, i, index);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glEnablei(c, i);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glEnablei(GLenum cap, GLuint index)
-//{
-//  m_Real.glEnablei(cap, index);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(ENABLEI);
-//    Serialise_glEnablei(cap, index);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glEnablei(GLenum cap, GLuint index)
+{
+  SERIALISE_ELEMENT(GLenum, c, cap);
+  SERIALISE_ELEMENT(uint32_t, i, index);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glEnablei(c, i);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glEnablei(GLenum cap, GLuint index)
+{
+  m_Real.glEnablei(cap, index);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(ENABLEI);
+    Serialise_glEnablei(cap, index);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
 bool WrappedGLES::Serialise_glFrontFace(GLenum mode)
 {
   SERIALISE_ELEMENT(GLenum, m, mode);
@@ -966,56 +802,56 @@ void WrappedGLES::glFrontFace(GLenum mode)
   }
 }
 
-//bool WrappedGLES::Serialise_glCullFace(GLenum mode)
-//{
-//  SERIALISE_ELEMENT(GLenum, m, mode);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glCullFace(m);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glCullFace(GLenum mode)
-//{
-//  m_Real.glCullFace(mode);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(CULL_FACE);
-//    Serialise_glCullFace(mode);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glHint(GLenum target, GLenum mode)
-//{
-//  SERIALISE_ELEMENT(GLenum, t, target);
-//  SERIALISE_ELEMENT(GLenum, m, mode);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glHint(t, m);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glHint(GLenum target, GLenum mode)
-//{
-//  m_Real.glHint(target, mode);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(HINT);
-//    Serialise_glHint(target, mode);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
+bool WrappedGLES::Serialise_glCullFace(GLenum mode)
+{
+  SERIALISE_ELEMENT(GLenum, m, mode);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glCullFace(m);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glCullFace(GLenum mode)
+{
+  m_Real.glCullFace(mode);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(CULL_FACE);
+    Serialise_glCullFace(mode);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glHint(GLenum target, GLenum mode)
+{
+  SERIALISE_ELEMENT(GLenum, t, target);
+  SERIALISE_ELEMENT(GLenum, m, mode);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glHint(t, m);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glHint(GLenum target, GLenum mode)
+{
+  m_Real.glHint(target, mode);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(HINT);
+    Serialise_glHint(target, mode);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
 
 bool WrappedGLES::Serialise_glColorMask(GLboolean red, GLboolean green, GLboolean blue,
                                           GLboolean alpha)
@@ -1046,63 +882,63 @@ void WrappedGLES::glColorMask(GLboolean red, GLboolean green, GLboolean blue, GL
   }
 }
 
-//bool WrappedGLES::Serialise_glColorMaski(GLuint buf, GLboolean red, GLboolean green,
-//                                           GLboolean blue, GLboolean alpha)
-//{
-//  SERIALISE_ELEMENT(uint32_t, buffer, buf);
-//  SERIALISE_ELEMENT(uint8_t, r, red);
-//  SERIALISE_ELEMENT(uint8_t, g, green);
-//  SERIALISE_ELEMENT(uint8_t, b, blue);
-//  SERIALISE_ELEMENT(uint8_t, a, alpha);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glColorMaski(buffer, r, g, b, a);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glColorMaski(GLuint buf, GLboolean red, GLboolean green, GLboolean blue,
-//                                 GLboolean alpha)
-//{
-//  m_Real.glColorMaski(buf, red, green, blue, alpha);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(COLOR_MASKI);
-//    Serialise_glColorMaski(buf, red, green, blue, alpha);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glSampleMaski(GLuint maskNumber, GLbitfield mask)
-//{
-//  SERIALISE_ELEMENT(uint32_t, num, maskNumber);
-//  SERIALISE_ELEMENT(uint32_t, Mask, mask);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glSampleMaski(num, Mask);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glSampleMaski(GLuint maskNumber, GLbitfield mask)
-//{
-//  m_Real.glSampleMaski(maskNumber, mask);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(SAMPLE_MASK);
-//    Serialise_glSampleMaski(maskNumber, mask);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glColorMaski(GLuint buf, GLboolean red, GLboolean green,
+                                           GLboolean blue, GLboolean alpha)
+{
+  SERIALISE_ELEMENT(uint32_t, buffer, buf);
+  SERIALISE_ELEMENT(uint8_t, r, red);
+  SERIALISE_ELEMENT(uint8_t, g, green);
+  SERIALISE_ELEMENT(uint8_t, b, blue);
+  SERIALISE_ELEMENT(uint8_t, a, alpha);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glColorMaski(buffer, r, g, b, a);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glColorMaski(GLuint buf, GLboolean red, GLboolean green, GLboolean blue,
+                                 GLboolean alpha)
+{
+  m_Real.glColorMaski(buf, red, green, blue, alpha);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(COLOR_MASKI);
+    Serialise_glColorMaski(buf, red, green, blue, alpha);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glSampleMaski(GLuint maskNumber, GLbitfield mask)
+{
+  SERIALISE_ELEMENT(uint32_t, num, maskNumber);
+  SERIALISE_ELEMENT(uint32_t, Mask, mask);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glSampleMaski(num, Mask);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glSampleMaski(GLuint maskNumber, GLbitfield mask)
+{
+  m_Real.glSampleMaski(maskNumber, mask);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(SAMPLE_MASK);
+    Serialise_glSampleMaski(maskNumber, mask);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
 bool WrappedGLES::Serialise_glSampleCoverage(GLfloat value, GLboolean invert)
 {
   SERIALISE_ELEMENT(float, Value, value);
@@ -1129,282 +965,107 @@ void WrappedGLES::glSampleCoverage(GLfloat value, GLboolean invert)
   }
 }
 
-//bool WrappedGLES::Serialise_glMinSampleShading(GLfloat value)
-//{
-//  SERIALISE_ELEMENT(float, Value, value);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glMinSampleShading(Value);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glMinSampleShading(GLfloat value)
-//{
-//  m_Real.glMinSampleShading(value);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(MIN_SAMPLE_SHADING);
-//    Serialise_glMinSampleShading(value);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glRasterSamplesEXT(GLuint samples, GLboolean fixedsamplelocations)
-//{
-//  SERIALISE_ELEMENT(uint32_t, s, samples);
-//  SERIALISE_ELEMENT(bool, f, fixedsamplelocations != 0);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glRasterSamplesEXT(s, f);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glRasterSamplesEXT(GLuint samples, GLboolean fixedsamplelocations)
-//{
-//  m_Real.glRasterSamplesEXT(samples, fixedsamplelocations);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(RASTER_SAMPLES);
-//    Serialise_glRasterSamplesEXT(samples, fixedsamplelocations);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glPatchParameteri(GLenum pname, GLint value)
-//{
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//  SERIALISE_ELEMENT(int32_t, Value, value);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glPatchParameteri(PName, Value);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glPatchParameteri(GLenum pname, GLint value)
-//{
-//  m_Real.glPatchParameteri(pname, value);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(PATCH_PARAMI);
-//    Serialise_glPatchParameteri(pname, value);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glPatchParameterfv(GLenum pname, const GLfloat *values)
-//{
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//  const size_t nParams = (PName == eGL_PATCH_DEFAULT_OUTER_LEVEL ? 4U : 2U);
-//  SERIALISE_ELEMENT_ARR(float, Values, values, nParams);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glPatchParameterfv(PName, Values);
-//  }
-//
-//  delete[] Values;
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glPatchParameterfv(GLenum pname, const GLfloat *values)
-//{
-//  m_Real.glPatchParameterfv(pname, values);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(PATCH_PARAMFV);
-//    Serialise_glPatchParameterfv(pname, values);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glLineWidth(GLfloat width)
-//{
-//  SERIALISE_ELEMENT(GLfloat, w, width);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glLineWidth(w);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glLineWidth(GLfloat width)
-//{
-//  m_Real.glLineWidth(width);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(LINE_WIDTH);
-//    Serialise_glLineWidth(width);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glPointSize(GLfloat size)
-//{
-//  SERIALISE_ELEMENT(GLfloat, s, size);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glPointSize(s);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glPointSize(GLfloat size)
-//{
-//  m_Real.glPointSize(size);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(POINT_SIZE);
-//    Serialise_glPointSize(size);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glPointParameteri(GLenum pname, GLint param)
-//{
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//
-//  int32_t ParamValue = 0;
-//
-//  RDCCOMPILE_ASSERT(sizeof(int32_t) == sizeof(GLenum),
-//                    "int32_t isn't the same size as GLenum - aliased serialising will break");
-//  // special case a few parameters to serialise their value as an enum, not an int
-//  if(PName == GL_POINT_SPRITE_COORD_ORIGIN)
-//  {
-//    SERIALISE_ELEMENT(GLenum, Param, (GLenum)param);
-//
-//    ParamValue = (int32_t)Param;
-//  }
-//  else
-//  {
-//    SERIALISE_ELEMENT(int32_t, Param, param);
-//
-//    ParamValue = Param;
-//  }
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glPointParameteri(PName, ParamValue);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glPointParameteri(GLenum pname, GLint param)
-//{
-//  m_Real.glPointParameteri(pname, param);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(POINT_PARAMI);
-//    Serialise_glPointParameteri(pname, param);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glPointParameteriv(GLenum pname, const GLint *params)
-//{
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//  SERIALISE_ELEMENT(int32_t, Param, *params);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glPointParameteriv(PName, &Param);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glPointParameteriv(GLenum pname, const GLint *params)
-//{
-//  m_Real.glPointParameteriv(pname, params);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(POINT_PARAMIV);
-//    Serialise_glPointParameteriv(pname, params);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glPointParameterf(GLenum pname, GLfloat param)
-//{
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//  SERIALISE_ELEMENT(float, Param, param);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glPointParameterf(PName, Param);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glPointParameterf(GLenum pname, GLfloat param)
-//{
-//  m_Real.glPointParameterf(pname, param);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(POINT_PARAMF);
-//    Serialise_glPointParameterf(pname, param);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glPointParameterfv(GLenum pname, const GLfloat *params)
-//{
-//  SERIALISE_ELEMENT(GLenum, PName, pname);
-//  SERIALISE_ELEMENT(float, Param, *params);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glPointParameterfv(PName, &Param);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glPointParameterfv(GLenum pname, const GLfloat *params)
-//{
-//  m_Real.glPointParameterfv(pname, params);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(POINT_PARAMFV);
-//    Serialise_glPointParameterfv(pname, params);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
+bool WrappedGLES::Serialise_glMinSampleShading(GLfloat value)
+{
+  SERIALISE_ELEMENT(float, Value, value);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glMinSampleShading(Value);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glMinSampleShading(GLfloat value)
+{
+  m_Real.glMinSampleShading(value);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(MIN_SAMPLE_SHADING);
+    Serialise_glMinSampleShading(value);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glRasterSamplesEXT(GLuint samples, GLboolean fixedsamplelocations)
+{
+  SERIALISE_ELEMENT(uint32_t, s, samples);
+  SERIALISE_ELEMENT(bool, f, fixedsamplelocations != 0);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glRasterSamplesEXT(s, f);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glRasterSamplesEXT(GLuint samples, GLboolean fixedsamplelocations)
+{
+  m_Real.glRasterSamplesEXT(samples, fixedsamplelocations);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(RASTER_SAMPLES);
+    Serialise_glRasterSamplesEXT(samples, fixedsamplelocations);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glPatchParameteri(GLenum pname, GLint value)
+{
+  SERIALISE_ELEMENT(GLenum, PName, pname);
+  SERIALISE_ELEMENT(int32_t, Value, value);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glPatchParameteri(PName, Value);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glPatchParameteri(GLenum pname, GLint value)
+{
+  m_Real.glPatchParameteri(pname, value);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(PATCH_PARAMI);
+    Serialise_glPatchParameteri(pname, value);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glLineWidth(GLfloat width)
+{
+  SERIALISE_ELEMENT(GLfloat, w, width);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glLineWidth(w);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glLineWidth(GLfloat width)
+{
+  m_Real.glLineWidth(width);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(LINE_WIDTH);
+    Serialise_glLineWidth(width);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
 
 bool WrappedGLES::Serialise_glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
 {
@@ -1469,80 +1130,80 @@ void WrappedGLES::glViewportIndexedfOES(GLuint index, GLfloat x, GLfloat y, GLfl
   glViewportArrayvOES(index, 1, v);
 }
 
-//void WrappedGLES::glViewportIndexedfv(GLuint index, const GLfloat *v)
-//{
-//  glViewportArrayv(index, 1, v);
-//}
-//
-//bool WrappedGLES::Serialise_glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
-//{
-//  SERIALISE_ELEMENT(int32_t, X, x);
-//  SERIALISE_ELEMENT(int32_t, Y, y);
-//  SERIALISE_ELEMENT(uint32_t, W, width);
-//  SERIALISE_ELEMENT(uint32_t, H, height);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glScissor(X, Y, W, H);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
-//{
-//  m_Real.glScissor(x, y, width, height);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(SCISSOR);
-//    Serialise_glScissor(x, y, width, height);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glScissorArrayv(GLuint index, GLsizei count, const GLint *v)
-//{
-//  SERIALISE_ELEMENT(uint32_t, idx, index);
-//  SERIALISE_ELEMENT(uint32_t, cnt, count);
-//  SERIALISE_ELEMENT_ARR(GLint, scissors, v, cnt * 4);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glScissorArrayv(idx, cnt, scissors);
-//  }
-//
-//  delete[] scissors;
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glScissorArrayv(GLuint first, GLsizei count, const GLint *v)
-//{
-//  m_Real.glScissorArrayv(first, count, v);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(SCISSOR_ARRAY);
-//    Serialise_glScissorArrayv(first, count, v);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//void WrappedGLES::glScissorIndexed(GLuint index, GLint left, GLint bottom, GLsizei width,
-//                                     GLsizei height)
-//{
-//  const GLint v[4] = {left, bottom, width, height};
-//  glScissorArrayv(index, 1, v);
-//}
-//
-//void WrappedGLES::glScissorIndexedv(GLuint index, const GLint *v)
-//{
-//  glScissorArrayv(index, 1, v);
-//}
-//
+void WrappedGLES::glViewportIndexedfvOES(GLuint index, const GLfloat *v)
+{
+  glViewportArrayvOES(index, 1, v);
+}
+
+bool WrappedGLES::Serialise_glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
+{
+  SERIALISE_ELEMENT(int32_t, X, x);
+  SERIALISE_ELEMENT(int32_t, Y, y);
+  SERIALISE_ELEMENT(uint32_t, W, width);
+  SERIALISE_ELEMENT(uint32_t, H, height);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glScissor(X, Y, W, H);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
+{
+  m_Real.glScissor(x, y, width, height);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(SCISSOR);
+    Serialise_glScissor(x, y, width, height);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glScissorArrayvNV(GLuint index, GLsizei count, const GLint *v)
+{
+  SERIALISE_ELEMENT(uint32_t, idx, index);
+  SERIALISE_ELEMENT(uint32_t, cnt, count);
+  SERIALISE_ELEMENT_ARR(GLint, scissors, v, cnt * 4);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glScissorArrayvNV(idx, cnt, scissors);
+  }
+
+  delete[] scissors;
+
+  return true;
+}
+
+void WrappedGLES::glScissorArrayvNV(GLuint first, GLsizei count, const GLint *v)
+{
+  m_Real.glScissorArrayvNV(first, count, v);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(SCISSOR_ARRAY);
+    Serialise_glScissorArrayvNV(first, count, v);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+void WrappedGLES::glScissorIndexedNV(GLuint index, GLint left, GLint bottom, GLsizei width,
+                                     GLsizei height)
+{
+  const GLint v[4] = {left, bottom, width, height};
+  glScissorArrayvNV(index, 1, v);
+}
+
+void WrappedGLES::glScissorIndexedvNV(GLuint index, const GLint *v)
+{
+  glScissorArrayvNV(index, 1, v);
+}
+
 bool WrappedGLES::Serialise_glPolygonModeNV(GLenum face, GLenum mode)
 {
   SERIALISE_ELEMENT(GLenum, f, face);
@@ -1568,56 +1229,56 @@ void WrappedGLES::glPolygonModeNV(GLenum face, GLenum mode)
     m_ContextRecord->AddChunk(scope.Get());
   }
 }
-//
-//bool WrappedGLES::Serialise_glPolygonOffset(GLfloat factor, GLfloat units)
-//{
-//  SERIALISE_ELEMENT(float, f, factor);
-//  SERIALISE_ELEMENT(float, u, units);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glPolygonOffset(f, u);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glPolygonOffset(GLfloat factor, GLfloat units)
-//{
-//  m_Real.glPolygonOffset(factor, units);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(POLYGON_OFFSET);
-//    Serialise_glPolygonOffset(factor, units);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glPolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat clamp)
-//{
-//  SERIALISE_ELEMENT(float, f, factor);
-//  SERIALISE_ELEMENT(float, u, units);
-//  SERIALISE_ELEMENT(float, c, clamp);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glPolygonOffsetClampEXT(f, u, c);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glPolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat clamp)
-//{
-//  m_Real.glPolygonOffsetClampEXT(factor, units, clamp);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(POLYGON_OFFSET_CLAMP);
-//    Serialise_glPolygonOffsetClampEXT(factor, units, clamp);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
+
+bool WrappedGLES::Serialise_glPolygonOffset(GLfloat factor, GLfloat units)
+{
+  SERIALISE_ELEMENT(float, f, factor);
+  SERIALISE_ELEMENT(float, u, units);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glPolygonOffset(f, u);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glPolygonOffset(GLfloat factor, GLfloat units)
+{
+  m_Real.glPolygonOffset(factor, units);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(POLYGON_OFFSET);
+    Serialise_glPolygonOffset(factor, units);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glPolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat clamp)
+{
+  SERIALISE_ELEMENT(float, f, factor);
+  SERIALISE_ELEMENT(float, u, units);
+  SERIALISE_ELEMENT(float, c, clamp);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glPolygonOffsetClampEXT(f, u, c);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glPolygonOffsetClampEXT(GLfloat factor, GLfloat units, GLfloat clamp)
+{
+  m_Real.glPolygonOffsetClampEXT(factor, units, clamp);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(POLYGON_OFFSET_CLAMP);
+    Serialise_glPolygonOffsetClampEXT(factor, units, clamp);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
