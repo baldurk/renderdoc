@@ -100,7 +100,8 @@ SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     Widgets/ResourcePreview.cpp \
     Widgets/ThumbnailStrip.cpp \
     Widgets/TextureGoto.cpp \
-    Widgets/RangeHistogram.cpp
+    Widgets/RangeHistogram.cpp \
+    Windows/Dialogs/TextureSaveDialog.cpp
 
 HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
@@ -122,14 +123,16 @@ HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     Widgets/ResourcePreview.h \
     Widgets/ThumbnailStrip.h \
     Widgets/TextureGoto.h \
-    Widgets/RangeHistogram.h
+    Widgets/RangeHistogram.h \
+    Windows/Dialogs/TextureSaveDialog.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
     Windows/EventBrowser.ui \
     Windows/TextureViewer.ui \
     Widgets/ResourcePreview.ui \
-    Widgets/ThumbnailStrip.ui
+    Widgets/ThumbnailStrip.ui \
+    Windows/Dialogs/TextureSaveDialog.ui
 
 RESOURCES += \
     resources.qrc

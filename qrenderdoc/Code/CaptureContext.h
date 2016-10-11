@@ -54,6 +54,15 @@ struct ILogLoadProgressListener
 
 class MainWindow;
 
+struct Formatter
+{
+  static QString Format(float f) { return QString::number(f); }
+  static QString Format(double d) { return QString::number(d); }
+  static QString Format(uint32_t u) { return QString::number(u); }
+  static QString Format(uint16_t u) { return QString::number(u); }
+  static QString Format(int32_t i) { return QString::number(i); }
+};
+
 class CaptureContext
 {
 public:
@@ -258,7 +267,7 @@ class QMenu;
 struct RDDialog
 {
   static void show(QMenu *menu, QPoint pos);
-  static void show(QDialog *dialog);
+  static int show(QDialog *dialog);
   static QMessageBox::StandardButton messageBox(
       QMessageBox::Icon, QWidget *parent, const QString &title, const QString &text,
       QMessageBox::StandardButtons buttons = QMessageBox::Ok,

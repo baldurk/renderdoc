@@ -295,7 +295,7 @@ void RDDialog::show(QMenu *menu, QPoint pos)
   }
 }
 
-void RDDialog::show(QDialog *dialog)
+int RDDialog::show(QDialog *dialog)
 {
   dialog->setWindowModality(Qt::ApplicationModal);
   dialog->show();
@@ -305,6 +305,8 @@ void RDDialog::show(QDialog *dialog)
     loop.processEvents(QEventLoop::WaitForMoreEvents);
     QCoreApplication::sendPostedEvents();
   }
+
+  return dialog->result();
 }
 
 QMessageBox::StandardButton RDDialog::messageBox(QMessageBox::Icon icon, QWidget *parent,

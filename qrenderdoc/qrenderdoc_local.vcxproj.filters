@@ -163,6 +163,12 @@
     <ClCompile Include="Windows\Dialogs\AboutDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\Dialogs\TextureSaveDialog.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_TextureSaveDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -233,6 +239,12 @@
     </ClInclude>
     <ClInclude Include="Windows\Dialogs\AboutDialog.h">
       <Filter>Windows\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\Dialogs\TextureSaveDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_TextureSaveDialog.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -431,6 +443,12 @@
     </None>
     <None Include="Widgets\ThumbnailStrip.ui">
       <Filter>Widgets</Filter>
+    </None>
+    <None Include="Windows\Dialogs\AboutDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </None>
+    <None Include="Windows\Dialogs\TextureSaveDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

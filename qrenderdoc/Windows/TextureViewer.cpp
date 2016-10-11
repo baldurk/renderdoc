@@ -31,19 +31,12 @@
 #include <QStyledItemDelegate>
 #include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Code/CaptureContext.h"
+#include "Dialogs/TextureSaveDialog.h"
 #include "Widgets/ResourcePreview.h"
 #include "Widgets/TextureGoto.h"
 #include "FlowLayout.h"
 #include "ui_TextureViewer.h"
 
-struct Formatter
-{
-  static QString Format(float f) { return QString::number(f); }
-  static QString Format(double d) { return QString::number(d); }
-  static QString Format(uint32_t u) { return QString::number(u); }
-  static QString Format(uint16_t u) { return QString::number(u); }
-  static QString Format(int32_t i) { return QString::number(i); }
-};
 
 float area(const QSizeF &s)
 {
@@ -3118,6 +3111,69 @@ void TextureViewer::on_viewTexBuffer_clicked()
 
 void TextureViewer::on_saveTex_clicked()
 {
+  FetchTexture *texptr = GetCurrentTexture();
+
+  if(!texptr || !m_Output)
+    return;
+
+  TextureSave config = {};
+
+  config.id = m_TexDisplay.texid;
+  config.typeHint = m_TexDisplay.typeHint;
+  config.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
+  config.mip = (int)m_TexDisplay.mip;
+
+  if(texptr->depth > 1)
+    config.slice.sliceIndex = (int)m_TexDisplay.sliceFace >> (int)m_TexDisplay.mip;
+
+  config.channelExtract = -1;
+  if(m_TexDisplay.Red && !m_TexDisplay.Green && !m_TexDisplay.Blue && !m_TexDisplay.Alpha)
+    config.channelExtract = 0;
+  if(!m_TexDisplay.Red && m_TexDisplay.Green && !m_TexDisplay.Blue && !m_TexDisplay.Alpha)
+    config.channelExtract = 1;
+  if(!m_TexDisplay.Red && !m_TexDisplay.Green && m_TexDisplay.Blue && !m_TexDisplay.Alpha)
+    config.channelExtract = 2;
+  if(!m_TexDisplay.Red && !m_TexDisplay.Green && !m_TexDisplay.Blue && m_TexDisplay.Alpha)
+    config.channelExtract = 3;
+
+  config.comp.blackPoint = m_TexDisplay.rangemin;
+  config.comp.whitePoint = m_TexDisplay.rangemax;
+  config.alphaCol = m_TexDisplay.lightBackgroundColour;
+  config.alpha = m_TexDisplay.Alpha ? eAlphaMap_BlendToCheckerboard : eAlphaMap_Discard;
+  if(m_TexDisplay.Alpha && !ui->checkerBack->isChecked())
+    config.alpha = eAlphaMap_BlendToColour;
+
+  if(m_TexDisplay.CustomShader != ResourceId())
+  {
+    ResourceId id;
+    m_Ctx->Renderer()->BlockInvoke(
+        [this, &id](IReplayRenderer *r) { id = m_Output->GetCustomShaderTexID(); });
+
+    if(id != ResourceId())
+      config.id = id;
+  }
+
+  TextureSaveDialog saveDialog(*texptr, config, this);
+  int res = RDDialog::show(&saveDialog);
+
+  config = saveDialog.config();
+
+  if(res)
+  {
+    bool ret = false;
+    QString fn = saveDialog.filename();
+
+    m_Ctx->Renderer()->BlockInvoke([this, &ret, config, fn](IReplayRenderer *r) {
+      ret = r->SaveTexture(config, fn.toUtf8().data());
+    });
+
+    if(!ret)
+    {
+      RDDialog::critical(
+          NULL, tr("Error saving texture"),
+          tr("Error saving texture %1.\n\nCheck diagnostic log in Help menu for more details.").arg(fn));
+    }
+  }
 }
 
 void TextureViewer::on_texListShow_clicked()
