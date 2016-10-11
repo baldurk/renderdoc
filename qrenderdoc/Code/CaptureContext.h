@@ -235,7 +235,6 @@ public slots:
   {
     m_func();
     m_Thread->quit();
-    deleteLater();
     m_Thread->deleteLater();
     m_Thread = NULL;
   }

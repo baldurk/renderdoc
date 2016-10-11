@@ -94,8 +94,7 @@ void RenderManager::CloseThread()
   {
   }
 
-  // the thread deletes itself, don't delete here
-
+  m_Thread->deleteLater();
   m_Thread = NULL;
 }
 
