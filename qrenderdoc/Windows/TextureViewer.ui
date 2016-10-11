@@ -47,9 +47,9 @@
   <widget class="QFrame" name="rangeToolbar">
    <property name="geometry">
     <rect>
-     <x>20</x>
-     <y>190</y>
-     <width>255</width>
+     <x>10</x>
+     <y>120</y>
+     <width>558</width>
      <height>28</height>
     </rect>
    </property>
@@ -89,7 +89,7 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="rangeBlack">
+     <widget class="RDLineEdit" name="rangeBlack">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
         <horstretch>0</horstretch>
@@ -98,7 +98,7 @@
       </property>
       <property name="maximumSize">
        <size>
-        <width>50</width>
+        <width>100</width>
         <height>16777215</height>
        </size>
       </property>
@@ -108,7 +108,23 @@
      </widget>
     </item>
     <item>
-     <widget class="QLineEdit" name="rangeWhite">
+     <widget class="RangeHistogram" name="rangeHistogram" native="true">
+      <property name="minimumSize">
+       <size>
+        <width>200</width>
+        <height>0</height>
+       </size>
+      </property>
+      <property name="baseSize">
+       <size>
+        <width>0</width>
+        <height>0</height>
+       </size>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="RDLineEdit" name="rangeWhite">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
         <horstretch>0</horstretch>
@@ -117,7 +133,7 @@
       </property>
       <property name="maximumSize">
        <size>
-        <width>50</width>
+        <width>100</width>
         <height>16777215</height>
        </size>
       </property>
@@ -128,6 +144,12 @@
     </item>
     <item>
      <widget class="QToolButton" name="zoomRange">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="text">
        <string/>
       </property>
@@ -142,6 +164,12 @@
     </item>
     <item>
      <widget class="QToolButton" name="autoFit">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="text">
        <string/>
       </property>
@@ -156,6 +184,12 @@
     </item>
     <item>
      <widget class="QToolButton" name="reset01">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="text">
        <string>...</string>
       </property>
@@ -170,6 +204,12 @@
     </item>
     <item>
      <widget class="QToolButton" name="visualiseRange">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Fixed" vsizetype="MinimumExpanding">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="text">
        <string>...</string>
       </property>
@@ -190,8 +230,8 @@
   <widget class="QFrame" name="overlayToolbar">
    <property name="geometry">
     <rect>
-     <x>240</x>
-     <y>140</y>
+     <x>490</x>
+     <y>40</y>
      <width>129</width>
      <height>28</height>
     </rect>
@@ -243,8 +283,8 @@
   <widget class="QFrame" name="zoomToolbar">
    <property name="geometry">
     <rect>
-     <x>3</x>
-     <y>145</y>
+     <x>10</x>
+     <y>80</y>
      <width>221</width>
      <height>28</height>
     </rect>
@@ -885,8 +925,8 @@
   <widget class="QWidget" name="renderContainer" native="true">
    <property name="geometry">
     <rect>
-     <x>290</x>
-     <y>190</y>
+     <x>250</x>
+     <y>220</y>
      <width>291</width>
      <height>241</height>
     </rect>
@@ -1072,8 +1112,8 @@
   <widget class="ThumbnailStrip" name="inputThumbs" native="true">
    <property name="geometry">
     <rect>
-     <x>300</x>
-     <y>460</y>
+     <x>40</x>
+     <y>470</y>
      <width>120</width>
      <height>80</height>
     </rect>
@@ -1082,8 +1122,8 @@
   <widget class="ThumbnailStrip" name="outputThumbs" native="true">
    <property name="geometry">
     <rect>
-     <x>440</x>
-     <y>460</y>
+     <x>210</x>
+     <y>470</y>
      <width>120</width>
      <height>80</height>
     </rect>
@@ -1092,9 +1132,9 @@
   <widget class="QFrame" name="textureListFrame">
    <property name="geometry">
     <rect>
-     <x>480</x>
-     <y>60</y>
-     <width>274</width>
+     <x>550</x>
+     <y>210</y>
+     <width>221</width>
      <height>244</height>
     </rect>
    </property>
@@ -1203,9 +1243,20 @@
    <container>1</container>
   </customwidget>
   <customwidget>
+   <class>RDLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>Widgets/RDLineEdit.h</header>
+  </customwidget>
+  <customwidget>
    <class>RDListView</class>
    <extends>QListView</extends>
    <header>Widgets/RDListView.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RangeHistogram</class>
+   <extends>QWidget</extends>
+   <header>Widgets/RangeHistogram.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>

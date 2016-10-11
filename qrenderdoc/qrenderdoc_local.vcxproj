@@ -282,6 +282,7 @@
     <ClCompile Include="generated\moc_CaptureContext.cpp" />
     <ClCompile Include="generated\moc_CustomPaintWidget.cpp" />
     <ClCompile Include="generated\moc_EventBrowser.cpp" />
+    <ClCompile Include="generated\moc_RangeHistogram.cpp" />
     <ClCompile Include="generated\moc_RDDoubleSpinBox.cpp" />
     <ClCompile Include="generated\moc_RDLabel.cpp" />
     <ClCompile Include="generated\moc_RDLineEdit.cpp" />
@@ -295,6 +296,7 @@
     <ClCompile Include="generated\moc_ToolWindowManagerArea.cpp" />
     <ClCompile Include="generated\moc_ToolWindowManagerWrapper.cpp" />
     <ClCompile Include="generated\qrc_resources.cpp" />
+    <ClCompile Include="Widgets\RangeHistogram.cpp" />
     <ClCompile Include="Widgets\RDDoubleSpinBox.cpp" />
     <ClCompile Include="Widgets\RDLabel.cpp" />
     <ClCompile Include="Widgets\RDListView.cpp" />
@@ -332,6 +334,7 @@
     <ClInclude Include="generated\ui_ResourcePreview.h" />
     <ClInclude Include="generated\ui_TextureViewer.h" />
     <ClInclude Include="generated\ui_ThumbnailStrip.h" />
+    <ClInclude Include="Widgets\RangeHistogram.h" />
     <ClInclude Include="Widgets\RDDoubleSpinBox.h" />
     <ClInclude Include="Widgets\RDLabel.h" />
     <ClInclude Include="Widgets\RDListView.h" />

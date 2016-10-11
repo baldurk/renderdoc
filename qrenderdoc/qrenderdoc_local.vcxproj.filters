@@ -38,6 +38,9 @@
     <Filter Include="Widgets">
       <UniqueIdentifier>{633cf7bf-24ec-4927-835b-f6e96e21c288}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Widgets\Extended">
+      <UniqueIdentifier>{42a491e9-4e18-4220-8de2-e07b7cde26bc}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="generated\moc_EventBrowser.cpp">
@@ -100,9 +103,6 @@
     <ClCompile Include="Windows\EventBrowser.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
-    <ClCompile Include="Widgets\RDLineEdit.cpp">
-      <Filter>Widgets</Filter>
-    </ClCompile>
     <ClCompile Include="Code\RenderManager.cpp">
       <Filter>Code</Filter>
     </ClCompile>
@@ -111,9 +111,6 @@
     </ClCompile>
     <ClCompile Include="generated\moc_ResourcePreview.cpp">
       <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Widgets\RDLabel.cpp">
-      <Filter>Widgets</Filter>
     </ClCompile>
     <ClCompile Include="generated\moc_RDLabel.cpp">
       <Filter>Generated Files</Filter>
@@ -145,14 +142,26 @@
     <ClCompile Include="generated\moc_RDDoubleSpinBox.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
-    <ClCompile Include="Widgets\RDDoubleSpinBox.cpp">
-      <Filter>Widgets</Filter>
-    </ClCompile>
     <ClCompile Include="generated\moc_RDListView.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
-    <ClCompile Include="Widgets\RDListView.cpp">
+    <ClCompile Include="Widgets\RangeHistogram.cpp">
       <Filter>Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_RangeHistogram.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\RDDoubleSpinBox.cpp">
+      <Filter>Widgets\Extended</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\RDLabel.cpp">
+      <Filter>Widgets\Extended</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\RDLineEdit.cpp">
+      <Filter>Widgets\Extended</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\RDListView.cpp">
+      <Filter>Widgets\Extended</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -171,9 +180,6 @@
     <ClInclude Include="Windows\EventBrowser.h">
       <Filter>Windows</Filter>
     </ClInclude>
-    <ClInclude Include="Widgets\RDLineEdit.h">
-      <Filter>Widgets</Filter>
-    </ClInclude>
     <ClInclude Include="Windows\MainWindow.h">
       <Filter>Windows</Filter>
     </ClInclude>
@@ -190,9 +196,6 @@
       <Filter>3rdparty\ToolWindowManager</Filter>
     </ClInclude>
     <ClInclude Include="Widgets\ResourcePreview.h">
-      <Filter>Widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="Widgets\RDLabel.h">
       <Filter>Widgets</Filter>
     </ClInclude>
     <ClInclude Include="Widgets\ThumbnailStrip.h">
@@ -216,11 +219,20 @@
     <ClInclude Include="Widgets\TextureGoto.h">
       <Filter>Widgets</Filter>
     </ClInclude>
-    <ClInclude Include="Widgets\RDDoubleSpinBox.h">
+    <ClInclude Include="Widgets\RangeHistogram.h">
       <Filter>Widgets</Filter>
     </ClInclude>
+    <ClInclude Include="Widgets\RDDoubleSpinBox.h">
+      <Filter>Widgets\Extended</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\RDLabel.h">
+      <Filter>Widgets\Extended</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\RDLineEdit.h">
+      <Filter>Widgets\Extended</Filter>
+    </ClInclude>
     <ClInclude Include="Widgets\RDListView.h">
-      <Filter>Widgets</Filter>
+      <Filter>Widgets\Extended</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

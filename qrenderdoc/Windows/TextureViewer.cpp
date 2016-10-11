@@ -506,6 +506,16 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
                    &TextureViewer::channelsWidget_selected);
   QObject::connect(ui->customShader, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
                    &TextureViewer::channelsWidget_selected);
+  QObject::connect(ui->rangeHistogram, &RangeHistogram::rangeUpdated, this,
+                   &TextureViewer::range_rangeUpdated);
+  QObject::connect(ui->rangeBlack, &RDLineEdit::textChanged, this,
+                   &TextureViewer::rangePoint_textChanged);
+  QObject::connect(ui->rangeBlack, &RDLineEdit::leave, this, &TextureViewer::rangePoint_leave);
+  QObject::connect(ui->rangeBlack, &RDLineEdit::keyPress, this, &TextureViewer::rangePoint_keyPress);
+  QObject::connect(ui->rangeWhite, &RDLineEdit::textChanged, this,
+                   &TextureViewer::rangePoint_textChanged);
+  QObject::connect(ui->rangeWhite, &RDLineEdit::leave, this, &TextureViewer::rangePoint_leave);
+  QObject::connect(ui->rangeWhite, &RDLineEdit::keyPress, this, &TextureViewer::rangePoint_keyPress);
 
   QWidget *renderContainer = ui->renderContainer;
 
@@ -683,6 +693,43 @@ void TextureViewer::RT_UpdateAndDisplay(IReplayRenderer *)
     m_Output->SetTextureDisplay(m_TexDisplay);
 
   GUIInvoke::call([this]() { ui->render->update(); });
+}
+
+void TextureViewer::RT_UpdateVisualRange(IReplayRenderer *)
+{
+  FetchTexture *texptr = GetCurrentTexture();
+
+  if(!m_Visualise || texptr == NULL || m_Output == NULL)
+    return;
+
+  ResourceFormat fmt = texptr->format;
+
+  if(m_TexDisplay.CustomShader != ResourceId())
+    fmt.compCount = 4;
+
+  bool success = true;
+
+  bool channels[] = {
+      m_TexDisplay.Red ? true : false, m_TexDisplay.Green && fmt.compCount > 1,
+      m_TexDisplay.Blue && fmt.compCount > 2, m_TexDisplay.Alpha && fmt.compCount > 3,
+  };
+
+  rdctype::array<uint32_t> histogram;
+  success = m_Output->GetHistogram(ui->rangeHistogram->rangeMin(), ui->rangeHistogram->rangeMax(),
+                                   channels, &histogram);
+
+  if(success)
+  {
+    QVector<uint32_t> histogramVec(histogram.count);
+    if(histogram.count > 0)
+      memcpy(histogramVec.data(), histogram.elems, histogram.count * sizeof(uint32_t));
+
+    GUIInvoke::call([this, histogramVec]() {
+      ui->rangeHistogram->setHistogramRange(ui->rangeHistogram->rangeMin(),
+                                            ui->rangeHistogram->rangeMax());
+      ui->rangeHistogram->setHistogramData(histogramVec);
+    });
+  }
 }
 
 void TextureViewer::UI_UpdateStatusText()
@@ -992,8 +1039,8 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
     m_TextureSettings[m_TexDisplay.texid].mip = ui->mipLevel->currentIndex();
     m_TextureSettings[m_TexDisplay.texid].slice = ui->sliceFace->currentIndex();
 
-    m_TextureSettings[m_TexDisplay.texid].minrange = 0.0f;    // rangeHistogram->blackPoint();
-    m_TextureSettings[m_TexDisplay.texid].maxrange = 1.0f;    // rangeHistogram->whitePoint();
+    m_TextureSettings[m_TexDisplay.texid].minrange = ui->rangeHistogram->blackPoint();
+    m_TextureSettings[m_TexDisplay.texid].maxrange = ui->rangeHistogram->whitePoint();
 
     m_TextureSettings[m_TexDisplay.texid].typeHint = m_Following.GetTypeHint(m_Ctx);
   }
@@ -1196,10 +1243,10 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
       ui->depthDisplay->setChecked(m_TextureSettings[tex.ID].depth);
       ui->stencilDisplay->setChecked(m_TextureSettings[tex.ID].stencil);
 
-      // norangePaint = true;
-      // rangeHistogram.SetRange(m_TextureSettings[m_TexDisplay.texid].minrange,
-      // m_TextureSettings[m_TexDisplay.texid].maxrange);
-      // norangePaint = false;
+      m_NoRangePaint = true;
+      ui->rangeHistogram->setRange(m_TextureSettings[m_TexDisplay.texid].minrange,
+                                   m_TextureSettings[m_TexDisplay.texid].maxrange);
+      m_NoRangePaint = false;
     }
     else if(m_Ctx->Config.TextureViewer_PerTexSettings)
     {
@@ -1216,15 +1263,15 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
       ui->depthDisplay->setChecked(true);
       ui->stencilDisplay->setChecked(false);
 
-      // norangePaint = true;
-      // UI_SetHistogramRange(tex, m_TexDisplay.typeHint);
-      // norangePaint = false;
+      m_NoRangePaint = true;
+      UI_SetHistogramRange(texptr, m_TexDisplay.typeHint);
+      m_NoRangePaint = false;
     }
 
     // reset the range if desired
     if(m_Ctx->Config.TextureViewer_ResetRange)
     {
-      // UI_SetHistogramRange(tex, m_TexDisplay.typeHint);
+      UI_SetHistogramRange(texptr, m_TexDisplay.typeHint);
     }
   }
 
@@ -1232,11 +1279,11 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
   UI_UpdateTextureDetails();
   UI_UpdateChannels();
 
-  // if (ui->autoFit->isChecked())
-  // AutoFitRange();
+  if(ui->autoFit->isChecked())
+    AutoFitRange();
 
   m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) {
-    // RT_UpdateVisualRange(r);
+    RT_UpdateVisualRange(r);
 
     RT_UpdateAndDisplay(r);
 
@@ -1245,6 +1292,14 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
     // TODO - GetUsage and update TimelineBar
   });
+}
+
+void TextureViewer::UI_SetHistogramRange(const FetchTexture *tex, FormatComponentType typeHint)
+{
+  if(tex != NULL && (tex->format.compType == eCompType_SNorm || typeHint == eCompType_SNorm))
+    ui->rangeHistogram->setRange(-1.0f, 1.0f);
+  else
+    ui->rangeHistogram->setRange(0.0f, 1.0f);
 }
 
 void TextureViewer::UI_UpdateChannels()
@@ -1445,7 +1500,7 @@ void TextureViewer::UI_UpdateChannels()
   m_TexDisplay.FlipY = ui->flip_y->isChecked();
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
-  // INVOKE_MEMFN(RT_UpdateVisualRange);
+  INVOKE_MEMFN(RT_UpdateVisualRange);
 }
 
 void TextureViewer::SetupTextureTabs()
@@ -2423,6 +2478,8 @@ void TextureViewer::OnLogfileClosed()
 {
   m_Output = NULL;
 
+  ui->rangeHistogram->setRange(0.0f, 1.0f);
+
   UI_RecreatePanels();
 
   ui->inputThumbs->clearThumbs();
@@ -2714,20 +2771,192 @@ void TextureViewer::on_overlay_currentIndexChanged(int index)
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
+void TextureViewer::range_rangeUpdated()
+{
+  m_TexDisplay.rangemin = ui->rangeHistogram->blackPoint();
+  m_TexDisplay.rangemax = ui->rangeHistogram->whitePoint();
+
+  ui->rangeBlack->setText(Formatter::Format(m_TexDisplay.rangemin));
+  ui->rangeWhite->setText(Formatter::Format(m_TexDisplay.rangemax));
+
+  if(m_NoRangePaint)
+    return;
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+
+  if(m_Output == NULL)
+  {
+    ui->render->update();
+    ui->pixelcontextgrid->update();
+  }
+}
+
+void TextureViewer::rangePoint_textChanged(QString text)
+{
+  m_RangePoint_Dirty = true;
+}
+
+void TextureViewer::rangePoint_Update()
+{
+  float black = ui->rangeHistogram->blackPoint();
+  float white = ui->rangeHistogram->whitePoint();
+
+  bool ok = false;
+  double d = ui->rangeBlack->text().toDouble(&ok);
+
+  if(ok)
+    black = d;
+
+  d = ui->rangeWhite->text().toDouble(&ok);
+
+  if(ok)
+    white = d;
+
+  ui->rangeHistogram->setRange(black, white);
+
+  INVOKE_MEMFN(RT_UpdateVisualRange);
+}
+
+void TextureViewer::rangePoint_leave()
+{
+  if(!m_RangePoint_Dirty)
+    return;
+
+  rangePoint_Update();
+
+  m_RangePoint_Dirty = false;
+}
+
+void TextureViewer::rangePoint_keyPress(QKeyEvent *e)
+{
+  // escape key
+  if(e->key() == Qt::Key_Escape)
+  {
+    m_RangePoint_Dirty = false;
+    ui->rangeHistogram->setRange(ui->rangeHistogram->blackPoint(), ui->rangeHistogram->whitePoint());
+  }
+  if(e->key() == Qt::Key_Return || e->key() == Qt::Key_Enter)
+  {
+    rangePoint_Update();
+  }
+}
+
 void TextureViewer::on_zoomRange_clicked()
 {
+  float black = ui->rangeHistogram->blackPoint();
+  float white = ui->rangeHistogram->whitePoint();
+
+  ui->autoFit->setChecked(false);
+
+  ui->rangeHistogram->setRange(black, white);
+
+  INVOKE_MEMFN(RT_UpdateVisualRange);
 }
 
 void TextureViewer::on_autoFit_clicked()
 {
+  AutoFitRange();
 }
 
 void TextureViewer::on_reset01_clicked()
 {
+  UI_SetHistogramRange(GetCurrentTexture(), m_TexDisplay.typeHint);
+
+  ui->autoFit->setChecked(false);
+
+  INVOKE_MEMFN(RT_UpdateVisualRange);
 }
 
 void TextureViewer::on_visualiseRange_clicked()
 {
+  if(ui->visualiseRange->isChecked())
+  {
+    ui->rangeHistogram->setMinimumSize(QSize(300, 90));
+
+    m_Visualise = true;
+    INVOKE_MEMFN(RT_UpdateVisualRange);
+  }
+  else
+  {
+    m_Visualise = false;
+    ui->rangeHistogram->setMinimumSize(QSize(200, 0));
+
+    ui->rangeHistogram->setHistogramData({});
+  }
+}
+
+void TextureViewer::AutoFitRange()
+{
+  // no log loaded or buffer/empty texture currently being viewed - don't autofit
+  if(!m_Ctx->LogLoaded() || GetCurrentTexture() == NULL || m_Output == NULL)
+    return;
+
+  m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) {
+    PixelValue min, max;
+    bool success = m_Output->GetMinMax(&min, &max);
+
+    if(success)
+    {
+      float minval = FLT_MAX;
+      float maxval = -FLT_MAX;
+
+      bool changeRange = false;
+
+      ResourceFormat fmt = GetCurrentTexture()->format;
+
+      if(m_TexDisplay.CustomShader != ResourceId())
+      {
+        fmt.compType = eCompType_Float;
+      }
+
+      for(int i = 0; i < 4; i++)
+      {
+        if(fmt.compType == eCompType_UInt)
+        {
+          min.value_f[i] = min.value_u[i];
+          max.value_f[i] = max.value_u[i];
+        }
+        else if(fmt.compType == eCompType_SInt)
+        {
+          min.value_f[i] = min.value_i[i];
+          max.value_f[i] = max.value_i[i];
+        }
+      }
+
+      if(m_TexDisplay.Red)
+      {
+        minval = qMin(minval, min.value_f[0]);
+        maxval = qMax(maxval, max.value_f[0]);
+        changeRange = true;
+      }
+      if(m_TexDisplay.Green && fmt.compCount > 1)
+      {
+        minval = qMin(minval, min.value_f[1]);
+        maxval = qMax(maxval, max.value_f[1]);
+        changeRange = true;
+      }
+      if(m_TexDisplay.Blue && fmt.compCount > 2)
+      {
+        minval = qMin(minval, min.value_f[2]);
+        maxval = qMax(maxval, max.value_f[2]);
+        changeRange = true;
+      }
+      if(m_TexDisplay.Alpha && fmt.compCount > 3)
+      {
+        minval = qMin(minval, min.value_f[3]);
+        maxval = qMax(maxval, max.value_f[3]);
+        changeRange = true;
+      }
+
+      if(changeRange)
+      {
+        GUIInvoke::call([this, minval, maxval]() {
+          ui->rangeHistogram->setRange(minval, maxval);
+          INVOKE_MEMFN(RT_UpdateVisualRange);
+        });
+      }
+    }
+  });
 }
 
 void TextureViewer::on_backcolorPick_clicked()
@@ -2827,7 +3056,7 @@ void TextureViewer::on_mipLevel_currentIndexChanged(int index)
     return;
   }
 
-  // INVOKE_MEMFN(RT_UpdateVisualRange);
+  INVOKE_MEMFN(RT_UpdateVisualRange);
 
   if(m_Output != NULL && m_PickedPoint.x() >= 0 && m_PickedPoint.y() >= 0)
   {
@@ -2849,7 +3078,7 @@ void TextureViewer::on_sliceFace_currentIndexChanged(int index)
   if(tex.depth > 1)
     m_TexDisplay.sliceFace = (uint32_t)(index << (int)m_TexDisplay.mip);
 
-  // INVOKE_MEMFN(RT_UpdateVisualRange);
+  INVOKE_MEMFN(RT_UpdateVisualRange);
 
   if(m_Output != NULL && m_PickedPoint.x() >= 0 && m_PickedPoint.y() >= 0)
   {

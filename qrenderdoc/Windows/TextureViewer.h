@@ -182,6 +182,11 @@ private slots:
 
   void zoomOption_returnPressed();
 
+  void range_rangeUpdated();
+  void rangePoint_textChanged(QString text);
+  void rangePoint_leave();
+  void rangePoint_keyPress(QKeyEvent *e);
+
   void channelsWidget_toggled(bool checked) { UI_UpdateChannels(); }
   void channelsWidget_selected(int index) { UI_UpdateChannels(); }
 private:
@@ -189,12 +194,15 @@ private:
   void RT_PickPixelsAndUpdate(IReplayRenderer *);
   void RT_PickHoverAndUpdate(IReplayRenderer *);
   void RT_UpdateAndDisplay(IReplayRenderer *);
+  void RT_UpdateVisualRange(IReplayRenderer *);
 
   void UI_RecreatePanels();
 
   void UI_UpdateStatusText();
   void UI_UpdateTextureDetails();
   void UI_OnTextureSelectionChanged(bool newdraw);
+
+  void UI_SetHistogramRange(const FetchTexture *tex, FormatComponentType typeHint);
 
   void UI_UpdateChannels();
 
@@ -214,6 +222,9 @@ private:
 
   void AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t end, ResourceUsage usage);
   void OpenResourceContextMenu(ResourceId id, const rdctype::array<EventUsage> &usage);
+
+  void AutoFitRange();
+  void rangePoint_Update();
 
   bool currentTextureIsLocked() { return m_LockedId != ResourceId(); }
   void setFitToWindow(bool checked);
@@ -261,6 +272,10 @@ private:
 
   bool m_ShowEmpty = false;
   bool m_ShowDisabled = false;
+
+  bool m_Visualise = false;
+  bool m_NoRangePaint = false;
+  bool m_RangePoint_Dirty = false;
 
   ResourceId m_LockedId;
   QMap<ResourceId, QWidget *> m_LockedTabs;
