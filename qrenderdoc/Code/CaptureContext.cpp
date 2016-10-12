@@ -25,9 +25,11 @@
 #include "CaptureContext.h"
 #include <QApplication>
 #include <QFileInfo>
+#include <QLabel>
 #include <QMenu>
 #include <QMessageBox>
 #include <QMetaObject>
+#include <QProgressDialog>
 #include <QStandardPaths>
 #include <QTimer>
 #include "Windows/MainWindow.h"
@@ -52,10 +54,7 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
   {
     QFileInfo fi(paramFilename);
 
-    if(fi.suffix() == "rdc")
-    {
-      LoadLogfile(paramFilename, temp);
-    }
+    m_MainWindow->LoadFromFilename(paramFilename);
   }
 }
 
@@ -81,23 +80,77 @@ QString CaptureContext::ConfigFile(const QString &filename)
   return QDir::cleanPath(dir.absoluteFilePath(filename));
 }
 
-void CaptureContext::LoadLogfile(QString logFile, bool temporary)
+void CaptureContext::LoadLogfile(const QString &logFile, const QString &origFilename,
+                                 bool temporary, bool local)
 {
-  LoadLogfile(-1, "", logFile, temporary);
+  m_Progress = new QProgressDialog(QString("Loading Log"), QString(), 0, 1000, m_MainWindow);
+  m_Progress->setWindowTitle("Please Wait");
+  m_Progress->setWindowFlags(Qt::CustomizeWindowHint | Qt::Dialog | Qt::WindowTitleHint);
+  m_Progress->setWindowIcon(QIcon());
+  m_Progress->setMinimumSize(QSize(250, 0));
+  m_Progress->setMaximumSize(QSize(250, 10000));
+  m_Progress->setCancelButton(NULL);
+  m_Progress->setMinimumDuration(0);
+  m_Progress->setWindowModality(Qt::ApplicationModal);
+  m_Progress->setValue(0);
+
+  QLabel *label = new QLabel(m_Progress);
+
+  label->setText(QString("Loading Log: %1").arg(origFilename));
+  label->setAlignment(Qt::AlignCenter);
+  label->setWordWrap(true);
+
+  m_Progress->setLabel(label);
+
+  LambdaThread *thread = new LambdaThread([this, logFile, origFilename, temporary, local]() {
+    LoadLogfileThreaded(logFile, origFilename, temporary, local);
+
+    GUIInvoke::call([this, origFilename]() {
+      delete m_Progress;
+      m_Progress = NULL;
+    });
+  });
+  thread->selfDelete(true);
+  thread->start();
 }
 
-void CaptureContext::LoadLogfile(int proxyRenderer, QString replayHost, QString logFile,
-                                 bool temporary)
+void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &origFilename,
+                                         bool temporary, bool local)
 {
-  m_LogFile = logFile;
+  QFileInfo fi(ConfigFile("UI.config"));
+
+  m_LogFile = origFilename;
+
+  m_LogLocal = local;
 
   m_LoadInProgress = true;
+
+  if(fi.exists())
+    Config.Serialize(fi.absolutePath());
 
   float loadProgress = 0.0f;
   float postloadProgress = 0.0f;
 
+  QSemaphore progressThread(1);
+
+  LambdaThread progressTickerThread([this, &progressThread, &loadProgress, &postloadProgress]() {
+    while(progressThread.available())
+    {
+      QThread::msleep(30);
+
+      float val = 0.8f * loadProgress + 0.19f * postloadProgress + 0.01f;
+
+      GUIInvoke::call([this, val]() {
+        m_Progress->setValue(val * 1000);
+        m_MainWindow->setProgress(val);
+      });
+    }
+    GUIInvoke::call([this]() { m_Progress->setValue(1000); });
+  });
+  progressTickerThread.start();
+
   // this function call will block until the log is either loaded, or there's some failure
-  m_Renderer.Init(proxyRenderer, replayHost, logFile, &loadProgress);
+  m_Renderer.OpenCapture(logFile, &loadProgress);
 
   // if the renderer isn't running, we hit a failure case so display an error message
   if(!m_Renderer.IsRunning())
@@ -106,20 +159,32 @@ void CaptureContext::LoadLogfile(int proxyRenderer, QString replayHost, QString 
     ReplayCreateStatus status = m_Renderer.GetCreateStatus();
     errmsg = status;
 
-    if(proxyRenderer >= 0)
-      RDDialog::critical(NULL, "Error opening log",
-                         QString("%1\nFailed to transfer and replay on remote host %2: %3.\n\n"
-                                 "Check diagnostic log in Help menu for more details.")
-                             .arg(logFile, replayHost, errmsg));
-    else
-      RDDialog::critical(NULL, "Error opening log",
-                         QString("%1\nFailed to open logfile for replay: %1.\n\n"
-                                 "Check diagnostic log in Help menu for more details.")
-                             .arg(logFile, errmsg));
+    RDDialog::critical(NULL, "Error opening log",
+                       QString("%1\nFailed to open logfile for replay: %2.\n\n"
+                               "Check diagnostic log in Help menu for more details.")
+                           .arg(logFile)
+                           .arg(errmsg));
+
+    progressThread.acquire();
+    progressTickerThread.wait();
+
+    GUIInvoke::call([this]() {
+      m_Progress->setValue(1000);
+      m_MainWindow->setProgress(-1.0f);
+      m_Progress->hide();
+    });
 
     m_LoadInProgress = false;
 
     return;
+  }
+
+  if(!temporary)
+  {
+    PersistantConfig::AddRecentFile(Config.RecentLogFiles, origFilename, 10);
+
+    if(fi.exists())
+      Config.Serialize(fi.absolutePath());
   }
 
   m_EventID = 0;
@@ -186,7 +251,27 @@ void CaptureContext::LoadLogfile(int proxyRenderer, QString replayHost, QString 
 
   QThread::msleep(20);
 
+  QDateTime today = QDateTime::currentDateTimeUtc();
+  QDateTime compare = today.addDays(-21);
+
+  if(compare > Config.DegradedLog_LastUpdate && m_APIProps.degraded)
+  {
+    Config.DegradedLog_LastUpdate = today;
+
+    RDDialog::critical(
+        NULL, "Degraded support of log",
+        QString(
+            "%1\nThis log opened with degraded support - "
+            "this could mean missing hardware support caused a fallback to software rendering.\n\n"
+            "This warning will not appear every time this happens, "
+            "check debug errors/warnings window for more details.")
+            .arg(origFilename));
+  }
+
   m_LogLoaded = true;
+
+  progressThread.acquire();
+  progressTickerThread.wait();
 
   QVector<ILogViewerForm *> logviewers(m_LogViewers);
 
@@ -200,6 +285,48 @@ void CaptureContext::LoadLogfile(int proxyRenderer, QString replayHost, QString 
   });
 
   m_LoadInProgress = false;
+
+  GUIInvoke::call([this]() {
+    m_Progress->setValue(1000);
+    m_MainWindow->setProgress(1.0f);
+    m_Progress->hide();
+  });
+}
+
+void CaptureContext::CloseLogfile()
+{
+  if(!m_LogLoaded)
+    return;
+
+  m_LogFile = "";
+
+  m_Renderer.CloseThread();
+
+  memset(&m_APIProps, 0, sizeof(m_APIProps));
+  memset(&m_FrameInfo, 0, sizeof(m_FrameInfo));
+  m_Buffers.clear();
+  m_BufferList.clear();
+  m_Textures.clear();
+  m_TextureList.clear();
+
+  CurD3D11PipelineState = D3D11PipelineState();
+  CurD3D12PipelineState = D3D12PipelineState();
+  CurGLPipelineState = GLPipelineState();
+  CurVulkanPipelineState = VulkanPipelineState();
+  CurPipelineState.SetStates(m_APIProps, NULL, NULL, NULL, NULL);
+
+  DebugMessages.clear();
+  UnreadMessageCount = 0;
+
+  m_LogLoaded = false;
+
+  QVector<ILogViewerForm *> logviewers(m_LogViewers);
+
+  for(ILogViewerForm *logviewer : logviewers)
+  {
+    if(logviewer)
+      logviewer->OnLogfileClosed();
+  }
 }
 
 void CaptureContext::SetEventID(ILogViewerForm *exclude, uint32_t eventID, bool force)

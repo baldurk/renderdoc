@@ -36,13 +36,13 @@ RenderManager::~RenderManager()
 {
 }
 
-void RenderManager::Init(int proxyRenderer, QString replayHost, QString logfile, float *progress)
+void RenderManager::OpenCapture(const QString &logfile, float *progress)
 {
   if(m_Running)
     return;
 
-  m_ProxyRenderer = proxyRenderer;
-  m_ReplayHost = replayHost;
+  m_ProxyRenderer = -1;
+  m_ReplayHost = "";
   m_Logfile = logfile;
   m_Progress = progress;
 
@@ -53,6 +53,25 @@ void RenderManager::Init(int proxyRenderer, QString replayHost, QString logfile,
 
   while(m_Thread->isRunning() && !m_Running)
   {
+  }
+}
+
+void RenderManager::DeleteCapture(const QString &logfile, bool local)
+{
+  if(IsRunning())
+  {
+    AsyncInvoke([this, logfile, local](IReplayRenderer *) { DeleteCapture(logfile, local); });
+    return;
+  }
+
+  if(local)
+  {
+    QFile::remove(logfile);
+  }
+  else
+  {
+    // TODO
+    // m_Remote.TakeOwnershipCapture(logfile);
   }
 }
 

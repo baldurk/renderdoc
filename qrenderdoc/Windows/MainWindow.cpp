@@ -26,6 +26,7 @@
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QJsonDocument>
+#include <QProgressBar>
 #include "Code/CaptureContext.h"
 #include "Windows/Dialogs/AboutDialog.h"
 #include "EventBrowser.h"
@@ -65,6 +66,29 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
                    &MainWindow::saveLayout_triggered);
   QObject::connect(ui->action_Save_Layout_6, &QAction::triggered, this,
                    &MainWindow::saveLayout_triggered);
+
+  statusIcon = new QLabel(this);
+  ui->statusBar->addWidget(statusIcon);
+
+  statusText = new QLabel(this);
+  ui->statusBar->addWidget(statusText);
+
+  statusProgress = new QProgressBar(this);
+  ui->statusBar->addWidget(statusProgress);
+
+  statusProgress->setVisible(false);
+  statusProgress->setMinimumSize(QSize(200, 0));
+  statusProgress->setMinimum(0);
+  statusProgress->setMaximum(1000);
+
+  statusIcon->setText("");
+  statusIcon->setPixmap(QPixmap());
+  statusText->setText("");
+
+  SetTitle();
+
+  PopulateRecentFiles();
+  PopulateRecentCaptures();
 
   ui->toolWindowManager->setRubberBandLineWidth(50);
   ui->toolWindowManager->setToolWindowCreateCallback([this](const QString &objectName) -> QWidget * {
@@ -126,18 +150,537 @@ void MainWindow::on_action_Exit_triggered()
 
 void MainWindow::on_action_Open_Log_triggered()
 {
+  if(!PromptCloseLog())
+    return;
+
   QString filename =
-      RDDialog::getOpenFileName(this, "Select Logfile to open", "",
+      RDDialog::getOpenFileName(this, "Select Logfile to open", m_Ctx->Config.LastLogPath,
                                 "Log Files (*.rdc);;Image Files (*.dds *.hdr *.exr *.bmp *.jpg "
                                 "*.jpeg *.png *.tga *.gif *.psd;;All Files (*.*)");
 
-  QFileInfo checkFile(filename);
-  if(filename != "" && checkFile.exists() && checkFile.isFile())
+  if(filename != "")
+    LoadFromFilename(filename);
+}
+
+void MainWindow::LoadFromFilename(const QString &filename)
+{
+  QFileInfo path(filename);
+  QString ext = path.suffix().toLower();
+
+  if(ext == ".rdc")
   {
-    LambdaThread *thread =
-        new LambdaThread([filename, this]() { m_Ctx->LoadLogfile(filename, false); });
-    thread->start();
+    LoadLogfile(filename, false, true);
   }
+  else if(ext == ".cap")
+  {
+    // OpenCaptureConfigFile(filename, false);
+  }
+  else if(ext == ".exe")
+  {
+    // OpenCaptureConfigFile(filename, true);
+  }
+  else
+  {
+    // not a recognised filetype, see if we can load it anyway
+    LoadLogfile(filename, false, true);
+  }
+}
+
+void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local)
+{
+  if(PromptCloseLog())
+  {
+    if(m_Ctx->LogLoading())
+      return;
+
+    rdctype::str driver;
+    rdctype::str machineIdent;
+    ReplaySupport support = eReplaySupport_Unsupported;
+
+    bool remoteReplay =
+        !local /*|| (m_Core.Renderer.Remote != null && m_Core.Renderer.Remote.Connected)*/;
+
+    if(local)
+    {
+      support = RENDERDOC_SupportLocalReplay(filename.toUtf8().data(), &driver, &machineIdent);
+
+      // if the return value suggests remote replay, and it's not already selected, AND the user
+      // hasn't
+      // previously chosen to always replay locally without being prompted, ask if they'd prefer to
+      // switch to a remote context for replaying.
+      if(support == eReplaySupport_SuggestRemote && !remoteReplay &&
+         !m_Ctx->Config.AlwaysReplayLocally)
+      {
+        RDDialog::information(NULL, tr("Not Implemented"),
+                              tr("Can't suggest a remote host, replaying locally"));
+        /*
+        var dialog = new Dialogs.SuggestRemoteDialog(driver, machineIdent);
+
+        FillRemotesToolStrip(dialog.RemoteItems, false);
+
+        dialog.ShowDialog();
+
+        if(dialog.Result == Dialogs.SuggestRemoteDialog.SuggestRemoteResult.Cancel)
+        {
+          return;
+        }
+        else if(dialog.Result == Dialogs.SuggestRemoteDialog.SuggestRemoteResult.Remote)
+        {
+          // we only get back here from the dialog once the context switch has begun,
+          // so contextChooser will have been disabled.
+          // Check once to see if it's enabled before even popping up the dialog in case
+          // it has finished already. Otherwise pop up a waiting dialog until it completes
+          // one way or another, then process the result.
+
+          if(!contextChooser.Enabled)
+          {
+            ProgressPopup modal = new ProgressPopup((ModalCloseCallback)delegate
+            {
+              return contextChooser.Enabled;
+            }, false);
+            modal.SetModalText("Please Wait - Checking remote connection...");
+
+            modal.ShowDialog();
+          }
+
+          remoteReplay = (m_Core.Renderer.Remote != null && m_Core.Renderer.Remote.Connected);
+
+          if(!remoteReplay)
+          {
+            string remoteMessage = "Failed to make a connection to the remote server.\n\n";
+
+            remoteMessage += "More information may be available in the status bar.";
+
+            MessageBox.Show(remoteMessage, "Couldn't connect to remote server",
+        MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            return;
+          }
+        }
+        else
+        {
+          // nothing to do - we just continue replaying locally
+          // however we need to check if the user selected 'always replay locally' and
+          // set that bit as sticky in the config
+          if(dialog.AlwaysReplayLocally)
+          {
+            m_Core.Config.AlwaysReplayLocally = true;
+
+            m_Core.Config.Serialize(Core.ConfigFilename);
+          }
+        }
+        */
+      }
+
+      if(remoteReplay)
+      {
+        support = eReplaySupport_Unsupported;
+
+        QVector<QString> remoteDrivers = {};    // m_Ctx->Renderer.GetRemoteSupport();
+
+        for(const QString &d : remoteDrivers)
+        {
+          if(driver == d)
+            support = eReplaySupport_Supported;
+        }
+      }
+    }
+
+    QString origFilename = filename;
+
+    // if driver is empty something went wrong loading the log, let it be handled as usual
+    // below. Otherwise indicate that support is missing.
+    if(driver.count > 0 && support == eReplaySupport_Unsupported)
+    {
+      if(remoteReplay)
+      {
+        QString remoteMessage =
+            tr("This log was captured with %1 and cannot be replayed on %2.\n\n")
+                .arg(driver.c_str())
+                .arg("localhost" /*m_Ctx->Renderer.Remote.Hostname*/);
+
+        remoteMessage += "Try selecting a different remote context in the status bar.";
+
+        RDDialog::critical(NULL, tr("Unsupported logfile type"), remoteMessage);
+      }
+      else
+      {
+        QString remoteMessage =
+            tr("This log was captured with %1 and cannot be replayed locally.\n\n").arg(driver.c_str());
+
+        remoteMessage += "Try selecting a remote context in the status bar.";
+
+        RDDialog::critical(NULL, tr("Unsupported logfile type"), remoteMessage);
+      }
+
+      return;
+    }
+    else
+    {
+      if(remoteReplay && local)
+      {
+        RDDialog::critical(NULL, tr("Not Implemented"), tr("Not Implemented"));
+        return;
+        /*
+        try
+        {
+          filename = m_Ctx->Renderer.CopyCaptureToRemote(filename, this);
+
+          // deliberately leave local as true so that we keep referring to the locally saved log
+
+          // some error
+          if(filename == "")
+            throw new ApplicationException();
+        }
+        catch(Exception)
+        {
+          MessageBox.Show("Couldn't copy " + filename + " to remote host for replaying", "Error
+        copying to remote",
+            MessageBoxButtons.OK, MessageBoxIcon.Error);
+          return;
+        }
+        */
+      }
+
+      m_Ctx->LoadLogfile(filename, origFilename, temporary, local);
+    }
+
+    if(!remoteReplay)
+    {
+      m_Ctx->Config.LastLogPath = QFileInfo(filename).dir().absolutePath();
+    }
+
+    statusText->setText(tr("Loading ") + origFilename + "...");
+  }
+}
+
+QString MainWindow::GetSavePath()
+{
+  QString dir;
+
+  if(m_Ctx->Config.DefaultCaptureSaveDirectory != "")
+  {
+    if(m_LastSaveCapturePath == "")
+      dir = m_Ctx->Config.DefaultCaptureSaveDirectory;
+    else
+      dir = m_LastSaveCapturePath;
+  }
+
+  QString filename =
+      RDDialog::getSaveFileName(this, tr("Save Capture As"), dir, "Log Files (*.rdc)");
+
+  if(filename != "")
+  {
+    QDir dirinfo = QFileInfo(filename).dir();
+    if(dirinfo.exists())
+      m_LastSaveCapturePath = dirinfo.absolutePath();
+
+    return filename;
+  }
+
+  return "";
+}
+
+bool MainWindow::PromptSaveLog()
+{
+  QString saveFilename = GetSavePath();
+
+  if(saveFilename != "")
+  {
+    if(m_Ctx->IsLogLocal() && !QFileInfo(m_Ctx->LogFilename()).exists())
+    {
+      RDDialog::critical(NULL, tr("File not found"),
+                         tr("Logfile %1 couldn't be found, cannot save.").arg(m_Ctx->LogFilename()));
+      return false;
+    }
+
+    bool success = false;
+
+    if(m_Ctx->IsLogLocal())
+    {
+      // we copy the (possibly) temp log to the desired path, but the log item remains referring to
+      // the original path.
+      // This ensures that if the user deletes the saved path we can still open or re-save it.
+      success = QFile::copy(m_Ctx->LogFilename(), saveFilename);
+    }
+    else
+    {
+      // TODO
+      // m_Core.Renderer.CopyCaptureFromRemote(m_Core.LogFileName, saveFilename, this);
+    }
+
+    if(!success)
+    {
+      RDDialog::critical(NULL, tr("File not found"), tr("Couldn't save to %1").arg(saveFilename));
+      return false;
+    }
+
+    PersistantConfig::AddRecentFile(m_Ctx->Config.RecentLogFiles, saveFilename, 10);
+    PopulateRecentFiles();
+    SetTitle(saveFilename);
+
+    // we don't prompt to save on closing - if the user deleted the log that we just saved, then
+    // that is up to them.
+    m_SavedTempLog = true;
+
+    return true;
+  }
+
+  return false;
+}
+
+bool MainWindow::PromptCloseLog()
+{
+  if(!m_Ctx->LogLoaded())
+    return true;
+
+  QString deletepath = "";
+  bool loglocal = false;
+
+  if(m_OwnTempLog)
+  {
+    QString temppath = m_Ctx->LogFilename();
+    loglocal = m_Ctx->IsLogLocal();
+
+    QMessageBox::StandardButton res = QMessageBox::No;
+
+    // unless we've saved the log, prompt to save
+    if(!m_SavedTempLog)
+      res = RDDialog::question(NULL, tr("Unsaved log"), tr("Save this logfile?"),
+                               QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
+    if(res == QMessageBox::Cancel)
+    {
+      return false;
+    }
+
+    if(res == QMessageBox::Yes)
+    {
+      bool success = PromptSaveLog();
+
+      if(!success)
+      {
+        return false;
+      }
+    }
+
+    if(temppath != m_Ctx->LogFilename() || res == QMessageBox::No)
+      deletepath = temppath;
+    m_OwnTempLog = false;
+    m_SavedTempLog = false;
+  }
+
+  CloseLogfile();
+
+  if(!deletepath.isEmpty())
+    m_Ctx->Renderer()->DeleteCapture(deletepath, loglocal);
+
+  return true;
+}
+
+void MainWindow::CloseLogfile()
+{
+  m_Ctx->CloseLogfile();
+
+  ui->action_Save_Log->setEnabled(false);
+}
+
+void MainWindow::SetTitle(const QString &filename)
+{
+  QString prefix = "";
+
+  if(m_Ctx != NULL && m_Ctx->LogLoaded())
+  {
+    prefix = QFileInfo(filename).fileName();
+    if(m_Ctx->APIProps().degraded)
+      prefix += " !DEGRADED PERFORMANCE!";
+    prefix += " - ";
+  }
+
+  // TODO
+  // if(m_Ctx != NULL && m_Ctx->Renderer.Remote != null)
+  // prefix += String.Format("Remote: {0} - ", m_Core.Renderer.Remote.Hostname);
+
+  QString text = prefix + "RenderDoc ";
+
+  // TODO
+  /*
+  if(OfficialVersion)
+    text += VersionString;
+  else if(BetaVersion)
+    text += String.Format("{0}-beta - {1}", VersionString, GitCommitHash);
+  else */
+  text +=
+      tr("Unofficial release (%1 - %2)").arg(RENDERDOC_GetVersionString()).arg(RENDERDOC_GetCommitHash());
+
+  // TODO
+  // if(IsVersionMismatched())
+  // text += " - !! VERSION MISMATCH DETECTED !!";
+
+  setWindowTitle(text);
+}
+
+void MainWindow::SetTitle()
+{
+  SetTitle(m_Ctx != NULL ? m_Ctx->LogFilename() : "");
+}
+
+void MainWindow::PopulateRecentFiles()
+{
+  ui->menu_Recent_Logs->clear();
+
+  ui->menu_Recent_Logs->setEnabled(false);
+
+  int idx = 1;
+  for(const QString &filename : m_Ctx->Config.RecentLogFiles)
+  {
+    ui->menu_Recent_Logs->addAction("&" + QString::number(idx) + " " + filename,
+                                    [this, filename] { recentLog(filename); });
+    idx++;
+
+    ui->menu_Recent_Logs->setEnabled(true);
+  }
+
+  ui->menu_Recent_Logs->addSeparator();
+  ui->menu_Recent_Logs->addAction(ui->action_Clear_Log_History);
+}
+
+void MainWindow::PopulateRecentCaptures()
+{
+  ui->menu_Recent_Capture_Settings->clear();
+
+  ui->menu_Recent_Capture_Settings->setEnabled(false);
+
+  int idx = 1;
+  for(const QString &filename : m_Ctx->Config.RecentCaptureSettings)
+  {
+    ui->menu_Recent_Capture_Settings->addAction("&" + QString::number(idx) + " " + filename,
+                                                [this, filename] { recentCapture(filename); });
+    idx++;
+
+    ui->menu_Recent_Capture_Settings->setEnabled(true);
+  }
+
+  ui->menu_Recent_Capture_Settings->addSeparator();
+  ui->menu_Recent_Capture_Settings->addAction(ui->action_Clear_Log_History);
+}
+
+void MainWindow::recentLog(const QString &filename)
+{
+  if(QFileInfo::exists(filename))
+  {
+    LoadLogfile(filename, false, true);
+  }
+  else
+  {
+    QMessageBox::StandardButton res =
+        RDDialog::question(NULL, tr("File not found"),
+                           tr("File %1 couldn't be found.\nRemove from recent list?").arg(filename));
+
+    if(res == QMessageBox::Yes)
+    {
+      m_Ctx->Config.RecentLogFiles.removeOne(filename);
+
+      PopulateRecentFiles();
+    }
+  }
+}
+
+void MainWindow::recentCapture(const QString &filename)
+{
+  if(QFileInfo::exists(filename))
+  {
+    // OpenCaptureConfigFile(filename, false);
+  }
+  else
+  {
+    QMessageBox::StandardButton res =
+        RDDialog::question(NULL, tr("File not found"),
+                           tr("File %1 couldn't be found.\nRemove from recent list?").arg(filename));
+
+    if(res == QMessageBox::Yes)
+    {
+      m_Ctx->Config.RecentLogFiles.removeOne(filename);
+
+      PopulateRecentFiles();
+    }
+  }
+}
+
+void MainWindow::setProgress(float val)
+{
+  if(val < 0.0f || val >= 1.0f)
+  {
+    statusProgress->setVisible(false);
+    statusText->setText("");
+  }
+  else
+  {
+    statusProgress->setVisible(true);
+    statusProgress->setValue(1000 * val);
+  }
+}
+
+void MainWindow::OnLogfileLoaded()
+{
+  // TODO
+  // don't allow changing context while log is open
+  // contextChooser.Enabled = false;
+
+  // LogHasErrors = (m_Core.DebugMessages.Count > 0);
+
+  statusProgress->setVisible(false);
+
+  m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) {
+    bool hasResolver = r->HasCallstacks();
+
+    GUIInvoke::call([this, hasResolver]() {
+      ui->action_Resolve_Symbols->setEnabled(hasResolver);
+      ui->action_Resolve_Symbols->setText(hasResolver ? tr("Resolve Symbols")
+                                                      : tr("Resolve Symbols - None in log"));
+    });
+  });
+
+  ui->action_Save_Log->setEnabled(true);
+
+  SetTitle();
+
+  PopulateRecentFiles();
+
+  // m_Core.GetEventBrowser().Focus();
+}
+
+void MainWindow::OnLogfileClosed()
+{
+  // contextChooser.Enabled = true;
+
+  statusText->setText("");
+  statusIcon->setPixmap(QPixmap());
+  statusProgress->setVisible(false);
+
+  ui->action_Resolve_Symbols->setEnabled(false);
+  ui->action_Resolve_Symbols->setText(tr("Resolve Symbols"));
+
+  SetTitle();
+
+  // if the remote sever disconnected during log replay, resort back to a 'disconnected' state
+  // TODO
+  /*
+  if(m_Core.Renderer.Remote != null && !m_Core.Renderer.Remote.ServerRunning)
+  {
+    statusText.Text = "Remote server disconnected. To attempt to reconnect please select it again.";
+    contextChooser.Text = "Replay Context: Local";
+    m_Core.Renderer.DisconnectFromRemoteServer();
+  }
+  */
+}
+
+void MainWindow::OnEventSelected(uint32_t eventID)
+{
+}
+
+void MainWindow::on_action_Close_Log_triggered()
+{
+  PromptCloseLog();
 }
 
 void MainWindow::on_action_About_triggered()

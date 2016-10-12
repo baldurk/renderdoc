@@ -59,16 +59,30 @@
     <property name="title">
      <string>&amp;File</string>
     </property>
+    <widget class="QMenu" name="menu_Recent_Logs">
+     <property name="title">
+      <string>&amp;Recent Logs</string>
+     </property>
+     <addaction name="separator"/>
+     <addaction name="action_Clear_Log_History"/>
+    </widget>
+    <widget class="QMenu" name="menu_Recent_Capture_Settings">
+     <property name="title">
+      <string>R&amp;ecent Capture Settings</string>
+     </property>
+     <addaction name="separator"/>
+     <addaction name="action_Clear_Capture_History"/>
+    </widget>
     <addaction name="action_Capture_Log"/>
     <addaction name="action_Attach_to_Running_Instance"/>
     <addaction name="action_Inject_into_Process"/>
     <addaction name="separator"/>
     <addaction name="action_Open_Log"/>
     <addaction name="action_Save_Log"/>
-    <addaction name="actionC_lose_Log"/>
+    <addaction name="action_Close_Log"/>
     <addaction name="separator"/>
-    <addaction name="action_Recent_Logs"/>
-    <addaction name="actionR_ecent_Capture_Settings"/>
+    <addaction name="menu_Recent_Logs"/>
+    <addaction name="menu_Recent_Capture_Settings"/>
     <addaction name="separator"/>
     <addaction name="action_Exit"/>
    </widget>
@@ -168,22 +182,12 @@
     <string>Ctrl+S</string>
    </property>
   </action>
-  <action name="actionC_lose_Log">
+  <action name="action_Close_Log">
    <property name="text">
     <string>C&amp;lose Log</string>
    </property>
    <property name="shortcut">
     <string>Ctrl+W</string>
-   </property>
-  </action>
-  <action name="action_Recent_Logs">
-   <property name="text">
-    <string>&amp;Recent Logs</string>
-   </property>
-  </action>
-  <action name="actionR_ecent_Capture_Settings">
-   <property name="text">
-    <string>R&amp;ecent Capture Settings</string>
    </property>
   </action>
   <action name="action_Exit">
@@ -367,6 +371,16 @@
   <action name="action_About">
    <property name="text">
     <string>&amp;About</string>
+   </property>
+  </action>
+  <action name="action_Clear_Log_History">
+   <property name="text">
+    <string>Clear History</string>
+   </property>
+  </action>
+  <action name="action_Clear_Capture_History">
+   <property name="text">
+    <string>Clear History</string>
    </property>
   </action>
  </widget>

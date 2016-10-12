@@ -26,15 +26,17 @@
 
 #include <stdint.h>
 #include <QMainWindow>
+#include "Code/CaptureContext.h"
 
 namespace Ui
 {
 class MainWindow;
 }
 
-class CaptureContext;
+class QLabel;
+class QProgressBar;
 
-class MainWindow : public QMainWindow
+class MainWindow : public QMainWindow, public ILogViewerForm
 {
 private:
   Q_OBJECT
@@ -43,11 +45,20 @@ public:
   explicit MainWindow(CaptureContext *ctx);
   ~MainWindow();
 
+  void OnLogfileLoaded();
+  void OnLogfileClosed();
+  void OnEventSelected(uint32_t eventID);
+
+  void setProgress(float val);
+  bool ownTemporaryLog() { return m_OwnTempLog; }
+  void LoadFromFilename(const QString &filename);
+
 private slots:
   // automatic slots
   void on_action_Exit_triggered();
   void on_action_About_triggered();
   void on_action_Open_Log_triggered();
+  void on_action_Close_Log_triggered();
   void on_action_Mesh_Output_triggered();
   void on_action_Event_Viewer_triggered();
   void on_action_Texture_Viewer_triggered();
@@ -61,6 +72,30 @@ private:
 
   Ui::MainWindow *ui;
   CaptureContext *m_Ctx;
+
+  QLabel *statusIcon;
+  QLabel *statusText;
+  QProgressBar *statusProgress;
+
+  bool m_OwnTempLog = false;
+  bool m_SavedTempLog = false;
+
+  QString m_LastSaveCapturePath = "";
+
+  void SetTitle(const QString &filename);
+  void SetTitle();
+
+  void PopulateRecentFiles();
+  void PopulateRecentCaptures();
+
+  void recentLog(const QString &filename);
+  void recentCapture(const QString &filename);
+
+  bool PromptCloseLog();
+  bool PromptSaveLog();
+  void LoadLogfile(const QString &filename, bool temporary, bool local);
+  QString GetSavePath();
+  void CloseLogfile();
 
   QVariantMap saveState();
   bool restoreState(QVariantMap &state);

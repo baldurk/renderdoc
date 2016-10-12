@@ -46,13 +46,8 @@ struct ILogViewerForm
   virtual void OnEventSelected(uint32_t eventID) = 0;
 };
 
-struct ILogLoadProgressListener
-{
-  virtual void LogfileProgressBegin() = 0;
-  virtual void LogfileProgress(float progress) = 0;
-};
-
 class MainWindow;
+class QProgressDialog;
 
 struct Formatter
 {
@@ -79,19 +74,11 @@ public:
   //////////////////////////////////////////////////////////////////////////////
   // Control functions
 
-  // loading a local log, no remote replay
-  void LoadLogfile(QString logFile, bool temporary);
-
-  // when loading a log while replaying remotely, provide the proxy renderer that will be used
-  // as well as the hostname to replay on.
-  void LoadLogfile(int proxyRenderer, QString replayHost, QString logFile, bool temporary);
-
+  void LoadLogfile(const QString &logFile, const QString &origFilename, bool temporary, bool local);
   void CloseLogfile();
 
   void SetEventID(ILogViewerForm *exclude, uint32_t eventID, bool force = false);
   void RefreshStatus() { SetEventID(NULL, m_EventID, true); }
-  void AddLogProgressListener(ILogLoadProgressListener *p);
-
   void AddLogViewer(ILogViewerForm *f)
   {
     m_LogViewers.push_back(f);
@@ -122,6 +109,7 @@ public:
 
   RenderManager *Renderer() { return &m_Renderer; }
   bool LogLoaded() { return m_LogLoaded; }
+  bool IsLogLocal() { return m_LogLocal; }
   bool LogLoading() { return m_LoadInProgress; }
   QString LogFilename() { return m_LogFile; }
   const FetchFrameInfo &FrameInfo() { return m_FrameInfo; }
@@ -158,10 +146,12 @@ private:
   RenderManager m_Renderer;
 
   QVector<ILogViewerForm *> m_LogViewers;
-  QVector<ILogLoadProgressListener *> m_ProgressListeners;
 
-  bool m_LogLoaded, m_LoadInProgress;
+  bool m_LogLoaded, m_LoadInProgress, m_LogLocal;
   QString m_LogFile;
+
+  void LoadLogfileThreaded(const QString &logFile, const QString &origFilename, bool temporary,
+                           bool local);
 
   uint32_t m_EventID;
 
@@ -201,6 +191,7 @@ private:
 #endif
 
   // Windows
+  QProgressDialog *m_Progress;
   MainWindow *m_MainWindow;
 };
 

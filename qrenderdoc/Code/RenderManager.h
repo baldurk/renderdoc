@@ -48,7 +48,8 @@ public:
   RenderManager();
   ~RenderManager();
 
-  void Init(int proxyRenderer, QString replayHost, QString logfile, float *progress);
+  void OpenCapture(const QString &logfile, float *progress);
+  void DeleteCapture(const QString &logfile, bool local);
 
   bool IsRunning();
   ReplayCreateStatus GetCreateStatus() { return m_CreateStatus; }
