@@ -33,7 +33,9 @@ set(sources
     wrappers/gles_shader_funcs.cpp
     wrappers/gles_state_funcs.cpp
     wrappers/gles_texture_funcs.cpp
-    wrappers/gles_uniform_funcs.cpp)
+    wrappers/gles_uniform_funcs.cpp
+    wrappers/gles_compatibility.cpp
+)
 
 if(ANDROID)
     list(APPEND sources

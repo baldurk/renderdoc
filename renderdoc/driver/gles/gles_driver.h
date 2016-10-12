@@ -725,6 +725,8 @@ public:
   void Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr size, const void *data,
                                       GLbitfield flags);
 
+  // GLES - GL compatibility like methods
+  void glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt, GLenum type, GLint width, GLint height, void *ret);
 };
 
 class ScopedDebugContext
