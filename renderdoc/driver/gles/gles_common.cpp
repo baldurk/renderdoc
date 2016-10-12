@@ -630,6 +630,13 @@ ResourceFormat MakeResourceFormat(WrappedGLES &gl, GLenum target, GLenum fmt)
       return ret;
     }
 
+    if (fmt == eGL_DEPTH_COMPONENT24) {
+      ret.compByteWidth = 3;
+      ret.compCount = 1;
+      ret.compType = eCompType_Depth;
+      return ret;
+    }
+
     if (fmt == eGL_RGB8) {
       ret.compByteWidth = 1;
       ret.compCount = 3;

@@ -39,6 +39,7 @@
     HookInit(glBindAttribLocation); \
     HookInit(glBindBuffer); \
     HookInit(glBindFramebuffer); \
+    HookInit(glBindRenderbuffer); \
     HookInit(glBindTexture); \
     HookInit(glBlendColor); \
     HookInit(glBlendEquation); \
@@ -64,6 +65,7 @@
     HookInit(glDeleteBuffers); \
     HookInit(glDeleteFramebuffers); \
     HookInit(glDeleteProgram); \
+    HookInit(glDeleteRenderbuffers); \
     HookInit(glDeleteShader); \
     HookInit(glDeleteTextures); \
     HookInit(glDepthFunc); \
@@ -78,11 +80,13 @@
     HookInit(glEnableVertexAttribArray); \
     HookInit(glFinish); \
     HookInit(glFlush); \
+    HookInit(glFramebufferRenderbuffer); \
     HookInit(glFramebufferTexture2D); \
     HookInit(glFrontFace); \
     HookInit(glGenBuffers); \
     HookInit(glGenerateMipmap); \
     HookInit(glGenFramebuffers); \
+    HookInit(glGenRenderbuffers); \
     HookInit(glGenTextures); \
     HookInit(glGetActiveAttrib); \
     HookInit(glGetActiveUniform); \
@@ -124,6 +128,7 @@
     HookInit(glPolygonOffset); \
     HookInit(glReadPixels); \
     HookInit(glReleaseShaderCompiler); \
+    HookInit(glRenderbufferStorage); \
     HookInit(glSampleCoverage); \
     HookInit(glScissor); \
     HookInit(glShaderBinary); \
@@ -179,6 +184,7 @@
     HookInit(glGetQueryObjectuiv); \
     HookInit(glUnmapBuffer); \
     HookInit(glGetBufferPointerv); \
+    HookInit(glDrawBuffers); \
     HookInit(glUniformMatrix2x3fv); \
     HookInit(glUniformMatrix3x2fv); \
     HookInit(glUniformMatrix2x4fv); \
@@ -404,6 +410,7 @@
     HookExtension(PFNGLBINDATTRIBLOCATIONPROC, glBindAttribLocation); \
     HookExtension(PFNGLBINDBUFFERPROC, glBindBuffer); \
     HookExtension(PFNGLBINDFRAMEBUFFERPROC, glBindFramebuffer); \
+    HookExtension(PFNGLBINDRENDERBUFFERPROC, glBindRenderbuffer); \
     HookExtension(PFNGLBINDTEXTUREPROC, glBindTexture); \
     HookExtension(PFNGLBLENDCOLORPROC, glBlendColor); \
     HookExtension(PFNGLBLENDEQUATIONPROC, glBlendEquation); \
@@ -429,6 +436,7 @@
     HookExtension(PFNGLDELETEBUFFERSPROC, glDeleteBuffers); \
     HookExtension(PFNGLDELETEFRAMEBUFFERSPROC, glDeleteFramebuffers); \
     HookExtension(PFNGLDELETEPROGRAMPROC, glDeleteProgram); \
+    HookExtension(PFNGLDELETERENDERBUFFERSPROC, glDeleteRenderbuffers); \
     HookExtension(PFNGLDELETESHADERPROC, glDeleteShader); \
     HookExtension(PFNGLDELETETEXTURESPROC, glDeleteTextures); \
     HookExtension(PFNGLDEPTHFUNCPROC, glDepthFunc); \
@@ -443,11 +451,13 @@
     HookExtension(PFNGLENABLEVERTEXATTRIBARRAYPROC, glEnableVertexAttribArray); \
     HookExtension(PFNGLFINISHPROC, glFinish); \
     HookExtension(PFNGLFLUSHPROC, glFlush); \
+    HookExtension(PFNGLFRAMEBUFFERRENDERBUFFERPROC, glFramebufferRenderbuffer); \
     HookExtension(PFNGLFRAMEBUFFERTEXTURE2DPROC, glFramebufferTexture2D); \
     HookExtension(PFNGLFRONTFACEPROC, glFrontFace); \
     HookExtension(PFNGLGENBUFFERSPROC, glGenBuffers); \
     HookExtension(PFNGLGENERATEMIPMAPPROC, glGenerateMipmap); \
     HookExtension(PFNGLGENFRAMEBUFFERSPROC, glGenFramebuffers); \
+    HookExtension(PFNGLGENRENDERBUFFERSPROC, glGenRenderbuffers); \
     HookExtension(PFNGLGENTEXTURESPROC, glGenTextures); \
     HookExtension(PFNGLGETACTIVEATTRIBPROC, glGetActiveAttrib); \
     HookExtension(PFNGLGETACTIVEUNIFORMPROC, glGetActiveUniform); \
@@ -489,6 +499,7 @@
     HookExtension(PFNGLPOLYGONOFFSETPROC, glPolygonOffset); \
     HookExtension(PFNGLREADPIXELSPROC, glReadPixels); \
     HookExtension(PFNGLRELEASESHADERCOMPILERPROC, glReleaseShaderCompiler); \
+    HookExtension(PFNGLRENDERBUFFERSTORAGEPROC, glRenderbufferStorage); \
     HookExtension(PFNGLSAMPLECOVERAGEPROC, glSampleCoverage); \
     HookExtension(PFNGLSCISSORPROC, glScissor); \
     HookExtension(PFNGLSHADERBINARYPROC, glShaderBinary); \
@@ -544,6 +555,7 @@
     HookExtension(PFNGLGETQUERYOBJECTUIVPROC, glGetQueryObjectuiv); \
     HookExtension(PFNGLUNMAPBUFFERPROC, glUnmapBuffer); \
     HookExtension(PFNGLGETBUFFERPOINTERVPROC, glGetBufferPointerv); \
+    HookExtension(PFNGLDRAWBUFFERSPROC, glDrawBuffers); \
     HookExtension(PFNGLUNIFORMMATRIX2X3FVPROC, glUniformMatrix2x3fv); \
     HookExtension(PFNGLUNIFORMMATRIX3X2FVPROC, glUniformMatrix3x2fv); \
     HookExtension(PFNGLUNIFORMMATRIX2X4FVPROC, glUniformMatrix2x4fv); \
@@ -728,6 +740,7 @@
     HookWrapper3(void, glBindAttribLocation, GLuint, program, GLuint, index, const GLchar *, name); \
     HookWrapper2(void, glBindBuffer, GLenum, target, GLuint, buffer); \
     HookWrapper2(void, glBindFramebuffer, GLenum, target, GLuint, framebuffer); \
+    HookWrapper2(void, glBindRenderbuffer, GLenum, target, GLuint, renderbuffer); \
     HookWrapper2(void, glBindTexture, GLenum, target, GLuint, texture); \
     HookWrapper4(void, glBlendColor, GLfloat, red, GLfloat, green, GLfloat, blue, GLfloat, alpha); \
     HookWrapper1(void, glBlendEquation, GLenum, mode); \
@@ -753,6 +766,7 @@
     HookWrapper2(void, glDeleteBuffers, GLsizei, n, const GLuint *, buffers); \
     HookWrapper2(void, glDeleteFramebuffers, GLsizei, n, const GLuint *, framebuffers); \
     HookWrapper1(void, glDeleteProgram, GLuint, program); \
+    HookWrapper2(void, glDeleteRenderbuffers, GLsizei, n, const GLuint *, renderbuffers); \
     HookWrapper1(void, glDeleteShader, GLuint, shader); \
     HookWrapper2(void, glDeleteTextures, GLsizei, n, const GLuint *, textures); \
     HookWrapper1(void, glDepthFunc, GLenum, func); \
@@ -767,11 +781,13 @@
     HookWrapper1(void, glEnableVertexAttribArray, GLuint, index); \
     HookWrapper0(void, glFinish); \
     HookWrapper0(void, glFlush); \
+    HookWrapper4(void, glFramebufferRenderbuffer, GLenum, target, GLenum, attachment, GLenum, renderbuffertarget, GLuint, renderbuffer); \
     HookWrapper5(void, glFramebufferTexture2D, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level); \
     HookWrapper1(void, glFrontFace, GLenum, mode); \
     HookWrapper2(void, glGenBuffers, GLsizei, n, GLuint *, buffers); \
     HookWrapper1(void, glGenerateMipmap, GLenum, target); \
     HookWrapper2(void, glGenFramebuffers, GLsizei, n, GLuint *, framebuffers); \
+    HookWrapper2(void, glGenRenderbuffers, GLsizei, n, GLuint *, renderbuffers); \
     HookWrapper2(void, glGenTextures, GLsizei, n, GLuint *, textures); \
     HookWrapper7(void, glGetActiveAttrib, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \
     HookWrapper7(void, glGetActiveUniform, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLint *, size, GLenum *, type, GLchar *, name); \
@@ -813,6 +829,7 @@
     HookWrapper2(void, glPolygonOffset, GLfloat, factor, GLfloat, units); \
     HookWrapper7(void, glReadPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, void *, pixels); \
     HookWrapper0(void, glReleaseShaderCompiler); \
+    HookWrapper4(void, glRenderbufferStorage, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper2(void, glSampleCoverage, GLfloat, value, GLboolean, invert); \
     HookWrapper4(void, glScissor, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
     HookWrapper5(void, glShaderBinary, GLsizei, count, const GLuint *, shaders, GLenum, binaryformat, const void *, binary, GLsizei, length); \
@@ -868,6 +885,7 @@
     HookWrapper3(void, glGetQueryObjectuiv, GLuint, id, GLenum, pname, GLuint *, params); \
     HookWrapper1(GLboolean, glUnmapBuffer, GLenum, target); \
     HookWrapper3(void, glGetBufferPointerv, GLenum, target, GLenum, pname, void **, params); \
+    HookWrapper2(void, glDrawBuffers, GLsizei, n, const GLenum *, bufs); \
     HookWrapper4(void, glUniformMatrix2x3fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper4(void, glUniformMatrix3x2fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper4(void, glUniformMatrix2x4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
@@ -1093,11 +1111,6 @@
 
 // unsupported entry points - used for dummy functions
 #define DefineUnsupportedDummies() \
-    HookWrapper2(void, glBindRenderbuffer, GLenum, target, GLuint, renderbuffer); \
-    HookWrapper2(void, glDeleteRenderbuffers, GLsizei, n, const GLuint *, renderbuffers); \
-    HookWrapper4(void, glFramebufferRenderbuffer, GLenum, target, GLenum, attachment, GLenum, renderbuffertarget, GLuint, renderbuffer); \
-    HookWrapper2(void, glGenRenderbuffers, GLsizei, n, GLuint *, renderbuffers); \
-    HookWrapper4(void, glRenderbufferStorage, GLenum, target, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper2(void, glVertexAttrib1f, GLuint, index, GLfloat, x); \
     HookWrapper2(void, glVertexAttrib1fv, GLuint, index, const GLfloat *, v); \
     HookWrapper3(void, glVertexAttrib2f, GLuint, index, GLfloat, x, GLfloat, y); \
@@ -1106,7 +1119,6 @@
     HookWrapper2(void, glVertexAttrib3fv, GLuint, index, const GLfloat *, v); \
     HookWrapper5(void, glVertexAttrib4f, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
     HookWrapper2(void, glVertexAttrib4fv, GLuint, index, const GLfloat *, v); \
-    HookWrapper2(void, glDrawBuffers, GLsizei, n, const GLenum *, bufs); \
     HookWrapper5(void, glRenderbufferStorageMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper3(void, glFlushMappedBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
     HookWrapper5(void, glBindBufferRange, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
@@ -1512,11 +1524,6 @@
 
 
 #define CheckUnsupported() \
-    HandleUnsupported(PFNGLBINDRENDERBUFFERPROC, glBindRenderbuffer); \
-    HandleUnsupported(PFNGLDELETERENDERBUFFERSPROC, glDeleteRenderbuffers); \
-    HandleUnsupported(PFNGLFRAMEBUFFERRENDERBUFFERPROC, glFramebufferRenderbuffer); \
-    HandleUnsupported(PFNGLGENRENDERBUFFERSPROC, glGenRenderbuffers); \
-    HandleUnsupported(PFNGLRENDERBUFFERSTORAGEPROC, glRenderbufferStorage); \
     HandleUnsupported(PFNGLVERTEXATTRIB1FPROC, glVertexAttrib1f); \
     HandleUnsupported(PFNGLVERTEXATTRIB1FVPROC, glVertexAttrib1fv); \
     HandleUnsupported(PFNGLVERTEXATTRIB2FPROC, glVertexAttrib2f); \
@@ -1525,7 +1532,6 @@
     HandleUnsupported(PFNGLVERTEXATTRIB3FVPROC, glVertexAttrib3fv); \
     HandleUnsupported(PFNGLVERTEXATTRIB4FPROC, glVertexAttrib4f); \
     HandleUnsupported(PFNGLVERTEXATTRIB4FVPROC, glVertexAttrib4fv); \
-    HandleUnsupported(PFNGLDRAWBUFFERSPROC, glDrawBuffers); \
     HandleUnsupported(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC, glRenderbufferStorageMultisample); \
     HandleUnsupported(PFNGLFLUSHMAPPEDBUFFERRANGEPROC, glFlushMappedBufferRange); \
     HandleUnsupported(PFNGLBINDBUFFERRANGEPROC, glBindBufferRange); \

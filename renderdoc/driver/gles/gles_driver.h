@@ -546,6 +546,17 @@ public:
   bool Serialise_glVertexAttribPointer(GLuint index, GLint size, GLenum type,
                                        GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize);
 
+  bool Serialise_glFramebufferTexture2D(GLuint framebuffer, GLenum target, GLenum attachment,
+                                        GLenum textarget, GLuint texture,
+                                        GLint level);
+  bool Serialise_glDrawBuffers(GLuint framebuffer, GLsizei n, const GLenum *bufs);
+  bool Serialise_glReadBuffer(GLuint framebuffer, GLenum mode);
+  bool Serialise_glFramebufferRenderbuffer(GLuint framebuffer, GLenum target, GLenum attachment,
+                                           GLenum renderbuffertarget,
+                                           GLuint renderbuffer);
+  bool Serialise_glRenderbufferStorage(GLuint renderbuffer, GLenum target,
+                                       GLenum internalformat, GLsizei width,
+                                       GLsizei height);
 
   enum AttribType
   {

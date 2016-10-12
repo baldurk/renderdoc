@@ -407,6 +407,7 @@ int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint 
   int mips = 1;
 
   GLint immut = 0;
+  GLenum origTarget = target;
   GLuint oldBinding;
   gl.glGetIntegerv(TextureBinding(target), (GLint*)&oldBinding);  
   gl.glBindTexture(target, tex);
@@ -439,7 +440,7 @@ int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint 
       }
     }
   }
-  gl.glBindTexture(target, oldBinding);
+  gl.glBindTexture(origTarget, oldBinding);
   return RDCMAX(1, mips);
 }
 
