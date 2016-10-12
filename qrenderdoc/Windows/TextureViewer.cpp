@@ -1671,6 +1671,7 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
   {
     QWidget *lockedContainer = new QWidget(this);
     lockedContainer->setWindowTitle(QString(tex->name));
+    lockedContainer->setProperty("id", QVariant::fromValue(ID));
 
     ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
 
@@ -1691,8 +1692,6 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
       textureTabs->setTabIcon(idx, lockedIcon);
     else
       qCritical() << "Couldn't get tab index of new tab to set icon";
-
-    lockedContainer->setProperty("id", QVariant::fromValue(ID));
 
     // newPanel.DockHandler.TabPageContextMenuStrip = tabContextMenu;
 
