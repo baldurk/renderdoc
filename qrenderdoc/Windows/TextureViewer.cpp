@@ -37,7 +37,6 @@
 #include "FlowLayout.h"
 #include "ui_TextureViewer.h"
 
-
 float area(const QSizeF &s)
 {
   return s.width() * s.height();
@@ -476,12 +475,7 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
 
   m_Ctx->AddLogViewer(this);
 
-  m_CachedTexture = NULL;
-
-  memset(&m_TexDisplay, 0, sizeof(m_TexDisplay));
-  m_TexDisplay.sampleIdx = ~0U;
-  m_TexDisplay.linearDisplayAsGamma = true;
-  m_TexDisplay.rangemax = 1.0f;
+  Reset();
 
   on_checkerBack_clicked();
 
@@ -537,7 +531,6 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
                                                          ui->dockarea->areaOf(ui->inputThumbs)));
   ui->dockarea->setToolWindowProperties(ui->outputThumbs, ToolWindowManager::HideCloseButton);
 
-  // need to add a way to make this less than 50% programmatically
   ui->dockarea->addToolWindow(
       ui->pixelContextLayout,
       ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
@@ -626,8 +619,6 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
 
   ui->zoomOption->setCurrentText("");
   ui->fitToWindow->toggle();
-
-  UI_UpdateTextureDetails();
 
   SetupTextureTabs();
 }
@@ -2452,7 +2443,7 @@ void TextureViewer::UI_RecreatePanels()
 
 void TextureViewer::OnLogfileLoaded()
 {
-  UI_RecreatePanels();
+  Reset();
 
   WId renderID = ui->render->winId();
   WId contextID = ui->pixelContext->winId();
@@ -2477,22 +2468,69 @@ void TextureViewer::OnLogfileLoaded()
 
     OutputConfig c = {eOutputType_TexDisplay};
     m_Output->SetOutputConfig(c);
+
+    RT_UpdateAndDisplay(r);
   });
 }
 
-void TextureViewer::OnLogfileClosed()
+void TextureViewer::Reset()
 {
+  m_CachedTexture = NULL;
+
+  memset(&m_TexDisplay, 0, sizeof(m_TexDisplay));
+  m_TexDisplay.darkBackgroundColour =
+      FloatVector(darkBack.redF(), darkBack.greenF(), darkBack.blueF(), 1.0f);
+  m_TexDisplay.lightBackgroundColour =
+      FloatVector(lightBack.redF(), lightBack.greenF(), lightBack.blueF(), 1.0f);
+
   m_Output = NULL;
 
+  m_TextureSettings.clear();
+
+  m_PrevSize = QSizeF();
+  m_HighWaterStatusLength = 0;
+
   ui->rangeHistogram->setRange(0.0f, 1.0f);
+
+  ui->textureListFilter->setCurrentIndex(0);
+
+  ui->renderHScroll->setEnabled(false);
+  ui->renderVScroll->setEnabled(false);
+
+  // PixelPicked = false;
+
+  ui->statusText->setText("");
+  ui->renderContainer->setWindowTitle(tr("Current"));
+  ui->zoomOption->setCurrentText("");
+  ui->mipLevel->clear();
+  ui->sliceFace->clear();
+
+  ui->channels->setCurrentIndex(0);
+  ui->overlay->setCurrentIndex(0);
+
+  ui->customShader->clear();
 
   UI_RecreatePanels();
 
   ui->inputThumbs->clearThumbs();
-
-  m_TextureSettings.clear();
+  ui->outputThumbs->clearThumbs();
 
   UI_UpdateTextureDetails();
+  UI_UpdateChannels();
+}
+
+void TextureViewer::OnLogfileClosed()
+{
+  Reset();
+
+  for(ResourceId id : m_LockedTabs.keys())
+    delete m_LockedTabs[id];
+
+  m_LockedTabs.clear();
+
+  ui->saveTex->setEnabled(false);
+  ui->locationGoto->setEnabled(false);
+  ui->viewTexBuffer->setEnabled(false);
 }
 
 void TextureViewer::OnEventSelected(uint32_t eventID)

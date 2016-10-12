@@ -207,6 +207,8 @@ private:
 
   void SetupTextureTabs();
 
+  void Reset();
+
   ResourcePreview *UI_CreateThumbnail(ThumbnailStrip *strip);
   void UI_CreateThumbnails();
   void InitResourcePreview(ResourcePreview *prev, ResourceId id, FormatComponentType typeHint,
