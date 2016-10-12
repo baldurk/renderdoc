@@ -239,6 +239,7 @@ private:
   std::function<void()> m_func;
   QThread *m_Thread;
   QSemaphore completed;
+  bool m_SelfDelete = false;
 
 public slots:
   void process()
@@ -247,9 +248,12 @@ public slots:
     m_Thread->quit();
     m_Thread->deleteLater();
     m_Thread = NULL;
+    if(m_SelfDelete)
+      deleteLater();
     completed.acquire();
   }
 
+  void selfDelete(bool d) { m_SelfDelete = d; }
 public:
   explicit LambdaThread(std::function<void()> f)
   {
@@ -262,6 +266,12 @@ public:
 
   void start(QThread::Priority prio = QThread::InheritPriority) { m_Thread->start(prio); }
   bool isRunning() { return completed.available(); }
+  bool wait(unsigned long time = ULONG_MAX)
+  {
+    if(m_Thread)
+      return m_Thread->wait(time);
+    return true;
+  }
 };
 
 class QMenu;
