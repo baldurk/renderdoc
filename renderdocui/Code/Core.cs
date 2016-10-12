@@ -670,6 +670,7 @@ namespace renderdocui.Code
             m_Textures = null;
 
             m_D3D11PipelineState = null;
+            m_D3D12PipelineState = null;
             m_GLPipelineState = null;
             m_VulkanPipelineState = null;
             m_PipelineState.SetStates(null, null,null, null, null);
