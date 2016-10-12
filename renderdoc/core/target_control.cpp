@@ -168,8 +168,9 @@ void RenderDoc::TargetControlClientThread(void *s)
         {
           uint32_t numFrames = 0;
           recvser->Serialise("", numFrames);
-
-          RenderDoc::Inst().TriggerCapture(numFrames);
+          bool isCaptureSingleFile = false;
+          recvser->Serialise("", isCaptureSingleFile);
+          RenderDoc::Inst().TriggerCapture(numFrames, isCaptureSingleFile);
         }
         else if(type == ePacket_QueueCapture)
         {
@@ -433,11 +434,13 @@ public:
   const char *GetAPI() { return m_API.c_str(); }
   uint32_t GetPID() { return m_PID; }
   const char *GetBusyClient() { return m_BusyClient.c_str(); }
-  void TriggerCapture(uint32_t numFrames)
+  void TriggerCapture(uint32_t numFrames, bool isCaptureSingleFile)
   {
     Serialiser ser("", Serialiser::WRITING, false);
 
     ser.Serialise("", numFrames);
+
+    ser.Serialise("", isCaptureSingleFile);
 
     if(!SendPacket(m_Socket, ePacket_TriggerCapture, ser))
     {
@@ -670,9 +673,10 @@ extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetBusyClient(Ta
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_TriggerCapture(TargetControl *control,
-                                                                        uint32_t numFrames)
+                                                                        uint32_t numFrames,
+                                                                        bool isCaptureSingleFile)
 {
-  control->TriggerCapture(numFrames);
+  control->TriggerCapture(numFrames, isCaptureSingleFile);
 }
 extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_QueueCapture(TargetControl *control,
                                                                       uint32_t frameNumber)

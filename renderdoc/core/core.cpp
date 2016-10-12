@@ -221,6 +221,7 @@ RenderDoc::RenderDoc()
   m_Replay = false;
 
   m_Cap = 0;
+  m_IsCaptureSingleFile = false;
 
   m_FocusKeys.clear();
   m_FocusKeys.push_back(eRENDERDOC_Key_F11);
@@ -549,7 +550,7 @@ void RenderDoc::Tick()
   }
   if(!prev_cap && cur_cap)
   {
-    TriggerCapture(1);
+    TriggerCapture(1, false);
   }
 
   prev_focus = cur_focus;

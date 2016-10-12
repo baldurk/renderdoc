@@ -53,6 +53,7 @@ namespace renderdocui.Windows
 
         Thread m_ConnectThread = null;
         bool m_TriggerCapture = false;
+        bool m_IsCaptureSingleFile = false;
         bool m_QueueCapture = false;
         int m_CaptureNumFrames = 1;
         int m_CaptureFrameNum = 0;
@@ -190,7 +191,7 @@ namespace renderdocui.Windows
 
                     if (m_TriggerCapture)
                     {
-                        m_Connection.TriggerCapture((uint)m_CaptureNumFrames);
+                        m_Connection.TriggerCapture((uint)m_CaptureNumFrames, m_IsCaptureSingleFile);
                         m_TriggerCapture = false;
                     }
 
@@ -933,6 +934,11 @@ namespace renderdocui.Windows
         private void SetText(String title)
         {
             Text = (m_Host.Length > 0 ? (m_Host + " - ") : "") + title;
+        }
+
+		private void isCaptureSingleFile_CheckedChanged(object sender, EventArgs e)
+        {
+            m_IsCaptureSingleFile = isCaptureSingleFile.Checked;
         }
 
     }

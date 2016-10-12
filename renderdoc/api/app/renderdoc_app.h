@@ -431,7 +431,9 @@ typedef void(RENDERDOC_CC *pRENDERDOC_SetActiveWindow)(RENDERDOC_DevicePointer d
 typedef void(RENDERDOC_CC *pRENDERDOC_TriggerCapture)();
 
 // capture the next N frames on whichever window and API is currently considered active
-typedef void(RENDERDOC_CC *pRENDERDOC_TriggerMultiFrameCapture)(uint32_t numFrames);
+// capture the frames in one single file or multiple RDC files
+typedef void(RENDERDOC_CC *pRENDERDOC_TriggerMultiFrameCapture)(uint32_t numFrames,
+                                                                bool isCaptureSingleFile);
 
 // When choosing either a device pointer or a window handle to capture, you can pass NULL.
 // Passing NULL specifies a 'wildcard' match against anything. This allows you to specify

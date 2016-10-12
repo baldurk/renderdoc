@@ -430,7 +430,7 @@ struct ITargetControl
   virtual uint32_t GetPID() = 0;
   virtual const char *GetBusyClient() = 0;
 
-  virtual void TriggerCapture(uint32_t numFrames) = 0;
+  virtual void TriggerCapture(uint32_t numFrames, bool isCaptureSingleFile) = 0;
   virtual void QueueCapture(uint32_t frameNumber) = 0;
   virtual void CopyCapture(uint32_t remoteID, const char *localpath) = 0;
   virtual void DeleteCapture(uint32_t remoteID) = 0;
@@ -460,7 +460,8 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC TargetControl_GetPID(TargetContro
 extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetBusyClient(TargetControl *control);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_TriggerCapture(TargetControl *control,
-                                                                        uint32_t numFrames);
+                                                                        uint32_t numFrames,
+                                                                        bool isCaptureSingleFile);
 extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_QueueCapture(TargetControl *control,
                                                                       uint32_t frameNumber);
 extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_CopyCapture(TargetControl *control,

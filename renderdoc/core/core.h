@@ -274,7 +274,11 @@ public:
     return dev == m_ActiveWindow.dev && wnd == m_ActiveWindow.wnd;
   }
 
-  void TriggerCapture(uint32_t numFrames) { m_Cap = numFrames; }
+  void TriggerCapture(uint32_t numFrames, bool isCaptureSingleFile)
+  {
+    m_Cap = numFrames;
+    m_IsCaptureSingleFile = isCaptureSingleFile;
+  }
   uint32_t GetOverlayBits() { return m_Overlay; }
   void MaskOverlayBits(uint32_t And, uint32_t Or) { m_Overlay = (m_Overlay & And) | Or; }
   void QueueCapture(uint32_t frameNumber) { m_QueuedFrameCaptures.insert(frameNumber); }
@@ -295,6 +299,8 @@ public:
   const vector<RENDERDOC_InputButton> &GetCaptureKeys() { return m_CaptureKeys; }
   bool ShouldTriggerCapture(uint32_t frameNumber);
 
+  uint32_t getCapFrame() { return m_Cap; }
+  bool IsSingleFileCapture() { return m_IsCaptureSingleFile; }
 private:
   RenderDoc();
   ~RenderDoc();
@@ -304,6 +310,7 @@ private:
   bool m_Replay;
 
   uint32_t m_Cap;
+  bool m_IsCaptureSingleFile;
 
   vector<RENDERDOC_InputButton> m_FocusKeys;
   vector<RENDERDOC_InputButton> m_CaptureKeys;

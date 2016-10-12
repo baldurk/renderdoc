@@ -61,6 +61,7 @@
             this.deleteThisCaptureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.captureCountdown = new System.Windows.Forms.Timer(this.components);
             this.childUpdateTimer = new System.Windows.Forms.Timer(this.components);
+            this.isCaptureSingleFile = new System.Windows.Forms.CheckBox();
             label1 = new System.Windows.Forms.Label();
             label2 = new System.Windows.Forms.Label();
             label3 = new System.Windows.Forms.Label();
@@ -109,6 +110,7 @@
             groupBox1.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom) 
             | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
+            groupBox1.Controls.Add(this.isCaptureSingleFile);
             groupBox1.Controls.Add(this.numFrames);
             groupBox1.Controls.Add(label4);
             groupBox1.Controls.Add(this.queueCap);
@@ -119,7 +121,7 @@
             groupBox1.Controls.Add(this.triggerCapture);
             groupBox1.Location = new System.Drawing.Point(3, 34);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new System.Drawing.Size(356, 75);
+            groupBox1.Size = new System.Drawing.Size(481, 75);
             groupBox1.TabIndex = 7;
             groupBox1.TabStop = false;
             groupBox1.Text = "Tools";
@@ -212,7 +214,7 @@
             this.toolStrip1.Location = new System.Drawing.Point(0, 375);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.toolStrip1.Size = new System.Drawing.Size(362, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(487, 25);
             this.toolStrip1.Stretch = true;
             this.toolStrip1.TabIndex = 8;
             this.toolStrip1.Text = "toolStrip1";
@@ -223,7 +225,7 @@
             this.deleteMenu.Image = ((System.Drawing.Image)(resources.GetObject("deleteMenu.Image")));
             this.deleteMenu.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.deleteMenu.Name = "deleteMenu";
-            this.deleteMenu.Size = new System.Drawing.Size(42, 22);
+            this.deleteMenu.Size = new System.Drawing.Size(44, 22);
             this.deleteMenu.Text = "Delete";
             this.deleteMenu.Click += new System.EventHandler(this.deleteCapture_Click);
             // 
@@ -247,21 +249,21 @@
             this.openMenu.ImageTransparentColor = System.Drawing.Color.Magenta;
             this.openMenu.Name = "openMenu";
             this.openMenu.RightToLeft = System.Windows.Forms.RightToLeft.No;
-            this.openMenu.Size = new System.Drawing.Size(49, 22);
+            this.openMenu.Size = new System.Drawing.Size(52, 22);
             this.openMenu.Text = "Open";
             this.openMenu.ButtonClick += new System.EventHandler(this.openCapture_Click);
             // 
             // openToolStripMenuItem
             // 
             this.openToolStripMenuItem.Name = "openToolStripMenuItem";
-            this.openToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.openToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
             this.openToolStripMenuItem.Text = "In &this instance";
             this.openToolStripMenuItem.Click += new System.EventHandler(this.openCapture_Click);
             // 
             // newInstanceToolStripMenuItem
             // 
             this.newInstanceToolStripMenuItem.Name = "newInstanceToolStripMenuItem";
-            this.newInstanceToolStripMenuItem.Size = new System.Drawing.Size(150, 22);
+            this.newInstanceToolStripMenuItem.Size = new System.Drawing.Size(156, 22);
             this.newInstanceToolStripMenuItem.Text = "In &new instance";
             this.newInstanceToolStripMenuItem.Click += new System.EventHandler(this.openNewWindow_Click);
             // 
@@ -287,7 +289,7 @@
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(362, 400);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(487, 400);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // captures
@@ -297,7 +299,7 @@
             this.captures.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
             this.captures.Location = new System.Drawing.Point(3, 221);
             this.captures.Name = "captures";
-            this.captures.Size = new System.Drawing.Size(356, 151);
+            this.captures.Size = new System.Drawing.Size(481, 151);
             this.captures.TabIndex = 6;
             this.captures.TileSize = new System.Drawing.Size(300, 100);
             this.captures.UseCompatibleStateImageBehavior = false;
@@ -314,7 +316,7 @@
             this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel1.Location = new System.Drawing.Point(3, 3);
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
-            this.flowLayoutPanel1.Size = new System.Drawing.Size(356, 25);
+            this.flowLayoutPanel1.Size = new System.Drawing.Size(481, 25);
             this.flowLayoutPanel1.TabIndex = 4;
             this.flowLayoutPanel1.WrapContents = false;
             // 
@@ -354,7 +356,7 @@
             this.childProcesses.Location = new System.Drawing.Point(3, 143);
             this.childProcesses.MinimumSize = new System.Drawing.Size(4, 40);
             this.childProcesses.Name = "childProcesses";
-            this.childProcesses.Size = new System.Drawing.Size(356, 40);
+            this.childProcesses.Size = new System.Drawing.Size(481, 40);
             this.childProcesses.TabIndex = 5;
             this.childProcesses.UseCompatibleStateImageBehavior = false;
             this.childProcesses.View = System.Windows.Forms.View.Tile;
@@ -367,7 +369,7 @@
             this.saveThisCaptureToolStripMenuItem,
             this.deleteThisCaptureToolStripMenuItem});
             this.rightclickContext.Name = "rightclickContext";
-            this.rightclickContext.Size = new System.Drawing.Size(124, 70);
+            this.rightclickContext.Size = new System.Drawing.Size(126, 70);
             // 
             // openThisCaptureToolStripMenuItem
             // 
@@ -375,34 +377,34 @@
             this.openToolStripMenuItem1,
             this.newInstanceToolStripMenuItem1});
             this.openThisCaptureToolStripMenuItem.Name = "openThisCaptureToolStripMenuItem";
-            this.openThisCaptureToolStripMenuItem.Size = new System.Drawing.Size(123, 22);
+            this.openThisCaptureToolStripMenuItem.Size = new System.Drawing.Size(125, 22);
             this.openThisCaptureToolStripMenuItem.Text = "&Open in...";
             // 
             // openToolStripMenuItem1
             // 
             this.openToolStripMenuItem1.Name = "openToolStripMenuItem1";
-            this.openToolStripMenuItem1.Size = new System.Drawing.Size(138, 22);
+            this.openToolStripMenuItem1.Size = new System.Drawing.Size(145, 22);
             this.openToolStripMenuItem1.Text = "This instance";
             this.openToolStripMenuItem1.Click += new System.EventHandler(this.openCapture_Click);
             // 
             // newInstanceToolStripMenuItem1
             // 
             this.newInstanceToolStripMenuItem1.Name = "newInstanceToolStripMenuItem1";
-            this.newInstanceToolStripMenuItem1.Size = new System.Drawing.Size(138, 22);
+            this.newInstanceToolStripMenuItem1.Size = new System.Drawing.Size(145, 22);
             this.newInstanceToolStripMenuItem1.Text = "New instance";
             this.newInstanceToolStripMenuItem1.Click += new System.EventHandler(this.openNewWindow_Click);
             // 
             // saveThisCaptureToolStripMenuItem
             // 
             this.saveThisCaptureToolStripMenuItem.Name = "saveThisCaptureToolStripMenuItem";
-            this.saveThisCaptureToolStripMenuItem.Size = new System.Drawing.Size(123, 22);
+            this.saveThisCaptureToolStripMenuItem.Size = new System.Drawing.Size(125, 22);
             this.saveThisCaptureToolStripMenuItem.Text = "&Save";
             this.saveThisCaptureToolStripMenuItem.Click += new System.EventHandler(this.saveCapture_Click);
             // 
             // deleteThisCaptureToolStripMenuItem
             // 
             this.deleteThisCaptureToolStripMenuItem.Name = "deleteThisCaptureToolStripMenuItem";
-            this.deleteThisCaptureToolStripMenuItem.Size = new System.Drawing.Size(123, 22);
+            this.deleteThisCaptureToolStripMenuItem.Size = new System.Drawing.Size(125, 22);
             this.deleteThisCaptureToolStripMenuItem.Text = "&Delete";
             this.deleteThisCaptureToolStripMenuItem.Click += new System.EventHandler(this.deleteCapture_Click);
             // 
@@ -416,11 +418,22 @@
             this.childUpdateTimer.Enabled = true;
             this.childUpdateTimer.Tick += new System.EventHandler(this.childUpdateTimer_Tick);
             // 
+            // isCaptureSingleFile
+            // 
+            this.isCaptureSingleFile.AutoSize = true;
+            this.isCaptureSingleFile.Location = new System.Drawing.Point(352, 20);
+            this.isCaptureSingleFile.Name = "isCaptureSingleFile";
+            this.isCaptureSingleFile.Size = new System.Drawing.Size(74, 17);
+            this.isCaptureSingleFile.TabIndex = 7;
+            this.isCaptureSingleFile.Text = "Single File";
+            this.isCaptureSingleFile.UseVisualStyleBackColor = true;
+            this.isCaptureSingleFile.CheckedChanged += new System.EventHandler(this.isCaptureSingleFile_CheckedChanged);
+            // 
             // LiveCapture
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(362, 400);
+            this.ClientSize = new System.Drawing.Size(487, 400);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Name = "LiveCapture";
@@ -472,5 +485,6 @@
         private System.Windows.Forms.ToolStripMenuItem newInstanceToolStripMenuItem;
         private System.Windows.Forms.NumericUpDown numFrames;
         private System.Windows.Forms.ToolStrip toolStrip1;
+        private System.Windows.Forms.CheckBox isCaptureSingleFile;
     }
 }
