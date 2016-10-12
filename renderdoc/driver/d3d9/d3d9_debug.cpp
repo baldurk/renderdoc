@@ -207,11 +207,6 @@ void D3D9DebugManager::RenderTextInternal(float x, float y, const char *text)
   res |= m_WrappedDevice->SetRenderState(D3DRS_INDEXEDVERTEXBLENDENABLE, FALSE);
   res |= m_WrappedDevice->SetRenderState(D3DRS_SRGBWRITEENABLE, FALSE);
 
-  // overlay render states
-  res |= m_WrappedDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
-  res |= m_WrappedDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
-  res |= m_WrappedDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
-
   // sampler states
   res |= m_WrappedDevice->SetSamplerState(0, D3DSAMP_ADDRESSU, D3DTADDRESS_CLAMP);
   res |= m_WrappedDevice->SetSamplerState(0, D3DSAMP_ADDRESSV, D3DTADDRESS_CLAMP);
@@ -274,6 +269,7 @@ void D3D9DebugManager::RenderTextInternal(float x, float y, const char *text)
   };
 
   Quad *quads = NULL;
+  Quad background;
   UINT triangleCount = 0;
   {
     UINT quadCount = (UINT)strlen(text);    // calculate string length
@@ -282,8 +278,11 @@ void D3D9DebugManager::RenderTextInternal(float x, float y, const char *text)
     // create text VB
     quads = new Quad[quadCount];
 
-    float textPositionX = (-width / 2.f);
-    float textPositionY = (-height / 2.f) + ((y + 1.f) * m_Font.maxHeight);
+    float textStartingPositionX = (-width / 2.f) + (x * m_Font.charData->xadvance);
+    float textStartingPositionY = (-height / 2.f) + ((y + 1.f) * m_Font.maxHeight);
+
+    float textPositionX = textStartingPositionX;
+    float textPositionY = textStartingPositionY;
 
     for(UINT i = 0; i < quadCount; ++i)
     {
@@ -292,8 +291,8 @@ void D3D9DebugManager::RenderTextInternal(float x, float y, const char *text)
       {
         float currentX = textPositionX;
         textPositionX += m_Font.charData->xadvance;
-        quads[i] = Quad(currentX, textPositionY, 0.5f, 0.f, 0.f, textPositionX,
-                        textPositionY + m_Font.maxHeight, 0.f, 0.f);
+        quads[i] = Quad(currentX, textPositionY - m_Font.maxHeight, 0.5f, 0.f, 0.f, textPositionX,
+                        textPositionY, 0.f, 0.f);
       }
       else
       {
@@ -303,10 +302,22 @@ void D3D9DebugManager::RenderTextInternal(float x, float y, const char *text)
         quads[i] = Quad(quad.x0, quad.y0, 0.5f, quad.s0, quad.t0, quad.x1, quad.y1, quad.s1, quad.t1);
       }
     }
+
+    background = Quad(textStartingPositionX, textStartingPositionY - m_Font.maxHeight, 0.6f, 0.f,
+                      0.f, textPositionX, textPositionY + 3.f, 0.f, 0.f);
   }
 
   if(quads != NULL)
   {
+    // overlay render states
+    res |= m_WrappedDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, FALSE);
+    res |= m_WrappedDevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, 2, &background, sizeof(Vertex));
+
+    //// overlay render states
+    res |= m_WrappedDevice->SetRenderState(D3DRS_ALPHABLENDENABLE, TRUE);
+    res |= m_WrappedDevice->SetRenderState(D3DRS_SRCBLEND, D3DBLEND_SRCALPHA);
+    res |= m_WrappedDevice->SetRenderState(D3DRS_DESTBLEND, D3DBLEND_INVSRCALPHA);
+
     res |= m_WrappedDevice->DrawPrimitiveUP(D3DPT_TRIANGLELIST, triangleCount, &quads[0],
                                             sizeof(Vertex));
     delete[] quads;
