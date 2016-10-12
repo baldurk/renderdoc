@@ -120,3 +120,15 @@ There have been many people who have helped in the creation of RenderDoc. Whethe
 * Ian Elliot
 * Callan McInally
 * Gordon Selley
+
+Contributors
+------------
+
+The following list highlights notable open source contributions. Many other people have contributed individual bug fixes and tweaks, which can be seen `on github <https://github.com/baldurk/renderdoc/graphs/contributors>`_ !
+
+* Michael Vance - Implemented a sophisticated frame statistics system for D3D11 around binding and draw API calls.
+* Matthäus G. Chajdas - Converted this documentation from sandcastle to sphinx.
+* Michael Rennie - Added support for Android platform capture.
+* Adrian Bucur - Added custom SPIR-V disassembler support.
+* James Fulop - Updated the vertex picking algorithm.
+* Balazs Torok - Implemented the RenderDoc in-application overlay for D3D9.
