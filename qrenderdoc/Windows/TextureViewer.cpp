@@ -448,8 +448,16 @@ public:
 
 FetchTexture *TextureViewer::GetCurrentTexture()
 {
+  return m_CachedTexture;
+}
+
+void TextureViewer::UI_UpdateCachedTexture()
+{
   if(!m_Ctx->LogLoaded())
-    return NULL;
+  {
+    m_CachedTexture = NULL;
+    return;
+  }
 
   ResourceId id = m_LockedId;
   if(id == ResourceId())
@@ -458,7 +466,7 @@ FetchTexture *TextureViewer::GetCurrentTexture()
   if(id == ResourceId())
     id = m_TexDisplay.texid;
 
-  return m_Ctx->GetTexture(id);
+  m_CachedTexture = m_Ctx->GetTexture(id);
 }
 
 TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
@@ -467,6 +475,8 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
   ui->setupUi(this);
 
   m_Ctx->AddLogViewer(this);
+
+  m_CachedTexture = NULL;
 
   memset(&m_TexDisplay, 0, sizeof(m_TexDisplay));
   m_TexDisplay.sampleIdx = ~0U;
@@ -1529,6 +1539,8 @@ void TextureViewer::textureTab_Changed(int index)
       m_LockedId = ResourceId();
     else
       m_LockedId = w->property("id").value<ResourceId>();
+
+    UI_UpdateCachedTexture();
   }
 
   UI_OnTextureSelectionChanged(false);
@@ -2082,6 +2094,8 @@ void TextureViewer::thumb_clicked(QMouseEvent *e)
     m_Following = follow;
     prev->setSelected(true);
 
+    UI_UpdateCachedTexture();
+
     ResourceId id = m_Following.GetResourceId(m_Ctx);
 
     if(id != ResourceId())
@@ -2484,7 +2498,10 @@ void TextureViewer::OnLogfileClosed()
 
 void TextureViewer::OnEventSelected(uint32_t eventID)
 {
+  UI_UpdateCachedTexture();
+
   FetchTexture *CurrentTexture = GetCurrentTexture();
+
   if(!currentTextureIsLocked() ||
      (CurrentTexture != NULL && m_TexDisplay.texid != CurrentTexture->ID))
     UI_OnTextureSelectionChanged(true);

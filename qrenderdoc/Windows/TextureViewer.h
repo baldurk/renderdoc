@@ -242,6 +242,7 @@ private:
   void setScrollPosition(const QPoint &pos);
 
   FetchTexture *GetCurrentTexture();
+  void UI_UpdateCachedTexture();
 
   void ShowGotoPopup();
 
@@ -285,6 +286,7 @@ private:
   CaptureContext *m_Ctx = NULL;
   IReplayOutput *m_Output = NULL;
 
+  FetchTexture *m_CachedTexture;
   Following m_Following = Following::Default;
   QMap<ResourceId, TexSettings> m_TextureSettings;
 
