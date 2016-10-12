@@ -136,6 +136,7 @@ struct array
 
   // provide some of the familiar stl interface
   size_t size() const { return (size_t)count; }
+  void clear() { Delete(); }
   bool empty() const { return count == 0; }
   T *begin() { return elems ? elems : end(); }
   T *end() { return elems ? elems + count : NULL; }
