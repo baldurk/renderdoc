@@ -104,7 +104,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/wd4718 /wd4127 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(Platform)\$(Configuration)\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
       <DebugInformationFormat>None</DebugInformationFormat>
@@ -149,7 +149,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/wd4718 /wd4127 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(Platform)\$(Configuration)\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
       <DebugInformationFormat>None</DebugInformationFormat>
@@ -194,7 +194,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/wd4718 /wd4127 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(Platform)\$(Configuration)\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -236,7 +236,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development|Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/wd4718 /wd4127 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(Platform)\$(Configuration)\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
