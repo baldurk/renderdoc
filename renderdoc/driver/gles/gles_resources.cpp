@@ -407,7 +407,6 @@ int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint 
   int mips = 1;
 
   GLint immut = 0;
-  GLenum origTarget = target;
   GLuint oldBinding;
   gl.glGetIntegerv(TextureBinding(target), (GLint*)&oldBinding);  
   gl.glBindTexture(target, tex);
@@ -426,13 +425,12 @@ int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint 
   {
     // check to see if all mips are set, or clip the number of mips to those that are
     // set.
-    if(target == eGL_TEXTURE_CUBE_MAP)
-      target = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
+    GLenum correctedTarget = (target == eGL_TEXTURE_CUBE_MAP) ? eGL_TEXTURE_CUBE_MAP_POSITIVE_X : target;
 
     for(int i = 0; i < mips; i++)
     {
       GLint width = 0;
-      gl.glGetTexLevelParameteriv(target, i, eGL_TEXTURE_WIDTH, &width);
+      gl.glGetTexLevelParameteriv(correctedTarget, i, eGL_TEXTURE_WIDTH, &width);
       if(width == 0)
       {
         mips = i;
@@ -440,7 +438,7 @@ int GetNumMips(const GLHookSet &gl, GLenum target, GLuint tex, GLuint w, GLuint 
       }
     }
   }
-  gl.glBindTexture(origTarget, oldBinding);
+  gl.glBindTexture(target, oldBinding);
   return RDCMAX(1, mips);
 }
 
