@@ -1538,7 +1538,7 @@ ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver *
     wrappedDev->SetLogFile(logfile);
   wrappedDev->SetLogVersion(initParams.SerialiseVersion);
 
-  if(wrappedDev->GetSerialiser()->HasError())
+  if(logfile && wrappedDev->GetSerialiser()->HasError())
   {
     SAFE_RELEASE(wrappedDev);
     return eReplayCreate_FileIOFailed;
