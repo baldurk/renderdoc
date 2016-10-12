@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "RangeHistogram.h"
+#include <float.h>
 #include <QMouseEvent>
 #include <QPainter>
 

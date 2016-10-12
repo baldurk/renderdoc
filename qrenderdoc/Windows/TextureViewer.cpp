@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "TextureViewer.h"
+#include <float.h>
 #include <QClipboard>
 #include <QColorDialog>
 #include <QJsonDocument>
@@ -1819,7 +1820,7 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdctype::array<
 
       // if the usage is different from the last, add a new entry,
       // or if the previous draw link is broken.
-      if(u.usage != us || curDraw == NULL || curDraw->previous == NULL)
+      if(u.usage != us || curDraw == NULL || curDraw->previous == 0)
       {
         distinct = true;
       }
@@ -3170,7 +3171,8 @@ void TextureViewer::on_saveTex_clicked()
   if(!texptr || !m_Output)
     return;
 
-  TextureSave config = {};
+  TextureSave config;
+  memset(&config, 0, sizeof(config));
 
   config.id = m_TexDisplay.texid;
   config.typeHint = m_TexDisplay.typeHint;
