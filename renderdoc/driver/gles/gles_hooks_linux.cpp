@@ -330,7 +330,7 @@ public:
       return false;
 
     if(libName)
-      LinuxHookLibrary("libEGL.so", &libHooked);
+      PosixHookLibrary("libEGL.so", &libHooked);
 
     bool success = SetupHooks(GL);
 

@@ -856,8 +856,9 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
   }
 }
 
-bool GLResourceManager::Force_InitialState(GLResource res)
+bool GLResourceManager::Force_InitialState(GLResource res, bool prepare)
 {
+  // TODO(elecro): check this.
   return false;
 }
 

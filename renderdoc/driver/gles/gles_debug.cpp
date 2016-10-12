@@ -81,7 +81,7 @@ static GLuint CompileShader(WrappedGLES &gl, GLenum type, const vector<string>& 
     for(size_t i = 0; i < sources.size(); i++)
       srcs.push_back(sources[i].c_str());
 
-    dump_to_file("_shader_" + ShaderName(type) + "-" + std::to_string(counter), srcs);
+    dump_to_file("_shader_" + ShaderName(type) + "-" + std::to_string(type) + "-" + std::to_string(counter), srcs);
 
     gl.glShaderSource(shader, (GLsizei)srcs.size(), &srcs[0], NULL);
     gl.glCompileShader(shader);

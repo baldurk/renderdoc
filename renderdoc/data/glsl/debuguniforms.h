@@ -265,9 +265,9 @@ INST_NAME(texdisplay);
 
 #define HGRAM_NUM_BUCKETS 256u
 
-#define MESH_OTHER 0    // this covers points and lines, logic is the same
-#define MESH_TRIANGLE_LIST 1
-#define MESH_TRIANGLE_STRIP 2
-#define MESH_TRIANGLE_FAN 3
-#define MESH_TRIANGLE_LIST_ADJ 4
-#define MESH_TRIANGLE_STRIP_ADJ 5
+#define MESH_OTHER 0u    // this covers points and lines, logic is the same
+#define MESH_TRIANGLE_LIST 1u
+#define MESH_TRIANGLE_STRIP 2u
+#define MESH_TRIANGLE_FAN 3u
+#define MESH_TRIANGLE_LIST_ADJ 4u
+#define MESH_TRIANGLE_STRIP_ADJ 5u

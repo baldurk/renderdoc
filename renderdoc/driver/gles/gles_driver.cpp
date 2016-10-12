@@ -1221,6 +1221,7 @@ void WrappedGLES::ContextData::CreateDebugData(const GLHookSet &gl)
       if(status == 0)
       {
         gl.glGetShaderInfoLog(vert, 1024, NULL, buffer);
+        dump_to_file("error-vert-5-" + std::to_string(counter_v), vsc);
         RDCERR("5-%d Shader error: %s", counter_v, buffer);
       }
 

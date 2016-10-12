@@ -2115,9 +2115,8 @@ void GLESReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint
                        outvars, data);
 }
 
-byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, bool forDiskSave,
-                               FormatComponentType typeHint, bool resolve, bool forceRGBA8unorm,
-                               float blackPoint, float whitePoint, size_t &dataSize)
+byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                 const GetTextureDataParams &params, size_t &dataSize)
 {
   WrappedGLES &gl = *m_pDriver;
 
@@ -2177,8 +2176,10 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
     arraysize = texDetails.depth;
   }
 
-  if(forceRGBA8unorm && intFormat != eGL_RGBA8 && intFormat != eGL_SRGB8_ALPHA8)
+  if(params.remap && intFormat != eGL_RGBA8 && intFormat != eGL_SRGB8_ALPHA8)
   {
+    RDCASSERT(params.remap == eRemap_RGBA8);
+
     MakeCurrentReplayContext(m_DebugCtx);
 
     GLenum finalFormat = IsSRGBFormat(intFormat) ? eGL_SRGB8_ALPHA8 : eGL_RGBA8;
@@ -2231,8 +2232,8 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       texDisplay.sampleIdx = ~0U;
       texDisplay.CustomShader = ResourceId();
       texDisplay.sliceFace = arrayIdx;
-      texDisplay.rangemin = blackPoint;
-      texDisplay.rangemax = whitePoint;
+      texDisplay.rangemin = params.blackPoint;
+      texDisplay.rangemax = params.whitePoint;
       texDisplay.scale = 1.0f;
       texDisplay.texid = tex;
       texDisplay.typeHint = eCompType_None;
@@ -2266,7 +2267,7 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     gl.glDeleteFramebuffers(1, &fbo);
   }
-  else if(resolve && samples > 1)
+  else if(params.resolve && samples > 1)
   {
     MakeCurrentReplayContext(m_DebugCtx);
 
@@ -2478,7 +2479,7 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       // order is consistent (and we just need to take care to apply an extra vertical flip
       // for display when proxying).
 
-      if(forDiskSave)
+      if(params.forDiskSave)
       {
         // need to vertically flip the image now to get conventional row ordering
         // we either do this when copying out the slice of interest, or just
