@@ -1343,11 +1343,14 @@ void GLESReplay::CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width,
 
 bool GLESReplay::RenderTexture(TextureDisplay cfg)
 {
-  return RenderTextureInternal(cfg, true);
+  return RenderTextureInternal(cfg, eTexDisplay_BlendAlpha | eTexDisplay_MipShift);
 }
 
-bool GLESReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
+bool GLESReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 {
+  const bool blendAlpha = (flags & eTexDisplay_BlendAlpha) != 0;
+  const bool mipShift = (flags & eTexDisplay_MipShift) != 0;
+
   WrappedGLES &gl = *m_pDriver;
 
   auto &texDetails = m_pDriver->m_Textures[cfg.texid];
@@ -1628,16 +1631,16 @@ bool GLESReplay::RenderTextureInternal(TextureDisplay cfg, bool blendAlpha)
 
   ubo->RawOutput = cfg.rawoutput ? 1 : 0;
 
-  ubo->TextureResolutionPS.x = float(tex_x);
-  ubo->TextureResolutionPS.y = float(tex_y);
-  ubo->TextureResolutionPS.z = float(tex_z);
+  ubo->TextureResolutionPS.x = float(RDCMAX(1, tex_x >> cfg.mip));
+  ubo->TextureResolutionPS.y = float(RDCMAX(1, tex_y >> cfg.mip));
+  ubo->TextureResolutionPS.z = float(RDCMAX(1, tex_z >> cfg.mip));
 
   float mipScale = float(1 << cfg.mip);
 
-  ubo->Scale *= mipScale;
-  ubo->TextureResolutionPS.x /= mipScale;
-  ubo->TextureResolutionPS.y /= mipScale;
-  ubo->TextureResolutionPS.z /= mipScale;
+  if (mipShift)
+    ubo->MipShift = float(1 << cfg.mip);
+  else
+    ubo->MipShift = 1.0f;
 
   ubo->OutputRes.x = DebugData.outWidth;
   ubo->OutputRes.y = DebugData.outHeight;

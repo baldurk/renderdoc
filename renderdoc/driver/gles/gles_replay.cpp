@@ -2250,7 +2250,7 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
       gl.glViewport(0, 0, width, height);
 
-      RenderTextureInternal(texDisplay, false);
+      RenderTextureInternal(texDisplay, 0);
     }
 
     DebugData.outWidth = oldW;
@@ -2652,7 +2652,7 @@ ResourceId GLESReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, ui
   disp.scale = 1.0f;
   disp.sliceFace = arrayIdx;
 
-  RenderTextureInternal(disp, false);
+  RenderTextureInternal(disp, eTexDisplay_MipShift);
 
   return DebugData.CustomShaderTexID;
 }

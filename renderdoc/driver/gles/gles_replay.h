@@ -172,7 +172,14 @@ public:
   void FreeCustomShader(ResourceId id);
 
   bool RenderTexture(TextureDisplay cfg);
-  bool RenderTextureInternal(TextureDisplay cfg, bool blendAlpha);
+
+  enum TexDisplayFlags
+  {
+    eTexDisplay_BlendAlpha = 0x1,
+    eTexDisplay_MipShift = 0x2,
+  };
+
+  bool RenderTextureInternal(TextureDisplay cfg, int flags);
 
   void RenderCheckerboard(Vec3f light, Vec3f dark);
 
