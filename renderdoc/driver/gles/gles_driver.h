@@ -474,7 +474,7 @@ private:
   vector<string> globalExts;
 
   void writeFakeVertexAttribPointer(GLsizei count);
- 
+
   template<typename TP, typename TF>
   bool Serialise_Common_glTexParameter_v(GLenum target, GLenum pname, const TP *params, TF GLHookSet::*function);
 
@@ -534,7 +534,7 @@ public:
   bool EndFrameCapture(void *dev, void *surface);
 
   #include "gles_driver_function_serialize_defs.inl"
-  
+
 
   // TODO pantos
   bool Serialise_glFenceSync(GLsync real, GLenum condition, GLbitfield flags);
@@ -542,9 +542,12 @@ public:
   bool Serialise_glCreateShaderProgramv(GLuint real, GLenum type, GLsizei count,
                                         const GLchar *const *strings);
   bool Serialise_glCreateProgram(GLuint real);
-  
+
   bool Serialise_glVertexAttribPointer(GLuint index, GLint size, GLenum type,
                                        GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize);
+
+  bool Serialise_glVertexAttribIPointer(GLuint index, GLint size, GLenum type,
+                                        GLsizei stride, const void *pointer, size_t dataSize);
 
   bool Serialise_glFramebufferTexture2D(GLuint framebuffer, GLenum target, GLenum attachment,
                                         GLenum textarget, GLuint texture,
@@ -622,7 +625,7 @@ public:
   // final check function to ensure we don't try and render with no index buffer bound
   bool Check_preElements();
 
-  
+
   // EXT_direct_state_access
 
   // there's a lot of duplicated code in some of these variants, between
