@@ -257,8 +257,6 @@ private:
   FetchFrameRecord m_FrameRecord;
   vector<FetchDrawcall *> m_Drawcalls;
 
-  FrameTimer m_FrameTimer;
-
   struct PhysicalDeviceData
   {
     PhysicalDeviceData() : readbackMemIndex(0), uploadMemIndex(0), GPULocalMemIndex(0)

@@ -347,8 +347,6 @@ private:
   CaptureFailReason m_FailedReason;
   uint32_t m_Failures;
 
-  FrameTimer m_FrameTimer;
-
   vector<DebugMessage> m_DebugMessages;
 
   vector<FetchFrameInfo> m_CapturedFrames;

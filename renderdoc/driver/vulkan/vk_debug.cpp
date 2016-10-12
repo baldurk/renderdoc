@@ -2415,6 +2415,18 @@ void VulkanDebugManager::RenderText(const TextPrintState &textstate, float x, fl
 void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, float x, float y,
                                             const char *text)
 {
+  if(char *t = strchr((char *)text, '\n'))
+  {
+    *t = 0;
+    RenderTextInternal(textstate, x, y, text);
+    RenderTextInternal(textstate, x, y + 1.0f, t + 1);
+    *t = '\n';
+    return;
+  }
+
+  if(strlen(text) == 0)
+    return;
+
   uint32_t offsets[2] = {0};
 
   FontUBOData *ubo = (FontUBOData *)m_TextGeneralUBO.Map(&offsets[0]);

@@ -30,7 +30,6 @@
 WrappedD3DDevice9::WrappedD3DDevice9(IDirect3DDevice9 *device)
     : m_device(device), m_DebugManager(nullptr)
 {
-  m_FrameTimer.InitTimers();
   m_FrameCounter = 0;
 }
 
@@ -146,8 +145,6 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
 
   // if (m_State == WRITING_IDLE)
   {
-    m_FrameTimer.UpdateTimers();
-
     uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
     static bool debugRenderOverlay = true;
@@ -178,53 +175,13 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
       GetDebugManager()->SetOutputDimensions(bbDesc.Width, bbDesc.Height);
       GetDebugManager()->SetOutputWindow(presentParams.hDeviceWindow);
 
-      // if (activeWindow)
-      {
-        vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetCaptureKeys();
+      string overlayText = RenderDoc::Inst().GetOverlayText(RDC_D3D9, m_FrameCounter,
+                                                            RenderDoc::eOverlay_CaptureDisabled);
 
-        string overlayText = "D3D9. ";
+      overlayText += "Captures not supported with D3D9\n";
 
-        if(overlay & eRENDERDOC_Overlay_FrameNumber)
-        {
-          overlayText += StringFormat::Fmt(" Frame: %d.", m_FrameCounter);
-        }
-        if(overlay & eRENDERDOC_Overlay_FrameRate)
-        {
-          overlayText += StringFormat::Fmt(
-              " %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)", m_FrameTimer.GetAvgFrameTime(),
-              m_FrameTimer.GetMinFrameTime(), m_FrameTimer.GetMaxFrameTime(),
-              // max with 0.01ms so that we don't divide by zero
-              1000.0f / RDCMAX(0.01, m_FrameTimer.GetAvgFrameTime()));
-        }
-
-        float y = 0.0f;
-
-        if(!overlayText.empty())
-        {
-          GetDebugManager()->RenderText(0.0f, y, overlayText.c_str());
-          y += 1.0f;
-        }
-
-        if(overlay & eRENDERDOC_Overlay_CaptureList)
-        {
-          // GetDebugManager()->RenderText(0.0f, y, "%d Captures saved.\n",
-          //	(uint32_t)m_CapturedFrames.size());
-          // y += 1.0f;
-
-          // uint64_t now = Timing::GetUnixTimestamp();
-          // for (size_t i = 0; i < m_CapturedFrames.size(); i++)
-          //{
-          //	if (now - m_CapturedFrames[i].captureTime < 20)
-          //	{
-          //		GetDebugManager()->RenderText(0.0f, y, "Captured frame %d.\n",
-          //			m_CapturedFrames[i].frameNumber);
-          //		y += 1.0f;
-          //	}
-          //}
-
-          GetDebugManager()->RenderText(0.0f, y, "Captures not supported with DX9");
-        }
-      }
+      if(!overlayText.empty())
+        GetDebugManager()->RenderText(0.0f, 0.0f, overlayText.c_str());
 
       stateBlockRes = stateBlock->Apply();
       res |= m_device->EndScene();

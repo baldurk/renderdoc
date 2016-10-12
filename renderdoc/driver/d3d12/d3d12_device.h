@@ -250,8 +250,6 @@ private:
   FetchFrameRecord m_FrameRecord;
   vector<FetchDrawcall *> m_Drawcalls;
 
-  FrameTimer m_FrameTimer;
-
   Serialiser *m_pSerialiser;
   bool m_AppControlledCapture;
 

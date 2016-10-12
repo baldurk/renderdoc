@@ -58,15 +58,15 @@ string ToStrHelper<false, RDCDriver>::Get(const RDCDriver &el)
 {
   switch(el)
   {
-    TOSTR_CASE_STRINGIZE(RDC_Unknown)
-    TOSTR_CASE_STRINGIZE(RDC_OpenGL)
-    TOSTR_CASE_STRINGIZE(RDC_Mantle)
-    TOSTR_CASE_STRINGIZE(RDC_D3D12)
-    TOSTR_CASE_STRINGIZE(RDC_D3D11)
-    TOSTR_CASE_STRINGIZE(RDC_D3D10)
-    TOSTR_CASE_STRINGIZE(RDC_D3D9)
-    TOSTR_CASE_STRINGIZE(RDC_Image)
-    TOSTR_CASE_STRINGIZE(RDC_Vulkan)
+    case RDC_Unknown: return "Unknown";
+    case RDC_OpenGL: return "OpenGL";
+    case RDC_Mantle: return "Mantle";
+    case RDC_D3D12: return "D3D12";
+    case RDC_D3D11: return "D3D11";
+    case RDC_D3D10: return "D3D10";
+    case RDC_D3D9: return "D3D9";
+    case RDC_Image: return "Image";
+    case RDC_Vulkan: return "Vulkan";
     default: break;
   }
 
@@ -313,6 +313,8 @@ void RenderDoc::Initialise()
 
   Keyboard::Init();
 
+  m_FrameTimer.InitTimers();
+
   m_ExHandler = NULL;
 
   {
@@ -523,6 +525,8 @@ void RenderDoc::Tick()
   for(size_t i = 0; i < m_CaptureKeys.size(); i++)
     cur_cap |= Keyboard::GetKeyState(m_CaptureKeys[i]);
 
+  m_FrameTimer.UpdateTimers();
+
   if(!prev_focus && cur_focus)
   {
     m_Cap = 0;
@@ -554,6 +558,102 @@ void RenderDoc::Tick()
 
   prev_focus = cur_focus;
   prev_cap = cur_cap;
+}
+
+string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags)
+{
+  const bool activeWindow = (flags & eOverlay_ActiveWindow);
+  const bool capturesEnabled = (flags & eOverlay_CaptureDisabled) == 0;
+
+  uint32_t overlay = GetOverlayBits();
+
+  string overlayText = ToStr::Get(driver) + ". ";
+
+  if(activeWindow)
+  {
+    vector<RENDERDOC_InputButton> keys = GetCaptureKeys();
+
+    if(capturesEnabled)
+    {
+      if(Keyboard::PlatformHasKeyInput())
+      {
+        for(size_t i = 0; i < keys.size(); i++)
+        {
+          if(i > 0)
+            overlayText += ", ";
+
+          overlayText += ToStr::Get(keys[i]);
+        }
+
+        if(!keys.empty())
+          overlayText += " to capture.";
+      }
+      else
+      {
+        if(IsTargetControlConnected())
+          overlayText += "Connected by " + GetTargetControlUsername() + ".";
+        else
+          overlayText += "No remote access connection.";
+      }
+    }
+
+    if(overlay & eRENDERDOC_Overlay_FrameNumber)
+    {
+      overlayText += StringFormat::Fmt(" Frame: %d.", frameNumber);
+    }
+    if(overlay & eRENDERDOC_Overlay_FrameRate)
+    {
+      overlayText +=
+          StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)", m_FrameTimer.GetAvgFrameTime(),
+                            m_FrameTimer.GetMinFrameTime(), m_FrameTimer.GetMaxFrameTime(),
+                            // max with 0.01ms so that we don't divide by zero
+                            1000.0f / RDCMAX(0.01, m_FrameTimer.GetAvgFrameTime()));
+    }
+
+    overlayText += "\n";
+
+    if((overlay & eRENDERDOC_Overlay_CaptureList) && capturesEnabled)
+    {
+      overlayText += StringFormat::Fmt("%d Captures saved.\n", (uint32_t)m_Captures.size());
+
+      uint64_t now = Timing::GetUnixTimestamp();
+      for(size_t i = 0; i < m_Captures.size(); i++)
+      {
+        if(now - m_Captures[i].timestamp < 20)
+        {
+          overlayText += StringFormat::Fmt("Captured frame %d.\n", m_Captures[i].frameNumber);
+        }
+      }
+    }
+
+#if !defined(RELEASE)
+    overlayText += StringFormat::Fmt("%llu chunks - %.2f MB\n", Chunk::NumLiveChunks(),
+                                     float(Chunk::TotalMem()) / 1024.0f / 1024.0f);
+#endif
+  }
+  else if(capturesEnabled)
+  {
+    vector<RENDERDOC_InputButton> keys = GetFocusKeys();
+
+    overlayText += "Inactive window.";
+
+    for(size_t i = 0; i < keys.size(); i++)
+    {
+      if(i == 0)
+        overlayText += " ";
+      else
+        overlayText += ", ";
+
+      overlayText += ToStr::Get(keys[i]);
+    }
+
+    if(!keys.empty())
+      overlayText += " to cycle between windows";
+
+    overlayText += "\n";
+  }
+
+  return overlayText;
 }
 
 bool RenderDoc::ShouldTriggerCapture(uint32_t frameNumber)
@@ -912,11 +1012,11 @@ void RenderDoc::SetProgress(LoadProgressSection section, float delta)
   *m_ProgressPtr = progress;
 }
 
-void RenderDoc::SuccessfullyWrittenLog()
+void RenderDoc::SuccessfullyWrittenLog(uint32_t frameNumber)
 {
   RDCLOG("Written to disk: %s", m_CurrentLogFile.c_str());
 
-  CaptureData cap(m_CurrentLogFile, Timing::GetUnixTimestamp());
+  CaptureData cap(m_CurrentLogFile, Timing::GetUnixTimestamp(), frameNumber);
   {
     SCOPED_LOCK(m_CaptureLock);
     m_Captures.push_back(cap);

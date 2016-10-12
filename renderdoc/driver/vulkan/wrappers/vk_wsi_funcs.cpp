@@ -539,8 +539,6 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
   if(m_State == WRITING_IDLE)
   {
-    m_FrameTimer.UpdateTimers();
-
     uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
     if(overlay & eRENDERDOC_Overlay_Enabled)
@@ -578,108 +576,11 @@ VkResult WrappedVulkan::vkQueuePresentKHR(VkQueue queue, const VkPresentInfoKHR 
 
       GetDebugManager()->BeginText(textstate);
 
-      if(activeWindow)
-      {
-        vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetCaptureKeys();
+      int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
+      string overlayText = RenderDoc::Inst().GetOverlayText(RDC_Vulkan, m_FrameCounter, flags);
 
-        string overlayText = "Vulkan. ";
-
-        if(Keyboard::PlatformHasKeyInput())
-        {
-          for(size_t i = 0; i < keys.size(); i++)
-          {
-            if(i > 0)
-              overlayText += ", ";
-
-            overlayText += ToStr::Get(keys[i]);
-          }
-
-          if(!keys.empty())
-            overlayText += " to capture.";
-        }
-        else
-        {
-          if(RenderDoc::Inst().IsTargetControlConnected())
-          {
-            overlayText += "Connected by " + RenderDoc::Inst().GetTargetControlUsername() + ".";
-          }
-          else
-          {
-            uint32_t port = RenderDoc::Inst().GetTargetControlIdent();
-            if(port)
-              overlayText +=
-                  StringFormat::Fmt("Listening for remote access connection on port %i.", port);
-            else
-              overlayText += "No remote access socket.";
-          }
-        }
-
-        if(overlay & eRENDERDOC_Overlay_FrameNumber)
-        {
-          overlayText += StringFormat::Fmt(" Frame: %d.", m_FrameCounter);
-        }
-        if(overlay & eRENDERDOC_Overlay_FrameRate)
-        {
-          overlayText += StringFormat::Fmt(
-              " %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)", m_FrameTimer.GetAvgFrameTime(),
-              m_FrameTimer.GetMinFrameTime(), m_FrameTimer.GetMaxFrameTime(),
-              1000.0f / m_FrameTimer.GetAvgFrameTime());
-        }
-
-        float y = 0.0f;
-
-        if(!overlayText.empty())
-        {
-          GetDebugManager()->RenderText(textstate, 0.0f, y, overlayText.c_str());
-          y += 1.0f;
-        }
-
-        if(overlay & eRENDERDOC_Overlay_CaptureList)
-        {
-          GetDebugManager()->RenderText(textstate, 0.0f, y, "%d Captures saved.\n",
-                                        (uint32_t)m_CapturedFrames.size());
-          y += 1.0f;
-
-          uint64_t now = Timing::GetUnixTimestamp();
-          for(size_t i = 0; i < m_CapturedFrames.size(); i++)
-          {
-            if(now - m_CapturedFrames[i].captureTime < 20)
-            {
-              GetDebugManager()->RenderText(textstate, 0.0f, y, "Captured frame %d.\n",
-                                            m_CapturedFrames[i].frameNumber);
-              y += 1.0f;
-            }
-          }
-        }
-
-#if !defined(RELEASE)
-        GetDebugManager()->RenderText(textstate, 0.0f, y, "%llu chunks - %.2f MB",
-                                      Chunk::NumLiveChunks(),
-                                      float(Chunk::TotalMem()) / 1024.0f / 1024.0f);
-        y += 1.0f;
-#endif
-      }
-      else
-      {
-        vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetFocusKeys();
-
-        string str = "Vulkan. Inactive swapchain.";
-
-        for(size_t i = 0; i < keys.size(); i++)
-        {
-          if(i == 0)
-            str += " ";
-          else
-            str += ", ";
-
-          str += ToStr::Get(keys[i]);
-        }
-
-        if(!keys.empty())
-          str += " to cycle between swapchains";
-
-        GetDebugManager()->RenderText(textstate, 0.0f, 0.0f, str.c_str());
-      }
+      if(!overlayText.empty())
+        GetDebugManager()->RenderText(textstate, 0.0f, 0.0f, overlayText.c_str());
 
       GetDebugManager()->EndText(textstate);
 

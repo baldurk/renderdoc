@@ -233,7 +233,6 @@ private:
   D3D9DebugManager *m_DebugManager;
 
   uint32_t m_FrameCounter;
-  FrameTimer m_FrameTimer;
 };
 
 ////////////////////////////////////////////////////////////////////////////

@@ -175,8 +175,6 @@ private:
   CaptureFailReason m_FailedReason;
   uint32_t m_Failures;
 
-  FrameTimer m_FrameTimer;
-
   CaptureFailReason m_FailureReason;
   bool m_SuccessfulCapture;
 

@@ -35,6 +35,7 @@
 #include "api/replay/capture_options.h"
 #include "api/replay/replay_enums.h"
 #include "common/threading.h"
+#include "common/timing.h"
 #include "os/os_specific.h"
 
 using std::string;
@@ -145,9 +146,13 @@ struct RDCInitParams
 
 struct CaptureData
 {
-  CaptureData(string p, uint64_t t) : path(p), timestamp(t), retrieved(false) {}
+  CaptureData(string p, uint64_t t, uint32_t f)
+      : path(p), timestamp(t), frameNumber(f), retrieved(false)
+  {
+  }
   string path;
   uint64_t timestamp;
+  uint32_t frameNumber;
   bool retrieved;
 };
 
@@ -200,7 +205,7 @@ public:
   ICrashHandler *GetCrashHandler() const { return m_ExHandler; }
   Serialiser *OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *params, void *thpixels,
                                   size_t thlen, uint32_t thwidth, uint32_t thheight);
-  void SuccessfullyWrittenLog();
+  void SuccessfullyWrittenLog(uint32_t frameNumber);
 
   void AddChildProcess(uint32_t pid, uint32_t ident)
   {
@@ -295,6 +300,14 @@ public:
   const vector<RENDERDOC_InputButton> &GetCaptureKeys() { return m_CaptureKeys; }
   bool ShouldTriggerCapture(uint32_t frameNumber);
 
+  enum
+  {
+    eOverlay_ActiveWindow = 0x1,
+    eOverlay_CaptureDisabled = 0x2,
+  };
+
+  string GetOverlayText(RDCDriver driver, uint32_t frameNumber, int flags);
+
 private:
   RenderDoc();
   ~RenderDoc();
@@ -307,6 +320,8 @@ private:
 
   vector<RENDERDOC_InputButton> m_FocusKeys;
   vector<RENDERDOC_InputButton> m_CaptureKeys;
+
+  FrameTimer m_FrameTimer;
 
   string m_LoggingFilename;
 

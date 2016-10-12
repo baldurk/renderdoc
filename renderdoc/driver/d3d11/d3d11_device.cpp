@@ -348,8 +348,6 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   m_AppControlledCapture = false;
 
-  m_FrameTimer.InitTimers();
-
 #if defined(RELEASE)
   const bool debugSerialiser = false;
 #else
@@ -2964,7 +2962,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
     SAFE_DELETE(m_pFileSerialiser);
 
-    RenderDoc::Inst().SuccessfullyWrittenLog();
+    RenderDoc::Inst().SuccessfullyWrittenLog(m_FrameCounter);
 
     m_State = WRITING_IDLE;
 
@@ -3237,8 +3235,6 @@ HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
   {
     D3D11RenderState old = *m_pImmediateContext->GetCurrentPipelineState();
 
-    m_FrameTimer.UpdateTimers();
-
     uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
     if(overlay & eRENDERDOC_Overlay_Enabled)
@@ -3252,115 +3248,25 @@ HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInte
       GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
       GetDebugManager()->SetOutputWindow(swapDesc.OutputWindow);
 
-      if(activeWindow)
+      int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
+      string overlayText = RenderDoc::Inst().GetOverlayText(RDC_D3D11, m_FrameCounter, flags);
+
+      if(activeWindow && m_FailedFrame > 0)
       {
-        vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetCaptureKeys();
-
-        string overlayText = "D3D11. ";
-
-        if(Keyboard::PlatformHasKeyInput())
+        const char *reasonString = "Unknown reason";
+        switch(m_FailedReason)
         {
-          for(size_t i = 0; i < keys.size(); i++)
-          {
-            if(i > 0)
-              overlayText += ", ";
-
-            overlayText += ToStr::Get(keys[i]);
-          }
-
-          if(!keys.empty())
-            overlayText += " to capture.";
-        }
-        else
-        {
-          if(RenderDoc::Inst().IsTargetControlConnected())
-            overlayText += "Connected by " + RenderDoc::Inst().GetTargetControlUsername() + ".";
-          else
-            overlayText += "No remote access connection.";
+          case CaptureFailed_UncappedCmdlist: reasonString = "Uncapped command list"; break;
+          case CaptureFailed_UncappedUnmap: reasonString = "Uncapped Map()/Unmap()"; break;
+          default: break;
         }
 
-        if(overlay & eRENDERDOC_Overlay_FrameNumber)
-        {
-          overlayText += StringFormat::Fmt(" Frame: %d.", m_FrameCounter);
-        }
-        if(overlay & eRENDERDOC_Overlay_FrameRate)
-        {
-          overlayText += StringFormat::Fmt(
-              " %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)", m_FrameTimer.GetAvgFrameTime(),
-              m_FrameTimer.GetMinFrameTime(), m_FrameTimer.GetMaxFrameTime(),
-              // max with 0.01ms so that we don't divide by zero
-              1000.0f / RDCMAX(0.01, m_FrameTimer.GetAvgFrameTime()));
-        }
-
-        float y = 0.0f;
-
-        if(!overlayText.empty())
-        {
-          GetDebugManager()->RenderText(0.0f, y, overlayText.c_str());
-          y += 1.0f;
-        }
-
-        if(overlay & eRENDERDOC_Overlay_CaptureList)
-        {
-          GetDebugManager()->RenderText(0.0f, y, "%d Captures saved.\n",
-                                        (uint32_t)m_CapturedFrames.size());
-          y += 1.0f;
-
-          uint64_t now = Timing::GetUnixTimestamp();
-          for(size_t i = 0; i < m_CapturedFrames.size(); i++)
-          {
-            if(now - m_CapturedFrames[i].captureTime < 20)
-            {
-              GetDebugManager()->RenderText(0.0f, y, "Captured frame %d.\n",
-                                            m_CapturedFrames[i].frameNumber);
-              y += 1.0f;
-            }
-          }
-        }
-
-        if(m_FailedFrame > 0)
-        {
-          const char *reasonString = "Unknown reason";
-          switch(m_FailedReason)
-          {
-            case CaptureFailed_UncappedCmdlist: reasonString = "Uncapped command list"; break;
-            case CaptureFailed_UncappedUnmap: reasonString = "Uncapped Map()/Unmap()"; break;
-            default: break;
-          }
-
-          GetDebugManager()->RenderText(0.0f, y, "Failed capture at frame %d:\n", m_FailedFrame);
-          y += 1.0f;
-          GetDebugManager()->RenderText(0.0f, y, "    %s\n", reasonString);
-          y += 1.0f;
-        }
-
-#if !defined(RELEASE)
-        GetDebugManager()->RenderText(0.0f, y, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(),
-                                      float(Chunk::TotalMem()) / 1024.0f / 1024.0f);
-        y += 1.0f;
-#endif
+        overlayText += StringFormat::Fmt("Failed capture at frame %d:\n", m_FailedFrame);
+        overlayText += StringFormat::Fmt("    %s\n", reasonString);
       }
-      else
-      {
-        vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetFocusKeys();
 
-        string str = "D3D11. Inactive swapchain.";
-
-        for(size_t i = 0; i < keys.size(); i++)
-        {
-          if(i == 0)
-            str += " ";
-          else
-            str += ", ";
-
-          str += ToStr::Get(keys[i]);
-        }
-
-        if(!keys.empty())
-          str += " to cycle between swapchains";
-
-        GetDebugManager()->RenderText(0.0f, 0.0f, str.c_str());
-      }
+      if(!overlayText.empty())
+        GetDebugManager()->RenderText(0.0f, 0.0f, overlayText.c_str());
 
       old.ApplyState(m_pImmediateContext);
     }
