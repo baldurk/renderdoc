@@ -26,6 +26,7 @@
 
 #include <QMutex>
 #include <QQueue>
+#include <QSemaphore>
 #include <QString>
 #include <QThread>
 #include <QWaitCondition>
@@ -62,12 +63,11 @@ private:
     InvokeHandle(InvokeMethod m)
     {
       method = m;
-      processed = false;
-      selfdelete = true;
+      selfdelete = false;
     }
 
     InvokeMethod method;
-    bool processed;
+    QSemaphore processed;
     bool selfdelete;
   };
 

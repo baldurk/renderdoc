@@ -75,9 +75,13 @@ void RenderManager::BlockInvoke(RenderManager::InvokeMethod m)
 
   PushInvoke(cmd);
 
-  while(!cmd->processed)
+  for(;;)
   {
+    if(cmd->processed.tryAcquire())
+      break;
   }
+
+  delete cmd;
 }
 
 void RenderManager::CloseThread()
@@ -102,7 +106,7 @@ void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
 {
   if(m_Thread == NULL || !m_Thread->isRunning() || !m_Running)
   {
-    cmd->processed = true;
+    cmd->processed.release();
     if(cmd->selfdelete)
       delete cmd;
     return;
@@ -150,7 +154,7 @@ void RenderManager::run()
       if(cmd->method != NULL)
         cmd->method(renderer);
 
-      cmd->processed = true;
+      cmd->processed.release();
 
       // if it's a throwaway command, delete it
       if(cmd->selfdelete)
@@ -171,7 +175,7 @@ void RenderManager::run()
       if(cmd == NULL)
         continue;
 
-      cmd->processed = true;
+      cmd->processed.release();
 
       if(cmd->selfdelete)
         delete cmd;
