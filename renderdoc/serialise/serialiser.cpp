@@ -1893,24 +1893,17 @@ void Serialiser::SerialiseBuffer(const char *name, byte *&buf, size_t &len)
   {
     const char *ellipsis = "...";
 
-    float *fbuf = new float[4];
-    fbuf[0] = fbuf[1] = fbuf[2] = fbuf[3] = 0.0f;
-    uint32_t *lbuf = (uint32_t *)fbuf;
+    uint32_t lbuf[4];
 
-    memcpy(fbuf, buf, RDCMIN(len, 4 * sizeof(float)));
+    memcpy(lbuf, buf, RDCMIN(len, 4 * sizeof(uint32_t)));
 
     if(bufLen <= 16)
     {
       ellipsis = "   ";
     }
 
-    DebugPrint(
-        "%s: RawBuffer % 5d:< 0x%08x 0x%08x 0x%08x 0x%08x %s   %  8.4ff %  8.4ff %  8.4ff %  8.4ff "
-        "%s >\n",
-        name, bufLen, lbuf[0], lbuf[1], lbuf[2], lbuf[3], ellipsis, fbuf[0], fbuf[1], fbuf[2],
-        fbuf[3], ellipsis);
-
-    SAFE_DELETE_ARRAY(fbuf);
+    DebugPrint("%s: RawBuffer % 5d:< 0x%08x 0x%08x 0x%08x 0x%08x %s>\n", name, bufLen, lbuf[0],
+               lbuf[1], lbuf[2], lbuf[3], ellipsis);
   }
 }
 
