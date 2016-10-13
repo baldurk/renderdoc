@@ -24,38 +24,121 @@ Abstract:
 #endif // defined(_MSC_VER) && !defined(MOFCOMP_PASS)
 
 
-#undef _Out_
+#ifndef _Out_
 #define _Out_
-#undef _In_
+#endif
+
+#ifndef _In_
 #define _In_
-#undef _Always_
+#endif
+
+#ifndef _Always_
 #define _Always_(annos)
+#endif
+
+#ifndef _In_reads_
 #define _In_reads_(size)
+#endif
+
+#ifndef _In_reads_opt_
 #define _In_reads_opt_(size)
+#endif
+
+#ifndef _In_reads_bytes_
 #define _In_reads_bytes_(size)
+#endif
+
+#ifndef _In_reads_bytes_opt_
 #define _In_reads_bytes_opt_(size)
+#endif
+
+#ifndef _Inout_updates_bytes_
 #define _Inout_updates_bytes_(size)
+#endif
+
+#ifndef _Out_writes_
 #define _Out_writes_(size)
+#endif
+
+#ifndef _Out_writes_opt_
 #define _Out_writes_opt_(size)
+#endif
+
+#ifndef _Out_writes_to_opt_
 #define _Out_writes_to_opt_(size,count)
+#endif
+
+#ifndef _Out_writes_bytes_
 #define _Out_writes_bytes_(size)
+#endif
+
+#ifndef _Out_writes_bytes_opt_
 #define _Out_writes_bytes_opt_(size)
+#endif
+
+#ifndef _Out_writes_bytes_to_
 #define _Out_writes_bytes_to_(size,count)
+#endif
+
+#ifndef _Outptr_
 #define _Outptr_
+#endif
+
+#ifndef _Outptr_opt_
 #define _Outptr_opt_
+#endif
+
+#ifndef _Outptr_opt_result_maybenull_
 #define _Outptr_opt_result_maybenull_
+#endif
+
+#ifndef _Outptr_opt_result_bytebuffer_
 #define _Outptr_opt_result_bytebuffer_(size)
+#endif
+
+#ifndef _Outptr_result_maybenull_
 #define _Outptr_result_maybenull_
+#endif
+
+#ifndef _Outptr_result_bytebuffer_
 #define _Outptr_result_bytebuffer_(size)
+#endif
+
+#ifndef _Out_writes_all_opt_
 #define _Out_writes_all_opt_(size)
+#endif
+
+#ifndef _Out_writes_all_
 #define _Out_writes_all_(size)
+#endif
+
+#ifndef _COM_Outptr_
 #define _COM_Outptr_
+#endif
+
+#ifndef _COM_Outptr_opt_
 #define _COM_Outptr_opt_
+#endif
+
+#ifndef _COM_Outptr_opt_result_maybenull_
 #define _COM_Outptr_opt_result_maybenull_
+#endif
+
+#ifndef _Field_size_
 #define _Field_size_(size)
+#endif
+
+#ifndef _Field_size_full_
 #define _Field_size_full_(size)
+#endif
+
+#ifndef _Field_size_opt_
 #define _Field_size_opt_(size)
+#endif
+
+#ifndef _Field_size_bytes_full_
 #define _Field_size_bytes_full_(size)
+#endif
 
 /*
  * When compiling C and C++ code using SDK header files, the development
