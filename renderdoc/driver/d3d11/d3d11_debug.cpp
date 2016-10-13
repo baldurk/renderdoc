@@ -1474,10 +1474,18 @@ bool D3D11DebugManager::InitFontRendering()
 
 void D3D11DebugManager::SetOutputWindow(HWND w)
 {
-  RECT rect;
+  RECT rect = {0, 0, 0, 0};
   GetClientRect(w, &rect);
-  m_supersamplingX = float(m_width) / float(rect.right - rect.left);
-  m_supersamplingY = float(m_height) / float(rect.bottom - rect.top);
+  if(rect.right == rect.left || rect.bottom == rect.top)
+  {
+    m_supersamplingX = 1.0f;
+    m_supersamplingY = 1.0f;
+  }
+  else
+  {
+    m_supersamplingX = float(m_width) / float(rect.right - rect.left);
+    m_supersamplingY = float(m_height) / float(rect.bottom - rect.top);
+  }
 }
 
 void D3D11DebugManager::OutputWindow::MakeRTV()
