@@ -24,46 +24,72 @@
 
 #include "d3d9_device.h"
 #include "core/core.h"
+#include "serialise/serialiser.h"
 #include "d3d9_debug.h"
-#include "windows.h"    // TODO investigate how else this can be solved
 
 WrappedD3DDevice9::WrappedD3DDevice9(IDirect3DDevice9 *device)
-    : m_device(device), m_DebugManager(nullptr)
+    : m_RefCounter(device, false),
+      m_SoftRefCounter(NULL, false),
+      m_device(device),
+      m_DebugManager(NULL)
 {
   m_FrameCounter = 0;
+
+  // refcounters implicitly construct with one reference, but we don't start with any soft
+  // references.
+  m_SoftRefCounter.Release();
+  m_InternalRefcount = 0;
+  m_Alive = true;
+}
+
+void WrappedD3DDevice9::CheckForDeath()
+{
+  if(!m_Alive)
+    return;
+
+  if(m_RefCounter.GetRefCount() == 0)
+  {
+    RDCASSERT(m_SoftRefCounter.GetRefCount() >= m_InternalRefcount);
+
+    if(m_SoftRefCounter.GetRefCount() <= m_InternalRefcount)
+    {
+      m_Alive = false;
+      delete this;
+    }
+  }
 }
 
 WrappedD3DDevice9::~WrappedD3DDevice9()
 {
   SAFE_DELETE(m_DebugManager);
+
+  SAFE_RELEASE(m_device);
+}
+
+HRESULT WrappedD3DDevice9::QueryInterface(REFIID riid, void **ppvObject)
+{
+  // RenderDoc UUID {A7AA6116-9C8D-4BBA-9083-B4D816B71B78}
+  static const GUID IRenderDoc_uuid = {
+      0xa7aa6116, 0x9c8d, 0x4bba, {0x90, 0x83, 0xb4, 0xd8, 0x16, 0xb7, 0x1b, 0x78}};
+
+  if(riid == IRenderDoc_uuid)
+  {
+    AddRef();
+    *ppvObject = (IUnknown *)this;
+    return S_OK;
+  }
+  else
+  {
+    string guid = ToStr::Get(riid);
+    RDCWARN("Querying IDirect3DDevice9 for interface: %s", guid.c_str());
+  }
+
+  return m_device->QueryInterface(riid, ppvObject);
 }
 
 void WrappedD3DDevice9::LazyInit()
 {
   m_DebugManager = new D3D9DebugManager(this);
-}
-
-HRESULT __stdcall WrappedD3DDevice9::QueryInterface(REFIID riid, void **ppvObj)
-{
-  return m_device->QueryInterface(riid, ppvObj);
-}
-
-ULONG __stdcall WrappedD3DDevice9::AddRef()
-{
-  ULONG refCount;
-  refCount = m_device->AddRef();
-  return refCount;
-}
-
-ULONG __stdcall WrappedD3DDevice9::Release()
-{
-  ULONG refCount;
-  refCount = m_device->Release();
-  if(refCount == 0)
-  {
-    delete this;
-  }
-  return refCount;
 }
 
 HRESULT __stdcall WrappedD3DDevice9::TestCooperativeLevel()

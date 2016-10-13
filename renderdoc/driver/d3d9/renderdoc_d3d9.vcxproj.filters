@@ -24,6 +24,9 @@
     <ClCompile Include="d3d9_device.cpp">
       <Filter>Common</Filter>
     </ClCompile>
+    <ClCompile Include="d3d9_common.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\dx\official\d3d9.h">
@@ -45,6 +48,9 @@
       <Filter>Debug</Filter>
     </ClInclude>
     <ClInclude Include="d3d9_device.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d9_common.h">
       <Filter>Common</Filter>
     </ClInclude>
   </ItemGroup>

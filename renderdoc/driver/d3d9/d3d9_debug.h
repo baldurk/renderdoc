@@ -27,9 +27,9 @@
 #include <list>
 #include <map>
 #include <utility>
-#include "common/common.h"
 #include "driver/dx/official/d3d9.h"
 #include "stb/stb_truetype.h"
+#include "d3d9_common.h"
 #include "d3d9_device.h"
 
 class D3D9DebugManager

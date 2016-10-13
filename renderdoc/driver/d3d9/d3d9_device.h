@@ -23,9 +23,8 @@
 ******************************************************************************/
 
 #pragma once
-#include "common/common.h"
 #include "common/timing.h"
-#include "driver/dx/official/d3d9.h"
+#include "d3d9_common.h"
 
 class D3D9DebugManager;
 
@@ -37,11 +36,25 @@ public:
 
   void LazyInit();
 
+  void InternalRef() { InterlockedIncrement(&m_InternalRefcount); }
+  void InternalRelease() { InterlockedDecrement(&m_InternalRefcount); }
+  void SoftRef() { m_SoftRefCounter.AddRef(); }
+  void SoftRelease()
+  {
+    m_SoftRefCounter.Release();
+    CheckForDeath();
+  }
+
   D3D9DebugManager *GetDebugManager() { return m_DebugManager; }
   /*** IUnknown methods ***/
-  virtual HRESULT __stdcall QueryInterface(REFIID riid, void **ppvObj);
-  virtual ULONG __stdcall AddRef();
-  virtual ULONG __stdcall Release();
+  ULONG STDMETHODCALLTYPE AddRef() { return m_RefCounter.AddRef(); }
+  ULONG STDMETHODCALLTYPE Release()
+  {
+    unsigned int ret = m_RefCounter.Release();
+    CheckForDeath();
+    return ret;
+  }
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 
   /*** IDirect3DDevice9 methods ***/
   virtual HRESULT __stdcall TestCooperativeLevel();
@@ -229,8 +242,15 @@ public:
   virtual HRESULT __stdcall CreateQuery(D3DQUERYTYPE Type, IDirect3DQuery9 **ppQuery);
 
 private:
+  void CheckForDeath();
+
   IDirect3DDevice9 *m_device;
   D3D9DebugManager *m_DebugManager;
+
+  unsigned int m_InternalRefcount;
+  RefCounter9 m_RefCounter;
+  RefCounter9 m_SoftRefCounter;
+  bool m_Alive;
 
   uint32_t m_FrameCounter;
 };

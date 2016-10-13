@@ -186,8 +186,8 @@ void D3D9DebugManager::RenderTextInternal(float x, float y, const char *text)
   res |= m_WrappedDevice->SetTransform(D3DTS_VIEW, &identity);
 
   // enable fixed function pipeline
-  res |= m_WrappedDevice->SetVertexShader(nullptr);
-  res |= m_WrappedDevice->SetPixelShader(nullptr);
+  res |= m_WrappedDevice->SetVertexShader(NULL);
+  res |= m_WrappedDevice->SetPixelShader(NULL);
 
   // default render states
   res |= m_WrappedDevice->SetRenderState(D3DRS_ZENABLE, D3DZB_FALSE);
