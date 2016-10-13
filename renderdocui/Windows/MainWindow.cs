@@ -1654,6 +1654,26 @@ namespace renderdocui.Windows
                         }
                     }
                 }
+
+                if (keyData == (Keys.Control | Keys.Left))
+                {
+                    FetchDrawcall draw = m_Core.CurDrawcall;
+
+                    if (draw != null && draw.previous != null)
+                        m_Core.SetEventID(null, draw.previous.eventID);
+
+                    return true;
+                }
+
+                if (keyData == (Keys.Control | Keys.Right))
+                {
+                    FetchDrawcall draw = m_Core.CurDrawcall;
+
+                    if (draw != null && draw.next != null)
+                        m_Core.SetEventID(null, draw.next.eventID);
+
+                    return true;
+                }
             }
             return base.ProcessCmdKey(ref msg, keyData);
         }

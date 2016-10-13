@@ -30,25 +30,27 @@
         {
             this.components = new System.ComponentModel.Container();
             System.Windows.Forms.ToolStripLabel toolStripLabel3;
-            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("EID", "EID")));
-            TreelistView.TreeListColumn treeListColumn2 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Drawcall", "Draw #")));
-            TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Name", "Name")));
-            TreelistView.TreeListColumn treeListColumn4 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Duration", "Duration (µs)")));
             System.Windows.Forms.ToolStripLabel toolStripLabel4;
+            TreelistView.TreeListColumn treeListColumn1 = new TreelistView.TreeListColumn("EID", "EID");
+            TreelistView.TreeListColumn treeListColumn2 = new TreelistView.TreeListColumn("Drawcall", "Draw #");
+            TreelistView.TreeListColumn treeListColumn3 = new TreelistView.TreeListColumn("Name", "Name");
+            TreelistView.TreeListColumn treeListColumn4 = new TreelistView.TreeListColumn("Duration", "Duration (µs)");
             this.toolStripLabel1 = new System.Windows.Forms.ToolStripLabel();
             this.toolStripLabel2 = new System.Windows.Forms.ToolStripLabel();
             this.toolStripContainer1 = new System.Windows.Forms.ToolStripContainer();
             this.eventView = new TreelistView.TreeListView();
             this.eventViewRightClick = new System.Windows.Forms.ContextMenuStrip(this.components);
-            this.selectVisibleColumnsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.expandAll = new System.Windows.Forms.ToolStripMenuItem();
             this.collapseAll = new System.Windows.Forms.ToolStripMenuItem();
+            this.selectVisibleColumnsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.toolStrip1 = new System.Windows.Forms.ToolStrip();
             this.toolStripSeparator1 = new System.Windows.Forms.ToolStripSeparator();
             this.findEventButton = new System.Windows.Forms.ToolStripButton();
             this.jumpEventButton = new System.Windows.Forms.ToolStripButton();
             this.timeDraws = new System.Windows.Forms.ToolStripButton();
             this.selectColumnsButton = new System.Windows.Forms.ToolStripButton();
+            this.toggleBookmark = new System.Windows.Forms.ToolStripButton();
+            this.export = new System.Windows.Forms.ToolStripButton();
             this.jumpStrip = new System.Windows.Forms.ToolStrip();
             this.jumpToEID = new renderdocui.Controls.ToolStripSpringTextBox();
             this.findStrip = new System.Windows.Forms.ToolStrip();
@@ -56,12 +58,13 @@
             this.closeFind = new System.Windows.Forms.ToolStripButton();
             this.findNext = new System.Windows.Forms.ToolStripButton();
             this.findPrev = new System.Windows.Forms.ToolStripButton();
-            this.findHighlight = new System.Windows.Forms.Timer(this.components);
             this.bookmarkStrip = new System.Windows.Forms.ToolStrip();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
-            this.toggleBookmark = new System.Windows.Forms.ToolStripButton();
-            this.export = new System.Windows.Forms.ToolStripButton();
+            this.findHighlight = new System.Windows.Forms.Timer(this.components);
             this.exportDialog = new System.Windows.Forms.SaveFileDialog();
+            this.prevDraw = new System.Windows.Forms.ToolStripButton();
+            this.nextDraw = new System.Windows.Forms.ToolStripButton();
+            this.toolStripSeparator3 = new System.Windows.Forms.ToolStripSeparator();
             toolStripLabel3 = new System.Windows.Forms.ToolStripLabel();
             toolStripLabel4 = new System.Windows.Forms.ToolStripLabel();
             this.toolStripContainer1.ContentPanel.SuspendLayout();
@@ -80,6 +83,13 @@
             toolStripLabel3.Name = "toolStripLabel3";
             toolStripLabel3.Size = new System.Drawing.Size(47, 22);
             toolStripLabel3.Text = "Controls";
+            // 
+            // toolStripLabel4
+            // 
+            toolStripLabel4.Image = global::renderdocui.Properties.Resources.asterisk_orange;
+            toolStripLabel4.Name = "toolStripLabel4";
+            toolStripLabel4.Size = new System.Drawing.Size(74, 22);
+            toolStripLabel4.Text = "Bookmarks";
             // 
             // toolStripLabel1
             // 
@@ -160,16 +170,8 @@
             this.collapseAll,
             this.selectVisibleColumnsToolStripMenuItem});
             this.eventViewRightClick.Name = "contextMenuStrip1";
-            this.eventViewRightClick.Size = new System.Drawing.Size(179, 92);
+            this.eventViewRightClick.Size = new System.Drawing.Size(179, 70);
             this.eventViewRightClick.Opening += new System.ComponentModel.CancelEventHandler(this.eventViewRightClick_Opening);
-            // 
-            // selectVisibleColumnsToolStripMenuItem
-            // 
-            this.selectVisibleColumnsToolStripMenuItem.Image = global::renderdocui.Properties.Resources.timeline_marker;
-            this.selectVisibleColumnsToolStripMenuItem.Name = "selectVisibleColumnsToolStripMenuItem";
-            this.selectVisibleColumnsToolStripMenuItem.Size = new System.Drawing.Size(178, 22);
-            this.selectVisibleColumnsToolStripMenuItem.Text = "Select &Visible Columns";
-            this.selectVisibleColumnsToolStripMenuItem.Click += new System.EventHandler(this.selectVisibleColumnsToolStripMenuItem_Click);
             // 
             // expandAll
             // 
@@ -187,6 +189,14 @@
             this.collapseAll.Text = "&Collapse All";
             this.collapseAll.Click += new System.EventHandler(this.collapseAll_Click);
             // 
+            // selectVisibleColumnsToolStripMenuItem
+            // 
+            this.selectVisibleColumnsToolStripMenuItem.Image = global::renderdocui.Properties.Resources.timeline_marker;
+            this.selectVisibleColumnsToolStripMenuItem.Name = "selectVisibleColumnsToolStripMenuItem";
+            this.selectVisibleColumnsToolStripMenuItem.Size = new System.Drawing.Size(178, 22);
+            this.selectVisibleColumnsToolStripMenuItem.Text = "Select &Visible Columns";
+            this.selectVisibleColumnsToolStripMenuItem.Click += new System.EventHandler(this.selectVisibleColumnsToolStripMenuItem_Click);
+            // 
             // toolStrip1
             // 
             this.toolStrip1.Dock = System.Windows.Forms.DockStyle.None;
@@ -194,6 +204,9 @@
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             toolStripLabel3,
             this.toolStripSeparator1,
+            this.prevDraw,
+            this.nextDraw,
+            this.toolStripSeparator3,
             this.findEventButton,
             this.jumpEventButton,
             this.timeDraws,
@@ -255,6 +268,26 @@
             this.selectColumnsButton.Text = "Select visible columns";
             this.selectColumnsButton.Click += new System.EventHandler(this.selectColumnsButton_Click);
             // 
+            // toggleBookmark
+            // 
+            this.toggleBookmark.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.toggleBookmark.Image = global::renderdocui.Properties.Resources.asterisk_orange;
+            this.toggleBookmark.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.toggleBookmark.Name = "toggleBookmark";
+            this.toggleBookmark.Size = new System.Drawing.Size(23, 22);
+            this.toggleBookmark.Text = "Toggle Bookmark";
+            this.toggleBookmark.Click += new System.EventHandler(this.toggleBookmark_Click);
+            // 
+            // export
+            // 
+            this.export.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.export.Image = global::renderdocui.Properties.Resources.save;
+            this.export.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.export.Name = "export";
+            this.export.Size = new System.Drawing.Size(23, 22);
+            this.export.Text = "Export";
+            this.export.Click += new System.EventHandler(this.export_Click);
+            // 
             // jumpStrip
             // 
             this.jumpStrip.Dock = System.Windows.Forms.DockStyle.None;
@@ -299,8 +332,8 @@
             this.findEvent.Size = new System.Drawing.Size(108, 25);
             this.findEvent.ToolTipText = "Find an event by type or name";
             this.findEvent.Leave += new System.EventHandler(this.jumpFind_Leave);
+            this.findEvent.KeyDown += new System.Windows.Forms.KeyEventHandler(this.findEvent_KeyDown);
             this.findEvent.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.findEvent_KeyPress);
-            this.findEvent.KeyDown += new System.Windows.Forms.KeyEventHandler(findEvent_KeyDown);
             this.findEvent.TextChanged += new System.EventHandler(this.findEvent_TextChanged);
             // 
             // closeFind
@@ -334,11 +367,6 @@
             this.findPrev.Text = "Find Previous Match";
             this.findPrev.Click += new System.EventHandler(this.findPrev_Click);
             // 
-            // findHighlight
-            // 
-            this.findHighlight.Interval = 400;
-            this.findHighlight.Tick += new System.EventHandler(this.findHighlight_Tick);
-            // 
             // bookmarkStrip
             // 
             this.bookmarkStrip.Dock = System.Windows.Forms.DockStyle.None;
@@ -357,38 +385,41 @@
             this.toolStripSeparator2.Name = "toolStripSeparator2";
             this.toolStripSeparator2.Size = new System.Drawing.Size(6, 25);
             // 
-            // toolStripLabel4
+            // findHighlight
             // 
-            toolStripLabel4.Image = global::renderdocui.Properties.Resources.asterisk_orange;
-            toolStripLabel4.Name = "toolStripLabel4";
-            toolStripLabel4.Size = new System.Drawing.Size(74, 22);
-            toolStripLabel4.Text = "Bookmarks";
-            // 
-            // toggleBookmarkButton
-            // 
-            this.toggleBookmark.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.toggleBookmark.Image = global::renderdocui.Properties.Resources.asterisk_orange;
-            this.toggleBookmark.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.toggleBookmark.Name = "toggleBookmarkButton";
-            this.toggleBookmark.Size = new System.Drawing.Size(23, 22);
-            this.toggleBookmark.Text = "Toggle Bookmark";
-            this.toggleBookmark.Click += new System.EventHandler(this.toggleBookmark_Click);
-            // 
-            // export
-            // 
-            this.export.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.export.Image = global::renderdocui.Properties.Resources.save;
-            this.export.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.export.Name = "export";
-            this.export.Size = new System.Drawing.Size(23, 22);
-            this.export.Text = "Export";
-            this.export.Click += new System.EventHandler(this.export_Click);
+            this.findHighlight.Interval = 400;
+            this.findHighlight.Tick += new System.EventHandler(this.findHighlight_Tick);
             // 
             // exportDialog
             // 
             this.exportDialog.DefaultExt = "txt";
             this.exportDialog.Filter = "Text Files (*.txt)|*.txt";
             this.exportDialog.Title = "Save Event List";
+            // 
+            // prevDraw
+            // 
+            this.prevDraw.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.prevDraw.Image = global::renderdocui.Properties.Resources.back;
+            this.prevDraw.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.prevDraw.Name = "prevDraw";
+            this.prevDraw.Size = new System.Drawing.Size(23, 22);
+            this.prevDraw.Text = "Go to Previous Drawcall";
+            this.prevDraw.Click += new System.EventHandler(this.prevDraw_Click);
+            // 
+            // nextDraw
+            // 
+            this.nextDraw.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.nextDraw.Image = global::renderdocui.Properties.Resources.forward;
+            this.nextDraw.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.nextDraw.Name = "nextDraw";
+            this.nextDraw.Size = new System.Drawing.Size(23, 22);
+            this.nextDraw.Text = "Go To Next Drawcall";
+            this.nextDraw.Click += new System.EventHandler(this.nextDraw_Click);
+            // 
+            // toolStripSeparator3
+            // 
+            this.toolStripSeparator3.Name = "toolStripSeparator3";
+            this.toolStripSeparator3.Size = new System.Drawing.Size(6, 25);
             // 
             // EventBrowser
             // 
@@ -450,6 +481,9 @@
         private System.Windows.Forms.ToolStripMenuItem collapseAll;
         private System.Windows.Forms.ToolStripButton export;
         private System.Windows.Forms.SaveFileDialog exportDialog;
+        private System.Windows.Forms.ToolStripButton prevDraw;
+        private System.Windows.Forms.ToolStripButton nextDraw;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator3;
 
     }
 }
