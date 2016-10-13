@@ -51,6 +51,7 @@ struct IDiaEnumDebugStreams;
 enum SymTagEnum
 {
   SymTagFunction = 5,
+  SymTagPublicSymbol = 10,
 };
 
 struct IDiaSourceFile : public IUnknown
@@ -529,14 +530,25 @@ AddrInfo GetAddr(wstring req)
 
   if(module > 0 && module < modules.size())
   {
+    SymTagEnum tag = SymTagFunction;
     IDiaSymbol *pFunc = NULL;
-    HRESULT hr = modules[module].pSession->findSymbolByVA(addr, SymTagFunction, &pFunc);
+    HRESULT hr = modules[module].pSession->findSymbolByVA(addr, tag, &pFunc);
 
     if(hr != S_OK)
     {
       if(pFunc)
         pFunc->Release();
-      return ret;
+
+      // try again looking for public symbols
+      tag = SymTagPublicSymbol;
+      hr = modules[module].pSession->findSymbolByVA(addr, tag, &pFunc);
+
+      if(hr != S_OK)
+      {
+        if(pFunc)
+          pFunc->Release();
+        return ret;
+      }
     }
 
     DWORD opts = 0;
