@@ -532,9 +532,28 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
       fclose(f);
   }
 
-  wchar_t inputBuf[2048];
-  GetPrivateProfileStringW(L"renderdoc", L"ignores", NULL, &inputBuf[0], 2048, configPath.c_str());
+  DWORD sz = 2048;
+  wchar_t *inputBuf = new wchar_t[sz];
+
+  for(;;)
+  {
+    DWORD read =
+        GetPrivateProfileStringW(L"renderdoc", L"ignores", NULL, inputBuf, sz, configPath.c_str());
+
+    if(read == sz - 1)
+    {
+      sz *= 2;
+      delete[] inputBuf;
+      inputBuf = new wchar_t[sz];
+      continue;
+    }
+
+    break;
+  }
   wstring ignores = inputBuf;
+
+  delete[] inputBuf;
+
   split(ignores, pdbIgnores, L';');
 
   wstring widepdbsearch = StringFormat::UTF82Wide(pdbSearchPaths);
