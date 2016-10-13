@@ -112,10 +112,12 @@ typedef BOOL(CALLBACK *PSYM_ENUMMODULES_CALLBACK64W)(__in PCWSTR ModuleName, __i
                                                      __in_opt PVOID UserContext);
 
 typedef BOOL(WINAPI *PSYMINITIALIZEW)(HANDLE, PCTSTR, BOOL);
-typedef BOOL(WINAPI *PSYMGETMODULEINFO64W)(HANDLE, DWORD64, PIMAGEHLP_MODULEW64);
+typedef BOOL(WINAPI *PSYMREFRESHMODULELIST)(HANDLE);
 typedef BOOL(WINAPI *PSYMENUMERATEMODULES64W)(HANDLE, PSYM_ENUMMODULES_CALLBACK64W, PVOID);
+typedef BOOL(WINAPI *PSYMGETMODULEINFO64W)(HANDLE, DWORD64, PIMAGEHLP_MODULEW64);
 
 PSYMINITIALIZEW dynSymInitializeW = NULL;
+PSYMREFRESHMODULELIST dynSymRefreshModuleList = NULL;
 PSYMENUMERATEMODULES64W dynSymEnumerateModules64W = NULL;
 PSYMGETMODULEINFO64W dynSymGetModuleInfo64W = NULL;
 
@@ -186,9 +188,11 @@ static bool InitDbgHelp()
   dynSymInitializeW = (PSYMINITIALIZEW)GetProcAddress(module, "SymInitializeW");
   dynSymEnumerateModules64W =
       (PSYMENUMERATEMODULES64W)GetProcAddress(module, "SymEnumerateModulesW64");
+  dynSymRefreshModuleList = (PSYMREFRESHMODULELIST)GetProcAddress(module, "SymRefreshModuleList");
   dynSymGetModuleInfo64W = (PSYMGETMODULEINFO64W)GetProcAddress(module, "SymGetModuleInfoW64");
 
-  if(!dynSymInitializeW || !dynSymEnumerateModules64W || !dynSymGetModuleInfo64W)
+  if(!dynSymInitializeW || !dynSymRefreshModuleList || !dynSymEnumerateModules64W ||
+     !dynSymGetModuleInfo64W)
   {
     RDCERR("Couldn't get some dbghelp function");
     ret = false;
@@ -635,7 +639,7 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
 
           // prompt for new pdbName, unless it's renderdoc or dbghelp
           if(pdbName.find(L"renderdoc.") != wstring::npos ||
-             pdbName.find(L"dbghelp.") != wstring::npos)
+             pdbName.find(L"dbghelp.") != wstring::npos || pdbName.find(L"symsrv.") != wstring::npos)
             pdbName = L"";
           else
             pdbName = pdbBrowse(pdbName);
@@ -798,7 +802,10 @@ bool GetLoadedModules(char *&buf, size_t &size)
   bool inited = InitDbgHelp();
 
   if(inited)
+  {
+    dynSymRefreshModuleList(GetCurrentProcess());
     dynSymEnumerateModules64W(GetCurrentProcess(), &EnumModule, &e);
+  }
 
   size = e.size;
 
