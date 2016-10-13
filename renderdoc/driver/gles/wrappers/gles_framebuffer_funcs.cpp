@@ -36,8 +36,6 @@ bool WrappedGLES::Serialise_glGenFramebuffers(GLsizei n, GLuint *framebuffers)
   {
     GLuint real = 0;
     m_Real.glGenFramebuffers(1, &real);
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, real);
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
 
     GLResource res = FramebufferRes(GetCtx(), real);
 
@@ -518,7 +516,7 @@ void WrappedGLES::glFramebufferTextureOES(GLenum target, GLenum attachment, GLui
 //}
 //
 
-bool WrappedGLES::Serialise_glFramebufferTexture2D(GLuint framebuffer, GLenum target, GLenum attachment,
+bool WrappedGLES::Serialise_glFramebufferTexture2D(GLenum target, GLenum attachment,
                                                    GLenum textarget, GLuint texture, GLint level)
 {
   SERIALISE_ELEMENT(GLenum, Target, target);
@@ -526,35 +524,15 @@ bool WrappedGLES::Serialise_glFramebufferTexture2D(GLuint framebuffer, GLenum ta
   SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
   SERIALISE_ELEMENT(GLenum, TexTarget, textarget);
   SERIALISE_ELEMENT(int32_t, Level, level);
-  SERIALISE_ELEMENT(ResourceId, fbid,
-                    (framebuffer == 0 ? ResourceId() : GetResourceManager()->GetID(
-                                                           FramebufferRes(GetCtx(), framebuffer))));
 
   if(m_State < WRITING)
   {
-    GLint oldBinding = 0;
-
-    if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
-      m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &oldBinding);
-    else
-      m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &oldBinding);
-
     GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
                      ? 0
                      : GetResourceManager()->GetLiveResource(id).name;
-    if(fbid == ResourceId())
-    {
-      m_Real.glBindFramebuffer(Target, 0);
-    }
-    else
-    {
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glBindFramebuffer(Target, fbres.name);
-    }
 
     m_Real.glFramebufferTexture2D(Target, Attach, TexTarget, tex, Level);
 
-    m_Real.glBindFramebuffer(Target, oldBinding);
 
     if(m_State == READING && tex)
     {
@@ -600,7 +578,7 @@ void WrappedGLES::glFramebufferTexture2D(GLenum target, GLenum attachment, GLenu
       return;
 
     SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX2D);
-    Serialise_glFramebufferTexture2D(record->Resource.name, target, attachment, textarget, texture, level);
+    Serialise_glFramebufferTexture2D(target, attachment, textarget, texture, level);
 
     if(m_State == WRITING_IDLE)
     {
@@ -1247,14 +1225,22 @@ bool WrappedGLES::Serialise_glBindFramebuffer(GLenum target, GLuint framebuffer)
 void WrappedGLES::glBindFramebuffer(GLenum target, GLuint framebuffer)
 {
 
-  if(m_State == WRITING_CAPFRAME)
+  if(m_State >= WRITING)
   {
-    SCOPED_SERIALISE_CONTEXT(BIND_FRAMEBUFFER);
-    Serialise_glBindFramebuffer(target, framebuffer);
+    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
 
-    m_ContextRecord->AddChunk(scope.Get());
+    if(m_State == WRITING_CAPFRAME)
+      record = m_ContextRecord;
+
+    if (record)
+    {
+      SCOPED_SERIALISE_CONTEXT(BIND_FRAMEBUFFER);
+      Serialise_glBindFramebuffer(target, framebuffer);
+      record->AddChunk(scope.Get());
+    }
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
                                             eFrameRef_ReadBeforeWrite);
+
   }
 
   if(framebuffer == 0 && m_State < WRITING)

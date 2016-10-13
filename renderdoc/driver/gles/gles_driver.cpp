@@ -859,7 +859,6 @@ void WrappedGLES::Initialise(GLESInitParams &params)
 
   gl.glGenFramebuffers(1, &m_FakeBB_FBO);
   gl.glBindFramebuffer(eGL_FRAMEBUFFER, m_FakeBB_FBO);
-
   GLenum colfmt = eGL_RGBA8;
 
   if(params.colorBits == 32)
@@ -1207,7 +1206,7 @@ void WrappedGLES::ContextData::CreateDebugData(const GLHookSet &gl)
 
       gl.glCompileShader(vert);
       gl.glCompileShader(frag);
-      
+
       static int counter_v = 0;
       // dump_to_file("errpr5-" + std::to_string(counter_v), vsc);
 
@@ -1334,7 +1333,7 @@ void WrappedGLES::ActivateContext(GLESWindowingData winData)
     }
 
     ContextData &ctxdata = m_ContextData[winData.ctx];
-    
+
     if(!ctxdata.built)
     {
       ctxdata.built = true;
@@ -1754,7 +1753,7 @@ void WrappedGLES::RenderOverlayStr(float x, float y, const char *text)
     // set viewport & scissor
     gl.glViewportIndexedfNV(0, 0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
     gl.glDisablei(eGL_SCISSOR_TEST, 0);
-    
+
     if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
       gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
 
@@ -1802,7 +1801,7 @@ void WrappedGLES::RenderOverlayStr(float x, float y, const char *text)
     // set viewport & scissor
     gl.glViewport(0, 0, (GLsizei)m_InitParams.width, (GLsizei)m_InitParams.height);
     gl.glDisable(eGL_SCISSOR_TEST);
-    
+
     if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
       gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
 
@@ -3487,7 +3486,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //      Serialise_glNamedFramebufferTexture1DEXT(0, eGL_NONE, eGL_NONE, 0, 0);
 //      break;
     case FRAMEBUFFER_TEX2D:
-      Serialise_glFramebufferTexture2D(0, eGL_NONE, eGL_NONE, eGL_NONE, 0, 0); break;
+      Serialise_glFramebufferTexture2D(eGL_NONE, eGL_NONE, eGL_NONE, 0, 0); break;
 //    case FRAMEBUFFER_TEX3D:
 //      Serialise_glNamedFramebufferTexture3DEXT(0, eGL_NONE, eGL_NONE, 0, 0, 0);
 //      break;

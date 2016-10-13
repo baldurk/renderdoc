@@ -549,9 +549,6 @@ public:
   bool Serialise_glVertexAttribIPointer(GLuint index, GLint size, GLenum type,
                                         GLsizei stride, const void *pointer, size_t dataSize);
 
-  bool Serialise_glFramebufferTexture2D(GLuint framebuffer, GLenum target, GLenum attachment,
-                                        GLenum textarget, GLuint texture,
-                                        GLint level);
   bool Serialise_glDrawBuffers(GLuint framebuffer, GLsizei n, const GLenum *bufs);
   bool Serialise_glReadBuffer(GLuint framebuffer, GLenum mode);
   bool Serialise_glFramebufferRenderbuffer(GLuint framebuffer, GLenum target, GLenum attachment,
