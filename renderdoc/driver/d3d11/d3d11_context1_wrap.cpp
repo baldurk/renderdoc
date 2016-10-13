@@ -31,6 +31,9 @@
 /////////////////////////////////
 // implement ID3D11DeviceContext1
 
+extern uint32_t NullCBOffsets[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
+extern uint32_t NullCBCounts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT];
+
 bool WrappedID3D11DeviceContext::Serialise_UpdateSubresource1(ID3D11Resource *pDstResource,
                                                               UINT DstSubresource,
                                                               const D3D11_BOX *pDstBox,
@@ -564,12 +567,18 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers1(UINT StartSlot_
 
     if(m_State <= EXECUTING)
     {
-      if(m_pDevice->GetResourceManager()->HasLiveResource(id))
-        Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
-      else
-        Buffers[i] = NULL;
       Offsets[i] = offs;
       Counts[i] = count;
+      if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+      {
+        Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+      }
+      else
+      {
+        Buffers[i] = NULL;
+        Offsets[i] = NullCBCounts[0];
+        Counts[i] = NullCBOffsets[0];
+      }
     }
   }
 
@@ -631,17 +640,34 @@ void WrappedID3D11DeviceContext::VSSetConstantBuffers1(UINT StartSlot, UINT NumB
     m_ContextRecord->AddChunk(scope.Get());
   }
 
+  UINT offs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
+  UINT cnts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
+
   if(ppConstantBuffers)
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->VS.ConstantBuffers,
                                           ppConstantBuffers, StartSlot, NumBuffers);
 
   if(pFirstConstant)
-    m_CurrentPipelineState->Change(m_CurrentPipelineState->VS.CBOffsets, pFirstConstant, StartSlot,
-                                   NumBuffers);
+  {
+    memcpy(offs, pFirstConstant, sizeof(UINT) * NumBuffers);
+    for(UINT i = 0; i < NumBuffers; i++)
+    {
+      if(ppConstantBuffers && ppConstantBuffers[i] == NULL)
+        offs[i] = NullCBOffsets[i];
+    }
+    m_CurrentPipelineState->Change(m_CurrentPipelineState->VS.CBOffsets, offs, StartSlot, NumBuffers);
+  }
 
   if(pNumConstants)
-    m_CurrentPipelineState->Change(m_CurrentPipelineState->VS.CBCounts, pNumConstants, StartSlot,
-                                   NumBuffers);
+  {
+    memcpy(cnts, pNumConstants, sizeof(UINT) * NumBuffers);
+    for(UINT i = 0; i < NumBuffers; i++)
+    {
+      if(ppConstantBuffers && ppConstantBuffers[i] == NULL)
+        cnts[i] = NullCBCounts[i];
+    }
+    m_CurrentPipelineState->Change(m_CurrentPipelineState->VS.CBCounts, cnts, StartSlot, NumBuffers);
+  }
 
   ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
   for(UINT i = 0; i < NumBuffers; i++)
@@ -684,12 +710,18 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers1(UINT StartSlot_
 
     if(m_State <= EXECUTING)
     {
-      if(m_pDevice->GetResourceManager()->HasLiveResource(id))
-        Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
-      else
-        Buffers[i] = NULL;
       Offsets[i] = offs;
       Counts[i] = count;
+      if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+      {
+        Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+      }
+      else
+      {
+        Buffers[i] = NULL;
+        Offsets[i] = NullCBCounts[0];
+        Counts[i] = NullCBOffsets[0];
+      }
     }
   }
 
@@ -751,17 +783,34 @@ void WrappedID3D11DeviceContext::HSSetConstantBuffers1(UINT StartSlot, UINT NumB
     m_ContextRecord->AddChunk(scope.Get());
   }
 
+  UINT offs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
+  UINT cnts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
+
   if(ppConstantBuffers)
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->HS.ConstantBuffers,
                                           ppConstantBuffers, StartSlot, NumBuffers);
 
   if(pFirstConstant)
-    m_CurrentPipelineState->Change(m_CurrentPipelineState->HS.CBOffsets, pFirstConstant, StartSlot,
-                                   NumBuffers);
+  {
+    memcpy(offs, pFirstConstant, sizeof(UINT) * NumBuffers);
+    for(UINT i = 0; i < NumBuffers; i++)
+    {
+      if(ppConstantBuffers && ppConstantBuffers[i] == NULL)
+        offs[i] = NullCBOffsets[i];
+    }
+    m_CurrentPipelineState->Change(m_CurrentPipelineState->HS.CBOffsets, offs, StartSlot, NumBuffers);
+  }
 
   if(pNumConstants)
-    m_CurrentPipelineState->Change(m_CurrentPipelineState->HS.CBCounts, pNumConstants, StartSlot,
-                                   NumBuffers);
+  {
+    memcpy(cnts, pNumConstants, sizeof(UINT) * NumBuffers);
+    for(UINT i = 0; i < NumBuffers; i++)
+    {
+      if(ppConstantBuffers && ppConstantBuffers[i] == NULL)
+        cnts[i] = NullCBCounts[i];
+    }
+    m_CurrentPipelineState->Change(m_CurrentPipelineState->HS.CBCounts, cnts, StartSlot, NumBuffers);
+  }
 
   ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
   for(UINT i = 0; i < NumBuffers; i++)
@@ -804,12 +853,18 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers1(UINT StartSlot_
 
     if(m_State <= EXECUTING)
     {
-      if(m_pDevice->GetResourceManager()->HasLiveResource(id))
-        Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
-      else
-        Buffers[i] = NULL;
       Offsets[i] = offs;
       Counts[i] = count;
+      if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+      {
+        Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+      }
+      else
+      {
+        Buffers[i] = NULL;
+        Offsets[i] = NullCBCounts[0];
+        Counts[i] = NullCBOffsets[0];
+      }
     }
   }
 
@@ -871,17 +926,34 @@ void WrappedID3D11DeviceContext::DSSetConstantBuffers1(UINT StartSlot, UINT NumB
     m_ContextRecord->AddChunk(scope.Get());
   }
 
+  UINT offs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
+  UINT cnts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
+
   if(ppConstantBuffers)
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->DS.ConstantBuffers,
                                           ppConstantBuffers, StartSlot, NumBuffers);
 
   if(pFirstConstant)
-    m_CurrentPipelineState->Change(m_CurrentPipelineState->DS.CBOffsets, pFirstConstant, StartSlot,
-                                   NumBuffers);
+  {
+    memcpy(offs, pFirstConstant, sizeof(UINT) * NumBuffers);
+    for(UINT i = 0; i < NumBuffers; i++)
+    {
+      if(ppConstantBuffers && ppConstantBuffers[i] == NULL)
+        offs[i] = NullCBOffsets[i];
+    }
+    m_CurrentPipelineState->Change(m_CurrentPipelineState->DS.CBOffsets, offs, StartSlot, NumBuffers);
+  }
 
   if(pNumConstants)
-    m_CurrentPipelineState->Change(m_CurrentPipelineState->DS.CBCounts, pNumConstants, StartSlot,
-                                   NumBuffers);
+  {
+    memcpy(cnts, pNumConstants, sizeof(UINT) * NumBuffers);
+    for(UINT i = 0; i < NumBuffers; i++)
+    {
+      if(ppConstantBuffers && ppConstantBuffers[i] == NULL)
+        cnts[i] = NullCBCounts[i];
+    }
+    m_CurrentPipelineState->Change(m_CurrentPipelineState->DS.CBCounts, cnts, StartSlot, NumBuffers);
+  }
 
   ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
   for(UINT i = 0; i < NumBuffers; i++)
@@ -924,12 +996,18 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers1(UINT StartSlot_
 
     if(m_State <= EXECUTING)
     {
-      if(m_pDevice->GetResourceManager()->HasLiveResource(id))
-        Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
-      else
-        Buffers[i] = NULL;
       Offsets[i] = offs;
       Counts[i] = count;
+      if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+      {
+        Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+      }
+      else
+      {
+        Buffers[i] = NULL;
+        Offsets[i] = NullCBCounts[0];
+        Counts[i] = NullCBOffsets[0];
+      }
     }
   }
 
@@ -991,17 +1069,34 @@ void WrappedID3D11DeviceContext::GSSetConstantBuffers1(UINT StartSlot, UINT NumB
     m_ContextRecord->AddChunk(scope.Get());
   }
 
+  UINT offs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
+  UINT cnts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
+
   if(ppConstantBuffers)
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->GS.ConstantBuffers,
                                           ppConstantBuffers, StartSlot, NumBuffers);
 
   if(pFirstConstant)
-    m_CurrentPipelineState->Change(m_CurrentPipelineState->GS.CBOffsets, pFirstConstant, StartSlot,
-                                   NumBuffers);
+  {
+    memcpy(offs, pFirstConstant, sizeof(UINT) * NumBuffers);
+    for(UINT i = 0; i < NumBuffers; i++)
+    {
+      if(ppConstantBuffers && ppConstantBuffers[i] == NULL)
+        offs[i] = NullCBOffsets[i];
+    }
+    m_CurrentPipelineState->Change(m_CurrentPipelineState->GS.CBOffsets, offs, StartSlot, NumBuffers);
+  }
 
   if(pNumConstants)
-    m_CurrentPipelineState->Change(m_CurrentPipelineState->GS.CBCounts, pNumConstants, StartSlot,
-                                   NumBuffers);
+  {
+    memcpy(cnts, pNumConstants, sizeof(UINT) * NumBuffers);
+    for(UINT i = 0; i < NumBuffers; i++)
+    {
+      if(ppConstantBuffers && ppConstantBuffers[i] == NULL)
+        cnts[i] = NullCBCounts[i];
+    }
+    m_CurrentPipelineState->Change(m_CurrentPipelineState->GS.CBCounts, cnts, StartSlot, NumBuffers);
+  }
 
   ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
   for(UINT i = 0; i < NumBuffers; i++)
@@ -1044,12 +1139,18 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers1(UINT StartSlot_
 
     if(m_State <= EXECUTING)
     {
-      if(m_pDevice->GetResourceManager()->HasLiveResource(id))
-        Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
-      else
-        Buffers[i] = NULL;
       Offsets[i] = offs;
       Counts[i] = count;
+      if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+      {
+        Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+      }
+      else
+      {
+        Buffers[i] = NULL;
+        Offsets[i] = NullCBCounts[0];
+        Counts[i] = NullCBOffsets[0];
+      }
     }
   }
 
@@ -1111,17 +1212,34 @@ void WrappedID3D11DeviceContext::PSSetConstantBuffers1(UINT StartSlot, UINT NumB
     m_ContextRecord->AddChunk(scope.Get());
   }
 
+  UINT offs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
+  UINT cnts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
+
   if(ppConstantBuffers)
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->PS.ConstantBuffers,
                                           ppConstantBuffers, StartSlot, NumBuffers);
 
   if(pFirstConstant)
-    m_CurrentPipelineState->Change(m_CurrentPipelineState->PS.CBOffsets, pFirstConstant, StartSlot,
-                                   NumBuffers);
+  {
+    memcpy(offs, pFirstConstant, sizeof(UINT) * NumBuffers);
+    for(UINT i = 0; i < NumBuffers; i++)
+    {
+      if(ppConstantBuffers && ppConstantBuffers[i] == NULL)
+        offs[i] = NullCBOffsets[i];
+    }
+    m_CurrentPipelineState->Change(m_CurrentPipelineState->PS.CBOffsets, offs, StartSlot, NumBuffers);
+  }
 
   if(pNumConstants)
-    m_CurrentPipelineState->Change(m_CurrentPipelineState->PS.CBCounts, pNumConstants, StartSlot,
-                                   NumBuffers);
+  {
+    memcpy(cnts, pNumConstants, sizeof(UINT) * NumBuffers);
+    for(UINT i = 0; i < NumBuffers; i++)
+    {
+      if(ppConstantBuffers && ppConstantBuffers[i] == NULL)
+        cnts[i] = NullCBCounts[i];
+    }
+    m_CurrentPipelineState->Change(m_CurrentPipelineState->PS.CBCounts, cnts, StartSlot, NumBuffers);
+  }
 
   ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
   for(UINT i = 0; i < NumBuffers; i++)
@@ -1164,12 +1282,18 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers1(UINT StartSlot_
 
     if(m_State <= EXECUTING)
     {
-      if(m_pDevice->GetResourceManager()->HasLiveResource(id))
-        Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
-      else
-        Buffers[i] = NULL;
       Offsets[i] = offs;
       Counts[i] = count;
+      if(m_pDevice->GetResourceManager()->HasLiveResource(id))
+      {
+        Buffers[i] = (ID3D11Buffer *)m_pDevice->GetResourceManager()->GetLiveResource(id);
+      }
+      else
+      {
+        Buffers[i] = NULL;
+        Offsets[i] = NullCBCounts[0];
+        Counts[i] = NullCBOffsets[0];
+      }
     }
   }
 
@@ -1231,17 +1355,34 @@ void WrappedID3D11DeviceContext::CSSetConstantBuffers1(UINT StartSlot, UINT NumB
     m_ContextRecord->AddChunk(scope.Get());
   }
 
+  UINT offs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
+  UINT cnts[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
+
   if(ppConstantBuffers)
     m_CurrentPipelineState->ChangeRefRead(m_CurrentPipelineState->CS.ConstantBuffers,
                                           ppConstantBuffers, StartSlot, NumBuffers);
 
   if(pFirstConstant)
-    m_CurrentPipelineState->Change(m_CurrentPipelineState->CS.CBOffsets, pFirstConstant, StartSlot,
-                                   NumBuffers);
+  {
+    memcpy(offs, pFirstConstant, sizeof(UINT) * NumBuffers);
+    for(UINT i = 0; i < NumBuffers; i++)
+    {
+      if(ppConstantBuffers && ppConstantBuffers[i] == NULL)
+        offs[i] = NullCBOffsets[i];
+    }
+    m_CurrentPipelineState->Change(m_CurrentPipelineState->CS.CBOffsets, offs, StartSlot, NumBuffers);
+  }
 
   if(pNumConstants)
-    m_CurrentPipelineState->Change(m_CurrentPipelineState->CS.CBCounts, pNumConstants, StartSlot,
-                                   NumBuffers);
+  {
+    memcpy(cnts, pNumConstants, sizeof(UINT) * NumBuffers);
+    for(UINT i = 0; i < NumBuffers; i++)
+    {
+      if(ppConstantBuffers && ppConstantBuffers[i] == NULL)
+        cnts[i] = NullCBCounts[i];
+    }
+    m_CurrentPipelineState->Change(m_CurrentPipelineState->CS.CBCounts, cnts, StartSlot, NumBuffers);
+  }
 
   ID3D11Buffer *bufs[D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT] = {0};
   for(UINT i = 0; i < NumBuffers; i++)
