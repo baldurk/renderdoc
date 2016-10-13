@@ -13,6 +13,9 @@
     <Filter Include="Common">
       <UniqueIdentifier>{503975e6-f4c0-4efc-8ff1-77e4082c5998}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Replay">
+      <UniqueIdentifier>{03d937fd-e33a-4b97-aa7e-5f2990163c9b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="d3d9_hooks.cpp">
@@ -26,6 +29,9 @@
     </ClCompile>
     <ClCompile Include="d3d9_common.cpp">
       <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d9_replay.cpp">
+      <Filter>Replay</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

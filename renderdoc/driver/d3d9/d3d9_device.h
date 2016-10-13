@@ -28,13 +28,16 @@
 
 class D3D9DebugManager;
 
-class WrappedD3DDevice9 : public IDirect3DDevice9
+class WrappedD3DDevice9 : public IDirect3DDevice9, public IFrameCapturer
 {
 public:
-  WrappedD3DDevice9(IDirect3DDevice9 *device);
+  WrappedD3DDevice9(IDirect3DDevice9 *device, HWND wnd);
   ~WrappedD3DDevice9();
 
   void LazyInit();
+
+  void StartFrameCapture(void *dev, void *wnd);
+  bool EndFrameCapture(void *dev, void *wnd);
 
   void InternalRef() { InterlockedIncrement(&m_InternalRefcount); }
   void InternalRelease() { InterlockedDecrement(&m_InternalRefcount); }
@@ -246,6 +249,8 @@ private:
 
   IDirect3DDevice9 *m_device;
   D3D9DebugManager *m_DebugManager;
+
+  HWND m_Wnd;
 
   unsigned int m_InternalRefcount;
   RefCounter9 m_RefCounter;

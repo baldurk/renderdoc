@@ -27,7 +27,7 @@
 #include "serialise/serialiser.h"
 #include "d3d9_debug.h"
 
-WrappedD3DDevice9::WrappedD3DDevice9(IDirect3DDevice9 *device)
+WrappedD3DDevice9::WrappedD3DDevice9(IDirect3DDevice9 *device, HWND wnd)
     : m_RefCounter(device, false),
       m_SoftRefCounter(NULL, false),
       m_device(device),
@@ -40,6 +40,16 @@ WrappedD3DDevice9::WrappedD3DDevice9(IDirect3DDevice9 *device)
   m_SoftRefCounter.Release();
   m_InternalRefcount = 0;
   m_Alive = true;
+
+  if(!RenderDoc::Inst().IsReplayApp())
+  {
+    RenderDoc::Inst().AddDeviceFrameCapturer((IDirect3DDevice9 *)this, this);
+
+    m_Wnd = wnd;
+
+    if(wnd != NULL)
+      RenderDoc::Inst().AddFrameCapturer((IDirect3DDevice9 *)this, wnd, this);
+  }
 }
 
 void WrappedD3DDevice9::CheckForDeath()
@@ -61,6 +71,11 @@ void WrappedD3DDevice9::CheckForDeath()
 
 WrappedD3DDevice9::~WrappedD3DDevice9()
 {
+  RenderDoc::Inst().RemoveDeviceFrameCapturer((IDirect3DDevice9 *)this);
+
+  if(m_Wnd != NULL)
+    RenderDoc::Inst().RemoveFrameCapturer((IDirect3DDevice9 *)this, m_Wnd);
+
   SAFE_DELETE(m_DebugManager);
 
   SAFE_RELEASE(m_device);
@@ -90,6 +105,17 @@ HRESULT WrappedD3DDevice9::QueryInterface(REFIID riid, void **ppvObject)
 void WrappedD3DDevice9::LazyInit()
 {
   m_DebugManager = new D3D9DebugManager(this);
+}
+
+void WrappedD3DDevice9::StartFrameCapture(void *dev, void *wnd)
+{
+  RDCERR("Capture not supported on D3D9");
+}
+
+bool WrappedD3DDevice9::EndFrameCapture(void *dev, void *wnd)
+{
+  RDCERR("Capture not supported on D3D9");
+  return false;
 }
 
 HRESULT __stdcall WrappedD3DDevice9::TestCooperativeLevel()
@@ -167,6 +193,20 @@ HRESULT __stdcall WrappedD3DDevice9::Reset(D3DPRESENT_PARAMETERS *pPresentationP
 HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT *pDestRect,
                                              HWND hDestWindowOverride, CONST RGNDATA *pDirtyRegion)
 {
+  // if(m_State == WRITING_IDLE)
+  RenderDoc::Inst().Tick();
+
+  IDirect3DSwapChain9 *swapChain;
+  m_device->GetSwapChain(0, &swapChain);
+  D3DPRESENT_PARAMETERS presentParams;
+  swapChain->GetPresentParameters(&presentParams);
+
+  HWND wnd = presentParams.hDeviceWindow;
+  if(hDestWindowOverride != NULL)
+    wnd = hDestWindowOverride;
+
+  bool activeWindow = RenderDoc::Inst().IsActiveWindow((IDirect3DDevice9 *)this, wnd);
+
   m_FrameCounter++;
 
   // if (m_State == WRITING_IDLE)
@@ -189,11 +229,6 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
       D3DSURFACE_DESC bbDesc;
       backBuffer->GetDesc(&bbDesc);
 
-      IDirect3DSwapChain9 *swapChain;
-      m_device->GetSwapChain(0, &swapChain);
-      D3DPRESENT_PARAMETERS presentParams;
-      swapChain->GetPresentParameters(&presentParams);
-
       //
       D3DVIEWPORT9 viewport = {0, 0, bbDesc.Width, bbDesc.Height, 0.f, 1.f};
       res |= m_device->SetViewport(&viewport);
@@ -201,8 +236,10 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
       GetDebugManager()->SetOutputDimensions(bbDesc.Width, bbDesc.Height);
       GetDebugManager()->SetOutputWindow(presentParams.hDeviceWindow);
 
-      string overlayText = RenderDoc::Inst().GetOverlayText(RDC_D3D9, m_FrameCounter,
-                                                            RenderDoc::eOverlay_CaptureDisabled);
+      int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
+      flags |= RenderDoc::eOverlay_CaptureDisabled;
+
+      string overlayText = RenderDoc::Inst().GetOverlayText(RDC_D3D9, m_FrameCounter, flags);
 
       overlayText += "Captures not supported with D3D9\n";
 
@@ -212,6 +249,11 @@ HRESULT __stdcall WrappedD3DDevice9::Present(CONST RECT *pSourceRect, CONST RECT
       stateBlockRes = stateBlock->Apply();
       res |= m_device->EndScene();
     }
+  }
+
+  if(activeWindow)
+  {
+    RenderDoc::Inst().SetCurrentDriver(RDC_D3D9);
   }
 
   return m_device->Present(pSourceRect, pDestRect, hDestWindowOverride, pDirtyRegion);
@@ -936,7 +978,14 @@ HRESULT __stdcall WrappedD3D9::CreateDevice(UINT Adapter, D3DDEVTYPE DeviceType,
   {
     RDCLOG("App creating d3d9 device");
 
-    WrappedD3DDevice9 *wrappedDevice = new WrappedD3DDevice9(device);
+    HWND wnd = pPresentationParameters->hDeviceWindow;
+    if(wnd == NULL)
+      wnd = hFocusWindow;
+
+    if(!wnd)
+      RDCWARN("Couldn't find valid non-NULL window at CreateDevice time");
+
+    WrappedD3DDevice9 *wrappedDevice = new WrappedD3DDevice9(device, wnd);
     wrappedDevice->LazyInit();    // TODO this can be moved later probably
     *ppReturnedDeviceInterface = wrappedDevice;
   }

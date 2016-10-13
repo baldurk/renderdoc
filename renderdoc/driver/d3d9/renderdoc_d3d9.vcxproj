@@ -188,6 +188,7 @@
     <ClCompile Include="d3d9_debug.cpp" />
     <ClCompile Include="d3d9_device.cpp" />
     <ClCompile Include="d3d9_hooks.cpp" />
+    <ClCompile Include="d3d9_replay.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="..\dx\official\d3d9.h" />
