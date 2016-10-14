@@ -187,6 +187,8 @@ private:
 
   ID3D12Resource *m_ReadbackBuffer;
 
+  ID3D12Resource *m_TexResource;
+
   static const uint64_t m_ReadbackSize = 16 * 1024 * 1024;
 
   static const uint32_t m_ShaderCacheMagic = 0xbaafd1d1;

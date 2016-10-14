@@ -718,6 +718,8 @@ D3D12DebugManager::~D3D12DebugManager()
 
   SAFE_RELEASE(m_PickPixelTex);
 
+  SAFE_RELEASE(m_TexResource);
+
   SAFE_RELEASE(m_ReadbackBuffer);
 
   m_WrappedDevice->InternalRelease();
@@ -2072,8 +2074,7 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
   vertexData.Position.x = x * (2.0f / float(GetWidth()));
   vertexData.Position.y = -y * (2.0f / float(GetHeight()));
 
-  vertexData.ScreenAspect.x =
-      (float(GetHeight()) / float(GetWidth()));    // 0.5 = character width / character height
+  vertexData.ScreenAspect.x = float(GetHeight()) / float(GetWidth());
   vertexData.ScreenAspect.y = 1.0f;
 
   vertexData.TextureResolution.x = 1.0f / vertexData.ScreenAspect.x;
@@ -2103,9 +2104,7 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
 
   pixelData.FlipY = cfg.FlipY ? 1 : 0;
 
-  D3D12NOTIMP("proper texture display");
-  // GetShaderDetails(cfg.texid, cfg.typeHint, cfg.rawoutput ? true : false);
-  WrappedID3D12Resource *resource = WrappedID3D12Resource::m_List[cfg.texid];
+  ID3D12Resource *resource = WrappedID3D12Resource::m_List[cfg.texid];
   D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
 
   pixelData.SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, resourceDesc.SampleDesc.Count - 1);
@@ -2166,37 +2165,44 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
   pixelData.OutputDisplayFormat = RESTYPE_TEX2D;
   pixelData.Slice = float(RDCCLAMP(cfg.sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
 
+  int srvOffset = 0;
+
+  D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+  srvDesc.Format = GetTypedFormat(resourceDesc.Format, cfg.typeHint);
+  srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+
   if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
   {
-    pixelData.OutputDisplayFormat = RESTYPE_TEX3D;
+    srvOffset = RESTYPE_TEX3D;
     pixelData.Slice = float(cfg.sliceFace) / float(resourceDesc.DepthOrArraySize);
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
+    srvDesc.Texture3D.MipLevels = ~0U;
+  }
+  else if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D)
+  {
+    if(resourceDesc.SampleDesc.Count > 1)
+    {
+      srvOffset = RESTYPE_TEX2D_MS;
+      srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
+      srvDesc.Texture2DMSArray.ArraySize = ~0U;
+    }
+    else
+    {
+      srvOffset = RESTYPE_TEX2D;
+      srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
+      srvDesc.Texture2D.MipLevels = ~0U;
+      srvDesc.Texture2DArray.ArraySize = ~0U;
+    }
   }
   else if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D)
   {
-    pixelData.OutputDisplayFormat = RESTYPE_TEX1D;
+    srvOffset = RESTYPE_TEX1D;
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE1DARRAY;
+    srvDesc.Texture1DArray.MipLevels = ~0U;
+    srvDesc.Texture1DArray.ArraySize = ~0U;
   }
-  /*
-  else if(details.texType == eTexType_Depth)
-  {
-    pixelData.OutputDisplayFormat = RESTYPE_DEPTH;
-  }
-  else if(details.texType == eTexType_Stencil)
-  {
-    pixelData.OutputDisplayFormat = RESTYPE_DEPTH_STENCIL;
-  }
-  else if(details.texType == eTexType_DepthMS)
-  {
-    pixelData.OutputDisplayFormat = RESTYPE_DEPTH_MS;
-  }
-  else if(details.texType == eTexType_StencilMS)
-  {
-    pixelData.OutputDisplayFormat = RESTYPE_DEPTH_STENCIL_MS;
-  }*/
-  else if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D &&
-          resourceDesc.SampleDesc.Count > 1)
-  {
-    pixelData.OutputDisplayFormat = RESTYPE_TEX2D_MS;
-  }
+
+  pixelData.OutputDisplayFormat = srvOffset;
 
   if(cfg.overlay == eTexOverlay_NaN)
   {
@@ -2208,17 +2214,15 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
     pixelData.OutputDisplayFormat |= TEXDISPLAY_CLIPPING;
   }
 
-  int srvOffset = 0;
-
   if(IsUIntFormat(resourceDesc.Format))
   {
     pixelData.OutputDisplayFormat |= TEXDISPLAY_UINT_TEX;
-    srvOffset = 10;
+    srvOffset += 10;
   }
   if(IsIntFormat(resourceDesc.Format))
   {
     pixelData.OutputDisplayFormat |= TEXDISPLAY_SINT_TEX;
-    srvOffset = 20;
+    srvOffset += 20;
   }
   if(!IsSRGBFormat(resourceDesc.Format) && cfg.linearDisplayAsGamma)
   {
@@ -2226,36 +2230,39 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
   }
 
   D3D12_CPU_DESCRIPTOR_HANDLE srv = cbvsrvHeap->GetCPUDescriptorHandleForHeapStart();
+  srv.ptr += srvOffset * sizeof(D3D12Descriptor);
 
-  // hack, tex2d float is slot 2
-  srv.ptr +=
-      2 * m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+  D3D12_RESOURCE_STATES realResourceState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+  bool copy = false;
 
-  D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc;
-  srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
-  srvDesc.Format = GetTypedFormat(resourceDesc.Format, cfg.typeHint);
-  srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
-  srvDesc.Texture2D.MipLevels = ~0U;
-  srvDesc.Texture2D.MostDetailedMip = 0;
-  srvDesc.Texture2D.PlaneSlice = 0;
-  srvDesc.Texture2D.ResourceMinLODClamp = 0.0f;
+  D3D12_SHADER_RESOURCE_VIEW_DESC stencilSRVDesc = {};
 
-  // can't display depth textures directly yet
+  // for non-typeless depth formats, we need to copy to a typeless resource for read
   if(IsDepthFormat(srvDesc.Format) && !IsTypelessFormat(srvDesc.Format))
-    return true;
-
-  // or non-2D
-  if(resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE2D)
-    return true;
-
-  if(resource->GetDesc().SampleDesc.Count > 1)
   {
-    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMS;
-    srv.ptr +=
-        7 * m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
-  }
+    realResourceState = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    copy = true;
 
-  m_WrappedDevice->CreateShaderResourceView(resource, &srvDesc, srv);
+    switch(GetTypelessFormat(srvDesc.Format))
+    {
+      case DXGI_FORMAT_R32G8X24_TYPELESS:
+        srvDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+        stencilSRVDesc = srvDesc;
+        stencilSRVDesc.Format = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
+        break;
+      case DXGI_FORMAT_R24G8_TYPELESS:
+        srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        stencilSRVDesc = srvDesc;
+        stencilSRVDesc.Format = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+        break;
+      case DXGI_FORMAT_R32_TYPELESS: srvDesc.Format = DXGI_FORMAT_R32_FLOAT; break;
+      case DXGI_FORMAT_R16_TYPELESS: srvDesc.Format = DXGI_FORMAT_R16_UNORM; break;
+      default:
+        RDCERR("Unexpected typeless format %d from depth format %d",
+               GetTypelessFormat(srvDesc.Format), srvDesc.Format);
+        break;
+    }
+  }
 
   FillBuffer(m_GenericVSCbuffer, &vertexData, sizeof(DebugVertexCBuffer));
   FillBuffer(m_GenericPSCbuffer, &pixelData, sizeof(DebugPixelCBufferData));
@@ -2279,15 +2286,106 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
     b.Transition.pResource = resource;
     b.Transition.Subresource = (UINT)i;
     b.Transition.StateBefore = states[i];
-    b.Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    b.Transition.StateAfter = realResourceState;
 
     barriers.push_back(b);
+  }
+
+  if(copy)
+  {
+    D3D12_RESOURCE_DESC resDesc = resource->GetDesc();
+
+    D3D12_RESOURCE_DESC texDesc = {};
+    texDesc.Alignment = 0;
+    texDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    texDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    texDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+    texDesc.Format = GetTypelessFormat(resDesc.Format);
+    texDesc.Width = resDesc.Width;
+    texDesc.Height = resDesc.Height;
+    texDesc.DepthOrArraySize = resDesc.DepthOrArraySize;
+    texDesc.MipLevels = resDesc.MipLevels;
+    texDesc.SampleDesc.Count = resDesc.SampleDesc.Count;
+    texDesc.SampleDesc.Quality = 0;
+
+    if(texDesc.SampleDesc.Count > 1)
+      texDesc.Flags |= IsDepthFormat(texDesc.Format) ? D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL
+                                                     : D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    // check if the existing resource is similar enough (same typeless format and dimension)
+    if(m_TexResource)
+    {
+      D3D12_RESOURCE_DESC oldDesc = m_TexResource->GetDesc();
+
+      if(oldDesc.Width != texDesc.Width || oldDesc.Height != texDesc.Height ||
+         oldDesc.DepthOrArraySize != texDesc.DepthOrArraySize || oldDesc.Format != texDesc.Format ||
+         oldDesc.MipLevels != texDesc.MipLevels ||
+         oldDesc.SampleDesc.Count != texDesc.SampleDesc.Count)
+      {
+        SAFE_RELEASE(m_TexResource);
+      }
+    }
+
+    // create resource if we need it
+    if(!m_TexResource)
+    {
+      HRESULT hr = m_WrappedDevice->CreateCommittedResource(
+          &heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+          NULL, __uuidof(ID3D12Resource), (void **)&m_TexResource);
+      RDCASSERTEQUAL(hr, S_OK);
+    }
+
+    ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+    // prepare real resource for copying
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    D3D12_RESOURCE_BARRIER texResourceBarrier;
+    D3D12_RESOURCE_BARRIER &b = texResourceBarrier;
+
+    b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+    b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+    b.Transition.pResource = m_TexResource;
+    b.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    b.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
+
+    // prepare tex resource for copying
+    list->ResourceBarrier(1, &texResourceBarrier);
+
+    list->CopyResource(m_TexResource, resource);
+
+    // tex resource back to readable
+    std::swap(texResourceBarrier.Transition.StateBefore, texResourceBarrier.Transition.StateAfter);
+    list->ResourceBarrier(1, &texResourceBarrier);
+
+    list->Close();
+
+    m_WrappedDevice->ExecuteLists();
+    m_WrappedDevice->FlushLists();
+
+    resource = m_TexResource;
+  }
+
+  m_WrappedDevice->CreateShaderResourceView(resource, &srvDesc, srv);
+  if(stencilSRVDesc.Format != DXGI_FORMAT_UNKNOWN)
+  {
+    srv.ptr += sizeof(D3D12Descriptor);
+    m_WrappedDevice->CreateShaderResourceView(resource, &stencilSRVDesc, srv);
   }
 
   {
     ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
-    if(!barriers.empty())
+    if(!copy && !barriers.empty())
       list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
     list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
