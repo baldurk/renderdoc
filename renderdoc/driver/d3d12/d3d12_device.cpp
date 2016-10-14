@@ -1458,6 +1458,8 @@ Serialiser *WrappedID3D12Device::GetThreadSerialiser()
   ser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
   ser->SetUserData(m_ResourceManager);
 
+  ser->SetDebugText(true);
+
   ser->SetChunkNameLookup(&GetChunkName);
 
   Threading::SetTLSValue(threadSerialiserTLSSlot, (void *)ser);
