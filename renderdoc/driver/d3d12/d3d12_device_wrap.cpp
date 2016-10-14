@@ -1372,8 +1372,11 @@ void WrappedID3D12Device::CopyDescriptors(
     const D3D12_CPU_DESCRIPTOR_HANDLE *pSrcDescriptorRangeStarts,
     const UINT *pSrcDescriptorRangeSizes, D3D12_DESCRIPTOR_HEAP_TYPE DescriptorHeapsType)
 {
-  D3D12_CPU_DESCRIPTOR_HANDLE *dstStarts = new D3D12_CPU_DESCRIPTOR_HANDLE[NumDestDescriptorRanges];
-  D3D12_CPU_DESCRIPTOR_HANDLE *srcStarts = new D3D12_CPU_DESCRIPTOR_HANDLE[NumSrcDescriptorRanges];
+  D3D12_CPU_DESCRIPTOR_HANDLE *unwrappedArray =
+      GetTempArray<D3D12_CPU_DESCRIPTOR_HANDLE>(NumDestDescriptorRanges + NumSrcDescriptorRanges);
+
+  D3D12_CPU_DESCRIPTOR_HANDLE *dstStarts = unwrappedArray;
+  D3D12_CPU_DESCRIPTOR_HANDLE *srcStarts = unwrappedArray + NumDestDescriptorRanges;
 
   for(UINT i = 0; i < NumDestDescriptorRanges; i++)
     dstStarts[i] = Unwrap(pDestDescriptorRangeStarts[i]);
@@ -1461,9 +1464,6 @@ void WrappedID3D12Device::CopyDescriptors(
       m_FrameCaptureRecord->AddChunk(scope.Get());
     }
   }
-
-  SAFE_DELETE_ARRAY(dstStarts);
-  SAFE_DELETE_ARRAY(srcStarts);
 }
 
 void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,

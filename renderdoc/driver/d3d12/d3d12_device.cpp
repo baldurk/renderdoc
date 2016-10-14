@@ -191,6 +191,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_AppControlledCapture = false;
 
   threadSerialiserTLSSlot = Threading::AllocateTLSSlot();
+  tempMemoryTLSSlot = Threading::AllocateTLSSlot();
 
   m_FrameCounter = 0;
 
@@ -340,6 +341,12 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   for(size_t i = 0; i < m_ThreadSerialisers.size(); i++)
     delete m_ThreadSerialisers[i];
+
+  for(size_t i = 0; i < m_ThreadTempMem.size(); i++)
+  {
+    delete[] m_ThreadTempMem[i]->memory;
+    delete m_ThreadTempMem[i];
+  }
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
@@ -1400,6 +1407,38 @@ void WrappedID3D12Device::SetResourceName(ID3D12DeviceChild *res, const char *na
       record->AddChunk(scope.Get());
     }
   }
+}
+
+byte *WrappedID3D12Device::GetTempMemory(size_t s)
+{
+  TempMem *mem = (TempMem *)Threading::GetTLSValue(tempMemoryTLSSlot);
+  if(mem && mem->size >= s)
+    return mem->memory;
+
+  // alloc or grow alloc
+  TempMem *newmem = mem;
+
+  if(!newmem)
+    newmem = new TempMem();
+
+  // free old memory, don't need to keep contents
+  if(newmem->memory)
+    delete[] newmem->memory;
+
+  // alloc new memory
+  newmem->size = s;
+  newmem->memory = new byte[s];
+
+  Threading::SetTLSValue(tempMemoryTLSSlot, (void *)newmem);
+
+  // if this is entirely new, save it for deletion on shutdown
+  if(!mem)
+  {
+    SCOPED_LOCK(m_ThreadTempMemLock);
+    m_ThreadTempMem.push_back(newmem);
+  }
+
+  return newmem->memory;
 }
 
 Serialiser *WrappedID3D12Device::GetThreadSerialiser()

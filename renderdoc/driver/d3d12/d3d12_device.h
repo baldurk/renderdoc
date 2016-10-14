@@ -254,6 +254,16 @@ private:
   Threading::CriticalSection m_ThreadSerialisersLock;
   vector<Serialiser *> m_ThreadSerialisers;
 
+  uint64_t tempMemoryTLSSlot;
+  struct TempMem
+  {
+    TempMem() : memory(NULL), size(0) {}
+    byte *memory;
+    size_t size;
+  };
+  Threading::CriticalSection m_ThreadTempMemLock;
+  vector<TempMem *> m_ThreadTempMem;
+
   Serialiser *GetThreadSerialiser();
 
   uint32_t m_FrameCounter;
@@ -346,6 +356,14 @@ public:
   WrappedID3D12CommandQueue *GetQueue() { return m_Queue; }
   ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }
   void ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers);
+
+  // returns thread-local temporary memory
+  byte *GetTempMemory(size_t s);
+  template <class T>
+  T *GetTempArray(uint32_t arraycount)
+  {
+    return (T *)GetTempMemory(sizeof(T) * arraycount);
+  }
 
   struct
   {

@@ -423,7 +423,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(UINT NumBarrier
 void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
                                                        const D3D12_RESOURCE_BARRIER *pBarriers)
 {
-  D3D12_RESOURCE_BARRIER *barriers = new D3D12_RESOURCE_BARRIER[NumBarriers];
+  D3D12_RESOURCE_BARRIER *barriers = m_pDevice->GetTempArray<D3D12_RESOURCE_BARRIER>(NumBarriers);
 
   for(UINT i = 0; i < NumBarriers; i++)
   {
@@ -445,8 +445,6 @@ void WrappedID3D12GraphicsCommandList::ResourceBarrier(UINT NumBarriers,
   }
 
   m_pReal->ResourceBarrier(NumBarriers, barriers);
-
-  SAFE_DELETE_ARRAY(barriers);
 
   if(m_State >= WRITING)
   {
@@ -729,7 +727,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetDescriptorHeaps(
 void WrappedID3D12GraphicsCommandList::SetDescriptorHeaps(UINT NumDescriptorHeaps,
                                                           ID3D12DescriptorHeap *const *ppDescriptorHeaps)
 {
-  ID3D12DescriptorHeap **heaps = new ID3D12DescriptorHeap *[NumDescriptorHeaps];
+  ID3D12DescriptorHeap **heaps = m_pDevice->GetTempArray<ID3D12DescriptorHeap *>(NumDescriptorHeaps);
   for(UINT i = 0; i < NumDescriptorHeaps; i++)
     heaps[i] = Unwrap(ppDescriptorHeaps[i]);
 
@@ -744,8 +742,6 @@ void WrappedID3D12GraphicsCommandList::SetDescriptorHeaps(UINT NumDescriptorHeap
     for(UINT i = 0; i < NumDescriptorHeaps; i++)
       m_ListRecord->MarkResourceFrameReferenced(GetResID(ppDescriptorHeaps[i]), eFrameRef_Read);
   }
-
-  SAFE_DELETE_ARRAY(heaps);
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(const D3D12_INDEX_BUFFER_VIEW *pView)
@@ -1049,7 +1045,8 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
     BOOL RTsSingleHandleToDescriptorRange, const D3D12_CPU_DESCRIPTOR_HANDLE *pDepthStencilDescriptor)
 {
   UINT numHandles = RTsSingleHandleToDescriptorRange ? 1U : NumRenderTargetDescriptors;
-  D3D12_CPU_DESCRIPTOR_HANDLE *unwrapped = new D3D12_CPU_DESCRIPTOR_HANDLE[numHandles];
+  D3D12_CPU_DESCRIPTOR_HANDLE *unwrapped =
+      m_pDevice->GetTempArray<D3D12_CPU_DESCRIPTOR_HANDLE>(numHandles);
   for(UINT i = 0; i < numHandles; i++)
     unwrapped[i] = Unwrap(pRenderTargetDescriptors[i]);
 
@@ -1058,8 +1055,6 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
 
   m_pReal->OMSetRenderTargets(NumRenderTargetDescriptors, unwrapped, RTsSingleHandleToDescriptorRange,
                               pDepthStencilDescriptor ? &dsv : NULL);
-
-  SAFE_DELETE_ARRAY(unwrapped);
 
   if(m_State >= WRITING)
   {
