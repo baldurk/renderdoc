@@ -430,7 +430,6 @@ void ImageViewer::RefreshFile()
   texDetails.format = rgba8_unorm;
 
   // reasonable defaults
-  texDetails.numSubresources = 1;
   texDetails.dimension = 2;
   texDetails.arraysize = 1;
   texDetails.width = 1;
@@ -588,7 +587,6 @@ void ImageViewer::RefreshFile()
     texDetails.height = read_data.height;
     texDetails.depth = read_data.depth;
     texDetails.mips = read_data.mips;
-    texDetails.numSubresources = texDetails.arraysize * texDetails.mips;
     texDetails.format = read_data.format;
     texDetails.dimension = 1;
     if(texDetails.width > 1)
@@ -597,7 +595,7 @@ void ImageViewer::RefreshFile()
       texDetails.dimension = 3;
 
     m_FrameRecord.frameInfo.fileSize = 0;
-    for(uint32_t i = 0; i < texDetails.numSubresources; i++)
+    for(uint32_t i = 0; i < texDetails.arraysize * texDetails.mips; i++)
       m_FrameRecord.frameInfo.fileSize += read_data.subsizes[i];
   }
 
@@ -628,7 +626,7 @@ void ImageViewer::RefreshFile()
   }
   else
   {
-    for(uint32_t i = 0; i < texDetails.numSubresources; i++)
+    for(uint32_t i = 0; i < texDetails.arraysize * texDetails.mips; i++)
     {
       m_Proxy->SetProxyTextureData(m_TextureID, i / texDetails.mips, i % texDetails.mips,
                                    read_data.subdata[i], (size_t)read_data.subsizes[i]);

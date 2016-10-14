@@ -1723,7 +1723,7 @@ namespace renderdocui.Windows
 
             sliceFace.Items.Clear();
 
-            if (tex.numSubresources == tex.mips && tex.depth <= 1)
+            if (tex.arraysize == 1 && tex.depth <= 1)
             {
                 sliceFace.Enabled = false;
             }
@@ -1735,7 +1735,7 @@ namespace renderdocui.Windows
 
                 String[] cubeFaces = { "X+", "X-", "Y+", "Y-", "Z+", "Z-" };
 
-                UInt32 numSlices = (Math.Max(1, tex.depth) * tex.numSubresources) / tex.mips;
+                UInt32 numSlices = tex.arraysize;
 
                 // for 3D textures, display the number of slices at this mip
                 if(tex.depth > 1)

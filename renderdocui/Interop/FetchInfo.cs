@@ -307,7 +307,6 @@ namespace renderdoc
         public bool cubemap;
         public UInt32 mips;
         public UInt32 arraysize;
-        public UInt32 numSubresources;
         public TextureCreationFlags creationFlags;
         public UInt32 msQual, msSamp;
         public UInt64 byteSize;

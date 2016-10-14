@@ -74,8 +74,6 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
     tex.cubemap = false;
     tex.format = MakeResourceFormat(desc.Format);
 
-    tex.numSubresources = desc.MipLevels;
-
     tex.creationFlags = 0;
     if(desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
       tex.creationFlags |= eTextureCreate_SRV;
@@ -86,18 +84,17 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
     if(desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
       tex.creationFlags |= eTextureCreate_UAV;
 
-    if(desc.MipLevels == 0)
-      tex.numSubresources = CalcNumMips(desc.Width, 1, 1);
+    tex.mips = desc.MipLevels;
 
-    tex.mips = tex.numSubresources;
+    if(desc.MipLevels == 0)
+      tex.mips = CalcNumMips(desc.Width, 1, 1);
+
     tex.arraysize = desc.ArraySize;
 
     tex.resType = tex.arraysize > 1 ? eResType_Texture1DArray : eResType_Texture1D;
 
     tex.msQual = 0;
     tex.msSamp = 1;
-
-    tex.numSubresources *= desc.ArraySize;
 
     tex.customName = true;
 
@@ -121,7 +118,7 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
     tex.name = str;
 
     tex.byteSize = 0;
-    for(uint32_t s = 0; s < tex.numSubresources; s++)
+    for(uint32_t s = 0; s < tex.mips * tex.arraysize; s++)
       tex.byteSize += GetByteSize(d3dtex, s);
 
     return tex;
@@ -147,8 +144,6 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
     tex.depth = 1;
     tex.format = MakeResourceFormat(desc.Format);
 
-    tex.numSubresources = desc.MipLevels;
-
     tex.creationFlags = 0;
     if(desc.BindFlags & D3D11_BIND_SHADER_RESOURCE)
       tex.creationFlags |= eTextureCreate_SRV;
@@ -165,10 +160,11 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
     if(desc.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE)
       tex.cubemap = true;
 
-    if(desc.MipLevels == 0)
-      tex.numSubresources = CalcNumMips(desc.Width, desc.Height, 1);
+    tex.mips = desc.MipLevels;
 
-    tex.mips = tex.numSubresources;
+    if(desc.MipLevels == 0)
+      tex.mips = CalcNumMips(desc.Width, desc.Height, 1);
+
     tex.arraysize = desc.ArraySize;
 
     tex.msQual = desc.SampleDesc.Quality;
@@ -179,8 +175,6 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
       tex.resType = tex.arraysize > 1 ? eResType_TextureCubeArray : eResType_TextureCube;
     if(tex.msSamp > 1)
       tex.resType = tex.arraysize > 1 ? eResType_Texture2DMSArray : eResType_Texture2DMS;
-
-    tex.numSubresources *= desc.ArraySize;
 
     tex.customName = true;
 
@@ -218,7 +212,7 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
     tex.name = str;
 
     tex.byteSize = 0;
-    for(uint32_t s = 0; s < tex.numSubresources; s++)
+    for(uint32_t s = 0; s < tex.arraysize * tex.mips; s++)
       tex.byteSize += GetByteSize(d3dtex, s);
 
     return tex;
@@ -242,8 +236,6 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
     tex.cubemap = false;
     tex.format = MakeResourceFormat(desc.Format);
 
-    tex.numSubresources = desc.MipLevels;
-
     tex.resType = eResType_Texture3D;
 
     tex.creationFlags = 0;
@@ -256,13 +248,14 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
     if(desc.BindFlags & D3D11_BIND_UNORDERED_ACCESS)
       tex.creationFlags |= eTextureCreate_UAV;
 
+    tex.mips = desc.MipLevels;
+
     if(desc.MipLevels == 0)
-      tex.numSubresources = CalcNumMips(desc.Width, desc.Height, desc.Depth);
+      tex.mips = CalcNumMips(desc.Width, desc.Height, desc.Depth);
 
     tex.msQual = 0;
     tex.msSamp = 1;
 
-    tex.mips = tex.numSubresources;
     tex.arraysize = 1;
 
     tex.customName = true;
@@ -284,7 +277,7 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
     tex.name = str;
 
     tex.byteSize = 0;
-    for(uint32_t s = 0; s < tex.numSubresources; s++)
+    for(uint32_t s = 0; s < tex.arraysize * tex.mips; s++)
       tex.byteSize += GetByteSize(d3dtex, s);
 
     return tex;
@@ -303,7 +296,6 @@ FetchTexture D3D11Replay::GetTexture(ResourceId id)
   tex.cubemap = false;
   tex.mips = 1;
   tex.arraysize = 1;
-  tex.numSubresources = 1;
   tex.msQual = 0;
   tex.msSamp = 1;
 

@@ -1044,13 +1044,12 @@ void Serialiser::Serialise(const char *name, FetchTexture &el)
   Serialise("", el.cubemap);
   Serialise("", el.mips);
   Serialise("", el.arraysize);
-  Serialise("", el.numSubresources);
   Serialise("", el.creationFlags);
   Serialise("", el.msQual);
   Serialise("", el.msSamp);
   Serialise("", el.byteSize);
 
-  SIZE_CHECK(FetchTexture, 152);
+  SIZE_CHECK(FetchTexture, 144);
 }
 
 template <>

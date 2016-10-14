@@ -103,7 +103,6 @@ struct FetchTexture
   bool32 cubemap;
   uint32_t mips;
   uint32_t arraysize;
-  uint32_t numSubresources;
   uint32_t creationFlags;
   uint32_t msQual, msSamp;
   uint64_t byteSize;

@@ -801,7 +801,6 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
   ret.height = iminfo.extent.height;
   ret.depth = iminfo.extent.depth;
   ret.mips = iminfo.mipLevels;
-  ret.numSubresources = ret.mips * ret.arraysize;
 
   ret.byteSize = 0;
   for(uint32_t s = 0; s < ret.mips; s++)

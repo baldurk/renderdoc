@@ -52,7 +52,6 @@ namespace renderdocui.Windows.Dialogs
                 tex.cubemap = true;
                 tex.msSamp = 2;
                 tex.mips = 5;
-                tex.numSubresources = tex.arraysize * tex.mips;
             }
         }
 
@@ -115,7 +114,7 @@ namespace renderdocui.Windows.Dialogs
 
             String[] cubeFaces = { "X+", "X-", "Y+", "Y-", "Z+", "Z-" };
 
-            UInt32 numSlices = (Math.Max(1, tex.depth) * tex.numSubresources) / tex.mips;
+            UInt32 numSlices = Math.Max(tex.arraysize, tex.depth);
 
             sliceSelect.Items.Clear();
 

@@ -458,7 +458,6 @@ void GLReplay::CacheTexture(ResourceId id)
     tex.cubemap = false;
     tex.mips = 1;
     tex.arraysize = 1;
-    tex.numSubresources = 1;
     tex.creationFlags = 0;
     tex.msQual = 0;
     tex.msSamp = 1;
@@ -478,7 +477,6 @@ void GLReplay::CacheTexture(ResourceId id)
     tex.cubemap = false;
     tex.mips = 1;
     tex.arraysize = 1;
-    tex.numSubresources = 1;
     tex.creationFlags = eTextureCreate_RTV;
     tex.msQual = 0;
     tex.msSamp = RDCMAX(1, res.samples);
@@ -689,7 +687,6 @@ void GLReplay::CacheTexture(ResourceId id)
     tex.cubemap = false;
     tex.mips = 1;
     tex.arraysize = 1;
-    tex.numSubresources = 1;
     tex.creationFlags = eTextureCreate_SRV;
     tex.msQual = 0;
     tex.msSamp = 1;
@@ -704,8 +701,6 @@ void GLReplay::CacheTexture(ResourceId id)
   }
 
   tex.mips = GetNumMips(gl.m_Real, target, res.resource.name, tex.width, tex.height, tex.depth);
-
-  tex.numSubresources = tex.mips * tex.arraysize;
 
   GLint compressed;
   gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_COMPRESSED,
