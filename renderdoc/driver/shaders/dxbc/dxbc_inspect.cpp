@@ -458,7 +458,7 @@ void DXBCFile::GetHash(uint32_t hash[4], const void *ByteCode, size_t BytecodeLe
 
   FileHeader *header = (FileHeader *)ByteCode;
 
-  memcmp(hash, header->hashValue, sizeof(header->hashValue));
+  memcpy(hash, header->hashValue, sizeof(header->hashValue));
 }
 
 bool DXBCFile::CheckForDebugInfo(const void *ByteCode, size_t ByteCodeLength)
