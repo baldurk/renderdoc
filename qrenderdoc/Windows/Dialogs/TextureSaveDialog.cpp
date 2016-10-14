@@ -73,7 +73,7 @@ TextureSaveDialog::TextureSaveDialog(const FetchTexture &t, const TextureSave &s
 
   const char *cubeFaces[] = {"X+", "X-", "Y+", "Y-", "Z+", "Z-"};
 
-  uint32_t numSlices = (qMax(1U, tex.depth) * tex.numSubresources) / tex.mips;
+  uint32_t numSlices = qMax(tex.arraysize, tex.depth);
 
   for(uint32_t i = 0; i < numSlices; i++)
   {

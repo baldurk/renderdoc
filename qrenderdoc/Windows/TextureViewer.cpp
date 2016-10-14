@@ -1157,7 +1157,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
   ui->sliceFace->clear();
 
-  if(tex.numSubresources == tex.mips && tex.depth <= 1)
+  if(tex.arraysize == 1 && tex.depth <= 1)
   {
     ui->sliceFace->setEnabled(false);
   }
@@ -1167,7 +1167,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
 
     QString cubeFaces[] = {"X+", "X-", "Y+", "Y-", "Z+", "Z-"};
 
-    uint32_t numSlices = (qMax(1U, tex.depth) * tex.numSubresources) / tex.mips;
+    uint32_t numSlices = tex.arraysize;
 
     // for 3D textures, display the number of slices at this mip
     if(tex.depth > 1)
