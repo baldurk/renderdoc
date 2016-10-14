@@ -760,7 +760,7 @@ bool OpenGLHook::SetupHooks(GLHookSet &GL)
 
   if(m_eglMakeCurrent_real == NULL)
     m_eglMakeCurrent_real = (PFN_eglMakeCurrent)dlsym(libGLdlsymHandle, "eglMakeCurrent");
-  
+
   if(m_eglQuerySurface_real == NULL)
     m_eglQuerySurface_real = (PFN_eglQuerySurface)dlsym(libGLdlsymHandle, "eglQuerySurface");
 
@@ -810,16 +810,17 @@ bool OpenGLHook::PopulateHooks()
 #undef HookExtensionAlias
 #define HookExtensionAlias(funcPtrType, function, alias)
 
+#define HandleUnsupported(funcPtrType, function)           \
+  if(GL.function == NULL)                                  \
+  {                                                        \
+    CONCAT(unsupported_real_ , function) = (funcPtrType)m_eglGetProcAddress_real(STRINGIZE(function));  \
+    GL.function = CONCAT(function, _renderdoc_hooked);                                                   \
+  }
+
+
   DLLExportHooks();
   HookCheckGLExtensions();
-
-// TODO PEPE
-#define HandleUnsupported(funcPtrType, function)                                 \
-  if(GL.function == NULL)                                                        \
-    GL.function = (funcPtrType)m_eglGetProcAddress_real(STRINGIZE(function));
-
   CheckUnsupported();
-#undef HandleUnsupported
 
 #if 0
   // see gl_emulated.cpp

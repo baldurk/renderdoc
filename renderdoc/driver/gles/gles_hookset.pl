@@ -256,10 +256,6 @@ foreach my $el (@glextfuncs)
         print "    HookExtensionAlias($el->{typedef}, $el->{name}, $_); \\\n";
     }
 }
-foreach my $el (@dllexportfuncs)
-{
-    print "    HookExtension($el->{typedef}, $el->{name}); \\\n"
-}
 print "\n";
 print "\n";
 print "\n";
