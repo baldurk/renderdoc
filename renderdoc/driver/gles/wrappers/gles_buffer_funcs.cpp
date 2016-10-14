@@ -205,15 +205,9 @@ void WrappedGLES::glBindBuffer(GLenum target, GLuint buffer)
 
     // element array buffer binding is vertex array record state, record there (if we've not just
     // stopped)
-    if(m_State == WRITING_IDLE && (target == eGL_ELEMENT_ARRAY_BUFFER || target == eGL_ARRAY_BUFFER)
+    if(m_State == WRITING_IDLE && (target == eGL_ELEMENT_ARRAY_BUFFER)
         && RecordUpdateCheck(cd.m_VertexArrayRecord))
     {
-      GLuint vao = cd.m_VertexArrayRecord->Resource.name;
-
-      SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
-      Serialise_glBindBuffer(target, buffer);
-
-      cd.m_VertexArrayRecord->AddChunk(scope.Get());
       GetResourceManager()->MarkDirtyResource(cd.m_VertexArrayRecord->GetResourceID());
     }
 
@@ -221,16 +215,7 @@ void WrappedGLES::glBindBuffer(GLenum target, GLuint buffer)
     if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
        RecordUpdateCheck(cd.m_FeedbackRecord))
     {
-      GLuint feedback = cd.m_FeedbackRecord->Resource.name;
-
-      // use glTransformFeedbackBufferBase to ensure the feedback object is bound when we bind the
-      // buffer
-      SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_BASE);
-      // TODO PEPE ????
-      //Serialise_glTransformFeedbackBufferBase(feedback, 0, buffer);
-      RDCWARN("TODO PEPE %s:%d", __FILE__ ,__LINE__);
-
-      cd.m_FeedbackRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkDirtyResource(cd.m_FeedbackRecord->GetResourceID());
     }
 
     // immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
@@ -798,17 +783,7 @@ void WrappedGLES::glBindBufferRange(GLenum target, GLuint index, GLuint buffer, 
     if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
        RecordUpdateCheck(cd.m_FeedbackRecord))
     {
-      GLuint feedback = cd.m_FeedbackRecord->Resource.name;
-
-      // use glTransformFeedbackBufferRange to ensure the feedback object is bound when we bind the
-      // buffer
-      SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_RANGE);
-      // TODO PEPE
-      // Serialise_glTransformFeedbackBufferRange(feedback, index, buffer, offset, (GLsizei)size);
-      RDCWARN("TODO PEPE %s:%d", __FILE__ ,__LINE__);
-
-
-      cd.m_FeedbackRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkDirtyResource(cd.m_FeedbackRecord->GetResourceID());
     }
 
     // immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
