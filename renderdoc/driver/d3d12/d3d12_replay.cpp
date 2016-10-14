@@ -1219,17 +1219,17 @@ void D3D12Replay::RemoveReplacement(ResourceId id)
 
 void D3D12Replay::InitCallstackResolver()
 {
-  m_pDevice->GetSerialiser()->InitCallstackResolver();
+  m_pDevice->GetMainSerialiser()->InitCallstackResolver();
 }
 
 bool D3D12Replay::HasCallstacks()
 {
-  return m_pDevice->GetSerialiser()->HasCallstacks();
+  return m_pDevice->GetMainSerialiser()->HasCallstacks();
 }
 
 Callstack::StackResolver *D3D12Replay::GetCallstackResolver()
 {
-  return m_pDevice->GetSerialiser()->GetCallstackResolver();
+  return m_pDevice->GetMainSerialiser()->GetCallstackResolver();
 }
 
 #pragma region not yet implemented
@@ -1542,7 +1542,7 @@ ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver *
     wrappedDev->SetLogFile(logfile);
   wrappedDev->SetLogVersion(initParams.SerialiseVersion);
 
-  if(logfile && wrappedDev->GetSerialiser()->HasError())
+  if(logfile && wrappedDev->GetMainSerialiser()->HasError())
   {
     SAFE_RELEASE(wrappedDev);
     return eReplayCreate_FileIOFailed;

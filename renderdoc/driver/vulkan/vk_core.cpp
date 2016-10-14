@@ -798,9 +798,8 @@ VkResult WrappedVulkan::GetProvidedExtensionProperties(uint32_t *pPropertyCount,
 void WrappedVulkan::Serialise_CaptureScope(uint64_t offset)
 {
   uint32_t FrameNumber = m_FrameCounter;
-  GetMainSerialiser()->Serialise(
-      "FrameNumber",
-      FrameNumber);    // must use main serialiser here to match resource manager below
+  // must use main serialiser here to match resource manager below
+  GetMainSerialiser()->Serialise("FrameNumber", FrameNumber);
 
   if(m_State >= WRITING)
   {
