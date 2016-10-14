@@ -1225,22 +1225,14 @@ bool WrappedGLES::Serialise_glBindFramebuffer(GLenum target, GLuint framebuffer)
 void WrappedGLES::glBindFramebuffer(GLenum target, GLuint framebuffer)
 {
 
-  if(m_State >= WRITING)
+  if(m_State == WRITING_CAPFRAME)
   {
-    GLResourceRecord *record = GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
+    SCOPED_SERIALISE_CONTEXT(BIND_FRAMEBUFFER);
+    Serialise_glBindFramebuffer(target, framebuffer);
 
-    if(m_State == WRITING_CAPFRAME)
-      record = m_ContextRecord;
-
-    if (record)
-    {
-      SCOPED_SERIALISE_CONTEXT(BIND_FRAMEBUFFER);
-      Serialise_glBindFramebuffer(target, framebuffer);
-      record->AddChunk(scope.Get());
-    }
+    m_ContextRecord->AddChunk(scope.Get());
     GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), framebuffer),
                                             eFrameRef_ReadBeforeWrite);
-
   }
 
   if(framebuffer == 0 && m_State < WRITING)
