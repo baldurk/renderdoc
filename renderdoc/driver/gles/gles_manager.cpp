@@ -269,7 +269,7 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
     else
       MarkResourceFrameReferenced(TextureRes(res.Context, name), ref);
   }
-  
+
   gl.glBindFramebuffer(eGL_FRAMEBUFFER, oldBinding);
 }
 
@@ -447,9 +447,10 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     // TODO copy this to an immutable buffer elsewhere and SetInitialContents() it.
     // then only do the readback in Serialise_InitialState
     GLint length;
-// TODO PEPE what kind of buffer type to bind? 
+// TODO PEPE what kind of buffer type to bind?
 //    gl.glGetBufferParameteriv(res.name, eGL_BUFFER_SIZE, &length);
 //    gl.glGetNamedBufferSubDataEXT(res.name, 0, length, record->GetDataPtr());
+    RDCWARN("TODO PEPE %s:%d", __FILE__ ,__LINE__);
   }
   else if(res.Namespace == eResProgram)
   {
@@ -569,7 +570,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
     GLenum binding = TextureBinding(details.curType);
     gl.glGetIntegerv(binding, (GLint *)&oldtex);
     gl.glBindTexture(details.curType, res.name);
-    
+
     bool ms = (details.curType == eGL_TEXTURE_2D_MULTISAMPLE ||
                details.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY);
 
@@ -617,7 +618,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
     }
 
     gl.glBindTexture(details.curType, oldtex);
-    
+
     // we only copy contents for non-views
     GLuint tex = 0;
 
@@ -640,7 +641,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       int mips =
           GetNumMips(gl, details.curType, res.name, details.width, details.height, details.depth);
 
-      
+
       GLuint oldBinding;
       gl.glGetIntegerv(TextureBinding(details.curType), (GLint*)&oldBinding);
       gl.glBindTexture(details.curType, tex);
@@ -680,11 +681,11 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       // We set max_level to mips - 1 (so mips=1 means MAX_LEVEL=0). Then restore it to the 'real'
       // value we fetched above
       int maxlevel = mips - 1;
-      
+
       gl.glBindTexture(details.curType, res.name);
       gl.glTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL,
                                  (GLint *)&maxlevel);
-      
+
       bool iscomp = IsCompressedFormat(details.internalFormat);
 
       bool avoidCopySubImage = false;
@@ -760,7 +761,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
             targets[0] = details.curType;
             count = 1;
           }
-          
+
 // TODO PEPE Need to implement something to read back texture (glGetCompressedTextureImageEXT)
 //          for(int trg = 0; trg < count; trg++)
 //          {
@@ -1250,7 +1251,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         GLenum dummy;
         EmulateLuminanceFormat(gl, tex, textype, internalformat, dummy);
         GLuint oldBinding = 0;
-        
+
         // create texture of identical format/size to store initial contents
         if(textype == eGL_TEXTURE_BUFFER || details.view)
         {
@@ -1389,7 +1390,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
               delete[] buf;
             }
-            
+
             gl.glBindTexture(textype, oldBinding);
           }
         }
@@ -1545,7 +1546,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
         // We set max_level to mips - 1 (so mips=1 means MAX_LEVEL=0). Then below where we set the
         // texture state, the correct MAX_LEVEL is set to whatever the program had.
         int maxlevel = mips - 1;
-        
+
         GLuint oldBinding;
         gl.glGetIntegerv(TextureBinding(details.curType), (GLint*)&oldBinding);
         gl.glBindTexture(details.curType, live.name);
@@ -1690,7 +1691,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
       GLuint oldBinding;
       gl.glGetIntegerv(TextureBinding(details.curType), (GLint*)&oldBinding);
       gl.glBindTexture(details.curType, live.name);
-      
+
       if(state->depthMode == eGL_DEPTH_COMPONENT || state->depthMode == eGL_STENCIL_INDEX)
         gl.glTexParameteriv(details.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE,
                                    (GLint *)&state->depthMode);
@@ -1781,7 +1782,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
         gl.glTexBuffer(eGL_TEXTURE_BUFFER, details.internalFormat, buffer);
         gl.glBindBuffer(eGL_TEXTURE_BUFFER, oldBinding);
-        
+
       }
     }
   }
