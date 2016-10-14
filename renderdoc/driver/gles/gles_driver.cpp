@@ -3336,11 +3336,11 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //
 //
     case GEN_FEEDBACK: Serialise_glGenTransformFeedbacks(0, NULL); break;
-//    case BIND_FEEDBACK: Serialise_glBindTransformFeedback(eGL_NONE, 0); break;
-//    case BEGIN_FEEDBACK: Serialise_glBeginTransformFeedback(eGL_NONE); break;
-//    case END_FEEDBACK: Serialise_glEndTransformFeedback(); break;
-//    case PAUSE_FEEDBACK: Serialise_glPauseTransformFeedback(); break;
-//    case RESUME_FEEDBACK: Serialise_glResumeTransformFeedback(); break;
+    case BIND_FEEDBACK: Serialise_glBindTransformFeedback(eGL_NONE, 0); break;
+    case BEGIN_FEEDBACK: Serialise_glBeginTransformFeedback(eGL_NONE); break;
+    case END_FEEDBACK: Serialise_glEndTransformFeedback(); break;
+    case PAUSE_FEEDBACK: Serialise_glPauseTransformFeedback(); break;
+    case RESUME_FEEDBACK: Serialise_glResumeTransformFeedback(); break;
 //
 //    case GEN_PROGRAMPIPE: Serialise_glGenProgramPipelines(0, NULL); break;
 //    case CREATE_PROGRAMPIPE: Serialise_glCreateProgramPipelines(0, NULL); break;
@@ -3521,50 +3521,36 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case BIND_SAMPLER: Serialise_glBindSampler(0, 0); break;
 //
     case GEN_BUFFER: Serialise_glGenBuffers(0, NULL); break;
-//    case CREATE_BUFFER: Serialise_glCreateBuffers(0, NULL); break;
     case BIND_BUFFER: Serialise_glBindBuffer(eGL_NONE, 0); break;
-//    case BIND_BUFFER_BASE: Serialise_glBindBufferBase(eGL_NONE, 0, 0); break;
-//    case BIND_BUFFER_RANGE: Serialise_glBindBufferRange(eGL_NONE, 0, 0, 0, 0); break;
-//    case BIND_BUFFERS_BASE: Serialise_glBindBuffersBase(eGL_NONE, 0, 0, NULL); break;
-//    case BIND_BUFFERS_RANGE: Serialise_glBindBuffersRange(eGL_NONE, 0, 0, NULL, NULL, NULL); break;
-//    case BUFFERSTORAGE: Serialise_glNamedBufferStorageEXT(0, 0, NULL, 0); break;
+    case BIND_BUFFER_BASE: Serialise_glBindBufferBase(eGL_NONE, 0, 0); break;
+    case BIND_BUFFER_RANGE: Serialise_glBindBufferRange(eGL_NONE, 0, 0, 0, 0); break;
+    case BUFFERSTORAGE: Serialise_glBufferStorageEXT(eGL_NONE, 0, NULL, 0); break;
     case BUFFERDATA: Serialise_glBufferData(eGL_NONE, 0, NULL, eGL_NONE); break;
-//    case BUFFERSUBDATA: Serialise_glNamedBufferSubDataEXT(0, 0, 0, NULL); break;
-//    case COPYBUFFERSUBDATA: Serialise_glNamedCopyBufferSubDataEXT(0, 0, 0, 0, 0); break;
-//    case UNMAP: Serialise_glUnmapNamedBufferEXT(eGL_NONE); break;
-//    case FLUSHMAP: Serialise_glFlushMappedNamedBufferRangeEXT(0, 0, 0); break;
+    case BUFFERSUBDATA: Serialise_glBufferSubData(eGL_NONE, 0, 0, NULL); break;
+    case COPYBUFFERSUBDATA: Serialise_glCopyBufferSubData(eGL_NONE, eGL_NONE, 0, 0, 0); break;
+    case UNMAP: Serialise_glUnmapBuffer(eGL_NONE); break;
+    case FLUSHMAP: Serialise_glFlushMappedBufferRange(eGL_NONE, 0, 0); break;
     case GEN_VERTEXARRAY: Serialise_glGenVertexArrays(0, NULL); break;
-//    case CREATE_VERTEXARRAY: Serialise_glCreateVertexArrays(0, NULL); break;
     case BIND_VERTEXARRAY: Serialise_glBindVertexArray(0); break;
     case VERTEXATTRIBPOINTER:
       Serialise_glVertexAttribPointer(0, 0, eGL_NONE, 0, 0, 0, 0);
       break;
-//    case VERTEXATTRIBIPOINTER:
-//      Serialise_glVertexArrayVertexAttribIOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0);
-//      break;
-//    case VERTEXATTRIBLPOINTER:
-//      Serialise_glVertexArrayVertexAttribLOffsetEXT(0, 0, 0, 0, eGL_NONE, 0, 0);
-//      break;
+    case VERTEXATTRIBIPOINTER:
+      Serialise_glVertexAttribIPointer(0, 0, eGL_NONE, 0, 0, 0);
+      break;
     case ENABLEVERTEXATTRIBARRAY: Serialise_glEnableVertexAttribArray(0); break;
     case DISABLEVERTEXATTRIBARRAY: Serialise_glDisableVertexAttribArray(0); break;
-//    case VERTEXATTRIB_GENERIC:
-//      Serialise_glVertexAttrib(0, 0, eGL_NONE, GL_FALSE, NULL, Attrib_packed);
-//      break;
-//    case VERTEXATTRIBFORMAT:
-//      Serialise_glVertexArrayVertexAttribFormatEXT(0, 0, 0, eGL_NONE, 0, 0);
-//      break;
-//    case VERTEXATTRIBIFORMAT:
-//      Serialise_glVertexArrayVertexAttribIFormatEXT(0, 0, 0, eGL_NONE, 0);
-//      break;
-//    case VERTEXATTRIBLFORMAT:
-//      Serialise_glVertexArrayVertexAttribLFormatEXT(0, 0, 0, eGL_NONE, 0);
-//      break;
-//    case VERTEXATTRIBDIVISOR: Serialise_glVertexArrayVertexAttribDivisorEXT(0, 0, 0); break;
-//    case VERTEXATTRIBBINDING: Serialise_glVertexArrayVertexAttribBindingEXT(0, 0, 0); break;
-//
-//    case VAO_ELEMENT_BUFFER: Serialise_glVertexArrayElementBuffer(0, 0); break;
-//    case FEEDBACK_BUFFER_BASE: Serialise_glTransformFeedbackBufferBase(0, 0, 0); break;
-//    case FEEDBACK_BUFFER_RANGE: Serialise_glTransformFeedbackBufferRange(0, 0, 0, 0, 0); break;
+    case VERTEXATTRIB_GENERIC:
+      Serialise_glVertexAttrib(0, 0, eGL_NONE, GL_FALSE, NULL, Attrib_typemask);
+      break;
+    case VERTEXATTRIBFORMAT:
+      Serialise_glVertexAttribFormat(0, 0, eGL_NONE, 0, 0);
+      break;
+    case VERTEXATTRIBIFORMAT:
+      Serialise_glVertexAttribIFormat(0, 0, eGL_NONE, 0);
+      break;
+    case VERTEXATTRIBDIVISOR: Serialise_glVertexAttribDivisor(0, 0); break;
+    case VERTEXATTRIBBINDING: Serialise_glVertexAttribBinding(0, 0); break;
 //
     case OBJECT_LABEL: Serialise_glObjectLabel(eGL_NONE, 0, 0, NULL); break;
     case BEGIN_EVENT: Serialise_glPushDebugGroup(eGL_NONE, 0, 0, NULL); break;

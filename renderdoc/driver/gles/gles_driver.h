@@ -558,22 +558,17 @@ public:
                                        GLenum internalformat, GLsizei width,
                                        GLsizei height);
 
+  bool Serialise_glVertexAttrib(GLuint index, int count, GLenum type, GLboolean normalized,
+                                const void *value, int attribtype);
+
   enum AttribType
   {
-    Attrib_GLdouble = 0x01,
     Attrib_GLfloat = 0x02,
-    Attrib_GLshort = 0x03,
-    Attrib_GLushort = 0x04,
-    Attrib_GLbyte = 0x05,
-    Attrib_GLubyte = 0x06,
     Attrib_GLint = 0x07,
     Attrib_GLuint = 0x08,
-    Attrib_packed = 0x09,
     Attrib_typemask = 0x0f,
 
-    Attrib_L = 0x10,
     Attrib_I = 0x20,
-    Attrib_N = 0x40,
   };
 
 

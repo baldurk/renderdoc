@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015-2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -166,6 +166,14 @@
     HookInit(glUniformMatrix4fv); \
     HookInit(glUseProgram); \
     HookInit(glValidateProgram); \
+    HookInit(glVertexAttrib1f); \
+    HookInit(glVertexAttrib1fv); \
+    HookInit(glVertexAttrib2f); \
+    HookInit(glVertexAttrib2fv); \
+    HookInit(glVertexAttrib3f); \
+    HookInit(glVertexAttrib3fv); \
+    HookInit(glVertexAttrib4f); \
+    HookInit(glVertexAttrib4fv); \
     HookInit(glVertexAttribPointer); \
     HookInit(glViewport); \
     HookInit(glReadBuffer); \
@@ -194,6 +202,7 @@
     HookInit(glBlitFramebuffer); \
     HookInit(glFramebufferTextureLayer); \
     HookInit(glMapBufferRange); \
+    HookInit(glFlushMappedBufferRange); \
     HookInit(glBindVertexArray); \
     HookInit(glDeleteVertexArrays); \
     HookInit(glGenVertexArrays); \
@@ -201,11 +210,17 @@
     HookInit(glGetIntegeri_v); \
     HookInit(glBeginTransformFeedback); \
     HookInit(glEndTransformFeedback); \
+    HookInit(glBindBufferRange); \
     HookInit(glBindBufferBase); \
     HookInit(glTransformFeedbackVaryings); \
     HookInit(glGetTransformFeedbackVarying); \
+    HookInit(glVertexAttribIPointer); \
     HookInit(glGetVertexAttribIiv); \
     HookInit(glGetVertexAttribIuiv); \
+    HookInit(glVertexAttribI4i); \
+    HookInit(glVertexAttribI4ui); \
+    HookInit(glVertexAttribI4iv); \
+    HookInit(glVertexAttribI4uiv); \
     HookInit(glGetUniformuiv); \
     HookInit(glGetFragDataLocation); \
     HookInit(glUniform1ui); \
@@ -220,6 +235,7 @@
     HookInit(glClearBufferfv); \
     HookInit(glClearBufferfi); \
     HookInit(glGetStringi); \
+    HookInit(glCopyBufferSubData); \
     HookInit(glGetActiveUniformsiv); \
     HookInit(glGetUniformBlockIndex); \
     HookInit(glGetActiveUniformBlockiv); \
@@ -246,10 +262,13 @@
     HookInit(glSamplerParameterfv); \
     HookInit(glGetSamplerParameteriv); \
     HookInit(glGetSamplerParameterfv); \
+    HookInit(glVertexAttribDivisor); \
     HookInit(glBindTransformFeedback); \
     HookInit(glDeleteTransformFeedbacks); \
     HookInit(glGenTransformFeedbacks); \
     HookInit(glIsTransformFeedback); \
+    HookInit(glPauseTransformFeedback); \
+    HookInit(glResumeTransformFeedback); \
     HookInit(glGetProgramBinary); \
     HookInit(glProgramBinary); \
     HookInit(glProgramParameteri); \
@@ -317,6 +336,8 @@
     HookInit(glBindVertexBuffer); \
     HookInit(glVertexAttribFormat); \
     HookInit(glVertexAttribIFormat); \
+    HookInit(glVertexAttribBinding); \
+    HookInit(glVertexBindingDivisor); \
     HookInit(glCopyImageSubData); \
     HookInit(glDebugMessageControl); \
     HookInit(glDebugMessageInsert); \
@@ -537,6 +558,14 @@
     HookExtension(PFNGLUNIFORMMATRIX4FVPROC, glUniformMatrix4fv); \
     HookExtension(PFNGLUSEPROGRAMPROC, glUseProgram); \
     HookExtension(PFNGLVALIDATEPROGRAMPROC, glValidateProgram); \
+    HookExtension(PFNGLVERTEXATTRIB1FPROC, glVertexAttrib1f); \
+    HookExtension(PFNGLVERTEXATTRIB1FVPROC, glVertexAttrib1fv); \
+    HookExtension(PFNGLVERTEXATTRIB2FPROC, glVertexAttrib2f); \
+    HookExtension(PFNGLVERTEXATTRIB2FVPROC, glVertexAttrib2fv); \
+    HookExtension(PFNGLVERTEXATTRIB3FPROC, glVertexAttrib3f); \
+    HookExtension(PFNGLVERTEXATTRIB3FVPROC, glVertexAttrib3fv); \
+    HookExtension(PFNGLVERTEXATTRIB4FPROC, glVertexAttrib4f); \
+    HookExtension(PFNGLVERTEXATTRIB4FVPROC, glVertexAttrib4fv); \
     HookExtension(PFNGLVERTEXATTRIBPOINTERPROC, glVertexAttribPointer); \
     HookExtension(PFNGLVIEWPORTPROC, glViewport); \
     HookExtension(PFNGLREADBUFFERPROC, glReadBuffer); \
@@ -565,6 +594,7 @@
     HookExtension(PFNGLBLITFRAMEBUFFERPROC, glBlitFramebuffer); \
     HookExtension(PFNGLFRAMEBUFFERTEXTURELAYERPROC, glFramebufferTextureLayer); \
     HookExtension(PFNGLMAPBUFFERRANGEPROC, glMapBufferRange); \
+    HookExtension(PFNGLFLUSHMAPPEDBUFFERRANGEPROC, glFlushMappedBufferRange); \
     HookExtension(PFNGLBINDVERTEXARRAYPROC, glBindVertexArray); \
     HookExtension(PFNGLDELETEVERTEXARRAYSPROC, glDeleteVertexArrays); \
     HookExtension(PFNGLGENVERTEXARRAYSPROC, glGenVertexArrays); \
@@ -572,11 +602,17 @@
     HookExtension(PFNGLGETINTEGERI_VPROC, glGetIntegeri_v); \
     HookExtension(PFNGLBEGINTRANSFORMFEEDBACKPROC, glBeginTransformFeedback); \
     HookExtension(PFNGLENDTRANSFORMFEEDBACKPROC, glEndTransformFeedback); \
+    HookExtension(PFNGLBINDBUFFERRANGEPROC, glBindBufferRange); \
     HookExtension(PFNGLBINDBUFFERBASEPROC, glBindBufferBase); \
     HookExtension(PFNGLTRANSFORMFEEDBACKVARYINGSPROC, glTransformFeedbackVaryings); \
     HookExtension(PFNGLGETTRANSFORMFEEDBACKVARYINGPROC, glGetTransformFeedbackVarying); \
+    HookExtension(PFNGLVERTEXATTRIBIPOINTERPROC, glVertexAttribIPointer); \
     HookExtension(PFNGLGETVERTEXATTRIBIIVPROC, glGetVertexAttribIiv); \
     HookExtension(PFNGLGETVERTEXATTRIBIUIVPROC, glGetVertexAttribIuiv); \
+    HookExtension(PFNGLVERTEXATTRIBI4IPROC, glVertexAttribI4i); \
+    HookExtension(PFNGLVERTEXATTRIBI4UIPROC, glVertexAttribI4ui); \
+    HookExtension(PFNGLVERTEXATTRIBI4IVPROC, glVertexAttribI4iv); \
+    HookExtension(PFNGLVERTEXATTRIBI4UIVPROC, glVertexAttribI4uiv); \
     HookExtension(PFNGLGETUNIFORMUIVPROC, glGetUniformuiv); \
     HookExtension(PFNGLGETFRAGDATALOCATIONPROC, glGetFragDataLocation); \
     HookExtension(PFNGLUNIFORM1UIPROC, glUniform1ui); \
@@ -591,6 +627,7 @@
     HookExtension(PFNGLCLEARBUFFERFVPROC, glClearBufferfv); \
     HookExtension(PFNGLCLEARBUFFERFIPROC, glClearBufferfi); \
     HookExtension(PFNGLGETSTRINGIPROC, glGetStringi); \
+    HookExtension(PFNGLCOPYBUFFERSUBDATAPROC, glCopyBufferSubData); \
     HookExtension(PFNGLGETACTIVEUNIFORMSIVPROC, glGetActiveUniformsiv); \
     HookExtension(PFNGLGETUNIFORMBLOCKINDEXPROC, glGetUniformBlockIndex); \
     HookExtension(PFNGLGETACTIVEUNIFORMBLOCKIVPROC, glGetActiveUniformBlockiv); \
@@ -617,10 +654,13 @@
     HookExtension(PFNGLSAMPLERPARAMETERFVPROC, glSamplerParameterfv); \
     HookExtension(PFNGLGETSAMPLERPARAMETERIVPROC, glGetSamplerParameteriv); \
     HookExtension(PFNGLGETSAMPLERPARAMETERFVPROC, glGetSamplerParameterfv); \
+    HookExtension(PFNGLVERTEXATTRIBDIVISORPROC, glVertexAttribDivisor); \
     HookExtension(PFNGLBINDTRANSFORMFEEDBACKPROC, glBindTransformFeedback); \
     HookExtension(PFNGLDELETETRANSFORMFEEDBACKSPROC, glDeleteTransformFeedbacks); \
     HookExtension(PFNGLGENTRANSFORMFEEDBACKSPROC, glGenTransformFeedbacks); \
     HookExtension(PFNGLISTRANSFORMFEEDBACKPROC, glIsTransformFeedback); \
+    HookExtension(PFNGLPAUSETRANSFORMFEEDBACKPROC, glPauseTransformFeedback); \
+    HookExtension(PFNGLRESUMETRANSFORMFEEDBACKPROC, glResumeTransformFeedback); \
     HookExtension(PFNGLGETPROGRAMBINARYPROC, glGetProgramBinary); \
     HookExtension(PFNGLPROGRAMBINARYPROC, glProgramBinary); \
     HookExtension(PFNGLPROGRAMPARAMETERIPROC, glProgramParameteri); \
@@ -688,6 +728,8 @@
     HookExtension(PFNGLBINDVERTEXBUFFERPROC, glBindVertexBuffer); \
     HookExtension(PFNGLVERTEXATTRIBFORMATPROC, glVertexAttribFormat); \
     HookExtension(PFNGLVERTEXATTRIBIFORMATPROC, glVertexAttribIFormat); \
+    HookExtension(PFNGLVERTEXATTRIBBINDINGPROC, glVertexAttribBinding); \
+    HookExtension(PFNGLVERTEXBINDINGDIVISORPROC, glVertexBindingDivisor); \
     HookExtension(PFNGLCOPYIMAGESUBDATAPROC, glCopyImageSubData); \
     HookExtension(PFNGLDEBUGMESSAGECONTROLPROC, glDebugMessageControl); \
     HookExtension(PFNGLDEBUGMESSAGEINSERTPROC, glDebugMessageInsert); \
@@ -867,6 +909,14 @@
     HookWrapper4(void, glUniformMatrix4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper1(void, glUseProgram, GLuint, program); \
     HookWrapper1(void, glValidateProgram, GLuint, program); \
+    HookWrapper2(void, glVertexAttrib1f, GLuint, index, GLfloat, x); \
+    HookWrapper2(void, glVertexAttrib1fv, GLuint, index, const GLfloat *, v); \
+    HookWrapper3(void, glVertexAttrib2f, GLuint, index, GLfloat, x, GLfloat, y); \
+    HookWrapper2(void, glVertexAttrib2fv, GLuint, index, const GLfloat *, v); \
+    HookWrapper4(void, glVertexAttrib3f, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z); \
+    HookWrapper2(void, glVertexAttrib3fv, GLuint, index, const GLfloat *, v); \
+    HookWrapper5(void, glVertexAttrib4f, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
+    HookWrapper2(void, glVertexAttrib4fv, GLuint, index, const GLfloat *, v); \
     HookWrapper6(void, glVertexAttribPointer, GLuint, index, GLint, size, GLenum, type, GLboolean, normalized, GLsizei, stride, const void *, pointer); \
     HookWrapper4(void, glViewport, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
     HookWrapper1(void, glReadBuffer, GLenum, src); \
@@ -895,6 +945,7 @@
     HookWrapper10(void, glBlitFramebuffer, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
     HookWrapper5(void, glFramebufferTextureLayer, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, layer); \
     HookWrapper4(void *, glMapBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
+    HookWrapper3(void, glFlushMappedBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
     HookWrapper1(void, glBindVertexArray, GLuint, array); \
     HookWrapper2(void, glDeleteVertexArrays, GLsizei, n, const GLuint *, arrays); \
     HookWrapper2(void, glGenVertexArrays, GLsizei, n, GLuint *, arrays); \
@@ -902,11 +953,17 @@
     HookWrapper3(void, glGetIntegeri_v, GLenum, target, GLuint, index, GLint *, data); \
     HookWrapper1(void, glBeginTransformFeedback, GLenum, primitiveMode); \
     HookWrapper0(void, glEndTransformFeedback); \
+    HookWrapper5(void, glBindBufferRange, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
     HookWrapper3(void, glBindBufferBase, GLenum, target, GLuint, index, GLuint, buffer); \
     HookWrapper4(void, glTransformFeedbackVaryings, GLuint, program, GLsizei, count, const GLchar *const*, varyings, GLenum, bufferMode); \
     HookWrapper7(void, glGetTransformFeedbackVarying, GLuint, program, GLuint, index, GLsizei, bufSize, GLsizei *, length, GLsizei *, size, GLenum *, type, GLchar *, name); \
+    HookWrapper5(void, glVertexAttribIPointer, GLuint, index, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
     HookWrapper3(void, glGetVertexAttribIiv, GLuint, index, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetVertexAttribIuiv, GLuint, index, GLenum, pname, GLuint *, params); \
+    HookWrapper5(void, glVertexAttribI4i, GLuint, index, GLint, x, GLint, y, GLint, z, GLint, w); \
+    HookWrapper5(void, glVertexAttribI4ui, GLuint, index, GLuint, x, GLuint, y, GLuint, z, GLuint, w); \
+    HookWrapper2(void, glVertexAttribI4iv, GLuint, index, const GLint *, v); \
+    HookWrapper2(void, glVertexAttribI4uiv, GLuint, index, const GLuint *, v); \
     HookWrapper3(void, glGetUniformuiv, GLuint, program, GLint, location, GLuint *, params); \
     HookWrapper2(GLint, glGetFragDataLocation, GLuint, program, const GLchar *, name); \
     HookWrapper2(void, glUniform1ui, GLint, location, GLuint, v0); \
@@ -921,6 +978,7 @@
     HookWrapper3(void, glClearBufferfv, GLenum, buffer, GLint, drawbuffer, const GLfloat *, value); \
     HookWrapper4(void, glClearBufferfi, GLenum, buffer, GLint, drawbuffer, GLfloat, depth, GLint, stencil); \
     HookWrapper2(const GLubyte *, glGetStringi, GLenum, name, GLuint, index); \
+    HookWrapper5(void, glCopyBufferSubData, GLenum, readTarget, GLenum, writeTarget, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
     HookWrapper5(void, glGetActiveUniformsiv, GLuint, program, GLsizei, uniformCount, const GLuint *, uniformIndices, GLenum, pname, GLint *, params); \
     HookWrapper2(GLuint, glGetUniformBlockIndex, GLuint, program, const GLchar *, uniformBlockName); \
     HookWrapper4(void, glGetActiveUniformBlockiv, GLuint, program, GLuint, uniformBlockIndex, GLenum, pname, GLint *, params); \
@@ -947,10 +1005,13 @@
     HookWrapper3(void, glSamplerParameterfv, GLuint, sampler, GLenum, pname, const GLfloat *, param); \
     HookWrapper3(void, glGetSamplerParameteriv, GLuint, sampler, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetSamplerParameterfv, GLuint, sampler, GLenum, pname, GLfloat *, params); \
+    HookWrapper2(void, glVertexAttribDivisor, GLuint, index, GLuint, divisor); \
     HookWrapper2(void, glBindTransformFeedback, GLenum, target, GLuint, id); \
     HookWrapper2(void, glDeleteTransformFeedbacks, GLsizei, n, const GLuint *, ids); \
     HookWrapper2(void, glGenTransformFeedbacks, GLsizei, n, GLuint *, ids); \
     HookWrapper1(GLboolean, glIsTransformFeedback, GLuint, id); \
+    HookWrapper0(void, glPauseTransformFeedback); \
+    HookWrapper0(void, glResumeTransformFeedback); \
     HookWrapper5(void, glGetProgramBinary, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLenum *, binaryFormat, void *, binary); \
     HookWrapper4(void, glProgramBinary, GLuint, program, GLenum, binaryFormat, const void *, binary, GLsizei, length); \
     HookWrapper3(void, glProgramParameteri, GLuint, program, GLenum, pname, GLint, value); \
@@ -1018,6 +1079,8 @@
     HookWrapper4(void, glBindVertexBuffer, GLuint, bindingindex, GLuint, buffer, GLintptr, offset, GLsizei, stride); \
     HookWrapper5(void, glVertexAttribFormat, GLuint, attribindex, GLint, size, GLenum, type, GLboolean, normalized, GLuint, relativeoffset); \
     HookWrapper4(void, glVertexAttribIFormat, GLuint, attribindex, GLint, size, GLenum, type, GLuint, relativeoffset); \
+    HookWrapper2(void, glVertexAttribBinding, GLuint, attribindex, GLuint, bindingindex); \
+    HookWrapper2(void, glVertexBindingDivisor, GLuint, bindingindex, GLuint, divisor); \
     HookWrapper15(void, glCopyImageSubData, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
     HookWrapper6(void, glDebugMessageControl, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
     HookWrapper6(void, glDebugMessageInsert, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
@@ -1111,28 +1174,9 @@
 
 // unsupported entry points - used for dummy functions
 #define DefineUnsupportedDummies() \
-    HookWrapper2(void, glVertexAttrib1f, GLuint, index, GLfloat, x); \
-    HookWrapper2(void, glVertexAttrib1fv, GLuint, index, const GLfloat *, v); \
-    HookWrapper3(void, glVertexAttrib2f, GLuint, index, GLfloat, x, GLfloat, y); \
-    HookWrapper2(void, glVertexAttrib2fv, GLuint, index, const GLfloat *, v); \
-    HookWrapper4(void, glVertexAttrib3f, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z); \
-    HookWrapper2(void, glVertexAttrib3fv, GLuint, index, const GLfloat *, v); \
-    HookWrapper5(void, glVertexAttrib4f, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, z, GLfloat, w); \
-    HookWrapper2(void, glVertexAttrib4fv, GLuint, index, const GLfloat *, v); \
     HookWrapper5(void, glRenderbufferStorageMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
-    HookWrapper3(void, glFlushMappedBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
-    HookWrapper5(void, glBindBufferRange, GLenum, target, GLuint, index, GLuint, buffer, GLintptr, offset, GLsizeiptr, size); \
-    HookWrapper5(void, glVertexAttribIPointer, GLuint, index, GLint, size, GLenum, type, GLsizei, stride, const void *, pointer); \
-    HookWrapper5(void, glVertexAttribI4i, GLuint, index, GLint, x, GLint, y, GLint, z, GLint, w); \
-    HookWrapper5(void, glVertexAttribI4ui, GLuint, index, GLuint, x, GLuint, y, GLuint, z, GLuint, w); \
-    HookWrapper2(void, glVertexAttribI4iv, GLuint, index, const GLint *, v); \
-    HookWrapper2(void, glVertexAttribI4uiv, GLuint, index, const GLuint *, v); \
     HookWrapper3(void, glClearBufferuiv, GLenum, buffer, GLint, drawbuffer, const GLuint *, value); \
-    HookWrapper5(void, glCopyBufferSubData, GLenum, readTarget, GLenum, writeTarget, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
     HookWrapper4(void, glGetUniformIndices, GLuint, program, GLsizei, uniformCount, const GLchar *const*, uniformNames, GLuint *, uniformIndices); \
-    HookWrapper2(void, glVertexAttribDivisor, GLuint, index, GLuint, divisor); \
-    HookWrapper0(void, glPauseTransformFeedback); \
-    HookWrapper0(void, glResumeTransformFeedback); \
     HookWrapper3(void, glInvalidateFramebuffer, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
     HookWrapper7(void, glInvalidateSubFramebuffer, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
     HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
@@ -1140,8 +1184,6 @@
     HookWrapper3(void, glFramebufferParameteri, GLenum, target, GLenum, pname, GLint, param); \
     HookWrapper1(void, glMemoryBarrier, GLbitfield, barriers); \
     HookWrapper1(void, glMemoryBarrierByRegion, GLbitfield, barriers); \
-    HookWrapper2(void, glVertexAttribBinding, GLuint, attribindex, GLuint, bindingindex); \
-    HookWrapper2(void, glVertexBindingDivisor, GLuint, bindingindex, GLuint, divisor); \
     HookWrapper0(void, glBlendBarrier); \
     HookWrapper8(void, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
     HookWrapper6(void, glDebugMessageControlKHR, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
@@ -1524,28 +1566,9 @@
 
 
 #define CheckUnsupported() \
-    HandleUnsupported(PFNGLVERTEXATTRIB1FPROC, glVertexAttrib1f); \
-    HandleUnsupported(PFNGLVERTEXATTRIB1FVPROC, glVertexAttrib1fv); \
-    HandleUnsupported(PFNGLVERTEXATTRIB2FPROC, glVertexAttrib2f); \
-    HandleUnsupported(PFNGLVERTEXATTRIB2FVPROC, glVertexAttrib2fv); \
-    HandleUnsupported(PFNGLVERTEXATTRIB3FPROC, glVertexAttrib3f); \
-    HandleUnsupported(PFNGLVERTEXATTRIB3FVPROC, glVertexAttrib3fv); \
-    HandleUnsupported(PFNGLVERTEXATTRIB4FPROC, glVertexAttrib4f); \
-    HandleUnsupported(PFNGLVERTEXATTRIB4FVPROC, glVertexAttrib4fv); \
     HandleUnsupported(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC, glRenderbufferStorageMultisample); \
-    HandleUnsupported(PFNGLFLUSHMAPPEDBUFFERRANGEPROC, glFlushMappedBufferRange); \
-    HandleUnsupported(PFNGLBINDBUFFERRANGEPROC, glBindBufferRange); \
-    HandleUnsupported(PFNGLVERTEXATTRIBIPOINTERPROC, glVertexAttribIPointer); \
-    HandleUnsupported(PFNGLVERTEXATTRIBI4IPROC, glVertexAttribI4i); \
-    HandleUnsupported(PFNGLVERTEXATTRIBI4UIPROC, glVertexAttribI4ui); \
-    HandleUnsupported(PFNGLVERTEXATTRIBI4IVPROC, glVertexAttribI4iv); \
-    HandleUnsupported(PFNGLVERTEXATTRIBI4UIVPROC, glVertexAttribI4uiv); \
     HandleUnsupported(PFNGLCLEARBUFFERUIVPROC, glClearBufferuiv); \
-    HandleUnsupported(PFNGLCOPYBUFFERSUBDATAPROC, glCopyBufferSubData); \
     HandleUnsupported(PFNGLGETUNIFORMINDICESPROC, glGetUniformIndices); \
-    HandleUnsupported(PFNGLVERTEXATTRIBDIVISORPROC, glVertexAttribDivisor); \
-    HandleUnsupported(PFNGLPAUSETRANSFORMFEEDBACKPROC, glPauseTransformFeedback); \
-    HandleUnsupported(PFNGLRESUMETRANSFORMFEEDBACKPROC, glResumeTransformFeedback); \
     HandleUnsupported(PFNGLINVALIDATEFRAMEBUFFERPROC, glInvalidateFramebuffer); \
     HandleUnsupported(PFNGLINVALIDATESUBFRAMEBUFFERPROC, glInvalidateSubFramebuffer); \
     HandleUnsupported(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
@@ -1553,8 +1576,6 @@
     HandleUnsupported(PFNGLFRAMEBUFFERPARAMETERIPROC, glFramebufferParameteri); \
     HandleUnsupported(PFNGLMEMORYBARRIERPROC, glMemoryBarrier); \
     HandleUnsupported(PFNGLMEMORYBARRIERBYREGIONPROC, glMemoryBarrierByRegion); \
-    HandleUnsupported(PFNGLVERTEXATTRIBBINDINGPROC, glVertexAttribBinding); \
-    HandleUnsupported(PFNGLVERTEXBINDINGDIVISORPROC, glVertexBindingDivisor); \
     HandleUnsupported(PFNGLBLENDBARRIERPROC, glBlendBarrier); \
     HandleUnsupported(PFNGLPRIMITIVEBOUNDINGBOXPROC, glPrimitiveBoundingBox); \
     HandleUnsupported(PFNGLDEBUGMESSAGECONTROLKHRPROC, glDebugMessageControlKHR); \
