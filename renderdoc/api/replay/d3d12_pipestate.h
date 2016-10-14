@@ -83,6 +83,7 @@ struct D3D12PipelineState
     ResourceView()
         : Immediate(0),
           RootElement(~0U),
+          TableIndex(~0U),
           Resource(),
           Format(),
           BufferFlags(0),
@@ -106,6 +107,7 @@ struct D3D12PipelineState
     // parameters from descriptor
     bool32 Immediate;
     uint32_t RootElement;
+    uint32_t TableIndex;
 
     // parameters from resource/view
     ResourceId Resource;
@@ -138,6 +140,7 @@ struct D3D12PipelineState
     Sampler()
         : Immediate(0),
           RootElement(~0U),
+          TableIndex(~0U),
           UseBorder(false),
           UseComparison(false),
           MaxAniso(0),
@@ -151,6 +154,7 @@ struct D3D12PipelineState
     // parameters from descriptor
     bool32 Immediate;
     uint32_t RootElement;
+    uint32_t TableIndex;
 
     // parameters from resource/view
     rdctype::str AddressU, AddressV, AddressW;
@@ -167,10 +171,11 @@ struct D3D12PipelineState
 
   struct CBuffer
   {
-    CBuffer() : Immediate(0), RootElement(~0U), Buffer(), Offset(0), ByteSize(0) {}
+    CBuffer() : Immediate(0), RootElement(~0U), TableIndex(~0U), Buffer(), Offset(0), ByteSize(0) {}
     // parameters from descriptor
     bool32 Immediate;
     uint32_t RootElement;
+    uint32_t TableIndex;
 
     // parameters from resource/view
     ResourceId Buffer;

@@ -351,7 +351,7 @@ namespace renderdocui.Windows.PipelineState
                 }
             }
 
-            string rootel = r.Immediate ? String.Format("#{0} Direct", r.RootElement) : rootel = String.Format("#{0} Table", r.RootElement);
+            string rootel = r.Immediate ? String.Format("#{0} Direct", r.RootElement) : rootel = String.Format("#{0} Table[{1}]", r.RootElement, r.TableIndex);
 
             bool filledSlot = r.Resource != ResourceId.Null;
             bool usedSlot = (bind != null && bind.used);
@@ -582,7 +582,7 @@ namespace renderdocui.Windows.PipelineState
                         }
                     }
 
-                    string rootel = s.Immediate ? String.Format("#{0} Static", s.RootElement) : String.Format("#{0} Table", s.RootElement);
+                    string rootel = s.Immediate ? String.Format("#{0} Static", s.RootElement) : String.Format("#{0} Table[{1}]", s.RootElement, s.TableIndex);
 
                     bool filledSlot = (s.AddressU.Length > 0);
                     bool usedSlot = (bind != null && bind.used);
@@ -726,7 +726,7 @@ namespace renderdocui.Windows.PipelineState
                     }
                     else
                     {
-                        rootel = String.Format("#{0} Table", b.RootElement);
+                        rootel = String.Format("#{0} Table[{1}]", b.RootElement, b.TableIndex);
                     }
 
                     bool filledSlot = (b.Buffer != ResourceId.Null);

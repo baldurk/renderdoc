@@ -89,6 +89,7 @@ namespace renderdoc
         {
             public bool Immediate;
             public UInt32 RootElement;
+            public UInt32 TableIndex;
 
             public ResourceId Resource;
             [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
@@ -124,6 +125,7 @@ namespace renderdoc
         {
             public bool Immediate;
             public UInt32 RootElement;
+            public UInt32 TableIndex;
 
             [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string AddressU, AddressV, AddressW;
@@ -146,6 +148,7 @@ namespace renderdoc
         {
             public bool Immediate;
             public UInt32 RootElement;
+            public UInt32 TableIndex;
 
             public ResourceId Buffer;
             public UInt64 Offset;

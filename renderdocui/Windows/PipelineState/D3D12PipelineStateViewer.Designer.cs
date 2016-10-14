@@ -1147,7 +1147,7 @@
             // vsUAVs
             // 
             treeListColumn16.AutoSizeMinSize = 0;
-            treeListColumn16.Width = 70;
+            treeListColumn16.Width = 100;
             treeListColumn17.AutoSizeMinSize = 0;
             treeListColumn17.Width = 40;
             treeListColumn18.AutoSizeMinSize = 0;
@@ -1350,7 +1350,7 @@
             // vsResources
             // 
             treeListColumn27.AutoSizeMinSize = 0;
-            treeListColumn27.Width = 70;
+            treeListColumn27.Width = 100;
             treeListColumn28.AutoSizeMinSize = 0;
             treeListColumn28.Width = 40;
             treeListColumn29.AutoSizeMinSize = 0;
@@ -1422,7 +1422,7 @@
             // vsSamplers
             // 
             treeListColumn38.AutoSizeMinSize = 0;
-            treeListColumn38.Width = 70;
+            treeListColumn38.Width = 100;
             treeListColumn39.AutoSizeMinSize = 0;
             treeListColumn39.Width = 40;
             treeListColumn40.AutoSizeMinSize = 0;
@@ -1478,7 +1478,7 @@
             // vsCBuffers
             // 
             treeListColumn45.AutoSizeMinSize = 0;
-            treeListColumn45.Width = 70;
+            treeListColumn45.Width = 100;
             treeListColumn46.AutoSizeMinSize = 0;
             treeListColumn46.Width = 40;
             treeListColumn47.AutoSizeMinSize = 0;
@@ -1579,7 +1579,7 @@
             // hsUAVs
             // 
             treeListColumn52.AutoSizeMinSize = 0;
-            treeListColumn52.Width = 70;
+            treeListColumn52.Width = 100;
             treeListColumn53.AutoSizeMinSize = 0;
             treeListColumn53.Width = 40;
             treeListColumn54.AutoSizeMinSize = 0;
@@ -1782,7 +1782,7 @@
             // hsResources
             // 
             treeListColumn63.AutoSizeMinSize = 0;
-            treeListColumn63.Width = 70;
+            treeListColumn63.Width = 100;
             treeListColumn64.AutoSizeMinSize = 0;
             treeListColumn64.Width = 40;
             treeListColumn65.AutoSizeMinSize = 0;
@@ -1854,7 +1854,7 @@
             // hsSamplers
             // 
             treeListColumn74.AutoSizeMinSize = 0;
-            treeListColumn74.Width = 70;
+            treeListColumn74.Width = 100;
             treeListColumn75.AutoSizeMinSize = 0;
             treeListColumn75.Width = 40;
             treeListColumn76.AutoSizeMinSize = 0;
@@ -1910,7 +1910,7 @@
             // hsCBuffers
             // 
             treeListColumn81.AutoSizeMinSize = 0;
-            treeListColumn81.Width = 70;
+            treeListColumn81.Width = 100;
             treeListColumn82.AutoSizeMinSize = 0;
             treeListColumn82.Width = 40;
             treeListColumn83.AutoSizeMinSize = 0;
@@ -2011,7 +2011,7 @@
             // dsUAVs
             // 
             treeListColumn88.AutoSizeMinSize = 0;
-            treeListColumn88.Width = 70;
+            treeListColumn88.Width = 100;
             treeListColumn89.AutoSizeMinSize = 0;
             treeListColumn89.Width = 40;
             treeListColumn90.AutoSizeMinSize = 0;
@@ -2214,7 +2214,7 @@
             // dsResources
             // 
             treeListColumn99.AutoSizeMinSize = 0;
-            treeListColumn99.Width = 70;
+            treeListColumn99.Width = 100;
             treeListColumn100.AutoSizeMinSize = 0;
             treeListColumn100.Width = 40;
             treeListColumn101.AutoSizeMinSize = 0;
@@ -2286,7 +2286,7 @@
             // dsSamplers
             // 
             treeListColumn110.AutoSizeMinSize = 0;
-            treeListColumn110.Width = 70;
+            treeListColumn110.Width = 100;
             treeListColumn111.AutoSizeMinSize = 0;
             treeListColumn111.Width = 40;
             treeListColumn112.AutoSizeMinSize = 0;
@@ -2342,7 +2342,7 @@
             // dsCBuffers
             // 
             treeListColumn117.AutoSizeMinSize = 0;
-            treeListColumn117.Width = 70;
+            treeListColumn117.Width = 100;
             treeListColumn118.AutoSizeMinSize = 0;
             treeListColumn118.Width = 40;
             treeListColumn119.AutoSizeMinSize = 0;
@@ -2447,7 +2447,7 @@
             // gsUAVs
             // 
             treeListColumn124.AutoSizeMinSize = 0;
-            treeListColumn124.Width = 70;
+            treeListColumn124.Width = 100;
             treeListColumn125.AutoSizeMinSize = 0;
             treeListColumn125.Width = 40;
             treeListColumn126.AutoSizeMinSize = 0;
@@ -2706,7 +2706,7 @@
             // gsResources
             // 
             treeListColumn140.AutoSizeMinSize = 0;
-            treeListColumn140.Width = 70;
+            treeListColumn140.Width = 100;
             treeListColumn141.AutoSizeMinSize = 0;
             treeListColumn141.Width = 40;
             treeListColumn142.AutoSizeMinSize = 0;
@@ -2779,7 +2779,7 @@
             // gsSamplers
             // 
             treeListColumn151.AutoSizeMinSize = 0;
-            treeListColumn151.Width = 70;
+            treeListColumn151.Width = 100;
             treeListColumn152.AutoSizeMinSize = 0;
             treeListColumn152.Width = 40;
             treeListColumn153.AutoSizeMinSize = 0;
@@ -2835,7 +2835,7 @@
             // gsCBuffers
             // 
             treeListColumn158.AutoSizeMinSize = 0;
-            treeListColumn158.Width = 70;
+            treeListColumn158.Width = 100;
             treeListColumn159.AutoSizeMinSize = 0;
             treeListColumn159.Width = 40;
             treeListColumn160.AutoSizeMinSize = 0;
@@ -3401,7 +3401,7 @@
             // psUAVs
             // 
             treeListColumn177.AutoSizeMinSize = 0;
-            treeListColumn177.Width = 70;
+            treeListColumn177.Width = 100;
             treeListColumn178.AutoSizeMinSize = 0;
             treeListColumn178.Width = 40;
             treeListColumn179.AutoSizeMinSize = 0;
@@ -3604,7 +3604,7 @@
             // psResources
             // 
             treeListColumn188.AutoSizeMinSize = 0;
-            treeListColumn188.Width = 70;
+            treeListColumn188.Width = 100;
             treeListColumn189.AutoSizeMinSize = 0;
             treeListColumn189.Width = 40;
             treeListColumn190.AutoSizeMinSize = 0;
@@ -3676,7 +3676,7 @@
             // psSamplers
             // 
             treeListColumn199.AutoSizeMinSize = 0;
-            treeListColumn199.Width = 70;
+            treeListColumn199.Width = 100;
             treeListColumn200.AutoSizeMinSize = 0;
             treeListColumn200.Width = 40;
             treeListColumn201.AutoSizeMinSize = 0;
@@ -3732,7 +3732,7 @@
             // psCBuffers
             // 
             treeListColumn206.AutoSizeMinSize = 0;
-            treeListColumn206.Width = 70;
+            treeListColumn206.Width = 100;
             treeListColumn207.AutoSizeMinSize = 0;
             treeListColumn207.Width = 40;
             treeListColumn208.AutoSizeMinSize = 0;
@@ -4405,7 +4405,7 @@
             // csUAVs
             // 
             treeListColumn238.AutoSizeMinSize = 0;
-            treeListColumn238.Width = 70;
+            treeListColumn238.Width = 100;
             treeListColumn239.AutoSizeMinSize = 0;
             treeListColumn239.Width = 40;
             treeListColumn240.AutoSizeMinSize = 0;
@@ -4728,7 +4728,7 @@
             // csResources
             // 
             treeListColumn249.AutoSizeMinSize = 0;
-            treeListColumn249.Width = 70;
+            treeListColumn249.Width = 100;
             treeListColumn250.AutoSizeMinSize = 0;
             treeListColumn250.Width = 40;
             treeListColumn251.AutoSizeMinSize = 0;
@@ -4800,7 +4800,7 @@
             // csSamplers
             // 
             treeListColumn260.AutoSizeMinSize = 0;
-            treeListColumn260.Width = 70;
+            treeListColumn260.Width = 100;
             treeListColumn261.AutoSizeMinSize = 0;
             treeListColumn261.Width = 40;
             treeListColumn262.AutoSizeMinSize = 0;
@@ -4856,7 +4856,7 @@
             // csCBuffers
             // 
             treeListColumn267.AutoSizeMinSize = 0;
-            treeListColumn267.Width = 70;
+            treeListColumn267.Width = 100;
             treeListColumn268.AutoSizeMinSize = 0;
             treeListColumn268.Width = 40;
             treeListColumn269.AutoSizeMinSize = 0;

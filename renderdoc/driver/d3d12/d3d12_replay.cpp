@@ -654,6 +654,7 @@ void D3D12Replay::FillRegisterSpaces(
             D3D12PipelineState::Sampler &samp = spaces[regSpace].samplers[shaderReg];
             samp.Immediate = false;
             samp.RootElement = (uint32_t)rootEl;
+            samp.TableIndex = offset + i;
 
             if(desc)
             {
@@ -697,6 +698,7 @@ void D3D12Replay::FillRegisterSpaces(
             D3D12PipelineState::CBuffer &cb = spaces[regSpace].cbuffers[shaderReg];
             cb.Immediate = false;
             cb.RootElement = (uint32_t)rootEl;
+            cb.TableIndex = offset + i;
 
             if(desc)
             {
@@ -720,6 +722,7 @@ void D3D12Replay::FillRegisterSpaces(
             D3D12PipelineState::ResourceView &view = spaces[regSpace].srvs[shaderReg];
             view.Immediate = false;
             view.RootElement = (uint32_t)rootEl;
+            view.TableIndex = offset + i;
 
             if(desc)
             {
@@ -740,6 +743,7 @@ void D3D12Replay::FillRegisterSpaces(
             D3D12PipelineState::ResourceView &view = spaces[regSpace].uavs[shaderReg];
             view.Immediate = false;
             view.RootElement = (uint32_t)rootEl;
+            view.TableIndex = offset + i;
 
             if(desc)
             {
