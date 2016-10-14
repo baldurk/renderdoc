@@ -49,12 +49,15 @@ struct FunctionHook
   }
 
   bool operator<(const FunctionHook &h) { return function < h.function; }
-  bool ApplyHook(void **IATentry)
+  bool ApplyHook(void **IATentry, bool &already)
   {
     DWORD oldProtection = PAGE_EXECUTE;
 
     if(*IATentry == hookptr)
-      return false;
+    {
+      already = true;
+      return true;
+    }
 
     {
       SCOPED_LOCK(installedLock);
@@ -294,9 +297,13 @@ struct CachedHookData
                      !strcmp(found->function.c_str(), importName) && found->excludeModule != module)
                   {
                     SCOPED_LOCK(lock);
-                    bool applied = found->ApplyHook(IATentry);
+                    bool already = false;
+                    bool applied = found->ApplyHook(IATentry, already);
 
-                    if(!applied)
+                    // if we failed, or if it's already set and we're not doing a missedOrdinals
+                    // second pass, then just bail out immediately as we've already hooked this
+                    // module and there's no point wasting time re-hooking nothing
+                    if(!applied || (already && !missedOrdinals))
                     {
                       FreeLibrary(refcountModHandle);
                       return;
@@ -338,9 +345,13 @@ struct CachedHookData
              !strcmp(found->function.c_str(), importName) && found->excludeModule != module)
           {
             SCOPED_LOCK(lock);
-            bool applied = found->ApplyHook(IATentry);
+            bool already = false;
+            bool applied = found->ApplyHook(IATentry, already);
 
-            if(!applied)
+            // if we failed, or if it's already set and we're not doing a missedOrdinals
+            // second pass, then just bail out immediately as we've already hooked this
+            // module and there's no point wasting time re-hooking nothing
+            if(!applied || (already && !missedOrdinals))
             {
               FreeLibrary(refcountModHandle);
               return;
@@ -584,11 +595,9 @@ void Win32_IAT_EndHooks()
   {
     // we need to do a second pass now that we know ordinal names to finally hook
     // some imports by ordinal only.
-    s_HookData->missedOrdinals = false;
-
     HookAllModules();
 
-    RDCASSERT(!s_HookData->missedOrdinals);
+    s_HookData->missedOrdinals = false;
   }
 }
 
