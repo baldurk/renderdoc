@@ -1437,7 +1437,6 @@ struct RenderTextState
   GLenum SourceRGB, SourceAlpha;
   GLenum DestinationRGB, DestinationAlpha;
   GLenum PolygonMode;
-  GLfloat Viewportf[4];
   GLint Viewport[4];
   GLenum ActiveTexture;
   GLuint tex0;
@@ -1512,10 +1511,7 @@ struct RenderTextState
       PolygonMode = eGL_FILL_NV;
     }
 
-    if(modern)
-      gl.glGetFloati_vNV(eGL_VIEWPORT, 0, &Viewportf[0]);
-    else
-      gl.glGetIntegerv(eGL_VIEWPORT, &Viewport[0]);
+    gl.glGetIntegerv(eGL_VIEWPORT, &Viewport[0]);
 
     gl.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
     gl.glActiveTexture(eGL_TEXTURE0);
@@ -1599,10 +1595,7 @@ struct RenderTextState
     if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
       gl.glPolygonModeNV(eGL_FRONT_AND_BACK, PolygonMode);
 
-    if(modern)
-      gl.glViewportIndexedfNV(0, Viewportf[0], Viewportf[1], Viewportf[2], Viewportf[3]);
-    else
-      gl.glViewport(Viewport[0], Viewport[1], (GLsizei)Viewport[2], (GLsizei)Viewport[3]);
+    gl.glViewport(Viewport[0], Viewport[1], (GLsizei)Viewport[2], (GLsizei)Viewport[3]);
 
     gl.glActiveTexture(eGL_TEXTURE0);
     gl.glBindTexture(eGL_TEXTURE_2D, tex0);
@@ -1751,7 +1744,7 @@ void WrappedGLES::RenderOverlayStr(float x, float y, const char *text)
     gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
 
     // set viewport & scissor
-    gl.glViewportIndexedfNV(0, 0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
+    gl.glViewport(0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
     gl.glDisablei(eGL_SCISSOR_TEST, 0);
 
     if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])

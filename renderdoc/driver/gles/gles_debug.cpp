@@ -1945,8 +1945,7 @@ ResourceId GLESReplay::RenderOverlay(ResourceId texid, FormatComponentType typeH
 
     gl.glDisablei(eGL_SCISSOR_TEST, 0);
 
-    gl.glViewportIndexedfOES(0, rs.Viewports[0].x, rs.Viewports[0].y, rs.Viewports[0].width,
-                          rs.Viewports[0].height);
+    gl.glViewport(rs.Viewports[0].x, rs.Viewports[0].y, rs.Viewports[0].width, rs.Viewports[0].height);
 
     gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
     OutlineUBOData *cdata =
@@ -1968,7 +1967,7 @@ ResourceId GLESReplay::RenderOverlay(ResourceId texid, FormatComponentType typeH
       Vec4f scissor((float)rs.Scissors[0].x, (float)rs.Scissors[0].y, (float)rs.Scissors[0].width,
                     (float)rs.Scissors[0].height);
 
-      gl.glViewportIndexedfOES(0, scissor.x, scissor.y, scissor.z, scissor.w);
+      gl.glViewport(scissor.x, scissor.y, scissor.z, scissor.w);
 
       cdata = (OutlineUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(OutlineUBOData),
                                                     GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
