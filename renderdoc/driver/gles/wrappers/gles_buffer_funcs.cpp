@@ -1845,8 +1845,10 @@ void WrappedGLES::glEndTransformFeedback()
 // parent tracking quickly becomes stale with high traffic VAOs ignoring updates etc, so we don't rely
 // on the parent connection and manually reference the buffer wherever it is actually uesd.
 
-bool WrappedGLES::Serialise_glVertexAttribPointer(GLuint index, GLint size, GLenum type,
-                                                  GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize)
+bool WrappedGLES::Serialise_glVertexAttribPointerEXT(GLuint vaobj, GLuint buffer,
+                                                     GLuint index, GLint size, GLenum type,
+                                                     GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize,
+                                                     bool isInteger)
 {
 
   SERIALISE_ELEMENT(uint32_t, Index, index);
@@ -1857,13 +1859,46 @@ bool WrappedGLES::Serialise_glVertexAttribPointer(GLuint index, GLint size, GLen
   SERIALISE_ELEMENT(bool, LocalData, dataSize != 0);
   SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)pointer);
   SERIALISE_ELEMENT_BUF(byte *, bytes, pointer, dataSize);
+  SERIALISE_ELEMENT(bool, IsIntegerMode, isInteger);
+  SERIALISE_ELEMENT(
+      ResourceId, id,
+      vaobj ? GetResourceManager()->GetID(VertexArrayRes(GetCtx(), vaobj)) : ResourceId());
+  SERIALISE_ELEMENT(ResourceId, bid,
+                    buffer ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)) : ResourceId());
 
   if(m_State < WRITING)
   {
-    if (LocalData)
-      m_Real.glVertexAttribPointer(Index, Size, Type, Norm, Stride, (const void*)bytes);
+    vaobj = (id != ResourceId()) ? GetResourceManager()->GetLiveResource(id).name : 0;
+    buffer = (bid != ResourceId() && GetResourceManager()->HasLiveResource(bid))
+                 ? GetResourceManager()->GetLiveResource(bid).name
+                 : 0;
+
+    // some intel drivers don't properly update query states (like GL_VERTEX_ATTRIB_ARRAY_SIZE)
+    // unless the VAO is also bound when performing EXT_dsa functions :(
+    GLuint prevVAO = 0;
+    GLint prevBuffer = 0;
+    m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
+    m_Real.glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, &prevBuffer);
+
+    m_Real.glBindVertexArray(vaobj);
+
+    if (IsIntegerMode) // TODO(elecro): do we really need both here?
+    {
+      if (LocalData)
+        m_Real.glVertexAttribIPointer(Index, Size, Type, Stride, (const void*)bytes);
+      else
+        m_Real.glVertexAttribIPointer(Index, Size, Type, Stride, (const void*)Offset);
+    }
     else
-      m_Real.glVertexAttribPointer(Index, Size, Type, Norm, Stride, (const void*)Offset);
+    {
+      if (LocalData)
+        m_Real.glVertexAttribPointer(Index, Size, Type, Norm, Stride, (const void*)bytes);
+      else
+        m_Real.glVertexAttribPointer(Index, Size, Type, Norm, Stride, (const void*)Offset);
+    }
+
+    m_Real.glBindVertexArray(prevVAO);
+    m_Real.glBindBuffer(eGL_ARRAY_BUFFER, prevBuffer);
   }
 
   // TODO PEPE record the address of the allocated byte array to be able to relase it
@@ -1897,38 +1932,21 @@ void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 
       if (bufrecord != NULL) {
         SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
-        Serialise_glVertexAttribPointer(index, size, type, normalized, stride, pointer, 0);
+        Serialise_glVertexAttribPointerEXT(
+            varecord ? varecord->Resource.name : 0,
+            bufrecord ? bufrecord->Resource.name : 0,
+            index,
+            size,
+            type,
+            normalized,
+            stride,
+            pointer,
+            0,
+            false);
         r->AddChunk(scope.Get());
       }
     }
   }
-}
-
-bool WrappedGLES::Serialise_glVertexAttribIPointer(GLuint index, GLint size, GLenum type,
-                                                   GLsizei stride, const void *pointer, size_t dataSize)
-{
-
-  SERIALISE_ELEMENT(uint32_t, Index, index);
-  SERIALISE_ELEMENT(int32_t, Size, size);
-  SERIALISE_ELEMENT(GLenum, Type, type);
-  SERIALISE_ELEMENT(uint32_t, Stride, stride);
-  SERIALISE_ELEMENT(bool, LocalData, dataSize != 0);
-  SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)pointer);
-  SERIALISE_ELEMENT_BUF(byte *, bytes, pointer, dataSize);
-
-  if(m_State < WRITING)
-  {
-    if (LocalData)
-      m_Real.glVertexAttribIPointer(Index, Size, Type, Stride, (const void*)bytes);
-    else
-      m_Real.glVertexAttribIPointer(Index, Size, Type, Stride, (const void*)Offset);
-  }
-
-  // TODO PEPE record the address of the allocated byte array to be able to relase it
-  // SAFE_DELTE_ARRAY(bytes);
-  RDCWARN("TODO PEPE (SAFE_DELETE) %s:%d", __FILE__ ,__LINE__);
-
-  return true;
 }
 
 void WrappedGLES::glVertexAttribIPointer(GLuint index, GLint size, GLenum type,
@@ -1954,8 +1972,18 @@ void WrappedGLES::glVertexAttribIPointer(GLuint index, GLint size, GLenum type,
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
 
       if (bufrecord != NULL) {
-        SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBIPOINTER);
-        Serialise_glVertexAttribIPointer(index, size, type, stride, pointer, 0);
+        SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
+        Serialise_glVertexAttribPointerEXT(
+            varecord ? varecord->Resource.name : 0,
+            bufrecord ? bufrecord->Resource.name : 0,
+            index,
+            size,
+            type,
+            GL_FALSE,
+            stride,
+            pointer,
+            0,
+            true);
         r->AddChunk(scope.Get());
       }
     }

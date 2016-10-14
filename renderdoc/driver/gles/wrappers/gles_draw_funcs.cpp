@@ -660,6 +660,10 @@ size_t calculateVertexPointerSize(GLint size, GLenum type, GLsizei stride, GLsiz
 
 void WrappedGLES::writeFakeVertexAttribPointer(GLsizei count)
 {
+    ContextData &cd = GetCtxData();
+    GLResourceRecord *bufrecord = cd.GetActiveBufferRecord(eGL_ARRAY_BUFFER);
+    GLResourceRecord *varecord = cd.m_VertexArrayRecord;
+
     // void APIENTRY glVertexAttribPointer(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const GLvoid * pointer)
     GLint maxVertexAttrib = 0;
     m_Real.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &maxVertexAttrib);
@@ -679,14 +683,26 @@ void WrappedGLES::writeFakeVertexAttribPointer(GLsizei count)
               m_Real.glGetVertexAttribiv(index, eGL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
               GLint stride = 0;
               m_Real.glGetVertexAttribiv(index, eGL_VERTEX_ATTRIB_ARRAY_STRIDE, &stride);
+              GLint isInteger = 0;
+              m_Real.glGetVertexAttribiv(index, eGL_VERTEX_ATTRIB_ARRAY_INTEGER, &isInteger);
               GLvoid * pointer = 0;
               m_Real.glGetVertexAttribPointerv(index, eGL_VERTEX_ATTRIB_ARRAY_POINTER, &pointer);
               size_t attribDataSize = calculateVertexPointerSize(size, GLenum(type), stride, count);
-                
+
               SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
-              Serialise_glVertexAttribPointer(index, size, GLenum(type), normalized, stride, pointer, attribDataSize);
+              Serialise_glVertexAttribPointerEXT(
+                varecord ? varecord->Resource.name : 0,
+                bufrecord ? bufrecord->Resource.name : 0,
+                index,
+                size,
+                GLenum(type),
+                normalized,
+                stride,
+                pointer,
+                attribDataSize,
+                isInteger != 0);
+
               m_ContextRecord->AddChunk(scope.Get());
-                
             }
         }
     }

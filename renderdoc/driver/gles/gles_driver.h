@@ -543,12 +543,6 @@ public:
                                         const GLchar *const *strings);
   bool Serialise_glCreateProgram(GLuint real);
 
-  bool Serialise_glVertexAttribPointer(GLuint index, GLint size, GLenum type,
-                                       GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize);
-
-  bool Serialise_glVertexAttribIPointer(GLuint index, GLint size, GLenum type,
-                                        GLsizei stride, const void *pointer, size_t dataSize);
-
   bool Serialise_glDrawBuffers(GLuint framebuffer, GLsizei n, const GLenum *bufs);
   bool Serialise_glReadBuffer(GLuint framebuffer, GLenum mode);
   bool Serialise_glFramebufferRenderbuffer(GLuint framebuffer, GLenum target, GLenum attachment,
@@ -561,6 +555,10 @@ public:
   bool Serialise_glVertexAttrib(GLuint index, int count, GLenum type, GLboolean normalized,
                                 const void *value, int attribtype);
 
+  bool Serialise_glVertexAttribPointerEXT(GLuint vaobj, GLuint buffer,
+                                          GLuint index, GLint size, GLenum type,
+                                          GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize,
+                                          bool isInteger);
   enum AttribType
   {
     Attrib_GLfloat = 0x02,

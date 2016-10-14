@@ -3526,10 +3526,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case GEN_VERTEXARRAY: Serialise_glGenVertexArrays(0, NULL); break;
     case BIND_VERTEXARRAY: Serialise_glBindVertexArray(0); break;
     case VERTEXATTRIBPOINTER:
-      Serialise_glVertexAttribPointer(0, 0, eGL_NONE, 0, 0, 0, 0);
-      break;
-    case VERTEXATTRIBIPOINTER:
-      Serialise_glVertexAttribIPointer(0, 0, eGL_NONE, 0, 0, 0);
+      Serialise_glVertexAttribPointerEXT(0,0, 0, 0, eGL_NONE, 0, 0, 0, 0, false);
       break;
     case ENABLEVERTEXATTRIBARRAY: Serialise_glEnableVertexAttribArray(0); break;
     case DISABLEVERTEXATTRIBARRAY: Serialise_glDisableVertexAttribArray(0); break;
