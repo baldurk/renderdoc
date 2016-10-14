@@ -269,6 +269,11 @@ private:
   ResourceId m_ResourceID;
   D3D12ResourceRecord *m_DeviceRecord;
 
+  std::vector<DynamicDescriptorCopy> m_DynamicDescriptorCopies;
+  std::vector<DynamicDescriptorWrite> m_DynamicDescriptorWrites;
+
+  void FlushPendingDescriptorWrites();
+
   // used both on capture and replay side to track resource states. Only locked
   // in capture
   map<ResourceId, SubresourceStateVector> m_ResourceStates;
@@ -361,6 +366,9 @@ public:
   bool EndFrameCapture(void *dev, void *wnd);
 
   bool Serialise_BeginCaptureFrame(bool applyInitialState);
+
+  bool Serialise_DynamicDescriptorWrite(const DynamicDescriptorWrite *write);
+  bool Serialise_DynamicDescriptorCopies(const std::vector<DynamicDescriptorCopy> *copies);
 
   void ReadLogInitialisation();
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);

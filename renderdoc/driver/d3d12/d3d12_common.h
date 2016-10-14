@@ -330,6 +330,9 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
   D3D12_CHUNK_MACRO(SET_COMP_ROOT_UAV,                                                             \
                     "ID3D12GraphicsCommandList::SetComputeRootUnorderedAccessView")                \
                                                                                                    \
+  D3D12_CHUNK_MACRO(DYN_DESC_WRITE, "Dynamic descriptor write")                                    \
+  D3D12_CHUNK_MACRO(DYN_DESC_COPIES, "Dynamic descriptor copies")                                  \
+                                                                                                   \
   D3D12_CHUNK_MACRO(EXECUTE_CMD_LISTS, "ID3D12GraphicsCommandQueue::ExecuteCommandLists")          \
   D3D12_CHUNK_MACRO(SIGNAL, "ID3D12GraphicsCommandQueue::Signal")                                  \
                                                                                                    \

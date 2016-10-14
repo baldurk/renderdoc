@@ -204,6 +204,8 @@ inline D3D12Descriptor *GetWrapped(D3D12_GPU_DESCRIPTOR_HANDLE handle)
 
 D3D12_CPU_DESCRIPTOR_HANDLE Unwrap(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 D3D12_GPU_DESCRIPTOR_HANDLE Unwrap(D3D12_GPU_DESCRIPTOR_HANDLE handle);
+D3D12_CPU_DESCRIPTOR_HANDLE UnwrapCPU(D3D12Descriptor *handle);
+D3D12_GPU_DESCRIPTOR_HANDLE UnwrapGPU(D3D12Descriptor *handle);
 
 struct PortableHandle
 {
@@ -216,12 +218,33 @@ struct PortableHandle
 
 class D3D12ResourceManager;
 
+PortableHandle ToPortableHandle(D3D12Descriptor *handle);
 PortableHandle ToPortableHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 PortableHandle ToPortableHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle);
 D3D12_CPU_DESCRIPTOR_HANDLE CPUHandleFromPortableHandle(D3D12ResourceManager *manager,
                                                         PortableHandle handle);
 D3D12_GPU_DESCRIPTOR_HANDLE GPUHandleFromPortableHandle(D3D12ResourceManager *manager,
                                                         PortableHandle handle);
+
+struct DynamicDescriptorWrite
+{
+  D3D12Descriptor desc;
+
+  D3D12Descriptor *dest;
+};
+
+struct DynamicDescriptorCopy
+{
+  DynamicDescriptorCopy() : dst(NULL), src(NULL), type(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV) {}
+  DynamicDescriptorCopy(D3D12Descriptor *d, D3D12Descriptor *s, D3D12_DESCRIPTOR_HEAP_TYPE t)
+      : dst(d), src(s), type(t)
+  {
+  }
+
+  D3D12Descriptor *dst;
+  D3D12Descriptor *src;
+  D3D12_DESCRIPTOR_HEAP_TYPE type;
+};
 
 struct D3D12ResourceRecord;
 

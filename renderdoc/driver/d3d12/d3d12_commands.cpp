@@ -347,6 +347,9 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
       m_ReplayList->Serialise_SetComputeRootUnorderedAccessView(0, D3D12_GPU_VIRTUAL_ADDRESS());
       break;
 
+    case DYN_DESC_WRITE: m_pDevice->Serialise_DynamicDescriptorWrite(NULL); break;
+    case DYN_DESC_COPIES: m_pDevice->Serialise_DynamicDescriptorCopies(NULL); break;
+
     case EXECUTE_CMD_LISTS: Serialise_ExecuteCommandLists(0, NULL); break;
     case SIGNAL: Serialise_Signal(NULL, 0); break;
     case CONTEXT_CAPTURE_FOOTER:

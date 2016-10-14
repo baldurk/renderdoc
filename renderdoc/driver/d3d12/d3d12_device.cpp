@@ -1223,6 +1223,8 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
   GetResourceManager()->FlushPendingDirty();
 
+  FlushPendingDescriptorWrites();
+
   return true;
 }
 
@@ -1250,6 +1252,24 @@ void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
       GetResourceManager()->EraseLiveResource(id);
     return;
   }
+}
+
+void WrappedID3D12Device::FlushPendingDescriptorWrites()
+{
+  std::vector<DynamicDescriptorWrite> writes;
+  std::vector<DynamicDescriptorCopy> copies;
+
+  {
+    SCOPED_LOCK(m_D3DLock);
+    writes.swap(m_DynamicDescriptorWrites);
+    copies.swap(m_DynamicDescriptorCopies);
+  }
+
+  for(size_t i = 0; i < writes.size(); i++)
+    writes[i].dest->CopyFrom(writes[i].desc);
+
+  for(size_t i = 0; i < copies.size(); i++)
+    copies[i].dst->CopyFrom(*copies[i].src);
 }
 
 bool WrappedID3D12Device::Serialise_SetShaderDebugPath(ID3D12DeviceChild *res, const char *p)

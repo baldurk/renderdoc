@@ -559,10 +559,61 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
   return ret;
 }
 
+bool WrappedID3D12Device::Serialise_DynamicDescriptorWrite(const DynamicDescriptorWrite *write)
+{
+  SERIALISE_ELEMENT(D3D12Descriptor, desc, write->desc);
+  SERIALISE_ELEMENT(PortableHandle, dst, ToPortableHandle(write->dest));
+
+  if(m_State <= EXECUTING)
+  {
+    WrappedID3D12DescriptorHeap *heap =
+        GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(dst.heap);
+
+    if(heap)
+    {
+      // get the wrapped handle
+      D3D12_CPU_DESCRIPTOR_HANDLE handle = heap->GetCPUDescriptorHandleForHeapStart();
+      handle.ptr += dst.index * sizeof(D3D12Descriptor);
+
+      // safe to pass an invalid heap type to Create() as these descriptors will by definition not
+      // be undefined
+      RDCASSERT(desc.GetType() != D3D12Descriptor::TypeUndefined);
+      desc.Create(D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES, this, handle);
+    }
+  }
+
+  return true;
+}
+
 void WrappedID3D12Device::CreateConstantBufferView(const D3D12_CONSTANT_BUFFER_VIEW_DESC *pDesc,
                                                    D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
-  GetWrapped(DestDescriptor)->Init(pDesc);
+  // assume descriptors are volatile
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_LOCK(m_D3DLock);
+
+    DynamicDescriptorWrite write;
+    write.desc.samp.heap = NULL;
+    write.desc.samp.idx = 0;
+    write.desc.Init(pDesc);
+    write.dest = GetWrapped(DestDescriptor);
+    m_DynamicDescriptorWrites.push_back(write);
+
+    {
+      SCOPED_SERIALISE_CONTEXT(DYN_DESC_WRITE);
+      Serialise_DynamicDescriptorWrite(&write);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+    }
+
+    GetResourceManager()->MarkResourceFrameReferenced(
+        WrappedID3D12Resource::GetResIDFromAddr(pDesc->BufferLocation), eFrameRef_Read);
+  }
+  else
+  {
+    GetWrapped(DestDescriptor)->Init(pDesc);
+  }
   return m_pDevice->CreateConstantBufferView(pDesc, Unwrap(DestDescriptor));
 }
 
@@ -570,7 +621,31 @@ void WrappedID3D12Device::CreateShaderResourceView(ID3D12Resource *pResource,
                                                    const D3D12_SHADER_RESOURCE_VIEW_DESC *pDesc,
                                                    D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
-  GetWrapped(DestDescriptor)->Init(pResource, pDesc);
+  // assume descriptors are volatile
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_LOCK(m_D3DLock);
+
+    DynamicDescriptorWrite write;
+    write.desc.samp.heap = NULL;
+    write.desc.samp.idx = 0;
+    write.desc.Init(pResource, pDesc);
+    write.dest = GetWrapped(DestDescriptor);
+    m_DynamicDescriptorWrites.push_back(write);
+
+    {
+      SCOPED_SERIALISE_CONTEXT(DYN_DESC_WRITE);
+      Serialise_DynamicDescriptorWrite(&write);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+    }
+
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Read);
+  }
+  else
+  {
+    GetWrapped(DestDescriptor)->Init(pResource, pDesc);
+  }
   return m_pDevice->CreateShaderResourceView(Unwrap(pResource), pDesc, Unwrap(DestDescriptor));
 }
 
@@ -579,7 +654,33 @@ void WrappedID3D12Device::CreateUnorderedAccessView(ID3D12Resource *pResource,
                                                     const D3D12_UNORDERED_ACCESS_VIEW_DESC *pDesc,
                                                     D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
-  GetWrapped(DestDescriptor)->Init(pResource, pCounterResource, pDesc);
+  // assume descriptors are volatile
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_LOCK(m_D3DLock);
+
+    DynamicDescriptorWrite write;
+    write.desc.samp.heap = NULL;
+    write.desc.samp.idx = 0;
+    write.desc.Init(pResource, pCounterResource, pDesc);
+    write.dest = GetWrapped(DestDescriptor);
+    m_DynamicDescriptorWrites.push_back(write);
+
+    {
+      SCOPED_SERIALISE_CONTEXT(DYN_DESC_WRITE);
+      Serialise_DynamicDescriptorWrite(&write);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+    }
+
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Write);
+    if(pCounterResource)
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(pCounterResource), eFrameRef_Write);
+  }
+  else
+  {
+    GetWrapped(DestDescriptor)->Init(pResource, pCounterResource, pDesc);
+  }
   return m_pDevice->CreateUnorderedAccessView(Unwrap(pResource), Unwrap(pCounterResource), pDesc,
                                               Unwrap(DestDescriptor));
 }
@@ -588,7 +689,31 @@ void WrappedID3D12Device::CreateRenderTargetView(ID3D12Resource *pResource,
                                                  const D3D12_RENDER_TARGET_VIEW_DESC *pDesc,
                                                  D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
-  GetWrapped(DestDescriptor)->Init(pResource, pDesc);
+  // assume descriptors are volatile
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_LOCK(m_D3DLock);
+
+    DynamicDescriptorWrite write;
+    write.desc.samp.heap = NULL;
+    write.desc.samp.idx = 0;
+    write.desc.Init(pResource, pDesc);
+    write.dest = GetWrapped(DestDescriptor);
+    m_DynamicDescriptorWrites.push_back(write);
+
+    {
+      SCOPED_SERIALISE_CONTEXT(DYN_DESC_WRITE);
+      Serialise_DynamicDescriptorWrite(&write);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+    }
+
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Write);
+  }
+  else
+  {
+    GetWrapped(DestDescriptor)->Init(pResource, pDesc);
+  }
   return m_pDevice->CreateRenderTargetView(Unwrap(pResource), pDesc, Unwrap(DestDescriptor));
 }
 
@@ -596,14 +721,60 @@ void WrappedID3D12Device::CreateDepthStencilView(ID3D12Resource *pResource,
                                                  const D3D12_DEPTH_STENCIL_VIEW_DESC *pDesc,
                                                  D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
-  GetWrapped(DestDescriptor)->Init(pResource, pDesc);
+  // assume descriptors are volatile
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_LOCK(m_D3DLock);
+
+    DynamicDescriptorWrite write;
+    write.desc.samp.heap = NULL;
+    write.desc.samp.idx = 0;
+    write.desc.Init(pResource, pDesc);
+    write.dest = GetWrapped(DestDescriptor);
+    m_DynamicDescriptorWrites.push_back(write);
+
+    {
+      SCOPED_SERIALISE_CONTEXT(DYN_DESC_WRITE);
+      Serialise_DynamicDescriptorWrite(&write);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
+    }
+
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pResource), eFrameRef_Write);
+  }
+  else
+  {
+    GetWrapped(DestDescriptor)->Init(pResource, pDesc);
+  }
   return m_pDevice->CreateDepthStencilView(Unwrap(pResource), pDesc, Unwrap(DestDescriptor));
 }
 
 void WrappedID3D12Device::CreateSampler(const D3D12_SAMPLER_DESC *pDesc,
                                         D3D12_CPU_DESCRIPTOR_HANDLE DestDescriptor)
 {
-  GetWrapped(DestDescriptor)->Init(pDesc);
+  // assume descriptors are volatile
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_LOCK(m_D3DLock);
+
+    DynamicDescriptorWrite write;
+    write.desc.samp.heap = NULL;
+    write.desc.samp.idx = 0;
+    write.desc.Init(pDesc);
+    write.dest = GetWrapped(DestDescriptor);
+    m_DynamicDescriptorWrites.push_back(write);
+
+    {
+      SCOPED_SERIALISE_CONTEXT(DYN_DESC_WRITE);
+      Serialise_DynamicDescriptorWrite(&write);
+
+      m_DeviceRecord->AddChunk(scope.Get());
+    }
+  }
+  else
+  {
+    GetWrapped(DestDescriptor)->Init(pDesc);
+  }
   return m_pDevice->CreateSampler(pDesc, Unwrap(DestDescriptor));
 }
 
@@ -1133,6 +1304,32 @@ HRESULT WrappedID3D12Device::CreateSharedHandle(ID3D12DeviceChild *pObject,
   return m_pDevice->CreateSharedHandle(Unwrap(pObject), pAttributes, Access, Name, pHandle);
 }
 
+bool WrappedID3D12Device::Serialise_DynamicDescriptorCopies(
+    const std::vector<DynamicDescriptorCopy> *copies)
+{
+  SERIALISE_ELEMENT(uint32_t, numCopies, (uint32_t)copies->size());
+
+  const DynamicDescriptorCopy *descCopies = copies ? &(*copies)[0] : NULL;
+
+  // not optimal, but simple for now
+  for(uint32_t i = 0; i < numCopies; i++)
+  {
+    SERIALISE_ELEMENT(PortableHandle, dst, ToPortableHandle(descCopies[i].dst));
+    SERIALISE_ELEMENT(PortableHandle, src, ToPortableHandle(descCopies[i].src));
+    SERIALISE_ELEMENT(D3D12_DESCRIPTOR_HEAP_TYPE, type, descCopies[i].type);
+
+    if(m_State <= EXECUTING)
+    {
+      D3D12_CPU_DESCRIPTOR_HANDLE dsthandle = CPUHandleFromPortableHandle(GetResourceManager(), dst);
+      D3D12_CPU_DESCRIPTOR_HANDLE srchandle = CPUHandleFromPortableHandle(GetResourceManager(), src);
+
+      m_pDevice->CopyDescriptorsSimple(1, dsthandle, srchandle, type);
+    }
+  }
+
+  return true;
+}
+
 void WrappedID3D12Device::CopyDescriptors(
     UINT NumDestDescriptorRanges, const D3D12_CPU_DESCRIPTOR_HANDLE *pDestDescriptorRangeStarts,
     const UINT *pDestDescriptorRangeSizes, UINT NumSrcDescriptorRanges,
@@ -1158,15 +1355,28 @@ void WrappedID3D12Device::CopyDescriptors(
   D3D12Descriptor *src = GetWrapped(pSrcDescriptorRangeStarts[0]);
   D3D12Descriptor *dst = GetWrapped(pDestDescriptorRangeStarts[0]);
 
+  std::vector<DynamicDescriptorCopy> copies;
+
   for(; srcRange < NumSrcDescriptorRanges && dstRange < NumDestDescriptorRanges;)
   {
-    dst[dstIdx].CopyFrom(src[srcIdx]);
+    const UINT srcSize = pSrcDescriptorRangeSizes ? pSrcDescriptorRangeSizes[srcRange] : 1;
+    const UINT dstSize = pDestDescriptorRangeSizes ? pDestDescriptorRangeSizes[dstRange] : 1;
+
+    // just in case a size is specified as 0, check here
+    if(srcIdx < srcSize && dstIdx < dstSize)
+    {
+      // assume descriptors are volatile
+      if(m_State == WRITING_CAPFRAME)
+        copies.push_back(DynamicDescriptorCopy(&dst[dstIdx], &src[srcIdx], DescriptorHeapsType));
+      else
+        dst[dstIdx].CopyFrom(src[srcIdx]);
+    }
 
     srcIdx++;
     dstIdx++;
 
     // move source onto the next range
-    if(srcIdx >= pSrcDescriptorRangeSizes[srcRange])
+    if(srcIdx >= srcSize)
     {
       srcRange++;
       srcIdx = 0;
@@ -1176,13 +1386,40 @@ void WrappedID3D12Device::CopyDescriptors(
         src = GetWrapped(pSrcDescriptorRangeStarts[srcRange]);
     }
 
-    if(dstIdx >= pDestDescriptorRangeSizes[dstRange])
+    if(dstIdx >= dstSize)
     {
       dstRange++;
       dstIdx = 0;
 
       if(dstRange < NumDestDescriptorRanges)
         dst = GetWrapped(pDestDescriptorRangeStarts[dstRange]);
+    }
+  }
+
+  if(m_State == WRITING_CAPFRAME && !copies.empty())
+  {
+    SCOPED_LOCK(m_D3DLock);
+
+    // reference all the individual heaps
+    for(UINT i = 0; i < NumSrcDescriptorRanges; i++)
+    {
+      D3D12Descriptor *desc = GetWrapped(pSrcDescriptorRangeStarts[i]);
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc->samp.heap), eFrameRef_Read);
+    }
+
+    for(UINT i = 0; i < NumDestDescriptorRanges; i++)
+    {
+      D3D12Descriptor *desc = GetWrapped(pDestDescriptorRangeStarts[i]);
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc->samp.heap), eFrameRef_Read);
+    }
+
+    m_DynamicDescriptorCopies.insert(m_DynamicDescriptorCopies.end(), copies.begin(), copies.end());
+
+    {
+      SCOPED_SERIALISE_CONTEXT(DYN_DESC_COPIES);
+      Serialise_DynamicDescriptorCopies(&copies);
+
+      m_FrameCaptureRecord->AddChunk(scope.Get());
     }
   }
 
@@ -1201,8 +1438,31 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
   D3D12Descriptor *src = GetWrapped(SrcDescriptorRangeStart);
   D3D12Descriptor *dst = GetWrapped(DestDescriptorRangeStart);
 
-  for(UINT i = 0; i < NumDescriptors; i++)
-    dst[i].CopyFrom(src[i]);
+  // assume descriptors are volatile
+  if(m_State == WRITING_CAPFRAME)
+  {
+    std::vector<DynamicDescriptorCopy> copies;
+    copies.reserve(NumDescriptors);
+    for(UINT i = 0; i < NumDescriptors; i++)
+      copies.push_back(DynamicDescriptorCopy(&dst[i], &src[i], DescriptorHeapsType));
+
+    {
+      SCOPED_LOCK(m_D3DLock);
+      m_DynamicDescriptorCopies.insert(m_DynamicDescriptorCopies.end(), copies.begin(), copies.end());
+
+      {
+        SCOPED_SERIALISE_CONTEXT(DYN_DESC_COPIES);
+        Serialise_DynamicDescriptorCopies(&copies);
+
+        m_FrameCaptureRecord->AddChunk(scope.Get());
+      }
+    }
+  }
+  else
+  {
+    for(UINT i = 0; i < NumDescriptors; i++)
+      dst[i].CopyFrom(src[i]);
+  }
 }
 
 HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void **ppvObj)

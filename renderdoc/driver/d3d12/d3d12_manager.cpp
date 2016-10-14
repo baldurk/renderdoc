@@ -253,13 +253,30 @@ void D3D12Descriptor::CopyFrom(const D3D12Descriptor &src)
   samp.idx = index;
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE UnwrapCPU(D3D12Descriptor *handle)
+{
+  D3D12_CPU_DESCRIPTOR_HANDLE ret = {};
+  if(handle == NULL)
+    return ret;
+
+  return handle->samp.heap->GetCPU(handle->samp.idx);
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE UnwrapGPU(D3D12Descriptor *handle)
+{
+  D3D12_GPU_DESCRIPTOR_HANDLE ret = {};
+  if(handle == NULL)
+    return ret;
+
+  return handle->samp.heap->GetGPU(handle->samp.idx);
+}
+
 D3D12_CPU_DESCRIPTOR_HANDLE Unwrap(D3D12_CPU_DESCRIPTOR_HANDLE handle)
 {
   if(handle.ptr == 0)
     return handle;
 
-  D3D12Descriptor *desc = GetWrapped(handle);
-  return desc->samp.heap->GetCPU(desc->samp.idx);
+  return UnwrapCPU(GetWrapped(handle));
 }
 
 D3D12_GPU_DESCRIPTOR_HANDLE Unwrap(D3D12_GPU_DESCRIPTOR_HANDLE handle)
@@ -267,8 +284,15 @@ D3D12_GPU_DESCRIPTOR_HANDLE Unwrap(D3D12_GPU_DESCRIPTOR_HANDLE handle)
   if(handle.ptr == 0)
     return handle;
 
-  D3D12Descriptor *desc = GetWrapped(handle);
-  return desc->samp.heap->GetGPU(desc->samp.idx);
+  return UnwrapGPU(GetWrapped(handle));
+}
+
+PortableHandle ToPortableHandle(D3D12Descriptor *desc)
+{
+  if(desc == NULL)
+    return PortableHandle(0);
+
+  return PortableHandle(GetResID(desc->samp.heap), desc->samp.idx);
 }
 
 PortableHandle ToPortableHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle)
@@ -276,9 +300,7 @@ PortableHandle ToPortableHandle(D3D12_CPU_DESCRIPTOR_HANDLE handle)
   if(handle.ptr == 0)
     return PortableHandle(0);
 
-  D3D12Descriptor *desc = GetWrapped(handle);
-
-  return PortableHandle(GetResID(desc->samp.heap), desc->samp.idx);
+  return ToPortableHandle(GetWrapped(handle));
 }
 
 PortableHandle ToPortableHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle)
@@ -286,9 +308,7 @@ PortableHandle ToPortableHandle(D3D12_GPU_DESCRIPTOR_HANDLE handle)
   if(handle.ptr == 0)
     return PortableHandle(0);
 
-  D3D12Descriptor *desc = GetWrapped(handle);
-
-  return PortableHandle(GetResID(desc->samp.heap), desc->samp.idx);
+  return ToPortableHandle(GetWrapped(handle));
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE CPUHandleFromPortableHandle(D3D12ResourceManager *manager,

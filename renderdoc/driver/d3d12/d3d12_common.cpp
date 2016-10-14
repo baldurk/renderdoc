@@ -494,7 +494,8 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el)
     PortableHandle handle;
 
     if(m_Mode >= WRITING)
-      handle = PortableHandle(el.samp.heap->GetResourceID(), el.samp.idx);
+      handle =
+          PortableHandle(el.samp.heap ? el.samp.heap->GetResourceID() : ResourceId(), el.samp.idx);
 
     Serialise("handle", handle);
 
