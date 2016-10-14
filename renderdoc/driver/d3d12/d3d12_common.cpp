@@ -408,19 +408,25 @@ UINT GetResourceNumMipLevels(const D3D12_RESOURCE_DESC *desc)
   return 1;
 }
 
-UINT GetNumSubresources(const D3D12_RESOURCE_DESC *desc)
+UINT GetNumSubresources(ID3D12Device *dev, const D3D12_RESOURCE_DESC *desc)
 {
+  D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
+  formatInfo.Format = desc->Format;
+  dev->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &formatInfo, sizeof(formatInfo));
+
+  UINT planes = RDCMAX((UINT8)1, formatInfo.PlaneCount);
+
   switch(desc->Dimension)
   {
     default:
     case D3D12_RESOURCE_DIMENSION_UNKNOWN:
       RDCERR("Unexpected resource dimension! %d", desc->Dimension);
       break;
-    case D3D12_RESOURCE_DIMENSION_BUFFER: return 1;
+    case D3D12_RESOURCE_DIMENSION_BUFFER: return planes;
     case D3D12_RESOURCE_DIMENSION_TEXTURE1D:
     case D3D12_RESOURCE_DIMENSION_TEXTURE2D:
-      return RDCMAX((UINT16)1, desc->DepthOrArraySize) * GetResourceNumMipLevels(desc);
-    case D3D12_RESOURCE_DIMENSION_TEXTURE3D: return GetResourceNumMipLevels(desc);
+      return RDCMAX((UINT16)1, desc->DepthOrArraySize) * GetResourceNumMipLevels(desc) * planes;
+    case D3D12_RESOURCE_DIMENSION_TEXTURE3D: return GetResourceNumMipLevels(desc) * planes;
   }
 
   return 1;

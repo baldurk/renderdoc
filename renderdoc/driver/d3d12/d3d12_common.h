@@ -58,7 +58,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
 #define VERBOSE_PARTIAL_REPLAY
 
 ShaderStageBits ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility);
-UINT GetNumSubresources(const D3D12_RESOURCE_DESC *desc);
+UINT GetNumSubresources(ID3D12Device *dev, const D3D12_RESOURCE_DESC *desc);
 
 class WrappedID3D12Device;
 

@@ -845,7 +845,7 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
       GetResourceManager()->AddLiveResource(Res, ret);
 
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
-      states.resize(GetNumSubresources(&desc), state);
+      states.resize(GetNumSubresources(m_pDevice, &desc), state);
     }
   }
 
@@ -908,7 +908,7 @@ HRESULT WrappedID3D12Device::CreateCommittedResource(const D3D12_HEAP_PROPERTIES
       SCOPED_LOCK(m_ResourceStatesLock);
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-      states.resize(GetNumSubresources(pDesc), InitialResourceState);
+      states.resize(GetNumSubresources(m_pDevice, pDesc), InitialResourceState);
     }
 
     *ppvResource = (ID3D12Resource *)wrapped;
@@ -1021,7 +1021,7 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
       GetResourceManager()->AddLiveResource(Res, ret);
 
       SubresourceStateVector &states = m_ResourceStates[GetResID(ret)];
-      states.resize(GetNumSubresources(&desc), state);
+      states.resize(GetNumSubresources(m_pDevice, &desc), state);
     }
   }
 
@@ -1084,7 +1084,7 @@ HRESULT WrappedID3D12Device::CreatePlacedResource(ID3D12Heap *pHeap, UINT64 Heap
       SCOPED_LOCK(m_ResourceStatesLock);
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 
-      states.resize(GetNumSubresources(pDesc), InitialState);
+      states.resize(GetNumSubresources(m_pDevice, pDesc), InitialState);
     }
 
     *ppvResource = (ID3D12Resource *)wrapped;
