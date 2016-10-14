@@ -22,6 +22,7 @@ typedef EGLint (*PFN_eglGetError)();
 typedef EGLBoolean (*PFN_eglDestroySurface)(EGLDisplay dpy, EGLSurface surface);
 typedef EGLBoolean (*PFN_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
 typedef EGLSurface (*PFN_eglCreatePbufferSurface)(EGLDisplay dpy, EGLConfig config, const EGLint *attrib_list);
+typedef EGLBoolean (*PFN_eglSwapInterval)(EGLDisplay dpy, EGLint interval);
 
 #if 0
 typedef EGLBoolean (*PFN_eglBindTexImage)(EGLDisplay dpy, EGLSurface surface, EGLint buffer);
@@ -122,7 +123,7 @@ typedef EGLBoolean (*PFN_eglSwapBuffersWithDamageEXT)(EGLDisplay dpy, EGLSurface
 typedef EGLBoolean (*PFN_eglSwapBuffersWithDamageKHR)(EGLDisplay dpy, EGLSurface surface, EGLint *rects, EGLint n_rects);
 typedef EGLBoolean (*PFN_eglSwapBuffersRegionNOK)(EGLDisplay dpy, EGLSurface surface, EGLint numRects, const EGLint *rects);
 typedef EGLBoolean (*PFN_eglSwapBuffersRegion2NOK)(EGLDisplay dpy, EGLSurface surface, EGLint numRects, const EGLint *rects);
-typedef EGLBoolean (*PFN_eglSwapInterval)(EGLDisplay dpy, EGLint interval);
+
 typedef EGLBoolean (*PFN_eglTerminate)(EGLDisplay dpy);
 typedef EGLBoolean (*PFN_eglUnlockSurfaceKHR)(EGLDisplay dpy, EGLSurface surface);
 typedef EGLBoolean (*PFN_eglWaitClient)();

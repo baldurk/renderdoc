@@ -88,51 +88,75 @@ typedef void ( *__extFuncPtr)(void);
   */
 
 typedef EGLDisplay (*PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
+typedef EGLContext (*PFN_eglCreateContext) (EGLDisplay dpy, EGLConfig config, EGLContext share_context, EGLint const * attrib_list);
+typedef EGLBoolean (*PFN_eglBindAPI)(EGLenum api);
+typedef EGLBoolean (*PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value);
+typedef EGLBoolean (*PFN_eglSwapInterval)(EGLDisplay dpy, EGLint interval);
+typedef EGLBoolean (*PFN_eglInitialize)(EGLDisplay dpy, EGLint *major, EGLint *minor);
+typedef EGLBoolean (*PFN_eglChooseConfig)(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config);
+typedef EGLSurface (*PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list);
+typedef EGLBoolean (*PFN_eglDestroySurface)(EGLDisplay dpy, EGLSurface surface);
+typedef EGLBoolean (*PFN_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
+typedef EGLBoolean (*PFN_eglTerminate)(EGLDisplay dpy);
 
-__attribute__((visibility("default"))) EGLDisplay eglGetDisplay (EGLNativeDisplayType display)
+#define DEFAULT_VISIBILITY __attribute__((visibility("default")))
+
+#define REAL(name) name ## _real
+#define DEF_FUNC(name) static PFN_##name REAL(name) = (PFN_ ## name)dlsym(libGLdlsymHandle, #name)
+
+DEFAULT_VISIBILITY
+EGLDisplay eglGetDisplay (EGLNativeDisplayType display)
 {
     OpenGLHook::glhooks.PopulateHooks();
-    PFN_eglGetDisplay real_pfn = (PFN_eglGetDisplay)dlsym(RTLD_NEXT, "eglGetDisplay");
-    printf("REAL display: %p\n", real_pfn);
-
+    PFN_eglGetDisplay real_pfn = (PFN_eglGetDisplay)dlsym(libGLdlsymHandle, "eglGetDisplay");
 
     Keyboard::CloneDisplay(display);
 
     return real_pfn(display);
 }
 
-typedef EGLContext (*eglCreateContext_pfn) (EGLDisplay dpy, EGLConfig config, EGLContext share_context, EGLint const * attrib_list);
-
-__attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay display,
-                                                                   EGLConfig config,
-                                                                   EGLContext share_context,
-                                                                   EGLint const * attrib_list)
+DEFAULT_VISIBILITY
+EGLContext eglCreateContext(EGLDisplay display, EGLConfig config, EGLContext share_context, EGLint const * attrib_list)
 {
     OpenGLHook::glhooks.PopulateHooks();
 
-    eglCreateContext_pfn real_pfn = (eglCreateContext_pfn)dlsym(RTLD_NEXT, "eglCreateContext");
-    printf("REAL context: %p\n", real_pfn);
-
-    
-    EGLContext ctx = real_pfn(display, config, share_context, attrib_list);
+    DEF_FUNC(eglCreateContext);
+    EGLContext ctx = REAL(eglCreateContext)(display, config, share_context, attrib_list);
 
     GLESWindowingData outputWin;
     outputWin.ctx = ctx;
     outputWin.eglDisplay = display;
-    
+
     OpenGLHook::glhooks.GetDriver()->CreateContext(outputWin, share_context, GLESInitParams(), true, true);
     return ctx;
 }
 
 
-__attribute__((visibility("default"))) __eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *func)
+DEFAULT_VISIBILITY
+__eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *func)
 {
+    if (OpenGLHook::glhooks.m_eglGetProcAddress_real == NULL)
+      OpenGLHook::glhooks.PopulateHooks();
+
     __eglMustCastToProperFunctionPointerType realFunc = OpenGLHook::glhooks.m_eglGetProcAddress_real(func);
 
-    //printf("eglGetProcAddress('%s') -> real: %p\n", func, realFunc);
+    // Return our own egl implementations if requested
+#define WRAP(name) \
+    if (!strcmp(func, #name)) { return (__eglMustCastToProperFunctionPointerType)&name; }
 
-    if(!strcmp(func, "eglCreateContext"))
-        return (__eglMustCastToProperFunctionPointerType)&eglCreateContext;
+    WRAP(eglCreateContext)
+    WRAP(eglGetDisplay)
+    WRAP(eglBindAPI)
+    WRAP(eglGetConfigAttrib)
+    WRAP(eglSwapInterval)
+    WRAP(eglInitialize)
+    WRAP(eglChooseConfig)
+    WRAP(eglCreateWindowSurface)
+    WRAP(eglDestroySurface)
+    WRAP(eglDestroyContext)
+    WRAP(eglTerminate)
+
+#undef WRAP
 
     // if the real RC doesn't support this function, don't bother hooking
     if(realFunc == NULL)
@@ -150,21 +174,23 @@ __attribute__((visibility("default"))) __eglMustCastToProperFunctionPointerType 
     return realFunc;
 }
 
-__attribute__((visibility("default"))) EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
+DEFAULT_VISIBILITY
+EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
 {
 
     int width;
     int height;
     OpenGLHook::glhooks.m_eglQuerySurface_real(dpy, surface, EGL_HEIGHT, &height);
     OpenGLHook::glhooks.m_eglQuerySurface_real(dpy, surface, EGL_WIDTH, &width);
-    
+
     OpenGLHook::glhooks.GetDriver()->WindowSize(surface, width, height);
     OpenGLHook::glhooks.GetDriver()->SwapBuffers(surface);
     return OpenGLHook::glhooks.m_eglSwapBuffers_real(dpy, surface);
 }
 
 
-__attribute__((visibility("default"))) EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface read, EGLContext context)
+DEFAULT_VISIBILITY
+EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface read, EGLContext context)
 {
     Bool ret = OpenGLHook::glhooks.m_eglMakeCurrent_real(display, draw, read, context);
 
@@ -181,5 +207,74 @@ __attribute__((visibility("default"))) EGLBoolean eglMakeCurrent(EGLDisplay disp
 
     OpenGLHook::glhooks.GetDriver()->ActivateContext(data);
 
-    return ret;    
+    return ret;
 }
+
+DEFAULT_VISIBILITY
+EGLBoolean eglBindAPI(EGLenum api)
+{
+    DEF_FUNC(eglBindAPI);
+    return REAL(eglBindAPI)(api);
+}
+
+DEFAULT_VISIBILITY
+EGLBoolean eglGetConfigAttrib(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value)
+{
+    DEF_FUNC(eglGetConfigAttrib);
+    return REAL(eglGetConfigAttrib)(dpy, config, attribute, value);
+}
+
+DEFAULT_VISIBILITY
+EGLBoolean eglSwapInterval(EGLDisplay dpy, EGLint interval)
+{
+    DEF_FUNC(eglSwapInterval);
+    return REAL(eglSwapInterval)(dpy, interval);
+}
+
+DEFAULT_VISIBILITY
+EGLBoolean eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor)
+{
+    DEF_FUNC(eglInitialize);
+    return REAL(eglInitialize)(dpy, major, minor);
+}
+
+DEFAULT_VISIBILITY
+EGLBoolean eglChooseConfig(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config)
+{
+    DEF_FUNC(eglChooseConfig);
+    return REAL(eglChooseConfig)(dpy, attrib_list, configs, config_size, num_config);
+}
+
+DEFAULT_VISIBILITY
+EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list)
+{
+    DEF_FUNC(eglCreateWindowSurface);
+    return REAL(eglCreateWindowSurface)(dpy, config, win, attrib_list);
+}
+
+DEFAULT_VISIBILITY
+EGLBoolean eglDestroySurface(EGLDisplay dpy, EGLSurface surface)
+{
+    DEF_FUNC(eglDestroySurface);
+    return REAL(eglDestroySurface)(dpy, surface);
+}
+
+DEFAULT_VISIBILITY
+EGLBoolean eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
+{
+    DEF_FUNC(eglDestroyContext);
+    return REAL(eglDestroyContext)(dpy, ctx);
+}
+
+
+DEFAULT_VISIBILITY
+EGLBoolean eglTerminate(EGLDisplay dpy)
+{
+    DEF_FUNC(eglTerminate);
+    return REAL(eglTerminate)(dpy);
+}
+
+
+#undef REAL
+#undef DEF_FUNC
+#undef DEFAULT_VISIBILITY
