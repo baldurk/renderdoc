@@ -68,6 +68,8 @@ public:
   int GetHeight() { return m_height; }
   void RenderText(ID3D12GraphicsCommandList *list, float x, float y, const char *textfmt, ...);
 
+  void RenderHighlightBox(float w, float h, float scale);
+
   void RenderCheckerboard(Vec3f light, Vec3f dark);
   bool RenderTexture(TextureDisplay cfg, bool blendAlpha);
 

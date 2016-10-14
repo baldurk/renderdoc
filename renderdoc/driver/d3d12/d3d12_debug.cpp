@@ -1878,6 +1878,71 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
   }
 }
 
+void D3D12DebugManager::RenderHighlightBox(float w, float h, float scale)
+{
+  OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];
+
+  {
+    ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+    float black[] = {0.0f, 0.0f, 0.0f, 1.0f};
+    float white[] = {1.0f, 1.0f, 1.0f, 1.0f};
+
+    // size of box
+    LONG sz = LONG(scale);
+
+    // top left, x and y
+    LONG tlx = LONG(w / 2.0f + 0.5f);
+    LONG tly = LONG(h / 2.0f + 0.5f);
+
+    D3D12_RECT rect[4] = {
+        {tlx, tly, tlx + 1, tly + sz},
+
+        {tlx + sz, tly, tlx + sz + 1, tly + sz + 1},
+
+        {tlx, tly, tlx + sz, tly + 1},
+
+        {tlx, tly + sz, tlx + sz, tly + sz + 1},
+    };
+
+    // inner
+    list->ClearRenderTargetView(outw.rtv, white, 4, rect);
+
+    // shift both sides to just translate the rect without changing its size
+    rect[0].left--;
+    rect[0].right--;
+    rect[1].left++;
+    rect[1].right++;
+    rect[2].left--;
+    rect[2].right--;
+    rect[3].left--;
+    rect[3].right--;
+
+    rect[0].top--;
+    rect[0].bottom--;
+    rect[1].top--;
+    rect[1].bottom--;
+    rect[2].top--;
+    rect[2].bottom--;
+    rect[3].top++;
+    rect[3].bottom++;
+
+    // now increase the 'size' of the rects
+    rect[0].bottom += 2;
+    rect[1].bottom += 2;
+    rect[2].right += 2;
+    rect[3].right += 2;
+
+    // outer
+    list->ClearRenderTargetView(outw.rtv, black, 4, rect);
+
+    list->Close();
+
+    m_WrappedDevice->ExecuteLists();
+    m_WrappedDevice->FlushLists();
+  }
+}
+
 void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 {
   DebugVertexCBuffer vertexData;

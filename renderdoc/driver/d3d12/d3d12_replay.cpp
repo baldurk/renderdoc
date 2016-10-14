@@ -1144,9 +1144,19 @@ void D3D12Replay::RenderCheckerboard(Vec3f light, Vec3f dark)
   m_pDevice->GetDebugManager()->RenderCheckerboard(light, dark);
 }
 
+void D3D12Replay::RenderHighlightBox(float w, float h, float scale)
+{
+  m_pDevice->GetDebugManager()->RenderHighlightBox(w, h, scale);
+}
+
 bool D3D12Replay::RenderTexture(TextureDisplay cfg)
 {
   return m_pDevice->GetDebugManager()->RenderTexture(cfg, true);
+}
+
+bool D3D12Replay::IsTextureSupported(const ResourceFormat &format)
+{
+  return MakeDXGIFormat(format) != DXGI_FORMAT_UNKNOWN;
 }
 
 void D3D12Replay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &retData)
@@ -1159,6 +1169,89 @@ void D3D12Replay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t
                             float pixel[4])
 {
   m_pDevice->GetDebugManager()->PickPixel(texture, x, y, sliceFace, mip, sample, typeHint, pixel);
+}
+
+void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
+                                       vector<ShaderVariable> &outvars, const vector<byte> &data)
+{
+  if(shader == ResourceId())
+    return;
+
+  ID3D12DeviceChild *res = m_pDevice->GetResourceManager()->GetCurrentResource(shader);
+
+  if(!WrappedID3D12PipelineState::ShaderEntry::IsAlloc(res))
+  {
+    RDCERR("Shader ID %llu does not correspond to a known fake shader", shader);
+    return;
+  }
+
+  WrappedID3D12PipelineState::ShaderEntry *sh = (WrappedID3D12PipelineState::ShaderEntry *)res;
+
+  DXBC::DXBCFile *dxbc = sh->GetDXBC();
+  const ShaderBindpointMapping &bindMap = sh->GetMapping();
+
+  RDCASSERT(dxbc);
+
+  DXBC::CBuffer *cb = NULL;
+
+  uint32_t idx = 0;
+  for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
+  {
+    if(dxbc->m_CBuffers[i].descriptor.type != DXBC::CBuffer::Descriptor::TYPE_CBUFFER)
+      continue;
+
+    if(idx == cbufSlot)
+      cb = &dxbc->m_CBuffers[i];
+
+    idx++;
+  }
+
+  if(cb && cbufSlot < (uint32_t)bindMap.ConstantBlocks.count)
+  {
+    // check if the data actually comes from root constants
+
+    const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+    BindpointMap bind = bindMap.ConstantBlocks[cbufSlot];
+
+    WrappedID3D12RootSignature *sig = NULL;
+    const vector<D3D12RenderState::SignatureElement> *sigElems = NULL;
+
+    if(dxbc->m_Type == D3D11_ShaderType_Compute && rs.compute.rootsig != ResourceId())
+    {
+      sig = m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(
+          rs.compute.rootsig);
+      sigElems = &rs.compute.sigelems;
+    }
+    else if(dxbc->m_Type != D3D11_ShaderType_Compute && rs.graphics.rootsig != ResourceId())
+    {
+      sig = m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(
+          rs.graphics.rootsig);
+      sigElems = &rs.graphics.sigelems;
+    }
+
+    vector<byte> rootData;
+
+    for(size_t i = 0; sig && i < sig->sig.params.size(); i++)
+    {
+      const D3D12RootSignatureParameter &p = sig->sig.params[i];
+
+      if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS &&
+         p.Constants.RegisterSpace == (UINT)bind.bindset &&
+         p.Constants.ShaderRegister == (UINT)bind.bind)
+      {
+        rootData.resize(sig->sig.params[i].Constants.Num32BitValues);
+
+        if(i < sigElems->size() && (*sigElems)[i].type == eRootConst)
+        {
+          memcpy(&rootData[0], &(*sigElems)[i].constants[0],
+                 RDCMIN((*sigElems)[i].constants.size() * sizeof(uint32_t), rootData.size()));
+        }
+      }
+    }
+
+    m_pDevice->GetDebugManager()->FillCBufferVariables(cb->variables, outvars, false,
+                                                       rootData.empty() ? data : rootData);
+  }
 }
 
 uint64_t D3D12Replay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
@@ -1311,93 +1404,6 @@ void D3D12Replay::BuildCustomShader(string source, string entry, const uint32_t 
 {
 }
 
-void D3D12Replay::RenderHighlightBox(float w, float h, float scale)
-{
-}
-
-void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
-                                       vector<ShaderVariable> &outvars, const vector<byte> &data)
-{
-  if(shader == ResourceId())
-    return;
-
-  ID3D12DeviceChild *res = m_pDevice->GetResourceManager()->GetCurrentResource(shader);
-
-  if(!WrappedID3D12PipelineState::ShaderEntry::IsAlloc(res))
-  {
-    RDCERR("Shader ID %llu does not correspond to a known fake shader", shader);
-    return;
-  }
-
-  WrappedID3D12PipelineState::ShaderEntry *sh = (WrappedID3D12PipelineState::ShaderEntry *)res;
-
-  DXBC::DXBCFile *dxbc = sh->GetDXBC();
-  const ShaderBindpointMapping &bindMap = sh->GetMapping();
-
-  RDCASSERT(dxbc);
-
-  DXBC::CBuffer *cb = NULL;
-
-  uint32_t idx = 0;
-  for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
-  {
-    if(dxbc->m_CBuffers[i].descriptor.type != DXBC::CBuffer::Descriptor::TYPE_CBUFFER)
-      continue;
-
-    if(idx == cbufSlot)
-      cb = &dxbc->m_CBuffers[i];
-
-    idx++;
-  }
-
-  if(cb && cbufSlot < (uint32_t)bindMap.ConstantBlocks.count)
-  {
-    // check if the data actually comes from root constants
-
-    const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
-    BindpointMap bind = bindMap.ConstantBlocks[cbufSlot];
-
-    WrappedID3D12RootSignature *sig = NULL;
-    const vector<D3D12RenderState::SignatureElement> *sigElems = NULL;
-
-    if(dxbc->m_Type == D3D11_ShaderType_Compute && rs.compute.rootsig != ResourceId())
-    {
-      sig = m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(
-          rs.compute.rootsig);
-      sigElems = &rs.compute.sigelems;
-    }
-    else if(dxbc->m_Type != D3D11_ShaderType_Compute && rs.graphics.rootsig != ResourceId())
-    {
-      sig = m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(
-          rs.graphics.rootsig);
-      sigElems = &rs.graphics.sigelems;
-    }
-
-    vector<byte> rootData;
-
-    for(size_t i = 0; sig && i < sig->sig.params.size(); i++)
-    {
-      const D3D12RootSignatureParameter &p = sig->sig.params[i];
-
-      if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS &&
-         p.Constants.RegisterSpace == (UINT)bind.bindset &&
-         p.Constants.ShaderRegister == (UINT)bind.bind)
-      {
-        rootData.resize(sig->sig.params[i].Constants.Num32BitValues);
-
-        if(i < sigElems->size() && (*sigElems)[i].type == eRootConst)
-        {
-          memcpy(&rootData[0], &(*sigElems)[i].constants[0],
-                 RDCMIN((*sigElems)[i].constants.size() * sizeof(uint32_t), rootData.size()));
-        }
-      }
-    }
-
-    m_pDevice->GetDebugManager()->FillCBufferVariables(cb->variables, outvars, false,
-                                                       rootData.empty() ? data : rootData);
-  }
-}
-
 vector<PixelModification> D3D12Replay::PixelHistory(vector<EventUsage> events, ResourceId target,
                                                     uint32_t x, uint32_t y, uint32_t slice,
                                                     uint32_t mip, uint32_t sampleIdx,
@@ -1455,11 +1461,6 @@ ResourceId D3D12Replay::CreateProxyTexture(const FetchTexture &templateTex)
 void D3D12Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
                                       size_t dataSize)
 {
-}
-
-bool D3D12Replay::IsTextureSupported(const ResourceFormat &format)
-{
-  return MakeDXGIFormat(format) != DXGI_FORMAT_UNKNOWN;
 }
 
 ResourceId D3D12Replay::CreateProxyBuffer(const FetchBuffer &templateBuf)
