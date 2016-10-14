@@ -192,34 +192,30 @@ void WrappedGLES::glBindBuffer(GLenum target, GLuint buffer)
         break;
       }
       r->UnlockChunks();
+
+      {
+        SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
+        Serialise_glBindBuffer(target, buffer);
+
+        r->AddChunk(scope.Get());
+      }
+
     }
 
-    // Always serialize out the BindBuffer
-    // TODO(elecro): double check if this is really ok.
-    {
-      SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
-      Serialise_glBindBuffer(target, buffer);
-
-      r->AddChunk(scope.Get());
-    }
 
     // element array buffer binding is vertex array record state, record there (if we've not just
     // stopped)
-#if 0 // TODO pantos
-    if(m_State == WRITING_IDLE && target == eGL_ELEMENT_ARRAY_BUFFER &&
-       RecordUpdateCheck(cd.m_VertexArrayRecord))
+    if(m_State == WRITING_IDLE && (target == eGL_ELEMENT_ARRAY_BUFFER || target == eGL_ARRAY_BUFFER)
+        && RecordUpdateCheck(cd.m_VertexArrayRecord))
     {
       GLuint vao = cd.m_VertexArrayRecord->Resource.name;
 
-      // use glVertexArrayElementBuffer to ensure the vertex array is bound when we bind the
-      // element buffer
-      SCOPED_SERIALISE_CONTEXT(VAO_ELEMENT_BUFFER);
-      // TODO PEPE ????
-      // Serialise_glVertexArrayElementBuffer(vao, buffer);
+      SCOPED_SERIALISE_CONTEXT(BIND_BUFFER);
+      Serialise_glBindBuffer(target, buffer);
 
       cd.m_VertexArrayRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkDirtyResource(cd.m_VertexArrayRecord->GetResourceID());
     }
-#endif
 
     // store as transform feedback record state
     if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
@@ -2439,15 +2435,12 @@ void WrappedGLES::glBindVertexArray(GLuint array)
   }
 
   if(m_State == WRITING_CAPFRAME)
-    record = m_ContextRecord;
-
-  // TODO PEPE what to do when we are in writing_idle mode and array is 0?
-  if(record)
   {
     SCOPED_SERIALISE_CONTEXT(BIND_VERTEXARRAY);
     Serialise_glBindVertexArray(array);
-    record->AddChunk(scope.Get());
-    GetResourceManager()->MarkVAOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
+    m_ContextRecord->AddChunk(scope.Get());
+    if (record)
+      GetResourceManager()->MarkVAOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
   }
 }
 //
