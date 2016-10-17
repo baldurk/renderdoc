@@ -200,6 +200,7 @@
     HookInit(glUniformMatrix3x4fv); \
     HookInit(glUniformMatrix4x3fv); \
     HookInit(glBlitFramebuffer); \
+    HookInit(glRenderbufferStorageMultisample); \
     HookInit(glFramebufferTextureLayer); \
     HookInit(glMapBufferRange); \
     HookInit(glFlushMappedBufferRange); \
@@ -272,11 +273,14 @@
     HookInit(glGetProgramBinary); \
     HookInit(glProgramBinary); \
     HookInit(glProgramParameteri); \
+    HookInit(glInvalidateFramebuffer); \
+    HookInit(glInvalidateSubFramebuffer); \
     HookInit(glTexStorage2D); \
     HookInit(glTexStorage3D); \
     HookInit(glGetInternalformativ); \
     HookInit(glDrawArraysIndirect); \
     HookInit(glDrawElementsIndirect); \
+    HookInit(glFramebufferParameteri); \
     HookInit(glGetFramebufferParameteriv); \
     HookInit(glGetProgramInterfaceiv); \
     HookInit(glGetProgramResourceIndex); \
@@ -597,6 +601,7 @@
     HookWrapper4(void, glUniformMatrix3x4fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper4(void, glUniformMatrix4x3fv, GLint, location, GLsizei, count, GLboolean, transpose, const GLfloat *, value); \
     HookWrapper10(void, glBlitFramebuffer, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
+    HookWrapper5(void, glRenderbufferStorageMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper5(void, glFramebufferTextureLayer, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, layer); \
     HookWrapper4(void *, glMapBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length, GLbitfield, access); \
     HookWrapper3(void, glFlushMappedBufferRange, GLenum, target, GLintptr, offset, GLsizeiptr, length); \
@@ -669,11 +674,14 @@
     HookWrapper5(void, glGetProgramBinary, GLuint, program, GLsizei, bufSize, GLsizei *, length, GLenum *, binaryFormat, void *, binary); \
     HookWrapper4(void, glProgramBinary, GLuint, program, GLenum, binaryFormat, const void *, binary, GLsizei, length); \
     HookWrapper3(void, glProgramParameteri, GLuint, program, GLenum, pname, GLint, value); \
+    HookWrapper3(void, glInvalidateFramebuffer, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
+    HookWrapper7(void, glInvalidateSubFramebuffer, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
     HookWrapper5(void, glTexStorage2D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper6(void, glTexStorage3D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth); \
     HookWrapper5(void, glGetInternalformativ, GLenum, target, GLenum, internalformat, GLenum, pname, GLsizei, bufSize, GLint *, params); \
     HookWrapper2(void, glDrawArraysIndirect, GLenum, mode, const void *, indirect); \
     HookWrapper3(void, glDrawElementsIndirect, GLenum, mode, GLenum, type, const void *, indirect); \
+    HookWrapper3(void, glFramebufferParameteri, GLenum, target, GLenum, pname, GLint, param); \
     HookWrapper3(void, glGetFramebufferParameteriv, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper4(void, glGetProgramInterfaceiv, GLuint, program, GLenum, programInterface, GLenum, pname, GLint *, params); \
     HookWrapper3(GLuint, glGetProgramResourceIndex, GLuint, program, GLenum, programInterface, const GLchar *, name); \
@@ -828,14 +836,10 @@
 
 // unsupported entry points - used for dummy functions
 #define DefineUnsupportedDummies() \
-    HookWrapper5(void, glRenderbufferStorageMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper3(void, glClearBufferuiv, GLenum, buffer, GLint, drawbuffer, const GLuint *, value); \
     HookWrapper4(void, glGetUniformIndices, GLuint, program, GLsizei, uniformCount, const GLchar *const*, uniformNames, GLuint *, uniformIndices); \
-    HookWrapper3(void, glInvalidateFramebuffer, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments); \
-    HookWrapper7(void, glInvalidateSubFramebuffer, GLenum, target, GLsizei, numAttachments, const GLenum *, attachments, GLint, x, GLint, y, GLsizei, width, GLsizei, height); \
     HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
     HookWrapper1(void, glDispatchComputeIndirect, GLintptr, indirect); \
-    HookWrapper3(void, glFramebufferParameteri, GLenum, target, GLenum, pname, GLint, param); \
     HookWrapper1(void, glMemoryBarrier, GLbitfield, barriers); \
     HookWrapper1(void, glMemoryBarrierByRegion, GLbitfield, barriers); \
     HookWrapper0(void, glBlendBarrier); \
@@ -1220,14 +1224,10 @@
 
 
 #define CheckUnsupported() \
-    HandleUnsupported(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC, glRenderbufferStorageMultisample); \
     HandleUnsupported(PFNGLCLEARBUFFERUIVPROC, glClearBufferuiv); \
     HandleUnsupported(PFNGLGETUNIFORMINDICESPROC, glGetUniformIndices); \
-    HandleUnsupported(PFNGLINVALIDATEFRAMEBUFFERPROC, glInvalidateFramebuffer); \
-    HandleUnsupported(PFNGLINVALIDATESUBFRAMEBUFFERPROC, glInvalidateSubFramebuffer); \
     HandleUnsupported(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
     HandleUnsupported(PFNGLDISPATCHCOMPUTEINDIRECTPROC, glDispatchComputeIndirect); \
-    HandleUnsupported(PFNGLFRAMEBUFFERPARAMETERIPROC, glFramebufferParameteri); \
     HandleUnsupported(PFNGLMEMORYBARRIERPROC, glMemoryBarrier); \
     HandleUnsupported(PFNGLMEMORYBARRIERBYREGIONPROC, glMemoryBarrierByRegion); \
     HandleUnsupported(PFNGLBLENDBARRIERPROC, glBlendBarrier); \

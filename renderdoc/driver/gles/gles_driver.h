@@ -548,6 +548,14 @@ public:
   bool Serialise_glFramebufferTexture2D(GLuint framebuffer, GLenum target, GLenum attachment,
                                         GLenum textarget, GLuint texture,
                                         GLint level);
+  bool Serialise_glFramebufferTexture3DOES(GLuint framebuffer, GLenum target, GLenum attachment,
+                                           GLenum textarget, GLuint texture,
+                                           GLint level, GLint zoffset);
+  bool Serialise_glFramebufferTextureLayer(GLuint framebuffer, GLenum target,
+                                           GLenum attachment, GLuint texture,
+                                           GLint level, GLint layer);
+  bool Serialise_glFramebufferParameteri(GLuint framebuffer, GLenum target,
+                                         GLenum pname, GLint param);
   bool Serialise_glDrawBuffers(GLuint framebuffer, GLsizei n, const GLenum *bufs);
   bool Serialise_glReadBuffer(GLuint framebuffer, GLenum mode);
   bool Serialise_glFramebufferRenderbuffer(GLuint framebuffer, GLenum target, GLenum attachment,
@@ -556,6 +564,9 @@ public:
   bool Serialise_glRenderbufferStorage(GLuint renderbuffer, GLenum target,
                                        GLenum internalformat, GLsizei width,
                                        GLsizei height);
+  bool Serialise_glRenderbufferStorageMultisample(GLuint renderbuffer, GLenum target,
+                                                  GLsizei samples, GLenum internalformat,
+                                                  GLsizei width, GLsizei height);
   bool Serialise_glBlitFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer,
                                    GLint srcX0, GLint srcY0, GLint srcX1,
                                    GLint srcY1, GLint dstX0, GLint dstY0,

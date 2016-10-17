@@ -3365,35 +3365,26 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //      break;
 //
     case GEN_FRAMEBUFFERS: Serialise_glGenFramebuffers(0, NULL); break;
-//    case CREATE_FRAMEBUFFERS: Serialise_glCreateFramebuffers(0, NULL); break;
     case FRAMEBUFFER_TEX: Serialise_glFramebufferTexture(0, eGL_NONE, eGL_NONE, 0, 0); break;
-//    case FRAMEBUFFER_TEX1D:
-//      Serialise_glNamedFramebufferTexture1DEXT(0, eGL_NONE, eGL_NONE, 0, 0);
-//      break;
     case FRAMEBUFFER_TEX2D:
       Serialise_glFramebufferTexture2D(0, eGL_NONE, eGL_NONE, eGL_NONE, 0, 0); break;
-//    case FRAMEBUFFER_TEX3D:
-//      Serialise_glNamedFramebufferTexture3DEXT(0, eGL_NONE, eGL_NONE, 0, 0, 0);
-//      break;
+    case FRAMEBUFFER_TEX3D:
+      Serialise_glFramebufferTexture3DOES(0, eGL_NONE, eGL_NONE, eGL_NONE, 0, 0, 0); break;
     case FRAMEBUFFER_RENDBUF:
       Serialise_glFramebufferRenderbuffer(0, eGL_NONE, eGL_NONE, eGL_NONE, 0); break;
-//    case FRAMEBUFFER_TEXLAYER:
-//      Serialise_glNamedFramebufferTextureLayerEXT(0, eGL_NONE, 0, 0, 0);
-//      break;
-//    case FRAMEBUFFER_PARAM: Serialise_glNamedFramebufferParameteriEXT(0, eGL_NONE, 0); break;
+    case FRAMEBUFFER_TEXLAYER:
+      Serialise_glFramebufferTextureLayer(0, eGL_NONE, eGL_NONE, 0, 0, 0); break;
+    case FRAMEBUFFER_PARAM: Serialise_glFramebufferParameteri(0, eGL_NONE, eGL_NONE, 0); break;
     case READ_BUFFER: Serialise_glReadBuffer(0, eGL_NONE); break;
     case BIND_FRAMEBUFFER: Serialise_glBindFramebuffer(eGL_NONE, 0); break;
-//    case DRAW_BUFFER: Serialise_glFramebufferDrawBufferEXT(0, eGL_NONE); break;
     case DRAW_BUFFERS: Serialise_glDrawBuffers(0, 0, NULL); break;
     case BLIT_FRAMEBUFFER: Serialise_glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, eGL_NONE); break;
 
     case GEN_RENDERBUFFERS: Serialise_glGenRenderbuffers(0, NULL); break;
-//    case CREATE_RENDERBUFFERS: Serialise_glCreateRenderbuffers(0, NULL); break;
     case RENDERBUFFER_STORAGE: Serialise_glRenderbufferStorage(0, eGL_NONE, eGL_NONE, 0, 0); break;
-//    case RENDERBUFFER_STORAGEMS:
-//      Serialise_glNamedRenderbufferStorageMultisampleEXT(0, 0, eGL_NONE, 0, 0);
-//      break;
-//
+    case RENDERBUFFER_STORAGEMS:
+      Serialise_glRenderbufferStorageMultisample(0, eGL_NONE, 0, eGL_NONE, 0, 0); break;
+
     case GEN_SAMPLERS: Serialise_glGenSamplers(0, NULL); break;
     case SAMPLER_PARAMETERI: Serialise_glSamplerParameteri(0, eGL_NONE, 0); break;
     case SAMPLER_PARAMETERF: Serialise_glSamplerParameterf(0, eGL_NONE, 0); break;
@@ -3402,7 +3393,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case SAMPLER_PARAMETERIIV: Serialise_glSamplerParameterIiv(0, eGL_NONE, NULL); break;
     case SAMPLER_PARAMETERIUIV: Serialise_glSamplerParameterIuiv(0, eGL_NONE, NULL); break;
     case BIND_SAMPLER: Serialise_glBindSampler(0, 0); break;
-//
+
     case GEN_BUFFER: Serialise_glGenBuffers(0, NULL); break;
     case BIND_BUFFER: Serialise_glBindBuffer(eGL_NONE, 0); break;
     case BIND_BUFFER_BASE: Serialise_glBindBufferBase(eGL_NONE, 0, 0); break;
