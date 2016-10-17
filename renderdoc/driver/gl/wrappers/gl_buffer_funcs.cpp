@@ -380,6 +380,10 @@ void WrappedOpenGL::Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr siz
 
       // persistent maps always need both sets of shadow storage, so allocate up front.
       record->AllocShadowStorage(size);
+
+      // ensure shadow pointers have up to date data for diffing
+      memcpy(record->GetShadowPtr(0), data, size);
+      memcpy(record->GetShadowPtr(1), data, size);
     }
   }
   else
