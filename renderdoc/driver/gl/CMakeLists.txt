@@ -28,6 +28,7 @@ set(sources
     wrappers/gl_emulated.cpp
     wrappers/gl_framebuffer_funcs.cpp
     wrappers/gl_get_funcs.cpp
+    wrappers/gl_interop_funcs.cpp
     wrappers/gl_query_funcs.cpp
     wrappers/gl_sampler_funcs.cpp
     wrappers/gl_shader_funcs.cpp
