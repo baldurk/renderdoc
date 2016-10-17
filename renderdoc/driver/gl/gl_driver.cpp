@@ -316,6 +316,9 @@ const char *GLChunkNames[] = {
     "Capture",
     "BeginCapture",
     "EndCapture",
+
+    "wglDXRegisterObjectNV",
+    "wglDXLockObjectsNV",
 };
 
 GLInitParams::GLInitParams()
@@ -339,6 +342,7 @@ const uint32_t GLInitParams::GL_OLD_VERSIONS[GLInitParams::GL_NUM_SUPPORTED_OLD_
     0x000011,    // We added initial contents for buffers in this version, we don't have to do
                  // anything special to support older logs, just make sure we don't open new logs
                  // in an older version.
+    0x000012,    // Added support for GL-DX interop
 };
 
 ReplayCreateStatus GLInitParams::Serialise()
@@ -3543,6 +3547,10 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
       }
     }
     break;
+    case INTEROP_INIT:
+      Serialise_wglDXRegisterObjectNV(GLResource(MakeNullResource), eGL_NONE, NULL);
+      break;
+    case INTEROP_DATA: Serialise_wglDXLockObjectsNV(GLResource(MakeNullResource)); break;
     default:
       // ignore system chunks
       if((int)context == (int)INITIAL_CONTENTS)

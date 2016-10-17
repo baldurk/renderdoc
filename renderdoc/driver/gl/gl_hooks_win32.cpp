@@ -811,16 +811,15 @@ private:
       glhooks.wglGetPixelFormatAttribivARB_realfunc = (PFNWGLGETPIXELFORMATATTRIBIVARBPROC)realFunc;
       return (PROC)&wglGetPixelFormatAttribivARB_hooked;
     }
-    if(!strncmp(func, "wgl", 3))    // assume wgl functions are safe to just pass straight through
-    {
-      return realFunc;
-    }
 
     HookCheckGLExtensions();
 
+    // assume wgl functions are safe to just pass straight through
+    if(!strncmp(func, "wgl", 3))
+      return realFunc;
+
     // at the moment the unsupported functions are all lowercase (as their name is generated from
-    // the
-    // typedef name).
+    // the typedef name).
     string lowername = strlower(string(func));
 
     CheckUnsupported();

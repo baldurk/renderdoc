@@ -57,6 +57,7 @@
     <ClCompile Include="wrappers\gl_emulated.cpp" />
     <ClCompile Include="wrappers\gl_framebuffer_funcs.cpp" />
     <ClCompile Include="wrappers\gl_get_funcs.cpp" />
+    <ClCompile Include="wrappers\gl_interop_funcs.cpp" />
     <ClCompile Include="wrappers\gl_query_funcs.cpp" />
     <ClCompile Include="wrappers\gl_sampler_funcs.cpp" />
     <ClCompile Include="wrappers\gl_shader_funcs.cpp" />

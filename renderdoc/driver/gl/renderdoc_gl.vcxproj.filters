@@ -149,5 +149,8 @@
     <ClCompile Include="gl_replay.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
+    <ClCompile Include="wrappers\gl_interop_funcs.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

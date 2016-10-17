@@ -27,6 +27,8 @@
 
 #include "gl_common.h"
 
+// We need to disable clang-format since this struct is programmatically parsed
+// clang-format off
 struct GLHookSet
 {
   // first we list all the core functions. 1.1 functions are separate under 'dllexport' for
@@ -119,12 +121,9 @@ struct GLHookSet
   PFNGLCOMPRESSEDTEXIMAGE1DPROC glCompressedTexImage1D;    // aliases glCompressedTexImage1DARB
   PFNGLCOMPRESSEDTEXIMAGE2DPROC glCompressedTexImage2D;    // aliases glCompressedTexImage2DARB
   PFNGLCOMPRESSEDTEXIMAGE3DPROC glCompressedTexImage3D;    // aliases glCompressedTexImage3DARB
-  PFNGLCOMPRESSEDTEXSUBIMAGE1DPROC
-  glCompressedTexSubImage1D;    // aliases glCompressedTexSubImage1DARB
-  PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC
-  glCompressedTexSubImage2D;    // aliases glCompressedTexSubImage2DARB
-  PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC
-  glCompressedTexSubImage3D;    // aliases glCompressedTexSubImage3DARB
+  PFNGLCOMPRESSEDTEXSUBIMAGE1DPROC glCompressedTexSubImage1D;    // aliases glCompressedTexSubImage1DARB
+  PFNGLCOMPRESSEDTEXSUBIMAGE2DPROC glCompressedTexSubImage2D;    // aliases glCompressedTexSubImage2DARB
+  PFNGLCOMPRESSEDTEXSUBIMAGE3DPROC glCompressedTexSubImage3D;    // aliases glCompressedTexSubImage3DARB
   PFNGLTEXBUFFERRANGEPROC glTexBufferRange;
   PFNGLTEXTUREVIEWPROC glTextureView;
   PFNGLTEXPARAMETERIIVPROC glTexParameterIiv;      // aliases glTexParameterIivEXT
@@ -163,17 +162,14 @@ struct GLHookSet
   PFNGLGETPROGRAMRESOURCELOCATIONPROC glGetProgramResourceLocation;
   PFNGLGETPROGRAMRESOURCELOCATIONINDEXPROC glGetProgramResourceLocationIndex;
   PFNGLGETPROGRAMSTAGEIVPROC glGetProgramStageiv;
-  PFNGLGETGRAPHICSRESETSTATUSPROC
-  glGetGraphicsResetStatus;    // aliases glGetGraphicsResetStatusARB
+  PFNGLGETGRAPHICSRESETSTATUSPROC glGetGraphicsResetStatus;    // aliases glGetGraphicsResetStatusARB
   PFNGLGETOBJECTLABELPROC glGetObjectLabel;
   PFNGLGETOBJECTLABELEXTPROC glGetObjectLabelEXT;
   PFNGLGETOBJECTPTRLABELPROC glGetObjectPtrLabel;
   PFNGLGETDEBUGMESSAGELOGPROC glGetDebugMessageLog;    // aliases glGetDebugMessageLogARB
-  PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC
-  glGetFramebufferAttachmentParameteriv;    // aliases glGetFramebufferAttachmentParameterivEXT
+  PFNGLGETFRAMEBUFFERATTACHMENTPARAMETERIVPROC glGetFramebufferAttachmentParameteriv;    // aliases glGetFramebufferAttachmentParameterivEXT
   PFNGLGETFRAMEBUFFERPARAMETERIVPROC glGetFramebufferParameteriv;
-  PFNGLGETRENDERBUFFERPARAMETERIVPROC
-  glGetRenderbufferParameteriv;    // aliases glGetRenderbufferParameterivEXT
+  PFNGLGETRENDERBUFFERPARAMETERIVPROC glGetRenderbufferParameteriv;    // aliases glGetRenderbufferParameterivEXT
   PFNGLGETMULTISAMPLEFVPROC glGetMultisamplefv;
   PFNGLGETQUERYINDEXEDIVPROC glGetQueryIndexediv;
   PFNGLGETQUERYOBJECTUI64VPROC glGetQueryObjectui64v;    // aliases glGetQueryObjectui64vEXT
@@ -186,8 +182,7 @@ struct GLHookSet
   PFNGLGETVERTEXATTRIBIVPROC glGetVertexAttribiv;
   PFNGLGETVERTEXATTRIBPOINTERVPROC glGetVertexAttribPointerv;
   PFNGLGETCOMPRESSEDTEXIMAGEPROC glGetCompressedTexImage;    // aliases glGetCompressedTexImageARB
-  PFNGLGETNCOMPRESSEDTEXIMAGEPROC
-  glGetnCompressedTexImage;                              // aliases glGetnCompressedTexImageARB
+  PFNGLGETNCOMPRESSEDTEXIMAGEPROC glGetnCompressedTexImage;                              // aliases glGetnCompressedTexImageARB
   PFNGLGETNTEXIMAGEPROC glGetnTexImage;                  // aliases glGetnTexImageARB
   PFNGLGETTEXPARAMETERIIVPROC glGetTexParameterIiv;      // aliases glGetTexParameterIivEXT
   PFNGLGETTEXPARAMETERIUIVPROC glGetTexParameterIuiv;    // aliases glGetTexParameterIuivEXT
@@ -197,8 +192,7 @@ struct GLHookSet
   PFNGLGETSAMPLERPARAMETERIUIVPROC glGetSamplerParameterIuiv;
   PFNGLGETSAMPLERPARAMETERFVPROC glGetSamplerParameterfv;
   PFNGLGETSAMPLERPARAMETERIVPROC glGetSamplerParameteriv;
-  PFNGLGETTRANSFORMFEEDBACKVARYINGPROC
-  glGetTransformFeedbackVarying;    // aliases glGetTransformFeedbackVaryingEXT
+  PFNGLGETTRANSFORMFEEDBACKVARYINGPROC glGetTransformFeedbackVarying;    // aliases glGetTransformFeedbackVaryingEXT
   PFNGLGETSUBROUTINEINDEXPROC glGetSubroutineIndex;
   PFNGLGETSUBROUTINEUNIFORMLOCATIONPROC glGetSubroutineUniformLocation;
   PFNGLGETACTIVEATOMICCOUNTERBUFFERIVPROC glGetActiveAtomicCounterBufferiv;
@@ -229,18 +223,15 @@ struct GLHookSet
   PFNGLGETVERTEXATTRIBLDVPROC glGetVertexAttribLdv;      // aliases glGetVertexAttribLdvEXT
   PFNGLGETVERTEXATTRIBDVPROC glGetVertexAttribdv;
   PFNGLGETVERTEXATTRIBFVPROC glGetVertexAttribfv;
-  PFNGLCHECKFRAMEBUFFERSTATUSPROC
-  glCheckFramebufferStatus;                            // aliases glCheckFramebufferStatusEXT
+  PFNGLCHECKFRAMEBUFFERSTATUSPROC glCheckFramebufferStatus;                            // aliases glCheckFramebufferStatusEXT
   PFNGLBLENDCOLORPROC glBlendColor;                    // aliases glBlendColorEXT
   PFNGLBLENDFUNCIPROC glBlendFunci;                    // aliases glBlendFunciARB
   PFNGLBLENDFUNCSEPARATEPROC glBlendFuncSeparate;      // aliases glBlendFuncSeparateARB
   PFNGLBLENDFUNCSEPARATEIPROC glBlendFuncSeparatei;    // aliases glBlendFuncSeparateiARB
   PFNGLBLENDEQUATIONPROC glBlendEquation;              // aliases glBlendEquationEXT
   PFNGLBLENDEQUATIONIPROC glBlendEquationi;            // aliases glBlendEquationiARB
-  PFNGLBLENDEQUATIONSEPARATEPROC
-  glBlendEquationSeparate;    // aliases glBlendEquationSeparateARB, glBlendEquationSeparateEXT
-  PFNGLBLENDEQUATIONSEPARATEIPROC
-  glBlendEquationSeparatei;    // aliases glBlendEquationSeparateiARB
+  PFNGLBLENDEQUATIONSEPARATEPROC glBlendEquationSeparate;    // aliases glBlendEquationSeparateARB, glBlendEquationSeparateEXT
+  PFNGLBLENDEQUATIONSEPARATEIPROC glBlendEquationSeparatei;    // aliases glBlendEquationSeparateiARB
   PFNGLBLENDBARRIERKHRPROC glBlendBarrierKHR;
   PFNGLSTENCILFUNCSEPARATEPROC glStencilFuncSeparate;
   PFNGLSTENCILMASKSEPARATEPROC glStencilMaskSeparate;
@@ -308,17 +299,13 @@ struct GLHookSet
   PFNGLFRAMEBUFFERTEXTURE1DPROC glFramebufferTexture1D;    // aliases glFramebufferTexture1DEXT
   PFNGLFRAMEBUFFERTEXTURE2DPROC glFramebufferTexture2D;    // aliases glFramebufferTexture2DEXT
   PFNGLFRAMEBUFFERTEXTURE3DPROC glFramebufferTexture3D;    // aliases glFramebufferTexture3DEXT
-  PFNGLFRAMEBUFFERRENDERBUFFERPROC
-  glFramebufferRenderbuffer;    // aliases glFramebufferRenderbufferEXT
-  PFNGLFRAMEBUFFERTEXTURELAYERPROC glFramebufferTextureLayer;    // aliases
-                                                                 // glFramebufferTextureLayerARB,
-                                                                 // glFramebufferTextureLayerEXT
+  PFNGLFRAMEBUFFERRENDERBUFFERPROC glFramebufferRenderbuffer;    // aliases glFramebufferRenderbufferEXT
+  PFNGLFRAMEBUFFERTEXTURELAYERPROC glFramebufferTextureLayer;    // aliases glFramebufferTextureLayerARB, glFramebufferTextureLayerEXT
   PFNGLFRAMEBUFFERPARAMETERIPROC glFramebufferParameteri;
   PFNGLDELETEFRAMEBUFFERSPROC glDeleteFramebuffers;      // aliases glDeleteFramebuffersEXT
   PFNGLGENRENDERBUFFERSPROC glGenRenderbuffers;          // aliases glGenRenderbuffersEXT
   PFNGLRENDERBUFFERSTORAGEPROC glRenderbufferStorage;    // aliases glRenderbufferStorageEXT
-  PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC
-  glRenderbufferStorageMultisample;    // aliases glRenderbufferStorageMultisampleEXT
+  PFNGLRENDERBUFFERSTORAGEMULTISAMPLEPROC glRenderbufferStorageMultisample;    // aliases glRenderbufferStorageMultisampleEXT
   PFNGLDELETERENDERBUFFERSPROC glDeleteRenderbuffers;    // aliases glDeleteRenderbuffersEXT
   PFNGLBINDRENDERBUFFERPROC glBindRenderbuffer;          // aliases glBindRenderbufferEXT
   PFNGLFENCESYNCPROC glFenceSync;
@@ -346,13 +333,11 @@ struct GLHookSet
   PFNGLMAPBUFFERRANGEPROC glMapBufferRange;
   PFNGLFLUSHMAPPEDBUFFERRANGEPROC glFlushMappedBufferRange;
   PFNGLUNMAPBUFFERPROC glUnmapBuffer;    // aliases glUnmapBufferARB
-  PFNGLTRANSFORMFEEDBACKVARYINGSPROC
-  glTransformFeedbackVaryings;    // aliases glTransformFeedbackVaryingsEXT
+  PFNGLTRANSFORMFEEDBACKVARYINGSPROC glTransformFeedbackVaryings;    // aliases glTransformFeedbackVaryingsEXT
   PFNGLGENTRANSFORMFEEDBACKSPROC glGenTransformFeedbacks;
   PFNGLDELETETRANSFORMFEEDBACKSPROC glDeleteTransformFeedbacks;
   PFNGLBINDTRANSFORMFEEDBACKPROC glBindTransformFeedback;
-  PFNGLBEGINTRANSFORMFEEDBACKPROC
-  glBeginTransformFeedback;    // aliases glBeginTransformFeedbackEXT
+  PFNGLBEGINTRANSFORMFEEDBACKPROC glBeginTransformFeedback;    // aliases glBeginTransformFeedbackEXT
   PFNGLPAUSETRANSFORMFEEDBACKPROC glPauseTransformFeedback;
   PFNGLRESUMETRANSFORMFEEDBACKPROC glResumeTransformFeedback;
   PFNGLENDTRANSFORMFEEDBACKPROC glEndTransformFeedback;    // aliases glEndTransformFeedbackEXT
@@ -447,10 +432,8 @@ struct GLHookSet
   PFNGLBINDATTRIBLOCATIONPROC glBindAttribLocation;
   PFNGLBINDFRAGDATALOCATIONPROC glBindFragDataLocation;    // aliases glBindFragDataLocationEXT
   PFNGLBINDFRAGDATALOCATIONINDEXEDPROC glBindFragDataLocationIndexed;
-  PFNGLENABLEVERTEXATTRIBARRAYPROC
-  glEnableVertexAttribArray;    // aliases glEnableVertexAttribArrayARB
-  PFNGLDISABLEVERTEXATTRIBARRAYPROC
-  glDisableVertexAttribArray;    // aliases glDisableVertexAttribArrayARB
+  PFNGLENABLEVERTEXATTRIBARRAYPROC glEnableVertexAttribArray;    // aliases glEnableVertexAttribArrayARB
+  PFNGLDISABLEVERTEXATTRIBARRAYPROC glDisableVertexAttribArray;    // aliases glDisableVertexAttribArrayARB
   PFNGLBINDVERTEXBUFFERPROC glBindVertexBuffer;
   PFNGLBINDVERTEXBUFFERSPROC glBindVertexBuffers;
   PFNGLVERTEXBINDINGDIVISORPROC glVertexBindingDivisor;
@@ -469,10 +452,8 @@ struct GLHookSet
   PFNGLSAMPLERPARAMETERIUIVPROC glSamplerParameterIuiv;
   PFNGLPATCHPARAMETERIPROC glPatchParameteri;
   PFNGLPATCHPARAMETERFVPROC glPatchParameterfv;
-  PFNGLPOINTPARAMETERFPROC
-  glPointParameterf;    // aliases glPointParameterfARB, aliases glPointParameterfEXT
-  PFNGLPOINTPARAMETERFVPROC
-  glPointParameterfv;    // aliases glPointParameterfvARB, aliases glPointParameterfvEXT
+  PFNGLPOINTPARAMETERFPROC glPointParameterf;    // aliases glPointParameterfARB, aliases glPointParameterfEXT
+  PFNGLPOINTPARAMETERFVPROC glPointParameterfv;    // aliases glPointParameterfvARB, aliases glPointParameterfvEXT
   PFNGLPOINTPARAMETERIPROC glPointParameteri;
   PFNGLPOINTPARAMETERIVPROC glPointParameteriv;
   PFNGLDISPATCHCOMPUTEPROC glDispatchCompute;
@@ -586,49 +567,29 @@ struct GLHookSet
   PFNGLPROGRAMUNIFORM4IVPROC glProgramUniform4iv;      // aliases glProgramUniform4ivEXT
   PFNGLPROGRAMUNIFORM4UIVPROC glProgramUniform4uiv;    // aliases glProgramUniform4uivEXT
   PFNGLPROGRAMUNIFORM4DVPROC glProgramUniform4dv;      // aliases glProgramUniform4dvEXT
-  PFNGLPROGRAMUNIFORMMATRIX2FVPROC
-  glProgramUniformMatrix2fv;    // aliases glProgramUniformMatrix2fvEXT
-  PFNGLPROGRAMUNIFORMMATRIX2X3FVPROC
-  glProgramUniformMatrix2x3fv;    // aliases glProgramUniformMatrix2x3fvEXT
-  PFNGLPROGRAMUNIFORMMATRIX2X4FVPROC
-  glProgramUniformMatrix2x4fv;    // aliases glProgramUniformMatrix2x4fvEXT
-  PFNGLPROGRAMUNIFORMMATRIX3FVPROC
-  glProgramUniformMatrix3fv;    // aliases glProgramUniformMatrix3fvEXT
-  PFNGLPROGRAMUNIFORMMATRIX3X2FVPROC
-  glProgramUniformMatrix3x2fv;    // aliases glProgramUniformMatrix3x2fvEXT
-  PFNGLPROGRAMUNIFORMMATRIX3X4FVPROC
-  glProgramUniformMatrix3x4fv;    // aliases glProgramUniformMatrix3x4fvEXT
-  PFNGLPROGRAMUNIFORMMATRIX4FVPROC
-  glProgramUniformMatrix4fv;    // aliases glProgramUniformMatrix4fvEXT
-  PFNGLPROGRAMUNIFORMMATRIX4X2FVPROC
-  glProgramUniformMatrix4x2fv;    // aliases glProgramUniformMatrix4x2fvEXT
-  PFNGLPROGRAMUNIFORMMATRIX4X3FVPROC
-  glProgramUniformMatrix4x3fv;    // aliases glProgramUniformMatrix4x3fvEXT
-  PFNGLPROGRAMUNIFORMMATRIX2DVPROC
-  glProgramUniformMatrix2dv;    // aliases glProgramUniformMatrix2dvEXT
-  PFNGLPROGRAMUNIFORMMATRIX2X3DVPROC
-  glProgramUniformMatrix2x3dv;    // aliases glProgramUniformMatrix2x3dvEXT
-  PFNGLPROGRAMUNIFORMMATRIX2X4DVPROC
-  glProgramUniformMatrix2x4dv;    // aliases glProgramUniformMatrix2x4dvEXT
-  PFNGLPROGRAMUNIFORMMATRIX3DVPROC
-  glProgramUniformMatrix3dv;    // aliases glProgramUniformMatrix3dvEXT
-  PFNGLPROGRAMUNIFORMMATRIX3X2DVPROC
-  glProgramUniformMatrix3x2dv;    // aliases glProgramUniformMatrix3x2dvEXT
-  PFNGLPROGRAMUNIFORMMATRIX3X4DVPROC
-  glProgramUniformMatrix3x4dv;    // aliases glProgramUniformMatrix3x4dvEXT
-  PFNGLPROGRAMUNIFORMMATRIX4DVPROC
-  glProgramUniformMatrix4dv;    // aliases glProgramUniformMatrix4dvEXT
-  PFNGLPROGRAMUNIFORMMATRIX4X2DVPROC
-  glProgramUniformMatrix4x2dv;    // aliases glProgramUniformMatrix4x2dvEXT
-  PFNGLPROGRAMUNIFORMMATRIX4X3DVPROC
-  glProgramUniformMatrix4x3dv;                       // aliases glProgramUniformMatrix4x3dvEXT
+  PFNGLPROGRAMUNIFORMMATRIX2FVPROC glProgramUniformMatrix2fv;    // aliases glProgramUniformMatrix2fvEXT
+  PFNGLPROGRAMUNIFORMMATRIX2X3FVPROC glProgramUniformMatrix2x3fv;    // aliases glProgramUniformMatrix2x3fvEXT
+  PFNGLPROGRAMUNIFORMMATRIX2X4FVPROC glProgramUniformMatrix2x4fv;    // aliases glProgramUniformMatrix2x4fvEXT
+  PFNGLPROGRAMUNIFORMMATRIX3FVPROC glProgramUniformMatrix3fv;    // aliases glProgramUniformMatrix3fvEXT
+  PFNGLPROGRAMUNIFORMMATRIX3X2FVPROC glProgramUniformMatrix3x2fv;    // aliases glProgramUniformMatrix3x2fvEXT
+  PFNGLPROGRAMUNIFORMMATRIX3X4FVPROC glProgramUniformMatrix3x4fv;    // aliases glProgramUniformMatrix3x4fvEXT
+  PFNGLPROGRAMUNIFORMMATRIX4FVPROC glProgramUniformMatrix4fv;    // aliases glProgramUniformMatrix4fvEXT
+  PFNGLPROGRAMUNIFORMMATRIX4X2FVPROC glProgramUniformMatrix4x2fv;    // aliases glProgramUniformMatrix4x2fvEXT
+  PFNGLPROGRAMUNIFORMMATRIX4X3FVPROC glProgramUniformMatrix4x3fv;    // aliases glProgramUniformMatrix4x3fvEXT
+  PFNGLPROGRAMUNIFORMMATRIX2DVPROC glProgramUniformMatrix2dv;    // aliases glProgramUniformMatrix2dvEXT
+  PFNGLPROGRAMUNIFORMMATRIX2X3DVPROC glProgramUniformMatrix2x3dv;    // aliases glProgramUniformMatrix2x3dvEXT
+  PFNGLPROGRAMUNIFORMMATRIX2X4DVPROC glProgramUniformMatrix2x4dv;    // aliases glProgramUniformMatrix2x4dvEXT
+  PFNGLPROGRAMUNIFORMMATRIX3DVPROC glProgramUniformMatrix3dv;    // aliases glProgramUniformMatrix3dvEXT
+  PFNGLPROGRAMUNIFORMMATRIX3X2DVPROC glProgramUniformMatrix3x2dv;    // aliases glProgramUniformMatrix3x2dvEXT
+  PFNGLPROGRAMUNIFORMMATRIX3X4DVPROC glProgramUniformMatrix3x4dv;    // aliases glProgramUniformMatrix3x4dvEXT
+  PFNGLPROGRAMUNIFORMMATRIX4DVPROC glProgramUniformMatrix4dv;    // aliases glProgramUniformMatrix4dvEXT
+  PFNGLPROGRAMUNIFORMMATRIX4X2DVPROC glProgramUniformMatrix4x2dv;    // aliases glProgramUniformMatrix4x2dvEXT
+  PFNGLPROGRAMUNIFORMMATRIX4X3DVPROC glProgramUniformMatrix4x3dv;                       // aliases glProgramUniformMatrix4x3dvEXT
   PFNGLDRAWRANGEELEMENTSPROC glDrawRangeElements;    // aliases glDrawRangeElementsEXT
   PFNGLDRAWRANGEELEMENTSBASEVERTEXPROC glDrawRangeElementsBaseVertex;
   PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEPROC glDrawArraysInstancedBaseInstance;
-  PFNGLDRAWARRAYSINSTANCEDPROC
-  glDrawArraysInstanced;    // aliases glDrawArraysInstancedARB, glDrawArraysInstancedEXT
-  PFNGLDRAWELEMENTSINSTANCEDPROC
-  glDrawElementsInstanced;    // aliases glDrawElementsInstancedARB, glDrawElementsInstancedEXT
+  PFNGLDRAWARRAYSINSTANCEDPROC glDrawArraysInstanced;    // aliases glDrawArraysInstancedARB, glDrawArraysInstancedEXT
+  PFNGLDRAWELEMENTSINSTANCEDPROC glDrawElementsInstanced;    // aliases glDrawElementsInstancedARB, glDrawElementsInstancedEXT
   PFNGLDRAWELEMENTSINSTANCEDBASEINSTANCEPROC glDrawElementsInstancedBaseInstance;
   PFNGLDRAWELEMENTSBASEVERTEXPROC glDrawElementsBaseVertex;
   PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXPROC glDrawElementsInstancedBaseVertex;
@@ -723,22 +684,14 @@ struct GLHookSet
   PFNGLGETMULTITEXLEVELPARAMETERFVEXTPROC glGetMultiTexLevelParameterfvEXT;
   PFNGLGETMULTITEXLEVELPARAMETERIVEXTPROC glGetMultiTexLevelParameterivEXT;
   PFNGLGETCOMPRESSEDMULTITEXIMAGEEXTPROC glGetCompressedMultiTexImageEXT;
-  PFNGLGETNAMEDBUFFERPOINTERVEXTPROC
-  glGetNamedBufferPointervEXT;    // aliases glGetNamedBufferPointerv
+  PFNGLGETNAMEDBUFFERPOINTERVEXTPROC glGetNamedBufferPointervEXT;    // aliases glGetNamedBufferPointerv
   PFNGLGETNAMEDPROGRAMIVEXTPROC glGetNamedProgramivEXT;
-  PFNGLGETNAMEDFRAMEBUFFERATTACHMENTPARAMETERIVEXTPROC
-  glGetNamedFramebufferAttachmentParameterivEXT;    // aliases
-                                                    // glGetNamedFramebufferAttachmentParameteriv
-  PFNGLGETNAMEDBUFFERPARAMETERIVEXTPROC
-  glGetNamedBufferParameterivEXT;    // aliases glGetNamedBufferParameteriv
-  PFNGLCHECKNAMEDFRAMEBUFFERSTATUSEXTPROC
-  glCheckNamedFramebufferStatusEXT;    // aliases glCheckNamedFramebufferStatus
+  PFNGLGETNAMEDFRAMEBUFFERATTACHMENTPARAMETERIVEXTPROC glGetNamedFramebufferAttachmentParameterivEXT;    // aliases glGetNamedFramebufferAttachmentParameteriv
+  PFNGLGETNAMEDBUFFERPARAMETERIVEXTPROC glGetNamedBufferParameterivEXT;    // aliases glGetNamedBufferParameteriv
+  PFNGLCHECKNAMEDFRAMEBUFFERSTATUSEXTPROC glCheckNamedFramebufferStatusEXT;    // aliases glCheckNamedFramebufferStatus
   PFNGLGETNAMEDBUFFERSUBDATAEXTPROC glGetNamedBufferSubDataEXT;
-  PFNGLGETNAMEDFRAMEBUFFERPARAMETERIVEXTPROC glGetNamedFramebufferParameterivEXT;    // aliases
-  // glGetFramebufferParameterivEXT,
-  // glGetNamedFramebufferParameteriv
-  PFNGLGETNAMEDRENDERBUFFERPARAMETERIVEXTPROC
-  glGetNamedRenderbufferParameterivEXT;    // aliases glGetNamedRenderbufferParameteriv
+  PFNGLGETNAMEDFRAMEBUFFERPARAMETERIVEXTPROC glGetNamedFramebufferParameterivEXT;    // aliases glGetFramebufferParameterivEXT, glGetNamedFramebufferParameteriv
+  PFNGLGETNAMEDRENDERBUFFERPARAMETERIVEXTPROC glGetNamedRenderbufferParameterivEXT;    // aliases glGetNamedRenderbufferParameteriv
   PFNGLGETVERTEXARRAYINTEGERVEXTPROC glGetVertexArrayIntegervEXT;
   PFNGLGETVERTEXARRAYPOINTERVEXTPROC glGetVertexArrayPointervEXT;
   PFNGLGETVERTEXARRAYINTEGERI_VEXTPROC glGetVertexArrayIntegeri_vEXT;
@@ -762,27 +715,18 @@ struct GLHookSet
   PFNGLNAMEDBUFFERSTORAGEEXTPROC glNamedBufferStorageEXT;
   PFNGLNAMEDBUFFERSUBDATAEXTPROC glNamedBufferSubDataEXT;
   PFNGLNAMEDCOPYBUFFERSUBDATAEXTPROC glNamedCopyBufferSubDataEXT;
-  PFNGLNAMEDFRAMEBUFFERTEXTUREEXTPROC
-  glNamedFramebufferTextureEXT;    // aliases glNamedFramebufferTexture
+  PFNGLNAMEDFRAMEBUFFERTEXTUREEXTPROC glNamedFramebufferTextureEXT;    // aliases glNamedFramebufferTexture
   PFNGLNAMEDFRAMEBUFFERTEXTURE1DEXTPROC glNamedFramebufferTexture1DEXT;
   PFNGLNAMEDFRAMEBUFFERTEXTURE2DEXTPROC glNamedFramebufferTexture2DEXT;
   PFNGLNAMEDFRAMEBUFFERTEXTURE3DEXTPROC glNamedFramebufferTexture3DEXT;
-  PFNGLNAMEDFRAMEBUFFERRENDERBUFFEREXTPROC
-  glNamedFramebufferRenderbufferEXT;    // aliases glNamedFramebufferRenderbuffer
-  PFNGLNAMEDFRAMEBUFFERTEXTURELAYEREXTPROC
-  glNamedFramebufferTextureLayerEXT;    // aliases glNamedFramebufferTextureLayer
-  PFNGLNAMEDFRAMEBUFFERPARAMETERIEXTPROC
-  glNamedFramebufferParameteriEXT;    // aliases glNamedFramebufferParameteri
-  PFNGLNAMEDRENDERBUFFERSTORAGEEXTPROC
-  glNamedRenderbufferStorageEXT;    // aliases glNamedRenderbufferStorage
-  PFNGLNAMEDRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC
-  glNamedRenderbufferStorageMultisampleEXT;    // aliases glNamedRenderbufferStorageMultisample
-  PFNGLFRAMEBUFFERDRAWBUFFEREXTPROC
-  glFramebufferDrawBufferEXT;    // aliases glNamedFramebufferDrawBuffer
-  PFNGLFRAMEBUFFERDRAWBUFFERSEXTPROC
-  glFramebufferDrawBuffersEXT;    // aliases glNamedFramebufferDrawBuffers
-  PFNGLFRAMEBUFFERREADBUFFEREXTPROC
-  glFramebufferReadBufferEXT;    // aliases glNamedFramebufferReadBuffer
+  PFNGLNAMEDFRAMEBUFFERRENDERBUFFEREXTPROC glNamedFramebufferRenderbufferEXT;    // aliases glNamedFramebufferRenderbuffer
+  PFNGLNAMEDFRAMEBUFFERTEXTURELAYEREXTPROC glNamedFramebufferTextureLayerEXT;    // aliases glNamedFramebufferTextureLayer
+  PFNGLNAMEDFRAMEBUFFERPARAMETERIEXTPROC glNamedFramebufferParameteriEXT;    // aliases glNamedFramebufferParameteri
+  PFNGLNAMEDRENDERBUFFERSTORAGEEXTPROC glNamedRenderbufferStorageEXT;    // aliases glNamedRenderbufferStorage
+  PFNGLNAMEDRENDERBUFFERSTORAGEMULTISAMPLEEXTPROC glNamedRenderbufferStorageMultisampleEXT;    // aliases glNamedRenderbufferStorageMultisample
+  PFNGLFRAMEBUFFERDRAWBUFFEREXTPROC glFramebufferDrawBufferEXT;    // aliases glNamedFramebufferDrawBuffer
+  PFNGLFRAMEBUFFERDRAWBUFFERSEXTPROC glFramebufferDrawBuffersEXT;    // aliases glNamedFramebufferDrawBuffers
+  PFNGLFRAMEBUFFERREADBUFFEREXTPROC glFramebufferReadBufferEXT;    // aliases glNamedFramebufferReadBuffer
   PFNGLTEXTUREBUFFEREXTPROC glTextureBufferEXT;
   PFNGLTEXTUREBUFFERRANGEEXTPROC glTextureBufferRangeEXT;
   PFNGLTEXTUREIMAGE1DEXTPROC glTextureImage1DEXT;
@@ -834,27 +778,18 @@ struct GLHookSet
   PFNGLGENERATEMULTITEXMIPMAPEXTPROC glGenerateMultiTexMipmapEXT;
   PFNGLVERTEXARRAYVERTEXATTRIBOFFSETEXTPROC glVertexArrayVertexAttribOffsetEXT;
   PFNGLVERTEXARRAYVERTEXATTRIBIOFFSETEXTPROC glVertexArrayVertexAttribIOffsetEXT;
-  PFNGLENABLEVERTEXARRAYATTRIBEXTPROC
-  glEnableVertexArrayAttribEXT;    // aliases glEnableVertexArrayAttrib
-  PFNGLDISABLEVERTEXARRAYATTRIBEXTPROC
-  glDisableVertexArrayAttribEXT;    // aliases glDisableVertexArrayAttrib
-  PFNGLVERTEXARRAYBINDVERTEXBUFFEREXTPROC
-  glVertexArrayBindVertexBufferEXT;    // aliases glVertexArrayVertexBuffer
-  PFNGLVERTEXARRAYVERTEXATTRIBFORMATEXTPROC
-  glVertexArrayVertexAttribFormatEXT;    // aliases glVertexArrayAttribFormat
-  PFNGLVERTEXARRAYVERTEXATTRIBIFORMATEXTPROC
-  glVertexArrayVertexAttribIFormatEXT;    // aliases glVertexArrayAttribIFormat
-  PFNGLVERTEXARRAYVERTEXATTRIBLFORMATEXTPROC
-  glVertexArrayVertexAttribLFormatEXT;    // aliases glVertexArrayAttribLFormat
-  PFNGLVERTEXARRAYVERTEXATTRIBBINDINGEXTPROC
-  glVertexArrayVertexAttribBindingEXT;    // aliases glVertexArrayAttribBinding
-  PFNGLVERTEXARRAYVERTEXBINDINGDIVISOREXTPROC
-  glVertexArrayVertexBindingDivisorEXT;    // aliases glVertexArrayBindingDivisor
+  PFNGLENABLEVERTEXARRAYATTRIBEXTPROC glEnableVertexArrayAttribEXT;    // aliases glEnableVertexArrayAttrib
+  PFNGLDISABLEVERTEXARRAYATTRIBEXTPROC glDisableVertexArrayAttribEXT;    // aliases glDisableVertexArrayAttrib
+  PFNGLVERTEXARRAYBINDVERTEXBUFFEREXTPROC glVertexArrayBindVertexBufferEXT;    // aliases glVertexArrayVertexBuffer
+  PFNGLVERTEXARRAYVERTEXATTRIBFORMATEXTPROC glVertexArrayVertexAttribFormatEXT;    // aliases glVertexArrayAttribFormat
+  PFNGLVERTEXARRAYVERTEXATTRIBIFORMATEXTPROC glVertexArrayVertexAttribIFormatEXT;    // aliases glVertexArrayAttribIFormat
+  PFNGLVERTEXARRAYVERTEXATTRIBLFORMATEXTPROC glVertexArrayVertexAttribLFormatEXT;    // aliases glVertexArrayAttribLFormat
+  PFNGLVERTEXARRAYVERTEXATTRIBBINDINGEXTPROC glVertexArrayVertexAttribBindingEXT;    // aliases glVertexArrayAttribBinding
+  PFNGLVERTEXARRAYVERTEXBINDINGDIVISOREXTPROC glVertexArrayVertexBindingDivisorEXT;    // aliases glVertexArrayBindingDivisor
   PFNGLVERTEXARRAYVERTEXATTRIBLOFFSETEXTPROC glVertexArrayVertexAttribLOffsetEXT;
   PFNGLVERTEXARRAYVERTEXATTRIBDIVISOREXTPROC glVertexArrayVertexAttribDivisorEXT;
 
-  // ARB_direct_state_access unique functions (others will be listed as aliases of EXT_dsa, see
-  // above).
+  // ARB_direct_state_access unique functions (others will be listed as aliases of EXT_dsa, see above).
 
   PFNGLCREATETRANSFORMFEEDBACKSPROC glCreateTransformFeedbacks;
   PFNGLTRANSFORMFEEDBACKBUFFERBASEPROC glTransformFeedbackBufferBase;
@@ -935,6 +870,17 @@ struct GLHookSet
   PFNGLGETQUERYBUFFEROBJECTIVPROC glGetQueryBufferObjectiv;
   PFNGLGETQUERYBUFFEROBJECTUI64VPROC glGetQueryBufferObjectui64v;
   PFNGLGETQUERYBUFFEROBJECTUIVPROC glGetQueryBufferObjectuiv;
+  
+  // stubbed on all non-windows platforms
+  PFNWGLDXSETRESOURCESHAREHANDLENVPROC wglDXSetResourceShareHandleNV;
+  PFNWGLDXOPENDEVICENVPROC wglDXOpenDeviceNV;
+  PFNWGLDXCLOSEDEVICENVPROC wglDXCloseDeviceNV;
+  PFNWGLDXREGISTEROBJECTNVPROC wglDXRegisterObjectNV;
+  PFNWGLDXUNREGISTEROBJECTNVPROC wglDXUnregisterObjectNV;
+  PFNWGLDXOBJECTACCESSNVPROC wglDXObjectAccessNV;
+  PFNWGLDXLOCKOBJECTSNVPROC wglDXLockObjectsNV;
+  PFNWGLDXUNLOCKOBJECTSNVPROC wglDXUnlockObjectsNV;
 
   // --
 };
+// clang-format on

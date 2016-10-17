@@ -35,6 +35,7 @@ open(HOOKSET, "<gl_hookset.h") || die "Couldn't open gl_hookset.h - run in drive
 my @unsupported = ();
 my @dllexport = ();
 my @glext = ();
+my @dropped = ();
 
 my $current = \@unsupported;
 
@@ -63,7 +64,7 @@ while(<HOOKSET>)
 	}
        elsif($current != \@unsupported)
 	{
-		if($line =~ /(PFN.*PROC) (.*);( \/\/ aliases )?([a-zA-Z0-9_ ,]*)?/)
+		if($line =~ /(PFN.*PROC) (.*);(\s*\/\/ aliases )?([a-zA-Z0-9_ ,]*)?/)
 		{
 			my $typedef = $1;
 			my $name = $2;
@@ -95,7 +96,7 @@ my @dllexportfuncs = ();
 my @glextfuncs = ();
 my @processed = ();
 
-my $typedefs = `grep -Eh PFN[0-9A-Z_-]+PROC official/glcorearb.h official/glext.h`;
+my $typedefs = `grep -Eh PFN[0-9A-Z_-]+PROC official/glcorearb.h official/glext.h official/wglext.h`;
 foreach my $typedef (split(/\n/, $typedefs))
 {
 	if($typedef =~ /^typedef (.*)\([A-Z *]* (.*)\) \((.*)\);/)
@@ -146,6 +147,10 @@ foreach my $typedef (split(/\n/, $typedefs))
 				$current = \@glextfuncs;
 			}
 		}
+		elsif($name =~ /^wgl/i)
+		{
+				$current = \@dropped;
+		}
 
 		my $funcdefmacro = "HookWrapper$argcount($returnType, $name";
 		$funcdefmacro .= ", $args" if $args ne "";
@@ -181,19 +186,19 @@ if($printdefs)
 print <<ENDOFHEADER;
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015-2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -202,7 +207,6 @@ print <<ENDOFHEADER;
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
-
 
 #pragma once
 
@@ -213,13 +217,15 @@ print <<ENDOFHEADER;
 // \$ ./hookset.pl > gl_hookset_defs.h
 ENDOFHEADER
 
+print "// We need to disable clang-format since this struct is programmatically generated\n";
+print "// clang-format off\n";
 print "////////////////////////////////////////////////////\n";
 print "\n";
 print "// dllexport functions\n";
 print "#define DLLExportHooks() \\\n";
 foreach my $el (@dllexportfuncs)
 {
-	print "    HookInit($el->{name}); \\\n"
+	print "  HookInit($el->{name}); \\\n"
 }
 print "\n";
 print "\n";
@@ -228,15 +234,15 @@ print "// gl extensions\n";
 print "#define HookCheckGLExtensions() \\\n";
 foreach my $el (@glextfuncs)
 {
-	print "    HookExtension($el->{typedef}, $el->{name}); \\\n";
-       foreach(@{$el->{aliases}})
+	print "  HookExtension($el->{typedef}, $el->{name}); \\\n";
+  foreach my $alias (@{$el->{aliases}})
 	{
-		print "    HookExtensionAlias($el->{typedef}, $el->{name}, $_); \\\n";
+		print "  HookExtensionAlias($el->{typedef}, $el->{name}, $alias); \\\n";
 	}
 }
 foreach my $el (@dllexportfuncs)
 {
-	print "    HookExtension($el->{typedef}, $el->{name}); \\\n"
+	print "  HookExtension($el->{typedef}, $el->{name}); \\\n"
 }
 print "\n";
 print "\n";
@@ -274,7 +280,6 @@ foreach my $el (@unsupported)
        print "    HandleUnsupported($el->{typedef}, $el->{name}); \\\n"
 }
 print "\n";
-print "\n";
-print "\n";
+print "// clang-format on\n";
 print "\n";
 

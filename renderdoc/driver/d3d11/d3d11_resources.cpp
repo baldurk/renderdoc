@@ -428,6 +428,115 @@ ResourceType IdentifyTypeByPtr(IUnknown *ptr)
   return Resource_Unknown;
 }
 
+void *UnwrapDXDevice(void *dxDevice)
+{
+  if(WrappedID3D11Device::IsAlloc(dxDevice))
+    return ((WrappedID3D11Device *)(ID3D11Device *)dxDevice)->GetReal();
+
+  return NULL;
+}
+
+ID3D11Resource *UnwrapDXResource(void *dxObject)
+{
+  if(WrappedID3D11Buffer::IsAlloc(dxObject))
+  {
+    WrappedID3D11Buffer *w = (WrappedID3D11Buffer *)(ID3D11Buffer *)dxObject;
+    return w->GetReal();
+  }
+  else if(WrappedID3D11Texture1D::IsAlloc(dxObject))
+  {
+    WrappedID3D11Texture1D *w = (WrappedID3D11Texture1D *)(ID3D11Texture1D *)dxObject;
+    return w->GetReal();
+  }
+  else if(WrappedID3D11Texture2D1::IsAlloc(dxObject))
+  {
+    WrappedID3D11Texture2D1 *w = (WrappedID3D11Texture2D1 *)(ID3D11Texture2D1 *)dxObject;
+    return w->GetReal();
+  }
+  else if(WrappedID3D11Texture3D1::IsAlloc(dxObject))
+  {
+    WrappedID3D11Texture3D1 *w = (WrappedID3D11Texture3D1 *)(ID3D11Texture3D1 *)dxObject;
+    return w->GetReal();
+  }
+
+  return NULL;
+}
+
+void GetDXTextureProperties(void *dxObject, ResourceFormat &fmt, uint32_t &width, uint32_t &height,
+                            uint32_t &depth, uint32_t &mips, uint32_t &layers, uint32_t &samples)
+{
+  if(WrappedID3D11Buffer::IsAlloc(dxObject))
+  {
+    WrappedID3D11Buffer *w = (WrappedID3D11Buffer *)(ID3D11Buffer *)dxObject;
+
+    D3D11_BUFFER_DESC desc;
+    w->GetDesc(&desc);
+
+    fmt = ResourceFormat();
+    width = desc.ByteWidth;
+    height = 1;
+    depth = 1;
+    mips = 1;
+    layers = 1;
+    samples = 1;
+
+    return;
+  }
+  else if(WrappedID3D11Texture1D::IsAlloc(dxObject))
+  {
+    WrappedID3D11Texture1D *w = (WrappedID3D11Texture1D *)(ID3D11Texture1D *)dxObject;
+
+    D3D11_TEXTURE1D_DESC desc;
+    w->GetDesc(&desc);
+
+    fmt = MakeResourceFormat(desc.Format);
+    width = desc.Width;
+    height = 1;
+    depth = 1;
+    mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, 1, 1);
+    layers = desc.ArraySize;
+    samples = 1;
+
+    return;
+  }
+  else if(WrappedID3D11Texture2D1::IsAlloc(dxObject))
+  {
+    WrappedID3D11Texture2D1 *w = (WrappedID3D11Texture2D1 *)(ID3D11Texture2D1 *)dxObject;
+
+    D3D11_TEXTURE2D_DESC desc;
+    w->GetDesc(&desc);
+
+    fmt = MakeResourceFormat(desc.Format);
+    width = desc.Width;
+    height = desc.Height;
+    depth = 1;
+    mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, 1);
+    layers = desc.ArraySize;
+    samples = desc.SampleDesc.Count;
+
+    return;
+  }
+  else if(WrappedID3D11Texture3D1::IsAlloc(dxObject))
+  {
+    WrappedID3D11Texture3D1 *w = (WrappedID3D11Texture3D1 *)(ID3D11Texture3D1 *)dxObject;
+
+    D3D11_TEXTURE3D_DESC desc;
+    w->GetDesc(&desc);
+
+    fmt = MakeResourceFormat(desc.Format);
+    width = desc.Width;
+    height = desc.Height;
+    depth = desc.Depth;
+    mips = desc.MipLevels ? desc.MipLevels : CalcNumMips(desc.Width, desc.Height, desc.Depth);
+    layers = 1;
+    samples = 1;
+
+    return;
+  }
+
+  RDCERR("Getting DX texture properties for unknown/unhandled objects %p", dxObject);
+}
+
 HRESULT STDMETHODCALLTYPE RefCounter::QueryInterface(
     /* [in] */ REFIID riid,
     /* [annotation][iid_is][out] */

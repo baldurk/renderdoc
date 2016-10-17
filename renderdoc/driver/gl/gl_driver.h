@@ -53,10 +53,10 @@ struct GLInitParams : public RDCInitParams
   uint32_t width;
   uint32_t height;
 
-  static const uint32_t GL_SERIALISE_VERSION = 0x0000012;
+  static const uint32_t GL_SERIALISE_VERSION = 0x0000013;
 
   // backwards compatibility for old logs described at the declaration of this array
-  static const uint32_t GL_NUM_SUPPORTED_OLD_VERSIONS = 2;
+  static const uint32_t GL_NUM_SUPPORTED_OLD_VERSIONS = 3;
   static const uint32_t GL_OLD_VERSIONS[GL_NUM_SUPPORTED_OLD_VERSIONS];
 
   // version number internal to opengl stream
@@ -244,6 +244,7 @@ private:
           height(0),
           depth(0),
           samples(0),
+          mips(1),
           creationFlags(0),
           internalFormat(eGL_NONE),
           renderbufferReadTex(0)
@@ -254,7 +255,7 @@ private:
     GLenum curType;
     GLint dimension;
     bool emulated, view;
-    GLint width, height, depth, samples;
+    GLint width, height, depth, samples, mips;
     uint32_t creationFlags;
     GLenum internalFormat;
 
@@ -2367,6 +2368,19 @@ public:
                                                                  GLsizei count, const GLuint *buffers,
                                                                  const GLintptr *offsets,
                                                                  const GLsizei *strides));
+
+  bool Serialise_wglDXRegisterObjectNV(GLResource res, GLenum type, void *dxObject);
+  bool Serialise_wglDXLockObjectsNV(GLResource res);
+
+  BOOL wglDXSetResourceShareHandleNV(void *dxObject, HANDLE shareHandle);
+  HANDLE wglDXOpenDeviceNV(void *dxDevice);
+  BOOL wglDXCloseDeviceNV(HANDLE hDevice);
+  HANDLE wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLuint name, GLenum type,
+                               GLenum access);
+  BOOL wglDXUnregisterObjectNV(HANDLE hDevice, HANDLE hObject);
+  BOOL wglDXObjectAccessNV(HANDLE hObject, GLenum access);
+  BOOL wglDXLockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObjects);
+  BOOL wglDXUnlockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObjects);
 };
 
 class ScopedDebugContext

@@ -112,6 +112,22 @@ struct GLWindowingData
 #error "Unknown platform"
 #endif
 
+// define stubs so other platforms can define these functions, but empty
+#if !defined(RENDERDOC_PLATFORM_WIN32)
+typedef void *HANDLE;
+typedef long BOOL;
+
+typedef BOOL(APIENTRYP *PFNWGLDXSETRESOURCESHAREHANDLENVPROC)(void *dxObject, HANDLE shareHandle);
+typedef HANDLE(APIENTRYP *PFNWGLDXOPENDEVICENVPROC)(void *dxDevice);
+typedef BOOL(APIENTRYP *PFNWGLDXCLOSEDEVICENVPROC)(HANDLE hDevice);
+typedef HANDLE(APIENTRYP *PFNWGLDXREGISTEROBJECTNVPROC)(HANDLE hDevice, void *dxObject, GLuint name,
+                                                        GLenum type, GLenum access);
+typedef BOOL(APIENTRYP *PFNWGLDXUNREGISTEROBJECTNVPROC)(HANDLE hDevice, HANDLE hObject);
+typedef BOOL(APIENTRYP *PFNWGLDXOBJECTACCESSNVPROC)(HANDLE hObject, GLenum access);
+typedef BOOL(APIENTRYP *PFNWGLDXLOCKOBJECTSNVPROC)(HANDLE hDevice, GLint count, HANDLE *hObjects);
+typedef BOOL(APIENTRYP *PFNWGLDXUNLOCKOBJECTSNVPROC)(HANDLE hDevice, GLint count, HANDLE *hObjects);
+#endif
+
 #include "api/replay/renderdoc_replay.h"
 
 // similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the
@@ -503,6 +519,9 @@ enum GLChunkType
   CAPTURE_SCOPE,
   CONTEXT_CAPTURE_HEADER,
   CONTEXT_CAPTURE_FOOTER,
+
+  INTEROP_INIT,
+  INTEROP_DATA,
 
   NUM_OPENGL_CHUNKS,
 };
