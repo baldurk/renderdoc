@@ -789,9 +789,7 @@ bool WrappedGLES::Serialise_glDrawArraysIndirect(GLenum mode, const void *indire
   if(m_State == READING)
   {
     DrawArraysIndirectCommand params;
-    void* data = m_Real.glMapBufferRange(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)Offset, sizeof(params), eGL_MAP_READ_BIT);
-    if (data != NULL)
-      memcpy(&params, data, sizeof(params));
+    glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)Offset, sizeof(params), &params);
 
     AddEvent(DRAWARRAYS_INDIRECT, desc);
     string name = "glDrawArraysIndirect(" + ToStr::Get(params.count) + ", " +
@@ -1151,12 +1149,7 @@ bool WrappedGLES::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, con
   if(m_State == READING)
   {
     DrawElementsIndirectCommand params;
-//    m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)Offset, sizeof(params), &params);
-    {
-      void* data = m_Real.glMapBufferRange(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)Offset, sizeof(params), eGL_MAP_READ_BIT);
-      if (data != NULL)
-        memcpy(&params, data, sizeof(params));
-    }
+    glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)Offset, sizeof(params), &params);
 
     AddEvent(DRAWELEMENTS_INDIRECT, desc);
     string name = "glDrawElementsIndirect(" + ToStr::Get(params.count) + ", " +

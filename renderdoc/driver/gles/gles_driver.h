@@ -741,6 +741,7 @@ public:
 
   // GLES - GL compatibility like methods
   void glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt, GLenum type, GLint width, GLint height, void *ret);
+  void glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data);
   void glGetNamedBufferSubDataEXT(GLuint buffer, GLenum target, GLintptr offset, GLsizeiptr size, void *data);
 };
 
