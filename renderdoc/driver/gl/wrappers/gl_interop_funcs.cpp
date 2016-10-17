@@ -78,6 +78,164 @@ HANDLE Unwrap(HANDLE h)
   return ((WrappedHANDLE *)h)->real;
 }
 
+HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLuint name,
+                                            GLenum type, GLenum access)
+{
+  RDCASSERT(m_State >= WRITING);
+
+  ID3D11Resource *real = UnwrapDXResource(dxObject);
+
+  if(real == NULL)
+  {
+    SetLastError(ERROR_OPEN_FAILED);
+    return 0;
+  }
+
+  WrappedHANDLE *wrapped = new WrappedHANDLE();
+  wrapped->res =
+      type == eGL_RENDERBUFFER ? RenderbufferRes(GetCtx(), name) : TextureRes(GetCtx(), name);
+  wrapped->real = m_Real.wglDXRegisterObjectNV(hDevice, real, name, type, access);
+
+  GLResourceRecord *record = GetResourceManager()->GetResourceRecord(wrapped->res);
+
+  {
+    RDCASSERT(record);
+
+    SCOPED_SERIALISE_CONTEXT(INTEROP_INIT);
+    Serialise_wglDXRegisterObjectNV(wrapped->res, type, dxObject);
+
+    record->AddChunk(scope.Get());
+  }
+
+  {
+    ResourceFormat fmt;
+    uint32_t width = 0, height = 0, depth = 0, mips = 0, layers = 0, samples = 0;
+    GetDXTextureProperties(dxObject, fmt, width, height, depth, mips, layers, samples);
+
+    ResourceId texId = record->GetResourceID();
+    m_Textures[texId].resource = wrapped->res;
+    m_Textures[texId].curType = type;
+    m_Textures[texId].width = width;
+    m_Textures[texId].height = height;
+    m_Textures[texId].depth = RDCMAX(depth, samples);
+    m_Textures[texId].samples = samples;
+    m_Textures[texId].mips = mips;
+    m_Textures[texId].dimension = 2;
+    if(type == eGL_TEXTURE_1D || type == eGL_TEXTURE_1D_ARRAY)
+      m_Textures[texId].dimension = 1;
+    else if(type == eGL_TEXTURE_3D)
+      m_Textures[texId].dimension = 3;
+
+    if(type == eGL_NONE)
+    {
+      m_Textures[texId].curType = eGL_TEXTURE_BUFFER;
+      m_Textures[texId].dimension = 1;
+    }
+
+    m_Textures[texId].internalFormat = MakeGLFormat(*this, fmt);
+  }
+
+  return wrapped;
+}
+
+BOOL WrappedOpenGL::wglDXUnregisterObjectNV(HANDLE hDevice, HANDLE hObject)
+{
+  // don't need to intercept this, as the DX and GL textures will be deleted independently
+  BOOL ret = m_Real.wglDXUnregisterObjectNV(hDevice, Unwrap(hObject));
+
+  delete(WrappedHANDLE *)hObject;
+
+  return ret;
+}
+
+BOOL WrappedOpenGL::wglDXObjectAccessNV(HANDLE hObject, GLenum access)
+{
+  // we don't need to care about access
+  return m_Real.wglDXObjectAccessNV(Unwrap(hObject), access);
+}
+
+BOOL WrappedOpenGL::wglDXLockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObjects)
+{
+  HANDLE *unwrapped = new HANDLE[count];
+  for(GLint i = 0; i < count; i++)
+    unwrapped[i] = Unwrap(hObjects[i]);
+
+  BOOL ret = m_Real.wglDXLockObjectsNV(hDevice, count, unwrapped);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    for(GLint i = 0; i < count; i++)
+    {
+      WrappedHANDLE *w = (WrappedHANDLE *)hObjects[i];
+
+      SCOPED_SERIALISE_CONTEXT(INTEROP_DATA);
+      Serialise_wglDXLockObjectsNV(w->res);
+
+      m_ContextRecord->AddChunk(scope.Get());
+      GetResourceManager()->MarkResourceFrameReferenced(GetResourceManager()->GetID(w->res),
+                                                        eFrameRef_Read);
+    }
+  }
+
+  SAFE_DELETE_ARRAY(unwrapped);
+  return ret;
+}
+
+BOOL WrappedOpenGL::wglDXUnlockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObjects)
+{
+  HANDLE *unwrapped = new HANDLE[count];
+  for(GLint i = 0; i < count; i++)
+    unwrapped[i] = Unwrap(hObjects[i]);
+  BOOL ret = m_Real.wglDXUnlockObjectsNV(hDevice, count, unwrapped);
+  SAFE_DELETE_ARRAY(unwrapped);
+  return ret;
+}
+
+#else
+
+BOOL WrappedOpenGL::wglDXSetResourceShareHandleNV(void *dxObject, HANDLE shareHandle)
+{
+  return 0;
+}
+
+HANDLE WrappedOpenGL::wglDXOpenDeviceNV(void *dxDevice)
+{
+  return 0;
+}
+
+BOOL WrappedOpenGL::wglDXCloseDeviceNV(HANDLE hDevice)
+{
+  return 0;
+}
+
+HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLuint name,
+                                            GLenum type, GLenum access)
+{
+  return 0;
+}
+
+BOOL WrappedOpenGL::wglDXUnregisterObjectNV(HANDLE hDevice, HANDLE hObject)
+{
+  return 0;
+}
+
+BOOL WrappedOpenGL::wglDXObjectAccessNV(HANDLE hObject, GLenum access)
+{
+  return 0;
+}
+
+BOOL WrappedOpenGL::wglDXLockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObjects)
+{
+  return 0;
+}
+
+BOOL WrappedOpenGL::wglDXUnlockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObjects)
+{
+  return 0;
+}
+
+#endif
+
 bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(GLResource res, GLenum type, void *dxObject)
 {
   SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(res));
@@ -87,8 +245,12 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(GLResource res, GLenum type,
   if(m_State >= WRITING)
   {
     ResourceFormat format;
+#if defined(RENDERDOC_PLATFORM_WIN32) && RENDERDOC_DX_GL_INTEROP
     GetDXTextureProperties(dxObject, format, width, height, depth, mips, layers, samples);
     internalFormat = MakeGLFormat(*this, format);
+#else
+    RDCERR("Should never happen - cannot serialise wglDXRegisterObjectNV, interop is disabled");
+#endif
   }
 
   m_pSerialiser->Serialise("type", type);
@@ -170,82 +332,6 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(GLResource res, GLenum type,
   }
 
   return true;
-}
-
-HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLuint name,
-                                            GLenum type, GLenum access)
-{
-  RDCASSERT(m_State >= WRITING);
-
-  ID3D11Resource *real = UnwrapDXResource(dxObject);
-
-  if(real == NULL)
-  {
-    SetLastError(ERROR_OPEN_FAILED);
-    return 0;
-  }
-
-  WrappedHANDLE *wrapped = new WrappedHANDLE();
-  wrapped->res =
-      type == eGL_RENDERBUFFER ? RenderbufferRes(GetCtx(), name) : TextureRes(GetCtx(), name);
-  wrapped->real = m_Real.wglDXRegisterObjectNV(hDevice, real, name, type, access);
-
-  GLResourceRecord *record = GetResourceManager()->GetResourceRecord(wrapped->res);
-
-  {
-    RDCASSERT(record);
-
-    SCOPED_SERIALISE_CONTEXT(INTEROP_INIT);
-    Serialise_wglDXRegisterObjectNV(wrapped->res, type, dxObject);
-
-    record->AddChunk(scope.Get());
-  }
-
-  {
-    ResourceFormat fmt;
-    uint32_t width = 0, height = 0, depth = 0, mips = 0, layers = 0, samples = 0;
-    GetDXTextureProperties(dxObject, fmt, width, height, depth, mips, layers, samples);
-
-    ResourceId texId = record->GetResourceID();
-    m_Textures[texId].resource = wrapped->res;
-    m_Textures[texId].curType = type;
-    m_Textures[texId].width = width;
-    m_Textures[texId].height = height;
-    m_Textures[texId].depth = RDCMAX(depth, samples);
-    m_Textures[texId].samples = samples;
-    m_Textures[texId].mips = mips;
-    m_Textures[texId].dimension = 2;
-    if(type == eGL_TEXTURE_1D || type == eGL_TEXTURE_1D_ARRAY)
-      m_Textures[texId].dimension = 1;
-    else if(type == eGL_TEXTURE_3D)
-      m_Textures[texId].dimension = 3;
-
-    if(type == eGL_NONE)
-    {
-      m_Textures[texId].curType = eGL_TEXTURE_BUFFER;
-      m_Textures[texId].dimension = 1;
-    }
-
-    m_Textures[texId].internalFormat = MakeGLFormat(*this, fmt);
-  }
-
-  return wrapped;
-}
-
-BOOL WrappedOpenGL::wglDXUnregisterObjectNV(HANDLE hDevice, HANDLE hObject)
-{
-  // don't need to intercept this, as the DX and GL textures will be deleted independently
-  BOOL ret = m_Real.wglDXUnregisterObjectNV(hDevice, Unwrap(hObject));
-
-  delete(WrappedHANDLE *)hObject;
-
-  return ret;
-}
-
-BOOL WrappedOpenGL::wglDXObjectAccessNV(HANDLE hObject, GLenum access)
-{
-  // we don't need to care about access
-  return m_Real.wglDXObjectAccessNV(Unwrap(hObject), access);
 }
 
 bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(GLResource res)
@@ -439,85 +525,3 @@ bool WrappedOpenGL::Serialise_wglDXLockObjectsNV(GLResource res)
 
   return true;
 }
-
-BOOL WrappedOpenGL::wglDXLockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObjects)
-{
-  HANDLE *unwrapped = new HANDLE[count];
-  for(GLint i = 0; i < count; i++)
-    unwrapped[i] = Unwrap(hObjects[i]);
-
-  BOOL ret = m_Real.wglDXLockObjectsNV(hDevice, count, unwrapped);
-
-  if(m_State == WRITING_CAPFRAME)
-  {
-    for(GLint i = 0; i < count; i++)
-    {
-      WrappedHANDLE *w = (WrappedHANDLE *)hObjects[i];
-
-      SCOPED_SERIALISE_CONTEXT(INTEROP_DATA);
-      Serialise_wglDXLockObjectsNV(w->res);
-
-      m_ContextRecord->AddChunk(scope.Get());
-      GetResourceManager()->MarkResourceFrameReferenced(GetResourceManager()->GetID(w->res),
-                                                        eFrameRef_Read);
-    }
-  }
-
-  SAFE_DELETE_ARRAY(unwrapped);
-  return ret;
-}
-
-BOOL WrappedOpenGL::wglDXUnlockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObjects)
-{
-  HANDLE *unwrapped = new HANDLE[count];
-  for(GLint i = 0; i < count; i++)
-    unwrapped[i] = Unwrap(hObjects[i]);
-  BOOL ret = m_Real.wglDXUnlockObjectsNV(hDevice, count, unwrapped);
-  SAFE_DELETE_ARRAY(unwrapped);
-  return ret;
-}
-
-#else
-
-BOOL WrappedOpenGL::wglDXSetResourceShareHandleNV(void *dxObject, HANDLE shareHandle)
-{
-  return 0;
-}
-
-HANDLE WrappedOpenGL::wglDXOpenDeviceNV(void *dxDevice)
-{
-  return 0;
-}
-
-BOOL WrappedOpenGL::wglDXCloseDeviceNV(HANDLE hDevice)
-{
-  return 0;
-}
-
-HANDLE WrappedOpenGL::wglDXRegisterObjectNV(HANDLE hDevice, void *dxObject, GLuint name,
-                                            GLenum type, GLenum access)
-{
-  return 0;
-}
-
-BOOL WrappedOpenGL::wglDXUnregisterObjectNV(HANDLE hDevice, HANDLE hObject)
-{
-  return 0;
-}
-
-BOOL WrappedOpenGL::wglDXObjectAccessNV(HANDLE hObject, GLenum access)
-{
-  return 0;
-}
-
-BOOL WrappedOpenGL::wglDXLockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObjects)
-{
-  return 0;
-}
-
-BOOL WrappedOpenGL::wglDXUnlockObjectsNV(HANDLE hDevice, GLint count, HANDLE *hObjects)
-{
-  return 0;
-}
-
-#endif
