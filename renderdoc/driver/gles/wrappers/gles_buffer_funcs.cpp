@@ -1094,9 +1094,8 @@ void *WrappedGLES::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr l
 
         ptr += offset;
 
-        // TODO PEPE
-        // m_Real.glGetNamedBufferSubDataEXT(buffer, offset, length, ptr);
-        RDCWARN("TODO PEPE %s:%d", __FILE__ ,__LINE__);
+        RDCWARN("TODO CHECK %s:%d", __FILE__ ,__LINE__);
+        glGetNamedBufferSubDataEXT(record->Resource.name, record->datatype, offset, length, ptr);
 
         record->Map.ptr = ptr;
         record->Map.status = GLResourceRecord::Mapped_Read;
@@ -1150,9 +1149,8 @@ void *WrappedGLES::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr l
               {
                 // Perhaps we could get these contents from the frame initial state buffer?
 
-                // TODO PEPE
-                // m_Real.glGetNamedBufferSubDataEXT(buffer, 0, buflength, shadow);
-                RDCWARN("TODO PEPE %s:%d", __FILE__ ,__LINE__);
+                RDCWARN("TODO CHECK %s:%d", __FILE__ ,__LINE__);
+                glGetNamedBufferSubDataEXT(record->Resource.name, record->datatype, 0, buflength, shadow);
               }
               else
               {

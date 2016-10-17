@@ -62,3 +62,18 @@ void WrappedGLES::glGetTexImage(GLenum target, GLenum texType, GLuint texname, G
   m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, prevfbo);
   m_Real.glDeleteFramebuffers(1, &fbo);
 }
+
+void WrappedGLES::glGetNamedBufferSubDataEXT(GLuint buffer, GLenum target, GLintptr offset, GLsizeiptr size, void *data)
+{
+  GLint prevBinding;
+  m_Real.glGetIntegerv(BufferBinding(target), &prevBinding);
+  m_Real.glBindBuffer(target, buffer);
+
+  void* mappedData = m_Real.glMapBufferRange(target, offset, size, eGL_MAP_READ_BIT);
+  if (mappedData != NULL)
+    memcpy(data, mappedData, size);
+
+  m_Real.glUnmapBuffer(target);
+  m_Real.glBindBuffer(target, prevBinding);
+}
+
