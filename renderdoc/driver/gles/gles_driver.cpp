@@ -1021,11 +1021,6 @@ WrappedGLES::ContextData &WrappedGLES::GetCtxData()
 // defined in gl_<platform>_hooks.cpp
 void MakeContextCurrent(GLESWindowingData data);
 
-// for 'backwards compatible' overlay rendering
-bool immediateBegin(GLenum mode, float width, float height);
-void immediateVert(float x, float y, float u, float v);
-void immediateEnd();
-
 ////////////////////////////////////////////////////////////////
 // Windowing/setup/etc
 ////////////////////////////////////////////////////////////////
@@ -1770,115 +1765,7 @@ void WrappedGLES::RenderOverlayStr(float x, float y, const char *text)
   }
   else
   {
-    // if it wasn't created in modern fashion with createattribs, assume the worst
-    // and draw with immediate mode (since it's impossible that the context is core
-    // profile, this will always work)
-    //
-    // This isn't perfect since without a lot of fiddling we'd need to check if e.g.
-    // indexed blending should be used or not. Since we're not too worried about
-    // working in this situation, just doing something reasonable, we just assume
-    // roughly ~2.0 functionality
-
-    //////////////////////////////////////////////////////////////////////////////////
-    // Make sure if you change any other state in here, that you also update the push
-    // and pop functions above (RenderTextState)
-
-    // disable blending and some old-style fixed function features
-    gl.glDisable(eGL_BLEND);
-
-    // set depth & stencil
-    gl.glDisable(eGL_DEPTH_TEST);
-    gl.glDisable(eGL_STENCIL_TEST);
-    gl.glDisable(eGL_CULL_FACE);
-
-    // set viewport & scissor
-    gl.glViewport(0, 0, (GLsizei)m_InitParams.width, (GLsizei)m_InitParams.height);
-    gl.glDisable(eGL_SCISSOR_TEST);
-
-    if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
-      gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
-
-    // bind textures
-    gl.glActiveTexture(eGL_TEXTURE0);
-    gl.glBindTexture(eGL_TEXTURE_2D, ctxdata.GlyphTexture);
-    gl.glEnable(eGL_TEXTURE_2D);
-
-    gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
-
-    // just in case, try to disable the programmable pipeline
-    if(gl.glUseProgram)
-      gl.glUseProgram(0);
-    if(gl.glBindProgramPipeline)
-      gl.glBindProgramPipeline(0);
-
-    // draw string (based on sample code from stb_truetype.h)
-    if(immediateBegin(eGL_QUADS, (float)m_InitParams.width, (float)m_InitParams.height))
-    {
-      y += 1.0f;
-      y *= charPixelHeight;
-
-      float startx = x;
-      float starty = y;
-
-      float maxx = x, minx = x;
-      float maxy = y, miny = y - charPixelHeight;
-
-      stbtt_aligned_quad q;
-
-      const char *prepass = text;
-      while(*prepass)
-      {
-        char c = *prepass;
-        if(c >= firstChar && c <= lastChar)
-        {
-          stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c - firstChar, &x, &y, &q, 1);
-
-          maxx = RDCMAX(maxx, RDCMAX(q.x0, q.x1));
-          maxy = RDCMAX(maxy, RDCMAX(q.y0, q.y1));
-
-          minx = RDCMIN(minx, RDCMIN(q.x0, q.x1));
-          miny = RDCMIN(miny, RDCMIN(q.y0, q.y1));
-        }
-        else
-        {
-          x += chardata[0].xadvance;
-        }
-        prepass++;
-      }
-
-      x = startx;
-      y = starty;
-
-      // draw black bar behind text
-      immediateVert(minx, maxy, 0.0f, 0.0f);
-      immediateVert(maxx, maxy, 0.0f, 0.0f);
-      immediateVert(maxx, miny, 0.0f, 0.0f);
-      immediateVert(minx, miny, 0.0f, 0.0f);
-
-      while(*text)
-      {
-        char c = *text;
-        if(c >= firstChar && c <= lastChar)
-        {
-          stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c - firstChar, &x, &y, &q, 1);
-
-          immediateVert(q.x0, q.y0, q.s0, q.t0);
-          immediateVert(q.x1, q.y0, q.s1, q.t0);
-          immediateVert(q.x1, q.y1, q.s1, q.t1);
-          immediateVert(q.x0, q.y1, q.s0, q.t1);
-
-          maxx = RDCMAX(maxx, RDCMAX(q.x0, q.x1));
-          maxy = RDCMAX(maxy, RDCMAX(q.y0, q.y1));
-        }
-        else
-        {
-          x += chardata[0].xadvance;
-        }
-        ++text;
-      }
-
-      immediateEnd();
-    }
+    // TODO(elecro): cleanup this and previous block
   }
 }
 
