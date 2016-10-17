@@ -2348,19 +2348,19 @@ void ReplayProxy::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, 
   {
     m_Remote->GetBufferData(buff, offset, len, retData);
 
-    size_t sz = retData.size();
+    uint64_t sz = retData.size();
     m_FromReplaySerialiser->Serialise("", sz);
-    m_FromReplaySerialiser->RawWriteBytes(&retData[0], sz);
+    m_FromReplaySerialiser->RawWriteBytes(&retData[0], (size_t)sz);
   }
   else
   {
     if(!SendReplayCommand(eReplayProxy_GetBufferData))
       return;
 
-    size_t sz = 0;
+    uint64_t sz = 0;
     m_FromReplaySerialiser->Serialise("", sz);
-    retData.resize(sz);
-    memcpy(&retData[0], m_FromReplaySerialiser->RawReadBytes(sz), sz);
+    retData.resize((size_t)sz);
+    memcpy(&retData[0], m_FromReplaySerialiser->RawReadBytes((size_t)sz), (size_t)sz);
   }
 }
 
