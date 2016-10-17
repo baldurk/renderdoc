@@ -530,13 +530,13 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
         continue;
       }
 
-      if((pnames[i] == eGL_CLIP_DISTANCE0_EXT || 
-          pnames[i] == eGL_CLIP_DISTANCE1_EXT || 
-          pnames[i] == eGL_CLIP_DISTANCE2_EXT || 
-          pnames[i] == eGL_CLIP_DISTANCE3_EXT || 
-          pnames[i] == eGL_CLIP_DISTANCE4_EXT || 
-          pnames[i] == eGL_CLIP_DISTANCE5_EXT || 
-          pnames[i] == eGL_CLIP_DISTANCE6_EXT || 
+      if((pnames[i] == eGL_CLIP_DISTANCE0_EXT ||
+          pnames[i] == eGL_CLIP_DISTANCE1_EXT ||
+          pnames[i] == eGL_CLIP_DISTANCE2_EXT ||
+          pnames[i] == eGL_CLIP_DISTANCE3_EXT ||
+          pnames[i] == eGL_CLIP_DISTANCE4_EXT ||
+          pnames[i] == eGL_CLIP_DISTANCE5_EXT ||
+          pnames[i] == eGL_CLIP_DISTANCE6_EXT ||
           pnames[i] == eGL_CLIP_DISTANCE7_EXT) &&
          !ExtensionSupported[ExtensionSupported_EXT_clip_cull_distance])
       {
@@ -544,7 +544,7 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
          continue;
       }
 
-      if((pnames[i] == eGL_POLYGON_OFFSET_LINE_NV || 
+      if((pnames[i] == eGL_POLYGON_OFFSET_LINE_NV ||
           pnames[i] == eGL_POLYGON_OFFSET_POINT_NV) &&
          !ExtensionSupported[ExtensionSupported_NV_polygon_mode])
       {
@@ -559,9 +559,9 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
   m_Real->glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&ActiveTexture);
 
   RDCCOMPILE_ASSERT(
-      sizeof(Tex2D) == sizeof(Tex3D) && sizeof(Tex3D) == sizeof(Tex2DArray) && 
+      sizeof(Tex2D) == sizeof(Tex3D) && sizeof(Tex3D) == sizeof(Tex2DArray) &&
           sizeof(Tex2DArray) == sizeof(TexCubeArray) && sizeof(TexCubeArray) == sizeof(TexBuffer) &&
-          sizeof(TexBuffer) == sizeof(TexCube) && sizeof(TexCube) == sizeof(Tex2DMS) && 
+          sizeof(TexBuffer) == sizeof(TexCube) && sizeof(TexCube) == sizeof(Tex2DMS) &&
           sizeof(Tex2DMS) == sizeof(Tex2DMSArray) && sizeof(Tex2DMSArray) == sizeof(Samplers),
       "All texture arrays should be identically sized");
 
@@ -609,7 +609,7 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
     m_Real->glGetVertexAttribfv(i, eGL_CURRENT_VERTEX_ATTRIB, &GenericVertexAttribs[i].x);
 
   m_Real->glGetFloatv(eGL_LINE_WIDTH, &LineWidth);
-  
+
   m_Real->glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&Program);
   m_Real->glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&Pipeline);
 
@@ -705,8 +705,8 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
   {
     for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Viewports); i++)
       m_Real->glGetFloati_vOES(eGL_VIEWPORT, i, &Viewports[i].x);
-      
-  } 
+
+  }
   else if (ExtensionSupported[ExtensionSupported_NV_viewport_array])
   {
     for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Viewports); i++)
@@ -726,11 +726,11 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
     }
   }
   else
-  { 
+  {
     m_Real->glGetIntegerv(eGL_SCISSOR_BOX, &Scissors[0].x);
     Scissors[0].enabled = (m_Real->glIsEnabled(eGL_SCISSOR_TEST) == GL_TRUE);
   }
-  
+
   m_Real->glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&DrawFBO);
   m_Real->glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&ReadFBO);
 
@@ -886,21 +886,21 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
          !ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
         continue;
 
-      if((pnames[i] == eGL_CLIP_DISTANCE0_EXT || 
-          pnames[i] == eGL_CLIP_DISTANCE1_EXT || 
-          pnames[i] == eGL_CLIP_DISTANCE2_EXT || 
-          pnames[i] == eGL_CLIP_DISTANCE3_EXT || 
-          pnames[i] == eGL_CLIP_DISTANCE4_EXT || 
-          pnames[i] == eGL_CLIP_DISTANCE5_EXT || 
-          pnames[i] == eGL_CLIP_DISTANCE6_EXT || 
+      if((pnames[i] == eGL_CLIP_DISTANCE0_EXT ||
+          pnames[i] == eGL_CLIP_DISTANCE1_EXT ||
+          pnames[i] == eGL_CLIP_DISTANCE2_EXT ||
+          pnames[i] == eGL_CLIP_DISTANCE3_EXT ||
+          pnames[i] == eGL_CLIP_DISTANCE4_EXT ||
+          pnames[i] == eGL_CLIP_DISTANCE5_EXT ||
+          pnames[i] == eGL_CLIP_DISTANCE6_EXT ||
           pnames[i] == eGL_CLIP_DISTANCE7_EXT) &&
          !ExtensionSupported[ExtensionSupported_EXT_clip_cull_distance])
         continue;
 
-      if((pnames[i] == eGL_POLYGON_OFFSET_LINE_NV || 
+      if((pnames[i] == eGL_POLYGON_OFFSET_LINE_NV ||
           pnames[i] == eGL_POLYGON_OFFSET_POINT_NV))
         continue;
-        
+
       if(Enabled[i])
         m_Real->glEnable(pnames[i]);
       else
@@ -945,7 +945,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
     m_Real->glVertexAttrib4fv(i, &GenericVertexAttribs[i].x);
 
   m_Real->glLineWidth(LineWidth);
-  
+
   m_Real->glUseProgram(Program);
   m_Real->glBindProgramPipeline(Pipeline);
 
@@ -1036,7 +1036,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
       else
         m_Real->glDisablei(eGL_SCISSOR_TEST, s);
     }
-    
+
   }
   else if (ExtensionSupported[ExtensionSupported_NV_viewport_array])
   {
@@ -1052,12 +1052,12 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
         m_Real->glDisablei(eGL_SCISSOR_TEST, s);
     }
   }
-  else 
+  else
   {
     m_Real->glViewport(Viewports[0].x, Viewports[0].y, Viewports[0].width, Viewports[0].height);
     m_Real->glScissor(Scissors[0].x, Scissors[0].y, Scissors[0].width, Scissors[0].height);
   }
-  
+
   GLenum DBs[8] = {eGL_NONE};
   uint32_t numDBs = 0;
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(DrawBuffers); i++)
@@ -1138,7 +1138,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
 
   if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
     m_Real->glPolygonModeNV(eGL_FRONT_AND_BACK, PolygonMode);
-  
+
   if(ExtensionSupported[ExtensionSupported_EXT_polygon_offset_clamp] &&
      m_Real->glPolygonOffsetClampEXT)
     m_Real->glPolygonOffsetClampEXT(PolygonOffset[0], PolygonOffset[1], PolygonOffset[2]);
@@ -1317,9 +1317,8 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedGLES *gl)
     if(state < WRITING && ID != ResourceId())
       VAO = rm->GetLiveResource(ID).name;
 
-// TODO PEPE CHECK
-//    if(VAO == 0)
-//      VAO = gl->GetFakeVAO();
+    if(VAO == 0)
+      VAO = gl->GetFakeVAO();
   }
 
   {
