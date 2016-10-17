@@ -1356,10 +1356,18 @@ bool WrappedID3D12Device::Serialise_DynamicDescriptorCopies(
 
     if(m_State <= EXECUTING)
     {
-      D3D12_CPU_DESCRIPTOR_HANDLE dsthandle = CPUHandleFromPortableHandle(GetResourceManager(), dst);
-      D3D12_CPU_DESCRIPTOR_HANDLE srchandle = CPUHandleFromPortableHandle(GetResourceManager(), src);
+      // do a wrapped copy so that internal tracking is also updated
+      WrappedID3D12DescriptorHeap *srcHeap =
+          GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(src.heap);
+      WrappedID3D12DescriptorHeap *dstHeap =
+          GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(dst.heap);
 
-      m_pDevice->CopyDescriptorsSimple(1, dsthandle, srchandle, type);
+      D3D12_CPU_DESCRIPTOR_HANDLE srchandle = srcHeap->GetCPUDescriptorHandleForHeapStart();
+      srchandle.ptr += src.index * sizeof(D3D12Descriptor);
+      D3D12_CPU_DESCRIPTOR_HANDLE dsthandle = dstHeap->GetCPUDescriptorHandleForHeapStart();
+      dsthandle.ptr += dst.index * sizeof(D3D12Descriptor);
+
+      CopyDescriptorsSimple(1, dsthandle, srchandle, type);
     }
   }
 
