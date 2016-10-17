@@ -235,7 +235,7 @@ namespace renderdocui.Controls
 
                 string ret = String.Format("{0} {1} {2}",
                     Stage.Str(pipeType),
-                    pipeType == GraphicsAPI.D3D11 ? "CB" : "UBO",
+                    pipeType.IsD3D() ? "CB" : "UBO",
                     Slot);
 
                 if (m_Core != null && m_Core.CurPipelineState.SupportsResourceArrays)

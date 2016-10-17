@@ -575,6 +575,11 @@ namespace renderdoc
             return Topology_VertexOffset(topology, primitiveIndex);
         }
 
+        public static bool IsD3D(this GraphicsAPI apitype)
+        {
+            return (apitype == GraphicsAPI.D3D11 || apitype == GraphicsAPI.D3D12);
+        }
+
         public static string Str(this DebugMessageSource source)
         {
             switch (source)
@@ -693,7 +698,7 @@ namespace renderdoc
 
         public static string Str(this ResourceUsage usage, GraphicsAPI apitype)
         {
-            if (apitype == GraphicsAPI.D3D11)
+            if (apitype.IsD3D())
             {
                 switch (usage)
                 {
@@ -795,7 +800,7 @@ namespace renderdoc
 
         public static string Str(this ShaderStageType stage, GraphicsAPI apitype)
         {
-            if (apitype == GraphicsAPI.D3D11)
+            if (apitype.IsD3D())
             {
                 switch (stage)
                 {

@@ -779,7 +779,7 @@ namespace renderdoc
         {
             get
             {
-                return pipelineType == GraphicsAPI.D3D11 ? ".hlsl" : ".glsl";
+                return pipelineType.IsD3D() ? ".hlsl" : ".glsl";
             }
         }
     };
