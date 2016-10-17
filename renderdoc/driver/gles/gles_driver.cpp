@@ -2966,11 +2966,6 @@ bool WrappedGLES::RecordUpdateCheck(GLResourceRecord *record)
 void WrappedGLES::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum severity,
                                GLsizei length, const GLchar *message)
 {
-#if 1
-  if (severity == eGL_DEBUG_SEVERITY_HIGH_KHR) {
-    printf("GL_DEBUG_SEVERITY_HIGH_KHR\n");
-  }
-#endif
   if(type != eGL_DEBUG_TYPE_PUSH_GROUP && type != eGL_DEBUG_TYPE_POP_GROUP)
   {
     if(type != eGL_DEBUG_TYPE_PERFORMANCE && type != eGL_DEBUG_TYPE_OTHER)
