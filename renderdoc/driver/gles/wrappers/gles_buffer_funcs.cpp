@@ -27,6 +27,29 @@
 #include "common/common.h"
 #include "serialise/string_utils.h"
 
+
+class SafeVAOBinder
+{
+public:
+    SafeVAOBinder(const GLHookSet &hooks, GLuint vao)
+      : m_Real(hooks)
+    {
+      m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, &m_previous);
+      m_Real.glBindVertexArray(vao);
+    }
+
+    ~SafeVAOBinder()
+    {
+      m_Real.glBindVertexArray(m_previous);
+    }
+private:
+    SafeVAOBinder(const SafeVAOBinder&);
+
+    const GLHookSet &m_Real;
+    GLint m_previous;
+};
+
+
 #pragma region Buffers
 
 bool WrappedGLES::Serialise_glGenBuffers(GLsizei n, GLuint *buffers)
@@ -1879,6 +1902,7 @@ bool WrappedGLES::Serialise_glVertexAttribPointerEXT(GLuint vaobj, GLuint buffer
     m_Real.glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, &prevBuffer);
 
     m_Real.glBindVertexArray(vaobj);
+    m_Real.glBindBuffer(eGL_ARRAY_BUFFER, buffer);
 
     if (IsIntegerMode) // TODO(elecro): do we really need both here?
     {
@@ -2162,9 +2186,14 @@ void WrappedGLES::glVertexAttribDivisor(GLuint index, GLuint divisor)
 bool WrappedGLES::Serialise_glEnableVertexAttribArray(GLuint index)
 {
     SERIALISE_ELEMENT(uint32_t, Index, index);
+    SERIALISE_ELEMENT(
+      ResourceId, id,
+      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
+
     if(m_State < WRITING)
     {
-        m_Real.glEnableVertexAttribArray(Index);
+      SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
+      m_Real.glEnableVertexAttribArray(Index);
     }
     return true;
 }
@@ -2199,9 +2228,14 @@ void WrappedGLES::glEnableVertexAttribArray(GLuint index)
 bool WrappedGLES::Serialise_glDisableVertexAttribArray(GLuint index)
 {
     SERIALISE_ELEMENT(uint32_t, Index, index);
+    SERIALISE_ELEMENT(
+      ResourceId, id,
+      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
+
     if(m_State < WRITING)
     {
-        m_Real.glDisableVertexAttribArray(Index);
+      SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
+      m_Real.glDisableVertexAttribArray(Index);
     }
     return true;
 }
