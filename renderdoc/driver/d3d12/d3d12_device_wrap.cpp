@@ -1480,6 +1480,17 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
   // assume descriptors are volatile
   if(m_State == WRITING_CAPFRAME)
   {
+    // reference the heaps
+    {
+      D3D12Descriptor *desc = GetWrapped(SrcDescriptorRangeStart);
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc->samp.heap), eFrameRef_Read);
+    }
+
+    {
+      D3D12Descriptor *desc = GetWrapped(DestDescriptorRangeStart);
+      GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc->samp.heap), eFrameRef_Read);
+    }
+
     std::vector<DynamicDescriptorCopy> copies;
     copies.reserve(NumDescriptors);
     for(UINT i = 0; i < NumDescriptors; i++)
