@@ -329,6 +329,12 @@ WrappedID3D12Device::~WrappedID3D12Device()
     m_DeviceRecord->Delete(GetResourceManager());
   }
 
+  if(m_FrameCaptureRecord)
+  {
+    RDCASSERT(m_FrameCaptureRecord->GetRefCount() == 1);
+    m_FrameCaptureRecord->Delete(GetResourceManager());
+  }
+
   m_ResourceManager->Shutdown();
 
   SAFE_DELETE(m_ResourceManager);
