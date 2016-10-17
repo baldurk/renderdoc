@@ -1930,7 +1930,7 @@ bool WrappedGLES::Serialise_glVertexAttribPointerEXT(GLuint vaobj, GLuint buffer
 
   if(m_State < WRITING)
   {
-    vaobj = (id != ResourceId()) ? GetResourceManager()->GetLiveResource(id).name : 0;
+    vaobj = (id != ResourceId()) ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO;
     buffer = (bid != ResourceId() && GetResourceManager()->HasLiveResource(bid))
                  ? GetResourceManager()->GetLiveResource(bid).name
                  : 0;
