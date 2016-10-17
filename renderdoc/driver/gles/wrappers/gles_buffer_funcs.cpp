@@ -49,6 +49,48 @@ private:
     GLint m_previous;
 };
 
+class SafeBufferBinder
+{
+public:
+    SafeBufferBinder(const GLHookSet &hooks, GLenum target, GLuint buffer)
+      : m_Real(hooks)
+      , m_target(target)
+      , m_active(true)
+    {
+      m_Real.glGetIntegerv(BufferBinding(m_target), &m_previous);
+      m_Real.glBindBuffer(m_target, buffer);
+    }
+
+    SafeBufferBinder(const GLHookSet &hooks)
+      : m_Real(hooks)
+      , m_target(eGL_NONE)
+      , m_previous(0)
+      , m_active(false)
+    {
+    }
+
+    void saveBinding(GLenum target, GLuint buffer)
+    {
+      m_target = target;
+      m_Real.glGetIntegerv(BufferBinding(m_target), &m_previous);
+      m_Real.glBindBuffer(m_target, buffer);
+    }
+
+    ~SafeBufferBinder()
+    {
+      if (m_active)
+        m_Real.glBindBuffer(m_target, m_previous);
+    }
+private:
+    SafeBufferBinder(const SafeBufferBinder&);
+
+    const GLHookSet &m_Real;
+    GLenum m_target;
+    GLint m_previous;
+    bool m_active;
+};
+
+
 
 #pragma region Buffers
 
@@ -274,11 +316,9 @@ bool WrappedGLES::Serialise_glBufferStorageEXT(GLenum target, GLsizeiptr size, c
 
   if(m_State < WRITING)
   {
-    GLResource res = GetResourceManager()->GetLiveResource(id);
+    SafeBufferBinder safeBufferBinder(m_Real, Target, GetResourceManager()->GetLiveResource(id).name);
     m_Real.glBufferStorageEXT(Target, (GLsizeiptr)Bytesize, bytes, Flags);
-
     m_Buffers[GetResourceManager()->GetLiveID(id)].size = Bytesize;
-
     SAFE_DELETE_ARRAY(bytes);
   }
   else if(m_State >= WRITING)
@@ -364,9 +404,8 @@ bool WrappedGLES::Serialise_glBufferData(GLenum target, GLsizeiptr size, const v
 
   if(m_State < WRITING)
   {
-    GLResource res = GetResourceManager()->GetLiveResource(id);
+    SafeBufferBinder safeBufferBinder(m_Real, Target, GetResourceManager()->GetLiveResource(id).name);
     m_Real.glBufferData(Target, (GLsizeiptr)Bytesize, bytes, Usage);
-
     m_Buffers[GetResourceManager()->GetLiveID(id)].size = Bytesize;
 
     SAFE_DELETE_ARRAY(bytes);
@@ -511,7 +550,7 @@ bool WrappedGLES::Serialise_glBufferSubData(GLenum target, GLintptr offset, GLsi
 
   if(m_State < WRITING)
   {
-    GLResource res = GetResourceManager()->GetLiveResource(id);
+    SafeBufferBinder safeBufferBinder(m_Real, Target, GetResourceManager()->GetLiveResource(id).name);
     m_Real.glBufferSubData(Target, (GLintptr)Offset, (GLsizeiptr)Bytesize, bytes);
 
     SAFE_DELETE_ARRAY(bytes);
@@ -570,6 +609,8 @@ bool WrappedGLES::Serialise_glCopyBufferSubData(GLenum readTarget, GLenum writeT
                                                 GLintptr readOffset, GLintptr writeOffset,
                                                 GLsizeiptr size)
 {
+  SERIALISE_ELEMENT(ResourceId, readid, GetCtxData().GetActiveBufferRecord(readTarget)->GetResourceID());
+  SERIALISE_ELEMENT(ResourceId, writeid, GetCtxData().GetActiveBufferRecord(writeTarget)->GetResourceID());
   SERIALISE_ELEMENT(GLenum, ReadTarget, readTarget);
   SERIALISE_ELEMENT(GLenum, WriteTarget, writeTarget);
   SERIALISE_ELEMENT(uint64_t, ReadOffset, (uint64_t)readOffset);
@@ -578,6 +619,8 @@ bool WrappedGLES::Serialise_glCopyBufferSubData(GLenum readTarget, GLenum writeT
 
   if(m_State < WRITING)
   {
+    SafeBufferBinder safeBufferBinderRead(m_Real, ReadTarget, GetResourceManager()->GetLiveResource(readid).name);
+    SafeBufferBinder safeBufferBinderWrite(m_Real, WriteTarget, GetResourceManager()->GetLiveResource(writeid).name);
     m_Real.glCopyBufferSubData(ReadTarget, WriteTarget, (GLintptr)ReadOffset,
                               (GLintptr)WriteOffset, (GLsizeiptr)Bytesize);
   }
@@ -1319,7 +1362,6 @@ bool WrappedGLES::Serialise_glUnmapBuffer(GLenum target)
       // if we have a persistent mapped pointer, copy the range into the 'real' memory and
       // do a flush. Note the persistent pointer is always to the base of the buffer so we
       // need to account for the offset
-
       memcpy(record->Map.persistentPtr + offs + DiffStart, record->Map.ptr + DiffStart,
              DiffEnd - DiffStart);
       m_Real.glFlushMappedBufferRangeEXT(Target, GLintptr(offs + DiffStart),
@@ -1327,6 +1369,10 @@ bool WrappedGLES::Serialise_glUnmapBuffer(GLenum target)
     }
     else
     {
+      SafeBufferBinder safeBufferBinder(m_Real);
+      if (m_State < WRITING)
+          safeBufferBinder.saveBinding(Target, GetResourceManager()->GetLiveResource(bufID).name);
+
       void *ptr = m_Real.glMapBufferRangeEXT(Target, (GLintptr)(offs + DiffStart), GLsizeiptr(DiffEnd - DiffStart), GL_MAP_WRITE_BIT);
       memcpy(ptr, data, size_t(DiffEnd - DiffStart));
       m_Real.glUnmapBuffer(Target);
@@ -1466,7 +1512,7 @@ bool WrappedGLES::Serialise_glFlushMappedBufferRange(GLenum target, GLintptr off
   if(m_State >= WRITING)
     record = GetCtxData().GetActiveBufferRecord(target);
 
-  SERIALISE_ELEMENT(ResourceId, ID, record->GetResourceID());
+  SERIALISE_ELEMENT(ResourceId, bufID, record->GetResourceID());
   SERIALISE_ELEMENT(GLenum, Target, target);
   SERIALISE_ELEMENT(uint64_t, offs, offset);
   SERIALISE_ELEMENT(uint64_t, len, length);
@@ -1481,13 +1527,6 @@ bool WrappedGLES::Serialise_glFlushMappedBufferRange(GLenum target, GLintptr off
     memcpy(record->GetShadowPtr(1) + offs, record->Map.ptr + offs, (size_t)len);
   }
 
-  GLResource res;
-
-  if(m_State < WRITING)
-    res = GetResourceManager()->GetLiveResource(ID);
-  else
-    res = GetResourceManager()->GetCurrentResource(ID);
-
   if(record && record->Map.persistentPtr)
   {
     // if we have a persistent mapped pointer, copy the range into the 'real' memory and
@@ -1501,8 +1540,10 @@ bool WrappedGLES::Serialise_glFlushMappedBufferRange(GLenum target, GLintptr off
   else
   {
     // perform a map of the range and copy the data, to emulate the modified region being flushed
-    // TODO PEPE Check whether something is needed to be saved before and restored after the mappings
-    RDCWARN("CHECK PEPE %s:%d", __FILE__ ,__LINE__);
+    SafeBufferBinder safeBufferBinder(m_Real);
+    if (m_State < WRITING)
+        safeBufferBinder.saveBinding(Target, GetResourceManager()->GetLiveResource(bufID).name);
+
     void *ptr =
         m_Real.glMapBufferRange(Target, (GLintptr)offs, (GLsizeiptr)len, GL_MAP_WRITE_BIT);
     memcpy(ptr, data, (size_t)len);
@@ -2017,9 +2058,13 @@ bool WrappedGLES::Serialise_glVertexAttribBinding(GLuint attribindex, GLuint bin
 {
   SERIALISE_ELEMENT(uint32_t, aidx, attribindex);
   SERIALISE_ELEMENT(uint32_t, bidx, bindingindex);
+  SERIALISE_ELEMENT(
+      ResourceId, id,
+      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
 
   if(m_State < WRITING)
   {
+    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
     m_Real.glVertexAttribBinding(aidx, bidx);
   }
   return true;
@@ -2060,10 +2105,13 @@ bool WrappedGLES::Serialise_glVertexAttribFormat(GLuint attribindex, GLint size,
   SERIALISE_ELEMENT(bool, Norm, normalized ? true : false);
   SERIALISE_ELEMENT(GLenum, Type, type);
   SERIALISE_ELEMENT(uint32_t, Offset, relativeoffset);
+  SERIALISE_ELEMENT(
+      ResourceId, id,
+      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
 
   if(m_State < WRITING)
   {
-
+    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
     m_Real.glVertexAttribFormat(Index, Size, Type, Norm, Offset);
   }
 
@@ -2106,9 +2154,13 @@ bool WrappedGLES::Serialise_glVertexAttribIFormat(GLuint attribindex, GLint size
   SERIALISE_ELEMENT(int32_t, Size, size);
   SERIALISE_ELEMENT(GLenum, Type, type);
   SERIALISE_ELEMENT(uint32_t, Offset, relativeoffset);
+  SERIALISE_ELEMENT(
+      ResourceId, id,
+      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
 
   if(m_State < WRITING)
   {
+    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
     m_Real.glVertexAttribIFormat(Index, Size, Type, Offset);
   }
 
@@ -2147,9 +2199,13 @@ bool WrappedGLES::Serialise_glVertexAttribDivisor(GLuint index, GLuint divisor)
 {
   SERIALISE_ELEMENT(uint32_t, Index, index);
   SERIALISE_ELEMENT(uint32_t, Divisor, divisor);
+  SERIALISE_ELEMENT(
+      ResourceId, id,
+      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
 
   if(m_State < WRITING)
   {
+    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
     m_Real.glVertexAttribDivisor(Index, Divisor);
   }
 
@@ -2428,9 +2484,13 @@ bool WrappedGLES::Serialise_glVertexBindingDivisor(GLuint bindingindex, GLuint d
 {
   SERIALISE_ELEMENT(uint32_t, idx, bindingindex);
   SERIALISE_ELEMENT(uint32_t, d, divisor);
+  SERIALISE_ELEMENT(
+      ResourceId, id,
+      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
 
   if(m_State <= EXECUTING)
   {
+    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
     m_Real.glVertexBindingDivisor(idx, d);
   }
 
