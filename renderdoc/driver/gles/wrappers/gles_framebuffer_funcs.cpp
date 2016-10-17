@@ -128,95 +128,52 @@ void WrappedGLES::glGenFramebuffers(GLsizei n, GLuint *framebuffers)
 //    }
 //  }
 //}
-//
-//bool WrappedGLES::Serialise_glNamedFramebufferTextureEXT(GLuint framebuffer, GLenum attachment,
-//                                                           GLuint texture, GLint level)
-//{
-//  SERIALISE_ELEMENT(GLenum, Attach, attachment);
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
-//  SERIALISE_ELEMENT(int32_t, Level, level);
-//  SERIALISE_ELEMENT(ResourceId, fbid,
-//                    (framebuffer == 0 ? ResourceId() : GetResourceManager()->GetID(
-//                                                           FramebufferRes(GetCtx(), framebuffer))));
-//
-//  if(m_State < WRITING)
-//  {
-//    GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
-//                     ? 0
-//                     : GetResourceManager()->GetLiveResource(id).name;
-//    if(fbid == ResourceId())
-//    {
-//      m_Real.glNamedFramebufferTextureEXT(0, Attach, tex, Level);
-//    }
-//    else
-//    {
-//      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-//      m_Real.glNamedFramebufferTextureEXT(fbres.name, Attach, tex, Level);
-//    }
-//
-//    if(m_State == READING && tex)
-//    {
-//      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= eTextureCreate_RTV;
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glNamedFramebufferTextureEXT(GLuint framebuffer, GLenum attachment,
-//                                                 GLuint texture, GLint level)
-//{
-//  m_Real.glNamedFramebufferTextureEXT(framebuffer, attachment, texture, level);
-//
-//  if(m_State >= WRITING)
-//  {
-//    GLResourceRecord *record =
-//        GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
-//
-//    if(texture != 0 && GetResourceManager()->HasResourceRecord(TextureRes(GetCtx(), texture)))
-//    {
-//      ResourceRecord *texrecord =
-//          GetResourceManager()->GetResourceRecord(TextureRes(GetCtx(), texture));
-//      if(m_State == WRITING_IDLE)
-//        GetResourceManager()->MarkDirtyResource(texrecord->GetResourceID());
-//      else
-//        m_MissingTracks.insert(texrecord->GetResourceID());
-//    }
-//
-//    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-//       m_State != WRITING_CAPFRAME)
-//      return;
-//
-//    SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX);
-//    Serialise_glNamedFramebufferTextureEXT(framebuffer, attachment, texture, level);
-//
-//    if(m_State == WRITING_IDLE)
-//    {
-//      record->AddChunk(scope.Get());
-//      record->UpdateCount++;
-//
-//      if(record->UpdateCount > 10)
-//      {
-//        m_HighTrafficResources.insert(record->GetResourceID());
-//        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//      }
-//    }
-//    else
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      GetResourceManager()->MarkFBOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
-//      GetResourceManager()->MarkResourceFrameReferenced(TextureRes(GetCtx(), texture),
-//                                                        eFrameRef_Read);
-//    }
-//  }
-//}
-//
 
-bool WrappedGLES::Serialise_glFramebufferTexture(GLenum target, GLenum attachment, GLuint texture, GLint level)
+bool WrappedGLES::Serialise_glFramebufferTexture(GLuint framebuffer, GLenum target, GLenum attachment,
+                                                 GLuint texture, GLint level)
 {
-    // TODO PEPE
-    return true;
+  SERIALISE_ELEMENT(GLenum, Target, target);
+  SERIALISE_ELEMENT(GLenum, Attach, attachment);
+  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
+  SERIALISE_ELEMENT(int32_t, Level, level);
+  SERIALISE_ELEMENT(ResourceId, fbid,
+                    (framebuffer == 0 ? ResourceId() : GetResourceManager()->GetID(
+                                                           FramebufferRes(GetCtx(), framebuffer))));
+
+  if(m_State < WRITING)
+  {
+    GLuint oldDrawFBO = 0;
+    GLuint oldReadFBO = 0;
+    m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&oldDrawFBO);
+    m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&oldReadFBO);
+
+    GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
+                         ? 0
+                         : GetResourceManager()->GetLiveResource(id).name;
+    if(fbid == ResourceId())
+    {
+      m_Real.glBindFramebuffer(Target, 0);
+    }
+    else
+    {
+      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
+      m_Real.glBindFramebuffer(Target, fbres.name);
+    }
+
+    m_Real.glFramebufferTexture(Target, Attach, tex, Level);
+
+    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldDrawFBO);
+    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldReadFBO);
+
+    if(m_State == READING && tex)
+    {
+      m_Textures[GetResourceManager()->GetLiveID(id)].creationFlags |= eTextureCreate_RTV;
+    }
+  }
+
+  return true;
 }
+
 void WrappedGLES::glFramebufferTexture(GLenum target, GLenum attachment, GLuint texture, GLint level)
 {
   m_Real.glFramebufferTexture(target, attachment, texture, level);
@@ -251,7 +208,7 @@ void WrappedGLES::glFramebufferTexture(GLenum target, GLenum attachment, GLuint 
       return;
 
     SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX);
-    Serialise_glFramebufferTexture(target, attachment, texture, level);
+    Serialise_glFramebufferTexture(record->Resource.name, target, attachment, texture, level);
 
     if(m_State == WRITING_IDLE)
     {
@@ -516,7 +473,7 @@ void WrappedGLES::glFramebufferTextureOES(GLenum target, GLenum attachment, GLui
 //}
 //
 
-bool WrappedGLES::Serialise_glFramebufferTexture2D(GLenum target, GLenum attachment,
+bool WrappedGLES::Serialise_glFramebufferTexture2D(GLuint framebuffer, GLenum target, GLenum attachment,
                                                    GLenum textarget, GLuint texture, GLint level)
 {
   SERIALISE_ELEMENT(GLenum, Target, target);
@@ -524,15 +481,34 @@ bool WrappedGLES::Serialise_glFramebufferTexture2D(GLenum target, GLenum attachm
   SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), texture)));
   SERIALISE_ELEMENT(GLenum, TexTarget, textarget);
   SERIALISE_ELEMENT(int32_t, Level, level);
+  SERIALISE_ELEMENT(ResourceId, fbid,
+                    (framebuffer == 0 ? ResourceId() : GetResourceManager()->GetID(
+                                                           FramebufferRes(GetCtx(), framebuffer))));
 
   if(m_State < WRITING)
   {
+    GLuint oldDrawFBO = 0;
+    GLuint oldReadFBO = 0;
+    m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&oldDrawFBO);
+    m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&oldReadFBO);
+
     GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
                      ? 0
                      : GetResourceManager()->GetLiveResource(id).name;
+    if(fbid == ResourceId())
+    {
+      m_Real.glBindFramebuffer(Target, 0);
+    }
+    else
+    {
+      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
+      m_Real.glBindFramebuffer(Target, fbres.name);
+    }
 
     m_Real.glFramebufferTexture2D(Target, Attach, TexTarget, tex, Level);
 
+    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldDrawFBO);
+    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldReadFBO);
 
     if(m_State == READING && tex)
     {
@@ -578,7 +554,7 @@ void WrappedGLES::glFramebufferTexture2D(GLenum target, GLenum attachment, GLenu
       return;
 
     SCOPED_SERIALISE_CONTEXT(FRAMEBUFFER_TEX2D);
-    Serialise_glFramebufferTexture2D(target, attachment, textarget, texture, level);
+    Serialise_glFramebufferTexture2D(record->Resource.name, target, attachment, textarget, texture, level);
 
     if(m_State == WRITING_IDLE)
     {
@@ -764,8 +740,8 @@ void WrappedGLES::glFramebufferTexture3DOES(GLenum target, GLenum attachment, GL
 }
 
 bool WrappedGLES::Serialise_glFramebufferRenderbuffer(GLuint framebuffer, GLenum target, GLenum attachment,
-                                                                GLenum renderbuffertarget,
-                                                                GLuint renderbuffer)
+                                                      GLenum renderbuffertarget,
+                                                      GLuint renderbuffer)
 {
   SERIALISE_ELEMENT(ResourceId, fbid,
                     (framebuffer == 0 ? ResourceId() : GetResourceManager()->GetID(
@@ -1158,17 +1134,17 @@ bool WrappedGLES::Serialise_glReadBuffer(GLuint framebuffer, GLenum mode)
       if(b == eGL_BACK || b == eGL_FRONT)
         b = eGL_COLOR_ATTACHMENT0;
 
-      m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER_BINDING, m_FakeBB_FBO);
+      m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, m_FakeBB_FBO);
     }
     else
     {
       GLResource res = GetResourceManager()->GetLiveResource(Id);
-      m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER_BINDING, res.name);
+      m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, res.name);
     }
 
     m_Real.glReadBuffer(b);
 
-    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER_BINDING, oldBinding);
+    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldBinding);
   }
 
   return true;
@@ -1224,7 +1200,6 @@ bool WrappedGLES::Serialise_glBindFramebuffer(GLenum target, GLuint framebuffer)
 
 void WrappedGLES::glBindFramebuffer(GLenum target, GLuint framebuffer)
 {
-
   if(m_State == WRITING_CAPFRAME)
   {
     SCOPED_SERIALISE_CONTEXT(BIND_FRAMEBUFFER);
@@ -1350,18 +1325,17 @@ bool WrappedGLES::Serialise_glDrawBuffers(GLuint framebuffer, GLsizei n,
       // to see the results, replace back/front/left/right with color attachment 0
 //      if(buffers[i] == eGL_BACK_LEFT || buffers[i] == eGL_BACK_RIGHT || buffers[i] == eGL_BACK ||
 //         buffers[i] == eGL_FRONT_LEFT || buffers[i] == eGL_FRONT_RIGHT || buffers[i] == eGL_FRONT)
-//        buffers[i] = eGL_COLOR_ATTACHMENT0;
-      if(buffers[i] == eGL_BACK || buffers[i] == eGL_FRONT)
+      if(buffers[i] == eGL_BACK)
         buffers[i] = eGL_COLOR_ATTACHMENT0;
     }
 
     GLint oldBinding = 0;
     m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &oldBinding);
 
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER_BINDING, GetResourceManager()->GetLiveResource(Id).name);
+    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, GetResourceManager()->GetLiveResource(Id).name);
     m_Real.glDrawBuffers(num, buffers);
 
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER_BINDING, oldBinding);
+    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldBinding);
   }
 
   delete[] buffers;
@@ -1378,10 +1352,7 @@ void WrappedGLES::glDrawBuffers(GLsizei n, const GLenum *bufs)
     if(m_State == WRITING_CAPFRAME)
     {
       SCOPED_SERIALISE_CONTEXT(DRAW_BUFFERS);
-      if(drawrecord)
-        Serialise_glDrawBuffers(drawrecord->Resource.name, n, bufs);
-      else
-        Serialise_glDrawBuffers(0, n, bufs);
+      Serialise_glDrawBuffers(drawrecord ? drawrecord->Resource.name : 0, n, bufs);
 
       m_ContextRecord->AddChunk(scope.Get());
       if(drawrecord)
@@ -1483,177 +1454,150 @@ void WrappedGLES::glDrawBuffers(GLsizei n, const GLenum *bufs)
 //      record->MarkParentsDirty(GetResourceManager());
 //  }
 //}
-//
-//bool WrappedGLES::Serialise_glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer,
-//                                                     GLint srcX0, GLint srcY0, GLint srcX1,
-//                                                     GLint srcY1, GLint dstX0, GLint dstY0,
-//                                                     GLint dstX1, GLint dstY1, GLbitfield mask,
-//                                                     GLenum filter)
-//{
-//  SERIALISE_ELEMENT(
-//      ResourceId, readId,
-//      (readFramebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), readFramebuffer))
-//                       : ResourceId()));
-//  SERIALISE_ELEMENT(
-//      ResourceId, drawId,
-//      (drawFramebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), drawFramebuffer))
-//                       : ResourceId()));
-//  SERIALISE_ELEMENT(int32_t, sX0, srcX0);
-//  SERIALISE_ELEMENT(int32_t, sY0, srcY0);
-//  SERIALISE_ELEMENT(int32_t, sX1, srcX1);
-//  SERIALISE_ELEMENT(int32_t, sY1, srcY1);
-//  SERIALISE_ELEMENT(int32_t, dX0, dstX0);
-//  SERIALISE_ELEMENT(int32_t, dY0, dstY0);
-//  SERIALISE_ELEMENT(int32_t, dX1, dstX1);
-//  SERIALISE_ELEMENT(int32_t, dY1, dstY1);
-//  SERIALISE_ELEMENT(uint32_t, msk, mask);
-//  SERIALISE_ELEMENT(GLenum, flt, filter);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(readId == ResourceId())
-//      readFramebuffer = m_FakeBB_FBO;
-//    else
-//      readFramebuffer = GetResourceManager()->GetLiveResource(readId).name;
-//
-//    if(drawId == ResourceId())
-//      drawFramebuffer = m_FakeBB_FBO;
-//    else
-//      drawFramebuffer = GetResourceManager()->GetLiveResource(drawId).name;
-//
-//    // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
-//    // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
-//    // is
-//    // necessary since these functions can be serialised even if ARB_dsa was not used originally,
-//    // and
-//    // we need to support this case.
-//    m_Real.glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, sX0, sY0, sX1, sY1, dX0, dY0,
-//                                  dX1, dY1, msk, flt);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(BLIT_FRAMEBUFFER, desc);
-//    string name = "glBlitFramebuffer(" + ToStr::Get(readId) + ", " + ToStr::Get(drawId) + ")";
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.flags |= eDraw_Resolve;
-//
-//    GLint numCols = 8;
-//    m_Real.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
-//
-//    for(int i = 0; i < numCols + 2; i++)
-//    {
-//      GLenum attachName = GLenum(eGL_COLOR_ATTACHMENT0 + i);
-//      if(i == numCols)
-//        attachName = eGL_DEPTH_ATTACHMENT;
-//      if(i == numCols + 1)
-//        attachName = eGL_STENCIL_ATTACHMENT;
-//
-//      GLuint srcattachment = 0, dstattachment = 0;
-//      GLenum srctype = eGL_TEXTURE, dsttype = eGL_TEXTURE;
-//
-//      m_Real.glGetNamedFramebufferAttachmentParameterivEXT(readFramebuffer, attachName,
-//                                                           eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-//                                                           (GLint *)&srcattachment);
-//      m_Real.glGetNamedFramebufferAttachmentParameterivEXT(
-//          readFramebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&srctype);
-//
-//      m_Real.glGetNamedFramebufferAttachmentParameterivEXT(drawFramebuffer, attachName,
-//                                                           eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-//                                                           (GLint *)&dstattachment);
-//      m_Real.glGetNamedFramebufferAttachmentParameterivEXT(
-//          drawFramebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&dsttype);
-//
-//      ResourceId srcid, dstid;
-//
-//      if(srctype == eGL_TEXTURE)
-//        srcid = GetResourceManager()->GetID(TextureRes(GetCtx(), srcattachment));
-//      else
-//        srcid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), srcattachment));
-//
-//      if(dstattachment == srcattachment)
-//      {
-//        m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, eUsage_Copy));
-//      }
-//      else
-//      {
-//        if(dsttype == eGL_TEXTURE)
-//          dstid = GetResourceManager()->GetID(TextureRes(GetCtx(), dstattachment));
-//        else
-//          dstid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), dstattachment));
-//
-//        draw.copySource = GetResourceManager()->GetOriginalID(srcid);
-//        draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
-//
-//        // MS to non-MS is a resolve
-//        if((m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE ||
-//            m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY) &&
-//           m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE &&
-//           m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
-//        {
-//          m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, eUsage_ResolveSrc));
-//          m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, eUsage_ResolveDst));
-//        }
-//        else
-//        {
-//          m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, eUsage_CopySrc));
-//          m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, eUsage_CopyDst));
-//        }
-//      }
-//    }
-//
-//    AddDrawcall(draw, true);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glBlitNamedFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer,
-//                                           GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
-//                                           GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
-//                                           GLbitfield mask, GLenum filter)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(BLIT_FRAMEBUFFER);
-//    Serialise_glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1,
-//                                     dstX0, dstY0, dstX1, dstY1, mask, filter);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//    GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), readFramebuffer),
-//                                            eFrameRef_ReadBeforeWrite);
-//    GetResourceManager()->MarkFBOReferenced(FramebufferRes(GetCtx(), drawFramebuffer),
-//                                            eFrameRef_ReadBeforeWrite);
-//  }
-//
-//  // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
-//  // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
-//  // is
-//  // necessary since these functions can be serialised even if ARB_dsa was not used originally, and
-//  // we need to support this case.
-//  m_Real.glBlitNamedFramebuffer(readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1, dstX0,
-//                                dstY0, dstX1, dstY1, mask, filter);
-//}
-//
-bool WrappedGLES::Serialise_glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
-                                      GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
-                                      GLbitfield mask, GLenum filter)
+
+bool WrappedGLES::Serialise_glBlitFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer,
+                                              GLint srcX0, GLint srcY0, GLint srcX1,
+                                              GLint srcY1, GLint dstX0, GLint dstY0,
+                                              GLint dstX1, GLint dstY1, GLbitfield mask,
+                                              GLenum filter)
 {
-    // TODO PEPE
-    return true;
+  SERIALISE_ELEMENT(
+      ResourceId, readId,
+      (readFramebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), readFramebuffer))
+                       : ResourceId()));
+  SERIALISE_ELEMENT(
+      ResourceId, drawId,
+      (drawFramebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), drawFramebuffer))
+                       : ResourceId()));
+  SERIALISE_ELEMENT(int32_t, sX0, srcX0);
+  SERIALISE_ELEMENT(int32_t, sY0, srcY0);
+  SERIALISE_ELEMENT(int32_t, sX1, srcX1);
+  SERIALISE_ELEMENT(int32_t, sY1, srcY1);
+  SERIALISE_ELEMENT(int32_t, dX0, dstX0);
+  SERIALISE_ELEMENT(int32_t, dY0, dstY0);
+  SERIALISE_ELEMENT(int32_t, dX1, dstX1);
+  SERIALISE_ELEMENT(int32_t, dY1, dstY1);
+  SERIALISE_ELEMENT(uint32_t, msk, mask);
+  SERIALISE_ELEMENT(GLenum, flt, filter);
+
+  GLint oldDrawFBO = 0;
+  GLint oldReadFBO = 0;
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &oldDrawFBO);
+    m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &oldReadFBO);
+
+    if(readId == ResourceId())
+      readFramebuffer = m_FakeBB_FBO;
+    else
+      readFramebuffer = GetResourceManager()->GetLiveResource(readId).name;
+
+    if(drawId == ResourceId())
+      drawFramebuffer = m_FakeBB_FBO;
+    else
+      drawFramebuffer = GetResourceManager()->GetLiveResource(drawId).name;
+
+    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, drawFramebuffer);
+    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, readFramebuffer);
+
+    m_Real.glBlitFramebuffer(sX0, sY0, sX1, sY1, dX0, dY0, dX1, dY1, msk, flt);
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(BLIT_FRAMEBUFFER, desc);
+    string name = "glBlitFramebuffer(" + ToStr::Get(readId) + ", " + ToStr::Get(drawId) + ")";
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.flags |= eDraw_Resolve;
+
+    GLint numCols = 8;
+    m_Real.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+
+    for(int i = 0; i < numCols + 2; i++)
+    {
+      GLenum attachName = GLenum(eGL_COLOR_ATTACHMENT0 + i);
+      if(i == numCols)
+        attachName = eGL_DEPTH_ATTACHMENT;
+      if(i == numCols + 1)
+        attachName = eGL_STENCIL_ATTACHMENT;
+
+      GLuint srcattachment = 0, dstattachment = 0;
+      GLenum srctype = eGL_TEXTURE, dsttype = eGL_TEXTURE;
+
+      m_Real.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, attachName,
+                                                   eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                   (GLint *)&srcattachment);
+      m_Real.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, attachName,
+                                                   eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                   (GLint *)&srctype);
+
+      m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, attachName,
+                                                   eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                   (GLint *)&dstattachment);
+      m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, attachName,
+                                                   eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                   (GLint *)&dsttype);
+
+      ResourceId srcid, dstid;
+
+      if(srctype == eGL_TEXTURE)
+        srcid = GetResourceManager()->GetID(TextureRes(GetCtx(), srcattachment));
+      else
+        srcid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), srcattachment));
+
+      if(dstattachment == srcattachment)
+      {
+        m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, eUsage_Copy));
+      }
+      else
+      {
+        if(dsttype == eGL_TEXTURE)
+          dstid = GetResourceManager()->GetID(TextureRes(GetCtx(), dstattachment));
+        else
+          dstid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), dstattachment));
+
+        draw.copySource = GetResourceManager()->GetOriginalID(srcid);
+        draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+
+        // MS to non-MS is a resolve
+        if((m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE ||
+            m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY) &&
+           m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE &&
+           m_Textures[dstid].curType != eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+        {
+          m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, eUsage_ResolveSrc));
+          m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, eUsage_ResolveDst));
+        }
+        else
+        {
+          m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, eUsage_CopySrc));
+          m_ResourceUses[dstid].push_back(EventUsage(m_CurEventID, eUsage_CopyDst));
+        }
+      }
+    }
+
+    AddDrawcall(draw, true);
+  }
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldDrawFBO);
+    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldReadFBO);
+  }
+
+  return true;
 }
 
 void WrappedGLES::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint srcY1,
-                                      GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
-                                      GLbitfield mask, GLenum filter)
+                                    GLint dstX0, GLint dstY0, GLint dstX1, GLint dstY1,
+                                    GLbitfield mask, GLenum filter)
 {
   CoherentMapImplicitBarrier();
 
@@ -1667,7 +1611,7 @@ void WrappedGLES::glBlitFramebuffer(GLint srcX0, GLint srcY0, GLint srcX1, GLint
       drawFramebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
 
     SCOPED_SERIALISE_CONTEXT(BLIT_FRAMEBUFFER);
-    Serialise_glBlitFramebuffer(srcX0, srcY0, srcX1, srcY1,
+    Serialise_glBlitFramebuffer(readFramebuffer, drawFramebuffer, srcX0, srcY0, srcX1, srcY1,
                                 dstX0, dstY0, dstX1, dstY1, mask, filter);
 
     m_ContextRecord->AddChunk(scope.Get());
@@ -1860,12 +1804,17 @@ bool WrappedGLES::Serialise_glRenderbufferStorage(GLuint renderbuffer, GLenum ta
     texDetails.internalFormat = Format;
 
     GLuint real = GetResourceManager()->GetLiveResource(id).name;
-    GLint oldBinding = 0;
 
-    m_Real.glGetIntegerv(eGL_RENDERBUFFER_BINDING, &oldBinding);
+    GLint oldDrawFBO = 0;
+    GLint oldReadFBO = 0;
+    GLint oldRenderbuf = 0;
+
+    m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &oldDrawFBO);
+    m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &oldReadFBO);
+    m_Real.glGetIntegerv(eGL_RENDERBUFFER_BINDING, &oldRenderbuf);
+
     m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, real);
     m_Real.glRenderbufferStorage(eGL_RENDERBUFFER, Format, Width, Height);
-    m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, oldBinding);
 
     // create read-from texture for displaying this render buffer
     m_Real.glGenTextures(1, &texDetails.renderbufferReadTex);
@@ -1885,15 +1834,15 @@ bool WrappedGLES::Serialise_glRenderbufferStorage(GLuint renderbuffer, GLenum ta
     if(fmt == eGL_DEPTH_STENCIL)
       attach = eGL_DEPTH_STENCIL_ATTACHMENT;
 
-    m_Real.glGetIntegerv(eGL_FRAMEBUFFER_BINDING, &oldBinding);
     m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
     m_Real.glFramebufferRenderbuffer(eGL_FRAMEBUFFER, attach, eGL_RENDERBUFFER, real);
-    m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, oldBinding);
 
-    m_Real.glGetIntegerv(eGL_RENDERBUFFER_BINDING, &oldBinding);
-    m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, texDetails.renderbufferFBOs[1]);
+    m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
     m_Real.glFramebufferTexture2D(eGL_FRAMEBUFFER, attach, eGL_TEXTURE_2D, texDetails.renderbufferReadTex, 0);
-    m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, oldBinding);
+
+    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldDrawFBO);
+    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldReadFBO);
+    m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, oldRenderbuf);
   }
 
   return true;

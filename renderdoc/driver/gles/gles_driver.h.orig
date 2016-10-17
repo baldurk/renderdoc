@@ -543,24 +543,23 @@ public:
                                         const GLchar *const *strings);
   bool Serialise_glCreateProgram(GLuint real);
 
-  bool Serialise_glFramebufferTexture(GLuint framebuffer, GLenum target, GLenum attachment,
-                                      GLuint texture, GLint level);
-  bool Serialise_glFramebufferTexture2D(GLuint framebuffer, GLenum target, GLenum attachment,
-                                        GLenum textarget, GLuint texture,
-                                        GLint level);
+<<<<<<< Updated upstream
   bool Serialise_glDrawBuffers(GLuint framebuffer, GLsizei n, const GLenum *bufs);
   bool Serialise_glReadBuffer(GLuint framebuffer, GLenum mode);
   bool Serialise_glFramebufferRenderbuffer(GLuint framebuffer, GLenum target, GLenum attachment,
                                            GLenum renderbuffertarget,
                                            GLuint renderbuffer);
+=======
+  bool Serialise_glVertexAttribPointer(GLuint index, GLint size, GLenum type,
+                                       GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize);
+
+  bool Serialise_glVertexAttribIPointer(GLuint index, GLint size, GLenum type,
+                                        GLsizei stride, const void *pointer, size_t dataSize);
+
+>>>>>>> Stashed changes
   bool Serialise_glRenderbufferStorage(GLuint renderbuffer, GLenum target,
                                        GLenum internalformat, GLsizei width,
                                        GLsizei height);
-  bool Serialise_glBlitFramebuffer(GLuint readFramebuffer, GLuint drawFramebuffer,
-                                   GLint srcX0, GLint srcY0, GLint srcX1,
-                                   GLint srcY1, GLint dstX0, GLint dstY0,
-                                   GLint dstX1, GLint dstY1, GLbitfield mask,
-                                   GLenum filter);
 
   bool Serialise_glVertexAttrib(GLuint index, int count, GLenum type, GLboolean normalized,
                                 const void *value, int attribtype);
@@ -730,7 +729,6 @@ public:
 
   // GLES - GL compatibility like methods
   void glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt, GLenum type, GLint width, GLint height, void *ret);
-  void glGetNamedBufferSubDataEXT(GLuint buffer, GLenum target, GLintptr offset, GLsizeiptr size, void *data);
 };
 
 class ScopedDebugContext

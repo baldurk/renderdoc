@@ -2966,6 +2966,11 @@ bool WrappedGLES::RecordUpdateCheck(GLResourceRecord *record)
 void WrappedGLES::DebugSnoop(GLenum source, GLenum type, GLuint id, GLenum severity,
                                GLsizei length, const GLchar *message)
 {
+#if 1
+  if (severity == eGL_DEBUG_SEVERITY_HIGH_KHR) {
+    printf("GL_DEBUG_SEVERITY_HIGH_KHR\n");
+  }
+#endif
   if(type != eGL_DEBUG_TYPE_PUSH_GROUP && type != eGL_DEBUG_TYPE_POP_GROUP)
   {
     if(type != eGL_DEBUG_TYPE_PERFORMANCE && type != eGL_DEBUG_TYPE_OTHER)
@@ -3116,7 +3121,7 @@ void WrappedGLES::ReadLogInitialisation()
 void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 {
 
-  // printf("processing chunk: %s (%d)\n", WrappedGLES::GetChunkName(context), context);
+//  printf("processing chunk: %s (%d)\n", WrappedGLES::GetChunkName(context), context);
   switch(context)
   {
     case DEVICE_INIT:
@@ -3361,12 +3366,12 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //
     case GEN_FRAMEBUFFERS: Serialise_glGenFramebuffers(0, NULL); break;
 //    case CREATE_FRAMEBUFFERS: Serialise_glCreateFramebuffers(0, NULL); break;
-//    case FRAMEBUFFER_TEX: Serialise_glNamedFramebufferTextureEXT(0, eGL_NONE, 0, 0); break;
+    case FRAMEBUFFER_TEX: Serialise_glFramebufferTexture(0, eGL_NONE, eGL_NONE, 0, 0); break;
 //    case FRAMEBUFFER_TEX1D:
 //      Serialise_glNamedFramebufferTexture1DEXT(0, eGL_NONE, eGL_NONE, 0, 0);
 //      break;
     case FRAMEBUFFER_TEX2D:
-      Serialise_glFramebufferTexture2D(eGL_NONE, eGL_NONE, eGL_NONE, 0, 0); break;
+      Serialise_glFramebufferTexture2D(0, eGL_NONE, eGL_NONE, eGL_NONE, 0, 0); break;
 //    case FRAMEBUFFER_TEX3D:
 //      Serialise_glNamedFramebufferTexture3DEXT(0, eGL_NONE, eGL_NONE, 0, 0, 0);
 //      break;
@@ -3380,10 +3385,8 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case BIND_FRAMEBUFFER: Serialise_glBindFramebuffer(eGL_NONE, 0); break;
 //    case DRAW_BUFFER: Serialise_glFramebufferDrawBufferEXT(0, eGL_NONE); break;
     case DRAW_BUFFERS: Serialise_glDrawBuffers(0, 0, NULL); break;
-//    case BLIT_FRAMEBUFFER:
-//      Serialise_glBlitNamedFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, eGL_NONE);
-//      break;
-//
+    case BLIT_FRAMEBUFFER: Serialise_glBlitFramebuffer(0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, eGL_NONE); break;
+
     case GEN_RENDERBUFFERS: Serialise_glGenRenderbuffers(0, NULL); break;
 //    case CREATE_RENDERBUFFERS: Serialise_glCreateRenderbuffers(0, NULL); break;
     case RENDERBUFFER_STORAGE: Serialise_glRenderbufferStorage(0, eGL_NONE, eGL_NONE, 0, 0); break;
