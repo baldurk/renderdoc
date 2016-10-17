@@ -50,6 +50,30 @@
 // would be a nightmare to support replaying without extensions that were present &
 // used when capturing.
 
+
+class SafeTextureBinder
+{
+public:
+    SafeTextureBinder(const GLHookSet &hooks, GLuint texture, GLenum target)
+      : m_Real(hooks)
+      , m_target(target)
+    {
+      m_Real.glGetIntegerv(TextureBinding(m_target), &m_previous);
+      m_Real.glBindTexture(m_target, texture);
+    }
+
+    ~SafeTextureBinder()
+    {
+      m_Real.glBindTexture(m_target, m_previous);
+    }
+private:
+    SafeTextureBinder(const SafeTextureBinder&);
+
+    const GLHookSet &m_Real;
+    GLenum m_target;
+    GLint m_previous;
+};
+
 bool WrappedGLES::Serialise_glGenTextures(GLsizei n, GLuint *textures)
 {
   SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), *textures)));
@@ -354,7 +378,8 @@ bool WrappedGLES::Serialise_glGenerateMipmap(GLenum target)
 
   if(m_State <= EXECUTING)
   {
-      m_Real.glGenerateMipmap(Target);
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
+    glGenerateMipmap(Target);
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -370,7 +395,6 @@ bool WrappedGLES::Serialise_glGenerateMipmap(GLenum target)
     draw.name = name;
     draw.flags |= eDraw_GenMips;
 
-    // TODO PEPE check wether this call is needed.
     AddDrawcall(draw, true);
 
     m_ResourceUses[GetResourceManager()->GetLiveID(id)].push_back(
@@ -389,7 +413,7 @@ void WrappedGLES::glGenerateMipmap(GLenum target)
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     RDCASSERT(record);
-    
+
     if(m_State == WRITING_CAPFRAME)
     {
       SCOPED_SERIALISE_CONTEXT(GENERATE_MIPMAP);
@@ -403,7 +427,7 @@ void WrappedGLES::glGenerateMipmap(GLenum target)
     {
       GetResourceManager()->MarkDirtyResource(record->GetResourceID());
     }
-    
+
   }
 }
 
@@ -511,6 +535,7 @@ bool WrappedGLES::Serialise_glCopyTexSubImage2D(GLenum target, GLint level,
                                                 GLint xoffset, GLint yoffset, GLint x,
                                                 GLint y, GLsizei width, GLsizei height)
 {
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
   SERIALISE_ELEMENT(GLenum, Target, target);
   SERIALISE_ELEMENT(int32_t, Level, level);
   SERIALISE_ELEMENT(int32_t, Xoffset, xoffset);
@@ -522,7 +547,8 @@ bool WrappedGLES::Serialise_glCopyTexSubImage2D(GLenum target, GLint level,
 
   if(m_State < WRITING)
   {
-    m_Real.glCopyTexSubImage2D(Target, Level, Xoffset, Yoffset, X, Y, Width, Height);
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
+    glCopyTexSubImage2D(Target, Level, Xoffset, Yoffset, X, Y, Width, Height);
   }
 
   return true;
@@ -538,7 +564,7 @@ void WrappedGLES::glCopyTexSubImage2D(GLenum target, GLint level, GLint xoffset,
     CoherentMapImplicitBarrier();
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     RDCASSERT(record);
-    
+
     if(m_State == WRITING_IDLE)
     {
       GetResourceManager()->MarkDirtyResource(record->GetResourceID());
@@ -561,6 +587,7 @@ bool WrappedGLES::Serialise_glCopyTexSubImage3D(GLenum target, GLint level,
                                                 GLint zoffset, GLint x, GLint y,
                                                 GLsizei width, GLsizei height)
 {
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
   SERIALISE_ELEMENT(GLenum, Target, target);
   SERIALISE_ELEMENT(int32_t, Level, level);
   SERIALISE_ELEMENT(int32_t, Xoffset, xoffset);
@@ -573,7 +600,8 @@ bool WrappedGLES::Serialise_glCopyTexSubImage3D(GLenum target, GLint level,
 
   if(m_State < WRITING)
   {
-      m_Real.glCopyTexSubImage3D(Target, Level, Xoffset, Yoffset, Zoffset, X, Y, Width, Height);
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
+    glCopyTexSubImage3D(Target, Level, Xoffset, Yoffset, Zoffset, X, Y, Width, Height);
   }
 
   return true;
@@ -637,9 +665,12 @@ bool WrappedGLES::Serialise_glTexParameteri(GLenum target, GLenum pname, GLint p
     ParamValue = Param;
   }
 
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
+
   if(m_State < WRITING)
   {
-      m_Real.glTexParameteri(Target, PName, ParamValue);
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
+    m_Real.glTexParameteri(Target, PName, ParamValue);
   }
 
   return true;
@@ -649,7 +680,7 @@ void WrappedGLES::glTexParameteri(GLenum target, GLenum pname, GLint param)
 {
   m_Real.glTexParameteri(target, pname, param);
 
-  if(m_State >= WRITING) 
+  if(m_State >= WRITING)
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
@@ -687,10 +718,12 @@ bool WrappedGLES::Serialise_glTexParameterf(GLenum target, GLenum pname,
   SERIALISE_ELEMENT(GLenum, Target, target);
   SERIALISE_ELEMENT(GLenum, PName, pname);
   SERIALISE_ELEMENT(float, Param, param);
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
 
   if(m_State < WRITING)
   {
-      m_Real.glTexParameterf(Target, PName, Param);
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
+    m_Real.glTexParameterf(Target, PName, Param);
   }
 
   return true;
@@ -705,7 +738,7 @@ void WrappedGLES::glTexParameterf(GLenum target, GLenum pname, GLfloat param)
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
-    
+
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
        m_State != WRITING_CAPFRAME)
       return;
@@ -738,12 +771,14 @@ bool WrappedGLES::Serialise_Common_glTexParameter_v(GLenum target, GLenum pname,
 {
   SERIALISE_ELEMENT(GLenum, Target, target);
   SERIALISE_ELEMENT(GLenum, PName, pname);
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
   const size_t nParams = (PName == eGL_TEXTURE_BORDER_COLOR ? 4U : 1U);
   SERIALISE_ELEMENT_ARR(TP, Params, params, nParams);
 
   if(m_State < WRITING)
   {
-      (m_Real.*function)(Target, PName, Params);
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
+    (m_Real.*function)(Target, PName, Params);
   }
 
   delete[] Params;
@@ -761,7 +796,7 @@ void WrappedGLES::Common_glTexParameter_v(GLenum target, GLenum pname, const TP 
 
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     RDCASSERT(record);
-    
+
     if(m_State != WRITING_CAPFRAME && m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end())
       return;
 
@@ -903,11 +938,10 @@ void WrappedGLES::glActiveTexture(GLenum texture)
 
 
 bool WrappedGLES::Serialise_glTexImage2D(GLenum target, GLint level,
-                                                  GLint internalformat, GLsizei width,
-                                                  GLsizei height, GLint border, GLenum format,
-                                                  GLenum type, const void *pixels)
+                                         GLint internalformat, GLsizei width,
+                                         GLsizei height, GLint border, GLenum format,
+                                         GLenum type, const void *pixels)
 {
-  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
   SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
   SERIALISE_ELEMENT(GLenum, Target, target);
   SERIALISE_ELEMENT(int32_t, Level, level);
@@ -950,8 +984,7 @@ bool WrappedGLES::Serialise_glTexImage2D(GLenum target, GLint level,
       m_Textures[liveId].width = Width;
       m_Textures[liveId].height = Height;
       m_Textures[liveId].depth = 1;
-      if(Target != eGL_NONE)
-        m_Textures[liveId].curType = TextureTarget(Target);
+      m_Textures[liveId].curType = TextureTarget(Target);
       m_Textures[liveId].dimension = 2;
       m_Textures[liveId].internalFormat = IntFormat;
       m_Textures[liveId].emulated = emulated;
@@ -967,6 +1000,7 @@ bool WrappedGLES::Serialise_glTexImage2D(GLenum target, GLint level,
     GLint align = 1;
     m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
     m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
 
     if(TextureBinding(Target) != eGL_TEXTURE_BINDING_CUBE_MAP)
     {
@@ -1033,7 +1067,7 @@ void WrappedGLES::glTexImage2D(GLenum target, GLint level, GLint internalformat,
     if (record == NULL)
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
     ResourceId texId = record->GetResourceID();
-    
+
     // This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with
     // glTexImage over and over
     // so we need to attempt to catch the case where glTexImage is called to re-upload data, not
@@ -1081,7 +1115,6 @@ bool WrappedGLES::Serialise_glTexImage3D(GLenum target, GLint level,
                                          GLsizei height, GLsizei depth, GLint border,
                                          GLenum format, GLenum type, const void *pixels)
 {
-  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
   SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
   SERIALISE_ELEMENT(GLenum, Target, target);
   SERIALISE_ELEMENT(int32_t, Level, level);
@@ -1143,6 +1176,7 @@ bool WrappedGLES::Serialise_glTexImage3D(GLenum target, GLint level,
     m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
     m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
 
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
     m_Real.glTexImage3D(Target, Level, IntFormat, Width, Height, Depth, Border, Format, Type, buf);
 
     if(unpackbuf)
@@ -1166,7 +1200,7 @@ void WrappedGLES::glTexImage3D(GLenum target, GLint level, GLint internalformat,
   // replay
   if(m_State < WRITING)
   {
-    return; 
+    return;
   }
   else
   {
@@ -1174,7 +1208,7 @@ void WrappedGLES::glTexImage3D(GLenum target, GLint level, GLint internalformat,
     if (record == NULL)
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
     ResourceId texId = record->GetResourceID();
-    
+
     CoherentMapImplicitBarrier();
 
     if(internalformat == 0)
@@ -1240,7 +1274,6 @@ bool WrappedGLES::Serialise_glCompressedTexImage2D(GLenum target,
                                                    GLint border, GLsizei imageSize,
                                                    const GLvoid *pixels)
 {
-  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
   SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
   SERIALISE_ELEMENT(GLenum, Target, target);
   SERIALISE_ELEMENT(int32_t, Level, level);
@@ -1290,8 +1323,7 @@ bool WrappedGLES::Serialise_glCompressedTexImage2D(GLenum target,
       m_Textures[liveId].width = Width;
       m_Textures[liveId].height = Height;
       m_Textures[liveId].depth = 1;
-      if(Target != eGL_NONE)
-        m_Textures[liveId].curType = TextureTarget(Target);
+      m_Textures[liveId].curType = TextureTarget(Target);
       m_Textures[liveId].dimension = 2;
       m_Textures[liveId].internalFormat = fmt;
     }
@@ -1306,6 +1338,7 @@ bool WrappedGLES::Serialise_glCompressedTexImage2D(GLenum target,
     GLint align = 1;
     m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
     m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
 
     if(TextureBinding(Target) != eGL_TEXTURE_BINDING_CUBE_MAP)
     {
@@ -1351,7 +1384,7 @@ void WrappedGLES::glCompressedTexImage2D(GLenum target, GLint level, GLenum inte
   // replay
   if(m_State < WRITING)
   {
-    return; 
+    return;
   }
   else
   {
@@ -1425,7 +1458,6 @@ bool WrappedGLES::Serialise_glCompressedTexImage3D(GLenum target,
                                                    GLsizei depth, GLint border,
                                                    GLsizei imageSize, const GLvoid *pixels)
 {
-  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
   SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
   SERIALISE_ELEMENT(GLenum, Target, target);
   SERIALISE_ELEMENT(int32_t, Level, level);
@@ -1476,8 +1508,7 @@ bool WrappedGLES::Serialise_glCompressedTexImage3D(GLenum target,
       m_Textures[liveId].width = Width;
       m_Textures[liveId].height = Height;
       m_Textures[liveId].depth = Depth;
-      if(Target != eGL_NONE)
-        m_Textures[liveId].curType = TextureTarget(Target);
+      m_Textures[liveId].curType = TextureTarget(Target);
       m_Textures[liveId].dimension = 3;
       m_Textures[liveId].internalFormat = fmt;
     }
@@ -1493,6 +1524,7 @@ bool WrappedGLES::Serialise_glCompressedTexImage3D(GLenum target,
     m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
     m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
 
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
     m_Real.glCompressedTexImage3D(Target, Level, fmt, Width, Height, Depth, Border, byteSize, databuf);
 
     if(unpackbuf)
@@ -1514,7 +1546,7 @@ void WrappedGLES::glCompressedTexImage3D(GLenum target, GLint level, GLenum inte
 
   if(m_State < WRITING)
   {
-    return; 
+    return;
   }
   else
   {
@@ -1592,7 +1624,6 @@ bool WrappedGLES::Serialise_glCopyTexImage2D(GLenum target, GLint level,
                                              GLenum internalformat, GLint x, GLint y,
                                              GLsizei width, GLsizei height, GLint border)
 {
-  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
   SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
   SERIALISE_ELEMENT(GLenum, Target, target);
   SERIALISE_ELEMENT(int32_t, Level, level);
@@ -1611,12 +1642,11 @@ bool WrappedGLES::Serialise_glCopyTexImage2D(GLenum target, GLint level,
       m_Textures[liveId].width = Width;
       m_Textures[liveId].height = Height;
       m_Textures[liveId].depth = 1;
-      if(Target != eGL_NONE)
-        m_Textures[liveId].curType = TextureTarget(Target);
       m_Textures[liveId].dimension = 2;
       m_Textures[liveId].internalFormat = Format;
     }
 
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
     m_Real.glCopyTexImage2D(Target, Level, Format, X, Y, Width, Height, Border);
   }
   return true;
@@ -1630,7 +1660,7 @@ void WrappedGLES::glCopyTexImage2D(GLenum target, GLint level, GLenum internalfo
   // saves on queries of the currently bound texture to this target, as we don't have records on
   // replay
   if(m_State < WRITING)
-    return; 
+    return;
   else
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
@@ -1772,7 +1802,7 @@ void WrappedGLES::glTexStorage1DEXT(GLenum target, GLsizei levels, GLenum intern
   // replay
   if(m_State < WRITING)
   {
-    return; 
+    return;
   }
   else
   {
@@ -1869,7 +1899,7 @@ void WrappedGLES::glTexStorage2D(GLenum target, GLsizei levels, GLenum internalf
 
   if(m_State < WRITING)
   {
-    return; 
+    return;
   }
   else
   {
@@ -1998,7 +2028,6 @@ bool WrappedGLES::Serialise_glTexStorage2DMultisample(GLenum target,
   SERIALISE_ELEMENT(uint32_t, Width, width);
   SERIALISE_ELEMENT(uint32_t, Height, height);
   SERIALISE_ELEMENT(bool, Fixedlocs, fixedsamplelocations != 0);
-  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
   SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
 
   if(m_State == READING)
@@ -2017,6 +2046,7 @@ bool WrappedGLES::Serialise_glTexStorage2DMultisample(GLenum target,
     m_Textures[liveId].internalFormat = Format;
     m_Textures[liveId].emulated = emulated;
 
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
     m_Real.glTexStorage2DMultisample(Target, Samples, Format, Width, Height,
                                      Fixedlocs ? GL_TRUE : GL_FALSE);
   }
@@ -2085,7 +2115,6 @@ bool WrappedGLES::Serialise_glTexStorage3DMultisample(GLenum target,
   SERIALISE_ELEMENT(uint32_t, Height, height);
   SERIALISE_ELEMENT(uint32_t, Depth, depth);
   SERIALISE_ELEMENT(bool, Fixedlocs, fixedsamplelocations != 0);
-  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
   SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
 
   if(m_State == READING)
@@ -2104,6 +2133,7 @@ bool WrappedGLES::Serialise_glTexStorage3DMultisample(GLenum target,
     m_Textures[liveId].internalFormat = Format;
     m_Textures[liveId].emulated = emulated;
 
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
     m_Real.glTexStorage3DMultisample(Target, Samples, Format, Width, Height, Depth,
                                          Fixedlocs ? GL_TRUE : GL_FALSE);
   }
@@ -2130,7 +2160,7 @@ void WrappedGLES::glTexStorage3DMultisample(GLenum target, GLsizei samples, GLen
     if(record == NULL)
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
     ResourceId texId = record->GetResourceID();
-    
+
     if(internalformat == 0)
       return;
 
@@ -2154,7 +2184,7 @@ void WrappedGLES::glTexStorage3DMultisample(GLenum target, GLsizei samples, GLen
       m_Textures[texId].dimension = 3;
       m_Textures[texId].internalFormat = internalformat;
     }
-      
+
   }
 }
 
@@ -2175,7 +2205,6 @@ bool WrappedGLES::Serialise_glTexSubImage2D(GLenum target, GLint level,
   SERIALISE_ELEMENT(uint32_t, Height, height);
   SERIALISE_ELEMENT(GLenum, Format, format);
   SERIALISE_ELEMENT(GLenum, Type, type);
-  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
   SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
 
   GLint unpackbuf = 0;
@@ -2230,6 +2259,7 @@ bool WrappedGLES::Serialise_glTexSubImage2D(GLenum target, GLint level,
         Format = eGL_RED;
     }
 
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
     m_Real.glTexSubImage2D(Target, Level,
                            xoff, yoff, Width, Height, Format, Type,
                            buf ? buf : (const void *)bufoffs);
@@ -2313,7 +2343,6 @@ bool WrappedGLES::Serialise_glTexSubImage3D(GLenum target, GLint level,
   SERIALISE_ELEMENT(uint32_t, Depth, depth);
   SERIALISE_ELEMENT(GLenum, Format, format);
   SERIALISE_ELEMENT(GLenum, Type, type);
-  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
   SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
 
   GLint unpackbuf = 0;
@@ -2368,6 +2397,7 @@ bool WrappedGLES::Serialise_glTexSubImage3D(GLenum target, GLint level,
         Format = eGL_RED;
     }
 
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
     m_Real.glTexSubImage3D(Target, Level,
                            xoff, yoff, zoff, Width, Height, Depth, Format, Type,
                            buf ? buf : (const void *)bufoffs);
@@ -2383,64 +2413,6 @@ bool WrappedGLES::Serialise_glTexSubImage3D(GLenum target, GLint level,
 
   return true;
 }
-
-//void WrappedGLES::Common_glTextureSubImage3DEXT(GLResourceRecord *record, GLenum target,
-//                                                  GLint level, GLint xoffset, GLint yoffset,
-//                                                  GLint zoffset, GLsizei width, GLsizei height,
-//                                                  GLsizei depth, GLenum format, GLenum type,
-//                                                  const void *pixels)
-//{
-//  if(!record)
-//  {
-//    RDCERR(
-//        "Called texture function with invalid/unrecognised texture, or no texture bound to "
-//        "implicit slot");
-//    return;
-//  }
-//
-//  CoherentMapImplicitBarrier();
-//
-//  // proxy formats are used for querying texture capabilities, don't serialise these
-//  if(IsProxyTarget(format))
-//    return;
-//
-//  GLint unpackbuf = 0;
-//  m_Real.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, &unpackbuf);
-//
-//  if(m_State == WRITING_IDLE && unpackbuf != 0)
-//  {
-//    GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//  }
-//  else
-//  {
-//    if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
-//       m_State == WRITING_IDLE)
-//      return;
-//
-//    SCOPED_SERIALISE_CONTEXT(TEXSUBIMAGE3D);
-//    Serialise_glTextureSubImage3DEXT(record->Resource.name, target, level, xoffset, yoffset,
-//                                     zoffset, width, height, depth, format, type, pixels);
-//
-//    if(m_State == WRITING_CAPFRAME)
-//    {
-//      m_ContextRecord->AddChunk(scope.Get());
-//      m_MissingTracks.insert(record->GetResourceID());
-//      GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-//    }
-//    else
-//    {
-//      record->AddChunk(scope.Get());
-//      record->UpdateCount++;
-//
-//      if(record->UpdateCount > 60)
-//      {
-//        m_HighTrafficResources.insert(record->GetResourceID());
-//        GetResourceManager()->MarkDirtyResource(record->GetResourceID());
-//      }
-//    }
-//  }
-//}
-//
 
 void WrappedGLES::glTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLint yoffset,
                                     GLint zoffset, GLsizei width, GLsizei height, GLsizei depth,
@@ -2508,7 +2480,6 @@ bool WrappedGLES::Serialise_glCompressedTexSubImage2D(GLenum target,
   SERIALISE_ELEMENT(uint32_t, Width, width);
   SERIALISE_ELEMENT(uint32_t, Height, height);
   SERIALISE_ELEMENT(GLenum, fmt, format);
-  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
   SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
 
   GLint unpackbuf = 0;
@@ -2547,6 +2518,7 @@ bool WrappedGLES::Serialise_glCompressedTexSubImage2D(GLenum target,
       m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
     }
 
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
     m_Real.glCompressedTexSubImage2D(Target, Level, xoff, yoff, Width, Height, fmt,
                                      byteSize, buf ? buf : (const void *)bufoffs);
 
@@ -2632,7 +2604,6 @@ bool WrappedGLES::Serialise_glCompressedTexSubImage3D(GLenum target,
   SERIALISE_ELEMENT(uint32_t, Height, height);
   SERIALISE_ELEMENT(uint32_t, Depth, depth);
   SERIALISE_ELEMENT(GLenum, fmt, format);
-  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
   SERIALISE_ELEMENT(ResourceId, id, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
 
   GLint unpackbuf = 0;
@@ -2671,6 +2642,7 @@ bool WrappedGLES::Serialise_glCompressedTexSubImage3D(GLenum target,
       m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
     }
 
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
     m_Real.glCompressedTexSubImage3D(Target, Level, xoff, yoff, zoff, Width, Height, Depth,
                                      fmt, byteSize, buf ? buf : (const void *)bufoffs);
 
@@ -2754,7 +2726,6 @@ bool WrappedGLES::Serialise_glTexBufferRange(GLenum target,
   SERIALISE_ELEMENT(uint64_t, offs, (uint64_t)offset);
   SERIALISE_ELEMENT(uint64_t, Size, (uint64_t)size);
   SERIALISE_ELEMENT(GLenum, fmt, internalformat);
-  // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
   SERIALISE_ELEMENT(ResourceId, texid, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
   SERIALISE_ELEMENT(ResourceId, bufid, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 
@@ -2776,6 +2747,7 @@ bool WrappedGLES::Serialise_glTexBufferRange(GLenum target,
     if(GetResourceManager()->HasLiveResource(bufid))
       buf = GetResourceManager()->GetLiveResource(bufid).name;
 
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(texid).name, Target);
     m_Real.glTexBufferRange(Target, fmt, buf, (GLintptr)offs, (GLsizeiptr)Size);
   }
 
@@ -2849,7 +2821,7 @@ void WrappedGLES::glTexBufferRange(GLenum target, GLenum internalformat, GLuint 
       if(bufRecord)
         record->AddParent(bufRecord);
     }
-    
+
 
     {
       m_Textures[texId].width =
@@ -2861,7 +2833,7 @@ void WrappedGLES::glTexBufferRange(GLenum target, GLenum internalformat, GLuint 
       m_Textures[texId].dimension = 1;
       m_Textures[texId].internalFormat = internalformat;
     }
-      
+
   }
 }
 
@@ -2870,7 +2842,6 @@ bool WrappedGLES::Serialise_glTexBuffer(GLenum target,
 {
   SERIALISE_ELEMENT(GLenum, Target, target);
   SERIALISE_ELEMENT(GLenum, fmt, internalformat);
-    // TODO PEPE by tracking the texture bindings during reading we could get rid of saving the id
   SERIALISE_ELEMENT(ResourceId, texid, GetCtxData().GetActiveTexRecord(target)->GetResourceID());
   SERIALISE_ELEMENT(ResourceId, bufid, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
 
@@ -2882,17 +2853,17 @@ bool WrappedGLES::Serialise_glTexBuffer(GLenum target,
     {
       ResourceId liveId = GetResourceManager()->GetLiveID(texid);
       uint32_t Size = 1;
-      
+
       GLenum bufferTarget = m_Buffers[GetResourceManager()->GetLiveID(bufid)].curType;
       RDCASSERT(bufferTarget != eGL_NONE);
-      
+
       GLenum bufferBinding = TextureBinding(bufferTarget);
       GLint prevBind = 0;
       m_Real.glGetIntegerv(bufferBinding, &prevBind);
       m_Real.glBindBuffer(bufferTarget, buffer);
       m_Real.glGetBufferParameteriv(bufferTarget, eGL_BUFFER_SIZE, (GLint *)&Size);
       m_Real.glBindBuffer(bufferTarget, prevBind);
-      
+
       m_Textures[liveId].width =
           Size / uint32_t(GetByteSize(1, 1, 1, GetBaseFormat(fmt), GetDataType(fmt)));
       m_Textures[liveId].height = 1;
@@ -2901,6 +2872,7 @@ bool WrappedGLES::Serialise_glTexBuffer(GLenum target,
       m_Textures[liveId].internalFormat = fmt;
     }
 
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(texid).name, Target);
     m_Real.glTexBuffer(Target, fmt, buffer);
   }
 
@@ -2975,7 +2947,7 @@ void WrappedGLES::glTexBuffer(GLenum target, GLenum internalformat, GLuint buffe
       if(bufRecord)
         record->AddParent(bufRecord);
     }
-    
+
 
     {
       if(buffer != 0)
@@ -2984,7 +2956,7 @@ void WrappedGLES::glTexBuffer(GLenum target, GLenum internalformat, GLuint buffe
 
         GLenum bufferTarget = m_Buffers[GetResourceManager()->GetLiveID(bufid)].curType;
         RDCASSERT(bufferTarget != eGL_NONE);
-        
+
         GLenum bufferBinding = TextureBinding(bufferTarget);
         GLint prevBind = 0;
         m_Real.glGetIntegerv(bufferBinding, &prevBind);
