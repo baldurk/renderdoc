@@ -56,7 +56,7 @@ class SafeTextureBinder
 public:
     SafeTextureBinder(const GLHookSet &hooks, GLuint texture, GLenum target)
       : m_Real(hooks)
-      , m_target(target)
+      , m_target(TextureTarget(target))
     {
       m_Real.glGetIntegerv(TextureBinding(m_target), &m_previous);
       m_Real.glBindTexture(m_target, texture);
