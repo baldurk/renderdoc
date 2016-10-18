@@ -265,6 +265,8 @@ struct D3D12CommandData
   };
   vector<DrawcallUse> m_DrawcallUses;
 
+  vector<DebugMessage> m_EventMessages;
+
   map<ResourceId, ID3D12GraphicsCommandList *> m_RerecordCmds;
 
   bool m_AddedDrawcall;

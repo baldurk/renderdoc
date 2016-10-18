@@ -2209,8 +2209,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(UINT VertexCountP
   if(m_State < WRITING)
     m_Cmd->m_LastCmdListID = CommandList;
 
-  D3D12NOTIMP("Serialise_DebugMessages");
-
   if(m_State == EXECUTING)
   {
     if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
@@ -2286,8 +2284,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT Index
   if(m_State < WRITING)
     m_Cmd->m_LastCmdListID = CommandList;
 
-  D3D12NOTIMP("Serialise_DebugMessages");
-
   if(m_State == EXECUTING)
   {
     if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
@@ -2361,8 +2357,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(UINT ThreadGroupCountX
 
   if(m_State < WRITING)
     m_Cmd->m_LastCmdListID = CommandList;
-
-  D3D12NOTIMP("Serialise_DebugMessages");
 
   if(m_State == EXECUTING)
   {
@@ -2438,8 +2432,6 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
 
   if(m_State < WRITING)
     m_Cmd->m_LastCmdListID = CommandList;
-
-  D3D12NOTIMP("Serialise_DebugMessages");
 
   if(m_State == EXECUTING)
   {

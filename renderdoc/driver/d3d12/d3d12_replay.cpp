@@ -1324,12 +1324,12 @@ Callstack::StackResolver *D3D12Replay::GetCallstackResolver()
   return m_pDevice->GetMainSerialiser()->GetCallstackResolver();
 }
 
-#pragma region not yet implemented
-
 vector<DebugMessage> D3D12Replay::GetDebugMessages()
 {
-  return vector<DebugMessage>();
+  return m_pDevice->GetDebugMessages();
 }
+
+#pragma region not yet implemented
 
 vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventID)
 {

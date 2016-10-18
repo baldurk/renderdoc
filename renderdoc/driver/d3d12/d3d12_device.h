@@ -266,6 +266,8 @@ private:
 
   Serialiser *GetThreadSerialiser();
 
+  vector<DebugMessage> m_DebugMessages;
+
   uint32_t m_FrameCounter;
   vector<FetchFrameInfo> m_CapturedFrames;
   FetchFrameRecord m_FrameRecord;
@@ -342,6 +344,9 @@ public:
   void FirstFrame(WrappedIDXGISwapChain3 *swap);
   FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const FetchDrawcall *GetDrawcall(uint32_t eventID);
+
+  void AddDebugMessage(const DebugMessage &msg) { m_DebugMessages.push_back(msg); }
+  vector<DebugMessage> GetDebugMessages();
 
   const string &GetResourceName(ResourceId id) { return m_ResourceNames[id]; }
   vector<D3D12_RESOURCE_STATES> &GetSubresourceStates(ResourceId id)

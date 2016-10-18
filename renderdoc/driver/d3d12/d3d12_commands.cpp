@@ -795,9 +795,6 @@ void D3D12CommandData::AddEvent(D3D12ChunkType type, string description)
     memcpy(apievent.callstack.elems, stack->GetAddrs(), sizeof(uint64_t) * stack->NumLevels());
   }
 
-  D3D12NOTIMP("debug messages");
-  vector<DebugMessage> m_EventMessages;
-
   for(size_t i = 0; i < m_EventMessages.size(); i++)
     m_EventMessages[i].eventID = apievent.eventID;
 
@@ -814,9 +811,8 @@ void D3D12CommandData::AddEvent(D3D12ChunkType type, string description)
     m_RootEvents.push_back(apievent);
     m_Events.push_back(apievent);
 
-    D3D12NOTIMP("debug messages");
-    // m_DebugMessages.insert(m_DebugMessages.end(), m_EventMessages.begin(),
-    // m_EventMessages.end());
+    for(auto it = m_EventMessages.begin(); it != m_EventMessages.end(); ++it)
+      m_pDevice->AddDebugMessage(*it);
   }
 
   m_EventMessages.clear();

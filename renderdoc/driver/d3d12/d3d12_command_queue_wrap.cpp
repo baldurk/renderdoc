@@ -80,7 +80,41 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
 
   const string desc = m_pSerialiser->GetDebugStr();
 
-  D3D12NOTIMP("Serialise_DebugMessages");
+  // debug messages
+  {
+    vector<DebugMessage> debugMessages;
+
+    if(m_State == WRITING_CAPFRAME)
+      debugMessages = m_pDevice->GetDebugMessages();
+
+    SERIALISE_ELEMENT(uint32_t, NumMessages, (uint32_t)debugMessages.size());
+
+    for(uint32_t i = 0; i < NumMessages; i++)
+    {
+      ScopedContext msgscope(m_pSerialiser, "DebugMessage", "DebugMessage", 0, false);
+
+      string desc;
+      if(m_State >= WRITING)
+        desc = debugMessages[i].description.elems;
+
+      SERIALISE_ELEMENT(uint32_t, Category, debugMessages[i].category);
+      SERIALISE_ELEMENT(uint32_t, Severity, debugMessages[i].severity);
+      SERIALISE_ELEMENT(uint32_t, ID, debugMessages[i].messageID);
+      SERIALISE_ELEMENT(string, Description, desc);
+
+      if(m_State == READING)
+      {
+        DebugMessage msg;
+        msg.source = eDbgSource_API;
+        msg.category = (DebugMessageCategory)Category;
+        msg.severity = (DebugMessageSeverity)Severity;
+        msg.messageID = ID;
+        msg.description = Description;
+
+        m_Cmd.m_EventMessages.push_back(msg);
+      }
+    }
+  }
 
   if(m_State == READING)
   {
@@ -127,14 +161,12 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
           submits[s] += m_Cmd.m_RootEventID;
       }
 
-      D3D12NOTIMP("Debug Messages");
-      /*
       for(size_t i = 0; i < cmdBufInfo.debugMessages.size(); i++)
       {
-        m_DebugMessages.push_back(cmdBufInfo.debugMessages[i]);
-        m_DebugMessages.back().eventID += m_RootEventID;
+        DebugMessage msg = cmdBufInfo.debugMessages[i];
+        msg.eventID += m_Cmd.m_RootEventID;
+        m_pDevice->AddDebugMessage(msg);
       }
-      */
 
       // only primary command lists can be submitted
       m_Cmd.m_Partial[D3D12CommandData::Primary].cmdListExecs[cmdIds[c]].push_back(

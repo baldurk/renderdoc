@@ -890,6 +890,8 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
   RDCEraseEl(frame.stats);
   m_CapturedFrames.push_back(frame);
 
+  m_DebugMessages.clear();
+
   GetResourceManager()->ClearReferencedResources();
 
   GetResourceManager()->MarkResourceFrameReferenced(m_ResourceID, eFrameRef_Read);
@@ -1299,6 +1301,91 @@ void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
       GetResourceManager()->EraseLiveResource(id);
     return;
   }
+}
+
+vector<DebugMessage> WrappedID3D12Device::GetDebugMessages()
+{
+  vector<DebugMessage> ret;
+
+  // if reading, m_DebugMessages will contain all the messages (we
+  // don't try and fetch anything from the API). If writing,
+  // m_DebugMessages will contain any manually-added messages.
+  ret.swap(m_DebugMessages);
+
+  if(m_State < WRITING)
+    return ret;
+
+  if(!m_pInfoQueue)
+    return ret;
+
+  UINT64 numMessages = m_pInfoQueue->GetNumStoredMessagesAllowedByRetrievalFilter();
+
+  for(UINT64 i = 0; i < m_pInfoQueue->GetNumStoredMessagesAllowedByRetrievalFilter(); i++)
+  {
+    SIZE_T len = 0;
+    m_pInfoQueue->GetMessage(i, NULL, &len);
+
+    char *msgbuf = new char[len];
+    D3D12_MESSAGE *message = (D3D12_MESSAGE *)msgbuf;
+
+    m_pInfoQueue->GetMessage(i, message, &len);
+
+    DebugMessage msg;
+    msg.eventID = 0;
+    msg.source = eDbgSource_API;
+    msg.category = eDbgCategory_Miscellaneous;
+    msg.severity = eDbgSeverity_Medium;
+
+    switch(message->Category)
+    {
+      case D3D12_MESSAGE_CATEGORY_APPLICATION_DEFINED:
+        msg.category = eDbgCategory_Application_Defined;
+        break;
+      case D3D12_MESSAGE_CATEGORY_MISCELLANEOUS: msg.category = eDbgCategory_Miscellaneous; break;
+      case D3D12_MESSAGE_CATEGORY_INITIALIZATION: msg.category = eDbgCategory_Initialization; break;
+      case D3D12_MESSAGE_CATEGORY_CLEANUP: msg.category = eDbgCategory_Cleanup; break;
+      case D3D12_MESSAGE_CATEGORY_COMPILATION: msg.category = eDbgCategory_Compilation; break;
+      case D3D12_MESSAGE_CATEGORY_STATE_CREATION: msg.category = eDbgCategory_State_Creation; break;
+      case D3D12_MESSAGE_CATEGORY_STATE_SETTING: msg.category = eDbgCategory_State_Setting; break;
+      case D3D12_MESSAGE_CATEGORY_STATE_GETTING: msg.category = eDbgCategory_State_Getting; break;
+      case D3D12_MESSAGE_CATEGORY_RESOURCE_MANIPULATION:
+        msg.category = eDbgCategory_Resource_Manipulation;
+        break;
+      case D3D12_MESSAGE_CATEGORY_EXECUTION: msg.category = eDbgCategory_Execution; break;
+      case D3D12_MESSAGE_CATEGORY_SHADER: msg.category = eDbgCategory_Shaders; break;
+      default: RDCWARN("Unexpected message category: %d", message->Category); break;
+    }
+
+    switch(message->Severity)
+    {
+      case D3D12_MESSAGE_SEVERITY_CORRUPTION: msg.severity = eDbgSeverity_High; break;
+      case D3D12_MESSAGE_SEVERITY_ERROR: msg.severity = eDbgSeverity_Medium; break;
+      case D3D12_MESSAGE_SEVERITY_WARNING: msg.severity = eDbgSeverity_Low; break;
+      case D3D12_MESSAGE_SEVERITY_INFO: msg.severity = eDbgSeverity_Info; break;
+      case D3D12_MESSAGE_SEVERITY_MESSAGE: msg.severity = eDbgSeverity_Info; break;
+      default: RDCWARN("Unexpected message severity: %d", message->Severity); break;
+    }
+
+    msg.messageID = (uint32_t)message->ID;
+    msg.description = string(message->pDescription);
+
+    ret.push_back(msg);
+
+    SAFE_DELETE_ARRAY(msgbuf);
+  }
+
+  // Docs are fuzzy on the thread safety of the info queue, but I'm going to assume it should only
+  // ever be accessed on one thread since it's tied to the device & immediate context.
+  // There doesn't seem to be a way to lock it for access and without that there's no way to know
+  // that a new message won't be added between the time you retrieve the last one and clearing the
+  // queue. There is also no way to pop a message that I can see, which would presumably be the
+  // best way if its member functions are thread safe themselves (if the queue is protected
+  // internally).
+  RDCASSERT(numMessages == m_pInfoQueue->GetNumStoredMessagesAllowedByRetrievalFilter());
+
+  m_pInfoQueue->ClearStoredMessages();
+
+  return ret;
 }
 
 void WrappedID3D12Device::FlushPendingDescriptorWrites()
