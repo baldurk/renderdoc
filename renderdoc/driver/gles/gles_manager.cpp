@@ -1925,23 +1925,23 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
         else
           gl.glDisableVertexAttribArray(i);
 
-        gl.glVertexAttribBinding(i, attrib.vbslot);
+        if (live.name != 0) {
+          gl.glVertexAttribBinding(i, attrib.vbslot);
 
-        if(attrib.size != 0)
-        {
-          if(initialdata->VertexAttribs[i].integer == 0)
-            gl.glVertexAttribFormat(i, attrib.size, attrib.type, (GLboolean)attrib.normalized,
-                                    attrib.offset);
-          else
-            gl.glVertexAttribIFormat(i, attrib.size, attrib.type, attrib.offset);
+          if(attrib.size != 0)
+          {
+            if(initialdata->VertexAttribs[i].integer == 0)
+              gl.glVertexAttribFormat(i, attrib.size, attrib.type, (GLboolean)attrib.normalized,
+                                      attrib.offset);
+            else
+              gl.glVertexAttribIFormat(i, attrib.size, attrib.type, attrib.offset);
+          }
+
+          VertexBufferInitialData &buf = initialdata->VertexBuffers[i];
+          GLuint buffer = buf.Buffer == ResourceId() ? 0 : GetLiveResource(buf.Buffer).name;
+          gl.glBindVertexBuffer(i, buffer, (GLintptr)buf.Offset, (GLsizei)buf.Stride);
+          gl.glVertexBindingDivisor(i, buf.Divisor);
         }
-
-        VertexBufferInitialData &buf = initialdata->VertexBuffers[i];
-
-        GLuint buffer = buf.Buffer == ResourceId() ? 0 : GetLiveResource(buf.Buffer).name;
-
-        gl.glBindVertexBuffer(i, buffer, (GLintptr)buf.Offset, (GLsizei)buf.Stride);
-        gl.glVertexBindingDivisor(i, buf.Divisor);
       }
 
       GLuint buffer = initialdata->ElementArrayBuffer == ResourceId()

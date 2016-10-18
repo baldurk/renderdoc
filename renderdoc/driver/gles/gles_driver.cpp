@@ -845,8 +845,8 @@ void WrappedGLES::Initialise(GLESInitParams &params)
 
   // as a concession to compatibility, generate a 'fake' VBO to act as VBO 0.
   // consider making it an error/warning for programs to use this?
-  gl.glGenVertexArrays(1, &m_FakeVAO);
-  gl.glBindVertexArray(m_FakeVAO);
+  // TODO PEPE The FakeVAO must be completely removed since there are cases when the VAO 0 can not be substituted with any other (non 0) VAO.
+  m_FakeVAO = 0;
   gl.glBindVertexArray(0);
 
   // we use this to draw from index data that was 'immediate' passed to the
