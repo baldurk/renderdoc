@@ -303,6 +303,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
       break;
     case SET_IBUFFER: m_ReplayList->Serialise_IASetIndexBuffer(NULL); break;
     case SET_VBUFFERS: m_ReplayList->Serialise_IASetVertexBuffers(0, 0, NULL); break;
+    case SET_SOTARGETS: m_ReplayList->Serialise_SOSetTargets(0, 0, NULL); break;
     case SET_VIEWPORTS: m_ReplayList->Serialise_RSSetViewports(0, NULL); break;
     case SET_SCISSORS: m_ReplayList->Serialise_RSSetScissorRects(0, NULL); break;
     case SET_STENCIL: m_ReplayList->Serialise_OMSetStencilRef(0); break;
@@ -356,6 +357,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
 
     case EXECUTE_CMD_LISTS: Serialise_ExecuteCommandLists(0, NULL); break;
     case SIGNAL: Serialise_Signal(NULL, 0); break;
+    case WAIT: Serialise_Wait(NULL, 0); break;
     case CONTEXT_CAPTURE_FOOTER:
     {
       SERIALISE_ELEMENT(ResourceId, bbid, ResourceId());

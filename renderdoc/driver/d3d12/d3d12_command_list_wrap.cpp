@@ -874,11 +874,64 @@ void WrappedID3D12GraphicsCommandList::IASetVertexBuffers(UINT StartSlot, UINT N
   }
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_SOSetTargets(
+    UINT StartSlot, UINT NumViews, const D3D12_STREAM_OUTPUT_BUFFER_VIEW *pViews)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(UINT, start, StartSlot);
+  SERIALISE_ELEMENT(UINT, num, NumViews);
+  SERIALISE_ELEMENT_ARR(D3D12_STREAM_OUTPUT_BUFFER_VIEW, views, pViews, num);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->SOSetTargets(start, num, views);
+
+      if(m_Cmd->m_RenderState.streamouts.size() < start + num)
+        m_Cmd->m_RenderState.streamouts.resize(start + num);
+
+      for(UINT i = 0; i < num; i++)
+      {
+        D3D12RenderState::StreamOut &so = m_Cmd->m_RenderState.streamouts[start + i];
+
+        WrappedID3D12Resource::GetResIDFromAddr(views[i].BufferLocation, so.buf, so.offs);
+
+        WrappedID3D12Resource::GetResIDFromAddr(views[i].BufferFilledSizeLocation, so.countbuf,
+                                                so.countoffs);
+
+        so.size = views[i].SizeInBytes;
+      }
+    }
+  }
+  else if(m_State == READING)
+  {
+    GetList(CommandList)->SOSetTargets(start, num, views);
+  }
+
+  SAFE_DELETE_ARRAY(views);
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::SOSetTargets(UINT StartSlot, UINT NumViews,
                                                     const D3D12_STREAM_OUTPUT_BUFFER_VIEW *pViews)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
   m_pReal->SOSetTargets(StartSlot, NumViews, pViews);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SET_SOTARGETS);
+    Serialise_SOSetTargets(StartSlot, NumViews, pViews);
+
+    m_ListRecord->AddChunk(scope.Get());
+    for(UINT i = 0; i < NumViews; i++)
+      m_ListRecord->MarkResourceFrameReferenced(
+          WrappedID3D12Resource::GetResIDFromAddr(pViews[i].BufferLocation), eFrameRef_Read);
+  }
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState(ID3D12PipelineState *pPipelineState)

@@ -984,6 +984,49 @@ void Serialiser::Serialise(const char *name, D3D12_INDEX_BUFFER_VIEW &el)
 }
 
 template <>
+void Serialiser::Serialise(const char *name, D3D12_STREAM_OUTPUT_BUFFER_VIEW &el)
+{
+  ScopedContext scope(this, name, "D3D12_STREAM_OUTPUT_BUFFER_VIEW", 0, true);
+
+  D3D12ResourceManager *rm = (D3D12ResourceManager *)GetUserData();
+
+  ResourceId buffer;
+  UINT64 offs = 0;
+
+  if(m_Mode == WRITING)
+    WrappedID3D12Resource::GetResIDFromAddr(el.BufferLocation, buffer, offs);
+
+  Serialise("BufferLocation", buffer);
+  Serialise("BufferLocation_Offset", offs);
+
+  if(m_Mode == READING)
+  {
+    ID3D12Resource *res = rm->GetLiveAs<ID3D12Resource>(buffer);
+    if(res)
+      el.BufferLocation = res->GetGPUVirtualAddress() + offs;
+    else
+      el.BufferLocation = 0;
+  }
+
+  if(m_Mode == WRITING)
+    WrappedID3D12Resource::GetResIDFromAddr(el.BufferFilledSizeLocation, buffer, offs);
+
+  Serialise("BufferFilledSizeLocation", buffer);
+  Serialise("BufferFilledSizeLocation_Offset", offs);
+
+  if(m_Mode == READING)
+  {
+    ID3D12Resource *res = rm->GetLiveAs<ID3D12Resource>(buffer);
+    if(res)
+      el.BufferFilledSizeLocation = res->GetGPUVirtualAddress() + offs;
+    else
+      el.BufferFilledSizeLocation = 0;
+  }
+
+  Serialise("SizeInBytes", el.SizeInBytes);
+}
+
+template <>
 void Serialiser::Serialise(const char *name, D3D12_CONSTANT_BUFFER_VIEW_DESC &el)
 {
   ScopedContext scope(this, name, "D3D12_CONSTANT_BUFFER_VIEW_DESC", 0, true);

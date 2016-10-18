@@ -463,8 +463,32 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Signal(ID3D12Fence *pFence,
   return m_pReal->Signal(Unwrap(pFence), Value);
 }
 
+bool WrappedID3D12CommandQueue::Serialise_Wait(ID3D12Fence *pFence, UINT64 Value)
+{
+  SERIALISE_ELEMENT(ResourceId, Fence, GetResID(pFence));
+  SERIALISE_ELEMENT(UINT64, val, Value);
+
+  if(m_State <= EXECUTING && GetResourceManager()->HasLiveResource(Fence))
+  {
+    // pFence = GetResourceManager()->GetLiveAs<ID3D12Fence>(Fence);
+
+    m_pDevice->GPUSync();
+  }
+
+  return true;
+}
+
 HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Wait(ID3D12Fence *pFence, UINT64 Value)
 {
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(WAIT);
+    Serialise_Wait(pFence, Value);
+
+    m_QueueRecord->AddChunk(scope.Get());
+    GetResourceManager()->MarkResourceFrameReferenced(GetResID(pFence), eFrameRef_Read);
+  }
+
   return m_pReal->Wait(Unwrap(pFence), Value);
 }
 
