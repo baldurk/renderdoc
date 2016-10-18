@@ -439,7 +439,60 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
 
     if(capframe)
     {
-      // flush coherent maps
+      vector<MapState> maps = m_pDevice->GetMaps();
+
+      for(auto it = maps.begin(); it != maps.end(); ++it)
+      {
+        WrappedID3D12Resource *res = it->res;
+        UINT subres = it->subres;
+        size_t size = (size_t)it->totalSize;
+
+        // only need to flush memory that could affect this submitted batch of work
+        if(refdIDs.find(res->GetResourceID()) == refdIDs.end())
+        {
+          RDCDEBUG("Map of memory %llu not referenced in this queue - not flushing",
+                   res->GetResourceID());
+          continue;
+        }
+
+        size_t diffStart = 0, diffEnd = 0;
+        bool found = true;
+
+        byte *ref = res->GetShadow(subres);
+        byte *data = res->GetMap(subres);
+
+        if(ref)
+          found = FindDiffRange(data, ref, size, diffStart, diffEnd);
+        else
+          diffEnd = size;
+
+        if(found)
+        {
+          RDCLOG("Persistent map flush forced for %llu (%llu -> %llu)", res->GetResourceID(),
+                 (uint64_t)diffStart, (uint64_t)diffEnd);
+
+          D3D12_RANGE range = {diffStart, diffEnd};
+
+          m_pDevice->MapDataWrite(res, subres, data, range);
+
+          if(ref == NULL)
+          {
+            res->AllocShadow(subres, size);
+
+            ref = res->GetShadow(subres);
+          }
+
+          // update comparison shadow for next time
+          memcpy(ref, res->GetMap(subres), size);
+
+          GetResourceManager()->MarkPendingDirty(res->GetResourceID());
+        }
+        else
+        {
+          RDCDEBUG("Persistent map flush not needed for %llu", res->GetResourceID());
+        }
+      }
+
       for(UINT i = 0; i < NumCommandLists; i++)
       {
         SCOPED_SERIALISE_CONTEXT(EXECUTE_CMD_LISTS);

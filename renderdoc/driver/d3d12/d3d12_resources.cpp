@@ -29,6 +29,7 @@
 
 std::vector<WrappedID3D12Resource::AddressRange> WrappedID3D12Resource::m_Addresses;
 std::map<ResourceId, WrappedID3D12Resource *> WrappedID3D12Resource::m_List;
+
 std::map<WrappedID3D12PipelineState::DXBCKey, WrappedID3D12PipelineState::ShaderEntry *>
     WrappedID3D12PipelineState::m_Shaders;
 
@@ -169,7 +170,7 @@ D3D12ResourceType IdentifyTypeByPtr(ID3D12DeviceChild *ptr)
   return Resource_Unknown;
 }
 
-TrackedResource *GetTracked(ID3D12DeviceChild *ptr)
+TrackedResource12 *GetTracked(ID3D12DeviceChild *ptr)
 {
   if(ptr == NULL)
     return NULL;
@@ -177,12 +178,12 @@ TrackedResource *GetTracked(ID3D12DeviceChild *ptr)
 #undef D3D12_TYPE_MACRO
 #define D3D12_TYPE_MACRO(iface)         \
   if(UnwrapHelper<iface>::IsAlloc(ptr)) \
-    return (TrackedResource *)GetWrapped((iface *)ptr);
+    return (TrackedResource12 *)GetWrapped((iface *)ptr);
 
   ALL_D3D12_TYPES;
 
   if(WrappedID3D12PipelineState::ShaderEntry::IsAlloc(ptr))
-    return (TrackedResource *)(WrappedID3D12PipelineState::ShaderEntry *)ptr;
+    return (TrackedResource12 *)(WrappedID3D12PipelineState::ShaderEntry *)ptr;
 
   return NULL;
 }
@@ -216,7 +217,7 @@ ResourceId GetResID(ID3D12DeviceChild *ptr)
   if(ptr == NULL)
     return ResourceId();
 
-  TrackedResource *res = GetTracked(ptr);
+  TrackedResource12 *res = GetTracked(ptr);
 
   if(res == NULL)
   {
@@ -239,7 +240,7 @@ D3D12ResourceRecord *GetRecord(ID3D12DeviceChild *ptr)
   if(ptr == NULL)
     return NULL;
 
-  TrackedResource *res = GetTracked(ptr);
+  TrackedResource12 *res = GetTracked(ptr);
 
   if(res == NULL)
   {
@@ -254,6 +255,122 @@ D3D12ResourceRecord *GetRecord(ID3D12DeviceChild *ptr)
   }
 
   return res->GetResourceRecord();
+}
+
+byte *WrappedID3D12Resource::GetMap(UINT Subresource)
+{
+  vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
+
+  if(Subresource < map.size())
+    return map[Subresource].realPtr;
+
+  return NULL;
+}
+
+byte *WrappedID3D12Resource::GetShadow(UINT Subresource)
+{
+  vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
+
+  if(Subresource >= map.size())
+    map.resize(Subresource + 1);
+
+  return map[Subresource].shadowPtr;
+}
+
+void WrappedID3D12Resource::AllocShadow(UINT Subresource, size_t size)
+{
+  vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
+
+  if(Subresource >= map.size())
+    map.resize(Subresource + 1);
+
+  if(map[Subresource].shadowPtr == NULL)
+    map[Subresource].shadowPtr = Serialiser::AllocAlignedBuffer(size);
+}
+
+void WrappedID3D12Resource::FreeShadow()
+{
+  vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
+
+  for(size_t i = 0; i < map.size(); i++)
+  {
+    Serialiser::FreeAlignedBuffer(map[i].shadowPtr);
+    map[i].shadowPtr = NULL;
+  }
+}
+
+HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::Map(UINT Subresource,
+                                                     const D3D12_RANGE *pReadRange, void **ppData)
+{
+  // don't care about maps without returned pointers - we'll just intercept the WriteToSubresource
+  // calls
+  if(ppData == NULL)
+    return m_pReal->Map(Subresource, pReadRange, ppData);
+
+  void *mapPtr = NULL;
+
+  // pass a NULL range as we might want to read from the whole range
+  HRESULT hr = m_pReal->Map(Subresource, NULL, &mapPtr);
+
+  if(ppData)
+    *ppData = mapPtr;
+
+  if(SUCCEEDED(hr) && GetResourceRecord())
+  {
+    vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
+
+    if(Subresource >= map.size())
+      map.resize(Subresource + 1);
+    map[Subresource].realPtr = (byte *)mapPtr;
+
+    // need to register this so we can flush any updates in case it's left persistant
+    m_pDevice->Map(this, Subresource);
+  }
+
+  return hr;
+}
+
+void STDMETHODCALLTYPE WrappedID3D12Resource::Unmap(UINT Subresource, const D3D12_RANGE *pWrittenRange)
+{
+  if(GetResourceRecord())
+  {
+    vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
+
+    // may not have a map if e.g. no pointer was requested
+    if(Subresource < map.size())
+    {
+      m_pDevice->Unmap(this, Subresource, map[Subresource].realPtr, pWrittenRange);
+
+      map[Subresource].realPtr = NULL;
+      Serialiser::FreeAlignedBuffer(map[Subresource].shadowPtr);
+    }
+  }
+
+  return m_pReal->Unmap(Subresource, pWrittenRange);
+}
+
+HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::WriteToSubresource(UINT DstSubresource,
+                                                                    const D3D12_BOX *pDstBox,
+                                                                    const void *pSrcData,
+                                                                    UINT SrcRowPitch,
+                                                                    UINT SrcDepthPitch)
+{
+  if(GetResourceRecord())
+  {
+    vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
+
+    if(DstSubresource < map.size())
+    {
+      m_pDevice->WriteToSubresource(this, DstSubresource, pDstBox, pSrcData, SrcDepthPitch,
+                                    SrcDepthPitch);
+    }
+    else
+    {
+      RDCERR("WriteToSubresource without matching map!");
+    }
+  }
+
+  return m_pReal->WriteToSubresource(DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch);
 }
 
 WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real,

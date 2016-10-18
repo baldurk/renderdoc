@@ -279,6 +279,15 @@ struct CmdListRecordingInfo
   vector<D3D12ResourceRecord *> bundles;
 };
 
+class WrappedID3D12Resource;
+
+struct MapState
+{
+  WrappedID3D12Resource *res;
+  UINT subres;
+  UINT64 totalSize;
+};
+
 struct D3D12ResourceRecord : public ResourceRecord
 {
   enum
@@ -322,6 +331,14 @@ struct D3D12ResourceRecord : public ResourceRecord
   D3D12ResourceType type;
   D3D12ResourceRecord *bakedCommands;
   CmdListRecordingInfo *cmdInfo;
+
+  struct MapData
+  {
+    byte *realPtr;
+    byte *shadowPtr;
+  };
+
+  vector<MapData> m_Map;
 };
 
 typedef vector<D3D12_RESOURCE_STATES> SubresourceStateVector;

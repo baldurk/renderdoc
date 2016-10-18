@@ -264,6 +264,13 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
 
     case RESOURCE_BARRIER: m_ReplayList->Serialise_ResourceBarrier(0, NULL); break;
 
+    case MAP_DATA_WRITE:
+      m_pDevice->Serialise_MapDataWrite(m_pSerialiser, NULL, 0, NULL, D3D12_RANGE());
+      break;
+    case WRITE_TO_SUB:
+      m_pDevice->Serialise_WriteToSubresource(m_pSerialiser, NULL, 0, NULL, NULL, 0, 0);
+      break;
+
     case BEGIN_QUERY:
       m_ReplayList->Serialise_BeginQuery(NULL, D3D12_QUERY_TYPE_OCCLUSION, 0);
       break;

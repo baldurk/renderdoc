@@ -29,10 +29,10 @@
 #include "d3d12_device.h"
 #include "d3d12_manager.h"
 
-class TrackedResource
+class TrackedResource12
 {
 public:
-  TrackedResource()
+  TrackedResource12()
   {
     m_ID = ResourceIDGen::GetNewUniqueID();
     m_pRecord = NULL;
@@ -41,8 +41,8 @@ public:
   D3D12ResourceRecord *GetResourceRecord() { return m_pRecord; }
   void SetResourceRecord(D3D12ResourceRecord *record) { m_pRecord = record; }
 private:
-  TrackedResource(const TrackedResource &);
-  TrackedResource &operator=(const TrackedResource &);
+  TrackedResource12(const TrackedResource12 &);
+  TrackedResource12 &operator=(const TrackedResource12 &);
 
   ResourceId m_ID;
   D3D12ResourceRecord *m_pRecord;
@@ -51,7 +51,9 @@ private:
 extern const GUID RENDERDOC_ID3D12ShaderGUID_ShaderDebugMagicValue;
 
 template <typename NestedType, typename NestedType1 = NestedType, typename NestedType2 = NestedType1>
-class WrappedDeviceChild12 : public RefCounter12<NestedType>, public NestedType2, public TrackedResource
+class WrappedDeviceChild12 : public RefCounter12<NestedType>,
+                             public NestedType2,
+                             public TrackedResource12
 {
 protected:
   WrappedID3D12Device *m_pDevice;
@@ -737,6 +739,11 @@ public:
 
   bool Resident() { return resident; }
   void SetResident(bool r) { resident = r; }
+  byte *GetMap(UINT Subresource);
+  byte *GetShadow(UINT Subresource);
+  void AllocShadow(UINT Subresource, size_t size);
+  void FreeShadow();
+
   //////////////////////////////
   // implement ID3D12Resource
 
@@ -752,31 +759,17 @@ public:
     return m_pReal->GetHeapProperties(pHeapProperties, pHeapFlags);
   }
 
-  virtual HRESULT STDMETHODCALLTYPE Map(UINT Subresource, const D3D12_RANGE *pReadRange, void **ppData)
-  {
-    D3D12NOTIMP("Resource mapping");
-    return m_pReal->Map(Subresource, pReadRange, ppData);
-  }
-
-  virtual void STDMETHODCALLTYPE Unmap(UINT Subresource, const D3D12_RANGE *pWrittenRange)
-  {
-    D3D12NOTIMP("Resource mapping");
-    return m_pReal->Unmap(Subresource, pWrittenRange);
-  }
-
+  virtual HRESULT STDMETHODCALLTYPE Map(UINT Subresource, const D3D12_RANGE *pReadRange,
+                                        void **ppData);
+  virtual void STDMETHODCALLTYPE Unmap(UINT Subresource, const D3D12_RANGE *pWrittenRange);
   virtual HRESULT STDMETHODCALLTYPE WriteToSubresource(UINT DstSubresource, const D3D12_BOX *pDstBox,
                                                        const void *pSrcData, UINT SrcRowPitch,
-                                                       UINT SrcDepthPitch)
-  {
-    D3D12NOTIMP("Resource mapping");
-    return m_pReal->WriteToSubresource(DstSubresource, pDstBox, pSrcData, SrcRowPitch, SrcDepthPitch);
-  }
-
+                                                       UINT SrcDepthPitch);
   virtual HRESULT STDMETHODCALLTYPE ReadFromSubresource(void *pDstData, UINT DstRowPitch,
                                                         UINT DstDepthPitch, UINT SrcSubresource,
                                                         const D3D12_BOX *pSrcBox)
   {
-    D3D12NOTIMP("Resource mapping");
+    // don't have to do anything here
     return m_pReal->ReadFromSubresource(pDstData, DstRowPitch, DstDepthPitch, SrcSubresource,
                                         pSrcBox);
   }

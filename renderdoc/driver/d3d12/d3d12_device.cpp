@@ -702,6 +702,195 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
   return pRes;
 }
 
+void WrappedID3D12Device::Map(WrappedID3D12Resource *Resource, UINT Subresource)
+{
+  MapState map;
+  map.res = Resource;
+  map.subres = Subresource;
+
+  D3D12_RESOURCE_DESC desc = Resource->GetDesc();
+
+  m_pDevice->GetCopyableFootprints(&desc, Subresource, 1, 0, NULL, NULL, NULL, &map.totalSize);
+
+  {
+    SCOPED_LOCK(m_MapsLock);
+    m_Maps.push_back(map);
+  }
+}
+
+void WrappedID3D12Device::Unmap(WrappedID3D12Resource *Resource, UINT Subresource, byte *mapPtr,
+                                const D3D12_RANGE *pWrittenRange)
+{
+  MapState map = {};
+  {
+    SCOPED_LOCK(m_MapsLock);
+    for(auto it = m_Maps.begin(); it != m_Maps.end(); ++it)
+    {
+      if(it->res == Resource && it->subres == Subresource)
+      {
+        map = *it;
+        m_Maps.erase(it);
+        break;
+      }
+    }
+  }
+
+  if(map.res == NULL)
+    return;
+
+  bool capframe = false;
+  {
+    SCOPED_LOCK(m_CapTransitionLock);
+    capframe = (m_State == WRITING_CAPFRAME);
+  }
+
+  D3D12_RANGE range = {0, (SIZE_T)map.totalSize};
+
+  if(pWrittenRange)
+    range = *pWrittenRange;
+
+  if(capframe)
+    MapDataWrite(Resource, Subresource, mapPtr, range);
+}
+
+bool WrappedID3D12Device::Serialise_MapDataWrite(Serialiser *localSerialiser,
+                                                 WrappedID3D12Resource *Resource, UINT Subresource,
+                                                 byte *mapPtr, D3D12_RANGE range)
+{
+  SERIALISE_ELEMENT(ResourceId, res, GetResID(Resource));
+  SERIALISE_ELEMENT(UINT, sub, Subresource);
+  SERIALISE_ELEMENT_BUF(byte *, data, mapPtr, range.End - range.Begin);
+  SERIALISE_ELEMENT(uint64_t, begin, (uint64_t)range.Begin);
+  SERIALISE_ELEMENT(uint64_t, end, (uint64_t)range.End);
+
+  if(m_State < WRITING && GetResourceManager()->HasLiveResource(res))
+  {
+    ID3D12Resource *r = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
+
+    D3D12_RANGE range = {};
+
+    byte *mapPtr = NULL;
+    HRESULT hr = r->Map(sub, &range, (void **)&mapPtr);
+
+    if(SUCCEEDED(hr))
+    {
+      memcpy(mapPtr + begin, data, end - begin);
+
+      range.Begin = begin;
+      range.End = end;
+
+      r->Unmap(sub, &range);
+    }
+    else
+    {
+      RDCERR("Failed to map resource on replay %08x", hr);
+    }
+
+    SAFE_DELETE_ARRAY(data);
+  }
+
+  return true;
+}
+
+void WrappedID3D12Device::MapDataWrite(WrappedID3D12Resource *Resource, UINT Subresource,
+                                       byte *mapPtr, D3D12_RANGE range)
+{
+  CACHE_THREAD_SERIALISER();
+
+  SCOPED_SERIALISE_CONTEXT(MAP_DATA_WRITE);
+  Serialise_MapDataWrite(localSerialiser, Resource, Subresource, mapPtr, range);
+
+  m_FrameCaptureRecord->AddChunk(scope.Get());
+
+  GetResourceManager()->MarkResourceFrameReferenced(Resource->GetResourceID(), eFrameRef_Write);
+}
+
+bool WrappedID3D12Device::Serialise_WriteToSubresource(Serialiser *localSerialiser,
+                                                       WrappedID3D12Resource *Resource,
+                                                       UINT Subresource, const D3D12_BOX *pDstBox,
+                                                       const void *pSrcData, UINT SrcRowPitch,
+                                                       UINT SrcDepthPitch)
+{
+  SERIALISE_ELEMENT(ResourceId, res, GetResID(Resource));
+  SERIALISE_ELEMENT(UINT, sub, Subresource);
+  SERIALISE_ELEMENT(bool, HasBox, pDstBox != NULL);
+  SERIALISE_ELEMENT_OPT(D3D12_BOX, box, *pDstBox, HasBox);
+  SERIALISE_ELEMENT(UINT, rowPitch, SrcRowPitch);
+  SERIALISE_ELEMENT(UINT, depthPitch, SrcDepthPitch);
+
+  size_t dataSize = 0;
+
+  if(m_State >= WRITING)
+  {
+    // if we have a box, calculate how much data from user's pitch
+    if(HasBox)
+    {
+      UINT numSlicesBeforeLast = pDstBox->back - pDstBox->front - 1;
+      UINT numRows = pDstBox->bottom - pDstBox->top;
+
+      dataSize = depthPitch * numSlicesBeforeLast + rowPitch * numRows;
+    }
+    else
+    {
+      D3D12_RESOURCE_DESC desc = Resource->GetDesc();
+      UINT64 totalBytes = 0;
+
+      // otherwise fetch the whole resource size
+      m_pDevice->GetCopyableFootprints(&desc, sub, 1, 0, NULL, NULL, NULL, &totalBytes);
+
+      dataSize = (size_t)totalBytes;
+    }
+  }
+
+  SERIALISE_ELEMENT_BUF(byte *, data, pSrcData, dataSize);
+
+  if(m_State < WRITING && GetResourceManager()->HasLiveResource(res))
+  {
+    ID3D12Resource *r = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
+
+    HRESULT hr = r->Map(sub, NULL, NULL);
+
+    if(SUCCEEDED(hr))
+    {
+      r->WriteToSubresource(sub, HasBox ? &box : NULL, data, rowPitch, depthPitch);
+
+      r->Unmap(sub, NULL);
+    }
+    else
+    {
+      RDCERR("Failed to map resource on replay %08x", hr);
+    }
+
+    SAFE_DELETE_ARRAY(data);
+  }
+
+  return true;
+}
+
+void WrappedID3D12Device::WriteToSubresource(WrappedID3D12Resource *Resource, UINT Subresource,
+                                             const D3D12_BOX *pDstBox, const void *pSrcData,
+                                             UINT SrcRowPitch, UINT SrcDepthPitch)
+{
+  bool capframe = false;
+  {
+    SCOPED_LOCK(m_CapTransitionLock);
+    capframe = (m_State == WRITING_CAPFRAME);
+  }
+
+  if(capframe)
+  {
+    CACHE_THREAD_SERIALISER();
+
+    SCOPED_SERIALISE_CONTEXT(WRITE_TO_SUB);
+    Serialise_WriteToSubresource(localSerialiser, Resource, Subresource, pDstBox, pSrcData,
+                                 SrcRowPitch, SrcDepthPitch);
+
+    m_FrameCaptureRecord->AddChunk(scope.Get());
+
+    GetResourceManager()->MarkResourceFrameReferenced(Resource->GetResourceID(), eFrameRef_Write);
+  }
+}
+
 HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInterval, UINT Flags)
 {
   if((Flags & DXGI_PRESENT_TEST) != 0)
@@ -980,6 +1169,12 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
     m_State = WRITING_IDLE;
 
     GPUSync();
+
+    {
+      SCOPED_LOCK(m_MapsLock);
+      for(auto it = m_Maps.begin(); it != m_Maps.end(); ++it)
+        it->res->FreeShadow();
+    }
   }
 
   byte *thpixels = NULL;

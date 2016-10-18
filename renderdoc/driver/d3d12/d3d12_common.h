@@ -279,6 +279,9 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
                                                                                                    \
   D3D12_CHUNK_MACRO(RESOURCE_BARRIER, "ID3D12GraphicsCommandList::ResourceBarrier")                \
                                                                                                    \
+  D3D12_CHUNK_MACRO(MAP_DATA_WRITE, "ID3D12Resource::Unmap")                                       \
+  D3D12_CHUNK_MACRO(WRITE_TO_SUB, "ID3D12Resource::WriteToSubresource")                            \
+                                                                                                   \
   D3D12_CHUNK_MACRO(BEGIN_QUERY, "ID3D12GraphicsCommandList::BeginQuery")                          \
   D3D12_CHUNK_MACRO(END_QUERY, "ID3D12GraphicsCommandList::EndQuery")                              \
   D3D12_CHUNK_MACRO(RESOLVE_QUERY, "ID3D12GraphicsCommandList::ResolveQueryData")                  \

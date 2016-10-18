@@ -52,6 +52,7 @@ struct D3D12InitParams : public RDCInitParams
 };
 
 class WrappedID3D12Device;
+class WrappedID3D12Resource;
 
 // give every impression of working but do nothing.
 // Just allow the user to call functions so that they don't
@@ -242,6 +243,9 @@ private:
   D3D12Replay m_Replay;
   D3D12DebugManager *m_DebugManager;
 
+  Threading::CriticalSection m_MapsLock;
+  vector<MapState> m_Maps;
+
   void ProcessChunk(uint64_t offset, D3D12ChunkType context);
 
   unsigned int m_InternalRefcount;
@@ -422,6 +426,26 @@ public:
 
   void NewSwapchainBuffer(IUnknown *backbuffer) {}
   void ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap);
+
+  void Map(WrappedID3D12Resource *Resource, UINT Subresource);
+  void Unmap(WrappedID3D12Resource *Resource, UINT Subresource, byte *mapPtr,
+             const D3D12_RANGE *pWrittenRange);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(void, MapDataWrite, WrappedID3D12Resource *Resource,
+                                       UINT Subresource, byte *mapPtr, D3D12_RANGE range);
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(void, WriteToSubresource, WrappedID3D12Resource *Resource,
+                                       UINT Subresource, const D3D12_BOX *pDstBox,
+                                       const void *pSrcData, UINT SrcRowPitch, UINT SrcDepthPitch);
+
+  vector<MapState> GetMaps()
+  {
+    vector<MapState> ret;
+    {
+      SCOPED_LOCK(m_MapsLock);
+      ret = m_Maps;
+    }
+    return ret;
+  }
 
   void InternalRef() { InterlockedIncrement(&m_InternalRefcount); }
   void InternalRelease() { InterlockedDecrement(&m_InternalRefcount); }
