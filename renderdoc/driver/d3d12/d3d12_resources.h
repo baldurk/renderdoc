@@ -334,7 +334,7 @@ public:
                               const D3D12_DESCRIPTOR_HEAP_DESC &desc);
   virtual ~WrappedID3D12DescriptorHeap();
 
-  const D3D12Descriptor *GetDescriptors() { return descriptors; }
+  D3D12Descriptor *GetDescriptors() { return descriptors; }
   UINT GetNumDescriptors() { return numDescriptors; }
   bool Resident() { return resident != 0; }
   void SetResident(bool r) { resident = r ? 1 : 0; }
@@ -660,6 +660,9 @@ public:
   {
     id = ResourceId();
     offs = 0;
+
+    if(addr == 0)
+      return;
 
     if(m_Addresses.empty())
       return;

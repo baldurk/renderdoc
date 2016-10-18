@@ -152,6 +152,17 @@ struct BakedCmdListInfo
     D3D12_PRIMITIVE_TOPOLOGY topo;
 
     uint32_t idxWidth;
+    ResourceId ibuffer;
+    vector<ResourceId> vbuffers;
+
+    vector<ResourceId> sotargets, socounters;
+
+    struct RootSignature
+    {
+      ResourceId rootsig;
+
+      vector<D3D12RenderState::SignatureElement> sigelems;
+    } compute, graphics;
 
     ResourceId rts[8];
     ResourceId dsv;
@@ -304,4 +315,6 @@ struct D3D12CommandData
 
   void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
   void AddEvent(D3D12ChunkType type, string description);
+  void AddUsage(D3D12DrawcallTreeNode &drawNode);
+  void AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, uint32_t EID, ResourceUsage usage);
 };

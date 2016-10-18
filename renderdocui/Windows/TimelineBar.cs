@@ -661,7 +661,7 @@ namespace renderdocui.Windows
                                         // read/write
                                         if (
                                             ((int)u.usage >= (int)ResourceUsage.VS_RWResource &&
-                                             (int)u.usage <= (int)ResourceUsage.CS_RWResource) ||
+                                             (int)u.usage <= (int)ResourceUsage.All_RWResource) ||
                                             u.usage == ResourceUsage.GenMips ||
                                             u.usage == ResourceUsage.Copy ||
                                             u.usage == ResourceUsage.Resolve)

@@ -389,6 +389,8 @@ enum ResourceUsage
   eUsage_PS_Constants,
   eUsage_CS_Constants,
 
+  eUsage_All_Constants,
+
   eUsage_SO,
 
   eUsage_VS_Resource,
@@ -398,12 +400,16 @@ enum ResourceUsage
   eUsage_PS_Resource,
   eUsage_CS_Resource,
 
+  eUsage_All_Resource,
+
   eUsage_VS_RWResource,
   eUsage_HS_RWResource,
   eUsage_DS_RWResource,
   eUsage_GS_RWResource,
   eUsage_PS_RWResource,
   eUsage_CS_RWResource,
+
+  eUsage_All_RWResource,
 
   eUsage_InputTarget,
   eUsage_ColourTarget,

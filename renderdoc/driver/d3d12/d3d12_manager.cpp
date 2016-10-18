@@ -339,6 +339,19 @@ D3D12_GPU_DESCRIPTOR_HANDLE GPUHandleFromPortableHandle(D3D12ResourceManager *ma
   return D3D12_GPU_DESCRIPTOR_HANDLE();
 }
 
+D3D12Descriptor *DescriptorFromPortableHandle(D3D12ResourceManager *manager, PortableHandle handle)
+{
+  if(handle.heap == ResourceId())
+    return NULL;
+
+  WrappedID3D12DescriptorHeap *heap = manager->GetLiveAs<WrappedID3D12DescriptorHeap>(handle.heap);
+
+  if(heap)
+    return heap->GetDescriptors() + handle.index;
+
+  return NULL;
+}
+
 // debugging logging for barriers
 #if 1
 #define BARRIER_DBG RDCLOG

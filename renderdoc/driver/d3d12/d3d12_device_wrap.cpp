@@ -579,19 +579,14 @@ bool WrappedID3D12Device::Serialise_DynamicDescriptorWrite(Serialiser *localSeri
 
   if(m_State <= EXECUTING)
   {
-    WrappedID3D12DescriptorHeap *heap =
-        GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(dst.heap);
+    D3D12Descriptor *handle = DescriptorFromPortableHandle(GetResourceManager(), dst);
 
-    if(heap)
+    if(handle)
     {
-      // get the wrapped handle
-      D3D12_CPU_DESCRIPTOR_HANDLE handle = heap->GetCPUDescriptorHandleForHeapStart();
-      handle.ptr += dst.index * sizeof(D3D12Descriptor);
-
       // safe to pass an invalid heap type to Create() as these descriptors will by definition not
       // be undefined
       RDCASSERT(desc.GetType() != D3D12Descriptor::TypeUndefined);
-      desc.Create(D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES, this, handle);
+      desc.Create(D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES, this, *handle);
     }
   }
 
@@ -1399,17 +1394,8 @@ bool WrappedID3D12Device::Serialise_DynamicDescriptorCopies(
     if(m_State <= EXECUTING)
     {
       // do a wrapped copy so that internal tracking is also updated
-      WrappedID3D12DescriptorHeap *srcHeap =
-          GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(src.heap);
-      WrappedID3D12DescriptorHeap *dstHeap =
-          GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(dst.heap);
-
-      D3D12_CPU_DESCRIPTOR_HANDLE srchandle = srcHeap->GetCPUDescriptorHandleForHeapStart();
-      srchandle.ptr += src.index * sizeof(D3D12Descriptor);
-      D3D12_CPU_DESCRIPTOR_HANDLE dsthandle = dstHeap->GetCPUDescriptorHandleForHeapStart();
-      dsthandle.ptr += dst.index * sizeof(D3D12Descriptor);
-
-      CopyDescriptorsSimple(1, dsthandle, srchandle, type);
+      CopyDescriptorsSimple(1, *DescriptorFromPortableHandle(GetResourceManager(), dst),
+                            *DescriptorFromPortableHandle(GetResourceManager(), src), type);
     }
   }
 

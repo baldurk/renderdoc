@@ -122,7 +122,7 @@ public:
   void ReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
 
   D3D12CommandData *GetCommandData() { return &m_Cmd; }
-  vector<EventUsage> GetUsage(ResourceId id) { return m_Cmd.m_ResourceUses[id]; }
+  const vector<EventUsage> &GetUsage(ResourceId id) { return m_Cmd.m_ResourceUses[id]; }
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
   virtual IID GetBackbufferUUID() { return __uuidof(ID3D12Resource); }

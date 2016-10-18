@@ -1033,9 +1033,7 @@ void D3D12Replay::MakePipelineState()
 
       if(h.heap != ResourceId())
       {
-        WrappedID3D12DescriptorHeap *heap = rm->GetLiveAs<WrappedID3D12DescriptorHeap>(h.heap);
-        D3D12Descriptor *desc =
-            (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr + h.index;
+        D3D12Descriptor *desc = DescriptorFromPortableHandle(rm, h);
 
         if(rs.rtSingle)
           desc += i;
@@ -1052,9 +1050,7 @@ void D3D12Replay::MakePipelineState()
 
       if(rs.dsv.heap != ResourceId())
       {
-        WrappedID3D12DescriptorHeap *heap = rm->GetLiveAs<WrappedID3D12DescriptorHeap>(rs.dsv.heap);
-        D3D12Descriptor *desc =
-            (D3D12Descriptor *)heap->GetCPUDescriptorHandleForHeapStart().ptr + rs.dsv.index;
+        D3D12Descriptor *desc = DescriptorFromPortableHandle(rm, rs.dsv);
 
         view.RootElement = 0;
         view.Immediate = false;
