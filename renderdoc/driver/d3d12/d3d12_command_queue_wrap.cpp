@@ -379,9 +379,6 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
         record->bakedCommands->AddResourceReferences(GetResourceManager());
         record->bakedCommands->AddReferencedIDs(refdIDs);
 
-        // ref the parent command list by itself, this will pull in the cmd buffer pool
-        GetResourceManager()->MarkResourceFrameReferenced(record->GetResourceID(), eFrameRef_Read);
-
         // reference all executed bundles as well
         for(size_t b = 0; b < record->bakedCommands->cmdInfo->bundles.size(); b++)
         {
