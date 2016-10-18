@@ -95,14 +95,14 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
     {
       ScopedContext msgscope(m_pSerialiser, "DebugMessage", "DebugMessage", 0, false);
 
-      string desc;
+      string msgDesc;
       if(m_State >= WRITING)
-        desc = debugMessages[i].description.elems;
+        msgDesc = debugMessages[i].description.elems;
 
       SERIALISE_ELEMENT(uint32_t, Category, debugMessages[i].category);
       SERIALISE_ELEMENT(uint32_t, Severity, debugMessages[i].severity);
       SERIALISE_ELEMENT(uint32_t, ID, debugMessages[i].messageID);
-      SERIALISE_ELEMENT(string, Description, desc);
+      SERIALISE_ELEMENT(string, Description, msgDesc);
 
       if(m_State == READING)
       {

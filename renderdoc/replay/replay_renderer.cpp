@@ -1268,16 +1268,19 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
       case eUsage_GS_Constants:
       case eUsage_PS_Constants:
       case eUsage_CS_Constants:
+      case eUsage_All_Constants:
       case eUsage_VS_Resource:
       case eUsage_HS_Resource:
       case eUsage_DS_Resource:
       case eUsage_GS_Resource:
       case eUsage_PS_Resource:
       case eUsage_CS_Resource:
+      case eUsage_All_Resource:
       case eUsage_InputTarget:
       case eUsage_CopySrc:
       case eUsage_ResolveSrc:
       case eUsage_Barrier:
+      case eUsage_Indirect:
         // read-only, not a valid pixel history event
         continue;
 
@@ -1289,6 +1292,7 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
       case eUsage_GS_RWResource:
       case eUsage_PS_RWResource:
       case eUsage_CS_RWResource:
+      case eUsage_All_RWResource:
       case eUsage_ColourTarget:
       case eUsage_DepthStencilTarget:
       case eUsage_Clear:

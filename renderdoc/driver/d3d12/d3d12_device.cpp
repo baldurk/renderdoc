@@ -767,9 +767,9 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(Serialiser *localSerialiser,
   {
     ID3D12Resource *r = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
 
-    D3D12_RANGE range = {};
+    range.Begin = range.End = 0;
 
-    byte *mapPtr = NULL;
+    mapPtr = NULL;
     HRESULT hr = r->Map(sub, &range, (void **)&mapPtr);
 
     if(SUCCEEDED(hr))

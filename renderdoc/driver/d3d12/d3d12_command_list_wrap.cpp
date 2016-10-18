@@ -2772,12 +2772,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
 
       m_Cmd->AddDrawcall(draw, true);
 
-      D3D12Descriptor *desc = DescriptorFromPortableHandle(GetResourceManager(), dsv);
+      D3D12Descriptor *descriptor = DescriptorFromPortableHandle(GetResourceManager(), dsv);
 
       D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
       drawNode.resourceUsage.push_back(std::make_pair(
-          GetResID(desc->nonsamp.resource), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+          GetResID(descriptor->nonsamp.resource), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
     }
   }
 
@@ -2857,12 +2857,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
 
       m_Cmd->AddDrawcall(draw, true);
 
-      D3D12Descriptor *desc = DescriptorFromPortableHandle(GetResourceManager(), rtv);
+      D3D12Descriptor *descriptor = DescriptorFromPortableHandle(GetResourceManager(), rtv);
 
       D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
 
       drawNode.resourceUsage.push_back(std::make_pair(
-          GetResID(desc->nonsamp.resource), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
+          GetResID(descriptor->nonsamp.resource), EventUsage(drawNode.draw.eventID, eUsage_Clear)));
     }
   }
 
