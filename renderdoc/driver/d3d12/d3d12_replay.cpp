@@ -123,9 +123,24 @@ FetchBuffer D3D12Replay::GetBuffer(ResourceId id)
 
   ret.length = desc.Width;
 
-  D3D12NOTIMP("Buffer creation flags from implicit usage");
+  ret.creationFlags = 0;
 
-  ret.creationFlags = eBufferCreate_VB | eBufferCreate_IB | eBufferCreate_CB | eBufferCreate_Indirect;
+  const std::vector<EventUsage> &usage = m_pDevice->GetQueue()->GetUsage(id);
+
+  for(size_t i = 0; i < usage.size(); i++)
+  {
+    if(usage[i].usage == eUsage_VS_RWResource || usage[i].usage == eUsage_HS_RWResource ||
+       usage[i].usage == eUsage_DS_RWResource || usage[i].usage == eUsage_GS_RWResource ||
+       usage[i].usage == eUsage_PS_RWResource || usage[i].usage == eUsage_CS_RWResource)
+      ret.creationFlags |= eBufferCreate_UAV;
+    else if(usage[i].usage == eUsage_VertexBuffer)
+      ret.creationFlags |= eBufferCreate_VB;
+    else if(usage[i].usage == eUsage_IndexBuffer)
+      ret.creationFlags |= eBufferCreate_IB;
+    else if(usage[i].usage == eUsage_Indirect)
+      ret.creationFlags |= eBufferCreate_Indirect;
+  }
+
   if(desc.Flags & D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS)
     ret.creationFlags |= eBufferCreate_UAV;
 
