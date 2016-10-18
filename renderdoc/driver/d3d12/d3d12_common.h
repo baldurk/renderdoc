@@ -279,6 +279,11 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
                                                                                                    \
   D3D12_CHUNK_MACRO(RESOURCE_BARRIER, "ID3D12GraphicsCommandList::ResourceBarrier")                \
                                                                                                    \
+  D3D12_CHUNK_MACRO(BEGIN_QUERY, "ID3D12GraphicsCommandList::BeginQuery")                          \
+  D3D12_CHUNK_MACRO(END_QUERY, "ID3D12GraphicsCommandList::EndQuery")                              \
+  D3D12_CHUNK_MACRO(RESOLVE_QUERY, "ID3D12GraphicsCommandList::ResolveQueryData")                  \
+  D3D12_CHUNK_MACRO(SET_PREDICATION, "ID3D12GraphicsCommandList::SetPredication")                  \
+                                                                                                   \
   D3D12_CHUNK_MACRO(DRAW_INDEXED_INST, "ID3D12GraphicsCommandList::DrawIndexedInstanced")          \
   D3D12_CHUNK_MACRO(DRAW_INST, "ID3D12GraphicsCommandList::DrawInstanced")                         \
   D3D12_CHUNK_MACRO(DISPATCH, "ID3D12GraphicsCommandList::Dispatch")                               \

@@ -2079,18 +2079,129 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView(
 
 #pragma region Queries / Events
 
+bool WrappedID3D12GraphicsCommandList::Serialise_BeginQuery(ID3D12QueryHeap *pQueryHeap,
+                                                            D3D12_QUERY_TYPE Type, UINT Index)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(ResourceId, heap, GetResID(pQueryHeap));
+  SERIALISE_ELEMENT(D3D12_QUERY_TYPE, type, Type);
+  SERIALISE_ELEMENT(UINT, idx, Index);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
+
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->BeginQuery(pQueryHeap, type, idx);
+    }
+  }
+  else if(m_State == READING)
+  {
+    pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
+
+    GetList(CommandList)->BeginQuery(pQueryHeap, type, idx);
+  }
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::BeginQuery(ID3D12QueryHeap *pQueryHeap,
                                                   D3D12_QUERY_TYPE Type, UINT Index)
 {
-  D3D12NOTIMP("Queries / Predication");
   m_pReal->BeginQuery(Unwrap(pQueryHeap), Type, Index);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(BEGIN_QUERY);
+    Serialise_BeginQuery(pQueryHeap, Type, Index);
+
+    m_ListRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedID3D12GraphicsCommandList::Serialise_EndQuery(ID3D12QueryHeap *pQueryHeap,
+                                                          D3D12_QUERY_TYPE Type, UINT Index)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(ResourceId, heap, GetResID(pQueryHeap));
+  SERIALISE_ELEMENT(D3D12_QUERY_TYPE, type, Type);
+  SERIALISE_ELEMENT(UINT, idx, Index);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
+
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))->EndQuery(pQueryHeap, type, idx);
+    }
+  }
+  else if(m_State == READING)
+  {
+    pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
+
+    GetList(CommandList)->EndQuery(pQueryHeap, type, idx);
+  }
+
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::EndQuery(ID3D12QueryHeap *pQueryHeap, D3D12_QUERY_TYPE Type,
                                                 UINT Index)
 {
-  D3D12NOTIMP("Queries / Predication");
   m_pReal->EndQuery(Unwrap(pQueryHeap), Type, Index);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(END_QUERY);
+    Serialise_EndQuery(pQueryHeap, Type, Index);
+
+    m_ListRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedID3D12GraphicsCommandList::Serialise_ResolveQueryData(
+    ID3D12QueryHeap *pQueryHeap, D3D12_QUERY_TYPE Type, UINT StartIndex, UINT NumQueries,
+    ID3D12Resource *pDestinationBuffer, UINT64 AlignedDestinationBufferOffset)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(ResourceId, heap, GetResID(pQueryHeap));
+  SERIALISE_ELEMENT(D3D12_QUERY_TYPE, type, Type);
+  SERIALISE_ELEMENT(UINT, start, StartIndex);
+  SERIALISE_ELEMENT(UINT, num, NumQueries);
+  SERIALISE_ELEMENT(ResourceId, buf, GetResID(pDestinationBuffer));
+  SERIALISE_ELEMENT(UINT64, offs, AlignedDestinationBufferOffset);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
+      pDestinationBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(buf);
+
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))
+          ->ResolveQueryData(pQueryHeap, type, start, num, pDestinationBuffer, offs);
+    }
+  }
+  else if(m_State == READING)
+  {
+    pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
+    pDestinationBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(buf);
+
+    GetList(CommandList)->ResolveQueryData(pQueryHeap, type, start, num, pDestinationBuffer, offs);
+  }
+
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::ResolveQueryData(ID3D12QueryHeap *pQueryHeap,
@@ -2099,17 +2210,49 @@ void WrappedID3D12GraphicsCommandList::ResolveQueryData(ID3D12QueryHeap *pQueryH
                                                         ID3D12Resource *pDestinationBuffer,
                                                         UINT64 AlignedDestinationBufferOffset)
 {
-  D3D12NOTIMP("Queries / Predication");
   m_pReal->ResolveQueryData(Unwrap(pQueryHeap), Type, StartIndex, NumQueries,
                             Unwrap(pDestinationBuffer), AlignedDestinationBufferOffset);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(RESOLVE_QUERY);
+    Serialise_ResolveQueryData(pQueryHeap, Type, StartIndex, NumQueries, pDestinationBuffer,
+                               AlignedDestinationBufferOffset);
+
+    m_ListRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedID3D12GraphicsCommandList::Serialise_SetPredication(ID3D12Resource *pBuffer,
+                                                                UINT64 AlignedBufferOffset,
+                                                                D3D12_PREDICATION_OP Operation)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+  SERIALISE_ELEMENT(ResourceId, buffer, GetResID(pBuffer));
+  SERIALISE_ELEMENT(UINT64, offs, AlignedBufferOffset);
+  SERIALISE_ELEMENT(D3D12_PREDICATION_OP, op, Operation);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  // don't replay predication at all
+
+  return true;
 }
 
 void WrappedID3D12GraphicsCommandList::SetPredication(ID3D12Resource *pBuffer,
                                                       UINT64 AlignedBufferOffset,
                                                       D3D12_PREDICATION_OP Operation)
 {
-  D3D12NOTIMP("Queries / Predication");
   m_pReal->SetPredication(Unwrap(pBuffer), AlignedBufferOffset, Operation);
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(SET_PREDICATION);
+    Serialise_SetPredication(pBuffer, AlignedBufferOffset, Operation);
+
+    m_ListRecord->AddChunk(scope.Get());
+  }
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(UINT Metadata, const void *pData, UINT Size)

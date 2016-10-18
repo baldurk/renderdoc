@@ -264,6 +264,17 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
 
     case RESOURCE_BARRIER: m_ReplayList->Serialise_ResourceBarrier(0, NULL); break;
 
+    case BEGIN_QUERY:
+      m_ReplayList->Serialise_BeginQuery(NULL, D3D12_QUERY_TYPE_OCCLUSION, 0);
+      break;
+    case END_QUERY: m_ReplayList->Serialise_EndQuery(NULL, D3D12_QUERY_TYPE_OCCLUSION, 0); break;
+    case RESOLVE_QUERY:
+      m_ReplayList->Serialise_ResolveQueryData(NULL, D3D12_QUERY_TYPE_OCCLUSION, 0, 0, NULL, 0);
+      break;
+    case SET_PREDICATION:
+      m_ReplayList->Serialise_SetPredication(NULL, 0, D3D12_PREDICATION_OP_EQUAL_ZERO);
+      break;
+
     case BEGIN_EVENT: m_ReplayList->Serialise_BeginEvent(0, NULL, 0); break;
     case SET_MARKER: m_ReplayList->Serialise_SetMarker(0, NULL, 0); break;
     case END_EVENT: m_ReplayList->Serialise_EndEvent(); break;
