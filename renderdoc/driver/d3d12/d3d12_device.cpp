@@ -774,10 +774,10 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(Serialiser *localSerialiser,
 
     if(SUCCEEDED(hr))
     {
-      memcpy(mapPtr + begin, data, end - begin);
+      memcpy(mapPtr + begin, data, size_t(end - begin));
 
-      range.Begin = begin;
-      range.End = end;
+      range.Begin = (size_t)begin;
+      range.End = (size_t)end;
 
       r->Unmap(sub, &range);
     }
