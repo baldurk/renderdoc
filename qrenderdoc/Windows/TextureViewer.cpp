@@ -37,6 +37,7 @@
 #include "Widgets/TextureGoto.h"
 #include "FlowLayout.h"
 #include "ui_TextureViewer.h"
+#include <math.h>
 
 float area(const QSizeF &s)
 {

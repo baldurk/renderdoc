@@ -26,6 +26,7 @@
 #include <QPainter>
 #include "Code/CaptureContext.h"
 #include "renderdoc_replay.h"
+#include <math.h>
 
 CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
 {
