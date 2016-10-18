@@ -436,6 +436,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
 
       AddDrawcall(draw, true);
 
+      VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+
+      drawNode.resourceUsage.push_back(
+          std::make_pair(GetResID(buffer), EventUsage(drawNode.draw.eventID, eUsage_Indirect)));
+
       return true;
     }
 
@@ -444,6 +449,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
     draw.flags = eDraw_MultiDraw | eDraw_PushMarker;
     AddEvent(DRAW_INDIRECT, desc);
     AddDrawcall(draw, true);
+
+    VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+
+    drawNode.resourceUsage.push_back(
+        std::make_pair(GetResID(buffer), EventUsage(drawNode.draw.eventID, eUsage_Indirect)));
 
     m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
@@ -719,6 +729,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
 
       AddDrawcall(draw, true);
 
+      VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+
+      drawNode.resourceUsage.push_back(
+          std::make_pair(GetResID(buffer), EventUsage(drawNode.draw.eventID, eUsage_Indirect)));
+
       return true;
     }
 
@@ -727,6 +742,11 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
     draw.flags = eDraw_MultiDraw | eDraw_PushMarker;
     AddEvent(DRAW_INDEXED_INDIRECT, desc);
     AddDrawcall(draw, true);
+
+    VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+
+    drawNode.resourceUsage.push_back(
+        std::make_pair(GetResID(buffer), EventUsage(drawNode.draw.eventID, eUsage_Indirect)));
 
     m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
 
@@ -947,6 +967,11 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(Serialiser *localSerialiser,
       draw.flags |= eDraw_Dispatch | eDraw_Indirect;
 
       AddDrawcall(draw, true);
+
+      VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
+
+      drawNode.resourceUsage.push_back(
+          std::make_pair(GetResID(buffer), EventUsage(drawNode.draw.eventID, eUsage_Indirect)));
     }
   }
 

@@ -230,6 +230,12 @@ bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(GLintptr indirect)
     draw.dispatchDimension[2] = groupSizes[2];
 
     AddDrawcall(draw, true);
+
+    GLuint buf = 0;
+    m_Real.glGetIntegerv(eGL_DISPATCH_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
+
+    m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+        EventUsage(m_CurEventID, eUsage_Indirect));
   }
 
   return true;
@@ -711,6 +717,12 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(GLenum mode, const void *indi
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
 
     AddDrawcall(draw, true);
+
+    GLuint buf = 0;
+    m_Real.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
+
+    m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+        EventUsage(m_CurEventID, eUsage_Indirect));
   }
 
   return true;
@@ -1075,6 +1087,12 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, c
     draw.indexByteWidth = IdxSize;
 
     AddDrawcall(draw, true);
+
+    GLuint buf = 0;
+    m_Real.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
+
+    m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+        EventUsage(m_CurEventID, eUsage_Indirect));
   }
 
   return true;
@@ -2213,6 +2231,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
 
     m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
+    {
+      GLuint buf = 0;
+      m_Real.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
+
+      m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+          EventUsage(m_CurEventID, eUsage_Indirect));
+    }
+
     m_CurEventID++;
 
     GLintptr offs = (GLintptr)Offset;
@@ -2374,6 +2400,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
     AddDrawcall(draw, false);
 
     m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
+
+    {
+      GLuint buf = 0;
+      m_Real.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
+
+      m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+          EventUsage(m_CurEventID, eUsage_Indirect));
+    }
 
     m_CurEventID++;
 
@@ -2543,6 +2577,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
     AddDrawcall(draw, false);
 
     m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
+
+    {
+      GLuint buf = 0;
+      m_Real.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
+
+      m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+          EventUsage(m_CurEventID, eUsage_Indirect));
+    }
 
     m_CurEventID++;
 
@@ -2721,6 +2763,14 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
     AddDrawcall(draw, false);
 
     m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
+
+    {
+      GLuint buf = 0;
+      m_Real.glGetIntegerv(eGL_DRAW_INDIRECT_BUFFER_BINDING, (GLint *)&buf);
+
+      m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+          EventUsage(m_CurEventID, eUsage_Indirect));
+    }
 
     m_CurEventID++;
 

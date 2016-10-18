@@ -424,6 +424,8 @@ namespace renderdoc
     	ColourTarget,
     	DepthStencilTarget,
 
+        Indirect,
+
         Clear,
 
         GenMips,

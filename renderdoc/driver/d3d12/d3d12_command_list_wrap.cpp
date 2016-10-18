@@ -2545,6 +2545,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
     draw.flags |= eDraw_CmdList;
 
     m_Cmd->AddDrawcall(draw, true);
+
+    D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
+
+    drawNode.resourceUsage.push_back(std::make_pair(
+        GetResID(pArgumentBuffer), EventUsage(drawNode.draw.eventID, eUsage_Indirect)));
+    drawNode.resourceUsage.push_back(
+        std::make_pair(GetResID(pCountBuffer), EventUsage(drawNode.draw.eventID, eUsage_Indirect)));
   }
 
   return true;

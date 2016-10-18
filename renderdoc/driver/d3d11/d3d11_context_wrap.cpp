@@ -4146,6 +4146,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawIndexedInstancedIndirect(ID3D11Bu
 
       name = "DrawIndexedInstancedIndirect(<" + ToStr::Get(draw.numIndices) + ", " +
              ToStr::Get(draw.numInstances) + ">)";
+
+      m_ResourceUses[GetIDForResource(argBuffer)].push_back(EventUsage(m_CurEventID, eUsage_Indirect));
     }
 
     draw.name = name;
@@ -4229,6 +4231,8 @@ bool WrappedID3D11DeviceContext::Serialise_DrawInstancedIndirect(ID3D11Buffer *p
       draw.instanceOffset = uargs[3];
 
       RecordDrawStats(true, true, draw.numInstances);
+
+      m_ResourceUses[GetIDForResource(argBuffer)].push_back(EventUsage(m_CurEventID, eUsage_Indirect));
     }
 
     draw.name = name;
@@ -5004,6 +5008,8 @@ bool WrappedID3D11DeviceContext::Serialise_DispatchIndirect(ID3D11Buffer *pBuffe
       draw.dispatchDimension[0] = uargs[0];
       draw.dispatchDimension[1] = uargs[1];
       draw.dispatchDimension[2] = uargs[2];
+
+      m_ResourceUses[GetIDForResource(argBuffer)].push_back(EventUsage(m_CurEventID, eUsage_Indirect));
     }
 
     draw.name = name;
