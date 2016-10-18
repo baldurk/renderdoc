@@ -24,6 +24,7 @@
 
 #include "TextureViewer.h"
 #include <float.h>
+#include <math.h>
 #include <QClipboard>
 #include <QColorDialog>
 #include <QJsonDocument>
