@@ -294,6 +294,10 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
           // will be potentially highlighted in the pipeline view
           D3D12_MESSAGE_ID_INVALID_DESCRIPTOR_HANDLE,
           D3D12_MESSAGE_ID_COMMAND_LIST_DESCRIPTOR_TABLE_NOT_SET,
+
+          // message about a NULL range to map for reading/writing the whole resource
+          // which is "inefficient" but for our use cases it's almost always what we mean.
+          D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
       };
 
       D3D12_INFO_QUEUE_FILTER filter = {};
