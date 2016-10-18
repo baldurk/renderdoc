@@ -3221,12 +3221,11 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case END_FEEDBACK: Serialise_glEndTransformFeedback(); break;
     case PAUSE_FEEDBACK: Serialise_glPauseTransformFeedback(); break;
     case RESUME_FEEDBACK: Serialise_glResumeTransformFeedback(); break;
-//
-//    case GEN_PROGRAMPIPE: Serialise_glGenProgramPipelines(0, NULL); break;
-//    case CREATE_PROGRAMPIPE: Serialise_glCreateProgramPipelines(0, NULL); break;
-//    case USE_PROGRAMSTAGES: Serialise_glUseProgramStages(0, 0, 0); break;
-//    case BIND_PROGRAMPIPE: Serialise_glBindProgramPipeline(0); break;
-//
+
+    case GEN_PROGRAMPIPE: Serialise_glGenProgramPipelines(0, NULL); break;
+    case USE_PROGRAMSTAGES: Serialise_glUseProgramStages(0, 0, 0); break;
+    case BIND_PROGRAMPIPE: Serialise_glBindProgramPipeline(0); break;
+
     case FENCE_SYNC: Serialise_glFenceSync(NULL, eGL_NONE, 0); break;
     case CLIENTWAIT_SYNC: Serialise_glClientWaitSync(NULL, 0, 0); break;
     case WAIT_SYNC: Serialise_glWaitSync(NULL, 0, 0); break;
