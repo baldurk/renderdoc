@@ -1413,7 +1413,7 @@ bool WrappedID3D12Device::Serialise_SetShaderDebugPath(Serialiser *localSerialis
 
   if(m_State < WRITING && GetResourceManager()->HasLiveResource(resource))
   {
-    RDCUNIMPLEMENTED("SetDebugInfoPath");
+    RDCERR("SetDebugInfoPath doesn't work as-is because it can't specify a shader specific path");
   }
 
   return true;

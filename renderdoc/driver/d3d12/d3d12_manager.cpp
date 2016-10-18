@@ -678,8 +678,11 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       return true;
     }
   }
+  else
+  {
+    RDCERR("Unexpected type needing an initial state prepared: %d", type);
+  }
 
-  RDCUNIMPLEMENTED("init states");
   return false;
 }
 
@@ -751,7 +754,7 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
     }
     else
     {
-      RDCUNIMPLEMENTED("init states");
+      RDCERR("Unexpected type needing an initial state serialised out: %d", type);
       return false;
     }
   }
@@ -873,7 +876,7 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
     }
     else
     {
-      RDCUNIMPLEMENTED("init states");
+      RDCERR("Unexpected type needing an initial state serialised in: %d", type);
       return false;
     }
   }
@@ -893,13 +896,13 @@ void D3D12ResourceManager::Create_InitialState(ResourceId id, ID3D12DeviceChild 
   }
   else if(type == Resource_Resource)
   {
-    D3D12NOTIMP("resource init states");
+    D3D12NOTIMP("Creating init states for resources");
 
     // not handling any missing states at the moment
   }
   else
   {
-    RDCUNIMPLEMENTED("init states");
+    RDCERR("Unexpected type needing an initial state created: %d", type);
   }
 }
 
@@ -1101,11 +1104,11 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
     }
     else
     {
-      D3D12NOTIMP("resource init states");
+      RDCERR("Unexpected num or NULL resource: %d, %p", data.num, data.resource);
     }
   }
   else
   {
-    RDCUNIMPLEMENTED("init states");
+    RDCERR("Unexpected type needing an initial state created: %d", type);
   }
 }

@@ -1143,7 +1143,7 @@ HRESULT WrappedID3D12Device::CreateReservedResource(const D3D12_RESOURCE_DESC *p
                                                     const D3D12_CLEAR_VALUE *pOptimizedClearValue,
                                                     REFIID riid, void **ppvResource)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
+  D3D12NOTIMP("Tiled Resources");
   return m_pDevice->CreateReservedResource(pDesc, InitialState, pOptimizedClearValue, riid,
                                            ppvResource);
 }
@@ -1381,7 +1381,7 @@ HRESULT WrappedID3D12Device::CreateSharedHandle(ID3D12DeviceChild *pObject,
                                                 const SECURITY_ATTRIBUTES *pAttributes,
                                                 DWORD Access, LPCWSTR Name, HANDLE *pHandle)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
+  D3D12NOTIMP("Shared Handles / API interop");
   return m_pDevice->CreateSharedHandle(Unwrap(pObject), pAttributes, Access, Name, pHandle);
 }
 
@@ -1576,13 +1576,13 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
 
 HRESULT WrappedID3D12Device::OpenSharedHandle(HANDLE NTHandle, REFIID riid, void **ppvObj)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
+  D3D12NOTIMP("Shared Handles / API interop");
   return m_pDevice->OpenSharedHandle(NTHandle, riid, ppvObj);
 }
 
 HRESULT WrappedID3D12Device::OpenSharedHandleByName(LPCWSTR Name, DWORD Access, HANDLE *pNTHandle)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
+  D3D12NOTIMP("Shared Handles / API interop");
   return m_pDevice->OpenSharedHandleByName(Name, Access, pNTHandle);
 }
 

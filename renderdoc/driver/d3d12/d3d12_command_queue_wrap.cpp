@@ -33,6 +33,7 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::UpdateTileMappings(
     const D3D12_TILE_RANGE_FLAGS *pRangeFlags, const UINT *pHeapRangeStartOffsets,
     const UINT *pRangeTileCounts, D3D12_TILE_MAPPING_FLAGS Flags)
 {
+  D3D12NOTIMP("Tiled Resources");
   m_pReal->UpdateTileMappings(Unwrap(pResource), NumResourceRegions, pResourceRegionStartCoordinates,
                               pResourceRegionSizes, Unwrap(pHeap), NumRanges, pRangeFlags,
                               pHeapRangeStartOffsets, pRangeTileCounts, Flags);
@@ -43,6 +44,7 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::CopyTileMappings(
     ID3D12Resource *pSrcResource, const D3D12_TILED_RESOURCE_COORDINATE *pSrcRegionStartCoordinate,
     const D3D12_TILE_REGION_SIZE *pRegionSize, D3D12_TILE_MAPPING_FLAGS Flags)
 {
+  D3D12NOTIMP("Tiled Resources");
   m_pReal->CopyTileMappings(Unwrap(pDstResource), pDstRegionStartCoordinate, Unwrap(pSrcResource),
                             pSrcRegionStartCoordinate, pRegionSize, Flags);
 }

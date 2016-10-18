@@ -2082,14 +2082,14 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootUnorderedAccessView(
 void WrappedID3D12GraphicsCommandList::BeginQuery(ID3D12QueryHeap *pQueryHeap,
                                                   D3D12_QUERY_TYPE Type, UINT Index)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
+  D3D12NOTIMP("Queries / Predication");
   m_pReal->BeginQuery(Unwrap(pQueryHeap), Type, Index);
 }
 
 void WrappedID3D12GraphicsCommandList::EndQuery(ID3D12QueryHeap *pQueryHeap, D3D12_QUERY_TYPE Type,
                                                 UINT Index)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
+  D3D12NOTIMP("Queries / Predication");
   m_pReal->EndQuery(Unwrap(pQueryHeap), Type, Index);
 }
 
@@ -2099,7 +2099,7 @@ void WrappedID3D12GraphicsCommandList::ResolveQueryData(ID3D12QueryHeap *pQueryH
                                                         ID3D12Resource *pDestinationBuffer,
                                                         UINT64 AlignedDestinationBufferOffset)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
+  D3D12NOTIMP("Queries / Predication");
   m_pReal->ResolveQueryData(Unwrap(pQueryHeap), Type, StartIndex, NumQueries,
                             Unwrap(pDestinationBuffer), AlignedDestinationBufferOffset);
 }
@@ -2108,7 +2108,7 @@ void WrappedID3D12GraphicsCommandList::SetPredication(ID3D12Resource *pBuffer,
                                                       UINT64 AlignedBufferOffset,
                                                       D3D12_PREDICATION_OP Operation)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
+  D3D12NOTIMP("Queries / Predication");
   m_pReal->SetPredication(Unwrap(pBuffer), AlignedBufferOffset, Operation);
 }
 
@@ -2491,7 +2491,7 @@ void WrappedID3D12GraphicsCommandList::Dispatch(UINT ThreadGroupCountX, UINT Thr
 
 void WrappedID3D12GraphicsCommandList::ExecuteBundle(ID3D12GraphicsCommandList *pCommandList)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
+  D3D12NOTIMP("Bundle execution");
   m_pReal->ExecuteBundle(Unwrap(pCommandList));
 }
 
@@ -3353,7 +3353,7 @@ void WrappedID3D12GraphicsCommandList::CopyTiles(
     const D3D12_TILE_REGION_SIZE *pTileRegionSize, ID3D12Resource *pBuffer,
     UINT64 BufferStartOffsetInBytes, D3D12_TILE_COPY_FLAGS Flags)
 {
-  D3D12NOTIMP(__PRETTY_FUNCTION_SIGNATURE__);
+  D3D12NOTIMP("Tiled Resources");
   m_pReal->CopyTiles(Unwrap(pTiledResource), pTileRegionStartCoordinate, pTileRegionSize,
                      Unwrap(pBuffer), BufferStartOffsetInBytes, Flags);
 }
