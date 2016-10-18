@@ -18,6 +18,7 @@ set(sources
     gles_resources.h
     gles_shader_refl.cpp
     gles_shader_refl.h
+    gles_state_exporter.cpp
     official/gl32.h
     official/gl2ext.h
     official/gl3platform.h
