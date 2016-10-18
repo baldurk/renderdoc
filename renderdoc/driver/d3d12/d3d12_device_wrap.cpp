@@ -674,6 +674,14 @@ void WrappedID3D12Device::CreateShaderResourceView(ID3D12Resource *pResource,
   {
     GetWrapped(DestDescriptor)->Init(pResource, pDesc);
   }
+
+  if(m_State < WRITING && pDesc)
+  {
+    if(pDesc->ViewDimension == D3D12_SRV_DIMENSION_TEXTURECUBE ||
+       pDesc->ViewDimension == D3D12_SRV_DIMENSION_TEXTURECUBEARRAY)
+      m_Cubemaps.insert(GetResID(pResource));
+  }
+
   return m_pDevice->CreateShaderResourceView(Unwrap(pResource), pDesc, Unwrap(DestDescriptor));
 }
 

@@ -299,6 +299,8 @@ private:
   map<ResourceId, SubresourceStateVector> m_ResourceStates;
   Threading::CriticalSection m_ResourceStatesLock;
 
+  set<ResourceId> m_Cubemaps;
+
   map<ResourceId, string> m_ResourceNames;
 
   struct SwapPresentInfo
@@ -362,6 +364,7 @@ public:
   ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }
   void ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers);
 
+  bool IsCubemap(ResourceId id) { return m_Cubemaps.find(id) != m_Cubemaps.end(); }
   // returns thread-local temporary memory
   byte *GetTempMemory(size_t s);
   template <class T>

@@ -170,8 +170,7 @@ FetchTexture D3D12Replay::GetTexture(ResourceId id)
     case 3: ret.resType = eResType_Texture3D; break;
   }
 
-  D3D12NOTIMP("Texture cubemap-ness from implicit usage");
-  ret.cubemap = false;    // eResType_TextureCube, eResType_TextureCubeArray
+  ret.cubemap = m_pDevice->IsCubemap(id);
 
   ret.creationFlags = eTextureCreate_SRV;
 
