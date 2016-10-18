@@ -306,6 +306,7 @@ bool WrappedGLES::Serialise_glTextureViewEXT(GLuint texture, GLenum target, GLui
   {
     GLResource tex = GetResourceManager()->GetLiveResource(texid);
     GLResource origtex = GetResourceManager()->GetLiveResource(origid);
+    // TODO pantos replace ext func
     m_Real.glTextureViewEXT(tex.name, Target, origtex.name, InternalFormat, MinLevel, NumLevels,
                             MinLayer, NumLayers);
 
@@ -1743,6 +1744,7 @@ bool WrappedGLES::Serialise_glTextureStorage1DEXT(GLuint texture, GLenum target,
     m_Textures[liveId].internalFormat = Format;
     m_Textures[liveId].emulated = emulated;
 
+    // TODO pantos replace ext func
     m_Real.glTextureStorage1DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels,
                                  Format, Width);
   }
@@ -1840,8 +1842,8 @@ bool WrappedGLES::Serialise_glTextureStorage2DEXT(GLuint texture, GLenum target,
     m_Textures[liveId].internalFormat = Format;
     m_Textures[liveId].emulated = emulated;
 
-    m_Real.glTextureStorage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels,
-                                   Format, Width, Height);
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
+    m_Real.glTexStorage2D(Target, Levels, Format, Width, Height);
   }
 
   return true;
@@ -1940,8 +1942,8 @@ bool WrappedGLES::Serialise_glTextureStorage3DEXT(GLuint texture, GLenum target,
     m_Textures[liveId].internalFormat = Format;
     m_Textures[liveId].emulated = emulated;
 
-    m_Real.glTextureStorage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels,
-                                 Format, Width, Height, Depth);
+    SafeTextureBinder safeTextureBinder(m_Real, GetResourceManager()->GetLiveResource(id).name, Target);
+    m_Real.glTexStorage3D(Target, Levels, Format, Width, Height, Depth);
   }
 
   return true;

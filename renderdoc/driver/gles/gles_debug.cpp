@@ -2196,7 +2196,7 @@ ResourceId GLESReplay::RenderOverlay(ResourceId texid, FormatComponentType typeH
 
         // image for quad usage
         gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, quadtexs[2]);
-        gl.glTextureStorage3DEXT(quadtexs[2], eGL_TEXTURE_2D_ARRAY, 1, eGL_R32UI,
+        gl.glTexStorage3D(eGL_TEXTURE_2D_ARRAY, 1, eGL_R32UI,
                                  texDetails.width >> 1, texDetails.height >> 1, 4);
 
         // temporarily attach to FBO to clear it
@@ -2211,7 +2211,7 @@ ResourceId GLESReplay::RenderOverlay(ResourceId texid, FormatComponentType typeH
         gl.glClearBufferiv(eGL_COLOR, 0, &zero);
 
         gl.glBindTexture(eGL_TEXTURE_2D, quadtexs[0]);
-        gl.glTextureStorage2DEXT(quadtexs[0], eGL_TEXTURE_2D, 1, eGL_RGBA8, texDetails.width,
+        gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_RGBA8, texDetails.width,
                                  texDetails.height);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
@@ -2220,7 +2220,7 @@ ResourceId GLESReplay::RenderOverlay(ResourceId texid, FormatComponentType typeH
         gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[0], 0);
 
         gl.glBindTexture(eGL_TEXTURE_2D, quadtexs[1]);
-        gl.glTextureStorage2DEXT(quadtexs[1], eGL_TEXTURE_2D, 1, eGL_DEPTH32F_STENCIL8,
+        gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_DEPTH32F_STENCIL8,
                                  texDetails.width, texDetails.height);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);

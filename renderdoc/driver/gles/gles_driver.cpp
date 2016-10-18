@@ -884,7 +884,7 @@ void WrappedGLES::Initialise(GLESInitParams &params)
   }
   else
   {
-    gl.glTextureStorage2DEXT(m_FakeBB_Color, target, 1, colfmt, params.width, params.height);
+    gl.glTexStorage2D(target, 1, colfmt, params.width, params.height);
     gl.glTexParameteri(target, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
     gl.glTexParameteri(target, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
     gl.glTexParameteri(target, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
