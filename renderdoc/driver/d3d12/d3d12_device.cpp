@@ -1284,8 +1284,6 @@ bool WrappedID3D12Device::Serialise_ReleaseResource(Serialiser *localSerialiser,
 
 void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
 {
-  D3D12NOTIMP("ReleaseResource");
-
   ResourceId id = GetResID(res);
 
   {
