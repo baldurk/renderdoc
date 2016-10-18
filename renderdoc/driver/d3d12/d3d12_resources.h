@@ -316,7 +316,8 @@ class WrappedID3D12DescriptorHeap : public WrappedDeviceChild12<ID3D12Descriptor
   D3D12_CPU_DESCRIPTOR_HANDLE realCPUBase;
   D3D12_GPU_DESCRIPTOR_HANDLE realGPUBase;
 
-  UINT increment;
+  UINT increment : 24;
+  UINT resident : 8;
   UINT numDescriptors;
 
   D3D12Descriptor *descriptors;
@@ -335,6 +336,8 @@ public:
 
   const D3D12Descriptor *GetDescriptors() { return descriptors; }
   UINT GetNumDescriptors() { return numDescriptors; }
+  bool Resident() { return resident != 0; }
+  void SetResident(bool r) { resident = r ? 1 : 0; }
   //////////////////////////////
   // implement ID3D12DescriptorHeap
 
@@ -646,6 +649,8 @@ class WrappedID3D12Resource : public WrappedDeviceChild12<ID3D12Resource>
 
   static std::vector<AddressRange> m_Addresses;
 
+  bool resident;
+
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource);
 
@@ -690,6 +695,7 @@ public:
       : WrappedDeviceChild12(real, device)
   {
     m_List[GetResourceID()] = this;
+    SetResident(true);
 
     // assuming only valid for buffers
     if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
@@ -725,6 +731,9 @@ public:
 
     Shutdown();
   }
+
+  bool Resident() { return resident; }
+  void SetResident(bool r) { resident = r; }
   //////////////////////////////
   // implement ID3D12Resource
 

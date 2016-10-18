@@ -901,6 +901,9 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
     SCOPED_LOCK(m_CapTransitionLock);
     GetResourceManager()->PrepareInitialContents();
 
+    ExecuteLists();
+    FlushLists();
+
     RDCDEBUG("Attempting capture");
     m_FrameCaptureRecord->DeleteChunks();
 

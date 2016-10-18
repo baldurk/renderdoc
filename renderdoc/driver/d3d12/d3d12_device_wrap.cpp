@@ -1594,14 +1594,80 @@ HRESULT WrappedID3D12Device::OpenSharedHandleByName(LPCWSTR Name, DWORD Access, 
 
 HRESULT WrappedID3D12Device::MakeResident(UINT NumObjects, ID3D12Pageable *const *ppObjects)
 {
-  RDCUNIMPLEMENTED("MakeResident");    // need to unwrap objects
-  return m_pDevice->MakeResident(NumObjects, ppObjects);
+  ID3D12Pageable **unwrapped = GetTempArray<ID3D12Pageable *>(NumObjects);
+
+  for(UINT i = 0; i < NumObjects; i++)
+  {
+    if(WrappedID3D12DescriptorHeap::IsAlloc(ppObjects[i]))
+    {
+      WrappedID3D12DescriptorHeap *heap = (WrappedID3D12DescriptorHeap *)ppObjects[i];
+      heap->SetResident(true);
+      unwrapped[i] = heap->GetReal();
+    }
+    else if(WrappedID3D12Resource::IsAlloc(ppObjects[i]))
+    {
+      WrappedID3D12Resource *res = (WrappedID3D12Resource *)ppObjects[i];
+      res->SetResident(true);
+      unwrapped[i] = res->GetReal();
+    }
+    else
+    {
+      unwrapped[i] = (ID3D12Pageable *)Unwrap((ID3D12DeviceChild *)ppObjects[i]);
+    }
+  }
+
+  bool capframe = false;
+
+  {
+    SCOPED_LOCK(m_CapTransitionLock);
+    capframe = (m_State == WRITING_CAPFRAME);
+  }
+
+  if(capframe)
+  {
+    // serialise
+  }
+
+  return m_pDevice->MakeResident(NumObjects, unwrapped);
 }
 
 HRESULT WrappedID3D12Device::Evict(UINT NumObjects, ID3D12Pageable *const *ppObjects)
 {
-  RDCUNIMPLEMENTED("Evict");    // need to unwrap objects
-  return m_pDevice->Evict(NumObjects, ppObjects);
+  ID3D12Pageable **unwrapped = GetTempArray<ID3D12Pageable *>(NumObjects);
+
+  for(UINT i = 0; i < NumObjects; i++)
+  {
+    if(WrappedID3D12DescriptorHeap::IsAlloc(ppObjects[i]))
+    {
+      WrappedID3D12DescriptorHeap *heap = (WrappedID3D12DescriptorHeap *)ppObjects[i];
+      heap->SetResident(false);
+      unwrapped[i] = heap->GetReal();
+    }
+    else if(WrappedID3D12Resource::IsAlloc(ppObjects[i]))
+    {
+      WrappedID3D12Resource *res = (WrappedID3D12Resource *)ppObjects[i];
+      res->SetResident(false);
+      unwrapped[i] = res->GetReal();
+    }
+    else
+    {
+      unwrapped[i] = (ID3D12Pageable *)Unwrap((ID3D12DeviceChild *)ppObjects[i]);
+    }
+  }
+
+  bool capframe = false;
+
+  {
+    SCOPED_LOCK(m_CapTransitionLock);
+    capframe = (m_State == WRITING_CAPFRAME);
+  }
+
+  if(capframe)
+  {
+    // serialise
+  }
+
+  return m_pDevice->Evict(NumObjects, unwrapped);
 }
 
 //////////////////////////////////////////////////////////////////////

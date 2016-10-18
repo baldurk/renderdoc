@@ -483,13 +483,19 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
   }
   else if(type == Resource_Resource)
   {
-    ID3D12Resource *r = (ID3D12Resource *)res;
+    WrappedID3D12Resource *r = (WrappedID3D12Resource *)res;
+    ID3D12Pageable *pageable = r;
+
+    bool nonresident = false;
+    if(!r->Resident())
+      nonresident = true;
 
     D3D12_RESOURCE_DESC desc = r->GetDesc();
 
     if(desc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE2D && desc.SampleDesc.Count > 1)
     {
       D3D12NOTIMP("Multisampled initial contents");
+
       SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(NULL, 2, NULL));
       return true;
     }
@@ -518,17 +524,28 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
           &heapProps, D3D12_HEAP_FLAG_NONE, &desc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
           __uuidof(ID3D12Resource), (void **)&copyDst);
 
+      if(nonresident)
+        m_Device->MakeResident(1, &pageable);
+
       if(SUCCEEDED(hr))
       {
         ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetNewList());
 
-        list->CopyResource(copyDst, Unwrap(r));
+        list->CopyResource(copyDst, r->GetReal());
 
         list->Close();
       }
       else
       {
         RDCERR("Couldn't create readback buffer: 0x%08x", hr);
+      }
+
+      if(nonresident)
+      {
+        m_Device->ExecuteLists();
+        m_Device->FlushLists();
+
+        m_Device->Evict(1, &pageable);
       }
 
       SetInitialContents(GetResID(r), D3D12ResourceManager::InitialContentData(copyDst, 0, NULL));
@@ -572,6 +589,9 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
           &heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
           __uuidof(ID3D12Resource), (void **)&copyDst);
 
+      if(nonresident)
+        m_Device->MakeResident(1, &pageable);
+
       if(SUCCEEDED(hr))
       {
         ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetNewList());
@@ -590,7 +610,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
           D3D12_RESOURCE_BARRIER barrier;
           barrier.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
           barrier.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
-          barrier.Transition.pResource = Unwrap(r);
+          barrier.Transition.pResource = r->GetReal();
           barrier.Transition.Subresource = (UINT)i;
           barrier.Transition.StateBefore = states[i];
           barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
@@ -607,7 +627,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
           D3D12_TEXTURE_COPY_LOCATION dst, src;
 
           src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
-          src.pResource = Unwrap(r);
+          src.pResource = r->GetReal();
           src.SubresourceIndex = i;
 
           dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
@@ -629,6 +649,14 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
       else
       {
         RDCERR("Couldn't create readback buffer: 0x%08x", hr);
+      }
+
+      if(nonresident)
+      {
+        m_Device->ExecuteLists();
+        m_Device->FlushLists();
+
+        m_Device->Evict(1, &pageable);
       }
 
       SAFE_DELETE_ARRAY(layouts);
