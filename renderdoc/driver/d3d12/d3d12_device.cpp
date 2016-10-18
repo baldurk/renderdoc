@@ -890,6 +890,7 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
   RDCEraseEl(frame.stats);
   m_CapturedFrames.push_back(frame);
 
+  GetDebugMessages();
   m_DebugMessages.clear();
 
   GetResourceManager()->ClearReferencedResources();
