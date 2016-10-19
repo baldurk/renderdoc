@@ -63,7 +63,6 @@ void DoExtensionChecks(const GLHookSet &gl)
     for(int i = 0; i < numExts; i++)
     {
       const char *ext = (const char *)gl.glGetStringi(eGL_EXTENSIONS, (GLuint)i);
-      printf("EXTENSION:%s\n", ext);
       if(ext == NULL || !ext[0] || !ext[1] || !ext[2] || !ext[3])
         continue;
 
