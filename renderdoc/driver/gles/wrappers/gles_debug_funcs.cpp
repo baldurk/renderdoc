@@ -86,7 +86,7 @@ bool WrappedGLES::Serialise_glObjectLabel(GLenum identifier, GLuint name, GLsize
   {
     GLResource res = GetResourceManager()->GetLiveResource(id);
 
-    if(extvariant && m_Real.glLabelObjectEXT)
+    if(extvariant && m_Real.glLabelObjectEXT && ExtensionSupported[ExtensionSupported_EXT_debug_label])
       m_Real.glLabelObjectEXT(Identifier, res.name, Length, HasLabel ? Label.c_str() : NULL);
     else
       m_Real.glObjectLabel(Identifier, res.name, Length, HasLabel ? Label.c_str() : NULL);

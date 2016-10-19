@@ -180,6 +180,7 @@ enum ExtensionCheckEnum
   ExtensionSupported_EXT_texture_storage,
   ExtensionSupported_EXT_map_buffer_range,
   ExtensionSupported_EXT_base_instance,
+  ExtensionSupported_EXT_debug_label,
   ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];
