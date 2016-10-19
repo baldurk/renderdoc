@@ -133,3 +133,36 @@ void WrappedGLES::Compat_glFlushMappedBufferRangeEXT (GLenum target, GLintptr of
   else
     m_Real.glFlushMappedBufferRange(target, offset, length);
 }
+
+void WrappedGLES::Compat_glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance)
+{
+  if(ExtensionSupported[ExtensionSupported_EXT_base_instance])
+    m_Real.glDrawArraysInstancedBaseInstanceEXT(mode, first, count, instancecount, baseinstance);
+  else
+  {
+    RDCASSERT(baseinstance == 0);
+    m_Real.glDrawArraysInstanced(mode, first, count, instancecount);
+  }
+}
+
+void WrappedGLES::Compat_glDrawElementsInstancedBaseInstanceEXT(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance)
+{
+  if(ExtensionSupported[ExtensionSupported_EXT_base_instance])
+    m_Real.glDrawElementsInstancedBaseInstanceEXT(mode, count, type, indices, instancecount, baseinstance);
+  else
+  {
+    RDCASSERT(baseinstance == 0);
+    m_Real.glDrawElementsInstanced(mode, count, type, indices, instancecount);
+  }
+}
+
+void WrappedGLES::Compat_glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance)
+{
+  if(ExtensionSupported[ExtensionSupported_EXT_base_instance])
+    m_Real.glDrawElementsInstancedBaseVertexBaseInstanceEXT(mode, count, type, indices, instancecount, basevertex, baseinstance);
+  else
+  {
+    RDCASSERT(baseinstance == 0);
+    m_Real.glDrawElementsInstancedBaseVertex(mode, count, type, indices, instancecount, basevertex);
+  }
+}

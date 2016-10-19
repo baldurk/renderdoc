@@ -86,6 +86,7 @@ void DoExtensionChecks(const GLHookSet &gl)
       EXT_CHECK(EXT_buffer_storage);
       EXT_CHECK(EXT_texture_storage);
       EXT_CHECK(EXT_map_buffer_range);
+      EXT_CHECK(EXT_base_instance);
 
 #undef EXT_CHECK
     }
