@@ -34,6 +34,9 @@
 #include "stb/stb_truetype.h"
 #include <fstream>
 
+#include "common/common.h"
+#include "maths/matrix.h"
+#include "maths/vec.h"
 #define OPENGL 1
 #include "data/glsl/debuguniforms.h"
 
@@ -45,13 +48,15 @@ const float charPixelHeight = 20.0f;
 template <typename T>
 void dump_to_file(const string& name, const T& t)
 {
-  std::ofstream file;
+/*  std::ofstream file;
   file.open (name);
-  if (file) {
+  if (file) {*/
     for (auto& s : t)
-      file << s << std::endl;
+      RDCLOG("%s", s);
+/*
     file.close();
   }
+*/
 }
 
 
@@ -1229,8 +1234,8 @@ void WrappedGLES::ContextData::CreateDebugData(const GLHookSet &gl)
       if(status == 0)
       {
         gl.glGetShaderInfoLog(vert, 1024, NULL, buffer);
-        dump_to_file("error-vert-5-" + std::to_string(counter_v), vsc);
         RDCERR("5-%d Shader error: %s", counter_v, buffer);
+        dump_to_file("error-vert-5-", vsc);
       }
 
       gl.glGetShaderiv(frag, eGL_COMPILE_STATUS, &status);
@@ -1238,6 +1243,7 @@ void WrappedGLES::ContextData::CreateDebugData(const GLHookSet &gl)
       {
         gl.glGetShaderInfoLog(frag, 1024, NULL, buffer);
         RDCERR("6-%d Shader error: %s", counter_f, buffer);
+        dump_to_file("error-vert-6-", fsc);
       }
 
       Program = gl.glCreateProgram();
@@ -1289,12 +1295,15 @@ void WrappedGLES::ActivateContext(GLESWindowingData winData)
 {
 
     // PEPE DEBUG
+#ifndef ANDROID
     {
+        RDCLOG("GL hooks: %p\n", m_Real);
         const GLHookSet &gl = m_Real;
         gl.glDebugMessageCallback(&DebugSnoopStatic, this);
         gl.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
         gl.glDebugMessageControl(eGL_DONT_CARE, eGL_DEBUG_TYPE_ERROR, eGL_DONT_CARE, 0, NULL, GL_TRUE);
     }
+#endif
 
   m_ActiveContexts[Threading::GetCurrentID()] = winData;
   if(winData.ctx)
@@ -1408,6 +1417,8 @@ void WrappedGLES::ActivateContext(GLESWindowingData winData)
 
       merge(ctxdata.glExts, ctxdata.glExtsString, ' ');
 
+      RDCLOG("gl.glGetIntegerv %p", gl.glGetIntegerv);
+      ctxdata.version = 20;
       if(gl.glGetIntegerv)
       {
         GLint mj = 0, mn = 0;
@@ -1416,8 +1427,10 @@ void WrappedGLES::ActivateContext(GLESWindowingData winData)
 
         int ver = mj * 10 + mn;
 
-        ctxdata.version = ver;
+        if (ver > ctxdata.version)
+            ctxdata.version = ver;
 
+        RDCLOG("VER: %d", ctxdata.version);
         if(ver > GLCoreVersion || (!GLIsCore && ctxdata.isCore))
         {
           GLCoreVersion = ver;
@@ -2039,14 +2052,11 @@ void WrappedGLES::SwapBuffers(void *surface)
   // isn't a big problem.
   //
   // Also we only set up associations for capturable windows.
-  if(ctxdata.Modern())
-  {
-    for(auto it = m_ContextData.begin(); it != m_ContextData.end(); ++it)
-      if(it->first != ctxdata.ctx)
-        it->second.UnassociateWindow(surface);
+  for(auto it = m_ContextData.begin(); it != m_ContextData.end(); ++it)
+    if(it->first != ctxdata.ctx)
+      it->second.UnassociateWindow(surface);
 
-    ctxdata.AssociateWindow(this, surface);
-  }
+  ctxdata.AssociateWindow(this, surface);
 
   // do this as late as possible to avoid creating objects on contexts
   // that might be shared later (wglShareLists requires contexts to be

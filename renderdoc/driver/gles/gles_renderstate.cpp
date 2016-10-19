@@ -693,7 +693,8 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
 
   m_Real->glGetFloatv(eGL_BLEND_COLOR, &BlendColor[0]);
 
-  if (ExtensionSupported[ExtensionSupported_OES_viewport_array])
+  // TODO(elecro): remove support as it is not android compatible
+  if (ExtensionSupported[ExtensionSupported_OES_viewport_array] && false)
   {
     for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Viewports); i++)
       m_Real->glGetFloati_vOES(eGL_VIEWPORT, i, &Viewports[i].x);
@@ -743,8 +744,16 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
   m_Real->glGetFloatv(eGL_DEPTH_CLEAR_VALUE, &DepthClearValue);
   m_Real->glGetIntegerv(eGL_DEPTH_FUNC, (GLint *)&DepthFunc);
 
-  for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
-    m_Real->glGetFloati_vOES(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
+  if (false) {
+    // TODO(elecro): remove support as it is not android compatible
+    for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
+      m_Real->glGetFloati_vOES(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
+  }
+  else
+  {
+    for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
+      m_Real->glGetFloatv(eGL_DEPTH_RANGE, &DepthRanges[i].nearZ);
+  }
 
   DepthBounds.nearZ = 0.0f;
   DepthBounds.farZ = 1.0f;

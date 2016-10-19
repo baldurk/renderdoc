@@ -1390,6 +1390,8 @@ GLboolean WrappedGLES::glUnmapBuffer(GLenum target)
             }
             else
             {
+/*
+TODO(elecro): not supported on android
               // if we are here for WRITING_IDLE, the app wrote directly into our backing
               // store memory. Just need to copy the data across to GL, no other work needed
               void *ptr =
@@ -1397,6 +1399,7 @@ GLboolean WrappedGLES::glUnmapBuffer(GLenum target)
                                                   GLsizeiptr(record->Map.length), GL_MAP_WRITE_BIT);
               memcpy(ptr, record->Map.ptr, record->Map.length);
               m_Real.glUnmapBuffer(target);
+*/
             }
           }
 

@@ -36,6 +36,9 @@
 #include "gles_resources.h"
 #include <fstream>
 
+#include "common/common.h"
+#include "maths/matrix.h"
+#include "maths/vec.h"
 #define OPENGL 1
 #include "data/glsl/debuguniforms.h"
 
@@ -80,9 +83,9 @@ static GLuint CompileShader(WrappedGLES &gl, GLenum type, const vector<string>& 
     srcs.reserve(sources.size());
     for(size_t i = 0; i < sources.size(); i++)
       srcs.push_back(sources[i].c_str());
-
+#ifndef ANDROID
     dump_to_file("_shader_" + ShaderName(type) + "-" + std::to_string(type) + "-" + std::to_string(counter), srcs);
-
+#endif
     gl.glShaderSource(shader, (GLsizei)srcs.size(), &srcs[0], NULL);
     gl.glCompileShader(shader);
 
@@ -234,7 +237,9 @@ void GLESReplay::InitDebugData()
     GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_texdisplay_frag), 420);
 
     DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
+#ifndef ANDROID
     dump_to_file("_shader_glsl_texdisplay_frag_" + std::to_string(i), fs);
+#endif
   }
 
 

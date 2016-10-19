@@ -23,6 +23,8 @@ typedef EGLBoolean (*PFN_eglDestroySurface)(EGLDisplay dpy, EGLSurface surface);
 typedef EGLBoolean (*PFN_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
 typedef EGLSurface (*PFN_eglCreatePbufferSurface)(EGLDisplay dpy, EGLConfig config, const EGLint *attrib_list);
 typedef EGLBoolean (*PFN_eglSwapInterval)(EGLDisplay dpy, EGLint interval);
+typedef EGLSurface (*PFN_eglGetCurrentSurface)(EGLint readdraw);
+typedef EGLDisplay (*PFN_eglGetCurrentDisplay)();
 
 #if 0
 typedef EGLBoolean (*PFN_eglBindTexImage)(EGLDisplay dpy, EGLSurface surface, EGLint buffer);
@@ -63,8 +65,6 @@ typedef EGLBoolean (*PFN_eglExportDRMImageMESA)(EGLDisplay dpy, EGLImageKHR imag
 typedef EGLBoolean (*PFN_eglFenceNV)(EGLSyncNV sync);
 typedef EGLBoolean (*PFN_eglGetConfigs)(EGLDisplay dpy, EGLConfig *configs, EGLint config_size, EGLint *num_config);
 typedef EGLContext (*PFN_eglGetCurrentContext)();
-typedef EGLDisplay (*PFN_eglGetCurrentDisplay)();
-typedef EGLSurface (*PFN_eglGetCurrentSurface)(EGLint readdraw);
 typedef EGLint (*PFN_eglGetError)();
 typedef EGLBoolean (*PFN_eglGetOutputLayersEXT)(EGLDisplay dpy, const EGLAttrib *attrib_list, EGLOutputLayerEXT *layers, EGLint max_layers, EGLint *num_layers);
 typedef EGLBoolean (*PFN_eglGetOutputPortsEXT)(EGLDisplay dpy, const EGLAttrib *attrib_list, EGLOutputPortEXT *ports, EGLint max_ports, EGLint *num_ports);

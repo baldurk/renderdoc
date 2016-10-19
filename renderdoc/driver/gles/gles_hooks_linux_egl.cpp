@@ -3,6 +3,12 @@
 #include <cstdio>
 #include <dlfcn.h>
 
+#include "serialise/string_utils.h"
+
+#ifdef ANDROID
+#include <android/log.h>
+#endif
+
 typedef void ( *__extFuncPtr)(void);
 
 #undef HookInit
@@ -89,6 +95,7 @@ typedef void ( *__extFuncPtr)(void);
 
 typedef EGLDisplay (*PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
 typedef EGLContext (*PFN_eglCreateContext) (EGLDisplay dpy, EGLConfig config, EGLContext share_context, EGLint const * attrib_list);
+typedef EGLContext (*PFN_eglGetCurrentContext)();
 typedef EGLBoolean (*PFN_eglBindAPI)(EGLenum api);
 typedef EGLBoolean (*PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value);
 typedef EGLBoolean (*PFN_eglSwapInterval)(EGLDisplay dpy, EGLint interval);
@@ -98,19 +105,24 @@ typedef EGLSurface (*PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig confi
 typedef EGLBoolean (*PFN_eglDestroySurface)(EGLDisplay dpy, EGLSurface surface);
 typedef EGLBoolean (*PFN_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
 typedef EGLBoolean (*PFN_eglTerminate)(EGLDisplay dpy);
+typedef EGLSurface (*PFN_eglGetCurrentSurface)(EGLint readdraw);
+typedef EGLDisplay (*PFN_eglGetCurrentDisplay)();
 
 #define DEFAULT_VISIBILITY __attribute__((visibility("default")))
 
 #define REAL(name) name ## _real
 #define DEF_FUNC(name) static PFN_##name REAL(name) = (PFN_ ## name)dlsym(libGLdlsymHandle, #name)
 
+
+
 DEFAULT_VISIBILITY
 EGLDisplay eglGetDisplay (EGLNativeDisplayType display)
 {
     OpenGLHook::glhooks.PopulateHooks();
     PFN_eglGetDisplay real_pfn = (PFN_eglGetDisplay)dlsym(libGLdlsymHandle, "eglGetDisplay");
-
+#ifndef ANDROID
     Keyboard::CloneDisplay(display);
+#endif
 
     return real_pfn(display);
 }
@@ -118,6 +130,9 @@ EGLDisplay eglGetDisplay (EGLNativeDisplayType display)
 DEFAULT_VISIBILITY
 EGLContext eglCreateContext(EGLDisplay display, EGLConfig config, EGLContext share_context, EGLint const * attrib_list)
 {
+#ifdef ANDROID
+    __android_log_print(ANDROID_LOG_DEBUG, "renderdoc", "Enter: eglCreateContext");
+#endif
     OpenGLHook::glhooks.PopulateHooks();
 
     GLESInitParams init;
@@ -142,6 +157,38 @@ EGLContext eglCreateContext(EGLDisplay display, EGLConfig config, EGLContext sha
     outputWin.eglDisplay = display;
 
     OpenGLHook::glhooks.GetDriver()->CreateContext(outputWin, share_context, init, true, true);
+    return ctx;
+}
+DEFAULT_VISIBILITY
+EGLContext eglGetCurrentContext()
+{
+    static EGLContext prev_ctx = 0;
+    OpenGLHook::glhooks.PopulateHooks();
+    DEF_FUNC(eglGetCurrentContext);
+
+#ifdef ANDROID
+    __android_log_print(ANDROID_LOG_DEBUG, "renderdoc", "Enter: eglGetCurrentContext");
+#endif
+    EGLContext ctx = REAL(eglGetCurrentContext)();
+
+    if (prev_ctx != ctx)
+    {
+        if(OpenGLHook::glhooks.m_Contexts.find(ctx) == OpenGLHook::glhooks.m_Contexts.end())
+        {
+            GLESWindowingData outputWin;
+            outputWin.ctx = ctx;
+            outputWin.eglDisplay = eglGetCurrentDisplay();
+            outputWin.surface = eglGetCurrentSurface(EGL_DRAW);
+
+            OpenGLHook::glhooks.m_Contexts.insert(ctx);
+            OpenGLHook::glhooks.GetDriver()->CreateContext(outputWin, NULL, GLESInitParams(), true, true);
+
+            OpenGLHook::glhooks.GetDriver()->ActivateContext(outputWin);
+
+        }
+        prev_ctx = ctx;
+    }
+
     return ctx;
 }
 
@@ -206,7 +253,7 @@ EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
 DEFAULT_VISIBILITY
 EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface read, EGLContext context)
 {
-    Bool ret = OpenGLHook::glhooks.m_eglMakeCurrent_real(display, draw, read, context);
+    EGLBoolean ret = OpenGLHook::glhooks.m_eglMakeCurrent_real(display, draw, read, context);
 
     if(context && OpenGLHook::glhooks.m_Contexts.find(context) == OpenGLHook::glhooks.m_Contexts.end())
     {
@@ -239,6 +286,20 @@ EGLBoolean eglGetConfigAttrib(EGLDisplay dpy, EGLConfig config, EGLint attribute
 }
 
 DEFAULT_VISIBILITY
+EGLSurface eglGetCurrentSurface(EGLint readdraw)
+{
+    DEF_FUNC(eglGetCurrentSurface);
+    return REAL(eglGetCurrentSurface)(readdraw);
+}
+
+DEFAULT_VISIBILITY
+EGLDisplay eglGetCurrentDisplay()
+{
+    DEF_FUNC(eglGetCurrentDisplay);
+    return REAL(eglGetCurrentDisplay)();
+}
+
+DEFAULT_VISIBILITY
 EGLBoolean eglSwapInterval(EGLDisplay dpy, EGLint interval)
 {
     DEF_FUNC(eglSwapInterval);
@@ -248,6 +309,10 @@ EGLBoolean eglSwapInterval(EGLDisplay dpy, EGLint interval)
 DEFAULT_VISIBILITY
 EGLBoolean eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor)
 {
+#ifdef ANDROID
+    __android_log_print(ANDROID_LOG_DEBUG, "renderdoc", "Enter: eglInitialize");
+#endif
+
     DEF_FUNC(eglInitialize);
     return REAL(eglInitialize)(dpy, major, minor);
 }

@@ -30,6 +30,10 @@
 #include "gles_driver.h"
 #include "gles_resources.h"
 
+#include "common/common.h"
+#include "maths/matrix.h"
+#include "maths/vec.h"
+
 #define OPENGL 1
 #include "data/glsl/debuguniforms.h"
 

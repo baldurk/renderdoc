@@ -582,7 +582,7 @@ private:
 
     void CreateDebugData(const GLHookSet &gl);
 
-    bool Legacy() { return !attribsCreate || version < 32; }
+    bool Legacy() { return version < 20; }
     bool Modern() { return !Legacy(); }
     GLuint Program;
     GLuint GeneralUBO, StringUBO, GlyphUBO;

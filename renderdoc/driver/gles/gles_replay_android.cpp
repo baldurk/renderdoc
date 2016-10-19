@@ -41,7 +41,7 @@ void GLESReplay::CloseReplayContext()
   RDCUNIMPLEMENTED("GLESReplay::CloseReplayContext");
 }
 
-uint64_t GLESReplay::MakeOutputWindow(void *wn, bool depth)
+uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
   RDCUNIMPLEMENTED("GLESReplay::MakeOutputWindow");
   return 0;
@@ -63,7 +63,7 @@ bool GLESReplay::IsOutputWindowVisible(uint64_t id)
   return false;
 }
 
-ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   RDCUNIMPLEMENTED("GL_CreateReplayDevice");
   return eReplayCreate_APIHardwareUnsupported;

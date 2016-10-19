@@ -104,8 +104,12 @@ struct GLESWindowingData
     wnd = 0;
   }
 
+  // TODO(elecro): make this more android compatible
   void SetCtx(void *c) { ctx = (void *)c; }
+  EGLDisplay eglDisplay;
   EGLContext ctx;
+  EGLSurface surface;
+
   ANativeWindow *wnd;
 };
 

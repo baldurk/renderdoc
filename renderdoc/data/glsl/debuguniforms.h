@@ -26,9 +26,10 @@
 // classes that represent a whole cbuffer
 #if defined(__cplusplus)
 
-#include "common/common.h"
-#include "maths/matrix.h"
-#include "maths/vec.h"
+//TODO(elecro): improve this somehow, as android does not supports the " character
+//#include "common/common.h"
+//#include "maths/matrix.h"
+//#include "maths/vec.h"
 
 #define uniform struct
 #define vec2 Vec2f
@@ -48,11 +49,13 @@ struct Vec4u
 #define uvec4 Vec4u
 
 #if !defined(VULKAN) && !defined(OPENGL)
-#error "Must define VULKAN or OPENGL before including debuguniforms.h"
+//TODO(elecro): improve this somehow, as android does not supports the " character
+#error Must define VULKAN or OPENGL before including debuguniforms.h
 #endif
 
 #if defined(VULKAN) && defined(OPENGL)
-#error "Only one of VULKAN and OPENGL must be defined in debuguniforms.h"
+//TODO(elecro): improve this somehow, as android does not supports the " character
+#error Only one of VULKAN and OPENGL must be defined in debuguniforms.h
 #endif
 
 #else
