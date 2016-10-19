@@ -177,6 +177,7 @@ enum ExtensionCheckEnum
   ExtensionSupported_NV_viewport_array,
   ExtensionSupported_OES_viewport_array,
   ExtensionSupported_EXT_buffer_storage,
+  ExtensionSupported_EXT_texture_storage,
   ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];
@@ -199,7 +200,10 @@ enum VendorCheckEnum
 };
 extern bool VendorCheck[VendorCheck_Count];
 
-// fills out the extension supported array and the version-specific checks above
+// fills out the extension supported array above
+void DoExtensionChecks(const GLHookSet &gl);
+
+// fills out the version-specific checks above
 void DoVendorChecks(const GLHookSet &gl, GLESWindowingData context);
 
 #include "core/core.h"

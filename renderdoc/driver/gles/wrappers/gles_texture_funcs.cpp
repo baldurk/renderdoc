@@ -50,30 +50,6 @@
 // would be a nightmare to support replaying without extensions that were present &
 // used when capturing.
 
-
-class SafeTextureBinder
-{
-public:
-    SafeTextureBinder(const GLHookSet &hooks, GLuint texture, GLenum target)
-      : m_Real(hooks)
-      , m_target(TextureTarget(target))
-    {
-      m_Real.glGetIntegerv(TextureBinding(m_target), &m_previous);
-      m_Real.glBindTexture(m_target, texture);
-    }
-
-    ~SafeTextureBinder()
-    {
-      m_Real.glBindTexture(m_target, m_previous);
-    }
-private:
-    SafeTextureBinder(const SafeTextureBinder&);
-
-    const GLHookSet &m_Real;
-    GLenum m_target;
-    GLint m_previous;
-};
-
 bool WrappedGLES::Serialise_glGenTextures(GLsizei n, GLuint *textures)
 {
   SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(TextureRes(GetCtx(), *textures)));
@@ -1840,7 +1816,7 @@ bool WrappedGLES::Serialise_glTextureStorage2DEXT(GLuint texture, GLenum target,
     m_Textures[liveId].internalFormat = Format;
     m_Textures[liveId].emulated = emulated;
 
-    m_Real.glTextureStorage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels,
+    Compat_glTextureStorage2DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels,
                                    Format, Width, Height);
   }
 
@@ -1886,7 +1862,7 @@ void WrappedGLES::Common_glTextureStorage2DEXT(ResourceId texId, GLenum target, 
 void WrappedGLES::glTextureStorage2DEXT(GLuint texture, GLenum target, GLsizei levels,
                                           GLenum internalformat, GLsizei width, GLsizei height)
 {
-  m_Real.glTextureStorage2DEXT(texture, target, levels, internalformat, width, height);
+  Compat_glTextureStorage2DEXT(texture, target, levels, internalformat, width, height);
 
   Common_glTextureStorage2DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target,
                                levels, internalformat, width, height);
@@ -1940,7 +1916,7 @@ bool WrappedGLES::Serialise_glTextureStorage3DEXT(GLuint texture, GLenum target,
     m_Textures[liveId].internalFormat = Format;
     m_Textures[liveId].emulated = emulated;
 
-    m_Real.glTextureStorage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels,
+    Compat_glTextureStorage3DEXT(GetResourceManager()->GetLiveResource(id).name, Target, Levels,
                                  Format, Width, Height, Depth);
   }
 
@@ -1989,7 +1965,7 @@ void WrappedGLES::glTextureStorage3DEXT(GLuint texture, GLenum target, GLsizei l
                                           GLenum internalformat, GLsizei width, GLsizei height,
                                           GLsizei depth)
 {
-  m_Real.glTextureStorage3DEXT(texture, target, levels, internalformat, width, height, depth);
+  Compat_glTextureStorage3DEXT(texture, target, levels, internalformat, width, height, depth);
 
   Common_glTextureStorage3DEXT(GetResourceManager()->GetID(TextureRes(GetCtx(), texture)), target,
                                levels, internalformat, width, height, depth);

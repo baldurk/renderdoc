@@ -39,6 +39,29 @@
 
 using std::list;
 
+class SafeTextureBinder
+{
+public:
+    SafeTextureBinder(const GLHookSet &hooks, GLuint texture, GLenum target)
+      : m_Real(hooks)
+      , m_target(TextureTarget(target))
+    {
+      m_Real.glGetIntegerv(TextureBinding(m_target), &m_previous);
+      m_Real.glBindTexture(m_target, texture);
+    }
+
+    ~SafeTextureBinder()
+    {
+      m_Real.glBindTexture(m_target, m_previous);
+    }
+private:
+    SafeTextureBinder(const SafeTextureBinder&);
+
+    const GLHookSet &m_Real;
+    GLenum m_target;
+    GLint m_previous;
+};
+
 struct GLESInitParams : public RDCInitParams
 {
   GLESInitParams();
@@ -744,6 +767,9 @@ public:
   void glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data);
   void glGetNamedBufferSubDataEXT(GLuint buffer, GLenum target, GLintptr offset, GLsizeiptr size, void *data);
   void Compat_glBufferStorageEXT (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
+  void Compat_glTextureStorage2DEXT (GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
+  void Compat_glTextureStorage3DEXT (GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth);
+
 };
 
 class ScopedDebugContext

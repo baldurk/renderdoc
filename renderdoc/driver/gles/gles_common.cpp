@@ -40,7 +40,7 @@ void DeleteContext(GLESWindowingData context);
 
 void MakeContextCurrent(GLESWindowingData data);
 
-void DoVendorChecks(const GLHookSet &gl, GLESWindowingData context)
+void DoExtensionChecks(const GLHookSet &gl)
 {
   GLint numExts = 0;
   if(gl.glGetIntegerv)
@@ -85,11 +85,15 @@ void DoVendorChecks(const GLHookSet &gl, GLESWindowingData context)
       EXT_CHECK(NV_viewport_array);
       EXT_CHECK(OES_viewport_array);
       EXT_CHECK(EXT_buffer_storage);
+      EXT_CHECK(EXT_texture_storage);
 
 #undef EXT_CHECK
     }
   }
+}
 
+void DoVendorChecks(const GLHookSet &gl, GLESWindowingData context)
+{
   //////////////////////////////////////////////////////////
   // version/driver/vendor specific hacks and checks go here
   // doing these in a central place means they're all documented and

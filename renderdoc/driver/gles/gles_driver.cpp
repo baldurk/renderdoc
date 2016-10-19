@@ -723,7 +723,7 @@ WrappedGLES::WrappedGLES(const char *logfile, const GLHookSet &funcs) : m_Real(f
   // we'll be sorting the implementation extension array, so make sure the
   // sorts are identical so we can do the intersection easily
   std::sort(globalExts.begin(), globalExts.end());
-
+  DoExtensionChecks(m_Real);
   m_Replay.SetDriver(this);
 
   m_FrameCounter = 0;
@@ -1408,6 +1408,7 @@ void WrappedGLES::ActivateContext(GLESWindowingData winData)
         {
           GLCoreVersion = ver;
           GLIsCore = ctxdata.isCore;
+          DoExtensionChecks(gl);
           DoVendorChecks(gl, winData);
         }
       }
