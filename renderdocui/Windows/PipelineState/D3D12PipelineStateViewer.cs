@@ -342,7 +342,14 @@ namespace renderdocui.Windows.PipelineState
                     var b = binds[i];
                     var res = resources[i];
 
-                    if (b.bindset == space && b.bind == reg && !res.IsSampler)
+                    bool regMatch = b.bind == reg;
+
+                    // handle unbounded arrays specially. It's illegal to have an unbounded array with
+                    // anything after it
+                    if (b.bind <= reg)
+                        regMatch = (b.arraySize == UInt32.MaxValue) || (b.bind + b.arraySize > reg);
+
+                    if (b.bindset == space && regMatch && !res.IsSampler)
                     {
                         bind = b;
                         shaderInput = res;
@@ -350,6 +357,8 @@ namespace renderdocui.Windows.PipelineState
                     }
                 }
             }
+
+            TreelistView.NodeCollection parent = list.Nodes;
 
             string rootel = r.Immediate ? String.Format("#{0} Direct", r.RootElement) : rootel = String.Format("#{0} Table[{1}]", r.RootElement, r.TableIndex);
 
@@ -426,21 +435,22 @@ namespace renderdocui.Windows.PipelineState
                         if (bufs[t].ID == r.Resource)
                         {
                             w = bufs[t].length;
-                            h = 0;
-                            d = 0;
-                            a = 0;
+                            h = 1;
+                            d = 1;
+                            a = 1;
                             format = "";
                             name = bufs[t].name;
-                            typename = "RWBuffer";
+                            typename = uav ? "RWBuffer" : "Buffer";
 
                             if (r.BufferFlags.HasFlag(D3DBufferViewFlags.Raw))
                             {
-                                typename = "RWByteAddressBuffer";
+                                typename = uav ? "RWByteAddressBuffer" : "ByteAddressBuffer";
                             }
                             else if (r.ElementSize > 0)
                             {
                                 // for structured buffers, display how many 'elements' there are in the buffer
-                                typename = "RWStructuredBuffer[" + (bufs[t].length / r.ElementSize) + "]";
+                                typename = (uav ? "RWStructuredBuffer" : "StructuredBuffer");
+                                a = (uint)(bufs[t].length / r.ElementSize);
                             }
 
                             if (r.CounterResource != ResourceId.Null)
@@ -451,17 +461,12 @@ namespace renderdocui.Windows.PipelineState
                             // get the buffer type, whether it's just a basic type or a complex struct
                             if (shaderInput != null && !shaderInput.IsTexture)
                             {
-                                if (r.Format.compType == FormatComponentType.None)
-                                {
-                                    if (shaderInput.variableType.members.Length > 0)
-                                        format = "struct " + shaderInput.variableType.Name;
-                                    else
-                                        format = shaderInput.variableType.Name;
-                                }
+                                if (shaderInput.variableType.members.Length > 0)
+                                    format = "struct " + shaderInput.variableType.Name;
+                                else if (r.Format.compType == FormatComponentType.None)
+                                    format = shaderInput.variableType.Name;
                                 else
-                                {
                                     format = r.Format.ToString();
-                                }
                             }
 
                             tag = new ViewBufTag(r, bufs[t], true, shaderInput);
@@ -472,7 +477,7 @@ namespace renderdocui.Windows.PipelineState
                     }
                 }
 
-                var node = list.Nodes.Add(new object[] { rootel, space, regname, name, typename, w, h, d, a, format });
+                var node = parent.Add(new object[] { rootel, space, regname, name, typename, w, h, d, a, format });
 
                 node.Image = global::renderdocui.Properties.Resources.action;
                 node.HoverImage = global::renderdocui.Properties.Resources.action_hover;
@@ -573,7 +578,14 @@ namespace renderdocui.Windows.PipelineState
                             var b = stage.BindpointMapping.ReadOnlyResources[i];
                             var res = stage.ShaderDetails.ReadOnlyResources[i];
 
-                            if (b.bindset == space && b.bind == reg && res.IsSampler)
+                            bool regMatch = b.bind == reg;
+
+                            // handle unbounded arrays specially. It's illegal to have an unbounded array with
+                            // anything after it
+                            if (b.bind <= reg)
+                                regMatch = (b.arraySize == UInt32.MaxValue) || (b.bind + b.arraySize > reg);
+
+                            if (b.bindset == space && regMatch && res.IsSampler)
                             {
                                 bind = b;
                                 shaderInput = res;
@@ -702,7 +714,14 @@ namespace renderdocui.Windows.PipelineState
                             var bd = stage.BindpointMapping.ConstantBlocks[i];
                             var res = stage.ShaderDetails.ConstantBlocks[i];
 
-                            if (bd.bindset == space && bd.bind == reg)
+                            bool regMatch = bd.bind == reg;
+
+                            // handle unbounded arrays specially. It's illegal to have an unbounded array with
+                            // anything after it
+                            if (bd.bind <= reg)
+                                regMatch = (bd.arraySize == UInt32.MaxValue) || (bd.bind + bd.arraySize > reg);
+
+                            if (bd.bindset == space && regMatch)
                             {
                                 bind = bd;
                                 shaderCBuf = res;

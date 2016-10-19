@@ -601,7 +601,12 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
       m_Resources.reserve(h->resources.count);
 
-      map<string, pair<uint32_t, uint32_t> > cbufferslots;
+      struct CBufferBind
+      {
+        uint32_t reg, space, bindCount;
+      };
+
+      map<string, CBufferBind> cbufferbinds;
 
       uint32_t resourceStride = sizeof(RDEFResource);
 
@@ -643,10 +648,14 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         {
           string cname = desc.name;
 
-          while(cbufferslots.find(cname) != cbufferslots.end())
+          while(cbufferbinds.find(cname) != cbufferbinds.end())
             cname += "_";
 
-          cbufferslots[cname] = std::make_pair(desc.space, desc.reg);
+          CBufferBind cb;
+          cb.space = desc.space;
+          cb.reg = desc.reg;
+          cb.bindCount = desc.bindCount;
+          cbufferbinds[cname] = cb;
         }
 
         m_Resources.push_back(desc);
@@ -658,31 +667,36 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
       // The reason for this is that an array element could refer to an un-used alias in a bind
       // point, and an individual non-array resoruce will always refer to the used alias (an
       // un-used individual resource will be omitted entirely from the reflection
-      for(size_t i = 0; i < m_Resources.size();)
+      //
+      // Note we preserve the arrays in SM5.1
+      if(h->targetVersion < 0x501)
       {
-        if(m_Resources[i].bindCount > 1)
+        for(size_t i = 0; i < m_Resources.size();)
         {
-          ShaderInputBind desc = m_Resources[i];
-          m_Resources.erase(m_Resources.begin() + i);
-
-          string rname = desc.name;
-          uint32_t arraySize = desc.bindCount;
-
-          desc.bindCount = 1;
-
-          for(uint32_t a = 0; a < arraySize; a++)
+          if(m_Resources[i].bindCount > 1)
           {
-            desc.name = StringFormat::Fmt("%s[%u]", rname.c_str(), a);
-            m_Resources.push_back(desc);
-            desc.reg++;
+            ShaderInputBind desc = m_Resources[i];
+            m_Resources.erase(m_Resources.begin() + i);
+
+            string rname = desc.name;
+            uint32_t arraySize = desc.bindCount;
+
+            desc.bindCount = 1;
+
+            for(uint32_t a = 0; a < arraySize; a++)
+            {
+              desc.name = StringFormat::Fmt("%s[%u]", rname.c_str(), a);
+              m_Resources.push_back(desc);
+              desc.reg++;
+            }
+
+            // continue from the i'th element again since
+            // we just removed it.
+            continue;
           }
 
-          // continue from the i'th element again since
-          // we just removed it.
-          continue;
+          i++;
         }
-
-        i++;
       }
 
       set<string> cbuffernames;
@@ -773,8 +787,9 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
         cbuffernames.insert(cname);
 
-        cb.space = cbufferslots[cname].first;
-        cb.reg = cbufferslots[cname].second;
+        cb.space = cbufferbinds[cname].space;
+        cb.reg = cbufferbinds[cname].reg;
+        cb.bindCount = cbufferbinds[cname].bindCount;
 
         if(cb.descriptor.type == CBuffer::Descriptor::TYPE_CBUFFER)
         {
@@ -1021,7 +1036,7 @@ void DXBCFile::GuessResources()
         ShaderInputBind desc;
 
         RDCASSERT(dcl.operand.type == TYPE_SAMPLER);
-        RDCASSERT(dcl.operand.indices.size() == 1);
+        RDCASSERT(dcl.operand.indices.size() == 1 || dcl.operand.indices.size() == 3);
         RDCASSERT(dcl.operand.indices[0].absolute);
 
         uint32_t idx = (uint32_t)dcl.operand.indices[0].index;
@@ -1030,13 +1045,20 @@ void DXBCFile::GuessResources()
 
         desc.name = buf;
         desc.type = ShaderInputBind::TYPE_SAMPLER;
-        desc.space = 0;
+        desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = dcl.samplerMode == SAMPLER_MODE_COMPARISON ? 2 : 0;
         desc.retType = ShaderInputBind::RETTYPE_UNKNOWN;
         desc.dimension = ShaderInputBind::DIM_UNKNOWN;
         desc.numSamples = 0;
+
+        if(dcl.operand.indices.size() == 3)
+        {
+          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
+          if(dcl.operand.indices[2].index == 0xffffffff)
+            desc.bindCount = 0;
+        }
 
         m_Resources.push_back(desc);
 
@@ -1056,38 +1078,40 @@ void DXBCFile::GuessResources()
 
         desc.name = buf;
         desc.type = ShaderInputBind::TYPE_TEXTURE;
-        desc.space = 0;
+        desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
         desc.retType = (ShaderInputBind::RetType)dcl.resType[0];
-        desc.dimension =
-            dcl.dim == RESOURCE_DIMENSION_BUFFER
-                ? ShaderInputBind::DIM_BUFFER
-                : dcl.dim == RESOURCE_DIMENSION_TEXTURE1D
-                      ? ShaderInputBind::DIM_TEXTURE1D
-                      : dcl.dim == RESOURCE_DIMENSION_TEXTURE2D
-                            ? ShaderInputBind::DIM_TEXTURE2D
-                            : dcl.dim == RESOURCE_DIMENSION_TEXTURE3D
-                                  ? ShaderInputBind::DIM_TEXTURE3D
-                                  : dcl.dim == RESOURCE_DIMENSION_TEXTURECUBE
-                                        ? ShaderInputBind::DIM_TEXTURECUBE
-                                        : dcl.dim == RESOURCE_DIMENSION_TEXTURE1DARRAY
-                                              ? ShaderInputBind::DIM_TEXTURE1DARRAY
-                                              : dcl.dim == RESOURCE_DIMENSION_TEXTURE2DARRAY
-                                                    ? ShaderInputBind::DIM_TEXTURE2DARRAY
-                                                    : dcl.dim == RESOURCE_DIMENSION_TEXTURECUBEARRAY
-                                                          ? ShaderInputBind::DIM_TEXTURECUBEARRAY
-                                                          : dcl.dim == RESOURCE_DIMENSION_TEXTURE2DMS
-                                                                ? ShaderInputBind::DIM_TEXTURE2DMS
-                                                                : dcl.dim == RESOURCE_DIMENSION_TEXTURE2DARRAY
-                                                                      ? ShaderInputBind::DIM_TEXTURE2DARRAY
-                                                                      : dcl.dim == RESOURCE_DIMENSION_TEXTURE2DMSARRAY
-                                                                            ? ShaderInputBind::DIM_TEXTURE2DMSARRAY
-                                                                            : ShaderInputBind::DIM_UNKNOWN;
+
+        switch(dcl.dim)
+        {
+          case RESOURCE_DIMENSION_BUFFER: desc.dimension = ShaderInputBind::DIM_BUFFER;
+          case RESOURCE_DIMENSION_TEXTURE1D: desc.dimension = ShaderInputBind::DIM_TEXTURE1D;
+          case RESOURCE_DIMENSION_TEXTURE2D: desc.dimension = ShaderInputBind::DIM_TEXTURE2D;
+          case RESOURCE_DIMENSION_TEXTURE3D: desc.dimension = ShaderInputBind::DIM_TEXTURE3D;
+          case RESOURCE_DIMENSION_TEXTURECUBE: desc.dimension = ShaderInputBind::DIM_TEXTURECUBE;
+          case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+            desc.dimension = ShaderInputBind::DIM_TEXTURE1DARRAY;
+          case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+            desc.dimension = ShaderInputBind::DIM_TEXTURE2DARRAY;
+          case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+            desc.dimension = ShaderInputBind::DIM_TEXTURECUBEARRAY;
+          case RESOURCE_DIMENSION_TEXTURE2DMS: desc.dimension = ShaderInputBind::DIM_TEXTURE2DMS;
+          case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
+            desc.dimension = ShaderInputBind::DIM_TEXTURE2DMSARRAY;
+          default: desc.dimension = ShaderInputBind::DIM_UNKNOWN; break;
+        }
         desc.numSamples = dcl.sampleCount;
 
         RDCASSERT(desc.dimension != ShaderInputBind::DIM_UNKNOWN);
+
+        if(dcl.operand.indices.size() == 3)
+        {
+          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
+          if(dcl.operand.indices[2].index == 0xffffffff)
+            desc.bindCount = 0;
+        }
 
         m_Resources.push_back(desc);
 
@@ -1111,13 +1135,20 @@ void DXBCFile::GuessResources()
         desc.name = buf;
         desc.type = dcl.operand.type == TYPE_RESOURCE ? ShaderInputBind::TYPE_BYTEADDRESS
                                                       : ShaderInputBind::TYPE_UAV_RWBYTEADDRESS;
-        desc.space = 0;
+        desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
         desc.retType = ShaderInputBind::RETTYPE_MIXED;
         desc.dimension = ShaderInputBind::DIM_BUFFER;
         desc.numSamples = 0;
+
+        if(dcl.operand.indices.size() == 3)
+        {
+          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
+          if(dcl.operand.indices[2].index == 0xffffffff)
+            desc.bindCount = 0;
+        }
 
         m_Resources.push_back(desc);
 
@@ -1137,13 +1168,20 @@ void DXBCFile::GuessResources()
 
         desc.name = buf;
         desc.type = ShaderInputBind::TYPE_STRUCTURED;
-        desc.space = 0;
+        desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
         desc.retType = ShaderInputBind::RETTYPE_MIXED;
         desc.dimension = ShaderInputBind::DIM_BUFFER;
         desc.numSamples = dcl.stride;
+
+        if(dcl.operand.indices.size() == 3)
+        {
+          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
+          if(dcl.operand.indices[2].index == 0xffffffff)
+            desc.bindCount = 0;
+        }
 
         m_Resources.push_back(desc);
 
@@ -1167,13 +1205,20 @@ void DXBCFile::GuessResources()
                                                                // rwstructured
         if(dcl.hasCounter)
           desc.type = ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER;
-        desc.space = 0;
+        desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
         desc.retType = ShaderInputBind::RETTYPE_MIXED;
         desc.dimension = ShaderInputBind::DIM_BUFFER;
         desc.numSamples = dcl.stride;
+
+        if(dcl.operand.indices.size() == 3)
+        {
+          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
+          if(dcl.operand.indices[2].index == 0xffffffff)
+            desc.bindCount = 0;
+        }
 
         m_Resources.push_back(desc);
 
@@ -1193,32 +1238,38 @@ void DXBCFile::GuessResources()
 
         desc.name = buf;
         desc.type = ShaderInputBind::TYPE_UAV_RWTYPED;
-        desc.space = 0;
+        desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
         desc.retType = (ShaderInputBind::RetType) int(dcl.resType[0]);    // enums match
-        desc.dimension =
-            dcl.dim == RESOURCE_DIMENSION_TEXTURE1D
-                ? ShaderInputBind::DIM_TEXTURE1D
-                : dcl.dim == RESOURCE_DIMENSION_TEXTURE2D
-                      ? ShaderInputBind::DIM_TEXTURE2D
-                      : dcl.dim == RESOURCE_DIMENSION_TEXTURE3D
-                            ? ShaderInputBind::DIM_TEXTURE3D
-                            : dcl.dim == RESOURCE_DIMENSION_TEXTURECUBE
-                                  ? ShaderInputBind::DIM_TEXTURECUBE
-                                  : dcl.dim == RESOURCE_DIMENSION_TEXTURE1DARRAY
-                                        ? ShaderInputBind::DIM_TEXTURE1DARRAY
-                                        : dcl.dim == RESOURCE_DIMENSION_TEXTURE2DARRAY
-                                              ? ShaderInputBind::DIM_TEXTURE2DARRAY
-                                              : dcl.dim == RESOURCE_DIMENSION_TEXTURECUBEARRAY
-                                                    ? ShaderInputBind::DIM_TEXTURECUBEARRAY
-                                                    : dcl.dim == RESOURCE_DIMENSION_TEXTURE2DMS
-                                                          ? ShaderInputBind::DIM_TEXTURE2DMS
-                                                          : dcl.dim == RESOURCE_DIMENSION_TEXTURE2DARRAY
-                                                                ? ShaderInputBind::DIM_TEXTURE2DARRAY
-                                                                : ShaderInputBind::DIM_UNKNOWN;
+
+        switch(dcl.dim)
+        {
+          case RESOURCE_DIMENSION_BUFFER: desc.dimension = ShaderInputBind::DIM_BUFFER;
+          case RESOURCE_DIMENSION_TEXTURE1D: desc.dimension = ShaderInputBind::DIM_TEXTURE1D;
+          case RESOURCE_DIMENSION_TEXTURE2D: desc.dimension = ShaderInputBind::DIM_TEXTURE2D;
+          case RESOURCE_DIMENSION_TEXTURE3D: desc.dimension = ShaderInputBind::DIM_TEXTURE3D;
+          case RESOURCE_DIMENSION_TEXTURECUBE: desc.dimension = ShaderInputBind::DIM_TEXTURECUBE;
+          case RESOURCE_DIMENSION_TEXTURE1DARRAY:
+            desc.dimension = ShaderInputBind::DIM_TEXTURE1DARRAY;
+          case RESOURCE_DIMENSION_TEXTURE2DARRAY:
+            desc.dimension = ShaderInputBind::DIM_TEXTURE2DARRAY;
+          case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
+            desc.dimension = ShaderInputBind::DIM_TEXTURECUBEARRAY;
+          case RESOURCE_DIMENSION_TEXTURE2DMS: desc.dimension = ShaderInputBind::DIM_TEXTURE2DMS;
+          case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
+            desc.dimension = ShaderInputBind::DIM_TEXTURE2DMSARRAY;
+          default: desc.dimension = ShaderInputBind::DIM_UNKNOWN; break;
+        }
         desc.numSamples = (uint32_t)-1;
+
+        if(dcl.operand.indices.size() == 3)
+        {
+          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
+          if(dcl.operand.indices[2].index == 0xffffffff)
+            desc.bindCount = 0;
+        }
 
         m_Resources.push_back(desc);
 
@@ -1239,7 +1290,7 @@ void DXBCFile::GuessResources()
 
         desc.name = buf;
         desc.type = ShaderInputBind::TYPE_CBUFFER;
-        desc.space = 0;
+        desc.space = dcl.space;
         desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 1;
@@ -1247,14 +1298,22 @@ void DXBCFile::GuessResources()
         desc.dimension = ShaderInputBind::DIM_UNKNOWN;
         desc.numSamples = 0;
 
-        m_Resources.push_back(desc);
+        if(dcl.operand.indices.size() == 3)
+        {
+          desc.bindCount = uint32_t(dcl.operand.indices[2].index - dcl.operand.indices[1].index);
+          if(dcl.operand.indices[2].index == 0xffffffff)
+            desc.bindCount = 0;
+        }
 
         CBuffer cb;
 
+        m_Resources.push_back(desc);
+
         cb.name = desc.name;
 
-        cb.space = 0;
+        cb.space = dcl.space;
         cb.reg = idx;
+        cb.bindCount = desc.bindCount;
 
         cb.descriptor.name = cb.name;
         cb.descriptor.byteSize = numVecs * 4 * sizeof(float);

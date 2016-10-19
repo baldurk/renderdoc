@@ -286,6 +286,7 @@ struct CBuffer
 
   uint32_t space;
   uint32_t reg;
+  uint32_t bindCount;
 
   struct Descriptor
   {

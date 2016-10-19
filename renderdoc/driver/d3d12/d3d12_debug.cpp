@@ -93,6 +93,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   m_WrappedDevice = wrapper;
   m_WrappedDevice->InternalRef();
 
+  m_TexResource = NULL;
+
   m_width = m_height = 1;
   m_BBFmtIdx = BGRA8_BACKBUFFER;
 

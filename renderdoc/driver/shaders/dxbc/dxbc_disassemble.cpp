@@ -25,7 +25,8 @@
 
 #include "dxbc_disassemble.h"
 #include <math.h>
-#include "common/common.h"    // only dependencies are RDCASSERT, so this code is easy to detach from RenderDoc
+#include "common/common.h"
+#include "serialise/serialiser.h"
 #include "serialise/string_utils.h"
 #include "dxbc_inspect.h"
 
@@ -136,6 +137,7 @@ static MaskedElement<bool, 0x00008000> SkipOptimisation;
 static MaskedElement<bool, 0x00010000> EnableMinPrecision;
 static MaskedElement<bool, 0x00020000> EnableD3D11_1DoubleExtensions;
 static MaskedElement<bool, 0x00040000> EnableD3D11_1ShaderExtensions;
+static MaskedElement<bool, 0x00080000> EnableD3D12AllResourcesBound;
 
 // OPCODE_DCL_CONSTANT_BUFFER
 static MaskedElement<CBufferAccessPattern, 0x00000800> AccessPattern;
@@ -175,7 +177,8 @@ static MaskedElement<PrimitiveTopology, 0x0001F800> OutputPrimitiveTopology;
 static MaskedElement<TessellatorOutputPrimitive, 0x00003800> OutputPrimitive;
 
 // OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED
-static MaskedElement<bool, 0x00010000> GloballyCoherant;
+static MaskedElement<bool, 0x00010000> GloballyCoherent;
+static MaskedElement<bool, 0x00020000> RasterizerOrderedAccess;
 
 // OPCODE_DCL_INTERFACE
 static MaskedElement<uint32_t, 0x0000FFFF> TableLength;
@@ -241,6 +244,7 @@ static MaskedElement<bool, 0x80000000> Extended;
 // EXTENDED_OPERAND_MODIFIER
 static MaskedElement<OperandModifier, 0x00003FC0> Modifier;
 static MaskedElement<MinimumPrecision, 0x0001C000> MinPrecision;
+static MaskedElement<bool, 0x00020000> NonUniform;
 };
 
 string toString(const uint32_t values[], uint32_t numComps);
@@ -304,7 +308,8 @@ void DXBCFile::DisassembleHexDump()
   uint32_t *end = &m_HexDump.back();
 
   // check supported types
-  if(!(m_Version.Major == 0x5 && m_Version.Minor == 0x0) &&
+  if(!(m_Version.Major == 0x5 && m_Version.Minor == 0x1) &&
+     !(m_Version.Major == 0x5 && m_Version.Minor == 0x0) &&
      !(m_Version.Major == 0x4 && m_Version.Minor == 0x1) &&
      !(m_Version.Major == 0x4 && m_Version.Minor == 0x0))
   {
@@ -315,6 +320,24 @@ void DXBCFile::DisassembleHexDump()
   RDCASSERT(LengthToken::Length.Get(cur[1]) == m_HexDump.size());    // length token
 
   cur += 2;
+
+  // count how many declarations are so we can get the vector statically sized
+  size_t numDecls = 0;
+  uint32_t *tmp = cur;
+
+  while(tmp < end)
+  {
+    uint32_t OpcodeToken0 = tmp[0];
+
+    OpcodeType op = Opcode::Type.Get(OpcodeToken0);
+
+    if(IsDeclaration(op))
+      numDecls++;
+
+    tmp += Opcode::Length.Get(OpcodeToken0);
+  }
+
+  m_Declarations.reserve(numDecls);
 
   while(cur < end)
   {
@@ -343,6 +366,8 @@ void DXBCFile::DisassembleHexDump()
       m_Instructions.push_back(op);
     }
   }
+
+  RDCASSERT(m_Declarations.size() <= numDecls);
 
   ASMOperation implicitRet;
   implicitRet.length = 1;
@@ -840,6 +865,23 @@ bool DXBCFile::ExtractOperand(uint32_t *&tokenStream, ASMOperand &retOper)
     RDCASSERT(retOper.indices[idx].relative || retOper.indices[idx].absolute);
   }
 
+  if(retOper.type == TYPE_RESOURCE || retOper.type == TYPE_SAMPLER ||
+     retOper.type == TYPE_UNORDERED_ACCESS_VIEW || retOper.type == TYPE_CONSTANT_BUFFER)
+  {
+    // try and find a declaration with a matching ID
+    RDCASSERT(retOper.indices.size() > 0 && retOper.indices[0].absolute);
+    for(size_t i = 0; i < m_Declarations.size(); i++)
+    {
+      // does the ID match, if so, it's our declaration
+      if(m_Declarations[i].operand.type == retOper.type &&
+         m_Declarations[i].operand.indices[0] == retOper.indices[0])
+      {
+        retOper.declaration = &m_Declarations[i];
+        break;
+      }
+    }
+  }
+
   return true;
 }
 
@@ -877,40 +919,176 @@ string ASMOperand::toString(bool swizzle) const
     StringFormat::snprintf(buf, 63, "[%u]", funcNum);
     str += buf;
   }
-  else if(type == TYPE_TEMP || type == TYPE_RESOURCE || type == TYPE_SAMPLER ||
-          type == TYPE_OUTPUT || type == TYPE_STREAM || type == TYPE_THREAD_GROUP_SHARED_MEMORY ||
-          type == TYPE_UNORDERED_ACCESS_VIEW || type == TYPE_FUNCTION_BODY)
+  else if(type == TYPE_RESOURCE || type == TYPE_SAMPLER || type == TYPE_UNORDERED_ACCESS_VIEW)
+  {
+    // pre-DX11, just an index
+    if(indices.size() == 1)
+    {
+      if(type == TYPE_RESOURCE)
+        str = "t";
+      if(type == TYPE_SAMPLER)
+        str = "s";
+      if(type == TYPE_UNORDERED_ACCESS_VIEW)
+        str = "u";
+
+      str += indices[0].str;
+    }
+    else if(indices.size() == 3)
+    {
+      if(type == TYPE_RESOURCE)
+        str = "T";
+      if(type == TYPE_SAMPLER)
+        str = "S";
+      if(type == TYPE_UNORDERED_ACCESS_VIEW)
+        str = "U";
+
+      // DX12 declaration
+
+      // if declaration pointer is NULL we're printing inside the declaration itself.
+      // Upper/lower bounds are printed with the space too, but print them here as
+      // operand indices refer relative to those bounds.
+
+      // detect common case of non-arrayed resources and simplify
+      RDCASSERT(indices[1].absolute && indices[2].absolute);
+      if(indices[1].index == indices[2].index)
+      {
+        str += indices[0].str;
+      }
+      else
+      {
+        if(indices[2].index == 0xffffffff)
+          str += StringFormat::Fmt("%s[%s:unbound]", indices[0].str.c_str(), indices[1].str.c_str());
+        else
+          str += StringFormat::Fmt("%s[%s:%s]", indices[0].str.c_str(), indices[1].str.c_str(),
+                                   indices[2].str.c_str());
+      }
+    }
+    else if(indices.size() == 2)
+    {
+      if(type == TYPE_RESOURCE)
+        str = "T";
+      if(type == TYPE_SAMPLER)
+        str = "S";
+      if(type == TYPE_UNORDERED_ACCESS_VIEW)
+        str = "U";
+
+      // DX12 lookup
+
+      // if we have a declaration, see if it's non-arrayed
+      if(declaration && declaration->operand.indices[1].index == declaration->operand.indices[2].index)
+      {
+        // resource index should be equal to the bound
+        RDCASSERT(indices[1].absolute && indices[1].index == declaration->operand.indices[1].index);
+
+        // just include ID
+        str += indices[0].str;
+      }
+      else
+      {
+        if(indices[1].relative)
+          str += StringFormat::Fmt("%s%s", indices[0].str.c_str(), indices[1].str.c_str());
+        else
+          str += StringFormat::Fmt("%s[%s]", indices[0].str.c_str(), indices[1].str.c_str());
+      }
+    }
+    else
+    {
+      RDCERR("Unexpected dimensions for resource-type operand: %x, %u", type,
+             (uint32_t)indices.size());
+    }
+  }
+  else if(type == TYPE_CONSTANT_BUFFER)
+  {
+    if(indices.size() == 3)
+    {
+      str = "CB";
+
+      if(declaration)
+      {
+        // see if the declaration was non-arrayed
+        if(declaration->operand.indices[1].index == declaration->operand.indices[2].index)
+        {
+          // resource index should be equal to the bound
+          RDCASSERT(indices[1].absolute && indices[1].index == declaration->operand.indices[1].index);
+
+          // just include ID and vector index
+          if(indices[2].relative)
+            str += StringFormat::Fmt("%s%s", indices[0].str.c_str(), indices[2].str.c_str());
+          else
+            str += StringFormat::Fmt("%s[%s]", indices[0].str.c_str(), indices[2].str.c_str());
+        }
+        else
+        {
+          str += indices[0].str;
+
+          if(indices[1].relative)
+            str += indices[1].str;
+          else
+            str += "[" + indices[1].str + "]";
+
+          if(indices[2].relative)
+            str += indices[1].str;
+          else
+            str += "[" + indices[2].str + "]";
+        }
+      }
+      else
+      {
+        // if declaration pointer is NULL we're printing inside the declaration itself.
+        // Because of the operand format, the size of the constant buffer is also in a
+        // separate DWORD printed elsewhere.
+        // Upper/lower bounds are printed with the space too, but print them here as
+        // operand indices refer relative to those bounds.
+
+        // detect common case of non-arrayed resources and simplify
+        RDCASSERT(indices[1].absolute && indices[2].absolute);
+        if(indices[1].index == indices[2].index)
+        {
+          str += indices[0].str;
+        }
+        else
+        {
+          if(indices[2].index == 0xffffffff)
+            str +=
+                StringFormat::Fmt("%s[%s:unbound]", indices[0].str.c_str(), indices[1].str.c_str());
+          else
+            str += StringFormat::Fmt("%s[%s:%s]", indices[0].str.c_str(), indices[1].str.c_str(),
+                                     indices[2].str.c_str());
+        }
+      }
+    }
+    else
+    {
+      str = "cb";
+
+      str += StringFormat::Fmt("%s[%s]", indices[0].str.c_str(), indices[1].str.c_str());
+    }
+  }
+  else if(type == TYPE_TEMP || type == TYPE_OUTPUT || type == TYPE_STREAM ||
+          type == TYPE_THREAD_GROUP_SHARED_MEMORY || type == TYPE_FUNCTION_BODY)
   {
     if(type == TYPE_TEMP)
       str = "r";
-    if(type == TYPE_RESOURCE)
-      str = "t";
-    if(type == TYPE_SAMPLER)
-      str = "s";
     if(type == TYPE_OUTPUT)
       str = "o";
     if(type == TYPE_STREAM)
       str = "m";
     if(type == TYPE_THREAD_GROUP_SHARED_MEMORY)
       str = "g";
-    if(type == TYPE_UNORDERED_ACCESS_VIEW)
-      str = "u";
     if(type == TYPE_FUNCTION_BODY)
       str = "fb";
 
-    RDCASSERT(indices.size() == 1);
+    RDCASSERTEQUAL(indices.size(), 1);
 
     str += indices[0].str;
   }
-  else if(type == TYPE_CONSTANT_BUFFER || type == TYPE_IMMEDIATE_CONSTANT_BUFFER ||
-          type == TYPE_INDEXABLE_TEMP || type == TYPE_INPUT || type == TYPE_INPUT_CONTROL_POINT ||
+  else if(type == TYPE_IMMEDIATE_CONSTANT_BUFFER || type == TYPE_INDEXABLE_TEMP ||
+          type == TYPE_INPUT || type == TYPE_INPUT_CONTROL_POINT ||
           type == TYPE_INPUT_PATCH_CONSTANT || type == TYPE_THIS_POINTER ||
           type == TYPE_OUTPUT_CONTROL_POINT)
   {
     if(type == TYPE_IMMEDIATE_CONSTANT_BUFFER)
       str = "icb";
-    if(type == TYPE_CONSTANT_BUFFER)
-      str = "cb";
     if(type == TYPE_INDEXABLE_TEMP)
       str = "x";
     if(type == TYPE_INPUT)
@@ -1028,6 +1206,8 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
   uint32_t *begin = tokenStream;
   uint32_t OpcodeToken0 = tokenStream[0];
 
+  const bool sm51 = (m_Version.Major == 0x5 && m_Version.Minor == 0x1);
+
   OpcodeType op = Opcode::Type.Get(OpcodeToken0);
 
   RDCASSERT(op < NUM_OPCODES);
@@ -1130,6 +1310,8 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
         Declaration::EnableD3D11_1DoubleExtensions.Get(OpcodeToken0);
     retDecl.enableD3D11_1ShaderExtensions =
         Declaration::EnableD3D11_1ShaderExtensions.Get(OpcodeToken0);
+    retDecl.enableD3D12AllResourcesBound =
+        Declaration::EnableD3D12AllResourcesBound.Get(OpcodeToken0);
 
     retDecl.str += " ";
 
@@ -1161,6 +1343,41 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
       retDecl.str += "enableRawAndStructuredBuffers";
       added = true;
     }
+    if(retDecl.skipOptimisation)
+    {
+      if(added)
+        retDecl.str += ", ";
+      retDecl.str += "skipOptimisation";
+      added = true;
+    }
+    if(retDecl.enableMinPrecision)
+    {
+      if(added)
+        retDecl.str += ", ";
+      retDecl.str += "enableMinPrecision";
+      added = true;
+    }
+    if(retDecl.enableD3D11_1DoubleExtensions)
+    {
+      if(added)
+        retDecl.str += ", ";
+      retDecl.str += "doubleExtensions";
+      added = true;
+    }
+    if(retDecl.enableD3D11_1ShaderExtensions)
+    {
+      if(added)
+        retDecl.str += ", ";
+      retDecl.str += "shaderExtensions";
+      added = true;
+    }
+    if(retDecl.enableD3D12AllResourcesBound)
+    {
+      if(added)
+        retDecl.str += ", ";
+      retDecl.str += "d3d12AllResourcesBound";
+      added = true;
+    }
   }
   else if(op == OPCODE_DCL_CONSTANT_BUFFER)
   {
@@ -1171,6 +1388,14 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 
     retDecl.str += " ";
     retDecl.str += retDecl.operand.toString(false);
+    if(sm51)
+    {
+      uint32_t float4size = tokenStream[0];
+      tokenStream++;
+
+      retDecl.str += StringFormat::Fmt("[%u]", float4size);
+    }
+
     retDecl.str += ", ";
 
     if(accessPattern == ACCESS_IMMEDIATE_INDEXED)
@@ -1179,6 +1404,23 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
       retDecl.str += "dynamicIndexed";
     else
       RDCERR("Unexpected cbuffer access pattern");
+
+    retDecl.space = 0;
+
+    if(sm51)
+    {
+      retDecl.space = tokenStream[0];
+      tokenStream++;
+      retDecl.str += StringFormat::Fmt(" space=%u", retDecl.space);
+
+      if(retDecl.operand.indices[1].index == retDecl.operand.indices[2].index)
+        retDecl.str += StringFormat::Fmt(",reg=%u", retDecl.operand.indices[1].index);
+      else if(retDecl.operand.indices[2].index == 0xffffffff)
+        retDecl.str += StringFormat::Fmt(",regs=%u:unbound", retDecl.operand.indices[1].index);
+      else
+        retDecl.str += StringFormat::Fmt(",regs=%u:%u", retDecl.operand.indices[1].index,
+                                         retDecl.operand.indices[2].index);
+    }
   }
   else if(op == OPCODE_DCL_INPUT)
   {
@@ -1281,6 +1523,21 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
       retDecl.str += "mode_comparison";
     if(retDecl.samplerMode == SAMPLER_MODE_MONO)
       retDecl.str += "mode_mono";
+
+    retDecl.space = 0;
+
+    if(sm51)
+    {
+      retDecl.space = tokenStream[0];
+      tokenStream++;
+      retDecl.str += StringFormat::Fmt(" space=%u", retDecl.space);
+
+      if(retDecl.operand.indices[1].index == retDecl.operand.indices[2].index)
+        retDecl.str += StringFormat::Fmt(",reg=%u", retDecl.operand.indices[1].index);
+      else
+        retDecl.str += StringFormat::Fmt(",regs=%u:%u", retDecl.operand.indices[1].index,
+                                         retDecl.operand.indices[2].index);
+    }
   }
   else if(op == OPCODE_DCL_RESOURCE)
   {
@@ -1319,6 +1576,21 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
     retDecl.str += ")";
 
     retDecl.str += " " + retDecl.operand.toString(false);
+
+    retDecl.space = 0;
+
+    if(sm51)
+    {
+      retDecl.space = tokenStream[0];
+      tokenStream++;
+      retDecl.str += StringFormat::Fmt(" space=%u", retDecl.space);
+
+      if(retDecl.operand.indices[1].index == retDecl.operand.indices[2].index)
+        retDecl.str += StringFormat::Fmt(",reg=%u", retDecl.operand.indices[1].index);
+      else
+        retDecl.str += StringFormat::Fmt(",regs=%u:%u", retDecl.operand.indices[1].index,
+                                         retDecl.operand.indices[2].index);
+    }
   }
   else if(op == OPCODE_DCL_INPUT_PS)
   {
@@ -1530,17 +1802,50 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
   }
   else if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW || op == OPCODE_DCL_RESOURCE_RAW)
   {
+    retDecl.rov = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW) &&
+                  Declaration::RasterizerOrderedAccess.Get(OpcodeToken0);
+
+    retDecl.globallyCoherant = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_RAW) &
+                               Declaration::GloballyCoherent.Get(OpcodeToken0);
+
     retDecl.str += " ";
 
     bool ret = ExtractOperand(tokenStream, retDecl.operand);
     RDCASSERT(ret);
 
     retDecl.str += retDecl.operand.toString(false);
+
+    if(retDecl.globallyCoherant)
+      retDecl.str += ", globallyCoherant";
+
+    if(retDecl.rov)
+      retDecl.str += ", rasterizerOrderedAccess";
+
+    retDecl.space = 0;
+
+    if(sm51)
+    {
+      retDecl.space = tokenStream[0];
+      tokenStream++;
+      retDecl.str += StringFormat::Fmt(" space=%u", retDecl.space);
+
+      if(retDecl.operand.indices[1].index == retDecl.operand.indices[2].index)
+        retDecl.str += StringFormat::Fmt(",reg=%u", retDecl.operand.indices[1].index);
+      else
+        retDecl.str += StringFormat::Fmt(",regs=%u:%u", retDecl.operand.indices[1].index,
+                                         retDecl.operand.indices[2].index);
+    }
   }
   else if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED || op == OPCODE_DCL_RESOURCE_STRUCTURED)
   {
     retDecl.hasCounter = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED) &&
                          Opcode::HasOrderPreservingCounter.Get(OpcodeToken0);
+
+    retDecl.rov = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED) &&
+                  Declaration::RasterizerOrderedAccess.Get(OpcodeToken0);
+
+    retDecl.globallyCoherant = (op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED) &
+                               Declaration::GloballyCoherent.Get(OpcodeToken0);
 
     retDecl.str += " ";
 
@@ -1559,12 +1864,35 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
 
     if(retDecl.hasCounter)
       retDecl.str += ", hasOrderPreservingCounter";
+
+    if(retDecl.globallyCoherant)
+      retDecl.str += ", globallyCoherant";
+
+    if(retDecl.rov)
+      retDecl.str += ", rasterizerOrderedAccess";
+
+    retDecl.space = 0;
+
+    if(sm51)
+    {
+      retDecl.space = tokenStream[0];
+      tokenStream++;
+      retDecl.str += StringFormat::Fmt(" space=%u", retDecl.space);
+
+      if(retDecl.operand.indices[1].index == retDecl.operand.indices[2].index)
+        retDecl.str += StringFormat::Fmt(",reg=%u", retDecl.operand.indices[1].index);
+      else
+        retDecl.str += StringFormat::Fmt(",regs=%u:%u", retDecl.operand.indices[1].index,
+                                         retDecl.operand.indices[2].index);
+    }
   }
   else if(op == OPCODE_DCL_UNORDERED_ACCESS_VIEW_TYPED)
   {
     retDecl.dim = Declaration::ResourceDim.Get(OpcodeToken0);
 
-    retDecl.globallyCoherant = Declaration::GloballyCoherant.Get(OpcodeToken0);
+    retDecl.globallyCoherant = Declaration::GloballyCoherent.Get(OpcodeToken0);
+
+    retDecl.rov = Declaration::RasterizerOrderedAccess.Get(OpcodeToken0);
 
     retDecl.str += "_";
     retDecl.str += toString(retDecl.dim);
@@ -1598,6 +1926,24 @@ bool DXBCFile::ExtractDecl(uint32_t *&tokenStream, ASMDecl &retDecl)
     retDecl.str += " ";
 
     retDecl.str += retDecl.operand.toString(false);
+
+    if(retDecl.rov)
+      retDecl.str += ", rasterizerOrderedAccess";
+
+    retDecl.space = 0;
+
+    if(sm51)
+    {
+      retDecl.space = tokenStream[0];
+      tokenStream++;
+      retDecl.str += StringFormat::Fmt(" space=%u", retDecl.space);
+
+      if(retDecl.operand.indices[1].index == retDecl.operand.indices[2].index)
+        retDecl.str += StringFormat::Fmt(",reg=%u", retDecl.operand.indices[1].index);
+      else
+        retDecl.str += StringFormat::Fmt(",regs=%u:%u", retDecl.operand.indices[1].index,
+                                         retDecl.operand.indices[2].index);
+    }
   }
   else if(op == OPCODE_DCL_HS_FORK_PHASE_INSTANCE_COUNT ||
           op == OPCODE_DCL_HS_JOIN_PHASE_INSTANCE_COUNT || op == OPCODE_DCL_GS_INSTANCE_COUNT)

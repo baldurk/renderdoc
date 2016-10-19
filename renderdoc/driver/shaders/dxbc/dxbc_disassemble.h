@@ -407,6 +407,8 @@ enum OperandType
   TYPE_OUTPUT_DEPTH_GREATER_EQUAL,
   TYPE_OUTPUT_DEPTH_LESS_EQUAL,
   TYPE_CYCLE_COUNTER,
+  TYPE_OUTPUT_STENCIL_REF,
+  TYPE_INNER_COVERAGE,
 
   NUM_OPERAND_TYPES,
 };
@@ -652,6 +654,7 @@ enum ComponentType
 /////////////////////////////////////////////////////////////////////////
 
 struct ASMIndex;
+struct ASMDecl;
 
 struct ASMOperand
 {
@@ -664,6 +667,7 @@ struct ASMOperand
     modifier = OPERAND_MODIFIER_NONE;
     precision = PRECISION_DEFAULT;
     funcNum = 0;
+    declaration = NULL;
   }
 
   bool operator==(const ASMOperand &o) const;
@@ -690,6 +694,9 @@ struct ASMOperand
   // 2 is for constant buffers, array inputs etc. [0] indicates the cbuffer, [1] indicates the
   // cbuffer member
   // 3 is rare but follows the above pattern
+
+  // the declaration of the resource in this operand (not always present)
+  ASMDecl *declaration;
 
   uint32_t values[4];    // if this operand is immediate, the values are here
 
@@ -808,10 +815,12 @@ struct ASMDecl
   bool enableMinPrecision;
   bool enableD3D11_1DoubleExtensions;
   bool enableD3D11_1ShaderExtensions;
+  bool enableD3D12AllResourcesBound;
 
   // OPCODE_DCL_UNORDERED_ACCESS_VIEW_STRUCTURED
   uint32_t stride;
   bool hasCounter;
+  bool rov;
 
   // OPCODE_DCL_TEMPS, OPCODE_DCL_INDEXABLE_TEMP
   uint32_t numTemps;
@@ -827,6 +836,7 @@ struct ASMDecl
   uint32_t groupSize[3];
 
   // OPCODE_DCL_RESOURCE
+  uint32_t space;
   ResourceRetType resType[4];
   ResourceDimension dim;
   uint32_t sampleCount;

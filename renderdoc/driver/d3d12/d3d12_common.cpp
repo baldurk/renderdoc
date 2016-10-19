@@ -158,9 +158,9 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
 
   create_array_uninit(mapping->ConstantBlocks, numCbuffers);
   create_array_uninit(refl->ConstantBlocks, numCbuffers);
-  for(size_t i = 0, c = 0; i < dxbc->m_CBuffers.size(); i++)
+  for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
   {
-    ConstantBlock &cb = refl->ConstantBlocks[c];
+    ConstantBlock &cb = refl->ConstantBlocks[i];
 
     if(dxbc->m_CBuffers[i].descriptor.type != DXBC::CBuffer::Descriptor::TYPE_CBUFFER)
       continue;
@@ -176,7 +176,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     map.bind = dxbc->m_CBuffers[i].reg;
     map.used = true;
 
-    mapping->ConstantBlocks[c] = map;
+    mapping->ConstantBlocks[i] = map;
 
     create_array_uninit(cb.variables, dxbc->m_CBuffers[i].variables.size());
     for(size_t v = 0; v < dxbc->m_CBuffers[i].variables.size(); v++)
@@ -307,7 +307,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     res.bindPoint = IsReadWrite ? rwidx : roidx;
 
     BindpointMap map;
-    map.arraySize = 1;
+    map.arraySize = r.bindCount == 0 ? ~0U : r.bindCount;
     map.bindset = r.space;
     map.bind = r.reg;
     map.used = true;
