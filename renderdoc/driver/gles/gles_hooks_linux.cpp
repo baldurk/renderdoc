@@ -201,7 +201,7 @@ public:
   bool PopulateHooks();
 };
 
-#include "gles_hooks_posix.inc"
+#include "gles_hooks_posix.inc.cpp"
 
 bool OpenGLHook::SetupHooks(GLHookSet &GL)
 {
