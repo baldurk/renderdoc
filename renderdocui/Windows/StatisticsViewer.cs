@@ -744,7 +744,7 @@ namespace renderdocui.Windows
             float initDataMB = (float)frameInfo.initDataSize / (1024.0f * 1024.0f);
 
             string header = String.Format("Stats for {0}.\n\nFile size: {1:N2}MB ({2:N2}MB uncompressed, compression ratio {3:N2}:1)\nPersistent Data (approx): {4:N2}MB, Frame-initial data (approx): {5:N2}MB\n",
-                              Path.GetFileName(m_Core.LogFileName), compressedMB, uncompressedMB, compressRatio, persistentMB, initDataMB);
+                              Helpers.SafeGetFileName(m_Core.LogFileName), compressedMB, uncompressedMB, compressRatio, persistentMB, initDataMB);
             string draws = String.Format("Draw calls: {0}\nDispatch calls: {1}\n",
                               drawCount, dispatchCount);
             string calls = AppendAPICallSummary(frameInfo, numAPIcalls);
