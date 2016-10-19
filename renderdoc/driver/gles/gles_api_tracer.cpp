@@ -14,7 +14,7 @@ std::ostream& operator<<(std::ostream& io, GLchar* c)
 }
 
 static GLHookSet originalFunctions;
-static bool debugAPI = true;
+static bool debugAPI = false;
 
 #define HookWrapper0(ret, function) \
   typedef ret (*CONCAT(function, _hooktype))();              \
