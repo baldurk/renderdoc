@@ -120,7 +120,7 @@ struct RDEFHeader
   CountOffset cbuffers;
   CountOffset resources;
 
-  uint16_t targetVersion;        // 0x0500 is the latest.
+  uint16_t targetVersion;        // 0x0501 is the latest.
   uint16_t targetShaderStage;    // 0xffff for pixel shaders, 0xfffe for vertex shaders
 
   uint32_t flags;
@@ -142,6 +142,12 @@ struct RDEFResource
   uint32_t bindPoint;
   uint32_t bindCount;
   uint32_t flags;
+
+  // this is only present for RDEFHeader.targetVersion >= 0x501.
+  uint32_t space;
+  // the ID seems to be a 0-based name fxc generates to refer to the object.
+  // We don't use it, and it's easy enough to re-generate
+  uint32_t ID;
 };
 
 struct SIGNHeader
@@ -575,10 +581,8 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
       rdefFound = true;
 
-      if(h->targetVersion >= 0x500)
-      {
-        RDCASSERT(h->unknown[0] == FOURCC_RD11);
-      }
+      // for target version 0x500, unknown[0] is FOURCC_RD11.
+      // for 0x501 it's "\x13\x13\D%"
 
       if(h->targetShaderStage == 0xffff)
         m_Type = D3D11_ShaderType_Pixel;
@@ -599,16 +603,24 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
       map<string, pair<uint32_t, uint32_t> > cbufferslots;
 
+      uint32_t resourceStride = sizeof(RDEFResource);
+
+      // versions before 5.1 don't have the space and ID
+      if(h->targetVersion < 0x501)
+      {
+        resourceStride -= sizeof(RDEFResource) - offsetof(RDEFResource, space);
+      }
+
       for(int32_t i = 0; i < h->resources.count; i++)
       {
         RDEFResource *res =
-            (RDEFResource *)(chunkContents + h->resources.offset + i * sizeof(RDEFResource));
+            (RDEFResource *)(chunkContents + h->resources.offset + i * resourceStride);
 
         ShaderInputBind desc;
 
         desc.name = chunkContents + res->nameOffset;
         desc.type = (ShaderInputBind::InputType)res->type;
-        desc.space = 0;
+        desc.space = h->targetVersion >= 0x501 ? res->space : 0;
         desc.reg = res->bindPoint;
         desc.bindCount = res->bindCount;
         desc.flags = res->flags;
@@ -634,7 +646,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
           while(cbufferslots.find(cname) != cbufferslots.end())
             cname += "_";
 
-          cbufferslots[cname] = std::make_pair(0, desc.reg);
+          cbufferslots[cname] = std::make_pair(desc.space, desc.reg);
         }
 
         m_Resources.push_back(desc);
@@ -702,7 +714,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
         if(h->targetVersion < 0x500)
         {
-          size_t extraData = sizeof(((RDEFCBufferVariable *)0)->unknown);
+          size_t extraData = sizeof(RDEFCBufferVariable) - offsetof(RDEFCBufferVariable, unknown);
 
           varStride -= extraData;
 
