@@ -153,7 +153,7 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
     cb.name = dxbc->m_CBuffers[i].name;
     cb.bufferBacked = dxbc->m_CBuffers[i].descriptor.type == DXBC::CBuffer::Descriptor::TYPE_CBUFFER;
     cb.byteSize = dxbc->m_CBuffers[i].descriptor.byteSize;
-    cb.bindPoint = (uint32_t)i;
+    cb.bindPoint = dxbc->m_CBuffers[i].reg;
 
     create_array_uninit(cb.variables, dxbc->m_CBuffers[i].variables.size());
     for(size_t v = 0; v < dxbc->m_CBuffers[i].variables.size(); v++)
@@ -198,7 +198,7 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
       continue;
 
     ShaderResource res;
-    res.bindPoint = r.bindPoint;
+    res.bindPoint = r.reg;
     res.name = r.name;
 
     res.IsSampler = (r.type == DXBC::ShaderInputBind::TYPE_SAMPLER);

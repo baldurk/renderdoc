@@ -168,11 +168,12 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     cb.name = dxbc->m_CBuffers[i].name;
     cb.bufferBacked = true;
     cb.byteSize = dxbc->m_CBuffers[i].descriptor.byteSize;
-    cb.bindPoint = (uint32_t)c;
+    cb.bindPoint = (uint32_t)i;
 
     BindpointMap map;
     map.arraySize = 1;
-    map.bind = (int32_t)i;
+    map.bindset = dxbc->m_CBuffers[i].space;
+    map.bind = dxbc->m_CBuffers[i].reg;
     map.used = true;
 
     mapping->ConstantBlocks[c] = map;
@@ -307,7 +308,8 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
 
     BindpointMap map;
     map.arraySize = 1;
-    map.bind = r.bindPoint;
+    map.bindset = r.space;
+    map.bind = r.reg;
     map.used = true;
 
     if(IsReadWrite)

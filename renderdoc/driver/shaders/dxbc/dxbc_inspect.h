@@ -131,7 +131,8 @@ struct ShaderInputBind
     TYPE_UAV_RWSTRUCTURED_WITH_COUNTER,
   } type;
 
-  uint32_t bindPoint;
+  uint32_t space;
+  uint32_t reg;
   uint32_t bindCount;
 
   uint32_t flags;
@@ -282,6 +283,9 @@ struct CBufferVariable
 struct CBuffer
 {
   string name;
+
+  uint32_t space;
+  uint32_t reg;
 
   struct Descriptor
   {

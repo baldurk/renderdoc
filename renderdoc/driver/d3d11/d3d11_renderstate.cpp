@@ -1514,7 +1514,7 @@ bool D3D11RenderState::shader::Used_SRV(uint32_t slot) const
 
   for(size_t i = 0; i < dxbc->m_Resources.size(); i++)
   {
-    if(dxbc->m_Resources[i].bindPoint == slot &&
+    if(dxbc->m_Resources[i].reg == slot &&
        (dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_TEXTURE ||
         dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_STRUCTURED ||
         dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_TBUFFER ||
@@ -1542,7 +1542,7 @@ bool D3D11RenderState::shader::Used_UAV(uint32_t slot) const
 
   for(size_t i = 0; i < dxbc->m_Resources.size(); i++)
   {
-    if(dxbc->m_Resources[i].bindPoint == slot &&
+    if(dxbc->m_Resources[i].reg == slot &&
        (dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_APPEND_STRUCTURED ||
         dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_CONSUME_STRUCTURED ||
         dxbc->m_Resources[i].type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS ||

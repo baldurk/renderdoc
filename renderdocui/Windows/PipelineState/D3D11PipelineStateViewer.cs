@@ -595,8 +595,17 @@ namespace renderdocui.Windows.PipelineState
                 {
                     ConstantBlock shaderCBuf = null;
 
-                    if (shaderDetails != null && i < shaderDetails.ConstantBlocks.Length && shaderDetails.ConstantBlocks[i].name.Length > 0)
-                        shaderCBuf = shaderDetails.ConstantBlocks[i];
+                    if (shaderDetails != null)
+                    {
+                        foreach (var cb in shaderDetails.ConstantBlocks)
+                        {
+                            if (cb.bindPoint == i)
+                            {
+                                shaderCBuf = cb;
+                                break;
+                            }
+                        }
+                    }
 
                     bool filledSlot = (b.Buffer != ResourceId.Null);
                     bool usedSlot = (shaderCBuf != null);
@@ -2434,7 +2443,7 @@ namespace renderdocui.Windows.PipelineState
                 {
                     if (cbuf.name.Length > 0 && cbuf.variables.Length > 0)
                     {
-                        cbuffers += String.Format("cbuffer {0} : register(b{1}) {{", cbuf.name, cbufIdx) + nl;
+                        cbuffers += String.Format("cbuffer {0} : register(b{1}) {{", cbuf.name, cbuf.bindPoint) + nl;
                         MakeShaderVariablesHLSL(true, cbuf.variables, ref cbuffers, ref hlsl);
                         cbuffers += "};" + nl2;
                     }
@@ -2600,20 +2609,36 @@ namespace renderdocui.Windows.PipelineState
             sv.Show(m_DockContent.DockPanel);
         }
 
-        private void ShowCBuffer(D3D11PipelineState.ShaderStage stage, UInt32 slot)
+        private void ShowCBuffer(D3D11PipelineState.ShaderStage stage, UInt32 bindPoint)
         {
-            if (stage.ShaderDetails != null &&
-                (stage.ShaderDetails.ConstantBlocks.Length <= slot ||
-                 stage.ShaderDetails.ConstantBlocks[slot].name.Length == 0)
-               )
+            bool found = false;
+            UInt32 slot = UInt32.MaxValue;
+
+            if (stage.ShaderDetails != null)
+            {
+                UInt32 i = 0;
+                foreach (var cb in stage.ShaderDetails.ConstantBlocks)
+                {
+                    if (cb.bindPoint == bindPoint)
+                    {
+                        slot = i;
+                        found = true;
+                        break;
+                    }
+
+                    i++;
+                }
+            }
+
+            if (!found)
             {
                 // unused cbuffer, open regular buffer viewer
                 var viewer = new BufferViewer(m_Core, false);
 
-                if (stage.ConstantBuffers.Length < slot)
+                if (stage.ConstantBuffers.Length < bindPoint)
                     return;
 
-                var buf = stage.ConstantBuffers[slot];
+                var buf = stage.ConstantBuffers[bindPoint];
                 viewer.ViewRawBuffer(true, buf.VecOffset * 4 * sizeof(float), buf.VecCount * 4 * sizeof(float), buf.Buffer);
                 viewer.Show(m_DockContent.DockPanel);
 

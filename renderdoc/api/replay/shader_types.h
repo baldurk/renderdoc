@@ -253,11 +253,10 @@ struct ShaderReflection
   rdctype::array<SigParameter> InputSig;
   rdctype::array<SigParameter> OutputSig;
 
-  rdctype::array<ConstantBlock> ConstantBlocks;    // sparse - index indicates bind point
+  rdctype::array<ConstantBlock> ConstantBlocks;
 
-  rdctype::array<ShaderResource> ReadOnlyResources;    // non-sparse, since bind points can overlap.
-  rdctype::array<ShaderResource>
-      ReadWriteResources;    // non-sparse, since bind points can overlap.
+  rdctype::array<ShaderResource> ReadOnlyResources;
+  rdctype::array<ShaderResource> ReadWriteResources;
 
   // TODO expand this to encompass shader subroutines.
   rdctype::array<rdctype::str> Interfaces;

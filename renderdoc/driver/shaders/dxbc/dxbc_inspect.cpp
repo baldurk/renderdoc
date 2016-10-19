@@ -597,15 +597,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
       m_Resources.reserve(h->resources.count);
 
-      // we have to use this map to match up cbuffers to their bind point, as
-      // it's not guaranteed that the resources and cbuffers will come in the
-      // same order. However it's possible for two cbuffers to have the same
-      // name, so in that case we assume they will come in matching order
-      // and just append _ to subsequent cbuffers with the same name.
-      map<string, uint32_t> cbufferSlots;
-      uint32_t maxCBufferSlot = 0;
-
-      set<string> cbuffernames;
+      map<string, pair<uint32_t, uint32_t> > cbufferslots;
 
       for(int32_t i = 0; i < h->resources.count; i++)
       {
@@ -616,7 +608,8 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
         desc.name = chunkContents + res->nameOffset;
         desc.type = (ShaderInputBind::InputType)res->type;
-        desc.bindPoint = res->bindPoint;
+        desc.space = 0;
+        desc.reg = res->bindPoint;
         desc.bindCount = res->bindCount;
         desc.flags = res->flags;
         desc.retType = (ShaderInputBind::RetType)res->retType;
@@ -631,17 +624,17 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
           desc.numSamples = 1 + ((desc.flags & 0xC) >> 2);
         }
 
+        // for cbuffers the names can be duplicated, so handle this by assuming
+        // the order will match between binding declaration and cbuffer declaration
+        // and append _s onto each subsequent buffer name
         if(desc.type == ShaderInputBind::TYPE_CBUFFER)
         {
           string cname = desc.name;
 
-          while(cbuffernames.find(cname) != cbuffernames.end())
+          while(cbufferslots.find(cname) != cbufferslots.end())
             cname += "_";
 
-          cbuffernames.insert(cname);
-
-          cbufferSlots[cname] = desc.bindPoint;
-          maxCBufferSlot = RDCMAX(maxCBufferSlot, desc.bindPoint);
+          cbufferslots[cname] = std::make_pair(0, desc.reg);
         }
 
         m_Resources.push_back(desc);
@@ -669,7 +662,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
           {
             desc.name = StringFormat::Fmt("%s[%u]", rname.c_str(), a);
             m_Resources.push_back(desc);
-            desc.bindPoint++;
+            desc.reg++;
           }
 
           // continue from the i'th element again since
@@ -680,10 +673,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         i++;
       }
 
-      cbuffernames.clear();
-
-      if(h->cbuffers.count > 0)
-        m_CBuffers.resize(maxCBufferSlot + 1);
+      set<string> cbuffernames;
 
       for(int32_t i = 0; i < h->cbuffers.count; i++)
       {
@@ -771,10 +761,12 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
 
         cbuffernames.insert(cname);
 
+        cb.space = cbufferslots[cname].first;
+        cb.reg = cbufferslots[cname].second;
+
         if(cb.descriptor.type == CBuffer::Descriptor::TYPE_CBUFFER)
         {
-          RDCASSERT(cbufferSlots.find(cname) != cbufferSlots.end());
-          m_CBuffers[cbufferSlots[cname]] = cb;
+          m_CBuffers.push_back(cb);
         }
         else if(cb.descriptor.type == CBuffer::Descriptor::TYPE_RESOURCE_BIND_INFO)
         {
@@ -1026,7 +1018,8 @@ void DXBCFile::GuessResources()
 
         desc.name = buf;
         desc.type = ShaderInputBind::TYPE_SAMPLER;
-        desc.bindPoint = idx;
+        desc.space = 0;
+        desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = dcl.samplerMode == SAMPLER_MODE_COMPARISON ? 2 : 0;
         desc.retType = ShaderInputBind::RETTYPE_UNKNOWN;
@@ -1051,7 +1044,8 @@ void DXBCFile::GuessResources()
 
         desc.name = buf;
         desc.type = ShaderInputBind::TYPE_TEXTURE;
-        desc.bindPoint = idx;
+        desc.space = 0;
+        desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
         desc.retType = (ShaderInputBind::RetType)dcl.resType[0];
@@ -1105,7 +1099,8 @@ void DXBCFile::GuessResources()
         desc.name = buf;
         desc.type = dcl.operand.type == TYPE_RESOURCE ? ShaderInputBind::TYPE_BYTEADDRESS
                                                       : ShaderInputBind::TYPE_UAV_RWBYTEADDRESS;
-        desc.bindPoint = idx;
+        desc.space = 0;
+        desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
         desc.retType = ShaderInputBind::RETTYPE_MIXED;
@@ -1130,7 +1125,8 @@ void DXBCFile::GuessResources()
 
         desc.name = buf;
         desc.type = ShaderInputBind::TYPE_STRUCTURED;
-        desc.bindPoint = idx;
+        desc.space = 0;
+        desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
         desc.retType = ShaderInputBind::RETTYPE_MIXED;
@@ -1159,7 +1155,8 @@ void DXBCFile::GuessResources()
                                                                // rwstructured
         if(dcl.hasCounter)
           desc.type = ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER;
-        desc.bindPoint = idx;
+        desc.space = 0;
+        desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
         desc.retType = ShaderInputBind::RETTYPE_MIXED;
@@ -1184,7 +1181,8 @@ void DXBCFile::GuessResources()
 
         desc.name = buf;
         desc.type = ShaderInputBind::TYPE_UAV_RWTYPED;
-        desc.bindPoint = idx;
+        desc.space = 0;
+        desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 0;
         desc.retType = (ShaderInputBind::RetType) int(dcl.resType[0]);    // enums match
@@ -1229,7 +1227,8 @@ void DXBCFile::GuessResources()
 
         desc.name = buf;
         desc.type = ShaderInputBind::TYPE_CBUFFER;
-        desc.bindPoint = idx;
+        desc.space = 0;
+        desc.reg = idx;
         desc.bindCount = 1;
         desc.flags = 1;
         desc.retType = ShaderInputBind::RETTYPE_UNKNOWN;
@@ -1241,6 +1240,9 @@ void DXBCFile::GuessResources()
         CBuffer cb;
 
         cb.name = desc.name;
+
+        cb.space = 0;
+        cb.reg = idx;
 
         cb.descriptor.name = cb.name;
         cb.descriptor.byteSize = numVecs * 4 * sizeof(float);
@@ -1254,7 +1256,10 @@ void DXBCFile::GuessResources()
         {
           CBufferVariable var;
 
-          StringFormat::snprintf(buf, 63, "cb%u_v%u", desc.bindPoint, v);
+          if(desc.space > 0)
+            StringFormat::snprintf(buf, 63, "cb%u_%u_v%u", desc.space, desc.reg, v);
+          else
+            StringFormat::snprintf(buf, 63, "cb%u_v%u", desc.reg, v);
 
           var.name = buf;
 
@@ -1281,8 +1286,7 @@ void DXBCFile::GuessResources()
           cb.variables.push_back(var);
         }
 
-        m_CBuffers.resize(RDCMAX((uint32_t)m_CBuffers.size(), desc.bindPoint + 1));
-        m_CBuffers[desc.bindPoint] = cb;
+        m_CBuffers.push_back(cb);
 
         break;
       }

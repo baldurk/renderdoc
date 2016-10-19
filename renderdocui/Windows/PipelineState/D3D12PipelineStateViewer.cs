@@ -2075,16 +2075,17 @@ namespace renderdocui.Windows.PipelineState
 
                 string cbuffers = "";
 
-                int cbufIdx = 0;
-                foreach (var cbuf in shaderDetails.ConstantBlocks)
+                for (int i = 0; i < stage.BindpointMapping.ConstantBlocks.Length; i++)
                 {
+                    var bd = stage.BindpointMapping.ConstantBlocks[i];
+                    var cbuf = stage.ShaderDetails.ConstantBlocks[i];
+
                     if (cbuf.name.Length > 0 && cbuf.variables.Length > 0)
                     {
-                        cbuffers += String.Format("cbuffer {0} : register(b{1}) {{", cbuf.name, cbufIdx) + nl;
+                        cbuffers += String.Format("cbuffer {0} : register(space{1}, b{2}) {{", cbuf.name, bd.bindset, bd.bind) + nl;
                         MakeShaderVariablesHLSL(true, cbuf.variables, ref cbuffers, ref hlsl);
                         cbuffers += "};" + nl2;
                     }
-                    cbufIdx++;
                 }
 
                 hlsl += cbuffers + nl2;
