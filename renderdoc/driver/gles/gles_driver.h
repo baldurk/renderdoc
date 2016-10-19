@@ -131,7 +131,8 @@ struct Replacement
 class WrappedGLES : public IFrameCapturer
 {
 private:
-  const GLHookSet &m_Real;
+  GLHookSet m_Real;
+  GLHookSet initRealWrapper(const GLHookSet& hooks);
 
   friend class GLESReplay;
   friend class GLResourceManager;
@@ -512,6 +513,7 @@ public:
   WrappedGLES(const char *logfile, const GLHookSet &funcs);
   virtual ~WrappedGLES();
 
+  void enableAPIDebug(bool enable);
   static const char *GetChunkName(uint32_t idx);
   GLResourceManager *GetResourceManager() { return m_ResourceManager; }
   ResourceId GetDeviceResourceID() { return m_DeviceResourceID; }

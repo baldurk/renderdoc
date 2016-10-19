@@ -390,7 +390,7 @@ ReplayCreateStatus GLESInitParams::Serialise()
   return eReplayCreate_Success;
 }
 
-WrappedGLES::WrappedGLES(const char *logfile, const GLHookSet &funcs) : m_Real(funcs)
+WrappedGLES::WrappedGLES(const char *logfile, const GLHookSet &funcs) : m_Real(initRealWrapper(funcs))
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedGLES));

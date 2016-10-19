@@ -1,4 +1,5 @@
 set(sources
+    gles_api_tracer.cpp
     gles_common.cpp
     gles_common.h
     gles_counters.cpp
