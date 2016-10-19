@@ -879,6 +879,8 @@ void WrappedGLES::Initialise(GLESInitParams &params)
 
   if(params.multiSamples > 1)
   {
+    // TODO pantos
+//    gl.glTextureStorage2DMultisampleEXT(m_FakeBB_Color, target, params.multiSamples, colfmt,
     gl.glTexStorage2DMultisample(target, params.multiSamples, colfmt,
                                         params.width, params.height, true);
   }
@@ -935,10 +937,12 @@ void WrappedGLES::Initialise(GLESInitParams &params)
       gl.glObjectLabel(eGL_TEXTURE, m_FakeBB_DepthStencil, -1, "Backbuffer Depth");
 
     if(params.multiSamples > 1)
+      // TODO pantos
+//      gl.glTextureStorage2DMultisampleEXT(m_FakeBB_DepthStencil, target, params.multiSamples,
       gl.glTexStorage2DMultisample(target, params.multiSamples,
                                           depthfmt, params.width, params.height, true);
     else
-      gl.glTexStorage2D(target, 1, depthfmt, params.width,
+      gl.glTextureStorage2DEXT(m_FakeBB_DepthStencil, target, 1, depthfmt, params.width,
                                params.height);
 
     if(stencil)
