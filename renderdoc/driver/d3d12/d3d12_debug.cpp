@@ -2327,6 +2327,18 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
                GetTypelessFormat(srvDesc.Format), srvDesc.Format);
         break;
     }
+
+    if(stencilSRVDesc.Format != DXGI_FORMAT_UNKNOWN)
+    {
+      D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
+      formatInfo.Format = srvDesc.Format;
+      m_WrappedDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &formatInfo,
+                                           sizeof(formatInfo));
+
+      if(formatInfo.PlaneCount > 1 &&
+         stencilSRVDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
+        stencilSRVDesc.Texture2DArray.PlaneSlice = 1;
+    }
   }
 
   FillBuffer(m_GenericVSCbuffer, &vertexData, sizeof(DebugVertexCBuffer));
