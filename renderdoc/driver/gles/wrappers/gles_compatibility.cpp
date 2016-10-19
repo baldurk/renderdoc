@@ -74,14 +74,8 @@ void WrappedGLES::glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr 
 
 void WrappedGLES::glGetNamedBufferSubDataEXT(GLuint buffer, GLenum target, GLintptr offset, GLsizeiptr size, void *data)
 {
-  GLint prevBinding;
-  m_Real.glGetIntegerv(BufferBinding(target), &prevBinding);
-  m_Real.glBindBuffer(target, buffer);
-
+  SafeBufferBinder safeBufferBinder(m_Real, target, buffer);
   glGetBufferSubData(target, offset, size, data);
-
-  m_Real.glUnmapBuffer(target);
-  m_Real.glBindBuffer(target, prevBinding);
 }
 
 void WrappedGLES::Compat_glBufferStorageEXT (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)

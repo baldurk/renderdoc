@@ -62,6 +62,69 @@ private:
     GLint m_previous;
 };
 
+class SafeVAOBinder
+{
+public:
+    SafeVAOBinder(const GLHookSet &hooks, GLuint vao)
+      : m_Real(hooks)
+    {
+      m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, &m_previous);
+      m_Real.glBindVertexArray(vao);
+    }
+
+    ~SafeVAOBinder()
+    {
+      m_Real.glBindVertexArray(m_previous);
+    }
+private:
+    SafeVAOBinder(const SafeVAOBinder&);
+
+    const GLHookSet &m_Real;
+    GLint m_previous;
+};
+
+class SafeBufferBinder
+{
+public:
+    SafeBufferBinder(const GLHookSet &hooks, GLenum target, GLuint buffer)
+      : m_Real(hooks)
+      , m_target(target)
+      , m_active(true)
+    {
+      m_Real.glGetIntegerv(BufferBinding(m_target), &m_previous);
+      m_Real.glBindBuffer(m_target, buffer);
+    }
+
+    SafeBufferBinder(const GLHookSet &hooks)
+      : m_Real(hooks)
+      , m_target(eGL_NONE)
+      , m_previous(0)
+      , m_active(false)
+    {
+    }
+
+    void saveBinding(GLenum target, GLuint buffer)
+    {
+      m_target = target;
+      m_Real.glGetIntegerv(BufferBinding(m_target), &m_previous);
+      m_Real.glBindBuffer(m_target, buffer);
+    }
+
+    ~SafeBufferBinder()
+    {
+      if (m_active)
+        m_Real.glBindBuffer(m_target, m_previous);
+    }
+private:
+    SafeBufferBinder(const SafeBufferBinder&);
+
+    const GLHookSet &m_Real;
+    GLenum m_target;
+    GLint m_previous;
+    bool m_active;
+};
+
+
 struct GLESInitParams : public RDCInitParams
 {
   GLESInitParams();
