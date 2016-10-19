@@ -1348,7 +1348,7 @@ void Serialiser::Serialise(const char *name, FetchFrameRecord &el)
   Serialise("", el.frameInfo);
   Serialise("", el.drawcallList);
 
-  SIZE_CHECK(FetchFrameRecord, 1216);
+  SIZE_CHECK(FetchFrameRecord, 1224);
 }
 
 template <>
