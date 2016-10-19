@@ -65,7 +65,8 @@ namespace renderdocui.Controls
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
-                SetVariables(r.GetCBufferVariableContents(shader, entryPoint, Slot, cbuffer, offs));
+                var vars = r.GetCBufferVariableContents(shader, entryPoint, Slot, cbuffer, offs);
+                this.BeginInvoke(new Action(() => { SetVariables(vars); }));
             });
 
             m_Core.AddLogViewer(this);
@@ -161,12 +162,6 @@ namespace renderdocui.Controls
 
         private void SetVariables(ShaderVariable[] vars)
         {
-            if (this.InvokeRequired || variables.InvokeRequired)
-            {
-                this.BeginInvoke(new Action(() => { SetVariables(vars); }));
-                return;
-            }
-
             variables.BeginUpdate();
             variables.Nodes.Clear();
 
@@ -200,20 +195,22 @@ namespace renderdocui.Controls
                 return;
             }
 
-			if (m_FormatOverride != null)
-			{
-				m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
-				{
-					SetVariables(ApplyFormatOverride(r.GetBufferData(cbuffer, offs, size)));
-				});
-			}
-			else
-			{
-				m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
-				{
-					SetVariables(r.GetCBufferVariableContents(shader, entryPoint, Slot, cbuffer, offs));
-				});
-			}
+            if (m_FormatOverride != null)
+            {
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    var vars = ApplyFormatOverride(r.GetBufferData(cbuffer, offs, size));
+                    this.BeginInvoke(new Action(() => { SetVariables(vars); }));
+                });
+            }
+            else
+            {
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    var vars = r.GetCBufferVariableContents(shader, entryPoint, Slot, cbuffer, offs);
+                    this.BeginInvoke(new Action(() => { SetVariables(vars); }));
+                });
+            }
         }
 
         private string BufferName = "";
