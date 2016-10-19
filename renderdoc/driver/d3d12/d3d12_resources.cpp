@@ -27,7 +27,7 @@
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 
-std::vector<WrappedID3D12Resource::AddressRange> WrappedID3D12Resource::m_Addresses;
+std::vector<GPUAddressRange> WrappedID3D12Resource::m_Addresses;
 std::map<ResourceId, WrappedID3D12Resource *> WrappedID3D12Resource::m_List;
 
 std::map<WrappedID3D12PipelineState::DXBCKey, WrappedID3D12PipelineState::ShaderEntry *>

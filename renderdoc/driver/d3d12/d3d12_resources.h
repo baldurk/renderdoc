@@ -24,7 +24,6 @@
 
 #pragma once
 
-#include <algorithm>
 #include "driver/shaders/dxbc/dxbc_inspect.h"
 #include "d3d12_device.h"
 #include "d3d12_manager.h"
@@ -298,6 +297,8 @@ class WrappedID3D12CommandSignature : public WrappedDeviceChild12<ID3D12CommandS
 {
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12CommandSignature);
+
+  D3D12CommandSignature sig;
 
   enum
   {
@@ -635,21 +636,7 @@ public:
 
 class WrappedID3D12Resource : public WrappedDeviceChild12<ID3D12Resource>
 {
-  struct AddressRange
-  {
-    D3D12_GPU_VIRTUAL_ADDRESS start, end;
-    ResourceId id;
-
-    bool operator<(const D3D12_GPU_VIRTUAL_ADDRESS &o) const
-    {
-      if(o < start)
-        return true;
-
-      return false;
-    }
-  };
-
-  static std::vector<AddressRange> m_Addresses;
+  static std::vector<GPUAddressRange> m_Addresses;
 
   bool resident;
 
@@ -660,24 +647,7 @@ public:
 
   static void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
   {
-    id = ResourceId();
-    offs = 0;
-
-    if(addr == 0)
-      return;
-
-    if(m_Addresses.empty())
-      return;
-
-    auto it = std::lower_bound(m_Addresses.begin(), m_Addresses.end(), addr);
-    if(it == m_Addresses.end())
-      return;
-
-    if(addr < it->start || addr >= it->end)
-      return;
-
-    id = it->id;
-    offs = addr - it->start;
+    GPUAddressRange::GetResIDFromAddr(m_Addresses, addr, id, offs);
   }
 
   // overload to just return the id in case the offset isn't needed
@@ -707,16 +677,12 @@ public:
     {
       D3D12_GPU_VIRTUAL_ADDRESS addr = m_pReal->GetGPUVirtualAddress();
 
-      auto it = std::lower_bound(m_Addresses.begin(), m_Addresses.end(), addr);
-      RDCASSERT(it == m_Addresses.begin() || it == m_Addresses.end() || addr < it->start ||
-                addr >= it->end);
-
-      AddressRange range;
+      GPUAddressRange range;
       range.start = addr;
       range.end = addr + m_pReal->GetDesc().Width;
       range.id = GetResourceID();
 
-      m_Addresses.insert(it, range);
+      GPUAddressRange::AddTo(m_Addresses, range);
     }
   }
   virtual ~WrappedID3D12Resource()
@@ -725,14 +691,7 @@ public:
 
     // assuming only valid for buffers
     if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
-    {
-      D3D12_GPU_VIRTUAL_ADDRESS addr = m_pReal->GetGPUVirtualAddress();
-
-      auto it = std::lower_bound(m_Addresses.begin(), m_Addresses.end(), addr);
-      RDCASSERT(it != m_Addresses.end() && addr >= it->start && addr < it->end);
-
-      m_Addresses.erase(it);
-    }
+      GPUAddressRange::RemoveFrom(m_Addresses, m_pReal->GetGPUVirtualAddress());
 
     Shutdown();
   }

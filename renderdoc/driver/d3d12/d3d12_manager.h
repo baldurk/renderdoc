@@ -24,6 +24,7 @@
 
 #pragma once
 
+#include <algorithm>
 #include "api/replay/renderdoc_replay.h"
 #include "common/wrapped_pool.h"
 #include "core/core.h"
@@ -280,6 +281,60 @@ struct CmdListRecordingInfo
 };
 
 class WrappedID3D12Resource;
+
+struct GPUAddressRange
+{
+  D3D12_GPU_VIRTUAL_ADDRESS start, end;
+  ResourceId id;
+
+  bool operator<(const D3D12_GPU_VIRTUAL_ADDRESS &o) const
+  {
+    if(o < start)
+      return true;
+
+    return false;
+  }
+
+  static void AddTo(std::vector<GPUAddressRange> &addresses, GPUAddressRange range)
+  {
+    auto it = std::lower_bound(addresses.begin(), addresses.end(), range.start);
+    RDCASSERT(it == addresses.begin() || it == addresses.end() || range.start < it->start ||
+              range.start >= it->end);
+
+    addresses.insert(it, range);
+  }
+
+  static void RemoveFrom(std::vector<GPUAddressRange> &addresses, D3D12_GPU_VIRTUAL_ADDRESS baseAddr)
+  {
+    auto it = std::lower_bound(addresses.begin(), addresses.end(), baseAddr);
+    RDCASSERT(it != addresses.end() && baseAddr >= it->start && baseAddr < it->end);
+
+    addresses.erase(it);
+  }
+
+  static void GetResIDFromAddr(std::vector<GPUAddressRange> &addresses,
+                               D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
+  {
+    id = ResourceId();
+    offs = 0;
+
+    if(addr == 0)
+      return;
+
+    if(addresses.empty())
+      return;
+
+    auto it = std::lower_bound(addresses.begin(), addresses.end(), addr);
+    if(it == addresses.end())
+      return;
+
+    if(addr < it->start || addr >= it->end)
+      return;
+
+    id = it->id;
+    offs = addr - it->start;
+  }
+};
 
 struct MapState
 {

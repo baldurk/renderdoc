@@ -220,6 +220,9 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
       if(nonsamp.resource == NULL)
         counter = NULL;
 
+      if(counter == NULL && desc && desc->ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
+        desc->Buffer.CounterOffsetInBytes = 0;
+
       dev->CreateUnorderedAccessView(nonsamp.resource, counter, desc, handle);
       break;
     }

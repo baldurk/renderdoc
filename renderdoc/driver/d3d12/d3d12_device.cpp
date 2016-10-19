@@ -1838,6 +1838,23 @@ ID3D12GraphicsCommandList *WrappedID3D12Device::GetNewList()
   return ret;
 }
 
+void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandList *list)
+{
+  ID3D12CommandList *l = list;
+  GetQueue()->ExecuteCommandLists(1, &l);
+
+  for(auto it = m_InternalCmds.pendingcmds.begin(); it != m_InternalCmds.pendingcmds.end(); ++it)
+  {
+    if(list == *it)
+    {
+      m_InternalCmds.pendingcmds.erase(it);
+      break;
+    }
+  }
+
+  m_InternalCmds.submittedcmds.push_back(list);
+}
+
 void WrappedID3D12Device::ExecuteLists()
 {
   // nothing to do
@@ -1869,7 +1886,8 @@ void WrappedID3D12Device::FlushLists(bool forceSync)
                                      m_InternalCmds.submittedcmds.end());
     m_InternalCmds.submittedcmds.clear();
 
-    m_Alloc->Reset();
+    if(m_InternalCmds.pendingcmds.empty())
+      m_Alloc->Reset();
   }
 }
 

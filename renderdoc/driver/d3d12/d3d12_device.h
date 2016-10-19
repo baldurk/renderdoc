@@ -296,6 +296,8 @@ private:
   std::vector<DynamicDescriptorCopy> m_DynamicDescriptorCopies;
   std::vector<DynamicDescriptorWrite> m_DynamicDescriptorWrites;
 
+  std::vector<GPUAddressRange> m_GPUAddresses;
+
   void FlushPendingDescriptorWrites();
 
   // used both on capture and replay side to track resource states. Only locked
@@ -368,6 +370,11 @@ public:
   ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }
   void ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers);
 
+  void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
+  {
+    GPUAddressRange::GetResIDFromAddr(m_GPUAddresses, addr, id, offs);
+  }
+
   bool IsCubemap(ResourceId id) { return m_Cubemaps.find(id) != m_Cubemaps.end(); }
   // returns thread-local temporary memory
   byte *GetTempMemory(size_t s);
@@ -395,6 +402,7 @@ public:
   } m_InternalCmds;
 
   ID3D12GraphicsCommandList *GetNewList();
+  void ExecuteList(ID3D12GraphicsCommandList *list);
   void ExecuteLists();
   void FlushLists(bool forceSync = false);
 

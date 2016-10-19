@@ -871,9 +871,22 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
   SERIALISE_ELEMENT(IID, guid, riidResource);
   SERIALISE_ELEMENT(ResourceId, Res, ((WrappedID3D12Resource *)*ppvResource)->GetResourceID());
 
+  SERIALISE_ELEMENT(uint64_t, gpuAddress,
+                    ((WrappedID3D12Resource *)*ppvResource)->GetGPUVirtualAddress());
+
   if(m_State == READING)
   {
     pOptimizedClearValue = HasClearValue ? &clearVal : NULL;
+
+    if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    {
+      GPUAddressRange range;
+      range.start = gpuAddress;
+      range.end = gpuAddress + desc.Width;
+      range.id = Res;
+
+      GPUAddressRange::AddTo(m_GPUAddresses, range);
+    }
 
     ID3D12Resource *ret = NULL;
     HRESULT hr = m_pDevice->CreateCommittedResource(&props, flags, &desc, state,
@@ -1046,10 +1059,23 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
   SERIALISE_ELEMENT(IID, guid, riid);
   SERIALISE_ELEMENT(ResourceId, Res, ((WrappedID3D12Resource *)*ppvResource)->GetResourceID());
 
+  SERIALISE_ELEMENT(uint64_t, gpuAddress,
+                    ((WrappedID3D12Resource *)*ppvResource)->GetGPUVirtualAddress());
+
   if(m_State == READING)
   {
     pHeap = GetResourceManager()->GetLiveAs<ID3D12Heap>(Heap);
     pOptimizedClearValue = HasClearValue ? &clearVal : NULL;
+
+    if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    {
+      GPUAddressRange range;
+      range.start = gpuAddress;
+      range.end = gpuAddress + desc.Width;
+      range.id = Res;
+
+      GPUAddressRange::AddTo(m_GPUAddresses, range);
+    }
 
     ID3D12Resource *ret = NULL;
     HRESULT hr = m_pDevice->CreatePlacedResource(Unwrap(pHeap), Offset, &desc, state,
@@ -1304,7 +1330,8 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(Serialiser *localSeri
       pRootSignature = GetResourceManager()->GetLiveAs<ID3D12RootSignature>(RootSig);
 
     ID3D12CommandSignature *ret = NULL;
-    HRESULT hr = m_pDevice->CreateCommandSignature(&desc, pRootSignature, guid, (void **)&ret);
+    HRESULT hr =
+        m_pDevice->CreateCommandSignature(&desc, Unwrap(pRootSignature), guid, (void **)&ret);
 
     if(FAILED(hr))
     {
@@ -1312,7 +1339,13 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(Serialiser *localSeri
     }
     else
     {
-      ret = new WrappedID3D12CommandSignature(ret, this);
+      WrappedID3D12CommandSignature *wrapped = new WrappedID3D12CommandSignature(ret, this);
+
+      wrapped->sig.ByteStride = desc.ByteStride;
+      wrapped->sig.arguments.insert(wrapped->sig.arguments.begin(), desc.pArgumentDescs,
+                                    desc.pArgumentDescs + desc.NumArgumentDescs);
+
+      ret = wrapped;
 
       GetResourceManager()->AddLiveResource(CommandSig, ret);
     }

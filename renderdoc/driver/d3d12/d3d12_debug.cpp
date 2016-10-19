@@ -228,7 +228,29 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
       RDCERR("Failed to create readback buffer, HRESULT: 0x%08x", hr);
       return;
     }
+
+    hr = m_WrappedDevice->CreateCommandAllocator(
+        D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void **)&m_ReadbackAlloc);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create readback command allocator, HRESULT: 0x%08x", hr);
+      return;
+    }
+
+    hr = m_WrappedDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_ReadbackAlloc,
+                                            NULL, __uuidof(ID3D12GraphicsCommandList),
+                                            (void **)&m_ReadbackList);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create readback command list, HRESULT: 0x%08x", hr);
+      return;
+    }
   }
+
+  m_IndirectBuffer = NULL;
+  m_IndirectSize = 0;
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
 
@@ -723,6 +745,10 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_TexResource);
 
   SAFE_RELEASE(m_ReadbackBuffer);
+  SAFE_RELEASE(m_ReadbackAlloc);
+  SAFE_RELEASE(m_ReadbackList);
+
+  SAFE_RELEASE(m_IndirectBuffer);
 
   m_WrappedDevice->InternalRelease();
 
@@ -1832,7 +1858,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     return;
   }
 
-  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+  m_ReadbackList->Reset(m_ReadbackAlloc, NULL);
 
   D3D12_RESOURCE_BARRIER barrier = {};
 
@@ -1840,18 +1866,20 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
   barrier.Transition.StateBefore = m_WrappedDevice->GetSubresourceStates(GetResID(buffer))[0];
   barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
 
-  list->ResourceBarrier(1, &barrier);
+  m_ReadbackList->ResourceBarrier(1, &barrier);
 
   while(length > 0)
   {
     uint64_t chunkSize = RDCMIN(length, m_ReadbackSize);
 
-    list->CopyBufferRegion(m_ReadbackBuffer, 0, buffer, offset, chunkSize);
+    m_ReadbackList->CopyBufferRegion(m_ReadbackBuffer, 0, buffer, offset, chunkSize);
 
-    list->Close();
+    m_ReadbackList->Close();
 
-    m_WrappedDevice->ExecuteLists();
-    m_WrappedDevice->FlushLists();
+    ID3D12CommandList *l = m_ReadbackList;
+    m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
+    m_WrappedDevice->GPUSync();
+    m_ReadbackAlloc->Reset();
 
     D3D12_RANGE range = {0, (size_t)chunkSize};
 
@@ -1874,10 +1902,48 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
 
     outOffs += chunkSize;
     length -= chunkSize;
-
-    if(length > 0)
-      list = m_WrappedDevice->GetNewList();
   }
+}
+
+ID3D12Resource *D3D12DebugManager::GetIndirectBuffer(size_t size)
+{
+  if(m_IndirectSize && size <= m_IndirectSize)
+  {
+    return m_IndirectBuffer;
+  }
+
+  m_IndirectSize = RDCMAX(size, (size_t)128 * 1024);
+
+  SAFE_RELEASE(m_IndirectBuffer);
+
+  D3D12_RESOURCE_DESC indirectDesc;
+  indirectDesc.Alignment = 0;
+  indirectDesc.DepthOrArraySize = 1;
+  indirectDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  indirectDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+  indirectDesc.Format = DXGI_FORMAT_UNKNOWN;
+  indirectDesc.Height = 1;
+  indirectDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  indirectDesc.MipLevels = 1;
+  indirectDesc.SampleDesc.Count = 1;
+  indirectDesc.SampleDesc.Quality = 0;
+  indirectDesc.Width = m_IndirectSize;
+
+  D3D12_HEAP_PROPERTIES heapProps;
+  heapProps.Type = D3D12_HEAP_TYPE_CUSTOM;
+  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
+  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+  heapProps.CreationNodeMask = 1;
+  heapProps.VisibleNodeMask = 1;
+
+  HRESULT hr = m_WrappedDevice->CreateCommittedResource(
+      &heapProps, D3D12_HEAP_FLAG_NONE, &indirectDesc, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, NULL,
+      __uuidof(ID3D12Resource), (void **)&m_IndirectBuffer);
+
+  if(FAILED(hr))
+    RDCERR("Failed to create indirect buffer, HRESULT: 0x%08x", hr);
+
+  return m_IndirectBuffer;
 }
 
 void D3D12DebugManager::RenderHighlightBox(float w, float h, float scale)

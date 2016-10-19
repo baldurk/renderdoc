@@ -169,6 +169,12 @@ struct D3D12RootSignature
   vector<D3D12_STATIC_SAMPLER_DESC> samplers;
 };
 
+struct D3D12CommandSignature
+{
+  UINT ByteStride;
+  vector<D3D12_INDIRECT_ARGUMENT_DESC> arguments;
+};
+
 #define IMPLEMENT_IUNKNOWN_WITH_REFCOUNTER_CUSTOMQUERY                \
   ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::AddRef(); } \
   ULONG STDMETHODCALLTYPE Release() { return RefCounter12::Release(); }
