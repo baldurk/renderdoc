@@ -1880,7 +1880,6 @@ void WrappedGLES::glTexStorage2D(GLenum target, GLsizei levels, GLenum internalf
   else
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
-    // TODO PEPE using extension method instead of the standard one can be a problem in case the extension is not available.
     if(record != NULL)
       Common_glTextureStorage2DEXT(record->GetResourceID(), target,
                                    levels, internalformat, width, height);

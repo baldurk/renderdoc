@@ -123,3 +123,19 @@ void WrappedGLES::Compat_glTextureStorage3DEXT (GLuint texture, GLenum target, G
     m_Real.glTexStorage3D(target, levels, internalformat, width, height, depth);
   }
 }
+
+void * WrappedGLES::Compat_glMapBufferRangeEXT (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access)
+{
+  if (ExtensionSupported[ExtensionSupported_EXT_map_buffer_range])
+    return m_Real.glMapBufferRangeEXT(target, offset, length, access);
+  else
+    return m_Real.glMapBufferRange(target, offset, length, access);
+}
+
+void WrappedGLES::Compat_glFlushMappedBufferRangeEXT (GLenum target, GLintptr offset, GLsizeiptr length)
+{
+  if (ExtensionSupported[ExtensionSupported_EXT_map_buffer_range])
+    m_Real.glFlushMappedBufferRangeEXT(target, offset, length);
+  else
+    m_Real.glFlushMappedBufferRange(target, offset, length);
+}

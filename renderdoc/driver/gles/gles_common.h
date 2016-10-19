@@ -178,6 +178,7 @@ enum ExtensionCheckEnum
   ExtensionSupported_OES_viewport_array,
   ExtensionSupported_EXT_buffer_storage,
   ExtensionSupported_EXT_texture_storage,
+  ExtensionSupported_EXT_map_buffer_range,
   ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];

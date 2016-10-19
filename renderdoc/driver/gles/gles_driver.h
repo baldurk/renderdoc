@@ -771,6 +771,8 @@ public:
   void Compat_glBufferStorageEXT (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
   void Compat_glTextureStorage2DEXT (GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
   void Compat_glTextureStorage3DEXT (GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth);
+  void * Compat_glMapBufferRangeEXT (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
+  void Compat_glFlushMappedBufferRangeEXT (GLenum target, GLintptr offset, GLsizeiptr length);
 
 };
 
