@@ -645,6 +645,8 @@ public:
 
   static std::map<ResourceId, WrappedID3D12Resource *> m_List;
 
+  static void RefBuffers(D3D12ResourceManager *rm);
+
   static void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
   {
     GPUAddressRange::GetResIDFromAddr(m_Addresses, addr, id, offs);

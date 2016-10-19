@@ -351,7 +351,11 @@ struct D3D12ResourceRecord : public ResourceRecord
   };
 
   D3D12ResourceRecord(ResourceId id)
-      : ResourceRecord(id, true), type(Resource_Unknown), cmdInfo(NULL), bakedCommands(NULL)
+      : ResourceRecord(id, true),
+        type(Resource_Unknown),
+        ContainsExecuteIndirect(false),
+        cmdInfo(NULL),
+        bakedCommands(NULL)
   {
   }
   ~D3D12ResourceRecord() {}
@@ -384,6 +388,7 @@ struct D3D12ResourceRecord : public ResourceRecord
   }
 
   D3D12ResourceType type;
+  bool ContainsExecuteIndirect;
   D3D12ResourceRecord *bakedCommands;
   CmdListRecordingInfo *cmdInfo;
 

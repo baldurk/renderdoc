@@ -263,6 +263,7 @@ HRESULT WrappedID3D12GraphicsCommandList::Reset(ID3D12CommandAllocator *pAllocat
 
     // reset for new recording
     m_ListRecord->DeleteChunks();
+    m_ListRecord->ContainsExecuteIndirect = false;
 
     // free parents
     m_ListRecord->FreeParents(GetResourceManager());
@@ -2842,6 +2843,8 @@ void WrappedID3D12GraphicsCommandList::ExecuteIndirect(ID3D12CommandSignature *p
                               ArgumentBufferOffset, pCountBuffer, CountBufferOffset);
 
     m_ListRecord->AddChunk(scope.Get());
+
+    m_ListRecord->ContainsExecuteIndirect = true;
 
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pCommandSignature), eFrameRef_Read);
     m_ListRecord->MarkResourceFrameReferenced(GetResID(pArgumentBuffer), eFrameRef_Read);

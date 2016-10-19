@@ -1386,6 +1386,11 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(
       m_FrameCounter, &m_InitParams, jpgbuf, len, thwidth, thheight);
 
+  if(m_Queue->GetResourceRecord()->ContainsExecuteIndirect)
+  {
+    WrappedID3D12Resource::RefBuffers(GetResourceManager());
+  }
+
   {
     CACHE_THREAD_SERIALISER();
 
