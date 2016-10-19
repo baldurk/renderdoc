@@ -453,6 +453,8 @@ Serialiser::Serialiser(size_t length, const byte *memoryBuf, bool fileheader)
   m_Mode = READING;
   m_DebugEnabled = false;
 
+  m_FileSize = 0;
+
   if(!fileheader)
   {
     m_BufferSize = length;
@@ -644,6 +646,8 @@ Serialiser::Serialiser(const char *path, Mode mode, bool debugMode)
   m_Mode = mode;
   m_DebugEnabled = debugMode;
 
+  m_FileSize = 0;
+
   FileHeader header;
 
   if(mode == READING)
@@ -657,6 +661,12 @@ Serialiser::Serialiser(const char *path, Mode mode, bool debugMode)
       m_HasError = true;
       return;
     }
+
+    FileIO::fseek64(m_ReadFileHandle, 0, SEEK_END);
+
+    m_FileSize = FileIO::ftell64(m_ReadFileHandle);
+
+    FileIO::fseek64(m_ReadFileHandle, 0, SEEK_SET);
 
     RDCDEBUG("Opened capture file for read");
 

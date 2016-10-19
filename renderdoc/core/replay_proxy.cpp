@@ -1331,14 +1331,15 @@ void Serialiser::Serialise(const char *name, FetchFrameInfo &el)
   Serialise("", el.frameNumber);
   Serialise("", el.firstEvent);
   Serialise("", el.fileOffset);
-  Serialise("", el.fileSize);
+  Serialise("", el.uncompressedFileSize);
+  Serialise("", el.compressedFileSize);
   Serialise("", el.persistentSize);
   Serialise("", el.initDataSize);
   Serialise("", el.captureTime);
   Serialise("", el.stats);
   Serialise("", el.debugMessages);
 
-  SIZE_CHECK(FetchFrameInfo, 1200);
+  SIZE_CHECK(FetchFrameInfo, 1208);
 }
 
 template <>

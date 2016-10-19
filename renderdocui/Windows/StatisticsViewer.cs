@@ -664,8 +664,6 @@ namespace renderdocui.Windows
         {
             statisticsLog.Clear();
 
-            long fileSize = (new FileInfo(m_Core.LogFileName)).Length;
-
             var lastDraw = m_Core.CurDrawcalls[m_Core.CurDrawcalls.Length - 1];
             while (lastDraw.children != null && lastDraw.children.Length > 0)
                 lastDraw = lastDraw.children[lastDraw.children.Length - 1];
@@ -739,8 +737,8 @@ namespace renderdocui.Windows
 
             UInt64 persistentData = frameInfo.persistentSize;
 
-            float compressedMB = (float)fileSize / (1024.0f * 1024.0f);
-            float uncompressedMB = (float)frameInfo.fileSize / (1024.0f * 1024.0f);
+            float compressedMB = (float)frameInfo.compressedFileSize / (1024.0f * 1024.0f);
+            float uncompressedMB = (float)frameInfo.uncompressedFileSize / (1024.0f * 1024.0f);
             float compressRatio = uncompressedMB / compressedMB;
             float persistentMB = (float)frameInfo.persistentSize / (1024.0f * 1024.0f);
             float initDataMB = (float)frameInfo.initDataSize / (1024.0f * 1024.0f);

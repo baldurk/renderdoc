@@ -1504,7 +1504,8 @@ void WrappedVulkan::ReadLogInitialisation()
   }
 #endif
 
-  m_FrameRecord.frameInfo.fileSize = m_pSerialiser->GetSize();
+  m_FrameRecord.frameInfo.uncompressedFileSize = m_pSerialiser->GetSize();
+  m_FrameRecord.frameInfo.compressedFileSize = m_pSerialiser->GetFileSize();
   m_FrameRecord.frameInfo.persistentSize = m_pSerialiser->GetSize() - firstFrame;
   m_FrameRecord.frameInfo.initDataSize = chunkInfos[(VulkanChunkType)INITIAL_CONTENTS].totalsize;
 

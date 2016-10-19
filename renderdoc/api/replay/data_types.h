@@ -293,7 +293,8 @@ struct FetchFrameInfo
       : frameNumber(0),
         firstEvent(0),
         fileOffset(0),
-        fileSize(0),
+        uncompressedFileSize(0),
+        compressedFileSize(0),
         persistentSize(0),
         initDataSize(0),
         captureTime(0)
@@ -303,7 +304,8 @@ struct FetchFrameInfo
   uint32_t frameNumber;
   uint32_t firstEvent;
   uint64_t fileOffset;
-  uint64_t fileSize;
+  uint64_t uncompressedFileSize;
+  uint64_t compressedFileSize;
   uint64_t persistentSize;
   uint64_t initDataSize;
   uint64_t captureTime;

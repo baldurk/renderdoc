@@ -566,7 +566,7 @@ void ImageViewer::RefreshFile()
 
   m_FrameRecord.frameInfo.initDataSize = 0;
   m_FrameRecord.frameInfo.persistentSize = 0;
-  m_FrameRecord.frameInfo.fileSize = datasize;
+  m_FrameRecord.frameInfo.uncompressedFileSize = datasize;
 
   dds_data read_data = {0};
 
@@ -594,10 +594,12 @@ void ImageViewer::RefreshFile()
     if(texDetails.depth > 1)
       texDetails.dimension = 3;
 
-    m_FrameRecord.frameInfo.fileSize = 0;
+    m_FrameRecord.frameInfo.uncompressedFileSize = 0;
     for(uint32_t i = 0; i < texDetails.arraysize * texDetails.mips; i++)
-      m_FrameRecord.frameInfo.fileSize += read_data.subsizes[i];
+      m_FrameRecord.frameInfo.uncompressedFileSize += read_data.subsizes[i];
   }
+
+  m_FrameRecord.frameInfo.compressedFileSize = m_FrameRecord.frameInfo.uncompressedFileSize;
 
   // recreate proxy texture if necessary.
   // we rewrite the texture IDs so that the

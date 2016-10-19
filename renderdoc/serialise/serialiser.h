@@ -233,6 +233,14 @@ public:
     return m_BufferHead - m_Buffer;
   }
 
+  uint64_t GetFileSize()
+  {
+    if(m_Mode == READING)
+      return m_FileSize;
+
+    return 0;
+  }
+
   byte *GetRawPtr(size_t offs) const { return m_Buffer + offs; }
   // Set up the base pointer and size. Serialiser will allocate enough for
   // the rest of the file and keep it all in memory (useful to keep everything
@@ -679,6 +687,8 @@ private:
   // where does our in-memory window point to in the data stream. ie. m_pBuffer[0] is
   // m_ReadOffset into the frame capture section
   uint64_t m_ReadOffset;
+
+  uint64_t m_FileSize;
 
   // how big is the current in-memory window
   size_t m_CurrentBufferSize;

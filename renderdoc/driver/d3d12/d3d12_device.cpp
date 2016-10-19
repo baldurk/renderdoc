@@ -2049,7 +2049,8 @@ void WrappedID3D12Device::ReadLogInitialisation()
   }
 #endif
 
-  m_FrameRecord.frameInfo.fileSize = m_pSerialiser->GetSize();
+  m_FrameRecord.frameInfo.uncompressedFileSize = m_pSerialiser->GetSize();
+  m_FrameRecord.frameInfo.compressedFileSize = m_pSerialiser->GetFileSize();
   m_FrameRecord.frameInfo.persistentSize = m_pSerialiser->GetSize() - frameOffset;
   m_FrameRecord.frameInfo.initDataSize = chunkInfos[(D3D12ChunkType)INITIAL_CONTENTS].totalsize;
 
