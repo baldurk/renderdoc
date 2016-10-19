@@ -937,7 +937,8 @@ void D3D12Replay::MakePipelineState()
 
     state.rootSig = rm->GetOriginalID(rs.compute.rootsig);
 
-    FillRegisterSpaces(rs.compute, state.m_CS.Spaces, D3D12_SHADER_VISIBILITY_ALL);
+    if(rs.compute.rootsig != ResourceId())
+      FillRegisterSpaces(rs.compute, state.m_CS.Spaces, D3D12_SHADER_VISIBILITY_ALL);
   }
   else if(pipe)
   {
@@ -967,7 +968,8 @@ void D3D12Replay::MakePipelineState()
         dst.BindpointMapping = sh->GetMapping();
       }
 
-      FillRegisterSpaces(rs.graphics, dst.Spaces, visibility[stage]);
+      if(rs.graphics.rootsig != ResourceId())
+        FillRegisterSpaces(rs.graphics, dst.Spaces, visibility[stage]);
     }
 
     state.rootSig = rm->GetOriginalID(rs.graphics.rootsig);
