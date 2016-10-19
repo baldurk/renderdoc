@@ -629,32 +629,32 @@ size_t calculateVertexPointerSize(GLint size, GLenum type, GLsizei stride, GLsiz
     switch (type)
     {
       case eGL_UNSIGNED_BYTE:
-      case eGL_BYTE: 
+      case eGL_BYTE:
         // elementSize = size;
         break;
       case eGL_UNSIGNED_SHORT:
       case eGL_SHORT:
       case eGL_HALF_FLOAT:
-        elementSize *= 2; 
+        elementSize *= 2;
         break;
       case eGL_UNSIGNED_INT:
       case eGL_INT:
-      case eGL_FLOAT: 
+      case eGL_FLOAT:
       case eGL_FIXED:
         elementSize *= 4; break;
       default:
         RDCERR("Unexpected type %x", type);
         break;
       case eGL_UNSIGNED_INT_10_10_10_2_OES:
-      case eGL_UNSIGNED_INT_2_10_10_10_REV: 
+      case eGL_UNSIGNED_INT_2_10_10_10_REV:
         elementSize *= 4;
         break;
     }
 
     if (stride == 0)
       stride = elementSize;
-    
-    return stride * (count - 1) + elementSize;  
+
+    return stride * (count - 1) + elementSize;
 }
 
 
@@ -755,7 +755,7 @@ void WrappedGLES::glDrawArrays(GLenum mode, GLint first, GLsizei count)
   if(m_State == WRITING_CAPFRAME)
   {
     writeFakeVertexAttribPointer(count);
-    
+
     SCOPED_SERIALISE_CONTEXT(DRAWARRAYS);
     Serialise_glDrawArrays(mode, first, count);
 
@@ -1018,7 +1018,7 @@ byte *WrappedGLES::Common_preElements(GLsizei Count, GLenum Type, uint64_t &IdxO
 
         m_Real.glGenBuffers(1, &m_FakeIdxBuf);
         m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
-        m_Real.glBufferStorageEXT(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxSize, NULL, GL_DYNAMIC_STORAGE_BIT_EXT);
+        Compat_glBufferStorageEXT(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxSize, NULL, eGL_DYNAMIC_STORAGE_BIT_EXT);
       }
 
       // bind and update fake index buffer, to draw from the 'immediate' index data
@@ -3147,7 +3147,7 @@ void WrappedGLES::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat
 bool WrappedGLES::Serialise_glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)
 {
     // TODO PEPE
-    return true; 
+    return true;
 }
 
 void WrappedGLES::glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)

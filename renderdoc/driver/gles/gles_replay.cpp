@@ -519,7 +519,7 @@ void GLESReplay::CacheTexture(ResourceId id)
     levelQueryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
 
   GLint width = 1, height = 1, depth = 1, samples = 1;
-  
+
   GLuint oldBinding;
   gl.glGetIntegerv(TextureBinding(target), (GLint*)&oldBinding);   // TODO PEPE TextureBinding(TextureTarget(res.curType)) ?=  res.curType
   gl.glBindTexture(target, res.resource.name);
@@ -1233,7 +1233,7 @@ void GLESReplay::SavePipelineState()
             case eResType_Texture3D: target = eGL_TEXTURE_3D; break;
             case eResType_TextureCube: target = eGL_TEXTURE_CUBE_MAP; break;
             case eResType_TextureCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
-            case eResType_Count: 
+            case eResType_Count:
             default: RDCERR("Invalid shader resource type"); break;
           }
 
@@ -2146,7 +2146,7 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   {
     GLuint bufName = 0;
     GLuint oldBinding;
-    gl.glGetIntegerv(TextureBinding(texType), (GLint*)&oldBinding);    
+    gl.glGetIntegerv(TextureBinding(texType), (GLint*)&oldBinding);
     gl.glBindTexture(texType, texname);
     gl.glGetTexLevelParameteriv(texType, 0, eGL_TEXTURE_BUFFER_DATA_STORE_BINDING,
                                        (GLint *)&bufName);
@@ -2157,14 +2157,14 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
                                        (GLint *)&offs);
     gl.glGetTexLevelParameteriv(texType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&size);
     gl.glBindTexture(texType, oldBinding);
-    
+
     vector<byte> data;
     GetBufferData(id, offs, size, data);
 
     dataSize = data.size();
     ret = new byte[dataSize];
     memcpy(ret, &data[0], dataSize);
-    
+
     return ret;
   }
 
@@ -2580,14 +2580,14 @@ void GLESReplay::CreateCustomShaderTex(uint32_t w, uint32_t h)
   if(DebugData.customTex)
   {
     uint32_t oldw = 0, oldh = 0;
-    
+
     GLuint oldBinding;
-    m_pDriver->glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint*)&oldBinding);    
+    m_pDriver->glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint*)&oldBinding);
     m_pDriver->glBindTexture(eGL_TEXTURE_2D, DebugData.customTex);
     m_pDriver->glGetTexLevelParameteriv(eGL_TEXTURE_2D, 0, eGL_TEXTURE_WIDTH, (GLint *)&oldw);
     m_pDriver->glGetTexLevelParameteriv(eGL_TEXTURE_2D, 0, eGL_TEXTURE_HEIGHT, (GLint *)&oldh);
     m_pDriver->glBindTexture(eGL_TEXTURE_2D, oldBinding);
-    
+
     if(oldw == w && oldh == h)
       return;
 
@@ -2826,7 +2826,7 @@ void GLESReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32
 
   if(IsCompressedFormat(fmt))
   {
-   
+
     if(target == eGL_TEXTURE_2D)
     {
       gl.glBindTexture(target, tex);
@@ -2951,7 +2951,7 @@ ResourceId GLESReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)
   gl.glGenBuffers(1, &buf);
   gl.glBindBuffer(target, buf);
   gl.glBufferStorageEXT(target, (GLsizeiptr)templateBuf.length, NULL,
-                             GL_DYNAMIC_STORAGE_BIT_EXT | GL_MAP_READ_BIT);
+                          eGL_DYNAMIC_STORAGE_BIT_EXT | eGL_MAP_READ_BIT);
 
   if(templateBuf.customName)
     gl.glObjectLabel(eGL_BUFFER, buf, -1, templateBuf.name.elems);

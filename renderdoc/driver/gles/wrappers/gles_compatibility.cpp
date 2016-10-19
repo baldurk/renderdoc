@@ -84,3 +84,20 @@ void WrappedGLES::glGetNamedBufferSubDataEXT(GLuint buffer, GLenum target, GLint
   m_Real.glBindBuffer(target, prevBinding);
 }
 
+void WrappedGLES::Compat_glBufferStorageEXT (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)
+{
+  if(ExtensionSupported[ExtensionSupported_EXT_buffer_storage])
+    m_Real.glBufferStorageEXT(target, size, data, flags);
+  else
+  {
+    if ((flags & eGL_DYNAMIC_STORAGE_BIT_EXT) == flags)
+      m_Real.glBufferData(target, size, data, eGL_DYNAMIC_DRAW);
+    else if ((flags & (eGL_DYNAMIC_STORAGE_BIT_EXT | eGL_MAP_READ_BIT)) == flags)
+      m_Real.glBufferData(target, size, data, eGL_DYNAMIC_READ);
+    else
+    {
+      RDCWARN("Unhandled glBufferStorageEXT() flags! Default usage (GL_DYNAMIC_DRAW) is used.");
+      m_Real.glBufferData(target, size, data, eGL_DYNAMIC_DRAW);
+    }
+  }
+}

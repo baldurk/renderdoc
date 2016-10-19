@@ -176,6 +176,7 @@ enum ExtensionCheckEnum
   ExtensionSupported_NV_polygon_mode,
   ExtensionSupported_NV_viewport_array,
   ExtensionSupported_OES_viewport_array,
+  ExtensionSupported_EXT_buffer_storage,
   ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];

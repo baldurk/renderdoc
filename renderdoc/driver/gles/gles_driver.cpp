@@ -854,7 +854,7 @@ void WrappedGLES::Initialise(GLESInitParams &params)
   gl.glGenBuffers(1, &m_FakeIdxBuf);
   gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
   m_FakeIdxSize = 1024 * 1024;    // this buffer is resized up as needed
-  gl.glBufferStorageEXT(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxSize, NULL, GL_DYNAMIC_STORAGE_BIT_EXT);
+  gl.glBufferStorageEXT(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxSize, NULL, eGL_DYNAMIC_STORAGE_BIT_EXT);
   gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
 
   gl.glGenFramebuffers(1, &m_FakeBB_FBO);

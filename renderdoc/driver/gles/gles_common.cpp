@@ -63,7 +63,7 @@ void DoVendorChecks(const GLHookSet &gl, GLESWindowingData context)
     for(int i = 0; i < numExts; i++)
     {
       const char *ext = (const char *)gl.glGetStringi(eGL_EXTENSIONS, (GLuint)i);
-
+      printf("EXTENSION:%s\n", ext);
       if(ext == NULL || !ext[0] || !ext[1] || !ext[2] || !ext[3])
         continue;
 
@@ -84,6 +84,7 @@ void DoVendorChecks(const GLHookSet &gl, GLESWindowingData context)
       EXT_CHECK(NV_polygon_mode);
       EXT_CHECK(NV_viewport_array);
       EXT_CHECK(OES_viewport_array);
+      EXT_CHECK(EXT_buffer_storage);
 
 #undef EXT_CHECK
     }

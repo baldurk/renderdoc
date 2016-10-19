@@ -317,7 +317,7 @@ bool WrappedGLES::Serialise_glBufferStorageEXT(GLenum target, GLsizeiptr size, c
   if(m_State < WRITING)
   {
     SafeBufferBinder safeBufferBinder(m_Real, Target, GetResourceManager()->GetLiveResource(id).name);
-    m_Real.glBufferStorageEXT(Target, (GLsizeiptr)Bytesize, bytes, Flags);
+    Compat_glBufferStorageEXT(Target, (GLsizeiptr)Bytesize, bytes, Flags);
     m_Buffers[GetResourceManager()->GetLiveID(id)].size = Bytesize;
     SAFE_DELETE_ARRAY(bytes);
   }
@@ -338,7 +338,7 @@ void WrappedGLES::glBufferStorageEXT(GLenum target, GLsizeiptr size, const void 
     data = dummy;
   }
 
-  m_Real.glBufferStorageEXT(target, size, data, flags);
+  Compat_glBufferStorageEXT(target, size, data, flags);
 
   if(m_State >= WRITING)
   {
