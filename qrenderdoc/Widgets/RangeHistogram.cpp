@@ -24,9 +24,9 @@
 
 #include "RangeHistogram.h"
 #include <float.h>
+#include <math.h>
 #include <QMouseEvent>
 #include <QPainter>
-#include <math.h>
 
 RangeHistogram::RangeHistogram(QWidget *parent) : QWidget(parent)
 {

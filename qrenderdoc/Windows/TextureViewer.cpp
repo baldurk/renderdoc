@@ -24,6 +24,7 @@
 
 #include "TextureViewer.h"
 #include <float.h>
+#include <math.h>
 #include <QClipboard>
 #include <QColorDialog>
 #include <QJsonDocument>
@@ -37,7 +38,6 @@
 #include "Widgets/TextureGoto.h"
 #include "FlowLayout.h"
 #include "ui_TextureViewer.h"
-#include <math.h>
 
 float area(const QSizeF &s)
 {
