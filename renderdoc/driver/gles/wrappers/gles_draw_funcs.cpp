@@ -717,6 +717,7 @@ bool WrappedGLES::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei count
   if(m_State <= EXECUTING)
   {
     m_Real.glDrawArrays(Mode, First, Count);
+    clearLocalDataBuffers();
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -780,6 +781,7 @@ bool WrappedGLES::Serialise_glDrawArraysIndirect(GLenum mode, const void *indire
   if(m_State <= EXECUTING)
   {
     m_Real.glDrawArraysIndirect(Mode, (const void *)Offset);
+    clearLocalDataBuffers();
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -847,6 +849,7 @@ bool WrappedGLES::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GLsi
   if(m_State <= EXECUTING)
   {
     m_Real.glDrawArraysInstanced(Mode, First, Count, InstanceCount);
+    clearLocalDataBuffers();
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -915,6 +918,7 @@ bool WrappedGLES::Serialise_glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GL
   if(m_State <= EXECUTING)
   {
     Compat_glDrawArraysInstancedBaseInstanceEXT(Mode, First, Count, InstanceCount, BaseInstance);
+    clearLocalDataBuffers();
   }
 
   const string desc = m_pSerialiser->GetDebugStr();
@@ -1053,6 +1057,7 @@ void WrappedGLES::Common_postElements(byte *idxDelete)
     // delete serialised data
     SAFE_DELETE_ARRAY(idxDelete);
   }
+  clearLocalDataBuffers();
 }
 
 bool WrappedGLES::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum type,
@@ -1140,6 +1145,7 @@ bool WrappedGLES::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, con
   if(m_State <= EXECUTING)
   {
     m_Real.glDrawElementsIndirect(Mode, Type, (const void *)Offset);
+    clearLocalDataBuffers();
   }
 
   const string desc = m_pSerialiser->GetDebugStr();

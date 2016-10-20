@@ -561,6 +561,7 @@ private:
   vector<string> globalExts;
 
   vector<byte *> m_localDataBuffers;
+  void clearLocalDataBuffers();
 
   void writeFakeVertexAttribPointer(GLsizei count);
 

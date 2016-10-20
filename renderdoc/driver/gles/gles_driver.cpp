@@ -1012,6 +1012,11 @@ WrappedGLES::~WrappedGLES()
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
 
+  clearLocalDataBuffers();
+}
+
+void WrappedGLES::clearLocalDataBuffers()
+{
   for (const auto& buffer : m_localDataBuffers)
     delete[] buffer;
   m_localDataBuffers.clear();
