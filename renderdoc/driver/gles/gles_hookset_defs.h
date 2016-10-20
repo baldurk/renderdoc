@@ -1201,24 +1201,24 @@
     HookWrapper5(void, glViewportSwizzleNV, GLuint, index, GLenum, swizzlex, GLenum, swizzley, GLenum, swizzlez, GLenum, swizzlew); \
     HookWrapper6(void, glFramebufferTextureMultiviewOVR, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, baseViewIndex, GLsizei, numViews); \
     HookWrapper7(void, glFramebufferTextureMiltisampleMiltiviewOVR, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLsizei, samples, GLint, baseViewIndex, GLsizei, numViews); \
-    HookWrapper2(void, glAlphaFuncQCom, GLenum, func, GLclampf, ref); \
-    HookWrapper3(void, glGetDriverControlsQCom, GLint *, num, GLsizei, size, GLuint *, driverControls); \
-    HookWrapper4(void, glGetDriverControlStringQCom, GLuint, driverControl, GLsizei, bufSize, GLsizei *, length, GLchar *, driverControlString); \
-    HookWrapper1(void, glEnableDriverControlQCom, GLuint, driverControl); \
-    HookWrapper1(void, glDisableDriverControlQCom, GLuint, driverControl); \
-    HookWrapper3(void, glExtGetTexturesQCom, GLuint *, textures, GLint, maxTextures, GLint *, numTextures); \
-    HookWrapper3(void, glExtGetBuffersQCom, GLuint *, buffers, GLint, maxBuffers, GLint *, numBuffers); \
-    HookWrapper3(void, glExtGetRenderBuffersQCom, GLuint *, renderbuffers, GLint, maxRenderbuffers, GLint *, numRenderbuffers); \
-    HookWrapper3(void, glExtGetFrameBuffersQCom, GLuint *, framebuffers, GLint, maxFramebuffers, GLint *, numFramebuffers); \
-    HookWrapper5(void, glExtGetTexlLevelParameterivQCom, GLuint, texture, GLenum, face, GLint, level, GLenum, pname, GLint *, params); \
-    HookWrapper3(void, glExtTexObjectStateOverrideiQCom, GLenum, target, GLenum, pname, GLint, param); \
-    HookWrapper11(void, glExtGetTexSubImageQCom, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, void *, texels); \
-    HookWrapper2(void, glExtGetBufferPointervQCom, GLenum, target, void **, params); \
-    HookWrapper3(void, glExtGeShadersQCom, GLuint *, shaders, GLint, maxShaders, GLint *, numShaders); \
-    HookWrapper3(void, glExtGetProgramsQCom, GLuint *, programs, GLint, maxPrograms, GLint *, numPrograms); \
-    HookWrapper1(GLboolean, glExtIsProgramBinaryQCom, GLuint, program); \
-    HookWrapper4(void, glExtGetProgramBinarySourceQCom, GLuint, program, GLenum, shadertype, GLchar *, source, GLint *, length); \
-    HookWrapper5(void, glStartTilingQCom, GLuint, x, GLuint, y, GLuint, width, GLuint, height, GLbitfield, preserveMask); \
+    HookWrapper2(void, glAlphaFuncQCOM, GLenum, func, GLclampf, ref); \
+    HookWrapper3(void, glGetDriverControlsQCOM, GLint *, num, GLsizei, size, GLuint *, driverControls); \
+    HookWrapper4(void, glGetDriverControlStringQCOM, GLuint, driverControl, GLsizei, bufSize, GLsizei *, length, GLchar *, driverControlString); \
+    HookWrapper1(void, glEnableDriverControlQCOM, GLuint, driverControl); \
+    HookWrapper1(void, glDisableDriverControlQCOM, GLuint, driverControl); \
+    HookWrapper3(void, glExtGetTexturesQCOM, GLuint *, textures, GLint, maxTextures, GLint *, numTextures); \
+    HookWrapper3(void, glExtGetBuffersQCOM, GLuint *, buffers, GLint, maxBuffers, GLint *, numBuffers); \
+    HookWrapper3(void, glExtGetRenderBuffersQCOM, GLuint *, renderbuffers, GLint, maxRenderbuffers, GLint *, numRenderbuffers); \
+    HookWrapper3(void, glExtGetFrameBuffersQCOM, GLuint *, framebuffers, GLint, maxFramebuffers, GLint *, numFramebuffers); \
+    HookWrapper5(void, glExtGetTexlLevelParameterivQCOM, GLuint, texture, GLenum, face, GLint, level, GLenum, pname, GLint *, params); \
+    HookWrapper3(void, glExtTexObjectStateOverrideiQCOM, GLenum, target, GLenum, pname, GLint, param); \
+    HookWrapper11(void, glExtGetTexSubImageQCOM, GLenum, target, GLint, level, GLint, xoffset, GLint, yoffset, GLint, zoffset, GLsizei, width, GLsizei, height, GLsizei, depth, GLenum, format, GLenum, type, void *, texels); \
+    HookWrapper2(void, glExtGetBufferPointervQCOM, GLenum, target, void **, params); \
+    HookWrapper3(void, glExtGeShadersQCOM, GLuint *, shaders, GLint, maxShaders, GLint *, numShaders); \
+    HookWrapper3(void, glExtGetProgramsQCOM, GLuint *, programs, GLint, maxPrograms, GLint *, numPrograms); \
+    HookWrapper1(GLboolean, glExtIsProgramBinaryQCOM, GLuint, program); \
+    HookWrapper4(void, glExtGetProgramBinarySourceQCOM, GLuint, program, GLenum, shadertype, GLchar *, source, GLint *, length); \
+    HookWrapper5(void, glStartTilingQCOM, GLuint, x, GLuint, y, GLuint, width, GLuint, height, GLbitfield, preserveMask); \
     HookWrapper1(void, glEndTilingCom, GLbitfield, preserveMask); \
 
 
@@ -1589,24 +1589,24 @@
     HandleUnsupported(PFNGLVIEWPORTSWIZZLENVPROC, glViewportSwizzleNV); \
     HandleUnsupported(PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC, glFramebufferTextureMultiviewOVR); \
     HandleUnsupported(PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC, glFramebufferTextureMiltisampleMiltiviewOVR); \
-    HandleUnsupported(PFNGLALPHAFUNCQCOMPROC, glAlphaFuncQCom); \
-    HandleUnsupported(PFNGLGETDRIVERCONTROLSQCOMPROC, glGetDriverControlsQCom); \
-    HandleUnsupported(PFNGLGETDRIVERCONTROLSTRINGQCOMPROC, glGetDriverControlStringQCom); \
-    HandleUnsupported(PFNGLENABLEDRIVERCONTROLQCOMPROC, glEnableDriverControlQCom); \
-    HandleUnsupported(PFNGLDISABLEDRIVERCONTROLQCOMPROC, glDisableDriverControlQCom); \
-    HandleUnsupported(PFNGLEXTGETTEXTURESQCOMPROC, glExtGetTexturesQCom); \
-    HandleUnsupported(PFNGLEXTGETBUFFERSQCOMPROC, glExtGetBuffersQCom); \
-    HandleUnsupported(PFNGLEXTGETRENDERBUFFERSQCOMPROC, glExtGetRenderBuffersQCom); \
-    HandleUnsupported(PFNGLEXTGETFRAMEBUFFERSQCOMPROC, glExtGetFrameBuffersQCom); \
-    HandleUnsupported(PFNGLEXTGETTEXLEVELPARAMETERIVQCOMPROC, glExtGetTexlLevelParameterivQCom); \
-    HandleUnsupported(PFNGLEXTTEXOBJECTSTATEOVERRIDEIQCOMPROC, glExtTexObjectStateOverrideiQCom); \
-    HandleUnsupported(PFNGLEXTGETTEXSUBIMAGEQCOMPROC, glExtGetTexSubImageQCom); \
-    HandleUnsupported(PFNGLEXTGETBUFFERPOINTERVQCOMPROC, glExtGetBufferPointervQCom); \
-    HandleUnsupported(PFNGLEXTGETSHADERSQCOMPROC, glExtGeShadersQCom); \
-    HandleUnsupported(PFNGLEXTGETPROGRAMSQCOMPROC, glExtGetProgramsQCom); \
-    HandleUnsupported(PFNGLEXTISPROGRAMBINARYQCOMPROC, glExtIsProgramBinaryQCom); \
-    HandleUnsupported(PFNGLEXTGETPROGRAMBINARYSOURCEQCOMPROC, glExtGetProgramBinarySourceQCom); \
-    HandleUnsupported(PFNGLSTARTTILINGQCOMPROC, glStartTilingQCom); \
+    HandleUnsupported(PFNGLALPHAFUNCQCOMPROC, glAlphaFuncQCOM); \
+    HandleUnsupported(PFNGLGETDRIVERCONTROLSQCOMPROC, glGetDriverControlsQCOM); \
+    HandleUnsupported(PFNGLGETDRIVERCONTROLSTRINGQCOMPROC, glGetDriverControlStringQCOM); \
+    HandleUnsupported(PFNGLENABLEDRIVERCONTROLQCOMPROC, glEnableDriverControlQCOM); \
+    HandleUnsupported(PFNGLDISABLEDRIVERCONTROLQCOMPROC, glDisableDriverControlQCOM); \
+    HandleUnsupported(PFNGLEXTGETTEXTURESQCOMPROC, glExtGetTexturesQCOM); \
+    HandleUnsupported(PFNGLEXTGETBUFFERSQCOMPROC, glExtGetBuffersQCOM); \
+    HandleUnsupported(PFNGLEXTGETRENDERBUFFERSQCOMPROC, glExtGetRenderBuffersQCOM); \
+    HandleUnsupported(PFNGLEXTGETFRAMEBUFFERSQCOMPROC, glExtGetFrameBuffersQCOM); \
+    HandleUnsupported(PFNGLEXTGETTEXLEVELPARAMETERIVQCOMPROC, glExtGetTexlLevelParameterivQCOM); \
+    HandleUnsupported(PFNGLEXTTEXOBJECTSTATEOVERRIDEIQCOMPROC, glExtTexObjectStateOverrideiQCOM); \
+    HandleUnsupported(PFNGLEXTGETTEXSUBIMAGEQCOMPROC, glExtGetTexSubImageQCOM); \
+    HandleUnsupported(PFNGLEXTGETBUFFERPOINTERVQCOMPROC, glExtGetBufferPointervQCOM); \
+    HandleUnsupported(PFNGLEXTGETSHADERSQCOMPROC, glExtGeShadersQCOM); \
+    HandleUnsupported(PFNGLEXTGETPROGRAMSQCOMPROC, glExtGetProgramsQCOM); \
+    HandleUnsupported(PFNGLEXTISPROGRAMBINARYQCOMPROC, glExtIsProgramBinaryQCOM); \
+    HandleUnsupported(PFNGLEXTGETPROGRAMBINARYSOURCEQCOMPROC, glExtGetProgramBinarySourceQCOM); \
+    HandleUnsupported(PFNGLSTARTTILINGQCOMPROC, glStartTilingQCOM); \
     HandleUnsupported(PFNGLENDTILINGQCOMPROC, glEndTilingCom); \
 
 
