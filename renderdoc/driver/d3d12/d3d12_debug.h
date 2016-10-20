@@ -83,8 +83,6 @@ public:
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);
   void GetBufferData(ID3D12Resource *buff, uint64_t offset, uint64_t length, vector<byte> &retData);
 
-  ID3D12Resource *GetIndirectBuffer(size_t size);
-
   D3D12_CPU_DESCRIPTOR_HANDLE AllocRTV();
   void FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 
@@ -192,9 +190,6 @@ private:
   ID3D12GraphicsCommandList *m_ReadbackList;
   ID3D12CommandAllocator *m_ReadbackAlloc;
   ID3D12Resource *m_ReadbackBuffer;
-
-  ID3D12Resource *m_IndirectBuffer;
-  size_t m_IndirectSize;
 
   ID3D12Resource *m_TexResource;
 

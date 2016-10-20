@@ -249,9 +249,6 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     }
   }
 
-  m_IndirectBuffer = NULL;
-  m_IndirectSize = 0;
-
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
 
   // create fixed samplers, point and linear
@@ -747,8 +744,6 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_ReadbackBuffer);
   SAFE_RELEASE(m_ReadbackAlloc);
   SAFE_RELEASE(m_ReadbackList);
-
-  SAFE_RELEASE(m_IndirectBuffer);
 
   m_WrappedDevice->InternalRelease();
 
@@ -1903,47 +1898,6 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     outOffs += chunkSize;
     length -= chunkSize;
   }
-}
-
-ID3D12Resource *D3D12DebugManager::GetIndirectBuffer(size_t size)
-{
-  if(m_IndirectSize && size <= m_IndirectSize)
-  {
-    return m_IndirectBuffer;
-  }
-
-  m_IndirectSize = RDCMAX(size, (size_t)128 * 1024);
-
-  SAFE_RELEASE(m_IndirectBuffer);
-
-  D3D12_RESOURCE_DESC indirectDesc;
-  indirectDesc.Alignment = 0;
-  indirectDesc.DepthOrArraySize = 1;
-  indirectDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-  indirectDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
-  indirectDesc.Format = DXGI_FORMAT_UNKNOWN;
-  indirectDesc.Height = 1;
-  indirectDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-  indirectDesc.MipLevels = 1;
-  indirectDesc.SampleDesc.Count = 1;
-  indirectDesc.SampleDesc.Quality = 0;
-  indirectDesc.Width = m_IndirectSize;
-
-  D3D12_HEAP_PROPERTIES heapProps;
-  heapProps.Type = D3D12_HEAP_TYPE_CUSTOM;
-  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
-  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
-  heapProps.CreationNodeMask = 1;
-  heapProps.VisibleNodeMask = 1;
-
-  HRESULT hr = m_WrappedDevice->CreateCommittedResource(
-      &heapProps, D3D12_HEAP_FLAG_NONE, &indirectDesc, D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, NULL,
-      __uuidof(ID3D12Resource), (void **)&m_IndirectBuffer);
-
-  if(FAILED(hr))
-    RDCERR("Failed to create indirect buffer, HRESULT: 0x%08x", hr);
-
-  return m_IndirectBuffer;
 }
 
 void D3D12DebugManager::RenderHighlightBox(float w, float h, float scale)

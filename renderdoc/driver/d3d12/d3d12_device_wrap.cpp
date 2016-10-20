@@ -1346,6 +1346,7 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(Serialiser *localSeri
                                     desc.pArgumentDescs + desc.NumArgumentDescs);
 
       wrapped->sig.graphics = true;
+      wrapped->sig.numDraws = 0;
 
       // From MSDN, command signatures are either graphics or compute so just search for dispatches:
       // "A given command signature is either a draw or a compute command signature. If a command
@@ -1355,10 +1356,12 @@ bool WrappedID3D12Device::Serialise_CreateCommandSignature(Serialiser *localSeri
       for(uint32_t i = 0; i < desc.NumArgumentDescs; i++)
       {
         if(desc.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH)
-        {
           wrapped->sig.graphics = false;
-          break;
-        }
+
+        if(desc.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DISPATCH ||
+           desc.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DRAW ||
+           desc.pArgumentDescs[i].Type == D3D12_INDIRECT_ARGUMENT_TYPE_DRAW_INDEXED)
+          wrapped->sig.numDraws++;
       }
 
       ret = wrapped;
