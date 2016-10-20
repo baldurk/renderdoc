@@ -40,8 +40,8 @@ struct PixelUnpackState
   int32_t compressedBlockWidth, compressedBlockHeight, compressedBlockDepth;
   int32_t compressedBlockSize;
 
-  void Fetch(const GLHookSet *funcs, bool compressed);
-  void Apply(const GLHookSet *funcs, bool compressed);
+  void Fetch(const GLHookSet *funcs);
+  void Apply(const GLHookSet *funcs);
 
   bool FastPath(GLsizei width, GLsizei height, GLsizei depth, GLenum dataformat, GLenum basetype);
   bool FastPathCompressed(GLsizei width, GLsizei height, GLsizei depth);

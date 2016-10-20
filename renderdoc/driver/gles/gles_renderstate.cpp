@@ -26,7 +26,7 @@
 #include "gles_renderstate.h"
 #include "gles_driver.h"
 
-void PixelUnpackState::Fetch(const GLHookSet *funcs, bool compressed)
+void PixelUnpackState::Fetch(const GLHookSet *funcs)
 {
   funcs->glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlength);
   funcs->glGetIntegerv(eGL_UNPACK_IMAGE_HEIGHT, &imageheight);
@@ -34,13 +34,9 @@ void PixelUnpackState::Fetch(const GLHookSet *funcs, bool compressed)
   funcs->glGetIntegerv(eGL_UNPACK_SKIP_ROWS, &skipRows);
   funcs->glGetIntegerv(eGL_UNPACK_SKIP_IMAGES, &skipImages);
   funcs->glGetIntegerv(eGL_UNPACK_ALIGNMENT, &alignment);
-
-  if(compressed)
-  {
-  }
 }
 
-void PixelUnpackState::Apply(const GLHookSet *funcs, bool compressed)
+void PixelUnpackState::Apply(const GLHookSet *funcs)
 {
   funcs->glPixelStorei(eGL_UNPACK_ROW_LENGTH, rowlength);
   funcs->glPixelStorei(eGL_UNPACK_IMAGE_HEIGHT, imageheight);
@@ -48,10 +44,6 @@ void PixelUnpackState::Apply(const GLHookSet *funcs, bool compressed)
   funcs->glPixelStorei(eGL_UNPACK_SKIP_ROWS, skipRows);
   funcs->glPixelStorei(eGL_UNPACK_SKIP_IMAGES, skipImages);
   funcs->glPixelStorei(eGL_UNPACK_ALIGNMENT, alignment);
-
-  if(compressed)
-  {
-  }
 }
 
 bool PixelUnpackState::FastPath(GLsizei width, GLsizei height, GLsizei depth, GLenum dataformat,
@@ -834,7 +826,7 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
   m_Real->glGetIntegerv(eGL_FRONT_FACE, (GLint *)&FrontFace);
   m_Real->glGetIntegerv(eGL_CULL_FACE_MODE, (GLint *)&CullFace);
 
-  Unpack.Fetch(m_Real, true);
+  Unpack.Fetch(m_Real);
 
   m_Real->glGetFloatv(eGL_PRIMITIVE_BOUNDING_BOX, (GLfloat*)&PrimitiveBoundingBox);
 
@@ -1150,7 +1142,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
   m_Real->glFrontFace(FrontFace);
   m_Real->glCullFace(CullFace);
 
-  Unpack.Apply(m_Real, true);
+  Unpack.Apply(m_Real);
 
   m_Real->glPrimitiveBoundingBox(PrimitiveBoundingBox.minX, PrimitiveBoundingBox.minY,
                                  PrimitiveBoundingBox.minZ, PrimitiveBoundingBox.minW,

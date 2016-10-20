@@ -699,8 +699,7 @@ void GLESReplay::CacheTexture(ResourceId id)
     {
       if(compressed)
       {
-        // TODO PEPE
-        RDCERR ("Unhandled compressed format! (TODO)");
+        RDCLOG("Compressed texture is not supported! (%s:%d)", __FILE__, __LINE__);
       }
       else if(tex.format.special)
       {
@@ -2342,12 +2341,12 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
   {
     PixelUnpackState unpack;
 
-    unpack.Fetch(&gl.GetHookset(), true);
+    unpack.Fetch(&gl.GetHookset());
 
     PixelUnpackState identity = {0};
     identity.alignment = 1;
 
-    identity.Apply(&gl.GetHookset(), true);
+    identity.Apply(&gl.GetHookset());
 
     GLenum binding = TextureBinding(texType);
 
@@ -2371,8 +2370,7 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     if(IsCompressedFormat(intFormat))
     {
-        // TODO PEPE
-        RDCERR ("Unhandled compressed format! (TODO)");
+        RDCLOG("Compressed texture is not supported! (%s:%d)", __FILE__, __LINE__);
     }
     else
     {
@@ -2458,7 +2456,7 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       }
     }
 
-    unpack.Apply(&gl.GetHookset(), true);
+    unpack.Apply(&gl.GetHookset());
 
     gl.glBindTexture(texType, prevtex);
   }

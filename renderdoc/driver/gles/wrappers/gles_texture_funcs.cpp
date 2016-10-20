@@ -934,7 +934,7 @@ bool WrappedGLES::Serialise_glTexImage2D(GLenum target, GLint level,
   if(m_State >= WRITING && pixels)
   {
     PixelUnpackState unpack;
-    unpack.Fetch(&m_Real, false);
+    unpack.Fetch(&m_Real);
 
     if(unpack.FastPath(Width, Height, 0, Format, Type))
       srcPixels = (byte *)pixels;
@@ -1108,7 +1108,7 @@ bool WrappedGLES::Serialise_glTexImage3D(GLenum target, GLint level,
   if(m_State >= WRITING && pixels)
   {
     PixelUnpackState unpack;
-    unpack.Fetch(&m_Real, false);
+    unpack.Fetch(&m_Real);
 
     if(unpack.FastPath(Width, Height, Depth, Format, Type))
       srcPixels = (byte *)pixels;
@@ -1264,7 +1264,7 @@ bool WrappedGLES::Serialise_glCompressedTexImage2D(GLenum target,
   if(m_State >= WRITING && pixels)
   {
     PixelUnpackState unpack;
-    unpack.Fetch(&m_Real, true);
+    unpack.Fetch(&m_Real);
 
     if(unpack.FastPathCompressed(Width, Height, 0))
       srcPixels = (byte *)pixels;
@@ -1449,7 +1449,7 @@ bool WrappedGLES::Serialise_glCompressedTexImage3D(GLenum target,
   if(m_State >= WRITING && pixels)
   {
     PixelUnpackState unpack;
-    unpack.Fetch(&m_Real, true);
+    unpack.Fetch(&m_Real);
 
     if(unpack.FastPathCompressed(Width, Height, Depth))
       srcPixels = (byte *)pixels;
@@ -2193,7 +2193,7 @@ bool WrappedGLES::Serialise_glTexSubImage2D(GLenum target, GLint level,
   if(m_State >= WRITING && pixels && !UnpackBufBound)
   {
     PixelUnpackState unpack;
-    unpack.Fetch(&m_Real, false);
+    unpack.Fetch(&m_Real);
 
     if(unpack.FastPath(Width, Height, 0, Format, Type))
       srcPixels = (byte *)pixels;
@@ -2331,7 +2331,7 @@ bool WrappedGLES::Serialise_glTexSubImage3D(GLenum target, GLint level,
   if(m_State >= WRITING && pixels && !UnpackBufBound)
   {
     PixelUnpackState unpack;
-    unpack.Fetch(&m_Real, false);
+    unpack.Fetch(&m_Real);
 
     if(unpack.FastPath(Width, Height, Depth, Format, Type))
       srcPixels = (byte *)pixels;
@@ -2468,7 +2468,7 @@ bool WrappedGLES::Serialise_glCompressedTexSubImage2D(GLenum target,
   if(m_State >= WRITING && pixels && !UnpackBufBound)
   {
     PixelUnpackState unpack;
-    unpack.Fetch(&m_Real, true);
+    unpack.Fetch(&m_Real);
 
     if(unpack.FastPathCompressed(Width, Height, 0))
       srcPixels = (byte *)pixels;
@@ -2592,7 +2592,7 @@ bool WrappedGLES::Serialise_glCompressedTexSubImage3D(GLenum target,
   if(m_State >= WRITING && pixels && !UnpackBufBound)
   {
     PixelUnpackState unpack;
-    unpack.Fetch(&m_Real, true);
+    unpack.Fetch(&m_Real);
 
     if(unpack.FastPathCompressed(Width, Height, Depth))
       srcPixels = (byte *)pixels;

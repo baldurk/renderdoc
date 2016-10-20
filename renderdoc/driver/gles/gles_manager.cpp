@@ -686,8 +686,6 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       gl.glTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL,
                                  (GLint *)&maxlevel);
 
-      bool iscomp = IsCompressedFormat(details.internalFormat);
-
       // copy over mips
       for(int i = 0; i < mips; i++)
       {
@@ -894,7 +892,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         }
         else if(isCompressed)
         {
-// TODO PEPE Needed to implement texture read functionality (glGetCompressedTextureImageEXT)
+            RDCLOG("Compressed texture is not supported! (%s:%d)", __FILE__, __LINE__);
 //          for(int i = 0; i < mips; i++)
 //          {
 //            GLenum targets[] = {
@@ -1438,7 +1436,6 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
         gl.glTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL,
                                    (GLint *)&maxlevel);
         gl.glBindTexture(details.curType, oldBinding);
-        bool iscomp = IsCompressedFormat(details.internalFormat);
 
         // copy over mips
         for(int i = 0; i < mips; i++)
