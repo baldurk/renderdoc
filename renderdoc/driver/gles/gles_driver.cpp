@@ -3337,12 +3337,6 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE:
       Serialise_glDrawElementsInstancedBaseVertexBaseInstanceEXT(eGL_NONE, 0, eGL_NONE, NULL, 0, 0, 0);
       break;
-//    case DRAW_FEEDBACK: Serialise_glDrawTransformFeedback(eGL_NONE, 0); break;
-//    case DRAW_FEEDBACK_INSTANCED: Serialise_glDrawTransformFeedbackInstanced(eGL_NONE, 0, 0); break;
-//    case DRAW_FEEDBACK_STREAM: Serialise_glDrawTransformFeedbackStream(eGL_NONE, 0, 0); break;
-//    case DRAW_FEEDBACK_STREAM_INSTANCED:
-//      Serialise_glDrawTransformFeedbackStreamInstanced(eGL_NONE, 0, 0, 0);
-//      break;
 //    case MULTI_DRAWARRAYS: Serialise_glMultiDrawArrays(eGL_NONE, NULL, NULL, 0); break;
 //    case MULTI_DRAWELEMENTS:
 //      Serialise_glMultiDrawElements(eGL_NONE, NULL, eGL_NONE, NULL, 0);
