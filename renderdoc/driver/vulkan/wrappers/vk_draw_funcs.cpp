@@ -325,7 +325,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
       uint32_t baseEventID = it->eventID;
 
       // when re-recording all, submit every drawcall individually to the callback
-      if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid) && IsDrawInRenderPass())
+      if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds() && IsDrawInRenderPass())
       {
         for(uint32_t i = 0; i < cnt; i++)
         {
