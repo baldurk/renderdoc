@@ -55,7 +55,8 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
   SERIALISE_ELEMENT(UINT, numCmds, NumCommandLists);
 
   vector<ResourceId> cmdIds;
-  ID3D12CommandList **cmds = m_State >= WRITING ? NULL : new ID3D12CommandList *[numCmds];
+  ID3D12GraphicsCommandList **cmds =
+      m_State >= WRITING ? NULL : new ID3D12GraphicsCommandList *[numCmds];
 
   if(m_State >= WRITING)
   {
@@ -75,7 +76,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
     for(UINT i = 0; i < numCmds; i++)
     {
       cmds[i] = cmdIds[i] != ResourceId()
-                    ? Unwrap(GetResourceManager()->GetLiveAs<ID3D12CommandList>(cmdIds[i]))
+                    ? GetResourceManager()->GetLiveAs<ID3D12GraphicsCommandList>(cmdIds[i])
                     : NULL;
     }
   }
@@ -120,7 +121,11 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
 
   if(m_State == READING)
   {
-    m_pReal->ExecuteCommandLists(numCmds, cmds);
+    for(uint32_t i = 0; i < numCmds; i++)
+    {
+      ID3D12CommandList *c = Unwrap(cmds[i]);
+      m_pReal->ExecuteCommandLists(1, &c);
+    }
 
     for(uint32_t i = 0; i < numCmds; i++)
     {
@@ -305,7 +310,11 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       RDCDEBUG("Queue Submit full replay %u >= %u", m_Cmd.m_LastEventID, m_Cmd.m_RootEventID);
 #endif
 
-      m_pReal->ExecuteCommandLists(numCmds, cmds);
+      ID3D12CommandList **unwrapped = new ID3D12CommandList *[numCmds];
+      for(uint32_t i = 0; i < numCmds; i++)
+        unwrapped[i] = Unwrap(cmds[i]);
+      m_pReal->ExecuteCommandLists(numCmds, unwrapped);
+      SAFE_DELETE_ARRAY(unwrapped);
 
       for(uint32_t i = 0; i < numCmds; i++)
       {
