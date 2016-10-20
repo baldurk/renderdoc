@@ -171,6 +171,7 @@ struct D3D12RootSignature
 
 struct D3D12CommandSignature
 {
+  bool graphics;
   UINT ByteStride;
   vector<D3D12_INDIRECT_ARGUMENT_DESC> arguments;
 };
