@@ -688,45 +688,6 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
 
       bool iscomp = IsCompressedFormat(details.internalFormat);
 
-      bool avoidCopySubImage = false;
-      if(iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips])
-        avoidCopySubImage = true;
-      if(iscomp && details.curType == eGL_TEXTURE_CUBE_MAP &&
-         VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps])
-        avoidCopySubImage = true;
-
-      GLint packParams[8] = {0};
-      GLint unpackParams[8] = {0};
-      GLuint pixelPackBuffer = 0;
-      GLuint pixelUnpackBuffer = 0;
-      if(avoidCopySubImage)
-      {
-        gl.glGetIntegerv(eGL_PACK_ROW_LENGTH, &packParams[2]);
-        gl.glGetIntegerv(eGL_PACK_SKIP_PIXELS, &packParams[4]);
-        gl.glGetIntegerv(eGL_PACK_SKIP_ROWS, &packParams[5]);
-        gl.glGetIntegerv(eGL_PACK_ALIGNMENT, &packParams[7]);
-
-        gl.glPixelStorei(eGL_PACK_ROW_LENGTH, 0);
-        gl.glPixelStorei(eGL_PACK_SKIP_PIXELS, 0);
-        gl.glPixelStorei(eGL_PACK_SKIP_ROWS, 0);
-        gl.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
-
-        gl.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &unpackParams[2]);
-        gl.glGetIntegerv(eGL_UNPACK_SKIP_PIXELS, &unpackParams[4]);
-        gl.glGetIntegerv(eGL_UNPACK_SKIP_ROWS, &unpackParams[5]);
-        gl.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &unpackParams[7]);
-
-        gl.glPixelStorei(eGL_UNPACK_ROW_LENGTH, 0);
-        gl.glPixelStorei(eGL_UNPACK_SKIP_PIXELS, 0);
-        gl.glPixelStorei(eGL_UNPACK_SKIP_ROWS, 0);
-        gl.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
-
-        gl.glGetIntegerv(eGL_PIXEL_PACK_BUFFER_BINDING, (GLint *)&pixelPackBuffer);
-        gl.glGetIntegerv(eGL_PIXEL_UNPACK_BUFFER_BINDING, (GLint *)&pixelUnpackBuffer);
-        gl.glBindBuffer(eGL_PIXEL_PACK_BUFFER, 0);
-        gl.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-      }
-
       // copy over mips
       for(int i = 0; i < mips; i++)
       {
@@ -739,93 +700,17 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         else if(details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY || details.curType == eGL_TEXTURE_2D_ARRAY)
           d = details.depth;
 
-        // AMD throws an error copying mips that are smaller than the block size in one dimension,
-        // so do copy via CPU instead (will be slow, potentially we could optimise this if there's a
-        // different GPU-side image copy routine that works on these dimensions. Hopefully there'll
-        // only be a couple of such mips).
-        // AMD also has issues copying cubemaps
-        if((iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips] && (w < 4 || h < 4)) ||
-           (iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps] &&
-            details.curType == eGL_TEXTURE_CUBE_MAP))
-        {
-          GLenum targets[] = {
-              eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-              eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-              eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
-          };
-
-          int count = ARRAY_COUNT(targets);
-
-          if(details.curType != eGL_TEXTURE_CUBE_MAP)
-          {
-            targets[0] = details.curType;
-            count = 1;
-          }
-
-// TODO PEPE Need to implement something to read back texture (glGetCompressedTextureImageEXT)
-//          for(int trg = 0; trg < count; trg++)
-//          {
-//            GLint compSize;
-//            gl.glGetTextureLevelParameterivEXT(res.name, targets[trg], i,
-//                                               eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compSize);
-//
-//            size_t size = compSize;
-//
-//            // sometimes cubemaps return the compressed image size for the whole texture, but we
-//            // read it face by face
-//            if(VendorCheck[VendorCheck_EXT_compressed_cube_size] &&
-//               details.curType == eGL_TEXTURE_CUBE_MAP)
-//              size /= 6;
-//
-//            byte *buf = new byte[size];
-//
-//            // read to CPU
-//            gl.glGetCompressedTextureImageEXT(res.name, targets[trg], i, buf);
-//
-//            // write to GPU
-//            if(details.dimension == 1)
-//              gl.glCompressedTextureSubImage1DEXT(tex, targets[trg], i, 0, w,
-//                                                  details.internalFormat, (GLsizei)size, buf);
-//            else if(details.dimension == 2)
-//              gl.glCompressedTextureSubImage2DEXT(tex, targets[trg], i, 0, 0, w, h,
-//                                                  details.internalFormat, (GLsizei)size, buf);
-//            else if(details.dimension == 3)
-//              gl.glCompressedTextureSubImage3DEXT(tex, targets[trg], i, 0, 0, 0, w, h, d,
-//                                                  details.internalFormat, (GLsizei)size, buf);
-//
-//            delete[] buf;
-//          }
-        }
+        // it seems like everything explodes if I do glCopyImageSubData on a D32F_S8 texture -
+        // in-program the overlay gets corrupted as one UBO seems to not provide data anymore
+        // until it's "refreshed". It seems like a driver bug, nvidia specific. In most cases a
+        // program isn't going to rely on the contents of a depth-stencil buffer (shadow maps that
+        // it might require would be depth-only formatted).
+        if(details.internalFormat == eGL_DEPTH32F_STENCIL8 &&
+           VendorCheck[VendorCheck_NV_avoid_D32S8_copy])
+          RDCDEBUG("Not fetching initial contents of D32F_S8 texture");
         else
-        {
-          // it seems like everything explodes if I do glCopyImageSubData on a D32F_S8 texture -
-          // in-program the overlay gets corrupted as one UBO seems to not provide data anymore
-          // until it's "refreshed". It seems like a driver bug, nvidia specific. In most cases a
-          // program isn't going to rely on the contents of a depth-stencil buffer (shadow maps that
-          // it might require would be depth-only formatted).
-          if(details.internalFormat == eGL_DEPTH32F_STENCIL8 &&
-             VendorCheck[VendorCheck_NV_avoid_D32S8_copy])
-            RDCDEBUG("Not fetching initial contents of D32F_S8 texture");
-          else
-            gl.glCopyImageSubData(res.name, details.curType, i, 0, 0, 0, tex, details.curType, i, 0,
-                                  0, 0, w, h, d);
-        }
-      }
-
-      if(avoidCopySubImage)
-      {
-        gl.glPixelStorei(eGL_PACK_ROW_LENGTH, packParams[2]);
-        gl.glPixelStorei(eGL_PACK_SKIP_PIXELS, packParams[4]);
-        gl.glPixelStorei(eGL_PACK_SKIP_ROWS, packParams[5]);
-        gl.glPixelStorei(eGL_PACK_ALIGNMENT, packParams[7]);
-
-        gl.glPixelStorei(eGL_UNPACK_ROW_LENGTH, unpackParams[2]);
-        gl.glPixelStorei(eGL_UNPACK_SKIP_PIXELS, unpackParams[4]);
-        gl.glPixelStorei(eGL_UNPACK_SKIP_ROWS, unpackParams[5]);
-        gl.glPixelStorei(eGL_UNPACK_ALIGNMENT, unpackParams[7]);
-
-        gl.glBindBuffer(eGL_PIXEL_PACK_BUFFER, pixelPackBuffer);
-        gl.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, pixelUnpackBuffer);
+          gl.glCopyImageSubData(res.name, details.curType, i, 0, 0, 0, tex, details.curType, i, 0,
+                                0, 0, w, h, d);
       }
 
       gl.glTexParameteriv(details.curType, eGL_TEXTURE_MAX_LEVEL,
@@ -1555,38 +1440,6 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
         gl.glBindTexture(details.curType, oldBinding);
         bool iscomp = IsCompressedFormat(details.internalFormat);
 
-        bool avoidCopySubImage = false;
-        if(iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips])
-          avoidCopySubImage = true;
-        if(iscomp && details.curType == eGL_TEXTURE_CUBE_MAP &&
-           VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps])
-          avoidCopySubImage = true;
-
-        GLint packParams[8];
-        GLint unpackParams[8];
-        if(avoidCopySubImage)
-        {
-          gl.glGetIntegerv(eGL_PACK_ROW_LENGTH, &packParams[2]);
-          gl.glGetIntegerv(eGL_PACK_SKIP_PIXELS, &packParams[4]);
-          gl.glGetIntegerv(eGL_PACK_SKIP_ROWS, &packParams[5]);
-          gl.glGetIntegerv(eGL_PACK_ALIGNMENT, &packParams[7]);
-
-          gl.glPixelStorei(eGL_PACK_ROW_LENGTH, 0);
-          gl.glPixelStorei(eGL_PACK_SKIP_PIXELS, 0);
-          gl.glPixelStorei(eGL_PACK_SKIP_ROWS, 0);
-          gl.glPixelStorei(eGL_PACK_ALIGNMENT, 1);
-
-          gl.glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &unpackParams[2]);
-          gl.glGetIntegerv(eGL_UNPACK_SKIP_PIXELS, &unpackParams[4]);
-          gl.glGetIntegerv(eGL_UNPACK_SKIP_ROWS, &unpackParams[5]);
-          gl.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &unpackParams[7]);
-
-          gl.glPixelStorei(eGL_UNPACK_ROW_LENGTH, 0);
-          gl.glPixelStorei(eGL_UNPACK_SKIP_PIXELS, 0);
-          gl.glPixelStorei(eGL_UNPACK_SKIP_ROWS, 0);
-          gl.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
-        }
-
         // copy over mips
         for(int i = 0; i < mips; i++)
         {
@@ -1599,90 +1452,19 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
           else if(details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY || details.curType == eGL_TEXTURE_2D_ARRAY)
             d = details.depth;
 
-          // AMD throws an error copying mips that are smaller than the block size in one dimension,
-          // so do copy via CPU instead (will be slow, potentially we could optimise this if there's
-          // a different GPU-side image copy routine that works on these dimensions. Hopefully
-          // there'll only be a couple of such mips).
-          // AMD also has issues copying cubemaps
-          if((iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_tinymips] && (w < 4 || h < 4)) ||
-             (iscomp && VendorCheck[VendorCheck_AMD_copy_compressed_cubemaps] &&
-              details.curType == eGL_TEXTURE_CUBE_MAP))
-          {
-            GLenum targets[] = {
-                eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-                eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-                eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
-            };
-
-            int count = ARRAY_COUNT(targets);
-
-            if(details.curType != eGL_TEXTURE_CUBE_MAP)
-            {
-              targets[0] = details.curType;
-              count = 1;
-            }
-// TODO PEPE
-//            for(int trg = 0; trg < count; trg++)
-//            {
-//              GLint compSize;
-//              gl.glGetTextureLevelParameterivEXT(tex, targets[trg], i,
-//                                                 eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compSize);
-//
-//              size_t size = compSize;
-//
-//              // sometimes cubemaps return the compressed image size for the whole texture, but we
-//              // read it face by face
-//              if(VendorCheck[VendorCheck_EXT_compressed_cube_size] &&
-//                 details.curType == eGL_TEXTURE_CUBE_MAP)
-//                size /= 6;
-//
-//              byte *buf = new byte[size];
-//
-//              // read to CPU
-//              gl.glGetCompressedTextureImageEXT(tex, targets[trg], i, buf);
-//
-//              // write to GPU
-//              if(details.dimension == 1)
-//                gl.glCompressedTextureSubImage1DEXT(live.name, targets[trg], i, 0, w,
-//                                                    details.internalFormat, (GLsizei)size, buf);
-//              else if(details.dimension == 2)
-//                gl.glCompressedTextureSubImage2DEXT(live.name, targets[trg], i, 0, 0, w, h,
-//                                                    details.internalFormat, (GLsizei)size, buf);
-//              else if(details.dimension == 3)
-//                gl.glCompressedTextureSubImage3DEXT(live.name, targets[trg], i, 0, 0, 0, w, h, d,
-//                                                    details.internalFormat, (GLsizei)size, buf);
-//
-//              delete[] buf;
-//            }
-          }
+          // it seems like everything explodes if I do glCopyImageSubData on a D32F_S8 texture -
+          // on replay loads of things get heavily corrupted - probably the same as the problems
+          // we get in-program, but magnified. It seems like a driver bug, nvidia specific.
+          // In most cases a program isn't going to rely on the contents of a depth-stencil buffer
+          // (shadow maps that it might require would be depth-only formatted).
+          if(details.internalFormat == eGL_DEPTH32F_STENCIL8 &&
+             VendorCheck[VendorCheck_NV_avoid_D32S8_copy])
+            RDCDEBUG("Not fetching initial contents of D32F_S8 texture");
           else
-          {
-            // it seems like everything explodes if I do glCopyImageSubData on a D32F_S8 texture -
-            // on replay loads of things get heavily corrupted - probably the same as the problems
-            // we get in-program, but magnified. It seems like a driver bug, nvidia specific.
-            // In most cases a program isn't going to rely on the contents of a depth-stencil buffer
-            // (shadow maps that it might require would be depth-only formatted).
-            if(details.internalFormat == eGL_DEPTH32F_STENCIL8 &&
-               VendorCheck[VendorCheck_NV_avoid_D32S8_copy])
-              RDCDEBUG("Not fetching initial contents of D32F_S8 texture");
-            else
-              gl.glCopyImageSubData(tex, details.curType, i, 0, 0, 0, live.name, details.curType, i,
-                                    0, 0, 0, w, h, d);
-          }
+            gl.glCopyImageSubData(tex, details.curType, i, 0, 0, 0, live.name, details.curType, i,
+                                  0, 0, 0, w, h, d);
         }
 
-        if(avoidCopySubImage)
-        {
-          gl.glPixelStorei(eGL_PACK_ROW_LENGTH, packParams[2]);
-          gl.glPixelStorei(eGL_PACK_SKIP_PIXELS, packParams[4]);
-          gl.glPixelStorei(eGL_PACK_SKIP_ROWS, packParams[5]);
-          gl.glPixelStorei(eGL_PACK_ALIGNMENT, packParams[7]);
-
-          gl.glPixelStorei(eGL_UNPACK_ROW_LENGTH, unpackParams[2]);
-          gl.glPixelStorei(eGL_UNPACK_SKIP_PIXELS, unpackParams[4]);
-          gl.glPixelStorei(eGL_UNPACK_SKIP_ROWS, unpackParams[5]);
-          gl.glPixelStorei(eGL_UNPACK_ALIGNMENT, unpackParams[7]);
-        }
       }
 
       bool ms = (details.curType == eGL_TEXTURE_2D_MULTISAMPLE ||

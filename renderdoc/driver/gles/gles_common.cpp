@@ -130,13 +130,6 @@ void DoVendorChecks(const GLHookSet &gl, GLESWindowingData context)
     }
   }
 
-  // AMD throws an error if we try to copy the mips that are smaller than 4x4,
-  if(gl.glGetError && gl.glGenTextures && gl.glBindTexture && gl.glCopyImageSubData &&
-     gl.glTexStorage2D && gl.glTexSubImage2D && gl.glTexParameteri && gl.glDeleteTextures)
-  {
-  // TODO PEPE
-  }
-
   if(gl.glGetError && gl.glGenProgramPipelines && gl.glDeleteProgramPipelines &&
      gl.glGetProgramPipelineiv)
   {
