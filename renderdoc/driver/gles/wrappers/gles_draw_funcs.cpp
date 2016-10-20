@@ -614,8 +614,6 @@
 //  }
 //}
 
-
-
 size_t calculateVertexPointerSize(GLint size, GLenum type, GLsizei stride, GLsizei count)
 {
     if (count == 0)
@@ -656,7 +654,6 @@ size_t calculateVertexPointerSize(GLint size, GLenum type, GLsizei stride, GLsiz
 
     return stride * (count - 1) + elementSize;
 }
-
 
 void WrappedGLES::writeFakeVertexAttribPointer(GLsizei count)
 {
@@ -2899,129 +2896,110 @@ void WrappedGLES::glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode, 
 //    state.MarkDirty(this);
 //  }
 //}
-//
-//bool WrappedGLES::Serialise_glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer,
-//                                                        GLint drawbuffer, const GLfloat *value)
-//{
-//  SERIALISE_ELEMENT(ResourceId, Id,
-//                    (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer))
-//                                 : ResourceId()));
-//  SERIALISE_ELEMENT(GLenum, buf, buffer);
-//  SERIALISE_ELEMENT(int32_t, drawbuf, drawbuffer);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(Id == ResourceId())
-//      framebuffer = m_FakeBB_FBO;
-//    else
-//      framebuffer = GetResourceManager()->GetLiveResource(Id).name;
-//  }
-//
-//  string name;
-//
-//  if(buf != eGL_DEPTH)
-//  {
-//    Vec4f v;
-//    if(value)
-//      v = *((Vec4f *)value);
-//
-//    m_pSerialiser->SerialisePODArray<4>("value", (float *)&v.x);
-//
-//    if(m_State == READING)
-//      name = "glClearBufferfv(" + ToStr::Get(buf) + ", " + ToStr::Get(drawbuf) + ", " +
-//             ToStr::Get(v.x) + ", " + ToStr::Get(v.y) + ", " + ToStr::Get(v.z) + ", " +
-//             ToStr::Get(v.w) + ")";
-//
-//    // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
-//    // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
-//    // is
-//    // necessary since these functions can be serialised even if ARB_dsa was not used originally,
-//    // and
-//    // we need to support this case.
-//    if(m_State <= EXECUTING)
-//      m_Real.glClearNamedFramebufferfv(framebuffer, buf, drawbuf, &v.x);
-//  }
-//  else
-//  {
-//    SERIALISE_ELEMENT(float, val, *value);
-//
-//    if(m_State == READING)
-//      name = "glClearBufferfv(" + ToStr::Get(buf) + ", " + ToStr::Get(drawbuf) + ", " +
-//             ToStr::Get(val) + ")";
-//
-//    if(m_State <= EXECUTING)
-//      m_Real.glClearNamedFramebufferfv(framebuffer, buf, drawbuf, &val);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(CLEARBUFFERF, desc);
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.flags |= eDraw_Clear;
-//    if(buf == eGL_COLOR)
-//      draw.flags |= eDraw_ClearColour;
-//    else
-//      draw.flags |= eDraw_ClearDepthStencil;
-//
-//    AddDrawcall(draw, true);
-//
-//    GLuint attachment = 0;
-//    GLenum attachName =
-//        buf == eGL_COLOR ? GLenum(eGL_COLOR_ATTACHMENT0 + drawbuf) : eGL_DEPTH_ATTACHMENT;
-//    GLenum type = eGL_TEXTURE;
-//    m_Real.glGetNamedFramebufferAttachmentParameterivEXT(
-//        framebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&attachment);
-//    m_Real.glGetNamedFramebufferAttachmentParameterivEXT(
-//        framebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
-//
-//    if(attachment)
-//    {
-//      if(type == eGL_TEXTURE)
-//        m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-//            EventUsage(m_CurEventID, eUsage_Clear));
-//      else
-//        m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-//            EventUsage(m_CurEventID, eUsage_Clear));
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glClearNamedFramebufferfv(GLuint framebuffer, GLenum buffer, GLint drawbuffer,
-//                                              const GLfloat *value)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glClearNamedFramebufferfv(framebuffer, buffer, drawbuffer, value);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(CLEARBUFFERF);
-//    Serialise_glClearNamedFramebufferfv(framebuffer, buffer, drawbuffer, value);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.FetchState(GetCtx(), this);
-//    state.MarkReferenced(this, false);
-//  }
-//  else if(m_State == WRITING_IDLE)
-//  {
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.MarkDirty(this);
-//  }
-//}
+
 bool WrappedGLES::Serialise_glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
 {
-    // TODO PEPE
-    return true;
+  GLuint framebuffer = 0;
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    if(GetCtxData().m_DrawFramebufferRecord)
+      framebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
+  }
+
+  SERIALISE_ELEMENT(ResourceId, Id,
+                    (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer))
+                                 : ResourceId()));
+  SERIALISE_ELEMENT(GLenum, buf, buffer);
+  SERIALISE_ELEMENT(int32_t, drawbuf, drawbuffer);
+
+  if(m_State <= EXECUTING)
+  {
+    if(Id == ResourceId())
+      framebuffer = m_FakeBB_FBO;
+    else
+      framebuffer = GetResourceManager()->GetLiveResource(Id).name;
+  }
+
+  string name;
+
+  if(buf != eGL_DEPTH)
+  {
+    Vec4f v;
+    if(value)
+      v = *((Vec4f *)value);
+
+    m_pSerialiser->SerialisePODArray<4>("value", (float *)&v.x);
+
+    if(m_State == READING)
+      name = "glClearBufferfv(" + ToStr::Get(buf) + ", " + ToStr::Get(drawbuf) + ", " +
+             ToStr::Get(v.x) + ", " + ToStr::Get(v.y) + ", " + ToStr::Get(v.z) + ", " +
+             ToStr::Get(v.w) + ")";
+
+    if(m_State <= EXECUTING)
+    {
+      SafeDrawFramebufferBinder safeDrawFramebufferBinder(m_Real, framebuffer);
+      m_Real.glClearBufferfv(buf, drawbuf, &v.x);
+    }
+  }
+  else
+  {
+    SERIALISE_ELEMENT(float, val, *value);
+
+    if(m_State == READING)
+      name = "glClearBufferfv(" + ToStr::Get(buf) + ", " + ToStr::Get(drawbuf) + ", " +
+             ToStr::Get(val) + ")";
+
+    if(m_State <= EXECUTING)
+    {
+      SafeDrawFramebufferBinder safeDrawFramebufferBinder(m_Real, framebuffer);
+      m_Real.glClearBufferfv(buf, drawbuf, &val);
+    }
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(CLEARBUFFERF, desc);
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.flags |= eDraw_Clear;
+    if(buf == eGL_COLOR)
+      draw.flags |= eDraw_ClearColour;
+    else
+      draw.flags |= eDraw_ClearDepthStencil;
+
+    AddDrawcall(draw, true);
+
+    GLuint attachment = 0;
+    GLenum attachName =
+        buf == eGL_COLOR ? GLenum(eGL_COLOR_ATTACHMENT0 + drawbuf) : eGL_DEPTH_ATTACHMENT;
+    GLenum type = eGL_TEXTURE;
+
+    SafeDrawFramebufferBinder safeDrawFramebufferBinder(m_Real, framebuffer);
+    m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, attachName,
+                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                 (GLint *)&attachment);
+    m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, attachName,
+                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                 (GLint *)&type);
+
+    if(attachment)
+    {
+      if(type == eGL_TEXTURE)
+        m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+      else
+        m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+    }
+  }
+
+  return true;
 }
 
 void WrappedGLES::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat *value)
@@ -3032,7 +3010,6 @@ void WrappedGLES::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat
 
   if(m_State == WRITING_CAPFRAME)
   {
-
     SCOPED_SERIALISE_CONTEXT(CLEARBUFFERF);
     Serialise_glClearBufferfv(buffer, drawbuffer, value);
 
@@ -3040,120 +3017,110 @@ void WrappedGLES::glClearBufferfv(GLenum buffer, GLint drawbuffer, const GLfloat
   }
 }
 
-//bool WrappedGLES::Serialise_glClearNamedFramebufferiv(GLuint framebuffer, GLenum buffer,
-//                                                        GLint drawbuffer, const GLint *value)
-//{
-//  SERIALISE_ELEMENT(ResourceId, Id,
-//                    (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer))
-//                                 : ResourceId()));
-//  SERIALISE_ELEMENT(GLenum, buf, buffer);
-//  SERIALISE_ELEMENT(int32_t, drawbuf, drawbuffer);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(Id == ResourceId())
-//      framebuffer = m_FakeBB_FBO;
-//    else
-//      framebuffer = GetResourceManager()->GetLiveResource(Id).name;
-//  }
-//
-//  string name;
-//
-//  if(buf != eGL_STENCIL)
-//  {
-//    int32_t v[4];
-//    if(value)
-//      memcpy(v, value, sizeof(v));
-//
-//    m_pSerialiser->SerialisePODArray<4>("value", v);
-//
-//    if(m_State == READING)
-//      name = "glClearBufferiv(" + ToStr::Get(buf) + ", " + ToStr::Get(drawbuf) + ", " +
-//             ToStr::Get(v[0]) + ", " + ToStr::Get(v[1]) + ", " + ToStr::Get(v[2]) + ", " +
-//             ToStr::Get(v[3]) + ")";
-//
-//    // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
-//    // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
-//    // is
-//    // necessary since these functions can be serialised even if ARB_dsa was not used originally,
-//    // and
-//    // we need to support this case.
-//    if(m_State <= EXECUTING)
-//      m_Real.glClearNamedFramebufferiv(framebuffer, buf, drawbuf, v);
-//  }
-//  else
-//  {
-//    SERIALISE_ELEMENT(int32_t, val, *value);
-//
-//    if(m_State == READING)
-//      name = "glClearBufferiv(" + ToStr::Get(buf) + ", " + ToStr::Get(drawbuf) + ", " +
-//             ToStr::Get(val) + ")";
-//
-//    if(m_State <= EXECUTING)
-//      m_Real.glClearNamedFramebufferiv(framebuffer, buf, drawbuf, &val);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(CLEARBUFFERI, desc);
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.flags |= eDraw_Clear;
-//    if(buf == eGL_COLOR)
-//      draw.flags |= eDraw_ClearColour;
-//    else
-//      draw.flags |= eDraw_ClearDepthStencil;
-//
-//    AddDrawcall(draw, true);
-//
-//    GLuint attachment = 0;
-//    GLenum attachName =
-//        buf == eGL_COLOR ? GLenum(eGL_COLOR_ATTACHMENT0 + drawbuf) : eGL_STENCIL_ATTACHMENT;
-//    GLenum type = eGL_TEXTURE;
-//    m_Real.glGetNamedFramebufferAttachmentParameterivEXT(
-//        framebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&attachment);
-//    m_Real.glGetNamedFramebufferAttachmentParameterivEXT(
-//        framebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
-//
-//    if(attachment)
-//    {
-//      if(type == eGL_TEXTURE)
-//        m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-//            EventUsage(m_CurEventID, eUsage_Clear));
-//      else
-//        m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-//            EventUsage(m_CurEventID, eUsage_Clear));
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glClearNamedFramebufferiv(GLuint framebuffer, GLenum buffer, GLint drawbuffer,
-//                                              const GLint *value)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glClearNamedFramebufferiv(framebuffer, buffer, drawbuffer, value);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(CLEARBUFFERI);
-//    Serialise_glClearNamedFramebufferiv(framebuffer, buffer, drawbuffer, value);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
 bool WrappedGLES::Serialise_glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)
 {
-    // TODO PEPE
-    return true;
+  GLuint framebuffer = 0;
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    GLuint framebuffer = 0;
+    if(GetCtxData().m_DrawFramebufferRecord)
+      framebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
+  }
+
+  SERIALISE_ELEMENT(ResourceId, Id,
+                    (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer))
+                                 : ResourceId()));
+  SERIALISE_ELEMENT(GLenum, buf, buffer);
+  SERIALISE_ELEMENT(int32_t, drawbuf, drawbuffer);
+
+  if(m_State <= EXECUTING)
+  {
+    if(Id == ResourceId())
+      framebuffer = m_FakeBB_FBO;
+    else
+      framebuffer = GetResourceManager()->GetLiveResource(Id).name;
+  }
+
+  string name;
+
+  if(buf != eGL_STENCIL)
+  {
+    int32_t v[4];
+    if(value)
+      memcpy(v, value, sizeof(v));
+
+    m_pSerialiser->SerialisePODArray<4>("value", v);
+
+    if(m_State == READING)
+      name = "glClearBufferiv(" + ToStr::Get(buf) + ", " + ToStr::Get(drawbuf) + ", " +
+             ToStr::Get(v[0]) + ", " + ToStr::Get(v[1]) + ", " + ToStr::Get(v[2]) + ", " +
+             ToStr::Get(v[3]) + ")";
+
+    if(m_State <= EXECUTING)
+    {
+      SafeDrawFramebufferBinder safeDrawFramebufferBinder(m_Real, framebuffer);
+      m_Real.glClearBufferiv(buf, drawbuf, v);
+    }
+  }
+  else
+  {
+    SERIALISE_ELEMENT(int32_t, val, *value);
+
+    if(m_State == READING)
+      name = "glClearBufferiv(" + ToStr::Get(buf) + ", " + ToStr::Get(drawbuf) + ", " +
+             ToStr::Get(val) + ")";
+
+    if(m_State <= EXECUTING)
+    {
+      SafeDrawFramebufferBinder safeDrawFramebufferBinder(m_Real, framebuffer);
+      m_Real.glClearBufferiv(buf, drawbuf, &val);
+    }
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(CLEARBUFFERI, desc);
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.flags |= eDraw_Clear;
+    if(buf == eGL_COLOR)
+      draw.flags |= eDraw_ClearColour;
+    else
+      draw.flags |= eDraw_ClearDepthStencil;
+
+    AddDrawcall(draw, true);
+
+    GLuint attachment = 0;
+    GLenum attachName =
+        buf == eGL_COLOR ? GLenum(eGL_COLOR_ATTACHMENT0 + drawbuf) : eGL_STENCIL_ATTACHMENT;
+    GLenum type = eGL_TEXTURE;
+
+    SafeDrawFramebufferBinder safeDrawFramebufferBinder(m_Real, framebuffer);
+    m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, attachName,
+                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                 (GLint *)&attachment);
+    m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, attachName,
+                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                 (GLint *)&type);
+
+    if(attachment)
+    {
+      if(type == eGL_TEXTURE)
+        m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+      else
+        m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+    }
+  }
+
+  return true;
 }
 
 void WrappedGLES::glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *value)
@@ -3164,7 +3131,6 @@ void WrappedGLES::glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *
 
   if(m_State == WRITING_CAPFRAME)
   {
-
     SCOPED_SERIALISE_CONTEXT(CLEARBUFFERI);
     Serialise_glClearBufferiv(buffer, drawbuffer, value);
 
@@ -3172,220 +3138,200 @@ void WrappedGLES::glClearBufferiv(GLenum buffer, GLint drawbuffer, const GLint *
   }
 }
 
-//bool WrappedGLES::Serialise_glClearNamedFramebufferuiv(GLuint framebuffer, GLenum buffer,
-//                                                         GLint drawbuffer, const GLuint *value)
-//{
-//  SERIALISE_ELEMENT(ResourceId, Id,
-//                    (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer))
-//                                 : ResourceId()));
-//  SERIALISE_ELEMENT(GLenum, buf, buffer);
-//  SERIALISE_ELEMENT(int32_t, drawbuf, drawbuffer);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(Id == ResourceId())
-//      framebuffer = m_FakeBB_FBO;
-//    else
-//      framebuffer = GetResourceManager()->GetLiveResource(Id).name;
-//  }
-//
-//  string name;
-//
-//  {
-//    uint32_t v[4];
-//    if(value)
-//      memcpy(v, value, sizeof(v));
-//
-//    m_pSerialiser->SerialisePODArray<4>("value", v);
-//
-//    if(m_State == READING)
-//      name = "glClearBufferuiv(" + ToStr::Get(buf) + ", " + ToStr::Get(drawbuf) + ", " +
-//             ToStr::Get(v[0]) + ", " + ToStr::Get(v[1]) + ", " + ToStr::Get(v[2]) + ", " +
-//             ToStr::Get(v[3]) + ")";
-//
-//    // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
-//    // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
-//    // is
-//    // necessary since these functions can be serialised even if ARB_dsa was not used originally,
-//    // and
-//    // we need to support this case.
-//    if(m_State <= EXECUTING)
-//      m_Real.glClearNamedFramebufferuiv(framebuffer, buf, drawbuf, v);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(CLEARBUFFERUI, desc);
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.flags |= eDraw_Clear | eDraw_ClearColour;
-//
-//    AddDrawcall(draw, true);
-//
-//    GLuint attachment = 0;
-//    GLenum attachName = GLenum(eGL_COLOR_ATTACHMENT0 + drawbuf);
-//    GLenum type = eGL_TEXTURE;
-//    m_Real.glGetNamedFramebufferAttachmentParameterivEXT(
-//        framebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&attachment);
-//    m_Real.glGetNamedFramebufferAttachmentParameterivEXT(
-//        framebuffer, attachName, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
-//
-//    if(attachment)
-//    {
-//      if(type == eGL_TEXTURE)
-//        m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-//            EventUsage(m_CurEventID, eUsage_Clear));
-//      else
-//        m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-//            EventUsage(m_CurEventID, eUsage_Clear));
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glClearNamedFramebufferuiv(GLuint framebuffer, GLenum buffer, GLint drawbuffer,
-//                                               const GLuint *value)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glClearNamedFramebufferuiv(framebuffer, buffer, drawbuffer, value);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(CLEARBUFFERUI);
-//    Serialise_glClearNamedFramebufferuiv(framebuffer, buffer, drawbuffer, value);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//void WrappedGLES::glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glClearBufferuiv(buffer, drawbuffer, value);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    GLuint framebuffer = 0;
-//    if(GetCtxData().m_DrawFramebufferRecord)
-//      framebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
-//
-//    SCOPED_SERIALISE_CONTEXT(CLEARBUFFERUI);
-//    Serialise_glClearNamedFramebufferuiv(framebuffer, buffer, drawbuffer, value);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer,
-//                                                        GLfloat depth, GLint stencil)
-//{
-//  SERIALISE_ELEMENT(ResourceId, Id,
-//                    (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer))
-//                                 : ResourceId()));
-//  SERIALISE_ELEMENT(GLenum, buf, buffer);
-//  SERIALISE_ELEMENT(float, d, depth);
-//  SERIALISE_ELEMENT(int32_t, s, stencil);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    if(Id == ResourceId())
-//      framebuffer = m_FakeBB_FBO;
-//    else
-//      framebuffer = GetResourceManager()->GetLiveResource(Id).name;
-//  }
-//
-//  // use ARB_direct_state_access functions here as we use EXT_direct_state_access elsewhere. If
-//  // we are running without ARB_dsa support, these functions are emulated in the obvious way. This
-//  // is
-//  // necessary since these functions can be serialised even if ARB_dsa was not used originally, and
-//  // we need to support this case.
-//  if(m_State <= EXECUTING)
-//    m_Real.glClearNamedFramebufferfi(framebuffer, buf, d, s);
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(CLEARBUFFERFI, desc);
-//    string name = "glClearBufferfi(" + ToStr::Get(d) + ToStr::Get(s) + ")";
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.flags |= eDraw_Clear | eDraw_ClearDepthStencil;
-//
-//    AddDrawcall(draw, true);
-//
-//    GLuint attachment = 0;
-//    GLenum type = eGL_TEXTURE;
-//    m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, eGL_DEPTH_ATTACHMENT,
-//                                                         eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-//                                                         (GLint *)&attachment);
-//    m_Real.glGetNamedFramebufferAttachmentParameterivEXT(
-//        framebuffer, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
-//
-//    if(attachment)
-//    {
-//      if(type == eGL_TEXTURE)
-//        m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-//            EventUsage(m_CurEventID, eUsage_Clear));
-//      else
-//        m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-//            EventUsage(m_CurEventID, eUsage_Clear));
-//    }
-//
-//    attachment = 0;
-//    type = eGL_TEXTURE;
-//    m_Real.glGetNamedFramebufferAttachmentParameterivEXT(framebuffer, eGL_STENCIL_ATTACHMENT,
-//                                                         eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
-//                                                         (GLint *)&attachment);
-//    m_Real.glGetNamedFramebufferAttachmentParameterivEXT(
-//        framebuffer, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
-//
-//    if(attachment)
-//    {
-//      if(type == eGL_TEXTURE)
-//        m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
-//            EventUsage(m_CurEventID, eUsage_Clear));
-//      else
-//        m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
-//            EventUsage(m_CurEventID, eUsage_Clear));
-//    }
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glClearNamedFramebufferfi(GLuint framebuffer, GLenum buffer, GLfloat depth,
-//                                              GLint stencil)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glClearNamedFramebufferfi(framebuffer, buffer, depth, stencil);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(CLEARBUFFERFI);
-//    Serialise_glClearNamedFramebufferfi(framebuffer, buffer, depth, stencil);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+bool WrappedGLES::Serialise_glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
+{
+  GLuint framebuffer = 0;
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    GLuint framebuffer = 0;
+    if(GetCtxData().m_DrawFramebufferRecord)
+      framebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
+  }
+
+  SERIALISE_ELEMENT(ResourceId, Id,
+                    (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer))
+                                 : ResourceId()));
+  SERIALISE_ELEMENT(GLenum, buf, buffer);
+  SERIALISE_ELEMENT(int32_t, drawbuf, drawbuffer);
+
+  if(m_State <= EXECUTING)
+  {
+    if(Id == ResourceId())
+      framebuffer = m_FakeBB_FBO;
+    else
+      framebuffer = GetResourceManager()->GetLiveResource(Id).name;
+  }
+
+  string name;
+
+  {
+    uint32_t v[4];
+    if(value)
+      memcpy(v, value, sizeof(v));
+
+    m_pSerialiser->SerialisePODArray<4>("value", v);
+
+    if(m_State == READING)
+      name = "glClearBufferuiv(" + ToStr::Get(buf) + ", " + ToStr::Get(drawbuf) + ", " +
+             ToStr::Get(v[0]) + ", " + ToStr::Get(v[1]) + ", " + ToStr::Get(v[2]) + ", " +
+             ToStr::Get(v[3]) + ")";
+
+    if(m_State <= EXECUTING)
+    {
+      SafeDrawFramebufferBinder safeDrawFramebufferBinder(m_Real, framebuffer);
+      m_Real.glClearBufferuiv(buf, drawbuf, v);
+    }
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(CLEARBUFFERUI, desc);
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.flags |= eDraw_Clear | eDraw_ClearColour;
+
+    AddDrawcall(draw, true);
+
+    GLuint attachment = 0;
+    GLenum attachName = GLenum(eGL_COLOR_ATTACHMENT0 + drawbuf);
+    GLenum type = eGL_TEXTURE;
+
+    SafeDrawFramebufferBinder safeDrawFramebufferBinder(m_Real, framebuffer);
+    m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, attachName,
+                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                 (GLint *)&attachment);
+    m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, attachName,
+                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                 (GLint *)&type);
+
+    if(attachment)
+    {
+      if(type == eGL_TEXTURE)
+        m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+      else
+        m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+    }
+  }
+
+  return true;
+}
+
+void WrappedGLES::glClearBufferuiv(GLenum buffer, GLint drawbuffer, const GLuint *value)
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glClearBufferuiv(buffer, drawbuffer, value);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(CLEARBUFFERUI);
+    Serialise_glClearBufferuiv(buffer, drawbuffer, value);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
 
 bool WrappedGLES::Serialise_glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil)
 {
-    // TODO PEPE
-    return true;
+  // drawBuffer must be zero
+  drawbuffer = 0;
+
+  GLuint framebuffer = 0;
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    GLuint framebuffer = 0;
+    if(GetCtxData().m_DrawFramebufferRecord)
+      framebuffer = GetCtxData().m_DrawFramebufferRecord->Resource.name;
+  }
+
+  SERIALISE_ELEMENT(ResourceId, Id,
+                    (framebuffer ? GetResourceManager()->GetID(FramebufferRes(GetCtx(), framebuffer))
+                                 : ResourceId()));
+  SERIALISE_ELEMENT(GLenum, buf, buffer);
+  SERIALISE_ELEMENT(float, d, depth);
+  SERIALISE_ELEMENT(int32_t, s, stencil);
+
+  if(m_State <= EXECUTING)
+  {
+    if(Id == ResourceId())
+      framebuffer = m_FakeBB_FBO;
+    else
+      framebuffer = GetResourceManager()->GetLiveResource(Id).name;
+  }
+
+  if(m_State <= EXECUTING)
+  {
+    SafeDrawFramebufferBinder safeDrawFramebufferBinder(m_Real, framebuffer);
+    m_Real.glClearBufferfi(buf, drawbuffer, d, s);
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(CLEARBUFFERFI, desc);
+    string name = "glClearBufferfi(" + ToStr::Get(d) + ToStr::Get(s) + ")";
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.flags |= eDraw_Clear | eDraw_ClearDepthStencil;
+
+    AddDrawcall(draw, true);
+
+    GLuint attachment = 0;
+    GLenum type = eGL_TEXTURE;
+
+    SafeDrawFramebufferBinder safeDrawFramebufferBinder(m_Real, framebuffer);
+    m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                 (GLint *)&attachment);
+    m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                 (GLint *)&type);
+
+    if(attachment)
+    {
+      if(type == eGL_TEXTURE)
+        m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+      else
+        m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+    }
+
+    attachment = 0;
+    type = eGL_TEXTURE;
+
+    m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                 (GLint *)&attachment);
+    m_Real.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                                 eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                 (GLint *)&type);
+
+    if(attachment)
+    {
+      if(type == eGL_TEXTURE)
+        m_ResourceUses[GetResourceManager()->GetID(TextureRes(GetCtx(), attachment))].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+      else
+        m_ResourceUses[GetResourceManager()->GetID(RenderbufferRes(GetCtx(), attachment))].push_back(
+            EventUsage(m_CurEventID, eUsage_Clear));
+    }
+  }
+
+  return true;
 }
 
 void WrappedGLES::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth, GLint stencil)
@@ -3396,8 +3342,6 @@ void WrappedGLES::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth
 
   if(m_State == WRITING_CAPFRAME)
   {
-
-    // drawbuffer is ignored, as it must be 0 anyway
     SCOPED_SERIALISE_CONTEXT(CLEARBUFFERFI);
     Serialise_glClearBufferfi(buffer, drawbuffer, depth, stencil);
 
@@ -3405,242 +3349,6 @@ void WrappedGLES::glClearBufferfi(GLenum buffer, GLint drawbuffer, GLfloat depth
   }
 }
 
-//bool WrappedGLES::Serialise_glClearNamedBufferDataEXT(GLuint buffer, GLenum internalformat,
-//                                                        GLenum format, GLenum type, const void *data)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
-//  SERIALISE_ELEMENT(GLenum, InternalFormat, internalformat);
-//  SERIALISE_ELEMENT(GLenum, Format, format);
-//  SERIALISE_ELEMENT(GLenum, Type, type);
-//
-//  uint64_t val[4] = {0};
-//
-//  if(m_State >= WRITING && data != NULL)
-//  {
-//    size_t s = 1;
-//    switch(Format)
-//    {
-//      default:
-//        RDCWARN("Unexpected format %x, defaulting to single component", Format);
-//      // fall through
-//      case eGL_RED:
-//      case eGL_RED_INTEGER:
-//      case eGL_GREEN_INTEGER:
-//      case eGL_BLUE_INTEGER:
-//      case eGL_DEPTH_COMPONENT:
-//      case eGL_STENCIL_INDEX: s = 1; break;
-//      case eGL_RG:
-//      case eGL_RG_INTEGER:
-//      case eGL_DEPTH_STENCIL: s = 2; break;
-//      case eGL_RGB:
-//      case eGL_BGR:
-//      case eGL_RGB_INTEGER:
-//      case eGL_BGR_INTEGER: s = 3; break;
-//      case eGL_RGBA:
-//      case eGL_BGRA:
-//      case eGL_RGBA_INTEGER:
-//      case eGL_BGRA_INTEGER: s = 4; break;
-//    }
-//    switch(Type)
-//    {
-//      case eGL_UNSIGNED_BYTE:
-//      case eGL_BYTE: s *= 1; break;
-//      case eGL_UNSIGNED_SHORT:
-//      case eGL_SHORT: s *= 2; break;
-//      case eGL_UNSIGNED_INT:
-//      case eGL_INT:
-//      case eGL_FLOAT: s *= 4; break;
-//      default:
-//        RDCWARN("Unexpected type %x, defaulting to 1 byte type", Format);
-//      // fall through
-//      case eGL_UNSIGNED_BYTE_3_3_2:
-//      case eGL_UNSIGNED_BYTE_2_3_3_REV: s = 1; break;
-//      case eGL_UNSIGNED_SHORT_5_6_5:
-//      case eGL_UNSIGNED_SHORT_5_6_5_REV:
-//      case eGL_UNSIGNED_SHORT_4_4_4_4:
-//      case eGL_UNSIGNED_SHORT_4_4_4_4_REV:
-//      case eGL_UNSIGNED_SHORT_5_5_5_1:
-//      case eGL_UNSIGNED_SHORT_1_5_5_5_REV:
-//      case eGL_UNSIGNED_INT_8_8_8_8:
-//      case eGL_UNSIGNED_INT_8_8_8_8_REV: s = 2; break;
-//      case eGL_UNSIGNED_INT_10_10_10_2:
-//      case eGL_UNSIGNED_INT_2_10_10_10_REV: s = 4; break;
-//    }
-//    memcpy(val, data, s);
-//  }
-//
-//  m_pSerialiser->SerialisePODArray<4>("data", val);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glClearNamedBufferDataEXT(GetResourceManager()->GetLiveResource(id).name, InternalFormat,
-//                                     Format, Type, (const void *)&val[0]);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glClearNamedBufferDataEXT(GLuint buffer, GLenum internalformat, GLenum format,
-//                                              GLenum type, const void *data)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glClearNamedBufferDataEXT(buffer, internalformat, format, type, data);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(CLEARBUFFERDATA);
-//    Serialise_glClearNamedBufferDataEXT(buffer, internalformat, format, type, data);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//void WrappedGLES::glClearBufferData(GLenum target, GLenum internalformat, GLenum format,
-//                                      GLenum type, const void *data)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glClearBufferData(target, internalformat, format, type, data);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-//    RDCASSERT(record);
-//
-//    SCOPED_SERIALISE_CONTEXT(CLEARBUFFERDATA);
-//    Serialise_glClearNamedBufferDataEXT(record->Resource.name, internalformat, format, type, data);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glClearNamedBufferSubDataEXT(GLuint buffer, GLenum internalformat,
-//                                                           GLintptr offset, GLsizeiptr size,
-//                                                           GLenum format, GLenum type,
-//                                                           const void *data)
-//{
-//  SERIALISE_ELEMENT(ResourceId, id, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
-//  SERIALISE_ELEMENT(GLenum, InternalFormat, internalformat);
-//  SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)offset);
-//  SERIALISE_ELEMENT(uint64_t, Size, (uint64_t)size);
-//  SERIALISE_ELEMENT(GLenum, Format, format);
-//  SERIALISE_ELEMENT(GLenum, Type, type);
-//
-//  uint64_t val[4] = {0};
-//
-//  if(m_State >= WRITING)
-//  {
-//    size_t s = 1;
-//    switch(Format)
-//    {
-//      default:
-//        RDCWARN("Unexpected format %x, defaulting to single component", Format);
-//      // fall through
-//      case eGL_RED:
-//      case eGL_RED_INTEGER:
-//      case eGL_GREEN_INTEGER:
-//      case eGL_BLUE_INTEGER:
-//      case eGL_DEPTH_COMPONENT:
-//      case eGL_STENCIL_INDEX: s = 1; break;
-//      case eGL_RG:
-//      case eGL_RG_INTEGER:
-//      case eGL_DEPTH_STENCIL: s = 2; break;
-//      case eGL_RGB:
-//      case eGL_BGR:
-//      case eGL_RGB_INTEGER:
-//      case eGL_BGR_INTEGER: s = 3; break;
-//      case eGL_RGBA:
-//      case eGL_BGRA:
-//      case eGL_RGBA_INTEGER:
-//      case eGL_BGRA_INTEGER: s = 4; break;
-//    }
-//    switch(Type)
-//    {
-//      case eGL_UNSIGNED_BYTE:
-//      case eGL_BYTE: s *= 1; break;
-//      case eGL_UNSIGNED_SHORT:
-//      case eGL_SHORT: s *= 2; break;
-//      case eGL_UNSIGNED_INT:
-//      case eGL_INT:
-//      case eGL_FLOAT: s *= 4; break;
-//      default:
-//        RDCWARN("Unexpected type %x, defaulting to 1 byte type", Format);
-//      // fall through
-//      case eGL_UNSIGNED_BYTE_3_3_2:
-//      case eGL_UNSIGNED_BYTE_2_3_3_REV: s = 1; break;
-//      case eGL_UNSIGNED_SHORT_5_6_5:
-//      case eGL_UNSIGNED_SHORT_5_6_5_REV:
-//      case eGL_UNSIGNED_SHORT_4_4_4_4:
-//      case eGL_UNSIGNED_SHORT_4_4_4_4_REV:
-//      case eGL_UNSIGNED_SHORT_5_5_5_1:
-//      case eGL_UNSIGNED_SHORT_1_5_5_5_REV:
-//      case eGL_UNSIGNED_INT_8_8_8_8:
-//      case eGL_UNSIGNED_INT_8_8_8_8_REV: s = 2; break;
-//      case eGL_UNSIGNED_INT_10_10_10_2:
-//      case eGL_UNSIGNED_INT_2_10_10_10_REV: s = 4; break;
-//    }
-//    memcpy(val, data, s);
-//  }
-//
-//  m_pSerialiser->SerialisePODArray<4>("data", val);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glClearNamedBufferSubDataEXT(GetResourceManager()->GetLiveResource(id).name,
-//                                        InternalFormat, (GLintptr)Offset, (GLsizeiptr)Size, Format,
-//                                        Type, (const void *)&val[0]);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glClearNamedBufferSubDataEXT(GLuint buffer, GLenum internalformat,
-//                                                 GLintptr offset, GLsizeiptr size, GLenum format,
-//                                                 GLenum type, const void *data)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glClearNamedBufferSubDataEXT(buffer, internalformat, offset, size, format, type, data);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(CLEARBUFFERSUBDATA);
-//    Serialise_glClearNamedBufferSubDataEXT(buffer, internalformat, offset, size, format, type, data);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//void WrappedGLES::glClearNamedBufferSubData(GLuint buffer, GLenum internalformat, GLintptr offset,
-//                                              GLsizeiptr size, GLenum format, GLenum type,
-//                                              const void *data)
-//{
-//  // only difference to EXT function is size parameter, so just upcast
-//  glClearNamedBufferSubDataEXT(buffer, internalformat, offset, size, format, type, data);
-//}
-//
-//void WrappedGLES::glClearBufferSubData(GLenum target, GLenum internalformat, GLintptr offset,
-//                                         GLsizeiptr size, GLenum format, GLenum type,
-//                                         const void *data)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glClearBufferSubData(target, internalformat, offset, size, format, type, data);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    GLResourceRecord *record = GetCtxData().m_BufferRecord[BufferIdx(target)];
-//    RDCASSERT(record);
-//
-//    SCOPED_SERIALISE_CONTEXT(CLEARBUFFERSUBDATA);
-//    Serialise_glClearNamedBufferSubDataEXT(record->Resource.name, internalformat, offset, size,
-//                                           format, type, data);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
 bool WrappedGLES::Serialise_glClear(GLbitfield mask)
 {
   SERIALISE_ELEMENT(uint32_t, Mask, mask);

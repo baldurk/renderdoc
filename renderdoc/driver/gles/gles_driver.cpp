@@ -3256,12 +3256,10 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case CLEAR_DEPTH: Serialise_glClearDepthf(0); break;
     case CLEAR_STENCIL: Serialise_glClearStencil(0); break;
     case CLEAR: Serialise_glClear(0); break;
-//    case CLEARBUFFERDATA:
-//      Serialise_glClearNamedBufferDataEXT(0, eGL_NONE, eGL_NONE, eGL_NONE, NULL);
-//      break;
-//    case CLEARBUFFERSUBDATA:
-//      Serialise_glClearNamedBufferSubDataEXT(0, eGL_NONE, 0, 0, eGL_NONE, eGL_NONE, NULL);
-//      break;
+    case CLEARBUFFERF: Serialise_glClearBufferfv(eGL_NONE, 0, NULL); break;
+    case CLEARBUFFERI: Serialise_glClearBufferiv(eGL_NONE, 0, NULL); break;
+    case CLEARBUFFERUI: Serialise_glClearBufferuiv(eGL_NONE, 0, NULL); break;
+    case CLEARBUFFERFI: Serialise_glClearBufferfi(eGL_NONE, 0, 0, 0); break;
     case POLYGON_MODE: Serialise_glPolygonModeNV(eGL_NONE, eGL_NONE); break;
     case POLYGON_OFFSET: Serialise_glPolygonOffset(0, 0); break;
     case POLYGON_OFFSET_CLAMP: Serialise_glPolygonOffsetClampEXT(0, 0, 0); break;

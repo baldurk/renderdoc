@@ -56,6 +56,7 @@ int TextureTargetIndex(GLenum target);
 bool IsProxyTarget(GLenum target);
 
 GLenum BufferBinding(GLenum target);
+GLenum FramebufferBinding(GLenum target);
 
 enum GLNamespace
 {

@@ -812,6 +812,20 @@ GLenum BufferBinding(GLenum target)
   return eGL_NONE;
 }
 
+GLenum FramebufferBinding(GLenum target)
+{
+  switch(target)
+  {
+    case eGL_FRAMEBUFFER: return eGL_FRAMEBUFFER_BINDING;
+    case eGL_DRAW_FRAMEBUFFER: return eGL_DRAW_FRAMEBUFFER_BINDING;
+    case eGL_READ_FRAMEBUFFER: return eGL_READ_FRAMEBUFFER_BINDING;
+    default: break;
+  }
+
+  RDCERR("Unexpected target %s", ToStr::Get(target).c_str());
+  return eGL_NONE;
+}
+
 GLint CubeTargetIndex(GLenum face)
 {
   switch(face)

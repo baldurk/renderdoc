@@ -233,6 +233,7 @@
     HookInit(glUniform3uiv); \
     HookInit(glUniform4uiv); \
     HookInit(glClearBufferiv); \
+    HookInit(glClearBufferuiv); \
     HookInit(glClearBufferfv); \
     HookInit(glClearBufferfi); \
     HookInit(glGetStringi); \
@@ -637,6 +638,7 @@
     HookWrapper3(void, glUniform3uiv, GLint, location, GLsizei, count, const GLuint *, value); \
     HookWrapper3(void, glUniform4uiv, GLint, location, GLsizei, count, const GLuint *, value); \
     HookWrapper3(void, glClearBufferiv, GLenum, buffer, GLint, drawbuffer, const GLint *, value); \
+    HookWrapper3(void, glClearBufferuiv, GLenum, buffer, GLint, drawbuffer, const GLuint *, value); \
     HookWrapper3(void, glClearBufferfv, GLenum, buffer, GLint, drawbuffer, const GLfloat *, value); \
     HookWrapper4(void, glClearBufferfi, GLenum, buffer, GLint, drawbuffer, GLfloat, depth, GLint, stencil); \
     HookWrapper2(const GLubyte *, glGetStringi, GLenum, name, GLuint, index); \
@@ -842,7 +844,6 @@
 
 // unsupported entry points - used for dummy functions
 #define DefineUnsupportedDummies() \
-    HookWrapper3(void, glClearBufferuiv, GLenum, buffer, GLint, drawbuffer, const GLuint *, value); \
     HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
     HookWrapper1(void, glDispatchComputeIndirect, GLintptr, indirect); \
     HookWrapper1(void, glMemoryBarrier, GLbitfield, barriers); \
@@ -1227,7 +1228,6 @@
 
 
 #define CheckUnsupported() \
-    HandleUnsupported(PFNGLCLEARBUFFERUIVPROC, glClearBufferuiv); \
     HandleUnsupported(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
     HandleUnsupported(PFNGLDISPATCHCOMPUTEINDIRECTPROC, glDispatchComputeIndirect); \
     HandleUnsupported(PFNGLMEMORYBARRIERPROC, glMemoryBarrier); \

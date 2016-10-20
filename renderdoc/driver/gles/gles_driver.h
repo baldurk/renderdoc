@@ -124,6 +124,57 @@ private:
     bool m_active;
 };
 
+class SafeFramebufferBinder
+{
+public:
+    SafeFramebufferBinder(const GLHookSet &hooks, GLuint drawFramebuffer, GLuint readFramebuffer)
+      : m_Real(hooks)
+    {
+      m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&m_prevDrawFramebuffer);
+      m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&m_prevReadFramebuffer);
+      m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, drawFramebuffer);
+      m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, readFramebuffer);
+    }
+
+    ~SafeFramebufferBinder()
+    {
+      m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, m_prevDrawFramebuffer);
+      m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, m_prevReadFramebuffer);
+    }
+
+private:
+    SafeFramebufferBinder(const SafeFramebufferBinder&);
+
+    const GLHookSet &m_Real;
+    GLuint m_prevDrawFramebuffer;
+    GLuint m_prevReadFramebuffer;
+};
+
+template<GLenum FramebufferTarget>
+class SafeFramebufferBinderBase
+{
+public:
+  SafeFramebufferBinderBase(const GLHookSet &hooks, GLuint framebuffer)
+      : m_Real(hooks)
+    {
+      m_Real.glGetIntegerv(FramebufferBinding(FramebufferTarget), (GLint *)&m_previous);
+      m_Real.glBindFramebuffer(FramebufferTarget, framebuffer);
+    }
+
+    ~SafeFramebufferBinderBase()
+    {
+      m_Real.glBindFramebuffer(FramebufferTarget, m_previous);
+    }
+
+private:
+    SafeFramebufferBinderBase(const SafeFramebufferBinderBase&);
+
+    const GLHookSet &m_Real;
+    GLint m_previous;
+};
+
+typedef SafeFramebufferBinderBase<eGL_DRAW_FRAMEBUFFER> SafeDrawFramebufferBinder;
+typedef SafeFramebufferBinderBase<eGL_READ_FRAMEBUFFER> SafeReadFramebufferBinder;
 
 struct GLESInitParams : public RDCInitParams
 {
