@@ -3228,8 +3228,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
       Serialise_glProgramUniformMatrix(0, 0, 0, 0, NULL, UNIFORM_UNKNOWN);
       break;
     case LINKPROGRAM: Serialise_glLinkProgram(0); break;
-//
-//
+
     case GEN_FEEDBACK: Serialise_glGenTransformFeedbacks(0, NULL); break;
     case BIND_FEEDBACK: Serialise_glBindTransformFeedback(eGL_NONE, 0); break;
     case BEGIN_FEEDBACK: Serialise_glBeginTransformFeedback(eGL_NONE); break;
@@ -3251,7 +3250,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case BEGIN_CONDITIONAL: Serialise_glBeginConditionalRenderNV(0, eGL_NONE); break;
     case END_CONDITIONAL: Serialise_glEndConditionalRenderNV(); break;
     case QUERY_COUNTER: Serialise_glQueryCounterEXT(0, eGL_NONE); break;
-//
+
     case CLEAR_COLOR: Serialise_glClearColor(0, 0, 0, 0); break;
     case CLEAR_DEPTH: Serialise_glClearDepthf(0); break;
     case CLEAR_STENCIL: Serialise_glClearStencil(0); break;
@@ -3284,6 +3283,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case BLEND_EQ_SEP: Serialise_glBlendEquationSeparate(eGL_NONE, eGL_NONE); break;
     case BLEND_EQ_SEPI: Serialise_glBlendEquationSeparatei(0, eGL_NONE, eGL_NONE); break;
     case BLEND_BARRIER: Serialise_glBlendBarrierKHR(); break;
+
     case STENCIL_OP: Serialise_glStencilOp(eGL_NONE, eGL_NONE, eGL_NONE); break;
     case STENCIL_OP_SEP:
       Serialise_glStencilOpSeparate(eGL_NONE, eGL_NONE, eGL_NONE, eGL_NONE);
@@ -3311,9 +3311,6 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case SCISSOR: Serialise_glScissor(0, 0, 0, 0); break;
     case SCISSOR_ARRAY: Serialise_glScissorArrayvNV(0, 0, 0); break;
     case DISPATCH_COMPUTE: Serialise_glDispatchCompute(0, 0, 0); break;
-//    case DISPATCH_COMPUTE_GROUP_SIZE:
-//      Serialise_glDispatchComputeGroupSizeARB(0, 0, 0, 0, 0, 0);
-//      break;
     case DISPATCH_COMPUTE_INDIRECT: Serialise_glDispatchComputeIndirect(0); break;
     case MEMORY_BARRIER: Serialise_glMemoryBarrier(0); break;
     case MEMORY_BARRIER_BY_REGION: Serialise_glMemoryBarrierByRegion(0); break;
@@ -3344,6 +3341,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE:
       Serialise_glDrawElementsInstancedBaseVertexBaseInstanceEXT(eGL_NONE, 0, eGL_NONE, NULL, 0, 0, 0);
       break;
+// TODO pantos multi draw
 //    case MULTI_DRAWARRAYS: Serialise_glMultiDrawArrays(eGL_NONE, NULL, NULL, 0); break;
 //    case MULTI_DRAWELEMENTS:
 //      Serialise_glMultiDrawElements(eGL_NONE, NULL, eGL_NONE, NULL, 0);
@@ -3357,13 +3355,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
 //    case MULTI_DRAWELEMENTS_INDIRECT:
 //      Serialise_glMultiDrawElementsIndirect(eGL_NONE, eGL_NONE, NULL, 0, 0);
 //      break;
-//    case MULTI_DRAWARRAYS_INDIRECT_COUNT:
-//      Serialise_glMultiDrawArraysIndirectCountARB(eGL_NONE, 0, 0, 0, 0);
-//      break;
-//    case MULTI_DRAWELEMENTS_INDIRECT_COUNT:
-//      Serialise_glMultiDrawElementsIndirectCountARB(eGL_NONE, eGL_NONE, 0, 0, 0, 0);
-//      break;
-//
+
     case GEN_FRAMEBUFFERS: Serialise_glGenFramebuffers(0, NULL); break;
     case FRAMEBUFFER_TEX: Serialise_glFramebufferTexture(0, eGL_NONE, eGL_NONE, 0, 0); break;
     case FRAMEBUFFER_TEX2D:
@@ -3422,7 +3414,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
       break;
     case VERTEXATTRIBDIVISOR: Serialise_glVertexAttribDivisor(0, 0); break;
     case VERTEXATTRIBBINDING: Serialise_glVertexAttribBinding(0, 0); break;
-//
+
     case OBJECT_LABEL: Serialise_glObjectLabel(eGL_NONE, 0, 0, NULL); break;
     case BEGIN_EVENT: Serialise_glPushDebugGroup(eGL_NONE, 0, 0, NULL); break;
     case SET_MARKER:
