@@ -560,6 +560,8 @@ private:
 
   vector<string> globalExts;
 
+  vector<byte *> m_localDataBuffers;
+
   void writeFakeVertexAttribPointer(GLsizei count);
 
   template<typename TP, typename TF>

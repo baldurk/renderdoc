@@ -1096,7 +1096,6 @@ void *WrappedGLES::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr l
 
         ptr += offset;
 
-        RDCWARN("TODO CHECK %s:%d", __FILE__ ,__LINE__);
         glGetNamedBufferSubDataEXT(record->Resource.name, record->datatype, offset, length, ptr);
 
         record->Map.ptr = ptr;
@@ -1150,8 +1149,6 @@ void *WrappedGLES::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr l
               if(GetResourceManager()->IsResourceDirty(record->GetResourceID()))
               {
                 // Perhaps we could get these contents from the frame initial state buffer?
-
-                RDCWARN("TODO CHECK %s:%d", __FILE__ ,__LINE__);
                 glGetNamedBufferSubDataEXT(record->Resource.name, record->datatype, 0, buflength, shadow);
               }
               else
@@ -1888,12 +1885,9 @@ bool WrappedGLES::Serialise_glVertexAttribPointerEXT(GLuint vaobj, GLuint buffer
       else
         m_Real.glVertexAttribPointer(Index, Size, Type, Norm, Stride, (const void*)Offset);
     }
+    // store pointers to local data buffers in order to release them at the end of the replay
+    m_localDataBuffers.push_back(bytes);
   }
-
-  // TODO PEPE record the address of the allocated byte array to be able to relase it
-  // SAFE_DELTE_ARRAY(bytes);
-  RDCWARN("TODO PEPE (SAFE_DELETE) %s:%d", __FILE__ ,__LINE__);
-
   return true;
 }
 

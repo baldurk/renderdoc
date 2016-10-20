@@ -1011,6 +1011,10 @@ WrappedGLES::~WrappedGLES()
 
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->UnregisterMemoryRegion(this);
+
+  for (const auto& buffer : m_localDataBuffers)
+    delete[] buffer;
+  m_localDataBuffers.clear();
 }
 
 void *WrappedGLES::GetCtx()
