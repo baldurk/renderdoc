@@ -147,26 +147,7 @@ struct BakedCmdListInfo
 
   vector<pair<ResourceId, EventUsage> > resourceUsage;
 
-  struct CmdListState
-  {
-    D3D12_PRIMITIVE_TOPOLOGY topo;
-
-    uint32_t idxWidth;
-    ResourceId ibuffer;
-    vector<ResourceId> vbuffers;
-
-    vector<ResourceId> sotargets, socounters;
-
-    struct RootSignature
-    {
-      ResourceId rootsig;
-
-      vector<D3D12RenderState::SignatureElement> sigelems;
-    } compute, graphics;
-
-    ResourceId rts[8];
-    ResourceId dsv;
-  } state;
+  D3D12RenderState state;
 
   vector<D3D12_RESOURCE_BARRIER> barriers;
 

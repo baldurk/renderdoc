@@ -849,13 +849,13 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
 {
   FetchDrawcall &d = drawNode.draw;
 
-  const BakedCmdListInfo::CmdListState &state = m_BakedCmdListInfo[m_LastCmdListID].state;
+  const D3D12RenderState &state = m_BakedCmdListInfo[m_LastCmdListID].state;
   uint32_t e = d.eventID;
 
   if((d.flags & (eDraw_Drawcall | eDraw_Dispatch)) == 0)
     return;
 
-  const BakedCmdListInfo::CmdListState::RootSignature *rootdata = NULL;
+  const D3D12RenderState::RootSignature *rootdata = NULL;
 
   if((d.flags & eDraw_Dispatch) && state.compute.rootsig != ResourceId())
   {
@@ -865,40 +865,38 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
   {
     rootdata = &state.graphics;
 
-    if(d.flags & eDraw_UseIBuffer && state.ibuffer != ResourceId())
+    if(d.flags & eDraw_UseIBuffer && state.ibuffer.buf != ResourceId())
       drawNode.resourceUsage.push_back(
-          std::make_pair(state.ibuffer, EventUsage(e, eUsage_IndexBuffer)));
+          std::make_pair(state.ibuffer.buf, EventUsage(e, eUsage_IndexBuffer)));
 
     for(size_t i = 0; i < state.vbuffers.size(); i++)
     {
-      if(state.vbuffers[i] != ResourceId())
+      if(state.vbuffers[i].buf != ResourceId())
         drawNode.resourceUsage.push_back(
-            std::make_pair(state.vbuffers[i], EventUsage(e, eUsage_VertexBuffer)));
+            std::make_pair(state.vbuffers[i].buf, EventUsage(e, eUsage_VertexBuffer)));
     }
 
-    for(size_t i = 0; i < state.sotargets.size(); i++)
+    for(size_t i = 0; i < state.streamouts.size(); i++)
     {
-      if(state.sotargets[i] != ResourceId())
-        drawNode.resourceUsage.push_back(std::make_pair(state.sotargets[i], EventUsage(e, eUsage_SO)));
-    }
-
-    for(size_t i = 0; i < state.socounters.size(); i++)
-    {
-      if(state.socounters[i] != ResourceId())
+      if(state.streamouts[i].buf != ResourceId())
         drawNode.resourceUsage.push_back(
-            std::make_pair(state.socounters[i], EventUsage(e, eUsage_SO)));
-    }
-
-    for(size_t i = 0; i < ARRAY_COUNT(state.rts); i++)
-    {
-      if(state.rts[i] != ResourceId())
+            std::make_pair(state.streamouts[i].buf, EventUsage(e, eUsage_SO)));
+      if(state.streamouts[i].countbuf != ResourceId())
         drawNode.resourceUsage.push_back(
-            std::make_pair(state.rts[i], EventUsage(e, eUsage_ColourTarget)));
+            std::make_pair(state.streamouts[i].countbuf, EventUsage(e, eUsage_SO)));
     }
 
-    if(state.dsv != ResourceId())
-      drawNode.resourceUsage.push_back(
-          std::make_pair(state.dsv, EventUsage(e, eUsage_DepthStencilTarget)));
+    vector<ResourceId> rts = state.GetRTVIDs();
+
+    for(size_t i = 0; i < rts.size(); i++)
+    {
+      if(rts[i] != ResourceId())
+        drawNode.resourceUsage.push_back(std::make_pair(rts[i], EventUsage(e, eUsage_ColourTarget)));
+    }
+
+    ResourceId id = state.GetDSVID();
+    if(id != ResourceId())
+      drawNode.resourceUsage.push_back(std::make_pair(id, EventUsage(e, eUsage_DepthStencilTarget)));
   }
 
   if(rootdata)
@@ -1026,10 +1024,19 @@ void D3D12CommandData::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
   if(m_LastCmdListID != ResourceId())
   {
     draw.topology = MakePrimitiveTopology(m_BakedCmdListInfo[m_LastCmdListID].state.topo);
-    draw.indexByteWidth = m_BakedCmdListInfo[m_LastCmdListID].state.idxWidth;
+    draw.indexByteWidth = m_BakedCmdListInfo[m_LastCmdListID].state.ibuffer.bytewidth;
 
-    memcpy(draw.outputs, m_BakedCmdListInfo[m_LastCmdListID].state.rts, sizeof(draw.outputs));
-    draw.depthOut = m_BakedCmdListInfo[m_LastCmdListID].state.dsv;
+    vector<ResourceId> rts = m_BakedCmdListInfo[m_LastCmdListID].state.GetRTVIDs();
+
+    for(size_t i = 0; i < ARRAY_COUNT(draw.outputs); i++)
+    {
+      if(i < rts.size())
+        draw.outputs[i] = rts[i];
+      else
+        draw.outputs[i] = ResourceId();
+    }
+
+    draw.depthOut = m_BakedCmdListInfo[m_LastCmdListID].state.GetDSVID();
   }
 
   if(m_LastCmdListID != ResourceId())

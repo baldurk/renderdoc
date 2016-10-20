@@ -54,6 +54,9 @@ struct D3D12RenderState
   bool rtSingle;
   PortableHandle dsv;
 
+  vector<ResourceId> GetRTVIDs() const;
+  ResourceId GetDSVID() const;
+
   struct SignatureElement
   {
     SignatureElement() : type(eRootUnknown), offset(0) {}
@@ -190,6 +193,6 @@ struct D3D12RenderState
   };
   vector<VertBuffer> vbuffers;
 
-  D3D12ResourceManager *GetResourceManager() { return m_ResourceManager; }
+  D3D12ResourceManager *GetResourceManager() const { return m_ResourceManager; }
   D3D12ResourceManager *m_ResourceManager;
 };

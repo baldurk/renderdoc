@@ -81,6 +81,51 @@ D3D12RenderState &D3D12RenderState::operator=(const D3D12RenderState &o)
   return *this;
 }
 
+vector<ResourceId> D3D12RenderState::GetRTVIDs() const
+{
+  vector<ResourceId> ret;
+
+  if(rtSingle)
+  {
+    const D3D12Descriptor *descs = DescriptorFromPortableHandle(GetResourceManager(), rts[0]);
+
+    for(UINT i = 0; i < rts.size(); i++)
+    {
+      RDCASSERT(descs[i].GetType() == D3D12Descriptor::TypeRTV);
+      ret.push_back(GetResID(descs[i].nonsamp.resource));
+    }
+  }
+  else
+  {
+    for(UINT i = 0; i < rts.size(); i++)
+    {
+      WrappedID3D12DescriptorHeap *heap =
+          GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(rts[0].heap);
+
+      const D3D12Descriptor &desc = heap->GetDescriptors()[rts[i].index];
+
+      RDCASSERT(desc.GetType() == D3D12Descriptor::TypeRTV);
+      ret.push_back(GetResID(desc.nonsamp.resource));
+    }
+  }
+
+  return ret;
+}
+
+ResourceId D3D12RenderState::GetDSVID() const
+{
+  if(dsv.heap != ResourceId())
+  {
+    const D3D12Descriptor *desc = DescriptorFromPortableHandle(GetResourceManager(), dsv);
+
+    RDCASSERT(desc->GetType() == D3D12Descriptor::TypeDSV);
+
+    return GetResID(desc->nonsamp.resource);
+  }
+
+  return ResourceId();
+}
+
 void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd)
 {
   if(pipe != ResourceId())
