@@ -22,49 +22,340 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#define RENDERDOC_PLATFORM_ANDROID 1
+
 #include "gles_replay.h"
 #include "gles_driver.h"
 #include "gles_resources.h"
 
-void GLESReplay::MakeCurrentReplayContext(GLESWindowingData *ctx)
+#include <dlfcn.h>
+#include "official/egl_func_typedefs.h"
+
+#define REAL(NAME) NAME ##_real
+#define DEF_FUNC(NAME) static PFN_##NAME REAL(NAME) = (PFN_##NAME)dlsym(RTLD_NEXT, #NAME)
+
+DEF_FUNC(eglSwapBuffers);
+DEF_FUNC(eglBindAPI);
+DEF_FUNC(eglGetDisplay);
+DEF_FUNC(eglInitialize);
+DEF_FUNC(eglChooseConfig);
+DEF_FUNC(eglGetConfigAttrib);
+DEF_FUNC(eglCreateContext);
+DEF_FUNC(eglCreateWindowSurface);
+DEF_FUNC(eglQuerySurface);
+DEF_FUNC(eglMakeCurrent);
+DEF_FUNC(eglGetError);
+DEF_FUNC(eglDestroySurface);
+DEF_FUNC(eglDestroyContext);
+DEF_FUNC(eglCreatePbufferSurface);
+DEF_FUNC(eglGetProcAddress);
+
+#define DEBUG_STRINGIFY(x) #x
+#define DEBUG_TOSTRING(x) DEBUG_STRINGIFY(x)
+#define DEBUG_LOCATION __FILE__ ":" DEBUG_TOSTRING(__LINE__)
+
+
+#ifdef DEBUG
+#define EGL_RETURN_DEBUG(function) printEGLError(DEBUG_STRINGIFY(function), DEBUG_LOCATION)
+#define CALL_DEBUG() RDCLOG("CALL: (%s) : %s\n", DEBUG_LOCATION, __FUNCTION__)
+#else
+#define EGL_RETURN_DEBUG(function) while (false)
+#define CALL_DEBUG() while (false)
+#endif
+
+#define EGL_CONTEXT_FLAGS_KHR                              0x30FC
+
+#define EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR               0x00000001
+#define EGL_CONTEXT_OPENGL_FORWARD_COMPATIBLE_BIT_KHR  0x00000002
+#define EGL_CONTEXT_OPENGL_ROBUST_ACCESS_BIT_KHR       0x00000004
+
+const GLHookSet &GetRealGLFunctions();
+
+const char* getEGLErrorString(EGLint errorCode)
 {
-  RDCUNIMPLEMENTED("GLESReplay::MakeCurrentReplayContext");
+    switch (errorCode)
+    {
+        case EGL_SUCCESS                : return "The last function succeeded without error.";
+        case EGL_NOT_INITIALIZED        : return "EGL is not initialized, or could not be initialized, for the specified EGL display connection.";
+        case EGL_BAD_ACCESS             : return "EGL cannot access a requested resource (for example a context is bound in another thread).";
+        case EGL_BAD_ALLOC              : return "EGL failed to allocate resources for the requested operation.";
+        case EGL_BAD_ATTRIBUTE          : return "An unrecognized attribute or attribute value was passed in the attribute list.";
+        case EGL_BAD_CONTEXT            : return "An EGLContext argument does not name a valid EGL rendering context.";
+        case EGL_BAD_CONFIG             : return "An EGLConfig argument does not name a valid EGL frame buffer configuration.";
+        case EGL_BAD_CURRENT_SURFACE    : return "The current surface of the calling thread is a window, pixel buffer or pixmap that is no longer valid.";
+        case EGL_BAD_DISPLAY            : return "An EGLDisplay argument does not name a valid EGL display connection.";
+        case EGL_BAD_SURFACE            : return "An EGLSurface argument does not name a valid surface (window, pixel buffer or pixmap) configured for GL rendering.";
+        case EGL_BAD_MATCH              : return "Arguments are inconsistent (for example, a valid context requires buffers not supplied by a valid surface).";
+        case EGL_BAD_PARAMETER          : return "One or more argument values are invalid.";
+        case EGL_BAD_NATIVE_PIXMAP      : return "A NativePixmapType argument does not refer to a valid native pixmap.";
+        case EGL_BAD_NATIVE_WINDOW      : return "A NativeWindowType argument does not refer to a valid native window.";
+        case EGL_CONTEXT_LOST           : return "A power management event has occurred. The application must destroy all contexts and reinitialise OpenGL ES state and objects to continue rendering.";
+        default                         : return "Unknown EGL error code!";
+    }
+    return "";
 }
 
-void GLESReplay::SwapBuffers(GLESWindowingData *ctx)
+void printEGLError(const char* const function, const char* const location)
 {
-  RDCUNIMPLEMENTED("GLESReplay::SwapBuffers");
+    EGLint errorCode = REAL(eglGetError)();
+    if (errorCode != EGL_SUCCESS)
+        RDCLOG("(%s): %s: %s\n", location, function, getEGLErrorString(errorCode));
+}
+
+/*---------*/
+
+void GLESReplay::MakeCurrentReplayContext(GLESWindowingData *ctx)
+{
+    static GLESWindowingData *prev = NULL;
+    if(REAL(eglMakeCurrent) && ctx && ctx != prev)
+    {
+        prev = ctx;
+        REAL(eglMakeCurrent)(ctx->eglDisplay, ctx->surface, ctx->surface, ctx->ctx);
+        EGL_RETURN_DEBUG(eglMakeCurrent);
+        m_pDriver->ActivateContext(*ctx);
+        RDCLOG("GLESReplay::MakeCurrentReplayContext");
+    }
+}
+
+void GLESReplay::SwapBuffers(GLESWindowingData *data)
+{
+    REAL(eglSwapBuffers)(data->eglDisplay, data->surface);
+    EGL_RETURN_DEBUG(eglSwapBuffers);
 }
 
 void GLESReplay::CloseReplayContext()
 {
-  RDCUNIMPLEMENTED("GLESReplay::CloseReplayContext");
+    REAL(eglDestroyContext)(m_ReplayCtx.eglDisplay, m_ReplayCtx.ctx);
+    EGL_RETURN_DEBUG(eglDestroyContext);
 }
+
+
+static bool getEGLDisplayAndConfig(EGLDisplay * const egl_display, EGLConfig * const config, const EGLint * const attribs)
+{
+    *egl_display = REAL(eglGetDisplay)(EGL_DEFAULT_DISPLAY);
+    EGL_RETURN_DEBUG(eglGetDisplay);
+    if (!egl_display)
+        return false;
+
+    int egl_major;
+    int egl_minor;
+
+    if (!REAL(eglInitialize)(*egl_display, &egl_major, &egl_minor)) {
+        EGL_RETURN_DEBUG(eglInitialize);
+        return false;
+    }
+    RDCLOG("EGL init (%d, %d)\n", egl_major, egl_minor);
+
+    REAL(eglBindAPI)(EGL_OPENGL_ES_API);
+    EGL_RETURN_DEBUG(eglBindAPI);
+
+    EGLint num_configs;
+    if (!REAL(eglChooseConfig)(*egl_display, attribs, config, 1, &num_configs)) {
+        EGL_RETURN_DEBUG(eglChooseConfig);
+        return false;
+    }
+
+    EGL_RETURN_DEBUG(eglChooseConfig);
+    return true;
+}
+
 
 uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
-  RDCUNIMPLEMENTED("GLESReplay::MakeOutputWindow");
-  return 0;
+    ANativeWindow *wnd = 0;
+
+    if(system == eWindowingSystem_Android)
+    {
+        wnd = (ANativeWindow *)data;
+    }
+    else if(system == eWindowingSystem_Unknown)
+    {
+        // TODO(elecro): what?
+    }
+    else
+    {
+        RDCERR("Unexpected window system %u", system);
+    }
+
+    static const EGLint attribs[] = {
+        EGL_RED_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_BLUE_SIZE, 8,
+        EGL_SURFACE_TYPE, EGL_PBUFFER_BIT /*| EGL_PIXMAP_BIT*/ | EGL_WINDOW_BIT,
+        EGL_RENDERABLE_TYPE, eEGL_OPENGL_ES3_BIT,
+        EGL_CONFORMANT, eEGL_OPENGL_ES3_BIT,
+        EGL_COLOR_BUFFER_TYPE, EGL_RGB_BUFFER,
+        EGL_NONE
+    };
+
+    EGLDisplay egl_display;
+    EGLConfig config;
+    if (!getEGLDisplayAndConfig(&egl_display, &config, attribs))
+        return -1;
+
+    static const EGLint ctx_attribs[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 3,
+        EGL_CONTEXT_FLAGS_KHR, EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
+        EGL_NONE
+    };
+
+    RDCLOG("display:%p ctx:%p\n", egl_display, m_ReplayCtx.ctx);
+    EGLContext ctx = REAL(eglCreateContext)(egl_display, config, m_ReplayCtx.ctx, ctx_attribs);
+    EGL_RETURN_DEBUG(eglCreateContext);
+
+    EGLSurface surface = NULL;
+
+    if (wnd != 0) {
+        surface = REAL(eglCreateWindowSurface)(egl_display, config, (EGLNativeWindowType)wnd, NULL);
+        EGL_RETURN_DEBUG(eglCreateWindowSurface);
+    }
+    else
+    {
+        static const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
+        surface = REAL(eglCreatePbufferSurface)(egl_display, config, pbAttribs);
+        EGL_RETURN_DEBUG(eglCreatePbufferSurface);
+    }
+
+    if (!surface)
+        return -1;
+
+    OutputWindow outputWin;
+    outputWin.ctx = ctx;
+    outputWin.surface = surface;
+    outputWin.eglDisplay = egl_display;
+    outputWin.wnd = wnd;
+
+    REAL(eglQuerySurface)(egl_display, surface, EGL_HEIGHT, &outputWin.height);
+    EGL_RETURN_DEBUG(eglQuerySurface);
+    REAL(eglQuerySurface)(egl_display, surface, EGL_WIDTH, &outputWin.width);
+    EGL_RETURN_DEBUG(eglQuerySurface);
+    RDCLOG("New output window (%dx%d)\n", outputWin.width, outputWin.height);
+
+    MakeCurrentReplayContext(&outputWin);
+
+    InitOutputWindow(outputWin);
+    CreateOutputWindowBackbuffer(outputWin, depth);
+
+    uint64_t windowId = m_OutputWindowID++;
+    m_OutputWindows[windowId] = outputWin;
+
+    return windowId;
 }
 
 void GLESReplay::DestroyOutputWindow(uint64_t id)
 {
-  RDCUNIMPLEMENTED("GLESReplay::DestroyOutputWindow");
+    auto it = m_OutputWindows.find(id);
+    if(id == 0 || it == m_OutputWindows.end())
+        return;
+
+    OutputWindow &outw = it->second;
+
+    MakeCurrentReplayContext(&outw);
+
+    WrappedGLES &gl = *m_pDriver;
+    gl.glDeleteFramebuffers(1, &outw.BlitData.readFBO);
+
+    REAL(eglMakeCurrent)(outw.eglDisplay, 0, 0, NULL);
+    REAL(eglDestroySurface)(outw.eglDisplay, outw.surface);
+
+    m_OutputWindows.erase(it);
 }
 
 void GLESReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
 {
-  RDCUNIMPLEMENTED("GLESReplay::GetOutputWindowDimensions");
+    if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+        return;
+
+    OutputWindow &outw = m_OutputWindows[id];
+
+    REAL(eglQuerySurface)(outw.eglDisplay, outw.surface, EGL_HEIGHT, &h);
+    REAL(eglQuerySurface)(outw.eglDisplay, outw.surface, EGL_WIDTH, &w);
 }
 
 bool GLESReplay::IsOutputWindowVisible(uint64_t id)
 {
-  RDCUNIMPLEMENTED("GLESReplay::IsOutputWindowVisible");
-  return false;
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return false;
+
+  GLNOTIMP("Optimisation missing - output window always returning true");
+
+  return true;
 }
 
 ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
-  RDCUNIMPLEMENTED("GL_CreateReplayDevice");
-  return eReplayCreate_APIHardwareUnsupported;
+    RDCDEBUG("Creating an GLES replay device");
+
+    GLESInitParams initParams;
+    RDCDriver driverType = RDC_OpenGLES;
+    string driverName = "OpenGLES";
+    uint64_t machineIdent = 0;
+    if(logfile)
+    {
+        auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
+                                                   (RDCInitParams *)&initParams);
+        if(status != eReplayCreate_Success)
+            return status;
+    }
+
+    GLESReplay::PreContextInitCounters();
+
+    static const EGLint attribs[] = {
+        EGL_RED_SIZE, 8,
+        EGL_GREEN_SIZE, 8,
+        EGL_BLUE_SIZE, 8,
+        EGL_RENDERABLE_TYPE, eEGL_OPENGL_ES3_BIT,
+        EGL_CONFORMANT, eEGL_OPENGL_ES3_BIT,
+        EGL_SURFACE_TYPE, EGL_PBUFFER_BIT | EGL_WINDOW_BIT,
+        EGL_NONE
+    };
+
+    EGLDisplay egl_display;
+    EGLConfig config;
+    if (!getEGLDisplayAndConfig(&egl_display, &config, attribs))
+        return eReplayCreate_InternalError;
+
+    // don't care about pbuffer properties for same reason as backbuffer
+    static const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
+    EGLSurface pbuffer = REAL(eglCreatePbufferSurface)(egl_display, config, pbAttribs);
+    EGL_RETURN_DEBUG(eglCreatePbufferSurface);
+    if (pbuffer == 0)
+        return eReplayCreate_APIInitFailed;
+
+    static const EGLint ctx_attribs[] = {
+        EGL_CONTEXT_CLIENT_VERSION, 3,
+        EGL_CONTEXT_FLAGS_KHR, EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
+        EGL_NONE
+    };
+
+    EGLContext ctx = REAL(eglCreateContext)(egl_display, config, EGL_NO_CONTEXT, ctx_attribs);
+    EGL_RETURN_DEBUG(eglCreateContext);
+    if (ctx == 0)
+        return eReplayCreate_APIInitFailed;
+
+
+    EGLBoolean res = REAL(eglMakeCurrent)(egl_display, pbuffer, pbuffer, ctx);
+    EGL_RETURN_DEBUG(eglMakeCurrent);
+    if(!res)
+    {
+        GLESReplay::PostContextShutdownCounters();
+        RDCERR("Couldn't make pbuffer & context current");
+        return eReplayCreate_APIInitFailed;
+    }
+
+    WrappedGLES *gles = new WrappedGLES(logfile, GetRealGLFunctions());
+    gles->Initialise(initParams);
+    GLESReplay *replay = gles->GetReplay();
+
+    replay->SetProxy(logfile == NULL);
+
+    GLESWindowingData data;
+    data.eglDisplay = egl_display;
+    data.ctx = ctx;
+    data.surface = pbuffer;
+
+    replay->SetReplayData(data);
+
+    *driver = replay;
+    return eReplayCreate_Success;
 }
