@@ -1857,9 +1857,8 @@ bool WrappedGLES::Serialise_glVertexAttribPointerEXT(GLuint vaobj, GLuint buffer
   SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)pointer);
   SERIALISE_ELEMENT_BUF(byte *, bytes, pointer, dataSize);
   SERIALISE_ELEMENT(bool, IsIntegerMode, isInteger);
-  SERIALISE_ELEMENT(
-      ResourceId, id,
-      vaobj ? GetResourceManager()->GetID(VertexArrayRes(GetCtx(), vaobj)) : ResourceId());
+  SERIALISE_ELEMENT(ResourceId, id,
+                    vaobj ? GetResourceManager()->GetID(VertexArrayRes(GetCtx(), vaobj)) : ResourceId());
   SERIALISE_ELEMENT(ResourceId, bid,
                     buffer ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)) : ResourceId());
 
@@ -1872,13 +1871,8 @@ bool WrappedGLES::Serialise_glVertexAttribPointerEXT(GLuint vaobj, GLuint buffer
 
     // some intel drivers don't properly update query states (like GL_VERTEX_ATTRIB_ARRAY_SIZE)
     // unless the VAO is also bound when performing EXT_dsa functions :(
-    GLuint prevVAO = 0;
-    GLint prevBuffer = 0;
-    m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
-    m_Real.glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, &prevBuffer);
-
-    m_Real.glBindVertexArray(vaobj);
-    m_Real.glBindBuffer(eGL_ARRAY_BUFFER, buffer);
+    SafeVAOBinder safeVAOBinder(m_Real, vaobj);
+    SafeBufferBinder SafeBufferBinder(m_Real, eGL_ARRAY_BUFFER, buffer);
 
     if (IsIntegerMode) // TODO(elecro): do we really need both here?
     {
@@ -1894,9 +1888,6 @@ bool WrappedGLES::Serialise_glVertexAttribPointerEXT(GLuint vaobj, GLuint buffer
       else
         m_Real.glVertexAttribPointer(Index, Size, Type, Norm, Stride, (const void*)Offset);
     }
-
-    m_Real.glBindVertexArray(prevVAO);
-    m_Real.glBindBuffer(eGL_ARRAY_BUFFER, prevBuffer);
   }
 
   // TODO PEPE record the address of the allocated byte array to be able to relase it
