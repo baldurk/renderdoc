@@ -334,7 +334,15 @@ void DXBCFile::DisassembleHexDump()
     if(IsDeclaration(op))
       numDecls++;
 
-    tmp += Opcode::Length.Get(OpcodeToken0);
+    if(op == OPCODE_CUSTOMDATA)
+    {
+      // length in opcode token is 0, full length is in second dword
+      tmp += tmp[1];
+    }
+    else
+    {
+      tmp += Opcode::Length.Get(OpcodeToken0);
+    }
   }
 
   m_Declarations.reserve(numDecls);
