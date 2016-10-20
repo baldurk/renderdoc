@@ -258,96 +258,71 @@
 //    state.MarkDirty(this);
 //  }
 //}
-//
-//bool WrappedGLES::Serialise_glMemoryBarrier(GLbitfield barriers)
-//{
-//  SERIALISE_ELEMENT(uint32_t, Barriers, barriers);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glMemoryBarrier(Barriers);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glMemoryBarrier(GLbitfield barriers)
-//{
-//  if(barriers & GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT)
-//  {
-//    // perform a forced flush of all persistent mapped buffers,
-//    // coherent or not.
-//    PersistentMapMemoryBarrier(m_PersistentMaps);
-//  }
-//
-//  m_Real.glMemoryBarrier(barriers);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(MEMORY_BARRIER);
-//    Serialise_glMemoryBarrier(barriers);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glMemoryBarrierByRegion(GLbitfield barriers)
-//{
-//  SERIALISE_ELEMENT(uint32_t, Barriers, barriers);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glMemoryBarrierByRegion(Barriers);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glMemoryBarrierByRegion(GLbitfield barriers)
-//{
-//  if(barriers & GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT)
-//  {
-//    // perform a forced flush of all persistent mapped buffers,
-//    // coherent or not.
-//    PersistentMapMemoryBarrier(m_PersistentMaps);
-//  }
-//
-//  m_Real.glMemoryBarrierByRegion(barriers);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(MEMORY_BARRIER_BY_REGION);
-//    Serialise_glMemoryBarrierByRegion(barriers);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
-//bool WrappedGLES::Serialise_glTextureBarrier()
-//{
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glTextureBarrier();
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glTextureBarrier()
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glTextureBarrier();
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(TEXTURE_BARRIER);
-//    Serialise_glTextureBarrier();
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//  }
-//}
-//
+
+bool WrappedGLES::Serialise_glMemoryBarrier(GLbitfield barriers)
+{
+  SERIALISE_ELEMENT(uint32_t, Barriers, barriers);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glMemoryBarrier(Barriers);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glMemoryBarrier(GLbitfield barriers)
+{
+  if(barriers & GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT_EXT)
+  {
+    // perform a forced flush of all persistent mapped buffers,
+    // coherent or not.
+    PersistentMapMemoryBarrier(m_PersistentMaps);
+  }
+
+  m_Real.glMemoryBarrier(barriers);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(MEMORY_BARRIER);
+    Serialise_glMemoryBarrier(barriers);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
+bool WrappedGLES::Serialise_glMemoryBarrierByRegion(GLbitfield barriers)
+{
+  SERIALISE_ELEMENT(uint32_t, Barriers, barriers);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glMemoryBarrierByRegion(Barriers);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glMemoryBarrierByRegion(GLbitfield barriers)
+{
+  if(barriers & GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT_EXT)
+  {
+    // perform a forced flush of all persistent mapped buffers,
+    // coherent or not.
+    PersistentMapMemoryBarrier(m_PersistentMaps);
+  }
+
+  m_Real.glMemoryBarrierByRegion(barriers);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(MEMORY_BARRIER_BY_REGION);
+    Serialise_glMemoryBarrierByRegion(barriers);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
 //bool WrappedGLES::Serialise_glDrawTransformFeedback(GLenum mode, GLuint id)
 //{
 //  SERIALISE_ELEMENT(GLenum, Mode, mode);

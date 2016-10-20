@@ -334,6 +334,8 @@
     HookInit(glGetProgramPipelineInfoLog); \
     HookInit(glBindImageTexture); \
     HookInit(glGetBooleani_v); \
+    HookInit(glMemoryBarrier); \
+    HookInit(glMemoryBarrierByRegion); \
     HookInit(glTexStorage2DMultisample); \
     HookInit(glGetMultisamplefv); \
     HookInit(glSampleMaski); \
@@ -739,6 +741,8 @@
     HookWrapper4(void, glGetProgramPipelineInfoLog, GLuint, pipeline, GLsizei, bufSize, GLsizei *, length, GLchar *, infoLog); \
     HookWrapper7(void, glBindImageTexture, GLuint, unit, GLuint, texture, GLint, level, GLboolean, layered, GLint, layer, GLenum, access, GLenum, format); \
     HookWrapper3(void, glGetBooleani_v, GLenum, target, GLuint, index, GLboolean *, data); \
+    HookWrapper1(void, glMemoryBarrier, GLbitfield, barriers); \
+    HookWrapper1(void, glMemoryBarrierByRegion, GLbitfield, barriers); \
     HookWrapper6(void, glTexStorage2DMultisample, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height, GLboolean, fixedsamplelocations); \
     HookWrapper3(void, glGetMultisamplefv, GLenum, pname, GLuint, index, GLfloat *, val); \
     HookWrapper2(void, glSampleMaski, GLuint, maskNumber, GLbitfield, mask); \
@@ -846,8 +850,6 @@
 #define DefineUnsupportedDummies() \
     HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
     HookWrapper1(void, glDispatchComputeIndirect, GLintptr, indirect); \
-    HookWrapper1(void, glMemoryBarrier, GLbitfield, barriers); \
-    HookWrapper1(void, glMemoryBarrierByRegion, GLbitfield, barriers); \
     HookWrapper6(void, glDebugMessageControlKHR, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
     HookWrapper6(void, glDebugMessageInsertKHR, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
     HookWrapper2(void, glDebugMessageCallbackKHR, GLDEBUGPROCKHR, callback, const void *, userParam); \
@@ -1230,8 +1232,6 @@
 #define CheckUnsupported() \
     HandleUnsupported(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
     HandleUnsupported(PFNGLDISPATCHCOMPUTEINDIRECTPROC, glDispatchComputeIndirect); \
-    HandleUnsupported(PFNGLMEMORYBARRIERPROC, glMemoryBarrier); \
-    HandleUnsupported(PFNGLMEMORYBARRIERBYREGIONPROC, glMemoryBarrierByRegion); \
     HandleUnsupported(PFNGLDEBUGMESSAGECONTROLKHRPROC, glDebugMessageControlKHR); \
     HandleUnsupported(PFNGLDEBUGMESSAGEINSERTKHRPROC, glDebugMessageInsertKHR); \
     HandleUnsupported(PFNGLDEBUGMESSAGECALLBACKKHRPROC, glDebugMessageCallbackKHR); \
