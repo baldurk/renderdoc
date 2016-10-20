@@ -1501,9 +1501,16 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
     if(CheckConstParam(WriteDestProgram))
     {
       GLuint idx = gl.glGetProgramResourceIndex(progDst, eGL_SHADER_STORAGE_BLOCK, name.c_str());
-// TODO PEPE
-//      if(idx != GL_INVALID_INDEX)
-//        gl.glShaderStorageBlockBinding(progDst, i, bind);
+
+      if(idx != GL_INVALID_INDEX)
+        RDCWARN("TODO PEPE CHECK %s:%d", __FILE__ ,__LINE__);
+        //gl.glShaderStorageBlockBinding(progDst, i, bind);
+
+        GLint prevProgram = 0;
+        gl.glGetIntegerv(eGL_CURRENT_PROGRAM, &prevProgram);
+        gl.glUseProgram(progDst);
+        gl.glBindBufferBase(eGL_SHADER_STORAGE_BUFFER, i, bind);
+        gl.glUseProgram(prevProgram);
     }
   }
 }
