@@ -922,12 +922,12 @@
     HookWrapper1(void, glBeginPerfMonitorAMD, GLuint, monitor); \
     HookWrapper1(void, glPerfMonitorAMD, GLuint, monitor); \
     HookWrapper5(void, glGetPerfMonitorCounterDataAMD, GLuint, monitor, GLenum, pname, GLsizei, dataSize, GLuint *, data, GLint *, bytesWritten); \
-    HookWrapper10(void, glBlitFramebufferAngle, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
-    HookWrapper5(void, glRenderbufferStorageMultisampleAngle, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
-    HookWrapper4(void, glDrawArraysInstancedAngle, GLenum, mode, GLint, first, GLsizei, count, GLsizei, primcount); \
-    HookWrapper5(void, glDrawElementsInstancedAngle, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, primcount); \
-    HookWrapper2(void, glVertexAttribDivisorAngle, GLuint, index, GLuint, divisor); \
-    HookWrapper4(void, glGetTranslatedShaderSourceAngle, GLuint, shader, GLsizei, bufsize, GLsizei *, length, GLchar *, source); \
+    HookWrapper10(void, glBlitFramebufferANGLE, GLint, srcX0, GLint, srcY0, GLint, srcX1, GLint, srcY1, GLint, dstX0, GLint, dstY0, GLint, dstX1, GLint, dstY1, GLbitfield, mask, GLenum, filter); \
+    HookWrapper5(void, glRenderbufferStorageMultisampleANGLE, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
+    HookWrapper4(void, glDrawArraysInstancedANGLE, GLenum, mode, GLint, first, GLsizei, count, GLsizei, primcount); \
+    HookWrapper5(void, glDrawElementsInstancedANGLE, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, primcount); \
+    HookWrapper2(void, glVertexAttribDivisorANGLE, GLuint, index, GLuint, divisor); \
+    HookWrapper4(void, glGetTranslatedShaderSourceANGLE, GLuint, shader, GLsizei, bufsize, GLsizei *, length, GLchar *, source); \
     HookWrapper4(void, glCopyTextureLevelSapple, GLuint, destinationTexture, GLuint, sourceTexture, GLint, sourceBaseLevel, GLsizei, sourceLevelCount); \
     HookWrapper5(void, glRenderbufferStorageMultisampleAPPLE, GLenum, target, GLsizei, samples, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper0(void, glResolveMultisampleFramebufferAPPLE); \
@@ -1307,12 +1307,12 @@
     HandleUnsupported(PFNGLBEGINPERFMONITORAMDPROC, glBeginPerfMonitorAMD); \
     HandleUnsupported(PFNGLENDPERFMONITORAMDPROC, glPerfMonitorAMD); \
     HandleUnsupported(PFNGLGETPERFMONITORCOUNTERDATAAMDPROC, glGetPerfMonitorCounterDataAMD); \
-    HandleUnsupported(PFNGLBLITFRAMEBUFFERANGLEPROC, glBlitFramebufferAngle); \
-    HandleUnsupported(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEANGLEPROC, glRenderbufferStorageMultisampleAngle); \
-    HandleUnsupported(PFNGLDRAWARRAYSINSTANCEDANGLEPROC, glDrawArraysInstancedAngle); \
-    HandleUnsupported(PFNGLDRAWELEMENTSINSTANCEDANGLEPROC, glDrawElementsInstancedAngle); \
-    HandleUnsupported(PFNGLVERTEXATTRIBDIVISORANGLEPROC, glVertexAttribDivisorAngle); \
-    HandleUnsupported(PFNGLGETTRANSLATEDSHADERSOURCEANGLEPROC, glGetTranslatedShaderSourceAngle); \
+    HandleUnsupported(PFNGLBLITFRAMEBUFFERANGLEPROC, glBlitFramebufferANGLE); \
+    HandleUnsupported(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEANGLEPROC, glRenderbufferStorageMultisampleANGLE); \
+    HandleUnsupported(PFNGLDRAWARRAYSINSTANCEDANGLEPROC, glDrawArraysInstancedANGLE); \
+    HandleUnsupported(PFNGLDRAWELEMENTSINSTANCEDANGLEPROC, glDrawElementsInstancedANGLE); \
+    HandleUnsupported(PFNGLVERTEXATTRIBDIVISORANGLEPROC, glVertexAttribDivisorANGLE); \
+    HandleUnsupported(PFNGLGETTRANSLATEDSHADERSOURCEANGLEPROC, glGetTranslatedShaderSourceANGLE); \
     HandleUnsupported(PFNGLCOPYTEXTURELEVELSAPPLEPROC, glCopyTextureLevelSapple); \
     HandleUnsupported(PFNGLRENDERBUFFERSTORAGEMULTISAMPLEAPPLEPROC, glRenderbufferStorageMultisampleAPPLE); \
     HandleUnsupported(PFNGLRESOLVEMULTISAMPLEFRAMEBUFFERAPPLEPROC, glResolveMultisampleFramebufferAPPLE); \
