@@ -2056,6 +2056,20 @@ void WrappedID3D12Device::ReadLogInitialisation()
     m_Queue->GetParentDrawcall().children.clear();
 
     SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.drawcallList, NULL, NULL);
+
+    D3D12CommandData &cmd = *m_Queue->GetCommandData();
+
+    for(auto it = cmd.m_BakedCmdListInfo.begin(); it != cmd.m_BakedCmdListInfo.end(); it++)
+    {
+      for(size_t i = 0; i < it->second.crackedLists.size(); i++)
+        it->second.crackedLists[i]->Release();
+      it->second.crackedLists.clear();
+    }
+
+    SAFE_RELEASE(cmd.m_CrackedAllocators[D3D12_COMMAND_LIST_TYPE_DIRECT]);
+    SAFE_RELEASE(cmd.m_CrackedAllocators[D3D12_COMMAND_LIST_TYPE_BUNDLE]);
+    SAFE_RELEASE(cmd.m_CrackedAllocators[D3D12_COMMAND_LIST_TYPE_COMPUTE]);
+    SAFE_RELEASE(cmd.m_CrackedAllocators[D3D12_COMMAND_LIST_TYPE_COPY]);
   }
 
 #if !defined(RELEASE)

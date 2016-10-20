@@ -30,6 +30,11 @@ ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList::GetList(ResourceId 
   return GetResourceManager()->GetLiveAs<WrappedID3D12GraphicsCommandList>(id)->GetReal();
 }
 
+ID3D12GraphicsCommandList *WrappedID3D12GraphicsCommandList::GetCrackedList(ResourceId id)
+{
+  return Unwrap(m_Cmd->m_BakedCmdListInfo[id].crackedLists.back());
+}
+
 bool WrappedID3D12GraphicsCommandList::Serialise_Close()
 {
   SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
@@ -78,7 +83,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close()
 
     list->Close();
 
-    if(m_State == READING && !m_Cmd->m_BakedCmdListInfo[CommandList].curEvents.empty())
+    if(!m_Cmd->m_BakedCmdListInfo[CommandList].crackedLists.empty())
+    {
+      GetCrackedList(CommandList)->Close();
+    }
+
+    if(!m_Cmd->m_BakedCmdListInfo[CommandList].curEvents.empty())
     {
       FetchDrawcall draw;
       draw.name = "API Calls";
@@ -241,6 +251,22 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
       D3D12DrawcallTreeNode *draw = new D3D12DrawcallTreeNode;
       m_Cmd->m_BakedCmdListInfo[CommandList].draw = draw;
 
+      {
+        if(m_Cmd->m_CrackedAllocators[type] == NULL)
+        {
+          HRESULT hr = m_pDevice->CreateCommandAllocator(
+              type, __uuidof(ID3D12CommandAllocator), (void **)&m_Cmd->m_CrackedAllocators[type]);
+          RDCASSERTEQUAL(hr, S_OK);
+        }
+
+        ID3D12GraphicsCommandList *list = NULL;
+        m_pDevice->CreateCommandList(nodeMask, type, m_Cmd->m_CrackedAllocators[type],
+                                     pInitialState, riid, (void **)&list);
+
+        RDCASSERT(m_Cmd->m_BakedCmdListInfo[CommandList].crackedLists.empty());
+        m_Cmd->m_BakedCmdListInfo[CommandList].crackedLists.push_back(list);
+      }
+
       // On list execute we increment all child events/drawcalls by
       // m_RootEventID and insert them into the tree.
       m_Cmd->m_BakedCmdListInfo[CommandList].curEventID = 0;
@@ -385,7 +411,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResourceBarrier(UINT NumBarrier
     ID3D12GraphicsCommandList *list = GetList(CommandList);
 
     if(!filtered.empty())
+    {
       list->ResourceBarrier((UINT)filtered.size(), &filtered[0]);
+      GetCrackedList(CommandList)->ResourceBarrier((UINT)filtered.size(), &filtered[0]);
+    }
 
     ResourceId cmd = GetResID(GetResourceManager()->GetWrapper(list));
 
@@ -489,6 +518,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetPrimitiveTopology(
     m_Cmd->m_BakedCmdListInfo[CommandList].state.topo = topo;
 
     GetList(CommandList)->IASetPrimitiveTopology(topo);
+    GetCrackedList(CommandList)->IASetPrimitiveTopology(topo);
   }
 
   return true;
@@ -533,6 +563,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetViewports(UINT NumViewport
   else if(m_State == READING)
   {
     GetList(CommandList)->RSSetViewports(num, views);
+    GetCrackedList(CommandList)->RSSetViewports(num, views);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -588,6 +619,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_RSSetScissorRects(UINT NumRects
   else if(m_State == READING)
   {
     GetList(CommandList)->RSSetScissorRects(num, rects);
+    GetCrackedList(CommandList)->RSSetScissorRects(num, rects);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -642,6 +674,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetBlendFactor(const FLOAT Bl
   else if(m_State == READING)
   {
     GetList(CommandList)->OMSetBlendFactor(factor);
+    GetCrackedList(CommandList)->OMSetBlendFactor(factor);
 
     memcpy(m_Cmd->m_BakedCmdListInfo[CommandList].state.blendFactor, factor, sizeof(factor));
   }
@@ -682,6 +715,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetStencilRef(UINT StencilRef
   else if(m_State == READING)
   {
     GetList(CommandList)->OMSetStencilRef(ref);
+    GetCrackedList(CommandList)->OMSetStencilRef(ref);
 
     m_Cmd->m_BakedCmdListInfo[CommandList].state.stencilRef = ref;
   }
@@ -745,6 +779,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetDescriptorHeaps(
       heaps[i] = Unwrap(GetResourceManager()->GetLiveAs<ID3D12DescriptorHeap>(DescriptorHeaps[i]));
 
     GetList(CommandList)->SetDescriptorHeaps((UINT)heaps.size(), &heaps[0]);
+    GetCrackedList(CommandList)->SetDescriptorHeaps((UINT)heaps.size(), &heaps[0]);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -819,6 +854,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(const D3D12_IN
     if(HasView)
     {
       list->IASetIndexBuffer(&view);
+      GetCrackedList(CommandList)->IASetIndexBuffer(&view);
 
       WrappedID3D12Resource::GetResIDFromAddr(view.BufferLocation, state.ibuffer.buf,
                                               state.ibuffer.offs);
@@ -828,6 +864,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetIndexBuffer(const D3D12_IN
     else
     {
       list->IASetIndexBuffer(NULL);
+      GetCrackedList(CommandList)->IASetIndexBuffer(NULL);
 
       state.ibuffer.buf = ResourceId();
       state.ibuffer.offs = 0;
@@ -888,6 +925,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_IASetVertexBuffers(
   else if(m_State == READING)
   {
     GetList(CommandList)->IASetVertexBuffers(start, num, views);
+    GetCrackedList(CommandList)->IASetVertexBuffers(start, num, views);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -962,6 +1000,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SOSetTargets(
   else if(m_State == READING)
   {
     GetList(CommandList)->SOSetTargets(start, num, views);
+    GetCrackedList(CommandList)->SOSetTargets(start, num, views);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -1025,6 +1064,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetPipelineState(ID3D12Pipeline
   {
     pPipelineState = GetResourceManager()->GetLiveAs<ID3D12PipelineState>(pipe);
     GetList(CommandList)->SetPipelineState(Unwrap(pPipelineState));
+    GetCrackedList(CommandList)->SetPipelineState(Unwrap(pPipelineState));
 
     m_Cmd->m_BakedCmdListInfo[CommandList].state.pipe = GetResID(pPipelineState);
   }
@@ -1113,6 +1153,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
       rtHandles[i] = CPUHandleFromPortableHandle(GetResourceManager(), rts[i]);
 
     GetList(CommandList)
+        ->OMSetRenderTargets(num, rtHandles, singlehandle ? TRUE : FALSE,
+                             dsv.heap != ResourceId() ? &dsvHandle : NULL);
+    GetCrackedList(CommandList)
         ->OMSetRenderTargets(num, rtHandles, singlehandle ? TRUE : FALSE,
                              dsv.heap != ResourceId() ? &dsvHandle : NULL);
 
@@ -1209,6 +1252,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootSignature(
     pRootSignature = GetResourceManager()->GetLiveAs<ID3D12RootSignature>(sig);
 
     GetList(CommandList)->SetComputeRootSignature(Unwrap(pRootSignature));
+    GetCrackedList(CommandList)->SetComputeRootSignature(Unwrap(pRootSignature));
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -1268,6 +1312,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootDescriptorTable(
   else if(m_State == READING)
   {
     GetList(CommandList)
+        ->SetComputeRootDescriptorTable(
+            idx, GPUHandleFromPortableHandle(GetResourceManager(), Descriptor));
+    GetCrackedList(CommandList)
         ->SetComputeRootDescriptorTable(
             idx, GPUHandleFromPortableHandle(GetResourceManager(), Descriptor));
 
@@ -1360,6 +1407,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstant(
   else if(m_State == READING)
   {
     GetList(CommandList)->SetComputeRoot32BitConstant(idx, val, offs);
+    GetCrackedList(CommandList)->SetComputeRoot32BitConstant(idx, val, offs);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -1416,6 +1464,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstants(
   else if(m_State == READING)
   {
     GetList(CommandList)->SetComputeRoot32BitConstants(idx, num, data, offs);
+    GetCrackedList(CommandList)->SetComputeRoot32BitConstants(idx, num, data, offs);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -1486,6 +1535,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootConstantBufferVie
     WrappedID3D12Resource *pRes = GetResourceManager()->GetLiveAs<WrappedID3D12Resource>(buffer);
 
     GetList(CommandList)->SetComputeRootConstantBufferView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
+    GetCrackedList(CommandList)
+        ->SetComputeRootConstantBufferView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -1556,6 +1607,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootShaderResourceVie
     WrappedID3D12Resource *pRes = GetResourceManager()->GetLiveAs<WrappedID3D12Resource>(buffer);
 
     GetList(CommandList)->SetComputeRootShaderResourceView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
+    GetCrackedList(CommandList)
+        ->SetComputeRootShaderResourceView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -1627,6 +1680,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootUnorderedAccessVi
 
     GetList(CommandList)
         ->SetComputeRootUnorderedAccessView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
+    GetCrackedList(CommandList)
+        ->SetComputeRootUnorderedAccessView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -1696,6 +1751,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootSignature(
     pRootSignature = GetResourceManager()->GetLiveAs<ID3D12RootSignature>(sig);
 
     GetList(CommandList)->SetGraphicsRootSignature(Unwrap(pRootSignature));
+    GetCrackedList(CommandList)->SetGraphicsRootSignature(Unwrap(pRootSignature));
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -1755,6 +1811,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootDescriptorTable(
   else if(m_State == READING)
   {
     GetList(CommandList)
+        ->SetGraphicsRootDescriptorTable(
+            idx, GPUHandleFromPortableHandle(GetResourceManager(), Descriptor));
+    GetCrackedList(CommandList)
         ->SetGraphicsRootDescriptorTable(
             idx, GPUHandleFromPortableHandle(GetResourceManager(), Descriptor));
 
@@ -1847,6 +1906,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstant(
   else if(m_State == READING)
   {
     GetList(CommandList)->SetGraphicsRoot32BitConstant(idx, val, offs);
+    GetCrackedList(CommandList)->SetGraphicsRoot32BitConstant(idx, val, offs);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -1903,6 +1963,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstants(
   else if(m_State == READING)
   {
     GetList(CommandList)->SetGraphicsRoot32BitConstants(idx, num, data, offs);
+    GetCrackedList(CommandList)->SetGraphicsRoot32BitConstants(idx, num, data, offs);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -1973,6 +2034,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferVi
     WrappedID3D12Resource *pRes = GetResourceManager()->GetLiveAs<WrappedID3D12Resource>(buffer);
 
     GetList(CommandList)
+        ->SetGraphicsRootConstantBufferView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
+    GetCrackedList(CommandList)
         ->SetGraphicsRootConstantBufferView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
@@ -2045,6 +2108,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootShaderResourceVi
 
     GetList(CommandList)
         ->SetGraphicsRootShaderResourceView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
+    GetCrackedList(CommandList)
+        ->SetGraphicsRootShaderResourceView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -2116,6 +2181,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootUnorderedAccessV
 
     GetList(CommandList)
         ->SetGraphicsRootUnorderedAccessView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
+    GetCrackedList(CommandList)
+        ->SetGraphicsRootUnorderedAccessView(idx, pRes->GetGPUVirtualAddress() + byteOffset);
 
     D3D12RenderState &state = m_Cmd->m_BakedCmdListInfo[CommandList].state;
 
@@ -2177,6 +2244,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginQuery(ID3D12QueryHeap *pQu
     pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
 
     // GetList(CommandList)->BeginQuery(Unwrap(pQueryHeap), type, idx);
+    // GetCrackedList(CommandList)->BeginQuery(Unwrap(pQueryHeap), type, idx);
   }
 
   return true;
@@ -2223,6 +2291,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndQuery(ID3D12QueryHeap *pQuer
     pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
 
     // GetList(CommandList)->EndQuery(Unwrap(pQueryHeap), type, idx);
+    // GetCrackedList(CommandList)->EndQuery(Unwrap(pQueryHeap), type, idx);
   }
 
   return true;
@@ -2278,6 +2347,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveQueryData(
     pDestinationBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(buf);
 
     // GetList(CommandList)->ResolveQueryData(Unwrap(pQueryHeap), type, start, num,
+    // Unwrap(pDestinationBuffer), offs);
+    // GetCrackedList(CommandList)->ResolveQueryData(Unwrap(pQueryHeap), type, start, num,
     // Unwrap(pDestinationBuffer), offs);
   }
 
@@ -2533,6 +2604,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(UINT VertexCountP
   else if(m_State == READING)
   {
     GetList(CommandList)->DrawInstanced(vtxCount, instCount, startVtx, startInst);
+    GetCrackedList(CommandList)->DrawInstanced(vtxCount, instCount, startVtx, startInst);
 
     const string desc = m_pSerialiser->GetDebugStr();
 
@@ -2608,6 +2680,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT Index
   else if(m_State == READING)
   {
     GetList(CommandList)->DrawIndexedInstanced(idxCount, instCount, startIdx, startVtx, startInst);
+    GetCrackedList(CommandList)->DrawIndexedInstanced(idxCount, instCount, startIdx, startVtx, startInst);
 
     const string desc = m_pSerialiser->GetDebugStr();
 
@@ -2682,6 +2755,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(UINT ThreadGroupCountX
   else if(m_State == READING)
   {
     GetList(CommandList)->Dispatch(x, y, z);
+    GetCrackedList(CommandList)->Dispatch(x, y, z);
 
     const string desc = m_pSerialiser->GetDebugStr();
 
@@ -3430,6 +3504,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
     DepthStencilView = CPUHandleFromPortableHandle(GetResourceManager(), dsv);
 
     GetList(CommandList)->ClearDepthStencilView(DepthStencilView, f, d, s, num, rects);
+    GetCrackedList(CommandList)->ClearDepthStencilView(DepthStencilView, f, d, s, num, rects);
 
     const string desc = m_pSerialiser->GetDebugStr();
 
@@ -3514,6 +3589,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
     RenderTargetView = CPUHandleFromPortableHandle(GetResourceManager(), rtv);
 
     GetList(CommandList)->ClearRenderTargetView(RenderTargetView, Color, num, rects);
+    GetCrackedList(CommandList)->ClearRenderTargetView(RenderTargetView, Color, num, rects);
 
     const string desc = m_pSerialiser->GetDebugStr();
 
@@ -3605,6 +3681,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
     pResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
 
     GetList(CommandList)
+        ->ClearUnorderedAccessViewUint(ViewGPUHandleInCurrentHeap, ViewCPUHandle, Unwrap(pResource),
+                                       vals, num, rects);
+    GetCrackedList(CommandList)
         ->ClearUnorderedAccessViewUint(ViewGPUHandleInCurrentHeap, ViewCPUHandle, Unwrap(pResource),
                                        vals, num, rects);
 
@@ -3707,6 +3786,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
     GetList(CommandList)
         ->ClearUnorderedAccessViewFloat(ViewGPUHandleInCurrentHeap, ViewCPUHandle,
                                         Unwrap(pResource), vals, num, rects);
+    GetCrackedList(CommandList)
+        ->ClearUnorderedAccessViewFloat(ViewGPUHandleInCurrentHeap, ViewCPUHandle,
+                                        Unwrap(pResource), vals, num, rects);
 
     const string desc = m_pSerialiser->GetDebugStr();
 
@@ -3788,6 +3870,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(ID3D12Resource 
     pResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
 
     GetList(CommandList)->DiscardResource(pResource, HasRegion ? &region : NULL);
+    GetCrackedList(CommandList)->DiscardResource(pResource, HasRegion ? &region : NULL);
   }
 
   return true;
@@ -3844,6 +3927,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(ID3D12Resource
     pSrcBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(src);
 
     GetList(CommandList)->CopyBufferRegion(Unwrap(pDstBuffer), dstoffs, Unwrap(pSrcBuffer), srcoffs, num);
+    GetCrackedList(CommandList)
+        ->CopyBufferRegion(Unwrap(pDstBuffer), dstoffs, Unwrap(pSrcBuffer), srcoffs, num);
 
     const string desc = m_pSerialiser->GetDebugStr();
 
@@ -3924,6 +4009,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
   else if(m_State == READING)
   {
     GetList(CommandList)->CopyTextureRegion(&dst, dstX, dstY, dstZ, &src, HasSrcBox ? &box : NULL);
+    GetCrackedList(CommandList)->CopyTextureRegion(&dst, dstX, dstY, dstZ, &src, HasSrcBox ? &box : NULL);
 
     const string desc = m_pSerialiser->GetDebugStr();
 
@@ -4018,6 +4104,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(ID3D12Resource *pD
     pSrcResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(src);
 
     GetList(CommandList)->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
+    GetCrackedList(CommandList)->CopyResource(Unwrap(pDstResource), Unwrap(pSrcResource));
 
     const string desc = m_pSerialiser->GetDebugStr();
 
@@ -4105,6 +4192,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(ID3D12Resour
     pSrcResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(src);
 
     GetList(CommandList)
+        ->ResolveSubresource(Unwrap(pDstResource), dstSub, Unwrap(pSrcResource), srcSub, fmt);
+    GetCrackedList(CommandList)
         ->ResolveSubresource(Unwrap(pDstResource), dstSub, Unwrap(pSrcResource), srcSub, fmt);
 
     const string desc = m_pSerialiser->GetDebugStr();

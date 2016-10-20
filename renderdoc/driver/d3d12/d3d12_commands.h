@@ -130,6 +130,7 @@ struct BakedCmdListInfo
     debugMessages = parent.debugMessages;
     eventCount = parent.curEventID;
     drawCount = parent.drawCount;
+    crackedLists.swap(parent.crackedLists);
 
     curEventID = 0;
 
@@ -140,6 +141,8 @@ struct BakedCmdListInfo
     parent.curEvents.clear();
     parent.debugMessages.clear();
   }
+
+  vector<ID3D12GraphicsCommandList *> crackedLists;
 
   vector<FetchAPIEvent> curEvents;
   vector<DebugMessage> debugMessages;
@@ -169,6 +172,8 @@ struct D3D12CommandData
   D3D12DrawcallCallback *m_DrawcallCallback;
 
   ResourceId m_LastCmdListID;
+
+  ID3D12CommandAllocator *m_CrackedAllocators[4];
 
   map<ResourceId, BakedCmdListInfo> m_BakedCmdListInfo;
 
