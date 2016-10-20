@@ -2097,14 +2097,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginQuery(ID3D12QueryHeap *pQu
     {
       pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
 
-      Unwrap(m_Cmd->RerecordCmdList(CommandList))->BeginQuery(pQueryHeap, type, idx);
+      // Unwrap(m_Cmd->RerecordCmdList(CommandList))->BeginQuery(Unwrap(pQueryHeap), type, idx);
     }
   }
   else if(m_State == READING)
   {
     pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
 
-    GetList(CommandList)->BeginQuery(pQueryHeap, type, idx);
+    // GetList(CommandList)->BeginQuery(Unwrap(pQueryHeap), type, idx);
   }
 
   return true;
@@ -2143,14 +2143,14 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndQuery(ID3D12QueryHeap *pQuer
     {
       pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
 
-      Unwrap(m_Cmd->RerecordCmdList(CommandList))->EndQuery(pQueryHeap, type, idx);
+      // Unwrap(m_Cmd->RerecordCmdList(CommandList))->EndQuery(Unwrap(pQueryHeap), type, idx);
     }
   }
   else if(m_State == READING)
   {
     pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
 
-    GetList(CommandList)->EndQuery(pQueryHeap, type, idx);
+    // GetList(CommandList)->EndQuery(Unwrap(pQueryHeap), type, idx);
   }
 
   return true;
@@ -2194,8 +2194,10 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveQueryData(
       pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
       pDestinationBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(buf);
 
+      /*
       Unwrap(m_Cmd->RerecordCmdList(CommandList))
-          ->ResolveQueryData(pQueryHeap, type, start, num, pDestinationBuffer, offs);
+          ->ResolveQueryData(Unwrap(pQueryHeap), type, start, num, Unwrap(pDestinationBuffer),
+      offs);*/
     }
   }
   else if(m_State == READING)
@@ -2203,7 +2205,8 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveQueryData(
     pQueryHeap = GetResourceManager()->GetLiveAs<ID3D12QueryHeap>(heap);
     pDestinationBuffer = GetResourceManager()->GetLiveAs<ID3D12Resource>(buf);
 
-    GetList(CommandList)->ResolveQueryData(pQueryHeap, type, start, num, pDestinationBuffer, offs);
+    // GetList(CommandList)->ResolveQueryData(Unwrap(pQueryHeap), type, start, num,
+    // Unwrap(pDestinationBuffer), offs);
   }
 
   return true;
