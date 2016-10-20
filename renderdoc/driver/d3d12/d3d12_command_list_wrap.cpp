@@ -2121,6 +2121,8 @@ void WrappedID3D12GraphicsCommandList::BeginQuery(ID3D12QueryHeap *pQueryHeap,
     Serialise_BeginQuery(pQueryHeap, Type, Index);
 
     m_ListRecord->AddChunk(scope.Get());
+
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pQueryHeap), eFrameRef_Read);
   }
 }
 
@@ -2165,6 +2167,8 @@ void WrappedID3D12GraphicsCommandList::EndQuery(ID3D12QueryHeap *pQueryHeap, D3D
     Serialise_EndQuery(pQueryHeap, Type, Index);
 
     m_ListRecord->AddChunk(scope.Get());
+
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pQueryHeap), eFrameRef_Read);
   }
 }
 
@@ -2221,6 +2225,9 @@ void WrappedID3D12GraphicsCommandList::ResolveQueryData(ID3D12QueryHeap *pQueryH
                                AlignedDestinationBufferOffset);
 
     m_ListRecord->AddChunk(scope.Get());
+
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pQueryHeap), eFrameRef_Read);
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pDestinationBuffer), eFrameRef_Write);
   }
 }
 
@@ -2253,6 +2260,7 @@ void WrappedID3D12GraphicsCommandList::SetPredication(ID3D12Resource *pBuffer,
     Serialise_SetPredication(pBuffer, AlignedBufferOffset, Operation);
 
     m_ListRecord->AddChunk(scope.Get());
+    m_ListRecord->MarkResourceFrameReferenced(GetResID(pBuffer), eFrameRef_Read);
   }
 }
 
