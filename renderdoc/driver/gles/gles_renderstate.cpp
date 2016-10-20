@@ -836,6 +836,8 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
 
   Unpack.Fetch(m_Real, true);
 
+  m_Real->glGetFloatv(eGL_PRIMITIVE_BOUNDING_BOX, (GLfloat*)&PrimitiveBoundingBox);
+
   ClearGLErrors(*m_Real);
 }
 
@@ -1150,6 +1152,11 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
 
   Unpack.Apply(m_Real, true);
 
+  m_Real->glPrimitiveBoundingBox(PrimitiveBoundingBox.minX, PrimitiveBoundingBox.minY,
+                                 PrimitiveBoundingBox.minZ, PrimitiveBoundingBox.minW,
+                                 PrimitiveBoundingBox.maxX, PrimitiveBoundingBox.maxY,
+                                 PrimitiveBoundingBox.maxZ, PrimitiveBoundingBox.maxW);
+
   ClearGLErrors(*m_Real);
 }
 
@@ -1188,6 +1195,7 @@ void GLRenderState::Clear()
   RDCEraseEl(PointSize);
 
   RDCEraseEl(PrimitiveRestartIndex);
+  RDCEraseEl(PrimitiveBoundingBox);
   RDCEraseEl(ClipOrigin);
   RDCEraseEl(ClipDepth);
   RDCEraseEl(ProvokingVertex);
@@ -1559,4 +1567,13 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedGLES *gl)
   m_pSerialiser->Serialise("GL_UNPACK_COMPRESSED_BLOCK_HEIGHT", Unpack.compressedBlockHeight);
   m_pSerialiser->Serialise("GL_UNPACK_COMPRESSED_BLOCK_DEPTH", Unpack.compressedBlockDepth);
   m_pSerialiser->Serialise("GL_UNPACK_COMPRESSED_BLOCK_SIZE", Unpack.compressedBlockSize);
+
+  m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINX", PrimitiveBoundingBox.minX);
+  m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINY", PrimitiveBoundingBox.minY);
+  m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINZ", PrimitiveBoundingBox.minZ);
+  m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MINW", PrimitiveBoundingBox.minW);
+  m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXX", PrimitiveBoundingBox.maxX);
+  m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXY", PrimitiveBoundingBox.maxY);
+  m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXZ", PrimitiveBoundingBox.maxZ);
+  m_pSerialiser->Serialise("GL_PRIMITIVE_BOUNDING_BOX_MAXW", PrimitiveBoundingBox.maxW);
 }

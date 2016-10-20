@@ -210,6 +210,7 @@ const char *GLChunkNames[] = {
     "glClipControl",
     "glProvokingVertex",
     "glPrimitiveRestartIndex",
+    "glPrimitiveBoundingBox",
     "glPatchParameteri",
     "glPatchParameterfv",
     "glLineWidth",

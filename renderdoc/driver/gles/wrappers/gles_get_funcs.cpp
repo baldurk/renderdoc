@@ -525,6 +525,12 @@ GLint WrappedGLES::glGetUniformLocation(GLuint program, const GLchar *name)
   return m_Real.glGetUniformLocation(program, name);
 }
 
+void WrappedGLES::glGetUniformIndices(GLuint program, GLsizei uniformCount,
+                                      const GLchar *const *uniformNames, GLuint *uniformIndices)
+{
+  m_Real.glGetUniformIndices(program, uniformCount, uniformNames, uniformIndices);
+}
+
 GLuint WrappedGLES::glGetUniformBlockIndex(GLuint program, const GLchar *uniformBlockName)
 {
   return m_Real.glGetUniformBlockIndex(program, uniformBlockName);

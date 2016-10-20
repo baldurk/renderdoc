@@ -237,6 +237,7 @@
     HookInit(glClearBufferfi); \
     HookInit(glGetStringi); \
     HookInit(glCopyBufferSubData); \
+    HookInit(glGetUniformIndices); \
     HookInit(glGetActiveUniformsiv); \
     HookInit(glGetUniformBlockIndex); \
     HookInit(glGetActiveUniformBlockiv); \
@@ -342,6 +343,7 @@
     HookInit(glVertexAttribIFormat); \
     HookInit(glVertexAttribBinding); \
     HookInit(glVertexBindingDivisor); \
+    HookInit(glBlendBarrier); \
     HookInit(glCopyImageSubData); \
     HookInit(glDebugMessageControl); \
     HookInit(glDebugMessageInsert); \
@@ -366,6 +368,7 @@
     HookInit(glDrawRangeElementsBaseVertex); \
     HookInit(glDrawElementsInstancedBaseVertex); \
     HookInit(glFramebufferTexture); \
+    HookInit(glPrimitiveBoundingBox); \
     HookInit(glGetGraphicsResetStatus); \
     HookInit(glReadnPixels); \
     HookInit(glGetnUniformfv); \
@@ -638,6 +641,7 @@
     HookWrapper4(void, glClearBufferfi, GLenum, buffer, GLint, drawbuffer, GLfloat, depth, GLint, stencil); \
     HookWrapper2(const GLubyte *, glGetStringi, GLenum, name, GLuint, index); \
     HookWrapper5(void, glCopyBufferSubData, GLenum, readTarget, GLenum, writeTarget, GLintptr, readOffset, GLintptr, writeOffset, GLsizeiptr, size); \
+    HookWrapper4(void, glGetUniformIndices, GLuint, program, GLsizei, uniformCount, const GLchar *const*, uniformNames, GLuint *, uniformIndices); \
     HookWrapper5(void, glGetActiveUniformsiv, GLuint, program, GLsizei, uniformCount, const GLuint *, uniformIndices, GLenum, pname, GLint *, params); \
     HookWrapper2(GLuint, glGetUniformBlockIndex, GLuint, program, const GLchar *, uniformBlockName); \
     HookWrapper4(void, glGetActiveUniformBlockiv, GLuint, program, GLuint, uniformBlockIndex, GLenum, pname, GLint *, params); \
@@ -743,6 +747,7 @@
     HookWrapper4(void, glVertexAttribIFormat, GLuint, attribindex, GLint, size, GLenum, type, GLuint, relativeoffset); \
     HookWrapper2(void, glVertexAttribBinding, GLuint, attribindex, GLuint, bindingindex); \
     HookWrapper2(void, glVertexBindingDivisor, GLuint, bindingindex, GLuint, divisor); \
+    HookWrapper0(void, glBlendBarrier); \
     HookWrapper15(void, glCopyImageSubData, GLuint, srcName, GLenum, srcTarget, GLint, srcLevel, GLint, srcX, GLint, srcY, GLint, srcZ, GLuint, dstName, GLenum, dstTarget, GLint, dstLevel, GLint, dstX, GLint, dstY, GLint, dstZ, GLsizei, srcWidth, GLsizei, srcHeight, GLsizei, srcDepth); \
     HookWrapper6(void, glDebugMessageControl, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
     HookWrapper6(void, glDebugMessageInsert, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
@@ -767,6 +772,7 @@
     HookWrapper7(void, glDrawRangeElementsBaseVertex, GLenum, mode, GLuint, start, GLuint, end, GLsizei, count, GLenum, type, const void *, indices, GLint, basevertex); \
     HookWrapper6(void, glDrawElementsInstancedBaseVertex, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex); \
     HookWrapper4(void, glFramebufferTexture, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level); \
+    HookWrapper8(void, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
     HookWrapper0(GLenum, glGetGraphicsResetStatus); \
     HookWrapper8(void, glReadnPixels, GLint, x, GLint, y, GLsizei, width, GLsizei, height, GLenum, format, GLenum, type, GLsizei, bufSize, void *, data); \
     HookWrapper4(void, glGetnUniformfv, GLuint, program, GLint, location, GLsizei, bufSize, GLfloat *, params); \
@@ -837,13 +843,10 @@
 // unsupported entry points - used for dummy functions
 #define DefineUnsupportedDummies() \
     HookWrapper3(void, glClearBufferuiv, GLenum, buffer, GLint, drawbuffer, const GLuint *, value); \
-    HookWrapper4(void, glGetUniformIndices, GLuint, program, GLsizei, uniformCount, const GLchar *const*, uniformNames, GLuint *, uniformIndices); \
     HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
     HookWrapper1(void, glDispatchComputeIndirect, GLintptr, indirect); \
     HookWrapper1(void, glMemoryBarrier, GLbitfield, barriers); \
     HookWrapper1(void, glMemoryBarrierByRegion, GLbitfield, barriers); \
-    HookWrapper0(void, glBlendBarrier); \
-    HookWrapper8(void, glPrimitiveBoundingBox, GLfloat, minX, GLfloat, minY, GLfloat, minZ, GLfloat, minW, GLfloat, maxX, GLfloat, maxY, GLfloat, maxZ, GLfloat, maxW); \
     HookWrapper6(void, glDebugMessageControlKHR, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
     HookWrapper6(void, glDebugMessageInsertKHR, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
     HookWrapper2(void, glDebugMessageCallbackKHR, GLDEBUGPROCKHR, callback, const void *, userParam); \
@@ -1225,13 +1228,10 @@
 
 #define CheckUnsupported() \
     HandleUnsupported(PFNGLCLEARBUFFERUIVPROC, glClearBufferuiv); \
-    HandleUnsupported(PFNGLGETUNIFORMINDICESPROC, glGetUniformIndices); \
     HandleUnsupported(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
     HandleUnsupported(PFNGLDISPATCHCOMPUTEINDIRECTPROC, glDispatchComputeIndirect); \
     HandleUnsupported(PFNGLMEMORYBARRIERPROC, glMemoryBarrier); \
     HandleUnsupported(PFNGLMEMORYBARRIERBYREGIONPROC, glMemoryBarrierByRegion); \
-    HandleUnsupported(PFNGLBLENDBARRIERPROC, glBlendBarrier); \
-    HandleUnsupported(PFNGLPRIMITIVEBOUNDINGBOXPROC, glPrimitiveBoundingBox); \
     HandleUnsupported(PFNGLDEBUGMESSAGECONTROLKHRPROC, glDebugMessageControlKHR); \
     HandleUnsupported(PFNGLDEBUGMESSAGEINSERTKHRPROC, glDebugMessageInsertKHR); \
     HandleUnsupported(PFNGLDEBUGMESSAGECALLBACKKHRPROC, glDebugMessageCallbackKHR); \

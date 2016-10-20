@@ -296,6 +296,29 @@ void WrappedGLES::glBlendBarrierKHR()
   }
 }
 
+bool WrappedGLES::Serialise_glBlendBarrier()
+{
+  if(m_State <= EXECUTING)
+    m_Real.glBlendBarrier();
+
+  return true;
+}
+
+void WrappedGLES::glBlendBarrier()
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glBlendBarrier();
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(BLEND_BARRIER);
+    Serialise_glBlendBarrier();
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
+}
+
 bool WrappedGLES::Serialise_glStencilFunc(GLenum func, GLint ref, GLuint mask)
 {
   SERIALISE_ELEMENT(GLenum, f, func);
