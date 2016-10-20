@@ -3310,11 +3310,11 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case VIEWPORT_ARRAY: Serialise_glViewportArrayvOES(0, 0, 0); break;
     case SCISSOR: Serialise_glScissor(0, 0, 0, 0); break;
     case SCISSOR_ARRAY: Serialise_glScissorArrayvNV(0, 0, 0); break;
-//    case DISPATCH_COMPUTE: Serialise_glDispatchCompute(0, 0, 0); break;
+    case DISPATCH_COMPUTE: Serialise_glDispatchCompute(0, 0, 0); break;
 //    case DISPATCH_COMPUTE_GROUP_SIZE:
 //      Serialise_glDispatchComputeGroupSizeARB(0, 0, 0, 0, 0, 0);
 //      break;
-//    case DISPATCH_COMPUTE_INDIRECT: Serialise_glDispatchComputeIndirect(0); break;
+    case DISPATCH_COMPUTE_INDIRECT: Serialise_glDispatchComputeIndirect(0); break;
     case MEMORY_BARRIER: Serialise_glMemoryBarrier(0); break;
     case MEMORY_BARRIER_BY_REGION: Serialise_glMemoryBarrierByRegion(0); break;
     case DRAWARRAYS: Serialise_glDrawArrays(eGL_NONE, 0, 0); break;

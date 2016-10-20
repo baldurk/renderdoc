@@ -280,6 +280,8 @@
     HookInit(glTexStorage2D); \
     HookInit(glTexStorage3D); \
     HookInit(glGetInternalformativ); \
+    HookInit(glDispatchCompute); \
+    HookInit(glDispatchComputeIndirect); \
     HookInit(glDrawArraysIndirect); \
     HookInit(glDrawElementsIndirect); \
     HookInit(glFramebufferParameteri); \
@@ -687,6 +689,8 @@
     HookWrapper5(void, glTexStorage2D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper6(void, glTexStorage3D, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth); \
     HookWrapper5(void, glGetInternalformativ, GLenum, target, GLenum, internalformat, GLenum, pname, GLsizei, bufSize, GLint *, params); \
+    HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
+    HookWrapper1(void, glDispatchComputeIndirect, GLintptr, indirect); \
     HookWrapper2(void, glDrawArraysIndirect, GLenum, mode, const void *, indirect); \
     HookWrapper3(void, glDrawElementsIndirect, GLenum, mode, GLenum, type, const void *, indirect); \
     HookWrapper3(void, glFramebufferParameteri, GLenum, target, GLenum, pname, GLint, param); \
@@ -848,8 +852,6 @@
 
 // unsupported entry points - used for dummy functions
 #define DefineUnsupportedDummies() \
-    HookWrapper3(void, glDispatchCompute, GLuint, num_groups_x, GLuint, num_groups_y, GLuint, num_groups_z); \
-    HookWrapper1(void, glDispatchComputeIndirect, GLintptr, indirect); \
     HookWrapper6(void, glDebugMessageControlKHR, GLenum, source, GLenum, type, GLenum, severity, GLsizei, count, const GLuint *, ids, GLboolean, enabled); \
     HookWrapper6(void, glDebugMessageInsertKHR, GLenum, source, GLenum, type, GLuint, id, GLenum, severity, GLsizei, length, const GLchar *, buf); \
     HookWrapper2(void, glDebugMessageCallbackKHR, GLDEBUGPROCKHR, callback, const void *, userParam); \
@@ -1230,8 +1232,6 @@
 
 
 #define CheckUnsupported() \
-    HandleUnsupported(PFNGLDISPATCHCOMPUTEPROC, glDispatchCompute); \
-    HandleUnsupported(PFNGLDISPATCHCOMPUTEINDIRECTPROC, glDispatchComputeIndirect); \
     HandleUnsupported(PFNGLDEBUGMESSAGECONTROLKHRPROC, glDebugMessageControlKHR); \
     HandleUnsupported(PFNGLDEBUGMESSAGEINSERTKHRPROC, glDebugMessageInsertKHR); \
     HandleUnsupported(PFNGLDEBUGMESSAGECALLBACKKHRPROC, glDebugMessageCallbackKHR); \

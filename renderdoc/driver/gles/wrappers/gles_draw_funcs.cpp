@@ -26,80 +26,80 @@
 #include "../gles_driver.h"
 #include "common/common.h"
 #include "serialise/string_utils.h"
-//
-//bool WrappedGLES::Serialise_glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y,
-//                                                GLuint num_groups_z)
-//{
-//  SERIALISE_ELEMENT(uint32_t, X, num_groups_x);
-//  SERIALISE_ELEMENT(uint32_t, Y, num_groups_y);
-//  SERIALISE_ELEMENT(uint32_t, Z, num_groups_z);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glDispatchCompute(X, Y, Z);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    AddEvent(DISPATCH_COMPUTE, desc);
-//    string name =
-//        "glDispatchCompute(" + ToStr::Get(X) + ", " + ToStr::Get(Y) + ", " + ToStr::Get(Z) + ")";
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.flags |= eDraw_Dispatch;
-//
-//    draw.dispatchDimension[0] = X;
-//    draw.dispatchDimension[1] = Y;
-//    draw.dispatchDimension[2] = Z;
-//
-//    if(X == 0)
-//      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
-//                      "Dispatch call has Num Groups X=0. This will do nothing, which is unusual "
-//                      "for a non-indirect Dispatch. Did you mean X=1?");
-//    if(Y == 0)
-//      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
-//                      "Dispatch call has Num Groups Y=0. This will do nothing, which is unusual "
-//                      "for a non-indirect Dispatch. Did you mean Y=1?");
-//    if(Z == 0)
-//      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
-//                      "Dispatch call has Num Groups Z=0. This will do nothing, which is unusual "
-//                      "for a non-indirect Dispatch. Did you mean Z=1?");
-//
-//    AddDrawcall(draw, true);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DISPATCH_COMPUTE);
-//    Serialise_glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.FetchState(GetCtx(), this);
-//    state.MarkReferenced(this, false);
-//  }
-//  else if(m_State == WRITING_IDLE)
-//  {
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.MarkDirty(this);
-//  }
-//}
-//
+
+bool WrappedGLES::Serialise_glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y,
+                                                GLuint num_groups_z)
+{
+  SERIALISE_ELEMENT(uint32_t, X, num_groups_x);
+  SERIALISE_ELEMENT(uint32_t, Y, num_groups_y);
+  SERIALISE_ELEMENT(uint32_t, Z, num_groups_z);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glDispatchCompute(X, Y, Z);
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    AddEvent(DISPATCH_COMPUTE, desc);
+    string name =
+        "glDispatchCompute(" + ToStr::Get(X) + ", " + ToStr::Get(Y) + ", " + ToStr::Get(Z) + ")";
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.flags |= eDraw_Dispatch;
+
+    draw.dispatchDimension[0] = X;
+    draw.dispatchDimension[1] = Y;
+    draw.dispatchDimension[2] = Z;
+
+    if(X == 0)
+      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+                      "Dispatch call has Num Groups X=0. This will do nothing, which is unusual "
+                      "for a non-indirect Dispatch. Did you mean X=1?");
+    if(Y == 0)
+      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+                      "Dispatch call has Num Groups Y=0. This will do nothing, which is unusual "
+                      "for a non-indirect Dispatch. Did you mean Y=1?");
+    if(Z == 0)
+      AddDebugMessage(eDbgCategory_Execution, eDbgSeverity_Medium, eDbgSource_IncorrectAPIUse,
+                      "Dispatch call has Num Groups Z=0. This will do nothing, which is unusual "
+                      "for a non-indirect Dispatch. Did you mean Z=1?");
+
+    AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glDispatchCompute(GLuint num_groups_x, GLuint num_groups_y, GLuint num_groups_z)
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DISPATCH_COMPUTE);
+    Serialise_glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
+
+    m_ContextRecord->AddChunk(scope.Get());
+
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.FetchState(GetCtx(), this);
+    state.MarkReferenced(this, false);
+  }
+  else if(m_State == WRITING_IDLE)
+  {
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.MarkDirty(this);
+  }
+}
+
 //bool WrappedGLES::Serialise_glDispatchComputeGroupSizeARB(GLuint num_groups_x, GLuint num_groups_y,
 //                                                            GLuint num_groups_z, GLuint group_size_x,
 //                                                            GLuint group_size_y, GLuint group_size_z)
@@ -197,67 +197,66 @@
 //    state.MarkDirty(this);
 //  }
 //}
-//
-//bool WrappedGLES::Serialise_glDispatchComputeIndirect(GLintptr indirect)
-//{
-//  SERIALISE_ELEMENT(uint64_t, offs, indirect);
-//
-//  if(m_State <= EXECUTING)
-//  {
-//    m_Real.glDispatchComputeIndirect((GLintptr)offs);
-//  }
-//
-//  const string desc = m_pSerialiser->GetDebugStr();
-//
-//  Serialise_DebugMessages();
-//
-//  if(m_State == READING)
-//  {
-//    uint32_t groupSizes[3];
-//    m_Real.glGetBufferSubData(eGL_DISPATCH_INDIRECT_BUFFER, (GLintptr)offs, sizeof(uint32_t) * 3,
-//                              groupSizes);
-//
-//    AddEvent(DISPATCH_COMPUTE_INDIRECT, desc);
-//    string name = "glDispatchComputeIndirect(<" + ToStr::Get(groupSizes[0]) + ", " +
-//                  ToStr::Get(groupSizes[1]) + ", " + ToStr::Get(groupSizes[2]) + ">)";
-//
-//    FetchDrawcall draw;
-//    draw.name = name;
-//    draw.flags |= eDraw_Dispatch | eDraw_Indirect;
-//
-//    draw.dispatchDimension[0] = groupSizes[0];
-//    draw.dispatchDimension[1] = groupSizes[1];
-//    draw.dispatchDimension[2] = groupSizes[2];
-//
-//    AddDrawcall(draw, true);
-//  }
-//
-//  return true;
-//}
-//
-//void WrappedGLES::glDispatchComputeIndirect(GLintptr indirect)
-//{
-//  CoherentMapImplicitBarrier();
-//
-//  m_Real.glDispatchComputeIndirect(indirect);
-//
-//  if(m_State == WRITING_CAPFRAME)
-//  {
-//    SCOPED_SERIALISE_CONTEXT(DISPATCH_COMPUTE_INDIRECT);
-//    Serialise_glDispatchComputeIndirect(indirect);
-//
-//    m_ContextRecord->AddChunk(scope.Get());
-//
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.FetchState(GetCtx(), this);
-//    state.MarkReferenced(this, false);
-//  }
-//  else if(m_State == WRITING_IDLE)
-//  {
-//    GLRenderState state(&m_Real, m_pSerialiser, m_State);
-//    state.MarkDirty(this);
-//  }
-//}
+
+bool WrappedGLES::Serialise_glDispatchComputeIndirect(GLintptr indirect)
+{
+  SERIALISE_ELEMENT(uint64_t, offs, indirect);
+
+  if(m_State <= EXECUTING)
+  {
+    m_Real.glDispatchComputeIndirect((GLintptr)offs);
+  }
+
+  const string desc = m_pSerialiser->GetDebugStr();
+
+  Serialise_DebugMessages();
+
+  if(m_State == READING)
+  {
+    uint32_t groupSizes[3];
+    glGetBufferSubData(eGL_DISPATCH_INDIRECT_BUFFER, (GLintptr)offs, sizeof(uint32_t) * 3, groupSizes);
+
+    AddEvent(DISPATCH_COMPUTE_INDIRECT, desc);
+    string name = "glDispatchComputeIndirect(<" + ToStr::Get(groupSizes[0]) + ", " +
+                  ToStr::Get(groupSizes[1]) + ", " + ToStr::Get(groupSizes[2]) + ">)";
+
+    FetchDrawcall draw;
+    draw.name = name;
+    draw.flags |= eDraw_Dispatch | eDraw_Indirect;
+
+    draw.dispatchDimension[0] = groupSizes[0];
+    draw.dispatchDimension[1] = groupSizes[1];
+    draw.dispatchDimension[2] = groupSizes[2];
+
+    AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
+void WrappedGLES::glDispatchComputeIndirect(GLintptr indirect)
+{
+  CoherentMapImplicitBarrier();
+
+  m_Real.glDispatchComputeIndirect(indirect);
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(DISPATCH_COMPUTE_INDIRECT);
+    Serialise_glDispatchComputeIndirect(indirect);
+
+    m_ContextRecord->AddChunk(scope.Get());
+
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.FetchState(GetCtx(), this);
+    state.MarkReferenced(this, false);
+  }
+  else if(m_State == WRITING_IDLE)
+  {
+    GLRenderState state(&m_Real, m_pSerialiser, m_State);
+    state.MarkDirty(this);
+  }
+}
 
 bool WrappedGLES::Serialise_glMemoryBarrier(GLbitfield barriers)
 {
@@ -273,7 +272,7 @@ bool WrappedGLES::Serialise_glMemoryBarrier(GLbitfield barriers)
 
 void WrappedGLES::glMemoryBarrier(GLbitfield barriers)
 {
-  if(barriers & GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT_EXT)
+  if(barriers & eGL_CLIENT_MAPPED_BUFFER_BARRIER_BIT_EXT)
   {
     // perform a forced flush of all persistent mapped buffers,
     // coherent or not.
@@ -305,7 +304,7 @@ bool WrappedGLES::Serialise_glMemoryBarrierByRegion(GLbitfield barriers)
 
 void WrappedGLES::glMemoryBarrierByRegion(GLbitfield barriers)
 {
-  if(barriers & GL_CLIENT_MAPPED_BUFFER_BARRIER_BIT_EXT)
+  if(barriers & eGL_CLIENT_MAPPED_BUFFER_BARRIER_BIT_EXT)
   {
     // perform a forced flush of all persistent mapped buffers,
     // coherent or not.
