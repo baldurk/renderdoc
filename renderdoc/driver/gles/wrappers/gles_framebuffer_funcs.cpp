@@ -91,28 +91,13 @@ bool WrappedGLES::Serialise_glFramebufferTexture(GLuint framebuffer, GLenum targ
 
   if(m_State < WRITING)
   {
-    GLuint oldDrawFBO = 0;
-    GLuint oldReadFBO = 0;
-    m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&oldDrawFBO);
-    m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&oldReadFBO);
-
     GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
                          ? 0
                          : GetResourceManager()->GetLiveResource(id).name;
-    if(fbid == ResourceId())
-    {
-      m_Real.glBindFramebuffer(Target, 0);
-    }
-    else
-    {
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glBindFramebuffer(Target, fbres.name);
-    }
+    GLuint fbBinding = (fbid == ResourceId()) ? 0 : GetResourceManager()->GetLiveResource(fbid).name;
 
+    SafeFramebufferBinder safeFramebufferBinder(m_Real, Target, fbBinding);
     m_Real.glFramebufferTexture(Target, Attach, tex, Level);
-
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldDrawFBO);
-    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldReadFBO);
 
     if(m_State == READING && tex)
     {
@@ -203,28 +188,13 @@ bool WrappedGLES::Serialise_glFramebufferTexture2D(GLuint framebuffer, GLenum ta
 
   if(m_State < WRITING)
   {
-    GLuint oldDrawFBO = 0;
-    GLuint oldReadFBO = 0;
-    m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&oldDrawFBO);
-    m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&oldReadFBO);
-
     GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
                      ? 0
                      : GetResourceManager()->GetLiveResource(id).name;
-    if(fbid == ResourceId())
-    {
-      m_Real.glBindFramebuffer(Target, 0);
-    }
-    else
-    {
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glBindFramebuffer(Target, fbres.name);
-    }
+    GLuint fbBinding = (fbid == ResourceId()) ? 0 : GetResourceManager()->GetLiveResource(fbid).name;
 
+    SafeFramebufferBinder safeFramebufferBinder(m_Real, Target, fbBinding);
     m_Real.glFramebufferTexture2D(Target, Attach, TexTarget, tex, Level);
-
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldDrawFBO);
-    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldReadFBO);
 
     if(m_State == READING && tex)
     {
@@ -313,28 +283,13 @@ bool WrappedGLES::Serialise_glFramebufferTexture3DOES(GLuint framebuffer, GLenum
 
   if(m_State < WRITING)
   {
-    GLuint oldDrawFBO = 0;
-    GLuint oldReadFBO = 0;
-    m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&oldDrawFBO);
-    m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&oldReadFBO);
-
     GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
                      ? 0
                      : GetResourceManager()->GetLiveResource(id).name;
-    if(fbid == ResourceId())
-    {
-      m_Real.glBindFramebuffer(Target, 0);
-    }
-    else
-    {
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glBindFramebuffer(Target, fbres.name);
-    }
+    GLuint fbBinding = (fbid == ResourceId()) ? 0 : GetResourceManager()->GetLiveResource(fbid).name;
 
+    SafeFramebufferBinder safeFramebufferBinder(m_Real, Target, fbBinding);
     m_Real.glFramebufferTexture3DOES(Target, Attach, TexTarget, tex, Level, Zoffset);
-
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldDrawFBO);
-    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldReadFBO);
 
     if(m_State == READING && tex)
     {
@@ -423,28 +378,13 @@ bool WrappedGLES::Serialise_glFramebufferRenderbuffer(GLuint framebuffer, GLenum
 
   if(m_State < WRITING)
   {
-    GLuint oldDrawFBO = 0;
-    GLuint oldReadFBO = 0;
-    m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&oldDrawFBO);
-    m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&oldReadFBO);
-
     GLuint rb = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
                         ? 0
                         : GetResourceManager()->GetLiveResource(id).name;
-    if(fbid == ResourceId())
-    {
-      m_Real.glBindFramebuffer(Target, 0);
-    }
-    else
-    {
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glBindFramebuffer(Target, fbres.name);
-    }
+    GLuint fbBinding = (fbid == ResourceId()) ? 0 : GetResourceManager()->GetLiveResource(fbid).name;
 
+    SafeFramebufferBinder safeFramebufferBinder(m_Real, Target, fbBinding);
     m_Real.glFramebufferRenderbuffer(Target, Attach, RendBufTarget, rb);
-
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldDrawFBO);
-    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldReadFBO);
 
     if(m_State == READING && rb)
     {
@@ -523,28 +463,13 @@ bool WrappedGLES::Serialise_glFramebufferTextureLayer(GLuint framebuffer, GLenum
 
   if(m_State < WRITING)
   {
-    GLuint oldDrawFBO = 0;
-    GLuint oldReadFBO = 0;
-    m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&oldDrawFBO);
-    m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&oldReadFBO);
-
     GLuint tex = (id == ResourceId() || !GetResourceManager()->HasLiveResource(id))
                      ? 0
                      : GetResourceManager()->GetLiveResource(id).name;
-    if(fbid == ResourceId())
-    {
-        m_Real.glBindFramebuffer(Target, 0);
-    }
-    else
-    {
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glBindFramebuffer(Target, fbres.name);
-    }
+    GLuint fbBinding = (fbid == ResourceId()) ? 0 : GetResourceManager()->GetLiveResource(fbid).name;
 
+    SafeFramebufferBinder safeFramebufferBinder(m_Real, Target, fbBinding);
     m_Real.glFramebufferTextureLayer(Target, Attach, tex, Level, Layer);
-
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldDrawFBO);
-    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldReadFBO);
 
     if(m_State == READING && tex)
     {
@@ -631,19 +556,8 @@ bool WrappedGLES::Serialise_glFramebufferParameteri(GLuint framebuffer, GLenum t
   {
     if(fbid != ResourceId())
     {
-      GLint oldDrawFBO = 0;
-      GLint oldReadFBO = 0;
-
-      m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &oldDrawFBO);
-      m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &oldReadFBO);
-
-      GLResource fbres = GetResourceManager()->GetLiveResource(fbid);
-      m_Real.glBindFramebuffer(Target, fbres.name);
-
+      SafeFramebufferBinder safeFramebufferBinder(m_Real, Target, GetResourceManager()->GetLiveResource(fbid).name);
       m_Real.glFramebufferParameteri(Target, PName, Param);
-
-      m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldDrawFBO);
-      m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldReadFBO);
     }
   }
 
@@ -817,13 +731,8 @@ bool WrappedGLES::Serialise_glDrawBuffers(GLuint framebuffer, GLsizei n,
         buffers[i] = eGL_COLOR_ATTACHMENT0;
     }
 
-    GLint oldBinding = 0;
-    m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &oldBinding);
-
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, GetResourceManager()->GetLiveResource(Id).name);
+    SafeDrawFramebufferBinder safeDrawFramebufferBinder(m_Real, GetResourceManager()->GetLiveResource(Id).name);
     m_Real.glDrawBuffers(num, buffers);
-
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldBinding);
   }
 
   delete[] buffers;
@@ -936,14 +845,8 @@ bool WrappedGLES::Serialise_glBlitFramebuffer(GLuint readFramebuffer, GLuint dra
   SERIALISE_ELEMENT(uint32_t, msk, mask);
   SERIALISE_ELEMENT(GLenum, flt, filter);
 
-  GLint oldDrawFBO = 0;
-  GLint oldReadFBO = 0;
-
   if(m_State <= EXECUTING)
   {
-    m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &oldDrawFBO);
-    m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &oldReadFBO);
-
     if(readId == ResourceId())
       readFramebuffer = m_FakeBB_FBO;
     else
@@ -954,9 +857,7 @@ bool WrappedGLES::Serialise_glBlitFramebuffer(GLuint readFramebuffer, GLuint dra
     else
       drawFramebuffer = GetResourceManager()->GetLiveResource(drawId).name;
 
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, drawFramebuffer);
-    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, readFramebuffer);
-
+    SafeFramebufferBinder safeFramebufferBinder(m_Real, drawFramebuffer, readFramebuffer);
     m_Real.glBlitFramebuffer(sX0, sY0, sX1, sY1, dX0, dY0, dX1, dY1, msk, flt);
   }
 
@@ -987,6 +888,7 @@ bool WrappedGLES::Serialise_glBlitFramebuffer(GLuint readFramebuffer, GLuint dra
       GLuint srcattachment = 0, dstattachment = 0;
       GLenum srctype = eGL_TEXTURE, dsttype = eGL_TEXTURE;
 
+      SafeFramebufferBinder safeFramebufferBinder(m_Real, drawFramebuffer, readFramebuffer);
       m_Real.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, attachName,
                                                    eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                    (GLint *)&srcattachment);
@@ -1040,12 +942,6 @@ bool WrappedGLES::Serialise_glBlitFramebuffer(GLuint readFramebuffer, GLuint dra
     }
 
     AddDrawcall(draw, true);
-  }
-
-  if(m_State <= EXECUTING)
-  {
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldDrawFBO);
-    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldReadFBO);
   }
 
   return true;
@@ -1205,16 +1101,8 @@ bool WrappedGLES::Serialise_glRenderbufferStorage(GLuint renderbuffer, GLenum ta
     texDetails.internalFormat = Format;
 
     GLuint real = GetResourceManager()->GetLiveResource(id).name;
+    SafeRenderbufferBinder safeRenderbufferBinder(m_Real, real);
 
-    GLint oldDrawFBO = 0;
-    GLint oldReadFBO = 0;
-    GLint oldRenderbuf = 0;
-
-    m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &oldDrawFBO);
-    m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &oldReadFBO);
-    m_Real.glGetIntegerv(eGL_RENDERBUFFER_BINDING, &oldRenderbuf);
-
-    m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, real);
     m_Real.glRenderbufferStorage(eGL_RENDERBUFFER, Format, Width, Height);
 
     // create read-from texture for displaying this render buffer
@@ -1234,16 +1122,16 @@ bool WrappedGLES::Serialise_glRenderbufferStorage(GLuint renderbuffer, GLenum ta
     if(fmt == eGL_DEPTH_STENCIL)
       attach = eGL_DEPTH_STENCIL_ATTACHMENT;
 
-    m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
-    m_Real.glFramebufferRenderbuffer(eGL_FRAMEBUFFER, attach, eGL_RENDERBUFFER, real);
+    {
+      SafeFramebufferBinder safeFramebufferBinder(m_Real, eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+      m_Real.glFramebufferRenderbuffer(eGL_FRAMEBUFFER, attach, eGL_RENDERBUFFER, real);
+    }
 
-    m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
-    m_Real.glFramebufferTexture2D(eGL_FRAMEBUFFER, attach, eGL_TEXTURE_2D,
-                                  texDetails.renderbufferReadTex, 0);
-
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldDrawFBO);
-    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldReadFBO);
-    m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, oldRenderbuf);
+    {
+      SafeFramebufferBinder safeFramebufferBinder(m_Real, eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+      m_Real.glFramebufferTexture2D(eGL_FRAMEBUFFER, attach, eGL_TEXTURE_2D,
+                                    texDetails.renderbufferReadTex, 0);
+    }
   }
 
   return true;
@@ -1305,16 +1193,8 @@ bool WrappedGLES::Serialise_glRenderbufferStorageMultisample(GLuint renderbuffer
     texDetails.internalFormat = Format;
 
     GLuint real = GetResourceManager()->GetLiveResource(id).name;
+    SafeRenderbufferBinder safeRenderbufferBinder(m_Real, real);
 
-    GLint oldDrawFBO = 0;
-    GLint oldReadFBO = 0;
-    GLint oldRenderbuf = 0;
-
-    m_Real.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &oldDrawFBO);
-    m_Real.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &oldReadFBO);
-    m_Real.glGetIntegerv(eGL_RENDERBUFFER_BINDING, &oldRenderbuf);
-
-    m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, real);
     m_Real.glRenderbufferStorageMultisample(eGL_RENDERBUFFER, Samples, Format, Width, Height);
 
     // create read-from texture for displaying this render buffer
@@ -1334,16 +1214,16 @@ bool WrappedGLES::Serialise_glRenderbufferStorageMultisample(GLuint renderbuffer
     if(fmt == eGL_DEPTH_STENCIL)
       attach = eGL_DEPTH_STENCIL_ATTACHMENT;
 
-    m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
-    m_Real.glFramebufferRenderbuffer(eGL_FRAMEBUFFER, attach, eGL_RENDERBUFFER, real);
+    {
+      SafeFramebufferBinder safeFramebufferBinder(m_Real, eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+      m_Real.glFramebufferRenderbuffer(eGL_FRAMEBUFFER, attach, eGL_RENDERBUFFER, real);
+    }
 
-    m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
-    m_Real.glFramebufferTexture2D(eGL_FRAMEBUFFER, attach, eGL_TEXTURE_2D_MULTISAMPLE,
-                                  texDetails.renderbufferReadTex, 0);
-
-    m_Real.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, oldDrawFBO);
-    m_Real.glBindFramebuffer(eGL_READ_FRAMEBUFFER, oldReadFBO);
-    m_Real.glBindRenderbuffer(eGL_RENDERBUFFER, oldRenderbuf);
+    {
+      SafeFramebufferBinder safeFramebufferBinder(m_Real, eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+      m_Real.glFramebufferTexture2D(eGL_FRAMEBUFFER, attach, eGL_TEXTURE_2D_MULTISAMPLE,
+                                    texDetails.renderbufferReadTex, 0);
+    }
   }
 
   return true;
