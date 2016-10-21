@@ -548,7 +548,7 @@ namespace renderdocui.Windows.PipelineState
             {
                 for (int reg = 0; reg < stage.Spaces[space].UAVs.Length; reg++)
                 {
-                    AddResourceRow(stage, resources, space, reg, true);
+                    AddResourceRow(stage, uavs, space, reg, true);
                 }
             }
             uavs.EndUpdate();
