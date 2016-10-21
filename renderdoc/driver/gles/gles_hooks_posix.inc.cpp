@@ -7,6 +7,35 @@
 #undef far
 #endif
 
+//#define DUMP_GL_ERRORS
+
+#ifdef DUMP_GL_ERRORS
+class GLError
+{
+public:
+    GLError(const char *function_arg)
+        : function_arg(function_arg)
+    {}
+
+    ~GLError()
+    {
+      GLenum errorResult = OpenGLHook::glhooks.GetDriver()->glGetError();
+      if (errorResult != GL_NO_ERROR) {
+        RDCLOG("RES: %s : %p", function_arg, errorResult);
+      }
+    }
+private:
+    const char *function_arg;
+};
+
+#define CheckGLError(function) GLError errtest(function)
+
+#else
+
+#define CheckGLError(function)
+
+#endif
+
 // the _renderdoc_hooked variants are to make sure we always have a function symbol
 // exported that we can return from glXGetProcAddress. If another library (or the app)
 // creates a symbol called 'glEnable' we'll return the address of that, and break
@@ -18,6 +47,7 @@
   extern "C" __attribute__((visibility("default"))) ret function() \
   {                                                                \
     SCOPED_LOCK(glLock);                                           \
+    CheckGLError(#function);                                        \
     return OpenGLHook::glhooks.GetDriver()->function();            \
   }                                                                \
   ret CONCAT(function, _renderdoc_hooked)()                        \
@@ -30,6 +60,7 @@
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1) \
   {                                                                     \
     SCOPED_LOCK(glLock);                                                \
+    CheckGLError(#function);                                             \
     return OpenGLHook::glhooks.GetDriver()->function(p1);               \
   }                                                                     \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1)                        \
@@ -42,6 +73,7 @@
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2) \
   {                                                                            \
     SCOPED_LOCK(glLock);                                                       \
+    CheckGLError(#function);                                                    \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2);                  \
   }                                                                            \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2)                        \
@@ -54,6 +86,7 @@
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3) \
   {                                                                                   \
     SCOPED_LOCK(glLock);                                                              \
+    CheckGLError(#function);                                                           \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3);                     \
   }                                                                                   \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3)                        \
@@ -66,6 +99,7 @@
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4) \
   {                                                                                          \
     SCOPED_LOCK(glLock);                                                                     \
+    CheckGLError(#function);                                                                  \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4);                        \
   }                                                                                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4)                        \
@@ -78,6 +112,7 @@
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
   {                                                                                                 \
     SCOPED_LOCK(glLock);                                                                            \
+    CheckGLError(#function);                                                                         \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5);                           \
   }                                                                                                 \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)                        \
@@ -91,6 +126,7 @@
                                                                  t5 p5, t6 p6)               \
   {                                                                                          \
     SCOPED_LOCK(glLock);                                                                     \
+    CheckGLError(#function);                                                                  \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6);                \
   }                                                                                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6)          \
@@ -104,6 +140,7 @@
                                                                  t5 p5, t6 p6, t7 p7)        \
   {                                                                                          \
     SCOPED_LOCK(glLock);                                                                     \
+    CheckGLError(#function);                                                                  \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7);            \
   }                                                                                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7)   \
@@ -117,6 +154,7 @@
                                                                  t5 p5, t6 p6, t7 p7, t8 p8)        \
   {                                                                                                 \
     SCOPED_LOCK(glLock);                                                                            \
+    CheckGLError(#function);                                                                         \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8);               \
   }                                                                                                 \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8)   \
@@ -131,6 +169,7 @@
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9)                              \
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
+    CheckGLError(#function);                                                                       \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9);         \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
@@ -146,6 +185,7 @@
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10)                     \
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
+    CheckGLError(#function);                                                                       \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);    \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
@@ -161,6 +201,7 @@
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11)              \
   {                                                                                                 \
     SCOPED_LOCK(glLock);                                                                            \
+    CheckGLError(#function);                                                                         \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); \
   }                                                                                                 \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,   \
@@ -176,6 +217,7 @@
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12)    \
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
+    CheckGLError(#function);                                                                        \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12);                                         \
   }                                                                                                \
@@ -195,6 +237,7 @@
       t13 p13)                                                                                     \
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
+    CheckGLError(#function);                                                                        \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12, p13);                                    \
   }                                                                                                \
@@ -214,6 +257,7 @@
       t13 p13, t14 p14)                                                                            \
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
+    CheckGLError(#function);                                                                        \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12, p13, p14);                               \
   }                                                                                                \
@@ -233,6 +277,7 @@
       t13 p13, t14 p14, t15 p15)                                                                   \
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
+    CheckGLError(#function);                                                                        \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12, p13, p14, p15);                          \
   }                                                                                                \
