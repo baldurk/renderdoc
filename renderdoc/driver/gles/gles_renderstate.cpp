@@ -474,6 +474,14 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
     return;
   }
 
+  GLuint maxImageUnits = 0;
+  GLuint maxTextureUnits = 0;
+  GLuint maxDrawBuffers = 0;
+
+  m_Real->glGetIntegerv(eGL_MAX_IMAGE_UNITS, (GLint*)&maxImageUnits);
+  m_Real->glGetIntegerv(eGL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, (GLint*)&maxTextureUnits);
+  m_Real->glGetIntegerv(eGL_MAX_DRAW_BUFFERS, (GLint*)&maxDrawBuffers);
+
   {
     GLenum pnames[] = {
         eGL_CLIP_DISTANCE0_EXT,
@@ -562,7 +570,7 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
           sizeof(Tex2DMS) == sizeof(Tex2DMSArray) && sizeof(Tex2DMSArray) == sizeof(Samplers),
       "All texture arrays should be identically sized");
 
-  for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
+  for(GLuint i = 0; i < RDCMIN(maxTextureUnits, (GLuint)ARRAY_COUNT(Tex2D)); i++)
   {
     m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
     m_Real->glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&Tex2D[i]);
@@ -576,7 +584,7 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
     m_Real->glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&Samplers[i]);
   }
 
-  for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Images); i++)
+  for(GLuint i = 0; i < RDCMIN(maxImageUnits, (GLuint)ARRAY_COUNT(Images)); i++)
   {
     GLboolean layered = GL_FALSE;
 
@@ -682,7 +690,7 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
     }
   }
 
-  for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Blends); i++)
+  for(GLuint i = 0; i < RDCMIN(maxDrawBuffers, (GLuint)ARRAY_COUNT(Blends)); i++)
   {
     m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, i, (GLint *)&Blends[i].EquationRGB);
     m_Real->glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, i, (GLint *)&Blends[i].EquationAlpha);
@@ -698,12 +706,10 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
 
   m_Real->glGetFloatv(eGL_BLEND_COLOR, &BlendColor[0]);
 
-  // TODO(elecro): remove support as it is not android compatible
-  if (ExtensionSupported[ExtensionSupported_OES_viewport_array] && false)
+  if (ExtensionSupported[ExtensionSupported_OES_viewport_array])
   {
     for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Viewports); i++)
       m_Real->glGetFloati_vOES(eGL_VIEWPORT, i, &Viewports[i].x);
-
   }
   else if (ExtensionSupported[ExtensionSupported_NV_viewport_array])
   {
@@ -735,7 +741,7 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
   m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
   m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, 0);
 
-  for(size_t i = 0; i < ARRAY_COUNT(DrawBuffers); i++)
+  for(size_t i = 0; i < RDCMIN((size_t)maxDrawBuffers, ARRAY_COUNT(DrawBuffers)); i++)
     m_Real->glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&DrawBuffers[i]);
 
   m_Real->glGetIntegerv(eGL_READ_BUFFER, (GLint *)&ReadBuffer);
@@ -852,6 +858,14 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
   if(!ContextPresent || ctx == NULL)
     return;
 
+  GLuint maxImageUnits = 0;
+  GLuint maxTextureUnits = 0;
+  GLuint maxDrawBuffers = 0;
+
+  m_Real->glGetIntegerv(eGL_MAX_IMAGE_UNITS, (GLint*)&maxImageUnits);
+  m_Real->glGetIntegerv(eGL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, (GLint*)&maxTextureUnits);
+  m_Real->glGetIntegerv(eGL_MAX_DRAW_BUFFERS, (GLint*)&maxDrawBuffers);
+
   {
     GLenum pnames[] = {
         eGL_CLIP_DISTANCE0_EXT,
@@ -921,7 +935,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
     }
   }
 
-  for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Tex2D); i++)
+  for(GLuint i = 0; i < RDCMIN(maxTextureUnits, (GLuint)ARRAY_COUNT(Tex2D)); i++)
   {
     m_Real->glActiveTexture(GLenum(eGL_TEXTURE0 + i));
     m_Real->glBindTexture(eGL_TEXTURE_2D, Tex2D[i]);
@@ -935,7 +949,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
     m_Real->glBindSampler(i, Samplers[i]);
   }
 
-  for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Images); i++)
+  for(GLuint i = 0; i < RDCMIN(maxImageUnits, (GLuint)ARRAY_COUNT(Images)); i++)
   {
     // use sanitised parameters when no image is bound
     if(Images[i].name == 0)
@@ -1022,7 +1036,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
     }
   }
 
-  for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(Blends); i++)
+  for(GLuint i = 0; i < RDCMIN(maxDrawBuffers, (GLuint)ARRAY_COUNT(Blends)); i++)
   {
     m_Real->glBlendFuncSeparatei(i, Blends[i].SourceRGB, Blends[i].DestinationRGB,
                                  Blends[i].SourceAlpha, Blends[i].DestinationAlpha);
@@ -1073,7 +1087,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
 
   GLenum DBs[8] = {eGL_NONE};
   uint32_t numDBs = 0;
-  for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(DrawBuffers); i++)
+  for(GLuint i = 0; i < RDCMIN(maxDrawBuffers, (GLuint)ARRAY_COUNT(DrawBuffers)); i++)
   {
     if(DrawBuffers[i] != eGL_NONE)
     {
@@ -1133,7 +1147,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
 
   m_Real->glClearStencil((GLint)StencilClearValue);
 
-  for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(ColorMasks); i++)
+  for(GLuint i = 0; i < RDCMIN(maxDrawBuffers, (GLuint)ARRAY_COUNT(ColorMasks)); i++)
     m_Real->glColorMaski(i, ColorMasks[i].red, ColorMasks[i].green, ColorMasks[i].blue,
                          ColorMasks[i].alpha);
 
