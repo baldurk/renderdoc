@@ -99,7 +99,10 @@ namespace renderdocui.Controls
 
         static void dock_FormClosed(object sender, FormClosedEventArgs e)
         {
-            m_Docks.Remove(sender as ConstantBufferPreviewer);
+            ConstantBufferPreviewer cbp = sender as ConstantBufferPreviewer;
+
+            m_Docks.Remove(cbp);
+            cbp.m_Core.RemoveLogViewer(cbp);
         }
 
         /// <summary> 
@@ -111,8 +114,6 @@ namespace renderdocui.Controls
             if (disposing && (components != null))
             {
                 components.Dispose();
-
-                m_Core.RemoveLogViewer(this);
             }
             base.Dispose(disposing);
         }
