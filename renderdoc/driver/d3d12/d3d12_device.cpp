@@ -2183,4 +2183,15 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     FlushLists(true);
 #endif
   }
+
+  // ensure all UAV writes have finished before subsequent work
+  ID3D12GraphicsCommandList *list = GetNewList();
+
+  D3D12_RESOURCE_BARRIER uavBarrier = {};
+  uavBarrier.Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+  list->ResourceBarrier(1, &uavBarrier);
+
+  list->Close();
+
+  ExecuteLists();
 }
