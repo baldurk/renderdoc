@@ -181,6 +181,10 @@ struct D3D12CommandData
 
   ID3D12CommandAllocator *m_CrackedAllocators[4];
 
+  vector<ID3D12Resource *> m_IndirectBuffers;
+  static const uint64_t m_IndirectSize = 4 * 1024 * 1024;
+  uint64_t m_IndirectOffset;
+
   map<ResourceId, BakedCmdListInfo> m_BakedCmdListInfo;
 
   D3D12RenderState m_RenderState;
@@ -299,6 +303,8 @@ struct D3D12CommandData
 
     return m_RootDrawcallStack;
   }
+
+  void GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint64_t *offs);
 
   // util function to handle fetching the right eventID, calling any
   // aliases then calling PreDraw/PreDispatch.

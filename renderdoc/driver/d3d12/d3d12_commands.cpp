@@ -185,6 +185,9 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
 
 WrappedID3D12CommandQueue::~WrappedID3D12CommandQueue()
 {
+  for(size_t i = 0; i < m_Cmd.m_IndirectBuffers.size(); i++)
+    SAFE_RELEASE(m_Cmd.m_IndirectBuffers[i]);
+
   SAFE_RELEASE(m_WrappedDebug.m_pReal);
   SAFE_RELEASE(m_pReal);
 }
@@ -711,6 +714,52 @@ D3D12CommandData::D3D12CommandData()
   m_AddedDrawcall = false;
 
   m_RootDrawcallStack.push_back(&m_ParentDrawcall);
+}
+
+void D3D12CommandData::GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint64_t *offs)
+{
+  // check if we need to allocate a new buffer
+  if(m_IndirectBuffers.empty() || m_IndirectOffset + size > m_IndirectSize)
+  {
+    D3D12_RESOURCE_DESC indirectDesc;
+    indirectDesc.Alignment = 0;
+    indirectDesc.DepthOrArraySize = 1;
+    indirectDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    indirectDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    indirectDesc.Format = DXGI_FORMAT_UNKNOWN;
+    indirectDesc.Height = 1;
+    indirectDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    indirectDesc.MipLevels = 1;
+    indirectDesc.SampleDesc.Count = 1;
+    indirectDesc.SampleDesc.Quality = 0;
+    indirectDesc.Width = m_IndirectSize;
+
+    // create a custom heap that sits in CPU memory and is mappable, but we can
+    // use for indirect args (unlike upload and readback).
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_CUSTOM;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_WRITE_COMBINE;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_L0;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    ID3D12Resource *buf = NULL;
+
+    HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &indirectDesc,
+                                                    D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, NULL,
+                                                    __uuidof(ID3D12Resource), (void **)&buf);
+
+    if(FAILED(hr))
+      RDCERR("Failed to create indirect buffer, HRESULT: 0x%08x", hr);
+
+    m_IndirectBuffers.push_back(buf);
+    m_IndirectOffset = 0;
+  }
+
+  *buf = m_IndirectBuffers.back();
+  *offs = m_IndirectOffset;
+
+  m_IndirectOffset = AlignUp16(m_IndirectOffset + size);
 }
 
 uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandList *list, bool dispatch,
