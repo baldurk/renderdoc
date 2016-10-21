@@ -71,6 +71,8 @@ void Serialiser::Serialise(const char *name, VertexBufferInitialData &el);
 void WrappedGLES::dumpCurrentState(const char * filename)
 {
     static int counter = 0;
+    char outputFilename[256];
+    snprintf(outputFilename, 254, "%s_%d", filename, counter++);
 
     //Serialiser debugSerialiser((filename + std::to_string(counter++)).c_str(), Serialiser::WRITING, true);
     Serialiser debugSerialiser("", Serialiser::WRITING, true);
@@ -136,7 +138,7 @@ void WrappedGLES::dumpCurrentState(const char * filename)
       debugRenderState.Serialise(WRITING, GetCtx(), this);
     }
 
-    std::ofstream ofs ((filename + std::to_string(counter++)).c_str(), std::ofstream::out);
+    std::ofstream ofs (outputFilename, std::ofstream::out);
     if (ofs)
     {
       ofs << debugSerialiser.GetDebugStr();
