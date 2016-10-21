@@ -3255,6 +3255,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case CLEAR_DEPTH: Serialise_glClearDepthf(0); break;
     case CLEAR_STENCIL: Serialise_glClearStencil(0); break;
     case CLEAR: Serialise_glClear(0); break;
+    case PRIMITIVE_BOUNDING_BOX: Serialise_glPrimitiveBoundingBox(0, 0, 0, 0, 0, 0, 0, 0); break;
     case CLEARBUFFERF: Serialise_glClearBufferfv(eGL_NONE, 0, NULL); break;
     case CLEARBUFFERI: Serialise_glClearBufferiv(eGL_NONE, 0, NULL); break;
     case CLEARBUFFERUI: Serialise_glClearBufferuiv(eGL_NONE, 0, NULL); break;
