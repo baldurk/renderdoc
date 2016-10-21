@@ -303,8 +303,6 @@ void WrappedGLES::glTextureViewEXT(GLuint texture, GLenum target, GLuint origtex
                                    GLenum internalformat, GLuint minlevel, GLuint numlevels,
                                    GLuint minlayer, GLuint numlayers)
 {
-  internalformat = GetSizedFormat(m_Real, target, internalformat);
-
   m_Real.glTextureViewEXT(texture, target, origtexture, internalformat, minlevel, numlevels, minlayer,
                           numlayers);
 
