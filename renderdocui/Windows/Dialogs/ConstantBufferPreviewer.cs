@@ -58,18 +58,6 @@ namespace renderdocui.Controls
             shader = m_Core.CurPipelineState.GetShader(stage);
             entryPoint = m_Core.CurPipelineState.GetShaderEntryPoint(stage);
             UpdateLabels();
-
-            ulong offs = 0;
-            ulong size = 0;
-            m_Core.CurPipelineState.GetConstantBuffer(Stage, Slot, ArrayIdx, out cbuffer, out offs, out size);
-
-            m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
-            {
-                var vars = r.GetCBufferVariableContents(shader, entryPoint, Slot, cbuffer, offs);
-                this.BeginInvoke(new Action(() => { SetVariables(vars); }));
-            });
-
-            m_Core.AddLogViewer(this);
         }
 
         private static List<ConstantBufferPreviewer> m_Docks = new List<ConstantBufferPreviewer>();
@@ -87,6 +75,7 @@ namespace renderdocui.Controls
 
         public void ShowDock(DockPane pane, DockAlignment align, double proportion)
         {
+            Shown += ConstantBufferPreviewer_Shown;
             FormClosed += new FormClosedEventHandler(dock_FormClosed);
             
             if (m_Docks.Count > 0)
@@ -95,6 +84,11 @@ namespace renderdocui.Controls
                 Show(pane, align, proportion);
 
             m_Docks.Add(this);
+        }
+
+        private void ConstantBufferPreviewer_Shown(object sender, EventArgs e)
+        {
+            m_Core.AddLogViewer(this);
         }
 
         static void dock_FormClosed(object sender, FormClosedEventArgs e)
