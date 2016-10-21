@@ -1017,7 +1017,7 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
   }
 }
 
-void D3D12CommandData::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
+void D3D12CommandData::AddDrawcall(const FetchDrawcall &d, bool hasEvents, bool addUsage)
 {
   m_AddedDrawcall = true;
 
@@ -1076,7 +1076,7 @@ void D3D12CommandData::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
 
     node.resourceUsage.swap(m_BakedCmdListInfo[m_LastCmdListID].resourceUsage);
 
-    if(m_LastCmdListID != ResourceId())
+    if(m_LastCmdListID != ResourceId() && addUsage)
       AddUsage(node);
 
     node.children.insert(node.children.begin(), draw.children.elems,

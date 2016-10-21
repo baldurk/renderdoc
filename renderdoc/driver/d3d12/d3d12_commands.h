@@ -310,7 +310,7 @@ struct D3D12CommandData
   ID3D12GraphicsCommandList *RerecordCmdList(ResourceId cmdid,
                                              PartialReplayIndex partialType = ePartialNum);
 
-  void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
+  void AddDrawcall(const FetchDrawcall &d, bool hasEvents, bool addUsage = true);
   void AddEvent(string description);
   void AddUsage(D3D12DrawcallTreeNode &drawNode);
   void AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, uint32_t EID, ResourceUsage usage);
