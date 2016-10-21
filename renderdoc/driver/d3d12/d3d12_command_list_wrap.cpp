@@ -104,7 +104,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close()
         m_Cmd->GetDrawcallStack().pop_back();
     }
 
-    m_Cmd->m_BakedCmdListInfo[bakeId].BakeFrom(m_Cmd->m_BakedCmdListInfo[CommandList]);
+    m_Cmd->m_BakedCmdListInfo[bakeId].BakeFrom(CommandList, m_Cmd->m_BakedCmdListInfo[CommandList]);
   }
 
   return true;

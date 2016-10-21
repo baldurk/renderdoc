@@ -157,7 +157,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
 
       // insert the baked command list in-line into this list of notes, assigning new event and
       // drawIDs
-      m_Cmd.InsertDrawsAndRefreshIDs(cmdBufInfo.draw->children);
+      m_Cmd.InsertDrawsAndRefreshIDs(cmdIds[c], cmdBufInfo.draw->children);
 
       for(size_t e = 0; e < cmdBufInfo.draw->executedCmds.size(); e++)
       {

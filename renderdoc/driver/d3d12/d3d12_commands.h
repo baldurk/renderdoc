@@ -123,7 +123,7 @@ struct D3D12DrawcallCallback
 
 struct BakedCmdListInfo
 {
-  void BakeFrom(BakedCmdListInfo &parent)
+  void BakeFrom(ResourceId parentID, BakedCmdListInfo &parent)
   {
     draw = parent.draw;
     curEvents = parent.curEvents;
@@ -131,6 +131,8 @@ struct BakedCmdListInfo
     eventCount = parent.curEventID;
     drawCount = parent.drawCount;
     crackedLists.swap(parent.crackedLists);
+
+    parentList = parentID;
 
     curEventID = 0;
 
@@ -155,6 +157,8 @@ struct BakedCmdListInfo
   D3D12RenderState state;
 
   vector<D3D12_RESOURCE_BARRIER> barriers;
+
+  ResourceId parentList;
 
   D3D12DrawcallTreeNode *draw;    // the root draw to copy from when submitting
   uint32_t eventCount;            // how many events are in this cmd list, for quick skipping
@@ -243,7 +247,7 @@ struct D3D12CommandData
     uint32_t baseEvent;
   } m_Partial[ePartialNum];
 
-  void InsertDrawsAndRefreshIDs(vector<D3D12DrawcallTreeNode> &cmdBufNodes);
+  void InsertDrawsAndRefreshIDs(ResourceId cmd, vector<D3D12DrawcallTreeNode> &cmdBufNodes);
 
   // this is a list of uint64_t file offset -> uint32_t EIDs of where each
   // drawcall is used. E.g. the drawcall at offset 873954 is EID 50. If a
@@ -252,9 +256,14 @@ struct D3D12CommandData
   // the first one being the 'primary'
   struct DrawcallUse
   {
-    DrawcallUse(uint64_t offs, uint32_t eid) : fileOffset(offs), eventID(eid) {}
+    DrawcallUse(uint64_t offs, uint32_t eid, ResourceId cmd = ResourceId(), uint32_t rel = 0)
+        : fileOffset(offs), cmdList(cmd), eventID(eid), relativeEID(rel)
+    {
+    }
     uint64_t fileOffset;
+    ResourceId cmdList;
     uint32_t eventID;
+    uint32_t relativeEID;
     bool operator<(const DrawcallUse &o) const
     {
       if(fileOffset != o.fileOffset)

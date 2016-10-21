@@ -472,7 +472,19 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
     // past the command list records, so can't
     // skip to the file offset of the first event
     if(partial)
+    {
       m_pSerialiser->SetOffset(ev.fileOffset);
+
+      D3D12CommandData::DrawcallUse use(ev.fileOffset, 0);
+      auto it = std::lower_bound(m_Cmd.m_DrawcallUses.begin(), m_Cmd.m_DrawcallUses.end(), use);
+
+      if(it != m_Cmd.m_DrawcallUses.end())
+      {
+        BakedCmdListInfo &cmdInfo =
+            m_Cmd.m_BakedCmdListInfo[m_Cmd.m_BakedCmdListInfo[it->cmdList].parentList];
+        cmdInfo.curEventID = it->relativeEID;
+      }
+    }
 
     m_Cmd.m_FirstEventID = startEventID;
     m_Cmd.m_LastEventID = endEventID;
@@ -1075,7 +1087,8 @@ void D3D12CommandData::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
     RDCERR("Somehow lost drawcall stack!");
 }
 
-void D3D12CommandData::InsertDrawsAndRefreshIDs(vector<D3D12DrawcallTreeNode> &cmdBufNodes)
+void D3D12CommandData::InsertDrawsAndRefreshIDs(ResourceId cmd,
+                                                vector<D3D12DrawcallTreeNode> &cmdBufNodes)
 {
   // assign new drawcall IDs
   for(size_t i = 0; i < cmdBufNodes.size(); i++)
@@ -1100,7 +1113,7 @@ void D3D12CommandData::InsertDrawsAndRefreshIDs(vector<D3D12DrawcallTreeNode> &c
       m_Events.push_back(n.draw.events[e]);
     }
 
-    DrawcallUse use(m_Events.back().fileOffset, n.draw.eventID);
+    DrawcallUse use(m_Events.back().fileOffset, n.draw.eventID, cmd, cmdBufNodes[i].draw.eventID);
 
     // insert in sorted location
     auto drawit = std::lower_bound(m_DrawcallUses.begin(), m_DrawcallUses.end(), use);
