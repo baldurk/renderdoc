@@ -1797,6 +1797,9 @@ void WrappedID3D12Device::DestroyInternalResources()
   for(size_t i = 0; i < m_InternalCmds.pendingcmds.size(); i++)
     SAFE_RELEASE(m_InternalCmds.pendingcmds[i]);
 
+  delete m_DebugManager;
+  m_DebugManager = NULL;
+
   SAFE_RELEASE(m_Alloc);
   SAFE_RELEASE(m_GPUSyncFence);
   CloseHandle(m_GPUSyncHandle);

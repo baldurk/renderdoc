@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "d3d12_replay.h"
+#include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
@@ -1311,16 +1312,6 @@ void D3D12Replay::FlipOutputWindow(uint64_t id)
   m_pDevice->GetDebugManager()->FlipOutputWindow(id);
 }
 
-void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
-{
-  m_pDevice->GetResourceManager()->ReplaceResource(from, to);
-}
-
-void D3D12Replay::RemoveReplacement(ResourceId id)
-{
-  m_pDevice->GetResourceManager()->RemoveReplacement(id);
-}
-
 void D3D12Replay::InitCallstackResolver()
 {
   m_pDevice->GetMainSerialiser()->InitCallstackResolver();
@@ -1339,6 +1330,111 @@ Callstack::StackResolver *D3D12Replay::GetCallstackResolver()
 vector<DebugMessage> D3D12Replay::GetDebugMessages()
 {
   return m_pDevice->GetDebugMessages();
+}
+
+void D3D12Replay::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
+                                    ShaderStageType type, ResourceId *id, string *errors)
+{
+  m_pDevice->GetDebugManager()->BuildShader(source, entry, D3DCOMPILE_DEBUG | compileFlags, type,
+                                            id, errors);
+}
+
+void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
+{
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  // remove any previous replacement
+  RemoveReplacement(from);
+
+  if(rm->HasLiveResource(from))
+  {
+    ID3D12DeviceChild *resource = rm->GetLiveResource(from);
+
+    if(WrappedID3D12PipelineState::ShaderEntry::IsAlloc(resource))
+    {
+      WrappedID3D12PipelineState::ShaderEntry *sh =
+          (WrappedID3D12PipelineState::ShaderEntry *)resource;
+
+      for(size_t i = 0; i < sh->m_Pipes.size(); i++)
+      {
+        WrappedID3D12PipelineState *pipe = sh->m_Pipes[i];
+
+        ResourceId id = rm->GetOriginalID(pipe->GetResourceID());
+
+        ID3D12PipelineState *replpipe = NULL;
+
+        D3D12_SHADER_BYTECODE shDesc =
+            rm->GetLiveAs<WrappedID3D12PipelineState::ShaderEntry>(to)->GetDesc();
+
+        if(pipe->graphics)
+        {
+          D3D12_GRAPHICS_PIPELINE_STATE_DESC desc = *pipe->graphics;
+
+          D3D12_SHADER_BYTECODE *shaders[] = {
+              &desc.VS, &desc.HS, &desc.DS, &desc.GS, &desc.PS,
+          };
+
+          for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
+          {
+            if(shaders[i]->BytecodeLength > 0)
+            {
+              WrappedID3D12PipelineState::ShaderEntry *s =
+                  (WrappedID3D12PipelineState::ShaderEntry *)shaders[i]->pShaderBytecode;
+
+              if(s->GetResourceID() == from)
+                *shaders[i] = shDesc;
+              else
+                *shaders[i] = s->GetDesc();
+            }
+          }
+
+          m_pDevice->CreateGraphicsPipelineState(&desc, __uuidof(ID3D12PipelineState),
+                                                 (void **)&replpipe);
+        }
+        else
+        {
+          D3D12_COMPUTE_PIPELINE_STATE_DESC desc = *pipe->compute;
+
+          // replace the shader
+          desc.CS = shDesc;
+
+          m_pDevice->CreateComputePipelineState(&desc, __uuidof(ID3D12PipelineState),
+                                                (void **)&replpipe);
+        }
+
+        rm->ReplaceResource(id, GetResID(replpipe));
+      }
+    }
+
+    rm->ReplaceResource(from, to);
+  }
+}
+
+void D3D12Replay::RemoveReplacement(ResourceId id)
+{
+  D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
+
+  rm->RemoveReplacement(id);
+
+  if(rm->HasLiveResource(id))
+  {
+    ID3D12DeviceChild *resource = rm->GetLiveResource(id);
+
+    if(WrappedID3D12PipelineState::ShaderEntry::IsAlloc(resource))
+    {
+      WrappedID3D12PipelineState::ShaderEntry *sh =
+          (WrappedID3D12PipelineState::ShaderEntry *)resource;
+
+      for(size_t i = 0; i < sh->m_Pipes.size(); i++)
+      {
+        WrappedID3D12PipelineState *pipe = sh->m_Pipes[i];
+
+        ResourceId id = rm->GetOriginalID(pipe->GetResourceID());
+
+        rm->RemoveReplacement(id);
+      }
+    }
+  }
 }
 
 #pragma region not yet implemented
@@ -1403,11 +1499,6 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<uint32_t> &counter
 
 void D3D12Replay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
                              const MeshDisplay &cfg)
-{
-}
-
-void D3D12Replay::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
-                                    ShaderStageType type, ResourceId *id, string *errors)
 {
 }
 

@@ -83,6 +83,9 @@ public:
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);
   void GetBufferData(ID3D12Resource *buff, uint64_t offset, uint64_t length, vector<byte> &retData);
 
+  void BuildShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type,
+                   ResourceId *id, string *errors);
+
   D3D12_CPU_DESCRIPTOR_HANDLE AllocRTV();
   void FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 

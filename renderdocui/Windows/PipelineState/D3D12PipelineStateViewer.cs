@@ -2023,7 +2023,7 @@ namespace renderdocui.Windows.PipelineState
 
             if (stage.Shader == ResourceId.Null || shaderDetails == null) return;
 
-            var entryFunc = String.Format("EditedShader{0}S", stage.stage.ToString()[0]);
+            var entryFunc = String.Format("EditedShader{0}S", stage.stage.Str(GraphicsAPI.D3D12)[0]);
 
             string mainfile = "";
 

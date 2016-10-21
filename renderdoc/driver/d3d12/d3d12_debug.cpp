@@ -1775,6 +1775,53 @@ void D3D12DebugManager::FillCBufferVariables(const vector<DXBC::CBufferVariable>
     outvars.push_back(v[i]);
 }
 
+void D3D12DebugManager::BuildShader(string source, string entry, const uint32_t compileFlags,
+                                    ShaderStageType type, ResourceId *id, string *errors)
+{
+  if(id == NULL || errors == NULL)
+  {
+    if(id)
+      *id = ResourceId();
+    return;
+  }
+
+  char *profile = NULL;
+
+  switch(type)
+  {
+    case eShaderStage_Vertex: profile = "vs_5_0"; break;
+    case eShaderStage_Hull: profile = "hs_5_0"; break;
+    case eShaderStage_Domain: profile = "ds_5_0"; break;
+    case eShaderStage_Geometry: profile = "gs_5_0"; break;
+    case eShaderStage_Pixel: profile = "ps_5_0"; break;
+    case eShaderStage_Compute: profile = "cs_5_0"; break;
+    default:
+      RDCERR("Unexpected type in BuildShader!");
+      *id = ResourceId();
+      return;
+  }
+
+  ID3DBlob *blob = NULL;
+  *errors = GetShaderBlob(source.c_str(), entry.c_str(), compileFlags, profile, &blob);
+
+  if(blob == NULL)
+  {
+    *id = ResourceId();
+    return;
+  }
+
+  D3D12_SHADER_BYTECODE byteCode;
+  byteCode.BytecodeLength = blob->GetBufferSize();
+  byteCode.pShaderBytecode = blob->GetBufferPointer();
+
+  WrappedID3D12PipelineState::ShaderEntry *sh =
+      WrappedID3D12PipelineState::AddShader(byteCode, m_WrappedDevice, NULL);
+
+  SAFE_RELEASE(blob);
+
+  *id = sh->GetResourceID();
+}
+
 void D3D12DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length,
                                       vector<byte> &retData)
 {

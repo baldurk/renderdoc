@@ -497,6 +497,14 @@ public:
       m_DebugInfoPath = path;
     }
 
+    D3D12_SHADER_BYTECODE GetDesc()
+    {
+      D3D12_SHADER_BYTECODE ret;
+      ret.BytecodeLength = m_Bytecode.size();
+      ret.pShaderBytecode = (const void *)&m_Bytecode[0];
+      return ret;
+    }
+
     DXBC::DXBCFile *GetDXBC()
     {
       if(m_DXBCFile == NULL && !m_Bytecode.empty())
@@ -521,6 +529,8 @@ public:
       return m_Mapping;
     }
 
+    vector<WrappedID3D12PipelineState *> m_Pipes;
+
   private:
     ShaderEntry(const ShaderEntry &e);
     void TryReplaceOriginalByteCode();
@@ -544,7 +554,8 @@ public:
     TypeEnum = Resource_PipelineState,
   };
 
-  static ShaderEntry *AddShader(const D3D12_SHADER_BYTECODE &byteCode, WrappedID3D12Device *device)
+  static ShaderEntry *AddShader(const D3D12_SHADER_BYTECODE &byteCode, WrappedID3D12Device *device,
+                                WrappedID3D12PipelineState *pipeline)
   {
     DXBCKey key(byteCode);
     ShaderEntry *shader = m_Shaders[key];
@@ -553,6 +564,10 @@ public:
       shader = m_Shaders[key] = new ShaderEntry(byteCode, device);
     else
       shader->AddRef();
+
+    if(pipeline &&
+       std::find(shader->m_Pipes.begin(), shader->m_Pipes.end(), pipeline) == shader->m_Pipes.end())
+      shader->m_Pipes.push_back(pipeline);
 
     return shader;
   }
