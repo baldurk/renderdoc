@@ -162,13 +162,12 @@ EGLContext eglCreateContext(EGLDisplay display, EGLConfig config, EGLContext sha
 DEFAULT_VISIBILITY
 EGLContext eglGetCurrentContext()
 {
+    // TODO(elecro): this should be only a simple forward call, this...
     static EGLContext prev_ctx = 0;
     OpenGLHook::glhooks.PopulateHooks();
     DEF_FUNC(eglGetCurrentContext);
 
-#ifdef ANDROID
-    __android_log_print(ANDROID_LOG_DEBUG, "renderdoc", "Enter: eglGetCurrentContext");
-#endif
+    RDCLOG("Enter: eglGetCurrentContext");
     EGLContext ctx = REAL(eglGetCurrentContext)();
 
     if (prev_ctx != ctx)

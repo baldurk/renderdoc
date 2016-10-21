@@ -1297,7 +1297,6 @@ void WrappedGLES::ActivateContext(GLESWindowingData winData)
     // PEPE DEBUG
 #ifndef ANDROID
     {
-        RDCLOG("GL hooks: %p\n", m_Real);
         const GLHookSet &gl = m_Real;
         gl.glDebugMessageCallback(&DebugSnoopStatic, this);
         gl.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
@@ -1417,7 +1416,6 @@ void WrappedGLES::ActivateContext(GLESWindowingData winData)
 
       merge(ctxdata.glExts, ctxdata.glExtsString, ' ');
 
-      RDCLOG("gl.glGetIntegerv %p", gl.glGetIntegerv);
       ctxdata.version = 20;
       if(gl.glGetIntegerv)
       {
@@ -1430,7 +1428,6 @@ void WrappedGLES::ActivateContext(GLESWindowingData winData)
         if (ver > ctxdata.version)
             ctxdata.version = ver;
 
-        RDCLOG("VER: %d", ctxdata.version);
         if(ver > GLCoreVersion || (!GLIsCore && ctxdata.isCore))
         {
           GLCoreVersion = ver;
