@@ -463,10 +463,12 @@ void GLReplay::InitDebugData()
   }
 
   {
-    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_ms2array_comp), 420);
+    string defines =
+        "#extension GL_ARB_compute_shader : require\n";
+    GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_ms2array_comp), 420);
     DebugData.MS2Array = CreateCShaderProgram(cs);
 
-    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_array2ms_comp), 420);
+    GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_array2ms_comp), 420);
     DebugData.Array2MS = CreateCShaderProgram(cs);
   }
 

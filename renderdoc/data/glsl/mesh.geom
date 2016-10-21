@@ -36,6 +36,8 @@ layout (location = 1) in vec4 IN_norm[3];
 layout (location = 0) out vec4 OUT_secondary;
 layout (location = 1) out vec4 OUT_norm;
 
+#ifdef NORMAL
+// TODO(elecro): For GL ES we'll disable this, thix the macro
 in gl_PerVertex
 {
   vec4 gl_Position;
@@ -47,6 +49,7 @@ out gl_PerVertex
 	vec4 gl_Position;
 	float gl_PointSize;
 };
+#endif
 
 void main()
 {

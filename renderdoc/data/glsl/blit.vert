@@ -21,12 +21,14 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
-
+#ifdef NORMAL
+// TODO(elecro): For GL ES we'll disable this, thix the macro
 out gl_PerVertex
 {
 	vec4 gl_Position;
 	float gl_PointSize;
 };
+#endif
 
 layout (location = 0) out vec2 uv;
 

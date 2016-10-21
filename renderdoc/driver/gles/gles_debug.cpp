@@ -249,6 +249,8 @@ void GLESReplay::InitDebugData()
 
   // TODO PEPE
   bool support450 = false;
+// TODO(elecro): Improve the shader language detecion
+#if 0
   for(GLint i = 0; i < numsl; i++)
   {
     const char *sl = (const char *)gl.glGetStringi(eGL_SHADING_LANGUAGE_VERSION, (GLuint)i);
@@ -261,6 +263,7 @@ void GLESReplay::InitDebugData()
     if(support450)
       break;
   }
+#endif
 
   DebugData.quadoverdraw420 = !support450;
 
@@ -380,10 +383,6 @@ void GLESReplay::InitDebugData()
         ARRAY_COUNT(DebugData.minmaxTileProgram) >= (TEXDISPLAY_SINT_TEX | TEXDISPLAY_TYPEMASK) + 1,
         "not enough programs");
 
-    string extensions =
-        "#extension GL_ARB_compute_shader : require\n"
-        "#extension GL_ARB_shader_storage_buffer_object : require\n";
-
     for(int t = 1; t <= RESTYPE_TEXTYPEMAX; t++)
     {
       // float, uint, sint
@@ -396,7 +395,7 @@ void GLESReplay::InitDebugData()
           idx |= TEXDISPLAY_SINT_TEX;
 
         {
-          string defines = extensions;
+          string defines = "";
           defines += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
           defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
@@ -408,7 +407,7 @@ void GLESReplay::InitDebugData()
         }
 
         {
-          string defines = extensions;
+          string defines = "";
           defines += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
           defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
@@ -420,7 +419,7 @@ void GLESReplay::InitDebugData()
 
         if(t == 1)
         {
-          string defines = extensions;
+          string defines = "";
           defines += string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
           defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
@@ -450,21 +449,24 @@ void GLESReplay::InitDebugData()
 //                               NULL, GL_MAP_READ_BIT);
   }
 
+// TODO(elecro): disable it for now. As there are parts which needs to addressed
+#if 0
   {
+    // TODO(elecro): Add version check?
     GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_ms2array_comp), 420);
     DebugData.MS2Array = CreateCShaderProgram(cs);
 
+    // TODO(elecro): uimage2DMSArray is not supported in the array2ms.comp shader, how can we replac it?
     GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_array2ms_comp), 420);
     DebugData.Array2MS = CreateCShaderProgram(cs);
   }
 
   {
-    string defines =
-        "#extension GL_ARB_compute_shader : require\n"
-        "#extension GL_ARB_shader_storage_buffer_object : require";
-    GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_mesh_comp), 420);
+    // TODO(elecro): Add version check?
+    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_comp), 420);
     DebugData.meshPickProgram = CreateCShaderProgram(cs);
   }
+#endif
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.8f);
 
