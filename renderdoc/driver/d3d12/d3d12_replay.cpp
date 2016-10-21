@@ -472,6 +472,15 @@ void D3D12Replay::FillResourceView(D3D12PipelineState::ResourceView &view, D3D12
           view.ElementSize = uav.Buffer.StructureByteStride;
 
         view.CounterByteOffset = uav.Buffer.CounterOffsetInBytes;
+
+        if(view.CounterResource != ResourceId())
+        {
+          vector<byte> counterVal;
+          m_pDevice->GetDebugManager()->GetBufferData(desc->nonsamp.uav.counterResource,
+                                                      view.CounterByteOffset, 4, counterVal);
+          uint32_t *val = (uint32_t *)&counterVal[0];
+          view.BufferStructCount = *val;
+        }
       }
       else if(uav.ViewDimension == D3D12_UAV_DIMENSION_TEXTURE1D)
       {
