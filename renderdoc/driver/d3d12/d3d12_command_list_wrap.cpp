@@ -267,6 +267,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
         m_Cmd->m_BakedCmdListInfo[CommandList].crackedLists.push_back(list);
       }
 
+      m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].type = type;
+      m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].nodeMask = nodeMask;
+
       // On list execute we increment all child events/drawcalls by
       // m_RootEventID and insert them into the tree.
       m_Cmd->m_BakedCmdListInfo[CommandList].curEventID = 0;

@@ -150,6 +150,8 @@ struct BakedCmdListInfo
 
   vector<pair<ResourceId, EventUsage> > resourceUsage;
 
+  D3D12_COMMAND_LIST_TYPE type;
+  UINT nodeMask;
   D3D12RenderState state;
 
   vector<D3D12_RESOURCE_BARRIER> barriers;
