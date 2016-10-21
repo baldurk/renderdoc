@@ -1261,12 +1261,21 @@ void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uin
          p.Constants.RegisterSpace == (UINT)bind.bindset &&
          p.Constants.ShaderRegister == (UINT)bind.bind)
       {
-        rootData.resize(sig->sig.params[i].Constants.Num32BitValues);
+        size_t dstSize = sig->sig.params[i].Constants.Num32BitValues * sizeof(uint32_t);
+        rootData.resize(dstSize);
 
-        if(i < sigElems->size() && (*sigElems)[i].type == eRootConst)
+        if(i < sigElems->size())
         {
-          memcpy(&rootData[0], &(*sigElems)[i].constants[0],
-                 RDCMIN((*sigElems)[i].constants.size() * sizeof(uint32_t), rootData.size()));
+          const D3D12RenderState::SignatureElement &el = (*sigElems)[i];
+
+          if(el.type == eRootConst)
+          {
+            byte *dst = &rootData[0];
+            const UINT *src = &el.constants[0];
+            size_t srcSize = el.constants.size() * sizeof(uint32_t);
+
+            memcpy(dst, src, RDCMIN(srcSize, dstSize));
+          }
         }
       }
     }
