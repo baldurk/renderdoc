@@ -2884,9 +2884,9 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
 
   uint32_t count = exec.maxCount;
 
-  vector<byte> data;
   if(exec.countBuf)
   {
+    vector<byte> data;
     m_pDevice->GetDebugManager()->GetBufferData(exec.countBuf, exec.countOffs, 4, data);
     count = RDCMIN(count, *(uint32_t *)&data[0]);
   }
@@ -3091,11 +3091,11 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           FetchDrawcall &draw = draws[idx].draw;
           FetchAPIEvent *ev = NULL;
 
-          for(int32_t i = 0; i < draw.events.count; i++)
+          for(int32_t e = 0; e < draw.events.count; e++)
           {
-            if(draw.events[i].eventID == eid)
+            if(draw.events[e].eventID == eid)
             {
-              ev = &draw.events[i];
+              ev = &draw.events[e];
               break;
             }
           }
@@ -3136,11 +3136,11 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           FetchDrawcall &draw = draws[idx].draw;
           FetchAPIEvent *ev = NULL;
 
-          for(int32_t i = 0; i < draw.events.count; i++)
+          for(int32_t e = 0; e < draw.events.count; e++)
           {
-            if(draw.events[i].eventID == eid)
+            if(draw.events[e].eventID == eid)
             {
-              ev = &draw.events[i];
+              ev = &draw.events[e];
               break;
             }
           }
@@ -3180,11 +3180,11 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           FetchDrawcall &draw = draws[idx].draw;
           FetchAPIEvent *ev = NULL;
 
-          for(int32_t i = 0; i < draw.events.count; i++)
+          for(int32_t e = 0; e < draw.events.count; e++)
           {
-            if(draw.events[i].eventID == eid)
+            if(draw.events[e].eventID == eid)
             {
-              ev = &draw.events[i];
+              ev = &draw.events[e];
               break;
             }
           }
@@ -3238,11 +3238,11 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           FetchDrawcall &draw = draws[idx].draw;
           FetchAPIEvent *ev = NULL;
 
-          for(int32_t i = 0; i < draw.events.count; i++)
+          for(int32_t e = 0; e < draw.events.count; e++)
           {
-            if(draw.events[i].eventID == eid)
+            if(draw.events[e].eventID == eid)
             {
-              ev = &draw.events[i];
+              ev = &draw.events[e];
               break;
             }
           }

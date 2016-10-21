@@ -788,16 +788,16 @@ void D3D12CommandData::GetIndirectBuffer(size_t size, ID3D12Resource **buf, uint
     heapProps.CreationNodeMask = 1;
     heapProps.VisibleNodeMask = 1;
 
-    ID3D12Resource *buf = NULL;
+    ID3D12Resource *argbuf = NULL;
 
     HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &indirectDesc,
                                                     D3D12_RESOURCE_STATE_INDIRECT_ARGUMENT, NULL,
-                                                    __uuidof(ID3D12Resource), (void **)&buf);
+                                                    __uuidof(ID3D12Resource), (void **)&argbuf);
 
     if(FAILED(hr))
       RDCERR("Failed to create indirect buffer, HRESULT: 0x%08x", hr);
 
-    m_IndirectBuffers.push_back(buf);
+    m_IndirectBuffers.push_back(argbuf);
     m_IndirectOffset = 0;
   }
 

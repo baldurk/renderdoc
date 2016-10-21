@@ -1392,17 +1392,17 @@ void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
               &desc.VS, &desc.HS, &desc.DS, &desc.GS, &desc.PS,
           };
 
-          for(size_t i = 0; i < ARRAY_COUNT(shaders); i++)
+          for(size_t s = 0; s < ARRAY_COUNT(shaders); s++)
           {
-            if(shaders[i]->BytecodeLength > 0)
+            if(shaders[s]->BytecodeLength > 0)
             {
-              WrappedID3D12PipelineState::ShaderEntry *s =
-                  (WrappedID3D12PipelineState::ShaderEntry *)shaders[i]->pShaderBytecode;
+              WrappedID3D12PipelineState::ShaderEntry *stage =
+                  (WrappedID3D12PipelineState::ShaderEntry *)shaders[s]->pShaderBytecode;
 
-              if(s->GetResourceID() == from)
-                *shaders[i] = shDesc;
+              if(stage->GetResourceID() == from)
+                *shaders[s] = shDesc;
               else
-                *shaders[i] = s->GetDesc();
+                *shaders[s] = stage->GetDesc();
             }
           }
 
@@ -1447,9 +1447,9 @@ void D3D12Replay::RemoveReplacement(ResourceId id)
       {
         WrappedID3D12PipelineState *pipe = sh->m_Pipes[i];
 
-        ResourceId id = rm->GetOriginalID(pipe->GetResourceID());
+        ResourceId pipeid = rm->GetOriginalID(pipe->GetResourceID());
 
-        rm->RemoveReplacement(id);
+        rm->RemoveReplacement(pipeid);
       }
     }
   }
