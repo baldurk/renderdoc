@@ -740,6 +740,8 @@ namespace renderdoc
                     case ResourceUsage.ColourTarget: return "Rendertarget";
                     case ResourceUsage.DepthStencilTarget: return "Depthstencil";
 
+                    case ResourceUsage.Indirect: return "Indirect argument";
+
                     case ResourceUsage.Clear: return "Clear";
 
                     case ResourceUsage.GenMips: return "Generate Mips";
@@ -791,6 +793,8 @@ namespace renderdoc
                     case ResourceUsage.InputTarget: return "FBO Input";
                     case ResourceUsage.ColourTarget: return "FBO Colour";
                     case ResourceUsage.DepthStencilTarget: return "FBO Depthstencil";
+
+                    case ResourceUsage.Indirect: return "Indirect argument";
 
                     case ResourceUsage.Clear: return "Clear";
 

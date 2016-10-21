@@ -411,11 +411,11 @@ enum ResourceUsage
 
   eUsage_All_RWResource,
 
-  eUsage_Indirect,
-
   eUsage_InputTarget,
   eUsage_ColourTarget,
   eUsage_DepthStencilTarget,
+
+  eUsage_Indirect,
 
   eUsage_Clear,
 
