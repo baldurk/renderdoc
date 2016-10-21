@@ -957,7 +957,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
   {
     // use sanitised parameters when no image is bound
     if(Images[i].name == 0)
-      m_Real->glBindImageTexture(i, 0, 0, GL_FALSE, 0, eGL_READ_ONLY, eGL_R8);
+      m_Real->glBindImageTexture(i, 0, 0, GL_FALSE, 0, eGL_READ_ONLY, eGL_RGBA8);
     else
       m_Real->glBindImageTexture(i, Images[i].name, (GLint)Images[i].level, Images[i].layered,
                                  (GLint)Images[i].layer, Images[i].access, Images[i].format);
