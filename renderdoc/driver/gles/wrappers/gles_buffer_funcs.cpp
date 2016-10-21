@@ -314,12 +314,10 @@ void WrappedGLES::glBufferStorageEXT(GLenum target, GLsizeiptr size, const void 
   }
   else
   {
-    // TODO PEPE
-    // m_Buffers[record->GetResourceID()].size = size;
-    RDCWARN("TODO PEPE %s:%d", __FILE__ ,__LINE__);
+    GLint id;
+    m_Real.glGetIntegerv(BufferBinding(target), &id);
+    m_Buffers[GetResourceManager()->GetID(BufferRes(GetCtx(), id))].size = size;
   }
-
-
   SAFE_DELETE_ARRAY(dummy);
 }
 
