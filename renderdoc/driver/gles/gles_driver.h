@@ -886,6 +886,9 @@ public:
   void Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr size, const void *data,
                                       GLbitfield flags);
 
+  bool Serialise_Common_glBlendBarrier(bool isExtension);
+  void Common_glBlendBarrier(bool isExtension);
+
   // GLES - GL compatibility like methods
   void glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt, GLenum type, GLint width, GLint height, void *ret);
   void glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data);
