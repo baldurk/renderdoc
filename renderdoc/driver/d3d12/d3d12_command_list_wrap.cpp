@@ -1406,7 +1406,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstant(
       if(m_Cmd->m_RenderState.compute.sigelems.size() < idx + 1)
         m_Cmd->m_RenderState.compute.sigelems.resize(idx + 1);
 
-      m_Cmd->m_RenderState.compute.sigelems[idx] = D3D12RenderState::SignatureElement(offs, val);
+      m_Cmd->m_RenderState.compute.sigelems[idx].SetConstant(offs, val);
     }
   }
   else if(m_State == READING)
@@ -1419,7 +1419,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstant(
     if(state.compute.sigelems.size() < idx + 1)
       state.compute.sigelems.resize(idx + 1);
 
-    state.compute.sigelems[idx] = D3D12RenderState::SignatureElement(offs, val);
+    state.compute.sigelems[idx].SetConstant(offs, val);
   }
 
   return true;
@@ -1462,8 +1462,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstants(
       if(m_Cmd->m_RenderState.compute.sigelems.size() < idx + 1)
         m_Cmd->m_RenderState.compute.sigelems.resize(idx + 1);
 
-      m_Cmd->m_RenderState.compute.sigelems[idx] =
-          D3D12RenderState::SignatureElement(num, data, offs);
+      m_Cmd->m_RenderState.compute.sigelems[idx].SetConstants(num, data, offs);
     }
   }
   else if(m_State == READING)
@@ -1476,7 +1475,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRoot32BitConstants(
     if(state.compute.sigelems.size() < idx + 1)
       state.compute.sigelems.resize(idx + 1);
 
-    state.compute.sigelems[idx] = D3D12RenderState::SignatureElement(num, data, offs);
+    state.compute.sigelems[idx].SetConstants(num, data, offs);
   }
 
   SAFE_DELETE_ARRAY(data);
@@ -1905,7 +1904,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstant(
       if(m_Cmd->m_RenderState.graphics.sigelems.size() < idx + 1)
         m_Cmd->m_RenderState.graphics.sigelems.resize(idx + 1);
 
-      m_Cmd->m_RenderState.graphics.sigelems[idx] = D3D12RenderState::SignatureElement(offs, val);
+      m_Cmd->m_RenderState.graphics.sigelems[idx].SetConstant(offs, val);
     }
   }
   else if(m_State == READING)
@@ -1918,7 +1917,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstant(
     if(state.graphics.sigelems.size() < idx + 1)
       state.graphics.sigelems.resize(idx + 1);
 
-    state.graphics.sigelems[idx] = D3D12RenderState::SignatureElement(offs, val);
+    state.graphics.sigelems[idx].SetConstant(offs, val);
   }
 
   return true;
@@ -1961,8 +1960,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstants(
       if(m_Cmd->m_RenderState.graphics.sigelems.size() < idx + 1)
         m_Cmd->m_RenderState.graphics.sigelems.resize(idx + 1);
 
-      m_Cmd->m_RenderState.graphics.sigelems[idx] =
-          D3D12RenderState::SignatureElement(num, data, offs);
+      m_Cmd->m_RenderState.graphics.sigelems[idx].SetConstants(num, data, offs);
     }
   }
   else if(m_State == READING)
@@ -1975,7 +1973,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRoot32BitConstants(
     if(state.graphics.sigelems.size() < idx + 1)
       state.graphics.sigelems.resize(idx + 1);
 
-    state.graphics.sigelems[idx] = D3D12RenderState::SignatureElement(num, data, offs);
+    state.graphics.sigelems[idx].SetConstants(num, data, offs);
   }
 
   SAFE_DELETE_ARRAY(data);
@@ -3484,7 +3482,7 @@ void WrappedID3D12GraphicsCommandList::ReplayExecuteIndirect(ID3D12GraphicsComma
             if(sigelems.size() < arg.Constant.RootParameterIndex + 1)
               sigelems.resize(arg.Constant.RootParameterIndex + 1);
 
-            sigelems[arg.Constant.RootParameterIndex] = D3D12RenderState::SignatureElement(
+            sigelems[arg.Constant.RootParameterIndex].SetConstants(
                 arg.Constant.Num32BitValuesToSet, values, arg.Constant.DestOffsetIn32BitValues);
 
             if(gfx)
