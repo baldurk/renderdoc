@@ -247,6 +247,9 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
       RDCERR("Failed to create readback command list, HRESULT: 0x%08x", hr);
       return;
     }
+
+    if(m_ReadbackList)
+      m_ReadbackList->Close();
   }
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
