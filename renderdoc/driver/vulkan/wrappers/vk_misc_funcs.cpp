@@ -1019,20 +1019,44 @@ bool WrappedVulkan::Serialise_SetShaderDebugPath(Serialiser *localSerialiser, Vk
 VkResult WrappedVulkan::vkDebugMarkerSetObjectTagEXT(VkDevice device,
                                                      VkDebugMarkerObjectTagInfoEXT *pTagInfo)
 {
-  if(pTagInfo && pTagInfo->tagName == RENDERDOC_ShaderDebugMagicValue_truncated &&
-     pTagInfo->objectType == VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT)
+  if(m_State >= WRITING && pTagInfo)
   {
     VkResourceRecord *record = GetObjRecord(pTagInfo->objectType, pTagInfo->object);
 
-    CACHE_THREAD_SERIALISER();
+    if(!record)
+    {
+      RDCERR("Unrecognised object %d %llu", pTagInfo->objectType, pTagInfo->object);
+      return VK_SUCCESS;
+    }
 
-    SCOPED_SERIALISE_CONTEXT(SET_SHADER_DEBUG_PATH);
-    Serialise_SetShaderDebugPath(localSerialiser, device, pTagInfo);
-    record->AddChunk(scope.Get());
-  }
-  else if(ObjDisp(device)->DebugMarkerSetObjectTagEXT)
-  {
-    return ObjDisp(device)->DebugMarkerSetObjectTagEXT(device, pTagInfo);
+    if(pTagInfo->tagName == RENDERDOC_ShaderDebugMagicValue_truncated &&
+       pTagInfo->objectType == VK_DEBUG_REPORT_OBJECT_TYPE_SHADER_MODULE_EXT)
+    {
+      CACHE_THREAD_SERIALISER();
+
+      SCOPED_SERIALISE_CONTEXT(SET_SHADER_DEBUG_PATH);
+      Serialise_SetShaderDebugPath(localSerialiser, device, pTagInfo);
+      record->AddChunk(scope.Get());
+    }
+    else if(ObjDisp(device)->DebugMarkerSetObjectTagEXT)
+    {
+      VkDebugMarkerObjectTagInfoEXT unwrapped = *pTagInfo;
+
+      if(unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT ||
+         unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT ||
+         unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT)
+      {
+        WrappedVkDispRes *res = (WrappedVkDispRes *)record->Resource;
+        unwrapped.object = res->real.handle;
+      }
+      else
+      {
+        WrappedVkNonDispRes *res = (WrappedVkNonDispRes *)record->Resource;
+        unwrapped.object = res->real.handle;
+      }
+
+      return ObjDisp(device)->DebugMarkerSetObjectTagEXT(device, &unwrapped);
+    }
   }
 
   return VK_SUCCESS;
@@ -1060,10 +1084,7 @@ bool WrappedVulkan::Serialise_vkDebugMarkerSetObjectNameEXT(Serialiser *localSer
 VkResult WrappedVulkan::vkDebugMarkerSetObjectNameEXT(VkDevice device,
                                                       VkDebugMarkerObjectNameInfoEXT *pNameInfo)
 {
-  if(ObjDisp(device)->DebugMarkerSetObjectNameEXT)
-    ObjDisp(device)->DebugMarkerSetObjectNameEXT(device, pNameInfo);
-
-  if(m_State >= WRITING)
+  if(m_State >= WRITING && pNameInfo)
   {
     Chunk *chunk = NULL;
 
@@ -1074,6 +1095,24 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectNameEXT(VkDevice device,
       RDCERR("Unrecognised object %d %llu", pNameInfo->objectType, pNameInfo->object);
       return VK_SUCCESS;
     }
+
+    VkDebugMarkerObjectNameInfoEXT unwrapped = *pNameInfo;
+
+    if(unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT ||
+       unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT ||
+       unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT)
+    {
+      WrappedVkDispRes *res = (WrappedVkDispRes *)record->Resource;
+      unwrapped.object = res->real.handle;
+    }
+    else
+    {
+      WrappedVkNonDispRes *res = (WrappedVkNonDispRes *)record->Resource;
+      unwrapped.object = res->real.handle;
+    }
+
+    if(ObjDisp(device)->DebugMarkerSetObjectNameEXT)
+      ObjDisp(device)->DebugMarkerSetObjectNameEXT(device, &unwrapped);
 
     {
       CACHE_THREAD_SERIALISER();
