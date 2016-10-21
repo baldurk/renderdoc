@@ -347,6 +347,9 @@ D3D12Descriptor *DescriptorFromPortableHandle(D3D12ResourceManager *manager, Por
   if(handle.heap == ResourceId())
     return NULL;
 
+  if(!manager->HasLiveResource(handle.heap))
+    return NULL;
+
   WrappedID3D12DescriptorHeap *heap = manager->GetLiveAs<WrappedID3D12DescriptorHeap>(handle.heap);
 
   if(heap)
