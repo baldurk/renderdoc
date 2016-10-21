@@ -695,6 +695,51 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFII
   return RefCounter12::QueryInterface(riid, ppvObject);
 }
 
+void BakedCmdListInfo::ShiftForRemoved(uint32_t shiftDrawID, uint32_t shiftEID, size_t idx)
+{
+  std::vector<D3D12DrawcallTreeNode> &draws = draw->children;
+
+  drawCount -= shiftDrawID;
+  eventCount -= shiftEID;
+
+  if(idx < draws.size())
+  {
+    for(size_t i = idx; i < draws.size(); i++)
+    {
+      // should have no children as we don't push in for markers since they
+      // can cross command list boundaries.
+      RDCASSERT(draws[i].children.empty());
+
+      draws[i].draw.eventID -= shiftEID;
+      draws[i].draw.drawcallID -= shiftDrawID;
+
+      for(int32_t e = 0; e < draws[i].draw.events.count; e++)
+        draws[i].draw.events[e].eventID -= shiftEID;
+    }
+
+    uint32_t lastEID = draws[idx].draw.eventID;
+
+    // shift any resource usage for drawcalls after the removed section
+    for(size_t i = 0; i < draw->resourceUsage.size(); i++)
+    {
+      if(draw->resourceUsage[i].second.eventID >= lastEID)
+        draw->resourceUsage[i].second.eventID -= shiftEID;
+    }
+
+    // patch any subsequent executes
+    for(size_t i = 0; i < executeEvents.size(); i++)
+    {
+      if(executeEvents[i].baseEvent >= lastEID)
+      {
+        executeEvents[i].baseEvent -= shiftEID;
+
+        if(executeEvents[i].lastEvent > 0)
+          executeEvents[i].lastEvent -= shiftEID;
+      }
+    }
+  }
+}
+
 D3D12CommandData::D3D12CommandData()
 {
   m_CurChunkOffset = 0;

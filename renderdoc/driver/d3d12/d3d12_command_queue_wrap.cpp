@@ -123,8 +123,32 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
   {
     for(uint32_t i = 0; i < numCmds; i++)
     {
-      ID3D12CommandList *c = Unwrap(cmds[i]);
-      m_pReal->ExecuteCommandLists(1, &c);
+      if(m_Cmd.m_BakedCmdListInfo[cmdIds[i]].executeEvents.empty() ||
+         m_Cmd.m_BakedCmdListInfo[cmdIds[i]].executeEvents[0].patched)
+      {
+        ID3D12CommandList *list = Unwrap(cmds[i]);
+        m_pReal->ExecuteCommandLists(1, &list);
+      }
+      else
+      {
+        BakedCmdListInfo &info = m_Cmd.m_BakedCmdListInfo[cmdIds[i]];
+
+        // execute the first half of the cracked list
+        ID3D12CommandList *list = Unwrap(info.crackedLists[0]);
+        m_pReal->ExecuteCommandLists(1, &list);
+
+        for(size_t c = 1; c < info.crackedLists.size(); c++)
+        {
+          m_pDevice->GPUSync();
+
+          // readback the patch buffer and perform patching
+          m_ReplayList->PatchExecuteIndirect(info, uint32_t(c - 1));
+
+          // execute next list with this indirect.
+          list = Unwrap(info.crackedLists[c]);
+          m_pReal->ExecuteCommandLists(1, &list);
+        }
+      }
     }
 
     for(uint32_t i = 0; i < numCmds; i++)

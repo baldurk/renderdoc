@@ -410,8 +410,9 @@ public:
 
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE, EndEvent());
 
-  void PatchedExecuteIndirect(ID3D12GraphicsCommandList *list, ResourceId sig, UINT maxCount,
-                              ResourceId arg, UINT64 argOffs);
+  void ReserveExecuteIndirect(ID3D12GraphicsCommandList *list, ResourceId sig, UINT maxCount);
+  void PatchExecuteIndirect(BakedCmdListInfo &info, uint32_t executeIndex);
+  void ReplayExecuteIndirect(ID3D12GraphicsCommandList *list, BakedCmdListInfo &info);
 
   IMPLEMENT_FUNCTION_SERIALISED(virtual void STDMETHODCALLTYPE,
                                 ExecuteIndirect(ID3D12CommandSignature *pCommandSignature,

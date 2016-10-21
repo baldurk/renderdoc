@@ -131,6 +131,7 @@ struct BakedCmdListInfo
     eventCount = parent.curEventID;
     drawCount = parent.drawCount;
     crackedLists.swap(parent.crackedLists);
+    executeEvents.swap(parent.executeEvents);
 
     parentList = parentID;
 
@@ -144,7 +145,37 @@ struct BakedCmdListInfo
     parent.debugMessages.clear();
   }
 
+  void ShiftForRemoved(uint32_t shiftDrawID, uint32_t shiftEID, size_t idx);
+
+  struct ExecuteData
+  {
+    ExecuteData()
+        : baseEvent(0),
+          lastEvent(0),
+          patched(false),
+          argBuf(NULL),
+          countBuf(NULL),
+          argOffs(0),
+          countOffs(0),
+          maxCount(0),
+          realCount(0)
+    {
+    }
+
+    uint32_t baseEvent;
+    uint32_t lastEvent;
+    bool patched;
+    ID3D12Resource *argBuf;
+    ID3D12Resource *countBuf;
+    uint64_t argOffs;
+    uint64_t countOffs;
+    ResourceId sig;
+    UINT maxCount;
+    UINT realCount;
+  };
+
   vector<ID3D12GraphicsCommandList *> crackedLists;
+  vector<ExecuteData> executeEvents;
 
   vector<FetchAPIEvent> curEvents;
   vector<DebugMessage> debugMessages;
