@@ -113,7 +113,7 @@ bool WrappedVulkan::Serialise_vkCmdDraw(Serialiser *localSerialiser, VkCommandBu
     }
 
     {
-      AddEvent(DRAW, desc);
+      AddEvent(desc);
       string name = "vkCmdDraw(" + ToStr::Get(vtxCount) + "," + ToStr::Get(instCount) + ")";
 
       FetchDrawcall draw;
@@ -209,7 +209,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexed(Serialiser *localSerialiser,
     }
 
     {
-      AddEvent(DRAW_INDEXED, desc);
+      AddEvent(desc);
       string name = "vkCmdDrawIndexed(" + ToStr::Get(idxCount) + "," + ToStr::Get(instCount) + ")";
 
       FetchDrawcall draw;
@@ -429,7 +429,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
         }
       }
 
-      AddEvent(DRAW_INDIRECT, desc);
+      AddEvent(desc);
 
       draw.name = name;
       draw.flags = eDraw_Drawcall | eDraw_Instanced;
@@ -447,7 +447,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
     FetchDrawcall draw;
     draw.name = name;
     draw.flags = eDraw_MultiDraw | eDraw_PushMarker;
-    AddEvent(DRAW_INDIRECT, desc);
+    AddEvent(desc);
     AddDrawcall(draw, true);
 
     VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
@@ -483,7 +483,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
 
       multi.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_Indirect;
 
-      AddEvent(DRAW_INDIRECT, multi.name.elems);
+      AddEvent(multi.name.elems);
       AddDrawcall(multi, true);
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
@@ -722,7 +722,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
         }
       }
 
-      AddEvent(DRAW_INDEXED_INDIRECT, desc);
+      AddEvent(desc);
 
       draw.name = name;
       draw.flags = eDraw_Drawcall | eDraw_UseIBuffer | eDraw_Instanced;
@@ -740,7 +740,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
     FetchDrawcall draw;
     draw.name = name;
     draw.flags = eDraw_MultiDraw | eDraw_PushMarker;
-    AddEvent(DRAW_INDEXED_INDIRECT, desc);
+    AddEvent(desc);
     AddDrawcall(draw, true);
 
     VulkanDrawcallTreeNode &drawNode = GetDrawcallStack().back()->children.back();
@@ -777,7 +777,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
 
       multi.flags |= eDraw_Drawcall | eDraw_UseIBuffer | eDraw_Instanced | eDraw_Indirect;
 
-      AddEvent(DRAW_INDEXED_INDIRECT, multi.name.elems);
+      AddEvent(multi.name.elems);
       AddDrawcall(multi, true);
 
       m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID++;
@@ -862,7 +862,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(Serialiser *localSerialiser,
     const string desc = localSerialiser->GetDebugStr();
 
     {
-      AddEvent(DISPATCH, desc);
+      AddEvent(desc);
       string name =
           "vkCmdDispatch(" + ToStr::Get(X) + "," + ToStr::Get(Y) + "," + ToStr::Get(Z) + ")";
 
@@ -954,7 +954,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(Serialiser *localSerialiser,
         args = &unknown;
       }
 
-      AddEvent(DISPATCH_INDIRECT, desc);
+      AddEvent(desc);
       string name = "vkCmdDispatchIndirect(<" + ToStr::Get(args->x) + "," + ToStr::Get(args->y) +
                     "," + ToStr::Get(args->z) + ">)";
 
@@ -1051,7 +1051,7 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(Serialiser *localSerialiser,
     const string desc = localSerialiser->GetDebugStr();
 
     {
-      AddEvent(BLIT_IMG, desc);
+      AddEvent(desc);
       string name = "vkCmdBlitImage(" + ToStr::Get(srcid) + "," + ToStr::Get(dstid) + ")";
 
       FetchDrawcall draw;
@@ -1166,7 +1166,7 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(Serialiser *localSerialiser,
     const string desc = localSerialiser->GetDebugStr();
 
     {
-      AddEvent(RESOLVE_IMG, desc);
+      AddEvent(desc);
       string name = "vkCmdResolveImage(" + ToStr::Get(srcid) + "," + ToStr::Get(dstid) + ")";
 
       FetchDrawcall draw;
@@ -1281,7 +1281,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(Serialiser *localSerialiser,
     const string desc = localSerialiser->GetDebugStr();
 
     {
-      AddEvent(RESOLVE_IMG, desc);
+      AddEvent(desc);
       string name = "vkCmdCopyImage(" + ToStr::Get(srcid) + "," + ToStr::Get(dstid) + ")";
 
       FetchDrawcall draw;
@@ -1396,7 +1396,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(Serialiser *localSerialiser
     const string desc = localSerialiser->GetDebugStr();
 
     {
-      AddEvent(COPY_BUF2IMG, desc);
+      AddEvent(desc);
       string name = "vkCmdCopyBufferToImage(" + ToStr::Get(bufid) + "," + ToStr::Get(imgid) + ")";
 
       FetchDrawcall draw;
@@ -1502,7 +1502,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(Serialiser *localSerialiser
     const string desc = localSerialiser->GetDebugStr();
 
     {
-      AddEvent(COPY_BUF2IMG, desc);
+      AddEvent(desc);
       string name = "vkCmdCopyImageToBuffer(" + ToStr::Get(imgid) + "," + ToStr::Get(bufid) + ")";
 
       FetchDrawcall draw;
@@ -1608,7 +1608,7 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(Serialiser *localSerialiser,
     const string desc = localSerialiser->GetDebugStr();
 
     {
-      AddEvent(COPY_BUF, desc);
+      AddEvent(desc);
       string name = "vkCmdCopyBuffer(" + ToStr::Get(srcid) + "," + ToStr::Get(dstid) + ")";
 
       FetchDrawcall draw;
@@ -1722,7 +1722,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(Serialiser *localSerialiser,
     const string desc = localSerialiser->GetDebugStr();
 
     {
-      AddEvent(CLEAR_COLOR, desc);
+      AddEvent(desc);
       string name = "vkCmdClearColorImage(" + ToStr::Get(col) + ")";
 
       FetchDrawcall draw;
@@ -1810,7 +1810,7 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
     const string desc = localSerialiser->GetDebugStr();
 
     {
-      AddEvent(CLEAR_DEPTHSTENCIL, desc);
+      AddEvent(desc);
       string name =
           "vkCmdClearDepthStencilImage(" + ToStr::Get(ds.depth) + "," + ToStr::Get(ds.stencil) + ")";
 
@@ -1898,7 +1898,7 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(Serialiser *localSerialiser,
     const string desc = localSerialiser->GetDebugStr();
 
     {
-      AddEvent(CLEAR_ATTACH, desc);
+      AddEvent(desc);
       string name = "vkCmdClearAttachments(";
       for(uint32_t a = 0; a < acount; a++)
         name += ToStr::Get(atts[a]);

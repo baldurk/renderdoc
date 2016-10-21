@@ -45,7 +45,7 @@ bool WrappedOpenGL::Serialise_glDispatchCompute(GLuint num_groups_x, GLuint num_
 
   if(m_State == READING)
   {
-    AddEvent(DISPATCH_COMPUTE, desc);
+    AddEvent(desc);
     string name =
         "glDispatchCompute(" + ToStr::Get(X) + ", " + ToStr::Get(Y) + ", " + ToStr::Get(Z) + ")";
 
@@ -122,7 +122,7 @@ bool WrappedOpenGL::Serialise_glDispatchComputeGroupSizeARB(GLuint num_groups_x,
 
   if(m_State == READING)
   {
-    AddEvent(DISPATCH_COMPUTE, desc);
+    AddEvent(desc);
     string name = "glDispatchComputeGroupSizeARB(" + ToStr::Get(X) + ", " + ToStr::Get(Y) + ", " +
                   ToStr::Get(Z) + ", " + ToStr::Get(sX) + ", " + ToStr::Get(sY) + ", " +
                   ToStr::Get(sZ) + ")";
@@ -217,7 +217,7 @@ bool WrappedOpenGL::Serialise_glDispatchComputeIndirect(GLintptr indirect)
     m_Real.glGetBufferSubData(eGL_DISPATCH_INDIRECT_BUFFER, (GLintptr)offs, sizeof(uint32_t) * 3,
                               groupSizes);
 
-    AddEvent(DISPATCH_COMPUTE_INDIRECT, desc);
+    AddEvent(desc);
     string name = "glDispatchComputeIndirect(<" + ToStr::Get(groupSizes[0]) + ", " +
                   ToStr::Get(groupSizes[1]) + ", " + ToStr::Get(groupSizes[2]) + ">)";
 
@@ -371,7 +371,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedback(GLenum mode, GLuint id)
 
   if(m_State == READING)
   {
-    AddEvent(DRAW_FEEDBACK, desc);
+    AddEvent(desc);
     string name = "glDrawTransformFeedback(<?>)";
 
     GLNOTIMP("Not fetching feedback object count for glDrawTransformFeedback() display");
@@ -437,7 +437,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackInstanced(GLenum mode, GLui
 
   if(m_State == READING)
   {
-    AddEvent(DRAW_FEEDBACK_INSTANCED, desc);
+    AddEvent(desc);
     string name = "glDrawTransformFeedbackInstanced(<?>)";
 
     GLNOTIMP("Not fetching feedback object count for glDrawTransformFeedbackInstanced() display");
@@ -502,7 +502,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStream(GLenum mode, GLuint 
 
   if(m_State == READING)
   {
-    AddEvent(DRAW_FEEDBACK_STREAM, desc);
+    AddEvent(desc);
     string name = "glDrawTransformFeedbackStream(<?>)";
 
     GLNOTIMP("Not fetching feedback object count for glDrawTransformFeedbackStream() display");
@@ -571,7 +571,7 @@ bool WrappedOpenGL::Serialise_glDrawTransformFeedbackStreamInstanced(GLenum mode
 
   if(m_State == READING)
   {
-    AddEvent(DRAW_FEEDBACK_STREAM_INSTANCED, desc);
+    AddEvent(desc);
     string name = "glDrawTransformFeedbackStreamInstanced(<?>)";
 
     GLNOTIMP(
@@ -637,7 +637,7 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
 
   if(m_State == READING)
   {
-    AddEvent(DRAWARRAYS, desc);
+    AddEvent(desc);
     string name = "glDrawArrays(" + ToStr::Get(Count) + ")";
 
     FetchDrawcall draw;
@@ -701,7 +701,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysIndirect(GLenum mode, const void *indi
     DrawArraysIndirectCommand params;
     m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)Offset, sizeof(params), &params);
 
-    AddEvent(DRAWARRAYS_INDIRECT, desc);
+    AddEvent(desc);
     string name = "glDrawArraysIndirect(" + ToStr::Get(params.count) + ", " +
                   ToStr::Get(params.instanceCount) + ">)";
 
@@ -771,7 +771,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GL
 
   if(m_State == READING)
   {
-    AddEvent(DRAWARRAYS_INSTANCED, desc);
+    AddEvent(desc);
     string name =
         "glDrawArraysInstanced(" + ToStr::Get(Count) + ", " + ToStr::Get(InstanceCount) + ")";
 
@@ -839,7 +839,7 @@ bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLi
 
   if(m_State == READING)
   {
-    AddEvent(DRAWARRAYS_INSTANCEDBASEINSTANCE, desc);
+    AddEvent(desc);
     string name = "glDrawArraysInstancedBaseInstance(" + ToStr::Get(Count) + ", " +
                   ToStr::Get(InstanceCount) + ")";
 
@@ -995,7 +995,7 @@ bool WrappedOpenGL::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum 
 
   if(m_State == READING)
   {
-    AddEvent(DRAWELEMENTS, desc);
+    AddEvent(desc);
     string name = "glDrawElements(" + ToStr::Get(Count) + ")";
 
     uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
@@ -1065,7 +1065,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, c
     DrawElementsIndirectCommand params;
     m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)Offset, sizeof(params), &params);
 
-    AddEvent(DRAWELEMENTS_INDIRECT, desc);
+    AddEvent(desc);
     string name = "glDrawElementsIndirect(" + ToStr::Get(params.count) + ", " +
                   ToStr::Get(params.instanceCount) + ">)";
 
@@ -1148,7 +1148,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLu
 
   if(m_State == READING)
   {
-    AddEvent(DRAWRANGEELEMENTS, desc);
+    AddEvent(desc);
     string name = "glDrawRangeElements(" + ToStr::Get(Count) + ")";
 
     uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
@@ -1228,7 +1228,7 @@ bool WrappedOpenGL::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint 
 
   if(m_State == READING)
   {
-    AddEvent(DRAWRANGEELEMENTSBASEVERTEX, desc);
+    AddEvent(desc);
     string name = "glDrawRangeElementsBaseVertex(" + ToStr::Get(Count) + ")";
 
     uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
@@ -1305,7 +1305,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei coun
 
   if(m_State == READING)
   {
-    AddEvent(DRAWELEMENTS_BASEVERTEX, desc);
+    AddEvent(desc);
     string name = "glDrawElementsBaseVertex(" + ToStr::Get(Count) + ")";
 
     uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
@@ -1381,7 +1381,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count
 
   if(m_State == READING)
   {
-    AddEvent(DRAWELEMENTS_INSTANCED, desc);
+    AddEvent(desc);
     string name = "glDrawElementsInstanced(" + ToStr::Get(Count) + ")";
 
     uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
@@ -1461,7 +1461,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
 
   if(m_State == READING)
   {
-    AddEvent(DRAWELEMENTS_INSTANCEDBASEINSTANCE, desc);
+    AddEvent(desc);
     string name = "glDrawElementsInstancedBaseInstance(" + ToStr::Get(Count) + ")";
 
     uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
@@ -1543,7 +1543,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
 
   if(m_State == READING)
   {
-    AddEvent(DRAWELEMENTS_INSTANCEDBASEVERTEX, desc);
+    AddEvent(desc);
     string name = "glDrawElementsInstancedBaseVertex(" + ToStr::Get(Count) + ", " +
                   ToStr::Get(InstCount) + ")";
 
@@ -1626,7 +1626,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
 
   if(m_State == READING)
   {
-    AddEvent(DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE, desc);
+    AddEvent(desc);
     string name = "glDrawElementsInstancedBaseVertexBaseInstance(" + ToStr::Get(Count) + ", " +
                   ToStr::Get(InstCount) + ")";
 
@@ -1771,7 +1771,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 
-      AddEvent(MULTI_DRAWARRAYS, desc);
+      AddEvent(desc);
       AddDrawcall(multidraw, true);
 
       m_CurEventID++;
@@ -1934,7 +1934,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 
-      AddEvent(MULTI_DRAWELEMENTS, desc);
+      AddEvent(desc);
       AddDrawcall(multidraw, true);
 
       m_CurEventID++;
@@ -2101,7 +2101,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
       multidraw.indexByteWidth = IdxSize;
 
-      AddEvent(MULTI_DRAWELEMENTSBASEVERTEX, desc);
+      AddEvent(desc);
       AddDrawcall(multidraw, true);
 
       m_CurEventID++;
@@ -2268,7 +2268,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
 
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 
-      AddEvent(MULTI_DRAWARRAYS_INDIRECT, desc);
+      AddEvent(desc);
       AddDrawcall(multidraw, true);
 
       m_CurEventID++;
@@ -2440,7 +2440,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
       multidraw.indexByteWidth = IdxSize;
 
-      AddEvent(MULTI_DRAWELEMENTS_INDIRECT, desc);
+      AddEvent(desc);
       AddDrawcall(multidraw, true);
 
       m_CurEventID++;
@@ -2615,7 +2615,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
 
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 
-      AddEvent(MULTI_DRAWARRAYS_INDIRECT, desc);
+      AddEvent(desc);
       AddDrawcall(multidraw, true);
 
       m_CurEventID++;
@@ -2803,7 +2803,7 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
       multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
       multidraw.indexByteWidth = IdxSize;
 
-      AddEvent(MULTI_DRAWELEMENTS_INDIRECT, desc);
+      AddEvent(desc);
       AddDrawcall(multidraw, true);
 
       m_CurEventID++;
@@ -2905,7 +2905,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(GLuint framebuffer, GLen
 
   if(m_State == READING)
   {
-    AddEvent(CLEARBUFFERF, desc);
+    AddEvent(desc);
 
     FetchDrawcall draw;
     draw.name = name;
@@ -3043,7 +3043,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(GLuint framebuffer, GLen
 
   if(m_State == READING)
   {
-    AddEvent(CLEARBUFFERI, desc);
+    AddEvent(desc);
 
     FetchDrawcall draw;
     draw.name = name;
@@ -3160,7 +3160,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(GLuint framebuffer, GLe
 
   if(m_State == READING)
   {
-    AddEvent(CLEARBUFFERUI, desc);
+    AddEvent(desc);
 
     FetchDrawcall draw;
     draw.name = name;
@@ -3257,7 +3257,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfi(GLuint framebuffer, GLen
 
   if(m_State == READING)
   {
-    AddEvent(CLEARBUFFERFI, desc);
+    AddEvent(desc);
     string name = "glClearBufferfi(" + ToStr::Get(d) + ToStr::Get(s) + ")";
 
     FetchDrawcall draw;
@@ -3599,7 +3599,7 @@ bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
 
   if(m_State == READING)
   {
-    AddEvent(CLEAR, desc);
+    AddEvent(desc);
     string name = "glClear(";
     if(Mask & GL_COLOR_BUFFER_BIT)
     {

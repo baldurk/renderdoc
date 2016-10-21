@@ -399,7 +399,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
 
       if(m_State == READING)
       {
-        m_Cmd.AddEvent(CONTEXT_CAPTURE_FOOTER, "Present()");
+        m_Cmd.AddEvent("Present()");
 
         FetchDrawcall draw;
         draw.name = "Present()";
@@ -435,7 +435,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
   else if(m_State == READING)
   {
     if(!m_Cmd.m_AddedDrawcall)
-      m_Cmd.AddEvent(chunk, m_pSerialiser->GetDebugStr());
+      m_Cmd.AddEvent(m_pSerialiser->GetDebugStr());
   }
 
   m_Cmd.m_AddedDrawcall = false;
@@ -797,7 +797,7 @@ ID3D12GraphicsCommandList *D3D12CommandData::RerecordCmdList(ResourceId cmdid,
   return NULL;
 }
 
-void D3D12CommandData::AddEvent(D3D12ChunkType type, string description)
+void D3D12CommandData::AddEvent(string description)
 {
   FetchAPIEvent apievent;
 

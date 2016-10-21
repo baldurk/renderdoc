@@ -1741,7 +1741,7 @@ void WrappedVulkan::ContextProcessChunk(uint64_t offset, VulkanChunkType chunk)
   else if(m_State == READING)
   {
     if(!m_AddedDrawcall)
-      AddEvent(chunk, m_pSerialiser->GetDebugStr());
+      AddEvent(m_pSerialiser->GetDebugStr());
   }
 
   m_AddedDrawcall = false;
@@ -2083,7 +2083,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 
       if(m_State == READING)
       {
-        AddEvent(CONTEXT_CAPTURE_FOOTER, "vkQueuePresentKHR()");
+        AddEvent("vkQueuePresentKHR()");
 
         FetchDrawcall draw;
         draw.name = "vkQueuePresentKHR()";
@@ -2811,7 +2811,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
   }
 }
 
-void WrappedVulkan::AddEvent(VulkanChunkType type, string description)
+void WrappedVulkan::AddEvent(string description)
 {
   FetchAPIEvent apievent;
 

@@ -2608,7 +2608,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(UINT VertexCountP
 
     const string desc = m_pSerialiser->GetDebugStr();
 
-    m_Cmd->AddEvent(DRAW_INST, desc);
+    m_Cmd->AddEvent(desc);
     string name = "DrawInstanced(" + ToStr::Get(vtxCount) + ", " + ToStr::Get(instCount) + ")";
 
     FetchDrawcall draw;
@@ -2684,7 +2684,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT Index
 
     const string desc = m_pSerialiser->GetDebugStr();
 
-    m_Cmd->AddEvent(DRAW_INDEXED_INST, desc);
+    m_Cmd->AddEvent(desc);
     string name =
         "DrawIndexedInstanced(" + ToStr::Get(idxCount) + ", " + ToStr::Get(instCount) + ")";
 
@@ -2759,7 +2759,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(UINT ThreadGroupCountX
 
     const string desc = m_pSerialiser->GetDebugStr();
 
-    m_Cmd->AddEvent(DISPATCH, desc);
+    m_Cmd->AddEvent(desc);
     string name = "Dispatch(" + ToStr::Get(x) + ", " + ToStr::Get(y) + ", " + ToStr::Get(z) + ")";
 
     FetchDrawcall draw;
@@ -2972,7 +2972,7 @@ void WrappedID3D12GraphicsCommandList::PatchedExecuteIndirect(ID3D12GraphicsComm
                 StringFormat::Fmt("\tStartInstanceLocation: %u\n", args->StartInstanceLocation);
             eventStr += "}\n";
 
-            m_Cmd->AddEvent(DRAW_INST, eventStr);
+            m_Cmd->AddEvent(eventStr);
             m_Cmd->AddDrawcall(draw, true);
 
             cmdInfo.curEventID++;
@@ -3015,7 +3015,7 @@ void WrappedID3D12GraphicsCommandList::PatchedExecuteIndirect(ID3D12GraphicsComm
                 StringFormat::Fmt("\tStartInstanceLocation: %u\n", args->StartInstanceLocation);
             eventStr += "}\n";
 
-            m_Cmd->AddEvent(DRAW_INDEXED_INST, eventStr);
+            m_Cmd->AddEvent(eventStr);
             m_Cmd->AddDrawcall(draw, true);
 
             cmdInfo.curEventID++;
@@ -3051,7 +3051,7 @@ void WrappedID3D12GraphicsCommandList::PatchedExecuteIndirect(ID3D12GraphicsComm
             eventStr += StringFormat::Fmt("\tThreadGroupCountZ: %u\n", args->ThreadGroupCountZ);
             eventStr += "}\n";
 
-            m_Cmd->AddEvent(DISPATCH, eventStr);
+            m_Cmd->AddEvent(eventStr);
             m_Cmd->AddDrawcall(draw, true);
 
             cmdInfo.curEventID++;
@@ -3100,7 +3100,7 @@ void WrappedID3D12GraphicsCommandList::PatchedExecuteIndirect(ID3D12GraphicsComm
               name += StringFormat::Fmt("\tvalues[%u]: %u\n", val, values[val]);
             name += "}\n";
 
-            m_Cmd->AddEvent(gfx ? SET_GFX_ROOT_CONSTS : SET_COMP_ROOT_CONSTS, name);
+            m_Cmd->AddEvent(name);
 
             cmdInfo.curEventID++;
           }
@@ -3155,7 +3155,7 @@ void WrappedID3D12GraphicsCommandList::PatchedExecuteIndirect(ID3D12GraphicsComm
             name += StringFormat::Fmt("\tView.StrideInBytes: %u\n", srcVB->StrideInBytes);
             name += "}\n";
 
-            m_Cmd->AddEvent(SET_VBUFFERS, name);
+            m_Cmd->AddEvent(name);
 
             cmdInfo.curEventID++;
           }
@@ -3204,7 +3204,7 @@ void WrappedID3D12GraphicsCommandList::PatchedExecuteIndirect(ID3D12GraphicsComm
             name += StringFormat::Fmt("\tView.Format: %s\n", ToStr::Get(srcIB->Format).c_str());
             name += "}\n";
 
-            m_Cmd->AddEvent(SET_IBUFFER, name);
+            m_Cmd->AddEvent(name);
 
             cmdInfo.curEventID++;
           }
@@ -3322,7 +3322,7 @@ void WrappedID3D12GraphicsCommandList::PatchedExecuteIndirect(ID3D12GraphicsComm
             name += StringFormat::Fmt("\tBufferLocation_Offset: %llu\n", offs);
             name += "}\n";
 
-            m_Cmd->AddEvent(chunkType, name);
+            m_Cmd->AddEvent(name);
 
             cmdInfo.curEventID++;
           }
@@ -3412,7 +3412,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
       count = RDCMIN(count, *(uint32_t *)&data[0]);
     }
 
-    m_Cmd->AddEvent(EXEC_INDIRECT, desc);
+    m_Cmd->AddEvent(desc);
     string name = StringFormat::Fmt("ExecuteIndirect(maxCount %u, count <%u>)", maxCount, count);
 
     FetchDrawcall draw;
@@ -3509,7 +3509,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
     const string desc = m_pSerialiser->GetDebugStr();
 
     {
-      m_Cmd->AddEvent(CLEAR_DSV, desc);
+      m_Cmd->AddEvent(desc);
       string name = "ClearDepthStencilView(" + ToStr::Get(d) + "," + ToStr::Get(s) + ")";
 
       FetchDrawcall draw;
@@ -3594,7 +3594,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
     const string desc = m_pSerialiser->GetDebugStr();
 
     {
-      m_Cmd->AddEvent(CLEAR_RTV, desc);
+      m_Cmd->AddEvent(desc);
       string name = "ClearRenderTargetView(" + ToStr::Get(Color[0]) + "," + ToStr::Get(Color[1]) +
                     "," + ToStr::Get(Color[2]) + "," + ToStr::Get(Color[3]) + ")";
 
@@ -3690,7 +3690,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
     const string desc = m_pSerialiser->GetDebugStr();
 
     {
-      m_Cmd->AddEvent(CLEAR_UAV_INT, desc);
+      m_Cmd->AddEvent(desc);
       string name = "ClearUnorderedAccessViewUint(" + ToStr::Get(vals[0]) + "," +
                     ToStr::Get(vals[1]) + "," + ToStr::Get(vals[2]) + "," + ToStr::Get(vals[3]) +
                     ")";
@@ -3793,7 +3793,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
     const string desc = m_pSerialiser->GetDebugStr();
 
     {
-      m_Cmd->AddEvent(CLEAR_UAV_INT, desc);
+      m_Cmd->AddEvent(desc);
       string name = "ClearUnorderedAccessViewFloat(" + ToStr::Get(vals[0]) + "," +
                     ToStr::Get(vals[1]) + "," + ToStr::Get(vals[2]) + "," + ToStr::Get(vals[3]) +
                     ")";
@@ -3933,7 +3933,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(ID3D12Resource
     const string desc = m_pSerialiser->GetDebugStr();
 
     {
-      m_Cmd->AddEvent(COPY_BUFFER, desc);
+      m_Cmd->AddEvent(desc);
       string name = "CopyBufferRegion(" + ToStr::Get(src) + "," + ToStr::Get(dst) + ")";
 
       FetchDrawcall draw;
@@ -4014,7 +4014,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
     const string desc = m_pSerialiser->GetDebugStr();
 
     {
-      m_Cmd->AddEvent(COPY_TEXTURE, desc);
+      m_Cmd->AddEvent(desc);
 
       ResourceId liveSrc = GetResID(GetResourceManager()->GetWrapper(src.pResource));
       ResourceId liveDst = GetResID(GetResourceManager()->GetWrapper(dst.pResource));
@@ -4109,7 +4109,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(ID3D12Resource *pD
     const string desc = m_pSerialiser->GetDebugStr();
 
     {
-      m_Cmd->AddEvent(COPY_RESOURCE, desc);
+      m_Cmd->AddEvent(desc);
 
       string name = "CopyResource(" + ToStr::Get(src) + "," + ToStr::Get(dst) + ")";
 
@@ -4199,7 +4199,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(ID3D12Resour
     const string desc = m_pSerialiser->GetDebugStr();
 
     {
-      m_Cmd->AddEvent(RESOLVE_SUBRESOURCE, desc);
+      m_Cmd->AddEvent(desc);
 
       string name = "ResolveSubresource(" + ToStr::Get(src) + "," + ToStr::Get(dst) + ")";
 

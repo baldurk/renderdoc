@@ -633,7 +633,7 @@ private:
   void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
   void ContextProcessChunk(uint64_t offset, VulkanChunkType chunk);
   void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
-  void AddEvent(VulkanChunkType type, string description);
+  void AddEvent(string description);
 
   void AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessage> &debugMessages);
 

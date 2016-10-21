@@ -717,7 +717,7 @@ bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(GLuint texture, GLenum 
 
   if(m_State == READING)
   {
-    AddEvent(GENERATE_MIPMAP, desc);
+    AddEvent(desc);
     string name = "glGenerateMipmap(" + ToStr::Get(id) + ")";
 
     FetchDrawcall draw;
@@ -853,7 +853,7 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(GLuint srcName, GLenum srcTarge
 
   if(m_State == READING)
   {
-    AddEvent(COPY_SUBIMAGE, desc);
+    AddEvent(desc);
     string name = "glCopyImageSubData(" + ToStr::Get(srcid) + ", " + ToStr::Get(dstid) + ")";
 
     FetchDrawcall draw;

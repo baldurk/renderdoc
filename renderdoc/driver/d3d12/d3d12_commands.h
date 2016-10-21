@@ -300,7 +300,7 @@ struct D3D12CommandData
                                              PartialReplayIndex partialType = ePartialNum);
 
   void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
-  void AddEvent(D3D12ChunkType type, string description);
+  void AddEvent(string description);
   void AddUsage(D3D12DrawcallTreeNode &drawNode);
   void AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, uint32_t EID, ResourceUsage usage);
 };

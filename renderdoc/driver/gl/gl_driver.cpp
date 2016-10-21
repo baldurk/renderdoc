@@ -3535,7 +3535,7 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
 
       if(m_State == READING)
       {
-        AddEvent(CONTEXT_CAPTURE_FOOTER, "SwapBuffers()");
+        AddEvent("SwapBuffers()");
 
         FetchDrawcall draw;
         draw.name = "SwapBuffers()";
@@ -3705,7 +3705,7 @@ void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk)
   else if(m_State == READING)
   {
     if(!m_AddedDrawcall)
-      AddEvent(chunk, m_pSerialiser->GetDebugStr());
+      AddEvent(m_pSerialiser->GetDebugStr());
   }
 
   m_AddedDrawcall = false;
@@ -4046,14 +4046,11 @@ void WrappedOpenGL::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
     RDCERR("Somehow lost drawcall stack!");
 }
 
-void WrappedOpenGL::AddEvent(GLChunkType type, string description, ResourceId ctx)
+void WrappedOpenGL::AddEvent(string description)
 {
-  if(ctx == ResourceId())
-    ctx = GetResourceManager()->GetOriginalID(m_ContextResourceID);
-
   FetchAPIEvent apievent;
 
-  apievent.context = ctx;
+  apievent.context = GetResourceManager()->GetOriginalID(m_ContextResourceID);
   apievent.fileOffset = m_CurChunkOffset;
   apievent.eventID = m_CurEventID;
 

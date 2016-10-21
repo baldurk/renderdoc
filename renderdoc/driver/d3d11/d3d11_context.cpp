@@ -789,7 +789,7 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
       if(m_State == READING)
       {
         if(!m_PresentChunk)
-          AddEvent(CONTEXT_CAPTURE_FOOTER, "IDXGISwapChain::Present()");
+          AddEvent("IDXGISwapChain::Present()");
 
         FetchDrawcall draw;
         draw.name = "Present()";
@@ -822,7 +822,7 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
   else if(context->m_State == READING)
   {
     if(!m_AddedDrawcall)
-      context->AddEvent(chunk, m_pSerialiser->GetDebugStr());
+      context->AddEvent(m_pSerialiser->GetDebugStr());
   }
 
   m_AddedDrawcall = false;
@@ -987,7 +987,7 @@ void WrappedID3D11DeviceContext::AddDrawcall(const FetchDrawcall &d, bool hasEve
     RDCERR("Somehow lost drawcall stack!");
 }
 
-void WrappedID3D11DeviceContext::AddEvent(D3D11ChunkType type, string description)
+void WrappedID3D11DeviceContext::AddEvent(string description)
 {
   FetchAPIEvent apievent;
 

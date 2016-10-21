@@ -257,7 +257,7 @@ private:
 
   void AddUsage(const FetchDrawcall &d);
 
-  void AddEvent(D3D11ChunkType type, string description);
+  void AddEvent(string description);
   void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
 
   void RecordIndexBindStats(ID3D11Buffer *Buffer);

@@ -133,7 +133,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       m_pDevice->ApplyBarriers(m_Cmd.m_BakedCmdListInfo[cmd].barriers);
     }
 
-    m_Cmd.AddEvent(EXECUTE_CMD_LISTS, desc);
+    m_Cmd.AddEvent(desc);
 
     // we're adding multiple events, need to increment ourselves
     m_Cmd.m_RootEventID++;
@@ -149,7 +149,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       FetchDrawcall draw;
       draw.name = name;
       draw.flags |= eDraw_SetMarker;
-      m_Cmd.AddEvent(SET_MARKER, name);
+      m_Cmd.AddEvent(name);
       m_Cmd.AddDrawcall(draw, true);
       m_Cmd.m_RootEventID++;
 
@@ -185,7 +185,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       name = StringFormat::Fmt("=> %s[%u]: Close(%s)", basename.c_str(), c,
                                ToStr::Get(cmdIds[c]).c_str());
       draw.name = name;
-      m_Cmd.AddEvent(SET_MARKER, name);
+      m_Cmd.AddEvent(name);
       m_Cmd.AddDrawcall(draw, true);
       m_Cmd.m_RootEventID++;
     }

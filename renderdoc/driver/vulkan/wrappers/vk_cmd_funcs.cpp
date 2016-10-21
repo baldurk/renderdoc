@@ -865,7 +865,7 @@ bool WrappedVulkan::Serialise_vkCmdBeginRenderPass(Serialiser *localSerialiser,
 
     string opDesc = MakeRenderPassOpString(false);
 
-    AddEvent(BEGIN_RENDERPASS, desc);
+    AddEvent(desc);
     FetchDrawcall draw;
     draw.name = StringFormat::Fmt("vkCmdBeginRenderPass(%s)", opDesc.c_str());
     draw.flags |= eDraw_PassBoundary | eDraw_BeginPass;
@@ -966,7 +966,7 @@ bool WrappedVulkan::Serialise_vkCmdNextSubpass(Serialiser *localSerialiser,
 
     const string desc = localSerialiser->GetDebugStr();
 
-    AddEvent(NEXT_SUBPASS, desc);
+    AddEvent(desc);
     FetchDrawcall draw;
     draw.name = StringFormat::Fmt("vkCmdNextSubpass() => %u",
                                   m_BakedCmdBufferInfo[m_LastCmdBufferID].state.subpass);
@@ -1039,7 +1039,7 @@ bool WrappedVulkan::Serialise_vkCmdEndRenderPass(Serialiser *localSerialiser,
 
     string opDesc = MakeRenderPassOpString(true);
 
-    AddEvent(END_RENDERPASS, desc);
+    AddEvent(desc);
     FetchDrawcall draw;
     draw.name = StringFormat::Fmt("vkCmdEndRenderPass(%s)", opDesc.c_str());
     draw.flags |= eDraw_PassBoundary | eDraw_EndPass;
@@ -2322,7 +2322,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
 
     const string desc = localSerialiser->GetDebugStr();
 
-    AddEvent(EXEC_CMDS, desc);
+    AddEvent(desc);
 
     FetchDrawcall draw;
     draw.name = "vkCmdExecuteCommands(" + ToStr::Get(count) + ")";
@@ -2343,7 +2343,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
       FetchDrawcall marker;
       marker.name = name;
       marker.flags = eDraw_PassBoundary | eDraw_BeginPass;
-      AddEvent(SET_MARKER, name);
+      AddEvent(name);
       AddDrawcall(marker, true);
       parentCmdBufInfo.curEventID++;
 
@@ -2380,7 +2380,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
                                ToStr::Get(cmdids[c]).c_str());
       marker.name = name;
       marker.flags = eDraw_PassBoundary | eDraw_EndPass;
-      AddEvent(SET_MARKER, name);
+      AddEvent(name);
       AddDrawcall(marker, true);
       parentCmdBufInfo.curEventID++;
     }

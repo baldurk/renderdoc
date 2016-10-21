@@ -200,7 +200,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
       GetResourceManager()->ApplyBarriers(m_BakedCmdBufferInfo[cmd].imgbarriers, m_ImageLayouts);
     }
 
-    AddEvent(QUEUE_SUBMIT, desc);
+    AddEvent(desc);
 
     // we're adding multiple events, need to increment ourselves
     m_RootEventID++;
@@ -216,7 +216,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
       FetchDrawcall draw;
       draw.name = name;
       draw.flags |= eDraw_SetMarker;
-      AddEvent(SET_MARKER, name);
+      AddEvent(name);
       AddDrawcall(draw, true);
       m_RootEventID++;
 
@@ -250,7 +250,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
       name = StringFormat::Fmt("=> %s[%u]: vkEndCommandBuffer(%s)", basename.c_str(), c,
                                ToStr::Get(cmdIds[c]).c_str());
       draw.name = name;
-      AddEvent(SET_MARKER, name);
+      AddEvent(name);
       AddDrawcall(draw, true);
       m_RootEventID++;
     }
