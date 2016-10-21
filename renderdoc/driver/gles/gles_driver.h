@@ -56,6 +56,7 @@ public:
     }
 private:
     SafeTextureBinder(const SafeTextureBinder&);
+    SafeTextureBinder& operator=(const SafeTextureBinder&);
 
     const GLHookSet &m_Real;
     GLenum m_target;
@@ -78,6 +79,7 @@ public:
     }
 private:
     SafeVAOBinder(const SafeVAOBinder&);
+    SafeVAOBinder& operator=(const SafeVAOBinder&);
 
     const GLHookSet &m_Real;
     GLint m_previous;
@@ -117,6 +119,7 @@ public:
     }
 private:
     SafeBufferBinder(const SafeBufferBinder&);
+    SafeBufferBinder& operator=(const SafeBufferBinder&);
 
     const GLHookSet &m_Real;
     GLenum m_target;
@@ -144,6 +147,7 @@ public:
 
 private:
     SafeFramebufferBinder(const SafeFramebufferBinder&);
+    SafeFramebufferBinder& operator=(const SafeFramebufferBinder&);
 
     const GLHookSet &m_Real;
     GLuint m_prevDrawFramebuffer;
@@ -168,6 +172,7 @@ public:
 
 private:
     SafeFramebufferBinderBase(const SafeFramebufferBinderBase&);
+    SafeFramebufferBinderBase& operator=(const SafeFramebufferBinderBase&);
 
     const GLHookSet &m_Real;
     GLint m_previous;
