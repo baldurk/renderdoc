@@ -544,6 +544,11 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
          continue;
       }
 
+      if((pnames[i] == eGL_SAMPLE_ALPHA_TO_ONE_EXT ||
+          pnames[i] == eGL_MULTISAMPLE_EXT) &&
+         !ExtensionSupported[ExtensionSupported_EXT_multisample_compatibility])
+        continue;
+
       Enabled[i] = (m_Real->glIsEnabled(pnames[i]) == GL_TRUE);
     }
   }
@@ -902,6 +907,11 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
 
       if((pnames[i] == eGL_POLYGON_OFFSET_LINE_NV ||
           pnames[i] == eGL_POLYGON_OFFSET_POINT_NV))
+        continue;
+
+      if((pnames[i] == eGL_SAMPLE_ALPHA_TO_ONE_EXT ||
+          pnames[i] == eGL_MULTISAMPLE_EXT) &&
+         !ExtensionSupported[ExtensionSupported_EXT_multisample_compatibility])
         continue;
 
       if(Enabled[i])
