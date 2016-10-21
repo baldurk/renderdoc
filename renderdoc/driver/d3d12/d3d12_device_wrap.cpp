@@ -844,7 +844,7 @@ void WrappedID3D12Device::CreateSampler(const D3D12_SAMPLER_DESC *pDesc,
       SCOPED_SERIALISE_CONTEXT(DYN_DESC_WRITE);
       Serialise_DynamicDescriptorWrite(localSerialiser, &write);
 
-      m_DeviceRecord->AddChunk(scope.Get());
+      m_FrameCaptureRecord->AddChunk(scope.Get());
     }
   }
   else
