@@ -782,57 +782,65 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
     // so we should never come in here except for when reading
     RDCASSERT(m_State < WRITING);
 
+//    WrappedGLES::ProgramData &details = m_GL->m_Programs[GetLiveID(Id)];
+//
+//    GLuint initProg = gl.glCreateProgram();
+//
+//    for(size_t i = 0; i < details.shaders.size(); i++)
+//    {
+//      const auto &shadDetails = m_GL->m_Shaders[details.shaders[i]];
+//
+//      GLuint shad = gl.glCreateShader(shadDetails.type);
+//
+//      char **srcs = new char *[shadDetails.sources.size()];
+//      for(size_t s = 0; s < shadDetails.sources.size(); s++)
+//        srcs[s] = (char *)shadDetails.sources[s].c_str();
+//      gl.glShaderSource(shad, (GLsizei)shadDetails.sources.size(), srcs, NULL);
+//
+//      SAFE_DELETE_ARRAY(srcs);
+//      gl.glCompileShader(shad);
+//      gl.glAttachShader(initProg, shad);
+//      gl.glDeleteShader(shad);
+//    }
+//
+//    gl.glLinkProgram(initProg);
+//
+//    GLint status = 0;
+//    gl.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
+//
+//    // if it failed to link, try again as a separable program.
+//    // we can't do this by default because of the silly rules meaning
+//    // shaders need fixup to be separable-compatible.
+//    if(status == 0)
+//    {
+//      gl.glProgramParameteri(initProg, eGL_PROGRAM_SEPARABLE, 1);
+//      gl.glLinkProgram(initProg);
+//
+//      gl.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
+//    }
+//
+//    if(status == 0)
+//    {
+//      if(details.shaders.size() == 0)
+//      {
+//        RDCWARN("No shaders attached to program");
+//      }
+//      else
+//      {
+//        char buffer[1025] = {0};
+//        gl.glGetProgramInfoLog(initProg, 1024, NULL, buffer);
+//        RDCERR("Link error: %s", buffer);
+//      }
+//    }
+//
+//    SerialiseProgramUniforms(gl, m_pSerialiser, initProg, &details.locationTranslate, false);
+//
+//    SetInitialContents(Id, InitialContentData(ProgramRes(m_GL->GetCtx(), initProg), 0, NULL));
+
+    // TODO PEPE: Due to the TFBO varying bindings are missing from the code above we reuse the already
+    // linked program instead of crating a new one as the location queries can be wrong without them.`
     WrappedGLES::ProgramData &details = m_GL->m_Programs[GetLiveID(Id)];
-
-    GLuint initProg = gl.glCreateProgram();
-
-    for(size_t i = 0; i < details.shaders.size(); i++)
-    {
-      const auto &shadDetails = m_GL->m_Shaders[details.shaders[i]];
-
-      GLuint shad = gl.glCreateShader(shadDetails.type);
-
-      char **srcs = new char *[shadDetails.sources.size()];
-      for(size_t s = 0; s < shadDetails.sources.size(); s++)
-        srcs[s] = (char *)shadDetails.sources[s].c_str();
-      gl.glShaderSource(shad, (GLsizei)shadDetails.sources.size(), srcs, NULL);
-
-      SAFE_DELETE_ARRAY(srcs);
-      gl.glCompileShader(shad);
-      gl.glAttachShader(initProg, shad);
-      gl.glDeleteShader(shad);
-    }
-
-    gl.glLinkProgram(initProg);
-
-    GLint status = 0;
-    gl.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
-
-    // if it failed to link, try again as a separable program.
-    // we can't do this by default because of the silly rules meaning
-    // shaders need fixup to be separable-compatible.
-    if(status == 0)
-    {
-      gl.glProgramParameteri(initProg, eGL_PROGRAM_SEPARABLE, 1);
-      gl.glLinkProgram(initProg);
-
-      gl.glGetProgramiv(initProg, eGL_LINK_STATUS, &status);
-    }
-
-    if(status == 0)
-    {
-      if(details.shaders.size() == 0)
-      {
-        RDCWARN("No shaders attached to program");
-      }
-      else
-      {
-        char buffer[1025] = {0};
-        gl.glGetProgramInfoLog(initProg, 1024, NULL, buffer);
-        RDCERR("Link error: %s", buffer);
-      }
-    }
-
+    GLuint initProg = GetLiveResource(Id).name;
     SerialiseProgramUniforms(gl, m_pSerialiser, initProg, &details.locationTranslate, false);
 
     SetInitialContents(Id, InitialContentData(ProgramRes(m_GL->GetCtx(), initProg), 0, NULL));
