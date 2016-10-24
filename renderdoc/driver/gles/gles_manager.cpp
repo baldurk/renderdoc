@@ -900,46 +900,31 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         }
         else if(isCompressed)
         {
-            RDCLOG("Compressed texture is not supported! (%s:%d)", __FILE__, __LINE__);
-//          for(int i = 0; i < mips; i++)
-//          {
-//            GLenum targets[] = {
-//                eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
-//                eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
-//                eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
-//            };
-//
-//            int count = ARRAY_COUNT(targets);
-//
-//            if(t != eGL_TEXTURE_CUBE_MAP)
-//            {
-//              targets[0] = details.curType;
-//              count = 1;
-//            }
-//
-//            for(int trg = 0; trg < count; trg++)
-//            {
-//              GLint compSize;
-//              gl.glGetTextureLevelParameterivEXT(tex, targets[trg], i,
-//                                                 eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compSize);
-//
-//              size_t size = compSize;
-//
-//              // sometimes cubemaps return the compressed image size for the whole texture, but we
-//              // read it
-//              // face by face
-//              if(VendorCheck[VendorCheck_EXT_compressed_cube_size] && t == eGL_TEXTURE_CUBE_MAP)
-//                size /= 6;
-//
-//              byte *buf = new byte[size];
-//
-//              gl.glGetCompressedTextureImageEXT(tex, targets[trg], i, buf);
-//
-//              m_pSerialiser->SerialiseBuffer("image", buf, size);
-//
-//              delete[] buf;
-//            }
-//          }
+          for(int i = 0; i < mips; i++)
+          {
+            GLenum targets[] = {
+                eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+                eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+                eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+            };
+
+            int count = ARRAY_COUNT(targets);
+
+            if(t != eGL_TEXTURE_CUBE_MAP)
+            {
+              targets[0] = details.curType;
+              count = 1;
+            }
+
+            for(int trg = 0; trg < count; trg++)
+            {
+              size_t size = details.compressedData[targets[trg]][i].size();
+              byte *buf = new byte[size];
+              memcpy(buf, details.compressedData[targets[trg]][i].data(), size);
+              m_pSerialiser->SerialiseBuffer("image", buf, size);
+              delete[] buf;
+            }
+          }
         }
         else if(samples > 1)
         {

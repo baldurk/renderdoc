@@ -699,7 +699,7 @@ void GLESReplay::CacheTexture(ResourceId id)
     {
       if(compressed)
       {
-        RDCLOG("Compressed texture is not supported! (%s:%d)", __FILE__, __LINE__);
+        tex.byteSize += GetCompressedByteSize(tex.width, tex.height, tex.depth, (GLenum)fmt, m);
       }
       else if(tex.format.special)
       {
@@ -2370,7 +2370,13 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     if(IsCompressedFormat(intFormat))
     {
-        RDCLOG("Compressed texture is not supported! (%s:%d)", __FILE__, __LINE__);
+        dataSize = GetCompressedByteSize(width, height, depth, intFormat, mip);
+        ret = new byte[dataSize];
+
+        if (texDetails.compressedData[target][mip].size() == dataSize)
+          memcpy(ret, texDetails.compressedData[target][mip].data(), dataSize);
+        else
+          RDCERR("Different expected and stored compressed texture sizes!");
     }
     else
     {

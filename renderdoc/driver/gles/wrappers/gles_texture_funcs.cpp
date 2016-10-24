@@ -1291,15 +1291,25 @@ bool WrappedGLES::Serialise_glCompressedTexImage2D(GLenum target,
       databuf = &m_ScratchBuf[0];
     }
 
+    ResourceId liveId = GetResourceManager()->GetLiveID(id);
+
     if(Level == 0)    // assume level 0 will always get a glTexImage call
     {
-      ResourceId liveId = GetResourceManager()->GetLiveID(id);
       m_Textures[liveId].width = Width;
       m_Textures[liveId].height = Height;
       m_Textures[liveId].depth = 1;
       m_Textures[liveId].curType = TextureTarget(Target);
       m_Textures[liveId].dimension = 2;
       m_Textures[liveId].internalFormat = fmt;
+    }
+
+    if (DataProvided)
+    {
+      RDCASSERT(GetCompressedByteSize(Width, Height, 1, fmt, Level) == byteSize);
+      auto& cd = m_Textures[liveId].compressedData;
+      auto& cdData = cd[Target][Level];
+      cdData.resize(byteSize);
+      memcpy(cdData.data(), databuf, byteSize);
     }
 
     // for creation type chunks we forcibly don't use the unpack buffers as we

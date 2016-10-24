@@ -449,6 +449,10 @@ private:
     // bound to the second.
     GLuint renderbufferReadTex;
     GLuint renderbufferFBOs[2];
+
+    // since compressed textures can not be read back we have to store them during the uploading.
+    // target-> level -> data
+    map<int, map<int, vector<byte> > > compressedData;
   };
 
   map<ResourceId, TextureData> m_Textures;
