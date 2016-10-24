@@ -4328,12 +4328,20 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(GLuint texture, GLenum targ
 
   if(m_State <= EXECUTING)
   {
-    GLint align = 1;
-    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    PixelUnpackState unpack;
+
+    // during capture if there was any significant unpack state we decomposed it
+    // before serialising, so we need to set an empty unpack state.
+    // Note that if we're unpacking from a buffer, we did nothing so we should
+    // preserve the state.
+    if(!UnpackBufBound)
     {
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
+      unpack.Fetch(&m_Real, false);
+      PixelUnpackState empty = {};
+      empty.alignment = 1;
+      empty.Apply(&m_Real, false);
     }
 
     if(Format == eGL_LUMINANCE)
@@ -4359,10 +4367,11 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(GLuint texture, GLenum targ
       m_Real.glTextureSubImage1D(GetResourceManager()->GetLiveResource(id).name, Level, xoff, Width,
                                  Format, Type, buf ? buf : (const void *)bufoffs);
 
-    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    // restore pixel unpack state
+    if(!UnpackBufBound)
     {
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
-      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+      unpack.Apply(&m_Real, false);
     }
 
     SAFE_DELETE_ARRAY(buf);
@@ -4513,12 +4522,20 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(GLuint texture, GLenum targ
 
   if(m_State <= EXECUTING)
   {
-    GLint align = 1;
-    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    PixelUnpackState unpack;
+
+    // during capture if there was any significant unpack state we decomposed it
+    // before serialising, so we need to set an empty unpack state.
+    // Note that if we're unpacking from a buffer, we did nothing so we should
+    // preserve the state.
+    if(!UnpackBufBound)
     {
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
+      unpack.Fetch(&m_Real, false);
+      PixelUnpackState empty = {};
+      empty.alignment = 1;
+      empty.Apply(&m_Real, false);
     }
 
     if(Format == eGL_LUMINANCE)
@@ -4545,10 +4562,11 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(GLuint texture, GLenum targ
       m_Real.glTextureSubImage2D(GetResourceManager()->GetLiveResource(id).name, Level, xoff, yoff,
                                  Width, Height, Format, Type, buf ? buf : (const void *)bufoffs);
 
-    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    // restore pixel unpack state
+    if(!UnpackBufBound)
     {
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
-      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+      unpack.Apply(&m_Real, false);
     }
 
     SAFE_DELETE_ARRAY(buf);
@@ -4706,12 +4724,20 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(GLuint texture, GLenum targ
 
   if(m_State <= EXECUTING)
   {
-    GLint align = 1;
-    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    PixelUnpackState unpack;
+
+    // during capture if there was any significant unpack state we decomposed it
+    // before serialising, so we need to set an empty unpack state.
+    // Note that if we're unpacking from a buffer, we did nothing so we should
+    // preserve the state.
+    if(!UnpackBufBound)
     {
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
+      unpack.Fetch(&m_Real, false);
+      PixelUnpackState empty = {};
+      empty.alignment = 1;
+      empty.Apply(&m_Real, false);
     }
 
     if(Format == eGL_LUMINANCE)
@@ -4739,10 +4765,11 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(GLuint texture, GLenum targ
                                  zoff, Width, Height, Depth, Format, Type,
                                  buf ? buf : (const void *)bufoffs);
 
-    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    // restore pixel unpack state
+    if(!UnpackBufBound)
     {
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
-      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+      unpack.Apply(&m_Real, false);
     }
 
     SAFE_DELETE_ARRAY(buf);
@@ -4900,12 +4927,20 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(GLuint texture, G
 
   if(m_State <= EXECUTING)
   {
-    GLint align = 1;
-    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    PixelUnpackState unpack;
+
+    // during capture if there was any significant unpack state we decomposed it
+    // before serialising, so we need to set an empty unpack state.
+    // Note that if we're unpacking from a buffer, we did nothing so we should
+    // preserve the state.
+    if(!UnpackBufBound)
     {
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
+      unpack.Fetch(&m_Real, true);
+      PixelUnpackState empty = {};
+      empty.alignment = 1;
+      empty.Apply(&m_Real, true);
     }
 
     if(Target != eGL_NONE)
@@ -4917,10 +4952,11 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(GLuint texture, G
                                            xoff, Width, fmt, byteSize,
                                            buf ? buf : (const void *)bufoffs);
 
-    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    // restore pixel unpack state
+    if(!UnpackBufBound)
     {
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
-      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+      unpack.Apply(&m_Real, true);
     }
 
     SAFE_DELETE_ARRAY(buf);
@@ -5076,12 +5112,20 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(GLuint texture, G
 
   if(m_State <= EXECUTING)
   {
-    GLint align = 1;
-    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    PixelUnpackState unpack;
+
+    // during capture if there was any significant unpack state we decomposed it
+    // before serialising, so we need to set an empty unpack state.
+    // Note that if we're unpacking from a buffer, we did nothing so we should
+    // preserve the state.
+    if(!UnpackBufBound)
     {
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
+      unpack.Fetch(&m_Real, true);
+      PixelUnpackState empty = {};
+      empty.alignment = 1;
+      empty.Apply(&m_Real, true);
     }
 
     if(Target != eGL_NONE)
@@ -5093,10 +5137,11 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(GLuint texture, G
                                            xoff, yoff, Width, Height, fmt, byteSize,
                                            buf ? buf : (const void *)bufoffs);
 
-    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    // restore pixel unpack state
+    if(!UnpackBufBound)
     {
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
-      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+      unpack.Apply(&m_Real, true);
     }
 
     SAFE_DELETE_ARRAY(buf);
@@ -5262,12 +5307,20 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(GLuint texture, G
 
   if(m_State <= EXECUTING)
   {
-    GLint align = 1;
-    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    PixelUnpackState unpack;
+
+    // during capture if there was any significant unpack state we decomposed it
+    // before serialising, so we need to set an empty unpack state.
+    // Note that if we're unpacking from a buffer, we did nothing so we should
+    // preserve the state.
+    if(!UnpackBufBound)
     {
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
-      m_Real.glGetIntegerv(eGL_UNPACK_ALIGNMENT, &align);
-      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, 1);
+
+      unpack.Fetch(&m_Real, true);
+      PixelUnpackState empty = {};
+      empty.alignment = 1;
+      empty.Apply(&m_Real, true);
     }
 
     if(Target != eGL_NONE)
@@ -5279,10 +5332,11 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(GLuint texture, G
                                            xoff, yoff, zoff, Width, Height, Depth, fmt, byteSize,
                                            buf ? buf : (const void *)bufoffs);
 
-    if(!UnpackBufBound && m_State == READING && m_CurEventID == 0)
+    // restore pixel unpack state
+    if(!UnpackBufBound)
     {
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, unpackbuf);
-      m_Real.glPixelStorei(eGL_UNPACK_ALIGNMENT, align);
+      unpack.Apply(&m_Real, true);
     }
 
     SAFE_DELETE_ARRAY(buf);
