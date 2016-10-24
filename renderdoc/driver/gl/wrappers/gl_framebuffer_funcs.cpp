@@ -1518,20 +1518,34 @@ bool WrappedOpenGL::Serialise_glBlitNamedFramebuffer(GLuint readFramebuffer, GLu
       else
         srcid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), srcattachment));
 
-      if(dstattachment == srcattachment)
+      if(dsttype == eGL_TEXTURE)
+        dstid = GetResourceManager()->GetID(TextureRes(GetCtx(), dstattachment));
+      else
+        dstid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), dstattachment));
+
+      if(msk & GL_COLOR_BUFFER_BIT)
+      {
+        if(attachName == eGL_COLOR_ATTACHMENT0)
+        {
+          draw.copySource = GetResourceManager()->GetOriginalID(srcid);
+          draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+        }
+      }
+      else
+      {
+        if(attachName == eGL_DEPTH_ATTACHMENT)
+        {
+          draw.copySource = GetResourceManager()->GetOriginalID(srcid);
+          draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
+        }
+      }
+
+      if(dstattachment == srcattachment && srctype == dsttype)
       {
         m_ResourceUses[srcid].push_back(EventUsage(m_CurEventID, eUsage_Copy));
       }
       else
       {
-        if(dsttype == eGL_TEXTURE)
-          dstid = GetResourceManager()->GetID(TextureRes(GetCtx(), dstattachment));
-        else
-          dstid = GetResourceManager()->GetID(RenderbufferRes(GetCtx(), dstattachment));
-
-        draw.copySource = GetResourceManager()->GetOriginalID(srcid);
-        draw.copyDestination = GetResourceManager()->GetOriginalID(dstid);
-
         // MS to non-MS is a resolve
         if((m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE ||
             m_Textures[srcid].curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY) &&
