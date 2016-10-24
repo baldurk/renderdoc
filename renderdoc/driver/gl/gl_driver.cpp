@@ -942,6 +942,22 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
     else
       gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, m_FakeBB_DepthStencil, 0);
   }
+
+  // give the backbuffer a default clear color
+  gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
+  gl.glClear(GL_COLOR_BUFFER_BIT);
+
+  if(params.depthBits > 0)
+  {
+    gl.glClearDepth(1.0f);
+    gl.glClear(GL_DEPTH_BUFFER_BIT);
+  }
+
+  if(params.stencilBits > 0)
+  {
+    gl.glClearStencil(0);
+    gl.glClear(GL_STENCIL_BUFFER_BIT);
+  }
 }
 
 const char *WrappedOpenGL::GetChunkName(uint32_t idx)
