@@ -228,24 +228,35 @@ byte *PixelUnpackState::Unpack(byte *pixels, GLsizei width, GLsizei height, GLsi
 byte *PixelUnpackState::UnpackCompressed(byte *pixels, GLsizei width, GLsizei height, GLsizei depth,
                                          GLsizei &imageSize)
 {
-  size_t blocksX = (width + compressedBlockWidth - 1) / compressedBlockWidth;
-  size_t blocksY = (height + compressedBlockHeight - 1) / compressedBlockHeight;
-  size_t blocksZ = (depth + compressedBlockDepth - 1) / compressedBlockDepth;
+  int blockWidth = RDCMAX(compressedBlockWidth, 1);
+  int blockHeight = RDCMAX(compressedBlockHeight, 1);
+  int blockDepth = RDCMAX(compressedBlockDepth, 1);
+  int blockSize = RDCMAX(compressedBlockSize, 1);
 
+  RDCASSERT(compressedBlockWidth != 0);
+  RDCASSERT(compressedBlockSize != 0);
+
+  size_t blocksX = width ? (width + blockWidth - 1) / blockWidth : 0;
+  size_t blocksY = height ? (height + blockHeight - 1) / blockHeight : 0;
+  size_t blocksZ = depth ? (depth + blockDepth - 1) / blockDepth : 0;
+
+  if(height != 0)
+    RDCASSERT(compressedBlockHeight != 0);
+
+  if(depth != 0)
+    RDCASSERT(compressedBlockDepth != 0);
+
+  blocksX = RDCMAX((size_t)1, blocksX);
   blocksY = RDCMAX((size_t)1, blocksY);
   blocksZ = RDCMAX((size_t)1, blocksZ);
 
-  size_t srcrowstride = compressedBlockSize * RDCMAX(RDCMAX(width, compressedBlockWidth), rowlength) /
-                        compressedBlockWidth;
-  size_t srcimgstride = srcrowstride * RDCMAX(RDCMAX(height, compressedBlockHeight), imageheight) /
-                        compressedBlockHeight;
+  size_t srcrowstride = blockSize * RDCMAX(RDCMAX(width, blockWidth), rowlength) / blockWidth;
+  size_t srcimgstride = srcrowstride * RDCMAX(RDCMAX(height, blockHeight), imageheight) / blockHeight;
 
-  size_t destrowstride =
-      compressedBlockSize * RDCMAX(width, compressedBlockWidth) / compressedBlockWidth;
-  size_t destimgstride =
-      destrowstride * RDCMAX(height, compressedBlockHeight) / compressedBlockHeight;
+  size_t destrowstride = blockSize * RDCMAX(width, blockWidth) / blockWidth;
+  size_t destimgstride = destrowstride * RDCMAX(height, blockHeight) / blockHeight;
 
-  size_t allocsize = blocksX * blocksY * blocksZ * compressedBlockSize;
+  size_t allocsize = blocksX * blocksY * blocksZ * blockSize;
   byte *ret = new byte[allocsize];
 
   imageSize = (GLsizei)allocsize;
@@ -253,7 +264,7 @@ byte *PixelUnpackState::UnpackCompressed(byte *pixels, GLsizei width, GLsizei he
   byte *source = pixels;
 
   if(skipPixels > 0)
-    source += (skipPixels / compressedBlockWidth) * compressedBlockSize;
+    source += (skipPixels / blockWidth) * blockSize;
   if(skipRows > 0 && height > 0)
     source += (skipRows / compressedBlockHeight) * srcrowstride;
   if(skipImages > 0 && depth > 0)
