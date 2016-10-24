@@ -2609,9 +2609,9 @@ WrappedGLES::BackbufferImage *WrappedGLES::SaveBackbufferImage()
     thwidth = m_InitParams.width;
     thheight = m_InitParams.height;
 
-    thpixels = new byte[thwidth * thheight * 3];
 
-    m_Real.glReadPixels(0, 0, thwidth, thheight, eGL_RGB, eGL_UNSIGNED_BYTE, thpixels);
+    thpixels = new byte[thwidth * thheight * 4];
+    m_Real.glReadPixels(0, 0, thwidth, thheight, eGL_RGBA, eGL_UNSIGNED_BYTE, thpixels);
 
     // flip the image in-place
     for(uint32_t y = 0; y <= thheight / 2; y++)
@@ -2620,18 +2620,21 @@ WrappedGLES::BackbufferImage *WrappedGLES::SaveBackbufferImage()
 
       for(uint32_t x = 0; x < thwidth; x++)
       {
-        byte save[3];
-        save[0] = thpixels[y * (thwidth * 3) + x * 3 + 0];
-        save[1] = thpixels[y * (thwidth * 3) + x * 3 + 1];
-        save[2] = thpixels[y * (thwidth * 3) + x * 3 + 2];
+        byte save[4];
+        save[0] = thpixels[y * (thwidth * 4) + x * 4 + 0];
+        save[1] = thpixels[y * (thwidth * 4) + x * 4 + 1];
+        save[2] = thpixels[y * (thwidth * 4) + x * 4 + 2];
+        save[3] = thpixels[y * (thwidth * 4) + x * 4 + 3];
 
-        thpixels[y * (thwidth * 3) + x * 3 + 0] = thpixels[flipY * (thwidth * 3) + x * 3 + 0];
-        thpixels[y * (thwidth * 3) + x * 3 + 1] = thpixels[flipY * (thwidth * 3) + x * 3 + 1];
-        thpixels[y * (thwidth * 3) + x * 3 + 2] = thpixels[flipY * (thwidth * 3) + x * 3 + 2];
+        thpixels[y * (thwidth * 4) + x * 4 + 0] = thpixels[flipY * (thwidth * 4) + x * 4 + 0];
+        thpixels[y * (thwidth * 4) + x * 4 + 1] = thpixels[flipY * (thwidth * 4) + x * 4 + 1];
+        thpixels[y * (thwidth * 4) + x * 4 + 2] = thpixels[flipY * (thwidth * 4) + x * 4 + 2];
+        thpixels[y * (thwidth * 4) + x * 4 + 3] = thpixels[flipY * (thwidth * 4) + x * 4 + 3];
 
-        thpixels[flipY * (thwidth * 3) + x * 3 + 0] = save[0];
-        thpixels[flipY * (thwidth * 3) + x * 3 + 1] = save[1];
-        thpixels[flipY * (thwidth * 3) + x * 3 + 2] = save[2];
+        thpixels[flipY * (thwidth * 4) + x * 4 + 0] = save[0];
+        thpixels[flipY * (thwidth * 4) + x * 4 + 1] = save[1];
+        thpixels[flipY * (thwidth * 4) + x * 4 + 2] = save[2];
+        thpixels[flipY * (thwidth * 4) + x * 4 + 3] = save[3];
       }
     }
 
@@ -2656,7 +2659,7 @@ WrappedGLES::BackbufferImage *WrappedGLES::SaveBackbufferImage()
       thheight = uint32_t(float(thwidth) / aspect);
 
       byte *src = thpixels;
-      byte *dst = thpixels = new byte[3 * thwidth * thheight];
+      byte *dst = thpixels = new byte[4 * thwidth * thheight];
 
       for(uint32_t y = 0; y < thheight; y++)
       {
@@ -2666,11 +2669,11 @@ WrappedGLES::BackbufferImage *WrappedGLES::SaveBackbufferImage()
           float yf = float(y) / float(thheight);
 
           byte *pixelsrc =
-              &src[3 * uint32_t(xf * widthf) + m_InitParams.width * 3 * uint32_t(yf * heightf)];
+              &src[4 * uint32_t(xf * widthf) + m_InitParams.width * 4 * uint32_t(yf * heightf)];
 
-          memcpy(dst, pixelsrc, 3);
+          memcpy(dst, pixelsrc, 4);
 
-          dst += 3;
+          dst += 4;
         }
       }
 
@@ -2691,7 +2694,7 @@ WrappedGLES::BackbufferImage *WrappedGLES::SaveBackbufferImage()
     p.m_quality = 40;
 
     bool success =
-        jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
+        jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 4, thpixels, p);
 
     if(!success)
     {
