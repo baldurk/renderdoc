@@ -126,8 +126,19 @@ public:
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
   virtual IID GetBackbufferUUID() { return __uuidof(ID3D12Resource); }
-  virtual IID GetDeviceUUID() { return __uuidof(ID3D12CommandQueue); }
-  virtual IUnknown *GetDeviceInterface() { return (ID3D12CommandQueue *)this; }
+  virtual bool IsDeviceUUID(REFIID iid)
+  {
+    return iid == __uuidof(ID3D12CommandQueue) ? true : false;
+  }
+  virtual IUnknown *GetDeviceInterface(REFIID iid)
+  {
+    if(iid == __uuidof(ID3D12CommandQueue))
+      return (ID3D12CommandQueue *)this;
+
+    RDCERR("Requested unknown device interface %s", ToStr::Get(iid).c_str());
+
+    return NULL;
+  }
   // the rest forward to the device
   virtual void FirstFrame(WrappedIDXGISwapChain3 *swapChain) { m_pDevice->FirstFrame(swapChain); }
   virtual void NewSwapchainBuffer(IUnknown *backbuffer)

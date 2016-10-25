@@ -424,8 +424,16 @@ public:
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
   virtual IID GetBackbufferUUID() { return __uuidof(ID3D12Resource); }
-  virtual IID GetDeviceUUID() { return __uuidof(ID3D12Device); }
-  virtual IUnknown *GetDeviceInterface() { return (ID3D12Device *)this; }
+  virtual bool IsDeviceUUID(REFIID iid) { return iid == __uuidof(ID3D12Device) ? true : false; }
+  virtual IUnknown *GetDeviceInterface(REFIID iid)
+  {
+    if(iid == __uuidof(ID3D12Device))
+      return (ID3D12Device *)this;
+
+    RDCERR("Requested unknown device interface %s", ToStr::Get(iid).c_str());
+
+    return NULL;
+  }
   // Swap Chain
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(IUnknown *, WrapSwapchainBuffer,
                                        WrappedIDXGISwapChain3 *swap, DXGI_SWAP_CHAIN_DESC *desc,

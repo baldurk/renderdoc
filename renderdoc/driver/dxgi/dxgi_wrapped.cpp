@@ -382,10 +382,10 @@ HRESULT WrappedIDXGISwapChain3::GetDevice(
   if(SUCCEEDED(ret))
   {
     // try one of the trivial wraps, we don't mind making a new one of those
-    if(riid == m_pDevice->GetDeviceUUID())
+    if(m_pDevice->IsDeviceUUID(riid))
     {
       // probably they're asking for the device device.
-      *ppDevice = m_pDevice->GetDeviceInterface();
+      *ppDevice = m_pDevice->GetDeviceInterface(riid);
       m_pDevice->AddRef();
     }
     else if(riid == __uuidof(IDXGISwapChain))
@@ -601,10 +601,10 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain3::QueryInterface(REFIID riid, vo
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice::QueryInterface(REFIID riid, void **ppvObject)
 {
-  if(riid == m_pD3DDevice->GetDeviceUUID())
+  if(m_pD3DDevice->IsDeviceUUID(riid))
   {
     m_pD3DDevice->AddRef();
-    *ppvObject = m_pD3DDevice->GetDeviceInterface();
+    *ppvObject = m_pD3DDevice->GetDeviceInterface(riid);
     return S_OK;
   }
   else
@@ -620,10 +620,10 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice1::QueryInterface(REFIID riid, void 
 {
   HRESULT hr = S_OK;
 
-  if(riid == m_pD3DDevice->GetDeviceUUID())
+  if(m_pD3DDevice->IsDeviceUUID(riid))
   {
     m_pD3DDevice->AddRef();
-    *ppvObject = m_pD3DDevice->GetDeviceInterface();
+    *ppvObject = m_pD3DDevice->GetDeviceInterface(riid);
     return S_OK;
   }
   else if(riid == __uuidof(IDXGIDevice1))
@@ -673,10 +673,10 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice1::QueryInterface(REFIID riid, void 
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice2::QueryInterface(REFIID riid, void **ppvObject)
 {
-  if(riid == m_pD3DDevice->GetDeviceUUID())
+  if(m_pD3DDevice->IsDeviceUUID(riid))
   {
     m_pD3DDevice->AddRef();
-    *ppvObject = m_pD3DDevice->GetDeviceInterface();
+    *ppvObject = m_pD3DDevice->GetDeviceInterface(riid);
     return S_OK;
   }
   else if(riid == __uuidof(IDXGIDevice1))
@@ -717,10 +717,10 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice2::QueryInterface(REFIID riid, void 
 
 HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice3::QueryInterface(REFIID riid, void **ppvObject)
 {
-  if(riid == m_pD3DDevice->GetDeviceUUID())
+  if(m_pD3DDevice->IsDeviceUUID(riid))
   {
     m_pD3DDevice->AddRef();
-    *ppvObject = m_pD3DDevice->GetDeviceInterface();
+    *ppvObject = m_pD3DDevice->GetDeviceInterface(riid);
     return S_OK;
   }
   else if(riid == __uuidof(IDXGIDevice1))

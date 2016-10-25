@@ -412,8 +412,32 @@ public:
   // interface for DXGI
   virtual IUnknown *GetRealIUnknown() { return GetReal(); }
   virtual IID GetBackbufferUUID() { return __uuidof(ID3D11Texture2D); }
-  virtual IID GetDeviceUUID() { return __uuidof(ID3D11Device); }
-  virtual IUnknown *GetDeviceInterface() { return (ID3D11Device *)this; }
+  virtual bool IsDeviceUUID(REFIID iid)
+  {
+    if(iid == __uuidof(ID3D11Device) || iid == __uuidof(ID3D11Device1) ||
+       iid == __uuidof(ID3D11Device2) || iid == __uuidof(ID3D11Device3) ||
+       iid == __uuidof(ID3D11Device4))
+      return true;
+
+    return false;
+  }
+  virtual IUnknown *GetDeviceInterface(REFIID iid)
+  {
+    if(iid == __uuidof(ID3D11Device))
+      return (ID3D11Device *)this;
+    else if(iid == __uuidof(ID3D11Device1))
+      return (ID3D11Device1 *)this;
+    else if(iid == __uuidof(ID3D11Device2))
+      return (ID3D11Device2 *)this;
+    else if(iid == __uuidof(ID3D11Device3))
+      return (ID3D11Device3 *)this;
+    else if(iid == __uuidof(ID3D11Device4))
+      return (ID3D11Device4 *)this;
+
+    RDCERR("Requested unknown device interface %s", ToStr::Get(iid).c_str());
+
+    return NULL;
+  }
   ////////////////////////////////////////////////////////////////
   // log replaying
 

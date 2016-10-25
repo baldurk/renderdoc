@@ -164,8 +164,8 @@ struct ID3DDevice
 
   virtual IID GetBackbufferUUID() = 0;
 
-  virtual IID GetDeviceUUID() = 0;
-  virtual IUnknown *GetDeviceInterface() = 0;
+  virtual bool IsDeviceUUID(REFIID guid) = 0;
+  virtual IUnknown *GetDeviceInterface(REFIID guid) = 0;
 
   virtual void FirstFrame(WrappedIDXGISwapChain3 *swapChain) = 0;
 
