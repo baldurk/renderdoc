@@ -2864,7 +2864,8 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
 
   if(data == NULL)
   {
-    gl.glUnmapBufferOES(eGL_TRANSFORM_FEEDBACK_BUFFER);
+    // TODO(elecro): OES does not work on android
+    gl.glUnmapBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER);
     RDCERR("Couldn't map feedback buffer!");
     error = true;
   }
@@ -2959,7 +2960,9 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
     nearp = pos0->z;
     farp = FLT_MAX;
   }
-  gl.glUnmapBufferOES(eGL_TRANSFORM_FEEDBACK_BUFFER);
+  // TODO(elecro): OES does not work on android
+  //gl.glUnmapBufferOES(eGL_TRANSFORM_FEEDBACK_BUFFER);
+  gl.glUnmapBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER);
   gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, oldBinding);
 
   // store everything out to the PostVS data cache
