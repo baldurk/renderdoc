@@ -23,12 +23,16 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <winsock2.h>
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 #include "hooks/hooks.h"
 #include "serialise/string_utils.h"
 
 #define DLL_NAME "kernel32.dll"
+
+typedef int(WSAAPI *PFN_WSASTARTUP)(__in WORD wVersionRequested, __out LPWSADATA lpWSAData);
+typedef int(WSAAPI *PFN_WSACLEANUP)();
 
 typedef BOOL(WINAPI *PFN_CREATE_PROCESS_A)(
     __in_opt LPCSTR lpApplicationName, __inout_opt LPSTR lpCommandLine,
@@ -63,6 +67,12 @@ public:
     success &= CreateProcessA.Initialize("CreateProcessA", DLL_NAME, CreateProcessA_hook);
     success &= CreateProcessW.Initialize("CreateProcessW", DLL_NAME, CreateProcessW_hook);
 
+    success &= WSAStartup.Initialize("WSAStartup", "ws2_32.dll", WSAStartup_hook);
+    success &= WSACleanup.Initialize("WSACleanup", "ws2_32.dll", WSACleanup_hook);
+
+    // we start with a refcount of 1 because we initialise WSA ourselves for our own sockets.
+    m_WSARefCount = 1;
+
     if(!success)
       return false;
 
@@ -80,9 +90,40 @@ private:
   bool m_HasHooks;
   bool m_EnabledHooks;
 
+  int m_WSARefCount;
+
   // D3DPERF api
   Hook<PFN_CREATE_PROCESS_A> CreateProcessA;
   Hook<PFN_CREATE_PROCESS_W> CreateProcessW;
+
+  Hook<PFN_WSASTARTUP> WSAStartup;
+  Hook<PFN_WSACLEANUP> WSACleanup;
+
+  static int WSAAPI WSAStartup_hook(WORD wVersionRequested, LPWSADATA lpWSAData)
+  {
+    int ret = syshooks.WSAStartup()(wVersionRequested, lpWSAData);
+
+    // only increment the refcount if the function succeeded
+    if(ret == 0)
+      syshooks.m_WSARefCount++;
+
+    return ret;
+  }
+
+  static int WSAAPI WSACleanup_hook()
+  {
+    // don't let the application murder our sockets with a mismatched WSACleanup() call
+    if(syshooks.m_WSARefCount == 1)
+    {
+      RDCLOG("WSACleanup called with (to the application) no WSAStartup! Ignoring.");
+      SetLastError(WSANOTINITIALISED);
+      return SOCKET_ERROR;
+    }
+
+    // decrement refcount and call the real thing
+    syshooks.m_WSARefCount--;
+    return syshooks.WSACleanup()();
+  }
 
   static BOOL WINAPI CreateProcessA_hook(
       __in_opt LPCSTR lpApplicationName, __inout_opt LPSTR lpCommandLine,
