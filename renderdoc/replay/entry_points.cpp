@@ -545,3 +545,49 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_BecomeRemoteServer(const ch
 
   RenderDoc::Inst().BecomeRemoteServer(listenhost, (uint16_t)port, *killReplay);
 }
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const char *dllname)
+{
+  void *module = Process::LoadModule(dllname);
+
+  if(module == NULL)
+    return;
+
+  pRENDERDOC_GetAPI get =
+      (pRENDERDOC_GetAPI)Process::GetFunctionAddress(module, "RENDERDOC_GetAPI");
+
+  if(get == NULL)
+    return;
+
+  RENDERDOC_API_1_0_0 *rdoc = NULL;
+
+  get(eRENDERDOC_API_Version_1_0_0, (void **)&rdoc);
+
+  if(rdoc == NULL)
+    return;
+
+  rdoc->StartFrameCapture(NULL, NULL);
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const char *dllname)
+{
+  void *module = Process::LoadModule(dllname);
+
+  if(module == NULL)
+    return;
+
+  pRENDERDOC_GetAPI get =
+      (pRENDERDOC_GetAPI)Process::GetFunctionAddress(module, "RENDERDOC_GetAPI");
+
+  if(get == NULL)
+    return;
+
+  RENDERDOC_API_1_0_0 *rdoc = NULL;
+
+  get(eRENDERDOC_API_Version_1_0_0, (void **)&rdoc);
+
+  if(rdoc == NULL)
+    return;
+
+  rdoc->EndFrameCapture(NULL, NULL);
+}

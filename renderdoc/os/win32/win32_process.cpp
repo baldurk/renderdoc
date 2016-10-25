@@ -348,7 +348,7 @@ void InjectFunctionCall(HANDLE hProcess, uintptr_t renderdoc_remote, const char 
 
   RDCDEBUG("Injecting call to %s", funcName);
 
-  HMODULE renderdoc_local = GetModuleHandleA("renderdoc.dll");
+  HMODULE renderdoc_local = GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll");
 
   uintptr_t func_local = (uintptr_t)GetProcAddress(renderdoc_local, funcName);
 
@@ -480,7 +480,8 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
   RDCLOG("Injecting renderdoc into process %lu", pid);
 
   wchar_t renderdocPath[MAX_PATH] = {0};
-  GetModuleFileNameW(GetModuleHandleA("renderdoc.dll"), &renderdocPath[0], MAX_PATH - 1);
+  GetModuleFileNameW(GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll"), &renderdocPath[0],
+                     MAX_PATH - 1);
 
   BOOL isWow64 = FALSE;
   BOOL success = IsWow64Process(hProcess, &isWow64);
@@ -652,13 +653,13 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
 
   InjectDLL(hProcess, renderdocPath);
 
-  uintptr_t loc = FindRemoteDLL(pid, L"renderdoc.dll");
+  uintptr_t loc = FindRemoteDLL(pid, CONCAT(L, STRINGIZE(RDOC_DLL_FILE)) L".dll");
 
   uint32_t controlident = 0;
 
   if(loc == 0)
   {
-    RDCERR("Can't locate renderdoc.dll in remote PID %d", pid);
+    RDCERR("Can't locate " STRINGIZE(RDOC_DLL_FILE) ".dll in remote PID %d", pid);
   }
   else
   {
@@ -732,11 +733,13 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
                                              const char *logfile, const CaptureOptions *opts,
                                              bool waitForExit)
 {
-  void *func = GetProcAddress(GetModuleHandleA("renderdoc.dll"), "RENDERDOC_SetLogFile");
+  void *func =
+      GetProcAddress(GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll"), "RENDERDOC_SetLogFile");
 
   if(func == NULL)
   {
-    RDCERR("Can't find required export function in renderdoc.dll - corrupted/missing file?");
+    RDCERR("Can't find required export function in " STRINGIZE(
+        RDOC_DLL_FILE) ".dll - corrupted/missing file?");
     return 0;
   }
 
@@ -771,7 +774,8 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
     return;
 
   wchar_t renderdocPath[MAX_PATH] = {0};
-  GetModuleFileNameW(GetModuleHandleA("renderdoc.dll"), &renderdocPath[0], MAX_PATH - 1);
+  GetModuleFileNameW(GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll"), &renderdocPath[0],
+                     MAX_PATH - 1);
 
   wchar_t *slash = wcsrchr(renderdocPath, L'\\');
 

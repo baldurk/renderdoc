@@ -46,7 +46,7 @@ namespace renderdoc
         public ReplayCreateStatus Status;
     }
 
-    class StaticExports
+    public class StaticExports
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern ReplaySupport RENDERDOC_SupportLocalReplay(IntPtr logfile, IntPtr outdriver, IntPtr outident);
@@ -109,6 +109,30 @@ namespace renderdoc
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RENDERDOC_FreeEnvironmentModificationList(IntPtr mem);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RENDERDOC_StartSelfHostCapture(IntPtr dllname);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RENDERDOC_EndSelfHostCapture(IntPtr dllname);
+
+        public static void StartSelfHostCapture(string dllname)
+        {
+            IntPtr mem = CustomMarshal.MakeUTF8String(dllname);
+
+            RENDERDOC_StartSelfHostCapture(mem);
+
+            CustomMarshal.Free(mem);
+        }
+
+        public static void EndSelfHostCapture(string dllname)
+        {
+            IntPtr mem = CustomMarshal.MakeUTF8String(dllname);
+
+            RENDERDOC_EndSelfHostCapture(mem);
+
+            CustomMarshal.Free(mem);
+        }
 
         public static ReplaySupport SupportLocalReplay(string logfile, out string driverName, out string recordMachineIdent)
         {

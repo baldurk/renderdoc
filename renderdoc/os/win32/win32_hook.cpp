@@ -175,7 +175,7 @@ struct CachedHookData
     // Also we exclude ourselves here - just in case the application has already loaded
     // renderdoc.dll, or tries to load it.
     if(strstr(lowername, "fraps") || strstr(lowername, "gameoverlayrenderer") ||
-       strstr(lowername, "renderdoc.dll") == lowername)
+       strstr(lowername, STRINGIZE(RDOC_DLL_FILE) ".dll") == lowername)
       return;
 
     // set module pointer if we are hooking exports from this module

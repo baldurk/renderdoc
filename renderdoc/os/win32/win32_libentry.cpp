@@ -43,14 +43,15 @@ static BOOL add_hooks()
   if(f.find(L"dllhost.exe") != wstring::npos || f.find(L"explorer.exe") != wstring::npos)
   {
 #ifndef _RELEASE
-    OutputDebugStringA("Hosting renderdoc.dll in shell process\n");
+    OutputDebugStringA("Hosting " STRINGIZE(RDOC_DLL_FILE) ".dll in shell process\n");
 #endif
     return TRUE;
   }
 
-  if(f.find(L"renderdoccmd.exe") != wstring::npos ||
-     f.find(L"renderdocui.vshost.exe") != wstring::npos ||
-     f.find(L"qrenderdoc.exe") != wstring::npos || f.find(L"renderdocui.exe") != wstring::npos)
+  if(f.find(CONCAT(L, STRINGIZE(RDOC_DLL_FILE)) L"cmd.exe") != wstring::npos ||
+     f.find(CONCAT(L, STRINGIZE(RDOC_DLL_FILE)) L"ui.vshost.exe") != wstring::npos ||
+     f.find(L"q" CONCAT(L, STRINGIZE(RDOC_DLL_FILE)) L".exe") != wstring::npos ||
+     f.find(CONCAT(L, STRINGIZE(RDOC_DLL_FILE)) L"ui.exe") != wstring::npos)
   {
     RDCDEBUG("Not creating hooks - in replay app");
 
