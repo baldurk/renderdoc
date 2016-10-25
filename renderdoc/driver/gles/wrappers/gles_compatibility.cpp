@@ -98,8 +98,10 @@ void WrappedGLES::Compat_glBufferStorageEXT (GLenum target, GLsizeiptr size, con
 
 void WrappedGLES::Compat_glTextureStorage2DEXT (GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)
 {
-  if(ExtensionSupported[ExtensionSupported_EXT_texture_storage])
+  if(ExtensionSupported[ExtensionSupported_EXT_texture_storage] && false) // TODO(elecro): on android it is force disabled for now
+  {
     m_Real.glTextureStorage2DEXT(texture, target, levels, internalformat, width, height);
+  }
   else
   {
     SafeTextureBinder safeTextureBinder(m_Real, texture, target);
