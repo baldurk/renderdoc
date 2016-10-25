@@ -120,6 +120,20 @@ EGLContext eglCreateContext(EGLDisplay display, EGLConfig config, EGLContext sha
 {
     OpenGLHook::glhooks.PopulateHooks();
 
+    GLESInitParams init;
+
+    init.width = 0;
+    init.height = 0;
+
+    EGLint value;
+    eglGetConfigAttrib(display, config, eEGL_BUFFER_SIZE, &value);
+    init.colorBits = value;
+    eglGetConfigAttrib(display, config, eEGL_DEPTH_SIZE, &value);
+    init.depthBits = value;
+    eglGetConfigAttrib(display, config, eEGL_STENCIL_SIZE, &value);
+    init.stencilBits = value;
+    init.isSRGB = 1; // TODO: How can we get it from the EGL?
+
     DEF_FUNC(eglCreateContext);
     EGLContext ctx = REAL(eglCreateContext)(display, config, share_context, attrib_list);
 
@@ -127,7 +141,7 @@ EGLContext eglCreateContext(EGLDisplay display, EGLConfig config, EGLContext sha
     outputWin.ctx = ctx;
     outputWin.eglDisplay = display;
 
-    OpenGLHook::glhooks.GetDriver()->CreateContext(outputWin, share_context, GLESInitParams(), true, true);
+    OpenGLHook::glhooks.GetDriver()->CreateContext(outputWin, share_context, init, true, true);
     return ctx;
 }
 
