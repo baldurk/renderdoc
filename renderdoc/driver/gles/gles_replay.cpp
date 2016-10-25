@@ -521,7 +521,7 @@ void GLESReplay::CacheTexture(ResourceId id)
   GLint width = 1, height = 1, depth = 1, samples = 1;
 
   GLuint oldBinding;
-  gl.glGetIntegerv(TextureBinding(target), (GLint*)&oldBinding);   // TODO PEPE TextureBinding(TextureTarget(res.curType)) ?=  res.curType
+  gl.glGetIntegerv(TextureBinding(target), (GLint*)&oldBinding);
   gl.glBindTexture(target, res.resource.name);
   gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_WIDTH, &width);
   gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_HEIGHT, &height);
