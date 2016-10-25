@@ -447,10 +447,9 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     // TODO copy this to an immutable buffer elsewhere and SetInitialContents() it.
     // then only do the readback in Serialise_InitialState
     GLint length;
-// TODO PEPE what kind of buffer type to bind?
-//    gl.glGetBufferParameteriv(res.name, eGL_BUFFER_SIZE, &length);
-//    gl.glGetNamedBufferSubDataEXT(res.name, 0, length, record->GetDataPtr());
-    RDCWARN("TODO PEPE %s:%d", __FILE__ ,__LINE__);
+    SafeBufferBinder safeBufferBinder(m_GL->m_Real, record->datatype, res.name);
+    gl.glGetBufferParameteriv(record->datatype, eGL_BUFFER_SIZE, &length);
+    m_GL->glGetBufferSubData(record->datatype, 0, length, record->GetDataPtr());
   }
   else if(res.Namespace == eResProgram)
   {
