@@ -54,12 +54,24 @@ cp LICENSE.md Documentation/htmlhelp/*.chm dist/Release32/
 find dist/Release{32,64}/ -iname '*.ipdb' -exec rm '{}' \;
 find dist/Release{32,64}/ -iname '*.iobj' -exec rm '{}' \;
 
-if [ -f bin/RenderDocCmd.apk ]; then
-	# Building for android, copy the apk and vulkan layer into root folders
-	cp bin/RenderDocCmd.apk dist/Release64
-	cp bin/RenderDocCmd.apk dist/Release32
-	cp bin/librenderdoc.so dist/Release64/libVkLayer_RenderDoc.so
-	cp bin/librenderdoc.so dist/Release32/libVkLayer_RenderDoc.so
+if [ -f bin-android32/RenderDocCmd.apk ]; then
+	# Building for android, copy the apk and vulkan layer into folders
+	mkdir -p dist/Release64/android/apk/32 dist/Release64/android/libs/armeabi-v7a
+
+	cp bin-android32/RenderDocCmd.apk dist/Release64/android/apk/32
+	cp bin-android32/librenderdoc.so dist/Release64/android/libs/armeabi-v7a/libVkLayer_RenderDoc.so
+fi
+
+if [ -f bin-android64/RenderDocCmd.apk ]; then
+	# Building for android, copy the apk and vulkan layer into folders
+	mkdir -p dist/Release64/android/apk/64 dist/Release64/android/libs/arm64-v8a
+
+	cp bin-android64/RenderDocCmd.apk dist/Release64/android/apk/64
+	cp bin-android64/librenderdoc.so dist/Release64/android/libs/arm64-v8a/libVkLayer_RenderDoc.so
+fi
+
+if [ -d dist/Release64/android ]; then
+	cp -R dist/Release64/android dist/Release32/
 fi
 
 # Make a copy of the main distribution folder that has PDBs
