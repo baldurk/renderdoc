@@ -8,7 +8,7 @@ RenderDoc
 
 Welcome to RenderDoc - a graphics debugger, currently available for D3D11, Vulkan and OpenGL development on windows. 
 
-If you have any questions, suggetions or problems or you can [create an issue](https://github.com/baldurk/renderdoc/issues/new) here on github, [email me directly](mailto:baldurk@baldurk.org) or [come into IRC](https://kiwiirc.com/client/irc.freenode.net/#renderdoc) to discuss it.
+If you have any questions, suggestions or problems or you can [create an issue](https://github.com/baldurk/renderdoc/issues/new) here on github, [email me directly](mailto:baldurk@baldurk.org) or [come into IRC](https://kiwiirc.com/client/irc.freenode.net/#renderdoc) to discuss it.
 
 Quick Links:
 
