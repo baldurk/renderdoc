@@ -47,7 +47,7 @@ endfunction(get_git_hash)
 project(RenderDoc CXX C)
 
 option(ENABLE_GL "Enable GL driver" OFF)
-option(ENABLE_VULKAN "Enable Vulkan driver" ON)
+option(ENABLE_VULKAN "Enable Vulkan driver" OFF)
 option(ENABLE_RENDERDOCCMD "Enable renderdoccmd" ON)
 option(ENABLE_QRENDERDOC "Enable qrenderdoc" OFF)
 option(ENABLE_GLES "Enable GLES driver" ON)
