@@ -212,7 +212,7 @@ void GLESReplay::InitDebugData()
 
     MakeCurrentReplayContext(m_DebugCtx);
   }
-  
+
   WrappedGLES &gl = *m_pDriver;
 
   DebugData.outWidth = 0.0f;
@@ -225,7 +225,7 @@ void GLESReplay::InitDebugData()
   vector<string> gs;
   vector<string> cs;
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), "320 es");
   dump_to_file("_shader_glsl_blit_vert", vs);
   DebugData.texDisplayVSProg = CreateShaderProgram(vs, empty);
 
@@ -234,7 +234,7 @@ void GLESReplay::InitDebugData()
     string defines = string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
     defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_texdisplay_frag), 420);
+    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_texdisplay_frag), "320 es");
 
     DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
 #ifndef ANDROID
@@ -267,7 +267,7 @@ void GLESReplay::InitDebugData()
 
   DebugData.quadoverdraw420 = !support450;
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), "320 es");
 
   {
     string defines = "";
@@ -281,7 +281,7 @@ void GLESReplay::InitDebugData()
     }
 
     GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_quadwrite_frag),
-                       support450 ? 450 : 420);
+                       support450 ? "320 es" : "320 es");
 
     if(!support450)
     {
@@ -293,21 +293,21 @@ void GLESReplay::InitDebugData()
 
     DebugData.quadoverdrawResolveProg = CreateShaderProgram(empty, fs);
 
-    GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_quadresolve_frag), 420);
+    GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_quadresolve_frag), "320 es");
 
     DebugData.quadoverdrawResolveProg = CreateShaderProgram(vs, fs);
   }
 
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_checkerboard_frag), 420);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_checkerboard_frag), "320 es");
   DebugData.checkerProg = CreateShaderProgram(vs, fs);
 
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_fixedcol_frag), 420);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_fixedcol_frag), "320 es");
 
   DebugData.fixedcolFSProg = CreateShaderProgram(empty, fs);
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_vert), 420);
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_frag), 420);
-  GenerateGLSLShader(gs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_geom), 420);
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_vert), "320 es");
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_frag), "320 es");
+  GenerateGLSLShader(gs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_geom), "320 es");
 
   DebugData.meshProg = CreateShaderProgram(vs, fs);
   DebugData.meshgsProg = CreateShaderProgram(vs, fs, gs);
@@ -340,8 +340,8 @@ void GLESReplay::InitDebugData()
   for(size_t i = 0; i < ARRAY_COUNT(DebugData.UBOs); i++)
   {
     gl.glBindBuffer(eGL_UNIFORM_BUFFER, DebugData.UBOs[i]);
-    gl.glBufferData(eGL_UNIFORM_BUFFER, 512, NULL, eGL_DYNAMIC_DRAW);  
-    
+    gl.glBufferData(eGL_UNIFORM_BUFFER, 512, NULL, eGL_DYNAMIC_DRAW);
+
     RDCCOMPILE_ASSERT(sizeof(TexDisplayUBOData) < 512, "texdisplay UBO too large");
     RDCCOMPILE_ASSERT(sizeof(FontUBOData) < 512, "texdisplay UBO too large");
     RDCCOMPILE_ASSERT(sizeof(HistogramUBOData) < 512, "texdisplay UBO too large");
@@ -401,7 +401,7 @@ void GLESReplay::InitDebugData()
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
           GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_minmaxtile_comp),
-                             420);
+                             "320 es");
 
           DebugData.minmaxTileProgram[idx] = CreateCShaderProgram(cs);
         }
@@ -412,7 +412,7 @@ void GLESReplay::InitDebugData()
           defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-          GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_histogram_comp), 420);
+          GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_histogram_comp), "320 es");
 
           DebugData.histogramProgram[idx] = CreateCShaderProgram(cs);
         }
@@ -425,7 +425,7 @@ void GLESReplay::InitDebugData()
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
           GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_minmaxresult_comp),
-                             420);
+                             "320 es");
 
           DebugData.minmaxResultProgram[i] = CreateCShaderProgram(cs);
         }
@@ -453,17 +453,17 @@ void GLESReplay::InitDebugData()
 #if 0
   {
     // TODO(elecro): Add version check?
-    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_ms2array_comp), 420);
+    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_ms2array_comp), "320 es");
     DebugData.MS2Array = CreateCShaderProgram(cs);
 
     // TODO(elecro): uimage2DMSArray is not supported in the array2ms.comp shader, how can we replac it?
-    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_array2ms_comp), 420);
+    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_array2ms_comp), "320 es");
     DebugData.Array2MS = CreateCShaderProgram(cs);
   }
 
   {
     // TODO(elecro): Add version check?
-    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_comp), 420);
+    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_comp), "320 es");
     DebugData.meshPickProgram = CreateCShaderProgram(cs);
   }
 #endif
@@ -536,8 +536,8 @@ void GLESReplay::InitDebugData()
   gl.glVertexAttribPointer(0, 4, eGL_FLOAT, GL_FALSE, sizeof(Vec4f), NULL);
   gl.glEnableVertexAttribArray(0);
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_outline_frag), 420);
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), "320 es");
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_outline_frag), "320 es");
 
   DebugData.outlineQuadProg = CreateShaderProgram(vs, fs);
 
@@ -2950,8 +2950,8 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
       break;
     }
   }
-  
-  
+
+
   // if we didn't find anything, all z's and w's were identical.
   // If the z is positive and w greater for the first element then
   // we detect this projection as reversed z with infinite far plane

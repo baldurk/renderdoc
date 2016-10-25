@@ -1196,8 +1196,8 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
       vector<string> vs;
       vector<string> fs;
 
-      GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_text_vert), 420);
-      GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_text_frag), 420);
+      GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_text_vert), "420");
+      GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_text_frag), "420");
 
       vector<const char *> vsc;
       vsc.reserve(vs.size());

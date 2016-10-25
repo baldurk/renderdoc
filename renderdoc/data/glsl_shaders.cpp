@@ -26,11 +26,11 @@
 #include "os/os_specific.h"
 
 void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
-                        const std::string &defines, const std::string &shader, int version,
+                        const std::string &defines, const std::string &shader, const char* version,
                         bool uniforms)
 {
   sources.resize(4);
-  sources[0] = StringFormat::Fmt("#version 320 es\n", version);
+  sources[0] = StringFormat::Fmt("#version %s\n", version);
 
   // hoist up any #extension directives
   size_t extsearch = 0;
