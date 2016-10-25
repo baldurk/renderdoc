@@ -3493,11 +3493,10 @@ void WrappedGLES::ContextReplayLog(LogState readType, uint32_t startEventID, uin
       if(q == eGL_NONE)
         break;
 
-      // TODO PEPE Check Indexed version
-      if(m_ActiveQueries[i][0])
+      if(m_ActiveQueries[i])
       {
         m_Real.glEndQuery(q);
-        m_ActiveQueries[i][0] = false;
+        m_ActiveQueries[i] = false;
       }
     }
 

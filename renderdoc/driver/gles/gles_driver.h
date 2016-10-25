@@ -336,7 +336,7 @@ private:
 
   vector<GLESWindowingData> m_LastContexts;
 
-  bool m_ActiveQueries[8][8];    // first index type, second index (for some, always 0)
+  bool m_ActiveQueries[8];
   bool m_ActiveConditional;
   bool m_ActiveFeedback;
 

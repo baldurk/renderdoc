@@ -212,7 +212,7 @@ bool WrappedGLES::Serialise_glBeginQuery(GLenum target, GLuint qid)
   if(m_State < WRITING)
   {
     m_Real.glBeginQuery(Target, GetResourceManager()->GetLiveResource(id).name);
-    m_ActiveQueries[QueryIdx(Target)][0] = true;
+    m_ActiveQueries[QueryIdx(Target)] = true;
   }
 
   return true;
@@ -221,7 +221,7 @@ bool WrappedGLES::Serialise_glBeginQuery(GLenum target, GLuint qid)
 void WrappedGLES::glBeginQuery(GLenum target, GLuint id)
 {
   m_Real.glBeginQuery(target, id);
-  m_ActiveQueries[QueryIdx(target)][0] = true;
+  m_ActiveQueries[QueryIdx(target)] = true;
 
   if(m_State == WRITING_CAPFRAME)
   {
@@ -239,7 +239,7 @@ bool WrappedGLES::Serialise_glEndQuery(GLenum target)
 
   if(m_State < WRITING)
   {
-    m_ActiveQueries[QueryIdx(Target)][0] = false;
+    m_ActiveQueries[QueryIdx(Target)] = false;
     m_Real.glEndQuery(Target);
   }
 
@@ -249,7 +249,7 @@ bool WrappedGLES::Serialise_glEndQuery(GLenum target)
 void WrappedGLES::glEndQuery(GLenum target)
 {
   m_Real.glEndQuery(target);
-  m_ActiveQueries[QueryIdx(target)][0] = false;
+  m_ActiveQueries[QueryIdx(target)] = false;
 
   if(m_State == WRITING_CAPFRAME)
   {
