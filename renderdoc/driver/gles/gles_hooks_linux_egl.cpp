@@ -114,24 +114,23 @@ typedef EGLDisplay (*PFN_eglGetCurrentDisplay)();
 #define DEF_FUNC(name) static PFN_##name REAL(name) = (PFN_ ## name)dlsym(libGLdlsymHandle, #name)
 
 
-
 DEFAULT_VISIBILITY
 EGLDisplay eglGetDisplay (EGLNativeDisplayType display)
 {
     OpenGLHook::glhooks.PopulateHooks();
-    PFN_eglGetDisplay real_pfn = (PFN_eglGetDisplay)dlsym(libGLdlsymHandle, "eglGetDisplay");
+    DEF_FUNC(eglGetDisplay);
 #ifndef ANDROID
     Keyboard::CloneDisplay(display);
 #endif
 
-    return real_pfn(display);
+    return REAL(eglGetDisplay)(display);
 }
 
 DEFAULT_VISIBILITY
 EGLContext eglCreateContext(EGLDisplay display, EGLConfig config, EGLContext share_context, EGLint const * attrib_list)
 {
 #ifdef ANDROID
-    __android_log_print(ANDROID_LOG_DEBUG, "renderdoc", "Enter: eglCreateContext");
+    RDCLOG("Enter: eglCreateContext");
 #endif
     OpenGLHook::glhooks.PopulateHooks();
 
@@ -163,13 +162,14 @@ DEFAULT_VISIBILITY
 EGLContext eglGetCurrentContext()
 {
     // TODO(elecro): this should be only a simple forward call, this...
-    static EGLContext prev_ctx = 0;
     OpenGLHook::glhooks.PopulateHooks();
     DEF_FUNC(eglGetCurrentContext);
 
-    RDCLOG("Enter: eglGetCurrentContext");
     EGLContext ctx = REAL(eglGetCurrentContext)();
+#ifdef ANDROID
+    RDCLOG("Enter: eglGetCurrentContext");
 
+    static EGLContext prev_ctx = 0;
     if (prev_ctx != ctx)
     {
         if(OpenGLHook::glhooks.m_Contexts.find(ctx) == OpenGLHook::glhooks.m_Contexts.end())
@@ -187,6 +187,7 @@ EGLContext eglGetCurrentContext()
         }
         prev_ctx = ctx;
     }
+#endif
 
     return ctx;
 }
@@ -309,7 +310,7 @@ DEFAULT_VISIBILITY
 EGLBoolean eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor)
 {
 #ifdef ANDROID
-    __android_log_print(ANDROID_LOG_DEBUG, "renderdoc", "Enter: eglInitialize");
+    RDCLOG("Enter: eglInitialize");
 #endif
 
     DEF_FUNC(eglInitialize);
