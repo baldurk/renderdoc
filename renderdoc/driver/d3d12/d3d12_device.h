@@ -226,6 +226,7 @@ private:
 
   // list of all queues being captured
   std::vector<WrappedID3D12CommandQueue *> m_Queues;
+  std::vector<ID3D12Fence *> m_QueueFences;
 
   // the queue we use for all internal work, the first DIRECT queue
   WrappedID3D12CommandQueue *m_Queue;

@@ -67,6 +67,14 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue(Serialiser *localSerialis
       }
 
       m_Queues.push_back(wrapped);
+
+      // create a dummy (dummy) fence
+      ID3D12Fence *fence = NULL;
+      hr = this->CreateFence(0, D3D12_FENCE_FLAG_NONE, __uuidof(ID3D12Fence), (void **)&fence);
+
+      RDCASSERTEQUAL(hr, S_OK);
+
+      m_QueueFences.push_back(fence);
     }
   }
 

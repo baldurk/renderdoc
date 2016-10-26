@@ -325,6 +325,9 @@ WrappedID3D12Device::~WrappedID3D12Device()
 {
   RenderDoc::Inst().RemoveDeviceFrameCapturer((ID3D12Device *)this);
 
+  for(size_t i = 0; i < m_QueueFences.size(); i++)
+    SAFE_RELEASE(m_QueueFences[i]);
+
   DestroyInternalResources();
 
   if(m_DeviceRecord)
@@ -2121,6 +2124,14 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
   {
     startEventID = m_FrameRecord.frameInfo.firstEvent;
     partial = false;
+
+    m_GPUSyncCounter++;
+
+    // I'm not sure the reason for this, but the debug layer warns about being unable to resubmit
+    // command lists due to the 'previous queue fence' not being ready yet, even if no fences are
+    // signalled or waited. So instead we just signal a dummy fence each new 'frame'
+    for(size_t i = 0; i < m_Queues.size(); i++)
+      m_Queues[i]->Signal(m_QueueFences[i], m_GPUSyncCounter);
   }
 
   D3D12ChunkType header = (D3D12ChunkType)m_pSerialiser->PushContext(NULL, NULL, 1, false);
