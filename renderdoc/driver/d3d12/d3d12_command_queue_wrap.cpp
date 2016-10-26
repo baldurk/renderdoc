@@ -134,6 +134,9 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       {
         ID3D12CommandList *list = Unwrap(cmds[i]);
         real->ExecuteCommandLists(1, &list);
+#if defined(SINGLE_FLUSH_VALIDATE)
+        m_pDevice->GPUSync();
+#endif
       }
       else
       {
@@ -154,6 +157,10 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
           list = Unwrap(info.crackedLists[c]);
           real->ExecuteCommandLists(1, &list);
         }
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+        m_pDevice->GPUSync();
+#endif
       }
     }
 
@@ -272,7 +279,15 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
         m_pDevice->ApplyBarriers(m_Cmd.m_BakedCmdListInfo[rerecord].barriers);
       }
 
+#if defined(SINGLE_FLUSH_VALIDATE)
+      for(size_t i = 0; i < rerecordedCmds.size(); i++)
+      {
+        real->ExecuteCommandLists(1, &rerecordedCmds[i]);
+        m_pDevice->GPUSync();
+      }
+#else
       real->ExecuteCommandLists((UINT)rerecordedCmds.size(), &rerecordedCmds[0]);
+#endif
     }
     else if(m_Cmd.m_LastEventID > startEID && m_Cmd.m_LastEventID < m_Cmd.m_RootEventID)
     {
@@ -326,7 +341,15 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
 
       RDCASSERT(trimmedCmds.size() > 0);
 
+#if defined(SINGLE_FLUSH_VALIDATE)
+      for(size_t i = 0; i < trimmedCmds.size(); i++)
+      {
+        real->ExecuteCommandLists(1, &trimmedCmds[i]);
+        m_pDevice->GPUSync();
+      }
+#else
       real->ExecuteCommandLists((UINT)trimmedCmds.size(), &trimmedCmds[0]);
+#endif
 
       for(uint32_t i = 0; i < trimmedCmdIds.size(); i++)
       {
@@ -343,7 +366,17 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       ID3D12CommandList **unwrapped = new ID3D12CommandList *[numCmds];
       for(uint32_t i = 0; i < numCmds; i++)
         unwrapped[i] = Unwrap(cmds[i]);
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+      for(UINT i = 0; i < numCmds; i++)
+      {
+        real->ExecuteCommandLists(1, &unwrapped[i]);
+        m_pDevice->GPUSync();
+      }
+#else
       real->ExecuteCommandLists(numCmds, unwrapped);
+#endif
+
       SAFE_DELETE_ARRAY(unwrapped);
 
       for(uint32_t i = 0; i < numCmds; i++)
