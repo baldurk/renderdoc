@@ -58,15 +58,15 @@ bool WrappedID3D12Device::Serialise_CreateCommandQueue(Serialiser *localSerialis
 
       GetResourceManager()->AddLiveResource(Queue, ret);
 
-      if(Descriptor.Type == D3D12_COMMAND_LIST_TYPE_DIRECT)
+      WrappedID3D12CommandQueue *wrapped = (WrappedID3D12CommandQueue *)ret;
+
+      if(Descriptor.Type == D3D12_COMMAND_LIST_TYPE_DIRECT && m_Queue == NULL)
       {
-        if(m_Queue != NULL)
-          RDCERR("Don't support multiple direct queues yet!");
-
-        m_Queue = (WrappedID3D12CommandQueue *)ret;
-
+        m_Queue = wrapped;
         CreateInternalResources();
       }
+
+      m_Queues.push_back(wrapped);
     }
   }
 
@@ -104,15 +104,13 @@ HRESULT WrappedID3D12Device::CreateCommandQueue(const D3D12_COMMAND_QUEUE_DESC *
       GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
     }
 
-    if(pDesc->Type == D3D12_COMMAND_LIST_TYPE_DIRECT)
+    if(pDesc->Type == D3D12_COMMAND_LIST_TYPE_DIRECT && m_Queue == NULL)
     {
-      if(m_Queue != NULL)
-        RDCERR("Don't support multiple queues yet!");
-
       m_Queue = wrapped;
-
       CreateInternalResources();
     }
+
+    m_Queues.push_back(wrapped);
 
     *ppCommandQueue = (ID3D12CommandQueue *)wrapped;
   }

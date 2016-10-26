@@ -1386,10 +1386,11 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   Serialiser *m_pFileSerialiser = RenderDoc::Inst().OpenWriteSerialiser(
       m_FrameCounter, &m_InitParams, jpgbuf, len, thwidth, thheight);
 
-  if(m_Queue->GetResourceRecord()->ContainsExecuteIndirect)
-  {
-    WrappedID3D12Resource::RefBuffers(GetResourceManager());
-  }
+  std::vector<WrappedID3D12CommandQueue *> queues = m_Queues;
+
+  for(auto it = queues.begin(); it != queues.end(); ++it)
+    if((*it)->GetResourceRecord()->ContainsExecuteIndirect)
+      WrappedID3D12Resource::RefBuffers(GetResourceManager());
 
   {
     CACHE_THREAD_SERIALISER();
@@ -1425,10 +1426,14 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
   map<int32_t, Chunk *> recordlist;
 
+  for(auto it = queues.begin(); it != queues.end(); ++it)
   {
-    const vector<D3D12ResourceRecord *> &cmdListRecords = m_Queue->GetCmdLists();
+    WrappedID3D12CommandQueue *q = *it;
 
-    RDCDEBUG("Flushing %u command list records to file serialiser", (uint32_t)cmdListRecords.size());
+    const vector<D3D12ResourceRecord *> &cmdListRecords = q->GetCmdLists();
+
+    RDCDEBUG("Flushing %u command list records from queue %llu", (uint32_t)cmdListRecords.size(),
+             q->GetResourceID());
 
     for(size_t i = 0; i < cmdListRecords.size(); i++)
     {
@@ -1438,7 +1443,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
                (uint32_t)recordlist.size(), cmdListRecords[i]->GetResourceID());
     }
 
-    m_Queue->GetResourceRecord()->Insert(recordlist);
+    q->GetResourceRecord()->Insert(recordlist);
   }
 
   {
@@ -1462,7 +1467,8 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
   m_State = WRITING_IDLE;
 
-  m_Queue->ClearAfterCapture();
+  for(auto it = queues.begin(); it != queues.end(); ++it)
+    (*it)->ClearAfterCapture();
 
   GetResourceManager()->MarkUnwrittenResources();
 

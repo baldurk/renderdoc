@@ -224,6 +224,10 @@ class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3
 private:
   ID3D12Device *m_pDevice;
 
+  // list of all queues being captured
+  std::vector<WrappedID3D12CommandQueue *> m_Queues;
+
+  // the queue we use for all internal work, the first DIRECT queue
   WrappedID3D12CommandQueue *m_Queue;
 
   ID3D12CommandAllocator *m_Alloc;
