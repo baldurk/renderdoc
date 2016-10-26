@@ -359,7 +359,7 @@ D3D12Descriptor *DescriptorFromPortableHandle(D3D12ResourceManager *manager, Por
 }
 
 // debugging logging for barriers
-#if 1
+#if 0
 #define BARRIER_DBG RDCLOG
 #define BARRIER_ASSERT RDCASSERTMSG
 #else
