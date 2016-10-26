@@ -326,7 +326,15 @@ WrappedID3D12Device::~WrappedID3D12Device()
   RenderDoc::Inst().RemoveDeviceFrameCapturer((ID3D12Device *)this);
 
   for(size_t i = 0; i < m_QueueFences.size(); i++)
+  {
+    m_GPUSyncCounter++;
+
+    m_Queues[i]->Signal(m_QueueFences[i], m_GPUSyncCounter);
+    m_QueueFences[i]->SetEventOnCompletion(m_GPUSyncCounter, m_GPUSyncHandle);
+    WaitForSingleObject(m_GPUSyncHandle, 10000);
+
     SAFE_RELEASE(m_QueueFences[i]);
+  }
 
   DestroyInternalResources();
 
