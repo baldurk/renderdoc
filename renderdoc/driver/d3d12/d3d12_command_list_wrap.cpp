@@ -1104,7 +1104,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_OMSetRenderTargets(
   if(m_State < WRITING)
     m_Cmd->m_LastCmdListID = CommandList;
 
-  UINT numHandles = singlehandle ? 1U : num;
+  UINT numHandles = singlehandle ? RDCMIN(1U, num) : num;
 
   std::vector<PortableHandle> rts;
 
@@ -1187,7 +1187,8 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
     UINT NumRenderTargetDescriptors, const D3D12_CPU_DESCRIPTOR_HANDLE *pRenderTargetDescriptors,
     BOOL RTsSingleHandleToDescriptorRange, const D3D12_CPU_DESCRIPTOR_HANDLE *pDepthStencilDescriptor)
 {
-  UINT numHandles = RTsSingleHandleToDescriptorRange ? 1U : NumRenderTargetDescriptors;
+  UINT num = NumRenderTargetDescriptors;
+  UINT numHandles = RTsSingleHandleToDescriptorRange ? RDCMIN(1U, num) : num;
   D3D12_CPU_DESCRIPTOR_HANDLE *unwrapped =
       m_pDevice->GetTempArray<D3D12_CPU_DESCRIPTOR_HANDLE>(numHandles);
   for(UINT i = 0; i < numHandles; i++)
@@ -1196,14 +1197,14 @@ void WrappedID3D12GraphicsCommandList::OMSetRenderTargets(
   D3D12_CPU_DESCRIPTOR_HANDLE dsv =
       pDepthStencilDescriptor ? Unwrap(*pDepthStencilDescriptor) : D3D12_CPU_DESCRIPTOR_HANDLE();
 
-  m_pReal->OMSetRenderTargets(NumRenderTargetDescriptors, unwrapped, RTsSingleHandleToDescriptorRange,
+  m_pReal->OMSetRenderTargets(num, unwrapped, RTsSingleHandleToDescriptorRange,
                               pDepthStencilDescriptor ? &dsv : NULL);
 
   if(m_State >= WRITING)
   {
     SCOPED_SERIALISE_CONTEXT(SET_RTVS);
-    Serialise_OMSetRenderTargets(NumRenderTargetDescriptors, pRenderTargetDescriptors,
-                                 RTsSingleHandleToDescriptorRange, pDepthStencilDescriptor);
+    Serialise_OMSetRenderTargets(num, pRenderTargetDescriptors, RTsSingleHandleToDescriptorRange,
+                                 pDepthStencilDescriptor);
 
     m_ListRecord->AddChunk(scope.Get());
     for(UINT i = 0; i < numHandles; i++)
