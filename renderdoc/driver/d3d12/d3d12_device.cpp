@@ -1815,9 +1815,13 @@ void WrappedID3D12Device::GPUSync()
 {
   m_GPUSyncCounter++;
 
-  m_Queue->Signal(m_GPUSyncFence, m_GPUSyncCounter);
+  HRESULT hr = m_Queue->Signal(m_GPUSyncFence, m_GPUSyncCounter);
   m_GPUSyncFence->SetEventOnCompletion(m_GPUSyncCounter, m_GPUSyncHandle);
-  WaitForSingleObject(m_GPUSyncHandle, 2000);
+  WaitForSingleObject(m_GPUSyncHandle, 10000);
+
+  RDCASSERTEQUAL(hr, S_OK);
+  hr = m_pDevice->GetDeviceRemovedReason();
+  RDCASSERTEQUAL(hr, S_OK);
 }
 
 ID3D12GraphicsCommandList *WrappedID3D12Device::GetNewList()
