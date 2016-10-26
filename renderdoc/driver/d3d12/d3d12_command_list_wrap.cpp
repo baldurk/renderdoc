@@ -2796,10 +2796,89 @@ void WrappedID3D12GraphicsCommandList::Dispatch(UINT ThreadGroupCountX, UINT Thr
   }
 }
 
+bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(ID3D12GraphicsCommandList *pCommandList)
+{
+  SERIALISE_ELEMENT(ResourceId, CommandList, GetResourceID());
+
+  ResourceId Bundle;
+
+  if(m_State >= WRITING)
+  {
+    D3D12ResourceRecord *record = GetRecord(pCommandList);
+    RDCASSERT(record->bakedCommands);
+    if(record->bakedCommands)
+      Bundle = record->bakedCommands->GetResourceID();
+  }
+
+  m_pSerialiser->Serialise("Bundle", Bundle);
+
+  if(m_State < WRITING)
+    m_Cmd->m_LastCmdListID = CommandList;
+
+  if(m_State == EXECUTING)
+  {
+    if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
+    {
+      ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
+
+      uint32_t eventID = m_Cmd->HandlePreCallback(list, true);
+
+      ID3D12GraphicsCommandList *bundle =
+          GetResourceManager()->GetLiveAs<ID3D12GraphicsCommandList>(Bundle);
+
+      Unwrap(list)->ExecuteBundle(Unwrap(bundle));
+
+      if(eventID && m_Cmd->m_DrawcallCallback->PostDraw(eventID, list))
+      {
+        Unwrap(list)->ExecuteBundle(Unwrap(bundle));
+        m_Cmd->m_DrawcallCallback->PostRedraw(eventID, list);
+      }
+    }
+  }
+  else if(m_State == READING)
+  {
+    ID3D12GraphicsCommandList *bundle =
+        GetResourceManager()->GetLiveAs<ID3D12GraphicsCommandList>(Bundle);
+
+    GetList(CommandList)->ExecuteBundle(Unwrap(bundle));
+    GetCrackedList(CommandList)->ExecuteBundle(Unwrap(bundle));
+
+    const string desc = m_pSerialiser->GetDebugStr();
+
+    m_Cmd->AddEvent(desc);
+    string name = "ExecuteBundle(" + ToStr::Get(Bundle) + ")";
+
+    FetchDrawcall draw;
+    draw.name = name;
+
+    draw.flags |= eDraw_CmdList;
+
+    m_Cmd->AddDrawcall(draw, true);
+  }
+
+  return true;
+}
+
 void WrappedID3D12GraphicsCommandList::ExecuteBundle(ID3D12GraphicsCommandList *pCommandList)
 {
-  D3D12NOTIMP("Bundle execution");
   m_pReal->ExecuteBundle(Unwrap(pCommandList));
+
+  if(m_State >= WRITING)
+  {
+    SCOPED_SERIALISE_CONTEXT(EXEC_BUNDLE);
+    Serialise_ExecuteBundle(pCommandList);
+
+    m_ListRecord->AddChunk(scope.Get());
+
+    D3D12ResourceRecord *record = GetRecord(pCommandList);
+
+    CmdListRecordingInfo *dst = m_ListRecord->cmdInfo;
+    CmdListRecordingInfo *src = record->bakedCommands->cmdInfo;
+    dst->boundDescs.insert(src->boundDescs.begin(), src->boundDescs.end());
+    dst->dirtied.insert(src->dirtied.begin(), src->dirtied.end());
+
+    dst->bundles.push_back(record);
+  }
 }
 
 /*

@@ -299,6 +299,7 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el);
   D3D12_CHUNK_MACRO(DRAW_INST, "ID3D12GraphicsCommandList::DrawInstanced")                         \
   D3D12_CHUNK_MACRO(DISPATCH, "ID3D12GraphicsCommandList::Dispatch")                               \
   D3D12_CHUNK_MACRO(EXEC_INDIRECT, "ID3D12GraphicsCommandList::ExecuteIndirect")                   \
+  D3D12_CHUNK_MACRO(EXEC_BUNDLE, "ID3D12GraphicsCommandList::ExecuteBundle")                       \
                                                                                                    \
   D3D12_CHUNK_MACRO(COPY_BUFFER, "ID3D12GraphicsCommandList::CopyBufferRegion")                    \
   D3D12_CHUNK_MACRO(COPY_TEXTURE, "ID3D12GraphicsCommandList::CopyTextureRegion")                  \

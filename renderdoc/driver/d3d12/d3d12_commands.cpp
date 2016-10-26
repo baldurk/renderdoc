@@ -293,6 +293,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
     case DRAW_INDEXED_INST: m_ReplayList->Serialise_DrawIndexedInstanced(0, 0, 0, 0, 0); break;
     case DISPATCH: m_ReplayList->Serialise_Dispatch(0, 0, 0); break;
     case EXEC_INDIRECT: m_ReplayList->Serialise_ExecuteIndirect(NULL, 0, NULL, 0, NULL, 0); break;
+    case EXEC_BUNDLE: m_ReplayList->Serialise_ExecuteBundle(NULL); break;
 
     case COPY_BUFFER: m_ReplayList->Serialise_CopyBufferRegion(NULL, 0, NULL, 0, 0); break;
     case COPY_TEXTURE: m_ReplayList->Serialise_CopyTextureRegion(NULL, 0, 0, 0, NULL, NULL); break;
