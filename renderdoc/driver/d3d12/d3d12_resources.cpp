@@ -27,7 +27,7 @@
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 
-std::vector<GPUAddressRange> WrappedID3D12Resource::m_Addresses;
+GPUAddressRangeTracker WrappedID3D12Resource::m_Addresses;
 std::map<ResourceId, WrappedID3D12Resource *> WrappedID3D12Resource::m_List;
 std::map<WrappedID3D12PipelineState::DXBCKey, WrappedID3D12PipelineState::ShaderEntry *>
     WrappedID3D12PipelineState::m_Shaders;
@@ -387,8 +387,9 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::WriteToSubresource(UINT DstSubr
 void WrappedID3D12Resource::RefBuffers(D3D12ResourceManager *rm)
 {
   // only buffers go into m_Addresses
-  for(size_t i = 0; i < m_Addresses.size(); i++)
-    rm->MarkResourceFrameReferenced(m_Addresses[i].id, eFrameRef_Read);
+  SCOPED_LOCK(m_Addresses.addressLock);
+  for(size_t i = 0; i < m_Addresses.addresses.size(); i++)
+    rm->MarkResourceFrameReferenced(m_Addresses.addresses[i].id, eFrameRef_Read);
 }
 
 WrappedID3D12DescriptorHeap::WrappedID3D12DescriptorHeap(ID3D12DescriptorHeap *real,

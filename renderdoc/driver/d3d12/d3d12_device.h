@@ -301,7 +301,7 @@ private:
   std::vector<DynamicDescriptorCopy> m_DynamicDescriptorCopies;
   std::vector<DynamicDescriptorWrite> m_DynamicDescriptorWrites;
 
-  std::vector<GPUAddressRange> m_GPUAddresses;
+  GPUAddressRangeTracker m_GPUAddresses;
 
   void FlushPendingDescriptorWrites();
 
@@ -377,7 +377,7 @@ public:
 
   void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
   {
-    GPUAddressRange::GetResIDFromAddr(m_GPUAddresses, addr, id, offs);
+    m_GPUAddresses.GetResIDFromAddr(addr, id, offs);
   }
 
   bool IsCubemap(ResourceId id) { return m_Cubemaps.find(id) != m_Cubemaps.end(); }

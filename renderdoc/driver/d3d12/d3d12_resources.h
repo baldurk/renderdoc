@@ -653,7 +653,7 @@ public:
 
 class WrappedID3D12Resource : public WrappedDeviceChild12<ID3D12Resource>
 {
-  static std::vector<GPUAddressRange> m_Addresses;
+  static GPUAddressRangeTracker m_Addresses;
 
   bool resident;
 
@@ -666,7 +666,7 @@ public:
 
   static void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
   {
-    GPUAddressRange::GetResIDFromAddr(m_Addresses, addr, id, offs);
+    m_Addresses.GetResIDFromAddr(addr, id, offs);
   }
 
   // overload to just return the id in case the offset isn't needed
@@ -675,7 +675,7 @@ public:
     ResourceId id;
     UINT64 offs;
 
-    GetResIDFromAddr(addr, id, offs);
+    m_Addresses.GetResIDFromAddr(addr, id, offs);
 
     return id;
   }
@@ -701,7 +701,7 @@ public:
       range.end = addr + m_pReal->GetDesc().Width;
       range.id = GetResourceID();
 
-      GPUAddressRange::AddTo(m_Addresses, range);
+      m_Addresses.AddTo(range);
     }
   }
   virtual ~WrappedID3D12Resource()
@@ -710,7 +710,7 @@ public:
 
     // assuming only valid for buffers
     if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
-      GPUAddressRange::RemoveFrom(m_Addresses, m_pReal->GetGPUVirtualAddress());
+      m_Addresses.RemoveFrom(m_pReal->GetGPUVirtualAddress());
 
     Shutdown();
   }

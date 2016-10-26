@@ -294,9 +294,21 @@ struct GPUAddressRange
 
     return false;
   }
+};
 
-  static void AddTo(std::vector<GPUAddressRange> &addresses, GPUAddressRange range)
+struct GPUAddressRangeTracker
+{
+  GPUAddressRangeTracker() {}
+  // no copying
+  GPUAddressRangeTracker(const GPUAddressRangeTracker &);
+  GPUAddressRangeTracker &operator=(const GPUAddressRangeTracker &);
+
+  std::vector<GPUAddressRange> addresses;
+  Threading::CriticalSection addressLock;
+
+  void AddTo(GPUAddressRange range)
   {
+    SCOPED_LOCK(addressLock);
     auto it = std::lower_bound(addresses.begin(), addresses.end(), range.start);
     RDCASSERT(it == addresses.begin() || it == addresses.end() || range.start < it->start ||
               range.start >= it->end);
@@ -304,16 +316,16 @@ struct GPUAddressRange
     addresses.insert(it, range);
   }
 
-  static void RemoveFrom(std::vector<GPUAddressRange> &addresses, D3D12_GPU_VIRTUAL_ADDRESS baseAddr)
+  void RemoveFrom(D3D12_GPU_VIRTUAL_ADDRESS baseAddr)
   {
+    SCOPED_LOCK(addressLock);
     auto it = std::lower_bound(addresses.begin(), addresses.end(), baseAddr);
     RDCASSERT(it != addresses.end() && baseAddr >= it->start && baseAddr < it->end);
 
     addresses.erase(it);
   }
 
-  static void GetResIDFromAddr(std::vector<GPUAddressRange> &addresses,
-                               D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
+  void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
   {
     id = ResourceId();
     offs = 0;
@@ -321,18 +333,24 @@ struct GPUAddressRange
     if(addr == 0)
       return;
 
-    if(addresses.empty())
+    GPUAddressRange range;
+
+    // this should really be a read-write lock
+    {
+      SCOPED_LOCK(addressLock);
+
+      auto it = std::lower_bound(addresses.begin(), addresses.end(), addr);
+      if(it == addresses.end())
+        return;
+
+      range = *it;
+    }
+
+    if(addr < range.start || addr >= range.end)
       return;
 
-    auto it = std::lower_bound(addresses.begin(), addresses.end(), addr);
-    if(it == addresses.end())
-      return;
-
-    if(addr < it->start || addr >= it->end)
-      return;
-
-    id = it->id;
-    offs = addr - it->start;
+    id = range.id;
+    offs = addr - range.start;
   }
 };
 

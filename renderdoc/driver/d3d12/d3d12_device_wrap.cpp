@@ -919,7 +919,7 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
       range.end = gpuAddress + desc.Width;
       range.id = Res;
 
-      GPUAddressRange::AddTo(m_GPUAddresses, range);
+      m_GPUAddresses.AddTo(range);
     }
 
     ID3D12Resource *ret = NULL;
@@ -1108,7 +1108,7 @@ bool WrappedID3D12Device::Serialise_CreatePlacedResource(
       range.end = gpuAddress + desc.Width;
       range.id = Res;
 
-      GPUAddressRange::AddTo(m_GPUAddresses, range);
+      m_GPUAddresses.AddTo(range);
     }
 
     ID3D12Resource *ret = NULL;
