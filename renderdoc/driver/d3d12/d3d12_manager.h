@@ -394,6 +394,8 @@ struct D3D12ResourceRecord : public ResourceRecord
 
   struct MapData
   {
+    MapData() : refcount(0), realPtr(NULL), shadowPtr(NULL) {}
+    volatile int32_t refcount;
     byte *realPtr;
     byte *shadowPtr;
   };

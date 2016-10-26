@@ -311,8 +311,7 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::Map(UINT Subresource,
   // pass a NULL range as we might want to read from the whole range
   HRESULT hr = m_pReal->Map(Subresource, NULL, &mapPtr);
 
-  if(ppData)
-    *ppData = mapPtr;
+  *ppData = mapPtr;
 
   if(SUCCEEDED(hr) && GetResourceRecord())
   {
@@ -320,10 +319,17 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12Resource::Map(UINT Subresource,
 
     if(Subresource >= map.size())
       map.resize(Subresource + 1);
+
+    // the map pointer should be NULL or identical (if we are in a nested Map)
+    RDCASSERT(map[Subresource].realPtr == mapPtr || map[Subresource].realPtr == NULL);
+
     map[Subresource].realPtr = (byte *)mapPtr;
 
-    // need to register this so we can flush any updates in case it's left persistant
-    m_pDevice->Map(this, Subresource);
+    int32_t refcount = Atomic::Inc32(&map[Subresource].refcount);
+
+    // on the first map, register this so we can flush any updates in case it's left persistant
+    if(refcount == 1)
+      m_pDevice->Map(this, Subresource);
   }
 
   return hr;
@@ -338,10 +344,16 @@ void STDMETHODCALLTYPE WrappedID3D12Resource::Unmap(UINT Subresource, const D3D1
     // may not have a map if e.g. no pointer was requested
     if(Subresource < map.size())
     {
-      m_pDevice->Unmap(this, Subresource, map[Subresource].realPtr, pWrittenRange);
+      int32_t refcount = Atomic::Dec32(&map[Subresource].refcount);
 
-      map[Subresource].realPtr = NULL;
-      Serialiser::FreeAlignedBuffer(map[Subresource].shadowPtr);
+      if(refcount == 0)
+      {
+        m_pDevice->Unmap(this, Subresource, map[Subresource].realPtr, pWrittenRange);
+
+        Serialiser::FreeAlignedBuffer(map[Subresource].shadowPtr);
+        map[Subresource].realPtr = NULL;
+        map[Subresource].shadowPtr = NULL;
+      }
     }
   }
 
