@@ -425,7 +425,9 @@ public:
 class WrappedID3D12PipelineState : public WrappedDeviceChild12<ID3D12PipelineState>
 {
 public:
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12PipelineState);
+  static const int AllocPoolCount = 65536;
+  static const int AllocMaxByteSize = 5 * 1024 * 1024;
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12PipelineState, AllocPoolCount, AllocMaxByteSize);
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC *graphics;
   D3D12_COMPUTE_PIPELINE_STATE_DESC *compute;
