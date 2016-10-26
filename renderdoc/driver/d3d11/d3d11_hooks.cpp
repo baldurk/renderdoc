@@ -53,7 +53,7 @@ public:
   {
     bool success = true;
 
-    WrappedIDXGISwapChain3::RegisterD3DDeviceCallback(GetD3D11DeviceIfAlloc);
+    WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D11DeviceIfAlloc);
 
     // also require d3dcompiler_??.dll
     if(GetD3DCompiler() == NULL)
@@ -258,7 +258,7 @@ private:
         wrap->GetImmediateContext(ppImmediateContext);
 
         if(ppSwapChain && *ppSwapChain)
-          *ppSwapChain = new WrappedIDXGISwapChain3(
+          *ppSwapChain = new WrappedIDXGISwapChain4(
               *ppSwapChain, pSwapChainDesc ? pSwapChainDesc->OutputWindow : NULL, wrap);
       }
     }

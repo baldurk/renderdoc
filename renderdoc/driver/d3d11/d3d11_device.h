@@ -340,7 +340,7 @@ private:
 
   static WrappedID3D11Device *m_pCurrentWrappedDevice;
 
-  map<WrappedIDXGISwapChain3 *, ID3D11RenderTargetView *> m_SwapChains;
+  map<WrappedIDXGISwapChain4 *, ID3D11RenderTargetView *> m_SwapChains;
 
   uint32_t m_FrameCounter;
   uint32_t m_FailedFrame;
@@ -393,7 +393,7 @@ public:
   void LockForChunkRemoval();
   void UnlockForChunkRemoval();
 
-  void FirstFrame(WrappedIDXGISwapChain3 *swapChain);
+  void FirstFrame(WrappedIDXGISwapChain4 *swapChain);
 
   vector<DebugMessage> GetDebugMessages();
   void AddDebugMessage(DebugMessage msg);
@@ -473,14 +473,14 @@ public:
                                                  ID3D11ClassInstance *inst));
 
   // Swap Chain
-  IMPLEMENT_FUNCTION_SERIALISED(IUnknown *, WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
+  IMPLEMENT_FUNCTION_SERIALISED(IUnknown *, WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
                                                                 DXGI_SWAP_CHAIN_DESC *desc,
                                                                 UINT buffer, IUnknown *realSurface));
-  HRESULT Present(WrappedIDXGISwapChain3 *swap, UINT SyncInterval, UINT Flags);
+  HRESULT Present(WrappedIDXGISwapChain4 *swap, UINT SyncInterval, UINT Flags);
 
   void NewSwapchainBuffer(IUnknown *backbuffer);
 
-  void ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap);
+  void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap);
 
   void InternalRef() { InterlockedIncrement(&m_InternalRefcount); }
   void InternalRelease() { InterlockedDecrement(&m_InternalRefcount); }

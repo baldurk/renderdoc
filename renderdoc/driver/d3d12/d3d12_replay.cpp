@@ -1605,7 +1605,7 @@ ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver *
 {
   RDCDEBUG("Creating a D3D12 replay device");
 
-  WrappedIDXGISwapChain3::RegisterD3DDeviceCallback(GetD3D12DeviceIfAlloc);
+  WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D12DeviceIfAlloc);
 
   HMODULE lib = NULL;
   lib = LoadLibraryA("d3d12.dll");

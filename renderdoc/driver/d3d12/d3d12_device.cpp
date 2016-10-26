@@ -392,7 +392,7 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
     if(SUCCEEDED(hr))
     {
       IDXGIDevice *real = (IDXGIDevice *)(*ppvObject);
-      *ppvObject = (IDXGIDevice *)(new WrappedIDXGIDevice3(real, this));
+      *ppvObject = (IDXGIDevice *)(new WrappedIDXGIDevice4(real, this));
       return S_OK;
     }
     else
@@ -408,7 +408,7 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
     if(SUCCEEDED(hr))
     {
       IDXGIDevice1 *real = (IDXGIDevice1 *)(*ppvObject);
-      *ppvObject = (IDXGIDevice1 *)(new WrappedIDXGIDevice3(real, this));
+      *ppvObject = (IDXGIDevice1 *)(new WrappedIDXGIDevice4(real, this));
       return S_OK;
     }
     else
@@ -424,7 +424,7 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
     if(SUCCEEDED(hr))
     {
       IDXGIDevice2 *real = (IDXGIDevice2 *)(*ppvObject);
-      *ppvObject = (IDXGIDevice2 *)(new WrappedIDXGIDevice3(real, this));
+      *ppvObject = (IDXGIDevice2 *)(new WrappedIDXGIDevice4(real, this));
       return S_OK;
     }
     else
@@ -440,7 +440,7 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
     if(SUCCEEDED(hr))
     {
       IDXGIDevice3 *real = (IDXGIDevice3 *)(*ppvObject);
-      *ppvObject = (IDXGIDevice3 *)(new WrappedIDXGIDevice3(real, this));
+      *ppvObject = (IDXGIDevice3 *)(new WrappedIDXGIDevice4(real, this));
       return S_OK;
     }
     else
@@ -509,7 +509,7 @@ void WrappedID3D12Device::CheckForDeath()
   }
 }
 
-void WrappedID3D12Device::FirstFrame(WrappedIDXGISwapChain3 *swap)
+void WrappedID3D12Device::FirstFrame(WrappedIDXGISwapChain4 *swap)
 {
   DXGI_SWAP_CHAIN_DESC swapdesc;
   swap->GetDesc(&swapdesc);
@@ -529,7 +529,7 @@ void WrappedID3D12Device::ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers
   GetResourceManager()->ApplyBarriers(barriers, m_ResourceStates);
 }
 
-void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap)
+void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap)
 {
   for(int i = 0; i < swap->GetNumBackbuffers(); i++)
   {
@@ -558,7 +558,7 @@ void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap
 }
 
 bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(Serialiser *localSerialiser,
-                                                        WrappedIDXGISwapChain3 *swap,
+                                                        WrappedIDXGISwapChain4 *swap,
                                                         DXGI_SWAP_CHAIN_DESC *swapDesc, UINT buffer,
                                                         IUnknown *realSurface)
 {
@@ -618,7 +618,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(Serialiser *localSeriali
   return true;
 }
 
-IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
+IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
                                                    DXGI_SWAP_CHAIN_DESC *swapDesc, UINT buffer,
                                                    IUnknown *realSurface)
 {
@@ -891,7 +891,7 @@ void WrappedID3D12Device::WriteToSubresource(WrappedID3D12Resource *Resource, UI
   }
 }
 
-HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInterval, UINT Flags)
+HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInterval, UINT Flags)
 {
   if((Flags & DXGI_PRESENT_TEST) != 0)
     return S_OK;
@@ -1123,7 +1123,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   if(m_State != WRITING_CAPFRAME)
     return true;
 
-  WrappedIDXGISwapChain3 *swap = NULL;
+  WrappedIDXGISwapChain4 *swap = NULL;
   SwapPresentInfo swapInfo = {};
 
   if(wnd)

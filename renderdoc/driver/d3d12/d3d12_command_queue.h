@@ -143,22 +143,22 @@ public:
     return NULL;
   }
   // the rest forward to the device
-  virtual void FirstFrame(WrappedIDXGISwapChain3 *swapChain) { m_pDevice->FirstFrame(swapChain); }
+  virtual void FirstFrame(WrappedIDXGISwapChain4 *swapChain) { m_pDevice->FirstFrame(swapChain); }
   virtual void NewSwapchainBuffer(IUnknown *backbuffer)
   {
     m_pDevice->NewSwapchainBuffer(backbuffer);
   }
-  virtual void ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swapChain)
+  virtual void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swapChain)
   {
     m_pDevice->ReleaseSwapchainResources(swapChain);
   }
-  virtual IUnknown *WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap, DXGI_SWAP_CHAIN_DESC *swapDesc,
+  virtual IUnknown *WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap, DXGI_SWAP_CHAIN_DESC *swapDesc,
                                         UINT buffer, IUnknown *realSurface)
   {
     return m_pDevice->WrapSwapchainBuffer(swap, swapDesc, buffer, realSurface);
   }
 
-  virtual HRESULT Present(WrappedIDXGISwapChain3 *swapChain, UINT SyncInterval, UINT Flags)
+  virtual HRESULT Present(WrappedIDXGISwapChain4 *swapChain, UINT SyncInterval, UINT Flags)
   {
     return m_pDevice->Present(swapChain, SyncInterval, Flags);
   }

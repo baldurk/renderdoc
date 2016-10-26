@@ -96,7 +96,7 @@ public:
   {
     bool success = true;
 
-    WrappedIDXGISwapChain3::RegisterD3DDeviceCallback(GetD3D12DeviceIfAlloc);
+    WrappedIDXGISwapChain4::RegisterD3DDeviceCallback(GetD3D12DeviceIfAlloc);
 
     // also require d3dcompiler_??.dll
     if(GetD3DCompiler() == NULL)

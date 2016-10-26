@@ -151,7 +151,7 @@ public:
     return RefCountDXGIObject::GetParent(riid, ppvObject);                                 \
   }
 
-class WrappedIDXGISwapChain3;
+class WrappedIDXGISwapChain4;
 
 struct ID3DDevice
 {
@@ -167,14 +167,14 @@ struct ID3DDevice
   virtual bool IsDeviceUUID(REFIID guid) = 0;
   virtual IUnknown *GetDeviceInterface(REFIID guid) = 0;
 
-  virtual void FirstFrame(WrappedIDXGISwapChain3 *swapChain) = 0;
+  virtual void FirstFrame(WrappedIDXGISwapChain4 *swapChain) = 0;
 
   virtual void NewSwapchainBuffer(IUnknown *backbuffer) = 0;
-  virtual void ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swapChain) = 0;
-  virtual IUnknown *WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap, DXGI_SWAP_CHAIN_DESC *swapDesc,
+  virtual void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swapChain) = 0;
+  virtual IUnknown *WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap, DXGI_SWAP_CHAIN_DESC *swapDesc,
                                         UINT buffer, IUnknown *realSurface) = 0;
 
-  virtual HRESULT Present(WrappedIDXGISwapChain3 *swapChain, UINT SyncInterval, UINT Flags) = 0;
+  virtual HRESULT Present(WrappedIDXGISwapChain4 *swapChain, UINT SyncInterval, UINT Flags) = 0;
 };
 
 typedef ID3DDevice *(*D3DDeviceCallback)(IUnknown *dev);
@@ -538,12 +538,13 @@ public:
   }
 };
 
-class WrappedIDXGISwapChain3 : public IDXGISwapChain3, public RefCountDXGIObject
+class WrappedIDXGISwapChain4 : public IDXGISwapChain4, public RefCountDXGIObject
 {
   IDXGISwapChain *m_pReal;
   IDXGISwapChain1 *m_pReal1;
   IDXGISwapChain2 *m_pReal2;
   IDXGISwapChain3 *m_pReal3;
+  IDXGISwapChain4 *m_pReal4;
   ID3DDevice *m_pDevice;
   unsigned int m_iRefcount;
 
@@ -559,8 +560,8 @@ class WrappedIDXGISwapChain3 : public IDXGISwapChain3, public RefCountDXGIObject
   void WrapBuffersAfterResize();
 
 public:
-  WrappedIDXGISwapChain3(IDXGISwapChain *real, HWND wnd, ID3DDevice *device);
-  virtual ~WrappedIDXGISwapChain3();
+  WrappedIDXGISwapChain4(IDXGISwapChain *real, HWND wnd, ID3DDevice *device);
+  virtual ~WrappedIDXGISwapChain4();
 
   static void RegisterD3DDeviceCallback(D3DDeviceCallback callback)
   {
@@ -811,6 +812,20 @@ public:
       _In_reads_(BufferCount) const UINT *pCreationNodeMask,
       /* [annotation][in] */
       _In_reads_(BufferCount) IUnknown *const *ppPresentQueue);
+
+  //////////////////////////////
+  // implement IDXGISwapChain4
+
+  virtual HRESULT STDMETHODCALLTYPE SetHDRMetaData(
+      /* [annotation][in] */
+      _In_ DXGI_HDR_METADATA_TYPE Type,
+      /* [annotation][in] */
+      _In_ UINT Size,
+      /* [annotation][size_is][in] */
+      _In_reads_opt_(Size) void *pMetaData)
+  {
+    return m_pReal4->SetHDRMetaData(Type, Size, pMetaData);
+  }
 };
 
 class WrappedIDXGIAdapter3 : public IDXGIAdapter3, public RefCountDXGIObject
@@ -932,20 +947,21 @@ public:
   }
 };
 
-class WrappedIDXGIDevice3 : public IDXGIDevice3, public RefCountDXGIObject
+class WrappedIDXGIDevice4 : public IDXGIDevice4, public RefCountDXGIObject
 {
   IDXGIDevice *m_pReal;
   IDXGIDevice1 *m_pReal1;
   IDXGIDevice2 *m_pReal2;
   IDXGIDevice3 *m_pReal3;
+  IDXGIDevice4 *m_pReal4;
   ID3DDevice *m_pD3DDevice;
 
 public:
-  WrappedIDXGIDevice3(IDXGIDevice *real, ID3DDevice *d3d);
-  virtual ~WrappedIDXGIDevice3();
+  WrappedIDXGIDevice4(IDXGIDevice *real, ID3DDevice *d3d);
+  virtual ~WrappedIDXGIDevice4();
 
   static const int AllocPoolCount = 4;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedIDXGIDevice3, AllocPoolCount);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedIDXGIDevice4, AllocPoolCount);
 
   IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
@@ -1052,20 +1068,47 @@ public:
   // implement IDXGIDevice3
 
   virtual void STDMETHODCALLTYPE Trim() { m_pReal3->Trim(); }
+  //////////////////////////////
+  // implement IDXGIDevice4
+
+  virtual HRESULT STDMETHODCALLTYPE OfferResources1(
+      /* [annotation][in] */
+      _In_ UINT NumResources,
+      /* [annotation][size_is][in] */
+      _In_reads_(NumResources) IDXGIResource *const *ppResources,
+      /* [annotation][in] */
+      _In_ DXGI_OFFER_RESOURCE_PRIORITY Priority,
+      /* [annotation][in] */
+      _In_ UINT Flags)
+  {
+    return m_pReal4->OfferResources1(NumResources, ppResources, Priority, Flags);
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE ReclaimResources1(
+      /* [annotation][in] */
+      _In_ UINT NumResources,
+      /* [annotation][size_is][in] */
+      _In_reads_(NumResources) IDXGIResource *const *ppResources,
+      /* [annotation][size_is][out] */
+      _Out_writes_all_(NumResources) DXGI_RECLAIM_RESOURCE_RESULTS *pResults)
+  {
+    return m_pReal4->ReclaimResources1(NumResources, ppResources, pResults);
+  }
 };
 
-class WrappedIDXGIFactory4 : public IDXGIFactory4, public RefCountDXGIObject
+class WrappedIDXGIFactory5 : public IDXGIFactory5, public RefCountDXGIObject
 {
   IDXGIFactory *m_pReal;
   IDXGIFactory1 *m_pReal1;
   IDXGIFactory2 *m_pReal2;
   IDXGIFactory3 *m_pReal3;
   IDXGIFactory4 *m_pReal4;
+  IDXGIFactory5 *m_pReal5;
   unsigned int m_iRefcount;
 
 public:
-  WrappedIDXGIFactory4(IDXGIFactory *real);
-  virtual ~WrappedIDXGIFactory4();
+  WrappedIDXGIFactory5(IDXGIFactory *real);
+  virtual ~WrappedIDXGIFactory5();
 
   IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
@@ -1310,5 +1353,17 @@ public:
       }
     }
     return ret;
+  }
+
+  //////////////////////////////
+  // implement IDXGIFactory5
+
+  virtual HRESULT STDMETHODCALLTYPE
+  CheckFeatureSupport(DXGI_FEATURE Feature,
+                      /* [annotation] */
+                      _Inout_updates_bytes_(FeatureSupportDataSize) void *pFeatureSupportData,
+                      UINT FeatureSupportDataSize)
+  {
+    return m_pReal5->CheckFeatureSupport(Feature, pFeatureSupportData, FeatureSupportDataSize);
   }
 };

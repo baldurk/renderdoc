@@ -320,10 +320,10 @@ private:
     int32_t lastPresentedBuffer;
   };
 
-  map<WrappedIDXGISwapChain3 *, SwapPresentInfo> m_SwapChains;
+  map<WrappedIDXGISwapChain4 *, SwapPresentInfo> m_SwapChains;
   pair<ResourceId, DXGI_FORMAT> m_BackbufferFormat;
 
-  WrappedIDXGISwapChain3 *m_LastSwap;
+  WrappedIDXGISwapChain4 *m_LastSwap;
 
   UINT m_DescriptorIncrements[D3D12_DESCRIPTOR_HEAP_TYPE_NUM_TYPES];
 
@@ -353,7 +353,7 @@ public:
   ResourceId GetResourceID() { return m_ResourceID; }
   Threading::CriticalSection &GetCapTransitionLock() { return m_CapTransitionLock; }
   void ReleaseSwapchainResources(IDXGISwapChain *swap, IUnknown **backbuffers, int numBackbuffers);
-  void FirstFrame(WrappedIDXGISwapChain3 *swap);
+  void FirstFrame(WrappedIDXGISwapChain4 *swap);
   FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const FetchDrawcall *GetDrawcall(uint32_t eventID);
 
@@ -440,12 +440,12 @@ public:
   }
   // Swap Chain
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(IUnknown *, WrapSwapchainBuffer,
-                                       WrappedIDXGISwapChain3 *swap, DXGI_SWAP_CHAIN_DESC *desc,
+                                       WrappedIDXGISwapChain4 *swap, DXGI_SWAP_CHAIN_DESC *desc,
                                        UINT buffer, IUnknown *realSurface);
-  HRESULT Present(WrappedIDXGISwapChain3 *swap, UINT SyncInterval, UINT Flags);
+  HRESULT Present(WrappedIDXGISwapChain4 *swap, UINT SyncInterval, UINT Flags);
 
   void NewSwapchainBuffer(IUnknown *backbuffer) {}
-  void ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap);
+  void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap);
 
   void Map(WrappedID3D12Resource *Resource, UINT Subresource);
   void Unmap(WrappedID3D12Resource *Resource, UINT Subresource, byte *mapPtr,

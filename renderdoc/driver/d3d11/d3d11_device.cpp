@@ -621,7 +621,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     if(SUCCEEDED(hr))
     {
       IDXGIDevice *real = (IDXGIDevice *)(*ppvObject);
-      *ppvObject = (IDXGIDevice *)(new WrappedIDXGIDevice3(real, this));
+      *ppvObject = (IDXGIDevice *)(new WrappedIDXGIDevice4(real, this));
       return S_OK;
     }
     else
@@ -637,7 +637,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     if(SUCCEEDED(hr))
     {
       IDXGIDevice1 *real = (IDXGIDevice1 *)(*ppvObject);
-      *ppvObject = (IDXGIDevice1 *)(new WrappedIDXGIDevice3(real, this));
+      *ppvObject = (IDXGIDevice1 *)(new WrappedIDXGIDevice4(real, this));
       return S_OK;
     }
     else
@@ -653,7 +653,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     if(SUCCEEDED(hr))
     {
       IDXGIDevice2 *real = (IDXGIDevice2 *)(*ppvObject);
-      *ppvObject = (IDXGIDevice2 *)(new WrappedIDXGIDevice3(real, this));
+      *ppvObject = (IDXGIDevice2 *)(new WrappedIDXGIDevice4(real, this));
       return S_OK;
     }
     else
@@ -669,7 +669,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     if(SUCCEEDED(hr))
     {
       IDXGIDevice3 *real = (IDXGIDevice3 *)(*ppvObject);
-      *ppvObject = (IDXGIDevice3 *)(new WrappedIDXGIDevice3(real, this));
+      *ppvObject = (IDXGIDevice3 *)(new WrappedIDXGIDevice4(real, this));
       return S_OK;
     }
     else
@@ -2408,7 +2408,7 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     RDCFATAL("Unexpected replay type");
 }
 
-void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap)
+void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap)
 {
   for(int i = 0; i < swap->GetNumBackbuffers(); i++)
   {
@@ -2444,7 +2444,7 @@ void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain3 *swap
   }
 }
 
-bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
+bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
                                                         DXGI_SWAP_CHAIN_DESC *swapDesc, UINT buffer,
                                                         IUnknown *realSurface)
 {
@@ -2498,7 +2498,7 @@ bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain3 *
   return true;
 }
 
-IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(WrappedIDXGISwapChain3 *swap,
+IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
                                                    DXGI_SWAP_CHAIN_DESC *swapDesc, UINT buffer,
                                                    IUnknown *realSurface)
 {
@@ -2659,7 +2659,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
 
   CaptureFailReason reason;
 
-  WrappedIDXGISwapChain3 *swap = NULL;
+  WrappedIDXGISwapChain4 *swap = NULL;
 
   if(wnd)
   {
@@ -3198,7 +3198,7 @@ void WrappedID3D11Device::UnlockForChunkRemoval()
   }
 }
 
-void WrappedID3D11Device::FirstFrame(WrappedIDXGISwapChain3 *swapChain)
+void WrappedID3D11Device::FirstFrame(WrappedIDXGISwapChain4 *swapChain)
 {
   DXGI_SWAP_CHAIN_DESC swapdesc;
   swapChain->GetDesc(&swapdesc);
@@ -3212,7 +3212,7 @@ void WrappedID3D11Device::FirstFrame(WrappedIDXGISwapChain3 *swapChain)
   }
 }
 
-HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain3 *swap, UINT SyncInterval, UINT Flags)
+HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInterval, UINT Flags)
 {
   if((Flags & DXGI_PRESENT_TEST) != 0)
     return S_OK;

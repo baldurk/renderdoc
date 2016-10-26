@@ -40,19 +40,19 @@ string ToStrHelper<false, IID>::Get(const IID &el)
   return tostrBuf;
 }
 
-WRAPPED_POOL_INST(WrappedIDXGIDevice3);
+WRAPPED_POOL_INST(WrappedIDXGIDevice4);
 
-std::vector<D3DDeviceCallback> WrappedIDXGISwapChain3::m_D3DCallbacks;
+std::vector<D3DDeviceCallback> WrappedIDXGISwapChain4::m_D3DCallbacks;
 
 ID3DDevice *GetD3DDevice(IUnknown *pDevice)
 {
   ID3DDevice *wrapDevice = NULL;
 
-  if(WrappedIDXGIDevice3::IsAlloc(pDevice))
-    wrapDevice = ((WrappedIDXGIDevice3 *)(IDXGIDevice3 *)pDevice)->GetD3DDevice();
+  if(WrappedIDXGIDevice4::IsAlloc(pDevice))
+    wrapDevice = ((WrappedIDXGIDevice4 *)(IDXGIDevice3 *)pDevice)->GetD3DDevice();
 
   if(wrapDevice == NULL)
-    wrapDevice = WrappedIDXGISwapChain3::GetD3DDevice(pDevice);
+    wrapDevice = WrappedIDXGISwapChain4::GetD3DDevice(pDevice);
 
   return wrapDevice;
 }
@@ -85,7 +85,7 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
     // IDXGIFactory1 like a IDXGIFactory should all just work by definition, but there's no way to
     // know now if someone trying to create a IDXGIFactory really means it or not.
     IDXGIFactory *real = (IDXGIFactory *)(*ppvObject);
-    *ppvObject = (IDXGIFactory *)(new WrappedIDXGIFactory4(real));
+    *ppvObject = (IDXGIFactory *)(new WrappedIDXGIFactory5(real));
     return true;
   }
 
@@ -104,7 +104,7 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
   else if(riid == __uuidof(IDXGIFactory1))
   {
     IDXGIFactory1 *real = (IDXGIFactory1 *)(*ppvObject);
-    *ppvObject = (IDXGIFactory1 *)(new WrappedIDXGIFactory4(real));
+    *ppvObject = (IDXGIFactory1 *)(new WrappedIDXGIFactory5(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIAdapter2))
@@ -122,19 +122,25 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
   else if(riid == __uuidof(IDXGIFactory2))
   {
     IDXGIFactory2 *real = (IDXGIFactory2 *)(*ppvObject);
-    *ppvObject = (IDXGIFactory2 *)(new WrappedIDXGIFactory4(real));
+    *ppvObject = (IDXGIFactory2 *)(new WrappedIDXGIFactory5(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIFactory3))
   {
     IDXGIFactory3 *real = (IDXGIFactory3 *)(*ppvObject);
-    *ppvObject = (IDXGIFactory3 *)(new WrappedIDXGIFactory4(real));
+    *ppvObject = (IDXGIFactory3 *)(new WrappedIDXGIFactory5(real));
     return true;
   }
   else if(riid == __uuidof(IDXGIFactory4))
   {
     IDXGIFactory4 *real = (IDXGIFactory4 *)(*ppvObject);
-    *ppvObject = (IDXGIFactory4 *)(new WrappedIDXGIFactory4(real));
+    *ppvObject = (IDXGIFactory4 *)(new WrappedIDXGIFactory5(real));
+    return true;
+  }
+  else if(riid == __uuidof(IDXGIFactory5))
+  {
+    IDXGIFactory5 *real = (IDXGIFactory5 *)(*ppvObject);
+    *ppvObject = (IDXGIFactory5 *)(new WrappedIDXGIFactory5(real));
     return true;
   }
   else
@@ -168,7 +174,7 @@ HRESULT RefCountDXGIObject::WrapQueryInterface(IUnknown *real, REFIID riid, void
   return ret;
 }
 
-WrappedIDXGISwapChain3::WrappedIDXGISwapChain3(IDXGISwapChain *real, HWND wnd, ID3DDevice *device)
+WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain *real, HWND wnd, ID3DDevice *device)
     : RefCountDXGIObject(real), m_pReal(real), m_pDevice(device), m_iRefcount(1), m_Wnd(wnd)
 {
   DXGI_SWAP_CHAIN_DESC desc;
@@ -182,6 +188,8 @@ WrappedIDXGISwapChain3::WrappedIDXGISwapChain3(IDXGISwapChain *real, HWND wnd, I
   real->QueryInterface(__uuidof(IDXGISwapChain2), (void **)&m_pReal2);
   m_pReal3 = NULL;
   real->QueryInterface(__uuidof(IDXGISwapChain3), (void **)&m_pReal3);
+  m_pReal4 = NULL;
+  real->QueryInterface(__uuidof(IDXGISwapChain4), (void **)&m_pReal4);
 
   WrapBuffersAfterResize();
 
@@ -190,7 +198,7 @@ WrappedIDXGISwapChain3::WrappedIDXGISwapChain3(IDXGISwapChain *real, HWND wnd, I
   m_pDevice->FirstFrame(this);
 }
 
-WrappedIDXGISwapChain3::~WrappedIDXGISwapChain3()
+WrappedIDXGISwapChain4::~WrappedIDXGISwapChain4()
 {
   m_pDevice->ReleaseSwapchainResources(this);
 
@@ -199,10 +207,11 @@ WrappedIDXGISwapChain3::~WrappedIDXGISwapChain3()
   SAFE_RELEASE(m_pReal1);
   SAFE_RELEASE(m_pReal2);
   SAFE_RELEASE(m_pReal3);
+  SAFE_RELEASE(m_pReal4);
   SAFE_RELEASE(m_pReal);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain3::QueryInterface(REFIID riid, void **ppvObject)
+HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, void **ppvObject)
 {
   if(riid == __uuidof(IDXGISwapChain))
   {
@@ -258,12 +267,12 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain3::QueryInterface(REFIID riid, vo
   return RefCountDXGIObject::QueryInterface(riid, ppvObject);
 }
 
-void WrappedIDXGISwapChain3::ReleaseBuffersForResize()
+void WrappedIDXGISwapChain4::ReleaseBuffersForResize()
 {
   m_pDevice->ReleaseSwapchainResources(this);
 }
 
-void WrappedIDXGISwapChain3::WrapBuffersAfterResize()
+void WrappedIDXGISwapChain4::WrapBuffersAfterResize()
 {
   DXGI_SWAP_CHAIN_DESC desc;
   m_pReal->GetDesc(&desc);
@@ -287,7 +296,7 @@ void WrappedIDXGISwapChain3::WrapBuffersAfterResize()
   }
 }
 
-HRESULT WrappedIDXGISwapChain3::ResizeBuffers(
+HRESULT WrappedIDXGISwapChain4::ResizeBuffers(
     /* [in] */ UINT BufferCount,
     /* [in] */ UINT Width,
     /* [in] */ UINT Height,
@@ -303,7 +312,7 @@ HRESULT WrappedIDXGISwapChain3::ResizeBuffers(
   return ret;
 }
 
-HRESULT WrappedIDXGISwapChain3::ResizeBuffers1(_In_ UINT BufferCount, _In_ UINT Width,
+HRESULT WrappedIDXGISwapChain4::ResizeBuffers1(_In_ UINT BufferCount, _In_ UINT Width,
                                                _In_ UINT Height, _In_ DXGI_FORMAT Format,
                                                _In_ UINT SwapChainFlags,
                                                _In_reads_(BufferCount) const UINT *pCreationNodeMask,
@@ -320,7 +329,7 @@ HRESULT WrappedIDXGISwapChain3::ResizeBuffers1(_In_ UINT BufferCount, _In_ UINT 
   return ret;
 }
 
-HRESULT WrappedIDXGISwapChain3::SetFullscreenState(
+HRESULT WrappedIDXGISwapChain4::SetFullscreenState(
     /* [in] */ BOOL Fullscreen,
     /* [in] */ IDXGIOutput *pTarget)
 {
@@ -330,14 +339,14 @@ HRESULT WrappedIDXGISwapChain3::SetFullscreenState(
   return S_OK;
 }
 
-HRESULT WrappedIDXGISwapChain3::GetFullscreenState(
+HRESULT WrappedIDXGISwapChain4::GetFullscreenState(
     /* [out] */ BOOL *pFullscreen,
     /* [out] */ IDXGIOutput **ppTarget)
 {
   return m_pReal->GetFullscreenState(pFullscreen, ppTarget);
 }
 
-HRESULT WrappedIDXGISwapChain3::GetBuffer(
+HRESULT WrappedIDXGISwapChain4::GetBuffer(
     /* [in] */ UINT Buffer,
     /* [in] */ REFIID riid,
     /* [out][in] */ void **ppSurface)
@@ -394,7 +403,7 @@ HRESULT WrappedIDXGISwapChain3::GetBuffer(
   return ret;
 }
 
-HRESULT WrappedIDXGISwapChain3::GetDevice(
+HRESULT WrappedIDXGISwapChain4::GetDevice(
     /* [in] */ REFIID riid,
     /* [retval][out] */ void **ppDevice)
 {
@@ -426,7 +435,7 @@ HRESULT WrappedIDXGISwapChain3::GetDevice(
   return ret;
 }
 
-HRESULT WrappedIDXGISwapChain3::Present(
+HRESULT WrappedIDXGISwapChain4::Present(
     /* [in] */ UINT SyncInterval,
     /* [in] */ UINT Flags)
 {
@@ -440,7 +449,7 @@ HRESULT WrappedIDXGISwapChain3::Present(
   return m_pReal->Present(SyncInterval, Flags);
 }
 
-HRESULT WrappedIDXGISwapChain3::Present1(UINT SyncInterval, UINT Flags,
+HRESULT WrappedIDXGISwapChain4::Present1(UINT SyncInterval, UINT Flags,
                                          const DXGI_PRESENT_PARAMETERS *pPresentParameters)
 {
   if(!RenderDoc::Inst().GetCaptureOptions().AllowVSync)
@@ -528,7 +537,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIAdapter3::QueryInterface(REFIID riid, void
   return RefCountDXGIObject::QueryInterface(riid, ppvObject);
 }
 
-WrappedIDXGIDevice3::WrappedIDXGIDevice3(IDXGIDevice *real, ID3DDevice *d3d)
+WrappedIDXGIDevice4::WrappedIDXGIDevice4(IDXGIDevice *real, ID3DDevice *d3d)
     : RefCountDXGIObject(real), m_pReal(real), m_pD3DDevice(d3d)
 {
   m_pD3DDevice->AddRef();
@@ -539,18 +548,21 @@ WrappedIDXGIDevice3::WrappedIDXGIDevice3(IDXGIDevice *real, ID3DDevice *d3d)
   real->QueryInterface(__uuidof(IDXGIDevice2), (void **)&m_pReal2);
   m_pReal3 = NULL;
   real->QueryInterface(__uuidof(IDXGIDevice3), (void **)&m_pReal3);
+  m_pReal4 = NULL;
+  real->QueryInterface(__uuidof(IDXGIDevice4), (void **)&m_pReal4);
 }
 
-WrappedIDXGIDevice3::~WrappedIDXGIDevice3()
+WrappedIDXGIDevice4::~WrappedIDXGIDevice4()
 {
   SAFE_RELEASE(m_pReal1);
   SAFE_RELEASE(m_pReal2);
   SAFE_RELEASE(m_pReal3);
+  SAFE_RELEASE(m_pReal4);
   SAFE_RELEASE(m_pReal);
   SAFE_RELEASE(m_pD3DDevice);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice3::QueryInterface(REFIID riid, void **ppvObject)
+HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice4::QueryInterface(REFIID riid, void **ppvObject)
 {
   if(m_pD3DDevice->IsDeviceUUID(riid))
   {
@@ -603,6 +615,19 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice3::QueryInterface(REFIID riid, void 
       return E_NOINTERFACE;
     }
   }
+  else if(riid == __uuidof(IDXGIDevice4))
+  {
+    if(m_pReal4)
+    {
+      AddRef();
+      *ppvObject = (IDXGIDevice4 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
   else
   {
     string guid = ToStr::Get(riid);
@@ -612,7 +637,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIDevice3::QueryInterface(REFIID riid, void 
   return RefCountDXGIObject::QueryInterface(riid, ppvObject);
 }
 
-WrappedIDXGIFactory4::WrappedIDXGIFactory4(IDXGIFactory *real)
+WrappedIDXGIFactory5::WrappedIDXGIFactory5(IDXGIFactory *real)
     : RefCountDXGIObject(real), m_pReal(real), m_iRefcount(1)
 {
   m_pReal1 = NULL;
@@ -623,18 +648,21 @@ WrappedIDXGIFactory4::WrappedIDXGIFactory4(IDXGIFactory *real)
   real->QueryInterface(__uuidof(IDXGIFactory3), (void **)&m_pReal3);
   m_pReal4 = NULL;
   real->QueryInterface(__uuidof(IDXGIFactory4), (void **)&m_pReal4);
+  m_pReal5 = NULL;
+  real->QueryInterface(__uuidof(IDXGIFactory5), (void **)&m_pReal5);
 }
 
-WrappedIDXGIFactory4::~WrappedIDXGIFactory4()
+WrappedIDXGIFactory5::~WrappedIDXGIFactory5()
 {
   SAFE_RELEASE(m_pReal1);
   SAFE_RELEASE(m_pReal2);
   SAFE_RELEASE(m_pReal3);
   SAFE_RELEASE(m_pReal4);
+  SAFE_RELEASE(m_pReal5);
   SAFE_RELEASE(m_pReal);
 }
 
-HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory4::QueryInterface(REFIID riid, void **ppvObject)
+HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory5::QueryInterface(REFIID riid, void **ppvObject)
 {
   if(riid == __uuidof(IDXGIFactory))
   {
@@ -694,6 +722,19 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory4::QueryInterface(REFIID riid, void
       return E_NOINTERFACE;
     }
   }
+  else if(riid == __uuidof(IDXGIFactory5))
+  {
+    if(m_pReal5)
+    {
+      AddRef();
+      *ppvObject = (IDXGIFactory5 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
   else
   {
     string guid = ToStr::Get(riid);
@@ -703,7 +744,7 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGIFactory4::QueryInterface(REFIID riid, void
   return RefCountDXGIObject::QueryInterface(riid, ppvObject);
 }
 
-HRESULT WrappedIDXGIFactory4::CreateSwapChain(IUnknown *pDevice, DXGI_SWAP_CHAIN_DESC *pDesc,
+HRESULT WrappedIDXGIFactory5::CreateSwapChain(IUnknown *pDevice, DXGI_SWAP_CHAIN_DESC *pDesc,
                                               IDXGISwapChain **ppSwapChain)
 {
   ID3DDevice *wrapDevice = GetD3DDevice(pDevice);
@@ -720,7 +761,7 @@ HRESULT WrappedIDXGIFactory4::CreateSwapChain(IUnknown *pDevice, DXGI_SWAP_CHAIN
     if(SUCCEEDED(ret))
     {
       *ppSwapChain =
-          new WrappedIDXGISwapChain3(*ppSwapChain, pDesc ? pDesc->OutputWindow : NULL, wrapDevice);
+          new WrappedIDXGISwapChain4(*ppSwapChain, pDesc ? pDesc->OutputWindow : NULL, wrapDevice);
     }
 
     return ret;
@@ -731,7 +772,7 @@ HRESULT WrappedIDXGIFactory4::CreateSwapChain(IUnknown *pDevice, DXGI_SWAP_CHAIN
   return m_pReal->CreateSwapChain(pDevice, pDesc, ppSwapChain);
 }
 
-HRESULT WrappedIDXGIFactory4::CreateSwapChainForHwnd(
+HRESULT WrappedIDXGIFactory5::CreateSwapChainForHwnd(
     IUnknown *pDevice, HWND hWnd, const DXGI_SWAP_CHAIN_DESC1 *pDesc,
     const DXGI_SWAP_CHAIN_FULLSCREEN_DESC *pFullscreenDesc, IDXGIOutput *pRestrictToOutput,
     IDXGISwapChain1 **ppSwapChain)
@@ -750,7 +791,7 @@ HRESULT WrappedIDXGIFactory4::CreateSwapChainForHwnd(
 
     if(SUCCEEDED(ret))
     {
-      *ppSwapChain = new WrappedIDXGISwapChain3(*ppSwapChain, hWnd, wrapDevice);
+      *ppSwapChain = new WrappedIDXGISwapChain4(*ppSwapChain, hWnd, wrapDevice);
     }
 
     return ret;
@@ -764,7 +805,7 @@ HRESULT WrappedIDXGIFactory4::CreateSwapChainForHwnd(
                                           ppSwapChain);
 }
 
-HRESULT WrappedIDXGIFactory4::CreateSwapChainForCoreWindow(IUnknown *pDevice, IUnknown *pWindow,
+HRESULT WrappedIDXGIFactory5::CreateSwapChainForCoreWindow(IUnknown *pDevice, IUnknown *pWindow,
                                                            const DXGI_SWAP_CHAIN_DESC1 *pDesc,
                                                            IDXGIOutput *pRestrictToOutput,
                                                            IDXGISwapChain1 **ppSwapChain)
@@ -785,7 +826,7 @@ HRESULT WrappedIDXGIFactory4::CreateSwapChainForCoreWindow(IUnknown *pDevice, IU
     {
       HWND wnd = NULL;
       (*ppSwapChain)->GetHwnd(&wnd);
-      *ppSwapChain = new WrappedIDXGISwapChain3(*ppSwapChain, wnd, wrapDevice);
+      *ppSwapChain = new WrappedIDXGISwapChain4(*ppSwapChain, wnd, wrapDevice);
     }
 
     return ret;
@@ -799,7 +840,7 @@ HRESULT WrappedIDXGIFactory4::CreateSwapChainForCoreWindow(IUnknown *pDevice, IU
                                                 ppSwapChain);
 }
 
-HRESULT WrappedIDXGIFactory4::CreateSwapChainForComposition(IUnknown *pDevice,
+HRESULT WrappedIDXGIFactory5::CreateSwapChainForComposition(IUnknown *pDevice,
                                                             const DXGI_SWAP_CHAIN_DESC1 *pDesc,
                                                             IDXGIOutput *pRestrictToOutput,
                                                             IDXGISwapChain1 **ppSwapChain)
@@ -820,7 +861,7 @@ HRESULT WrappedIDXGIFactory4::CreateSwapChainForComposition(IUnknown *pDevice,
     {
       HWND wnd = NULL;
       (*ppSwapChain)->GetHwnd(&wnd);
-      *ppSwapChain = new WrappedIDXGISwapChain3(*ppSwapChain, wnd, wrapDevice);
+      *ppSwapChain = new WrappedIDXGISwapChain4(*ppSwapChain, wnd, wrapDevice);
     }
 
     return ret;
