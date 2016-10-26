@@ -722,6 +722,13 @@ public:
   void AllocShadow(UINT Subresource, size_t size);
   void FreeShadow();
 
+  virtual uint64_t GetGPUVirtualAddressIfBuffer()
+  {
+    if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+      return m_pReal->GetGPUVirtualAddress();
+    return 0;
+  }
+
   //////////////////////////////
   // implement ID3D12Resource
 

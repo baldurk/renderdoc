@@ -906,7 +906,7 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
   SERIALISE_ELEMENT(ResourceId, Res, ((WrappedID3D12Resource *)*ppvResource)->GetResourceID());
 
   SERIALISE_ELEMENT(uint64_t, gpuAddress,
-                    ((WrappedID3D12Resource *)*ppvResource)->GetGPUVirtualAddress());
+                    ((WrappedID3D12Resource *)*ppvResource)->GetGPUVirtualAddressIfBuffer());
 
   if(m_State == READING)
   {
