@@ -254,15 +254,16 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
       m_Cmd->m_BakedCmdListInfo[CommandList].draw = draw;
 
       {
-        if(m_Cmd->m_CrackedAllocators[type] == NULL)
+        if(m_Cmd->m_CrackedAllocators[Allocator] == NULL)
         {
-          HRESULT hr = m_pDevice->CreateCommandAllocator(
-              type, __uuidof(ID3D12CommandAllocator), (void **)&m_Cmd->m_CrackedAllocators[type]);
+          HRESULT hr =
+              m_pDevice->CreateCommandAllocator(type, __uuidof(ID3D12CommandAllocator),
+                                                (void **)&m_Cmd->m_CrackedAllocators[Allocator]);
           RDCASSERTEQUAL(hr, S_OK);
         }
 
         ID3D12GraphicsCommandList *list = NULL;
-        m_pDevice->CreateCommandList(nodeMask, type, m_Cmd->m_CrackedAllocators[type],
+        m_pDevice->CreateCommandList(nodeMask, type, m_Cmd->m_CrackedAllocators[Allocator],
                                      pInitialState, riid, (void **)&list);
 
         RDCASSERT(m_Cmd->m_BakedCmdListInfo[CommandList].crackedLists.empty());
@@ -271,6 +272,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
 
       m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].type = type;
       m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].nodeMask = nodeMask;
+      m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].allocator = Allocator;
 
       // On list execute we increment all child events/drawcalls by
       // m_RootEventID and insert them into the tree.
@@ -3736,15 +3738,11 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
       D3D12_COMMAND_LIST_TYPE type = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].type;
       UINT nodeMask = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].nodeMask;
 
-      if(m_Cmd->m_CrackedAllocators[type] == NULL)
-      {
-        HRESULT hr = m_pDevice->CreateCommandAllocator(type, __uuidof(ID3D12CommandAllocator),
-                                                       (void **)&m_Cmd->m_CrackedAllocators[type]);
-        RDCASSERTEQUAL(hr, S_OK);
-      }
+      ResourceId allocid = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].allocator;
+      ID3D12CommandAllocator *allocator = m_Cmd->m_CrackedAllocators[allocid];
 
       ID3D12GraphicsCommandList *list = NULL;
-      m_pDevice->CreateCommandList(nodeMask, type, m_Cmd->m_CrackedAllocators[type], NULL,
+      m_pDevice->CreateCommandList(nodeMask, type, allocator, NULL,
                                    __uuidof(ID3D12GraphicsCommandList), (void **)&list);
 
       m_Cmd->m_BakedCmdListInfo[CommandList].crackedLists.push_back(list);

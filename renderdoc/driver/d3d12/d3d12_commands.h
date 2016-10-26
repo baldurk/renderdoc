@@ -183,6 +183,7 @@ struct BakedCmdListInfo
 
   vector<pair<ResourceId, EventUsage> > resourceUsage;
 
+  ResourceId allocator;
   D3D12_COMMAND_LIST_TYPE type;
   UINT nodeMask;
   D3D12RenderState state;
@@ -210,7 +211,7 @@ struct D3D12CommandData
 
   ResourceId m_LastCmdListID;
 
-  ID3D12CommandAllocator *m_CrackedAllocators[4];
+  map<ResourceId, ID3D12CommandAllocator *> m_CrackedAllocators;
 
   vector<ID3D12Resource *> m_IndirectBuffers;
   static const uint64_t m_IndirectSize = 4 * 1024 * 1024;

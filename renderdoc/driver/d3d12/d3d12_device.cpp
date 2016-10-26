@@ -2069,10 +2069,8 @@ void WrappedID3D12Device::ReadLogInitialisation()
       it->second.crackedLists.clear();
     }
 
-    SAFE_RELEASE(cmd.m_CrackedAllocators[D3D12_COMMAND_LIST_TYPE_DIRECT]);
-    SAFE_RELEASE(cmd.m_CrackedAllocators[D3D12_COMMAND_LIST_TYPE_BUNDLE]);
-    SAFE_RELEASE(cmd.m_CrackedAllocators[D3D12_COMMAND_LIST_TYPE_COMPUTE]);
-    SAFE_RELEASE(cmd.m_CrackedAllocators[D3D12_COMMAND_LIST_TYPE_COPY]);
+    for(auto it = cmd.m_CrackedAllocators.begin(); it != cmd.m_CrackedAllocators.end(); it++)
+      SAFE_RELEASE(it->second);
   }
 
 #if !defined(RELEASE)

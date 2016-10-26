@@ -749,8 +749,6 @@ D3D12CommandData::D3D12CommandData()
   m_FirstEventID = 0;
   m_LastEventID = ~0U;
 
-  RDCEraseEl(m_CrackedAllocators);
-
   m_pDevice = NULL;
   m_pSerialiser = NULL;
 
