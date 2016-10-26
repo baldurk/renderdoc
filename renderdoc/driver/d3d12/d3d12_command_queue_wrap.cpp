@@ -356,16 +356,16 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
 void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
     UINT NumCommandLists, ID3D12CommandList *const *ppCommandLists)
 {
-  ID3D12CommandList **unwrapped = new ID3D12CommandList *[NumCommandLists];
+  ID3D12CommandList **unwrapped = m_pDevice->GetTempArray<ID3D12CommandList *>(NumCommandLists);
   for(UINT i = 0; i < NumCommandLists; i++)
     unwrapped[i] = Unwrap(ppCommandLists[i]);
 
   m_pReal->ExecuteCommandLists(NumCommandLists, unwrapped);
 
-  SAFE_DELETE_ARRAY(unwrapped);
-
   if(m_State >= WRITING)
   {
+    SCOPED_LOCK(m_Lock);
+
     bool capframe = false;
     set<ResourceId> refdIDs;
 
@@ -576,6 +576,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Signal(ID3D12Fence *pFence,
 {
   if(m_State == WRITING_CAPFRAME)
   {
+    SCOPED_LOCK(m_Lock);
+
     SCOPED_SERIALISE_CONTEXT(SIGNAL);
     Serialise_Signal(pFence, Value);
 
@@ -605,6 +607,8 @@ HRESULT STDMETHODCALLTYPE WrappedID3D12CommandQueue::Wait(ID3D12Fence *pFence, U
 {
   if(m_State == WRITING_CAPFRAME)
   {
+    SCOPED_LOCK(m_Lock);
+
     SCOPED_SERIALISE_CONTEXT(WAIT);
     Serialise_Wait(pFence, Value);
 

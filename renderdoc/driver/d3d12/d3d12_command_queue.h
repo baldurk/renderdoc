@@ -90,6 +90,9 @@ class WrappedID3D12CommandQueue : public ID3D12CommandQueue,
 
   vector<D3D12ResourceRecord *> m_CmdListRecords;
 
+  // D3D12 guarantees that queues are thread-safe
+  Threading::CriticalSection m_Lock;
+
   // command recording/replay data shared between queues and lists
   D3D12CommandData m_Cmd;
 
