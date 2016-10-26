@@ -552,7 +552,7 @@ class WrappedIDXGISwapChain4 : public IDXGISwapChain4, public RefCountDXGIObject
 
   HWND m_Wnd;
 
-  static const int MAX_NUM_BACKBUFFERS = 4;
+  static const int MAX_NUM_BACKBUFFERS = 8;
 
   IUnknown *m_pBackBuffers[MAX_NUM_BACKBUFFERS];
 
