@@ -205,7 +205,20 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd)
         GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(graphics.rootsig));
 
     for(size_t i = 0; i < graphics.sigelems.size(); i++)
-      graphics.sigelems[i].SetToGraphics(GetResourceManager(), cmd, (UINT)i);
+    {
+      // just don't set tables that aren't in the descriptor heaps, since it's invalid and can crash
+      // and is probably just from stale bindings that aren't going to be used
+      if(graphics.sigelems[i].type == eRootTable ||
+         std::find(heaps.begin(), heaps.end(), graphics.sigelems[i].id) != heaps.end())
+      {
+        graphics.sigelems[i].SetToGraphics(GetResourceManager(), cmd, (UINT)i);
+      }
+      else
+      {
+        RDCDEBUG("Skipping setting possibly stale graphics root table referring to heap %llu",
+                 graphics.sigelems[i].id);
+      }
+    }
   }
 
   if(compute.rootsig != ResourceId())
@@ -214,6 +227,19 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd)
         GetResourceManager()->GetCurrentAs<ID3D12RootSignature>(compute.rootsig));
 
     for(size_t i = 0; i < compute.sigelems.size(); i++)
-      compute.sigelems[i].SetToCompute(GetResourceManager(), cmd, (UINT)i);
+    {
+      // just don't set tables that aren't in the descriptor heaps, since it's invalid and can crash
+      // and is probably just from stale bindings that aren't going to be used
+      if(compute.sigelems[i].type != eRootTable ||
+         std::find(heaps.begin(), heaps.end(), compute.sigelems[i].id) != heaps.end())
+      {
+        compute.sigelems[i].SetToCompute(GetResourceManager(), cmd, (UINT)i);
+      }
+      else
+      {
+        RDCDEBUG("Skipping setting possibly stale compute root table referring to heap %llu",
+                 compute.sigelems[i].id);
+      }
+    }
   }
 }
