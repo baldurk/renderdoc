@@ -621,7 +621,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     if(SUCCEEDED(hr))
     {
       IDXGIDevice *real = (IDXGIDevice *)(*ppvObject);
-      *ppvObject = (IDXGIDevice *)(new WrappedIDXGIDevice(real, this));
+      *ppvObject = (IDXGIDevice *)(new WrappedIDXGIDevice3(real, this));
       return S_OK;
     }
     else
@@ -637,7 +637,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     if(SUCCEEDED(hr))
     {
       IDXGIDevice1 *real = (IDXGIDevice1 *)(*ppvObject);
-      *ppvObject = (IDXGIDevice1 *)(new WrappedIDXGIDevice1(real, this));
+      *ppvObject = (IDXGIDevice1 *)(new WrappedIDXGIDevice3(real, this));
       return S_OK;
     }
     else
@@ -653,7 +653,7 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     if(SUCCEEDED(hr))
     {
       IDXGIDevice2 *real = (IDXGIDevice2 *)(*ppvObject);
-      *ppvObject = (IDXGIDevice2 *)(new WrappedIDXGIDevice2(real, this));
+      *ppvObject = (IDXGIDevice2 *)(new WrappedIDXGIDevice3(real, this));
       return S_OK;
     }
     else
