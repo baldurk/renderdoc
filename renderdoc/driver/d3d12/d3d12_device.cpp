@@ -759,7 +759,7 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(Serialiser *localSerialiser,
 {
   SERIALISE_ELEMENT(ResourceId, res, GetResID(Resource));
   SERIALISE_ELEMENT(UINT, sub, Subresource);
-  SERIALISE_ELEMENT_BUF(byte *, data, mapPtr, range.End - range.Begin);
+  SERIALISE_ELEMENT_BUF(byte *, data, mapPtr + range.Begin, range.End - range.Begin);
   SERIALISE_ELEMENT(uint64_t, begin, (uint64_t)range.Begin);
   SERIALISE_ELEMENT(uint64_t, end, (uint64_t)range.End);
 
