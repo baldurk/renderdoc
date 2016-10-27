@@ -275,7 +275,11 @@ struct CmdListRecordingInfo
   // a list of descriptors that are bound at any point in this command list
   // used to look up all the frame refs per-descriptor and apply them on queue
   // submit with latest binding refs.
-  set<D3D12Descriptor *> boundDescs;
+  // We allow duplicates in here since it's a better tradeoff to let the vector
+  // expand a bit more to contain duplicates and then deal with it during frame
+  // capture, than to constantly be deduplicating during record (e.g. with a
+  // set or sorted vector).
+  vector<D3D12Descriptor *> boundDescs;
 
   // bundles executed
   vector<D3D12ResourceRecord *> bundles;

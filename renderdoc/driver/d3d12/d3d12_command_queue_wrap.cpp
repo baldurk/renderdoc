@@ -446,12 +446,12 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
         for(auto it = record->bakedCommands->cmdInfo->boundDescs.begin();
             it != record->bakedCommands->cmdInfo->boundDescs.end(); ++it)
         {
-          D3D12Descriptor &desc = **it;
+          D3D12Descriptor *desc = *it;
 
           ResourceId id, id2;
           FrameRefType ref = eFrameRef_Read;
 
-          desc.GetRefIDs(id, id2, ref);
+          desc->GetRefIDs(id, id2, ref);
 
           if(id != ResourceId())
           {
