@@ -146,6 +146,12 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
 
   m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandQueue), (void **)&m_WrappedDebug.m_pReal);
 
+#if defined(RELEASE)
+  const bool debugSerialiser = false;
+#else
+  const bool debugSerialiser = true;
+#endif
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     m_pSerialiser = serialiser;
@@ -156,9 +162,9 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
   }
   else
   {
-    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, true);
+    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
 
-    m_pSerialiser->SetDebugText(true);
+    m_pSerialiser->SetDebugText(debugSerialiser);
   }
 
   m_pSerialiser->SetUserData(m_pDevice->GetResourceManager());
@@ -584,15 +590,21 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
   if(m_pReal)
     m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandList), (void **)&m_WrappedDebug.m_pReal);
 
+#if defined(RELEASE)
+  const bool debugSerialiser = false;
+#else
+  const bool debugSerialiser = true;
+#endif
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     m_pSerialiser = serialiser;
   }
   else
   {
-    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, true);
+    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
 
-    m_pSerialiser->SetDebugText(true);
+    m_pSerialiser->SetDebugText(debugSerialiser);
   }
 
   m_pSerialiser->SetUserData(m_pDevice->GetResourceManager());

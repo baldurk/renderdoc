@@ -205,6 +205,12 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_GPUSyncHandle = NULL;
   m_GPUSyncCounter = 0;
 
+#if defined(RELEASE)
+  const bool debugSerialiser = false;
+#else
+  const bool debugSerialiser = true;
+#endif
+
   if(RenderDoc::Inst().IsReplayApp())
   {
     m_State = READING;
@@ -219,9 +225,9 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   else
   {
     m_State = WRITING_IDLE;
-    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, true);
+    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
 
-    m_pSerialiser->SetDebugText(true);
+    m_pSerialiser->SetDebugText(debugSerialiser);
   }
 
   m_DebugManager = NULL;
@@ -1797,7 +1803,7 @@ Serialiser *WrappedID3D12Device::GetThreadSerialiser()
   ser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
   ser->SetUserData(m_ResourceManager);
 
-  ser->SetDebugText(true);
+  ser->SetDebugText(debugSerialiser);
 
   ser->SetChunkNameLookup(&GetChunkName);
 
