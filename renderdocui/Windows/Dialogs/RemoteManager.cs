@@ -179,6 +179,11 @@ namespace renderdocui.Windows.Dialogs
         {
             TreelistView.Node node = o as TreelistView.Node;
 
+            RemoteHost host = node.Tag as RemoteHost;
+
+            if(host == null)
+                return;
+
             Control p = node.OwnerView;
             while (p.Parent != null)
                 p = p.Parent;
@@ -188,8 +193,6 @@ namespace renderdocui.Windows.Dialogs
             string hostname = node["hostname"] as string;
 
             string username = System.Security.Principal.WindowsIdentity.GetCurrent().Name;
-
-            RemoteHost host = node.Tag as RemoteHost;
 
             host.CheckStatus();
 
