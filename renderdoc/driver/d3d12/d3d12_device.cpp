@@ -1454,10 +1454,14 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
 
     for(size_t i = 0; i < cmdListRecords.size(); i++)
     {
+      uint32_t prevSize = (uint32_t)recordlist.size();
       cmdListRecords[i]->Insert(recordlist);
 
+      // prevent complaints in release that prevSize is unused
+      (void)prevSize;
+
       RDCDEBUG("Adding %u chunks to file serialiser from command list %llu",
-               (uint32_t)recordlist.size(), cmdListRecords[i]->GetResourceID());
+               (uint32_t)recordlist.size() - prevSize, cmdListRecords[i]->GetResourceID());
     }
 
     q->GetResourceRecord()->Insert(recordlist);
