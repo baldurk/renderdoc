@@ -448,6 +448,9 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
         {
           D3D12Descriptor &desc = **it;
 
+          ResourceId id, id2;
+          FrameRefType ref = eFrameRef_Read;
+
           switch(desc.GetType())
           {
             case D3D12Descriptor::TypeUndefined:
@@ -455,28 +458,29 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
               // nothing to do - no resource here
               break;
             case D3D12Descriptor::TypeCBV:
-              GetResourceManager()->MarkResourceFrameReferenced(
-                  WrappedID3D12Resource::GetResIDFromAddr(desc.nonsamp.cbv.BufferLocation),
-                  eFrameRef_Read);
+              id = WrappedID3D12Resource::GetResIDFromAddr(desc.nonsamp.cbv.BufferLocation);
               break;
-            case D3D12Descriptor::TypeSRV:
-              GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc.nonsamp.resource),
-                                                                eFrameRef_Read);
-              break;
+            case D3D12Descriptor::TypeSRV: id = GetResID(desc.nonsamp.resource); break;
             case D3D12Descriptor::TypeUAV:
-              GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc.nonsamp.resource),
-                                                                eFrameRef_Write);
-              GetResourceManager()->MarkResourceFrameReferenced(
-                  GetResID(desc.nonsamp.uav.counterResource), eFrameRef_Write);
-              break;
+              id2 = GetResID(desc.nonsamp.uav.counterResource);
+            // deliberate fall-through
             case D3D12Descriptor::TypeRTV:
-              GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc.nonsamp.resource),
-                                                                eFrameRef_Write);
-              break;
             case D3D12Descriptor::TypeDSV:
-              GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc.nonsamp.resource),
-                                                                eFrameRef_Write);
+              ref = eFrameRef_Write;
+              id = GetResID(desc.nonsamp.resource);
               break;
+          }
+
+          if(id != ResourceId())
+          {
+            refdIDs.insert(id);
+            GetResourceManager()->MarkResourceFrameReferenced(id, ref);
+          }
+
+          if(id2 != ResourceId())
+          {
+            refdIDs.insert(id2);
+            GetResourceManager()->MarkResourceFrameReferenced(id2, ref);
           }
         }
 
