@@ -4270,15 +4270,16 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DiscardResource(ID3D12Resource 
 
     if(m_Cmd->ShouldRerecordCmd(CommandList) && m_Cmd->InRerecordRange(CommandList))
     {
-      Unwrap(m_Cmd->RerecordCmdList(CommandList))->DiscardResource(pResource, HasRegion ? &region : NULL);
+      Unwrap(m_Cmd->RerecordCmdList(CommandList))
+          ->DiscardResource(Unwrap(pResource), HasRegion ? &region : NULL);
     }
   }
   else if(m_State == READING)
   {
     pResource = GetResourceManager()->GetLiveAs<ID3D12Resource>(res);
 
-    GetList(CommandList)->DiscardResource(pResource, HasRegion ? &region : NULL);
-    GetCrackedList(CommandList)->DiscardResource(pResource, HasRegion ? &region : NULL);
+    GetList(CommandList)->DiscardResource(Unwrap(pResource), HasRegion ? &region : NULL);
+    GetCrackedList(CommandList)->DiscardResource(Unwrap(pResource), HasRegion ? &region : NULL);
   }
 
   return true;
