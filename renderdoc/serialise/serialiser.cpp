@@ -180,7 +180,7 @@ struct CompressedFileIO
     int32_t compSize = 0;
 
     FileIO::fread(&compSize, sizeof(compSize), 1, m_F);
-    FileIO::fread(m_CompressBuf, 1, compSize, m_F);
+    size_t numRead = FileIO::fread(m_CompressBuf, 1, compSize, m_F);
 
     m_CompressedSize += compSize;
 
@@ -191,7 +191,7 @@ struct CompressedFileIO
 
     if(decompSize < 0)
     {
-      RDCERR("Error decompressing: %i", decompSize);
+      RDCERR("Error decompressing: %i (%i / %i)", decompSize, int(numRead), compSize);
       return;
     }
 
