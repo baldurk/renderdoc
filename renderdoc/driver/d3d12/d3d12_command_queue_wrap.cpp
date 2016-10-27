@@ -404,8 +404,9 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
   if(m_State >= WRITING)
   {
     SCOPED_LOCK(m_Lock);
+    SCOPED_LOCK(m_pDevice->GetCapTransitionLock());
 
-    bool capframe = false;
+    bool capframe = (m_State == WRITING_CAPFRAME);
     set<ResourceId> refdIDs;
 
     for(UINT i = 0; i < NumCommandLists; i++)
@@ -425,22 +426,17 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
       // the submit chunk to the frame record don't have to be protected.
       // Only the decision of whether we're inframe or not, and marking
       // dirty.
+      if(capframe)
       {
-        SCOPED_LOCK(m_pDevice->GetCapTransitionLock());
-        if(m_State == WRITING_CAPFRAME)
-        {
-          for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-              it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-            GetResourceManager()->MarkPendingDirty(*it);
-
-          capframe = true;
-        }
-        else
-        {
-          for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
-              it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
-            GetResourceManager()->MarkDirtyResource(*it);
-        }
+        for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
+            it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
+          GetResourceManager()->MarkPendingDirty(*it);
+      }
+      else
+      {
+        for(auto it = record->bakedCommands->cmdInfo->dirtied.begin();
+            it != record->bakedCommands->cmdInfo->dirtied.end(); ++it)
+          GetResourceManager()->MarkDirtyResource(*it);
       }
 
       if(capframe)
