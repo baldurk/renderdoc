@@ -22,17 +22,13 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+//#extension GL_ARB_compute_shader : require
+
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
-<<<<<<< HEAD
-layout(binding = 0) uniform usampler2DArray srcArray;
+layout(binding = 0) uniform PRECISION usampler2DArray srcArray;
 // binding = 1 used as stencil read in the depth-stencil copy fragment shaders
-layout(binding = 2) writeonly uniform uimage2DMSArray dstMS;
-=======
-layout(binding = 0) uniform mediump usampler2DArray srcArray;
-// binding = 1 used as stencil read in the depth-stencil copy fragment shaders
-layout(binding = 2, rgba32ui ) writeonly uniform mediump uimage2DMSArray dstMS;
->>>>>>> Make the shader codes GLES compatible.
+layout(binding = 1, rgba32ui ) writeonly uniform PRECISION uimage2DMSArray dstMS;
 
 #ifdef VULKAN
 

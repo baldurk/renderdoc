@@ -77,13 +77,21 @@ struct Vec4u
 #define BINDING(b) layout(binding = b, std140)
 #define VERTEX_ID gl_VertexID
 #define INSTANCE_ID gl_InstanceID
-precision mediump float;
 
 #endif
 
 #define INST_NAME(name) name
 
+#ifndef OPENGL_ES
+#define PRECISION
+#else
+#define PRECISION mediump
+precision PRECISION float;
 #endif
+
+#endif
+
+
 
 BINDING(2) uniform HistogramUBOData
 {

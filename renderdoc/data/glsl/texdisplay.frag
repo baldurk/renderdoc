@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015-2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,7 +23,9 @@
  ******************************************************************************/
 
 layout (location = 0) out vec4 color_out;
+#ifdef OPENGL_ES
 layout (location = 0) in vec2 uv;
+#endif
 
 //#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
 
@@ -120,7 +122,7 @@ void main(void)
 		col = SampleTextureFloat4(texType, scr, texdisplay.Slice, texdisplay.MipLevel,
 		                          texdisplay.SampleIdx, texdisplay.TextureResolutionPS);
 	}
-	
+
 	if(texdisplay.RawOutput != 0)
 	{
 		if (uintTex)
@@ -142,7 +144,7 @@ void main(void)
 		else
 			col = vec4(col.rgb * col.a * texdisplay.HDRMul, 1.0);
 	}
-	
+
 	if (uintTex)
 		col = vec4(ucol);
 	else if (sintTex)
@@ -151,12 +153,12 @@ void main(void)
 	vec4 pre_range_col = col;
 
 	col = ((col - texdisplay.RangeMinimum)*texdisplay.InverseRangeSize);
-	
+
 	if(texdisplay.Channels.x < 0.5f) col.x = pre_range_col.x = 0.0f;
 	if(texdisplay.Channels.y < 0.5f) col.y = pre_range_col.y = 0.0f;
 	if(texdisplay.Channels.z < 0.5f) col.z = pre_range_col.z = 0.0f;
 	if(texdisplay.Channels.w < 0.5f) col.w = pre_range_col.w = 1.0f;
-	
+
 	if((texdisplay.OutputDisplayFormat & TEXDISPLAY_NANS) > 0)
 	{
 		if(isnan(pre_range_col.r) || isnan(pre_range_col.g) || isnan(pre_range_col.b) || isnan(pre_range_col.a))
@@ -164,7 +166,7 @@ void main(void)
 		   color_out = vec4(1, 0, 0, 1);
 		   return;
 		}
-		   
+
 		if(isinf(pre_range_col.r) || isinf(pre_range_col.g) || isinf(pre_range_col.b) || isinf(pre_range_col.a))
 		{
 		   color_out = vec4(0, 1, 0, 1);
@@ -176,7 +178,7 @@ void main(void)
 		   color_out = vec4(0, 0, 1, 1);
 		   return;
 		}
-		
+
 		float d = dot(col.xyz, vec3(0.2126, 0.7152, 0.0722));
         col = vec4(d, d, d, 1);
 	}
@@ -212,7 +214,7 @@ void main(void)
             }
 		}
 	}
-	
+
 	if((texdisplay.OutputDisplayFormat & TEXDISPLAY_GAMMA_CURVE) > 0)
 	{
 		col.rgb = vec3(ConvertSRGBToLinear(col.r), ConvertSRGBToLinear(col.g), ConvertSRGBToLinear(col.b));

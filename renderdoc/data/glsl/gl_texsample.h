@@ -47,14 +47,20 @@ vec3 CalcCubeCoord(vec2 uv, int face)
 
 // these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
 
-//layout(binding = 1) uniform usampler1D texUInt1D;
+#ifndef OPENGL_ES
+layout(binding = 1) uniform usampler1D texUInt1D;
+#endif
 layout(binding = 2) uniform lowp usampler2D texUInt2D;
 layout(binding = 3) uniform lowp usampler3D texUInt3D;
 // cube = 4
-//layout(binding = 5) uniform usampler1DArray texUInt1DArray;
+#ifndef OPENGL_ES
+layout(binding = 5) uniform usampler1DArray texUInt1DArray;
+#endif
 layout(binding = 6) uniform lowp usampler2DArray texUInt2DArray;
 // cube array = 7
-//layout(binding = 8) uniform usampler2DRect texUInt2DRect;
+#ifndef OPENGL_ES
+layout(binding = 8) uniform usampler2DRect texUInt2DRect;
+#endif
 layout(binding = 9) uniform lowp usamplerBuffer texUIntBuffer;
 layout(binding = 10) uniform lowp usampler2DMS texUInt2DMS;
 
@@ -66,10 +72,27 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
 uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
   uvec4 col;
+#ifndef OPENGL_ES
+  if(type == RESTYPE_TEX1D)
+  {
+    col = texelFetch(texUInt1D, int(pos.x * texRes.x), mipLevel);
+  }
+  else if(type == RESTYPE_TEX1DARRAY)
+  {
+    col = texelFetch(texUInt1DArray, ivec2(pos.x * texRes.x, slice), mipLevel);
+  }
+  else
+#endif
   if(type == RESTYPE_TEX2D)
   {
     col = texelFetch(texUInt2D, ivec2(pos * texRes.xy), mipLevel);
   }
+#ifndef OPENGL_ES
+  else if(type == RESTYPE_TEXRECT)
+  {
+    col = texelFetch(texUInt2DRect, ivec2(pos * texRes.xy));
+  }
+#endif
   else if(type == RESTYPE_TEXBUFFER)
   {
     col = texelFetch(texUIntBuffer, int(pos.x * texRes.x));
@@ -85,7 +108,7 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   {
     col = texelFetch(texUInt2DArray, ivec3(pos * texRes.xy, slice), mipLevel);
   }
-  else    // if (type == RESTYPE_TEX3D)
+  else if (type == RESTYPE_TEX3D)
   {
     col = texelFetch(texUInt3D, ivec3(pos * texRes.xy, slice), mipLevel);
   }
@@ -102,14 +125,20 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 
 // these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
 
-//layout(binding = 1) uniform isampler1D texSInt1D;
+#ifndef OPENGL_ES
+layout(binding = 1) uniform isampler1D texSInt1D;
+#endif
 layout(binding = 2) uniform lowp isampler2D texSInt2D;
 layout(binding = 3) uniform lowp isampler3D texSInt3D;
 // cube = 4
-//layout(binding = 5) uniform isampler1DArray texSInt1DArray;
+#ifndef OPENGL_ES
+layout(binding = 5) uniform isampler1DArray texSInt1DArray;
+#endif
 layout(binding = 6) uniform lowp isampler2DArray texSInt2DArray;
 // cube array = 7
-//layout(binding = 8) uniform isampler2DRect texSInt2DRect;
+#ifndef OPENGL_ES
+layout(binding = 8) uniform isampler2DRect texSInt2DRect;
+#endif
 layout(binding = 9) uniform lowp isamplerBuffer texSIntBuffer;
 layout(binding = 10) uniform lowp isampler2DMS texSInt2DMS;
 
@@ -126,10 +155,27 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
   ivec4 col;
+#ifndef OPENGL_ES
+  if(type == RESTYPE_TEX1D)
+  {
+    col = texelFetch(texSInt1D, int(pos.x * texRes.x), mipLevel);
+  }
+  else if(type == RESTYPE_TEX1DARRAY)
+  {
+    col = texelFetch(texSInt1DArray, ivec2(pos.x * texRes.x, slice), mipLevel);
+  }
+  else
+#endif
   if(type == RESTYPE_TEX2D)
   {
     col = texelFetch(texSInt2D, ivec2(pos * texRes.xy), mipLevel);
   }
+#ifndef OPENGL_ES
+  else if(type == RESTYPE_TEXRECT)
+  {
+    col = texelFetch(texSInt2DRect, ivec2(pos * texRes.xy));
+  }
+#endif
   else if(type == RESTYPE_TEXBUFFER)
   {
     col = texelFetch(texSIntBuffer, int(pos.x * texRes.x));
@@ -145,7 +191,7 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   {
     col = texelFetch(texSInt2DArray, ivec3(pos * texRes.xy, slice), mipLevel);
   }
-  else    // if (type == RESTYPE_TEX3D)
+  else if (type == RESTYPE_TEX3D)
   {
     col = texelFetch(texSInt3D, ivec3(pos * texRes.xy, slice), mipLevel);
   }
@@ -157,26 +203,47 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 
 // these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
 
-//layout(binding = 1) uniform sampler1D tex1D;
+#ifndef OPENGL_ES
+layout(binding = 1) uniform sampler1D tex1D;
+#endif
 layout(binding = 2) uniform lowp sampler2D tex2D;
 layout(binding = 3) uniform lowp sampler3D tex3D;
 layout(binding = 4) uniform lowp samplerCube texCube;
-//layout(binding = 5) uniform sampler1DArray tex1DArray;
+#ifndef OPENGL_ES
+layout(binding = 5) uniform sampler1DArray tex1DArray;
+#endif
 layout(binding = 6) uniform lowp sampler2DArray tex2DArray;
 layout(binding = 7) uniform lowp samplerCubeArray texCubeArray;
-//layout(binding = 8) uniform sampler2DRect tex2DRect;
+#ifndef OPENGL_ES
+layout(binding = 8) uniform sampler2DRect tex2DRect;
+#endif
 layout(binding = 9) uniform lowp samplerBuffer texBuffer;
 layout(binding = 10) uniform lowp sampler2DMS tex2DMS;
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
   vec4 col;
+#ifndef OPENGL_ES
+  if(type == RESTYPE_TEX1D)
+  {
+    col = textureLod(tex1D, pos.x, float(mipLevel));
+  }
+  else if(type == RESTYPE_TEX1DARRAY)
+  {
+    col = textureLod(tex1DArray, vec2(pos.x, slice), float(mipLevel));
+  }
+  else
+#endif
   if(type == RESTYPE_TEX2D)
   {
-    ivec2 size = textureSize(tex2D, mipLevel);
-
-    col = textureLod(tex2D, pos / vec2(size), float(mipLevel));
+    col = textureLod(tex2D, pos, float(mipLevel));
   }
+#ifndef OPENGL_ES
+  else if(type == RESTYPE_TEXRECT)
+  {
+    col = texelFetch(tex2DRect, ivec2(pos * texRes.xy));
+  }
+#endif
   else if(type == RESTYPE_TEXBUFFER)
   {
     col = texelFetch(texBuffer, int(pos.x * texRes.x));
@@ -252,7 +319,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
 
     col = textureLod(texCube, cubeCoord, float(mipLevel));
   }
-  else    // type == RESTYPE_TEXCUBEARRAY
+  else if(type == RESTYPE_TEXCUBEARRAY)
   {
     vec3 cubeCoord = CalcCubeCoord(pos, int(slice) % 6);
     vec4 arrayCoord = vec4(cubeCoord, int(slice) / 6);
