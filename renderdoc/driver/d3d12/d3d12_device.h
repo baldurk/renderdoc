@@ -318,6 +318,8 @@ private:
   {
     D3D12_CPU_DESCRIPTOR_HANDLE rtvs[8];
 
+    ID3D12CommandQueue *queue;
+
     int32_t lastPresentedBuffer;
   };
 
@@ -407,11 +409,11 @@ public:
   } m_InternalCmds;
 
   ID3D12GraphicsCommandList *GetNewList();
-  void ExecuteList(ID3D12GraphicsCommandList *list);
-  void ExecuteLists();
-  void FlushLists(bool forceSync = false);
+  void ExecuteList(ID3D12GraphicsCommandList *list, ID3D12CommandQueue *queue = NULL);
+  void ExecuteLists(ID3D12CommandQueue *queue = NULL);
+  void FlushLists(bool forceSync = false, ID3D12CommandQueue *queue = NULL);
 
-  void GPUSync();
+  void GPUSync(ID3D12CommandQueue *queue = NULL, ID3D12Fence *fence = NULL);
 
   void StartFrameCapture(void *dev, void *wnd);
   bool EndFrameCapture(void *dev, void *wnd);

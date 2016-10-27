@@ -327,11 +327,7 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   for(size_t i = 0; i < m_QueueFences.size(); i++)
   {
-    m_GPUSyncCounter++;
-
-    m_Queues[i]->Signal(m_QueueFences[i], m_GPUSyncCounter);
-    m_QueueFences[i]->SetEventOnCompletion(m_GPUSyncCounter, m_GPUSyncHandle);
-    WaitForSingleObject(m_GPUSyncHandle, 10000);
+    GPUSync(m_Queues[i], m_QueueFences[i]);
 
     SAFE_RELEASE(m_QueueFences[i]);
   }
@@ -696,6 +692,10 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
 
     m_SwapChains[swap].rtvs[buffer] = rtv;
 
+    ID3DDevice *swapQ = swap->GetD3DDevice();
+    RDCASSERT(WrappedID3D12CommandQueue::IsAlloc(swapQ));
+    m_SwapChains[swap].queue = (WrappedID3D12CommandQueue *)swapQ;
+
     // start at -1 so that we know we've never presented before
     m_SwapChains[swap].lastPresentedBuffer = -1;
   }
@@ -968,8 +968,8 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
 
       list->Close();
 
-      ExecuteLists();
-      FlushLists();
+      ExecuteLists(swapInfo.queue);
+      FlushLists(false, swapInfo.queue);
     }
   }
 
@@ -1822,12 +1822,18 @@ void WrappedID3D12Device::DestroyInternalResources()
   CloseHandle(m_GPUSyncHandle);
 }
 
-void WrappedID3D12Device::GPUSync()
+void WrappedID3D12Device::GPUSync(ID3D12CommandQueue *queue, ID3D12Fence *fence)
 {
   m_GPUSyncCounter++;
 
-  HRESULT hr = m_Queue->Signal(m_GPUSyncFence, m_GPUSyncCounter);
-  m_GPUSyncFence->SetEventOnCompletion(m_GPUSyncCounter, m_GPUSyncHandle);
+  if(queue == NULL)
+    queue = GetQueue();
+
+  if(fence == NULL)
+    fence = m_GPUSyncFence;
+
+  HRESULT hr = queue->Signal(fence, m_GPUSyncCounter);
+  fence->SetEventOnCompletion(m_GPUSyncCounter, m_GPUSyncHandle);
   WaitForSingleObject(m_GPUSyncHandle, 10000);
 
   RDCASSERTEQUAL(hr, S_OK);
@@ -1867,10 +1873,13 @@ ID3D12GraphicsCommandList *WrappedID3D12Device::GetNewList()
   return ret;
 }
 
-void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandList *list)
+void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandList *list, ID3D12CommandQueue *queue)
 {
+  if(queue == NULL)
+    queue = GetQueue();
+
   ID3D12CommandList *l = list;
-  GetQueue()->ExecuteCommandLists(1, &l);
+  queue->ExecuteCommandLists(1, &l);
 
   for(auto it = m_InternalCmds.pendingcmds.begin(); it != m_InternalCmds.pendingcmds.end(); ++it)
   {
@@ -1884,7 +1893,7 @@ void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandList *list)
   m_InternalCmds.submittedcmds.push_back(list);
 }
 
-void WrappedID3D12Device::ExecuteLists()
+void WrappedID3D12Device::ExecuteLists(ID3D12CommandQueue *queue)
 {
   // nothing to do
   if(m_InternalCmds.pendingcmds.empty())
@@ -1895,7 +1904,10 @@ void WrappedID3D12Device::ExecuteLists()
   for(size_t i = 0; i < cmds.size(); i++)
     cmds[i] = m_InternalCmds.pendingcmds[i];
 
-  GetQueue()->ExecuteCommandLists((UINT)cmds.size(), &cmds[0]);
+  if(queue == NULL)
+    queue = GetQueue();
+
+  queue->ExecuteCommandLists((UINT)cmds.size(), &cmds[0]);
 
   m_InternalCmds.submittedcmds.insert(m_InternalCmds.submittedcmds.end(),
                                       m_InternalCmds.pendingcmds.begin(),
@@ -1903,11 +1915,11 @@ void WrappedID3D12Device::ExecuteLists()
   m_InternalCmds.pendingcmds.clear();
 }
 
-void WrappedID3D12Device::FlushLists(bool forceSync)
+void WrappedID3D12Device::FlushLists(bool forceSync, ID3D12CommandQueue *queue)
 {
   if(!m_InternalCmds.submittedcmds.empty() || forceSync)
   {
-    GPUSync();
+    GPUSync(queue);
 
     if(!m_InternalCmds.submittedcmds.empty())
       m_InternalCmds.freecmds.insert(m_InternalCmds.freecmds.end(),

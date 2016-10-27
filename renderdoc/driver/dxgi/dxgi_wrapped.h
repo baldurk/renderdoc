@@ -580,6 +580,7 @@ public:
     return NULL;
   }
 
+  ID3DDevice *GetD3DDevice() { return m_pDevice; }
   int GetNumBackbuffers() { return MAX_NUM_BACKBUFFERS; }
   IUnknown **GetBackbuffers() { return m_pBackBuffers; }
   IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
