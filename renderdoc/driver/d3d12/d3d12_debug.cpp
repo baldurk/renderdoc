@@ -89,6 +89,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   m_ResourceManager = wrapper->GetResourceManager();
 
   m_OutputWindowID = 1;
+  m_DSVID = 0;
 
   m_WrappedDevice = wrapper;
   m_WrappedDevice->InternalRef();
@@ -1084,7 +1085,7 @@ uint64_t D3D12DebugManager::MakeOutputWindow(WindowingSystem system, void *data,
                   m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
 
   outw.dsv = dsvHeap->GetCPUDescriptorHandleForHeapStart();
-  outw.dsv.ptr += SIZE_T(m_OutputWindowID) *
+  outw.dsv.ptr += SIZE_T(m_DSVID) *
                   m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
 
   outw.col = NULL;
@@ -1093,7 +1094,10 @@ uint64_t D3D12DebugManager::MakeOutputWindow(WindowingSystem system, void *data,
 
   outw.depth = NULL;
   if(depth)
+  {
     outw.MakeDSV();
+    m_DSVID++;
+  }
 
   uint64_t id = m_OutputWindowID++;
   m_OutputWindows[id] = outw;

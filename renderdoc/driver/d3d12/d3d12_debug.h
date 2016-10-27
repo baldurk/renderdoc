@@ -217,6 +217,7 @@ private:
   int m_width, m_height;
 
   uint64_t m_OutputWindowID;
+  uint64_t m_DSVID;
   uint64_t m_CurrentOutputWindow;
   map<uint64_t, OutputWindow> m_OutputWindows;
 
