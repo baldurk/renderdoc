@@ -28,7 +28,7 @@
 #include "d3d12_command_queue.h"
 
 GPUAddressRangeTracker WrappedID3D12Resource::m_Addresses;
-std::map<ResourceId, WrappedID3D12Resource *> WrappedID3D12Resource::m_List;
+std::map<ResourceId, WrappedID3D12Resource *> *WrappedID3D12Resource::m_List = NULL;
 std::map<WrappedID3D12PipelineState::DXBCKey, WrappedID3D12PipelineState::ShaderEntry *>
     WrappedID3D12PipelineState::m_Shaders;
 

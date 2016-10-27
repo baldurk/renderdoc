@@ -78,7 +78,8 @@ vector<ResourceId> D3D12Replay::GetBuffers()
 {
   vector<ResourceId> ret;
 
-  for(auto it = WrappedID3D12Resource::m_List.begin(); it != WrappedID3D12Resource::m_List.end(); it++)
+  for(auto it = WrappedID3D12Resource::GetList().begin();
+      it != WrappedID3D12Resource::GetList().end(); it++)
     if(it->second->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
       ret.push_back(it->first);
 
@@ -89,7 +90,8 @@ vector<ResourceId> D3D12Replay::GetTextures()
 {
   vector<ResourceId> ret;
 
-  for(auto it = WrappedID3D12Resource::m_List.begin(); it != WrappedID3D12Resource::m_List.end(); it++)
+  for(auto it = WrappedID3D12Resource::GetList().begin();
+      it != WrappedID3D12Resource::GetList().end(); it++)
   {
     if(it->second->GetDesc().Dimension != D3D12_RESOURCE_DIMENSION_BUFFER &&
        m_pDevice->GetResourceManager()->GetOriginalID(it->first) != it->first)
@@ -104,9 +106,9 @@ FetchBuffer D3D12Replay::GetBuffer(ResourceId id)
   FetchBuffer ret;
   ret.ID = m_pDevice->GetResourceManager()->GetOriginalID(id);
 
-  auto it = WrappedID3D12Resource::m_List.find(id);
+  auto it = WrappedID3D12Resource::GetList().find(id);
 
-  if(it == WrappedID3D12Resource::m_List.end())
+  if(it == WrappedID3D12Resource::GetList().end())
     return ret;
 
   D3D12_RESOURCE_DESC desc = it->second->GetDesc();
@@ -153,9 +155,9 @@ FetchTexture D3D12Replay::GetTexture(ResourceId id)
   FetchTexture ret;
   ret.ID = m_pDevice->GetResourceManager()->GetOriginalID(id);
 
-  auto it = WrappedID3D12Resource::m_List.find(id);
+  auto it = WrappedID3D12Resource::GetList().find(id);
 
-  if(it == WrappedID3D12Resource::m_List.end())
+  if(it == WrappedID3D12Resource::GetList().end())
     return ret;
 
   D3D12_RESOURCE_DESC desc = it->second->GetDesc();

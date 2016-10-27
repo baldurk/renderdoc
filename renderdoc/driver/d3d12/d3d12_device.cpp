@@ -176,6 +176,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
     m_DescriptorIncrements[i] =
         realDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE(i));
 
+  WrappedID3D12Resource::m_List = NULL;
+
   // refcounters implicitly construct with one reference, but we don't start with any soft
   // references.
   m_SoftRefCounter.Release();
@@ -207,6 +209,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   {
     m_State = READING;
     m_pSerialiser = NULL;
+
+    WrappedID3D12Resource::m_List = new std::map<ResourceId, WrappedID3D12Resource *>();
 
     m_FrameCaptureRecord = NULL;
 
@@ -324,6 +328,8 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
 WrappedID3D12Device::~WrappedID3D12Device()
 {
   RenderDoc::Inst().RemoveDeviceFrameCapturer((ID3D12Device *)this);
+
+  SAFE_DELETE(WrappedID3D12Resource::m_List);
 
   for(size_t i = 0; i < m_QueueFences.size(); i++)
   {

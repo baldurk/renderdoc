@@ -660,8 +660,9 @@ class WrappedID3D12Resource : public WrappedDeviceChild12<ID3D12Resource>
 public:
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource);
 
-  static std::map<ResourceId, WrappedID3D12Resource *> m_List;
+  static std::map<ResourceId, WrappedID3D12Resource *> *m_List;
 
+  static std::map<ResourceId, WrappedID3D12Resource *> &GetList() { return *m_List; }
   static void RefBuffers(D3D12ResourceManager *rm);
 
   static void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
@@ -688,7 +689,9 @@ public:
   WrappedID3D12Resource(ID3D12Resource *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
-    m_List[GetResourceID()] = this;
+    if(m_List)
+      (*m_List)[GetResourceID()] = this;
+
     SetResident(true);
 
     // assuming only valid for buffers
@@ -706,7 +709,8 @@ public:
   }
   virtual ~WrappedID3D12Resource()
   {
-    m_List.erase(GetResourceID());
+    if(m_List)
+      (*m_List).erase(GetResourceID());
 
     // assuming only valid for buffers
     if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)

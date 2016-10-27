@@ -1825,9 +1825,9 @@ void D3D12DebugManager::BuildShader(string source, string entry, const uint32_t 
 void D3D12DebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_t length,
                                       vector<byte> &retData)
 {
-  auto it = WrappedID3D12Resource::m_List.find(buff);
+  auto it = WrappedID3D12Resource::GetList().find(buff);
 
-  if(it == WrappedID3D12Resource::m_List.end())
+  if(it == WrappedID3D12Resource::GetList().end())
   {
     RDCERR("Getting buffer data for unknown buffer %llu!", buff);
     return;
@@ -2241,7 +2241,7 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
 
   pixelData.FlipY = cfg.FlipY ? 1 : 0;
 
-  ID3D12Resource *resource = WrappedID3D12Resource::m_List[cfg.texid];
+  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[cfg.texid];
   D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
 
   pixelData.SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, resourceDesc.SampleDesc.Count - 1);
