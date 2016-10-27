@@ -1579,6 +1579,22 @@ void WrappedID3D12Device::CopyDescriptors(
     {
       D3D12Descriptor *desc = GetWrapped(pSrcDescriptorRangeStarts[i]);
       GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc->samp.heap), eFrameRef_Read);
+
+      // make sure we reference the resources in the source descriptors too
+      const UINT srcSize = pSrcDescriptorRangeSizes ? pSrcDescriptorRangeSizes[i] : 1;
+      for(UINT d = 0; d < srcSize; d++)
+      {
+        ResourceId id, id2;
+        FrameRefType ref = eFrameRef_Read;
+
+        desc[d].GetRefIDs(id, id2, ref);
+
+        if(id != ResourceId())
+          GetResourceManager()->MarkResourceFrameReferenced(id, ref);
+
+        if(id2 != ResourceId())
+          GetResourceManager()->MarkResourceFrameReferenced(id2, ref);
+      }
     }
 
     for(UINT i = 0; i < NumDestDescriptorRanges; i++)
@@ -1627,6 +1643,21 @@ void WrappedID3D12Device::CopyDescriptorsSimple(UINT NumDescriptors,
     {
       D3D12Descriptor *desc = GetWrapped(SrcDescriptorRangeStart);
       GetResourceManager()->MarkResourceFrameReferenced(GetResID(desc->samp.heap), eFrameRef_Read);
+
+      // make sure we reference the resources in the source descriptors too
+      for(UINT d = 0; d < NumDescriptors; d++)
+      {
+        ResourceId id, id2;
+        FrameRefType ref = eFrameRef_Read;
+
+        desc[d].GetRefIDs(id, id2, ref);
+
+        if(id != ResourceId())
+          GetResourceManager()->MarkResourceFrameReferenced(id, ref);
+
+        if(id2 != ResourceId())
+          GetResourceManager()->MarkResourceFrameReferenced(id2, ref);
+      }
     }
 
     {

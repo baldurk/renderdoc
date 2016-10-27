@@ -256,6 +256,33 @@ void D3D12Descriptor::CopyFrom(const D3D12Descriptor &src)
   samp.idx = index;
 }
 
+void D3D12Descriptor::GetRefIDs(ResourceId &id, ResourceId &id2, FrameRefType &ref)
+{
+  id = ResourceId();
+  id2 = ResourceId();
+  ref = eFrameRef_Read;
+
+  switch(GetType())
+  {
+    case D3D12Descriptor::TypeUndefined:
+    case D3D12Descriptor::TypeSampler:
+      // nothing to do - no resource here
+      break;
+    case D3D12Descriptor::TypeCBV:
+      id = WrappedID3D12Resource::GetResIDFromAddr(nonsamp.cbv.BufferLocation);
+      break;
+    case D3D12Descriptor::TypeSRV: id = GetResID(nonsamp.resource); break;
+    case D3D12Descriptor::TypeUAV:
+      id2 = GetResID(nonsamp.uav.counterResource);
+    // deliberate fall-through
+    case D3D12Descriptor::TypeRTV:
+    case D3D12Descriptor::TypeDSV:
+      ref = eFrameRef_Write;
+      id = GetResID(nonsamp.resource);
+      break;
+  }
+}
+
 D3D12_CPU_DESCRIPTOR_HANDLE UnwrapCPU(D3D12Descriptor *handle)
 {
   D3D12_CPU_DESCRIPTOR_HANDLE ret = {};

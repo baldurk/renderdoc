@@ -451,25 +451,7 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
           ResourceId id, id2;
           FrameRefType ref = eFrameRef_Read;
 
-          switch(desc.GetType())
-          {
-            case D3D12Descriptor::TypeUndefined:
-            case D3D12Descriptor::TypeSampler:
-              // nothing to do - no resource here
-              break;
-            case D3D12Descriptor::TypeCBV:
-              id = WrappedID3D12Resource::GetResIDFromAddr(desc.nonsamp.cbv.BufferLocation);
-              break;
-            case D3D12Descriptor::TypeSRV: id = GetResID(desc.nonsamp.resource); break;
-            case D3D12Descriptor::TypeUAV:
-              id2 = GetResID(desc.nonsamp.uav.counterResource);
-            // deliberate fall-through
-            case D3D12Descriptor::TypeRTV:
-            case D3D12Descriptor::TypeDSV:
-              ref = eFrameRef_Write;
-              id = GetResID(desc.nonsamp.resource);
-              break;
-          }
+          desc.GetRefIDs(id, id2, ref);
 
           if(id != ResourceId())
           {

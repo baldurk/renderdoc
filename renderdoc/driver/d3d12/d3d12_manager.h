@@ -166,6 +166,7 @@ struct D3D12Descriptor
   void Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12Device *dev,
               D3D12_CPU_DESCRIPTOR_HANDLE handle);
   void CopyFrom(const D3D12Descriptor &src);
+  void GetRefIDs(ResourceId &id, ResourceId &id2, FrameRefType &ref);
 
   union
   {
