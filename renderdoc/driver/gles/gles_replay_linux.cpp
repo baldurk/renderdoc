@@ -3,6 +3,8 @@
  *
  * Copyright (c) 2015-2016 Baldur Karlsson
  * Copyright (c) 2014 Crytek
+ * Copyright (c) 2016 University of Szeged
+ * Copyright (c) 2016 Samsung Electronics Co., Ltd.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -261,8 +263,8 @@ void GLESReplay::DestroyOutputWindow(uint64_t id)
 
     REAL(eglMakeCurrent)(outw.eglDisplay, 0, 0, NULL);
     REAL(eglDestroySurface)(outw.eglDisplay, outw.surface);
-    
-    m_OutputWindows.erase(it); 
+
+    m_OutputWindows.erase(it);
 }
 
 void GLESReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
@@ -301,9 +303,9 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
         if(status != eReplayCreate_Success)
             return status;
     }
-    
+
     GLESReplay::PreContextInitCounters();
-    
+
     Display * display = XOpenDisplay(NULL);
     if (display == NULL)
         return eReplayCreate_InternalError;
@@ -329,7 +331,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
     EGL_RETURN_DEBUG(eglCreatePbufferSurface);
     if (pbuffer == 0)
         return eReplayCreate_APIInitFailed;
-    
+
     static const EGLint ctx_attribs[] = {
         EGL_CONTEXT_CLIENT_VERSION, 3,
         EGL_CONTEXT_FLAGS_KHR, EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR,
@@ -341,7 +343,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
     if (ctx == 0)
         return eReplayCreate_APIInitFailed;
 
-    
+
     EGLBoolean res = REAL(eglMakeCurrent)(egl_display, pbuffer, pbuffer, ctx);
     EGL_RETURN_DEBUG(eglMakeCurrent);
     if(!res)
@@ -354,15 +356,15 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
     WrappedGLES *gles = new WrappedGLES(logfile, GetRealGLFunctions());
     gles->Initialise(initParams);
     GLESReplay *replay = gles->GetReplay();
-    
+
     replay->SetProxy(logfile == NULL);
-    
+
     GLESWindowingData data;
     data.eglDisplay = egl_display;
     data.ctx = ctx;
     data.surface = pbuffer;
-    replay->SetReplayData(data);    
-    
+    replay->SetReplayData(data);
+
     *driver = replay;
     return eReplayCreate_Success;
 }

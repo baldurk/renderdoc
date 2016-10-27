@@ -2,6 +2,8 @@
  * The MIT License (MIT)
  *
  * Copyright (c) 2016 Baldur Karlsson
+ * Copyright (c) 2016 University of Szeged
+ * Copyright (c) 2016 Samsung Electronics Co., Ltd.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
