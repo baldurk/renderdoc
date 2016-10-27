@@ -422,6 +422,8 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
     wcscat_s(paramsAlloc, len, wcmd.c_str());
   }
 
+  RDCLOG("Running process %s", app);
+
   BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, false,
                                  CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT, NULL,
                                  workdir.c_str(), &si, &pi);
