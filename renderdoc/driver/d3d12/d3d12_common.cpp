@@ -517,7 +517,8 @@ void Serialiser::Serialise(const char *name, D3D12Descriptor &el)
   }
 
   // for sampler types, this will be overwritten when serialising the sampler descriptor
-  el.nonsamp.type = type;
+  if(m_Mode < WRITING)
+    el.nonsamp.type = type;
 
   switch(type)
   {
