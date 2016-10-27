@@ -195,6 +195,8 @@ static GLuint CreateSepProgram(WrappedGLES &gl, GLenum type, GLsizei numSources,
     // includepaths param of MakeSeparableShaderProgram should also be removed
     RDCASSERT(paths == NULL);
 
+    dumpShaderCompileStatus(real,shader, numSources, sources);
+
     program = real.glCreateProgram();
     if(program)
     {
@@ -213,6 +215,7 @@ static GLuint CreateSepProgram(WrappedGLES &gl, GLenum type, GLsizei numSources,
         // gl.glDetachShader(program, shader);
       }
     }
+
     real.glDeleteShader(shader);
   }
 

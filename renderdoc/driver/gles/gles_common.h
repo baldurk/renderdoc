@@ -519,3 +519,6 @@ enum GLChunkType
 
   NUM_OPENGL_CHUNKS,
 };
+
+
+void dumpShaderCompileStatus(const GLHookSet& gl, GLuint shader, GLsizei numSources, const char** sources);

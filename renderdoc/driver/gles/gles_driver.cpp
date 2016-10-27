@@ -45,20 +45,6 @@ const int lastChar = 127;
 const int numChars = lastChar - firstChar;
 const float charPixelHeight = 20.0f;
 
-template <typename T>
-void dump_to_file(const string& name, const T& t)
-{
-/*  std::ofstream file;
-  file.open (name);
-  if (file) {*/
-    for (auto& s : t)
-      RDCLOG("%s", s);
-/*
-    file.close();
-  }
-*/
-}
-
 
 stbtt_bakedchar chardata[numChars];
 
@@ -1221,30 +1207,8 @@ void WrappedGLES::ContextData::CreateDebugData(const GLHookSet &gl)
       gl.glCompileShader(vert);
       gl.glCompileShader(frag);
 
-      static int counter_v = 0;
-      // dump_to_file("errpr5-" + std::to_string(counter_v), vsc);
-
-      static int counter_f = 0;
-      // dump_to_file("errpr6-" + std::to_string(counter_f), fsc);
-
-      char buffer[1024] = {0};
-      GLint status = 0;
-
-      gl.glGetShaderiv(vert, eGL_COMPILE_STATUS, &status);
-      if(status == 0)
-      {
-        gl.glGetShaderInfoLog(vert, 1024, NULL, buffer);
-        RDCERR("5-%d Shader error: %s", counter_v, buffer);
-        dump_to_file("error-vert-5-", vsc);
-      }
-
-      gl.glGetShaderiv(frag, eGL_COMPILE_STATUS, &status);
-      if(status == 0)
-      {
-        gl.glGetShaderInfoLog(frag, 1024, NULL, buffer);
-        RDCERR("6-%d Shader error: %s", counter_f, buffer);
-        dump_to_file("error-vert-6-", fsc);
-      }
+      dumpShaderCompileStatus(gl, vert, vsc.size(), &vsc[0]);
+      dumpShaderCompileStatus(gl, frag, fsc.size(), &fsc[0]);
 
       Program = gl.glCreateProgram();
 
@@ -1253,6 +1217,8 @@ void WrappedGLES::ContextData::CreateDebugData(const GLHookSet &gl)
 
       gl.glLinkProgram(Program);
 
+      GLint status;
+      GLchar buffer[1025] = { 0 };
       gl.glGetProgramiv(Program, eGL_LINK_STATUS, &status);
       if(status == 0)
       {

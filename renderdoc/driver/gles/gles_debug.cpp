@@ -42,17 +42,52 @@
 #define OPENGL 1
 #include "data/glsl/debuguniforms.h"
 
-template <typename T>
-void dump_to_file(const string& name, const T& t)
+
+#ifdef ANDROID
+#define SHADER_LOG(format, args...)  RDCLOG(format, ##args)
+#else
+#define SHADER_LOG(format, args...)  fprintf(f, format, ##args)
+#endif
+
+void dumpShaderCompileStatus(const GLHookSet& gl, GLuint shader, GLsizei numSources, const char** sources)
 {
-  std::ofstream file;
-  file.open (name);
-  if (file) {
-    for (auto& s : t)
-      file << s << std::endl;
-    file.close();
+  GLint status;
+  gl.glGetShaderiv(shader, eGL_COMPILE_STATUS, &status);
+  if (status != GL_TRUE)
+  {
+#ifndef ANDROID
+    static int fc = 0;
+    FILE* f = fopen(("CompileShader_" + std::to_string(fc++) + ".err").c_str(),"wt");
+    if (f != NULL)
+    {
+#endif
+      GLsizei l;
+      GLchar buffer[5001] = { 0 };
+      gl.glGetShaderInfoLog(shader, 5000, &l, buffer);
+      SHADER_LOG("%s\n", buffer);
+
+      int line = 1;
+      for (int i = 0; i < numSources; ++i)
+      {
+        if (sources[i][0] != 0)
+          SHADER_LOG("\n%03d:", line);
+
+        for (int j = 0; sources[i][j] != 0; ++j)
+        {
+          SHADER_LOG("%c", sources[i][j]);
+          if (sources[i][j] == '\n')
+            SHADER_LOG("%03d:", ++line);
+        }
+#ifndef ANDROID
+      }
+      fclose(f);
+#endif
+    }
   }
 }
+
+#undef SHADER_LOG
+
 
 static void dumpProgramPipelineStatus(WrappedGLES &gl, GLuint pipeline)
 {
@@ -83,19 +118,10 @@ static GLuint CompileShader(WrappedGLES &gl, GLenum type, const vector<string>& 
     srcs.reserve(sources.size());
     for(size_t i = 0; i < sources.size(); i++)
       srcs.push_back(sources[i].c_str());
-#ifndef ANDROID
-    dump_to_file("_shader_" + ShaderName(type) + "-" + std::to_string(type) + "-" + std::to_string(counter), srcs);
-#endif
+
     gl.glShaderSource(shader, (GLsizei)srcs.size(), &srcs[0], NULL);
     gl.glCompileShader(shader);
-
-    gl.glGetShaderiv(shader, eGL_COMPILE_STATUS, &status);
-    if(status == 0)
-    {
-      gl.glGetShaderInfoLog(shader, 1024, NULL, buffer);
-      RDCERR("%d-%d Shader error: %s", type, counter, buffer);
-    }
-
+    dumpShaderCompileStatus(gl.GetHookset(), shader, (GLsizei)srcs.size(), &srcs[0]);
     return shader;
 }
 
@@ -226,7 +252,6 @@ void GLESReplay::InitDebugData()
   vector<string> cs;
 
   GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), "320 es");
-  dump_to_file("_shader_glsl_blit_vert", vs);
   DebugData.texDisplayVSProg = CreateShaderProgram(vs, empty);
 
   for(int i = 0; i < 3; i++)
@@ -237,9 +262,6 @@ void GLESReplay::InitDebugData()
     GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_texdisplay_frag), "320 es");
 
     DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
-#ifndef ANDROID
-    dump_to_file("_shader_glsl_texdisplay_frag_" + std::to_string(i), fs);
-#endif
   }
 
 
@@ -4461,3 +4483,5 @@ void GLESReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondar
     }
   }
 }
+
+
