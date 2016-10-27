@@ -2408,8 +2408,19 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
     RDCFATAL("Unexpected replay type");
 }
 
-void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap)
+void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap, UINT QueueCount,
+                                                    IUnknown *const *ppPresentQueue,
+                                                    IUnknown **unwrappedQueues)
 {
+  RDCASSERT(ppPresentQueue == NULL);
+
+  if(ppPresentQueue)
+  {
+    RDCERR("D3D11 doesn't support present queues - passing through unmodified");
+    for(UINT i = 0; i < QueueCount; i++)
+      unwrappedQueues[i] = ppPresentQueue[i];
+  }
+
   for(int i = 0; i < swap->GetNumBackbuffers(); i++)
   {
     WrappedID3D11Texture2D1 *wrapped11 = (WrappedID3D11Texture2D1 *)swap->GetBackbuffers()[i];

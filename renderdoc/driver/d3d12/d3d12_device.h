@@ -448,7 +448,8 @@ public:
   HRESULT Present(WrappedIDXGISwapChain4 *swap, UINT SyncInterval, UINT Flags);
 
   void NewSwapchainBuffer(IUnknown *backbuffer) {}
-  void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap);
+  void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap, UINT QueueCount,
+                                 IUnknown *const *ppPresentQueue, IUnknown **unwrappedQueues);
 
   void Map(WrappedID3D12Resource *Resource, UINT Subresource);
   void Unmap(WrappedID3D12Resource *Resource, UINT Subresource, byte *mapPtr,

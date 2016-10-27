@@ -542,8 +542,21 @@ void WrappedID3D12Device::ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers
   GetResourceManager()->ApplyBarriers(barriers, m_ResourceStates);
 }
 
-void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap)
+void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap, UINT QueueCount,
+                                                    IUnknown *const *ppPresentQueue,
+                                                    IUnknown **unwrappedQueues)
 {
+  if(ppPresentQueue)
+  {
+    for(UINT i = 0; i < QueueCount; i++)
+    {
+      WrappedID3D12CommandQueue *wrappedQ = (WrappedID3D12CommandQueue *)ppPresentQueue[i];
+      RDCASSERT(WrappedID3D12CommandQueue::IsAlloc(wrappedQ));
+
+      unwrappedQueues[i] = wrappedQ->GetReal();
+    }
+  }
+
   for(int i = 0; i < swap->GetNumBackbuffers(); i++)
   {
     WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)swap->GetBackbuffers()[i];

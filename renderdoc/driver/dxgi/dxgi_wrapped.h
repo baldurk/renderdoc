@@ -170,7 +170,9 @@ struct ID3DDevice
   virtual void FirstFrame(WrappedIDXGISwapChain4 *swapChain) = 0;
 
   virtual void NewSwapchainBuffer(IUnknown *backbuffer) = 0;
-  virtual void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swapChain) = 0;
+  virtual void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swapChain, UINT QueueCount,
+                                         IUnknown *const *ppPresentQueue,
+                                         IUnknown **unwrappedQueues) = 0;
   virtual IUnknown *WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap, DXGI_SWAP_CHAIN_DESC *swapDesc,
                                         UINT buffer, IUnknown *realSurface) = 0;
 
@@ -556,7 +558,8 @@ class WrappedIDXGISwapChain4 : public IDXGISwapChain4, public RefCountDXGIObject
 
   IUnknown *m_pBackBuffers[MAX_NUM_BACKBUFFERS];
 
-  void ReleaseBuffersForResize();
+  void ReleaseBuffersForResize(UINT QueueCount, IUnknown *const *ppPresentQueue,
+                               IUnknown **unwrappedQueues);
   void WrapBuffersAfterResize();
 
 public:

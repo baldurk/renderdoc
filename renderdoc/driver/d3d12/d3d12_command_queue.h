@@ -148,9 +148,10 @@ public:
   {
     m_pDevice->NewSwapchainBuffer(backbuffer);
   }
-  virtual void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swapChain)
+  virtual void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swapChain, UINT QueueCount,
+                                         IUnknown *const *ppPresentQueue, IUnknown **unwrappedQueues)
   {
-    m_pDevice->ReleaseSwapchainResources(swapChain);
+    m_pDevice->ReleaseSwapchainResources(swapChain, QueueCount, ppPresentQueue, unwrappedQueues);
   }
   virtual IUnknown *WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap, DXGI_SWAP_CHAIN_DESC *swapDesc,
                                         UINT buffer, IUnknown *realSurface)

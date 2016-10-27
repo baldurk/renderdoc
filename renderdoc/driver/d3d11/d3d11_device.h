@@ -480,7 +480,8 @@ public:
 
   void NewSwapchainBuffer(IUnknown *backbuffer);
 
-  void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap);
+  void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap, UINT QueueCount,
+                                 IUnknown *const *ppPresentQueue, IUnknown **unwrappedQueues);
 
   void InternalRef() { InterlockedIncrement(&m_InternalRefcount); }
   void InternalRelease() { InterlockedDecrement(&m_InternalRefcount); }

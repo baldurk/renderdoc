@@ -200,7 +200,7 @@ WrappedIDXGISwapChain4::WrappedIDXGISwapChain4(IDXGISwapChain *real, HWND wnd, I
 
 WrappedIDXGISwapChain4::~WrappedIDXGISwapChain4()
 {
-  m_pDevice->ReleaseSwapchainResources(this);
+  m_pDevice->ReleaseSwapchainResources(this, 0, NULL, NULL);
 
   SAFE_RELEASE(m_pDevice);
 
@@ -267,9 +267,10 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, vo
   return RefCountDXGIObject::QueryInterface(riid, ppvObject);
 }
 
-void WrappedIDXGISwapChain4::ReleaseBuffersForResize()
+void WrappedIDXGISwapChain4::ReleaseBuffersForResize(UINT QueueCount, IUnknown *const *ppPresentQueue,
+                                                     IUnknown **unwrappedQueues)
 {
-  m_pDevice->ReleaseSwapchainResources(this);
+  m_pDevice->ReleaseSwapchainResources(this, QueueCount, ppPresentQueue, unwrappedQueues);
 }
 
 void WrappedIDXGISwapChain4::WrapBuffersAfterResize()
@@ -303,7 +304,7 @@ HRESULT WrappedIDXGISwapChain4::ResizeBuffers(
     /* [in] */ DXGI_FORMAT NewFormat,
     /* [in] */ UINT SwapChainFlags)
 {
-  ReleaseBuffersForResize();
+  ReleaseBuffersForResize(0, NULL, NULL);
 
   HRESULT ret = m_pReal->ResizeBuffers(BufferCount, Width, Height, NewFormat, SwapChainFlags);
 
@@ -319,10 +320,17 @@ HRESULT WrappedIDXGISwapChain4::ResizeBuffers1(_In_ UINT BufferCount, _In_ UINT 
                                                _In_reads_(BufferCount)
                                                    IUnknown *const *ppPresentQueue)
 {
-  ReleaseBuffersForResize();
+  IUnknown **unwrappedQueues = NULL;
+
+  if(ppPresentQueue)
+    unwrappedQueues = new IUnknown *[BufferCount];
+
+  ReleaseBuffersForResize(BufferCount, ppPresentQueue, unwrappedQueues);
 
   HRESULT ret = m_pReal3->ResizeBuffers1(BufferCount, Width, Height, Format, SwapChainFlags,
-                                         pCreationNodeMask, ppPresentQueue);
+                                         pCreationNodeMask, unwrappedQueues);
+
+  SAFE_DELETE_ARRAY(unwrappedQueues);
 
   WrapBuffersAfterResize();
 
