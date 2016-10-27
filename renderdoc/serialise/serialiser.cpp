@@ -1328,7 +1328,19 @@ void Serialiser::FlushToDisk()
       }
       else
       {
-        FileIO::fwrite(m_DebugText.c_str(), 1, m_DebugText.length(), dbgFile);
+        const char *str = m_DebugText.c_str();
+        size_t len = m_DebugText.length();
+        const size_t chunkSize = 10 * 1024 * 1024;
+        while(len > 0)
+        {
+          size_t writeSize = RDCMIN(len, chunkSize);
+          size_t written = FileIO::fwrite(str, 1, writeSize, dbgFile);
+
+          RDCASSERT(written == writeSize);
+
+          str += writeSize;
+          len -= writeSize;
+        }
 
         FileIO::fclose(dbgFile);
       }
