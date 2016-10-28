@@ -1320,7 +1320,7 @@ void GLESReplay::SavePipelineState()
             target == eGL_TEXTURE_CUBE_MAP ? eGL_TEXTURE_CUBE_MAP_POSITIVE_X : target;
         GLenum fmt = eGL_NONE;
         gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
-        fmt = GetSizedFormat(gl.GetHookset(), levelQueryType, fmt);
+        fmt = GetSizedFormat(gl.GetHookset(), target, fmt);
         if(IsDepthStencilFormat(fmt))
         {
           GLint depthMode;
