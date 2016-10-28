@@ -1452,7 +1452,7 @@ struct RenderTextState
     if(modern)
     {
       enableBits[4] = gl.glIsEnabledi(eGL_BLEND, 0) != 0;
-      enableBits[5] = gl.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
+      enableBits[5] = gl.glIsEnabled(eGL_SCISSOR_TEST) != 0; // TODO(elecro): original was: gl.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
     }
     else
     {
@@ -1549,9 +1549,15 @@ struct RenderTextState
       else
         gl.glDisablei(eGL_BLEND, 0);
       if(enableBits[5])
+        gl.glEnable(eGL_SCISSOR_TEST);
+      else
+        gl.glDisable(eGL_SCISSOR_TEST);
+/* TODO(elecro): original was:
+      if(enableBits[5])
         gl.glEnablei(eGL_SCISSOR_TEST, 0);
       else
         gl.glDisablei(eGL_SCISSOR_TEST, 0);
+*/
     }
     else
     {
@@ -1733,7 +1739,7 @@ void WrappedGLES::RenderOverlayStr(float x, float y, const char *text)
 
     // set viewport & scissor
     gl.glViewport(0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
-    gl.glDisablei(eGL_SCISSOR_TEST, 0);
+    gl.glDisable(eGL_SCISSOR_TEST); // TODO(elecro): quick fix for original: gl.glDisablei(eGL_SCISSOR_TEST, 0);
 
     if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
       gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
