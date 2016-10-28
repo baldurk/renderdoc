@@ -126,6 +126,9 @@ typedef void ( *__extFuncPtr)(void);
 
   */
 
+// Enable to dump egl trace messages
+//#define DUMP_EGL_ENTER
+
 #define DEFAULT_VISIBILITY __attribute__((visibility("default")))
 
 #define REAL(name) name ## _real
@@ -135,6 +138,10 @@ typedef void ( *__extFuncPtr)(void);
 DEFAULT_VISIBILITY
 EGLDisplay eglGetDisplay (EGLNativeDisplayType display)
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
+
     OpenGLHook::glhooks.PopulateHooks();
     DEF_FUNC(eglGetDisplay);
 #ifndef ANDROID
@@ -147,7 +154,7 @@ EGLDisplay eglGetDisplay (EGLNativeDisplayType display)
 DEFAULT_VISIBILITY
 EGLContext eglCreateContext(EGLDisplay display, EGLConfig config, EGLContext share_context, EGLint const * attrib_list)
 {
-#ifdef ANDROID
+#ifdef DUMP_EGL_ENTER
     RDCLOG("Enter: eglCreateContext");
 #endif
     OpenGLHook::glhooks.PopulateHooks();
@@ -176,44 +183,24 @@ EGLContext eglCreateContext(EGLDisplay display, EGLConfig config, EGLContext sha
     OpenGLHook::glhooks.GetDriver()->CreateContext(outputWin, share_context, init, true, true);
     return ctx;
 }
+
 DEFAULT_VISIBILITY
 EGLContext eglGetCurrentContext()
 {
-    // TODO(elecro): this should be only a simple forward call, this...
-    OpenGLHook::glhooks.PopulateHooks();
-    DEF_FUNC(eglGetCurrentContext);
-
-    EGLContext ctx = REAL(eglGetCurrentContext)();
-#ifdef ANDROID
-    RDCLOG("Enter: eglGetCurrentContext");
-
-    static EGLContext prev_ctx = 0;
-    if (prev_ctx != ctx)
-    {
-        if(OpenGLHook::glhooks.m_Contexts.find(ctx) == OpenGLHook::glhooks.m_Contexts.end())
-        {
-            GLESWindowingData outputWin;
-            outputWin.ctx = ctx;
-            outputWin.eglDisplay = eglGetCurrentDisplay();
-            outputWin.surface = eglGetCurrentSurface(EGL_DRAW);
-
-            OpenGLHook::glhooks.m_Contexts.insert(ctx);
-            OpenGLHook::glhooks.GetDriver()->CreateContext(outputWin, NULL, GLESInitParams(), true, true);
-
-            OpenGLHook::glhooks.GetDriver()->ActivateContext(outputWin);
-
-        }
-        prev_ctx = ctx;
-    }
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
 #endif
-
-    return ctx;
+    DEF_FUNC(eglGetCurrentContext);
+    return REAL(eglGetCurrentContext)();
 }
 
 
 DEFAULT_VISIBILITY
 __eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *func)
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
     if (OpenGLHook::glhooks.m_eglGetProcAddress_real == NULL)
       OpenGLHook::glhooks.PopulateHooks();
 
@@ -256,6 +243,9 @@ __eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *func)
 DEFAULT_VISIBILITY
 EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
 
     int width;
     int height;
@@ -271,6 +261,9 @@ EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
 DEFAULT_VISIBILITY
 EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface read, EGLContext context)
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
     EGLBoolean ret = OpenGLHook::glhooks.m_eglMakeCurrent_real(display, draw, read, context);
 
     if(context && OpenGLHook::glhooks.m_Contexts.find(context) == OpenGLHook::glhooks.m_Contexts.end())
@@ -292,6 +285,9 @@ EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface read, 
 DEFAULT_VISIBILITY
 EGLBoolean eglBindAPI(EGLenum api)
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
     DEF_FUNC(eglBindAPI);
     return REAL(eglBindAPI)(api);
 }
@@ -299,6 +295,9 @@ EGLBoolean eglBindAPI(EGLenum api)
 DEFAULT_VISIBILITY
 EGLBoolean eglGetConfigAttrib(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value)
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
     DEF_FUNC(eglGetConfigAttrib);
     return REAL(eglGetConfigAttrib)(dpy, config, attribute, value);
 }
@@ -306,6 +305,9 @@ EGLBoolean eglGetConfigAttrib(EGLDisplay dpy, EGLConfig config, EGLint attribute
 DEFAULT_VISIBILITY
 EGLSurface eglGetCurrentSurface(EGLint readdraw)
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
     DEF_FUNC(eglGetCurrentSurface);
     return REAL(eglGetCurrentSurface)(readdraw);
 }
@@ -313,6 +315,9 @@ EGLSurface eglGetCurrentSurface(EGLint readdraw)
 DEFAULT_VISIBILITY
 EGLDisplay eglGetCurrentDisplay()
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
     DEF_FUNC(eglGetCurrentDisplay);
     return REAL(eglGetCurrentDisplay)();
 }
@@ -320,6 +325,9 @@ EGLDisplay eglGetCurrentDisplay()
 DEFAULT_VISIBILITY
 EGLBoolean eglSwapInterval(EGLDisplay dpy, EGLint interval)
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
     DEF_FUNC(eglSwapInterval);
     return REAL(eglSwapInterval)(dpy, interval);
 }
@@ -327,7 +335,7 @@ EGLBoolean eglSwapInterval(EGLDisplay dpy, EGLint interval)
 DEFAULT_VISIBILITY
 EGLBoolean eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor)
 {
-#ifdef ANDROID
+#ifdef DUMP_EGL_ENTER
     RDCLOG("Enter: eglInitialize");
 #endif
 
@@ -338,6 +346,9 @@ EGLBoolean eglInitialize(EGLDisplay dpy, EGLint *major, EGLint *minor)
 DEFAULT_VISIBILITY
 EGLBoolean eglChooseConfig(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config)
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
     DEF_FUNC(eglChooseConfig);
     return REAL(eglChooseConfig)(dpy, attrib_list, configs, config_size, num_config);
 }
@@ -345,6 +356,9 @@ EGLBoolean eglChooseConfig(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig 
 DEFAULT_VISIBILITY
 EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list)
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
     DEF_FUNC(eglCreateWindowSurface);
     return REAL(eglCreateWindowSurface)(dpy, config, win, attrib_list);
 }
@@ -352,6 +366,9 @@ EGLSurface eglCreateWindowSurface(EGLDisplay dpy, EGLConfig config, EGLNativeWin
 DEFAULT_VISIBILITY
 EGLBoolean eglDestroySurface(EGLDisplay dpy, EGLSurface surface)
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
     DEF_FUNC(eglDestroySurface);
     return REAL(eglDestroySurface)(dpy, surface);
 }
@@ -359,6 +376,9 @@ EGLBoolean eglDestroySurface(EGLDisplay dpy, EGLSurface surface)
 DEFAULT_VISIBILITY
 EGLBoolean eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
     DEF_FUNC(eglDestroyContext);
     return REAL(eglDestroyContext)(dpy, ctx);
 }
@@ -367,6 +387,9 @@ EGLBoolean eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
 DEFAULT_VISIBILITY
 EGLBoolean eglTerminate(EGLDisplay dpy)
 {
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
     DEF_FUNC(eglTerminate);
     return REAL(eglTerminate)(dpy);
 }
