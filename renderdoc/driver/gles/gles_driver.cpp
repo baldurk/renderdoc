@@ -945,6 +945,21 @@ void WrappedGLES::Initialise(GLESInitParams &params)
     else
       gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, m_FakeBB_DepthStencil, 0);
   }
+
+  // TODO(elecro): remove this debug code
+  GLenum status = gl.glCheckFramebufferStatus(eGL_FRAMEBUFFER);
+  switch (status) {
+    case GL_FRAMEBUFFER_COMPLETE: break;
+#define DUMP(STATUS) case STATUS: RDCLOG(#STATUS "\n"); break
+
+    DUMP(eGL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
+    DUMP(eGL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS);
+    DUMP(eGL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT);
+    DUMP(eGL_FRAMEBUFFER_UNSUPPORTED);
+#undef DUMP
+    default: RDCLOG("Unkown status: %d\n", status);
+  }
+
 }
 
 const char *WrappedGLES::GetChunkName(uint32_t idx)
