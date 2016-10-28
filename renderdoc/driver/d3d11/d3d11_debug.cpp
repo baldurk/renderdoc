@@ -2268,6 +2268,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
       hr = m_pDevice->CreateRenderTargetView(rtvResource, &rtvDesc, &rtvMS);
     if(FAILED(hr))
     {
+      SAFE_RELEASE(srvArray);
       RDCERR("0x%08x", hr);
       return;
     }
@@ -2330,6 +2331,8 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
       hr = m_pDevice->CreateDepthStencilView(rtvResource, &dsvDesc, &dsvMS);
       if(FAILED(hr))
       {
+        SAFE_RELEASE(srvArray);
+        SAFE_RELEASE(dsState);
         RDCERR("0x%08x", hr);
         return;
       }
@@ -2354,6 +2357,7 @@ void D3D11DebugManager::CopyArrayToTex2DMS(ID3D11Texture2D *destMS, ID3D11Textur
       SAFE_RELEASE(dsvMS);
     }
 
+    SAFE_RELEASE(srvArray);
     SAFE_RELEASE(dsState);
   }
 
@@ -2566,6 +2570,8 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
 
       if(FAILED(hr))
       {
+        SAFE_RELEASE(rtvArray);
+        SAFE_RELEASE(dsvArray);
         RDCERR("0x%08x", hr);
         return;
       }
@@ -2632,6 +2638,8 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
         hr = m_pDevice->CreateDepthStencilView(rtvResource, &dsvDesc, &dsvArray);
         if(FAILED(hr))
         {
+          SAFE_RELEASE(dsState);
+          SAFE_RELEASE(srvMS);
           RDCERR("0x%08x", hr);
           return;
         }
@@ -2658,6 +2666,7 @@ void D3D11DebugManager::CopyTex2DMSToArray(ID3D11Texture2D *destArray, ID3D11Tex
     }
 
     SAFE_RELEASE(dsState);
+    SAFE_RELEASE(srvMS);
   }
 
   m_pImmediateContext->CopyResource(destArray, rtvResource);
