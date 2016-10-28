@@ -171,7 +171,7 @@ EGLContext eglCreateContext(EGLDisplay display, EGLConfig config, EGLContext sha
     init.depthBits = value;
     eglGetConfigAttrib(display, config, eEGL_STENCIL_SIZE, &value);
     init.stencilBits = value;
-    init.isSRGB = 1; // TODO: How can we get it from the EGL?
+    init.isSRGB = 0; // TODO: How can we get it from the EGL?
 
     DEF_FUNC(eglCreateContext);
     EGLContext ctx = REAL(eglCreateContext)(display, config, share_context, attrib_list);
