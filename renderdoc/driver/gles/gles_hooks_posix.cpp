@@ -48,8 +48,8 @@ Threading::CriticalSection glLock;
 class OpenGLHook : LibraryHook
 {
 public:
-  OpenGLHook()
-  {
+  OpenGLHook() {
+
     LibraryHooks::GetInstance().RegisterHook("libEGL.so", this);
 
     RDCEraseEl(GL);
@@ -61,7 +61,7 @@ public:
     m_EnabledHooks = true;
     m_PopulatedHooks = false;
 
-    libGLdlsymHandle = RTLD_NEXT;
+    libGLdlsymHandle = dlopen("libEGL.so", RTLD_NOW);
 
     PopulateHooks();
   }
@@ -113,6 +113,19 @@ public:
     }
 
     return m_GLESDriver;
+  }
+
+  void MakeContextCurrent(GLESWindowingData data)
+  {
+    if (m_eglMakeCurrent_real)
+      m_eglMakeCurrent_real(data.eglDisplay, data.surface, data.surface, data.ctx);
+  }
+
+
+  GLESWindowingData MakeContext(GLESWindowingData share)
+  {
+    GLESWindowingData ret;
+    return share;
   }
 
   PFN_eglGetProcAddress m_eglGetProcAddress_real;
@@ -210,13 +223,12 @@ const GLHookSet &GetRealGLFunctions()
 
 void MakeContextCurrent(GLESWindowingData data)
 {
-  RDCUNIMPLEMENTED("MakeContextCurrent");
+  OpenGLHook::glhooks.MakeContextCurrent(data);
 }
 
 GLESWindowingData MakeContext(GLESWindowingData share)
 {
-  RDCUNIMPLEMENTED("MakeContext");
-  return GLESWindowingData();
+  return OpenGLHook::glhooks.MakeContext(share);
 }
 
 void DeleteContext(GLESWindowingData context)
