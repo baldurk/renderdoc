@@ -662,6 +662,14 @@ ResourceFormat MakeResourceFormat(WrappedGLES &gl, GLenum target, GLenum fmt)
       return ret;
     }
 
+    if (fmt == eGL_DEPTH24_STENCIL8) {
+      ret.compByteWidth = 1;
+      ret.compCount = 4;
+      ret.compType = eCompType_Depth;
+      ret.specialFormat = eSpecial_D24S8;
+      ret.special = true;
+      return ret;
+    }
   }
 
   RDCERR("Unhandled resource format %#x", fmt);
