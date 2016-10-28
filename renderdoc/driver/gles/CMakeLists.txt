@@ -39,18 +39,14 @@ set(sources
     wrappers/gles_compatibility.cpp
 )
 
-if(ANDROID)
+if((ANDROID) OR (UNIX))
     list(APPEND sources
-        gles_replay_android.cpp
+        gles_replay_posix.cpp
         gles_hooks_posix.cpp)
 elseif(APPLE)
     list(APPEND sources
         gles_replay_apple.cpp
         gles_hooks_apple.cpp)
-elseif(UNIX)
-    list(APPEND sources
-        gles_replay_linux.cpp
-        gles_hooks_posix.cpp)
 endif()
 
 add_library(rdoc_gles OBJECT ${sources})

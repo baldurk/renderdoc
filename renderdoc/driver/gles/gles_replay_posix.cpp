@@ -1,7 +1,8 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
- * Copyright (c) 2016 Baldur Karlsson
+ * Copyright (c) 2015-2016 Baldur Karlsson
+ * Copyright (c) 2014 Crytek
  * Copyright (c) 2016 University of Szeged
  * Copyright (c) 2016 Samsung Electronics Co., Ltd.
  *
@@ -24,13 +25,16 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#ifdef ANDROID
 #define RENDERDOC_PLATFORM_ANDROID 1
+#else
+#define RENDERDOC_WINDOWING_XLIB 1
+#endif
 
 #include "gles_replay.h"
+#include <dlfcn.h>
 #include "gles_driver.h"
 #include "gles_resources.h"
-
-#include <dlfcn.h>
 #include "official/egl_func_typedefs.h"
 
 #define REAL(NAME) NAME ##_real
@@ -56,13 +60,14 @@ DEF_FUNC(eglGetProcAddress);
 #define DEBUG_TOSTRING(x) DEBUG_STRINGIFY(x)
 #define DEBUG_LOCATION __FILE__ ":" DEBUG_TOSTRING(__LINE__)
 
+#ifndef DEBUG
+#define DEBUG
+#endif
 
 #ifdef DEBUG
 #define EGL_RETURN_DEBUG(function) printEGLError(DEBUG_STRINGIFY(function), DEBUG_LOCATION)
-#define CALL_DEBUG() RDCLOG("CALL: (%s) : %s\n", DEBUG_LOCATION, __FUNCTION__)
 #else
 #define EGL_RETURN_DEBUG(function) while (false)
-#define CALL_DEBUG() while (false)
 #endif
 
 #define EGL_CONTEXT_FLAGS_KHR                              0x30FC
@@ -104,8 +109,6 @@ void printEGLError(const char* const function, const char* const location)
         RDCLOG("(%s): %s: %s\n", location, function, getEGLErrorString(errorCode));
 }
 
-/*---------*/
-
 void GLESReplay::MakeCurrentReplayContext(GLESWindowingData *ctx)
 {
     static GLESWindowingData *prev = NULL;
@@ -115,7 +118,6 @@ void GLESReplay::MakeCurrentReplayContext(GLESWindowingData *ctx)
         REAL(eglMakeCurrent)(ctx->eglDisplay, ctx->surface, ctx->surface, ctx->ctx);
         EGL_RETURN_DEBUG(eglMakeCurrent);
         m_pDriver->ActivateContext(*ctx);
-        RDCLOG("GLESReplay::MakeCurrentReplayContext");
     }
 }
 
@@ -161,32 +163,43 @@ static bool getEGLDisplayAndConfig(EGLDisplay * const egl_display, EGLConfig * c
     return true;
 }
 
-
 uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
-    ANativeWindow *wnd = 0;
+    EGLNativeWindowType wnd = 0;
 
+#ifdef ANDROID
     if(system == eWindowingSystem_Android)
     {
-        wnd = (ANativeWindow *)data;
+        wnd = (EGLNativeWindowType)data;
+    }
+    else
+#else
+    if(system == eWindowingSystem_Xlib)
+    {
+        XlibWindowData *xlib = (XlibWindowData *)data;
+        wnd = (EGLNativeWindowType)xlib->window;
     }
     else if(system == eWindowingSystem_Unknown)
     {
         // TODO(elecro): what?
+        if(XOpenDisplay(NULL) == NULL)
+          return 0;
     }
     else
+#endif
     {
         RDCERR("Unexpected window system %u", system);
     }
 
     static const EGLint attribs[] = {
-        EGL_RED_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_BLUE_SIZE, 8,
-        EGL_SURFACE_TYPE, EGL_PBUFFER_BIT /*| EGL_PIXMAP_BIT*/ | EGL_WINDOW_BIT,
-        EGL_RENDERABLE_TYPE, eEGL_OPENGL_ES3_BIT,
-        EGL_CONFORMANT, eEGL_OPENGL_ES3_BIT,
-        EGL_COLOR_BUFFER_TYPE, EGL_RGB_BUFFER,
+        eEGL_RED_SIZE, 8,
+        eEGL_GREEN_SIZE, 8,
+        eEGL_BLUE_SIZE, 8,
+        eEGL_SURFACE_TYPE, eEGL_PBUFFER_BIT | eEGL_WINDOW_BIT,
+        eEGL_RENDERABLE_TYPE, eEGL_OPENGL_ES3_BIT,
+        eEGL_CONFORMANT, eEGL_OPENGL_ES3_BIT,
+        eEGL_COLOR_BUFFER_TYPE, eEGL_RGB_BUFFER,
+
         EGL_NONE
     };
 
@@ -225,7 +238,10 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
     outputWin.ctx = ctx;
     outputWin.surface = surface;
     outputWin.eglDisplay = egl_display;
-    outputWin.wnd = wnd;
+
+#ifdef ANDROID
+    outputWin.wnd = (ANativeWindow*)wnd;
+#endif
 
     REAL(eglQuerySurface)(egl_display, surface, EGL_HEIGHT, &outputWin.height);
     EGL_RETURN_DEBUG(eglQuerySurface);
@@ -302,14 +318,20 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
 
     GLESReplay::PreContextInitCounters();
 
+#ifndef ANDROID
+    Display * display = XOpenDisplay(NULL);
+    if (display == NULL)
+        return eReplayCreate_InternalError;
+#endif
+
     static const EGLint attribs[] = {
-        EGL_RED_SIZE, 8,
-        EGL_GREEN_SIZE, 8,
-        EGL_BLUE_SIZE, 8,
-        EGL_RENDERABLE_TYPE, eEGL_OPENGL_ES3_BIT,
-        EGL_CONFORMANT, eEGL_OPENGL_ES3_BIT,
-        EGL_SURFACE_TYPE, EGL_PBUFFER_BIT | EGL_WINDOW_BIT,
-        EGL_NONE
+        eEGL_RED_SIZE, 8,
+        eEGL_GREEN_SIZE, 8,
+        eEGL_BLUE_SIZE, 8,
+        eEGL_RENDERABLE_TYPE, eEGL_OPENGL_ES3_BIT,
+        eEGL_CONFORMANT, eEGL_OPENGL_ES3_BIT,
+        eEGL_SURFACE_TYPE, eEGL_PBUFFER_BIT | eEGL_WINDOW_BIT,
+        eEGL_NONE
     };
 
     EGLDisplay egl_display;
@@ -355,7 +377,6 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
     data.eglDisplay = egl_display;
     data.ctx = ctx;
     data.surface = pbuffer;
-
     replay->SetReplayData(data);
 
     *driver = replay;
