@@ -58,9 +58,7 @@ void main()
 	uint pixelCount = c0 + c1 + c2 + c3 - 1u;
 
 	ivec3 quad = ivec3(gl_FragCoord.xy*0.5, pixelCount);
-#ifndef OPENGL_ES
 	imageAtomicAdd(overdrawImage, quad, 1);
-#endif
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////

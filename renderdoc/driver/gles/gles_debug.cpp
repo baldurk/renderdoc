@@ -271,56 +271,30 @@ void GLESReplay::InitDebugData()
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
 
-  // TODO PEPE
-  bool support450 = false;
-// TODO(elecro): Improve the shader language detecion
-#if 0
-  for(GLint i = 0; i < numsl; i++)
-  {
-    const char *sl = (const char *)gl.glGetStringi(eGL_SHADING_LANGUAGE_VERSION, (GLuint)i);
-
-    if(sl[0] == '4' && sl[1] == '5' && sl[2] == '0')
-      support450 = true;
-    if(sl[0] == '4' && sl[1] == '.' && sl[2] == '5')
-      support450 = true;
-
-    if(support450)
-      break;
-  }
-#endif
-
-  DebugData.quadoverdraw420 = !support450;
-
   GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), "320 es");
 
-  {
-    string defines = "";
-
-    if(!support450)
-    {
-      // dFdx fine functions not available before GLSL 450. Use normal dFdx, which might be coarse,
-      // so won't show quad overdraw properly
-      defines += "#define dFdxFine dFdx\n\n";
-      defines += "#define dFdyFine dFdy\n\n";
-    }
-
-    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_quadwrite_frag),
-                       support450 ? "320 es" : "320 es");
-
-    if(!support450)
-    {
-      // remove derivative control extension
-      size_t offs = fs[0].find("#extension GL_ARB_derivative_control");
-      if(offs != string::npos)
-        fs[0].insert(offs, "//");
-    }
-
-    DebugData.quadoverdrawResolveProg = CreateShaderProgram(empty, fs);
-
-    GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_quadresolve_frag), "320 es");
-
-    DebugData.quadoverdrawResolveProg = CreateShaderProgram(vs, fs);
-  }
+// TODO (pepe)
+//  {
+//    string defines = "";
+//
+//    // dFdx fine functions are not available in GLSL 320. Use normal dFdx, which might be coarse,
+//    // so won't show quad overdraw properly
+//    defines += "#define dFdxFine dFdx\n\n";
+//    defines += "#define dFdyFine dFdy\n\n";
+//
+//    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_quadwrite_frag), "320 es");
+//
+//    // remove derivative control extension
+//    size_t offs = fs[0].find("#extension GL_ARB_derivative_control");
+//    if(offs != string::npos)
+//      fs[0].insert(offs, "//");
+//
+//    DebugData.quadoverdrawResolveProg = CreateShaderProgram(empty, fs);
+//
+//    GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_quadresolve_frag), "320 es");
+//
+//    DebugData.quadoverdrawResolveProg = CreateShaderProgram(vs, fs);
+//  }
 
   GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_checkerboard_frag), "320 es");
   DebugData.checkerProg = CreateShaderProgram(vs, fs);
@@ -2357,44 +2331,45 @@ ResourceId GLESReplay::RenderOverlay(ResourceId texid, FormatComponentType typeH
           }
         }
 
-        // resolve pass
-        {
-          gl.glUseProgram(DebugData.quadoverdrawResolveProg);
-          gl.glBindProgramPipeline(0);
-
-          GLint rampLoc =
-              gl.glGetUniformLocation(DebugData.quadoverdrawResolveProg, "overdrawRampColours");
-          gl.glProgramUniform4fv(DebugData.quadoverdrawResolveProg, rampLoc,
-                                 ARRAY_COUNT(overdrawRamp), (float *)&overdrawRamp[0].x);
-
-          // modify our fbo to attach the overlay texture instead
-          gl.glBindFramebuffer(eGL_FRAMEBUFFER, replacefbo);
-          gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, DebugData.overlayTex, 0);
-          gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, 0, 0);
-
-          gl.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
-          gl.glDisable(eGL_BLEND);
-          gl.glDisable(eGL_SCISSOR_TEST);
-          gl.glDepthMask(GL_FALSE);
-          gl.glDisable(eGL_CULL_FACE);
-          if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
-            gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
-          gl.glDisable(eGL_DEPTH_TEST);
-          gl.glDisable(eGL_STENCIL_TEST);
-          gl.glStencilMask(0);
-          gl.glViewport(0, 0, texDetails.width, texDetails.height);
-
-          gl.glBindImageTexture(0, quadtexs[2], 0, GL_FALSE, 0, eGL_READ_WRITE, eGL_R32UI);
-
-          GLuint emptyVAO = 0;
-          gl.glGenVertexArrays(1, &emptyVAO);
-          gl.glBindVertexArray(emptyVAO);
-          gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
-          gl.glBindVertexArray(0);
-          gl.glDeleteVertexArrays(1, &emptyVAO);
-
-          gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[0], 0);
-        }
+//        TODO (pepe)
+//        // resolve pass
+//        {
+//          gl.glUseProgram(DebugData.quadoverdrawResolveProg);
+//          gl.glBindProgramPipeline(0);
+//
+//          GLint rampLoc =
+//              gl.glGetUniformLocation(DebugData.quadoverdrawResolveProg, "overdrawRampColours");
+//          gl.glProgramUniform4fv(DebugData.quadoverdrawResolveProg, rampLoc,
+//                                 ARRAY_COUNT(overdrawRamp), (float *)&overdrawRamp[0].x);
+//
+//          // modify our fbo to attach the overlay texture instead
+//          gl.glBindFramebuffer(eGL_FRAMEBUFFER, replacefbo);
+//          gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, DebugData.overlayTex, 0);
+//          gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, 0, 0);
+//
+//          gl.glColorMask(GL_TRUE, GL_TRUE, GL_TRUE, GL_TRUE);
+//          gl.glDisable(eGL_BLEND);
+//          gl.glDisable(eGL_SCISSOR_TEST);
+//          gl.glDepthMask(GL_FALSE);
+//          gl.glDisable(eGL_CULL_FACE);
+//          if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+//            gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
+//          gl.glDisable(eGL_DEPTH_TEST);
+//          gl.glDisable(eGL_STENCIL_TEST);
+//          gl.glStencilMask(0);
+//          gl.glViewport(0, 0, texDetails.width, texDetails.height);
+//
+//          gl.glBindImageTexture(0, quadtexs[2], 0, GL_FALSE, 0, eGL_READ_WRITE, eGL_R32UI);
+//
+//          GLuint emptyVAO = 0;
+//          gl.glGenVertexArrays(1, &emptyVAO);
+//          gl.glBindVertexArray(emptyVAO);
+//          gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+//          gl.glBindVertexArray(0);
+//          gl.glDeleteVertexArrays(1, &emptyVAO);
+//
+//          gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[0], 0);
+//        }
 
         gl.glDeleteFramebuffers(1, &replacefbo);
         gl.glDeleteTextures(3, quadtexs);
