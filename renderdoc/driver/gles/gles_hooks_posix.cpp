@@ -1,7 +1,10 @@
 /******************************************************************************
  * The MIT License (MIT)
  *
+ * Copyright (c) 2015-2016 Baldur Karlsson
+ * Copyright (c) 2014 Crytek
  * Copyright (c) 2016 University of Szeged
+ * Copyright (c) 2016 Samsung Electronics Co., Ltd.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,26 +27,30 @@
 
 #include <dlfcn.h>
 #include <stdio.h>
+#include <set>
+#include <cstdlib>
+#include "common/threading.h"
 #include "driver/gles/gles_common.h"
 #include "driver/gles/gles_driver.h"
 #include "driver/gles/gles_hookset.h"
 #include "driver/gles/gles_hookset_defs.h"
 #include "hooks/hooks.h"
+#include "serialise/string_utils.h"
 
 #include "official/egl_func_typedefs.h"
 
 void *libGLdlsymHandle =
     RTLD_NEXT;    // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
 
+
 Threading::CriticalSection glLock;
 
 class OpenGLHook : LibraryHook
 {
 public:
-  OpenGLHook() {
+  OpenGLHook()
+  {
     LibraryHooks::GetInstance().RegisterHook("libEGL.so", this);
-    LibraryHooks::GetInstance().RegisterHook("libGLESv2.so", this);
-    LibraryHooks::GetInstance().RegisterHook("libGLESv3.so", this);
 
     RDCEraseEl(GL);
 
@@ -55,12 +62,11 @@ public:
     m_PopulatedHooks = false;
 
     libGLdlsymHandle = RTLD_NEXT;
-/*dlopen("libEGL.so", RTLD_NOW);
-    RDCLOG("---> %p\n", libGLdlsymHandle);
-*/
+
     PopulateHooks();
   }
-  ~OpenGLHook() {}
+
+  ~OpenGLHook() { delete m_GLESDriver; }
 
   const GLHookSet &GetRealGLFunctions()
   {
@@ -81,7 +87,7 @@ public:
       return false;
 
     if(libName)
-      PosixHookLibrary(libName, &libHooked);
+      PosixHookLibrary("libEGL.so", &libHooked);
 
     bool success = SetupHooks(GL);
 
@@ -114,10 +120,11 @@ public:
   PFN_eglMakeCurrent m_eglMakeCurrent_real;
   PFN_eglQuerySurface m_eglQuerySurface_real;
 
-  std::set<EGLContext> m_Contexts;
-
   WrappedGLES *m_GLESDriver;
+
   GLHookSet GL;
+
+  set<EGLContext> m_Contexts;
 
   bool m_PopulatedHooks;
   bool m_HasHooks;
@@ -128,10 +135,6 @@ public:
 };
 
 OpenGLHook OpenGLHook::glhooks;
-
-#include "gles_hooks_posix.inc.cpp"
-
-
 
 bool OpenGLHook::SetupHooks(GLHookSet &GL)
 {
@@ -148,8 +151,11 @@ bool OpenGLHook::SetupHooks(GLHookSet &GL)
   if(m_eglQuerySurface_real == NULL)
     m_eglQuerySurface_real = (PFN_eglQuerySurface)dlsym(libGLdlsymHandle, "eglQuerySurface");
 
+
   return success;
 }
+
+#include "gles_hooks_posix.inc.cpp"
 
 bool OpenGLHook::PopulateHooks()
 {
@@ -160,10 +166,6 @@ bool OpenGLHook::PopulateHooks()
 
   if(m_eglGetProcAddress_real == NULL)
     m_eglGetProcAddress_real = (PFN_eglGetProcAddress)dlsym(libGLdlsymHandle, "eglGetProcAddress");
-
-#if 0
-  eglGetProcAddress_real((const GLubyte *)"eglCreateContext");
-#endif
 
 #undef HookInit
 #define HookInit(function) \
@@ -222,4 +224,5 @@ void DeleteContext(GLESWindowingData context)
   RDCUNIMPLEMENTED("DeleteContext");
 }
 
-#include "gles_hooks_linux_egl.cpp"
+
+#include "gles_hooks_posix_egl.inc.cpp"

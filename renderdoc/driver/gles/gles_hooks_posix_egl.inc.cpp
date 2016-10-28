@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "official/egl.h"
+#include "official/egl_func_typedefs.h"
 
 #include <cstdio>
 #include <dlfcn.h>
@@ -33,6 +34,12 @@
 #ifdef ANDROID
 #include <android/log.h>
 #endif
+
+// bit of a hack
+namespace Keyboard
+{
+void CloneDisplay(Display *dpy);
+}
 
 typedef void ( *__extFuncPtr)(void);
 
@@ -117,21 +124,6 @@ typedef void ( *__extFuncPtr)(void);
   for I in `seq 0 15`; do HookWrapper $I; echo; done
 
   */
-
-typedef EGLDisplay (*PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
-typedef EGLContext (*PFN_eglCreateContext) (EGLDisplay dpy, EGLConfig config, EGLContext share_context, EGLint const * attrib_list);
-typedef EGLContext (*PFN_eglGetCurrentContext)();
-typedef EGLBoolean (*PFN_eglBindAPI)(EGLenum api);
-typedef EGLBoolean (*PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config, EGLint attribute, EGLint *value);
-typedef EGLBoolean (*PFN_eglSwapInterval)(EGLDisplay dpy, EGLint interval);
-typedef EGLBoolean (*PFN_eglInitialize)(EGLDisplay dpy, EGLint *major, EGLint *minor);
-typedef EGLBoolean (*PFN_eglChooseConfig)(EGLDisplay dpy, const EGLint *attrib_list, EGLConfig *configs, EGLint config_size, EGLint *num_config);
-typedef EGLSurface (*PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig config, EGLNativeWindowType win, const EGLint *attrib_list);
-typedef EGLBoolean (*PFN_eglDestroySurface)(EGLDisplay dpy, EGLSurface surface);
-typedef EGLBoolean (*PFN_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
-typedef EGLBoolean (*PFN_eglTerminate)(EGLDisplay dpy);
-typedef EGLSurface (*PFN_eglGetCurrentSurface)(EGLint readdraw);
-typedef EGLDisplay (*PFN_eglGetCurrentDisplay)();
 
 #define DEFAULT_VISIBILITY __attribute__((visibility("default")))
 

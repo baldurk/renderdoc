@@ -42,7 +42,7 @@ set(sources
 if(ANDROID)
     list(APPEND sources
         gles_replay_android.cpp
-        gles_hooks_android.cpp)
+        gles_hooks_posix.cpp)
 elseif(APPLE)
     list(APPEND sources
         gles_replay_apple.cpp
@@ -50,7 +50,7 @@ elseif(APPLE)
 elseif(UNIX)
     list(APPEND sources
         gles_replay_linux.cpp
-        gles_hooks_linux.cpp)
+        gles_hooks_posix.cpp)
 endif()
 
 add_library(rdoc_gles OBJECT ${sources})

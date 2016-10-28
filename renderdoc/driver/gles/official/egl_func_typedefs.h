@@ -3,6 +3,7 @@
 #ifndef EGL_FUNC_TYPEDEFS_H
 #define EGL_FUNC_TYPEDEFS_H
 #include "egl.h"
+#include "eglext.h"
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -25,8 +26,6 @@ typedef EGLSurface (*PFN_eglCreatePbufferSurface)(EGLDisplay dpy, EGLConfig conf
 typedef EGLBoolean (*PFN_eglSwapInterval)(EGLDisplay dpy, EGLint interval);
 typedef EGLSurface (*PFN_eglGetCurrentSurface)(EGLint readdraw);
 typedef EGLDisplay (*PFN_eglGetCurrentDisplay)();
-
-#if 0
 typedef EGLBoolean (*PFN_eglBindTexImage)(EGLDisplay dpy, EGLSurface surface, EGLint buffer);
 typedef EGLint (*PFN_eglClientWaitSync)(EGLDisplay dpy, EGLSync sync, EGLint flags, EGLTime timeout);
 typedef EGLint (*PFN_eglClientWaitSyncKHR)(EGLDisplay dpy, EGLSyncKHR sync, EGLint flags, EGLTimeKHR timeout);
@@ -131,8 +130,6 @@ typedef EGLBoolean (*PFN_eglWaitGL)();
 typedef EGLBoolean (*PFN_eglWaitNative)(EGLint engine);
 typedef EGLBoolean (*PFN_eglWaitSync)(EGLDisplay dpy, EGLSync sync, EGLint flags);
 typedef EGLint (*PFN_eglWaitSyncKHR)(EGLDisplay dpy, EGLSyncKHR sync, EGLint flags);
-
-#endif
 
 #ifdef __cplusplus
 }
