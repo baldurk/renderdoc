@@ -35,11 +35,12 @@
 #include <android/log.h>
 #endif
 
-// bit of a hack
+#ifndef ANDROID
 namespace Keyboard
 {
 void CloneDisplay(Display *dpy);
 }
+#endif
 
 typedef void ( *__extFuncPtr)(void);
 

@@ -22,15 +22,27 @@ if __name__ == "__main__":
         "#ifndef EGL_FUNC_TYPEDEFS_H",
         "#define EGL_FUNC_TYPEDEFS_H",
         "",
+        "#include \"egl.h\"",
+        "#include \"eglext.h\"",
+        "",
+        "#ifdef __cplusplus",
+        "extern \"C\" {",
+        "#endif",
+        ""
     ]
 
     footer = [
         "",
+        "#ifdef __cplusplus",
+        "}",
+        "#endif",
+        "",
         "#endif /* EGL_FUNC_TYPEDEFS_H */",
     ]
-
+    tdmap = {}
     print("\n".join(header))
     root = ET.fromstring(data)
+
     for item in root.findall("commands/command"):
         proto = item.find('proto')
         base = (proto.text or "")
@@ -42,6 +54,22 @@ if __name__ == "__main__":
         for param in item.findall('param'):
             params.append(get_string(param))
 
-        print("typedef {0} (*PFN_{1})({2});".format(return_type, method_name, ", ".join(["{0}".format(param) for param in params])))
+        tdmap[method_name] = "typedef {0} (*PFN_{1})({2});".format(return_type, method_name, ", ".join(["{0}".format(param) for param in params]))
 
+    for item in root.findall("feature"):
+        print ("#ifdef " + item.get('name'))
+        for require in item.findall("require"):
+            commands = [];
+            for cmd in require:
+                if (cmd.tag == 'command') :
+                    commands.append(tdmap[cmd.get('name')])
+            if (len(commands) != 0) :
+              comment = require.get('comment')
+              if (comment):
+                print ("#ifdef " + comment)
+              for tdef in commands:
+                print (tdef)
+              if (comment):
+                print ("#endif")
+        print ("#endif\n")
     print("\n".join(footer))
