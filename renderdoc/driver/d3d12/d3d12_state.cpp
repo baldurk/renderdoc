@@ -87,12 +87,15 @@ vector<ResourceId> D3D12RenderState::GetRTVIDs() const
 
   if(rtSingle)
   {
-    const D3D12Descriptor *descs = DescriptorFromPortableHandle(GetResourceManager(), rts[0]);
-
-    for(UINT i = 0; i < rts.size(); i++)
+    if(!rts.empty())
     {
-      RDCASSERT(descs[i].GetType() == D3D12Descriptor::TypeRTV);
-      ret.push_back(GetResID(descs[i].nonsamp.resource));
+      const D3D12Descriptor *descs = DescriptorFromPortableHandle(GetResourceManager(), rts[0]);
+
+      for(UINT i = 0; i < rts.size(); i++)
+      {
+        RDCASSERT(descs[i].GetType() == D3D12Descriptor::TypeRTV);
+        ret.push_back(GetResID(descs[i].nonsamp.resource));
+      }
     }
   }
   else
