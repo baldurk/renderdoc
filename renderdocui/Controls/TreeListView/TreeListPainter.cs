@@ -264,6 +264,15 @@ namespace TreelistView
 
                 TextRenderer.DrawText(dc, datastring, f, cellRect, color, flags);
 
+                Size sz = TextRenderer.MeasureText(dc, datastring, f, new Size(1000000, 10000), flags);
+
+                int treecolumn = node.TreeColumn;
+                if (treecolumn < 0)
+                    treecolumn = node.OwnerView.TreeColumn;
+
+                if (column.Index == treecolumn)
+                    node.ClippedText = (sz.Width > cellRect.Width || sz.Height > cellRect.Height);
+
                 if (disposefont != null) disposefont.Dispose();
 			}
 		}

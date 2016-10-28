@@ -22,6 +22,7 @@ namespace TreelistView
         int                 m_treeColumn = -1;
 		int					m_id = -1;
 		object				m_tag = null;
+        bool                m_clippedText = false;
         bool                m_bold = false;
         bool                m_italic = false;
         float               m_treeLineWidth = 0.0f;
@@ -63,6 +64,11 @@ namespace TreelistView
 			{
 				m_hasChildren = value;
 			}
+		}
+		public bool ClippedText
+		{
+			get { return m_clippedText; }
+			set { m_clippedText = value; }
 		}
 		public Image Image
 		{

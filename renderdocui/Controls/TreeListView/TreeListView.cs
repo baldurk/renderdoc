@@ -195,6 +195,17 @@ namespace TreelistView
 			this.BackColor = SystemColors.Window;
 			this.TabStop = true;
 
+			m_tooltip = new ToolTip();
+			m_tooltip.InitialDelay = 0;
+			m_tooltip.UseAnimation = false;
+			m_tooltip.UseFading = false;
+
+			m_tooltipNode = null;
+			m_tooltipTimer = new Timer();
+			m_tooltipTimer.Stop();
+			m_tooltipTimer.Interval = 500;
+			m_tooltipTimer.Tick += new EventHandler(tooltipTick);
+
 			m_rowPainter = new RowPainter();
 			m_cellPainter = new CellPainter(this);
 
@@ -204,6 +215,70 @@ namespace TreelistView
             m_columns = new TreeListColumnCollection(this);
 			AddScrollBars();
 		}
+
+		void tooltipTick(object sender, EventArgs e)
+		{
+			m_tooltipTimer.Stop();
+
+			if(m_tooltipNode == null)
+				return;
+
+			Node node = m_tooltipNode;
+
+			int visibleRowIndex = NodeCollection.GetVisibleNodeIndex(node);
+
+			Rectangle rowRect = CalcRowRectangle(visibleRowIndex);
+			rowRect.X = RowHeaderWidth() - HScrollValue();
+			rowRect.Width = Columns.ColumnsWidth;
+
+			// draw the current node
+			foreach (TreeListColumn col in Columns.VisibleColumns)
+			{
+				if (col.Index == GetTreeColumn(node))
+				{
+					Rectangle cellRect = rowRect;
+					cellRect.X = col.CalculatedRect.X - HScrollValue();
+
+					int lineindet = 10;
+					// add left margin
+					cellRect.X += Columns.Options.LeftMargin;
+
+					// add indent size
+					cellRect.X += GetIndentSize(node) + 5;
+
+					cellRect.X += lineindet;
+
+					Rectangle plusminusRect = GetPlusMinusRectangle(node, col, visibleRowIndex);
+
+					if (!ViewOptions.ShowLine && (!ViewOptions.ShowPlusMinus || (!ViewOptions.PadForPlusMinus && plusminusRect == Rectangle.Empty)))
+						cellRect.X -= (lineindet + 5);
+
+					if (SelectedImage != null && (NodesSelection.Contains(node) || FocusedNode == node))
+						cellRect.X += (SelectedImage.Width + 2);
+
+					Image icon = GetHoverNodeBitmap(node);
+
+					if (icon != null)
+						cellRect.X += (icon.Width + 2);
+
+					string datastring = "";
+
+					object data = GetData(node, col);
+
+					if(data == null)
+						data = "";
+
+					if (CellPainter.CellDataConverter != null)
+						datastring = CellPainter.CellDataConverter(col, data);
+					else
+						datastring = data.ToString();
+
+					if(datastring.Length > 0)
+						m_tooltip.Show(datastring, this, cellRect.X, cellRect.Y);
+				}
+			}
+		}
+
 		public void RecalcLayout()
 		{
 			if (m_firstVisibleNode == null)
@@ -266,6 +341,9 @@ namespace TreelistView
 				renderdoc.StaticExports.LogText("Couldn't create any handles!");
 		}
 		
+		ToolTip     m_tooltip;
+		Node        m_tooltipNode;
+		Timer       m_tooltipTimer;
 		VScrollBar	m_vScroll;
 		HScrollBar	m_hScroll;
 		Panel		m_hScrollFiller;
@@ -715,6 +793,18 @@ namespace TreelistView
             else
                 Cursor = Cursors.Arrow;
 
+            if (!this.DesignMode && clickedNode != null && clickedNode.ClippedText)
+            {
+                m_tooltipNode = clickedNode;
+                m_tooltipTimer.Start();
+            }
+            else
+            {
+                m_tooltipNode = null;
+                m_tooltip.Hide(this);
+                m_tooltipTimer.Stop();
+            }
+
             if (GetHoverNodeBitmap(clickedNode) != null &&
                 GetNodeBitmap(clickedNode) != GetHoverNodeBitmap(clickedNode))
                 Invalidate();
@@ -833,12 +923,18 @@ namespace TreelistView
 		}
 		protected override void OnLeave(EventArgs e)
 		{
+			m_tooltipNode = null;
+			m_tooltip.Hide(this);
+			m_tooltipTimer.Stop();
 			base.OnLeave(e);
 			Invalidate();
 		}
 
         protected override void OnLostFocus(EventArgs e)
         {
+            m_tooltipNode = null;
+            m_tooltip.Hide(this);
+            m_tooltipTimer.Stop();
             base.OnLostFocus(e);
             Invalidate();
         }
