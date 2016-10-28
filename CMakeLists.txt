@@ -60,8 +60,11 @@ if(WIN32)
 endif()
 
 if(ANDROID)
-    message(STATUS "Disabling GL driver on android - no support for EGL/GLES")
-    set(ENABLE_GL OFF CACHE BOOL "" FORCE)
+    if (ENABLE_GL)
+       message(STATUS "Disabling GL driver on android switching to GLES")
+       set(ENABLE_GL OFF CACHE BOOL "" FORCE)
+       set(ENABLE_GLES ON CACHE BOOL "" FORCE)
+    endif()
 
     # Android doesn't support the Qt UI for obvious reasons
     message(STATUS "Disabling qrenderdoc for android build")
