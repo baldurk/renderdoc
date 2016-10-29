@@ -1086,20 +1086,28 @@ void DXBCFile::GuessResources()
 
         switch(dcl.dim)
         {
-          case RESOURCE_DIMENSION_BUFFER: desc.dimension = ShaderInputBind::DIM_BUFFER;
-          case RESOURCE_DIMENSION_TEXTURE1D: desc.dimension = ShaderInputBind::DIM_TEXTURE1D;
-          case RESOURCE_DIMENSION_TEXTURE2D: desc.dimension = ShaderInputBind::DIM_TEXTURE2D;
-          case RESOURCE_DIMENSION_TEXTURE3D: desc.dimension = ShaderInputBind::DIM_TEXTURE3D;
-          case RESOURCE_DIMENSION_TEXTURECUBE: desc.dimension = ShaderInputBind::DIM_TEXTURECUBE;
+          case RESOURCE_DIMENSION_BUFFER: desc.dimension = ShaderInputBind::DIM_BUFFER; break;
+          case RESOURCE_DIMENSION_TEXTURE1D: desc.dimension = ShaderInputBind::DIM_TEXTURE1D; break;
+          case RESOURCE_DIMENSION_TEXTURE2D: desc.dimension = ShaderInputBind::DIM_TEXTURE2D; break;
+          case RESOURCE_DIMENSION_TEXTURE3D: desc.dimension = ShaderInputBind::DIM_TEXTURE3D; break;
+          case RESOURCE_DIMENSION_TEXTURECUBE:
+            desc.dimension = ShaderInputBind::DIM_TEXTURECUBE;
+            break;
           case RESOURCE_DIMENSION_TEXTURE1DARRAY:
             desc.dimension = ShaderInputBind::DIM_TEXTURE1DARRAY;
+            break;
           case RESOURCE_DIMENSION_TEXTURE2DARRAY:
             desc.dimension = ShaderInputBind::DIM_TEXTURE2DARRAY;
+            break;
           case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
             desc.dimension = ShaderInputBind::DIM_TEXTURECUBEARRAY;
-          case RESOURCE_DIMENSION_TEXTURE2DMS: desc.dimension = ShaderInputBind::DIM_TEXTURE2DMS;
+            break;
+          case RESOURCE_DIMENSION_TEXTURE2DMS:
+            desc.dimension = ShaderInputBind::DIM_TEXTURE2DMS;
+            break;
           case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
             desc.dimension = ShaderInputBind::DIM_TEXTURE2DMSARRAY;
+            break;
           default: desc.dimension = ShaderInputBind::DIM_UNKNOWN; break;
         }
         desc.numSamples = dcl.sampleCount;
@@ -1246,20 +1254,28 @@ void DXBCFile::GuessResources()
 
         switch(dcl.dim)
         {
-          case RESOURCE_DIMENSION_BUFFER: desc.dimension = ShaderInputBind::DIM_BUFFER;
-          case RESOURCE_DIMENSION_TEXTURE1D: desc.dimension = ShaderInputBind::DIM_TEXTURE1D;
-          case RESOURCE_DIMENSION_TEXTURE2D: desc.dimension = ShaderInputBind::DIM_TEXTURE2D;
-          case RESOURCE_DIMENSION_TEXTURE3D: desc.dimension = ShaderInputBind::DIM_TEXTURE3D;
-          case RESOURCE_DIMENSION_TEXTURECUBE: desc.dimension = ShaderInputBind::DIM_TEXTURECUBE;
+          case RESOURCE_DIMENSION_BUFFER: desc.dimension = ShaderInputBind::DIM_BUFFER; break;
+          case RESOURCE_DIMENSION_TEXTURE1D: desc.dimension = ShaderInputBind::DIM_TEXTURE1D; break;
+          case RESOURCE_DIMENSION_TEXTURE2D: desc.dimension = ShaderInputBind::DIM_TEXTURE2D; break;
+          case RESOURCE_DIMENSION_TEXTURE3D: desc.dimension = ShaderInputBind::DIM_TEXTURE3D; break;
+          case RESOURCE_DIMENSION_TEXTURECUBE:
+            desc.dimension = ShaderInputBind::DIM_TEXTURECUBE;
+            break;
           case RESOURCE_DIMENSION_TEXTURE1DARRAY:
             desc.dimension = ShaderInputBind::DIM_TEXTURE1DARRAY;
+            break;
           case RESOURCE_DIMENSION_TEXTURE2DARRAY:
             desc.dimension = ShaderInputBind::DIM_TEXTURE2DARRAY;
+            break;
           case RESOURCE_DIMENSION_TEXTURECUBEARRAY:
             desc.dimension = ShaderInputBind::DIM_TEXTURECUBEARRAY;
-          case RESOURCE_DIMENSION_TEXTURE2DMS: desc.dimension = ShaderInputBind::DIM_TEXTURE2DMS;
+            break;
+          case RESOURCE_DIMENSION_TEXTURE2DMS:
+            desc.dimension = ShaderInputBind::DIM_TEXTURE2DMS;
+            break;
           case RESOURCE_DIMENSION_TEXTURE2DMSARRAY:
             desc.dimension = ShaderInputBind::DIM_TEXTURE2DMSARRAY;
+            break;
           default: desc.dimension = ShaderInputBind::DIM_UNKNOWN; break;
         }
         desc.numSamples = (uint32_t)-1;
