@@ -33,7 +33,25 @@ namespace TreelistView
 
         Color[]             m_backCols = null;
 
-        public TreeListView OwnerView = null;
+        private TreeListView m_ownerview = null;
+        public TreeListView OwnerView
+        {
+            get
+            {
+                if (m_ownerview != null)
+                    return m_ownerview;
+
+                if (m_owner != null)
+                    m_ownerview = m_owner.OwnerView;
+
+                return m_ownerview;
+            }
+
+            set
+            {
+                m_ownerview = value;
+            }
+        }
 
 		public Node Parent
 		{
@@ -420,7 +438,25 @@ namespace TreelistView
 		int		m_nextId = 0;
 		int		m_IdDirty = 0;
 
-        public TreeListView OwnerView = null;
+        private TreeListView m_ownerview = null;
+        public TreeListView OwnerView
+        {
+            get
+            {
+                if(m_ownerview != null)
+                    return m_ownerview;
+
+                if(m_owner != null)
+                    m_ownerview = m_owner.OwnerView;
+
+                return m_ownerview;
+            }
+
+            set
+            {
+                m_ownerview = value;
+            }
+        }
 
 		Node[]	m_nodesInternal = null;
 		Node	m_owner = null;
