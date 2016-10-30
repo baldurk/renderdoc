@@ -39,7 +39,7 @@ public:
   ResourceId GetResourceID() { return m_ID; }
   D3D12ResourceRecord *GetResourceRecord() { return m_pRecord; }
   void SetResourceRecord(D3D12ResourceRecord *record) { m_pRecord = record; }
-private:
+protected:
   TrackedResource12(const TrackedResource12 &);
   TrackedResource12 &operator=(const TrackedResource12 &);
 
@@ -677,7 +677,9 @@ class WrappedID3D12Resource : public WrappedDeviceChild12<ID3D12Resource>
   bool resident;
 
 public:
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource);
+  static const int AllocPoolCount = 16384;
+  static const int AllocMaxByteSize = 1024 * 1024;
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource, AllocPoolCount, AllocMaxByteSize, false);
 
   static std::map<ResourceId, WrappedID3D12Resource *> *m_List;
 

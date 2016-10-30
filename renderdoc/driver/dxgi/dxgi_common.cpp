@@ -1225,13 +1225,9 @@ DXGI_FORMAT GetTypelessFormat(DXGI_FORMAT f)
     case DXGI_FORMAT_P208:
     case DXGI_FORMAT_V208:
     case DXGI_FORMAT_V408:
-    case DXGI_FORMAT_B4G4R4A4_UNORM:
-      RDCERR("No Typeless DXGI Format for %d", f);
-      return DXGI_FORMAT_UNKNOWN;
+    case DXGI_FORMAT_B4G4R4A4_UNORM: return f;
 
-    case DXGI_FORMAT_UNKNOWN:
-      RDCWARN("Getting Typeless format of DXGI_FORMAT_UNKNOWN");
-      return DXGI_FORMAT_UNKNOWN;
+    case DXGI_FORMAT_UNKNOWN: return DXGI_FORMAT_UNKNOWN;
 
     default: RDCERR("Unrecognised DXGI Format: %d", f); return DXGI_FORMAT_UNKNOWN;
   }

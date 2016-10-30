@@ -285,6 +285,8 @@ WrappedID3D12Resource::~WrappedID3D12Resource()
     m_Addresses.RemoveFrom(m_pReal->GetGPUVirtualAddress());
 
   Shutdown();
+
+  m_ID = ResourceId();
 }
 
 byte *WrappedID3D12Resource::GetMap(UINT Subresource)

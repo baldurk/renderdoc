@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "d3d12_manager.h"
+#include "driver/dxgi/dxgi_common.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_device.h"
@@ -160,6 +161,52 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
         }
       }
 
+      // it's possible to end up with invalid resource and descriptor combinations:
+      // 1. descriptor is created for ResID_1234 BC1_TYPELESS and a view BC1_UNORM
+      // 2. resource is freed.
+      // 3. some time later, new resource is created ResID_5678 BC3_UNORM
+      // 4. Key point is - descriptor has a pointer to the resource, and the slot is
+      //    re-allocated in 3.
+      // 5. We now have a descriptor that is BC3_UNORM resource and BC1_UNORM view.
+      //
+      // This is unavoidable without recording back-references from resources to the
+      // descriptors that use them. Instead, we just detect the invalid case here
+      // and since we know the descriptor is unused (since it's invalid to use it
+      // after the resource is freed, and it would have to be recreated with a valid
+      // format combination) we can just force a null resource.
+      //
+      // so need to check if
+      // a) we have a non-NULL resource (otherwise any descriptor is fine)
+      // b) descriptor and resource have a non-UNKNOWN format (buffers have UNKNOWN
+      //    type which can be cast arbitrarily by the view).
+      // c) when the resource is typed, the view must be identical, when it's typeless
+      //    the view format must be castable
+      if(nonsamp.resource && desc)
+      {
+        DXGI_FORMAT resFormat = nonsamp.resource->GetDesc().Format;
+        DXGI_FORMAT viewFormat = desc->Format;
+
+        if(resFormat != DXGI_FORMAT_UNKNOWN && viewFormat != DXGI_FORMAT_UNKNOWN)
+        {
+          if(!IsTypelessFormat(resFormat))
+          {
+            if(resFormat != viewFormat)
+            {
+              nonsamp.resource = NULL;
+              desc = defaultSRV();
+            }
+          }
+          else
+          {
+            if(resFormat != GetTypelessFormat(viewFormat))
+            {
+              nonsamp.resource = NULL;
+              desc = defaultSRV();
+            }
+          }
+        }
+      }
+
       dev->CreateShaderResourceView(nonsamp.resource, desc, handle);
       break;
     }
@@ -181,6 +228,33 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
         }
       }
 
+      // see comment above in SRV case for what this code is doing
+      if(nonsamp.resource && desc)
+      {
+        DXGI_FORMAT resFormat = nonsamp.resource->GetDesc().Format;
+        DXGI_FORMAT viewFormat = desc->Format;
+
+        if(resFormat != DXGI_FORMAT_UNKNOWN && viewFormat != DXGI_FORMAT_UNKNOWN)
+        {
+          if(!IsTypelessFormat(resFormat))
+          {
+            if(resFormat != viewFormat)
+            {
+              nonsamp.resource = NULL;
+              desc = defaultRTV();
+            }
+          }
+          else
+          {
+            if(resFormat != GetTypelessFormat(viewFormat))
+            {
+              nonsamp.resource = NULL;
+              desc = defaultRTV();
+            }
+          }
+        }
+      }
+
       dev->CreateRenderTargetView(nonsamp.resource, desc, handle);
       break;
     }
@@ -189,6 +263,33 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
       D3D12_DEPTH_STENCIL_VIEW_DESC *desc = &nonsamp.dsv;
       if(desc->ViewDimension == D3D12_DSV_DIMENSION_UNKNOWN)
         desc = nonsamp.resource ? NULL : defaultDSV();
+
+      // see comment above in SRV case for what this code is doing
+      if(nonsamp.resource && desc)
+      {
+        DXGI_FORMAT resFormat = nonsamp.resource->GetDesc().Format;
+        DXGI_FORMAT viewFormat = desc->Format;
+
+        if(resFormat != DXGI_FORMAT_UNKNOWN && viewFormat != DXGI_FORMAT_UNKNOWN)
+        {
+          if(!IsTypelessFormat(resFormat))
+          {
+            if(resFormat != viewFormat)
+            {
+              nonsamp.resource = NULL;
+              desc = defaultDSV();
+            }
+          }
+          else
+          {
+            if(resFormat != GetTypelessFormat(viewFormat))
+            {
+              nonsamp.resource = NULL;
+              desc = defaultDSV();
+            }
+          }
+        }
+      }
 
       dev->CreateDepthStencilView(nonsamp.resource, desc, handle);
       break;
@@ -222,6 +323,33 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
 
       if(counter == NULL && desc && desc->ViewDimension == D3D12_UAV_DIMENSION_BUFFER)
         desc->Buffer.CounterOffsetInBytes = 0;
+
+      // see comment above in SRV case for what this code is doing
+      if(nonsamp.resource && desc)
+      {
+        DXGI_FORMAT resFormat = nonsamp.resource->GetDesc().Format;
+        DXGI_FORMAT viewFormat = desc->Format;
+
+        if(resFormat != DXGI_FORMAT_UNKNOWN && viewFormat != DXGI_FORMAT_UNKNOWN)
+        {
+          if(!IsTypelessFormat(resFormat))
+          {
+            if(resFormat != viewFormat)
+            {
+              nonsamp.resource = NULL;
+              desc = defaultUAV();
+            }
+          }
+          else
+          {
+            if(resFormat != GetTypelessFormat(viewFormat))
+            {
+              nonsamp.resource = NULL;
+              desc = defaultUAV();
+            }
+          }
+        }
+      }
 
       dev->CreateUnorderedAccessView(nonsamp.resource, counter, desc, handle);
       break;
