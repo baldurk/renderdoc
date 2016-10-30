@@ -1368,7 +1368,7 @@ bool WrappedOpenGL::Serialise_glBindBuffersRange(GLenum target, GLuint first, GL
       else
         bufs[i] = 0;
       offs[i] = (GLintptr)offset;
-      sz[i] = (GLsizeiptr)sizes;
+      sz[i] = (GLsizeiptr)size;
     }
   }
 
