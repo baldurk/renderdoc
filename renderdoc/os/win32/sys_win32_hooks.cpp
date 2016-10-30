@@ -151,7 +151,7 @@ private:
         lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles,
         dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 
-    if(RenderDoc::Inst().GetCaptureOptions().HookIntoChildren)
+    if(ret && RenderDoc::Inst().GetCaptureOptions().HookIntoChildren)
     {
       RDCDEBUG("Intercepting CreateProcessA");
 
@@ -236,7 +236,7 @@ private:
         lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles,
         dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
 
-    if(RenderDoc::Inst().GetCaptureOptions().HookIntoChildren)
+    if(ret && RenderDoc::Inst().GetCaptureOptions().HookIntoChildren)
     {
       RDCDEBUG("Intercepting CreateProcessW");
 
