@@ -1556,6 +1556,11 @@ void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
     m_ResourceStates.erase(id);
   }
 
+  D3D12ResourceRecord *record = GetRecord(res);
+
+  if(record)
+    record->Delete(GetResourceManager());
+
   // wrapped resources get released all the time, we don't want to
   // try and slerp in a resource release. Just the explicit ones
   if(m_State < WRITING)
