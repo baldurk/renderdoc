@@ -110,7 +110,7 @@ public:
       AddRef();
       return S_OK;
     }
-    if(riid == __uuidof(NestedType1))
+    if(riid == __uuidof(NestedType1) && m_pReal)
     {
       // check that the real interface supports this
       NestedType1 *dummy = NULL;
@@ -125,7 +125,7 @@ public:
       AddRef();
       return S_OK;
     }
-    if(riid == __uuidof(NestedType2))
+    if(riid == __uuidof(NestedType2) && m_pReal)
     {
       // check that the real interface supports this
       NestedType2 *dummy = NULL;
@@ -160,6 +160,9 @@ public:
        riid == __uuidof(IDXGISurface) || riid == __uuidof(IDXGISurface1) ||
        riid == __uuidof(IDXGIResource1) || riid == __uuidof(IDXGISurface2))
     {
+      if(m_pReal == NULL)
+        return E_NOINTERFACE;
+
       // ensure the real object has this interface
       void *outObj;
       HRESULT hr = m_pReal->QueryInterface(riid, &outObj);
@@ -226,6 +229,13 @@ public:
 
   HRESULT STDMETHODCALLTYPE GetPrivateData(REFGUID guid, UINT *pDataSize, void *pData)
   {
+    if(!m_pReal)
+    {
+      if(pDataSize)
+        *pDataSize = 0;
+      return S_OK;
+    }
+
     return m_pReal->GetPrivateData(guid, pDataSize, pData);
   }
 
@@ -237,11 +247,17 @@ public:
     if(guid == WKPDID_D3DDebugObjectName)
       m_pDevice->SetResourceName(this, (const char *)pData);
 
+    if(!m_pReal)
+      return S_OK;
+
     return m_pReal->SetPrivateData(guid, DataSize, pData);
   }
 
   HRESULT STDMETHODCALLTYPE SetPrivateDataInterface(REFGUID guid, const IUnknown *pData)
   {
+    if(!m_pReal)
+      return S_OK;
+
     return m_pReal->SetPrivateDataInterface(guid, pData);
   }
 
@@ -249,6 +265,9 @@ public:
   {
     string utf8 = StringFormat::Wide2UTF8(Name);
     m_pDevice->SetResourceName(this, utf8.c_str());
+
+    if(!m_pReal)
+      return S_OK;
 
     return m_pReal->SetName(Name);
   }
@@ -783,6 +802,62 @@ public:
   virtual ~WrappedID3D12RootSignature() { Shutdown(); }
 };
 
+class WrappedID3D12PipelineLibrary : public WrappedDeviceChild12<ID3D12PipelineLibrary>
+{
+public:
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12PipelineLibrary);
+
+  enum
+  {
+    TypeEnum = Resource_PipelineLibrary,
+  };
+
+  WrappedID3D12PipelineLibrary(WrappedID3D12Device *device) : WrappedDeviceChild12(NULL, device) {}
+  virtual ~WrappedID3D12PipelineLibrary() { Shutdown(); }
+  virtual HRESULT STDMETHODCALLTYPE StorePipeline(_In_opt_ LPCWSTR pName,
+                                                  _In_ ID3D12PipelineState *pPipeline)
+  {
+    // do nothing
+    return S_OK;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE
+  LoadGraphicsPipeline(_In_ LPCWSTR pName, _In_ const D3D12_GRAPHICS_PIPELINE_STATE_DESC *pDesc,
+                       REFIID riid, _COM_Outptr_ void **ppPipelineState)
+  {
+    // pretend we don't have it - assume that the application won't store then
+    // load in the same run, or will handle that if it happens
+    return E_INVALIDARG;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE
+  LoadComputePipeline(_In_ LPCWSTR pName, _In_ const D3D12_COMPUTE_PIPELINE_STATE_DESC *pDesc,
+                      REFIID riid, _COM_Outptr_ void **ppPipelineState)
+  {
+    // pretend we don't have it - assume that the application won't store then
+    // load in the same run, or will handle that if it happens
+    return E_INVALIDARG;
+  }
+
+  static const SIZE_T DummyBytes = 32;
+
+  virtual SIZE_T STDMETHODCALLTYPE GetSerializedSize(void)
+  {
+    // simple dummy serialisation since applications might not expect 0 bytes
+    return DummyBytes;
+  }
+
+  virtual HRESULT STDMETHODCALLTYPE Serialize(_Out_writes_(DataSizeInBytes) void *pData,
+                                              SIZE_T DataSizeInBytes)
+  {
+    if(DataSizeInBytes < DummyBytes)
+      return E_INVALIDARG;
+
+    memset(pData, 0, DummyBytes);
+    return S_OK;
+  }
+};
+
 #define ALL_D3D12_TYPES                     \
   D3D12_TYPE_MACRO(ID3D12CommandAllocator); \
   D3D12_TYPE_MACRO(ID3D12CommandSignature); \
@@ -792,7 +867,8 @@ public:
   D3D12_TYPE_MACRO(ID3D12PipelineState);    \
   D3D12_TYPE_MACRO(ID3D12QueryHeap);        \
   D3D12_TYPE_MACRO(ID3D12Resource);         \
-  D3D12_TYPE_MACRO(ID3D12RootSignature);
+  D3D12_TYPE_MACRO(ID3D12RootSignature);    \
+  D3D12_TYPE_MACRO(ID3D12PipelineLibrary);
 
 // template magic voodoo to unwrap types
 template <typename inner>

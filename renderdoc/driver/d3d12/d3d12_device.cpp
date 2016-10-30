@@ -172,6 +172,9 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedID3D12Device));
 
+  m_pDevice1 = NULL;
+  m_pDevice->QueryInterface(__uuidof(ID3D12Device1), (void **)&m_pDevice1);
+
   for(size_t i = 0; i < ARRAY_COUNT(m_DescriptorIncrements); i++)
     m_DescriptorIncrements[i] =
         realDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE(i));
@@ -362,6 +365,8 @@ WrappedID3D12Device::~WrappedID3D12Device()
 
   SAFE_DELETE(m_ResourceManager);
 
+  SAFE_RELEASE(m_pDevice1);
+
   SAFE_RELEASE(m_pInfoQueue);
   SAFE_RELEASE(m_WrappedDebug.m_pDebug);
   SAFE_RELEASE(m_pDevice);
@@ -466,6 +471,19 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
     {
       *ppvObject = NULL;
       return hr;
+    }
+  }
+  else if(riid == __uuidof(ID3D12Device1))
+  {
+    if(m_pDevice1)
+    {
+      AddRef();
+      *ppvObject = (ID3D12Device1 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
     }
   }
   else if(riid == __uuidof(ID3D12InfoQueue))

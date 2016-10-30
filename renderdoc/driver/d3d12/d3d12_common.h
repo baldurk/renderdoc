@@ -87,6 +87,9 @@ public:
   // implement IUnknown
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
   {
+    if(!m_pReal)
+      return E_NOINTERFACE;
+
     return RefCountDXGIObject::WrapQueryInterface(m_pReal, riid, ppvObject);
   }
 

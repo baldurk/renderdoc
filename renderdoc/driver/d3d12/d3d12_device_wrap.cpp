@@ -1871,3 +1871,54 @@ void WrappedID3D12Device::GetCopyableFootprints(const D3D12_RESOURCE_DESC *pReso
                                           BaseOffset, pLayouts, pNumRows, pRowSizeInBytes,
                                           pTotalBytes);
 }
+
+HRESULT WrappedID3D12Device::CreatePipelineLibrary(_In_reads_(BlobLength) const void *pLibraryBlob,
+                                                   SIZE_T BlobLength, REFIID riid,
+                                                   _COM_Outptr_ void **ppPipelineLibrary)
+{
+// we don't want to ever use pipeline libraries since then we can't get the
+// bytecode and pipeline config. So instead we always return that a blob is
+// non-matching and return a dummy interface that does nothing when stored.
+// This might cause the application to clear its previous cache but that's
+// not the end of the world.
+#ifndef D3D12_ERROR_DRIVER_VERSION_MISMATCH
+#define D3D12_ERROR_DRIVER_VERSION_MISMATCH _HRESULT_TYPEDEF_(0x887E0002L)
+#endif
+
+  if(BlobLength > 0)
+    return D3D12_ERROR_DRIVER_VERSION_MISMATCH;
+
+  RDCASSERT(riid == __uuidof(ID3D12PipelineLibrary));
+
+  *ppPipelineLibrary = (ID3D12PipelineLibrary *)(new WrappedID3D12PipelineLibrary(this));
+
+  return S_OK;
+}
+
+HRESULT WrappedID3D12Device::SetEventOnMultipleFenceCompletion(
+    _In_reads_(NumFences) ID3D12Fence *const *ppFences,
+    _In_reads_(NumFences) const UINT64 *pFenceValues, UINT NumFences,
+    D3D12_MULTIPLE_FENCE_WAIT_FLAGS Flags, HANDLE hEvent)
+{
+  ID3D12Fence **unwrapped = GetTempArray<ID3D12Fence *>(NumFences);
+
+  for(UINT i = 0; i < NumFences; i++)
+    unwrapped[i] = Unwrap(ppFences[i]);
+
+  return m_pDevice1->SetEventOnMultipleFenceCompletion(unwrapped, pFenceValues, NumFences, Flags,
+                                                       hEvent);
+}
+
+HRESULT WrappedID3D12Device::SetResidencyPriority(UINT NumObjects,
+                                                  _In_reads_(NumObjects)
+                                                      ID3D12Pageable *const *ppObjects,
+                                                  _In_reads_(NumObjects)
+                                                      const D3D12_RESIDENCY_PRIORITY *pPriorities)
+{
+  ID3D12Pageable **unwrapped = GetTempArray<ID3D12Pageable *>(NumObjects);
+
+  for(UINT i = 0; i < NumObjects; i++)
+    unwrapped[i] = (ID3D12Pageable *)Unwrap((ID3D12DeviceChild *)ppObjects[i]);
+
+  return m_pDevice1->SetResidencyPriority(NumObjects, unwrapped, pPriorities);
+}

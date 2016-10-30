@@ -47,6 +47,7 @@ enum D3D12ResourceType
   Resource_Resource,
   Resource_GraphicsCommandList,
   Resource_RootSignature,
+  Resource_PipelineLibrary,
 };
 
 class WrappedID3D12DescriptorHeap;

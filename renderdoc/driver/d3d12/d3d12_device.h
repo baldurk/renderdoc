@@ -219,10 +219,11 @@ class WrappedID3D12CommandQueue;
   ret func(__VA_ARGS__);                                     \
   bool CONCAT(Serialise_, func(Serialiser *localSerialiser, __VA_ARGS__));
 
-class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device
+class WrappedID3D12Device : public IFrameCapturer, public ID3DDevice, public ID3D12Device1
 {
 private:
   ID3D12Device *m_pDevice;
+  ID3D12Device1 *m_pDevice1;
 
   // list of all queues being captured
   std::vector<WrappedID3D12CommandQueue *> m_Queues;
@@ -677,4 +678,22 @@ public:
                                        D3D12_SUBRESOURCE_TILING *pSubresourceTilingsForNonPackedMips);
 
   IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual LUID STDMETHODCALLTYPE, GetAdapterLuid);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, CreatePipelineLibrary,
+                                       _In_reads_(BlobLength) const void *pLibraryBlob,
+                                       SIZE_T BlobLength, REFIID riid,
+                                       _COM_Outptr_ void **ppPipelineLibrary);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE,
+                                       SetEventOnMultipleFenceCompletion,
+                                       _In_reads_(NumFences) ID3D12Fence *const *ppFences,
+                                       _In_reads_(NumFences) const UINT64 *pFenceValues,
+                                       UINT NumFences, D3D12_MULTIPLE_FENCE_WAIT_FLAGS Flags,
+                                       HANDLE hEvent);
+
+  IMPLEMENT_FUNCTION_THREAD_SERIALISED(virtual HRESULT STDMETHODCALLTYPE, SetResidencyPriority,
+                                       UINT NumObjects,
+                                       _In_reads_(NumObjects) ID3D12Pageable *const *ppObjects,
+                                       _In_reads_(NumObjects)
+                                           const D3D12_RESIDENCY_PRIORITY *pPriorities);
 };
