@@ -147,7 +147,7 @@ size_t BucketForRecordPow2(size_t value)
   return index;
 }
 
-class WrappedID3D11DeviceContext : public RefCounter, public ID3D11DeviceContext2
+class WrappedID3D11DeviceContext : public RefCounter, public ID3D11DeviceContext3
 {
 private:
   friend class WrappedID3D11DeviceContext;
