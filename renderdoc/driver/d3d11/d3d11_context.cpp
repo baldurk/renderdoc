@@ -1639,6 +1639,11 @@ HRESULT STDMETHODCALLTYPE WrappedID3D11DeviceContext::QueryInterface(REFIID riid
     m_UserAnnotation.AddRef();
     return S_OK;
   }
+  else if(riid == __uuidof(ID3D11InfoQueue))
+  {
+    // forward to device
+    return m_pDevice->QueryInterface(riid, ppvObject);
+  }
   else
   {
     string guid = ToStr::Get(riid);
