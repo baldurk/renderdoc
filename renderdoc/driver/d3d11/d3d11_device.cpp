@@ -336,6 +336,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
   m_Alive = true;
 
   m_DummyInfoQueue.m_pDevice = this;
+  m_DummyD3D10Multithread.m_pDevice = this;
   m_DummyDebug.m_pDevice = this;
   m_WrappedDebug.m_pDevice = this;
 
@@ -528,6 +529,18 @@ void WrappedID3D11Device::CheckForDeath()
       delete this;
     }
   }
+}
+
+ULONG STDMETHODCALLTYPE DummyID3D10Multithread::AddRef()
+{
+  m_pDevice->AddRef();
+  return 1;
+}
+
+ULONG STDMETHODCALLTYPE DummyID3D10Multithread::Release()
+{
+  m_pDevice->Release();
+  return 1;
 }
 
 ULONG STDMETHODCALLTYPE DummyID3D11InfoQueue::AddRef()
@@ -749,6 +762,15 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
     {
       return E_NOINTERFACE;
     }
+  }
+  else if(riid == __uuidof(ID3D10Multithread))
+  {
+    RDCWARN(
+        "Returning a dummy ID3D10Multithread that does nothing. This ID3D10Multithread will not "
+        "work!");
+    *ppvObject = (ID3D10Multithread *)&m_DummyD3D10Multithread;
+    m_DummyD3D10Multithread.AddRef();
+    return S_OK;
   }
   else if(riid == ID3D11ShaderTraceFactory_uuid)
   {

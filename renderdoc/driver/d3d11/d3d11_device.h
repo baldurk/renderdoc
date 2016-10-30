@@ -75,6 +75,47 @@ struct D3D11InitParams : public RDCInitParams
 class WrappedID3D11Device;
 class WrappedShader;
 
+// declare this here as we don't want to pull in the whole D3D10 headers
+MIDL_INTERFACE("9B7E4E00-342C-4106-A19F-4F2704F689F0")
+ID3D10Multithread : public IUnknown
+{
+public:
+  virtual void STDMETHODCALLTYPE Enter(void) = 0;
+
+  virtual void STDMETHODCALLTYPE Leave(void) = 0;
+
+  virtual BOOL STDMETHODCALLTYPE SetMultithreadProtected(
+      /* [annotation] */
+      _In_ BOOL bMTProtect) = 0;
+
+  virtual BOOL STDMETHODCALLTYPE GetMultithreadProtected(void) = 0;
+};
+
+struct DummyID3D10Multithread : public ID3D10Multithread
+{
+  WrappedID3D11Device *m_pDevice;
+
+  DummyID3D10Multithread() : m_pDevice(NULL) {}
+  //////////////////////////////
+  // implement IUnknown
+  HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject) { return E_NOINTERFACE; }
+  ULONG STDMETHODCALLTYPE AddRef();
+  ULONG STDMETHODCALLTYPE Release();
+
+  //////////////////////////////
+  // implement ID3D10Multithread
+  virtual void STDMETHODCALLTYPE Enter(void) { return; }
+  virtual void STDMETHODCALLTYPE Leave(void) { return; }
+  virtual BOOL STDMETHODCALLTYPE SetMultithreadProtected(
+      /* [annotation] */
+      _In_ BOOL bMTProtect)
+  {
+    return TRUE;
+  }
+
+  virtual BOOL STDMETHODCALLTYPE GetMultithreadProtected(void) { return TRUE; }
+};
+
 // We can pass through all calls to ID3D11Debug without intercepting, this
 // struct isonly here so that we can intercept QueryInterface calls to return
 // ID3D11InfoQueue
@@ -280,6 +321,7 @@ private:
 
   D3D11Replay m_Replay;
 
+  DummyID3D10Multithread m_DummyD3D10Multithread;
   DummyID3D11InfoQueue m_DummyInfoQueue;
   DummyID3D11Debug m_DummyDebug;
   WrappedID3D11Debug m_WrappedDebug;
