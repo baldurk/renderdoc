@@ -726,17 +726,7 @@ public:
       m_Addresses.AddTo(range);
     }
   }
-  virtual ~WrappedID3D12Resource()
-  {
-    if(m_List)
-      (*m_List).erase(GetResourceID());
-
-    // assuming only valid for buffers
-    if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
-      m_Addresses.RemoveFrom(m_pReal->GetGPUVirtualAddress());
-
-    Shutdown();
-  }
+  virtual ~WrappedID3D12Resource();
 
   bool Resident() { return resident; }
   void SetResident(bool r) { resident = r; }

@@ -256,6 +256,37 @@ D3D12ResourceRecord *GetRecord(ID3D12DeviceChild *ptr)
   return res->GetResourceRecord();
 }
 
+WrappedID3D12Resource::~WrappedID3D12Resource()
+{
+  // perform an implicit unmap on release
+  if(GetResourceRecord())
+  {
+    vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
+
+    // may not have a map if e.g. no pointer was requested
+    for(size_t i = 0; i < map.size(); i++)
+    {
+      if(map[i].refcount > 0)
+      {
+        m_pDevice->Unmap(this, (UINT)i, map[i].realPtr, NULL);
+
+        Serialiser::FreeAlignedBuffer(map[i].shadowPtr);
+        map[i].realPtr = NULL;
+        map[i].shadowPtr = NULL;
+      }
+    }
+  }
+
+  if(m_List)
+    (*m_List).erase(GetResourceID());
+
+  // assuming only valid for buffers
+  if(m_pReal->GetDesc().Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    m_Addresses.RemoveFrom(m_pReal->GetGPUVirtualAddress());
+
+  Shutdown();
+}
+
 byte *WrappedID3D12Resource::GetMap(UINT Subresource)
 {
   vector<D3D12ResourceRecord::MapData> &map = GetResourceRecord()->m_Map;
