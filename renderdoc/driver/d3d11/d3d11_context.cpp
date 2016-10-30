@@ -758,6 +758,8 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
       break;
     }
 
+    case SWAP_DEVICE_STATE: Serialise_SwapDeviceContextState(NULL, NULL); break;
+
     case SWAP_PRESENT:
     {
       // we don't do anything with these parameters, they're just here to store

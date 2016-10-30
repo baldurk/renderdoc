@@ -57,6 +57,7 @@ enum ResourceType
 
   Resource_DeviceContext,
   Resource_CommandList,
+  Resource_DeviceState,
 };
 
 ResourceType IdentifyTypeByPtr(IUnknown *ptr);
@@ -1278,4 +1279,17 @@ public:
   // implement ID3D11CommandList
 
   virtual UINT STDMETHODCALLTYPE GetContextFlags(void) { return m_pReal->GetContextFlags(); }
+};
+
+class WrappedID3DDeviceContextState : public WrappedDeviceChild11<ID3DDeviceContextState>
+{
+public:
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3DDeviceContextState);
+
+  static std::vector<WrappedID3DDeviceContextState *> m_List;
+  static Threading::CriticalSection m_Lock;
+  D3D11RenderState *state;
+
+  WrappedID3DDeviceContextState(ID3DDeviceContextState *real, WrappedID3D11Device *device);
+  virtual ~WrappedID3DDeviceContextState();
 };

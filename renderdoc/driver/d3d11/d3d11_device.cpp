@@ -196,6 +196,8 @@ const char *D3D11ChunkNames[] = {
 
     "ID3D11DeviceContext::ExecuteCommandList",
     "ID3D11DeviceContext::FinishCommandList",
+
+    "ID3D11DeviceContext1::SwapDeviceContextState",
 };
 
 WRAPPED_POOL_INST(WrappedID3D11Device);
@@ -236,6 +238,8 @@ const uint32_t D3D11InitParams::D3D11_OLD_VERSIONS[D3D11InitParams::D3D11_NUM_SU
     // capture now. So on replay if deferred contexts are present, we go through a
     // flattening stpe.
     0x000009,
+    // from 0xA to 0xB, we added the SwapDeviceContextState from ID3D11DeviceContext1
+    0x00000A,
 };
 
 ReplayCreateStatus D3D11InitParams::Serialise()
@@ -2453,6 +2457,15 @@ void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap
       GetImmediateContext()->GetCurrentPipelineState()->UnbindIUnknownForWrite(range);
       GetImmediateContext()->GetCurrentPipelineState()->UnbindIUnknownForRead(range, false, false);
 
+      {
+        SCOPED_LOCK(WrappedID3DDeviceContextState::m_Lock);
+        for(size_t i = 0; i < WrappedID3DDeviceContextState::m_List.size(); i++)
+        {
+          WrappedID3DDeviceContextState::m_List[i]->state->UnbindIUnknownForWrite(range);
+          WrappedID3DDeviceContextState::m_List[i]->state->UnbindIUnknownForRead(range, false, false);
+        }
+      }
+
       wrapped11->ViewRelease();
     }
 
@@ -3577,6 +3590,9 @@ void WrappedID3D11Device::ReleaseResource(ID3D11DeviceChild *res)
   // since their creation won't be in the log either.
   if(type == Resource_Counter || type == Resource_Query ||
      (type == Resource_CommandList && !cmdList->IsCaptured()))
+    serialiseRelease = false;
+
+  if(type == Resource_DeviceState)
     serialiseRelease = false;
 
   if(type == Resource_CommandList && !cmdList->IsCaptured())

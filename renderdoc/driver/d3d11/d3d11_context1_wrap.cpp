@@ -1966,11 +1966,72 @@ void WrappedID3D11DeviceContext::DiscardView1(ID3D11View *pResourceView, const D
   }
 }
 
+bool WrappedID3D11DeviceContext::Serialise_SwapDeviceContextState(
+    ID3DDeviceContextState *pState, ID3DDeviceContextState **ppPreviousState)
+{
+  D3D11RenderState state(m_pSerialiser);
+
+  if(m_State >= WRITING)
+  {
+    state = *((WrappedID3DDeviceContextState *)pState)->state;
+
+    state.SetSerialiser(m_pSerialiser);
+
+    state.MarkReferenced(this, true);
+  }
+
+  state.Serialise(m_State, m_pDevice);
+
+  if(m_State <= EXECUTING)
+  {
+    m_DoStateVerify = false;
+    {
+      *m_CurrentPipelineState = state;
+      m_CurrentPipelineState->SetDevice(m_pDevice);
+      state.ApplyState(this);
+    }
+    m_DoStateVerify = true;
+    VerifyState();
+  }
+
+  return true;
+}
+
 void WrappedID3D11DeviceContext::SwapDeviceContextState(ID3DDeviceContextState *pState,
                                                         ID3DDeviceContextState **ppPreviousState)
 {
   if(m_pRealContext1 == NULL)
     return;
-  RDCUNIMPLEMENTED("Not wrapping SwapDeviceContextState");
-  m_pRealContext1->SwapDeviceContextState(pState, ppPreviousState);
+
+  ID3DDeviceContextState *prev = NULL;
+
+  m_pRealContext1->SwapDeviceContextState(UNWRAP(WrappedID3DDeviceContextState, pState), &prev);
+
+  WrappedID3DDeviceContextState *wrapped = NULL;
+
+  if(m_pDevice->GetResourceManager()->HasWrapper(prev))
+    wrapped = (WrappedID3DDeviceContextState *)m_pDevice->GetResourceManager()->GetWrapper(prev);
+  else if(prev)
+    wrapped = new WrappedID3DDeviceContextState(prev, m_pDevice);
+
+  if(wrapped)
+    *wrapped->state = *m_CurrentPipelineState;
+
+  if(ppPreviousState)
+    *ppPreviousState = wrapped;
+
+  *m_CurrentPipelineState = *((WrappedID3DDeviceContextState *)pState)->state;
+
+  DrainAnnotationQueue();
+
+  m_EmptyCommandList = false;
+
+  if(m_State == WRITING_CAPFRAME)
+  {
+    SCOPED_SERIALISE_CONTEXT(SWAP_DEVICE_STATE);
+    m_pSerialiser->Serialise("context", m_ResourceID);
+    Serialise_SwapDeviceContextState(pState, NULL);
+
+    m_ContextRecord->AddChunk(scope.Get());
+  }
 }

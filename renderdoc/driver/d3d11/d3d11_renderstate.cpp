@@ -850,6 +850,10 @@ void D3D11RenderState::Clear()
   ReleaseRefs();
   OM.BlendFactor[0] = OM.BlendFactor[1] = OM.BlendFactor[2] = OM.BlendFactor[3] = 1.0f;
   OM.SampleMask = 0xffffffff;
+
+  for(size_t i = 0; i < ARRAY_COUNT(VS.CBCounts); i++)
+    VS.CBCounts[i] = HS.CBCounts[i] = DS.CBCounts[i] = GS.CBCounts[i] = PS.CBCounts[i] =
+        CS.CBCounts[i] = 4096;
 }
 
 void D3D11RenderState::ApplyState(WrappedID3D11DeviceContext *context)

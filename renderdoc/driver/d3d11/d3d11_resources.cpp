@@ -27,6 +27,7 @@
 #include "3rdparty/lz4/lz4.h"
 #include "api/app/renderdoc_app.h"
 #include "driver/d3d11/d3d11_context.h"
+#include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/dxgi/dxgi_wrapped.h"
 
 WRAPPED_POOL_INST(WrappedID3D11Buffer);
@@ -53,6 +54,7 @@ WRAPPED_POOL_INST(WrappedID3D11Query1);
 WRAPPED_POOL_INST(WrappedID3D11Predicate);
 WRAPPED_POOL_INST(WrappedID3D11ClassInstance);
 WRAPPED_POOL_INST(WrappedID3D11ClassLinkage);
+WRAPPED_POOL_INST(WrappedID3DDeviceContextState);
 
 map<ResourceId, WrappedID3D11Texture1D::TextureEntry>
     WrappedTexture<ID3D11Texture1D, D3D11_TEXTURE1D_DESC, ID3D11Texture1D>::m_TextureList;
@@ -63,6 +65,8 @@ map<ResourceId, WrappedID3D11Texture3D1::TextureEntry>
 map<ResourceId, WrappedID3D11Buffer::BufferEntry> WrappedID3D11Buffer::m_BufferList;
 map<ResourceId, WrappedShader::ShaderEntry *> WrappedShader::m_ShaderList;
 Threading::CriticalSection WrappedShader::m_ShaderListLock;
+std::vector<WrappedID3DDeviceContextState *> WrappedID3DDeviceContextState::m_List;
+Threading::CriticalSection WrappedID3DDeviceContextState::m_Lock;
 
 const GUID RENDERDOC_ID3D11ShaderGUID_ShaderDebugMagicValue = RENDERDOC_ShaderDebugMagicValue_struct;
 
@@ -359,6 +363,8 @@ ResourceId GetIDForResource(ID3D11DeviceChild *ptr)
     return ((WrappedID3D11DeviceContext *)ptr)->GetResourceID();
   if(WrappedID3D11CommandList::IsAlloc(ptr))
     return ((WrappedID3D11CommandList *)ptr)->GetResourceID();
+  if(WrappedID3DDeviceContextState::IsAlloc(ptr))
+    return ((WrappedID3DDeviceContextState *)ptr)->GetResourceID();
 
   RDCERR("Unknown type for ptr 0x%p", ptr);
 
@@ -422,6 +428,9 @@ ResourceType IdentifyTypeByPtr(IUnknown *ptr)
     return Resource_DeviceContext;
   if(WrappedID3D11CommandList::IsAlloc(ptr))
     return Resource_CommandList;
+
+  if(WrappedID3DDeviceContextState::IsAlloc(ptr))
+    return Resource_DeviceState;
 
   RDCERR("Unknown type for ptr 0x%p", ptr);
 
@@ -575,4 +584,29 @@ void RefCounter::ReleaseDeviceSoftref(WrappedID3D11Device *device)
 {
   if(device)
     device->SoftRelease();
+}
+
+WrappedID3DDeviceContextState::WrappedID3DDeviceContextState(ID3DDeviceContextState *real,
+                                                             WrappedID3D11Device *device)
+    : WrappedDeviceChild11(real, device)
+{
+  state = new D3D11RenderState((Serialiser *)NULL);
+
+  {
+    SCOPED_LOCK(WrappedID3DDeviceContextState::m_Lock);
+    WrappedID3DDeviceContextState::m_List.push_back(this);
+  }
+}
+
+WrappedID3DDeviceContextState::~WrappedID3DDeviceContextState()
+{
+  SAFE_DELETE(state);
+  Shutdown();
+
+  {
+    SCOPED_LOCK(WrappedID3DDeviceContextState::m_Lock);
+    auto it = std::find(WrappedID3DDeviceContextState::m_List.begin(),
+                        WrappedID3DDeviceContextState::m_List.end(), this);
+    WrappedID3DDeviceContextState::m_List.erase(it);
+  }
 }
