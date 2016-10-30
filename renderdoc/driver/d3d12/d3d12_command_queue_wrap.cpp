@@ -441,6 +441,32 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
 
       if(capframe)
       {
+        // any descriptor copies or writes could reference new resources not in the
+        // bound descs list yet. So we take all of those referenced descriptors and
+        // include them to see if we need to flush
+        std::vector<D3D12Descriptor> dynDescRefs;
+        m_pDevice->GetDynamicDescriptorReferences(dynDescRefs);
+
+        for(size_t i = 0; i < dynDescRefs.size(); i++)
+        {
+          ResourceId id, id2;
+          FrameRefType ref = eFrameRef_Read;
+
+          dynDescRefs[i].GetRefIDs(id, id2, ref);
+
+          if(id != ResourceId())
+          {
+            refdIDs.insert(id);
+            GetResourceManager()->MarkResourceFrameReferenced(id, ref);
+          }
+
+          if(id2 != ResourceId())
+          {
+            refdIDs.insert(id2);
+            GetResourceManager()->MarkResourceFrameReferenced(id2, ref);
+          }
+        }
+
         // for each bound descriptor table, mark it referenced as well as all resources currently
         // bound to it
         for(auto it = record->bakedCommands->cmdInfo->boundDescs.begin();

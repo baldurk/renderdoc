@@ -301,6 +301,7 @@ private:
   Threading::CriticalSection m_DynDescLock;
   std::vector<DynamicDescriptorCopy> m_DynamicDescriptorCopies;
   std::vector<DynamicDescriptorWrite> m_DynamicDescriptorWrites;
+  std::vector<D3D12Descriptor> m_DynamicDescriptorRefs;
 
   GPUAddressRangeTracker m_GPUAddresses;
 
@@ -377,6 +378,12 @@ public:
   WrappedID3D12CommandQueue *GetQueue() { return m_Queue; }
   ID3D12CommandAllocator *GetAlloc() { return m_Alloc; }
   void ApplyBarriers(vector<D3D12_RESOURCE_BARRIER> &barriers);
+
+  void GetDynamicDescriptorReferences(std::vector<D3D12Descriptor> &refs)
+  {
+    SCOPED_LOCK(m_DynDescLock);
+    m_DynamicDescriptorRefs.swap(refs);
+  }
 
   void GetResIDFromAddr(D3D12_GPU_VIRTUAL_ADDRESS addr, ResourceId &id, UINT64 &offs)
   {

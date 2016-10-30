@@ -1665,6 +1665,7 @@ void WrappedID3D12Device::FlushPendingDescriptorWrites()
     SCOPED_LOCK(m_DynDescLock);
     writes.swap(m_DynamicDescriptorWrites);
     copies.swap(m_DynamicDescriptorCopies);
+    m_DynamicDescriptorRefs.clear();
   }
 
   for(size_t i = 0; i < writes.size(); i++)
