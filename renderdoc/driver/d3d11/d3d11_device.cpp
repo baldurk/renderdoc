@@ -2459,10 +2459,10 @@ void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap
 
       {
         SCOPED_LOCK(WrappedID3DDeviceContextState::m_Lock);
-        for(size_t i = 0; i < WrappedID3DDeviceContextState::m_List.size(); i++)
+        for(size_t s = 0; s < WrappedID3DDeviceContextState::m_List.size(); s++)
         {
-          WrappedID3DDeviceContextState::m_List[i]->state->UnbindIUnknownForWrite(range);
-          WrappedID3DDeviceContextState::m_List[i]->state->UnbindIUnknownForRead(range, false, false);
+          WrappedID3DDeviceContextState::m_List[s]->state->UnbindIUnknownForWrite(range);
+          WrappedID3DDeviceContextState::m_List[s]->state->UnbindIUnknownForRead(range, false, false);
         }
       }
 

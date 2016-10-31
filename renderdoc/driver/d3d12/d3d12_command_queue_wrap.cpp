@@ -447,12 +447,12 @@ void STDMETHODCALLTYPE WrappedID3D12CommandQueue::ExecuteCommandLists(
         std::vector<D3D12Descriptor> dynDescRefs;
         m_pDevice->GetDynamicDescriptorReferences(dynDescRefs);
 
-        for(size_t i = 0; i < dynDescRefs.size(); i++)
+        for(size_t d = 0; d < dynDescRefs.size(); d++)
         {
           ResourceId id, id2;
           FrameRefType ref = eFrameRef_Read;
 
-          dynDescRefs[i].GetRefIDs(id, id2, ref);
+          dynDescRefs[d].GetRefIDs(id, id2, ref);
 
           if(id != ResourceId())
           {
