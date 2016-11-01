@@ -28,11 +28,15 @@
 #include "common/common.h"
 #include "core/core.h"
 #include "data/version.h"
+#include "jpeg-compressor/jpgd.h"
+#include "jpeg-compressor/jpge.h"
 #include "maths/camera.h"
 #include "maths/formatpacking.h"
 #include "replay/replay_renderer.h"
 #include "serialise/serialiser.h"
 #include "serialise/string_utils.h"
+#include "stb/stb_image_resize.h"
+#include "stb/stb_image_write.h"
 
 // these entry points are for the replay/analysis side - not for the application.
 
@@ -420,8 +424,17 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(
                                     waitForExit != 0);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename, byte *buf,
-                                                                    uint32_t &len)
+static void writeToByteVector(void *context, void *data, int size)
+{
+  std::vector<byte> *vec = (std::vector<byte> *)context;
+  byte *start = (byte *)data;
+  byte *end = start + size;
+  vec->insert(vec->end(), start, end);
+}
+
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *filename,
+                                                                    FileType type, uint32_t maxsize,
+                                                                    rdctype::array<byte> *buf)
 {
   Serialiser ser(filename, Serialiser::READING, false);
 
@@ -453,20 +466,97 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC RENDERDOC_GetThumbnail(const char *
   if(jpgbuf == NULL)
     return false;
 
-  if(buf == NULL)
+  // if the desired output is jpg and either there's no max size or it's already satisfied,
+  // return the data directly
+  if(type == eFileType_JPG && (maxsize == 0 || (maxsize > thumbwidth && maxsize > thumbheight)))
   {
-    len = (uint32_t)thumblen;
-    delete[] jpgbuf;
-    return true;
+    create_array_init(*buf, thumblen, jpgbuf);
   }
-
-  if(thumblen > len)
+  else
   {
-    delete[] jpgbuf;
-    return false;
-  }
+    // otherwise we need to decode, resample maybe, and re-encode
 
-  memcpy(buf, jpgbuf, thumblen);
+    int w = (int)thumbwidth;
+    int h = (int)thumbheight;
+    int comp = 3;
+    byte *thumbpixels =
+        jpgd::decompress_jpeg_image_from_memory(jpgbuf, (int)thumblen, &w, &h, &comp, 3);
+
+    if(maxsize != 0)
+    {
+      uint32_t clampedWidth = RDCMIN(maxsize, thumbwidth);
+      uint32_t clampedHeight = RDCMIN(maxsize, thumbheight);
+
+      if(clampedWidth != thumbwidth || clampedHeight != thumbheight)
+      {
+        // preserve aspect ratio, take the smallest scale factor and multiply both
+        float scaleX = float(clampedWidth) / float(thumbwidth);
+        float scaleY = float(clampedHeight) / float(thumbheight);
+
+        if(scaleX < scaleY)
+          clampedHeight = uint32_t(scaleX * thumbheight);
+        else if(scaleY < scaleX)
+          clampedWidth = uint32_t(scaleY * thumbwidth);
+
+        byte *resizedpixels = (byte *)malloc(3 * clampedWidth * clampedHeight);
+
+        stbir_resize_uint8_srgb(thumbpixels, thumbwidth, thumbheight, 0, resizedpixels,
+                                clampedWidth, clampedHeight, 0, 3, -1, 0);
+
+        free(thumbpixels);
+
+        thumbpixels = resizedpixels;
+        thumbwidth = clampedWidth;
+        thumbheight = clampedHeight;
+      }
+    }
+
+    std::vector<byte> encodedBytes;
+
+    switch(type)
+    {
+      case eFileType_JPG:
+      {
+        int len = thumbwidth * thumbheight * 3;
+        encodedBytes.resize(len);
+        jpge::params p;
+        p.m_quality = 90;
+        jpge::compress_image_to_jpeg_file_in_memory(&encodedBytes[0], len, (int)thumbwidth,
+                                                    (int)thumbheight, 3, thumbpixels, p);
+        encodedBytes.resize(len);
+        break;
+      }
+      case eFileType_PNG:
+      {
+        stbi_write_png_to_func(&writeToByteVector, &encodedBytes, (int)thumbwidth, (int)thumbheight,
+                               3, thumbpixels, 0);
+        break;
+      }
+      case eFileType_TGA:
+      {
+        stbi_write_tga_to_func(&writeToByteVector, &encodedBytes, (int)thumbwidth, (int)thumbheight,
+                               3, thumbpixels);
+        break;
+      }
+      case eFileType_BMP:
+      {
+        stbi_write_bmp_to_func(&writeToByteVector, &encodedBytes, (int)thumbwidth, (int)thumbheight,
+                               3, thumbpixels);
+        break;
+      }
+      default:
+      {
+        RDCERR("Unsupported file type %d in thumbnail fetch", type);
+        free(thumbpixels);
+        delete[] jpgbuf;
+        return false;
+      }
+    }
+
+    *buf = encodedBytes;
+
+    free(thumbpixels);
+  }
 
   delete[] jpgbuf;
 

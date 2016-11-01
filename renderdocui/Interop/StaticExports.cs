@@ -98,7 +98,7 @@ namespace renderdoc
         private static extern void RENDERDOC_SetConfigSetting(IntPtr name, IntPtr value);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool RENDERDOC_GetThumbnail(IntPtr filename, byte[] outmem, ref UInt32 len);
+        private static extern bool RENDERDOC_GetThumbnail(IntPtr filename, FileType type, UInt32 maxsize, IntPtr outmem);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern IntPtr RENDERDOC_MakeEnvironmentModificationList(int numElems);
@@ -362,13 +362,15 @@ namespace renderdoc
             CustomMarshal.Free(value_mem);
         }
 
-        public static byte[] GetThumbnail(string filename)
+        public static byte[] GetThumbnail(string filename, FileType type, UInt32 maxsize)
         {
             UInt32 len = 0;
 
             IntPtr filename_mem = CustomMarshal.MakeUTF8String(filename);
 
-            bool success = RENDERDOC_GetThumbnail(filename_mem, null, ref len);
+            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            bool success = RENDERDOC_GetThumbnail(filename_mem, type, maxsize, mem);
 
             if (!success || len == 0)
             {
@@ -376,14 +378,9 @@ namespace renderdoc
                 return null;
             }
 
-            byte[] ret = new byte[len];
+            byte[] ret = (byte[])CustomMarshal.GetTemplatedArray(mem, typeof(byte), true);
 
-            success = RENDERDOC_GetThumbnail(filename_mem, ret, ref len);
-
-            CustomMarshal.Free(filename_mem);
-
-            if (!success || len == 0)
-                return null;
+            CustomMarshal.Free(mem);
 
             return ret;
         }

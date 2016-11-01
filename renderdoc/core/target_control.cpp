@@ -127,15 +127,12 @@ void RenderDoc::TargetControlClientThread(void *s)
       ser.Serialise("", captures.back().timestamp);
       ser.Serialise("", path);
 
-      uint32_t len = 0;
-      RENDERDOC_GetThumbnail(captures.back().path.c_str(), NULL, len);
-      byte *thumb = new byte[len];
-      RENDERDOC_GetThumbnail(captures.back().path.c_str(), thumb, len);
+      rdctype::array<byte> buf;
+      RENDERDOC_GetThumbnail(captures.back().path.c_str(), eFileType_JPG, 0, &buf);
 
-      size_t l = len;
-      ser.Serialise("", len);
-      ser.SerialiseBuffer("", thumb, l);
-      delete[] thumb;
+      size_t sz = buf.size();
+      ser.Serialise("", buf.count);
+      ser.SerialiseBuffer("", buf.elems, sz);
     }
     else if(childprocs.size() != children.size())
     {
@@ -596,7 +593,7 @@ public:
         msg->NewCapture.path = path;
         msg->NewCapture.local = m_Local;
 
-        uint32_t thumblen = 0;
+        int32_t thumblen = 0;
         ser->Serialise("", thumblen);
 
         create_array_uninit(msg->NewCapture.thumbnail, thumblen);

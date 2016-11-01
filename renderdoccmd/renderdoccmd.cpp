@@ -197,7 +197,13 @@ struct ThumbCommand : public Command
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.set_footer("<filename.rdc>");
-    parser.add<string>("out", 'o', "The output filename to save the jpg to", false, "filename.jpg");
+    parser.add<string>("out", 'o', "The output filename to save the file to", true, "filename.jpg");
+    parser.add<string>("format", 'f',
+                       "The format of the output file. If empty, detected from filename", false, "",
+                       cmdline::oneof<string>("jpg", "png", "bmp", "tga"));
+    parser.add<uint32_t>(
+        "max-size", 's',
+        "The maximum dimension of the thumbnail. Default is 0, which is unlimited.", false, 0);
   }
   virtual const char *Description() { return "Saves a capture's embedded thumbnail to disk."; }
   virtual bool IsInternalOnly() { return false; }
@@ -214,33 +220,42 @@ struct ThumbCommand : public Command
 
     string filename = parser.rest()[0];
 
-    string jpgname;
+    string outfile = parser.get<string>("out");
 
-    if(parser.exist("out"))
+    string format = parser.get<string>("format");
+
+    FileType type = eFileType_JPG;
+
+    if(format == "png")
     {
-      jpgname = parser.get<string>("out");
+      type = eFileType_PNG;
+    }
+    else if(format == "tga")
+    {
+      type = eFileType_TGA;
+    }
+    else if(format == "bmp")
+    {
+      type = eFileType_BMP;
     }
     else
     {
-      jpgname = filename;
+      const char *dot = strrchr(outfile.c_str(), '.');
 
-      if(jpgname[jpgname.length() - 4] == '.' && jpgname[jpgname.length() - 3] == 'r' &&
-         jpgname[jpgname.length() - 2] == 'd' && jpgname[jpgname.length() - 1] == 'c')
-      {
-        jpgname.pop_back();
-        jpgname.pop_back();
-        jpgname.pop_back();
-
-        jpgname += "jpg";
-      }
+      if(dot != NULL && strstr(dot, "png"))
+        type = eFileType_PNG;
+      else if(dot != NULL && strstr(dot, "tga"))
+        type = eFileType_TGA;
+      else if(dot != NULL && strstr(dot, "bmp"))
+        type = eFileType_BMP;
       else
-      {
-        jpgname += ".jpg";
-      }
+        std::cerr << "Couldn't guess format from '" << outfile << "', defaulting to jpg."
+                  << std::endl;
     }
 
-    uint32_t len = 0;
-    bool32 ret = RENDERDOC_GetThumbnail(filename.c_str(), NULL, len);
+    rdctype::array<byte> buf;
+    bool32 ret =
+        RENDERDOC_GetThumbnail(filename.c_str(), type, parser.get<uint32_t>("max-size"), &buf);
 
     if(!ret)
     {
@@ -248,24 +263,19 @@ struct ThumbCommand : public Command
     }
     else
     {
-      byte *jpgbuf = new byte[len];
-      RENDERDOC_GetThumbnail(filename.c_str(), jpgbuf, len);
-
-      FILE *f = fopen(jpgname.c_str(), "wb");
+      FILE *f = fopen(outfile.c_str(), "wb");
 
       if(!f)
       {
-        std::cerr << "Couldn't open destination file '" << jpgname << "'" << std::endl;
+        std::cerr << "Couldn't open destination file '" << outfile << "'" << std::endl;
       }
       else
       {
-        fwrite(jpgbuf, 1, len, f);
+        fwrite(buf.elems, 1, buf.count, f);
         fclose(f);
 
-        std::cout << "Wrote thumbnail from '" << filename << "' to '" << jpgname << "'." << std::endl;
+        std::cout << "Wrote thumbnail from '" << filename << "' to '" << outfile << "'." << std::endl;
       }
-
-      delete[] jpgbuf;
     }
 
     return 0;
