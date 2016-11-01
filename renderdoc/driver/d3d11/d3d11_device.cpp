@@ -2755,7 +2755,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
       }
     }
 
-    const uint32_t maxSize = 1024;
+    const uint32_t maxSize = 2048;
 
     byte *thpixels = NULL;
     uint32_t thwidth = 0;
@@ -2937,8 +2937,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
       jpgbuf = new byte[len];
 
       jpge::params p;
-
-      p.m_quality = 40;
+      p.m_quality = 80;
 
       bool success = jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3,
                                                                  thpixels, p);

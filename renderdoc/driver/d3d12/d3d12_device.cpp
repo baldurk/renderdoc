@@ -1235,7 +1235,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   uint32_t thwidth = 0;
   uint32_t thheight = 0;
 
-  const uint32_t maxSize = 1024;
+  const uint32_t maxSize = 2048;
 
   // gather backbuffer screenshot
   if(backbuffer != NULL)
@@ -1422,8 +1422,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
     jpgbuf = new byte[len];
 
     jpge::params p;
-
-    p.m_quality = 40;
+    p.m_quality = 80;
 
     bool success =
         jpge::compress_image_to_jpeg_file_in_memory(jpgbuf, len, thwidth, thheight, 3, thpixels, p);
