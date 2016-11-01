@@ -46,7 +46,7 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
 * `stb <https://github.com/nothings/stb>`_ - Released to the Public Domain by Sean Barrett.
 
-  Used to read and write various image formats.
+  Used to read, write and resize various image formats.
 
 * `Source Code Pro <https://github.com/adobe-fonts/source-code-pro>`_ - Copyright 2010, 2012 Adobe Systems Incorporated, distributed under the SIL Open Font License 1.1.
 

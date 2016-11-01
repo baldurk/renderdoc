@@ -225,6 +225,7 @@
     <ClInclude Include="3rdparty\lz4\lz4.h" />
     <ClInclude Include="3rdparty\plthook\plthook.h" />
     <ClInclude Include="3rdparty\stb\stb_image.h" />
+    <ClInclude Include="3rdparty\stb\stb_image_resize.h" />
     <ClInclude Include="3rdparty\stb\stb_image_write.h" />
     <ClInclude Include="3rdparty\stb\stb_truetype.h" />
     <ClInclude Include="3rdparty\tinyexr\tinyexr.h" />
