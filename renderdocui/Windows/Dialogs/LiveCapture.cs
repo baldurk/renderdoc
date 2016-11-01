@@ -161,7 +161,7 @@ namespace renderdocui.Windows
 
                 if (m_Connection.Connected)
                 {
-                    string api = "...";
+                    string api = "No API detected";
                     if (m_Connection.API.Length > 0) api = m_Connection.API;
                     this.BeginInvoke((MethodInvoker)delegate
                     {
