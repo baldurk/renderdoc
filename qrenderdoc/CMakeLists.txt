@@ -10,3 +10,10 @@ add_custom_command(OUTPUT QRenderDoc
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc)
 
 install (PROGRAMS ${output_dir}/qrenderdoc DESTINATION bin)
+
+# Install supporting files for file associations etc
+install (PROGRAMS share/application-x-renderdoc-capture.svg DESTINATION share/icons/hicolor/scalable/mimetypes/)
+install (PROGRAMS share/magic DESTINATION share/doc/renderdoc)
+install (PROGRAMS share/renderdoc.desktop DESTINATION share/applications)
+install (PROGRAMS share/renderdoc.thumbnailer DESTINATION share/thumbnailers)
+install (PROGRAMS share/renderdoc-capture.xml DESTINATION share/mime/packages)
