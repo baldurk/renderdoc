@@ -506,7 +506,7 @@ struct CrashHandlerCommand : public Command
     Sleep(100);
 
     wstring dumpFolder = tempPath;
-    dumpFolder += L"RenderDocDumps";
+    dumpFolder += L"RenderDoc/dumps";
 
     CreateDirectoryW(dumpFolder.c_str(), NULL);
 

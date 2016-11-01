@@ -292,15 +292,13 @@ void RenderDoc::Initialise()
 
     const char *base = "RenderDoc_app";
     if(IsReplayApp())
-      base = "RenderDoc_replay";
+      base = "RenderDoc";
 
     FileIO::GetDefaultFiles(base, capture_filename, m_LoggingFilename, m_Target);
 
     if(m_LogFile.empty())
       SetLogFile(capture_filename.c_str());
 
-    string existingLog = RDCGETLOGFILE();
-    FileIO::Copy(existingLog.c_str(), m_LoggingFilename.c_str(), true);
     RDCLOGFILE(m_LoggingFilename.c_str());
   }
 
@@ -358,6 +356,8 @@ RenderDoc::~RenderDoc()
       RDCLOG("'Leaking' unretrieved capture %s", m_Captures[i].path.c_str());
     }
   }
+
+  RDCSTOPLOGGING();
 
   FileIO::Delete(m_LoggingFilename.c_str());
 

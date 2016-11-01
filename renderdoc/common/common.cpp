@@ -252,24 +252,40 @@ uint64_t Log2Floor(uint64_t value)
 }
 #endif
 
-static string &logfile()
-{
-  // deliberately leak this so that it doesn't get destructed while we're still logging in process
-  // teardown.
-  static string *fn = new string;
-  return *fn;
-}
+static string logfile;
+static void *logfileHandle = NULL;
 
 const char *rdclog_getfilename()
 {
-  return logfile().c_str();
+  return logfile.c_str();
 }
 
 void rdclog_filename(const char *filename)
 {
-  logfile() = "";
+  string previous = logfile;
+
+  logfile = "";
   if(filename && filename[0])
-    logfile() = filename;
+    logfile = filename;
+
+  FileIO::logfile_close(logfileHandle);
+
+  if(!logfile.empty())
+  {
+    logfileHandle = FileIO::logfile_open(filename);
+
+    if(logfileHandle && previous.c_str())
+    {
+      vector<unsigned char> previousContents;
+      FileIO::slurp(previous.c_str(), previousContents);
+
+      if(!previousContents.empty())
+        FileIO::logfile_append(logfileHandle, (const char *)&previousContents[0],
+                               previousContents.size());
+
+      FileIO::Delete(previous.c_str());
+    }
+  }
 }
 
 static bool log_output_enabled = false;
@@ -277,6 +293,13 @@ static bool log_output_enabled = false;
 void rdclog_enableoutput()
 {
   log_output_enabled = true;
+}
+
+void rdclog_closelog()
+{
+  log_output_enabled = false;
+  if(logfileHandle)
+    FileIO::logfile_close(logfileHandle);
 }
 
 void rdclog_flush()
@@ -303,15 +326,10 @@ void rdclogprint_int(LogType type, const char *fullMsg, const char *msg)
     OSUtility::WriteOutput(OSUtility::Output_StdErr, msg);
 #endif
 #if defined(OUTPUT_LOG_TO_DISK)
-  if(!logfile().empty())
+  if(logfileHandle)
   {
-    FILE *f = FileIO::fopen(logfile().c_str(), "a");
-    if(f)
-    {
-      // strlen used as byte length - str is UTF-8 so this is NOT number of characters
-      FileIO::fwrite(fullMsg, 1, strlen(fullMsg), f);
-      FileIO::fclose(f);
-    }
+    // strlen used as byte length - str is UTF-8 so this is NOT number of characters
+    FileIO::logfile_append(logfileHandle, fullMsg, strlen(fullMsg));
   }
 #endif
 }
@@ -356,8 +374,9 @@ void rdclog_int(LogType type, const char *project, const char *file, unsigned in
   char *output = rdclog_outputBuffer;
   size_t available = rdclog_outBufSize;
 
-  int numWritten = StringFormat::snprintf(output, available, "% 4s: %s%s%s - ", project, timestamp,
-                                          location, typestr[type]);
+  int numWritten =
+      StringFormat::snprintf(output, available, "% 4s %06u: %s%s%s - ", project,
+                             Process::GetCurrentPID(), timestamp, location, typestr[type]);
 
   if(numWritten < 0)
   {

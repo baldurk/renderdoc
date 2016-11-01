@@ -154,39 +154,45 @@ void Process::ApplyEnvironmentModification()
 }
 
 // helpers for various shims and dlls etc, not part of the public API
-extern "C" __declspec(dllexport) void __cdecl RENDERDOC_GetTargetControlIdent(uint32_t *ident)
+extern "C" __declspec(dllexport) void __cdecl INTERNAL_GetTargetControlIdent(uint32_t *ident)
 {
   if(ident)
     *ident = RenderDoc::Inst().GetTargetControlIdent();
 }
 
-extern "C" __declspec(dllexport) void __cdecl RENDERDOC_SetCaptureOptions(CaptureOptions *opts)
+extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetCaptureOptions(CaptureOptions *opts)
 {
   if(opts)
     RenderDoc::Inst().SetCaptureOptions(*opts);
 }
 
-extern "C" __declspec(dllexport) void __cdecl RENDERDOC_SetLogFile(const char *log)
+extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetLogFile(const char *log)
 {
   if(log)
     RenderDoc::Inst().SetLogFile(log);
 }
 
+extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetDebugLogFile(const char *log)
+{
+  if(log)
+    RDCLOGFILE(log);
+}
+
 static Process::EnvironmentModification tempEnvMod;
 
-extern "C" __declspec(dllexport) void __cdecl RENDERDOC_EnvModName(const char *name)
+extern "C" __declspec(dllexport) void __cdecl INTERNAL_EnvModName(const char *name)
 {
   if(name)
     tempEnvMod.name = name;
 }
 
-extern "C" __declspec(dllexport) void __cdecl RENDERDOC_EnvModValue(const char *value)
+extern "C" __declspec(dllexport) void __cdecl INTERNAL_EnvModValue(const char *value)
 {
   if(value)
     tempEnvMod.value = value;
 }
 
-extern "C" __declspec(dllexport) void __cdecl RENDERDOC_EnvMod(Process::ModificationType *type)
+extern "C" __declspec(dllexport) void __cdecl INTERNAL_EnvMod(Process::ModificationType *type)
 {
   if(type)
   {
@@ -195,7 +201,7 @@ extern "C" __declspec(dllexport) void __cdecl RENDERDOC_EnvMod(Process::Modifica
   }
 }
 
-extern "C" __declspec(dllexport) void __cdecl RENDERDOC_ApplyEnvMods(void *ignored)
+extern "C" __declspec(dllexport) void __cdecl INTERNAL_ApplyEnvMods(void *ignored)
 {
   Process::ApplyEnvironmentModification();
 }
@@ -701,13 +707,18 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
     // safe to cast away the const as we know these functions don't modify the parameters
 
     if(logfile != NULL)
-      InjectFunctionCall(hProcess, loc, "RENDERDOC_SetLogFile", (void *)logfile, strlen(logfile) + 1);
+      InjectFunctionCall(hProcess, loc, "INTERNAL_SetLogFile", (void *)logfile, strlen(logfile) + 1);
+
+    std::string debugLogfile = RDCGETLOGFILE();
+
+    InjectFunctionCall(hProcess, loc, "INTERNAL_SetDebugLogFile", (void *)debugLogfile.c_str(),
+                       debugLogfile.size() + 1);
 
     if(opts != NULL)
-      InjectFunctionCall(hProcess, loc, "RENDERDOC_SetCaptureOptions", (CaptureOptions *)opts,
+      InjectFunctionCall(hProcess, loc, "INTERNAL_SetCaptureOptions", (CaptureOptions *)opts,
                          sizeof(CaptureOptions));
 
-    InjectFunctionCall(hProcess, loc, "RENDERDOC_GetTargetControlIdent", &controlident,
+    InjectFunctionCall(hProcess, loc, "INTERNAL_GetTargetControlIdent", &controlident,
                        sizeof(controlident));
 
     if(env)
@@ -721,17 +732,17 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
         if(name == "")
           break;
 
-        InjectFunctionCall(hProcess, loc, "RENDERDOC_EnvModName", (void *)name.c_str(),
+        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvModName", (void *)name.c_str(),
                            name.size() + 1);
-        InjectFunctionCall(hProcess, loc, "RENDERDOC_EnvModValue", (void *)value.c_str(),
+        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvModValue", (void *)value.c_str(),
                            value.size() + 1);
-        InjectFunctionCall(hProcess, loc, "RENDERDOC_EnvMod", &type, sizeof(type));
+        InjectFunctionCall(hProcess, loc, "INTERNAL_EnvMod", &type, sizeof(type));
 
         env++;
       }
 
       // parameter is unused
-      InjectFunctionCall(hProcess, loc, "RENDERDOC_ApplyEnvMods", env,
+      InjectFunctionCall(hProcess, loc, "INTERNAL_ApplyEnvMods", env,
                          sizeof(EnvironmentModification));
     }
   }
@@ -802,7 +813,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
                                              bool waitForExit)
 {
   void *func =
-      GetProcAddress(GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll"), "RENDERDOC_SetLogFile");
+      GetProcAddress(GetModuleHandleA(STRINGIZE(RDOC_DLL_FILE) ".dll"), "INTERNAL_SetLogFile");
 
   if(func == NULL)
   {

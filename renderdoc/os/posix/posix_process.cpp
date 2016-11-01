@@ -421,6 +421,8 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
       EnvironmentModification(eEnvModification_Replace, "RENDERDOC_LOGFILE", logfile));
   modifications.push_back(
       EnvironmentModification(eEnvModification_Replace, "RENDERDOC_CAPTUREOPTS", optstr.c_str()));
+  modifications.push_back(EnvironmentModification(eEnvModification_Replace,
+                                                  "RENDERDOC_DEBUG_LOG_FILE", RDCGETLOGFILE()));
 
   for(size_t i = 0; i < modifications.size(); i++)
   {

@@ -307,6 +307,12 @@ bool feof(FILE *f);
 
 int fclose(FILE *f);
 
+// functions for atomically appending to a log that may be in use in multiple
+// processes
+void *logfile_open(const char *filename);
+void logfile_append(void *handle, const char *msg, size_t length);
+void logfile_close(void *handle);
+
 // utility functions
 inline bool dump(const char *filename, const void *buffer, size_t size)
 {

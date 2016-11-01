@@ -51,7 +51,7 @@ public:
     GetTempPathW(MAX_PATH - 1, tempPath);
 
     wstring dumpFolder = tempPath;
-    dumpFolder += L"RenderDocDumps";
+    dumpFolder += L"RenderDoc/dumps";
 
     CreateDirectoryW(dumpFolder.c_str(), NULL);
 

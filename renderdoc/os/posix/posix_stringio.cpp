@@ -25,6 +25,7 @@
 #include <dirent.h>
 #include <dlfcn.h>    // for dladdr
 #include <errno.h>
+#include <fcntl.h>
 #include <limits.h>
 #include <pwd.h>
 #include <stdio.h>
@@ -168,17 +169,22 @@ void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &
 
   char temp_filename[2048] = {0};
 
-  snprintf(temp_filename, sizeof(temp_filename) - 1, "%s/%s_%04d.%02d.%02d_%02d.%02d.rdc",
+  snprintf(temp_filename, sizeof(temp_filename) - 1, "%s/RenderDoc/%s_%04d.%02d.%02d_%02d.%02d.rdc",
            temp_folder, mod, 1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour,
            now.tm_min);
 
   capture_filename = string(temp_filename);
 
-  snprintf(temp_filename, sizeof(temp_filename) - 1, "%s/%s_%04d.%02d.%02d_%02d.%02d.%02d.log",
-           temp_folder, logBaseName, 1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour,
-           now.tm_min, now.tm_sec);
+  snprintf(temp_filename, sizeof(temp_filename) - 1,
+           "%s/RenderDoc/%s_%04d.%02d.%02d_%02d.%02d.%02d.log", temp_folder, logBaseName,
+           1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
 
-  logging_filename = string(temp_filename);
+  // set by UI when launching programs so all logging goes to the same file
+  char *logfile_override = getenv("RENDERDOC_DEBUG_LOG_FILE");
+  if(logfile_override)
+    logging_filename = string(logfile_override);
+  else
+    logging_filename = string(temp_filename);
 }
 
 uint64_t GetModifiedTimestamp(const string &filename)
@@ -360,6 +366,30 @@ bool feof(FILE *f)
 int fclose(FILE *f)
 {
   return ::fclose(f);
+}
+
+void *logfile_open(const char *filename)
+{
+  int fd = open(filename, O_APPEND | O_WRONLY | O_CREAT, S_IWRITE);
+  return (void *)(intptr_t)fd;
+}
+
+void logfile_append(void *handle, const char *msg, size_t length)
+{
+  if(handle)
+  {
+    int fd = ((intptr_t)handle & 0xffffffff);
+    write(fd, msg, (unsigned int)length);
+  }
+}
+
+void logfile_close(void *handle)
+{
+  if(handle)
+  {
+    int fd = ((intptr_t)handle & 0xffffffff);
+    close(fd);
+  }
 }
 };
 
