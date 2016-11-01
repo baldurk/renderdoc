@@ -59,6 +59,7 @@ namespace renderdocui.Windows.Dialogs
             ((System.ComponentModel.ISupportInitialize)(scriptEditor)).EndInit();
 
             scriptEditor.KeyDown += new KeyEventHandler(scriptEditor_KeyDown);
+            scriptEditor.TextChanged += new EventHandler(scriptEditor_TextChanged);
 
             newScript.PerformClick();
 
@@ -78,6 +79,11 @@ namespace renderdocui.Windows.Dialogs
             clearCmd_Click(null, null);
 
             EnableButtons(true);
+        }
+
+        void scriptEditor_TextChanged(object sender, EventArgs e)
+        {
+            SetLineNumber(-1);
         }
 
         void scriptEditor_KeyDown(object sender, KeyEventArgs e)
@@ -340,9 +346,16 @@ namespace renderdocui.Windows.Dialogs
             }));
         }
         }
+
+        bool recurse = false;
         
         private void SetLineNumber(int lineNum)
         {
+            if (recurse || me == null || me.scriptEditor == null)
+                return;
+
+            recurse = true;
+
             for (int i = 0; i < me.scriptEditor.Lines.Count; i++)
             {
                 me.scriptEditor.Lines[i].DeleteMarker(0);
@@ -352,6 +365,8 @@ namespace renderdocui.Windows.Dialogs
             {
                 me.scriptEditor.Lines[lineNum].AddMarker(0);
             }
+
+            recurse = false;
         }
 
         private void EnableButtons(bool enable)
