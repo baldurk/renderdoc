@@ -46,13 +46,16 @@
             this.openMenu = new System.Windows.Forms.ToolStripSplitButton();
             this.openToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.newInstanceToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.previewToggle = new System.Windows.Forms.ToolStripButton();
             this.tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
-            this.captures = new System.Windows.Forms.ListView();
             this.flowLayoutPanel1 = new System.Windows.Forms.FlowLayoutPanel();
             this.connectionIcon = new System.Windows.Forms.Label();
             this.connectionStatus = new System.Windows.Forms.Label();
             this.childProcessLabel = new System.Windows.Forms.Label();
             this.childProcesses = new System.Windows.Forms.ListView();
+            this.previewSplit = new System.Windows.Forms.SplitContainer();
+            this.captures = new System.Windows.Forms.ListView();
+            this.preview = new System.Windows.Forms.PictureBox();
             this.rightclickContext = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.openThisCaptureToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.openToolStripMenuItem1 = new System.Windows.Forms.ToolStripMenuItem();
@@ -73,6 +76,11 @@
             this.toolStrip1.SuspendLayout();
             this.tableLayoutPanel1.SuspendLayout();
             this.flowLayoutPanel1.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.previewSplit)).BeginInit();
+            this.previewSplit.Panel1.SuspendLayout();
+            this.previewSplit.Panel2.SuspendLayout();
+            this.previewSplit.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.preview)).BeginInit();
             this.rightclickContext.SuspendLayout();
             this.SuspendLayout();
             // 
@@ -208,7 +216,8 @@
             this.toolStrip1.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
             this.deleteMenu,
             this.saveMenu,
-            this.openMenu});
+            this.openMenu,
+            this.previewToggle});
             this.toolStrip1.Location = new System.Drawing.Point(0, 375);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
@@ -265,17 +274,27 @@
             this.newInstanceToolStripMenuItem.Text = "In &new instance";
             this.newInstanceToolStripMenuItem.Click += new System.EventHandler(this.openNewWindow_Click);
             // 
+            // previewToggle
+            // 
+            this.previewToggle.CheckOnClick = true;
+            this.previewToggle.Image = global::renderdocui.Properties.Resources.zoom;
+            this.previewToggle.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.previewToggle.Name = "previewToggle";
+            this.previewToggle.Size = new System.Drawing.Size(65, 22);
+            this.previewToggle.Text = "Preview";
+            this.previewToggle.CheckedChanged += new System.EventHandler(this.previewToggle_CheckedChanged);
+            // 
             // tableLayoutPanel1
             // 
             this.tableLayoutPanel1.ColumnCount = 1;
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.tableLayoutPanel1.Controls.Add(this.captures, 0, 5);
             this.tableLayoutPanel1.Controls.Add(this.flowLayoutPanel1, 0, 0);
             this.tableLayoutPanel1.Controls.Add(label1, 0, 4);
             this.tableLayoutPanel1.Controls.Add(groupBox1, 0, 1);
             this.tableLayoutPanel1.Controls.Add(this.toolStrip1, 0, 6);
             this.tableLayoutPanel1.Controls.Add(this.childProcessLabel, 0, 2);
             this.tableLayoutPanel1.Controls.Add(this.childProcesses, 0, 3);
+            this.tableLayoutPanel1.Controls.Add(this.previewSplit, 0, 5);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
@@ -289,23 +308,6 @@
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.Size = new System.Drawing.Size(362, 400);
             this.tableLayoutPanel1.TabIndex = 0;
-            // 
-            // captures
-            // 
-            this.captures.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.captures.FullRowSelect = true;
-            this.captures.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
-            this.captures.Location = new System.Drawing.Point(3, 221);
-            this.captures.Name = "captures";
-            this.captures.Size = new System.Drawing.Size(356, 151);
-            this.captures.TabIndex = 6;
-            this.captures.TileSize = new System.Drawing.Size(300, 100);
-            this.captures.UseCompatibleStateImageBehavior = false;
-            this.captures.View = System.Windows.Forms.View.Tile;
-            this.captures.ItemSelectionChanged += new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.captures_ItemSelectionChanged);
-            this.captures.KeyUp += new System.Windows.Forms.KeyEventHandler(this.captures_KeyUp);
-            this.captures.MouseClick += new System.Windows.Forms.MouseEventHandler(this.captures_MouseClick);
-            this.captures.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.captures_MouseDoubleClick);
             // 
             // flowLayoutPanel1
             // 
@@ -359,6 +361,57 @@
             this.childProcesses.UseCompatibleStateImageBehavior = false;
             this.childProcesses.View = System.Windows.Forms.View.Tile;
             this.childProcesses.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.childProcesses_MouseDoubleClick);
+            // 
+            // previewSplit
+            // 
+            this.previewSplit.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.previewSplit.Location = new System.Drawing.Point(3, 221);
+            this.previewSplit.Name = "previewSplit";
+            this.previewSplit.Orientation = System.Windows.Forms.Orientation.Horizontal;
+            // 
+            // previewSplit.Panel1
+            // 
+            this.previewSplit.Panel1.Controls.Add(this.captures);
+            this.previewSplit.Panel1MinSize = 200;
+            // 
+            // previewSplit.Panel2
+            // 
+            this.previewSplit.Panel2.AutoScroll = true;
+            this.previewSplit.Panel2.BackColor = System.Drawing.Color.White;
+            this.previewSplit.Panel2.Controls.Add(this.preview);
+            this.previewSplit.Panel2Collapsed = true;
+            this.previewSplit.Size = new System.Drawing.Size(356, 151);
+            this.previewSplit.SplitterDistance = 126;
+            this.previewSplit.TabIndex = 10;
+            // 
+            // captures
+            // 
+            this.captures.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.captures.FullRowSelect = true;
+            this.captures.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
+            this.captures.Location = new System.Drawing.Point(0, 0);
+            this.captures.Name = "captures";
+            this.captures.Size = new System.Drawing.Size(356, 151);
+            this.captures.TabIndex = 7;
+            this.captures.TileSize = new System.Drawing.Size(300, 100);
+            this.captures.UseCompatibleStateImageBehavior = false;
+            this.captures.View = System.Windows.Forms.View.Tile;
+            this.captures.ItemSelectionChanged += new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.captures_ItemSelectionChanged);
+            this.captures.KeyUp += new System.Windows.Forms.KeyEventHandler(this.captures_KeyUp);
+            this.captures.MouseClick += new System.Windows.Forms.MouseEventHandler(this.captures_MouseClick);
+            this.captures.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.captures_MouseDoubleClick);
+            // 
+            // preview
+            // 
+            this.preview.BackColor = System.Drawing.Color.White;
+            this.preview.Location = new System.Drawing.Point(0, 0);
+            this.preview.Name = "preview";
+            this.preview.Size = new System.Drawing.Size(16, 16);
+            this.preview.SizeMode = System.Windows.Forms.PictureBoxSizeMode.AutoSize;
+            this.preview.TabIndex = 1;
+            this.preview.TabStop = false;
+            this.preview.MouseDown += new System.Windows.Forms.MouseEventHandler(this.preview_MouseDown);
+            this.preview.MouseMove += new System.Windows.Forms.MouseEventHandler(this.preview_MouseMove);
             // 
             // rightclickContext
             // 
@@ -439,6 +492,12 @@
             this.tableLayoutPanel1.PerformLayout();
             this.flowLayoutPanel1.ResumeLayout(false);
             this.flowLayoutPanel1.PerformLayout();
+            this.previewSplit.Panel1.ResumeLayout(false);
+            this.previewSplit.Panel2.ResumeLayout(false);
+            this.previewSplit.Panel2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)(this.previewSplit)).EndInit();
+            this.previewSplit.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.preview)).EndInit();
             this.rightclickContext.ResumeLayout(false);
             this.ResumeLayout(false);
 
@@ -464,7 +523,6 @@
         private System.Windows.Forms.NumericUpDown captureFrame;
         private System.Windows.Forms.NumericUpDown captureDelay;
         private System.Windows.Forms.Button triggerCapture;
-        private System.Windows.Forms.ListView captures;
         private System.Windows.Forms.ToolStripButton deleteMenu;
         private System.Windows.Forms.ToolStripButton saveMenu;
         private System.Windows.Forms.ToolStripSplitButton openMenu;
@@ -472,5 +530,9 @@
         private System.Windows.Forms.ToolStripMenuItem newInstanceToolStripMenuItem;
         private System.Windows.Forms.NumericUpDown numFrames;
         private System.Windows.Forms.ToolStrip toolStrip1;
+        private System.Windows.Forms.ToolStripButton previewToggle;
+        private System.Windows.Forms.SplitContainer previewSplit;
+        private System.Windows.Forms.ListView captures;
+        private System.Windows.Forms.PictureBox preview;
     }
 }

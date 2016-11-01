@@ -76,6 +76,8 @@ namespace renderdocui.Windows
             public string api;
             public DateTime timestamp;
 
+            public Image thumb;
+
             public bool saved;
             public bool opened;
 
@@ -374,7 +376,21 @@ namespace renderdocui.Windows
                 (captures.SelectedItems.Count == 1);
 
             if(captures.SelectedItems.Count == 1)
-                newInstanceToolStripMenuItem.Enabled = (captures.SelectedItems[0].Tag as CaptureLog).local;
+            {
+                CaptureLog cap = captures.SelectedItems[0].Tag as CaptureLog;
+
+                newInstanceToolStripMenuItem.Enabled = cap.local;
+
+                if (cap.thumb != null)
+                {
+                    preview.Image = cap.thumb;
+                }
+                else
+                {
+                    preview.Image = null;
+                    preview.Size = new Size(16, 16);
+                }
+            }
         }
 
         private void captures_MouseDoubleClick(object sender, MouseEventArgs e)
@@ -730,6 +746,10 @@ namespace renderdocui.Windows
             {
                 deleteCapture_Click(sender, null);
             }
+            if (e.KeyCode == Keys.Return || e.KeyCode == Keys.Enter)
+            {
+                openCapture_Click(sender, null);
+            }
         }
 
         private void CaptureCopied(uint ID, string localPath)
@@ -771,6 +791,18 @@ namespace renderdocui.Windows
             log.exe = executable;
             log.api = api;
             log.timestamp = timestamp;
+            log.thumb = null;
+            try
+            {
+                if (thumbnail != null && thumbnail.Length != 0)
+                {
+                    using (var ms = new MemoryStream(thumbnail))
+                        log.thumb = Image.FromStream(ms);
+                }
+            }
+            catch (ArgumentException)
+            {
+            }
             log.saved = false;
             log.path = path;
             log.local = local;
@@ -935,5 +967,39 @@ namespace renderdocui.Windows
             Text = (m_Host.Length > 0 ? (m_Host + " - ") : "") + title;
         }
 
+        private void previewToggle_CheckedChanged(object sender, EventArgs e)
+        {
+            previewSplit.Panel2Collapsed = !previewToggle.Checked;
+        }
+
+        private Point previewDragStart = Point.Empty;
+
+        private void preview_MouseDown(object sender, MouseEventArgs e)
+        {
+            Point mouse = preview.PointToScreen(e.Location);
+            if (e.Button == MouseButtons.Left)
+            {
+                previewDragStart = mouse;
+                preview.Cursor = Cursors.NoMove2D;
+            }
+        }
+
+        private void preview_MouseMove(object sender, MouseEventArgs e)
+        {
+            Point mouse = preview.PointToScreen(e.Location);
+            if (e.Button == MouseButtons.Left)
+            {
+                SuspendLayout();
+                Point p = previewSplit.Panel2.AutoScrollPosition;
+                previewSplit.Panel2.AutoScrollPosition = new Point(-(p.X + mouse.X - previewDragStart.X),
+                                                                   -(p.Y + mouse.Y - previewDragStart.Y));
+                previewDragStart = mouse;
+                ResumeLayout();
+            }
+            else
+            {
+                preview.Cursor = Cursors.Default;
+            }
+        }
     }
 }
