@@ -485,9 +485,9 @@ namespace renderdocui.Windows
             {
                 for (int i = 0; i < m_ShaderDetails.ConstantBlocks.Length; i++)
                 {
-                    var stem = string.Format("cb{0}", i);
-
                     var cbuf = m_ShaderDetails.ConstantBlocks[i];
+
+                    var stem = string.Format("cb{0}", cbuf.bindPoint);
 
                     if (cbuf.variables.Length == 0)
                         continue;

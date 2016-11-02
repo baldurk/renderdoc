@@ -577,8 +577,8 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
     trace.cbuffers[i] = vars;
 
     for(int32_t c = 0; c < trace.cbuffers[i].count; c++)
-      trace.cbuffers[i][c].name = StringFormat::Fmt("cb%u[%u] (%s)", (uint32_t)i, (uint32_t)c,
-                                                    trace.cbuffers[i][c].name.elems);
+      trace.cbuffers[i][c].name = StringFormat::Fmt("cb%u[%u] (%s)", dxbc->m_CBuffers[i].reg,
+                                                    (uint32_t)c, trace.cbuffers[i][c].name.elems);
   }
 
   initialState.Init();
