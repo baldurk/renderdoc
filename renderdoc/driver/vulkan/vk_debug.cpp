@@ -897,7 +897,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
       FontGlyphData *glyphData = (FontGlyphData *)m_TextGlyphUBO.Map();
 
-      for(int i = 0; i < numChars; i++)
+      glyphData[0].posdata = Vec4f();
+      glyphData[0].uvdata = Vec4f();
+
+      for(int i = 1; i < numChars; i++)
       {
         stbtt_bakedchar *b = chardata + i;
 
