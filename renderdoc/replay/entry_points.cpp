@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <sstream>
 #include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 #include "core/core.h"
@@ -31,6 +32,7 @@
 #include "maths/formatpacking.h"
 #include "replay/replay_renderer.h"
 #include "serialise/serialiser.h"
+#include "serialise/string_utils.h"
 
 // these entry points are for the replay/analysis side - not for the application.
 
@@ -590,4 +592,52 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const ch
     return;
 
   rdoc->EndFrameCapture(NULL, NULL);
+}
+
+string adbExecCommand(const string &args)
+{
+  string adbExePath = RenderDoc::Inst().GetConfigSetting("adbExePath");
+  Process::ProcessResult result;
+  Process::LaunchProcess(adbExePath.c_str(), "", args.c_str(), &result);
+  RDCLOG("COMMAND: adb %s", args.c_str());
+  if(result.strStdout.length())
+    // This could be an error (i.e. no package), or just regular output from adb devices.
+    RDCLOG("STDOUT:\n%s", result.strStdout.c_str());
+  return result.strStdout;
+}
+void adbForwardPorts()
+{
+  adbExecCommand(StringFormat::Fmt("forward tcp:%i tcp:%i",
+                                   RenderDoc_RemoteServerPort + RenderDoc_AndroidPortOffset,
+                                   RenderDoc_RemoteServerPort));
+  adbExecCommand(StringFormat::Fmt("forward tcp:%i tcp:%i",
+                                   RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset,
+                                   RenderDoc_FirstTargetControlPort));
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdctype::str *deviceList)
+{
+  string adbStdout = adbExecCommand("devices");
+
+  using namespace std;
+  istringstream stdoutStream(adbStdout);
+  string ret;
+  string line;
+  while(getline(stdoutStream, line))
+  {
+    vector<string> tokens;
+    split(line, tokens, '\t');
+    if(tokens.size() == 2 && trim(tokens[1]) == "device")
+    {
+      if(ret.length())
+        ret += ",";
+      ret += tokens[0];
+    }
+  }
+
+  if(ret.size())
+    adbForwardPorts();    // Forward the ports so we can see if a remoteserver/captured app is
+                          // already running.
+
+  *deviceList = ret;
 }

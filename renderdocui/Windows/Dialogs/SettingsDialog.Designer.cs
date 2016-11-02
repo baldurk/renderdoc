@@ -56,6 +56,9 @@
             System.Windows.Forms.Label label9;
             System.Windows.Forms.Label label16;
             System.Windows.Forms.Label label17;
+            System.Windows.Forms.GroupBox groupBox7;
+            System.Windows.Forms.TableLayoutPanel tableLayoutPanel8;
+            System.Windows.Forms.Label label36;
             TreelistView.TreeListColumn treeListColumn3 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Section", "Section")));
             this.settingsTabs = new renderdocui.Controls.TablessControl();
             this.generalTab = new System.Windows.Forms.TabPage();
@@ -100,6 +103,9 @@
             this.EventBrowser_HideEmpty = new System.Windows.Forms.CheckBox();
             this.EventBrowser_ApplyColours = new System.Windows.Forms.CheckBox();
             this.EventBrowser_ColourEventRow = new System.Windows.Forms.CheckBox();
+            this.androidTab = new System.Windows.Forms.TabPage();
+            this.browseAdbPath = new System.Windows.Forms.Button();
+            this.adbPath = new System.Windows.Forms.TextBox();
             this.pagesTree = new TreelistView.TreeListView();
             this.ok = new System.Windows.Forms.Button();
             this.toolTip = new System.Windows.Forms.ToolTip(this.components);
@@ -131,6 +137,9 @@
             label9 = new System.Windows.Forms.Label();
             label16 = new System.Windows.Forms.Label();
             label17 = new System.Windows.Forms.Label();
+            groupBox7 = new System.Windows.Forms.GroupBox();
+            tableLayoutPanel8 = new System.Windows.Forms.TableLayoutPanel();
+            label36 = new System.Windows.Forms.Label();
             tableLayoutPanel1.SuspendLayout();
             this.settingsTabs.SuspendLayout();
             this.generalTab.SuspendLayout();
@@ -182,6 +191,7 @@
             this.settingsTabs.Controls.Add(this.texViewTab);
             this.settingsTabs.Controls.Add(this.shadViewTab);
             this.settingsTabs.Controls.Add(this.eventTab);
+            this.settingsTabs.Controls.Add(this.androidTab);
             this.settingsTabs.Dock = System.Windows.Forms.DockStyle.Fill;
             this.settingsTabs.Location = new System.Drawing.Point(164, 3);
             this.settingsTabs.Multiline = true;
@@ -1157,6 +1167,93 @@
             this.EventBrowser_ColourEventRow.UseVisualStyleBackColor = true;
             this.EventBrowser_ColourEventRow.CheckedChanged += new System.EventHandler(this.EventBrowser_ColourEventRow_CheckedChanged);
             // 
+            // androidTab
+            //
+            this.androidTab.Controls.Add(groupBox7);
+            this.androidTab.Location = new System.Drawing.Point(25, 4);
+            this.androidTab.Name = "tabPage1";
+            this.androidTab.Padding = new System.Windows.Forms.Padding(3);
+            this.androidTab.Size = new System.Drawing.Size(465, 503);
+            this.androidTab.TabIndex = 5;
+            this.androidTab.Text = "Android";
+            this.androidTab.UseVisualStyleBackColor = true;
+            //
+            // groupBox7
+            //
+            groupBox7.Controls.Add(tableLayoutPanel8);
+            groupBox7.Dock = System.Windows.Forms.DockStyle.Fill;
+            groupBox7.Location = new System.Drawing.Point(3, 3);
+            groupBox7.Margin = new System.Windows.Forms.Padding(4);
+            groupBox7.Name = "groupBox7";
+            groupBox7.Padding = new System.Windows.Forms.Padding(4);
+            groupBox7.Size = new System.Drawing.Size(459, 497);
+            groupBox7.TabIndex = 1;
+            groupBox7.TabStop = false;
+            groupBox7.Text = "Android";
+            //
+            // tableLayoutPanel8
+            //
+            tableLayoutPanel8.ColumnCount = 2;
+            tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            tableLayoutPanel8.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            tableLayoutPanel8.Controls.Add(this.browseAdbPath, 1, 1);
+            tableLayoutPanel8.Controls.Add(label36, 0, 0);
+            tableLayoutPanel8.Controls.Add(this.adbPath, 0, 1);
+            tableLayoutPanel8.Dock = System.Windows.Forms.DockStyle.Fill;
+            tableLayoutPanel8.Location = new System.Drawing.Point(4, 19);
+            tableLayoutPanel8.Margin = new System.Windows.Forms.Padding(4);
+            tableLayoutPanel8.Name = "tableLayoutPanel8";
+            tableLayoutPanel8.RowCount = 3;
+            tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            tableLayoutPanel8.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            tableLayoutPanel8.Size = new System.Drawing.Size(451, 474);
+            tableLayoutPanel8.TabIndex = 0;
+            //
+            // browseAdbPath
+            //
+            this.browseAdbPath.Anchor = System.Windows.Forms.AnchorStyles.Right;
+            this.browseAdbPath.Location = new System.Drawing.Point(327, 29);
+            this.browseAdbPath.Margin = new System.Windows.Forms.Padding(4);
+            this.browseAdbPath.Name = "browseAdbPath";
+            this.browseAdbPath.Size = new System.Drawing.Size(120, 28);
+            this.browseAdbPath.TabIndex = 7;
+            this.browseAdbPath.Text = "Browse";
+            this.toolTip.SetToolTip(this.browseAdbPath, "Changes the directory where capture files are saved after being created, until sa" +
+            "ved manually or deleted.\r\n\r\nDefaults to %TEMP%.");
+            this.browseAdbPath.UseVisualStyleBackColor = true;
+            this.browseAdbPath.Click += new System.EventHandler(this.browseAdbPath_Click);
+            //
+            // label36
+            //
+            label36.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+                        | System.Windows.Forms.AnchorStyles.Left)
+                        | System.Windows.Forms.AnchorStyles.Right)));
+            label36.AutoSize = true;
+            label36.Location = new System.Drawing.Point(4, 0);
+            label36.Margin = new System.Windows.Forms.Padding(4, 0, 4, 0);
+            label36.MinimumSize = new System.Drawing.Size(0, 25);
+            label36.Name = "label36";
+            label36.Size = new System.Drawing.Size(315, 25);
+            label36.TabIndex = 14;
+            label36.Text = "Android ADB executable path";
+            label36.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.toolTip.SetToolTip(label36, "Changes the directory where capture files are saved after being created, until sa" +
+            "ved manually or deleted.\r\n\r\nDefaults to %TEMP%.");
+            //
+            // adbPath
+            //
+            this.adbPath.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left)
+                        | System.Windows.Forms.AnchorStyles.Right)));
+            this.adbPath.Location = new System.Drawing.Point(4, 29);
+            this.adbPath.Margin = new System.Windows.Forms.Padding(4);
+            this.adbPath.Name = "adbPath";
+            this.adbPath.Size = new System.Drawing.Size(315, 22);
+            this.adbPath.TabIndex = 24;
+            this.toolTip.SetToolTip(this.adbPath, "Changes the directory where capture files are saved after being created, until sa" +
+            "ved manually or deleted.\r\n\r\nDefaults to %TEMP%.");
+            this.adbPath.TextChanged += new System.EventHandler(this.adbPath_TextChanged);
+            //
             // pagesTree
             // 
             treeListColumn3.AutoSize = true;
@@ -1287,5 +1384,8 @@
         private System.Windows.Forms.Label label23;
         private System.Windows.Forms.Label label22;
         private System.Windows.Forms.Label label24;
+        private System.Windows.Forms.TabPage androidTab;
+        private System.Windows.Forms.Button browseAdbPath;
+        private System.Windows.Forms.TextBox adbPath;
     }
 }

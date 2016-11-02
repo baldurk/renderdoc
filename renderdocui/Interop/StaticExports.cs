@@ -111,6 +111,9 @@ namespace renderdoc
         private static extern void RENDERDOC_FreeEnvironmentModificationList(IntPtr mem);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern ReplaySupport RENDERDOC_EnumerateAndroidDevices(IntPtr driverName);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RENDERDOC_StartSelfHostCapture(IntPtr dllname);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -393,6 +396,18 @@ namespace renderdoc
             CustomMarshal.Free(mem);
 
             return ret;
+        }
+
+        public static string[] EnumerateAndroidDevices()
+        {
+          IntPtr driverListInt = CustomMarshal.Alloc(typeof(templated_array));
+
+          RENDERDOC_EnumerateAndroidDevices(driverListInt);
+
+          string driverList = CustomMarshal.TemplatedArrayToString(driverListInt, true);
+          CustomMarshal.Free(driverListInt);
+
+          return driverList.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries);
         }
     }
 }
