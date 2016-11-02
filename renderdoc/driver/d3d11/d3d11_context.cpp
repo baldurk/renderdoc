@@ -797,6 +797,8 @@ void WrappedID3D11DeviceContext::ProcessChunk(uint64_t offset, D3D11ChunkType ch
         draw.name = "Present()";
         draw.flags |= eDraw_Present;
 
+        draw.copyDestination = m_pDevice->GetBackbufferResourceID();
+
         AddDrawcall(draw, true);
       }
     }

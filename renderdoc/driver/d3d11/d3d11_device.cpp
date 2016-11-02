@@ -2500,6 +2500,8 @@ bool WrappedID3D11Device::Serialise_WrapSwapchainBuffer(WrappedIDXGISwapChain4 *
   SERIALISE_ELEMENT(uint32_t, BuffNum, buffer);
   SERIALISE_ELEMENT(ResourceId, pTexture, GetIDForResource(pTex));
 
+  m_BBID = pTexture;
+
   if(m_State >= WRITING)
   {
     D3D11_TEXTURE2D_DESC desc;

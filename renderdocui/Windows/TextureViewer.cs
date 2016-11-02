@@ -98,7 +98,7 @@ namespace renderdocui.Windows
             public static void GetDrawContext(Core core, out bool copy, out bool compute)
             {
                 var curDraw = core.CurDrawcall;
-                copy = curDraw != null && (curDraw.flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve)) != 0;
+                copy = curDraw != null && (curDraw.flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve | DrawcallFlags.Present)) != 0;
                 compute = curDraw != null && (curDraw.flags & DrawcallFlags.Dispatch) != 0 &&
                           core.CurPipelineState.GetShader(ShaderStageType.Compute) != ResourceId.Null;
             }
@@ -1420,7 +1420,7 @@ namespace renderdocui.Windows
             int roIndex = 0;
 
             var curDraw = m_Core.GetDrawcall(eventID);
-            bool copy = curDraw != null && (curDraw.flags & (DrawcallFlags.Copy|DrawcallFlags.Resolve)) != 0;
+            bool copy = curDraw != null && (curDraw.flags & (DrawcallFlags.Copy|DrawcallFlags.Resolve|DrawcallFlags.Present)) != 0;
             bool compute = curDraw != null && (curDraw.flags & (DrawcallFlags.Dispatch)) != 0;
 
             for(int rt=0; rt < RTs.Length; rt++)

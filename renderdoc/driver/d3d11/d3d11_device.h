@@ -340,6 +340,8 @@ private:
 
   D3D11InitParams m_InitParams;
 
+  ResourceId m_BBID;
+
   ID3D11Device *m_pDevice;
   ID3D11Device1 *m_pDevice1;
   ID3D11Device2 *m_pDevice2;
@@ -525,6 +527,7 @@ public:
   void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap, UINT QueueCount,
                                  IUnknown *const *ppPresentQueue, IUnknown **unwrappedQueues);
 
+  ResourceId GetBackbufferResourceID() { return m_BBID; }
   void InternalRef() { InterlockedIncrement(&m_InternalRefcount); }
   void InternalRelease() { InterlockedDecrement(&m_InternalRefcount); }
   void SoftRef() { m_SoftRefCounter.AddRef(); }
