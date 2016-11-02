@@ -20,7 +20,7 @@ Quick Links:
 * **Roadmap/future development**: [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
 * **Starting place for developing/contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
 * **How to compile**: [Compilation instructions](CONTRIBUTING.md#compiling)
-* **Code of Conduct**: [Contributor Covenent](CODE_OF_CONDUCT.md)
+* **Code of Conduct**: [Contributor Covenant](CODE_OF_CONDUCT.md)
 
 Screenshots
 --------------
