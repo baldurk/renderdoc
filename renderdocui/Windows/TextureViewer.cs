@@ -3670,7 +3670,7 @@ namespace renderdocui.Windows
             m_SaveDialog.saveData.comp.blackPoint = m_TexDisplay.rangemin;
             m_SaveDialog.saveData.comp.whitePoint = m_TexDisplay.rangemax;
             m_SaveDialog.saveData.alphaCol = m_TexDisplay.lightBackgroundColour;
-            m_SaveDialog.saveData.alpha = m_TexDisplay.Alpha ? AlphaMapping.BlendToCheckerboard : AlphaMapping.Discard;
+            m_SaveDialog.saveData.alpha = m_TexDisplay.Alpha ? AlphaMapping.Preserve : AlphaMapping.Discard;
             if (m_TexDisplay.Alpha && !checkerBack.Checked) m_SaveDialog.saveData.alpha = AlphaMapping.BlendToColour;
             m_SaveDialog.tex = CurrentTexture;
 

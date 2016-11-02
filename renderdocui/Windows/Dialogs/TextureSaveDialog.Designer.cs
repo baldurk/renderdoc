@@ -275,10 +275,6 @@
             // 
             this.alphaMap.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.alphaMap.FormattingEnabled = true;
-            this.alphaMap.Items.AddRange(new object[] {
-            "Discard",
-            "Blend to Colour",
-            "Blend to Checkerboard"});
             this.alphaMap.Location = new System.Drawing.Point(89, 3);
             this.alphaMap.Name = "alphaMap";
             this.alphaMap.Size = new System.Drawing.Size(148, 21);

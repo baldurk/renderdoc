@@ -1013,12 +1013,20 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
     }
     else if(sd.destType == eFileType_PNG)
     {
+      // discard alpha if requested
+      for(uint32_t p = 0; sd.alpha == eAlphaMap_Discard && p < td.width * td.height; p++)
+        subdata[0][p * 4 + 3] = 255;
+
       int ret = stbi_write_png_to_func(fileWriteFunc, (void *)f, td.width, td.height, numComps,
                                        subdata[0], rowPitch);
       success = (ret != 0);
     }
     else if(sd.destType == eFileType_TGA)
     {
+      // discard alpha if requested
+      for(uint32_t p = 0; sd.alpha == eAlphaMap_Discard && p < td.width * td.height; p++)
+        subdata[0][p * 4 + 3] = 255;
+
       int ret = stbi_write_tga_to_func(fileWriteFunc, (void *)f, td.width, td.height, numComps,
                                        subdata[0]);
       success = (ret != 0);

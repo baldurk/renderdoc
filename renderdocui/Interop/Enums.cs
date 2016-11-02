@@ -191,6 +191,7 @@ namespace renderdoc
         Discard,
         BlendToColour,
         BlendToCheckerboard,
+        Preserve,
     };
 
     public enum SpecialFormat

@@ -188,6 +188,7 @@ enum AlphaMapping
   eAlphaMap_Discard,
   eAlphaMap_BlendToColour,
   eAlphaMap_BlendToCheckerboard,
+  eAlphaMap_Preserve,
 };
 
 enum SpecialFormat
