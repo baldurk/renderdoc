@@ -23,6 +23,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#include <sstream>
 #include <utility>
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
@@ -705,7 +706,7 @@ void RenderDoc::BecomeRemoteServer(const char *listenhost, uint16_t port, volati
 struct RemoteServer : public IRemoteServer
 {
 public:
-  RemoteServer(Network::Socket *sock) : m_Socket(sock)
+  RemoteServer(Network::Socket *sock, const char *hostname) : m_Socket(sock), m_hostname(hostname)
   {
     map<RDCDriver, string> m = RenderDoc::Inst().GetReplayDrivers();
 
@@ -713,6 +714,7 @@ public:
     for(auto it = m.begin(); it != m.end(); ++it)
       m_Proxies.push_back(*it);
   }
+  const string &hostname() const { return m_hostname; }
   virtual ~RemoteServer() { SAFE_DELETE(m_Socket); }
   void ShutdownConnection() { delete this; }
   void ShutdownServerAndConnection()
@@ -797,6 +799,9 @@ public:
 
   rdctype::str GetHomeFolder()
   {
+    if(Android::IsHostADB(m_hostname.c_str()))
+      return "/";
+
     rdctype::str ret;
 
     Serialiser sendData("", Serialiser::WRITING, false);
@@ -823,6 +828,33 @@ public:
   rdctype::array<DirectoryFile> ListFolder(const char *path)
   {
     rdctype::array<DirectoryFile> ret;
+
+    if(Android::IsHostADB(m_hostname.c_str()))
+    {
+      string adbStdout = Android::adbExecCommand("shell pm list packages -3");
+      using namespace std;
+      istringstream stdoutStream(adbStdout);
+      string line;
+      vector<DirectoryFile> packages;
+      while(getline(stdoutStream, line))
+      {
+        vector<string> tokens;
+        split(line, tokens, ':');
+        if(tokens.size() == 2 && tokens[0] == "package")
+        {
+          DirectoryFile package;
+          package.filename = trim(tokens[1]);
+          package.flags = eFileProp_Executable;
+          packages.push_back(package);
+        }
+      }
+
+      create_array_uninit(ret, packages.size());
+      for(size_t i = 0; i < packages.size(); i++)
+        ret[i] = packages[i];
+
+      return ret;
+    }
 
     string folderPath = path;
 
@@ -1069,6 +1101,7 @@ public:
 
 private:
   Network::Socket *m_Socket;
+  string m_hostname;
 
   void Send(RemoteServerPacket type, const Serialiser &ser) { SendPacket(m_Socket, type, ser); }
   void Get(RemoteServerPacket &type, Serialiser **ser)
@@ -1137,6 +1170,9 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RemoteServer_ExecuteAndInject(RemoteServer *remote, const char *app, const char *workingDir,
                               const char *cmdLine, void *env, const CaptureOptions *opts)
 {
+  if(Android::IsHostADB(remote->hostname().c_str()))
+    return Android::StartAndroidPackageForCapture(app);
+
   return remote->ExecuteAndInject(app, workingDir, cmdLine, env, opts);
 }
 
@@ -1190,7 +1226,7 @@ RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, RemoteSe
   if(port == 0)
     port = RENDERDOC_GetDefaultRemoteServerPort();
 
-  if(host != NULL && !strncmp(host, "adb:", 4))
+  if(host != NULL && Android::IsHostADB(host))
   {
     s = "127.0.0.1";
 
@@ -1236,7 +1272,7 @@ RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, RemoteSe
     return eReplayCreate_NetworkIOFailed;
   }
 
-  *rend = new RemoteServer(sock);
+  *rend = new RemoteServer(sock, host);
 
   return eReplayCreate_Success;
 }

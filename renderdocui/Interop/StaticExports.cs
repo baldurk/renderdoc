@@ -114,6 +114,9 @@ namespace renderdoc
         private static extern ReplaySupport RENDERDOC_EnumerateAndroidDevices(IntPtr driverName);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern ReplaySupport RENDERDOC_StartAndroidRemoteServer();
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void RENDERDOC_StartSelfHostCapture(IntPtr dllname);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -408,6 +411,11 @@ namespace renderdoc
           CustomMarshal.Free(driverListInt);
 
           return driverList.Split(new char[]{','}, StringSplitOptions.RemoveEmptyEntries);
+        }
+
+        public static void StartAndroidRemoteServer()
+        {
+            RENDERDOC_StartAndroidRemoteServer();
         }
     }
 }
