@@ -434,7 +434,11 @@ namespace renderdocui.Controls
 			}
 
 			if (m_FormatSpecifier == null)
+			{
 				m_FormatSpecifier = new BufferFormatSpecifier(this, "");
+
+				m_FormatSpecifier.ToggleHelp();
+			}
 
 			split.Panel2.Controls.Add(m_FormatSpecifier);
 			m_FormatSpecifier.Dock = DockStyle.Fill;

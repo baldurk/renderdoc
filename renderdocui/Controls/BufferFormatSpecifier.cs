@@ -77,7 +77,7 @@ namespace renderdocui.Windows.Dialogs
             }
         }
 
-        private void toggleHelp_Click(object sender, EventArgs e)
+        public void ToggleHelp()
         {
             helpText.Visible = !helpText.Visible;
 
@@ -98,6 +98,11 @@ namespace renderdocui.Windows.Dialogs
 
             tableLayoutPanel1.ResumeLayout(false);
             tableLayoutPanel1.PerformLayout();
+        }
+
+        private void toggleHelp_Click(object sender, EventArgs e)
+        {
+            ToggleHelp();
         }
     }
 
