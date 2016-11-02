@@ -576,8 +576,8 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers1(UINT StartSlot_
       else
       {
         Buffers[i] = NULL;
-        Offsets[i] = NullCBCounts[0];
-        Counts[i] = NullCBOffsets[0];
+        Offsets[i] = NullCBOffsets[0];
+        Counts[i] = NullCBCounts[0];
       }
     }
   }
@@ -719,8 +719,8 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers1(UINT StartSlot_
       else
       {
         Buffers[i] = NULL;
-        Offsets[i] = NullCBCounts[0];
-        Counts[i] = NullCBOffsets[0];
+        Offsets[i] = NullCBOffsets[0];
+        Counts[i] = NullCBCounts[0];
       }
     }
   }
@@ -862,8 +862,8 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers1(UINT StartSlot_
       else
       {
         Buffers[i] = NULL;
-        Offsets[i] = NullCBCounts[0];
-        Counts[i] = NullCBOffsets[0];
+        Offsets[i] = NullCBOffsets[0];
+        Counts[i] = NullCBCounts[0];
       }
     }
   }
@@ -1005,8 +1005,8 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers1(UINT StartSlot_
       else
       {
         Buffers[i] = NULL;
-        Offsets[i] = NullCBCounts[0];
-        Counts[i] = NullCBOffsets[0];
+        Offsets[i] = NullCBOffsets[0];
+        Counts[i] = NullCBCounts[0];
       }
     }
   }
@@ -1148,8 +1148,8 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers1(UINT StartSlot_
       else
       {
         Buffers[i] = NULL;
-        Offsets[i] = NullCBCounts[0];
-        Counts[i] = NullCBOffsets[0];
+        Offsets[i] = NullCBOffsets[0];
+        Counts[i] = NullCBCounts[0];
       }
     }
   }
@@ -1291,8 +1291,8 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers1(UINT StartSlot_
       else
       {
         Buffers[i] = NULL;
-        Offsets[i] = NullCBCounts[0];
-        Counts[i] = NullCBOffsets[0];
+        Offsets[i] = NullCBOffsets[0];
+        Counts[i] = NullCBCounts[0];
       }
     }
   }
