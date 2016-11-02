@@ -371,7 +371,8 @@ void InjectFunctionCall(HANDLE hProcess, uintptr_t renderdoc_remote, const char 
   VirtualFreeEx(hProcess, remoteMem, 0, MEM_RELEASE);
 }
 
-static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, const char *cmdLine)
+static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, const char *cmdLine,
+                                      HANDLE *phChildStdOutput_Rd, HANDLE *phChildStdError_Rd)
 {
   PROCESS_INFORMATION pi;
   STARTUPINFO si;
@@ -422,11 +423,43 @@ static PROCESS_INFORMATION RunProcess(const char *app, const char *workingDir, c
     wcscat_s(paramsAlloc, len, wcmd.c_str());
   }
 
+  HANDLE hChildStdOutput_Wr = 0, hChildStdError_Wr = 0;
+  if(phChildStdOutput_Rd)
+  {
+    RDCASSERT(phChildStdError_Rd);
+
+    SECURITY_ATTRIBUTES sa;
+    sa.nLength = sizeof(SECURITY_ATTRIBUTES);
+    sa.bInheritHandle = TRUE;
+    sa.lpSecurityDescriptor = NULL;
+
+    if(!CreatePipe(phChildStdOutput_Rd, &hChildStdOutput_Wr, &sa, 0))
+      RDCERR("Could not create pipe to read stdout");
+    if(!SetHandleInformation(*phChildStdOutput_Rd, HANDLE_FLAG_INHERIT, 0))
+      RDCERR("Could not set pipe handle information");
+
+    if(!CreatePipe(phChildStdError_Rd, &hChildStdError_Wr, &sa, 0))
+      RDCERR("Could not create pipe to read stdout");
+    if(!SetHandleInformation(*phChildStdError_Rd, HANDLE_FLAG_INHERIT, 0))
+      RDCERR("Could not set pipe handle information");
+
+    si.dwFlags |= STARTF_USESHOWWINDOW    // Hide the command prompt window from showing.
+                  | STARTF_USESTDHANDLES;
+    si.hStdOutput = hChildStdOutput_Wr;
+  }
+
   RDCLOG("Running process %s", app);
 
-  BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec, false,
+  BOOL retValue = CreateProcessW(NULL, paramsAlloc, &pSec, &tSec,
+                                 true,    // Need to inherit handles for ReadFile to read stdout
                                  CREATE_SUSPENDED | CREATE_UNICODE_ENVIRONMENT, NULL,
                                  workdir.c_str(), &si, &pi);
+
+  if(phChildStdOutput_Rd)
+  {
+    CloseHandle(hChildStdOutput_Wr);
+    CloseHandle(hChildStdError_Wr);
+  }
 
   SAFE_DELETE_ARRAY(paramsAlloc);
 
@@ -711,9 +744,13 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
   return controlident;
 }
 
-uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine)
+uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine,
+                                ProcessResult *result)
 {
-  PROCESS_INFORMATION pi = RunProcess(app, workingDir, cmdLine);
+  HANDLE hChildStdOutput_Rd, hChildStdError_Rd;
+
+  PROCESS_INFORMATION pi = RunProcess(app, workingDir, cmdLine, result ? &hChildStdOutput_Rd : NULL,
+                                      result ? &hChildStdError_Rd : NULL);
 
   if(pi.dwProcessId == 0)
   {
@@ -724,6 +761,35 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
   RDCLOG("Launched process '%s' with '%s'", app, cmdLine);
 
   ResumeThread(pi.hThread);
+
+  if(result)
+  {
+    result->strStdout = "";
+    result->strStderror = "";
+    for(;;)
+    {
+      char chBuf[1000];
+      DWORD dwOutputRead, dwErrorRead;
+
+      BOOL success = ReadFile(hChildStdOutput_Rd, chBuf, sizeof(chBuf), &dwOutputRead, NULL);
+      string s(chBuf, dwOutputRead);
+      result->strStdout += s;
+
+      success = ReadFile(hChildStdError_Rd, chBuf, sizeof(chBuf), &dwErrorRead, NULL);
+      s = string(chBuf, dwErrorRead);
+      result->strStderror += s;
+
+      if(!success && !dwOutputRead && !dwErrorRead)
+        break;
+    }
+
+    CloseHandle(hChildStdOutput_Rd);
+    CloseHandle(hChildStdError_Rd);
+
+    WaitForSingleObject(pi.hProcess, INFINITE);
+    GetExitCodeProcess(pi.hProcess, (LPDWORD)&result->retCode);
+  }
+
   CloseHandle(pi.hThread);
   CloseHandle(pi.hProcess);
 
@@ -745,7 +811,7 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
     return 0;
   }
 
-  PROCESS_INFORMATION pi = RunProcess(app, workingDir, cmdLine);
+  PROCESS_INFORMATION pi = RunProcess(app, workingDir, cmdLine, NULL, NULL);
 
   if(pi.dwProcessId == 0)
     return 0;

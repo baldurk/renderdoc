@@ -77,8 +77,9 @@ wstring strupper(const wstring &str)
 
 std::string trim(const std::string &str)
 {
-  size_t start = str.find_first_not_of("\t \n");
-  size_t end = str.find_last_not_of("\t \n");
+  const char *whitespace = "\t \n\r";
+  size_t start = str.find_first_not_of(whitespace);
+  size_t end = str.find_last_not_of(whitespace);
 
   // no non-whitespace characters, return the empty string
   if(start == std::string::npos)

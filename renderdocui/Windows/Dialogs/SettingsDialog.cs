@@ -64,6 +64,7 @@ namespace renderdocui.Windows.Dialogs
             externalDisassemblerEnabledCheckbox.Checked = m_Core.Config.ExternalDisassemblerEnabled;
             externalDisassemblerArgs.Text = m_Core.Config.GetDefaultExternalDisassembler().args;
             externalDisassemblePath.Text = m_Core.Config.GetDefaultExternalDisassembler().executable;
+            adbPath.Text = m_Core.Config.AdbExecutablePath;
 
             TextureViewer_ResetRange.Checked = m_Core.Config.TextureViewer_ResetRange;
             TextureViewer_PerTexSettings.Checked = m_Core.Config.TextureViewer_PerTexSettings;
@@ -384,6 +385,34 @@ namespace renderdocui.Windows.Dialogs
         private void externalDisassemblerEnabledCheckbox_CheckedChanged(object sender, EventArgs e)
         {
             m_Core.Config.ExternalDisassemblerEnabled = externalDisassemblerEnabledCheckbox.Checked;
+        }
+
+        private void browseAdbPath_Click(object sender, EventArgs e)
+        {
+            var res = browseExtDisassembleDialog.ShowDialog();
+
+            if (res == DialogResult.Yes || res == DialogResult.OK)
+            {
+                try
+                {
+                    adbPath.Text = browseExtDisassembleDialog.FileName;
+                    m_Core.Config.AdbExecutablePath = adbPath.Text;
+                }
+                catch (Exception)
+                {
+                }
+            }
+        }
+
+        private void adbPath_TextChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                m_Core.Config.AdbExecutablePath = adbPath.Text;
+            }
+            catch (Exception)
+            {
+            }
         }
     }
 }

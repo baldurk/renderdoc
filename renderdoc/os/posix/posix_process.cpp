@@ -348,7 +348,8 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
   return 0;
 }
 
-uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine)
+uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const char *cmdLine,
+                                ProcessResult *result)
 {
   if(app == NULL || app[0] == 0)
   {

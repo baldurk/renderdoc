@@ -120,6 +120,7 @@ namespace renderdocui.Windows.Dialogs
         {
             hosts.BeginInit();
 
+            m_Core.Config.AddAndroidHosts();
             foreach (var h in m_Core.Config.RemoteHosts)
                 AddHost(h);
 

@@ -180,6 +180,7 @@ namespace renderdocui.Windows
 
             Thread remoteStatusThread = Helpers.NewThread(new ThreadStart(() =>
             {
+                m_Core.Config.AddAndroidHosts();
                 for (int i = 0; i < m_Core.Config.RemoteHosts.Count; i++)
                     m_Core.Config.RemoteHosts[i].CheckStatus();
             }));
