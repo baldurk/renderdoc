@@ -943,13 +943,18 @@ namespace renderdocui.Code
                         case ShaderStageType.Compute: s = m_D3D11.m_CS; break;
                     }
 
-                    if(BufIdx < s.ConstantBuffers.Length)
+                    if (s.ShaderDetails != null && BufIdx < s.ShaderDetails.ConstantBlocks.Length)
                     {
-                        buf = s.ConstantBuffers[BufIdx].Buffer;
-                        ByteOffset = (ulong)(s.ConstantBuffers[BufIdx].VecOffset * 4 * sizeof(float));
-                        ByteSize = (ulong)(s.ConstantBuffers[BufIdx].VecCount * 4 * sizeof(float));
+                        int bind = s.ShaderDetails.ConstantBlocks[BufIdx].bindPoint;
 
-                        return;
+                        if (bind < s.ConstantBuffers.Length)
+                        {
+                            buf = s.ConstantBuffers[bind].Buffer;
+                            ByteOffset = (ulong)(s.ConstantBuffers[bind].VecOffset * 4 * sizeof(float));
+                            ByteSize = (ulong)(s.ConstantBuffers[bind].VecCount * 4 * sizeof(float));
+
+                            return;
+                        }
                     }
                 }
                 else if (IsLogD3D12)
