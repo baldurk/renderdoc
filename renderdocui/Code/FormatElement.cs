@@ -383,6 +383,8 @@ namespace renderdocui.Code
             ret.columns = Math.Min(format.compCount, 4);
             ret.rows = Math.Min(matrixdim, 4);
 
+            ret.displayAsHex = hex;
+
             ret.members = new ShaderVariable[0] { };
 
             ret.value.fv = new float[16];

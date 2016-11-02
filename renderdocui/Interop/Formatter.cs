@@ -53,6 +53,11 @@ namespace renderdoc
             return String.Format("{0}", u);
         }
 
+        public static String Format(UInt32 u, bool hex)
+        {
+            return String.Format(hex ? "{0:X8}" : "{0}", u);
+        }
+
         public static String Format(Int32 i)
         {
             return String.Format("{0}", i);
