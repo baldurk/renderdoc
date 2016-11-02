@@ -499,7 +499,7 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_EnumerateRemoteTargets(
     nextIdent++;
 
   uint32_t lastIdent = RenderDoc_LastTargetControlPort;
-  if(host != NULL && !strncmp(host, "adb:", 4))
+  if(host != NULL && Android::IsHostADB(host))
   {
     if(nextIdent == RenderDoc_FirstTargetControlPort)
       nextIdent += RenderDoc_AndroidPortOffset;
@@ -594,6 +594,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const ch
   rdoc->EndFrameCapture(NULL, NULL);
 }
 
+namespace Android
+{
+bool IsHostADB(const char *hostname)
+{
+  return !strncmp(hostname, "adb:", 4);
+}
 string adbExecCommand(const string &args)
 {
   string adbExePath = RenderDoc::Inst().GetConfigSetting("adbExePath");
@@ -614,7 +620,23 @@ void adbForwardPorts()
                                    RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset,
                                    RenderDoc_FirstTargetControlPort));
 }
+uint32_t StartAndroidPackageForCapture(const char *package)
+{
+  string packageName = basename(string(package));    // Remove leading '/' if any
 
+  adbExecCommand("shell am force-stop " + packageName);
+  adbForwardPorts();
+  adbExecCommand("shell setprop debug.vulkan.layers VK_LAYER_RENDERDOC_Capture");
+  adbExecCommand("shell monkey -p " + packageName + " -c android.intent.category.LAUNCHER 1");
+  Threading::Sleep(
+      5000);    // Let the app pickup the setprop before we turn it back off for replaying.
+  adbExecCommand("shell setprop debug.vulkan.layers \\\"\\\"");
+
+  return RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset;
+}
+}
+
+using namespace Android;
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdctype::str *deviceList)
 {
   string adbStdout = adbExecCommand("devices");
@@ -640,4 +662,15 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EnumerateAndroidDevices(rdc
                           // already running.
 
   *deviceList = ret;
+}
+
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer()
+{
+  adbExecCommand("shell am force-stop org.renderdoc.renderdoccmd");
+  adbForwardPorts();
+  adbExecCommand("shell setprop debug.vulkan.layers \\\"\\\"");
+  adbExecCommand(
+      "shell pm grant org.renderdoc.renderdoccmd android.permission.READ_EXTERNAL_STORAGE");
+  adbExecCommand(
+      "shell am start -n org.renderdoc.renderdoccmd/.Loader -e renderdoccmd remoteserver");
 }

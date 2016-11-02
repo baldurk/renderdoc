@@ -443,3 +443,10 @@ inline uint64_t CountLeadingZeroes(uint64_t value);
 #else
 #error Undefined Platform!
 #endif
+
+namespace Android
+{
+bool IsHostADB(const char *hostname);
+uint32_t StartAndroidPackageForCapture(const char *package);
+string adbExecCommand(const string &args);
+}

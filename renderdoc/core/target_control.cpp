@@ -707,7 +707,7 @@ extern "C" RENDERDOC_API TargetControl *RENDERDOC_CC RENDERDOC_CreateTargetContr
 
   bool android = false;
 
-  if(host != NULL && !strncmp(host, "adb:", 4))
+  if(host != NULL && Android::IsHostADB(host))
   {
     android = true;
     s = "127.0.0.1";
