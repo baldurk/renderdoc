@@ -111,6 +111,8 @@ void InitInstanceExtensionTables(VkInstance instance)
 
   InstanceDeviceInfo *info = GetRecord(instance)->instDevInfo;
 
+  instance = Unwrap(instance);
+
 #undef HookInitExtension
 #define HookInitExtension(ext, func) \
   if(info->ext)                      \
@@ -143,6 +145,8 @@ void InitDeviceExtensionTables(VkDevice device)
   RDCASSERT(table);
 
   InstanceDeviceInfo *info = GetRecord(device)->instDevInfo;
+
+  device = Unwrap(device);
 
 #undef HookInitExtension
 #define HookInitExtension(ext, func) \
