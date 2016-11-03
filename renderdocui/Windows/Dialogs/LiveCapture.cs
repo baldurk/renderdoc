@@ -170,13 +170,13 @@ namespace renderdocui.Windows
                         if (m_Connection.PID == 0)
                         {
                             connectionStatus.Text = String.Format("Connection established to {0} ({1})", m_Connection.Target, api);
-                            SetText(String.Format("{0} ({1})", m_Connection.Target, api));
+                            SetText(String.Format("{0}", m_Connection.Target));
                         }
                         else
                         {
                             connectionStatus.Text = String.Format("Connection established to {0} [PID {1}] ({2})",
                                      m_Connection.Target, m_Connection.PID, api);
-                            SetText(String.Format("{0} [PID {1}] ({2})", m_Connection.Target, m_Connection.PID, api));
+                            SetText(String.Format("{0} [PID {1}]", m_Connection.Target, m_Connection.PID));
                         }
                         connectionIcon.Image = global::renderdocui.Properties.Resources.connect;
                     });
@@ -231,8 +231,17 @@ namespace renderdocui.Windows
                     {
                         this.BeginInvoke((MethodInvoker)delegate
                         {
-                            connectionStatus.Text = String.Format("Connection established to {0} ({1})", m_Connection.Target, m_Connection.API);
-                            SetText(String.Format("{0} ({1})", m_Connection.Target, m_Connection.API));
+                            if (m_Connection.PID == 0)
+                            {
+                                connectionStatus.Text = String.Format("Connection established to {0} ({1})", m_Connection.Target, m_Connection.API);
+                                SetText(String.Format("{0}", m_Connection.Target));
+                            }
+                            else
+                            {
+                                connectionStatus.Text = String.Format("Connection established to {0} [PID {1}] ({2})",
+                                         m_Connection.Target, m_Connection.PID, m_Connection.API);
+                                SetText(String.Format("{0} [PID {1}]", m_Connection.Target, m_Connection.PID));
+                            }
                             connectionIcon.Image = global::renderdocui.Properties.Resources.connect;
                         });
 
