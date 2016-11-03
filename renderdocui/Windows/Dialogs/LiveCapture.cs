@@ -910,35 +910,46 @@ namespace renderdocui.Windows
 
         private void childUpdateTimer_Tick(object sender, EventArgs e)
         {
-            // remove any stale processes
-            for (int i = 0; i < m_Children.Count; i++)
+            if (m_Children.Count > 0)
             {
-                try
+                Process[] processes = Process.GetProcesses();
+
+                // remove any stale processes
+                for (int i = 0; i < m_Children.Count; i++)
                 {
-                    // if this throws an exception the process no longer exists so we'll remove it
-                    Process.GetProcessById(m_Children[i].PID);
+                    bool found = false;
+
+                    foreach (var p in processes)
+                    {
+                        if (p.Id == m_Children[i].PID)
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if (!found)
+                    {
+                        if (m_Children[i].added)
+                            childProcesses.Items.RemoveByKey(m_Children[i].PID.ToString());
+
+                        // process expired/doesn't exist anymore
+                        m_Children.RemoveAt(i);
+
+                        // don't increment i, check the next element at i (if we weren't at the end
+                        i--;
+                    }
                 }
-                catch (Exception)
+
+                for (int i = 0; i < m_Children.Count; i++)
                 {
-                    if (m_Children[i].added)
-                        childProcesses.Items.RemoveByKey(m_Children[i].PID.ToString());
+                    if (!m_Children[i].added)
+                    {
+                        string text = String.Format("{0} [PID {1}]", m_Children[i].name, m_Children[i].PID);
 
-                    // process expired/doesn't exist anymore
-                    m_Children.RemoveAt(i);
-
-                    // don't increment i, check the next element at i (if we weren't at the end
-                    i--;
-                }
-            }
-
-            for (int i = 0; i < m_Children.Count; i++)
-            {
-                if (!m_Children[i].added)
-                {
-                    string text = String.Format("{0} [PID {1}]", m_Children[i].name, m_Children[i].PID);
-
-                    m_Children[i].added = true;
-                    childProcesses.Items.Add(m_Children[i].PID.ToString(), text, 0).Tag = m_Children[i].ident;
+                        m_Children[i].added = true;
+                        childProcesses.Items.Add(m_Children[i].PID.ToString(), text, 0).Tag = m_Children[i].ident;
+                    }
                 }
             }
 

@@ -467,6 +467,7 @@
             // childUpdateTimer
             // 
             this.childUpdateTimer.Enabled = true;
+            this.childUpdateTimer.Interval = 1000;
             this.childUpdateTimer.Tick += new System.EventHandler(this.childUpdateTimer_Tick);
             // 
             // LiveCapture
