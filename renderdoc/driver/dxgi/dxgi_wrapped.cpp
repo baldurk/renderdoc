@@ -65,6 +65,11 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
     return false;
   }
 
+  // unknown GUID that we only want to print once to avoid log spam
+  // {79D2046C-22EF-451B-9E74-2245D9C760EA}
+  static const GUID Unknown_uuid = {
+      0x79d2046c, 0x22ef, 0x451b, {0x9e, 0x74, 0x22, 0x45, 0xd9, 0xc7, 0x60, 0xea}};
+
   if(riid == __uuidof(IDXGIDevice))
   {
     // should have been handled elsewhere, so we can properly create this device
@@ -142,6 +147,15 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
     IDXGIFactory5 *real = (IDXGIFactory5 *)(*ppvObject);
     *ppvObject = (IDXGIFactory5 *)(new WrappedIDXGIFactory5(real));
     return true;
+  }
+  else if(riid == Unknown_uuid)
+  {
+    static bool printed = false;
+    if(!printed)
+    {
+      printed = true;
+      RDCWARN("Querying IDXGIObject for unknown GUID: %s", ToStr::Get(riid).c_str());
+    }
   }
   else
   {
