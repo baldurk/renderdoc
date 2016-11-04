@@ -29,8 +29,9 @@ sub uses_typedef
 }
 
 my $printdefs = $ARGV[$1] eq "defs";
+my $printext = $ARGV[$1] eq "ext";
 
-open(HOOKSET, "<gles_hookset.h") || die "Couldn't open gles_hookset.h - run in driver/gl/";
+open(HOOKSET, "<gles_hookset.h") || die "Couldn't open gles_hookset.h - run in driver/gles/";
 
 my @unsupported = ();
 my @dllexport = ();
@@ -102,6 +103,60 @@ while(<HOOKSET>)
             print "MALFORMED LINE IN gles_hookset.h: '$line'\n";
         }
     }
+}
+
+close(HOOKSET);
+
+if($printext)
+{
+    my %func2ext = ();
+    my %extfuncs = ();
+    my $extname = "";
+    my $funcname = "";
+
+    my @lines = split(/\n/, `egrep -h "(#define GL_\\w* 1|GL_APIENTRY gl\\w*)" official/gl2ext.h`);
+    foreach my $line (@lines)
+    {
+        if($line =~ m/^#define (GL_\w*) 1/)
+        {
+            $extname = $1;
+            $extfuncs{$extname} = { 'name' => $extname, 'funcs' => '0', 'impl' => '0' };
+        }
+        elsif($line =~ /GL_APIENTRY (gl\w*)/)
+        {
+            $funcname = $1;
+            $func2ext{$funcname} = $extname;
+            $extfuncs{$extname}{'funcs'}++;
+            if(grep { $_ eq $funcname } @implemented_funcs)
+            {
+                $extfuncs{$extname}{'impl'}++;
+            }
+        }
+    }
+
+    my $filename = "rdc_gles_ext_funcs.csv";
+    open(my $fh, '>', $filename) or die "Could not open file '$filename' $!";
+    print $fh "Extension name,Function name,Supported\n";
+    foreach my $func (sort keys %func2ext)
+    {
+        my $supp = (grep { $_ eq $func } @implemented_funcs) ? 1 : 0;
+        my $ext = $func2ext{$func};
+        print $fh "$ext,$func,$supp\n";
+    }
+    close $fh;
+
+    $filename = "rdc_gles_exts.csv";
+    open(my $fh, '>', $filename) or die "Could not open file '$filename' $!";
+    print $fh "Extension name,Number of functions,Implemented functions,Supported\n";
+    foreach my $x ( sort keys %extfuncs )
+    {
+        my $ext = $extfuncs{$x};
+        my $supp = $ext->{funcs} eq $ext->{impl} ? "1" : "0";
+        print $fh "$ext->{name},$ext->{funcs},$ext->{impl},$supp\n";
+    }
+    close $fh;
+
+    exit;
 }
 
 @used = uniq(@used);
@@ -182,8 +237,6 @@ foreach my $typedef (split(/\n/, $typedefs))
         }
     }
 }
-
-close(HOOKSET);
 
 if($printdefs)
 {
