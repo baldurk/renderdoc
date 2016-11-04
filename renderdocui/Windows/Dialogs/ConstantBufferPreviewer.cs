@@ -296,15 +296,23 @@ namespace renderdocui.Controls
 
             if (res == DialogResult.OK)
             {
-                using (Stream s = new FileStream(exportDialog.FileName, FileMode.Create))
+                try
                 {
-                    StreamWriter sw = new StreamWriter(s);
+                    using (Stream s = new FileStream(exportDialog.FileName, FileMode.Create))
+                    {
+                        StreamWriter sw = new StreamWriter(s);
 
-                    sw.WriteLine("Name,Value,Type");
+                        sw.WriteLine("Name,Value,Type");
 
-                    ExportCSV(sw, "", variables.Nodes);
+                        ExportCSV(sw, "", variables.Nodes);
 
-                    sw.Dispose();
+                        sw.Dispose();
+                    }
+                }
+                catch (System.Exception ex)
+                {
+                    MessageBox.Show("Couldn't save to " + exportDialog.FileName + Environment.NewLine + ex.ToString(), "Cannot save",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
                 }
             }
         }
