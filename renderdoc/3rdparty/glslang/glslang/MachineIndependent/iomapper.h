@@ -1,5 +1,5 @@
 //
-//Copyright (C) 2014 LunarG, Inc.
+//Copyright (C) 2016 LunarG, Inc.
 //
 //All rights reserved.
 //
@@ -31,24 +31,33 @@
 //LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
 //ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 //POSSIBILITY OF SUCH DAMAGE.
+//
 
-#if _MSC_VER >= 1900
-    #pragma warning(disable : 4464) // relative include path contains '..'
-#endif
+#ifndef _IOMAPPER_INCLUDED
+#define _IOMAPPER_INCLUDED
 
-#include "../glslang/Include/intermediate.h"
+#include "../Public/ShaderLang.h"
 
-#include <string>
-#include <vector>
+//
+// A reflection database and its interface, consistent with the OpenGL API reflection queries.
+//
 
-#include "Logger.h"
+class TInfoSink;
 
 namespace glslang {
 
-void GetSpirvVersion(std::string&);
-void GlslangToSpv(const glslang::TIntermediate& intermediate, std::vector<unsigned int>& spirv);
-void GlslangToSpv(const glslang::TIntermediate& intermediate, std::vector<unsigned int>& spirv, spv::SpvBuildLogger* logger);
-void OutputSpvBin(const std::vector<unsigned int>& spirv, const char* baseName);
-void OutputSpvHex(const std::vector<unsigned int>& spirv, const char* baseName);
+class TIntermediate;
 
-}
+// I/O mapper
+class TIoMapper {
+public:
+    TIoMapper() {}
+    virtual ~TIoMapper() {}
+
+    // grow the reflection stage by stage
+    bool addStage(EShLanguage, TIntermediate&, TInfoSink&, TIoMapResolver*);
+};
+
+} // end namespace glslang
+
+#endif // _IOMAPPER_INCLUDED

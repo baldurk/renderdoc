@@ -1,5 +1,5 @@
 //
-//Copyright (C) 2013 LunarG, Inc.
+//Copyright (C) 2013-2016 LunarG, Inc.
 //
 //All rights reserved.
 //
@@ -37,6 +37,7 @@
 #define _REFLECTION_INCLUDED
 
 #include "../Public/ShaderLang.h"
+#include "../Include/Types.h"
 
 #include <list>
 #include <set>
@@ -49,25 +50,46 @@ namespace glslang {
 
 class TIntermediate;
 class TIntermAggregate;
-class TLiveTraverser;
+class TReflectionTraverser;
 
 // Data needed for just a single object at the granularity exchanged by the reflection API
 class TObjectReflection {
 public:
-    TObjectReflection(const TString& pName, int pOffset, int pGLDefineType, int pSize, int pIndex) : 
-        name(pName), offset(pOffset), glDefineType(pGLDefineType), size(pSize), index(pIndex) { }
-    void dump() const { printf("%s: offset %d, type %x, size %d, index %d\n", name.c_str(), offset, glDefineType, size, index); }
+    TObjectReflection(const TString& pName, const TType& pType, int pOffset, int pGLDefineType, int pSize, int pIndex) : 
+        name(pName), type(pType.clone()),
+        offset(pOffset), glDefineType(pGLDefineType), size(pSize), index(pIndex) { }
+
+    void dump() const {
+        printf("%s: offset %d, type %x, size %d, index %d, binding %d\n",
+               name.c_str(), offset, glDefineType, size, index, getBinding() );
+    }
+
+    const TType* const getType() const { return type; }
+
     TString name;
     int offset;
     int glDefineType;
     int size;         // data size in bytes for a block, array size for a (non-block) object that's an array
     int index;
+
+    static TObjectReflection badReflection() { return TObjectReflection(); }
+
+protected:
+    int getBinding() const {
+        if (type == nullptr || type->getQualifier().layoutBinding == TQualifier::layoutBindingEnd)
+            return -1;
+        return type->getQualifier().layoutBinding;
+    }
+
+    TObjectReflection() : type(nullptr), offset(-1), glDefineType(-1), size(-1), index(-1) { }
+
+    const TType* type;
 };
 
 // The full reflection database
 class TReflection {
 public:
-    TReflection() : badReflection("__bad__", -1, -1, -1, -1) {}
+    TReflection() : badReflection(TObjectReflection::badReflection()) { }
     virtual ~TReflection() {}
 
     // grow the reflection stage by stage
@@ -116,7 +138,7 @@ public:
     void dump();
 
 protected:
-    friend class glslang::TLiveTraverser;
+    friend class glslang::TReflectionTraverser;
 
     // Need a TString hash: typedef std::unordered_map<TString, int> TNameToIndex;
     typedef std::map<TString, int> TNameToIndex;

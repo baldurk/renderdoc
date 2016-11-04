@@ -670,7 +670,7 @@ protected:
             // Gets the struct dereference index that leads to 'precise' object.
             ObjectAccessChain precise_accesschain_index_str =
                 getFrontElement(remained_accesschain_);
-            unsigned precise_accesschain_index = strtoul(precise_accesschain_index_str.c_str(), nullptr, 10);
+            unsigned precise_accesschain_index = (unsigned)strtoul(precise_accesschain_index_str.c_str(), nullptr, 10);
             // Gets the node pointed by the access chain index extracted before.
             glslang::TIntermTyped* potential_precise_node =
                 node->getSequence()[precise_accesschain_index]->getAsTyped();

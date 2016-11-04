@@ -147,7 +147,8 @@ public:
     TVariable(const TString *name, const TType& t, bool uT = false )
         : TSymbol(name), 
           userType(uT),
-          constSubtree(nullptr) { type.shallowCopy(t); }
+          constSubtree(nullptr),
+          anonId(-1) { type.shallowCopy(t); }
     virtual TVariable* clone() const;
     virtual ~TVariable() { }
 
@@ -161,6 +162,8 @@ public:
     virtual void setConstArray(const TConstUnionArray& array) { constArray = array; }
     virtual void setConstSubtree(TIntermTyped* subtree) { constSubtree = subtree; }
     virtual TIntermTyped* getConstSubtree() const { return constSubtree; }
+    virtual void setAnonId(int i) { anonId = i; }
+    virtual int getAnonId() const { return anonId; }
 
     virtual void dump(TInfoSink &infoSink) const;
 
@@ -178,6 +181,7 @@ protected:
     // constant, or neither, but never both.
     TConstUnionArray constArray;  // for compile-time constant value
     TIntermTyped* constSubtree;   // for specialization constant computation
+    int anonId;                   // the ID used for anonymous blocks: TODO: see if uniqueId could serve a dual purpose
 };
 
 //
@@ -305,27 +309,16 @@ public:
         //
         // returning true means symbol was added to the table with no semantic errors
         //
-        tInsertResult result;
         const TString& name = symbol.getName();
         if (name == "") {
+            symbol.getAsVariable()->setAnonId(anonId++);
             // An empty name means an anonymous container, exposing its members to the external scope.
             // Give it a name and insert its members in the symbol table, pointing to the container.
             char buf[20];
-            snprintf(buf, 20, "%s%d", AnonymousPrefix, anonId);
+            snprintf(buf, 20, "%s%d", AnonymousPrefix, symbol.getAsVariable()->getAnonId());
             symbol.changeName(NewPoolTString(buf));
 
-            bool isOkay = true;
-            const TTypeList& types = *symbol.getAsVariable()->getType().getStruct();
-            for (unsigned int m = 0; m < types.size(); ++m) {
-                TAnonMember* member = new TAnonMember(&types[m].type->getFieldName(), m, *symbol.getAsVariable(), anonId);
-                result = level.insert(tLevelPair(member->getMangledName(), member));
-                if (! result.second)
-                    isOkay = false;
-            }
-
-            ++anonId;
-
-            return isOkay;
+            return insertAnonymousMembers(symbol, 0);
         } else {
             // Check for redefinition errors:
             // - STL itself will tell us if there is a direct name collision, with name mangling, at this level
@@ -340,12 +333,33 @@ public:
                 level.insert(tLevelPair(insertName, &symbol));
 
                 return true;
-            } else {
-                result = level.insert(tLevelPair(insertName, &symbol));
-
-                return result.second;
-            }
+            } else
+                return level.insert(tLevelPair(insertName, &symbol)).second;
         }
+    }
+
+    // Add more members to an already inserted aggregate object
+    bool amend(TSymbol& symbol, int firstNewMember)
+    {
+        // See insert() for comments on basic explanation of insert.
+        // This operates similarly, but more simply.
+        // Only supporting amend of anonymous blocks so far.
+        if (IsAnonymous(symbol.getName()))
+            return insertAnonymousMembers(symbol, firstNewMember);
+        else
+            return false;
+    }
+
+    bool insertAnonymousMembers(TSymbol& symbol, int firstMember)
+    {
+        const TTypeList& types = *symbol.getAsVariable()->getType().getStruct();
+        for (unsigned int m = firstMember; m < types.size(); ++m) {
+            TAnonMember* member = new TAnonMember(&types[m].type->getFieldName(), m, *symbol.getAsVariable(), symbol.getAsVariable()->getAnonId());
+            if (! level.insert(tLevelPair(member->getMangledName(), member)).second)
+                return false;
+        }
+
+        return true;
     }
 
     TSymbol* find(const TString& name) const
@@ -357,7 +371,7 @@ public:
             return (*it).second;
     }
 
-    void findFunctionNameList(const TString& name, TVector<TFunction*>& list)
+    void findFunctionNameList(const TString& name, TVector<const TFunction*>& list)
     {
         size_t parenAt = name.find_first_of('(');
         TString base(name, 0, parenAt + 1);
@@ -546,6 +560,14 @@ public:
         return table[currentLevel()]->insert(symbol, separateNameSpaces);
     }
 
+    // Add more members to an already inserted aggregate object
+    bool amend(TSymbol& symbol, int firstNewMember)
+    {
+        // See insert() for comments on basic explanation of insert.
+        // This operates similarly, but more simply.
+        return table[currentLevel()]->amend(symbol, firstNewMember);
+    }
+
     //
     // To allocate an internal temporary, which will need to be uniquely
     // identified by the consumer of the AST, but never need to 
@@ -624,7 +646,7 @@ public:
         return false;
     }
 
-    void findFunctionNameList(const TString& name, TVector<TFunction*>& list, bool& builtIn)
+    void findFunctionNameList(const TString& name, TVector<const TFunction*>& list, bool& builtIn)
     {
         // For user levels, return the set found in the first scope with a match
         builtIn = false;

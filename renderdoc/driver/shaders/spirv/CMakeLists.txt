@@ -5,12 +5,15 @@ set(glslang_sources
     ${glslang_dir}/SPIRV/GlslangToSpv.cpp
     ${glslang_dir}/SPIRV/GlslangToSpv.h
     ${glslang_dir}/SPIRV/GLSL.std.450.h
+    ${glslang_dir}/SPIRV/hex_float.h
     ${glslang_dir}/SPIRV/InReadableOrder.cpp
     ${glslang_dir}/SPIRV/Logger.cpp
     ${glslang_dir}/SPIRV/Logger.h
     ${glslang_dir}/SPIRV/SpvBuilder.cpp
     ${glslang_dir}/SPIRV/SpvBuilder.h
     ${glslang_dir}/SPIRV/spvIR.h
+    ${glslang_dir}/hlsl/hlslAttributes.cpp
+    ${glslang_dir}/hlsl/hlslAttributes.h
     ${glslang_dir}/hlsl/hlslParseHelper.cpp
     ${glslang_dir}/hlsl/hlslOpMap.cpp
     ${glslang_dir}/hlsl/hlslParseables.cpp
@@ -35,6 +38,9 @@ set(glslang_sources
     ${glslang_dir}/glslang/MachineIndependent/glslang_tab.cpp
     ${glslang_dir}/glslang/MachineIndependent/glslang_tab.cpp.h
     ${glslang_dir}/glslang/MachineIndependent/gl_types.h
+    ${glslang_dir}/glslang/MachineIndependent/iomapper.cpp
+    ${glslang_dir}/glslang/MachineIndependent/iomapper.h
+    ${glslang_dir}/glslang/MachineIndependent/gl_types.h
     ${glslang_dir}/glslang/MachineIndependent/InfoSink.cpp
     ${glslang_dir}/glslang/MachineIndependent/Initialize.cpp
     ${glslang_dir}/glslang/MachineIndependent/Initialize.h
@@ -43,8 +49,10 @@ set(glslang_sources
     ${glslang_dir}/glslang/MachineIndependent/IntermTraverse.cpp
     ${glslang_dir}/glslang/MachineIndependent/limits.cpp
     ${glslang_dir}/glslang/MachineIndependent/linkValidate.cpp
+    ${glslang_dir}/glslang/MachineIndependent/LiveTraverser.h
     ${glslang_dir}/glslang/MachineIndependent/localintermediate.h
     ${glslang_dir}/glslang/MachineIndependent/parseConst.cpp
+    ${glslang_dir}/glslang/MachineIndependent/ParseContextBase.cpp
     ${glslang_dir}/glslang/MachineIndependent/ParseHelper.cpp
     ${glslang_dir}/glslang/MachineIndependent/ParseHelper.h
     ${glslang_dir}/glslang/MachineIndependent/PoolAlloc.cpp
@@ -85,6 +93,9 @@ set(sources
     spirv_compile.cpp
     spirv_disassemble.cpp
     ${glslang_sources})
+
+set_source_files_properties(${glslang_sources}
+    PROPERTIES COMPILE_FLAGS "-Wno-ignored-qualifiers")
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set_source_files_properties(${glslang_dir}/SPIRV/GlslangToSpv.cpp

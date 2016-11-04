@@ -51,6 +51,7 @@
 #include "../../hlsl/hlslParseables.h"
 #include "Scan.h"
 #include "ScanContext.h"
+#include "../../hlsl/hlslScanContext.h"
 
 #include "../Include/ShHandle.h"
 #include "../../OGLCompilersDLL/InitializeDll.h"
@@ -60,6 +61,7 @@
 #define SH_EXPORTING
 #include "../Public/ShaderLang.h"
 #include "reflection.h"
+#include "iomapper.h"
 #include "Initialize.h"
 
 namespace { // anonymous namespace for file-local functions and symbols
@@ -695,10 +697,9 @@ bool ProcessDeferred(
     TParseContextBase* parseContext;
     if (source == EShSourceHlsl) {
         parseContext = new HlslParseContext(symbolTable, intermediate, false, version, profile, spvVersion,
-                                             compiler->getLanguage(), compiler->infoSink, forwardCompatible, messages);
-    }
-    else {
-        intermediate.setEntryPoint("main");
+                                            compiler->getLanguage(), compiler->infoSink, forwardCompatible, messages);
+    } else {
+        intermediate.setEntryPointName("main");
         parseContext = new TParseContext(symbolTable, intermediate, false, version, profile, spvVersion,
                                          compiler->getLanguage(), compiler->infoSink, forwardCompatible, messages);
     }
@@ -1049,6 +1050,7 @@ int ShInitialize()
         PerProcessGPA = new TPoolAllocator();
 
     glslang::TScanContext::fillInKeywordMap();
+    glslang::HlslScanContext::fillInKeywordMap();
 
     return 1;
 }
@@ -1141,6 +1143,7 @@ int __fastcall ShFinalize()
     }
 
     glslang::TScanContext::deleteKeywordMap();
+    glslang::HlslScanContext::deleteKeywordMap();
 
     return 1;
 }
@@ -1486,8 +1489,15 @@ void TShader::setStringsWithLengthsAndNames(
 
 void TShader::setEntryPoint(const char* entryPoint)
 {
-    intermediate->setEntryPoint(entryPoint);
+    intermediate->setEntryPointName(entryPoint);
 }
+
+void TShader::setShiftSamplerBinding(unsigned int base) { intermediate->setShiftSamplerBinding(base); }
+void TShader::setShiftTextureBinding(unsigned int base) { intermediate->setShiftTextureBinding(base); }
+void TShader::setShiftUboBinding(unsigned int base)     { intermediate->setShiftUboBinding(base); }
+void TShader::setAutoMapBindings(bool map)              { intermediate->setAutoMapBindings(map); }
+void TShader::setFlattenUniformArrays(bool flatten)     { intermediate->setFlattenUniformArrays(flatten); }
+void TShader::setNoStorageFormat(bool useUnknownFormat) { intermediate->setNoStorageFormat(useUnknownFormat); }
 
 //
 // Turn the shader strings into a parse tree in the TIntermediate.
@@ -1549,7 +1559,7 @@ const char* TShader::getInfoDebugLog()
     return infoSink->debug.c_str();
 }
 
-TProgram::TProgram() : pool(0), reflection(0), linked(false)
+TProgram::TProgram() : pool(0), reflection(0), ioMapper(nullptr), linked(false)
 {
     infoSink = new TInfoSink;
     for (int s = 0; s < EShLangCount; ++s) {
@@ -1685,20 +1695,42 @@ bool TProgram::buildReflection()
     return true;
 }
 
-int TProgram::getNumLiveUniformVariables()           { return reflection->getNumUniforms(); }
-int TProgram::getNumLiveUniformBlocks()              { return reflection->getNumUniformBlocks(); }
-const char* TProgram::getUniformName(int index)      { return reflection->getUniform(index).name.c_str(); }
-const char* TProgram::getUniformBlockName(int index) { return reflection->getUniformBlock(index).name.c_str(); }
-int TProgram::getUniformBlockSize(int index)         { return reflection->getUniformBlock(index).size; }
-int TProgram::getUniformIndex(const char* name)      { return reflection->getIndex(name); }
-int TProgram::getUniformBlockIndex(int index)        { return reflection->getUniform(index).index; }
-int TProgram::getUniformType(int index)              { return reflection->getUniform(index).glDefineType; }
-int TProgram::getUniformBufferOffset(int index)      { return reflection->getUniform(index).offset; }
-int TProgram::getUniformArraySize(int index)         { return reflection->getUniform(index).size; }
-int TProgram::getNumLiveAttributes()                 { return reflection->getNumAttributes(); }
-const char* TProgram::getAttributeName(int index)    { return reflection->getAttribute(index).name.c_str(); }
-int TProgram::getAttributeType(int index)            { return reflection->getAttribute(index).glDefineType; }
+int TProgram::getNumLiveUniformVariables() const             { return reflection->getNumUniforms(); }
+int TProgram::getNumLiveUniformBlocks() const                { return reflection->getNumUniformBlocks(); }
+const char* TProgram::getUniformName(int index) const        { return reflection->getUniform(index).name.c_str(); }
+const char* TProgram::getUniformBlockName(int index) const   { return reflection->getUniformBlock(index).name.c_str(); }
+int TProgram::getUniformBlockSize(int index) const           { return reflection->getUniformBlock(index).size; }
+int TProgram::getUniformIndex(const char* name) const        { return reflection->getIndex(name); }
+int TProgram::getUniformBlockIndex(int index) const          { return reflection->getUniform(index).index; }
+int TProgram::getUniformType(int index) const                { return reflection->getUniform(index).glDefineType; }
+int TProgram::getUniformBufferOffset(int index) const        { return reflection->getUniform(index).offset; }
+int TProgram::getUniformArraySize(int index) const           { return reflection->getUniform(index).size; }
+int TProgram::getNumLiveAttributes() const                   { return reflection->getNumAttributes(); }
+const char* TProgram::getAttributeName(int index) const      { return reflection->getAttribute(index).name.c_str(); }
+int TProgram::getAttributeType(int index) const              { return reflection->getAttribute(index).glDefineType; }
+const TType* TProgram::getUniformTType(int index) const      { return reflection->getUniform(index).getType(); }
+const TType* TProgram::getUniformBlockTType(int index) const { return reflection->getUniformBlock(index).getType(); }
 
 void TProgram::dumpReflection()                      { reflection->dump(); }
+
+//
+// I/O mapping implementation.
+//
+bool TProgram::mapIO(TIoMapResolver* resolver)
+{
+    if (! linked || ioMapper)
+        return false;
+
+    ioMapper = new TIoMapper;
+
+    for (int s = 0; s < EShLangCount; ++s) {
+        if (intermediate[s]) {
+            if (! ioMapper->addStage((EShLanguage)s, *intermediate[s], *infoSink, resolver))
+                return false;
+        }
+    }
+
+    return true;
+}
 
 } // end namespace glslang

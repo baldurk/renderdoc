@@ -46,6 +46,9 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\IntermTraverse.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\iomapper.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\limits.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
@@ -53,6 +56,9 @@
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\parseConst.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\ParseContextBase.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\ParseHelper.cpp">
@@ -83,8 +89,8 @@
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\propagateNoContraction.cpp">
-			<WarningLevel>Level3</WarningLevel>
-		</ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\reflection.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
@@ -110,15 +116,18 @@
     <ClCompile Include="..\..\..\3rdparty\glslang\glslang\OSDependent\Windows\ossource.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
+    <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslAttributes.cpp">
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslGrammar.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslOpMap.cpp">
-			<WarningLevel>Level3</WarningLevel>
-		</ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslParseables.cpp">
-			<WarningLevel>Level3</WarningLevel>
-		</ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslParseHelper.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
@@ -126,8 +135,8 @@
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\hlsl\hlslTokenStream.cpp">
-			<WarningLevel>Level3</WarningLevel>
-		</ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
@@ -138,8 +147,8 @@
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\Logger.cpp">
-			<WarningLevel>Level3</WarningLevel>
-		</ClCompile>
+      <WarningLevel>Level3</WarningLevel>
+    </ClCompile>
     <ClCompile Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.cpp">
       <WarningLevel>Level3</WarningLevel>
     </ClCompile>
@@ -163,6 +172,8 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\glslang_tab.cpp.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\gl_types.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Initialize.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\iomapper.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\LiveTraverser.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\localintermediate.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\ParseHelper.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\preprocessor\PpContext.h" />
@@ -176,6 +187,7 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\MachineIndependent\Versions.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\OSDependent\osinclude.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\glslang\Public\ShaderLang.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslAttributes.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslGrammar.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslOpMap.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslParseables.h" />
@@ -184,8 +196,11 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslTokens.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\hlsl\hlslTokenStream.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\OGLCompilersDLL\InitializeDll.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\bitutils.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.ext.KHR.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.std.450.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GlslangToSpv.h" />
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\hex_float.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\Logger.h" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\spirv.hpp" />
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\SpvBuilder.h" />
@@ -279,7 +294,7 @@
       </PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;GLSLANG_OSINCLUDE_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;AMD_EXTENSIONS;GLSLANG_OSINCLUDE_WIN32;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <TreatWarningAsError>true</TreatWarningAsError>
@@ -297,7 +312,7 @@
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;GLSLANG_OSINCLUDE_WIN32;WIN64;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;AMD_EXTENSIONS;GLSLANG_OSINCLUDE_WIN32;WIN64;WIN32;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -318,7 +333,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;GLSLANG_OSINCLUDE_WIN32;WIN32;RELEASE;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;AMD_EXTENSIONS;GLSLANG_OSINCLUDE_WIN32;WIN32;RELEASE;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -341,7 +356,7 @@
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
-      <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;GLSLANG_OSINCLUDE_WIN32;USE_BREAKPAD;WIN64;WIN32;RELEASE;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>RENDERDOC_EXPORTS;RENDERDOC_PLATFORM_WIN32;AMD_EXTENSIONS;GLSLANG_OSINCLUDE_WIN32;USE_BREAKPAD;WIN64;WIN32;RELEASE;NDEBUG;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)renderdoc\;$(SolutionDir)renderdoc\3rdparty\</AdditionalIncludeDirectories>
       <RuntimeTypeInfo>false</RuntimeTypeInfo>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>

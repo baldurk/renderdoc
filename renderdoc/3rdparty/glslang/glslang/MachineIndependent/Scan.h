@@ -204,6 +204,8 @@ public:
         currentSource = numSources;
     }
 
+    bool atEndOfInput() const { return endOfFileReached; }
+
     const TSourceLoc& getSourceLoc() const
     {
         if (singleLogical) {

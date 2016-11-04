@@ -71,7 +71,7 @@ public:
         sourceVersion = version;
     }
     void addSourceExtension(const char* ext) { sourceExtensions.push_back(ext); }
-    void addExtensions(const char* ext) { extensions.push_back(ext); }
+    void addExtension(const char* ext) { extensions.insert(ext); }
     Id import(const char*);
     void setMemoryModel(spv::AddressingModel addr, spv::MemoryModel mem)
     {
@@ -191,6 +191,9 @@ public:
     Id makeUint64Constant(unsigned long long u, bool specConstant = false)  { return makeInt64Constant(makeUintType(64),                     u, specConstant); }
     Id makeFloatConstant(float f, bool specConstant = false);
     Id makeDoubleConstant(double d, bool specConstant = false);
+#ifdef AMD_EXTENSIONS
+    Id makeFloat16Constant(float f16, bool specConstant = false);
+#endif
 
     // Turn the array of constants into a proper spv constant of the requested type.
     Id makeCompositeConstant(Id type, std::vector<Id>& comps, bool specConst = false);
@@ -210,7 +213,7 @@ public:
 
     // Make the entry-point function. The returned pointer is only valid
     // for the lifetime of this builder.
-    Function* makeEntrypoint(const char*);
+    Function* makeEntryPoint(const char*);
 
     // Make a shader-style function, and create its entry block if entry is non-zero.
     // Return the function, pass back the entry.
@@ -467,7 +470,7 @@ public:
 
     //
     // the SPIR-V builder maintains a single active chain that
-    // the following methods operated on
+    // the following methods operate on
     //
 
     // for external save and restore
@@ -552,7 +555,7 @@ public:
 
     SourceLanguage source;
     int sourceVersion;
-    std::vector<const char*> extensions;
+    std::set<const char*> extensions;
     std::vector<const char*> sourceExtensions;
     AddressingModel addressModel;
     MemoryModel memoryModel;

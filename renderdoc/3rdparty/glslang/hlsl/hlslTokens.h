@@ -64,6 +64,7 @@ enum EHlslTokenClass {
     EHTokIn,
     EHTokOut,
     EHTokInOut,
+    EHTokLayout,
 
     // template types
     EHTokBuffer,
@@ -72,6 +73,7 @@ enum EHlslTokenClass {
 
     // scalar types
     EHTokVoid,
+    EHTokString,
     EHTokBool,
     EHTokInt,
     EHTokUint,
@@ -106,6 +108,26 @@ enum EHlslTokenClass {
     EHTokUint2,
     EHTokUint3,
     EHTokUint4,
+    EHTokMin16float1,
+    EHTokMin16float2,
+    EHTokMin16float3,
+    EHTokMin16float4,
+    EHTokMin10float1,
+    EHTokMin10float2,
+    EHTokMin10float3,
+    EHTokMin10float4,
+    EHTokMin16int1,
+    EHTokMin16int2,
+    EHTokMin16int3,
+    EHTokMin16int4,
+    EHTokMin12int1,
+    EHTokMin12int2,
+    EHTokMin12int3,
+    EHTokMin12int4,
+    EHTokMin16uint1,
+    EHTokMin16uint2,
+    EHTokMin16uint3,
+    EHTokMin16uint4,
 
     // matrix types
     EHTokInt1x1,
@@ -207,6 +229,13 @@ enum EHlslTokenClass {
     EHTokTextureCubearray,
     EHTokTexture2DMS,
     EHTokTexture2DMSarray,
+    EHTokRWTexture1d,
+    EHTokRWTexture1darray,
+    EHTokRWTexture2d,
+    EHTokRWTexture2darray,
+    EHTokRWTexture3d,
+    EHTokRWBuffer,
+    
 
     // variable, user type, ...
     EHTokIdentifier,
@@ -222,6 +251,7 @@ enum EHlslTokenClass {
     EHTokIntConstant,
     EHTokUintConstant,
     EHTokBoolConstant,
+    EHTokStringConstant,
 
     // control flow
     EHTokFor,

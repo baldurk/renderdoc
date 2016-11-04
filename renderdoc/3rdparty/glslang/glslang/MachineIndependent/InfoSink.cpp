@@ -38,11 +38,15 @@
 
 namespace glslang {
 
-void TInfoSinkBase::append(const char* s)           
+void TInfoSinkBase::append(const char* s)
 {
     if (outputStream & EString) {
-        checkMem(strlen(s)); 
-        sink.append(s); 
+        if (s == nullptr)
+            sink.append("(null)");
+        else {
+            checkMem(strlen(s));
+            sink.append(s);
+        }
     }
 
 //#ifdef _WIN32
@@ -54,10 +58,10 @@ void TInfoSinkBase::append(const char* s)
         fprintf(stdout, "%s", s);
 }
 
-void TInfoSinkBase::append(int count, char c)       
+void TInfoSinkBase::append(int count, char c)
 { 
     if (outputStream & EString) {
-        checkMem(count);         
+        checkMem(count);
         sink.append(count, c); 
     }
 
@@ -74,10 +78,10 @@ void TInfoSinkBase::append(int count, char c)
         fprintf(stdout, "%c", c);
 }
 
-void TInfoSinkBase::append(const TPersistString& t) 
+void TInfoSinkBase::append(const TPersistString& t)
 { 
     if (outputStream & EString) {
-        checkMem(t.size());  
+        checkMem(t.size());
         sink.append(t); 
     }
 
@@ -93,7 +97,7 @@ void TInfoSinkBase::append(const TPersistString& t)
 void TInfoSinkBase::append(const TString& t)
 { 
     if (outputStream & EString) {
-        checkMem(t.size());  
+        checkMem(t.size());
         sink.append(t.c_str()); 
     }
 

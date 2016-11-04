@@ -117,12 +117,14 @@ void HlslScanContext::fillInKeywordMap()
     (*KeywordMap)["in"] =                      EHTokIn;
     (*KeywordMap)["out"] =                     EHTokOut;
     (*KeywordMap)["inout"] =                   EHTokInOut;
+    (*KeywordMap)["layout"] =                  EHTokLayout;
 
     (*KeywordMap)["Buffer"] =                  EHTokBuffer;
     (*KeywordMap)["vector"] =                  EHTokVector;
     (*KeywordMap)["matrix"] =                  EHTokMatrix;
 
     (*KeywordMap)["void"] =                    EHTokVoid;
+    (*KeywordMap)["string"] =                  EHTokString;
     (*KeywordMap)["bool"] =                    EHTokBool;
     (*KeywordMap)["int"] =                     EHTokInt;
     (*KeywordMap)["uint"] =                    EHTokUint;
@@ -134,7 +136,7 @@ void HlslScanContext::fillInKeywordMap()
     (*KeywordMap)["min10float"] =              EHTokMin10float;
     (*KeywordMap)["min16int"] =                EHTokMin16int;
     (*KeywordMap)["min12int"] =                EHTokMin12int;
-    (*KeywordMap)["min16uint"] =               EHTokMin16int;
+    (*KeywordMap)["min16uint"] =               EHTokMin16uint;
 
     (*KeywordMap)["bool1"] =                   EHTokBool1;
     (*KeywordMap)["bool2"] =                   EHTokBool2;
@@ -156,6 +158,27 @@ void HlslScanContext::fillInKeywordMap()
     (*KeywordMap)["uint2"] =                   EHTokUint2;
     (*KeywordMap)["uint3"] =                   EHTokUint3;
     (*KeywordMap)["uint4"] =                   EHTokUint4;
+
+    (*KeywordMap)["min16float1"] =             EHTokMin16float1;
+    (*KeywordMap)["min16float2"] =             EHTokMin16float2;
+    (*KeywordMap)["min16float3"] =             EHTokMin16float3;
+    (*KeywordMap)["min16float4"] =             EHTokMin16float4;
+    (*KeywordMap)["min10float1"] =             EHTokMin10float1;
+    (*KeywordMap)["min10float2"] =             EHTokMin10float2;
+    (*KeywordMap)["min10float3"] =             EHTokMin10float3;
+    (*KeywordMap)["min10float4"] =             EHTokMin10float4;
+    (*KeywordMap)["min16int1"] =               EHTokMin16int1;
+    (*KeywordMap)["min16int2"] =               EHTokMin16int2;
+    (*KeywordMap)["min16int3"] =               EHTokMin16int3;
+    (*KeywordMap)["min16int4"] =               EHTokMin16int4;
+    (*KeywordMap)["min12int1"] =               EHTokMin12int1;
+    (*KeywordMap)["min12int2"] =               EHTokMin12int2;
+    (*KeywordMap)["min12int3"] =               EHTokMin12int3;
+    (*KeywordMap)["min12int4"] =               EHTokMin12int4;
+    (*KeywordMap)["min16uint1"] =              EHTokMin16uint1;
+    (*KeywordMap)["min16uint2"] =              EHTokMin16uint2;
+    (*KeywordMap)["min16uint3"] =              EHTokMin16uint3;
+    (*KeywordMap)["min16uint4"] =              EHTokMin16uint4;
 
     (*KeywordMap)["int1x1"] =                  EHTokInt1x1;
     (*KeywordMap)["int1x2"] =                  EHTokInt1x2;
@@ -256,6 +279,13 @@ void HlslScanContext::fillInKeywordMap()
     (*KeywordMap)["TextureCubeArray"] =        EHTokTextureCubearray;
     (*KeywordMap)["Texture2DMS"] =             EHTokTexture2DMS;
     (*KeywordMap)["Texture2DMSArray"] =        EHTokTexture2DMSarray;
+    (*KeywordMap)["RWTexture1D"] =             EHTokRWTexture1d;
+    (*KeywordMap)["RWTexture1DArray"] =        EHTokRWTexture1darray;
+    (*KeywordMap)["RWTexture2D"] =             EHTokRWTexture2d;
+    (*KeywordMap)["RWTexture2DArray"] =        EHTokRWTexture2darray;
+    (*KeywordMap)["RWTexture3D"] =             EHTokRWTexture3d;
+    (*KeywordMap)["RWBuffer"] =                EHTokRWBuffer;
+
 
     (*KeywordMap)["struct"] =                  EHTokStruct;
     (*KeywordMap)["cbuffer"] =                 EHTokCBuffer;
@@ -410,6 +440,11 @@ EHlslTokenClass HlslScanContext::tokenizeClass(HlslToken& token)
             return token;
         }
 
+        case PpAtomConstString: {
+            parserToken->string = NewPoolTString(ppToken.name);
+            return EHTokStringConstant;
+        }
+
         case EndOfInput:               return EHTokNone;
 
         default:
@@ -457,6 +492,8 @@ EHlslTokenClass HlslScanContext::tokenizeIdentifier()
     case EHTokIn:
     case EHTokOut:
     case EHTokInOut:
+    case EHTokPrecise:
+    case EHTokLayout:
         return keyword;
 
     // template types
@@ -467,6 +504,7 @@ EHlslTokenClass HlslScanContext::tokenizeIdentifier()
 
     // scalar types
     case EHTokVoid:
+    case EHTokString:
     case EHTokBool:
     case EHTokInt:
     case EHTokUint:
@@ -501,6 +539,26 @@ EHlslTokenClass HlslScanContext::tokenizeIdentifier()
     case EHTokUint2:
     case EHTokUint3:
     case EHTokUint4:
+    case EHTokMin16float1:
+    case EHTokMin16float2:
+    case EHTokMin16float3:
+    case EHTokMin16float4:
+    case EHTokMin10float1:
+    case EHTokMin10float2:
+    case EHTokMin10float3:
+    case EHTokMin10float4:
+    case EHTokMin16int1:
+    case EHTokMin16int2:
+    case EHTokMin16int3:
+    case EHTokMin16int4:
+    case EHTokMin12int1:
+    case EHTokMin12int2:
+    case EHTokMin12int3:
+    case EHTokMin12int4:
+    case EHTokMin16uint1:
+    case EHTokMin16uint2:
+    case EHTokMin16uint3:
+    case EHTokMin16uint4:
 
     // matrix types
     case EHTokInt1x1:
@@ -571,6 +629,12 @@ EHlslTokenClass HlslScanContext::tokenizeIdentifier()
     case EHTokTextureCubearray:
     case EHTokTexture2DMS:
     case EHTokTexture2DMSarray:
+    case EHTokRWTexture1d:
+    case EHTokRWTexture1darray:
+    case EHTokRWTexture2d:
+    case EHTokRWTexture2darray:
+    case EHTokRWTexture3d:
+    case EHTokRWBuffer:
         return keyword;
 
     // variable, user type, ...

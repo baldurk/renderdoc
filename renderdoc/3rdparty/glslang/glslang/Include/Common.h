@@ -68,6 +68,10 @@ inline long long int strtoll (const char* str, char** endptr, int base)
 {
   return _strtoi64(str, endptr, base); 
 }
+inline unsigned long long int strtoull (const char* str, char** endptr, int base)
+{
+  return _strtoui64(str, endptr, base);
+}
 inline long long int atoll (const char* str)
 {
   return strtoll(str, NULL, 10);

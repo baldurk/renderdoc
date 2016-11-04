@@ -41,6 +41,8 @@
 
 namespace glslang {
 
+class TAttributeMap; // forward declare
+
 class HlslParseContext : public TParseContextBase {
 public:
     HlslParseContext(TSymbolTable&, TIntermediate&, bool parsingBuiltins,
@@ -51,15 +53,7 @@ public:
 
     void setLimits(const TBuiltInResource&);
     bool parseShaderStrings(TPpContext&, TInputScanner& input, bool versionWillBeError = false);
-
-    void C_DECL error(const TSourceLoc&, const char* szReason, const char* szToken,
-        const char* szExtraInfoFormat, ...);
-    void C_DECL  warn(const TSourceLoc&, const char* szReason, const char* szToken,
-        const char* szExtraInfoFormat, ...);
-    void C_DECL ppError(const TSourceLoc&, const char* szReason, const char* szToken,
-        const char* szExtraInfoFormat, ...);
-    void C_DECL ppWarn(const TSourceLoc&, const char* szReason, const char* szToken,
-        const char* szExtraInfoFormat, ...);
+    virtual const char* getGlobalUniformBlockName() { return "$Global"; }
 
     void reservedPpErrorCheck(const TSourceLoc&, const char* /*name*/, const char* /*op*/) { }
     bool lineContinuationCheck(const TSourceLoc&, bool /*endOfComment*/) { return true; }
@@ -69,37 +63,34 @@ public:
     void handlePragma(const TSourceLoc&, const TVector<TString>&);
     TIntermTyped* handleVariable(const TSourceLoc&, TSymbol* symbol,  const TString* string);
     TIntermTyped* handleBracketDereference(const TSourceLoc&, TIntermTyped* base, TIntermTyped* index);
+    TIntermTyped* handleBracketOperator(const TSourceLoc&, TIntermTyped* base, TIntermTyped* index);
     void checkIndex(const TSourceLoc&, const TType&, int& index);
-
-    void makeEditable(TSymbol*&);
-    TVariable* getEditableVariable(const char* name);
-    bool isIoResizeArray(const TType&) const;
-    void fixIoArraySize(const TSourceLoc&, TType&);
-    void handleIoResizeArrayAccess(const TSourceLoc&, TIntermTyped* base);
-    void checkIoArraysConsistency(const TSourceLoc&, bool tailOnly = false);
-    int getIoArrayImplicitSize() const;
-    void checkIoArrayConsistency(const TSourceLoc&, int requiredSize, const char* feature, TType&, const TString&);
 
     TIntermTyped* handleBinaryMath(const TSourceLoc&, const char* str, TOperator op, TIntermTyped* left, TIntermTyped* right);
     TIntermTyped* handleUnaryMath(const TSourceLoc&, const char* str, TOperator op, TIntermTyped* childNode);
     TIntermTyped* handleDotDereference(const TSourceLoc&, TIntermTyped* base, const TString& field);
-    TFunction* handleFunctionDeclarator(const TSourceLoc&, TFunction& function, bool prototype);
-    TIntermAggregate* handleFunctionDefinition(const TSourceLoc&, TFunction&);
+    void assignLocations(TVariable& variable);
+    TFunction& handleFunctionDeclarator(const TSourceLoc&, TFunction& function, bool prototype);
+    TIntermAggregate* handleFunctionDefinition(const TSourceLoc&, TFunction&, const TAttributeMap&);
+    void handleFunctionBody(const TSourceLoc&, TFunction&, TIntermNode* functionBody, TIntermNode*& node);
+    void remapEntryPointIO(TFunction& function);
+    void remapNonEntryPointIO(TFunction& function);
     TIntermNode* handleReturnValue(const TSourceLoc&, TIntermTyped*);
     void handleFunctionArgument(TFunction*, TIntermTyped*& arguments, TIntermTyped* newArg);
+    TIntermTyped* handleAssign(const TSourceLoc&, TOperator, TIntermTyped* left, TIntermTyped* right) const;
     TIntermTyped* handleFunctionCall(const TSourceLoc&, TFunction*, TIntermNode*);
     void decomposeIntrinsic(const TSourceLoc&, TIntermTyped*& node, TIntermNode* arguments);
     void decomposeSampleMethods(const TSourceLoc&, TIntermTyped*& node, TIntermNode* arguments);
     TIntermTyped* handleLengthMethod(const TSourceLoc&, TFunction*, TIntermNode*);
     void addInputArgumentConversions(const TFunction&, TIntermNode*&) const;
-    TIntermTyped* addOutputArgumentConversions(const TFunction&, TIntermAggregate&) const;
+    TIntermTyped* addOutputArgumentConversions(const TFunction&, TIntermAggregate&);
     void builtInOpCheck(const TSourceLoc&, const TFunction&, TIntermOperator&);
     TFunction* handleConstructorCall(const TSourceLoc&, const TType&);
-    void handleSemantic(TType& type, const TString& semantic);
-    void handlePackOffset(const TSourceLoc&, TType& type, const glslang::TString& location,
+    void handleSemantic(TSourceLoc, TQualifier&, const TString& semantic);
+    void handlePackOffset(const TSourceLoc&, TQualifier&, const glslang::TString& location,
                           const glslang::TString* component);
-    void handleRegister(const TSourceLoc&, TType& type, const glslang::TString* profile, const glslang::TString& desc,
-                        int subComponent);
+    void handleRegister(const TSourceLoc&, TQualifier&, const glslang::TString* profile, const glslang::TString& desc,
+                        int subComponent, const glslang::TString*);
 
     TIntermAggregate* handleSamplerTextureCombine(const TSourceLoc& loc, TIntermTyped* argTex, TIntermTyped* argSampler);
 
@@ -121,28 +112,29 @@ public:
     void boolCheck(const TSourceLoc&, const TIntermTyped*);
     void globalQualifierFix(const TSourceLoc&, TQualifier&);
     bool structQualifierErrorCheck(const TSourceLoc&, const TPublicType& pType);
-    void mergeQualifiers(const TSourceLoc&, TQualifier& dst, const TQualifier& src, bool force);
+    void mergeQualifiers(TQualifier& dst, const TQualifier& src);
     int computeSamplerTypeIndex(TSampler&);
     TSymbol* redeclareBuiltinVariable(const TSourceLoc&, const TString&, const TQualifier&, const TShaderQualifiers&, bool& newDeclaration);
     void redeclareBuiltinBlock(const TSourceLoc&, TTypeList& typeList, const TString& blockName, const TString* instanceName, TArraySizes* arraySizes);
     void paramFix(TType& type);
     void specializationCheck(const TSourceLoc&, const TType&, const char* op);
 
-    void setLayoutQualifier(const TSourceLoc&, TPublicType&, TString&);
-    void setLayoutQualifier(const TSourceLoc&, TPublicType&, TString&, const TIntermTyped*);
+    void setLayoutQualifier(const TSourceLoc&, TQualifier&, TString&);
+    void setLayoutQualifier(const TSourceLoc&, TQualifier&, TString&, const TIntermTyped*);
     void mergeObjectLayoutQualifiers(TQualifier& dest, const TQualifier& src, bool inheritOnly);
     void checkNoShaderLayouts(const TSourceLoc&, const TShaderQualifiers&);
 
     const TFunction* findFunction(const TSourceLoc& loc, const TFunction& call, bool& builtIn);
     void declareTypedef(const TSourceLoc&, TString& identifier, const TType&, TArraySizes* typeArray = 0);
-    TIntermNode* declareVariable(const TSourceLoc&, TString& identifier, const TType&, TArraySizes* typeArray = 0, TIntermTyped* initializer = 0);
+    TIntermNode* declareVariable(const TSourceLoc&, TString& identifier, TType&, TIntermTyped* initializer = 0);
     TIntermTyped* addConstructor(const TSourceLoc&, TIntermNode*, const TType&);
     TIntermTyped* constructAggregate(TIntermNode*, const TType&, int, const TSourceLoc&);
     TIntermTyped* constructBuiltIn(const TType&, TOperator, TIntermTyped*, const TSourceLoc&, bool subset);
     void declareBlock(const TSourceLoc&, TType&, const TString* instanceName = 0, TArraySizes* arraySizes = 0);
+    void finalizeGlobalUniformBlockLayout(TVariable& block);
     void fixBlockLocations(const TSourceLoc&, TQualifier&, TTypeList&, bool memberWithLocation, bool memberWithoutLocation);
     void fixBlockXfbOffsets(TQualifier&, TTypeList&);
-    void fixBlockUniformOffsets(TQualifier&, TTypeList&);
+    void fixBlockUniformOffsets(const TQualifier&, TTypeList&);
     void addQualifierToExisting(const TSourceLoc&, TQualifier, const TString& identifier);
     void addQualifierToExisting(const TSourceLoc&, TQualifier, TIdentifierList&);
     void updateStandaloneQualifierDefaults(const TSourceLoc&, const TPublicType&);
@@ -151,13 +143,22 @@ public:
 
     void updateImplicitArraySize(const TSourceLoc&, TIntermNode*, int index);
 
-    void nestLooping()     { ++loopNestingLevel; }
-    void unnestLooping()   { --loopNestingLevel; }
-    void pushScope()       { symbolTable.push(); }
-    void popScope()        { symbolTable.pop(0); }
+    void nestLooping()       { ++loopNestingLevel; }
+    void unnestLooping()     { --loopNestingLevel; }
+    void nestAnnotations()   { ++annotationNestingLevel; }
+    void unnestAnnotations() { --annotationNestingLevel; }
+    int getAnnotationNestingLevel() { return annotationNestingLevel; }
+    void pushScope()         { symbolTable.push(); }
+    void popScope()          { symbolTable.pop(0); }
 
     void pushSwitchSequence(TIntermSequence* sequence) { switchSequenceStack.push_back(sequence); }
     void popSwitchSequence() { switchSequenceStack.pop_back(); }
+
+    // Apply L-value conversions.  E.g, turning a write to a RWTexture into an ImageStore.
+    TIntermTyped* handleLvalue(const TSourceLoc&, const char* op, TIntermTyped* node);
+    bool lValueErrorCheck(const TSourceLoc&, const char* op, TIntermTyped*) override;
+
+    TLayoutFormat getLayoutFromTxType(const TSourceLoc&, const TType&);
 
 protected:
     void inheritGlobalDefaults(TQualifier& dst) const;
@@ -167,17 +168,27 @@ protected:
     TIntermNode* executeInitializer(const TSourceLoc&, TIntermTyped* initializer, TVariable* variable);
     TIntermTyped* convertInitializerList(const TSourceLoc&, const TType&, TIntermTyped* initializer);
     TOperator mapAtomicOp(const TSourceLoc& loc, TOperator op, bool isImage);
-    void outputMessage(const TSourceLoc&, const char* szReason, const char* szToken,
-                       const char* szExtraInfoFormat, TPrefixType prefix,
-                       va_list args);
+
+    // Return true if this node requires L-value conversion (e.g, to an imageStore).
+    bool shouldConvertLValue(const TIntermNode*) const;
+
+    // Array and struct flattening
+    bool shouldFlatten(const TType& type) const { return shouldFlattenIO(type) || shouldFlattenUniform(type); }
+    TIntermTyped* flattenAccess(TIntermTyped* base, int member);
+    bool shouldFlattenIO(const TType&) const;
+    bool shouldFlattenUniform(const TType&) const;
+    void flatten(const TSourceLoc& loc, const TVariable& variable);
+    void flattenStruct(const TVariable& variable);
+    void flattenArray(const TSourceLoc& loc, const TVariable& variable);
 
     // Current state of parsing
     struct TPragma contextPragma;
     int loopNestingLevel;        // 0 if outside all loops
+    int annotationNestingLevel;  // 0 if outside all annotations
     int structNestingLevel;      // 0 if outside blocks and structures
     int controlFlowNestingLevel; // 0 if outside all flow control
     TList<TIntermSequence*> switchSequenceStack;  // case, node, case, case, node, ...; ensure only one node between cases;   stack of them for nesting
-    bool inEntrypoint;           // if inside a function, true if the function is the entry point
+    bool inEntryPoint;           // if inside a function, true if the function is the entry point
     bool postMainReturn;         // if inside a function, true if the function is the entry point and this is after a return statement
     const TType* currentFunctionType;  // the return type of the function that's currently being parsed
     bool functionReturnsValue;   // true if a non-void function has a return
@@ -188,7 +199,6 @@ protected:
     HlslParseContext& operator=(HlslParseContext&);
 
     static const int maxSamplerIndex = EsdNumDims * (EbtNumTypes * (2 * 2 * 2)); // see computeSamplerTypeIndex()
-    bool afterEOF;
     TQualifier globalBufferDefaults;
     TQualifier globalUniformDefaults;
     TQualifier globalInputDefaults;
@@ -196,6 +206,7 @@ protected:
     TString currentCaller;        // name of last function body entered (not valid when at global scope)
     TIdSetType inductiveLoopIds;
     TVector<TIntermTyped*> needsIndexLimitationChecking;
+    TVariable* entryPointOutput;
 
     //
     // Geometry shader input arrays:
@@ -230,6 +241,10 @@ protected:
     //    array-sizing declarations
     //
     TVector<TSymbol*> ioArraySymbolResizeList;
+
+    TMap<int, TVector<TVariable*>> flattenMap;
+    unsigned int nextInLocation;
+    unsigned int nextOutLocation;
 };
 
 } // end namespace glslang

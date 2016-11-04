@@ -46,11 +46,18 @@
 #ifndef __INTERMEDIATE_H
 #define __INTERMEDIATE_H
 
+#if _MSC_VER >= 1900
+    #pragma warning(disable : 4464) // relative include path contains '..'
+    #pragma warning(disable : 5026) // 'glslang::TIntermUnary': move constructor was implicitly defined as deleted
+#endif
+
 #include "../Include/Common.h"
 #include "../Include/Types.h"
 #include "../Include/ConstantUnion.h"
 
 namespace glslang {
+
+class TIntermediate;
 
 //
 // Operators used by the high-level (parse tree) representation.
@@ -119,6 +126,22 @@ enum TOperator {
     EOpConvFloatToUint64,
     EOpConvDoubleToUint64,
     EOpConvInt64ToUint64,
+#ifdef AMD_EXTENSIONS
+    EOpConvBoolToFloat16,
+    EOpConvIntToFloat16,
+    EOpConvUintToFloat16,
+    EOpConvFloatToFloat16,
+    EOpConvDoubleToFloat16,
+    EOpConvInt64ToFloat16,
+    EOpConvUint64ToFloat16,
+    EOpConvFloat16ToBool,
+    EOpConvFloat16ToInt,
+    EOpConvFloat16ToUint,
+    EOpConvFloat16ToFloat,
+    EOpConvFloat16ToDouble,
+    EOpConvFloat16ToInt64,
+    EOpConvFloat16ToUint64,
+#endif
 
     //
     // binary operations
@@ -236,6 +259,10 @@ enum TOperator {
     EOpUnpackInt2x32,
     EOpPackUint2x32,
     EOpUnpackUint2x32,
+#ifdef AMD_EXTENSIONS
+    EOpPackFloat2x16,
+    EOpUnpackFloat2x16,
+#endif
 
     EOpLength,
     EOpDistance,
@@ -396,6 +423,21 @@ enum TOperator {
     EOpConstructDMat4x2,
     EOpConstructDMat4x3,
     EOpConstructDMat4x4,
+#ifdef AMD_EXTENSIONS
+    EOpConstructFloat16,
+    EOpConstructF16Vec2,
+    EOpConstructF16Vec3,
+    EOpConstructF16Vec4,
+    EOpConstructF16Mat2x2,
+    EOpConstructF16Mat2x3,
+    EOpConstructF16Mat2x4,
+    EOpConstructF16Mat3x2,
+    EOpConstructF16Mat3x3,
+    EOpConstructF16Mat3x4,
+    EOpConstructF16Mat4x2,
+    EOpConstructF16Mat4x3,
+    EOpConstructF16Mat4x4,
+#endif
     EOpConstructStruct,
     EOpConstructTextureSampler,
     EOpConstructGuardEnd,
@@ -810,7 +852,7 @@ public:
     virtual       TIntermOperator* getAsOperator()       { return this; }
     virtual const TIntermOperator* getAsOperator() const { return this; }
     TOperator getOp() const { return op; }
-    virtual bool promote() { return true; }
+    void setOp(TOperator newOp) { op = newOp; }
     bool modifiesState() const;
     bool isConstructor() const;
     bool isTexture()  const { return op > EOpTextureGuardBegin  && op < EOpTextureGuardEnd; }
@@ -989,7 +1031,6 @@ public:
     virtual TIntermTyped* getRight() const { return right; }
     virtual       TIntermBinary* getAsBinaryNode()       { return this; }
     virtual const TIntermBinary* getAsBinaryNode() const { return this; }
-    virtual bool promote();
     virtual void updatePrecision();
 protected:
     TIntermTyped* left;
@@ -1009,7 +1050,6 @@ public:
     virtual const TIntermTyped* getOperand() const { return operand; }
     virtual       TIntermUnary* getAsUnaryNode()       { return this; }
     virtual const TIntermUnary* getAsUnaryNode() const { return this; }
-    virtual bool promote();
     virtual void updatePrecision();
 protected:
     TIntermTyped* operand;

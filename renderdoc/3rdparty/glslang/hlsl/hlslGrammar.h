@@ -43,6 +43,8 @@
 
 namespace glslang {
 
+    class TAttributeMap; // forward declare
+    
     // Should just be the grammar aspect of HLSL.
     // Described in more detail in hlslGrammar.cpp.
 
@@ -67,18 +69,20 @@ namespace glslang {
         bool acceptSamplerDeclarationDX9(TType&);
         bool acceptSamplerState();
         bool acceptFullySpecifiedType(TType&);
-        void acceptQualifier(TQualifier&);
+        bool acceptQualifier(TQualifier&);
+        bool acceptLayoutQualifierList(TQualifier&);
         bool acceptType(TType&);
         bool acceptTemplateType(TBasicType&);
         bool acceptVectorTemplateType(TType&);
         bool acceptMatrixTemplateType(TType&);
+        bool acceptAnnotations(TQualifier&);
         bool acceptSamplerType(TType&);
         bool acceptTextureType(TType&);
         bool acceptStruct(TType&);
         bool acceptStructDeclarationList(TTypeList*&);
         bool acceptFunctionParameters(TFunction&);
         bool acceptParameterDeclaration(TFunction&);
-        bool acceptFunctionDefinition(TFunction&, TIntermNode*&);
+        bool acceptFunctionDefinition(TFunction&, TIntermNode*&, const TAttributeMap&);
         bool acceptParenExpression(TIntermTyped*&);
         bool acceptExpression(TIntermTyped*&);
         bool acceptInitializer(TIntermTyped*&);
@@ -96,7 +100,7 @@ namespace glslang {
         bool acceptScopedStatement(TIntermNode*&);
         bool acceptScopedCompoundStatement(TIntermNode*&);
         bool acceptNestedStatement(TIntermNode*&);
-        void acceptAttributes();
+        void acceptAttributes(TAttributeMap&);
         bool acceptSelectionStatement(TIntermNode*&);
         bool acceptSwitchStatement(TIntermNode*&);
         bool acceptIterationStatement(TIntermNode*&);
@@ -104,7 +108,7 @@ namespace glslang {
         bool acceptCaseLabel(TIntermNode*&);
         bool acceptDefaultLabel(TIntermNode*&);
         void acceptArraySpecifier(TArraySizes*&);
-        void acceptPostDecls(TType&);
+        void acceptPostDecls(TQualifier&);
 
         HlslParseContext& parseContext;  // state of parsing and helper functions for building the intermediate
         TIntermediate& intermediate;     // the final product, the intermediate representation, includes the AST

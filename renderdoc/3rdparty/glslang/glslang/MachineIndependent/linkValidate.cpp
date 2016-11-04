@@ -75,13 +75,13 @@ void TIntermediate::merge(TInfoSink& infoSink, TIntermediate& unit)
     if (source != unit.source)
         error(infoSink, "can't link compilation units from different source languages");
 
-    if (source == EShSourceHlsl && unit.entryPoint.size() > 0) {
-        if (entryPoint.size() > 0)
+    if (source == EShSourceHlsl && unit.getNumEntryPoints() > 0) {
+        if (getNumEntryPoints() > 0)
             error(infoSink, "can't handle multiple entry points per stage");
         else
-            entryPoint = unit.entryPoint;
+            entryPointName = unit.entryPointName;
     }
-    numMains += unit.numMains;
+    numEntryPoints += unit.numEntryPoints;
     numErrors += unit.numErrors;
     numPushConstants += unit.numPushConstants;
     callGraph.insert(callGraph.end(), unit.callGraph.begin(), unit.callGraph.end());
@@ -370,8 +370,8 @@ void TIntermediate::mergeErrorCheck(TInfoSink& infoSink, const TIntermSymbol& sy
 //
 void TIntermediate::finalCheck(TInfoSink& infoSink)
 {
-    if (source == EShSourceGlsl && numMains < 1)
-        error(infoSink, "Missing entry point: Each stage requires one \"void main()\" entry point");
+    if (source == EShSourceGlsl && numEntryPoints < 1)
+        error(infoSink, "Missing entry point: Each stage requires one entry point");
 
     if (numPushConstants > 1)
         error(infoSink, "Only one push_constant block is allowed per stage");
@@ -950,6 +950,9 @@ int TIntermediate::getBaseAlignmentScalar(const TType& type, int& size)
     case EbtInt64:
     case EbtUint64:
     case EbtDouble:  size = 8; return 8;
+#ifdef AMD_EXTENSIONS
+    case EbtFloat16: size = 2; return 2;
+#endif
     default:         size = 4; return 4;
     }
 }

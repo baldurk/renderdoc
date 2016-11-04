@@ -1,1 +1,1 @@
-glslang from https://github.com/KhronosGroup/glslang at commit 359dcee7156517c700b152496ede19097c889085
+glslang from https://github.com/KhronosGroup/glslang at commit e5e58cfee34dfd6126a770b4250c14ea9340a231

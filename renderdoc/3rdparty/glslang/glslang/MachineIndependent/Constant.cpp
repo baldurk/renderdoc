@@ -176,6 +176,9 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TIntermTyped* right
             switch (getType().getBasicType()) {
             case EbtDouble:
             case EbtFloat:
+#ifdef AMD_EXTENSIONS
+            case EbtFloat16:
+#endif
                 newConstArray[i].setDConst(leftUnionArray[i].getDConst() / rightUnionArray[i].getDConst());
                 break;
 
@@ -450,6 +453,9 @@ TIntermTyped* TIntermConstantUnion::fold(TOperator op, const TType& returnType) 
         case EOpNegative:
             switch (getType().getBasicType()) {
             case EbtDouble:
+#ifdef AMD_EXTENSIONS
+            case EbtFloat16:
+#endif
             case EbtFloat: newConstArray[i].setDConst(-unionArray[i].getDConst()); break;
             case EbtInt:   newConstArray[i].setIConst(-unionArray[i].getIConst()); break;
             case EbtUint:  newConstArray[i].setUConst(static_cast<unsigned int>(-static_cast<int>(unionArray[i].getUConst())));  break;
@@ -688,6 +694,9 @@ TIntermTyped* TIntermediate::fold(TIntermAggregate* aggrNode)
     // Second, do the actual folding
 
     bool isFloatingPoint = children[0]->getAsTyped()->getBasicType() == EbtFloat ||
+#ifdef AMD_EXTENSIONS
+                           children[0]->getAsTyped()->getBasicType() == EbtFloat16 ||
+#endif
                            children[0]->getAsTyped()->getBasicType() == EbtDouble;
     bool isSigned = children[0]->getAsTyped()->getBasicType() == EbtInt ||
                     children[0]->getAsTyped()->getBasicType() == EbtInt64;

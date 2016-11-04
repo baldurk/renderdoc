@@ -136,10 +136,11 @@ const char* const E_GL_GOOGLE_cpp_style_line_directive          = "GL_GOOGLE_cpp
 const char* const E_GL_GOOGLE_include_directive                 = "GL_GOOGLE_include_directive";
 
 #ifdef AMD_EXTENSIONS
-const char* const E_GL_AMD_shader_ballot = "GL_AMD_shader_ballot";
-const char* const E_GL_AMD_shader_trinary_minmax = "GL_AMD_shader_trinary_minmax";
-const char* const E_GL_AMD_shader_explicit_vertex_parameter = "GL_AMD_shader_explicit_vertex_parameter";
-const char* const E_GL_AMD_gcn_shader = "GL_AMD_gcn_shader";
+const char* const E_GL_AMD_shader_ballot                        = "GL_AMD_shader_ballot";
+const char* const E_GL_AMD_shader_trinary_minmax                = "GL_AMD_shader_trinary_minmax";
+const char* const E_GL_AMD_shader_explicit_vertex_parameter     = "GL_AMD_shader_explicit_vertex_parameter";
+const char* const E_GL_AMD_gcn_shader                           = "GL_AMD_gcn_shader";
+const char* const E_GL_AMD_gpu_shader_half_float                = "GL_AMD_gpu_shader_half_float";
 #endif
 
 // AEP

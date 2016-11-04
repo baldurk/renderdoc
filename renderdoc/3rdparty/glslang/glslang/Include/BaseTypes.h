@@ -46,6 +46,9 @@ enum TBasicType {
     EbtVoid,
     EbtFloat,
     EbtDouble,
+#ifdef AMD_EXTENSIONS
+    EbtFloat16,
+#endif
     EbtInt,
     EbtUint,
     EbtInt64,
@@ -55,6 +58,10 @@ enum TBasicType {
     EbtSampler,
     EbtStruct,
     EbtBlock,
+
+    // HLSL types that live only temporarily.
+    EbtString,
+
     EbtNumTypes
 };
 
@@ -195,6 +202,11 @@ enum TBuiltInVariable {
     EbvBaryCoordSmoothSample,
     EbvBaryCoordPullModel,
 #endif
+
+    // HLSL built-ins that live only temporarily, until they get remapped
+    // to one of the above.
+    EbvFragDepthGreater,
+    EbvFragDepthLesser,
 
     EbvLast
 };

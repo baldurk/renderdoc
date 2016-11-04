@@ -32,7 +32,7 @@ enum Decoration;
 enum Op;
 
 static const int GLSLextAMDVersion = 100;
-static const int GLSLextAMDRevision = 1;
+static const int GLSLextAMDRevision = 2;
 
 // SPV_AMD_shader_ballot
 static const char* const E_SPV_AMD_shader_ballot = "SPV_AMD_shader_ballot";
@@ -109,5 +109,8 @@ enum GcnShaderAMD {
 
     GcnShaderCountAMD
 };
+
+// SPV_AMD_gpu_shader_half_float
+static const char* const E_SPV_AMD_gpu_shader_half_float = "SPV_AMD_gpu_shader_half_float";
 
 #endif  // #ifndef GLSLextAMD_H

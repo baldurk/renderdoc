@@ -1,5 +1,7 @@
 //
 //Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
+//Copyright (C) 2013-2016 LunarG, Inc.
+//
 //All rights reserved.
 //
 //Redistribution and use in source and binary forms, with or without
@@ -100,6 +102,8 @@ typedef enum {
 } EShLanguageMask;
 
 namespace glslang {
+
+class TType;
 
 typedef enum {
     EShSourceNone,
@@ -300,6 +304,12 @@ public:
         const char* const* s, const int* l, const char* const* names, int n);
     void setPreamble(const char* s) { preamble = s; }
     void setEntryPoint(const char* entryPoint);
+    void setShiftSamplerBinding(unsigned int base);
+    void setShiftTextureBinding(unsigned int base);
+    void setShiftUboBinding(unsigned int base);
+    void setAutoMapBindings(bool map);
+    void setFlattenUniformArrays(bool flatten);
+    void setNoStorageFormat(bool useUnknownFormat);
 
     // Interface to #include handlers.
     //
@@ -433,8 +443,38 @@ private:
 };
 
 class TReflection;
+class TIoMapper;
 
-// Make one TProgram per set of shaders that will get linked together.  Add all 
+// Allows to customize the binding layout after linking.
+// All used uniform variables will invoke at least validateBinding.
+// If validateBinding returned true then the other resolveBinding
+// and resolveSet are invoked to resolve the binding and descriptor
+// set index respectively.
+// Invocations happen in a particular order:
+// 1) var with binding and set already defined
+// 2) var with binding but no set defined
+// 3) var with set but no binding defined
+// 4) var with no binding and no set defined
+//
+// NOTE: that still limit checks are applied to bindings and sets
+// and may result in an error.
+class TIoMapResolver
+{
+public:
+  virtual ~TIoMapResolver() {}
+
+  // Should return true if the resulting/current binding would be ok.
+  // Basic idea is to do aliasing binding checks with this.
+  virtual bool validateBinding(EShLanguage stage, const char* name, const TType& type, bool is_live) = 0;
+  // Should return a value >= 0 if the current binding should be overridden.
+  // Return -1 if the current binding (including no binding) should be kept.
+  virtual int resolveBinding(EShLanguage stage, const char* name, const TType& type, bool is_live) = 0;
+  // Should return a value >= 0 if the current set should be overriden.
+  // Return -1 if the current set (including no set) should be kept.
+  virtual int resolveSet(EShLanguage stage, const char* name, const TType& type, bool is_live) = 0;
+};
+
+// Make one TProgram per set of shaders that will get linked together.  Add all
 // the shaders that are to be linked together.  After calling shader.parse()
 // for all shaders, call link().
 //
@@ -455,20 +495,28 @@ public:
 
     // Reflection Interface
     bool buildReflection();                          // call first, to do liveness analysis, index mapping, etc.; returns false on failure
-    int getNumLiveUniformVariables();                // can be used for glGetProgramiv(GL_ACTIVE_UNIFORMS)
-    int getNumLiveUniformBlocks();                   // can be used for glGetProgramiv(GL_ACTIVE_UNIFORM_BLOCKS)
-    const char* getUniformName(int index);           // can be used for "name" part of glGetActiveUniform()
-    const char* getUniformBlockName(int blockIndex); // can be used for glGetActiveUniformBlockName()
-    int getUniformBlockSize(int blockIndex);         // can be used for glGetActiveUniformBlockiv(UNIFORM_BLOCK_DATA_SIZE)
-    int getUniformIndex(const char* name);           // can be used for glGetUniformIndices()
-    int getUniformBlockIndex(int index);             // can be used for glGetActiveUniformsiv(GL_UNIFORM_BLOCK_INDEX)
-    int getUniformType(int index);                   // can be used for glGetActiveUniformsiv(GL_UNIFORM_TYPE)
-    int getUniformBufferOffset(int index);           // can be used for glGetActiveUniformsiv(GL_UNIFORM_OFFSET)
-    int getUniformArraySize(int index);              // can be used for glGetActiveUniformsiv(GL_UNIFORM_SIZE)
-    int getNumLiveAttributes();                      // can be used for glGetProgramiv(GL_ACTIVE_ATTRIBUTES)
-    const char *getAttributeName(int index);         // can be used for glGetActiveAttrib()
-    int getAttributeType(int index);                 // can be used for glGetActiveAttrib()
+    int getNumLiveUniformVariables() const;                // can be used for glGetProgramiv(GL_ACTIVE_UNIFORMS)
+    int getNumLiveUniformBlocks() const;                   // can be used for glGetProgramiv(GL_ACTIVE_UNIFORM_BLOCKS)
+    const char* getUniformName(int index) const;           // can be used for "name" part of glGetActiveUniform()
+    const char* getUniformBlockName(int blockIndex) const; // can be used for glGetActiveUniformBlockName()
+    int getUniformBlockSize(int blockIndex) const;         // can be used for glGetActiveUniformBlockiv(UNIFORM_BLOCK_DATA_SIZE)
+    int getUniformIndex(const char* name) const;           // can be used for glGetUniformIndices()
+    int getUniformBlockIndex(int index) const;             // can be used for glGetActiveUniformsiv(GL_UNIFORM_BLOCK_INDEX)
+    int getUniformType(int index) const;                   // can be used for glGetActiveUniformsiv(GL_UNIFORM_TYPE)
+    int getUniformBufferOffset(int index) const;           // can be used for glGetActiveUniformsiv(GL_UNIFORM_OFFSET)
+    int getUniformArraySize(int index) const;              // can be used for glGetActiveUniformsiv(GL_UNIFORM_SIZE)
+    int getNumLiveAttributes() const;                      // can be used for glGetProgramiv(GL_ACTIVE_ATTRIBUTES)
+    const char *getAttributeName(int index) const;         // can be used for glGetActiveAttrib()
+    int getAttributeType(int index) const;                 // can be used for glGetActiveAttrib()
+    const TType* getUniformTType(int index) const;         // returns a TType*
+    const TType* getUniformBlockTType(int index) const;    // returns a TType*    
+
     void dumpReflection();
+
+    // I/O mapping: apply base offsets and map live unbound variables
+    // If resolver is not provided it uses the previous approach
+    // and respects auto assignment and offsets.
+    bool mapIO(TIoMapResolver* resolver = NULL);
 
 protected:
     bool linkStage(EShLanguage, EShMessages);
@@ -479,6 +527,7 @@ protected:
     bool newedIntermediate[EShLangCount];      // track which intermediate were "new" versus reusing a singleton unit in a stage
     TInfoSink* infoSink;
     TReflection* reflection;
+    TIoMapper* ioMapper;
     bool linked;
 
 private:

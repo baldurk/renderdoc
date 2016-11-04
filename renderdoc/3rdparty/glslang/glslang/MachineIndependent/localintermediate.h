@@ -137,11 +137,17 @@ class TIntermediate {
 public:
     explicit TIntermediate(EShLanguage l, int v = 0, EProfile p = ENoProfile) :
         source(EShSourceNone), language(l), profile(p), version(v), treeRoot(0),
-        numMains(0), numErrors(0), numPushConstants(0), recursive(false),
+        numEntryPoints(0), numErrors(0), numPushConstants(0), recursive(false),
         invocations(TQualifier::layoutNotSet), vertices(TQualifier::layoutNotSet), inputPrimitive(ElgNone), outputPrimitive(ElgNone),
         pixelCenterInteger(false), originUpperLeft(false),
         vertexSpacing(EvsNone), vertexOrder(EvoNone), pointMode(false), earlyFragmentTests(false), depthLayout(EldNone), depthReplacing(false), blendEquations(0),
-        multiStream(false), xfbMode(false)
+        multiStream(false), xfbMode(false),
+        shiftSamplerBinding(0),
+        shiftTextureBinding(0),
+        shiftUboBinding(0),
+        autoMapBindings(false),
+        flattenUniformArrays(false),
+        useUnknownFormat(false)
     {
         localSize[0] = 1;
         localSize[1] = 1;
@@ -159,8 +165,24 @@ public:
 
     void setSource(EShSource s) { source = s; }
     EShSource getSource() const { return source; }
-    void setEntryPoint(const char* ep) { entryPoint = ep; }
-    const std::string& getEntryPoint() const { return entryPoint; }
+    void setEntryPointName(const char* ep) { entryPointName = ep; }
+    void setEntryPointMangledName(const char* ep) { entryPointMangledName = ep; }
+    const std::string& getEntryPointName() const { return entryPointName; }
+    const std::string& getEntryPointMangledName() const { return entryPointMangledName; }
+
+    void setShiftSamplerBinding(unsigned int shift) { shiftSamplerBinding = shift; }
+    unsigned int getShiftSamplerBinding() const { return shiftSamplerBinding; }
+    void setShiftTextureBinding(unsigned int shift) { shiftTextureBinding = shift; }
+    unsigned int getShiftTextureBinding() const { return shiftTextureBinding; }
+    void setShiftUboBinding(unsigned int shift)     { shiftUboBinding = shift; }
+    unsigned int getShiftUboBinding()     const { return shiftUboBinding; }
+    void setAutoMapBindings(bool map)               { autoMapBindings = map; }
+    bool getAutoMapBindings()             const { return autoMapBindings; }
+    void setFlattenUniformArrays(bool flatten)      { flattenUniformArrays = flatten; }
+    bool getFlattenUniformArrays()        const { return flattenUniformArrays; }
+    void setNoStorageFormat(bool b)             { useUnknownFormat = b; }
+    bool getNoStorageFormat()             const { return useUnknownFormat; }
+    
     void setVersion(int v) { version = v; }
     int getVersion() const { return version; }
     void setProfile(EProfile p) { profile = p; }
@@ -173,8 +195,8 @@ public:
 
     void setTreeRoot(TIntermNode* r) { treeRoot = r; }
     TIntermNode* getTreeRoot() const { return treeRoot; }
-    void addMainCount() { ++numMains; }
-    int getNumMains() const { return numMains; }
+    void incrementEntryPointCount() { ++numEntryPoints; }
+    int getNumEntryPoints() const { return numEntryPoints; }
     int getNumErrors() const { return numErrors; }
     void addPushConstantCount() { ++numPushConstants; }
     bool isRecursive() const { return recursive; }
@@ -182,6 +204,7 @@ public:
     TIntermSymbol* addSymbol(const TVariable&);
     TIntermSymbol* addSymbol(const TVariable&, const TSourceLoc&);
     TIntermSymbol* addSymbol(const TType&, const TSourceLoc&);
+    TIntermSymbol* addSymbol(const TIntermSymbol&);
     TIntermTyped* addConversion(TOperator, const TType&, TIntermTyped*) const;
     TIntermTyped* addShapeConversion(TOperator, const TType&, TIntermTyped*);
     TIntermTyped* addBinaryMath(TOperator, TIntermTyped* left, TIntermTyped* right, TSourceLoc);
@@ -215,6 +238,16 @@ public:
     TIntermBranch* addBranch(TOperator, const TSourceLoc&);
     TIntermBranch* addBranch(TOperator, TIntermTyped*, const TSourceLoc&);
     TIntermTyped* addSwizzle(TVectorFields&, const TSourceLoc&);
+
+    // Low level functions to add nodes (no conversions or other higher level transformations)
+    // If a type is provided, the node's type will be set to it.
+    TIntermBinary* addBinaryNode(TOperator op, TIntermTyped* left, TIntermTyped* right, TSourceLoc) const;
+    TIntermBinary* addBinaryNode(TOperator op, TIntermTyped* left, TIntermTyped* right, TSourceLoc, const TType&) const;
+    TIntermUnary* addUnaryNode(TOperator op, TIntermTyped* child, TSourceLoc) const;
+    TIntermUnary* addUnaryNode(TOperator op, TIntermTyped* child, TSourceLoc, const TType&) const;
+
+    // Add conversion from node's type to given basic type.
+    TIntermTyped* convertToBasicType(TOperator op, TBasicType basicType, TIntermTyped* node) const;
 
     // Constant folding (in Constant.cpp)
     TIntermTyped* fold(TIntermAggregate* aggrNode);
@@ -360,17 +393,28 @@ protected:
     bool userOutputUsed() const;
     static int getBaseAlignmentScalar(const TType&, int& size);
     bool isSpecializationOperation(const TIntermOperator&) const;
-
+    bool promote(TIntermOperator*);
+    bool promoteUnary(TIntermUnary&);
+    bool promoteBinary(TIntermBinary&);
+    
     const EShLanguage language;  // stage, known at construction time
     EShSource source;            // source language, known a bit later
-    std::string entryPoint;
+    std::string entryPointName;
+    std::string entryPointMangledName;
+    unsigned int shiftSamplerBinding;
+    unsigned int shiftTextureBinding;
+    unsigned int shiftUboBinding;
+    bool autoMapBindings;
+    bool flattenUniformArrays;
+    bool useUnknownFormat;
+
     EProfile profile;
     int version;
     SpvVersion spvVersion;
     TIntermNode* treeRoot;
     std::set<std::string> requestedExtensions;  // cumulation of all enabled or required extensions; not connected to what subset of the shader used them
     TBuiltInResource resources;
-    int numMains;
+    int numEntryPoints;
     int numErrors;
     int numPushConstants;
     bool recursive;
