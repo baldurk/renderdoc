@@ -370,7 +370,7 @@ int fclose(FILE *f)
 
 void *logfile_open(const char *filename)
 {
-  int fd = open(filename, O_APPEND | O_WRONLY | O_CREAT, S_IWRITE);
+  int fd = open(filename, O_APPEND | O_WRONLY | O_CREAT, S_IWUSR);
   return (void *)(intptr_t)fd;
 }
 
