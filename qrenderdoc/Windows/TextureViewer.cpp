@@ -499,11 +499,13 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
                    &TextureViewer::channelsWidget_toggled);
   QObject::connect(ui->gammaDisplay, &QToolButton::toggled, this,
                    &TextureViewer::channelsWidget_toggled);
-  QObject::connect(ui->channels, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+  QObject::connect(ui->channels,
+                   static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this,
                    &TextureViewer::channelsWidget_selected);
-  QObject::connect(ui->hdrMul, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
-                   &TextureViewer::channelsWidget_selected);
-  QObject::connect(ui->customShader, QOverload<int>::of(&QComboBox::currentIndexChanged), this,
+  QObject::connect(ui->hdrMul, static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged),
+                   this, &TextureViewer::channelsWidget_selected);
+  QObject::connect(ui->customShader,
+                   static_cast<void (QComboBox::*)(int)>(&QComboBox::currentIndexChanged), this,
                    &TextureViewer::channelsWidget_selected);
   QObject::connect(ui->rangeHistogram, &RangeHistogram::rangeUpdated, this,
                    &TextureViewer::range_rangeUpdated);
