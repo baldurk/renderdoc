@@ -139,7 +139,7 @@ if($printext)
     print $fh "Extension name,Function name,Supported\n";
     foreach my $func (sort keys %func2ext)
     {
-        my $supp = (grep { $_ eq $func } @implemented_funcs) ? 1 : 0;
+        my $supp = (grep { $_ eq $func } @implemented_funcs) ? "1" : "0";
         my $ext = $func2ext{$func};
         print $fh "$ext,$func,$supp\n";
     }
@@ -151,7 +151,7 @@ if($printext)
     foreach my $x ( sort keys %extfuncs )
     {
         my $ext = $extfuncs{$x};
-        my $supp = $ext->{funcs} eq $ext->{impl} ? "1" : "0";
+        my $supp = $ext->{funcs} eq "0" ? "?" : ($ext->{funcs} eq $ext->{impl} ? "1" : "0");
         print $fh "$ext->{name},$ext->{funcs},$ext->{impl},$supp\n";
     }
     close $fh;
