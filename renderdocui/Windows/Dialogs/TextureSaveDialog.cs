@@ -128,7 +128,15 @@ namespace renderdocui.Windows.Dialogs
 
             sampleSelect.SelectedIndex = Math.Min((int)tex.msSamp, (saveData.sample.sampleIndex == ~0U ? 0 : (int)saveData.sample.sampleIndex));
 
-            if (saveData.sample.sampleIndex == ~0U)
+            resolveSamples.Enabled = true;
+
+            if (tex.format.compType == FormatComponentType.UInt ||
+                tex.format.compType == FormatComponentType.SInt ||
+                tex.format.compType == FormatComponentType.Depth ||
+                (tex.creationFlags & TextureCreationFlags.DSV) != 0)
+                resolveSamples.Enabled = false;
+
+            if (saveData.sample.sampleIndex == ~0U && resolveSamples.Enabled)
             {
                 resolveSamples.Checked = true;
             }

@@ -3646,6 +3646,9 @@ namespace renderdocui.Windows
 
         private void saveTex_Click(object sender, EventArgs e)
         {
+            if(CurrentTexture == null)
+                return;
+
             if (m_SaveDialog == null)
                 m_SaveDialog = new TextureSaveDialog(m_Core);
 
