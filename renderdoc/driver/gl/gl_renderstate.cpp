@@ -1128,16 +1128,21 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
     }
   }
 
-  // apply drawbuffers/readbuffer to default framebuffer
-  m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, gl->GetFakeBBFBO());
-  m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, gl->GetFakeBBFBO());
-  m_Real->glDrawBuffers(numDBs, DBs);
+  // this will always return true during capture, but on replay we only do
+  // this work if we're on the replay context
+  if(gl->GetReplay()->IsReplayContext(ctx))
+  {
+    // apply drawbuffers/readbuffer to default framebuffer
+    m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, gl->GetFakeBBFBO());
+    m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, gl->GetFakeBBFBO());
+    m_Real->glDrawBuffers(numDBs, DBs);
 
-  // see above for reasoning for this
-  m_Real->glReadBuffer(eGL_COLOR_ATTACHMENT0);
+    // see above for reasoning for this
+    m_Real->glReadBuffer(eGL_COLOR_ATTACHMENT0);
 
-  m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO);
-  m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO);
+    m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO);
+    m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO);
+  }
 
   m_Real->glHint(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, Hints.Derivatives);
   m_Real->glHint(eGL_LINE_SMOOTH_HINT, Hints.LineSmooth);

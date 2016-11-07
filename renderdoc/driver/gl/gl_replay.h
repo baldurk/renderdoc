@@ -224,6 +224,7 @@ public:
 
   void SetReplayData(GLWindowingData data);
 
+  bool IsReplayContext(void *ctx) { return m_ReplayCtx.ctx == NULL || ctx == m_ReplayCtx.ctx; }
 private:
   void FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor,
                         uint32_t offs, uint32_t matStride, const vector<byte> &data,
