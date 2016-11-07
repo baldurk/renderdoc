@@ -322,14 +322,14 @@ private:
   unsigned int m_ViewRefcount;    // refcount from views (invisible to the end-user)
 
 protected:
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   DescType m_Desc;
 #endif
 
   WrappedResource11(NestedType *real, WrappedID3D11Device *device)
       : WrappedDeviceChild11(real, device), m_ViewRefcount(0)
   {
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
     real->GetDesc(&m_Desc);
 #endif
 

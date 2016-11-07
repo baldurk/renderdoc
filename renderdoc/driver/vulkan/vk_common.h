@@ -44,11 +44,15 @@
 // uncomment this to cause every internal QueueSubmit to immediately call
 // DeviceWaitIdle(), and to only submit one command buffer at once to narrow
 // down the cause of device lost errors
-//#define SINGLE_FLUSH_VALIDATE
+#define SINGLE_FLUSH_VALIDATE OPTION_OFF
 
 // uncomment this to get verbose debugging about when/where/why partial command
 // buffer replay is happening
-//#define VERBOSE_PARTIAL_REPLAY
+#define VERBOSE_PARTIAL_REPLAY OPTION_OFF
+
+// uncomment this to enable validation layers on replay, useful for debugging
+// problems with new replay code
+#define FORCE_VALIDATION_LAYERS OPTION_OFF
 
 ResourceFormat MakeResourceFormat(VkFormat fmt);
 VkFormat MakeVkFormat(ResourceFormat fmt);

@@ -1931,7 +1931,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
   // in case of bugs, we readback into this array instead of
   GLint dummyReadback[32];
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   for(size_t i = 1; i < ARRAY_COUNT(dummyReadback); i++)
     dummyReadback[i] = 0x6c7b8a9d;
 #endif
@@ -2191,7 +2191,7 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
     }
   }
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   for(size_t i = 1; i < ARRAY_COUNT(dummyReadback); i++)
     if(dummyReadback[i] != 0x6c7b8a9d)
       RDCERR("Invalid uniform readback - data beyond first element modified!");

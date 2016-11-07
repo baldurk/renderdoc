@@ -68,7 +68,7 @@ public:
 
 // these are not required for success, but opportunistic to prevent AMD extensions from
 // activating and causing later crashes when not replayed correctly
-#if defined(RDC64BIT)
+#if ENABLED(RDOC_X64)
     AmdCreate11.Initialize("AmdDxExtCreate11", "atidxx64.dll", AmdCreate11_hook);
 #else
     AmdCreate11.Initialize("AmdDxExtCreate11", "atidxx32.dll", AmdCreate11_hook);

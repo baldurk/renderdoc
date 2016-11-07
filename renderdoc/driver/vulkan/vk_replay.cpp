@@ -1426,7 +1426,7 @@ bool VulkanReplay::RenderTextureInternal(TextureDisplay cfg, VkRenderPassBeginIn
 
   vt->EndCommandBuffer(Unwrap(cmd));
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
 #endif
 
@@ -1567,7 +1567,7 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
 #endif
 }
@@ -1668,7 +1668,7 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
 #endif
 }
@@ -2186,7 +2186,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
       m_pDriver->SubmitCmds();
 #endif
 
@@ -2752,7 +2752,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
 #endif
 }
@@ -2891,7 +2891,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 
   vt->EndCommandBuffer(Unwrap(cmd));
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
 #endif
 }
@@ -2941,7 +2941,7 @@ void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 
   vt->EndCommandBuffer(Unwrap(cmd));
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
 #endif
 }
@@ -2994,7 +2994,7 @@ void VulkanReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t sten
 
   vt->EndCommandBuffer(Unwrap(cmd));
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
 #endif
 }
@@ -3043,7 +3043,7 @@ void VulkanReplay::FlipOutputWindow(uint64_t id)
       },
   };
 
-#if MSAA_MESH_VIEW
+#if ENABLED(MSAA_MESH_VIEW)
   VkImageResolve resolve = {
       {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0},
       {VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1}, {0, 0, 0},
@@ -4704,7 +4704,7 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
     // ordering
     vt->EndCommandBuffer(Unwrap(cmd));
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
     m_pDriver->SubmitCmds();
 #endif
 

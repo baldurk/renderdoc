@@ -283,13 +283,13 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
     }
     else if(m_LastEventID <= startEID)
     {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
       RDCDEBUG("Queue Submit no replay %u == %u", m_LastEventID, startEID);
 #endif
     }
     else if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
     {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
       RDCDEBUG("Queue Submit re-recording from %u", m_RootEventID);
 #endif
 
@@ -299,7 +299,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
       {
         VkCommandBuffer cmd = RerecordCmdBuf(cmdIds[c]);
         ResourceId rerecord = GetResID(cmd);
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
         RDCDEBUG("Queue Submit fully re-recorded replay of %llu, using %llu", cmdIds[c], rerecord);
 #endif
         rerecordedCmds.push_back(Unwrap(cmd));
@@ -316,7 +316,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
     }
     else if(m_LastEventID > startEID && m_LastEventID < m_RootEventID)
     {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
       RDCDEBUG("Queue Submit partial replay %u < %u", m_LastEventID, m_RootEventID);
 #endif
 
@@ -336,7 +336,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
         if(eid == m_Partial[Primary].baseEvent)
         {
           ResourceId partial = GetResID(RerecordCmdBuf(cmdIds[c], Primary));
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdIds[c], eid, partial);
 #endif
           trimmedCmdIds.push_back(partial);
@@ -344,7 +344,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
         }
         else if(m_LastEventID >= end)
         {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("Queue Submit full replay %llu", cmdIds[c]);
 #endif
           trimmedCmdIds.push_back(cmdIds[c]);
@@ -353,7 +353,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
         }
         else
         {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("Queue not submitting %llu", cmdIds[c]);
 #endif
         }
@@ -379,7 +379,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
     }
     else
     {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
       RDCDEBUG("Queue Submit full replay %u >= %u", m_LastEventID, m_RootEventID);
 #endif
 

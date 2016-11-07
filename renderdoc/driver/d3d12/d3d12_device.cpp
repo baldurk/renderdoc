@@ -208,7 +208,7 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
   m_GPUSyncHandle = NULL;
   m_GPUSyncCounter = 0;
 
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
   const bool debugSerialiser = false;
 #else
   const bool debugSerialiser = true;
@@ -1817,7 +1817,7 @@ Serialiser *WrappedID3D12Device::GetThreadSerialiser()
 
 // slow path, but rare
 
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
   const bool debugSerialiser = false;
 #else
   const bool debugSerialiser = true;
@@ -2158,7 +2158,7 @@ void WrappedID3D12Device::ReadLogInitialisation()
       SAFE_RELEASE(it->second);
   }
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)
   {
     double dcount = double(it->second.count);
@@ -2270,7 +2270,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
       cmd.m_Partial[D3D12CommandData::Primary].outsideCmdList = NULL;
     }
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
     FlushLists(true);
 #endif
   }

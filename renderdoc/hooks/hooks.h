@@ -32,7 +32,7 @@ using std::map;
 
 // include os-specific hooking mechanisms here
 
-#if defined(RENDERDOC_PLATFORM_WIN32)
+#if ENABLED(RDOC_WIN32)
 
 #include "os/win32/win32_hook.h"
 
@@ -59,7 +59,7 @@ private:
 #define HOOKS_END() Win32_IAT_EndHooks()
 #define HOOKS_REMOVE() Win32_IAT_RemoveHooks()
 
-#elif defined(RENDERDOC_PLATFORM_POSIX)
+#elif ENABLED(RDOC_POSIX)
 
 #include "os/posix/posix_hook.h"
 

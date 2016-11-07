@@ -169,7 +169,7 @@ static bool InitDbgHelp()
       *slash = 0;
     }
 
-#if defined(WIN64)
+#if ENABLED(RDOC_X64)
     wcscat_s(path, L"/pdblocate/x64/dbghelp.dll");
 #else
     wcscat_s(path, L"/pdblocate/x86/dbghelp.dll");

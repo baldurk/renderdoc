@@ -36,7 +36,7 @@ using std::make_pair;
 #undef min
 #undef max
 
-#ifdef _MSC_VER
+#if ENABLED(RDOC_MSVS)
 #pragma warning(disable : 4481)    // nonstandard extension used: override specifier 'override'
 #endif
 

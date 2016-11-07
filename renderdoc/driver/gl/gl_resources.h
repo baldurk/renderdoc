@@ -244,7 +244,7 @@ struct GLResourceRecord : public ResourceRecord
 
   void VerifyDataType(GLenum target)
   {
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
     if(target == eGL_NONE)
       return;    // target == GL_NONE means ARB_dsa, target was omitted
     if(datatype == eGL_NONE)

@@ -39,7 +39,8 @@ typedef uint32_t bool32;
 #endif
 #define RENDERDOC_CC __cdecl
 
-#elif defined(RENDERDOC_PLATFORM_POSIX)
+#elif defined(RENDERDOC_PLATFORM_LINUX) || defined(RENDERDOC_PLATFORM_APPLE) || \
+    defined(RENDERDOC_PLATFORM_ANDROID)
 
 #ifdef RENDERDOC_EXPORTS
 #define RENDERDOC_API __attribute__((visibility("default")))

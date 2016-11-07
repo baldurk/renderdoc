@@ -430,7 +430,7 @@ string MakeMachineIdentString(uint64_t ident);
 namespace Bits
 {
 inline uint32_t CountLeadingZeroes(uint32_t value);
-#if RDC64BIT
+#if ENABLED(RDOC_X64)
 inline uint64_t CountLeadingZeroes(uint64_t value);
 #endif
 };
@@ -442,9 +442,9 @@ inline uint64_t CountLeadingZeroes(uint64_t value);
 // OS_DEBUG_BREAK() - instruction that debugbreaks the debugger - define instead of function to
 // preserve callstacks
 
-#if defined(RENDERDOC_PLATFORM_WIN32)
+#if ENABLED(RDOC_WIN32)
 #include "win32/win32_specific.h"
-#elif defined(RENDERDOC_PLATFORM_POSIX)
+#elif ENABLED(RDOC_POSIX)
 #include "posix/posix_specific.h"
 #else
 #error Undefined Platform!

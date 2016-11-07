@@ -31,7 +31,7 @@ void VulkanReplay::OutputWindow::SetWindowHandle(WindowingSystem system, void *d
 {
   m_WindowSystem = system;
 
-#if defined(RENDERDOC_WINDOWING_XLIB)
+#if ENABLED(RDOC_XLIB)
   if(system == eWindowingSystem_Xlib)
   {
     XlibWindowData *xdata = (XlibWindowData *)data;
@@ -41,7 +41,7 @@ void VulkanReplay::OutputWindow::SetWindowHandle(WindowingSystem system, void *d
   }
 #endif
 
-#if defined(RENDERDOC_WINDOWING_XCB)
+#if ENABLED(RDOC_XCB)
   if(system == eWindowingSystem_XCB)
   {
     XCBWindowData *xdata = (XCBWindowData *)data;
@@ -56,7 +56,7 @@ void VulkanReplay::OutputWindow::SetWindowHandle(WindowingSystem system, void *d
 
 void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 {
-#if defined(RENDERDOC_WINDOWING_XLIB)
+#if ENABLED(RDOC_XLIB)
   if(m_WindowSystem == eWindowingSystem_Xlib)
   {
     VkXlibSurfaceCreateInfoKHR createInfo;
@@ -74,7 +74,7 @@ void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
   }
 #endif
 
-#if defined(RENDERDOC_WINDOWING_XCB)
+#if ENABLED(RDOC_XCB)
   if(m_WindowSystem == eWindowingSystem_XCB)
   {
     VkXcbSurfaceCreateInfoKHR createInfo;
@@ -102,7 +102,7 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
 
   OutputWindow &outw = m_OutputWindows[id];
 
-#if defined(RENDERDOC_WINDOWING_XLIB)
+#if ENABLED(RDOC_XLIB)
   if(outw.m_WindowSystem == eWindowingSystem_Xlib)
   {
     XWindowAttributes attr = {};
@@ -115,7 +115,7 @@ void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h
   }
 #endif
 
-#if defined(RENDERDOC_WINDOWING_XCB)
+#if ENABLED(RDOC_XCB)
   if(outw.m_WindowSystem == eWindowingSystem_XCB)
   {
     xcb_get_geometry_cookie_t geomCookie =

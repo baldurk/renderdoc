@@ -30,11 +30,9 @@
 #include "common.h"
 #include "threading.h"
 
-#if !defined(_RELEASE)
-#define INCLUDE_TYPE_NAMES
-#endif
+#define INCLUDE_TYPE_NAMES RDOC_DEVEL
 
-#ifdef INCLUDE_TYPE_NAMES
+#if ENABLED(INCLUDE_TYPE_NAMES)
 template <class T>
 class GetTypeName
 {
@@ -73,7 +71,7 @@ public:
     }
 
 // warn when we need to allocate an additional pool
-#ifdef INCLUDE_TYPE_NAMES
+#if ENABLED(INCLUDE_TYPE_NAMES)
     RDCWARN("Ran out of free slots in %s pool!", GetTypeName<WrapType>::Name());
 #else
     RDCWARN("Ran out of free slots in pool 0x%p!", &m_ImmediatePool.items[0]);
@@ -82,7 +80,7 @@ public:
     // allocate a new additional pool and use that to allocate from
     m_AdditionalPools.push_back(new ItemPool());
 
-#ifdef INCLUDE_TYPE_NAMES
+#if ENABLED(INCLUDE_TYPE_NAMES)
     RDCDEBUG("WrappingPool[%d]<%s>: %p -> %p", (uint32_t)m_AdditionalPools.size() - 1,
              GetTypeName<WrapType>::Name(), &m_AdditionalPools.back()->items[0],
              &m_AdditionalPools.back()->items[AllocCount - 1]);
@@ -135,7 +133,7 @@ public:
     }
 
 // this is an error - deleting an object that we don't recognise
-#ifdef INCLUDE_TYPE_NAMES
+#if ENABLED(INCLUDE_TYPE_NAMES)
     RDCERR("Resource being deleted through wrong pool - 0x%p not a member of %s", p,
            GetTypeName<WrapType>::Name());
 #else
@@ -151,7 +149,7 @@ public:
 private:
   WrappingPool()
   {
-#ifdef INCLUDE_TYPE_NAMES
+#if ENABLED(INCLUDE_TYPE_NAMES)
     // hack - print in kB because float printing relies on statics that might not be initialised
     // yet in loading order. Ugly :(
     RDCDEBUG("WrappingPool<%s> %d in %dkB: %p -> %p", GetTypeName<WrapType>::Name(), PoolCount,
@@ -201,7 +199,7 @@ private:
       void *ret = (void *)&items[lastAlloc];
       allocated[lastAlloc] = true;
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
       memset(ret, 0xb0, AllocByteSize);
 #endif
 
@@ -214,7 +212,7 @@ private:
     {
       RDCASSERT(IsAlloc(p));
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
       if(!IsAlloc(p))
       {
         RDCERR("Resource being deleted through wrong pool - 0x%p not a memory of 0x%p", p, &items[0]);
@@ -226,7 +224,7 @@ private:
 
       allocated[idx] = false;
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
       memset(p, 0xfe, DebugClear ? AllocByteSize : 0);
 #endif
     }
@@ -258,7 +256,7 @@ private:
   void *operator new(size_t sz) { return m_Pool.Allocate(); } \
   void operator delete(void *p) { m_Pool.Deallocate(p); }     \
   static bool IsAlloc(void *p) { return m_Pool.IsAlloc(p); }
-#ifdef INCLUDE_TYPE_NAMES
+#if ENABLED(INCLUDE_TYPE_NAMES)
 #define DECL_TYPENAME(a)             \
   template <>                        \
   const char *GetTypeName<a>::Name() \

@@ -489,7 +489,7 @@ bool WrappedVulkan::Serialise_vkBeginCommandBuffer(Serialiser *localSerialiser,
       {
         if(*it <= m_LastEventID && m_LastEventID < (*it + length))
         {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("vkBegin - partial detected %u < %u < %u, %llu -> %llu", *it, m_LastEventID,
                    *it + length, cmdId, bakeId);
 #endif
@@ -678,7 +678,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser *localSerialiser,
     if(ShouldRerecordCmd(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
       RDCDEBUG("Ending partial command buffer for %llu baked to %llu", cmdid, bakeId);
 #endif
 
@@ -2432,13 +2432,13 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
       }
       else if(m_LastEventID <= startEID)
       {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
         RDCDEBUG("ExecuteCommands no replay %u == %u", m_LastEventID, startEID);
 #endif
       }
       else if(m_DrawcallCallback && m_DrawcallCallback->RecordAllCmds())
       {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
         RDCDEBUG("ExecuteCommands re-recording from %u", startEID);
 #endif
 
@@ -2448,7 +2448,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
         {
           VkCommandBuffer cmd = RerecordCmdBuf(cmdids[c]);
           ResourceId rerecord = GetResID(cmd);
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("ExecuteCommands fully re-recorded replay of %llu, using %llu", cmdids[c],
                    rerecord);
 #endif
@@ -2463,7 +2463,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
       else if(m_LastEventID > startEID &&
               m_LastEventID < parentCmdBufInfo.curEventID + m_Partial[Primary].baseEvent)
       {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
         RDCDEBUG("ExecuteCommands partial replay %u < %u", m_LastEventID,
                  parentCmdBufInfo.curEventID + m_Partial[Primary].baseEvent);
 #endif
@@ -2484,7 +2484,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
           if(eid == m_Partial[Secondary].baseEvent)
           {
             ResourceId partial = GetResID(RerecordCmdBuf(cmdids[c], Secondary));
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
             RDCDEBUG("ExecuteCommands partial replay of %llu at %u, using %llu", cmdids[c], eid,
                      partial);
 #endif
@@ -2493,7 +2493,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
           }
           else if(m_LastEventID >= end)
           {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
             RDCDEBUG("ExecuteCommands full replay %llu", cmdids[c]);
 #endif
             trimmedCmdIds.push_back(cmdids[c]);
@@ -2502,7 +2502,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
           }
           else
           {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
             RDCDEBUG("not executing %llu", cmdids[c]);
 #endif
           }
@@ -2525,7 +2525,7 @@ bool WrappedVulkan::Serialise_vkCmdExecuteCommands(Serialiser *localSerialiser,
       }
       else
       {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
         RDCDEBUG("ExecuteCommands full replay %u >= %u", m_LastEventID,
                  parentCmdBufInfo.curEventID + m_Partial[Primary].baseEvent);
 #endif

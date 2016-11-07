@@ -594,7 +594,7 @@ string Wide2UTF8(const wstring &s)
 
   if(res == 0)
   {
-#if !defined(_RELEASE)
+#if ENABLED(RDOC_DEVEL)
     RDCWARN("Failed to convert wstring");    // can't pass string through as this would infinitely
                                              // recurse
 #endif
@@ -621,7 +621,7 @@ wstring UTF82Wide(const string &s)
 
   if(res == 0)
   {
-#if !defined(_RELEASE)
+#if ENABLED(RDOC_DEVEL)
     RDCWARN("Failed to convert utf-8 string");    // can't pass string through as this would
                                                   // infinitely recurse
 #endif
@@ -656,7 +656,7 @@ uint64_t GetMachineIdent()
   ret |= MachineIdent_Arch_x86;
 #endif
 
-#if defined(RDC64BIT)
+#if ENABLED(RDOC_X64)
   ret |= MachineIdent_64bit;
 #else
   ret |= MachineIdent_32bit;

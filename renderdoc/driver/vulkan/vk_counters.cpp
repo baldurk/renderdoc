@@ -144,7 +144,7 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<uint32_t> &counte
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
 #endif
 

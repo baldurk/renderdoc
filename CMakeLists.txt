@@ -126,8 +126,6 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     endif()
 endif()
 
-add_definitions(-DRENDERDOC_PLATFORM_POSIX)
-
 if(ANDROID)
     add_definitions(-DRENDERDOC_PLATFORM_ANDROID)
 elseif(APPLE)

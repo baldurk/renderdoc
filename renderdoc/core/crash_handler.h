@@ -25,7 +25,7 @@
 
 #if USE_BREAKPAD && defined(RENDERDOC_OFFICIAL_BUILD)
 
-#define CRASH_HANDLER_ENABLED
+#define RDOC_CRASH_HANDLER OPTION_ON
 
 // breakpad
 #include "breakpad/client/windows/common/ipc_protocol.h"
@@ -141,5 +141,9 @@ public:
 private:
   google_breakpad::ExceptionHandler *m_ExHandler;
 };
+
+#else
+
+#define RDOC_CRASH_HANDLER OPTION_OFF
 
 #endif

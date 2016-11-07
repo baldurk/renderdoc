@@ -51,11 +51,11 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
 // uncomment this to cause every internal ExecuteCommandLists to immediately call
 // FlushLists(), and to only submit one command list at once to narrow
 // down the cause of device lost errors
-//#define SINGLE_FLUSH_VALIDATE
+#define SINGLE_FLUSH_VALIDATE OPTION_OFF
 
 // uncomment this to get verbose debugging about when/where/why partial command
 // buffer replay is happening
-#define VERBOSE_PARTIAL_REPLAY
+#define VERBOSE_PARTIAL_REPLAY OPTION_ON
 
 ShaderStageBits ConvertVisibility(D3D12_SHADER_VISIBILITY ShaderVisibility);
 UINT GetNumSubresources(ID3D12Device *dev, const D3D12_RESOURCE_DESC *desc);

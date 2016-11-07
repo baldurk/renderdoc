@@ -143,7 +143,7 @@ void CacheDebuggerPresent()
 bool OSUtility::DebuggerPresent()
 {
 // apple requires that this only be called in debug builds
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
   return false;
 #else
   int mib[4] = {CTL_KERN, KERN_PROC, KERN_PROC_PID, getpid()};

@@ -37,7 +37,7 @@
 // to be exported with the precise canonical names. We just forward them to the
 // layer-named functions
 
-#if !defined(RENDERDOC_PLATFORM_ANDROID)
+#if DISABLED(RDOC_ANDROID)
 #error "This file should only be compiled on android!"
 #endif
 

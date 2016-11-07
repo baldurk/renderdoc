@@ -47,8 +47,6 @@ void InitInstanceTable(VkInstance inst, PFN_vkGetInstanceProcAddr gpa);
 // and
 // instance are destroyed. We only clean up after our own objects.
 
-//#define FORCE_VALIDATION_LAYERS
-
 static void StripUnwantedLayers(vector<string> &Layers)
 {
   for(auto it = Layers.begin(); it != Layers.end();)
@@ -95,7 +93,7 @@ ReplayCreateStatus WrappedVulkan::Initialise(VkInitParams &params)
   // PORTABILITY verify that layers/extensions are available
   StripUnwantedLayers(params.Layers);
 
-#if defined(FORCE_VALIDATION_LAYERS)
+#if ENABLED(FORCE_VALIDATION_LAYERS)
   params.Layers.push_back("VK_LAYER_LUNARG_standard_validation");
 
   params.Extensions.push_back("VK_EXT_debug_report");
@@ -790,7 +788,7 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
 
     AddRequiredExtensions(false, Extensions, supportedExtensions);
 
-#if defined(FORCE_VALIDATION_LAYERS)
+#if ENABLED(FORCE_VALIDATION_LAYERS)
     Layers.push_back("VK_LAYER_LUNARG_standard_validation");
 #endif
 

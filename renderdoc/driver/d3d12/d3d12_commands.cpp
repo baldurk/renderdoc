@@ -146,7 +146,7 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
 
   m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandQueue), (void **)&m_WrappedDebug.m_pReal);
 
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
   const bool debugSerialiser = false;
 #else
   const bool debugSerialiser = true;
@@ -590,7 +590,7 @@ WrappedID3D12GraphicsCommandList::WrappedID3D12GraphicsCommandList(ID3D12Graphic
   if(m_pReal)
     m_pReal->QueryInterface(__uuidof(ID3D12DebugCommandList), (void **)&m_WrappedDebug.m_pReal);
 
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
   const bool debugSerialiser = false;
 #else
   const bool debugSerialiser = true;

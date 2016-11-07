@@ -37,7 +37,7 @@
 #include "vk_resources.h"
 
 // this should be in the vulkan definition header
-#if defined(RENDERDOC_PLATFORM_WIN32)
+#if ENABLED(RDOC_WIN32)
 #undef VK_LAYER_EXPORT
 #define VK_LAYER_EXPORT extern "C" __declspec(dllexport)
 #endif
@@ -176,7 +176,7 @@ void VKAPI_CALL hooked_vkDestroyInstance(VkInstance instance, const VkAllocation
 
 // Layer Intercepts
 
-#if defined(RENDERDOC_PLATFORM_WIN32) && !defined(RDC64BIT)
+#if ENABLED(RDOC_WIN32) && DISABLED(RDOC_X64)
 
 // Win32 __stdcall will still mangle even with extern "C", set up aliases
 

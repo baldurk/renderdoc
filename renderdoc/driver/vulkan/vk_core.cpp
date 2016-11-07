@@ -235,7 +235,7 @@ void VkInitParams::Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst)
 
 WrappedVulkan::WrappedVulkan(const char *logFilename) : m_RenderState(&m_CreationInfo)
 {
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
   const bool debugSerialiser = false;
 #else
   const bool debugSerialiser = true;
@@ -424,7 +424,7 @@ void WrappedVulkan::SubmitCmds()
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   FlushQ();
 #endif
 
@@ -487,7 +487,7 @@ void WrappedVulkan::FlushQ()
     ObjDisp(m_Queue)->QueueWaitIdle(Unwrap(m_Queue));
   }
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   {
     ObjDisp(m_Queue)->DeviceWaitIdle(Unwrap(m_Device));
     VkResult vkr = ObjDisp(m_Queue)->DeviceWaitIdle(Unwrap(m_Device));
@@ -624,7 +624,7 @@ Serialiser *WrappedVulkan::GetThreadSerialiser()
 
 // slow path, but rare
 
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
   const bool debugSerialiser = false;
 #else
   const bool debugSerialiser = true;
@@ -889,7 +889,7 @@ bool WrappedVulkan::Serialise_BeginCaptureFrame(bool applyInitialState)
       VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                             VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
       for(size_t i = 0; i < imgBarriers.size(); i++)
       {
         VkCommandBuffer cmd = GetNextCmd();
@@ -1489,7 +1489,7 @@ void WrappedVulkan::ReadLogInitialisation()
     }
   }
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)
   {
     double dcount = double(it->second.count);
@@ -1713,7 +1713,7 @@ void WrappedVulkan::ApplyInitialContents()
   vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   SubmitCmds();
 #endif
 }
@@ -2246,7 +2246,7 @@ void WrappedVulkan::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
       m_Partial[Primary].outsideCmdBuffer = VK_NULL_HANDLE;
     }
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
     SubmitCmds();
 #endif
   }

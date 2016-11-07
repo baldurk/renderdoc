@@ -760,7 +760,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs) : m_Re
     if(m_Real.glDebugMessageCallback)
     {
       m_Real.glDebugMessageCallback(&DebugSnoopStatic, this);
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
       m_Real.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
 #endif
     }
@@ -3102,7 +3102,7 @@ void WrappedOpenGL::ReadLogInitialisation()
       break;
   }
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)
   {
     double dcount = double(it->second.count);

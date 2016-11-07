@@ -104,7 +104,7 @@ WrappedID3D11DeviceContext::WrappedID3D11DeviceContext(WrappedID3D11Device *real
   m_pRealContext3 = NULL;
   m_pRealContext->QueryInterface(__uuidof(ID3D11DeviceContext3), (void **)&m_pRealContext3);
 
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
   const bool debugSerialiser = false;
 #else
   const bool debugSerialiser = true;

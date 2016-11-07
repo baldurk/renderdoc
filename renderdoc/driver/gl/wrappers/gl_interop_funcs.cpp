@@ -26,11 +26,7 @@
 #include "common/common.h"
 #include "serialise/string_utils.h"
 
-// define this if you e.g. haven't compiled the D3D modules and want to disable
-// interop capture support.
-#define RENDERDOC_DX_GL_INTEROP 1
-
-#if defined(RENDERDOC_PLATFORM_WIN32) && RENDERDOC_DX_GL_INTEROP
+#if ENABLED(RDOC_WIN32) && ENABLED(RENDERDOC_DX_GL_INTEROP)
 
 struct ID3D11Resource;
 
@@ -245,7 +241,7 @@ bool WrappedOpenGL::Serialise_wglDXRegisterObjectNV(GLResource res, GLenum type,
   if(m_State >= WRITING)
   {
     ResourceFormat format;
-#if defined(RENDERDOC_PLATFORM_WIN32) && RENDERDOC_DX_GL_INTEROP
+#if ENABLED(RDOC_WIN32) && ENABLED(RENDERDOC_DX_GL_INTEROP)
     GetDXTextureProperties(dxObject, format, width, height, depth, mips, layers, samples);
     internalFormat = MakeGLFormat(*this, format);
 #else

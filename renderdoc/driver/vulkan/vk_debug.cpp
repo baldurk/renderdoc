@@ -1000,7 +1000,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     attState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     attState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 
-    VkShaderModule ms2arrayModule, array2msModule;
+    VkShaderModule ms2arrayModule = VK_NULL_HANDLE, array2msModule = VK_NULL_HANDLE;
 
     for(size_t i = 0; i < 2; i++)
     {
@@ -2944,7 +2944,7 @@ void VulkanDebugManager::CreateCustomShaderTex(uint32_t width, uint32_t height, 
   vkr = ObjDisp(dev)->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
 #endif
 
@@ -4250,7 +4250,7 @@ uint32_t VulkanDebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg
   VkResult vkr = vt->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
 #endif
 
@@ -4401,7 +4401,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
 #endif
 
@@ -5956,7 +5956,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
       m_pDriver->SubmitCmds();
 #endif
 
@@ -6188,7 +6188,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
       m_pDriver->SubmitCmds();
 #endif
 
@@ -6300,7 +6300,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
       vkr = vt->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
       m_pDriver->SubmitCmds();
 #endif
 
@@ -6692,7 +6692,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
   vkr = vt->EndCommandBuffer(Unwrap(cmd));
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
   m_pDriver->SubmitCmds();
 #endif
 

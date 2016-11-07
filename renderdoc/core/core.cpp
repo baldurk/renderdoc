@@ -26,6 +26,7 @@
 #include "core/core.h"
 #include <time.h>
 #include <algorithm>
+#include "common/common.h"
 #include "common/dds_readwrite.h"
 #include "data/version.h"
 #include "hooks/hooks.h"
@@ -191,7 +192,7 @@ void RenderDoc::RecreateCrashHandler()
 {
   UnloadCrashHandler();
 
-#ifdef CRASH_HANDLER_ENABLED
+#if ENABLED(RDOC_CRASH_HANDLER)
   m_ExHandler = new CrashHandler(m_ExHandler);
 #endif
 
@@ -626,7 +627,7 @@ string RenderDoc::GetOverlayText(RDCDriver driver, uint32_t frameNumber, int fla
       }
     }
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
     overlayText += StringFormat::Fmt("%llu chunks - %.2f MB\n", Chunk::NumLiveChunks(),
                                      float(Chunk::TotalMem()) / 1024.0f / 1024.0f);
 #endif
@@ -691,7 +692,7 @@ Serialiser *RenderDoc::OpenWriteSerialiser(uint32_t frameNum, RDCInitParams *par
 {
   RDCASSERT(m_CurrentDriver != RDC_Unknown);
 
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
   const bool debugSerialiser = false;
 #else
   const bool debugSerialiser = true;

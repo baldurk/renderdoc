@@ -22,15 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#if defined(RENDERDOC_WINDOWING_XLIB)
-#include <X11/Xlib.h>
-#include <X11/keysym.h>
-#endif
-
-#if defined(RENDERDOC_WINDOWING_XCB)
-#include <xcb/xcb_keysyms.h>
-#endif
-
 #include <errno.h>
 #include <iconv.h>
 #include <pwd.h>
@@ -45,6 +36,15 @@
 #include "os/os_specific.h"
 #include "serialise/string_utils.h"
 
+#if ENABLED(RDOC_XLIB)
+#include <X11/Xlib.h>
+#include <X11/keysym.h>
+#endif
+
+#if ENABLED(RDOC_XCB)
+#include <xcb/xcb_keysyms.h>
+#endif
+
 using std::string;
 
 namespace Keyboard
@@ -55,14 +55,14 @@ void Init()
 
 bool PlatformHasKeyInput()
 {
-#if defined(RENDERDOC_WINDOWING_XCB) || defined(RENDERDOC_WINDOWING_XLIB)
+#if ENABLED(RDOC_XCB) || ENABLED(RDOC_XLIB)
   return true;
 #else
   return false;
 #endif
 }
 
-#if defined(RENDERDOC_WINDOWING_XLIB)
+#if ENABLED(RDOC_XLIB)
 
 Display *CurrentXDisplay = NULL;
 
@@ -135,7 +135,7 @@ bool GetXlibKeyState(int key)
 
 #else
 
-// if RENDERDOC_WINDOWING_XLIB is not defined
+// if RENDERDOC_WINDOWING_XLIB is not enabled
 
 bool GetXlibKeyState(int key)
 {
@@ -144,7 +144,7 @@ bool GetXlibKeyState(int key)
 
 #endif
 
-#if defined(RENDERDOC_WINDOWING_XCB)
+#if ENABLED(RDOC_XCB)
 
 xcb_connection_t *connection;
 xcb_key_symbols_t *symbols;
@@ -227,7 +227,7 @@ bool GetXCBKeyState(int key)
 
 #else
 
-// if RENDERDOC_WINDOWING_XCB is not defined
+// if RENDERDOC_WINDOWING_XCB is not enabled
 
 bool GetXCBKeyState(int key)
 {
@@ -324,7 +324,7 @@ string Wide2UTF8(const std::wstring &s)
 
   if(ret == (size_t)-1)
   {
-#if !defined(_RELEASE)
+#if ENABLED(RDOC_DEVEL)
     RDCWARN("Failed to convert wstring");
 #endif
     return "";
@@ -357,7 +357,7 @@ uint64_t GetMachineIdent()
   ret |= MachineIdent_Arch_x86;
 #endif
 
-#if defined(RDC64BIT)
+#if ENABLED(RDOC_X64)
   ret |= MachineIdent_64bit;
 #else
   ret |= MachineIdent_32bit;

@@ -2289,7 +2289,7 @@ bool DXBCFile::ExtractOperation(uint32_t *&tokenStream, ASMOperation &retOp)
     retOp.str += retOp.operands[i].toString();
   }
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   if((uint32_t)(tokenStream - begin) > retOp.length)
   {
     RDCERR("Consumed too many tokens for %d!", retOp.operation);

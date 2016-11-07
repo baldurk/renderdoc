@@ -30,11 +30,11 @@
 
 static uint64_t GetHandle(WindowingSystem system, void *data)
 {
-#if defined(RENDERDOC_PLATFORM_LINUX)
+#if ENABLED(RDOC_LINUX)
 
   if(system == eWindowingSystem_Xlib)
   {
-#if defined(RENDERDOC_WINDOWING_XLIB)
+#if ENABLED(RDOC_XLIB)
     return (uint64_t)((XlibWindowData *)data)->window;
 #else
     RDCERR("Xlib windowing system data passed in, but support is not compiled in");
@@ -43,7 +43,7 @@ static uint64_t GetHandle(WindowingSystem system, void *data)
 
   if(system == eWindowingSystem_XCB)
   {
-#if defined(RENDERDOC_WINDOWING_XCB)
+#if ENABLED(RDOC_XCB)
     return (uint64_t)((XCBWindowData *)data)->window;
 #else
     RDCERR("XCB windowing system data passed in, but support is not compiled in");
@@ -54,12 +54,12 @@ static uint64_t GetHandle(WindowingSystem system, void *data)
 
   return 0;
 
-#elif defined(RENDERDOC_PLATFORM_WIN32)
+#elif ENABLED(RDOC_WIN32)
 
   RDCASSERT(system == eWindowingSystem_Win32);
   return (uint64_t)data;    // HWND
 
-#elif defined(RENDERDOC_PLATFORM_ANDROID)
+#elif ENABLED(RDOC_ANDROID)
 
   RDCASSERT(system == eWindowingSystem_Android);
   return (uint64_t)data;    // ANativeWindow *

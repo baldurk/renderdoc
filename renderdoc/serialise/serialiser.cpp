@@ -30,13 +30,13 @@
 #include "core/core.h"
 #include "serialise/string_utils.h"
 
-#ifdef _MSC_VER
-#pragma warning( \
-    disable : 4422)    // warning C4422: 'snprintf' : too many arguments passed for format string
-                       // false positive as VS is trying to parse renderdoc's custom format strings
+#if ENABLED(RDOC_MSVS)
+// warning C4422: 'snprintf' : too many arguments passed for format string
+// false positive as VS is trying to parse renderdoc's custom format strings
+#pragma warning(disable : 4422)
 #endif
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
 
 int64_t Chunk::m_LiveChunks = 0;
 int64_t Chunk::m_TotalMem = 0;
@@ -265,7 +265,7 @@ Chunk::Chunk(Serialiser *ser, uint32_t chunkType, bool temporary)
 
   ser->Rewind();
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   int64_t newval = Atomic::Inc64(&m_LiveChunks);
   Atomic::ExchAdd64(&m_TotalMem, m_Length);
 
@@ -295,7 +295,7 @@ Chunk *Chunk::Duplicate()
 
   memcpy(ret->m_Data, m_Data, m_Length);
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   int64_t newval = Atomic::Inc64(&m_LiveChunks);
   Atomic::ExchAdd64(&m_TotalMem, m_Length);
 
@@ -313,7 +313,7 @@ Chunk *Chunk::Duplicate()
 
 Chunk::~Chunk()
 {
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   Atomic::Dec64(&m_LiveChunks);
   Atomic::ExchAdd64(&m_TotalMem, -int64_t(m_Length));
 #endif
@@ -1979,7 +1979,7 @@ string ToStrHelper<false, int64_t>::Get(const int64_t &el)
 // platforms size_t is typedef'd in such a way that the uint32_t or
 // uint64_t specialisation will kick in. On apple, we need a
 // specific size_t overload
-#if defined(RENDERDOC_PLATFORM_APPLE)
+#if ENABLED(RDOC_APPLE)
 template <>
 string ToStrHelper<false, size_t>::Get(const size_t &el)
 {

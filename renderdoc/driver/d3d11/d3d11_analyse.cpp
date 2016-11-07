@@ -6985,7 +6985,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     }
   }
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   for(size_t h = 0; h < history.size(); h++)
   {
     PixelModification &hs = history[h];

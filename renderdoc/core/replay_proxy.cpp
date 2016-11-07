@@ -35,7 +35,7 @@
 // Win32 to try and hide less padding with the larger alignment requirement
 // of 8-byte pointers.
 
-#if defined(RENDERDOC_PLATFORM_WIN32) && defined(RDC64BIT)
+#if ENABLED(RDOC_WIN32) && ENABLED(RDOC_X64)
 template <typename T, size_t actual, size_t expected>
 class oversized
 {

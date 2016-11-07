@@ -1872,7 +1872,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     length = RDCMIN(length, desc.Width - offset);
   }
 
-#ifndef RDC64BIT
+#if DISABLED(RDOC_X64)
   if(offset + length > 0xfffffff)
   {
     RDCERR("Trying to read back too much data on 32-bit build. Try running on 64-bit.");

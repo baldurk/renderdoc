@@ -26,7 +26,7 @@
 
 // layer includes
 
-#if defined(RENDERDOC_PLATFORM_WIN32)
+#if ENABLED(RDOC_WIN32)
 // undefined clashing windows #defines
 #undef CreateEvent
 #undef CreateSemaphore

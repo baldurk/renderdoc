@@ -535,7 +535,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
     return 0;
   }
 
-#if !defined(WIN64)
+#if DISABLED(RDOC_X64)
   BOOL selfWow64 = FALSE;
 
   HANDLE hSelfProcess = GetCurrentProcess();
@@ -903,7 +903,7 @@ void Process::StartGlobalHook(const char *pathmatch, const char *logfile, const 
   CloseHandle(pi.hThread);
   CloseHandle(pi.hProcess);
 
-#if defined(WIN64)
+#if ENABLED(RDOC_X64)
   *slash = 0;
 
   wcscat_s(renderdocPath, L"\\x86\\renderdoccmd.exe");

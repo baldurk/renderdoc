@@ -73,7 +73,7 @@ inline uint32_t CountLeadingZeroes(uint32_t value)
   return (result == TRUE) ? (index ^ 31) : 32;
 }
 
-#if RDC64BIT
+#if ENABLED(RDOC_X64)
 inline uint64_t CountLeadingZeroes(uint64_t value)
 {
   DWORD index;

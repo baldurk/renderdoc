@@ -25,6 +25,8 @@
 
 #pragma once
 
+#include "common/common.h"
+
 // typed enum so that templates will pick up specialisations
 // header must be included before the official headers, so we/
 // separate it out to avoid clang-format sorting them differently
@@ -35,7 +37,7 @@
 #include "official/glcorearb.h"
 #include "official/glext.h"
 
-#if defined(RENDERDOC_PLATFORM_WIN32)
+#if ENABLED(RDOC_WIN32)
 #include "official/wglext.h"
 
 struct GLWindowingData
@@ -53,7 +55,7 @@ struct GLWindowingData
   HWND wnd;
 };
 
-#elif defined(RENDERDOC_PLATFORM_LINUX)
+#elif ENABLED(RDOC_LINUX)
 // cheeky way to prevent GL/gl.h from being included, as we want to use
 // glcorearb.h from above
 #define __gl_h_
@@ -75,7 +77,7 @@ struct GLWindowingData
   GLXDrawable wnd;
 };
 
-#elif defined(RENDERDOC_PLATFORM_APPLE)
+#elif ENABLED(RDOC_APPLE)
 
 struct GLWindowingData
 {
@@ -90,7 +92,7 @@ struct GLWindowingData
   void *wnd;
 };
 
-#elif defined(RENDERDOC_PLATFORM_ANDROID)
+#elif ENABLED(RDOC_ANDROID)
 
 #include "EGL/egl.h"
 #include "EGL/eglext.h"
@@ -113,7 +115,7 @@ struct GLWindowingData
 #endif
 
 // define stubs so other platforms can define these functions, but empty
-#if !defined(RENDERDOC_PLATFORM_WIN32)
+#if DISABLED(RDOC_WIN32)
 typedef void *HANDLE;
 typedef long BOOL;
 
@@ -129,6 +131,10 @@ typedef BOOL(APIENTRYP *PFNWGLDXUNLOCKOBJECTSNVPROC)(HANDLE hDevice, GLint count
 #endif
 
 #include "api/replay/renderdoc_replay.h"
+
+// define this if you e.g. haven't compiled the D3D modules and want to disable
+// interop capture support.
+#define RENDERDOC_DX_GL_INTEROP OPTION_ON
 
 // similar to RDCUNIMPLEMENTED but for things that are hit often so we don't want to fire the
 // debugbreak.

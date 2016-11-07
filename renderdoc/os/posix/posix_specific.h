@@ -67,7 +67,7 @@ inline uint32_t CountLeadingZeroes(uint32_t value)
   return __builtin_clz(value);
 }
 
-#if RDC64BIT
+#if ENABLED(RDOC_X64)
 inline uint64_t CountLeadingZeroes(uint64_t value)
 {
   return __builtin_clzl(value);

@@ -297,7 +297,7 @@ void WrappedID3D11Device::NewSwapchainBuffer(IUnknown *backbuffer)
 
 void WrappedID3D11Device::SetLogFile(const char *logfile)
 {
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
   const bool debugSerialiser = false;
 #else
   const bool debugSerialiser = true;
@@ -353,7 +353,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   m_AppControlledCapture = false;
 
-#if defined(RELEASE)
+#if ENABLED(RDOC_RELEASE)
   const bool debugSerialiser = false;
 #else
   const bool debugSerialiser = true;
@@ -1163,7 +1163,7 @@ void WrappedID3D11Device::ReadLogInitialisation()
 
   SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.drawcallList, NULL, NULL);
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   for(auto it = chunkInfos.begin(); it != chunkInfos.end(); ++it)
   {
     double dcount = double(it->second.count);

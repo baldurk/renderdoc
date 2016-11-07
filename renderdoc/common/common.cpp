@@ -111,7 +111,7 @@ bool Vec16NotEqual(void *a, void *b)
 	}
 	
 	return false;
-#elif defined(WIN64)
+#elif ENABLED(RDOC_X64)
   uint64_t *a64 = (uint64_t *)a;
   uint64_t *b64 = (uint64_t *)b;
 
@@ -244,7 +244,7 @@ uint32_t Log2Floor(uint32_t value)
   return 31 - Bits::CountLeadingZeroes(value);
 }
 
-#if RDC64BIT
+#if ENABLED(RDOC_X64)
 uint64_t Log2Floor(uint64_t value)
 {
   RDCASSERT(value > 0);
@@ -312,20 +312,20 @@ void rdclogprint_int(LogType type, const char *fullMsg, const char *msg)
 
   SCOPED_LOCK(lock);
 
-#if defined(OUTPUT_LOG_TO_DEBUG_OUT)
+#if ENABLED(OUTPUT_LOG_TO_DEBUG_OUT)
   OSUtility::WriteOutput(OSUtility::Output_DebugMon, fullMsg);
 #endif
-#if defined(OUTPUT_LOG_TO_STDOUT)
+#if ENABLED(OUTPUT_LOG_TO_STDOUT)
   // don't output debug messages to stdout/stderr
   if(type != RDCLog_Debug && log_output_enabled)
     OSUtility::WriteOutput(OSUtility::Output_StdOut, msg);
 #endif
-#if defined(OUTPUT_LOG_TO_STDERR)
+#if ENABLED(OUTPUT_LOG_TO_STDERR)
   // don't output debug messages to stdout/stderr
   if(type != RDCLog_Debug && log_output_enabled)
     OSUtility::WriteOutput(OSUtility::Output_StdErr, msg);
 #endif
-#if defined(OUTPUT_LOG_TO_DISK)
+#if ENABLED(OUTPUT_LOG_TO_DISK)
   if(logfileHandle)
   {
     // strlen used as byte length - str is UTF-8 so this is NOT number of characters
@@ -350,12 +350,12 @@ void rdclog_int(LogType type, const char *project, const char *file, unsigned in
   va_start(args, fmt);
 
   char timestamp[64] = {0};
-#if defined(INCLUDE_TIMESTAMP_IN_LOG)
+#if ENABLED(INCLUDE_TIMESTAMP_IN_LOG)
   StringFormat::sntimef(timestamp, 63, "[%H:%M:%S] ");
 #endif
 
   char location[64] = {0};
-#if defined(INCLUDE_LOCATION_IN_LOG)
+#if ENABLED(INCLUDE_LOCATION_IN_LOG)
   string loc;
   loc = basename(string(file));
   StringFormat::snprintf(location, 63, "% 20s(%4d) - ", loc.c_str(), line);

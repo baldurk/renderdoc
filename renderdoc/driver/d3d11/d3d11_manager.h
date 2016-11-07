@@ -200,7 +200,7 @@ private:
 template <typename Dest>
 typename Dest::InnerType *Unwrap(typename Dest::InnerType *obj)
 {
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   if(obj && !Dest::IsAlloc(obj))
   {
     RDCERR("Trying to unwrap invalid type");

@@ -27,74 +27,12 @@
 #include "d3d11_debug.h"
 #include "d3d11_device.h"
 
-#if defined(ENABLE_NVIDIA_PERFKIT)
-#define NVPM_INITGUID
-#include STRINGIZE(CONCAT(NVIDIA_PERFKIT_DIR, inc\\NvPmApi.h))
-
-NvPmApi *nvAPI = NULL;
-
-int enumFunc(NVPMCounterID id, const char *name)
-{
-  RDCLOG("(% 4d): %s", id, name);
-
-  return NVPM_OK;
-}
-#endif
-
 void D3D11DebugManager::PreDeviceInitCounters()
 {
 }
 
 void D3D11DebugManager::PostDeviceInitCounters()
 {
-#if defined(ENABLE_NVIDIA_PERFKIT)
-  HMODULE nvapi =
-      LoadLibraryA(STRINGIZE(CONCAT(NVIDIA_PERFKIT_DIR, bin\\win7_x86\\NvPmApi.Core.dll)));
-  if(nvapi == NULL)
-  {
-    RDCERR("Couldn't load perfkit");
-    return;
-  }
-
-  NVPMGetExportTable_Pfn NVPMGetExportTable =
-      (NVPMGetExportTable_Pfn)GetProcAddress(nvapi, "NVPMGetExportTable");
-  if(NVPMGetExportTable == NULL)
-  {
-    RDCERR("Couldn't Get Symbol 'NVPMGetExportTable'");
-    return;
-  }
-
-  NVPMRESULT nvResult = NVPMGetExportTable(&ETID_NvPmApi, (void **)&nvAPI);
-  if(nvResult != NVPM_OK)
-  {
-    RDCERR("Couldn't NVPMGetExportTable");
-    return;
-  }
-
-  nvResult = nvAPI->Init();
-
-  if(nvResult != NVPM_OK)
-  {
-    RDCERR("Couldn't nvAPI->Init");
-    return;
-  }
-
-  NVPMContext context(0);
-  nvResult = nvAPI->CreateContextFromD3D11Device(m_pDevice, &context);
-
-  if(nvResult != NVPM_OK)
-  {
-    RDCERR("Couldn't nvAPI->CreateContextFromD3D11Device");
-    return;
-  }
-
-  nvAPI->EnumCountersByContext(context, &enumFunc);
-
-  nvAPI->DestroyContext(context);
-  nvAPI->Shutdown();
-  nvAPI = NULL;
-  FreeLibrary(nvapi);
-#endif
 }
 
 void D3D11DebugManager::PreDeviceShutdownCounters()

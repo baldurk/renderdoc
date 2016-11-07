@@ -267,7 +267,7 @@ struct CachedHookData
             }
           };
 
-#ifdef WIN64
+#if ENABLED(RDOC_X64)
           if(IMAGE_SNAP_BY_ORDINAL64(origFirst->u1.AddressOfData))
 #else
           if(IMAGE_SNAP_BY_ORDINAL32(origFirst->u1.AddressOfData))

@@ -2141,7 +2141,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
       vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
       SubmitCmds();
 #endif
       return;
@@ -2215,7 +2215,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
         vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
         SubmitCmds();
 #endif
       }
@@ -2275,7 +2275,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
         vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
         RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
         SubmitCmds();
 #endif
       }
@@ -2414,7 +2414,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
     vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
     SubmitCmds();
 #endif
   }
@@ -2443,7 +2443,7 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
     vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
     SubmitCmds();
 #endif
   }

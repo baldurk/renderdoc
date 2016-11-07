@@ -59,7 +59,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close()
     if(m_Cmd->ShouldRerecordCmd(CommandList))
     {
       ID3D12GraphicsCommandList *list = m_Cmd->RerecordCmdList(CommandList);
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
       RDCDEBUG("Ending partial command list for %llu baked to %llu", CommandList, bakeId);
 #endif
 
@@ -170,7 +170,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
       {
         if(*it <= m_Cmd->m_LastEventID && m_Cmd->m_LastEventID < (*it + length))
         {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("Reset - partial detected %u < %u < %u, %llu -> %llu", *it, m_Cmd->m_LastEventID,
                    *it + length, CommandList, bakeId);
 #endif

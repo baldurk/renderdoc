@@ -134,7 +134,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       {
         ID3D12CommandList *list = Unwrap(cmds[i]);
         real->ExecuteCommandLists(1, &list);
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
         m_pDevice->GPUSync();
 #endif
       }
@@ -158,7 +158,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
           real->ExecuteCommandLists(1, &list);
         }
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
         m_pDevice->GPUSync();
 #endif
       }
@@ -255,13 +255,13 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
     }
     else if(m_Cmd.m_LastEventID <= startEID)
     {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
       RDCDEBUG("Queue Submit no replay %u == %u", m_Cmd.m_LastEventID, startEID);
 #endif
     }
     else if(m_Cmd.m_DrawcallCallback && m_Cmd.m_DrawcallCallback->RecordAllCmds())
     {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
       RDCDEBUG("Queue Submit re-recording from %u", m_Cmd.m_RootEventID);
 #endif
 
@@ -271,7 +271,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       {
         ID3D12CommandList *cmd = m_Cmd.RerecordCmdList(cmdIds[c]);
         ResourceId rerecord = GetResID(cmd);
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
         RDCDEBUG("Queue Submit fully re-recorded replay of %llu, using %llu", cmdIds[c], rerecord);
 #endif
         rerecordedCmds.push_back(Unwrap(cmd));
@@ -279,7 +279,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
         m_pDevice->ApplyBarriers(m_Cmd.m_BakedCmdListInfo[rerecord].barriers);
       }
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
       for(size_t i = 0; i < rerecordedCmds.size(); i++)
       {
         real->ExecuteCommandLists(1, &rerecordedCmds[i]);
@@ -291,7 +291,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
     }
     else if(m_Cmd.m_LastEventID > startEID && m_Cmd.m_LastEventID < m_Cmd.m_RootEventID)
     {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
       RDCDEBUG("Queue Submit partial replay %u < %u", m_Cmd.m_LastEventID, m_Cmd.m_RootEventID);
 #endif
 
@@ -313,7 +313,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
           ID3D12GraphicsCommandList *list =
               m_Cmd.RerecordCmdList(cmdIds[c], D3D12CommandData::Primary);
           ResourceId partial = GetResID(list);
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("Queue Submit partial replay of %llu at %u, using %llu", cmdIds[c], eid, partial);
 #endif
           trimmedCmdIds.push_back(partial);
@@ -321,7 +321,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
         }
         else if(m_Cmd.m_LastEventID >= end)
         {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("Queue Submit full replay %llu", cmdIds[c]);
 #endif
           trimmedCmdIds.push_back(cmdIds[c]);
@@ -329,7 +329,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
         }
         else
         {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
           RDCDEBUG("Queue not submitting %llu", cmdIds[c]);
 #endif
         }
@@ -341,7 +341,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
 
       RDCASSERT(trimmedCmds.size() > 0);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
       for(size_t i = 0; i < trimmedCmds.size(); i++)
       {
         real->ExecuteCommandLists(1, &trimmedCmds[i]);
@@ -359,7 +359,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
     }
     else
     {
-#ifdef VERBOSE_PARTIAL_REPLAY
+#if ENABLED(VERBOSE_PARTIAL_REPLAY)
       RDCDEBUG("Queue Submit full replay %u >= %u", m_Cmd.m_LastEventID, m_Cmd.m_RootEventID);
 #endif
 
@@ -367,7 +367,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       for(uint32_t i = 0; i < numCmds; i++)
         unwrapped[i] = Unwrap(cmds[i]);
 
-#if defined(SINGLE_FLUSH_VALIDATE)
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
       for(UINT i = 0; i < numCmds; i++)
       {
         real->ExecuteCommandLists(1, &unwrapped[i]);

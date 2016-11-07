@@ -102,7 +102,7 @@ public:
   uint32_t GetChunkType() { return m_ChunkType; }
   bool IsAligned() { return m_AlignedData; }
   bool IsTemporary() { return m_Temporary; }
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   static uint64_t NumLiveChunks() { return m_LiveChunks; }
   static uint64_t TotalMem() { return m_TotalMem; }
 #else
@@ -132,7 +132,7 @@ private:
   byte *m_Data;
   string m_DebugStr;
 
-#if !defined(RELEASE)
+#if ENABLED(RDOC_DEVEL)
   static int64_t m_LiveChunks, m_MaxChunks, m_TotalMem;
 #endif
 };
