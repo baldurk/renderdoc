@@ -187,7 +187,7 @@ GLuint GLReplay::CreateShaderProgram(const vector<string> &vsSources,
 
   gl.glLinkProgram(ret);
 
-  gl.glGetShaderiv(ret, eGL_LINK_STATUS, &status);
+  gl.glGetProgramiv(ret, eGL_LINK_STATUS, &status);
   if(status == 0)
   {
     gl.glGetProgramInfoLog(ret, 1024, NULL, buffer);
