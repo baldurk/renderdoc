@@ -195,6 +195,18 @@ private:
   MainWindow *m_MainWindow;
 };
 
+// implementation of QOverload, to avoid depending on 5.7.
+// From: http://stackoverflow.com/a/16795664/4070143
+template <typename... Args>
+struct OverloadedSlot
+{
+  template <typename C, typename R>
+  static constexpr auto of(R (C::*pmf)(Args...)) -> decltype(pmf)
+  {
+    return pmf;
+  }
+};
+
 // Utility class for invoking a lambda on the GUI thread.
 // This is supported by QTimer::singleShot on Qt 5.4 but it's probably
 // wise not to require a higher version that necessary.
