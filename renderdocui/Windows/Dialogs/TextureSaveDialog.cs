@@ -184,9 +184,11 @@ namespace renderdocui.Windows.Dialogs
                     mapSlicesToGrid.Checked = true;
             }
 
+            FileType selectedType = saveData.destType;
+
             fileFormat.SelectedIndex = 0;
             fileFormat.SelectedIndex = 1;
-            fileFormat.SelectedIndex = (int)saveData.destType;
+            fileFormat.SelectedIndex = (int)selectedType;
 
             if(saveData.alpha == AlphaMapping.Discard)
                 alphaMap.SelectedIndex = 0;
