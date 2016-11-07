@@ -1241,8 +1241,6 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
         region.bufferOffset = bufOffset;
 
-        VkFormat sizeFormat = GetDepthOnlyFormat(layout->format);
-
         bufOffset += GetByteSize(layout->extent.width, layout->extent.height, layout->extent.depth,
                                  sizeFormat, m);
 
@@ -1737,14 +1735,10 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 
         GetResourceManager()->WrapResource(Unwrap(d), arrayIm);
 
-        VkMemoryRequirements mrq = {0};
-
         ObjDisp(d)->GetImageMemoryRequirements(Unwrap(d), Unwrap(arrayIm), &mrq);
 
-        VkMemoryAllocateInfo allocInfo = {
-            VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
-            GetGPULocalMemoryIndex(mrq.memoryTypeBits),
-        };
+        allocInfo.allocationSize = mrq.size;
+        allocInfo.memoryTypeIndex = GetGPULocalMemoryIndex(mrq.memoryTypeBits);
 
         VkDeviceMemory arrayMem;
 
