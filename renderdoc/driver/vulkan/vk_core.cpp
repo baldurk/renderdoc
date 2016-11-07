@@ -2445,6 +2445,10 @@ VkBool32 WrappedVulkan::DebugCallback(VkDebugReportFlagsEXT flags,
     if(isDS && messageCode == 10)
       return false;
 
+    // ignore perf warnings
+    if(flags & VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT)
+      return false;
+
     // Ignore shader checker layer entirely
     if(isSC)
       return false;
