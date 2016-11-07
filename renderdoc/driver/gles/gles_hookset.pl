@@ -68,7 +68,7 @@ while(<HOOKSET>)
     }
     elsif($current != \@unsupported)
     {
-        if($line =~ /(PFN.*PROC) (.*);( \/\/ aliases )?([a-zA-Z0-9_ ,]*)?/)
+        if($line =~ /(PFN.*PROC) (.*);(\ *\/\/ aliases )?([a-zA-Z0-9_ ,]*)?/)
         {
             my $typedef = $1;
             my $name = $2;
@@ -151,7 +151,7 @@ if($printext)
     foreach my $x ( sort keys %extfuncs )
     {
         my $ext = $extfuncs{$x};
-        my $supp = $ext->{funcs} eq "0" ? "?" : ($ext->{funcs} eq $ext->{impl} ? "1" : "0");
+        my $supp = $ext->{funcs} eq "0" ? "?" : int($ext->{impl} / $ext->{funcs} * 100);
         print $fh "$ext->{name},$ext->{funcs},$ext->{impl},$supp\n";
     }
     close $fh;
@@ -258,6 +258,8 @@ print <<ENDOFHEADER;
  * The MIT License (MIT)
  *
  * Copyright (c) 2015-2016 Baldur Karlsson
+ * Copyright (c) 2016 University of Szeged
+ * Copyright (c) 2016 Samsung Electronics Co., Ltd.
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal

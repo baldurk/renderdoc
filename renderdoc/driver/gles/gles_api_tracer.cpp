@@ -200,6 +200,8 @@ GLHookSet WrappedGLES::initRealWrapper(const GLHookSet& hooks)
     if (wrapper.function == NULL) \
       wrapper.function = CONCAT(function, _debug_hooked)
 
+  #define HookExtensionAlias(funcPtrType, function, alias)
+
   DLLExportHooks();
   HookCheckGLExtensions();
   CheckUnsupported();
