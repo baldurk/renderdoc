@@ -3347,7 +3347,7 @@ void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcM
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
-  VkDescriptorImageInfo srcdesc[2] = {0};
+  VkDescriptorImageInfo srcdesc[2] = {};
   srcdesc[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   srcdesc[0].imageView = srcDepthView;
   srcdesc[0].sampler = Unwrap(m_LinearSampler);    // not used
@@ -3699,7 +3699,7 @@ void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArra
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
-  VkDescriptorImageInfo srcdesc[2] = {0};
+  VkDescriptorImageInfo srcdesc[2] = {};
   srcdesc[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   srcdesc[0].imageView = srcDepthView;
   srcdesc[0].sampler = Unwrap(m_LinearSampler);    // not used
