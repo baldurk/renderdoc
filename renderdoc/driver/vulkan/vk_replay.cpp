@@ -4965,11 +4965,14 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
     // multiply array layers by sample count
     uint32_t numSamples = (uint32_t)imInfo.samples;
-    imCreateInfo.arrayLayers *= numSamples;
     imCreateInfo.mipLevels = 1;
     imCreateInfo.samples = VK_SAMPLE_COUNT_1_BIT;
     imCreateInfo.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
-    imCreateInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+
+    if(IsDepthOrStencilFormat(imCreateInfo.format))
+      imCreateInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+    else
+      imCreateInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
 
     // create resolve texture
     vt->CreateImage(Unwrap(dev), &imCreateInfo, NULL, &tmpImage);
@@ -5037,7 +5040,8 @@ byte *VulkanReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t m
 
     // expand multisamples out to array
     GetDebugManager()->CopyTex2DMSToArray(tmpImage, srcImage, imCreateInfo.extent,
-                                          imCreateInfo.arrayLayers, numSamples, imCreateInfo.format);
+                                          imCreateInfo.arrayLayers / numSamples, numSamples,
+                                          imCreateInfo.format);
 
     // fetch a new command buffer for copy & readback
     cmd = m_pDriver->GetNextCmd();

@@ -520,6 +520,12 @@
     <None Include="data\glsl\trisize.frag">
       <Filter>Resources\glsl</Filter>
     </None>
+    <None Include="data\glsl\deptharr2ms.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\depthms2arr.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="data\renderdoc.rc">

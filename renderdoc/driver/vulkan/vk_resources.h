@@ -1139,13 +1139,13 @@ public:
 
 struct ImageLayouts
 {
-  ImageLayouts() : layerCount(1), levelCount(1), format(VK_FORMAT_UNDEFINED)
+  ImageLayouts() : layerCount(1), levelCount(1), sampleCount(1), format(VK_FORMAT_UNDEFINED)
   {
     extent.width = extent.height = extent.depth = 1;
   }
 
   vector<ImageRegionState> subresourceStates;
-  int layerCount, levelCount;
+  int layerCount, levelCount, sampleCount;
   VkExtent3D extent;
   VkFormat format;
 };

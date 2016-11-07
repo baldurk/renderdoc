@@ -239,7 +239,11 @@ public:
   VkDescriptorSet m_ArrayMSDescSet;
   VkPipeline m_Array2MSPipe;
   VkPipeline m_MS2ArrayPipe;
-  GPUBuffer m_ArrayMSUBO;
+
+  // one per depth/stencil output format
+  VkPipeline m_DepthMS2ArrayPipe[6];
+  // one per depth/stencil output format, per sample count
+  VkPipeline m_DepthArray2MSPipe[6][4];
 
   VkDescriptorSetLayout m_TextDescSetLayout;
   VkPipelineLayout m_TextPipeLayout;
@@ -344,6 +348,11 @@ private:
 
   string GetSPIRVBlob(SPIRVShaderStage shadType, const std::vector<std::string> &sources,
                       vector<uint32_t> **outBlob);
+
+  void CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent, uint32_t layers,
+                               uint32_t samples, VkFormat fmt);
+  void CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent, uint32_t layers,
+                               uint32_t samples, VkFormat fmt);
 
   void PatchFixedColShader(VkShaderModule &mod, float col[4]);
 

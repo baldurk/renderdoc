@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "vk_core.h"
+#include "vk_debug.h"
 
 // VKTODOLOW for depth-stencil images we are only save/restoring the depth, not the stencil
 
@@ -1045,14 +1046,69 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
         VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
     };
 
-    for(int a = 0; a < layout->layerCount; a++)
+    VkImage arrayIm = VK_NULL_HANDLE;
+    VkDeviceMemory arrayMem = VK_NULL_HANDLE;
+
+    VkImage realim = im->real.As<VkImage>();
+    int numLayers = layout->layerCount;
+
+    if(layout->sampleCount > 1)
+    {
+      // first decompose to array
+      numLayers *= layout->sampleCount;
+
+      VkImageCreateInfo arrayInfo = {
+          VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO, NULL, VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT,
+          VK_IMAGE_TYPE_2D, layout->format, layout->extent, (uint32_t)layout->levelCount,
+          (uint32_t)numLayers, VK_SAMPLE_COUNT_1_BIT, VK_IMAGE_TILING_OPTIMAL,
+          VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT |
+              VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+          VK_SHARING_MODE_EXCLUSIVE, 0, NULL, VK_IMAGE_LAYOUT_UNDEFINED,
+      };
+
+      if(IsDepthOrStencilFormat(layout->format))
+        arrayInfo.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+      else
+        arrayInfo.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+
+      vkr = ObjDisp(d)->CreateImage(Unwrap(d), &arrayInfo, NULL, &arrayIm);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      VkMemoryRequirements mrq = {0};
+
+      ObjDisp(d)->GetImageMemoryRequirements(Unwrap(d), arrayIm, &mrq);
+
+      VkMemoryAllocateInfo allocInfo = {
+          VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+          GetGPULocalMemoryIndex(mrq.memoryTypeBits),
+      };
+
+      vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &arrayMem);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      vkr = ObjDisp(d)->BindImageMemory(Unwrap(d), arrayIm, arrayMem, 0);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
+    VkFormat sizeFormat = GetDepthOnlyFormat(layout->format);
+
+    for(int a = 0; a < numLayers; a++)
     {
       for(int m = 0; m < layout->levelCount; m++)
       {
         bufInfo.size = AlignUp(bufInfo.size, bufAlignment);
 
         bufInfo.size += GetByteSize(layout->extent.width, layout->extent.height,
-                                    layout->extent.depth, layout->format, m);
+                                    layout->extent.depth, sizeFormat, m);
+
+        if(sizeFormat != layout->format)
+        {
+          // if there's stencil and depth, allocate space for stencil
+          bufInfo.size = AlignUp(bufInfo.size, bufAlignment);
+
+          bufInfo.size += GetByteSize(layout->extent.width, layout->extent.height,
+                                      layout->extent.depth, VK_FORMAT_S8_UINT, m);
+        }
       }
     }
 
@@ -1100,19 +1156,21 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
         VK_QUEUE_FAMILY_IGNORED,
         VK_QUEUE_FAMILY_IGNORED,
-        im->real.As<VkImage>(),
-        {aspectFlags, 0, (uint32_t)layout->levelCount, 0, (uint32_t)layout->layerCount}};
+        realim,
+        {aspectFlags, 0, (uint32_t)layout->levelCount, 0, (uint32_t)numLayers}};
 
     if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT && !IsDepthOnlyFormat(layout->format))
       srcimBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
 
     // update the real image layout into transfer-source
     srcimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+    if(arrayIm != VK_NULL_HANDLE)
+      srcimBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
     // ensure all previous writes have completed
     srcimBarrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
     // before we go reading
-    srcimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+    srcimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_SHADER_READ_BIT;
 
     for(size_t si = 0; si < layout->subresourceStates.size(); si++)
     {
@@ -1121,10 +1179,48 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
       DoPipelineBarrier(cmd, 1, &srcimBarrier);
     }
 
+    if(arrayIm != VK_NULL_HANDLE)
+    {
+      VkImageMemoryBarrier arrayimBarrier = {VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+                                             NULL,
+                                             0,
+                                             0,
+                                             VK_IMAGE_LAYOUT_UNDEFINED,
+                                             VK_IMAGE_LAYOUT_GENERAL,
+                                             VK_QUEUE_FAMILY_IGNORED,
+                                             VK_QUEUE_FAMILY_IGNORED,
+                                             arrayIm,
+                                             {srcimBarrier.subresourceRange.aspectMask, 0,
+                                              VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+
+      DoPipelineBarrier(cmd, 1, &arrayimBarrier);
+
+      vkr = ObjDisp(d)->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      GetDebugManager()->CopyTex2DMSToArray(arrayIm, realim, layout->extent, layout->layerCount,
+                                            layout->sampleCount, layout->format);
+
+      cmd = GetNextCmd();
+
+      vkr = ObjDisp(d)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      arrayimBarrier.srcAccessMask =
+          VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      arrayimBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+      arrayimBarrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+      arrayimBarrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+
+      DoPipelineBarrier(cmd, 1, &arrayimBarrier);
+
+      realim = arrayIm;
+    }
+
     VkDeviceSize bufOffset = 0;
 
     // loop over every slice/mip, copying it to the appropriate point in the buffer
-    for(int a = 0; a < layout->layerCount; a++)
+    for(int a = 0; a < numLayers; a++)
     {
       VkExtent3D extent = layout->extent;
 
@@ -1145,11 +1241,28 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
 
         region.bufferOffset = bufOffset;
 
-        bufOffset += GetByteSize(layout->extent.width, layout->extent.height, layout->extent.depth,
-                                 layout->format, m);
+        VkFormat sizeFormat = GetDepthOnlyFormat(layout->format);
 
-        ObjDisp(d)->CmdCopyImageToBuffer(Unwrap(cmd), im->real.As<VkImage>(),
-                                         VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstBuf, 1, &region);
+        bufOffset += GetByteSize(layout->extent.width, layout->extent.height, layout->extent.depth,
+                                 sizeFormat, m);
+
+        ObjDisp(d)->CmdCopyImageToBuffer(Unwrap(cmd), realim, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+                                         dstBuf, 1, &region);
+
+        if(sizeFormat != layout->format)
+        {
+          // if we removed stencil from the format, copy that separately now.
+          bufOffset = AlignUp(bufOffset, bufAlignment);
+
+          region.bufferOffset = bufOffset;
+          region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+
+          bufOffset += GetByteSize(layout->extent.width, layout->extent.height,
+                                   layout->extent.depth, VK_FORMAT_S8_UINT, m);
+
+          ObjDisp(d)->CmdCopyImageToBuffer(
+              Unwrap(cmd), realim, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, dstBuf, 1, &region);
+        }
 
         // update the extent for the next mip
         extent.width = RDCMAX(extent.width >> 1, 1U);
@@ -1159,7 +1272,7 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     }
 
     RDCASSERTMSG("buffer wasn't sized sufficiently!", bufOffset <= bufInfo.size, bufOffset,
-                 mrq.size, layout->extent, layout->format, layout->layerCount, layout->levelCount);
+                 mrq.size, layout->extent, layout->format, numLayers, layout->levelCount);
 
     // transfer back to whatever it was
     srcimBarrier.oldLayout = srcimBarrier.newLayout;
@@ -1183,6 +1296,12 @@ bool WrappedVulkan::Prepare_InitialState(WrappedVkRes *res)
     FlushQ();
 
     ObjDisp(d)->DestroyBuffer(Unwrap(d), dstBuf, NULL);
+
+    if(arrayIm != VK_NULL_HANDLE)
+    {
+      ObjDisp(d)->DestroyImage(Unwrap(d), arrayIm, NULL);
+      ObjDisp(d)->FreeMemory(Unwrap(d), arrayMem, NULL);
+    }
 
     GetResourceManager()->SetInitialContents(
         id, VulkanResourceManager::InitialContentData(GetWrapped(readbackmem), (uint32_t)mrq.size,
@@ -1580,11 +1699,181 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
 
       ObjDisp(d)->UnmapMemory(Unwrap(d), Unwrap(uploadmem));
 
-      // remember to free this memory on shutdown
-      m_CleanupMems.push_back(uploadmem);
+      VulkanResourceManager::InitialContentData initial(GetWrapped(buf), 0, NULL);
 
-      GetResourceManager()->SetInitialContents(
-          id, VulkanResourceManager::InitialContentData(GetWrapped(buf), 0, NULL));
+      VulkanCreationInfo::Image &c = m_CreationInfo.m_Image[liveid];
+
+      if(c.samples == VK_SAMPLE_COUNT_1_BIT)
+      {
+        // remember to free this memory on shutdown
+        m_CleanupMems.push_back(uploadmem);
+      }
+      else
+      {
+        int numLayers = c.arrayLayers * (int)c.samples;
+
+        VkImageCreateInfo arrayInfo = {
+            VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO,
+            NULL,
+            VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT,
+            VK_IMAGE_TYPE_2D,
+            c.format,
+            c.extent,
+            (uint32_t)c.mipLevels,
+            (uint32_t)numLayers,
+            VK_SAMPLE_COUNT_1_BIT,
+            VK_IMAGE_TILING_OPTIMAL,
+            VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT,
+            VK_SHARING_MODE_EXCLUSIVE,
+            0,
+            NULL,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+        };
+
+        VkImage arrayIm;
+
+        vkr = ObjDisp(d)->CreateImage(Unwrap(d), &arrayInfo, NULL, &arrayIm);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        GetResourceManager()->WrapResource(Unwrap(d), arrayIm);
+
+        VkMemoryRequirements mrq = {0};
+
+        ObjDisp(d)->GetImageMemoryRequirements(Unwrap(d), Unwrap(arrayIm), &mrq);
+
+        VkMemoryAllocateInfo allocInfo = {
+            VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO, NULL, mrq.size,
+            GetGPULocalMemoryIndex(mrq.memoryTypeBits),
+        };
+
+        VkDeviceMemory arrayMem;
+
+        vkr = ObjDisp(d)->AllocateMemory(Unwrap(d), &allocInfo, NULL, &arrayMem);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        GetResourceManager()->WrapResource(Unwrap(d), arrayMem);
+
+        vkr = ObjDisp(d)->BindImageMemory(Unwrap(d), Unwrap(arrayIm), Unwrap(arrayMem), 0);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        VkCommandBuffer cmd = GetNextCmd();
+
+        VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                              VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+        vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        VkExtent3D extent = c.extent;
+
+        VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+
+        VkFormat fmt = c.format;
+        if(IsStencilOnlyFormat(fmt))
+          aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
+        else if(IsDepthOrStencilFormat(fmt))
+          aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+        VkImageMemoryBarrier dstimBarrier = {
+            VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+            NULL,
+            0,
+            0,
+            VK_IMAGE_LAYOUT_UNDEFINED,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            VK_QUEUE_FAMILY_IGNORED,
+            VK_QUEUE_FAMILY_IGNORED,
+            Unwrap(arrayIm),
+            {aspectFlags, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS}};
+
+        if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT && !IsDepthOnlyFormat(fmt))
+          dstimBarrier.subresourceRange.aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+
+        DoPipelineBarrier(cmd, 1, &dstimBarrier);
+
+        VkDeviceSize bufOffset = 0;
+
+        // must ensure offset remains valid. Must be multiple of block size, or 4, depending on
+        // format
+        VkDeviceSize bufAlignment = 4;
+        if(IsBlockFormat(fmt))
+          bufAlignment = (VkDeviceSize)GetByteSize(1, 1, 1, fmt, 0);
+
+        // copy each slice/mip individually
+        for(int a = 0; a < numLayers; a++)
+        {
+          extent = c.extent;
+
+          for(int m = 0; m < c.mipLevels; m++)
+          {
+            VkBufferImageCopy region = {
+                0,
+                0,
+                0,
+                {aspectFlags, (uint32_t)m, (uint32_t)a, 1},
+                {
+                    0, 0, 0,
+                },
+                extent,
+            };
+
+            bufOffset = AlignUp(bufOffset, bufAlignment);
+
+            region.bufferOffset = bufOffset;
+
+            VkFormat sizeFormat = GetDepthOnlyFormat(fmt);
+
+            // pass 0 for mip since we've already pre-downscaled extent
+            bufOffset += GetByteSize(extent.width, extent.height, extent.depth, sizeFormat, 0);
+
+            ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), Unwrap(arrayIm),
+                                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+            if(sizeFormat != fmt)
+            {
+              // if we removed stencil from the format, copy that separately now.
+              bufOffset = AlignUp(bufOffset, bufAlignment);
+
+              region.bufferOffset = bufOffset;
+              region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+
+              bufOffset +=
+                  GetByteSize(extent.width, extent.height, extent.depth, VK_FORMAT_S8_UINT, 0);
+
+              ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), Unwrap(arrayIm),
+                                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+            }
+
+            // update the extent for the next mip
+            extent.width = RDCMAX(extent.width >> 1, 1U);
+            extent.height = RDCMAX(extent.height >> 1, 1U);
+            extent.depth = RDCMAX(extent.depth >> 1, 1U);
+          }
+        }
+
+        // once transfers complete, get ready for copy array->ms
+        dstimBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        dstimBarrier.newLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+        dstimBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        dstimBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+
+        DoPipelineBarrier(cmd, 1, &dstimBarrier);
+
+        vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        // INITSTATEBATCH
+        SubmitCmds();
+        FlushQ();
+
+        vkDestroyBuffer(d, buf, NULL);
+        vkFreeMemory(d, uploadmem, NULL);
+
+        m_CleanupMems.push_back(arrayMem);
+        initial.resource = GetWrapped(arrayIm);
+      }
+
+      GetResourceManager()->SetInitialContents(id, initial);
     }
     else if(type == eResDeviceMemory)
     {
@@ -1778,10 +2067,84 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
 
     if(m_CreationInfo.m_Image[id].samples != VK_SAMPLE_COUNT_1_BIT)
     {
-      initial.resource = NULL;
-      initial.num = IsDepthOrStencilFormat(m_ImageLayouts[id].format)
-                        ? eInitialContents_ClearDepthStencilImage
-                        : eInitialContents_ClearColorImage;
+      VkCommandBuffer cmd = GetNextCmd();
+
+      vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_COLOR_BIT;
+
+      VulkanCreationInfo::Image &c = m_CreationInfo.m_Image[id];
+
+      VkFormat fmt = c.format;
+      if(IsStencilOnlyFormat(fmt))
+        aspectFlags = VK_IMAGE_ASPECT_STENCIL_BIT;
+      else if(IsDepthOrStencilFormat(fmt))
+        aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+      if(aspectFlags == VK_IMAGE_ASPECT_DEPTH_BIT && !IsDepthOnlyFormat(fmt))
+        aspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+
+      VkImageMemoryBarrier barrier = {
+          VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
+          NULL,
+          0,
+          0,
+          VK_IMAGE_LAYOUT_UNDEFINED,
+          VK_IMAGE_LAYOUT_GENERAL,
+          VK_QUEUE_FAMILY_IGNORED,
+          VK_QUEUE_FAMILY_IGNORED,
+          ToHandle<VkImage>(live),
+          {aspectFlags, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS},
+      };
+
+      barrier.srcAccessMask = VK_ACCESS_ALL_WRITE_BITS;
+      barrier.dstAccessMask =
+          VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+      for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+      {
+        barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
+        barrier.oldLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+        DoPipelineBarrier(cmd, 1, &barrier);
+      }
+
+      WrappedVkImage *arrayIm = (WrappedVkImage *)initial.resource;
+
+      vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      GetDebugManager()->CopyArrayToTex2DMS(ToHandle<VkImage>(live), arrayIm->real.As<VkImage>(),
+                                            c.extent, (uint32_t)c.arrayLayers, (uint32_t)c.samples,
+                                            fmt);
+
+      cmd = GetNextCmd();
+
+      vkr = ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      barrier.oldLayout = VK_IMAGE_LAYOUT_GENERAL;
+
+      // complete copy before any other work
+      barrier.srcAccessMask =
+          VK_ACCESS_SHADER_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+      barrier.dstAccessMask = VK_ACCESS_ALL_READ_BITS;
+
+      for(size_t si = 0; si < m_ImageLayouts[id].subresourceStates.size(); si++)
+      {
+        barrier.subresourceRange = m_ImageLayouts[id].subresourceStates[si].subresourceRange;
+        barrier.newLayout = m_ImageLayouts[id].subresourceStates[si].newLayout;
+        barrier.dstAccessMask |= MakeAccessMask(barrier.newLayout);
+        DoPipelineBarrier(cmd, 1, &barrier);
+      }
+
+      vkr = ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+#if defined(SINGLE_FLUSH_VALIDATE)
+      SubmitCmds();
+#endif
+      return;
     }
 
     // handle any 'created' initial states, without an actual image with contents
@@ -1985,12 +2348,12 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
 
         region.bufferOffset = bufOffset;
 
+        VkFormat sizeFormat = GetDepthOnlyFormat(fmt);
+
         // pass 0 for mip since we've already pre-downscaled extent
-        bufOffset += GetByteSize(extent.width, extent.height, extent.depth, fmt, 0);
+        bufOffset += GetByteSize(extent.width, extent.height, extent.depth, sizeFormat, 0);
 
         dstimBarrier.subresourceRange.baseArrayLayer = a;
-        dstimBarrier.subresourceRange.baseMipLevel = m;
-
         dstimBarrier.subresourceRange.baseMipLevel = m;
 
         // first update the live image layout into destination optimal (the initial state
@@ -2010,6 +2373,21 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
         ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), buf->real.As<VkBuffer>(),
                                            ToHandle<VkImage>(live),
                                            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+
+        if(sizeFormat != fmt)
+        {
+          // if we removed stencil from the format, copy that separately now.
+          bufOffset = AlignUp(bufOffset, bufAlignment);
+
+          region.bufferOffset = bufOffset;
+          region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+
+          bufOffset += GetByteSize(extent.width, extent.height, extent.depth, VK_FORMAT_S8_UINT, 0);
+
+          ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), buf->real.As<VkBuffer>(),
+                                             ToHandle<VkImage>(live),
+                                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+        }
 
         // update the live image layout back
         dstimBarrier.oldLayout = dstimBarrier.newLayout;

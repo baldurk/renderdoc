@@ -924,6 +924,20 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
           "shaderStorageImageWriteWithoutFormat = false, save/load from 2DMS textures will not be "
           "possible");
 
+    if(availFeatures.shaderStorageImageMultisample)
+      enabledFeatures.shaderStorageImageMultisample = true;
+    else
+      RDCWARN(
+          "shaderStorageImageMultisample = false, save/load from 2DMS textures will not be "
+          "possible");
+
+    if(availFeatures.sampleRateShading)
+      enabledFeatures.sampleRateShading = true;
+    else
+      RDCWARN(
+          "sampleRateShading = false, save/load from depth 2DMS textures will not be "
+          "possible");
+
     uint32_t numExts = 0;
 
     VkResult vkr =
@@ -1148,6 +1162,42 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
               m_SetDeviceLoaderData, layerCreateInfo->u.pfnSetDeviceLoaderData);
     m_SetDeviceLoaderData = layerCreateInfo->u.pfnSetDeviceLoaderData;
   }
+
+  // patch enabled features
+
+  VkPhysicalDeviceFeatures availFeatures;
+
+  ObjDisp(physicalDevice)->GetPhysicalDeviceFeatures(Unwrap(physicalDevice), &availFeatures);
+
+  // default to all off. This is equivalent to createInfo.pEnabledFeatures == NULL
+  VkPhysicalDeviceFeatures enabledFeatures = {0};
+
+  // if the user enabled features, of course we want to enable them.
+  if(createInfo.pEnabledFeatures)
+    enabledFeatures = *createInfo.pEnabledFeatures;
+
+  if(availFeatures.shaderStorageImageWriteWithoutFormat)
+    enabledFeatures.shaderStorageImageWriteWithoutFormat = true;
+  else
+    RDCWARN(
+        "shaderStorageImageWriteWithoutFormat = false, save/load from 2DMS textures will not be "
+        "possible");
+
+  if(availFeatures.shaderStorageImageMultisample)
+    enabledFeatures.shaderStorageImageMultisample = true;
+  else
+    RDCWARN(
+        "shaderStorageImageMultisample = false, save/load from 2DMS textures will not be "
+        "possible");
+
+  if(availFeatures.sampleRateShading)
+    enabledFeatures.sampleRateShading = true;
+  else
+    RDCWARN(
+        "sampleRateShading = false, save/load from depth 2DMS textures will not be "
+        "possible");
+
+  createInfo.pEnabledFeatures = &enabledFeatures;
 
   VkResult ret = createFunc(Unwrap(physicalDevice), &createInfo, pAllocator, pDevice);
 

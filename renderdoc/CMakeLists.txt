@@ -233,6 +233,8 @@ set(data
     data/glsl/ms2array.comp
     data/glsl/trisize.frag
     data/glsl/trisize.geom
+    data/glsl/deptharr2ms.frag
+    data/glsl/depthms2arr.frag
     data/sourcecodepro.ttf
     driver/vulkan/renderdoc.json)
 

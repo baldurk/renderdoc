@@ -27,19 +27,42 @@
 layout (local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
 
 layout(binding = 0) uniform usampler2DMSArray srcMS;
-layout(binding = 1) writeonly uniform uimage2DArray dstArray;
+// binding = 1 used as stencil read in the depth-stencil copy fragment shaders
+layout(binding = 2) writeonly uniform uimage2DArray dstArray;
 
-layout (binding = 2, std140) uniform multisampleUBO
+
+#ifdef VULKAN
+
+layout(push_constant) uniform multisamplePush
 {
-    int numMultiSamples;
+	int numMultiSamples;
+	int currentSample;
+	int currentSlice;
+	uint currentStencil;
 } mscopy;
+
+#define numMultiSamples (mscopy.numMultiSamples)
+#define currentSample (mscopy.currentSample)
+#define currentSlice (mscopy.currentSlice)
+#define currentStencil (mscopy.currentStencil)
+
+#else
+
+uniform uvec4 mscopy;
+
+#define numMultiSamples (int(mscopy.x))
+#define currentSample (mscopy.y)
+#define currentSlice (mscopy.z)
+#define currentStencil (mscopy.w)
+
+#endif
 
 void main()
 {
 	uvec3 id = gl_GlobalInvocationID;
 
-	int slice = int(id.z / mscopy.numMultiSamples);
-	int sampleIdx = int(id.z % mscopy.numMultiSamples);
+	int slice = int(id.z / numMultiSamples);
+	int sampleIdx = int(id.z % numMultiSamples);
 
 	uvec4 data = texelFetch(srcMS, ivec3(int(id.x), int(id.y), slice), sampleIdx);
 

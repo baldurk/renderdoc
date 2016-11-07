@@ -382,10 +382,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
           VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1,
       },
       {
-          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 2,
+          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 3,
       },
       {
-          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 3,
+      },
+      {
+          VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1,
       },
   };
 
@@ -421,7 +424,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   // create our own very small pool.
   if(m_State >= WRITING)
   {
-    descpoolInfo.maxSets = 1;
+    descpoolInfo.maxSets = 2;
     descpoolInfo.poolSizeCount = ARRAY_COUNT(captureDescPoolTypes);
     descpoolInfo.pPoolSizes = &captureDescPoolTypes[0];
   }
@@ -671,6 +674,17 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       -1,                // base pipeline index
   };
 
+  VkComputePipelineCreateInfo compPipeInfo = {
+      VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+      NULL,
+      0,
+      {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_COMPUTE_BIT,
+       VK_NULL_HANDLE, "main", NULL},
+      VK_NULL_HANDLE,
+      VK_NULL_HANDLE,
+      0,    // base pipeline VkPipeline
+  };
+
   // declare a few more misc things that are needed on both paths
   VkDescriptorBufferInfo bufInfo[8];
   RDCEraseEl(bufInfo);
@@ -679,6 +693,255 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
                                         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+  // A workaround for a couple of bugs, removing texelFetch use from shaders.
+  // It means broken functionality but at least no instant crashes
+  bool texelFetchBrokenDriver = false;
+
+  VkDriverInfo driverVersion = m_pDriver->GetDriverVersion();
+
+  if(driverVersion.IsNV())
+  {
+    // drivers before 372.54 did not handle a glslang bugfix about separated samplers,
+    // and disabling texelFetch works as a workaround.
+
+    if(driverVersion.Major() < 372 || (driverVersion.Major() == 372 && driverVersion.Minor() < 54))
+      texelFetchBrokenDriver = true;
+  }
+
+  if(driverVersion.IsAMD())
+  {
+    // for AMD the bugfix version isn't clear as version numbering wasn't strong for a while, but
+    // any driver that reports a version of >= 1.0.0 is fine, as previous versions all reported
+    // 0.9.0 as the version.
+
+    if(driverVersion.Major() < 1)
+      texelFetchBrokenDriver = true;
+  }
+
+  if(texelFetchBrokenDriver)
+  {
+    RDCWARN(
+        "Detected an older driver, enabling texelFetch workaround - try updating to the latest "
+        "version");
+  }
+
+  // needed in both replay and capture, create depth MS->array pipelines
+  {
+    {
+      VkDescriptorSetLayoutBinding layoutBinding[] = {
+          {
+              0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL,
+          },
+          {
+              1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL,
+          },
+          {
+              2, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_ALL, NULL,
+          },
+      };
+
+      VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
+          VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
+          NULL,
+          0,
+          ARRAY_COUNT(layoutBinding),
+          &layoutBinding[0],
+      };
+
+      vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL,
+                                                   &m_ArrayMSDescSetLayout);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
+    pipeLayoutInfo.pSetLayouts = &m_ArrayMSDescSetLayout;
+
+    VkPushConstantRange push = {VK_SHADER_STAGE_ALL, 0, sizeof(Vec4u)};
+
+    pipeLayoutInfo.pushConstantRangeCount = 1;
+    pipeLayoutInfo.pPushConstantRanges = &push;
+
+    vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_ArrayMSPipeLayout);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    pipeLayoutInfo.pushConstantRangeCount = 0;
+    pipeLayoutInfo.pPushConstantRanges = NULL;
+
+    descSetAllocInfo.pSetLayouts = &m_ArrayMSDescSetLayout;
+    vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_ArrayMSDescSet);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    enum
+    {
+      VS,
+      MS2ARR,
+      ARR2MS
+    };
+
+    std::string srcs[] = {
+        GetEmbeddedResource(glsl_blit_vert), GetEmbeddedResource(glsl_depthms2arr_frag),
+        GetEmbeddedResource(glsl_deptharr2ms_frag),
+    };
+
+    VkShaderModule modules[3];
+
+    for(size_t i = 0; i < ARRAY_COUNT(srcs); i++)
+    {
+      GenerateGLSLShader(sources, eShaderVulkan, "", srcs[i], 430);
+
+      vector<uint32_t> *spirv;
+
+      string err = GetSPIRVBlob(i == 0 ? eSPIRVVertex : eSPIRVFragment, sources, &spirv);
+      RDCASSERT(err.empty() && spirv);
+
+      VkShaderModuleCreateInfo modinfo = {
+          VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+          NULL,
+          0,
+          spirv->size() * sizeof(uint32_t),
+          &(*spirv)[0],
+      };
+
+      vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL, &modules[i]);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
+    stages[0].module = modules[VS];
+    stages[1].module = modules[MS2ARR];
+
+    VkFormat formats[] = {
+        VK_FORMAT_D16_UNORM,         VK_FORMAT_D16_UNORM_S8_UINT, VK_FORMAT_X8_D24_UNORM_PACK32,
+        VK_FORMAT_D24_UNORM_S8_UINT, VK_FORMAT_D32_SFLOAT,        VK_FORMAT_D32_SFLOAT_S8_UINT,
+    };
+
+    VkSampleCountFlagBits sampleCounts[] = {
+        VK_SAMPLE_COUNT_2_BIT, VK_SAMPLE_COUNT_4_BIT, VK_SAMPLE_COUNT_8_BIT, VK_SAMPLE_COUNT_16_BIT,
+    };
+
+    // we use VK_IMAGE_LAYOUT_GENERAL here because it matches the expected layout for the
+    // non-depth copy, which uses a storage image.
+    VkAttachmentDescription attDesc = {0,
+                                       VK_FORMAT_UNDEFINED,
+                                       VK_SAMPLE_COUNT_1_BIT,
+                                       VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                       VK_ATTACHMENT_STORE_OP_STORE,
+                                       VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                       VK_ATTACHMENT_STORE_OP_STORE,
+                                       VK_IMAGE_LAYOUT_GENERAL,
+                                       VK_IMAGE_LAYOUT_GENERAL};
+
+    VkAttachmentReference attRef = {0, VK_IMAGE_LAYOUT_GENERAL};
+
+    VkSubpassDescription sub = {
+        0,       VK_PIPELINE_BIND_POINT_GRAPHICS,
+        0,       NULL,    // inputs
+        0,       NULL,    // color
+        NULL,             // resolve
+        &attRef,          // depth-stencil
+        0,       NULL,    // preserve
+    };
+
+    VkRenderPassCreateInfo rpinfo = {
+        VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+        NULL,
+        0,
+        1,
+        &attDesc,
+        1,
+        &sub,
+        0,
+        NULL,    // dependencies
+    };
+
+    VkDynamicState depthcopy_dyn[] = {VK_DYNAMIC_STATE_VIEWPORT, VK_DYNAMIC_STATE_STENCIL_REFERENCE};
+
+    VkPipelineDepthStencilStateCreateInfo depthcopy_ds = {
+        VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO,
+        NULL,
+        0,
+        true,
+        true,
+        VK_COMPARE_OP_ALWAYS,
+        false,
+        true,
+        {VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_REPLACE, VK_COMPARE_OP_ALWAYS,
+         0xff, 0xff, 0},
+        {VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_REPLACE, VK_STENCIL_OP_REPLACE, VK_COMPARE_OP_ALWAYS,
+         0xff, 0xff, 0},
+        0.0f,
+        1.0f,
+    };
+
+    pipeInfo.layout = m_ArrayMSPipeLayout;
+    dyn.dynamicStateCount = ARRAY_COUNT(depthcopy_dyn);
+    dyn.pDynamicStates = depthcopy_dyn;
+    pipeInfo.pDepthStencilState = &depthcopy_ds;
+
+    cb.attachmentCount = 0;
+
+    RDCCOMPILE_ASSERT(ARRAY_COUNT(m_DepthMS2ArrayPipe) == ARRAY_COUNT(formats),
+                      "Array count mismatch");
+    RDCCOMPILE_ASSERT(ARRAY_COUNT(m_DepthArray2MSPipe) == ARRAY_COUNT(formats),
+                      "Array count mismatch");
+    RDCCOMPILE_ASSERT(ARRAY_COUNT(m_DepthArray2MSPipe[0]) == ARRAY_COUNT(sampleCounts),
+                      "Array count mismatch");
+
+    for(size_t f = 0; f < ARRAY_COUNT(formats); f++)
+    {
+      attDesc.format = formats[f];
+      stages[1].module = modules[MS2ARR];
+
+      VkRenderPass rp;
+
+      vkr = m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &rp);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      pipeInfo.renderPass = rp;
+
+      vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
+                                                 &m_DepthMS2ArrayPipe[f]);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      m_pDriver->vkDestroyRenderPass(dev, rp, NULL);
+
+      stages[1].module = modules[ARR2MS];
+
+      for(size_t s = 0; s < ARRAY_COUNT(sampleCounts); s++)
+      {
+        attDesc.samples = sampleCounts[s];
+        msaa.rasterizationSamples = sampleCounts[s];
+        msaa.sampleShadingEnable = true;
+        msaa.minSampleShading = 1.0f;
+
+        vkr = m_pDriver->vkCreateRenderPass(dev, &rpinfo, NULL, &rp);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        pipeInfo.renderPass = rp;
+
+        vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
+                                                   &m_DepthArray2MSPipe[f][s]);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+        m_pDriver->vkDestroyRenderPass(dev, rp, NULL);
+
+        attDesc.samples = VK_SAMPLE_COUNT_1_BIT;
+        msaa.sampleShadingEnable = false;
+        msaa.minSampleShading = 0.0f;
+        msaa.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+      }
+    }
+
+    // restore pipeline state to normal
+    cb.attachmentCount = 1;
+
+    pipeInfo.renderPass = RGBA8sRGBRP;
+    dyn.dynamicStateCount = ARRAY_COUNT(dynstates);
+    dyn.pDynamicStates = dynstates;
+    pipeInfo.pDepthStencilState = &ds;
+
+    for(size_t i = 0; i < ARRAY_COUNT(modules); i++)
+      m_pDriver->vkDestroyShaderModule(dev, modules[i], NULL);
+  }
 
   //////////////////////////////////////////////////////////////////////////////////////
   // if we're writing, only create text-rendering related resources,
@@ -737,6 +1000,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     attState.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
     attState.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
 
+    VkShaderModule ms2arrayModule, array2msModule;
+
     for(size_t i = 0; i < 2; i++)
     {
       GenerateGLSLShader(
@@ -757,6 +1022,47 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       };
 
       vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL, &stages[i].module);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
+    for(size_t i = 0; i < 2; i++)
+    {
+      GenerateGLSLShader(sources, eShaderVulkan, "", i == 0 ? GetEmbeddedResource(glsl_array2ms_comp)
+                                                            : GetEmbeddedResource(glsl_ms2array_comp),
+                         430, false);
+
+      vector<uint32_t> *spirv;
+
+      string err = GetSPIRVBlob(eSPIRVCompute, sources, &spirv);
+      RDCASSERT(err.empty() && spirv);
+
+      VkShaderModuleCreateInfo modinfo = {
+          VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO,
+          NULL,
+          0,
+          spirv->size() * sizeof(uint32_t),
+          &(*spirv)[0],
+      };
+
+      vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL,
+                                            i == 0 ? &array2msModule : &ms2arrayModule);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+    }
+
+    if(!texelFetchBrokenDriver)
+    {
+      compPipeInfo.stage.module = ms2arrayModule;
+      compPipeInfo.layout = m_ArrayMSPipeLayout;
+
+      vkr = m_pDriver->vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &compPipeInfo, NULL,
+                                                &m_MS2ArrayPipe);
+      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+      compPipeInfo.stage.module = array2msModule;
+      compPipeInfo.layout = m_ArrayMSPipeLayout;
+
+      vkr = m_pDriver->vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &compPipeInfo, NULL,
+                                                &m_Array2MSPipe);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
     }
 
@@ -784,6 +1090,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
                                                &m_TextPipeline[3]);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
+    m_pDriver->vkDestroyShaderModule(dev, array2msModule, NULL);
+    m_pDriver->vkDestroyShaderModule(dev, ms2arrayModule, NULL);
     m_pDriver->vkDestroyShaderModule(dev, stages[0].module, NULL);
     m_pDriver->vkDestroyShaderModule(dev, stages[1].module, NULL);
 
@@ -1112,32 +1420,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   {
     VkDescriptorSetLayoutBinding layoutBinding[] = {
         {
-            0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_ALL, NULL,
-        },
-        {
-            1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 1, VK_SHADER_STAGE_ALL, NULL,
-        },
-        {
-            2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_ALL, NULL,
-        },
-    };
-
-    VkDescriptorSetLayoutCreateInfo descsetLayoutInfo = {
-        VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO,
-        NULL,
-        0,
-        ARRAY_COUNT(layoutBinding),
-        &layoutBinding[0],
-    };
-
-    vkr = m_pDriver->vkCreateDescriptorSetLayout(dev, &descsetLayoutInfo, NULL,
-                                                 &m_ArrayMSDescSetLayout);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-  }
-
-  {
-    VkDescriptorSetLayoutBinding layoutBinding[] = {
-        {
             0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 1, VK_SHADER_STAGE_ALL, NULL,
         },
         {
@@ -1320,11 +1602,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_CheckerboardPipeLayout);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  pipeLayoutInfo.pSetLayouts = &m_ArrayMSDescSetLayout;
-
-  vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_ArrayMSPipeLayout);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
   pipeLayoutInfo.pSetLayouts = &m_QuadDescSetLayout;
 
   vkr = m_pDriver->vkCreatePipelineLayout(dev, &pipeLayoutInfo, NULL, &m_QuadResolvePipeLayout);
@@ -1357,10 +1634,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   descSetAllocInfo.pSetLayouts = &m_CheckerboardDescSetLayout;
   vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_CheckerboardDescSet);
-  RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-  descSetAllocInfo.pSetLayouts = &m_ArrayMSDescSetLayout;
-  vkr = m_pDriver->vkAllocateDescriptorSets(dev, &descSetAllocInfo, &m_ArrayMSDescSet);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   descSetAllocInfo.pSetLayouts = &m_TexDisplayDescSetLayout;
@@ -1424,8 +1697,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   RDCCOMPILE_ASSERT(sizeof(TexDisplayUBOData) <= 128, "tex display size");
 
-  m_ArrayMSUBO.Create(driver, dev, 16, 1, 0);
-
   string shaderSources[] = {
       GetEmbeddedResource(glsl_blit_vert),        GetEmbeddedResource(glsl_checkerboard_frag),
       GetEmbeddedResource(glsl_texdisplay_frag),  GetEmbeddedResource(glsl_mesh_vert),
@@ -1434,13 +1705,14 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       GetEmbeddedResource(glsl_histogram_comp),   GetEmbeddedResource(glsl_outline_frag),
       GetEmbeddedResource(glsl_quadresolve_frag), GetEmbeddedResource(glsl_quadwrite_frag),
       GetEmbeddedResource(glsl_mesh_comp),        GetEmbeddedResource(glsl_ms2array_comp),
-      GetEmbeddedResource(glsl_trisize_geom),     GetEmbeddedResource(glsl_trisize_frag),
+      GetEmbeddedResource(glsl_array2ms_comp),    GetEmbeddedResource(glsl_trisize_geom),
+      GetEmbeddedResource(glsl_trisize_frag),
   };
 
   SPIRVShaderStage shaderStages[] = {
       eSPIRVVertex,  eSPIRVFragment, eSPIRVFragment, eSPIRVVertex,   eSPIRVGeometry, eSPIRVFragment,
       eSPIRVCompute, eSPIRVCompute,  eSPIRVCompute,  eSPIRVFragment, eSPIRVFragment, eSPIRVFragment,
-      eSPIRVCompute, eSPIRVCompute,  eSPIRVGeometry, eSPIRVFragment,
+      eSPIRVCompute, eSPIRVCompute,  eSPIRVCompute,  eSPIRVGeometry, eSPIRVFragment,
   };
 
   enum shaderIdx
@@ -1459,6 +1731,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     QUADWRITEFS,
     MESHCS,
     MS2ARRAYCS,
+    ARRAY2MSCS,
     TRISIZEGS,
     TRISIZEFS,
     NUM_SHADERS,
@@ -1478,38 +1751,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
     string err = GetSPIRVBlob(eSPIRVFragment, sources, &m_FixedColSPIRV);
     RDCASSERT(err.empty() && m_FixedColSPIRV);
-  }
-
-  // A workaround for a couple of bugs, removing texelFetch use from shaders.
-  // It means broken functionality but at least no instant crashes
-  bool texelFetchBrokenDriver = false;
-
-  VkDriverInfo driverVersion = m_pDriver->GetDriverVersion();
-
-  if(driverVersion.IsNV())
-  {
-    // drivers before 372.54 did not handle a glslang bugfix about separated samplers,
-    // and disabling texelFetch works as a workaround.
-
-    if(driverVersion.Major() < 372 || (driverVersion.Major() == 372 && driverVersion.Minor() < 54))
-      texelFetchBrokenDriver = true;
-  }
-
-  if(driverVersion.IsAMD())
-  {
-    // for AMD the bugfix version isn't clear as version numbering wasn't strong for a while, but
-    // any driver that reports a version of >= 1.0.0 is fine, as previous versions all reported
-    // 0.9.0 as the version.
-
-    if(driverVersion.Major() < 1)
-      texelFetchBrokenDriver = true;
-  }
-
-  if(texelFetchBrokenDriver)
-  {
-    RDCWARN(
-        "Detected an older driver, enabling texelFetch workaround - try updating to the latest "
-        "version");
   }
 
   for(size_t i = 0; i < ARRAY_COUNT(module); i++)
@@ -1639,16 +1880,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
   msaa.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
 
-  VkComputePipelineCreateInfo compPipeInfo = {
-      VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
-      NULL,
-      0,
-      {VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO, NULL, 0, VK_SHADER_STAGE_COMPUTE_BIT,
-       VK_NULL_HANDLE, "main", NULL},
-      m_HistogramPipeLayout,
-      VK_NULL_HANDLE,
-      0,    // base pipeline VkPipeline
-  };
+  compPipeInfo.layout = m_HistogramPipeLayout;
 
   for(size_t t = eTexType_1D; t < eTexType_Max; t++)
   {
@@ -1750,6 +1982,13 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
     vkr = m_pDriver->vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &compPipeInfo, NULL,
                                               &m_MS2ArrayPipe);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+    compPipeInfo.stage.module = module[ARRAY2MSCS];
+    compPipeInfo.layout = m_ArrayMSPipeLayout;
+
+    vkr = m_pDriver->vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &compPipeInfo, NULL,
+                                              &m_Array2MSPipe);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
@@ -2171,8 +2410,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_OverdrawRampUBO.FillDescriptor(bufInfo[3]);
   m_MeshPickUBO.FillDescriptor(bufInfo[4]);
   m_MeshPickResult.FillDescriptor(bufInfo[5]);
-  m_ArrayMSUBO.FillDescriptor(bufInfo[6]);
-  m_TriSizeUBO.FillDescriptor(bufInfo[7]);
 
   VkWriteDescriptorSet analysisSetWrites[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_CheckerboardDescSet), 0, 0, 1,
@@ -2187,8 +2424,6 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufInfo[4], NULL},
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_MeshPickDescSet), 3, 0, 1,
        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, NULL, &bufInfo[5], NULL},
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 2, 0, 1,
-       VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufInfo[6], NULL},
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_TriSizeDescSet), 1, 0, 1,
        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, NULL, &bufInfo[3], NULL},
   };
@@ -2283,7 +2518,13 @@ VulkanDebugManager::~VulkanDebugManager()
   m_pDriver->vkDestroyPipelineLayout(dev, m_ArrayMSPipeLayout, NULL);
   m_pDriver->vkDestroyPipeline(dev, m_Array2MSPipe, NULL);
   m_pDriver->vkDestroyPipeline(dev, m_MS2ArrayPipe, NULL);
-  m_ArrayMSUBO.Destroy();
+
+  for(size_t i = 0; i < ARRAY_COUNT(m_DepthMS2ArrayPipe); i++)
+    m_pDriver->vkDestroyPipeline(dev, m_DepthMS2ArrayPipe[i], NULL);
+
+  for(size_t f = 0; f < ARRAY_COUNT(m_DepthArray2MSPipe); f++)
+    for(size_t s = 0; s < ARRAY_COUNT(m_DepthArray2MSPipe[0]); s++)
+      m_pDriver->vkDestroyPipeline(dev, m_DepthArray2MSPipe[f][s], NULL);
 
   m_pDriver->vkDestroyDescriptorSetLayout(dev, m_TextDescSetLayout, NULL);
   m_pDriver->vkDestroyPipelineLayout(dev, m_TextPipeLayout, NULL);
@@ -2920,6 +3161,12 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
   if(m_MS2ArrayPipe == VK_NULL_HANDLE)
     return;
 
+  if(IsDepthOrStencilFormat(fmt))
+  {
+    CopyDepthTex2DMSToArray(destArray, srcMS, extent, layers, samples, fmt);
+    return;
+  }
+
   VkDevice dev = m_Device;
 
   VkResult vkr = VK_SUCCESS;
@@ -2931,7 +3178,7 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
       NULL,
       0,
       srcMS,
-      VK_IMAGE_VIEW_TYPE_2D,
+      VK_IMAGE_VIEW_TYPE_2D_ARRAY,
       VK_FORMAT_UNDEFINED,
       {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
        VK_COMPONENT_SWIZZLE_IDENTITY},
@@ -2976,25 +3223,21 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
   VkDescriptorImageInfo srcdesc = {0};
   srcdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
   srcdesc.imageView = srcView;
-  srcdesc.sampler = Unwrap(m_PointSampler);    // not used
+  srcdesc.sampler = Unwrap(m_LinearSampler);    // not used
 
   VkDescriptorImageInfo destdesc = {0};
   destdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
   destdesc.imageView = destView;
-  destdesc.sampler = Unwrap(m_PointSampler);    // not used
+  destdesc.sampler = Unwrap(m_LinearSampler);    // not used
 
   VkWriteDescriptorSet writeSet[] = {
       {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc, NULL, NULL},
-      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 1, 0, 1,
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 2, 0, 1,
        VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &destdesc, NULL, NULL},
   };
 
   ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
-
-  uint32_t *data = (uint32_t *)m_ArrayMSUBO.Map(NULL);
-  *data = samples;
-  m_ArrayMSUBO.Unmap();
 
   VkCommandBuffer cmd = m_pDriver->GetNextCmd();
 
@@ -3008,6 +3251,11 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
                                       Unwrap(m_ArrayMSPipeLayout), 0, 1,
                                       UnwrapPtr(m_ArrayMSDescSet), 0, NULL);
 
+  Vec4u params = {samples, 0, 0, 0};
+
+  ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_ArrayMSPipeLayout), VK_SHADER_STAGE_ALL, 0,
+                                 sizeof(Vec4u), &params);
+
   ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), extent.width, extent.height, layers * samples);
 
   ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
@@ -3020,6 +3268,232 @@ void VulkanDebugManager::CopyTex2DMSToArray(VkImage destArray, VkImage srcMS, Vk
   ObjDisp(dev)->DestroyImageView(Unwrap(dev), destView, NULL);
 }
 
+void VulkanDebugManager::CopyDepthTex2DMSToArray(VkImage destArray, VkImage srcMS, VkExtent3D extent,
+                                                 uint32_t layers, uint32_t samples, VkFormat fmt)
+{
+  VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+  int pipeIndex = 0;
+  switch(fmt)
+  {
+    case VK_FORMAT_D16_UNORM: pipeIndex = 0; break;
+    case VK_FORMAT_D16_UNORM_S8_UINT:
+      pipeIndex = 1;
+      aspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+      break;
+    case VK_FORMAT_X8_D24_UNORM_PACK32: pipeIndex = 2; break;
+    case VK_FORMAT_D24_UNORM_S8_UINT:
+      pipeIndex = 3;
+      aspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+      break;
+    case VK_FORMAT_D32_SFLOAT: pipeIndex = 4; break;
+    case VK_FORMAT_D32_SFLOAT_S8_UINT:
+      pipeIndex = 5;
+      aspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+      break;
+    default: RDCERR("Unexpected depth format: %d", fmt); return;
+  }
+
+  VkPipeline pipe = m_DepthMS2ArrayPipe[pipeIndex];
+
+  if(pipe == VK_NULL_HANDLE)
+    return;
+
+  VkDevice dev = m_Device;
+
+  VkResult vkr = VK_SUCCESS;
+
+  VkImageView srcDepthView = VK_NULL_HANDLE, srcStencilView = VK_NULL_HANDLE;
+  VkImageView *destView = new VkImageView[layers * samples];
+
+  VkImageViewCreateInfo viewInfo = {
+      VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      NULL,
+      0,
+      srcMS,
+      VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+      fmt,
+      {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO,
+       VK_COMPONENT_SWIZZLE_ZERO},
+      {
+          VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS,
+      },
+  };
+
+  vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcDepthView);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
+  {
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+    vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcStencilView);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  viewInfo.subresourceRange.aspectMask = aspectFlags;
+  viewInfo.image = destArray;
+
+  viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+  viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+  viewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+  viewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+  for(uint32_t i = 0; i < layers * samples; i++)
+  {
+    viewInfo.subresourceRange.baseArrayLayer = i;
+    viewInfo.subresourceRange.layerCount = 1;
+
+    vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView[i]);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  VkDescriptorImageInfo srcdesc[2] = {0};
+  srcdesc[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  srcdesc[0].imageView = srcDepthView;
+  srcdesc[0].sampler = Unwrap(m_LinearSampler);    // not used
+  srcdesc[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  srcdesc[1].imageView = srcStencilView;
+  srcdesc[1].sampler = Unwrap(m_LinearSampler);    // not used
+
+  VkWriteDescriptorSet writeSet[] = {
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
+       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[0], NULL, NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 1, 0, 1,
+       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[1], NULL, NULL},
+  };
+
+  if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
+    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), 2, writeSet, 0, NULL);
+  else
+    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), 1, writeSet, 0, NULL);
+
+  // create a bespoke framebuffer and renderpass for rendering
+  VkAttachmentDescription attDesc = {0,
+                                     fmt,
+                                     VK_SAMPLE_COUNT_1_BIT,
+                                     VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                     VK_ATTACHMENT_STORE_OP_STORE,
+                                     VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                     VK_ATTACHMENT_STORE_OP_STORE,
+                                     VK_IMAGE_LAYOUT_GENERAL,
+                                     VK_IMAGE_LAYOUT_GENERAL};
+
+  VkAttachmentReference attRef = {0, VK_IMAGE_LAYOUT_GENERAL};
+
+  VkSubpassDescription sub = {};
+  sub.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+  sub.pDepthStencilAttachment = &attRef;
+
+  VkRenderPassCreateInfo rpinfo = {
+      VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+      NULL,
+      0,
+      1,
+      &attDesc,
+      1,
+      &sub,
+      0,
+      NULL,    // dependencies
+  };
+
+  VkRenderPass rp = VK_NULL_HANDLE;
+
+  ObjDisp(dev)->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &rp);
+
+  VkFramebufferCreateInfo fbinfo = {
+      VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+      NULL,
+      0,
+      rp,
+      1,
+      NULL,
+      extent.width,
+      extent.height,
+      1,
+  };
+
+  VkFramebuffer *fb = new VkFramebuffer[layers * samples];
+
+  for(uint32_t i = 0; i < layers * samples; i++)
+  {
+    fbinfo.pAttachments = destView + i;
+
+    vkr = ObjDisp(dev)->CreateFramebuffer(Unwrap(dev), &fbinfo, NULL, &fb[i]);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+  ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
+  VkClearValue clearval = {};
+
+  VkRenderPassBeginInfo rpbegin = {
+      VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL, rp,        VK_NULL_HANDLE,
+      {{0, 0}, {extent.width, extent.height}},  1,    &clearval,
+  };
+
+  uint32_t numStencil = 1;
+
+  if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
+    numStencil = 256;
+
+  Vec4u params;
+  params.x = samples;
+
+  for(uint32_t i = 0; i < layers * samples; i++)
+  {
+    rpbegin.framebuffer = fb[i];
+
+    ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+
+    ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
+    ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        Unwrap(m_ArrayMSPipeLayout), 0, 1,
+                                        UnwrapPtr(m_ArrayMSDescSet), 0, NULL);
+
+    VkViewport viewport = {0.0f, 0.0f, (float)extent.width, (float)extent.height, 0.0f, 1.0f};
+    ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
+
+    params.y = i % samples;    // currentSample;
+    params.z = i / samples;    // currentSlice;
+
+    for(uint32_t s = 0; s < numStencil; s++)
+    {
+      params.w = numStencil == 1 ? 1000 : s;    // currentStencil;
+
+      ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FRONT_AND_BACK, s);
+      ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_ArrayMSPipeLayout), VK_SHADER_STAGE_ALL,
+                                     0, sizeof(Vec4u), &params);
+      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+    }
+
+    ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
+  }
+
+  ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+
+  // submit cmds and wait for idle so we can readback
+  m_pDriver->SubmitCmds();
+  m_pDriver->FlushQ();
+
+  for(uint32_t i = 0; i < layers * samples; i++)
+    ObjDisp(dev)->DestroyFramebuffer(Unwrap(dev), fb[i], NULL);
+  ObjDisp(dev)->DestroyRenderPass(Unwrap(dev), rp, NULL);
+
+  ObjDisp(dev)->DestroyImageView(Unwrap(dev), srcDepthView, NULL);
+  if(srcStencilView != VK_NULL_HANDLE)
+    ObjDisp(dev)->DestroyImageView(Unwrap(dev), srcStencilView, NULL);
+  for(uint32_t i = 0; i < layers * samples; i++)
+    ObjDisp(dev)->DestroyImageView(Unwrap(dev), destView[i], NULL);
+
+  SAFE_DELETE_ARRAY(destView);
+  SAFE_DELETE_ARRAY(fb);
+}
+
 void VulkanDebugManager::CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent,
                                             uint32_t layers, uint32_t samples, VkFormat fmt)
 {
@@ -3029,6 +3503,347 @@ void VulkanDebugManager::CopyArrayToTex2DMS(VkImage destMS, VkImage srcArray, Vk
 
   if(m_Array2MSPipe == VK_NULL_HANDLE)
     return;
+
+  if(IsDepthOrStencilFormat(fmt))
+  {
+    CopyDepthArrayToTex2DMS(destMS, srcArray, extent, layers, samples, fmt);
+    return;
+  }
+
+  VkDevice dev = m_Device;
+
+  VkResult vkr = VK_SUCCESS;
+
+  VkImageView srcView, destView;
+
+  VkImageViewCreateInfo viewInfo = {
+      VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      NULL,
+      0,
+      srcArray,
+      VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+      VK_FORMAT_UNDEFINED,
+      {VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY, VK_COMPONENT_SWIZZLE_IDENTITY,
+       VK_COMPONENT_SWIZZLE_IDENTITY},
+      {
+          VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS,
+      },
+  };
+
+  uint32_t bs = GetByteSize(1, 1, 1, fmt, 0);
+
+  if(bs == 1)
+    viewInfo.format = VK_FORMAT_R8_UINT;
+  else if(bs == 2)
+    viewInfo.format = VK_FORMAT_R16_UINT;
+  else if(bs == 4)
+    viewInfo.format = VK_FORMAT_R32_UINT;
+  else if(bs == 8)
+    viewInfo.format = VK_FORMAT_R32G32_UINT;
+  else if(bs == 16)
+    viewInfo.format = VK_FORMAT_R32G32B32A32_UINT;
+
+  if(viewInfo.format == VK_FORMAT_UNDEFINED)
+  {
+    RDCERR("Can't copy Array to MS with format %s", ToStr::Get(fmt).c_str());
+    return;
+  }
+
+  if(IsStencilOnlyFormat(fmt))
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+  else if(IsDepthOrStencilFormat(fmt))
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+  vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcView);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  viewInfo.image = destMS;
+  viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D_ARRAY;
+
+  vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  VkDescriptorImageInfo srcdesc = {0};
+  srcdesc.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  srcdesc.imageView = srcView;
+  srcdesc.sampler = Unwrap(m_LinearSampler);    // not used
+
+  VkDescriptorImageInfo destdesc = {0};
+  destdesc.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+  destdesc.imageView = destView;
+  destdesc.sampler = Unwrap(m_LinearSampler);    // not used
+
+  VkWriteDescriptorSet writeSet[] = {
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
+       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc, NULL, NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 2, 0, 1,
+       VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, &destdesc, NULL, NULL},
+  };
+
+  ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), ARRAY_COUNT(writeSet), writeSet, 0, NULL);
+
+  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+  ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
+  ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE, Unwrap(m_Array2MSPipe));
+  ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_COMPUTE,
+                                      Unwrap(m_ArrayMSPipeLayout), 0, 1,
+                                      UnwrapPtr(m_ArrayMSDescSet), 0, NULL);
+
+  Vec4u params = {samples, 0, 0, 0};
+
+  ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_ArrayMSPipeLayout), VK_SHADER_STAGE_ALL, 0,
+                                 sizeof(Vec4u), &params);
+
+  ObjDisp(cmd)->CmdDispatch(Unwrap(cmd), extent.width, extent.height, layers * samples);
+
+  ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+
+  // submit cmds and wait for idle so we can readback
+  m_pDriver->SubmitCmds();
+  m_pDriver->FlushQ();
+
+  ObjDisp(dev)->DestroyImageView(Unwrap(dev), srcView, NULL);
+  ObjDisp(dev)->DestroyImageView(Unwrap(dev), destView, NULL);
+}
+
+void VulkanDebugManager::CopyDepthArrayToTex2DMS(VkImage destMS, VkImage srcArray, VkExtent3D extent,
+                                                 uint32_t layers, uint32_t samples, VkFormat fmt)
+{
+  VkImageAspectFlags aspectFlags = VK_IMAGE_ASPECT_DEPTH_BIT;
+
+  int pipeIndex = 0;
+  switch(fmt)
+  {
+    case VK_FORMAT_D16_UNORM: pipeIndex = 0; break;
+    case VK_FORMAT_D16_UNORM_S8_UINT:
+      pipeIndex = 1;
+      aspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+      break;
+    case VK_FORMAT_X8_D24_UNORM_PACK32: pipeIndex = 2; break;
+    case VK_FORMAT_D24_UNORM_S8_UINT:
+      pipeIndex = 3;
+      aspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+      break;
+    case VK_FORMAT_D32_SFLOAT: pipeIndex = 4; break;
+    case VK_FORMAT_D32_SFLOAT_S8_UINT:
+      pipeIndex = 5;
+      aspectFlags |= VK_IMAGE_ASPECT_STENCIL_BIT;
+      break;
+    default: RDCERR("Unexpected depth format: %d", fmt); return;
+  }
+
+  // 0-based from 2x MSAA
+  uint32_t sampleIndex = SampleIndex((VkSampleCountFlagBits)samples) - 1;
+
+  if(sampleIndex >= ARRAY_COUNT(m_DepthArray2MSPipe[0]))
+  {
+    RDCERR("Unsupported sample count %u", samples);
+    return;
+  }
+
+  VkPipeline pipe = m_DepthArray2MSPipe[pipeIndex][sampleIndex];
+
+  if(pipe == VK_NULL_HANDLE)
+    return;
+
+  VkDevice dev = m_Device;
+
+  VkResult vkr = VK_SUCCESS;
+
+  VkImageView srcDepthView = VK_NULL_HANDLE, srcStencilView = VK_NULL_HANDLE;
+  VkImageView *destView = new VkImageView[layers];
+
+  VkImageViewCreateInfo viewInfo = {
+      VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+      NULL,
+      0,
+      srcArray,
+      VK_IMAGE_VIEW_TYPE_2D_ARRAY,
+      fmt,
+      {VK_COMPONENT_SWIZZLE_R, VK_COMPONENT_SWIZZLE_ZERO, VK_COMPONENT_SWIZZLE_ZERO,
+       VK_COMPONENT_SWIZZLE_ZERO},
+      {
+          VK_IMAGE_ASPECT_DEPTH_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS,
+      },
+  };
+
+  vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcDepthView);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
+  {
+    viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_STENCIL_BIT;
+    vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &srcStencilView);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  viewInfo.subresourceRange.aspectMask = aspectFlags;
+  viewInfo.image = destMS;
+
+  viewInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+  viewInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+  viewInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+  viewInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+
+  for(uint32_t i = 0; i < layers; i++)
+  {
+    viewInfo.subresourceRange.baseArrayLayer = i;
+    viewInfo.subresourceRange.layerCount = 1;
+
+    vkr = ObjDisp(dev)->CreateImageView(Unwrap(dev), &viewInfo, NULL, &destView[i]);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  VkDescriptorImageInfo srcdesc[2] = {0};
+  srcdesc[0].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  srcdesc[0].imageView = srcDepthView;
+  srcdesc[0].sampler = Unwrap(m_LinearSampler);    // not used
+  srcdesc[1].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+  srcdesc[1].imageView = srcStencilView;
+  srcdesc[1].sampler = Unwrap(m_LinearSampler);    // not used
+
+  VkWriteDescriptorSet writeSet[] = {
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 0, 0, 1,
+       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[0], NULL, NULL},
+      {VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET, NULL, Unwrap(m_ArrayMSDescSet), 1, 0, 1,
+       VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, &srcdesc[1], NULL, NULL},
+  };
+
+  if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
+    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), 2, writeSet, 0, NULL);
+  else
+    ObjDisp(dev)->UpdateDescriptorSets(Unwrap(dev), 1, writeSet, 0, NULL);
+
+  // create a bespoke framebuffer and renderpass for rendering
+  VkAttachmentDescription attDesc = {0,
+                                     fmt,
+                                     (VkSampleCountFlagBits)samples,
+                                     VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                     VK_ATTACHMENT_STORE_OP_STORE,
+                                     VK_ATTACHMENT_LOAD_OP_CLEAR,
+                                     VK_ATTACHMENT_STORE_OP_STORE,
+                                     VK_IMAGE_LAYOUT_GENERAL,
+                                     VK_IMAGE_LAYOUT_GENERAL};
+
+  VkAttachmentReference attRef = {0, VK_IMAGE_LAYOUT_GENERAL};
+
+  VkSubpassDescription sub = {};
+  sub.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+  sub.pDepthStencilAttachment = &attRef;
+
+  VkRenderPassCreateInfo rpinfo = {
+      VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO,
+      NULL,
+      0,
+      1,
+      &attDesc,
+      1,
+      &sub,
+      0,
+      NULL,    // dependencies
+  };
+
+  VkRenderPass rp = VK_NULL_HANDLE;
+
+  ObjDisp(dev)->CreateRenderPass(Unwrap(dev), &rpinfo, NULL, &rp);
+
+  VkFramebufferCreateInfo fbinfo = {
+      VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO,
+      NULL,
+      0,
+      rp,
+      1,
+      NULL,
+      extent.width,
+      extent.height,
+      1,
+  };
+
+  VkFramebuffer *fb = new VkFramebuffer[layers];
+
+  for(uint32_t i = 0; i < layers; i++)
+  {
+    fbinfo.pAttachments = destView + i;
+
+    vkr = ObjDisp(dev)->CreateFramebuffer(Unwrap(dev), &fbinfo, NULL, &fb[i]);
+    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+  }
+
+  VkCommandBuffer cmd = m_pDriver->GetNextCmd();
+
+  VkCommandBufferBeginInfo beginInfo = {VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO, NULL,
+                                        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT};
+
+  ObjDisp(cmd)->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
+
+  VkClearValue clearval = {};
+
+  VkRenderPassBeginInfo rpbegin = {
+      VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO, NULL, rp,        VK_NULL_HANDLE,
+      {{0, 0}, {extent.width, extent.height}},  1,    &clearval,
+  };
+
+  uint32_t numStencil = 1;
+
+  if(aspectFlags & VK_IMAGE_ASPECT_STENCIL_BIT)
+    numStencil = 256;
+
+  Vec4u params;
+  params.x = samples;
+  params.y = 0;    // currentSample;
+
+  for(uint32_t i = 0; i < layers; i++)
+  {
+    rpbegin.framebuffer = fb[i];
+
+    ObjDisp(cmd)->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
+
+    ObjDisp(cmd)->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS, Unwrap(pipe));
+    ObjDisp(cmd)->CmdBindDescriptorSets(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                        Unwrap(m_ArrayMSPipeLayout), 0, 1,
+                                        UnwrapPtr(m_ArrayMSDescSet), 0, NULL);
+
+    VkViewport viewport = {0.0f, 0.0f, (float)extent.width, (float)extent.height, 0.0f, 1.0f};
+    ObjDisp(cmd)->CmdSetViewport(Unwrap(cmd), 0, 1, &viewport);
+
+    params.z = i;    // currentSlice;
+
+    for(uint32_t s = 0; s < numStencil; s++)
+    {
+      params.w = numStencil == 1 ? 1000 : s;    // currentStencil;
+
+      ObjDisp(cmd)->CmdSetStencilReference(Unwrap(cmd), VK_STENCIL_FRONT_AND_BACK, s);
+      ObjDisp(cmd)->CmdPushConstants(Unwrap(cmd), Unwrap(m_ArrayMSPipeLayout), VK_SHADER_STAGE_ALL,
+                                     0, sizeof(Vec4u), &params);
+      ObjDisp(cmd)->CmdDraw(Unwrap(cmd), 4, 1, 0, 0);
+    }
+
+    ObjDisp(cmd)->CmdEndRenderPass(Unwrap(cmd));
+  }
+
+  ObjDisp(cmd)->EndCommandBuffer(Unwrap(cmd));
+
+  // submit cmds and wait for idle so we can readback
+  m_pDriver->SubmitCmds();
+  m_pDriver->FlushQ();
+
+  for(uint32_t i = 0; i < layers; i++)
+    ObjDisp(dev)->DestroyFramebuffer(Unwrap(dev), fb[i], NULL);
+  ObjDisp(dev)->DestroyRenderPass(Unwrap(dev), rp, NULL);
+
+  ObjDisp(dev)->DestroyImageView(Unwrap(dev), srcDepthView, NULL);
+  if(srcStencilView != VK_NULL_HANDLE)
+    ObjDisp(dev)->DestroyImageView(Unwrap(dev), srcStencilView, NULL);
+  for(uint32_t i = 0; i < layers; i++)
+    ObjDisp(dev)->DestroyImageView(Unwrap(dev), destView[i], NULL);
+
+  SAFE_DELETE_ARRAY(destView);
+  SAFE_DELETE_ARRAY(fb);
 }
 
 FloatVector VulkanDebugManager::InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg,

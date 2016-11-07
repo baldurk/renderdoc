@@ -1460,28 +1460,22 @@ void GLReplay::CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, G
   gl.glTextureView(texs[0], eGL_TEXTURE_2D_ARRAY, destArray, fmt, 0, 1, 0, arraySize * samples);
   gl.glTextureView(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, srcMS, fmt, 0, 1, 0, arraySize);
 
-  gl.glBindImageTexture(1, texs[0], 0, GL_TRUE, 0, eGL_WRITE_ONLY, fmt);
+  gl.glBindImageTexture(2, texs[0], 0, GL_TRUE, 0, eGL_WRITE_ONLY, fmt);
   gl.glActiveTexture(eGL_TEXTURE0);
   gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
   gl.glBindSampler(0, DebugData.pointNoMipSampler);
-  gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-  gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-  gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-  gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
   gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
   gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 1);
 
   gl.glUseProgram(DebugData.MS2Array);
 
-  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, DebugData.UBOs[0]);
-  GLint *ubo = (GLint *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(uint32_t),
-                                            GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
+  GLint loc = gl.glGetUniformLocation(DebugData.MS2Array, "mscopy");
+  if(loc >= 0)
+  {
+    gl.glProgramUniform4ui(DebugData.MS2Array, loc, samples, 0, 0, 0);
 
-  *ubo = samples;
-
-  gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
-
-  gl.glDispatchCompute((GLuint)width, (GLuint)height, GLuint(arraySize * samples));
+    gl.glDispatchCompute((GLuint)width, (GLuint)height, GLuint(arraySize * samples));
+  }
   gl.glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 
   gl.glDeleteTextures(2, texs);
