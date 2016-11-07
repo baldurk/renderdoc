@@ -623,6 +623,10 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
   static const GUID IRenderDoc_uuid = {
       0xa7aa6116, 0x9c8d, 0x4bba, {0x90, 0x83, 0xb4, 0xd8, 0x16, 0xb7, 0x1b, 0x78}};
 
+  // UUID for returning unwrapped ID3D11InfoQueue {3FC4E618-3F70-452A-8B8F-A73ACCB58E3D}
+  static const GUID unwrappedID3D11InfoQueue__uuid = {
+      0x3fc4e618, 0x3f70, 0x452a, {0x8b, 0x8f, 0xa7, 0x3a, 0xcc, 0xb5, 0x8e, 0x3d}};
+
   HRESULT hr = S_OK;
 
   if(riid == __uuidof(IUnknown))
@@ -785,10 +789,36 @@ HRESULT WrappedID3D11Device::QueryInterface(REFIID riid, void **ppvObject)
   else if(riid == __uuidof(ID3D11InfoQueue))
   {
     RDCWARN(
-        "Returning a dummy ID3D11InfoQueue that does nothing. This ID3D11InfoQueue will not work!");
+        "Returning a dummy ID3D11InfoQueue that does nothing. RenderDoc takes control of the debug "
+        "layer.");
+    RDCWARN(
+        "If you want direct access, enable API validation and query for %s. This will return the "
+        "real ID3D11InfoQueue - be careful as it is unwrapped so you should not call "
+        "QueryInterface on it.",
+        ToStr::Get(unwrappedID3D11InfoQueue__uuid).c_str());
     *ppvObject = (ID3D11InfoQueue *)&m_DummyInfoQueue;
     m_DummyInfoQueue.AddRef();
     return S_OK;
+  }
+  else if(riid == unwrappedID3D11InfoQueue__uuid)
+  {
+    if(m_pInfoQueue)
+    {
+      *ppvObject = m_pInfoQueue;
+      m_pInfoQueue->AddRef();
+      return S_OK;
+    }
+    else
+    {
+      if(!RenderDoc::Inst().GetCaptureOptions().APIValidation)
+      {
+        RDCWARN("API Validation is not enabled, RenderDoc disabled the debug layer.");
+        RDCWARN(
+            "Enable this either in the capture options, or using the RenderDoc API before device "
+            "creation.");
+      }
+      return E_NOINTERFACE;
+    }
   }
   else if(riid == __uuidof(ID3D11Debug))
   {
