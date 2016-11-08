@@ -74,13 +74,9 @@ void DoExtensionChecks(const GLHookSet &gl)
   if(!strcmp(ext, STRINGIZE(extname))) \
     ExtensionSupported[CONCAT(ExtensionSupported_, extname)] = true;
 
-      EXT_CHECK(ARB_clip_control);
-      EXT_CHECK(ARB_enhanced_layouts);
       EXT_CHECK(EXT_polygon_offset_clamp);
       EXT_CHECK(KHR_blend_equation_advanced_coherent);
       EXT_CHECK(EXT_raster_multisample);
-      EXT_CHECK(ARB_indirect_parameters);
-      EXT_CHECK(EXT_depth_bounds_test);
       EXT_CHECK(EXT_clip_cull_distance);
       EXT_CHECK(NV_polygon_mode);
       EXT_CHECK(NV_viewport_array);

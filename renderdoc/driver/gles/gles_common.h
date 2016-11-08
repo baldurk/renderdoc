@@ -171,13 +171,9 @@ extern bool GLIsCore;
 // extensions we know we want to check for are precached, indexd by this enum
 enum ExtensionCheckEnum
 {
-  ExtensionSupported_ARB_enhanced_layouts = 0,
-  ExtensionSupported_ARB_clip_control,
-  ExtensionSupported_EXT_polygon_offset_clamp,
+  ExtensionSupported_EXT_polygon_offset_clamp = 0,
   ExtensionSupported_KHR_blend_equation_advanced_coherent,
   ExtensionSupported_EXT_raster_multisample,
-  ExtensionSupported_ARB_indirect_parameters,
-  ExtensionSupported_EXT_depth_bounds_test,
   ExtensionSupported_EXT_clip_cull_distance,
   ExtensionSupported_NV_polygon_mode,
   ExtensionSupported_NV_viewport_array,
@@ -187,7 +183,7 @@ enum ExtensionCheckEnum
   ExtensionSupported_EXT_map_buffer_range,
   ExtensionSupported_EXT_base_instance,
   ExtensionSupported_EXT_debug_label,
-  ExtensionSupported_EXT_multisample_compatibility,
+  ExtensionSupported_EXT_multisample_compatibility, // TODO pantos in gl2ext.h its name is GL_EXT_multisampled_compatibility
   ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];
