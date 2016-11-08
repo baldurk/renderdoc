@@ -1096,7 +1096,7 @@ void *WrappedGLES::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr l
 
         ptr += offset;
 
-        glGetNamedBufferSubDataEXT(record->Resource.name, record->datatype, offset, length, ptr);
+        Compat_glGetNamedBufferSubDataEXT(record->Resource.name, record->datatype, offset, length, ptr);
 
         record->Map.ptr = ptr;
         record->Map.status = GLResourceRecord::Mapped_Read;
@@ -1149,7 +1149,7 @@ void *WrappedGLES::glMapBufferRange(GLenum target, GLintptr offset, GLsizeiptr l
               if(GetResourceManager()->IsResourceDirty(record->GetResourceID()))
               {
                 // Perhaps we could get these contents from the frame initial state buffer?
-                glGetNamedBufferSubDataEXT(record->Resource.name, record->datatype, 0, buflength, shadow);
+                Compat_glGetNamedBufferSubDataEXT(record->Resource.name, record->datatype, 0, buflength, shadow);
               }
               else
               {

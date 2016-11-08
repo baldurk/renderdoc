@@ -25,7 +25,7 @@
 
 #include "../gles_driver.h"
 
-void WrappedGLES::glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt, GLenum type, GLint width, GLint height, void *ret)
+void WrappedGLES::Compat_glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt, GLenum type, GLint width, GLint height, void *ret)
 {
   GLuint prevfbo = 0;
   GLuint fbo = 0;
@@ -63,7 +63,7 @@ void WrappedGLES::glGetTexImage(GLenum target, GLenum texType, GLuint texname, G
   m_Real.glDeleteFramebuffers(1, &fbo);
 }
 
-void WrappedGLES::glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data)
+void WrappedGLES::Compat_glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data)
 {
   void* mappedData = m_Real.glMapBufferRange(target, offset, size, eGL_MAP_READ_BIT);
   if (mappedData != NULL)
@@ -72,10 +72,10 @@ void WrappedGLES::glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr 
   m_Real.glUnmapBuffer(target);
 }
 
-void WrappedGLES::glGetNamedBufferSubDataEXT(GLuint buffer, GLenum target, GLintptr offset, GLsizeiptr size, void *data)
+void WrappedGLES::Compat_glGetNamedBufferSubDataEXT(GLuint buffer, GLenum target, GLintptr offset, GLsizeiptr size, void *data)
 {
   SafeBufferBinder safeBufferBinder(m_Real, target, buffer);
-  glGetBufferSubData(target, offset, size, data);
+  Compat_glGetBufferSubData(target, offset, size, data);
 }
 
 void WrappedGLES::Compat_glBufferStorageEXT (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags)

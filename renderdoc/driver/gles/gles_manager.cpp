@@ -451,7 +451,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     GLint length;
     SafeBufferBinder safeBufferBinder(m_GL->m_Real, record->datatype, res.name);
     gl.glGetBufferParameteriv(record->datatype, eGL_BUFFER_SIZE, &length);
-    m_GL->glGetBufferSubData(record->datatype, 0, length, record->GetDataPtr());
+    m_GL->Compat_glGetBufferSubData(record->datatype, 0, length, record->GetDataPtr());
   }
   else if(res.Namespace == eResProgram)
   {
@@ -975,7 +975,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
             for(int trg = 0; trg < count; trg++)
             {
               // OpenGL version: gl.glGetTexImage(targets[trg], i, fmt, type, buf)
-              m_GL->glGetTexImage(targets[trg], t, tex, i, fmt, type, w, h, buf);
+              m_GL->Compat_glGetTexImage(targets[trg], t, tex, i, fmt, type, w, h, buf);
               m_pSerialiser->SerialiseBuffer("image", buf, size);
             }
           }
