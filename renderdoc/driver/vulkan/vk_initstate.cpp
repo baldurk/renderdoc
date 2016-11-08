@@ -1793,6 +1793,8 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
         if(IsBlockFormat(fmt))
           bufAlignment = (VkDeviceSize)GetByteSize(1, 1, 1, fmt, 0);
 
+        std::vector<VkBufferImageCopy> mainCopies, stencilCopies;
+
         // copy each slice/mip individually
         for(int a = 0; a < numLayers; a++)
         {
@@ -1820,8 +1822,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
             // pass 0 for mip since we've already pre-downscaled extent
             bufOffset += GetByteSize(extent.width, extent.height, extent.depth, sizeFormat, 0);
 
-            ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), Unwrap(arrayIm),
-                                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+            mainCopies.push_back(region);
 
             if(sizeFormat != fmt)
             {
@@ -1834,8 +1835,7 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
               bufOffset +=
                   GetByteSize(extent.width, extent.height, extent.depth, VK_FORMAT_S8_UINT, 0);
 
-              ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), Unwrap(arrayIm),
-                                                 VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region);
+              stencilCopies.push_back(region);
             }
 
             // update the extent for the next mip
@@ -1844,6 +1844,15 @@ bool WrappedVulkan::Serialise_InitialState(ResourceId resid, WrappedVkRes *)
             extent.depth = RDCMAX(extent.depth >> 1, 1U);
           }
         }
+
+        ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), Unwrap(arrayIm),
+                                           VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                           (uint32_t)mainCopies.size(), &mainCopies[0]);
+
+        if(!stencilCopies.empty())
+          ObjDisp(cmd)->CmdCopyBufferToImage(Unwrap(cmd), Unwrap(buf), Unwrap(arrayIm),
+                                             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                                             (uint32_t)stencilCopies.size(), &stencilCopies[0]);
 
         // once transfers complete, get ready for copy array->ms
         dstimBarrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
