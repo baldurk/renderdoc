@@ -151,10 +151,16 @@ QMessageBox::StandardButton RDDialog::messageBox(QMessageBox::Icon icon, QWidget
                                                  QMessageBox::StandardButtons buttons,
                                                  QMessageBox::StandardButton defaultButton)
 {
-  QMessageBox mb(icon, title, text, buttons, parent);
-  mb.setDefaultButton(defaultButton);
-  show(&mb);
-  return mb.standardButton(mb.clickedButton());
+  QMessageBox::StandardButton ret = defaultButton;
+
+  // if we're already on the right thread, this boils down to a function call
+  GUIInvoke::blockcall([&]() {
+    QMessageBox mb(icon, title, text, buttons, parent);
+    mb.setDefaultButton(defaultButton);
+    show(&mb);
+    ret = mb.standardButton(mb.clickedButton());
+  });
+  return ret;
 }
 
 QString RDDialog::getExistingDirectory(QWidget *parent, const QString &caption, const QString &dir,
