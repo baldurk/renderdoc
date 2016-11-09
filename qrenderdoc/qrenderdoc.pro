@@ -25,16 +25,16 @@ INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/flowlayout
 # Different output folders per platform
 win32 {
 
+	# it is fine to alias these across targets, because the output
+	# is identical on all targets
+	MOC_DIR = $$_PRO_FILE_PWD_/generated
+	UI_DIR = $$_PRO_FILE_PWD_/generated
+	RCC_DIR = $$_PRO_FILE_PWD_/generated
+
 	!contains(QMAKE_TARGET.arch, x86_64) {
 		Debug:DESTDIR = $$_PRO_FILE_PWD_/../Win32/Development
 		Release:DESTDIR = $$_PRO_FILE_PWD_/../Win32/Release
 
-		Debug:MOC_DIR = $$_PRO_FILE_PWD_/Win32/Development
-		Release:MOC_DIR = $$_PRO_FILE_PWD_/Win32/Release
-		Debug:UI_DIR = $$_PRO_FILE_PWD_/Win32/Development
-		Release:UI_DIR = $$_PRO_FILE_PWD_/Win32/Release
-		Debug:RCC_DIR = $$_PRO_FILE_PWD_/Win32/Development
-		Release:RCC_DIR = $$_PRO_FILE_PWD_/Win32/Release
 		Debug:OBJECTS_DIR = $$_PRO_FILE_PWD_/Win32/Development
 		Release:OBJECTS_DIR = $$_PRO_FILE_PWD_/Win32/Release
 
@@ -42,14 +42,8 @@ win32 {
 		Debug:DESTDIR = $$_PRO_FILE_PWD_/../x64/Development
 		Release:DESTDIR = $$_PRO_FILE_PWD_/../x64/Release
 
-		Debug:MOC_DIR = $$_PRO_FILE_PWD_/x64/Development
-		Release:MOC_DIR = $$_PRO_FILE_PWD_/x64/Release
-		Debug:UI_DIR = $$_PRO_FILE_PWD_/x64/Development
-		Release:UI_DIR = $$_PRO_FILE_PWD_/x64/Release
-		Debug:RCC_DIR = $$_PRO_FILE_PWD_/x64/Development
-		Release:RCC_DIR = $$_PRO_FILE_PWD_/x64/Release
-		Debug:OBJECTS_DIR = $$_PRO_FILE_PWD_/x64/Development
-		Release:OBJECTS_DIR = $$_PRO_FILE_PWD_/x64/Release
+		Debug:OBJECTS_DIR = $$_PRO_FILE_PWD_/obj/x64/Development
+		Release:OBJECTS_DIR = $$_PRO_FILE_PWD_/obj/x64/Release
 	}
 
 	# Link against the core library
