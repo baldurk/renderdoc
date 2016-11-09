@@ -151,7 +151,7 @@ CaptureDialog::CaptureDialog(CaptureContext *ctx, OnCaptureMethod captureCallbac
   // sort by PID by default
   ui->processList->sortByColumn(1, Qt::AscendingOrder);
 
-  // TODO
+  // TODO Vulkan Layer
   ui->vulkanLayerWarn->setVisible(true);
 
   m_CaptureCallback = captureCallback;
@@ -239,7 +239,7 @@ void CaptureDialog::on_exePath_textChanged(const QString &exe)
 
 void CaptureDialog::on_vulkanCapture_clicked()
 {
-  // TODO
+  // TODO Vulkan Layer
 }
 
 void CaptureDialog::on_processRefesh_clicked()
@@ -324,7 +324,7 @@ void CaptureDialog::on_workDirBrowse_clicked()
 
 void CaptureDialog::on_envVarEdit_clicked()
 {
-  // TODO
+  // TODO Env Editor
 }
 
 void CaptureDialog::on_toggleGlobal_clicked()

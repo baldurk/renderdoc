@@ -54,9 +54,9 @@ struct EnvironmentModification
     QString ret;
 
     if(type == eEnvMod_Append)
-      ret = QString("Append, %1").arg("TODO");
+      ret = QString("Append, %1").arg("TODO ToStr");
     else if(type == eEnvMod_Prepend)
-      ret = QString("Prepend, %1").arg("TODO");
+      ret = QString("Prepend, %1").arg("TODO ToStr");
     else
       ret = "Set";
 
@@ -68,9 +68,9 @@ struct EnvironmentModification
     QString ret;
 
     if(type == eEnvMod_Append)
-      ret = QString("Append %1 with %2 using %3").arg(variable).arg(value).arg("TODO");
+      ret = QString("Append %1 with %2 using %3").arg(variable).arg(value).arg("TODO ToStr");
     else if(type == eEnvMod_Prepend)
-      ret = QString("Prepend %1 with %2 using %3").arg(variable).arg(value).arg("TODO");
+      ret = QString("Prepend %1 with %2 using %3").arg(variable).arg(value).arg("TODO ToStr");
     else
       ret = QString("Set %1 to %2").arg(variable).arg(value);
 
@@ -82,8 +82,8 @@ struct EnvironmentModification
     QVariantMap ret;
     ret["variable"] = variable;
     ret["value"] = value;
-    ret["type"] = "Append";             // TODO
-    ret["separator"] = "Semi-colon";    // TODO
+    ret["type"] = "Append";             // TODO ToStr
+    ret["separator"] = "Semi-colon";    // TODO ToStr
     return ret;
   }
 
@@ -91,8 +91,8 @@ struct EnvironmentModification
   {
     variable = data["variable"].toString();
     value = data["value"].toString();
-    type = eEnvMod_Append;            // TODO
-    separator = eEnvSep_SemiColon;    // TODO
+    type = eEnvMod_Append;            // TODO ToStr
+    separator = eEnvSep_SemiColon;    // TODO ToStr
   }
 };
 

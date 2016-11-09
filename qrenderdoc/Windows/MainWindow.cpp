@@ -494,7 +494,7 @@ bool MainWindow::PromptSaveLog()
     }
     else
     {
-      // TODO
+      // TODO Remote
       // m_Core.Renderer.CopyCaptureFromRemote(m_Core.LogFileName, saveFilename, this);
     }
 
@@ -599,13 +599,13 @@ void MainWindow::SetTitle(const QString &filename)
     prefix += " - ";
   }
 
-  // TODO
+  // TODO Remote
   // if(m_Ctx != NULL && m_Ctx->Renderer.Remote != null)
   // prefix += String.Format("Remote: {0} - ", m_Core.Renderer.Remote.Hostname);
 
   QString text = prefix + "RenderDoc ";
 
-  // TODO
+  // TODO Versioning
   /*
   if(OfficialVersion)
     text += VersionString;
@@ -615,7 +615,7 @@ void MainWindow::SetTitle(const QString &filename)
   text +=
       tr("Unofficial release (%1 - %2)").arg(RENDERDOC_GetVersionString()).arg(RENDERDOC_GetCommitHash());
 
-  // TODO
+  // TODO Versioning
   // if(IsVersionMismatched())
   // text += " - !! VERSION MISMATCH DETECTED !!";
 
@@ -725,7 +725,7 @@ void MainWindow::setProgress(float val)
 
 void MainWindow::OnLogfileLoaded()
 {
-  // TODO
+  // TODO Remote
   // don't allow changing context while log is open
   // contextChooser.Enabled = false;
 
@@ -766,7 +766,7 @@ void MainWindow::OnLogfileClosed()
   SetTitle();
 
   // if the remote sever disconnected during log replay, resort back to a 'disconnected' state
-  // TODO
+  // TODO Remote
   /*
   if(m_Core.Renderer.Remote != null && !m_Core.Renderer.Remote.ServerRunning)
   {

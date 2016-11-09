@@ -172,7 +172,7 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
   {
     QString errmsg = "Unknown error message";
 
-    // TODO
+    // TODO ToStr
     // errmsg = m_Renderer.GetCreateStatus();
 
     progressThread.acquire();

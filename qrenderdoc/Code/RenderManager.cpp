@@ -71,7 +71,7 @@ void RenderManager::DeleteCapture(const QString &logfile, bool local)
   }
   else
   {
-    // TODO
+    // TODO Remote
     // m_Remote.TakeOwnershipCapture(logfile);
   }
 }

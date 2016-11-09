@@ -37,8 +37,7 @@ TextureSaveDialog::TextureSaveDialog(const FetchTexture &t, const TextureSave &s
 
   ui->fileFormat->clear();
 
-  // TODO
-
+  // TODO ToStr
   ui->fileFormat->addItems({"DDS", "PNG", "JPG", "BMP", "TGA", "HDR", "EXR"});
   ui->alphaMap->addItems({"Discard", "Blend to Colour", "Blend to Checkerboard"});
 
@@ -131,7 +130,7 @@ void TextureSaveDialog::SetFiletypeFromFilename()
   QFileInfo path(ui->filename->text());
   QString ext = path.suffix().toUpper();
 
-  // TODO
+  // TODO ToStr
 
   /*
   foreach(var ft in(FileType[])Enum.GetValues(typeof(FileType)))
@@ -150,7 +149,7 @@ void TextureSaveDialog::SetFilenameFromFiletype()
   QFileInfo path(ui->filename->text());
   QString ext = path.suffix().toUpper();
 
-  // TODO
+  // TODO ToStr
 
   /*
   FileType[] types = (FileType[])Enum.GetValues(typeof(FileType));
@@ -489,7 +488,7 @@ void TextureSaveDialog::on_whitePoint_textEdited(const QString &arg)
 
 void TextureSaveDialog::on_browse_clicked()
 {
-  QString filter = "TODO";
+  QString filter = "TODO ToStr";
   QString *selectedFilter = NULL;
 
   QString filename =
