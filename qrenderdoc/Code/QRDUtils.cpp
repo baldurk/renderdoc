@@ -26,6 +26,7 @@
 #include <QGuiApplication>
 #include <QJsonDocument>
 #include <QMenu>
+#include <QMetaMethod>
 
 bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, uint32_t magicVersion)
 {
@@ -88,6 +89,14 @@ bool LoadFromJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, 
   return true;
 }
 
+int GUIInvoke::methodIndex = -1;
+
+void GUIInvoke::init()
+{
+  GUIInvoke *invoke = new GUIInvoke();
+  methodIndex = invoke->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("doInvoke()"));
+}
+
 void GUIInvoke::call(const std::function<void()> &f)
 {
   if(qApp->thread() == QThread::currentThread())
@@ -96,12 +105,9 @@ void GUIInvoke::call(const std::function<void()> &f)
     return;
   }
 
-  // TODO: could maybe do away with string compare here via caching
-  // invoke->metaObject()->indexOfMethod("doInvoke"); ?
-
   GUIInvoke *invoke = new GUIInvoke(f);
   invoke->moveToThread(qApp->thread());
-  QMetaObject::invokeMethod(invoke, "doInvoke", Qt::QueuedConnection);
+  invoke->metaObject()->method(methodIndex).invoke(invoke, Qt::QueuedConnection);
 }
 
 void GUIInvoke::blockcall(const std::function<void()> &f)
@@ -112,12 +118,9 @@ void GUIInvoke::blockcall(const std::function<void()> &f)
     return;
   }
 
-  // TODO: could maybe do away with string compare here via caching
-  // invoke->metaObject()->indexOfMethod("doInvoke"); ?
-
   GUIInvoke *invoke = new GUIInvoke(f);
   invoke->moveToThread(qApp->thread());
-  QMetaObject::invokeMethod(invoke, "doInvoke", Qt::BlockingQueuedConnection);
+  invoke->metaObject()->method(methodIndex).invoke(invoke, Qt::BlockingQueuedConnection);
 }
 
 void RDDialog::show(QMenu *menu, QPoint pos)

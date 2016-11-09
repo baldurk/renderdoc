@@ -132,6 +132,8 @@ int main(int argc, char *argv[])
 
     config.SetupFormatting();
 
+    GUIInvoke::init();
+
     CaptureContext ctx(filename, remoteHost, remoteIdent, temp, config);
 
     while(ctx.isRunning())

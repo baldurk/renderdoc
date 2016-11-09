@@ -55,9 +55,13 @@ class GUIInvoke : public QObject
 private:
   Q_OBJECT
   GUIInvoke(const std::function<void()> &f) : func(f) {}
+  GUIInvoke() {}
   std::function<void()> func;
 
+  static int methodIndex;
+
 public:
+  static void init();
   static void call(const std::function<void()> &f);
   static void blockcall(const std::function<void()> &f);
 
