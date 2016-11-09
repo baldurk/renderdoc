@@ -13,19 +13,18 @@
 class GLError
 {
 public:
-    GLError(const char *function_arg)
-        : function_arg(function_arg)
-    {}
-
-    ~GLError()
+  GLError(const char *function_arg) : function_arg(function_arg) {}
+  ~GLError()
+  {
+    GLenum errorResult = OpenGLHook::glhooks.GetDriver()->glGetError();
+    if(errorResult != GL_NO_ERROR)
     {
-      GLenum errorResult = OpenGLHook::glhooks.GetDriver()->glGetError();
-      if (errorResult != GL_NO_ERROR) {
-        RDCLOG("RES: %s : %p", function_arg, errorResult);
-      }
+      RDCLOG("RES: %s : %p", function_arg, errorResult);
     }
+  }
+
 private:
-    const char *function_arg;
+  const char *function_arg;
 };
 
 #define CheckGLError(function) GLError errtest(function)
@@ -47,7 +46,7 @@ private:
   extern "C" __attribute__((visibility("default"))) ret function() \
   {                                                                \
     SCOPED_LOCK(glLock);                                           \
-    CheckGLError(#function);                                        \
+    CheckGLError(#function);                                       \
     return OpenGLHook::glhooks.GetDriver()->function();            \
   }                                                                \
   ret CONCAT(function, _renderdoc_hooked)()                        \
@@ -60,7 +59,7 @@ private:
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1) \
   {                                                                     \
     SCOPED_LOCK(glLock);                                                \
-    CheckGLError(#function);                                             \
+    CheckGLError(#function);                                            \
     return OpenGLHook::glhooks.GetDriver()->function(p1);               \
   }                                                                     \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1)                        \
@@ -73,7 +72,7 @@ private:
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2) \
   {                                                                            \
     SCOPED_LOCK(glLock);                                                       \
-    CheckGLError(#function);                                                    \
+    CheckGLError(#function);                                                   \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2);                  \
   }                                                                            \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2)                        \
@@ -86,7 +85,7 @@ private:
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3) \
   {                                                                                   \
     SCOPED_LOCK(glLock);                                                              \
-    CheckGLError(#function);                                                           \
+    CheckGLError(#function);                                                          \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3);                     \
   }                                                                                   \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3)                        \
@@ -99,7 +98,7 @@ private:
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4) \
   {                                                                                          \
     SCOPED_LOCK(glLock);                                                                     \
-    CheckGLError(#function);                                                                  \
+    CheckGLError(#function);                                                                 \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4);                        \
   }                                                                                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4)                        \
@@ -112,7 +111,7 @@ private:
   extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
   {                                                                                                 \
     SCOPED_LOCK(glLock);                                                                            \
-    CheckGLError(#function);                                                                         \
+    CheckGLError(#function);                                                                        \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5);                           \
   }                                                                                                 \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)                        \
@@ -126,7 +125,7 @@ private:
                                                                  t5 p5, t6 p6)               \
   {                                                                                          \
     SCOPED_LOCK(glLock);                                                                     \
-    CheckGLError(#function);                                                                  \
+    CheckGLError(#function);                                                                 \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6);                \
   }                                                                                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6)          \
@@ -140,7 +139,7 @@ private:
                                                                  t5 p5, t6 p6, t7 p7)        \
   {                                                                                          \
     SCOPED_LOCK(glLock);                                                                     \
-    CheckGLError(#function);                                                                  \
+    CheckGLError(#function);                                                                 \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7);            \
   }                                                                                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7)   \
@@ -154,7 +153,7 @@ private:
                                                                  t5 p5, t6 p6, t7 p7, t8 p8)        \
   {                                                                                                 \
     SCOPED_LOCK(glLock);                                                                            \
-    CheckGLError(#function);                                                                         \
+    CheckGLError(#function);                                                                        \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8);               \
   }                                                                                                 \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8)   \
@@ -169,7 +168,7 @@ private:
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9)                              \
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
-    CheckGLError(#function);                                                                       \
+    CheckGLError(#function);                                                                      \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9);         \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
@@ -185,7 +184,7 @@ private:
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10)                     \
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
-    CheckGLError(#function);                                                                       \
+    CheckGLError(#function);                                                                      \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);    \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
@@ -201,7 +200,7 @@ private:
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11)              \
   {                                                                                                 \
     SCOPED_LOCK(glLock);                                                                            \
-    CheckGLError(#function);                                                                         \
+    CheckGLError(#function);                                                                        \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); \
   }                                                                                                 \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,   \
@@ -217,7 +216,7 @@ private:
       t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12)    \
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
-    CheckGLError(#function);                                                                        \
+    CheckGLError(#function);                                                                       \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12);                                         \
   }                                                                                                \
@@ -237,7 +236,7 @@ private:
       t13 p13)                                                                                     \
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
-    CheckGLError(#function);                                                                        \
+    CheckGLError(#function);                                                                       \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12, p13);                                    \
   }                                                                                                \
@@ -257,7 +256,7 @@ private:
       t13 p13, t14 p14)                                                                            \
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
-    CheckGLError(#function);                                                                        \
+    CheckGLError(#function);                                                                       \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12, p13, p14);                               \
   }                                                                                                \
@@ -277,7 +276,7 @@ private:
       t13 p13, t14 p14, t15 p15)                                                                   \
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
-    CheckGLError(#function);                                                                        \
+    CheckGLError(#function);                                                                       \
     return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12, p13, p14, p15);                          \
   }                                                                                                \
@@ -321,6 +320,17 @@ DefineGLExtensionHooks();
         echo -en "\treturn CONCAT(unsupported_real_,function)(";
             for I in `seq 1 $N`; do echo -n "p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
         echo -e "); \\";
+        echo -e "\t} \\";
+
+        echo -e "\textern \"C\" __attribute__ ((visibility (\"default\"))) \\";
+        echo -en "\tret function(";
+            for I in `seq 1 $N`; do echo -n "t$I p$I"; if [ $I -ne $N ]; then echo -n ", "; fi;
+  done;
+        echo ") \\";
+        echo -e "\t{ \\";
+        echo -en "\treturn CONCAT(function,_renderdoc_hooked)(";
+            for I in `seq 1 $N`; do echo -n "p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
+        echo -e "); \\";
         echo -e "\t}";
     }
 
@@ -341,6 +351,10 @@ DefineGLExtensionHooks();
       hit = true;                                                                       \
     }                                                                                   \
     return CONCAT(unsupported_real_, function)();                                       \
+  }                                                                                     \
+  extern "C" __attribute__((visibility("default"))) ret function()                      \
+  {                                                                                     \
+    return CONCAT(function, _renderdoc_hooked)();                                       \
   }
 
 #undef HookWrapper1
@@ -356,6 +370,10 @@ DefineGLExtensionHooks();
       hit = true;                                                                       \
     }                                                                                   \
     return CONCAT(unsupported_real_, function)(p1);                                     \
+  }                                                                                     \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1)                 \
+  {                                                                                     \
+    return CONCAT(function, _renderdoc_hooked)(p1);                                     \
   }
 
 #undef HookWrapper2
@@ -371,6 +389,10 @@ DefineGLExtensionHooks();
       hit = true;                                                                       \
     }                                                                                   \
     return CONCAT(unsupported_real_, function)(p1, p2);                                 \
+  }                                                                                     \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2)          \
+  {                                                                                     \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2);                                 \
   }
 
 #undef HookWrapper3
@@ -386,66 +408,88 @@ DefineGLExtensionHooks();
       hit = true;                                                                       \
     }                                                                                   \
     return CONCAT(unsupported_real_, function)(p1, p2, p3);                             \
+  }                                                                                     \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3)   \
+  {                                                                                     \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2, p3);                             \
   }
 
 #undef HookWrapper4
-#define HookWrapper4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4)                     \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);                           \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4)                   \
-  {                                                                                     \
-    static bool hit = false;                                                            \
-    if(hit == false)                                                                    \
-    {                                                                                   \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
-      hit = true;                                                                       \
-    }                                                                                   \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4);                         \
+#define HookWrapper4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4)                          \
+  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);                                \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                    \
+  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4)                        \
+  {                                                                                          \
+    static bool hit = false;                                                                 \
+    if(hit == false)                                                                         \
+    {                                                                                        \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");      \
+      hit = true;                                                                            \
+    }                                                                                        \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4);                              \
+  }                                                                                          \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4) \
+  {                                                                                          \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2, p3, p4);                              \
   }
 
 #undef HookWrapper5
-#define HookWrapper5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5)             \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);                       \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)            \
-  {                                                                                     \
-    static bool hit = false;                                                            \
-    if(hit == false)                                                                    \
-    {                                                                                   \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
-      hit = true;                                                                       \
-    }                                                                                   \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5);                     \
+#define HookWrapper5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5)                         \
+  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);                                   \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                           \
+  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)                        \
+  {                                                                                                 \
+    static bool hit = false;                                                                        \
+    if(hit == false)                                                                                \
+    {                                                                                               \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");             \
+      hit = true;                                                                                   \
+    }                                                                                               \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5);                                 \
+  }                                                                                                 \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
+  {                                                                                                 \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2, p3, p4, p5);                                 \
   }
 
 #undef HookWrapper6
-#define HookWrapper6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6)     \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6);                   \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6)     \
-  {                                                                                     \
-    static bool hit = false;                                                            \
-    if(hit == false)                                                                    \
-    {                                                                                   \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
-      hit = true;                                                                       \
-    }                                                                                   \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6);                 \
+#define HookWrapper6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6)          \
+  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6);                        \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                    \
+  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6)          \
+  {                                                                                          \
+    static bool hit = false;                                                                 \
+    if(hit == false)                                                                         \
+    {                                                                                        \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");      \
+      hit = true;                                                                            \
+    }                                                                                        \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6);                      \
+  }                                                                                          \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, \
+                                                                 t5 p5, t6 p6)               \
+  {                                                                                          \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2, p3, p4, p5, p6);                      \
   }
 
 #undef HookWrapper7
-#define HookWrapper7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7) \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7);                   \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                   \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7)  \
-  {                                                                                         \
-    static bool hit = false;                                                                \
-    if(hit == false)                                                                        \
-    {                                                                                       \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");     \
-      hit = true;                                                                           \
-    }                                                                                       \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7);                 \
+#define HookWrapper7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7)  \
+  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7);                    \
+  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                    \
+  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7)   \
+  {                                                                                          \
+    static bool hit = false;                                                                 \
+    if(hit == false)                                                                         \
+    {                                                                                        \
+      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");      \
+      hit = true;                                                                            \
+    }                                                                                        \
+    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7);                  \
+  }                                                                                          \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, \
+                                                                 t5 p5, t6 p6, t7 p7)        \
+  {                                                                                          \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2, p3, p4, p5, p6, p7);                  \
   }
 
 #undef HookWrapper8
@@ -461,6 +505,11 @@ DefineGLExtensionHooks();
       hit = true;                                                                                   \
     }                                                                                               \
     return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8);                     \
+  }                                                                                                 \
+  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4,        \
+                                                                 t5 p5, t6 p6, t7 p7, t8 p8)        \
+  {                                                                                                 \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2, p3, p4, p5, p6, p7, p8);                     \
   }
 
 #undef HookWrapper9
@@ -478,6 +527,11 @@ DefineGLExtensionHooks();
       hit = true;                                                                                 \
     }                                                                                             \
     return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9);               \
+  }                                                                                               \
+  extern "C" __attribute__((visibility("default"))) ret function(                                 \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9)                              \
+  {                                                                                               \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2, p3, p4, p5, p6, p7, p8, p9);               \
   }
 
 #undef HookWrapper10
@@ -495,6 +549,11 @@ DefineGLExtensionHooks();
       hit = true;                                                                                 \
     }                                                                                             \
     return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);          \
+  }                                                                                               \
+  extern "C" __attribute__((visibility("default"))) ret function(                                 \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10)                     \
+  {                                                                                               \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);          \
   }
 
 #undef HookWrapper11
@@ -512,6 +571,11 @@ DefineGLExtensionHooks();
       hit = true;                                                                                 \
     }                                                                                             \
     return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);     \
+  }                                                                                               \
+  extern "C" __attribute__((visibility("default"))) ret function(                                 \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11)            \
+  {                                                                                               \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);     \
   }
 
 #undef HookWrapper12
@@ -529,6 +593,11 @@ DefineGLExtensionHooks();
       hit = true;                                                                                  \
     }                                                                                              \
     return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12); \
+  }                                                                                                \
+  extern "C" __attribute__((visibility("default"))) ret function(                                  \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12)    \
+  {                                                                                                \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12); \
   }
 
 #undef HookWrapper13
@@ -547,6 +616,13 @@ DefineGLExtensionHooks();
       hit = true;                                                                                 \
     }                                                                                             \
     return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, \
+                                               p13);                                              \
+  }                                                                                               \
+  extern "C" __attribute__((visibility("default"))) ret function(                                 \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,   \
+      t13 p13)                                                                                    \
+  {                                                                                               \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, \
                                                p13);                                              \
   }
 
@@ -567,6 +643,13 @@ DefineGLExtensionHooks();
     }                                                                                             \
     return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, \
                                                p13, p14);                                         \
+  }                                                                                               \
+  extern "C" __attribute__((visibility("default"))) ret function(                                 \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,   \
+      t13 p13, t14 p14)                                                                           \
+  {                                                                                               \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, \
+                                               p13, p14);                                         \
   }
 
 #undef HookWrapper15
@@ -586,6 +669,13 @@ DefineGLExtensionHooks();
       hit = true;                                                                                 \
     }                                                                                             \
     return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, \
+                                               p13, p14, p15);                                    \
+  }                                                                                               \
+  extern "C" __attribute__((visibility("default"))) ret function(                                 \
+      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,   \
+      t13 p13, t14 p14, t15 p15)                                                                  \
+  {                                                                                               \
+    return CONCAT(function, _renderdoc_hooked)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, \
                                                p13, p14, p15);                                    \
   }
 
