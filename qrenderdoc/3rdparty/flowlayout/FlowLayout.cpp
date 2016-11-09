@@ -122,11 +122,14 @@ void FlowLayout::setGeometry(const QRect &rect)
 {
     QLayout::setGeometry(rect);
     doLayout(rect, false);
+    update();
 }
 
 QSize FlowLayout::sizeHint() const
 {
-    return minimumSize();
+    QSize size = geometry().size();
+    size.setHeight(doLayout(geometry().adjusted(0, 0, -10, 0), true));
+    return size;
 }
 
 QSize FlowLayout::minimumSize() const
