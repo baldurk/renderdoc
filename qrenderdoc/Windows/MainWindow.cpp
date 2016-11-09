@@ -239,8 +239,15 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentModificati
 
   QString logfile = m_Ctx->TempLogFilename(name);
 
-  // TODO - env
-  uint32_t ret = RENDERDOC_InjectIntoProcess(PID, NULL, logfile.toUtf8().data(), &opts, false);
+  void *envList = RENDERDOC_MakeEnvironmentModificationList(env.size());
+
+  for(int i = 0; i < env.size(); i++)
+    RENDERDOC_SetEnvironmentModification(envList, i, env[i].variable.toUtf8().data(),
+                                         env[i].value.toUtf8().data(), env[i].type, env[i].separator);
+
+  uint32_t ret = RENDERDOC_InjectIntoProcess(PID, envList, logfile.toUtf8().data(), &opts, false);
+
+  RENDERDOC_FreeEnvironmentModificationList(envList);
 
   if(ret == 0)
   {
@@ -838,7 +845,7 @@ void MainWindow::closeEvent(QCloseEvent *event)
   SaveLayout(0);
 }
 
-QString dragFilename(const QMimeData *mimeData)
+QString MainWindow::dragFilename(const QMimeData *mimeData)
 {
   if(mimeData->hasUrls())
   {

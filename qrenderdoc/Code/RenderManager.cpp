@@ -129,10 +129,20 @@ uint32_t RenderManager::ExecuteAndInject(const QString &exe, const QString &work
 {
   // if (m_Remote == null)
   {
-    // TODO env
-    return RENDERDOC_ExecuteAndInject(exe.toUtf8().data(), workingDir.toUtf8().data(),
-                                      cmdLine.toUtf8().data(), NULL, logfile.toUtf8().data(), &opts,
-                                      false);
+    void *envList = RENDERDOC_MakeEnvironmentModificationList(env.size());
+
+    for(int i = 0; i < env.size(); i++)
+      RENDERDOC_SetEnvironmentModification(envList, i, env[i].variable.toUtf8().data(),
+                                           env[i].value.toUtf8().data(), env[i].type,
+                                           env[i].separator);
+
+    uint32_t ret = RENDERDOC_ExecuteAndInject(exe.toUtf8().data(), workingDir.toUtf8().data(),
+                                              cmdLine.toUtf8().data(), envList,
+                                              logfile.toUtf8().data(), &opts, false);
+
+    RENDERDOC_FreeEnvironmentModificationList(envList);
+
+    return ret;
   }
   /*
   else

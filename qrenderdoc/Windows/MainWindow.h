@@ -34,6 +34,7 @@ class MainWindow;
 }
 
 class QLabel;
+class QMimeData;
 class QProgressBar;
 class CaptureDialog;
 
@@ -80,6 +81,8 @@ private:
 
   void dragEnterEvent(QDragEnterEvent *event) override;
   void dropEvent(QDropEvent *event) override;
+
+  QString dragFilename(const QMimeData *mimeData);
 
   Ui::MainWindow *ui;
   CaptureContext *m_Ctx;
