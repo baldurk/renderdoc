@@ -30,6 +30,7 @@
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
 #include "Windows/Dialogs/AboutDialog.h"
+#include "Windows/Dialogs/CaptureDialog.h"
 #include "EventBrowser.h"
 #include "TextureViewer.h"
 #include "ui_MainWindow.h"
@@ -110,6 +111,11 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
       eventBrowser->setObjectName("eventBrowser");
       return eventBrowser;
     }
+    else if(objectName == "capDialog")
+    {
+      CaptureDialog *capDialog = this->createCaptureDialog();
+      return capDialog;
+    }
 
     return NULL;
   });
@@ -131,6 +137,12 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
         textureViewer,
         ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
                                          ui->toolWindowManager->areaOf(eventBrowser), 0.75f));
+
+    CaptureDialog *capDialog = createCaptureDialog();
+
+    ui->toolWindowManager->addToolWindow(
+        capDialog, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                                    ui->toolWindowManager->areaOf(textureViewer)));
   }
 }
 
@@ -173,23 +185,76 @@ void MainWindow::LoadFromFilename(const QString &filename)
   QFileInfo path(filename);
   QString ext = path.suffix().toLower();
 
-  if(ext == ".rdc")
+  if(ext == "rdc")
   {
     LoadLogfile(filename, false, true);
   }
-  else if(ext == ".cap")
+  else if(ext == "cap")
   {
-    // OpenCaptureConfigFile(filename, false);
+    OpenCaptureConfigFile(filename, false);
   }
-  else if(ext == ".exe")
+  else if(ext == "exe")
   {
-    // OpenCaptureConfigFile(filename, true);
+    OpenCaptureConfigFile(filename, true);
   }
   else
   {
     // not a recognised filetype, see if we can load it anyway
     LoadLogfile(filename, false, true);
   }
+}
+
+void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
+                                  const QString &cmdLine, const QList<EnvironmentModification> &env,
+                                  CaptureOptions opts)
+{
+  if(!PromptCloseLog())
+    return;
+
+  QString logfile = m_Ctx->TempLogFilename(QFileInfo(exe).baseName());
+
+  uint32_t ret = m_Ctx->Renderer()->ExecuteAndInject(exe, workingDir, cmdLine, env, logfile, opts);
+
+  if(ret == 0)
+  {
+    RDDialog::critical(
+        this, tr("Error kicking capture"),
+        tr("Error launching %1 for capture.\n\nCheck diagnostic log in Help menu for more details.")
+            .arg(exe));
+    return;
+  }
+
+  /*
+  var live = new LiveCapture(m_Core, m_Core.Renderer.Remote == null ? "" :
+  m_Core.Renderer.Remote.Hostname, ret, this);
+  ShowLiveCapture(live);
+  return live;*/
+}
+
+void MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentModification> &env,
+                                 const QString &name, CaptureOptions opts)
+{
+  if(!PromptCloseLog())
+    return;
+
+  QString logfile = m_Ctx->TempLogFilename(name);
+
+  // TODO - env
+  uint32_t ret = RENDERDOC_InjectIntoProcess(PID, NULL, logfile.toUtf8().data(), &opts, false);
+
+  if(ret == 0)
+  {
+    RDDialog::critical(this, tr("Error kicking capture"),
+                       tr("Error injecting into process %1 for capture.\n\nCheck diagnostic log in "
+                          "Help menu for more details.")
+                           .arg(PID));
+    return;
+  }
+
+  /*
+  var live = new LiveCapture(m_Core, "", ret, this);
+  ShowLiveCapture(live);
+  return live;*/
 }
 
 void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local)
@@ -352,11 +417,23 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
 
     if(!remoteReplay)
     {
-      m_Ctx->Config.LastLogPath = QFileInfo(filename).dir().absolutePath();
+      m_Ctx->Config.LastLogPath = QFileInfo(filename).absolutePath();
     }
 
     statusText->setText(tr("Loading ") + origFilename + "...");
   }
+}
+
+void MainWindow::OpenCaptureConfigFile(const QString &filename, bool exe)
+{
+  CaptureDialog *capDialog = createCaptureDialog();
+
+  if(exe)
+    capDialog->setExecutableFilename(filename);
+  else
+    capDialog->loadSettings(filename);
+
+  ui->toolWindowManager->addToolWindow(capDialog, ToolWindowManager::EmptySpace);
 }
 
 QString MainWindow::GetSavePath()
@@ -490,6 +567,19 @@ void MainWindow::CloseLogfile()
   ui->action_Save_Log->setEnabled(false);
 }
 
+CaptureDialog *MainWindow::createCaptureDialog()
+{
+  CaptureDialog *ret = new CaptureDialog(
+      m_Ctx,
+      [this](const QString &exe, const QString &workingDir, const QString &cmdLine,
+             const QList<EnvironmentModification> &env,
+             CaptureOptions opts) { this->OnCaptureTrigger(exe, workingDir, cmdLine, env, opts); },
+      [this](uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
+             CaptureOptions opts) { this->OnInjectTrigger(PID, env, name, opts); });
+  ret->setObjectName("capDialog");
+  return ret;
+}
+
 void MainWindow::SetTitle(const QString &filename)
 {
   QString prefix = "";
@@ -595,7 +685,7 @@ void MainWindow::recentCapture(const QString &filename)
 {
   if(QFileInfo::exists(filename))
   {
-    // OpenCaptureConfigFile(filename, false);
+    OpenCaptureConfigFile(filename, false);
   }
   else
   {
@@ -713,6 +803,24 @@ void MainWindow::on_action_Texture_Viewer_triggered()
   textureViewer->setObjectName("textureViewer");
 
   ui->toolWindowManager->addToolWindow(textureViewer, ToolWindowManager::EmptySpace);
+}
+
+void MainWindow::on_action_Capture_Log_triggered()
+{
+  CaptureDialog *capDialog = createCaptureDialog();
+
+  ui->toolWindowManager->addToolWindow(capDialog, ToolWindowManager::EmptySpace);
+
+  capDialog->setInjectMode(false);
+}
+
+void MainWindow::on_action_Inject_into_Process_triggered()
+{
+  CaptureDialog *capDialog = createCaptureDialog();
+
+  ui->toolWindowManager->addToolWindow(capDialog, ToolWindowManager::EmptySpace);
+
+  capDialog->setInjectMode(true);
 }
 
 void MainWindow::saveLayout_triggered()

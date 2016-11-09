@@ -122,6 +122,25 @@ void RenderManager::CloseThread()
   m_Thread = NULL;
 }
 
+uint32_t RenderManager::ExecuteAndInject(const QString &exe, const QString &workingDir,
+                                         const QString &cmdLine,
+                                         const QList<EnvironmentModification> &env,
+                                         const QString &logfile, CaptureOptions opts)
+{
+  // if (m_Remote == null)
+  {
+    // TODO env
+    return RENDERDOC_ExecuteAndInject(exe.toUtf8().data(), workingDir.toUtf8().data(),
+                                      cmdLine.toUtf8().data(), NULL, logfile.toUtf8().data(), &opts,
+                                      false);
+  }
+  /*
+  else
+  {
+  }
+  */
+}
+
 void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
 {
   if(m_Thread == NULL || !m_Thread->isRunning() || !m_Running)

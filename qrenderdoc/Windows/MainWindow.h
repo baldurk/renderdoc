@@ -35,6 +35,7 @@ class MainWindow;
 
 class QLabel;
 class QProgressBar;
+class CaptureDialog;
 
 class MainWindow : public QMainWindow, public ILogViewerForm
 {
@@ -53,6 +54,11 @@ public:
   bool ownTemporaryLog() { return m_OwnTempLog; }
   void LoadFromFilename(const QString &filename);
 
+  void OnCaptureTrigger(const QString &exe, const QString &workingDir, const QString &cmdLine,
+                        const QList<EnvironmentModification> &env, CaptureOptions opts);
+  void OnInjectTrigger(uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
+                       CaptureOptions opts);
+
 private slots:
   // automatic slots
   void on_action_Exit_triggered();
@@ -62,6 +68,8 @@ private slots:
   void on_action_Mesh_Output_triggered();
   void on_action_Event_Viewer_triggered();
   void on_action_Texture_Viewer_triggered();
+  void on_action_Capture_Log_triggered();
+  void on_action_Inject_into_Process_triggered();
 
   // manual slots
   void saveLayout_triggered();
@@ -85,6 +93,8 @@ private:
 
   QString m_LastSaveCapturePath = "";
 
+  CaptureDialog *createCaptureDialog();
+
   void SetTitle(const QString &filename);
   void SetTitle();
 
@@ -97,6 +107,7 @@ private:
   bool PromptCloseLog();
   bool PromptSaveLog();
   void LoadLogfile(const QString &filename, bool temporary, bool local);
+  void OpenCaptureConfigFile(const QString &filename, bool exe);
   QString GetSavePath();
   void CloseLogfile();
 

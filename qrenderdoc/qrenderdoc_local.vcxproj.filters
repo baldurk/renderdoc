@@ -169,6 +169,12 @@
     <ClCompile Include="generated\moc_TextureSaveDialog.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="generated\moc_CaptureDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
     <ClCompile Include="Code\QRDUtils.cpp">
       <Filter>Code</Filter>
     </ClCompile>
@@ -251,6 +257,12 @@
     </ClInclude>
     <ClInclude Include="generated\ui_TextureSaveDialog.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_CaptureDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\Dialogs\CaptureDialog.h">
+      <Filter>Windows\Dialogs</Filter>
     </ClInclude>
     <ClInclude Include="Code\QRDUtils.h">
       <Filter>Code</Filter>
@@ -457,6 +469,9 @@
       <Filter>Windows\Dialogs</Filter>
     </None>
     <None Include="Windows\Dialogs\TextureSaveDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </None>
+    <None Include="Windows\Dialogs\CaptureDialog.ui">
       <Filter>Windows\Dialogs</Filter>
     </None>
   </ItemGroup>

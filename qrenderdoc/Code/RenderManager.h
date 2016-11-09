@@ -29,6 +29,7 @@
 #include <QSemaphore>
 #include <QString>
 #include <QThread>
+#include <QVariantMap>
 #include <QWaitCondition>
 #include <functional>
 #include "renderdoc_replay.h"
@@ -39,6 +40,61 @@ class LambdaThread;
 // simple helper for the common case of 'we just need to run this on the render thread
 #define INVOKE_MEMFN(function) \
   m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) { function(r); });
+
+struct EnvironmentModification
+{
+  QString variable;
+  QString value;
+
+  EnvironmentModificationType type;
+  EnvironmentSeparator separator;
+
+  QString GetTypeString() const
+  {
+    QString ret;
+
+    if(type == eEnvMod_Append)
+      ret = QString("Append, %1").arg("TODO");
+    else if(type == eEnvMod_Prepend)
+      ret = QString("Prepend, %1").arg("TODO");
+    else
+      ret = "Set";
+
+    return ret;
+  }
+
+  QString GetDescription() const
+  {
+    QString ret;
+
+    if(type == eEnvMod_Append)
+      ret = QString("Append %1 with %2 using %3").arg(variable).arg(value).arg("TODO");
+    else if(type == eEnvMod_Prepend)
+      ret = QString("Prepend %1 with %2 using %3").arg(variable).arg(value).arg("TODO");
+    else
+      ret = QString("Set %1 to %2").arg(variable).arg(value);
+
+    return ret;
+  }
+
+  QVariantMap toJSON() const
+  {
+    QVariantMap ret;
+    ret["variable"] = variable;
+    ret["value"] = value;
+    ret["type"] = "Append";             // TODO
+    ret["separator"] = "Semi-colon";    // TODO
+    return ret;
+  }
+
+  void fromJSON(const QVariantMap &data)
+  {
+    variable = data["variable"].toString();
+    value = data["value"].toString();
+    type = eEnvMod_Append;            // TODO
+    separator = eEnvSep_SemiColon;    // TODO
+  }
+};
 
 class RenderManager
 {
@@ -57,6 +113,10 @@ public:
   void BlockInvoke(InvokeMethod m);
 
   void CloseThread();
+
+  uint32_t ExecuteAndInject(const QString &exe, const QString &workingDir, const QString &cmdLine,
+                            const QList<EnvironmentModification> &env, const QString &logfile,
+                            CaptureOptions opts);
 
 private:
   struct InvokeHandle
