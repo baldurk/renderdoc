@@ -296,9 +296,12 @@ struct CachedHookData
                   if(found != hookset->FunctionHooks.end() &&
                      !strcmp(found->function.c_str(), importName) && found->excludeModule != module)
                   {
-                    SCOPED_LOCK(lock);
                     bool already = false;
-                    bool applied = found->ApplyHook(IATentry, already);
+                    bool applied;
+                    {
+                      SCOPED_LOCK(lock);
+                      applied = found->ApplyHook(IATentry, already);
+                    }
 
                     // if we failed, or if it's already set and we're not doing a missedOrdinals
                     // second pass, then just bail out immediately as we've already hooked this
@@ -344,9 +347,12 @@ struct CachedHookData
           if(found != hookset->FunctionHooks.end() &&
              !strcmp(found->function.c_str(), importName) && found->excludeModule != module)
           {
-            SCOPED_LOCK(lock);
             bool already = false;
-            bool applied = found->ApplyHook(IATentry, already);
+            bool applied;
+            {
+              SCOPED_LOCK(lock);
+              applied = found->ApplyHook(IATentry, already);
+            }
 
             // if we failed, or if it's already set and we're not doing a missedOrdinals
             // second pass, then just bail out immediately as we've already hooked this
