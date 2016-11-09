@@ -27,12 +27,14 @@
 #include <math.h>
 #include <QClipboard>
 #include <QColorDialog>
+#include <QItemDelegate>
 #include <QJsonDocument>
 #include <QMenu>
 #include <QPainter>
 #include <QStyledItemDelegate>
 #include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Code/CaptureContext.h"
+#include "Code/QRDUtils.h"
 #include "Dialogs/TextureSaveDialog.h"
 #include "Widgets/ResourcePreview.h"
 #include "Widgets/TextureGoto.h"

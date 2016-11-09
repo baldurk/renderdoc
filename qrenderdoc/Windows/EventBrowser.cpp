@@ -25,6 +25,7 @@
 #include "EventBrowser.h"
 #include <QTimer>
 #include "Code/CaptureContext.h"
+#include "Code/QRDUtils.h"
 #include "ui_EventBrowser.h"
 
 enum

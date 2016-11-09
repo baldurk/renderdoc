@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QFrame>
+#include <QMenu>
 #include <QMouseEvent>
 #include "Code/CaptureContext.h"
 

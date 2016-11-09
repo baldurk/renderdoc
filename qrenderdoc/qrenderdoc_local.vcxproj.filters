@@ -169,6 +169,12 @@
     <ClCompile Include="generated\moc_TextureSaveDialog.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Code\QRDUtils.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_QRDUtils.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -245,6 +251,9 @@
     </ClInclude>
     <ClInclude Include="generated\ui_TextureSaveDialog.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\QRDUtils.h">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

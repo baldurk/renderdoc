@@ -25,6 +25,7 @@
 #include "RenderManager.h"
 #include <QMutexLocker>
 #include "CaptureContext.h"
+#include "QRDUtils.h"
 
 RenderManager::RenderManager()
 {

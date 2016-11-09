@@ -28,6 +28,7 @@
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
 #include "Code/CaptureContext.h"
+#include "Code/QRDUtils.h"
 #include "Windows/MainWindow.h"
 
 void sharedLogOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)

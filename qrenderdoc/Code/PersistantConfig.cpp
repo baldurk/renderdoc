@@ -25,8 +25,11 @@
 #include "PersistantConfig.h"
 #include <QDebug>
 #include <QDir>
-#include <QJsonDocument>
+#include "QRDUtils.h"
 #include "renderdoc_replay.h"
+
+#define JSON_ID "rdocConfigData"
+#define JSON_VER 1
 
 // helper templates to convert some more complex types to/from appropriate variants
 template <typename variantType, typename origType>
@@ -93,29 +96,12 @@ bool PersistantConfig::Deserialize(QString filename)
 
   if(f.open(QIODevice::ReadOnly | QIODevice::Text))
   {
-    QByteArray json = f.readAll();
+    QVariantMap values;
 
-    if(json.isEmpty())
-    {
-      qCritical() << "Read invalid empty JSON data from file " << f.errorString();
+    bool success = LoadFromJSON(values, f, JSON_ID, JSON_VER);
+
+    if(!success)
       return false;
-    }
-
-    QJsonDocument doc = QJsonDocument::fromJson(json);
-
-    if(doc.isEmpty() || doc.isNull())
-    {
-      qCritical() << "Failed to convert file to JSON document";
-      return false;
-    }
-
-    QVariantMap values = doc.toVariant().toMap();
-
-    if(values.isEmpty() || !values.contains("renderdocConfigData"))
-    {
-      qCritical() << "Converted config data is invalid or unrecognised";
-      return false;
-    }
 
     applyValues(values);
 
@@ -131,32 +117,9 @@ bool PersistantConfig::Serialize(QString filename)
 {
   QVariantMap values = storeValues();
 
-  // marker that this is indeed a valid config to load from
-  values["renderdocConfigData"] = 1;
-
   QFile f(filename);
   if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
-  {
-    QJsonDocument doc = QJsonDocument::fromVariant(values);
-
-    if(doc.isEmpty() || doc.isNull())
-    {
-      qCritical() << "Failed to convert config data to JSON document";
-      return false;
-    }
-
-    QByteArray jsontext = doc.toJson(QJsonDocument::Indented);
-
-    qint64 ret = f.write(jsontext);
-
-    if(ret != jsontext.size())
-    {
-      qCritical() << "Failed to write JSON data to file: " << ret << " " << f.errorString();
-      return false;
-    }
-
-    return true;
-  }
+    return SaveToJSON(values, f, JSON_ID, JSON_VER);
 
   qWarning() << "Couldn't write to " << filename << " " << f.errorString();
 

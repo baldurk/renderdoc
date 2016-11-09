@@ -24,6 +24,7 @@
 
 #include "CaptureContext.h"
 #include <QApplication>
+#include <QDir>
 #include <QFileInfo>
 #include <QLabel>
 #include <QMenu>
@@ -33,6 +34,7 @@
 #include <QStandardPaths>
 #include <QTimer>
 #include "Windows/MainWindow.h"
+#include "QRDUtils.h"
 
 CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent,
                                bool temp, PersistantConfig &cfg)
@@ -376,136 +378,4 @@ void *CaptureContext::FillWindowingData(WId widget)
 #error "Unknown platform"
 
 #endif
-}
-
-void GUIInvoke::call(const std::function<void()> &f)
-{
-  if(qApp->thread() == QThread::currentThread())
-  {
-    f();
-    return;
-  }
-
-  // TODO: could maybe do away with string compare here via caching
-  // invoke->metaObject()->indexOfMethod("doInvoke"); ?
-
-  GUIInvoke *invoke = new GUIInvoke(f);
-  invoke->moveToThread(qApp->thread());
-  QMetaObject::invokeMethod(invoke, "doInvoke", Qt::QueuedConnection);
-}
-
-void GUIInvoke::blockcall(const std::function<void()> &f)
-{
-  if(qApp->thread() == QThread::currentThread())
-  {
-    f();
-    return;
-  }
-
-  // TODO: could maybe do away with string compare here via caching
-  // invoke->metaObject()->indexOfMethod("doInvoke"); ?
-
-  GUIInvoke *invoke = new GUIInvoke(f);
-  invoke->moveToThread(qApp->thread());
-  QMetaObject::invokeMethod(invoke, "doInvoke", Qt::BlockingQueuedConnection);
-}
-
-void RDDialog::show(QMenu *menu, QPoint pos)
-{
-  menu->setWindowModality(Qt::ApplicationModal);
-  menu->popup(pos);
-  QEventLoop loop;
-  while(menu->isVisible())
-  {
-    loop.processEvents(QEventLoop::WaitForMoreEvents);
-    QCoreApplication::sendPostedEvents();
-  }
-}
-
-int RDDialog::show(QDialog *dialog)
-{
-  dialog->setWindowModality(Qt::ApplicationModal);
-  dialog->show();
-  QEventLoop loop;
-  while(dialog->isVisible())
-  {
-    loop.processEvents(QEventLoop::WaitForMoreEvents);
-    QCoreApplication::sendPostedEvents();
-  }
-
-  return dialog->result();
-}
-
-QMessageBox::StandardButton RDDialog::messageBox(QMessageBox::Icon icon, QWidget *parent,
-                                                 const QString &title, const QString &text,
-                                                 QMessageBox::StandardButtons buttons,
-                                                 QMessageBox::StandardButton defaultButton)
-{
-  QMessageBox mb(icon, title, text, buttons, parent);
-  mb.setDefaultButton(defaultButton);
-  show(&mb);
-  return mb.standardButton(mb.clickedButton());
-}
-
-QString RDDialog::getExistingDirectory(QWidget *parent, const QString &caption, const QString &dir,
-                                       QFileDialog::Options options)
-{
-  QFileDialog fd(parent, caption, dir, QString());
-  fd.setAcceptMode(QFileDialog::AcceptOpen);
-  fd.setFileMode(QFileDialog::DirectoryOnly);
-  fd.setOptions(options);
-  show(&fd);
-
-  if(fd.result() == QFileDialog::Accepted)
-  {
-    QStringList files = fd.selectedFiles();
-    if(!files.isEmpty())
-      return files[0];
-  }
-
-  return QString();
-}
-
-QString RDDialog::getOpenFileName(QWidget *parent, const QString &caption, const QString &dir,
-                                  const QString &filter, QString *selectedFilter,
-                                  QFileDialog::Options options)
-{
-  QFileDialog fd(parent, caption, dir, filter);
-  fd.setAcceptMode(QFileDialog::AcceptOpen);
-  fd.setOptions(options);
-  show(&fd);
-
-  if(fd.result() == QFileDialog::Accepted)
-  {
-    if(selectedFilter)
-      *selectedFilter = fd.selectedNameFilter();
-
-    QStringList files = fd.selectedFiles();
-    if(!files.isEmpty())
-      return files[0];
-  }
-
-  return QString();
-}
-
-QString RDDialog::getSaveFileName(QWidget *parent, const QString &caption, const QString &dir,
-                                  const QString &filter, QString *selectedFilter,
-                                  QFileDialog::Options options)
-{
-  QFileDialog fd(parent, caption, dir, filter);
-  fd.setAcceptMode(QFileDialog::AcceptSave);
-  fd.setOptions(options);
-  show(&fd);
-
-  if(fd.result() == QFileDialog::Accepted)
-  {
-    if(selectedFilter)
-      *selectedFilter = fd.selectedNameFilter();
-
-    QStringList files = fd.selectedFiles();
-    if(!files.isEmpty())
-      return files[0];
-  }
-
-  return QString();
 }

@@ -278,10 +278,12 @@
   <ItemGroup>
     <ClCompile Include="Code\CommonPipelineState.cpp" />
     <ClCompile Include="Code\PersistantConfig.cpp" />
+    <ClCompile Include="Code\QRDUtils.cpp" />
     <ClCompile Include="generated\moc_AboutDialog.cpp" />
     <ClCompile Include="generated\moc_CaptureContext.cpp" />
     <ClCompile Include="generated\moc_CustomPaintWidget.cpp" />
     <ClCompile Include="generated\moc_EventBrowser.cpp" />
+    <ClCompile Include="generated\moc_QRDUtils.cpp" />
     <ClCompile Include="generated\moc_RangeHistogram.cpp" />
     <ClCompile Include="generated\moc_RDDoubleSpinBox.cpp" />
     <ClCompile Include="generated\moc_RDLabel.cpp" />
@@ -330,6 +332,7 @@
   <ItemGroup>
     <ClInclude Include="Code\CommonPipelineState.h" />
     <ClInclude Include="Code\PersistantConfig.h" />
+    <ClInclude Include="Code\QRDUtils.h" />
     <ClInclude Include="generated\ui_AboutDialog.h" />
     <ClInclude Include="generated\ui_EventBrowser.h" />
     <ClInclude Include="generated\ui_MainWindow.h" />

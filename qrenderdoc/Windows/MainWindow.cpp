@@ -25,13 +25,16 @@
 #include "MainWindow.h"
 #include <QFileDialog>
 #include <QFileInfo>
-#include <QJsonDocument>
 #include <QProgressBar>
 #include "Code/CaptureContext.h"
+#include "Code/QRDUtils.h"
 #include "Windows/Dialogs/AboutDialog.h"
 #include "EventBrowser.h"
 #include "TextureViewer.h"
 #include "ui_MainWindow.h"
+
+#define JSON_ID "rdocLayoutData"
+#define JSON_VER 1
 
 MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::MainWindow), m_Ctx(ctx)
 {
@@ -790,32 +793,9 @@ bool MainWindow::SaveLayout(int layout)
 
   QVariantMap state = saveState();
 
-  // marker that this is indeed a valid state to load from
-  state["renderdocLayoutData"] = 1;
-
   QFile f(path);
   if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
-  {
-    QJsonDocument doc = QJsonDocument::fromVariant(state);
-
-    if(doc.isEmpty() || doc.isNull())
-    {
-      qCritical() << "Failed to convert state data to JSON document";
-      return false;
-    }
-
-    QByteArray jsontext = doc.toJson(QJsonDocument::Indented);
-
-    qint64 ret = f.write(jsontext);
-
-    if(ret != jsontext.size())
-    {
-      qCritical() << "Failed to write JSON data to file: " << ret << " " << f.errorString();
-      return false;
-    }
-
-    return true;
-  }
+    return SaveToJSON(state, f, JSON_ID, JSON_VER);
 
   qWarning() << "Couldn't write to " << path << " " << f.errorString();
 
@@ -829,29 +809,12 @@ bool MainWindow::LoadLayout(int layout)
   QFile f(path);
   if(f.open(QIODevice::ReadOnly | QIODevice::Text))
   {
-    QByteArray json = f.readAll();
+    QVariantMap state;
 
-    if(json.isEmpty())
-    {
-      qCritical() << "Read invalid empty JSON data from file " << f.errorString();
+    bool success = LoadFromJSON(state, f, JSON_ID, JSON_VER);
+
+    if(!success)
       return false;
-    }
-
-    QJsonDocument doc = QJsonDocument::fromJson(json);
-
-    if(doc.isEmpty() || doc.isNull())
-    {
-      qCritical() << "Failed to convert file to JSON document";
-      return false;
-    }
-
-    QVariantMap state = doc.toVariant().toMap();
-
-    if(state.isEmpty() || !state.contains("renderdocLayoutData"))
-    {
-      qCritical() << "Converted state data is invalid or unrecognised";
-      return false;
-    }
 
     return restoreState(state);
   }

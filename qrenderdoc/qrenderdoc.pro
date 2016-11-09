@@ -95,7 +95,8 @@ SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     Widgets/ThumbnailStrip.cpp \
     Widgets/TextureGoto.cpp \
     Widgets/RangeHistogram.cpp \
-    Windows/Dialogs/TextureSaveDialog.cpp
+    Windows/Dialogs/TextureSaveDialog.cpp \
+    Code/QRDUtils.cpp
 
 HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
@@ -118,7 +119,8 @@ HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     Widgets/ThumbnailStrip.h \
     Widgets/TextureGoto.h \
     Widgets/RangeHistogram.h \
-    Windows/Dialogs/TextureSaveDialog.h
+    Windows/Dialogs/TextureSaveDialog.h \
+    Code/QRDUtils.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \

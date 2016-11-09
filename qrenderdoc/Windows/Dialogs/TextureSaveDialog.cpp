@@ -24,7 +24,9 @@
 
 #include "TextureSaveDialog.h"
 #include <QColorDialog>
+#include <QFileInfo>
 #include "Code/CaptureContext.h"
+#include "Code/QRDUtils.h"
 #include "ui_TextureSaveDialog.h"
 
 TextureSaveDialog::TextureSaveDialog(const FetchTexture &t, const TextureSave &s, QWidget *parent)

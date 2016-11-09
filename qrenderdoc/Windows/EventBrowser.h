@@ -35,6 +35,7 @@ class EventBrowser;
 
 class QTreeWidgetItem;
 class QTimer;
+class SizeDelegate;
 
 class EventBrowser : public QFrame, public ILogViewerForm
 {
