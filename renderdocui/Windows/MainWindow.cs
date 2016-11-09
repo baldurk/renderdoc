@@ -827,7 +827,7 @@ namespace renderdocui.Windows
                         }
                         catch (Exception)
                         {
-                            MessageBox.Show("Couldn't copy " + filename + " to remote host for replaying", "Error copying to remote",
+                            MessageBox.Show("Couldn't copy " + origFilename + " to remote host for replaying", "Error copying to remote",
                                                             MessageBoxButtons.OK, MessageBoxIcon.Error);
                             return;
                         }
