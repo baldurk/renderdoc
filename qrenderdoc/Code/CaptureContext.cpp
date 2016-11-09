@@ -141,7 +141,7 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
   m_LoadInProgress = true;
 
   if(fi.exists())
-    Config.Serialize(fi.absolutePath());
+    Config.Serialize(fi.absoluteFilePath());
 
   float loadProgress = 0.0f;
   float postloadProgress = 0.0f;
@@ -200,7 +200,7 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
     PersistantConfig::AddRecentFile(Config.RecentLogFiles, origFilename, 10);
 
     if(fi.exists())
-      Config.Serialize(fi.absolutePath());
+      Config.Serialize(fi.absoluteFilePath());
   }
 
   m_EventID = 0;

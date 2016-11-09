@@ -108,7 +108,7 @@ int main(int argc, char *argv[])
     argv_mod[i] = argv[i];
 
   char arg[] = "-platformpluginpath";
-  QString path = QFileInfo(argv[0]).absoluteDir().absolutePath();
+  QString path = QFileInfo(argv[0]).absolutePath();
   QByteArray pathChars = path.toUtf8();
 
   argv_mod[argc - 2] = arg;
