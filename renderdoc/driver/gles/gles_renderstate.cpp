@@ -521,7 +521,7 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
       if(pnames[i] == eGL_BLEND_ADVANCED_COHERENT_KHR &&
          !ExtensionSupported[ExtensionSupported_KHR_blend_equation_advanced_coherent])
       {
-        Enabled[i] = true;
+        Enabled[i] = false;
         continue;
       }
 
@@ -757,7 +757,8 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
   m_Real->glGetFloatv(eGL_DEPTH_CLEAR_VALUE, &DepthClearValue);
   m_Real->glGetIntegerv(eGL_DEPTH_FUNC, (GLint *)&DepthFunc);
 
-  if (ExtensionSupported[ExtensionSupported_OES_viewport_array]) {
+  if (ExtensionSupported[ExtensionSupported_OES_viewport_array])
+  {
     for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
       m_Real->glGetFloati_vOES(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
   }
@@ -805,7 +806,7 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
 
   m_Real->glGetIntegerv(eGL_STENCIL_CLEAR_VALUE, (GLint *)&StencilClearValue);
 
-  for(size_t i = 0; i < ARRAY_COUNT(ColorMasks); i++)
+  for(GLuint i = 0; i < RDCMIN(maxDrawBuffers, (GLuint)ARRAY_COUNT(ColorMasks)); i++)
     m_Real->glGetBooleanv(eGL_COLOR_WRITEMASK, &ColorMasks[i].red);
 
   m_Real->glGetIntegeri_v(eGL_SAMPLE_MASK_VALUE, 0, (GLint *)&SampleMask[0]);
@@ -926,7 +927,8 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
         continue;
 
       if((pnames[i] == eGL_POLYGON_OFFSET_LINE_NV ||
-          pnames[i] == eGL_POLYGON_OFFSET_POINT_NV))
+          pnames[i] == eGL_POLYGON_OFFSET_POINT_NV) &&
+         !ExtensionSupported[ExtensionSupported_NV_polygon_mode])
         continue;
 
       if((pnames[i] == eGL_SAMPLE_ALPHA_TO_ONE_EXT ||
