@@ -68,7 +68,7 @@ public:
 
   static QString ConfigFile(const QString &filename);
 
-  static QString TempLogFilename(QString appname);
+  QString TempLogFilename(QString appname);
 
   //////////////////////////////////////////////////////////////////////////////
   // Control functions

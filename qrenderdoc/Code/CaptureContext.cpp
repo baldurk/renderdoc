@@ -82,6 +82,19 @@ QString CaptureContext::ConfigFile(const QString &filename)
   return QDir::cleanPath(dir.absoluteFilePath(filename));
 }
 
+QString CaptureContext::TempLogFilename(QString appname)
+{
+  QString folder = Config.TemporaryCaptureDirectory;
+
+  QDir dir(folder);
+
+  if(folder == "" || !dir.exists())
+    folder = QDir::tempPath();
+
+  return dir.absoluteFilePath(
+      appname + "_" + QDateTime::currentDateTimeUtc().toString("yyyy.MM.dd_HH.mm.ss") + ".rdc");
+}
+
 void CaptureContext::LoadLogfile(const QString &logFile, const QString &origFilename,
                                  bool temporary, bool local)
 {
