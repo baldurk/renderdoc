@@ -70,6 +70,9 @@ private slots:
 private:
   void closeEvent(QCloseEvent *event) override;
 
+  void dragEnterEvent(QDragEnterEvent *event) override;
+  void dropEvent(QDropEvent *event) override;
+
   Ui::MainWindow *ui;
   CaptureContext *m_Ctx;
 

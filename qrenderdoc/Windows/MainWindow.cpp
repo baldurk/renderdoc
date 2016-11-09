@@ -25,6 +25,7 @@
 #include "MainWindow.h"
 #include <QFileDialog>
 #include <QFileInfo>
+#include <QMimeData>
 #include <QProgressBar>
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
@@ -39,6 +40,8 @@
 MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::MainWindow), m_Ctx(ctx)
 {
   ui->setupUi(this);
+
+  setAcceptDrops(true);
 
   QObject::connect(ui->action_Load_Default_Layout, &QAction::triggered, this,
                    &MainWindow::loadLayout_triggered);
@@ -725,6 +728,35 @@ void MainWindow::loadLayout_triggered()
 void MainWindow::closeEvent(QCloseEvent *event)
 {
   SaveLayout(0);
+}
+
+QString dragFilename(const QMimeData *mimeData)
+{
+  if(mimeData->hasUrls())
+  {
+    QList<QUrl> urls = mimeData->urls();
+    if(urls.size() == 1 && urls[0].isLocalFile())
+    {
+      QFileInfo f(urls[0].toLocalFile());
+      if(f.exists())
+        return f.absoluteFilePath();
+    }
+  }
+
+  return "";
+}
+
+void MainWindow::dragEnterEvent(QDragEnterEvent *event)
+{
+  if(dragFilename(event->mimeData()) != "")
+    event->acceptProposedAction();
+}
+
+void MainWindow::dropEvent(QDropEvent *event)
+{
+  QString fn = dragFilename(event->mimeData());
+  if(fn != "")
+    LoadFromFilename(fn);
 }
 
 void MainWindow::LoadSaveLayout(QAction *action, bool save)
