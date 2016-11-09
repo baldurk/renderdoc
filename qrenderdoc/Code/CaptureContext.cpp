@@ -158,17 +158,18 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
   if(!m_Renderer.IsRunning())
   {
     QString errmsg = "Unknown error message";
-    ReplayCreateStatus status = m_Renderer.GetCreateStatus();
-    errmsg = status;
+
+    // TODO
+    // errmsg = m_Renderer.GetCreateStatus();
+
+    progressThread.acquire();
+    progressTickerThread.wait();
 
     RDDialog::critical(NULL, "Error opening log",
                        QString("%1\nFailed to open logfile for replay: %2.\n\n"
                                "Check diagnostic log in Help menu for more details.")
                            .arg(logFile)
                            .arg(errmsg));
-
-    progressThread.acquire();
-    progressTickerThread.wait();
 
     GUIInvoke::call([this]() {
       m_Progress->setValue(1000);
