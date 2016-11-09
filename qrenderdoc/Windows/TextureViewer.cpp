@@ -2452,6 +2452,10 @@ void TextureViewer::OnLogfileLoaded()
   WId renderID = ui->render->winId();
   WId contextID = ui->pixelContext->winId();
 
+  ui->saveTex->setEnabled(true);
+  ui->locationGoto->setEnabled(true);
+  ui->viewTexBuffer->setEnabled(true);
+
   TextureListItemModel *model = (TextureListItemModel *)ui->textureList->model();
 
   model->reset(TextureListItemModel::String, "", m_Ctx);
