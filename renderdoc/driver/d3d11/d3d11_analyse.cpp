@@ -572,7 +572,8 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
 
     vector<ShaderVariable> vars;
 
-    FillCBufferVariables(dxbc->m_CBuffers[i].variables, vars, true, cbufData[i]);
+    FillCBufferVariables(dxbc->m_CBuffers[i].variables, vars, true,
+                         cbufData[dxbc->m_CBuffers[i].reg]);
 
     trace.cbuffers[i] = vars;
 
