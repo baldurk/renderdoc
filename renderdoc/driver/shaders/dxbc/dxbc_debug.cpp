@@ -894,14 +894,34 @@ ShaderVariable State::GetSrc(const ASMOperand &oper, const ASMOperation &op) con
     }
     case TYPE_CONSTANT_BUFFER:
     {
-      RDCASSERT(indices[0] < (uint32_t)trace->cbuffers.count &&
-                indices[1] < (uint32_t)trace->cbuffers[indices[0]].count);
+      int cb = -1;
 
-      if(indices[0] < (uint32_t)trace->cbuffers.count &&
-         indices[1] < (uint32_t)trace->cbuffers[indices[0]].count)
-        v = s = trace->cbuffers[indices[0]][indices[1]];
+      for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
+      {
+        if(dxbc->m_CBuffers[i].reg == indices[0])
+        {
+          cb = (int)i;
+          break;
+        }
+      }
+
+      RDCASSERTMSG("Invalid cbuffer lookup", cb != -1 && cb < trace->cbuffers.count, cb,
+                   trace->cbuffers.count);
+
+      if(cb >= 0 && cb < trace->cbuffers.count)
+      {
+        RDCASSERTMSG("Out of bounds cbuffer lookup", indices[1] < (uint32_t)trace->cbuffers[cb].count,
+                     indices[1], trace->cbuffers[cb].count);
+
+        if(indices[1] < (uint32_t)trace->cbuffers[cb].count)
+          v = s = trace->cbuffers[cb][indices[1]];
+        else
+          v = s = ShaderVariable("", 0U, 0U, 0U, 0U);
+      }
       else
-        v = s = ShaderVariable("", indices[0], indices[0], indices[0], indices[0]);
+      {
+        v = s = ShaderVariable("", 0U, 0U, 0U, 0U);
+      }
 
       break;
     }
