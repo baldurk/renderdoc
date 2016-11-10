@@ -212,13 +212,22 @@ void GLESReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
   gl.glGenTextures(1, &outwin.BlitData.backbuffer);
   gl.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.backbuffer);
 
+  // TODO (pepe): Check why the SRGB8 format won't work in ANDROID
+#ifdef ANDROID
+  gl.glTextureStorage2DEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, 1, eGL_RGB8, outwin.width,
+                           outwin.height);
+#else
   gl.glTextureStorage2DEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, 1, eGL_SRGB8, outwin.width,
                            outwin.height);
+#endif
+
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
   gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, outwin.BlitData.backbuffer, 0);
+
+  dumpFBOState(gl.GetHookset());
 
   if(depth)
   {
