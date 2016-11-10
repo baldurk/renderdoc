@@ -247,7 +247,6 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
     EGL_RETURN_DEBUG(eglQuerySurface);
     REAL(eglQuerySurface)(egl_display, surface, EGL_WIDTH, &outputWin.width);
     EGL_RETURN_DEBUG(eglQuerySurface);
-    RDCLOG("New output window (%dx%d)\n", outputWin.width, outputWin.height);
 
     MakeCurrentReplayContext(&outputWin);
 
@@ -256,6 +255,7 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
 
     uint64_t windowId = m_OutputWindowID++;
     m_OutputWindows[windowId] = outputWin;
+    RDCLOG("New output window (id:%d) (%dx%d)\n", windowId, outputWin.width, outputWin.height);
 
     return windowId;
 }
