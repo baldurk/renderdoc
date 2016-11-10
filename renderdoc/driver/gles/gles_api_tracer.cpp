@@ -26,7 +26,7 @@
 #include "gles_driver.h"
 #include "gles_hookset_defs.h"
 #include <iostream>
-
+#include <sstream>
 
 std::ostream& operator<<(std::ostream& io, GLboolean b)
 {
@@ -41,11 +41,16 @@ std::ostream& operator<<(std::ostream& io, GLchar* c)
 static GLHookSet originalFunctions;
 static bool debugAPI = false;
 
+
 #define HookWrapper0(ret, function) \
   typedef ret (*CONCAT(function, _hooktype))();              \
   ret CONCAT(function, _debug_hooked)()                      \
   {                                                          \
-    if (debugAPI) std::cout << #function << "()" << std::endl;                        \
+    if (debugAPI) {                                          \
+      std::stringstream str;                                                       \
+      str << #function << "()" ;                        \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function();                     \
   }
 
@@ -53,7 +58,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1);                       \
   ret CONCAT(function, _debug_hooked)(t1 p1)                            \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 <<")"  << std::endl;;                              \
+    if (debugAPI) {                            \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 <<")"  ;                              \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1);                              \
   }
 
@@ -61,7 +70,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2);                   \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2)                     \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ")" << std::endl;                        \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ")" ;                        \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2);                          \
   }
 
@@ -69,7 +82,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3);               \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2, t3 p3)              \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ", " << p3 << ")" << std::endl;                                             \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ", " << p3 << ")" ;                                             \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2, p3);                          \
   }
 
@@ -77,7 +94,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);               \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2, t3 p3, t4 p4)              \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 <<")" << std::endl;                                            \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 <<")" ;                                            \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2, p3, p4);                  \
   }
 
@@ -85,7 +106,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);               \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)              \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 <<")" << std::endl;                                            \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 <<")" ;                                            \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2, p3, p4, p5);                  \
   }
 
@@ -94,7 +119,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6);               \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6)              \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 <<")" << std::endl;                                          \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 <<")" ;                                          \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2, p3, p4, p5, p6);                  \
   }
 
@@ -102,7 +131,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7);               \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7)              \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 <<")" << std::endl;                                            \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 <<")" ;                                            \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2, p3, p4, p5, p6, p7);                  \
   }
 
@@ -111,7 +144,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8);               \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8)              \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 <<")" << std::endl;                                           \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 <<")" ;                                           \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2, p3, p4, p5, p6, p7, p8);                  \
   }
 
@@ -120,7 +157,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9);               \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9)              \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 <<")" << std::endl;                                            \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 <<")" ;                                            \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2, p3, p4, p5, p6, p7, p8, p9);                  \
   }
 
@@ -128,7 +169,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10);               \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10)              \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 << ", " << p10 <<")" << std::endl;                                        \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 << ", " << p10 <<")" ;                                        \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);                  \
   }
 
@@ -136,7 +181,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11);               \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11)              \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 << ", " << p10 << ", " << p11 <<")" << std::endl;                                    \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 << ", " << p10 << ", " << p11 <<")" ;                                    \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);                  \
   }
 
@@ -144,7 +193,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12);               \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12)              \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 << ", " << p10 << ", " << p11 << ", " << p12 <<")" << std::endl;                                    \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 << ", " << p10 << ", " << p11 << ", " << p12 <<")" ;                                    \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12);                  \
   }
 
@@ -152,7 +205,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13);               \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13)              \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 << ", " << p10 << ", " << p11 << ", " << p12 << ", " << p13 <<")" << std::endl;                                    \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 << ", " << p10 << ", " << p11 << ", " << p12 << ", " << p13 <<")" ;                                    \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13);                  \
   }
 
@@ -160,7 +217,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14);               \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14)              \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 << ", " << p10 << ", " << p11 << ", " << p12 << ", " << p13 << ", " << p14 <<")" << std::endl;                                    \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 << ", " << p10 << ", " << p11 << ", " << p12 << ", " << p13 << ", " << p14 <<")" ;                                    \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14);                  \
   }
 
@@ -169,7 +230,11 @@ static bool debugAPI = false;
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12, t13, t14, t15);               \
   ret CONCAT(function, _debug_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14, t15 p15)              \
   {                                                                     \
-    if (debugAPI) std::cout << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 << ", " << p10 << ", " << p11 << ", " << p12 << ", " << p13 << ", " << p14 << ", " << p15 <<")" << std::endl;                                    \
+    if (debugAPI) {                                                         \
+      std::stringstream str;                                                       \
+      str << #function << "(" << p1 << ", " << p2 << ", " << p3 << ", " << p4 << ", " << p5 << ", " << p6 << ", " << p7 << ", " << p8 << ", " << p9 << ", " << p10 << ", " << p11 << ", " << p12 << ", " << p13 << ", " << p14 << ", " << p15 <<")" ;                                    \
+      RDCLOG("%s", str.str().c_str());                        \
+    }                                                         \
     return originalFunctions.function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14, p15);                  \
   }
 
