@@ -50,19 +50,19 @@ vec3 CalcCubeCoord(vec2 uv, int face)
 #ifndef OPENGL_ES
 layout(binding = 1) uniform usampler1D texUInt1D;
 #endif
-layout(binding = 2) uniform lowp usampler2D texUInt2D;
-layout(binding = 3) uniform lowp usampler3D texUInt3D;
+layout(binding = 2) uniform PRECISION usampler2D texUInt2D;
+layout(binding = 3) uniform PRECISION usampler3D texUInt3D;
 // cube = 4
 #ifndef OPENGL_ES
 layout(binding = 5) uniform usampler1DArray texUInt1DArray;
 #endif
-layout(binding = 6) uniform lowp usampler2DArray texUInt2DArray;
+layout(binding = 6) uniform PRECISION usampler2DArray texUInt2DArray;
 // cube array = 7
 #ifndef OPENGL_ES
 layout(binding = 8) uniform usampler2DRect texUInt2DRect;
 #endif
-layout(binding = 9) uniform lowp usamplerBuffer texUIntBuffer;
-layout(binding = 10) uniform lowp usampler2DMS texUInt2DMS;
+layout(binding = 9) uniform PRECISION usamplerBuffer texUIntBuffer;
+layout(binding = 10) uniform PRECISION usampler2DMS texUInt2DMS;
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
@@ -128,19 +128,19 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 #ifndef OPENGL_ES
 layout(binding = 1) uniform isampler1D texSInt1D;
 #endif
-layout(binding = 2) uniform lowp isampler2D texSInt2D;
-layout(binding = 3) uniform lowp isampler3D texSInt3D;
+layout(binding = 2) uniform PRECISION isampler2D texSInt2D;
+layout(binding = 3) uniform PRECISION isampler3D texSInt3D;
 // cube = 4
 #ifndef OPENGL_ES
 layout(binding = 5) uniform isampler1DArray texSInt1DArray;
 #endif
-layout(binding = 6) uniform lowp isampler2DArray texSInt2DArray;
+layout(binding = 6) uniform PRECISION isampler2DArray texSInt2DArray;
 // cube array = 7
 #ifndef OPENGL_ES
 layout(binding = 8) uniform isampler2DRect texSInt2DRect;
 #endif
-layout(binding = 9) uniform lowp isamplerBuffer texSIntBuffer;
-layout(binding = 10) uniform lowp isampler2DMS texSInt2DMS;
+layout(binding = 9) uniform PRECISION isamplerBuffer texSIntBuffer;
+layout(binding = 10) uniform PRECISION isampler2DMS texSInt2DMS;
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
@@ -206,19 +206,19 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
 #ifndef OPENGL_ES
 layout(binding = 1) uniform sampler1D tex1D;
 #endif
-layout(binding = 2) uniform lowp sampler2D tex2D;
-layout(binding = 3) uniform lowp sampler3D tex3D;
-layout(binding = 4) uniform lowp samplerCube texCube;
+layout(binding = 2) uniform PRECISION sampler2D tex2D;
+layout(binding = 3) uniform PRECISION sampler3D tex3D;
+layout(binding = 4) uniform PRECISION samplerCube texCube;
 #ifndef OPENGL_ES
 layout(binding = 5) uniform sampler1DArray tex1DArray;
 #endif
-layout(binding = 6) uniform lowp sampler2DArray tex2DArray;
-layout(binding = 7) uniform lowp samplerCubeArray texCubeArray;
+layout(binding = 6) uniform PRECISION sampler2DArray tex2DArray;
+layout(binding = 7) uniform PRECISION samplerCubeArray texCubeArray;
 #ifndef OPENGL_ES
 layout(binding = 8) uniform sampler2DRect tex2DRect;
 #endif
-layout(binding = 9) uniform lowp samplerBuffer texBuffer;
-layout(binding = 10) uniform lowp sampler2DMS tex2DMS;
+layout(binding = 9) uniform PRECISION samplerBuffer texBuffer;
+layout(binding = 10) uniform PRECISION sampler2DMS tex2DMS;
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
@@ -247,6 +247,11 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   else if(type == RESTYPE_TEXBUFFER)
   {
     col = texelFetch(texBuffer, int(pos.x * texRes.x));
+#ifdef OPENGL_ES
+    // TODO (pepe): This hack is needed on Galaxy S7 to let the compiler optimize out the texBuffer,
+    // because otherwise due to some compiler bug the RESTYPE_TEX2D case won't work normally.
+    col = vec4(1.0f, 1.0f, 1.0f, 1.0f);
+#endif
   }
   else if(type == RESTYPE_TEX2DMS)
   {
