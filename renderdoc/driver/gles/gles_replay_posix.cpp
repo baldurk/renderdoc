@@ -115,6 +115,7 @@ void GLESReplay::MakeCurrentReplayContext(GLESWindowingData *ctx)
     if(REAL(eglMakeCurrent) && ctx && ctx != prev)
     {
         prev = ctx;
+        m_pDriver->glFinish();
         REAL(eglMakeCurrent)(ctx->eglDisplay, ctx->surface, ctx->surface, ctx->ctx);
         EGL_RETURN_DEBUG(eglMakeCurrent);
         m_pDriver->ActivateContext(*ctx);
