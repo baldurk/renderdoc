@@ -2115,7 +2115,4 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver *
   return eReplayCreate_APIHardwareUnsupported;
 }
 
-/* // TODO(elecro): Disable the D3D11 device for now
-
 static DriverRegistration D3D11DriverRegistration(RDC_D3D11, "D3D11", &D3D11_CreateReplayDevice);
-*/
