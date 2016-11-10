@@ -927,9 +927,18 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
         continue;
 
       if((pnames[i] == eGL_POLYGON_OFFSET_LINE_NV ||
-          pnames[i] == eGL_POLYGON_OFFSET_POINT_NV) &&
-         !ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+          pnames[i] == eGL_POLYGON_OFFSET_POINT_NV)/* &&
+         !ExtensionSupported[ExtensionSupported_NV_polygon_mode]*/)
+      {
+        // TODO pantos GL_NV_polygon_mode extension issues
+        // * glEnable and glDisable do not accept GL_POLYGON_OFFSET_LINE_NV and GL_POLYGON_OFFSET_POINT_NV:
+        //   GL_INVALID_ENUM error generated. Cannot enable <cap> in the current profile.
+        // * it seems that glPolygonModeNV does nothing when specifying GL_LINE_NV or GL_POINT_NV
+        //   it returns without error, but GL_POLYGON_OFFSET_LINE_NV or GL_POLYGON_OFFSET_POINT_NV are not enabled
+        // * glGetIntegerv returns with error when using GL_POLYGON_MODE_NV:
+        //   GL_INVALID_ENUM error generated. <pname> requires feature(s) disabled in the current profile.
         continue;
+      }
 
       if((pnames[i] == eGL_SAMPLE_ALPHA_TO_ONE_EXT ||
           pnames[i] == eGL_MULTISAMPLE_EXT) &&
