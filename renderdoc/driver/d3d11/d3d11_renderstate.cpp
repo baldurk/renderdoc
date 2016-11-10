@@ -1491,13 +1491,11 @@ bool D3D11RenderState::shader::Used_CB(uint32_t slot) const
   if(dxbc == NULL)
     return true;
 
-  if(slot >= dxbc->m_CBuffers.size())
-    return false;
+  for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
+    if(dxbc->m_CBuffers[i].reg == slot)
+      return true;
 
-  if(dxbc->m_CBuffers[slot].variables.empty())
-    return false;
-
-  return true;
+  return false;
 }
 
 bool D3D11RenderState::shader::Used_SRV(uint32_t slot) const
