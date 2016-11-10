@@ -608,6 +608,11 @@ bool WrappedID3D11DeviceContext::Serialise_VSSetConstantBuffers1(UINT StartSlot_
       m_pDevice->AddDebugMessage(
           eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
           "Replaying a call to VSSetConstantBuffers1() without D3D11.1 available");
+
+      // if there's a missing offset there's nothing we can do, everything will be nonsense
+      // after this point, but try to use the non-offset version in case the offset is 0
+      // and we can safely emulate it. It's a best-effort that doesn't make things worse.
+      m_pRealContext->VSSetConstantBuffers(StartSlot, NumBuffers, setCBs ? Buffers : NULL);
     }
     VerifyState();
   }
@@ -751,6 +756,11 @@ bool WrappedID3D11DeviceContext::Serialise_HSSetConstantBuffers1(UINT StartSlot_
       m_pDevice->AddDebugMessage(
           eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
           "Replaying a call to HSSetConstantBuffers1() without D3D11.1 available");
+
+      // if there's a missing offset there's nothing we can do, everything will be nonsense
+      // after this point, but try to use the non-offset version in case the offset is 0
+      // and we can safely emulate it. It's a best-effort that doesn't make things worse.
+      m_pRealContext->HSSetConstantBuffers(StartSlot, NumBuffers, setCBs ? Buffers : NULL);
     }
     VerifyState();
   }
@@ -894,6 +904,11 @@ bool WrappedID3D11DeviceContext::Serialise_DSSetConstantBuffers1(UINT StartSlot_
       m_pDevice->AddDebugMessage(
           eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
           "Replaying a call to DSSetConstantBuffers1() without D3D11.1 available");
+
+      // if there's a missing offset there's nothing we can do, everything will be nonsense
+      // after this point, but try to use the non-offset version in case the offset is 0
+      // and we can safely emulate it. It's a best-effort that doesn't make things worse.
+      m_pRealContext->DSSetConstantBuffers(StartSlot, NumBuffers, setCBs ? Buffers : NULL);
     }
     VerifyState();
   }
@@ -1037,6 +1052,11 @@ bool WrappedID3D11DeviceContext::Serialise_GSSetConstantBuffers1(UINT StartSlot_
       m_pDevice->AddDebugMessage(
           eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
           "Replaying a call to GSSetConstantBuffers1() without D3D11.1 available");
+
+      // if there's a missing offset there's nothing we can do, everything will be nonsense
+      // after this point, but try to use the non-offset version in case the offset is 0
+      // and we can safely emulate it. It's a best-effort that doesn't make things worse.
+      m_pRealContext->GSSetConstantBuffers(StartSlot, NumBuffers, setCBs ? Buffers : NULL);
     }
     VerifyState();
   }
@@ -1180,6 +1200,11 @@ bool WrappedID3D11DeviceContext::Serialise_PSSetConstantBuffers1(UINT StartSlot_
       m_pDevice->AddDebugMessage(
           eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
           "Replaying a call to PSSetConstantBuffers1() without D3D11.1 available");
+
+      // if there's a missing offset there's nothing we can do, everything will be nonsense
+      // after this point, but try to use the non-offset version in case the offset is 0
+      // and we can safely emulate it. It's a best-effort that doesn't make things worse.
+      m_pRealContext->PSSetConstantBuffers(StartSlot, NumBuffers, setCBs ? Buffers : NULL);
     }
     VerifyState();
   }
@@ -1323,6 +1348,11 @@ bool WrappedID3D11DeviceContext::Serialise_CSSetConstantBuffers1(UINT StartSlot_
       m_pDevice->AddDebugMessage(
           eDbgCategory_Portability, eDbgSeverity_High, eDbgSoruce_UnsupportedConfiguration,
           "Replaying a call to CSSetConstantBuffers1() without D3D11.1 available");
+
+      // if there's a missing offset there's nothing we can do, everything will be nonsense
+      // after this point, but try to use the non-offset version in case the offset is 0
+      // and we can safely emulate it. It's a best-effort that doesn't make things worse.
+      m_pRealContext->CSSetConstantBuffers(StartSlot, NumBuffers, setCBs ? Buffers : NULL);
     }
     VerifyState();
   }
