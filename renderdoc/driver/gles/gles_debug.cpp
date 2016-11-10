@@ -46,9 +46,9 @@
 
 
 #ifdef ANDROID
-#define SHADER_LOG(format, args...)  RDCLOG(format, ##args)
+#define LOGDIR "/sdcard/renderdoc/"
 #else
-#define SHADER_LOG(format, args...)  fprintf(f, format, ##args)
+#define LOGDIR
 #endif
 
 void dumpShaderCompileStatus(const GLHookSet& gl, GLuint shader, GLsizei numSources, const char** sources)
@@ -57,38 +57,60 @@ void dumpShaderCompileStatus(const GLHookSet& gl, GLuint shader, GLsizei numSour
   gl.glGetShaderiv(shader, eGL_COMPILE_STATUS, &status);
   if (status != GL_TRUE)
   {
-#ifndef ANDROID
     static int fc = 0;
-    FILE* f = fopen(("CompileShader_" + std::to_string(fc++) + ".err").c_str(),"wt");
+    std::string filename = LOGDIR "CompileShader_" + ToStr::Get(fc++) + ".err";
+    FILE* f = fopen(filename.c_str(), "wt");
     if (f != NULL)
     {
-#endif
       GLsizei l;
       GLchar buffer[5001] = { 0 };
       gl.glGetShaderInfoLog(shader, 5000, &l, buffer);
-      SHADER_LOG("%s\n", buffer);
+      fprintf(f, "%s\n", buffer);
 
       int line = 1;
       for (int i = 0; i < numSources; ++i)
       {
         if (sources[i][0] != 0)
-          SHADER_LOG("\n%03d:", line);
+          fprintf(f, "\n%03d:", line);
 
         for (int j = 0; sources[i][j] != 0; ++j)
         {
-          SHADER_LOG("%c", sources[i][j]);
+          fprintf(f, "%c", sources[i][j]);
           if (sources[i][j] == '\n')
-            SHADER_LOG("%03d:", ++line);
+            fprintf(f, "%03d:", ++line);
         }
-#ifndef ANDROID
       }
       fclose(f);
-#endif
     }
+    else
+      RDCLOG("Failed to open file (%s) for writting!", filename.c_str());
   }
 }
 
-#undef SHADER_LOG
+void dumpProgramBinary(const GLHookSet& gl, GLuint program)
+{
+  const GLsizei bufferSize = 1024 * 256;
+  GLsizei length = 0;
+  GLenum format;
+  std::vector<GLchar> buffer(bufferSize);
+  gl.glGetProgramBinary(program, bufferSize, &length, &format, &buffer[0]);
+
+  std::string filename = LOGDIR "Program" + ToStr::Get(program) + ".dat";
+  FILE* f = fopen(filename.c_str(), "wt");
+  if (f != NULL)
+  {
+    if (fwrite(buffer.data(), length, 1, f) != 1)
+      RDCLOG("Failed to write program data to file %s!", filename.c_str());
+    else
+      RDCLOG("Shader program (%u) saved in binary format (0x%04X) to file %s.", program, format, filename.c_str());
+    fclose(f);
+
+  }
+  else
+    RDCLOG("Failed to open file (%s) for writting!", filename.c_str());
+}
+
+#undef LOGDIR
 
 
 static void dumpProgramPipelineStatus(WrappedGLES &gl, GLuint pipeline)

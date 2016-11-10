@@ -520,3 +520,5 @@ enum GLChunkType
 
 
 void dumpShaderCompileStatus(const GLHookSet& gl, GLuint shader, GLsizei numSources, const char** sources);
+void dumpProgramBinary(const GLHookSet& gl, GLuint program);
+void dumpFBOState(const GLHookSet& gl);

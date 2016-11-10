@@ -3345,3 +3345,24 @@ string ToStrHelper<false, RDCGLenum>::Get(const RDCGLenum &el)
 
 #define GLenum RDCGLenum
 }
+
+
+void dumpFBOState(const GLHookSet& gl)
+{
+
+  GLint readFBO, drawFBO;
+  gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &readFBO);
+  gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &drawFBO);
+  GLenum status = gl.glCheckFramebufferStatus(eGL_FRAMEBUFFER);
+  switch (status) {
+    case GL_FRAMEBUFFER_COMPLETE: return;
+#define DUMP(STATUS) case STATUS: RDCDEBUG(#STATUS "\n"); break
+
+    DUMP(eGL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
+    DUMP(eGL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS);
+    DUMP(eGL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT);
+    DUMP(eGL_FRAMEBUFFER_UNSUPPORTED);
+#undef DUMP
+    default: RDCDEBUG("Unkown status: %d\n", status);
+  }
+}
