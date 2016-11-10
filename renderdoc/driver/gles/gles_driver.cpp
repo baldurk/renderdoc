@@ -943,19 +943,7 @@ void WrappedGLES::Initialise(GLESInitParams &params)
   }
 
   // TODO(elecro): remove this debug code
-  GLenum status = gl.glCheckFramebufferStatus(eGL_FRAMEBUFFER);
-  switch (status) {
-    case GL_FRAMEBUFFER_COMPLETE: break;
-#define DUMP(STATUS) case STATUS: RDCLOG(#STATUS "\n"); break
-
-    DUMP(eGL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
-    DUMP(eGL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS);
-    DUMP(eGL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT);
-    DUMP(eGL_FRAMEBUFFER_UNSUPPORTED);
-#undef DUMP
-    default: RDCLOG("Unkown status: %d\n", status);
-  }
-
+  dumpFBOState(gl.GetHookset());
 }
 
 const char *WrappedGLES::GetChunkName(uint32_t idx)
@@ -1273,15 +1261,13 @@ void WrappedGLES::RegisterContext(GLESWindowingData winData, void *shareContext,
 void WrappedGLES::ActivateContext(GLESWindowingData winData)
 {
 
-    // PEPE DEBUG
-#ifndef ANDROID
-    {
-        const GLHookSet &gl = m_Real;
-        gl.glDebugMessageCallback(&DebugSnoopStatic, this);
-        gl.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
-        gl.glDebugMessageControl(eGL_DONT_CARE, eGL_DEBUG_TYPE_ERROR, eGL_DONT_CARE, 0, NULL, GL_TRUE);
-    }
-#endif
+  // TODO PEPE DEBUG
+  {
+      const GLHookSet &gl = m_Real;
+      gl.glDebugMessageCallback(&DebugSnoopStatic, this);
+      gl.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
+      gl.glDebugMessageControl(eGL_DONT_CARE, eGL_DEBUG_TYPE_ERROR, eGL_DONT_CARE, 0, NULL, GL_TRUE);
+  }
 
   m_ActiveContexts[Threading::GetCurrentID()] = winData;
   if(winData.ctx)
