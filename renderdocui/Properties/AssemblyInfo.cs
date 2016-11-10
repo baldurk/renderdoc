@@ -33,7 +33,7 @@ using System.Resources;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("RenderDoc")]
-[assembly: AssemblyDescription("RenderDoc UI replay app + launcher - http://renderdoc.org/")]
+[assembly: AssemblyDescription("RenderDoc UI replay app + launcher - https://renderdoc.org/")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("Baldur Karlsson")]
 [assembly: AssemblyProduct("RenderDoc UI")]

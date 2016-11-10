@@ -84,7 +84,7 @@ BEGIN
         BLOCK "080904b0"
         BEGIN
             VALUE "CompanyName", "Baldur Karlsson"
-            VALUE "FileDescription", "Core DLL for RenderDoc - http://renderdoc.org/"
+            VALUE "FileDescription", "Core DLL for RenderDoc - https://renderdoc.org/"
             VALUE "FileVersion", RENDERDOC_VERSION_STRING ".0.0"
             VALUE "InternalName", "renderdoc.dll"
             VALUE "LegalCopyright", "Copyright © 2016 Baldur Karlsson"

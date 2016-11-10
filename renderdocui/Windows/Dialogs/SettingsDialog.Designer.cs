@@ -530,7 +530,7 @@
             label3.TabIndex = 12;
             label3.Text = "Allow periodic anonymous update checks";
             label3.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
-            this.toolTip.SetToolTip(label3, "Allows RenderDoc to phone home to http://renderdoc.org to anonymously check for n" +
+            this.toolTip.SetToolTip(label3, "Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for n" +
         "ew versions.");
             // 
             // CheckUpdate_AllowChecks
@@ -542,7 +542,7 @@
             this.CheckUpdate_AllowChecks.Name = "CheckUpdate_AllowChecks";
             this.CheckUpdate_AllowChecks.Size = new System.Drawing.Size(15, 14);
             this.CheckUpdate_AllowChecks.TabIndex = 8;
-            this.toolTip.SetToolTip(this.CheckUpdate_AllowChecks, "Allows RenderDoc to phone home to http://renderdoc.org to anonymously check for n" +
+            this.toolTip.SetToolTip(this.CheckUpdate_AllowChecks, "Allows RenderDoc to phone home to https://renderdoc.org to anonymously check for n" +
         "ew versions.");
             this.CheckUpdate_AllowChecks.UseVisualStyleBackColor = true;
             this.CheckUpdate_AllowChecks.CheckedChanged += new System.EventHandler(this.CheckUpdate_AllowChecks_CheckedChanged);
