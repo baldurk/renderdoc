@@ -4157,7 +4157,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
         SAFE_RELEASE(samp);
 
-        desc.MipLODBias = RDCCLAMP(desc.MipLODBias + srcOpers[3].value.f.x, -15.999f, 15.999f);
+        desc.MipLODBias = RDCCLAMP(desc.MipLODBias + srcOpers[3].value.f.x, -15.99f, 15.99f);
 
         ID3D11SamplerState *replacementSamp = NULL;
 
@@ -4169,7 +4169,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         }
         else
         {
-          context->PSSetSamplers((UINT)srcOpers[2].value.u.x, 1, &replacementSamp);
+          context->PSSetSamplers(0, 1, &replacementSamp);
 
           SAFE_RELEASE(replacementSamp);
         }
