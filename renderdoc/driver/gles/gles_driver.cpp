@@ -727,11 +727,7 @@ WrappedGLES::WrappedGLES(const char *logfile, const GLHookSet &funcs) : m_Real(i
   m_SuccessfulCapture = true;
   m_FailureReason = CaptureSucceeded;
 
-  m_FrameTimer.Restart();
-
   m_AppControlledCapture = false;
-
-  m_TotalTime = m_AvgFrametime = m_MinFrametime = m_MaxFrametime = 0.0;
 
   m_RealDebugFunc = NULL;
   m_RealDebugFuncParam = NULL;
@@ -2074,33 +2070,6 @@ void WrappedGLES::SwapBuffers(void *surface)
 
   if(m_State == WRITING_IDLE)
   {
-    m_FrameTimes.push_back(m_FrameTimer.GetMilliseconds());
-    m_TotalTime += m_FrameTimes.back();
-    m_FrameTimer.Restart();
-
-    // update every second
-    if(m_TotalTime > 1000.0)
-    {
-      m_MinFrametime = 10000.0;
-      m_MaxFrametime = 0.0;
-      m_AvgFrametime = 0.0;
-
-      m_TotalTime = 0.0;
-
-      for(size_t i = 0; i < m_FrameTimes.size(); i++)
-      {
-        m_AvgFrametime += m_FrameTimes[i];
-        if(m_FrameTimes[i] < m_MinFrametime)
-          m_MinFrametime = m_FrameTimes[i];
-        if(m_FrameTimes[i] > m_MaxFrametime)
-          m_MaxFrametime = m_FrameTimes[i];
-      }
-
-      m_AvgFrametime /= double(m_FrameTimes.size());
-
-      m_FrameTimes.clear();
-    }
-
     uint32_t overlay = RenderDoc::Inst().GetOverlayBits();
 
     if(overlay & eRENDERDOC_Overlay_Enabled)
@@ -2109,144 +2078,36 @@ void WrappedGLES::SwapBuffers(void *surface)
 
       textState.Push(m_Real, ctxdata.Modern());
 
-      if(activeWindow)
+      int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
+      if(ctxdata.Legacy())
+        flags |= RenderDoc::eOverlay_CaptureDisabled;
+      string overlayText = RenderDoc::Inst().GetOverlayText(RDC_OpenGL, m_FrameCounter, flags);
+
+        // TODO(elecro): reword the messages.
+      if(ctxdata.Legacy())
       {
-        vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetCaptureKeys();
-
-        string overlayText = "OpenGL ES.";
-
-        if(ctxdata.Modern())
-        {
-          if(Keyboard::PlatformHasKeyInput())
-          {
-            overlayText += " ";
-
-            for(size_t i = 0; i < keys.size(); i++)
-            {
-              if(i > 0)
-                overlayText += ", ";
-
-              overlayText += ToStr::Get(keys[i]);
-            }
-
-            if(!keys.empty())
-              overlayText += " to capture.";
-          }
-          else
-          {
-            if(RenderDoc::Inst().IsTargetControlConnected())
-              overlayText += "Connected by " + RenderDoc::Inst().GetTargetControlUsername() + ".";
-            else
-              overlayText += "No remote access connection.";
-          }
-        }
-
-        if(overlay & eRENDERDOC_Overlay_FrameNumber)
-        {
-          overlayText += StringFormat::Fmt(" Frame: %d.", m_FrameCounter);
-        }
-        if(overlay & eRENDERDOC_Overlay_FrameRate)
-        {
-          overlayText += StringFormat::Fmt(" %.2lf ms (%.2lf .. %.2lf) (%.0lf FPS)", m_AvgFrametime,
-                                           m_MinFrametime, m_MaxFrametime,
-                                           m_AvgFrametime <= 0.0f ? 0.0f : 1000.0f / m_AvgFrametime);
-        }
-
-        float y = 0.0f;
-
-        if(!overlayText.empty())
-        {
-          RenderOverlayText(0.0f, y, overlayText.c_str());
-          y += 1.0f;
-        }
-
-        if(ctxdata.Legacy())
-        {
-          if(!ctxdata.attribsCreate)
-          {
-            RenderOverlayText(0.0f, y,
-                              "Context not created via CreateContextAttribs. Capturing disabled.");
-            y += 1.0f;
-          }
-          RenderOverlayText(0.0f, y, "Only OpenGL ES 2.0+ contexts are supported.");
-          y += 1.0f;
-        }
-        else if(!ctxdata.isCore)
-        {
-          RenderOverlayText(
-              0.0f, y, "WARNING: Non-core context in use. Compatibility profile not supported.");
-          y += 1.0f;
-        }
-
-        if(ctxdata.Modern() && (overlay & eRENDERDOC_Overlay_CaptureList))
-        {
-          RenderOverlayText(0.0f, y, "%d Captures saved.\n", (uint32_t)m_CapturedFrames.size());
-          y += 1.0f;
-
-          uint64_t now = Timing::GetUnixTimestamp();
-          for(size_t i = 0; i < m_CapturedFrames.size(); i++)
-          {
-            if(now - m_CapturedFrames[i].captureTime < 20)
-            {
-              RenderOverlayText(0.0f, y, "Captured frame %d.\n", m_CapturedFrames[i].frameNumber);
-              y += 1.0f;
-            }
-          }
-        }
-
-        if(m_FailedFrame > 0)
-        {
-          const char *reasonString = "Unknown reason";
-          switch(m_FailedReason)
-          {
-            case CaptureFailed_UncappedUnmap: reasonString = "Uncapped Map()/Unmap()"; break;
-            default: break;
-          }
-
-          RenderOverlayText(0.0f, y, "Failed capture at frame %d:\n", m_FailedFrame);
-          y += 1.0f;
-          RenderOverlayText(0.0f, y, "    %s\n", reasonString);
-          y += 1.0f;
-        }
-
-#if !defined(RELEASE)
-        RenderOverlayText(0.0f, y, "%llu chunks - %.2f MB", Chunk::NumLiveChunks(),
-                          float(Chunk::TotalMem()) / 1024.0f / 1024.0f);
-        y += 1.0f;
-#endif
+        overlayText += "Only OpenGL ES 2.0+ contexts are supported.\n";
       }
-      else
+      else if(!ctxdata.isCore)
       {
-        vector<RENDERDOC_InputButton> keys = RenderDoc::Inst().GetFocusKeys();
-
-        string str = "OpenGL ES. Inactive window.";
-
-        if(ctxdata.Modern())
-        {
-          for(size_t i = 0; i < keys.size(); i++)
-          {
-            if(i == 0)
-              str += " ";
-            else
-              str += ", ";
-
-            str += ToStr::Get(keys[i]);
-          }
-
-          if(!keys.empty())
-            str += " to cycle between windows.";
-        }
-        else
-        {
-          if(!ctxdata.attribsCreate)
-          {
-            str += "\nContext not created via CreateContextAttribs. Capturing disabled.\n";
-          }
-          str += "Only OpenGL ES 2.0+ contexts are supported.";
-        }
-
-        RenderOverlayText(0.0f, 0.0f, str.c_str());
+        overlayText += "WARNING: Non-core context in use. Compatibility profile not supported.\n";
       }
+
+      if(activeWindow && m_FailedFrame > 0)
+      {
+        const char *reasonString = "Unknown reason";
+        switch(m_FailedReason)
+        {
+          case CaptureFailed_UncappedUnmap: reasonString = "Uncapped Map()/Unmap()"; break;
+          default: break;
+        }
+
+        overlayText += StringFormat::Fmt("Failed capture at frame %d:\n", m_FailedFrame);
+        overlayText += StringFormat::Fmt("    %s\n", reasonString);
+      }
+
+      if(!overlayText.empty())
+        RenderOverlayText(0.0f, 0.0f, overlayText.c_str());
 
       textState.Pop(m_Real, ctxdata.Modern());
 
@@ -2474,7 +2335,7 @@ bool WrappedGLES::EndFrameCapture(void *dev, void *surface)
 
     m_pFileSerialiser->FlushToDisk();
 
-    RenderDoc::Inst().SuccessfullyWrittenLog();
+    RenderDoc::Inst().SuccessfullyWrittenLog(m_FrameCounter);
 
     SAFE_DELETE(m_pFileSerialiser);
 
@@ -3117,7 +2978,8 @@ void WrappedGLES::ReadLogInitialisation()
   }
 #endif
 
-  m_FrameRecord.frameInfo.fileSize = m_pSerialiser->GetSize();
+  m_FrameRecord.frameInfo.uncompressedFileSize = m_pSerialiser->GetSize();
+  m_FrameRecord.frameInfo.compressedFileSize = m_pSerialiser->GetFileSize();
   m_FrameRecord.frameInfo.persistentSize = m_pSerialiser->GetSize() - frameOffset;
   m_FrameRecord.frameInfo.initDataSize = chunkInfos[(GLChunkType)INITIAL_CONTENTS].totalsize;
 

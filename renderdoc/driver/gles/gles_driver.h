@@ -360,10 +360,6 @@ private:
   CaptureFailReason m_FailureReason;
   bool m_SuccessfulCapture;
 
-  PerformanceTimer m_FrameTimer;
-  vector<double> m_FrameTimes;
-  double m_TotalTime, m_AvgFrametime, m_MinFrametime, m_MaxFrametime;
-
   set<ResourceId> m_HighTrafficResources;
 
   // we store two separate sets of maps, since for an explicit glMemoryBarrier
