@@ -343,6 +343,7 @@
     <ClInclude Include="generated\ui_TextureSaveDialog.h" />
     <ClInclude Include="generated\ui_TextureViewer.h" />
     <ClInclude Include="generated\ui_ThumbnailStrip.h" />
+    <ClInclude Include="Resources\resource.h" />
     <ClInclude Include="Widgets\RangeHistogram.h" />
     <ClInclude Include="Widgets\Extended\RDDoubleSpinBox.h" />
     <ClInclude Include="Widgets\Extended\RDLabel.h" />
@@ -488,6 +489,9 @@
     <ProjectReference Include="..\renderdoc\renderdoc.vcxproj">
       <Project>{e2b46d67-90e2-40b6-9597-72930e7845e5}</Project>
     </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resources\qrenderdoc.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets" />

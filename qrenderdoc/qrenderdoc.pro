@@ -25,6 +25,8 @@ INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/flowlayout
 # Different output folders per platform
 win32 {
 
+	RC_FILE = Resources/qrenderdoc.rc
+
 	# it is fine to alias these across targets, because the output
 	# is identical on all targets
 	MOC_DIR = $$_PRO_FILE_PWD_/generated

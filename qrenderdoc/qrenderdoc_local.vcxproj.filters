@@ -267,6 +267,9 @@
     <ClInclude Include="Code\QRDUtils.h">
       <Filter>Code</Filter>
     </ClInclude>
+    <ClInclude Include="Resources\resource.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resources.qrc">
@@ -488,5 +491,10 @@
     <ClInclude Include="generated\ui_TextureViewer.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ResourceCompile Include="Resources\qrenderdoc.rc">
+      <Filter>Resources</Filter>
+    </ResourceCompile>
   </ItemGroup>
 </Project>
