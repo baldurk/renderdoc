@@ -240,6 +240,7 @@
     <ClInclude Include="api\replay\renderdoc_replay.h" />
     <ClInclude Include="api\replay\replay_enums.h" />
     <ClInclude Include="api\replay\shader_types.h" />
+    <ClInclude Include="api\replay\version.h" />
     <ClInclude Include="api\replay\vk_pipestate.h" />
     <ClInclude Include="common\common.h" />
     <ClInclude Include="common\custom_assert.h" />
@@ -261,7 +262,6 @@
     <ClInclude Include="data\glsl_shaders.h" />
     <ClInclude Include="data\hlsl\debugcbuffers.h" />
     <ClInclude Include="data\resource.h" />
-    <ClInclude Include="data\version.h" />
     <ClInclude Include="hooks\hooks.h" />
     <ClInclude Include="maths\camera.h" />
     <ClInclude Include="maths\formatpacking.h" />

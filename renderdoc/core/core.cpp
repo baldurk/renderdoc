@@ -26,9 +26,9 @@
 #include "core/core.h"
 #include <time.h>
 #include <algorithm>
+#include "api/replay/version.h"
 #include "common/common.h"
 #include "common/dds_readwrite.h"
-#include "data/version.h"
 #include "hooks/hooks.h"
 #include "replay/replay_driver.h"
 #include "serialise/serialiser.h"

@@ -25,6 +25,7 @@ INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/flowlayout
 # Different output folders per platform
 win32 {
 
+	RC_INCLUDEPATH = $$_PRO_FILE_PWD_/../renderdoc/api/replay
 	RC_FILE = Resources/qrenderdoc.rc
 
 	# it is fine to alias these across targets, because the output

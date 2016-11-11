@@ -159,9 +159,6 @@
     <ClInclude Include="os\win32\win32_hook.h">
       <Filter>OS\Win32</Filter>
     </ClInclude>
-    <ClInclude Include="data\version.h">
-      <Filter>Resources</Filter>
-    </ClInclude>
     <ClInclude Include="api\replay\basic_types.h">
       <Filter>API\Replay</Filter>
     </ClInclude>
@@ -260,6 +257,9 @@
     </ClInclude>
     <ClInclude Include="3rdparty\stb\stb_image_resize.h">
       <Filter>3rdparty\stb</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\version.h">
+      <Filter>API\Replay</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

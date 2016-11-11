@@ -2,11 +2,13 @@
 // Microsoft Visual C++ generated include file.
 // Used by qrenderdoc.rc
 //
-#define STR(a) #a
+#include "version.h"
 
-#define RENDERDOC_VERSION_MAJOR 0
-#define RENDERDOC_VERSION_MINOR 32
-#define RENDERDOC_VERSION_STRING STR(RENDERDOC_VERSION_MAJOR) "." STR(RENDERDOC_VERSION_MINOR)
+#ifdef GIT_COMMIT_HASH_LITERAL
+#define GIT_COMMIT_HASH VER_STR(GIT_COMMIT_HASH_LITERAL)
+#else
+#define GIT_COMMIT_HASH "NO_GIT_COMMIT_HASH_DEFINED"
+#endif
 
 // Next default values for new objects
 //

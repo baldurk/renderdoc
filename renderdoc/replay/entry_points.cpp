@@ -25,9 +25,9 @@
 
 #include <sstream>
 #include "api/replay/renderdoc_replay.h"
+#include "api/replay/version.h"
 #include "common/common.h"
 #include "core/core.h"
-#include "data/version.h"
 #include "jpeg-compressor/jpgd.h"
 #include "jpeg-compressor/jpge.h"
 #include "maths/camera.h"

@@ -71,6 +71,7 @@ set(sources
     api/replay/replay_enums.h
     api/replay/shader_types.h
     api/replay/vk_pipestate.h
+    api/replay/version.h
     common/common.cpp
     common/common.h
     common/custom_assert.h
@@ -98,7 +99,6 @@ set(sources
     data/glsl/gl_texsample.h
     data/glsl_shaders.cpp
     data/glsl_shaders.h
-    data/version.h
     hooks/hooks.cpp
     hooks/hooks.h
     maths/camera.cpp

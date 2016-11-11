@@ -24,9 +24,9 @@
 
 #include <stdlib.h>
 #include <string.h>
+#include "api/replay/version.h"
 #include "common/common.h"
 #include "common/threading.h"
-#include "data/version.h"
 #include "hooks/hooks.h"
 #include "official/vk_layer.h"
 #include "os/os_specific.h"

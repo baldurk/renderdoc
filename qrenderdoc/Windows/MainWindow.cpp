@@ -29,14 +29,30 @@
 #include <QProgressBar>
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
+#include "Resources/resource.h"
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "EventBrowser.h"
 #include "TextureViewer.h"
 #include "ui_MainWindow.h"
+#include "version.h"
 
 #define JSON_ID "rdocLayoutData"
 #define JSON_VER 1
+
+struct Version
+{
+  static bool isOfficialVersion() { return QString(GIT_COMMIT_HASH).indexOf("-official") > 0; }
+  static bool isBetaVersion() { return QString(GIT_COMMIT_HASH).indexOf("-beta") > 0; }
+  static QString bareString() { return RENDERDOC_VERSION_STRING; }
+  static QString string() { return "v" RENDERDOC_VERSION_STRING; }
+  static QString gitCommitHash()
+  {
+    return QString(GIT_COMMIT_HASH).replace("-official", "").replace("-beta", "");
+  }
+
+  static bool isMismatched() { return RENDERDOC_GetVersionString() != bareString(); }
+};
 
 MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::MainWindow), m_Ctx(ctx)
 {
@@ -605,19 +621,15 @@ void MainWindow::SetTitle(const QString &filename)
 
   QString text = prefix + "RenderDoc ";
 
-  // TODO Versioning
-  /*
-  if(OfficialVersion)
-    text += VersionString;
-  else if(BetaVersion)
-    text += String.Format("{0}-beta - {1}", VersionString, GitCommitHash);
-  else */
-  text +=
-      tr("Unofficial release (%1 - %2)").arg(RENDERDOC_GetVersionString()).arg(RENDERDOC_GetCommitHash());
+  if(Version::isOfficialVersion())
+    text += Version::string();
+  else if(Version::isBetaVersion())
+    text += tr("%1-beta - %2").arg(Version::string()).arg(Version::gitCommitHash());
+  else
+    text += tr("Unofficial release (%1 - %2)").arg(Version::string()).arg(Version::gitCommitHash());
 
-  // TODO Versioning
-  // if(IsVersionMismatched())
-  // text += " - !! VERSION MISMATCH DETECTED !!";
+  if(Version::isMismatched())
+    text += " - !! VERSION MISMATCH DETECTED !!";
 
   setWindowTitle(text);
 }

@@ -40,11 +40,6 @@
 #define RESOURCE_glsl_deptharr2ms_frag  426
 #define RESOURCE_glsl_depthms2arr_frag  427
 
-#if !defined(STRINGIZE)
-#define STRINGIZE2(a) #a
-#define STRINGIZE(a) STRINGIZE2(a)
-#endif
-
 #define GIT_COMMIT_HASH							"NO_GIT_COMMIT_HASH_DEFINED"
 //#define RENDERDOC_OFFICIAL_BUILD // used to determine whether to submit auto crash reports
 
@@ -59,4 +54,4 @@
 #endif
 #endif
 
-#include "version.h"
+#include "api/replay/version.h"

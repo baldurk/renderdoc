@@ -90,7 +90,7 @@ BEGIN
             VALUE "LegalCopyright", "Copyright © 2016 Baldur Karlsson"
             VALUE "OriginalFilename", "qrenderdoc.exe"
             VALUE "ProductName", "RenderDoc"
-             VALUE "ProductVersion", RENDERDOC_VERSION_STRING ".0.0"
+            VALUE "ProductVersion", RENDERDOC_VERSION_STRING "-" GIT_COMMIT_HASH
         END
     END
     BLOCK "VarFileInfo"
