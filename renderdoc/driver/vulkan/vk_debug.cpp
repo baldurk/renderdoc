@@ -787,7 +787,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
     for(size_t i = 0; i < ARRAY_COUNT(srcs); i++)
     {
-      GenerateGLSLShader(sources, eShaderVulkan, "", srcs[i], 430);
+      GenerateGLSLShader(sources, eShaderVulkan, "", srcs[i], "430");
 
       vector<uint32_t> *spirv;
 
@@ -1029,7 +1029,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     {
       GenerateGLSLShader(sources, eShaderVulkan, "", i == 0 ? GetEmbeddedResource(glsl_array2ms_comp)
                                                             : GetEmbeddedResource(glsl_ms2array_comp),
-                         430, false);
+                         "430", false);
 
       vector<uint32_t> *spirv;
 
