@@ -2358,6 +2358,43 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
 
     identity.Apply(&gl.GetHookset());
 
+    if(texType == eGL_RENDERBUFFER)
+    {
+      // do blit from renderbuffer to texture
+      MakeCurrentReplayContext(&m_ReplayCtx);
+
+      GLuint curDrawFBO = 0;
+      GLuint curReadFBO = 0;
+      gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
+      gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&curReadFBO);
+
+      gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+      gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+
+      GLenum b = GetBaseFormat(texDetails.internalFormat);
+
+      GLbitfield mask = GL_COLOR_BUFFER_BIT;
+
+      if(b == eGL_DEPTH_COMPONENT)
+        mask = GL_DEPTH_BUFFER_BIT;
+      else if(b == eGL_STENCIL)
+        mask = GL_STENCIL_BUFFER_BIT;
+      else if(b == eGL_DEPTH_STENCIL)
+        mask = GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
+
+      gl.glBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,
+                           texDetails.height, mask, eGL_NEAREST);
+
+      gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
+      gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
+
+      // then proceed to read from the texture
+      texname = texDetails.renderbufferReadTex;
+      texType = eGL_TEXTURE_2D;
+
+      MakeCurrentReplayContext(m_DebugCtx);
+    }
+
     GLenum binding = TextureBinding(texType);
 
     GLuint prevtex = 0;
