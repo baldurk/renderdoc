@@ -26,6 +26,7 @@
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
 #include "Code/QRDUtils.h"
+#include "Code/qprocessinfo.h"
 #include "FlowLayout.h"
 #include "ui_CaptureDialog.h"
 
@@ -452,19 +453,19 @@ void CaptureDialog::fillProcessList()
 {
   m_ProcessModel->removeRows(0, m_ProcessModel->rowCount());
 
+  QProcessList processes = QProcessInfo::enumerate();
+
   // no way of listing processes in Qt, fill with dummy data
-  m_ProcessModel->insertRows(0, 5);
+  m_ProcessModel->insertRows(0, processes.size());
 
-#define ROW(n, name, pid, title)                              \
-  m_ProcessModel->setData(m_ProcessModel->index(n, 0), name); \
-  m_ProcessModel->setData(m_ProcessModel->index(n, 1), pid);  \
-  m_ProcessModel->setData(m_ProcessModel->index(n, 2), title);
-
-  ROW(0, "foo.exe", 123, "Foo Window");
-  ROW(1, "magic.exe", 456, "Magic Window");
-  ROW(2, "system", 999, "Scary System process");
-  ROW(3, "chrome.exe", 4539, "Chrome - renderdoc.org");
-  ROW(4, "firefox.exe", 8483, "Firefox - renderdoc.org");
+  int n = 0;
+  for(const QProcessInfo &process : processes)
+  {
+    m_ProcessModel->setData(m_ProcessModel->index(n, 0), process.name());
+    m_ProcessModel->setData(m_ProcessModel->index(n, 1), process.pid());
+    m_ProcessModel->setData(m_ProcessModel->index(n, 2), process.windowTitle());
+    n++;
+  }
 }
 
 void CaptureDialog::setExecutableFilename(QString filename)

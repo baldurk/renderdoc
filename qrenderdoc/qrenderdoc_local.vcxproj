@@ -278,6 +278,7 @@
   <ItemGroup>
     <ClCompile Include="Code\CommonPipelineState.cpp" />
     <ClCompile Include="Code\PersistantConfig.cpp" />
+    <ClCompile Include="Code\qprocessinfo.cpp" />
     <ClCompile Include="Code\QRDUtils.cpp" />
     <ClCompile Include="generated\moc_AboutDialog.cpp" />
     <ClCompile Include="generated\moc_CaptureContext.cpp" />
@@ -334,6 +335,7 @@
   <ItemGroup>
     <ClInclude Include="Code\CommonPipelineState.h" />
     <ClInclude Include="Code\PersistantConfig.h" />
+    <ClInclude Include="Code\qprocessinfo.h" />
     <ClInclude Include="Code\QRDUtils.h" />
     <ClInclude Include="generated\ui_AboutDialog.h" />
     <ClInclude Include="generated\ui_CaptureDialog.h" />

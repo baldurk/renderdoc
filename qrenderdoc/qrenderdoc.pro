@@ -80,6 +80,7 @@ SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
     3rdparty/flowlayout/FlowLayout.cpp \
     Code/qrenderdoc.cpp \
+    Code/qprocessinfo.cpp \
     Code/RenderManager.cpp \
     Code/CommonPipelineState.cpp \
     Code/PersistantConfig.cpp \
@@ -106,6 +107,7 @@ HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h \
     3rdparty/flowlayout/FlowLayout.h \
     Code/CaptureContext.h \
+    Code/qprocessinfo.h \
     Code/RenderManager.h \
     Code/PersistantConfig.h \
     Code/CommonPipelineState.h \
