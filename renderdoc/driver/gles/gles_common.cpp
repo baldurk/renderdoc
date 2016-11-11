@@ -3349,10 +3349,6 @@ string ToStrHelper<false, RDCGLenum>::Get(const RDCGLenum &el)
 
 void dumpFBOState(const GLHookSet& gl)
 {
-
-  GLint readFBO, drawFBO;
-  gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, &readFBO);
-  gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, &drawFBO);
   GLenum status = gl.glCheckFramebufferStatus(eGL_FRAMEBUFFER);
   switch (status) {
     case GL_FRAMEBUFFER_COMPLETE: return;

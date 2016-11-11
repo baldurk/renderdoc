@@ -43,19 +43,7 @@ void WrappedGLES::Compat_glGetTexImage(GLenum target, GLenum texType, GLuint tex
     m_Real.glFramebufferTexture(eGL_FRAMEBUFFER, attachmentTarget, texname, mip);
   }
 
-  // TODO(elecro): remove this debug code
-  GLenum status = m_Real.glCheckFramebufferStatus(eGL_FRAMEBUFFER);
-  switch (status) {
-    case GL_FRAMEBUFFER_COMPLETE: break;
-#define DUMP(STATUS) case STATUS: printf(#STATUS "\n"); break
-
-    DUMP(eGL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
-    DUMP(eGL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS);
-    DUMP(eGL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT);
-    DUMP(eGL_FRAMEBUFFER_UNSUPPORTED);
-#undef DUMP
-    default: printf("Unkown status: %d\n", status);
-  }
+  dumpFBOState(m_Real);
 
   m_Real.glReadPixels(0, 0, width, height, fmt, type, (void *)ret);
 
