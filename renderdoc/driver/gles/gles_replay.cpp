@@ -3012,6 +3012,7 @@ ResourceId GLESReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)
 
 void GLESReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
 {
+  GLNOTIMP("GLESReplay::SetProxyBufferData");
   GLuint buf = m_pDriver->GetResourceManager()->GetCurrentResource(bufid).name;
   // TODO PEPE what kind of buffer type?
   //m_pDriver->glBufferSubData(?, 0, dataSize, data);

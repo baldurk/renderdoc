@@ -680,6 +680,7 @@ void GLESReplay::DeleteDebugData()
 bool GLESReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                          FormatComponentType typeHint, float *minval, float *maxval)
 {
+  GLNOTIMP("GLESReplay::GetMinMax");
 //  if(m_pDriver->m_Textures.find(texid) == m_pDriver->m_Textures.end())
 //    return false;
 //
@@ -848,6 +849,7 @@ bool GLESReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip
                             FormatComponentType typeHint, float minval, float maxval,
                             bool channels[4], vector<uint32_t> &histogram)
 {
+  GLNOTIMP("GLESReplay::GetHistogram");
 //  if(minval >= maxval)
 //    return false;
 //
@@ -1025,6 +1027,7 @@ bool GLESReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip
 
 uint32_t GLESReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
+  GLNOTIMP("GLESReplay::PickVertex");
 //  WrappedGLES &gl = *m_pDriver;
 //
 //  MakeCurrentReplayContext(m_DebugCtx);
@@ -1237,6 +1240,7 @@ uint32_t GLESReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32
 void GLESReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace,
                          uint32_t mip, uint32_t sample, FormatComponentType typeHint, float pixel[4])
 {
+  GLNOTIMP("GLESReplay::PickPixel");
 //  WrappedGLES &gl = *m_pDriver;
 //
 //  MakeCurrentReplayContext(m_DebugCtx);
@@ -1307,6 +1311,7 @@ void GLESReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t 
 void GLESReplay::CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, GLint height,
                                   GLint arraySize, GLint samples, GLenum intFormat)
 {
+  GLNOTIMP("GLESReplay::CopyTex2DMSToArray");
 //  WrappedGLES &gl = *m_pDriver;
 //
 //  GLRenderState rs(&gl.GetHookset(), NULL, READING);
@@ -1738,6 +1743,7 @@ void GLESReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 
 void GLESReplay::RenderHighlightBox(float w, float h, float scale)
 {
+  GLNOTIMP("GLESReplay::RenderHighlightBox");
 //  MakeCurrentReplayContext(m_DebugCtx);
 //
 //  WrappedGLES &gl = *m_pDriver;
