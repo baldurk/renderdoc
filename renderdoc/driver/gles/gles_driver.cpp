@@ -3834,6 +3834,15 @@ const FetchDrawcall *WrappedGLES::GetDrawcall(uint32_t eventID)
   return m_Drawcalls[eventID];
 }
 
+void WrappedGLES::MarkIndirectBufferUsage()
+{
+  GLuint buf = 0;
+  m_Real.glGetIntegerv(eGL_DISPATCH_INDIRECT_BUFFER_BINDING, (GLint*)&buf);
+
+  m_ResourceUses[GetResourceManager()->GetID(BufferRes(GetCtx(), buf))].push_back(
+      EventUsage(m_CurEventID, eUsage_Indirect));
+}
+
 void WrappedGLES::ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
 {
   uint64_t offs = m_FrameRecord.frameInfo.fileOffset;

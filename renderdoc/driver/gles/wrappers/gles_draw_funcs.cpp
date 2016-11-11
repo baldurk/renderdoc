@@ -133,6 +133,8 @@ bool WrappedGLES::Serialise_glDispatchComputeIndirect(GLintptr indirect)
     draw.dispatchDimension[2] = groupSizes[2];
 
     AddDrawcall(draw, true);
+
+    MarkIndirectBufferUsage();
   }
 
   return true;
@@ -418,6 +420,8 @@ bool WrappedGLES::Serialise_glDrawArraysIndirect(GLenum mode, const void *indire
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
 
     AddDrawcall(draw, true);
+
+    MarkIndirectBufferUsage();
   }
 
   return true;
@@ -788,6 +792,8 @@ bool WrappedGLES::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, con
     draw.indexByteWidth = IdxSize;
 
     AddDrawcall(draw, true);
+
+    MarkIndirectBufferUsage();
   }
 
   return true;

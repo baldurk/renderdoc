@@ -520,6 +520,8 @@ private:
   void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
   void AddEvent(GLChunkType type, string description, ResourceId ctx = ResourceId());
 
+  void MarkIndirectBufferUsage();
+
   void Serialise_CaptureScope(uint64_t offset);
   bool HasSuccessfulCapture(CaptureFailReason &reason)
   {
