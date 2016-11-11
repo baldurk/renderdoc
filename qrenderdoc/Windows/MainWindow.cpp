@@ -141,12 +141,12 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
   // create default layout if layout failed to load
   if(!loaded)
   {
-    EventBrowser *eventBrowser = new EventBrowser(m_Ctx);
+    EventBrowser *eventBrowser = new EventBrowser(m_Ctx, this);
     eventBrowser->setObjectName("eventBrowser");
 
     ui->toolWindowManager->addToolWindow(eventBrowser, ToolWindowManager::EmptySpace);
 
-    TextureViewer *textureViewer = new TextureViewer(m_Ctx);
+    TextureViewer *textureViewer = new TextureViewer(m_Ctx, this);
     textureViewer->setObjectName("textureViewer");
 
     ui->toolWindowManager->addToolWindow(
@@ -596,9 +596,9 @@ CaptureDialog *MainWindow::createCaptureDialog()
       m_Ctx,
       [this](const QString &exe, const QString &workingDir, const QString &cmdLine,
              const QList<EnvironmentModification> &env,
-             CaptureOptions opts) { this->OnCaptureTrigger(exe, workingDir, cmdLine, env, opts); },
+             CaptureOptions opts) { return this->OnCaptureTrigger(exe, workingDir, cmdLine, env, opts); },
       [this](uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
-             CaptureOptions opts) { this->OnInjectTrigger(PID, env, name, opts); });
+             CaptureOptions opts) { return this->OnInjectTrigger(PID, env, name, opts); }, this);
   ret->setObjectName("capDialog");
   return ret;
 }
@@ -810,7 +810,7 @@ void MainWindow::on_action_Mesh_Output_triggered()
 
 void MainWindow::on_action_Event_Viewer_triggered()
 {
-  EventBrowser *eventBrowser = new EventBrowser(m_Ctx);
+  EventBrowser *eventBrowser = new EventBrowser(m_Ctx, this);
   eventBrowser->setObjectName("eventBrowser");
 
   ui->toolWindowManager->addToolWindow(eventBrowser, ToolWindowManager::EmptySpace);
@@ -818,7 +818,7 @@ void MainWindow::on_action_Event_Viewer_triggered()
 
 void MainWindow::on_action_Texture_Viewer_triggered()
 {
-  TextureViewer *textureViewer = new TextureViewer(m_Ctx);
+  TextureViewer *textureViewer = new TextureViewer(m_Ctx, this);
   textureViewer->setObjectName("textureViewer");
 
   ui->toolWindowManager->addToolWindow(textureViewer, ToolWindowManager::EmptySpace);

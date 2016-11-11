@@ -3251,6 +3251,7 @@ void TextureViewer::on_texListShow_clicked()
         ui->textureListFrame,
         ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
                                          ui->dockarea->areaOf(ui->renderContainer), 0.2f));
+    ui->dockarea->setToolWindowProperties(ui->textureListFrame, ToolWindowManager::HideOnClose);
   }
 }
 

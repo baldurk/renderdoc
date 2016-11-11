@@ -165,6 +165,13 @@ CaptureDialog::CaptureDialog(CaptureContext *ctx, OnCaptureMethod captureCallbac
 
 CaptureDialog::~CaptureDialog()
 {
+  if(ui->toggleGlobal->isChecked())
+  {
+    ui->toggleGlobal->setChecked(false);
+
+    updateGlobalHook();
+  }
+
   delete ui;
 }
 
@@ -501,16 +508,6 @@ void CaptureDialog::loadSettings(QString filename)
   else
   {
     RDDialog::critical(this, "Error loading config", tr("Couldn't open path %1.").arg(filename));
-  }
-}
-
-void CaptureDialog::closeEvent(QCloseEvent *event)
-{
-  if(ui->toggleGlobal->isChecked())
-  {
-    ui->toggleGlobal->setChecked(false);
-
-    updateGlobalHook();
   }
 }
 

@@ -113,6 +113,8 @@ public:
     HideCloseButton = 0x2,
     //! Disable the user being able to drag this tab in the tab bar, to rearrange
     DisableDraggableTab = 0x4,
+    //! When the tool window is closed, hide it instead of removing it
+    HideOnClose = 0x8,
   };
 
   //! Type of AreaReference.

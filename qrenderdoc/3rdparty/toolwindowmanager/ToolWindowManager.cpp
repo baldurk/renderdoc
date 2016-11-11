@@ -270,6 +270,7 @@ void ToolWindowManager::removeToolWindow(QWidget *toolWindow) {
   moveToolWindow(toolWindow, NoArea);
   m_toolWindows.removeOne(toolWindow);
   m_toolWindowProperties.remove(toolWindow);
+  delete toolWindow;
 }
 
 QWidget* ToolWindowManager::createToolWindow(const QString& objectName)
@@ -790,7 +791,11 @@ void ToolWindowManager::tabCloseRequested(int index) {
     qWarning("unknown tab in tab widget");
     return;
   }
-  hideToolWindow(toolWindow);
+
+  if(toolWindowProperties(toolWindow) & ToolWindowManager::HideOnClose)
+    hideToolWindow(toolWindow);
+  else
+    removeToolWindow(toolWindow);
 }
 
 void ToolWindowManager::windowTitleChanged(const QString &title) {
