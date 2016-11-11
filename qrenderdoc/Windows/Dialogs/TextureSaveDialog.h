@@ -25,6 +25,7 @@
 #pragma once
 
 #include <QDialog>
+#include <QTimer>
 #include "renderdoc_replay.h"
 
 namespace Ui
@@ -75,6 +76,8 @@ private:
 
   void SetFilenameFromFiletype();
   void SetFiletypeFromFilename();
+
+  QTimer typingTimer;
 
   FetchTexture tex;
   TextureSave saveData;

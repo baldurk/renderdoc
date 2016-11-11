@@ -1000,7 +1000,7 @@ void TextureViewer::UI_UpdateTextureDetails()
 
   if(current.format.compType != m_TexDisplay.typeHint && m_TexDisplay.typeHint != eCompType_None)
   {
-    status += tr(" Viewed as TODO ToStr");    // m_TexDisplay.typeHint.Str();
+    status += tr(" Viewed as %1").arg(ToQStr(m_TexDisplay.typeHint));
   }
 
   ui->texStatusDim->setText(status);
@@ -1747,12 +1747,11 @@ void TextureViewer::AddResourceUsageEntry(QMenu &menu, uint32_t start, uint32_t 
   QAction *item = NULL;
 
   if(start == end)
-    item = new QAction("EID " + QString::number(start) + ": " +
-                           "TODO ToStr" /*usage.Str(m_Core.APIProps.pipelineType)*/,
-                       this);
+    item = new QAction(
+        "EID " + QString::number(start) + ": " + ToQStr(usage, m_Ctx->APIProps().pipelineType), this);
   else
     item = new QAction("EID " + QString::number(start) + "-" + QString::number(end) + ": " +
-                           "TODO ToStr" /*usage.Str(m_Core.APIProps.pipelineType)*/,
+                           ToQStr(usage, m_Ctx->APIProps().pipelineType),
                        this);
 
   QObject::connect(item, &QAction::triggered, this, &TextureViewer::texContextItem_triggered);

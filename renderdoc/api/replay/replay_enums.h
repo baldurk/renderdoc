@@ -181,6 +181,7 @@ enum FileType
   eFileType_TGA,
   eFileType_HDR,
   eFileType_EXR,
+  eFileType_Count,
 };
 
 enum AlphaMapping
@@ -189,6 +190,7 @@ enum AlphaMapping
   eAlphaMap_BlendToColour,
   eAlphaMap_BlendToCheckerboard,
   eAlphaMap_Preserve,
+  eAlphaMap_Count,
 };
 
 enum SpecialFormat
@@ -232,6 +234,11 @@ enum GraphicsAPI
   eGraphicsAPI_OpenGL,
   eGraphicsAPI_Vulkan,
 };
+
+inline bool IsD3D(GraphicsAPI api)
+{
+  return api == eGraphicsAPI_D3D11 || api == eGraphicsAPI_D3D12;
+}
 
 enum PrimitiveTopology
 {

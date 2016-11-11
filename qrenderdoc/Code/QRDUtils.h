@@ -28,6 +28,128 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QSemaphore>
+#include "renderdoc_replay.h"
+
+// total hack, expose the same basic interface as on renderdoc side.
+// Eventually we want to move the code in the main project into header-only
+// and .inl implementations for at least the public API, so it can be compiled
+// directly without duplication
+
+struct ToStr
+{
+  static std::string Get(const ReplayCreateStatus &el)
+  {
+    switch(el)
+    {
+      case eReplayCreate_Success: return "Success";
+      case eReplayCreate_UnknownError: return "Unknown error";
+      case eReplayCreate_InternalError: return "Internal error";
+      case eReplayCreate_FileNotFound: return "File not found";
+      case eReplayCreate_InjectionFailed: return "RenderDoc injection failed";
+      case eReplayCreate_IncompatibleProcess: return "Process is incompatible";
+      case eReplayCreate_NetworkIOFailed: return "Network I/O operation failed";
+      case eReplayCreate_NetworkRemoteBusy: return "Remote side of network connection is busy";
+      case eReplayCreate_NetworkVersionMismatch: return "Version mismatch between network clients";
+      case eReplayCreate_FileIOFailed: return "File I/O failed";
+      case eReplayCreate_FileIncompatibleVersion: return "File of incompatible version";
+      case eReplayCreate_FileCorrupted: return "File corrupted";
+      case eReplayCreate_APIUnsupported: return "API unsupported";
+      case eReplayCreate_APIInitFailed: return "API initialisation failed";
+      case eReplayCreate_APIIncompatibleVersion: return "API incompatible version";
+      case eReplayCreate_APIHardwareUnsupported: return "API hardware unsupported";
+      default: break;
+    }
+    return "Invalid error code";
+  }
+
+  static std::string Get(const FormatComponentType &el)
+  {
+    switch(el)
+    {
+      case eCompType_None: return "Typeless";
+      case eCompType_Float: return "Float";
+      case eCompType_UNorm: return "UNorm";
+      case eCompType_SNorm: return "SNorm";
+      case eCompType_UInt: return "UInt";
+      case eCompType_SInt: return "SInt";
+      case eCompType_UScaled: return "UScaled";
+      case eCompType_SScaled: return "SScaled";
+      case eCompType_Depth: return "Depth/Stencil";
+      case eCompType_Double: return "Double";
+      default: break;
+    }
+    return "Invalid component type";
+  }
+
+  static std::string Get(const FileType &el)
+  {
+    switch(el)
+    {
+      case eFileType_DDS: return "DDS";
+      case eFileType_PNG: return "PNG";
+      case eFileType_JPG: return "JPG";
+      case eFileType_BMP: return "BMP";
+      case eFileType_TGA: return "TGA";
+      case eFileType_HDR: return "HDR";
+      case eFileType_EXR: return "EXR";
+      default: break;
+    }
+    return "Invalid file type";
+  }
+
+  static std::string Get(const AlphaMapping &el)
+  {
+    switch(el)
+    {
+      case eAlphaMap_Discard: return "Discard";
+      case eAlphaMap_BlendToColour: return "Blend to Colour";
+      case eAlphaMap_BlendToCheckerboard: return "Blend to Checkerboard";
+      case eAlphaMap_Preserve: return "Preserve";
+      default: break;
+    }
+    return "Invalid mapping";
+  }
+
+  static std::string Get(const EnvironmentModificationType &el)
+  {
+    switch(el)
+    {
+      case eEnvMod_Set: return "Set";
+      case eEnvMod_Append: return "Append";
+      case eEnvMod_Prepend: return "Prepend";
+      default: break;
+    }
+    return "Invalid modification";
+  }
+
+  static std::string Get(const EnvironmentSeparator &el)
+  {
+    switch(el)
+    {
+      case eEnvSep_Platform: return "Platform style";
+      case eEnvSep_SemiColon: return "Semi-colon (;)";
+      case eEnvSep_Colon: return "Colon (:)";
+      case eEnvSep_None: return "No Separator";
+      default: break;
+    }
+    return "Invalid separator";
+  }
+};
+
+// this will be here to lighten the burden of converting from std::string to
+// QString everywhere.
+
+template <typename T>
+QString ToQStr(const T &el)
+{
+  return QString::fromStdString(ToStr::Get(el));
+}
+
+// overload for a couple of things that need to know the pipeline type when converting
+QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype);
+
+// overload for a couple of things that need to know the pipeline type when converting
+QString ToQStr(const ShaderStageType stage, const GraphicsAPI apitype);
 
 bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, uint32_t magicVersion);
 bool LoadFromJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier,

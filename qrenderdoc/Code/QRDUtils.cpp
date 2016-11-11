@@ -28,6 +28,152 @@
 #include <QMenu>
 #include <QMetaMethod>
 
+QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
+{
+  if(IsD3D(apitype))
+  {
+    switch(usage)
+    {
+      case eUsage_VertexBuffer: return "Vertex Buffer";
+      case eUsage_IndexBuffer: return "Index Buffer";
+
+      case eUsage_VS_Constants: return "VS - Constant Buffer";
+      case eUsage_GS_Constants: return "GS - Constant Buffer";
+      case eUsage_HS_Constants: return "HS - Constant Buffer";
+      case eUsage_DS_Constants: return "DS - Constant Buffer";
+      case eUsage_CS_Constants: return "CS - Constant Buffer";
+      case eUsage_PS_Constants: return "PS - Constant Buffer";
+      case eUsage_All_Constants: return "All - Constant Buffer";
+
+      case eUsage_SO: return "Stream Out";
+
+      case eUsage_VS_Resource: return "VS - Resource";
+      case eUsage_GS_Resource: return "GS - Resource";
+      case eUsage_HS_Resource: return "HS - Resource";
+      case eUsage_DS_Resource: return "DS - Resource";
+      case eUsage_CS_Resource: return "CS - Resource";
+      case eUsage_PS_Resource: return "PS - Resource";
+      case eUsage_All_Resource: return "All - Resource";
+
+      case eUsage_VS_RWResource: return "VS - UAV";
+      case eUsage_HS_RWResource: return "HS - UAV";
+      case eUsage_DS_RWResource: return "DS - UAV";
+      case eUsage_GS_RWResource: return "GS - UAV";
+      case eUsage_PS_RWResource: return "PS - UAV";
+      case eUsage_CS_RWResource: return "CS - UAV";
+      case eUsage_All_RWResource: return "All - UAV";
+
+      case eUsage_InputTarget: return "Colour Input";
+      case eUsage_ColourTarget: return "Rendertarget";
+      case eUsage_DepthStencilTarget: return "Depthstencil";
+
+      case eUsage_Indirect: return "Indirect argument";
+
+      case eUsage_Clear: return "Clear";
+
+      case eUsage_GenMips: return "Generate Mips";
+      case eUsage_Resolve: return "Resolve";
+      case eUsage_ResolveSrc: return "Resolve - Source";
+      case eUsage_ResolveDst: return "Resolve - Dest";
+      case eUsage_Copy: return "Copy";
+      case eUsage_CopySrc: return "Copy - Source";
+      case eUsage_CopyDst: return "Copy - Dest";
+
+      case eUsage_Barrier: return "Barrier";
+      default: break;
+    }
+  }
+  else if(apitype == eGraphicsAPI_OpenGL || apitype == eGraphicsAPI_Vulkan)
+  {
+    const bool vk = (apitype == eGraphicsAPI_Vulkan);
+
+    switch(usage)
+    {
+      case eUsage_VertexBuffer: return "Vertex Buffer";
+      case eUsage_IndexBuffer: return "Index Buffer";
+
+      case eUsage_VS_Constants: return "VS - Uniform Buffer";
+      case eUsage_GS_Constants: return "GS - Uniform Buffer";
+      case eUsage_HS_Constants: return "HS - Uniform Buffer";
+      case eUsage_DS_Constants: return "DS - Uniform Buffer";
+      case eUsage_CS_Constants: return "CS - Uniform Buffer";
+      case eUsage_PS_Constants: return "PS - Uniform Buffer";
+      case eUsage_All_Constants: return "All - Uniform Buffer";
+
+      case eUsage_SO: return "Transform Feedback";
+
+      case eUsage_VS_Resource: return "VS - Texture";
+      case eUsage_GS_Resource: return "GS - Texture";
+      case eUsage_HS_Resource: return "HS - Texture";
+      case eUsage_DS_Resource: return "DS - Texture";
+      case eUsage_CS_Resource: return "CS - Texture";
+      case eUsage_PS_Resource: return "PS - Texture";
+      case eUsage_All_Resource: return "All - Texture";
+
+      case eUsage_VS_RWResource: return "VS - Image/SSBO";
+      case eUsage_HS_RWResource: return "HS - Image/SSBO";
+      case eUsage_DS_RWResource: return "DS - Image/SSBO";
+      case eUsage_GS_RWResource: return "GS - Image/SSBO";
+      case eUsage_PS_RWResource: return "PS - Image/SSBO";
+      case eUsage_CS_RWResource: return "CS - Image/SSBO";
+      case eUsage_All_RWResource: return "All - Image/SSBO";
+
+      case eUsage_InputTarget: return "FBO Input";
+      case eUsage_ColourTarget: return "FBO Colour";
+      case eUsage_DepthStencilTarget: return "FBO Depthstencil";
+
+      case eUsage_Indirect: return "Indirect argument";
+
+      case eUsage_Clear: return "Clear";
+
+      case eUsage_GenMips: return "Generate Mips";
+      case eUsage_Resolve: return vk ? "Resolve" : "Framebuffer blit";
+      case eUsage_ResolveSrc: return vk ? "Resolve - Source" : "Framebuffer blit - Source";
+      case eUsage_ResolveDst: return vk ? "Resolve - Dest" : "Framebuffer blit - Dest";
+      case eUsage_Copy: return "Copy";
+      case eUsage_CopySrc: return "Copy - Source";
+      case eUsage_CopyDst: return "Copy - Dest";
+
+      case eUsage_Barrier: return "Barrier";
+      default: break;
+    }
+  }
+
+  return "Unknown";
+}
+
+QString ToQStr(const ShaderStageType stage, const GraphicsAPI apitype)
+{
+  if(IsD3D(apitype))
+  {
+    switch(stage)
+    {
+      case eShaderStage_Vertex: return "Vertex";
+      case eShaderStage_Hull: return "Hull";
+      case eShaderStage_Domain: return "Domain";
+      case eShaderStage_Geometry: return "Geometry";
+      case eShaderStage_Pixel: return "Pixel";
+      case eShaderStage_Compute: return "Compute";
+      default: break;
+    }
+  }
+  else if(apitype == eGraphicsAPI_OpenGL || apitype == eGraphicsAPI_Vulkan)
+  {
+    switch(stage)
+    {
+      case eShaderStage_Vertex: return "Vertex";
+      case eShaderStage_Tess_Control: return "Tess. Control";
+      case eShaderStage_Tess_Eval: return "Tess. Eval";
+      case eShaderStage_Geometry: return "Geometry";
+      case eShaderStage_Fragment: return "Fragment";
+      case eShaderStage_Compute: return "Compute";
+      default: break;
+    }
+  }
+
+  return "Unknown";
+}
+
 bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, uint32_t magicVersion)
 {
   // marker that this data is valid

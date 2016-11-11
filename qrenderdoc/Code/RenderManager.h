@@ -32,6 +32,7 @@
 #include <QVariantMap>
 #include <QWaitCondition>
 #include <functional>
+#include "QRDUtils.h"
 #include "renderdoc_replay.h"
 
 struct IReplayRenderer;
@@ -54,9 +55,9 @@ struct EnvironmentModification
     QString ret;
 
     if(type == eEnvMod_Append)
-      ret = QString("Append, %1").arg("TODO ToStr");
+      ret = QString("Append, %1").arg(ToQStr(separator));
     else if(type == eEnvMod_Prepend)
-      ret = QString("Prepend, %1").arg("TODO ToStr");
+      ret = QString("Prepend, %1").arg(ToQStr(separator));
     else
       ret = "Set";
 
@@ -68,9 +69,9 @@ struct EnvironmentModification
     QString ret;
 
     if(type == eEnvMod_Append)
-      ret = QString("Append %1 with %2 using %3").arg(variable).arg(value).arg("TODO ToStr");
+      ret = QString("Append %1 with %2 using %3").arg(variable).arg(value).arg(ToQStr(separator));
     else if(type == eEnvMod_Prepend)
-      ret = QString("Prepend %1 with %2 using %3").arg(variable).arg(value).arg("TODO ToStr");
+      ret = QString("Prepend %1 with %2 using %3").arg(variable).arg(value).arg(ToQStr(separator));
     else
       ret = QString("Set %1 to %2").arg(variable).arg(value);
 
@@ -82,8 +83,8 @@ struct EnvironmentModification
     QVariantMap ret;
     ret["variable"] = variable;
     ret["value"] = value;
-    ret["type"] = "Append";             // TODO ToStr
-    ret["separator"] = "Semi-colon";    // TODO ToStr
+    ret["type"] = ToQStr(type);
+    ret["separator"] = ToQStr(separator);
     return ret;
   }
 
@@ -91,8 +92,26 @@ struct EnvironmentModification
   {
     variable = data["variable"].toString();
     value = data["value"].toString();
-    type = eEnvMod_Append;            // TODO ToStr
-    separator = eEnvSep_SemiColon;    // TODO ToStr
+
+    QString t = data["type"].toString();
+
+    if(t == ToQStr(eEnvMod_Append))
+      type = eEnvMod_Append;
+    else if(t == ToQStr(eEnvMod_Prepend))
+      type = eEnvMod_Prepend;
+    else
+      type = eEnvMod_Set;
+
+    QString s = data["separator"].toString();
+
+    if(s == ToQStr(eEnvSep_SemiColon))
+      separator = eEnvSep_SemiColon;
+    else if(s == ToQStr(eEnvSep_Colon))
+      separator = eEnvSep_Colon;
+    else if(s == ToQStr(eEnvSep_Platform))
+      separator = eEnvSep_Platform;
+    else
+      separator = eEnvSep_None;
   }
 };
 

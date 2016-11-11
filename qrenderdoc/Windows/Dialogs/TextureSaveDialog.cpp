@@ -35,11 +35,21 @@ TextureSaveDialog::TextureSaveDialog(const FetchTexture &t, const TextureSave &s
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
   ui->setupUi(this);
 
+  QObject::connect(&typingTimer, &QTimer::timeout, [this] { SetFiletypeFromFilename(); });
+
   ui->fileFormat->clear();
 
-  // TODO ToStr
-  ui->fileFormat->addItems({"DDS", "PNG", "JPG", "BMP", "TGA", "HDR", "EXR"});
-  ui->alphaMap->addItems({"Discard", "Blend to Colour", "Blend to Checkerboard"});
+  QStringList strs;
+  for(int i = 0; i < eFileType_Count; i++)
+    strs << ToQStr((FileType)i);
+
+  ui->fileFormat->addItems(strs);
+
+  strs.clear();
+  for(int i = 0; i < eAlphaMap_Count; i++)
+    strs << ToQStr((AlphaMapping)i);
+
+  ui->alphaMap->addItems(strs);
 
   tex = t;
   saveData = s;
@@ -81,9 +91,9 @@ TextureSaveDialog::TextureSaveDialog(const FetchTexture &t, const TextureSave &s
     if(tex.cubemap)
     {
       QString name = cubeFaces[i % 6];
+      // Front 1, Back 2, 3, 4 etc for cube arrays
       if(numSlices > 6)
-        name = QString("[%1] %2").arg(i / 6).arg(
-            cubeFaces[i % 6]);    // Front 1, Back 2, 3, 4 etc for cube arrays
+        name = QString("[%1] %2").arg(i / 6).arg(cubeFaces[i % 6]);
       ui->sliceSelect->addItem(name);
     }
     else
@@ -130,38 +140,32 @@ void TextureSaveDialog::SetFiletypeFromFilename()
   QFileInfo path(ui->filename->text());
   QString ext = path.suffix().toUpper();
 
-  // TODO ToStr
-
-  /*
-  foreach(var ft in(FileType[])Enum.GetValues(typeof(FileType)))
+  for(int i = 0; i < eFileType_Count; i++)
   {
-    if(ft.ToString().ToUpperInvariant() == ext)
-    {
-      fileFormat.SelectedIndex = (int)ft;
-      break;
-    }
+    if(ToQStr((FileType)i) == ext)
+      ui->fileFormat->setCurrentIndex(i);
   }
-  */
 }
 
 void TextureSaveDialog::SetFilenameFromFiletype()
 {
   QFileInfo path(ui->filename->text());
-  QString ext = path.suffix().toUpper();
+  QString ext = path.suffix().toLower();
 
-  // TODO ToStr
+  int idx = ui->fileFormat->currentIndex();
 
-  /*
-  FileType[] types = (FileType[])Enum.GetValues(typeof(FileType));
-
-  string selectedExt = types[fileFormat.SelectedIndex].ToString().ToLowerInvariant();
-
-  if(selectedExt != filenameExt)
+  if(idx >= 0 && idx < eFileType_Count)
   {
-    filename.Text = filename.Text.Substring(0, filename.Text.Length - filenameExt.Length);
-    filename.Text += selectedExt;
+    QString selectedExt = ToQStr((FileType)idx).toLower();
+
+    if(ext != selectedExt && ext != "")
+    {
+      QString fn = ui->filename->text();
+      fn.chop(ext.length());
+      fn += selectedExt;
+      ui->filename->setText(fn);
+    }
   }
-  */
 }
 
 void TextureSaveDialog::on_fileFormat_currentIndexChanged(int index)
@@ -488,7 +492,17 @@ void TextureSaveDialog::on_whitePoint_textEdited(const QString &arg)
 
 void TextureSaveDialog::on_browse_clicked()
 {
-  QString filter = "TODO ToStr";
+  QString filter = "";
+
+  for(int i = 0; i < eFileType_Count; i++)
+  {
+    QString ext = ToQStr((FileType)i);
+
+    if(filter.length() > 0)
+      filter += ";;";
+    filter += tr("%1 Files (*.%2)").arg(ext).arg(ext.toLower());
+  }
+
   QString *selectedFilter = NULL;
 
   QString filename =
@@ -504,6 +518,9 @@ void TextureSaveDialog::on_browse_clicked()
 
 void TextureSaveDialog::on_filename_textEdited(const QString &arg1)
 {
+  typingTimer.stop();
+  typingTimer.setSingleShot(true);
+  typingTimer.start(500);
 }
 
 void TextureSaveDialog::on_saveCancelButtons_accepted()
