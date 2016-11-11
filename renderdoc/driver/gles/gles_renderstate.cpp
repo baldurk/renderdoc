@@ -1125,16 +1125,19 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
     }
   }
 
-  // apply drawbuffers/readbuffer to default framebuffer
-  m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, gl->GetFakeBBFBO());
-  m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, gl->GetFakeBBFBO());
-  m_Real->glDrawBuffers(numDBs, DBs);
+  if(gl->GetReplay()->IsReplayContext(ctx))
+  {
+    // apply drawbuffers/readbuffer to default framebuffer
+    m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, gl->GetFakeBBFBO());
+    m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, gl->GetFakeBBFBO());
+    m_Real->glDrawBuffers(numDBs, DBs);
 
-  // see above for reasoning for this
-  m_Real->glReadBuffer(eGL_COLOR_ATTACHMENT0);
+    // see above for reasoning for this
+    m_Real->glReadBuffer(eGL_COLOR_ATTACHMENT0);
 
-  m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO);
-  m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO);
+    m_Real->glBindFramebuffer(eGL_READ_FRAMEBUFFER, ReadFBO);
+    m_Real->glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, DrawFBO);
+  }
 
   m_Real->glHint(eGL_FRAGMENT_SHADER_DERIVATIVE_HINT, Hints.Derivatives);
 
