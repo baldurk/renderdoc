@@ -27,6 +27,7 @@
 #include <QFileInfo>
 #include <QRegularExpression>
 #include <QRegularExpressionMatch>
+#include <QStandardPaths>
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
 #include "Windows/MainWindow.h"
@@ -118,6 +119,14 @@ int main(int argc, char *argv[])
 
   {
     PersistantConfig config;
+
+    {
+      QString configPath = QStandardPaths::writableLocation(QStandardPaths::AppDataLocation);
+      QDir dir(configPath);
+
+      if(!dir.exists())
+        dir.mkpath(configPath);
+    }
 
     QString configFilename = CaptureContext::ConfigFile("UI.config");
 
