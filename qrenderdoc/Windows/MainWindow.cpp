@@ -595,10 +595,12 @@ CaptureDialog *MainWindow::createCaptureDialog()
   CaptureDialog *ret = new CaptureDialog(
       m_Ctx,
       [this](const QString &exe, const QString &workingDir, const QString &cmdLine,
-             const QList<EnvironmentModification> &env,
-             CaptureOptions opts) { return this->OnCaptureTrigger(exe, workingDir, cmdLine, env, opts); },
+             const QList<EnvironmentModification> &env, CaptureOptions opts) {
+        return this->OnCaptureTrigger(exe, workingDir, cmdLine, env, opts);
+      },
       [this](uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
-             CaptureOptions opts) { return this->OnInjectTrigger(PID, env, name, opts); }, this);
+             CaptureOptions opts) { return this->OnInjectTrigger(PID, env, name, opts); },
+      this);
   ret->setObjectName("capDialog");
   return ret;
 }
