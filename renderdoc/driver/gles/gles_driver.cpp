@@ -1464,7 +1464,10 @@ struct RenderTextState
     if(modern)
     {
       enableBits[4] = gl.glIsEnabledi(eGL_BLEND, 0) != 0;
-      enableBits[5] = gl.glIsEnabled(eGL_SCISSOR_TEST) != 0; // TODO(elecro): original was: gl.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
+      if(ExtensionSupported[ExtensionSupported_OES_viewport_array] || ExtensionSupported[ExtensionSupported_NV_viewport_array])
+        enableBits[5] = gl.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
+      else
+        enableBits[5] = gl.glIsEnabled(eGL_SCISSOR_TEST) != 0;
     }
     else
     {
@@ -1560,16 +1563,20 @@ struct RenderTextState
         gl.glEnablei(eGL_BLEND, 0);
       else
         gl.glDisablei(eGL_BLEND, 0);
-      if(enableBits[5])
-        gl.glEnable(eGL_SCISSOR_TEST);
+      if(ExtensionSupported[ExtensionSupported_OES_viewport_array] || ExtensionSupported[ExtensionSupported_NV_viewport_array])
+      {
+        if(enableBits[5])
+          gl.glEnablei(eGL_SCISSOR_TEST, 0);
+        else
+          gl.glDisablei(eGL_SCISSOR_TEST, 0);
+      }
       else
-        gl.glDisable(eGL_SCISSOR_TEST);
-/* TODO(elecro): original was:
-      if(enableBits[5])
-        gl.glEnablei(eGL_SCISSOR_TEST, 0);
-      else
-        gl.glDisablei(eGL_SCISSOR_TEST, 0);
-*/
+      {
+        if(enableBits[5])
+          gl.glEnable(eGL_SCISSOR_TEST);
+        else
+          gl.glDisable(eGL_SCISSOR_TEST);
+      }
     }
     else
     {
@@ -1751,7 +1758,10 @@ void WrappedGLES::RenderOverlayStr(float x, float y, const char *text)
 
     // set viewport & scissor
     gl.glViewport(0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
-    gl.glDisable(eGL_SCISSOR_TEST); // TODO(elecro): quick fix for original: gl.glDisablei(eGL_SCISSOR_TEST, 0);
+    if(ExtensionSupported[ExtensionSupported_OES_viewport_array] || ExtensionSupported[ExtensionSupported_NV_viewport_array])
+      gl.glDisablei(eGL_SCISSOR_TEST, 0);
+    else
+      gl.glDisable(eGL_SCISSOR_TEST);
 
     if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
       gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
