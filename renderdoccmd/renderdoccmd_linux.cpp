@@ -760,6 +760,11 @@ int main(int argc, char *argv[])
     count++;
 #endif
 
+#if defined(RENDERDOC_SUPPORT_GLES)
+    support += "GLES, ";
+    count++;
+#endif
+
     if(count == 0)
     {
       support += "None.";
