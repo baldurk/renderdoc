@@ -760,7 +760,5 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer()
   adbForwardPorts();
   adbExecCommand("shell setprop debug.vulkan.layers \\\"\\\"");
   adbExecCommand(
-      "shell pm grant org.renderdoc.renderdoccmd android.permission.READ_EXTERNAL_STORAGE");
-  adbExecCommand(
       "shell am start -n org.renderdoc.renderdoccmd/.Loader -e renderdoccmd remoteserver");
 }
