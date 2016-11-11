@@ -265,13 +265,60 @@ void WrappedOpenGL::glDispatchComputeIndirect(GLintptr indirect)
   }
 }
 
+enum MemoryBarrierBitfield
+{
+};
+
+template <>
+string ToStrHelper<false, MemoryBarrierBitfield>::Get(const MemoryBarrierBitfield &el)
+{
+  string ret;
+
+  if(el == GL_ALL_BARRIER_BITS)
+    return "GL_ALL_BARRIER_BITS";
+
+  if(el & GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT)
+    ret += " | GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT";
+  if(el & GL_ELEMENT_ARRAY_BARRIER_BIT)
+    ret += " | GL_ELEMENT_ARRAY_BARRIER_BIT";
+  if(el & GL_UNIFORM_BARRIER_BIT)
+    ret += " | GL_UNIFORM_BARRIER_BIT";
+  if(el & GL_TEXTURE_FETCH_BARRIER_BIT)
+    ret += " | GL_TEXTURE_FETCH_BARRIER_BIT";
+  if(el & GL_SHADER_IMAGE_ACCESS_BARRIER_BIT)
+    ret += " | GL_SHADER_IMAGE_ACCESS_BARRIER_BIT";
+  if(el & GL_COMMAND_BARRIER_BIT)
+    ret += " | GL_COMMAND_BARRIER_BIT";
+  if(el & GL_PIXEL_BUFFER_BARRIER_BIT)
+    ret += " | GL_PIXEL_BUFFER_BARRIER_BIT";
+  if(el & GL_TEXTURE_UPDATE_BARRIER_BIT)
+    ret += " | GL_TEXTURE_UPDATE_BARRIER_BIT";
+  if(el & GL_BUFFER_UPDATE_BARRIER_BIT)
+    ret += " | GL_BUFFER_UPDATE_BARRIER_BIT";
+  if(el & GL_FRAMEBUFFER_BARRIER_BIT)
+    ret += " | GL_FRAMEBUFFER_BARRIER_BIT";
+  if(el & GL_TRANSFORM_FEEDBACK_BARRIER_BIT)
+    ret += " | GL_TRANSFORM_FEEDBACK_BARRIER_BIT";
+  if(el & GL_ATOMIC_COUNTER_BARRIER_BIT)
+    ret += " | GL_ATOMIC_COUNTER_BARRIER_BIT";
+  if(el & GL_SHADER_STORAGE_BARRIER_BIT)
+    ret += " | GL_SHADER_STORAGE_BARRIER_BIT";
+
+  if(!ret.empty())
+    ret = ret.substr(3);
+
+  return ret;
+}
+
 bool WrappedOpenGL::Serialise_glMemoryBarrier(GLbitfield barriers)
 {
-  SERIALISE_ELEMENT(uint32_t, Barriers, barriers);
+  SERIALISE_ELEMENT(MemoryBarrierBitfield, Barriers, (MemoryBarrierBitfield &)barriers);
+  RDCCOMPILE_ASSERT(sizeof(MemoryBarrierBitfield) == sizeof(uint32_t),
+                    "Fake bitfield enum must be uint32_t sized");
 
   if(m_State <= EXECUTING)
   {
-    m_Real.glMemoryBarrier(Barriers);
+    m_Real.glMemoryBarrier((GLbitfield)Barriers);
   }
 
   return true;
@@ -299,11 +346,13 @@ void WrappedOpenGL::glMemoryBarrier(GLbitfield barriers)
 
 bool WrappedOpenGL::Serialise_glMemoryBarrierByRegion(GLbitfield barriers)
 {
-  SERIALISE_ELEMENT(uint32_t, Barriers, barriers);
+  SERIALISE_ELEMENT(MemoryBarrierBitfield, Barriers, (MemoryBarrierBitfield &)barriers);
+  RDCCOMPILE_ASSERT(sizeof(MemoryBarrierBitfield) == sizeof(uint32_t),
+                    "Fake bitfield enum must be uint32_t sized");
 
   if(m_State <= EXECUTING)
   {
-    m_Real.glMemoryBarrierByRegion(Barriers);
+    m_Real.glMemoryBarrierByRegion((GLbitfield)Barriers);
   }
 
   return true;
