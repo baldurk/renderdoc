@@ -518,7 +518,7 @@ private:
   void ContextProcessChunk(uint64_t offset, GLChunkType chunk);
   void AddUsage(const FetchDrawcall &d);
   void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
-  void AddEvent(GLChunkType type, string description, ResourceId ctx = ResourceId());
+  void AddEvent(string description);
 
   void MarkIndirectBufferUsage();
 

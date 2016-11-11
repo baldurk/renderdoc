@@ -47,7 +47,7 @@ bool WrappedGLES::Serialise_glDispatchCompute(GLuint num_groups_x, GLuint num_gr
 
   if(m_State == READING)
   {
-    AddEvent(DISPATCH_COMPUTE, desc);
+    AddEvent(desc);
     string name =
         "glDispatchCompute(" + ToStr::Get(X) + ", " + ToStr::Get(Y) + ", " + ToStr::Get(Z) + ")";
 
@@ -120,7 +120,7 @@ bool WrappedGLES::Serialise_glDispatchComputeIndirect(GLintptr indirect)
     uint32_t groupSizes[3];
     Compat_glGetBufferSubData(eGL_DISPATCH_INDIRECT_BUFFER, (GLintptr)offs, sizeof(uint32_t) * 3, groupSizes);
 
-    AddEvent(DISPATCH_COMPUTE_INDIRECT, desc);
+    AddEvent(desc);
     string name = "glDispatchComputeIndirect(<" + ToStr::Get(groupSizes[0]) + ", " +
                   ToStr::Get(groupSizes[1]) + ", " + ToStr::Get(groupSizes[2]) + ">)";
 
@@ -337,7 +337,7 @@ bool WrappedGLES::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei count
 
   if(m_State == READING)
   {
-    AddEvent(DRAWARRAYS, desc);
+    AddEvent(desc);
     string name = "glDrawArrays(" + ToStr::Get(Count) + ")";
 
     FetchDrawcall draw;
@@ -404,7 +404,7 @@ bool WrappedGLES::Serialise_glDrawArraysIndirect(GLenum mode, const void *indire
     DrawArraysIndirectCommand params;
     Compat_glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)Offset, sizeof(params), &params);
 
-    AddEvent(DRAWARRAYS_INDIRECT, desc);
+    AddEvent(desc);
     string name = "glDrawArraysIndirect(" + ToStr::Get(params.count) + ", " +
                   ToStr::Get(params.instanceCount) + ">)";
 
@@ -471,7 +471,7 @@ bool WrappedGLES::Serialise_glDrawArraysInstanced(GLenum mode, GLint first, GLsi
 
   if(m_State == READING)
   {
-    AddEvent(DRAWARRAYS_INSTANCED, desc);
+    AddEvent(desc);
     string name =
         "glDrawArraysInstanced(" + ToStr::Get(Count) + ", " + ToStr::Get(InstanceCount) + ")";
 
@@ -540,7 +540,7 @@ bool WrappedGLES::Serialise_glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GL
 
   if(m_State == READING)
   {
-    AddEvent(DRAWARRAYS_INSTANCEDBASEINSTANCE, desc);
+    AddEvent(desc);
     string name = "glDrawArraysInstancedBaseInstance(" + ToStr::Get(Count) + ", " +
                   ToStr::Get(InstanceCount) + ")";
 
@@ -697,7 +697,7 @@ bool WrappedGLES::Serialise_glDrawElements(GLenum mode, GLsizei count, GLenum ty
 
   if(m_State == READING)
   {
-    AddEvent(DRAWELEMENTS, desc);
+    AddEvent(desc);
     string name = "glDrawElements(" + ToStr::Get(Count) + ")";
 
     uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
@@ -770,7 +770,7 @@ bool WrappedGLES::Serialise_glDrawElementsIndirect(GLenum mode, GLenum type, con
     DrawElementsIndirectCommand params;
     Compat_glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, (GLintptr)Offset, sizeof(params), &params);
 
-    AddEvent(DRAWELEMENTS_INDIRECT, desc);
+    AddEvent(desc);
     string name = "glDrawElementsIndirect(" + ToStr::Get(params.count) + ", " +
                   ToStr::Get(params.instanceCount) + ">)";
 
@@ -849,7 +849,7 @@ bool WrappedGLES::Serialise_glDrawRangeElements(GLenum mode, GLuint start, GLuin
 
   if(m_State == READING)
   {
-    AddEvent(DRAWRANGEELEMENTS, desc);
+    AddEvent(desc);
     string name = "glDrawRangeElements(" + ToStr::Get(Count) + ")";
 
     uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
@@ -929,7 +929,7 @@ bool WrappedGLES::Serialise_glDrawRangeElementsBaseVertex(GLenum mode, GLuint st
 
   if(m_State == READING)
   {
-    AddEvent(DRAWRANGEELEMENTSBASEVERTEX, desc);
+    AddEvent(desc);
     string name = "glDrawRangeElementsBaseVertex(" + ToStr::Get(Count) + ")";
 
     uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
@@ -1006,7 +1006,7 @@ bool WrappedGLES::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei count,
 
   if(m_State == READING)
   {
-    AddEvent(DRAWELEMENTS_BASEVERTEX, desc);
+    AddEvent(desc);
     string name = "glDrawElementsBaseVertex(" + ToStr::Get(Count) + ")";
 
     uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
@@ -1082,7 +1082,7 @@ bool WrappedGLES::Serialise_glDrawElementsInstanced(GLenum mode, GLsizei count, 
 
   if(m_State == READING)
   {
-    AddEvent(DRAWELEMENTS_INSTANCED, desc);
+    AddEvent(desc);
     string name = "glDrawElementsInstanced(" + ToStr::Get(Count) + ")";
 
     uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
@@ -1162,7 +1162,7 @@ bool WrappedGLES::Serialise_glDrawElementsInstancedBaseInstanceEXT(GLenum mode, 
 
   if(m_State == READING)
   {
-    AddEvent(DRAWELEMENTS_INSTANCEDBASEINSTANCE, desc);
+    AddEvent(desc);
     string name = "glDrawElementsInstancedBaseInstance(" + ToStr::Get(Count) + ")";
 
     uint32_t IdxSize = Type == eGL_UNSIGNED_BYTE ? 1 : Type == eGL_UNSIGNED_SHORT
@@ -1244,7 +1244,7 @@ bool WrappedGLES::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLsiz
 
   if(m_State == READING)
   {
-    AddEvent(DRAWELEMENTS_INSTANCEDBASEVERTEX, desc);
+    AddEvent(desc);
     string name = "glDrawElementsInstancedBaseVertex(" + ToStr::Get(Count) + ", " +
                   ToStr::Get(InstCount) + ")";
 
@@ -1327,7 +1327,7 @@ bool WrappedGLES::Serialise_glDrawElementsInstancedBaseVertexBaseInstanceEXT(
 
   if(m_State == READING)
   {
-    AddEvent(DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE, desc);
+    AddEvent(desc);
     string name = "glDrawElementsInstancedBaseVertexBaseInstance(" + ToStr::Get(Count) + ", " +
                   ToStr::Get(InstCount) + ")";
 
@@ -1480,7 +1480,7 @@ void WrappedGLES::glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode, 
 //
 //      multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 //
-//      AddEvent(MULTI_DRAWARRAYS, desc);
+//      AddEvent(desc);
 //      AddDrawcall(multidraw, true);
 //
 //      m_CurEventID++;
@@ -1643,7 +1643,7 @@ void WrappedGLES::glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode, 
 //
 //      multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 //
-//      AddEvent(MULTI_DRAWELEMENTS, desc);
+//      AddEvent(desc);
 //      AddDrawcall(multidraw, true);
 //
 //      m_CurEventID++;
@@ -1810,7 +1810,7 @@ void WrappedGLES::glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode, 
 //      multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 //      multidraw.indexByteWidth = IdxSize;
 //
-//      AddEvent(MULTI_DRAWELEMENTSBASEVERTEX, desc);
+//      AddEvent(desc);
 //      AddDrawcall(multidraw, true);
 //
 //      m_CurEventID++;
@@ -1969,7 +1969,7 @@ void WrappedGLES::glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode, 
 //
 //      multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 //
-//      AddEvent(MULTI_DRAWARRAYS_INDIRECT, desc);
+//      AddEvent(desc);
 //      AddDrawcall(multidraw, true);
 //
 //      m_CurEventID++;
@@ -2133,7 +2133,7 @@ void WrappedGLES::glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode, 
 //      multidraw.topology = MakePrimitiveTopology(m_Real, Mode);
 //      multidraw.indexByteWidth = IdxSize;
 //
-//      AddEvent(MULTI_DRAWELEMENTS_INDIRECT, desc);
+//      AddEvent(desc);
 //      AddDrawcall(multidraw, true);
 //
 //      m_CurEventID++;
@@ -2240,7 +2240,7 @@ bool WrappedGLES::Serialise_glClearBufferfv(GLenum buffer, GLint drawbuffer, con
 
   if(m_State == READING)
   {
-    AddEvent(CLEARBUFFERF, desc);
+    AddEvent(desc);
 
     FetchDrawcall draw;
     draw.name = name;
@@ -2361,7 +2361,7 @@ bool WrappedGLES::Serialise_glClearBufferiv(GLenum buffer, GLint drawbuffer, con
 
   if(m_State == READING)
   {
-    AddEvent(CLEARBUFFERI, desc);
+    AddEvent(desc);
 
     FetchDrawcall draw;
     draw.name = name;
@@ -2467,7 +2467,7 @@ bool WrappedGLES::Serialise_glClearBufferuiv(GLenum buffer, GLint drawbuffer, co
 
   if(m_State == READING)
   {
-    AddEvent(CLEARBUFFERUI, desc);
+    AddEvent(desc);
 
     FetchDrawcall draw;
     draw.name = name;
@@ -2557,7 +2557,7 @@ bool WrappedGLES::Serialise_glClearBufferfi(GLenum buffer, GLint drawbuffer, GLf
 
   if(m_State == READING)
   {
-    AddEvent(CLEARBUFFERFI, desc);
+    AddEvent(desc);
     string name = "glClearBufferfi(" + ToStr::Get(d) + ToStr::Get(s) + ")";
 
     FetchDrawcall draw;
@@ -2639,7 +2639,7 @@ bool WrappedGLES::Serialise_glClear(GLbitfield mask)
 
   if(m_State == READING)
   {
-    AddEvent(CLEAR, desc);
+    AddEvent(desc);
     string name = "glClear(";
     if(Mask & GL_COLOR_BUFFER_BIT)
     {

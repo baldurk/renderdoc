@@ -366,7 +366,7 @@ bool WrappedGLES::Serialise_glGenerateMipmap(GLenum target)
 
   if(m_State == READING)
   {
-    AddEvent(GENERATE_MIPMAP, desc);
+    AddEvent(desc);
     string name = "glGenerateMipmap(" + ToStr::Get(id) + ")";
 
     FetchDrawcall draw;
@@ -446,7 +446,7 @@ bool WrappedGLES::Serialise_glCopyImageSubData(GLuint srcName, GLenum srcTarget,
 
   if(m_State == READING)
   {
-    AddEvent(COPY_SUBIMAGE, desc);
+    AddEvent(desc);
     string name = "glCopyImageSubData(" + ToStr::Get(srcid) + ", " + ToStr::Get(dstid) + ")";
 
     FetchDrawcall draw;
