@@ -312,7 +312,8 @@ string ToStrHelper<false, MemoryBarrierBitfield>::Get(const MemoryBarrierBitfiel
 
 bool WrappedOpenGL::Serialise_glMemoryBarrier(GLbitfield barriers)
 {
-  SERIALISE_ELEMENT(MemoryBarrierBitfield, Barriers, (MemoryBarrierBitfield &)barriers);
+  MemoryBarrierBitfield b = (MemoryBarrierBitfield)barriers;
+  SERIALISE_ELEMENT(MemoryBarrierBitfield, Barriers, b);
   RDCCOMPILE_ASSERT(sizeof(MemoryBarrierBitfield) == sizeof(uint32_t),
                     "Fake bitfield enum must be uint32_t sized");
 
@@ -346,7 +347,8 @@ void WrappedOpenGL::glMemoryBarrier(GLbitfield barriers)
 
 bool WrappedOpenGL::Serialise_glMemoryBarrierByRegion(GLbitfield barriers)
 {
-  SERIALISE_ELEMENT(MemoryBarrierBitfield, Barriers, (MemoryBarrierBitfield &)barriers);
+  MemoryBarrierBitfield b = (MemoryBarrierBitfield)barriers;
+  SERIALISE_ELEMENT(MemoryBarrierBitfield, Barriers, b);
   RDCCOMPILE_ASSERT(sizeof(MemoryBarrierBitfield) == sizeof(uint32_t),
                     "Fake bitfield enum must be uint32_t sized");
 
