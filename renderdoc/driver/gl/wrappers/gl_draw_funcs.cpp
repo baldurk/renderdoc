@@ -274,7 +274,7 @@ string ToStrHelper<false, MemoryBarrierBitfield>::Get(const MemoryBarrierBitfiel
 {
   string ret;
 
-  if(el == GL_ALL_BARRIER_BITS)
+  if(el == (MemoryBarrierBitfield)GL_ALL_BARRIER_BITS)
     return "GL_ALL_BARRIER_BITS";
 
   if(el & GL_VERTEX_ATTRIB_ARRAY_BARRIER_BIT)
