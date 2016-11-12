@@ -96,8 +96,6 @@ private slots:
   void on_CaptureCallstacks_toggled(bool checked);
 
 private:
-  void closeEvent(QCloseEvent *event) override;
-
   Ui::CaptureDialog *ui;
   CaptureContext *m_Ctx;
 
