@@ -1100,12 +1100,12 @@ namespace TreelistView
 			return m_nodesMap.ContainsKey(node);
 		}
 
-		public IList<Node> GetSortedNodes()
+		public void Sort()
 		{
 			SortedList<string, Node> list = new SortedList<string,Node>();
 			foreach (Node node in m_nodes)
 				list.Add(node.GetId(), node);
-			return list.Values;
+			m_nodes = new List<Node>(list.Values);
 		}
 
 	}

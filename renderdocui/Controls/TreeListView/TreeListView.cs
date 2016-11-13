@@ -378,6 +378,11 @@ namespace TreelistView
 			get { return m_nodesSelection; }
 		}
 
+		public void SortNodesSelection()
+		{
+			m_nodesSelection.Sort();
+		}
+
         [Browsable(false)]
         public Node SelectedNode
         {

@@ -2134,7 +2134,9 @@ namespace renderdocui.Windows.PipelineState
                 }
                 else if (sender is TreelistView.TreeListView)
                 {
-                    TreelistView.NodesSelection sel = ((TreelistView.TreeListView)sender).NodesSelection;
+                    TreelistView.TreeListView view = (TreelistView.TreeListView)sender;
+                    view.SortNodesSelection();
+                    TreelistView.NodesSelection sel = view.NodesSelection;
 
                     if (sel.Count > 0)
                     {

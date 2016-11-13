@@ -275,6 +275,8 @@ namespace renderdocui.Windows
 
             if (e.KeyCode == Keys.C && e.Control)
             {
+                apiEvents.SortNodesSelection();
+
                 string text = "";
                 foreach (var n in apiEvents.NodesSelection)
                 {

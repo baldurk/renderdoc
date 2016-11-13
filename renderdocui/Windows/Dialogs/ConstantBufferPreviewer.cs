@@ -325,6 +325,8 @@ namespace renderdocui.Controls
             {
                 int[] width = new int[] { 0, 0, 0 };
 
+                variables.SortNodesSelection();
+
                 foreach (var n in variables.NodesSelection)
                 {
                     width[0] = Math.Max(width[0], n[0].ToString().Length);
