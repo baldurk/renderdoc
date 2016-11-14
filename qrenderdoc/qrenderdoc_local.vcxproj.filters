@@ -482,10 +482,6 @@
     <None Include="Windows\TextureViewer.ui">
       <Filter>Windows</Filter>
     </None>
-    <None Include="3rdparty\Qt\bin32\qwindows.dll" />
-    <None Include="3rdparty\Qt\bin32\Qt5Core.dll" />
-    <None Include="3rdparty\Qt\bin32\Qt5Gui.dll" />
-    <None Include="3rdparty\Qt\bin32\Qt5Widgets.dll" />
     <None Include="Widgets\ResourcePreview.ui">
       <Filter>Widgets</Filter>
     </None>

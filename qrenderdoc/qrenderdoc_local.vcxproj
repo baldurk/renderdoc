@@ -457,45 +457,47 @@
     <None Include="3rdparty\Qt\bin32\Qt5Widgets.dll" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Development|Win32' Or '$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Content Include="3rdparty\Qt\bin32\qwindows.dll">
+    <Content Include="3rdparty\Qt\bin32\qwindows.dll" Condition="Exists('3rdparty\Qt\bin32\qwindows.dll')">
       <Link>qwindows.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\Qt\bin32\Qt5Core.dll">
+    <Content Include="3rdparty\Qt\bin32\Qt5Core.dll" Condition="Exists('3rdparty\Qt\bin32\Qt5Core.dll')">
       <Link>Qt5Core.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>False</Visible>
     </Content>
-    <Content Include="3rdparty\Qt\bin32\Qt5Gui.dll">
+    <Content Include="3rdparty\Qt\bin32\Qt5Gui.dll" Condition="Exists('3rdparty\Qt\bin32\Qt5Gui.dll')">
       <Link>Qt5Gui.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\Qt\bin32\Qt5Widgets.dll">
+    <Content Include="3rdparty\Qt\bin32\Qt5Widgets.dll" Condition="Exists('3rdparty\Qt\bin32\Qt5Widgets.dll')">
       <Link>Qt5Widgets.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
     </Content>
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64' Or '$(Configuration)|$(Platform)'=='Release|x64'">
-    <None Include="3rdparty\Qt\bin64\qwindows.dll" />
-    <None Include="3rdparty\Qt\bin64\Qt5Core.dll" />
-    <None Include="3rdparty\Qt\bin64\Qt5Gui.dll" />
-    <None Include="3rdparty\Qt\bin64\Qt5Widgets.dll" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64' Or '$(Configuration)|$(Platform)'=='Release|x64'">
-    <Content Include="3rdparty\Qt\bin64\qwindows.dll">
+    <Content Include="3rdparty\Qt\bin64\qwindows.dll" Condition="Exists('3rdparty\Qt\bin64\qwindows.dll')">
       <Link>qwindows.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\Qt\bin64\Qt5Core.dll">
+    <Content Include="3rdparty\Qt\bin64\Qt5Core.dll" Condition="Exists('3rdparty\Qt\bin64\Qt5Core.dll')">
       <Link>Qt5Core.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\Qt\bin64\Qt5Gui.dll">
+    <Content Include="3rdparty\Qt\bin64\Qt5Gui.dll" Condition="Exists('3rdparty\Qt\bin64\Qt5Gui.dll')">
       <Link>Qt5Gui.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\Qt\bin64\Qt5Widgets.dll">
+    <Content Include="3rdparty\Qt\bin64\Qt5Widgets.dll" Condition="Exists('3rdparty\Qt\bin64\Qt5Widgets.dll')">
       <Link>Qt5Widgets.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
     </Content>
   </ItemGroup>
   <ItemGroup>
