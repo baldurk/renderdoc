@@ -89,7 +89,7 @@ QString CaptureContext::TempLogFilename(QString appname)
   QDir dir(folder);
 
   if(folder == "" || !dir.exists())
-    folder = QDir::tempPath();
+    dir = QDir(QDir::tempPath());
 
   return dir.absoluteFilePath(
       appname + "_" + QDateTime::currentDateTimeUtc().toString("yyyy.MM.dd_HH.mm.ss") + ".rdc");
