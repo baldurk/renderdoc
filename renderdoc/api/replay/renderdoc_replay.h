@@ -426,6 +426,8 @@ struct ITargetControl
 {
   virtual void Shutdown() = 0;
 
+  virtual bool Connected() = 0;
+
   virtual const char *GetTarget() = 0;
   virtual const char *GetAPI() = 0;
   virtual uint32_t GetPID() = 0;
