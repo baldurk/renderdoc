@@ -246,6 +246,8 @@ class QMenu;
 // helper for doing a manual blocking invoke of a dialog
 struct RDDialog
 {
+  static const QMessageBox::StandardButtons YesNoCancel;
+
   static void show(QMenu *menu, QPoint pos);
   static int show(QDialog *dialog);
   static QMessageBox::StandardButton messageBox(

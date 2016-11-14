@@ -269,6 +269,9 @@ void GUIInvoke::blockcall(const std::function<void()> &f)
   invoke->metaObject()->method(methodIndex).invoke(invoke, Qt::BlockingQueuedConnection);
 }
 
+const QMessageBox::StandardButtons RDDialog::YesNoCancel =
+    QMessageBox::StandardButtons(QMessageBox::Yes | QMessageBox::No | QMessageBox::Cancel);
+
 void RDDialog::show(QMenu *menu, QPoint pos)
 {
   menu->setWindowModality(Qt::ApplicationModal);
