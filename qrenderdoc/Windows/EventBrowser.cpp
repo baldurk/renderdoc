@@ -86,6 +86,7 @@ EventBrowser::EventBrowser(CaptureContext *ctx, QWidget *parent)
 
 EventBrowser::~EventBrowser()
 {
+  m_Ctx->windowClosed(this);
   m_Ctx->RemoveLogViewer(this);
   delete ui;
   delete m_SizeDelegate;

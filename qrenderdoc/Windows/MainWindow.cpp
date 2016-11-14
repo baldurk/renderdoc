@@ -55,18 +55,6 @@ struct Version
   static bool isMismatched() { return RENDERDOC_GetVersionString() != bareString(); }
 };
 
-void MainWindow::ShowLiveCapture(LiveCapture *live)
-{
-  m_LiveCaptures.push_back(live);
-  ui->toolWindowManager->addToolWindow(
-      live, ToolWindowManager::AreaReference(ToolWindowManager::LastUsedArea));
-}
-
-void MainWindow::LiveCaptureClosed(LiveCapture *live)
-{
-  m_LiveCaptures.removeOne(live);
-}
-
 MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::MainWindow), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -128,25 +116,7 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
 
   ui->toolWindowManager->setRubberBandLineWidth(50);
   ui->toolWindowManager->setToolWindowCreateCallback([this](const QString &objectName) -> QWidget * {
-    if(objectName == "textureViewer")
-    {
-      TextureViewer *textureViewer = new TextureViewer(m_Ctx);
-      textureViewer->setObjectName("textureViewer");
-      return textureViewer;
-    }
-    else if(objectName == "eventBrowser")
-    {
-      EventBrowser *eventBrowser = new EventBrowser(m_Ctx);
-      eventBrowser->setObjectName("eventBrowser");
-      return eventBrowser;
-    }
-    else if(objectName == "capDialog")
-    {
-      CaptureDialog *capDialog = this->createCaptureDialog();
-      return capDialog;
-    }
-
-    return NULL;
+    return m_Ctx->createToolWindow(objectName);
   });
 
   bool loaded = LoadLayout(0);
@@ -154,20 +124,18 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
   // create default layout if layout failed to load
   if(!loaded)
   {
-    EventBrowser *eventBrowser = new EventBrowser(m_Ctx, this);
-    eventBrowser->setObjectName("eventBrowser");
+    EventBrowser *eventBrowser = m_Ctx->eventBrowser();
 
     ui->toolWindowManager->addToolWindow(eventBrowser, ToolWindowManager::EmptySpace);
 
-    TextureViewer *textureViewer = new TextureViewer(m_Ctx, this);
-    textureViewer->setObjectName("textureViewer");
+    TextureViewer *textureViewer = m_Ctx->textureViewer();
 
     ui->toolWindowManager->addToolWindow(
         textureViewer,
         ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
                                          ui->toolWindowManager->areaOf(eventBrowser), 0.75f));
 
-    CaptureDialog *capDialog = createCaptureDialog();
+    CaptureDialog *capDialog = m_Ctx->captureDialog();
 
     ui->toolWindowManager->addToolWindow(
         capDialog, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
@@ -466,14 +434,15 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
 
 void MainWindow::OpenCaptureConfigFile(const QString &filename, bool exe)
 {
-  CaptureDialog *capDialog = createCaptureDialog();
+  CaptureDialog *capDialog = m_Ctx->captureDialog();
 
   if(exe)
     capDialog->setExecutableFilename(filename);
   else
     capDialog->loadSettings(filename);
 
-  ui->toolWindowManager->addToolWindow(capDialog, ToolWindowManager::EmptySpace);
+  if(!ui->toolWindowManager->toolWindows().contains(capDialog))
+    ui->toolWindowManager->addToolWindow(capDialog, mainToolArea());
 }
 
 QString MainWindow::GetSavePath()
@@ -607,21 +576,6 @@ void MainWindow::CloseLogfile()
   ui->action_Save_Log->setEnabled(false);
 }
 
-CaptureDialog *MainWindow::createCaptureDialog()
-{
-  CaptureDialog *ret = new CaptureDialog(
-      m_Ctx,
-      [this](const QString &exe, const QString &workingDir, const QString &cmdLine,
-             const QList<EnvironmentModification> &env, CaptureOptions opts) {
-        return this->OnCaptureTrigger(exe, workingDir, cmdLine, env, opts);
-      },
-      [this](uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
-             CaptureOptions opts) { return this->OnInjectTrigger(PID, env, name, opts); },
-      this);
-  ret->setObjectName("capDialog");
-  return ret;
-}
-
 void MainWindow::SetTitle(const QString &filename)
 {
   QString prefix = "";
@@ -696,6 +650,50 @@ void MainWindow::PopulateRecentCaptures()
 
   ui->menu_Recent_Capture_Settings->addSeparator();
   ui->menu_Recent_Capture_Settings->addAction(ui->action_Clear_Log_History);
+}
+
+void MainWindow::ShowLiveCapture(LiveCapture *live)
+{
+  m_LiveCaptures.push_back(live);
+  ui->toolWindowManager->addToolWindow(live, mainToolArea());
+}
+
+void MainWindow::LiveCaptureClosed(LiveCapture *live)
+{
+  m_LiveCaptures.removeOne(live);
+}
+
+ToolWindowManager::AreaReference MainWindow::mainToolArea()
+{
+  // bit of a hack. Maybe the ToolWindowManager should track this?
+  // Try and identify where to add new windows, by searching a
+  // priority list of other windows to use their area
+  if(m_Ctx->hasTextureViewer() &&
+     ui->toolWindowManager->toolWindows().contains(m_Ctx->textureViewer()))
+    return ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                            ui->toolWindowManager->areaOf(m_Ctx->textureViewer()));
+  else if(m_Ctx->hasCaptureDialog() &&
+          ui->toolWindowManager->toolWindows().contains(m_Ctx->captureDialog()))
+    return ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                            ui->toolWindowManager->areaOf(m_Ctx->captureDialog()));
+
+  // if all else fails just add to the last place we placed something.
+  return ToolWindowManager::AreaReference(ToolWindowManager::LastUsedArea);
+}
+
+ToolWindowManager::AreaReference MainWindow::leftToolArea()
+{
+  // see mainToolArea()
+  if(m_Ctx->hasTextureViewer() &&
+     ui->toolWindowManager->toolWindows().contains(m_Ctx->textureViewer()))
+    return ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
+                                            ui->toolWindowManager->areaOf(m_Ctx->textureViewer()));
+  else if(m_Ctx->hasCaptureDialog() &&
+          ui->toolWindowManager->toolWindows().contains(m_Ctx->captureDialog()))
+    return ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
+                                            ui->toolWindowManager->areaOf(m_Ctx->captureDialog()));
+
+  return ToolWindowManager::AreaReference(ToolWindowManager::LastUsedArea);
 }
 
 void MainWindow::recentLog(const QString &filename)
@@ -829,38 +827,48 @@ void MainWindow::on_action_Mesh_Output_triggered()
   // TODO Mesh view
 }
 
-void MainWindow::on_action_Event_Viewer_triggered()
+void MainWindow::on_action_Event_Browser_triggered()
 {
-  EventBrowser *eventBrowser = new EventBrowser(m_Ctx, this);
-  eventBrowser->setObjectName("eventBrowser");
+  EventBrowser *eventBrowser = m_Ctx->eventBrowser();
 
-  ui->toolWindowManager->addToolWindow(eventBrowser, ToolWindowManager::EmptySpace);
+  if(ui->toolWindowManager->toolWindows().contains(eventBrowser))
+    eventBrowser->activateWindow();
+  else
+    ui->toolWindowManager->addToolWindow(eventBrowser, leftToolArea());
 }
 
 void MainWindow::on_action_Texture_Viewer_triggered()
 {
-  TextureViewer *textureViewer = new TextureViewer(m_Ctx, this);
-  textureViewer->setObjectName("textureViewer");
+  TextureViewer *textureViewer = m_Ctx->textureViewer();
 
-  ui->toolWindowManager->addToolWindow(textureViewer, ToolWindowManager::EmptySpace);
+  if(ui->toolWindowManager->toolWindows().contains(textureViewer))
+    textureViewer->activateWindow();
+  else
+    ui->toolWindowManager->addToolWindow(textureViewer, mainToolArea());
 }
 
 void MainWindow::on_action_Capture_Log_triggered()
 {
-  CaptureDialog *capDialog = createCaptureDialog();
-
-  ui->toolWindowManager->addToolWindow(capDialog, ToolWindowManager::EmptySpace);
+  CaptureDialog *capDialog = m_Ctx->captureDialog();
 
   capDialog->setInjectMode(false);
+
+  if(ui->toolWindowManager->toolWindows().contains(capDialog))
+    capDialog->activateWindow();
+  else
+    ui->toolWindowManager->addToolWindow(capDialog, mainToolArea());
 }
 
 void MainWindow::on_action_Inject_into_Process_triggered()
 {
-  CaptureDialog *capDialog = createCaptureDialog();
-
-  ui->toolWindowManager->addToolWindow(capDialog, ToolWindowManager::EmptySpace);
+  CaptureDialog *capDialog = m_Ctx->captureDialog();
 
   capDialog->setInjectMode(true);
+
+  if(ui->toolWindowManager->toolWindows().contains(capDialog))
+    capDialog->activateWindow();
+  else
+    ui->toolWindowManager->addToolWindow(capDialog, mainToolArea());
 }
 
 void MainWindow::saveLayout_triggered()

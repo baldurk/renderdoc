@@ -33,7 +33,10 @@
 #include <QProgressDialog>
 #include <QStandardPaths>
 #include <QTimer>
+#include "Windows/Dialogs/CaptureDialog.h"
+#include "Windows/EventBrowser.h"
 #include "Windows/MainWindow.h"
+#include "Windows/TextureViewer.h"
 #include "QRDUtils.h"
 
 CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32_t remoteIdent,
@@ -390,4 +393,75 @@ void *CaptureContext::FillWindowingData(WId widget)
 #error "Unknown platform"
 
 #endif
+}
+
+EventBrowser *CaptureContext::eventBrowser()
+{
+  if(m_EventBrowser)
+    return m_EventBrowser;
+
+  m_EventBrowser = new EventBrowser(this, m_MainWindow);
+  m_EventBrowser->setObjectName("eventBrowser");
+
+  return m_EventBrowser;
+}
+
+TextureViewer *CaptureContext::textureViewer()
+{
+  if(m_TextureViewer)
+    return m_TextureViewer;
+
+  m_TextureViewer = new TextureViewer(this, m_MainWindow);
+  m_TextureViewer->setObjectName("textureViewer");
+
+  return m_TextureViewer;
+}
+
+CaptureDialog *CaptureContext::captureDialog()
+{
+  if(m_CaptureDialog)
+    return m_CaptureDialog;
+
+  m_CaptureDialog = new CaptureDialog(
+      this,
+      [this](const QString &exe, const QString &workingDir, const QString &cmdLine,
+             const QList<EnvironmentModification> &env, CaptureOptions opts) {
+        return m_MainWindow->OnCaptureTrigger(exe, workingDir, cmdLine, env, opts);
+      },
+      [this](uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
+             CaptureOptions opts) { return m_MainWindow->OnInjectTrigger(PID, env, name, opts); },
+      m_MainWindow);
+  m_CaptureDialog->setObjectName("capDialog");
+
+  return m_CaptureDialog;
+}
+
+QWidget *CaptureContext::createToolWindow(const QString &objectName)
+{
+  if(objectName == "textureViewer")
+  {
+    return textureViewer();
+  }
+  else if(objectName == "eventBrowser")
+  {
+    return eventBrowser();
+  }
+  else if(objectName == "capDialog")
+  {
+    return captureDialog();
+  }
+
+  return NULL;
+}
+
+void CaptureContext::windowClosed(QWidget *window)
+{
+  if((QWidget *)m_EventBrowser == window)
+    m_EventBrowser = NULL;
+  else if((QWidget *)m_TextureViewer == window)
+    m_TextureViewer = NULL;
+  else if((QWidget *)m_CaptureDialog == window)
+    m_CaptureDialog = NULL;
+  else
+    qCritical() << "Unrecognised window being closed: " << window;
 }

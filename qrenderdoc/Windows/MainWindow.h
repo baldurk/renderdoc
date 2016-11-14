@@ -27,6 +27,7 @@
 #include <stdint.h>
 #include <QMainWindow>
 #include "Code/CaptureContext.h"
+#include "ToolWindowManager.h"
 
 namespace Ui
 {
@@ -76,7 +77,7 @@ private slots:
   void on_action_Open_Log_triggered();
   void on_action_Close_Log_triggered();
   void on_action_Mesh_Output_triggered();
-  void on_action_Event_Viewer_triggered();
+  void on_action_Event_Browser_triggered();
   void on_action_Texture_Viewer_triggered();
   void on_action_Capture_Log_triggered();
   void on_action_Inject_into_Process_triggered();
@@ -93,6 +94,9 @@ private:
 
   QString dragFilename(const QMimeData *mimeData);
 
+  ToolWindowManager::AreaReference mainToolArea();
+  ToolWindowManager::AreaReference leftToolArea();
+
   Ui::MainWindow *ui;
   CaptureContext *m_Ctx;
 
@@ -106,8 +110,6 @@ private:
   bool m_SavedTempLog = false;
 
   QString m_LastSaveCapturePath = "";
-
-  CaptureDialog *createCaptureDialog();
 
   void SetTitle(const QString &filename);
   void SetTitle();

@@ -629,6 +629,7 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
 
 TextureViewer::~TextureViewer()
 {
+  m_Ctx->windowClosed(this);
   m_Ctx->RemoveLogViewer(this);
   delete ui;
 }

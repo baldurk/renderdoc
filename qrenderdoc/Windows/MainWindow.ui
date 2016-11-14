@@ -120,7 +120,7 @@
     <addaction name="menu_Load_Layout"/>
     <addaction name="separator"/>
     <addaction name="action_Python_Shell"/>
-    <addaction name="action_Event_Viewer"/>
+    <addaction name="action_Event_Browser"/>
     <addaction name="action_Texture_Viewer"/>
     <addaction name="action_Pipeline_State"/>
     <addaction name="action_API_Inspector"/>
@@ -203,9 +203,9 @@
     <string>P&amp;ython Shell</string>
    </property>
   </action>
-  <action name="action_Event_Viewer">
+  <action name="action_Event_Browser">
    <property name="text">
-    <string>&amp;Event Viewer</string>
+    <string>&amp;Event Browser</string>
    </property>
   </action>
   <action name="action_Texture_Viewer">

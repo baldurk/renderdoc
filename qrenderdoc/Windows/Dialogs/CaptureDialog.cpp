@@ -167,6 +167,8 @@ CaptureDialog::CaptureDialog(CaptureContext *ctx, OnCaptureMethod captureCallbac
 
 CaptureDialog::~CaptureDialog()
 {
+  m_Ctx->windowClosed(this);
+
   if(ui->toggleGlobal->isChecked())
   {
     ui->toggleGlobal->setChecked(false);

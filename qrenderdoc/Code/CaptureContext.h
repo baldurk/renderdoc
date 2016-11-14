@@ -46,6 +46,9 @@ struct ILogViewerForm
 };
 
 class MainWindow;
+class EventBrowser;
+class TextureViewer;
+class CaptureDialog;
 class QProgressDialog;
 
 struct Formatter
@@ -91,19 +94,6 @@ public:
 
   void RemoveLogViewer(ILogViewerForm *f) { m_LogViewers.removeAll(f); }
   //////////////////////////////////////////////////////////////////////////////
-  // Singleton windows
-
-  /*
-  private MainWindow m_MainWindow = null;
-  private EventBrowser m_EventBrowser = null;
-  private APIInspector m_APIInspector = null;
-  private DebugMessages m_DebugMessages = null;
-  private TimelineBar m_TimelineBar = null;
-  private TextureViewer m_TextureViewer = null;
-  private PipelineStateViewer m_PipelineStateViewer = null;
-  */
-
-  //////////////////////////////////////////////////////////////////////////////
   // Accessors
 
   RenderManager *Renderer() { return &m_Renderer; }
@@ -132,6 +122,17 @@ public:
   const FetchDrawcall *GetDrawcall(uint32_t eventID) { return GetDrawcall(m_Drawcalls, eventID); }
   WindowingSystem m_CurWinSystem;
   void *FillWindowingData(WId widget);
+
+  MainWindow *mainWindow() { return m_MainWindow; }
+  EventBrowser *eventBrowser();
+  TextureViewer *textureViewer();
+  CaptureDialog *captureDialog();
+
+  bool hasEventBrowser() { return m_EventBrowser != NULL; }
+  bool hasTextureViewer() { return m_TextureViewer != NULL; }
+  bool hasCaptureDialog() { return m_CaptureDialog != NULL; }
+  QWidget *createToolWindow(const QString &objectName);
+  void windowClosed(QWidget *window);
 
   D3D11PipelineState CurD3D11PipelineState;
   D3D12PipelineState CurD3D12PipelineState;
@@ -191,5 +192,8 @@ private:
 
   // Windows
   QProgressDialog *m_Progress;
-  MainWindow *m_MainWindow;
+  MainWindow *m_MainWindow = NULL;
+  EventBrowser *m_EventBrowser = NULL;
+  TextureViewer *m_TextureViewer = NULL;
+  CaptureDialog *m_CaptureDialog = NULL;
 };
