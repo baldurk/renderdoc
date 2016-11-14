@@ -36,10 +36,12 @@ public:
 signals:
   void clicked(QMouseEvent *event);
   void doubleClicked(QMouseEvent *event);
+  void mouseMoved(QMouseEvent *event);
 
 public slots:
 
 protected:
   void mousePressEvent(QMouseEvent *event) override;
+  void mouseMoveEvent(QMouseEvent *event) override;
   void mouseDoubleClickEvent(QMouseEvent *event) override;
 };
