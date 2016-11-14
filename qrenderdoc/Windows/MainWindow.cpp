@@ -304,6 +304,8 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
     rdctype::str machineIdent;
     ReplaySupport support = eReplaySupport_Unsupported;
 
+    // TODO Remote
+
     bool remoteReplay =
         !local /*|| (m_Core.Renderer.Remote != null && m_Core.Renderer.Remote.Connected)*/;
 
@@ -427,6 +429,8 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
       {
         RDDialog::critical(NULL, tr("Not Implemented"), tr("Not Implemented"));
         return;
+
+        // TODO Remote
         /*
         try
         {
@@ -781,6 +785,7 @@ void MainWindow::OnLogfileLoaded()
 
 void MainWindow::OnLogfileClosed()
 {
+  // TODO Remote
   // contextChooser.Enabled = true;
 
   statusText->setText("");
@@ -821,6 +826,7 @@ void MainWindow::on_action_About_triggered()
 
 void MainWindow::on_action_Mesh_Output_triggered()
 {
+  // TODO Mesh view
 }
 
 void MainWindow::on_action_Event_Viewer_triggered()

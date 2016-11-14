@@ -275,6 +275,8 @@ void CaptureDialog::on_exePathBrowse_clicked()
       file = m_Ctx->Config.LastCaptureExe;
   }
 
+  // TODO Remote
+
   // if(m_Core.Renderer.Remote == null)
   {
     QString filename = RDDialog::getOpenFileName(this, tr("Choose executable"), initDir,
@@ -310,6 +312,8 @@ void CaptureDialog::on_workDirBrowse_clicked()
     else if(m_Ctx->Config.LastCapturePath != "")
       initDir = m_Ctx->Config.LastCapturePath;
   }
+
+  // TODO Remote
 
   // if(m_Core.Renderer.Remote == null)
   {
@@ -577,6 +581,8 @@ void CaptureDialog::triggerCapture()
   {
     QString exe = ui->exePath->text();
 
+    // TODO Remote
+
     // for non-remote captures, check the executable locally
     // if(m_Core.Renderer.Remote == null)
     {
@@ -589,6 +595,8 @@ void CaptureDialog::triggerCapture()
     }
 
     QString workingDir = "";
+
+    // TODO Remote
 
     // for non-remote captures, check the directory locally
     // if(m_Core.Renderer.Remote == null)
