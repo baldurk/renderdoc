@@ -228,10 +228,21 @@ namespace TreelistView
 		{
 			m_tooltipTimer.Stop();
 
-			if(m_tooltipNode == null)
+			if (m_tooltipNode == null)
+			{
+				m_tooltip.Hide(this);
 				return;
+			}
 
 			Node node = m_tooltipNode;
+
+			Point p = PointToClient(Cursor.Position);
+
+			if (!ClientRectangle.Contains(p))
+			{
+				m_tooltip.Hide(this);
+				return;
+			}
 
 			int visibleRowIndex = CalcHitRow(PointToClient(Cursor.Position));
 
