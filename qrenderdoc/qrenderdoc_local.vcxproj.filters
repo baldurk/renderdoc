@@ -184,6 +184,12 @@
     <ClCompile Include="Code\qprocessinfo.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\Extended\RDListWidget.cpp">
+      <Filter>Widgets\Extended</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_RDListWidget.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -275,6 +281,9 @@
     </ClInclude>
     <ClInclude Include="Code\qprocessinfo.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Extended\RDListWidget.h">
+      <Filter>Widgets\Extended</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

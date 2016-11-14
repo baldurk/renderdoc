@@ -101,7 +101,8 @@ SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     Widgets/RangeHistogram.cpp \
     Windows/Dialogs/TextureSaveDialog.cpp \
     Windows/Dialogs/CaptureDialog.cpp \
-    Code/QRDUtils.cpp
+    Code/QRDUtils.cpp \
+    Widgets/Extended/RDListWidget.cpp
 
 HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
@@ -127,7 +128,8 @@ HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     Widgets/RangeHistogram.h \
     Windows/Dialogs/TextureSaveDialog.h \
     Windows/Dialogs/CaptureDialog.h \
-    Code/QRDUtils.h
+    Code/QRDUtils.h \
+    Widgets/Extended/RDListWidget.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
