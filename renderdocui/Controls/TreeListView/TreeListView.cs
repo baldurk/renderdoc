@@ -859,6 +859,9 @@ namespace TreelistView
 		}
 		protected override void OnMouseWheel(MouseEventArgs e)
 		{
+			m_tooltip.Hide(this);
+			m_tooltipTimer.Stop();
+
 			int value = m_vScroll.Value - (e.Delta * SystemInformation.MouseWheelScrollLines / 120);
 			if (m_vScroll.Visible)
 				SetVScrollValue(value);
@@ -866,6 +869,9 @@ namespace TreelistView
 		}
 		protected override void OnMouseDown(MouseEventArgs e)
 		{
+			m_tooltip.Hide(this);
+			m_tooltipTimer.Stop();
+
 			this.Focus();
 			if (e.Button == MouseButtons.Right)
 			{
