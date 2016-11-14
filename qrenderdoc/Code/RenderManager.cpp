@@ -78,7 +78,7 @@ void RenderManager::DeleteCapture(const QString &logfile, bool local)
 
 bool RenderManager::IsRunning()
 {
-  return m_Thread->isRunning() && m_Running;
+  return m_Thread && m_Thread->isRunning() && m_Running;
 }
 
 void RenderManager::AsyncInvoke(RenderManager::InvokeMethod m)
