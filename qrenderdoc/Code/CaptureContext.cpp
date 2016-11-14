@@ -377,16 +377,21 @@ void *CaptureContext::FillWindowingData(WId widget)
 
 #elif defined(RENDERDOC_PLATFORM_LINUX)
 
-  static XCBWindowData xcb = {
-      m_XCBConnection, (xcb_window_t)widget,
-  };
-
-  static XlibWindowData xlib = {m_X11Display, (Drawable)widget};
+  static XCBWindowData xcb;
+  static XlibWindowData xlib;
 
   if(m_CurWinSystem == eWindowingSystem_XCB)
+  {
+    xcb.connection = m_XCBConnection;
+    xcb.window = (xcb_window_t)widget;
     return &xcb;
+  }
   else
+  {
+    xlib.display = m_X11Display;
+    xlib.window = (Drawable)widget;
     return &xlib;
+  }
 
 #else
 
