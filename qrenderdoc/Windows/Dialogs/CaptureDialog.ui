@@ -686,7 +686,7 @@ Click here to set up Vulkan capture.</string>
      </property>
      <layout class="QHBoxLayout" name="horizontalLayout_5">
       <item>
-       <widget class="QCheckBox" name="queueCaptureLabel">
+       <widget class="QCheckBox" name="queueFrameCap">
         <property name="text">
          <string>Queue Capture</string>
         </property>

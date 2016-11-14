@@ -37,6 +37,7 @@ class QLabel;
 class QMimeData;
 class QProgressBar;
 class CaptureDialog;
+class LiveCapture;
 
 class MainWindow : public QMainWindow, public ILogViewerForm
 {
@@ -52,13 +53,21 @@ public:
   void OnEventSelected(uint32_t eventID);
 
   void setProgress(float val);
-  bool ownTemporaryLog() { return m_OwnTempLog; }
+  void takeLogOwnership() { m_OwnTempLog = true; }
   void LoadFromFilename(const QString &filename);
+  void LoadLogfile(const QString &filename, bool temporary, bool local);
+  void CloseLogfile();
+  QString GetSavePath();
 
-  void OnCaptureTrigger(const QString &exe, const QString &workingDir, const QString &cmdLine,
-                        const QList<EnvironmentModification> &env, CaptureOptions opts);
-  void OnInjectTrigger(uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
-                       CaptureOptions opts);
+  LiveCapture *OnCaptureTrigger(const QString &exe, const QString &workingDir, const QString &cmdLine,
+                                const QList<EnvironmentModification> &env, CaptureOptions opts);
+  LiveCapture *OnInjectTrigger(uint32_t PID, const QList<EnvironmentModification> &env,
+                               const QString &name, CaptureOptions opts);
+
+  void PopulateRecentFiles();
+
+  void ShowLiveCapture(LiveCapture *live);
+  void LiveCaptureClosed(LiveCapture *live);
 
 private slots:
   // automatic slots
@@ -87,6 +96,8 @@ private:
   Ui::MainWindow *ui;
   CaptureContext *m_Ctx;
 
+  QList<LiveCapture *> m_LiveCaptures;
+
   QLabel *statusIcon;
   QLabel *statusText;
   QProgressBar *statusProgress;
@@ -101,7 +112,6 @@ private:
   void SetTitle(const QString &filename);
   void SetTitle();
 
-  void PopulateRecentFiles();
   void PopulateRecentCaptures();
 
   void recentLog(const QString &filename);
@@ -109,10 +119,7 @@ private:
 
   bool PromptCloseLog();
   bool PromptSaveLog();
-  void LoadLogfile(const QString &filename, bool temporary, bool local);
   void OpenCaptureConfigFile(const QString &filename, bool exe);
-  QString GetSavePath();
-  void CloseLogfile();
 
   QVariantMap saveState();
   bool restoreState(QVariantMap &state);

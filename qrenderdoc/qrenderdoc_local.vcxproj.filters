@@ -184,6 +184,12 @@
     <ClCompile Include="Code\qprocessinfo.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\Dialogs\LiveCapture.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_LiveCapture.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
     <ClCompile Include="Widgets\Extended\RDListWidget.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
@@ -281,6 +287,12 @@
     </ClInclude>
     <ClInclude Include="Code\qprocessinfo.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\Dialogs\LiveCapture.h">
+      <Filter>Windows\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_LiveCapture.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="Widgets\Extended\RDListWidget.h">
       <Filter>Widgets\Extended</Filter>
@@ -490,6 +502,9 @@
       <Filter>Windows\Dialogs</Filter>
     </None>
     <None Include="Windows\Dialogs\CaptureDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </None>
+    <None Include="Windows\Dialogs\LiveCapture.ui">
       <Filter>Windows\Dialogs</Filter>
     </None>
   </ItemGroup>

@@ -289,6 +289,7 @@
     <ClCompile Include="generated\moc_CaptureDialog.cpp" />
     <ClCompile Include="generated\moc_CustomPaintWidget.cpp" />
     <ClCompile Include="generated\moc_EventBrowser.cpp" />
+    <ClCompile Include="generated\moc_LiveCapture.cpp" />
     <ClCompile Include="generated\moc_QRDUtils.cpp" />
     <ClCompile Include="generated\moc_RangeHistogram.cpp" />
     <ClCompile Include="generated\moc_RDDoubleSpinBox.cpp" />
@@ -318,6 +319,7 @@
     <ClCompile Include="Widgets\CustomPaintWidget.cpp" />
     <ClCompile Include="Windows\Dialogs\AboutDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp" />
+    <ClCompile Include="Windows\Dialogs\LiveCapture.cpp" />
     <ClCompile Include="Windows\Dialogs\TextureSaveDialog.cpp" />
     <ClCompile Include="Windows\EventBrowser.cpp" />
     <ClCompile Include="3rdparty\flowlayout\FlowLayout.cpp">
@@ -346,6 +348,7 @@
     <ClInclude Include="generated\ui_AboutDialog.h" />
     <ClInclude Include="generated\ui_CaptureDialog.h" />
     <ClInclude Include="generated\ui_EventBrowser.h" />
+    <ClInclude Include="generated\ui_LiveCapture.h" />
     <ClInclude Include="generated\ui_MainWindow.h" />
     <ClInclude Include="generated\ui_ResourcePreview.h" />
     <ClInclude Include="generated\ui_TextureSaveDialog.h" />
@@ -364,6 +367,7 @@
     <ClInclude Include="Widgets\CustomPaintWidget.h" />
     <ClInclude Include="Windows\Dialogs\AboutDialog.h" />
     <ClInclude Include="Windows\Dialogs\CaptureDialog.h" />
+    <ClInclude Include="Windows\Dialogs\LiveCapture.h" />
     <ClInclude Include="Windows\Dialogs\TextureSaveDialog.h" />
     <ClInclude Include="Windows\EventBrowser.h" />
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h" />
@@ -380,6 +384,7 @@
     <None Include="Widgets\ThumbnailStrip.ui" />
     <None Include="Windows\Dialogs\AboutDialog.ui" />
     <None Include="Windows\Dialogs\CaptureDialog.ui" />
+    <None Include="Windows\Dialogs\LiveCapture.ui" />
     <None Include="Windows\Dialogs\TextureSaveDialog.ui" />
     <None Include="Windows\EventBrowser.ui" />
     <None Include="Windows\MainWindow.ui" />

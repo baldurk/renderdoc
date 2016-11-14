@@ -28,6 +28,8 @@
 #include "Code/QRDUtils.h"
 #include "Code/qprocessinfo.h"
 #include "FlowLayout.h"
+#include "LiveCapture.h"
+#include "ToolWindowManager.h"
 #include "ui_CaptureDialog.h"
 
 #define JSON_ID "rdocCaptureSettings"
@@ -245,7 +247,7 @@ void CaptureDialog::on_exePath_textChanged(const QString &exe)
   updateGlobalHook();
 }
 
-void CaptureDialog::on_vulkanCapture_clicked()
+void CaptureDialog::on_vulkanLayerWarn_clicked()
 {
   // TODO Vulkan Layer
 }
@@ -380,7 +382,7 @@ void CaptureDialog::on_capture_clicked()
 
 void CaptureDialog::on_close_clicked()
 {
-  this->close();
+  ToolWindowManager::closeToolWindow(this);
 }
 
 void CaptureDialog::setSettings(CaptureSettings settings)
@@ -565,13 +567,10 @@ void CaptureDialog::triggerCapture()
       QString name = m_ProcessModel->data(m_ProcessModel->index(item.row(), 0)).toString();
       uint32_t PID = m_ProcessModel->data(m_ProcessModel->index(item.row(), 1)).toUInt();
 
-      // var live = ;
-      m_InjectCallback(PID, settings().Environment, name, settings().Options);
+      LiveCapture *live = m_InjectCallback(PID, settings().Environment, name, settings().Options);
 
-      /*
-      if(queueFrameCap.Checked && live != null)
-        live.QueueCapture((int)queuedCapFrame.Value);
-        */
+      if(ui->queueFrameCap->isChecked() && live != NULL)
+        live->QueueCapture((int)ui->queuedFrame->value());
     }
   }
   else
@@ -606,12 +605,10 @@ void CaptureDialog::triggerCapture()
 
     QString cmdLine = ui->cmdline->text();
 
-    // var live =
-    m_CaptureCallback(exe, workingDir, cmdLine, settings().Environment, settings().Options);
+    LiveCapture *live =
+        m_CaptureCallback(exe, workingDir, cmdLine, settings().Environment, settings().Options);
 
-    /*
-    if(queueFrameCap.Checked && live != null)
-      live.QueueCapture((int)queuedCapFrame.Value);
-      */
+    if(ui->queueFrameCap->isChecked() && live != NULL)
+      live->QueueCapture((int)ui->queuedFrame->value());
   }
 }

@@ -102,6 +102,7 @@ SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     Windows/Dialogs/TextureSaveDialog.cpp \
     Windows/Dialogs/CaptureDialog.cpp \
     Code/QRDUtils.cpp \
+    Windows/Dialogs/LiveCapture.cpp \
     Widgets/Extended/RDListWidget.cpp
 
 HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
@@ -129,6 +130,7 @@ HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     Windows/Dialogs/TextureSaveDialog.h \
     Windows/Dialogs/CaptureDialog.h \
     Code/QRDUtils.h \
+    Windows/Dialogs/LiveCapture.h \
     Widgets/Extended/RDListWidget.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
@@ -138,7 +140,8 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Widgets/ResourcePreview.ui \
     Widgets/ThumbnailStrip.ui \
     Windows/Dialogs/TextureSaveDialog.ui \
-    Windows/Dialogs/CaptureDialog.ui
+    Windows/Dialogs/CaptureDialog.ui \
+    Windows/Dialogs/LiveCapture.ui
 
 RESOURCES += \
     resources.qrc

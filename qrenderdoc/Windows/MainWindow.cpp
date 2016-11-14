@@ -32,6 +32,7 @@
 #include "Resources/resource.h"
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
+#include "Windows/Dialogs/LiveCapture.h"
 #include "EventBrowser.h"
 #include "TextureViewer.h"
 #include "ui_MainWindow.h"
@@ -53,6 +54,18 @@ struct Version
 
   static bool isMismatched() { return RENDERDOC_GetVersionString() != bareString(); }
 };
+
+void MainWindow::ShowLiveCapture(LiveCapture *live)
+{
+  m_LiveCaptures.push_back(live);
+  ui->toolWindowManager->addToolWindow(
+      live, ToolWindowManager::AreaReference(ToolWindowManager::LastUsedArea));
+}
+
+void MainWindow::LiveCaptureClosed(LiveCapture *live)
+{
+  m_LiveCaptures.removeOne(live);
+}
 
 MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::MainWindow), m_Ctx(ctx)
 {
@@ -220,12 +233,13 @@ void MainWindow::LoadFromFilename(const QString &filename)
   }
 }
 
-void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
-                                  const QString &cmdLine, const QList<EnvironmentModification> &env,
-                                  CaptureOptions opts)
+LiveCapture *MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
+                                          const QString &cmdLine,
+                                          const QList<EnvironmentModification> &env,
+                                          CaptureOptions opts)
 {
   if(!PromptCloseLog())
-    return;
+    return NULL;
 
   QString logfile = m_Ctx->TempLogFilename(QFileInfo(exe).baseName());
 
@@ -237,21 +251,21 @@ void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
         this, tr("Error kicking capture"),
         tr("Error launching %1 for capture.\n\nCheck diagnostic log in Help menu for more details.")
             .arg(exe));
-    return;
+    return NULL;
   }
 
-  /*
-  var live = new LiveCapture(m_Core, m_Core.Renderer.Remote == null ? "" :
-  m_Core.Renderer.Remote.Hostname, ret, this);
+  // TODO Remote
+  // m_Core.Renderer.Remote == NULL ? "" : m_Core.Renderer.Remote.Hostname
+  LiveCapture *live = new LiveCapture(m_Ctx, "", ret, this, this);
   ShowLiveCapture(live);
-  return live;*/
+  return live;
 }
 
-void MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentModification> &env,
-                                 const QString &name, CaptureOptions opts)
+LiveCapture *MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentModification> &env,
+                                         const QString &name, CaptureOptions opts)
 {
   if(!PromptCloseLog())
-    return;
+    return NULL;
 
   QString logfile = m_Ctx->TempLogFilename(name);
 
@@ -271,13 +285,12 @@ void MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentModificati
                        tr("Error injecting into process %1 for capture.\n\nCheck diagnostic log in "
                           "Help menu for more details.")
                            .arg(PID));
-    return;
+    return NULL;
   }
 
-  /*
-  var live = new LiveCapture(m_Core, "", ret, this);
+  LiveCapture *live = new LiveCapture(m_Ctx, "", ret, this, this);
   ShowLiveCapture(live);
-  return live;*/
+  return live;
 }
 
 void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local)

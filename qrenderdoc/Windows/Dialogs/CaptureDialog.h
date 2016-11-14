@@ -34,6 +34,7 @@ class CaptureDialog;
 }
 
 class QStandardItemModel;
+class LiveCapture;
 
 struct CaptureSettings
 {
@@ -56,11 +57,11 @@ class CaptureDialog : public QFrame
   Q_OBJECT
 
 public:
-  typedef std::function<void(const QString &exe, const QString &workingDir, const QString &cmdLine,
-                             const QList<EnvironmentModification> &env, CaptureOptions opts)>
+  typedef std::function<LiveCapture *(const QString &exe, const QString &workingDir, const QString &cmdLine,
+                                      const QList<EnvironmentModification> &env, CaptureOptions opts)>
       OnCaptureMethod;
-  typedef std::function<void(uint32_t PID, const QList<EnvironmentModification> &env,
-                             const QString &name, CaptureOptions opts)>
+  typedef std::function<LiveCapture *(uint32_t PID, const QList<EnvironmentModification> &env,
+                                      const QString &name, CaptureOptions opts)>
       OnInjectMethod;
 
   explicit CaptureDialog(CaptureContext *ctx, OnCaptureMethod captureCallback,
@@ -91,7 +92,7 @@ private slots:
 
   void on_toggleGlobal_clicked();
 
-  void on_vulkanCapture_clicked();
+  void on_vulkanLayerWarn_clicked();
 
   void on_CaptureCallstacks_toggled(bool checked);
 
