@@ -519,7 +519,7 @@ QString LiveCapture::MakeText(CaptureLog *log)
     text += " (Remote)";
 
   text += "\n" + log->api;
-  text += "\n" + log->timestamp.toString("YYYY-MM-dd HH:mm:ss");
+  text += "\n" + log->timestamp.toString("yyyy-MM-dd HH:mm:ss");
 
   return text;
 }
