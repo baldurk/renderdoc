@@ -2886,7 +2886,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case BLEND_EQI: Serialise_glBlendEquationi(0, eGL_NONE); break;
     case BLEND_EQ_SEP: Serialise_glBlendEquationSeparate(eGL_NONE, eGL_NONE); break;
     case BLEND_EQ_SEPI: Serialise_glBlendEquationSeparatei(0, eGL_NONE, eGL_NONE); break;
-    case BLEND_BARRIER: Serialise_Common_glBlendBarrier(false); break;
+    case BLEND_BARRIER: Serialise_glBlendBarrier(); break;
 
     case STENCIL_OP: Serialise_glStencilOp(eGL_NONE, eGL_NONE, eGL_NONE); break;
     case STENCIL_OP_SEP:

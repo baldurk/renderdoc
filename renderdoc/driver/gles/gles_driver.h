@@ -928,9 +928,6 @@ public:
   void Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr size, const void *data,
                                       GLbitfield flags);
 
-  bool Serialise_Common_glBlendBarrier(bool isExtension);
-  void Common_glBlendBarrier(bool isExtension);
-
   // GLES - GL compatibility like methods
   void Compat_glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt, GLenum type, GLint width, GLint height, void *ret);
   void Compat_glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data);
@@ -938,8 +935,6 @@ public:
   void Compat_glBufferStorageEXT (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
   void Compat_glTextureStorage2DEXT (GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
   void Compat_glTextureStorage3DEXT (GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth);
-  void * Compat_glMapBufferRangeEXT (GLenum target, GLintptr offset, GLsizeiptr length, GLbitfield access);
-  void Compat_glFlushMappedBufferRangeEXT (GLenum target, GLintptr offset, GLsizeiptr length);
   void Compat_glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance);
   void Compat_glDrawElementsInstancedBaseInstanceEXT(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance);
   void Compat_glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance);

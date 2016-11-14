@@ -416,12 +416,6 @@ void WrappedGLES::glGetObjectLabel(GLenum identifier, GLuint name, GLsizei bufSi
   m_Real.glGetObjectLabel(identifier, name, bufSize, length, label);
 }
 
-void WrappedGLES::glGetObjectLabelEXT(GLenum identifier, GLuint name, GLsizei bufSize,
-                                        GLsizei *length, GLchar *label)
-{
-  m_Real.glGetObjectLabelEXT(identifier, name, bufSize, length, label);
-}
-
 void WrappedGLES::glGetObjectPtrLabel(const void *ptr, GLsizei bufSize, GLsizei *length,
                                         GLchar *label)
 {

@@ -305,7 +305,7 @@ void WrappedGLES::glBufferStorageEXT(GLenum target, GLsizeiptr size, const void 
     // that a buffer declared as coherent must ALWAYS be mapped as coherent).
     if(flags & eGL_MAP_PERSISTENT_BIT_EXT)
     {
-      record->Map.persistentPtr = (byte *)Compat_glMapBufferRangeEXT(
+      record->Map.persistentPtr = (byte *)glMapBufferRange(
           target, 0, size,
           eGL_MAP_WRITE_BIT | eGL_MAP_FLUSH_EXPLICIT_BIT | eGL_MAP_PERSISTENT_BIT_EXT);
       RDCASSERT(record->Map.persistentPtr);
@@ -1297,7 +1297,7 @@ bool WrappedGLES::Serialise_glUnmapBuffer(GLenum target)
       // need to account for the offset
       memcpy(record->Map.persistentPtr + offs + DiffStart, record->Map.ptr + DiffStart,
              DiffEnd - DiffStart);
-      Compat_glFlushMappedBufferRangeEXT(Target, GLintptr(offs + DiffStart),
+      glFlushMappedBufferRange(Target, GLintptr(offs + DiffStart),
                                               DiffEnd - DiffStart);
     }
     else
@@ -1306,7 +1306,7 @@ bool WrappedGLES::Serialise_glUnmapBuffer(GLenum target)
       if (m_State < WRITING)
           safeBufferBinder.saveBinding(Target, GetResourceManager()->GetLiveResource(bufID).name);
 
-      void *ptr = Compat_glMapBufferRangeEXT(Target, (GLintptr)(offs + DiffStart), GLsizeiptr(DiffEnd - DiffStart), GL_MAP_WRITE_BIT);
+      void *ptr = glMapBufferRange(Target, (GLintptr)(offs + DiffStart), GLsizeiptr(DiffEnd - DiffStart), GL_MAP_WRITE_BIT);
       memcpy(ptr, data, size_t(DiffEnd - DiffStart));
       m_Real.glUnmapBuffer(Target);
     }
@@ -1383,7 +1383,7 @@ GLboolean WrappedGLES::glUnmapBuffer(GLenum target)
 
               memcpy(record->Map.persistentPtr + record->Map.offset, record->Map.ptr,
                      record->Map.length);
-              Compat_glFlushMappedBufferRangeEXT(target, record->Map.offset, record->Map.length);
+              glFlushMappedBufferRange(target, record->Map.offset, record->Map.length);
 
               // update shadow storage
               memcpy(record->GetShadowPtr(1) + record->Map.offset, record->Map.ptr, record->Map.length);
@@ -1396,7 +1396,7 @@ GLboolean WrappedGLES::glUnmapBuffer(GLenum target)
               // if we are here for WRITING_IDLE, the app wrote directly into our backing
               // store memory. Just need to copy the data across to GL, no other work needed
               void *ptr =
-                  Compat_glMapBufferRangeEXT(target, (GLintptr)record->Map.offset,
+                  glMapBufferRange(target, (GLintptr)record->Map.offset,
                                                   GLsizeiptr(record->Map.length), GL_MAP_WRITE_BIT);
               memcpy(ptr, record->Map.ptr, record->Map.length);
               m_Real.glUnmapBuffer(target);

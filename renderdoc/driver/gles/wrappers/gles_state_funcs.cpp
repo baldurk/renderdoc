@@ -275,14 +275,10 @@ void WrappedGLES::glBlendEquationSeparatei(GLuint buf, GLenum modeRGB, GLenum mo
   }
 }
 
-bool WrappedGLES::Serialise_Common_glBlendBarrier(bool isExtension)
+bool WrappedGLES::Serialise_glBlendBarrier()
 {
-  SERIALISE_ELEMENT(bool, IsExtension, isExtension);
   if(m_State <= EXECUTING)
   {
-    if (IsExtension)
-      m_Real.glBlendBarrierKHR();
-    else
       m_Real.glBlendBarrier();
   }
 
@@ -290,34 +286,19 @@ bool WrappedGLES::Serialise_Common_glBlendBarrier(bool isExtension)
 }
 
 
-void WrappedGLES::Common_glBlendBarrier(bool isExtension)
+void WrappedGLES::glBlendBarrier()
 {
   CoherentMapImplicitBarrier();
 
-  if (isExtension)
-    m_Real.glBlendBarrierKHR();
-  else
-    m_Real.glBlendBarrier();
+  m_Real.glBlendBarrier();
 
   if(m_State == WRITING_CAPFRAME)
   {
     SCOPED_SERIALISE_CONTEXT(BLEND_BARRIER);
-    Serialise_Common_glBlendBarrier(isExtension);
+    Serialise_glBlendBarrier();
 
     m_ContextRecord->AddChunk(scope.Get());
   }
-}
-
-
-void WrappedGLES::glBlendBarrierKHR()
-{
-  Common_glBlendBarrier(true);
-}
-
-
-void WrappedGLES::glBlendBarrier()
-{
-  Common_glBlendBarrier(false);
 }
 
 bool WrappedGLES::Serialise_glStencilFunc(GLenum func, GLint ref, GLuint mask)

@@ -68,7 +68,7 @@ while(<HOOKSET>)
     }
     elsif($current != \@unsupported)
     {
-        if($line =~ /(PFN.*PROC) (.*);(\ *\/\/ aliases )?([a-zA-Z0-9_ ,]*)?/)
+        if($line =~ /(PFN.*PROC)[ ]+([^ ]*);([ ]*\/\/ aliases[ ]+([a-zA-Z0-9_ ,]+))?/)
         {
             my $typedef = $1;
             my $name = $2;
@@ -311,6 +311,14 @@ foreach my $el (@glextfuncs)
         print "    HookExtensionAlias($el->{typedef}, $el->{name}, $_); \\\n";
     }
 }
+foreach my $el (@dllexportfuncs)
+{
+    foreach(@{$el->{aliases}})
+    {
+        print "    HookExtensionAlias($el->{typedef}, $el->{name}, $_); \\\n";
+    }
+}
+
 print "\n";
 print "\n";
 print "\n";
