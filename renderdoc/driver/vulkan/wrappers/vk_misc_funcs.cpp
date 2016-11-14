@@ -1043,6 +1043,8 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectTagEXT(VkDevice device,
       VkDebugMarkerObjectTagInfoEXT unwrapped = *pTagInfo;
 
       if(unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT ||
+         unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT ||
+         unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_QUEUE_EXT ||
          unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT ||
          unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT)
       {
@@ -1099,6 +1101,8 @@ VkResult WrappedVulkan::vkDebugMarkerSetObjectNameEXT(VkDevice device,
     VkDebugMarkerObjectNameInfoEXT unwrapped = *pNameInfo;
 
     if(unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT ||
+       unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_PHYSICAL_DEVICE_EXT ||
+       unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_QUEUE_EXT ||
        unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_DEVICE_EXT ||
        unwrapped.objectType == VK_DEBUG_REPORT_OBJECT_TYPE_COMMAND_BUFFER_EXT)
     {
