@@ -225,7 +225,7 @@ namespace TreelistView
 
 			Node node = m_tooltipNode;
 
-			int visibleRowIndex = NodeCollection.GetVisibleNodeIndex(node);
+			int visibleRowIndex = CalcHitRow(PointToClient(Cursor.Position));
 
 			Rectangle rowRect = CalcRowRectangle(visibleRowIndex);
 			rowRect.X = RowHeaderWidth() - HScrollValue();
