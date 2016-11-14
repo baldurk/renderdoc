@@ -285,7 +285,6 @@
     <ClCompile Include="Code\qprocessinfo.cpp" />
     <ClCompile Include="Code\QRDUtils.cpp" />
     <ClCompile Include="generated\moc_AboutDialog.cpp" />
-    <ClCompile Include="generated\moc_CaptureContext.cpp" />
     <ClCompile Include="generated\moc_CaptureDialog.cpp" />
     <ClCompile Include="generated\moc_CustomPaintWidget.cpp" />
     <ClCompile Include="generated\moc_EventBrowser.cpp" />

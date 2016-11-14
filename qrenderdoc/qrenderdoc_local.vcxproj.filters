@@ -121,9 +121,6 @@
     <ClCompile Include="Code\CaptureContext.cpp">
       <Filter>Code</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_CaptureContext.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Code\CommonPipelineState.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
