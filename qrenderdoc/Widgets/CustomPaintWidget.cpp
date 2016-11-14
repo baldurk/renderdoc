@@ -33,7 +33,6 @@ CustomPaintWidget::CustomPaintWidget(QWidget *parent) : QWidget(parent)
   m_Ctx = NULL;
   m_Output = NULL;
   setAttribute(Qt::WA_OpaquePaintEvent);
-  setAttribute(Qt::WA_PaintOnScreen);
   setMouseTracking(true);
 }
 
@@ -42,7 +41,8 @@ CustomPaintWidget::CustomPaintWidget(CaptureContext *c, QWidget *parent) : QWidg
   m_Ctx = c;
   m_Output = NULL;
   setAttribute(Qt::WA_OpaquePaintEvent);
-  setAttribute(Qt::WA_PaintOnScreen);
+  if(c)
+    setAttribute(Qt::WA_PaintOnScreen);
   setMouseTracking(true);
 }
 
