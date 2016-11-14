@@ -216,6 +216,14 @@ namespace TreelistView
 			AddScrollBars();
 		}
 
+		protected override void Dispose(bool disposing)
+		{
+			m_tooltipTimer.Stop();
+			m_tooltip.Hide(this);
+			m_tooltip.Dispose();
+			base.Dispose(disposing);
+		}
+
 		void tooltipTick(object sender, EventArgs e)
 		{
 			m_tooltipTimer.Stop();
