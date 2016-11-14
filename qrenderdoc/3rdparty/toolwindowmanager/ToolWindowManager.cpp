@@ -30,6 +30,7 @@
 #include <QEvent>
 #include <QApplication>
 #include <QDrag>
+#include <QMetaMethod>
 #include <QMimeData>
 #include <QMouseEvent>
 #include <QPainter>
@@ -790,6 +791,16 @@ void ToolWindowManager::tabCloseRequested(int index) {
   if (!m_toolWindows.contains(toolWindow)) {
     qWarning("unknown tab in tab widget");
     return;
+  }
+
+  int methodIndex = toolWindow->metaObject()->indexOfMethod(QMetaObject::normalizedSignature("checkAllowClose()"));
+
+  if(methodIndex >= 0) {
+    bool ret = true;
+    toolWindow->metaObject()->method(methodIndex).invoke(toolWindow, Qt::DirectConnection, Q_RETURN_ARG(bool, ret));
+
+    if(!ret)
+      return;
   }
 
   if(toolWindowProperties(toolWindow) & ToolWindowManager::HideOnClose)
