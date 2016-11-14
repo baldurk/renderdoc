@@ -2477,6 +2477,8 @@ void TextureViewer::OnLogfileLoaded()
     m_Output->SetOutputConfig(c);
 
     RT_UpdateAndDisplay(r);
+
+    GUIInvoke::call([this]() { OnEventSelected(m_Ctx->CurEvent()); });
   });
 }
 
