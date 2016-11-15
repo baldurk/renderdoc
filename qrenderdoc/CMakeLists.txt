@@ -20,7 +20,7 @@ endif()
 add_custom_command(OUTPUT QRenderDoc
 	COMMAND qmake "CONFIG+=${QMAKE_CONFIG}" "QMAKE_LFLAGS+=${QMAKE_LDFLAGS}" "DEFINES+=GIT_COMMIT_HASH_LITERAL=${GIT_COMMIT_HASH}" "DESTDIR=${output_dir}" ${CMAKE_CURRENT_SOURCE_DIR}
 	COMMAND MAKEFLAGS= make --no-print-directory)
-add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc)
+add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc)
 
 install (PROGRAMS ${output_dir}/qrenderdoc DESTINATION bin)
 
