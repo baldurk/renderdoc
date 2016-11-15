@@ -40,14 +40,20 @@ void WrappedVulkan::MakeSubpassLoadRP(VkRenderPassCreateInfo &info,
   // so that this RP doesn't perform any layout transitions
   for(uint32_t a = 0; a < sub->colorAttachmentCount; a++)
   {
-    att[sub->pColorAttachments[a].attachment].initialLayout =
-        att[sub->pColorAttachments[a].attachment].finalLayout = sub->pColorAttachments[a].layout;
+    if(sub->pColorAttachments[a].attachment != VK_ATTACHMENT_UNUSED)
+    {
+      att[sub->pColorAttachments[a].attachment].initialLayout =
+          att[sub->pColorAttachments[a].attachment].finalLayout = sub->pColorAttachments[a].layout;
+    }
   }
 
   for(uint32_t a = 0; a < sub->inputAttachmentCount; a++)
   {
-    att[sub->pInputAttachments[a].attachment].initialLayout =
-        att[sub->pInputAttachments[a].attachment].finalLayout = sub->pInputAttachments[a].layout;
+    if(sub->pInputAttachments[a].attachment != VK_ATTACHMENT_UNUSED)
+    {
+      att[sub->pInputAttachments[a].attachment].initialLayout =
+          att[sub->pInputAttachments[a].attachment].finalLayout = sub->pInputAttachments[a].layout;
+    }
   }
 
   if(sub->pDepthStencilAttachment && sub->pDepthStencilAttachment->attachment != VK_ATTACHMENT_UNUSED)

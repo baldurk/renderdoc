@@ -2570,6 +2570,9 @@ void WrappedVulkan::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
 
       for(int i = 0; i < 8 && i < (int)colAtt.size(); i++)
       {
+        if(colAtt[i] == VK_ATTACHMENT_UNUSED)
+          continue;
+
         RDCASSERT(colAtt[i] < atts.size());
         draw.outputs[i] = atts[colAtt[i]].view;
       }
@@ -2791,6 +2794,8 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
     for(size_t i = 0; i < rp.subpasses[state.subpass].inputAttachments.size(); i++)
     {
       uint32_t att = rp.subpasses[state.subpass].inputAttachments[i];
+      if(att == VK_ATTACHMENT_UNUSED)
+        continue;
       drawNode.resourceUsage.push_back(
           std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
                          EventUsage(e, eUsage_InputTarget, fb.attachments[att].view)));
@@ -2799,6 +2804,8 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
     for(size_t i = 0; i < rp.subpasses[state.subpass].colorAttachments.size(); i++)
     {
       uint32_t att = rp.subpasses[state.subpass].colorAttachments[i];
+      if(att == VK_ATTACHMENT_UNUSED)
+        continue;
       drawNode.resourceUsage.push_back(
           std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
                          EventUsage(e, eUsage_ColourTarget, fb.attachments[att].view)));

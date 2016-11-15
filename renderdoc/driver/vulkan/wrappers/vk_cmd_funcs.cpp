@@ -70,15 +70,25 @@ std::vector<VkImageMemoryBarrier> WrappedVulkan::GetImplicitRenderPassBarriers(u
     // transition the attachments in this subpass
     for(size_t i = 0; i < rpinfo.subpasses[subpass].colorAttachments.size(); i++)
     {
+      uint32_t attIdx = rpinfo.subpasses[subpass].colorAttachments[i];
+
+      if(attIdx == VK_ATTACHMENT_UNUSED)
+        continue;
+
       atts.push_back(VkAttachmentReference());
-      atts.back().attachment = rpinfo.subpasses[subpass].colorAttachments[i];
+      atts.back().attachment = attIdx;
       atts.back().layout = rpinfo.subpasses[subpass].colorLayouts[i];
     }
 
     for(size_t i = 0; i < rpinfo.subpasses[subpass].inputAttachments.size(); i++)
     {
+      uint32_t attIdx = rpinfo.subpasses[subpass].inputAttachments[i];
+
+      if(attIdx == VK_ATTACHMENT_UNUSED)
+        continue;
+
       atts.push_back(VkAttachmentReference());
-      atts.back().attachment = rpinfo.subpasses[subpass].inputAttachments[i];
+      atts.back().attachment = attIdx;
       atts.back().layout = rpinfo.subpasses[subpass].inputLayouts[i];
     }
 
