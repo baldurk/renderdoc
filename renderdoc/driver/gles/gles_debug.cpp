@@ -252,6 +252,8 @@ void GLESReplay::InitDebugData()
   if(m_pDriver == NULL)
     return;
 
+  RDCEraseEl(DebugData);
+
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.0f);
 
   {
