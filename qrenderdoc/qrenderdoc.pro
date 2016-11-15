@@ -34,6 +34,11 @@ win32 {
 	UI_DIR = $$_PRO_FILE_PWD_/generated
 	RCC_DIR = $$_PRO_FILE_PWD_/generated
 
+	# generate pdb files even in release
+	QMAKE_LFLAGS_RELEASE+=/MAP
+	QMAKE_CFLAGS_RELEASE += /Zi
+	QMAKE_LFLAGS_RELEASE +=/debug /opt:ref
+
 	!contains(QMAKE_TARGET.arch, x86_64) {
 		Debug:DESTDIR = $$_PRO_FILE_PWD_/../Win32/Development
 		Release:DESTDIR = $$_PRO_FILE_PWD_/../Win32/Release
