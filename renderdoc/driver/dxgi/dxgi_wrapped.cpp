@@ -384,23 +384,32 @@ HRESULT WrappedIDXGISwapChain4::GetBuffer(
   static const GUID ID3D10Resource_uuid = {
       0x9b7e4c01, 0x342c, 0x4106, {0xa1, 0x9f, 0x4f, 0x27, 0x04, 0xf6, 0x89, 0xf0}};
 
-  if(riid == ID3D10Texture2D_uuid || riid == ID3D10Resource_uuid)
+  IID uuid = riid;
+
+  if(uuid == ID3D10Texture2D_uuid || uuid == ID3D10Resource_uuid)
   {
     RDCERR("Querying swapchain buffers via D3D10 interface UUIDs is not supported");
     return E_NOINTERFACE;
   }
-  else if(riid != __uuidof(ID3D11Texture2D) && riid != __uuidof(ID3D11Resource) &&
-          riid != __uuidof(ID3D12Resource))
+  else if(uuid == __uuidof(IDXGISurface))
+  {
+    RDCWARN("Querying swapchain buffer for IDXGISurface. This query is ambiguous.");
+
+    // query as native format so that wrapping works as expected
+    uuid = m_pDevice->GetBackbufferUUID();
+  }
+  else if(uuid != __uuidof(ID3D11Texture2D) && uuid != __uuidof(ID3D11Resource) &&
+          uuid != __uuidof(ID3D12Resource))
   {
     RDCERR("Unsupported or unrecognised UUID passed to IDXGISwapChain::GetBuffer - %s",
-           ToStr::Get(riid).c_str());
+           ToStr::Get(uuid).c_str());
     return E_NOINTERFACE;
   }
 
-  RDCASSERT(riid == __uuidof(ID3D11Texture2D) || riid == __uuidof(ID3D11Resource) ||
-            riid == __uuidof(ID3D12Resource));
+  RDCASSERT(uuid == __uuidof(ID3D11Texture2D) || uuid == __uuidof(ID3D11Resource) ||
+            uuid == __uuidof(ID3D12Resource));
 
-  HRESULT ret = m_pReal->GetBuffer(Buffer, riid, ppSurface);
+  HRESULT ret = m_pReal->GetBuffer(Buffer, uuid, ppSurface);
 
   {
     IUnknown *realSurface = (IUnknown *)*ppSurface;
@@ -417,6 +426,17 @@ HRESULT WrappedIDXGISwapChain4::GetBuffer(
       DXGI_SWAP_CHAIN_DESC desc;
       GetDesc(&desc);
       tex = m_pDevice->WrapSwapchainBuffer(this, &desc, Buffer, realSurface);
+    }
+
+    // if the original UUID was IDXGISurface, fixup for the expected interface being returned
+    if(riid == __uuidof(IDXGISurface))
+    {
+      IDXGISurface *surf = NULL;
+      HRESULT hr = tex->QueryInterface(__uuidof(IDXGISurface), (void **)&surf);
+      RDCASSERTEQUAL(hr, S_OK);
+
+      tex->Release();
+      tex = surf;
     }
 
     *ppSurface = tex;
