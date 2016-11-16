@@ -211,6 +211,9 @@ private:
   void RenderTextInternal(ID3D12GraphicsCommandList *list, float x, float y, const char *text);
   bool RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg, bool blendAlpha);
 
+  void PrepareTextureSampling(ID3D12Resource *resource, FormatComponentType typeHint, int &resType,
+                              vector<D3D12_RESOURCE_BARRIER> &barriers);
+
   string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
                        const char *profile, ID3DBlob **srcblob);
   static ID3DBlob *MakeRootSig(const vector<D3D12_ROOT_PARAMETER> &rootSig);

@@ -2201,121 +2201,21 @@ bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
   return RenderTextureInternal(m_OutputWindows[m_CurrentOutputWindow].rtv, cfg, blendAlpha);
 }
 
-bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg,
-                                              bool blendAlpha)
+void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource,
+                                               FormatComponentType typeHint, int &resType,
+                                               vector<D3D12_RESOURCE_BARRIER> &barriers)
 {
-  DebugVertexCBuffer vertexData;
-  DebugPixelCBufferData pixelData;
-
-  pixelData.AlwaysZero = 0.0f;
-
-  float x = cfg.offx;
-  float y = cfg.offy;
-
-  vertexData.Position.x = x * (2.0f / float(GetWidth()));
-  vertexData.Position.y = -y * (2.0f / float(GetHeight()));
-
-  vertexData.ScreenAspect.x = float(GetHeight()) / float(GetWidth());
-  vertexData.ScreenAspect.y = 1.0f;
-
-  vertexData.TextureResolution.x = 1.0f / vertexData.ScreenAspect.x;
-  vertexData.TextureResolution.y = 1.0f;
-
-  vertexData.LineStrip = 0;
-
-  if(cfg.rangemax <= cfg.rangemin)
-    cfg.rangemax += 0.00001f;
-
-  pixelData.Channels.x = cfg.Red ? 1.0f : 0.0f;
-  pixelData.Channels.y = cfg.Green ? 1.0f : 0.0f;
-  pixelData.Channels.z = cfg.Blue ? 1.0f : 0.0f;
-  pixelData.Channels.w = cfg.Alpha ? 1.0f : 0.0f;
-
-  pixelData.RangeMinimum = cfg.rangemin;
-  pixelData.InverseRangeSize = 1.0f / (cfg.rangemax - cfg.rangemin);
-
-  if(_isnan(pixelData.InverseRangeSize) || !_finite(pixelData.InverseRangeSize))
-  {
-    pixelData.InverseRangeSize = FLT_MAX;
-  }
-
-  pixelData.WireframeColour.x = cfg.HDRMul;
-
-  pixelData.RawOutput = cfg.rawoutput ? 1 : 0;
-
-  pixelData.FlipY = cfg.FlipY ? 1 : 0;
-
-  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[cfg.texid];
-  D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
-
-  pixelData.SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, resourceDesc.SampleDesc.Count - 1);
-
-  // hacky resolve
-  if(cfg.sampleIdx == ~0U)
-    pixelData.SampleIdx = -int(resourceDesc.SampleDesc.Count);
-
-  if(resourceDesc.Format == DXGI_FORMAT_UNKNOWN)
-    return false;
-
-  if(resourceDesc.Format == DXGI_FORMAT_A8_UNORM && cfg.scale <= 0.0f)
-  {
-    pixelData.Channels.x = pixelData.Channels.y = pixelData.Channels.z = 0.0f;
-    pixelData.Channels.w = 1.0f;
-  }
-
-  float tex_x = float(resourceDesc.Width);
-  float tex_y =
-      float(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D ? 100 : resourceDesc.Height);
-
-  vertexData.TextureResolution.x *= tex_x / float(GetWidth());
-  vertexData.TextureResolution.y *= tex_y / float(GetHeight());
-
-  pixelData.TextureResolutionPS.x = float(RDCMAX(1U, uint32_t(resourceDesc.Width >> cfg.mip)));
-  pixelData.TextureResolutionPS.y = float(RDCMAX(1U, uint32_t(resourceDesc.Height >> cfg.mip)));
-  pixelData.TextureResolutionPS.z =
-      float(RDCMAX(1U, uint32_t(resourceDesc.DepthOrArraySize >> cfg.mip)));
-
-  if(resourceDesc.DepthOrArraySize > 1 && resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
-    pixelData.TextureResolutionPS.z = float(resourceDesc.DepthOrArraySize);
-
-  vertexData.Scale = cfg.scale;
-  pixelData.ScalePS = cfg.scale;
-
-  if(cfg.scale <= 0.0f)
-  {
-    float xscale = float(GetWidth()) / tex_x;
-    float yscale = float(GetHeight()) / tex_y;
-
-    vertexData.Scale = RDCMIN(xscale, yscale);
-
-    if(yscale > xscale)
-    {
-      vertexData.Position.x = 0;
-      vertexData.Position.y = tex_y * vertexData.Scale / float(GetHeight()) - 1.0f;
-    }
-    else
-    {
-      vertexData.Position.y = 0;
-      vertexData.Position.x = 1.0f - tex_x * vertexData.Scale / float(GetWidth());
-    }
-  }
-
-  vertexData.Scale *= 2.0f;    // viewport is -1 -> 1
-
-  pixelData.MipLevel = (float)cfg.mip;
-  pixelData.OutputDisplayFormat = RESTYPE_TEX2D;
-  pixelData.Slice = float(RDCCLAMP(cfg.sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
-
   int srvOffset = 0;
 
+  D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
+
   D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
-  srvDesc.Format = GetTypedFormat(resourceDesc.Format, cfg.typeHint);
+  srvDesc.Format = GetTypedFormat(resourceDesc.Format, typeHint);
   srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
 
   if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
   {
     srvOffset = RESTYPE_TEX3D;
-    pixelData.Slice = float(cfg.sliceFace) / float(resourceDesc.DepthOrArraySize);
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE3D;
     srvDesc.Texture3D.MipLevels = ~0U;
   }
@@ -2349,37 +2249,17 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
     srvDesc.Texture1DArray.ArraySize = ~0U;
   }
 
-  pixelData.OutputDisplayFormat = srvOffset;
+  resType = srvOffset;
 
   // if it's a depth and stencil image, increment (as the restype for
   // depth/stencil is one higher than that for depth only).
   if(IsDepthAndStencilFormat(resourceDesc.Format))
-    pixelData.OutputDisplayFormat++;
-
-  if(cfg.overlay == eTexOverlay_NaN)
-  {
-    pixelData.OutputDisplayFormat |= TEXDISPLAY_NANS;
-  }
-
-  if(cfg.overlay == eTexOverlay_Clipping)
-  {
-    pixelData.OutputDisplayFormat |= TEXDISPLAY_CLIPPING;
-  }
+    resType++;
 
   if(IsUIntFormat(resourceDesc.Format))
-  {
-    pixelData.OutputDisplayFormat |= TEXDISPLAY_UINT_TEX;
     srvOffset += 10;
-  }
   if(IsIntFormat(resourceDesc.Format))
-  {
-    pixelData.OutputDisplayFormat |= TEXDISPLAY_SINT_TEX;
     srvOffset += 20;
-  }
-  if(!IsSRGBFormat(resourceDesc.Format) && cfg.linearDisplayAsGamma)
-  {
-    pixelData.OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
-  }
 
   D3D12_CPU_DESCRIPTOR_HANDLE srv = cbvsrvHeap->GetCPUDescriptorHandleForHeapStart();
   srv.ptr += srvOffset * sizeof(D3D12Descriptor);
@@ -2445,14 +2325,10 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
       stencilSRVDesc.Texture2DArray.PlaneSlice = 1;
   }
 
-  FillBuffer(m_GenericVSCbuffer, &vertexData, sizeof(DebugVertexCBuffer));
-  FillBuffer(m_GenericPSCbuffer, &pixelData, sizeof(DebugPixelCBufferData));
-
   // transition resource to D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE
   const vector<D3D12_RESOURCE_STATES> &states =
       m_WrappedDevice->GetSubresourceStates(GetResID(resource));
 
-  vector<D3D12_RESOURCE_BARRIER> barriers;
   barriers.reserve(states.size());
   for(size_t i = 0; i < states.size(); i++)
   {
@@ -2548,10 +2424,17 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
     std::swap(texResourceBarrier.Transition.StateBefore, texResourceBarrier.Transition.StateAfter);
     list->ResourceBarrier(1, &texResourceBarrier);
 
-    list->Close();
+    // real resource back to itself
+    for(size_t i = 0; i < barriers.size(); i++)
+      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
 
-    m_WrappedDevice->ExecuteLists();
-    m_WrappedDevice->FlushLists();
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    // don't do any barriers outside in the source function
+    barriers.clear();
+
+    list->Close();
 
     resource = m_TexResource;
   }
@@ -2562,11 +2445,143 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
     srv.ptr += sizeof(D3D12Descriptor);
     m_WrappedDevice->CreateShaderResourceView(resource, &stencilSRVDesc, srv);
   }
+}
+
+bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg,
+                                              bool blendAlpha)
+{
+  DebugVertexCBuffer vertexData;
+  DebugPixelCBufferData pixelData;
+
+  pixelData.AlwaysZero = 0.0f;
+
+  float x = cfg.offx;
+  float y = cfg.offy;
+
+  vertexData.Position.x = x * (2.0f / float(GetWidth()));
+  vertexData.Position.y = -y * (2.0f / float(GetHeight()));
+
+  vertexData.ScreenAspect.x = float(GetHeight()) / float(GetWidth());
+  vertexData.ScreenAspect.y = 1.0f;
+
+  vertexData.TextureResolution.x = 1.0f / vertexData.ScreenAspect.x;
+  vertexData.TextureResolution.y = 1.0f;
+
+  vertexData.LineStrip = 0;
+
+  if(cfg.rangemax <= cfg.rangemin)
+    cfg.rangemax += 0.00001f;
+
+  pixelData.Channels.x = cfg.Red ? 1.0f : 0.0f;
+  pixelData.Channels.y = cfg.Green ? 1.0f : 0.0f;
+  pixelData.Channels.z = cfg.Blue ? 1.0f : 0.0f;
+  pixelData.Channels.w = cfg.Alpha ? 1.0f : 0.0f;
+
+  pixelData.RangeMinimum = cfg.rangemin;
+  pixelData.InverseRangeSize = 1.0f / (cfg.rangemax - cfg.rangemin);
+
+  if(_isnan(pixelData.InverseRangeSize) || !_finite(pixelData.InverseRangeSize))
+  {
+    pixelData.InverseRangeSize = FLT_MAX;
+  }
+
+  pixelData.WireframeColour.x = cfg.HDRMul;
+
+  pixelData.RawOutput = cfg.rawoutput ? 1 : 0;
+
+  pixelData.FlipY = cfg.FlipY ? 1 : 0;
+
+  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[cfg.texid];
+  D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
+
+  pixelData.SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, resourceDesc.SampleDesc.Count - 1);
+
+  // hacky resolve
+  if(cfg.sampleIdx == ~0U)
+    pixelData.SampleIdx = -int(resourceDesc.SampleDesc.Count);
+
+  if(resourceDesc.Format == DXGI_FORMAT_UNKNOWN)
+    return false;
+
+  if(resourceDesc.Format == DXGI_FORMAT_A8_UNORM && cfg.scale <= 0.0f)
+  {
+    pixelData.Channels.x = pixelData.Channels.y = pixelData.Channels.z = 0.0f;
+    pixelData.Channels.w = 1.0f;
+  }
+
+  float tex_x = float(resourceDesc.Width);
+  float tex_y =
+      float(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D ? 100 : resourceDesc.Height);
+
+  vertexData.TextureResolution.x *= tex_x / float(GetWidth());
+  vertexData.TextureResolution.y *= tex_y / float(GetHeight());
+
+  pixelData.TextureResolutionPS.x = float(RDCMAX(1U, uint32_t(resourceDesc.Width >> cfg.mip)));
+  pixelData.TextureResolutionPS.y = float(RDCMAX(1U, uint32_t(resourceDesc.Height >> cfg.mip)));
+  pixelData.TextureResolutionPS.z =
+      float(RDCMAX(1U, uint32_t(resourceDesc.DepthOrArraySize >> cfg.mip)));
+
+  if(resourceDesc.DepthOrArraySize > 1 && resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    pixelData.TextureResolutionPS.z = float(resourceDesc.DepthOrArraySize);
+
+  if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    pixelData.Slice = float(cfg.sliceFace) / float(resourceDesc.DepthOrArraySize);
+
+  vertexData.Scale = cfg.scale;
+  pixelData.ScalePS = cfg.scale;
+
+  if(cfg.scale <= 0.0f)
+  {
+    float xscale = float(GetWidth()) / tex_x;
+    float yscale = float(GetHeight()) / tex_y;
+
+    vertexData.Scale = RDCMIN(xscale, yscale);
+
+    if(yscale > xscale)
+    {
+      vertexData.Position.x = 0;
+      vertexData.Position.y = tex_y * vertexData.Scale / float(GetHeight()) - 1.0f;
+    }
+    else
+    {
+      vertexData.Position.y = 0;
+      vertexData.Position.x = 1.0f - tex_x * vertexData.Scale / float(GetWidth());
+    }
+  }
+
+  vertexData.Scale *= 2.0f;    // viewport is -1 -> 1
+
+  pixelData.MipLevel = (float)cfg.mip;
+  pixelData.OutputDisplayFormat = RESTYPE_TEX2D;
+  pixelData.Slice = float(RDCCLAMP(cfg.sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
+
+  vector<D3D12_RESOURCE_BARRIER> barriers;
+  int resType = 0;
+  PrepareTextureSampling(resource, cfg.typeHint, resType, barriers);
+
+  pixelData.OutputDisplayFormat = resType;
+
+  if(cfg.overlay == eTexOverlay_NaN)
+    pixelData.OutputDisplayFormat |= TEXDISPLAY_NANS;
+
+  if(cfg.overlay == eTexOverlay_Clipping)
+    pixelData.OutputDisplayFormat |= TEXDISPLAY_CLIPPING;
+
+  if(IsUIntFormat(resourceDesc.Format))
+    pixelData.OutputDisplayFormat |= TEXDISPLAY_UINT_TEX;
+  else if(IsIntFormat(resourceDesc.Format))
+    pixelData.OutputDisplayFormat |= TEXDISPLAY_SINT_TEX;
+
+  if(!IsSRGBFormat(resourceDesc.Format) && cfg.linearDisplayAsGamma)
+    pixelData.OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
+
+  FillBuffer(m_GenericVSCbuffer, &vertexData, sizeof(DebugVertexCBuffer));
+  FillBuffer(m_GenericPSCbuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
   {
     ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
-    if(!copy && !barriers.empty())
+    if(!barriers.empty())
       list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
     list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
