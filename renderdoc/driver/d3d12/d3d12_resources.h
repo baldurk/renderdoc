@@ -453,6 +453,53 @@ public:
 
   bool IsGraphics() { return graphics != NULL; }
   bool IsCompute() { return compute != NULL; }
+  D3D12_COMPUTE_PIPELINE_STATE_DESC GetComputeDesc()
+  {
+    D3D12_COMPUTE_PIPELINE_STATE_DESC ret = *compute;
+
+    ret.CS = ((ShaderEntry *)compute->CS.pShaderBytecode)->GetDesc();
+
+    return ret;
+  }
+
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC GetGraphicsDesc()
+  {
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC ret = *graphics;
+
+    ShaderEntry *vs = (ShaderEntry *)graphics->VS.pShaderBytecode;
+    ShaderEntry *hs = (ShaderEntry *)graphics->HS.pShaderBytecode;
+    ShaderEntry *ds = (ShaderEntry *)graphics->DS.pShaderBytecode;
+    ShaderEntry *gs = (ShaderEntry *)graphics->GS.pShaderBytecode;
+    ShaderEntry *ps = (ShaderEntry *)graphics->PS.pShaderBytecode;
+
+    if(vs)
+      ret.VS = vs->GetDesc();
+    else
+      RDCEraseEl(ret.VS);
+
+    if(hs)
+      ret.HS = hs->GetDesc();
+    else
+      RDCEraseEl(ret.HS);
+
+    if(ds)
+      ret.DS = ds->GetDesc();
+    else
+      RDCEraseEl(ret.DS);
+
+    if(gs)
+      ret.GS = gs->GetDesc();
+    else
+      RDCEraseEl(ret.GS);
+
+    if(ps)
+      ret.PS = ps->GetDesc();
+    else
+      RDCEraseEl(ret.PS);
+
+    return ret;
+  }
+
   struct DXBCKey
   {
     DXBCKey(const D3D12_SHADER_BYTECODE &byteCode)
