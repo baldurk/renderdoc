@@ -191,10 +191,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
       return;
     }
 
-    m_PickPixelRTV = rtvHeap->GetCPUDescriptorHandleForHeapStart();
-    m_PickPixelRTV.ptr +=
-        FIXED_RTV_PICK_PIXEL *
-        m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+    m_PickPixelRTV = GetCPUHandle(PICK_PIXEL_RTV);
 
     m_WrappedDevice->CreateRenderTargetView(m_PickPixelTex, NULL, m_PickPixelRTV);
   }
@@ -274,7 +271,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   sampDesc.Filter = D3D12_FILTER_MIN_MAG_LINEAR_MIP_POINT;
 
-  samp.ptr += m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
+  samp.ptr += sizeof(D3D12Descriptor);
   m_WrappedDevice->CreateSampler(&sampDesc, samp);
 
   m_GenericVSCbuffer = MakeCBuffer(1024);
@@ -604,8 +601,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
       return;
     }
 
-    D3D12_CPU_DESCRIPTOR_HANDLE uav = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
-    uav.ptr += MINMAX_TILE_UAVS * sizeof(D3D12Descriptor);
+    D3D12_CPU_DESCRIPTOR_HANDLE uav = GetCPUHandle(MINMAX_TILE_UAVS);
 
     D3D12_UNORDERED_ACCESS_VIEW_DESC tileDesc = {};
     tileDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -623,8 +619,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     tileDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
     m_WrappedDevice->CreateUnorderedAccessView(m_MinMaxTileBuffer, NULL, &tileDesc, uav);
 
-    uav = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
-    uav.ptr += HISTOGRAM_UAV * sizeof(D3D12Descriptor);
+    uav = GetCPUHandle(HISTOGRAM_UAV);
 
     // re-use the tile buffer for histogram
     tileDesc.Format = DXGI_FORMAT_R32_UINT;
@@ -638,8 +633,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     srvDesc.Buffer.FirstElement = 0;
     srvDesc.Buffer.NumElements = UINT(minmaxDesc.Width / sizeof(Vec4f));
 
-    D3D12_CPU_DESCRIPTOR_HANDLE srv = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
-    srv.ptr += MINMAX_TILE_SRVS * sizeof(D3D12Descriptor);
+    D3D12_CPU_DESCRIPTOR_HANDLE srv = GetCPUHandle(MINMAX_TILE_SRVS);
 
     m_WrappedDevice->CreateShaderResourceView(m_MinMaxTileBuffer, &srvDesc, srv);
 
@@ -665,8 +659,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
       return;
     }
 
-    uav = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
-    uav.ptr += MINMAX_RESULT_UAVS * sizeof(D3D12Descriptor);
+    uav = GetCPUHandle(MINMAX_RESULT_UAVS);
 
     tileDesc.Buffer.NumElements = 2;
 
@@ -807,8 +800,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     SAFE_RELEASE(uploadBuf);
 
-    D3D12_CPU_DESCRIPTOR_HANDLE srv = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
-    srv.ptr += FONT_SRV * sizeof(D3D12Descriptor);
+    D3D12_CPU_DESCRIPTOR_HANDLE srv = GetCPUHandle(FONT_SRV);
 
     m_WrappedDevice->CreateShaderResourceView(m_Font.Tex, NULL, srv);
 
@@ -1335,15 +1327,11 @@ uint64_t D3D12DebugManager::MakeOutputWindow(WindowingSystem system, void *data,
 
   outw.bbIdx = 0;
 
-  outw.rtv = rtvHeap->GetCPUDescriptorHandleForHeapStart();
-  outw.rtv.ptr += FIXED_RTV_COUNT *
-                  m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
-  outw.rtv.ptr += SIZE_T(m_OutputWindowID) *
-                  m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_RTV);
+  outw.rtv = GetCPUHandle(FIRST_WIN_RTV);
+  outw.rtv.ptr += SIZE_T(m_OutputWindowID) * sizeof(D3D12Descriptor);
 
-  outw.dsv = dsvHeap->GetCPUDescriptorHandleForHeapStart();
-  outw.dsv.ptr += SIZE_T(m_DSVID) *
-                  m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_DSV);
+  outw.dsv = GetCPUHandle(FIRST_WIN_DSV);
+  outw.dsv.ptr += SIZE_T(m_DSVID) * sizeof(D3D12Descriptor);
 
   outw.col = NULL;
   outw.MakeRTV(depth);
@@ -1564,6 +1552,48 @@ void D3D12DebugManager::FillBuffer(ID3D12Resource *buf, void *data, size_t size)
     memcpy(ptr, data, size);
     buf->Unmap(0, NULL);
   }
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetCPUHandle(CBVUAVSRVSlot slot)
+{
+  D3D12_CPU_DESCRIPTOR_HANDLE ret = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
+  ret.ptr += slot * sizeof(D3D12Descriptor);
+  return ret;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetCPUHandle(RTVSlot slot)
+{
+  D3D12_CPU_DESCRIPTOR_HANDLE ret = rtvHeap->GetCPUDescriptorHandleForHeapStart();
+  ret.ptr += slot * sizeof(D3D12Descriptor);
+  return ret;
+}
+
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetCPUHandle(DSVSlot slot)
+{
+  D3D12_CPU_DESCRIPTOR_HANDLE ret = dsvHeap->GetCPUDescriptorHandleForHeapStart();
+  ret.ptr += slot * sizeof(D3D12Descriptor);
+  return ret;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetGPUHandle(CBVUAVSRVSlot slot)
+{
+  D3D12_GPU_DESCRIPTOR_HANDLE ret = cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart();
+  ret.ptr += slot * sizeof(D3D12Descriptor);
+  return ret;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetGPUHandle(RTVSlot slot)
+{
+  D3D12_GPU_DESCRIPTOR_HANDLE ret = rtvHeap->GetGPUDescriptorHandleForHeapStart();
+  ret.ptr += slot * sizeof(D3D12Descriptor);
+  return ret;
+}
+
+D3D12_GPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetGPUHandle(DSVSlot slot)
+{
+  D3D12_GPU_DESCRIPTOR_HANDLE ret = dsvHeap->GetGPUDescriptorHandleForHeapStart();
+  ret.ptr += slot * sizeof(D3D12Descriptor);
+  return ret;
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::AllocRTV()
@@ -2518,7 +2548,7 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource,
   if(IsIntFormat(resourceDesc.Format))
     srvOffset += 20;
 
-  D3D12_CPU_DESCRIPTOR_HANDLE srv = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
+  D3D12_CPU_DESCRIPTOR_HANDLE srv = GetCPUHandle(FIRST_TEXDISPLAY_SRV);
   srv.ptr += srvOffset * sizeof(D3D12Descriptor);
 
   D3D12_RESOURCE_STATES realResourceState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -2771,10 +2801,8 @@ bool D3D12DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
     ID3D12DescriptorHeap *heaps[] = {cbvsrvuavHeap, samplerHeap};
     list->SetDescriptorHeaps(2, heaps);
 
-    D3D12_GPU_DESCRIPTOR_HANDLE uav = cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart();
-    D3D12_GPU_DESCRIPTOR_HANDLE srv = cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart();
-
-    uav.ptr += MINMAX_TILE_UAVS * sizeof(D3D12Descriptor);
+    D3D12_GPU_DESCRIPTOR_HANDLE uav = GetGPUHandle(MINMAX_TILE_UAVS);
+    D3D12_GPU_DESCRIPTOR_HANDLE srv = GetGPUHandle(FIRST_TEXDISPLAY_SRV);
 
     list->SetComputeRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
     list->SetComputeRootDescriptorTable(1, srv);
@@ -2800,9 +2828,8 @@ bool D3D12DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
     list->ResourceBarrier(2, tileBarriers);
 
     // set up second dispatch
-    srv.ptr += MINMAX_TILE_SRVS * sizeof(D3D12Descriptor);
-    uav = cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart();
-    uav.ptr += MINMAX_RESULT_UAVS * sizeof(D3D12Descriptor);
+    srv = GetGPUHandle(MINMAX_TILE_SRVS);
+    uav = GetGPUHandle(MINMAX_RESULT_UAVS);
 
     list->SetComputeRootDescriptorTable(1, srv);
     list->SetComputeRootDescriptorTable(3, uav);
@@ -2962,14 +2989,9 @@ bool D3D12DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
     ID3D12DescriptorHeap *heaps[] = {cbvsrvuavHeap, samplerHeap};
     list->SetDescriptorHeaps(2, heaps);
 
-    D3D12_GPU_DESCRIPTOR_HANDLE uav = cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart();
-    D3D12_GPU_DESCRIPTOR_HANDLE srv = cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart();
-
-    uav.ptr += HISTOGRAM_UAV * sizeof(D3D12Descriptor);
-
-    D3D12_CPU_DESCRIPTOR_HANDLE uavcpu = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
-
-    uavcpu.ptr += HISTOGRAM_UAV * sizeof(D3D12Descriptor);
+    D3D12_GPU_DESCRIPTOR_HANDLE uav = GetGPUHandle(HISTOGRAM_UAV);
+    D3D12_GPU_DESCRIPTOR_HANDLE srv = GetGPUHandle(FIRST_TEXDISPLAY_SRV);
+    D3D12_CPU_DESCRIPTOR_HANDLE uavcpu = GetCPUHandle(HISTOGRAM_UAV);
 
     UINT zeroes[] = {0, 0, 0, 0};
     list->ClearUnorderedAccessViewUint(uav, uavcpu, m_MinMaxTileBuffer, zeroes, 0, NULL);

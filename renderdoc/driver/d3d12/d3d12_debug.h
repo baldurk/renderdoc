@@ -128,20 +128,39 @@ private:
   // how much character space is in the ring buffer
   static const int FONT_BUFFER_CHARS = 8192;
 
-  // baked indices in heaps
-  static const int FONT_SRV = 128;
-  static const int MINMAX_TILE_SRVS = FONT_SRV + 1;
-
-  static const int MINMAX_TILE_UAVS = MINMAX_TILE_SRVS + 3;
-  static const int MINMAX_RESULT_UAVS = MINMAX_TILE_UAVS + 3;
-  static const int HISTOGRAM_UAV = MINMAX_RESULT_UAVS + 3;
-
-  enum
+  // baked indices in descriptor heaps
+  enum CBVUAVSRVSlot
   {
-    FIXED_RTV_PICK_PIXEL,
-    FIXED_RTV_CUSTOM_SHADER,
-    FIXED_RTV_COUNT,
+    FIRST_TEXDISPLAY_SRV = 0,
+    FONT_SRV = 128,
+    MINMAX_TILE_SRVS,
+
+    MINMAX_TILE_UAVS = MINMAX_TILE_SRVS + 3,
+    MINMAX_RESULT_UAVS = MINMAX_TILE_UAVS + 3,
+    HISTOGRAM_UAV = MINMAX_RESULT_UAVS + 3,
   };
+
+  enum RTVSlot
+  {
+    PICK_PIXEL_RTV,
+    CUSTOM_SHADER_RTV,
+    OVERLAY_RTV,
+    FIRST_WIN_RTV,
+  };
+
+  enum DSVSlot
+  {
+    OVERLAY_DSV,
+    FIRST_WIN_DSV,
+  };
+
+  D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(CBVUAVSRVSlot slot);
+  D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(RTVSlot slot);
+  D3D12_CPU_DESCRIPTOR_HANDLE GetCPUHandle(DSVSlot slot);
+
+  D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(CBVUAVSRVSlot slot);
+  D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(RTVSlot slot);
+  D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(DSVSlot slot);
 
   // indices for the pipelines, for the three possible backbuffer formats
   enum
