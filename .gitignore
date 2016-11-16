@@ -21,6 +21,7 @@ obj/
 .obj/
 *.opensdf
 *.VC.*db
+.vs/
 *.pdb
 *.sln.ide/
 *.so
