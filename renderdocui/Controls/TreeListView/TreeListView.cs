@@ -196,6 +196,7 @@ namespace TreelistView
 			this.TabStop = true;
 
 			m_tooltip = new ToolTip();
+			m_tooltipVisible = false;
 			m_tooltip.InitialDelay = 0;
 			m_tooltip.UseAnimation = false;
 			m_tooltip.UseFading = false;
@@ -219,7 +220,8 @@ namespace TreelistView
 		protected override void Dispose(bool disposing)
 		{
 			m_tooltipTimer.Stop();
-			m_tooltip.Hide(this);
+			if(m_tooltipVisible)
+				m_tooltip.Hide(this);
 			m_tooltip.Dispose();
 			base.Dispose(disposing);
 		}
@@ -231,6 +233,7 @@ namespace TreelistView
 			if (m_tooltipNode == null)
 			{
 				m_tooltip.Hide(this);
+				m_tooltipVisible = false;
 				return;
 			}
 
@@ -241,6 +244,7 @@ namespace TreelistView
 			if (!ClientRectangle.Contains(p))
 			{
 				m_tooltip.Hide(this);
+				m_tooltipVisible = false;
 				return;
 			}
 
@@ -293,7 +297,10 @@ namespace TreelistView
 						datastring = data.ToString();
 
 					if(datastring.Length > 0)
+					{
 						m_tooltip.Show(datastring, this, cellRect.X, cellRect.Y);
+						m_tooltipVisible = true;
+					}
 				}
 			}
 		}
@@ -363,6 +370,7 @@ namespace TreelistView
 		ToolTip     m_tooltip;
 		Node        m_tooltipNode;
 		Timer       m_tooltipTimer;
+		bool        m_tooltipVisible;
 		VScrollBar	m_vScroll;
 		HScrollBar	m_hScroll;
 		Panel		m_hScrollFiller;
@@ -826,6 +834,7 @@ namespace TreelistView
             {
                 m_tooltipNode = null;
                 m_tooltip.Hide(this);
+                m_tooltipVisible = false;
                 m_tooltipTimer.Stop();
             }
 
@@ -860,6 +869,7 @@ namespace TreelistView
 		protected override void OnMouseWheel(MouseEventArgs e)
 		{
 			m_tooltip.Hide(this);
+			m_tooltipVisible = false;
 			m_tooltipTimer.Stop();
 
 			int value = m_vScroll.Value - (e.Delta * SystemInformation.MouseWheelScrollLines / 120);
@@ -870,6 +880,7 @@ namespace TreelistView
 		protected override void OnMouseDown(MouseEventArgs e)
 		{
 			m_tooltip.Hide(this);
+			m_tooltipVisible = false;
 			m_tooltipTimer.Stop();
 
 			this.Focus();
@@ -955,6 +966,7 @@ namespace TreelistView
 		{
 			m_tooltipNode = null;
 			m_tooltip.Hide(this);
+			m_tooltipVisible = false;
 			m_tooltipTimer.Stop();
 			base.OnLeave(e);
 			Invalidate();
@@ -964,6 +976,7 @@ namespace TreelistView
         {
             m_tooltipNode = null;
             m_tooltip.Hide(this);
+            m_tooltipVisible = false;
             m_tooltipTimer.Stop();
             base.OnLostFocus(e);
             Invalidate();
