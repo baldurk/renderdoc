@@ -142,7 +142,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
 
   hr = m_WrappedDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap),
-                                             (void **)&cbvsrvHeap);
+                                             (void **)&cbvsrvuavHeap);
 
   if(FAILED(hr))
   {
@@ -277,8 +277,11 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   samp.ptr += m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_SAMPLER);
   m_WrappedDevice->CreateSampler(&sampDesc, samp);
 
-  m_GenericVSCbuffer = MakeCBuffer(sizeof(DebugVertexCBuffer));
+  m_GenericVSCbuffer = MakeCBuffer(1024);
   m_GenericPSCbuffer = MakeCBuffer(sizeof(DebugPixelCBufferData));
+
+  RDCCOMPILE_ASSERT(sizeof(DebugVertexCBuffer) < 1024, "CBuffer isn't large enough");
+  RDCCOMPILE_ASSERT(sizeof(HistogramCBufferData) < 1024, "CBuffer isn't large enough");
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.4f);
 
@@ -340,6 +343,52 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   hr = m_WrappedDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
                                             __uuidof(ID3D12RootSignature),
                                             (void **)&m_TexDisplayRootSig);
+
+  SAFE_RELEASE(root);
+
+  rootSig.clear();
+
+  // 0: CBV
+  param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+  param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+  param.Descriptor.ShaderRegister = 0;
+
+  rootSig.push_back(param);
+
+  // 1: Texture SRVs
+  param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+  param.DescriptorTable.NumDescriptorRanges = 1;
+  param.DescriptorTable.pDescriptorRanges = &srvrange;
+
+  rootSig.push_back(param);
+
+  // 2: Samplers
+  param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+  param.DescriptorTable.NumDescriptorRanges = 1;
+  param.DescriptorTable.pDescriptorRanges = &samplerrange;
+
+  rootSig.push_back(param);
+
+  // 3: UAVs
+  D3D12_DESCRIPTOR_RANGE uavrange = {};
+  uavrange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+  uavrange.BaseShaderRegister = 0;
+  uavrange.NumDescriptors = 3;
+  uavrange.OffsetInDescriptorsFromTableStart = 0;
+
+  param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+  param.DescriptorTable.NumDescriptorRanges = 1;
+  param.DescriptorTable.pDescriptorRanges = &uavrange;
+
+  rootSig.push_back(param);
+
+  root = MakeRootSig(rootSig);
+
+  RDCASSERT(root);
+
+  hr = m_WrappedDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+                                            __uuidof(ID3D12RootSignature),
+                                            (void **)&m_HistogramRootSig);
 
   SAFE_RELEASE(root);
 
@@ -431,9 +480,200 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Couldn't create m_CheckerboardPipe! 0x%08x", hr);
   }
 
+  string histogramhlsl = GetEmbeddedResource(debugcbuffers_h);
+  histogramhlsl += GetEmbeddedResource(debugcommon_hlsl);
+  histogramhlsl += GetEmbeddedResource(histogram_hlsl);
+
+  RenderDoc::Inst().SetProgress(DebugManagerInit, 0.7f);
+
+  D3D12_COMPUTE_PIPELINE_STATE_DESC compPipeDesc;
+  RDCEraseEl(compPipeDesc);
+
+  compPipeDesc.pRootSignature = m_HistogramRootSig;
+
+  RDCEraseEl(m_TileMinMaxPipe);
+  RDCEraseEl(m_HistogramPipe);
+  RDCEraseEl(m_ResultMinMaxPipe);
+
+  for(int t = RESTYPE_TEX1D; t <= RESTYPE_TEX2D_MS; t++)
+  {
+    // skip unused cube slot
+    if(t == 8)
+      continue;
+
+    // float, uint, sint
+    for(int i = 0; i < 3; i++)
+    {
+      ID3DBlob *tile = NULL;
+      ID3DBlob *result = NULL;
+      ID3DBlob *histogram = NULL;
+
+      string hlsl = string("#define SHADER_RESTYPE ") + ToStr::Get(t) + "\n";
+      hlsl += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
+      hlsl += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
+      hlsl += histogramhlsl;
+
+      GetShaderBlob(hlsl.c_str(), "RENDERDOC_TileMinMaxCS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                    "cs_5_0", &tile);
+
+      compPipeDesc.CS.BytecodeLength = tile->GetBufferSize();
+      compPipeDesc.CS.pShaderBytecode = tile->GetBufferPointer();
+
+      hr = m_WrappedDevice->CreateComputePipelineState(&compPipeDesc, __uuidof(ID3D12PipelineState),
+                                                       (void **)&m_TileMinMaxPipe[t][i]);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create m_TileMinMaxPipe! 0x%08x", hr);
+      }
+
+      GetShaderBlob(hlsl.c_str(), "RENDERDOC_HistogramCS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "cs_5_0",
+                    &histogram);
+
+      compPipeDesc.CS.BytecodeLength = histogram->GetBufferSize();
+      compPipeDesc.CS.pShaderBytecode = histogram->GetBufferPointer();
+
+      hr = m_WrappedDevice->CreateComputePipelineState(&compPipeDesc, __uuidof(ID3D12PipelineState),
+                                                       (void **)&m_HistogramPipe[t][i]);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create m_HistogramPipe! 0x%08x", hr);
+      }
+
+      if(t == 1)
+      {
+        GetShaderBlob(hlsl.c_str(), "RENDERDOC_ResultMinMaxCS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                      "cs_5_0", &result);
+
+        compPipeDesc.CS.BytecodeLength = result->GetBufferSize();
+        compPipeDesc.CS.pShaderBytecode = result->GetBufferPointer();
+
+        hr = m_WrappedDevice->CreateComputePipelineState(
+            &compPipeDesc, __uuidof(ID3D12PipelineState), (void **)&m_ResultMinMaxPipe[i]);
+
+        if(FAILED(hr))
+        {
+          RDCERR("Couldn't create m_HistogramPipe! 0x%08x", hr);
+        }
+      }
+
+      SAFE_RELEASE(tile);
+      SAFE_RELEASE(histogram);
+      SAFE_RELEASE(result);
+    }
+  }
+
   SAFE_RELEASE(GenericVS);
   SAFE_RELEASE(TexDisplayPS);
   SAFE_RELEASE(CheckerboardPS);
+
+  {
+    const uint64_t maxTexDim = 16384;
+    const uint64_t blockPixSize = HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK;
+    const uint64_t maxBlocksNeeded = (maxTexDim * maxTexDim) / (blockPixSize * blockPixSize);
+
+    D3D12_RESOURCE_DESC minmaxDesc = {};
+    minmaxDesc.Alignment = 0;
+    minmaxDesc.DepthOrArraySize = 1;
+    minmaxDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    minmaxDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    minmaxDesc.Format = DXGI_FORMAT_UNKNOWN;
+    minmaxDesc.Height = 1;
+    minmaxDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    minmaxDesc.MipLevels = 1;
+    minmaxDesc.SampleDesc.Count = 1;
+    minmaxDesc.SampleDesc.Quality = 0;
+    minmaxDesc.Width =
+        2 * sizeof(Vec4f) * HGRAM_TILES_PER_BLOCK * HGRAM_TILES_PER_BLOCK * maxBlocksNeeded;
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    hr = m_WrappedDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &minmaxDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, NULL,
+        __uuidof(ID3D12Resource), (void **)&m_MinMaxTileBuffer);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create tile buffer for min/max, HRESULT: 0x%08x", hr);
+      return;
+    }
+
+    D3D12_CPU_DESCRIPTOR_HANDLE uav = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
+    uav.ptr += MINMAX_TILE_UAVS * sizeof(D3D12Descriptor);
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC tileDesc = {};
+    tileDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    tileDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+    tileDesc.Buffer.FirstElement = 0;
+    tileDesc.Buffer.NumElements = UINT(minmaxDesc.Width / sizeof(Vec4f));
+
+    m_WrappedDevice->CreateUnorderedAccessView(m_MinMaxTileBuffer, NULL, &tileDesc, uav);
+
+    uav.ptr += sizeof(D3D12Descriptor);
+    tileDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
+    m_WrappedDevice->CreateUnorderedAccessView(m_MinMaxTileBuffer, NULL, &tileDesc, uav);
+
+    uav.ptr += sizeof(D3D12Descriptor);
+    tileDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
+    m_WrappedDevice->CreateUnorderedAccessView(m_MinMaxTileBuffer, NULL, &tileDesc, uav);
+
+    D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
+    srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+    srvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    srvDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+    srvDesc.Buffer.FirstElement = 0;
+    srvDesc.Buffer.NumElements = UINT(minmaxDesc.Width / sizeof(Vec4f));
+
+    D3D12_CPU_DESCRIPTOR_HANDLE srv = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
+    srv.ptr += MINMAX_TILE_SRVS * sizeof(D3D12Descriptor);
+
+    m_WrappedDevice->CreateShaderResourceView(m_MinMaxTileBuffer, &srvDesc, srv);
+
+    srv.ptr += sizeof(D3D12Descriptor);
+    srvDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
+
+    m_WrappedDevice->CreateShaderResourceView(m_MinMaxTileBuffer, &srvDesc, srv);
+
+    srv.ptr += sizeof(D3D12Descriptor);
+    srvDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
+
+    m_WrappedDevice->CreateShaderResourceView(m_MinMaxTileBuffer, &srvDesc, srv);
+
+    minmaxDesc.Width = 2 * sizeof(Vec4f);
+
+    hr = m_WrappedDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &minmaxDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS, NULL,
+        __uuidof(ID3D12Resource), (void **)&m_MinMaxResultBuffer);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create result buffer for min/max, HRESULT: 0x%08x", hr);
+      return;
+    }
+
+    uav = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
+    uav.ptr += MINMAX_RESULT_UAVS * sizeof(D3D12Descriptor);
+
+    tileDesc.Buffer.NumElements = 2;
+
+    tileDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+    m_WrappedDevice->CreateUnorderedAccessView(m_MinMaxResultBuffer, NULL, &tileDesc, uav);
+
+    uav.ptr += sizeof(D3D12Descriptor);
+    tileDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
+    m_WrappedDevice->CreateUnorderedAccessView(m_MinMaxResultBuffer, NULL, &tileDesc, uav);
+
+    uav.ptr += sizeof(D3D12Descriptor);
+    tileDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
+    m_WrappedDevice->CreateUnorderedAccessView(m_MinMaxResultBuffer, NULL, &tileDesc, uav);
+  }
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.8f);
 
@@ -559,13 +799,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     SAFE_RELEASE(uploadBuf);
 
-    D3D12_CPU_DESCRIPTOR_HANDLE srv;
-    srv = cbvsrvHeap->GetCPUDescriptorHandleForHeapStart();
-
-    // texture display uses the first few, move to font texture slow
-    srv.ptr +=
-        FONT_SRV *
-        m_WrappedDevice->GetDescriptorHandleIncrementSize(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV);
+    D3D12_CPU_DESCRIPTOR_HANDLE srv = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
+    srv.ptr += FONT_SRV * sizeof(D3D12Descriptor);
 
     m_WrappedDevice->CreateShaderResourceView(m_Font.Tex, NULL, srv);
 
@@ -728,7 +963,7 @@ D3D12DebugManager::~D3D12DebugManager()
 
   SAFE_RELEASE(dsvHeap);
   SAFE_RELEASE(rtvHeap);
-  SAFE_RELEASE(cbvsrvHeap);
+  SAFE_RELEASE(cbvsrvuavHeap);
   SAFE_RELEASE(samplerHeap);
 
   SAFE_RELEASE(m_GenericVSCbuffer);
@@ -742,6 +977,20 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_CheckerboardPipe);
 
   SAFE_RELEASE(m_PickPixelTex);
+
+  SAFE_RELEASE(m_HistogramRootSig);
+  for(int t = RESTYPE_TEX1D; t <= RESTYPE_TEX2D_MS; t++)
+  {
+    for(int i = 0; i < 3; i++)
+    {
+      SAFE_RELEASE(m_TileMinMaxPipe[t][i]);
+      SAFE_RELEASE(m_HistogramPipe[t][i]);
+      if(t == RESTYPE_TEX1D)
+        SAFE_RELEASE(m_ResultMinMaxPipe[i]);
+    }
+  }
+  SAFE_RELEASE(m_MinMaxResultBuffer);
+  SAFE_RELEASE(m_MinMaxTileBuffer);
 
   SAFE_RELEASE(m_TexResource);
 
@@ -2064,12 +2313,12 @@ void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
     list->SetGraphicsRootSignature(m_TexDisplayRootSig);
 
     // Set the descriptor heap containing the texture srv
-    ID3D12DescriptorHeap *heaps[] = {cbvsrvHeap, samplerHeap};
+    ID3D12DescriptorHeap *heaps[] = {cbvsrvuavHeap, samplerHeap};
     list->SetDescriptorHeaps(2, heaps);
 
     list->SetGraphicsRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
     list->SetGraphicsRootConstantBufferView(1, m_GenericPSCbuffer->GetGPUVirtualAddress());
-    list->SetGraphicsRootDescriptorTable(2, cbvsrvHeap->GetGPUDescriptorHandleForHeapStart());
+    list->SetGraphicsRootDescriptorTable(2, cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart());
     list->SetGraphicsRootDescriptorTable(3, samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
     float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
@@ -2178,7 +2427,7 @@ void D3D12DebugManager::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
     list->SetGraphicsRootSignature(m_Font.RootSig);
 
     // Set the descriptor heap containing the texture srv
-    ID3D12DescriptorHeap *heaps[] = {cbvsrvHeap, samplerHeap};
+    ID3D12DescriptorHeap *heaps[] = {cbvsrvuavHeap, samplerHeap};
     list->SetDescriptorHeaps(2, heaps);
 
     list->SetGraphicsRootConstantBufferView(
@@ -2186,7 +2435,7 @@ void D3D12DebugManager::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
     list->SetGraphicsRootConstantBufferView(1, m_Font.GlyphData->GetGPUVirtualAddress());
     list->SetGraphicsRootConstantBufferView(
         2, m_Font.CharBuffer->GetGPUVirtualAddress() + charOffset * sizeof(Vec4f));
-    list->SetGraphicsRootDescriptorTable(3, cbvsrvHeap->GetGPUDescriptorHandleForHeapStart());
+    list->SetGraphicsRootDescriptorTable(3, cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart());
     list->SetGraphicsRootDescriptorTable(4, samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
     list->DrawInstanced(4, (uint32_t)strlen(text), 0, 0);
@@ -2261,7 +2510,7 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource,
   if(IsIntFormat(resourceDesc.Format))
     srvOffset += 20;
 
-  D3D12_CPU_DESCRIPTOR_HANDLE srv = cbvsrvHeap->GetCPUDescriptorHandleForHeapStart();
+  D3D12_CPU_DESCRIPTOR_HANDLE srv = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
   srv.ptr += srvOffset * sizeof(D3D12Descriptor);
 
   D3D12_RESOURCE_STATES realResourceState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
@@ -2447,6 +2696,179 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource,
   }
 }
 
+bool D3D12DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
+                                  FormatComponentType typeHint, float *minval, float *maxval)
+{
+  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
+
+  if(resource == NULL)
+    return false;
+
+  D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
+
+  HistogramCBufferData cdata;
+  cdata.HistogramTextureResolution.x = float(RDCMAX(1U, uint32_t(resourceDesc.Width >> mip)));
+  cdata.HistogramTextureResolution.y = float(RDCMAX(1U, uint32_t(resourceDesc.Height >> mip)));
+  cdata.HistogramTextureResolution.z =
+      float(RDCMAX(1U, uint32_t(resourceDesc.DepthOrArraySize >> mip)));
+
+  if(resourceDesc.DepthOrArraySize > 1 && resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    cdata.HistogramTextureResolution.z = float(resourceDesc.DepthOrArraySize);
+
+  cdata.HistogramSlice = float(RDCCLAMP(sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
+
+  if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    cdata.HistogramSlice = float(sliceFace) / float(resourceDesc.DepthOrArraySize);
+
+  cdata.HistogramMip = mip;
+  cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, resourceDesc.SampleDesc.Count - 1);
+  if(sample == ~0U)
+    cdata.HistogramSample = -int(resourceDesc.SampleDesc.Count);
+  cdata.HistogramMin = 0.0f;
+  cdata.HistogramMax = 1.0f;
+  cdata.HistogramChannels = 0xf;
+  cdata.HistogramFlags = 0;
+
+  int intIdx = 0;
+
+  DXGI_FORMAT fmt = GetTypedFormat(resourceDesc.Format, typeHint);
+
+  if(IsUIntFormat(fmt))
+    intIdx = 1;
+  else if(IsIntFormat(fmt))
+    intIdx = 2;
+
+  FillBuffer(m_GenericVSCbuffer, &cdata, sizeof(cdata));
+
+  int blocksX = (int)ceil(cdata.HistogramTextureResolution.x /
+                          float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+  int blocksY = (int)ceil(cdata.HistogramTextureResolution.y /
+                          float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+
+  vector<D3D12_RESOURCE_BARRIER> barriers;
+  int resType = 0;
+  PrepareTextureSampling(resource, typeHint, resType, barriers);
+
+  {
+    ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    list->SetPipelineState(m_TileMinMaxPipe[resType][intIdx]);
+
+    list->SetComputeRootSignature(m_HistogramRootSig);
+
+    // Set the descriptor heap containing the texture srv
+    ID3D12DescriptorHeap *heaps[] = {cbvsrvuavHeap, samplerHeap};
+    list->SetDescriptorHeaps(2, heaps);
+
+    D3D12_GPU_DESCRIPTOR_HANDLE uav = cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart();
+    D3D12_GPU_DESCRIPTOR_HANDLE srv = cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart();
+
+    uav.ptr += MINMAX_TILE_UAVS * sizeof(D3D12Descriptor);
+
+    list->SetComputeRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
+    list->SetComputeRootDescriptorTable(1, srv);
+    list->SetComputeRootDescriptorTable(2, samplerHeap->GetGPUDescriptorHandleForHeapStart());
+    list->SetComputeRootDescriptorTable(3, uav);
+
+    // discard the whole resource as we will overwrite it
+    D3D12_DISCARD_REGION region = {};
+    region.NumSubresources = 1;
+    list->DiscardResource(m_MinMaxTileBuffer, &region);
+
+    list->Dispatch(blocksX, blocksY, 1);
+
+    D3D12_RESOURCE_BARRIER tileBarriers[2] = {};
+
+    // ensure UAV work is done. Transition to SRV
+    tileBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+    tileBarriers[0].UAV.pResource = m_MinMaxTileBuffer;
+    tileBarriers[1].Transition.pResource = m_MinMaxTileBuffer;
+    tileBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    tileBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
+
+    list->ResourceBarrier(2, tileBarriers);
+
+    // set up second dispatch
+    srv.ptr += MINMAX_TILE_SRVS * sizeof(D3D12Descriptor);
+    uav = cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart();
+    uav.ptr += MINMAX_RESULT_UAVS * sizeof(D3D12Descriptor);
+
+    list->SetComputeRootDescriptorTable(1, srv);
+    list->SetComputeRootDescriptorTable(3, uav);
+
+    list->SetPipelineState(m_ResultMinMaxPipe[intIdx]);
+
+    list->Dispatch(1, 1, 1);
+
+    // transition back to UAV for next time
+    std::swap(tileBarriers[1].Transition.StateBefore, tileBarriers[1].Transition.StateAfter);
+
+    list->ResourceBarrier(1, &tileBarriers[1]);
+
+    // finish the UAV work, and transition to copy.
+    tileBarriers[0].UAV.pResource = m_MinMaxResultBuffer;
+    tileBarriers[1].Transition.pResource = m_MinMaxResultBuffer;
+    tileBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    tileBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+    list->ResourceBarrier(2, tileBarriers);
+
+    // copy to readback
+    list->CopyBufferRegion(m_ReadbackBuffer, 0, m_MinMaxResultBuffer, 0, sizeof(Vec4f) * 2);
+
+    // transition back to UAV for next time
+    std::swap(tileBarriers[1].Transition.StateBefore, tileBarriers[1].Transition.StateAfter);
+
+    list->ResourceBarrier(1, &tileBarriers[1]);
+
+    // transition image back to where it was
+    for(size_t i = 0; i < barriers.size(); i++)
+      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    list->Close();
+
+    m_WrappedDevice->ExecuteLists();
+    m_WrappedDevice->FlushLists();
+  }
+
+  D3D12_RANGE range = {0, sizeof(Vec4f) * 2};
+
+  void *data = NULL;
+  HRESULT hr = m_ReadbackBuffer->Map(0, &range, &data);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to map bufferdata buffer %08x", hr);
+    return false;
+  }
+  else
+  {
+    Vec4f *minmax = (Vec4f *)data;
+
+    minval[0] = minmax[0].x;
+    minval[1] = minmax[0].y;
+    minval[2] = minmax[0].z;
+    minval[3] = minmax[0].w;
+
+    maxval[0] = minmax[1].x;
+    maxval[1] = minmax[1].y;
+    maxval[2] = minmax[1].z;
+    maxval[3] = minmax[1].w;
+
+    range.End = 0;
+
+    m_ReadbackBuffer->Unmap(0, &range);
+  }
+
+  return true;
+}
+
 bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg,
                                               bool blendAlpha)
 {
@@ -2609,12 +3031,12 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
     list->SetGraphicsRootSignature(m_TexDisplayRootSig);
 
     // Set the descriptor heap containing the texture srv
-    ID3D12DescriptorHeap *heaps[] = {cbvsrvHeap, samplerHeap};
+    ID3D12DescriptorHeap *heaps[] = {cbvsrvuavHeap, samplerHeap};
     list->SetDescriptorHeaps(2, heaps);
 
     list->SetGraphicsRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
     list->SetGraphicsRootConstantBufferView(1, m_GenericPSCbuffer->GetGPUVirtualAddress());
-    list->SetGraphicsRootDescriptorTable(2, cbvsrvHeap->GetGPUDescriptorHandleForHeapStart());
+    list->SetGraphicsRootDescriptorTable(2, cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart());
     list->SetGraphicsRootDescriptorTable(3, samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
     float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};

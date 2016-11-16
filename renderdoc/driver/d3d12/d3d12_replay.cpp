@@ -1178,6 +1178,13 @@ bool D3D12Replay::RenderTexture(TextureDisplay cfg)
   return m_pDevice->GetDebugManager()->RenderTexture(cfg, true);
 }
 
+bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
+                            FormatComponentType typeHint, float *minval, float *maxval)
+{
+  return m_pDevice->GetDebugManager()->GetMinMax(texid, sliceFace, mip, sample, typeHint, minval,
+                                                 maxval);
+}
+
 bool D3D12Replay::IsTextureSupported(const ResourceFormat &format)
 {
   return MakeDXGIFormat(format) != DXGI_FORMAT_UNKNOWN;
@@ -1472,14 +1479,6 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventID)
 
 void D3D12Replay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
 {
-}
-
-bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                            FormatComponentType typeHint, float *minval, float *maxval)
-{
-  *minval = 0.0f;
-  *maxval = 1.0f;
-  return false;
 }
 
 bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,

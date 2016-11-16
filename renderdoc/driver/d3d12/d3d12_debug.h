@@ -73,6 +73,9 @@ public:
   void RenderCheckerboard(Vec3f light, Vec3f dark);
   bool RenderTexture(TextureDisplay cfg, bool blendAlpha);
 
+  bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
+                 FormatComponentType typeHint, float *minval, float *maxval);
+
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
                  uint32_t sample, FormatComponentType typeHint, float pixel[4]);
 
@@ -121,8 +124,12 @@ private:
   // how much character space is in the ring buffer
   static const int FONT_BUFFER_CHARS = 8192;
 
-  // index in SRV heap
+  // baked indices in heaps
   static const int FONT_SRV = 128;
+  static const int MINMAX_TILE_SRVS = FONT_SRV + 1;
+
+  static const int MINMAX_TILE_UAVS = MINMAX_TILE_SRVS + 3;
+  static const int MINMAX_RESULT_UAVS = MINMAX_TILE_UAVS + 3;
 
   enum
   {
@@ -171,7 +178,7 @@ private:
     float CharSize;
   } m_Font;
 
-  ID3D12DescriptorHeap *cbvsrvHeap;
+  ID3D12DescriptorHeap *cbvsrvuavHeap;
   ID3D12DescriptorHeap *samplerHeap;
   ID3D12DescriptorHeap *rtvHeap;
   ID3D12DescriptorHeap *dsvHeap;
@@ -189,6 +196,15 @@ private:
 
   ID3D12Resource *m_PickPixelTex;
   D3D12_CPU_DESCRIPTOR_HANDLE m_PickPixelRTV;
+
+  ID3D12RootSignature *m_HistogramRootSig;
+  // one per texture type, one per int/uint/float
+  ID3D12PipelineState *m_TileMinMaxPipe[10][3];
+  ID3D12PipelineState *m_HistogramPipe[10][3];
+  // one per int/uint/float
+  ID3D12PipelineState *m_ResultMinMaxPipe[3];
+  ID3D12Resource *m_MinMaxResultBuffer;
+  ID3D12Resource *m_MinMaxTileBuffer;
 
   ID3D12GraphicsCommandList *m_ReadbackList;
   ID3D12CommandAllocator *m_ReadbackAlloc;
