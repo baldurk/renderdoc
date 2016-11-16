@@ -3776,6 +3776,13 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
     else
       draw.flags |= eDraw_SetMarker;
 
+    // this drawcall needs an event to anchor its file offset. This is a bit of a hack,
+    // but a proper solution for handling 'fake' events that don't correspond to actual
+    // events in the file, or duplicates, is overkill.
+    create_array(draw.events, 1);
+    draw.events[0] = m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].curEvents.back();
+    m_Cmd->m_BakedCmdListInfo[m_Cmd->m_LastCmdListID].curEvents.pop_back();
+
     m_Cmd->AddDrawcall(draw, false);
 
     D3D12DrawcallTreeNode &drawNode = m_Cmd->GetDrawcallStack().back()->children.back();
