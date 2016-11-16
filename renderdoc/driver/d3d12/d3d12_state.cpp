@@ -211,7 +211,7 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd)
     {
       // just don't set tables that aren't in the descriptor heaps, since it's invalid and can crash
       // and is probably just from stale bindings that aren't going to be used
-      if(graphics.sigelems[i].type == eRootTable ||
+      if(graphics.sigelems[i].type != eRootTable ||
          std::find(heaps.begin(), heaps.end(), graphics.sigelems[i].id) != heaps.end())
       {
         graphics.sigelems[i].SetToGraphics(GetResourceManager(), cmd, (UINT)i);
