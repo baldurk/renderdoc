@@ -535,13 +535,23 @@ bool WrappedID3D12Device::Serialise_CreateRootSignature(Serialiser *localSeriali
     }
     else
     {
-      ret = new WrappedID3D12RootSignature(ret, this);
+      if(GetResourceManager()->HasWrapper(ret))
+      {
+        ret = (ID3D12RootSignature *)GetResourceManager()->GetWrapper(ret);
+        ret->AddRef();
 
-      WrappedID3D12RootSignature *wrapped = (WrappedID3D12RootSignature *)ret;
+        GetResourceManager()->AddLiveResource(Sig, ret);
+      }
+      else
+      {
+        ret = new WrappedID3D12RootSignature(ret, this);
 
-      wrapped->sig = D3D12DebugManager::GetRootSig(blobBytes, blobLen);
+        WrappedID3D12RootSignature *wrapped = (WrappedID3D12RootSignature *)ret;
 
-      GetResourceManager()->AddLiveResource(Sig, ret);
+        wrapped->sig = D3D12DebugManager::GetRootSig(blobBytes, blobLen);
+
+        GetResourceManager()->AddLiveResource(Sig, ret);
+      }
     }
   }
 
@@ -596,6 +606,8 @@ HRESULT WrappedID3D12Device::CreateRootSignature(UINT nodeMask, const void *pBlo
     }
     else
     {
+      wrapped->sig = D3D12DebugManager::GetRootSig(pBlobWithRootSignature, blobLengthInBytes);
+
       GetResourceManager()->AddLiveResource(wrapped->GetResourceID(), wrapped);
     }
 
