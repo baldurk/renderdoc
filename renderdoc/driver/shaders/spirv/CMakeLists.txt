@@ -94,6 +94,8 @@ set(sources
     spirv_disassemble.cpp
     ${glslang_sources})
 
+add_definitions(-DAMD_EXTENSIONS)
+
 set_source_files_properties(${glslang_sources}
     PROPERTIES COMPILE_FLAGS "-Wno-ignored-qualifiers")
 
