@@ -80,6 +80,10 @@ public:
                     FormatComponentType typeHint, float minval, float maxval, bool channels[4],
                     vector<uint32_t> &histogram);
 
+  ResourceId RenderOverlay(ResourceId texid, FormatComponentType typeHint,
+                           TextureDisplayOverlay overlay, uint32_t eventID,
+                           const vector<uint32_t> &passEvents);
+
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
                  uint32_t sample, FormatComponentType typeHint, float pixel[4]);
 
@@ -217,6 +221,7 @@ private:
   ID3D12RootSignature *m_TexDisplayRootSig;
 
   ID3D12PipelineState *m_CheckerboardPipe;
+  ID3D12PipelineState *m_OutlinePipe;
 
   ID3D12Resource *m_PickPixelTex;
   D3D12_CPU_DESCRIPTOR_HANDLE m_PickPixelRTV;
@@ -235,6 +240,9 @@ private:
   ID3D12Resource *m_ReadbackBuffer;
 
   ID3D12Resource *m_TexResource;
+
+  ID3D12Resource *m_OverlayRenderTex;
+  ResourceId m_OverlayResourceId;
 
   static const uint64_t m_ReadbackSize = 16 * 1024 * 1024;
 
@@ -257,6 +265,7 @@ private:
   string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
                        const char *profile, ID3DBlob **srcblob);
   static ID3DBlob *MakeRootSig(const vector<D3D12_ROOT_PARAMETER> &rootSig);
+  ID3DBlob *MakeFixedColShader(float overlayConsts[4]);
   int m_width, m_height;
 
   uint64_t m_OutputWindowID;

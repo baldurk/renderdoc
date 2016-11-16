@@ -399,19 +399,27 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
 
   ID3DBlob *GenericVS = NULL;
+  ID3DBlob *FullscreenVS = NULL;
   ID3DBlob *TexDisplayPS = NULL;
   ID3DBlob *CheckerboardPS = NULL;
+  ID3DBlob *OutlinePS = NULL;
 
   GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_DebugVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0",
                 &GenericVS);
+  GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                "vs_5_0", &FullscreenVS);
   GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_TexDisplayPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                 "ps_5_0", &TexDisplayPS);
   GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_CheckerboardPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                 "ps_5_0", &CheckerboardPS);
+  GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_OutlinePS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                "ps_5_0", &OutlinePS);
 
   RDCASSERT(GenericVS);
+  RDCASSERT(FullscreenVS);
   RDCASSERT(TexDisplayPS);
   RDCASSERT(CheckerboardPS);
+  RDCASSERT(OutlinePS);
 
   pipeDesc.pRootSignature = m_TexDisplayRootSig;
   pipeDesc.VS.BytecodeLength = GenericVS->GetBufferSize();
@@ -431,8 +439,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   pipeDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
   pipeDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
   pipeDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
-  pipeDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_ONE;
-  pipeDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_ZERO;
+  pipeDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
   pipeDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
   pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
 
@@ -476,6 +484,26 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   {
     RDCERR("Couldn't create m_CheckerboardPipe! 0x%08x", hr);
   }
+
+  pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
+
+  pipeDesc.VS.BytecodeLength = FullscreenVS->GetBufferSize();
+  pipeDesc.VS.pShaderBytecode = FullscreenVS->GetBufferPointer();
+  pipeDesc.PS.BytecodeLength = OutlinePS->GetBufferSize();
+  pipeDesc.PS.pShaderBytecode = OutlinePS->GetBufferPointer();
+
+  pipeDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
+
+  hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                    (void **)&m_OutlinePipe);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't create m_OutlinePipe! 0x%08x", hr);
+  }
+
+  m_OverlayRenderTex = NULL;
+  m_OverlayResourceId = ResourceId();
 
   string histogramhlsl = GetEmbeddedResource(debugcbuffers_h);
   histogramhlsl += GetEmbeddedResource(debugcommon_hlsl);
@@ -561,8 +589,10 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     }
   }
 
+  SAFE_RELEASE(FullscreenVS);
   SAFE_RELEASE(GenericVS);
   SAFE_RELEASE(TexDisplayPS);
+  SAFE_RELEASE(OutlinePS);
   SAFE_RELEASE(CheckerboardPS);
 
   {
@@ -975,6 +1005,7 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_TexDisplayRootSig);
 
   SAFE_RELEASE(m_CheckerboardPipe);
+  SAFE_RELEASE(m_OutlinePipe);
 
   SAFE_RELEASE(m_PickPixelTex);
 
@@ -993,6 +1024,9 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_MinMaxTileBuffer);
 
   SAFE_RELEASE(m_TexResource);
+
+  if(m_OverlayResourceId != ResourceId())
+    SAFE_RELEASE(m_OverlayRenderTex);
 
   SAFE_RELEASE(m_ReadbackBuffer);
   SAFE_RELEASE(m_ReadbackAlloc);
@@ -1163,6 +1197,16 @@ ID3DBlob *D3D12DebugManager::MakeRootSig(const vector<D3D12_ROOT_PARAMETER> &roo
 
   SAFE_RELEASE(errBlob);
 
+  return ret;
+}
+
+ID3DBlob *D3D12DebugManager::MakeFixedColShader(float overlayConsts[4])
+{
+  ID3DBlob *ret = NULL;
+  std::string hlsl =
+      StringFormat::Fmt("float4 main() : SV_Target0 { return float4(%f, %f, %f, %f); }\n",
+                        overlayConsts[0], overlayConsts[1], overlayConsts[2], overlayConsts[3]);
+  GetShaderBlob(hlsl.c_str(), "main", D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0", &ret);
   return ret;
 }
 
@@ -3059,6 +3103,689 @@ bool D3D12DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
   }
 
   return true;
+}
+
+ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
+                                            TextureDisplayOverlay overlay, uint32_t eventID,
+                                            const vector<uint32_t> &passEvents)
+{
+  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
+
+  if(resource == NULL)
+    return ResourceId();
+
+  D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
+
+  vector<D3D12_RESOURCE_BARRIER> barriers;
+  int resType = 0;
+  PrepareTextureSampling(resource, typeHint, resType, barriers);
+
+  D3D12_RESOURCE_DESC overlayTexDesc;
+  overlayTexDesc.Alignment = 0;
+  overlayTexDesc.DepthOrArraySize = 1;
+  overlayTexDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+  overlayTexDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+  overlayTexDesc.Format = DXGI_FORMAT_R16G16B16A16_UNORM;
+  overlayTexDesc.Height = resourceDesc.Height;
+  overlayTexDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+  overlayTexDesc.MipLevels = 1;
+  overlayTexDesc.SampleDesc = resourceDesc.SampleDesc;
+  overlayTexDesc.Width = resourceDesc.Width;
+
+  D3D12_HEAP_PROPERTIES heapProps;
+  heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+  heapProps.CreationNodeMask = 1;
+  heapProps.VisibleNodeMask = 1;
+
+  D3D12_RESOURCE_DESC currentOverlayDesc;
+  RDCEraseEl(currentOverlayDesc);
+  if(m_OverlayRenderTex)
+    currentOverlayDesc = m_OverlayRenderTex->GetDesc();
+
+  WrappedID3D12Resource *wrappedCustomRenderTex = (WrappedID3D12Resource *)m_OverlayRenderTex;
+
+  // need to recreate backing custom render tex
+  if(overlayTexDesc.Width != currentOverlayDesc.Width ||
+     overlayTexDesc.Height != currentOverlayDesc.Height ||
+     overlayTexDesc.Format != currentOverlayDesc.Format ||
+     overlayTexDesc.SampleDesc.Count != currentOverlayDesc.SampleDesc.Count ||
+     overlayTexDesc.SampleDesc.Quality != currentOverlayDesc.SampleDesc.Quality)
+  {
+    SAFE_RELEASE(m_OverlayRenderTex);
+    m_OverlayResourceId = ResourceId();
+
+    ID3D12Resource *customRenderTex = NULL;
+    HRESULT hr = m_WrappedDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &overlayTexDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
+        __uuidof(ID3D12Resource), (void **)&customRenderTex);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create custom render tex %08x", hr);
+      return ResourceId();
+    }
+    wrappedCustomRenderTex = (WrappedID3D12Resource *)customRenderTex;
+
+    m_OverlayRenderTex = wrappedCustomRenderTex;
+    m_OverlayResourceId = wrappedCustomRenderTex->GetResourceID();
+  }
+
+  D3D12CommandData *cmd = m_WrappedDevice->GetQueue()->GetCommandData();
+  D3D12RenderState &rs = cmd->m_RenderState;
+
+  ID3D12Resource *renderDepth = NULL;
+
+  D3D12Descriptor *dsView =
+      DescriptorFromPortableHandle(m_WrappedDevice->GetResourceManager(), rs.dsv);
+
+  D3D12_DEPTH_STENCIL_VIEW_DESC dsViewDesc;
+  RDCEraseEl(dsViewDesc);
+  if(dsView)
+  {
+    ID3D12Resource *realDepth = dsView->nonsamp.resource;
+
+    dsViewDesc = dsView->nonsamp.dsv;
+
+    D3D12_RESOURCE_DESC desc = realDepth->GetDesc();
+    desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    desc.Alignment = 0;
+
+    HRESULT hr = S_OK;
+
+    hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
+                                                  D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+                                                  __uuidof(ID3D12Resource), (void **)&renderDepth);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create renderDepth %08x", hr);
+      return m_OverlayResourceId;
+    }
+
+    ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+    const vector<D3D12_RESOURCE_STATES> &states =
+        m_WrappedDevice->GetSubresourceStates(GetResID(realDepth));
+
+    vector<D3D12_RESOURCE_BARRIER> depthBarriers;
+    depthBarriers.reserve(states.size());
+    for(size_t i = 0; i < states.size(); i++)
+    {
+      D3D12_RESOURCE_BARRIER b;
+
+      // skip unneeded barriers
+      if(states[i] & D3D12_RESOURCE_STATE_COPY_SOURCE)
+        continue;
+
+      b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      b.Transition.pResource = realDepth;
+      b.Transition.Subresource = (UINT)i;
+      b.Transition.StateBefore = states[i];
+      b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+      depthBarriers.push_back(b);
+    }
+
+    if(!depthBarriers.empty())
+      list->ResourceBarrier((UINT)depthBarriers.size(), &depthBarriers[0]);
+
+    list->CopyResource(renderDepth, realDepth);
+
+    for(size_t i = 0; i < depthBarriers.size(); i++)
+      std::swap(depthBarriers[i].Transition.StateBefore, depthBarriers[i].Transition.StateAfter);
+
+    if(!depthBarriers.empty())
+      list->ResourceBarrier((UINT)depthBarriers.size(), &depthBarriers[0]);
+
+    D3D12_RESOURCE_BARRIER b = {};
+
+    b.Transition.pResource = renderDepth;
+    b.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    b.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_DEST;
+    b.Transition.StateAfter = D3D12_RESOURCE_STATE_DEPTH_WRITE;
+
+    // prepare tex resource for copying
+    list->ResourceBarrier(1, &b);
+
+    list->Close();
+  }
+
+  D3D12_RENDER_TARGET_VIEW_DESC rtDesc = {};
+  rtDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+  rtDesc.Format = DXGI_FORMAT_R16G16B16A16_UNORM;
+  rtDesc.Texture2D.MipSlice = 0;
+  rtDesc.Texture2D.PlaneSlice = 0;
+
+  if(overlayTexDesc.SampleDesc.Count > 1 || overlayTexDesc.SampleDesc.Quality > 0)
+    rtDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2DMS;
+
+  D3D12_CPU_DESCRIPTOR_HANDLE rtv = GetCPUHandle(OVERLAY_RTV);
+
+  m_WrappedDevice->CreateRenderTargetView(wrappedCustomRenderTex, &rtDesc, rtv);
+
+  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+  FLOAT black[] = {0.0f, 0.0f, 0.0f, 0.0f};
+  list->ClearRenderTargetView(rtv, black, 0, NULL);
+
+  D3D12_CPU_DESCRIPTOR_HANDLE dsv = {};
+
+  if(renderDepth)
+  {
+    dsv = GetCPUHandle(OVERLAY_DSV);
+    m_WrappedDevice->CreateDepthStencilView(
+        renderDepth, dsViewDesc.Format == DXGI_FORMAT_UNKNOWN ? NULL : &dsViewDesc, dsv);
+  }
+
+  D3D12_DEPTH_STENCIL_DESC dsDesc;
+
+  dsDesc.BackFace.StencilFailOp = dsDesc.BackFace.StencilPassOp =
+      dsDesc.BackFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+  dsDesc.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+  dsDesc.FrontFace.StencilFailOp = dsDesc.FrontFace.StencilPassOp =
+      dsDesc.FrontFace.StencilDepthFailOp = D3D12_STENCIL_OP_KEEP;
+  dsDesc.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+  dsDesc.DepthEnable = TRUE;
+  dsDesc.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+  dsDesc.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+  dsDesc.StencilEnable = FALSE;
+  dsDesc.StencilReadMask = dsDesc.StencilWriteMask = 0xff;
+
+  WrappedID3D12PipelineState *pipe = NULL;
+
+  if(rs.pipe != ResourceId())
+    pipe = m_WrappedDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+
+  if(overlay == eTexOverlay_NaN || overlay == eTexOverlay_Clipping)
+  {
+    // just need the basic texture
+  }
+  else if(overlay == eTexOverlay_Drawcall)
+  {
+    if(pipe && pipe->IsGraphics())
+    {
+      D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = pipe->GetGraphicsDesc();
+
+      float overlayConsts[4] = {0.8f, 0.1f, 0.8f, 1.0f};
+      ID3DBlob *ps = MakeFixedColShader(overlayConsts);
+
+      psoDesc.PS.pShaderBytecode = ps->GetBufferPointer();
+      psoDesc.PS.BytecodeLength = ps->GetBufferSize();
+
+      psoDesc.DepthStencilState.DepthEnable = FALSE;
+      psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+      psoDesc.DepthStencilState.StencilEnable = FALSE;
+
+      psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
+      psoDesc.BlendState.IndependentBlendEnable = FALSE;
+      psoDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
+      psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0xf;
+      psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
+      psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
+      psoDesc.NumRenderTargets = 1;
+      psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+
+      psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+      psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+      psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
+      psoDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+      psoDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+      psoDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+      psoDesc.RasterizerState.DepthClipEnable = FALSE;
+      psoDesc.RasterizerState.MultisampleEnable = FALSE;
+      psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
+
+      ID3D12PipelineState *pso = NULL;
+      HRESULT hr = m_WrappedDevice->CreateGraphicsPipelineState(
+          &psoDesc, __uuidof(ID3D12PipelineState), (void **)&pso);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create overlay pso %08x", hr);
+        SAFE_RELEASE(ps);
+        return m_OverlayResourceId;
+      }
+
+      float clearColour[] = {0.0f, 0.0f, 0.0f, 0.5f};
+      list->ClearRenderTargetView(rtv, clearColour, 0, NULL);
+
+      list->Close();
+      list = NULL;
+
+      D3D12RenderState prev = rs;
+
+      rs.pipe = GetResID(pso);
+      rs.rtSingle = true;
+      rs.rts.resize(1);
+      rs.rts[0] = ToPortableHandle(rtv);
+      rs.dsv = PortableHandle();
+
+      m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
+
+      rs = prev;
+
+      m_WrappedDevice->ExecuteLists();
+      m_WrappedDevice->FlushLists();
+
+      SAFE_RELEASE(pso);
+      SAFE_RELEASE(ps);
+    }
+  }
+  else if(overlay == eTexOverlay_BackfaceCull)
+  {
+    if(pipe && pipe->IsGraphics())
+    {
+      D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = pipe->GetGraphicsDesc();
+
+      D3D12_CULL_MODE origCull = psoDesc.RasterizerState.CullMode;
+
+      float redCol[4] = {1.0f, 0.0f, 0.0f, 1.0f};
+      ID3DBlob *red = MakeFixedColShader(redCol);
+
+      float greenCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
+      ID3DBlob *green = MakeFixedColShader(greenCol);
+
+      psoDesc.DepthStencilState.DepthEnable = FALSE;
+      psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+      psoDesc.DepthStencilState.StencilEnable = FALSE;
+
+      psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
+      psoDesc.BlendState.IndependentBlendEnable = FALSE;
+      psoDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
+      psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0xf;
+      psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
+      psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
+      psoDesc.NumRenderTargets = 1;
+      psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+
+      psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+      psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+      psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
+      psoDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+      psoDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+      psoDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+      psoDesc.RasterizerState.DepthClipEnable = FALSE;
+      psoDesc.RasterizerState.MultisampleEnable = FALSE;
+      psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
+
+      psoDesc.PS.pShaderBytecode = red->GetBufferPointer();
+      psoDesc.PS.BytecodeLength = red->GetBufferSize();
+
+      ID3D12PipelineState *redPSO = NULL;
+      HRESULT hr = m_WrappedDevice->CreateGraphicsPipelineState(
+          &psoDesc, __uuidof(ID3D12PipelineState), (void **)&redPSO);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create overlay pso %08x", hr);
+        SAFE_RELEASE(red);
+        SAFE_RELEASE(green);
+        return m_OverlayResourceId;
+      }
+
+      psoDesc.RasterizerState.CullMode = origCull;
+      psoDesc.PS.pShaderBytecode = green->GetBufferPointer();
+      psoDesc.PS.BytecodeLength = green->GetBufferSize();
+
+      ID3D12PipelineState *greenPSO = NULL;
+      hr = m_WrappedDevice->CreateGraphicsPipelineState(&psoDesc, __uuidof(ID3D12PipelineState),
+                                                        (void **)&greenPSO);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create overlay pso %08x", hr);
+        SAFE_RELEASE(red);
+        SAFE_RELEASE(redPSO);
+        SAFE_RELEASE(green);
+        return m_OverlayResourceId;
+      }
+
+      list->Close();
+      list = NULL;
+
+      D3D12RenderState prev = rs;
+
+      rs.pipe = GetResID(redPSO);
+      rs.rtSingle = true;
+      rs.rts.resize(1);
+      rs.rts[0] = ToPortableHandle(rtv);
+      rs.dsv = PortableHandle();
+
+      m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
+
+      rs.pipe = GetResID(greenPSO);
+
+      m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
+
+      rs = prev;
+
+      m_WrappedDevice->ExecuteLists();
+      m_WrappedDevice->FlushLists();
+
+      SAFE_RELEASE(red);
+      SAFE_RELEASE(green);
+      SAFE_RELEASE(redPSO);
+      SAFE_RELEASE(greenPSO);
+    }
+  }
+  else if(overlay == eTexOverlay_Wireframe)
+  {
+    if(pipe && pipe->IsGraphics())
+    {
+      D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = pipe->GetGraphicsDesc();
+
+      float overlayConsts[] = {200.0f / 255.0f, 255.0f / 255.0f, 0.0f / 255.0f, 1.0f};
+      ID3DBlob *ps = MakeFixedColShader(overlayConsts);
+
+      psoDesc.PS.pShaderBytecode = ps->GetBufferPointer();
+      psoDesc.PS.BytecodeLength = ps->GetBufferSize();
+
+      psoDesc.DepthStencilState.DepthEnable = FALSE;
+      psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+      psoDesc.DepthStencilState.StencilEnable = FALSE;
+
+      psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
+      psoDesc.BlendState.IndependentBlendEnable = FALSE;
+      psoDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
+      psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0xf;
+      psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
+      psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
+      psoDesc.NumRenderTargets = 1;
+      psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+
+      psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+      psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+      psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
+      psoDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+      psoDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+      psoDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+      psoDesc.RasterizerState.DepthClipEnable = FALSE;
+      psoDesc.RasterizerState.MultisampleEnable = FALSE;
+      psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
+
+      ID3D12PipelineState *pso = NULL;
+      HRESULT hr = m_WrappedDevice->CreateGraphicsPipelineState(
+          &psoDesc, __uuidof(ID3D12PipelineState), (void **)&pso);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create overlay pso %08x", hr);
+        SAFE_RELEASE(ps);
+        return m_OverlayResourceId;
+      }
+
+      overlayConsts[3] = 0.0f;
+      list->ClearRenderTargetView(rtv, overlayConsts, 0, NULL);
+
+      list->Close();
+      list = NULL;
+
+      D3D12RenderState prev = rs;
+
+      rs.pipe = GetResID(pso);
+      rs.rtSingle = true;
+      rs.rts.resize(1);
+      rs.rts[0] = ToPortableHandle(rtv);
+      rs.dsv = ToPortableHandle(dsv);
+
+      m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
+
+      rs = prev;
+
+      m_WrappedDevice->ExecuteLists();
+      m_WrappedDevice->FlushLists();
+
+      SAFE_RELEASE(pso);
+      SAFE_RELEASE(ps);
+    }
+  }
+  else if(overlay == eTexOverlay_ClearBeforePass || overlay == eTexOverlay_ClearBeforeDraw)
+  {
+    vector<uint32_t> events = passEvents;
+
+    if(overlay == eTexOverlay_ClearBeforeDraw)
+      events.clear();
+
+    events.push_back(eventID);
+
+    if(!events.empty())
+    {
+      list->Close();
+      list = NULL;
+
+      bool rtSingle = rs.rtSingle;
+      vector<PortableHandle> rts = rs.rts;
+
+      if(overlay == eTexOverlay_ClearBeforePass)
+        m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
+
+      list = m_WrappedDevice->GetNewList();
+
+      for(size_t i = 0; i < rts.size(); i++)
+      {
+        PortableHandle ph = rtSingle ? rts[0] : rts[i];
+
+        WrappedID3D12DescriptorHeap *heap =
+            m_WrappedDevice->GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(ph.heap);
+
+        if(heap)
+        {
+          D3D12_CPU_DESCRIPTOR_HANDLE clearrtv = heap->GetCPUDescriptorHandleForHeapStart();
+          clearrtv.ptr += ph.index * sizeof(D3D12Descriptor);
+
+          if(rtSingle)
+            clearrtv.ptr += i * sizeof(D3D12Descriptor);
+
+          list->ClearRenderTargetView(clearrtv, black, 0, NULL);
+        }
+      }
+
+      list->Close();
+      list = NULL;
+
+      for(size_t i = 0; i < events.size(); i++)
+      {
+        m_WrappedDevice->ReplayLog(events[i], events[i], eReplay_OnlyDraw);
+
+        if(overlay == eTexOverlay_ClearBeforePass && i + 1 < events.size())
+          m_WrappedDevice->ReplayLog(events[i] + 1, events[i + 1], eReplay_WithoutDraw);
+      }
+    }
+  }
+  else if(overlay == eTexOverlay_ViewportScissor)
+  {
+    if(pipe && pipe->IsGraphics() && !rs.views.empty())
+    {
+      list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
+
+      D3D12_VIEWPORT viewport = rs.views[0];
+      list->RSSetViewports(1, &viewport);
+
+      D3D12_RECT scissor = {0, 0, 16384, 16384};
+      list->RSSetScissorRects(1, &scissor);
+
+      list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+      list->SetPipelineState(m_OutlinePipe);
+
+      list->SetGraphicsRootSignature(m_TexDisplayRootSig);
+
+      // Set the descriptor heap containing the texture srv
+      ID3D12DescriptorHeap *heaps[] = {cbvsrvuavHeap, samplerHeap};
+      list->SetDescriptorHeaps(2, heaps);
+
+      DebugPixelCBufferData pixelData = {0};
+
+      // border colour (dark, 2px, opaque)
+      pixelData.WireframeColour = Vec3f(0.1f, 0.1f, 0.1f);
+      // inner colour (light, transparent)
+      pixelData.Channels = Vec4f(0.2f, 0.2f, 0.9f, 0.7f);
+      pixelData.OutputDisplayFormat = 0;
+      pixelData.RangeMinimum = viewport.TopLeftX;
+      pixelData.InverseRangeSize = viewport.TopLeftY;
+      pixelData.TextureResolutionPS = Vec3f(viewport.Width, viewport.Height, 0.0f);
+
+      FillBuffer(m_GenericVSCbuffer, &pixelData, sizeof(pixelData));
+
+      list->SetGraphicsRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
+      list->SetGraphicsRootConstantBufferView(1, m_GenericVSCbuffer->GetGPUVirtualAddress());
+      list->SetGraphicsRootDescriptorTable(2, cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart());
+      list->SetGraphicsRootDescriptorTable(3, samplerHeap->GetGPUDescriptorHandleForHeapStart());
+
+      float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
+      list->OMSetBlendFactor(factor);
+
+      list->DrawInstanced(3, 1, 0, 0);
+
+      viewport.TopLeftX = (float)rs.scissors[0].left;
+      viewport.TopLeftY = (float)rs.scissors[0].top;
+      viewport.Width = (float)(rs.scissors[0].right - rs.scissors[0].left);
+      viewport.Height = (float)(rs.scissors[0].bottom - rs.scissors[0].top);
+      list->RSSetViewports(1, &viewport);
+
+      pixelData.OutputDisplayFormat = 1;
+      pixelData.RangeMinimum = viewport.TopLeftX;
+      pixelData.InverseRangeSize = viewport.TopLeftY;
+      pixelData.TextureResolutionPS = Vec3f(viewport.Width, viewport.Height, 0.0f);
+
+      FillBuffer(m_GenericPSCbuffer, &pixelData, sizeof(pixelData));
+
+      list->SetGraphicsRootConstantBufferView(1, m_GenericPSCbuffer->GetGPUVirtualAddress());
+
+      list->DrawInstanced(3, 1, 0, 0);
+    }
+  }
+  else if(overlay == eTexOverlay_TriangleSizeDraw || overlay == eTexOverlay_TriangleSizePass)
+  {
+  }
+  else if(overlay == eTexOverlay_QuadOverdrawPass || overlay == eTexOverlay_QuadOverdrawDraw)
+  {
+  }
+  else if(overlay == eTexOverlay_Depth || overlay == eTexOverlay_Stencil)
+  {
+    if(pipe && pipe->IsGraphics())
+    {
+      D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = pipe->GetGraphicsDesc();
+
+      float redCol[4] = {1.0f, 0.0f, 0.0f, 1.0f};
+      ID3DBlob *red = MakeFixedColShader(redCol);
+
+      float greenCol[4] = {0.0f, 1.0f, 0.0f, 1.0f};
+      ID3DBlob *green = MakeFixedColShader(greenCol);
+
+      // make sure that if a test is disabled, it shows all
+      // pixels passing
+      if(!psoDesc.DepthStencilState.DepthEnable)
+        psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+      if(!psoDesc.DepthStencilState.StencilEnable)
+      {
+        psoDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        psoDesc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+      }
+
+      if(overlay == eTexOverlay_Depth)
+      {
+        psoDesc.DepthStencilState.StencilEnable = FALSE;
+        psoDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+        psoDesc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+      }
+      else
+      {
+        psoDesc.DepthStencilState.DepthEnable = FALSE;
+        psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+      }
+
+      psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
+      psoDesc.NumRenderTargets = 1;
+      psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
+      psoDesc.BlendState.IndependentBlendEnable = FALSE;
+      psoDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
+      psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0xf;
+      psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
+
+      psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+      psoDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+      psoDesc.RasterizerState.FrontCounterClockwise = FALSE;
+      psoDesc.RasterizerState.DepthBias = D3D12_DEFAULT_DEPTH_BIAS;
+      psoDesc.RasterizerState.DepthBiasClamp = D3D12_DEFAULT_DEPTH_BIAS_CLAMP;
+      psoDesc.RasterizerState.SlopeScaledDepthBias = D3D12_DEFAULT_SLOPE_SCALED_DEPTH_BIAS;
+      psoDesc.RasterizerState.DepthClipEnable = FALSE;
+      psoDesc.RasterizerState.MultisampleEnable = FALSE;
+      psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
+
+      psoDesc.PS.pShaderBytecode = green->GetBufferPointer();
+      psoDesc.PS.BytecodeLength = green->GetBufferSize();
+
+      ID3D12PipelineState *greenPSO = NULL;
+      HRESULT hr = m_WrappedDevice->CreateGraphicsPipelineState(
+          &psoDesc, __uuidof(ID3D12PipelineState), (void **)&greenPSO);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create overlay pso %08x", hr);
+        SAFE_RELEASE(red);
+        SAFE_RELEASE(green);
+        return m_OverlayResourceId;
+      }
+
+      psoDesc.DepthStencilState.DepthEnable = FALSE;
+      psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+      psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+      psoDesc.DepthStencilState.StencilEnable = FALSE;
+
+      psoDesc.PS.pShaderBytecode = red->GetBufferPointer();
+      psoDesc.PS.BytecodeLength = red->GetBufferSize();
+
+      ID3D12PipelineState *redPSO = NULL;
+      hr = m_WrappedDevice->CreateGraphicsPipelineState(&psoDesc, __uuidof(ID3D12PipelineState),
+                                                        (void **)&redPSO);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create overlay pso %08x", hr);
+        SAFE_RELEASE(redPSO);
+        SAFE_RELEASE(red);
+        SAFE_RELEASE(green);
+        return m_OverlayResourceId;
+      }
+
+      list->Close();
+      list = NULL;
+
+      D3D12RenderState prev = rs;
+
+      rs.pipe = GetResID(redPSO);
+      rs.rtSingle = true;
+      rs.rts.resize(1);
+      rs.rts[0] = ToPortableHandle(rtv);
+      rs.dsv = ToPortableHandle(dsv);
+
+      m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
+
+      rs.pipe = GetResID(greenPSO);
+
+      m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
+
+      rs = prev;
+
+      m_WrappedDevice->ExecuteLists();
+      m_WrappedDevice->FlushLists();
+
+      SAFE_RELEASE(red);
+      SAFE_RELEASE(green);
+      SAFE_RELEASE(redPSO);
+      SAFE_RELEASE(greenPSO);
+    }
+  }
+  else
+  {
+    RDCERR("Unhandled overlay case!");
+  }
+
+  if(list)
+    list->Close();
+
+  m_WrappedDevice->ExecuteLists();
+  m_WrappedDevice->FlushLists();
+
+  SAFE_RELEASE(renderDepth);
+
+  return m_OverlayResourceId;
 }
 
 bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg,

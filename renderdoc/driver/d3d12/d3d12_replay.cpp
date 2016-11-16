@@ -1193,6 +1193,13 @@ bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
                                                     maxval, channels, histogram);
 }
 
+ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
+                                      TextureDisplayOverlay overlay, uint32_t eventID,
+                                      const vector<uint32_t> &passEvents)
+{
+  return m_pDevice->GetDebugManager()->RenderOverlay(texid, typeHint, overlay, eventID, passEvents);
+}
+
 bool D3D12Replay::IsRenderOutput(ResourceId id)
 {
   const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
@@ -1641,13 +1648,6 @@ ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventID, uint32_t groupid[3],
 uint32_t D3D12Replay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
   return ~0U;
-}
-
-ResourceId D3D12Replay::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
-                                      TextureDisplayOverlay overlay, uint32_t eventID,
-                                      const vector<uint32_t> &passEvents)
-{
-  return ResourceId();
 }
 
 ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
