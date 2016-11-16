@@ -2906,14 +2906,14 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case DEPTH_FUNC: Serialise_glDepthFunc(eGL_NONE); break;
     case DEPTH_MASK: Serialise_glDepthMask(0); break;
     case DEPTH_RANGEF: Serialise_glDepthRangef(0, 0); break;
-    case DEPTH_RANGE_IDX: Serialise_glDepthRangeIndexedfNV(0, 0.0, 0.0); break;
-    case DEPTH_RANGEARRAY: Serialise_glDepthRangeArrayfvNV(0, 0, NULL); break;
+    case DEPTH_RANGE_IDX: Serialise_Common_glDepthRangeIndexedf(Vendor_Unknown, 0, 0.0, 0.0); break;
+    case DEPTH_RANGEARRAY: Serialise_Common_glDepthRangeArrayfv(Vendor_Unknown, 0, 0, NULL); break;
     case PATCH_PARAMI: Serialise_glPatchParameteri(eGL_NONE, 0); break;
     case LINE_WIDTH: Serialise_glLineWidth(0.0f); break;
     case VIEWPORT: Serialise_glViewport(0, 0, 0, 0); break;
-    case VIEWPORT_ARRAY: Serialise_glViewportArrayvOES(0, 0, 0); break;
+    case VIEWPORT_ARRAY: Serialise_Common_glViewportArrayv(Vendor_Unknown, 0, 0, 0); break;
     case SCISSOR: Serialise_glScissor(0, 0, 0, 0); break;
-    case SCISSOR_ARRAY: Serialise_glScissorArrayvNV(0, 0, 0); break;
+    case SCISSOR_ARRAY: Serialise_Common_glScissorArrayv(Vendor_Unknown, 0, 0, 0); break;
     case DISPATCH_COMPUTE: Serialise_glDispatchCompute(0, 0, 0); break;
     case DISPATCH_COMPUTE_INDIRECT: Serialise_glDispatchComputeIndirect(0); break;
     case MEMORY_BARRIER: Serialise_glMemoryBarrier(0); break;

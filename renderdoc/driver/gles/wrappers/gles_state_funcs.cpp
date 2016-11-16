@@ -279,12 +279,11 @@ bool WrappedGLES::Serialise_glBlendBarrier()
 {
   if(m_State <= EXECUTING)
   {
-      m_Real.glBlendBarrier();
+    m_Real.glBlendBarrier();
   }
 
   return true;
 }
-
 
 void WrappedGLES::glBlendBarrier()
 {
@@ -615,40 +614,54 @@ void WrappedGLES::glDepthRangef(GLfloat nearVal, GLfloat farVal)
   }
 }
 
-bool WrappedGLES::Serialise_glDepthRangeIndexedfNV(GLuint index, GLfloat nearVal, GLfloat farVal)
+bool WrappedGLES::Serialise_Common_glDepthRangeIndexedf(VendorType vendor, GLuint index, GLfloat nearVal, GLfloat farVal)
 {
+  SERIALISE_ELEMENT(VendorType, vnd, vendor);
   SERIALISE_ELEMENT(GLuint, i, index);
   SERIALISE_ELEMENT(GLfloat, n, nearVal);
   SERIALISE_ELEMENT(GLfloat, f, farVal);
 
   if(m_State <= EXECUTING)
-    m_Real.glDepthRangeIndexedfNV(i, n, f);
+  {
+    Compat_glDepthRangeIndexedf(vnd, i, n, f);
+  }
 
   return true;
 }
 
-void WrappedGLES::glDepthRangeIndexedfNV(GLuint index, GLfloat nearVal, GLfloat farVal)
+void WrappedGLES::Common_glDepthRangeIndexedf(VendorType vendor, GLuint index, GLfloat nearVal, GLfloat farVal)
 {
-  m_Real.glDepthRangeIndexedfNV(index, nearVal, farVal);
+  Compat_glDepthRangeIndexedf(vendor, index, nearVal, farVal);
 
   if(m_State == WRITING_CAPFRAME)
   {
     SCOPED_SERIALISE_CONTEXT(DEPTH_RANGE_IDX);
-    Serialise_glDepthRangeIndexedfNV(index, nearVal, farVal);
+    Serialise_Common_glDepthRangeIndexedf(vendor, index, nearVal, farVal);
 
     m_ContextRecord->AddChunk(scope.Get());
   }
 }
 
-bool WrappedGLES::Serialise_glDepthRangeArrayfvNV(GLuint first, GLsizei count, const GLfloat *v)
+void WrappedGLES::glDepthRangeIndexedfOES(GLuint index, GLfloat nearVal, GLfloat farVal)
 {
+  Common_glDepthRangeIndexedf(Vendor_OES, index, nearVal, farVal);
+}
+
+void WrappedGLES::glDepthRangeIndexedfNV(GLuint index, GLfloat nearVal, GLfloat farVal)
+{
+  Common_glDepthRangeIndexedf(Vendor_NV, index, nearVal, farVal);
+}
+
+bool WrappedGLES::Serialise_Common_glDepthRangeArrayfv(VendorType vendor, GLuint first, GLsizei count, const GLfloat *v)
+{
+  SERIALISE_ELEMENT(VendorType, vnd, vendor);
   SERIALISE_ELEMENT(uint32_t, idx, first);
   SERIALISE_ELEMENT(uint32_t, cnt, count);
   SERIALISE_ELEMENT_ARR(GLfloat, ranges, v, cnt * 2);
 
   if(m_State <= EXECUTING)
   {
-    m_Real.glDepthRangeArrayfvNV(idx, cnt, ranges);
+    Compat_glDepthRangeArrayfv(vnd, idx, cnt, ranges);
   }
 
   delete[] ranges;
@@ -656,17 +669,27 @@ bool WrappedGLES::Serialise_glDepthRangeArrayfvNV(GLuint first, GLsizei count, c
   return true;
 }
 
-void WrappedGLES::glDepthRangeArrayfvNV(GLuint first, GLsizei count, const GLfloat *v)
+void WrappedGLES::Common_glDepthRangeArrayfv(VendorType vendor, GLuint first, GLsizei count, const GLfloat *v)
 {
-  m_Real.glDepthRangeArrayfvNV(first, count, v);
+  Compat_glDepthRangeArrayfv(vendor, first, count, v);
 
   if(m_State == WRITING_CAPFRAME)
   {
     SCOPED_SERIALISE_CONTEXT(DEPTH_RANGEARRAY);
-    Serialise_glDepthRangeArrayfvNV(first, count, v);
+    Serialise_Common_glDepthRangeArrayfv(vendor, first, count, v);
 
     m_ContextRecord->AddChunk(scope.Get());
   }
+}
+
+void WrappedGLES::glDepthRangeArrayfvOES(GLuint first, GLsizei count, const GLfloat *v)
+{
+  Common_glDepthRangeArrayfv(Vendor_OES, first, count, v);
+}
+
+void WrappedGLES::glDepthRangeArrayfvNV(GLuint first, GLsizei count, const GLfloat *v)
+{
+  Common_glDepthRangeArrayfv(Vendor_NV, first, count, v);
 }
 
 bool WrappedGLES::Serialise_glDisable(GLenum cap)
@@ -1100,15 +1123,16 @@ void WrappedGLES::glViewport(GLint x, GLint y, GLsizei width, GLsizei height)
   }
 }
 
-bool WrappedGLES::Serialise_glViewportArrayvOES(GLuint index, GLsizei count, const GLfloat *v)
+bool WrappedGLES::Serialise_Common_glViewportArrayv(VendorType vendor, GLuint index, GLsizei count, const GLfloat *v)
 {
+  SERIALISE_ELEMENT(VendorType, vnd, vendor);
   SERIALISE_ELEMENT(uint32_t, idx, index);
   SERIALISE_ELEMENT(uint32_t, cnt, count);
   SERIALISE_ELEMENT_ARR(GLfloat, views, v, cnt * 4);
 
   if(m_State <= EXECUTING)
   {
-    m_Real.glViewportArrayvOES(idx, cnt, views);
+    Compat_glViewportArrayv(vnd, idx, cnt, views);
   }
 
   delete[] views;
@@ -1116,17 +1140,27 @@ bool WrappedGLES::Serialise_glViewportArrayvOES(GLuint index, GLsizei count, con
   return true;
 }
 
-void WrappedGLES::glViewportArrayvOES(GLuint index, GLsizei count, const GLfloat *v)
+void WrappedGLES::Common_glViewportArrayv(VendorType vendor, GLuint index, GLsizei count, const GLfloat *v)
 {
-  m_Real.glViewportArrayvOES(index, count, v);
+  Compat_glViewportArrayv(vendor, index, count, v);
 
   if(m_State == WRITING_CAPFRAME)
   {
     SCOPED_SERIALISE_CONTEXT(VIEWPORT_ARRAY);
-    Serialise_glViewportArrayvOES(index, count, v);
+    Serialise_Common_glViewportArrayv(vendor, index, count, v);
 
     m_ContextRecord->AddChunk(scope.Get());
   }
+}
+
+void WrappedGLES::glViewportArrayvOES(GLuint index, GLsizei count, const GLfloat *v)
+{
+  Common_glViewportArrayv(Vendor_OES, index, count, v);
+}
+
+void WrappedGLES::glViewportArrayvNV(GLuint index, GLsizei count, const GLfloat *v)
+{
+  Common_glViewportArrayv(Vendor_NV, index, count, v);
 }
 
 void WrappedGLES::glViewportIndexedfOES(GLuint index, GLfloat x, GLfloat y, GLfloat w, GLfloat h)
@@ -1135,9 +1169,20 @@ void WrappedGLES::glViewportIndexedfOES(GLuint index, GLfloat x, GLfloat y, GLfl
   glViewportArrayvOES(index, 1, v);
 }
 
+void WrappedGLES::glViewportIndexedfNV(GLuint index, GLfloat x, GLfloat y, GLfloat w, GLfloat h)
+{
+  const float v[4] = {x, y, w, h};
+  glViewportArrayvNV(index, 1, v);
+}
+
 void WrappedGLES::glViewportIndexedfvOES(GLuint index, const GLfloat *v)
 {
   glViewportArrayvOES(index, 1, v);
+}
+
+void WrappedGLES::glViewportIndexedfvNV(GLuint index, const GLfloat *v)
+{
+  glViewportArrayvNV(index, 1, v);
 }
 
 bool WrappedGLES::Serialise_glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
@@ -1168,15 +1213,16 @@ void WrappedGLES::glScissor(GLint x, GLint y, GLsizei width, GLsizei height)
   }
 }
 
-bool WrappedGLES::Serialise_glScissorArrayvNV(GLuint index, GLsizei count, const GLint *v)
+bool WrappedGLES::Serialise_Common_glScissorArrayv(VendorType vendor, GLuint index, GLsizei count, const GLint *v)
 {
+  SERIALISE_ELEMENT(VendorType, vnd, vendor);
   SERIALISE_ELEMENT(uint32_t, idx, index);
   SERIALISE_ELEMENT(uint32_t, cnt, count);
   SERIALISE_ELEMENT_ARR(GLint, scissors, v, cnt * 4);
 
   if(m_State <= EXECUTING)
   {
-    m_Real.glScissorArrayvNV(idx, cnt, scissors);
+    Compat_glScissorArrayv(vnd, idx, cnt, scissors);
   }
 
   delete[] scissors;
@@ -1184,17 +1230,34 @@ bool WrappedGLES::Serialise_glScissorArrayvNV(GLuint index, GLsizei count, const
   return true;
 }
 
-void WrappedGLES::glScissorArrayvNV(GLuint first, GLsizei count, const GLint *v)
+void WrappedGLES::Common_glScissorArrayv(VendorType vendor, GLuint first, GLsizei count, const GLint *v)
 {
-  m_Real.glScissorArrayvNV(first, count, v);
+  Compat_glScissorArrayv(vendor, first, count, v);
 
   if(m_State == WRITING_CAPFRAME)
   {
     SCOPED_SERIALISE_CONTEXT(SCISSOR_ARRAY);
-    Serialise_glScissorArrayvNV(first, count, v);
+    Serialise_Common_glScissorArrayv(vendor, first, count, v);
 
     m_ContextRecord->AddChunk(scope.Get());
   }
+}
+
+void WrappedGLES::glScissorArrayvOES(GLuint first, GLsizei count, const GLint *v)
+{
+  Common_glScissorArrayv(Vendor_OES, first, count, v);
+}
+
+void WrappedGLES::glScissorArrayvNV(GLuint first, GLsizei count, const GLint *v)
+{
+  Common_glScissorArrayv(Vendor_NV, first, count, v);
+}
+
+void WrappedGLES::glScissorIndexedOES(GLuint index, GLint left, GLint bottom, GLsizei width,
+                                      GLsizei height)
+{
+  const GLint v[4] = {left, bottom, width, height};
+  glScissorArrayvOES(index, 1, v);
 }
 
 void WrappedGLES::glScissorIndexedNV(GLuint index, GLint left, GLint bottom, GLsizei width,
@@ -1202,6 +1265,11 @@ void WrappedGLES::glScissorIndexedNV(GLuint index, GLint left, GLint bottom, GLs
 {
   const GLint v[4] = {left, bottom, width, height};
   glScissorArrayvNV(index, 1, v);
+}
+
+void WrappedGLES::glScissorIndexedvOES(GLuint index, const GLint *v)
+{
+  glScissorArrayvOES(index, 1, v);
 }
 
 void WrappedGLES::glScissorIndexedvNV(GLuint index, const GLint *v)

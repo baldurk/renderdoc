@@ -202,6 +202,11 @@ void WrappedGLES::glGetIntegeri_v(GLenum pname, GLuint index, GLint *data)
   m_Real.glGetIntegeri_v(pname, index, data);
 }
 
+void WrappedGLES::glGetFloati_vOES(GLenum pname, GLuint index, GLfloat *data)
+{
+  m_Real.glGetFloati_vOES(pname, index, data);
+}
+
 void WrappedGLES::glGetFloati_vNV(GLenum pname, GLuint index, GLfloat *data)
 {
   m_Real.glGetFloati_vNV(pname, index, data);

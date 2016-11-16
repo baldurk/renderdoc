@@ -140,3 +140,43 @@ void WrappedGLES::Compat_glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum
     m_Real.glDrawElementsInstancedBaseVertex(mode, count, type, indices, instancecount, basevertex);
   }
 }
+
+void WrappedGLES::Compat_glDepthRangeArrayfv(VendorType vendor, GLuint first, GLsizei count, const GLfloat *v)
+{
+  if(vendor == Vendor_OES && ExtensionSupported[ExtensionSupported_OES_viewport_array])
+    m_Real.glDepthRangeArrayfvOES(first, count, v);
+  else if(vendor == Vendor_NV && ExtensionSupported[ExtensionSupported_NV_viewport_array])
+    m_Real.glDepthRangeArrayfvNV(first, count, v);
+  else
+    RDCERR("Unsupported function: glDepthRangeArrayfv (%s)", ToStr::Get(vendor).c_str());
+}
+
+void WrappedGLES::Compat_glDepthRangeIndexedf(VendorType vendor, GLuint index, GLfloat nearVal, GLfloat farVal)
+{
+  if(vendor == Vendor_OES && ExtensionSupported[ExtensionSupported_OES_viewport_array])
+    m_Real.glDepthRangeIndexedfOES(index, nearVal, farVal);
+  else if(vendor == Vendor_NV && ExtensionSupported[ExtensionSupported_NV_viewport_array])
+    m_Real.glDepthRangeIndexedfNV(index, nearVal, farVal);
+  else
+    RDCERR("Unsupported function: glDepthRangeIndexedf (%s)", ToStr::Get(vendor).c_str());
+}
+
+void WrappedGLES::Compat_glScissorArrayv(VendorType vendor, GLuint first, GLsizei count, const GLint *v)
+{
+  if(vendor == Vendor_OES && ExtensionSupported[ExtensionSupported_OES_viewport_array])
+    m_Real.glScissorArrayvOES(first, count, v);
+  else if(vendor == Vendor_NV && ExtensionSupported[ExtensionSupported_NV_viewport_array])
+    m_Real.glScissorArrayvNV(first, count, v);
+  else
+    RDCERR("Unsupported function: glScissorArrayv (%s)", ToStr::Get(vendor).c_str());
+}
+
+void WrappedGLES::Compat_glViewportArrayv(VendorType vendor, GLuint first, GLsizei count, const GLfloat *v)
+{
+  if(vendor == Vendor_OES && ExtensionSupported[ExtensionSupported_OES_viewport_array])
+    m_Real.glViewportArrayvOES(first, count, v);
+  else if(vendor == Vendor_NV && ExtensionSupported[ExtensionSupported_NV_viewport_array])
+    m_Real.glViewportArrayvNV(first, count, v);
+  else
+    RDCERR("Unsupported function: glViewportArrayv (%s)", ToStr::Get(vendor).c_str());
+}

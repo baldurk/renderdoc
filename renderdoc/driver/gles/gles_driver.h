@@ -928,6 +928,38 @@ public:
   void Common_glNamedBufferStorageEXT(ResourceId id, GLsizeiptr size, const void *data,
                                       GLbitfield flags);
 
+  enum VendorType
+  {
+    Vendor_Unknown = 0,
+    Vendor_AMD,
+    Vendor_ANDROID,
+    Vendor_ANGLE,
+    Vendor_APPLE,
+    Vendor_ARM,
+    Vendor_DMP,
+    Vendor_EXT,
+    Vendor_FJ,
+    Vendor_IMG,
+    Vendor_INTEL,
+    Vendor_KHR,
+    Vendor_NV,
+    Vendor_NVX,
+    Vendor_OES,
+    Vendor_OVR,
+    Vendor_QCOM,
+    Vendor_SUN,
+    Vendor_VIV,
+  };
+
+  bool Serialise_Common_glDepthRangeIndexedf(VendorType vendor, GLuint index, GLfloat nearVal, GLfloat farVal);
+  void Common_glDepthRangeIndexedf(VendorType vendor, GLuint index, GLfloat nearVal, GLfloat farVal);
+  bool Serialise_Common_glDepthRangeArrayfv(VendorType vendor, GLuint first, GLsizei count, const GLfloat *v);
+  void Common_glDepthRangeArrayfv(VendorType vendor, GLuint first, GLsizei count, const GLfloat *v);
+  bool Serialise_Common_glViewportArrayv(VendorType vendor, GLuint index, GLsizei count, const GLfloat *v);
+  void Common_glViewportArrayv(VendorType vendor, GLuint index, GLsizei count, const GLfloat *v);
+  bool Serialise_Common_glScissorArrayv(VendorType vendor, GLuint index, GLsizei count, const GLint *v);
+  void Common_glScissorArrayv(VendorType vendor, GLuint index, GLsizei count, const GLint *v);
+
   // GLES - GL compatibility like methods
   void Compat_glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt, GLenum type, GLint width, GLint height, void *ret);
   void Compat_glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data);
@@ -938,6 +970,10 @@ public:
   void Compat_glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance);
   void Compat_glDrawElementsInstancedBaseInstanceEXT(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLuint baseinstance);
   void Compat_glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode, GLsizei count, GLenum type, const void *indices, GLsizei instancecount, GLint basevertex, GLuint baseinstance);
+  void Compat_glDepthRangeArrayfv(VendorType vendor, GLuint first, GLsizei count, const GLfloat *v);
+  void Compat_glDepthRangeIndexedf(VendorType vendor, GLuint index, GLfloat nearVal, GLfloat farVal);
+  void Compat_glViewportArrayv(VendorType vendor, GLuint index, GLsizei count, const GLfloat *v);
+  void Compat_glScissorArrayv(VendorType vendor, GLuint first, GLsizei count, const GLint *v);
 
 };
 

@@ -404,6 +404,12 @@
     HookExtension(PFNGLVIEWPORTARRAYVOESPROC, glViewportArrayvOES); \
     HookExtension(PFNGLVIEWPORTINDEXEDFOESPROC, glViewportIndexedfOES); \
     HookExtension(PFNGLVIEWPORTINDEXEDFVOESPROC, glViewportIndexedfvOES); \
+    HookExtension(PFNGLSCISSORARRAYVOESPROC, glScissorArrayvOES); \
+    HookExtension(PFNGLSCISSORINDEXEDOESPROC, glScissorIndexedOES); \
+    HookExtension(PFNGLSCISSORINDEXEDVOESPROC, glScissorIndexedvOES); \
+    HookExtension(PFNGLDEPTHRANGEARRAYFVOESPROC, glDepthRangeArrayfvOES); \
+    HookExtension(PFNGLDEPTHRANGEINDEXEDFOESPROC, glDepthRangeIndexedfOES); \
+    HookExtension(PFNGLGETFLOATI_VOESPROC, glGetFloati_vOES); \
     HookExtension(PFNGLDRAWARRAYSINSTANCEDBASEINSTANCEEXTPROC, glDrawArraysInstancedBaseInstanceEXT); \
     HookExtension(PFNGLDRAWELEMENTSINSTANCEDBASEINSTANCEEXTPROC, glDrawElementsInstancedBaseInstanceEXT); \
     HookExtension(PFNGLDRAWELEMENTSINSTANCEDBASEVERTEXBASEINSTANCEEXTPROC, glDrawElementsInstancedBaseVertexBaseInstanceEXT); \
@@ -430,6 +436,9 @@
     HookExtension(PFNGLBEGINCONDITIONALRENDERNVPROC, glBeginConditionalRenderNV); \
     HookExtension(PFNGLENDCONDITIONALRENDERNVPROC, glEndConditionalRenderNV); \
     HookExtension(PFNGLPOLYGONMODENVPROC, glPolygonModeNV); \
+    HookExtension(PFNGLVIEWPORTARRAYVNVPROC, glViewportArrayvNV); \
+    HookExtension(PFNGLVIEWPORTINDEXEDFNVPROC, glViewportIndexedfNV); \
+    HookExtension(PFNGLVIEWPORTINDEXEDFVNVPROC, glViewportIndexedfvNV); \
     HookExtension(PFNGLSCISSORARRAYVNVPROC, glScissorArrayvNV); \
     HookExtension(PFNGLSCISSORINDEXEDNVPROC, glScissorIndexedNV); \
     HookExtension(PFNGLSCISSORINDEXEDVNVPROC, glScissorIndexedvNV); \
@@ -989,6 +998,12 @@
     HookWrapper3(void, glViewportArrayvOES, GLuint, first, GLsizei, count, const GLfloat *, v); \
     HookWrapper5(void, glViewportIndexedfOES, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, w, GLfloat, h); \
     HookWrapper2(void, glViewportIndexedfvOES, GLuint, index, const GLfloat *, v); \
+    HookWrapper3(void, glScissorArrayvOES, GLuint, first, GLsizei, count, const GLint *, v); \
+    HookWrapper5(void, glScissorIndexedOES, GLuint, index, GLint, left, GLint, bottom, GLsizei, width, GLsizei, height); \
+    HookWrapper2(void, glScissorIndexedvOES, GLuint, index, const GLint *, v); \
+    HookWrapper3(void, glDepthRangeArrayfvOES, GLuint, first, GLsizei, count, const GLfloat *, v); \
+    HookWrapper3(void, glDepthRangeIndexedfOES, GLuint, index, GLfloat, n, GLfloat, f); \
+    HookWrapper3(void, glGetFloati_vOES, GLenum, target, GLuint, index, GLfloat *, data); \
     HookWrapper5(void, glDrawArraysInstancedBaseInstanceEXT, GLenum, mode, GLint, first, GLsizei, count, GLsizei, instancecount, GLuint, baseinstance); \
     HookWrapper6(void, glDrawElementsInstancedBaseInstanceEXT, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLuint, baseinstance); \
     HookWrapper7(void, glDrawElementsInstancedBaseVertexBaseInstanceEXT, GLenum, mode, GLsizei, count, GLenum, type, const void *, indices, GLsizei, instancecount, GLint, basevertex, GLuint, baseinstance); \
@@ -1015,6 +1030,9 @@
     HookWrapper2(void, glBeginConditionalRenderNV, GLuint, id, GLenum, mode); \
     HookWrapper0(void, glEndConditionalRenderNV); \
     HookWrapper2(void, glPolygonModeNV, GLenum, face, GLenum, mode); \
+    HookWrapper3(void, glViewportArrayvNV, GLuint, first, GLsizei, count, const GLfloat *, v); \
+    HookWrapper5(void, glViewportIndexedfNV, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, w, GLfloat, h); \
+    HookWrapper2(void, glViewportIndexedfvNV, GLuint, index, const GLfloat *, v); \
     HookWrapper3(void, glScissorArrayvNV, GLuint, first, GLsizei, count, const GLint *, v); \
     HookWrapper5(void, glScissorIndexedNV, GLuint, index, GLint, left, GLint, bottom, GLsizei, width, GLsizei, height); \
     HookWrapper2(void, glScissorIndexedvNV, GLuint, index, const GLint *, v); \
@@ -1030,12 +1048,6 @@
     HookWrapper2(void, glEGLImageTargetRenderbufferStorageOES, GLenum, target, GLeglImageOES, image); \
     HookWrapper6(void, glMultiDrawElementsBaseVertexOES, GLenum, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, primcount, const GLint *, basevertex); \
     HookWrapper8(void, glTextureViewOES, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
-    HookWrapper3(void, glScissorArrayvOES, GLuint, first, GLsizei, count, const GLint *, v); \
-    HookWrapper5(void, glScissorIndexedOES, GLuint, index, GLint, left, GLint, bottom, GLsizei, width, GLsizei, height); \
-    HookWrapper2(void, glScissorIndexedvOES, GLuint, index, const GLint *, v); \
-    HookWrapper3(void, glDepthRangeArrayfvOES, GLuint, first, GLsizei, count, const GLfloat *, v); \
-    HookWrapper3(void, glDepthRangeIndexedfOES, GLuint, index, GLfloat, n, GLfloat, f); \
-    HookWrapper3(void, glGetFloati_vOES, GLenum, target, GLuint, index, GLfloat *, data); \
     HookWrapper3(void, glGetPerfMonitorGroupsAMD, GLint *, numGroups, GLsizei, groupsSize, GLuint *, groups); \
     HookWrapper5(void, glGetPerfMonitorCountersAMD, GLuint, group, GLint *, numCounters, GLint *, maxActiveCounters, GLsizei, counterSize, GLuint *, counters); \
     HookWrapper4(void, glGetPerfMonitorGroupStringAMD, GLuint, group, GLsizei, bufSize, GLsizei *, length, GLchar *, groupString); \
@@ -1211,9 +1223,6 @@
     HookWrapper4(void, glFramebufferSampleLocationsfvNV, GLenum, target, GLuint, start, GLsizei, count, const GLfloat *, v); \
     HookWrapper4(void, glNamedFramebufferSampleLocationsfvNV, GLuint, framebuffer, GLuint, start, GLsizei, count, const GLfloat *, v); \
     HookWrapper0(void, glResolveDepthValuesNV); \
-    HookWrapper3(void, glViewportArrayvNV, GLuint, first, GLsizei, count, const GLfloat *, v); \
-    HookWrapper5(void, glViewportIndexedfNV, GLuint, index, GLfloat, x, GLfloat, y, GLfloat, w, GLfloat, h); \
-    HookWrapper2(void, glViewportIndexedfvNV, GLuint, index, const GLfloat *, v); \
     HookWrapper5(void, glViewportSwizzleNV, GLuint, index, GLenum, swizzlex, GLenum, swizzley, GLenum, swizzlez, GLenum, swizzlew); \
     HookWrapper6(void, glFramebufferTextureMultiviewOVR, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, baseViewIndex, GLsizei, numViews); \
     HookWrapper7(void, glFramebufferTextureMultisampleMultiviewOVR, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLsizei, samples, GLint, baseViewIndex, GLsizei, numViews); \
@@ -1244,12 +1253,6 @@
     HandleUnsupported(PFNGLEGLIMAGETARGETRENDERBUFFERSTORAGEOESPROC, glEGLImageTargetRenderbufferStorageOES); \
     HandleUnsupported(PFNGLMULTIDRAWELEMENTSBASEVERTEXOESPROC, glMultiDrawElementsBaseVertexOES); \
     HandleUnsupported(PFNGLTEXTUREVIEWOESPROC, glTextureViewOES); \
-    HandleUnsupported(PFNGLSCISSORARRAYVOESPROC, glScissorArrayvOES); \
-    HandleUnsupported(PFNGLSCISSORINDEXEDOESPROC, glScissorIndexedOES); \
-    HandleUnsupported(PFNGLSCISSORINDEXEDVOESPROC, glScissorIndexedvOES); \
-    HandleUnsupported(PFNGLDEPTHRANGEARRAYFVOESPROC, glDepthRangeArrayfvOES); \
-    HandleUnsupported(PFNGLDEPTHRANGEINDEXEDFOESPROC, glDepthRangeIndexedfOES); \
-    HandleUnsupported(PFNGLGETFLOATI_VOESPROC, glGetFloati_vOES); \
     HandleUnsupported(PFNGLGETPERFMONITORGROUPSAMDPROC, glGetPerfMonitorGroupsAMD); \
     HandleUnsupported(PFNGLGETPERFMONITORCOUNTERSAMDPROC, glGetPerfMonitorCountersAMD); \
     HandleUnsupported(PFNGLGETPERFMONITORGROUPSTRINGAMDPROC, glGetPerfMonitorGroupStringAMD); \
@@ -1425,9 +1428,6 @@
     HandleUnsupported(PFNGLFRAMEBUFFERSAMPLELOCATIONSFVNVPROC, glFramebufferSampleLocationsfvNV); \
     HandleUnsupported(PFNGLNAMEDFRAMEBUFFERSAMPLELOCATIONSFVNVPROC, glNamedFramebufferSampleLocationsfvNV); \
     HandleUnsupported(PFNGLRESOLVEDEPTHVALUESNVPROC, glResolveDepthValuesNV); \
-    HandleUnsupported(PFNGLVIEWPORTARRAYVNVPROC, glViewportArrayvNV); \
-    HandleUnsupported(PFNGLVIEWPORTINDEXEDFNVPROC, glViewportIndexedfNV); \
-    HandleUnsupported(PFNGLVIEWPORTINDEXEDFVNVPROC, glViewportIndexedfvNV); \
     HandleUnsupported(PFNGLVIEWPORTSWIZZLENVPROC, glViewportSwizzleNV); \
     HandleUnsupported(PFNGLFRAMEBUFFERTEXTUREMULTIVIEWOVRPROC, glFramebufferTextureMultiviewOVR); \
     HandleUnsupported(PFNGLFRAMEBUFFERTEXTUREMULTISAMPLEMULTIVIEWOVRPROC, glFramebufferTextureMultisampleMultiviewOVR); \

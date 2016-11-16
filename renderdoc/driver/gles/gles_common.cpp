@@ -1624,6 +1624,44 @@ string ToStrHelper<false, WrappedGLES::UniformType>::Get(const WrappedGLES::Unif
 }
 
 template <>
+string ToStrHelper<false, WrappedGLES::VendorType>::Get(const WrappedGLES::VendorType &el)
+{
+  switch(el)
+  {
+    case WrappedGLES::Vendor_Unknown: return "unk";
+
+#define V2STR(vendor) \
+  case WrappedGLES::CONCAT(Vendor_, vendor): return STRINGIZE(vendor);
+      V2STR(AMD)
+      V2STR(ANDROID)
+      V2STR(ANGLE)
+      V2STR(APPLE)
+      V2STR(ARM)
+      V2STR(DMP)
+      V2STR(EXT)
+      V2STR(FJ)
+      V2STR(IMG)
+      V2STR(INTEL)
+      V2STR(KHR)
+      V2STR(NV)
+      V2STR(NVX)
+      V2STR(OES)
+      V2STR(OVR)
+      V2STR(QCOM)
+      V2STR(SUN)
+      V2STR(VIV)
+#undef V2STR
+
+    default: break;
+  }
+
+  char tostrBuf[256] = {0};
+  StringFormat::snprintf(tostrBuf, 255, "WrappedGLES::VendorType<%d>", el);
+
+  return tostrBuf;
+}
+
+template <>
 string ToStrHelper<false, RDCGLenum>::Get(const RDCGLenum &el)
 {
 #undef GLenum
