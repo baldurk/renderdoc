@@ -1193,6 +1193,39 @@ bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mi
                                                     maxval, channels, histogram);
 }
 
+bool D3D12Replay::IsRenderOutput(ResourceId id)
+{
+  const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+
+  id = m_pDevice->GetResourceManager()->GetLiveID(id);
+
+  for(size_t i = 0; i < rs.rts.size(); i++)
+  {
+    PortableHandle h = rs.rtSingle ? rs.rts[0] : rs.rts[i];
+
+    if(h.heap != ResourceId())
+    {
+      D3D12Descriptor *desc = DescriptorFromPortableHandle(m_pDevice->GetResourceManager(), h);
+
+      if(rs.rtSingle)
+        desc += i;
+
+      if(id == GetResID(desc->nonsamp.resource))
+        return true;
+    }
+  }
+
+  if(rs.dsv.heap != ResourceId())
+  {
+    D3D12Descriptor *desc = DescriptorFromPortableHandle(m_pDevice->GetResourceManager(), rs.dsv);
+
+    if(id == GetResID(desc->nonsamp.resource))
+      return true;
+  }
+
+  return false;
+}
+
 bool D3D12Replay::IsTextureSupported(const ResourceFormat &format)
 {
   return MakeDXGIFormat(format) != DXGI_FORMAT_UNKNOWN;
@@ -1568,11 +1601,6 @@ ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, u
                                           FormatComponentType typeHint)
 {
   return ResourceId();
-}
-
-bool D3D12Replay::IsRenderOutput(ResourceId id)
-{
-  return false;
 }
 
 ResourceId D3D12Replay::CreateProxyTexture(const FetchTexture &templateTex)
