@@ -1629,29 +1629,24 @@ string ToStrHelper<false, WrappedGLES::VendorType>::Get(const WrappedGLES::Vendo
   switch(el)
   {
     case WrappedGLES::Vendor_Unknown: return "unk";
-
-#define V2STR(vendor) \
-  case WrappedGLES::CONCAT(Vendor_, vendor): return STRINGIZE(vendor);
-      V2STR(AMD)
-      V2STR(ANDROID)
-      V2STR(ANGLE)
-      V2STR(APPLE)
-      V2STR(ARM)
-      V2STR(DMP)
-      V2STR(EXT)
-      V2STR(FJ)
-      V2STR(IMG)
-      V2STR(INTEL)
-      V2STR(KHR)
-      V2STR(NV)
-      V2STR(NVX)
-      V2STR(OES)
-      V2STR(OVR)
-      V2STR(QCOM)
-      V2STR(SUN)
-      V2STR(VIV)
-#undef V2STR
-
+    case WrappedGLES::Vendor_AMD: return "AMD";
+    case WrappedGLES::Vendor_ANDROID: return "ANDROID";
+    case WrappedGLES::Vendor_ANGLE: return "ANGLE";
+    case WrappedGLES::Vendor_APPLE: return "APPLE";
+    case WrappedGLES::Vendor_ARM: return "ARM";
+    case WrappedGLES::Vendor_DMP: return "DMP";
+    case WrappedGLES::Vendor_EXT: return "EXT";
+    case WrappedGLES::Vendor_FJ: return "FJ";
+    case WrappedGLES::Vendor_IMG: return "IMG";
+    case WrappedGLES::Vendor_INTEL: return "INTEL";
+    case WrappedGLES::Vendor_KHR: return "KHR";
+    case WrappedGLES::Vendor_NV: return "NV";
+    case WrappedGLES::Vendor_NVX: return "NVX";
+    case WrappedGLES::Vendor_OES: return "OES";
+    case WrappedGLES::Vendor_OVR: return "OVR";
+    case WrappedGLES::Vendor_QCOM: return "QCOM";
+    case WrappedGLES::Vendor_SUN: return "SUN";
+    case WrappedGLES::Vendor_VIV: return "VIV";
     default: break;
   }
 
