@@ -66,7 +66,6 @@ typedef void ( *__extFuncPtr)(void);
 #define HookExtensionAlias(funcPtrType, function, alias)          \
   if(!strcmp(func, STRINGIZE(alias)))                             \
   {                                                               \
-    OpenGLHook::glhooks.GL.function = (funcPtrType)realFunc;      \
     return (__extFuncPtr)&CONCAT(function, _renderdoc_hooked); \
   }
 
