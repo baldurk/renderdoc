@@ -145,6 +145,17 @@ vector<ResourceId> GLESReplay::GetBuffers()
   return ret;
 }
 
+FetchTexture GLESReplay::GetTexture(ResourceId id)
+{
+  auto it = m_CachedTextures.find(id);
+  if(it == m_CachedTextures.end())
+  {
+    CacheTexture(id);
+  }
+
+ return m_CachedTextures[id];
+}
+
 vector<ResourceId> GLESReplay::GetTextures()
 {
   vector<ResourceId> ret;

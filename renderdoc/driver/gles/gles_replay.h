@@ -96,7 +96,7 @@ public:
   FetchBuffer GetBuffer(ResourceId id);
 
   vector<ResourceId> GetTextures();
-  FetchTexture GetTexture(ResourceId id) { return m_CachedTextures[id]; }
+  FetchTexture GetTexture(ResourceId id);
   ShaderReflection *GetShader(ResourceId shader, string entryPoint);
 
   vector<DebugMessage> GetDebugMessages();
