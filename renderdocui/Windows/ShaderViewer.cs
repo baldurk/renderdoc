@@ -2192,7 +2192,6 @@ namespace renderdocui.Windows
                                                 "Texture2DArray<uint2> texDisplayTexStencilArray : register(t5);" + Environment.NewLine +
                                                 "Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);" + Environment.NewLine +
                                                 "Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);" + Environment.NewLine +
-                                                "Texture2DArray<float4> texDisplayTexCubeArray : register(t8);" + Environment.NewLine +
                                                 "Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);" + Environment.NewLine +
                                                 "" + Environment.NewLine +
                                                 "Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);" + Environment.NewLine +

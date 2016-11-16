@@ -731,6 +731,9 @@ bool D3D11DebugManager::InitDebugRendering()
 
     for(int t = eTexType_1D; t < eTexType_Max; t++)
     {
+      if(t == eTexType_Unused)
+        continue;
+
       // float, uint, sint
       for(int i = 0; i < 3; i++)
       {
@@ -2707,7 +2710,6 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(
 
   bool msaaDepth = false;
 
-  bool cube = false;
   DXGI_FORMAT srvFormat = DXGI_FORMAT_UNKNOWN;
 
   if(WrappedID3D11Texture1D::m_TextureList.find(id) != WrappedID3D11Texture1D::m_TextureList.end())
@@ -2780,9 +2782,6 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(
 
     D3D11_TEXTURE2D_DESC desc2d = {0};
     wrapTex2D->GetDesc(&desc2d);
-
-    if(desc2d.MiscFlags & D3D11_RESOURCE_MISC_TEXTURECUBE)
-      cube = true;
 
     details.texFmt = desc2d.Format;
     details.texWidth = desc2d.Width;
@@ -2957,12 +2956,6 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(
   srvDesc[eTexType_3D].Texture3D.MipLevels = details.texMips;
   srvDesc[eTexType_3D].Texture3D.MostDetailedMip = 0;
 
-  srvDesc[eTexType_Cube].ViewDimension = D3D11_SRV_DIMENSION_TEXTURECUBEARRAY;
-  srvDesc[eTexType_Cube].TextureCubeArray.First2DArrayFace = 0;
-  srvDesc[eTexType_Cube].TextureCubeArray.MipLevels = details.texMips;
-  srvDesc[eTexType_Cube].TextureCubeArray.MostDetailedMip = 0;
-  srvDesc[eTexType_Cube].TextureCubeArray.NumCubes = RDCMAX(1U, details.texArraySize / 6);
-
   for(int i = 0; i < eTexType_Max; i++)
     srvDesc[i].Format = srvFormat;
 
@@ -3062,22 +3055,6 @@ D3D11DebugManager::TextureShaderDetails D3D11DebugManager::GetShaderDetails(
     details.srv[eTexType_Stencil] = NULL;
     details.srv[eTexType_DepthMS] = cache.srv[0];
     details.srv[eTexType_StencilMS] = cache.srv[1];
-  }
-
-  if((details.texType == eTexType_2D || details.texType == eTexType_Depth ||
-      details.texType == eTexType_Stencil) &&
-     cube)
-  {
-    if(!cache.created)
-    {
-      hr = m_pDevice->CreateShaderResourceView(details.srvResource, &srvDesc[eTexType_Cube],
-                                               &cache.srv[2]);
-
-      if(FAILED(hr))
-        RDCERR("Failed to create cache SRV 2 %08x", hr);
-    }
-
-    details.srv[eTexType_Cube] = cache.srv[2];
   }
 
   cache.created = true;

@@ -208,7 +208,7 @@ public:
     eTexType_Stencil,
     eTexType_DepthMS,
     eTexType_StencilMS,
-    eTexType_Cube,
+    eTexType_Unused,    // removed, kept just to keep slots the same
     eTexType_2DMS,
     eTexType_Max
   };
@@ -261,7 +261,7 @@ private:
     CacheElem(ResourceId id_, FormatComponentType typeHint_, bool raw_)
         : created(false), id(id_), typeHint(typeHint_), raw(raw_), srvResource(NULL)
     {
-      srv[0] = srv[1] = srv[2] = NULL;
+      srv[0] = srv[1] = NULL;
     }
 
     void Release()
@@ -269,7 +269,6 @@ private:
       SAFE_RELEASE(srvResource);
       SAFE_RELEASE(srv[0]);
       SAFE_RELEASE(srv[1]);
-      SAFE_RELEASE(srv[2]);
     }
 
     bool created;
@@ -277,7 +276,7 @@ private:
     FormatComponentType typeHint;
     bool raw;
     ID3D11Resource *srvResource;
-    ID3D11ShaderResourceView *srv[3];
+    ID3D11ShaderResourceView *srv[2];
   };
 
   static const int NUM_CACHED_SRVS = 64;

@@ -162,7 +162,7 @@ D3D11 / HLSL
 #. Depth + Stencil
 #. Depth (Multisampled)
 #. Depth + Stencil (Multisampled)
-#. Cubemap
+#. Legacy: used to be cubemap, removed as it's unused
 #. 2D texture (Multisampled)
 
 OpenGL / GLSL
@@ -214,7 +214,6 @@ D3D11 / HLSL
 	Texture2DArray<uint2> texDisplayTexStencilArray : register(t5);
 	Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);
 	Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);
-	Texture2DArray<float4> texDisplayTexCubeArray : register(t8);
 	Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);
 
 	Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);

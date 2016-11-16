@@ -42,7 +42,6 @@ Texture2DArray<float2> texDisplayTexDepthArray : register(t4);
 Texture2DArray<uint2> texDisplayTexStencilArray : register(t5);
 Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);
 Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);
-Texture2DArray<float4> texDisplayTexCubeArray : register(t8);
 Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);
 
 Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);

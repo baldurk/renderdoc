@@ -125,7 +125,6 @@ cbuffer HistogramCBufferData REG(b0)
 #define RESTYPE_DEPTH_STENCIL 0x5
 #define RESTYPE_DEPTH_MS 0x6
 #define RESTYPE_DEPTH_STENCIL_MS 0x7
-#define RESTYPE_CUBE 0x8
 #define RESTYPE_TEX2D_MS 0x9
 
 #define MESHDISPLAY_SOLID 0x1
