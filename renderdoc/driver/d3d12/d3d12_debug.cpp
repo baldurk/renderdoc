@@ -2326,6 +2326,9 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
       srvOffset = RESTYPE_TEX2D_MS;
       srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DMSARRAY;
       srvDesc.Texture2DMSArray.ArraySize = ~0U;
+
+      if(IsDepthFormat(resourceDesc.Format))
+        srvOffset = RESTYPE_DEPTH_MS;
     }
     else
     {
@@ -2333,6 +2336,9 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
       srvDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2DARRAY;
       srvDesc.Texture2D.MipLevels = ~0U;
       srvDesc.Texture2DArray.ArraySize = ~0U;
+
+      if(IsDepthFormat(resourceDesc.Format))
+        srvOffset = RESTYPE_DEPTH;
     }
   }
   else if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE1D)
@@ -2344,6 +2350,11 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
   }
 
   pixelData.OutputDisplayFormat = srvOffset;
+
+  // if it's a depth and stencil image, increment (as the restype for
+  // depth/stencil is one higher than that for depth only).
+  if(IsDepthAndStencilFormat(resourceDesc.Format))
+    pixelData.OutputDisplayFormat++;
 
   if(cfg.overlay == eTexOverlay_NaN)
   {
@@ -2379,7 +2390,8 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
   D3D12_SHADER_RESOURCE_VIEW_DESC stencilSRVDesc = {};
 
   // for non-typeless depth formats, we need to copy to a typeless resource for read
-  if(IsDepthFormat(srvDesc.Format) && !IsTypelessFormat(srvDesc.Format))
+  if(IsDepthFormat(resourceDesc.Format) &&
+     GetTypelessFormat(resourceDesc.Format) != resourceDesc.Format)
   {
     realResourceState = D3D12_RESOURCE_STATE_COPY_SOURCE;
     copy = true;
@@ -2403,18 +2415,34 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
                GetTypelessFormat(srvDesc.Format), srvDesc.Format);
         break;
     }
+  }
 
-    if(stencilSRVDesc.Format != DXGI_FORMAT_UNKNOWN)
+  // even for non-copies, we need to make two SRVs to sample stencil as well
+  if(IsDepthAndStencilFormat(resourceDesc.Format) && stencilSRVDesc.Format == DXGI_FORMAT_UNKNOWN)
+  {
+    switch(GetTypelessFormat(srvDesc.Format))
     {
-      D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
-      formatInfo.Format = srvDesc.Format;
-      m_WrappedDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &formatInfo,
-                                           sizeof(formatInfo));
-
-      if(formatInfo.PlaneCount > 1 &&
-         stencilSRVDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
-        stencilSRVDesc.Texture2DArray.PlaneSlice = 1;
+      case DXGI_FORMAT_R32G8X24_TYPELESS:
+        srvDesc.Format = DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS;
+        stencilSRVDesc = srvDesc;
+        stencilSRVDesc.Format = DXGI_FORMAT_X32_TYPELESS_G8X24_UINT;
+        break;
+      case DXGI_FORMAT_R24G8_TYPELESS:
+        srvDesc.Format = DXGI_FORMAT_R24_UNORM_X8_TYPELESS;
+        stencilSRVDesc = srvDesc;
+        stencilSRVDesc.Format = DXGI_FORMAT_X24_TYPELESS_G8_UINT;
+        break;
     }
+  }
+
+  if(stencilSRVDesc.Format != DXGI_FORMAT_UNKNOWN)
+  {
+    D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
+    formatInfo.Format = srvDesc.Format;
+    m_WrappedDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &formatInfo, sizeof(formatInfo));
+
+    if(formatInfo.PlaneCount > 1 && stencilSRVDesc.ViewDimension == D3D12_SRV_DIMENSION_TEXTURE2DARRAY)
+      stencilSRVDesc.Texture2DArray.PlaneSlice = 1;
   }
 
   FillBuffer(m_GenericVSCbuffer, &vertexData, sizeof(DebugVertexCBuffer));

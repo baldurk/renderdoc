@@ -369,6 +369,24 @@ bool IsDepthFormat(DXGI_FORMAT f)
   return false;
 }
 
+bool IsDepthAndStencilFormat(DXGI_FORMAT f)
+{
+  switch(f)
+  {
+    case DXGI_FORMAT_R32G8X24_TYPELESS:
+    case DXGI_FORMAT_D32_FLOAT_S8X24_UINT:
+    case DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS:
+    case DXGI_FORMAT_X32_TYPELESS_G8X24_UINT:
+
+    case DXGI_FORMAT_D24_UNORM_S8_UINT:
+    case DXGI_FORMAT_R24_UNORM_X8_TYPELESS:
+    case DXGI_FORMAT_X24_TYPELESS_G8_UINT:
+    case DXGI_FORMAT_R24G8_TYPELESS: return true;
+  }
+
+  return false;
+}
+
 bool IsTypelessFormat(DXGI_FORMAT f)
 {
   switch(f)

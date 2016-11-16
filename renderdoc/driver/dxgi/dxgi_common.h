@@ -49,6 +49,7 @@ DXGI_FORMAT GetSRGBFormat(DXGI_FORMAT f);
 DXGI_FORMAT GetNonSRGBFormat(DXGI_FORMAT f);
 bool IsBlockFormat(DXGI_FORMAT f);
 bool IsDepthFormat(DXGI_FORMAT f);
+bool IsDepthAndStencilFormat(DXGI_FORMAT f);
 
 bool IsUIntFormat(DXGI_FORMAT f);
 bool IsTypelessFormat(DXGI_FORMAT f);
