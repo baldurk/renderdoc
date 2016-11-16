@@ -185,7 +185,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       // add a fake marker
       FetchDrawcall draw;
       draw.name = name;
-      draw.flags |= eDraw_SetMarker;
+      draw.flags = eDraw_PassBoundary | eDraw_BeginPass;
       m_Cmd.AddEvent(name);
       m_Cmd.AddDrawcall(draw, true);
       m_Cmd.m_RootEventID++;
@@ -222,6 +222,7 @@ bool WrappedID3D12CommandQueue::Serialise_ExecuteCommandLists(UINT NumCommandLis
       name = StringFormat::Fmt("=> %s[%u]: Close(%s)", basename.c_str(), c,
                                ToStr::Get(cmdIds[c]).c_str());
       draw.name = name;
+      draw.flags = eDraw_PassBoundary | eDraw_EndPass;
       m_Cmd.AddEvent(name);
       m_Cmd.AddDrawcall(draw, true);
       m_Cmd.m_RootEventID++;

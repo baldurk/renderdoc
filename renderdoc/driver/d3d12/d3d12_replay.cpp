@@ -1226,6 +1226,67 @@ bool D3D12Replay::IsRenderOutput(ResourceId id)
   return false;
 }
 
+vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventID)
+{
+  vector<uint32_t> passEvents;
+
+  const FetchDrawcall *draw = m_pDevice->GetDrawcall(eventID);
+
+  if(!draw)
+    return passEvents;
+
+  // for vulkan a pass == a renderpass, if we're not inside a
+  // renderpass then there are no pass events.
+  const FetchDrawcall *start = draw;
+  while(start)
+  {
+    // if we've come to the beginning of a pass, break out of the loop, we've
+    // found the start.
+    // Note that vkCmdNextSubPass has both Begin and End flags set, so it will
+    // break out here before we hit the terminating case looking for eDraw_EndPass
+    if(start->flags & eDraw_BeginPass)
+      break;
+
+    // if we come to the END of a pass, since we were iterating backwards that
+    // means we started outside of a pass, so return empty set.
+    // Note that vkCmdNextSubPass has both Begin and End flags set, so it will
+    // break out above before we hit this terminating case
+    if(start->flags & eDraw_EndPass)
+      return passEvents;
+
+    // if we've come to the start of the log we were outside of a render pass
+    // to start with
+    if(start->previous == 0)
+      return passEvents;
+
+    // step back
+    start = m_pDevice->GetDrawcall((uint32_t)start->previous);
+
+    // something went wrong, start->previous was non-zero but we didn't
+    // get a draw. Abort
+    if(!start)
+      return passEvents;
+  }
+
+  // store all the draw eventIDs up to the one specified at the start
+  while(start)
+  {
+    if(start == draw)
+      break;
+
+    // include pass boundaries, these will be filtered out later
+    // so we don't actually do anything (init postvs/draw overlay)
+    // but it's useful to have the first part of the pass as part
+    // of the list
+    if(start->flags & (eDraw_Drawcall | eDraw_PassBoundary))
+      passEvents.push_back(start->eventID);
+
+    start = m_pDevice->GetDrawcall((uint32_t)start->next);
+  }
+
+  return passEvents;
+}
+
 bool D3D12Replay::IsTextureSupported(const ResourceFormat &format)
 {
   return MakeDXGIFormat(format) != DXGI_FORMAT_UNKNOWN;
@@ -1506,13 +1567,6 @@ void D3D12Replay::RemoveReplacement(ResourceId id)
 }
 
 #pragma region not yet implemented
-
-vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventID)
-{
-  vector<uint32_t> passEvents;
-
-  return passEvents;
-}
 
 void D3D12Replay::InitPostVSBuffers(uint32_t eventID)
 {
