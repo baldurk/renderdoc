@@ -1185,6 +1185,14 @@ bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
                                                  maxval);
 }
 
+bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
+                               FormatComponentType typeHint, float minval, float maxval,
+                               bool channels[4], vector<uint32_t> &histogram)
+{
+  return m_pDevice->GetDebugManager()->GetHistogram(texid, sliceFace, mip, sample, typeHint, minval,
+                                                    maxval, channels, histogram);
+}
+
 bool D3D12Replay::IsTextureSupported(const ResourceFormat &format)
 {
   return MakeDXGIFormat(format) != DXGI_FORMAT_UNKNOWN;
@@ -1479,14 +1487,6 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventID)
 
 void D3D12Replay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
 {
-}
-
-bool D3D12Replay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
-                               FormatComponentType typeHint, float minval, float maxval,
-                               bool channels[4], vector<uint32_t> &histogram)
-{
-  histogram.resize(256, 0);
-  return false;
 }
 
 MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)

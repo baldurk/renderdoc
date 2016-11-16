@@ -76,6 +76,10 @@ public:
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                  FormatComponentType typeHint, float *minval, float *maxval);
 
+  bool GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
+                    FormatComponentType typeHint, float minval, float maxval, bool channels[4],
+                    vector<uint32_t> &histogram);
+
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
                  uint32_t sample, FormatComponentType typeHint, float pixel[4]);
 
@@ -130,6 +134,7 @@ private:
 
   static const int MINMAX_TILE_UAVS = MINMAX_TILE_SRVS + 3;
   static const int MINMAX_RESULT_UAVS = MINMAX_TILE_UAVS + 3;
+  static const int HISTOGRAM_UAV = MINMAX_RESULT_UAVS + 3;
 
   enum
   {

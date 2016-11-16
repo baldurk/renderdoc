@@ -623,6 +623,14 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     tileDesc.Format = DXGI_FORMAT_R32G32B32A32_SINT;
     m_WrappedDevice->CreateUnorderedAccessView(m_MinMaxTileBuffer, NULL, &tileDesc, uav);
 
+    uav = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
+    uav.ptr += HISTOGRAM_UAV * sizeof(D3D12Descriptor);
+
+    // re-use the tile buffer for histogram
+    tileDesc.Format = DXGI_FORMAT_R32_UINT;
+    tileDesc.Buffer.NumElements = HGRAM_NUM_BUCKETS;
+    m_WrappedDevice->CreateUnorderedAccessView(m_MinMaxTileBuffer, NULL, &tileDesc, uav);
+
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
     srvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
@@ -2860,6 +2868,168 @@ bool D3D12DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
     maxval[1] = minmax[1].y;
     maxval[2] = minmax[1].z;
     maxval[3] = minmax[1].w;
+
+    range.End = 0;
+
+    m_ReadbackBuffer->Unmap(0, &range);
+  }
+
+  return true;
+}
+
+bool D3D12DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip,
+                                     uint32_t sample, FormatComponentType typeHint, float minval,
+                                     float maxval, bool channels[4], vector<uint32_t> &histogram)
+{
+  if(minval >= maxval)
+    return false;
+
+  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
+
+  if(resource == NULL)
+    return false;
+
+  D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
+
+  HistogramCBufferData cdata;
+  cdata.HistogramTextureResolution.x = float(RDCMAX(1U, uint32_t(resourceDesc.Width >> mip)));
+  cdata.HistogramTextureResolution.y = float(RDCMAX(1U, uint32_t(resourceDesc.Height >> mip)));
+  cdata.HistogramTextureResolution.z =
+      float(RDCMAX(1U, uint32_t(resourceDesc.DepthOrArraySize >> mip)));
+
+  if(resourceDesc.DepthOrArraySize > 1 && resourceDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    cdata.HistogramTextureResolution.z = float(resourceDesc.DepthOrArraySize);
+
+  cdata.HistogramSlice = float(RDCCLAMP(sliceFace, 0U, uint32_t(resourceDesc.DepthOrArraySize - 1)));
+
+  if(resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    cdata.HistogramSlice = float(sliceFace) / float(resourceDesc.DepthOrArraySize);
+
+  cdata.HistogramMip = mip;
+  cdata.HistogramSample = (int)RDCCLAMP(sample, 0U, resourceDesc.SampleDesc.Count - 1);
+  if(sample == ~0U)
+    cdata.HistogramSample = -int(resourceDesc.SampleDesc.Count);
+  cdata.HistogramMin = minval;
+  cdata.HistogramFlags = 0;
+
+  // The calculation in the shader normalises each value between min and max, then multiplies by the
+  // number of buckets.
+  // But any value equal to HistogramMax must go into NUM_BUCKETS-1, so add a small delta.
+  cdata.HistogramMax = maxval + maxval * 1e-6f;
+
+  cdata.HistogramChannels = 0;
+  if(channels[0])
+    cdata.HistogramChannels |= 0x1;
+  if(channels[1])
+    cdata.HistogramChannels |= 0x2;
+  if(channels[2])
+    cdata.HistogramChannels |= 0x4;
+  if(channels[3])
+    cdata.HistogramChannels |= 0x8;
+  cdata.HistogramFlags = 0;
+
+  int intIdx = 0;
+
+  DXGI_FORMAT fmt = GetTypedFormat(resourceDesc.Format, typeHint);
+
+  if(IsUIntFormat(fmt))
+    intIdx = 1;
+  else if(IsIntFormat(fmt))
+    intIdx = 2;
+
+  FillBuffer(m_GenericVSCbuffer, &cdata, sizeof(cdata));
+
+  int tilesX = (int)ceil(cdata.HistogramTextureResolution.x /
+                         float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+  int tilesY = (int)ceil(cdata.HistogramTextureResolution.y /
+                         float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
+
+  vector<D3D12_RESOURCE_BARRIER> barriers;
+  int resType = 0;
+  PrepareTextureSampling(resource, typeHint, resType, barriers);
+
+  {
+    ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    list->SetPipelineState(m_HistogramPipe[resType][intIdx]);
+
+    list->SetComputeRootSignature(m_HistogramRootSig);
+
+    // Set the descriptor heap containing the texture srv
+    ID3D12DescriptorHeap *heaps[] = {cbvsrvuavHeap, samplerHeap};
+    list->SetDescriptorHeaps(2, heaps);
+
+    D3D12_GPU_DESCRIPTOR_HANDLE uav = cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart();
+    D3D12_GPU_DESCRIPTOR_HANDLE srv = cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart();
+
+    uav.ptr += HISTOGRAM_UAV * sizeof(D3D12Descriptor);
+
+    D3D12_CPU_DESCRIPTOR_HANDLE uavcpu = cbvsrvuavHeap->GetCPUDescriptorHandleForHeapStart();
+
+    uavcpu.ptr += HISTOGRAM_UAV * sizeof(D3D12Descriptor);
+
+    UINT zeroes[] = {0, 0, 0, 0};
+    list->ClearUnorderedAccessViewUint(uav, uavcpu, m_MinMaxTileBuffer, zeroes, 0, NULL);
+
+    list->SetComputeRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
+    list->SetComputeRootDescriptorTable(1, srv);
+    list->SetComputeRootDescriptorTable(2, samplerHeap->GetGPUDescriptorHandleForHeapStart());
+    list->SetComputeRootDescriptorTable(3, uav);
+
+    list->Dispatch(tilesX, tilesY, 1);
+
+    D3D12_RESOURCE_BARRIER tileBarriers[2] = {};
+
+    // finish the UAV work, and transition to copy.
+    tileBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+    tileBarriers[0].UAV.pResource = m_MinMaxTileBuffer;
+    tileBarriers[1].Transition.pResource = m_MinMaxTileBuffer;
+    tileBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    tileBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+    list->ResourceBarrier(2, tileBarriers);
+
+    // copy to readback
+    list->CopyBufferRegion(m_ReadbackBuffer, 0, m_MinMaxTileBuffer, 0,
+                           sizeof(uint32_t) * HGRAM_NUM_BUCKETS);
+
+    // transition back to UAV for next time
+    std::swap(tileBarriers[1].Transition.StateBefore, tileBarriers[1].Transition.StateAfter);
+
+    list->ResourceBarrier(1, &tileBarriers[1]);
+
+    // transition image back to where it was
+    for(size_t i = 0; i < barriers.size(); i++)
+      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    list->Close();
+
+    m_WrappedDevice->ExecuteLists();
+    m_WrappedDevice->FlushLists();
+  }
+
+  D3D12_RANGE range = {0, sizeof(uint32_t) * HGRAM_NUM_BUCKETS};
+
+  void *data = NULL;
+  HRESULT hr = m_ReadbackBuffer->Map(0, &range, &data);
+
+  histogram.clear();
+  histogram.resize(HGRAM_NUM_BUCKETS);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to map bufferdata buffer %08x", hr);
+    return false;
+  }
+  else
+  {
+    memcpy(&histogram[0], data, sizeof(uint32_t) * HGRAM_NUM_BUCKETS);
 
     range.End = 0;
 
