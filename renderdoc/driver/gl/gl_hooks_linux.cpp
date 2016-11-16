@@ -557,6 +557,7 @@ public:
   PFNGLXCREATENEWCONTEXTPROC glXCreateNewContext_real;
   PFNGLXCREATEWINDOWPROC glXCreateWindow_real;
   PFNGLXDESTROYWINDOWPROC glXDestroyWindow_real;
+  PFNGLXCHOOSEFBCONFIGPROC glXChooseFBConfig_real;
 
   WrappedOpenGL *m_GLDriver;
 
@@ -1129,6 +1130,8 @@ bool OpenGLHook::SetupHooks(GLHookSet &GL)
     glXCreateWindow_real = (PFNGLXCREATEWINDOWPROC)dlsym(libGLdlsymHandle, "glXCreateWindow");
   if(glXDestroyWindow_real == NULL)
     glXDestroyWindow_real = (PFNGLXDESTROYWINDOWPROC)dlsym(libGLdlsymHandle, "glXDestroyWindow");
+  if(glXChooseFBConfig_real == NULL)
+    glXChooseFBConfig_real = (PFNGLXCHOOSEFBCONFIGPROC)dlsym(libGLdlsymHandle, "glXChooseFBConfig");
 
   return success;
 }
@@ -1292,6 +1295,14 @@ __attribute__((visibility("default"))) XVisualInfo *glXGetVisualFromFBConfig(Dis
     OpenGLHook::glhooks.SetupExportedFunctions();
 
   return OpenGLHook::glhooks.glXGetVisualFromFBConfig_real(dpy, config);
+}
+
+__attribute__((visibility("default"))) GLXFBConfig *glXChooseFBConfig(Display *dpy, int screen, const int *attrib_list, int *nelements)
+{
+  if(OpenGLHook::glhooks.glXChooseFBConfig_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
+  return OpenGLHook::glhooks.glXChooseFBConfig_real(dpy, screen, attrib_list, nelements);
 }
 
 bool OpenGLHook::PopulateHooks()
