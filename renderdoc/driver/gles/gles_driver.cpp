@@ -2966,6 +2966,8 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
       Serialise_glFramebufferTexture2D(0, eGL_NONE, eGL_NONE, eGL_NONE, 0, 0); break;
     case FRAMEBUFFER_TEX3D:
       Serialise_glFramebufferTexture3DOES(0, eGL_NONE, eGL_NONE, eGL_NONE, 0, 0, 0); break;
+    case FRAMEBUFFER_TEX2DMS:
+      Serialise_Common_glFramebufferTexture2DMultisample(Vendor_Unknown, 0, eGL_NONE, eGL_NONE, eGL_NONE, 0, 0, 0); break;
     case FRAMEBUFFER_RENDBUF:
       Serialise_glFramebufferRenderbuffer(0, eGL_NONE, eGL_NONE, eGL_NONE, 0); break;
     case FRAMEBUFFER_TEXLAYER:

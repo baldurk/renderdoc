@@ -426,6 +426,7 @@
     HookExtension(PFNGLGETQUERYOBJECTIVEXTPROC, glGetQueryObjectivEXT); \
     HookExtension(PFNGLGETQUERYOBJECTI64VEXTPROC, glGetQueryObjecti64vEXT); \
     HookExtension(PFNGLGETQUERYOBJECTUI64VEXTPROC, glGetQueryObjectui64vEXT); \
+    HookExtension(PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC, glFramebufferTexture2DMultisampleEXT); \
     HookExtension(PFNGLPOLYGONOFFSETCLAMPEXTPROC, glPolygonOffsetClampEXT); \
     HookExtension(PFNGLRASTERSAMPLESEXTPROC, glRasterSamplesEXT); \
     HookExtension(PFNGLTEXSTORAGE1DEXTPROC, glTexStorage1DEXT); \
@@ -433,6 +434,7 @@
     HookExtension(PFNGLTEXTURESTORAGE2DEXTPROC, glTextureStorage2DEXT); \
     HookExtension(PFNGLTEXTURESTORAGE3DEXTPROC, glTextureStorage3DEXT); \
     HookExtension(PFNGLTEXTUREVIEWEXTPROC, glTextureViewEXT); \
+    HookExtension(PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEIMGPROC, glFramebufferTexture2DMultisampleIMG); \
     HookExtension(PFNGLBEGINCONDITIONALRENDERNVPROC, glBeginConditionalRenderNV); \
     HookExtension(PFNGLENDCONDITIONALRENDERNVPROC, glEndConditionalRenderNV); \
     HookExtension(PFNGLPOLYGONMODENVPROC, glPolygonModeNV); \
@@ -1020,6 +1022,7 @@
     HookWrapper3(void, glGetQueryObjectivEXT, GLuint, id, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glGetQueryObjecti64vEXT, GLuint, id, GLenum, pname, GLint64 *, params); \
     HookWrapper3(void, glGetQueryObjectui64vEXT, GLuint, id, GLenum, pname, GLuint64 *, params); \
+    HookWrapper6(void, glFramebufferTexture2DMultisampleEXT, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLsizei, samples); \
     HookWrapper3(void, glPolygonOffsetClampEXT, GLfloat, factor, GLfloat, units, GLfloat, clamp); \
     HookWrapper2(void, glRasterSamplesEXT, GLuint, samples, GLboolean, fixedsamplelocations); \
     HookWrapper4(void, glTexStorage1DEXT, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width); \
@@ -1027,6 +1030,7 @@
     HookWrapper6(void, glTextureStorage2DEXT, GLuint, texture, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height); \
     HookWrapper7(void, glTextureStorage3DEXT, GLuint, texture, GLenum, target, GLsizei, levels, GLenum, internalformat, GLsizei, width, GLsizei, height, GLsizei, depth); \
     HookWrapper8(void, glTextureViewEXT, GLuint, texture, GLenum, target, GLuint, origtexture, GLenum, internalformat, GLuint, minlevel, GLuint, numlevels, GLuint, minlayer, GLuint, numlayers); \
+    HookWrapper6(void, glFramebufferTexture2DMultisampleIMG, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLsizei, samples); \
     HookWrapper2(void, glBeginConditionalRenderNV, GLuint, id, GLenum, mode); \
     HookWrapper0(void, glEndConditionalRenderNV); \
     HookWrapper2(void, glPolygonModeNV, GLenum, face, GLenum, mode); \
@@ -1072,7 +1076,6 @@
     HookWrapper5(void, glMultiDrawElementsEXT, GLenum, mode, const GLsizei *, count, GLenum, type, const void *const*, indices, GLsizei, primcount); \
     HookWrapper4(void, glMultiDrawArraysIndirectEXT, GLenum, mode, const void *, indirect, GLsizei, drawcount, GLsizei, stride); \
     HookWrapper5(void, glMultiDrawElementsIndirectEXT, GLenum, mode, GLenum, type, const void *, indirect, GLsizei, drawcount, GLsizei, stride); \
-    HookWrapper6(void, glFramebufferTexture2DMultisampleEXT, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLsizei, samples); \
     HookWrapper2(void, glReadBufferIndexedEXT, GLenum, src, GLint, index); \
     HookWrapper3(void, glDrawBuffersIndexedEXT, GLint, n, const GLenum *, location, const GLint *, indices); \
     HookWrapper2(void, glFramebufferPixelLocalStorageSizeEXT, GLuint, target, GLsizei, size); \
@@ -1088,7 +1091,6 @@
     HookWrapper4(void, glProgramUniformHandleui64vIMG, GLuint, program, GLint, location, GLsizei, count, const GLuint64 *, values); \
     HookWrapper7(void, glFramebufferTexture2DDownsampleIMG, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLint, xscale, GLint, yscale); \
     HookWrapper7(void, glFramebufferTextureLayerDownsampleIMG, GLenum, target, GLenum, attachment, GLuint, texture, GLint, level, GLint, layer, GLint, xscale, GLint, yscale); \
-    HookWrapper6(void, glFramebufferTexture2DMultisampleIMG, GLenum, target, GLenum, attachment, GLenum, textarget, GLuint, texture, GLint, level, GLsizei, samples); \
     HookWrapper0(void, glApplyFramebufferAttachmentCMAAINTEL); \
     HookWrapper1(void, glBeginPerfQueryINTEL, GLuint, queryHandle); \
     HookWrapper2(void, glCreatePerfQueryINTEL, GLuint, queryId, GLuint *, queryHandle); \
@@ -1277,7 +1279,6 @@
     HandleUnsupported(PFNGLMULTIDRAWELEMENTSEXTPROC, glMultiDrawElementsEXT); \
     HandleUnsupported(PFNGLMULTIDRAWARRAYSINDIRECTEXTPROC, glMultiDrawArraysIndirectEXT); \
     HandleUnsupported(PFNGLMULTIDRAWELEMENTSINDIRECTEXTPROC, glMultiDrawElementsIndirectEXT); \
-    HandleUnsupported(PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEEXTPROC, glFramebufferTexture2DMultisampleEXT); \
     HandleUnsupported(PFNGLREADBUFFERINDEXEDEXTPROC, glReadBufferIndexedEXT); \
     HandleUnsupported(PFNGLDRAWBUFFERSINDEXEDEXTPROC, glDrawBuffersIndexedEXT); \
     HandleUnsupported(PFNGLFRAMEBUFFERPIXELLOCALSTORAGESIZEEXTPROC, glFramebufferPixelLocalStorageSizeEXT); \
@@ -1293,7 +1294,6 @@
     HandleUnsupported(PFNGLPROGRAMUNIFORMHANDLEUI64VIMGPROC, glProgramUniformHandleui64vIMG); \
     HandleUnsupported(PFNGLFRAMEBUFFERTEXTURE2DDOWNSAMPLEIMGPROC, glFramebufferTexture2DDownsampleIMG); \
     HandleUnsupported(PFNGLFRAMEBUFFERTEXTURELAYERDOWNSAMPLEIMGPROC, glFramebufferTextureLayerDownsampleIMG); \
-    HandleUnsupported(PFNGLFRAMEBUFFERTEXTURE2DMULTISAMPLEIMGPROC, glFramebufferTexture2DMultisampleIMG); \
     HandleUnsupported(PFNGLAPPLYFRAMEBUFFERATTACHMENTCMAAINTELPROC, glApplyFramebufferAttachmentCMAAINTEL); \
     HandleUnsupported(PFNGLBEGINPERFQUERYINTELPROC, glBeginPerfQueryINTEL); \
     HandleUnsupported(PFNGLCREATEPERFQUERYINTELPROC, glCreatePerfQueryINTEL); \

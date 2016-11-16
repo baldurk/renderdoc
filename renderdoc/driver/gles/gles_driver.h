@@ -769,6 +769,7 @@ public:
                                           GLuint index, GLint size, GLenum type,
                                           GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize,
                                           bool isInteger);
+
   enum AttribType
   {
     Attrib_GLfloat = 0x02,
@@ -778,7 +779,6 @@ public:
 
     Attrib_I = 0x20,
   };
-
 
   enum UniformType
   {
@@ -960,6 +960,14 @@ public:
   bool Serialise_Common_glScissorArrayv(VendorType vendor, GLuint index, GLsizei count, const GLint *v);
   void Common_glScissorArrayv(VendorType vendor, GLuint index, GLsizei count, const GLint *v);
 
+  bool Serialise_Common_glFramebufferTexture2DMultisample(VendorType vendor, GLuint framebuffer,
+                                                          GLenum target, GLenum attachment,
+                                                          GLenum textarget, GLuint texture,
+                                                          GLint level, GLsizei samples);
+  void Common_glFramebufferTexture2DMultisample(VendorType vendor, GLenum target, GLenum attachment,
+                                                GLenum textarget, GLuint texture, GLint level,
+                                                GLsizei samples);
+
   // GLES - GL compatibility like methods
   void Compat_glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt, GLenum type, GLint width, GLint height, void *ret);
   void Compat_glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data);
@@ -974,6 +982,7 @@ public:
   void Compat_glDepthRangeIndexedf(VendorType vendor, GLuint index, GLfloat nearVal, GLfloat farVal);
   void Compat_glViewportArrayv(VendorType vendor, GLuint index, GLsizei count, const GLfloat *v);
   void Compat_glScissorArrayv(VendorType vendor, GLuint first, GLsizei count, const GLint *v);
+  void Compat_glFramebufferTexture2DMultisample(VendorType vendor, GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLsizei samples);
 
 };
 

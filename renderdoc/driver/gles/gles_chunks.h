@@ -236,6 +236,7 @@
   F(FRAMEBUFFER_TEX1D, "glFramebufferTexture1D") /*unused*/ \
   F(FRAMEBUFFER_TEX2D, "glFramebufferTexture2D") \
   F(FRAMEBUFFER_TEX3D, "glFramebufferTexture3D") \
+  F(FRAMEBUFFER_TEX2DMS, "glFramebufferTexture2DMultisample") \
   F(FRAMEBUFFER_RENDBUF, "glFramebufferRenderbuffer") \
   F(FRAMEBUFFER_TEXLAYER, "glFramebufferTextureLayer") \
   F(FRAMEBUFFER_PARAM, "glFramebufferParameteri") \

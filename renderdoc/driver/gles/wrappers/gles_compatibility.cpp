@@ -180,3 +180,15 @@ void WrappedGLES::Compat_glViewportArrayv(VendorType vendor, GLuint first, GLsiz
   else
     RDCERR("Unsupported function: glViewportArrayv (%s)", ToStr::Get(vendor).c_str());
 }
+
+void WrappedGLES::Compat_glFramebufferTexture2DMultisample(VendorType vendor, GLenum target, GLenum attachment,
+                                                           GLenum textarget, GLuint texture, GLint level, GLsizei samples)
+{
+  if(vendor == Vendor_EXT && ExtensionSupported[ExtensionSupported_EXT_multisampled_render_to_texture])
+    m_Real.glFramebufferTexture2DMultisampleEXT(target, attachment, textarget, texture, level, samples);
+  else if(vendor == Vendor_IMG && ExtensionSupported[ExtensionSupported_IMG_multisampled_render_to_texture])
+    m_Real.glFramebufferTexture2DMultisampleIMG(target, attachment, textarget, texture, level, samples);
+  else
+    RDCERR("Unsupported function: glFramebufferTexture2DMultisample (%s)", ToStr::Get(vendor).c_str());
+}
+
