@@ -127,7 +127,7 @@ private:
   };
 
   ID3D12Resource *MakeCBuffer(UINT64 size);
-  void FillBuffer(ID3D12Resource *buf, void *data, size_t size);
+  void FillBuffer(ID3D12Resource *buf, const void *data, size_t size);
 
   static const int FONT_TEX_WIDTH = 256;
   static const int FONT_TEX_HEIGHT = 128;

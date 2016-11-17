@@ -274,11 +274,15 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   samp.ptr += sizeof(D3D12Descriptor);
   m_WrappedDevice->CreateSampler(&sampDesc, samp);
 
-  m_GenericVSCbuffer = MakeCBuffer(1024);
-  m_GenericPSCbuffer = MakeCBuffer(sizeof(DebugPixelCBufferData));
+  static const UINT64 bufsize = 2048;
 
-  RDCCOMPILE_ASSERT(sizeof(DebugVertexCBuffer) < 1024, "CBuffer isn't large enough");
-  RDCCOMPILE_ASSERT(sizeof(HistogramCBufferData) < 1024, "CBuffer isn't large enough");
+  m_GenericVSCbuffer = MakeCBuffer(bufsize);
+  m_GenericPSCbuffer = MakeCBuffer(bufsize);
+
+  RDCCOMPILE_ASSERT(sizeof(DebugVertexCBuffer) <= bufsize, "CBuffer isn't large enough");
+  RDCCOMPILE_ASSERT(sizeof(DebugPixelCBufferData) <= bufsize, "CBuffer isn't large enough");
+  RDCCOMPILE_ASSERT(sizeof(HistogramCBufferData) <= bufsize, "CBuffer isn't large enough");
+  RDCCOMPILE_ASSERT(sizeof(overdrawRamp) <= bufsize, "CBuffer isn't large enough");
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.4f);
 
@@ -1630,7 +1634,7 @@ void D3D12DebugManager::FlipOutputWindow(uint64_t id)
   outw.bbIdx %= 2;
 }
 
-void D3D12DebugManager::FillBuffer(ID3D12Resource *buf, void *data, size_t size)
+void D3D12DebugManager::FillBuffer(ID3D12Resource *buf, const void *data, size_t size)
 {
   void *ptr = NULL;
   HRESULT hr = buf->Map(0, NULL, &ptr);
