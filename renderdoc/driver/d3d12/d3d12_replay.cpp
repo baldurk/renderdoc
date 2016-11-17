@@ -1242,37 +1242,39 @@ vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventID)
   if(!draw)
     return passEvents;
 
-  // for vulkan a pass == a renderpass, if we're not inside a
-  // renderpass then there are no pass events.
+  // for D3D12 a pass == everything writing to the same RTs in a command list.
   const FetchDrawcall *start = draw;
   while(start)
   {
-    // if we've come to the beginning of a pass, break out of the loop, we've
+    // if we've come to the beginning of a list, break out of the loop, we've
     // found the start.
-    // Note that vkCmdNextSubPass has both Begin and End flags set, so it will
-    // break out here before we hit the terminating case looking for eDraw_EndPass
     if(start->flags & eDraw_BeginPass)
       break;
 
-    // if we come to the END of a pass, since we were iterating backwards that
-    // means we started outside of a pass, so return empty set.
-    // Note that vkCmdNextSubPass has both Begin and End flags set, so it will
-    // break out above before we hit this terminating case
+    // if we come to the END of a list, since we were iterating backwards that
+    // means we started outside of a list, so return empty set.
     if(start->flags & eDraw_EndPass)
       return passEvents;
 
-    // if we've come to the start of the log we were outside of a render pass
+    // if we've come to the start of the log we were outside of a list
     // to start with
     if(start->previous == 0)
       return passEvents;
 
     // step back
-    start = m_pDevice->GetDrawcall((uint32_t)start->previous);
+    const FetchDrawcall *prev = m_pDevice->GetDrawcall((uint32_t)start->previous);
 
     // something went wrong, start->previous was non-zero but we didn't
     // get a draw. Abort
-    if(!start)
+    if(!prev)
       return passEvents;
+
+    // if the outputs changed, we're done
+    if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) ||
+       start->depthOut != prev->depthOut)
+      break;
+
+    start = prev;
   }
 
   // store all the draw eventIDs up to the one specified at the start
