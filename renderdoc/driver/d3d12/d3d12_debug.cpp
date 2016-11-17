@@ -3221,7 +3221,7 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource,
     D3D12_RESOURCE_BARRIER b;
 
     // skip unneeded barriers
-    if(states[i] & realResourceState)
+    if((states[i] & realResourceState) == realResourceState)
       continue;
 
     b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
