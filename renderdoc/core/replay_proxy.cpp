@@ -495,9 +495,240 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState &el)
 #pragma region D3D12 pipeline state
 
 template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState::InputAssembler::LayoutInput &el)
+{
+  Serialise("", el.SemanticName);
+  Serialise("", el.SemanticIndex);
+  Serialise("", el.Format);
+  Serialise("", el.InputSlot);
+  Serialise("", el.ByteOffset);
+  Serialise("", el.PerInstance);
+  Serialise("", el.InstanceDataStepRate);
+
+  SIZE_CHECK(96);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState::InputAssembler &el)
+{
+  Serialise("", el.ibuffer.Buffer);
+  Serialise("", el.ibuffer.Offset);
+  Serialise("", el.ibuffer.Size);
+
+  Serialise("", el.vbuffers);
+  Serialise("", el.layouts);
+
+  Serialise("", el.indexStripCutValue);
+
+  SIZE_CHECK(64);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState::CBuffer &el)
+{
+  Serialise("", el.Immediate);
+  Serialise("", el.RootElement);
+  Serialise("", el.TableIndex);
+  Serialise("", el.Buffer);
+  Serialise("", el.Offset);
+  Serialise("", el.ByteSize);
+  Serialise("", el.RootValues);
+
+  SIZE_CHECK(56);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState::Sampler &el)
+{
+  Serialise("", el.Immediate);
+  Serialise("", el.RootElement);
+  Serialise("", el.TableIndex);
+  Serialise("", el.AddressU);
+  Serialise("", el.AddressV);
+  Serialise("", el.AddressW);
+  SerialisePODArray<4>("", el.BorderColor);
+  Serialise("", el.Comparison);
+  Serialise("", el.Filter);
+  Serialise("", el.UseBorder);
+  Serialise("", el.UseComparison);
+  Serialise("", el.MaxAniso);
+  Serialise("", el.MaxLOD);
+  Serialise("", el.MinLOD);
+  Serialise("", el.MipLODBias);
+
+  SIZE_CHECK(136);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState::ResourceView &el)
+{
+  Serialise("", el.Immediate);
+  Serialise("", el.RootElement);
+  Serialise("", el.TableIndex);
+  Serialise("", el.Resource);
+  Serialise("", el.Resource);
+  Serialise("", el.Type);
+  Serialise("", el.Format);
+
+  SerialisePODArray<4>("", el.swizzle);
+  Serialise("", el.BufferFlags);
+  Serialise("", el.BufferStructCount);
+  Serialise("", el.ElementSize);
+  Serialise("", el.FirstElement);
+  Serialise("", el.NumElements);
+
+  Serialise("", el.CounterResource);
+  Serialise("", el.CounterByteOffset);
+
+  Serialise("", el.HighestMip);
+  Serialise("", el.NumMipLevels);
+  Serialise("", el.ArraySize);
+  Serialise("", el.FirstArraySlice);
+
+  Serialise("", el.MinLODClamp);
+
+  SIZE_CHECK(184);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState::ShaderStage::RegisterSpace &el)
+{
+  Serialise("", el.ConstantBuffers);
+  Serialise("", el.Samplers);
+  Serialise("", el.SRVs);
+  Serialise("", el.UAVs);
+
+  SIZE_CHECK(64);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState::ShaderStage &el)
+{
+  Serialise("", el.Shader);
+  Serialise("", el.BindpointMapping);
+  Serialise("", el.stage);
+  Serialise("", el.Spaces);
+
+  SIZE_CHECK(104);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState::Rasterizer &el)
+{
+  Serialise("", el.SampleMask);
+  Serialise("", el.Scissors);
+  Serialise("", el.Viewports);
+  Serialise("", el.m_State);
+
+  SIZE_CHECK(88);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState::OutputMerger::BlendState::RTBlend &el)
+{
+  Serialise("", el.m_Blend.Source);
+  Serialise("", el.m_Blend.Destination);
+  Serialise("", el.m_Blend.Operation);
+
+  Serialise("", el.m_AlphaBlend.Source);
+  Serialise("", el.m_AlphaBlend.Destination);
+  Serialise("", el.m_AlphaBlend.Operation);
+
+  Serialise("", el.LogicOp);
+
+  Serialise("", el.Enabled);
+  Serialise("", el.LogicEnabled);
+  Serialise("", el.WriteMask);
+
+  SIZE_CHECK(128);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState::OutputMerger &el)
+{
+  {
+    Serialise("", el.m_State.DepthEnable);
+    Serialise("", el.m_State.DepthWrites);
+    Serialise("", el.m_State.DepthFunc);
+    Serialise("", el.m_State.StencilEnable);
+    Serialise("", el.m_State.StencilReadMask);
+    Serialise("", el.m_State.StencilWriteMask);
+
+    Serialise("", el.m_State.m_FrontFace.FailOp);
+    Serialise("", el.m_State.m_FrontFace.DepthFailOp);
+    Serialise("", el.m_State.m_FrontFace.PassOp);
+    Serialise("", el.m_State.m_FrontFace.Func);
+
+    Serialise("", el.m_State.m_BackFace.FailOp);
+    Serialise("", el.m_State.m_BackFace.DepthFailOp);
+    Serialise("", el.m_State.m_BackFace.PassOp);
+    Serialise("", el.m_State.m_BackFace.Func);
+
+    Serialise("", el.m_State.StencilRef);
+  }
+
+  {
+    Serialise("", el.m_BlendState.AlphaToCoverage);
+    Serialise("", el.m_BlendState.IndependentBlend);
+    Serialise("", el.m_BlendState.Blends);
+    SerialisePODArray<4>("", el.m_BlendState.BlendFactor);
+  }
+
+  Serialise("", el.RenderTargets);
+  Serialise("", el.DepthTarget);
+  Serialise("", el.DepthReadOnly);
+  Serialise("", el.StencilReadOnly);
+
+  Serialise("", el.multiSampleCount);
+  Serialise("", el.multiSampleQuality);
+
+  SIZE_CHECK(424);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState::ResourceData::ResourceState &el)
+{
+  Serialise("", el.name);
+
+  SIZE_CHECK(16);
+}
+
+template <>
+void Serialiser::Serialise(const char *name, D3D12PipelineState::ResourceData &el)
+{
+  Serialise("", el.id);
+  Serialise("", el.states);
+
+  SIZE_CHECK(24);
+}
+
+template <>
 void Serialiser::Serialise(const char *name, D3D12PipelineState &el)
 {
-  RDCUNIMPLEMENTED("Serialiser::Serialise<D3D12PipelineState>()");
+  Serialise("", el.pipeline);
+  Serialise("", el.customName);
+  Serialise("", el.PipelineName);
+
+  Serialise("", el.rootSig);
+
+  Serialise("", el.m_IA);
+
+  Serialise("", el.m_VS);
+  Serialise("", el.m_HS);
+  Serialise("", el.m_DS);
+  Serialise("", el.m_GS);
+  Serialise("", el.m_PS);
+  Serialise("", el.m_CS);
+
+  Serialise("", el.m_SO.Outputs);
+
+  Serialise("", el.m_RS);
+
+  Serialise("", el.m_OM);
+
+  Serialise("", el.Resources);
+
+  SIZE_CHECK(1272);
 }
 
 #pragma endregion D3D12 pipeline state
@@ -1547,6 +1778,36 @@ string ToStrHelper<false, D3D11PipelineState::Rasterizer::Viewport>::Get(
 template <>
 string ToStrHelper<false, D3D11PipelineState::Streamout::Output>::Get(
     const D3D11PipelineState::Streamout::Output &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, D3D12PipelineState::InputAssembler::VertexBuffer>::Get(
+    const D3D12PipelineState::InputAssembler::VertexBuffer &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, D3D12PipelineState::Streamout::Output>::Get(
+    const D3D12PipelineState::Streamout::Output &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, D3D12PipelineState::Rasterizer::Scissor>::Get(
+    const D3D12PipelineState::Rasterizer::Scissor &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, D3D12PipelineState::Rasterizer::Viewport>::Get(
+    const D3D12PipelineState::Rasterizer::Viewport &el)
+{
+  return "<...>";
+}
+template <>
+string ToStrHelper<false, D3D12PipelineState::Rasterizer::RasterizerState>::Get(
+    const D3D12PipelineState::Rasterizer::RasterizerState &el)
 {
   return "<...>";
 }
