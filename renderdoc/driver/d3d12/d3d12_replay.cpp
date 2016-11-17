@@ -1579,6 +1579,12 @@ void D3D12Replay::RemoveReplacement(ResourceId id)
   }
 }
 
+byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                  const GetTextureDataParams &params, size_t &dataSize)
+{
+  return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, dataSize);
+}
+
 #pragma region not yet implemented
 
 void D3D12Replay::InitPostVSBuffers(uint32_t eventID)
@@ -1592,13 +1598,6 @@ void D3D12Replay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
 MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
   return MeshFormat();
-}
-
-byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
-                                  const GetTextureDataParams &params, size_t &dataSize)
-{
-  dataSize = 0;
-  return NULL;
 }
 
 void D3D12Replay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,

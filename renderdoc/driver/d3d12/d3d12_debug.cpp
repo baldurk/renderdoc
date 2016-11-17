@@ -515,6 +515,16 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Couldn't create m_TexDisplayPipe! 0x%08x", hr);
   }
 
+  pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
+
+  hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                    (void **)&m_TexDisplayLinearPipe);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't create m_TexDisplayPipe! 0x%08x", hr);
+  }
+
   pipeDesc.RTVFormats[0] = DXGI_FORMAT_R32G32B32A32_FLOAT;
 
   hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
@@ -1026,6 +1036,14 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     if(FAILED(hr))
       RDCERR("Couldn't create BGRA8 m_Font.Pipe! 0x%08x", hr);
 
+    pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+
+    hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                      (void **)&m_Font.Pipe[RGBA8_SRGB_BACKBUFFER]);
+
+    if(FAILED(hr))
+      RDCERR("Couldn't create BGRA8 m_Font.Pipe! 0x%08x", hr);
+
     pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM;
 
     hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
@@ -1076,6 +1094,7 @@ D3D12DebugManager::~D3D12DebugManager()
 
   SAFE_RELEASE(m_TexDisplayBlendPipe);
   SAFE_RELEASE(m_TexDisplayPipe);
+  SAFE_RELEASE(m_TexDisplayLinearPipe);
   SAFE_RELEASE(m_TexDisplayF32Pipe);
   SAFE_RELEASE(m_TexDisplayRootSig);
 
@@ -2393,6 +2412,440 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     outOffs += chunkSize;
     length -= chunkSize;
   }
+}
+
+byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                                        const GetTextureDataParams &params, size_t &dataSize)
+{
+  bool wasms = false;
+
+  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[tex];
+
+  if(resource == NULL)
+  {
+    RDCERR("Trying to get texture data for unknown ID %llu!", tex);
+    dataSize = 0;
+    return new byte[0];
+  }
+
+  HRESULT hr = S_OK;
+
+  D3D12_RESOURCE_DESC resDesc = resource->GetDesc();
+
+  D3D12_RESOURCE_DESC copyDesc = resDesc;
+  copyDesc.Alignment = 0;
+  copyDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+  copyDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+
+  D3D12_HEAP_PROPERTIES defaultHeap;
+  defaultHeap.Type = D3D12_HEAP_TYPE_DEFAULT;
+  defaultHeap.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+  defaultHeap.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+  defaultHeap.CreationNodeMask = 1;
+  defaultHeap.VisibleNodeMask = 1;
+
+  bool isDepth = IsDepthFormat(resDesc.Format);
+  bool isStencil = IsDepthAndStencilFormat(resDesc.Format);
+
+  if(copyDesc.SampleDesc.Count > 1)
+  {
+    // make image n-array instead of n-samples
+    copyDesc.DepthOrArraySize *= (UINT16)copyDesc.SampleDesc.Count;
+    copyDesc.SampleDesc.Count = 1;
+    copyDesc.SampleDesc.Quality = 0;
+
+    wasms = true;
+  }
+
+  ID3D12Resource *srcTexture = resource;
+  ID3D12Resource *tmpTexture = NULL;
+
+  ID3D12GraphicsCommandList *list = NULL;
+
+  if(params.remap)
+  {
+    // force readback texture to RGBA8 unorm
+    copyDesc.Format = IsSRGBFormat(copyDesc.Format) ? DXGI_FORMAT_R8G8B8A8_UNORM_SRGB
+                                                    : DXGI_FORMAT_R8G8B8A8_UNORM;
+    // force to 1 array slice, 1 mip
+    copyDesc.DepthOrArraySize = 1;
+    copyDesc.MipLevels = 1;
+    // force to 2D
+    copyDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+    copyDesc.Flags |= D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+
+    copyDesc.Width = RDCMAX(1ULL, copyDesc.Width >> mip);
+    copyDesc.Height = RDCMAX(1U, copyDesc.Height >> mip);
+
+    ID3D12Resource *remapTexture;
+    hr = m_WrappedDevice->CreateCommittedResource(&defaultHeap, D3D12_HEAP_FLAG_NONE, &copyDesc,
+                                                  D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
+                                                  __uuidof(ID3D12Resource), (void **)&remapTexture);
+    RDCASSERTEQUAL(hr, S_OK);
+
+    int oldW = m_width, oldH = m_height;
+    BackBufferFormat idx = m_BBFmtIdx;
+
+    m_width = uint32_t(copyDesc.Width);
+    m_height = copyDesc.Height;
+    m_BBFmtIdx = IsSRGBFormat(copyDesc.Format) ? RGBA8_SRGB_BACKBUFFER : RGBA8_BACKBUFFER;
+
+    m_WrappedDevice->CreateRenderTargetView(remapTexture, NULL, GetCPUHandle(GET_TEX_RTV));
+
+    {
+      TextureDisplay texDisplay;
+
+      texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+      texDisplay.HDRMul = -1.0f;
+      texDisplay.linearDisplayAsGamma = false;
+      texDisplay.overlay = eTexOverlay_None;
+      texDisplay.FlipY = false;
+      texDisplay.mip = mip;
+      texDisplay.sampleIdx = params.resolve ? ~0U : arrayIdx;
+      texDisplay.CustomShader = ResourceId();
+      texDisplay.sliceFace = arrayIdx;
+      texDisplay.rangemin = params.blackPoint;
+      texDisplay.rangemax = params.whitePoint;
+      texDisplay.scale = 1.0f;
+      texDisplay.texid = tex;
+      texDisplay.typeHint = eCompType_None;
+      texDisplay.rawoutput = false;
+      texDisplay.offx = 0;
+      texDisplay.offy = 0;
+
+      RenderTextureInternal(GetCPUHandle(GET_TEX_RTV), texDisplay, false);
+    }
+
+    m_width = oldW;
+    m_height = oldH;
+    m_BBFmtIdx = idx;
+
+    tmpTexture = srcTexture = remapTexture;
+
+    list = m_WrappedDevice->GetNewList();
+
+    D3D12_RESOURCE_BARRIER b = {};
+    b.Transition.pResource = remapTexture;
+    b.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    b.Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
+    b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    list->ResourceBarrier(1, &b);
+
+    // these have already been selected, don't need to fetch that subresource
+    // when copying back to readback buffer
+    arrayIdx = 0;
+    mip = 0;
+
+    // no longer depth, if it was
+    isDepth = false;
+    isStencil = false;
+  }
+  else if(wasms && params.resolve)
+  {
+    // force to 1 array slice, 1 mip
+    copyDesc.DepthOrArraySize = 1;
+    copyDesc.MipLevels = 1;
+
+    copyDesc.Width = RDCMAX(1ULL, copyDesc.Width >> mip);
+    copyDesc.Height = RDCMAX(1U, copyDesc.Height >> mip);
+
+    ID3D12Resource *resolveTexture;
+    hr = m_WrappedDevice->CreateCommittedResource(
+        &defaultHeap, D3D12_HEAP_FLAG_NONE, &copyDesc, D3D12_RESOURCE_STATE_RESOLVE_DEST, NULL,
+        __uuidof(ID3D12Resource), (void **)&resolveTexture);
+    RDCASSERTEQUAL(hr, S_OK);
+
+    RDCASSERT(!isDepth && !isStencil);
+
+    list = m_WrappedDevice->GetNewList();
+
+    // put source texture into resolve source state
+    const vector<D3D12_RESOURCE_STATES> &states = m_WrappedDevice->GetSubresourceStates(tex);
+
+    std::vector<D3D12_RESOURCE_BARRIER> barriers;
+    barriers.reserve(states.size());
+    for(size_t i = 0; i < states.size(); i++)
+    {
+      D3D12_RESOURCE_BARRIER b;
+
+      // skip unneeded barriers
+      if(states[i] & D3D12_RESOURCE_STATE_RESOLVE_SOURCE)
+        continue;
+
+      b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      b.Transition.pResource = resource;
+      b.Transition.Subresource = (UINT)i;
+      b.Transition.StateBefore = states[i];
+      b.Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_SOURCE;
+
+      barriers.push_back(b);
+    }
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    list->ResolveSubresource(resolveTexture, 0, srcTexture,
+                             arrayIdx * resDesc.DepthOrArraySize + mip, resDesc.Format);
+
+    // real resource back to normal
+    for(size_t i = 0; i < barriers.size(); i++)
+      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+
+    D3D12_RESOURCE_BARRIER b = {};
+    b.Transition.pResource = resolveTexture;
+    b.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+    b.Transition.StateBefore = D3D12_RESOURCE_STATE_RESOLVE_DEST;
+    b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    list->ResourceBarrier(1, &b);
+
+    tmpTexture = srcTexture = resolveTexture;
+
+    // these have already been selected, don't need to fetch that subresource
+    // when copying back to readback buffer
+    arrayIdx = 0;
+    mip = 0;
+  }
+  else if(wasms)
+  {
+    // copy/expand multisampled live texture to array readback texture
+    RDCUNIMPLEMENTED("CopyTex2DMSToArray on D3D12");
+  }
+
+  if(list == NULL)
+    list = m_WrappedDevice->GetNewList();
+
+  std::vector<D3D12_RESOURCE_BARRIER> barriers;
+
+  // if we have no tmpImage, we're copying directly from the real image
+  if(tmpTexture == NULL)
+  {
+    const vector<D3D12_RESOURCE_STATES> &states = m_WrappedDevice->GetSubresourceStates(tex);
+    barriers.reserve(states.size());
+    for(size_t i = 0; i < states.size(); i++)
+    {
+      D3D12_RESOURCE_BARRIER b;
+
+      // skip unneeded barriers
+      if(states[i] & D3D12_RESOURCE_STATE_COPY_SOURCE)
+        continue;
+
+      b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
+      b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
+      b.Transition.pResource = resource;
+      b.Transition.Subresource = (UINT)i;
+      b.Transition.StateBefore = states[i];
+      b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+      barriers.push_back(b);
+    }
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+  }
+
+  D3D12_FEATURE_DATA_FORMAT_INFO formatInfo = {};
+  formatInfo.Format = copyDesc.Format;
+  m_WrappedDevice->CheckFeatureSupport(D3D12_FEATURE_FORMAT_INFO, &formatInfo, sizeof(formatInfo));
+
+  UINT planes = RDCMAX((UINT8)1, formatInfo.PlaneCount);
+
+  UINT numSubresources = copyDesc.MipLevels;
+  if(copyDesc.Dimension != D3D12_RESOURCE_DIMENSION_TEXTURE3D)
+    numSubresources *= copyDesc.DepthOrArraySize;
+
+  numSubresources *= planes;
+
+  D3D12_RESOURCE_DESC readbackDesc;
+  readbackDesc.Alignment = 0;
+  readbackDesc.DepthOrArraySize = 1;
+  readbackDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  readbackDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+  readbackDesc.Format = DXGI_FORMAT_UNKNOWN;
+  readbackDesc.Height = 1;
+  readbackDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  readbackDesc.MipLevels = 1;
+  readbackDesc.SampleDesc.Count = 1;
+  readbackDesc.SampleDesc.Quality = 0;
+  readbackDesc.Width = 0;
+
+  // we only actually want to copy the specified array index/mip.
+  // But we do need to copy all planes
+  D3D12_PLACED_SUBRESOURCE_FOOTPRINT *layouts = new D3D12_PLACED_SUBRESOURCE_FOOTPRINT[planes];
+  UINT *rowcounts = new UINT[planes];
+
+  UINT arrayStride = copyDesc.MipLevels;
+  UINT planeStride = copyDesc.DepthOrArraySize * copyDesc.MipLevels;
+
+  for(UINT i = 0; i < planes; i++)
+  {
+    readbackDesc.Width = AlignUp(readbackDesc.Width, 512ULL);
+
+    UINT sub = mip + arrayIdx * arrayStride + i * planeStride;
+
+    UINT64 subSize = 0;
+    m_WrappedDevice->GetCopyableFootprints(&copyDesc, sub, 1, readbackDesc.Width, layouts + i,
+                                           rowcounts + i, NULL, &subSize);
+    readbackDesc.Width += subSize;
+  }
+
+  D3D12_HEAP_PROPERTIES heapProps;
+  heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+  heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+  heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+  heapProps.CreationNodeMask = 1;
+  heapProps.VisibleNodeMask = 1;
+
+  ID3D12Resource *readbackBuf = NULL;
+  hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &readbackDesc,
+                                                D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+                                                __uuidof(ID3D12Resource), (void **)&readbackBuf);
+  RDCASSERTEQUAL(hr, S_OK);
+
+  for(UINT i = 0; i < planes; i++)
+  {
+    D3D12_TEXTURE_COPY_LOCATION dst, src;
+
+    src.Type = D3D12_TEXTURE_COPY_TYPE_SUBRESOURCE_INDEX;
+    src.pResource = srcTexture;
+    src.SubresourceIndex = mip + arrayIdx * arrayStride + i * planeStride;
+
+    dst.Type = D3D12_TEXTURE_COPY_TYPE_PLACED_FOOTPRINT;
+    dst.pResource = readbackBuf;
+    dst.PlacedFootprint = layouts[i];
+
+    list->CopyTextureRegion(&dst, 0, 0, 0, &src, NULL);
+  }
+
+  // if we have no tmpImage, we're copying directly from the real image
+  if(tmpTexture == NULL)
+  {
+    // real resource back to normal
+    for(size_t i = 0; i < barriers.size(); i++)
+      std::swap(barriers[i].Transition.StateBefore, barriers[i].Transition.StateAfter);
+
+    if(!barriers.empty())
+      list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
+  }
+
+  list->Close();
+
+  m_WrappedDevice->ExecuteLists();
+  m_WrappedDevice->FlushLists();
+
+  // map the buffer and copy to return buffer
+  D3D12_RANGE range = {0, dataSize};
+  byte *pData = NULL;
+  hr = readbackBuf->Map(0, &range, (void **)&pData);
+  RDCASSERTEQUAL(hr, S_OK);
+
+  RDCASSERT(pData != NULL);
+
+  dataSize = GetByteSize(layouts[0].Footprint.Width, layouts[0].Footprint.Height,
+                         layouts[0].Footprint.Depth, copyDesc.Format, 0);
+  byte *ret = new byte[dataSize];
+
+  // for depth-stencil need to merge the planes pixel-wise
+  if(isDepth && isStencil)
+  {
+    UINT dstRowPitch = GetByteSize(layouts[0].Footprint.Width, 1, 1, copyDesc.Format, 0);
+
+    if(copyDesc.Format == DXGI_FORMAT_D32_FLOAT_S8X24_UINT ||
+       copyDesc.Format == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS ||
+       copyDesc.Format == DXGI_FORMAT_R32G8X24_TYPELESS)
+    {
+      for(UINT s = 0; s < layouts[0].Footprint.Depth; s++)
+      {
+        for(UINT r = 0; r < layouts[0].Footprint.Height; r++)
+        {
+          UINT row = r + s * layouts[0].Footprint.Height;
+
+          uint32_t *dSrc = (uint32_t *)(pData + layouts[0].Footprint.RowPitch * row);
+          uint8_t *sSrc =
+              (uint8_t *)(pData + layouts[1].Offset + layouts[1].Footprint.RowPitch * row);
+
+          uint32_t *dDst = (uint32_t *)(ret + dstRowPitch * row);
+          uint32_t *sDst = dDst + 1;    // interleaved, next pixel
+
+          for(UINT i = 0; i < layouts[0].Footprint.Width; i++)
+          {
+            *dDst = *dSrc;
+            *sDst = *sSrc;
+
+            // increment source pointers by 1 since they're separate, and dest pointers by 2 since
+            // they're interleaved
+            dDst += 2;
+            sDst += 2;
+
+            sSrc++;
+            dSrc++;
+          }
+        }
+      }
+    }
+    else    // D24_S8
+    {
+      for(UINT s = 0; s < layouts[0].Footprint.Depth; s++)
+      {
+        for(UINT r = 0; r < rowcounts[0]; r++)
+        {
+          UINT row = r + s * rowcounts[0];
+
+          // we can copy the depth from D24 as a 32-bit integer, since the remaining bits are
+          // garbage
+          // and we overwrite them with stencil
+          uint32_t *dSrc = (uint32_t *)(pData + layouts[0].Footprint.RowPitch * row);
+          uint8_t *sSrc =
+              (uint8_t *)(pData + layouts[1].Offset + layouts[1].Footprint.RowPitch * row);
+
+          uint32_t *dst = (uint32_t *)(ret + dstRowPitch * row);
+
+          for(UINT i = 0; i < layouts[0].Footprint.Width; i++)
+          {
+            // pack the data together again, stencil in top bits
+            *dst = (*dSrc & 0x00ffffff) | (uint32_t(*sSrc) << 24);
+
+            dst++;
+            sSrc++;
+            dSrc++;
+          }
+        }
+      }
+    }
+  }
+  else
+  {
+    UINT dstRowPitch = GetByteSize(layouts[0].Footprint.Width, 1, 1, copyDesc.Format, 0);
+
+    // copy row by row
+    for(UINT s = 0; s < layouts[0].Footprint.Depth; s++)
+    {
+      for(UINT r = 0; r < rowcounts[0]; r++)
+      {
+        UINT row = r + s * rowcounts[0];
+
+        byte *src = pData + layouts[0].Footprint.RowPitch * row;
+        byte *dst = ret + dstRowPitch * row;
+
+        memcpy(dst, src, dstRowPitch);
+      }
+    }
+  }
+
+  SAFE_DELETE_ARRAY(layouts);
+  SAFE_DELETE_ARRAY(rowcounts);
+
+  range.End = 0;
+  readbackBuf->Unmap(0, &range);
+
+  // clean up temporary objects
+  SAFE_RELEASE(readbackBuf);
+  SAFE_RELEASE(tmpTexture);
+
+  return ret;
 }
 
 void D3D12DebugManager::RenderHighlightBox(float w, float h, float scale)
@@ -4396,6 +4849,8 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
     {
       if(m_BBFmtIdx == RGBA32_BACKBUFFER)
         list->SetPipelineState(m_TexDisplayF32Pipe);
+      else if(m_BBFmtIdx == RGBA8_BACKBUFFER)
+        list->SetPipelineState(m_TexDisplayLinearPipe);
       else
         list->SetPipelineState(m_TexDisplayPipe);
     }

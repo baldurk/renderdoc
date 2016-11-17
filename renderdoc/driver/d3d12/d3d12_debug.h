@@ -94,6 +94,9 @@ public:
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);
   void GetBufferData(ID3D12Resource *buff, uint64_t offset, uint64_t length, vector<byte> &retData);
 
+  byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                       const GetTextureDataParams &params, size_t &dataSize);
+
   void BuildShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type,
                    ResourceId *id, string *errors);
 
@@ -157,6 +160,7 @@ private:
     PICK_PIXEL_RTV,
     CUSTOM_SHADER_RTV,
     OVERLAY_RTV,
+    GET_TEX_RTV,
     FIRST_WIN_RTV,
   };
 
@@ -175,10 +179,11 @@ private:
   D3D12_GPU_DESCRIPTOR_HANDLE GetGPUHandle(DSVSlot slot);
 
   // indices for the pipelines, for the three possible backbuffer formats
-  enum
+  enum BackBufferFormat
   {
     BGRA8_BACKBUFFER = 0,
     RGBA8_BACKBUFFER,
+    RGBA8_SRGB_BACKBUFFER,
     RGBA16_BACKBUFFER,
     RGBA32_BACKBUFFER,
     FMTNUM_BACKBUFFER,
@@ -223,6 +228,7 @@ private:
   ID3D12Resource *m_GenericPSCbuffer;
 
   ID3D12PipelineState *m_TexDisplayPipe;
+  ID3D12PipelineState *m_TexDisplayLinearPipe;
   ID3D12PipelineState *m_TexDisplayF32Pipe;
   ID3D12PipelineState *m_TexDisplayBlendPipe;
 
