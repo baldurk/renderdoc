@@ -2388,7 +2388,8 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
   barrier.Transition.StateBefore = m_WrappedDevice->GetSubresourceStates(GetResID(buffer))[0];
   barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
 
-  m_ReadbackList->ResourceBarrier(1, &barrier);
+  if(barrier.Transition.StateBefore != D3D12_RESOURCE_STATE_COPY_SOURCE)
+    m_ReadbackList->ResourceBarrier(1, &barrier);
 
   while(length > 0)
   {
@@ -2424,7 +2425,22 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
 
     outOffs += chunkSize;
     length -= chunkSize;
+
+    m_ReadbackList->Reset(m_ReadbackAlloc, NULL);
   }
+
+  if(barrier.Transition.StateBefore != D3D12_RESOURCE_STATE_COPY_SOURCE)
+  {
+    std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
+
+    m_ReadbackList->ResourceBarrier(1, &barrier);
+  }
+
+  m_ReadbackList->Close();
+
+  ID3D12CommandList *l = m_ReadbackList;
+  m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
+  m_ReadbackAlloc->Reset();
 }
 
 byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
