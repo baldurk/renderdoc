@@ -668,6 +668,30 @@ ResourceFormat MakeResourceFormat(WrappedGLES &gl, GLenum target, GLenum fmt)
       ret.special = true;
       return ret;
     }
+
+    if (fmt == eGL_R32UI)
+    {
+      ret.compByteWidth = 4;
+      ret.compCount = 1;
+      ret.compType = eCompType_UInt;
+      return ret;
+    }
+
+    if (fmt == eGL_RGBA16F)
+    {
+      ret.compByteWidth = 2;
+      ret.compCount = 4;
+      ret.compType = eCompType_Float;
+      return ret;
+    }
+
+    if (fmt == eGL_R32F)
+    {
+      ret.compByteWidth = 4;
+      ret.compCount = 1;
+      ret.compType = eCompType_Float;
+      return ret;
+    }
   }
 
   RDCERR("Unhandled resource format %#x", fmt);
