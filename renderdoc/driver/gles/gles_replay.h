@@ -335,6 +335,7 @@ private:
     GLuint feedbackObj;
     GLuint feedbackQuery;
     GLuint feedbackBuffer;
+    GLsizeiptr feedbackBufferSize;
 
     GLuint pickPixelTex;
     GLuint pickPixelFBO;

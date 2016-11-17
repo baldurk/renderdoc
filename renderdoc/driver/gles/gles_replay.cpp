@@ -430,9 +430,10 @@ void GLESReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, v
   gl.glBindBuffer(eGL_COPY_READ_BUFFER, buf.resource.name);
 
   void* data = gl.glMapBufferRange(eGL_COPY_READ_BUFFER, (GLintptr)offset, (GLsizeiptr)len, eGL_MAP_READ_BIT);
-  if (data != NULL)
+  if (data != NULL) {
     memcpy(&ret[0], data, len);
-  gl.glUnmapBuffer(eGL_COPY_READ_BUFFER);
+    gl.glUnmapBuffer(eGL_COPY_READ_BUFFER);
+  }
   gl.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf);
 }
 

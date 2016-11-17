@@ -573,9 +573,10 @@ void GLESReplay::InitDebugData()
   gl.glGenBuffers(1, &DebugData.feedbackBuffer);
   gl.glGenQueries(1, &DebugData.feedbackQuery);
 
+  DebugData.feedbackBufferSize = 32 * 1024 * 1024;
   gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
   gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
-  gl.glBufferStorageEXT(eGL_TRANSFORM_FEEDBACK_BUFFER, 32 * 1024 * 1024, NULL, GL_MAP_READ_BIT);
+  gl.glBufferStorageEXT(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBufferSize, NULL, eGL_MAP_READ_BIT);
   gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
   gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, 0);
 
@@ -2889,11 +2890,10 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
   GLuint oldBinding;
   gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, (GLint*)&oldBinding);
   gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
-  float *data = (float *)gl.glMapBufferOES(eGL_TRANSFORM_FEEDBACK_BUFFER, eGL_READ_ONLY);
+  float *data = (float *)gl.glMapBufferRange(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBufferSize, eGL_MAP_READ_BIT);
 
   if(data == NULL)
   {
-    // TODO(elecro): OES does not work on android
     gl.glUnmapBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER);
     RDCERR("Couldn't map feedback buffer!");
     error = true;
