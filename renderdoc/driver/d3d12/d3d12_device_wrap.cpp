@@ -444,6 +444,12 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
 
   if(m_State == READING)
   {
+    // inflate the heap so we can insert our own descriptors at the end
+    // while patching, because DX12 has a stupid limitation to not be able
+    // to set multiple descriptor heaps at once of the same type
+    if(Descriptor.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+      Descriptor.NumDescriptors += 16;
+
     ID3D12DescriptorHeap *ret = NULL;
     HRESULT hr = m_pDevice->CreateDescriptorHeap(&Descriptor, guid, (void **)&ret);
 

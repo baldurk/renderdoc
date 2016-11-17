@@ -106,6 +106,7 @@ public:
                                UINT NumStaticSamplers = 0,
                                D3D12_STATIC_SAMPLER_DESC *StaticSamplers = NULL);
 
+  ID3DBlob *GetOverdrawWritePS() { return m_QuadOverdrawWritePS; }
 private:
   struct OutputWindow
   {
@@ -146,6 +147,9 @@ private:
     MINMAX_TILE_UAVS = MINMAX_TILE_SRVS + 3,
     MINMAX_RESULT_UAVS = MINMAX_TILE_UAVS + 3,
     HISTOGRAM_UAV = MINMAX_RESULT_UAVS + 3,
+
+    OVERDRAW_SRV,
+    OVERDRAW_UAV,
   };
 
   enum RTVSlot
@@ -227,6 +231,10 @@ private:
   ID3D12RootSignature *m_CBOnlyRootSig;
   ID3D12PipelineState *m_CheckerboardPipe;
   ID3D12PipelineState *m_OutlinePipe;
+
+  ID3DBlob *m_QuadOverdrawWritePS;
+  ID3D12RootSignature *m_QuadResolveRootSig;
+  ID3D12PipelineState *m_QuadResolvePipe;
 
   ID3D12Resource *m_PickPixelTex;
   D3D12_CPU_DESCRIPTOR_HANDLE m_PickPixelRTV;

@@ -407,6 +407,35 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   SAFE_RELEASE(root);
 
+  rootSig.clear();
+
+  // 0: CBV
+  param.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+  param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+  param.Descriptor.ShaderRegister = 0;
+  param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+
+  rootSig.push_back(param);
+
+  srvrange.NumDescriptors = 1;
+
+  // 1: SRV
+  param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+  param.DescriptorTable.NumDescriptorRanges = 1;
+  param.DescriptorTable.pDescriptorRanges = &srvrange;
+
+  rootSig.push_back(param);
+
+  root = MakeRootSig(rootSig);
+
+  RDCASSERT(root);
+
+  hr = m_WrappedDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+                                            __uuidof(ID3D12RootSignature),
+                                            (void **)&m_QuadResolveRootSig);
+
+  SAFE_RELEASE(root);
+
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.6f);
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc;
@@ -421,6 +450,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   ID3DBlob *TexDisplayPS = NULL;
   ID3DBlob *CheckerboardPS = NULL;
   ID3DBlob *OutlinePS = NULL;
+  ID3DBlob *QOResolvePS = NULL;
 
   GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_DebugVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0",
                 &GenericVS);
@@ -432,12 +462,15 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
                 "ps_5_0", &CheckerboardPS);
   GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_OutlinePS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                 "ps_5_0", &OutlinePS);
+  GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_QOResolvePS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                "ps_5_0", &QOResolvePS);
 
   RDCASSERT(GenericVS);
   RDCASSERT(FullscreenVS);
   RDCASSERT(TexDisplayPS);
   RDCASSERT(CheckerboardPS);
   RDCASSERT(OutlinePS);
+  RDCASSERT(QOResolvePS);
 
   pipeDesc.pRootSignature = m_TexDisplayRootSig;
   pipeDesc.VS.BytecodeLength = GenericVS->GetBufferSize();
@@ -520,6 +553,24 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   if(FAILED(hr))
   {
     RDCERR("Couldn't create m_OutlinePipe! 0x%08x", hr);
+  }
+
+  GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                "ps_5_0", &m_QuadOverdrawWritePS);
+
+  pipeDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
+
+  pipeDesc.pRootSignature = m_QuadResolveRootSig;
+
+  pipeDesc.PS.BytecodeLength = QOResolvePS->GetBufferSize();
+  pipeDesc.PS.pShaderBytecode = QOResolvePS->GetBufferPointer();
+
+  hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                    (void **)&m_QuadResolvePipe);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't create m_QuadResolvePipe! 0x%08x", hr);
   }
 
   m_OverlayRenderTex = NULL;
@@ -613,6 +664,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   SAFE_RELEASE(GenericVS);
   SAFE_RELEASE(TexDisplayPS);
   SAFE_RELEASE(OutlinePS);
+  SAFE_RELEASE(QOResolvePS);
   SAFE_RELEASE(CheckerboardPS);
 
   {
@@ -1028,6 +1080,10 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_CBOnlyRootSig);
   SAFE_RELEASE(m_CheckerboardPipe);
   SAFE_RELEASE(m_OutlinePipe);
+
+  SAFE_RELEASE(m_QuadOverdrawWritePS);
+  SAFE_RELEASE(m_QuadResolveRootSig);
+  SAFE_RELEASE(m_QuadResolvePipe);
 
   SAFE_RELEASE(m_PickPixelTex);
 
@@ -3169,6 +3225,223 @@ bool D3D12DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
   return true;
 }
 
+struct QuadOverdrawCallback : public D3D12DrawcallCallback
+{
+  QuadOverdrawCallback(WrappedID3D12Device *dev, const vector<uint32_t> &events, PortableHandle uav)
+      : m_pDevice(dev), m_pDebug(dev->GetDebugManager()), m_Events(events), m_UAV(uav)
+  {
+    m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
+  }
+  ~QuadOverdrawCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
+  {
+    if(std::find(m_Events.begin(), m_Events.end(), eid) == m_Events.end())
+      return;
+
+    // we customise the pipeline to disable framebuffer writes, but perform normal testing
+    // and substitute our quad calculation fragment shader that writes to a storage image
+    // that is bound in a new root signature element.
+
+    D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
+    m_PrevState = rs;
+
+    // check cache first
+    CachedPipeline cache = m_PipelineCache[rs.pipe];
+
+    // if we don't get a hit, create a modified pipeline
+    if(cache.pipe == NULL)
+    {
+      HRESULT hr = S_OK;
+
+      WrappedID3D12RootSignature *sig =
+          m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(
+              rs.graphics.rootsig);
+
+      // need to be able to add a descriptor table with our UAV without hitting the 64 DWORD limit
+      RDCASSERT(sig->sig.dwordLength < 64);
+
+      D3D12RootSignature modsig = sig->sig;
+
+      // make sure no other UAV tables overlap. We can't remove elements entirely because then the
+      // root signature indices wouldn't match up as expected.
+      // Instead move them into an unused space.
+      for(size_t i = 0; i < modsig.params.size(); i++)
+      {
+        if(modsig.params[i].ShaderVisibility == D3D12_SHADER_VISIBILITY_PIXEL)
+        {
+          if(modsig.params[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
+          {
+            modsig.params[i].Descriptor.RegisterSpace = modsig.numSpaces;
+          }
+          else if(modsig.params[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+          {
+            for(size_t r = 0; r < modsig.params[i].ranges.size(); r++)
+            {
+              modsig.params[i].ranges[r].RegisterSpace = modsig.numSpaces;
+            }
+          }
+        }
+      }
+
+      D3D12_DESCRIPTOR_RANGE1 range;
+      range.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
+      range.NumDescriptors = 1;
+      range.BaseShaderRegister = 0;
+      range.RegisterSpace = 0;
+      range.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
+      range.OffsetInDescriptorsFromTableStart = 0;
+
+      modsig.params.push_back(D3D12RootSignatureParameter());
+      D3D12RootSignatureParameter &param = modsig.params.back();
+      param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+      param.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
+      param.DescriptorTable.NumDescriptorRanges = 1;
+      param.DescriptorTable.pDescriptorRanges = &range;
+
+      cache.sigElem = uint32_t(modsig.params.size() - 1);
+
+      std::vector<D3D12_ROOT_PARAMETER1> params;
+      params.resize(modsig.params.size());
+      for(size_t i = 0; i < params.size(); i++)
+        params[i] = modsig.params[i];
+
+      ID3DBlob *root = m_pDebug->MakeRootSig(params, modsig.Flags, (UINT)modsig.samplers.size(),
+                                             modsig.samplers.empty() ? NULL : &modsig.samplers[0]);
+
+      hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+                                          __uuidof(ID3D12RootSignature), (void **)&cache.sig);
+      RDCASSERTEQUAL(hr, S_OK);
+
+      SAFE_RELEASE(root);
+
+      WrappedID3D12PipelineState *origPSO =
+          m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+
+      RDCASSERT(origPSO->IsGraphics());
+
+      D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = origPSO->GetGraphicsDesc();
+
+      for(size_t i = 0; i < ARRAY_COUNT(pipeDesc.BlendState.RenderTarget); i++)
+        pipeDesc.BlendState.RenderTarget[i].RenderTargetWriteMask = 0;
+
+      // disable depth/stencil writes
+      pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+      pipeDesc.DepthStencilState.FrontFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+      pipeDesc.DepthStencilState.BackFace.StencilFunc = D3D12_COMPARISON_FUNC_ALWAYS;
+      pipeDesc.DepthStencilState.StencilWriteMask = 0;
+
+      pipeDesc.PS.BytecodeLength = m_pDebug->GetOverdrawWritePS()->GetBufferSize();
+      pipeDesc.PS.pShaderBytecode = m_pDebug->GetOverdrawWritePS()->GetBufferPointer();
+
+      pipeDesc.pRootSignature = cache.sig;
+
+      hr = m_pDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                  (void **)&cache.pipe);
+      RDCASSERTEQUAL(hr, S_OK);
+
+      m_PipelineCache[rs.pipe] = cache;
+    }
+
+    // modify state for first draw call
+    rs.pipe = GetResID(cache.pipe);
+    rs.graphics.rootsig = GetResID(cache.sig);
+
+    if(rs.graphics.sigelems.size() <= cache.sigElem)
+      rs.graphics.sigelems.resize(cache.sigElem + 1);
+
+    PortableHandle uav = m_UAV;
+
+    // if a CBV_SRV_UAV heap is already set, we need to copy our descriptor in
+    // if we haven't already. Otherwise we can set our own heap.
+    for(size_t i = 0; i < rs.heaps.size(); i++)
+    {
+      WrappedID3D12DescriptorHeap *h =
+          m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(rs.heaps[i]);
+      if(h->GetDesc().Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
+      {
+        // use the last descriptor
+        D3D12_CPU_DESCRIPTOR_HANDLE dst = h->GetCPUDescriptorHandleForHeapStart();
+        dst.ptr += (h->GetDesc().NumDescriptors - 1) * sizeof(D3D12Descriptor);
+
+        if(m_CopiedHeaps.find(rs.heaps[i]) == m_CopiedHeaps.end())
+        {
+          WrappedID3D12DescriptorHeap *h2 =
+              m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12DescriptorHeap>(m_UAV.heap);
+          D3D12_CPU_DESCRIPTOR_HANDLE src = h2->GetCPUDescriptorHandleForHeapStart();
+          src.ptr += m_UAV.index * sizeof(D3D12Descriptor);
+
+          // can't do a copy because the src heap is CPU write-only (shader visible). So instead,
+          // create directly
+          D3D12Descriptor *srcDesc = (D3D12Descriptor *)src.ptr;
+          srcDesc->Create(D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV, m_pDevice, dst);
+
+          m_CopiedHeaps.insert(rs.heaps[i]);
+        }
+
+        uav = ToPortableHandle(dst);
+
+        break;
+      }
+    }
+
+    if(uav.heap == m_UAV.heap)
+      rs.heaps.push_back(m_UAV.heap);
+
+    rs.graphics.sigelems[cache.sigElem] =
+        D3D12RenderState::SignatureElement(eRootTable, uav.heap, uav.index);
+
+    // as we're changing the root signature, we need to reapply all elements,
+    // so just apply all state
+    if(cmd)
+      rs.ApplyState(cmd);
+  }
+
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
+  {
+    if(std::find(m_Events.begin(), m_Events.end(), eid) == m_Events.end())
+      return false;
+
+    // restore the render state and go ahead with the real draw
+    m_pDevice->GetQueue()->GetCommandData()->m_RenderState = m_PrevState;
+
+    RDCASSERT(cmd);
+    m_pDevice->GetQueue()->GetCommandData()->m_RenderState.ApplyState(cmd);
+
+    return true;
+  }
+
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
+  {
+    // nothing to do
+  }
+
+  // Dispatches don't rasterize, so do nothing
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) { return false; }
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
+  bool RecordAllCmds() { return false; }
+  void AliasEvent(uint32_t primary, uint32_t alias)
+  {
+    // don't care
+  }
+
+  WrappedID3D12Device *m_pDevice;
+  D3D12DebugManager *m_pDebug;
+  const vector<uint32_t> &m_Events;
+  PortableHandle m_UAV;
+
+  // cache modified pipelines
+  struct CachedPipeline
+  {
+    ID3D12RootSignature *sig;
+    uint32_t sigElem;
+    ID3D12PipelineState *pipe;
+  };
+  map<ResourceId, CachedPipeline> m_PipelineCache;
+  std::set<ResourceId> m_CopiedHeaps;
+  D3D12RenderState m_PrevState;
+};
+
 ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
                                             TextureDisplayOverlay overlay, uint32_t eventID,
                                             const vector<uint32_t> &passEvents)
@@ -3243,21 +3516,21 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
   D3D12Descriptor *dsView =
       DescriptorFromPortableHandle(m_WrappedDevice->GetResourceManager(), rs.dsv);
 
-  D3D12_DEPTH_STENCIL_VIEW_DESC dsViewDesc;
-  RDCEraseEl(dsViewDesc);
+  D3D12_RESOURCE_DESC depthTexDesc = {};
+  D3D12_DEPTH_STENCIL_VIEW_DESC dsViewDesc = {};
   if(dsView)
   {
     ID3D12Resource *realDepth = dsView->nonsamp.resource;
 
     dsViewDesc = dsView->nonsamp.dsv;
 
-    D3D12_RESOURCE_DESC desc = realDepth->GetDesc();
-    desc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
-    desc.Alignment = 0;
+    depthTexDesc = realDepth->GetDesc();
+    depthTexDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
+    depthTexDesc.Alignment = 0;
 
     HRESULT hr = S_OK;
 
-    hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &desc,
+    hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &depthTexDesc,
                                                   D3D12_RESOURCE_STATE_COPY_DEST, NULL,
                                                   __uuidof(ID3D12Resource), (void **)&renderDepth);
     if(FAILED(hr))
@@ -3715,6 +3988,130 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
   }
   else if(overlay == eTexOverlay_QuadOverdrawPass || overlay == eTexOverlay_QuadOverdrawDraw)
   {
+    SCOPED_TIMER("Quad Overdraw");
+
+    vector<uint32_t> events = passEvents;
+
+    if(overlay == eTexOverlay_QuadOverdrawDraw)
+      events.clear();
+
+    events.push_back(eventID);
+
+    if(!events.empty())
+    {
+      if(overlay == eTexOverlay_QuadOverdrawPass)
+      {
+        list->Close();
+        m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
+        list = m_WrappedDevice->GetNewList();
+      }
+
+      uint32_t width = uint32_t(resourceDesc.Width >> 1);
+      uint32_t height = resourceDesc.Height >> 1;
+
+      D3D12_RESOURCE_DESC uavTexDesc = {};
+      uavTexDesc.Alignment = 0;
+      uavTexDesc.DepthOrArraySize = 4;
+      uavTexDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+      uavTexDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+      uavTexDesc.Format = DXGI_FORMAT_R32_UINT;
+      uavTexDesc.Height = height;
+      uavTexDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+      uavTexDesc.MipLevels = 1;
+      uavTexDesc.SampleDesc.Count = 1;
+      uavTexDesc.SampleDesc.Quality = 0;
+      uavTexDesc.Width = width;
+
+      ID3D12Resource *overdrawTex = NULL;
+      HRESULT hr = m_WrappedDevice->CreateCommittedResource(
+          &heapProps, D3D12_HEAP_FLAG_NONE, &uavTexDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+          NULL, __uuidof(ID3D12Resource), (void **)&overdrawTex);
+      if(FAILED(hr))
+      {
+        RDCERR("Failed to create overdrawTex %08x", hr);
+        list->Close();
+        list = NULL;
+        return m_OverlayResourceId;
+      }
+
+      m_WrappedDevice->CreateShaderResourceView(overdrawTex, NULL, GetCPUHandle(OVERDRAW_SRV));
+      m_WrappedDevice->CreateUnorderedAccessView(overdrawTex, NULL, NULL, GetCPUHandle(OVERDRAW_UAV));
+
+      UINT zeroes[4] = {0, 0, 0, 0};
+      list->ClearUnorderedAccessViewUint(GetGPUHandle(OVERDRAW_UAV), GetCPUHandle(OVERDRAW_UAV),
+                                         overdrawTex, zeroes, 0, NULL);
+      list->Close();
+      list = NULL;
+
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
+      m_WrappedDevice->ExecuteLists();
+      m_WrappedDevice->FlushLists();
+#endif
+
+      m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
+
+      // declare callback struct here
+      QuadOverdrawCallback cb(m_WrappedDevice, events, ToPortableHandle(GetCPUHandle(OVERDRAW_UAV)));
+
+      m_WrappedDevice->ReplayLog(events.front(), events.back(), eReplay_Full);
+
+      // resolve pass
+      {
+        list = m_WrappedDevice->GetNewList();
+
+        D3D12_RESOURCE_BARRIER overdrawBarriers[2] = {};
+
+        // make sure UAV work is done then prepare for reading in PS
+        overdrawBarriers[0].Type = D3D12_RESOURCE_BARRIER_TYPE_UAV;
+        overdrawBarriers[0].UAV.pResource = overdrawTex;
+        overdrawBarriers[1].Transition.pResource = overdrawTex;
+        overdrawBarriers[1].Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
+        overdrawBarriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+        overdrawBarriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+
+        // prepare tex resource for copying
+        list->ResourceBarrier(2, overdrawBarriers);
+
+        list->OMSetRenderTargets(1, &rtv, TRUE, NULL);
+
+        list->RSSetViewports(1, &rs.views[0]);
+
+        D3D12_RECT scissor = {0, 0, 16384, 16384};
+        list->RSSetScissorRects(1, &scissor);
+
+        list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
+
+        list->SetPipelineState(m_QuadResolvePipe);
+
+        list->SetGraphicsRootSignature(m_QuadResolveRootSig);
+
+        list->SetDescriptorHeaps(1, &cbvsrvuavHeap);
+
+        FillBuffer(m_GenericVSCbuffer, &overdrawRamp[0].x, sizeof(overdrawRamp));
+
+        list->SetGraphicsRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
+        list->SetGraphicsRootDescriptorTable(1, GetGPUHandle(OVERDRAW_SRV));
+
+        list->DrawInstanced(3, 1, 0, 0);
+
+        list->Close();
+        list = NULL;
+      }
+
+      m_WrappedDevice->ExecuteLists();
+      m_WrappedDevice->FlushLists();
+
+      for(auto it = cb.m_PipelineCache.begin(); it != cb.m_PipelineCache.end(); ++it)
+      {
+        SAFE_RELEASE(it->second.pipe);
+        SAFE_RELEASE(it->second.sig);
+      }
+
+      SAFE_RELEASE(overdrawTex);
+    }
+
+    if(overlay == eTexOverlay_QuadOverdrawPass)
+      m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
   }
   else if(overlay == eTexOverlay_Depth || overlay == eTexOverlay_Stencil)
   {
