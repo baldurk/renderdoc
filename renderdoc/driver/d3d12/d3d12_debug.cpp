@@ -2638,10 +2638,8 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource,
   if(IsIntFormat(resourceDesc.Format))
     srvOffset += 20;
 
-  D3D12_CPU_DESCRIPTOR_HANDLE srv = GetCPUHandle(FIRST_TEXDISPLAY_SRV);
-  srv.ptr += srvOffset * sizeof(D3D12Descriptor);
-
-  D3D12_RESOURCE_STATES realResourceState = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+  D3D12_RESOURCE_STATES realResourceState =
+      D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
   bool copy = false;
 
   D3D12_SHADER_RESOURCE_VIEW_DESC stencilSRVDesc = {};
@@ -2712,7 +2710,7 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource,
     D3D12_RESOURCE_BARRIER b;
 
     // skip unneeded barriers
-    if(states[i] & D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE)
+    if(states[i] & realResourceState)
       continue;
 
     b.Type = D3D12_RESOURCE_BARRIER_TYPE_TRANSITION;
@@ -2771,7 +2769,8 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource,
     if(!m_TexResource)
     {
       HRESULT hr = m_WrappedDevice->CreateCommittedResource(
-          &heapProps, D3D12_HEAP_FLAG_NONE, &texDesc, D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE,
+          &heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
+          D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE,
           NULL, __uuidof(ID3D12Resource), (void **)&m_TexResource);
       RDCASSERTEQUAL(hr, S_OK);
     }
@@ -2789,7 +2788,8 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource,
     b.Flags = D3D12_RESOURCE_BARRIER_FLAG_NONE;
     b.Transition.pResource = m_TexResource;
     b.Transition.Subresource = D3D12_RESOURCE_BARRIER_ALL_SUBRESOURCES;
-    b.Transition.StateBefore = D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE;
+    b.Transition.StateBefore =
+        D3D12_RESOURCE_STATE_PIXEL_SHADER_RESOURCE | D3D12_RESOURCE_STATE_NON_PIXEL_SHADER_RESOURCE;
     b.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 
     // prepare tex resource for copying
@@ -2815,6 +2815,24 @@ void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource,
 
     resource = m_TexResource;
   }
+
+  // empty all the other SRVs just to mute debug warnings
+  D3D12_CPU_DESCRIPTOR_HANDLE srv = GetCPUHandle(FIRST_TEXDISPLAY_SRV);
+
+  D3D12_SHADER_RESOURCE_VIEW_DESC emptyDesc = {};
+  emptyDesc.Format = DXGI_FORMAT_R8_UNORM;
+  emptyDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
+  emptyDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+  emptyDesc.Texture2D.MipLevels = 1;
+
+  for(size_t i = 0; i < 32; i++)
+  {
+    m_WrappedDevice->CreateShaderResourceView(NULL, &emptyDesc, srv);
+    srv.ptr += sizeof(D3D12Descriptor);
+  }
+
+  srv = GetCPUHandle(FIRST_TEXDISPLAY_SRV);
+  srv.ptr += srvOffset * sizeof(D3D12Descriptor);
 
   m_WrappedDevice->CreateShaderResourceView(resource, &srvDesc, srv);
   if(stencilSRVDesc.Format != DXGI_FORMAT_UNKNOWN)
