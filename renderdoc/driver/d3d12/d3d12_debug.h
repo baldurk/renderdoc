@@ -131,7 +131,8 @@ private:
   };
 
   ID3D12Resource *MakeCBuffer(UINT64 size);
-  void FillBuffer(ID3D12Resource *buf, const void *data, size_t size);
+  void FillBuffer(ID3D12Resource *buf, size_t offset, const void *data, size_t size);
+  D3D12_GPU_VIRTUAL_ADDRESS UploadConstants(const void *data, size_t size);
 
   static const int FONT_TEX_WIDTH = 256;
   static const int FONT_TEX_HEIGHT = 128;
@@ -224,8 +225,8 @@ private:
   ID3D12DescriptorHeap *rtvHeap;
   ID3D12DescriptorHeap *dsvHeap;
 
-  ID3D12Resource *m_GenericVSCbuffer;
-  ID3D12Resource *m_GenericPSCbuffer;
+  ID3D12Resource *m_RingConstantBuffer;
+  UINT64 m_RingConstantOffset;
 
   ID3D12PipelineState *m_TexDisplayPipe;
   ID3D12PipelineState *m_TexDisplayLinearPipe;

@@ -276,15 +276,10 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   samp.ptr += sizeof(D3D12Descriptor);
   m_WrappedDevice->CreateSampler(&sampDesc, samp);
 
-  static const UINT64 bufsize = 2048;
+  static const UINT64 bufsize = 2 * 1024 * 1024;
 
-  m_GenericVSCbuffer = MakeCBuffer(bufsize);
-  m_GenericPSCbuffer = MakeCBuffer(bufsize);
-
-  RDCCOMPILE_ASSERT(sizeof(DebugVertexCBuffer) <= bufsize, "CBuffer isn't large enough");
-  RDCCOMPILE_ASSERT(sizeof(DebugPixelCBufferData) <= bufsize, "CBuffer isn't large enough");
-  RDCCOMPILE_ASSERT(sizeof(HistogramCBufferData) <= bufsize, "CBuffer isn't large enough");
-  RDCCOMPILE_ASSERT(sizeof(overdrawRamp) <= bufsize, "CBuffer isn't large enough");
+  m_RingConstantBuffer = MakeCBuffer(bufsize);
+  m_RingConstantOffset = 0;
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.4f);
 
@@ -300,7 +295,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   D3D12_ROOT_PARAMETER1 param = {};
 
-  // m_GenericVSCbuffer
+  // VS CBV
   param.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
   param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
   param.Descriptor.ShaderRegister = 0;
@@ -308,7 +303,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   rootSig.push_back(param);
 
-  // m_GenericPSCbuffer
+  // PS CBV
   param.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
   param.Descriptor.ShaderRegister = 1;
 
@@ -873,7 +868,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     float maxheight = float(ascent) * stbtt_ScaleForPixelHeight(&f, pixelHeight);
 
-    FillBuffer(uploadBuf, buf, width * height);
+    FillBuffer(uploadBuf, 0, buf, width * height);
 
     delete[] buf;
 
@@ -935,7 +930,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
       glyphData[(i + 1) * 2 + 1] = Vec4f(b->x0, b->y0, b->x1, b->y1);
     }
 
-    FillBuffer(m_Font.GlyphData, &glyphData, sizeof(glyphData));
+    FillBuffer(m_Font.GlyphData, 0, &glyphData, sizeof(glyphData));
 
     for(size_t i = 0; i < ARRAY_COUNT(m_Font.Constants); i++)
       m_Font.Constants[i] = MakeCBuffer(sizeof(FontCBuffer));
@@ -1089,8 +1084,7 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(cbvsrvuavHeap);
   SAFE_RELEASE(samplerHeap);
 
-  SAFE_RELEASE(m_GenericVSCbuffer);
-  SAFE_RELEASE(m_GenericPSCbuffer);
+  SAFE_RELEASE(m_RingConstantBuffer);
 
   SAFE_RELEASE(m_TexDisplayBlendPipe);
   SAFE_RELEASE(m_TexDisplayPipe);
@@ -1711,10 +1705,11 @@ void D3D12DebugManager::FlipOutputWindow(uint64_t id)
   outw.bbIdx %= 2;
 }
 
-void D3D12DebugManager::FillBuffer(ID3D12Resource *buf, const void *data, size_t size)
+void D3D12DebugManager::FillBuffer(ID3D12Resource *buf, size_t offset, const void *data, size_t size)
 {
-  void *ptr = NULL;
-  HRESULT hr = buf->Map(0, NULL, &ptr);
+  D3D12_RANGE range = {offset, offset + size};
+  byte *ptr = NULL;
+  HRESULT hr = buf->Map(0, &range, (void **)&ptr);
 
   if(FAILED(hr))
   {
@@ -1722,9 +1717,27 @@ void D3D12DebugManager::FillBuffer(ID3D12Resource *buf, const void *data, size_t
   }
   else
   {
-    memcpy(ptr, data, size);
-    buf->Unmap(0, NULL);
+    memcpy(ptr + offset, data, size);
+    buf->Unmap(0, &range);
   }
+}
+
+D3D12_GPU_VIRTUAL_ADDRESS D3D12DebugManager::UploadConstants(const void *data, size_t size)
+{
+  D3D12_GPU_VIRTUAL_ADDRESS ret = m_RingConstantBuffer->GetGPUVirtualAddress();
+
+  if(m_RingConstantOffset + size > m_RingConstantBuffer->GetDesc().Width)
+    m_RingConstantOffset = 0;
+
+  ret += m_RingConstantOffset;
+
+  FillBuffer(m_RingConstantBuffer, m_RingConstantOffset, data, size);
+
+  m_RingConstantOffset += size;
+  m_RingConstantOffset =
+      AlignUp(m_RingConstantOffset, (UINT64)D3D12_CONSTANT_BUFFER_DATA_PLACEMENT_ALIGNMENT);
+
+  return ret;
 }
 
 D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetCPUHandle(CBVUAVSRVSlot slot)
@@ -2935,8 +2948,8 @@ void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
   pixelData.Channels = Vec4f(light.x, light.y, light.z, 0.0f);
   pixelData.WireframeColour = dark;
 
-  FillBuffer(m_GenericVSCbuffer, &vertexData, sizeof(DebugVertexCBuffer));
-  FillBuffer(m_GenericPSCbuffer, &pixelData, sizeof(DebugPixelCBufferData));
+  D3D12_GPU_VIRTUAL_ADDRESS vs = UploadConstants(&vertexData, sizeof(DebugVertexCBuffer));
+  D3D12_GPU_VIRTUAL_ADDRESS ps = UploadConstants(&pixelData, sizeof(pixelData));
 
   OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];
 
@@ -2957,8 +2970,9 @@ void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 
     list->SetGraphicsRootSignature(m_CBOnlyRootSig);
 
-    list->SetGraphicsRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
-    list->SetGraphicsRootConstantBufferView(1, m_GenericPSCbuffer->GetGPUVirtualAddress());
+    list->SetGraphicsRootConstantBufferView(0, vs);
+    list->SetGraphicsRootConstantBufferView(1, ps);
+    list->SetGraphicsRootConstantBufferView(2, vs);
 
     float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     list->OMSetBlendFactor(factor);
@@ -3017,7 +3031,7 @@ void D3D12DebugManager::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
   data.CharacterSize.x = 1.0f / float(FONT_TEX_WIDTH);
   data.CharacterSize.y = 1.0f / float(FONT_TEX_HEIGHT);
 
-  FillBuffer(m_Font.Constants[m_Font.ConstRingIdx], &data, sizeof(FontCBuffer));
+  FillBuffer(m_Font.Constants[m_Font.ConstRingIdx], 0, &data, sizeof(FontCBuffer));
 
   size_t chars = strlen(text);
 
@@ -3395,8 +3409,6 @@ bool D3D12DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
   else if(IsIntFormat(fmt))
     intIdx = 2;
 
-  FillBuffer(m_GenericVSCbuffer, &cdata, sizeof(cdata));
-
   int blocksX = (int)ceil(cdata.HistogramTextureResolution.x /
                           float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
   int blocksY = (int)ceil(cdata.HistogramTextureResolution.y /
@@ -3423,7 +3435,7 @@ bool D3D12DebugManager::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t
     D3D12_GPU_DESCRIPTOR_HANDLE uav = GetGPUHandle(MINMAX_TILE_UAVS);
     D3D12_GPU_DESCRIPTOR_HANDLE srv = GetGPUHandle(FIRST_TEXDISPLAY_SRV);
 
-    list->SetComputeRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
+    list->SetComputeRootConstantBufferView(0, UploadConstants(&cdata, sizeof(cdata)));
     list->SetComputeRootDescriptorTable(1, srv);
     list->SetComputeRootDescriptorTable(2, samplerHeap->GetGPUDescriptorHandleForHeapStart());
     list->SetComputeRootDescriptorTable(3, uav);
@@ -3583,8 +3595,6 @@ bool D3D12DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
   else if(IsIntFormat(fmt))
     intIdx = 2;
 
-  FillBuffer(m_GenericVSCbuffer, &cdata, sizeof(cdata));
-
   int tilesX = (int)ceil(cdata.HistogramTextureResolution.x /
                          float(HGRAM_PIXELS_PER_TILE * HGRAM_TILES_PER_BLOCK));
   int tilesY = (int)ceil(cdata.HistogramTextureResolution.y /
@@ -3615,7 +3625,7 @@ bool D3D12DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
     UINT zeroes[] = {0, 0, 0, 0};
     list->ClearUnorderedAccessViewUint(uav, uavcpu, m_MinMaxTileBuffer, zeroes, 0, NULL);
 
-    list->SetComputeRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
+    list->SetComputeRootConstantBufferView(0, UploadConstants(&cdata, sizeof(cdata)));
     list->SetComputeRootDescriptorTable(1, srv);
     list->SetComputeRootDescriptorTable(2, samplerHeap->GetGPUDescriptorHandleForHeapStart());
     list->SetComputeRootDescriptorTable(3, uav);
@@ -4410,10 +4420,11 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       pixelData.InverseRangeSize = viewport.TopLeftY;
       pixelData.TextureResolutionPS = Vec3f(viewport.Width, viewport.Height, 0.0f);
 
-      FillBuffer(m_GenericVSCbuffer, &pixelData, sizeof(pixelData));
+      D3D12_GPU_VIRTUAL_ADDRESS viewCB = UploadConstants(&pixelData, sizeof(pixelData));
 
-      list->SetGraphicsRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
-      list->SetGraphicsRootConstantBufferView(1, m_GenericVSCbuffer->GetGPUVirtualAddress());
+      list->SetGraphicsRootConstantBufferView(0, viewCB);
+      list->SetGraphicsRootConstantBufferView(1, viewCB);
+      list->SetGraphicsRootConstantBufferView(2, viewCB);
 
       float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
       list->OMSetBlendFactor(factor);
@@ -4431,9 +4442,9 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       pixelData.InverseRangeSize = viewport.TopLeftY;
       pixelData.TextureResolutionPS = Vec3f(viewport.Width, viewport.Height, 0.0f);
 
-      FillBuffer(m_GenericPSCbuffer, &pixelData, sizeof(pixelData));
+      D3D12_GPU_VIRTUAL_ADDRESS scissorCB = UploadConstants(&pixelData, sizeof(pixelData));
 
-      list->SetGraphicsRootConstantBufferView(1, m_GenericPSCbuffer->GetGPUVirtualAddress());
+      list->SetGraphicsRootConstantBufferView(1, scissorCB);
 
       list->DrawInstanced(3, 1, 0, 0);
     }
@@ -4542,9 +4553,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
         list->SetDescriptorHeaps(1, &cbvsrvuavHeap);
 
-        FillBuffer(m_GenericVSCbuffer, &overdrawRamp[0].x, sizeof(overdrawRamp));
-
-        list->SetGraphicsRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
+        list->SetGraphicsRootConstantBufferView(
+            0, UploadConstants(&overdrawRamp[0].x, sizeof(overdrawRamp)));
         list->SetGraphicsRootDescriptorTable(1, GetGPUHandle(OVERDRAW_SRV));
 
         list->DrawInstanced(3, 1, 0, 0);
@@ -4826,9 +4836,6 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
   if(!IsSRGBFormat(resourceDesc.Format) && cfg.linearDisplayAsGamma)
     pixelData.OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
 
-  FillBuffer(m_GenericVSCbuffer, &vertexData, sizeof(DebugVertexCBuffer));
-  FillBuffer(m_GenericPSCbuffer, &pixelData, sizeof(DebugPixelCBufferData));
-
   {
     ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
@@ -4865,8 +4872,8 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
     ID3D12DescriptorHeap *heaps[] = {cbvsrvuavHeap, samplerHeap};
     list->SetDescriptorHeaps(2, heaps);
 
-    list->SetGraphicsRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
-    list->SetGraphicsRootConstantBufferView(1, m_GenericPSCbuffer->GetGPUVirtualAddress());
+    list->SetGraphicsRootConstantBufferView(0, UploadConstants(&vertexData, sizeof(vertexData)));
+    list->SetGraphicsRootConstantBufferView(1, UploadConstants(&pixelData, sizeof(pixelData)));
     list->SetGraphicsRootDescriptorTable(2, cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart());
     list->SetGraphicsRootDescriptorTable(3, samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
