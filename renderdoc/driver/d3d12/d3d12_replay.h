@@ -163,6 +163,16 @@ public:
   bool HasCallstacks();
   Callstack::StackResolver *GetCallstackResolver();
 
+  // called before any device is created, to init any counters
+  static void PreDeviceInitCounters();
+  // called after the device is created, to init any counters
+  void PostDeviceInitCounters();
+
+  // called after any device is destroyed, to do corresponding shutdown of counters
+  static void PostDeviceShutdownCounters();
+  // called before the device is destroyed, to shutdown any counters
+  void PreDeviceShutdownCounters();
+
 private:
   void MakePipelineState();
 

@@ -188,6 +188,7 @@
     <ClCompile Include="d3d12_command_list_wrap.cpp" />
     <ClCompile Include="d3d12_command_queue_wrap.cpp" />
     <ClCompile Include="d3d12_common.cpp" />
+    <ClCompile Include="d3d12_counters.cpp" />
     <ClCompile Include="d3d12_debug.cpp" />
     <ClCompile Include="d3d12_device.cpp" />
     <ClCompile Include="d3d12_device_wrap.cpp" />

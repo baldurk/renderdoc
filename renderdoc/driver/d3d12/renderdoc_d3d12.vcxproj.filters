@@ -95,5 +95,6 @@
     <ClCompile Include="d3d12_state.cpp">
       <Filter>Util</Filter>
     </ClCompile>
+    <ClCompile Include="d3d12_counters.cpp" />
   </ItemGroup>
 </Project>

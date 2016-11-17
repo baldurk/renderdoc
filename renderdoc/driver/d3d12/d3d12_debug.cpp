@@ -88,6 +88,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   m_Device = wrapper->GetReal();
   m_ResourceManager = wrapper->GetResourceManager();
 
+  wrapper->GetReplay()->PostDeviceInitCounters();
+
   m_OutputWindowID = 1;
   m_DSVID = 0;
 

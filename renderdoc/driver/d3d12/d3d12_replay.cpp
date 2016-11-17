@@ -50,7 +50,11 @@ void D3D12Replay::Shutdown()
     m_ProxyResources[i]->Release();
   m_ProxyResources.clear();
 
+  PreDeviceShutdownCounters();
+
   m_pDevice->Release();
+
+  D3D12Replay::PostDeviceShutdownCounters();
 }
 
 void D3D12Replay::ReadLogInitialisation()
@@ -1597,21 +1601,6 @@ byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
   return NULL;
 }
 
-vector<uint32_t> D3D12Replay::EnumerateCounters()
-{
-  return vector<uint32_t>();
-}
-
-void D3D12Replay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
-{
-  desc = CounterDescription();
-}
-
-vector<CounterResult> D3D12Replay::FetchCounters(const vector<uint32_t> &counters)
-{
-  return vector<CounterResult>();
-}
-
 void D3D12Replay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
                              const MeshDisplay &cfg)
 {
@@ -1731,6 +1720,8 @@ ReplayCreateStatus D3D12_CreateReplayDevice(const char *logfile, IReplayDriver *
 
   if(initParams.MinimumFeatureLevel < D3D_FEATURE_LEVEL_11_0)
     initParams.MinimumFeatureLevel = D3D_FEATURE_LEVEL_11_0;
+
+  D3D12Replay::PreDeviceInitCounters();
 
   ID3D12Device *dev = NULL;
   HRESULT hr = RENDERDOC_CreateWrappedD3D12Device(NULL, initParams.MinimumFeatureLevel,

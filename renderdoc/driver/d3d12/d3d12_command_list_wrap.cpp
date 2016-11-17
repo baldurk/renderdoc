@@ -192,7 +192,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Reset(ID3D12CommandAllocator *p
 
       // pull all re-recorded commands from our own device and command pool for easier cleanup
       if(!partial)
-        pAllocator = Unwrap(m_pDevice->GetAlloc());
+        pAllocator = m_pDevice->GetAlloc();
 
       ID3D12GraphicsCommandList *list = NULL;
       HRESULT hr = m_pDevice->CreateCommandList(nodeMask, type, pAllocator, pInitialState, riid,
