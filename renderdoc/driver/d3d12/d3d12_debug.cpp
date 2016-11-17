@@ -290,14 +290,15 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   m_CacheShaders = true;
 
-  vector<D3D12_ROOT_PARAMETER> rootSig;
+  vector<D3D12_ROOT_PARAMETER1> rootSig;
 
-  D3D12_ROOT_PARAMETER param = {};
+  D3D12_ROOT_PARAMETER1 param = {};
 
   // m_GenericVSCbuffer
   param.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
   param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
   param.Descriptor.ShaderRegister = 0;
+  param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
 
   rootSig.push_back(param);
 
@@ -307,11 +308,21 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   rootSig.push_back(param);
 
-  D3D12_DESCRIPTOR_RANGE srvrange = {};
+  ID3DBlob *root = MakeRootSig(rootSig);
+
+  RDCASSERT(root);
+
+  hr = m_WrappedDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+                                            __uuidof(ID3D12RootSignature), (void **)&m_CBOnlyRootSig);
+
+  SAFE_RELEASE(root);
+
+  D3D12_DESCRIPTOR_RANGE1 srvrange = {};
   srvrange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
   srvrange.BaseShaderRegister = 0;
   srvrange.NumDescriptors = 32;
   srvrange.OffsetInDescriptorsFromTableStart = 0;
+  srvrange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
 
   param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
   param.DescriptorTable.NumDescriptorRanges = 1;
@@ -320,11 +331,12 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   // SRV
   rootSig.push_back(param);
 
-  D3D12_DESCRIPTOR_RANGE samplerrange = {};
+  D3D12_DESCRIPTOR_RANGE1 samplerrange = {};
   samplerrange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SAMPLER;
   samplerrange.BaseShaderRegister = 0;
   samplerrange.NumDescriptors = 2;
   samplerrange.OffsetInDescriptorsFromTableStart = 0;
+  samplerrange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
 
   param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
   param.DescriptorTable.NumDescriptorRanges = 1;
@@ -333,7 +345,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   // samplers
   rootSig.push_back(param);
 
-  ID3DBlob *root = MakeRootSig(rootSig);
+  root = MakeRootSig(rootSig);
 
   RDCASSERT(root);
 
@@ -349,6 +361,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
   param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
   param.Descriptor.ShaderRegister = 0;
+  param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
 
   rootSig.push_back(param);
 
@@ -367,11 +380,12 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   rootSig.push_back(param);
 
   // 3: UAVs
-  D3D12_DESCRIPTOR_RANGE uavrange = {};
+  D3D12_DESCRIPTOR_RANGE1 uavrange = {};
   uavrange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_UAV;
   uavrange.BaseShaderRegister = 0;
   uavrange.NumDescriptors = 3;
   uavrange.OffsetInDescriptorsFromTableStart = 0;
+  uavrange.Flags = D3D12_DESCRIPTOR_RANGE_FLAG_NONE;
 
   param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
   param.DescriptorTable.NumDescriptorRanges = 1;
@@ -471,6 +485,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   {
     RDCERR("Couldn't create m_TexDisplayF32Pipe! 0x%08x", hr);
   }
+
+  pipeDesc.pRootSignature = m_CBOnlyRootSig;
 
   pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
 
@@ -867,6 +883,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     param.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
     param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
     param.Descriptor.ShaderRegister = 0;
+    param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
 
     rootSig.push_back(param);
 
@@ -1004,6 +1021,7 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_TexDisplayF32Pipe);
   SAFE_RELEASE(m_TexDisplayRootSig);
 
+  SAFE_RELEASE(m_CBOnlyRootSig);
   SAFE_RELEASE(m_CheckerboardPipe);
   SAFE_RELEASE(m_OutlinePipe);
 
@@ -1114,19 +1132,19 @@ string D3D12DebugManager::GetShaderBlob(const char *source, const char *entry,
 
 D3D12RootSignature D3D12DebugManager::GetRootSig(const void *data, size_t dataSize)
 {
-  PFN_D3D12_CREATE_ROOT_SIGNATURE_DESERIALIZER deserializeRootSig =
-      (PFN_D3D12_CREATE_ROOT_SIGNATURE_DESERIALIZER)GetProcAddress(
-          GetModuleHandleA("d3d12.dll"), "D3D12CreateRootSignatureDeserializer");
+  PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER deserializeRootSig =
+      (PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER)GetProcAddress(
+          GetModuleHandleA("d3d12.dll"), "D3D12CreateVersionedRootSignatureDeserializer");
 
   if(deserializeRootSig == NULL)
   {
-    RDCERR("Can't get D3D12CreateRootSignatureDeserializer");
+    RDCERR("Can't get D3D12CreateVersionedRootSignatureDeserializer");
     return D3D12RootSignature();
   }
 
-  ID3D12RootSignatureDeserializer *deser = NULL;
-  HRESULT hr =
-      deserializeRootSig(data, dataSize, __uuidof(ID3D12RootSignatureDeserializer), (void **)&deser);
+  ID3D12VersionedRootSignatureDeserializer *deser = NULL;
+  HRESULT hr = deserializeRootSig(
+      data, dataSize, __uuidof(ID3D12VersionedRootSignatureDeserializer), (void **)&deser);
 
   if(FAILED(hr))
   {
@@ -1137,12 +1155,37 @@ D3D12RootSignature D3D12DebugManager::GetRootSig(const void *data, size_t dataSi
 
   D3D12RootSignature ret;
 
-  const D3D12_ROOT_SIGNATURE_DESC *desc = deser->GetRootSignatureDesc();
+  const D3D12_VERSIONED_ROOT_SIGNATURE_DESC *verdesc = NULL;
+  hr = deser->GetRootSignatureDescAtVersion(D3D_ROOT_SIGNATURE_VERSION_1_1, &verdesc);
+  if(FAILED(hr))
+  {
+    SAFE_RELEASE(deser);
+    RDCERR("Can't get descriptor");
+    return D3D12RootSignature();
+  }
+
+  const D3D12_ROOT_SIGNATURE_DESC1 *desc = &verdesc->Desc_1_1;
+
+  ret.Flags = desc->Flags;
 
   ret.params.resize(desc->NumParameters);
 
+  ret.dwordLength = 0;
+
   for(size_t i = 0; i < ret.params.size(); i++)
+  {
     ret.params[i].MakeFrom(desc->pParameters[i], ret.numSpaces);
+
+    // Descriptor tables cost 1 DWORD each.
+    // Root constants cost 1 DWORD each, since they are 32-bit values.
+    // Root descriptors (64-bit GPU virtual addresses) cost 2 DWORDs each.
+    if(desc->pParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+      ret.dwordLength++;
+    else if(desc->pParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
+      ret.dwordLength += desc->pParameters[i].Constants.Num32BitValues;
+    else
+      ret.dwordLength += 2;
+  }
 
   if(desc->NumStaticSamplers > 0)
   {
@@ -1157,28 +1200,33 @@ D3D12RootSignature D3D12DebugManager::GetRootSig(const void *data, size_t dataSi
   return ret;
 }
 
-ID3DBlob *D3D12DebugManager::MakeRootSig(const vector<D3D12_ROOT_PARAMETER> &rootSig)
+ID3DBlob *D3D12DebugManager::MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1> params,
+                                         D3D12_ROOT_SIGNATURE_FLAGS Flags, UINT NumStaticSamplers,
+                                         D3D12_STATIC_SAMPLER_DESC *StaticSamplers)
 {
-  PFN_D3D12_SERIALIZE_ROOT_SIGNATURE serializeRootSig =
-      (PFN_D3D12_SERIALIZE_ROOT_SIGNATURE)GetProcAddress(GetModuleHandleA("d3d12.dll"),
-                                                         "D3D12SerializeRootSignature");
+  PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE serializeRootSig =
+      (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)GetProcAddress(
+          GetModuleHandleA("d3d12.dll"), "D3D12SerializeVersionedRootSignature");
 
   if(serializeRootSig == NULL)
   {
-    RDCERR("Can't get D3D12SerializeRootSignature");
+    RDCERR("Can't get D3D12SerializeVersionedRootSignature");
     return NULL;
   }
 
-  D3D12_ROOT_SIGNATURE_DESC desc;
-  desc.Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE;
-  desc.NumStaticSamplers = 0;
-  desc.pStaticSamplers = NULL;
-  desc.NumParameters = (UINT)rootSig.size();
-  desc.pParameters = &rootSig[0];
+  D3D12_VERSIONED_ROOT_SIGNATURE_DESC verdesc;
+  verdesc.Version = D3D_ROOT_SIGNATURE_VERSION_1_1;
+
+  D3D12_ROOT_SIGNATURE_DESC1 &desc = verdesc.Desc_1_1;
+  desc.Flags = Flags;
+  desc.NumStaticSamplers = NumStaticSamplers;
+  desc.pStaticSamplers = StaticSamplers;
+  desc.NumParameters = (UINT)params.size();
+  desc.pParameters = &params[0];
 
   ID3DBlob *ret = NULL;
   ID3DBlob *errBlob = NULL;
-  HRESULT hr = serializeRootSig(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &ret, &errBlob);
+  HRESULT hr = serializeRootSig(&verdesc, &ret, &errBlob);
 
   if(FAILED(hr))
   {
@@ -2392,16 +2440,10 @@ void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 
     list->SetPipelineState(m_CheckerboardPipe);
 
-    list->SetGraphicsRootSignature(m_TexDisplayRootSig);
-
-    // Set the descriptor heap containing the texture srv
-    ID3D12DescriptorHeap *heaps[] = {cbvsrvuavHeap, samplerHeap};
-    list->SetDescriptorHeaps(2, heaps);
+    list->SetGraphicsRootSignature(m_CBOnlyRootSig);
 
     list->SetGraphicsRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
     list->SetGraphicsRootConstantBufferView(1, m_GenericPSCbuffer->GetGPUVirtualAddress());
-    list->SetGraphicsRootDescriptorTable(2, cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart());
-    list->SetGraphicsRootDescriptorTable(3, samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
     float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     list->OMSetBlendFactor(factor);
@@ -3605,11 +3647,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
       list->SetPipelineState(m_OutlinePipe);
 
-      list->SetGraphicsRootSignature(m_TexDisplayRootSig);
-
-      // Set the descriptor heap containing the texture srv
-      ID3D12DescriptorHeap *heaps[] = {cbvsrvuavHeap, samplerHeap};
-      list->SetDescriptorHeaps(2, heaps);
+      list->SetGraphicsRootSignature(m_CBOnlyRootSig);
 
       DebugPixelCBufferData pixelData = {0};
 
@@ -3626,8 +3664,6 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
       list->SetGraphicsRootConstantBufferView(0, m_GenericVSCbuffer->GetGPUVirtualAddress());
       list->SetGraphicsRootConstantBufferView(1, m_GenericVSCbuffer->GetGPUVirtualAddress());
-      list->SetGraphicsRootDescriptorTable(2, cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart());
-      list->SetGraphicsRootDescriptorTable(3, samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
       float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
       list->OMSetBlendFactor(factor);

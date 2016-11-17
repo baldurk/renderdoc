@@ -127,9 +127,42 @@ public:
   }
 };
 
-struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER
+struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER1
 {
-  void MakeFrom(const D3D12_ROOT_PARAMETER &param, UINT &numSpaces)
+  D3D12RootSignatureParameter()
+  {
+    ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+    ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+
+    // copy the POD ones first
+    Constants.Num32BitValues = 0;
+    Constants.RegisterSpace = 0;
+    Constants.ShaderRegister = 0;
+  }
+
+  D3D12RootSignatureParameter(const D3D12RootSignatureParameter &other) { *this = other; }
+  D3D12RootSignatureParameter &operator=(const D3D12RootSignatureParameter &other)
+  {
+    // copy first
+    ParameterType = other.ParameterType;
+    ShaderVisibility = other.ShaderVisibility;
+
+    // copy the POD ones first
+    Descriptor = other.Descriptor;
+    Constants = other.Constants;
+
+    ranges = other.ranges;
+
+    // repoint ranges
+    if(ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+    {
+      DescriptorTable.NumDescriptorRanges = (UINT)ranges.size();
+      DescriptorTable.pDescriptorRanges = &ranges[0];
+    }
+    return *this;
+  }
+
+  void MakeFrom(const D3D12_ROOT_PARAMETER1 &param, UINT &numSpaces)
   {
     ParameterType = param.ParameterType;
     ShaderVisibility = param.ShaderVisibility;
@@ -161,13 +194,16 @@ struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER
     }
   }
 
-  vector<D3D12_DESCRIPTOR_RANGE> ranges;
+  vector<D3D12_DESCRIPTOR_RANGE1> ranges;
 };
 
 struct D3D12RootSignature
 {
   D3D12RootSignature() : numSpaces(0) {}
   uint32_t numSpaces;
+  uint32_t dwordLength;
+
+  D3D12_ROOT_SIGNATURE_FLAGS Flags;
   vector<D3D12RootSignatureParameter> params;
   vector<D3D12_STATIC_SAMPLER_DESC> samplers;
 };

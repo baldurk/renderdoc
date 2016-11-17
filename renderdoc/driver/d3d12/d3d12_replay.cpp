@@ -647,7 +647,7 @@ void D3D12Replay::FillRegisterSpaces(
 
       for(size_t r = 0; r < p.ranges.size(); r++)
       {
-        const D3D12_DESCRIPTOR_RANGE &range = p.ranges[r];
+        const D3D12_DESCRIPTOR_RANGE1 &range = p.ranges[r];
 
         UINT shaderReg = range.BaseShaderRegister;
         UINT regSpace = range.RegisterSpace;

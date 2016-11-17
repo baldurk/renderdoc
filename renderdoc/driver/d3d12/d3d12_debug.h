@@ -101,6 +101,10 @@ public:
   void FreeRTV(D3D12_CPU_DESCRIPTOR_HANDLE handle);
 
   static D3D12RootSignature GetRootSig(const void *data, size_t dataSize);
+  static ID3DBlob *MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1> params,
+                               D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE,
+                               UINT NumStaticSamplers = 0,
+                               D3D12_STATIC_SAMPLER_DESC *StaticSamplers = NULL);
 
 private:
   struct OutputWindow
@@ -220,6 +224,7 @@ private:
 
   ID3D12RootSignature *m_TexDisplayRootSig;
 
+  ID3D12RootSignature *m_CBOnlyRootSig;
   ID3D12PipelineState *m_CheckerboardPipe;
   ID3D12PipelineState *m_OutlinePipe;
 
@@ -264,7 +269,6 @@ private:
 
   string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
                        const char *profile, ID3DBlob **srcblob);
-  static ID3DBlob *MakeRootSig(const vector<D3D12_ROOT_PARAMETER> &rootSig);
   ID3DBlob *MakeFixedColShader(float overlayConsts[4]);
   int m_width, m_height;
 

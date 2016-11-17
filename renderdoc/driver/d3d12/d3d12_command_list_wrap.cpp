@@ -1355,7 +1355,7 @@ void WrappedID3D12GraphicsCommandList::SetComputeRootDescriptorTable(
     m_ListRecord->MarkResourceFrameReferenced(GetResID(GetWrapped(BaseDescriptor)->nonsamp.heap),
                                               eFrameRef_Read);
 
-    vector<D3D12_DESCRIPTOR_RANGE> &ranges =
+    vector<D3D12_DESCRIPTOR_RANGE1> &ranges =
         GetWrapped(m_CurCompRootSig)->sig.params[RootParameterIndex].ranges;
 
     D3D12Descriptor *base = GetWrapped(BaseDescriptor);
@@ -1855,7 +1855,7 @@ void WrappedID3D12GraphicsCommandList::SetGraphicsRootDescriptorTable(
     m_ListRecord->MarkResourceFrameReferenced(GetResID(GetWrapped(BaseDescriptor)->nonsamp.heap),
                                               eFrameRef_Read);
 
-    vector<D3D12_DESCRIPTOR_RANGE> &ranges =
+    vector<D3D12_DESCRIPTOR_RANGE1> &ranges =
         GetWrapped(m_CurGfxRootSig)->sig.params[RootParameterIndex].ranges;
 
     D3D12Descriptor *base = GetWrapped(BaseDescriptor);
