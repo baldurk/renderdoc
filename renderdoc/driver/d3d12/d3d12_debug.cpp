@@ -3400,6 +3400,12 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       psoDesc.RasterizerState.MultisampleEnable = FALSE;
       psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
 
+      float clearColour[] = {0.0f, 0.0f, 0.0f, 0.5f};
+      list->ClearRenderTargetView(rtv, clearColour, 0, NULL);
+
+      list->Close();
+      list = NULL;
+
       ID3D12PipelineState *pso = NULL;
       HRESULT hr = m_WrappedDevice->CreateGraphicsPipelineState(
           &psoDesc, __uuidof(ID3D12PipelineState), (void **)&pso);
@@ -3409,12 +3415,6 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
         SAFE_RELEASE(ps);
         return m_OverlayResourceId;
       }
-
-      float clearColour[] = {0.0f, 0.0f, 0.0f, 0.5f};
-      list->ClearRenderTargetView(rtv, clearColour, 0, NULL);
-
-      list->Close();
-      list = NULL;
 
       D3D12RenderState prev = rs;
 
@@ -3475,6 +3475,9 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       psoDesc.PS.pShaderBytecode = red->GetBufferPointer();
       psoDesc.PS.BytecodeLength = red->GetBufferSize();
 
+      list->Close();
+      list = NULL;
+
       ID3D12PipelineState *redPSO = NULL;
       HRESULT hr = m_WrappedDevice->CreateGraphicsPipelineState(
           &psoDesc, __uuidof(ID3D12PipelineState), (void **)&redPSO);
@@ -3501,9 +3504,6 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
         SAFE_RELEASE(green);
         return m_OverlayResourceId;
       }
-
-      list->Close();
-      list = NULL;
 
       D3D12RenderState prev = rs;
 
@@ -3565,6 +3565,12 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       psoDesc.RasterizerState.MultisampleEnable = FALSE;
       psoDesc.RasterizerState.AntialiasedLineEnable = FALSE;
 
+      overlayConsts[3] = 0.0f;
+      list->ClearRenderTargetView(rtv, overlayConsts, 0, NULL);
+
+      list->Close();
+      list = NULL;
+
       ID3D12PipelineState *pso = NULL;
       HRESULT hr = m_WrappedDevice->CreateGraphicsPipelineState(
           &psoDesc, __uuidof(ID3D12PipelineState), (void **)&pso);
@@ -3574,12 +3580,6 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
         SAFE_RELEASE(ps);
         return m_OverlayResourceId;
       }
-
-      overlayConsts[3] = 0.0f;
-      list->ClearRenderTargetView(rtv, overlayConsts, 0, NULL);
-
-      list->Close();
-      list = NULL;
 
       D3D12RenderState prev = rs;
 
