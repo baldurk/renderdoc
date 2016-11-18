@@ -529,6 +529,20 @@ HRESULT WrappedID3D12Device::QueryInterface(REFIID riid, void **ppvObject)
   return m_RefCounter.QueryInterface(riid, ppvObject);
 }
 
+void WrappedID3D12Device::ApplyInitialContents()
+{
+  initStateCurBatch = 0;
+  initStateCurList = NULL;
+
+  GetResourceManager()->ApplyInitialContents();
+
+  // close the final list
+  initStateCurList->Close();
+
+  initStateCurBatch = 0;
+  initStateCurList = NULL;
+}
+
 void WrappedID3D12Device::CheckForDeath()
 {
   if(!m_Alive)
@@ -1145,7 +1159,17 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
   // and go into the frame record.
   {
     SCOPED_LOCK(m_CapTransitionLock);
+
+    initStateCurBatch = 0;
+    initStateCurList = NULL;
+
     GetResourceManager()->PrepareInitialContents();
+
+    // close the final list
+    initStateCurList->Close();
+
+    initStateCurBatch = 0;
+    initStateCurList = NULL;
 
     ExecuteLists();
     FlushLists();
@@ -1925,6 +1949,26 @@ ID3D12GraphicsCommandList *WrappedID3D12Device::GetNewList()
   return ret;
 }
 
+ID3D12GraphicsCommandList *WrappedID3D12Device::GetInitialStateList()
+{
+  if(initStateCurBatch >= initialStateMaxBatch)
+  {
+    CloseInitialStateList();
+  }
+
+  if(initStateCurList == NULL)
+    initStateCurList = GetNewList();
+
+  return initStateCurList;
+}
+
+void WrappedID3D12Device::CloseInitialStateList()
+{
+  initStateCurList->Close();
+  initStateCurList = NULL;
+  initStateCurBatch = 0;
+}
+
 void WrappedID3D12Device::ExecuteList(ID3D12GraphicsCommandList *list, ID3D12CommandQueue *queue)
 {
   if(queue == NULL)
@@ -2119,7 +2163,7 @@ void WrappedID3D12Device::ReadLogInitialisation()
     {
       frameOffset = offset;
 
-      GetResourceManager()->ApplyInitialContents();
+      ApplyInitialContents();
 
       m_Queue->ReplayLog(READING, 0, 0, false);
     }
@@ -2216,7 +2260,7 @@ void WrappedID3D12Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   if(!partial)
   {
-    GetResourceManager()->ApplyInitialContents();
+    ApplyInitialContents();
     GetResourceManager()->ReleaseInFrameResources();
 
     ExecuteLists();

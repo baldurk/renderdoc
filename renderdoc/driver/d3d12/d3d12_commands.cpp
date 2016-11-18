@@ -466,7 +466,7 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
 
   if(readType == READING)
   {
-    GetResourceManager()->ApplyInitialContents();
+    m_pDevice->ApplyInitialContents();
 
     m_pDevice->ExecuteLists();
     m_pDevice->FlushLists();

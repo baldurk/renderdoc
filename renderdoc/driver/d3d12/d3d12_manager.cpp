@@ -703,11 +703,9 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
       if(SUCCEEDED(hr))
       {
-        ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetNewList());
+        ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
 
         list->CopyResource(copyDst, r->GetReal());
-
-        list->Close();
       }
       else
       {
@@ -716,6 +714,8 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
       if(nonresident)
       {
+        m_Device->CloseInitialStateList();
+
         m_Device->ExecuteLists();
         m_Device->FlushLists();
 
@@ -768,7 +768,7 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
       if(SUCCEEDED(hr))
       {
-        ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetNewList());
+        ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
 
         vector<D3D12_RESOURCE_BARRIER> barriers;
 
@@ -817,8 +817,6 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
         if(!barriers.empty())
           list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
-
-        list->Close();
       }
       else
       {
@@ -827,6 +825,8 @@ bool D3D12ResourceManager::Prepare_InitialState(ID3D12DeviceChild *res)
 
       if(nonresident)
       {
+        m_Device->CloseInitialStateList();
+
         m_Device->ExecuteLists();
         m_Device->FlushLists();
 
@@ -1185,7 +1185,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
       }
       else
       {
-        ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetNewList());
+        ID3D12GraphicsCommandList *list = Unwrap(m_Device->GetInitialStateList());
 
         vector<D3D12_RESOURCE_BARRIER> barriers;
 
@@ -1254,8 +1254,6 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
 
         if(!barriers.empty())
           list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
-
-        list->Close();
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
         m_Device->ExecuteLists();

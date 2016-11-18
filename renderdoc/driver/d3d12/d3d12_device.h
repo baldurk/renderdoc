@@ -416,7 +416,17 @@ public:
     // -> FlushLists()--------back to freecmds--------^
   } m_InternalCmds;
 
+  // batch this many initial state lists together. Balance between
+  // creating fewer temporary lists and making too bloated lists
+  static const int initialStateMaxBatch = 100;
+  int initStateCurBatch;
+  ID3D12GraphicsCommandList *initStateCurList;
+
   ID3D12GraphicsCommandList *GetNewList();
+  ID3D12GraphicsCommandList *GetInitialStateList();
+  void CloseInitialStateList();
+  void ApplyInitialContents();
+
   void ExecuteList(ID3D12GraphicsCommandList *list, ID3D12CommandQueue *queue = NULL);
   void ExecuteLists(ID3D12CommandQueue *queue = NULL);
   void FlushLists(bool forceSync = false, ID3D12CommandQueue *queue = NULL);
