@@ -257,8 +257,8 @@ private:
   ID3D12Resource *m_MinMaxResultBuffer;
   ID3D12Resource *m_MinMaxTileBuffer;
 
-  ID3D12GraphicsCommandList *m_ReadbackList;
-  ID3D12CommandAllocator *m_ReadbackAlloc;
+  ID3D12GraphicsCommandList *m_DebugList;
+  ID3D12CommandAllocator *m_DebugAlloc;
   ID3D12Resource *m_ReadbackBuffer;
 
   ID3DBlob *m_MeshVS;

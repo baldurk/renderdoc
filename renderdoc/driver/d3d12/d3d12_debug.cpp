@@ -232,7 +232,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     }
 
     hr = m_WrappedDevice->CreateCommandAllocator(
-        D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void **)&m_ReadbackAlloc);
+        D3D12_COMMAND_LIST_TYPE_DIRECT, __uuidof(ID3D12CommandAllocator), (void **)&m_DebugAlloc);
 
     if(FAILED(hr))
     {
@@ -240,9 +240,9 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
       return;
     }
 
-    hr = m_WrappedDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_ReadbackAlloc,
-                                            NULL, __uuidof(ID3D12GraphicsCommandList),
-                                            (void **)&m_ReadbackList);
+    hr = m_WrappedDevice->CreateCommandList(0, D3D12_COMMAND_LIST_TYPE_DIRECT, m_DebugAlloc, NULL,
+                                            __uuidof(ID3D12GraphicsCommandList),
+                                            (void **)&m_DebugList);
 
     if(FAILED(hr))
     {
@@ -250,8 +250,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
       return;
     }
 
-    if(m_ReadbackList)
-      m_ReadbackList->Close();
+    if(m_DebugList)
+      m_DebugList->Close();
   }
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
@@ -1168,8 +1168,8 @@ D3D12DebugManager::~D3D12DebugManager()
     SAFE_RELEASE(m_OverlayRenderTex);
 
   SAFE_RELEASE(m_ReadbackBuffer);
-  SAFE_RELEASE(m_ReadbackAlloc);
-  SAFE_RELEASE(m_ReadbackList);
+  SAFE_RELEASE(m_DebugAlloc);
+  SAFE_RELEASE(m_DebugList);
 
   m_WrappedDevice->InternalRelease();
 
@@ -2436,7 +2436,7 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     return;
   }
 
-  m_ReadbackList->Reset(m_ReadbackAlloc, NULL);
+  m_DebugList->Reset(m_DebugAlloc, NULL);
 
   D3D12_RESOURCE_BARRIER barrier = {};
 
@@ -2445,20 +2445,20 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
   barrier.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
 
   if(barrier.Transition.StateBefore != D3D12_RESOURCE_STATE_COPY_SOURCE)
-    m_ReadbackList->ResourceBarrier(1, &barrier);
+    m_DebugList->ResourceBarrier(1, &barrier);
 
   while(length > 0)
   {
     uint64_t chunkSize = RDCMIN(length, m_ReadbackSize);
 
-    m_ReadbackList->CopyBufferRegion(m_ReadbackBuffer, 0, buffer, offset, chunkSize);
+    m_DebugList->CopyBufferRegion(m_ReadbackBuffer, 0, buffer, offset, chunkSize);
 
-    m_ReadbackList->Close();
+    m_DebugList->Close();
 
-    ID3D12CommandList *l = m_ReadbackList;
+    ID3D12CommandList *l = m_DebugList;
     m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
     m_WrappedDevice->GPUSync();
-    m_ReadbackAlloc->Reset();
+    m_DebugAlloc->Reset();
 
     D3D12_RANGE range = {0, (size_t)chunkSize};
 
@@ -2482,21 +2482,22 @@ void D3D12DebugManager::GetBufferData(ID3D12Resource *buffer, uint64_t offset, u
     outOffs += chunkSize;
     length -= chunkSize;
 
-    m_ReadbackList->Reset(m_ReadbackAlloc, NULL);
+    m_DebugList->Reset(m_DebugAlloc, NULL);
   }
 
   if(barrier.Transition.StateBefore != D3D12_RESOURCE_STATE_COPY_SOURCE)
   {
     std::swap(barrier.Transition.StateBefore, barrier.Transition.StateAfter);
 
-    m_ReadbackList->ResourceBarrier(1, &barrier);
+    m_DebugList->ResourceBarrier(1, &barrier);
   }
 
-  m_ReadbackList->Close();
+  m_DebugList->Close();
 
-  ID3D12CommandList *l = m_ReadbackList;
+  ID3D12CommandList *l = m_DebugList;
   m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
-  m_ReadbackAlloc->Reset();
+  m_WrappedDevice->GPUSync();
+  m_DebugAlloc->Reset();
 }
 
 byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
