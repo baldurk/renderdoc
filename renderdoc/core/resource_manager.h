@@ -55,7 +55,7 @@ enum FrameRefType
 
 // verbose prints with IDs of each dirty resource and whether it was prepared,
 // and whether it was serialised.
-#define VERBOSE_DIRTY_RESOURCES 0
+#define VERBOSE_DIRTY_RESOURCES OPTION_OFF
 
 namespace ResourceIDGen
 {
@@ -927,7 +927,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::Prepare
 
     prepared++;
 
-#if VERBOSE_DIRTY_RESOURCES
+#if ENABLED(VERBOSE_DIRTY_RESOURCES)
     RDCDEBUG("Prepare Resource %llu", id);
 #endif
 
@@ -971,7 +971,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
     if(m_FrameReferencedResources.find(id) == m_FrameReferencedResources.end() &&
        !RenderDoc::Inst().GetCaptureOptions().RefAllResources)
     {
-#if VERBOSE_DIRTY_RESOURCES
+#if ENABLED(VERBOSE_DIRTY_RESOURCES)
       RDCDEBUG("Dirty tesource %llu is GPU dirty but not referenced - skipping", id);
 #endif
       skipped++;
@@ -983,7 +983,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 
     if(!AllowDeletedResource_InitialState() && !isAlive)
     {
-#if VERBOSE_DIRTY_RESOURCES
+#if ENABLED(VERBOSE_DIRTY_RESOURCES)
       RDCDEBUG("Resource %llu no longer exists - skipping", id);
 #endif
       continue;
@@ -996,7 +996,7 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 
     if(record == NULL)
     {
-#if VERBOSE_DIRTY_RESOURCES
+#if ENABLED(VERBOSE_DIRTY_RESOURCES)
       RDCDEBUG("Resource %llu has no resource record - skipping", id);
 #endif
       continue;
@@ -1004,13 +1004,13 @@ void ResourceManager<WrappedResourceType, RealResourceType, RecordType>::InsertI
 
     if(record->SpecialResource)
     {
-#if VERBOSE_DIRTY_RESOURCES
+#if ENABLED(VERBOSE_DIRTY_RESOURCES)
       RDCDEBUG("Resource %llu is special - skipping", id);
 #endif
       continue;
     }
 
-#if VERBOSE_DIRTY_RESOURCES
+#if ENABLED(VERBOSE_DIRTY_RESOURCES)
     RDCDEBUG("Serialising dirty Resource %llu", id);
 #endif
 
