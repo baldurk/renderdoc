@@ -3880,8 +3880,8 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
     layoutdesc[1].InputSlot = 1;
     layoutdesc[1].InputSlotClass = D3D11_INPUT_PER_INSTANCE_DATA;
 
-    hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_DebugRender.MeshHomogVSBytecode,
-                                      m_DebugRender.MeshHomogVSBytelen, &m_MeshDisplayLayout);
+    hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_DebugRender.MeshVSBytecode,
+                                      m_DebugRender.MeshVSBytelen, &m_MeshDisplayLayout);
 
     if(FAILED(hr))
     {
@@ -3992,7 +3992,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
           m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
           m_pImmediateContext->PSSetConstantBuffers(0, 1, &psbuf);
           m_pImmediateContext->GSSetConstantBuffers(0, 1, &gsbuf);
-          m_pImmediateContext->VSSetShader(m_DebugRender.WireframeHomogVS, NULL, 0);
+          m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
           m_pImmediateContext->GSSetShader(m_DebugRender.TriangleSizeGS, NULL, 0);
           m_pImmediateContext->PSSetShader(m_DebugRender.TriangleSizePS, NULL, 0);
           m_pImmediateContext->HSSetShader(NULL, NULL, 0);

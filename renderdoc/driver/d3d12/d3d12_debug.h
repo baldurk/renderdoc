@@ -72,6 +72,7 @@ public:
 
   void RenderCheckerboard(Vec3f light, Vec3f dark);
   bool RenderTexture(TextureDisplay cfg, bool blendAlpha);
+  void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);
 
   bool GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                  FormatComponentType typeHint, float *minval, float *maxval);
@@ -259,6 +260,12 @@ private:
   ID3D12CommandAllocator *m_ReadbackAlloc;
   ID3D12Resource *m_ReadbackBuffer;
 
+  ID3DBlob *m_MeshVS;
+  ID3DBlob *m_MeshGS;
+  ID3DBlob *m_MeshPS;
+  ID3DBlob *m_TriangleSizeGS;
+  ID3DBlob *m_TriangleSizePS;
+
   ID3D12Resource *m_TexResource;
 
   ID3D12Resource *m_OverlayRenderTex;
@@ -285,6 +292,49 @@ private:
   string GetShaderBlob(const char *source, const char *entry, const uint32_t compileFlags,
                        const char *profile, ID3DBlob **srcblob);
   ID3DBlob *MakeFixedColShader(float overlayConsts[4]);
+
+  struct MeshDisplayPipelines
+  {
+    enum
+    {
+      ePipe_Wire = 0,
+      ePipe_WireDepth,
+      ePipe_Solid,
+      ePipe_SolidDepth,
+      ePipe_Lit,
+      ePipe_Secondary,
+      ePipe_Count,
+    };
+
+    ID3D12PipelineState *pipes[ePipe_Count];
+  };
+
+  MeshDisplayPipelines CacheMeshDisplayPipelines(const MeshFormat &primary,
+                                                 const MeshFormat &secondary);
+
+  map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
+
+  // simple cache for when we need buffer data for highlighting
+  // vertices, typical use will be lots of vertices in the same
+  // mesh, not jumping back and forth much between meshes.
+  struct HighlightCache
+  {
+    HighlightCache() : EID(0), buf(), offs(0), stage(eMeshDataStage_Unknown), useidx(false) {}
+    uint32_t EID;
+    ResourceId buf;
+    uint64_t offs;
+    MeshDataStage stage;
+    bool useidx;
+
+    vector<byte> data;
+    vector<uint32_t> indices;
+  } m_HighlightCache;
+
+  FloatVector InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg, byte *end,
+                              bool &valid);
+  FloatVector InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg, byte *end,
+                              bool useidx, bool &valid);
+
   int m_width, m_height;
 
   uint64_t m_OutputWindowID;

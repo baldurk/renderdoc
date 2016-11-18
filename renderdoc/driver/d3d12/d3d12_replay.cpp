@@ -1182,6 +1182,12 @@ bool D3D12Replay::RenderTexture(TextureDisplay cfg)
   return m_pDevice->GetDebugManager()->RenderTexture(cfg, true);
 }
 
+void D3D12Replay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
+                             const MeshDisplay &cfg)
+{
+  return m_pDevice->GetDebugManager()->RenderMesh(eventID, secondaryDraws, cfg);
+}
+
 bool D3D12Replay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uint32_t sample,
                             FormatComponentType typeHint, float *minval, float *maxval)
 {
@@ -1598,11 +1604,6 @@ void D3D12Replay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
 MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
   return MeshFormat();
-}
-
-void D3D12Replay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
-                             const MeshDisplay &cfg)
-{
 }
 
 void D3D12Replay::BuildCustomShader(string source, string entry, const uint32_t compileFlags,

@@ -27,6 +27,8 @@
 #include "data/resource.h"
 #include "driver/dx/official/d3dcompiler.h"
 #include "driver/dxgi/dxgi_common.h"
+#include "maths/camera.h"
+#include "maths/formatpacking.h"
 #include "maths/matrix.h"
 #include "maths/vec.h"
 #include "serialise/string_utils.h"
@@ -309,7 +311,22 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   rootSig.push_back(param);
 
-  ID3DBlob *root = MakeRootSig(rootSig);
+  // GS CBV
+  param.ShaderVisibility = D3D12_SHADER_VISIBILITY_GEOMETRY;
+  param.Descriptor.ShaderRegister = 0;
+
+  rootSig.push_back(param);
+
+  // push constant CBV
+  param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+  param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS;
+  param.Constants.Num32BitValues = 4;
+  param.Constants.RegisterSpace = 0;
+  param.Constants.ShaderRegister = 2;
+
+  rootSig.push_back(param);
+
+  ID3DBlob *root = MakeRootSig(rootSig, D3D12_ROOT_SIGNATURE_FLAG_ALLOW_INPUT_ASSEMBLER_INPUT_LAYOUT);
 
   RDCASSERT(root);
 
@@ -317,6 +334,12 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
                                             __uuidof(ID3D12RootSignature), (void **)&m_CBOnlyRootSig);
 
   SAFE_RELEASE(root);
+
+  // remove GS cbuffer and push constant
+  rootSig.pop_back();
+  rootSig.pop_back();
+
+  param.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
 
   D3D12_DESCRIPTOR_RANGE1 srvrange = {};
   srvrange.RangeType = D3D12_DESCRIPTOR_RANGE_TYPE_SRV;
@@ -564,6 +587,19 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_QuadOverdrawPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                 "ps_5_0", &m_QuadOverdrawWritePS);
+
+  string meshhlsl = GetEmbeddedResource(debugcbuffers_h) + GetEmbeddedResource(mesh_hlsl);
+
+  GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0",
+                &m_MeshVS);
+  GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshGS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "gs_5_0",
+                &m_MeshGS);
+  GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshPS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "ps_5_0",
+                &m_MeshPS);
+  GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_TriangleSizeGS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                "gs_5_0", &m_TriangleSizeGS);
+  GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_TriangleSizePS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
+                "ps_5_0", &m_TriangleSizePS);
 
   pipeDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
 
@@ -1077,6 +1113,10 @@ D3D12DebugManager::~D3D12DebugManager()
       ShaderCache12Callbacks.Destroy(it->second);
   }
 
+  for(auto it = m_CachedMeshPipelines.begin(); it != m_CachedMeshPipelines.end(); ++it)
+    for(size_t p = 0; p < MeshDisplayPipelines::ePipe_Count; p++)
+      SAFE_RELEASE(it->second.pipes[p]);
+
   SAFE_RELEASE(m_pFactory);
 
   SAFE_RELEASE(dsvHeap);
@@ -1115,6 +1155,12 @@ D3D12DebugManager::~D3D12DebugManager()
   }
   SAFE_RELEASE(m_MinMaxResultBuffer);
   SAFE_RELEASE(m_MinMaxTileBuffer);
+
+  SAFE_RELEASE(m_MeshVS);
+  SAFE_RELEASE(m_MeshGS);
+  SAFE_RELEASE(m_MeshPS);
+  SAFE_RELEASE(m_TriangleSizeGS);
+  SAFE_RELEASE(m_TriangleSizePS);
 
   SAFE_RELEASE(m_TexResource);
 
@@ -1419,7 +1465,7 @@ void D3D12DebugManager::OutputWindow::MakeDSV()
   D3D12_RESOURCE_DESC texDesc = bb[0]->GetDesc();
 
   texDesc.SampleDesc.Count = 1;
-  texDesc.Format = DXGI_FORMAT_D24_UNORM_S8_UINT;
+  texDesc.Format = DXGI_FORMAT_D32_FLOAT;
   texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
   D3D12_HEAP_PROPERTIES heapProps;
@@ -2990,6 +3036,9 @@ void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
     list->SetGraphicsRootConstantBufferView(1, ps);
     list->SetGraphicsRootConstantBufferView(2, vs);
 
+    Vec4f dummy;
+    list->SetGraphicsRoot32BitConstants(3, 4, &dummy.x, 0);
+
     float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     list->OMSetBlendFactor(factor);
 
@@ -3117,6 +3166,1182 @@ void D3D12DebugManager::RenderTextInternal(ID3D12GraphicsCommandList *list, floa
 bool D3D12DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 {
   return RenderTextureInternal(m_OutputWindows[m_CurrentOutputWindow].rtv, cfg, blendAlpha);
+}
+
+FloatVector D3D12DebugManager::InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg,
+                                               byte *end, bool &valid)
+{
+  FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
+
+  data += vert * cfg.position.stride;
+
+  float *out = &ret.x;
+
+  ResourceFormat fmt;
+  fmt.compByteWidth = cfg.position.compByteWidth;
+  fmt.compCount = cfg.position.compCount;
+  fmt.compType = cfg.position.compType;
+
+  if(cfg.position.specialFormat == eSpecial_R10G10B10A2)
+  {
+    if(data + 4 >= end)
+    {
+      valid = false;
+      return ret;
+    }
+
+    Vec4f v = ConvertFromR10G10B10A2(*(uint32_t *)data);
+    ret.x = v.x;
+    ret.y = v.y;
+    ret.z = v.z;
+    ret.w = v.w;
+    return ret;
+  }
+  else if(cfg.position.specialFormat == eSpecial_R11G11B10)
+  {
+    if(data + 4 >= end)
+    {
+      valid = false;
+      return ret;
+    }
+
+    Vec3f v = ConvertFromR11G11B10(*(uint32_t *)data);
+    ret.x = v.x;
+    ret.y = v.y;
+    ret.z = v.z;
+    return ret;
+  }
+
+  if(data + cfg.position.compCount * cfg.position.compByteWidth > end)
+  {
+    valid = false;
+    return ret;
+  }
+
+  for(uint32_t i = 0; i < cfg.position.compCount; i++)
+  {
+    *out = ConvertComponent(fmt, data);
+
+    data += cfg.position.compByteWidth;
+    out++;
+  }
+
+  if(cfg.position.bgraOrder)
+  {
+    FloatVector reversed;
+    reversed.x = ret.z;
+    reversed.y = ret.y;
+    reversed.z = ret.x;
+    reversed.w = ret.w;
+    return reversed;
+  }
+
+  return ret;
+}
+
+FloatVector D3D12DebugManager::InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg,
+                                               byte *end, bool useidx, bool &valid)
+{
+  FloatVector ret(0.0f, 0.0f, 0.0f, 1.0f);
+
+  if(useidx && m_HighlightCache.useidx)
+  {
+    if(vert >= (uint32_t)m_HighlightCache.indices.size())
+    {
+      valid = false;
+      return ret;
+    }
+
+    vert = m_HighlightCache.indices[vert];
+  }
+
+  return InterpretVertex(data, vert, cfg, end, valid);
+}
+
+D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipelines(
+    const MeshFormat &primary, const MeshFormat &secondary)
+{
+  // generate a key to look up the map
+  uint64_t key = 0;
+
+  uint64_t bit = 0;
+
+  if(primary.idxByteWidth == 4)
+    key |= 1ULL << bit;
+  bit++;
+
+  RDCASSERT((uint32_t)primary.topo < 64);
+  key |= uint64_t((uint32_t)primary.topo & 0x3f) << bit;
+  bit += 6;
+
+  ResourceFormat fmt;
+  fmt.special = primary.specialFormat != eSpecial_Unknown;
+  fmt.specialFormat = primary.specialFormat;
+  fmt.compByteWidth = primary.compByteWidth;
+  fmt.compCount = primary.compCount;
+  fmt.compType = primary.compType;
+
+  DXGI_FORMAT primaryFmt = MakeDXGIFormat(fmt);
+
+  fmt.special = secondary.specialFormat != eSpecial_Unknown;
+  fmt.specialFormat = secondary.specialFormat;
+  fmt.compByteWidth = secondary.compByteWidth;
+  fmt.compCount = secondary.compCount;
+  fmt.compType = secondary.compType;
+
+  DXGI_FORMAT secondaryFmt =
+      secondary.buf == ResourceId() ? DXGI_FORMAT_UNKNOWN : MakeDXGIFormat(fmt);
+
+  key |= uint64_t((uint32_t)primaryFmt & 0xff) << bit;
+  bit += 8;
+
+  key |= uint64_t((uint32_t)secondaryFmt & 0xff) << bit;
+  bit += 8;
+
+  RDCASSERT(primary.stride <= 0xffff);
+  key |= uint64_t((uint32_t)primary.stride & 0xffff) << bit;
+  bit += 16;
+
+  if(secondary.buf != ResourceId())
+  {
+    RDCASSERT(secondary.stride <= 0xffff);
+    key |= uint64_t((uint32_t)secondary.stride & 0xffff) << bit;
+  }
+  bit += 16;
+
+  MeshDisplayPipelines &cache = m_CachedMeshPipelines[key];
+
+  if(cache.pipes[eShade_None] != NULL)
+    return cache;
+
+  // should we try and evict old pipelines from the cache here?
+  // or just keep them forever
+
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc;
+  RDCEraseEl(pipeDesc);
+  pipeDesc.pRootSignature = m_CBOnlyRootSig;
+  pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+  pipeDesc.SampleMask = 0xFFFFFFFF;
+  pipeDesc.SampleDesc.Count = 1;
+  pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+  D3D_PRIMITIVE_TOPOLOGY topo = MakeD3DPrimitiveTopology(primary.topo);
+
+  if(topo == D3D_PRIMITIVE_TOPOLOGY_POINTLIST)
+    pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+  else if(topo >= D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST)
+    pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
+  else if(topo == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP || topo == D3D_PRIMITIVE_TOPOLOGY_LINELIST ||
+          topo == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ || topo == D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ)
+    pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+  else
+    pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+  pipeDesc.NumRenderTargets = 1;
+  pipeDesc.RTVFormats[0] = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
+  pipeDesc.DSVFormat = DXGI_FORMAT_D32_FLOAT;
+  pipeDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
+  pipeDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+  pipeDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+  pipeDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+  pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+  D3D12_INPUT_ELEMENT_DESC ia[2] = {};
+  ia[0].SemanticName = "pos";
+  ia[0].Format = primaryFmt;
+  ia[1].SemanticName = "sec";
+  ia[1].InputSlot = 1;
+  ia[1].Format = secondaryFmt == DXGI_FORMAT_UNKNOWN ? primaryFmt : secondaryFmt;
+  ia[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
+
+  pipeDesc.InputLayout.NumElements = 2;
+  pipeDesc.InputLayout.pInputElementDescs = ia;
+
+  RDCASSERT(primaryFmt != DXGI_FORMAT_UNKNOWN);
+
+  // wireframe pipeline
+  pipeDesc.VS.BytecodeLength = m_MeshVS->GetBufferSize();
+  pipeDesc.VS.pShaderBytecode = m_MeshVS->GetBufferPointer();
+  pipeDesc.PS.BytecodeLength = m_MeshPS->GetBufferSize();
+  pipeDesc.PS.pShaderBytecode = m_MeshPS->GetBufferPointer();
+
+  pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
+  pipeDesc.DepthStencilState.DepthEnable = FALSE;
+  pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+
+  HRESULT hr = S_OK;
+
+  hr = m_WrappedDevice->CreateGraphicsPipelineState(
+      &pipeDesc, __uuidof(ID3D12PipelineState),
+      (void **)&cache.pipes[MeshDisplayPipelines::ePipe_Wire]);
+  RDCASSERTEQUAL(hr, S_OK);
+
+  pipeDesc.DepthStencilState.DepthEnable = TRUE;
+  pipeDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+  pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+
+  hr = m_WrappedDevice->CreateGraphicsPipelineState(
+      &pipeDesc, __uuidof(ID3D12PipelineState),
+      (void **)&cache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
+  RDCASSERTEQUAL(hr, S_OK);
+
+  // solid shading pipeline
+  pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+  pipeDesc.DepthStencilState.DepthEnable = FALSE;
+  pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+
+  hr = m_WrappedDevice->CreateGraphicsPipelineState(
+      &pipeDesc, __uuidof(ID3D12PipelineState),
+      (void **)&cache.pipes[MeshDisplayPipelines::ePipe_Solid]);
+  RDCASSERTEQUAL(hr, S_OK);
+
+  pipeDesc.DepthStencilState.DepthEnable = TRUE;
+  pipeDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+  pipeDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ALL;
+
+  hr = m_WrappedDevice->CreateGraphicsPipelineState(
+      &pipeDesc, __uuidof(ID3D12PipelineState),
+      (void **)&cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]);
+  RDCASSERTEQUAL(hr, S_OK);
+
+  if(secondary.buf != ResourceId())
+  {
+    // pull secondary information from second vertex buffer
+    ia[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_VERTEX_DATA;
+    RDCASSERT(secondaryFmt != DXGI_FORMAT_UNKNOWN);
+
+    hr = m_WrappedDevice->CreateGraphicsPipelineState(
+        &pipeDesc, __uuidof(ID3D12PipelineState),
+        (void **)&cache.pipes[MeshDisplayPipelines::ePipe_Secondary]);
+    RDCASSERTEQUAL(hr, S_OK);
+  }
+
+  if(pipeDesc.PrimitiveTopologyType == D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE)
+  {
+    ia[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
+
+    // flat lit pipeline, needs geometry shader to calculate face normals
+    pipeDesc.GS.BytecodeLength = m_MeshGS->GetBufferSize();
+    pipeDesc.GS.pShaderBytecode = m_MeshGS->GetBufferPointer();
+
+    hr = m_WrappedDevice->CreateGraphicsPipelineState(
+        &pipeDesc, __uuidof(ID3D12PipelineState),
+        (void **)&cache.pipes[MeshDisplayPipelines::ePipe_Lit]);
+    RDCASSERTEQUAL(hr, S_OK);
+  }
+
+  return cache;
+}
+
+void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
+                                   const MeshDisplay &cfg)
+{
+  if(cfg.position.buf == ResourceId() || cfg.position.numVerts == 0)
+    return;
+
+  auto it = m_OutputWindows.find(m_CurrentOutputWindow);
+  if(m_CurrentOutputWindow == 0 || it == m_OutputWindows.end())
+    return;
+
+  OutputWindow &outw = it->second;
+
+  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+  list->OMSetRenderTargets(1, &outw.rtv, TRUE, &outw.dsv);
+
+  D3D12_VIEWPORT viewport = {0, 0, (float)outw.width, (float)outw.height, 0.0f, 1.0f};
+  list->RSSetViewports(1, &viewport);
+
+  D3D12_RECT scissor = {0, 0, outw.width, outw.height};
+  list->RSSetScissorRects(1, &scissor);
+
+  DebugVertexCBuffer vertexData;
+
+  vertexData.LineStrip = 0;
+
+  Matrix4f projMat = Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, viewport.Width / viewport.Height);
+  Matrix4f InvProj = projMat.Inverse();
+
+  Matrix4f camMat = cfg.cam ? cfg.cam->GetMatrix() : Matrix4f::Identity();
+
+  Matrix4f guessProjInv;
+
+  vertexData.ModelViewProj = projMat.Mul(camMat);
+  vertexData.SpriteSize = Vec2f();
+
+  DebugPixelCBufferData pixelData;
+
+  pixelData.AlwaysZero = 0.0f;
+
+  pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
+  pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 0.0f);
+
+  if(cfg.position.unproject)
+  {
+    // the derivation of the projection matrix might not be right (hell, it could be an
+    // orthographic projection). But it'll be close enough likely.
+    Matrix4f guessProj =
+        cfg.position.farPlane != FLT_MAX
+            ? Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect)
+            : Matrix4f::ReversePerspective(cfg.fov, cfg.position.nearPlane, cfg.aspect);
+
+    if(cfg.ortho)
+    {
+      guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
+    }
+
+    guessProjInv = guessProj.Inverse();
+
+    vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
+  }
+
+  D3D12_GPU_VIRTUAL_ADDRESS vsCB = UploadConstants(&vertexData, sizeof(vertexData));
+
+  if(!secondaryDraws.empty())
+  {
+    list->SetGraphicsRootSignature(m_CBOnlyRootSig);
+
+    list->SetGraphicsRootConstantBufferView(0, vsCB);
+    list->SetGraphicsRootConstantBufferView(1, UploadConstants(&pixelData, sizeof(pixelData)));
+    list->SetGraphicsRootConstantBufferView(2, vsCB);
+
+    for(size_t i = 0; i < secondaryDraws.size(); i++)
+    {
+      const MeshFormat &fmt = secondaryDraws[i];
+
+      DebugVertexCBuffer vdata;
+
+      if(fmt.buf != ResourceId())
+      {
+        list->SetGraphicsRoot32BitConstants(3, 4, &fmt.meshColour.x, 0);
+
+        MeshDisplayPipelines secondaryCache =
+            CacheMeshDisplayPipelines(secondaryDraws[i], secondaryDraws[i]);
+
+        list->SetPipelineState(secondaryCache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
+
+        ID3D12Resource *vb =
+            m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.buf);
+
+        UINT64 offs = fmt.offset;
+        D3D12_VERTEX_BUFFER_VIEW view;
+        view.BufferLocation = vb->GetGPUVirtualAddress() + offs;
+        view.StrideInBytes = fmt.stride;
+        view.SizeInBytes = UINT(vb->GetDesc().Width - offs);
+        list->IASetVertexBuffers(0, 1, &view);
+
+        // set it to the secondary buffer too just as dummy info
+        list->IASetVertexBuffers(1, 1, &view);
+
+        list->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(fmt.topo));
+
+        if(fmt.idxByteWidth && fmt.idxbuf != ResourceId())
+        {
+          ID3D12Resource *ib =
+              m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.idxbuf);
+
+          D3D12_INDEX_BUFFER_VIEW iview;
+          iview.BufferLocation = ib->GetGPUVirtualAddress() + fmt.idxoffs;
+          iview.SizeInBytes = UINT(ib->GetDesc().Width - fmt.idxoffs);
+          iview.Format = fmt.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+          list->IASetIndexBuffer(&iview);
+
+          list->DrawIndexedInstanced(fmt.numVerts, 1, 0, fmt.baseVertex, 0);
+        }
+        else
+        {
+          list->DrawInstanced(fmt.numVerts, 1, 0, 0);
+        }
+      }
+    }
+  }
+
+  MeshDisplayPipelines cache = CacheMeshDisplayPipelines(cfg.position, cfg.second);
+
+  if(cfg.position.buf != ResourceId())
+  {
+    ID3D12Resource *vb =
+        m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.buf);
+
+    UINT64 offs = cfg.position.offset;
+    D3D12_VERTEX_BUFFER_VIEW view;
+    view.BufferLocation = vb->GetGPUVirtualAddress() + offs;
+    view.StrideInBytes = cfg.position.stride;
+    view.SizeInBytes = UINT(vb->GetDesc().Width - offs);
+    list->IASetVertexBuffers(0, 1, &view);
+
+    // set it to the secondary buffer too just as dummy info
+    list->IASetVertexBuffers(1, 1, &view);
+
+    list->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(cfg.position.topo));
+  }
+
+  SolidShadeMode solidShadeMode = cfg.solidShadeMode;
+
+  // can't support secondary shading without a buffer - no pipeline will have been created
+  if(solidShadeMode == eShade_Secondary && cfg.second.buf == ResourceId())
+    solidShadeMode = eShade_None;
+
+  if(solidShadeMode == eShade_Secondary)
+  {
+    ID3D12Resource *vb =
+        m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.buf);
+
+    UINT64 offs = cfg.second.offset;
+    D3D12_VERTEX_BUFFER_VIEW view;
+    view.BufferLocation = vb->GetGPUVirtualAddress() + offs;
+    view.StrideInBytes = cfg.second.stride;
+    view.SizeInBytes = UINT(vb->GetDesc().Width - offs);
+    list->IASetVertexBuffers(1, 1, &view);
+  }
+
+  // solid render
+  if(solidShadeMode != eShade_None && cfg.position.topo < eTopology_PatchList)
+  {
+    ID3D12PipelineState *pipe = NULL;
+    switch(solidShadeMode)
+    {
+      default:
+      case eShade_Solid: pipe = cache.pipes[MeshDisplayPipelines::ePipe_SolidDepth]; break;
+      case eShade_Lit: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Lit]; break;
+      case eShade_Secondary: pipe = cache.pipes[MeshDisplayPipelines::ePipe_Secondary]; break;
+    }
+
+    pixelData.OutputDisplayFormat = (int)cfg.solidShadeMode;
+    if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
+      pixelData.OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
+    pixelData.WireframeColour = Vec3f(0.8f, 0.8f, 0.0f);
+
+    list->SetPipelineState(pipe);
+    list->SetGraphicsRootSignature(m_CBOnlyRootSig);
+
+    list->SetGraphicsRootConstantBufferView(0, vsCB);
+    list->SetGraphicsRootConstantBufferView(1, UploadConstants(&pixelData, sizeof(pixelData)));
+
+    if(solidShadeMode == eShade_Lit)
+    {
+      DebugGeometryCBuffer geomData;
+      geomData.InvProj = projMat.Inverse();
+
+      list->SetGraphicsRootConstantBufferView(2, UploadConstants(&geomData, sizeof(geomData)));
+    }
+    else
+    {
+      list->SetGraphicsRootConstantBufferView(2, vsCB);
+    }
+
+    Vec4f colour(0.8f, 0.8f, 0.0f, 1.0f);
+    list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+
+    if(cfg.position.idxByteWidth && cfg.position.idxbuf != ResourceId())
+    {
+      ID3D12Resource *ib =
+          m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.idxbuf);
+
+      D3D12_INDEX_BUFFER_VIEW view;
+      view.BufferLocation = ib->GetGPUVirtualAddress() + cfg.position.idxoffs;
+      view.SizeInBytes = UINT(ib->GetDesc().Width - cfg.position.idxoffs);
+      view.Format = cfg.position.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+      list->IASetIndexBuffer(&view);
+
+      list->DrawIndexedInstanced(cfg.position.numVerts, 1, 0, cfg.position.baseVertex, 0);
+    }
+    else
+    {
+      list->DrawInstanced(cfg.position.numVerts, 1, 0, 0);
+    }
+  }
+
+  // wireframe render
+  if(solidShadeMode == eShade_None || cfg.wireframeDraw || cfg.position.topo >= eTopology_PatchList)
+  {
+    Vec4f wireCol =
+        Vec4f(cfg.position.meshColour.x, cfg.position.meshColour.y, cfg.position.meshColour.z, 1.0f);
+
+    pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
+
+    list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
+    list->SetGraphicsRootSignature(m_CBOnlyRootSig);
+
+    list->SetGraphicsRootConstantBufferView(0, vsCB);
+    list->SetGraphicsRootConstantBufferView(1, UploadConstants(&pixelData, sizeof(pixelData)));
+    list->SetGraphicsRootConstantBufferView(2, vsCB);
+
+    list->SetGraphicsRoot32BitConstants(3, 4, &cfg.position.meshColour.x, 0);
+
+    if(cfg.position.idxByteWidth && cfg.position.idxbuf != ResourceId())
+    {
+      ID3D12Resource *ib =
+          m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.idxbuf);
+
+      D3D12_INDEX_BUFFER_VIEW view;
+      view.BufferLocation = ib->GetGPUVirtualAddress() + cfg.position.idxoffs;
+      view.SizeInBytes = UINT(ib->GetDesc().Width - cfg.position.idxoffs);
+      view.Format = cfg.position.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+      list->IASetIndexBuffer(&view);
+
+      list->DrawIndexedInstanced(cfg.position.numVerts, 1, 0, cfg.position.baseVertex, 0);
+    }
+    else
+    {
+      list->DrawInstanced(cfg.position.numVerts, 1, 0, 0);
+    }
+  }
+
+  MeshFormat helper;
+  helper.idxByteWidth = 2;
+  helper.topo = eTopology_LineList;
+
+  helper.specialFormat = eSpecial_Unknown;
+  helper.compByteWidth = 4;
+  helper.compCount = 4;
+  helper.compType = eCompType_Float;
+
+  helper.stride = sizeof(Vec4f);
+
+  pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
+
+  list->SetGraphicsRootConstantBufferView(1, UploadConstants(&pixelData, sizeof(pixelData)));
+
+  // cache pipelines for use in drawing wireframe helpers
+  cache = CacheMeshDisplayPipelines(helper, helper);
+
+  if(cfg.showBBox)
+  {
+    Vec4f a = Vec4f(cfg.minBounds.x, cfg.minBounds.y, cfg.minBounds.z, cfg.minBounds.w);
+    Vec4f b = Vec4f(cfg.maxBounds.x, cfg.maxBounds.y, cfg.maxBounds.z, cfg.maxBounds.w);
+
+    Vec4f TLN = Vec4f(a.x, b.y, a.z, 1.0f);    // TopLeftNear, etc...
+    Vec4f TRN = Vec4f(b.x, b.y, a.z, 1.0f);
+    Vec4f BLN = Vec4f(a.x, a.y, a.z, 1.0f);
+    Vec4f BRN = Vec4f(b.x, a.y, a.z, 1.0f);
+
+    Vec4f TLF = Vec4f(a.x, b.y, b.z, 1.0f);
+    Vec4f TRF = Vec4f(b.x, b.y, b.z, 1.0f);
+    Vec4f BLF = Vec4f(a.x, a.y, b.z, 1.0f);
+    Vec4f BRF = Vec4f(b.x, a.y, b.z, 1.0f);
+
+    // 12 frustum lines => 24 verts
+    Vec4f bbox[24] = {
+        TLN, TRN, TRN, BRN, BRN, BLN, BLN, TLN,
+
+        TLN, TLF, TRN, TRF, BLN, BLF, BRN, BRF,
+
+        TLF, TRF, TRF, BRF, BRF, BLF, BLF, TLF,
+    };
+
+    D3D12_VERTEX_BUFFER_VIEW view;
+    view.BufferLocation = UploadConstants(bbox, sizeof(bbox));
+    view.SizeInBytes = sizeof(bbox);
+    view.StrideInBytes = sizeof(Vec4f);
+
+    list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+
+    list->IASetVertexBuffers(0, 1, &view);
+
+    Vec4f colour(0.2f, 0.2f, 1.0f, 1.0f);
+    list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+
+    list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_WireDepth]);
+
+    list->DrawInstanced(24, 1, 0, 0);
+  }
+
+  // draw axis helpers
+  if(!cfg.position.unproject)
+  {
+    Vec4f axismarker[6] = {
+        Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
+        Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f),
+    };
+
+    D3D12_VERTEX_BUFFER_VIEW view;
+    view.BufferLocation = UploadConstants(axismarker, sizeof(axismarker));
+    view.SizeInBytes = sizeof(axismarker);
+    view.StrideInBytes = sizeof(Vec4f);
+
+    list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+
+    list->IASetVertexBuffers(0, 1, &view);
+
+    list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_Wire]);
+
+    Vec4f colour(1.0f, 0.0f, 0.0f, 1.0f);
+    list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+    list->DrawInstanced(2, 1, 0, 0);
+
+    colour = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+    list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+    list->DrawInstanced(2, 1, 2, 0);
+
+    colour = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
+    list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+    list->DrawInstanced(2, 1, 4, 0);
+  }
+
+  // 'fake' helper frustum
+  if(cfg.position.unproject)
+  {
+    Vec4f TLN = Vec4f(-1.0f, 1.0f, 0.0f, 1.0f);    // TopLeftNear, etc...
+    Vec4f TRN = Vec4f(1.0f, 1.0f, 0.0f, 1.0f);
+    Vec4f BLN = Vec4f(-1.0f, -1.0f, 0.0f, 1.0f);
+    Vec4f BRN = Vec4f(1.0f, -1.0f, 0.0f, 1.0f);
+
+    Vec4f TLF = Vec4f(-1.0f, 1.0f, 1.0f, 1.0f);
+    Vec4f TRF = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+    Vec4f BLF = Vec4f(-1.0f, -1.0f, 1.0f, 1.0f);
+    Vec4f BRF = Vec4f(1.0f, -1.0f, 1.0f, 1.0f);
+
+    // 12 frustum lines => 24 verts
+    Vec4f bbox[24] = {
+        TLN, TRN, TRN, BRN, BRN, BLN, BLN, TLN,
+
+        TLN, TLF, TRN, TRF, BLN, BLF, BRN, BRF,
+
+        TLF, TRF, TRF, BRF, BRF, BLF, BLF, TLF,
+    };
+
+    D3D12_VERTEX_BUFFER_VIEW view;
+    view.BufferLocation = UploadConstants(bbox, sizeof(bbox));
+    view.SizeInBytes = sizeof(bbox);
+    view.StrideInBytes = sizeof(Vec4f);
+
+    list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_LINELIST);
+
+    list->IASetVertexBuffers(0, 1, &view);
+
+    Vec4f colour(1.0f, 1.0f, 1.0f, 1.0f);
+    list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+
+    list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_Wire]);
+
+    list->DrawInstanced(24, 1, 0, 0);
+  }
+
+  // show highlighted vertex
+  if(cfg.highlightVert != ~0U)
+  {
+    MeshDataStage stage = cfg.type;
+
+    if(m_HighlightCache.EID != eventID || stage != m_HighlightCache.stage ||
+       cfg.position.buf != m_HighlightCache.buf || cfg.position.offset != m_HighlightCache.offs)
+    {
+      m_HighlightCache.EID = eventID;
+      m_HighlightCache.buf = cfg.position.buf;
+      m_HighlightCache.offs = cfg.position.offset;
+      m_HighlightCache.stage = stage;
+
+      uint32_t bytesize = cfg.position.idxByteWidth;
+      uint64_t maxIndex = cfg.position.numVerts;
+
+      if(cfg.position.idxByteWidth == 0 || stage == eMeshDataStage_GSOut)
+      {
+        m_HighlightCache.indices.clear();
+        m_HighlightCache.useidx = false;
+      }
+      else
+      {
+        m_HighlightCache.useidx = true;
+
+        vector<byte> idxdata;
+        if(cfg.position.idxbuf != ResourceId())
+          GetBufferData(cfg.position.idxbuf, cfg.position.idxoffs, cfg.position.numVerts * bytesize,
+                        idxdata);
+
+        uint8_t *idx8 = (uint8_t *)&idxdata[0];
+        uint16_t *idx16 = (uint16_t *)&idxdata[0];
+        uint32_t *idx32 = (uint32_t *)&idxdata[0];
+
+        uint32_t numIndices = RDCMIN(cfg.position.numVerts, uint32_t(idxdata.size() / bytesize));
+
+        m_HighlightCache.indices.resize(numIndices);
+
+        if(bytesize == 1)
+        {
+          for(uint32_t i = 0; i < numIndices; i++)
+          {
+            m_HighlightCache.indices[i] = uint32_t(idx8[i]);
+            maxIndex = RDCMAX(maxIndex, (uint64_t)m_HighlightCache.indices[i]);
+          }
+        }
+        else if(bytesize == 2)
+        {
+          for(uint32_t i = 0; i < numIndices; i++)
+          {
+            m_HighlightCache.indices[i] = uint32_t(idx16[i]);
+            maxIndex = RDCMAX(maxIndex, (uint64_t)m_HighlightCache.indices[i]);
+          }
+        }
+        else if(bytesize == 4)
+        {
+          for(uint32_t i = 0; i < numIndices; i++)
+          {
+            m_HighlightCache.indices[i] = idx32[i];
+            maxIndex = RDCMAX(maxIndex, (uint64_t)m_HighlightCache.indices[i]);
+          }
+        }
+
+        uint32_t sub = uint32_t(-cfg.position.baseVertex);
+        uint32_t add = uint32_t(cfg.position.baseVertex);
+
+        if(cfg.position.baseVertex > 0)
+          maxIndex += add;
+
+        for(uint32_t i = 0; cfg.position.baseVertex != 0 && i < numIndices; i++)
+        {
+          if(cfg.position.baseVertex < 0)
+          {
+            if(m_HighlightCache.indices[i] < sub)
+              m_HighlightCache.indices[i] = 0;
+            else
+              m_HighlightCache.indices[i] -= sub;
+          }
+          else
+            m_HighlightCache.indices[i] += add;
+        }
+      }
+
+      GetBufferData(cfg.position.buf, cfg.position.offset, (maxIndex + 1) * cfg.position.stride,
+                    m_HighlightCache.data);
+    }
+
+    PrimitiveTopology meshtopo = cfg.position.topo;
+
+    uint32_t idx = cfg.highlightVert;
+
+    byte *data = &m_HighlightCache.data[0];    // buffer start
+    byte *dataEnd = data + m_HighlightCache.data.size();
+
+    // we already accounted for cfg.position.offset when fetching the cache
+    // above (since this is constant)
+    // data += cfg.position.offset; // to start of position data
+
+    ///////////////////////////////////////////////////////////////
+    // vectors to be set from buffers, depending on topology
+
+    bool valid = true;
+
+    // this vert (blue dot, required)
+    FloatVector activeVertex;
+
+    // primitive this vert is a part of (red prim, optional)
+    vector<FloatVector> activePrim;
+
+    // for patch lists, to show other verts in patch (green dots, optional)
+    // for non-patch lists, we use the activePrim and adjacentPrimVertices
+    // to show what other verts are related
+    vector<FloatVector> inactiveVertices;
+
+    // adjacency (line or tri, strips or lists) (green prims, optional)
+    // will be N*M long, N adjacent prims of M verts each. M = primSize below
+    vector<FloatVector> adjacentPrimVertices;
+
+    helper.topo = eTopology_TriangleList;
+    uint32_t primSize = 3;    // number of verts per primitive
+
+    if(meshtopo == eTopology_LineList || meshtopo == eTopology_LineStrip ||
+       meshtopo == eTopology_LineList_Adj || meshtopo == eTopology_LineStrip_Adj)
+    {
+      primSize = 2;
+      helper.topo = eTopology_LineList;
+    }
+    else
+    {
+      // update the cache, as it's currently linelist
+      helper.topo = eTopology_TriangleList;
+      cache = CacheMeshDisplayPipelines(helper, helper);
+    }
+
+    activeVertex = InterpretVertex(data, idx, cfg, dataEnd, true, valid);
+
+    // see http://msdn.microsoft.com/en-us/library/windows/desktop/bb205124(v=vs.85).aspx for
+    // how primitive topologies are laid out
+    if(meshtopo == eTopology_LineList)
+    {
+      uint32_t v = uint32_t(idx / 2) * 2;    // find first vert in primitive
+
+      activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
+      activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
+    }
+    else if(meshtopo == eTopology_TriangleList)
+    {
+      uint32_t v = uint32_t(idx / 3) * 3;    // find first vert in primitive
+
+      activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
+      activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
+      activePrim.push_back(InterpretVertex(data, v + 2, cfg, dataEnd, true, valid));
+    }
+    else if(meshtopo == eTopology_LineList_Adj)
+    {
+      uint32_t v = uint32_t(idx / 4) * 4;    // find first vert in primitive
+
+      FloatVector vs[] = {
+          InterpretVertex(data, v + 0, cfg, dataEnd, true, valid),
+          InterpretVertex(data, v + 1, cfg, dataEnd, true, valid),
+          InterpretVertex(data, v + 2, cfg, dataEnd, true, valid),
+          InterpretVertex(data, v + 3, cfg, dataEnd, true, valid),
+      };
+
+      adjacentPrimVertices.push_back(vs[0]);
+      adjacentPrimVertices.push_back(vs[1]);
+
+      adjacentPrimVertices.push_back(vs[2]);
+      adjacentPrimVertices.push_back(vs[3]);
+
+      activePrim.push_back(vs[1]);
+      activePrim.push_back(vs[2]);
+    }
+    else if(meshtopo == eTopology_TriangleList_Adj)
+    {
+      uint32_t v = uint32_t(idx / 6) * 6;    // find first vert in primitive
+
+      FloatVector vs[] = {
+          InterpretVertex(data, v + 0, cfg, dataEnd, true, valid),
+          InterpretVertex(data, v + 1, cfg, dataEnd, true, valid),
+          InterpretVertex(data, v + 2, cfg, dataEnd, true, valid),
+          InterpretVertex(data, v + 3, cfg, dataEnd, true, valid),
+          InterpretVertex(data, v + 4, cfg, dataEnd, true, valid),
+          InterpretVertex(data, v + 5, cfg, dataEnd, true, valid),
+      };
+
+      adjacentPrimVertices.push_back(vs[0]);
+      adjacentPrimVertices.push_back(vs[1]);
+      adjacentPrimVertices.push_back(vs[2]);
+
+      adjacentPrimVertices.push_back(vs[2]);
+      adjacentPrimVertices.push_back(vs[3]);
+      adjacentPrimVertices.push_back(vs[4]);
+
+      adjacentPrimVertices.push_back(vs[4]);
+      adjacentPrimVertices.push_back(vs[5]);
+      adjacentPrimVertices.push_back(vs[0]);
+
+      activePrim.push_back(vs[0]);
+      activePrim.push_back(vs[2]);
+      activePrim.push_back(vs[4]);
+    }
+    else if(meshtopo == eTopology_LineStrip)
+    {
+      // find first vert in primitive. In strips a vert isn't
+      // in only one primitive, so we pick the first primitive
+      // it's in. This means the first N points are in the first
+      // primitive, and thereafter each point is in the next primitive
+      uint32_t v = RDCMAX(idx, 1U) - 1;
+
+      activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
+      activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
+    }
+    else if(meshtopo == eTopology_TriangleStrip)
+    {
+      // find first vert in primitive. In strips a vert isn't
+      // in only one primitive, so we pick the first primitive
+      // it's in. This means the first N points are in the first
+      // primitive, and thereafter each point is in the next primitive
+      uint32_t v = RDCMAX(idx, 2U) - 2;
+
+      activePrim.push_back(InterpretVertex(data, v + 0, cfg, dataEnd, true, valid));
+      activePrim.push_back(InterpretVertex(data, v + 1, cfg, dataEnd, true, valid));
+      activePrim.push_back(InterpretVertex(data, v + 2, cfg, dataEnd, true, valid));
+    }
+    else if(meshtopo == eTopology_LineStrip_Adj)
+    {
+      // find first vert in primitive. In strips a vert isn't
+      // in only one primitive, so we pick the first primitive
+      // it's in. This means the first N points are in the first
+      // primitive, and thereafter each point is in the next primitive
+      uint32_t v = RDCMAX(idx, 3U) - 3;
+
+      FloatVector vs[] = {
+          InterpretVertex(data, v + 0, cfg, dataEnd, true, valid),
+          InterpretVertex(data, v + 1, cfg, dataEnd, true, valid),
+          InterpretVertex(data, v + 2, cfg, dataEnd, true, valid),
+          InterpretVertex(data, v + 3, cfg, dataEnd, true, valid),
+      };
+
+      adjacentPrimVertices.push_back(vs[0]);
+      adjacentPrimVertices.push_back(vs[1]);
+
+      adjacentPrimVertices.push_back(vs[2]);
+      adjacentPrimVertices.push_back(vs[3]);
+
+      activePrim.push_back(vs[1]);
+      activePrim.push_back(vs[2]);
+    }
+    else if(meshtopo == eTopology_TriangleStrip_Adj)
+    {
+      // Triangle strip with adjacency is the most complex topology, as
+      // we need to handle the ends separately where the pattern breaks.
+
+      uint32_t numidx = cfg.position.numVerts;
+
+      if(numidx < 6)
+      {
+        // not enough indices provided, bail to make sure logic below doesn't
+        // need to have tons of edge case detection
+        valid = false;
+      }
+      else if(idx <= 4 || numidx <= 7)
+      {
+        FloatVector vs[] = {
+            InterpretVertex(data, 0, cfg, dataEnd, true, valid),
+            InterpretVertex(data, 1, cfg, dataEnd, true, valid),
+            InterpretVertex(data, 2, cfg, dataEnd, true, valid),
+            InterpretVertex(data, 3, cfg, dataEnd, true, valid),
+            InterpretVertex(data, 4, cfg, dataEnd, true, valid),
+
+            // note this one isn't used as it's adjacency for the next triangle
+            InterpretVertex(data, 5, cfg, dataEnd, true, valid),
+
+            // min() with number of indices in case this is a tiny strip
+            // that is basically just a list
+            InterpretVertex(data, RDCMIN(6U, numidx - 1), cfg, dataEnd, true, valid),
+        };
+
+        // these are the triangles on the far left of the MSDN diagram above
+        adjacentPrimVertices.push_back(vs[0]);
+        adjacentPrimVertices.push_back(vs[1]);
+        adjacentPrimVertices.push_back(vs[2]);
+
+        adjacentPrimVertices.push_back(vs[4]);
+        adjacentPrimVertices.push_back(vs[3]);
+        adjacentPrimVertices.push_back(vs[0]);
+
+        adjacentPrimVertices.push_back(vs[4]);
+        adjacentPrimVertices.push_back(vs[2]);
+        adjacentPrimVertices.push_back(vs[6]);
+
+        activePrim.push_back(vs[0]);
+        activePrim.push_back(vs[2]);
+        activePrim.push_back(vs[4]);
+      }
+      else if(idx > numidx - 4)
+      {
+        // in diagram, numidx == 14
+
+        FloatVector vs[] = {
+            /*[0]=*/InterpretVertex(data, numidx - 8, cfg, dataEnd, true, valid),    // 6 in diagram
+
+            // as above, unused since this is adjacency for 2-previous triangle
+            /*[1]=*/InterpretVertex(data, numidx - 7, cfg, dataEnd, true, valid),    // 7 in diagram
+            /*[2]=*/InterpretVertex(data, numidx - 6, cfg, dataEnd, true, valid),    // 8 in diagram
+
+            // as above, unused since this is adjacency for previous triangle
+            /*[3]=*/InterpretVertex(data, numidx - 5, cfg, dataEnd, true, valid),    // 9 in diagram
+            /*[4]=*/InterpretVertex(data, numidx - 4, cfg, dataEnd, true,
+                                    valid),    // 10 in diagram
+            /*[5]=*/InterpretVertex(data, numidx - 3, cfg, dataEnd, true,
+                                    valid),    // 11 in diagram
+            /*[6]=*/InterpretVertex(data, numidx - 2, cfg, dataEnd, true,
+                                    valid),    // 12 in diagram
+            /*[7]=*/InterpretVertex(data, numidx - 1, cfg, dataEnd, true,
+                                    valid),    // 13 in diagram
+        };
+
+        // these are the triangles on the far right of the MSDN diagram above
+        adjacentPrimVertices.push_back(vs[2]);    // 8 in diagram
+        adjacentPrimVertices.push_back(vs[0]);    // 6 in diagram
+        adjacentPrimVertices.push_back(vs[4]);    // 10 in diagram
+
+        adjacentPrimVertices.push_back(vs[4]);    // 10 in diagram
+        adjacentPrimVertices.push_back(vs[7]);    // 13 in diagram
+        adjacentPrimVertices.push_back(vs[6]);    // 12 in diagram
+
+        adjacentPrimVertices.push_back(vs[6]);    // 12 in diagram
+        adjacentPrimVertices.push_back(vs[5]);    // 11 in diagram
+        adjacentPrimVertices.push_back(vs[2]);    // 8 in diagram
+
+        activePrim.push_back(vs[2]);    // 8 in diagram
+        activePrim.push_back(vs[4]);    // 10 in diagram
+        activePrim.push_back(vs[6]);    // 12 in diagram
+      }
+      else
+      {
+        // we're in the middle somewhere. Each primitive has two vertices for it
+        // so our step rate is 2. The first 'middle' primitive starts at indices 5&6
+        // and uses indices all the way back to 0
+        uint32_t v = RDCMAX(((idx + 1) / 2) * 2, 6U) - 6;
+
+        // these correspond to the indices in the MSDN diagram, with {2,4,6} as the
+        // main triangle
+        FloatVector vs[] = {
+            InterpretVertex(data, v + 0, cfg, dataEnd, true, valid),
+
+            // this one is adjacency for 2-previous triangle
+            InterpretVertex(data, v + 1, cfg, dataEnd, true, valid),
+            InterpretVertex(data, v + 2, cfg, dataEnd, true, valid),
+
+            // this one is adjacency for previous triangle
+            InterpretVertex(data, v + 3, cfg, dataEnd, true, valid),
+            InterpretVertex(data, v + 4, cfg, dataEnd, true, valid),
+            InterpretVertex(data, v + 5, cfg, dataEnd, true, valid),
+            InterpretVertex(data, v + 6, cfg, dataEnd, true, valid),
+            InterpretVertex(data, v + 7, cfg, dataEnd, true, valid),
+            InterpretVertex(data, v + 8, cfg, dataEnd, true, valid),
+        };
+
+        // these are the triangles around {2,4,6} in the MSDN diagram above
+        adjacentPrimVertices.push_back(vs[0]);
+        adjacentPrimVertices.push_back(vs[2]);
+        adjacentPrimVertices.push_back(vs[4]);
+
+        adjacentPrimVertices.push_back(vs[2]);
+        adjacentPrimVertices.push_back(vs[5]);
+        adjacentPrimVertices.push_back(vs[6]);
+
+        adjacentPrimVertices.push_back(vs[6]);
+        adjacentPrimVertices.push_back(vs[8]);
+        adjacentPrimVertices.push_back(vs[4]);
+
+        activePrim.push_back(vs[2]);
+        activePrim.push_back(vs[4]);
+        activePrim.push_back(vs[6]);
+      }
+    }
+    else if(meshtopo >= eTopology_PatchList)
+    {
+      uint32_t dim = (cfg.position.topo - eTopology_PatchList_1CPs + 1);
+
+      uint32_t v0 = uint32_t(idx / dim) * dim;
+
+      for(uint32_t v = v0; v < v0 + dim; v++)
+      {
+        if(v != idx && valid)
+          inactiveVertices.push_back(InterpretVertex(data, v, cfg, dataEnd, true, valid));
+      }
+    }
+    else    // if(meshtopo == eTopology_PointList) point list, or unknown/unhandled type
+    {
+      // no adjacency, inactive verts or active primitive
+    }
+
+    if(valid)
+    {
+      ////////////////////////////////////////////////////////////////
+      // prepare rendering (for both vertices & primitives)
+
+      // if data is from post transform, it will be in clipspace
+      if(cfg.position.unproject)
+        vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
+      else
+        vertexData.ModelViewProj = projMat.Mul(camMat);
+
+      list->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(helper.topo));
+
+      list->SetGraphicsRootConstantBufferView(0, UploadConstants(&vertexData, sizeof(vertexData)));
+
+      list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_Solid]);
+
+      ////////////////////////////////////////////////////////////////
+      // render primitives
+
+      // Draw active primitive (red)
+      Vec4f colour(1.0f, 0.0f, 0.0f, 1.0f);
+      list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+
+      D3D12_VERTEX_BUFFER_VIEW view = {};
+      view.StrideInBytes = sizeof(Vec4f);
+
+      if(activePrim.size() >= primSize)
+      {
+        view.BufferLocation = UploadConstants(&activePrim[0], sizeof(Vec4f) * primSize);
+        view.SizeInBytes = sizeof(Vec4f) * primSize;
+
+        list->IASetVertexBuffers(0, 1, &view);
+
+        list->DrawInstanced(primSize, 1, 0, 0);
+      }
+
+      // Draw adjacent primitives (green)
+      colour = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+      list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+
+      if(adjacentPrimVertices.size() >= primSize && (adjacentPrimVertices.size() % primSize) == 0)
+      {
+        view.BufferLocation =
+            UploadConstants(&activePrim[0], sizeof(Vec4f) * adjacentPrimVertices.size());
+        view.SizeInBytes = UINT(sizeof(Vec4f) * adjacentPrimVertices.size());
+
+        list->IASetVertexBuffers(0, 1, &view);
+
+        list->DrawInstanced((UINT)adjacentPrimVertices.size(), 1, 0, 0);
+      }
+
+      ////////////////////////////////////////////////////////////////
+      // prepare to render dots
+
+      float scale = 800.0f / viewport.Height;
+      float asp = viewport.Width / viewport.Height;
+
+      vertexData.SpriteSize = Vec2f(scale / asp, scale);
+
+      list->SetGraphicsRootConstantBufferView(0, UploadConstants(&vertexData, sizeof(vertexData)));
+
+      // Draw active vertex (blue)
+      colour = Vec4f(0.0f, 0.0f, 1.0f, 1.0f);
+      list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+
+      // vertices are drawn with tri strips
+      helper.topo = eTopology_TriangleStrip;
+      cache = CacheMeshDisplayPipelines(helper, helper);
+
+      FloatVector vertSprite[4] = {
+          activeVertex, activeVertex, activeVertex, activeVertex,
+      };
+
+      list->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(helper.topo));
+
+      list->SetPipelineState(cache.pipes[MeshDisplayPipelines::ePipe_Solid]);
+
+      {
+        view.BufferLocation = UploadConstants(&vertSprite[0], sizeof(vertSprite));
+        view.SizeInBytes = sizeof(vertSprite);
+
+        list->IASetVertexBuffers(0, 1, &view);
+
+        list->DrawInstanced(4, 1, 0, 0);
+      }
+
+      // Draw inactive vertices (green)
+      colour = Vec4f(0.0f, 1.0f, 0.0f, 1.0f);
+      list->SetGraphicsRoot32BitConstants(3, 4, &colour.x, 0);
+
+      if(!inactiveVertices.empty())
+      {
+        std::vector<FloatVector> inactiveVB;
+        inactiveVB.reserve(inactiveVertices.size() * 4);
+
+        for(size_t i = 0; i < inactiveVertices.size(); i++)
+        {
+          inactiveVB.push_back(inactiveVertices[i]);
+          inactiveVB.push_back(inactiveVertices[i]);
+          inactiveVB.push_back(inactiveVertices[i]);
+          inactiveVB.push_back(inactiveVertices[i]);
+        }
+
+        view.BufferLocation =
+            UploadConstants(&inactiveVB[0], sizeof(vertSprite) * inactiveVertices.size());
+        view.SizeInBytes = UINT(sizeof(vertSprite) * inactiveVertices.size());
+
+        for(size_t i = 0; i < inactiveVertices.size(); i++)
+        {
+          list->IASetVertexBuffers(0, 1, &view);
+
+          list->DrawInstanced(4, 1, 0, 0);
+
+          view.BufferLocation += sizeof(FloatVector) * 4;
+        }
+      }
+    }
+  }
+
+  list->Close();
+
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
+  m_WrappedDevice->ExecuteLists();
+  m_WrappedDevice->FlushLists();
+#endif
 }
 
 void D3D12DebugManager::PrepareTextureSampling(ID3D12Resource *resource,
@@ -4441,6 +5666,9 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       list->SetGraphicsRootConstantBufferView(0, viewCB);
       list->SetGraphicsRootConstantBufferView(1, viewCB);
       list->SetGraphicsRootConstantBufferView(2, viewCB);
+
+      Vec4f dummy;
+      list->SetGraphicsRoot32BitConstants(3, 4, &dummy.x, 0);
 
       float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
       list->OMSetBlendFactor(factor);

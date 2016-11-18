@@ -2242,6 +2242,9 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
         uint32_t sub = uint32_t(-cfg.position.baseVertex);
         uint32_t add = uint32_t(cfg.position.baseVertex);
 
+        if(cfg.position.baseVertex > 0)
+          maxIndex += add;
+
         for(uint32_t i = 0; cfg.position.baseVertex != 0 && i < numIndices; i++)
         {
           if(cfg.position.baseVertex < 0)

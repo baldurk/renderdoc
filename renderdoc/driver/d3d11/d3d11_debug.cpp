@@ -647,25 +647,31 @@ bool D3D11DebugManager::InitDebugRendering()
 
   if(RenderDoc::Inst().IsReplayApp())
   {
-    D3D11_INPUT_ELEMENT_DESC inputDesc;
+    D3D11_INPUT_ELEMENT_DESC inputDescSecondary[2];
 
-    inputDesc.SemanticName = "POSITION";
-    inputDesc.SemanticIndex = 0;
-    inputDesc.Format = DXGI_FORMAT_R32G32B32_FLOAT;
-    inputDesc.InputSlot = 0;
-    inputDesc.InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-    inputDesc.AlignedByteOffset = 0;
-    inputDesc.InstanceDataStepRate = 0;
+    inputDescSecondary[0].SemanticName = "pos";
+    inputDescSecondary[0].SemanticIndex = 0;
+    inputDescSecondary[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+    inputDescSecondary[0].InputSlot = 0;
+    inputDescSecondary[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+    inputDescSecondary[0].AlignedByteOffset = 0;
+    inputDescSecondary[0].InstanceDataStepRate = 0;
+
+    inputDescSecondary[1].SemanticName = "sec";
+    inputDescSecondary[1].SemanticIndex = 0;
+    inputDescSecondary[1].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+    inputDescSecondary[1].InputSlot = 0;
+    inputDescSecondary[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
+    inputDescSecondary[1].AlignedByteOffset = 0;
+    inputDescSecondary[1].InstanceDataStepRate = 0;
 
     vector<byte> bytecode;
 
     m_DebugRender.GenericVS = MakeVShader(displayhlsl.c_str(), "RENDERDOC_DebugVS", "vs_4_0");
     m_DebugRender.TexDisplayPS =
         MakePShader(displayhlsl.c_str(), "RENDERDOC_TexDisplayPS", "ps_5_0");
-    m_DebugRender.WireframeVS = MakeVShader(meshhlsl.c_str(), "RENDERDOC_WireframeVS", "vs_4_0", 1,
-                                            &inputDesc, &m_DebugRender.GenericLayout);
-    m_DebugRender.MeshVS =
-        MakeVShader(meshhlsl.c_str(), "RENDERDOC_MeshVS", "vs_4_0", 0, NULL, NULL, &bytecode);
+    m_DebugRender.MeshVS = MakeVShader(meshhlsl.c_str(), "RENDERDOC_MeshVS", "vs_4_0", 2,
+                                       inputDescSecondary, &m_DebugRender.GenericLayout, &bytecode);
     m_DebugRender.MeshGS = MakeGShader(meshhlsl.c_str(), "RENDERDOC_MeshGS", "gs_4_0");
     m_DebugRender.MeshPS = MakePShader(meshhlsl.c_str(), "RENDERDOC_MeshPS", "ps_4_0");
 
@@ -677,32 +683,6 @@ bool D3D11DebugManager::InitDebugRendering()
     m_DebugRender.MeshVSBytecode = new byte[bytecode.size()];
     m_DebugRender.MeshVSBytelen = (uint32_t)bytecode.size();
     memcpy(m_DebugRender.MeshVSBytecode, &bytecode[0], bytecode.size());
-
-    D3D11_INPUT_ELEMENT_DESC inputDescHomog[2];
-
-    inputDescHomog[0].SemanticName = "pos";
-    inputDescHomog[0].SemanticIndex = 0;
-    inputDescHomog[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-    inputDescHomog[0].InputSlot = 0;
-    inputDescHomog[0].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-    inputDescHomog[0].AlignedByteOffset = 0;
-    inputDescHomog[0].InstanceDataStepRate = 0;
-
-    inputDescHomog[1].SemanticName = "sec";
-    inputDescHomog[1].SemanticIndex = 0;
-    inputDescHomog[1].Format = DXGI_FORMAT_R8G8B8A8_UNORM;
-    inputDescHomog[1].InputSlot = 0;
-    inputDescHomog[1].InputSlotClass = D3D11_INPUT_PER_VERTEX_DATA;
-    inputDescHomog[1].AlignedByteOffset = 0;
-    inputDescHomog[1].InstanceDataStepRate = 0;
-
-    m_DebugRender.WireframeHomogVS =
-        MakeVShader(meshhlsl.c_str(), "RENDERDOC_WireframeHomogVS", "vs_4_0", 2, inputDescHomog,
-                    &m_DebugRender.GenericHomogLayout, &bytecode);
-
-    m_DebugRender.MeshHomogVSBytecode = new byte[bytecode.size()];
-    m_DebugRender.MeshHomogVSBytelen = (uint32_t)bytecode.size();
-    memcpy(m_DebugRender.MeshHomogVSBytecode, &bytecode[0], bytecode.size());
 
     m_DebugRender.WireframePS = MakePShader(displayhlsl.c_str(), "RENDERDOC_WireframePS", "ps_4_0");
     m_DebugRender.OverlayPS = MakePShader(displayhlsl.c_str(), "RENDERDOC_OverlayPS", "ps_4_0");
@@ -1200,7 +1180,6 @@ void D3D11DebugManager::ShutdownStreamOut()
   SAFE_RELEASE(m_SolidHelpersRS);
 
   SAFE_RELEASE(m_MeshDisplayLayout);
-  SAFE_RELEASE(m_PostMeshDisplayLayout);
 
   SAFE_RELEASE(m_FrustumHelper);
   SAFE_RELEASE(m_AxisHelper);
@@ -1210,7 +1189,6 @@ void D3D11DebugManager::ShutdownStreamOut()
 bool D3D11DebugManager::InitStreamOut()
 {
   m_MeshDisplayLayout = NULL;
-  m_PostMeshDisplayLayout = NULL;
 
   D3D11_BUFFER_DESC bufferDesc = {
       m_SOBufferSize, D3D11_USAGE_DEFAULT, D3D11_BIND_STREAM_OUTPUT, 0, 0, 0};
@@ -1296,9 +1274,9 @@ bool D3D11DebugManager::InitStreamOut()
   }
 
   {
-    Vec3f axisVB[6] = {
-        Vec3f(0.0f, 0.0f, 0.0f), Vec3f(1.0f, 0.0f, 0.0f), Vec3f(0.0f, 0.0f, 0.0f),
-        Vec3f(0.0f, 1.0f, 0.0f), Vec3f(0.0f, 0.0f, 0.0f), Vec3f(0.0f, 0.0f, 1.0f),
+    Vec4f axisVB[6] = {
+        Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec4f(1.0f, 0.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f),
+        Vec4f(0.0f, 1.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 0.0f, 1.0f), Vec4f(0.0f, 0.0f, 1.0f, 1.0f),
     };
 
     D3D11_SUBRESOURCE_DATA data;
@@ -1318,18 +1296,18 @@ bool D3D11DebugManager::InitStreamOut()
   }
 
   {
-    Vec3f TLN = Vec3f(-1.0f, 1.0f, 0.0f);    // TopLeftNear, etc...
-    Vec3f TRN = Vec3f(1.0f, 1.0f, 0.0f);
-    Vec3f BLN = Vec3f(-1.0f, -1.0f, 0.0f);
-    Vec3f BRN = Vec3f(1.0f, -1.0f, 0.0f);
+    Vec4f TLN = Vec4f(-1.0f, 1.0f, 0.0f, 1.0f);    // TopLeftNear, etc...
+    Vec4f TRN = Vec4f(1.0f, 1.0f, 0.0f, 1.0f);
+    Vec4f BLN = Vec4f(-1.0f, -1.0f, 0.0f, 1.0f);
+    Vec4f BRN = Vec4f(1.0f, -1.0f, 0.0f, 1.0f);
 
-    Vec3f TLF = Vec3f(-1.0f, 1.0f, 1.0f);
-    Vec3f TRF = Vec3f(1.0f, 1.0f, 1.0f);
-    Vec3f BLF = Vec3f(-1.0f, -1.0f, 1.0f);
-    Vec3f BRF = Vec3f(1.0f, -1.0f, 1.0f);
+    Vec4f TLF = Vec4f(-1.0f, 1.0f, 1.0f, 1.0f);
+    Vec4f TRF = Vec4f(1.0f, 1.0f, 1.0f, 1.0f);
+    Vec4f BLF = Vec4f(-1.0f, -1.0f, 1.0f, 1.0f);
+    Vec4f BRF = Vec4f(1.0f, -1.0f, 1.0f, 1.0f);
 
     // 12 frustum lines => 24 verts
-    Vec3f axisVB[24] = {
+    Vec4f axisVB[24] = {
         TLN, TRN, TRN, BRN, BRN, BLN, BLN, TLN,
 
         TLN, TLF, TRN, TRF, BLN, BLF, BRN, BRF,
@@ -4599,7 +4577,6 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   if(m_PrevMeshFmt != resFmt || m_PrevMeshFmt2 != resFmt2)
   {
     SAFE_RELEASE(m_MeshDisplayLayout);
-    SAFE_RELEASE(m_PostMeshDisplayLayout);
 
     D3D11_INPUT_ELEMENT_DESC layoutdesc[2];
 
@@ -4632,15 +4609,6 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     {
       RDCERR("Failed to create m_MeshDisplayLayout %08x", hr);
       m_MeshDisplayLayout = NULL;
-    }
-
-    hr = m_pDevice->CreateInputLayout(layoutdesc, 2, m_DebugRender.MeshHomogVSBytecode,
-                                      m_DebugRender.MeshHomogVSBytelen, &m_PostMeshDisplayLayout);
-
-    if(FAILED(hr))
-    {
-      RDCERR("Failed to create m_PostMeshDisplayLayout %08x", hr);
-      m_PostMeshDisplayLayout = NULL;
     }
   }
 
@@ -4682,20 +4650,21 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
     m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
 
-    if(cfg.position.unproject)
-      m_pImmediateContext->VSSetShader(m_DebugRender.WireframeHomogVS, NULL, 0);
-    else
-      m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
+    Vec4f meshColour;
 
+    ID3D11Buffer *meshColourBuf = MakeCBuffer(&meshColour, sizeof(Vec4f));
+
+    m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
     m_pImmediateContext->PSSetShader(m_DebugRender.MeshPS, NULL, 0);
 
     // secondary draws - this is the "draw since last clear" feature. We don't have
     // full flexibility, it only draws wireframe, and only the final rasterized position.
     if(secondaryDraws.size() > 0)
     {
-      m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericHomogLayout);
+      m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
 
       pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
+      FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
       for(size_t i = 0; i < secondaryDraws.size(); i++)
       {
@@ -4703,8 +4672,9 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
         if(fmt.buf != ResourceId())
         {
-          pixelData.WireframeColour = Vec3f(fmt.meshColour.x, fmt.meshColour.y, fmt.meshColour.z);
-          FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+          meshColour = Vec4f(fmt.meshColour.x, fmt.meshColour.y, fmt.meshColour.z, 1.0f);
+          FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
+          m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
 
           m_pImmediateContext->IASetPrimitiveTopology(MakeD3DPrimitiveTopology(fmt.topo));
 
@@ -4733,8 +4703,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       }
     }
 
-    ID3D11InputLayout *layout =
-        cfg.position.unproject ? m_PostMeshDisplayLayout : m_MeshDisplayLayout;
+    ID3D11InputLayout *layout = m_MeshDisplayLayout;
 
     if(layout == NULL)
     {
@@ -4786,8 +4755,11 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       pixelData.OutputDisplayFormat = (int)cfg.solidShadeMode;
       if(cfg.solidShadeMode == eShade_Secondary && cfg.second.showAlpha)
         pixelData.OutputDisplayFormat = MESHDISPLAY_SECONDARY_ALPHA;
-      pixelData.WireframeColour = Vec3f(0.8f, 0.8f, 0.0f);
       FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+
+      meshColour = Vec4f(0.8f, 0.8f, 0.0f, 1.0f);
+      FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
+      m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
 
       m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
 
@@ -4821,9 +4793,12 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.LEqualDepthState, 0);
 
       pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
-      pixelData.WireframeColour =
-          Vec3f(cfg.position.meshColour.x, cfg.position.meshColour.y, cfg.position.meshColour.z);
       FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
+
+      meshColour = Vec4f(cfg.position.meshColour.x, cfg.position.meshColour.y,
+                         cfg.position.meshColour.z, 1.0f);
+      FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
+      m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
 
       m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
 
@@ -4851,7 +4826,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     m_pImmediateContext->OMSetDepthStencilState(m_DebugRender.NoDepthState, 0);
 
     m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
-    m_pImmediateContext->VSSetShader(m_DebugRender.WireframeVS, NULL, 0);
+    m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
     m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
     m_pImmediateContext->PSSetShader(m_DebugRender.WireframePS, NULL, 0);
   }
@@ -4861,7 +4836,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   {
     m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
 
-    UINT strides[] = {sizeof(Vec3f)};
+    UINT strides[] = {sizeof(Vec4f)};
     UINT offsets[] = {0};
 
     m_pImmediateContext->IASetVertexBuffers(0, 1, &m_AxisHelper, strides, offsets);
@@ -5252,16 +5227,11 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
       // if data is from post transform, it will be in clipspace
       if(cfg.position.unproject)
-      {
         vertexData.ModelViewProj = projMat.Mul(camMat.Mul(guessProjInv));
-        m_pImmediateContext->VSSetShader(m_DebugRender.WireframeHomogVS, NULL, 0);
-        m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericHomogLayout);
-      }
       else
-      {
         vertexData.ModelViewProj = projMat.Mul(camMat);
-        m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
-      }
+
+      m_pImmediateContext->IASetInputLayout(m_DebugRender.GenericLayout);
 
       FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
 
@@ -5372,7 +5342,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     }
 
     if(cfg.position.unproject)
-      m_pImmediateContext->VSSetShader(m_DebugRender.WireframeVS, NULL, 0);
+      m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
   }
 
   // bounding box
@@ -5435,7 +5405,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   // 'fake' helper frustum
   if(cfg.position.unproject)
   {
-    UINT strides[] = {sizeof(Vec3f)};
+    UINT strides[] = {sizeof(Vec4f)};
     UINT offsets[] = {0};
 
     vertexData.SpriteSize = Vec2f();

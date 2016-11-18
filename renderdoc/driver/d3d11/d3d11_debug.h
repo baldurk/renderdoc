@@ -359,7 +359,6 @@ private:
 
   // these gets updated to pull the elements selected out of the buffers
   ID3D11InputLayout *m_MeshDisplayLayout;
-  ID3D11InputLayout *m_PostMeshDisplayLayout;
 
   // whenever these change
   ResourceFormat m_PrevMeshFmt;
@@ -435,7 +434,6 @@ private:
       SAFE_RELEASE(StencIncrEqDepthState);
 
       SAFE_RELEASE(GenericLayout);
-      SAFE_RELEASE(GenericHomogLayout);
       SAFE_RELEASE(GenericVSCBuffer);
       SAFE_RELEASE(GenericGSCBuffer);
       SAFE_RELEASE(GenericPSCBuffer);
@@ -449,8 +447,6 @@ private:
       SAFE_RELEASE(TriangleSizeGS);
       SAFE_RELEASE(TriangleSizePS);
       SAFE_RELEASE(FullscreenVS);
-      SAFE_RELEASE(WireframeVS);
-      SAFE_RELEASE(WireframeHomogVS);
       SAFE_RELEASE(WireframePS);
       SAFE_RELEASE(OverlayPS);
 
@@ -504,7 +500,6 @@ private:
       SAFE_RELEASE(histogramUAV);
 
       SAFE_DELETE_ARRAY(MeshVSBytecode);
-      SAFE_DELETE_ARRAY(MeshHomogVSBytecode);
 
       SAFE_RELEASE(PickPixelRT);
       SAFE_RELEASE(PickPixelStageTex);
@@ -523,12 +518,12 @@ private:
     ID3D11DepthStencilState *NoDepthState, *LEqualDepthState, *NopDepthState, *AllPassDepthState,
         *AllPassIncrDepthState, *StencIncrEqDepthState;
 
-    ID3D11InputLayout *GenericLayout, *GenericHomogLayout;
+    ID3D11InputLayout *GenericLayout;
     ID3D11Buffer *GenericVSCBuffer;
     ID3D11Buffer *GenericGSCBuffer;
     ID3D11Buffer *GenericPSCBuffer;
     ID3D11Buffer *PublicCBuffers[20];
-    ID3D11VertexShader *GenericVS, *WireframeVS, *MeshVS, *WireframeHomogVS, *FullscreenVS;
+    ID3D11VertexShader *GenericVS, *MeshVS, *FullscreenVS;
     ID3D11GeometryShader *MeshGS, *TriangleSizeGS;
     ID3D11PixelShader *TexDisplayPS, *OverlayPS, *WireframePS, *MeshPS, *CheckerboardPS,
         *TriangleSizePS;
@@ -561,9 +556,6 @@ private:
 
     byte *MeshVSBytecode;
     uint32_t MeshVSBytelen;
-
-    byte *MeshHomogVSBytecode;
-    uint32_t MeshHomogVSBytelen;
 
     int publicCBufIdx;
 
