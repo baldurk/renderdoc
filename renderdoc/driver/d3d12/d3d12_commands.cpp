@@ -162,7 +162,10 @@ WrappedID3D12CommandQueue::WrappedID3D12CommandQueue(ID3D12CommandQueue *real,
   }
   else
   {
-    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser);
+    // make serialisers smaller by default since we create a lot of these internally for small
+    // commands.
+    // User lists will quickly grow to a steady-state over time.
+    m_pSerialiser = new Serialiser(NULL, Serialiser::WRITING, debugSerialiser, 256);
 
     m_pSerialiser->SetDebugText(debugSerialiser);
   }

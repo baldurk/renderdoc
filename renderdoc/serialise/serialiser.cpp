@@ -634,7 +634,7 @@ Serialiser::Serialiser(size_t length, const byte *memoryBuf, bool fileheader)
   }
 }
 
-Serialiser::Serialiser(const char *path, Mode mode, bool debugMode)
+Serialiser::Serialiser(const char *path, Mode mode, bool debugMode, uint64_t sizeHint)
     : m_pCallstack(NULL), m_pResolver(NULL), m_Buffer(NULL)
 {
   m_ResolverThread = 0;
@@ -935,7 +935,7 @@ Serialiser::Serialiser(const char *path, Mode mode, bool debugMode)
     }
     else
     {
-      m_BufferSize = 128 * 1024;
+      m_BufferSize = sizeHint;
       m_BufferHead = m_Buffer = AllocAlignedBuffer((size_t)m_BufferSize);
     }
   }

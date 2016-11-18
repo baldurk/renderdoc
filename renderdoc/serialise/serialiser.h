@@ -199,7 +199,7 @@ public:
   // Init and error handling
 
   Serialiser(size_t length, const byte *memoryBuf, bool fileheader);
-  Serialiser(const char *path, Mode mode, bool debugMode = false);
+  Serialiser(const char *path, Mode mode, bool debugMode, uint64_t sizeHint = 128 * 1024);
   ~Serialiser();
 
   bool HasError() { return m_HasError; }
