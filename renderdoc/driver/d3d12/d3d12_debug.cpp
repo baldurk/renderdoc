@@ -2370,6 +2370,7 @@ uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
   if(cfg.position.idxByteWidth && ib)
   {
+    sdesc.Buffer.FirstElement = cfg.position.idxoffs / (cfg.position.idxByteWidth);
     sdesc.Buffer.NumElements = cfg.position.numVerts;
     m_WrappedDevice->CreateShaderResourceView(ib, &sdesc, GetCPUHandle(PICK_IB_SRV));
   }
@@ -2379,6 +2380,7 @@ uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     m_WrappedDevice->CreateShaderResourceView(NULL, &sdesc, GetCPUHandle(PICK_IB_SRV));
   }
 
+  sdesc.Buffer.FirstElement = 0;
   sdesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
 
   if(vb)
