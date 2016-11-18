@@ -240,8 +240,8 @@ FetchTexture D3D12Replay::GetTexture(ResourceId id)
 
 ShaderReflection *D3D12Replay::GetShader(ResourceId shader, string entryPoint)
 {
-  WrappedID3D12PipelineState::ShaderEntry *sh =
-      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState::ShaderEntry>(shader);
+  WrappedID3D12Shader *sh =
+      m_pDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(shader);
 
   if(sh)
     return &sh->GetDetails();
@@ -944,8 +944,7 @@ void D3D12Replay::MakePipelineState()
 
   if(pipe && pipe->IsCompute())
   {
-    WrappedID3D12PipelineState::ShaderEntry *sh =
-        (WrappedID3D12PipelineState::ShaderEntry *)pipe->compute->CS.pShaderBytecode;
+    WrappedID3D12Shader *sh = (WrappedID3D12Shader *)pipe->compute->CS.pShaderBytecode;
 
     state.m_CS.Shader = sh->GetResourceID();
     state.m_CS.stage = eShaderStage_Compute;
@@ -975,8 +974,7 @@ void D3D12Replay::MakePipelineState()
 
       dst.stage = (ShaderStageType)stage;
 
-      WrappedID3D12PipelineState::ShaderEntry *sh =
-          (WrappedID3D12PipelineState::ShaderEntry *)src.pShaderBytecode;
+      WrappedID3D12Shader *sh = (WrappedID3D12Shader *)src.pShaderBytecode;
 
       if(sh)
       {
@@ -1331,13 +1329,13 @@ void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uin
 
   ID3D12DeviceChild *res = m_pDevice->GetResourceManager()->GetCurrentResource(shader);
 
-  if(!WrappedID3D12PipelineState::ShaderEntry::IsAlloc(res))
+  if(!WrappedID3D12Shader::IsAlloc(res))
   {
     RDCERR("Shader ID %llu does not correspond to a known fake shader", shader);
     return;
   }
 
-  WrappedID3D12PipelineState::ShaderEntry *sh = (WrappedID3D12PipelineState::ShaderEntry *)res;
+  WrappedID3D12Shader *sh = (WrappedID3D12Shader *)res;
 
   DXBC::DXBCFile *dxbc = sh->GetDXBC();
   const ShaderBindpointMapping &bindMap = sh->GetMapping();
@@ -1498,10 +1496,9 @@ void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
   {
     ID3D12DeviceChild *resource = rm->GetLiveResource(from);
 
-    if(WrappedID3D12PipelineState::ShaderEntry::IsAlloc(resource))
+    if(WrappedID3D12Shader::IsAlloc(resource))
     {
-      WrappedID3D12PipelineState::ShaderEntry *sh =
-          (WrappedID3D12PipelineState::ShaderEntry *)resource;
+      WrappedID3D12Shader *sh = (WrappedID3D12Shader *)resource;
 
       for(size_t i = 0; i < sh->m_Pipes.size(); i++)
       {
@@ -1511,8 +1508,7 @@ void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
 
         ID3D12PipelineState *replpipe = NULL;
 
-        D3D12_SHADER_BYTECODE shDesc =
-            rm->GetLiveAs<WrappedID3D12PipelineState::ShaderEntry>(to)->GetDesc();
+        D3D12_SHADER_BYTECODE shDesc = rm->GetLiveAs<WrappedID3D12Shader>(to)->GetDesc();
 
         if(pipe->graphics)
         {
@@ -1526,8 +1522,7 @@ void D3D12Replay::ReplaceResource(ResourceId from, ResourceId to)
           {
             if(shaders[s]->BytecodeLength > 0)
             {
-              WrappedID3D12PipelineState::ShaderEntry *stage =
-                  (WrappedID3D12PipelineState::ShaderEntry *)shaders[s]->pShaderBytecode;
+              WrappedID3D12Shader *stage = (WrappedID3D12Shader *)shaders[s]->pShaderBytecode;
 
               if(stage->GetResourceID() == from)
                 *shaders[s] = shDesc;
@@ -1568,10 +1563,9 @@ void D3D12Replay::RemoveReplacement(ResourceId id)
   {
     ID3D12DeviceChild *resource = rm->GetLiveResource(id);
 
-    if(WrappedID3D12PipelineState::ShaderEntry::IsAlloc(resource))
+    if(WrappedID3D12Shader::IsAlloc(resource))
     {
-      WrappedID3D12PipelineState::ShaderEntry *sh =
-          (WrappedID3D12PipelineState::ShaderEntry *)resource;
+      WrappedID3D12Shader *sh = (WrappedID3D12Shader *)resource;
 
       for(size_t i = 0; i < sh->m_Pipes.size(); i++)
       {

@@ -29,12 +29,11 @@
 
 GPUAddressRangeTracker WrappedID3D12Resource::m_Addresses;
 std::map<ResourceId, WrappedID3D12Resource *> *WrappedID3D12Resource::m_List = NULL;
-std::map<WrappedID3D12PipelineState::DXBCKey, WrappedID3D12PipelineState::ShaderEntry *>
-    WrappedID3D12PipelineState::m_Shaders;
+std::map<WrappedID3D12PipelineState::DXBCKey, WrappedID3D12Shader *> WrappedID3D12PipelineState::m_Shaders;
 
 const GUID RENDERDOC_ID3D12ShaderGUID_ShaderDebugMagicValue = RENDERDOC_ShaderDebugMagicValue_struct;
 
-void WrappedID3D12PipelineState::ShaderEntry::TryReplaceOriginalByteCode()
+void WrappedID3D12Shader::TryReplaceOriginalByteCode()
 {
   if(!DXBC::DXBCFile::CheckForDebugInfo((const void *)&m_Bytecode[0], m_Bytecode.size()))
   {
@@ -145,7 +144,7 @@ void WrappedID3D12PipelineState::ShaderEntry::TryReplaceOriginalByteCode()
 
 ALL_D3D12_TYPES;
 
-WRAPPED_POOL_INST(WrappedID3D12PipelineState::ShaderEntry);
+WRAPPED_POOL_INST(WrappedID3D12Shader);
 
 D3D12ResourceType IdentifyTypeByPtr(ID3D12DeviceChild *ptr)
 {
@@ -181,8 +180,8 @@ TrackedResource12 *GetTracked(ID3D12DeviceChild *ptr)
 
   ALL_D3D12_TYPES;
 
-  if(WrappedID3D12PipelineState::ShaderEntry::IsAlloc(ptr))
-    return (TrackedResource12 *)(WrappedID3D12PipelineState::ShaderEntry *)ptr;
+  if(WrappedID3D12Shader::IsAlloc(ptr))
+    return (TrackedResource12 *)(WrappedID3D12Shader *)ptr;
 
   return NULL;
 }

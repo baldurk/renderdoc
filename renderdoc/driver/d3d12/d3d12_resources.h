@@ -453,53 +453,6 @@ public:
 
   bool IsGraphics() { return graphics != NULL; }
   bool IsCompute() { return compute != NULL; }
-  D3D12_COMPUTE_PIPELINE_STATE_DESC GetComputeDesc()
-  {
-    D3D12_COMPUTE_PIPELINE_STATE_DESC ret = *compute;
-
-    ret.CS = ((ShaderEntry *)compute->CS.pShaderBytecode)->GetDesc();
-
-    return ret;
-  }
-
-  D3D12_GRAPHICS_PIPELINE_STATE_DESC GetGraphicsDesc()
-  {
-    D3D12_GRAPHICS_PIPELINE_STATE_DESC ret = *graphics;
-
-    ShaderEntry *vs = (ShaderEntry *)graphics->VS.pShaderBytecode;
-    ShaderEntry *hs = (ShaderEntry *)graphics->HS.pShaderBytecode;
-    ShaderEntry *ds = (ShaderEntry *)graphics->DS.pShaderBytecode;
-    ShaderEntry *gs = (ShaderEntry *)graphics->GS.pShaderBytecode;
-    ShaderEntry *ps = (ShaderEntry *)graphics->PS.pShaderBytecode;
-
-    if(vs)
-      ret.VS = vs->GetDesc();
-    else
-      RDCEraseEl(ret.VS);
-
-    if(hs)
-      ret.HS = hs->GetDesc();
-    else
-      RDCEraseEl(ret.HS);
-
-    if(ds)
-      ret.DS = ds->GetDesc();
-    else
-      RDCEraseEl(ret.DS);
-
-    if(gs)
-      ret.GS = gs->GetDesc();
-    else
-      RDCEraseEl(ret.GS);
-
-    if(ps)
-      ret.PS = ps->GetDesc();
-    else
-      RDCEraseEl(ret.PS);
-
-    return ret;
-  }
-
   struct DXBCKey
   {
     DXBCKey(const D3D12_SHADER_BYTECODE &byteCode)
@@ -622,6 +575,59 @@ public:
     TypeEnum = Resource_PipelineState,
   };
 
+  ShaderEntry *VS() { return (ShaderEntry *)graphics->VS.pShaderBytecode; }
+  ShaderEntry *HS() { return (ShaderEntry *)graphics->HS.pShaderBytecode; }
+  ShaderEntry *DS() { return (ShaderEntry *)graphics->DS.pShaderBytecode; }
+  ShaderEntry *GS() { return (ShaderEntry *)graphics->GS.pShaderBytecode; }
+  ShaderEntry *PS() { return (ShaderEntry *)graphics->PS.pShaderBytecode; }
+  ShaderEntry *CS() { return (ShaderEntry *)compute->CS.pShaderBytecode; }
+  D3D12_COMPUTE_PIPELINE_STATE_DESC GetComputeDesc()
+  {
+    D3D12_COMPUTE_PIPELINE_STATE_DESC ret = *compute;
+
+    ret.CS = CS()->GetDesc();
+
+    return ret;
+  }
+
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC GetGraphicsDesc()
+  {
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC ret = *graphics;
+
+    ShaderEntry *vs = VS();
+    ShaderEntry *hs = HS();
+    ShaderEntry *ds = DS();
+    ShaderEntry *gs = GS();
+    ShaderEntry *ps = PS();
+
+    if(vs)
+      ret.VS = vs->GetDesc();
+    else
+      RDCEraseEl(ret.VS);
+
+    if(hs)
+      ret.HS = hs->GetDesc();
+    else
+      RDCEraseEl(ret.HS);
+
+    if(ds)
+      ret.DS = ds->GetDesc();
+    else
+      RDCEraseEl(ret.DS);
+
+    if(gs)
+      ret.GS = gs->GetDesc();
+    else
+      RDCEraseEl(ret.GS);
+
+    if(ps)
+      ret.PS = ps->GetDesc();
+    else
+      RDCEraseEl(ret.PS);
+
+    return ret;
+  }
+
   static ShaderEntry *AddShader(const D3D12_SHADER_BYTECODE &byteCode, WrappedID3D12Device *device,
                                 WrappedID3D12PipelineState *pipeline)
   {
@@ -663,26 +669,18 @@ public:
 
     if(graphics)
     {
-      ShaderEntry *vs = (ShaderEntry *)graphics->VS.pShaderBytecode;
-      ShaderEntry *hs = (ShaderEntry *)graphics->HS.pShaderBytecode;
-      ShaderEntry *ds = (ShaderEntry *)graphics->DS.pShaderBytecode;
-      ShaderEntry *gs = (ShaderEntry *)graphics->GS.pShaderBytecode;
-      ShaderEntry *ps = (ShaderEntry *)graphics->PS.pShaderBytecode;
-
-      ReleaseShader(vs);
-      ReleaseShader(hs);
-      ReleaseShader(ds);
-      ReleaseShader(gs);
-      ReleaseShader(ps);
+      ReleaseShader(VS());
+      ReleaseShader(HS());
+      ReleaseShader(DS());
+      ReleaseShader(GS());
+      ReleaseShader(PS());
 
       SAFE_DELETE(graphics);
     }
 
     if(compute)
     {
-      ShaderEntry *cs = (ShaderEntry *)compute->CS.pShaderBytecode;
-
-      ReleaseShader(cs);
+      ReleaseShader(CS());
 
       SAFE_DELETE(compute);
     }
@@ -699,6 +697,8 @@ public:
 private:
   static map<DXBCKey, ShaderEntry *> m_Shaders;
 };
+
+typedef WrappedID3D12PipelineState::ShaderEntry WrappedID3D12Shader;
 
 class WrappedID3D12QueryHeap : public WrappedDeviceChild12<ID3D12QueryHeap>
 {

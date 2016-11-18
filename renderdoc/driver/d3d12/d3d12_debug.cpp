@@ -2337,8 +2337,7 @@ void D3D12DebugManager::BuildShader(string source, string entry, const uint32_t 
   byteCode.BytecodeLength = blob->GetBufferSize();
   byteCode.pShaderBytecode = blob->GetBufferPointer();
 
-  WrappedID3D12PipelineState::ShaderEntry *sh =
-      WrappedID3D12PipelineState::AddShader(byteCode, m_WrappedDevice, NULL);
+  WrappedID3D12Shader *sh = WrappedID3D12PipelineState::AddShader(byteCode, m_WrappedDevice, NULL);
 
   SAFE_RELEASE(blob);
 
