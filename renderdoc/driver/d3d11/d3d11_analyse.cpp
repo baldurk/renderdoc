@@ -3990,7 +3990,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
           m_pImmediateContext->IASetInputLayout(m_MeshDisplayLayout);
           m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
-          m_pImmediateContext->PSSetConstantBuffers(0, 1, &psbuf);
+          m_pImmediateContext->PSSetConstantBuffers(1, 1, &psbuf);
           m_pImmediateContext->GSSetConstantBuffers(0, 1, &gsbuf);
           m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
           m_pImmediateContext->GSSetShader(m_DebugRender.TriangleSizeGS, NULL, 0);

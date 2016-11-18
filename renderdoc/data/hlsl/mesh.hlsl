@@ -98,7 +98,7 @@ void RENDERDOC_TriangleSizeGS(triangle wireframeV2F input[3], inout TriangleStre
 
 #define NUM_RAMP_COLOURS 128
 
-cbuffer triangleRampCBuf : register(b0)
+cbuffer triangleRampCBuf : register(b1)
 {
 	const float4 overdrawRampColours[NUM_RAMP_COLOURS];
 };

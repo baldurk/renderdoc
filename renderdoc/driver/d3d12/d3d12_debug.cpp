@@ -6399,6 +6399,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       psoDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
       psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0xf;
       psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
+      RDCEraseEl(psoDesc.RTVFormats);
       psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
       psoDesc.NumRenderTargets = 1;
       psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
@@ -6471,6 +6472,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       psoDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
       psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0xf;
       psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
+      RDCEraseEl(psoDesc.RTVFormats);
       psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
       psoDesc.NumRenderTargets = 1;
       psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
@@ -6564,6 +6566,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       psoDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
       psoDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = 0xf;
       psoDesc.BlendState.RenderTarget[0].LogicOpEnable = FALSE;
+      RDCEraseEl(psoDesc.RTVFormats);
       psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
       psoDesc.NumRenderTargets = 1;
       psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
@@ -6729,6 +6732,190 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
   }
   else if(overlay == eTexOverlay_TriangleSizeDraw || overlay == eTexOverlay_TriangleSizePass)
   {
+    if(pipe && pipe->IsGraphics())
+    {
+      SCOPED_TIMER("Triangle size");
+
+      vector<uint32_t> events = passEvents;
+
+      if(overlay == eTexOverlay_TriangleSizeDraw)
+        events.clear();
+
+      while(!events.empty())
+      {
+        const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(events[0]);
+
+        // remove any non-drawcalls, like the pass boundary.
+        if((draw->flags & eDraw_Drawcall) == 0)
+          events.erase(events.begin());
+        else
+          break;
+      }
+
+      events.push_back(eventID);
+
+      D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = pipe->GetGraphicsDesc();
+      pipeDesc.pRootSignature = m_CBOnlyRootSig;
+      pipeDesc.SampleMask = 0xFFFFFFFF;
+      pipeDesc.SampleDesc.Count = 1;
+      pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+
+      pipeDesc.NumRenderTargets = 1;
+      RDCEraseEl(pipeDesc.RTVFormats);
+      pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
+      pipeDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
+      pipeDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+      pipeDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+      pipeDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+      pipeDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
+      pipeDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+      pipeDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+      pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+      D3D12_INPUT_ELEMENT_DESC ia[2] = {};
+      ia[0].SemanticName = "pos";
+      ia[0].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      ia[1].SemanticName = "sec";
+      ia[1].Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+      ia[1].InputSlot = 1;
+      ia[1].InputSlotClass = D3D12_INPUT_CLASSIFICATION_PER_INSTANCE_DATA;
+
+      pipeDesc.InputLayout.NumElements = 2;
+      pipeDesc.InputLayout.pInputElementDescs = ia;
+
+      pipeDesc.VS.BytecodeLength = m_MeshVS->GetBufferSize();
+      pipeDesc.VS.pShaderBytecode = m_MeshVS->GetBufferPointer();
+      RDCEraseEl(pipeDesc.HS);
+      RDCEraseEl(pipeDesc.DS);
+      pipeDesc.GS.BytecodeLength = m_TriangleSizeGS->GetBufferSize();
+      pipeDesc.GS.pShaderBytecode = m_TriangleSizeGS->GetBufferPointer();
+      pipeDesc.PS.BytecodeLength = m_TriangleSizePS->GetBufferSize();
+      pipeDesc.PS.pShaderBytecode = m_TriangleSizePS->GetBufferPointer();
+
+      pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+
+      if(pipeDesc.DepthStencilState.DepthFunc == D3D12_COMPARISON_FUNC_GREATER)
+        pipeDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_GREATER_EQUAL;
+      if(pipeDesc.DepthStencilState.DepthFunc == D3D12_COMPARISON_FUNC_LESS)
+        pipeDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_LESS_EQUAL;
+
+      // enough for all primitive topology types
+      ID3D12PipelineState *pipes[D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH + 1] = {};
+
+      DebugVertexCBuffer vertexData = {};
+      vertexData.LineStrip = 0;
+      vertexData.ModelViewProj = Matrix4f::Identity();
+      vertexData.SpriteSize = Vec2f();
+
+      Vec4f viewport(rs.views[0].Width, rs.views[0].Height);
+
+      if(rs.dsv.heap != ResourceId())
+      {
+        WrappedID3D12DescriptorHeap *realDSVHeap =
+            m_WrappedDevice->GetResourceManager()->GetLiveAs<WrappedID3D12DescriptorHeap>(rs.dsv.heap);
+
+        D3D12_CPU_DESCRIPTOR_HANDLE realDSV = realDSVHeap->GetCPUDescriptorHandleForHeapStart();
+        realDSV.ptr += sizeof(D3D12Descriptor) * rs.dsv.index;
+
+        list->OMSetRenderTargets(1, &rtv, TRUE, &realDSV);
+      }
+
+      list->RSSetViewports(1, &rs.views[0]);
+
+      D3D12_RECT scissor = {0, 0, 16384, 16384};
+      list->RSSetScissorRects(1, &scissor);
+
+      list->SetGraphicsRootSignature(m_CBOnlyRootSig);
+
+      list->SetGraphicsRootConstantBufferView(0, UploadConstants(&vertexData, sizeof(vertexData)));
+      list->SetGraphicsRootConstantBufferView(
+          1, UploadConstants(&overdrawRamp[0].x, sizeof(overdrawRamp)));
+      list->SetGraphicsRootConstantBufferView(2, UploadConstants(&viewport, sizeof(viewport)));
+      list->SetGraphicsRoot32BitConstants(3, 4, &viewport.x, 0);
+
+      for(size_t i = 0; i < events.size(); i++)
+      {
+        const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(events[i]);
+
+        for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
+        {
+          MeshFormat fmt = GetPostVSBuffers(events[i], inst, eMeshDataStage_GSOut);
+          if(fmt.buf == ResourceId())
+            fmt = GetPostVSBuffers(events[i], inst, eMeshDataStage_VSOut);
+
+          if(fmt.buf != ResourceId())
+          {
+            D3D_PRIMITIVE_TOPOLOGY topo = MakeD3DPrimitiveTopology(fmt.topo);
+
+            if(topo == D3D_PRIMITIVE_TOPOLOGY_POINTLIST ||
+               topo >= D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST)
+              pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+            else if(topo == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP ||
+                    topo == D3D_PRIMITIVE_TOPOLOGY_LINELIST ||
+                    topo == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ ||
+                    topo == D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ)
+              pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;
+            else
+              pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+
+            list->IASetPrimitiveTopology(topo);
+
+            if(pipes[pipeDesc.PrimitiveTopologyType] == NULL)
+            {
+              HRESULT hr = m_WrappedDevice->CreateGraphicsPipelineState(
+                  &pipeDesc, __uuidof(ID3D12PipelineState),
+                  (void **)&pipes[pipeDesc.PrimitiveTopologyType]);
+              RDCASSERTEQUAL(hr, S_OK);
+            }
+
+            ID3D12Resource *vb =
+                m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.buf);
+
+            D3D12_VERTEX_BUFFER_VIEW vbView = {};
+            vbView.BufferLocation = vb->GetGPUVirtualAddress() + fmt.offset;
+            vbView.StrideInBytes = fmt.stride;
+            vbView.SizeInBytes = UINT(vb->GetDesc().Width - fmt.offset);
+
+            // second bind is just a dummy, so we don't have to make a shader
+            // that doesn't accept the secondary stream
+            list->IASetVertexBuffers(0, 1, &vbView);
+            list->IASetVertexBuffers(1, 1, &vbView);
+
+            list->SetPipelineState(pipes[pipeDesc.PrimitiveTopologyType]);
+
+            if(fmt.idxByteWidth && fmt.idxbuf != ResourceId())
+            {
+              ID3D12Resource *ib =
+                  m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(fmt.idxbuf);
+
+              D3D12_INDEX_BUFFER_VIEW view;
+              view.BufferLocation = ib->GetGPUVirtualAddress() + fmt.idxoffs;
+              view.SizeInBytes = UINT(ib->GetDesc().Width - fmt.idxoffs);
+              view.Format = fmt.idxByteWidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+              list->IASetIndexBuffer(&view);
+
+              list->DrawIndexedInstanced(fmt.numVerts, 1, 0, fmt.baseVertex, 0);
+            }
+            else
+            {
+              list->DrawInstanced(fmt.numVerts, 1, 0, 0);
+            }
+          }
+        }
+      }
+
+      list->Close();
+      list = NULL;
+
+      m_WrappedDevice->ExecuteLists();
+      m_WrappedDevice->FlushLists();
+
+      for(size_t i = 0; i < ARRAY_COUNT(pipes); i++)
+        SAFE_RELEASE(pipes[i]);
+    }
+
+    // restore back to normal
+    m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
   }
   else if(overlay == eTexOverlay_QuadOverdrawPass || overlay == eTexOverlay_QuadOverdrawDraw)
   {
@@ -6890,6 +7077,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
         psoDesc.DepthStencilState.DepthFunc = D3D12_COMPARISON_FUNC_ALWAYS;
       }
 
+      RDCEraseEl(psoDesc.RTVFormats);
       psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
       psoDesc.NumRenderTargets = 1;
       psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
