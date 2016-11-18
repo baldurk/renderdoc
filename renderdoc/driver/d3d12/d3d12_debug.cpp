@@ -2441,8 +2441,24 @@ uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
     bool valid = true;
 
+    uint32_t idxclamp = 0;
+    if(cfg.position.baseVertex < 0)
+      idxclamp = uint32_t(-cfg.position.baseVertex);
+
     for(uint32_t i = 0; i < cfg.position.numVerts; i++)
-      vbData[i] = InterpretVertex(data, i, cfg, dataEnd, false, valid);
+    {
+      uint32_t idx = i;
+
+      // apply baseVertex but clamp to 0 (don't allow index to become negative)
+      if(idx < idxclamp)
+        idx = 0;
+      else if(cfg.position.baseVertex < 0)
+        idx -= idxclamp;
+      else if(cfg.position.baseVertex > 0)
+        idx += cfg.position.baseVertex;
+
+      vbData[i] = InterpretVertex(data, idx, cfg, dataEnd, false, valid);
+    }
 
     FillBuffer(m_PickVB, 0, vbData, sizeof(Vec4f) * cfg.position.numVerts);
 
