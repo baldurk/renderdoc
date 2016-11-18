@@ -822,7 +822,9 @@ public:
 class WrappedID3D12RootSignature : public WrappedDeviceChild12<ID3D12RootSignature>
 {
 public:
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12RootSignature);
+  static const int AllocPoolCount = 8192;
+  static const int AllocMaxByteSize = 2 * 1024 * 1024;
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12RootSignature, AllocPoolCount, AllocMaxByteSize);
 
   D3D12RootSignature sig;
 
