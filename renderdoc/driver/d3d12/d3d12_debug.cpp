@@ -669,6 +669,18 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Couldn't create m_CheckerboardPipe! 0x%08x", hr);
   }
 
+  pipeDesc.SampleDesc.Count = D3D12_MSAA_SAMPLECOUNT;
+
+  hr = m_WrappedDevice->CreateGraphicsPipelineState(&pipeDesc, __uuidof(ID3D12PipelineState),
+                                                    (void **)&m_CheckerboardMSAAPipe);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't create m_CheckerboardMSAAPipe! 0x%08x", hr);
+  }
+
+  pipeDesc.SampleDesc.Count = 1;
+
   pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
 
   pipeDesc.VS.BytecodeLength = FullscreenVS->GetBufferSize();
@@ -1317,6 +1329,7 @@ D3D12DebugManager::~D3D12DebugManager()
 
   SAFE_RELEASE(m_CBOnlyRootSig);
   SAFE_RELEASE(m_CheckerboardPipe);
+  SAFE_RELEASE(m_CheckerboardMSAAPipe);
   SAFE_RELEASE(m_OutlinePipe);
 
   SAFE_RELEASE(m_QuadOverdrawWritePS);
@@ -1622,11 +1635,13 @@ ID3D12Resource *D3D12DebugManager::MakeCBuffer(UINT64 size)
 void D3D12DebugManager::OutputWindow::MakeRTV(bool multisampled)
 {
   SAFE_RELEASE(col);
+  SAFE_RELEASE(colResolve);
 
   D3D12_RESOURCE_DESC texDesc = bb[0]->GetDesc();
 
+  texDesc.Alignment = 0;
   texDesc.Format = DXGI_FORMAT_R8G8B8A8_UNORM_SRGB;
-  texDesc.SampleDesc.Count = multisampled ? 1 : 1;
+  texDesc.SampleDesc.Count = multisampled ? D3D12_MSAA_SAMPLECOUNT : 1;
   texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
 
   D3D12_HEAP_PROPERTIES heapProps;
@@ -1636,14 +1651,33 @@ void D3D12DebugManager::OutputWindow::MakeRTV(bool multisampled)
   heapProps.CreationNodeMask = 1;
   heapProps.VisibleNodeMask = 1;
 
-  HRESULT hr = dev->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
-                                            D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
-                                            __uuidof(ID3D12Resource), (void **)&col);
+  HRESULT hr = S_OK;
+
+  hr = dev->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
+                                    D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
+                                    __uuidof(ID3D12Resource), (void **)&col);
 
   if(FAILED(hr))
   {
     RDCERR("Failed to create colour texture for window, HRESULT: 0x%08x", hr);
     return;
+  }
+
+  colResolve = NULL;
+
+  if(multisampled)
+  {
+    texDesc.SampleDesc.Count = 1;
+
+    hr = dev->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &texDesc,
+                                      D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
+                                      __uuidof(ID3D12Resource), (void **)&colResolve);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create resolve texture for window, HRESULT: 0x%08x", hr);
+      return;
+    }
   }
 
   dev->CreateRenderTargetView(col, NULL, rtv);
@@ -1653,6 +1687,7 @@ void D3D12DebugManager::OutputWindow::MakeRTV(bool multisampled)
     RDCERR("Failed to create RTV for main window, HRESULT: 0x%08x", hr);
     SAFE_RELEASE(swap);
     SAFE_RELEASE(col);
+    SAFE_RELEASE(colResolve);
     SAFE_RELEASE(depth);
     SAFE_RELEASE(bb[0]);
     SAFE_RELEASE(bb[1]);
@@ -1666,7 +1701,8 @@ void D3D12DebugManager::OutputWindow::MakeDSV()
 
   D3D12_RESOURCE_DESC texDesc = bb[0]->GetDesc();
 
-  texDesc.SampleDesc.Count = 1;
+  texDesc.Alignment = 0;
+  texDesc.SampleDesc.Count = D3D12_MSAA_SAMPLECOUNT;
   texDesc.Format = DXGI_FORMAT_D32_FLOAT;
   texDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_DEPTH_STENCIL;
 
@@ -1694,6 +1730,7 @@ void D3D12DebugManager::OutputWindow::MakeDSV()
     RDCERR("Failed to create DSV for output window, HRESULT: 0x%08x", hr);
     SAFE_RELEASE(swap);
     SAFE_RELEASE(col);
+    SAFE_RELEASE(colResolve);
     SAFE_RELEASE(depth);
     SAFE_RELEASE(bb[0]);
     SAFE_RELEASE(bb[1]);
@@ -1749,6 +1786,7 @@ uint64_t D3D12DebugManager::MakeOutputWindow(WindowingSystem system, void *data,
   outw.dsv.ptr += SIZE_T(m_DSVID) * sizeof(D3D12Descriptor);
 
   outw.col = NULL;
+  outw.colResolve = NULL;
   outw.MakeRTV(depth);
   m_WrappedDevice->CreateRenderTargetView(outw.col, NULL, outw.rtv);
 
@@ -1776,6 +1814,7 @@ void D3D12DebugManager::DestroyOutputWindow(uint64_t id)
   SAFE_RELEASE(outw.bb[0]);
   SAFE_RELEASE(outw.bb[1]);
   SAFE_RELEASE(outw.col);
+  SAFE_RELEASE(outw.colResolve);
   SAFE_RELEASE(outw.depth);
 
   m_OutputWindows.erase(it);
@@ -1911,30 +1950,48 @@ void D3D12DebugManager::FlipOutputWindow(uint64_t id)
   if(m_OutputWindows[id].bb[0] == NULL)
     return;
 
-  D3D12_RESOURCE_BARRIER barriers[2];
+  D3D12_RESOURCE_BARRIER barriers[3];
   RDCEraseEl(barriers);
 
   barriers[0].Transition.pResource = outw.col;
   barriers[0].Transition.StateBefore = D3D12_RESOURCE_STATE_RENDER_TARGET;
-  barriers[0].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+  barriers[0].Transition.StateAfter =
+      outw.depth ? D3D12_RESOURCE_STATE_RESOLVE_SOURCE : D3D12_RESOURCE_STATE_COPY_SOURCE;
 
   barriers[1].Transition.pResource = outw.bb[outw.bbIdx];
   barriers[1].Transition.StateBefore = D3D12_RESOURCE_STATE_PRESENT;
   barriers[1].Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_DEST;
 
+  barriers[2].Transition.pResource = outw.colResolve;
+  barriers[2].Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
+  barriers[2].Transition.StateAfter = D3D12_RESOURCE_STATE_RESOLVE_DEST;
+
   ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
-  // transition colour to copy source, backbuffer to copy test
-  list->ResourceBarrier(2, barriers);
-
   // resolve or copy from colour to backbuffer
-  /*
   if(outw.depth)
-    list->ResolveSubresource(barriers[1].Transition.pResource, 0, barriers[0].Transition.pResource,
+  {
+    // transition colour to resolve source, resolve target to resolve dest, backbuffer to copy dest
+    list->ResourceBarrier(3, barriers);
+
+    // resolve then copy, as the resolve can't go from SRGB to non-SRGB target
+    list->ResolveSubresource(barriers[2].Transition.pResource, 0, barriers[0].Transition.pResource,
                              0, DXGI_FORMAT_R8G8B8A8_UNORM_SRGB);
+
+    std::swap(barriers[2].Transition.StateBefore, barriers[2].Transition.StateAfter);
+
+    // now move the resolve target into copy source
+    list->ResourceBarrier(1, &barriers[2]);
+
+    list->CopyResource(barriers[1].Transition.pResource, barriers[2].Transition.pResource);
+  }
   else
-  */
-  list->CopyResource(barriers[1].Transition.pResource, barriers[0].Transition.pResource);
+  {
+    // transition colour to copy source, backbuffer to copy dest
+    list->ResourceBarrier(2, barriers);
+
+    list->CopyResource(barriers[1].Transition.pResource, barriers[0].Transition.pResource);
+  }
 
   std::swap(barriers[0].Transition.StateBefore, barriers[0].Transition.StateAfter);
   std::swap(barriers[1].Transition.StateBefore, barriers[1].Transition.StateAfter);
@@ -4533,7 +4590,7 @@ void D3D12DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
 
     list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-    list->SetPipelineState(m_CheckerboardPipe);
+    list->SetPipelineState(outw.depth ? m_CheckerboardMSAAPipe : m_CheckerboardPipe);
 
     list->SetGraphicsRootSignature(m_CBOnlyRootSig);
 
@@ -4827,7 +4884,7 @@ D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipel
   pipeDesc.pRootSignature = m_CBOnlyRootSig;
   pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
   pipeDesc.SampleMask = 0xFFFFFFFF;
-  pipeDesc.SampleDesc.Count = 1;
+  pipeDesc.SampleDesc.Count = D3D12_MSAA_SAMPLECOUNT;
   pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
   D3D_PRIMITIVE_TOPOLOGY topo = MakeD3DPrimitiveTopology(primary.topo);
 

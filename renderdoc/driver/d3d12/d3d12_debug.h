@@ -33,6 +33,8 @@
 class WrappedID3D12Device;
 class D3D12ResourceManager;
 
+#define D3D12_MSAA_SAMPLECOUNT 4
+
 class D3D12DebugManager
 {
 public:
@@ -127,6 +129,7 @@ private:
     ID3D12Resource *bb[2];
     uint32_t bbIdx;
     ID3D12Resource *col;
+    ID3D12Resource *colResolve;
     ID3D12Resource *depth;
     D3D12_CPU_DESCRIPTOR_HANDLE rtv;
     D3D12_CPU_DESCRIPTOR_HANDLE dsv;
@@ -252,6 +255,7 @@ private:
 
   ID3D12RootSignature *m_CBOnlyRootSig;
   ID3D12PipelineState *m_CheckerboardPipe;
+  ID3D12PipelineState *m_CheckerboardMSAAPipe;
   ID3D12PipelineState *m_OutlinePipe;
 
   ID3DBlob *m_QuadOverdrawWritePS;
