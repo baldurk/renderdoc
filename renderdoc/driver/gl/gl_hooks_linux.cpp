@@ -49,6 +49,7 @@ typedef GLXContext (*PFNGLXCREATECONTEXTPROC)(Display *dpy, XVisualInfo *vis, GL
 typedef void (*PFNGLXDESTROYCONTEXTPROC)(Display *dpy, GLXContext ctx);
 typedef const char *(*PFNGLXQUERYEXTENSIONSSTRING)(Display *dpy, int screen);
 typedef Bool (*PFNGLXMAKECURRENTPROC)(Display *dpy, GLXDrawable drawable, GLXContext ctx);
+typedef GLXContext (*PFNGLXGETCURRENTCONTEXTPROC)();
 typedef void (*PFNGLXSWAPBUFFERSPROC)(Display *dpy, GLXDrawable drawable);
 typedef XVisualInfo *(*PFNGLXGETVISUALFROMFBCONFIGPROC)(Display *dpy, GLXFBConfig config);
 typedef int (*PFNGLXGETCONFIGPROC)(Display *dpy, XVisualInfo *vis, int attrib, int *value);
@@ -544,6 +545,7 @@ public:
   PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB_real;
   PFNGLXGETPROCADDRESSPROC glXGetProcAddress_real;
   PFNGLXMAKECURRENTPROC glXMakeCurrent_real;
+  PFNGLXGETCURRENTCONTEXTPROC glXGetCurrentContext_real;
   PFNGLXSWAPBUFFERSPROC glXSwapBuffers_real;
   PFNGLXGETCONFIGPROC glXGetConfig_real;
   PFNGLXGETVISUALFROMFBCONFIGPROC glXGetVisualFromFBConfig_real;
@@ -1060,6 +1062,18 @@ __attribute__((visibility("default"))) Bool glXMakeCurrent(Display *dpy, GLXDraw
   return ret;
 }
 
+__attribute__((visibility("default"))) GLXContext glXGetCurrentContext()
+{
+  if(OpenGLHook::glhooks.glXGetCurrentContext_real == NULL)
+    OpenGLHook::glhooks.SetupExportedFunctions();
+
+  GLXContext ret = OpenGLHook::glhooks.glXGetCurrentContext_real();
+
+  //TODO: check with OpenGLHook::glhooks.GetDriver()
+
+  return ret;
+}
+
 __attribute__((visibility("default"))) void glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 {
   if(OpenGLHook::glhooks.glXSwapBuffers_real == NULL)
@@ -1100,6 +1114,8 @@ bool OpenGLHook::SetupHooks(GLHookSet &GL)
         (PFNGLXCREATECONTEXTATTRIBSARBPROC)dlsym(libGLdlsymHandle, "glXCreateContextAttribsARB");
   if(glXMakeCurrent_real == NULL)
     glXMakeCurrent_real = (PFNGLXMAKECURRENTPROC)dlsym(libGLdlsymHandle, "glXMakeCurrent");
+  if(glXGetCurrentContext_real == NULL)
+    glXGetCurrentContext_real = (PFNGLXGETCURRENTCONTEXTPROC)dlsym(libGLdlsymHandle, "glXGetCurrentContext");
   if(glXSwapBuffers_real == NULL)
     glXSwapBuffers_real = (PFNGLXSWAPBUFFERSPROC)dlsym(libGLdlsymHandle, "glXSwapBuffers");
   if(glXGetConfig_real == NULL)
