@@ -73,7 +73,7 @@ cbuffer DebugGeometryCBuffer REG(b0)
   row_major float4x4 InvProj;
 };
 
-cbuffer DebugPixelCBufferData REG(b1)
+cbuffer DebugPixelCBufferData REG(b0)
 {
   float4 Channels;
 

@@ -241,7 +241,7 @@ MultipleOutput RENDERDOC_WireframePS(wireframeV2F IN)
 	return OUT;
 }
 
-cbuffer overlayconsts : register(b1)
+cbuffer overlayconsts : register(b0)
 {
 	float4 overlaycol;
 };

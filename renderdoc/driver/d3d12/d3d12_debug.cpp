@@ -370,7 +370,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   // PS CBV
   param.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
-  param.Descriptor.ShaderRegister = 1;
+  param.Descriptor.ShaderRegister = 0;
 
   rootSig.push_back(param);
 

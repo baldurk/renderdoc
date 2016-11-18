@@ -3454,7 +3454,7 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
     if(customPS == NULL)
     {
       m_pImmediateContext->PSSetShader(m_DebugRender.TexDisplayPS, NULL, 0);
-      m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
     }
     else
     {
@@ -3531,7 +3531,7 @@ void D3D11DebugManager::RenderHighlightBox(float w, float h, float scale)
   m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
   m_pImmediateContext->OMSetBlendState(NULL, NULL, 0xffffffff);
 
-  m_pImmediateContext->PSSetConstantBuffers(1, 1, &pconst);
+  m_pImmediateContext->PSSetConstantBuffers(0, 1, &pconst);
   m_pImmediateContext->VSSetConstantBuffers(0, 1, &vconst);
 
   m_pImmediateContext->Draw(5, 0);
@@ -3547,7 +3547,7 @@ void D3D11DebugManager::RenderHighlightBox(float w, float h, float scale)
   pconst = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
 
   m_pImmediateContext->VSSetConstantBuffers(0, 1, &vconst);
-  m_pImmediateContext->PSSetConstantBuffers(1, 1, &pconst);
+  m_pImmediateContext->PSSetConstantBuffers(0, 1, &pconst);
   m_pImmediateContext->Draw(5, 0);
 }
 
@@ -3594,7 +3594,7 @@ void D3D11DebugManager::RenderCheckerboard(Vec3f light, Vec3f dark)
     m_pImmediateContext->RSSetState(m_DebugRender.RastState);
 
     m_pImmediateContext->PSSetShader(m_DebugRender.CheckerboardPS, NULL, 0);
-    m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 
     float factor[4] = {1.0f, 1.0f, 1.0f, 1.0f};
     m_pImmediateContext->OMSetBlendState(NULL, factor, 0xffffffff);
@@ -4539,7 +4539,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
   pixelData.WireframeColour = Vec3f(0.0f, 0.0f, 0.0f);
   FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
-  m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
+  m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
   m_pImmediateContext->PSSetShader(m_DebugRender.WireframePS, NULL, 0);
 
   m_pImmediateContext->HSSetShader(NULL, NULL, 0);
@@ -4648,7 +4648,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     FillCBuffer(m_DebugRender.GenericVSCBuffer, &vertexData, sizeof(DebugVertexCBuffer));
 
     m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
-    m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 
     Vec4f meshColour;
 
@@ -4761,7 +4761,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
       m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
 
-      m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 
       if(cfg.solidShadeMode == eShade_Lit)
       {
@@ -4800,7 +4800,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
       m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
 
-      m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 
       if(cfg.position.topo >= eTopology_PatchList_1CPs)
         m_pImmediateContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
@@ -4827,14 +4827,14 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
     m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
     m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
-    m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
     m_pImmediateContext->PSSetShader(m_DebugRender.WireframePS, NULL, 0);
   }
 
   // axis markers
   if(!cfg.position.unproject)
   {
-    m_pImmediateContext->PSSetConstantBuffers(1, 1, &m_DebugRender.GenericPSCBuffer);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &m_DebugRender.GenericPSCBuffer);
 
     UINT strides[] = {sizeof(Vec4f)};
     UINT offsets[] = {0};

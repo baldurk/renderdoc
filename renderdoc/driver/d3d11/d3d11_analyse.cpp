@@ -3516,7 +3516,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
     float overlayConsts[] = {0.8f, 0.1f, 0.8f, 1.0f};
     ID3D11Buffer *buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
 
-    m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
     m_pImmediateContext->RSSetState(rs);
 
@@ -3596,7 +3596,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
     float overlayConsts[] = {1.0f, 0.0f, 0.0f, 1.0f};
     ID3D11Buffer *buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
 
-    m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
     m_pImmediateContext->RSSetState(rs);
 
@@ -3607,7 +3607,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
     buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
 
-    m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
     m_pImmediateContext->RSSetState(rsCull);
 
@@ -3720,7 +3720,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
     ID3D11Buffer *buf = MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
 
-    m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
     m_pImmediateContext->Draw(3, 0);
 
@@ -3747,7 +3747,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
       buf = MakeCBuffer(&pixelData, sizeof(DebugPixelCBufferData));
 
-      m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
       m_pImmediateContext->Draw(3, 0);
     }
@@ -3817,7 +3817,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
     overlayConsts[3] = 1.0f;
     ID3D11Buffer *buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
 
-    m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+    m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
     m_pImmediateContext->RSSetState(rs);
 
@@ -3989,7 +3989,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
           m_pImmediateContext->IASetInputLayout(m_MeshDisplayLayout);
           m_pImmediateContext->VSSetConstantBuffers(0, 1, &m_DebugRender.GenericVSCBuffer);
-          m_pImmediateContext->PSSetConstantBuffers(1, 1, &psbuf);
+          m_pImmediateContext->PSSetConstantBuffers(0, 1, &psbuf);
           m_pImmediateContext->GSSetConstantBuffers(0, 1, &gsbuf);
           m_pImmediateContext->VSSetShader(m_DebugRender.MeshVS, NULL, 0);
           m_pImmediateContext->GSSetShader(m_DebugRender.TriangleSizeGS, NULL, 0);
@@ -4373,7 +4373,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
       ID3D11Buffer *buf = MakeCBuffer(redConsts, sizeof(redConsts));
 
-      m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
       m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 
@@ -4408,7 +4408,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
       buf = MakeCBuffer(greenConsts, sizeof(greenConsts));
 
-      m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
       m_pImmediateContext->PSSetShader(m_DebugRender.OverlayPS, NULL, 0);
 
@@ -4468,7 +4468,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       float overlayConsts[] = {0.0f, 1.0f, 0.0f, 1.0f};
       ID3D11Buffer *buf = MakeCBuffer(overlayConsts, sizeof(overlayConsts));
 
-      m_pImmediateContext->PSSetConstantBuffers(1, 1, &buf);
+      m_pImmediateContext->PSSetConstantBuffers(0, 1, &buf);
 
       m_pImmediateContext->RSSetState(rs);
 
