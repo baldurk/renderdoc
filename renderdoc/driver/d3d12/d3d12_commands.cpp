@@ -657,6 +657,9 @@ WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
   if(m_pReal)
     m_pDevice->GetResourceManager()->RemoveWrapper(m_pReal);
 
+  if(m_ListRecord && m_ListRecord->bakedCommands)
+    m_ListRecord->bakedCommands->Delete(m_pDevice->GetResourceManager());
+
   m_pDevice->GetResourceManager()->ReleaseCurrentResource(GetResourceID());
 
   SAFE_RELEASE(m_WrappedDebug.m_pReal);

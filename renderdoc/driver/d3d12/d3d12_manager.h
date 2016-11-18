@@ -382,7 +382,7 @@ struct D3D12ResourceRecord : public ResourceRecord
         bakedCommands(NULL)
   {
   }
-  ~D3D12ResourceRecord() {}
+  ~D3D12ResourceRecord() { SAFE_DELETE(cmdInfo); }
   void Bake()
   {
     RDCASSERT(cmdInfo);
