@@ -92,6 +92,12 @@ public:
                             vector<ShaderVariable> &outvars, bool flattenVec4s,
                             const vector<byte> &data);
 
+  void InitPostVSBuffers(uint32_t eventID);
+
+  // indicates that EID alias is the same as eventID
+  void AliasPostVSBuffers(uint32_t eventID, uint32_t alias) { m_PostVSAlias[alias] = eventID; }
+  MeshFormat GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage);
+
   void GetBufferData(ResourceId buff, uint64_t offset, uint64_t length, vector<byte> &retData);
   void GetBufferData(ID3D12Resource *buff, uint64_t offset, uint64_t length, vector<byte> &retData);
 
@@ -156,6 +162,7 @@ private:
 
     OVERDRAW_SRV,
     OVERDRAW_UAV,
+    STREAM_OUT_UAV,
   };
 
   enum RTVSlot
@@ -310,10 +317,63 @@ private:
     ID3D12PipelineState *pipes[ePipe_Count];
   };
 
+  struct PostVSData
+  {
+    struct StageData
+    {
+      ID3D12Resource *buf;
+      D3D_PRIMITIVE_TOPOLOGY topo;
+
+      uint32_t numVerts;
+      uint32_t vertStride;
+      uint32_t instStride;
+
+      bool useIndices;
+      ID3D12Resource *idxBuf;
+      DXGI_FORMAT idxFmt;
+
+      bool hasPosOut;
+
+      float nearPlane;
+      float farPlane;
+    } vsin, vsout, gsout;
+
+    PostVSData()
+    {
+      RDCEraseEl(vsin);
+      RDCEraseEl(vsout);
+      RDCEraseEl(gsout);
+    }
+
+    const StageData &GetStage(MeshDataStage type)
+    {
+      if(type == eMeshDataStage_VSOut)
+        return vsout;
+      else if(type == eMeshDataStage_GSOut)
+        return gsout;
+      else
+        RDCERR("Unexpected mesh data stage!");
+
+      return vsin;
+    }
+  };
+
   MeshDisplayPipelines CacheMeshDisplayPipelines(const MeshFormat &primary,
                                                  const MeshFormat &secondary);
 
   map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
+
+  static const int m_SOBufferSize = 32 * 1024 * 1024;
+  ID3D12Resource *m_SOBuffer;
+  ID3D12Resource *m_SOStagingBuffer;
+
+  // this is a buffer of unique indices, so it allows for
+  // the worst case - float4 per vertex, all unique indices.
+  static const int m_SOPatchedIndexBufferSize = m_SOBufferSize / 16;
+  ID3D12Resource *m_SOPatchedIndexBuffer;
+
+  map<uint32_t, PostVSData> m_PostVSData;
+  map<uint32_t, uint32_t> m_PostVSAlias;
 
   // simple cache for when we need buffer data for highlighting
   // vertices, typical use will be lots of vertices in the same

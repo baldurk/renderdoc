@@ -201,6 +201,66 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   }
 
   {
+    D3D12_RESOURCE_DESC soBufDesc;
+    soBufDesc.Alignment = 0;
+    soBufDesc.DepthOrArraySize = 1;
+    soBufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    // need to allow UAV access to reset the counter each time
+    soBufDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    soBufDesc.Format = DXGI_FORMAT_UNKNOWN;
+    soBufDesc.Height = 1;
+    soBufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    soBufDesc.MipLevels = 1;
+    soBufDesc.SampleDesc.Count = 1;
+    soBufDesc.SampleDesc.Quality = 0;
+    // add 64 bytes for the counter at the start
+    soBufDesc.Width = m_SOBufferSize + 64;
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc,
+                                                  D3D12_RESOURCE_STATE_STREAM_OUT, NULL,
+                                                  __uuidof(ID3D12Resource), (void **)&m_SOBuffer);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create SO output buffer, HRESULT: 0x%08x", hr);
+      return;
+    }
+
+    soBufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+    heapProps.Type = D3D12_HEAP_TYPE_READBACK;
+
+    hr = m_WrappedDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+        __uuidof(ID3D12Resource), (void **)&m_SOStagingBuffer);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create readback buffer, HRESULT: 0x%08x", hr);
+      return;
+    }
+
+    soBufDesc.Width = m_SOPatchedIndexBufferSize;
+    heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+
+    hr = m_WrappedDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &soBufDesc, D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+        __uuidof(ID3D12Resource), (void **)&m_SOPatchedIndexBuffer);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create SO index buffer, HRESULT: 0x%08x", hr);
+      return;
+    }
+  }
+
+  {
     D3D12_RESOURCE_DESC readbackDesc;
     readbackDesc.Alignment = 0;
     readbackDesc.DepthOrArraySize = 1;
@@ -1117,6 +1177,14 @@ D3D12DebugManager::~D3D12DebugManager()
     for(size_t p = 0; p < MeshDisplayPipelines::ePipe_Count; p++)
       SAFE_RELEASE(it->second.pipes[p]);
 
+  for(auto it = m_PostVSData.begin(); it != m_PostVSData.end(); ++it)
+  {
+    SAFE_RELEASE(it->second.vsout.buf);
+    SAFE_RELEASE(it->second.vsout.idxBuf);
+    SAFE_RELEASE(it->second.gsout.buf);
+    SAFE_RELEASE(it->second.gsout.idxBuf);
+  }
+
   SAFE_RELEASE(m_pFactory);
 
   SAFE_RELEASE(dsvHeap);
@@ -1141,6 +1209,9 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_QuadResolvePipe);
 
   SAFE_RELEASE(m_PickPixelTex);
+
+  SAFE_RELEASE(m_SOBuffer);
+  SAFE_RELEASE(m_SOStagingBuffer);
 
   SAFE_RELEASE(m_HistogramRootSig);
   for(int t = RESTYPE_TEX1D; t <= RESTYPE_TEX2D_MS; t++)
@@ -2934,6 +3005,961 @@ byte *D3D12DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint3
   return ret;
 }
 
+void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
+{
+  // go through any aliasing
+  if(m_PostVSAlias.find(eventID) != m_PostVSAlias.end())
+    eventID = m_PostVSAlias[eventID];
+
+  if(m_PostVSData.find(eventID) != m_PostVSData.end())
+    return;
+
+  D3D12CommandData *cmd = m_WrappedDevice->GetQueue()->GetCommandData();
+  const D3D12RenderState &rs = cmd->m_RenderState;
+
+  if(rs.pipe == ResourceId())
+    return;
+
+  WrappedID3D12PipelineState *origPSO =
+      m_WrappedDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12PipelineState>(rs.pipe);
+
+  if(!origPSO->IsGraphics())
+    return;
+
+  D3D12_GRAPHICS_PIPELINE_STATE_DESC psoDesc = origPSO->GetGraphicsDesc();
+
+  if(psoDesc.VS.BytecodeLength == 0)
+    return;
+
+  WrappedID3D12Shader *vs = origPSO->VS();
+
+  D3D_PRIMITIVE_TOPOLOGY topo = rs.topo;
+
+  const FetchDrawcall *drawcall = m_WrappedDevice->GetDrawcall(eventID);
+
+  if(drawcall->numIndices == 0)
+    return;
+
+  DXBC::DXBCFile *dxbcVS = vs->GetDXBC();
+
+  RDCASSERT(dxbcVS);
+
+  DXBC::DXBCFile *dxbcGS = NULL;
+
+  WrappedID3D12Shader *gs = origPSO->GS();
+
+  if(gs)
+  {
+    dxbcGS = gs->GetDXBC();
+
+    RDCASSERT(dxbcGS);
+  }
+
+  DXBC::DXBCFile *dxbcDS = NULL;
+
+  WrappedID3D12Shader *ds = origPSO->DS();
+
+  if(ds)
+  {
+    dxbcDS = ds->GetDXBC();
+
+    RDCASSERT(dxbcDS);
+  }
+
+  ID3D12RootSignature *soSig = NULL;
+
+  HRESULT hr = S_OK;
+
+  {
+    WrappedID3D12RootSignature *sig =
+        m_WrappedDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12RootSignature>(
+            rs.graphics.rootsig);
+
+    D3D12RootSignature rootsig = sig->sig;
+
+    // create a root signature that allows stream out, if necessary
+    if((rootsig.Flags & D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT) == 0)
+    {
+      rootsig.Flags |= D3D12_ROOT_SIGNATURE_FLAG_ALLOW_STREAM_OUTPUT;
+
+      ID3DBlob *blob = MakeRootSig(rootsig);
+
+      hr = m_WrappedDevice->CreateRootSignature(0, blob->GetBufferPointer(), blob->GetBufferSize(),
+                                                __uuidof(ID3D12RootSignature), (void **)&soSig);
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't enable stream-out in root signature: 0x%08x", hr);
+        return;
+      }
+
+      SAFE_RELEASE(blob);
+    }
+  }
+
+  vector<D3D12_SO_DECLARATION_ENTRY> sodecls;
+
+  UINT stride = 0;
+  int posidx = -1;
+  int numPosComponents = 0;
+
+  if(!dxbcVS->m_OutputSig.empty())
+  {
+    for(size_t i = 0; i < dxbcVS->m_OutputSig.size(); i++)
+    {
+      SigParameter &sign = dxbcVS->m_OutputSig[i];
+
+      D3D12_SO_DECLARATION_ENTRY decl;
+
+      decl.Stream = 0;
+      decl.OutputSlot = 0;
+
+      decl.SemanticName = sign.semanticName.elems;
+      decl.SemanticIndex = sign.semanticIndex;
+      decl.StartComponent = 0;
+      decl.ComponentCount = sign.compCount & 0xff;
+
+      if(sign.systemValue == eAttr_Position)
+      {
+        posidx = (int)sodecls.size();
+        numPosComponents = decl.ComponentCount = 4;
+      }
+
+      stride += decl.ComponentCount * sizeof(float);
+      sodecls.push_back(decl);
+    }
+
+    // shift position attribute up to first, keeping order otherwise
+    // the same
+    if(posidx > 0)
+    {
+      D3D12_SO_DECLARATION_ENTRY pos = sodecls[posidx];
+      sodecls.erase(sodecls.begin() + posidx);
+      sodecls.insert(sodecls.begin(), pos);
+    }
+
+    // set up stream output entries and buffers
+    psoDesc.StreamOutput.NumEntries = (UINT)sodecls.size();
+    psoDesc.StreamOutput.pSODeclaration = &sodecls[0];
+    psoDesc.StreamOutput.NumStrides = 1;
+    psoDesc.StreamOutput.pBufferStrides = &stride;
+    psoDesc.StreamOutput.RasterizedStream = D3D12_SO_NO_RASTERIZED_STREAM;
+
+    // disable all other shader stages
+    psoDesc.HS.BytecodeLength = 0;
+    psoDesc.HS.pShaderBytecode = NULL;
+    psoDesc.DS.BytecodeLength = 0;
+    psoDesc.DS.pShaderBytecode = NULL;
+    psoDesc.GS.BytecodeLength = 0;
+    psoDesc.GS.pShaderBytecode = NULL;
+    psoDesc.PS.BytecodeLength = 0;
+    psoDesc.PS.pShaderBytecode = NULL;
+
+    // disable any rasterization/use of output targets
+    psoDesc.DepthStencilState.DepthEnable = FALSE;
+    psoDesc.DepthStencilState.DepthWriteMask = D3D12_DEPTH_WRITE_MASK_ZERO;
+    psoDesc.DepthStencilState.StencilEnable = FALSE;
+
+    if(soSig)
+      psoDesc.pRootSignature = soSig;
+
+    // render as points
+    psoDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
+
+    // disable outputs
+    psoDesc.NumRenderTargets = 0;
+    RDCEraseEl(psoDesc.RTVFormats);
+    psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+
+    ID3D12PipelineState *pipe = NULL;
+    hr = m_WrappedDevice->CreateGraphicsPipelineState(&psoDesc, __uuidof(ID3D12PipelineState),
+                                                      (void **)&pipe);
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create patched graphics pipeline: 0x%08x", hr);
+      SAFE_RELEASE(soSig);
+      return;
+    }
+
+    ID3D12Resource *idxBuf = NULL;
+
+    if((drawcall->flags & eDraw_UseIBuffer) == 0)
+    {
+      m_DebugList->Reset(m_DebugAlloc, NULL);
+
+      rs.ApplyState(m_DebugList);
+
+      m_DebugList->SetPipelineState(pipe);
+
+      if(soSig)
+      {
+        m_DebugList->SetGraphicsRootSignature(soSig);
+        rs.ApplyGraphicsRootElements(m_DebugList);
+      }
+
+      D3D12_STREAM_OUTPUT_BUFFER_VIEW view;
+      view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
+      view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
+      view.SizeInBytes = m_SOBufferSize;
+      m_DebugList->SOSetTargets(0, 1, &view);
+
+      m_DebugList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+      m_DebugList->DrawInstanced(drawcall->numIndices, drawcall->numInstances,
+                                 drawcall->vertexOffset, drawcall->instanceOffset);
+    }
+    else    // drawcall is indexed
+    {
+      vector<byte> idxdata;
+      GetBufferData(rs.ibuffer.buf, rs.ibuffer.offs + drawcall->indexOffset * rs.ibuffer.bytewidth,
+                    RDCMIN(drawcall->numIndices * rs.ibuffer.bytewidth, rs.ibuffer.size), idxdata);
+
+      vector<uint32_t> indices;
+
+      uint16_t *idx16 = (uint16_t *)&idxdata[0];
+      uint32_t *idx32 = (uint32_t *)&idxdata[0];
+
+      // only read as many indices as were available in the buffer
+      uint32_t numIndices =
+          RDCMIN(uint32_t(idxdata.size() / rs.ibuffer.bytewidth), drawcall->numIndices);
+
+      uint32_t idxclamp = 0;
+      if(drawcall->baseVertex < 0)
+        idxclamp = uint32_t(-drawcall->baseVertex);
+
+      // grab all unique vertex indices referenced
+      for(uint32_t i = 0; i < numIndices; i++)
+      {
+        uint32_t i32 = rs.ibuffer.bytewidth == 2 ? uint32_t(idx16[i]) : idx32[i];
+
+        // apply baseVertex but clamp to 0 (don't allow index to become negative)
+        if(i32 < idxclamp)
+          i32 = 0;
+        else if(drawcall->baseVertex < 0)
+          i32 -= idxclamp;
+        else if(drawcall->baseVertex > 0)
+          i32 += drawcall->baseVertex;
+
+        auto it = std::lower_bound(indices.begin(), indices.end(), i32);
+
+        if(it != indices.end() && *it == i32)
+          continue;
+
+        indices.insert(it, i32);
+      }
+
+      // if we read out of bounds, we'll also have a 0 index being referenced
+      // (as 0 is read). Don't insert 0 if we already have 0 though
+      if(numIndices < drawcall->numIndices && (indices.empty() || indices[0] != 0))
+        indices.insert(indices.begin(), 0);
+
+      // An index buffer could be something like: 500, 501, 502, 501, 503, 502
+      // in which case we can't use the existing index buffer without filling 499 slots of vertex
+      // data with padding. Instead we rebase the indices based on the smallest vertex so it becomes
+      // 0, 1, 2, 1, 3, 2 and then that matches our stream-out'd buffer.
+      //
+      // Note that there could also be gaps, like: 500, 501, 502, 510, 511, 512
+      // which would become 0, 1, 2, 3, 4, 5 and so the old index buffer would no longer be valid.
+      // We just stream-out a tightly packed list of unique indices, and then remap the index buffer
+      // so that what did point to 500 points to 0 (accounting for rebasing), and what did point
+      // to 510 now points to 3 (accounting for the unique sort).
+
+      // we use a map here since the indices may be sparse. Especially considering if an index
+      // is 'invalid' like 0xcccccccc then we don't want an array of 3.4 billion entries.
+      map<uint32_t, size_t> indexRemap;
+      for(size_t i = 0; i < indices.size(); i++)
+      {
+        // by definition, this index will only appear once in indices[]
+        indexRemap[indices[i]] = i;
+      }
+
+      if(indices.size() > m_SOPatchedIndexBufferSize / sizeof(uint32_t))
+      {
+        RDCWARN("Too many unique indices, clamping.");
+        indices.resize(m_SOPatchedIndexBufferSize / sizeof(uint32_t));
+      }
+
+      FillBuffer(m_SOPatchedIndexBuffer, 0, &indices[0], indices.size() * sizeof(uint32_t));
+
+      D3D12_INDEX_BUFFER_VIEW patchedIB;
+
+      patchedIB.BufferLocation = m_SOPatchedIndexBuffer->GetGPUVirtualAddress();
+      patchedIB.Format = DXGI_FORMAT_R32_UINT;
+      patchedIB.SizeInBytes = UINT(indices.size() * sizeof(uint32_t));
+
+      m_DebugList->Reset(m_DebugAlloc, NULL);
+
+      rs.ApplyState(m_DebugList);
+
+      m_DebugList->SetPipelineState(pipe);
+
+      m_DebugList->IASetIndexBuffer(&patchedIB);
+
+      if(soSig)
+      {
+        m_DebugList->SetGraphicsRootSignature(soSig);
+        rs.ApplyGraphicsRootElements(m_DebugList);
+      }
+
+      D3D12_STREAM_OUTPUT_BUFFER_VIEW view;
+      view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
+      view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
+      view.SizeInBytes = m_SOBufferSize;
+      m_DebugList->SOSetTargets(0, 1, &view);
+
+      m_DebugList->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_POINTLIST);
+
+      m_DebugList->DrawIndexedInstanced((UINT)indices.size(), drawcall->numInstances, 0, 0,
+                                        drawcall->instanceOffset);
+
+      // rebase existing index buffer to point to the right elements in our stream-out'd
+      // vertex buffer
+      for(uint32_t i = 0; i < numIndices; i++)
+      {
+        uint32_t i32 = rs.ibuffer.bytewidth == 2 ? uint32_t(idx16[i]) : idx32[i];
+
+        // apply baseVertex but clamp to 0 (don't allow index to become negative)
+        if(i32 < idxclamp)
+          i32 = 0;
+        else if(drawcall->baseVertex < 0)
+          i32 -= idxclamp;
+        else if(drawcall->baseVertex > 0)
+          i32 += drawcall->baseVertex;
+
+        if(rs.ibuffer.bytewidth == 2)
+          idx16[i] = uint16_t(indexRemap[i32]);
+        else
+          idx32[i] = uint32_t(indexRemap[i32]);
+      }
+
+      idxBuf = NULL;
+
+      if(!idxdata.empty())
+      {
+        D3D12_RESOURCE_DESC idxBufDesc;
+        idxBufDesc.Alignment = 0;
+        idxBufDesc.DepthOrArraySize = 1;
+        idxBufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+        idxBufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+        idxBufDesc.Format = DXGI_FORMAT_UNKNOWN;
+        idxBufDesc.Height = 1;
+        idxBufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+        idxBufDesc.MipLevels = 1;
+        idxBufDesc.SampleDesc.Count = 1;
+        idxBufDesc.SampleDesc.Quality = 0;
+        idxBufDesc.Width = idxdata.size();
+
+        D3D12_HEAP_PROPERTIES heapProps;
+        heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+        heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+        heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+        heapProps.CreationNodeMask = 1;
+        heapProps.VisibleNodeMask = 1;
+
+        hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &idxBufDesc,
+                                                      D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+                                                      __uuidof(ID3D12Resource), (void **)&idxBuf);
+        RDCASSERTEQUAL(hr, S_OK);
+
+        FillBuffer(idxBuf, 0, &idxdata[0], idxdata.size());
+      }
+    }
+
+    D3D12_RESOURCE_BARRIER sobarr = {};
+    sobarr.Transition.pResource = m_SOBuffer;
+    sobarr.Transition.StateBefore = D3D12_RESOURCE_STATE_STREAM_OUT;
+    sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+    m_DebugList->ResourceBarrier(1, &sobarr);
+
+    m_DebugList->CopyResource(m_SOStagingBuffer, m_SOBuffer);
+
+    // we're done with this after the copy, so we can discard it and reset
+    // the counter for the next stream-out
+    sobarr.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    m_DebugList->DiscardResource(m_SOBuffer, NULL);
+    m_DebugList->ResourceBarrier(1, &sobarr);
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC counterDesc = {};
+    counterDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+    counterDesc.Format = DXGI_FORMAT_R32_UINT;
+    counterDesc.Buffer.FirstElement = 0;
+    counterDesc.Buffer.NumElements = 4;
+
+    m_WrappedDevice->CreateUnorderedAccessView(m_SOBuffer, NULL, &counterDesc,
+                                               GetCPUHandle(STREAM_OUT_UAV));
+
+    UINT zeroes[4] = {0, 0, 0, 0};
+    m_DebugList->ClearUnorderedAccessViewUint(
+        GetGPUHandle(STREAM_OUT_UAV), GetCPUHandle(STREAM_OUT_UAV), m_SOBuffer, zeroes, 0, NULL);
+
+    m_DebugList->Close();
+
+    ID3D12CommandList *l = m_DebugList;
+    m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
+    m_WrappedDevice->GPUSync();
+    m_DebugAlloc->Reset();
+
+    SAFE_RELEASE(pipe);
+
+    byte *byteData = NULL;
+    D3D12_RANGE range = {0, m_SOBufferSize};
+    hr = m_SOStagingBuffer->Map(0, &range, (void **)&byteData);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to map sobuffer %08x", hr);
+      SAFE_RELEASE(idxBuf);
+      SAFE_RELEASE(soSig);
+      return;
+    }
+
+    range.End = 0;
+
+    uint64_t numBytesWritten = *(uint64_t *)byteData;
+
+    if(numBytesWritten == 0)
+    {
+      m_PostVSData[eventID] = PostVSData();
+      SAFE_RELEASE(idxBuf);
+      SAFE_RELEASE(soSig);
+      return;
+    }
+
+    // skip past the counter
+    byteData += 64;
+
+    if(numBytesWritten >= m_SOBufferSize)
+    {
+      RDCERR("Generated output data too large: %08x", numBytesWritten);
+
+      m_SOStagingBuffer->Unmap(0, &range);
+      SAFE_RELEASE(idxBuf);
+      SAFE_RELEASE(soSig);
+      return;
+    }
+
+    uint64_t numPrims = numBytesWritten / stride;
+
+    ID3D12Resource *vsoutBuffer = NULL;
+
+    {
+      D3D12_RESOURCE_DESC vertBufDesc;
+      vertBufDesc.Alignment = 0;
+      vertBufDesc.DepthOrArraySize = 1;
+      vertBufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      vertBufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+      vertBufDesc.Format = DXGI_FORMAT_UNKNOWN;
+      vertBufDesc.Height = 1;
+      vertBufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      vertBufDesc.MipLevels = 1;
+      vertBufDesc.SampleDesc.Count = 1;
+      vertBufDesc.SampleDesc.Quality = 0;
+      vertBufDesc.Width = numBytesWritten;
+
+      D3D12_HEAP_PROPERTIES heapProps;
+      heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      heapProps.CreationNodeMask = 1;
+      heapProps.VisibleNodeMask = 1;
+
+      hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &vertBufDesc,
+                                                    D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+                                                    __uuidof(ID3D12Resource), (void **)&vsoutBuffer);
+      RDCASSERTEQUAL(hr, S_OK);
+
+      if(vsoutBuffer)
+        FillBuffer(vsoutBuffer, 0, byteData, numBytesWritten);
+    }
+
+    float nearp = 0.1f;
+    float farp = 100.0f;
+
+    Vec4f *pos0 = (Vec4f *)byteData;
+
+    bool found = false;
+
+    for(uint64_t i = 1; numPosComponents == 4 && i < numPrims; i++)
+    {
+      //////////////////////////////////////////////////////////////////////////////////
+      // derive near/far, assuming a standard perspective matrix
+      //
+      // the transformation from from pre-projection {Z,W} to post-projection {Z,W}
+      // is linear. So we can say Zpost = Zpre*m + c . Here we assume Wpre = 1
+      // and we know Wpost = Zpre from the perspective matrix.
+      // we can then see from the perspective matrix that
+      // m = F/(F-N)
+      // c = -(F*N)/(F-N)
+      //
+      // with re-arranging and substitution, we then get:
+      // N = -c/m
+      // F = c/(1-m)
+      //
+      // so if we can derive m and c then we can determine N and F. We can do this with
+      // two points, and we pick them reasonably distinct on z to reduce floating-point
+      // error
+
+      Vec4f *pos = (Vec4f *)(byteData + i * stride);
+
+      if(fabs(pos->w - pos0->w) > 0.01f && fabs(pos->z - pos0->z) > 0.01f)
+      {
+        Vec2f A(pos0->w, pos0->z);
+        Vec2f B(pos->w, pos->z);
+
+        float m = (B.y - A.y) / (B.x - A.x);
+        float c = B.y - B.x * m;
+
+        if(m == 1.0f)
+          continue;
+
+        nearp = -c / m;
+        farp = c / (1 - m);
+
+        found = true;
+
+        break;
+      }
+    }
+
+    // if we didn't find anything, all z's and w's were identical.
+    // If the z is positive and w greater for the first element then
+    // we detect this projection as reversed z with infinite far plane
+    if(!found && pos0->z > 0.0f && pos0->w > pos0->z)
+    {
+      nearp = pos0->z;
+      farp = FLT_MAX;
+    }
+
+    m_SOStagingBuffer->Unmap(0, &range);
+
+    m_PostVSData[eventID].vsin.topo = topo;
+    m_PostVSData[eventID].vsout.buf = vsoutBuffer;
+    m_PostVSData[eventID].vsout.vertStride = stride;
+    m_PostVSData[eventID].vsout.nearPlane = nearp;
+    m_PostVSData[eventID].vsout.farPlane = farp;
+
+    m_PostVSData[eventID].vsout.useIndices = (drawcall->flags & eDraw_UseIBuffer) > 0;
+    m_PostVSData[eventID].vsout.numVerts = drawcall->numIndices;
+
+    m_PostVSData[eventID].vsout.instStride = 0;
+    if(drawcall->flags & eDraw_Instanced)
+      m_PostVSData[eventID].vsout.instStride =
+          uint32_t(numBytesWritten / RDCMAX(1U, drawcall->numInstances));
+
+    m_PostVSData[eventID].vsout.idxBuf = NULL;
+    if(m_PostVSData[eventID].vsout.useIndices && idxBuf)
+    {
+      m_PostVSData[eventID].vsout.idxBuf = idxBuf;
+      m_PostVSData[eventID].vsout.idxFmt =
+          rs.ibuffer.bytewidth == 2 ? DXGI_FORMAT_R16_UINT : DXGI_FORMAT_R32_UINT;
+    }
+
+    m_PostVSData[eventID].vsout.hasPosOut = posidx >= 0;
+
+    m_PostVSData[eventID].vsout.topo = topo;
+  }
+  else
+  {
+    // empty vertex output signature
+    m_PostVSData[eventID].vsin.topo = topo;
+    m_PostVSData[eventID].vsout.buf = NULL;
+    m_PostVSData[eventID].vsout.instStride = 0;
+    m_PostVSData[eventID].vsout.vertStride = 0;
+    m_PostVSData[eventID].vsout.nearPlane = 0.0f;
+    m_PostVSData[eventID].vsout.farPlane = 0.0f;
+    m_PostVSData[eventID].vsout.useIndices = false;
+    m_PostVSData[eventID].vsout.hasPosOut = false;
+    m_PostVSData[eventID].vsout.idxBuf = NULL;
+
+    m_PostVSData[eventID].vsout.topo = topo;
+  }
+
+  if(dxbcGS || dxbcDS)
+  {
+    stride = 0;
+    posidx = -1;
+    numPosComponents = 0;
+
+    DXBC::DXBCFile *lastShader = dxbcGS;
+    if(dxbcDS)
+      lastShader = dxbcDS;
+
+    sodecls.clear();
+    for(size_t i = 0; i < lastShader->m_OutputSig.size(); i++)
+    {
+      SigParameter &sign = lastShader->m_OutputSig[i];
+
+      D3D12_SO_DECLARATION_ENTRY decl;
+
+      // for now, skip streams that aren't stream 0
+      if(sign.stream != 0)
+        continue;
+
+      decl.Stream = 0;
+      decl.OutputSlot = 0;
+
+      decl.SemanticName = sign.semanticName.elems;
+      decl.SemanticIndex = sign.semanticIndex;
+      decl.StartComponent = 0;
+      decl.ComponentCount = sign.compCount & 0xff;
+
+      if(sign.systemValue == eAttr_Position)
+      {
+        posidx = (int)sodecls.size();
+        numPosComponents = decl.ComponentCount = 4;
+      }
+
+      stride += decl.ComponentCount * sizeof(float);
+      sodecls.push_back(decl);
+    }
+
+    // shift position attribute up to first, keeping order otherwise
+    // the same
+    if(posidx > 0)
+    {
+      D3D12_SO_DECLARATION_ENTRY pos = sodecls[posidx];
+      sodecls.erase(sodecls.begin() + posidx);
+      sodecls.insert(sodecls.begin(), pos);
+    }
+
+    // enable the other shader stages again
+    if(origPSO->DS())
+      psoDesc.DS = origPSO->DS()->GetDesc();
+    if(origPSO->HS())
+      psoDesc.HS = origPSO->HS()->GetDesc();
+    if(origPSO->GS())
+      psoDesc.GS = origPSO->GS()->GetDesc();
+
+    // configure new SO declarations
+    psoDesc.StreamOutput.NumEntries = (UINT)sodecls.size();
+    psoDesc.StreamOutput.pSODeclaration = &sodecls[0];
+    psoDesc.StreamOutput.NumStrides = 1;
+    psoDesc.StreamOutput.pBufferStrides = &stride;
+
+    // we're using the same topology this time
+    psoDesc.PrimitiveTopologyType = origPSO->graphics->PrimitiveTopologyType;
+
+    ID3D12PipelineState *pipe = NULL;
+    hr = m_WrappedDevice->CreateGraphicsPipelineState(&psoDesc, __uuidof(ID3D12PipelineState),
+                                                      (void **)&pipe);
+    if(FAILED(hr))
+    {
+      RDCERR("Couldn't create patched graphics pipeline: 0x%08x", hr);
+      SAFE_RELEASE(soSig);
+      return;
+    }
+
+    m_DebugList->Reset(m_DebugAlloc, NULL);
+
+    rs.ApplyState(m_DebugList);
+
+    m_DebugList->SetPipelineState(pipe);
+
+    if(soSig)
+    {
+      m_DebugList->SetGraphicsRootSignature(soSig);
+      rs.ApplyGraphicsRootElements(m_DebugList);
+    }
+
+    D3D12_STREAM_OUTPUT_BUFFER_VIEW view;
+    view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
+    view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
+    view.SizeInBytes = m_SOBufferSize;
+    m_DebugList->SOSetTargets(0, 1, &view);
+
+    // because the result is expanded we don't have to remap index buffers or anything
+    if(drawcall->flags & eDraw_UseIBuffer)
+    {
+      m_DebugList->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
+                                        drawcall->indexOffset, drawcall->baseVertex,
+                                        drawcall->instanceOffset);
+    }
+    else
+    {
+      m_DebugList->DrawInstanced(drawcall->numIndices, drawcall->numInstances,
+                                 drawcall->vertexOffset, drawcall->instanceOffset);
+    }
+
+    D3D12_RESOURCE_BARRIER sobarr = {};
+    sobarr.Transition.pResource = m_SOBuffer;
+    sobarr.Transition.StateBefore = D3D12_RESOURCE_STATE_STREAM_OUT;
+    sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_COPY_SOURCE;
+
+    m_DebugList->ResourceBarrier(1, &sobarr);
+
+    m_DebugList->CopyResource(m_SOStagingBuffer, m_SOBuffer);
+
+    // we're done with this after the copy, so we can discard it and reset
+    // the counter for the next stream-out
+    sobarr.Transition.StateBefore = D3D12_RESOURCE_STATE_COPY_SOURCE;
+    sobarr.Transition.StateAfter = D3D12_RESOURCE_STATE_UNORDERED_ACCESS;
+    m_DebugList->DiscardResource(m_SOBuffer, NULL);
+    m_DebugList->ResourceBarrier(1, &sobarr);
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC counterDesc = {};
+    counterDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+    counterDesc.Format = DXGI_FORMAT_R32_UINT;
+    counterDesc.Buffer.FirstElement = 0;
+    counterDesc.Buffer.NumElements = 4;
+
+    UINT zeroes[4] = {0, 0, 0, 0};
+    m_DebugList->ClearUnorderedAccessViewUint(
+        GetGPUHandle(STREAM_OUT_UAV), GetCPUHandle(STREAM_OUT_UAV), m_SOBuffer, zeroes, 0, NULL);
+
+    m_DebugList->Close();
+
+    ID3D12CommandList *l = m_DebugList;
+    m_WrappedDevice->GetQueue()->ExecuteCommandLists(1, &l);
+    m_WrappedDevice->GPUSync();
+    m_DebugAlloc->Reset();
+
+    SAFE_RELEASE(pipe);
+
+    byte *byteData = NULL;
+    D3D12_RANGE range = {0, m_SOBufferSize};
+    hr = m_SOStagingBuffer->Map(0, &range, (void **)&byteData);
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to map sobuffer %08x", hr);
+      SAFE_RELEASE(soSig);
+      return;
+    }
+
+    range.End = 0;
+
+    uint64_t numBytesWritten = *(uint64_t *)byteData;
+
+    if(numBytesWritten == 0)
+    {
+      SAFE_RELEASE(soSig);
+      return;
+    }
+
+    // skip past the counter
+    byteData += 64;
+
+    if(numBytesWritten >= m_SOBufferSize)
+    {
+      RDCERR("Generated output data too large: %08x", numBytesWritten);
+
+      m_SOStagingBuffer->Unmap(0, &range);
+      SAFE_RELEASE(soSig);
+      return;
+    }
+
+    uint64_t numVerts = numBytesWritten / stride;
+
+    ID3D12Resource *gsoutBuffer = NULL;
+
+    {
+      D3D12_RESOURCE_DESC vertBufDesc;
+      vertBufDesc.Alignment = 0;
+      vertBufDesc.DepthOrArraySize = 1;
+      vertBufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      vertBufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+      vertBufDesc.Format = DXGI_FORMAT_UNKNOWN;
+      vertBufDesc.Height = 1;
+      vertBufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      vertBufDesc.MipLevels = 1;
+      vertBufDesc.SampleDesc.Count = 1;
+      vertBufDesc.SampleDesc.Quality = 0;
+      vertBufDesc.Width = numBytesWritten;
+
+      D3D12_HEAP_PROPERTIES heapProps;
+      heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      heapProps.CreationNodeMask = 1;
+      heapProps.VisibleNodeMask = 1;
+
+      hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &vertBufDesc,
+                                                    D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+                                                    __uuidof(ID3D12Resource), (void **)&gsoutBuffer);
+      RDCASSERTEQUAL(hr, S_OK);
+
+      if(gsoutBuffer)
+        FillBuffer(gsoutBuffer, 0, byteData, numBytesWritten);
+    }
+
+    float nearp = 0.1f;
+    float farp = 100.0f;
+
+    Vec4f *pos0 = (Vec4f *)byteData;
+
+    bool found = false;
+
+    for(UINT64 i = 1; numPosComponents == 4 && i < numVerts; i++)
+    {
+      //////////////////////////////////////////////////////////////////////////////////
+      // derive near/far, assuming a standard perspective matrix
+      //
+      // the transformation from from pre-projection {Z,W} to post-projection {Z,W}
+      // is linear. So we can say Zpost = Zpre*m + c . Here we assume Wpre = 1
+      // and we know Wpost = Zpre from the perspective matrix.
+      // we can then see from the perspective matrix that
+      // m = F/(F-N)
+      // c = -(F*N)/(F-N)
+      //
+      // with re-arranging and substitution, we then get:
+      // N = -c/m
+      // F = c/(1-m)
+      //
+      // so if we can derive m and c then we can determine N and F. We can do this with
+      // two points, and we pick them reasonably distinct on z to reduce floating-point
+      // error
+
+      Vec4f *pos = (Vec4f *)(byteData + i * stride);
+
+      if(fabs(pos->w - pos0->w) > 0.01f && fabs(pos->z - pos0->z) > 0.01f)
+      {
+        Vec2f A(pos0->w, pos0->z);
+        Vec2f B(pos->w, pos->z);
+
+        float m = (B.y - A.y) / (B.x - A.x);
+        float c = B.y - B.x * m;
+
+        if(m == 1.0f)
+          continue;
+
+        nearp = -c / m;
+        farp = c / (1 - m);
+
+        found = true;
+
+        break;
+      }
+    }
+
+    // if we didn't find anything, all z's and w's were identical.
+    // If the z is positive and w greater for the first element then
+    // we detect this projection as reversed z with infinite far plane
+    if(!found && pos0->z > 0.0f && pos0->w > pos0->z)
+    {
+      nearp = pos0->z;
+      farp = FLT_MAX;
+    }
+
+    m_SOStagingBuffer->Unmap(0, &range);
+
+    m_PostVSData[eventID].gsout.buf = gsoutBuffer;
+    m_PostVSData[eventID].gsout.instStride = 0;
+    if(drawcall->flags & eDraw_Instanced)
+      m_PostVSData[eventID].gsout.instStride =
+          uint32_t(numBytesWritten / RDCMAX(1U, drawcall->numInstances));
+    m_PostVSData[eventID].gsout.vertStride = stride;
+    m_PostVSData[eventID].gsout.nearPlane = nearp;
+    m_PostVSData[eventID].gsout.farPlane = farp;
+    m_PostVSData[eventID].gsout.useIndices = false;
+    m_PostVSData[eventID].gsout.hasPosOut = posidx >= 0;
+    m_PostVSData[eventID].gsout.idxBuf = NULL;
+
+    topo = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+
+    if(lastShader == dxbcGS)
+    {
+      for(size_t i = 0; i < dxbcGS->GetNumDeclarations(); i++)
+      {
+        const DXBC::ASMDecl &decl = dxbcGS->GetDeclaration(i);
+
+        if(decl.declaration == DXBC::OPCODE_DCL_GS_OUTPUT_PRIMITIVE_TOPOLOGY)
+        {
+          topo = (D3D_PRIMITIVE_TOPOLOGY) int(decl.outTopology);    // enums match
+          break;
+        }
+      }
+    }
+    else if(lastShader == dxbcDS)
+    {
+      for(size_t i = 0; i < dxbcDS->GetNumDeclarations(); i++)
+      {
+        const DXBC::ASMDecl &decl = dxbcDS->GetDeclaration(i);
+
+        if(decl.declaration == DXBC::OPCODE_DCL_TESS_DOMAIN)
+        {
+          if(decl.domain == DXBC::DOMAIN_ISOLINE)
+            topo = D3D_PRIMITIVE_TOPOLOGY_LINELIST;
+          else
+            topo = D3D_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+          break;
+        }
+      }
+    }
+
+    m_PostVSData[eventID].gsout.topo = topo;
+
+    // streamout expands strips unfortunately
+    if(topo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP)
+      m_PostVSData[eventID].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST;
+    else if(topo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP)
+      m_PostVSData[eventID].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
+    else if(topo == D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP_ADJ)
+      m_PostVSData[eventID].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST_ADJ;
+    else if(topo == D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ)
+      m_PostVSData[eventID].gsout.topo = D3D11_PRIMITIVE_TOPOLOGY_LINELIST_ADJ;
+
+    m_PostVSData[eventID].gsout.numVerts = (uint32_t)numVerts;
+
+    if(drawcall->flags & eDraw_Instanced)
+      m_PostVSData[eventID].gsout.numVerts /= RDCMAX(1U, drawcall->numInstances);
+  }
+
+  SAFE_RELEASE(soSig);
+}
+
+MeshFormat D3D12DebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
+{
+  // go through any aliasing
+  if(m_PostVSAlias.find(eventID) != m_PostVSAlias.end())
+    eventID = m_PostVSAlias[eventID];
+
+  PostVSData postvs;
+  RDCEraseEl(postvs);
+
+  if(m_PostVSData.find(eventID) != m_PostVSData.end())
+    postvs = m_PostVSData[eventID];
+
+  PostVSData::StageData s = postvs.GetStage(stage);
+
+  MeshFormat ret;
+
+  if(s.useIndices && s.idxBuf != NULL)
+  {
+    ret.idxbuf = GetResID(s.idxBuf);
+    ret.idxByteWidth = s.idxFmt == DXGI_FORMAT_R16_UINT ? 2 : 4;
+  }
+  else
+  {
+    ret.idxbuf = ResourceId();
+    ret.idxByteWidth = 0;
+  }
+  ret.idxoffs = 0;
+  ret.baseVertex = 0;
+
+  if(s.buf != NULL)
+    ret.buf = GetResID(s.buf);
+  else
+    ret.buf = ResourceId();
+
+  ret.offset = s.instStride * instID;
+  ret.stride = s.vertStride;
+
+  ret.compCount = 4;
+  ret.compByteWidth = 4;
+  ret.compType = eCompType_Float;
+  ret.specialFormat = eSpecial_Unknown;
+
+  ret.showAlpha = false;
+  ret.bgraOrder = false;
+
+  ret.topo = MakePrimitiveTopology(s.topo);
+  ret.numVerts = s.numVerts;
+
+  ret.unproject = s.hasPosOut;
+  ret.nearPlane = s.nearPlane;
+  ret.farPlane = s.farPlane;
+
+  return ret;
+}
+
 void D3D12DebugManager::RenderHighlightBox(float w, float h, float scale)
 {
   OutputWindow &outw = m_OutputWindows[m_CurrentOutputWindow];
@@ -3337,10 +4363,9 @@ D3D12DebugManager::MeshDisplayPipelines D3D12DebugManager::CacheMeshDisplayPipel
   pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
   D3D_PRIMITIVE_TOPOLOGY topo = MakeD3DPrimitiveTopology(primary.topo);
 
-  if(topo == D3D_PRIMITIVE_TOPOLOGY_POINTLIST)
+  if(topo == D3D_PRIMITIVE_TOPOLOGY_POINTLIST ||
+     topo >= D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST)
     pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_POINT;
-  else if(topo >= D3D_PRIMITIVE_TOPOLOGY_1_CONTROL_POINT_PATCHLIST)
-    pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_PATCH;
   else if(topo == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP || topo == D3D_PRIMITIVE_TOPOLOGY_LINELIST ||
           topo == D3D_PRIMITIVE_TOPOLOGY_LINESTRIP_ADJ || topo == D3D_PRIMITIVE_TOPOLOGY_LINELIST_ADJ)
     pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_LINE;

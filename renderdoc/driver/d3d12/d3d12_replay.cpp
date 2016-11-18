@@ -1413,6 +1413,62 @@ void D3D12Replay::FillCBufferVariables(ResourceId shader, string entryPoint, uin
   }
 }
 
+void D3D12Replay::InitPostVSBuffers(uint32_t eventID)
+{
+  m_pDevice->GetDebugManager()->InitPostVSBuffers(eventID);
+}
+
+struct InitPostVSCallback : public D3D12DrawcallCallback
+{
+  InitPostVSCallback(WrappedID3D12Device *dev, const vector<uint32_t> &events)
+      : m_pDevice(dev), m_Events(events)
+  {
+    m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
+  }
+  ~InitPostVSCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
+  void PreDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
+  {
+    if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
+      m_pDevice->GetDebugManager()->InitPostVSBuffers(eid);
+  }
+
+  bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) { return false; }
+  void PostRedraw(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
+  // Dispatches don't rasterize, so do nothing
+  void PreDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
+  bool PostDispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) { return false; }
+  void PostRedispatch(uint32_t eid, ID3D12GraphicsCommandList *cmd) {}
+  bool RecordAllCmds() { return false; }
+  void AliasEvent(uint32_t primary, uint32_t alias)
+  {
+    if(std::find(m_Events.begin(), m_Events.end(), primary) != m_Events.end())
+      m_pDevice->GetDebugManager()->AliasPostVSBuffers(primary, alias);
+  }
+
+  WrappedID3D12Device *m_pDevice;
+  const vector<uint32_t> &m_Events;
+};
+
+void D3D12Replay::InitPostVSBuffers(const vector<uint32_t> &events)
+{
+  // first we must replay up to the first event without replaying it. This ensures any
+  // non-command buffer calls like memory unmaps etc all happen correctly before this
+  // command buffer
+  m_pDevice->ReplayLog(0, events.front(), eReplay_WithoutDraw);
+
+  InitPostVSCallback cb(m_pDevice, events);
+
+  // now we replay the events, which are guaranteed (because we generated them in
+  // GetPassEvents above) to come from the same command buffer, so the event IDs are
+  // still locally continuous, even if we jump into replaying.
+  m_pDevice->ReplayLog(events.front(), events.back(), eReplay_Full);
+}
+
+MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
+{
+  return m_pDevice->GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);
+}
+
 uint64_t D3D12Replay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
   return m_pDevice->GetDebugManager()->MakeOutputWindow(system, data, depth);
@@ -1586,19 +1642,6 @@ byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
 }
 
 #pragma region not yet implemented
-
-void D3D12Replay::InitPostVSBuffers(uint32_t eventID)
-{
-}
-
-void D3D12Replay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
-{
-}
-
-MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
-{
-  return MeshFormat();
-}
 
 void D3D12Replay::BuildCustomShader(string source, string entry, const uint32_t compileFlags,
                                     ShaderStageType type, ResourceId *id, string *errors)
