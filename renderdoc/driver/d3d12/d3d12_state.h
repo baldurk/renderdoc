@@ -45,7 +45,9 @@ struct D3D12RenderState
   D3D12RenderState();
   D3D12RenderState &operator=(const D3D12RenderState &o);
 
-  void ApplyState(ID3D12GraphicsCommandList *list);
+  void ApplyState(ID3D12GraphicsCommandList *list) const;
+  void ApplyComputeRootElements(ID3D12GraphicsCommandList *cmd) const;
+  void ApplyGraphicsRootElements(ID3D12GraphicsCommandList *cmd) const;
 
   vector<D3D12_VIEWPORT> views;
   vector<D3D12_RECT> scissors;
@@ -72,7 +74,7 @@ struct D3D12RenderState
       memcpy(&constants[offs], vals, numVals * sizeof(UINT));
     }
 
-    void SetToGraphics(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot)
+    void SetToGraphics(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot) const
     {
       if(type == eRootConst)
       {
@@ -102,7 +104,7 @@ struct D3D12RenderState
       }
     }
 
-    void SetToCompute(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot)
+    void SetToCompute(D3D12ResourceManager *rm, ID3D12GraphicsCommandList *cmd, UINT slot) const
     {
       if(type == eRootConst)
       {
