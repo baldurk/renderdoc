@@ -1469,6 +1469,11 @@ MeshFormat D3D12Replay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, Mesh
   return m_pDevice->GetDebugManager()->GetPostVSBuffers(eventID, instID, stage);
 }
 
+uint32_t D3D12Replay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
+{
+  return m_pDevice->GetDebugManager()->PickVertex(eventID, cfg, x, y);
+}
+
 uint64_t D3D12Replay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
   return m_pDevice->GetDebugManager()->MakeOutputWindow(system, data, depth);
@@ -1671,11 +1676,6 @@ ShaderDebugTrace D3D12Replay::DebugPixel(uint32_t eventID, uint32_t x, uint32_t 
 ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
 {
   return ShaderDebugTrace();
-}
-
-uint32_t D3D12Replay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
-{
-  return ~0U;
 }
 
 ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,

@@ -2318,10 +2318,9 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     Vec3f testDir = (cameraToWorldFarPosition - cameraToWorldNearPosition);
     testDir.Normalise();
 
-    /* Calculate the ray direction first in the regular way (above), so we can use the
-    the output for testing if the ray we are picking is negative or not. This is similar
-    to checking against the forward direction of the camera, but more robust
-    */
+    // Calculate the ray direction first in the regular way (above), so we can use the
+    // the output for testing if the ray we are picking is negative or not. This is similar
+    // to checking against the forward direction of the camera, but more robust
     if(cfg.position.unproject)
     {
       Matrix4f inversePickMVPGuess = pickMVPProj.Inverse();
@@ -2358,27 +2357,27 @@ uint32_t D3D11DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
     {
       cbuf.MeshMode = MESH_TRIANGLE_LIST;
       break;
-    };
+    }
     case eTopology_TriangleStrip:
     {
       cbuf.MeshMode = MESH_TRIANGLE_STRIP;
       break;
-    };
+    }
     case eTopology_TriangleList_Adj:
     {
       cbuf.MeshMode = MESH_TRIANGLE_LIST_ADJ;
       break;
-    };
+    }
     case eTopology_TriangleStrip_Adj:
     {
       cbuf.MeshMode = MESH_TRIANGLE_STRIP_ADJ;
       break;
-    };
+    }
     default:    // points, lines, patchlists, unknown
     {
       cbuf.MeshMode = MESH_OTHER;
       isTriangleMesh = false;
-    };
+    }
   }
 
   ID3D11Buffer *vb = NULL, *ib = NULL;

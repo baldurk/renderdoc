@@ -87,6 +87,7 @@ public:
 
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
                  uint32_t sample, FormatComponentType typeHint, float pixel[4]);
+  uint32_t PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y);
 
   void FillCBufferVariables(const vector<DXBC::CBufferVariable> &invars,
                             vector<ShaderVariable> &outvars, bool flattenVec4s,
@@ -163,6 +164,11 @@ private:
     OVERDRAW_SRV,
     OVERDRAW_UAV,
     STREAM_OUT_UAV,
+
+    PICK_IB_SRV,
+    PICK_VB_SRV,
+    PICK_RESULT_UAV,
+    PICK_RESULT_CLEAR_UAV,
   };
 
   enum RTVSlot
@@ -254,6 +260,9 @@ private:
 
   ID3D12Resource *m_PickPixelTex;
   D3D12_CPU_DESCRIPTOR_HANDLE m_PickPixelRTV;
+
+  ID3D12RootSignature *m_MeshPickRootSig;
+  ID3D12PipelineState *m_MeshPickPipe;
 
   ID3D12RootSignature *m_HistogramRootSig;
   // one per texture type, one per int/uint/float
@@ -362,6 +371,11 @@ private:
                                                  const MeshFormat &secondary);
 
   map<uint64_t, MeshDisplayPipelines> m_CachedMeshPipelines;
+
+  static const uint32_t m_MaxMeshPicks = 500;
+  ID3D12Resource *m_PickVB;
+  uint32_t m_PickSize;
+  ID3D12Resource *m_PickResultBuf;
 
   static const int m_SOBufferSize = 32 * 1024 * 1024;
   ID3D12Resource *m_SOBuffer;

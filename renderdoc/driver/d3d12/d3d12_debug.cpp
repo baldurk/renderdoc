@@ -200,6 +200,9 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     m_WrappedDevice->CreateRenderTargetView(m_PickPixelTex, NULL, m_PickPixelRTV);
   }
 
+  m_PickVB = NULL;
+  m_PickSize = 0;
+
   {
     D3D12_RESOURCE_DESC soBufDesc;
     soBufDesc.Alignment = 0;
@@ -516,6 +519,44 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
   SAFE_RELEASE(root);
 
+  rootSig.clear();
+
+  // 0: CBV
+  param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
+  param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+  param.Descriptor.ShaderRegister = 0;
+  param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
+
+  rootSig.push_back(param);
+
+  // 0: SRVs
+  srvrange.NumDescriptors = 2;
+
+  param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+  param.DescriptorTable.pDescriptorRanges = &srvrange;
+  param.DescriptorTable.NumDescriptorRanges = 1;
+
+  rootSig.push_back(param);
+
+  // 0: UAV
+  uavrange.NumDescriptors = 1;
+
+  param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE;
+  param.DescriptorTable.pDescriptorRanges = &uavrange;
+  param.DescriptorTable.NumDescriptorRanges = 1;
+
+  rootSig.push_back(param);
+
+  root = MakeRootSig(rootSig);
+
+  RDCASSERT(root);
+
+  hr = m_WrappedDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
+                                            __uuidof(ID3D12RootSignature),
+                                            (void **)&m_MeshPickRootSig);
+
+  SAFE_RELEASE(root);
+
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.6f);
 
   D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc;
@@ -688,6 +729,26 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   D3D12_COMPUTE_PIPELINE_STATE_DESC compPipeDesc;
   RDCEraseEl(compPipeDesc);
 
+  compPipeDesc.pRootSignature = m_MeshPickRootSig;
+
+  ID3DBlob *meshPickCS;
+
+  GetShaderBlob(meshhlsl.c_str(), "RENDERDOC_MeshPickCS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "cs_5_0",
+                &meshPickCS);
+
+  RDCASSERT(meshPickCS);
+
+  compPipeDesc.CS.BytecodeLength = meshPickCS->GetBufferSize();
+  compPipeDesc.CS.pShaderBytecode = meshPickCS->GetBufferPointer();
+
+  hr = m_WrappedDevice->CreateComputePipelineState(&compPipeDesc, __uuidof(ID3D12PipelineState),
+                                                   (void **)&m_MeshPickPipe);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't create m_MeshPickPipe! 0x%08x", hr);
+  }
+
   compPipeDesc.pRootSignature = m_HistogramRootSig;
 
   RDCEraseEl(m_TileMinMaxPipe);
@@ -769,6 +830,60 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   SAFE_RELEASE(OutlinePS);
   SAFE_RELEASE(QOResolvePS);
   SAFE_RELEASE(CheckerboardPS);
+
+  {
+    D3D12_RESOURCE_DESC pickResultDesc = {};
+    pickResultDesc.Alignment = 0;
+    pickResultDesc.DepthOrArraySize = 1;
+    pickResultDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+    pickResultDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_UNORDERED_ACCESS;
+    pickResultDesc.Format = DXGI_FORMAT_UNKNOWN;
+    pickResultDesc.Height = 1;
+    pickResultDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+    pickResultDesc.MipLevels = 1;
+    pickResultDesc.SampleDesc.Count = 1;
+    pickResultDesc.SampleDesc.Quality = 0;
+    // add an extra 64 bytes for the counter at the start
+    pickResultDesc.Width = m_MaxMeshPicks * sizeof(Vec4f) + 64;
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    hr = m_WrappedDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &pickResultDesc, D3D12_RESOURCE_STATE_UNORDERED_ACCESS,
+        NULL, __uuidof(ID3D12Resource), (void **)&m_PickResultBuf);
+
+    if(FAILED(hr))
+    {
+      RDCERR("Failed to create tile buffer for min/max, HRESULT: 0x%08x", hr);
+    }
+
+    D3D12_UNORDERED_ACCESS_VIEW_DESC uavDesc = {};
+    uavDesc.ViewDimension = D3D12_UAV_DIMENSION_BUFFER;
+    uavDesc.Format = DXGI_FORMAT_UNKNOWN;
+    uavDesc.Buffer.CounterOffsetInBytes = 0;
+    // start with elements after the counter
+    uavDesc.Buffer.FirstElement = 64 / sizeof(Vec4f);
+    uavDesc.Buffer.NumElements = m_MaxMeshPicks;
+    uavDesc.Buffer.StructureByteStride = sizeof(Vec4f);
+
+    m_WrappedDevice->CreateUnorderedAccessView(m_PickResultBuf, m_PickResultBuf, &uavDesc,
+                                               GetCPUHandle(PICK_RESULT_UAV));
+
+    // this UAV is used for clearing everything back to 0
+
+    uavDesc.Format = DXGI_FORMAT_R32G32B32A32_UINT;
+    uavDesc.Buffer.FirstElement = 0;
+    uavDesc.Buffer.NumElements = m_MaxMeshPicks + 64 / sizeof(Vec4f);
+    uavDesc.Buffer.StructureByteStride = 0;
+
+    m_WrappedDevice->CreateUnorderedAccessView(m_PickResultBuf, NULL, &uavDesc,
+                                               GetCPUHandle(PICK_RESULT_CLEAR_UAV));
+  }
 
   {
     const uint64_t maxTexDim = 16384;
@@ -1209,6 +1324,11 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_QuadResolvePipe);
 
   SAFE_RELEASE(m_PickPixelTex);
+
+  SAFE_RELEASE(m_MeshPickRootSig);
+  SAFE_RELEASE(m_MeshPickPipe);
+  SAFE_RELEASE(m_PickResultBuf);
+  SAFE_RELEASE(m_PickVB);
 
   SAFE_RELEASE(m_SOBuffer);
   SAFE_RELEASE(m_SOStagingBuffer);
@@ -2022,6 +2142,354 @@ void D3D12DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 
   if(SUCCEEDED(hr))
     m_ReadbackBuffer->Unmap(0, &range);
+}
+
+uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x,
+                                       uint32_t y)
+{
+  if(cfg.position.numVerts == 0)
+    return ~0U;
+
+  struct MeshPickData
+  {
+    Vec3f RayPos;
+    uint32_t PickIdx;
+
+    Vec3f RayDir;
+    uint32_t PickNumVerts;
+
+    Vec2f PickCoords;
+    Vec2f PickViewport;
+
+    uint32_t MeshMode;
+    uint32_t PickUnproject;
+    Vec2f Padding;
+
+    Matrix4f PickMVP;
+
+  } cbuf;
+
+  cbuf.PickCoords = Vec2f((float)x, (float)y);
+  cbuf.PickViewport = Vec2f((float)GetWidth(), (float)GetHeight());
+  cbuf.PickIdx = cfg.position.idxByteWidth ? 1 : 0;
+  cbuf.PickNumVerts = cfg.position.numVerts;
+  cbuf.PickUnproject = cfg.position.unproject ? 1 : 0;
+
+  Matrix4f projMat =
+      Matrix4f::Perspective(90.0f, 0.1f, 100000.0f, float(GetWidth()) / float(GetHeight()));
+
+  Matrix4f camMat = cfg.cam ? cfg.cam->GetMatrix() : Matrix4f::Identity();
+
+  Matrix4f pickMVP = projMat.Mul(camMat);
+
+  ResourceFormat resFmt;
+  resFmt.compByteWidth = cfg.position.compByteWidth;
+  resFmt.compCount = cfg.position.compCount;
+  resFmt.compType = cfg.position.compType;
+  resFmt.special = false;
+  if(cfg.position.specialFormat != eSpecial_Unknown)
+  {
+    resFmt.special = true;
+    resFmt.specialFormat = cfg.position.specialFormat;
+  }
+
+  Matrix4f pickMVPProj;
+  if(cfg.position.unproject)
+  {
+    // the derivation of the projection matrix might not be right (hell, it could be an
+    // orthographic projection). But it'll be close enough likely.
+    Matrix4f guessProj =
+        Matrix4f::Perspective(cfg.fov, cfg.position.nearPlane, cfg.position.farPlane, cfg.aspect);
+
+    if(cfg.ortho)
+      guessProj = Matrix4f::Orthographic(cfg.position.nearPlane, cfg.position.farPlane);
+
+    pickMVPProj = projMat.Mul(camMat.Mul(guessProj.Inverse()));
+  }
+
+  Vec3f rayPos;
+  Vec3f rayDir;
+  // convert mouse pos to world space ray
+  {
+    Matrix4f inversePickMVP = pickMVP.Inverse();
+
+    float pickX = ((float)x) / ((float)GetWidth());
+    float pickXCanonical = RDCLERP(-1.0f, 1.0f, pickX);
+
+    float pickY = ((float)y) / ((float)GetHeight());
+    // flip the Y axis
+    float pickYCanonical = RDCLERP(1.0f, -1.0f, pickY);
+
+    Vec3f cameraToWorldNearPosition =
+        inversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+
+    Vec3f cameraToWorldFarPosition =
+        inversePickMVP.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+
+    Vec3f testDir = (cameraToWorldFarPosition - cameraToWorldNearPosition);
+    testDir.Normalise();
+
+    // Calculate the ray direction first in the regular way (above), so we can use the
+    // the output for testing if the ray we are picking is negative or not. This is similar
+    // to checking against the forward direction of the camera, but more robust
+    if(cfg.position.unproject)
+    {
+      Matrix4f inversePickMVPGuess = pickMVPProj.Inverse();
+
+      Vec3f nearPosProj = inversePickMVPGuess.Transform(Vec3f(pickXCanonical, pickYCanonical, -1), 1);
+
+      Vec3f farPosProj = inversePickMVPGuess.Transform(Vec3f(pickXCanonical, pickYCanonical, 1), 1);
+
+      rayDir = (farPosProj - nearPosProj);
+      rayDir.Normalise();
+
+      if(testDir.z < 0)
+      {
+        rayDir = -rayDir;
+      }
+      rayPos = nearPosProj;
+    }
+    else
+    {
+      rayDir = testDir;
+      rayPos = cameraToWorldNearPosition;
+    }
+  }
+
+  cbuf.RayPos = rayPos;
+  cbuf.RayDir = rayDir;
+
+  cbuf.PickMVP = cfg.position.unproject ? pickMVPProj : pickMVP;
+
+  bool isTriangleMesh = true;
+  switch(cfg.position.topo)
+  {
+    case eTopology_TriangleList:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_LIST;
+      break;
+    }
+    case eTopology_TriangleStrip:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_STRIP;
+      break;
+    }
+    case eTopology_TriangleList_Adj:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_LIST_ADJ;
+      break;
+    }
+    case eTopology_TriangleStrip_Adj:
+    {
+      cbuf.MeshMode = MESH_TRIANGLE_STRIP_ADJ;
+      break;
+    }
+    default:    // points, lines, patchlists, unknown
+    {
+      cbuf.MeshMode = MESH_OTHER;
+      isTriangleMesh = false;
+    }
+  }
+
+  ID3D12Resource *vb = NULL, *ib = NULL;
+  DXGI_FORMAT ifmt = cfg.position.idxByteWidth == 4 ? DXGI_FORMAT_R32_UINT : DXGI_FORMAT_R16_UINT;
+
+  if(cfg.position.buf != ResourceId())
+    vb = m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.buf);
+
+  if(cfg.position.idxbuf != ResourceId())
+    ib = m_WrappedDevice->GetResourceManager()->GetCurrentAs<ID3D12Resource>(cfg.position.idxbuf);
+
+  HRESULT hr = S_OK;
+
+  // most IB/VBs will not be available as SRVs. So, we copy into our own buffers.
+  // In the case of VB we also tightly pack and unpack the data. IB can just be
+  // read as R16 or R32 via the SRV so it is just a straight copy
+
+  D3D12_SHADER_RESOURCE_VIEW_DESC sdesc = {};
+  sdesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
+  sdesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
+  sdesc.Format = ifmt;
+
+  if(cfg.position.idxByteWidth && ib)
+  {
+    sdesc.Buffer.NumElements = cfg.position.numVerts;
+    m_WrappedDevice->CreateShaderResourceView(ib, &sdesc, GetCPUHandle(PICK_IB_SRV));
+  }
+  else
+  {
+    sdesc.Buffer.NumElements = 4;
+    m_WrappedDevice->CreateShaderResourceView(NULL, &sdesc, GetCPUHandle(PICK_IB_SRV));
+  }
+
+  sdesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
+
+  if(vb)
+  {
+    if(m_PickVB == NULL || m_PickSize < cfg.position.numVerts)
+    {
+      SAFE_RELEASE(m_PickVB);
+
+      m_PickSize = cfg.position.numVerts;
+
+      D3D12_HEAP_PROPERTIES heapProps;
+      heapProps.Type = D3D12_HEAP_TYPE_UPLOAD;
+      heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+      heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+      heapProps.CreationNodeMask = 1;
+      heapProps.VisibleNodeMask = 1;
+
+      D3D12_RESOURCE_DESC vbDesc;
+      vbDesc.Alignment = 0;
+      vbDesc.DepthOrArraySize = 1;
+      vbDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+      vbDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+      vbDesc.Format = DXGI_FORMAT_UNKNOWN;
+      vbDesc.Height = 1;
+      vbDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+      vbDesc.MipLevels = 1;
+      vbDesc.SampleDesc.Count = 1;
+      vbDesc.SampleDesc.Quality = 0;
+      vbDesc.Width = sizeof(Vec4f) * cfg.position.numVerts;
+
+      hr = m_WrappedDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &vbDesc,
+                                                    D3D12_RESOURCE_STATE_GENERIC_READ, NULL,
+                                                    __uuidof(ID3D12Resource), (void **)&m_PickVB);
+
+      if(FAILED(hr))
+      {
+        RDCERR("Couldn't create pick vertex buffer: %08x", hr);
+        return ~0U;
+      }
+
+      sdesc.Buffer.NumElements = cfg.position.numVerts;
+      m_WrappedDevice->CreateShaderResourceView(m_PickVB, &sdesc, GetCPUHandle(PICK_VB_SRV));
+    }
+  }
+  else
+  {
+    sdesc.Buffer.NumElements = 4;
+    m_WrappedDevice->CreateShaderResourceView(NULL, &sdesc, GetCPUHandle(PICK_VB_SRV));
+  }
+
+  // unpack and linearise the data
+  {
+    FloatVector *vbData = new FloatVector[cfg.position.numVerts];
+
+    vector<byte> oldData;
+    GetBufferData(vb, cfg.position.offset, 0, oldData);
+
+    byte *data = &oldData[0];
+    byte *dataEnd = data + oldData.size();
+
+    bool valid = true;
+
+    for(uint32_t i = 0; i < cfg.position.numVerts; i++)
+      vbData[i] = InterpretVertex(data, i, cfg, dataEnd, false, valid);
+
+    FillBuffer(m_PickVB, 0, vbData, sizeof(Vec4f) * cfg.position.numVerts);
+
+    delete[] vbData;
+  }
+
+  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+  list->SetPipelineState(m_MeshPickPipe);
+
+  list->SetComputeRootSignature(m_MeshPickRootSig);
+
+  list->SetDescriptorHeaps(1, &cbvsrvuavHeap);
+
+  list->SetComputeRootConstantBufferView(0, UploadConstants(&cbuf, sizeof(cbuf)));
+  list->SetComputeRootDescriptorTable(1, GetGPUHandle(PICK_IB_SRV));
+  list->SetComputeRootDescriptorTable(2, GetGPUHandle(PICK_RESULT_UAV));
+
+  list->Dispatch(cfg.position.numVerts / 1024 + 1, 1, 1);
+
+  list->Close();
+  m_WrappedDevice->ExecuteLists();
+
+  vector<byte> results;
+  GetBufferData(m_PickResultBuf, 0, 0, results);
+
+  list = m_WrappedDevice->GetNewList();
+
+  UINT zeroes[4] = {0, 0, 0, 0};
+  list->ClearUnorderedAccessViewUint(GetGPUHandle(PICK_RESULT_CLEAR_UAV),
+                                     GetCPUHandle(PICK_RESULT_CLEAR_UAV), m_PickResultBuf, zeroes,
+                                     0, NULL);
+
+  list->Close();
+
+  byte *data = &results[0];
+
+  uint32_t numResults = *(uint32_t *)data;
+
+  if(numResults > 0)
+  {
+    if(isTriangleMesh)
+    {
+      struct PickResult
+      {
+        uint32_t vertid;
+        Vec3f intersectionPoint;
+      };
+
+      PickResult *pickResults = (PickResult *)(data + 64);
+
+      PickResult *closest = pickResults;
+
+      // distance from raycast hit to nearest worldspace position of the mouse
+      float closestPickDistance = (closest->intersectionPoint - rayPos).Length();
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN(m_MaxMeshPicks, numResults); i++)
+      {
+        float pickDistance = (pickResults[i].intersectionPoint - rayPos).Length();
+        if(pickDistance < closestPickDistance)
+        {
+          closest = pickResults + i;
+        }
+      }
+
+      return closest->vertid;
+    }
+    else
+    {
+      struct PickResult
+      {
+        uint32_t vertid;
+        uint32_t idx;
+        float len;
+        float depth;
+      };
+
+      PickResult *pickResults = (PickResult *)(data + 64);
+
+      PickResult *closest = pickResults;
+
+      // min with size of results buffer to protect against overflows
+      for(uint32_t i = 1; i < RDCMIN(m_MaxMeshPicks, numResults); i++)
+      {
+        // We need to keep the picking order consistent in the face
+        // of random buffer appends, when multiple vertices have the
+        // identical position (e.g. if UVs or normals are different).
+        //
+        // We could do something to try and disambiguate, but it's
+        // never going to be intuitive, it's just going to flicker
+        // confusingly.
+        if(pickResults[i].len < closest->len ||
+           (pickResults[i].len == closest->len && pickResults[i].depth < closest->depth) ||
+           (pickResults[i].len == closest->len && pickResults[i].depth == closest->depth &&
+            pickResults[i].vertid < closest->vertid))
+          closest = pickResults + i;
+      }
+
+      return closest->vertid;
+    }
+  }
+
+  return ~0U;
 }
 
 void D3D12DebugManager::FillCBufferVariables(const string &prefix, size_t &offset, bool flatten,
