@@ -506,9 +506,36 @@ public:
 
     virtual ~ShaderEntry()
     {
+      m_Shaders.erase(m_Key);
       m_Bytecode.clear();
       SAFE_DELETE(m_DXBCFile);
       Shutdown();
+    }
+
+    static ShaderEntry *AddShader(const D3D12_SHADER_BYTECODE &byteCode,
+                                  WrappedID3D12Device *device, WrappedID3D12PipelineState *pipeline)
+    {
+      DXBCKey key(byteCode);
+      ShaderEntry *shader = m_Shaders[key];
+
+      if(shader == NULL)
+        shader = m_Shaders[key] = new ShaderEntry(byteCode, device);
+      else
+        shader->AddRef();
+
+      if(pipeline &&
+         std::find(shader->m_Pipes.begin(), shader->m_Pipes.end(), pipeline) == shader->m_Pipes.end())
+        shader->m_Pipes.push_back(pipeline);
+
+      return shader;
+    }
+
+    static void ReleaseShader(ShaderEntry *shader)
+    {
+      if(shader == NULL)
+        return;
+
+      shader->Release();
     }
 
     DXBCKey GetKey() { return m_Key; }
@@ -568,6 +595,8 @@ public:
     DXBC::DXBCFile *m_DXBCFile;
     ShaderReflection m_Details;
     ShaderBindpointMapping m_Mapping;
+
+    static map<DXBCKey, ShaderEntry *> m_Shaders;
   };
 
   enum
@@ -628,35 +657,6 @@ public:
     return ret;
   }
 
-  static ShaderEntry *AddShader(const D3D12_SHADER_BYTECODE &byteCode, WrappedID3D12Device *device,
-                                WrappedID3D12PipelineState *pipeline)
-  {
-    DXBCKey key(byteCode);
-    ShaderEntry *shader = m_Shaders[key];
-
-    if(shader == NULL)
-      shader = m_Shaders[key] = new ShaderEntry(byteCode, device);
-    else
-      shader->AddRef();
-
-    if(pipeline &&
-       std::find(shader->m_Pipes.begin(), shader->m_Pipes.end(), pipeline) == shader->m_Pipes.end())
-      shader->m_Pipes.push_back(pipeline);
-
-    return shader;
-  }
-
-  static void ReleaseShader(ShaderEntry *shader)
-  {
-    if(shader == NULL)
-      return;
-
-    DXBCKey key = shader->GetKey();
-
-    if(shader->Release() == 0)
-      m_Shaders.erase(key);
-  }
-
   WrappedID3D12PipelineState(ID3D12PipelineState *real, WrappedID3D12Device *device)
       : WrappedDeviceChild12(real, device)
   {
@@ -669,18 +669,18 @@ public:
 
     if(graphics)
     {
-      ReleaseShader(VS());
-      ReleaseShader(HS());
-      ReleaseShader(DS());
-      ReleaseShader(GS());
-      ReleaseShader(PS());
+      ShaderEntry::ReleaseShader(VS());
+      ShaderEntry::ReleaseShader(HS());
+      ShaderEntry::ReleaseShader(DS());
+      ShaderEntry::ReleaseShader(GS());
+      ShaderEntry::ReleaseShader(PS());
 
       SAFE_DELETE(graphics);
     }
 
     if(compute)
     {
-      ReleaseShader(CS());
+      ShaderEntry::ReleaseShader(CS());
 
       SAFE_DELETE(compute);
     }
@@ -693,9 +693,6 @@ public:
   {
     return m_pReal->GetCachedBlob(ppBlob);
   }
-
-private:
-  static map<DXBCKey, ShaderEntry *> m_Shaders;
 };
 
 typedef WrappedID3D12PipelineState::ShaderEntry WrappedID3D12Shader;

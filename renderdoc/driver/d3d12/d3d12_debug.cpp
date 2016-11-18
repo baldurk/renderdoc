@@ -203,6 +203,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   m_PickVB = NULL;
   m_PickSize = 0;
 
+  m_CustomShaderTex = NULL;
+
   {
     D3D12_RESOURCE_DESC soBufDesc;
     soBufDesc.Alignment = 0;
@@ -566,7 +568,6 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   displayhlsl += GetEmbeddedResource(debugcommon_hlsl);
   displayhlsl += GetEmbeddedResource(debugdisplay_hlsl);
 
-  ID3DBlob *GenericVS = NULL;
   ID3DBlob *FullscreenVS = NULL;
   ID3DBlob *TexDisplayPS = NULL;
   ID3DBlob *CheckerboardPS = NULL;
@@ -574,7 +575,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   ID3DBlob *QOResolvePS = NULL;
 
   GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_DebugVS", D3DCOMPILE_WARNINGS_ARE_ERRORS, "vs_5_0",
-                &GenericVS);
+                &m_GenericVS);
   GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_FullscreenVS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                 "vs_5_0", &FullscreenVS);
   GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_TexDisplayPS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
@@ -586,7 +587,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   GetShaderBlob(displayhlsl.c_str(), "RENDERDOC_QOResolvePS", D3DCOMPILE_WARNINGS_ARE_ERRORS,
                 "ps_5_0", &QOResolvePS);
 
-  RDCASSERT(GenericVS);
+  RDCASSERT(m_GenericVS);
   RDCASSERT(FullscreenVS);
   RDCASSERT(TexDisplayPS);
   RDCASSERT(CheckerboardPS);
@@ -594,8 +595,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   RDCASSERT(QOResolvePS);
 
   pipeDesc.pRootSignature = m_TexDisplayRootSig;
-  pipeDesc.VS.BytecodeLength = GenericVS->GetBufferSize();
-  pipeDesc.VS.pShaderBytecode = GenericVS->GetBufferPointer();
+  pipeDesc.VS.BytecodeLength = m_GenericVS->GetBufferSize();
+  pipeDesc.VS.pShaderBytecode = m_GenericVS->GetBufferPointer();
   pipeDesc.PS.BytecodeLength = TexDisplayPS->GetBufferSize();
   pipeDesc.PS.pShaderBytecode = TexDisplayPS->GetBufferPointer();
   pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
@@ -837,7 +838,6 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   }
 
   SAFE_RELEASE(FullscreenVS);
-  SAFE_RELEASE(GenericVS);
   SAFE_RELEASE(TexDisplayPS);
   SAFE_RELEASE(OutlinePS);
   SAFE_RELEASE(QOResolvePS);
@@ -1326,6 +1326,7 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_TexDisplayLinearPipe);
   SAFE_RELEASE(m_TexDisplayF32Pipe);
   SAFE_RELEASE(m_TexDisplayRootSig);
+  SAFE_RELEASE(m_GenericVS);
 
   SAFE_RELEASE(m_CBOnlyRootSig);
   SAFE_RELEASE(m_CheckerboardPipe);
@@ -1342,6 +1343,8 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(m_MeshPickPipe);
   SAFE_RELEASE(m_PickResultBuf);
   SAFE_RELEASE(m_PickVB);
+
+  SAFE_RELEASE(m_CustomShaderTex);
 
   SAFE_RELEASE(m_SOBuffer);
   SAFE_RELEASE(m_SOStagingBuffer);
@@ -2962,7 +2965,7 @@ void D3D12DebugManager::BuildShader(string source, string entry, const uint32_t 
   byteCode.BytecodeLength = blob->GetBufferSize();
   byteCode.pShaderBytecode = blob->GetBufferPointer();
 
-  WrappedID3D12Shader *sh = WrappedID3D12PipelineState::AddShader(byteCode, m_WrappedDevice, NULL);
+  WrappedID3D12Shader *sh = WrappedID3D12Shader::AddShader(byteCode, m_WrappedDevice, NULL);
 
   SAFE_RELEASE(blob);
 
@@ -6726,6 +6729,100 @@ struct QuadOverdrawCallback : public D3D12DrawcallCallback
   D3D12RenderState m_PrevState;
 };
 
+ResourceId D3D12DebugManager::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                                                uint32_t arrayIdx, uint32_t sampleIdx,
+                                                FormatComponentType typeHint)
+{
+  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[texid];
+
+  if(resource == NULL)
+    return ResourceId();
+
+  D3D12_RESOURCE_DESC resDesc = resource->GetDesc();
+
+  resDesc.Layout = D3D12_TEXTURE_LAYOUT_UNKNOWN;
+  resDesc.Dimension = D3D12_RESOURCE_DIMENSION_TEXTURE2D;
+  resDesc.Alignment = 0;
+  resDesc.DepthOrArraySize = 1;
+  resDesc.Flags = D3D12_RESOURCE_FLAG_ALLOW_RENDER_TARGET;
+  resDesc.MipLevels = (UINT16)CalcNumMips((int)resDesc.Width, (int)resDesc.Height, 1);
+  resDesc.SampleDesc.Count = 1;
+  resDesc.SampleDesc.Quality = 0;
+  resDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+
+  D3D12_RESOURCE_DESC customTexDesc = {};
+
+  if(m_CustomShaderTex)
+    customTexDesc = m_CustomShaderTex->GetDesc();
+
+  if(customTexDesc.Width != resDesc.Width || customTexDesc.Height != resDesc.Height)
+  {
+    SAFE_RELEASE(m_CustomShaderTex);
+
+    D3D12_HEAP_PROPERTIES heapProps;
+    heapProps.Type = D3D12_HEAP_TYPE_DEFAULT;
+    heapProps.CPUPageProperty = D3D12_CPU_PAGE_PROPERTY_UNKNOWN;
+    heapProps.MemoryPoolPreference = D3D12_MEMORY_POOL_UNKNOWN;
+    heapProps.CreationNodeMask = 1;
+    heapProps.VisibleNodeMask = 1;
+
+    HRESULT hr = m_WrappedDevice->CreateCommittedResource(
+        &heapProps, D3D12_HEAP_FLAG_NONE, &resDesc, D3D12_RESOURCE_STATE_RENDER_TARGET, NULL,
+        __uuidof(ID3D12Resource), (void **)&m_CustomShaderTex);
+    RDCASSERTEQUAL(hr, S_OK);
+
+    if(m_CustomShaderTex)
+      m_CustomShaderResourceId = GetResID(m_CustomShaderTex);
+    else
+      m_CustomShaderResourceId = ResourceId();
+  }
+
+  if(m_CustomShaderResourceId == ResourceId())
+    return m_CustomShaderResourceId;
+
+  D3D12_RENDER_TARGET_VIEW_DESC rtvDesc = {};
+  rtvDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
+  rtvDesc.Format = DXGI_FORMAT_R16G16B16A16_FLOAT;
+  rtvDesc.Texture2D.MipSlice = mip;
+
+  m_WrappedDevice->CreateRenderTargetView(m_CustomShaderTex, &rtvDesc,
+                                          GetCPUHandle(CUSTOM_SHADER_RTV));
+
+  ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
+
+  float clr[] = {0.0f, 0.0f, 0.0f, 0.0f};
+  list->ClearRenderTargetView(GetCPUHandle(CUSTOM_SHADER_RTV), clr, 0, NULL);
+
+  list->Close();
+
+  TextureDisplay disp;
+  disp.Red = disp.Green = disp.Blue = disp.Alpha = true;
+  disp.FlipY = false;
+  disp.offx = 0.0f;
+  disp.offy = 0.0f;
+  disp.CustomShader = shader;
+  disp.texid = texid;
+  disp.typeHint = typeHint;
+  disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0, 0, 0, 0);
+  disp.HDRMul = -1.0f;
+  disp.linearDisplayAsGamma = false;
+  disp.mip = mip;
+  disp.sampleIdx = sampleIdx;
+  disp.overlay = eTexOverlay_None;
+  disp.rangemin = 0.0f;
+  disp.rangemax = 1.0f;
+  disp.rawoutput = false;
+  disp.scale = 1.0f;
+  disp.sliceFace = arrayIdx;
+
+  SetOutputDimensions(RDCMAX(1U, (UINT)resDesc.Width >> mip), RDCMAX(1U, resDesc.Height >> mip),
+                      resDesc.Format);
+
+  RenderTextureInternal(GetCPUHandle(CUSTOM_SHADER_RTV), disp, true);
+
+  return m_CustomShaderResourceId;
+}
+
 ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentType typeHint,
                                             TextureDisplayOverlay overlay, uint32_t eventID,
                                             const vector<uint32_t> &passEvents)
@@ -7720,6 +7817,11 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, TextureDisplay cfg,
                                               bool blendAlpha)
 {
+  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[cfg.texid];
+
+  if(resource == NULL)
+    return false;
+
   DebugVertexCBuffer vertexData;
   DebugPixelCBufferData pixelData;
 
@@ -7761,7 +7863,6 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
 
   pixelData.FlipY = cfg.FlipY ? 1 : 0;
 
-  ID3D12Resource *resource = WrappedID3D12Resource::GetList()[cfg.texid];
   D3D12_RESOURCE_DESC resourceDesc = resource->GetDesc();
 
   pixelData.SampleIdx = (int)RDCCLAMP(cfg.sampleIdx, 0U, resourceDesc.SampleDesc.Count - 1);
@@ -7845,6 +7946,162 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
   if(!IsSRGBFormat(resourceDesc.Format) && cfg.linearDisplayAsGamma)
     pixelData.OutputDisplayFormat |= TEXDISPLAY_GAMMA_CURVE;
 
+  ID3D12PipelineState *customPSO = NULL;
+
+  D3D12_GPU_VIRTUAL_ADDRESS psCBuf = 0;
+
+  if(cfg.CustomShader != ResourceId())
+  {
+    WrappedID3D12Shader *shader =
+        m_WrappedDevice->GetResourceManager()->GetCurrentAs<WrappedID3D12Shader>(cfg.CustomShader);
+
+    if(shader == NULL)
+      return false;
+
+    D3D12_GRAPHICS_PIPELINE_STATE_DESC pipeDesc = {};
+    pipeDesc.pRootSignature = m_TexDisplayRootSig;
+    pipeDesc.VS.BytecodeLength = m_GenericVS->GetBufferSize();
+    pipeDesc.VS.pShaderBytecode = m_GenericVS->GetBufferPointer();
+    pipeDesc.PS = shader->GetDesc();
+    pipeDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
+    pipeDesc.RasterizerState.CullMode = D3D12_CULL_MODE_NONE;
+    pipeDesc.SampleMask = 0xFFFFFFFF;
+    pipeDesc.SampleDesc.Count = 1;
+    pipeDesc.IBStripCutValue = D3D12_INDEX_BUFFER_STRIP_CUT_VALUE_DISABLED;
+    pipeDesc.PrimitiveTopologyType = D3D12_PRIMITIVE_TOPOLOGY_TYPE_TRIANGLE;
+    pipeDesc.NumRenderTargets = 1;
+    pipeDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_FLOAT;
+    pipeDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
+    pipeDesc.BlendState.RenderTarget[0].BlendEnable = TRUE;
+    pipeDesc.BlendState.RenderTarget[0].SrcBlend = D3D12_BLEND_SRC_ALPHA;
+    pipeDesc.BlendState.RenderTarget[0].DestBlend = D3D12_BLEND_INV_SRC_ALPHA;
+    pipeDesc.BlendState.RenderTarget[0].BlendOp = D3D12_BLEND_OP_ADD;
+    pipeDesc.BlendState.RenderTarget[0].SrcBlendAlpha = D3D12_BLEND_SRC_ALPHA;
+    pipeDesc.BlendState.RenderTarget[0].DestBlendAlpha = D3D12_BLEND_INV_SRC_ALPHA;
+    pipeDesc.BlendState.RenderTarget[0].BlendOpAlpha = D3D12_BLEND_OP_ADD;
+    pipeDesc.BlendState.RenderTarget[0].RenderTargetWriteMask = D3D12_COLOR_WRITE_ENABLE_ALL;
+
+    HRESULT hr = m_WrappedDevice->CreateGraphicsPipelineState(
+        &pipeDesc, __uuidof(ID3D12PipelineState), (void **)&customPSO);
+    if(FAILED(hr))
+      return false;
+
+    DXBC::DXBCFile *dxbc = shader->GetDXBC();
+
+    RDCASSERT(dxbc);
+    RDCASSERT(dxbc->m_Type == D3D11_ShaderType_Pixel);
+
+    for(size_t i = 0; i < dxbc->m_CBuffers.size(); i++)
+    {
+      const DXBC::CBuffer &cbuf = dxbc->m_CBuffers[i];
+      if(cbuf.name == "$Globals")
+      {
+        float *cbufData = new float[cbuf.descriptor.byteSize / sizeof(float) + 1];
+        byte *byteData = (byte *)cbufData;
+
+        for(size_t v = 0; v < cbuf.variables.size(); v++)
+        {
+          const DXBC::CBufferVariable &var = cbuf.variables[v];
+
+          if(var.name == "RENDERDOC_TexDim")
+          {
+            if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 4 &&
+               var.type.descriptor.type == DXBC::VARTYPE_UINT)
+            {
+              uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
+
+              d[0] = (uint32_t)resourceDesc.Width;
+              d[1] = resourceDesc.Height;
+              d[2] = resourceDesc.DepthOrArraySize;
+              d[3] = resourceDesc.MipLevels;
+              if(resourceDesc.MipLevels == 0)
+                d[3] = CalcNumMips(
+                    d[1], d[2],
+                    resourceDesc.Dimension == D3D12_RESOURCE_DIMENSION_TEXTURE3D ? d[3] : 1);
+            }
+            else
+            {
+              RDCWARN("Custom shader: Variable recognised but type wrong, expected uint4: %s",
+                      var.name.c_str());
+            }
+          }
+          else if(var.name == "RENDERDOC_SelectedMip")
+          {
+            if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
+               var.type.descriptor.type == DXBC::VARTYPE_UINT)
+            {
+              uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
+
+              d[0] = cfg.mip;
+            }
+            else
+            {
+              RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %s",
+                      var.name.c_str());
+            }
+          }
+          else if(var.name == "RENDERDOC_SelectedSliceFace")
+          {
+            if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
+               var.type.descriptor.type == DXBC::VARTYPE_UINT)
+            {
+              uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
+
+              d[0] = cfg.sliceFace;
+            }
+            else
+            {
+              RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %s",
+                      var.name.c_str());
+            }
+          }
+          else if(var.name == "RENDERDOC_SelectedSample")
+          {
+            if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
+               var.type.descriptor.type == DXBC::VARTYPE_INT)
+            {
+              int32_t *d = (int32_t *)(byteData + var.descriptor.offset);
+
+              d[0] = cfg.sampleIdx;
+            }
+            else
+            {
+              RDCWARN("Custom shader: Variable recognised but type wrong, expected int: %s",
+                      var.name.c_str());
+            }
+          }
+          else if(var.name == "RENDERDOC_TextureType")
+          {
+            if(var.type.descriptor.rows == 1 && var.type.descriptor.cols == 1 &&
+               var.type.descriptor.type == DXBC::VARTYPE_UINT)
+            {
+              uint32_t *d = (uint32_t *)(byteData + var.descriptor.offset);
+
+              d[0] = resType;
+            }
+            else
+            {
+              RDCWARN("Custom shader: Variable recognised but type wrong, expected uint: %s",
+                      var.name.c_str());
+            }
+          }
+          else
+          {
+            RDCWARN("Custom shader: Variable not recognised: %s", var.name.c_str());
+          }
+        }
+
+        psCBuf = UploadConstants(cbufData, cbuf.descriptor.byteSize);
+
+        SAFE_DELETE_ARRAY(cbufData);
+      }
+    }
+  }
+  else
+  {
+    psCBuf = UploadConstants(&pixelData, sizeof(pixelData));
+  }
+
   {
     ID3D12GraphicsCommandList *list = m_WrappedDevice->GetNewList();
 
@@ -7861,7 +8118,11 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
 
     list->IASetPrimitiveTopology(D3D_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-    if(cfg.rawoutput || !blendAlpha || cfg.CustomShader != ResourceId())
+    if(customPSO)
+    {
+      list->SetPipelineState(customPSO);
+    }
+    else if(cfg.rawoutput || !blendAlpha || cfg.CustomShader != ResourceId())
     {
       if(m_BBFmtIdx == RGBA32_BACKBUFFER)
         list->SetPipelineState(m_TexDisplayF32Pipe);
@@ -7882,7 +8143,7 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
     list->SetDescriptorHeaps(2, heaps);
 
     list->SetGraphicsRootConstantBufferView(0, UploadConstants(&vertexData, sizeof(vertexData)));
-    list->SetGraphicsRootConstantBufferView(1, UploadConstants(&pixelData, sizeof(pixelData)));
+    list->SetGraphicsRootConstantBufferView(1, psCBuf);
     list->SetGraphicsRootDescriptorTable(2, cbvsrvuavHeap->GetGPUDescriptorHandleForHeapStart());
     list->SetGraphicsRootDescriptorTable(3, samplerHeap->GetGPUDescriptorHandleForHeapStart());
 
@@ -7902,6 +8163,8 @@ bool D3D12DebugManager::RenderTextureInternal(D3D12_CPU_DESCRIPTOR_HANDLE rtv, T
 
     m_WrappedDevice->ExecuteLists();
     m_WrappedDevice->FlushLists();
+
+    SAFE_RELEASE(customPSO);
   }
 
   return true;

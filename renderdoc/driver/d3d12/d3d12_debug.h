@@ -86,6 +86,8 @@ public:
   ResourceId RenderOverlay(ResourceId texid, FormatComponentType typeHint,
                            TextureDisplayOverlay overlay, uint32_t eventID,
                            const vector<uint32_t> &passEvents);
+  ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
+                               uint32_t sampleIdx, FormatComponentType typeHint);
 
   void PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sliceFace, uint32_t mip,
                  uint32_t sample, FormatComponentType typeHint, float pixel[4]);
@@ -250,6 +252,7 @@ private:
   ID3D12PipelineState *m_TexDisplayLinearPipe;
   ID3D12PipelineState *m_TexDisplayF32Pipe;
   ID3D12PipelineState *m_TexDisplayBlendPipe;
+  ID3DBlob *m_GenericVS;
 
   ID3D12RootSignature *m_TexDisplayRootSig;
 
@@ -392,6 +395,9 @@ private:
 
   map<uint32_t, PostVSData> m_PostVSData;
   map<uint32_t, uint32_t> m_PostVSAlias;
+
+  ID3D12Resource *m_CustomShaderTex;
+  ResourceId m_CustomShaderResourceId;
 
   // simple cache for when we need buffer data for highlighting
   // vertices, typical use will be lots of vertices in the same

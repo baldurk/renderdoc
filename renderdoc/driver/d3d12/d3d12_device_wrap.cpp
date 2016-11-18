@@ -272,8 +272,7 @@ bool WrappedID3D12Device::Serialise_CreateGraphicsPipelineState(
         if(shaders[i]->BytecodeLength == 0)
           shaders[i]->pShaderBytecode = NULL;
         else
-          shaders[i]->pShaderBytecode =
-              WrappedID3D12PipelineState::AddShader(*shaders[i], this, wrapped);
+          shaders[i]->pShaderBytecode = WrappedID3D12Shader::AddShader(*shaders[i], this, wrapped);
       }
 
       GetResourceManager()->AddLiveResource(Pipe, ret);
@@ -334,8 +333,7 @@ HRESULT WrappedID3D12Device::CreateGraphicsPipelineState(const D3D12_GRAPHICS_PI
         if(shaders[i]->BytecodeLength == 0)
           shaders[i]->pShaderBytecode = NULL;
         else
-          shaders[i]->pShaderBytecode =
-              WrappedID3D12PipelineState::AddShader(*shaders[i], this, NULL);
+          shaders[i]->pShaderBytecode = WrappedID3D12Shader::AddShader(*shaders[i], this, NULL);
       }
     }
 
@@ -374,7 +372,7 @@ bool WrappedID3D12Device::Serialise_CreateComputePipelineState(
           (ID3D12RootSignature *)GetResourceManager()->GetWrapper(wrapped->compute->pRootSignature);
 
       wrapped->compute->CS.pShaderBytecode =
-          WrappedID3D12PipelineState::AddShader(wrapped->compute->CS, this, wrapped);
+          WrappedID3D12Shader::AddShader(wrapped->compute->CS, this, wrapped);
 
       GetResourceManager()->AddLiveResource(Pipe, ret);
     }
@@ -425,7 +423,7 @@ HRESULT WrappedID3D12Device::CreateComputePipelineState(const D3D12_COMPUTE_PIPE
       wrapped->compute = new D3D12_COMPUTE_PIPELINE_STATE_DESC(*pDesc);
 
       wrapped->compute->CS.pShaderBytecode =
-          WrappedID3D12PipelineState::AddShader(wrapped->compute->CS, this, NULL);
+          WrappedID3D12Shader::AddShader(wrapped->compute->CS, this, NULL);
     }
 
     *ppPipelineState = (ID3D12PipelineState *)wrapped;

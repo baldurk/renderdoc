@@ -906,7 +906,7 @@ namespace renderdocui.Windows
 
             string src = "";
 
-            if (m_Core.APIProps.pipelineType == GraphicsAPI.D3D11)
+            if (m_Core.APIProps.pipelineType.IsD3D())
             {
                 src = String.Format(
                     "float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0) : SV_Target0{0}" +

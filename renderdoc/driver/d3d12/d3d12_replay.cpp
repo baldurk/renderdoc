@@ -1646,12 +1646,21 @@ byte *D3D12Replay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mi
   return m_pDevice->GetDebugManager()->GetTextureData(tex, arrayIdx, mip, params, dataSize);
 }
 
-#pragma region not yet implemented
-
 void D3D12Replay::BuildCustomShader(string source, string entry, const uint32_t compileFlags,
                                     ShaderStageType type, ResourceId *id, string *errors)
 {
+  m_pDevice->GetDebugManager()->BuildShader(source, entry, compileFlags, type, id, errors);
 }
+
+ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                                          uint32_t arrayIdx, uint32_t sampleIdx,
+                                          FormatComponentType typeHint)
+{
+  return m_pDevice->GetDebugManager()->ApplyCustomShader(shader, texid, mip, arrayIdx, sampleIdx,
+                                                         typeHint);
+}
+
+#pragma region not yet implemented
 
 vector<PixelModification> D3D12Replay::PixelHistory(vector<EventUsage> events, ResourceId target,
                                                     uint32_t x, uint32_t y, uint32_t slice,
@@ -1676,13 +1685,6 @@ ShaderDebugTrace D3D12Replay::DebugPixel(uint32_t eventID, uint32_t x, uint32_t 
 ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
 {
   return ShaderDebugTrace();
-}
-
-ResourceId D3D12Replay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
-                                          uint32_t arrayIdx, uint32_t sampleIdx,
-                                          FormatComponentType typeHint)
-{
-  return ResourceId();
 }
 
 ResourceId D3D12Replay::CreateProxyTexture(const FetchTexture &templateTex)
