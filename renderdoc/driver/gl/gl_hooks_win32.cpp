@@ -705,6 +705,8 @@ private:
 
     if(w != NULL && glhooks.m_HaveContextCreation)
     {
+      SCOPED_LOCK(glLock);
+
       RECT r;
       GetClientRect(w, &r);
 
@@ -1305,6 +1307,11 @@ OpenGLHook OpenGLHook::glhooks;
 const GLHookSet &GetRealGLFunctions()
 {
   return OpenGLHook::glhooks.GetRealGLFunctions();
+}
+
+Threading::CriticalSection &GetGLLock()
+{
+  return glLock;
 }
 
 void MakeContextCurrent(GLWindowingData data)

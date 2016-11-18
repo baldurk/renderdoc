@@ -1065,6 +1065,8 @@ __attribute__((visibility("default"))) void glXSwapBuffers(Display *dpy, GLXDraw
   if(OpenGLHook::glhooks.glXSwapBuffers_real == NULL)
     OpenGLHook::glhooks.SetupExportedFunctions();
 
+  SCOPED_LOCK(glLock);
+
   // if we use the GLXDrawable in XGetGeometry and it's a GLXWindow, then we get
   // a BadDrawable error and things go south. Instead we track GLXWindows created
   // in glXCreateWindow/glXDestroyWindow and look up the source window it was
@@ -1334,6 +1336,11 @@ OpenGLHook OpenGLHook::glhooks;
 const GLHookSet &GetRealGLFunctions()
 {
   return OpenGLHook::glhooks.GetRealGLFunctions();
+}
+
+Threading::CriticalSection &GetGLLock()
+{
+  return glLock;
 }
 
 void MakeContextCurrent(GLWindowingData data)

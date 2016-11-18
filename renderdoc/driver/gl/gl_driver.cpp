@@ -1030,6 +1030,7 @@ WrappedOpenGL::ContextData &WrappedOpenGL::GetCtxData()
 }
 
 // defined in gl_<platform>_hooks.cpp
+Threading::CriticalSection &GetGLLock();
 void MakeContextCurrent(GLWindowingData data);
 
 // for 'backwards compatible' overlay rendering
@@ -2330,6 +2331,8 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
   if(m_State != WRITING_IDLE)
     return;
 
+  SCOPED_LOCK(GetGLLock());
+
   RenderDoc::Inst().SetCurrentDriver(RDC_OpenGL);
 
   m_State = WRITING_CAPFRAME;
@@ -2385,6 +2388,8 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 {
   if(m_State != WRITING_CAPFRAME)
     return true;
+
+  SCOPED_LOCK(GetGLLock());
 
   CaptureFailReason reason = CaptureSucceeded;
 
