@@ -108,7 +108,8 @@ public:
   static ID3DBlob *MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1> params,
                                D3D12_ROOT_SIGNATURE_FLAGS Flags = D3D12_ROOT_SIGNATURE_FLAG_NONE,
                                UINT NumStaticSamplers = 0,
-                               D3D12_STATIC_SAMPLER_DESC *StaticSamplers = NULL);
+                               const D3D12_STATIC_SAMPLER_DESC *StaticSamplers = NULL);
+  static ID3DBlob *MakeRootSig(const D3D12RootSignature &rootsig);
 
   ID3DBlob *GetOverdrawWritePS() { return m_QuadOverdrawWritePS; }
 private:

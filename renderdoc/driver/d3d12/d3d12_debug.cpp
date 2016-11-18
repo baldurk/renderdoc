@@ -1323,7 +1323,7 @@ D3D12RootSignature D3D12DebugManager::GetRootSig(const void *data, size_t dataSi
 
 ID3DBlob *D3D12DebugManager::MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1> params,
                                          D3D12_ROOT_SIGNATURE_FLAGS Flags, UINT NumStaticSamplers,
-                                         D3D12_STATIC_SAMPLER_DESC *StaticSamplers)
+                                         const D3D12_STATIC_SAMPLER_DESC *StaticSamplers)
 {
   PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE serializeRootSig =
       (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)GetProcAddress(
@@ -1367,6 +1367,17 @@ ID3DBlob *D3D12DebugManager::MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1
   SAFE_RELEASE(errBlob);
 
   return ret;
+}
+
+ID3DBlob *D3D12DebugManager::MakeRootSig(const D3D12RootSignature &rootsig)
+{
+  std::vector<D3D12_ROOT_PARAMETER1> params;
+  params.resize(rootsig.params.size());
+  for(size_t i = 0; i < params.size(); i++)
+    params[i] = rootsig.params[i];
+
+  return MakeRootSig(params, rootsig.Flags, (UINT)rootsig.samplers.size(),
+                     rootsig.samplers.empty() ? NULL : &rootsig.samplers[0]);
 }
 
 ID3DBlob *D3D12DebugManager::MakeFixedColShader(float overlayConsts[4])
@@ -5010,8 +5021,7 @@ struct QuadOverdrawCallback : public D3D12DrawcallCallback
       for(size_t i = 0; i < params.size(); i++)
         params[i] = modsig.params[i];
 
-      ID3DBlob *root = m_pDebug->MakeRootSig(params, modsig.Flags, (UINT)modsig.samplers.size(),
-                                             modsig.samplers.empty() ? NULL : &modsig.samplers[0]);
+      ID3DBlob *root = m_pDebug->MakeRootSig(modsig);
 
       hr = m_pDevice->CreateRootSignature(0, root->GetBufferPointer(), root->GetBufferSize(),
                                           __uuidof(ID3D12RootSignature), (void **)&cache.sig);
@@ -5213,8 +5223,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
     m_OverlayResourceId = wrappedCustomRenderTex->GetResourceID();
   }
 
-  D3D12CommandData *cmd = m_WrappedDevice->GetQueue()->GetCommandData();
-  D3D12RenderState &rs = cmd->m_RenderState;
+  D3D12RenderState &rs = m_WrappedDevice->GetQueue()->GetCommandData()->m_RenderState;
 
   ID3D12Resource *renderDepth = NULL;
 
