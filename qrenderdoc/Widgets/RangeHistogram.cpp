@@ -62,11 +62,10 @@ void RangeHistogram::setRange(float min, float max)
 
 bool RangeHistogram::ValidRange() const
 {
-  if(std::isinf(m_WhitePoint) || std::isnan(m_WhitePoint) || std::isinf(m_BlackPoint) ||
-     std::isnan(m_BlackPoint) || std::isinf(m_RangeMax) || std::isnan(m_RangeMax) ||
-     std::isinf(m_RangeMin) || std::isnan(m_RangeMin) || std::isinf(m_RangeMax - m_RangeMin) ||
-     std::isnan(m_RangeMax - m_RangeMin) || std::isinf(m_WhitePoint - m_BlackPoint) ||
-     std::isnan(m_WhitePoint - m_BlackPoint))
+  if(qIsInf(m_WhitePoint) || qIsNaN(m_WhitePoint) || qIsInf(m_BlackPoint) || qIsNaN(m_BlackPoint) ||
+     qIsInf(m_RangeMax) || qIsNaN(m_RangeMax) || qIsInf(m_RangeMin) || qIsNaN(m_RangeMin) ||
+     qIsInf(m_RangeMax - m_RangeMin) || qIsNaN(m_RangeMax - m_RangeMin) ||
+     qIsInf(m_WhitePoint - m_BlackPoint) || qIsNaN(m_WhitePoint - m_BlackPoint))
   {
     return false;
   }
