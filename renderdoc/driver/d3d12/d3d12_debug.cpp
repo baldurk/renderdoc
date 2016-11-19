@@ -2039,7 +2039,7 @@ D3D12_GPU_VIRTUAL_ADDRESS D3D12DebugManager::UploadConstants(const void *data, s
 
   ret += m_RingConstantOffset;
 
-  FillBuffer(m_RingConstantBuffer, m_RingConstantOffset, data, size);
+  FillBuffer(m_RingConstantBuffer, (size_t)m_RingConstantOffset, data, size);
 
   m_RingConstantOffset += size;
   m_RingConstantOffset =
@@ -4014,7 +4014,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       RDCASSERTEQUAL(hr, S_OK);
 
       if(vsoutBuffer)
-        FillBuffer(vsoutBuffer, 0, byteData, numBytesWritten);
+        FillBuffer(vsoutBuffer, 0, byteData, (size_t)numBytesWritten);
     }
 
     float nearp = 0.1f;
@@ -4323,7 +4323,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       RDCASSERTEQUAL(hr, S_OK);
 
       if(gsoutBuffer)
-        FillBuffer(gsoutBuffer, 0, byteData, numBytesWritten);
+        FillBuffer(gsoutBuffer, 0, byteData, (size_t)numBytesWritten);
     }
 
     float nearp = 0.1f;
