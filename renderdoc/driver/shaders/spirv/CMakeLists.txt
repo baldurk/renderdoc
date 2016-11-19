@@ -97,7 +97,7 @@ set(sources
 add_definitions(-DAMD_EXTENSIONS)
 
 set_source_files_properties(${glslang_sources}
-    PROPERTIES COMPILE_FLAGS "-Wno-ignored-qualifiers")
+    PROPERTIES COMPILE_FLAGS "-Wno-ignored-qualifiers -Wno-inconsistent-missing-override")
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
     set_source_files_properties(${glslang_dir}/SPIRV/GlslangToSpv.cpp
