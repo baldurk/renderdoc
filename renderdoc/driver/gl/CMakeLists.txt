@@ -47,6 +47,7 @@ elseif(APPLE)
 elseif(UNIX)
     list(APPEND sources
         gl_replay_linux.cpp
+        glx_hooks_linux.cpp
         gl_hooks_linux.cpp)
 endif()
 

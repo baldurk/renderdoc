@@ -704,7 +704,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg
 // symbol defined in libGL but not librenderdoc.
 // Forces link of libGL after renderdoc (otherwise all symbols would
 // be resolved and libGL wouldn't link, meaning dlsym(RTLD_NEXT) would fai
-extern "C" void glXWaitGL();
+extern "C" void glXWaitX();
 
 #endif
 
@@ -724,7 +724,7 @@ int main(int argc, char *argv[])
 
   volatile bool never_run = false;
   if(never_run)
-    glXWaitGL();
+    glXWaitX();
 
 #endif
 

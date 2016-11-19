@@ -34,6 +34,9 @@
     <ClInclude Include="official\wglext.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="glx_hooks_linux.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="gl_common.cpp" />
     <ClCompile Include="gl_counters.cpp" />
     <ClCompile Include="gl_debug.cpp" />
