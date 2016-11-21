@@ -619,8 +619,9 @@ void MainWindow::PopulateRecentFiles()
   ui->menu_Recent_Logs->setEnabled(false);
 
   int idx = 1;
-  for(const QString &filename : m_Ctx->Config.RecentLogFiles)
+  for(int i = m_Ctx->Config.RecentLogFiles.size() - 1; i >= 0; i--)
   {
+    const QString &filename = m_Ctx->Config.RecentLogFiles[i];
     ui->menu_Recent_Logs->addAction("&" + QString::number(idx) + " " + filename,
                                     [this, filename] { recentLog(filename); });
     idx++;
@@ -639,8 +640,9 @@ void MainWindow::PopulateRecentCaptures()
   ui->menu_Recent_Capture_Settings->setEnabled(false);
 
   int idx = 1;
-  for(const QString &filename : m_Ctx->Config.RecentCaptureSettings)
+  for(int i = m_Ctx->Config.RecentCaptureSettings.size() - 1; i >= 0; i--)
   {
+    const QString &filename = m_Ctx->Config.RecentCaptureSettings[i];
     ui->menu_Recent_Capture_Settings->addAction("&" + QString::number(idx) + " " + filename,
                                                 [this, filename] { recentCapture(filename); });
     idx++;
