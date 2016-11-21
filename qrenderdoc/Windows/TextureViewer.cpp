@@ -27,6 +27,7 @@
 #include <math.h>
 #include <QClipboard>
 #include <QColorDialog>
+#include <QFontDatabase>
 #include <QItemDelegate>
 #include <QJsonDocument>
 #include <QMenu>
@@ -599,6 +600,9 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
   statusflow->addWidget(ui->texStatusDim);
   statusflow->addWidget(ui->pickSwatch);
   statusflow->addWidget(ui->statusText);
+
+  ui->texStatusDim->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->statusText->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
   ui->statusbar->addWidget(statusflowWidget);
 
