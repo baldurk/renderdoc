@@ -157,7 +157,7 @@ CaptureDialog::CaptureDialog(CaptureContext *ctx, OnCaptureMethod captureCallbac
   ui->processList->sortByColumn(1, Qt::AscendingOrder);
 
   // TODO Vulkan Layer
-  ui->vulkanLayerWarn->setVisible(true);
+  ui->vulkanLayerWarn->setVisible(false);
 
   m_CaptureCallback = captureCallback;
   m_InjectCallback = injectCallback;
