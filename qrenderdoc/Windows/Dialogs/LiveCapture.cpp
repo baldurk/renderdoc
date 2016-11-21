@@ -501,7 +501,7 @@ bool LiveCapture::checkAllowDelete()
   if(!needcheck || ui->captures->selectedItems().empty())
     return true;
 
-  this->activateWindow();
+  ToolWindowManager::raiseToolWindow(this);
 
   QMessageBox::StandardButton res = RDDialog::question(
       this, tr("Unsaved log(s)", "", ui->captures->selectedItems().size()),
@@ -539,7 +539,7 @@ bool LiveCapture::checkAllowClose()
       continue;
 
     ui->captures->clearSelection();
-    this->activateWindow();
+    ToolWindowManager::raiseToolWindow(this);
     ui->captures->setFocus();
     item->setSelected(true);
 

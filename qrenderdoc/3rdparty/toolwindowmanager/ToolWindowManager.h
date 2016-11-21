@@ -235,6 +235,7 @@ public:
   void hideToolWindow(QWidget* toolWindow) { moveToolWindow(toolWindow, NoArea); }
 
   static void closeToolWindow(QWidget *toolWindow);
+  static void raiseToolWindow(QWidget *toolWindow);
 
   /*!
    * \brief saveState

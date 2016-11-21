@@ -868,7 +868,7 @@ void MainWindow::OnLogfileLoaded()
 
   PopulateRecentFiles();
 
-  m_Ctx->eventBrowser()->activateWindow();
+  ToolWindowManager::raiseToolWindow(m_Ctx->eventBrowser());
 }
 
 void MainWindow::OnLogfileClosed()
@@ -922,7 +922,7 @@ void MainWindow::on_action_Event_Browser_triggered()
   EventBrowser *eventBrowser = m_Ctx->eventBrowser();
 
   if(ui->toolWindowManager->toolWindows().contains(eventBrowser))
-    eventBrowser->activateWindow();
+    ToolWindowManager::raiseToolWindow(eventBrowser);
   else
     ui->toolWindowManager->addToolWindow(eventBrowser, leftToolArea());
 }
@@ -932,7 +932,7 @@ void MainWindow::on_action_Texture_Viewer_triggered()
   TextureViewer *textureViewer = m_Ctx->textureViewer();
 
   if(ui->toolWindowManager->toolWindows().contains(textureViewer))
-    textureViewer->activateWindow();
+    ToolWindowManager::raiseToolWindow(textureViewer);
   else
     ui->toolWindowManager->addToolWindow(textureViewer, mainToolArea());
 }
@@ -944,7 +944,7 @@ void MainWindow::on_action_Capture_Log_triggered()
   capDialog->setInjectMode(false);
 
   if(ui->toolWindowManager->toolWindows().contains(capDialog))
-    capDialog->activateWindow();
+    ToolWindowManager::raiseToolWindow(capDialog);
   else
     ui->toolWindowManager->addToolWindow(capDialog, mainToolArea());
 }
@@ -956,7 +956,7 @@ void MainWindow::on_action_Inject_into_Process_triggered()
   capDialog->setInjectMode(true);
 
   if(ui->toolWindowManager->toolWindows().contains(capDialog))
-    capDialog->activateWindow();
+    ToolWindowManager::raiseToolWindow(capDialog);
   else
     ui->toolWindowManager->addToolWindow(capDialog, mainToolArea());
 }

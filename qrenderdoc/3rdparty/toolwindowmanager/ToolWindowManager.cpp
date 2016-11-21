@@ -297,6 +297,26 @@ void ToolWindowManager::closeToolWindow(QWidget *toolWindow) {
   qWarning("window not child of any tool window");
 }
 
+void ToolWindowManager::raiseToolWindow(QWidget *toolWindow) {
+  if (!toolWindow) {
+    qWarning("NULL tool window");
+    return;
+  }
+
+  // if the parent is a ToolWindowManagerArea, switch tabs
+  QWidget *parent = toolWindow->parentWidget();
+  ToolWindowManagerArea *area = qobject_cast<ToolWindowManagerArea*>(parent);
+  if(area == NULL)
+    parent = parent->parentWidget();
+
+  area = qobject_cast<ToolWindowManagerArea*>(parent);
+
+  if(area)
+    area->setCurrentWidget(toolWindow);
+  else
+    qWarning("parent is not a tool window area");
+}
+
 QWidget* ToolWindowManager::createToolWindow(const QString& objectName)
 {
   if (m_createCallback) {
