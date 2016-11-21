@@ -370,6 +370,12 @@ namespace renderdocui.Windows
             if (m_FindAll == null)
                 m_FindAll = new FindAllDialog(FindAllFiles);
 
+            if (m_FindAll.Visible)
+            {
+                m_FindAll.Activate();
+                return;
+            }
+
             m_FindAll.Show(this);
         }
 
