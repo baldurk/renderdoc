@@ -700,7 +700,7 @@ namespace renderdocui.Code
             try
             {
                 if (folder.Length == 0 || !Directory.Exists(folder))
-                    folder = Path.GetTempPath();
+                    folder = Path.Combine(Path.GetTempPath(), "RenderDoc");
             }
             catch (ArgumentException)
             {
