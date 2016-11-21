@@ -149,30 +149,6 @@ namespace renderdocui.Windows
                 return;
             }
 
-            /*
-            String commonRoot = calls[0];
-
-            for (int i = 1; i < calls.Length - m_Core.Config.CallstackLevelSkip; i++)
-            {
-                int len = Math.Min(commonRoot.Length, calls[i].Length);
-
-                int commonLen = 0;
-                for (;commonLen < len; commonLen++)
-                {
-                    if (commonRoot[commonLen] != calls[i][commonLen])
-                        break;
-                }
-
-                if (commonLen == 0)
-                {
-                    commonRoot = "";
-                    break;
-                }
-
-                commonRoot = commonRoot.Substring(0, commonLen);
-            }
-            */
-
             callstack.Items.Clear();
 
             if (calls.Length == 1 && calls[0].Length == 0)
@@ -181,15 +157,12 @@ namespace renderdocui.Windows
             }
             else
             {
-                for (int i = 0; i < calls.Length - m_Core.Config.CallstackLevelSkip; i++)
-                {
-                    //callstack.Items.Add(calls[i].Substring(commonRoot.Length));
+                for (int i = 0; i < calls.Length; i++)
                     callstack.Items.Add(calls[i]);
-                }
             }
         }
 
-        private void treeView1_AfterSelect(object sender, TreeViewEventArgs e)
+        private void apiEvents_AfterSelect(object sender, TreeViewEventArgs e)
         {
             if (IsDisposed || apiEvents.IsDisposed)
                 return;
@@ -224,49 +197,6 @@ namespace renderdocui.Windows
         private void APIEvents_Shown(object sender, EventArgs e)
         {
             panelSplitter.Collapsed = true;
-        }
-
-        private void UpdateSettings()
-        {
-            bool changed = false;
-
-            if (int.TryParse(callSkip.Text, out m_Core.Config.CallstackLevelSkip))
-            {
-                if (m_Core.Config.CallstackLevelSkip < 0)
-                    m_Core.Config.CallstackLevelSkip = 0;
-                callSkip.Text = m_Core.Config.CallstackLevelSkip.ToString();
-                changed = true;
-            }
-
-            if (changed)
-                FillCallstack();
-        }
-
-        private void callstack_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Right)
-                contextMenu.Show(callstack.PointToScreen(e.Location));
-
-            if (e.Button == MouseButtons.Left && contextMenu.Visible)
-                UpdateSettings();
-        }
-
-        private void callSkip_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            if (e.KeyChar == '\r' || e.KeyChar == '\n')
-            {
-                UpdateSettings();
-                e.Handled = true;
-            }
-        }
-
-        private void dirSkip_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            if (e.KeyChar == '\r' || e.KeyChar == '\n')
-            {
-                UpdateSettings();
-                e.Handled = true;
-            }
         }
 
         private void apiEvents_KeyDown(object sender, KeyEventArgs e)

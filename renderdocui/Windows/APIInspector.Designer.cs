@@ -28,21 +28,16 @@
         /// </summary>
         private void InitializeComponent()
         {
-            this.components = new System.ComponentModel.Container();
             System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
-            TreelistView.TreeListColumn treeListColumn1 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("EID", "EID")));
-            TreelistView.TreeListColumn treeListColumn2 = ((TreelistView.TreeListColumn)(new TreelistView.TreeListColumn("Call", "API Call")));
+            TreelistView.TreeListColumn treeListColumn3 = new TreelistView.TreeListColumn("EID", "EID");
+            TreelistView.TreeListColumn treeListColumn4 = new TreelistView.TreeListColumn("Call", "API Call");
             this.apiEvents = new TreelistView.TreeListView();
             this.callstacklabel = new System.Windows.Forms.Label();
-            this.callstackSkipLevelsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.callSkip = new System.Windows.Forms.ToolStripTextBox();
-            this.contextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
             this.panelSplitter = new renderdocui.Controls.DoubleClickSplitter();
             this.callstack = new System.Windows.Forms.ListBox();
             tableLayoutPanel1 = new System.Windows.Forms.TableLayoutPanel();
             tableLayoutPanel1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.apiEvents)).BeginInit();
-            this.contextMenu.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.panelSplitter)).BeginInit();
             this.panelSplitter.Panel1.SuspendLayout();
             this.panelSplitter.Panel2.SuspendLayout();
@@ -67,14 +62,14 @@
             // apiEvents
             // 
             this.apiEvents.AlwaysDisplayVScroll = true;
-            treeListColumn1.AutoSizeMinSize = 50;
-            treeListColumn1.Width = 60;
-            treeListColumn2.AutoSize = true;
-            treeListColumn2.AutoSizeMinSize = 0;
-            treeListColumn2.Width = 50;
+            treeListColumn3.AutoSizeMinSize = 50;
+            treeListColumn3.Width = 60;
+            treeListColumn4.AutoSize = true;
+            treeListColumn4.AutoSizeMinSize = 0;
+            treeListColumn4.Width = 50;
             this.apiEvents.Columns.AddRange(new TreelistView.TreeListColumn[] {
-            treeListColumn1,
-            treeListColumn2});
+            treeListColumn3,
+            treeListColumn4});
             this.apiEvents.Cursor = System.Windows.Forms.Cursors.Arrow;
             this.apiEvents.Dock = System.Windows.Forms.DockStyle.Fill;
             this.apiEvents.Location = new System.Drawing.Point(3, 3);
@@ -83,7 +78,7 @@
             this.apiEvents.Size = new System.Drawing.Size(286, 152);
             this.apiEvents.TabIndex = 1;
             this.apiEvents.Text = "API Calls";
-            this.apiEvents.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.treeView1_AfterSelect);
+            this.apiEvents.AfterSelect += new System.Windows.Forms.TreeViewEventHandler(this.apiEvents_AfterSelect);
             this.apiEvents.KeyDown += new System.Windows.Forms.KeyEventHandler(this.apiEvents_KeyDown);
             // 
             // callstacklabel
@@ -98,29 +93,6 @@
             this.callstacklabel.Text = "Callstack";
             this.callstacklabel.TextAlign = System.Drawing.ContentAlignment.BottomCenter;
             this.callstacklabel.DoubleClick += new System.EventHandler(this.callstacklabel_DoubleClick);
-            // 
-            // callstackSkipLevelsToolStripMenuItem
-            // 
-            this.callstackSkipLevelsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.callSkip});
-            this.callstackSkipLevelsToolStripMenuItem.Name = "callstackSkipLevelsToolStripMenuItem";
-            this.callstackSkipLevelsToolStripMenuItem.Size = new System.Drawing.Size(171, 22);
-            this.callstackSkipLevelsToolStripMenuItem.Text = "Callstack Skip Levels";
-            // 
-            // callSkip
-            // 
-            this.callSkip.Name = "callSkip";
-            this.callSkip.Size = new System.Drawing.Size(100, 21);
-            this.callSkip.Text = "0";
-            this.callSkip.ToolTipText = "Number of levels in the callstack to skip, from the bottom";
-            this.callSkip.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.callSkip_KeyPress);
-            // 
-            // contextMenu
-            // 
-            this.contextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.callstackSkipLevelsToolStripMenuItem});
-            this.contextMenu.Name = "contextMenuStrip1";
-            this.contextMenu.Size = new System.Drawing.Size(172, 26);
             // 
             // panelSplitter
             // 
@@ -170,7 +142,6 @@
             tableLayoutPanel1.ResumeLayout(false);
             tableLayoutPanel1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.apiEvents)).EndInit();
-            this.contextMenu.ResumeLayout(false);
             this.panelSplitter.Panel1.ResumeLayout(false);
             this.panelSplitter.Panel2.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.panelSplitter)).EndInit();
@@ -183,9 +154,6 @@
 
         private TreelistView.TreeListView apiEvents;
         private System.Windows.Forms.ListBox callstack;
-        private System.Windows.Forms.ToolStripMenuItem callstackSkipLevelsToolStripMenuItem;
-        private System.Windows.Forms.ToolStripTextBox callSkip;
-        private System.Windows.Forms.ContextMenuStrip contextMenu;
         private Controls.DoubleClickSplitter panelSplitter;
         private System.Windows.Forms.Label callstacklabel;
 

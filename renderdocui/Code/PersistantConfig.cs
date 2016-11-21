@@ -174,7 +174,6 @@ namespace renderdocui.Code
         public string LastCapturePath = "";
         public string LastCaptureExe = "";
         public List<string> RecentCaptureSettings = new List<string>();
-        public int CallstackLevelSkip = 0;
         public string AdbExecutablePath = "";
 
         // for historical reasons, this was named CaptureSavePath
@@ -321,7 +320,6 @@ namespace renderdocui.Code
 
         public PersistantConfig()
         {
-            CallstackLevelSkip = 0;
             RecentLogFiles.Clear();
             RecentCaptureSettings.Clear();
         }
