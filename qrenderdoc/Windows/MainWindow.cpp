@@ -654,6 +654,7 @@ void MainWindow::PopulateRecentCaptures()
 
 void MainWindow::ShowLiveCapture(LiveCapture *live)
 {
+  live->setWindowIcon(m_Ctx->winIcon());
   m_LiveCaptures.push_back(live);
   ui->toolWindowManager->addToolWindow(live, mainToolArea());
 }

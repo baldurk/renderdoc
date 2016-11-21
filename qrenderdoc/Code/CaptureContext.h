@@ -123,6 +123,7 @@ public:
   WindowingSystem m_CurWinSystem;
   void *FillWindowingData(WId widget);
 
+  const QIcon &winIcon() { return *m_Icon; }
   MainWindow *mainWindow() { return m_MainWindow; }
   EventBrowser *eventBrowser();
   TextureViewer *textureViewer();
@@ -189,6 +190,8 @@ private:
   xcb_connection_t *m_XCBConnection;
   Display *m_X11Display;
 #endif
+
+  QIcon *m_Icon;
 
   // Windows
   QProgressDialog *m_Progress;

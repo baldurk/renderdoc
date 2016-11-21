@@ -52,6 +52,9 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
 
   qApp->setApplicationVersion(RENDERDOC_GetVersionString());
 
+  m_Icon = new QIcon();
+  m_Icon->addFile(QStringLiteral(":/Resources/icon.ico"), QSize(), QIcon::Normal, QIcon::Off);
+
   m_MainWindow = new MainWindow(this);
   m_MainWindow->show();
 
@@ -65,6 +68,7 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
 
 CaptureContext::~CaptureContext()
 {
+  delete m_Icon;
   m_Renderer.CloseThread();
   delete m_MainWindow;
 }
@@ -407,6 +411,7 @@ EventBrowser *CaptureContext::eventBrowser()
 
   m_EventBrowser = new EventBrowser(this, m_MainWindow);
   m_EventBrowser->setObjectName("eventBrowser");
+  m_EventBrowser->setWindowIcon(*m_Icon);
 
   return m_EventBrowser;
 }
@@ -418,6 +423,7 @@ TextureViewer *CaptureContext::textureViewer()
 
   m_TextureViewer = new TextureViewer(this, m_MainWindow);
   m_TextureViewer->setObjectName("textureViewer");
+  m_TextureViewer->setWindowIcon(*m_Icon);
 
   return m_TextureViewer;
 }
@@ -437,6 +443,7 @@ CaptureDialog *CaptureContext::captureDialog()
              CaptureOptions opts) { return m_MainWindow->OnInjectTrigger(PID, env, name, opts); },
       m_MainWindow);
   m_CaptureDialog->setObjectName("capDialog");
+  m_CaptureDialog->setWindowIcon(*m_Icon);
 
   return m_CaptureDialog;
 }
