@@ -973,6 +973,27 @@ void MainWindow::loadLayout_triggered()
 
 void MainWindow::closeEvent(QCloseEvent *event)
 {
+  for(LiveCapture *live : m_LiveCaptures)
+  {
+    if(!live->checkAllowClose())
+    {
+      event->ignore();
+      return;
+    }
+  }
+
+  if(!PromptCloseLog())
+  {
+    event->ignore();
+    return;
+  }
+
+  for(LiveCapture *live : m_LiveCaptures)
+  {
+    live->cleanItems();
+    live->close();
+  }
+
   SaveLayout(0);
 }
 

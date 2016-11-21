@@ -66,8 +66,10 @@ private slots:
   void on_previewSplit_splitterMoved(int pos, int index);
 
   // manual slots
+public slots:
   bool checkAllowClose();
 
+private slots:
   void childUpdate();
   void captureCountdownTick();
 
