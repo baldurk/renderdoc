@@ -68,6 +68,7 @@ ToolWindowManager::ToolWindowManager(QWidget *parent) :
   m_dropCurrentSuggestionIndex = 0;
   m_allowFloatingWindow = true;
   m_createCallback = NULL;
+  m_lastUsedArea = NULL;
 
   m_rectRubberBand = new QRubberBand(QRubberBand::Rectangle, this);
   m_lineRubberBand = new QRubberBand(QRubberBand::Line, this);
