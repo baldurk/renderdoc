@@ -112,10 +112,10 @@ public:
   const rdctype::array<FetchBuffer> &GetBuffers() { return m_BufferList; }
   QVector<DebugMessage> DebugMessages;
   int UnreadMessageCount;
-  void AddMessages(rdctype::array<DebugMessage> &msgs)
+  void AddMessages(const rdctype::array<DebugMessage> &msgs)
   {
     UnreadMessageCount += msgs.count;
-    for(DebugMessage &msg : msgs)
+    for(const DebugMessage &msg : msgs)
       DebugMessages.push_back(msg);
   }
 

@@ -109,6 +109,13 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
   statusIcon->setPixmap(QPixmap());
   statusText->setText("");
 
+  QObject::connect(&m_MessageTick, &QTimer::timeout, this, &MainWindow::messageCheck);
+  m_MessageTick.setSingleShot(false);
+  m_MessageTick.setInterval(500);
+  m_MessageTick.start();
+
+  ui->statusBar->setStyleSheet("QStatusBar::item { border: 0px }");
+
   SetTitle();
 
   PopulateRecentFiles();
@@ -141,6 +148,8 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
         capDialog, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
                                                     ui->toolWindowManager->areaOf(textureViewer)));
   }
+
+  m_Ctx->AddLogViewer(this);
 }
 
 MainWindow::~MainWindow()
@@ -746,12 +755,90 @@ void MainWindow::setProgress(float val)
   if(val < 0.0f || val >= 1.0f)
   {
     statusProgress->setVisible(false);
-    statusText->setText("");
   }
   else
   {
     statusProgress->setVisible(true);
     statusProgress->setValue(1000 * val);
+  }
+}
+
+void MainWindow::setLogHasErrors(bool errors)
+{
+  QString filename = QFileInfo(m_Ctx->LogFilename()).fileName();
+  if(errors)
+  {
+    QPixmap icon(QString::fromUtf8(":/Resources/delete.png"));
+    statusIcon->setPixmap(m_messageAlternate ? QPixmap(icon.width(), icon.height()) : icon);
+
+    QString text;
+    text = tr("%1 loaded. Log has %2 errors, warnings or performance notes. "
+              "See the 'Log Errors and Warnings' window.")
+               .arg(filename)
+               .arg(m_Ctx->DebugMessages.size());
+    if(m_Ctx->UnreadMessageCount > 0)
+      text += tr(" %1 Unread.").arg(m_Ctx->UnreadMessageCount);
+    statusText->setText(text);
+  }
+  else
+  {
+    statusIcon->setPixmap(QPixmap(QString::fromUtf8(":/Resources/tick.png")));
+    statusText->setText(tr("%1 loaded. No problems detected.").arg(filename));
+  }
+}
+
+void MainWindow::messageCheck()
+{
+  if(m_Ctx->LogLoaded())
+  {
+    m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) {
+      rdctype::array<DebugMessage> msgs;
+      r->GetDebugMessages(&msgs);
+
+      bool disconnected = false;
+
+      // TODO Remote
+      /*
+      if(me.m_Core.Renderer.Remote != null)
+      {
+        bool prev = me.m_Core.Renderer.Remote.ServerRunning;
+
+        me.m_Core.Renderer.PingRemote();
+
+        if(prev != me.m_Core.Renderer.Remote.ServerRunning)
+          disconnected = true;
+      }*/
+
+      GUIInvoke::call([this, disconnected, msgs] {
+        // if we just got disconnected while replaying a log, alert the user.
+        if(disconnected)
+        {
+          RDDialog::critical(this, tr("Remote server disconnected"),
+                             tr("Remote server disconnected during replaying of this capture.\n"
+                                "The replay will now be non-functional. To restore you will have "
+                                "to close the capture, allow "
+                                "RenderDoc to reconnect and load the capture again"));
+        }
+
+        // TODO Remote
+        // if(me.m_Core.Renderer.Remote != null && !me.m_Core.Renderer.Remote.ServerRunning)
+        // me.contextChooser.Image = global::renderdocui.Properties.Resources.cross;
+
+        if(!msgs.empty())
+        {
+          m_Ctx->AddMessages(msgs);
+          // TODO Debug messages
+          // m_Ctx->debugmessages().RefreshMessageList();
+        }
+
+        if(m_Ctx->UnreadMessageCount > 0)
+          m_messageAlternate = !m_messageAlternate;
+        else
+          m_messageAlternate = false;
+
+        setLogHasErrors(!m_Ctx->DebugMessages.empty());
+      });
+    });
   }
 }
 
@@ -761,9 +848,9 @@ void MainWindow::OnLogfileLoaded()
   // don't allow changing context while log is open
   // contextChooser.Enabled = false;
 
-  // LogHasErrors = (m_Core.DebugMessages.Count > 0);
-
   statusProgress->setVisible(false);
+
+  setLogHasErrors(!m_Ctx->DebugMessages.empty());
 
   m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) {
     bool hasResolver = r->HasCallstacks();
@@ -781,7 +868,7 @@ void MainWindow::OnLogfileLoaded()
 
   PopulateRecentFiles();
 
-  // m_Core.GetEventBrowser().Focus();
+  m_Ctx->eventBrowser()->activateWindow();
 }
 
 void MainWindow::OnLogfileClosed()

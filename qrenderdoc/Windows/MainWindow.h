@@ -26,6 +26,7 @@
 
 #include <stdint.h>
 #include <QMainWindow>
+#include <QTimer>
 #include "Code/CaptureContext.h"
 #include "ToolWindowManager.h"
 
@@ -85,6 +86,7 @@ private slots:
   // manual slots
   void saveLayout_triggered();
   void loadLayout_triggered();
+  void messageCheck();
 
 private:
   void closeEvent(QCloseEvent *event) override;
@@ -106,10 +108,16 @@ private:
   QLabel *statusText;
   QProgressBar *statusProgress;
 
+  QTimer m_MessageTick;
+
+  bool m_messageAlternate = false;
+
   bool m_OwnTempLog = false;
   bool m_SavedTempLog = false;
 
   QString m_LastSaveCapturePath = "";
+
+  void setLogHasErrors(bool errors);
 
   void SetTitle(const QString &filename);
   void SetTitle();
