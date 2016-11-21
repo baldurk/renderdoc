@@ -28,6 +28,7 @@
 #include <QFileDialog>
 #include <QMessageBox>
 #include <QSemaphore>
+#include <QSortFilterProxyModel>
 #include "renderdoc_replay.h"
 
 // total hack, expose the same basic interface as on renderdoc side.
@@ -248,6 +249,21 @@ public:
   }
 };
 
+class QFileFilterModel : public QSortFilterProxyModel
+{
+  Q_OBJECT
+
+public:
+  explicit QFileFilterModel(QObject *parent = Q_NULLPTR) : QSortFilterProxyModel(parent) {}
+  void setRequirePermissions(QDir::Filters mask) { m_requireMask = mask; }
+  void setExcludePermissions(QDir::Filters mask) { m_excludeMask = mask; }
+protected:
+  virtual bool filterAcceptsRow(int source_row, const QModelIndex &source_parent) const override;
+
+private:
+  QDir::Filters m_requireMask, m_excludeMask;
+};
+
 class QMenu;
 
 // helper for doing a manual blocking invoke of a dialog
@@ -303,6 +319,10 @@ struct RDDialog
                                  const QString &dir = QString(), const QString &filter = QString(),
                                  QString *selectedFilter = NULL,
                                  QFileDialog::Options options = QFileDialog::Options());
+
+  static QString getExecutableFileName(QWidget *parent = NULL, const QString &caption = QString(),
+                                       const QString &dir = QString(),
+                                       QFileDialog::Options options = QFileDialog::Options());
 
   static QString getSaveFileName(QWidget *parent = NULL, const QString &caption = QString(),
                                  const QString &dir = QString(), const QString &filter = QString(),

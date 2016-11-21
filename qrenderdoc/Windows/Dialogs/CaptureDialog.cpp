@@ -283,8 +283,7 @@ void CaptureDialog::on_exePathBrowse_clicked()
 
   // if(m_Core.Renderer.Remote == null)
   {
-    QString filename = RDDialog::getOpenFileName(this, tr("Choose executable"), initDir,
-                                                 "Executable files (*.exe);;All files (*.*)");
+    QString filename = RDDialog::getExecutableFileName(this, tr("Choose executable"), initDir);
 
     if(filename != "")
       setExecutableFilename(filename);

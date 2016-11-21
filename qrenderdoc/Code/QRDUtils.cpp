@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "QRDUtils.h"
+#include <QFileSystemModel>
 #include <QGuiApplication>
 #include <QJsonDocument>
 #include <QMenu>
@@ -339,6 +340,7 @@ QString RDDialog::getOpenFileName(QWidget *parent, const QString &caption, const
                                   QFileDialog::Options options)
 {
   QFileDialog fd(parent, caption, dir, filter);
+  fd.setFileMode(QFileDialog::ExistingFile);
   fd.setAcceptMode(QFileDialog::AcceptOpen);
   fd.setOptions(options);
   show(&fd);
@@ -348,6 +350,35 @@ QString RDDialog::getOpenFileName(QWidget *parent, const QString &caption, const
     if(selectedFilter)
       *selectedFilter = fd.selectedNameFilter();
 
+    QStringList files = fd.selectedFiles();
+    if(!files.isEmpty())
+      return files[0];
+  }
+
+  return QString();
+}
+
+QString RDDialog::getExecutableFileName(QWidget *parent, const QString &caption, const QString &dir,
+                                        QFileDialog::Options options)
+{
+  QString filter;
+
+#if defined(Q_OS_WIN32)
+  // can't filter by executable bit on windows, but we have extensions
+  filter = "Executables (*.exe);;All Files (*.*)";
+#endif
+
+  QFileDialog fd(parent, caption, dir, filter);
+  fd.setOptions(options);
+  fd.setAcceptMode(QFileDialog::AcceptOpen);
+  fd.setFileMode(QFileDialog::ExistingFile);
+  QFileFilterModel *proxy = new QFileFilterModel(parent);
+  proxy->setRequirePermissions(QDir::Executable);
+  fd.setProxyModel(proxy);
+  show(&fd);
+
+  if(fd.result() == QFileDialog::Accepted)
+  {
     QStringList files = fd.selectedFiles();
     if(!files.isEmpty())
       return files[0];
@@ -376,4 +407,39 @@ QString RDDialog::getSaveFileName(QWidget *parent, const QString &caption, const
   }
 
   return QString();
+}
+
+bool QFileFilterModel::filterAcceptsRow(int source_row, const QModelIndex &source_parent) const
+{
+  QModelIndex idx = sourceModel()->index(source_row, 0, source_parent);
+
+  QFileSystemModel *fs = qobject_cast<QFileSystemModel *>(sourceModel());
+
+  if(!fs)
+  {
+    qCritical() << "Expected a QFileSystemModel as the source model!";
+    return true;
+  }
+
+  if(fs->isDir(idx))
+    return true;
+
+  QFile::Permissions permissions =
+      (QFile::Permissions)sourceModel()->data(idx, QFileSystemModel::FilePermissions).toInt();
+
+  if((m_requireMask & QDir::Readable) && !(permissions & QFile::ReadUser))
+    return false;
+  if((m_requireMask & QDir::Writable) && !(permissions & QFile::WriteUser))
+    return false;
+  if((m_requireMask & QDir::Executable) && !(permissions & QFile::ExeUser))
+    return false;
+
+  if((m_excludeMask & QDir::Readable) && (permissions & QFile::ReadUser))
+    return false;
+  if((m_excludeMask & QDir::Writable) && (permissions & QFile::WriteUser))
+    return false;
+  if((m_excludeMask & QDir::Executable) && (permissions & QFile::ExeUser))
+    return false;
+
+  return true;
 }
