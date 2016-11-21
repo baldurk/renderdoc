@@ -1823,7 +1823,7 @@ void WrappedGLES::SwapBuffers(void *surface)
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
       if(ctxdata.Legacy())
         flags |= RenderDoc::eOverlay_CaptureDisabled;
-      string overlayText = RenderDoc::Inst().GetOverlayText(RDC_OpenGL, m_FrameCounter, flags);
+      string overlayText = RenderDoc::Inst().GetOverlayText(RDC_OpenGLES, m_FrameCounter, flags);
 
         // TODO(elecro): reword the messages.
       if(ctxdata.Legacy())
