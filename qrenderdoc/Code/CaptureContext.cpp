@@ -34,6 +34,7 @@
 #include <QStandardPaths>
 #include <QTimer>
 #include "Windows/Dialogs/CaptureDialog.h"
+#include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/EventBrowser.h"
 #include "Windows/MainWindow.h"
 #include "Windows/TextureViewer.h"
@@ -57,6 +58,12 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
 
   m_MainWindow = new MainWindow(this);
   m_MainWindow->show();
+
+  if(remoteIdent != 0)
+  {
+    m_MainWindow->ShowLiveCapture(
+        new LiveCapture(this, remoteHost, remoteIdent, m_MainWindow, m_MainWindow));
+  }
 
   if(!paramFilename.isEmpty())
   {
