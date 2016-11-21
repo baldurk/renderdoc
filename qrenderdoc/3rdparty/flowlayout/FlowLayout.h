@@ -64,11 +64,15 @@ public:
     QSize sizeHint() const Q_DECL_OVERRIDE;
     QLayoutItem *takeAt(int index) Q_DECL_OVERRIDE;
 
+    bool fixedGrid() const;
+    void setFixedGrid(bool fixedgrid);
+
 private:
     int doLayout(const QRect &rect, bool testOnly) const;
     int smartSpacing(QStyle::PixelMetric pm) const;
 
     QList<QLayoutItem *> itemList;
+    bool m_fixedGrid;
     int m_hSpace;
     int m_vSpace;
 };

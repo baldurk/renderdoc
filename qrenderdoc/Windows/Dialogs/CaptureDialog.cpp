@@ -126,6 +126,8 @@ CaptureDialog::CaptureDialog(CaptureContext *ctx, OnCaptureMethod captureCallbac
 
     FlowLayout *optionsFlow = new FlowLayout(ui->optionsGroup, -1, 3, 3);
 
+    optionsFlow->setFixedGrid(true);
+
     for(QObject *o : options)
       optionsFlow->addWidget(qobject_cast<QWidget *>(o));
 
