@@ -130,9 +130,15 @@ int FlowLayout::heightForWidth(int width) const
 
 void FlowLayout::setGeometry(const QRect &rect)
 {
+    bool needUpdate = (rect != m_prevRect);
+
     QLayout::setGeometry(rect);
     doLayout(rect, false);
-    update();
+
+    if(needUpdate)
+        update();
+
+    m_prevRect = rect;
 }
 
 QSize FlowLayout::sizeHint() const

@@ -72,6 +72,7 @@ private:
     int smartSpacing(QStyle::PixelMetric pm) const;
 
     QList<QLayoutItem *> itemList;
+    QRect m_prevRect;
     bool m_fixedGrid;
     int m_hSpace;
     int m_vSpace;
