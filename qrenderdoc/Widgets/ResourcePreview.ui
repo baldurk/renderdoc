@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>160</width>
-    <height>120</height>
+    <width>168</width>
+    <height>127</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -15,18 +15,6 @@
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
-  </property>
-  <property name="minimumSize">
-   <size>
-    <width>160</width>
-    <height>120</height>
-   </size>
-  </property>
-  <property name="maximumSize">
-   <size>
-    <width>178</width>
-    <height>120</height>
-   </size>
   </property>
   <property name="windowTitle">
    <string>Form</string>
@@ -64,12 +52,6 @@
        <verstretch>0</verstretch>
       </sizepolicy>
      </property>
-     <property name="minimumSize">
-      <size>
-       <width>0</width>
-       <height>0</height>
-      </size>
-     </property>
     </widget>
    </item>
    <item row="1" column="0">
@@ -79,12 +61,6 @@
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>32</height>
-      </size>
      </property>
      <property name="font">
       <font>
@@ -108,12 +84,6 @@
        <horstretch>0</horstretch>
        <verstretch>0</verstretch>
       </sizepolicy>
-     </property>
-     <property name="maximumSize">
-      <size>
-       <width>16777215</width>
-       <height>32</height>
-      </size>
      </property>
      <property name="font">
       <font>

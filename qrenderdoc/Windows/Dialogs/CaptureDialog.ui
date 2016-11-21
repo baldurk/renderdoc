@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>270</width>
+    <width>578</width>
     <height>939</height>
    </rect>
   </property>
@@ -55,12 +55,6 @@
         <property name="minimumSize">
          <size>
           <width>0</width>
-          <height>20</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
           <height>20</height>
          </size>
         </property>
@@ -123,12 +117,6 @@
           <height>20</height>
          </size>
         </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>20</height>
-         </size>
-        </property>
        </widget>
       </item>
       <item row="2" column="2" colspan="2">
@@ -139,22 +127,10 @@
           <height>20</height>
          </size>
         </property>
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>20</height>
-         </size>
-        </property>
        </widget>
       </item>
       <item row="3" column="2">
        <widget class="QLineEdit" name="envVar">
-        <property name="maximumSize">
-         <size>
-          <width>16777215</width>
-          <height>20</height>
-         </size>
-        </property>
         <property name="readOnly">
          <bool>true</bool>
         </property>
@@ -377,18 +353,6 @@ Click here to set up Vulkan capture.</string>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
        <widget class="QCheckBox" name="AllowFullscreen">
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>150</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Allow Fullscreen</string>
         </property>
@@ -396,18 +360,6 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="AllowVSync">
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>150</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Allow VSync</string>
         </property>
@@ -420,18 +372,6 @@ Click here to set up Vulkan capture.</string>
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
-        </property>
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>150</width>
-          <height>16777215</height>
-         </size>
         </property>
         <property name="frameShape">
          <enum>QFrame::NoFrame</enum>
@@ -501,18 +441,6 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="CaptureCallstacks">
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>150</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Collect Callstacks</string>
         </property>
@@ -520,18 +448,6 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="CaptureCallstacksOnlyDraws">
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>150</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Only Drawcall stacks</string>
         </property>
@@ -539,18 +455,6 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="APIValidation">
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>150</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Enable API Validation</string>
         </property>
@@ -558,18 +462,6 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="HookIntoChildren">
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>150</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Hook into Children</string>
         </property>
@@ -577,18 +469,6 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="SaveAllInitials">
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>150</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Save all Initials</string>
         </property>
@@ -596,18 +476,6 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="RefAllResources">
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>150</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Ref all Resources</string>
         </property>
@@ -615,18 +483,6 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="CaptureAllCmdLists">
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>150</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Capture all Cmd Lists</string>
         </property>
@@ -634,18 +490,6 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="VerifyMapWrites">
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>150</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Verify Map() Writes</string>
         </property>
@@ -653,18 +497,6 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="AutoStart">
-        <property name="minimumSize">
-         <size>
-          <width>150</width>
-          <height>0</height>
-         </size>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>150</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Auto Start</string>
         </property>
@@ -829,12 +661,6 @@ Click here to set up Vulkan capture.</string>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
        <widget class="QPushButton" name="saveSettings">
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Save</string>
         </property>
@@ -847,12 +673,6 @@ Click here to set up Vulkan capture.</string>
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
-        </property>
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>16777215</height>
-         </size>
         </property>
         <property name="text">
          <string>Load</string>
@@ -877,12 +697,6 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QPushButton" name="capture">
-        <property name="maximumSize">
-         <size>
-          <width>60</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Capture</string>
         </property>
@@ -890,12 +704,6 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QPushButton" name="close">
-        <property name="maximumSize">
-         <size>
-          <width>50</width>
-          <height>16777215</height>
-         </size>
-        </property>
         <property name="text">
          <string>Close</string>
         </property>
