@@ -155,9 +155,10 @@ void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
 {
   if(m_Thread == NULL || !m_Thread->isRunning() || !m_Running)
   {
-    cmd->processed.release();
     if(cmd->selfdelete)
       delete cmd;
+    else
+      cmd->processed.release();
     return;
   }
 
@@ -203,11 +204,11 @@ void RenderManager::run()
       if(cmd->method != NULL)
         cmd->method(renderer);
 
-      cmd->processed.release();
-
       // if it's a throwaway command, delete it
       if(cmd->selfdelete)
         delete cmd;
+      else
+        cmd->processed.release();
     }
   }
 
@@ -224,10 +225,10 @@ void RenderManager::run()
       if(cmd == NULL)
         continue;
 
-      cmd->processed.release();
-
       if(cmd->selfdelete)
         delete cmd;
+      else
+        cmd->processed.release();
     }
   }
 
