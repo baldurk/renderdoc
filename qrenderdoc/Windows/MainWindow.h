@@ -78,10 +78,12 @@ private slots:
   void on_action_Open_Log_triggered();
   void on_action_Close_Log_triggered();
   void on_action_Mesh_Output_triggered();
+  void on_action_API_Inspector_triggered();
   void on_action_Event_Browser_triggered();
   void on_action_Texture_Viewer_triggered();
   void on_action_Capture_Log_triggered();
   void on_action_Inject_into_Process_triggered();
+  void on_action_Resolve_Symbols_triggered();
 
   // manual slots
   void saveLayout_triggered();

@@ -33,6 +33,7 @@
 #include <QProgressDialog>
 #include <QStandardPaths>
 #include <QTimer>
+#include "Windows/APIInspector.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/EventBrowser.h"
@@ -429,6 +430,18 @@ EventBrowser *CaptureContext::eventBrowser()
   return m_EventBrowser;
 }
 
+APIInspector *CaptureContext::apiInspector()
+{
+  if(m_APIInspector)
+    return m_APIInspector;
+
+  m_APIInspector = new APIInspector(this, m_MainWindow);
+  m_APIInspector->setObjectName("apiInspector");
+  m_APIInspector->setWindowIcon(*m_Icon);
+
+  return m_APIInspector;
+}
+
 TextureViewer *CaptureContext::textureViewer()
 {
   if(m_TextureViewer)
@@ -470,6 +483,10 @@ QWidget *CaptureContext::createToolWindow(const QString &objectName)
   else if(objectName == "eventBrowser")
   {
     return eventBrowser();
+  }
+  else if(objectName == "apiInspector")
+  {
+    return apiInspector();
   }
   else if(objectName == "capDialog")
   {

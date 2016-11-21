@@ -110,7 +110,8 @@ SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     Windows/Dialogs/CaptureDialog.cpp \
     Code/QRDUtils.cpp \
     Windows/Dialogs/LiveCapture.cpp \
-    Widgets/Extended/RDListWidget.cpp
+    Widgets/Extended/RDListWidget.cpp \
+    Windows/APIInspector.cpp
 
 HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
@@ -138,7 +139,8 @@ HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     Windows/Dialogs/CaptureDialog.h \
     Code/QRDUtils.h \
     Windows/Dialogs/LiveCapture.h \
-    Widgets/Extended/RDListWidget.h
+    Widgets/Extended/RDListWidget.h \
+    Windows/APIInspector.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
@@ -148,7 +150,8 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Widgets/ThumbnailStrip.ui \
     Windows/Dialogs/TextureSaveDialog.ui \
     Windows/Dialogs/CaptureDialog.ui \
-    Windows/Dialogs/LiveCapture.ui
+    Windows/Dialogs/LiveCapture.ui \
+    Windows/APIInspector.ui
 
 RESOURCES += \
     resources.qrc

@@ -285,6 +285,7 @@
     <ClCompile Include="Code\qprocessinfo.cpp" />
     <ClCompile Include="Code\QRDUtils.cpp" />
     <ClCompile Include="generated\moc_AboutDialog.cpp" />
+    <ClCompile Include="generated\moc_APIInspector.cpp" />
     <ClCompile Include="generated\moc_CaptureDialog.cpp" />
     <ClCompile Include="generated\moc_CustomPaintWidget.cpp" />
     <ClCompile Include="generated\moc_EventBrowser.cpp" />
@@ -316,6 +317,7 @@
     <ClCompile Include="Widgets\ThumbnailStrip.cpp" />
     <ClCompile Include="Code\CaptureContext.cpp" />
     <ClCompile Include="Widgets\CustomPaintWidget.cpp" />
+    <ClCompile Include="Windows\APIInspector.cpp" />
     <ClCompile Include="Windows\Dialogs\AboutDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\LiveCapture.cpp" />
@@ -345,6 +347,7 @@
     <ClInclude Include="Code\qprocessinfo.h" />
     <ClInclude Include="Code\QRDUtils.h" />
     <ClInclude Include="generated\ui_AboutDialog.h" />
+    <ClInclude Include="generated\ui_APIInspector.h" />
     <ClInclude Include="generated\ui_CaptureDialog.h" />
     <ClInclude Include="generated\ui_EventBrowser.h" />
     <ClInclude Include="generated\ui_LiveCapture.h" />
@@ -364,6 +367,7 @@
     <ClInclude Include="Widgets\ThumbnailStrip.h" />
     <ClInclude Include="Code\CaptureContext.h" />
     <ClInclude Include="Widgets\CustomPaintWidget.h" />
+    <ClInclude Include="Windows\APIInspector.h" />
     <ClInclude Include="Windows\Dialogs\AboutDialog.h" />
     <ClInclude Include="Windows\Dialogs\CaptureDialog.h" />
     <ClInclude Include="Windows\Dialogs\LiveCapture.h" />
@@ -381,6 +385,7 @@
   <ItemGroup>
     <None Include="Widgets\ResourcePreview.ui" />
     <None Include="Widgets\ThumbnailStrip.ui" />
+    <None Include="Windows\APIInspector.ui" />
     <None Include="Windows\Dialogs\AboutDialog.ui" />
     <None Include="Windows\Dialogs\CaptureDialog.ui" />
     <None Include="Windows\Dialogs\LiveCapture.ui" />

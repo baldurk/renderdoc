@@ -27,12 +27,14 @@
 #include <QFileInfo>
 #include <QMimeData>
 #include <QProgressBar>
+#include <QProgressDialog>
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
 #include "Resources/resource.h"
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
+#include "APIInspector.h"
 #include "EventBrowser.h"
 #include "TextureViewer.h"
 #include "ui_MainWindow.h"
@@ -126,6 +128,9 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
     return m_Ctx->createToolWindow(objectName);
   });
 
+  ui->action_Resolve_Symbols->setEnabled(false);
+  ui->action_Resolve_Symbols->setText(tr("Resolve Symbols"));
+
   bool loaded = LoadLayout(0);
 
   // create default layout if layout failed to load
@@ -147,6 +152,13 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
     ui->toolWindowManager->addToolWindow(
         capDialog, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
                                                     ui->toolWindowManager->areaOf(textureViewer)));
+
+    APIInspector *apiInspector = m_Ctx->apiInspector();
+
+    ui->toolWindowManager->addToolWindow(
+        apiInspector,
+        ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
+                                         ui->toolWindowManager->areaOf(eventBrowser), 0.3f));
   }
 
   m_Ctx->AddLogViewer(this);
@@ -917,6 +929,29 @@ void MainWindow::on_action_Mesh_Output_triggered()
   // TODO Mesh view
 }
 
+void MainWindow::on_action_API_Inspector_triggered()
+{
+  APIInspector *apiInspector = m_Ctx->apiInspector();
+
+  if(ui->toolWindowManager->toolWindows().contains(apiInspector))
+  {
+    ToolWindowManager::raiseToolWindow(apiInspector);
+  }
+  else
+  {
+    if(m_Ctx->hasEventBrowser())
+    {
+      ToolWindowManager::AreaReference ref(ToolWindowManager::BottomOf,
+                                           ui->toolWindowManager->areaOf(m_Ctx->eventBrowser()));
+      ui->toolWindowManager->addToolWindow(apiInspector, ref);
+    }
+    else
+    {
+      ui->toolWindowManager->addToolWindow(apiInspector, leftToolArea());
+    }
+  }
+}
+
 void MainWindow::on_action_Event_Browser_triggered()
 {
   EventBrowser *eventBrowser = m_Ctx->eventBrowser();
@@ -959,6 +994,51 @@ void MainWindow::on_action_Inject_into_Process_triggered()
     ToolWindowManager::raiseToolWindow(capDialog);
   else
     ui->toolWindowManager->addToolWindow(capDialog, mainToolArea());
+}
+
+void MainWindow::on_action_Resolve_Symbols_triggered()
+{
+  m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) { r->InitResolver(); });
+
+  QProgressDialog *m_Progress =
+      new QProgressDialog(tr("Please Wait - Resolving Symbols"), QString(), 0, 0, this);
+  m_Progress->setWindowTitle("Please Wait");
+  m_Progress->setWindowFlags(Qt::CustomizeWindowHint | Qt::Dialog | Qt::WindowTitleHint);
+  m_Progress->setWindowIcon(QIcon());
+  m_Progress->setMinimumSize(QSize(250, 0));
+  m_Progress->setMaximumSize(QSize(250, 10000));
+  m_Progress->setCancelButton(NULL);
+  m_Progress->setMinimumDuration(0);
+  m_Progress->setWindowModality(Qt::ApplicationModal);
+  m_Progress->setValue(0);
+
+  QLabel *label = new QLabel(m_Progress);
+
+  label->setText(tr("Please Wait - Resolving Symbols"));
+  label->setAlignment(Qt::AlignCenter);
+  label->setWordWrap(true);
+
+  m_Progress->setLabel(label);
+
+  LambdaThread *thread = new LambdaThread([this, m_Progress]() {
+    bool running = true;
+
+    while(running)
+    {
+      // just bail if we managed to get here without a resolver.
+      m_Ctx->Renderer()->BlockInvoke(
+          [&running](IReplayRenderer *r) { running = r->HasCallstacks() && !r->InitResolver(); });
+    }
+
+    GUIInvoke::call([this, m_Progress]() {
+      m_Progress->hide();
+      delete m_Progress;
+      if(m_Ctx->hasAPIInspector())
+        m_Ctx->apiInspector()->on_apiEvents_itemSelectionChanged();
+    });
+  });
+  thread->selfDelete(true);
+  thread->start();
 }
 
 void MainWindow::saveLayout_triggered()

@@ -193,6 +193,12 @@
     <ClCompile Include="generated\moc_RDListWidget.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="generated\moc_APIInspector.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\APIInspector.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -293,6 +299,12 @@
     </ClInclude>
     <ClInclude Include="Widgets\Extended\RDListWidget.h">
       <Filter>Widgets\Extended</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_APIInspector.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\APIInspector.h">
+      <Filter>Windows</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -499,6 +511,9 @@
     </None>
     <None Include="Windows\Dialogs\LiveCapture.ui">
       <Filter>Windows\Dialogs</Filter>
+    </None>
+    <None Include="Windows\APIInspector.ui">
+      <Filter>Windows</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
