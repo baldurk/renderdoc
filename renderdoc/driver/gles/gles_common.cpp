@@ -476,6 +476,8 @@ ResourceFormat MakeResourceFormat(WrappedGLES &gl, GLenum target, GLenum fmt)
       case eGL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2:
       case eGL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2: ret.compCount = 4; break;
 
+      case eGL_ETC1_RGB8_OES: ret.compCount = 3; break;
+
       default: break;
     }
 
@@ -518,6 +520,10 @@ ResourceFormat MakeResourceFormat(WrappedGLES &gl, GLenum target, GLenum fmt)
       case eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
       case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_NV:
         ret.specialFormat = eSpecial_BC3;
+        break;
+      // ETC1
+      case eGL_ETC1_RGB8_OES:
+        ret.specialFormat = eSpecial_ETC1;
         break;
       // ETC2
       case eGL_COMPRESSED_RGB8_ETC2:

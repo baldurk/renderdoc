@@ -54,6 +54,10 @@ size_t GetCompressedByteSize(GLsizei w, GLsizei h, GLsizei d, GLenum internalfor
     case eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
     case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_NV:
       return (AlignUp4(w) * AlignUp4(h) * d);
+    // ETC1
+    case eGL_ETC1_RGB8_OES:
+      return AlignUp4(w) / 4 * AlignUp4(h)  / 4 * d * 8;
+
     // ETC2
     case eGL_COMPRESSED_RGB8_ETC2:
     case eGL_COMPRESSED_SRGB8_ETC2:
@@ -288,6 +292,7 @@ GLenum GetBaseFormat(GLenum internalFormat)
     case eGL_RGB565:
     case eGL_RGB8:
     case eGL_RGB8_SNORM:
+    case eGL_ETC1_RGB8_OES:
     case eGL_RGB16_EXT:
     case eGL_RGB16_SNORM_EXT:
     case eGL_SRGB8:
@@ -343,6 +348,7 @@ GLenum GetDataType(GLenum internalFormat)
     case eGL_RG8:
     case eGL_R8:
     case eGL_RGB8:
+    case eGL_ETC1_RGB8_OES:
     case eGL_RGB8UI:
     case eGL_SRGB8_ALPHA8:
     case eGL_SRGB8: return eGL_UNSIGNED_BYTE;
@@ -647,6 +653,8 @@ bool IsCompressedFormat(GLenum internalFormat)
     // BC3
     case eGL_COMPRESSED_RGBA_S3TC_DXT5_EXT:
     case eGL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_NV:
+    // ETC1
+    case eGL_ETC1_RGB8_OES:
     // ETC2
     case eGL_COMPRESSED_RGB8_ETC2:
     case eGL_COMPRESSED_SRGB8_ETC2:
