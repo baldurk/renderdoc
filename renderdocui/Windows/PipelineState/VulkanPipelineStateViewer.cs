@@ -2236,14 +2236,16 @@ namespace renderdocui.Windows.PipelineState
             if (m_Core.Config.ExternalDisassemblerEnabled)
             {
                 BackgroundWorker bgWorker = new BackgroundWorker();
-                extDisassemblerProgBar.Visible = true;
+
+                ProgressPopup modal = new ProgressPopup(delegate { return !bgWorker.IsBusy; }, false);
+                modal.SetModalText("Please wait - running external disassembler.");
+
                 bgWorker.RunWorkerCompleted += (obj, eventArgs) =>
                 {
                     if((bool)eventArgs.Result == true)
                     {
                         ShowShaderViewer(stage, files);
                     }
-                    extDisassemblerProgBar.Visible = false;
                 };
                 bgWorker.DoWork += (obj, eventArgs) =>
                 {
@@ -2373,6 +2375,8 @@ namespace renderdocui.Windows.PipelineState
                     }
                 };
                 bgWorker.RunWorkerAsync();
+
+                modal.ShowDialog();
             }
             else
             {
