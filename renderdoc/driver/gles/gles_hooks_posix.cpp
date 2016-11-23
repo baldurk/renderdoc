@@ -30,128 +30,92 @@
 #include <set>
 #include <cstdlib>
 #include "common/threading.h"
+
+#include "driver/gles/gles_hooks_posix.h"
+
 #include "driver/gles/gles_common.h"
 #include "driver/gles/gles_driver.h"
-#include "driver/gles/gles_hookset.h"
 #include "driver/gles/gles_hookset_defs.h"
-#include "hooks/hooks.h"
 #include "serialise/string_utils.h"
 
-#include "official/egl_func_typedefs.h"
 
 void *libGLdlsymHandle =
     RTLD_NEXT;    // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
 
 Threading::CriticalSection glLock;
 
-class OpenGLHook : LibraryHook
+OpenGLHook::OpenGLHook()
 {
-public:
-  OpenGLHook() {
+  LibraryHooks::GetInstance().RegisterHook("libEGL.so", this);
 
-    LibraryHooks::GetInstance().RegisterHook("libEGL.so", this);
+  RDCEraseEl(GL);
 
-    RDCEraseEl(GL);
+  m_HasHooks = false;
 
-    m_HasHooks = false;
+  m_GLESDriver = NULL;
 
-    m_GLESDriver = NULL;
+  m_EnabledHooks = true;
+  m_PopulatedHooks = false;
 
-    m_EnabledHooks = true;
-    m_PopulatedHooks = false;
+  m_libGLdlsymHandle = dlopen("libEGL.so", RTLD_NOW);
 
-    m_libGLdlsymHandle = dlopen("libEGL.so", RTLD_NOW);
+  PopulateHooks();
+}
 
-    PopulateHooks();
-  }
+OpenGLHook::~OpenGLHook() { delete m_GLESDriver; }
 
-  ~OpenGLHook() { delete m_GLESDriver; }
+const GLHookSet& OpenGLHook::GetRealGLFunctions()
+{
+  if(!m_PopulatedHooks)
+    m_PopulatedHooks = PopulateHooks();
+  return GL;
+}
 
-  const GLHookSet &GetRealGLFunctions()
+void OpenGLHook::libHooked(void *realLib)
+{
+  OpenGLHook::glhooks.m_libGLdlsymHandle = realLib;
+  OpenGLHook::glhooks.CreateHooks(NULL);
+}
+
+bool OpenGLHook::CreateHooks(const char *libName)
+{
+  if(!m_EnabledHooks)
+    return false;
+
+  if(libName)
+    PosixHookLibrary("libEGL.so", &libHooked);
+
+  bool success = SetupHooks(GL);
+
+  if(!success)
+    return false;
+
+  m_HasHooks = true;
+
+  return true;
+}
+
+WrappedGLES *OpenGLHook::GetDriver()
+{
+  if(m_GLESDriver == NULL)
   {
-    if(!m_PopulatedHooks)
-      m_PopulatedHooks = PopulateHooks();
-    return GL;
+      GLESInitParams initParams;
+      m_GLESDriver = new WrappedGLES("", GL);
   }
 
-  static void libHooked(void *realLib)
-  {
-    OpenGLHook::glhooks.m_libGLdlsymHandle = realLib;
-    OpenGLHook::glhooks.CreateHooks(NULL);
-  }
+  return m_GLESDriver;
+}
 
-  bool CreateHooks(const char *libName)
-  {
-    if(!m_EnabledHooks)
-      return false;
+void OpenGLHook::MakeContextCurrent(GLESWindowingData data)
+{
+  if (m_eglMakeCurrent_real)
+    m_eglMakeCurrent_real(data.eglDisplay, data.surface, data.surface, data.ctx);
+}
 
-    if(libName)
-      PosixHookLibrary("libEGL.so", &libHooked);
-
-    bool success = SetupHooks(GL);
-
-    if(!success)
-      return false;
-
-    m_HasHooks = true;
-
-    return true;
-  }
-
-  void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
-  void OptionsUpdated(const char *libName) {}
-
-  static OpenGLHook glhooks;
-
-  WrappedGLES *GetDriver()
-  {
-    if(m_GLESDriver == NULL)
-    {
-        GLESInitParams initParams;
-        m_GLESDriver = new WrappedGLES("", GL);
-    }
-
-    return m_GLESDriver;
-  }
-
-  void MakeContextCurrent(GLESWindowingData data)
-  {
-    if (m_eglMakeCurrent_real)
-      m_eglMakeCurrent_real(data.eglDisplay, data.surface, data.surface, data.ctx);
-  }
-
-
-  GLESWindowingData MakeContext(GLESWindowingData share)
-  {
-    GLESWindowingData ret;
-    return share;
-  }
-
-  PFN_eglGetProcAddress m_eglGetProcAddress_real;
-  PFN_eglSwapBuffers m_eglSwapBuffers_real;
-  PFN_eglMakeCurrent m_eglMakeCurrent_real;
-  PFN_eglQuerySurface m_eglQuerySurface_real;
-
-  WrappedGLES *m_GLESDriver;
-
-  GLHookSet GL;
-
-  set<EGLContext> m_Contexts;
-
-  bool m_PopulatedHooks;
-  bool m_HasHooks;
-  bool m_EnabledHooks;
-
-  bool SetupHooks(GLHookSet &GL);
-  bool PopulateHooks();
-
-  void *GetDLHandle() { return m_libGLdlsymHandle; }
-
-private:
-  void *m_libGLdlsymHandle =
-    RTLD_NEXT; // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
-
-};
+GLESWindowingData OpenGLHook::MakeContext(GLESWindowingData share)
+{
+  return share;
+}
 
 OpenGLHook OpenGLHook::glhooks;
 
