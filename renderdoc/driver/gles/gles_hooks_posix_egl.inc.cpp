@@ -52,14 +52,14 @@ typedef void ( *__extFuncPtr)(void);
 #define HookInit(function)                                                   \
   if(!strcmp(func, STRINGIZE(function)))                                     \
   {                                                                          \
-    OpenGLHook::glhooks.GL.function = (CONCAT(function, _hooktype))realFunc; \
+    OpenGLHook::GetInstance().GL.function = (CONCAT(function, _hooktype))realFunc; \
     return (__extFuncPtr)&CONCAT(function, _renderdoc_hooked);            \
   }
 
 #define HookExtension(funcPtrType, function)                      \
   if(!strcmp(func, STRINGIZE(function)))                          \
   {                                                               \
-    OpenGLHook::glhooks.GL.function = (funcPtrType)realFunc;      \
+    OpenGLHook::GetInstance().GL.function = (funcPtrType)realFunc;      \
     return (__extFuncPtr)&CONCAT(function, _renderdoc_hooked); \
   }
 
@@ -107,7 +107,7 @@ typedef void ( *__extFuncPtr)(void);
   done;
         echo ") \\";
 
-        echo -en "\t{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(";
+        echo -en "\t{ SCOPED_LOCK(glLock); return OpenGLHook::GetInstance().GetDriver()->function(";
             for I in `seq 1 $N`; do echo -n "p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
         echo "); } \\";
 
@@ -116,7 +116,7 @@ typedef void ( *__extFuncPtr)(void);
   done;
         echo ") \\";
 
-        echo -en "\t{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(";
+        echo -en "\t{ SCOPED_LOCK(glLock); return OpenGLHook::GetInstance().GetDriver()->function(";
             for I in `seq 1 $N`; do echo -n "p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
         echo -n "); }";
     }
@@ -131,7 +131,7 @@ typedef void ( *__extFuncPtr)(void);
 #define DEFAULT_VISIBILITY __attribute__((visibility("default")))
 
 #define REAL(name) name ## _real
-#define DEF_FUNC(name) static PFN_##name REAL(name) = (PFN_ ## name)dlsym(OpenGLHook::glhooks.GetDLHandle(), #name)
+#define DEF_FUNC(name) static PFN_##name REAL(name) = (PFN_ ## name)dlsym(OpenGLHook::GetInstance().GetDLHandle(), #name)
 
 
 DEFAULT_VISIBILITY
@@ -141,7 +141,7 @@ EGLDisplay eglGetDisplay (EGLNativeDisplayType display)
     RDCLOG("Enter: %s", __FUNCTION__);
 #endif
 
-    OpenGLHook::glhooks.PopulateHooks();
+    OpenGLHook::GetInstance().PopulateHooks();
     DEF_FUNC(eglGetDisplay);
 #ifndef ANDROID
     Keyboard::CloneDisplay(display);
@@ -156,7 +156,7 @@ EGLContext eglCreateContext(EGLDisplay display, EGLConfig config, EGLContext sha
 #ifdef DUMP_EGL_ENTER
     RDCLOG("Enter: eglCreateContext");
 #endif
-    OpenGLHook::glhooks.PopulateHooks();
+    OpenGLHook::GetInstance().PopulateHooks();
 
     GLESInitParams init;
 
@@ -185,7 +185,7 @@ EGLContext eglCreateContext(EGLDisplay display, EGLConfig config, EGLContext sha
     outputWin.ctx = ctx;
     outputWin.eglDisplay = display;
 
-    OpenGLHook::glhooks.GetDriver()->CreateContext(outputWin, share_context, init, true, true);
+    OpenGLHook::GetInstance().GetDriver()->CreateContext(outputWin, share_context, init, true, true);
     return ctx;
 }
 
@@ -206,10 +206,10 @@ __eglMustCastToProperFunctionPointerType eglGetProcAddress(const char *func)
 #ifdef DUMP_EGL_ENTER
     RDCLOG("Enter: %s", __FUNCTION__);
 #endif
-    if (OpenGLHook::glhooks.m_eglGetProcAddress_real == NULL)
-      OpenGLHook::glhooks.PopulateHooks();
+    if (OpenGLHook::GetInstance().m_eglGetProcAddress_real == NULL)
+      OpenGLHook::GetInstance().PopulateHooks();
 
-    __eglMustCastToProperFunctionPointerType realFunc = OpenGLHook::glhooks.m_eglGetProcAddress_real(func);
+    __eglMustCastToProperFunctionPointerType realFunc = OpenGLHook::GetInstance().m_eglGetProcAddress_real(func);
 
     // Return our own egl implementations if requested
 #define WRAP(name) \
@@ -254,12 +254,12 @@ EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
 
     int width;
     int height;
-    OpenGLHook::glhooks.m_eglQuerySurface_real(dpy, surface, EGL_HEIGHT, &height);
-    OpenGLHook::glhooks.m_eglQuerySurface_real(dpy, surface, EGL_WIDTH, &width);
+    OpenGLHook::GetInstance().m_eglQuerySurface_real(dpy, surface, EGL_HEIGHT, &height);
+    OpenGLHook::GetInstance().m_eglQuerySurface_real(dpy, surface, EGL_WIDTH, &width);
 
-    OpenGLHook::glhooks.GetDriver()->WindowSize(surface, width, height);
-    OpenGLHook::glhooks.GetDriver()->SwapBuffers(surface);
-    return OpenGLHook::glhooks.m_eglSwapBuffers_real(dpy, surface);
+    OpenGLHook::GetInstance().GetDriver()->WindowSize(surface, width, height);
+    OpenGLHook::GetInstance().GetDriver()->SwapBuffers(surface);
+    return OpenGLHook::GetInstance().m_eglSwapBuffers_real(dpy, surface);
 }
 
 
@@ -269,12 +269,12 @@ EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface read, 
 #ifdef DUMP_EGL_ENTER
     RDCLOG("Enter: %s", __FUNCTION__);
 #endif
-    EGLBoolean ret = OpenGLHook::glhooks.m_eglMakeCurrent_real(display, draw, read, context);
+    EGLBoolean ret = OpenGLHook::GetInstance().m_eglMakeCurrent_real(display, draw, read, context);
 
-    if(context && OpenGLHook::glhooks.m_Contexts.find(context) == OpenGLHook::glhooks.m_Contexts.end())
+    if(context && OpenGLHook::GetInstance().m_Contexts.find(context) == OpenGLHook::GetInstance().m_Contexts.end())
     {
-        OpenGLHook::glhooks.m_Contexts.insert(context);
-        OpenGLHook::glhooks.PopulateHooks();
+        OpenGLHook::GetInstance().m_Contexts.insert(context);
+        OpenGLHook::GetInstance().PopulateHooks();
     }
 
     GLESWindowingData data;
@@ -282,7 +282,7 @@ EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw, EGLSurface read, 
     data.surface = draw;
     data.ctx = context;
 
-    OpenGLHook::glhooks.GetDriver()->ActivateContext(data);
+    OpenGLHook::GetInstance().GetDriver()->ActivateContext(data);
 
     return ret;
 }

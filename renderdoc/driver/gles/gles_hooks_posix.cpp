@@ -38,11 +38,12 @@
 #include "driver/gles/gles_hookset_defs.h"
 #include "serialise/string_utils.h"
 
-
-void *libGLdlsymHandle =
-    RTLD_NEXT;    // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
-
 Threading::CriticalSection glLock;
+static OpenGLHook hookInstance;
+
+OpenGLHook& OpenGLHook::GetInstance() {
+  return hookInstance;
+}
 
 OpenGLHook::OpenGLHook()
 {
@@ -56,10 +57,6 @@ OpenGLHook::OpenGLHook()
 
   m_EnabledHooks = true;
   m_PopulatedHooks = false;
-
-  m_libGLdlsymHandle = dlopen("libEGL.so", RTLD_NOW);
-
-  PopulateHooks();
 }
 
 OpenGLHook::~OpenGLHook() { delete m_GLESDriver; }
@@ -73,8 +70,8 @@ const GLHookSet& OpenGLHook::GetRealGLFunctions()
 
 void OpenGLHook::libHooked(void *realLib)
 {
-  OpenGLHook::glhooks.m_libGLdlsymHandle = realLib;
-  OpenGLHook::glhooks.CreateHooks(NULL);
+  GetInstance().m_libGLdlsymHandle = realLib;
+  GetInstance().CreateHooks(NULL);
 }
 
 bool OpenGLHook::CreateHooks(const char *libName)
@@ -82,8 +79,13 @@ bool OpenGLHook::CreateHooks(const char *libName)
   if(!m_EnabledHooks)
     return false;
 
+#ifdef ANDROID
+  m_libGLdlsymHandle = dlopen("libEGL.so", RTLD_NOW);
+  PopulateHooks();
+#else
   if(libName)
     PosixHookLibrary("libEGL.so", &libHooked);
+#endif
 
   bool success = SetupHooks(GL);
 
@@ -116,8 +118,6 @@ GLESWindowingData OpenGLHook::MakeContext(GLESWindowingData share)
 {
   return share;
 }
-
-OpenGLHook OpenGLHook::glhooks;
 
 bool OpenGLHook::SetupHooks(GLHookSet &GL)
 {
@@ -188,17 +188,17 @@ bool OpenGLHook::PopulateHooks()
 
 const GLHookSet &GetRealGLFunctions()
 {
-  return OpenGLHook::glhooks.GetRealGLFunctions();
+  return OpenGLHook::GetInstance().GetRealGLFunctions();
 }
 
 void MakeContextCurrent(GLESWindowingData data)
 {
-  OpenGLHook::glhooks.MakeContextCurrent(data);
+  OpenGLHook::GetInstance().MakeContextCurrent(data);
 }
 
 GLESWindowingData MakeContext(GLESWindowingData share)
 {
-  return OpenGLHook::glhooks.MakeContext(share);
+  return OpenGLHook::GetInstance().MakeContext(share);
 }
 
 void DeleteContext(GLESWindowingData context)

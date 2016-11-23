@@ -16,7 +16,7 @@ public:
   GLError(const char *function_arg) : function_arg(function_arg) {}
   ~GLError()
   {
-    GLenum errorResult = OpenGLHook::glhooks.GetDriver()->glGetError();
+    GLenum errorResult = OpenGLHook::GetInstance().GetDriver()->glGetError();
     if(errorResult != GL_NO_ERROR)
     {
       RDCLOG("RES: %s : %p", function_arg, errorResult);
@@ -47,12 +47,12 @@ private:
   {                                                                \
     SCOPED_LOCK(glLock);                                           \
     CheckGLError(#function);                                       \
-    return OpenGLHook::glhooks.GetDriver()->function();            \
+    return OpenGLHook::GetInstance().GetDriver()->function();       \
   }                                                                \
   ret CONCAT(function, _renderdoc_hooked)()                        \
   {                                                                \
     SCOPED_LOCK(glLock);                                           \
-    return OpenGLHook::glhooks.GetDriver()->function();            \
+    return OpenGLHook::GetInstance().GetDriver()->function();       \
   }
 #define HookWrapper1(ret, function, t1, p1)                             \
   typedef ret (*CONCAT(function, _hooktype))(t1);                       \
@@ -60,12 +60,12 @@ private:
   {                                                                     \
     SCOPED_LOCK(glLock);                                                \
     CheckGLError(#function);                                            \
-    return OpenGLHook::glhooks.GetDriver()->function(p1);               \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1);          \
   }                                                                     \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1)                        \
   {                                                                     \
     SCOPED_LOCK(glLock);                                                \
-    return OpenGLHook::glhooks.GetDriver()->function(p1);               \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1);          \
   }
 #define HookWrapper2(ret, function, t1, p1, t2, p2)                            \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2);                          \
@@ -73,12 +73,12 @@ private:
   {                                                                            \
     SCOPED_LOCK(glLock);                                                       \
     CheckGLError(#function);                                                   \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2);                  \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2);             \
   }                                                                            \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2)                        \
   {                                                                            \
     SCOPED_LOCK(glLock);                                                       \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2);                  \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2);             \
   }
 #define HookWrapper3(ret, function, t1, p1, t2, p2, t3, p3)                           \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3);                             \
@@ -86,12 +86,12 @@ private:
   {                                                                                   \
     SCOPED_LOCK(glLock);                                                              \
     CheckGLError(#function);                                                          \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3);                     \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3);                \
   }                                                                                   \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3)                        \
   {                                                                                   \
     SCOPED_LOCK(glLock);                                                              \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3);                     \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3);                \
   }
 #define HookWrapper4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4)                          \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);                                \
@@ -99,12 +99,12 @@ private:
   {                                                                                          \
     SCOPED_LOCK(glLock);                                                                     \
     CheckGLError(#function);                                                                 \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4);                        \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4);                   \
   }                                                                                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4)                        \
   {                                                                                          \
     SCOPED_LOCK(glLock);                                                                     \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4);                        \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4);                   \
   }
 #define HookWrapper5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5)                         \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);                                   \
@@ -112,12 +112,12 @@ private:
   {                                                                                                 \
     SCOPED_LOCK(glLock);                                                                            \
     CheckGLError(#function);                                                                        \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5);                           \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5);                      \
   }                                                                                                 \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)                        \
   {                                                                                                 \
     SCOPED_LOCK(glLock);                                                                            \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5);                           \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5);                      \
   }
 #define HookWrapper6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6)          \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6);                        \
@@ -126,12 +126,12 @@ private:
   {                                                                                          \
     SCOPED_LOCK(glLock);                                                                     \
     CheckGLError(#function);                                                                 \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6);                \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6);           \
   }                                                                                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6)          \
   {                                                                                          \
     SCOPED_LOCK(glLock);                                                                     \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6);                \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6);           \
   }
 #define HookWrapper7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7)  \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7);                    \
@@ -140,12 +140,12 @@ private:
   {                                                                                          \
     SCOPED_LOCK(glLock);                                                                     \
     CheckGLError(#function);                                                                 \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7);            \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7);       \
   }                                                                                          \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7)   \
   {                                                                                          \
     SCOPED_LOCK(glLock);                                                                     \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7);            \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7);       \
   }
 #define HookWrapper8(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8) \
   typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8);                       \
@@ -154,12 +154,12 @@ private:
   {                                                                                                 \
     SCOPED_LOCK(glLock);                                                                            \
     CheckGLError(#function);                                                                        \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8);               \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8);          \
   }                                                                                                 \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8)   \
   {                                                                                                 \
     SCOPED_LOCK(glLock);                                                                            \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8);               \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8);          \
   }
 #define HookWrapper9(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
                      p8, t9, p9)                                                                  \
@@ -169,13 +169,13 @@ private:
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
     CheckGLError(#function);                                                                      \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9);         \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9);    \
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9)                                                  \
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9);         \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9);    \
   }
 #define HookWrapper10(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,  \
                       p8, t9, p9, t10, p10)                                                       \
@@ -185,13 +185,13 @@ private:
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
     CheckGLError(#function);                                                                      \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);    \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);\
   }                                                                                               \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
                                           t9 p9, t10 p10)                                         \
   {                                                                                               \
     SCOPED_LOCK(glLock);                                                                          \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);    \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);\
   }
 #define HookWrapper11(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,    \
                       p8, t9, p9, t10, p10, t11, p11)                                               \
@@ -201,13 +201,13 @@ private:
   {                                                                                                 \
     SCOPED_LOCK(glLock);                                                                            \
     CheckGLError(#function);                                                                        \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); \
   }                                                                                                 \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,   \
                                           t9 p9, t10 p10, t11 p11)                                  \
   {                                                                                                 \
     SCOPED_LOCK(glLock);                                                                            \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); \
   }
 #define HookWrapper12(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
                       p8, t9, p9, t10, p10, t11, p11, t12, p12)                                    \
@@ -217,14 +217,14 @@ private:
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
     CheckGLError(#function);                                                                       \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12);                                         \
   }                                                                                                \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,  \
                                           t9 p9, t10 p10, t11 p11, t12 p12)                        \
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12);                                         \
   }
 #define HookWrapper13(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
@@ -237,14 +237,14 @@ private:
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
     CheckGLError(#function);                                                                       \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12, p13);                                    \
   }                                                                                                \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,  \
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13)               \
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12, p13);                                    \
   }
 #define HookWrapper14(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
@@ -257,14 +257,14 @@ private:
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
     CheckGLError(#function);                                                                       \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12, p13, p14);                               \
   }                                                                                                \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,  \
                                           t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14)      \
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12, p13, p14);                               \
   }
 #define HookWrapper15(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
@@ -277,7 +277,7 @@ private:
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
     CheckGLError(#function);                                                                       \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12, p13, p14, p15);                          \
   }                                                                                                \
   ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,  \
@@ -285,7 +285,7 @@ private:
                                           t15 p15)                                                 \
   {                                                                                                \
     SCOPED_LOCK(glLock);                                                                           \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
+    return OpenGLHook::GetInstance().GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
                                                      p12, p13, p14, p15);                          \
   }
 

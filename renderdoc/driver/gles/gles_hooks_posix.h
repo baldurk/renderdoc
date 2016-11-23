@@ -35,6 +35,8 @@
 class OpenGLHook : LibraryHook
 {
 public:
+  static OpenGLHook& GetInstance();
+
   OpenGLHook();
   ~OpenGLHook();
 
@@ -56,8 +58,6 @@ public:
   GLESWindowingData MakeContext(GLESWindowingData share);
 
   void *GetDLHandle() { return m_libGLdlsymHandle; }
-
-  static OpenGLHook glhooks;
 
   GLHookSet GL;
 
