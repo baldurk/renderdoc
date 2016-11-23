@@ -3285,11 +3285,11 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
       GLuint oldBinding;
       gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, (GLint*)&oldBinding);
       gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
-      data = (float *)gl.glMapBufferOES(eGL_TRANSFORM_FEEDBACK_BUFFER, eGL_READ_ONLY);
+      data = (float *)gl.glMapBufferRange(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBufferSize, eGL_MAP_READ_BIT);
 
       if(data == NULL)
       {
-        gl.glUnmapBufferOES(eGL_TRANSFORM_FEEDBACK_BUFFER);
+        gl.glUnmapBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER);
         RDCERR("Couldn't map feedback buffer!");
         error = true;
       }
