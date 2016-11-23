@@ -131,7 +131,7 @@ typedef void ( *__extFuncPtr)(void);
 #define DEFAULT_VISIBILITY __attribute__((visibility("default")))
 
 #define REAL(name) name ## _real
-#define DEF_FUNC(name) static PFN_##name REAL(name) = (PFN_ ## name)dlsym(libGLdlsymHandle, #name)
+#define DEF_FUNC(name) static PFN_##name REAL(name) = (PFN_ ## name)dlsym(OpenGLHook::glhooks.GetDLHandle(), #name)
 
 
 DEFAULT_VISIBILITY

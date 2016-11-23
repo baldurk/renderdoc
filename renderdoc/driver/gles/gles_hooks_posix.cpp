@@ -42,7 +42,6 @@
 void *libGLdlsymHandle =
     RTLD_NEXT;    // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
 
-
 Threading::CriticalSection glLock;
 
 class OpenGLHook : LibraryHook
@@ -61,7 +60,7 @@ public:
     m_EnabledHooks = true;
     m_PopulatedHooks = false;
 
-    libGLdlsymHandle = dlopen("libEGL.so", RTLD_NOW);
+    m_libGLdlsymHandle = dlopen("libEGL.so", RTLD_NOW);
 
     PopulateHooks();
   }
@@ -77,7 +76,7 @@ public:
 
   static void libHooked(void *realLib)
   {
-    libGLdlsymHandle = realLib;
+    OpenGLHook::glhooks.m_libGLdlsymHandle = realLib;
     OpenGLHook::glhooks.CreateHooks(NULL);
   }
 
@@ -145,6 +144,13 @@ public:
 
   bool SetupHooks(GLHookSet &GL);
   bool PopulateHooks();
+
+  void *GetDLHandle() { return m_libGLdlsymHandle; }
+
+private:
+  void *m_libGLdlsymHandle =
+    RTLD_NEXT; // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
+
 };
 
 OpenGLHook OpenGLHook::glhooks;
@@ -153,16 +159,16 @@ bool OpenGLHook::SetupHooks(GLHookSet &GL)
 {
   bool success = true;
   if(m_eglGetProcAddress_real == NULL)
-    m_eglGetProcAddress_real = (PFN_eglGetProcAddress)dlsym(libGLdlsymHandle, "eglGetProcAddress");
+    m_eglGetProcAddress_real = (PFN_eglGetProcAddress)dlsym(m_libGLdlsymHandle, "eglGetProcAddress");
 
   if(m_eglSwapBuffers_real == NULL)
-    m_eglSwapBuffers_real = (PFN_eglSwapBuffers)dlsym(libGLdlsymHandle, "eglSwapBuffers");
+    m_eglSwapBuffers_real = (PFN_eglSwapBuffers)dlsym(m_libGLdlsymHandle, "eglSwapBuffers");
 
   if(m_eglMakeCurrent_real == NULL)
-    m_eglMakeCurrent_real = (PFN_eglMakeCurrent)dlsym(libGLdlsymHandle, "eglMakeCurrent");
+    m_eglMakeCurrent_real = (PFN_eglMakeCurrent)dlsym(m_libGLdlsymHandle, "eglMakeCurrent");
 
   if(m_eglQuerySurface_real == NULL)
-    m_eglQuerySurface_real = (PFN_eglQuerySurface)dlsym(libGLdlsymHandle, "eglQuerySurface");
+    m_eglQuerySurface_real = (PFN_eglQuerySurface)dlsym(m_libGLdlsymHandle, "eglQuerySurface");
 
 
   return success;
@@ -178,13 +184,13 @@ bool OpenGLHook::PopulateHooks()
     return success;
 
   if(m_eglGetProcAddress_real == NULL)
-    m_eglGetProcAddress_real = (PFN_eglGetProcAddress)dlsym(libGLdlsymHandle, "eglGetProcAddress");
+    m_eglGetProcAddress_real = (PFN_eglGetProcAddress)dlsym(m_libGLdlsymHandle, "eglGetProcAddress");
 
 #undef HookInit
 #define HookInit(function) \
   if(GL.function == NULL)                                                                    \
   {                                                                                          \
-    GL.function = (CONCAT(function, _hooktype))dlsym(libGLdlsymHandle, STRINGIZE(function)); \
+    GL.function = (CONCAT(function, _hooktype))dlsym(m_libGLdlsymHandle, STRINGIZE(function)); \
     eglGetProcAddress((const char *)STRINGIZE(function));                                 \
   }
 
