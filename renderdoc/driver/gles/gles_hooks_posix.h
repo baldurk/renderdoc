@@ -29,6 +29,7 @@
 
 #include "hooks/hooks.h"
 
+#include "driver/gles/gles_driver.h"
 #include "driver/gles/gles_hookset.h"
 #include "official/egl_func_typedefs.h"
 
@@ -79,3 +80,14 @@ private:
     RTLD_NEXT; // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
 };
 
+/* Create wrapper method declarations */
+#include "driver/gles/gles_hookset_defs.h"
+
+#include "gles_hooks_posix_defines_supported.h"
+
+DefineDLLExportHooks();
+DefineGLExtensionHooks();
+
+#include "gles_hooks_posix_defines_unsupported.h"
+
+DefineUnsupportedDummies();

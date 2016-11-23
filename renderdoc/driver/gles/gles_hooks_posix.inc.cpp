@@ -1,39 +1,3 @@
-// don't want these definitions, the only place we'll use these is as parameter/variable names
-#ifdef near
-#undef near
-#endif
-
-#ifdef far
-#undef far
-#endif
-
-//#define DUMP_GL_ERRORS
-
-#ifdef DUMP_GL_ERRORS
-class GLError
-{
-public:
-  GLError(const char *function_arg) : function_arg(function_arg) {}
-  ~GLError()
-  {
-    GLenum errorResult = OpenGLHook::GetInstance().GetDriver()->glGetError();
-    if(errorResult != GL_NO_ERROR)
-    {
-      RDCLOG("RES: %s : %p", function_arg, errorResult);
-    }
-  }
-
-private:
-  const char *function_arg;
-};
-
-#define CheckGLError(function) GLError errtest(function)
-
-#else
-
-#define CheckGLError(function)
-
-#endif
 
 // the _renderdoc_hooked variants are to make sure we always have a function symbol
 // exported that we can return from glXGetProcAddress. If another library (or the app)

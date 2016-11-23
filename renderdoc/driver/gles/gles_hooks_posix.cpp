@@ -38,7 +38,6 @@
 #include "driver/gles/gles_hookset_defs.h"
 #include "serialise/string_utils.h"
 
-Threading::CriticalSection glLock;
 static OpenGLHook hookInstance;
 
 OpenGLHook& OpenGLHook::GetInstance() {
@@ -138,8 +137,6 @@ bool OpenGLHook::SetupHooks(GLHookSet &GL)
   return success;
 }
 
-#include "gles_hooks_posix.inc.cpp"
-
 bool OpenGLHook::PopulateHooks()
 {
   bool success = true;
@@ -205,6 +202,3 @@ void DeleteContext(GLESWindowingData context)
 {
   RDCUNIMPLEMENTED("DeleteContext");
 }
-
-
-#include "gles_hooks_posix_egl.inc.cpp"

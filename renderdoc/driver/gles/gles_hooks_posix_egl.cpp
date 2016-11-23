@@ -30,6 +30,7 @@
 #include <dlfcn.h>
 
 #include "serialise/string_utils.h"
+#include "gles_hooks_posix.h"
 
 #ifdef ANDROID
 #include <android/log.h>
