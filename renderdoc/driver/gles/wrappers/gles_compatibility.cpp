@@ -34,11 +34,18 @@ void WrappedGLES::Compat_glGetTexImage(GLenum target, GLenum texType, GLuint tex
   m_Real.glGenFramebuffers(1, &fbo);
   m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
 
-  GLenum attachmentTarget = (fmt == eGL_DEPTH_COMPONENT) ? eGL_DEPTH_ATTACHMENT : eGL_COLOR_ATTACHMENT0;
+  GLenum attachmentTarget = eGL_COLOR_ATTACHMENT0;
+  if(fmt == eGL_DEPTH_COMPONENT)
+    attachmentTarget = eGL_DEPTH_ATTACHMENT;
+  else if(fmt == eGL_STENCIL)
+    attachmentTarget = eGL_STENCIL_ATTACHMENT;
+  else if(fmt == eGL_DEPTH_STENCIL)
+    attachmentTarget = eGL_DEPTH_STENCIL_ATTACHMENT;
 
   // TODO pantos 3d, arrays?
   if (texType == eGL_TEXTURE_CUBE_MAP) {
-    m_Real.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, texname, mip);
+//    m_Real.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, texname, mip);
+    m_Real.glFramebufferTexture2D(eGL_FRAMEBUFFER, attachmentTarget, target, texname, mip);
   } else {
     m_Real.glFramebufferTexture(eGL_FRAMEBUFFER, attachmentTarget, texname, mip);
   }
