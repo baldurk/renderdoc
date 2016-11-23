@@ -2450,7 +2450,9 @@ byte *GLESReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip
       {
         MakeCurrentReplayContext(m_DebugCtx);
 
-        gl.Compat_glGetTexImage(target, texType, texname, mip, fmt, type, width, height, ret);
+//        gl.Compat_glGetTexImage(target, texType, texname, mip, fmt, type, width, height, ret);
+        int mipnum = intFormat == texDetails.internalFormat ? mip : 0;
+        gl.Compat_glGetTexImage(target, texType, texname, mipnum, fmt, type, width, height, ret); // TODO pantos check this
       }
 
       // if we're saving to disk we make the decision to vertically flip any non-compressed
