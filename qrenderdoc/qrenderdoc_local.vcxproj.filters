@@ -199,6 +199,12 @@
     <ClCompile Include="Windows\APIInspector.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\Extended\RDTreeWidget.cpp">
+      <Filter>Widgets\Extended</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_RDTreeWidget.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -305,6 +311,9 @@
     </ClInclude>
     <ClInclude Include="Windows\APIInspector.h">
       <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Extended\RDTreeWidget.h">
+      <Filter>Widgets\Extended</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

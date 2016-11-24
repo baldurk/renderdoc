@@ -111,7 +111,8 @@ SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     Code/QRDUtils.cpp \
     Windows/Dialogs/LiveCapture.cpp \
     Widgets/Extended/RDListWidget.cpp \
-    Windows/APIInspector.cpp
+    Windows/APIInspector.cpp \
+    Widgets/Extended/RDTreeWidget.cpp
 
 HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
@@ -140,7 +141,8 @@ HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     Code/QRDUtils.h \
     Windows/Dialogs/LiveCapture.h \
     Widgets/Extended/RDListWidget.h \
-    Windows/APIInspector.h
+    Windows/APIInspector.h \
+    Widgets/Extended/RDTreeWidget.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
