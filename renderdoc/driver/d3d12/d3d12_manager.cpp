@@ -148,11 +148,15 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
       {
         desc = nonsamp.resource ? NULL : defaultSRV();
 
+        const map<ResourceId, DXGI_FORMAT> &bbs = dev->GetBackbufferFormats();
+
+        auto it = bbs.find(GetResID(nonsamp.resource));
+
         // fixup for backbuffers
-        if(dev->GetBackbufferFormat().first == GetResID(nonsamp.resource))
+        if(it != bbs.end())
         {
           D3D12_SHADER_RESOURCE_VIEW_DESC bbDesc = {};
-          bbDesc.Format = dev->GetBackbufferFormat().second;
+          bbDesc.Format = it->second;
           bbDesc.ViewDimension = D3D12_SRV_DIMENSION_TEXTURE2D;
           bbDesc.Shader4ComponentMapping = D3D12_DEFAULT_SHADER_4_COMPONENT_MAPPING;
           bbDesc.Texture2D.MipLevels = 1;
@@ -217,11 +221,15 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
       {
         desc = nonsamp.resource ? NULL : defaultRTV();
 
+        const map<ResourceId, DXGI_FORMAT> &bbs = dev->GetBackbufferFormats();
+
+        auto it = bbs.find(GetResID(nonsamp.resource));
+
         // fixup for backbuffers
-        if(dev->GetBackbufferFormat().first == GetResID(nonsamp.resource))
+        if(it != bbs.end())
         {
           D3D12_RENDER_TARGET_VIEW_DESC bbDesc = {};
-          bbDesc.Format = dev->GetBackbufferFormat().second;
+          bbDesc.Format = it->second;
           bbDesc.ViewDimension = D3D12_RTV_DIMENSION_TEXTURE2D;
           dev->CreateRenderTargetView(nonsamp.resource, &bbDesc, handle);
           return;
@@ -303,11 +311,15 @@ void D3D12Descriptor::Create(D3D12_DESCRIPTOR_HEAP_TYPE heapType, WrappedID3D12D
       {
         desc = nonsamp.resource ? NULL : defaultUAV();
 
+        const map<ResourceId, DXGI_FORMAT> &bbs = dev->GetBackbufferFormats();
+
+        auto it = bbs.find(GetResID(nonsamp.resource));
+
         // fixup for backbuffers
-        if(dev->GetBackbufferFormat().first == GetResID(nonsamp.resource))
+        if(it != bbs.end())
         {
           D3D12_UNORDERED_ACCESS_VIEW_DESC bbDesc = {};
-          bbDesc.Format = dev->GetBackbufferFormat().second;
+          bbDesc.Format = it->second;
           bbDesc.ViewDimension = D3D12_UAV_DIMENSION_TEXTURE2D;
           dev->CreateUnorderedAccessView(nonsamp.resource, NULL, &bbDesc, handle);
           return;

@@ -671,7 +671,7 @@ bool WrappedID3D12Device::Serialise_WrapSwapchainBuffer(Serialiser *localSeriali
 
       GetResourceManager()->AddLiveResource(TexID, fakeBB);
 
-      m_BackbufferFormat = std::make_pair(wrapped->GetResourceID(), swapFormat);
+      m_BackbufferFormat[wrapped->GetResourceID()] = swapFormat;
 
       SubresourceStateVector &states = m_ResourceStates[wrapped->GetResourceID()];
 

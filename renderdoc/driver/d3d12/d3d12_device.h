@@ -326,7 +326,7 @@ private:
   };
 
   map<WrappedIDXGISwapChain4 *, SwapPresentInfo> m_SwapChains;
-  pair<ResourceId, DXGI_FORMAT> m_BackbufferFormat;
+  map<ResourceId, DXGI_FORMAT> m_BackbufferFormat;
 
   WrappedIDXGISwapChain4 *m_LastSwap;
 
@@ -371,7 +371,7 @@ public:
     return m_ResourceStates[id];
   }
   const map<ResourceId, SubresourceStateVector> &GetSubresourceStates() { return m_ResourceStates; }
-  const pair<ResourceId, DXGI_FORMAT> GetBackbufferFormat() { return m_BackbufferFormat; }
+  const map<ResourceId, DXGI_FORMAT> &GetBackbufferFormats() { return m_BackbufferFormat; }
   void SetLogFile(const char *logfile);
   void SetLogVersion(uint32_t fileversion) { m_InitParams.SerialiseVersion = fileversion; }
   D3D12Replay *GetReplay() { return &m_Replay; }
