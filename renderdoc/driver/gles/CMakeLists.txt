@@ -47,10 +47,8 @@ if((ANDROID) OR (UNIX))
         gles_hooks_posix_wrapper.cpp
         gles_hooks_posix_egl.cpp
     )
-elseif(APPLE)
-    list(APPEND sources
-        gles_replay_apple.cpp
-        gles_hooks_apple.cpp)
+else()
+    message(FATAL_ERROR "Only Linux and Android have GL ES support currently")
 endif()
 
 add_library(rdoc_gles OBJECT ${sources})
