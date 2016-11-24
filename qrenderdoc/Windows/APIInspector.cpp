@@ -148,7 +148,11 @@ void APIInspector::fillAPIView()
 
       if(ev.eventID == draw->eventID)
       {
-        QFont font = root->font(1);
+        QFont font = root->font(0);
+        font.setBold(true);
+        root->setFont(0, font);
+
+        font = root->font(1);
         font.setBold(true);
         root->setFont(1, font);
       }
