@@ -1648,7 +1648,7 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
   if(m_LockedTabs.contains(ID))
   {
     if(focus)
-      show();
+      ToolWindowManager::raiseToolWindow(this);
 
     QWidget *w = m_LockedTabs[ID];
     ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
@@ -1692,7 +1692,7 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
     // newPanel.DockHandler.TabPageContextMenuStrip = tabContextMenu;
 
     if(focus)
-      show();
+      ToolWindowManager::raiseToolWindow(this);
 
     m_LockedTabs[ID] = lockedContainer;
 
