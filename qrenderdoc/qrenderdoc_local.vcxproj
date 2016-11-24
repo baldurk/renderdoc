@@ -288,8 +288,12 @@
     <ClCompile Include="generated\moc_APIInspector.cpp" />
     <ClCompile Include="generated\moc_CaptureDialog.cpp" />
     <ClCompile Include="generated\moc_CustomPaintWidget.cpp" />
+    <ClCompile Include="generated\moc_D3D11PipelineStateViewer.cpp" />
+    <ClCompile Include="generated\moc_D3D12PipelineStateViewer.cpp" />
     <ClCompile Include="generated\moc_EventBrowser.cpp" />
+    <ClCompile Include="generated\moc_GLPipelineStateViewer.cpp" />
     <ClCompile Include="generated\moc_LiveCapture.cpp" />
+    <ClCompile Include="generated\moc_PipelineStateViewer.cpp" />
     <ClCompile Include="generated\moc_QRDUtils.cpp" />
     <ClCompile Include="generated\moc_RangeHistogram.cpp" />
     <ClCompile Include="generated\moc_RDDoubleSpinBox.cpp" />
@@ -307,6 +311,7 @@
     <ClCompile Include="generated\moc_ToolWindowManager.cpp" />
     <ClCompile Include="generated\moc_ToolWindowManagerArea.cpp" />
     <ClCompile Include="generated\moc_ToolWindowManagerWrapper.cpp" />
+    <ClCompile Include="generated\moc_VulkanPipelineStateViewer.cpp" />
     <ClCompile Include="generated\qrc_resources.cpp" />
     <ClCompile Include="Widgets\Extended\RDListWidget.cpp" />
     <ClCompile Include="Widgets\Extended\RDTreeWidget.cpp" />
@@ -331,6 +336,11 @@
     <ClCompile Include="Widgets\Extended\RDLineEdit.cpp" />
     <ClCompile Include="Windows\MainWindow.cpp" />
     <ClCompile Include="Code\RenderManager.cpp" />
+    <ClCompile Include="Windows\PipelineState\D3D11PipelineStateViewer.cpp" />
+    <ClCompile Include="Windows\PipelineState\D3D12PipelineStateViewer.cpp" />
+    <ClCompile Include="Windows\PipelineState\GLPipelineStateViewer.cpp" />
+    <ClCompile Include="Windows\PipelineState\PipelineStateViewer.cpp" />
+    <ClCompile Include="Windows\PipelineState\VulkanPipelineStateViewer.cpp" />
     <ClCompile Include="Windows\TextureViewer.cpp" />
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManager.cpp">
       <WarningLevel>Level3</WarningLevel>
@@ -351,13 +361,18 @@
     <ClInclude Include="generated\ui_AboutDialog.h" />
     <ClInclude Include="generated\ui_APIInspector.h" />
     <ClInclude Include="generated\ui_CaptureDialog.h" />
+    <ClInclude Include="generated\ui_D3D11PipelineStateViewer.h" />
+    <ClInclude Include="generated\ui_D3D12PipelineStateViewer.h" />
     <ClInclude Include="generated\ui_EventBrowser.h" />
+    <ClInclude Include="generated\ui_GLPipelineStateViewer.h" />
     <ClInclude Include="generated\ui_LiveCapture.h" />
     <ClInclude Include="generated\ui_MainWindow.h" />
+    <ClInclude Include="generated\ui_PipelineStateViewer.h" />
     <ClInclude Include="generated\ui_ResourcePreview.h" />
     <ClInclude Include="generated\ui_TextureSaveDialog.h" />
     <ClInclude Include="generated\ui_TextureViewer.h" />
     <ClInclude Include="generated\ui_ThumbnailStrip.h" />
+    <ClInclude Include="generated\ui_VulkanPipelineStateViewer.h" />
     <ClInclude Include="Resources\resource.h" />
     <ClInclude Include="Widgets\Extended\RDListWidget.h" />
     <ClInclude Include="Widgets\Extended\RDTreeWidget.h" />
@@ -380,6 +395,11 @@
     <ClInclude Include="Widgets\Extended\RDLineEdit.h" />
     <ClInclude Include="Windows\MainWindow.h" />
     <ClInclude Include="Code\RenderManager.h" />
+    <ClInclude Include="Windows\PipelineState\D3D11PipelineStateViewer.h" />
+    <ClInclude Include="Windows\PipelineState\D3D12PipelineStateViewer.h" />
+    <ClInclude Include="Windows\PipelineState\GLPipelineStateViewer.h" />
+    <ClInclude Include="Windows\PipelineState\PipelineStateViewer.h" />
+    <ClInclude Include="Windows\PipelineState\VulkanPipelineStateViewer.h" />
     <ClInclude Include="Windows\TextureViewer.h" />
     <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManager.h" />
     <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManagerArea.h" />
@@ -395,6 +415,11 @@
     <None Include="Windows\Dialogs\TextureSaveDialog.ui" />
     <None Include="Windows\EventBrowser.ui" />
     <None Include="Windows\MainWindow.ui" />
+    <None Include="Windows\PipelineState\D3D11PipelineStateViewer.ui" />
+    <None Include="Windows\PipelineState\D3D12PipelineStateViewer.ui" />
+    <None Include="Windows\PipelineState\GLPipelineStateViewer.ui" />
+    <None Include="Windows\PipelineState\PipelineStateViewer.ui" />
+    <None Include="Windows\PipelineState\VulkanPipelineStateViewer.ui" />
     <None Include="Windows\TextureViewer.ui" />
   </ItemGroup>
   <ItemGroup>

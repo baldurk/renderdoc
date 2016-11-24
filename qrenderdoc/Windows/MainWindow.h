@@ -71,6 +71,12 @@ public:
   void ShowLiveCapture(LiveCapture *live);
   void LiveCaptureClosed(LiveCapture *live);
 
+  void showEventBrowser() { on_action_Event_Browser_triggered(); }
+  void showAPIInspector() { on_action_API_Inspector_triggered(); }
+  void showMeshOutput() { on_action_Mesh_Output_triggered(); }
+  void showTextureViewer() { on_action_Texture_Viewer_triggered(); }
+  void showPipelineViewer() { on_action_Pipeline_State_triggered(); }
+  void showCaptureDialog() { on_action_Capture_Log_triggered(); }
 private slots:
   // automatic slots
   void on_action_Exit_triggered();
@@ -81,6 +87,7 @@ private slots:
   void on_action_API_Inspector_triggered();
   void on_action_Event_Browser_triggered();
   void on_action_Texture_Viewer_triggered();
+  void on_action_Pipeline_State_triggered();
   void on_action_Capture_Log_triggered();
   void on_action_Inject_into_Process_triggered();
   void on_action_Resolve_Symbols_triggered();

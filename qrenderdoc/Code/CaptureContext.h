@@ -48,6 +48,7 @@ struct ILogViewerForm
 class MainWindow;
 class EventBrowser;
 class APIInspector;
+class PipelineStateViewer;
 class TextureViewer;
 class CaptureDialog;
 class QProgressDialog;
@@ -129,12 +130,20 @@ public:
   EventBrowser *eventBrowser();
   APIInspector *apiInspector();
   TextureViewer *textureViewer();
+  PipelineStateViewer *pipelineViewer();
   CaptureDialog *captureDialog();
 
   bool hasEventBrowser() { return m_EventBrowser != NULL; }
   bool hasAPIInspector() { return m_APIInspector != NULL; }
   bool hasTextureViewer() { return m_TextureViewer != NULL; }
+  bool hasPipelineViewer() { return m_PipelineViewer != NULL; }
   bool hasCaptureDialog() { return m_CaptureDialog != NULL; }
+  void showEventBrowser();
+  void showAPIInspector();
+  void showTextureViewer();
+  void showPipelineViewer();
+  void showCaptureDialog();
+
   QWidget *createToolWindow(const QString &objectName);
   void windowClosed(QWidget *window);
 
@@ -202,5 +211,6 @@ private:
   EventBrowser *m_EventBrowser = NULL;
   APIInspector *m_APIInspector = NULL;
   TextureViewer *m_TextureViewer = NULL;
+  PipelineStateViewer *m_PipelineViewer = NULL;
   CaptureDialog *m_CaptureDialog = NULL;
 };

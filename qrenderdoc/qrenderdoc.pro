@@ -112,6 +112,11 @@ SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     Windows/Dialogs/LiveCapture.cpp \
     Widgets/Extended/RDListWidget.cpp \
     Windows/APIInspector.cpp \
+    Windows/PipelineState/PipelineStateViewer.cpp \
+    Windows/PipelineState/VulkanPipelineStateViewer.cpp \
+    Windows/PipelineState/D3D11PipelineStateViewer.cpp \
+    Windows/PipelineState/D3D12PipelineStateViewer.cpp \
+    Windows/PipelineState/GLPipelineStateViewer.cpp \
     Widgets/Extended/RDTreeWidget.cpp
 
 HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
@@ -142,6 +147,11 @@ HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     Windows/Dialogs/LiveCapture.h \
     Widgets/Extended/RDListWidget.h \
     Windows/APIInspector.h \
+    Windows/PipelineState/PipelineStateViewer.h \
+    Windows/PipelineState/VulkanPipelineStateViewer.h \
+    Windows/PipelineState/D3D11PipelineStateViewer.h \
+    Windows/PipelineState/D3D12PipelineStateViewer.h \
+    Windows/PipelineState/GLPipelineStateViewer.h \
     Widgets/Extended/RDTreeWidget.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
@@ -153,7 +163,12 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/Dialogs/TextureSaveDialog.ui \
     Windows/Dialogs/CaptureDialog.ui \
     Windows/Dialogs/LiveCapture.ui \
-    Windows/APIInspector.ui
+    Windows/APIInspector.ui \
+    Windows/PipelineState/PipelineStateViewer.ui \
+    Windows/PipelineState/VulkanPipelineStateViewer.ui \
+    Windows/PipelineState/D3D11PipelineStateViewer.ui \
+    Windows/PipelineState/D3D12PipelineStateViewer.ui \
+    Windows/PipelineState/GLPipelineStateViewer.ui
 
 RESOURCES += \
     resources.qrc

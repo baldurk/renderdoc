@@ -30,6 +30,7 @@
 #include <QProgressDialog>
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
+#include "PipelineState/PipelineStateViewer.h"
 #include "Resources/resource.h"
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
@@ -146,6 +147,12 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
         textureViewer,
         ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
                                          ui->toolWindowManager->areaOf(eventBrowser), 0.75f));
+
+    PipelineStateViewer *pipe = m_Ctx->pipelineViewer();
+
+    ui->toolWindowManager->addToolWindow(
+        pipe, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                               ui->toolWindowManager->areaOf(textureViewer)));
 
     CaptureDialog *capDialog = m_Ctx->captureDialog();
 
@@ -696,6 +703,10 @@ ToolWindowManager::AreaReference MainWindow::mainToolArea()
      ui->toolWindowManager->toolWindows().contains(m_Ctx->textureViewer()))
     return ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
                                             ui->toolWindowManager->areaOf(m_Ctx->textureViewer()));
+  else if(m_Ctx->hasPipelineViewer() &&
+          ui->toolWindowManager->toolWindows().contains(m_Ctx->pipelineViewer()))
+    return ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                            ui->toolWindowManager->areaOf(m_Ctx->pipelineViewer()));
   else if(m_Ctx->hasCaptureDialog() &&
           ui->toolWindowManager->toolWindows().contains(m_Ctx->captureDialog()))
     return ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
@@ -712,6 +723,10 @@ ToolWindowManager::AreaReference MainWindow::leftToolArea()
      ui->toolWindowManager->toolWindows().contains(m_Ctx->textureViewer()))
     return ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
                                             ui->toolWindowManager->areaOf(m_Ctx->textureViewer()));
+  else if(m_Ctx->hasPipelineViewer() &&
+          ui->toolWindowManager->toolWindows().contains(m_Ctx->pipelineViewer()))
+    return ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
+                                            ui->toolWindowManager->areaOf(m_Ctx->pipelineViewer()));
   else if(m_Ctx->hasCaptureDialog() &&
           ui->toolWindowManager->toolWindows().contains(m_Ctx->captureDialog()))
     return ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
@@ -970,6 +985,16 @@ void MainWindow::on_action_Texture_Viewer_triggered()
     ToolWindowManager::raiseToolWindow(textureViewer);
   else
     ui->toolWindowManager->addToolWindow(textureViewer, mainToolArea());
+}
+
+void MainWindow::on_action_Pipeline_State_triggered()
+{
+  PipelineStateViewer *pipelineViewer = m_Ctx->pipelineViewer();
+
+  if(ui->toolWindowManager->toolWindows().contains(pipelineViewer))
+    ToolWindowManager::raiseToolWindow(pipelineViewer);
+  else
+    ui->toolWindowManager->addToolWindow(pipelineViewer, mainToolArea());
 }
 
 void MainWindow::on_action_Capture_Log_triggered()

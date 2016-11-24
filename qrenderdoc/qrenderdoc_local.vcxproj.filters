@@ -41,6 +41,9 @@
     <Filter Include="Widgets\Extended">
       <UniqueIdentifier>{42a491e9-4e18-4220-8de2-e07b7cde26bc}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Windows\PipelineState">
+      <UniqueIdentifier>{7ba076e7-3417-4e91-be51-9e7f17a19c24}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="generated\moc_EventBrowser.cpp">
@@ -199,6 +202,36 @@
     <ClCompile Include="Windows\APIInspector.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
+    <ClCompile Include="generated\moc_D3D11PipelineStateViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_D3D12PipelineStateViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_GLPipelineStateViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_PipelineStateViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_VulkanPipelineStateViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\PipelineState\D3D11PipelineStateViewer.cpp">
+      <Filter>Windows\PipelineState</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\PipelineState\D3D12PipelineStateViewer.cpp">
+      <Filter>Windows\PipelineState</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\PipelineState\GLPipelineStateViewer.cpp">
+      <Filter>Windows\PipelineState</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\PipelineState\PipelineStateViewer.cpp">
+      <Filter>Windows\PipelineState</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\PipelineState\VulkanPipelineStateViewer.cpp">
+      <Filter>Windows\PipelineState</Filter>
+    </ClCompile>
     <ClCompile Include="Widgets\Extended\RDTreeWidget.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
@@ -311,6 +344,36 @@
     </ClInclude>
     <ClInclude Include="Windows\APIInspector.h">
       <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_D3D11PipelineStateViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_D3D12PipelineStateViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_GLPipelineStateViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_PipelineStateViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_VulkanPipelineStateViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\PipelineState\D3D11PipelineStateViewer.h">
+      <Filter>Windows\PipelineState</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\PipelineState\D3D12PipelineStateViewer.h">
+      <Filter>Windows\PipelineState</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\PipelineState\GLPipelineStateViewer.h">
+      <Filter>Windows\PipelineState</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\PipelineState\PipelineStateViewer.h">
+      <Filter>Windows\PipelineState</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\PipelineState\VulkanPipelineStateViewer.h">
+      <Filter>Windows\PipelineState</Filter>
     </ClInclude>
     <ClInclude Include="Widgets\Extended\RDTreeWidget.h">
       <Filter>Widgets\Extended</Filter>
@@ -517,6 +580,21 @@
     </None>
     <None Include="Windows\APIInspector.ui">
       <Filter>Windows</Filter>
+    </None>
+    <None Include="Windows\PipelineState\D3D11PipelineStateViewer.ui">
+      <Filter>Windows\PipelineState</Filter>
+    </None>
+    <None Include="Windows\PipelineState\D3D12PipelineStateViewer.ui">
+      <Filter>Windows\PipelineState</Filter>
+    </None>
+    <None Include="Windows\PipelineState\GLPipelineStateViewer.ui">
+      <Filter>Windows\PipelineState</Filter>
+    </None>
+    <None Include="Windows\PipelineState\PipelineStateViewer.ui">
+      <Filter>Windows\PipelineState</Filter>
+    </None>
+    <None Include="Windows\PipelineState\VulkanPipelineStateViewer.ui">
+      <Filter>Windows\PipelineState</Filter>
     </None>
     <None Include="Resources\action_hover.png">
       <Filter>Resources\Files</Filter>

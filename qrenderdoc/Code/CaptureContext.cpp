@@ -38,6 +38,7 @@
 #include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/EventBrowser.h"
 #include "Windows/MainWindow.h"
+#include "Windows/PipelineState/PipelineStateViewer.h"
 #include "Windows/TextureViewer.h"
 #include "QRDUtils.h"
 
@@ -454,6 +455,18 @@ TextureViewer *CaptureContext::textureViewer()
   return m_TextureViewer;
 }
 
+PipelineStateViewer *CaptureContext::pipelineViewer()
+{
+  if(m_PipelineViewer)
+    return m_PipelineViewer;
+
+  m_PipelineViewer = new PipelineStateViewer(this, m_MainWindow);
+  m_PipelineViewer->setObjectName("pipelineViewer");
+  m_PipelineViewer->setWindowIcon(*m_Icon);
+
+  return m_PipelineViewer;
+}
+
 CaptureDialog *CaptureContext::captureDialog()
 {
   if(m_CaptureDialog)
@@ -474,6 +487,31 @@ CaptureDialog *CaptureContext::captureDialog()
   return m_CaptureDialog;
 }
 
+void CaptureContext::showEventBrowser()
+{
+  m_MainWindow->showEventBrowser();
+}
+
+void CaptureContext::showAPIInspector()
+{
+  m_MainWindow->showAPIInspector();
+}
+
+void CaptureContext::showTextureViewer()
+{
+  m_MainWindow->showTextureViewer();
+}
+
+void CaptureContext::showPipelineViewer()
+{
+  m_MainWindow->showPipelineViewer();
+}
+
+void CaptureContext::showCaptureDialog()
+{
+  m_MainWindow->showCaptureDialog();
+}
+
 QWidget *CaptureContext::createToolWindow(const QString &objectName)
 {
   if(objectName == "textureViewer")
@@ -483,6 +521,10 @@ QWidget *CaptureContext::createToolWindow(const QString &objectName)
   else if(objectName == "eventBrowser")
   {
     return eventBrowser();
+  }
+  else if(objectName == "pipelineViewer")
+  {
+    return pipelineViewer();
   }
   else if(objectName == "apiInspector")
   {
@@ -504,6 +546,10 @@ void CaptureContext::windowClosed(QWidget *window)
     m_TextureViewer = NULL;
   else if((QWidget *)m_CaptureDialog == window)
     m_CaptureDialog = NULL;
+  else if((QWidget *)m_APIInspector == window)
+    m_APIInspector = NULL;
+  else if((QWidget *)m_PipelineViewer == window)
+    m_PipelineViewer = NULL;
   else
     qCritical() << "Unrecognised window being closed: " << window;
 }
