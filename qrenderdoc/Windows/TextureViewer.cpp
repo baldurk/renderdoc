@@ -399,10 +399,9 @@ public:
       if(role == Qt::DecorationRole)
       {
         QIcon goArrow;
-        goArrow.addFile(QStringLiteral(":/Resources/RightArrow_Gray_16x16.png"), QSize(),
-                        QIcon::Normal, QIcon::Off);
-        goArrow.addFile(QStringLiteral(":/Resources/RightArrow_Green_16x16.png"), QSize(),
-                        QIcon::Active, QIcon::Off);
+        goArrow.addFile(QStringLiteral(":/Resources/action.png"), QSize(), QIcon::Normal, QIcon::Off);
+        goArrow.addFile(QStringLiteral(":/Resources/action_hover.png"), QSize(), QIcon::Active,
+                        QIcon::Off);
         return QVariant(goArrow);
       }
     }
@@ -1776,8 +1775,7 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdctype::array<
   QAction imageLayout(this);
 
   QIcon goArrow;
-  goArrow.addFile(QStringLiteral(":/Resources/RightArrow_Green_16x16.png"), QSize(), QIcon::Normal,
-                  QIcon::Off);
+  goArrow.addFile(QStringLiteral(":/Resources/action_hover.png"), QSize(), QIcon::Normal, QIcon::Off);
   openLockedTab.setIcon(goArrow);
 
   showDisabled.setChecked(m_ShowDisabled);

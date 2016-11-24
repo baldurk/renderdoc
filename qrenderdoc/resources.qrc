@@ -38,8 +38,6 @@
         <file>Resources/page_white_link.png</file>
         <file>Resources/plugin_add.png</file>
         <file>Resources/red_x_16.png</file>
-        <file>Resources/RightArrow_Gray_16x16.png</file>
-        <file>Resources/RightArrow_Green_16x16.png</file>
         <file>Resources/runback.png</file>
         <file>Resources/runcursor.png</file>
         <file>Resources/runfwd.png</file>
@@ -65,5 +63,7 @@
         <file>Resources/topologies/topo_trilist_adj.png</file>
         <file>Resources/topologies/topo_tristrip.png</file>
         <file>Resources/topologies/topo_tristrip_adj.png</file>
+        <file>Resources/action.png</file>
+        <file>Resources/action_hover.png</file>
     </qresource>
 </RCC>

@@ -399,8 +399,6 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\128.png" />
-    <None Include="Resources\RightArrow_Gray_16x16.png" />
-    <None Include="Resources\RightArrow_Green_16x16.png" />
     <None Include="Resources\accept.png" />
     <None Include="Resources\add.png" />
     <None Include="Resources\arrow_in.png" />
@@ -457,6 +455,8 @@
     <None Include="Resources\wireframe_mesh.png" />
     <None Include="Resources\wrench.png" />
     <None Include="Resources\zoom.png" />
+    <None Include="Resources\action.png" />
+    <None Include="Resources\action_hover.png" />
   </ItemGroup>
   <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Development|Win32' Or '$(Configuration)|$(Platform)'=='Release|Win32'">
     <None Include="3rdparty\Qt\bin32\qwindows.dll" />

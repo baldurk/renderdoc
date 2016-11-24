@@ -419,12 +419,6 @@
     <None Include="Resources\red_x_16.png">
       <Filter>Resources\Files</Filter>
     </None>
-    <None Include="Resources\RightArrow_Gray_16x16.png">
-      <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Resources\RightArrow_Green_16x16.png">
-      <Filter>Resources\Files</Filter>
-    </None>
     <None Include="Resources\runback.png">
       <Filter>Resources\Files</Filter>
     </None>
@@ -523,6 +517,12 @@
     </None>
     <None Include="Windows\APIInspector.ui">
       <Filter>Windows</Filter>
+    </None>
+    <None Include="Resources\action_hover.png">
+      <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Resources\action.png">
+      <Filter>Resources\Files</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
