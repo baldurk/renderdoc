@@ -502,3 +502,7 @@ public:
     return m_Size;
   }
 };
+
+class QGridLayout;
+
+void addGridLines(QGridLayout *grid);

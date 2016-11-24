@@ -24,6 +24,7 @@
 
 #include "QRDUtils.h"
 #include <QFileSystemModel>
+#include <QGridLayout>
 #include <QGuiApplication>
 #include <QJsonDocument>
 #include <QMenu>
@@ -442,4 +443,38 @@ bool QFileFilterModel::filterAcceptsRow(int source_row, const QModelIndex &sourc
     return false;
 
   return true;
+}
+
+void addGridLines(QGridLayout *grid)
+{
+  for(int y = 0; y < grid->rowCount(); y++)
+  {
+    for(int x = 0; x < grid->columnCount(); x++)
+    {
+      QLayoutItem *item = grid->itemAtPosition(y, x);
+      QLayoutItem *east = grid->itemAtPosition(y, x + 1);
+      QLayoutItem *south = grid->itemAtPosition(y + 1, x);
+
+      if(item == NULL)
+        continue;
+
+      QWidget *w = item->widget();
+
+      if(w == NULL)
+        continue;
+
+      QString name = w->objectName();
+
+      QString style;
+
+      style += "border: solid black; border-top-width: 1px; border-left-width: 1px;";
+
+      if(!east || !east->widget())
+        style += "border-right-width: 1px;";
+      if(!south || !south->widget())
+        style += "border-bottom-width: 1px;";
+
+      w->setStyleSheet(style);
+    }
+  }
 }
