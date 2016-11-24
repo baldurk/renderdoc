@@ -1170,7 +1170,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
   }
   else
   {
-    ui->mipLevel->setEnabled(true);
+    ui->sliceFace->setEnabled(true);
 
     QString cubeFaces[] = {"X+", "X-", "Y+", "Y-", "Z+", "Z-"};
 
@@ -1192,7 +1192,7 @@ void TextureViewer::UI_OnTextureSelectionChanged(bool newdraw)
       }
       else
       {
-        ui->sliceFace->addItem(tr("Slice ") + i);
+        ui->sliceFace->addItem(tr("Slice %1").arg(i));
       }
     }
 
