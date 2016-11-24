@@ -887,8 +887,8 @@ namespace renderdoc
                 case ShaderBindType.ImageSampler:     return "Image&Sampler";
                 case ShaderBindType.ReadOnlyImage:    return "Image";
                 case ShaderBindType.ReadWriteImage:   return "RW Image";
-                case ShaderBindType.ReadOnlyTBuffer:  return "RW TBuffer";
-                case ShaderBindType.ReadWriteTBuffer: return "TBuffer";
+                case ShaderBindType.ReadOnlyTBuffer:  return "TBuffer";
+                case ShaderBindType.ReadWriteTBuffer: return "RW TBuffer";
                 case ShaderBindType.ReadOnlyBuffer:   return "Buffer";
                 case ShaderBindType.ReadWriteBuffer:  return "RW Buffer";
                 case ShaderBindType.InputAttachment:  return "Input";
