@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "VulkanPipelineStateViewer.h"
+#include <float.h>
 #include <QScrollBar>
 #include "Windows/TextureViewer.h"
 #include "ui_VulkanPipelineStateViewer.h"
@@ -1568,8 +1569,8 @@ void VulkanPipelineStateViewer::setState()
         length = buf->length;
       }
 
-      QTreeWidgetItem *node = makeNode(
-          {"Index", name, "Index", state.IA.ibuffer.offs, draw->indexByteWidth, length, ""});
+      QTreeWidgetItem *node = makeNode({"Index", name, "Index", (qulonglong)state.IA.ibuffer.offs,
+                                        draw->indexByteWidth, (qulonglong)length, ""});
 
       ui->viBuffers->setHoverIcons(node, action, action_hover);
 
@@ -1660,7 +1661,7 @@ void VulkanPipelineStateViewer::setState()
         QTreeWidgetItem *node = NULL;
 
         if(filledSlot)
-          node = makeNode({i, name, rate, offset, stride, length, ""});
+          node = makeNode({i, name, rate, (qulonglong)offset, stride, (qulonglong)length, ""});
         else
           node = makeNode({i, tr("No Binding"), "-", "-", "-", "-", ""});
 
@@ -1682,7 +1683,7 @@ void VulkanPipelineStateViewer::setState()
       }
     }
 
-    for(; i < ARRAY_COUNT(usedBindings); i++)
+    for(; i < (int)ARRAY_COUNT(usedBindings); i++)
     {
       if(usedBindings[i])
       {
