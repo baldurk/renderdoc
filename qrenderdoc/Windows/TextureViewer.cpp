@@ -1565,10 +1565,7 @@ void TextureViewer::textureTab_Closing(int index)
       qWarning() << "Expected only one removed tab, got " << ids.count();
 
     for(ResourceId id : ids)
-    {
-      delete m_LockedTabs[id];
       m_LockedTabs.remove(id);
-    }
 
     textureTabs->setCurrentIndex(index - 1);
     textureTabs->widget(index - 1)->show();
@@ -2534,9 +2531,6 @@ void TextureViewer::Reset()
 void TextureViewer::OnLogfileClosed()
 {
   Reset();
-
-  for(ResourceId id : m_LockedTabs.keys())
-    delete m_LockedTabs[id];
 
   m_LockedTabs.clear();
 
