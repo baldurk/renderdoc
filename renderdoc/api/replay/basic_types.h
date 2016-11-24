@@ -140,8 +140,12 @@ struct array
   bool empty() const { return count == 0; }
   T *begin() { return elems ? elems : end(); }
   T *end() { return elems ? elems + count : NULL; }
+  T &front() { return *elems; }
+  T &back() { return *(elems + count - 1); }
   const T *begin() const { return elems ? elems : end(); }
   const T *end() const { return elems ? elems + count : NULL; }
+  const T &front() const { return *elems; }
+  const T &back() const { return *(elems + count - 1); }
 };
 
 struct str : public rdctype::array<char>
