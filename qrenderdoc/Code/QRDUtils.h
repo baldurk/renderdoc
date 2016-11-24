@@ -31,6 +31,10 @@
 #include <QSortFilterProxyModel>
 #include "renderdoc_replay.h"
 
+#ifndef ARRAY_COUNT
+#define ARRAY_COUNT(arr) (sizeof(arr) / sizeof(arr[0]))
+#endif
+
 // total hack, expose the same basic interface as on renderdoc side.
 // Eventually we want to move the code in the main project into header-only
 // and .inl implementations for at least the public API, so it can be compiled
@@ -38,6 +42,13 @@
 
 struct ToStr
 {
+  static std::string Get(const ResourceId &el)
+  {
+    // super inefficient to convert to qstr then std::string then back to qstr
+    // but this is just a temporary measure
+    return QString::number(el.id).toStdString();
+  }
+
   static std::string Get(const ReplayCreateStatus &el)
   {
     switch(el)
@@ -134,6 +145,150 @@ struct ToStr
       default: break;
     }
     return "Invalid separator";
+  }
+
+  static std::string Get(const PrimitiveTopology &el)
+  {
+    switch(el)
+    {
+      case eTopology_Unknown: return "Unknown";
+      case eTopology_PointList: return "Point List";
+      case eTopology_LineList: return "Line List";
+      case eTopology_LineStrip: return "Line Strip";
+      case eTopology_LineLoop: return "Line Loop";
+      case eTopology_TriangleList: return "Triangle List";
+      case eTopology_TriangleStrip: return "Triangle Strip";
+      case eTopology_TriangleFan: return "Triangle Fan";
+      case eTopology_LineList_Adj: return "Line List with Adjacency";
+      case eTopology_LineStrip_Adj: return "Line Strip with Adjacency";
+      case eTopology_TriangleList_Adj: return "Triangle List with Adjacency";
+      case eTopology_TriangleStrip_Adj: return "Triangle Strip with Adjacency";
+      case eTopology_PatchList_1CPs:
+      case eTopology_PatchList_2CPs:
+      case eTopology_PatchList_3CPs:
+      case eTopology_PatchList_4CPs:
+      case eTopology_PatchList_5CPs:
+      case eTopology_PatchList_6CPs:
+      case eTopology_PatchList_7CPs:
+      case eTopology_PatchList_8CPs:
+      case eTopology_PatchList_9CPs:
+      case eTopology_PatchList_10CPs:
+      case eTopology_PatchList_11CPs:
+      case eTopology_PatchList_12CPs:
+      case eTopology_PatchList_13CPs:
+      case eTopology_PatchList_14CPs:
+      case eTopology_PatchList_15CPs:
+      case eTopology_PatchList_16CPs:
+      case eTopology_PatchList_17CPs:
+      case eTopology_PatchList_18CPs:
+      case eTopology_PatchList_19CPs:
+      case eTopology_PatchList_20CPs:
+      case eTopology_PatchList_21CPs:
+      case eTopology_PatchList_22CPs:
+      case eTopology_PatchList_23CPs:
+      case eTopology_PatchList_24CPs:
+      case eTopology_PatchList_25CPs:
+      case eTopology_PatchList_26CPs:
+      case eTopology_PatchList_27CPs:
+      case eTopology_PatchList_28CPs:
+      case eTopology_PatchList_29CPs:
+      case eTopology_PatchList_30CPs:
+      case eTopology_PatchList_31CPs:
+      case eTopology_PatchList_32CPs: return "Patch List";
+      default: break;
+    }
+    return "Unknown topology";
+  }
+
+  static std::string Get(const TriangleFillMode &el)
+  {
+    switch(el)
+    {
+      case eFill_Solid: return "Solid";
+      case eFill_Wireframe: return "Wireframe";
+      case eFill_Point: return "Point";
+      default: break;
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const TriangleCullMode &el)
+  {
+    switch(el)
+    {
+      case eCull_None: return "None";
+      case eCull_Front: return "Front";
+      case eCull_Back: return "Back";
+      case eCull_FrontAndBack: return "Front & Back";
+      default: break;
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const ShaderResourceType &el)
+  {
+    switch(el)
+    {
+      case eResType_None: return "None";
+      case eResType_Buffer: return "Buffer";
+      case eResType_Texture1D: return "Texture 1D";
+      case eResType_Texture1DArray: return "Texture 1D Array";
+      case eResType_Texture2D: return "Texture 2D";
+      case eResType_TextureRect: return "Texture Rect";
+      case eResType_Texture2DArray: return "Texture 2D Array";
+      case eResType_Texture2DMS: return "Texture 2D MS Array";
+      case eResType_Texture2DMSArray: return "Texture 2D MS Array";
+      case eResType_Texture3D: return "Texture 3D";
+      case eResType_TextureCube: return "Texture Cube";
+      case eResType_TextureCubeArray: return "Texture Cube Array";
+      default: break;
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const ShaderBindType &el)
+  {
+    switch(el)
+    {
+      case eBindType_ConstantBuffer: return "Constants";
+      case eBindType_Sampler: return "Sampler";
+      case eBindType_ImageSampler: return "Image&Sampler";
+      case eBindType_ReadOnlyImage: return "Image";
+      case eBindType_ReadWriteImage: return "RW Image";
+      case eBindType_ReadOnlyTBuffer: return "TexBuffer";
+      case eBindType_ReadWriteTBuffer: return "RW TexBuffer";
+      case eBindType_ReadOnlyBuffer: return "Buffer";
+      case eBindType_ReadWriteBuffer: return "RW Buffer";
+      case eBindType_InputAttachment: return "Input";
+      default: break;
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const TextureSwizzle &el)
+  {
+    switch(el)
+    {
+      case eSwizzle_Red: return "R";
+      case eSwizzle_Green: return "G";
+      case eSwizzle_Blue: return "B";
+      case eSwizzle_Alpha: return "A";
+      case eSwizzle_Zero: return "0";
+      case eSwizzle_One: return "1";
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const VarType &el)
+  {
+    switch(el)
+    {
+      case eVar_Float: return "float";
+      case eVar_Int: return "int";
+      case eVar_UInt: return "uint";
+      case eVar_Double: return "double";
+    }
+    return "Unknown";
   }
 };
 
