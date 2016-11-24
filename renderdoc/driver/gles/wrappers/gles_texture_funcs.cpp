@@ -715,7 +715,10 @@ void WrappedGLES::glTexParameterf(GLenum target, GLenum pname, GLfloat param)
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
        m_State != WRITING_CAPFRAME)
@@ -1043,7 +1046,10 @@ void WrappedGLES::glTexImage2D(GLenum target, GLint level, GLint internalformat,
 
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if (record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
     ResourceId texId = record->GetResourceID();
 
     // This is kind of an arbitary heuristic, but in the past a game has re-specified a texture with
@@ -2273,7 +2279,10 @@ void WrappedGLES::glTexSubImage2D(GLenum target, GLint level, GLint xoffset, GLi
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
 
     CoherentMapImplicitBarrier();
 
