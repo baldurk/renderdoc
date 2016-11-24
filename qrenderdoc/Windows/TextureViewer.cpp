@@ -542,6 +542,7 @@ TextureViewer::TextureViewer(CaptureContext *ctx, QWidget *parent)
   ui->dockarea->setToolWindowProperties(ui->pixelContextLayout, ToolWindowManager::HideCloseButton);
 
   ui->dockarea->addToolWindow(ui->textureListFrame, ToolWindowManager::NoArea);
+  ui->dockarea->setToolWindowProperties(ui->textureListFrame, ToolWindowManager::HideOnClose);
 
   ui->dockarea->setAllowFloatingWindow(false);
   ui->dockarea->setRubberBandLineWidth(50);
