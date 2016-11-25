@@ -7231,44 +7231,44 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
     outs[i].childIdx = refl.OutputSig[i].semanticIndex;
   }
 
+  // if needed add new ID for sint32 type
+  if(sint32ID == 0)
+  {
+    sint32ID = idBound++;
+
+    uint32_t typeOp[] = {
+        MakeSPIRVOp(spv::OpTypeInt, 4), sint32ID,
+        32U,    // 32-bit
+        1U,     // signed
+    };
+
+    // insert at the end of the types/variables section
+    modSpirv.insert(modSpirv.begin() + typeVarOffset, typeOp, typeOp + ARRAY_COUNT(typeOp));
+
+    // update offsets to account for inserted op
+    typeVarOffset += ARRAY_COUNT(typeOp);
+  }
+
+  // if needed, new ID for input ptr type
+  if(sint32PtrInID == 0 && (vertidxID == 0 || instidxID == 0))
+  {
+    sint32PtrInID = idBound;
+    idBound++;
+
+    uint32_t typeOp[] = {
+        MakeSPIRVOp(spv::OpTypePointer, 4), sint32PtrInID, spv::StorageClassInput, sint32ID,
+    };
+
+    // insert at the end of the types/variables section
+    modSpirv.insert(modSpirv.begin() + typeVarOffset, typeOp, typeOp + ARRAY_COUNT(typeOp));
+
+    // update offsets to account for inserted op
+    typeVarOffset += ARRAY_COUNT(typeOp);
+  }
+
   if(vertidxID == 0)
   {
     // need to declare our own "in int gl_VertexID;"
-
-    // if needed add new ID for sint32 type
-    if(sint32ID == 0)
-    {
-      sint32ID = idBound++;
-
-      uint32_t typeOp[] = {
-          MakeSPIRVOp(spv::OpTypeInt, 4), sint32ID,
-          32U,    // 32-bit
-          1U,     // signed
-      };
-
-      // insert at the end of the types/variables section
-      modSpirv.insert(modSpirv.begin() + typeVarOffset, typeOp, typeOp + ARRAY_COUNT(typeOp));
-
-      // update offsets to account for inserted op
-      typeVarOffset += ARRAY_COUNT(typeOp);
-    }
-
-    // if needed, new ID for input ptr type
-    if(sint32PtrInID == 0)
-    {
-      sint32PtrInID = idBound;
-      idBound++;
-
-      uint32_t typeOp[] = {
-          MakeSPIRVOp(spv::OpTypePointer, 4), sint32PtrInID, spv::StorageClassInput, sint32ID,
-      };
-
-      // insert at the end of the types/variables section
-      modSpirv.insert(modSpirv.begin() + typeVarOffset, typeOp, typeOp + ARRAY_COUNT(typeOp));
-
-      // update offsets to account for inserted op
-      typeVarOffset += ARRAY_COUNT(typeOp);
-    }
 
     // new ID for vertex index
     vertidxID = idBound;
@@ -7312,8 +7312,7 @@ static void AddOutputDumping(const ShaderReflection &refl, const char *entryName
 
   if(instidxID == 0)
   {
-    // we can assume that after vertxidxID was added above, that the types
-    // are available. We just have to add the actual instance id variable
+    // need to declare our own "in int gl_InstanceID;"
 
     // new ID for vertex index
     instidxID = idBound;
