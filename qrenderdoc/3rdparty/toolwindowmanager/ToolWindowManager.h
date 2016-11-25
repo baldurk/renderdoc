@@ -233,7 +233,8 @@ public:
    * \a toolWindow must be added to the manager prior to calling this function.
    */
   void hideToolWindow(QWidget* toolWindow) { moveToolWindow(toolWindow, NoArea); }
-
+  
+  static ToolWindowManager* managerOf(QWidget* toolWindow);
   static void closeToolWindow(QWidget *toolWindow);
   static void raiseToolWindow(QWidget *toolWindow);
 

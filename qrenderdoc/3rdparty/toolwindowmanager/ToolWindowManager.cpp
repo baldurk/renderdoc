@@ -275,6 +275,15 @@ void ToolWindowManager::removeToolWindow(QWidget *toolWindow) {
   delete toolWindow;
 }
 
+ToolWindowManager* ToolWindowManager::managerOf(QWidget* toolWindow) {
+  if (!toolWindow) {
+    qWarning("NULL tool window");
+    return NULL;
+  }
+
+  return findClosestParent<ToolWindowManager*>(toolWindow);
+}
+
 void ToolWindowManager::closeToolWindow(QWidget *toolWindow) {
   if (!toolWindow) {
     qWarning("NULL tool window");
@@ -282,16 +291,11 @@ void ToolWindowManager::closeToolWindow(QWidget *toolWindow) {
   }
 
   // search up to find the first parent manager
-  QWidget *parent = toolWindow->parentWidget();
-  while(parent) {
-    ToolWindowManager *manager = qobject_cast<ToolWindowManager*>(parent);
+  ToolWindowManager *manager = findClosestParent<ToolWindowManager*>(toolWindow);
 
-    if(manager) {
-      manager->removeToolWindow(toolWindow);
-      return;
-    }
-
-    parent = parent->parentWidget();
+  if(manager) {
+    manager->removeToolWindow(toolWindow);
+    return;
   }
 
   qWarning("window not child of any tool window");
