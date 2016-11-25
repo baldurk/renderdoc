@@ -38,7 +38,7 @@ struct ShaderVariable
   {
     name = "";
     rows = columns = 0;
-    isStruct = false;
+    displayAsHex = isStruct = false;
     type = eVar_Float;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
@@ -48,7 +48,7 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    isStruct = false;
+    displayAsHex = isStruct = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
     type = eVar_Float;
@@ -62,7 +62,7 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    isStruct = false;
+    displayAsHex = isStruct = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
     type = eVar_Int;
@@ -76,7 +76,7 @@ struct ShaderVariable
     name = n;
     rows = 1;
     columns = 4;
-    isStruct = false;
+    displayAsHex = isStruct = false;
     for(int i = 0; i < 16; i++)
       value.uv[i] = 0;
     type = eVar_UInt;
@@ -90,6 +90,8 @@ struct ShaderVariable
   rdctype::str name;
 
   VarType type;
+
+  bool32 displayAsHex;
 
   union
   {

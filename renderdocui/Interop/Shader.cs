@@ -38,8 +38,7 @@ namespace renderdoc
 
         public VarType type;
 
-        [CustomMarshalAs(CustomUnmanagedType.Skip)]
-        public bool displayAsHex = false;
+        public bool displayAsHex;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct ValueUnion
