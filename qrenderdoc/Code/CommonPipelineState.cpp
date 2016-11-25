@@ -258,12 +258,12 @@ QString CommonPipelineState::GetShaderEntryPoint(ShaderStageType stage)
   {
     switch(stage)
     {
-      case eShaderStage_Vertex: ret = m_Vulkan->VS.entryPoint;
-      case eShaderStage_Tess_Control: ret = m_Vulkan->TCS.entryPoint;
-      case eShaderStage_Tess_Eval: ret = m_Vulkan->TES.entryPoint;
-      case eShaderStage_Geometry: ret = m_Vulkan->GS.entryPoint;
-      case eShaderStage_Fragment: ret = m_Vulkan->FS.entryPoint;
-      case eShaderStage_Compute: ret = m_Vulkan->CS.entryPoint;
+      case eShaderStage_Vertex: ret = m_Vulkan->VS.entryPoint; break;
+      case eShaderStage_Tess_Control: ret = m_Vulkan->TCS.entryPoint; break;
+      case eShaderStage_Tess_Eval: ret = m_Vulkan->TES.entryPoint; break;
+      case eShaderStage_Geometry: ret = m_Vulkan->GS.entryPoint; break;
+      case eShaderStage_Fragment: ret = m_Vulkan->FS.entryPoint; break;
+      case eShaderStage_Compute: ret = m_Vulkan->CS.entryPoint; break;
       default: break;
     }
   }
@@ -342,12 +342,12 @@ QString CommonPipelineState::GetShaderName(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: ret = m_D3D11->m_VS.ShaderName;
-        case eShaderStage_Domain: ret = m_D3D11->m_DS.ShaderName;
-        case eShaderStage_Hull: ret = m_D3D11->m_HS.ShaderName;
-        case eShaderStage_Geometry: ret = m_D3D11->m_GS.ShaderName;
-        case eShaderStage_Pixel: ret = m_D3D11->m_PS.ShaderName;
-        case eShaderStage_Compute: ret = m_D3D11->m_CS.ShaderName;
+        case eShaderStage_Vertex: ret = m_D3D11->m_VS.ShaderName; break;
+        case eShaderStage_Domain: ret = m_D3D11->m_DS.ShaderName; break;
+        case eShaderStage_Hull: ret = m_D3D11->m_HS.ShaderName; break;
+        case eShaderStage_Geometry: ret = m_D3D11->m_GS.ShaderName; break;
+        case eShaderStage_Pixel: ret = m_D3D11->m_PS.ShaderName; break;
+        case eShaderStage_Compute: ret = m_D3D11->m_CS.ShaderName; break;
         default: break;
       }
     }
@@ -355,12 +355,12 @@ QString CommonPipelineState::GetShaderName(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: ret = QString(m_D3D12->PipelineName) + " VS";
-        case eShaderStage_Domain: ret = QString(m_D3D12->PipelineName) + " DS";
-        case eShaderStage_Hull: ret = QString(m_D3D12->PipelineName) + " HS";
-        case eShaderStage_Geometry: ret = QString(m_D3D12->PipelineName) + " GS";
-        case eShaderStage_Pixel: ret = QString(m_D3D12->PipelineName) + " PS";
-        case eShaderStage_Compute: ret = QString(m_D3D12->PipelineName) + " CS";
+        case eShaderStage_Vertex: ret = QString(m_D3D12->PipelineName) + " VS"; break;
+        case eShaderStage_Domain: ret = QString(m_D3D12->PipelineName) + " DS"; break;
+        case eShaderStage_Hull: ret = QString(m_D3D12->PipelineName) + " HS"; break;
+        case eShaderStage_Geometry: ret = QString(m_D3D12->PipelineName) + " GS"; break;
+        case eShaderStage_Pixel: ret = QString(m_D3D12->PipelineName) + " PS"; break;
+        case eShaderStage_Compute: ret = QString(m_D3D12->PipelineName) + " CS"; break;
         default: break;
       }
     }
@@ -368,12 +368,12 @@ QString CommonPipelineState::GetShaderName(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: ret = m_GL->m_VS.ShaderName;
-        case eShaderStage_Tess_Control: ret = m_GL->m_TCS.ShaderName;
-        case eShaderStage_Tess_Eval: ret = m_GL->m_TES.ShaderName;
-        case eShaderStage_Geometry: ret = m_GL->m_GS.ShaderName;
-        case eShaderStage_Fragment: ret = m_GL->m_FS.ShaderName;
-        case eShaderStage_Compute: ret = m_GL->m_CS.ShaderName;
+        case eShaderStage_Vertex: ret = m_GL->m_VS.ShaderName; break;
+        case eShaderStage_Tess_Control: ret = m_GL->m_TCS.ShaderName; break;
+        case eShaderStage_Tess_Eval: ret = m_GL->m_TES.ShaderName; break;
+        case eShaderStage_Geometry: ret = m_GL->m_GS.ShaderName; break;
+        case eShaderStage_Fragment: ret = m_GL->m_FS.ShaderName; break;
+        case eShaderStage_Compute: ret = m_GL->m_CS.ShaderName; break;
         default: break;
       }
     }
@@ -381,12 +381,12 @@ QString CommonPipelineState::GetShaderName(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: ret = m_Vulkan->VS.ShaderName;
-        case eShaderStage_Domain: ret = m_Vulkan->TCS.ShaderName;
-        case eShaderStage_Hull: ret = m_Vulkan->TES.ShaderName;
-        case eShaderStage_Geometry: ret = m_Vulkan->GS.ShaderName;
-        case eShaderStage_Pixel: ret = m_Vulkan->FS.ShaderName;
-        case eShaderStage_Compute: ret = m_Vulkan->CS.ShaderName;
+        case eShaderStage_Vertex: ret = m_Vulkan->VS.ShaderName; break;
+        case eShaderStage_Domain: ret = m_Vulkan->TCS.ShaderName; break;
+        case eShaderStage_Hull: ret = m_Vulkan->TES.ShaderName; break;
+        case eShaderStage_Geometry: ret = m_Vulkan->GS.ShaderName; break;
+        case eShaderStage_Pixel: ret = m_Vulkan->FS.ShaderName; break;
+        case eShaderStage_Compute: ret = m_Vulkan->CS.ShaderName; break;
         default: break;
       }
     }
