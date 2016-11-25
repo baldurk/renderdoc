@@ -349,11 +349,21 @@ QString RowTypeString(const ShaderVariable &v);
 
 struct Formatter
 {
-  static QString Format(float f) { return QString::number(f); }
-  static QString Format(double d) { return QString::number(d); }
-  static QString Format(uint32_t u) { return QString::number(u); }
-  static QString Format(uint16_t u) { return QString::number(u); }
-  static QString Format(int32_t i) { return QString::number(i); }
+  static void setParams(int minFigures, int maxFigures, int expNegCutoff, int expPosCutoff);
+
+  static QString Format(double f, bool hex = false);
+  static QString Format(uint32_t u, bool hex = false)
+  {
+    return QString("%1").arg(u, hex ? 8 : 0, hex ? 16 : 10, QChar('0'));
+  }
+  static QString Format(uint16_t u, bool hex = false)
+  {
+    return QString("%1").arg(u, hex ? 8 : 0, hex ? 16 : 10, QChar('0'));
+  }
+  static QString Format(int32_t i, bool hex = false) { return QString::number(i); }
+private:
+  static int m_minFigures, m_maxFigures, m_expNegCutoff, m_expPosCutoff;
+  static double m_expNegValue, m_expPosValue;
 };
 
 bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, uint32_t magicVersion);

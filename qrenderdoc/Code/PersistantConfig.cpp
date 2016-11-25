@@ -160,12 +160,9 @@ void PersistantConfig::applyValues(const QVariantMap &values)
 
 void PersistantConfig::SetupFormatting()
 {
+  Formatter::setParams(Formatter_MinFigures, Formatter_MaxFigures, Formatter_NegExp,
+                       Formatter_PosExp);
   /*
-            Formatter.MinFigures = Formatter_MinFigures;
-            Formatter.MaxFigures = Formatter_MaxFigures;
-            Formatter.ExponentialNegCutoff = Formatter_NegExp;
-            Formatter.ExponentialPosCutoff = Formatter_PosExp;
-
             PreferredFont = Font_PreferMonospaced
                 ? new System.Drawing.Font("Consolas", 9.25F, System.Drawing.FontStyle.Regular,
      System.Drawing.GraphicsUnit.Point, ((byte)(0)))

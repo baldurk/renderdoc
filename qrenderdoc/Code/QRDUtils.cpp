@@ -30,6 +30,7 @@
 #include <QMenu>
 #include <QMetaMethod>
 #include <QTreeWidget>
+#include <QtMath>
 
 QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
 {
@@ -498,6 +499,48 @@ QTreeWidgetItem *makeTreeNode(const QVariantList &values)
   int i = 0;
   for(const QVariant &v : values)
     ret->setData(i++, Qt::DisplayRole, v);
+
+  return ret;
+}
+
+int Formatter::m_minFigures = 2, Formatter::m_maxFigures = 5, Formatter::m_expNegCutoff = 5,
+    Formatter::m_expPosCutoff = 7;
+double Formatter::m_expNegValue = 0.00001;       // 10^(-5)
+double Formatter::m_expPosValue = 10000000.0;    // 10^7
+
+void Formatter::setParams(int minFigures, int maxFigures, int expNegCutoff, int expPosCutoff)
+{
+  m_minFigures = qMax(0, minFigures);
+  m_maxFigures = qMax(2, maxFigures);
+  m_expNegCutoff = qMax(0, expNegCutoff);
+  m_expPosCutoff = qMax(0, expPosCutoff);
+
+  m_expNegValue = qPow(10.0, -m_expNegCutoff);
+  m_expPosValue = qPow(10.0, m_expPosCutoff);
+}
+
+QString Formatter::Format(double f, bool)
+{
+  if(f != 0.0 && (qAbs(f) < m_expNegValue || qAbs(f) > m_expPosValue))
+    return QString("%1").arg(f, -m_minFigures, 'E', m_maxFigures);
+
+  QString ret = QString("%1").arg(f, 0, 'f', m_maxFigures);
+
+  // trim excess trailing 0s
+  int decimal = ret.lastIndexOf(QChar('.'));
+  if(decimal > 0)
+  {
+    decimal += m_minFigures;
+
+    const int len = ret.count();
+
+    int remove = 0;
+    while(len - remove - 1 > decimal && ret.at(len - remove - 1) == QChar('0'))
+      remove++;
+
+    if(remove > 0)
+      ret.chop(remove);
+  }
 
   return ret;
 }
