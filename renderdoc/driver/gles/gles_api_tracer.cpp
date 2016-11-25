@@ -253,18 +253,18 @@ GLHookSet WrappedGLES::initRealWrapper(const GLHookSet& hooks)
   GLHookSet wrapper;
   memset(&wrapper, 0, sizeof(wrapper));
 
-  #define HookInit(function) \
-    if (wrapper.function == NULL) \
-      wrapper.function = CONCAT(function, _debug_hooked)
+  #define CONNECT_DEBUG_TRACE_HOOK(function)                                                        \
+    if (wrapper.function == NULL)                                                                   \
+    {                                                                                               \
+      if (originalFunctions.function == NULL)                                                       \
+        RDCDEBUG("Original function '" #function "' is NULL! Any call of it will not be traced!");  \
+      else                                                                                          \
+        wrapper.function = CONCAT(function, _debug_hooked);                                         \
+    }
 
-  #define HandleUnsupported(funcPtrType, function) \
-    if (wrapper.function == NULL) \
-      wrapper.function = CONCAT(function, _debug_hooked)
-
-  #define HookExtension(funcPtrType, function) \
-    if (wrapper.function == NULL) \
-      wrapper.function = CONCAT(function, _debug_hooked)
-
+  #define HookInit(function) CONNECT_DEBUG_TRACE_HOOK(function)
+  #define HandleUnsupported(funcPtrType, function) CONNECT_DEBUG_TRACE_HOOK(function)
+  #define HookExtension(funcPtrType, function) CONNECT_DEBUG_TRACE_HOOK(function)
   #define HookExtensionAlias(funcPtrType, function, alias)
 
   DLLExportHooks();
