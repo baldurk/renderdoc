@@ -70,6 +70,7 @@ private slots:
   void shaderEdit_clicked();
   void shaderSave_clicked();
   void resource_itemActivated(QTreeWidgetItem *item, int column);
+  void ubo_itemActivated(QTreeWidgetItem *item, int column);
   void vertex_leave(QEvent *e);
 
 private:
@@ -107,8 +108,6 @@ private:
   template <typename viewType>
   void setViewDetails(QTreeWidgetItem *node, const viewType &view, FetchBuffer *buf);
 
-  QTreeWidgetItem *makeNode(const std::initializer_list<QVariant> &values);
-  QTreeWidgetItem *makeNode(const QVariantList &values);
   bool showNode(bool usedSlot, bool filledSlot);
 
   // keep track of the VB nodes (we want to be able to highlight them easily on hover)

@@ -29,6 +29,7 @@
 #include <QJsonDocument>
 #include <QMenu>
 #include <QMetaMethod>
+#include <QTreeWidget>
 
 QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
 {
@@ -477,4 +478,26 @@ void addGridLines(QGridLayout *grid)
       w->setStyleSheet(style);
     }
   }
+}
+
+QTreeWidgetItem *makeTreeNode(const std::initializer_list<QVariant> &values)
+{
+  QTreeWidgetItem *ret = new QTreeWidgetItem();
+
+  int i = 0;
+  for(const QVariant &v : values)
+    ret->setData(i++, Qt::DisplayRole, v);
+
+  return ret;
+}
+
+QTreeWidgetItem *makeTreeNode(const QVariantList &values)
+{
+  QTreeWidgetItem *ret = new QTreeWidgetItem();
+
+  int i = 0;
+  for(const QVariant &v : values)
+    ret->setData(i++, Qt::DisplayRole, v);
+
+  return ret;
 }

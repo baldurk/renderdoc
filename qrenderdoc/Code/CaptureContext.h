@@ -53,15 +53,6 @@ class TextureViewer;
 class CaptureDialog;
 class QProgressDialog;
 
-struct Formatter
-{
-  static QString Format(float f) { return QString::number(f); }
-  static QString Format(double d) { return QString::number(d); }
-  static QString Format(uint32_t u) { return QString::number(u); }
-  static QString Format(uint16_t u) { return QString::number(u); }
-  static QString Format(int32_t i) { return QString::number(i); }
-};
-
 class CaptureContext
 {
 public:

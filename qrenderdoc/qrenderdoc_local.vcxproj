@@ -281,12 +281,15 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="Code\CommonPipelineState.cpp" />
+    <ClCompile Include="Code\FormatElement.cpp" />
     <ClCompile Include="Code\PersistantConfig.cpp" />
     <ClCompile Include="Code\qprocessinfo.cpp" />
     <ClCompile Include="Code\QRDUtils.cpp" />
     <ClCompile Include="generated\moc_AboutDialog.cpp" />
     <ClCompile Include="generated\moc_APIInspector.cpp" />
+    <ClCompile Include="generated\moc_BufferFormatSpecifier.cpp" />
     <ClCompile Include="generated\moc_CaptureDialog.cpp" />
+    <ClCompile Include="generated\moc_ConstantBufferPreviewer.cpp" />
     <ClCompile Include="generated\moc_CustomPaintWidget.cpp" />
     <ClCompile Include="generated\moc_D3D11PipelineStateViewer.cpp" />
     <ClCompile Include="generated\moc_D3D12PipelineStateViewer.cpp" />
@@ -313,6 +316,7 @@
     <ClCompile Include="generated\moc_ToolWindowManagerWrapper.cpp" />
     <ClCompile Include="generated\moc_VulkanPipelineStateViewer.cpp" />
     <ClCompile Include="generated\qrc_resources.cpp" />
+    <ClCompile Include="Widgets\BufferFormatSpecifier.cpp" />
     <ClCompile Include="Widgets\Extended\RDListWidget.cpp" />
     <ClCompile Include="Widgets\Extended\RDTreeWidget.cpp" />
     <ClCompile Include="Widgets\RangeHistogram.cpp" />
@@ -325,6 +329,7 @@
     <ClCompile Include="Code\CaptureContext.cpp" />
     <ClCompile Include="Widgets\CustomPaintWidget.cpp" />
     <ClCompile Include="Windows\APIInspector.cpp" />
+    <ClCompile Include="Windows\ConstantBufferPreviewer.cpp" />
     <ClCompile Include="Windows\Dialogs\AboutDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\LiveCapture.cpp" />
@@ -360,7 +365,9 @@
     <ClInclude Include="Code\QRDUtils.h" />
     <ClInclude Include="generated\ui_AboutDialog.h" />
     <ClInclude Include="generated\ui_APIInspector.h" />
+    <ClInclude Include="generated\ui_BufferFormatSpecifier.h" />
     <ClInclude Include="generated\ui_CaptureDialog.h" />
+    <ClInclude Include="generated\ui_ConstantBufferPreviewer.h" />
     <ClInclude Include="generated\ui_D3D11PipelineStateViewer.h" />
     <ClInclude Include="generated\ui_D3D12PipelineStateViewer.h" />
     <ClInclude Include="generated\ui_EventBrowser.h" />
@@ -374,6 +381,7 @@
     <ClInclude Include="generated\ui_ThumbnailStrip.h" />
     <ClInclude Include="generated\ui_VulkanPipelineStateViewer.h" />
     <ClInclude Include="Resources\resource.h" />
+    <ClInclude Include="Widgets\BufferFormatSpecifier.h" />
     <ClInclude Include="Widgets\Extended\RDListWidget.h" />
     <ClInclude Include="Widgets\Extended\RDTreeWidget.h" />
     <ClInclude Include="Widgets\RangeHistogram.h" />
@@ -386,6 +394,7 @@
     <ClInclude Include="Code\CaptureContext.h" />
     <ClInclude Include="Widgets\CustomPaintWidget.h" />
     <ClInclude Include="Windows\APIInspector.h" />
+    <ClInclude Include="Windows\ConstantBufferPreviewer.h" />
     <ClInclude Include="Windows\Dialogs\AboutDialog.h" />
     <ClInclude Include="Windows\Dialogs\CaptureDialog.h" />
     <ClInclude Include="Windows\Dialogs\LiveCapture.h" />
@@ -406,9 +415,11 @@
     <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManagerWrapper.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="Widgets\BufferFormatSpecifier.ui" />
     <None Include="Widgets\ResourcePreview.ui" />
     <None Include="Widgets\ThumbnailStrip.ui" />
     <None Include="Windows\APIInspector.ui" />
+    <None Include="Windows\ConstantBufferPreviewer.ui" />
     <None Include="Windows\Dialogs\AboutDialog.ui" />
     <None Include="Windows\Dialogs\CaptureDialog.ui" />
     <None Include="Windows\Dialogs\LiveCapture.ui" />

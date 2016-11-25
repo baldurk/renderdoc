@@ -314,6 +314,48 @@ QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype);
 // overload for a couple of things that need to know the pipeline type when converting
 QString ToQStr(const ShaderStageType stage, const GraphicsAPI apitype);
 
+struct FormatElement
+{
+  FormatElement();
+  FormatElement(const QString &Name, int buf, uint offs, bool pi, int ir, bool rowMat, uint matDim,
+                ResourceFormat f, bool h);
+
+  static QList<FormatElement> ParseFormatString(const QString &formatString, uint64_t maxLen,
+                                                bool tightPacking, QString &errors);
+
+  QVariantList GetVariants(const byte *&data, const byte *end);
+  ShaderVariable GetShaderVar(const byte *&data, const byte *end);
+
+  QString ElementString(const QVariant &var);
+
+  uint32_t byteSize();
+
+  QString name;
+  int buffer;
+  uint32_t offset;
+  bool perinstance;
+  int instancerate;
+  bool rowmajor;
+  uint32_t matrixdim;
+  ResourceFormat format;
+  bool hex;
+  SystemAttribute systemValue;
+};
+
+QString TypeString(const ShaderVariable &v);
+QString RowString(const ShaderVariable &v, uint32_t row);
+QString VarString(const ShaderVariable &v);
+QString RowTypeString(const ShaderVariable &v);
+
+struct Formatter
+{
+  static QString Format(float f) { return QString::number(f); }
+  static QString Format(double d) { return QString::number(d); }
+  static QString Format(uint32_t u) { return QString::number(u); }
+  static QString Format(uint16_t u) { return QString::number(u); }
+  static QString Format(int32_t i) { return QString::number(i); }
+};
+
 bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, uint32_t magicVersion);
 bool LoadFromJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier,
                   uint32_t magicVersion);
@@ -506,3 +548,8 @@ public:
 class QGridLayout;
 
 void addGridLines(QGridLayout *grid);
+
+class QTreeWidgetItem;
+
+QTreeWidgetItem *makeTreeNode(const std::initializer_list<QVariant> &values);
+QTreeWidgetItem *makeTreeNode(const QVariantList &values);

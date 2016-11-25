@@ -238,6 +238,21 @@
     <ClCompile Include="generated\moc_RDTreeWidget.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\ConstantBufferPreviewer.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\BufferFormatSpecifier.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_BufferFormatSpecifier.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_ConstantBufferPreviewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\FormatElement.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -377,6 +392,18 @@
     </ClInclude>
     <ClInclude Include="Widgets\Extended\RDTreeWidget.h">
       <Filter>Widgets\Extended</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\ConstantBufferPreviewer.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\BufferFormatSpecifier.h">
+      <Filter>Widgets</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_ConstantBufferPreviewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_BufferFormatSpecifier.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -601,6 +628,12 @@
     </None>
     <None Include="Resources\action.png">
       <Filter>Resources\Files</Filter>
+    </None>
+    <None Include="Windows\ConstantBufferPreviewer.ui">
+      <Filter>Windows</Filter>
+    </None>
+    <None Include="Widgets\BufferFormatSpecifier.ui">
+      <Filter>Widgets</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

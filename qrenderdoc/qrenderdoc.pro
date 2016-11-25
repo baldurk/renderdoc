@@ -117,7 +117,10 @@ SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     Windows/PipelineState/D3D11PipelineStateViewer.cpp \
     Windows/PipelineState/D3D12PipelineStateViewer.cpp \
     Windows/PipelineState/GLPipelineStateViewer.cpp \
-    Widgets/Extended/RDTreeWidget.cpp
+    Widgets/Extended/RDTreeWidget.cpp \
+    Windows/ConstantBufferPreviewer.cpp \
+    Widgets/BufferFormatSpecifier.cpp \
+    Code/FormatElement.cpp
 
 HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
@@ -152,7 +155,9 @@ HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     Windows/PipelineState/D3D11PipelineStateViewer.h \
     Windows/PipelineState/D3D12PipelineStateViewer.h \
     Windows/PipelineState/GLPipelineStateViewer.h \
-    Widgets/Extended/RDTreeWidget.h
+    Widgets/Extended/RDTreeWidget.h \
+    Windows/ConstantBufferPreviewer.h \
+    Widgets/BufferFormatSpecifier.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
@@ -168,7 +173,9 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/PipelineState/VulkanPipelineStateViewer.ui \
     Windows/PipelineState/D3D11PipelineStateViewer.ui \
     Windows/PipelineState/D3D12PipelineStateViewer.ui \
-    Windows/PipelineState/GLPipelineStateViewer.ui
+    Windows/PipelineState/GLPipelineStateViewer.ui \
+    Windows/ConstantBufferPreviewer.ui \
+    Widgets/BufferFormatSpecifier.ui
 
 RESOURCES += \
     resources.qrc
