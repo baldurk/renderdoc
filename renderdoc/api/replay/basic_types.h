@@ -184,4 +184,40 @@ struct str : public rdctype::array<char>
   const char *c_str() const { return elems ? elems : ""; }
 };
 
+inline str &str::operator=(const std::string &in)
+{
+  Delete();
+  count = (int32_t)in.size();
+  if(count == 0)
+  {
+    elems = (char *)allocate(sizeof(char));
+    elems[0] = 0;
+  }
+  else
+  {
+    elems = (char *)allocate(sizeof(char) * (count + 1));
+    memcpy(elems, &in[0], sizeof(char) * in.size());
+    elems[count] = 0;
+  }
+  return *this;
+}
+
+inline str &str::operator=(const char *const in)
+{
+  Delete();
+  count = (int32_t)strlen(in);
+  if(count == 0)
+  {
+    elems = (char *)allocate(sizeof(char));
+    elems[0] = 0;
+  }
+  else
+  {
+    elems = (char *)allocate(sizeof(char) * (count + 1));
+    memcpy(elems, &in[0], sizeof(char) * count);
+    elems[count] = 0;
+  }
+  return *this;
+}
+
 };    // namespace rdctype
