@@ -25,6 +25,7 @@
 // outer code will hoist this up to just after the #version
 //#extension GL_ARB_derivative_control : require
 //#extension GL_OES_shader_image_atomic : enable
+//#extension GL_OES_sample_variables : enable
 
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Below shaders courtesy of Stephen Hill (@self_shadow), converted to glsl trivially

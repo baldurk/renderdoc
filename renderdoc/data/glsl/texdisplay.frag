@@ -29,6 +29,9 @@ layout (location = 0) in vec2 uv;
 
 //#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
 
+//#extension GL_EXT_texture_cube_map_array : enable
+//#extension GL_EXT_texture_buffer : enable
+
 float ConvertSRGBToLinear(float srgb)
 {
 	if (srgb <= 0.04045f)

@@ -277,7 +277,7 @@ void GLESReplay::InitDebugData()
   vector<string> gs;
   vector<string> cs;
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), "320 es");
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), "310 es");
   DebugData.texDisplayVSProg = CreateShaderProgram(vs, empty);
 
   for(int i = 0; i < 3; i++)
@@ -285,7 +285,7 @@ void GLESReplay::InitDebugData()
     string defines = string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
     defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_texdisplay_frag), "320 es");
+    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_texdisplay_frag), "310 es");
 
     DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
   }
@@ -295,7 +295,7 @@ void GLESReplay::InitDebugData()
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), "320 es");
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), "310 es");
 
 // TODO (pepe)
 //  {
@@ -306,7 +306,7 @@ void GLESReplay::InitDebugData()
 //    defines += "#define dFdxFine dFdx\n\n";
 //    defines += "#define dFdyFine dFdy\n\n";
 //
-//    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_quadwrite_frag), "320 es");
+//    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_quadwrite_frag), "310 es");
 //
 //    // remove derivative control extension
 //    size_t offs = fs[0].find("#extension GL_ARB_derivative_control");
@@ -315,21 +315,21 @@ void GLESReplay::InitDebugData()
 //
 //    DebugData.quadoverdrawResolveProg = CreateShaderProgram(empty, fs);
 //
-//    GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_quadresolve_frag), "320 es");
+//    GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_quadresolve_frag), "310 es");
 //
 //    DebugData.quadoverdrawResolveProg = CreateShaderProgram(vs, fs);
 //  }
 
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_checkerboard_frag), "320 es");
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_checkerboard_frag), "310 es");
   DebugData.checkerProg = CreateShaderProgram(vs, fs);
 
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_fixedcol_frag), "320 es");
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_fixedcol_frag), "310 es");
 
   DebugData.fixedcolFSProg = CreateShaderProgram(empty, fs);
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_vert), "320 es");
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_frag), "320 es");
-  GenerateGLSLShader(gs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_geom), "320 es");
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_vert), "310 es");
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_frag), "310 es");
+  GenerateGLSLShader(gs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_geom), "310 es");
 
   DebugData.meshProg = CreateShaderProgram(vs, fs);
   DebugData.meshgsProg = CreateShaderProgram(vs, fs, gs);
@@ -423,7 +423,7 @@ void GLESReplay::InitDebugData()
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
           GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_minmaxtile_comp),
-                             "320 es");
+                             "310 es");
 
           DebugData.minmaxTileProgram[idx] = CreateCShaderProgram(cs);
         }
@@ -434,7 +434,7 @@ void GLESReplay::InitDebugData()
           defines += string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-          GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_histogram_comp), "320 es");
+          GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_histogram_comp), "310 es");
 
           DebugData.histogramProgram[idx] = CreateCShaderProgram(cs);
         }
@@ -447,7 +447,7 @@ void GLESReplay::InitDebugData()
           defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
           GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_minmaxresult_comp),
-                             "320 es");
+                             "310 es");
 
           DebugData.minmaxResultProgram[i] = CreateCShaderProgram(cs);
         }
@@ -475,17 +475,17 @@ void GLESReplay::InitDebugData()
 #if 0
   {
     // TODO(elecro): Add version check?
-    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_ms2array_comp), "320 es");
+    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_ms2array_comp), "310 es");
     DebugData.MS2Array = CreateCShaderProgram(cs);
 
     // TODO(elecro): uimage2DMSArray is not supported in the array2ms.comp shader, how can we replac it?
-    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_array2ms_comp), "320 es");
+    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_array2ms_comp), "310 es");
     DebugData.Array2MS = CreateCShaderProgram(cs);
   }
 
   {
     // TODO(elecro): Add version check?
-    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_comp), "320 es");
+    GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_comp), "310 es");
     DebugData.meshPickProgram = CreateCShaderProgram(cs);
   }
 #endif
@@ -558,8 +558,8 @@ void GLESReplay::InitDebugData()
   gl.glVertexAttribPointer(0, 4, eGL_FLOAT, GL_FALSE, sizeof(Vec4f), NULL);
   gl.glEnableVertexAttribArray(0);
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), "320 es");
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_outline_frag), "320 es");
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), "310 es");
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_outline_frag), "310 es");
 
   DebugData.outlineQuadProg = CreateShaderProgram(vs, fs);
 
