@@ -983,7 +983,7 @@ public:
   void Compat_glViewportArrayv(VendorType vendor, GLuint index, GLsizei count, const GLfloat *v);
   void Compat_glScissorArrayv(VendorType vendor, GLuint first, GLsizei count, const GLint *v);
   void Compat_glFramebufferTexture2DMultisample(VendorType vendor, GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level, GLsizei samples);
-
+  void Compat_glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type, const void *indices, GLint basevertex);
 };
 
 class ScopedDebugContext

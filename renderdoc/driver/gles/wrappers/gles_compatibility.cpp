@@ -199,3 +199,14 @@ void WrappedGLES::Compat_glFramebufferTexture2DMultisample(VendorType vendor, GL
     RDCERR("Unsupported function: glFramebufferTexture2DMultisample (%s)", ToStr::Get(vendor).c_str());
 }
 
+void WrappedGLES::Compat_glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum type,
+                                                  const void *indices, GLint basevertex)
+{
+  if (m_Real.glDrawElementsBaseVertex != NULL)
+    m_Real.glDrawElementsBaseVertex(mode, count, type, indices, basevertex);
+  else if (m_Real.glDrawElementsBaseVertex == NULL && basevertex == 0 && m_Real.glDrawElements != NULL)
+    m_Real.glDrawElements(mode, count, type, indices);
+  else
+    RDCERR("glDrawElementsBaseVertex is not supported! No draw will be called!");
+}
+

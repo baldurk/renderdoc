@@ -995,7 +995,7 @@ bool WrappedGLES::Serialise_glDrawElementsBaseVertex(GLenum mode, GLsizei count,
   if(m_State <= EXECUTING)
   {
     if(Check_preElements())
-      m_Real.glDrawElementsBaseVertex(Mode, Count, Type, (const void *)IdxOffset, BaseVtx);
+      Compat_glDrawElementsBaseVertex(Mode, Count, Type, (const void *)IdxOffset, BaseVtx);
 
     Common_postElements(idxDelete);
   }
@@ -1037,7 +1037,7 @@ void WrappedGLES::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum ty
 {
   CoherentMapImplicitBarrier();
 
-  m_Real.glDrawElementsBaseVertex(mode, count, type, indices, basevertex);
+  Compat_glDrawElementsBaseVertex(mode, count, type, indices, basevertex);
 
   if(m_State == WRITING_CAPFRAME)
   {
@@ -1762,7 +1762,7 @@ void WrappedGLES::glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode, 
 //
 //      uint32_t drawidx = (m_LastEventID - baseEventID);
 //
-//      m_Real.glDrawElementsBaseVertex(Mode, countArray[drawidx], Type, idxOffsArray[drawidx],
+//      Compat_glDrawElementsBaseVertex(Mode, countArray[drawidx], Type, idxOffsArray[drawidx],
 //                                      baseArray[drawidx]);
 //    }
 //  }
