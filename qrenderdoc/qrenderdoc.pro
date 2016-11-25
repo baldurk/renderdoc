@@ -120,7 +120,8 @@ SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     Widgets/Extended/RDTreeWidget.cpp \
     Windows/ConstantBufferPreviewer.cpp \
     Widgets/BufferFormatSpecifier.cpp \
-    Code/FormatElement.cpp
+    Code/FormatElement.cpp \
+    Windows/BufferViewer.cpp
 
 HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
@@ -157,7 +158,8 @@ HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     Windows/PipelineState/GLPipelineStateViewer.h \
     Widgets/Extended/RDTreeWidget.h \
     Windows/ConstantBufferPreviewer.h \
-    Widgets/BufferFormatSpecifier.h
+    Widgets/BufferFormatSpecifier.h \
+    Windows/BufferViewer.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
@@ -175,7 +177,8 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/PipelineState/D3D12PipelineStateViewer.ui \
     Windows/PipelineState/GLPipelineStateViewer.ui \
     Windows/ConstantBufferPreviewer.ui \
-    Widgets/BufferFormatSpecifier.ui
+    Widgets/BufferFormatSpecifier.ui \
+    Windows/BufferViewer.ui
 
 RESOURCES += \
     resources.qrc

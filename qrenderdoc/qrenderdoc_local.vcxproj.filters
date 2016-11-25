@@ -253,6 +253,12 @@
     <ClCompile Include="Code\FormatElement.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="generated\moc_BufferViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\BufferViewer.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -404,6 +410,12 @@
     </ClInclude>
     <ClInclude Include="generated\ui_BufferFormatSpecifier.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_BufferViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\BufferViewer.h">
+      <Filter>Windows</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -634,6 +646,9 @@
     </None>
     <None Include="Widgets\BufferFormatSpecifier.ui">
       <Filter>Widgets</Filter>
+    </None>
+    <None Include="Windows\BufferViewer.ui">
+      <Filter>Windows</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>

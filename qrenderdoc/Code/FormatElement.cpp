@@ -445,7 +445,7 @@ inline T readObj(const byte *&data, const byte *end, bool &ok)
   return ret;
 }
 
-QVariantList FormatElement::GetVariants(const byte *&data, const byte *end)
+QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) const
 {
   QVariantList ret;
 
@@ -708,7 +708,7 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end)
   return ret;
 }
 
-ShaderVariable FormatElement::GetShaderVar(const byte *&data, const byte *end)
+ShaderVariable FormatElement::GetShaderVar(const byte *&data, const byte *end) const
 {
   QVariantList objs = GetVariants(data, end);
 

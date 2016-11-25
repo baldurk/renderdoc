@@ -49,6 +49,7 @@ class MainWindow;
 class EventBrowser;
 class APIInspector;
 class PipelineStateViewer;
+class BufferViewer;
 class TextureViewer;
 class CaptureDialog;
 class QProgressDialog;
@@ -121,6 +122,7 @@ public:
   EventBrowser *eventBrowser();
   APIInspector *apiInspector();
   TextureViewer *textureViewer();
+  BufferViewer *meshPreview();
   PipelineStateViewer *pipelineViewer();
   CaptureDialog *captureDialog();
 
@@ -128,10 +130,12 @@ public:
   bool hasAPIInspector() { return m_APIInspector != NULL; }
   bool hasTextureViewer() { return m_TextureViewer != NULL; }
   bool hasPipelineViewer() { return m_PipelineViewer != NULL; }
+  bool hasMeshPreview() { return m_MeshPreview != NULL; }
   bool hasCaptureDialog() { return m_CaptureDialog != NULL; }
   void showEventBrowser();
   void showAPIInspector();
   void showTextureViewer();
+  void showMeshPreview();
   void showPipelineViewer();
   void showCaptureDialog();
 
@@ -202,6 +206,7 @@ private:
   EventBrowser *m_EventBrowser = NULL;
   APIInspector *m_APIInspector = NULL;
   TextureViewer *m_TextureViewer = NULL;
+  BufferViewer *m_MeshPreview = NULL;
   PipelineStateViewer *m_PipelineViewer = NULL;
   CaptureDialog *m_CaptureDialog = NULL;
 };

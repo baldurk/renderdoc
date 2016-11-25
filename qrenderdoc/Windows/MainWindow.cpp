@@ -36,6 +36,7 @@
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
 #include "APIInspector.h"
+#include "BufferViewer.h"
 #include "ConstantBufferPreviewer.h"
 #include "EventBrowser.h"
 #include "TextureViewer.h"
@@ -153,6 +154,12 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
 
     ui->toolWindowManager->addToolWindow(
         pipe, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                               ui->toolWindowManager->areaOf(textureViewer)));
+
+    BufferViewer *mesh = m_Ctx->meshPreview();
+
+    ui->toolWindowManager->addToolWindow(
+        mesh, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
                                                ui->toolWindowManager->areaOf(textureViewer)));
 
     CaptureDialog *capDialog = m_Ctx->captureDialog();
@@ -708,6 +715,10 @@ ToolWindowManager::AreaReference MainWindow::mainToolArea()
           ui->toolWindowManager->toolWindows().contains(m_Ctx->pipelineViewer()))
     return ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
                                             ui->toolWindowManager->areaOf(m_Ctx->pipelineViewer()));
+  else if(m_Ctx->hasMeshPreview() &&
+          ui->toolWindowManager->toolWindows().contains(m_Ctx->meshPreview()))
+    return ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                            ui->toolWindowManager->areaOf(m_Ctx->meshPreview()));
   else if(m_Ctx->hasCaptureDialog() &&
           ui->toolWindowManager->toolWindows().contains(m_Ctx->captureDialog()))
     return ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
@@ -942,7 +953,12 @@ void MainWindow::on_action_About_triggered()
 
 void MainWindow::on_action_Mesh_Output_triggered()
 {
-  // TODO Mesh view
+  BufferViewer *meshPreview = m_Ctx->meshPreview();
+
+  if(ui->toolWindowManager->toolWindows().contains(meshPreview))
+    ToolWindowManager::raiseToolWindow(meshPreview);
+  else
+    ui->toolWindowManager->addToolWindow(meshPreview, mainToolArea());
 }
 
 void MainWindow::on_action_API_Inspector_triggered()

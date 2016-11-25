@@ -26,6 +26,7 @@
 #include <float.h>
 #include <QScrollBar>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
+#include "Windows/BufferViewer.h"
 #include "Windows/ConstantBufferPreviewer.h"
 #include "Windows/MainWindow.h"
 #include "Windows/TextureViewer.h"
@@ -2153,10 +2154,7 @@ void VulkanPipelineStateViewer::ubo_itemActivated(QTreeWidgetItem *item, int col
 
 void VulkanPipelineStateViewer::on_viAttrs_itemActivated(QTreeWidgetItem *item, int column)
 {
-  // TODO Buffer Viewer
-  // if(!m_Ctx->hasMeshOutput())
-  // m_Ctx->showMeshOutput();
-  // ToolWindowManager::raiseToolWindow(m_Ctx->meshOutput());
+  on_meshView_clicked();
 }
 
 void VulkanPipelineStateViewer::on_viBuffers_itemActivated(QTreeWidgetItem *item, int column)
@@ -2333,4 +2331,7 @@ void VulkanPipelineStateViewer::on_exportHTML_clicked()
 
 void VulkanPipelineStateViewer::on_meshView_clicked()
 {
+  if(!m_Ctx->hasMeshPreview())
+    m_Ctx->showMeshPreview();
+  ToolWindowManager::raiseToolWindow(m_Ctx->meshPreview());
 }

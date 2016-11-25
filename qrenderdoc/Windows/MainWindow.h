@@ -73,7 +73,7 @@ public:
 
   void showEventBrowser() { on_action_Event_Browser_triggered(); }
   void showAPIInspector() { on_action_API_Inspector_triggered(); }
-  void showMeshOutput() { on_action_Mesh_Output_triggered(); }
+  void showMeshPreview() { on_action_Mesh_Output_triggered(); }
   void showTextureViewer() { on_action_Texture_Viewer_triggered(); }
   void showPipelineViewer() { on_action_Pipeline_State_triggered(); }
   void showCaptureDialog() { on_action_Capture_Log_triggered(); }

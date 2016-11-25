@@ -34,6 +34,7 @@
 #include <QStandardPaths>
 #include <QTimer>
 #include "Windows/APIInspector.h"
+#include "Windows/BufferViewer.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/EventBrowser.h"
@@ -455,6 +456,18 @@ TextureViewer *CaptureContext::textureViewer()
   return m_TextureViewer;
 }
 
+BufferViewer *CaptureContext::meshPreview()
+{
+  if(m_MeshPreview)
+    return m_MeshPreview;
+
+  m_MeshPreview = new BufferViewer(this, m_MainWindow);
+  m_MeshPreview->setObjectName("meshPreview");
+  m_MeshPreview->setWindowIcon(*m_Icon);
+
+  return m_MeshPreview;
+}
+
 PipelineStateViewer *CaptureContext::pipelineViewer()
 {
   if(m_PipelineViewer)
@@ -502,6 +515,11 @@ void CaptureContext::showTextureViewer()
   m_MainWindow->showTextureViewer();
 }
 
+void CaptureContext::showMeshPreview()
+{
+  m_MainWindow->showMeshPreview();
+}
+
 void CaptureContext::showPipelineViewer()
 {
   m_MainWindow->showPipelineViewer();
@@ -525,6 +543,10 @@ QWidget *CaptureContext::createToolWindow(const QString &objectName)
   else if(objectName == "pipelineViewer")
   {
     return pipelineViewer();
+  }
+  else if(objectName == "meshPreview")
+  {
+    return meshPreview();
   }
   else if(objectName == "apiInspector")
   {
@@ -550,6 +572,8 @@ void CaptureContext::windowClosed(QWidget *window)
     m_APIInspector = NULL;
   else if((QWidget *)m_PipelineViewer == window)
     m_PipelineViewer = NULL;
+  else if((QWidget *)m_MeshPreview == window)
+    m_MeshPreview = NULL;
   else
     qCritical() << "Unrecognised window being closed: " << window;
 }
