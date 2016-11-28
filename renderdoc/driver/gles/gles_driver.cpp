@@ -717,8 +717,6 @@ WrappedGLES::~WrappedGLES()
 {
   if(m_FakeIdxBuf)
     m_Real.glDeleteBuffers(1, &m_FakeIdxBuf);
-  if(m_DefaultVAO)
-    m_Real.glDeleteVertexArrays(1, &m_DefaultVAO);
   if(m_FakeBB_FBO)
     m_Real.glDeleteFramebuffers(1, &m_FakeBB_FBO);
   if(m_FakeBB_Color)
