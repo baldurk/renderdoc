@@ -42,8 +42,8 @@ set(sources
 
 if((ANDROID) OR (UNIX))
     list(APPEND sources
-        gles_replay_posix.cpp
         gles_hooks_posix.cpp
+        gles_replay_posix.cpp
         gles_hooks_posix_wrapper.cpp
         gles_hooks_posix_egl.cpp
     )

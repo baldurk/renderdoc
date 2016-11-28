@@ -36,9 +36,10 @@
 #include "gles_driver.h"
 #include "gles_resources.h"
 #include "official/egl_func_typedefs.h"
+#include "gles_hooks_posix.h"
 
 #define REAL(NAME) NAME ##_real
-#define DEF_FUNC(NAME) static PFN_##NAME REAL(NAME) = (PFN_##NAME)dlsym(RTLD_NEXT, #NAME)
+#define DEF_FUNC(NAME) static PFN_##NAME REAL(NAME) = (PFN_##NAME)dlsym(OpenGLHook::GetInstance().GetDLHandle(), #NAME)
 
 DEF_FUNC(eglSwapBuffers);
 DEF_FUNC(eglBindAPI);

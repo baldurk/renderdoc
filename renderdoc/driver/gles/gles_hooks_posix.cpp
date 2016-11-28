@@ -47,6 +47,7 @@ OpenGLHook& OpenGLHook::GetInstance() {
 OpenGLHook::OpenGLHook()
 {
   LibraryHooks::GetInstance().RegisterHook("libEGL.so", this);
+  m_libGLdlsymHandle = dlopen("libEGL.so", RTLD_NOW);
 
   RDCEraseEl(GL);
 
@@ -79,7 +80,6 @@ bool OpenGLHook::CreateHooks(const char *libName)
     return false;
 
 #ifdef ANDROID
-  m_libGLdlsymHandle = dlopen("libEGL.so", RTLD_NOW);
   PopulateHooks();
 #else
   if(libName)
