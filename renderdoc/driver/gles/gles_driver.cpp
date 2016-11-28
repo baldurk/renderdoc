@@ -1956,14 +1956,10 @@ void WrappedGLES::StartFrameCapture(void *dev, void *surface)
 
   GetResourceManager()->MarkResourceFrameReferenced(m_DeviceResourceID, eFrameRef_Write);
 
-  GLuint prevVAO = 0;
-  m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
-
-  m_Real.glBindVertexArray(m_DefaultVAO);
-
-  GetResourceManager()->MarkVAOReferenced(VertexArrayRes(GetCtx(), m_DefaultVAO), eFrameRef_Write, true);
-
-  m_Real.glBindVertexArray(prevVAO);
+  {
+    SafeVAOBinder SafeVAOBinder(m_Real, m_DefaultVAO);
+    GetResourceManager()->MarkVAOReferenced(VertexArrayRes(GetCtx(), m_DefaultVAO), eFrameRef_Write, true);
+  }
 
   GetResourceManager()->PrepareInitialContents();
 
