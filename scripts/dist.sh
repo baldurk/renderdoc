@@ -107,10 +107,10 @@ VERSION=`grep -E "#define RENDERDOC_VERSION_(MAJOR|MINOR)" renderdoc/api/replay/
 
 export RENDERDOC_VERSION="${VERSION}.0"
 
-"$WIX/bin/candle.exe" -o dist/Installer32.wixobj installer/Installer32.wxs
-"$WIX/bin/light.exe" -ext WixUIExtension -sw1076 -loc installer/customtext.wxl -o dist/Installer32.msi dist/Installer32.wixobj
+"$WIX/bin/candle.exe" -o dist/Installer32.wixobj scripts/installer/Installer32.wxs
+"$WIX/bin/light.exe" -ext WixUIExtension -sw1076 -loc scripts/installer/customtext.wxl -o dist/Installer32.msi dist/Installer32.wixobj
 
-"$WIX/bin/candle.exe" -o dist/Installer64.wixobj installer/Installer64.wxs
-"$WIX/bin/light.exe" -ext WixUIExtension -sw1076 -loc installer/customtext.wxl -o dist/Installer64.msi dist/Installer64.wixobj
+"$WIX/bin/candle.exe" -o dist/Installer64.wixobj scripts/installer/Installer64.wxs
+"$WIX/bin/light.exe" -ext WixUIExtension -sw1076 -loc scripts/installer/customtext.wxl -o dist/Installer64.msi dist/Installer64.wixobj
 
 rm dist/*.wixobj dist/*.wixpdb
