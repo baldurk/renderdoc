@@ -28,6 +28,15 @@
 #include <QMouseEvent>
 #include <QDebug>
 
+static void showCloseButton(QTabBar *bar, int index, bool show) {
+  QWidget *button = bar->tabButton(index, QTabBar::RightSide);
+  if(button == NULL)
+    button = bar->tabButton(index, QTabBar::LeftSide);
+
+  if(button)
+    button->resize(show ? QSize(16, 16) : QSize(0, 0));
+}
+
 ToolWindowManagerArea::ToolWindowManagerArea(ToolWindowManager *manager, QWidget *parent) :
   QTabWidget(parent)
 , m_manager(manager)
@@ -58,7 +67,7 @@ void ToolWindowManagerArea::addToolWindows(const QList<QWidget *> &toolWindows) 
   foreach(QWidget* toolWindow, toolWindows) {
     index = addTab(toolWindow, toolWindow->windowIcon(), toolWindow->windowTitle());
     if(m_manager->toolWindowProperties(toolWindow) & ToolWindowManager::HideCloseButton) {
-      tabBar()->tabButton(index, QTabBar::RightSide)->resize(0, 0);
+      showCloseButton(tabBar(), index, false);
     }
   }
   setCurrentIndex(index);
@@ -77,9 +86,9 @@ void ToolWindowManagerArea::updateToolWindow(QWidget* toolWindow) {
   int index = indexOf(toolWindow);
   if(index >= 0) {
     if(m_manager->toolWindowProperties(toolWindow) & ToolWindowManager::HideCloseButton) {
-      tabBar()->tabButton(index, QTabBar::RightSide)->resize(0, 0);
+      showCloseButton(tabBar(), index, false);
     } else {
-      tabBar()->tabButton(index, QTabBar::RightSide)->resize(16, 16);
+      showCloseButton(tabBar(), index, true);
     }
     tabBar()->setTabText(index, toolWindow->windowTitle());
   }
