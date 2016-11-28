@@ -1984,7 +1984,7 @@ bool WrappedGLES::Serialise_glVertexAttribBinding(GLuint attribindex, GLuint bin
 
   if(m_State < WRITING)
   {
-    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
+    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
     m_Real.glVertexAttribBinding(aidx, bidx);
   }
   return true;
@@ -2031,7 +2031,7 @@ bool WrappedGLES::Serialise_glVertexAttribFormat(GLuint attribindex, GLint size,
 
   if(m_State < WRITING)
   {
-    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
+    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
     m_Real.glVertexAttribFormat(Index, Size, Type, Norm, Offset);
   }
 
@@ -2080,7 +2080,7 @@ bool WrappedGLES::Serialise_glVertexAttribIFormat(GLuint attribindex, GLint size
 
   if(m_State < WRITING)
   {
-    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
+    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
     m_Real.glVertexAttribIFormat(Index, Size, Type, Offset);
   }
 
@@ -2125,7 +2125,7 @@ bool WrappedGLES::Serialise_glVertexAttribDivisor(GLuint index, GLuint divisor)
 
   if(m_State < WRITING)
   {
-    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
+    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
     m_Real.glVertexAttribDivisor(Index, Divisor);
   }
 
@@ -2168,7 +2168,7 @@ bool WrappedGLES::Serialise_glEnableVertexAttribArray(GLuint index)
 
     if(m_State < WRITING)
     {
-      SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
+      SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
       m_Real.glEnableVertexAttribArray(Index);
     }
     return true;
@@ -2210,7 +2210,7 @@ bool WrappedGLES::Serialise_glDisableVertexAttribArray(GLuint index)
 
     if(m_State < WRITING)
     {
-      SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
+      SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
       m_Real.glDisableVertexAttribArray(Index);
     }
     return true;
@@ -2303,7 +2303,7 @@ bool WrappedGLES::Serialise_glBindVertexArray(GLuint array)
   {
     if(id == ResourceId())
     {
-      m_Real.glBindVertexArray(m_FakeVAO);
+      m_Real.glBindVertexArray(m_DefaultVAO);
     }
     else
     {
@@ -2325,7 +2325,7 @@ void WrappedGLES::glBindVertexArray(GLuint array)
   {
     if(array == 0)
     {
-      GetCtxData().m_VertexArrayRecord = record = GetResourceManager()->GetResourceRecord(m_FakeVAOID);
+      GetCtxData().m_VertexArrayRecord = record = GetResourceManager()->GetResourceRecord(m_DefaultVAOID);
     }
     else
     {
@@ -2410,7 +2410,7 @@ bool WrappedGLES::Serialise_glVertexBindingDivisor(GLuint bindingindex, GLuint d
 
   if(m_State <= EXECUTING)
   {
-    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO);
+    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
     m_Real.glVertexBindingDivisor(idx, d);
   }
 

@@ -505,11 +505,11 @@ private:
   GLuint m_FakeBB_FBO;
   GLuint m_FakeBB_Color;
   GLuint m_FakeBB_DepthStencil;
-  GLuint m_FakeVAO;
+  GLuint m_DefaultVAO;
   GLuint m_FakeIdxBuf;
   GLsizeiptr m_FakeIdxSize;
 
-  ResourceId m_FakeVAOID;
+  ResourceId m_DefaultVAOID;
 
   Serialiser *GetSerialiser() { return m_pSerialiser; }
   uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
@@ -702,7 +702,7 @@ public:
   void ReadLogInitialisation();
 
   GLuint GetFakeBBFBO() { return m_FakeBB_FBO; }
-  GLuint GetFakeVAO() { return m_FakeVAO; }
+  GLuint GetFakeVAO() { return m_DefaultVAO; }
   FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
   FetchAPIEvent GetEvent(uint32_t eventID);
 

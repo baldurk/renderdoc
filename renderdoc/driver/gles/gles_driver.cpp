@@ -524,9 +524,9 @@ WrappedGLES::WrappedGLES(const char *logfile, const GLHookSet &funcs) : m_Real(i
 
     // register VAO 0 as a special VAO, so that it can be tracked if the app uses it
     // we immediately mark it dirty since the vertex array tracking functions expect a proper VAO
-    m_FakeVAOID = GetResourceManager()->RegisterResource(VertexArrayRes(NULL, 0));
-    GetResourceManager()->AddResourceRecord(m_FakeVAOID);
-    GetResourceManager()->MarkDirtyResource(m_FakeVAOID);
+    m_DefaultVAOID = GetResourceManager()->RegisterResource(VertexArrayRes(NULL, 0));
+    GetResourceManager()->AddResourceRecord(m_DefaultVAOID);
+    GetResourceManager()->MarkDirtyResource(m_DefaultVAOID);
   }
   else
   {
@@ -538,7 +538,7 @@ WrappedGLES::WrappedGLES(const char *logfile, const GLHookSet &funcs) : m_Real(i
   m_FakeBB_FBO = 0;
   m_FakeBB_Color = 0;
   m_FakeBB_DepthStencil = 0;
-  m_FakeVAO = 0;
+  m_DefaultVAO = 0;
   m_FakeIdxBuf = 0;
   m_FakeIdxSize = 0;
 
@@ -567,7 +567,7 @@ void WrappedGLES::Initialise(GLESInitParams &params)
   // as a concession to compatibility, generate a 'fake' VBO to act as VBO 0.
   // consider making it an error/warning for programs to use this?
   // TODO PEPE The FakeVAO must be completely removed since there are cases when the VAO 0 can not be substituted with any other (non 0) VAO.
-  m_FakeVAO = 0;
+  m_DefaultVAO = 0;
   gl.glBindVertexArray(0);
 
   // we use this to draw from index data that was 'immediate' passed to the
@@ -717,8 +717,8 @@ WrappedGLES::~WrappedGLES()
 {
   if(m_FakeIdxBuf)
     m_Real.glDeleteBuffers(1, &m_FakeIdxBuf);
-  if(m_FakeVAO)
-    m_Real.glDeleteVertexArrays(1, &m_FakeVAO);
+  if(m_DefaultVAO)
+    m_Real.glDeleteVertexArrays(1, &m_DefaultVAO);
   if(m_FakeBB_FBO)
     m_Real.glDeleteFramebuffers(1, &m_FakeBB_FBO);
   if(m_FakeBB_Color)
@@ -991,7 +991,7 @@ void WrappedGLES::CreateContext(GLESWindowingData winData, void *shareContext,
   ctxdata.ctx = winData.ctx;
   ctxdata.isCore = core;
   ctxdata.attribsCreate = attribsCreate;
-  ctxdata.m_VertexArrayRecord = GetResourceManager()->GetResourceRecord(m_FakeVAOID);
+  ctxdata.m_VertexArrayRecord = GetResourceManager()->GetResourceRecord(m_DefaultVAOID);
 
   RenderDoc::Inst().AddDeviceFrameCapturer(ctxdata.ctx, this);
 }
@@ -1959,9 +1959,9 @@ void WrappedGLES::StartFrameCapture(void *dev, void *surface)
   GLuint prevVAO = 0;
   m_Real.glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&prevVAO);
 
-  m_Real.glBindVertexArray(m_FakeVAO);
+  m_Real.glBindVertexArray(m_DefaultVAO);
 
-  GetResourceManager()->MarkVAOReferenced(VertexArrayRes(GetCtx(), m_FakeVAO), eFrameRef_Write, true);
+  GetResourceManager()->MarkVAOReferenced(VertexArrayRes(GetCtx(), m_DefaultVAO), eFrameRef_Write, true);
 
   m_Real.glBindVertexArray(prevVAO);
 
@@ -2037,7 +2037,7 @@ bool WrappedGLES::EndFrameCapture(void *dev, void *surface)
       SCOPED_SERIALISE_CONTEXT(DEVICE_INIT);
 
       SERIALISE_ELEMENT(ResourceId, immContextId, m_ContextResourceID);
-      SERIALISE_ELEMENT(ResourceId, vaoId, m_FakeVAOID);
+      SERIALISE_ELEMENT(ResourceId, vaoId, m_DefaultVAOID);
 
       m_pFileSerialiser->Insert(scope.Get(true));
     }
