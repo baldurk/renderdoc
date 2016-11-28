@@ -22,69 +22,23 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include <dlfcn.h>
-#include <stdio.h>
+#include "vk_core.h"
+#include "vk_replay.h"
 
-#include "hooks/hooks.h"
-
-#include "driver/gl/gl_common.h"
-#include "driver/gl/gl_driver.h"
-#include "driver/gl/gl_hookset.h"
-
-#include "driver/gl/gl_hookset_defs.h"
-
-Threading::CriticalSection glLock;
-
-class OpenGLHook : LibraryHook
+void VulkanReplay::OutputWindow::SetWindowHandle(WindowingSystem system, void *data)
 {
-public:
-  OpenGLHook() {}
-  ~OpenGLHook() {}
-  bool CreateHooks(const char *libName) { return false; }
-  void EnableHooks(const char *libName, bool enable) {}
-  void OptionsUpdated(const char *libName) {}
-};
-
-const GLHookSet &GetRealGLFunctions()
-{
-  static GLHookSet dummyHookset = {};
-  RDCUNIMPLEMENTED("GetRealGLFunctions");
-  return dummyHookset;
+  RDCUNIMPLEMENTED("SetWindowHandle");
+  m_WindowSystem = system;
 }
 
-void MakeContextCurrent(GLWindowingData data)
+void VulkanReplay::OutputWindow::CreateSurface(VkInstance inst)
 {
-  RDCUNIMPLEMENTED("MakeContextCurrent");
+  RDCUNIMPLEMENTED("CreateSurface");
 }
 
-GLWindowingData MakeContext(GLWindowingData share)
+void VulkanReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
 {
-  RDCUNIMPLEMENTED("MakeContext");
-  return GLWindowingData();
+  RDCUNIMPLEMENTED("GetOutputWindowDimensions");
 }
 
-Threading::CriticalSection &GetGLLock()
-{
-  return glLock;
-}
-
-void DeleteContext(GLWindowingData context)
-{
-  RDCUNIMPLEMENTED("DeleteContext");
-}
-
-bool immediateBegin(GLenum mode, float width, float height)
-{
-  RDCUNIMPLEMENTED("immediateBegin");
-  return false;
-}
-
-void immediateVert(float x, float y, float u, float v)
-{
-  RDCUNIMPLEMENTED("immediateVert");
-}
-
-void immediateEnd()
-{
-  RDCUNIMPLEMENTED("immediateEnd");
-}
+const char *VulkanLibraryName = "libvulkan.so";

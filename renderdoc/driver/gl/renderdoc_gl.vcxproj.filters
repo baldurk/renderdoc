@@ -31,6 +31,12 @@
     <Filter Include="Replay">
       <UniqueIdentifier>{1122b6ee-006e-418b-9907-8f9d0a8b1f25}</UniqueIdentifier>
     </Filter>
+    <Filter Include="OS\Apple">
+      <UniqueIdentifier>{28fbc354-c414-4647-9ce6-0fcea2cbe845}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Android">
+      <UniqueIdentifier>{61304e3c-ff5e-4cb6-8c25-455f37d86b48}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="official\glcorearb.h">
@@ -154,6 +160,18 @@
     </ClCompile>
     <ClCompile Include="glx_hooks_linux.cpp">
       <Filter>OS\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_hooks_apple.cpp">
+      <Filter>OS\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_replay_apple.cpp">
+      <Filter>OS\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_hooks_android.cpp">
+      <Filter>OS\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_replay_android.cpp">
+      <Filter>OS\Android</Filter>
     </ClCompile>
   </ItemGroup>
 </Project>

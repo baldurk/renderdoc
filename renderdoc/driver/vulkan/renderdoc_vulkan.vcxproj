@@ -19,6 +19,9 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="vk_apple.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="vk_counters.cpp" />
     <ClCompile Include="vk_dispatchtables.cpp" />
     <ClCompile Include="vk_initstate.cpp" />

@@ -49,6 +49,8 @@ set(VULKAN_LAYER_FOLDER /etc/vulkan/implicit_layer.d CACHE PATH "Path to install
 if(ANDROID)
     list(APPEND sources vk_posix.cpp vk_android.cpp vk_tracelayer_android.cpp)
     list(APPEND definitions PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)
+elseif(APPLE)
+    list(APPEND sources vk_posix.cpp vk_apple.cpp)
 elseif(UNIX)
     list(APPEND sources vk_posix.cpp vk_linux.cpp)
 

@@ -413,6 +413,10 @@ void *CaptureContext::FillWindowingData(WId widget)
     return &xlib;
   }
 
+#elif defined(RENDERDOC_PLATFORM_APPLE)
+
+  return (void *)widget;
+
 #else
 
 #error "Unknown platform"

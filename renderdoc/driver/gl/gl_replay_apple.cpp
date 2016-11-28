@@ -41,7 +41,7 @@ void GLReplay::CloseReplayContext()
   RDCUNIMPLEMENTED("GLReplay::CloseReplayContext");
 }
 
-uint64_t GLReplay::MakeOutputWindow(void *wn, bool depth)
+uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
 {
   RDCUNIMPLEMENTED("GLReplay::MakeOutputWindow");
   return 0;

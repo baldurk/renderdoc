@@ -87,6 +87,11 @@
   RDCEraseEl(xlib);        \
   RDCEraseEl(xcb);
 
+#elif ENABLED(RDOC_APPLE)
+
+#define WINDOW_HANDLE_DECL void *wnd;
+#define WINDOW_HANDLE_INIT wnd = NULL;
+
 #else
 
 #error "Unknown platform"

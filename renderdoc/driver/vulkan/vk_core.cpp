@@ -834,7 +834,7 @@ void WrappedVulkan::EndCaptureFrame(VkImage presentImage)
 
     RDCASSERT(call->NumLevels() < 0xff);
 
-    size_t numLevels = call->NumLevels();
+    uint64_t numLevels = (uint64_t)call->NumLevels();
     uint64_t *stack = (uint64_t *)call->GetAddrs();
 
     localSerialiser->SerialisePODArray("callstack", stack, numLevels);
@@ -2070,7 +2070,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 
       if(HasCallstack)
       {
-        size_t numLevels = 0;
+        uint64_t numLevels = 0;
         uint64_t *stack = NULL;
 
         localSerialiser->SerialisePODArray("callstack", stack, numLevels);
@@ -2277,7 +2277,7 @@ void WrappedVulkan::Serialise_DebugMessages(Serialiser *localSerialiser, bool is
 
       RDCASSERT(call->NumLevels() < 0xff);
 
-      size_t numLevels = call->NumLevels();
+      uint64_t numLevels = (uint64_t)call->NumLevels();
       uint64_t *stack = (uint64_t *)call->GetAddrs();
 
       localSerialiser->SerialisePODArray("callstack", stack, numLevels);
@@ -2286,7 +2286,7 @@ void WrappedVulkan::Serialise_DebugMessages(Serialiser *localSerialiser, bool is
     }
     else
     {
-      size_t numLevels = 0;
+      uint64_t numLevels = 0;
       uint64_t *stack = NULL;
 
       localSerialiser->SerialisePODArray("callstack", stack, numLevels);

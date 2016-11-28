@@ -41,6 +41,12 @@
     <ClCompile Include="gl_counters.cpp" />
     <ClCompile Include="gl_debug.cpp" />
     <ClCompile Include="gl_driver.cpp" />
+    <ClCompile Include="gl_hooks_android.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="gl_hooks_apple.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="gl_hooks_linux.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
@@ -48,6 +54,12 @@
     <ClCompile Include="gl_manager.cpp" />
     <ClCompile Include="gl_renderstate.cpp" />
     <ClCompile Include="gl_replay.cpp" />
+    <ClCompile Include="gl_replay_android.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="gl_replay_apple.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
     <ClCompile Include="gl_replay_linux.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>

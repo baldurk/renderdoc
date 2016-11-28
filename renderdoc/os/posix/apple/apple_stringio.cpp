@@ -23,7 +23,11 @@
  ******************************************************************************/
 
 #include <mach-o/dyld.h>
+#include <pwd.h>
+#include <sys/stat.h>
+#include <sys/types.h>
 #include <unistd.h>
+#include <uuid/uuid.h>
 #include "os/os_specific.h"
 
 typedef int Display;
@@ -58,6 +62,18 @@ namespace FileIO
 const char *GetTempRootPath()
 {
   return "/tmp";
+}
+
+string GetAppFolderFilename(const string &filename)
+{
+  passwd *pw = getpwuid(getuid());
+  const char *homedir = pw->pw_dir;
+
+  string ret = string(homedir) + "/.renderdoc/";
+
+  mkdir(ret.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+
+  return ret + filename;
 }
 
 void GetExecutableFilename(string &selfName)
@@ -102,5 +118,35 @@ string Wide2UTF8(const std::wstring &s)
 {
   RDCFATAL("Converting wide strings to UTF-8 is not supported on Apple!");
   return "";
+}
+};
+
+namespace OSUtility
+{
+void WriteOutput(int channel, const char *str)
+{
+  if(channel == OSUtility::Output_StdOut)
+    fprintf(stdout, "%s", str);
+  else if(channel == OSUtility::Output_StdErr)
+    fprintf(stderr, "%s", str);
+}
+
+uint64_t GetMachineIdent()
+{
+  uint64_t ret = MachineIdent_macOS;
+
+#if defined(_M_ARM) || defined(__arm__)
+  ret |= MachineIdent_Arch_ARM;
+#else
+  ret |= MachineIdent_Arch_x86;
+#endif
+
+#if ENABLED(RDOC_X64)
+  ret |= MachineIdent_64bit;
+#else
+  ret |= MachineIdent_32bit;
+#endif
+
+  return ret;
 }
 };
