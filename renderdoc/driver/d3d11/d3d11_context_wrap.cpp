@@ -6032,45 +6032,50 @@ void WrappedID3D11DeviceContext::ResolveSubresource(ID3D11Resource *pDstResource
         m_pDevice->GetResourceManager()->GetResourceRecord(GetIDForResource(pSrcResource));
     RDCASSERT(srcRecord);
 
-    record->AddParent(srcRecord);
-
-    if(m_pDevice->GetResourceManager()->IsResourceDirty(GetIDForResource(pSrcResource)))
-      MarkDirtyResource(GetIDForResource(pDstResource));
-
-    SCOPED_SERIALISE_CONTEXT(RESOLVE_SUBRESOURCE);
-    m_pSerialiser->Serialise("context", m_ResourceID);
-    Serialise_ResolveSubresource(pDstResource, DstSubresource, pSrcResource, SrcSubresource, Format);
-
     // resolve subresource only really 'clears' if it's the only subresource.
     // This is usually the case for render target textures though.
-    if(record->NumSubResources == 1)
+    if(m_pDevice->GetResourceManager()->IsResourceDirty(GetIDForResource(pSrcResource)) ||
+       record->NumSubResources > 1)
     {
-      m_pDevice->LockForChunkRemoval();
-
-      record->LockChunks();
-      for(;;)
-      {
-        Chunk *end = record->GetLastChunk();
-
-        if(end->GetChunkType() == CLEAR_RTV || end->GetChunkType() == CLEAR_DSV ||
-           end->GetChunkType() == CLEAR_UAV_FLOAT || end->GetChunkType() == CLEAR_UAV_INT ||
-           end->GetChunkType() == RESOLVE_SUBRESOURCE || end->GetChunkType() == COPY_RESOURCE)
-        {
-          SAFE_DELETE(end);
-
-          record->PopChunk();
-
-          continue;
-        }
-
-        break;
-      }
-      record->UnlockChunks();
-
-      m_pDevice->UnlockForChunkRemoval();
+      MarkDirtyResource(GetIDForResource(pDstResource));
     }
+    else
+    {
+      record->AddParent(srcRecord);
 
-    record->AddChunk(scope.Get());
+      SCOPED_SERIALISE_CONTEXT(RESOLVE_SUBRESOURCE);
+      m_pSerialiser->Serialise("context", m_ResourceID);
+      Serialise_ResolveSubresource(pDstResource, DstSubresource, pSrcResource, SrcSubresource,
+                                   Format);
+
+      {
+        m_pDevice->LockForChunkRemoval();
+
+        record->LockChunks();
+        for(;;)
+        {
+          Chunk *end = record->GetLastChunk();
+
+          if(end->GetChunkType() == CLEAR_RTV || end->GetChunkType() == CLEAR_DSV ||
+             end->GetChunkType() == CLEAR_UAV_FLOAT || end->GetChunkType() == CLEAR_UAV_INT ||
+             end->GetChunkType() == RESOLVE_SUBRESOURCE || end->GetChunkType() == COPY_RESOURCE)
+          {
+            SAFE_DELETE(end);
+
+            record->PopChunk();
+
+            continue;
+          }
+
+          break;
+        }
+        record->UnlockChunks();
+
+        m_pDevice->UnlockForChunkRemoval();
+      }
+
+      record->AddChunk(scope.Get());
+    }
   }
 
   m_pRealContext->ResolveSubresource(
