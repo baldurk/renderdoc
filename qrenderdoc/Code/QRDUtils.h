@@ -31,6 +31,12 @@
 #include <QSortFilterProxyModel>
 #include "renderdoc_replay.h"
 
+template <typename T>
+inline T AlignUp(T x, T a)
+{
+  return (x + (a - 1)) & (~(a - 1));
+}
+
 #ifndef ARRAY_COUNT
 #define ARRAY_COUNT(arr) (sizeof(arr) / sizeof(arr[0]))
 #endif
