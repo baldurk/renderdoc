@@ -301,8 +301,7 @@ void WrappedGLES::writeFakeVertexAttribPointer(GLsizei count)
               size_t attribDataSize = calculateVertexPointerSize(size, GLenum(type), stride, count);
 
               SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
-              Serialise_glVertexAttribPointerEXT(
-                varecord ? varecord->Resource.name : 0,
+              Serialise_glVertexAttribPointer(
                 bufrecord ? bufrecord->Resource.name : 0,
                 index,
                 size,

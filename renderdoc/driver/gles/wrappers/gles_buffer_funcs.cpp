@@ -1841,10 +1841,10 @@ void WrappedGLES::glEndTransformFeedback()
 // parent tracking quickly becomes stale with high traffic VAOs ignoring updates etc, so we don't rely
 // on the parent connection and manually reference the buffer wherever it is actually uesd.
 
-bool WrappedGLES::Serialise_glVertexAttribPointerEXT(GLuint vaobj, GLuint buffer,
-                                                     GLuint index, GLint size, GLenum type,
-                                                     GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize,
-                                                     bool isInteger)
+bool WrappedGLES::Serialise_glVertexAttribPointer(GLuint buffer,
+                                                  GLuint index, GLint size, GLenum type,
+                                                  GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize,
+                                                  bool isInteger)
 {
 
   SERIALISE_ELEMENT(uint32_t, Index, index);
@@ -1857,13 +1857,13 @@ bool WrappedGLES::Serialise_glVertexAttribPointerEXT(GLuint vaobj, GLuint buffer
   SERIALISE_ELEMENT_BUF(byte *, bytes, pointer, dataSize);
   SERIALISE_ELEMENT(bool, IsIntegerMode, isInteger);
   SERIALISE_ELEMENT(ResourceId, id,
-                    vaobj ? GetResourceManager()->GetID(VertexArrayRes(GetCtx(), vaobj)) : ResourceId());
+                    GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
   SERIALISE_ELEMENT(ResourceId, bid,
                     buffer ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)) : ResourceId());
 
   if(m_State < WRITING)
   {
-    vaobj = (id != ResourceId()) ? GetResourceManager()->GetLiveResource(id).name : m_FakeVAO;
+    GLuint vaobj = GetResourceManager()->GetLiveResource(id).name;
     buffer = (bid != ResourceId() && GetResourceManager()->HasLiveResource(bid))
                  ? GetResourceManager()->GetLiveResource(bid).name
                  : 0;
@@ -1917,8 +1917,7 @@ void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
 
       if (bufrecord != NULL) {
         SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
-        Serialise_glVertexAttribPointerEXT(
-            varecord ? varecord->Resource.name : 0,
+        Serialise_glVertexAttribPointer(
             bufrecord ? bufrecord->Resource.name : 0,
             index,
             size,
@@ -1958,8 +1957,7 @@ void WrappedGLES::glVertexAttribIPointer(GLuint index, GLint size, GLenum type,
 
       if (bufrecord != NULL) {
         SCOPED_SERIALISE_CONTEXT(VERTEXATTRIBPOINTER);
-        Serialise_glVertexAttribPointerEXT(
-            varecord ? varecord->Resource.name : 0,
+        Serialise_glVertexAttribPointer(
             bufrecord ? bufrecord->Resource.name : 0,
             index,
             size,
@@ -2327,7 +2325,7 @@ void WrappedGLES::glBindVertexArray(GLuint array)
   {
     if(array == 0)
     {
-      GetCtxData().m_VertexArrayRecord = record = NULL;
+      GetCtxData().m_VertexArrayRecord = record = GetResourceManager()->GetResourceRecord(m_FakeVAOID);
     }
     else
     {

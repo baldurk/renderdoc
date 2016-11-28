@@ -765,10 +765,10 @@ public:
   bool Serialise_glVertexAttrib(GLuint index, int count, GLenum type, GLboolean normalized,
                                 const void *value, int attribtype);
 
-  bool Serialise_glVertexAttribPointerEXT(GLuint vaobj, GLuint buffer,
-                                          GLuint index, GLint size, GLenum type,
-                                          GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize,
-                                          bool isInteger);
+  bool Serialise_glVertexAttribPointer(GLuint buffer,
+                                       GLuint index, GLint size, GLenum type,
+                                       GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize,
+                                       bool isInteger);
 
   enum AttribType
   {

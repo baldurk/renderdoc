@@ -991,6 +991,7 @@ void WrappedGLES::CreateContext(GLESWindowingData winData, void *shareContext,
   ctxdata.ctx = winData.ctx;
   ctxdata.isCore = core;
   ctxdata.attribsCreate = attribsCreate;
+  ctxdata.m_VertexArrayRecord = GetResourceManager()->GetResourceRecord(m_FakeVAOID);
 
   RenderDoc::Inst().AddDeviceFrameCapturer(ctxdata.ctx, this);
 }
@@ -1960,7 +1961,7 @@ void WrappedGLES::StartFrameCapture(void *dev, void *surface)
 
   m_Real.glBindVertexArray(m_FakeVAO);
 
-  GetResourceManager()->MarkVAOReferenced(VertexArrayRes(GetCtx(), m_FakeVAO), eFrameRef_Write);
+  GetResourceManager()->MarkVAOReferenced(VertexArrayRes(GetCtx(), m_FakeVAO), eFrameRef_Write, true);
 
   m_Real.glBindVertexArray(prevVAO);
 
@@ -3005,7 +3006,7 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case GEN_VERTEXARRAY: Serialise_glGenVertexArrays(0, NULL); break;
     case BIND_VERTEXARRAY: Serialise_glBindVertexArray(0); break;
     case VERTEXATTRIBPOINTER:
-      Serialise_glVertexAttribPointerEXT(0,0, 0, 0, eGL_NONE, 0, 0, 0, 0, false);
+      Serialise_glVertexAttribPointer(0, 0, 0, eGL_NONE, 0, 0, 0, 0, false);
       break;
     case ENABLEVERTEXATTRIBARRAY: Serialise_glEnableVertexAttribArray(0); break;
     case DISABLEVERTEXATTRIBARRAY: Serialise_glDisableVertexAttribArray(0); break;

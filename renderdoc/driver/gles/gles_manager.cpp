@@ -195,7 +195,7 @@ void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref, bool
 
   if(res.name || allowFake0)
   {
-    MarkResourceFrameReferenced(res, ref == eFrameRef_Unknown ? eFrameRef_Unknown : eFrameRef_Read);
+    ResourceManager::MarkResourceFrameReferenced(GetID(res), ref == eFrameRef_Unknown ? eFrameRef_Unknown : eFrameRef_Read);
 
     GLint numVBufferBindings = 16;
     gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numVBufferBindings);
@@ -1698,7 +1698,8 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
         else
           gl.glDisableVertexAttribArray(i);
 
-        if (live.name != 0) {
+        if (live.name != 0)
+        {
           gl.glVertexAttribBinding(i, attrib.vbslot);
 
           if(attrib.size != 0)
@@ -1714,6 +1715,15 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
           GLuint buffer = buf.Buffer == ResourceId() ? 0 : GetLiveResource(buf.Buffer).name;
           gl.glBindVertexBuffer(i, buffer, (GLintptr)buf.Offset, (GLsizei)buf.Stride);
           gl.glVertexBindingDivisor(i, buf.Divisor);
+        }
+        else
+        {
+          if(initialdata->VertexAttribs[i].integer == 0)
+            gl.glVertexAttribPointer(i, attrib.size, attrib.type, (GLboolean)attrib.normalized,
+                                     initialdata->VertexBuffers[i].Stride, (const GLvoid *)initialdata->VertexBuffers[i].Offset);
+          else
+            gl.glVertexAttribIPointer(i, attrib.size, attrib.type,
+                                      initialdata->VertexBuffers[i].Stride, (const GLvoid *)initialdata->VertexBuffers[i].Offset);
         }
       }
 
