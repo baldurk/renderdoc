@@ -501,6 +501,8 @@ void WrappedGLES::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei count,
 
   if(m_State == WRITING_CAPFRAME)
   {
+    writeFakeVertexAttribPointer(count);
+
     SCOPED_SERIALISE_CONTEXT(DRAWARRAYS_INSTANCED);
     Serialise_glDrawArraysInstanced(mode, first, count, instancecount);
 
@@ -570,6 +572,8 @@ void WrappedGLES::glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GLint first,
 
   if(m_State == WRITING_CAPFRAME)
   {
+    writeFakeVertexAttribPointer(count);
+
     SCOPED_SERIALISE_CONTEXT(DRAWARRAYS_INSTANCEDBASEINSTANCE);
     Serialise_glDrawArraysInstancedBaseInstanceEXT(mode, first, count, instancecount, baseinstance);
 
@@ -883,6 +887,8 @@ void WrappedGLES::glDrawRangeElements(GLenum mode, GLuint start, GLuint end, GLs
 
   if(m_State == WRITING_CAPFRAME)
   {
+    writeFakeVertexAttribPointer(count);
+
     SCOPED_SERIALISE_CONTEXT(DRAWRANGEELEMENTS);
     Serialise_glDrawRangeElements(mode, start, end, count, type, indices);
 
@@ -964,6 +970,8 @@ void WrappedGLES::glDrawRangeElementsBaseVertex(GLenum mode, GLuint start, GLuin
 
   if(m_State == WRITING_CAPFRAME)
   {
+    writeFakeVertexAttribPointer(count);
+
     SCOPED_SERIALISE_CONTEXT(DRAWRANGEELEMENTSBASEVERTEX);
     Serialise_glDrawRangeElementsBaseVertex(mode, start, end, count, type, indices, basevertex);
 
@@ -1040,6 +1048,8 @@ void WrappedGLES::glDrawElementsBaseVertex(GLenum mode, GLsizei count, GLenum ty
 
   if(m_State == WRITING_CAPFRAME)
   {
+    writeFakeVertexAttribPointer(count);
+
     SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_BASEVERTEX);
     Serialise_glDrawElementsBaseVertex(mode, count, type, indices, basevertex);
 
@@ -1116,6 +1126,8 @@ void WrappedGLES::glDrawElementsInstanced(GLenum mode, GLsizei count, GLenum typ
 
   if(m_State == WRITING_CAPFRAME)
   {
+    writeFakeVertexAttribPointer(count);
+
     SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCED);
     Serialise_glDrawElementsInstanced(mode, count, type, indices, instancecount);
 
@@ -1197,6 +1209,8 @@ void WrappedGLES::glDrawElementsInstancedBaseInstanceEXT(GLenum mode, GLsizei co
 
   if(m_State == WRITING_CAPFRAME)
   {
+    writeFakeVertexAttribPointer(count);
+
     SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCEDBASEINSTANCE);
     Serialise_glDrawElementsInstancedBaseInstanceEXT(mode, count, type, indices, instancecount,
                                                   baseinstance);
@@ -1280,6 +1294,8 @@ void WrappedGLES::glDrawElementsInstancedBaseVertex(GLenum mode, GLsizei count, 
 
   if(m_State == WRITING_CAPFRAME)
   {
+    writeFakeVertexAttribPointer(count);
+
     SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCEDBASEVERTEX);
     Serialise_glDrawElementsInstancedBaseVertex(mode, count, type, indices, instancecount,
                                                 basevertex);
@@ -1366,6 +1382,8 @@ void WrappedGLES::glDrawElementsInstancedBaseVertexBaseInstanceEXT(GLenum mode, 
 
   if(m_State == WRITING_CAPFRAME)
   {
+    writeFakeVertexAttribPointer(count);
+
     SCOPED_SERIALISE_CONTEXT(DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE);
     Serialise_glDrawElementsInstancedBaseVertexBaseInstanceEXT(
         mode, count, type, indices, instancecount, basevertex, baseinstance);
