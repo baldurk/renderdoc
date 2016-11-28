@@ -1100,6 +1100,10 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
   {
     m_Real->glViewport(Viewports[0].x, Viewports[0].y, Viewports[0].width, Viewports[0].height);
     m_Real->glScissor(Scissors[0].x, Scissors[0].y, Scissors[0].width, Scissors[0].height);
+    if (Scissors[0].enabled)
+      m_Real->glEnable(eGL_SCISSOR_TEST);
+    else
+      m_Real->glDisable(eGL_SCISSOR_TEST);
   }
 
   GLenum DBs[8] = {eGL_NONE};
