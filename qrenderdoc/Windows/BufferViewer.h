@@ -32,6 +32,8 @@ namespace Ui
 class BufferViewer;
 }
 
+class BufferItemModel;
+
 class BufferViewer : public QFrame, public ILogViewerForm
 {
   Q_OBJECT
@@ -44,11 +46,36 @@ public:
   void OnLogfileClosed();
   void OnEventSelected(uint32_t eventID);
 
+private slots:
+  // automatic slots
+  void on_outputTabs_currentChanged(int index);
+
+  // manual slots
+  void render_mouseMove(QMouseEvent *e);
+  void render_clicked(QMouseEvent *e);
+  void render_mouseWheel(QWheelEvent *e);
+  void render_keyPress(QKeyEvent *e);
+  void data_selected(const QItemSelection &selected, const QItemSelection &deselected);
+
 private:
   Ui::BufferViewer *ui;
   CaptureContext *m_Ctx;
 
   IReplayOutput *m_Output;
+
+  void RT_UpdateAndDisplay(IReplayRenderer *);
+
+  MeshDisplay m_ConfigVSIn;
+  MeshDisplay m_ConfigVSOut;
+  MeshDisplay *m_curConfig;
+
+  QPoint m_PrevPos;
+  FloatVector m_pos, m_rot;
+  float m_CamDist;
+
+  BufferItemModel *m_ModelVSIn;
+  BufferItemModel *m_ModelVSOut;
+  // BufferItemModel *m_ModelGSOut;
 
   void Reset();
 };

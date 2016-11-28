@@ -15,7 +15,7 @@
   </property>
   <layout class="QGridLayout" name="gridLayout">
    <item row="0" column="0">
-    <widget class="QTableView" name="vsinData">
+    <widget class="RDTableView" name="vsinData">
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
      </property>
@@ -25,8 +25,14 @@
      <property name="dragDropOverwriteMode">
       <bool>false</bool>
      </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::SingleSelection</enum>
+     </property>
      <property name="selectionBehavior">
       <enum>QAbstractItemView::SelectRows</enum>
+     </property>
+     <property name="horizontalScrollMode">
+      <enum>QAbstractItemView::ScrollPerPixel</enum>
      </property>
      <property name="cornerButtonEnabled">
       <bool>false</bool>
@@ -40,7 +46,7 @@
     </widget>
    </item>
    <item row="0" column="1">
-    <widget class="QTableView" name="vsoutData">
+    <widget class="RDTableView" name="vsoutData">
      <property name="editTriggers">
       <set>QAbstractItemView::NoEditTriggers</set>
      </property>
@@ -50,8 +56,14 @@
      <property name="dragDropOverwriteMode">
       <bool>false</bool>
      </property>
+     <property name="selectionMode">
+      <enum>QAbstractItemView::SingleSelection</enum>
+     </property>
      <property name="selectionBehavior">
       <enum>QAbstractItemView::SelectRows</enum>
+     </property>
+     <property name="horizontalScrollMode">
+      <enum>QAbstractItemView::ScrollPerPixel</enum>
      </property>
      <property name="cornerButtonEnabled">
       <bool>false</bool>
@@ -65,7 +77,7 @@
     </widget>
    </item>
    <item row="1" column="0" colspan="2">
-    <widget class="QTabWidget" name="tabWidget">
+    <widget class="QTabWidget" name="outputTabs">
      <property name="currentIndex">
       <number>0</number>
      </property>
@@ -73,7 +85,19 @@
       <attribute name="title">
        <string>VS In</string>
       </attribute>
-      <layout class="QHBoxLayout" name="horizontalLayout">
+      <layout class="QHBoxLayout" name="vsinLayout">
+       <property name="leftMargin">
+        <number>2</number>
+       </property>
+       <property name="topMargin">
+        <number>2</number>
+       </property>
+       <property name="rightMargin">
+        <number>2</number>
+       </property>
+       <property name="bottomMargin">
+        <number>2</number>
+       </property>
        <item>
         <widget class="CustomPaintWidget" name="render" native="true"/>
        </item>
@@ -83,6 +107,20 @@
       <attribute name="title">
        <string>VS Out</string>
       </attribute>
+      <layout class="QHBoxLayout" name="vsoutLayout">
+       <property name="leftMargin">
+        <number>2</number>
+       </property>
+       <property name="topMargin">
+        <number>2</number>
+       </property>
+       <property name="rightMargin">
+        <number>2</number>
+       </property>
+       <property name="bottomMargin">
+        <number>2</number>
+       </property>
+      </layout>
      </widget>
     </widget>
    </item>
@@ -93,6 +131,11 @@
    <class>CustomPaintWidget</class>
    <extends>QWidget</extends>
    <header>Widgets/CustomPaintWidget.h</header>
+  </customwidget>
+  <customwidget>
+   <class>RDTableView</class>
+   <extends>QTableView</extends>
+   <header>Widgets/Extended/RDTableView.h</header>
   </customwidget>
  </customwidgets>
  <resources/>
