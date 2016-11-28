@@ -125,7 +125,8 @@ SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     Windows/ConstantBufferPreviewer.cpp \
     Widgets/BufferFormatSpecifier.cpp \
     Code/FormatElement.cpp \
-    Windows/BufferViewer.cpp
+    Windows/BufferViewer.cpp \
+    Widgets/Extended/RDTableView.cpp
 
 HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
@@ -163,7 +164,8 @@ HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
     Widgets/Extended/RDTreeWidget.h \
     Windows/ConstantBufferPreviewer.h \
     Widgets/BufferFormatSpecifier.h \
-    Windows/BufferViewer.h
+    Windows/BufferViewer.h \
+    Widgets/Extended/RDTableView.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \

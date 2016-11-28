@@ -259,6 +259,12 @@
     <ClCompile Include="Windows\BufferViewer.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\Extended\RDTableView.cpp">
+      <Filter>Widgets\Extended</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_RDTableView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -416,6 +422,9 @@
     </ClInclude>
     <ClInclude Include="Windows\BufferViewer.h">
       <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Extended\RDTableView.h">
+      <Filter>Widgets\Extended</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
