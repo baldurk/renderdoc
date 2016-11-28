@@ -152,8 +152,8 @@ This variable will be set to a given integer value, depending on the type of the
 
 	The value varies depending on the API this shader will be used for, as each has different resource bindings.
 
-D3D11 / HLSL
-^^^^^^^^^^^^
+D3D11 or D3D12 / HLSL
+^^^^^^^^^^^^^^^^^^^^^
 
 #. 1D texture
 #. 2D texture
@@ -187,8 +187,8 @@ Vulkan / GLSL
 #. 3D texture
 #. 2D texture (Multisampled)
 
-Samplers (D3D11 only)
-`````````````````````
+Samplers (D3D11/D3D12 only)
+```````````````````````````
 
 .. highlight:: c++
 .. code:: c++
@@ -201,8 +201,8 @@ These samplers are provided to allow you to sample from the resource as opposed 
 Resources
 `````````
 
-D3D11 / HLSL
-^^^^^^^^^^^^
+D3D11 or D3D12 / HLSL
+^^^^^^^^^^^^^^^^^^^^^
 
 .. highlight:: c++
 .. code:: c++

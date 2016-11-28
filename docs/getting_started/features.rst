@@ -3,7 +3,7 @@ Features
 
 This page documents the current feature set of RenderDoc. This gives an overview of what RenderDoc is capable of, and where it is in its development. You might also be interested in the :doc:`../behind_scenes/planned_features`.
 
-Currently RenderDoc supports D3D11, Vulkan, and OpenGL on Windows and Linux, although the UI only runs on Windows currently. API support for other APIs such as D3D12 is planned. A Qt UI will be written to fully support Linux and in future OS X, but currently this is just at the drawing board stage.
+Currently RenderDoc supports Vulkan, D3D11, D3D12, and OpenGL on Windows and Linux. The primary UI only runs on Windows currently, a Qt UI is in progress to replace it as a cross-platform UI.
 
 RenderDoc can also double as an image viewer in a simplistic fashion, separate to its functionality as a debugger. Drag in or open any of a variety of image file formats and RenderDoc will display them as a texture in a log. This way it can be used as a simple e.g. dds viewer, with support for all sorts of formats, encodings and things typical image viewers don't tend to handle like mips, cubemaps and arrays.
 
@@ -56,11 +56,17 @@ Most of these should be intuitive if you've used a graphics debugger before.
 D3D11
 -----
 
-* Support for D3D11 and D3D11.1, Windows Vista and above. Where hardware support isn't available for feature level 11, WARP will be used.
+* Support for D3D11 and D3D11.x, Windows Vista and above. Where hardware support isn't available for feature level 11, WARP will be used.
 * Debug marker support comes from any available D3D interface (ID3DUserDefinedAnnotation, D3DPERF\_ functions, etc)
 * Pixel history view.
 * Vertex, Pixel and Compute shader debugging.
 * Detailed statistics on API call usage throughout the frame.
+
+D3D12
+-----
+
+* Support for D3D12, Windows 10 only.
+* Debug marker uses the PIXSetMarker macros that go through SetMarker/BeginEvent/EndEvent on the command list
 
 OpenGL
 ------

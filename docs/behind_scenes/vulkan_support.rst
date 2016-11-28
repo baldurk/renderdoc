@@ -45,7 +45,7 @@ RenderDoc has initial support for Vulkan at the launch of version 1.0, but it co
 Non-windows platforms
 ---------------------
 
-Linux and other platform support follows naturally when thinking about Vulkan support. Currently there is full support for capturing and replaying on linux, however the Qt UI is still heavily work in progress. For more information on this see :doc:`../how/how_network_capture_replay`.
+Linux and other platform support follows naturally when thinking about Vulkan support. Currently there is full support for capturing and replaying on linux, however the Qt UI is still work in progress. For more information on this see :doc:`../how/how_network_capture_replay`.
 
 See Also
 --------

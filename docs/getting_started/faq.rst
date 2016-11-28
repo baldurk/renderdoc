@@ -51,9 +51,9 @@ If .rdc files are associated with RenderDoc a thumbnail handler is set up, so th
 What APIs does RenderDoc support?
 ---------------------------------
 
-Currently RenderDoc supports D3D11 (including the D3D11.1/11.2 extensions where available), Vulkan, and core profile OpenGL. Note OpenGL is a complex sprawling API, so see the details of what is supported in :doc:`its own page <../behind_scenes/opengl_support>`. Since Vulkan support is in its early stages, it also has :doc:`its own page <../behind_scenes/vulkan_support>`.
+Currently RenderDoc supports Vulkan, D3D11 (including D3D11.x), D3D12, and core profile OpenGL. Note OpenGL is a complex sprawling API, so see the details of what is supported in :doc:`its own page <../behind_scenes/opengl_support>`. Vulkan support has :doc:`a few notes <../behind_scenes/vulkan_support>`, as does :doc:`D3D12 <../behind_scenes/d3d12_support>`.
 
-In future API support is planned for at D3D9 when time and scheduling allows. Higher priority is D3D12 now that Vulkan support is available. Mantle support will not happen as the API is not planned to be publically available anymore.
+Future API support is at this point not clear, GLES, Metal and perhaps D3D9 all being possible. Higher priority is better operating system/platform support which is currently underway, as well as feature improvements for existing platforms and APIs.
 
 How can I backup or restore my settings?
 ----------------------------------------

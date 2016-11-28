@@ -6,7 +6,7 @@ RenderDoc
 [![Coverity Scan](https://scan.coverity.com/projects/8525/badge.svg)](https://scan.coverity.com/projects/baldurk-renderdoc)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 
-Welcome to RenderDoc - a graphics debugger, currently available for D3D11, Vulkan and OpenGL development on windows. 
+Welcome to RenderDoc - a graphics debugger, currently available for Vulkan, D3D11, D3D12, and OpenGL development on windows. 
 
 If you have any questions, suggestions or problems or you can [create an issue](https://github.com/baldurk/renderdoc/issues/new) here on github, [email me directly](mailto:baldurk@baldurk.org) or [come into IRC](https://kiwiirc.com/client/irc.freenode.net/#renderdoc) to discuss it.
 
@@ -37,7 +37,7 @@ API Support
 | D3D11            | Well supported, all features.          | :heavy_check_mark:       | :heavy_multiplication_x:        |
 | OpenGL 3.2 core+ | Well supported, most features.\*       | :heavy_check_mark:       | :heavy_check_mark: No UI\*\*    |
 | Vulkan           | Well supported, most features.         | :heavy_check_mark:       | :heavy_check_mark: No UI\*\*    |
-| D3D12            | In Progress.                           | :arrows_clockwise:       | :heavy_multiplication_x:        |
+| D3D12            | Well supported, most features.         | :heavy_check_mark:       | :heavy_multiplication_x:        |
 | OpenGL Pre-3.2   | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
 | D3D10            | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
 | D3D9             | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
