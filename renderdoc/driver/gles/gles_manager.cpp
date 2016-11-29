@@ -1689,6 +1689,8 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
       else
         gl.glBindVertexArray(live.name);
 
+      SafeBufferBinder safeBufferBinder(gl, eGL_ARRAY_BUFFER, 0);
+
       for(GLuint i = 0; i < 16; i++)
       {
         VertexAttribInitialData &attrib = initialdata->VertexAttribs[i];
@@ -1718,6 +1720,10 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
         }
         else
         {
+          VertexBufferInitialData &buf = initialdata->VertexBuffers[i];
+          GLuint buffer = buf.Buffer == ResourceId() ? 0 : GetLiveResource(buf.Buffer).name;
+          gl.glBindBuffer(eGL_ARRAY_BUFFER, buffer);
+
           if(initialdata->VertexAttribs[i].integer == 0)
             gl.glVertexAttribPointer(i, attrib.size, attrib.type, (GLboolean)attrib.normalized,
                                      initialdata->VertexBuffers[i].Stride, (const GLvoid *)initialdata->VertexBuffers[i].Offset);
