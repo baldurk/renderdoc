@@ -1498,6 +1498,21 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
                            std::make_pair(dxbc->m_InputSig[i].semanticIndex, nextIdx - 1)));
     }
 
+    // as another side effect of the above, an element declared as a 1-length array won't be
+    // detected but it WILL be put in its own register (not packed together), so detect this
+    // case too.
+    // Note we have to search *backwards* because we need to know if this register should have
+    // been packed into the previous register, but wasn't. float/float2 can be packed after an
+    // array just fine.
+    if(included && i > 0 && arrayLength == 0 && numCols <= 2 &&
+       dxbc->m_InputSig[i].regChannelMask <= 0x3)
+    {
+      const SigParameter &prev = dxbc->m_InputSig[i - 1];
+
+      if(prev.compCount <= 2 && prev.regChannelMask <= 0x3)
+        arrayLength = 1;
+    }
+
     extractHlsl += ToStr::Get((uint32_t)numCols) + " input_" + name;
     if(arrayLength > 0)
       extractHlsl += "[" + ToStr::Get(arrayLength) + "]";
