@@ -683,6 +683,14 @@ ResourceFormat MakeResourceFormat(WrappedGLES &gl, GLenum target, GLenum fmt)
       return ret;
     }
 
+    if (fmt == eGL_R16I)
+    {
+      ret.compByteWidth = 2;
+      ret.compCount = 1;
+      ret.compType = eCompType_SInt;
+      return ret;
+    }
+
     if (fmt == eGL_RGBA16F)
     {
       ret.compByteWidth = 2;
