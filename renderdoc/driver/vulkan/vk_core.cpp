@@ -2075,7 +2075,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
 
         localSerialiser->SerialisePODArray("callstack", stack, numLevels);
 
-        localSerialiser->SetCallstack(stack, numLevels);
+        localSerialiser->SetCallstack(stack, (size_t)numLevels);
 
         SAFE_DELETE_ARRAY(stack);
       }
@@ -2291,7 +2291,7 @@ void WrappedVulkan::Serialise_DebugMessages(Serialiser *localSerialiser, bool is
 
       localSerialiser->SerialisePODArray("callstack", stack, numLevels);
 
-      localSerialiser->SetCallstack(stack, numLevels);
+      localSerialiser->SetCallstack(stack, (size_t)numLevels);
 
       SAFE_DELETE_ARRAY(stack);
     }
