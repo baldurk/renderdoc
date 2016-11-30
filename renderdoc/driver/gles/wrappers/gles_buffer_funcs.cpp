@@ -1856,8 +1856,7 @@ bool WrappedGLES::Serialise_glVertexAttribPointer(GLuint buffer,
   SERIALISE_ELEMENT(uint64_t, Offset, (uint64_t)pointer);
   SERIALISE_ELEMENT_BUF(byte *, bytes, pointer, dataSize);
   SERIALISE_ELEMENT(bool, IsIntegerMode, isInteger);
-  SERIALISE_ELEMENT(ResourceId, id,
-                    GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
+  SERIALISE_ELEMENT(ResourceId, id, GetCtxData().m_VertexArrayRecord->GetResourceID());
   SERIALISE_ELEMENT(ResourceId, bid,
                     buffer ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)) : ResourceId());
 
@@ -1910,7 +1909,7 @@ void WrappedGLES::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
     {
       if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
         return;
-      if(m_State == WRITING_CAPFRAME && varecord)
+      if(m_State == WRITING_CAPFRAME)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
       if(m_State == WRITING_CAPFRAME && bufrecord)
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
@@ -1950,7 +1949,7 @@ void WrappedGLES::glVertexAttribIPointer(GLuint index, GLint size, GLenum type,
     {
       if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
         return;
-      if(m_State == WRITING_CAPFRAME && varecord)
+      if(m_State == WRITING_CAPFRAME)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
       if(m_State == WRITING_CAPFRAME && bufrecord)
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
@@ -1980,11 +1979,11 @@ bool WrappedGLES::Serialise_glVertexAttribBinding(GLuint attribindex, GLuint bin
   SERIALISE_ELEMENT(uint32_t, bidx, bindingindex);
   SERIALISE_ELEMENT(
       ResourceId, id,
-      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
+      GetCtxData().m_VertexArrayRecord->GetResourceID());
 
   if(m_State < WRITING)
   {
-    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
+    SafeVAOBinder safeVAOBinder(m_Real, GetResourceManager()->GetLiveResource(id).name);
     m_Real.glVertexAttribBinding(aidx, bidx);
   }
   return true;
@@ -2004,7 +2003,7 @@ void WrappedGLES::glVertexAttribBinding(GLuint attribindex, GLuint bindingindex)
     {
       if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
         return;
-      if(m_State == WRITING_CAPFRAME && varecord)
+      if(m_State == WRITING_CAPFRAME)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -2027,11 +2026,11 @@ bool WrappedGLES::Serialise_glVertexAttribFormat(GLuint attribindex, GLint size,
   SERIALISE_ELEMENT(uint32_t, Offset, relativeoffset);
   SERIALISE_ELEMENT(
       ResourceId, id,
-      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
+      GetCtxData().m_VertexArrayRecord->GetResourceID());
 
   if(m_State < WRITING)
   {
-    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
+    SafeVAOBinder safeVAOBinder(m_Real, GetResourceManager()->GetLiveResource(id).name);
     m_Real.glVertexAttribFormat(Index, Size, Type, Norm, Offset);
   }
 
@@ -2053,7 +2052,7 @@ void WrappedGLES::glVertexAttribFormat(GLuint attribindex, GLint size, GLenum ty
     {
       if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
         return;
-      if(m_State == WRITING_CAPFRAME && varecord)
+      if(m_State == WRITING_CAPFRAME)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -2076,11 +2075,11 @@ bool WrappedGLES::Serialise_glVertexAttribIFormat(GLuint attribindex, GLint size
   SERIALISE_ELEMENT(uint32_t, Offset, relativeoffset);
   SERIALISE_ELEMENT(
       ResourceId, id,
-      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
+      GetCtxData().m_VertexArrayRecord->GetResourceID());
 
   if(m_State < WRITING)
   {
-    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
+    SafeVAOBinder safeVAOBinder(m_Real, GetResourceManager()->GetLiveResource(id).name);
     m_Real.glVertexAttribIFormat(Index, Size, Type, Offset);
   }
 
@@ -2103,7 +2102,7 @@ void WrappedGLES::glVertexAttribIFormat(GLuint attribindex, GLint size, GLenum t
     {
       if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
         return;
-      if(m_State == WRITING_CAPFRAME && varecord)
+      if(m_State == WRITING_CAPFRAME)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -2121,11 +2120,11 @@ bool WrappedGLES::Serialise_glVertexAttribDivisor(GLuint index, GLuint divisor)
   SERIALISE_ELEMENT(uint32_t, Divisor, divisor);
   SERIALISE_ELEMENT(
       ResourceId, id,
-      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
+      GetCtxData().m_VertexArrayRecord->GetResourceID());
 
   if(m_State < WRITING)
   {
-    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
+    SafeVAOBinder safeVAOBinder(m_Real, GetResourceManager()->GetLiveResource(id).name);
     m_Real.glVertexAttribDivisor(Index, Divisor);
   }
 
@@ -2146,7 +2145,7 @@ void WrappedGLES::glVertexAttribDivisor(GLuint index, GLuint divisor)
     {
       if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
         return;
-      if(m_State == WRITING_CAPFRAME && varecord)
+      if(m_State == WRITING_CAPFRAME)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -2164,11 +2163,11 @@ bool WrappedGLES::Serialise_glEnableVertexAttribArray(GLuint index)
     SERIALISE_ELEMENT(uint32_t, Index, index);
     SERIALISE_ELEMENT(
       ResourceId, id,
-      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
+      GetCtxData().m_VertexArrayRecord->GetResourceID());
 
     if(m_State < WRITING)
     {
-      SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
+      SafeVAOBinder safeVAOBinder(m_Real, GetResourceManager()->GetLiveResource(id).name);
       m_Real.glEnableVertexAttribArray(Index);
     }
     return true;
@@ -2188,7 +2187,7 @@ void WrappedGLES::glEnableVertexAttribArray(GLuint index)
     {
       if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
         return;
-      if(m_State == WRITING_CAPFRAME && varecord)
+      if(m_State == WRITING_CAPFRAME)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -2206,11 +2205,11 @@ bool WrappedGLES::Serialise_glDisableVertexAttribArray(GLuint index)
     SERIALISE_ELEMENT(uint32_t, Index, index);
     SERIALISE_ELEMENT(
       ResourceId, id,
-      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
+      GetCtxData().m_VertexArrayRecord->GetResourceID());
 
     if(m_State < WRITING)
     {
-      SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
+      SafeVAOBinder safeVAOBinder(m_Real, GetResourceManager()->GetLiveResource(id).name);
       m_Real.glDisableVertexAttribArray(Index);
     }
     return true;
@@ -2230,7 +2229,7 @@ void WrappedGLES::glDisableVertexAttribArray(GLuint index)
     {
       if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
         return;
-      if(m_State == WRITING_CAPFRAME && varecord)
+      if(m_State == WRITING_CAPFRAME)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
@@ -2297,19 +2296,12 @@ bool WrappedGLES::Serialise_glBindVertexArray(GLuint array)
 {
   SERIALISE_ELEMENT(
       ResourceId, id,
-      (array ? GetResourceManager()->GetID(VertexArrayRes(GetCtx(), array)) : ResourceId()));
+      GetResourceManager()->GetID(VertexArrayRes(GetCtx(), array)));
 
   if(m_State <= EXECUTING)
   {
-    if(id == ResourceId())
-    {
-      m_Real.glBindVertexArray(m_DefaultVAO);
-    }
-    else
-    {
       GLuint live = GetResourceManager()->GetLiveResource(id).name;
       m_Real.glBindVertexArray(live);
-    }
   }
 
   return true;
@@ -2323,15 +2315,8 @@ void WrappedGLES::glBindVertexArray(GLuint array)
 
   if(m_State >= WRITING)
   {
-    if(array == 0)
-    {
-      GetCtxData().m_VertexArrayRecord = record = GetResourceManager()->GetResourceRecord(m_DefaultVAOID);
-    }
-    else
-    {
-      GetCtxData().m_VertexArrayRecord = record =
-          GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), array));
-    }
+    GetCtxData().m_VertexArrayRecord = record =
+      GetResourceManager()->GetResourceRecord(VertexArrayRes(GetCtx(), array));
   }
 
   if(m_State == WRITING_CAPFRAME)
@@ -2385,7 +2370,7 @@ void WrappedGLES::glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintpt
     {
       if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
         return;
-      if(m_State == WRITING_CAPFRAME && varecord)
+      if(m_State == WRITING_CAPFRAME)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
       if(m_State == WRITING_CAPFRAME && bufrecord)
         GetResourceManager()->MarkResourceFrameReferenced(bufrecord->GetResourceID(), eFrameRef_Read);
@@ -2406,11 +2391,11 @@ bool WrappedGLES::Serialise_glVertexBindingDivisor(GLuint bindingindex, GLuint d
   SERIALISE_ELEMENT(uint32_t, d, divisor);
   SERIALISE_ELEMENT(
       ResourceId, id,
-      GetCtxData().m_VertexArrayRecord ? GetCtxData().m_VertexArrayRecord->GetResourceID() : ResourceId());
+      GetCtxData().m_VertexArrayRecord->GetResourceID());
 
   if(m_State <= EXECUTING)
   {
-    SafeVAOBinder safeVAOBinder(m_Real, id != ResourceId() ? GetResourceManager()->GetLiveResource(id).name : m_DefaultVAO);
+    SafeVAOBinder safeVAOBinder(m_Real, GetResourceManager()->GetLiveResource(id).name);
     m_Real.glVertexBindingDivisor(idx, d);
   }
 
@@ -2431,7 +2416,7 @@ void WrappedGLES::glVertexBindingDivisor(GLuint bindingindex, GLuint divisor)
     {
       if(m_State == WRITING_IDLE && !RecordUpdateCheck(varecord))
         return;
-      if(m_State == WRITING_CAPFRAME && varecord)
+      if(m_State == WRITING_CAPFRAME)
         GetResourceManager()->MarkVAOReferenced(varecord->Resource, eFrameRef_ReadBeforeWrite);
 
       {
