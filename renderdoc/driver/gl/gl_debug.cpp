@@ -2356,7 +2356,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
 
     vector<uint32_t> events = passEvents;
 
-    if(overlay == eTexOverlay_QuadOverdrawDraw)
+    if(overlay == eTexOverlay_TriangleSizeDraw)
       events.clear();
 
     events.push_back(eventID);
