@@ -3364,7 +3364,7 @@ namespace renderdocui.Windows.PipelineState
                     writer.WriteStartElement("html");
                     writer.WriteAttributeString("lang", "en");
 
-                    var title = String.Format("{0} EID {1} - D3D11 Pipeline export", Path.GetFileName(m_Core.LogFileName), m_Core.CurEvent);
+                    var title = String.Format("{0} EID {1} - OpenGL Pipeline export", Path.GetFileName(m_Core.LogFileName), m_Core.CurEvent);
 
                     var css = @"
 /* If you think this css is ugly/bad, open a pull request! */
