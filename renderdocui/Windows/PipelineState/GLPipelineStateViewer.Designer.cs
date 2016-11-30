@@ -4372,7 +4372,6 @@
             // 
             // depthBounds
             // 
-            this.depthBounds.BackColor = System.Drawing.SystemColors.Control;
             this.tableLayoutPanel12.SetColumnSpan(this.depthBounds, 3);
             this.depthBounds.Dock = System.Windows.Forms.DockStyle.Fill;
             this.depthBounds.Font = new System.Drawing.Font("Tahoma", 12F);
@@ -4420,7 +4419,6 @@
             // 
             // depthFunc
             // 
-            this.depthFunc.BackColor = System.Drawing.SystemColors.Control;
             this.tableLayoutPanel12.SetColumnSpan(this.depthFunc, 3);
             this.depthFunc.Dock = System.Windows.Forms.DockStyle.Fill;
             this.depthFunc.Font = new System.Drawing.Font("Tahoma", 12F);
