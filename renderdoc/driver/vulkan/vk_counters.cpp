@@ -74,14 +74,14 @@ void VulkanReplay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
     desc.units = eUnits_Absolute;
   }
 }
-struct GPUTimerCallback : public VulkanDrawcallCallback
+struct VulkanGPUTimerCallback : public VulkanDrawcallCallback
 {
-  GPUTimerCallback(WrappedVulkan *vk, VulkanReplay *rp, VkQueryPool qp)
+  VulkanGPUTimerCallback(WrappedVulkan *vk, VulkanReplay *rp, VkQueryPool qp)
       : m_pDriver(vk), m_pReplay(rp), m_QueryPool(qp)
   {
     m_pDriver->SetDrawcallCB(this);
   }
-  ~GPUTimerCallback() { m_pDriver->SetDrawcallCB(NULL); }
+  ~VulkanGPUTimerCallback() { m_pDriver->SetDrawcallCB(NULL); }
   void PreDraw(uint32_t eid, VkCommandBuffer cmd)
   {
     ObjDisp(cmd)->CmdWriteTimestamp(Unwrap(cmd), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, m_QueryPool,
@@ -148,7 +148,7 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<uint32_t> &counte
   m_pDriver->SubmitCmds();
 #endif
 
-  GPUTimerCallback cb(m_pDriver, this, pool);
+  VulkanGPUTimerCallback cb(m_pDriver, this, pool);
 
   // replay the events to perform all the queries
   m_pDriver->ReplayLog(0, maxEID, eReplay_Full);

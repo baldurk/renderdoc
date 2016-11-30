@@ -4531,14 +4531,14 @@ void VulkanReplay::InitPostVSBuffers(uint32_t eventID)
   GetDebugManager()->InitPostVSBuffers(eventID);
 }
 
-struct InitPostVSCallback : public VulkanDrawcallCallback
+struct VulkanInitPostVSCallback : public VulkanDrawcallCallback
 {
-  InitPostVSCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
+  VulkanInitPostVSCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
       : m_pDriver(vk), m_Events(events)
   {
     m_pDriver->SetDrawcallCB(this);
   }
-  ~InitPostVSCallback() { m_pDriver->SetDrawcallCB(NULL); }
+  ~VulkanInitPostVSCallback() { m_pDriver->SetDrawcallCB(NULL); }
   void PreDraw(uint32_t eid, VkCommandBuffer cmd)
   {
     if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
@@ -4569,7 +4569,7 @@ void VulkanReplay::InitPostVSBuffers(const vector<uint32_t> &events)
   // command buffer
   m_pDriver->ReplayLog(0, events.front(), eReplay_WithoutDraw);
 
-  InitPostVSCallback cb(m_pDriver, events);
+  VulkanInitPostVSCallback cb(m_pDriver, events);
 
   // now we replay the events, which are guaranteed (because we generated them in
   // GetPassEvents above) to come from the same command buffer, so the event IDs are

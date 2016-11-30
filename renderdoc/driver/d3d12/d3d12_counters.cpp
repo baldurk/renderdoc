@@ -75,14 +75,14 @@ void D3D12Replay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
   }
 }
 
-struct GPUTimerCallback : public D3D12DrawcallCallback
+struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
 {
-  GPUTimerCallback(WrappedID3D12Device *dev, D3D12Replay *rp, ID3D12QueryHeap *qh)
+  D3D12GPUTimerCallback(WrappedID3D12Device *dev, D3D12Replay *rp, ID3D12QueryHeap *qh)
       : m_pDevice(dev), m_pReplay(rp), m_QueryHeap(qh)
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
   }
-  ~GPUTimerCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
+  ~D3D12GPUTimerCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
   void PreDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
   {
     cmd->EndQuery(m_QueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, (uint32_t)(m_Results.size() * 2 + 0));
@@ -167,7 +167,7 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<uint32_t> &counter
 
   m_pDevice->SetStablePowerState(TRUE);
 
-  GPUTimerCallback cb(m_pDevice, this, queryHeap);
+  D3D12GPUTimerCallback cb(m_pDevice, this, queryHeap);
 
   // replay the events to perform all the queries
   m_pDevice->ReplayLog(0, maxEID, eReplay_Full);

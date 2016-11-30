@@ -6513,14 +6513,18 @@ bool D3D12DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
   return true;
 }
 
-struct QuadOverdrawCallback : public D3D12DrawcallCallback
+struct D3D12QuadOverdrawCallback : public D3D12DrawcallCallback
 {
-  QuadOverdrawCallback(WrappedID3D12Device *dev, const vector<uint32_t> &events, PortableHandle uav)
+  D3D12QuadOverdrawCallback(WrappedID3D12Device *dev, const vector<uint32_t> &events,
+                            PortableHandle uav)
       : m_pDevice(dev), m_pDebug(dev->GetDebugManager()), m_Events(events), m_UAV(uav)
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
   }
-  ~QuadOverdrawCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
+  ~D3D12QuadOverdrawCallback()
+  {
+    m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL;
+  }
   void PreDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
   {
     if(std::find(m_Events.begin(), m_Events.end(), eid) == m_Events.end())
@@ -7622,7 +7626,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       m_WrappedDevice->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
       // declare callback struct here
-      QuadOverdrawCallback cb(m_WrappedDevice, events, ToPortableHandle(GetCPUHandle(OVERDRAW_UAV)));
+      D3D12QuadOverdrawCallback cb(m_WrappedDevice, events,
+                                   ToPortableHandle(GetCPUHandle(OVERDRAW_UAV)));
 
       m_WrappedDevice->ReplayLog(events.front(), events.back(), eReplay_Full);
 

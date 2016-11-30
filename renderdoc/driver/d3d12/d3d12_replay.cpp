@@ -1418,14 +1418,14 @@ void D3D12Replay::InitPostVSBuffers(uint32_t eventID)
   m_pDevice->GetDebugManager()->InitPostVSBuffers(eventID);
 }
 
-struct InitPostVSCallback : public D3D12DrawcallCallback
+struct D3D12InitPostVSCallback : public D3D12DrawcallCallback
 {
-  InitPostVSCallback(WrappedID3D12Device *dev, const vector<uint32_t> &events)
+  D3D12InitPostVSCallback(WrappedID3D12Device *dev, const vector<uint32_t> &events)
       : m_pDevice(dev), m_Events(events)
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
   }
-  ~InitPostVSCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
+  ~D3D12InitPostVSCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
   void PreDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
   {
     if(std::find(m_Events.begin(), m_Events.end(), eid) != m_Events.end())
@@ -1456,7 +1456,7 @@ void D3D12Replay::InitPostVSBuffers(const vector<uint32_t> &events)
   // command buffer
   m_pDevice->ReplayLog(0, events.front(), eReplay_WithoutDraw);
 
-  InitPostVSCallback cb(m_pDevice, events);
+  D3D12InitPostVSCallback cb(m_pDevice, events);
 
   // now we replay the events, which are guaranteed (because we generated them in
   // GetPassEvents above) to come from the same command buffer, so the event IDs are

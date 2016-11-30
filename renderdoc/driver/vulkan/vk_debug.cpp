@@ -4742,14 +4742,14 @@ void VulkanDebugManager::PatchFixedColShader(VkShaderModule &mod, float col[4])
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 }
 
-struct QuadOverdrawCallback : public VulkanDrawcallCallback
+struct VulkanQuadOverdrawCallback : public VulkanDrawcallCallback
 {
-  QuadOverdrawCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
+  VulkanQuadOverdrawCallback(WrappedVulkan *vk, const vector<uint32_t> &events)
       : m_pDriver(vk), m_pDebug(vk->GetDebugManager()), m_Events(events), m_PrevState(NULL)
   {
     m_pDriver->SetDrawcallCB(this);
   }
-  ~QuadOverdrawCallback() { m_pDriver->SetDrawcallCB(NULL); }
+  ~VulkanQuadOverdrawCallback() { m_pDriver->SetDrawcallCB(NULL); }
   void PreDraw(uint32_t eid, VkCommandBuffer cmd)
   {
     if(std::find(m_Events.begin(), m_Events.end(), eid) == m_Events.end())
@@ -6211,7 +6211,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
       m_pDriver->ReplayLog(0, events[0], eReplay_WithoutDraw);
 
       // declare callback struct here
-      QuadOverdrawCallback cb(m_pDriver, events);
+      VulkanQuadOverdrawCallback cb(m_pDriver, events);
 
       m_pDriver->ReplayLog(events.front(), events.back(), eReplay_Full);
 
