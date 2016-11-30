@@ -662,7 +662,10 @@ void WrappedGLES::glTexParameteri(GLenum target, GLenum pname, GLint param)
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
 
     if(m_HighTrafficResources.find(record->GetResourceID()) != m_HighTrafficResources.end() &&
        m_State != WRITING_CAPFRAME)
@@ -1190,7 +1193,10 @@ void WrappedGLES::glTexImage3D(GLenum target, GLint level, GLint internalformat,
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if (record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
     ResourceId texId = record->GetResourceID();
 
     CoherentMapImplicitBarrier();
@@ -1384,7 +1390,10 @@ void WrappedGLES::glCompressedTexImage2D(GLenum target, GLint level, GLenum inte
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
     ResourceId texId = record->GetResourceID();
 
     CoherentMapImplicitBarrier();
@@ -1546,7 +1555,10 @@ void WrappedGLES::glCompressedTexImage3D(GLenum target, GLint level, GLenum inte
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
     ResourceId texId = record->GetResourceID();
 
     CoherentMapImplicitBarrier();
@@ -1659,7 +1671,10 @@ void WrappedGLES::glCopyTexImage2D(GLenum target, GLint level, GLenum internalfo
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
     ResourceId texId = record->GetResourceID();
 
     CoherentMapImplicitBarrier();
@@ -2064,7 +2079,10 @@ void WrappedGLES::glTexStorage2DMultisample(GLenum target, GLsizei samples, GLen
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
     ResourceId texId = record->GetResourceID();
 
     if(internalformat == 0)
@@ -2151,7 +2169,10 @@ void WrappedGLES::glTexStorage3DMultisample(GLenum target, GLsizei samples, GLen
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
     ResourceId texId = record->GetResourceID();
 
     if(internalformat == 0)
@@ -2421,7 +2442,10 @@ void WrappedGLES::glTexSubImage3D(GLenum target, GLint level, GLint xoffset, GLi
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
 
     CoherentMapImplicitBarrier();
 
@@ -2542,7 +2566,10 @@ void WrappedGLES::glCompressedTexSubImage2D(GLenum target, GLint level, GLint xo
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
 
     CoherentMapImplicitBarrier();
 
@@ -2666,7 +2693,10 @@ void WrappedGLES::glCompressedTexSubImage3D(GLenum target, GLint level, GLint xo
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
 
     CoherentMapImplicitBarrier();
 
@@ -2765,7 +2795,10 @@ void WrappedGLES::glTexBufferRange(GLenum target, GLenum internalformat, GLuint 
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
     ResourceId texId = record->GetResourceID();
 
     CoherentMapImplicitBarrier();
@@ -2889,7 +2922,10 @@ void WrappedGLES::glTexBuffer(GLenum target, GLenum internalformat, GLuint buffe
   {
     GLResourceRecord *record = GetCtxData().GetActiveTexRecord(target);
     if(record == NULL)
+    {
       RDCERR("Calling non-DSA texture function with no texture bound to active slot");
+      return;
+    }
     ResourceId texId = record->GetResourceID();
 
     CoherentMapImplicitBarrier();
