@@ -6606,7 +6606,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
             const VkPipelineDynamicStateCreateInfo *dyn = pipeCreateInfo.pDynamicState;
 
-            for(uint32_t dynState = 0; dyn && i < dyn->dynamicStateCount; dynState++)
+            for(uint32_t dynState = 0; dyn && dynState < dyn->dynamicStateCount; dynState++)
             {
               VkDynamicState d = dyn->pDynamicStates[dynState];
 
