@@ -309,6 +309,46 @@ EGLBoolean eglGetConfigAttrib(EGLDisplay dpy, EGLConfig config, EGLint attribute
 }
 
 DEFAULT_VISIBILITY
+EGLBoolean eglGetConfigs(EGLDisplay dpy, EGLConfig *configs, EGLint config_size, EGLint *num_config)
+{
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
+    DEF_FUNC(eglGetConfigs);
+    return REAL(eglGetConfigs)(dpy, configs, config_size, num_config);
+}
+
+DEFAULT_VISIBILITY
+EGLenum eglQueryAPI()
+{
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
+    DEF_FUNC(eglQueryAPI);
+    return REAL(eglQueryAPI)();
+}
+
+DEFAULT_VISIBILITY
+char const * eglQueryString(EGLDisplay dpy, EGLint name)
+{
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
+    DEF_FUNC(eglQueryString);
+    return REAL(eglQueryString)(dpy, name);
+}
+
+DEFAULT_VISIBILITY
+EGLBoolean eglQuerySurface(EGLDisplay dpy, EGLSurface surface, EGLint attribute, EGLint *value)
+{
+#ifdef DUMP_EGL_ENTER
+    RDCLOG("Enter: %s", __FUNCTION__);
+#endif
+    DEF_FUNC(eglQuerySurface);
+    return REAL(eglQuerySurface)(dpy, surface, attribute, value);
+}
+
+DEFAULT_VISIBILITY
 EGLSurface eglGetCurrentSurface(EGLint readdraw)
 {
 #ifdef DUMP_EGL_ENTER
