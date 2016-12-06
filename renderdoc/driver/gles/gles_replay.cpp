@@ -1319,7 +1319,7 @@ void GLESReplay::SavePipelineState()
         // very bespoke/specific
         GLint firstSlice = 0, firstMip = 0;
 
-        if(target != eGL_TEXTURE_BUFFER)
+        if(target != eGL_TEXTURE_BUFFER && ExtensionSupported[ExtensionSupported_OES_texture_view])
         {
           gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL_OES, &firstMip);
           gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LAYER_OES, &firstSlice);
@@ -1433,12 +1433,15 @@ void GLESReplay::SavePipelineState()
             gl.glGetTexParameteriv(target, eGL_TEXTURE_MAG_FILTER, &v);
           pipe.Samplers[unit].MagFilter = SamplerString((GLenum)v);
 
-          if(samp != 0)
-            gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY_EXT,
-                                       &pipe.Samplers[unit].MaxAniso);
-          else
-            gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_ANISOTROPY_EXT,
-                                   &pipe.Samplers[unit].MaxAniso);
+          if(ExtensionSupported[ExtensionSupported_EXT_texture_filter_anisotropic])
+          {
+            if(samp != 0)
+              gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY_EXT,
+                                         &pipe.Samplers[unit].MaxAniso);
+            else
+              gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_ANISOTROPY_EXT,
+                                     &pipe.Samplers[unit].MaxAniso);
+          }
 
           gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_LOD, &pipe.Samplers[unit].MaxLOD);
           gl.glGetTexParameterfv(target, eGL_TEXTURE_MIN_LOD, &pipe.Samplers[unit].MinLOD);

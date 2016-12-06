@@ -89,6 +89,8 @@ void DoExtensionChecks(const GLHookSet &gl)
       EXT_CHECK(EXT_multisample_compatibility);
       EXT_CHECK(EXT_multisampled_render_to_texture);
       EXT_CHECK(IMG_multisampled_render_to_texture);
+      EXT_CHECK(OES_texture_view);
+      EXT_CHECK(EXT_texture_filter_anisotropic);
 
 #undef EXT_CHECK
     }

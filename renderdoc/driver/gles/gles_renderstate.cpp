@@ -1055,6 +1055,9 @@ void GLRenderState::ApplyState(void *ctx, WrappedGLES *gl)
 
   for(GLuint i = 0; i < RDCMIN(maxDrawBuffers, (GLuint)ARRAY_COUNT(Blends)); i++)
   {
+    if(Blends[i].EquationRGB == eGL_NONE) // not set, possibly there were lesser draw buffers during capture
+      continue;
+
     m_Real->glBlendFuncSeparatei(i, Blends[i].SourceRGB, Blends[i].DestinationRGB,
                                  Blends[i].SourceAlpha, Blends[i].DestinationAlpha);
     m_Real->glBlendEquationSeparatei(i, Blends[i].EquationRGB, Blends[i].EquationAlpha);

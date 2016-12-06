@@ -662,8 +662,9 @@ void GLESReplay::DeleteDebugData()
     }
   }
 
-  gl.glDeleteProgram(DebugData.Array2MS);
-  gl.glDeleteProgram(DebugData.MS2Array);
+  // TODO pantos uncomment these later
+//  gl.glDeleteProgram(DebugData.Array2MS);
+//  gl.glDeleteProgram(DebugData.MS2Array);
 
 //  gl.glDeleteBuffers(1, &DebugData.minmaxTileResult);
 //  gl.glDeleteBuffers(1, &DebugData.minmaxResult);

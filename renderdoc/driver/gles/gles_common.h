@@ -186,6 +186,8 @@ enum ExtensionCheckEnum
   ExtensionSupported_EXT_multisample_compatibility, // TODO pantos in gl2ext.h its name is GL_EXT_multisampled_compatibility
   ExtensionSupported_EXT_multisampled_render_to_texture,
   ExtensionSupported_IMG_multisampled_render_to_texture,
+  ExtensionSupported_OES_texture_view,
+  ExtensionSupported_EXT_texture_filter_anisotropic,
   ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];

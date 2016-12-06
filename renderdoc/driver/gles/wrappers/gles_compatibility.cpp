@@ -48,10 +48,6 @@ void WrappedGLES::Compat_glGetTexImage(GLenum target, GLenum texType, GLuint tex
   {
     switch(texType)
     {
-      case eGL_TEXTURE_CUBE_MAP:
-        m_Real.glFramebufferTexture2D(eGL_FRAMEBUFFER, attachmentTarget, target, texname, mip);
-        break;
-
       case eGL_TEXTURE_3D:
       case eGL_TEXTURE_2D_ARRAY:
       case eGL_TEXTURE_CUBE_MAP_ARRAY:
@@ -59,16 +55,19 @@ void WrappedGLES::Compat_glGetTexImage(GLenum target, GLenum texType, GLuint tex
         m_Real.glFramebufferTextureLayer(eGL_FRAMEBUFFER, attachmentTarget, texname, mip, d);
         break;
 
+      case eGL_TEXTURE_CUBE_MAP:
       case eGL_TEXTURE_2D:
       case eGL_TEXTURE_2D_MULTISAMPLE:
       default:
-        m_Real.glFramebufferTexture(eGL_FRAMEBUFFER, attachmentTarget, texname, mip);
+        m_Real.glFramebufferTexture2D(eGL_FRAMEBUFFER, attachmentTarget, target, texname, mip);
         break;
     }
 
     dumpFBOState(m_Real);
 
     byte *dst = (byte *)ret + d * sliceSize;
+    // TODO pantos reading from depth/stencil buffers requires
+    // NV_read_depth/NV_read_stencil/NV_read_depth_stencil extensions
     m_Real.glReadPixels(0, 0, width, height, fmt, type, (void *)dst);
   }
 
