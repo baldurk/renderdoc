@@ -206,10 +206,17 @@ void WrappedGLES::glBindBuffer(GLenum target, GLuint buffer)
 
     // element array buffer binding is vertex array record state, record there (if we've not just
     // stopped)
-    if(m_State == WRITING_IDLE && (target == eGL_ELEMENT_ARRAY_BUFFER)
-        && RecordUpdateCheck(cd.m_VertexArrayRecord))
+    if(m_State == WRITING_IDLE && target == eGL_ELEMENT_ARRAY_BUFFER &&
+       RecordUpdateCheck(cd.m_VertexArrayRecord))
     {
-      GetResourceManager()->MarkDirtyResource(cd.m_VertexArrayRecord->GetResourceID());
+      GLuint vao = cd.m_VertexArrayRecord->Resource.name;
+
+      // use glVertexArrayElementBuffer to ensure the vertex array is bound when we bind the
+      // element buffer
+      SCOPED_SERIALISE_CONTEXT(VAO_ELEMENT_BUFFER);
+      Serialise_glVertexArrayElementBuffer(vao, buffer);
+
+      cd.m_VertexArrayRecord->AddChunk(scope.Get());
     }
 
     // store as transform feedback record state
@@ -2400,6 +2407,39 @@ void WrappedGLES::glBindVertexArray(GLuint array)
     if (record)
       GetResourceManager()->MarkVAOReferenced(record->Resource, eFrameRef_ReadBeforeWrite);
   }
+}
+
+bool WrappedGLES::Serialise_glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer)
+{
+  SERIALISE_ELEMENT(
+      ResourceId, vid,
+      (vaobj ? GetResourceManager()->GetID(VertexArrayRes(GetCtx(), vaobj)) : ResourceId()));
+  SERIALISE_ELEMENT(
+      ResourceId, bid,
+      (buffer ? GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)) : ResourceId()));
+
+  if(m_State <= EXECUTING)
+  {
+    vaobj = 0;
+    if(vid != ResourceId())
+      vaobj = GetResourceManager()->GetLiveResource(vid).name;
+
+    buffer = 0;
+    // might not have the live resource if this is a pre-capture chunk, and the buffer was never
+    // referenced
+    // at all in the actual frame
+    if(bid != ResourceId() && GetResourceManager()->HasLiveResource(bid))
+    {
+      buffer = GetResourceManager()->GetLiveResource(bid).name;
+
+      m_Buffers[GetResourceManager()->GetLiveID(bid)].curType = eGL_ELEMENT_ARRAY_BUFFER;
+    }
+
+    SafeVAOBinder safeVAOBinder(m_Real, vaobj);
+    m_Real.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, buffer);
+  }
+
+  return true;
 }
 
 bool WrappedGLES::Serialise_glBindVertexBuffer(GLuint bindingindex, GLuint buffer, GLintptr offset,

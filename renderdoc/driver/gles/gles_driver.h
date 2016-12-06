@@ -794,6 +794,7 @@ public:
                                        GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize,
                                        bool isInteger);
 
+  bool Serialise_glVertexArrayElementBuffer(GLuint vaobj, GLuint buffer);
   bool Serialise_glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLuint buffer);
   bool Serialise_glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer,
                                                 GLintptr offset, GLsizeiptr size);

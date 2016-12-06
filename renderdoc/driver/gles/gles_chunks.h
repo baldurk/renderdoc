@@ -290,7 +290,7 @@
   F(VERTEXATTRIBDIVISOR, "glVertexAttribDivisor") \
   F(VERTEXATTRIBBINDING, "glVertexAttribBinding") \
   \
-  F(VAO_ELEMENT_BUFFER, "glVertexArrayElementBuffer") /*unused*/ \
+  F(VAO_ELEMENT_BUFFER, "glVertexArrayElementBuffer") \
   F(FEEDBACK_BUFFER_BASE, "glTransformFeedbackBufferBase") \
   F(FEEDBACK_BUFFER_RANGE, "glTransformFeedbackBufferRange") \
   \
