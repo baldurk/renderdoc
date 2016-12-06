@@ -1726,10 +1726,12 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
           if(initialdata->VertexAttribs[i].integer == 0)
             gl.glVertexAttribPointer(i, attrib.size, attrib.type, (GLboolean)attrib.normalized,
-                                     initialdata->VertexBuffers[i].Stride, (const GLvoid *)initialdata->VertexBuffers[i].Offset);
+                                     buf.Stride, (const GLvoid *)buf.Offset);
           else
             gl.glVertexAttribIPointer(i, attrib.size, attrib.type,
-                                      initialdata->VertexBuffers[i].Stride, (const GLvoid *)initialdata->VertexBuffers[i].Offset);
+                                      buf.Stride, (const GLvoid *)buf.Offset);
+
+          gl.glVertexAttribDivisor(i, buf.Divisor);
         }
       }
 
