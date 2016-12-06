@@ -3016,6 +3016,9 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case VERTEXATTRIBDIVISOR: Serialise_glVertexAttribDivisor(0, 0); break;
     case VERTEXATTRIBBINDING: Serialise_glVertexAttribBinding(0, 0); break;
 
+    case FEEDBACK_BUFFER_BASE: Serialise_glTransformFeedbackBufferBase(0, 0, 0); break;
+    case FEEDBACK_BUFFER_RANGE: Serialise_glTransformFeedbackBufferRange(0, 0, 0, 0, 0); break;
+
     case OBJECT_LABEL: Serialise_glObjectLabel(eGL_NONE, 0, 0, NULL); break;
     case BEGIN_EVENT: Serialise_glPushDebugGroup(eGL_NONE, 0, 0, NULL); break;
     case SET_MARKER:

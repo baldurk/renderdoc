@@ -204,7 +204,6 @@ void WrappedGLES::glBindBuffer(GLenum target, GLuint buffer)
 
     }
 
-
     // element array buffer binding is vertex array record state, record there (if we've not just
     // stopped)
     if(m_State == WRITING_IDLE && (target == eGL_ELEMENT_ARRAY_BUFFER)
@@ -217,7 +216,14 @@ void WrappedGLES::glBindBuffer(GLenum target, GLuint buffer)
     if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
        RecordUpdateCheck(cd.m_FeedbackRecord))
     {
-      GetResourceManager()->MarkDirtyResource(cd.m_FeedbackRecord->GetResourceID());
+      GLuint feedback = cd.m_FeedbackRecord->Resource.name;
+
+      // use glTransformFeedbackBufferBase to ensure the feedback object is bound when we bind the
+      // buffer
+      SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_BASE);
+      Serialise_glTransformFeedbackBufferBase(feedback, 0, buffer);
+
+      cd.m_FeedbackRecord->AddChunk(scope.Get());
     }
 
     // immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
@@ -687,6 +693,20 @@ void WrappedGLES::glBindBufferBase(GLenum target, GLuint index, GLuint buffer)
       r->AddChunk(chunk);
     }
 
+    // store as transform feedback record state
+    if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
+       RecordUpdateCheck(cd.m_FeedbackRecord))
+    {
+      GLuint feedback = cd.m_FeedbackRecord->Resource.name;
+
+      // use glTransformFeedbackBufferBase to ensure the feedback object is bound when we bind the
+      // buffer
+      SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_BASE);
+      Serialise_glTransformFeedbackBufferBase(feedback, index, buffer);
+
+      cd.m_FeedbackRecord->AddChunk(scope.Get());
+    }
+
     // immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
     if(r && (target == eGL_TRANSFORM_FEEDBACK_BUFFER || target == eGL_SHADER_STORAGE_BUFFER ||
              target == eGL_ATOMIC_COUNTER_BUFFER))
@@ -785,7 +805,14 @@ void WrappedGLES::glBindBufferRange(GLenum target, GLuint index, GLuint buffer, 
     if(m_State == WRITING_IDLE && target == eGL_TRANSFORM_FEEDBACK_BUFFER &&
        RecordUpdateCheck(cd.m_FeedbackRecord))
     {
-      GetResourceManager()->MarkDirtyResource(cd.m_FeedbackRecord->GetResourceID());
+      GLuint feedback = cd.m_FeedbackRecord->Resource.name;
+
+      // use glTransformFeedbackBufferRange to ensure the feedback object is bound when we bind the
+      // buffer
+      SCOPED_SERIALISE_CONTEXT(FEEDBACK_BUFFER_RANGE);
+      Serialise_glTransformFeedbackBufferRange(feedback, index, buffer, offset, (GLsizei)size);
+
+      cd.m_FeedbackRecord->AddChunk(scope.Get());
     }
 
     // immediately consider buffers bound to transform feedbacks/SSBOs/atomic counters as dirty
@@ -1684,6 +1711,52 @@ void WrappedGLES::glDeleteTransformFeedbacks(GLsizei n, const GLuint *ids)
   }
 
   m_Real.glDeleteTransformFeedbacks(n, ids);
+}
+
+bool WrappedGLES::Serialise_glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLuint buffer)
+{
+  SERIALISE_ELEMENT(uint32_t, idx, index);
+  SERIALISE_ELEMENT(ResourceId, xid, GetResourceManager()->GetID(FeedbackRes(GetCtx(), xfb)));
+  SERIALISE_ELEMENT(ResourceId, bid, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
+
+  if(m_State <= EXECUTING)
+  {
+    xfb = GetResourceManager()->GetLiveResource(xid).name;
+
+    SafeTransformFeedbackBinder safeTransformFeedbackBinder(m_Real, xfb);
+
+    if(bid == ResourceId())
+      m_Real.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, idx, 0);
+    else
+      m_Real.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, idx, GetResourceManager()->GetLiveResource(bid).name);
+  }
+
+  return true;
+}
+
+bool WrappedGLES::Serialise_glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer,
+                                                           GLintptr offset, GLsizeiptr size)
+{
+  SERIALISE_ELEMENT(uint32_t, idx, index);
+  SERIALISE_ELEMENT(ResourceId, xid, GetResourceManager()->GetID(FeedbackRes(GetCtx(), xfb)));
+  SERIALISE_ELEMENT(ResourceId, bid, GetResourceManager()->GetID(BufferRes(GetCtx(), buffer)));
+  SERIALISE_ELEMENT(uint64_t, offs, (uint64_t)offset);
+  SERIALISE_ELEMENT(uint64_t, sz, (uint64_t)size);
+
+  if(m_State <= EXECUTING)
+  {
+    xfb = GetResourceManager()->GetLiveResource(xid).name;
+
+    SafeTransformFeedbackBinder safeTransformFeedbackBinder(m_Real, xfb);
+
+    if(bid == ResourceId())
+      m_Real.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, idx, 0); // if we're unbinding, offset/size don't matter
+    else
+      m_Real.glBindBufferRange(eGL_TRANSFORM_FEEDBACK_BUFFER, idx, GetResourceManager()->GetLiveResource(bid).name,
+                               (GLintptr)offs, (GLsizei)sz);
+  }
+
+  return true;
 }
 
 bool WrappedGLES::Serialise_glBindTransformFeedback(GLenum target, GLuint id)

@@ -291,8 +291,8 @@
   F(VERTEXATTRIBBINDING, "glVertexAttribBinding") \
   \
   F(VAO_ELEMENT_BUFFER, "glVertexArrayElementBuffer") /*unused*/ \
-  F(FEEDBACK_BUFFER_BASE, "glTransformFeedbackBufferBase") /*unused*/ \
-  F(FEEDBACK_BUFFER_RANGE, "glTransformFeedbackBufferRange") /*unused*/ \
+  F(FEEDBACK_BUFFER_BASE, "glTransformFeedbackBufferBase") \
+  F(FEEDBACK_BUFFER_RANGE, "glTransformFeedbackBufferRange") \
   \
   F(OBJECT_LABEL, "glObjectLabel") \
   F(BEGIN_EVENT, "glPushDebugGroup") \

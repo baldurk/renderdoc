@@ -1658,7 +1658,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
     if(data->valid)
     {
       GLuint prevfeedback = 0;
-      gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK, (GLint *)&prevfeedback);
+      gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&prevfeedback);
 
       gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, live.name);
 
@@ -1668,8 +1668,11 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
       for(int i = 0; i < (int)ARRAY_COUNT(data->Buffer) && i < maxCount; i++)
       {
         GLuint buffer = data->Buffer[i] == ResourceId() ? 0 : GetLiveResource(data->Buffer[i]).name;
-        gl.glBindBufferRange(eGL_TRANSFORM_FEEDBACK_BUFFER, i, buffer, (GLintptr)data->Offset[i],
-                             (GLsizei)data->Size[i]);
+        if(buffer == 0 || ((GLintptr)data->Offset[i] == 0 && (GLsizei)data->Size[i] == 0))
+          gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, i, buffer);
+        else
+          gl.glBindBufferRange(eGL_TRANSFORM_FEEDBACK_BUFFER, i, buffer, (GLintptr)data->Offset[i],
+                               (GLsizei)data->Size[i]);
       }
 
       gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, prevfeedback);

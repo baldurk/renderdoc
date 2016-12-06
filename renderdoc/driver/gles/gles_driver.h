@@ -221,6 +221,30 @@ private:
     GLuint m_previous;
 };
 
+class SafeTransformFeedbackBinder
+{
+public:
+  SafeTransformFeedbackBinder(const GLHookSet &hooks, GLuint transformFeedback)
+      : m_Real(hooks)
+      , m_previous(0)
+    {
+      m_Real.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&m_previous);
+      m_Real.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, transformFeedback);
+    }
+
+    ~SafeTransformFeedbackBinder()
+    {
+      m_Real.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, m_previous);
+    }
+
+private:
+    SafeTransformFeedbackBinder(const SafeTransformFeedbackBinder&);
+    SafeTransformFeedbackBinder& operator=(const SafeTransformFeedbackBinder&);
+
+    const GLHookSet &m_Real;
+    GLuint m_previous;
+};
+
 struct GLESInitParams : public RDCInitParams
 {
   GLESInitParams();
@@ -769,6 +793,10 @@ public:
                                        GLuint index, GLint size, GLenum type,
                                        GLboolean normalized, GLsizei stride, const void *pointer, size_t dataSize,
                                        bool isInteger);
+
+  bool Serialise_glTransformFeedbackBufferBase(GLuint xfb, GLuint index, GLuint buffer);
+  bool Serialise_glTransformFeedbackBufferRange(GLuint xfb, GLuint index, GLuint buffer,
+                                                GLintptr offset, GLsizeiptr size);
 
   enum AttribType
   {
