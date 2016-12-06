@@ -25,14 +25,13 @@
 
 #include "../gles_driver.h"
 
-void WrappedGLES::Compat_glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt, GLenum type, GLint width, GLint height, void *ret)
+void WrappedGLES::Compat_glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt,
+                                       GLenum type,GLint width, GLint height, GLint depth, void *ret)
 {
-  GLuint prevfbo = 0;
   GLuint fbo = 0;
-
-  m_Real.glGetIntegerv(eGL_FRAMEBUFFER_BINDING, (GLint *)&prevfbo);
   m_Real.glGenFramebuffers(1, &fbo);
-  m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
+
+  SafeFramebufferBinder safeFramebufferBinder(m_Real, eGL_FRAMEBUFFER, fbo);
 
   GLenum attachmentTarget = eGL_COLOR_ATTACHMENT0;
   if(fmt == eGL_DEPTH_COMPONENT)
@@ -42,19 +41,37 @@ void WrappedGLES::Compat_glGetTexImage(GLenum target, GLenum texType, GLuint tex
   else if(fmt == eGL_DEPTH_STENCIL)
     attachmentTarget = eGL_DEPTH_STENCIL_ATTACHMENT;
 
-  // TODO pantos 3d, arrays?
-  if (texType == eGL_TEXTURE_CUBE_MAP) {
-//    m_Real.glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, target, texname, mip);
-    m_Real.glFramebufferTexture2D(eGL_FRAMEBUFFER, attachmentTarget, target, texname, mip);
-  } else {
-    m_Real.glFramebufferTexture(eGL_FRAMEBUFFER, attachmentTarget, texname, mip);
+  size_t sliceSize = GetByteSize(width, height, 1, fmt, type);
+
+  // TODO pantos check 2dms, 2dmsarray, cube array
+  for(GLint d = 0; d < depth; ++d)
+  {
+    switch(texType)
+    {
+      case eGL_TEXTURE_CUBE_MAP:
+        m_Real.glFramebufferTexture2D(eGL_FRAMEBUFFER, attachmentTarget, target, texname, mip);
+        break;
+
+      case eGL_TEXTURE_3D:
+      case eGL_TEXTURE_2D_ARRAY:
+      case eGL_TEXTURE_CUBE_MAP_ARRAY:
+      case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+        m_Real.glFramebufferTextureLayer(eGL_FRAMEBUFFER, attachmentTarget, texname, mip, d);
+        break;
+
+      case eGL_TEXTURE_2D:
+      case eGL_TEXTURE_2D_MULTISAMPLE:
+      default:
+        m_Real.glFramebufferTexture(eGL_FRAMEBUFFER, attachmentTarget, texname, mip);
+        break;
+    }
+
+    dumpFBOState(m_Real);
+
+    byte *dst = (byte *)ret + d * sliceSize;
+    m_Real.glReadPixels(0, 0, width, height, fmt, type, (void *)dst);
   }
 
-  dumpFBOState(m_Real);
-
-  m_Real.glReadPixels(0, 0, width, height, fmt, type, (void *)ret);
-
-  m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, prevfbo);
   m_Real.glDeleteFramebuffers(1, &fbo);
 }
 

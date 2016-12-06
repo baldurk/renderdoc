@@ -975,7 +975,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
             for(int trg = 0; trg < count; trg++)
             {
               // OpenGL version: gl.glGetTexImage(targets[trg], i, fmt, type, buf)
-              m_GL->Compat_glGetTexImage(targets[trg], t, tex, i, fmt, type, w, h, buf);
+              m_GL->Compat_glGetTexImage(targets[trg], t, tex, i, fmt, type, w, h, d, buf);
               m_pSerialiser->SerialiseBuffer("image", buf, size);
             }
           }

@@ -969,7 +969,7 @@ public:
                                                 GLsizei samples);
 
   // GLES - GL compatibility like methods
-  void Compat_glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt, GLenum type, GLint width, GLint height, void *ret);
+  void Compat_glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt, GLenum type, GLint width, GLint height, GLint depth, void *ret);
   void Compat_glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data);
   void Compat_glGetNamedBufferSubDataEXT(GLuint buffer, GLenum target, GLintptr offset, GLsizeiptr size, void *data);
   void Compat_glBufferStorageEXT (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
