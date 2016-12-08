@@ -120,330 +120,213 @@ WrappedGLES::WrappedGLES(const char *logfile, const GLHookSet &funcs) : m_Real(i
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedGLES));
 
-  globalExts.push_back("GL_ARB_arrays_of_arrays");
-  globalExts.push_back("GL_ARB_base_instance");
-  globalExts.push_back("GL_ARB_blend_func_extended");
-  globalExts.push_back("GL_ARB_buffer_storage");
-  globalExts.push_back("GL_ARB_clear_buffer_object");
-  globalExts.push_back("GL_ARB_clear_texture");
-  globalExts.push_back("GL_ARB_clip_control");
-  globalExts.push_back("GL_ARB_color_buffer_float");
-  globalExts.push_back("GL_ARB_compressed_texture_pixel_storage");
-  globalExts.push_back("GL_ARB_compute_shader");
-  globalExts.push_back("GL_ARB_compute_variable_group_size");
-  globalExts.push_back("GL_ARB_conditional_render_inverted");
-  globalExts.push_back("GL_ARB_conservative_depth");
-  globalExts.push_back("GL_ARB_copy_buffer");
-  globalExts.push_back("GL_ARB_copy_image");
-  globalExts.push_back("GL_ARB_cull_distance");
-  globalExts.push_back("GL_ARB_debug_output");
-  globalExts.push_back("GL_ARB_depth_buffer_float");
-  globalExts.push_back("GL_ARB_depth_clamp");
-  globalExts.push_back("GL_ARB_depth_texture");
-  globalExts.push_back("GL_ARB_derivative_control");
-  globalExts.push_back("GL_ARB_direct_state_access");
-  globalExts.push_back("GL_ARB_draw_buffers");
-  globalExts.push_back("GL_ARB_draw_buffers_blend");
-  globalExts.push_back("GL_ARB_draw_elements_base_vertex");
-  globalExts.push_back("GL_ARB_draw_indirect");
-  globalExts.push_back("GL_ARB_draw_instanced");
-  globalExts.push_back("GL_ARB_enhanced_layouts");
-  globalExts.push_back("GL_ARB_ES2_compatibility");
-  globalExts.push_back("GL_ARB_ES3_1_compatibility");
-  globalExts.push_back("GL_ARB_ES3_compatibility");
-  globalExts.push_back("GL_ARB_explicit_attrib_location");
-  globalExts.push_back("GL_ARB_explicit_uniform_location");
-  globalExts.push_back("GL_ARB_fragment_coord_conventions");
-  globalExts.push_back("GL_ARB_fragment_layer_viewport");
-  globalExts.push_back("GL_ARB_fragment_shader_interlock");
-  globalExts.push_back("GL_ARB_framebuffer_no_attachments");
-  globalExts.push_back("GL_ARB_framebuffer_object");
-  globalExts.push_back("GL_ARB_framebuffer_sRGB");
-  globalExts.push_back("GL_ARB_geometry_shader4");
-  globalExts.push_back("GL_ARB_get_program_binary");
-  globalExts.push_back("GL_ARB_get_texture_sub_image");
-  globalExts.push_back("GL_ARB_gpu_shader_fp64");
-  globalExts.push_back("GL_ARB_gpu_shader5");
-  globalExts.push_back("GL_ARB_half_float_pixel");
-  globalExts.push_back("GL_ARB_half_float_vertex");
-  globalExts.push_back("GL_ARB_indirect_parameters");
-  globalExts.push_back("GL_ARB_instanced_arrays");
-  globalExts.push_back("GL_ARB_internalformat_query");
-  globalExts.push_back("GL_ARB_internalformat_query2");
-  globalExts.push_back("GL_ARB_invalidate_subdata");
-  globalExts.push_back("GL_ARB_map_buffer_alignment");
-  globalExts.push_back("GL_ARB_map_buffer_range");
-  globalExts.push_back("GL_ARB_multi_bind");
-  globalExts.push_back("GL_ARB_multi_draw_indirect");
-  globalExts.push_back("GL_ARB_multisample");
-  globalExts.push_back("GL_ARB_multitexture");
-  globalExts.push_back("GL_ARB_occlusion_query");
-  globalExts.push_back("GL_ARB_occlusion_query2");
-  globalExts.push_back("GL_ARB_pixel_buffer_object");
-  globalExts.push_back("GL_ARB_pipeline_statistics_query");
-  globalExts.push_back("GL_ARB_point_parameters");
-  globalExts.push_back("GL_ARB_point_sprite");
-  globalExts.push_back("GL_ARB_post_depth_coverage");
-  globalExts.push_back("GL_ARB_program_interface_query");
-  globalExts.push_back("GL_ARB_provoking_vertex");
-  globalExts.push_back("GL_ARB_query_buffer_object");
-  globalExts.push_back("GL_ARB_robust_buffer_access_behavior");
-  globalExts.push_back("GL_ARB_robustness");
-  globalExts.push_back("GL_ARB_robustness_application_isolation");
-  globalExts.push_back("GL_ARB_robustness_share_group_isolation");
-  globalExts.push_back("GL_ARB_sample_shading");
-  globalExts.push_back("GL_ARB_sampler_objects");
-  globalExts.push_back("GL_ARB_seamless_cube_map");
-  globalExts.push_back("GL_ARB_seamless_cubemap_per_texture");
-  globalExts.push_back("GL_ARB_separate_shader_objects");
-  globalExts.push_back("GL_ARB_shader_atomic_counters");
-  globalExts.push_back("GL_ARB_shader_atomic_counter_ops");
-  globalExts.push_back("GL_ARB_shader_ballot");
-  globalExts.push_back("GL_ARB_shader_bit_encoding");
-  globalExts.push_back("GL_ARB_shader_clock");
-  globalExts.push_back("GL_ARB_shader_draw_parameters");
-  globalExts.push_back("GL_ARB_shader_group_vote");
-  globalExts.push_back("GL_ARB_shader_image_load_store");
-  globalExts.push_back("GL_ARB_shader_image_size");
-  globalExts.push_back("GL_ARB_shader_precision");
-  globalExts.push_back("GL_ARB_shader_stencil_export");
-  globalExts.push_back("GL_ARB_shader_storage_buffer_object");
-  globalExts.push_back("GL_ARB_shader_subroutine");
-  globalExts.push_back("GL_ARB_shader_texture_image_samples");
-  globalExts.push_back("GL_ARB_shader_texture_lod");
-  globalExts.push_back("GL_ARB_shader_viewport_layer_array");
-  globalExts.push_back("GL_ARB_shading_language_100");
-  globalExts.push_back("GL_ARB_shading_language_420pack");
-  globalExts.push_back("GL_ARB_shading_language_include");
-  globalExts.push_back("GL_ARB_shading_language_packing");
-  globalExts.push_back("GL_ARB_shadow");
-  globalExts.push_back("GL_ARB_shadow_ambient");
-  globalExts.push_back("GL_ARB_stencil_texturing");
-  globalExts.push_back("GL_ARB_sync");
-  globalExts.push_back("GL_ARB_tessellation_shader");
-  globalExts.push_back("GL_ARB_texture_barrier");
-  globalExts.push_back("GL_ARB_texture_border_clamp");
-  globalExts.push_back("GL_ARB_texture_buffer_object");
-  globalExts.push_back("GL_ARB_texture_buffer_object_rgb32");
-  globalExts.push_back("GL_ARB_texture_buffer_range");
-  globalExts.push_back("GL_ARB_texture_compression");
-  globalExts.push_back("GL_ARB_texture_compression_bptc");
-  globalExts.push_back("GL_ARB_texture_compression_rgtc");
-  globalExts.push_back("GL_ARB_texture_cube_map");
-  globalExts.push_back("GL_ARB_texture_cube_map_array");
-  globalExts.push_back("GL_ARB_texture_float");
-  globalExts.push_back("GL_ARB_texture_gather");
-  globalExts.push_back("GL_ARB_texture_mirror_clamp_to_edge");
-  globalExts.push_back("GL_ARB_texture_mirrored_repeat");
-  globalExts.push_back("GL_ARB_texture_multisample");
-  globalExts.push_back("GL_ARB_texture_non_power_of_two");
-  globalExts.push_back("GL_ARB_texture_query_levels");
-  globalExts.push_back("GL_ARB_texture_query_lod");
-  globalExts.push_back("GL_ARB_texture_rectangle");
-  globalExts.push_back("GL_ARB_texture_rg");
-  globalExts.push_back("GL_ARB_texture_rgb10_a2ui");
-  globalExts.push_back("GL_ARB_texture_stencil8");
-  globalExts.push_back("GL_ARB_texture_storage");
-  globalExts.push_back("GL_ARB_texture_storage_multisample");
-  globalExts.push_back("GL_ARB_texture_swizzle");
-  globalExts.push_back("GL_ARB_texture_view");
-  globalExts.push_back("GL_ARB_timer_query");
-  globalExts.push_back("GL_ARB_transform_feedback_instanced");
-  globalExts.push_back("GL_ARB_transform_feedback_overflow_query");
-  globalExts.push_back("GL_ARB_transform_feedback2");
-  globalExts.push_back("GL_ARB_transform_feedback3");
-  globalExts.push_back("GL_ARB_uniform_buffer_object");
-  globalExts.push_back("GL_ARB_vertex_array_bgra");
-  globalExts.push_back("GL_ARB_vertex_array_object");
-  globalExts.push_back("GL_ARB_vertex_attrib_64bit");
-  globalExts.push_back("GL_ARB_vertex_attrib_binding");
-  globalExts.push_back("GL_ARB_vertex_buffer_object");
-  globalExts.push_back("GL_ARB_vertex_program");
-  globalExts.push_back("GL_ARB_vertex_type_10f_11f_11f_rev");
-  globalExts.push_back("GL_ARB_vertex_type_2_10_10_10_rev");
-  globalExts.push_back("GL_ARB_viewport_array");
-  globalExts.push_back("GL_EXT_bgra");
-  globalExts.push_back("GL_EXT_blend_color");
-  globalExts.push_back("GL_EXT_blend_equation_separate");
-  globalExts.push_back("GL_EXT_blend_func_separate");
-  globalExts.push_back("GL_EXT_blend_minmax");
-  globalExts.push_back("GL_EXT_blend_subtract");
-  globalExts.push_back("GL_EXT_debug_label");
-  globalExts.push_back("GL_EXT_debug_marker");
-  globalExts.push_back("GL_EXT_depth_bounds_test");
-  globalExts.push_back("GL_EXT_direct_state_access");
-  globalExts.push_back("GL_EXT_draw_buffers2");
-  globalExts.push_back("GL_EXT_draw_instanced");
-  globalExts.push_back("GL_EXT_draw_range_elements");
-  globalExts.push_back("GL_EXT_framebuffer_blit");
-  globalExts.push_back("GL_EXT_framebuffer_multisample");
-  globalExts.push_back("GL_EXT_framebuffer_multisample_blit_scaled");
-  globalExts.push_back("GL_EXT_framebuffer_object");
-  globalExts.push_back("GL_EXT_framebuffer_sRGB");
-  globalExts.push_back("GL_EXT_gpu_shader4");
-  globalExts.push_back("GL_EXT_multisample");
-  globalExts.push_back("GL_EXT_multi_draw_arrays");
-  globalExts.push_back("GL_EXT_packed_depth_stencil");
-  globalExts.push_back("GL_EXT_packed_float");
-  globalExts.push_back("GL_EXT_pixel_buffer_object");
-  globalExts.push_back("GL_EXT_pixel_buffer_object");
-  globalExts.push_back("GL_EXT_point_parameters");
-  globalExts.push_back("GL_EXT_polygon_offset_clamp");
-  globalExts.push_back("GL_EXT_post_depth_coverage");
-  globalExts.push_back("GL_EXT_provoking_vertex");
-  globalExts.push_back("GL_EXT_raster_multisample");
-  globalExts.push_back("GL_EXT_shader_image_load_store");
-  globalExts.push_back("GL_EXT_shader_image_load_formatted");
-  globalExts.push_back("GL_EXT_shader_integer_mix");
-  globalExts.push_back("GL_EXT_shadow_funcs");
-  globalExts.push_back("GL_EXT_stencil_wrap");
-  globalExts.push_back("GL_EXT_texture_array");
-  globalExts.push_back("GL_EXT_texture_buffer_object");
-  globalExts.push_back("GL_EXT_texture_compression_dxt1");
-  globalExts.push_back("GL_EXT_texture_compression_rgtc");
-  globalExts.push_back("GL_EXT_texture_compression_s3tc");
-  globalExts.push_back("GL_EXT_texture_cube_map");
-  globalExts.push_back("GL_EXT_texture_edge_clamp");
-  globalExts.push_back("GL_EXT_texture_filter_anisotropic");
-  globalExts.push_back("GL_EXT_texture_filter_minmax");
-  globalExts.push_back("GL_EXT_texture_integer");
-  globalExts.push_back("GL_EXT_texture_lod_bias");
-  globalExts.push_back("GL_EXT_texture_mirror_clamp");
-  globalExts.push_back("GL_EXT_texture_shared_exponent");
-  globalExts.push_back("GL_EXT_texture_snorm");
-  globalExts.push_back("GL_EXT_texture_sRGB");
-  globalExts.push_back("GL_EXT_texture_sRGB_decode");
-  globalExts.push_back("GL_EXT_texture_swizzle");
-  globalExts.push_back("GL_EXT_texture3D");
-  globalExts.push_back("GL_EXT_timer_query");
-  globalExts.push_back("GL_EXT_transform_feedback");
-  globalExts.push_back("GL_EXT_vertex_attrib_64bit");
-  globalExts.push_back("GL_GREMEDY_frame_terminator");
-  globalExts.push_back("GL_GREMEDY_string_marker");
-  globalExts.push_back("GL_KHR_blend_equation_advanced");
-  globalExts.push_back("GL_KHR_blend_equation_advanced_coherent");
-  globalExts.push_back("GL_KHR_context_flush_control");
-  globalExts.push_back("GL_KHR_debug");
-  globalExts.push_back("GL_KHR_no_error");
-  globalExts.push_back("GL_KHR_robustness");
-  globalExts.push_back("GL_KHR_robust_buffer_access_behavior");
-
-  // this WGL extension is advertised in the gl ext string instead of via the wgl ext string,
-  // return it just in case anyone is checking for it via this place. On non-windows platforms
-  // it won't be reported as we do the intersection of renderdoc supported extensions and
-  // implementation supported extensions.
-  globalExts.push_back("WGL_EXT_swap_control");
-
-  /************************************************************************
-
-  Extensions I plan to support, but haven't implemented yet for one reason or another.
-  Usually complexity/time considerations.
-
-  Vendor specific extensions aren't listed here, or below in the 'will never support' list.
-  Only very important/commonly used vendor extensions will be supported, generally I'll
-  stick to ARB, EXT and KHR.
-
-  * GL_ARB_bindless_texture
-  * GL_ARB_cl_event
-  * GL_ARB_sparse_buffer
-  * GL_ARB_sparse_texture
-  * GL_EXT_sparse_texture2
-  * GL_ARB_sparse_texture2
-  * GL_ARB_sparse_texture_clamp <- this one is free, but no point exposing until other spares exts
-  * GL_EXT_x11_sync_object
-  * GL_KHR_texture_compression_astc_hdr <- without support for astc textures on PC hardware this
-  * GL_KHR_texture_compression_astc_ldr <- could be difficult. Maybe falls into the category of
-  'only
-                                           support if it's supported on replaying driver'?
-  * GL_ARB_ES3_2_compatibility
-  * GL_ARB_gpu_shader_int64
-  * GL_ARB_parallel_shader_compile
-  * GL_ARB_sample_locations
-  * GL_ARB_texture_filter_minmax
-
-  ************************************************************************/
-
-  /************************************************************************
-
-  Extensions I never plan to support due to only referring to old/outdated functionality listed
-  below.
-
-  I'm not sure what to do about GL_ARB_imaging, it seems like it's somewhat used in modern GL? For
-  now
-  I'm hoping I can get away with not reporting it but implementing the functionality it still
-  describes.
-
-  * GL_ARB_compatibility
-  * GL_ARB_fragment_program
-  * GL_ARB_fragment_program_shadow
-  * GL_ARB_fragment_shader
-  * GL_ARB_matrix_palette
-  * GL_ARB_shader_objects
-  * GL_ARB_texture_env_add
-  * GL_ARB_texture_env_combine
-  * GL_ARB_texture_env_crossbar
-  * GL_ARB_texture_env_dot3
-  * GL_ARB_transpose_matrix
-  * GL_ARB_vertex_blend
-  * GL_ARB_vertex_program
-  * GL_ARB_vertex_shader
-  * GL_ARB_window_pos
-  * GL_ATI_draw_buffers
-  * GL_ATI_texture_float
-  * GL_ATI_texture_mirror_once
-  * GL_EXT_422_pixels
-  * GL_EXT_abgr
-  * GL_EXT_bindable_uniform
-  * GL_EXT_blend_logic_op
-  * GL_EXT_Cg_shader
-  * GL_EXT_clip_volume_hint
-  * GL_EXT_cmyka
-  * GL_EXT_color_subtable
-  * GL_EXT_compiled_vertex_array
-  * GL_EXT_convolution
-  * GL_EXT_coordinate_frame
-  * GL_EXT_copy_texture
-  * GL_EXT_cull_vertex
-  * GL_EXT_fog_coord
-  * GL_EXT_fragment_lighting
-  * GL_EXT_geometry_shader4
-  * GL_EXT_gpu_program_parameters
-  * GL_EXT_histogram
-  * GL_EXT_import_sync_object
-  * GL_EXT_index_array_formats
-  * GL_EXT_index_func
-  * GL_EXT_index_material
-  * GL_EXT_index_texture
-  * GL_EXT_light_texture
-  * GL_EXT_misc_attribute
-  * GL_EXT_packed_pixels
-  * GL_EXT_paletted_texture
-  * GL_EXT_pixel_transform
-  * GL_EXT_pixel_transform_color_table
-  * GL_EXT_rescale_normal
-  * GL_EXT_scene_marker
-  * GL_EXT_secondary_color
-  * GL_EXT_separate_shader_objects
-  * GL_EXT_separate_specular_color
-  * GL_EXT_shared_texture_palette
-  * GL_EXT_stencil_clear_tag
-  * GL_EXT_stencil_two_side
-  * GL_EXT_subtexture
-  * GL_EXT_texture_compression_latc
-  * GL_EXT_texture_env_add
-  * GL_EXT_texture_env_combine
-  * GL_EXT_texture_env_dot3
-  * GL_EXT_texture_lod
-  * GL_EXT_texture_object
-  * GL_EXT_texture_perturb_normal
-  * GL_EXT_texture_storage
-  * GL_EXT_vertex_array
-  * GL_EXT_vertex_array_bgra
-  * GL_EXT_vertex_shader
-  * GL_EXT_vertex_weighting
-  * GL_S3_s3tc
-
-  ************************************************************************/
+  globalExts.push_back("AMD_compressed_3DC_texture");
+  globalExts.push_back("AMD_compressed_ATC_texture");
+  globalExts.push_back("AMD_program_binary_Z400");
+  globalExts.push_back("ANDROID_extension_pack_es31a");
+  globalExts.push_back("ANGLE_depth_texture");
+  globalExts.push_back("ANGLE_framebuffer_blit");
+  globalExts.push_back("ANGLE_framebuffer_multisample");
+  globalExts.push_back("ANGLE_instanced_arrays");
+  globalExts.push_back("ANGLE_pack_reverse_row_order");
+  globalExts.push_back("ANGLE_program_binary");
+  globalExts.push_back("ANGLE_texture_compression_dxt3");
+  globalExts.push_back("ANGLE_texture_compression_dxt5");
+  globalExts.push_back("ANGLE_texture_usage");
+  globalExts.push_back("APPLE_clip_distance");
+  globalExts.push_back("APPLE_color_buffer_packed_float");
+  globalExts.push_back("APPLE_framebuffer_multisample");
+  globalExts.push_back("APPLE_rgb_422");
+  globalExts.push_back("APPLE_sync");
+  globalExts.push_back("APPLE_texture_format_BGRA8888");
+  globalExts.push_back("APPLE_texture_max_level");
+  globalExts.push_back("APPLE_texture_packed_float");
+  globalExts.push_back("ARB_sparse_texture2");
+  globalExts.push_back("ARM_mali_program_binary");
+  globalExts.push_back("ARM_mali_shader_binary");
+  globalExts.push_back("ARM_rgba8");
+  globalExts.push_back("ARM_shader_framebuffer_fetch");
+  globalExts.push_back("ARM_shader_framebuffer_fetch_depth_stencil");
+  globalExts.push_back("DMP_program_binary");
+  globalExts.push_back("DMP_shader_binary");
+  globalExts.push_back("EXT_base_instance");
+  globalExts.push_back("EXT_blend_func_extended");
+  globalExts.push_back("EXT_blend_minmax");
+  globalExts.push_back("EXT_buffer_storage");
+  globalExts.push_back("EXT_clip_cull_distance");
+  globalExts.push_back("EXT_color_buffer_float");
+  globalExts.push_back("EXT_color_buffer_half_float");
+  globalExts.push_back("EXT_conservative_depth");
+  globalExts.push_back("EXT_copy_image");
+  globalExts.push_back("EXT_debug_label");
+  globalExts.push_back("EXT_debug_marker");
+  globalExts.push_back("EXT_debug_tool");
+  globalExts.push_back("EXT_disjoint_timer_query");
+  globalExts.push_back("EXT_draw_buffers");
+  globalExts.push_back("EXT_draw_buffers_indexed");
+  globalExts.push_back("EXT_draw_elements_base_vertex");
+  globalExts.push_back("EXT_draw_instanced");
+  globalExts.push_back("EXT_float_blend");
+  globalExts.push_back("EXT_geometry_point_size");
+  globalExts.push_back("EXT_geometry_shader");
+  globalExts.push_back("EXT_gpu_shader5");
+  globalExts.push_back("EXT_instanced_arrays");
+  globalExts.push_back("EXT_map_buffer_range");
+  globalExts.push_back("EXT_multisampled_compatibility");
+  globalExts.push_back("EXT_multisampled_render_to_texture");
+  globalExts.push_back("EXT_multiview_draw_buffers");
+  globalExts.push_back("EXT_occlusion_query_boolean");
+  globalExts.push_back("EXT_polygon_offset_clamp");
+  globalExts.push_back("EXT_post_depth_coverage");
+  globalExts.push_back("EXT_primitive_bounding_box");
+  globalExts.push_back("EXT_protected_textures");
+  globalExts.push_back("EXT_pvrtc_sRGB");
+  globalExts.push_back("EXT_raster_multisample");
+  globalExts.push_back("EXT_read_format_bgra");
+  globalExts.push_back("EXT_render_snorm");
+  globalExts.push_back("EXT_robustness");
+  globalExts.push_back("EXT_separate_shader_objects");
+  globalExts.push_back("EXT_shader_framebuffer_fetch");
+  globalExts.push_back("EXT_shader_group_vote");
+  globalExts.push_back("EXT_shader_implicit_conversions");
+  globalExts.push_back("EXT_shader_integer_mix");
+  globalExts.push_back("EXT_shader_io_blocks");
+  globalExts.push_back("EXT_shader_non_constant_global_initializers");
+  globalExts.push_back("EXT_shader_pixel_local_storage");
+  globalExts.push_back("EXT_shader_texture_lod");
+  globalExts.push_back("EXT_shadow_samplers");
+  globalExts.push_back("EXT_sRGB");
+  globalExts.push_back("EXT_sRGB_write_control");
+  globalExts.push_back("EXT_tessellation_point_size");
+  globalExts.push_back("EXT_tessellation_shader");
+  globalExts.push_back("EXT_texture_border_clamp");
+  globalExts.push_back("EXT_texture_buffer");
+  globalExts.push_back("EXT_texture_compression_dxt1");
+  globalExts.push_back("EXT_texture_compression_s3tc");
+  globalExts.push_back("EXT_texture_cube_map_array");
+  globalExts.push_back("EXT_texture_filter_anisotropic");
+  globalExts.push_back("EXT_texture_filter_minmax");
+  globalExts.push_back("EXT_texture_format_BGRA8888");
+  globalExts.push_back("EXT_texture_norm16");
+  globalExts.push_back("EXT_texture_rg");
+  globalExts.push_back("EXT_texture_sRGB_decode");
+  globalExts.push_back("EXT_texture_sRGB_R8");
+  globalExts.push_back("EXT_texture_sRGB_RG8");
+  globalExts.push_back("EXT_texture_storage");
+  globalExts.push_back("EXT_texture_type_2_10_10_10_REV");
+  globalExts.push_back("EXT_texture_view");
+  globalExts.push_back("EXT_unpack_subimage");
+  globalExts.push_back("EXT_YUV_target");
+  globalExts.push_back("FJ_shader_binary_GCCSO");
+  globalExts.push_back("IMG_multisampled_render_to_texture");
+  globalExts.push_back("IMG_program_binary");
+  globalExts.push_back("IMG_read_format");
+  globalExts.push_back("IMG_shader_binary");
+  globalExts.push_back("IMG_texture_compression_pvrtc");
+  globalExts.push_back("IMG_texture_compression_pvrtc2");
+  globalExts.push_back("IMG_texture_filter_cubic");
+  globalExts.push_back("INTEL_conservative_rasterization");
+  globalExts.push_back("KHR_blend_equation_advanced");
+  globalExts.push_back("KHR_blend_equation_advanced_coherent");
+  globalExts.push_back("KHR_context_flush_control");
+  globalExts.push_back("KHR_debug");
+  globalExts.push_back("KHR_no_error");
+  globalExts.push_back("KHR_robust_buffer_access_behavior");
+  globalExts.push_back("KHR_robustness");
+  globalExts.push_back("KHR_texture_compression_astc_hdr");
+  globalExts.push_back("KHR_texture_compression_astc_ldr");
+  globalExts.push_back("KHR_texture_compression_astc_sliced_3d");
+  globalExts.push_back("NV_blend_equation_advanced");
+  globalExts.push_back("NV_blend_equation_advanced_coherent");
+  globalExts.push_back("NV_conditional_render");
+  globalExts.push_back("NV_copy_buffer");
+  globalExts.push_back("NV_depth_nonlinear");
+  globalExts.push_back("NV_draw_buffers");
+  globalExts.push_back("NV_draw_instanced");
+  globalExts.push_back("NV_explicit_attrib_location");
+  globalExts.push_back("NV_fbo_color_attachments");
+  globalExts.push_back("NV_fill_rectangle");
+  globalExts.push_back("NV_fragment_shader_interlock");
+  globalExts.push_back("NV_framebuffer_blit");
+  globalExts.push_back("NV_framebuffer_multisample");
+  globalExts.push_back("NV_generate_mipmap_sRGB");
+  globalExts.push_back("NV_geometry_shader_passthrough");
+  globalExts.push_back("NV_image_formats");
+  globalExts.push_back("NV_instanced_arrays");
+  globalExts.push_back("NV_non_square_matrices");
+  globalExts.push_back("NV_path_rendering_shared_edge");
+  globalExts.push_back("NV_polygon_mode");
+  globalExts.push_back("NV_read_buffer");
+  globalExts.push_back("NV_read_buffer_front");
+  globalExts.push_back("NV_read_depth");
+  globalExts.push_back("NV_read_depth_stencil");
+  globalExts.push_back("NV_read_stencil");
+  globalExts.push_back("NV_sample_mask_override_coverage");
+  globalExts.push_back("NV_shader_atomic_fp16_vector");
+  globalExts.push_back("NV_shader_noperspective_interpolation");
+  globalExts.push_back("NV_shadow_samplers_array");
+  globalExts.push_back("NV_shadow_samplers_cube");
+  globalExts.push_back("NV_sRGB_formats");
+  globalExts.push_back("NV_texture_border_clamp");
+  globalExts.push_back("NV_texture_compression_s3tc_update");
+  globalExts.push_back("NV_texture_npot_2D_mipmap");
+  globalExts.push_back("NV_viewport_array");
+  globalExts.push_back("NV_viewport_array2");
+  globalExts.push_back("OES_compressed_ETC1_RGB8_sub_texture");
+  globalExts.push_back("OES_compressed_ETC1_RGB8_texture");
+  globalExts.push_back("OES_compressed_paletted_texture");
+  globalExts.push_back("OES_copy_image");
+  globalExts.push_back("OES_depth24");
+  globalExts.push_back("OES_depth32");
+  globalExts.push_back("OES_depth_texture");
+  globalExts.push_back("OES_draw_buffers_indexed");
+  globalExts.push_back("OES_draw_elements_base_vertex");
+  globalExts.push_back("OES_EGL_image_external");
+  globalExts.push_back("OES_EGL_image_external_essl3");
+  globalExts.push_back("OES_element_index_uint");
+  globalExts.push_back("OES_fbo_render_mipmap");
+  globalExts.push_back("OES_fragment_precision_high");
+  globalExts.push_back("OES_geometry_point_size");
+  globalExts.push_back("OES_geometry_shader");
+  globalExts.push_back("OES_get_program_binary");
+  globalExts.push_back("OES_gpu_shader5");
+  globalExts.push_back("OES_mapbuffer");
+  globalExts.push_back("OES_packed_depth_stencil");
+  globalExts.push_back("OES_primitive_bounding_box");
+  globalExts.push_back("OES_required_internalformat");
+  globalExts.push_back("OES_rgb8_rgba8");
+  globalExts.push_back("OES_sample_shading");
+  globalExts.push_back("OES_sample_variables");
+  globalExts.push_back("OES_shader_image_atomic");
+  globalExts.push_back("OES_shader_io_blocks");
+  globalExts.push_back("OES_shader_multisample_interpolation");
+  globalExts.push_back("OES_standard_derivatives");
+  globalExts.push_back("OES_stencil1");
+  globalExts.push_back("OES_stencil4");
+  globalExts.push_back("OES_surfaceless_context");
+  globalExts.push_back("OES_tessellation_point_size");
+  globalExts.push_back("OES_tessellation_shader");
+  globalExts.push_back("OES_texture_3D");
+  globalExts.push_back("OES_texture_border_clamp");
+  globalExts.push_back("OES_texture_buffer");
+  globalExts.push_back("OES_texture_compression_astc");
+  globalExts.push_back("OES_texture_cube_map_array");
+  globalExts.push_back("OES_texture_float");
+  globalExts.push_back("OES_texture_float_linear");
+  globalExts.push_back("OES_texture_half_float");
+  globalExts.push_back("OES_texture_half_float_linear");
+  globalExts.push_back("OES_texture_npot");
+  globalExts.push_back("OES_texture_stencil8");
+  globalExts.push_back("OES_texture_storage_multisample_2d_array");
+  globalExts.push_back("OES_vertex_array_object");
+  globalExts.push_back("OES_vertex_half_float");
+  globalExts.push_back("OES_vertex_type_10_10_10_2");
+  globalExts.push_back("OES_viewport_array");
+  globalExts.push_back("OVR_multiview2");
+  globalExts.push_back("QCOM_binning_control");
+  globalExts.push_back("QCOM_perfmon_global_mode");
+  globalExts.push_back("QCOM_writeonly_rendering");
+  globalExts.push_back("VIV_shader_binary");
 
   // we'll be sorting the implementation extension array, so make sure the
   // sorts are identical so we can do the intersection easily
