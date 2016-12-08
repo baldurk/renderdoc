@@ -102,7 +102,6 @@ public:
 
   void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
-
 private:
   static SysHook syshooks;
 

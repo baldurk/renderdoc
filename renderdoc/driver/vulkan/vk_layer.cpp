@@ -24,11 +24,13 @@
 
 #include <stdlib.h>
 #include <string.h>
+
+#include "official/vk_layer.h"
+
 #include "api/replay/version.h"
 #include "common/common.h"
 #include "common/threading.h"
 #include "hooks/hooks.h"
-#include "official/vk_layer.h"
 #include "os/os_specific.h"
 #include "serialise/string_utils.h"
 #include "vk_common.h"
