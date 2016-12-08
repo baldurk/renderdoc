@@ -1739,8 +1739,7 @@ void WrappedGLES::SwapBuffers(void *surface)
       // better than letting an error propagate and maybe screw up the
       // app (although it means we might swallow an error from before the
       // SwapBuffers call, it can't be helped.
-      if(ctxdata.Legacy() && m_Real.glGetError)
-        ClearGLErrors(m_Real);
+      ClearGLErrors(m_Real);
     }
   }
 
