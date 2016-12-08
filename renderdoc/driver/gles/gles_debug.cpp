@@ -2729,6 +2729,20 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
   // the vertex stage
   CopyProgramUniforms(gl.GetHookset(), vsProgSrc, vsProg);
 
+  {
+    GLint feedbackBinding = 0;
+    GLint feedbackActive = 0;
+    gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, &feedbackBinding);
+    gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_ACTIVE, &feedbackActive);
+
+    // TODO pantos check this
+    if(feedbackActive)
+    {
+      RDCWARN("Force ending transform feedback (%d)", feedbackBinding);
+      gl.glEndTransformFeedback();
+    }
+  }
+
   // bind our program and do the feedback draw
   gl.glUseProgram(0);
   gl.glBindProgramPipeline(vsFeedbackPipe);
