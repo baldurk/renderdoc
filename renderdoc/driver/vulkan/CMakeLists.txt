@@ -21,7 +21,7 @@ set(sources
     vk_resources.h
     vk_state.cpp
     vk_state.h
-    vk_tracelayer.cpp
+    vk_layer.cpp
     official/vk_layer.h
     official/vk_platform.h
     official/vulkan.h
@@ -47,7 +47,7 @@ set(definitions ${RDOC_DEFINITIONS})
 set(VULKAN_LAYER_FOLDER /etc/vulkan/implicit_layer.d CACHE PATH "Path to install the vulkan layer file")
 
 if(ANDROID)
-    list(APPEND sources vk_posix.cpp vk_android.cpp vk_tracelayer_android.cpp)
+    list(APPEND sources vk_posix.cpp vk_android.cpp vk_layer_android.cpp)
     list(APPEND definitions PRIVATE -DVK_USE_PLATFORM_ANDROID_KHR)
 elseif(APPLE)
     list(APPEND sources vk_posix.cpp vk_apple.cpp)
