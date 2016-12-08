@@ -28,11 +28,6 @@
 void WrappedGLES::Compat_glGetTexImage(GLenum target, GLenum texType, GLuint texname, GLint mip, GLenum fmt,
                                        GLenum type,GLint width, GLint height, GLint depth, void *ret)
 {
-  GLuint fbo = 0;
-  m_Real.glGenFramebuffers(1, &fbo);
-
-  SafeFramebufferBinder safeFramebufferBinder(m_Real, eGL_FRAMEBUFFER, fbo);
-
   GLenum attachmentTarget = eGL_COLOR_ATTACHMENT0;
   if(fmt == eGL_DEPTH_COMPONENT)
     attachmentTarget = eGL_DEPTH_ATTACHMENT;
@@ -40,6 +35,19 @@ void WrappedGLES::Compat_glGetTexImage(GLenum target, GLenum texType, GLuint tex
     attachmentTarget = eGL_STENCIL_ATTACHMENT;
   else if(fmt == eGL_DEPTH_STENCIL)
     attachmentTarget = eGL_DEPTH_STENCIL_ATTACHMENT;
+
+  if((fmt == eGL_DEPTH_COMPONENT && !ExtensionSupported[ExtensionSupported_NV_read_depth]) ||
+     (fmt == eGL_STENCIL && !ExtensionSupported[ExtensionSupported_NV_read_stencil]) ||
+     (fmt == eGL_DEPTH_STENCIL && !ExtensionSupported[ExtensionSupported_NV_read_depth_stencil]))
+  {
+    // return silently, check was made during startup
+    return;
+  }
+
+  GLuint fbo = 0;
+  m_Real.glGenFramebuffers(1, &fbo);
+
+  SafeFramebufferBinder safeFramebufferBinder(m_Real, eGL_FRAMEBUFFER, fbo);
 
   size_t sliceSize = GetByteSize(width, height, 1, fmt, type);
 
@@ -66,8 +74,6 @@ void WrappedGLES::Compat_glGetTexImage(GLenum target, GLenum texType, GLuint tex
     dumpFBOState(m_Real);
 
     byte *dst = (byte *)ret + d * sliceSize;
-    // TODO pantos reading from depth/stencil buffers requires
-    // NV_read_depth/NV_read_stencil/NV_read_depth_stencil extensions
     m_Real.glReadPixels(0, 0, width, height, fmt, type, (void *)dst);
   }
 

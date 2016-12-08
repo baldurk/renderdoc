@@ -188,6 +188,9 @@ enum ExtensionCheckEnum
   ExtensionSupported_IMG_multisampled_render_to_texture,
   ExtensionSupported_OES_texture_view,
   ExtensionSupported_EXT_texture_filter_anisotropic,
+  ExtensionSupported_NV_read_depth,
+  ExtensionSupported_NV_read_stencil,
+  ExtensionSupported_NV_read_depth_stencil,
   ExtensionSupported_Count,
 };
 extern bool ExtensionSupported[ExtensionSupported_Count];

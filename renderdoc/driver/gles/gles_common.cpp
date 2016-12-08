@@ -91,6 +91,9 @@ void DoExtensionChecks(const GLHookSet &gl)
       EXT_CHECK(IMG_multisampled_render_to_texture);
       EXT_CHECK(OES_texture_view);
       EXT_CHECK(EXT_texture_filter_anisotropic);
+      EXT_CHECK(NV_read_depth);
+      EXT_CHECK(NV_read_stencil);
+      EXT_CHECK(NV_read_depth_stencil);
 
 #undef EXT_CHECK
     }
@@ -211,6 +214,17 @@ void DoVendorChecks(const GLHookSet &gl, GLESWindowingData context)
   // so we have to do this unconditionally, this value isn't checked anywhere.
   // Search for where this is applied in gl_emulated.cpp
   VendorCheck[VendorCheck_NV_ClearNamedFramebufferfiBugs] = true;
+
+  // Check whether reading from the depth, stencil and depth-stencil buffers using
+  // glReadPixels is supported or not.
+  {
+    if(!ExtensionSupported[ExtensionSupported_NV_read_depth])
+      RDCWARN("Reading from the depth buffer using glReadPixels is not supported (GL_NV_read_depth)");
+    if(!ExtensionSupported[ExtensionSupported_NV_read_stencil])
+      RDCWARN("Reading from the stencil buffer using glReadPixels is not supported (GL_NV_read_stencil)");
+    if(!ExtensionSupported[ExtensionSupported_NV_read_depth_stencil])
+      RDCWARN("Reading from the packed depth-stencil buffers using glReadPixels is not supported (GL_NV_read_depth_stencil)");
+  }
 }
 
 size_t BufferIdx(GLenum buf)
