@@ -2762,11 +2762,37 @@ static void SerialiseNext(Serialiser *ser, VkStructureType &sType, const void *&
 {
   ser->Serialise("sType", sType);
 
-  // we don't support any extensions, so pNext must always be NULL
   if(ser->IsReading())
+  {
     pNext = NULL;
+  }
   else
-    RDCASSERT(pNext == NULL);
+  {
+    if(pNext == NULL)
+      return;
+
+    VkGenericStruct *next = (VkGenericStruct *)pNext;
+
+    while(next)
+    {
+      // we can ignore this entirely, we don't need to serialise or replay it as we won't
+      // actually use external memory. Unwrapping, if necessary, happens elsewhere
+      if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_NV ||
+         next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV ||
+         next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV ||
+         next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV ||
+         next->sType == VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV)
+      {
+        // do nothing
+      }
+      else
+      {
+        RDCERR("Unrecognised extension structure type %d", next->sType);
+      }
+
+      next = (VkGenericStruct *)next->pNext;
+    }
+  }
 }
 
 template <typename T>
@@ -2786,12 +2812,6 @@ void SerialiseOptionalObject(Serialiser *ser, const char *name, T *&el)
   {
     el = NULL;
   }
-}
-
-template <>
-void Serialiser::Serialise(const char *name, VkGenericStruct &el)
-{
-  ScopedContext scope(this, name, "NextStructure", 0, true);
 }
 
 template <>

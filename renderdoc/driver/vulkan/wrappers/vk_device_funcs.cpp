@@ -279,6 +279,33 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   VkInstanceCreateInfo modifiedCreateInfo;
   modifiedCreateInfo = *pCreateInfo;
 
+  for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
+  {
+    if(!IsSupportedExtension(modifiedCreateInfo.ppEnabledExtensionNames[i]))
+    {
+      RDCERR("RenderDoc does not support instance extension '%s'.",
+             modifiedCreateInfo.ppEnabledExtensionNames[i]);
+      RDCERR("File an issue on github to request support: https://github.com/baldurk/renderdoc");
+
+      // see if any debug report callbacks were passed in the pNext chain
+      VkDebugReportCallbackCreateInfoEXT *report =
+          (VkDebugReportCallbackCreateInfoEXT *)pCreateInfo->pNext;
+
+      while(report)
+      {
+        if(report && report->sType == VK_STRUCTURE_TYPE_DEBUG_REPORT_CALLBACK_CREATE_INFO_EXT)
+          report->pfnCallback(VK_DEBUG_REPORT_ERROR_BIT_EXT,
+                              VK_DEBUG_REPORT_OBJECT_TYPE_INSTANCE_EXT, 0, 1, 1, "RDOC",
+                              "RenderDoc does not support a requested instance extension.",
+                              report->pUserData);
+
+        report = (VkDebugReportCallbackCreateInfoEXT *)report->pNext;
+      }
+
+      return VK_ERROR_EXTENSION_NOT_PRESENT;
+    }
+  }
+
   const char **addedExts = new const char *[modifiedCreateInfo.enabledExtensionCount + 1];
 
   for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
@@ -311,7 +338,7 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
 #define CheckExt(name)                                                        \
   if(!strcmp(modifiedCreateInfo.ppEnabledExtensionNames[i], STRINGIZE(name))) \
   {                                                                           \
-    record->instDevInfo->name = true;                                         \
+    record->instDevInfo->ext_##name = true;                                   \
   }
 
   for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
@@ -1233,7 +1260,8 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       record->instDevInfo = new InstanceDeviceInfo();
 
 #undef CheckExt
-#define CheckExt(name) record->instDevInfo->name = GetRecord(m_Instance)->instDevInfo->name;
+#define CheckExt(name) \
+  record->instDevInfo->ext_##name = GetRecord(m_Instance)->instDevInfo->ext_##name;
 
       // inherit extension enablement from instance, that way GetDeviceProcAddress can check
       // for enabled extensions for instance functions
@@ -1243,7 +1271,7 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
 #define CheckExt(name)                                                \
   if(!strcmp(createInfo.ppEnabledExtensionNames[i], STRINGIZE(name))) \
   {                                                                   \
-    record->instDevInfo->name = true;                                 \
+    record->instDevInfo->ext_##name = true;                           \
   }
 
       for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)

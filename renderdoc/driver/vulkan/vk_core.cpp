@@ -682,10 +682,100 @@ bool operator<(const VkExtensionProperties &a, const VkExtensionProperties &b)
   return strcmp(a.extensionName, b.extensionName) < 0;
 }
 
+// This list must be kept sorted according to the above sort operator!
+static const VkExtensionProperties supportedExtensions[] = {
+    // this extension is 'free' - it just marks SPIR-V extension availability
+    {
+        VK_AMD_GCN_SHADER_EXTENSION_NAME, VK_AMD_GCN_SHADER_SPEC_VERSION,
+    },
+    // this extension is 'free' - it just marks SPIR-V extension availability
+    {
+        VK_AMD_SHADER_BALLOT_EXTENSION_NAME, VK_AMD_SHADER_BALLOT_SPEC_VERSION,
+    },
+    // this extension is 'free' - it just marks SPIR-V extension availability
+    {
+        VK_AMD_SHADER_EXPLICIT_VERTEX_PARAMETER_EXTENSION_NAME,
+        VK_AMD_SHADER_EXPLICIT_VERTEX_PARAMETER_SPEC_VERSION,
+    },
+    // this extension is 'free' - it just marks SPIR-V extension availability
+    {
+        VK_AMD_SHADER_TRINARY_MINMAX_EXTENSION_NAME, VK_AMD_SHADER_TRINARY_MINMAX_SPEC_VERSION,
+    },
+    {
+        VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_SPEC_VERSION,
+    },
+#ifdef VK_KHR_android_surface
+    {
+        VK_KHR_ANDROID_SURFACE_EXTENSION_NAME, VK_KHR_ANDROID_SURFACE_SPEC_VERSION,
+    },
+#endif
+#ifdef VK_KHR_display
+    {
+        VK_KHR_DISPLAY_EXTENSION_NAME, VK_KHR_DISPLAY_SPEC_VERSION,
+    },
+#endif
+#ifdef VK_KHR_display_swapchain
+    {
+        VK_KHR_DISPLAY_SWAPCHAIN_EXTENSION_NAME, VK_KHR_DISPLAY_SWAPCHAIN_SPEC_VERSION,
+    },
+#endif
+    {
+        VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,
+        VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_SPEC_VERSION,
+    },
+    {
+        VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_SURFACE_SPEC_VERSION,
+    },
+    {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SWAPCHAIN_SPEC_VERSION,
+    },
+#ifdef VK_KHR_win32_surface
+    {
+        VK_KHR_WIN32_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_SPEC_VERSION,
+    },
+#endif
+#ifdef VK_KHR_xcb_surface
+    {
+        VK_KHR_XCB_SURFACE_EXTENSION_NAME, VK_KHR_XCB_SURFACE_SPEC_VERSION,
+    },
+#endif
+#ifdef VK_KHR_xlib_surface
+    {
+        VK_KHR_XLIB_SURFACE_EXTENSION_NAME, VK_KHR_XLIB_SURFACE_SPEC_VERSION,
+    },
+#endif
+    {
+        VK_NV_EXTERNAL_MEMORY_EXTENSION_NAME, VK_NV_EXTERNAL_MEMORY_SPEC_VERSION,
+    },
+    {
+        VK_NV_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
+        VK_NV_EXTERNAL_MEMORY_CAPABILITIES_SPEC_VERSION,
+    },
+#ifdef VK_NV_external_memory_win32
+    {
+        VK_NV_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME, VK_NV_EXTERNAL_MEMORY_WIN32_SPEC_VERSION,
+    },
+#endif
+#ifdef VK_NV_win32_keyed_mutex
+    {
+        VK_NV_WIN32_KEYED_MUTEX_EXTENSION_NAME, VK_NV_WIN32_KEYED_MUTEX_SPEC_VERSION,
+    },
+#endif
+};
+
 // this is the list of extensions we provide - regardless of whether the ICD supports them
 static const VkExtensionProperties renderdocProvidedExtensions[] = {
     {VK_EXT_DEBUG_MARKER_EXTENSION_NAME, VK_EXT_DEBUG_MARKER_SPEC_VERSION},
 };
+
+bool WrappedVulkan::IsSupportedExtension(const char *extName)
+{
+  for(size_t i = 0; i < ARRAY_COUNT(supportedExtensions); i++)
+    if(!strcmp(supportedExtensions[i].extensionName, extName))
+      return true;
+
+  return false;
+}
 
 VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev,
                                                         uint32_t *pPropertyCount,
@@ -707,38 +797,7 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
   if(vkr != VK_SUCCESS)
     return vkr;
 
-  // filter the list of extensions to only the ones we support. Note it's important that
-  // this list is kept sorted according to the above sort operator!
-  const VkExtensionProperties supportedExtensions[] = {
-      {
-          VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_SPEC_VERSION,
-      },
-      {
-          VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,
-          VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_SPEC_VERSION,
-      },
-      {
-          VK_KHR_SURFACE_EXTENSION_NAME, VK_KHR_SURFACE_SPEC_VERSION,
-      },
-      {
-          VK_KHR_SWAPCHAIN_EXTENSION_NAME, VK_KHR_SWAPCHAIN_SPEC_VERSION,
-      },
-#ifdef VK_KHR_win32_surface
-      {
-          VK_KHR_WIN32_SURFACE_EXTENSION_NAME, VK_KHR_WIN32_SURFACE_SPEC_VERSION,
-      },
-#endif
-#ifdef VK_KHR_xcb_surface
-      {
-          VK_KHR_XCB_SURFACE_EXTENSION_NAME, VK_KHR_XCB_SURFACE_SPEC_VERSION,
-      },
-#endif
-#ifdef VK_KHR_xlib_surface
-      {
-          VK_KHR_XLIB_SURFACE_EXTENSION_NAME, VK_KHR_XLIB_SURFACE_SPEC_VERSION,
-      },
-#endif
-  };
+  // filter the list of extensions to only the ones we support.
 
   // sort the reported extensions
   std::sort(exts.begin(), exts.end());

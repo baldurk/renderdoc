@@ -115,7 +115,7 @@ void InitInstanceExtensionTables(VkInstance instance)
 
 #undef HookInitExtension
 #define HookInitExtension(ext, func) \
-  if(info->ext)                      \
+  if(info->ext_##ext)                \
   {                                  \
     InstanceGPA(func);               \
   }
@@ -150,7 +150,7 @@ void InitDeviceExtensionTables(VkDevice device)
 
 #undef HookInitExtension
 #define HookInitExtension(ext, func) \
-  if(info->ext)                      \
+  if(info->ext_##ext)                \
   {                                  \
     DeviceGPA(func);                 \
   }

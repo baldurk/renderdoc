@@ -827,7 +827,7 @@ struct SwapchainInfo
 struct InstanceDeviceInfo
 {
 #undef CheckExt
-#define CheckExt(name) name = false;
+#define CheckExt(name) ext_##name = false;
   InstanceDeviceInfo()
   {
     CheckDeviceExts();
@@ -835,7 +835,7 @@ struct InstanceDeviceInfo
   }
 
 #undef CheckExt
-#define CheckExt(name) bool name;
+#define CheckExt(name) bool ext_##name;
 
   CheckDeviceExts();
   CheckInstanceExts();

@@ -233,3 +233,24 @@ VkResult WrappedVulkan::vkMergePipelineCaches(VkDevice device, VkPipelineCache d
   // do nothing, our pipeline caches are always dummies
   return VK_SUCCESS;
 }
+
+VkResult WrappedVulkan::vkGetPhysicalDeviceExternalImageFormatPropertiesNV(
+    VkPhysicalDevice physicalDevice, VkFormat format, VkImageType type, VkImageTiling tiling,
+    VkImageUsageFlags usage, VkImageCreateFlags flags,
+    VkExternalMemoryHandleTypeFlagsNV externalHandleType,
+    VkExternalImageFormatPropertiesNV *pExternalImageFormatProperties)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceExternalImageFormatPropertiesNV(Unwrap(physicalDevice), format, type,
+                                                         tiling, usage, flags, externalHandleType,
+                                                         pExternalImageFormatProperties);
+}
+
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+VkResult WrappedVulkan::vkGetMemoryWin32HandleNV(VkDevice device, VkDeviceMemory memory,
+                                                 VkExternalMemoryHandleTypeFlagsNV handleType,
+                                                 HANDLE *pHandle)
+{
+  return ObjDisp(device)->GetMemoryWin32HandleNV(Unwrap(device), Unwrap(memory), handleType, pHandle);
+}
+#endif

@@ -714,6 +714,7 @@ public:
 
   VulkanRenderState &GetRenderState() { return m_RenderState; }
   void SetDrawcallCB(VulkanDrawcallCallback *cb) { m_DrawcallCallback = cb; }
+  bool IsSupportedExtension(const char *extName);
   VkResult FilterDeviceExtensionProperties(VkPhysicalDevice physDev, uint32_t *pPropertyCount,
                                            VkExtensionProperties *pProperties);
   static VkResult GetProvidedExtensionProperties(uint32_t *pPropertyCount,
@@ -1322,6 +1323,10 @@ public:
 
   VkBool32 vkGetPhysicalDeviceWin32PresentationSupportKHR(VkPhysicalDevice physicalDevice,
                                                           uint32_t queueFamilyIndex);
+
+  // VK_NV_external_memory_win32
+  VkResult vkGetMemoryWin32HandleNV(VkDevice device, VkDeviceMemory memory,
+                                    VkExternalMemoryHandleTypeFlagsNV handleType, HANDLE *pHandle);
 #endif
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -1384,4 +1389,11 @@ public:
                                        const VkSwapchainCreateInfoKHR *pCreateInfos,
                                        const VkAllocationCallbacks *pAllocator,
                                        VkSwapchainKHR *pSwapchains);
+
+  // VK_NV_external_memory_capabilities
+  VkResult vkGetPhysicalDeviceExternalImageFormatPropertiesNV(
+      VkPhysicalDevice physicalDevice, VkFormat format, VkImageType type, VkImageTiling tiling,
+      VkImageUsageFlags usage, VkImageCreateFlags flags,
+      VkExternalMemoryHandleTypeFlagsNV externalHandleType,
+      VkExternalImageFormatPropertiesNV *pExternalImageFormatProperties);
 };
