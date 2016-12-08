@@ -1464,10 +1464,73 @@ D3D12RootSignature D3D12DebugManager::GetRootSig(const void *data, size_t dataSi
       (PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER)GetProcAddress(
           GetModuleHandleA("d3d12.dll"), "D3D12CreateVersionedRootSignatureDeserializer");
 
+  PFN_D3D12_CREATE_ROOT_SIGNATURE_DESERIALIZER deserializeRootSigOld =
+      (PFN_D3D12_CREATE_VERSIONED_ROOT_SIGNATURE_DESERIALIZER)GetProcAddress(
+          GetModuleHandleA("d3d12.dll"), "D3D12CreateRootSignatureDeserializer");
+
   if(deserializeRootSig == NULL)
   {
-    RDCERR("Can't get D3D12CreateVersionedRootSignatureDeserializer");
-    return D3D12RootSignature();
+    RDCWARN("Can't get D3D12CreateVersionedRootSignatureDeserializer - old version of windows?");
+
+    if(deserializeRootSigOld == NULL)
+    {
+      RDCERR("Can't get D3D12CreateRootSignatureDeserializer!");
+      return D3D12RootSignature();
+    }
+
+    ID3D12RootSignatureDeserializer *deser = NULL;
+    HRESULT hr = deserializeRootSigOld(data, dataSize, __uuidof(ID3D12RootSignatureDeserializer),
+                                       (void **)&deser);
+
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(deser);
+      RDCERR("Can't get deserializer");
+      return D3D12RootSignature();
+    }
+
+    D3D12RootSignature ret;
+
+    const D3D12_ROOT_SIGNATURE_DESC *desc = deser->GetRootSignatureDesc();
+    if(FAILED(hr))
+    {
+      SAFE_RELEASE(deser);
+      RDCERR("Can't get descriptor");
+      return D3D12RootSignature();
+    }
+
+    ret.Flags = desc->Flags;
+
+    ret.params.resize(desc->NumParameters);
+
+    ret.dwordLength = 0;
+
+    for(size_t i = 0; i < ret.params.size(); i++)
+    {
+      ret.params[i].MakeFrom(desc->pParameters[i], ret.numSpaces);
+
+      // Descriptor tables cost 1 DWORD each.
+      // Root constants cost 1 DWORD each, since they are 32-bit values.
+      // Root descriptors (64-bit GPU virtual addresses) cost 2 DWORDs each.
+      if(desc->pParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+        ret.dwordLength++;
+      else if(desc->pParameters[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
+        ret.dwordLength += desc->pParameters[i].Constants.Num32BitValues;
+      else
+        ret.dwordLength += 2;
+    }
+
+    if(desc->NumStaticSamplers > 0)
+    {
+      ret.samplers.assign(desc->pStaticSamplers, desc->pStaticSamplers + desc->NumStaticSamplers);
+
+      for(size_t i = 0; i < ret.samplers.size(); i++)
+        ret.numSpaces = RDCMAX(ret.numSpaces, ret.samplers[i].RegisterSpace + 1);
+    }
+
+    SAFE_RELEASE(deser);
+
+    return ret;
   }
 
   ID3D12VersionedRootSignatureDeserializer *deser = NULL;
@@ -1536,10 +1599,100 @@ ID3DBlob *D3D12DebugManager::MakeRootSig(const std::vector<D3D12_ROOT_PARAMETER1
       (PFN_D3D12_SERIALIZE_VERSIONED_ROOT_SIGNATURE)GetProcAddress(
           GetModuleHandleA("d3d12.dll"), "D3D12SerializeVersionedRootSignature");
 
+  PFN_D3D12_SERIALIZE_ROOT_SIGNATURE serializeRootSigOld =
+      (PFN_D3D12_SERIALIZE_ROOT_SIGNATURE)GetProcAddress(GetModuleHandleA("d3d12.dll"),
+                                                         "D3D12SerializeRootSignature");
+
   if(serializeRootSig == NULL)
   {
-    RDCERR("Can't get D3D12SerializeVersionedRootSignature");
-    return NULL;
+    RDCWARN("Can't get D3D12SerializeVersionedRootSignature - old version of windows?");
+
+    if(serializeRootSigOld == NULL)
+    {
+      RDCERR("Can't get D3D12SerializeRootSignature!");
+      return NULL;
+    }
+
+    D3D12_ROOT_SIGNATURE_DESC desc;
+    desc.Flags = Flags;
+    desc.NumStaticSamplers = NumStaticSamplers;
+    desc.pStaticSamplers = StaticSamplers;
+    desc.NumParameters = (UINT)params.size();
+
+    std::vector<D3D12_ROOT_PARAMETER> params_1_0;
+    params_1_0.resize(params.size());
+    for(size_t i = 0; i < params.size(); i++)
+    {
+      params_1_0[i].ShaderVisibility = params[i].ShaderVisibility;
+      params_1_0[i].ParameterType = params[i].ParameterType;
+
+      if(params[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
+      {
+        params_1_0[i].Constants = params[i].Constants;
+      }
+      else if(params[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+      {
+        params_1_0[i].DescriptorTable.NumDescriptorRanges =
+            params[i].DescriptorTable.NumDescriptorRanges;
+
+        D3D12_DESCRIPTOR_RANGE *dst =
+            new D3D12_DESCRIPTOR_RANGE[params[i].DescriptorTable.NumDescriptorRanges];
+        params_1_0[i].DescriptorTable.pDescriptorRanges = dst;
+
+        for(UINT r = 0; r < params[i].DescriptorTable.NumDescriptorRanges; r++)
+        {
+          dst[r].BaseShaderRegister =
+              params[i].DescriptorTable.pDescriptorRanges[r].BaseShaderRegister;
+          dst[r].NumDescriptors = params[i].DescriptorTable.pDescriptorRanges[r].NumDescriptors;
+          dst[r].OffsetInDescriptorsFromTableStart =
+              params[i].DescriptorTable.pDescriptorRanges[r].OffsetInDescriptorsFromTableStart;
+          dst[r].RangeType = params[i].DescriptorTable.pDescriptorRanges[r].RangeType;
+          dst[r].RegisterSpace = params[i].DescriptorTable.pDescriptorRanges[r].RegisterSpace;
+
+          if(params[i].DescriptorTable.pDescriptorRanges[r].Flags !=
+             (D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE |
+              D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE))
+            RDCWARN("Losing information when reducing down to 1.0 root signature");
+        }
+      }
+      else
+      {
+        params_1_0[i].Descriptor.RegisterSpace = params[i].Descriptor.RegisterSpace;
+        params_1_0[i].Descriptor.ShaderRegister = params[i].Descriptor.ShaderRegister;
+
+        if(params[i].Descriptor.Flags != D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE)
+          RDCWARN("Losing information when reducing down to 1.0 root signature");
+      }
+    }
+
+    desc.pParameters = &params_1_0[0];
+
+    ID3DBlob *ret = NULL;
+    ID3DBlob *errBlob = NULL;
+    HRESULT hr = serializeRootSigOld(&desc, D3D_ROOT_SIGNATURE_VERSION_1, &ret, &errBlob);
+
+    for(size_t i = 0; i < params_1_0.size(); i++)
+      if(params_1_0[i].ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+        delete[] params_1_0[i].DescriptorTable.pDescriptorRanges;
+
+    if(FAILED(hr))
+    {
+      string errors = (char *)errBlob->GetBufferPointer();
+
+      string logerror = errors;
+      if(logerror.length() > 1024)
+        logerror = logerror.substr(0, 1024) + "...";
+
+      RDCERR("Root signature serialize error:\n%s", logerror.c_str());
+
+      SAFE_RELEASE(errBlob);
+      SAFE_RELEASE(ret);
+      return NULL;
+    }
+
+    SAFE_RELEASE(errBlob);
+
+    return ret;
   }
 
   D3D12_VERSIONED_ROOT_SIGNATURE_DESC verdesc;

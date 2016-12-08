@@ -194,6 +194,47 @@ struct D3D12RootSignatureParameter : D3D12_ROOT_PARAMETER1
     }
   }
 
+  void MakeFrom(const D3D12_ROOT_PARAMETER &param, UINT &numSpaces)
+  {
+    ParameterType = param.ParameterType;
+    ShaderVisibility = param.ShaderVisibility;
+
+    // copy the POD ones first
+    Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_DATA_VOLATILE;
+    Descriptor.RegisterSpace = param.Descriptor.RegisterSpace;
+    Descriptor.ShaderRegister = param.Descriptor.ShaderRegister;
+    Constants = param.Constants;
+
+    if(ParameterType == D3D12_ROOT_PARAMETER_TYPE_DESCRIPTOR_TABLE)
+    {
+      ranges.resize(param.DescriptorTable.NumDescriptorRanges);
+      for(size_t i = 0; i < ranges.size(); i++)
+      {
+        ranges[i].RangeType = param.DescriptorTable.pDescriptorRanges[i].RangeType;
+        ranges[i].NumDescriptors = param.DescriptorTable.pDescriptorRanges[i].NumDescriptors;
+        ranges[i].BaseShaderRegister = param.DescriptorTable.pDescriptorRanges[i].BaseShaderRegister;
+        ranges[i].RegisterSpace = param.DescriptorTable.pDescriptorRanges[i].RegisterSpace;
+        ranges[i].Flags = D3D12_DESCRIPTOR_RANGE_FLAG_DESCRIPTORS_VOLATILE |
+                          D3D12_DESCRIPTOR_RANGE_FLAG_DATA_VOLATILE;
+        ranges[i].OffsetInDescriptorsFromTableStart =
+            param.DescriptorTable.pDescriptorRanges[i].OffsetInDescriptorsFromTableStart;
+
+        numSpaces = RDCMAX(numSpaces, ranges[i].RegisterSpace + 1);
+      }
+
+      DescriptorTable.NumDescriptorRanges = (UINT)ranges.size();
+      DescriptorTable.pDescriptorRanges = &ranges[0];
+    }
+    else if(ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
+    {
+      numSpaces = RDCMAX(numSpaces, Constants.RegisterSpace + 1);
+    }
+    else
+    {
+      numSpaces = RDCMAX(numSpaces, Descriptor.RegisterSpace + 1);
+    }
+  }
+
   vector<D3D12_DESCRIPTOR_RANGE1> ranges;
 };
 
