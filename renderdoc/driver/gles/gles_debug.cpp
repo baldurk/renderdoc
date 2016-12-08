@@ -2178,14 +2178,12 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
   }
 
   // get buffer data from buffer attached to feedback object
-  GLuint oldBinding;
-  gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, (GLint*)&oldBinding);
-  gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
-  float *data = (float *)gl.glMapBufferRange(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBufferSize, eGL_MAP_READ_BIT);
+  float *data = (float *)gl.Compat_glMapNamedBufferRangeEXT(DebugData.feedbackBuffer, eGL_TRANSFORM_FEEDBACK_BUFFER,
+                                                            0, DebugData.feedbackBufferSize, eGL_MAP_READ_BIT);
 
   if(data == NULL)
   {
-    gl.glUnmapBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER);
+    gl.Compat_glUnmapNamedBufferEXT(DebugData.feedbackBuffer, eGL_TRANSFORM_FEEDBACK_BUFFER);
     RDCERR("Couldn't map feedback buffer!");
     error = true;
   }
@@ -2271,7 +2269,6 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
     }
   }
 
-
   // if we didn't find anything, all z's and w's were identical.
   // If the z is positive and w greater for the first element then
   // we detect this projection as reversed z with infinite far plane
@@ -2280,10 +2277,8 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
     nearp = pos0->z;
     farp = FLT_MAX;
   }
-  // TODO(elecro): OES does not work on android
-  //gl.glUnmapBufferOES(eGL_TRANSFORM_FEEDBACK_BUFFER);
-  gl.glUnmapBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER);
-  gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, oldBinding);
+
+  gl.Compat_glUnmapNamedBufferEXT(DebugData.feedbackBuffer, eGL_TRANSFORM_FEEDBACK_BUFFER);
 
   // store everything out to the PostVS data cache
   m_PostVSData[eventID].vsin.topo = drawcall->topology;
@@ -2573,14 +2568,12 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
       }
 
       // get buffer data from buffer attached to feedback object
-      GLuint oldBinding;
-      gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, (GLint*)&oldBinding);
-      gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
-      data = (float *)gl.glMapBufferRange(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBufferSize, eGL_MAP_READ_BIT);
+      data = (float *)gl.Compat_glMapNamedBufferRangeEXT(DebugData.feedbackBuffer, eGL_TRANSFORM_FEEDBACK_BUFFER,
+                                                         0, DebugData.feedbackBufferSize, eGL_MAP_READ_BIT);
 
       if(data == NULL)
       {
-        gl.glUnmapBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER);
+        gl.Compat_glUnmapNamedBufferEXT(DebugData.feedbackBuffer, eGL_TRANSFORM_FEEDBACK_BUFFER);
         RDCERR("Couldn't map feedback buffer!");
         error = true;
       }
@@ -2696,8 +2689,7 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
         farp = FLT_MAX;
       }
 
-      gl.glUnmapBufferOES(eGL_TRANSFORM_FEEDBACK_BUFFER);
-      gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, oldBinding);
+      gl.Compat_glUnmapNamedBufferEXT(DebugData.feedbackBuffer, eGL_TRANSFORM_FEEDBACK_BUFFER);
 
       // store everything out to the PostVS data cache
       m_PostVSData[eventID].gsout.buf = lastoutBuffer;

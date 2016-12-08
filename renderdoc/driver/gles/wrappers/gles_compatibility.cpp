@@ -84,9 +84,10 @@ void WrappedGLES::Compat_glGetBufferSubData(GLenum target, GLintptr offset, GLsi
 {
   void* mappedData = m_Real.glMapBufferRange(target, offset, size, eGL_MAP_READ_BIT);
   if (mappedData != NULL)
+  {
     memcpy(data, mappedData, size);
-
-  m_Real.glUnmapBuffer(target);
+    m_Real.glUnmapBuffer(target);
+  }
 }
 
 void WrappedGLES::Compat_glGetNamedBufferSubDataEXT(GLuint buffer, GLenum target, GLintptr offset, GLsizeiptr size, void *data)
@@ -111,6 +112,18 @@ void WrappedGLES::Compat_glBufferStorageEXT (GLenum target, GLsizeiptr size, con
       m_Real.glBufferData(target, size, data, eGL_DYNAMIC_DRAW);
     }
   }
+}
+
+void* WrappedGLES::Compat_glMapNamedBufferRangeEXT(GLuint buffer, GLenum target, GLintptr offset, GLsizeiptr length, GLenum access)
+{
+  SafeBufferBinder safeBufferBinder(m_Real, target, buffer);
+  return m_Real.glMapBufferRange(target, offset, length, access);
+}
+
+void WrappedGLES::Compat_glUnmapNamedBufferEXT(GLuint buffer, GLenum target)
+{
+  SafeBufferBinder safeBufferBinder(m_Real, target, buffer);
+  m_Real.glUnmapBuffer(target);
 }
 
 void WrappedGLES::Compat_glTextureStorage2DEXT (GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height)

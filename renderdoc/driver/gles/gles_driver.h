@@ -1002,6 +1002,8 @@ public:
   void Compat_glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data);
   void Compat_glGetNamedBufferSubDataEXT(GLuint buffer, GLenum target, GLintptr offset, GLsizeiptr size, void *data);
   void Compat_glBufferStorageEXT (GLenum target, GLsizeiptr size, const void *data, GLbitfield flags);
+  void* Compat_glMapNamedBufferRangeEXT(GLuint buffer, GLenum target, GLintptr offset, GLsizeiptr length, GLenum access);
+  void Compat_glUnmapNamedBufferEXT(GLuint buffer, GLenum target);
   void Compat_glTextureStorage2DEXT (GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height);
   void Compat_glTextureStorage3DEXT (GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth);
   void Compat_glDrawArraysInstancedBaseInstanceEXT(GLenum mode, GLint first, GLsizei count, GLsizei instancecount, GLuint baseinstance);
