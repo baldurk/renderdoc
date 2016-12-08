@@ -285,6 +285,12 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_FreeEnvironmentModification
   delete[] mods;
 }
 
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const char *log)
+{
+  if(log)
+    RDCLOGFILE(log);
+}
+
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogText(const char *text)
 {
   rdclog_int(RDCLog_Comment, "EXT", "external", 0, "%s", text);

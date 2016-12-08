@@ -548,6 +548,7 @@ struct Cap32For64Command : public Command
   {
     parser.add<uint32_t>("pid", 0, "");
     parser.add<string>("log", 0, "");
+    parser.add<string>("debuglog", 0, "");
     parser.add<string>("capopts", 0, "");
     parser.stop_at_rest(true);
   }
@@ -633,6 +634,10 @@ struct Cap32For64Command : public Command
       RENDERDOC_SetEnvironmentModification(env, i, rest[i * 3 + 1].c_str(), rest[i * 3 + 2].c_str(),
                                            type, sep);
     }
+
+    string debuglog = parser.get<string>("debuglog");
+
+    RENDERDOC_SetDebugLogFile(debuglog.c_str());
 
     int ret = RENDERDOC_InjectIntoProcess(parser.get<uint32_t>("pid"), env,
                                           parser.get<string>("log").c_str(), &cmdopts, false);

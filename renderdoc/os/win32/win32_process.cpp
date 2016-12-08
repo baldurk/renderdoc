@@ -172,12 +172,6 @@ extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetLogFile(const char *lo
     RenderDoc::Inst().SetLogFile(log);
 }
 
-extern "C" __declspec(dllexport) void __cdecl INTERNAL_SetDebugLogFile(const char *log)
-{
-  if(log)
-    RDCLOGFILE(log);
-}
-
 static Process::EnvironmentModification tempEnvMod;
 
 extern "C" __declspec(dllexport) void __cdecl INTERNAL_EnvModName(const char *name)
@@ -595,9 +589,12 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
 
     wchar_t *paramsAlloc = new wchar_t[2048];
 
+    std::string debugLogfile = RDCGETLOGFILE();
+    wstring wdebugLogfile = StringFormat::UTF82Wide(debugLogfile);
+
     _snwprintf_s(paramsAlloc, 2047, 2047,
-                 L"\"%ls\" cap32for64 --pid=%d --log=\"%ls\" --capopts=\"%hs\"", renderdocPath, pid,
-                 wlogfile.c_str(), optstr.c_str());
+                 L"\"%ls\" cap32for64 --pid=%d --log=\"%ls\" --debuglog=\"%ls\" --capopts=\"%hs\"",
+                 renderdocPath, pid, wlogfile.c_str(), wdebugLogfile.c_str(), optstr.c_str());
 
     paramsAlloc[2047] = 0;
 
@@ -711,7 +708,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
 
     std::string debugLogfile = RDCGETLOGFILE();
 
-    InjectFunctionCall(hProcess, loc, "INTERNAL_SetDebugLogFile", (void *)debugLogfile.c_str(),
+    InjectFunctionCall(hProcess, loc, "RENDERDOC_SetDebugLogFile", (void *)debugLogfile.c_str(),
                        debugLogfile.size() + 1);
 
     if(opts != NULL)
