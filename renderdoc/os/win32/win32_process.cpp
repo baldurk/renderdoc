@@ -529,11 +529,14 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
     return 0;
   }
 
+  bool capalt = false;
+
 #if DISABLED(RDOC_X64)
   BOOL selfWow64 = FALSE;
 
   HANDLE hSelfProcess = GetCurrentProcess();
 
+  // check to see if we're a WoW64 process
   success = IsWow64Process(hSelfProcess, &selfWow64);
 
   CloseHandle(hSelfProcess);
@@ -545,22 +548,79 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
     return 0;
   }
 
+  // we know we're 32-bit, so if the target process is not wow64
+  // and we are, it's 64-bit. If we're both not wow64 then we're
+  // running on 32-bit windows, and if we're both wow64 then we're
+  // both 32-bit on 64-bit windows.
+  //
+  // We don't support capturing 64-bit programs from a 32-bit install
+  // because it's pointless - a 64-bit install will work for all in
+  // that case. But we do want to handle the case of:
+  // 64-bit renderdoc -> 32-bit program (via 32-bit renderdoccmd)
+  //    -> 64-bit program (going back to 64-bit renderdoccmd).
+  // so we try to see if we're an x86 invoked renderdoccmd in an
+  // otherwise 64-bit install, and 'promote' back to 64-bit.
   if(selfWow64 && !isWow64)
   {
-    RDCERR("Can't capture x64 process with x86 renderdoc");
-    CloseHandle(hProcess);
-    return 0;
+    wchar_t *slash = wcsrchr(renderdocPath, L'\\');
+
+    if(slash && slash > renderdocPath + 4)
+    {
+      slash -= 4;
+
+      if(slash && !wcsncmp(slash, L"\\x86", 4))
+      {
+        RDCDEBUG("Promoting back to 64-bit");
+        capalt = true;
+      }
+    }
+
+    // if we couldn't promote, then bail out.
+    if(!capalt)
+    {
+      RDCERR("Can't capture x64 process with x86 renderdoc");
+
+      CloseHandle(hProcess);
+      return 0;
+    }
   }
 #else
-  // farm off to x86 version
-  if(isWow64)
+  // farm off to alternate bitness renderdoccmd.exe
+
+  // if the target process is 'wow64' that means it's 32-bit.
+  capalt = (isWow64 == TRUE);
+#endif
+
+  if(capalt)
   {
+#if ENABLED(RDOC_X64)
+    // look in a subfolder for x86.
+
+    // remove the filename from the path
     wchar_t *slash = wcsrchr(renderdocPath, L'\\');
 
     if(slash)
       *slash = 0;
 
+    // append path
     wcscat_s(renderdocPath, L"\\x86\\renderdoccmd.exe");
+#else
+    // look upwards on 32-bit to find the parent renderdoccmd.
+    wchar_t *slash = wcsrchr(renderdocPath, L'\\');
+
+    // remove the filename
+    if(slash)
+      *slash = 0;
+
+    // remove the \\x86
+    slash = wcsrchr(renderdocPath, L'\\');
+
+    if(slash)
+      *slash = 0;
+
+    // append path
+    wcscat_s(renderdocPath, L"\\renderdoccmd.exe");
+#endif
 
     PROCESS_INFORMATION pi;
     STARTUPINFO si;
@@ -593,8 +653,10 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
     wstring wdebugLogfile = StringFormat::UTF82Wide(debugLogfile);
 
     _snwprintf_s(paramsAlloc, 2047, 2047,
-                 L"\"%ls\" cap32for64 --pid=%d --log=\"%ls\" --debuglog=\"%ls\" --capopts=\"%hs\"",
+                 L"\"%ls\" capaltbit --pid=%d --log=\"%ls\" --debuglog=\"%ls\" --capopts=\"%hs\"",
                  renderdocPath, pid, wlogfile.c_str(), wdebugLogfile.c_str(), optstr.c_str());
+
+    RDCDEBUG("params %ls", paramsAlloc);
 
     paramsAlloc[2047] = 0;
 
@@ -668,7 +730,7 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
 
     if(!retValue)
     {
-      RDCERR("Can't spawn x86 renderdoccmd - missing files?");
+      RDCERR("Can't spawn alternate bitness renderdoccmd - missing files?");
       return 0;
     }
 
@@ -687,7 +749,6 @@ uint32_t Process::InjectIntoProcess(uint32_t pid, EnvironmentModification *env, 
 
     return (uint32_t)exitCode;
   }
-#endif
 
   InjectDLL(hProcess, renderdocPath);
 
