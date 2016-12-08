@@ -22,7 +22,7 @@
     <ClCompile Include="vk_dispatchtables.cpp">
       <Filter>Layer</Filter>
     </ClCompile>
-    <ClCompile Include="vk_tracelayer.cpp">
+    <ClCompile Include="vk_layer.cpp">
       <Filter>Layer</Filter>
     </ClCompile>
     <ClCompile Include="vk_manager.cpp">
@@ -88,7 +88,7 @@
     <ClCompile Include="vk_linux.cpp">
       <Filter>OS\Posix</Filter>
     </ClCompile>
-    <ClCompile Include="vk_tracelayer_android.cpp">
+    <ClCompile Include="vk_layer_android.cpp">
       <Filter>OS\Posix</Filter>
     </ClCompile>
     <ClCompile Include="vk_apple.cpp">

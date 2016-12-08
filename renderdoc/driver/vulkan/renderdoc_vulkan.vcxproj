@@ -27,8 +27,8 @@
     <ClCompile Include="vk_initstate.cpp" />
     <ClCompile Include="vk_memory.cpp" />
     <ClCompile Include="vk_state.cpp" />
-    <ClCompile Include="vk_tracelayer.cpp" />
-    <ClCompile Include="vk_tracelayer_android.cpp">
+    <ClCompile Include="vk_layer.cpp" />
+    <ClCompile Include="vk_layer_android.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="vk_common.cpp" />
