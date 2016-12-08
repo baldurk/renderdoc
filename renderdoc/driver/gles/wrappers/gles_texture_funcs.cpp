@@ -1145,8 +1145,7 @@ bool WrappedGLES::Serialise_glTexImage3D(GLenum target, GLint level,
       m_Textures[liveId].width = Width;
       m_Textures[liveId].height = Height;
       m_Textures[liveId].depth = Depth;
-      if(Target != eGL_NONE)
-        m_Textures[liveId].curType = TextureTarget(Target);
+      m_Textures[liveId].curType = TextureTarget(Target);
       m_Textures[liveId].dimension = 3;
       m_Textures[liveId].internalFormat = IntFormat;
       m_Textures[liveId].emulated = emulated;
@@ -1505,15 +1504,25 @@ bool WrappedGLES::Serialise_glCompressedTexImage3D(GLenum target,
       databuf = &m_ScratchBuf[0];
     }
 
+    ResourceId liveId = GetResourceManager()->GetLiveID(id);
+
     if(Level == 0)    // assume level 0 will always get a glTexImage call
     {
-      ResourceId liveId = GetResourceManager()->GetLiveID(id);
       m_Textures[liveId].width = Width;
       m_Textures[liveId].height = Height;
       m_Textures[liveId].depth = Depth;
       m_Textures[liveId].curType = TextureTarget(Target);
       m_Textures[liveId].dimension = 3;
       m_Textures[liveId].internalFormat = fmt;
+    }
+
+    if (DataProvided)
+    {
+      RDCASSERT(GetCompressedByteSize(Width, Height, Depth, fmt, Level) == byteSize);
+      auto& cd = m_Textures[liveId].compressedData;
+      auto& cdData = cd[Target][Level];
+      cdData.resize(byteSize);
+      memcpy(cdData.data(), databuf, byteSize);
     }
 
     // for creation type chunks we forcibly don't use the unpack buffers as we
@@ -1811,7 +1820,7 @@ void WrappedGLES::glTexStorage1DEXT(GLenum target, GLsizei levels, GLenum intern
   // replay
   if(m_State < WRITING)
   {
-    return;
+    RDCERR("Internal textures should be allocated via dsa interfaces");
   }
   else
   {
@@ -1908,7 +1917,7 @@ void WrappedGLES::glTexStorage2D(GLenum target, GLsizei levels, GLenum internalf
 
   if(m_State < WRITING)
   {
-    return;
+    RDCERR("Internal textures should be allocated via dsa interfaces");
   }
   else
   {
@@ -2012,7 +2021,7 @@ void WrappedGLES::glTexStorage3D(GLenum target, GLsizei levels, GLenum internalf
   // replay
   if(m_State < WRITING)
   {
-    return;
+    RDCERR("Internal textures should be allocated via dsa interfaces");
   }
   else
   {
