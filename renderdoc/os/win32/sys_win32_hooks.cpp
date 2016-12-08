@@ -64,8 +64,26 @@ public:
 
     // we want to hook CreateProcess purely so that we can recursively insert our hooks (if we so
     // wish)
-    success &= CreateProcessA.Initialize("CreateProcessA", DLL_NAME, CreateProcessA_hook);
-    success &= CreateProcessW.Initialize("CreateProcessW", DLL_NAME, CreateProcessW_hook);
+    success &= CreateProcessA.Initialize("CreateProcessA", "kernel32.dll", CreateProcessA_hook);
+    success &= CreateProcessW.Initialize("CreateProcessW", "kernel32.dll", CreateProcessW_hook);
+
+    // handle API set exports if they exist. These don't really exist so we don't have to worry
+    // about
+    // double hooking, and also they call into the 'real' implementation in kernelbase.dll
+    API110CreateProcessA.Initialize("CreateProcessA", "api-ms-win-core-processthreads-l1-1-0.dll",
+                                    API110CreateProcessA_hook);
+    API110CreateProcessW.Initialize("CreateProcessW", "api-ms-win-core-processthreads-l1-1-0.dll",
+                                    API110CreateProcessW_hook);
+
+    API111CreateProcessA.Initialize("CreateProcessA", "api-ms-win-core-processthreads-l1-1-1.dll",
+                                    API111CreateProcessA_hook);
+    API111CreateProcessW.Initialize("CreateProcessW", "api-ms-win-core-processthreads-l1-1-1.dll",
+                                    API111CreateProcessW_hook);
+
+    API112CreateProcessA.Initialize("CreateProcessA", "api-ms-win-core-processthreads-l1-1-2.dll",
+                                    API112CreateProcessA_hook);
+    API112CreateProcessW.Initialize("CreateProcessW", "api-ms-win-core-processthreads-l1-1-2.dll",
+                                    API112CreateProcessW_hook);
 
     success &= WSAStartup.Initialize("WSAStartup", "ws2_32.dll", WSAStartup_hook);
     success &= WSACleanup.Initialize("WSACleanup", "ws2_32.dll", WSACleanup_hook);
@@ -84,6 +102,7 @@ public:
 
   void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
+
 private:
   static SysHook syshooks;
 
@@ -92,9 +111,15 @@ private:
 
   int m_WSARefCount;
 
-  // D3DPERF api
   Hook<PFN_CREATE_PROCESS_A> CreateProcessA;
   Hook<PFN_CREATE_PROCESS_W> CreateProcessW;
+
+  Hook<PFN_CREATE_PROCESS_A> API110CreateProcessA;
+  Hook<PFN_CREATE_PROCESS_W> API110CreateProcessW;
+  Hook<PFN_CREATE_PROCESS_A> API111CreateProcessA;
+  Hook<PFN_CREATE_PROCESS_W> API111CreateProcessW;
+  Hook<PFN_CREATE_PROCESS_A> API112CreateProcessA;
+  Hook<PFN_CREATE_PROCESS_W> API112CreateProcessW;
 
   Hook<PFN_WSASTARTUP> WSAStartup;
   Hook<PFN_WSACLEANUP> WSACleanup;
@@ -132,6 +157,113 @@ private:
       __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCSTR lpCurrentDirectory,
       __in LPSTARTUPINFOA lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
   {
+    return Hook_CreateProcessA(syshooks.CreateProcessA(), lpApplicationName, lpCommandLine,
+                               lpProcessAttributes, lpThreadAttributes, bInheritHandles,
+                               dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo,
+                               lpProcessInformation);
+  }
+
+  static BOOL WINAPI CreateProcessW_hook(__in_opt LPCWSTR lpApplicationName,
+                                         __inout_opt LPWSTR lpCommandLine,
+                                         __in_opt LPSECURITY_ATTRIBUTES lpProcessAttributes,
+                                         __in_opt LPSECURITY_ATTRIBUTES lpThreadAttributes,
+                                         __in BOOL bInheritHandles, __in DWORD dwCreationFlags,
+                                         __in_opt LPVOID lpEnvironment,
+                                         __in_opt LPCWSTR lpCurrentDirectory,
+                                         __in LPSTARTUPINFOW lpStartupInfo,
+                                         __out LPPROCESS_INFORMATION lpProcessInformation)
+  {
+    return Hook_CreateProcessW(syshooks.CreateProcessW(), lpApplicationName, lpCommandLine,
+                               lpProcessAttributes, lpThreadAttributes, bInheritHandles,
+                               dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo,
+                               lpProcessInformation);
+  }
+
+  static BOOL WINAPI API110CreateProcessA_hook(
+      __in_opt LPCSTR lpApplicationName, __inout_opt LPSTR lpCommandLine,
+      __in_opt LPSECURITY_ATTRIBUTES lpProcessAttributes,
+      __in_opt LPSECURITY_ATTRIBUTES lpThreadAttributes, __in BOOL bInheritHandles,
+      __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCSTR lpCurrentDirectory,
+      __in LPSTARTUPINFOA lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
+  {
+    return Hook_CreateProcessA(syshooks.API110CreateProcessA(), lpApplicationName, lpCommandLine,
+                               lpProcessAttributes, lpThreadAttributes, bInheritHandles,
+                               dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo,
+                               lpProcessInformation);
+  }
+
+  static BOOL WINAPI API110CreateProcessW_hook(
+      __in_opt LPCWSTR lpApplicationName, __inout_opt LPWSTR lpCommandLine,
+      __in_opt LPSECURITY_ATTRIBUTES lpProcessAttributes,
+      __in_opt LPSECURITY_ATTRIBUTES lpThreadAttributes, __in BOOL bInheritHandles,
+      __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCWSTR lpCurrentDirectory,
+      __in LPSTARTUPINFOW lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
+  {
+    return Hook_CreateProcessW(syshooks.API110CreateProcessW(), lpApplicationName, lpCommandLine,
+                               lpProcessAttributes, lpThreadAttributes, bInheritHandles,
+                               dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo,
+                               lpProcessInformation);
+  }
+
+  static BOOL WINAPI API111CreateProcessA_hook(
+      __in_opt LPCSTR lpApplicationName, __inout_opt LPSTR lpCommandLine,
+      __in_opt LPSECURITY_ATTRIBUTES lpProcessAttributes,
+      __in_opt LPSECURITY_ATTRIBUTES lpThreadAttributes, __in BOOL bInheritHandles,
+      __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCSTR lpCurrentDirectory,
+      __in LPSTARTUPINFOA lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
+  {
+    return Hook_CreateProcessA(syshooks.API111CreateProcessA(), lpApplicationName, lpCommandLine,
+                               lpProcessAttributes, lpThreadAttributes, bInheritHandles,
+                               dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo,
+                               lpProcessInformation);
+  }
+
+  static BOOL WINAPI API111CreateProcessW_hook(
+      __in_opt LPCWSTR lpApplicationName, __inout_opt LPWSTR lpCommandLine,
+      __in_opt LPSECURITY_ATTRIBUTES lpProcessAttributes,
+      __in_opt LPSECURITY_ATTRIBUTES lpThreadAttributes, __in BOOL bInheritHandles,
+      __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCWSTR lpCurrentDirectory,
+      __in LPSTARTUPINFOW lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
+  {
+    return Hook_CreateProcessW(syshooks.API111CreateProcessW(), lpApplicationName, lpCommandLine,
+                               lpProcessAttributes, lpThreadAttributes, bInheritHandles,
+                               dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo,
+                               lpProcessInformation);
+  }
+
+  static BOOL WINAPI API112CreateProcessA_hook(
+      __in_opt LPCSTR lpApplicationName, __inout_opt LPSTR lpCommandLine,
+      __in_opt LPSECURITY_ATTRIBUTES lpProcessAttributes,
+      __in_opt LPSECURITY_ATTRIBUTES lpThreadAttributes, __in BOOL bInheritHandles,
+      __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCSTR lpCurrentDirectory,
+      __in LPSTARTUPINFOA lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
+  {
+    return Hook_CreateProcessA(syshooks.API112CreateProcessA(), lpApplicationName, lpCommandLine,
+                               lpProcessAttributes, lpThreadAttributes, bInheritHandles,
+                               dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo,
+                               lpProcessInformation);
+  }
+
+  static BOOL WINAPI API112CreateProcessW_hook(
+      __in_opt LPCWSTR lpApplicationName, __inout_opt LPWSTR lpCommandLine,
+      __in_opt LPSECURITY_ATTRIBUTES lpProcessAttributes,
+      __in_opt LPSECURITY_ATTRIBUTES lpThreadAttributes, __in BOOL bInheritHandles,
+      __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCWSTR lpCurrentDirectory,
+      __in LPSTARTUPINFOW lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
+  {
+    return Hook_CreateProcessW(syshooks.API112CreateProcessW(), lpApplicationName, lpCommandLine,
+                               lpProcessAttributes, lpThreadAttributes, bInheritHandles,
+                               dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo,
+                               lpProcessInformation);
+  }
+
+  static BOOL WINAPI Hook_CreateProcessA(
+      PFN_CREATE_PROCESS_A realFunc, __in_opt LPCSTR lpApplicationName,
+      __inout_opt LPSTR lpCommandLine, __in_opt LPSECURITY_ATTRIBUTES lpProcessAttributes,
+      __in_opt LPSECURITY_ATTRIBUTES lpThreadAttributes, __in BOOL bInheritHandles,
+      __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCSTR lpCurrentDirectory,
+      __in LPSTARTUPINFOA lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
+  {
     PROCESS_INFORMATION dummy;
     RDCEraseEl(dummy);
 
@@ -147,9 +279,9 @@ private:
 
     dwCreationFlags |= CREATE_SUSPENDED;
 
-    BOOL ret = syshooks.CreateProcessA()(
-        lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles,
-        dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+    BOOL ret = realFunc(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+                        bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory,
+                        lpStartupInfo, lpProcessInformation);
 
     if(ret && RenderDoc::Inst().GetCaptureOptions().HookIntoChildren)
     {
@@ -207,15 +339,12 @@ private:
     return ret;
   }
 
-  static BOOL WINAPI CreateProcessW_hook(__in_opt LPCWSTR lpApplicationName,
-                                         __inout_opt LPWSTR lpCommandLine,
-                                         __in_opt LPSECURITY_ATTRIBUTES lpProcessAttributes,
-                                         __in_opt LPSECURITY_ATTRIBUTES lpThreadAttributes,
-                                         __in BOOL bInheritHandles, __in DWORD dwCreationFlags,
-                                         __in_opt LPVOID lpEnvironment,
-                                         __in_opt LPCWSTR lpCurrentDirectory,
-                                         __in LPSTARTUPINFOW lpStartupInfo,
-                                         __out LPPROCESS_INFORMATION lpProcessInformation)
+  static BOOL WINAPI Hook_CreateProcessW(
+      PFN_CREATE_PROCESS_W realFunc, __in_opt LPCWSTR lpApplicationName,
+      __inout_opt LPWSTR lpCommandLine, __in_opt LPSECURITY_ATTRIBUTES lpProcessAttributes,
+      __in_opt LPSECURITY_ATTRIBUTES lpThreadAttributes, __in BOOL bInheritHandles,
+      __in DWORD dwCreationFlags, __in_opt LPVOID lpEnvironment, __in_opt LPCWSTR lpCurrentDirectory,
+      __in LPSTARTUPINFOW lpStartupInfo, __out LPPROCESS_INFORMATION lpProcessInformation)
   {
     PROCESS_INFORMATION dummy;
     RDCEraseEl(dummy);
@@ -232,9 +361,9 @@ private:
 
     dwCreationFlags |= CREATE_SUSPENDED;
 
-    BOOL ret = syshooks.CreateProcessW()(
-        lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes, bInheritHandles,
-        dwCreationFlags, lpEnvironment, lpCurrentDirectory, lpStartupInfo, lpProcessInformation);
+    BOOL ret = realFunc(lpApplicationName, lpCommandLine, lpProcessAttributes, lpThreadAttributes,
+                        bInheritHandles, dwCreationFlags, lpEnvironment, lpCurrentDirectory,
+                        lpStartupInfo, lpProcessInformation);
 
     if(ret && RenderDoc::Inst().GetCaptureOptions().HookIntoChildren)
     {
