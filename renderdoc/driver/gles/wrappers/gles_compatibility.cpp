@@ -122,7 +122,7 @@ void WrappedGLES::Compat_glTextureStorage2DEXT (GLuint texture, GLenum target, G
 
 void WrappedGLES::Compat_glTextureStorage3DEXT (GLuint texture, GLenum target, GLsizei levels, GLenum internalformat, GLsizei width, GLsizei height, GLsizei depth)
 {
-  if(ExtensionSupported[ExtensionSupported_EXT_texture_storage])
+  if(ExtensionSupported[ExtensionSupported_EXT_texture_storage] && false) // TODO(elecro): on android it is force disabled for now
     m_Real.glTextureStorage3DEXT(texture, target, levels, internalformat, width, height, depth);
   else
   {
