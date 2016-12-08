@@ -653,6 +653,13 @@ ResourceFormat MakeResourceFormat(WrappedGLES &gl, GLenum target, GLenum fmt)
       return ret;
     }
 
+    if (fmt == eGL_RG8) {
+      ret.compByteWidth = 1;
+      ret.compCount = 2;
+      ret.compType = eCompType_UNorm;
+      return ret;
+    }
+
     if (fmt == eGL_RGBA8) {
       ret.compByteWidth = 1;
       ret.compCount = 4;
@@ -705,6 +712,14 @@ ResourceFormat MakeResourceFormat(WrappedGLES &gl, GLenum target, GLenum fmt)
     {
       ret.compByteWidth = 2;
       ret.compCount = 4;
+      ret.compType = eCompType_Float;
+      return ret;
+    }
+
+    if (fmt == eGL_RG16F)
+    {
+      ret.compByteWidth = 2;
+      ret.compCount = 2;
       ret.compType = eCompType_Float;
       return ret;
     }
