@@ -1205,14 +1205,22 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
               byte *buf = NULL;
 
               m_pSerialiser->SerialiseBuffer("image", buf, size);
+
+              size_t compSize = GetCompressedByteSize(w, h, d, internalformat, i);
+              if (size != compSize)
+              {
+                RDCWARN("Loaded compressed image size (%d) differs from the expected size (%d)!", size, compSize);
+                buf = (byte*)realloc(buf, compSize);
+                RDCEraseMem(buf, compSize);
+              }
+
               if(dim == 2)
                 gl.glCompressedTexSubImage2D(targets[trg], i, 0, 0, w, h,
-                                                    internalformat, (GLsizei)size, buf);
+                                                    internalformat, (GLsizei)compSize, buf);
               else if(dim == 3)
                 gl.glCompressedTexSubImage3D(targets[trg], i, 0, 0, 0, w, h, d,
-                                                    internalformat, (GLsizei)size, buf);
-
-              delete[] buf;
+                                                    internalformat, (GLsizei)compSize, buf);
+              SAFE_DELETE(buf);
             }
 
             gl.glBindTexture(textype, oldBinding);
@@ -1265,7 +1273,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
               else if(dim == 3)
                 gl.glTexSubImage3D(targets[trg], i, 0, 0, 0, w, h, d, fmt, type, buf);
 
-              delete[] buf;
+              SAFE_DELETE(buf);
             }
 
             gl.glBindTexture(textype, oldBinding);
