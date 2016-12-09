@@ -141,9 +141,18 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     RDCERR("Couldn't create DSV descriptor heap! 0x%08x", hr);
   }
 
-  desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
   desc.NumDescriptors = 4096;
   desc.Type = D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV;
+
+  hr = m_WrappedDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap),
+                                             (void **)&uavClearHeap);
+
+  if(FAILED(hr))
+  {
+    RDCERR("Couldn't create CBV/SRV descriptor heap! 0x%08x", hr);
+  }
+
+  desc.Flags = D3D12_DESCRIPTOR_HEAP_FLAG_SHADER_VISIBLE;
 
   hr = m_WrappedDevice->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap),
                                              (void **)&cbvsrvuavHeap);
@@ -885,6 +894,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     m_WrappedDevice->CreateUnorderedAccessView(m_PickResultBuf, m_PickResultBuf, &uavDesc,
                                                GetCPUHandle(PICK_RESULT_UAV));
+    m_WrappedDevice->CreateUnorderedAccessView(m_PickResultBuf, m_PickResultBuf, &uavDesc,
+                                               GetUAVClearHandle(PICK_RESULT_UAV));
 
     // this UAV is used for clearing everything back to 0
 
@@ -895,6 +906,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
 
     m_WrappedDevice->CreateUnorderedAccessView(m_PickResultBuf, NULL, &uavDesc,
                                                GetCPUHandle(PICK_RESULT_CLEAR_UAV));
+    m_WrappedDevice->CreateUnorderedAccessView(m_PickResultBuf, NULL, &uavDesc,
+                                               GetUAVClearHandle(PICK_RESULT_CLEAR_UAV));
   }
 
   {
@@ -957,6 +970,8 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
     tileDesc.Format = DXGI_FORMAT_R32_UINT;
     tileDesc.Buffer.NumElements = HGRAM_NUM_BUCKETS;
     m_WrappedDevice->CreateUnorderedAccessView(m_MinMaxTileBuffer, NULL, &tileDesc, uav);
+    m_WrappedDevice->CreateUnorderedAccessView(m_MinMaxTileBuffer, NULL, &tileDesc,
+                                               GetUAVClearHandle(HISTOGRAM_UAV));
 
     D3D12_SHADER_RESOURCE_VIEW_DESC srvDesc = {};
     srvDesc.ViewDimension = D3D12_SRV_DIMENSION_BUFFER;
@@ -1317,6 +1332,7 @@ D3D12DebugManager::~D3D12DebugManager()
   SAFE_RELEASE(dsvHeap);
   SAFE_RELEASE(rtvHeap);
   SAFE_RELEASE(cbvsrvuavHeap);
+  SAFE_RELEASE(uavClearHeap);
   SAFE_RELEASE(samplerHeap);
 
   SAFE_RELEASE(m_RingConstantBuffer);
@@ -2243,6 +2259,13 @@ D3D12_GPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetGPUHandle(DSVSlot slot)
   return ret;
 }
 
+D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::GetUAVClearHandle(CBVUAVSRVSlot slot)
+{
+  D3D12_CPU_DESCRIPTOR_HANDLE ret = uavClearHeap->GetCPUDescriptorHandleForHeapStart();
+  ret.ptr += slot * sizeof(D3D12Descriptor);
+  return ret;
+}
+
 D3D12_CPU_DESCRIPTOR_HANDLE D3D12DebugManager::AllocRTV()
 {
   D3D12_CPU_DESCRIPTOR_HANDLE rtv = rtvHeap->GetCPUDescriptorHandleForHeapStart();
@@ -2647,8 +2670,8 @@ uint32_t D3D12DebugManager::PickVertex(uint32_t eventID, const MeshDisplay &cfg,
 
   UINT zeroes[4] = {0, 0, 0, 0};
   list->ClearUnorderedAccessViewUint(GetGPUHandle(PICK_RESULT_CLEAR_UAV),
-                                     GetCPUHandle(PICK_RESULT_CLEAR_UAV), m_PickResultBuf, zeroes,
-                                     0, NULL);
+                                     GetUAVClearHandle(PICK_RESULT_CLEAR_UAV), m_PickResultBuf,
+                                     zeroes, 0, NULL);
 
   list->Close();
 
@@ -4087,9 +4110,12 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
     m_WrappedDevice->CreateUnorderedAccessView(m_SOBuffer, NULL, &counterDesc,
                                                GetCPUHandle(STREAM_OUT_UAV));
 
+    m_WrappedDevice->CreateUnorderedAccessView(m_SOBuffer, NULL, &counterDesc,
+                                               GetUAVClearHandle(STREAM_OUT_UAV));
+
     UINT zeroes[4] = {0, 0, 0, 0};
     m_DebugList->ClearUnorderedAccessViewUint(
-        GetGPUHandle(STREAM_OUT_UAV), GetCPUHandle(STREAM_OUT_UAV), m_SOBuffer, zeroes, 0, NULL);
+        GetGPUHandle(STREAM_OUT_UAV), GetUAVClearHandle(STREAM_OUT_UAV), m_SOBuffer, zeroes, 0, NULL);
 
     m_DebugList->Close();
 
@@ -4402,7 +4428,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     UINT zeroes[4] = {0, 0, 0, 0};
     m_DebugList->ClearUnorderedAccessViewUint(
-        GetGPUHandle(STREAM_OUT_UAV), GetCPUHandle(STREAM_OUT_UAV), m_SOBuffer, zeroes, 0, NULL);
+        GetGPUHandle(STREAM_OUT_UAV), GetUAVClearHandle(STREAM_OUT_UAV), m_SOBuffer, zeroes, 0, NULL);
 
     m_DebugList->Close();
 
@@ -6596,7 +6622,7 @@ bool D3D12DebugManager::GetHistogram(ResourceId texid, uint32_t sliceFace, uint3
 
     D3D12_GPU_DESCRIPTOR_HANDLE uav = GetGPUHandle(HISTOGRAM_UAV);
     D3D12_GPU_DESCRIPTOR_HANDLE srv = GetGPUHandle(FIRST_TEXDISPLAY_SRV);
-    D3D12_CPU_DESCRIPTOR_HANDLE uavcpu = GetCPUHandle(HISTOGRAM_UAV);
+    D3D12_CPU_DESCRIPTOR_HANDLE uavcpu = GetUAVClearHandle(HISTOGRAM_UAV);
 
     UINT zeroes[] = {0, 0, 0, 0};
     list->ClearUnorderedAccessViewUint(uav, uavcpu, m_MinMaxTileBuffer, zeroes, 0, NULL);
@@ -7764,10 +7790,12 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
       m_WrappedDevice->CreateShaderResourceView(overdrawTex, NULL, GetCPUHandle(OVERDRAW_SRV));
       m_WrappedDevice->CreateUnorderedAccessView(overdrawTex, NULL, NULL, GetCPUHandle(OVERDRAW_UAV));
+      m_WrappedDevice->CreateUnorderedAccessView(overdrawTex, NULL, NULL,
+                                                 GetUAVClearHandle(OVERDRAW_UAV));
 
       UINT zeroes[4] = {0, 0, 0, 0};
-      list->ClearUnorderedAccessViewUint(GetGPUHandle(OVERDRAW_UAV), GetCPUHandle(OVERDRAW_UAV),
-                                         overdrawTex, zeroes, 0, NULL);
+      list->ClearUnorderedAccessViewUint(
+          GetGPUHandle(OVERDRAW_UAV), GetUAVClearHandle(OVERDRAW_UAV), overdrawTex, zeroes, 0, NULL);
       list->Close();
       list = NULL;
 
