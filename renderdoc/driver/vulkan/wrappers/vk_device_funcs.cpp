@@ -335,10 +335,10 @@ VkResult WrappedVulkan::vkCreateInstance(const VkInstanceCreateInfo *pCreateInfo
   record->instDevInfo = new InstanceDeviceInfo();
 
 #undef CheckExt
-#define CheckExt(name)                                                        \
+#define CheckExt(name)                                              \
   if(!strcmp(modifiedCreateInfo.ppEnabledExtensionNames[i], #name)) \
-  {                                                                           \
-    record->instDevInfo->ext_##name = true;                                   \
+  {                                                                 \
+    record->instDevInfo->ext_##name = true;                         \
   }
 
   for(uint32_t i = 0; i < modifiedCreateInfo.enabledExtensionCount; i++)
@@ -1268,10 +1268,10 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
       CheckInstanceExts();
 
 #undef CheckExt
-#define CheckExt(name)                                                \
+#define CheckExt(name)                                      \
   if(!strcmp(createInfo.ppEnabledExtensionNames[i], #name)) \
-  {                                                                   \
-    record->instDevInfo->ext_##name = true;                           \
+  {                                                         \
+    record->instDevInfo->ext_##name = true;                 \
   }
 
       for(uint32_t i = 0; i < createInfo.enabledExtensionCount; i++)

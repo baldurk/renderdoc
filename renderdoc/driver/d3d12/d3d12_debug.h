@@ -123,7 +123,6 @@ public:
   static ID3DBlob *MakeRootSig(const D3D12RootSignature &rootsig);
 
   ID3DBlob *GetOverdrawWritePS() { return m_QuadOverdrawWritePS; }
-
 private:
   struct OutputWindow
   {
