@@ -3359,13 +3359,13 @@ void dumpFBOState(const GLHookSet& gl)
   GLenum status = gl.glCheckFramebufferStatus(eGL_FRAMEBUFFER);
   switch (status) {
     case GL_FRAMEBUFFER_COMPLETE: return;
-#define DUMP(STATUS) case STATUS: RDCDEBUG(#STATUS "\n"); break
+#define DUMP(STATUS) case STATUS: RDCDEBUG("Incorrect FBO state: " #STATUS); break
 
     DUMP(eGL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT);
     DUMP(eGL_FRAMEBUFFER_INCOMPLETE_DIMENSIONS);
     DUMP(eGL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT);
     DUMP(eGL_FRAMEBUFFER_UNSUPPORTED);
 #undef DUMP
-    default: RDCDEBUG("Unkown status: %d\n", status);
+    default: RDCDEBUG("Unkown status: %d", status);
   }
 }
