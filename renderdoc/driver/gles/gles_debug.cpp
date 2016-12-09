@@ -632,65 +632,6 @@ void GLESReplay::CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width,
                                   GLint arraySize, GLint samples, GLenum intFormat)
 {
   GLNOTIMP("GLESReplay::CopyTex2DMSToArray");
-//  WrappedGLES &gl = *m_pDriver;
-//
-//  GLRenderState rs(&gl.GetHookset(), NULL, READING);
-//  rs.FetchState(m_pDriver->GetCtx(), m_pDriver);
-//
-//  GLenum viewClass;
-//  gl.glGetInternalformativ(eGL_TEXTURE_2D_ARRAY, intFormat, eGL_VIEW_COMPATIBILITY_CLASS,
-//                           sizeof(GLenum), (GLint *)&viewClass);
-//
-//  GLenum fmt = eGL_R32UI;
-//  if(viewClass == eGL_VIEW_CLASS_8_BITS)
-//    fmt = eGL_R8UI;
-//  else if(viewClass == eGL_VIEW_CLASS_16_BITS)
-//    fmt = eGL_R16UI;
-//  else if(viewClass == eGL_VIEW_CLASS_24_BITS)
-//    fmt = eGL_RGB8UI;
-//  else if(viewClass == eGL_VIEW_CLASS_32_BITS)
-//    fmt = eGL_RGBA8UI;
-//  else if(viewClass == eGL_VIEW_CLASS_48_BITS)
-//    fmt = eGL_RGB16UI;
-//  else if(viewClass == eGL_VIEW_CLASS_64_BITS)
-//    fmt = eGL_RG32UI;
-//  else if(viewClass == eGL_VIEW_CLASS_96_BITS)
-//    fmt = eGL_RGB32UI;
-//  else if(viewClass == eGL_VIEW_CLASS_128_BITS)
-//    fmt = eGL_RGBA32UI;
-//
-//  GLuint texs[2];
-//  gl.glGenTextures(2, texs);
-//  gl.glTextureView(texs[0], eGL_TEXTURE_2D_ARRAY, destArray, fmt, 0, 1, 0, arraySize * samples);
-//  gl.glTextureView(texs[1], eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, srcMS, fmt, 0, 1, 0, arraySize);
-//
-//  gl.glBindImageTexture(1, texs[0], 0, GL_TRUE, 0, eGL_WRITE_ONLY, fmt);
-//  gl.glActiveTexture(eGL_TEXTURE0);
-//  gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
-//  gl.glBindSampler(0, DebugData.pointNoMipSampler);
-//  gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-//  gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-//  gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-//  gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-//  gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-//  gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 1);
-//
-//  gl.glUseProgram(DebugData.MS2Array);
-//
-//  gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 2, DebugData.UBOs[0]);
-//  GLint *ubo = (GLint *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(uint32_t),
-//                                            GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
-//
-//  *ubo = samples;
-//
-//  gl.glUnmapBuffer(eGL_UNIFORM_BUFFER);
-//
-//  gl.glDispatchCompute((GLuint)width, (GLuint)height, GLuint(arraySize * samples));
-//  gl.glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
-//
-//  gl.glDeleteTextures(2, texs);
-//
-//  rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
 }
 
 bool GLESReplay::RenderTexture(TextureDisplay cfg)
@@ -1064,60 +1005,6 @@ void GLESReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
 void GLESReplay::RenderHighlightBox(float w, float h, float scale)
 {
   GLNOTIMP("GLESReplay::RenderHighlightBox");
-//  MakeCurrentReplayContext(m_DebugCtx);
-//
-//  WrappedGLES &gl = *m_pDriver;
-//
-//  GLint sz = GLint(scale);
-//
-//  struct rect
-//  {
-//    GLint x, y;
-//    GLint w, h;
-//  };
-//
-//  rect tl = {GLint(w / 2.0f + 0.5f), GLint(h / 2.0f + 0.5f), 1, 1};
-//
-//  rect scissors[4] = {
-//      {tl.x, tl.y - (GLint)sz - 1, 1, sz + 1},
-//      {tl.x + (GLint)sz, tl.y - (GLint)sz - 1, 1, sz + 2},
-//      {tl.x, tl.y, sz, 1},
-//      {tl.x, tl.y - (GLint)sz - 1, sz, 1},
-//  };
-//
-//  // inner
-//  gl.glEnable(eGL_SCISSOR_TEST);
-//  gl.glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-//  for(size_t i = 0; i < ARRAY_COUNT(scissors); i++)
-//  {
-//    gl.glScissor(scissors[i].x, scissors[i].y, scissors[i].w, scissors[i].h);
-//    gl.glClear(eGL_COLOR_BUFFER_BIT);
-//  }
-//
-//  scissors[0].x--;
-//  scissors[1].x++;
-//  scissors[2].x--;
-//  scissors[3].x--;
-//
-//  scissors[0].y--;
-//  scissors[1].y--;
-//  scissors[2].y++;
-//  scissors[3].y--;
-//
-//  scissors[0].h += 2;
-//  scissors[1].h += 2;
-//  scissors[2].w += 2;
-//  scissors[3].w += 2;
-//
-//  // outer
-//  gl.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-//  for(size_t i = 0; i < ARRAY_COUNT(scissors); i++)
-//  {
-//    gl.glScissor(scissors[i].x, scissors[i].y, scissors[i].w, scissors[i].h);
-//    gl.glClear(eGL_COLOR_BUFFER_BIT);
-//  }
-//
-//  gl.glDisable(eGL_SCISSOR_TEST);
 }
 
 void GLESReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint fragProgram)

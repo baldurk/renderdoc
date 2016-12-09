@@ -726,9 +726,7 @@ bool WrappedGLES::Serialise_glReadBuffer(GLuint framebuffer, GLenum mode)
     if(Id == ResourceId())
     {
       // since we are faking the default framebuffer with our own
-      // to see the results, replace back/front/left/right with color attachment 0
-//      if(b == eGL_BACK_LEFT || b == eGL_BACK_RIGHT || b == eGL_BACK || b == eGL_FRONT_LEFT ||
-//         b == eGL_FRONT_RIGHT || b == eGL_FRONT)
+      // to see the results, replace back with color attachment 0
       if(b == eGL_BACK)
         b = eGL_COLOR_ATTACHMENT0;
 
@@ -833,9 +831,7 @@ bool WrappedGLES::Serialise_glDrawBuffers(GLuint framebuffer, GLsizei n,
     for(uint32_t i = 0; i < num; i++)
     {
       // since we are faking the default framebuffer with our own
-      // to see the results, replace back/front/left/right with color attachment 0
-//      if(buffers[i] == eGL_BACK_LEFT || buffers[i] == eGL_BACK_RIGHT || buffers[i] == eGL_BACK ||
-//         buffers[i] == eGL_FRONT_LEFT || buffers[i] == eGL_FRONT_RIGHT || buffers[i] == eGL_FRONT)
+      // to see the results, replace back with color attachment 0
       if(buffers[i] == eGL_BACK)
         buffers[i] = eGL_COLOR_ATTACHMENT0;
     }
