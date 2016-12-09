@@ -110,10 +110,6 @@ bool WrappedGLES::Serialise_glBindBuffer(GLenum target, GLuint buffer)
 
       ResourceId liveId = GetResourceManager()->GetLiveID(Id);
       m_Buffers[liveId].curType = Target;
-
-      // PEPE: Doing the same aproach as at the textures. The ResourceId of the bound buffer is
-      // saved in the chunk so it is no longer needed to track the bindings in read mode.
-      // GetCtxData().m_BufferRecord[BufferIdx(Target)] = GetResourceManager()->GetResourceRecord(liveId);
     }
   }
 
@@ -1642,7 +1638,6 @@ void WrappedGLES::PersistentMapMemoryBarrier(const set<GLResourceRecord *> &maps
       // also handles copying into the persistent mapped pointer and flushing the real GL
       // buffer
       glFlushMappedBufferRange(record->datatype, GLintptr(diffStart), GLsizeiptr(diffEnd - diffStart));
-      RDCWARN("CHECK PEPE %s:%d", __FILE__ ,__LINE__);
     }
   }
 }

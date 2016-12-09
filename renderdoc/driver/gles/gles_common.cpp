@@ -621,7 +621,9 @@ ResourceFormat MakeResourceFormat(WrappedGLES &gl, GLenum target, GLenum fmt)
     return ret;
   }
 
-  { // TODO pantos implement the code below and remove this hack
+  // Since the internal format queries are limited in GLES the format parameters have to be set manually.
+  // TODO: Extend the format list
+  {
     if (fmt == eGL_SRGB8_ALPHA8) {
       ret.compByteWidth = 1;
       ret.compCount = 4;
@@ -741,112 +743,6 @@ ResourceFormat MakeResourceFormat(WrappedGLES &gl, GLenum target, GLenum fmt)
 
   GLint data[8];
   GLenum *edata = (GLenum *)data;
-
-// TODO PEPE change to corresponding GLES code
-//  GLint iscol = 0, isdepth = 0, isstencil = 0;
-//  gl.glGetInternalformativ(target, fmt, eGL_COLOR_COMPONENTS, sizeof(GLint), &iscol);
-//  gl.glGetInternalformativ(target, fmt, eGL_DEPTH_COMPONENTS, sizeof(GLint), &isdepth);
-//  gl.glGetInternalformativ(target, fmt, eGL_STENCIL_COMPONENTS, sizeof(GLint), &isstencil);
-//
-//  if(iscol == GL_TRUE)
-//  {
-//    // colour format
-//
-//    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_RED_SIZE, sizeof(GLint), &data[0]);
-//    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_GREEN_SIZE, sizeof(GLint), &data[1]);
-//    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_BLUE_SIZE, sizeof(GLint), &data[2]);
-//    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_ALPHA_SIZE, sizeof(GLint), &data[3]);
-//
-//    ret.compCount = 0;
-//    for(int i = 0; i < 4; i++)
-//      if(data[i] > 0)
-//        ret.compCount++;
-//
-//    for(int i = ret.compCount; i < 4; i++)
-//      data[i] = data[0];
-//
-//    if(data[0] == data[1] && data[1] == data[2] && data[2] == data[3])
-//    {
-//      ret.compByteWidth = (uint32_t)(data[0] / 8);
-//
-//      // wasn't a byte format (8, 16, 32)
-//      if(ret.compByteWidth * 8 != (uint32_t)data[0])
-//        ret.special = true;
-//    }
-//    else
-//    {
-//      ret.special = true;
-//    }
-//
-//    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_RED_TYPE, sizeof(GLint), &data[0]);
-//    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_GREEN_TYPE, sizeof(GLint), &data[1]);
-//    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_BLUE_TYPE, sizeof(GLint), &data[2]);
-//    gl.glGetInternalformativ(target, fmt, eGL_INTERNALFORMAT_ALPHA_TYPE, sizeof(GLint), &data[3]);
-//
-//    for(int i = ret.compCount; i < 4; i++)
-//      data[i] = data[0];
-//
-//    if(data[0] == data[1] && data[1] == data[2] && data[2] == data[3])
-//    {
-//      switch(edata[0])
-//      {
-//        case eGL_UNSIGNED_INT: ret.compType = eCompType_UInt; break;
-//        case eGL_UNSIGNED_NORMALIZED: ret.compType = eCompType_UNorm; break;
-//        case eGL_SIGNED_NORMALIZED: ret.compType = eCompType_SNorm; break;
-//        case eGL_FLOAT: ret.compType = eCompType_Float; break;
-//        case eGL_INT: ret.compType = eCompType_SInt; break;
-//        default: RDCERR("Unexpected texture type");
-//      }
-//    }
-//    else
-//    {
-//      ret.special = true;
-//    }
-//
-//    gl.glGetInternalformativ(target, fmt, eGL_COLOR_ENCODING, sizeof(GLint), &data[0]);
-//    ret.srgbCorrected = (edata[0] == eGL_SRGB);
-//  }
-//  else if(isdepth == GL_TRUE || isstencil == GL_TRUE)
-//  {
-//    // depth format
-//    ret.compType = eCompType_Depth;
-//
-//    switch(fmt)
-//    {
-//      case eGL_DEPTH_COMPONENT16:
-//        ret.compByteWidth = 2;
-//        ret.compCount = 1;
-//        break;
-//      case eGL_DEPTH_COMPONENT24:
-//        ret.compByteWidth = 3;
-//        ret.compCount = 1;
-//        break;
-//      case eGL_DEPTH_COMPONENT32:
-//      case eGL_DEPTH_COMPONENT32F:
-//        ret.compByteWidth = 4;
-//        ret.compCount = 1;
-//        break;
-//      case eGL_DEPTH24_STENCIL8:
-//        ret.specialFormat = eSpecial_D24S8;
-//        ret.special = true;
-//        break;
-//      case eGL_DEPTH32F_STENCIL8:
-//        ret.specialFormat = eSpecial_D32S8;
-//        ret.special = true;
-//        break;
-//      case eGL_STENCIL_INDEX8:
-//        ret.specialFormat = eSpecial_S8;
-//        ret.special = true;
-//        break;
-//      default: RDCERR("Unexpected depth or stencil format %x", fmt);
-//    }
-//  }
-//  else
-//  {
-//    // not colour or depth!
-//    RDCERR("Unexpected texture type, not colour or depth");
-//  }
-
   return ret;
 }
 

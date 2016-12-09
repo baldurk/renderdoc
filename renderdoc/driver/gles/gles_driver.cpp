@@ -375,7 +375,9 @@ WrappedGLES::WrappedGLES(const char *logfile, const GLHookSet &funcs) : m_Real(i
     if(m_Real.glDebugMessageCallback)
     {
       m_Real.glDebugMessageCallback(&DebugSnoopStatic, this);
+#if ENABLED(RDOC_DEVEL)
       m_Real.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
+#endif
     }
   }
   else
@@ -447,9 +449,6 @@ void WrappedGLES::Initialise(GLESInitParams &params)
 
   m_InitParams = params;
 
-  // as a concession to compatibility, generate a 'fake' VBO to act as VBO 0.
-  // consider making it an error/warning for programs to use this?
-  // TODO PEPE The FakeVAO must be completely removed since there are cases when the VAO 0 can not be substituted with any other (non 0) VAO.
   m_DefaultVAO = 0;
   gl.glBindVertexArray(0);
 
@@ -888,15 +887,6 @@ void WrappedGLES::RegisterContext(GLESWindowingData winData, void *shareContext,
 
 void WrappedGLES::ActivateContext(GLESWindowingData winData)
 {
-
-  // TODO PEPE DEBUG
-  {
-      const GLHookSet &gl = m_Real;
-      gl.glDebugMessageCallback(&DebugSnoopStatic, this);
-      gl.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
-      gl.glDebugMessageControl(eGL_DONT_CARE, eGL_DEBUG_TYPE_ERROR, eGL_DONT_CARE, 0, NULL, GL_TRUE);
-  }
-
   m_ActiveContexts[Threading::GetCurrentID()] = winData;
   if(winData.ctx)
   {
