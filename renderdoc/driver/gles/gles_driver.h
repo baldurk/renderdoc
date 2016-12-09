@@ -749,7 +749,7 @@ public:
   #include "gles_driver_function_serialize_defs.inl"
 
   void dumpCurrentState(const char * filename);
-  // TODO pantos
+
   bool Serialise_glFenceSync(GLsync real, GLenum condition, GLbitfield flags);
   bool Serialise_glCreateShader(GLuint real, GLenum type);
   bool Serialise_glCreateShaderProgramv(GLuint real, GLenum type, GLsizei count,

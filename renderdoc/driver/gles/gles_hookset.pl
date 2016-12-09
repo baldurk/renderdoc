@@ -42,7 +42,6 @@ my $current = \@unsupported;
 
 my @used = ();
 
-# TODO pantos remove hack
 my @implemented_funcs = split(/\n/, `grep -h "WrappedGLES::gl" wrappers/*.cpp | grep -v "^//" | grep -o "gl\\w*" | sort`);
 
 while(<HOOKSET>)
@@ -77,7 +76,6 @@ while(<HOOKSET>)
             my %variablemap = (name => $name, typedef => $typedef);
             push @namemap, { %variablemap};
 
-            # TODO pantos
             if((not grep { $_ eq $name } @implemented_funcs) &&
                ($name !~ /^gl(Program)?Uniform(Matrix)?\d.*[a-z]$/) &&
                ($name !~ /^glVertexAttrib(I)?[1234][a-z]*$/))

@@ -51,7 +51,6 @@ void WrappedGLES::Compat_glGetTexImage(GLenum target, GLenum texType, GLuint tex
 
   size_t sliceSize = GetByteSize(width, height, 1, fmt, type);
 
-  // TODO pantos check 2dms, 2dmsarray, cube array
   for(GLint d = 0; d < depth; ++d)
   {
     switch(texType)

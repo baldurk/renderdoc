@@ -191,10 +191,7 @@ static GLuint CreateSepProgram(WrappedGLES &gl, GLenum type, GLsizei numSources,
 
     if(paths == NULL)
       real.glCompileShader(shader);
-//    else
-//      real.glCompileShaderIncludeARB(shader, numPaths, paths, NULL);
-    // TODO pantos paths is always NULL, remove it
-    // includepaths param of MakeSeparableShaderProgram should also be removed
+
     RDCASSERT(paths == NULL);
 
     dumpShaderCompileStatus(real,shader, numSources, sources);
@@ -1382,17 +1379,11 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       sigs.reserve(numInputs);
       for(GLint i = 0; i < numInputs; i++)
       {
-//        GLenum props[] = {eGL_NAME_LENGTH, eGL_TYPE, eGL_LOCATION, eGL_LOCATION_COMPONENT}; // TODO pantos
         GLenum props[] = {eGL_NAME_LENGTH, eGL_TYPE, eGL_LOCATION};
         GLint values[] = {0, 0, 0, 0};
 
         GLsizei numSigProps = (GLsizei)ARRAY_COUNT(props);
 
-        // TODO pantos GL_LOCATION_COMPONENT exists in gles?
-        // https://www.khronos.org/opengles/sdk/docs/man32/html/glGetProgramResource.xhtml
-        // GL_LOCATION_COMPONENT not supported on core <4.4 (or without GL_ARB_enhanced_layouts)
-//        if(!ExtensionSupported[ExtensionSupported_ARB_enhanced_layouts] && GLCoreVersion < 44)
-//          numSigProps--;
         gl.glGetProgramResourceiv(sepProg, sigEnum, i, numSigProps, props, numSigProps, NULL, values);
 
         char *nm = new char[values[0] + 1];
@@ -1814,26 +1805,6 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
             mapping.ReadWriteResources[i].used = false;
             mapping.ReadWriteResources[i].arraySize = 1;
           }
-          // TODO pantos glGetActiveAtomicCounterBufferiv does not exist in gles?
-//          else
-//          {
-//            const GLenum atomicRefEnum[] = {
-//                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_VERTEX_SHADER,
-//                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_CONTROL_SHADER,
-//                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_TESS_EVALUATION_SHADER,
-//                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_GEOMETRY_SHADER,
-//                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_FRAGMENT_SHADER,
-//                eGL_ATOMIC_COUNTER_BUFFER_REFERENCED_BY_COMPUTE_SHADER,
-//            };
-//            mapping.ReadWriteResources[i].bindset = 0;
-//            gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex,
-//                                                eGL_ATOMIC_COUNTER_BUFFER_BINDING,
-//                                                &mapping.ReadWriteResources[i].bind);
-//            GLint used = 0;
-//            gl.glGetActiveAtomicCounterBufferiv(curProg, atomicIndex, atomicRefEnum[shadIdx], &used);
-//            mapping.ReadWriteResources[i].used = (used != 0);
-//            mapping.ReadWriteResources[i].arraySize = 1;
-//          }
         }
       }
       else

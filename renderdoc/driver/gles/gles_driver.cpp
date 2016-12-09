@@ -2808,20 +2808,6 @@ void WrappedGLES::ProcessChunk(uint64_t offset, GLChunkType context)
     case DRAWELEMENTS_INSTANCEDBASEVERTEXBASEINSTANCE:
       Serialise_glDrawElementsInstancedBaseVertexBaseInstanceEXT(eGL_NONE, 0, eGL_NONE, NULL, 0, 0, 0);
       break;
-// TODO pantos multi draw
-//    case MULTI_DRAWARRAYS: Serialise_glMultiDrawArrays(eGL_NONE, NULL, NULL, 0); break;
-//    case MULTI_DRAWELEMENTS:
-//      Serialise_glMultiDrawElements(eGL_NONE, NULL, eGL_NONE, NULL, 0);
-//      break;
-//    case MULTI_DRAWELEMENTSBASEVERTEX:
-//      Serialise_glMultiDrawElementsBaseVertex(eGL_NONE, NULL, eGL_NONE, NULL, 0, NULL);
-//      break;
-//    case MULTI_DRAWARRAYS_INDIRECT:
-//      Serialise_glMultiDrawArraysIndirect(eGL_NONE, NULL, 0, 0);
-//      break;
-//    case MULTI_DRAWELEMENTS_INDIRECT:
-//      Serialise_glMultiDrawElementsIndirect(eGL_NONE, eGL_NONE, NULL, 0, 0);
-//      break;
 
     case GEN_FRAMEBUFFERS: Serialise_glGenFramebuffers(0, NULL); break;
     case FRAMEBUFFER_TEX: Serialise_glFramebufferTexture(0, eGL_NONE, eGL_NONE, 0, 0); break;

@@ -129,7 +129,6 @@ struct GLESWindowingData
   ret func;                                      \
   bool CONCAT(Serialise_, func);
 
-// TODO pantos copied from gl_common.h
 const GLenum eGL_CLAMP = (GLenum)0x2900;
 
 // convenience, the script to pick these out doesn't find them since they are #define'd
@@ -183,7 +182,7 @@ enum ExtensionCheckEnum
   ExtensionSupported_EXT_map_buffer_range,
   ExtensionSupported_EXT_base_instance,
   ExtensionSupported_EXT_debug_label,
-  ExtensionSupported_EXT_multisample_compatibility, // TODO pantos in gl2ext.h its name is GL_EXT_multisampled_compatibility
+  ExtensionSupported_EXT_multisample_compatibility,
   ExtensionSupported_EXT_multisampled_render_to_texture,
   ExtensionSupported_IMG_multisampled_render_to_texture,
   ExtensionSupported_OES_texture_view,

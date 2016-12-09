@@ -810,21 +810,12 @@ void WrappedGLES::glBindFramebuffer(GLenum target, GLuint framebuffer)
   if(framebuffer == 0 && m_State < WRITING)
     framebuffer = m_FakeBB_FBO;
 
-#if 0 // TODO pantos GL_FRAMEBUFFER bind both draw/read
-  if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
-    GetCtxData().m_DrawFramebufferRecord =
-        GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
-  else
-    GetCtxData().m_ReadFramebufferRecord =
-        GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
-#else
   if(target == eGL_DRAW_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
     GetCtxData().m_DrawFramebufferRecord =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
   if(target == eGL_READ_FRAMEBUFFER || target == eGL_FRAMEBUFFER)
     GetCtxData().m_ReadFramebufferRecord =
         GetResourceManager()->GetResourceRecord(FramebufferRes(GetCtx(), framebuffer));
-#endif
 
   m_Real.glBindFramebuffer(target, framebuffer);
 }
