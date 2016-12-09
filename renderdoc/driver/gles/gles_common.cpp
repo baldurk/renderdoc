@@ -136,6 +136,25 @@ void DoVendorChecks(const GLHookSet &gl, GLESWindowingData context)
     }
   }
 
+  if(gl.glGetIntegerv && gl.glGetError && ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+  {
+    // clear all error flags.
+    GLenum err = eGL_NONE;
+    ClearGLErrors(gl);
+
+    GLint dummy[2] = {0};
+    gl.glPolygonModeNV(eGL_FRONT_AND_BACK, eGL_FILL_NV);
+    gl.glGetIntegerv(eGL_POLYGON_MODE_NV, dummy);
+    err = gl.glGetError();
+
+    if(err != eGL_NONE)
+    {
+      // if we got an error trying to query that, we should enable this hack
+      VendorCheck[VendorCheck_NV_polygon_mode_query] = true;
+      RDCWARN("Polygon mode can not be queried");
+    }
+  }
+
   if(gl.glGetError && gl.glGenProgramPipelines && gl.glDeleteProgramPipelines &&
      gl.glGetProgramPipelineiv)
   {

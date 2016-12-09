@@ -829,13 +829,12 @@ void GLRenderState::FetchState(void *ctx, WrappedGLES *gl)
 
   m_Real->glGetIntegerv(eGL_PATCH_VERTICES, &PatchParams.numVerts);
 
-  if(ExtensionSupported[ExtensionSupported_NV_polygon_mode])
+  if(ExtensionSupported[ExtensionSupported_NV_polygon_mode] && !VendorCheck[VendorCheck_NV_polygon_mode_query])
   {
     // This was listed in docs as enumeration[2] even though polygon mode can't be set independently
     // for front and back faces for a while, so pass large enough array to be sure.
     GLenum dummy[2] = {eGL_FILL_NV, eGL_FILL_NV};
-    // TODO PEPE: It generates:'GL_INVALID_ENUM error generated. <pname> requires feature(s) disabled in the current profile.'
-    // m_Real->glGetIntegerv(eGL_POLYGON_MODE_NV, (GLint *)&dummy);
+    m_Real->glGetIntegerv(eGL_POLYGON_MODE_NV, (GLint *)&dummy);
     PolygonMode = dummy[0];
   }
   else
