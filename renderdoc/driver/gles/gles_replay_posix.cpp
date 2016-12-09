@@ -25,12 +25,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#ifdef ANDROID
-#define RENDERDOC_PLATFORM_ANDROID 1
-#else
-#define RENDERDOC_WINDOWING_XLIB 1
-#endif
-
 #include "gles_replay.h"
 #include <dlfcn.h>
 #include "gles_driver.h"

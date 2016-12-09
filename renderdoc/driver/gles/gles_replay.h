@@ -122,12 +122,16 @@ public:
   vector<WindowingSystem> GetSupportedWindowSystems()
   {
     vector<WindowingSystem> ret;
-    // only Xlib supported for GLX. We can't report XCB here since we need
+    // only Xlib supported for EGL. We can't report XCB here since we need
     // the Display, and that can't be obtained from XCB. The application is
     // free to use XCB internally but it would have to create a hybrid and
     // initialise XCB out of Xlib, to be able to provide the display and
     // drawable to us.
+#if defined(RENDERDOC_PLATFORM_LINUX)
     ret.push_back(eWindowingSystem_Xlib);
+#elif defined(RENDERDOC_WINDOWING_ANDROID)
+    ret.push_back(eWindowingSystem_Android);
+#endif
     return ret;
   }
 
