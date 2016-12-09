@@ -272,6 +272,19 @@ HRESULT STDMETHODCALLTYPE WrappedIDXGISwapChain4::QueryInterface(REFIID riid, vo
       return E_NOINTERFACE;
     }
   }
+  else if(riid == __uuidof(IDXGISwapChain4))
+  {
+    if(m_pReal4)
+    {
+      AddRef();
+      *ppvObject = (IDXGISwapChain4 *)this;
+      return S_OK;
+    }
+    else
+    {
+      return E_NOINTERFACE;
+    }
+  }
   else
   {
     string guid = ToStr::Get(riid);
