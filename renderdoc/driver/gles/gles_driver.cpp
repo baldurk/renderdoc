@@ -1106,8 +1106,7 @@ struct RenderTextState
     {
       GLenum dummy[2] = {eGL_FILL_NV, eGL_FILL_NV};
       // docs suggest this is enumeration[2] even though polygon mode can't be set independently for
-      // front
-      // and back faces.
+      // front and back faces.
       // TODO PEPE
       // gl.glGetIntegerv(eGL_POLYGON_MODE_NV, (GLint *)&dummy);
       PolygonMode = dummy[0];
