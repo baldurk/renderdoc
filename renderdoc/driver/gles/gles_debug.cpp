@@ -125,7 +125,7 @@ static void dumpProgramPipelineStatus(WrappedGLES &gl, GLuint pipeline)
   if (status != GL_TRUE) {
     char buffer[2000] = { 0 };
     real.glGetProgramPipelineInfoLog(pipeline, 2000, &length, buffer);
-    printf("Program Pipeline validate status: %s\n", buffer);
+    RDCWARN("Program Pipeline validate status: %s", buffer);
   }
 }
 

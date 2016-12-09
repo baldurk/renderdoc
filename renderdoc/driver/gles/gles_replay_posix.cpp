@@ -101,7 +101,7 @@ void printEGLError(const char* const function, const char* const location)
 {
     EGLint errorCode = REAL(eglGetError)();
     if (errorCode != EGL_SUCCESS)
-        RDCLOG("(%s): %s: %s\n", location, function, getEGLErrorString(errorCode));
+        RDCLOG("(%s): %s: %s", location, function, getEGLErrorString(errorCode));
 }
 
 void GLESReplay::MakeCurrentReplayContext(GLESWindowingData *ctx)
@@ -144,7 +144,7 @@ static bool getEGLDisplayAndConfig(EGLDisplay * const egl_display, EGLConfig * c
         EGL_RETURN_DEBUG(eglInitialize);
         return false;
     }
-    RDCLOG("EGL init (%d, %d)\n", egl_major, egl_minor);
+    RDCLOG("EGL init (%d, %d)", egl_major, egl_minor);
 
     REAL(eglBindAPI)(EGL_OPENGL_ES_API);
     EGL_RETURN_DEBUG(eglBindAPI);
@@ -210,7 +210,7 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
         EGL_NONE
     };
 
-    RDCLOG("display:%p ctx:%p\n", egl_display, m_ReplayCtx.ctx);
+    RDCLOG("display:%p ctx:%p", egl_display, m_ReplayCtx.ctx);
     EGLContext ctx = REAL(eglCreateContext)(egl_display, config, m_ReplayCtx.ctx, ctx_attribs);
     EGL_RETURN_DEBUG(eglCreateContext);
 
@@ -251,7 +251,7 @@ uint64_t GLESReplay::MakeOutputWindow(WindowingSystem system, void *data, bool d
 
     uint64_t windowId = m_OutputWindowID++;
     m_OutputWindows[windowId] = outputWin;
-    RDCLOG("New output window (id:%d) (%dx%d)\n", windowId, outputWin.width, outputWin.height);
+    RDCLOG("New output window (id:%d) (%dx%d)", windowId, outputWin.width, outputWin.height);
 
     return windowId;
 }
