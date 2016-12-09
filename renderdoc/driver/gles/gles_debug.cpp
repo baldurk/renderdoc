@@ -2942,7 +2942,7 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
   GLuint vsoutBuffer = 0;
   gl.glGenBuffers(1, &vsoutBuffer);
   gl.glBindBuffer(eGL_ARRAY_BUFFER, vsoutBuffer);
-  gl.glBufferStorageEXT(eGL_ARRAY_BUFFER, stride * primsWritten, data, 0);
+  gl.glBufferStorageEXT(eGL_ARRAY_BUFFER, stride * primsWritten, data, eGL_MAP_READ_BIT);
 
   byte *byteData = (byte *)data;
 
