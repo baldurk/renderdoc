@@ -2111,7 +2111,7 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
     GLuint indexSetBuffer = 0;
     gl.glGenBuffers(1, &indexSetBuffer);
     gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, indexSetBuffer);
-    gl.glBufferStorageEXT(eGL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * indices.size(), &indices[0], 0);
+    gl.glBufferStorageEXT(eGL_ELEMENT_ARRAY_BUFFER, sizeof(uint32_t) * indices.size(), &indices[0], eGL_MAP_READ_BIT);
 
     if(drawcall->flags & eDraw_Instanced)
     {
@@ -2154,7 +2154,7 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
     {
       gl.glGenBuffers(1, &idxBuf);
       gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, idxBuf);
-      gl.glBufferStorageEXT(eGL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)idxdata.size(), &idxdata[0], 0);
+      gl.glBufferStorageEXT(eGL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr)idxdata.size(), &idxdata[0], eGL_MAP_READ_BIT);
     }
 
     // restore previous element array buffer binding
@@ -2627,7 +2627,7 @@ void GLESReplay::InitPostVSBuffers(uint32_t eventID)
       GLuint lastoutBuffer = 0;
       gl.glGenBuffers(1, &lastoutBuffer);
       gl.glBindBuffer(eGL_ARRAY_BUFFER, lastoutBuffer);
-      gl.glBufferStorageEXT(eGL_ARRAY_BUFFER, stride * m_PostVSData[eventID].gsout.numVerts, data, 0);
+      gl.glBufferStorageEXT(eGL_ARRAY_BUFFER, stride * m_PostVSData[eventID].gsout.numVerts, data, eGL_MAP_READ_BIT);
 
       byteData = (byte *)data;
 
