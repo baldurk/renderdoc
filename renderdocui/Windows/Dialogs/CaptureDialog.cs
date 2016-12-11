@@ -1245,5 +1245,10 @@ namespace renderdocui.Windows.Dialogs
                 mainTableLayout.MinimumSize = new Size(0, mainTableLayout.ClientRectangle.Height - margin);
             }
         }
+
+        private void pidList_MouseDoubleClick(object sender, MouseEventArgs e)
+        {
+            TriggerCapture();
+        }
     }
 }

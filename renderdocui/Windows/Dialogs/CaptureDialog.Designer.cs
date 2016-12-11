@@ -647,6 +647,7 @@
             this.pidList.UseCompatibleStateImageBehavior = false;
             this.pidList.View = System.Windows.Forms.View.Details;
             this.pidList.ColumnClick += new System.Windows.Forms.ColumnClickEventHandler(this.pidList_ColumnClick);
+            this.pidList.MouseDoubleClick += new System.Windows.Forms.MouseEventHandler(this.pidList_MouseDoubleClick);
             this.pidList.Resize += new System.EventHandler(this.pidList_Resize);
             // 
             // winTitle
