@@ -549,7 +549,7 @@ ShaderDebug::State D3D11DebugManager::CreateShaderDebugState(ShaderDebugTrace &t
       // if(sig.systemValue == TYPE_OUTPUT_CONTROL_POINT)							str = "oOutputControlPoint";
       else
       {
-        RDCERR("Unhandled output: %s (%d)", sig.semanticName, sig.systemValue);
+        RDCERR("Unhandled output: %s (%d)", sig.semanticName.c_str(), sig.systemValue);
         continue;
       }
 

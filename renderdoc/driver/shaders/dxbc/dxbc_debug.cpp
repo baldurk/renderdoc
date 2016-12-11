@@ -2595,7 +2595,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
               eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
               StringFormat::Fmt(
                   "Shader debugging %d: %s\nNo targets bound for sampleinfo on rasterizer",
-                  s.nextInstruction - 1, op.str));
+                  s.nextInstruction - 1, op.str.c_str()));
         }
 
         SAFE_RELEASE(rtv);
@@ -2631,7 +2631,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           device->AddDebugMessage(
               eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
               StringFormat::Fmt("Shader debugging %d: %s\nSRV is NULL being queried by sampleinfo",
-                                s.nextInstruction - 1, op.str));
+                                s.nextInstruction - 1, op.str.c_str()));
         }
 
         SAFE_RELEASE(srv);
@@ -2665,7 +2665,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         device->AddDebugMessage(
             eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
             StringFormat::Fmt("Shader debugging %d: %s\nSRV is NULL being queried by sampleinfo",
-                              s.nextInstruction - 1, op.str));
+                              s.nextInstruction - 1, op.str.c_str()));
       }
 
       // "If there is no resource bound to the specified slot, 0 is returned."
@@ -2700,7 +2700,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
                 eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
                 StringFormat::Fmt(
                     "Shader debugging %d: %s\nNon-multisampled texture being passed to sample_pos",
-                    s.nextInstruction - 1, op.str));
+                    s.nextInstruction - 1, op.str.c_str()));
 
             sample_pattern = NULL;
           }
@@ -2849,7 +2849,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
                   eDbgCategory_Shaders, eDbgSeverity_High, eDbgSource_RuntimeWarning,
                   StringFormat::Fmt(
                       "Shader debugging %d: %s\nUAV being queried by bufinfo is not a buffer",
-                      s.nextInstruction - 1, op.str));
+                      s.nextInstruction - 1, op.str.c_str()));
             }
           }
           else
@@ -2859,7 +2859,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
             device->AddDebugMessage(
                 eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
                 StringFormat::Fmt("Shader debugging %d: %s\nUAV being queried by bufinfo is NULL",
-                                  s.nextInstruction - 1, op.str));
+                                  s.nextInstruction - 1, op.str.c_str()));
           }
 
           SAFE_RELEASE(uav);
@@ -2903,7 +2903,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
                   eDbgCategory_Shaders, eDbgSeverity_High, eDbgSource_RuntimeWarning,
                   StringFormat::Fmt(
                       "Shader debugging %d: %s\nSRV being queried by bufinfo is not a buffer",
-                      s.nextInstruction - 1, op.str));
+                      s.nextInstruction - 1, op.str.c_str()));
             }
           }
           else
@@ -2913,7 +2913,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
             device->AddDebugMessage(
                 eDbgCategory_Shaders, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
                 StringFormat::Fmt("Shader debugging %d: %s\nSRV being queried by bufinfo is NULL",
-                                  s.nextInstruction - 1, op.str));
+                                  s.nextInstruction - 1, op.str.c_str()));
           }
 
           SAFE_RELEASE(srv);
