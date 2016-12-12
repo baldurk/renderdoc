@@ -48,6 +48,18 @@ vector<uint32_t> D3D11DebugManager::EnumerateCounters()
   vector<uint32_t> ret;
 
   ret.push_back(eCounter_EventGPUDuration);
+  ret.push_back(eCounter_InputVerticesRead);
+  ret.push_back(eCounter_IAPrimitives);
+  ret.push_back(eCounter_GSPrimitives);
+  ret.push_back(eCounter_RasterizerInvocations);
+  ret.push_back(eCounter_RasterizedPrimitives);
+  ret.push_back(eCounter_SamplesWritten);
+  ret.push_back(eCounter_VSInvocations);
+  ret.push_back(eCounter_HSInvocations);
+  ret.push_back(eCounter_DSInvocations);
+  ret.push_back(eCounter_GSInvocations);
+  ret.push_back(eCounter_PSInvocations);
+  ret.push_back(eCounter_CSInvocations);
 
   return ret;
 }
@@ -56,22 +68,109 @@ void D3D11DebugManager::DescribeCounter(uint32_t counterID, CounterDescription &
 {
   desc.counterID = counterID;
 
-  if(counterID == eCounter_EventGPUDuration)
+  switch(counterID)
   {
-    desc.name = "GPU Duration";
-    desc.description =
-        "Time taken for this event on the GPU, as measured by delta between two GPU timestamps.";
-    desc.resultByteWidth = 8;
-    desc.resultCompType = eCompType_Double;
-    desc.units = eUnits_Seconds;
-  }
-  else
-  {
-    desc.name = "Unknown";
-    desc.description = "Unknown counter ID";
-    desc.resultByteWidth = 0;
-    desc.resultCompType = eCompType_None;
-    desc.units = eUnits_Absolute;
+    case eCounter_EventGPUDuration:
+      desc.name = "GPU Duration";
+      desc.description =
+          "Time taken for this event on the GPU, as measured by delta between two GPU timestamps.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_Double;
+      desc.units = eUnits_Seconds;
+      break;
+    case eCounter_InputVerticesRead:
+      desc.name = "Input Vertices Read";
+      desc.description = "Number of vertices read by input assembler.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_IAPrimitives:
+      desc.name = "Input Primitives";
+      desc.description = "Number of primitives read by the input assembler.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_GSPrimitives:
+      desc.name = "GS Primitives";
+      desc.description = "Number of primitives output by a geometry shader.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_RasterizerInvocations:
+      desc.name = "RasterizerInvocations";
+      desc.description = "Number of primitives that were sent to the rasterizer.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_RasterizedPrimitives:
+      desc.name = "Rasterized Primitives";
+      desc.description = "Number of primitives that were rendered.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_SamplesWritten:
+      desc.name = "Samples Written";
+      desc.description = "Number of samples that passed depth/stencil test.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_VSInvocations:
+      desc.name = "VS Invocations";
+      desc.description = "Number of times a vertex shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_GSInvocations:
+      desc.name = "GS Invocations";
+      desc.description = "Number of times a geometry shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_HSInvocations:
+      desc.name = "HS Invocations";
+      desc.description = "Number of times a hull shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_DSInvocations:
+      desc.name = "DS Invocations";
+      desc.description =
+          "Number of times a domain shader (or tesselation evaluation shader in OpenGL) was "
+          "invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_PSInvocations:
+      desc.name = "PS Invocations";
+      desc.description = "Number of times a pixel shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_CSInvocations:
+      desc.name = "CS Invocations";
+      desc.description = "Number of times a compute shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    default:
+      desc.name = "Unknown";
+      desc.description = "Unknown counter ID";
+      desc.resultByteWidth = 0;
+      desc.resultCompType = eCompType_None;
+      desc.units = eUnits_Absolute;
+      break;
   }
 }
 
@@ -79,6 +178,8 @@ struct GPUTimer
 {
   ID3D11Query *before;
   ID3D11Query *after;
+  ID3D11Query *stats;
+  ID3D11Query *occlusion;
   uint32_t eventID;
 };
 
@@ -91,7 +192,9 @@ struct CounterContext
 
 void D3D11DebugManager::FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode)
 {
-  const D3D11_QUERY_DESC qdesc = {D3D11_QUERY_TIMESTAMP, 0};
+  const D3D11_QUERY_DESC qtimedesc = {D3D11_QUERY_TIMESTAMP, 0};
+  const D3D11_QUERY_DESC qstatsdesc = {D3D11_QUERY_PIPELINE_STATISTICS, 0};
+  const D3D11_QUERY_DESC qoccldesc = {D3D11_QUERY_OCCLUSION, 0};
 
   if(drawnode.children.empty())
     return;
@@ -115,11 +218,15 @@ void D3D11DebugManager::FillTimers(CounterContext &ctx, const DrawcallTreeNode &
 
         timer = &ctx.timers.back();
         timer->eventID = d.eventID;
-        timer->before = timer->after = NULL;
+        timer->before = timer->after = timer->stats = timer->occlusion = NULL;
 
-        hr = m_pDevice->CreateQuery(&qdesc, &timer->before);
+        hr = m_pDevice->CreateQuery(&qtimedesc, &timer->before);
         RDCASSERTEQUAL(hr, S_OK);
-        hr = m_pDevice->CreateQuery(&qdesc, &timer->after);
+        hr = m_pDevice->CreateQuery(&qtimedesc, &timer->after);
+        RDCASSERTEQUAL(hr, S_OK);
+        hr = m_pDevice->CreateQuery(&qstatsdesc, &timer->stats);
+        RDCASSERTEQUAL(hr, S_OK);
+        hr = m_pDevice->CreateQuery(&qoccldesc, &timer->occlusion);
         RDCASSERTEQUAL(hr, S_OK);
       }
       else
@@ -132,16 +239,19 @@ void D3D11DebugManager::FillTimers(CounterContext &ctx, const DrawcallTreeNode &
 
     m_pImmediateContext->Flush();
 
+    if(timer->stats)
+      m_pImmediateContext->Begin(timer->stats);
+    if(timer->occlusion)
+      m_pImmediateContext->Begin(timer->occlusion);
     if(timer->before && timer->after)
-    {
       m_pImmediateContext->End(timer->before);
-      m_WrappedDevice->ReplayLog(ctx.eventStart, d.eventID, eReplay_OnlyDraw);
+    m_WrappedDevice->ReplayLog(ctx.eventStart, d.eventID, eReplay_OnlyDraw);
+    if(timer->before && timer->after)
       m_pImmediateContext->End(timer->after);
-    }
-    else
-    {
-      m_WrappedDevice->ReplayLog(ctx.eventStart, d.eventID, eReplay_OnlyDraw);
-    }
+    if(timer->occlusion)
+      m_pImmediateContext->End(timer->occlusion);
+    if(timer->stats)
+      m_pImmediateContext->End(timer->stats);
 
     ctx.eventStart = d.eventID + 1;
   }
@@ -157,11 +267,7 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<uint32_t> &c
     return ret;
   }
 
-  uint32_t counterID = counters[0];
-  RDCASSERT(counters.size() == 1);
-  RDCASSERT(counterID == eCounter_EventGPUDuration);
-
-  SCOPED_TIMER("Fetch Counters for %u", counterID);
+  SCOPED_TIMER("Fetch Counters, counters to fetch %u", counters.size());
 
   D3D11_QUERY_DESC disjointdesc = {D3D11_QUERY_TIMESTAMP_DISJOINT, 0};
   ID3D11Query *disjoint = NULL;
@@ -220,7 +326,8 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<uint32_t> &c
 
       for(size_t i = 0; i < ctx.timers.size(); i++)
       {
-        if(ctx.timers[i].before && ctx.timers[i].after)
+        if(ctx.timers[i].before && ctx.timers[i].after && ctx.timers[i].stats &&
+           ctx.timers[i].occlusion)
         {
           hr = m_pImmediateContext->GetData(ctx.timers[i].before, &a, sizeof(UINT64), 0);
           RDCASSERTEQUAL(hr, S_OK);
@@ -231,13 +338,101 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<uint32_t> &c
 
           double duration = (double(b - a) / ticksToSecs);
 
-          ret.push_back(CounterResult(ctx.timers[i].eventID, counterID, duration));
-
           a = b;
+
+          D3D11_QUERY_DATA_PIPELINE_STATISTICS pipelineStats;
+          hr = m_pImmediateContext->GetData(ctx.timers[i].stats, &pipelineStats,
+                                            sizeof(D3D11_QUERY_DATA_PIPELINE_STATISTICS), 0);
+          RDCASSERTEQUAL(hr, S_OK);
+
+          UINT64 occlusion = 0;
+          hr = m_pImmediateContext->GetData(ctx.timers[i].occlusion, &occlusion, sizeof(UINT64), 0);
+          RDCASSERTEQUAL(hr, S_OK);
+
+          for(size_t c = 0; c < counters.size(); c++)
+          {
+            switch(counters[c])
+            {
+              case eCounter_EventGPUDuration:
+                ret.push_back(
+                    CounterResult(ctx.timers[i].eventID, eCounter_EventGPUDuration, duration));
+                break;
+              case eCounter_InputVerticesRead:
+                ret.push_back(CounterResult(ctx.timers[i].eventID, eCounter_InputVerticesRead,
+                                            pipelineStats.IAVertices));
+                break;
+              case eCounter_IAPrimitives:
+                ret.push_back(CounterResult(ctx.timers[i].eventID, eCounter_IAPrimitives,
+                                            pipelineStats.IAPrimitives));
+                break;
+              case eCounter_VSInvocations:
+                ret.push_back(CounterResult(ctx.timers[i].eventID, eCounter_VSInvocations,
+                                            pipelineStats.VSInvocations));
+                break;
+              case eCounter_GSInvocations:
+                ret.push_back(CounterResult(ctx.timers[i].eventID, eCounter_GSInvocations,
+                                            pipelineStats.GSInvocations));
+                break;
+              case eCounter_GSPrimitives:
+                ret.push_back(CounterResult(ctx.timers[i].eventID, eCounter_GSPrimitives,
+                                            pipelineStats.GSPrimitives));
+                break;
+              case eCounter_RasterizerInvocations:
+                ret.push_back(CounterResult(ctx.timers[i].eventID, eCounter_RasterizerInvocations,
+                                            pipelineStats.CInvocations));
+                break;
+              case eCounter_RasterizedPrimitives:
+                ret.push_back(CounterResult(ctx.timers[i].eventID, eCounter_RasterizedPrimitives,
+                                            pipelineStats.CPrimitives));
+                break;
+              case eCounter_PSInvocations:
+                ret.push_back(CounterResult(ctx.timers[i].eventID, eCounter_PSInvocations,
+                                            pipelineStats.PSInvocations));
+                break;
+              case eCounter_HSInvocations:
+                ret.push_back(CounterResult(ctx.timers[i].eventID, eCounter_HSInvocations,
+                                            pipelineStats.HSInvocations));
+                break;
+              case eCounter_DSInvocations:
+                ret.push_back(CounterResult(ctx.timers[i].eventID, eCounter_DSInvocations,
+                                            pipelineStats.DSInvocations));
+                break;
+              case eCounter_CSInvocations:
+                ret.push_back(CounterResult(ctx.timers[i].eventID, eCounter_CSInvocations,
+                                            pipelineStats.CSInvocations));
+                break;
+              case eCounter_SamplesWritten:
+                ret.push_back(
+                    CounterResult(ctx.timers[i].eventID, eCounter_SamplesWritten, occlusion));
+                break;
+            }
+          }
         }
         else
         {
-          ret.push_back(CounterResult(ctx.timers[i].eventID, counterID, 0.0));
+          for(size_t c = 0; c < counters.size(); c++)
+          {
+            switch(counters[c])
+            {
+              case eCounter_EventGPUDuration:
+                ret.push_back(CounterResult(ctx.timers[i].eventID, eCounter_EventGPUDuration, -1.0));
+                break;
+              case eCounter_InputVerticesRead:
+              case eCounter_IAPrimitives:
+              case eCounter_GSPrimitives:
+              case eCounter_RasterizerInvocations:
+              case eCounter_RasterizedPrimitives:
+              case eCounter_VSInvocations:
+              case eCounter_HSInvocations:
+              case eCounter_DSInvocations:
+              case eCounter_GSInvocations:
+              case eCounter_PSInvocations:
+              case eCounter_CSInvocations:
+              case eCounter_SamplesWritten:
+                ret.push_back(CounterResult(ctx.timers[i].eventID, counters[c], 0xFFFFFFFFFFFFFFFF));
+                break;
+            }
+          }
         }
       }
     }
@@ -247,6 +442,8 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<uint32_t> &c
   {
     SAFE_RELEASE(ctx.timers[i].before);
     SAFE_RELEASE(ctx.timers[i].after);
+    SAFE_RELEASE(ctx.timers[i].stats);
+    SAFE_RELEASE(ctx.timers[i].occlusion);
   }
 
   SAFE_RELEASE(disjoint);
