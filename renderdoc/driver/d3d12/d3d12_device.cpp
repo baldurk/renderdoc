@@ -562,8 +562,7 @@ void WrappedID3D12Device::CheckForDeath()
 
 void WrappedID3D12Device::FirstFrame(WrappedIDXGISwapChain4 *swap)
 {
-  DXGI_SWAP_CHAIN_DESC swapdesc;
-  swap->GetDesc(&swapdesc);
+  DXGI_SWAP_CHAIN_DESC swapdesc = swap->GetDescWithHWND();
 
   // if we have to capture the first frame, begin capturing immediately
   if(m_State == WRITING_IDLE && RenderDoc::Inst().ShouldTriggerCapture(0))
@@ -603,8 +602,7 @@ void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap
 
   if(swap)
   {
-    DXGI_SWAP_CHAIN_DESC desc;
-    swap->GetDesc(&desc);
+    DXGI_SWAP_CHAIN_DESC desc = swap->GetDescWithHWND();
 
     Keyboard::RemoveInputWindow(desc.OutputWindow);
 
@@ -759,8 +757,7 @@ IUnknown *WrappedID3D12Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
 
   if(swap)
   {
-    DXGI_SWAP_CHAIN_DESC sdesc;
-    swap->GetDesc(&sdesc);
+    DXGI_SWAP_CHAIN_DESC sdesc = swap->GetDescWithHWND();
 
     Keyboard::AddInputWindow(sdesc.OutputWindow);
 
@@ -969,8 +966,7 @@ HRESULT WrappedID3D12Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
 
   m_FrameCounter++;    // first present becomes frame #1, this function is at the end of the frame
 
-  DXGI_SWAP_CHAIN_DESC swapdesc;
-  swap->GetDesc(&swapdesc);
+  DXGI_SWAP_CHAIN_DESC swapdesc = swap->GetDescWithHWND();
   bool activeWindow = RenderDoc::Inst().IsActiveWindow((ID3D12Device *)this, swapdesc.OutputWindow);
 
   m_LastSwap = swap;
@@ -1208,8 +1204,7 @@ bool WrappedID3D12Device::EndFrameCapture(void *dev, void *wnd)
   {
     for(auto it = m_SwapChains.begin(); it != m_SwapChains.end(); ++it)
     {
-      DXGI_SWAP_CHAIN_DESC swapDesc;
-      it->first->GetDesc(&swapDesc);
+      DXGI_SWAP_CHAIN_DESC swapDesc = it->first->GetDescWithHWND();
 
       if(swapDesc.OutputWindow == wnd)
       {

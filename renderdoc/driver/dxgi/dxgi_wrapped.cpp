@@ -881,6 +881,8 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChainForCoreWindow(IUnknown *pDevice, IU
     {
       HWND wnd = NULL;
       (*ppSwapChain)->GetHwnd(&wnd);
+      if(wnd == NULL)
+        wnd = (HWND)pWindow;
       *ppSwapChain = new WrappedIDXGISwapChain4(*ppSwapChain, wnd, wrapDevice);
     }
 
@@ -916,6 +918,8 @@ HRESULT WrappedIDXGIFactory5::CreateSwapChainForComposition(IUnknown *pDevice,
     {
       HWND wnd = NULL;
       (*ppSwapChain)->GetHwnd(&wnd);
+      if(wnd == NULL)
+        wnd = (HWND)0x1;
       *ppSwapChain = new WrappedIDXGISwapChain4(*ppSwapChain, wnd, wrapDevice);
     }
 

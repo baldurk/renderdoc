@@ -2504,8 +2504,7 @@ void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap
 
   if(swap)
   {
-    DXGI_SWAP_CHAIN_DESC desc;
-    swap->GetDesc(&desc);
+    DXGI_SWAP_CHAIN_DESC desc = swap->GetDescWithHWND();
 
     Keyboard::RemoveInputWindow(desc.OutputWindow);
 
@@ -2638,8 +2637,7 @@ IUnknown *WrappedID3D11Device::WrapSwapchainBuffer(WrappedIDXGISwapChain4 *swap,
 
   if(swap)
   {
-    DXGI_SWAP_CHAIN_DESC sdesc;
-    swap->GetDesc(&sdesc);
+    DXGI_SWAP_CHAIN_DESC sdesc = swap->GetDescWithHWND();
 
     Keyboard::AddInputWindow(sdesc.OutputWindow);
 
@@ -2743,8 +2741,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
   {
     for(auto it = m_SwapChains.begin(); it != m_SwapChains.end(); ++it)
     {
-      DXGI_SWAP_CHAIN_DESC swapDesc;
-      it->first->GetDesc(&swapDesc);
+      DXGI_SWAP_CHAIN_DESC swapDesc = it->first->GetDescWithHWND();
 
       if(swapDesc.OutputWindow == wnd)
       {
@@ -3088,8 +3085,7 @@ bool WrappedID3D11Device::EndFrameCapture(void *dev, void *wnd)
       {
         m_pImmediateContext->GetReal()->OMSetRenderTargets(1, &rtv, NULL);
 
-        DXGI_SWAP_CHAIN_DESC swapDesc = {0};
-        swap->GetDesc(&swapDesc);
+        DXGI_SWAP_CHAIN_DESC swapDesc = swap->GetDescWithHWND();
         GetDebugManager()->SetOutputDimensions(swapDesc.BufferDesc.Width, swapDesc.BufferDesc.Height);
         GetDebugManager()->SetOutputWindow(swapDesc.OutputWindow);
 
@@ -3277,8 +3273,7 @@ void WrappedID3D11Device::UnlockForChunkRemoval()
 
 void WrappedID3D11Device::FirstFrame(WrappedIDXGISwapChain4 *swapChain)
 {
-  DXGI_SWAP_CHAIN_DESC swapdesc;
-  swapChain->GetDesc(&swapdesc);
+  DXGI_SWAP_CHAIN_DESC swapdesc = swapChain->GetDescWithHWND();
 
   // if we have to capture the first frame, begin capturing immediately
   if(m_State == WRITING_IDLE && RenderDoc::Inst().ShouldTriggerCapture(0))
@@ -3305,8 +3300,7 @@ HRESULT WrappedID3D11Device::Present(WrappedIDXGISwapChain4 *swap, UINT SyncInte
 
   m_pImmediateContext->BeginFrame();
 
-  DXGI_SWAP_CHAIN_DESC swapdesc;
-  swap->GetDesc(&swapdesc);
+  DXGI_SWAP_CHAIN_DESC swapdesc = swap->GetDescWithHWND();
   bool activeWindow = RenderDoc::Inst().IsActiveWindow((ID3D11Device *)this, swapdesc.OutputWindow);
 
   if(m_State == WRITING_IDLE)

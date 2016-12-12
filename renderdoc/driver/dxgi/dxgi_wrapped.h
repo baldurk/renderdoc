@@ -589,6 +589,18 @@ public:
   IMPLEMENT_IDXGIOBJECT_WITH_REFCOUNTDXGIOBJECT_CUSTOMQUERY;
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject);
 
+  DXGI_SWAP_CHAIN_DESC GetDescWithHWND()
+  {
+    DXGI_SWAP_CHAIN_DESC ret = {};
+
+    m_pReal->GetDesc(&ret);
+
+    if(ret.OutputWindow == NULL)
+      ret.OutputWindow = m_Wnd;
+
+    return ret;
+  }
+
   //////////////////////////////
   // implement IDXGIDeviceSubObject
 
