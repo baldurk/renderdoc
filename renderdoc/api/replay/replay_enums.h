@@ -495,10 +495,18 @@ enum GPUCounters
   eCounter_FirstGeneric = 1,
   eCounter_EventGPUDuration = eCounter_FirstGeneric,
   eCounter_InputVerticesRead,
-  eCounter_VSInvocations,
-  eCounter_PSInvocations,
+  eCounter_IAPrimitives,
+  eCounter_GSPrimitives,
+  eCounter_RasterizerInvocations,
   eCounter_RasterizedPrimitives,
   eCounter_SamplesWritten,
+  eCounter_VSInvocations,
+  eCounter_HSInvocations,
+  eCounter_DSInvocations,
+  eCounter_TESInvocations = eCounter_DSInvocations,
+  eCounter_GSInvocations,
+  eCounter_PSInvocations,
+  eCounter_CSInvocations,
 
   // IHV specific counters can be set above this point
   // with ranges reserved for each IHV
