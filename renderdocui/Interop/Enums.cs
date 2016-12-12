@@ -492,14 +492,21 @@ namespace renderdoc
         FrontAndBack,
     };
 
-    public enum GPUCounters
+    public enum GPUCounters : uint
     {
         FirstGeneric = 1,
         EventGPUDuration = FirstGeneric,
         InputVerticesRead,
+        IAPrimitives,
         VSInvocations,
-        PSInvocations,
+        GSInvocations,
+        GSPrimitives,
+        CInvocations,
         RasterizedPrimitives,
+        PSInvocations,
+        HSInvocations,
+        DSInvocations,
+        CSInvocations,
         SamplesWritten,
 
         FirstAMD = 1000000,

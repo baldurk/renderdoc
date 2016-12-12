@@ -363,7 +363,17 @@ namespace renderdocui.Windows
                 uint eid = GetNodeEventID(n);
 
                 if (times.ContainsKey(eid))
-                    duration = times[eid][0].value.d;
+                {
+                    duration = -1.0;
+                    foreach (var counter in times[eid])
+                    {
+                        if (counter.counterID == (uint) GPUCounters.EventGPUDuration)
+                        {
+                            duration = times[eid][0].value.d;
+                            break;
+                        }
+                    }
+                }
                 else
                     duration = -1.0;
 
@@ -830,7 +840,8 @@ namespace renderdocui.Windows
                 var desc = r.DescribeCounter(counters[0]);
 
                 Dictionary<uint, List<CounterResult>> times = new Dictionary<uint, List<CounterResult>>();
-                times = r.FetchCounters(counters);
+                //times = r.FetchCounters(counters);
+                times = r.FetchCounters(avail);
 
                 BeginInvoke((MethodInvoker)delegate
                 {

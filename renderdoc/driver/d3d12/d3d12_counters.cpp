@@ -47,6 +47,18 @@ vector<uint32_t> D3D12Replay::EnumerateCounters()
   vector<uint32_t> ret;
 
   ret.push_back(eCounter_EventGPUDuration);
+  ret.push_back(eCounter_InputVerticesRead);
+  ret.push_back(eCounter_IAPrimitives);
+  ret.push_back(eCounter_VSInvocations);
+  ret.push_back(eCounter_GSInvocations);
+  ret.push_back(eCounter_GSPrimitives);
+  ret.push_back(eCounter_CInvocations);
+  ret.push_back(eCounter_RasterizedPrimitives);
+  ret.push_back(eCounter_PSInvocations);
+  ret.push_back(eCounter_HSInvocations);
+  ret.push_back(eCounter_DSInvocations);
+  ret.push_back(eCounter_CSInvocations);
+  ret.push_back(eCounter_SamplesWritten);
 
   return ret;
 }
@@ -55,23 +67,107 @@ void D3D12Replay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
 {
   desc.counterID = counterID;
 
-  if(counterID == eCounter_EventGPUDuration)
+  switch (counterID)
   {
-    desc.name = "GPU Duration";
-    desc.description =
-        "Time taken for this event on the GPU, as measured by delta between two GPU timestamps, "
-        "top to bottom of the pipe.";
-    desc.resultByteWidth = 8;
-    desc.resultCompType = eCompType_Double;
-    desc.units = eUnits_Seconds;
-  }
-  else
-  {
-    desc.name = "Unknown";
-    desc.description = "Unknown counter ID";
-    desc.resultByteWidth = 0;
-    desc.resultCompType = eCompType_None;
-    desc.units = eUnits_Absolute;
+    case eCounter_EventGPUDuration:
+      desc.name = "GPU Duration";
+      desc.description =
+        "Time taken for this event on the GPU, as measured by delta between two GPU timestamps.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_Double;
+      desc.units = eUnits_Seconds;
+      break;
+    case eCounter_InputVerticesRead:
+      desc.name = "Input Vertices Read";
+      desc.description = "Number of vertices read by input assembler.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_IAPrimitives:
+      desc.name = "Input Primitives";
+      desc.description = "Number of primitives read by the input assembler.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_VSInvocations:
+      desc.name = "VS Invocations";
+      desc.description = "Number of times a vertex shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_GSInvocations:
+      desc.name = "GS Invocations";
+      desc.description = "Number of times a geometry shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_GSPrimitives:
+      desc.name = "GS Primitives";
+      desc.description = "Number of primitives output by a geometry shader.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_CInvocations:
+      desc.name = "CInvocations";
+      desc.description = "Number of primitives that were sent to the rasterizer.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_RasterizedPrimitives:
+      desc.name = "Rasterized Primitives";
+      desc.description = "Number of primitives that were rendered.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_PSInvocations:
+      desc.name = "PS Invocations";
+      desc.description = "Number of times a pixel shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_HSInvocations:
+      desc.name = "HS Invocations";
+      desc.description = "Number of times a hull shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_DSInvocations:
+      desc.name = "DS Invocations";
+      desc.description = "Number of times a domain shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_CSInvocations:
+      desc.name = "CS Invocations";
+      desc.description = "Number of times a compute shader was invoked.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    case eCounter_SamplesWritten:
+      desc.name = "Samples Written";
+      desc.description = "Number of samples that passed depth/stencil test.";
+      desc.resultByteWidth = 8;
+      desc.resultCompType = eCompType_UInt;
+      desc.units = eUnits_Absolute;
+      break;
+    default:
+      desc.name = "Unknown";
+      desc.description = "Unknown counter ID";
+      desc.resultByteWidth = 0;
+      desc.resultCompType = eCompType_None;
+      desc.units = eUnits_Absolute;
+      break;
   }
 }
 
