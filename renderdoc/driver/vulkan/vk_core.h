@@ -144,6 +144,11 @@ struct VulkanDrawcallCallback
   virtual bool PostDispatch(uint32_t eid, VkCommandBuffer cmd) = 0;
   virtual void PostRedispatch(uint32_t eid, VkCommandBuffer cmd) = 0;
 
+  // finally, these are for copy/blit/resolve/clear/etc
+  virtual void PreMisc(uint32_t eid, DrawcallFlags flags, VkCommandBuffer cmd) = 0;
+  virtual bool PostMisc(uint32_t eid, DrawcallFlags flags, VkCommandBuffer cmd) = 0;
+  virtual void PostRemisc(uint32_t eid, DrawcallFlags flags, VkCommandBuffer cmd) = 0;
+
   // should we re-record all command buffers? this needs to be true if the range
   // being replayed is larger than one command buffer (which usually means the
   // whole frame).
@@ -242,7 +247,7 @@ private:
 
   // util function to handle fetching the right eventID, calling any
   // aliases then calling PreDraw/PreDispatch.
-  uint32_t HandlePreCallback(VkCommandBuffer commandBuffer, bool dispatch = false,
+  uint32_t HandlePreCallback(VkCommandBuffer commandBuffer, DrawcallFlags type = eDraw_Drawcall,
                              uint32_t multiDrawOffset = 0);
 
   vector<WindowingSystem> m_SupportedWindowSystems;

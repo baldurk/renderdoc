@@ -504,7 +504,7 @@ void WrappedVulkan::FlushQ()
   }
 }
 
-uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, bool dispatch,
+uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, DrawcallFlags type,
                                           uint32_t multiDrawOffset)
 {
   if(!m_DrawcallCallback)
@@ -534,10 +534,12 @@ uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, bool di
 
   eventID += multiDrawOffset;
 
-  if(dispatch)
+  if(type == eDraw_Drawcall)
+    m_DrawcallCallback->PreDraw(eventID, commandBuffer);
+  else if(type == eDraw_Dispatch)
     m_DrawcallCallback->PreDispatch(eventID, commandBuffer);
   else
-    m_DrawcallCallback->PreDraw(eventID, commandBuffer);
+    m_DrawcallCallback->PreMisc(eventID, type, commandBuffer);
 
   return eventID;
 }

@@ -329,7 +329,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
       {
         for(uint32_t i = 0; i < cnt; i++)
         {
-          uint32_t eventID = HandlePreCallback(commandBuffer, false, i + 1);
+          uint32_t eventID = HandlePreCallback(commandBuffer, eDraw_Drawcall, i + 1);
 
           ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, 1, strd);
 
@@ -370,7 +370,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndirect(Serialiser *localSerialiser,
 
         if(IsDrawInRenderPass())
         {
-          uint32_t eventID = HandlePreCallback(commandBuffer, false, drawidx + 1);
+          uint32_t eventID = HandlePreCallback(commandBuffer, eDraw_Drawcall, drawidx + 1);
 
           ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
 
@@ -606,7 +606,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
       {
         for(uint32_t i = 0; i < cnt; i++)
         {
-          uint32_t eventID = HandlePreCallback(commandBuffer, false, i + 1);
+          uint32_t eventID = HandlePreCallback(commandBuffer, eDraw_Drawcall, i + 1);
 
           ObjDisp(commandBuffer)
               ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, 1, strd);
@@ -661,7 +661,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
 
         if(IsDrawInRenderPass())
         {
-          uint32_t eventID = HandlePreCallback(commandBuffer, false, drawidx + 1);
+          uint32_t eventID = HandlePreCallback(commandBuffer, eDraw_Drawcall, drawidx + 1);
 
           ObjDisp(commandBuffer)
               ->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
@@ -842,7 +842,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatch(Serialiser *localSerialiser,
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
-      uint32_t eventID = HandlePreCallback(commandBuffer, true);
+      uint32_t eventID = HandlePreCallback(commandBuffer, eDraw_Dispatch);
 
       ObjDisp(commandBuffer)->CmdDispatch(Unwrap(commandBuffer), X, Y, Z);
 
@@ -921,7 +921,7 @@ bool WrappedVulkan::Serialise_vkCmdDispatchIndirect(Serialiser *localSerialiser,
     {
       commandBuffer = RerecordCmdBuf(cmdid);
 
-      uint32_t eventID = HandlePreCallback(commandBuffer, true);
+      uint32_t eventID = HandlePreCallback(commandBuffer, eDraw_Dispatch);
 
       ObjDisp(commandBuffer)->CmdDispatchIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs);
 
@@ -1033,9 +1033,21 @@ bool WrappedVulkan::Serialise_vkCmdBlitImage(Serialiser *localSerialiser,
     if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
+
+      uint32_t eventID = HandlePreCallback(commandBuffer, eDraw_Resolve);
+
       ObjDisp(commandBuffer)
           ->CmdBlitImage(Unwrap(commandBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage),
                          dstlayout, count, regions, f);
+
+      if(eventID && m_DrawcallCallback->PostMisc(eventID, eDraw_Resolve, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdBlitImage(Unwrap(commandBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage),
+                           dstlayout, count, regions, f);
+
+        m_DrawcallCallback->PostRemisc(eventID, eDraw_Resolve, commandBuffer);
+      }
     }
   }
   else if(m_State == READING)
@@ -1148,9 +1160,21 @@ bool WrappedVulkan::Serialise_vkCmdResolveImage(Serialiser *localSerialiser,
     if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
+
+      uint32_t eventID = HandlePreCallback(commandBuffer, eDraw_Resolve);
+
       ObjDisp(commandBuffer)
           ->CmdResolveImage(Unwrap(commandBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage),
                             dstlayout, count, regions);
+
+      if(eventID && m_DrawcallCallback->PostMisc(eventID, eDraw_Resolve, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdResolveImage(Unwrap(commandBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage),
+                              dstlayout, count, regions);
+
+        m_DrawcallCallback->PostRemisc(eventID, eDraw_Resolve, commandBuffer);
+      }
     }
   }
   else if(m_State == READING)
@@ -1263,9 +1287,21 @@ bool WrappedVulkan::Serialise_vkCmdCopyImage(Serialiser *localSerialiser,
     if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
+
+      uint32_t eventID = HandlePreCallback(commandBuffer, eDraw_Copy);
+
       ObjDisp(commandBuffer)
           ->CmdCopyImage(Unwrap(commandBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage),
                          dstlayout, count, regions);
+
+      if(eventID && m_DrawcallCallback->PostMisc(eventID, eDraw_Copy, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdCopyImage(Unwrap(commandBuffer), Unwrap(srcImage), srclayout, Unwrap(destImage),
+                           dstlayout, count, regions);
+
+        m_DrawcallCallback->PostRemisc(eventID, eDraw_Copy, commandBuffer);
+      }
     }
   }
   else if(m_State == READING)
@@ -1378,9 +1414,21 @@ bool WrappedVulkan::Serialise_vkCmdCopyBufferToImage(Serialiser *localSerialiser
     if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
+
+      uint32_t eventID = HandlePreCallback(commandBuffer, eDraw_Copy);
+
       ObjDisp(commandBuffer)
           ->CmdCopyBufferToImage(Unwrap(commandBuffer), Unwrap(srcBuffer), Unwrap(destImage),
                                  layout, count, regions);
+
+      if(eventID && m_DrawcallCallback->PostMisc(eventID, eDraw_Copy, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdCopyBufferToImage(Unwrap(commandBuffer), Unwrap(srcBuffer), Unwrap(destImage),
+                                   layout, count, regions);
+
+        m_DrawcallCallback->PostRemisc(eventID, eDraw_Copy, commandBuffer);
+      }
     }
   }
   else if(m_State == READING)
@@ -1484,9 +1532,21 @@ bool WrappedVulkan::Serialise_vkCmdCopyImageToBuffer(Serialiser *localSerialiser
     if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
+
+      uint32_t eventID = HandlePreCallback(commandBuffer, eDraw_Copy);
+
       ObjDisp(commandBuffer)
           ->CmdCopyImageToBuffer(Unwrap(commandBuffer), Unwrap(srcImage), layout,
                                  Unwrap(destBuffer), count, regions);
+
+      if(eventID && m_DrawcallCallback->PostMisc(eventID, eDraw_Copy, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdCopyImageToBuffer(Unwrap(commandBuffer), Unwrap(srcImage), layout,
+                                   Unwrap(destBuffer), count, regions);
+
+        m_DrawcallCallback->PostRemisc(eventID, eDraw_Copy, commandBuffer);
+      }
     }
   }
   else if(m_State == READING)
@@ -1591,9 +1651,21 @@ bool WrappedVulkan::Serialise_vkCmdCopyBuffer(Serialiser *localSerialiser,
     if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
+
+      uint32_t eventID = HandlePreCallback(commandBuffer, eDraw_Copy);
+
       ObjDisp(commandBuffer)
           ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(srcBuffer), Unwrap(destBuffer), count,
                           regions);
+
+      if(eventID && m_DrawcallCallback->PostMisc(eventID, eDraw_Copy, commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdCopyBuffer(Unwrap(commandBuffer), Unwrap(srcBuffer), Unwrap(destBuffer), count,
+                            regions);
+
+        m_DrawcallCallback->PostRemisc(eventID, eDraw_Copy, commandBuffer);
+      }
     }
   }
   else if(m_State == READING)
@@ -1707,8 +1779,23 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(Serialiser *localSerialiser,
     if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
+
+      uint32_t eventID =
+          HandlePreCallback(commandBuffer, DrawcallFlags(eDraw_Clear | eDraw_ClearColour));
+
       ObjDisp(commandBuffer)
           ->CmdClearColorImage(Unwrap(commandBuffer), Unwrap(image), layout, &col, count, ranges);
+
+      if(eventID &&
+         m_DrawcallCallback->PostMisc(eventID, DrawcallFlags(eDraw_Clear | eDraw_ClearColour),
+                                      commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdClearColorImage(Unwrap(commandBuffer), Unwrap(image), layout, &col, count, ranges);
+
+        m_DrawcallCallback->PostRemisc(eventID, DrawcallFlags(eDraw_Clear | eDraw_ClearColour),
+                                       commandBuffer);
+      }
     }
   }
   else if(m_State == READING)
@@ -1795,8 +1882,23 @@ bool WrappedVulkan::Serialise_vkCmdClearDepthStencilImage(
     if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
+
+      uint32_t eventID =
+          HandlePreCallback(commandBuffer, DrawcallFlags(eDraw_Clear | eDraw_ClearDepthStencil));
+
       ObjDisp(commandBuffer)
           ->CmdClearDepthStencilImage(Unwrap(commandBuffer), Unwrap(image), l, &ds, count, ranges);
+
+      if(eventID &&
+         m_DrawcallCallback->PostMisc(eventID, DrawcallFlags(eDraw_Clear | eDraw_ClearDepthStencil),
+                                      commandBuffer))
+      {
+        ObjDisp(commandBuffer)
+            ->CmdClearDepthStencilImage(Unwrap(commandBuffer), Unwrap(image), l, &ds, count, ranges);
+
+        m_DrawcallCallback->PostRemisc(
+            eventID, DrawcallFlags(eDraw_Clear | eDraw_ClearDepthStencil), commandBuffer);
+      }
     }
   }
   else if(m_State == READING)
@@ -1886,7 +1988,17 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(Serialiser *localSerialiser,
     if(ShouldRerecordCmd(cmdid) && InRerecordRange(cmdid))
     {
       commandBuffer = RerecordCmdBuf(cmdid);
+
+      uint32_t eventID = HandlePreCallback(commandBuffer, DrawcallFlags(eDraw_Clear));
+
       ObjDisp(commandBuffer)->CmdClearAttachments(Unwrap(commandBuffer), acount, atts, rcount, rects);
+
+      if(eventID && m_DrawcallCallback->PostMisc(eventID, DrawcallFlags(eDraw_Clear), commandBuffer))
+      {
+        ObjDisp(commandBuffer)->CmdClearAttachments(Unwrap(commandBuffer), acount, atts, rcount, rects);
+
+        m_DrawcallCallback->PostRemisc(eventID, DrawcallFlags(eDraw_Clear), commandBuffer);
+      }
     }
   }
   else if(m_State == READING)
