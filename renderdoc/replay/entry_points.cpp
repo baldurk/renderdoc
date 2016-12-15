@@ -723,6 +723,10 @@ uint32_t StartAndroidPackageForCapture(const char *package)
   adbExecCommand("shell am force-stop " + packageName);
   adbForwardPorts();
   adbExecCommand("shell setprop debug.vulkan.layers VK_LAYER_RENDERDOC_Capture");
+  adbExecCommand("shell pm grant " + packageName +
+                 " android.permission.WRITE_EXTERNAL_STORAGE");    // Creating the capture file
+  adbExecCommand("shell pm grant " + packageName +
+                 " android.permission.READ_EXTERNAL_STORAGE");    // Reading the capture thumbnail
   adbExecCommand("shell monkey -p " + packageName + " -c android.intent.category.LAUNCHER 1");
   Threading::Sleep(
       5000);    // Let the app pickup the setprop before we turn it back off for replaying.
