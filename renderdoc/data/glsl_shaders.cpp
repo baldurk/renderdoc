@@ -24,13 +24,16 @@
 
 #include "glsl_shaders.h"
 #include "os/os_specific.h"
+#include "string.h"
 
 void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
-                        const std::string &defines, const std::string &shader, int version,
+                        const std::string &defines, const std::string &shader, const char* version,
                         bool uniforms)
 {
   sources.resize(4);
-  sources[0] = StringFormat::Fmt("#version %d core\n", version);
+  sources[0] = StringFormat::Fmt("#version %s\n", version);
+  if (strstr(version, "es") != NULL)
+    sources[0] += "#define OPENGL_ES\n";
 
   // hoist up any #extension directives
   size_t extsearch = 0;

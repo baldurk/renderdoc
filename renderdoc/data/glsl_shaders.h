@@ -32,5 +32,5 @@ enum ShaderType
 #include <vector>
 
 void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
-                        const std::string &defines, const std::string &shader, int version,
+                        const std::string &defines, const std::string &shader, const char *version,
                         bool uniforms = true);

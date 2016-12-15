@@ -26,9 +26,10 @@
 // classes that represent a whole cbuffer
 #if defined(__cplusplus)
 
-#include "common/common.h"
-#include "maths/matrix.h"
-#include "maths/vec.h"
+//TODO(elecro): improve this somehow, as android does not supports the " character
+//#include "common/common.h"
+//#include "maths/matrix.h"
+//#include "maths/vec.h"
 
 #define uniform struct
 #define vec2 Vec2f
@@ -48,11 +49,13 @@ struct Vec4u
 #define uvec4 Vec4u
 
 #if !defined(VULKAN) && !defined(OPENGL)
-#error "Must define VULKAN or OPENGL before including debuguniforms.h"
+//TODO(elecro): improve this somehow, as android does not supports the " character
+#error Must define VULKAN or OPENGL before including debuguniforms.h
 #endif
 
 #if defined(VULKAN) && defined(OPENGL)
-#error "Only one of VULKAN and OPENGL must be defined in debuguniforms.h"
+//TODO(elecro): improve this somehow, as android does not supports the " character
+#error Only one of VULKAN and OPENGL must be defined in debuguniforms.h
 #endif
 
 #else
@@ -79,7 +82,16 @@ struct Vec4u
 
 #define INST_NAME(name) name
 
+#ifndef OPENGL_ES
+#define PRECISION
+#else
+#define PRECISION mediump
+precision PRECISION float;
 #endif
+
+#endif
+
+
 
 BINDING(2) uniform HistogramUBOData
 {
@@ -264,9 +276,9 @@ INST_NAME(texdisplay);
 
 #define HGRAM_NUM_BUCKETS 256u
 
-#define MESH_OTHER 0    // this covers points and lines, logic is the same
-#define MESH_TRIANGLE_LIST 1
-#define MESH_TRIANGLE_STRIP 2
-#define MESH_TRIANGLE_FAN 3
-#define MESH_TRIANGLE_LIST_ADJ 4
-#define MESH_TRIANGLE_STRIP_ADJ 5
+#define MESH_OTHER 0u    // this covers points and lines, logic is the same
+#define MESH_TRIANGLE_LIST 1u
+#define MESH_TRIANGLE_STRIP 2u
+#define MESH_TRIANGLE_FAN 3u
+#define MESH_TRIANGLE_LIST_ADJ 4u
+#define MESH_TRIANGLE_STRIP_ADJ 5u

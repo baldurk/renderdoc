@@ -706,6 +706,10 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg
 // be resolved and libGL wouldn't link, meaning dlsym(RTLD_NEXT) would fai
 extern "C" void glXWaitX();
 
+#elif defined(RENDERDOC_SUPPORT_GLES)
+
+extern "C" int eglWaitGL(void);
+
 #endif
 
 void sig_handler(int signo)
@@ -725,6 +729,12 @@ int main(int argc, char *argv[])
   volatile bool never_run = false;
   if(never_run)
     glXWaitX();
+
+#elif defined(RENDERDOC_SUPPORT_GLES)
+
+  volatile bool never_run = false;
+  if(never_run)
+    eglWaitGL();
 
 #endif
 
@@ -747,6 +757,11 @@ int main(int argc, char *argv[])
 
 #if defined(RENDERDOC_SUPPORT_GL)
     support += "GL, ";
+    count++;
+#endif
+
+#if defined(RENDERDOC_SUPPORT_GLES)
+    support += "GLES, ";
     count++;
 #endif
 

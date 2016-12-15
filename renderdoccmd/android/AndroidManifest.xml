@@ -2,6 +2,8 @@
 <!-- BEGIN_INCLUDE(manifest) -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.renderdoc.renderdoccmd" android:versionCode="1" android:versionName="1.0">
 
+
+  <uses-feature android:glEsVersion="0x00030002" android:required="true" />
   <!-- This is the platform API where NativeActivity was introduced. -->
   <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="23"/>
 

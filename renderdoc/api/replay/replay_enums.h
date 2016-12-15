@@ -203,6 +203,7 @@ enum SpecialFormat
   eSpecial_BC5,
   eSpecial_BC6,
   eSpecial_BC7,
+  eSpecial_ETC1,
   eSpecial_ETC2,
   eSpecial_EAC,
   eSpecial_ASTC,

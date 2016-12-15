@@ -1325,7 +1325,7 @@ WrappedResourceType ResourceManager<WrappedResourceType, RealResourceType, Recor
   if(origid == ResourceId())
     return (WrappedResourceType)RecordType::NullResource;
 
-  RDCASSERT(HasLiveResource(origid), origid);
+  // (PEPE) RDCASSERT(HasLiveResource(origid), origid);
 
   if(m_Replacements.find(origid) != m_Replacements.end())
     return GetLiveResource(m_Replacements[origid]);

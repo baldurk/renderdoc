@@ -28,6 +28,10 @@
 #include "gl_driver.h"
 #include "gl_resources.h"
 
+#include "common/common.h"
+#include "maths/matrix.h"
+#include "maths/vec.h"
+
 #define OPENGL 1
 #include "data/glsl/debuguniforms.h"
 

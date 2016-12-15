@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2014-2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -23,6 +23,9 @@
  ******************************************************************************/
 
 //#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
+
+//#extension GL_EXT_texture_cube_map_array : enable
+//#extension GL_EXT_texture_buffer : enable
 
 layout(binding=0, std140) writeonly buffer minmaxresultdest
 {
@@ -50,7 +53,7 @@ void main()
 	{
 		for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 		{
-			uint bucketIdx = HGRAM_NUM_BUCKETS+1;
+			uint bucketIdx = HGRAM_NUM_BUCKETS+1u;
 
 #if UINT_TEX
 			{
@@ -61,23 +64,23 @@ void main()
 												histogram_minmax.HistogramTextureResolution);
 
 				float divisor = 0.0f;
-				uint sum = 0;
-				if((histogram_minmax.HistogramChannels & 0x1u) > 0)
+				uint sum = 0u;
+				if((histogram_minmax.HistogramChannels & 0x1u) > 0u)
 				{
 					sum += data.x;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x2u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x2u) > 0u)
 				{
 					sum += data.y;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x4u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x4u) > 0u)
 				{
 					sum += data.z;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x8u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x8u) > 0u)
 				{
 					sum += data.w;
 					divisor += 1.0f;
@@ -92,7 +95,7 @@ void main()
 					if(normalisedVal < 0.0f)
 						normalisedVal = 2.0f;
 
-					bucketIdx = uint(floor(normalisedVal*HGRAM_NUM_BUCKETS));
+					bucketIdx = uint(floor(normalisedVal*float(HGRAM_NUM_BUCKETS)));
 				}
 			}
 #elif SINT_TEX
@@ -105,22 +108,22 @@ void main()
 
 				float divisor = 0.0f;
 				int sum = 0;
-				if((histogram_minmax.HistogramChannels & 0x1u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x1u) > 0u)
 				{
 					sum += data.x;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x2u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x2u) > 0u)
 				{
 					sum += data.y;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x4u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x4u) > 0u)
 				{
 					sum += data.z;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x8u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x8u) > 0u)
 				{
 					sum += data.w;
 					divisor += 1.0f;
@@ -135,7 +138,7 @@ void main()
 					if(normalisedVal < 0.0f)
 						normalisedVal = 2.0f;
 
-					bucketIdx = uint(floor(normalisedVal*HGRAM_NUM_BUCKETS));
+					bucketIdx = uint(floor(normalisedVal*float(HGRAM_NUM_BUCKETS)));
 				}
 			}
 #else
@@ -148,22 +151,22 @@ void main()
 
 				float divisor = 0.0f;
 				float sum = 0.0f;
-				if((histogram_minmax.HistogramChannels & 0x1u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x1u) > 0u)
 				{
 					sum += data.x;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x2u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x2u) > 0u)
 				{
 					sum += data.y;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x4u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x4u) > 0u)
 				{
 					sum += data.z;
 					divisor += 1.0f;
 				}
-				if((histogram_minmax.HistogramChannels & 0x8u) > 0)
+				if((histogram_minmax.HistogramChannels & 0x8u) > 0u)
 				{
 					sum += data.w;
 					divisor += 1.0f;
@@ -178,12 +181,12 @@ void main()
 					if(normalisedVal < 0.0f)
 						normalisedVal = 2.0f;
 
-					bucketIdx = uint(floor(normalisedVal*HGRAM_NUM_BUCKETS));
+					bucketIdx = uint(floor(normalisedVal*float(HGRAM_NUM_BUCKETS)));
 				}
 			}
 #endif
 
-			if(bucketIdx >= 0 && bucketIdx < HGRAM_NUM_BUCKETS)
+			if(bucketIdx >= 0u && bucketIdx < HGRAM_NUM_BUCKETS)
 				atomicAdd(dest.result[bucketIdx].x, 1U);
 		}
 	}

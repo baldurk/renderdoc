@@ -29,7 +29,7 @@
 // https://github.com/selfshadow/demos/blob/master/QuadShading/QuadShading.fx
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-layout(binding = 0, r32ui) uniform coherent uimage2DArray overdrawImage;
+layout(binding = 0, r32ui) uniform PRECISION coherent uimage2DArray overdrawImage;
 
 #define NUM_RAMP_COLOURS 128
 
@@ -49,9 +49,9 @@ void main()
 {
 	ivec2 quad = ivec2(gl_FragCoord.xy*0.5f);
 
-	uint overdraw = 0;
-	for(uint i = 0; i < 4; i++)
-		overdraw += imageLoad(overdrawImage, ivec3(quad, i)).x/(i + 1);
+	uint overdraw = 0u;
+	for(uint i = 0u; i < 4u; i++)
+		overdraw += imageLoad(overdrawImage, ivec3(quad, i)).x/(i + 1u);
 
 	color_out = ToColour(overdraw);
 }

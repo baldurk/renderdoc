@@ -50,6 +50,7 @@ option(ENABLE_GL "Enable GL driver" ON)
 option(ENABLE_VULKAN "Enable Vulkan driver" ON)
 option(ENABLE_RENDERDOCCMD "Enable renderdoccmd" ON)
 option(ENABLE_QRENDERDOC "Enable qrenderdoc" ON)
+option(ENABLE_GLES "Enable GLES driver" OFF)
 
 option(ENABLE_XLIB "Enable xlib windowing support" ON)
 option(ENABLE_XCB "Enable xcb windowing support" ON)
@@ -59,8 +60,11 @@ if(WIN32)
 endif()
 
 if(ANDROID)
-    message(STATUS "Disabling GL driver on android - no support for EGL/GLES")
-    set(ENABLE_GL OFF CACHE BOOL "" FORCE)
+    if (ENABLE_GL)
+       message(STATUS "Disabling GL driver on android switching to GLES")
+       set(ENABLE_GL OFF CACHE BOOL "" FORCE)
+       set(ENABLE_GLES ON CACHE BOOL "" FORCE)
+    endif()
 
     # Android doesn't support the Qt UI for obvious reasons
     message(STATUS "Disabling qrenderdoc for android build")
@@ -90,6 +94,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 if(ENABLE_GL)
     add_definitions(-DRENDERDOC_SUPPORT_GL)
+endif()
+
+if(ENABLE_GLES)
+    add_definitions(-DRENDERDOC_SUPPORT_GLES)
 endif()
 
 if(ENABLE_VULKAN)

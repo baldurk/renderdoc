@@ -787,7 +787,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
     for(size_t i = 0; i < ARRAY_COUNT(srcs); i++)
     {
-      GenerateGLSLShader(sources, eShaderVulkan, "", srcs[i], 430);
+      GenerateGLSLShader(sources, eShaderVulkan, "", srcs[i], "430");
 
       vector<uint32_t> *spirv;
 
@@ -1006,7 +1006,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     {
       GenerateGLSLShader(
           sources, eShaderVulkan, "",
-          i == 0 ? GetEmbeddedResource(glsl_text_vert) : GetEmbeddedResource(glsl_text_frag), 430);
+          i == 0 ? GetEmbeddedResource(glsl_text_vert) : GetEmbeddedResource(glsl_text_frag), "430");
 
       vector<uint32_t> *spirv;
 
@@ -1029,7 +1029,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     {
       GenerateGLSLShader(sources, eShaderVulkan, "", i == 0 ? GetEmbeddedResource(glsl_array2ms_comp)
                                                             : GetEmbeddedResource(glsl_ms2array_comp),
-                         430, false);
+                         "430", false);
 
       vector<uint32_t> *spirv;
 
@@ -1746,7 +1746,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
   m_CacheShaders = true;
 
   {
-    GenerateGLSLShader(sources, eShaderVulkan, "", GetEmbeddedResource(glsl_fixedcol_frag), 430,
+    GenerateGLSLShader(sources, eShaderVulkan, "", GetEmbeddedResource(glsl_fixedcol_frag), "430",
                        false);
 
     string err = GetSPIRVBlob(eSPIRVFragment, sources, &m_FixedColSPIRV);
@@ -1763,7 +1763,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     if(texelFetchBrokenDriver)
       defines += "#define NO_TEXEL_FETCH\n";
 
-    GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[i], 430, i != QUADWRITEFS);
+    GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[i], "430", i != QUADWRITEFS);
 
     string err = GetSPIRVBlob(shaderStages[i], sources, &shaderSPIRV[i]);
     RDCASSERT(err.empty() && shaderSPIRV[i]);
@@ -1902,7 +1902,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       defines += string("#define UINT_TEX ") + (f == 1 ? "1" : "0") + "\n";
       defines += string("#define SINT_TEX ") + (f == 2 ? "1" : "0") + "\n";
 
-      GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[HISTOGRAMCS], 430);
+      GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[HISTOGRAMCS], "430");
 
       err = GetSPIRVBlob(eSPIRVCompute, sources, &blob);
       RDCASSERT(err.empty() && blob);
@@ -1913,7 +1913,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       vkr = m_pDriver->vkCreateShaderModule(dev, &modinfo, NULL, &histogram);
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-      GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[MINMAXTILECS], 430);
+      GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[MINMAXTILECS], "430");
 
       err = GetSPIRVBlob(eSPIRVCompute, sources, &blob);
       RDCASSERT(err.empty() && blob);
@@ -1926,7 +1926,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
 
       if(t == 1)
       {
-        GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[MINMAXRESULTCS], 430);
+        GenerateGLSLShader(sources, eShaderVulkan, defines, shaderSources[MINMAXRESULTCS], "430");
 
         err = GetSPIRVBlob(eSPIRVCompute, sources, &blob);
         RDCASSERT(err.empty() && blob);

@@ -52,20 +52,20 @@ bool TriangleRayIntersect(vec3 A, vec3 B, vec3 C,
 
 	// if the determinant is negative the triangle is backfacing, but we still take those!
 	// if the determinant is close to 0, the ray misses the triangle
-	if (abs(det) > 0)
+	if (abs(det) > 0.0)
 	{
-		float invDet = 1 / det;
+		float invDet = 1.0 / det;
 
 		vec3 tvec = RayPosition - A;
 		vec3 qvec = cross(tvec, v0v1);
 		float u = dot(tvec, pvec) * invDet;
 		float v = dot(RayDirection, qvec) * invDet;
 
-		if (u >= 0 && u <= 1 &&
-			v >= 0 && u + v <= 1)
+		if (u >= 0.0 && u <= 1.0 &&
+			v >= 0.0 && u + v <= 1.0)
 		{
 			float t = dot(v0v2, qvec) * invDet;
-			if (t > 0)
+			if (t > 0.0)
 			{
 				HitPosition = RayPosition + (RayDirection * t);
 				Result = true;
@@ -81,47 +81,47 @@ void trianglePath(uint threadID)
 {
 	uint vertid = uint(mod(float(threadID), float(meshpick.numVerts)));
 
-	uint vertid0 = 0;
-	uint vertid1 = 0;
-	uint vertid2 = 0;
+	uint vertid0 = 0u;
+	uint vertid1 = 0u;
+	uint vertid2 = 0u;
 	switch (meshpick.meshMode)
 	{
 		case MESH_TRIANGLE_LIST:
 		{
-			vertid *= 3;
+			vertid *= uint(3);
 			vertid0 = vertid;
-			vertid1 = vertid+1;
-			vertid2 = vertid+2;
+			vertid1 = vertid + uint(1);
+			vertid2 = vertid + uint(2);
 			break;
 		}
 		case MESH_TRIANGLE_STRIP:
 		{
 			vertid0 = vertid;
-			vertid1 = vertid+1;
-			vertid2 = vertid+2;
+			vertid1 = vertid + uint(1);
+			vertid2 = vertid + uint(2);
 			break;
 		}
 		case MESH_TRIANGLE_FAN:
 		{
-			vertid0 = 0;
-			vertid1 = vertid+1;
-			vertid2 = vertid+2;
+			vertid0 = uint(0);
+			vertid1 = vertid + uint(1);
+			vertid2 = vertid + uint(2);
 			break;
 		}
 		case MESH_TRIANGLE_LIST_ADJ:
 		{
-			vertid *= 6;
+			vertid *= uint(6);
 			vertid0 = vertid;
-			vertid1 = vertid+2;
-			vertid2 = vertid+4;
+			vertid1 = vertid + uint(2);
+			vertid2 = vertid + uint(4);
 			break;
 		}
 		case MESH_TRIANGLE_STRIP_ADJ:
 		{
-			vertid *= 2;
+			vertid *= uint(2);
 			vertid0 = vertid;
-			vertid1 = vertid+2;
-			vertid2 = vertid+4;
+			vertid1 = vertid + uint(2);
+			vertid2 = vertid + uint(4);
 			break;
 		}
 	}

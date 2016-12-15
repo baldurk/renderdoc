@@ -1,18 +1,18 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
  * Copyright (c) 2015-2016 Baldur Karlsson
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -25,27 +25,30 @@
 layout (location = 0) in vec4 position;
 layout (location = 1) in vec4 IN_secondary;
 
+
+#ifndef OPENGL_ES
 out gl_PerVertex
 {
 	vec4 gl_Position;
 	float gl_PointSize;
 };
+#endif
 
 layout (location = 0) out vec4 OUT_secondary;
 layout (location = 1) out vec4 norm;
 
 void main(void)
 {
-	vec2 psprite[4] =
-	{
+	vec2 psprite[4] = vec2[]
+	(
 		vec2(-1.0f, -1.0f),
 		vec2(-1.0f,  1.0f),
 		vec2( 1.0f, -1.0f),
 		vec2( 1.0f,  1.0f)
-	};
+	);
 
 	vec4 pos = position;
-	if(Mesh.homogenousInput == 0)
+	if(Mesh.homogenousInput == 0u)
 	{
 		pos = vec4(position.xyz, 1);
 	}
