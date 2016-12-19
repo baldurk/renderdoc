@@ -1864,6 +1864,22 @@ namespace renderdocui.Windows
             RunToCursor();
         }
 
+        private void runToSample_Click(object sender, EventArgs e)
+        {
+            if (m_Trace == null || m_Trace.states == null)
+                return;
+
+            RunToSample();
+        }
+
+        private void runToNanOrInf_Click(object sender, EventArgs e)
+        {
+            if (m_Trace == null || m_Trace.states == null)
+                return;
+
+            RunToNanOrInf();
+        }
+
         private bool StepBack()
         {
             if (m_Trace == null || m_Trace.states == null)
@@ -1964,6 +1980,46 @@ namespace renderdocui.Windows
 
                 i++;
             }
+        }
+
+        private void RunToCondition(ShaderDebugStateFlags condition)
+        {
+            if (m_Trace == null || m_Trace.states == null)
+                return;
+
+            int step = CurrentStep;
+
+            bool firstStep = true;
+
+            while (step < m_Trace.states.Length)
+            {
+                int nextStep = step + 1;
+
+                if (nextStep >= m_Trace.states.Length)
+                    break;
+
+                if (!firstStep && m_Trace.states[nextStep].flags.HasFlag(condition))
+                    break;
+
+                if (!firstStep && m_Breakpoints.Contains((int)m_Trace.states[step].nextInstruction))
+                    break;
+
+                firstStep = false;
+
+                step = nextStep;
+            }
+
+            CurrentStep = step;
+        }
+
+        private void RunToSample()
+        {
+            RunToCondition(ShaderDebugStateFlags.SampleLoadGather);
+        }
+
+        private void RunToNanOrInf()
+        {
+            RunToCondition(ShaderDebugStateFlags.GeneratedNanOrInf);
         }
 
         private void autosToolStripMenuItem_Click(object sender, EventArgs e)

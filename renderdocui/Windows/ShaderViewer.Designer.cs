@@ -78,6 +78,8 @@
             this.stepBack = new System.Windows.Forms.ToolStripButton();
             this.stepNext = new System.Windows.Forms.ToolStripButton();
             this.runToCursor = new System.Windows.Forms.ToolStripButton();
+            this.runToSample = new System.Windows.Forms.ToolStripButton();
+            this.runToNanOrInf = new System.Windows.Forms.ToolStripButton();
             this.runBack = new System.Windows.Forms.ToolStripButton();
             this.run = new System.Windows.Forms.ToolStripButton();
             this.displayInts = new System.Windows.Forms.ToolStripButton();
@@ -299,6 +301,8 @@
             this.stepBack,
             this.stepNext,
             this.runToCursor,
+            this.runToSample,
+            this.runToNanOrInf,
             this.runBack,
             this.run,
             this.showWindows,
@@ -343,6 +347,28 @@
             this.runToCursor.Text = "Run to Cursor";
             this.runToCursor.ToolTipText = "Run to Cursor (Ctrl-F10)";
             this.runToCursor.Click += new System.EventHandler(this.runToCursor_Click);
+            // 
+            // runToSample
+            // 
+            this.runToSample.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.runToSample.Image = global::renderdocui.Properties.Resources.runsample;
+            this.runToSample.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.runToSample.Name = "runToSample";
+            this.runToSample.Size = new System.Drawing.Size(23, 22);
+            this.runToSample.Text = "Run to Sample/Load/Gather";
+            this.runToSample.ToolTipText = "Run to Sample/Load/Gather";
+            this.runToSample.Click += new System.EventHandler(this.runToSample_Click);
+            // 
+            // runToNanOrInf
+            // 
+            this.runToNanOrInf.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
+            this.runToNanOrInf.Image = global::renderdocui.Properties.Resources.runnaninf;
+            this.runToNanOrInf.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.runToNanOrInf.Name = "runToNanOrInf";
+            this.runToNanOrInf.Size = new System.Drawing.Size(23, 22);
+            this.runToNanOrInf.Text = "Run to NaN or Inf";
+            this.runToNanOrInf.ToolTipText = "Run to NaN or Inf";
+            this.runToNanOrInf.Click += new System.EventHandler(this.runToNanOrInf_Click);
             // 
             // runBack
             // 
@@ -766,6 +792,8 @@
         private System.Windows.Forms.ToolStripButton stepBack;
         private System.Windows.Forms.ToolStripButton stepNext;
         private System.Windows.Forms.ToolStripButton runToCursor;
+        private System.Windows.Forms.ToolStripButton runToSample;
+        private System.Windows.Forms.ToolStripButton runToNanOrInf;
         private System.Windows.Forms.ToolStripButton runBack;
         private System.Windows.Forms.ToolStripButton run;
         private System.Windows.Forms.ToolStripDropDownButton showWindows;

@@ -350,6 +350,13 @@ namespace renderdoc
         All          = (Vertex | Hull | Domain | Geometry | Pixel | Fragment | Compute),
     };
 
+    [Flags]
+    public enum ShaderDebugStateFlags
+    {
+        SampleLoadGather = 0x1,
+        GeneratedNanOrInf = 0x2,
+    };
+
     public enum DebugMessageSource
     {
         API = 0,

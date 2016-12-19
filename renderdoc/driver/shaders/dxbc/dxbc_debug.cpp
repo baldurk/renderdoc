@@ -276,6 +276,8 @@ ShaderVariable sat(const ShaderVariable &v, const VarType type)
           type);
   }
 
+  r.type = type;
+
   return r;
 }
 
@@ -319,6 +321,8 @@ ShaderVariable abs(const ShaderVariable &v, const VarType type)
           type);
   }
 
+  r.type = type;
+
   return r;
 }
 
@@ -361,6 +365,8 @@ ShaderVariable neg(const ShaderVariable &v, const VarType type)
           "fxc.",
           type);
   }
+
+  r.type = type;
 
   return r;
 }
@@ -410,6 +416,8 @@ ShaderVariable mul(const ShaderVariable &a, const ShaderVariable &b, const VarTy
           type);
   }
 
+  r.type = type;
+
   return r;
 }
 
@@ -458,6 +466,8 @@ ShaderVariable div(const ShaderVariable &a, const ShaderVariable &b, const VarTy
           type);
   }
 
+  r.type = type;
+
   return r;
 }
 
@@ -505,6 +515,8 @@ ShaderVariable add(const ShaderVariable &a, const ShaderVariable &b, const VarTy
           "fxc.",
           type);
   }
+
+  r.type = type;
 
   return r;
 }
@@ -571,6 +583,25 @@ void State::Init()
 bool State::Finished() const
 {
   return dxbc && (done || nextInstruction >= (int)dxbc->GetNumInstructions());
+}
+
+void State::AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVariable &src,
+                        uint32_t srcIndex)
+{
+  if(src.type == eVar_Float)
+  {
+    float ft = src.value.fv[srcIndex];
+    if(isinf(ft) || isnan(ft))
+      flags |= eShaderDebugStateFlags_GeneratedNanOrInf;
+  }
+  else if(src.type == eVar_Double)
+  {
+    double dt = src.value.dv[srcIndex];
+    if(isinf(dt) || isnan(dt))
+      flags |= eShaderDebugStateFlags_GeneratedNanOrInf;
+  }
+
+  dst.value.uv[dstIndex] = src.value.uv[srcIndex];
 }
 
 void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const ShaderVariable &val)
@@ -689,7 +720,7 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
     {
       RDCASSERT(dstoper.comps[0] != 0xff);
 
-      v->value.uv[dstoper.comps[0]] = right.value.u.x;
+      AssignValue(*v, dstoper.comps[0], right, 0);
     }
     else
     {
@@ -700,13 +731,13 @@ void State::SetDst(const ASMOperand &dstoper, const ASMOperation &op, const Shad
         if(dstoper.comps[i] != 0xff)
         {
           RDCASSERT(dstoper.comps[i] < v->columns);
-          v->value.uv[dstoper.comps[i]] = right.value.uv[dstoper.comps[i]];
+          AssignValue(*v, dstoper.comps[i], right, dstoper.comps[i]);
           compsWritten++;
         }
       }
 
       if(compsWritten == 0)
-        v->value.uv[0] = right.value.uv[0];
+        AssignValue(*v, 0, right, 0);
     }
   }
 }
@@ -1070,6 +1101,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
   const ASMOperation &op = s.dxbc->GetInstruction((size_t)s.nextInstruction);
 
   s.nextInstruction++;
+  s.flags = 0;
 
   vector<ShaderVariable> srcOpers;
 
@@ -2334,6 +2366,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         load = false;
       }
 
+      if(load)
+        s.flags = eShaderDebugStateFlags_SampleLoadGather;
+
       if(op.operation == OPCODE_LD_STRUCTURED || op.operation == OPCODE_STORE_STRUCTURED)
       {
         if(load)
@@ -3395,6 +3430,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       string texture = "";
       string funcRet = "";
       DXGI_FORMAT retFmt = DXGI_FORMAT_UNKNOWN;
+
+      if(op.operation != OPCODE_LOD)
+      {
+        s.flags = eShaderDebugStateFlags_SampleLoadGather;
+      }
 
       if(op.operation == OPCODE_SAMPLE_C || op.operation == OPCODE_SAMPLE_C_LZ ||
          op.operation == OPCODE_GATHER4_C || op.operation == OPCODE_GATHER4_PO_C ||
