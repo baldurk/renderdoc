@@ -302,9 +302,9 @@ public:
     if(guid == WKPDID_D3DDebugObjectName)
     {
       const char* pStrData = (const char*) pData;
-      if(pStrData[DataSize - 1] != '\0')
+      if(DataSize != 0 && pStrData[DataSize - 1] != '\0')
       {
-        string sName(pData, DataSize);
+        string sName(pStrData, DataSize);
         m_pDevice->SetResourceName(this, sName.c_str());
       }
       else
