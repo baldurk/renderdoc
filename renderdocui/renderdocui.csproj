@@ -607,6 +607,8 @@
     <None Include="Resources\stepnext.png" />
     <None Include="Resources\time.png" />
     <None Include="Resources\timeline_marker.png" />
+    <None Include="Resources\runsample.png" />
+    <None Include="Resources\runnaninf.png" />
     <Content Include="Resources\topologies\topo_linelist.png" />
     <Content Include="Resources\topologies\topo_linelist_adj.png" />
     <Content Include="Resources\topologies\topo_linestrip.png" />

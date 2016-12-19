@@ -260,6 +260,7 @@ void Serialiser::Serialise(const char *name, ShaderDebugState &el)
   Serialise("", el.registers);
   Serialise("", el.outputs);
   Serialise("", el.nextInstruction);
+  Serialise("", el.flags);
 
   vector<vector<ShaderVariable> > indexableTemps;
 

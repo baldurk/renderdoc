@@ -192,6 +192,7 @@ namespace renderdoc
         public IndexableTempArray[] indexableTemps;
 
         public UInt32 nextInstruction;
+        public ShaderDebugStateFlags flags;
     };
     
     [StructLayout(LayoutKind.Sequential)]
