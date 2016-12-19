@@ -301,7 +301,7 @@ public:
 
     if(guid == WKPDID_D3DDebugObjectName)
     {
-      const char* pStrData = (const char*) pData;
+      const char *pStrData = (const char *)pData;
       if(DataSize != 0 && pStrData[DataSize - 1] != '\0')
       {
         string sName(pStrData, DataSize);
