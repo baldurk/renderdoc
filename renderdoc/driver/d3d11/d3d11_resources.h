@@ -300,7 +300,18 @@ public:
       return m_pDevice->SetShaderDebugPath(this, (const char *)pData);
 
     if(guid == WKPDID_D3DDebugObjectName)
-      m_pDevice->SetResourceName(this, (const char *)pData);
+    {
+      const char *pStrData = (const char *)pData;
+      if(DataSize != 0 && pStrData[DataSize - 1] != '\0')
+      {
+        string sName(pStrData, DataSize);
+        m_pDevice->SetResourceName(this, sName.c_str());
+      }
+      else
+      {
+        m_pDevice->SetResourceName(this, pStrData);
+      }
+    }
 
     return m_pReal->SetPrivateData(guid, DataSize, pData);
   }
