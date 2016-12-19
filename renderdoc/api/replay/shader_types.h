@@ -133,6 +133,7 @@ struct ShaderDebugState
   rdctype::array<rdctype::array<ShaderVariable> > indexableTemps;
 
   uint32_t nextInstruction;
+  uint32_t flags;
 };
 
 struct ShaderDebugTrace
