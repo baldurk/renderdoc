@@ -1170,8 +1170,9 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RemoteServer_ExecuteAndInject(RemoteServer *remote, const char *app, const char *workingDir,
                               const char *cmdLine, void *env, const CaptureOptions *opts)
 {
-  if(Android::IsHostADB(remote->hostname().c_str()))
-    return Android::StartAndroidPackageForCapture(app);
+  const char *host = remote->hostname().c_str();
+  if(Android::IsHostADB(host))
+    return Android::StartAndroidPackageForCapture(host, app);
 
   return remote->ExecuteAndInject(app, workingDir, cmdLine, env, opts);
 }

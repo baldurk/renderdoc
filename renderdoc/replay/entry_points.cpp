@@ -716,7 +716,7 @@ void adbForwardPorts()
                                    RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset,
                                    RenderDoc_FirstTargetControlPort));
 }
-uint32_t StartAndroidPackageForCapture(const char *package)
+uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
 {
   string packageName = basename(string(package));    // Remove leading '/' if any
 
@@ -728,11 +728,29 @@ uint32_t StartAndroidPackageForCapture(const char *package)
   adbExecCommand("shell pm grant " + packageName +
                  " android.permission.READ_EXTERNAL_STORAGE");    // Reading the capture thumbnail
   adbExecCommand("shell monkey -p " + packageName + " -c android.intent.category.LAUNCHER 1");
-  Threading::Sleep(
-      5000);    // Let the app pickup the setprop before we turn it back off for replaying.
+
+  uint32_t ret = RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset;
+  uint32_t elapsed = 0,
+           timeout = 1000 *
+                     RDCMAX(5, atoi(RenderDoc::Inst().GetConfigSetting("MaxConnectTimeout").c_str()));
+  while(elapsed < timeout)
+  {
+    // Check if the target app has started yet and we can connect to it.
+    TargetControl *control = RENDERDOC_CreateTargetControl(host, ret, "testConnection", false);
+    if(control)
+    {
+      TargetControl_Shutdown(control);
+      break;
+    }
+
+    Threading::Sleep(1000);
+    elapsed += 1000;
+  }
+
+  // Let the app pickup the setprop before we turn it back off for replaying.
   adbExecCommand("shell setprop debug.vulkan.layers \\\"\\\"");
 
-  return RenderDoc_FirstTargetControlPort + RenderDoc_AndroidPortOffset;
+  return ret;
 }
 }
 
