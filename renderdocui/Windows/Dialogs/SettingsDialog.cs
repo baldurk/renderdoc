@@ -65,6 +65,7 @@ namespace renderdocui.Windows.Dialogs
             externalDisassemblerArgs.Text = m_Core.Config.GetDefaultExternalDisassembler().args;
             externalDisassemblePath.Text = m_Core.Config.GetDefaultExternalDisassembler().executable;
             adbPath.Text = m_Core.Config.AdbExecutablePath;
+            maxConnectTimeout.Value = m_Core.Config.MaxConnectTimeout;
 
             TextureViewer_ResetRange.Checked = m_Core.Config.TextureViewer_ResetRange;
             TextureViewer_PerTexSettings.Checked = m_Core.Config.TextureViewer_PerTexSettings;
@@ -409,6 +410,17 @@ namespace renderdocui.Windows.Dialogs
             try
             {
                 m_Core.Config.AdbExecutablePath = adbPath.Text;
+            }
+            catch (Exception)
+            {
+            }
+        }
+
+        private void maxConnectTimeout_ValueChanged(object sender, EventArgs e)
+        {
+            try
+            {
+                m_Core.Config.MaxConnectTimeout = (uint)maxConnectTimeout.Value;
             }
             catch (Exception)
             {

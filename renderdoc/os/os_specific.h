@@ -453,6 +453,6 @@ inline uint64_t CountLeadingZeroes(uint64_t value);
 namespace Android
 {
 bool IsHostADB(const char *hostname);
-uint32_t StartAndroidPackageForCapture(const char *package);
+uint32_t StartAndroidPackageForCapture(const char *host, const char *package);
 string adbExecCommand(const string &args);
 }

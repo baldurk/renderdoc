@@ -175,6 +175,7 @@ namespace renderdocui.Code
         public string LastCaptureExe = "";
         public List<string> RecentCaptureSettings = new List<string>();
         public string AdbExecutablePath = "";
+        public uint MaxConnectTimeout = 30;
 
         // for historical reasons, this was named CaptureSavePath
         [XmlElement("CaptureSavePath")]

@@ -1009,6 +1009,8 @@ namespace renderdocui.Windows
 
             string logfile = m_Core.TempLogFilename(Path.GetFileNameWithoutExtension(exe));
 
+            StaticExports.SetConfigSetting("MaxConnectTimeout", m_Core.Config.MaxConnectTimeout.ToString());
+
             UInt32 ret = m_Core.Renderer.ExecuteAndInject(exe, workingDir, cmdLine, env, logfile, opts);
 
             if (ret == 0)
