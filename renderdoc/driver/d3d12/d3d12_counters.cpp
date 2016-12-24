@@ -49,16 +49,16 @@ vector<uint32_t> D3D12Replay::EnumerateCounters()
   ret.push_back(eCounter_EventGPUDuration);
   ret.push_back(eCounter_InputVerticesRead);
   ret.push_back(eCounter_IAPrimitives);
-  ret.push_back(eCounter_VSInvocations);
-  ret.push_back(eCounter_GSInvocations);
   ret.push_back(eCounter_GSPrimitives);
   ret.push_back(eCounter_RasterizerInvocations);
   ret.push_back(eCounter_RasterizedPrimitives);
-  ret.push_back(eCounter_PSInvocations);
+  ret.push_back(eCounter_SamplesWritten);
+  ret.push_back(eCounter_VSInvocations);
   ret.push_back(eCounter_HSInvocations);
   ret.push_back(eCounter_DSInvocations);
+  ret.push_back(eCounter_GSInvocations);
+  ret.push_back(eCounter_PSInvocations);
   ret.push_back(eCounter_CSInvocations);
-  ret.push_back(eCounter_SamplesWritten);
 
   return ret;
 }
@@ -175,20 +175,31 @@ void D3D12Replay::DescribeCounter(uint32_t counterID, CounterDescription &desc)
 
 struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
 {
-  D3D12GPUTimerCallback(WrappedID3D12Device *dev, D3D12Replay *rp, ID3D12QueryHeap *qh)
-      : m_pDevice(dev), m_pReplay(rp), m_QueryHeap(qh)
+  D3D12GPUTimerCallback(WrappedID3D12Device *dev, D3D12Replay *rp, ID3D12QueryHeap *tqh,
+                        ID3D12QueryHeap *psqh, ID3D12QueryHeap *oqh)
+      : m_pDevice(dev),
+        m_pReplay(rp),
+        m_TimerQueryHeap(tqh),
+        m_PipeStatsQueryHeap(psqh),
+        m_OcclusionQueryHeap(oqh)
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
   }
   ~D3D12GPUTimerCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
   void PreDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
   {
-    cmd->EndQuery(m_QueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, (uint32_t)(m_Results.size() * 2 + 0));
+    cmd->BeginQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, (uint32_t)(m_Results.size()));
+    cmd->BeginQuery(m_PipeStatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS,
+                    (uint32_t)(m_Results.size()));
+    cmd->EndQuery(m_TimerQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, (uint32_t)(m_Results.size() * 2 + 0));
   }
 
   bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
   {
-    cmd->EndQuery(m_QueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, (uint32_t)(m_Results.size() * 2 + 1));
+    cmd->EndQuery(m_TimerQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, (uint32_t)(m_Results.size() * 2 + 1));
+    cmd->EndQuery(m_PipeStatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS,
+                  (uint32_t)(m_Results.size()));
+    cmd->EndQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, (uint32_t)(m_Results.size()));
     m_Results.push_back(eid);
     return false;
   }
@@ -206,7 +217,9 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
 
   WrappedID3D12Device *m_pDevice;
   D3D12Replay *m_pReplay;
-  ID3D12QueryHeap *m_QueryHeap;
+  ID3D12QueryHeap *m_TimerQueryHeap;
+  ID3D12QueryHeap *m_PipeStatsQueryHeap;
+  ID3D12QueryHeap *m_OcclusionQueryHeap;
   vector<uint32_t> m_Results;
   // events which are the 'same' from being the same command buffer resubmitted
   // multiple times in the frame. We will only get the full callback when we're
@@ -228,106 +241,257 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<uint32_t> &counter
   heapProps.CreationNodeMask = 1;
   heapProps.VisibleNodeMask = 1;
 
-  D3D12_RESOURCE_DESC bufDesc;
-  bufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
-  bufDesc.Alignment = 0;
-  bufDesc.Width = sizeof(uint64_t) * maxEID * 2;
-  bufDesc.Height = 1;
-  bufDesc.DepthOrArraySize = 1;
-  bufDesc.MipLevels = 1;
-  bufDesc.Format = DXGI_FORMAT_UNKNOWN;
-  bufDesc.SampleDesc.Count = 1;
-  bufDesc.SampleDesc.Quality = 0;
-  bufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
-  bufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+  D3D12_RESOURCE_DESC timerBufDesc;
+  timerBufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  timerBufDesc.Alignment = 0;
+  timerBufDesc.Width = sizeof(uint64_t) * maxEID * 2;
+  timerBufDesc.Height = 1;
+  timerBufDesc.DepthOrArraySize = 1;
+  timerBufDesc.MipLevels = 1;
+  timerBufDesc.Format = DXGI_FORMAT_UNKNOWN;
+  timerBufDesc.SampleDesc.Count = 1;
+  timerBufDesc.SampleDesc.Quality = 0;
+  timerBufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  timerBufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-  ID3D12Resource *readbackBuf;
-  HRESULT hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &bufDesc,
-                                                  D3D12_RESOURCE_STATE_COPY_DEST, NULL,
-                                                  __uuidof(ID3D12Resource), (void **)&readbackBuf);
+  ID3D12Resource *timerReadbackBuf;
+  HRESULT hr = m_pDevice->CreateCommittedResource(
+      &heapProps, D3D12_HEAP_FLAG_NONE, &timerBufDesc, D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+      __uuidof(ID3D12Resource), (void **)&timerReadbackBuf);
   if(FAILED(hr))
   {
-    RDCERR("Failed to create query readback buffer %08x", hr);
+    RDCERR("Failed to create timer query readback buffer %08x", hr);
     return ret;
   }
 
-  D3D12_QUERY_HEAP_DESC queryDesc;
-  queryDesc.Count = maxEID * 2;
-  queryDesc.NodeMask = 1;
-  queryDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
-  ID3D12QueryHeap *queryHeap = NULL;
-  hr = m_pDevice->CreateQueryHeap(&queryDesc, __uuidof(queryHeap), (void **)&queryHeap);
+  D3D12_RESOURCE_DESC pipestatsBufDesc;
+  pipestatsBufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  pipestatsBufDesc.Alignment = 0;
+  pipestatsBufDesc.Width = sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS) * maxEID;
+  pipestatsBufDesc.Height = 1;
+  pipestatsBufDesc.DepthOrArraySize = 1;
+  pipestatsBufDesc.MipLevels = 1;
+  pipestatsBufDesc.Format = DXGI_FORMAT_UNKNOWN;
+  pipestatsBufDesc.SampleDesc.Count = 1;
+  pipestatsBufDesc.SampleDesc.Quality = 0;
+  pipestatsBufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  pipestatsBufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
+
+  ID3D12Resource *pipestatsReadbackBuf;
+  hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &pipestatsBufDesc,
+                                          D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+                                          __uuidof(ID3D12Resource), (void **)&pipestatsReadbackBuf);
+
   if(FAILED(hr))
   {
-    RDCERR("Failed to create query heap %08x", hr);
+    RDCERR("Failed to create pipeline stats query readback buffer %08x", hr);
     return ret;
   }
 
-  m_pDevice->SetStablePowerState(TRUE);
+  D3D12_RESOURCE_DESC occlusionBufDesc;
+  occlusionBufDesc.Dimension = D3D12_RESOURCE_DIMENSION_BUFFER;
+  occlusionBufDesc.Alignment = 0;
+  occlusionBufDesc.Width = sizeof(uint64_t) * maxEID;
+  occlusionBufDesc.Height = 1;
+  occlusionBufDesc.DepthOrArraySize = 1;
+  occlusionBufDesc.MipLevels = 1;
+  occlusionBufDesc.Format = DXGI_FORMAT_UNKNOWN;
+  occlusionBufDesc.SampleDesc.Count = 1;
+  occlusionBufDesc.SampleDesc.Quality = 0;
+  occlusionBufDesc.Layout = D3D12_TEXTURE_LAYOUT_ROW_MAJOR;
+  occlusionBufDesc.Flags = D3D12_RESOURCE_FLAG_NONE;
 
-  D3D12GPUTimerCallback cb(m_pDevice, this, queryHeap);
+  ID3D12Resource *occlusionReadbackBuf;
+  hr = m_pDevice->CreateCommittedResource(&heapProps, D3D12_HEAP_FLAG_NONE, &occlusionBufDesc,
+                                          D3D12_RESOURCE_STATE_COPY_DEST, NULL,
+                                          __uuidof(ID3D12Resource), (void **)&occlusionReadbackBuf);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create occlusion query readback buffer %08x", hr);
+    return ret;
+  }
+
+  D3D12_QUERY_HEAP_DESC timerQueryDesc;
+  timerQueryDesc.Count = maxEID * 2;
+  timerQueryDesc.NodeMask = 1;
+  timerQueryDesc.Type = D3D12_QUERY_HEAP_TYPE_TIMESTAMP;
+  ID3D12QueryHeap *timerQueryHeap = NULL;
+  hr = m_pDevice->CreateQueryHeap(&timerQueryDesc, __uuidof(timerQueryHeap),
+                                  (void **)&timerQueryHeap);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create timer query heap %08x", hr);
+    return ret;
+  }
+
+  D3D12_QUERY_HEAP_DESC pipestatsQueryDesc;
+  pipestatsQueryDesc.Count = maxEID;
+  pipestatsQueryDesc.NodeMask = 1;
+  pipestatsQueryDesc.Type = D3D12_QUERY_HEAP_TYPE_PIPELINE_STATISTICS;
+  ID3D12QueryHeap *pipestatsQueryHeap = NULL;
+  hr = m_pDevice->CreateQueryHeap(&pipestatsQueryDesc, __uuidof(pipestatsQueryHeap),
+                                  (void **)&pipestatsQueryHeap);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create pipeline statistics query heap %08x", hr);
+    return ret;
+  }
+
+  D3D12_QUERY_HEAP_DESC occlusionQueryDesc;
+  occlusionQueryDesc.Count = maxEID;
+  occlusionQueryDesc.NodeMask = 1;
+  occlusionQueryDesc.Type = D3D12_QUERY_HEAP_TYPE_OCCLUSION;
+  ID3D12QueryHeap *occlusionQueryHeap = NULL;
+  hr = m_pDevice->CreateQueryHeap(&occlusionQueryDesc, __uuidof(occlusionQueryHeap),
+                                  (void **)&occlusionQueryHeap);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to create occlusion query heap %08x", hr);
+    return ret;
+  }
+
+  // Only supported with developer mode drivers!!!
+  // m_pDevice->SetStablePowerState(TRUE);
+
+  D3D12GPUTimerCallback cb(m_pDevice, this, timerQueryHeap, pipestatsQueryHeap, occlusionQueryHeap);
 
   // replay the events to perform all the queries
   m_pDevice->ReplayLog(0, maxEID, eReplay_Full);
 
-  m_pDevice->SetStablePowerState(FALSE);
+  // Only supported with developer mode drivers!!!
+  // m_pDevice->SetStablePowerState(FALSE);
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
-  list->ResolveQueryData(queryHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0, maxEID * 2, readbackBuf, 0);
+  list->ResolveQueryData(timerQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0, maxEID * 2,
+                         timerReadbackBuf, 0);
+  list->ResolveQueryData(pipestatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS, 0, maxEID,
+                         pipestatsReadbackBuf, 0);
+  list->ResolveQueryData(occlusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, 0, maxEID,
+                         occlusionReadbackBuf, 0);
 
   list->Close();
 
   m_pDevice->ExecuteLists();
   m_pDevice->FlushLists();
 
-  D3D12_RANGE range = {0, (SIZE_T)bufDesc.Width};
-  void *data;
-  hr = readbackBuf->Map(0, &range, &data);
+  D3D12_RANGE range = {0, (SIZE_T)timerBufDesc.Width};
+  void *timerData;
+  hr = timerReadbackBuf->Map(0, &range, &timerData);
   if(FAILED(hr))
   {
-    RDCERR("Failed to create query heap %08x", hr);
-    SAFE_RELEASE(queryHeap);
-    SAFE_RELEASE(readbackBuf);
+    RDCERR("Failed to read timer query heap data %08x", hr);
+    SAFE_RELEASE(timerQueryHeap);
+    SAFE_RELEASE(timerReadbackBuf);
+    SAFE_RELEASE(pipestatsQueryHeap);
+    SAFE_RELEASE(pipestatsReadbackBuf);
+    SAFE_RELEASE(occlusionQueryHeap);
+    SAFE_RELEASE(occlusionReadbackBuf);
     return ret;
   }
 
-  uint64_t *timestamps = (uint64_t *)data;
+  range = {0, (SIZE_T)pipestatsBufDesc.Width};
+  void *pipestatsData;
+  hr = pipestatsReadbackBuf->Map(0, &range, &pipestatsData);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to read pipeline statistics query heap data %08x", hr);
+    SAFE_RELEASE(timerQueryHeap);
+    SAFE_RELEASE(timerReadbackBuf);
+    SAFE_RELEASE(pipestatsQueryHeap);
+    SAFE_RELEASE(pipestatsReadbackBuf);
+    SAFE_RELEASE(occlusionQueryHeap);
+    SAFE_RELEASE(occlusionReadbackBuf);
+    return ret;
+  }
+
+  range = {0, (SIZE_T)occlusionBufDesc.Width};
+  void *occlusionData;
+  hr = occlusionReadbackBuf->Map(0, &range, &occlusionData);
+  if(FAILED(hr))
+  {
+    RDCERR("Failed to read occlusion query heap data %08x", hr);
+    SAFE_RELEASE(timerQueryHeap);
+    SAFE_RELEASE(timerReadbackBuf);
+    SAFE_RELEASE(pipestatsQueryHeap);
+    SAFE_RELEASE(pipestatsReadbackBuf);
+    SAFE_RELEASE(occlusionQueryHeap);
+    SAFE_RELEASE(occlusionReadbackBuf);
+    return ret;
+  }
+
+  uint64_t *timestamps = (uint64_t *)timerData;
+  D3D12_QUERY_DATA_PIPELINE_STATISTICS *pipelinestats =
+      (D3D12_QUERY_DATA_PIPELINE_STATISTICS *)pipestatsData;
+  uint64_t *occlusion = (uint64_t *)occlusionData;
 
   uint64_t freq;
   m_pDevice->GetQueue()->GetTimestampFrequency(&freq);
 
   for(size_t i = 0; i < cb.m_Results.size(); i++)
   {
-    CounterResult result;
+    for(size_t c = 0; c < counters.size(); c++)
+    {
+      CounterResult result;
 
-    uint64_t delta = timestamps[i * 2 + 1] - timestamps[i * 2 + 0];
+      result.eventID = cb.m_Results[i];
+      result.counterID = counters[c];
 
-    result.eventID = cb.m_Results[i];
-    result.counterID = eCounter_EventGPUDuration;
-    result.value.d = double(delta) / double(freq);
-
-    ret.push_back(result);
+      switch(counters[c])
+      {
+        case eCounter_EventGPUDuration:
+        {
+          uint64_t delta = timestamps[i * 2 + 1] - timestamps[i * 2 + 0];
+          result.value.d = double(delta) / double(freq);
+        }
+        break;
+        case eCounter_InputVerticesRead: result.value.u64 = pipelinestats[i].IAVertices; break;
+        case eCounter_IAPrimitives: result.value.u64 = pipelinestats[i].IAPrimitives; break;
+        case eCounter_GSPrimitives: result.value.u64 = pipelinestats[i].GSPrimitives; break;
+        case eCounter_RasterizerInvocations:
+          result.value.u64 = pipelinestats[i].CInvocations;
+          break;
+        case eCounter_RasterizedPrimitives: result.value.u64 = pipelinestats[i].CPrimitives; break;
+        case eCounter_SamplesWritten: result.value.u64 = occlusion[i]; break;
+        case eCounter_VSInvocations: result.value.u64 = pipelinestats[i].VSInvocations; break;
+        case eCounter_HSInvocations: result.value.u64 = pipelinestats[i].HSInvocations; break;
+        case eCounter_DSInvocations: result.value.u64 = pipelinestats[i].DSInvocations; break;
+        case eCounter_GSInvocations: result.value.u64 = pipelinestats[i].GSInvocations; break;
+        case eCounter_PSInvocations: result.value.u64 = pipelinestats[i].PSInvocations; break;
+        case eCounter_CSInvocations: result.value.u64 = pipelinestats[i].CSInvocations; break;
+      }
+      ret.push_back(result);
+    }
   }
 
   for(size_t i = 0; i < cb.m_AliasEvents.size(); i++)
   {
-    CounterResult search;
-    search.counterID = eCounter_EventGPUDuration;
-    search.eventID = cb.m_AliasEvents[i].first;
+    for(size_t c = 0; c < counters.size(); c++)
+    {
+      CounterResult search;
+      search.counterID = counters[c];
+      search.eventID = cb.m_AliasEvents[i].first;
 
-    // find the result we're aliasing
-    auto it = std::find(ret.begin(), ret.end(), search);
-    RDCASSERT(it != ret.end());
+      // find the result we're aliasing
+      auto it = std::find(ret.begin(), ret.end(), search);
+      RDCASSERT(it != ret.end());
 
-    // duplicate the result and append
-    CounterResult aliased = *it;
-    aliased.eventID = cb.m_AliasEvents[i].second;
-    ret.push_back(aliased);
+      // duplicate the result and append
+      CounterResult aliased = *it;
+      aliased.eventID = cb.m_AliasEvents[i].second;
+      ret.push_back(aliased);
+    }
   }
 
   // sort so that the alias results appear in the right places
   std::sort(ret.begin(), ret.end());
+
+  SAFE_RELEASE(timerQueryHeap);
+  SAFE_RELEASE(timerReadbackBuf);
+  SAFE_RELEASE(pipestatsQueryHeap);
+  SAFE_RELEASE(pipestatsReadbackBuf);
+  SAFE_RELEASE(occlusionQueryHeap);
+  SAFE_RELEASE(occlusionReadbackBuf);
 
   return ret;
 }
