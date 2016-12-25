@@ -121,6 +121,7 @@ public:
   {
     quadIndex = 0;
     nextInstruction = 0;
+    flags = 0;
     done = false;
     trace = NULL;
     dxbc = NULL;
@@ -131,6 +132,7 @@ public:
   {
     quadIndex = quadIdx;
     nextInstruction = 0;
+    flags = 0;
     done = false;
     trace = t;
     dxbc = f;
@@ -165,6 +167,8 @@ private:
 
   bool done;
 
+  // validates assignment for generation of non-normal values
+  void AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVariable &src, uint32_t srcIndex);
   // sets the destination operand by looking up in the register
   // file and applying any masking or swizzling
   void SetDst(const DXBC::ASMOperand &dstoper, const DXBC::ASMOperation &op,
