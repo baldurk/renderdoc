@@ -262,8 +262,12 @@ bool WrappedOpenGL::Serialise_glBeginQuery(GLenum target, GLuint qid)
 
   if(m_State < WRITING)
   {
-    m_Real.glBeginQuery(Target, GetResourceManager()->GetLiveResource(id).name);
-    m_ActiveQueries[QueryIdx(Target)][0] = true;
+    // Queries in the log interfere with the queries from FetchCounters.
+    if(!m_FetchCounters)
+    {
+      m_Real.glBeginQuery(Target, GetResourceManager()->GetLiveResource(id).name);
+      m_ActiveQueries[QueryIdx(Target)][0] = true;
+    }
   }
 
   return true;
@@ -272,6 +276,8 @@ bool WrappedOpenGL::Serialise_glBeginQuery(GLenum target, GLuint qid)
 void WrappedOpenGL::glBeginQuery(GLenum target, GLuint id)
 {
   m_Real.glBeginQuery(target, id);
+  if(m_ActiveQueries[QueryIdx(target)][0])
+    RDCLOG("Query already active %s", ToStr::Get(target).c_str());
   m_ActiveQueries[QueryIdx(target)][0] = true;
 
   if(m_State == WRITING_CAPFRAME)
@@ -320,8 +326,12 @@ bool WrappedOpenGL::Serialise_glEndQuery(GLenum target)
 
   if(m_State < WRITING)
   {
-    m_ActiveQueries[QueryIdx(Target)][0] = false;
-    m_Real.glEndQuery(Target);
+    // Queries in the log interfere with the queries from FetchCounters.
+    if(!m_FetchCounters)
+    {
+      m_ActiveQueries[QueryIdx(Target)][0] = false;
+      m_Real.glEndQuery(Target);
+    }
   }
 
   return true;

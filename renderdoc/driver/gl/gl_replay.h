@@ -382,7 +382,8 @@ private:
   // called before the context is destroyed, to shutdown any counters
   void PreContextShutdownCounters();
 
-  void FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode);
+  void FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode,
+                  const vector<uint32_t> &counters);
 
   GLuint CreateShaderProgram(const vector<string> &vs, const vector<string> &fs,
                              const vector<string> &gs);
