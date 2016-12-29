@@ -100,7 +100,7 @@ void D3D11DebugManager::DescribeCounter(uint32_t counterID, CounterDescription &
       desc.units = eUnits_Absolute;
       break;
     case eCounter_RasterizerInvocations:
-      desc.name = "RasterizerInvocations";
+      desc.name = "Rasterizer Invocations";
       desc.description = "Number of primitives that were sent to the rasterizer.";
       desc.resultByteWidth = 8;
       desc.resultCompType = eCompType_UInt;
