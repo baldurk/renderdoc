@@ -156,7 +156,16 @@ private:
 
   vector<GLWindowingData> m_LastContexts;
 
-  bool m_ActiveQueries[8][8];    // first index type, second index (for some, always 0)
+public:
+  enum
+  {
+    MAX_QUERIES = 17,
+    MAX_QUERY_INDICES = 8
+  };
+
+private:
+  bool m_ActiveQueries[MAX_QUERIES]
+                      [MAX_QUERY_INDICES];    // first index type, second index (for some, always 0)
   bool m_ActiveConditional;
   bool m_ActiveFeedback;
 
@@ -220,6 +229,8 @@ private:
   list<DrawcallTreeNode *> m_DrawcallStack;
 
   map<ResourceId, vector<EventUsage> > m_ResourceUses;
+
+  bool m_FetchCounters;
 
   // buffer used
   vector<byte> m_ScratchBuf;
@@ -484,6 +495,7 @@ public:
   GLReplay *GetReplay() { return &m_Replay; }
   void *GetCtx();
 
+  void SetFetchCounters(bool in) { m_FetchCounters = in; };
   const GLHookSet &GetHookset() { return m_Real; }
   void SetDebugMsgContext(const char *context) { m_DebugMsgContext = context; }
   void AddDebugMessage(DebugMessage msg)

@@ -739,6 +739,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs) : m_Re
   m_FirstEventID = 0;
   m_LastEventID = ~0U;
 
+  m_FetchCounters = false;
+
   RDCEraseEl(m_ActiveQueries);
   m_ActiveConditional = false;
   m_ActiveFeedback = false;

@@ -429,30 +429,56 @@ GLenum BufferEnum(size_t idx)
 
 size_t QueryIdx(GLenum query)
 {
+  size_t idx = 0;
+
   switch(query)
   {
-    case eGL_SAMPLES_PASSED: return 0;
-    case eGL_ANY_SAMPLES_PASSED: return 1;
-    case eGL_ANY_SAMPLES_PASSED_CONSERVATIVE: return 2;
-    case eGL_PRIMITIVES_GENERATED: return 3;
-    case eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN: return 4;
-    case eGL_TIME_ELAPSED: return 5;
+    case eGL_SAMPLES_PASSED: idx = 0; break;
+    case eGL_ANY_SAMPLES_PASSED: idx = 1; break;
+    case eGL_ANY_SAMPLES_PASSED_CONSERVATIVE: idx = 2; break;
+    case eGL_PRIMITIVES_GENERATED: idx = 3; break;
+    case eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN: idx = 4; break;
+    case eGL_TIME_ELAPSED: idx = 5; break;
+    case eGL_VERTICES_SUBMITTED_ARB: idx = 6; break;
+    case eGL_PRIMITIVES_SUBMITTED_ARB: idx = 7; break;
+    case eGL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB: idx = 8; break;
+    case eGL_CLIPPING_INPUT_PRIMITIVES_ARB: idx = 9; break;
+    case eGL_CLIPPING_OUTPUT_PRIMITIVES_ARB: idx = 10; break;
+    case eGL_VERTEX_SHADER_INVOCATIONS_ARB: idx = 11; break;
+    case eGL_TESS_CONTROL_SHADER_PATCHES_ARB: idx = 12; break;
+    case eGL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB: idx = 13; break;
+    case eGL_GEOMETRY_SHADER_INVOCATIONS: idx = 14; break;
+    case eGL_FRAGMENT_SHADER_INVOCATIONS_ARB: idx = 15; break;
+    case eGL_COMPUTE_SHADER_INVOCATIONS_ARB: idx = 16; break;
+
     default: RDCERR("Unexpected enum as query target: %s", ToStr::Get(query).c_str());
   }
 
-  return 0;
+  if(idx >= WrappedOpenGL::MAX_QUERIES)
+    RDCERR("Query index for enum %s out of range %d", ToStr::Get(query).c_str(), idx);
+
+  return idx;
 }
 
 GLenum QueryEnum(size_t idx)
 {
-  GLenum enums[] = {
-      eGL_SAMPLES_PASSED,
-      eGL_ANY_SAMPLES_PASSED,
-      eGL_ANY_SAMPLES_PASSED_CONSERVATIVE,
-      eGL_PRIMITIVES_GENERATED,
-      eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,
-      eGL_TIME_ELAPSED,
-  };
+  GLenum enums[] = {eGL_SAMPLES_PASSED,
+                    eGL_ANY_SAMPLES_PASSED,
+                    eGL_ANY_SAMPLES_PASSED_CONSERVATIVE,
+                    eGL_PRIMITIVES_GENERATED,
+                    eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,
+                    eGL_TIME_ELAPSED,
+                    eGL_VERTICES_SUBMITTED_ARB,
+                    eGL_PRIMITIVES_SUBMITTED_ARB,
+                    eGL_GEOMETRY_SHADER_PRIMITIVES_EMITTED_ARB,
+                    eGL_CLIPPING_INPUT_PRIMITIVES_ARB,
+                    eGL_CLIPPING_OUTPUT_PRIMITIVES_ARB,
+                    eGL_VERTEX_SHADER_INVOCATIONS_ARB,
+                    eGL_TESS_CONTROL_SHADER_PATCHES_ARB,
+                    eGL_TESS_EVALUATION_SHADER_INVOCATIONS_ARB,
+                    eGL_GEOMETRY_SHADER_INVOCATIONS,
+                    eGL_FRAGMENT_SHADER_INVOCATIONS_ARB,
+                    eGL_COMPUTE_SHADER_INVOCATIONS_ARB};
 
   if(idx < ARRAY_COUNT(enums))
     return enums[idx];

@@ -508,11 +508,13 @@ enum GPUCounters
   eCounter_SamplesWritten,
   eCounter_VSInvocations,
   eCounter_HSInvocations,
+  eCounter_TCSInvocations = eCounter_HSInvocations,
   eCounter_DSInvocations,
   eCounter_TESInvocations = eCounter_DSInvocations,
   eCounter_GSInvocations,
   eCounter_PSInvocations,
   eCounter_CSInvocations,
+  eCounter_GLMaxCounters,
 
   // IHV specific counters can be set above this point
   // with ranges reserved for each IHV
