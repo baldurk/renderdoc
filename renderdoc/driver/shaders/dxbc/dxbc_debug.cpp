@@ -591,13 +591,13 @@ void State::AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVari
   if(src.type == eVar_Float)
   {
     float ft = src.value.fv[srcIndex];
-    if(isinf(ft) || isnan(ft))
+    if(!_finite(ft) || _isnan(ft))
       flags |= eShaderDebugStateFlags_GeneratedNanOrInf;
   }
   else if(src.type == eVar_Double)
   {
     double dt = src.value.dv[srcIndex];
-    if(isinf(dt) || isnan(dt))
+    if(!_finite(dt) || _isnan(dt))
       flags |= eShaderDebugStateFlags_GeneratedNanOrInf;
   }
 
