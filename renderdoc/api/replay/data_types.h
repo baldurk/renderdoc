@@ -400,6 +400,8 @@ struct FetchDrawcall
   ResourceId outputs[8];
   ResourceId depthOut;
 
+  ResourceId shaders[6];
+
   rdctype::array<FetchAPIEvent> events;
   rdctype::array<FetchDrawcall> children;
 };

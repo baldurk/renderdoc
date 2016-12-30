@@ -377,6 +377,17 @@ bool ReplayRenderer::GetUsage(ResourceId id, rdctype::array<EventUsage> *usage)
   return false;
 }
 
+bool ReplayRenderer::GetShader(ResourceId id, const char *entry, ShaderReflection *shader)
+{
+  if(entry && shader)
+  {
+    *shader = *m_pDevice->GetShader(id, entry);
+    return true;
+  }
+
+  return false;
+}
+
 bool ReplayRenderer::GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFormat *data)
 {
   if(data == NULL)
@@ -1846,6 +1857,12 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 ReplayRenderer_GetUsage(ReplayRenderer *rend, ResourceId id, rdctype::array<EventUsage> *usage)
 {
   return rend->GetUsage(id, usage);
+}
+
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+ReplayRenderer_GetShader(ReplayRenderer *rend, ResourceId id, const char *entry, ShaderReflection *shader)
+{
+  return rend->GetShader(id, entry, shader);
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetCBufferVariableContents(

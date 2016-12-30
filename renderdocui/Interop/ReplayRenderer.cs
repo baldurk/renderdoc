@@ -354,6 +354,9 @@ namespace renderdoc
         private static extern bool ReplayRenderer_GetUsage(IntPtr real, ResourceId id, IntPtr outusage);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_GetShader(IntPtr real, ResourceId id, IntPtr entry, IntPtr outshader);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetCBufferVariableContents(IntPtr real, ResourceId shader, IntPtr entryPoint, UInt32 cbufslot, ResourceId buffer, UInt64 offs, IntPtr outvars);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -812,6 +815,23 @@ namespace renderdoc
 
             if (success)
                 ret = (EventUsage[])CustomMarshal.GetTemplatedArray(mem, typeof(EventUsage), true);
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public ShaderReflection GetShader(ResourceId id, string entrypoint)
+        {
+            IntPtr entry_mem = CustomMarshal.MakeUTF8String(entrypoint);
+            IntPtr mem = CustomMarshal.Alloc(typeof(ShaderReflection));
+
+            bool success = ReplayRenderer_GetShader(m_Real, id, entry_mem, mem);
+
+            ShaderReflection ret = null;
+
+            if (success)
+                ret = (ShaderReflection)CustomMarshal.PtrToStructure(mem, typeof(ShaderReflection), true);
 
             CustomMarshal.Free(mem);
 

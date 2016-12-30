@@ -966,6 +966,19 @@ void WrappedID3D11DeviceContext::AddDrawcall(const FetchDrawcall &d, bool hasEve
           ((WrappedID3D11DepthStencilView *)m_CurrentPipelineState->OM.DepthView)->GetResourceResID();
   }
 
+  const D3D11RenderState *pipe = m_CurrentPipelineState;
+
+  const D3D11RenderState::shader *shArr[6] = {
+      &pipe->VS, &pipe->HS, &pipe->DS, &pipe->GS, &pipe->PS, &pipe->CS,
+  };
+
+  for(int s = 0; s < 6; s++)
+  {
+    const D3D11RenderState::shader &sh = *shArr[s];
+
+    draw.shaders[s] = GetIDForResource(sh.Shader);
+  } 
+
   // markers don't increment drawcall ID
   if((draw.flags & (eDraw_SetMarker | eDraw_PushMarker)) == 0)
     m_CurDrawcallID++;

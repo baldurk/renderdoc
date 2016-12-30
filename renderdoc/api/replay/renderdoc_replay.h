@@ -400,6 +400,9 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DebugThread(ReplayRe
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 ReplayRenderer_GetUsage(ReplayRenderer *rend, ResourceId id, rdctype::array<EventUsage> *usage);
 
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+ReplayRenderer_GetShader(ReplayRenderer *rend, ResourceId id, const char *entry, ShaderReflection *shader);
+
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetCBufferVariableContents(
     ReplayRenderer *rend, ResourceId shader, const char *entryPoint, uint32_t cbufslot,
     ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars);

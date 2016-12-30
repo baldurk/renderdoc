@@ -625,6 +625,9 @@ namespace renderdoc
         public ResourceId[] outputs;
         public ResourceId depthOut;
 
+        [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 6)]
+        public ResourceId[] shaders;
+
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public FetchAPIEvent[] events;
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]

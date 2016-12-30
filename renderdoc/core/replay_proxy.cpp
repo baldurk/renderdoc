@@ -1365,11 +1365,12 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 
   SerialisePODArray<8>("", el.outputs);
   Serialise("", el.depthOut);
+  SerialisePODArray<6>("", el.shaders);
 
   Serialise("", el.events);
   Serialise("", el.children);
 
-  SIZE_CHECK(248);
+  SIZE_CHECK(296);
 }
 
 template <>

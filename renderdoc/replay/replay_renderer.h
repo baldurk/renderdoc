@@ -178,6 +178,8 @@ public:
 
   bool GetUsage(ResourceId id, rdctype::array<EventUsage> *usage);
 
+  bool GetShader(ResourceId id, const char *entry, ShaderReflection *shader);
+
   bool GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, rdctype::array<byte> *data);
   bool GetTextureData(ResourceId buff, uint32_t arrayIdx, uint32_t mip, rdctype::array<byte> *data);
 
