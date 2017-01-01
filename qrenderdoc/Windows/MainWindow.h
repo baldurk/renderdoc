@@ -50,9 +50,9 @@ public:
   explicit MainWindow(CaptureContext *ctx);
   ~MainWindow();
 
-  void OnLogfileLoaded();
-  void OnLogfileClosed();
-  void OnEventSelected(uint32_t eventID);
+  void OnLogfileLoaded() override;
+  void OnLogfileClosed() override;
+  void OnEventSelected(uint32_t eventID) override;
 
   void setProgress(float val);
   void takeLogOwnership() { m_OwnTempLog = true; }
