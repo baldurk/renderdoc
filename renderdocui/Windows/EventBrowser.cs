@@ -51,6 +51,8 @@ namespace renderdocui.Windows
 
         private TreelistView.Node m_FrameNode = null;
 
+        Dictionary<uint, List<CounterResult>> m_Times = new Dictionary<uint, List<CounterResult>>();
+
         private Core m_Core;
 
         public EventBrowser(Core core)
@@ -829,8 +831,7 @@ namespace renderdocui.Windows
 
                 var desc = r.DescribeCounter(counters[0]);
 
-                Dictionary<uint, List<CounterResult>> times = new Dictionary<uint, List<CounterResult>>();
-                times = r.FetchCounters(counters);
+                m_Times = r.FetchCounters(counters);
 
                 BeginInvoke((MethodInvoker)delegate
                 {
@@ -842,7 +843,7 @@ namespace renderdocui.Windows
 
                     eventView.BeginUpdate();
 
-                    SetDrawcallTimes(m_FrameNode, times);
+                    SetDrawcallTimes(m_FrameNode, m_Times);
 
                     eventView.EndUpdate();
                 });
@@ -1233,7 +1234,29 @@ namespace renderdocui.Windows
 
             string nameString = GetExportDrawcallString(indent, firstchild, drawcall);
 
-            sw.WriteLine(String.Format("{0,-5} | {1,-" + maxNameLength + "} | {2,-5}", eidString, nameString, drawcall.drawcallID));
+            string line = String.Format("{0,-5} | {1,-" + maxNameLength + "} | {2,-6}", eidString, nameString, drawcall.drawcallID);
+
+            if (m_Times.Count > 0)
+            {
+                if (m_Core.Config.EventBrowser_TimeUnit != m_TimeUnit)
+                    UpdateDurationColumn();
+
+                if(m_Times.ContainsKey(drawcall.eventID))
+                {
+                    double f = m_Times[drawcall.eventID][0].value.d;
+
+                    if (m_Core.Config.EventBrowser_TimeUnit == PersistantConfig.TimeUnit.Milliseconds)
+                        f *= 1000.0;
+                    else if (m_Core.Config.EventBrowser_TimeUnit == PersistantConfig.TimeUnit.Microseconds)
+                        f *= 1000000.0;
+                    else if (m_Core.Config.EventBrowser_TimeUnit == PersistantConfig.TimeUnit.Nanoseconds)
+                        f *= 1000000000.0;
+
+                    line += String.Format(" | {0}", Formatter.Format(f));
+                }
+            }
+
+            sw.WriteLine(line);
 
             for (int i = 0; i < drawcall.children.Length; i++)
                 ExportDrawcall(sw, maxNameLength, indent + 1, i == 0, drawcall.children[i]);
@@ -1259,8 +1282,30 @@ namespace renderdocui.Windows
                         foreach (FetchDrawcall d in m_Core.GetDrawcalls())
                             GetMaxNameLength(ref maxNameLength, 0, false, d);
 
-                        sw.WriteLine(String.Format(" EID  | {0,-" + maxNameLength + "} | Draw #", "Event"));
-                        sw.WriteLine(String.Format("--------{0}-----------", new string('-', maxNameLength)));
+                        string line = String.Format(" EID  | {0,-" + maxNameLength + "} | Draw #", "Event");
+
+                        if (m_Times.Count > 0)
+                        {
+                            if (m_Core.Config.EventBrowser_TimeUnit != m_TimeUnit)
+                                UpdateDurationColumn();
+
+                            line += String.Format(" | {0}", eventView.Columns["Duration"].Caption);
+                        }
+
+                        sw.WriteLine(line);
+
+                        line = String.Format("--------{0}-----------", new string('-', maxNameLength));
+
+                        if (m_Times.Count > 0)
+                        {
+                            int maxDurationLength = 0;
+                            maxDurationLength = Math.Max(maxDurationLength, Formatter.Format(1.0).Length);
+                            maxDurationLength = Math.Max(maxDurationLength, Formatter.Format(1.2345e-200).Length);
+                            maxDurationLength = Math.Max(maxDurationLength, Formatter.Format(123456.7890123456789).Length);
+                            line += new string('-', 3 + maxDurationLength); // 3 extra for " | "
+                        }
+
+                        sw.WriteLine(line);
 
                         foreach (FetchDrawcall d in m_Core.GetDrawcalls())
                             ExportDrawcall(sw, maxNameLength, 0, false, d);
