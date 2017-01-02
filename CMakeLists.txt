@@ -58,6 +58,11 @@ if(WIN32)
     message(FATAL_ERROR "CMake is not needed on Windows, just open and build renderdoc.sln")
 endif()
 
+if(APPLE)
+    message(STATUS "Disabling Vulkan driver on apple")
+	set(ENABLE_VULKAN OFF CACHE BOOL "" FORCE)
+endif()
+
 if(ANDROID)
     message(STATUS "Disabling GL driver on android - no support for EGL/GLES")
     set(ENABLE_GL OFF CACHE BOOL "" FORCE)

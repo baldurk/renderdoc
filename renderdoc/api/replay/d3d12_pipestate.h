@@ -56,7 +56,7 @@ struct D3D12PipelineState
 
     struct VertexBuffer
     {
-      VertexBuffer() : Buffer(), Stride(0), Offset(0) {}
+      VertexBuffer() : Buffer(), Offset(0), Stride(0) {}
       ResourceId Buffer;
       uint64_t Offset;
       uint32_t Size;
@@ -290,8 +290,8 @@ struct D3D12PipelineState
     struct DepthStencilState
     {
       DepthStencilState()
-          : DepthWrites(false),
-            DepthEnable(false),
+          : DepthEnable(false),
+            DepthWrites(false),
             StencilEnable(false),
             StencilReadMask(0),
             StencilWriteMask(0),

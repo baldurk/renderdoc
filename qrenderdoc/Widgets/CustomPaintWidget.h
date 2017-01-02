@@ -70,8 +70,8 @@ private:
 public slots:
 
 protected:
-  void paintEvent(QPaintEvent *e);
-  QPaintEngine *paintEngine() const { return m_Ctx ? NULL : QWidget::paintEngine(); }
+  void paintEvent(QPaintEvent *e) override;
+  QPaintEngine *paintEngine() const override { return m_Ctx ? NULL : QWidget::paintEngine(); }
   CaptureContext *m_Ctx;
   IReplayOutput *m_Output;
   QColor m_Dark;
