@@ -14,9 +14,11 @@ if(ANDROID)
         PRIVATE -llog
         PRIVATE -landroid)
 elseif(APPLE)
+    INCLUDE(FindOpenGL)
     list(APPEND RDOC_LIBRARIES
         PRIVATE -lm
-        PRIVATE -ldl)
+        PRIVATE -ldl
+        "-framework OpenGL")
 elseif(UNIX)
     find_package(PkgConfig REQUIRED)
     find_package(Threads REQUIRED)
