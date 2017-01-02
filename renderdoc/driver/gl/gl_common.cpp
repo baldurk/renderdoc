@@ -374,6 +374,12 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
   // so we have to do this unconditionally, this value isn't checked anywhere.
   // Search for where this is applied in gl_emulated.cpp
   VendorCheck[VendorCheck_NV_ClearNamedFramebufferfiBugs] = true;
+
+  // glVertexArrayElementBuffer doesn't update the GL_ELEMENT_ARRAY_BUFFER_BINDING global query,
+  // when binding the VAO subsequently *will*.
+  // I'm not sure if that's correct (weird) behaviour or buggy, but we can work around it just by
+  // avoiding use of the DSA function and always doing our emulated version.
+  VendorCheck[VendorCheck_AMD_vertex_array_elem_buffer_query] = true;
 }
 
 size_t BufferIdx(GLenum buf)

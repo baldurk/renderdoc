@@ -215,6 +215,7 @@ enum VendorCheckEnum
   VendorCheck_AMD_pipeline_compute_query,
   VendorCheck_NV_ClearNamedFramebufferfiBugs,
   VendorCheck_AMD_copy_compressed_cubemaps,
+  VendorCheck_AMD_vertex_array_elem_buffer_query,
   VendorCheck_Count,
 };
 extern bool VendorCheck[VendorCheck_Count];

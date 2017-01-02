@@ -153,6 +153,14 @@ void EmulateUnsupportedFunctions(GLHookSet *hooks)
   // NOTE: Vendor Checks aren't initialised by this point, so we have to do this unconditionally
   // We include it just for searching: VendorCheck[VendorCheck_NV_ClearNamedFramebufferfiBugs]
   hooks->glClearNamedFramebufferfi = &_glClearNamedFramebufferfi;
+
+  // workaround for AMD bug or weird behaviour. glVertexArrayElementBuffer doesn't update the
+  // GL_ELEMENT_ARRAY_BUFFER_BINDING global query, when binding the VAO subsequently *will*.
+  // I'm not sure if that's correct (weird) behaviour or buggy, but we can work around it just
+  // by avoiding use of the DSA function and always doing our emulated version.
+  //
+  // VendorCheck[VendorCheck_AMD_vertex_array_elem_buffer_query]
+  hooks->glVertexArrayElementBuffer = &_glVertexArrayElementBuffer;
 }
 
 };    // namespace glEmulate
