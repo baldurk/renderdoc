@@ -62,7 +62,7 @@ float ConvertSRGBToLinear(float srgb)
 	if (srgb <= 0.04045f)
 		return srgb / 12.92f;
 	else
-		return pow(saturate(srgb) + 0.055f / 1.055f, 2.4f);
+		return pow((saturate(srgb) + 0.055f) / 1.055f, 2.4f);
 }
 
 // main texture display shader, used for the texture viewer. It samples the right resource
