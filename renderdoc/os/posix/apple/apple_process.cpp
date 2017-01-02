@@ -63,75 +63,85 @@ bool isNewline(char c)
 int GetIdentPort(pid_t childPid)
 {
   string lsof = StringFormat::Fmt("lsof -p %d -a -i 4 -F n", (int)childPid);
-  string result = execcmd(lsof.c_str());
+  string result;
+  uint32_t wait = 1;
+  for(int i = 0; i < 10; ++i)
+  {
+    result = execcmd(lsof.c_str());
+    if(!result.empty())
+      break;
+    usleep(wait * 1000);
+    wait *= 2;
+  }
+  if(result.empty())
+  {
+    RDCERR("No output from lsof command: '%s'", lsof.c_str());
+    return 0;
+  }
 
   // Parse the result expecting:
   // p<PID>
+  // <TEXT>
   // n*:<PORT>
 
-  const size_t len = result.length();
-  bool found = false;
-  if(result[0] == 'p')
+  string parseResult(result);
+  const size_t len = parseResult.length();
+  if(parseResult[0] == 'p')
   {
-    size_t i = 1;
+    size_t tokenStart = 1;
+    size_t i = tokenStart;
     for(; i < len; i++)
     {
-      if(result[i] < '0' || result[i] > '9')
+      if(parseResult[i] < '0' || parseResult[i] > '9')
         break;
     }
-    result[i++] = 0;
+    parseResult[i++] = 0;
 
-    if(isNewline(result[i]))
+    if(isNewline(parseResult[i]))
       i++;
 
-    const int pid = std::stoi(&result[1]);
+    const int pid = std::stoi(&result[tokenStart]);
     if(pid == (int)childPid)
     {
+      const char *netString("n*:");
       while(i < len)
       {
-        if(result[i] == 'n')
+        const size_t netStart = parseResult.find(netString, i);
+        if(netStart != string::npos)
         {
-          char *portStr = NULL;
+          tokenStart = netStart + strlen(netString);
+          i = tokenStart;
           for(; i < len; i++)
           {
-            if(result[i] == ':')
-            {
-              portStr = &result[i + 1];
-            }
-            if(isNewline(result[i]))
-            {
-              result[i++] = 0;
-              if(i < len && isNewline(result[i]))
-                result[i++] = 0;
+            if(parseResult[i] < '0' || parseResult[i] > '9')
               break;
-            }
           }
+          parseResult[i++] = 0;
 
-          const int port = std::stoi(portStr);
+          if(isNewline(parseResult[i]))
+            i++;
+
+          const int port = std::stoi(&result[tokenStart]);
           if(port >= RenderDoc_FirstTargetControlPort && port <= RenderDoc_LastTargetControlPort)
           {
             return port;
           }
-
           // continue on to next port
         }
         else
         {
-          RDCERR("Malformed line - expected 'n':\n%s", &result[i]);
-          break;
+          RDCERR("Malformed line - expected 'n*':\n%s", &result[i]);
+          return 0;
         }
       }
     }
     else
     {
       RDCERR("pid from lsof output doesn't match childPid");
+      return 0;
     }
   }
-  else
-  {
-    RDCERR("lsof output doesn't begin with p<PID>:\n%s", &result[0]);
-  }
-
+  RDCERR("Failed to parse output from lsof:\n%s", result.c_str());
   return 0;
 }
 
