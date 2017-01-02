@@ -1705,7 +1705,15 @@ namespace renderdocui.Windows.PipelineState
                         viewer.ViewTexture(tex.ID, true);
                 }
             }
-            else if(tag is ReadWriteTag)
+            else if (tag is FetchBuffer)
+            {
+                FetchBuffer buf = (FetchBuffer)tag;
+
+                var viewer = new BufferViewer(m_Core, false);
+                viewer.ViewRawBuffer(true, 0, ulong.MaxValue, buf.ID);
+                viewer.Show(m_DockContent.DockPanel);
+            }
+            else if (tag is ReadWriteTag)
             {
                 ReadWriteTag rwtag = (ReadWriteTag)tag;
                 FetchBuffer buf = rwtag.buf;

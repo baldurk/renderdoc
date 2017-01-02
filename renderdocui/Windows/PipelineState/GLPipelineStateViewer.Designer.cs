@@ -2829,7 +2829,11 @@
             this.gsFeedback.ViewOptions.Indent = 0;
             this.gsFeedback.ViewOptions.ShowLine = false;
             this.gsFeedback.ViewOptions.ShowPlusMinus = false;
+            this.gsFeedback.NodeDoubleClicked += new TreelistView.TreeListView.NodeDoubleClickedHandler(this.textureCell_CellDoubleClick);
+            this.gsFeedback.NodeClicked += new TreelistView.TreeListView.NodeClickedHandler(this.textureCell_CellDoubleClick);
             this.gsFeedback.KeyDown += new System.Windows.Forms.KeyEventHandler(this.defaultCopyPaste_KeyDown);
+            this.gsFeedback.Leave += new System.EventHandler(this.disableSelection_Leave);
+            this.gsFeedback.MouseClick += new System.Windows.Forms.MouseEventHandler(this.hideDisabledEmpty_MouseClick);
             // 
             // label14
             // 
