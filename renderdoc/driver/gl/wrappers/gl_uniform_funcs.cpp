@@ -76,36 +76,39 @@ bool WrappedOpenGL::Serialise_glProgramUniformVector(GLuint program, GLint locat
   {
     value = m_pSerialiser->RawReadBytes(elemSize * elemsPerVec * Count);
 
-    ResourceId liveProgId = GetResourceManager()->GetLiveID(id);
-    GLuint live = GetResourceManager()->GetLiveResource(id).name;
-
-    map<GLint, GLint> &translate = m_Programs[liveProgId].locationTranslate;
-    if(translate.find(Loc) != translate.end())
-      Loc = translate[Loc];
-    else
-      Loc = -1;
-
-    if(Loc >= 0)
+    if(GetResourceManager()->HasLiveResource(id))
     {
-      switch(Type)
+      ResourceId liveProgId = GetResourceManager()->GetLiveID(id);
+      GLuint live = GetResourceManager()->GetLiveResource(id).name;
+
+      map<GLint, GLint> &translate = m_Programs[liveProgId].locationTranslate;
+      if(translate.find(Loc) != translate.end())
+        Loc = translate[Loc];
+      else
+        Loc = -1;
+
+      if(Loc >= 0)
       {
-        case VEC1iv: m_Real.glProgramUniform1iv(live, Loc, Count, (const GLint *)value); break;
-        case VEC1uiv: m_Real.glProgramUniform1uiv(live, Loc, Count, (const GLuint *)value); break;
-        case VEC1fv: m_Real.glProgramUniform1fv(live, Loc, Count, (const GLfloat *)value); break;
-        case VEC1dv: m_Real.glProgramUniform1dv(live, Loc, Count, (const GLdouble *)value); break;
-        case VEC2iv: m_Real.glProgramUniform2iv(live, Loc, Count, (const GLint *)value); break;
-        case VEC2uiv: m_Real.glProgramUniform2uiv(live, Loc, Count, (const GLuint *)value); break;
-        case VEC2fv: m_Real.glProgramUniform2fv(live, Loc, Count, (const GLfloat *)value); break;
-        case VEC2dv: m_Real.glProgramUniform2dv(live, Loc, Count, (const GLdouble *)value); break;
-        case VEC3iv: m_Real.glProgramUniform3iv(live, Loc, Count, (const GLint *)value); break;
-        case VEC3uiv: m_Real.glProgramUniform3uiv(live, Loc, Count, (const GLuint *)value); break;
-        case VEC3fv: m_Real.glProgramUniform3fv(live, Loc, Count, (const GLfloat *)value); break;
-        case VEC3dv: m_Real.glProgramUniform3dv(live, Loc, Count, (const GLdouble *)value); break;
-        case VEC4iv: m_Real.glProgramUniform4iv(live, Loc, Count, (const GLint *)value); break;
-        case VEC4uiv: m_Real.glProgramUniform4uiv(live, Loc, Count, (const GLuint *)value); break;
-        case VEC4fv: m_Real.glProgramUniform4fv(live, Loc, Count, (const GLfloat *)value); break;
-        case VEC4dv: m_Real.glProgramUniform4dv(live, Loc, Count, (const GLdouble *)value); break;
-        default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformVector: %d", Type);
+        switch(Type)
+        {
+          case VEC1iv: m_Real.glProgramUniform1iv(live, Loc, Count, (const GLint *)value); break;
+          case VEC1uiv: m_Real.glProgramUniform1uiv(live, Loc, Count, (const GLuint *)value); break;
+          case VEC1fv: m_Real.glProgramUniform1fv(live, Loc, Count, (const GLfloat *)value); break;
+          case VEC1dv: m_Real.glProgramUniform1dv(live, Loc, Count, (const GLdouble *)value); break;
+          case VEC2iv: m_Real.glProgramUniform2iv(live, Loc, Count, (const GLint *)value); break;
+          case VEC2uiv: m_Real.glProgramUniform2uiv(live, Loc, Count, (const GLuint *)value); break;
+          case VEC2fv: m_Real.glProgramUniform2fv(live, Loc, Count, (const GLfloat *)value); break;
+          case VEC2dv: m_Real.glProgramUniform2dv(live, Loc, Count, (const GLdouble *)value); break;
+          case VEC3iv: m_Real.glProgramUniform3iv(live, Loc, Count, (const GLint *)value); break;
+          case VEC3uiv: m_Real.glProgramUniform3uiv(live, Loc, Count, (const GLuint *)value); break;
+          case VEC3fv: m_Real.glProgramUniform3fv(live, Loc, Count, (const GLfloat *)value); break;
+          case VEC3dv: m_Real.glProgramUniform3dv(live, Loc, Count, (const GLdouble *)value); break;
+          case VEC4iv: m_Real.glProgramUniform4iv(live, Loc, Count, (const GLint *)value); break;
+          case VEC4uiv: m_Real.glProgramUniform4uiv(live, Loc, Count, (const GLuint *)value); break;
+          case VEC4fv: m_Real.glProgramUniform4fv(live, Loc, Count, (const GLfloat *)value); break;
+          case VEC4dv: m_Real.glProgramUniform4dv(live, Loc, Count, (const GLdouble *)value); break;
+          default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformVector: %d", Type);
+        }
       }
     }
   }
@@ -234,74 +237,77 @@ bool WrappedOpenGL::Serialise_glProgramUniformMatrix(GLuint program, GLint locat
   {
     value = m_pSerialiser->RawReadBytes(elemSize * elemsPerMat * Count);
 
-    ResourceId liveProgId = GetResourceManager()->GetLiveID(id);
-    GLuint live = GetResourceManager()->GetLiveResource(id).name;
-
-    map<GLint, GLint> &translate = m_Programs[liveProgId].locationTranslate;
-    if(translate.find(Loc) != translate.end())
-      Loc = translate[Loc];
-    else
-      Loc = -1;
-
-    if(Loc >= 0)
+    if(GetResourceManager()->HasLiveResource(id))
     {
-      switch(Type)
+      ResourceId liveProgId = GetResourceManager()->GetLiveID(id);
+      GLuint live = GetResourceManager()->GetLiveResource(id).name;
+
+      map<GLint, GLint> &translate = m_Programs[liveProgId].locationTranslate;
+      if(translate.find(Loc) != translate.end())
+        Loc = translate[Loc];
+      else
+        Loc = -1;
+
+      if(Loc >= 0)
       {
-        case MAT2fv:
-          m_Real.glProgramUniformMatrix2fv(live, Loc, Count, Transpose, (const GLfloat *)value);
-          break;
-        case MAT2x3fv:
-          m_Real.glProgramUniformMatrix2x3fv(live, Loc, Count, Transpose, (const GLfloat *)value);
-          break;
-        case MAT2x4fv:
-          m_Real.glProgramUniformMatrix2x4fv(live, Loc, Count, Transpose, (const GLfloat *)value);
-          break;
-        case MAT3fv:
-          m_Real.glProgramUniformMatrix3fv(live, Loc, Count, Transpose, (const GLfloat *)value);
-          break;
-        case MAT3x2fv:
-          m_Real.glProgramUniformMatrix3x2fv(live, Loc, Count, Transpose, (const GLfloat *)value);
-          break;
-        case MAT3x4fv:
-          m_Real.glProgramUniformMatrix3x4fv(live, Loc, Count, Transpose, (const GLfloat *)value);
-          break;
-        case MAT4fv:
-          m_Real.glProgramUniformMatrix4fv(live, Loc, Count, Transpose, (const GLfloat *)value);
-          break;
-        case MAT4x2fv:
-          m_Real.glProgramUniformMatrix4x2fv(live, Loc, Count, Transpose, (const GLfloat *)value);
-          break;
-        case MAT4x3fv:
-          m_Real.glProgramUniformMatrix4x3fv(live, Loc, Count, Transpose, (const GLfloat *)value);
-          break;
-        case MAT2dv:
-          m_Real.glProgramUniformMatrix2dv(live, Loc, Count, Transpose, (const GLdouble *)value);
-          break;
-        case MAT2x3dv:
-          m_Real.glProgramUniformMatrix2x3dv(live, Loc, Count, Transpose, (const GLdouble *)value);
-          break;
-        case MAT2x4dv:
-          m_Real.glProgramUniformMatrix2x4dv(live, Loc, Count, Transpose, (const GLdouble *)value);
-          break;
-        case MAT3dv:
-          m_Real.glProgramUniformMatrix3dv(live, Loc, Count, Transpose, (const GLdouble *)value);
-          break;
-        case MAT3x2dv:
-          m_Real.glProgramUniformMatrix3x2dv(live, Loc, Count, Transpose, (const GLdouble *)value);
-          break;
-        case MAT3x4dv:
-          m_Real.glProgramUniformMatrix3x4dv(live, Loc, Count, Transpose, (const GLdouble *)value);
-          break;
-        case MAT4dv:
-          m_Real.glProgramUniformMatrix4dv(live, Loc, Count, Transpose, (const GLdouble *)value);
-          break;
-        case MAT4x2dv:
-          m_Real.glProgramUniformMatrix4x2dv(live, Loc, Count, Transpose, (const GLdouble *)value);
-          break;
-        case MAT4x3dv:
-          m_Real.glProgramUniformMatrix4x3dv(live, Loc, Count, Transpose, (const GLdouble *)value);
-          break;
-        default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformMatrix: %d", Type);
+        switch(Type)
+        {
+          case MAT2fv:
+            m_Real.glProgramUniformMatrix2fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            break;
+          case MAT2x3fv:
+            m_Real.glProgramUniformMatrix2x3fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            break;
+          case MAT2x4fv:
+            m_Real.glProgramUniformMatrix2x4fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            break;
+          case MAT3fv:
+            m_Real.glProgramUniformMatrix3fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            break;
+          case MAT3x2fv:
+            m_Real.glProgramUniformMatrix3x2fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            break;
+          case MAT3x4fv:
+            m_Real.glProgramUniformMatrix3x4fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            break;
+          case MAT4fv:
+            m_Real.glProgramUniformMatrix4fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            break;
+          case MAT4x2fv:
+            m_Real.glProgramUniformMatrix4x2fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            break;
+          case MAT4x3fv:
+            m_Real.glProgramUniformMatrix4x3fv(live, Loc, Count, Transpose, (const GLfloat *)value);
+            break;
+          case MAT2dv:
+            m_Real.glProgramUniformMatrix2dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            break;
+          case MAT2x3dv:
+            m_Real.glProgramUniformMatrix2x3dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            break;
+          case MAT2x4dv:
+            m_Real.glProgramUniformMatrix2x4dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            break;
+          case MAT3dv:
+            m_Real.glProgramUniformMatrix3dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            break;
+          case MAT3x2dv:
+            m_Real.glProgramUniformMatrix3x2dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            break;
+          case MAT3x4dv:
+            m_Real.glProgramUniformMatrix3x4dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            break;
+          case MAT4dv:
+            m_Real.glProgramUniformMatrix4dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            break;
+          case MAT4x2dv:
+            m_Real.glProgramUniformMatrix4x2dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            break;
+          case MAT4x3dv:
+            m_Real.glProgramUniformMatrix4x3dv(live, Loc, Count, Transpose, (const GLdouble *)value);
+            break;
+          default: RDCERR("Unexpected uniform type to Serialise_glProgramUniformMatrix: %d", Type);
+        }
       }
     }
   }
