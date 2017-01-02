@@ -176,6 +176,23 @@ namespace renderdocui.Windows
         {
             bool loaded = LoadLayout(0);
 
+            if (Win32PInvoke.GetModuleHandle("rdocself.dll") != IntPtr.Zero)
+            {
+                ToolStripMenuItem beginSelfCap = new ToolStripMenuItem();
+                beginSelfCap.Text = "Start Self-hosted Capture";
+                beginSelfCap.Click += new EventHandler((object o, EventArgs a) => { StaticExports.StartSelfHostCapture("rdocself.dll"); });
+
+                ToolStripMenuItem endSelfCap = new ToolStripMenuItem();
+                endSelfCap.Text = "End Self-hosted Capture";
+                endSelfCap.Click += new EventHandler((object o, EventArgs a) => { StaticExports.EndSelfHostCapture("rdocself.dll"); });
+
+                toolsToolStripMenuItem.DropDownItems.AddRange(new ToolStripItem[] {
+                    new System.Windows.Forms.ToolStripSeparator(),
+                    beginSelfCap,
+                    endSelfCap,
+                });
+            }
+
             CheckUpdates();
 
             Thread remoteStatusThread = Helpers.NewThread(new ThreadStart(() =>

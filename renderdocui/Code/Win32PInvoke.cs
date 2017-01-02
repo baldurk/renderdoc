@@ -36,6 +36,8 @@ namespace renderdocui.Code
     {
         [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
         public static extern IntPtr LoadLibrary(string lpFileName);
+        [DllImport("kernel32", SetLastError = true, CharSet = CharSet.Unicode)]
+        public static extern IntPtr GetModuleHandle(string lpFileName);
 
         [StructLayout(LayoutKind.Sequential)]
         public struct POINT
