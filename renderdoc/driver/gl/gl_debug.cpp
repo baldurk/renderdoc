@@ -3319,7 +3319,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
     {
       gl.glDrawElementsInstancedBaseVertexBaseInstance(
           eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL, drawcall->numInstances,
-          drawcall->vertexOffset, drawcall->instanceOffset);
+          drawcall->baseVertex, drawcall->instanceOffset);
     }
     else
     {
