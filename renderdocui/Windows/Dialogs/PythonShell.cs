@@ -26,6 +26,8 @@ namespace renderdocui.Windows.Dialogs
 
         ScintillaNET.Scintilla scriptEditor = null;
 
+        private bool m_LibsLoaded = false;
+
         public PythonShell(Core core)
         {
             InitializeComponent();
@@ -116,7 +118,10 @@ namespace renderdocui.Windows.Dialogs
             string libspath = Path.Combine(Path.GetDirectoryName(Application.ExecutablePath), "pythonlibs.zip");
 
             if (File.Exists(libspath))
+            {
+                m_LibsLoaded = true;
                 searches.Add(libspath);
+            }
 
             engine.SetSearchPaths(searches);
 
@@ -309,6 +314,14 @@ namespace renderdocui.Windows.Dialogs
                                 "The 'pyrenderdoc' object is the Core class instance.{1}" +
                                 "The 'renderdoc' module is available, as the matching namespace in C#.{1}",
                                 IronPython.CurrentVersion.AssemblyFileVersion, Environment.NewLine);
+
+            if (!m_LibsLoaded)
+            {
+                interactiveOutput.Text = String.Format("!!! pythonlibs.zip not found! Check installation !!!{0}" +
+                    "!!! If building locally, ensure you have compiled python libraries and copied to binary folder: !!!{0}" +
+                    "cd renderdocui/3rdparty/ironpython/ && ./compilelibs.sh /path/to/IronPython-2.7.4{0}{0}{1}",
+                    Environment.NewLine, interactiveOutput.Text);
+            }
 
             shellscope = NewScope(pythonengine);
         }
