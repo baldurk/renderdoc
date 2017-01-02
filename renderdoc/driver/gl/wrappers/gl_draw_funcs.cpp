@@ -1527,7 +1527,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseInstance(GLenum mode, G
     draw.vertexOffset = 0;
     draw.instanceOffset = BaseInstance;
 
-    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+    draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_UseIBuffer;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -1610,7 +1610,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertex(GLenum mode, GLs
     draw.baseVertex = BaseVertex;
     draw.instanceOffset = 0;
 
-    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+    draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_UseIBuffer;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
@@ -1693,7 +1693,7 @@ bool WrappedOpenGL::Serialise_glDrawElementsInstancedBaseVertexBaseInstance(
     draw.baseVertex = BaseVertex;
     draw.instanceOffset = BaseInstance;
 
-    draw.flags |= eDraw_Drawcall | eDraw_UseIBuffer;
+    draw.flags |= eDraw_Drawcall | eDraw_Instanced | eDraw_UseIBuffer;
 
     draw.topology = MakePrimitiveTopology(m_Real, Mode);
     draw.indexByteWidth = IdxSize;
