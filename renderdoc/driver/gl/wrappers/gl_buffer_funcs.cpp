@@ -328,6 +328,13 @@ bool WrappedOpenGL::Serialise_glNamedBufferStorageEXT(GLuint buffer, GLsizeiptr 
 
   if(m_State < WRITING)
   {
+    // remove persistent flag - we will never persistently map so this is a nice
+    // hint. It helps especially when self-hosting, as we don't want tons of
+    // overhead added when we won't use it.
+    Flags &= ~GL_MAP_PERSISTENT_BIT;
+    // can't have coherent without persistent, so remove as well
+    Flags &= ~GL_MAP_COHERENT_BIT;
+
     GLResource res = GetResourceManager()->GetLiveResource(id);
     m_Real.glNamedBufferStorageEXT(res.name, (GLsizeiptr)Bytesize, bytes, Flags);
 
@@ -1805,7 +1812,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
       directMap = true;
 
     // persistent maps must ALWAYS be intercepted
-    if(access & GL_MAP_PERSISTENT_BIT)
+    if((access & GL_MAP_PERSISTENT_BIT) || record->Map.persistentPtr)
       directMap = false;
 
     if(directMap)
