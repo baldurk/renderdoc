@@ -24,6 +24,7 @@
 
 #include <dlfcn.h>
 #include <errno.h>
+#include <limits.h>
 #include <pwd.h>
 #include <stdlib.h>
 #include <string.h>
@@ -38,6 +39,39 @@
 // defined in foo/foo_process.cpp
 char **GetCurrentEnvironment();
 int GetIdentPort(pid_t childPid);
+
+static const string GetAbsoluteAppPathFromName(const string &appName)
+{
+  // If the application name contains a slash character convert it to an absolute path and return it
+  if(appName.find("/") != string::npos)
+  {
+    char realpathBuffer[PATH_MAX];
+    string appDir = dirname(appName);
+    string appBasename = basename(appName);
+    realpath(appDir.c_str(), realpathBuffer);
+    string appPath(realpathBuffer);
+    appPath += "/" + appBasename;
+    return appPath;
+  }
+
+  // Search the PATH directory list for the application (like shell which) to get the absolute path
+  // Return "" if no exectuable found in the PATH list
+  char *pathEnvVar = getenv("PATH");
+  if(!pathEnvVar)
+    return string();
+
+  const char *pathSeparator = ":";
+  const char *path = strtok(pathEnvVar, pathSeparator);
+  while(path)
+  {
+    string testPath(path);
+    testPath += "/" + appName;
+    if(!access(testPath.c_str(), X_OK))
+      return testPath;
+    path = strtok(NULL, pathSeparator);
+  }
+  return string();
+}
 
 static vector<Process::EnvironmentModification> &GetEnvModifications()
 {
@@ -315,13 +349,18 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   pid_t childPid = fork();
   if(childPid == 0)
   {
-    chdir(workDir.c_str());
-
-    // in child process, so we can change environment
-    environ = envp;
-    execvp(appName.c_str(), argv);
-
-    RDCERR("Failed to execute %s: %s", appName.c_str(), strerror(errno));
+    const string appPath(GetAbsoluteAppPathFromName(appName));
+    if(!appPath.empty())
+    {
+      chdir(workDir.c_str());
+      execve(appPath.c_str(), argv, envp);
+      RDCERR("Failed to execute '%s' %s", appName.c_str(), strerror(errno));
+      RDCERR("Full Path: '%s'", appPath.c_str());
+    }
+    else
+    {
+      RDCERR("Failed to execute '%s' Executable not found", appName.c_str());
+    }
     exit(0);
   }
 
