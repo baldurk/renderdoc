@@ -429,7 +429,18 @@ GLuint MakeSeparableShaderProgram(WrappedOpenGL &gl, GLenum type, vector<string>
 
             // keep going until the next newline
             while(it < len && !isnewline(src[it]))
+            {
+              // if we encounter a C-style comment in the middle of a #define
+              // we can't consume it because then we'd miss the start of it.
+              // Instead we break out (although we're not technically at the
+              // end of the pre-processor line) and let it be consumed next.
+              // Note that we can discount C++-style comments because they
+              // want to consume to the end of the line too.
+              if(it + 1 < len && src[it] == '/' && src[it + 1] == '*')
+                break;
+
               ++it;
+            }
 
             // skip more things
             continue;
