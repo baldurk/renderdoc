@@ -2772,11 +2772,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
 
       if(!events.empty())
       {
-        if(overlay == eTexOverlay_QuadOverdrawPass)
-          ReplayLog(events[0], eReplay_WithoutDraw);
-        else
-          rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
-
         GLuint replacefbo = 0;
         GLuint quadtexs[3] = {0};
         gl.glGenFramebuffers(1, &replacefbo);
@@ -2844,6 +2839,11 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
         gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, quadtexs[1], 0);
+
+        if(overlay == eTexOverlay_QuadOverdrawPass)
+          ReplayLog(events[0], eReplay_WithoutDraw);
+        else
+          rs.ApplyState(m_pDriver->GetCtx(), m_pDriver);
 
         for(size_t i = 0; i < events.size(); i++)
         {
