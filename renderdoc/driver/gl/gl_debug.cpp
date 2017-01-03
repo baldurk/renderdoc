@@ -2331,6 +2331,9 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
   }
   else if(overlay == eTexOverlay_ClearBeforeDraw || overlay == eTexOverlay_ClearBeforePass)
   {
+    float col[] = {0.0f, 0.0f, 0.0f, 0.0f};
+    gl.glClearBufferfv(eGL_COLOR, 0, col);
+
     vector<uint32_t> events = passEvents;
 
     if(overlay == eTexOverlay_ClearBeforeDraw)
@@ -2341,11 +2344,14 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
     if(!events.empty())
     {
       if(overlay == eTexOverlay_ClearBeforePass)
+      {
         m_pDriver->ReplayLog(0, events[0], eReplay_WithoutDraw);
+      }
       else
-        gl.glBindFramebuffer(
-            eGL_FRAMEBUFFER,
-            rs.DrawFBO);    // if we don't replay the real state, restore drawFBO to clear it
+      {
+        // if we don't replay the real state, restore what we've changed
+        rs.ApplyState(ctx, &gl);
+      }
 
       float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
       for(int i = 0; i < 8; i++)
