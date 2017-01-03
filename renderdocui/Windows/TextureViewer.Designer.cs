@@ -588,7 +588,7 @@
             "Backface Cull",
             "Viewport/Scissor Region",
             "NaN/INF/-ve Display",
-            "Clipping",
+            "Histogram Clipping",
             "Clear Before Pass",
             "Clear Before Draw",
             "Quad Overdraw (Pass)",
