@@ -2790,15 +2790,15 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
                                  texDetails.width >> 1, texDetails.height >> 1, 4);
 
         // temporarily attach to FBO to clear it
-        GLint zero = 0;
+        GLint zero[4] = {0};
         gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 0);
-        gl.glClearBufferiv(eGL_COLOR, 0, &zero);
+        gl.glClearBufferiv(eGL_COLOR, 0, zero);
         gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 1);
-        gl.glClearBufferiv(eGL_COLOR, 0, &zero);
+        gl.glClearBufferiv(eGL_COLOR, 0, zero);
         gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 2);
-        gl.glClearBufferiv(eGL_COLOR, 0, &zero);
+        gl.glClearBufferiv(eGL_COLOR, 0, zero);
         gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[2], 0, 3);
-        gl.glClearBufferiv(eGL_COLOR, 0, &zero);
+        gl.glClearBufferiv(eGL_COLOR, 0, zero);
 
         gl.glBindTexture(eGL_TEXTURE_2D, quadtexs[0]);
         gl.glTextureStorage2DEXT(quadtexs[0], eGL_TEXTURE_2D, 1, eGL_RGBA8, texDetails.width,
