@@ -127,7 +127,7 @@
             groupBox1.Controls.Add(this.triggerCapture);
             groupBox1.Location = new System.Drawing.Point(3, 34);
             groupBox1.Name = "groupBox1";
-            groupBox1.Size = new System.Drawing.Size(356, 75);
+            groupBox1.Size = new System.Drawing.Size(505, 75);
             groupBox1.TabIndex = 7;
             groupBox1.TabStop = false;
             groupBox1.Text = "Tools";
@@ -218,10 +218,10 @@
             this.saveMenu,
             this.openMenu,
             this.previewToggle});
-            this.toolStrip1.Location = new System.Drawing.Point(0, 375);
+            this.toolStrip1.Location = new System.Drawing.Point(0, 540);
             this.toolStrip1.Name = "toolStrip1";
             this.toolStrip1.RightToLeft = System.Windows.Forms.RightToLeft.Yes;
-            this.toolStrip1.Size = new System.Drawing.Size(362, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(511, 25);
             this.toolStrip1.Stretch = true;
             this.toolStrip1.TabIndex = 8;
             this.toolStrip1.Text = "toolStrip1";
@@ -306,7 +306,7 @@
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 32F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel1.Size = new System.Drawing.Size(362, 400);
+            this.tableLayoutPanel1.Size = new System.Drawing.Size(511, 565);
             this.tableLayoutPanel1.TabIndex = 0;
             // 
             // flowLayoutPanel1
@@ -316,7 +316,7 @@
             this.flowLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.flowLayoutPanel1.Location = new System.Drawing.Point(3, 3);
             this.flowLayoutPanel1.Name = "flowLayoutPanel1";
-            this.flowLayoutPanel1.Size = new System.Drawing.Size(356, 25);
+            this.flowLayoutPanel1.Size = new System.Drawing.Size(505, 25);
             this.flowLayoutPanel1.TabIndex = 4;
             this.flowLayoutPanel1.WrapContents = false;
             // 
@@ -356,7 +356,7 @@
             this.childProcesses.Location = new System.Drawing.Point(3, 143);
             this.childProcesses.MinimumSize = new System.Drawing.Size(4, 40);
             this.childProcesses.Name = "childProcesses";
-            this.childProcesses.Size = new System.Drawing.Size(356, 40);
+            this.childProcesses.Size = new System.Drawing.Size(505, 40);
             this.childProcesses.TabIndex = 5;
             this.childProcesses.UseCompatibleStateImageBehavior = false;
             this.childProcesses.View = System.Windows.Forms.View.Tile;
@@ -380,8 +380,8 @@
             this.previewSplit.Panel2.BackColor = System.Drawing.Color.White;
             this.previewSplit.Panel2.Controls.Add(this.preview);
             this.previewSplit.Panel2Collapsed = true;
-            this.previewSplit.Size = new System.Drawing.Size(356, 151);
-            this.previewSplit.SplitterDistance = 126;
+            this.previewSplit.Size = new System.Drawing.Size(505, 316);
+            this.previewSplit.SplitterDistance = 200;
             this.previewSplit.TabIndex = 10;
             // 
             // captures
@@ -389,13 +389,15 @@
             this.captures.Dock = System.Windows.Forms.DockStyle.Fill;
             this.captures.FullRowSelect = true;
             this.captures.HeaderStyle = System.Windows.Forms.ColumnHeaderStyle.None;
+            this.captures.LabelEdit = true;
             this.captures.Location = new System.Drawing.Point(0, 0);
             this.captures.Name = "captures";
-            this.captures.Size = new System.Drawing.Size(356, 151);
+            this.captures.Size = new System.Drawing.Size(505, 316);
             this.captures.TabIndex = 7;
             this.captures.TileSize = new System.Drawing.Size(300, 100);
             this.captures.UseCompatibleStateImageBehavior = false;
             this.captures.View = System.Windows.Forms.View.Tile;
+            this.captures.AfterLabelEdit += new System.Windows.Forms.LabelEditEventHandler(this.captures_AfterLabelEdit);
             this.captures.ItemSelectionChanged += new System.Windows.Forms.ListViewItemSelectionChangedEventHandler(this.captures_ItemSelectionChanged);
             this.captures.KeyUp += new System.Windows.Forms.KeyEventHandler(this.captures_KeyUp);
             this.captures.MouseClick += new System.Windows.Forms.MouseEventHandler(this.captures_MouseClick);
@@ -474,7 +476,7 @@
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
-            this.ClientSize = new System.Drawing.Size(362, 400);
+            this.ClientSize = new System.Drawing.Size(511, 565);
             this.Controls.Add(this.tableLayoutPanel1);
             this.Font = new System.Drawing.Font("Microsoft Sans Serif", 8.25F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
             this.Name = "LiveCapture";
