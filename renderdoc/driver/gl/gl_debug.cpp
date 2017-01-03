@@ -1956,8 +1956,12 @@ void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint frag
           CopyProgramUniforms(gl.GetHookset(), progsrc, progdst);
 
           if(i == 0)
+          {
             CopyProgramAttribBindings(gl.GetHookset(), progsrc, progdst,
                                       GetShader(pipeDetails.stageShaders[i], ""));
+
+            gl.glLinkProgram(progdst);
+          }
         }
       }
     }
@@ -1978,8 +1982,12 @@ void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint frag
         CopyProgramUniforms(gl.GetHookset(), Program, progdst);
 
         if(i == 0)
+        {
           CopyProgramAttribBindings(gl.GetHookset(), Program, progdst,
                                     GetShader(progDetails.stageShaders[i], ""));
+
+          gl.glLinkProgram(progdst);
+        }
       }
     }
   }
