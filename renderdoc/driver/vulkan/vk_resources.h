@@ -329,7 +329,7 @@ struct WrappedVkBuffer : WrappedVkNonDispRes
   typedef VkBuffer InnerType;
   static const int AllocPoolCount = 128 * 1024;
   static const int AllocPoolMaxByteSize = 3 * 1024 * 1024;
-  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBuffer, AllocPoolCount, AllocPoolMaxByteSize);
+  ALLOCATE_WITH_WRAPPED_POOL(WrappedVkBuffer, AllocPoolCount, AllocPoolMaxByteSize, false);
   enum
   {
     TypeEnum = eResBuffer,
@@ -578,6 +578,10 @@ struct UnwrapHelper
   struct UnwrapHelper<vulkantype>                                             \
   {                                                                           \
     typedef WrappedVkDispRes ParentType;                                      \
+    enum                                                                      \
+    {                                                                         \
+      DispatchableType = 1                                                    \
+    };                                                                        \
     typedef CONCAT(Wrapped, vulkantype) Outer;                                \
     static TypedRealHandle ToTypedHandle(vulkantype real)                     \
     {                                                                         \
@@ -594,6 +598,10 @@ struct UnwrapHelper
   struct UnwrapHelper<vulkantype>                             \
   {                                                           \
     typedef WrappedVkNonDispRes ParentType;                   \
+    enum                                                      \
+    {                                                         \
+      DispatchableType = 0                                    \
+    };                                                        \
     typedef CONCAT(Wrapped, vulkantype) Outer;                \
     static TypedRealHandle ToTypedHandle(vulkantype real)     \
     {                                                         \
@@ -680,6 +688,12 @@ void SetDispatchTableOverMagicNumber(VkDevice parent, RealType obj)
   typename UnwrapHelper<RealType>::Outer *wrapped = GetWrapped(obj);
   if(wrapped->loaderTable == 0x01CDC0DE)
     wrapped->loaderTable = GetWrapped(parent)->loaderTable;
+}
+
+template <typename RealType>
+bool IsDispatchable(RealType obj)
+{
+  return (UnwrapHelper<RealType>::DispatchableType) == 1;
 }
 
 template <typename RealType>

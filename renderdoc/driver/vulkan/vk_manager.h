@@ -236,10 +236,18 @@ public:
       // ID and if the resource isn't ever referenced elsewhere, it will just be
       // a non-live ID to be ignored.
 
-      if(IsDispatchableRes(GetWrapped(obj)))
-        ((WrappedVkDispRes *)GetWrapped(obj))->id = ResourceId();
+      if(IsDispatchable(obj))
+      {
+        WrappedVkDispRes *res = (WrappedVkDispRes *)GetWrapped(obj);
+        res->id = ResourceId();
+        res->record = NULL;
+      }
       else
-        ((WrappedVkNonDispRes *)GetWrapped(obj))->id = ResourceId();
+      {
+        WrappedVkNonDispRes *res = (WrappedVkNonDispRes *)GetWrapped(obj);
+        res->id = ResourceId();
+        res->record = NULL;
+      }
     }
     delete GetWrapped(obj);
   }

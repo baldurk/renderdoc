@@ -866,15 +866,22 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         if(bind.texelBufferView != VK_NULL_HANDLE)
         {
           record->RemoveBindFrameRef(GetResID(bind.texelBufferView));
-          if(GetRecord(bind.texelBufferView)->baseResource != ResourceId())
-            record->RemoveBindFrameRef(GetRecord(bind.texelBufferView)->baseResource);
+
+          VkResourceRecord *viewRecord = GetRecord(bind.texelBufferView);
+          if(viewRecord && viewRecord->baseResource != ResourceId())
+            record->RemoveBindFrameRef(viewRecord->baseResource);
         }
         if(bind.imageInfo.imageView != VK_NULL_HANDLE)
         {
           record->RemoveBindFrameRef(GetResID(bind.imageInfo.imageView));
-          record->RemoveBindFrameRef(GetRecord(bind.imageInfo.imageView)->baseResource);
-          if(GetRecord(bind.imageInfo.imageView)->baseResourceMem != ResourceId())
-            record->RemoveBindFrameRef(GetRecord(bind.imageInfo.imageView)->baseResourceMem);
+
+          VkResourceRecord *viewRecord = GetRecord(bind.imageInfo.imageView);
+          if(viewRecord)
+          {
+            record->RemoveBindFrameRef(viewRecord->baseResource);
+            if(viewRecord->baseResourceMem != ResourceId())
+              record->RemoveBindFrameRef(viewRecord->baseResourceMem);
+          }
         }
         if(bind.imageInfo.sampler != VK_NULL_HANDLE)
         {
@@ -883,8 +890,10 @@ void WrappedVulkan::vkUpdateDescriptorSets(VkDevice device, uint32_t writeCount,
         if(bind.bufferInfo.buffer != VK_NULL_HANDLE)
         {
           record->RemoveBindFrameRef(GetResID(bind.bufferInfo.buffer));
-          if(GetRecord(bind.bufferInfo.buffer)->baseResource != ResourceId())
-            record->RemoveBindFrameRef(GetRecord(bind.bufferInfo.buffer)->baseResource);
+
+          VkResourceRecord *bufRecord = GetRecord(bind.bufferInfo.buffer);
+          if(bufRecord && bufRecord->baseResource != ResourceId())
+            record->RemoveBindFrameRef(bufRecord->baseResource);
         }
 
         // NULL everything out now so that we don't accidentally reference an object
