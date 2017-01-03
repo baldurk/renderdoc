@@ -2809,9 +2809,36 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
         gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, quadtexs[0], 0);
 
+        GLuint curDepth = 0, depthType = 0;
+
+        // TODO handle non-2D depth/stencil attachments and fetch slice or cubemap face
+        GLint mip = 0;
+
+        gl.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO, eGL_DEPTH_ATTACHMENT,
+                                                         eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                                         (GLint *)&curDepth);
+        gl.glGetNamedFramebufferAttachmentParameterivEXT(rs.DrawFBO, eGL_DEPTH_ATTACHMENT,
+                                                         eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE,
+                                                         (GLint *)&depthType);
+        gl.glGetNamedFramebufferAttachmentParameterivEXT(
+            rs.DrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &mip);
+
+        GLenum fmt = eGL_DEPTH32F_STENCIL8;
+
+        if(depthType == eGL_TEXTURE)
+        {
+          gl.glGetTextureLevelParameterivEXT(curDepth, texBindingEnum, mip,
+                                             eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
+        }
+        else
+        {
+          gl.glGetNamedRenderbufferParameterivEXT(curDepth, eGL_RENDERBUFFER_INTERNAL_FORMAT,
+                                                  (GLint *)&fmt);
+        }
+
         gl.glBindTexture(eGL_TEXTURE_2D, quadtexs[1]);
-        gl.glTextureStorage2DEXT(quadtexs[1], eGL_TEXTURE_2D, 1, eGL_DEPTH32F_STENCIL8,
-                                 texDetails.width, texDetails.height);
+        gl.glTextureStorage2DEXT(quadtexs[1], eGL_TEXTURE_2D, 1, fmt, texDetails.width,
+                                 texDetails.height);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
