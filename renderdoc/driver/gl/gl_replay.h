@@ -343,7 +343,7 @@ private:
     GLuint overlayTex;
     GLuint overlayFBO;
     GLuint overlayPipe;
-    GLint overlayTexWidth, overlayTexHeight;
+    GLint overlayTexWidth, overlayTexHeight, overlayTexSamples;
 
     GLuint UBOs[3];
 

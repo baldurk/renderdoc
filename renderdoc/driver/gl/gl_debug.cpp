@@ -357,7 +357,7 @@ void GLReplay::InitDebugData()
     RDCCOMPILE_ASSERT(sizeof(overdrawRamp) <= 2048, "UBO too small");
   }
 
-  DebugData.overlayTexWidth = DebugData.overlayTexHeight = 0;
+  DebugData.overlayTexWidth = DebugData.overlayTexHeight = DebugData.overlayTexSamples = 0;
   DebugData.overlayTex = DebugData.overlayFBO = 0;
 
   gl.glGenFramebuffers(1, &DebugData.customFBO);
@@ -2013,8 +2013,19 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
 
   auto &texDetails = m_pDriver->m_Textures[texid];
 
+  GLenum texBindingEnum = eGL_TEXTURE_2D;
+  GLenum texQueryEnum = eGL_TEXTURE_BINDING_2D;
+
+  if(texDetails.samples > 1)
+  {
+    texBindingEnum = eGL_TEXTURE_2D_MULTISAMPLE;
+    texQueryEnum = eGL_TEXTURE_BINDING_2D_MULTISAMPLE;
+  }
+
   // resize (or create) the overlay texture and FBO if necessary
-  if(DebugData.overlayTexWidth != texDetails.width || DebugData.overlayTexHeight != texDetails.height)
+  if(DebugData.overlayTexWidth != texDetails.width ||
+     DebugData.overlayTexHeight != texDetails.height ||
+     DebugData.overlayTexSamples != texDetails.samples)
   {
     if(DebugData.overlayFBO)
     {
@@ -2026,23 +2037,32 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
     gl.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.overlayFBO);
 
     GLuint curTex = 0;
-    gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&curTex);
+    gl.glGetIntegerv(texQueryEnum, (GLint *)&curTex);
 
     gl.glGenTextures(1, &DebugData.overlayTex);
-    gl.glBindTexture(eGL_TEXTURE_2D, DebugData.overlayTex);
+    gl.glBindTexture(texBindingEnum, DebugData.overlayTex);
 
     DebugData.overlayTexWidth = texDetails.width;
     DebugData.overlayTexHeight = texDetails.height;
+    DebugData.overlayTexSamples = texDetails.samples;
 
-    gl.glTextureStorage2DEXT(DebugData.overlayTex, eGL_TEXTURE_2D, 1, eGL_RGBA16, texDetails.width,
-                             texDetails.height);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+    if(DebugData.overlayTexSamples > 1)
+    {
+      gl.glTextureStorage2DMultisampleEXT(DebugData.overlayTex, texBindingEnum, texDetails.samples,
+                                          eGL_RGBA16, texDetails.width, texDetails.height, true);
+    }
+    else
+    {
+      gl.glTextureStorage2DEXT(DebugData.overlayTex, texBindingEnum, 1, eGL_RGBA16,
+                               texDetails.width, texDetails.height);
+      gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+      gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+      gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+      gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+    }
     gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, DebugData.overlayTex, 0);
 
-    gl.glBindTexture(eGL_TEXTURE_2D, curTex);
+    gl.glBindTexture(texBindingEnum, curTex);
   }
 
   gl.glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.overlayFBO);
@@ -2170,44 +2190,62 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
     if(curDepth != 0)
     {
       GLuint curTex = 0;
-      gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&curTex);
+      gl.glGetIntegerv(texQueryEnum, (GLint *)&curTex);
 
       GLenum fmt;
-      gl.glGetTextureLevelParameterivEXT(curDepth, eGL_TEXTURE_2D, mip, eGL_TEXTURE_INTERNAL_FORMAT,
+      gl.glGetTextureLevelParameterivEXT(curDepth, texBindingEnum, mip, eGL_TEXTURE_INTERNAL_FORMAT,
                                          (GLint *)&fmt);
 
       gl.glGenTextures(1, &depthCopy);
-      gl.glBindTexture(eGL_TEXTURE_2D, depthCopy);
-      gl.glTextureStorage2DEXT(depthCopy, eGL_TEXTURE_2D, 1, fmt, DebugData.overlayTexWidth,
-                               DebugData.overlayTexHeight);
-      gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-      gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-      gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-      gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+      gl.glBindTexture(texBindingEnum, depthCopy);
+      if(DebugData.overlayTexSamples > 1)
+      {
+        gl.glTextureStorage2DMultisampleEXT(depthCopy, texBindingEnum, DebugData.overlayTexSamples,
+                                            fmt, DebugData.overlayTexWidth,
+                                            DebugData.overlayTexHeight, true);
+      }
+      else
+      {
+        gl.glTextureStorage2DEXT(depthCopy, texBindingEnum, 1, fmt, DebugData.overlayTexWidth,
+                                 DebugData.overlayTexHeight);
+        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+      }
 
-      gl.glBindTexture(eGL_TEXTURE_2D, curTex);
+      gl.glBindTexture(texBindingEnum, curTex);
     }
 
     // create matching separate stencil if relevant
     if(curStencil != curDepth && curStencil != 0)
     {
       GLuint curTex = 0;
-      gl.glGetIntegerv(eGL_TEXTURE_BINDING_2D, (GLint *)&curTex);
+      gl.glGetIntegerv(texQueryEnum, (GLint *)&curTex);
 
       GLenum fmt;
-      gl.glGetTextureLevelParameterivEXT(curStencil, eGL_TEXTURE_2D, mip,
+      gl.glGetTextureLevelParameterivEXT(curStencil, texBindingEnum, mip,
                                          eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
 
       gl.glGenTextures(1, &stencilCopy);
-      gl.glBindTexture(eGL_TEXTURE_2D, stencilCopy);
-      gl.glTextureStorage2DEXT(stencilCopy, eGL_TEXTURE_2D, 1, fmt, DebugData.overlayTexWidth,
-                               DebugData.overlayTexHeight);
-      gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-      gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-      gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-      gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+      gl.glBindTexture(texBindingEnum, stencilCopy);
+      if(DebugData.overlayTexSamples > 1)
+      {
+        gl.glTextureStorage2DMultisampleEXT(stencilCopy, texBindingEnum, DebugData.overlayTexSamples,
+                                            fmt, DebugData.overlayTexWidth,
+                                            DebugData.overlayTexHeight, true);
+      }
+      else
+      {
+        gl.glTextureStorage2DEXT(stencilCopy, texBindingEnum, 1, fmt, DebugData.overlayTexWidth,
+                                 DebugData.overlayTexHeight);
+        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+      }
 
-      gl.glBindTexture(eGL_TEXTURE_2D, curTex);
+      gl.glBindTexture(texBindingEnum, curTex);
     }
 
     // bind depth/stencil to overlay FBO (currently bound to DRAW_FRAMEBUFFER)
