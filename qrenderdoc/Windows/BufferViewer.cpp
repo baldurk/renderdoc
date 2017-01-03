@@ -150,7 +150,9 @@ public:
             {
               QString comp;
 
-              if(v.type() == QMetaType::Double)
+              QMetaType::Type vt = (QMetaType::Type)v.type();
+
+              if(vt == QMetaType::Double)
               {
                 double d = v.toDouble();
                 // pad with space on left if sign is missing, to better align
@@ -164,7 +166,7 @@ public:
                   // force negative and positive 0 together
                   comp = " " + Formatter::Format(0.0);
               }
-              else if(v.type() == QMetaType::Float)
+              else if(vt == QMetaType::Float)
               {
                 float f = v.toFloat();
                 // pad with space on left if sign is missing, to better align
@@ -178,13 +180,11 @@ public:
                   // force negative and positive 0 together
                   comp = " " + Formatter::Format(0.0);
               }
-              else if(v.type() == QMetaType::UInt || v.type() == QMetaType::UShort ||
-                      v.type() == QMetaType::UChar)
+              else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
               {
                 comp = Formatter::Format(v.toUInt(), el.hex);
               }
-              else if(v.type() == QMetaType::Int || v.type() == QMetaType::Short ||
-                      v.type() == QMetaType::SChar)
+              else if(vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
               {
                 int i = v.toInt();
                 if(i > 0)
@@ -238,7 +238,7 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
   m_ConfigVSIn.curInstance = 0;
   m_ConfigVSIn.showBBox = false;
   m_ConfigVSIn.solidShadeMode = eShade_None;
-  m_ConfigVSIn.wireframeDraw;
+  m_ConfigVSIn.wireframeDraw = true;
   memset(&m_ConfigVSIn.position, 0, sizeof(m_ConfigVSIn.position));
   memset(&m_ConfigVSIn.second, 0, sizeof(m_ConfigVSIn.second));
 
@@ -509,7 +509,7 @@ void BufferViewer::OnEventSelected(uint32_t eventID)
     {
       if(draw->indexByteWidth == 1)
       {
-        for(int i = 0; i < idata.count && (uint32_t)i < draw->numIndices; i++)
+        for(size_t i = 0; i < (size_t)idata.count && (uint32_t)i < draw->numIndices; i++)
         {
           indices[i] = (uint32_t)idata.elems[i];
           maxIndex = qMax(maxIndex, indices[i]);
@@ -518,7 +518,8 @@ void BufferViewer::OnEventSelected(uint32_t eventID)
       else if(draw->indexByteWidth == 2)
       {
         uint16_t *src = (uint16_t *)idata.elems;
-        for(int i = 0; i < idata.count / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
+        for(size_t i = 0;
+            i < (size_t)idata.count / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
         {
           indices[i] = (uint32_t)src[i];
           maxIndex = qMax(maxIndex, indices[i]);
@@ -615,13 +616,14 @@ void BufferViewer::OnEventSelected(uint32_t eventID)
     {
       if(draw->indexByteWidth == 1)
       {
-        for(int i = 0; i < idata.count && (uint32_t)i < draw->numIndices; i++)
+        for(size_t i = 0; i < (size_t)idata.count && (uint32_t)i < draw->numIndices; i++)
           indices[i] = (uint32_t)idata.elems[i];
       }
       else if(draw->indexByteWidth == 2)
       {
         uint16_t *src = (uint16_t *)idata.elems;
-        for(int i = 0; i < idata.count / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
+        for(size_t i = 0;
+            i < (size_t)idata.count / sizeof(uint16_t) && (uint32_t)i < draw->numIndices; i++)
           indices[i] = (uint32_t)src[i];
       }
       else if(draw->indexByteWidth == 4)

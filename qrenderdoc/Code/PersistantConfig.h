@@ -130,7 +130,7 @@ public:
     else if(t == TimeUnit::Milliseconds)
       return "ms";
     else if(t == TimeUnit::Microseconds)
-      return "µs";
+      return "Âµs";
     else if(t == TimeUnit::Nanoseconds)
       return "ns";
 
