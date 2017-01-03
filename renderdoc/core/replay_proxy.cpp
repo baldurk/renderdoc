@@ -2130,6 +2130,7 @@ bool ReplayProxy::Tick(int type, Serialiser *incomingPacket)
     case eReplayProxy_GetShader: GetShader(ResourceId(), ""); break;
     case eReplayProxy_GetDebugMessages: GetDebugMessages(); break;
     case eReplayProxy_SavePipelineState: SavePipelineState(); break;
+    case eReplayProxy_CaptureDrawCallsPipelineState: CaptureDrawCallsPipelineState(); break;
     case eReplayProxy_GetUsage: GetUsage(ResourceId()); break;
     case eReplayProxy_GetLiveID: GetLiveID(ResourceId()); break;
     case eReplayProxy_GetFrameRecord: GetFrameRecord(); break;
@@ -2378,6 +2379,34 @@ void ReplayProxy::SavePipelineState()
   m_FromReplaySerialiser->Serialise("", m_D3D12PipelineState);
   m_FromReplaySerialiser->Serialise("", m_GLPipelineState);
   m_FromReplaySerialiser->Serialise("", m_VulkanPipelineState);
+}
+
+void ReplayProxy::CaptureDrawCallsPipelineState()
+{
+  /*if(m_RemoteServer)
+  {
+    m_Remote->CaptureDrawCallsPipelineState();
+    m_DrawcallsD3D11PipelineState = m_Remote->GetDrawCallsD3D11PipelineState();
+    m_DrawcallsD3D12PipelineState = m_Remote->GetDrawCallsD3D12PipelineState();
+    m_DrawcallsGLPipelineState = m_Remote->GetDrawCallsGLPipelineState();
+    m_DrawcallsVulkanPipelineState = m_Remote->GetDrawCallsVulkanPipelineState();
+  }
+  else
+  {
+    if(!SendReplayCommand(eReplayProxy_CaptureDrawCallsPipelineState))
+      return;
+
+    m_DrawcallsD3D11PipelineState = vector<DrawcallPipelineState<D3D11PipelineState>>();
+    m_DrawcallsD3D12PipelineState = vector<DrawcallPipelineState<D3D12PipelineState>>();
+    m_DrawcallsGLPipelineState = vector<DrawcallPipelineState<GLPipelineState>>();
+    m_DrawcallsVulkanPipelineState = vector<DrawcallPipelineState<VulkanPipelineState>>();
+  }
+
+// TODO : Implement serialize for vector<DrawcallPipelineState<T>>!!
+  m_FromReplaySerialiser->Serialise("", m_DrawcallsD3D11PipelineState);
+  m_FromReplaySerialiser->Serialise("", m_DrawcallsD3D12PipelineState);
+  m_FromReplaySerialiser->Serialise("", m_DrawcallsGLPipelineState);
+  m_FromReplaySerialiser->Serialise("", m_DrawcallsVulkanPipelineState);*/
 }
 
 void ReplayProxy::ReplayLog(uint32_t endEventID, ReplayLogType replayType)

@@ -316,22 +316,57 @@ struct FetchFrameInfo
 struct EventUsage
 {
 #ifdef __cplusplus
-  EventUsage() : eventID(0), usage(eUsage_None) {}
-  EventUsage(uint32_t e, ResourceUsage u) : eventID(e), usage(u) {}
-  EventUsage(uint32_t e, ResourceUsage u, ResourceId v) : eventID(e), usage(u), view(v) {}
+  EventUsage() : eventID(0), usage(eUsage_None), slot(0) {}
+  EventUsage(uint32_t e, ResourceUsage u) : eventID(e), usage(u), slot(0) {}
+  EventUsage(uint32_t e, ResourceUsage u, uint32_t s) : eventID(e), usage(u), slot(s) {}
+  EventUsage(uint32_t e, ResourceUsage u, ResourceId v) : eventID(e), usage(u), slot(0), view(v) {}
+  EventUsage(uint32_t e, ResourceUsage u, uint32_t s, ResourceId v)
+      : eventID(e), usage(u), slot(s), view(v)
+  {
+  }
   bool operator<(const EventUsage &o) const
   {
     if(eventID != o.eventID)
       return eventID < o.eventID;
-    return usage < o.usage;
+    if(usage != o.usage)
+      return usage < o.usage;
+    return slot < o.slot;
   }
 
-  bool operator==(const EventUsage &o) const { return eventID == o.eventID && usage == o.usage; }
+  bool operator==(const EventUsage &o) const
+  {
+    return eventID == o.eventID && usage == o.usage && slot == o.slot;
+  }
 #endif
 
   uint32_t eventID;
   ResourceUsage usage;
+  uint32_t slot;
   ResourceId view;
+};
+
+template <typename T>
+struct DrawcallPipelineState
+{
+  DrawcallPipelineState<T>() : eventID(0) {}
+  DrawcallPipelineState<T>(uint32_t EID, T pipestate) : eventID(EID), pipelineState(pipeState) {}
+  bool operator<(const DrawcallPipelineState<T> &o) const
+  {
+    if(eventID != o.eventID)
+      return eventID < o.eventID;
+
+    // don't compare values, just consider equal
+    return false;
+  }
+
+  bool operator==(const DrawcallPipelineState<T> &o) const
+  {
+    // don't compare values, just consider equal by EID/counterID
+    return eventID == o.eventID && counterID == o.counterID;
+  }
+
+  uint32_t eventID;
+  T pipelineState;
 };
 
 struct FetchDrawcall

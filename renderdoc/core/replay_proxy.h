@@ -51,6 +51,7 @@ enum ReplayProxyPacket
   eReplayProxy_GetTextureData,
 
   eReplayProxy_SavePipelineState,
+  eReplayProxy_CaptureDrawCallsPipelineState,
   eReplayProxy_GetUsage,
   eReplayProxy_GetLiveID,
   eReplayProxy_GetFrameRecord,
@@ -401,6 +402,24 @@ public:
   D3D12PipelineState GetD3D12PipelineState() { return m_D3D12PipelineState; }
   GLPipelineState GetGLPipelineState() { return m_GLPipelineState; }
   VulkanPipelineState GetVulkanPipelineState() { return m_VulkanPipelineState; }
+  void CaptureDrawCallsPipelineState();
+  vector<DrawcallPipelineState<D3D11PipelineState>> GetDrawCallsD3D11PipelineState()
+  {
+    return m_DrawcallsD3D11PipelineState;
+  }
+  vector<DrawcallPipelineState<D3D12PipelineState>> GetDrawCallsD3D12PipelineState()
+  {
+    return m_DrawcallsD3D12PipelineState;
+  }
+  vector<DrawcallPipelineState<GLPipelineState>> GetDrawCallsGLPipelineState()
+  {
+    return m_DrawcallsGLPipelineState;
+  }
+  vector<DrawcallPipelineState<VulkanPipelineState>> GetDrawCallsVulkanPipelineState()
+  {
+    return m_DrawcallsVulkanPipelineState;
+  }
+
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);
@@ -556,4 +575,9 @@ private:
   D3D12PipelineState m_D3D12PipelineState;
   GLPipelineState m_GLPipelineState;
   VulkanPipelineState m_VulkanPipelineState;
+
+  vector<DrawcallPipelineState<D3D11PipelineState>> m_DrawcallsD3D11PipelineState;
+  vector<DrawcallPipelineState<D3D12PipelineState>> m_DrawcallsD3D12PipelineState;
+  vector<DrawcallPipelineState<GLPipelineState>> m_DrawcallsGLPipelineState;
+  vector<DrawcallPipelineState<VulkanPipelineState>> m_DrawcallsVulkanPipelineState;
 };

@@ -108,6 +108,13 @@ public:
   D3D12PipelineState GetD3D12PipelineState() { return D3D12PipelineState(); }
   GLPipelineState GetGLPipelineState() { return m_CurPipelineState; }
   VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
+
+  void CaptureDrawCallsPipelineState() {}
+  vector<DrawcallPipelineState<D3D11PipelineState>> GetDrawCallsD3D11PipelineState() {return vector<DrawcallPipelineState<D3D11PipelineState>>();}
+  vector<DrawcallPipelineState<D3D12PipelineState>> GetDrawCallsD3D12PipelineState() {return vector<DrawcallPipelineState<D3D12PipelineState>>();}
+  vector<DrawcallPipelineState<GLPipelineState>> GetDrawCallsGLPipelineState() {return m_DrawcallsPipelineState;}
+  vector<DrawcallPipelineState<VulkanPipelineState>> GetDrawCallsVulkanPipelineState() {return vector<DrawcallPipelineState<VulkanPipelineState>>();}
+
   void FreeTargetResource(ResourceId id);
 
   void ReadLogInitialisation();
@@ -413,4 +420,5 @@ private:
   WrappedOpenGL *m_pDriver;
 
   GLPipelineState m_CurPipelineState;
+  vector<DrawcallPipelineState<GLPipelineState>> m_DrawcallsPipelineState;
 };

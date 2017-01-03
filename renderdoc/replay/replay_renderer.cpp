@@ -377,11 +377,67 @@ bool ReplayRenderer::GetUsage(ResourceId id, rdctype::array<EventUsage> *usage)
   return false;
 }
 
+bool ReplayRenderer::CaptureDrawCallsPipelineState()
+{
+  m_pDevice->CaptureDrawCallsPipelineState();
+
+  m_DrawCallsD3D11PipelineState = m_pDevice->GetDrawCallsD3D11PipelineState();
+  m_DrawCallsD3D12PipelineState = m_pDevice->GetDrawCallsD3D12PipelineState();
+  m_DrawCallsGLPipelineState = m_pDevice->GetDrawCallsGLPipelineState();
+  m_DrawCallsVulkanPipelineState = m_pDevice->GetDrawCallsVulkanPipelineState();
+
+  return true;
+}
+
+bool ReplayRenderer::GetDrawCallsD3D11PipelineState(
+    rdctype::array<DrawcallPipelineState<D3D11PipelineState>> *drawcallsPipeState)
+{
+  if(drawcallsPipeState)
+  {
+    *drawcallsPipeState = m_DrawCallsD3D11PipelineState;
+    return true;
+  }
+  return false;
+}
+
+bool ReplayRenderer::GetDrawCallsD3D12PipelineState(
+    rdctype::array<DrawcallPipelineState<D3D12PipelineState>> *drawcallsPipeState)
+{
+  if(drawcallsPipeState)
+  {
+    *drawcallsPipeState = m_DrawCallsD3D12PipelineState;
+    return true;
+  }
+  return false;
+}
+
+bool ReplayRenderer::GetDrawCallsGLPipelineState(
+    rdctype::array<DrawcallPipelineState<GLPipelineState>> *drawcallsPipeState)
+{
+  if(drawcallsPipeState)
+  {
+    *drawcallsPipeState = m_DrawCallsGLPipelineState;
+    return true;
+  }
+  return false;
+}
+
+bool ReplayRenderer::GetDrawCallsVulkanPipelineState(
+    rdctype::array<DrawcallPipelineState<VulkanPipelineState>> *drawcallsPipeState)
+{
+  if(drawcallsPipeState)
+  {
+    *drawcallsPipeState = m_DrawCallsVulkanPipelineState;
+    return true;
+  }
+  return false;
+}
+
 bool ReplayRenderer::GetShader(ResourceId id, const char *entry, ShaderReflection *shader)
 {
   if(entry && shader)
   {
-    *shader = *m_pDevice->GetShader(id, entry);
+    *shader = *m_pDevice->GetShader(m_pDevice->GetLiveID(id), entry);
     return true;
   }
 
@@ -1735,6 +1791,35 @@ ReplayRenderer_GetVulkanPipelineState(ReplayRenderer *rend, VulkanPipelineState 
   return rend->GetVulkanPipelineState(state);
 }
 
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC
+ReplayRenderer_CaptureDrawCallsPipelineState(ReplayRenderer *rend)
+{
+  return rend->CaptureDrawCallsPipelineState();
+}
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDrawCallsD3D11PipelineState(
+    ReplayRenderer *rend,
+    rdctype::array<DrawcallPipelineState<D3D11PipelineState>> *drawcallsPipestate)
+{
+  return rend->GetDrawCallsD3D11PipelineState(drawcallsPipestate);
+}
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDrawCallsD3D12PipelineState(
+    ReplayRenderer *rend,
+    rdctype::array<DrawcallPipelineState<D3D12PipelineState>> *drawcallsPipestate)
+{
+  return rend->GetDrawCallsD3D12PipelineState(drawcallsPipestate);
+}
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDrawCallsGLPipelineState(
+    ReplayRenderer *rend, rdctype::array<DrawcallPipelineState<GLPipelineState>> *drawcallsPipestate)
+{
+  return rend->GetDrawCallsGLPipelineState(drawcallsPipestate);
+}
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetDrawCallsVulkanPipelineState(
+    ReplayRenderer *rend,
+    rdctype::array<DrawcallPipelineState<VulkanPipelineState>> *drawcallsPipestate)
+{
+  return rend->GetDrawCallsVulkanPipelineState(drawcallsPipestate);
+}
+
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildCustomShader(
     ReplayRenderer *rend, const char *entry, const char *source, const uint32_t compileFlags,
     ShaderStageType type, ResourceId *shaderID, rdctype::str *errors)
@@ -1859,8 +1944,10 @@ ReplayRenderer_GetUsage(ReplayRenderer *rend, ResourceId id, rdctype::array<Even
   return rend->GetUsage(id, usage);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetShader(ReplayRenderer *rend, ResourceId id, const char *entry, ShaderReflection *shader)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetShader(ReplayRenderer *rend,
+                                                                      ResourceId id,
+                                                                      const char *entry,
+                                                                      ShaderReflection *shader)
 {
   return rend->GetShader(id, entry, shader);
 }

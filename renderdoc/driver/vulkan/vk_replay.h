@@ -154,6 +154,24 @@ public:
   D3D12PipelineState GetD3D12PipelineState() { return D3D12PipelineState(); }
   GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
   VulkanPipelineState GetVulkanPipelineState() { return m_VulkanPipelineState; }
+  void CaptureDrawCallsPipelineState() {}
+  vector<DrawcallPipelineState<D3D11PipelineState>> GetDrawCallsD3D11PipelineState()
+  {
+    return vector<DrawcallPipelineState<D3D11PipelineState>>();
+  }
+  vector<DrawcallPipelineState<D3D12PipelineState>> GetDrawCallsD3D12PipelineState()
+  {
+    return vector<DrawcallPipelineState<D3D12PipelineState>>();
+  }
+  vector<DrawcallPipelineState<GLPipelineState>> GetDrawCallsGLPipelineState()
+  {
+    return vector<DrawcallPipelineState<GLPipelineState>>();
+  }
+  vector<DrawcallPipelineState<VulkanPipelineState>> GetDrawCallsVulkanPipelineState()
+  {
+    return m_DrawcallsPipelineState;
+  }
+
   void FreeTargetResource(ResourceId id);
 
   void ReadLogInitialisation();
@@ -309,6 +327,7 @@ private:
   };
 
   VulkanPipelineState m_VulkanPipelineState;
+  vector<DrawcallPipelineState<VulkanPipelineState>> m_DrawcallsPipelineState;
 
   map<uint64_t, OutputWindow> m_OutputWindows;
   uint64_t m_OutputWinID;

@@ -165,6 +165,16 @@ public:
   bool GetResolve(uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::str> *trace);
   bool GetDebugMessages(rdctype::array<DebugMessage> *msgs);
 
+  bool CaptureDrawCallsPipelineState();
+  bool GetDrawCallsD3D11PipelineState(
+      rdctype::array<DrawcallPipelineState<D3D11PipelineState>> *drawcallsPipeState);
+  bool GetDrawCallsD3D12PipelineState(
+      rdctype::array<DrawcallPipelineState<D3D12PipelineState>> *drawcallsPipeState);
+  bool GetDrawCallsGLPipelineState(
+      rdctype::array<DrawcallPipelineState<GLPipelineState>> *drawcallsPipeState);
+  bool GetDrawCallsVulkanPipelineState(
+      rdctype::array<DrawcallPipelineState<VulkanPipelineState>> *drawcallsPipeState);
+
   bool PixelHistory(ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
                     uint32_t sampleIdx, FormatComponentType typeHint,
                     rdctype::array<PixelModification> *history);
@@ -217,6 +227,11 @@ private:
   D3D12PipelineState m_D3D12PipelineState;
   GLPipelineState m_GLPipelineState;
   VulkanPipelineState m_VulkanPipelineState;
+
+  vector<DrawcallPipelineState<D3D11PipelineState>> m_DrawCallsD3D11PipelineState;
+  vector<DrawcallPipelineState<D3D12PipelineState>> m_DrawCallsD3D12PipelineState;
+  vector<DrawcallPipelineState<GLPipelineState>> m_DrawCallsGLPipelineState;
+  vector<DrawcallPipelineState<VulkanPipelineState>> m_DrawCallsVulkanPipelineState;
 
   std::vector<ReplayOutput *> m_Outputs;
 

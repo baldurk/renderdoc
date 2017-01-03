@@ -101,6 +101,13 @@ public:
   virtual GLPipelineState GetGLPipelineState() = 0;
   virtual VulkanPipelineState GetVulkanPipelineState() = 0;
 
+  virtual void CaptureDrawCallsPipelineState() = 0;
+
+  virtual vector<DrawcallPipelineState<D3D11PipelineState>> GetDrawCallsD3D11PipelineState() = 0;
+  virtual vector<DrawcallPipelineState<D3D12PipelineState>> GetDrawCallsD3D12PipelineState() = 0;
+  virtual vector<DrawcallPipelineState<GLPipelineState>> GetDrawCallsGLPipelineState() = 0;
+  virtual vector<DrawcallPipelineState<VulkanPipelineState>> GetDrawCallsVulkanPipelineState() = 0;
+
   virtual FetchFrameRecord GetFrameRecord() = 0;
 
   virtual void ReadLogInitialisation() = 0;

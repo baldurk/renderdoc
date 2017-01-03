@@ -309,6 +309,17 @@ namespace renderdoc
         private static extern bool ReplayRenderer_GetVulkanPipelineState(IntPtr real, IntPtr mem);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_CaptureDrawCallsPipelineState(IntPtr real);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_GetDrawCallsD3D11PipelineState(IntPtr real, IntPtr mem);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_GetDrawCallsGetD3D12PipelineState(IntPtr real, IntPtr mem);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_GetDrawCallsGetGLPipelineState(IntPtr real, IntPtr mem);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_GetDrawCallsGetVulkanPipelineState(IntPtr real, IntPtr mem);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void ReplayRenderer_BuildCustomShader(IntPtr real, IntPtr entry, IntPtr source, UInt32 compileFlags, ShaderStageType type, ref ResourceId shaderID, IntPtr errorMem);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_FreeCustomShader(IntPtr real, ResourceId id);
@@ -480,6 +491,27 @@ namespace renderdoc
 
             if (success)
                 ret = (VulkanPipelineState)CustomMarshal.PtrToStructure(mem, typeof(VulkanPipelineState), true);
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public void CaptureDrawCallsPipelineState()
+        {
+            bool success = ReplayRenderer_CaptureDrawCallsPipelineState(m_Real);
+        }
+
+        public DrawCallD3D11PipelineState[] GetDrawCallsD3D11PipelineState()
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            bool success = ReplayRenderer_GetDrawCallsD3D11PipelineState(m_Real, mem);
+
+            DrawCallD3D11PipelineState[] ret = null;
+
+            if (success)
+                ret = (DrawCallD3D11PipelineState[])CustomMarshal.GetTemplatedArray(mem, typeof(DrawCallD3D11PipelineState), true);
 
             CustomMarshal.Free(mem);
 
