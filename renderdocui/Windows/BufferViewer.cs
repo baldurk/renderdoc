@@ -1553,6 +1553,11 @@ namespace renderdocui.Windows
         {
             var state = GetUIState(type);
 
+            var bufView = state.m_GridView;
+
+            if(bufView.IsDisposed)
+                return;
+
             // only do this once, VSIn is guaranteed to be set (even if it's empty data)
             if(type == MeshDataStage.VSIn)
                 CalcCellFloatWidth();
@@ -1561,8 +1566,6 @@ namespace renderdocui.Windows
 
             if(data.Buffers == null)
                 return;
-
-            var bufView = state.m_GridView;
 
             bufView.RowCount = 0;
             state.m_Data = data;
