@@ -112,7 +112,7 @@ public:
         uint32_t row = index.row();
         int col = index.column();
 
-        if(col >= 0 && col < columnCount() && row >= 0 && row < numRows)
+        if(col >= 0 && col < columnCount() && row < numRows)
         {
           if(col == 0)
             return row;
