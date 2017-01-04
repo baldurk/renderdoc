@@ -233,6 +233,13 @@ void WrappedOpenGL::glBindBuffer(GLenum target, GLuint buffer)
     GLResourceRecord *r = cd.m_BufferRecord[idx] =
         GetResourceManager()->GetResourceRecord(BufferRes(GetCtx(), buffer));
 
+    if(!r)
+    {
+      RDCERR("Invalid/unrecognised buffer passed: glBindBuffer(%s, %u)", ToStr::Get(target).c_str(),
+             buffer);
+      return;
+    }
+
     // it's legal to re-type buffers, generate another BindBuffer chunk to rename
     if(r->datatype != target)
     {
