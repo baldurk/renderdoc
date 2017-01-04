@@ -2962,6 +2962,9 @@ namespace renderdocui.Windows
         {
             pixelContext.Focus();
 
+            if (!m_Core.LogLoaded)
+                return;
+
             if (e.Button == MouseButtons.Right)
             {
                 pixelContextMenu.Show(pixelContext, e.Location);
