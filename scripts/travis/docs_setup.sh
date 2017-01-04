@@ -1,3 +1,3 @@
 #!//bin/sh
-sudo pip install --upgrade pip setuptools
-sudo pip install Sphinx sphinx-rtd-theme
+pip install --upgrade pip setuptools
+pip install Sphinx sphinx-rtd-theme

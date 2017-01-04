@@ -14,8 +14,7 @@ matrix:
 # only build docs on linux
     - os: linux
       dist: trusty
-      sudo: required
-      compiler: gcc
+      sudo: false
       env: CODE_BUILD=0 LINUX_BUILD=0 APPLE_BUILD=0 DOCS_BUILD=1
     - os: linux
       dist: trusty
