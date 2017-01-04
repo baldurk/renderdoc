@@ -2159,7 +2159,8 @@ void WrappedVulkan::Apply_InitialState(WrappedVkRes *live,
         if(IsBlockFormat(m_ImageLayouts[id].format))
         {
           RDCWARN(
-              "Trying to clear a compressed image %u - should have initial states or be stripped.",
+              "Trying to clear a compressed image %llu - should have initial states or be "
+              "stripped.",
               id);
           return;
         }
