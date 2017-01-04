@@ -537,7 +537,8 @@ void WrappedID3D12Device::ApplyInitialContents()
   GetResourceManager()->ApplyInitialContents();
 
   // close the final list
-  initStateCurList->Close();
+  if(initStateCurList)
+    initStateCurList->Close();
 
   initStateCurBatch = 0;
   initStateCurList = NULL;
