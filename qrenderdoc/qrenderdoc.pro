@@ -77,7 +77,10 @@ win32 {
 	LIBS += -L$$DESTDIR -lrenderdoc
 	QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN\''
 
-	QMAKE_CXXFLAGS += -std=c++11
+	CONFIG += warn_off
+	CONFIG += c++11
+	QMAKE_CFLAGS_WARN_OFF -= -w
+	QMAKE_CXXFLAGS_WARN_OFF -= -w
 
 	macx: {
 		DEFINES += RENDERDOC_PLATFORM_POSIX RENDERDOC_PLATFORM_APPLE
