@@ -4101,7 +4101,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
           D3D11_TEXTURE1D_DESC texdesc;
           ((ID3D11Texture1D *)res)->GetDesc(&texdesc);
 
-          width = texdesc.Width >> 1;
+          width = RDCMAX(1U, texdesc.Width >> 1);
           height = 1;
         }
         else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
@@ -4109,8 +4109,8 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
           D3D11_TEXTURE2D_DESC texdesc;
           ((ID3D11Texture2D *)res)->GetDesc(&texdesc);
 
-          width = texdesc.Width >> 1;
-          height = texdesc.Height >> 1;
+          width = RDCMAX(1U, texdesc.Width >> 1);
+          height = RDCMAX(1U, texdesc.Height >> 1);
 
           if(texdesc.SampleDesc.Count > 1)
           {

@@ -7763,6 +7763,9 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       uint32_t width = uint32_t(resourceDesc.Width >> 1);
       uint32_t height = resourceDesc.Height >> 1;
 
+      width = RDCMAX(1U, width);
+      height = RDCMAX(1U, height);
+
       D3D12_RESOURCE_DESC uavTexDesc = {};
       uavTexDesc.Alignment = 0;
       uavTexDesc.DepthOrArraySize = 4;

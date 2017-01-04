@@ -2782,7 +2782,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
         // image for quad usage
         gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, quadtexs[2]);
         gl.glTextureStorage3DEXT(quadtexs[2], eGL_TEXTURE_2D_ARRAY, 1, eGL_R32UI,
-                                 texDetails.width >> 1, texDetails.height >> 1, 4);
+                                 RDCMAX(1, texDetails.width >> 1),
+                                 RDCMAX(1, texDetails.height >> 1), 4);
 
         // temporarily attach to FBO to clear it
         GLint zero[4] = {0};
