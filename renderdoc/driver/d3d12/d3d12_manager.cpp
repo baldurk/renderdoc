@@ -957,13 +957,13 @@ bool D3D12ResourceManager::Serialise_InitialState(ResourceId resid, ID3D12Device
       HRESULT hr = m_Device->GetReal()->CreateDescriptorHeap(&desc, __uuidof(ID3D12DescriptorHeap),
                                                              (void **)&copyheap);
 
-      copyheap = new WrappedID3D12DescriptorHeap(copyheap, m_Device, desc);
-
       if(FAILED(hr))
       {
         RDCERR("Failed to create CPU descriptor heap for initial state: 0x%08x", hr);
         return false;
       }
+
+      copyheap = new WrappedID3D12DescriptorHeap(copyheap, m_Device, desc);
 
       D3D12_CPU_DESCRIPTOR_HANDLE handle = copyheap->GetCPUDescriptorHandleForHeapStart();
 
