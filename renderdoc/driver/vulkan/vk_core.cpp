@@ -1277,12 +1277,27 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
       uint32_t stride = fmt.compByteWidth * fmt.compCount;
 
       bool buf1010102 = false;
+      bool buf565 = false, buf5551 = false;
       bool bufBGRA = (fmt.bgraOrder != false);
 
-      if(fmt.special && fmt.specialFormat == eSpecial_R10G10B10A2)
+      if(fmt.special)
       {
-        stride = 4;
-        buf1010102 = true;
+        switch(fmt.specialFormat)
+        {
+          case eSpecial_R10G10B10A2:
+            stride = 4;
+            buf1010102 = true;
+            break;
+          case eSpecial_R5G6B5:
+            stride = 2;
+            buf565 = true;
+            break;
+          case eSpecial_R5G5B5A1:
+            stride = 2;
+            buf5551 = true;
+            break;
+          default: break;
+        }
       }
 
       byte *dst = thpixels;
@@ -1304,6 +1319,22 @@ bool WrappedVulkan::EndFrameCapture(void *dev, void *wnd)
             dst[0] = (byte)(unorm.x * 255.0f);
             dst[1] = (byte)(unorm.y * 255.0f);
             dst[2] = (byte)(unorm.z * 255.0f);
+          }
+          else if(buf565)
+          {
+            uint16_t *src565 = (uint16_t *)src;
+            Vec3f unorm = ConvertFromB5G6R5(*src565);
+            dst[0] = (byte)(unorm.z * 255.0f);
+            dst[1] = (byte)(unorm.y * 255.0f);
+            dst[2] = (byte)(unorm.x * 255.0f);
+          }
+          else if(buf5551)
+          {
+            uint16_t *src5551 = (uint16_t *)src;
+            Vec4f unorm = ConvertFromB5G5R5A1(*src5551);
+            dst[0] = (byte)(unorm.z * 255.0f);
+            dst[1] = (byte)(unorm.y * 255.0f);
+            dst[2] = (byte)(unorm.x * 255.0f);
           }
           else if(bufBGRA)
           {
