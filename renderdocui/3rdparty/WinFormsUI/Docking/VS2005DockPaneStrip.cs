@@ -1267,7 +1267,7 @@ namespace WeifenLuo.WinFormsUI.Docking
                 Color startColor = DockPane.DockPanel.Skin.DockPaneStripSkin.ToolWindowGradient.ActiveTabGradient.StartColor;
                 Color endColor = DockPane.DockPanel.Skin.DockPaneStripSkin.ToolWindowGradient.ActiveTabGradient.EndColor;
                 LinearGradientMode gradientMode = DockPane.DockPanel.Skin.DockPaneStripSkin.ToolWindowGradient.ActiveTabGradient.LinearGradientMode;
-                if(rectTab.Width > 0 || rectTab.Height > 0)
+                if(rectTab.Width > 0 && rectTab.Height > 0)
                     g.FillPath(new LinearGradientBrush(rectTab, startColor, endColor, gradientMode), path);
                 g.DrawPath(PenToolWindowTabBorder, path);
 
@@ -1279,7 +1279,7 @@ namespace WeifenLuo.WinFormsUI.Docking
                 Color startColor = DockPane.DockPanel.Skin.DockPaneStripSkin.ToolWindowGradient.InactiveTabGradient.StartColor;
                 Color endColor = DockPane.DockPanel.Skin.DockPaneStripSkin.ToolWindowGradient.InactiveTabGradient.EndColor;
                 LinearGradientMode gradientMode = DockPane.DockPanel.Skin.DockPaneStripSkin.ToolWindowGradient.InactiveTabGradient.LinearGradientMode;
-                if (rectTab.Width > 0 || rectTab.Height > 0)
+                if (rectTab.Width > 0 && rectTab.Height > 0)
                     g.FillPath(new LinearGradientBrush(rectTab, startColor, endColor, gradientMode), path);
 
                 if (Tabs.IndexOf(DockPane.ActiveContent) != Tabs.IndexOf(tab) + 1)
