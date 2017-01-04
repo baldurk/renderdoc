@@ -1,2 +1,5 @@
 #!/bin/sh
-cd docs/ && make html
+set -ev
+
+cd docs/
+make html
