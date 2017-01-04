@@ -703,6 +703,13 @@ static const VkExtensionProperties supportedExtensions[] = {
     {
         VK_AMD_SHADER_TRINARY_MINMAX_EXTENSION_NAME, VK_AMD_SHADER_TRINARY_MINMAX_SPEC_VERSION,
     },
+#ifdef VK_KHR_android_surface
+    // This should not be used by apps, but some still request it anyway.
+    // https://source.android.com/devices/graphics/implement-vulkan.html#wsi
+    {
+        "VK_ANDROID_native_buffer", 1,
+    },
+#endif
     {
         VK_EXT_DEBUG_REPORT_EXTENSION_NAME, VK_EXT_DEBUG_REPORT_SPEC_VERSION,
     },
