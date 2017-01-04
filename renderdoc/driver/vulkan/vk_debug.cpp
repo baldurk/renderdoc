@@ -5151,8 +5151,11 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
   VkImageSubresourceRange subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
+  const FetchDrawcall *mainDraw = m_pDriver->GetDrawcall(eventID);
+
   // Secondary commands can't have render passes
-  if(!m_pDriver->m_Partial[WrappedVulkan::Primary].renderPassActive)
+  if((mainDraw && (mainDraw->flags & eDraw_Drawcall) == 0) ||
+     !m_pDriver->m_Partial[WrappedVulkan::Primary].renderPassActive)
   {
     // don't do anything, no drawcall capable of making overlays selected
     float black[] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -5297,6 +5300,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
     // set our renderpass and shader
     pipeCreateInfo.renderPass = m_OverlayNoDepthRP;
+    pipeCreateInfo.subpass = 0;
 
     bool found = false;
     for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
@@ -5573,6 +5577,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
     // set our renderpass and shader
     pipeCreateInfo.renderPass = m_OverlayNoDepthRP;
+    pipeCreateInfo.subpass = 0;
 
     VkPipelineShaderStageCreateInfo *fragShader = NULL;
 
@@ -5832,6 +5837,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
 
     // set our renderpass and shader
     pipeCreateInfo.renderPass = m_OverlayNoDepthRP;
+    pipeCreateInfo.subpass = 0;
 
     VkPipelineShaderStageCreateInfo *fragShader = NULL;
 
