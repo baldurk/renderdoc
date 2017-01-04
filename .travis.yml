@@ -36,8 +36,6 @@ install:
   - if [[ "$DOCS_BUILD" == "1" ]]; then . ./scripts/travis/docs_setup.sh ; fi
   - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$CODE_BUILD" == "1" ]]; then . ./scripts/travis/linux_setup.sh ; fi
   - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$CODE_BUILD" == "1" ]]; then . ./scripts/travis/osx_setup.sh ; fi
-  - git clean -f
-  - git diff --exit-code
 
 script:
   - if [[ "$DOCS_BUILD" == "1" ]]; then . ./scripts/travis/docs_compile.sh ; fi
