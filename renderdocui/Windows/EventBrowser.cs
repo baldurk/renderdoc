@@ -1234,6 +1234,29 @@ namespace renderdocui.Windows
                 GetMaxNameLength(ref maxNameLength, indent + 1, i == 0, drawcall.children[i]);
         }
 
+        private double GetDrawTime(FetchDrawcall drawcall)
+        {
+            if (drawcall.children.Length > 0)
+            {
+                double total = 0.0;
+
+                foreach (FetchDrawcall c in drawcall.children)
+                {
+                    double f = GetDrawTime(c);
+                    if(f >= 0)
+                        total += f;
+                }
+
+                return total;
+            }
+            else if (m_Times.ContainsKey(drawcall.eventID))
+            {
+                return m_Times[drawcall.eventID][0].value.d;
+            }
+
+            return -1.0;
+        }
+
         private void ExportDrawcall(StreamWriter sw, int maxNameLength, int indent, bool firstchild, FetchDrawcall drawcall)
         {
             string eidString = drawcall.children.Length > 0 ? "" : drawcall.eventID.ToString();
@@ -1247,10 +1270,10 @@ namespace renderdocui.Windows
                 if (m_Core.Config.EventBrowser_TimeUnit != m_TimeUnit)
                     UpdateDurationColumn();
 
-                if(m_Times.ContainsKey(drawcall.eventID))
-                {
-                    double f = m_Times[drawcall.eventID][0].value.d;
+                double f = GetDrawTime(drawcall);
 
+                if (f >= 0)
+                {
                     if (m_Core.Config.EventBrowser_TimeUnit == PersistantConfig.TimeUnit.Milliseconds)
                         f *= 1000.0;
                     else if (m_Core.Config.EventBrowser_TimeUnit == PersistantConfig.TimeUnit.Microseconds)
@@ -1259,6 +1282,10 @@ namespace renderdocui.Windows
                         f *= 1000000000.0;
 
                     line += String.Format(" | {0}", Formatter.Format(f));
+                }
+                else
+                {
+                    line += " |";
                 }
             }
 
