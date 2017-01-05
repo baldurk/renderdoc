@@ -313,7 +313,9 @@ namespace renderdocui.Windows
                     if (i > 0 && drawNode.Nodes.Count >= 2 &&
                         (drawcall.children[i - 1].flags & DrawcallFlags.SetMarker) > 0)
                     {
-                        drawNode.Nodes[drawNode.Nodes.Count - 2].Tag = drawNode.Nodes.LastNode.Tag;
+                        DeferredEvent markerTag = drawNode.Nodes[drawNode.Nodes.Count - 2].Tag as DeferredEvent;
+                        DeferredEvent drawTag = drawNode.Nodes.LastNode.Tag as DeferredEvent;
+                        markerTag.eventID = drawTag.eventID;
                     }
                 }
 
@@ -364,7 +366,11 @@ namespace renderdocui.Windows
             {
                 uint eid = GetNodeEventID(n);
 
-                if (times.ContainsKey(eid))
+                DeferredEvent def = n.Tag as DeferredEvent;
+
+                if (def != null && def.marker)
+                    duration = -1.0;
+                else if (times.ContainsKey(eid))
                     duration = times[eid][0].value.d;
                 else
                     duration = -1.0;
