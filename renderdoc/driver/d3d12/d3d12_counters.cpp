@@ -181,26 +181,37 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
         m_pReplay(rp),
         m_TimerQueryHeap(tqh),
         m_PipeStatsQueryHeap(psqh),
-        m_OcclusionQueryHeap(oqh)
+        m_OcclusionQueryHeap(oqh),
+        m_NumStatsQueries(0),
+        m_NumTimestampQueries(0)
   {
     m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = this;
   }
   ~D3D12GPUTimerCallback() { m_pDevice->GetQueue()->GetCommandData()->m_DrawcallCallback = NULL; }
   void PreDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
   {
-    cmd->BeginQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, (uint32_t)(m_Results.size()));
-    cmd->BeginQuery(m_PipeStatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS,
-                    (uint32_t)(m_Results.size()));
-    cmd->EndQuery(m_TimerQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, (uint32_t)(m_Results.size() * 2 + 0));
+    if(cmd->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT)
+    {
+      cmd->BeginQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, m_NumStatsQueries);
+      cmd->BeginQuery(m_PipeStatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS, m_NumStatsQueries);
+    }
+    cmd->EndQuery(m_TimerQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, m_NumTimestampQueries * 2 + 0);
   }
 
   bool PostDraw(uint32_t eid, ID3D12GraphicsCommandList *cmd)
   {
-    cmd->EndQuery(m_TimerQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, (uint32_t)(m_Results.size() * 2 + 1));
-    cmd->EndQuery(m_PipeStatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS,
-                  (uint32_t)(m_Results.size()));
-    cmd->EndQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, (uint32_t)(m_Results.size()));
-    m_Results.push_back(eid);
+    cmd->EndQuery(m_TimerQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, m_NumTimestampQueries * 2 + 1);
+    m_NumTimestampQueries++;
+
+    bool direct = (cmd->GetType() == D3D12_COMMAND_LIST_TYPE_DIRECT);
+    if(direct)
+    {
+      cmd->EndQuery(m_PipeStatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS, m_NumStatsQueries);
+      cmd->EndQuery(m_OcclusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, m_NumStatsQueries);
+
+      m_NumStatsQueries++;
+    }
+    m_Results.push_back(std::make_pair(eid, direct));
     return false;
   }
 
@@ -220,7 +231,11 @@ struct D3D12GPUTimerCallback : public D3D12DrawcallCallback
   ID3D12QueryHeap *m_TimerQueryHeap;
   ID3D12QueryHeap *m_PipeStatsQueryHeap;
   ID3D12QueryHeap *m_OcclusionQueryHeap;
-  vector<uint32_t> m_Results;
+  vector<pair<uint32_t, bool> > m_Results;
+
+  uint32_t m_NumStatsQueries;
+  uint32_t m_NumTimestampQueries;
+
   // events which are the 'same' from being the same command buffer resubmitted
   // multiple times in the frame. We will only get the full callback when we're
   // recording the command buffer, and will be given the first EID. After that
@@ -316,17 +331,30 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<uint32_t> &counter
   // replay the events to perform all the queries
   m_pDevice->ReplayLog(0, maxEID, eReplay_Full);
 
+#if ENABLED(SINGLE_FLUSH_VALIDATE)
+  m_pDevice->ExecuteLists();
+  m_pDevice->FlushLists(true);
+#endif
+
   // Only supported with developer mode drivers!!!
   m_pDevice->SetStablePowerState(FALSE);
 
   ID3D12GraphicsCommandList *list = m_pDevice->GetNewList();
 
-  list->ResolveQueryData(timerQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0, maxEID, readbackBuf, 0);
-  list->ResolveQueryData(pipestatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS, 0, maxEID,
-                         readbackBuf, sizeof(uint64_t) * 2 * maxEID);
-  list->ResolveQueryData(
-      occlusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, 0, maxEID, readbackBuf,
-      sizeof(uint64_t) * 2 + sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS) * maxEID);
+  UINT64 bufferOffset = 0;
+
+  list->ResolveQueryData(timerQueryHeap, D3D12_QUERY_TYPE_TIMESTAMP, 0,
+                         cb.m_NumTimestampQueries * 2, readbackBuf, bufferOffset);
+
+  bufferOffset += sizeof(uint64_t) * 2 * cb.m_NumTimestampQueries;
+
+  list->ResolveQueryData(pipestatsQueryHeap, D3D12_QUERY_TYPE_PIPELINE_STATISTICS, 0,
+                         cb.m_NumStatsQueries, readbackBuf, bufferOffset);
+
+  bufferOffset += sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS) * cb.m_NumStatsQueries;
+
+  list->ResolveQueryData(occlusionQueryHeap, D3D12_QUERY_TYPE_OCCLUSION, 0, cb.m_NumStatsQueries,
+                         readbackBuf, bufferOffset);
 
   list->Close();
 
@@ -350,9 +378,9 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<uint32_t> &counter
   }
 
   uint64_t *timestamps = (uint64_t *)data;
-  data += maxEID * 2 * sizeof(uint64_t);
+  data += cb.m_NumTimestampQueries * 2 * sizeof(uint64_t);
   D3D12_QUERY_DATA_PIPELINE_STATISTICS *pipelinestats = (D3D12_QUERY_DATA_PIPELINE_STATISTICS *)data;
-  data += maxEID * sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS);
+  data += cb.m_NumStatsQueries * sizeof(D3D12_QUERY_DATA_PIPELINE_STATISTICS);
   uint64_t *occlusion = (uint64_t *)data;
 
   uint64_t freq;
@@ -360,11 +388,26 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<uint32_t> &counter
 
   for(size_t i = 0; i < cb.m_Results.size(); i++)
   {
+    bool direct = cb.m_Results[i].second;
+
+    D3D12_QUERY_DATA_PIPELINE_STATISTICS pipeStats = {};
+    uint64_t occl = 0;
+
+    // only events on direct lists recorded pipeline stats or occlusion queries
+    if(direct)
+    {
+      pipeStats = *pipelinestats;
+      occl = *occlusion;
+
+      pipelinestats++;
+      occlusion++;
+    }
+
     for(size_t c = 0; c < counters.size(); c++)
     {
       CounterResult result;
 
-      result.eventID = cb.m_Results[i];
+      result.eventID = cb.m_Results[i].first;
       result.counterID = counters[c];
 
       switch(counters[c])
@@ -375,20 +418,18 @@ vector<CounterResult> D3D12Replay::FetchCounters(const vector<uint32_t> &counter
           result.value.d = double(delta) / double(freq);
         }
         break;
-        case eCounter_InputVerticesRead: result.value.u64 = pipelinestats[i].IAVertices; break;
-        case eCounter_IAPrimitives: result.value.u64 = pipelinestats[i].IAPrimitives; break;
-        case eCounter_GSPrimitives: result.value.u64 = pipelinestats[i].GSPrimitives; break;
-        case eCounter_RasterizerInvocations:
-          result.value.u64 = pipelinestats[i].CInvocations;
-          break;
-        case eCounter_RasterizedPrimitives: result.value.u64 = pipelinestats[i].CPrimitives; break;
-        case eCounter_SamplesWritten: result.value.u64 = occlusion[i]; break;
-        case eCounter_VSInvocations: result.value.u64 = pipelinestats[i].VSInvocations; break;
-        case eCounter_HSInvocations: result.value.u64 = pipelinestats[i].HSInvocations; break;
-        case eCounter_DSInvocations: result.value.u64 = pipelinestats[i].DSInvocations; break;
-        case eCounter_GSInvocations: result.value.u64 = pipelinestats[i].GSInvocations; break;
-        case eCounter_PSInvocations: result.value.u64 = pipelinestats[i].PSInvocations; break;
-        case eCounter_CSInvocations: result.value.u64 = pipelinestats[i].CSInvocations; break;
+        case eCounter_InputVerticesRead: result.value.u64 = pipeStats.IAVertices; break;
+        case eCounter_IAPrimitives: result.value.u64 = pipeStats.IAPrimitives; break;
+        case eCounter_GSPrimitives: result.value.u64 = pipeStats.GSPrimitives; break;
+        case eCounter_RasterizerInvocations: result.value.u64 = pipeStats.CInvocations; break;
+        case eCounter_RasterizedPrimitives: result.value.u64 = pipeStats.CPrimitives; break;
+        case eCounter_SamplesWritten: result.value.u64 = occl; break;
+        case eCounter_VSInvocations: result.value.u64 = pipeStats.VSInvocations; break;
+        case eCounter_HSInvocations: result.value.u64 = pipeStats.HSInvocations; break;
+        case eCounter_DSInvocations: result.value.u64 = pipeStats.DSInvocations; break;
+        case eCounter_GSInvocations: result.value.u64 = pipeStats.GSInvocations; break;
+        case eCounter_PSInvocations: result.value.u64 = pipeStats.PSInvocations; break;
+        case eCounter_CSInvocations: result.value.u64 = pipeStats.CSInvocations; break;
       }
       ret.push_back(result);
     }
