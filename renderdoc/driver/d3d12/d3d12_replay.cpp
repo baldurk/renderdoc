@@ -290,7 +290,6 @@ void D3D12Replay::FillResourceView(D3D12PipelineState::ResourceView &view, D3D12
 
   if(desc->GetType() == D3D12Descriptor::TypeSampler || desc->GetType() == D3D12Descriptor::TypeCBV)
   {
-    RDCERR("Invalid descriptors - expected a resource view");
     return;
   }
 
