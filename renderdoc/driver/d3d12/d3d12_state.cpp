@@ -187,7 +187,7 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd) const
   if(!descHeaps.empty())
     cmd->SetDescriptorHeaps((UINT)descHeaps.size(), &descHeaps[0]);
 
-  if(!rts.empty() || dsv.heap != ResourceId())
+  if(!rts.empty() && dsv.heap != ResourceId())
   {
     D3D12_CPU_DESCRIPTOR_HANDLE rtHandles[8];
     D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = CPUHandleFromPortableHandle(GetResourceManager(), dsv);
