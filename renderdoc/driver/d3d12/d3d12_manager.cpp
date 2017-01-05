@@ -1268,6 +1268,7 @@ void D3D12ResourceManager::Apply_InitialState(ID3D12DeviceChild *live, InitialCo
           list->ResourceBarrier((UINT)barriers.size(), &barriers[0]);
 
 #if ENABLED(SINGLE_FLUSH_VALIDATE)
+        m_Device->CloseInitialStateList();
         m_Device->ExecuteLists();
         m_Device->FlushLists(true);
 #endif
