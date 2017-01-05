@@ -192,7 +192,8 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd) const
     D3D12_CPU_DESCRIPTOR_HANDLE rtHandles[8];
     D3D12_CPU_DESCRIPTOR_HANDLE dsvHandle = CPUHandleFromPortableHandle(GetResourceManager(), dsv);
 
-    UINT numActualHandles = rtSingle ? 1 : (UINT)rts.size();
+    UINT rtCount = (UINT)rts.size();
+    UINT numActualHandles = rtSingle ? RDCMIN(1U, rtCount) : rtCount;
 
     for(UINT i = 0; i < numActualHandles; i++)
       rtHandles[i] = CPUHandleFromPortableHandle(GetResourceManager(), rts[i]);
