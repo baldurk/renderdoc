@@ -133,6 +133,8 @@ public:
     m_Init.type = type;
   }
 
+  bool ValidateRootGPUVA(ResourceId buffer);
+
   //////////////////////////////
   // implement IUnknown
 

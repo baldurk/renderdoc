@@ -362,6 +362,8 @@ public:
   FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
   const FetchDrawcall *GetDrawcall(uint32_t eventID);
 
+  void AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv, DebugMessageSource src,
+                       std::string d);
   void AddDebugMessage(const DebugMessage &msg) { m_DebugMessages.push_back(msg); }
   vector<DebugMessage> GetDebugMessages();
 

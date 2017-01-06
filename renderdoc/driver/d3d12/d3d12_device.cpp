@@ -1593,6 +1593,35 @@ void WrappedID3D12Device::ReleaseResource(ID3D12DeviceChild *res)
   }
 }
 
+void WrappedID3D12Device::AddDebugMessage(DebugMessageCategory c, DebugMessageSeverity sv,
+                                          DebugMessageSource src, std::string d)
+{
+  D3D12CommandData &cmd = *m_Queue->GetCommandData();
+
+  DebugMessage msg;
+  msg.eventID = 0;
+  msg.messageID = 0;
+  msg.source = src;
+  msg.category = c;
+  msg.severity = sv;
+  msg.description = d;
+
+  if(m_State == EXECUTING)
+  {
+    // look up the EID this drawcall came from
+    D3D12CommandData::DrawcallUse use(cmd.m_CurChunkOffset, 0);
+    auto it = std::lower_bound(cmd.m_DrawcallUses.begin(), cmd.m_DrawcallUses.end(), use);
+    RDCASSERT(it != cmd.m_DrawcallUses.end());
+
+    msg.eventID = it->eventID;
+    AddDebugMessage(msg);
+  }
+  else
+  {
+    cmd.m_EventMessages.push_back(msg);
+  }
+}
+
 vector<DebugMessage> WrappedID3D12Device::GetDebugMessages()
 {
   vector<DebugMessage> ret;

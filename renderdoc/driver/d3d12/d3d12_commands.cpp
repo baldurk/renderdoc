@@ -666,6 +666,32 @@ WrappedID3D12GraphicsCommandList::~WrappedID3D12GraphicsCommandList()
   SAFE_RELEASE(m_pReal);
 }
 
+bool WrappedID3D12GraphicsCommandList::ValidateRootGPUVA(ResourceId buffer)
+{
+  if(!GetResourceManager()->HasLiveResource(buffer))
+  {
+    // abort, we don't have this buffer. Print errors while reading
+    if(m_State == READING)
+    {
+      if(buffer != ResourceId())
+      {
+        RDCERR("Don't have live buffer for %llu", buffer);
+      }
+      else
+      {
+        m_pDevice->AddDebugMessage(eDbgCategory_Resource_Manipulation, eDbgSeverity_Medium,
+                                   eDbgSource_IncorrectAPIUse,
+                                   "Binding 0 as a GPU Virtual Address in a root constant is "
+                                   "invalid. This call will be dropped during replay.");
+      }
+    }
+
+    return true;
+  }
+
+  return false;
+}
+
 HRESULT STDMETHODCALLTYPE WrappedID3D12GraphicsCommandList::QueryInterface(REFIID riid,
                                                                            void **ppvObject)
 {

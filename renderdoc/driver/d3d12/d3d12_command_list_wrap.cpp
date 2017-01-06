@@ -1517,7 +1517,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootConstantBufferVie
   SERIALISE_ELEMENT(UINT64, byteOffset, offs);
 
   if(m_State < WRITING)
+  {
     m_Cmd->m_LastCmdListID = CommandList;
+
+    if(ValidateRootGPUVA(buffer))
+      return true;
+  }
 
   if(m_State == EXECUTING)
   {
@@ -1589,7 +1594,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootShaderResourceVie
   SERIALISE_ELEMENT(UINT64, byteOffset, offs);
 
   if(m_State < WRITING)
+  {
     m_Cmd->m_LastCmdListID = CommandList;
+
+    if(ValidateRootGPUVA(buffer))
+      return true;
+  }
 
   if(m_State == EXECUTING)
   {
@@ -1661,7 +1671,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetComputeRootUnorderedAccessVi
   SERIALISE_ELEMENT(UINT64, byteOffset, offs);
 
   if(m_State < WRITING)
+  {
     m_Cmd->m_LastCmdListID = CommandList;
+
+    if(ValidateRootGPUVA(buffer))
+      return true;
+  }
 
   if(m_State == EXECUTING)
   {
@@ -2017,7 +2032,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootConstantBufferVi
   SERIALISE_ELEMENT(UINT64, byteOffset, offs);
 
   if(m_State < WRITING)
+  {
     m_Cmd->m_LastCmdListID = CommandList;
+
+    if(ValidateRootGPUVA(buffer))
+      return true;
+  }
 
   if(m_State == EXECUTING)
   {
@@ -2090,7 +2110,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootShaderResourceVi
   SERIALISE_ELEMENT(UINT64, byteOffset, offs);
 
   if(m_State < WRITING)
+  {
     m_Cmd->m_LastCmdListID = CommandList;
+
+    if(ValidateRootGPUVA(buffer))
+      return true;
+  }
 
   if(m_State == EXECUTING)
   {
@@ -2163,7 +2188,12 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetGraphicsRootUnorderedAccessV
   SERIALISE_ELEMENT(UINT64, byteOffset, offs);
 
   if(m_State < WRITING)
+  {
     m_Cmd->m_LastCmdListID = CommandList;
+
+    if(ValidateRootGPUVA(buffer))
+      return true;
+  }
 
   if(m_State == EXECUTING)
   {
