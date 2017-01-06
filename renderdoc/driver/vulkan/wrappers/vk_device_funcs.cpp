@@ -117,6 +117,8 @@ ReplayCreateStatus WrappedVulkan::Initialise(VkInitParams &params)
     }
   }
 
+  RDCEraseEl(m_ExtensionsEnabled);
+
   std::set<string> supportedExtensions;
 
   for(size_t i = 0; i <= params.Layers.size(); i++)
@@ -785,6 +787,10 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
       if(strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
         Extensions.push_back(createInfo.ppEnabledExtensionNames[i]);
     }
+
+    if(std::find(Extensions.begin(), Extensions.end(),
+                 VK_AMD_NEGATIVE_VIEWPORT_HEIGHT_EXTENSION_NAME) != Extensions.end())
+      m_ExtensionsEnabled[VkCheckExt_AMD_neg_viewport] = true;
 
     std::vector<string> Layers;
     for(uint32_t i = 0; i < createInfo.enabledLayerCount; i++)

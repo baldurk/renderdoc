@@ -125,6 +125,12 @@ private:
   uint32_t m_Major, m_Minor, m_Patch;
 };
 
+enum
+{
+  VkCheckExt_AMD_neg_viewport,
+  VkCheckExt_Max,
+};
+
 // structure for casting to easily iterate and template specialising Serialise
 struct VkGenericStruct
 {

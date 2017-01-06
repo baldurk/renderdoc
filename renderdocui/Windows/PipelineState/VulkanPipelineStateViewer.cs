@@ -1489,7 +1489,12 @@ namespace renderdocui.Windows.PipelineState
                 int i = 0;
                 foreach (var v in state.VP.viewportScissors)
                 {
-                    var node = viewports.Nodes.Add(new object[] { i, v.vp.x, v.vp.y, v.vp.Width, v.vp.Height, v.vp.MinDepth, v.vp.MaxDepth });
+                    string misc = "";
+
+                    if (v.vp.Height < 0.0f)
+                        misc = "Inverted (negative height)";
+
+                    var node = viewports.Nodes.Add(new object[] { i, v.vp.x, v.vp.y, v.vp.Width, Math.Abs(v.vp.Height), v.vp.MinDepth, v.vp.MaxDepth, misc });
 
                     if (v.vp.Width == 0 || v.vp.Height == 0 || v.vp.MinDepth == v.vp.MaxDepth)
                         EmptyRow(node);

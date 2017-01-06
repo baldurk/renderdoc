@@ -5446,6 +5446,9 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, TextureDisplayOve
       ubo->Scissor = 0;
       ubo->ViewRect = Vec4f(viewport.x, viewport.y, viewport.width, viewport.height);
 
+      if(m_pDriver->m_ExtensionsEnabled[VkCheckExt_AMD_neg_viewport])
+        ubo->ViewRect.w = fabs(viewport.height);
+
       m_OutlineUBO.Unmap();
 
       vt->CmdBindPipeline(Unwrap(cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
