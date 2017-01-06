@@ -3827,10 +3827,10 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       // serious printf abuse below!
 
       char *formats[4][2] = {
-          {"float(%f)", "int(%d)"},
-          {"float2(%f, %f)", "int2(%d, %d)"},
-          {"float3(%f, %f, %f)", "int3(%d, %d, %d)"},
-          {"float4(%f, %f, %f, %f)", "int4(%d, %d, %d, %d)"},
+          {"float(%.10f)", "int(%d)"},
+          {"float2(%.10f, %.10f)", "int2(%d, %d)"},
+          {"float3(%.10f, %.10f, %.10f)", "int3(%d, %d, %d)"},
+          {"float4(%.10f, %.10f, %.10f, %.10f)", "int4(%d, %d, %d, %d)"},
       };
 
       int texcoordType = 0;
@@ -4011,7 +4011,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       else if(op.operation == OPCODE_SAMPLE_L)
       {
         // lod selection
-        StringFormat::snprintf(buf, 255, "%f", srcOpers[3].value.f.x);
+        StringFormat::snprintf(buf, 255, "%.10f", srcOpers[3].value.f.x);
 
         sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
         sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
@@ -4056,7 +4056,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
         if(op.operation == OPCODE_SAMPLE_C)
         {
           // comparison value
-          StringFormat::snprintf(buf, 255, "%f", srcOpers[3].value.f.x);
+          StringFormat::snprintf(buf, 255, "%.10f", srcOpers[3].value.f.x);
 
           sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
           sampleProgram += funcRet + " main(float4 pos : SV_Position, float" + uvDim +
@@ -4079,7 +4079,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       else if(op.operation == OPCODE_SAMPLE_C_LZ)
       {
         // comparison value
-        StringFormat::snprintf(buf, 255, "%f", srcOpers[3].value.f.x);
+        StringFormat::snprintf(buf, 255, "%.10f", srcOpers[3].value.f.x);
 
         sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
         sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
@@ -4113,9 +4113,9 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       {
         // comparison value
         if(op.operation == OPCODE_GATHER4_C)
-          StringFormat::snprintf(buf, 255, ", %f", srcOpers[3].value.f.x);
+          StringFormat::snprintf(buf, 255, ", %.10f", srcOpers[3].value.f.x);
         else if(op.operation == OPCODE_GATHER4_PO_C)
-          StringFormat::snprintf(buf, 255, ", %f", srcOpers[4].value.f.x);
+          StringFormat::snprintf(buf, 255, ", %.10f", srcOpers[4].value.f.x);
 
         sampleProgram = texture + " : register(t0);\n" + sampler + " : register(s0);\n\n";
         sampleProgram += funcRet + " main() : SV_Target0\n{\nreturn ";
