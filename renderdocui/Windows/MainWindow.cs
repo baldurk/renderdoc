@@ -1709,6 +1709,14 @@ namespace renderdocui.Windows
                 }
             }
 
+            if (m_Core.GlobalHookEnabled)
+            {
+                MessageBox.Show("Cannot close RenderDoc while global hook is active.", "Global hook active",
+                                MessageBoxButtons.OK, MessageBoxIcon.Error);
+                e.Cancel = true;
+                return;
+            }
+
             if (!PromptCloseLog())
             {
                 e.Cancel = true;

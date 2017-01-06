@@ -928,6 +928,8 @@ namespace renderdocui.Windows.Dialogs
 
             toggleGlobalHook.Enabled = false;
 
+            m_Core.GlobalHookEnabled = false;
+
             if (toggleGlobalHook.Checked)
             {
                 if(!Helpers.IsElevated)
@@ -1124,6 +1126,8 @@ namespace renderdocui.Windows.Dialogs
                 logfile = m_Core.TempLogFilename(logfile);
 
                 StaticExports.StartGlobalHook(exe, logfile, GetSettings().Options);
+
+                m_Core.GlobalHookEnabled = true;
             }
             else
             {
