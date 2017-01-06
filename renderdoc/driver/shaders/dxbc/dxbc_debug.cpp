@@ -1522,10 +1522,11 @@ State State::GetNext(GlobalState &global, State quad[4]) const
     }
 
     case OPCODE_ISHL:
-      s.SetDst(op.operands[0], op, ShaderVariable("", srcOpers[0].value.i.x << srcOpers[1].value.i.x,
-                                                  srcOpers[0].value.i.y << srcOpers[1].value.i.y,
-                                                  srcOpers[0].value.i.z << srcOpers[1].value.i.z,
-                                                  srcOpers[0].value.i.w << srcOpers[1].value.i.w));
+      s.SetDst(op.operands[0], op,
+               ShaderVariable("", srcOpers[0].value.i.x << (srcOpers[1].value.u.x & 0x1f),
+                              srcOpers[0].value.i.y << (srcOpers[1].value.u.x & 0x1f),
+                              srcOpers[0].value.i.z << (srcOpers[1].value.u.x & 0x1f),
+                              srcOpers[0].value.i.w << (srcOpers[1].value.u.x & 0x1f)));
       break;
     case OPCODE_IBFE:
     {
@@ -1619,16 +1620,16 @@ State State::GetNext(GlobalState &global, State quad[4]) const
     case OPCODE_USHR:
       s.SetDst(op.operands[0], op,
                ShaderVariable("", srcOpers[0].value.u.x >> (srcOpers[1].value.u.x & 0x1f),
-                              srcOpers[0].value.u.y >> (srcOpers[1].value.u.y & 0x1f),
-                              srcOpers[0].value.u.z >> (srcOpers[1].value.u.z & 0x1f),
-                              srcOpers[0].value.u.w >> (srcOpers[1].value.u.w & 0x1f)));
+                              srcOpers[0].value.u.y >> (srcOpers[1].value.u.x & 0x1f),
+                              srcOpers[0].value.u.z >> (srcOpers[1].value.u.x & 0x1f),
+                              srcOpers[0].value.u.w >> (srcOpers[1].value.u.x & 0x1f)));
       break;
     case OPCODE_ISHR:
       s.SetDst(op.operands[0], op,
                ShaderVariable("", srcOpers[0].value.i.x >> (srcOpers[1].value.u.x & 0x1f),
-                              srcOpers[0].value.i.y >> (srcOpers[1].value.u.y & 0x1f),
-                              srcOpers[0].value.i.z >> (srcOpers[1].value.u.z & 0x1f),
-                              srcOpers[0].value.i.w >> (srcOpers[1].value.u.w & 0x1f)));
+                              srcOpers[0].value.i.y >> (srcOpers[1].value.u.x & 0x1f),
+                              srcOpers[0].value.i.z >> (srcOpers[1].value.u.x & 0x1f),
+                              srcOpers[0].value.i.w >> (srcOpers[1].value.u.x & 0x1f)));
       break;
     case OPCODE_AND:
       s.SetDst(op.operands[0], op, ShaderVariable("", srcOpers[0].value.i.x & srcOpers[1].value.i.x,
