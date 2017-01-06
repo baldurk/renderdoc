@@ -70,7 +70,7 @@
    <item>
     <widget class="QLabel" name="copyright">
      <property name="text">
-      <string>Copyright Baldur Karlsson 2016</string>
+      <string>Copyright Baldur Karlsson 2017</string>
      </property>
     </widget>
    </item>
