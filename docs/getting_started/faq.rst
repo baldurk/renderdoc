@@ -156,6 +156,8 @@ Yes RenderDoc can be configured to insert a boundary marker at the end of the me
 
 To enable this behaviour, select the ``Verify Map() Writes`` option when :doc:`capturing <../window/capture_log_attach>`.
 
+Note this is only supported on D3D11 and OpenGL currently, since Vulkan and D3D12 are lower overhead and do not have the infrastructure to intercept map writes.
+
 RenderDoc is complaining about my OpenGL app in the overlay - what gives?
 -------------------------------------------------------------------------
 

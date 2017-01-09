@@ -144,6 +144,8 @@ If the application creates a command list early and replays it indefinitely with
 
 This option adds checking to any ``Map()`` calls that adds a boundary marker after any ``Map()`` pointer returned during a captured frame. These markers are checked on ``Unmap()`` and if they have been modified a message box will pop up alerting you to this, and you can click Yes to break in the debugger in the target application and investigate the problem.
 
+Note this is only supported on D3D11 and OpenGL currently, since Vulkan and D3D12 are lower overhead and do not have the infrastructure to intercept map writes.
+
 ----------
 
   | ``Auto start`` Default: ``Disabled``
