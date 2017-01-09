@@ -80,6 +80,10 @@ The following libraries and components are incorporated into RenderDoc, listed h
 
   Used for hooking some libraries loaded with DEEPBIND on linux.
 
+* `tinyfiledialogs <https://sourceforge.net/projects/tinyfiledialogs/>`_ - Copyright (c) 2014 - 2016 Guillaume Vareille, distributed under the zlib license.
+
+  Used to display message boxes cross-platform from the non-UI core code.
+
 Thanks
 ------
 

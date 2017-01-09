@@ -229,6 +229,7 @@
     <ClInclude Include="3rdparty\stb\stb_image_write.h" />
     <ClInclude Include="3rdparty\stb\stb_truetype.h" />
     <ClInclude Include="3rdparty\tinyexr\tinyexr.h" />
+    <ClInclude Include="3rdparty\tinyfiledialogs\tinyfiledialogs.h" />
     <ClInclude Include="api\app\renderdoc_app.h" />
     <ClInclude Include="api\replay\basic_types.h" />
     <ClInclude Include="api\replay\capture_options.h" />
@@ -293,6 +294,7 @@
     </ClCompile>
     <ClCompile Include="3rdparty\stb\stb_impl.c" />
     <ClCompile Include="3rdparty\tinyexr\tinyexr.cpp" />
+    <ClCompile Include="3rdparty\tinyfiledialogs\tinyfiledialogs.c" />
     <ClCompile Include="common\common.cpp" />
     <ClCompile Include="common\dds_readwrite.cpp" />
     <ClCompile Include="core\core.cpp" />
