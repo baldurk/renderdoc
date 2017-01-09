@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "driver/d3d11/d3d11_context.h"
+#include "3rdparty/tinyfiledialogs/tinyfiledialogs.h"
 #include "driver/d3d11/d3d11_renderstate.h"
 #include "driver/d3d11/d3d11_resources.h"
 #include "driver/dx/official/dxgi1_3.h"
@@ -7687,10 +7688,12 @@ bool WrappedID3D11DeviceContext::Serialise_Unmap(ID3D11Resource *pResource, UINT
     {
       if(!record->VerifyShadowStorage(ctxMapID))
       {
-        int res =
-            MessageBoxA(NULL, "Breakpoint now to see callstack,\nor click 'Yes' to debugbreak.",
-                        "Map() overwrite detected!", MB_YESNO | MB_ICONERROR);
-        if(res == IDYES)
+        string msg = StringFormat::Fmt(
+            "Overwrite of %llu byte Map()'d buffer detected\n"
+            "Breakpoint now to see callstack,\nor click 'Yes' to debugbreak.",
+            record->Length);
+        int res = tinyfd_messageBox("Map() overwrite detected!", msg.c_str(), "yesno", "error", 1);
+        if(res == 1)
         {
           OS_DEBUG_BREAK();
         }

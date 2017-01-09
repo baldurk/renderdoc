@@ -24,6 +24,7 @@
  ******************************************************************************/
 
 #include "../gl_driver.h"
+#include "3rdparty/tinyfiledialogs/tinyfiledialogs.h"
 #include "common/common.h"
 #include "serialise/string_utils.h"
 
@@ -1822,6 +1823,12 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
     if((access & GL_MAP_PERSISTENT_BIT) || record->Map.persistentPtr)
       directMap = false;
 
+    bool verifyWrite = (RenderDoc::Inst().GetCaptureOptions().VerifyMapWrites != 0);
+
+    // must also intercept to verify writes
+    if(verifyWrite)
+      directMap = false;
+
     if(directMap)
     {
       m_HighTrafficResources.insert(record->GetResourceID());
@@ -1832,6 +1839,7 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
     record->Map.length = length;
     record->Map.access = access;
     record->Map.invalidate = invalidateMap;
+    record->Map.verifyWrite = verifyWrite;
 
     // store a list of all persistent maps, and subset of all coherent maps
     if(access & GL_MAP_PERSISTENT_BIT)
@@ -1941,6 +1949,30 @@ void *WrappedOpenGL::glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GL
       }
       else if(m_State == WRITING_IDLE)
       {
+        if(verifyWrite)
+        {
+          byte *shadow = record->GetShadowPtr(0);
+
+          GLint buflength;
+          m_Real.glGetNamedBufferParameterivEXT(buffer, eGL_BUFFER_SIZE, &buflength);
+
+          // if we don't have a shadow pointer, need to allocate & initialise
+          if(shadow == NULL)
+          {
+            // allocate our shadow storage
+            record->AllocShadowStorage(buflength);
+            shadow = (byte *)record->GetShadowPtr(0);
+          }
+
+          // if we're not invalidating, we need the existing contents
+          if(!invalidateMap)
+            memcpy(shadow, record->GetDataPtr(), buflength);
+          else
+            memset(shadow + offset, 0xcc, length);
+
+          ptr = shadow;
+        }
+
         // return buffer backing store pointer, offsetted
         ptr += offset;
 
@@ -2187,6 +2219,26 @@ GLboolean WrappedOpenGL::glUnmapNamedBufferEXT(GLuint buffer)
         break;
       case GLResourceRecord::Mapped_Write:
       {
+        if(record->Map.verifyWrite)
+        {
+          if(!record->VerifyShadowStorage())
+          {
+            string msg = StringFormat::Fmt(
+                "Overwrite of %llu byte Map()'d buffer detected\n"
+                "Breakpoint now to see callstack,\nor click 'Yes' to debugbreak.",
+                record->Length);
+            int res =
+                tinyfd_messageBox("Map() overwrite detected!", msg.c_str(), "yesno", "error", 1);
+            if(res == 1)
+            {
+              OS_DEBUG_BREAK();
+            }
+          }
+
+          // copy from shadow to backing store, so we're consistent
+          memcpy(record->GetDataPtr() + record->Map.offset, record->Map.ptr, record->Map.length);
+        }
+
         if(record->Map.access & GL_MAP_FLUSH_EXPLICIT_BIT)
         {
           // do nothing, any flushes that happened were handled,
