@@ -709,6 +709,10 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       texelFetchBrokenDriver = true;
   }
 
+// only check this on windows. This is a bit of a hack, as really we want to check if we're
+// using the AMD official driver, but there's not a great other way to distinguish it from
+// the RADV open source driver.
+#if ENABLED(RDOC_WIN32)
   if(driverVersion.IsAMD())
   {
     // for AMD the bugfix version isn't clear as version numbering wasn't strong for a while, but
@@ -718,6 +722,7 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     if(driverVersion.Major() < 1)
       texelFetchBrokenDriver = true;
   }
+#endif
 
   if(texelFetchBrokenDriver)
   {
