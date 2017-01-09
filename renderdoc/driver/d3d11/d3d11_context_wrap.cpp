@@ -117,7 +117,7 @@ bool WrappedID3D11DeviceContext::Serialise_PopEvent()
   {
     FetchDrawcall draw;
     draw.name = "API Calls";
-    draw.flags |= eDraw_SetMarker;
+    draw.flags |= eDraw_SetMarker | eDraw_APICalls;
 
     AddDrawcall(draw, true);
   }

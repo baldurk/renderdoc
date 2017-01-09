@@ -470,6 +470,7 @@ enum DrawcallFlags
   eDraw_ClearDepthStencil = 0x200000,
   eDraw_BeginPass = 0x400000,
   eDraw_EndPass = 0x800000,
+  eDraw_APICalls = 0x1000000,
 };
 
 enum SolidShadeMode

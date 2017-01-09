@@ -188,6 +188,17 @@ This option only applies itself the next time you load a log.
 
 ---------------
 
+  | ``Hide marker sections with only non-draw API calls`` Default: ``Disabled``
+
+Marker sections that contain only miscellaneous non-draw API calls like queries or state setting will be completely removed. This also applies to the Timeline Bar.
+
+This can be useful if you have markers around occlusion queries or where you have a minor state change, and you don't want them cluttering up the capture.
+
+This option only applies itself the next time you load a log.
+
+
+---------------
+
   | ``Apply marker colours`` Default: ``Enabled``
 
 Some APIs can provide an RGBA colour alongside the marker name when setting or pushing a marker region. This option enables applying those colours in the UI. Usually you'd leave it on unless your code is passing garbage for the colours or something instead of 0s (which will then be ignored rather than coming out black).

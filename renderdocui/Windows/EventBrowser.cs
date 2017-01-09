@@ -261,13 +261,61 @@ namespace renderdocui.Windows
             return GetEndDrawID(drawcall.children.Last());
         }
 
+        public static bool ShouldHide(Core core, FetchDrawcall drawcall)
+        {
+            if (drawcall.flags.HasFlag(DrawcallFlags.PushMarker))
+            {
+                if (core.Config.EventBrowser_HideEmpty)
+                {
+                    if (drawcall.children == null || drawcall.children.Length == 0)
+                        return true;
+
+                    bool allhidden = true;
+
+                    foreach (FetchDrawcall child in drawcall.children)
+                    {
+                        if (ShouldHide(core, child))
+                            continue;
+
+                        allhidden = false;
+                        break;
+                    }
+
+                    if (allhidden)
+                        return true;
+                }
+
+                if (core.Config.EventBrowser_HideAPICalls)
+                {
+                    if (drawcall.children == null || drawcall.children.Length == 0)
+                        return false;
+
+                    bool onlyapi = true;
+
+                    foreach (FetchDrawcall child in drawcall.children)
+                    {
+                        if (ShouldHide(core, child))
+                            continue;
+
+                        if (!child.flags.HasFlag(DrawcallFlags.APICalls))
+                        {
+                            onlyapi = false;
+                            break;
+                        }
+                    }
+
+                    if (onlyapi)
+                        return true;
+                }
+            }
+
+            return false;
+        }
+
         private TreelistView.Node AddDrawcall(FetchDrawcall drawcall, TreelistView.Node root)
         {
-            if (m_Core.Config.EventBrowser_HideEmpty)
-            {
-                if ((drawcall.children == null || drawcall.children.Length == 0) && (drawcall.flags & DrawcallFlags.PushMarker) != 0)
-                    return null;
-            }
+            if (EventBrowser.ShouldHide(m_Core, drawcall))
+                return null;
 
             UInt32 eventNum = drawcall.eventID;
             TreelistView.Node drawNode = null;

@@ -90,6 +90,7 @@ namespace renderdocui.Windows.Dialogs
 
             EventBrowser_TimeUnit.SelectedIndex = (int)m_Core.Config.EventBrowser_TimeUnit;
             EventBrowser_HideEmpty.Checked = m_Core.Config.EventBrowser_HideEmpty;
+            EventBrowser_HideAPICalls.Checked = m_Core.Config.EventBrowser_HideAPICalls;
             EventBrowser_ApplyColours.Checked = m_Core.Config.EventBrowser_ApplyColours;
             EventBrowser_ColourEventRow.Checked = m_Core.Config.EventBrowser_ColourEventRow;
 
@@ -206,6 +207,13 @@ namespace renderdocui.Windows.Dialogs
         private void EventBrowser_HideEmpty_CheckedChanged(object sender, EventArgs e)
         {
             m_Core.Config.EventBrowser_HideEmpty = EventBrowser_HideEmpty.Checked;
+
+            m_Core.Config.Serialize(Core.ConfigFilename);
+        }
+
+        private void EventBrowser_HideAPICalls_CheckedChanged(object sender, EventArgs e)
+        {
+            m_Core.Config.EventBrowser_HideAPICalls = EventBrowser_HideAPICalls.Checked;
 
             m_Core.Config.Serialize(Core.ConfigFilename);
         }

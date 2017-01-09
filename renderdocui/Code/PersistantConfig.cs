@@ -263,6 +263,7 @@ namespace renderdocui.Code
 
         public TimeUnit EventBrowser_TimeUnit = TimeUnit.Microseconds;
         public bool EventBrowser_HideEmpty = false;
+        public bool EventBrowser_HideAPICalls = false;
 
         public bool EventBrowser_ApplyColours = true;
         public bool EventBrowser_ColourEventRow = true;

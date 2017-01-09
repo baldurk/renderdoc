@@ -54,6 +54,7 @@
             System.Windows.Forms.GroupBox groupBox4;
             System.Windows.Forms.Label label8;
             System.Windows.Forms.Label label9;
+            System.Windows.Forms.Label label35;
             System.Windows.Forms.Label label16;
             System.Windows.Forms.Label label17;
             System.Windows.Forms.GroupBox groupBox7;
@@ -102,6 +103,7 @@
             this.tableLayoutPanel5 = new System.Windows.Forms.TableLayoutPanel();
             this.EventBrowser_TimeUnit = new System.Windows.Forms.ComboBox();
             this.EventBrowser_HideEmpty = new System.Windows.Forms.CheckBox();
+            this.EventBrowser_HideAPICalls = new System.Windows.Forms.CheckBox();
             this.EventBrowser_ApplyColours = new System.Windows.Forms.CheckBox();
             this.EventBrowser_ColourEventRow = new System.Windows.Forms.CheckBox();
             this.androidTab = new System.Windows.Forms.TabPage();
@@ -137,6 +139,7 @@
             groupBox4 = new System.Windows.Forms.GroupBox();
             label8 = new System.Windows.Forms.Label();
             label9 = new System.Windows.Forms.Label();
+            label35 = new System.Windows.Forms.Label();
             label16 = new System.Windows.Forms.Label();
             label17 = new System.Windows.Forms.Label();
             groupBox7 = new System.Windows.Forms.GroupBox();
@@ -1054,18 +1057,21 @@
             this.tableLayoutPanel5.Controls.Add(this.EventBrowser_TimeUnit, 1, 0);
             this.tableLayoutPanel5.Controls.Add(label9, 0, 1);
             this.tableLayoutPanel5.Controls.Add(this.EventBrowser_HideEmpty, 1, 1);
-            this.tableLayoutPanel5.Controls.Add(label16, 0, 2);
-            this.tableLayoutPanel5.Controls.Add(label17, 0, 3);
-            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_ApplyColours, 1, 2);
-            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_ColourEventRow, 1, 3);
+            this.tableLayoutPanel5.Controls.Add(label35, 0, 2);
+            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_HideAPICalls, 1, 2);
+            this.tableLayoutPanel5.Controls.Add(label16, 0, 3);
+            this.tableLayoutPanel5.Controls.Add(label17, 0, 4);
+            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_ApplyColours, 1, 3);
+            this.tableLayoutPanel5.Controls.Add(this.EventBrowser_ColourEventRow, 1, 4);
             this.tableLayoutPanel5.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel5.Location = new System.Drawing.Point(3, 16);
             this.tableLayoutPanel5.Name = "tableLayoutPanel5";
-            this.tableLayoutPanel5.RowCount = 5;
+            this.tableLayoutPanel5.RowCount = 6;
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
-            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
-            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Absolute, 20F));
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
+            this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel5.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel5.Size = new System.Drawing.Size(331, 383);
             this.tableLayoutPanel5.TabIndex = 0;
@@ -1120,6 +1126,32 @@
         "or drawcalls will be completely removed");
             this.EventBrowser_HideEmpty.UseVisualStyleBackColor = true;
             this.EventBrowser_HideEmpty.CheckedChanged += new System.EventHandler(this.EventBrowser_HideEmpty_CheckedChanged);
+            // 
+            // label35
+            // 
+            label35.Anchor = ((System.Windows.Forms.AnchorStyles)((((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Bottom)
+            | System.Windows.Forms.AnchorStyles.Left)
+            | System.Windows.Forms.AnchorStyles.Right)));
+            label35.AutoSize = true;
+            label35.Location = new System.Drawing.Point(3, 30);
+            label35.Margin = new System.Windows.Forms.Padding(3);
+            label35.Name = "label35";
+            label35.Size = new System.Drawing.Size(258, 14);
+            label35.TabIndex = 7;
+            label35.Text = "Hide marker sections with only non-draw API calls (requires log reload)";
+            label35.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            // 
+            // EventBrowser_HideAPICalls
+            // 
+            this.EventBrowser_HideAPICalls.AutoSize = true;
+            this.EventBrowser_HideAPICalls.Location = new System.Drawing.Point(267, 30);
+            this.EventBrowser_HideAPICalls.Name = "EventBrowser_HideAPICalls";
+            this.EventBrowser_HideAPICalls.Size = new System.Drawing.Size(15, 14);
+            this.EventBrowser_HideAPICalls.TabIndex = 51;
+            this.toolTip.SetToolTip(this.EventBrowser_HideAPICalls, "In the Event Browser and Timeline Bar, marker sections that contain only non-draw " +
+        "API calls - e.g. only queries, or only state setting - will be completely removed");
+            this.EventBrowser_HideAPICalls.UseVisualStyleBackColor = true;
+            this.EventBrowser_HideAPICalls.CheckedChanged += new System.EventHandler(this.EventBrowser_HideAPICalls_CheckedChanged);
             // 
             // label16
             // 
@@ -1402,6 +1434,7 @@
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel5;
         private System.Windows.Forms.ComboBox EventBrowser_TimeUnit;
         private System.Windows.Forms.CheckBox EventBrowser_HideEmpty;
+        private System.Windows.Forms.CheckBox EventBrowser_HideAPICalls;
         private System.Windows.Forms.Button browseTempCaptureDirectory;
         private System.Windows.Forms.FolderBrowserDialog browserCaptureDialog;
         private System.Windows.Forms.CheckBox AllowGlobalHook;

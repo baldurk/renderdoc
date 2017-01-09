@@ -730,7 +730,7 @@ bool WrappedVulkan::Serialise_vkEndCommandBuffer(Serialiser *localSerialiser,
     {
       FetchDrawcall draw;
       draw.name = "API Calls";
-      draw.flags |= eDraw_SetMarker;
+      draw.flags |= eDraw_SetMarker | eDraw_APICalls;
 
       AddDrawcall(draw, true);
 
@@ -2660,7 +2660,7 @@ bool WrappedVulkan::Serialise_vkCmdDebugMarkerEndEXT(Serialiser *localSerialiser
   {
     FetchDrawcall draw;
     draw.name = "API Calls";
-    draw.flags = eDraw_SetMarker;
+    draw.flags = eDraw_SetMarker | eDraw_APICalls;
 
     AddDrawcall(draw, true);
   }

@@ -474,6 +474,7 @@ namespace renderdoc
         ClearDepthStencil = 0x200000,
         BeginPass         = 0x400000,
         EndPass           = 0x800000,
+        APICalls          = 0x1000000,
     };
 
     public enum SolidShadeMode
