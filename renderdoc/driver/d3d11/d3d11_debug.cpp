@@ -1679,6 +1679,12 @@ void D3D11DebugManager::BindOutputWindow(uint64_t id, bool depth)
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
 
+  if(m_RealState.active)
+    RDCERR("Trashing RealState! Mismatched use of BindOutputWindow / FlipOutputWindow");
+
+  m_RealState.active = true;
+  m_RealState.state = *m_WrappedContext->GetCurrentPipelineState();
+
   m_WrappedContext->OMSetRenderTargets(
       1, &m_OutputWindows[id].rtv, depth && m_OutputWindows[id].dsv ? m_OutputWindows[id].dsv : NULL);
 
@@ -1704,6 +1710,17 @@ void D3D11DebugManager::FlipOutputWindow(uint64_t id)
 
   if(m_OutputWindows[id].swap)
     m_OutputWindows[id].swap->Present(0, 0);
+
+  if(m_RealState.active)
+  {
+    m_RealState.active = false;
+    m_RealState.state.ApplyState(m_WrappedContext);
+    m_RealState.state.Clear();
+  }
+  else
+  {
+    RDCERR("RealState wasn't active! Mismatched use of BindOutputWindow / FlipOutputWindow");
+  }
 }
 
 uint32_t D3D11DebugManager::GetStructCount(ID3D11UnorderedAccessView *uav)

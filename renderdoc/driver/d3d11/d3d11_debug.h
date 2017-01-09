@@ -31,6 +31,7 @@
 #include "api/replay/renderdoc_replay.h"
 #include "driver/dx/official/d3d11_4.h"
 #include "driver/shaders/dxbc/dxbc_debug.h"
+#include "d3d11_renderstate.h"
 
 using std::map;
 using std::pair;
@@ -315,6 +316,15 @@ private:
 
   uint64_t m_OutputWindowID;
   map<uint64_t, OutputWindow> m_OutputWindows;
+
+  // used to track the real state so we can preserve it even
+  // across work done to the output windows
+  struct RealState
+  {
+    RealState() : state((Serialiser *)NULL) { active = false; }
+    bool active;
+    D3D11RenderState state;
+  } m_RealState;
 
   static const uint32_t m_ShaderCacheMagic = 0xf000baba;
   static const uint32_t m_ShaderCacheVersion = 3;

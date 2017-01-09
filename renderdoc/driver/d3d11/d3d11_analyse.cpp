@@ -923,7 +923,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
 
   ShaderDebugTrace empty;
 
-  m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
+  D3D11RenderStateTracker tracker(m_WrappedContext);
 
   ID3D11VertexShader *stateVS = NULL;
   m_WrappedContext->VSGetShader(&stateVS, NULL, NULL);
@@ -1266,7 +1266,7 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
 
   ShaderDebugTrace empty;
 
-  m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
+  D3D11RenderStateTracker tracker(m_WrappedContext);
 
   ID3D11PixelShader *statePS = NULL;
   m_WrappedContext->PSGetShader(&statePS, NULL, NULL);
@@ -1799,9 +1799,6 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
     return empty;
   }
 
-  // replay back to where we were, so we don't pick up modifications by this event in UAVs
-  m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
-
   ShaderDebugTrace traces[4];
 
   GlobalState global;
@@ -2183,7 +2180,7 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t eventID, uint32_t group
 
   ShaderDebugTrace empty;
 
-  m_WrappedDevice->ReplayLog(0, eventID, eReplay_WithoutDraw);
+  D3D11RenderStateTracker tracker(m_WrappedContext);
 
   ID3D11ComputeShader *stateCS = NULL;
   m_WrappedContext->CSGetShader(&stateCS, NULL, NULL);
@@ -2654,6 +2651,8 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
                                   uint32_t mip, uint32_t sample, FormatComponentType typeHint,
                                   float pixel[4])
 {
+  D3D11RenderStateTracker tracker(m_WrappedContext);
+
   m_pImmediateContext->OMSetRenderTargets(1, &m_DebugRender.PickPixelRT, NULL);
 
   float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
@@ -2745,6 +2744,8 @@ void D3D11DebugManager::PickPixel(ResourceId texture, uint32_t x, uint32_t y, ui
 byte *D3D11DebugManager::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                                         const GetTextureDataParams &params, size_t &dataSize)
 {
+  D3D11RenderStateTracker tracker(m_WrappedContext);
+
   ID3D11Resource *dummyTex = NULL;
 
   uint32_t subresource = 0;
@@ -3242,6 +3243,8 @@ ResourceId D3D11DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
 
   CreateCustomShaderTex(details.texWidth, details.texHeight);
 
+  D3D11RenderStateTracker tracker(m_WrappedContext);
+
   {
     D3D11_RENDER_TARGET_VIEW_DESC desc;
 
@@ -3368,7 +3371,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
     realTexDesc.SampleDesc.Quality = details.sampleQuality;
   }
 
-  D3D11RenderState old = *m_WrappedContext->GetCurrentPipelineState();
+  D3D11RenderStateTracker tracker(m_WrappedContext);
 
   D3D11_TEXTURE2D_DESC customTexDesc;
   RDCEraseEl(customTexDesc);
@@ -4518,8 +4521,6 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
 
   SAFE_RELEASE(renderDepth);
   SAFE_RELEASE(preDrawDepth);
-
-  old.ApplyState(m_WrappedContext);
 
   return m_OverlayResourceId;
 }
