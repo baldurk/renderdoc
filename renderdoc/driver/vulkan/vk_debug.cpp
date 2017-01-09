@@ -1049,7 +1049,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
     }
 
-    if(!texelFetchBrokenDriver)
+    if(!texelFetchBrokenDriver && m_pDriver->GetDeviceFeatures().shaderStorageImageMultisample &&
+       m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
     {
       compPipeInfo.stage.module = ms2arrayModule;
       compPipeInfo.layout = m_ArrayMSPipeLayout;
@@ -1975,7 +1976,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
-  if(!texelFetchBrokenDriver)
+  if(!texelFetchBrokenDriver && m_pDriver->GetDeviceFeatures().shaderStorageImageMultisample &&
+     m_pDriver->GetDeviceFeatures().shaderStorageImageWriteWithoutFormat)
   {
     compPipeInfo.stage.module = module[MS2ARRAYCS];
     compPipeInfo.layout = m_ArrayMSPipeLayout;
