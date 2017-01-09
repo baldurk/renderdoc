@@ -6,20 +6,14 @@ RenderDoc
 [![Coverity Scan](https://scan.coverity.com/projects/8525/badge.svg)](https://scan.coverity.com/projects/baldurk-renderdoc)
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE.md)
 
-Welcome to RenderDoc - a graphics debugger, currently available for Vulkan, D3D11, D3D12, and OpenGL development on windows. 
+RenderDoc - a graphics debugger, currently available for Vulkan, D3D11, D3D12, and OpenGL development on windows.
 
 If you have any questions, suggestions or problems or you can [create an issue](https://github.com/baldurk/renderdoc/issues/new) here on github, [email me directly](mailto:baldurk@baldurk.org) or [come into IRC](https://kiwiirc.com/client/irc.freenode.net/#renderdoc) to discuss it.
 
-Quick Links:
-
 * **Downloads**: https://renderdoc.org/builds
-* **Documentation**: [renderdoc.chm](https://renderdoc.org/docs/renderdoc.chm) in builds, or https://renderdoc.org/docs
-* **Tutorial Videos**: http://www.youtube.com/user/baldurkarlsson/
-* **Email contact**: [baldurk@baldurk.org](mailto:baldurk@baldurk.org)
-* **IRC channel**: [#renderdoc on freenode](https://kiwiirc.com/client/irc.freenode.net/#renderdoc)
-* **Roadmap/future development**: [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
-* **Starting place for developing/contributing**: [CONTRIBUTING.md](CONTRIBUTING.md)
-* **How to compile**: [Compilation instructions](CONTRIBUTING.md#compiling)
+* **Documentation**: [renderdoc.chm](https://renderdoc.org/docs/renderdoc.chm) in builds, https://renderdoc.org/docs, http://www.youtube.com/user/baldurkarlsson/
+* **Contact**: [baldurk@baldurk.org](mailto:baldurk@baldurk.org), [#renderdoc on freenode IRC](https://kiwiirc.com/client/irc.freenode.net/#renderdoc)
+* **Information for developing/contributing**: [CONTRIBUTING.md](CONTRIBUTING.md), [Compilation instructions](CONTRIBUTING.md#compiling), [Roadmap](https://github.com/baldurk/renderdoc/wiki/Roadmap)
 * **Code of Conduct**: [Contributor Covenant](CODE_OF_CONDUCT.md)
 
 Screenshots
@@ -32,17 +26,15 @@ Screenshots
 API Support
 --------------
 
-|                  | Status                                 | Windows                  | Linux                           |
-| ---------------- | -------------------------------------- | ------------------------ | ------------------------------- |
-| D3D11            | Well supported, all features.          | :heavy_check_mark:       | :heavy_multiplication_x:        |
-| OpenGL 3.2 core+ | Well supported, most features.\*       | :heavy_check_mark:       | :heavy_check_mark: No UI\*\*    |
-| Vulkan           | Well supported, most features.         | :heavy_check_mark:       | :heavy_check_mark: No UI\*\*    |
-| D3D12            | Well supported, most features.         | :heavy_check_mark:       | :heavy_multiplication_x:        |
-| OpenGL Pre-3.2   | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
-| D3D10            | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
-| D3D9             | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
-| OpenGL ES (2&3)  | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
-| Metal            | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+|                            | Status                                 | Windows                  | Linux                           |
+| -------------------------- | -------------------------------------- | ------------------------ | ------------------------------- |
+| D3D11                      | Well supported, all features.          | :heavy_check_mark:       | :heavy_multiplication_x:        |
+| OpenGL 3.2 core+           | Well supported, most features.\*       | :heavy_check_mark:       | :heavy_check_mark: WIP UI\*\*   |
+| Vulkan                     | Well supported, most features.         | :heavy_check_mark:       | :heavy_check_mark: WIP UI\*\*   |
+| D3D12                      | Well supported, most features.         | :heavy_check_mark:       | :heavy_multiplication_x:        |
+| OpenGL Compatibility, GLES | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| D3D9 & 10                  | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+| Metal                      | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
 
 * D3D11 has full feature support and is stable & tested. Feature Level 11 hardware is assumed - Radeon 4000/5000+, GeForce 400+, Intel Ivy Bridge, falling back to WARP software emulation if this hardware isn't present.
 * \*OpenGL is only explicitly supported for the core profile 3.2+ subset of features, check the [OpenGL wiki page](https://github.com/baldurk/renderdoc/wiki/OpenGL) for details.
