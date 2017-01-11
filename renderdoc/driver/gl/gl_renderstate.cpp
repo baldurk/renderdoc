@@ -397,48 +397,61 @@ void GLRenderState::MarkDirty(WrappedOpenGL *gl)
   void *ctx = gl->GetCtx();
 
   GLint maxCount = 0;
-  m_Real->glGetIntegerv(eGL_MAX_IMAGE_UNITS, &maxCount);
-
   GLuint name = 0;
 
-  for(GLint i = 0; i < maxCount; i++)
   {
-    name = 0;
+    m_Real->glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
 
-    m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_NAME, i, (GLint *)&name);
+    for(GLint i = 0; i < maxCount; i++)
+    {
+      name = 0;
+      m_Real->glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint *)&name);
 
-    if(name)
-      manager->MarkDirtyResource(TextureRes(ctx, name));
+      if(name)
+        manager->MarkDirtyResource(BufferRes(ctx, name));
+    }
   }
 
-  m_Real->glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
-
-  for(GLint i = 0; i < maxCount; i++)
+  if(GLCoreVersion >= 42 || ExtensionSupported[GLExt_ARB_image_load_store])
   {
-    m_Real->glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint *)&name);
+    m_Real->glGetIntegerv(eGL_MAX_IMAGE_UNITS, &maxCount);
 
-    if(name)
-      manager->MarkDirtyResource(BufferRes(ctx, name));
+    for(GLint i = 0; i < maxCount; i++)
+    {
+      name = 0;
+      m_Real->glGetIntegeri_v(eGL_IMAGE_BINDING_NAME, i, (GLint *)&name);
+
+      if(name)
+        manager->MarkDirtyResource(TextureRes(ctx, name));
+    }
   }
 
-  m_Real->glGetIntegerv(eGL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &maxCount);
-
-  for(GLint i = 0; i < maxCount; i++)
+  if(GLCoreVersion >= 42 || ExtensionSupported[GLExt_ARB_shader_atomic_counters])
   {
-    m_Real->glGetIntegeri_v(eGL_ATOMIC_COUNTER_BUFFER_BINDING, i, (GLint *)&name);
+    m_Real->glGetIntegerv(eGL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &maxCount);
 
-    if(name)
-      manager->MarkDirtyResource(BufferRes(ctx, name));
+    for(GLint i = 0; i < maxCount; i++)
+    {
+      name = 0;
+      m_Real->glGetIntegeri_v(eGL_ATOMIC_COUNTER_BUFFER_BINDING, i, (GLint *)&name);
+
+      if(name)
+        manager->MarkDirtyResource(BufferRes(ctx, name));
+    }
   }
 
-  m_Real->glGetIntegerv(eGL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxCount);
-
-  for(GLint i = 0; i < maxCount; i++)
+  if(GLCoreVersion >= 43 || ExtensionSupported[GLExt_ARB_shader_storage_buffer_object])
   {
-    m_Real->glGetIntegeri_v(eGL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint *)&name);
+    m_Real->glGetIntegerv(eGL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxCount);
 
-    if(name)
-      manager->MarkDirtyResource(BufferRes(ctx, name));
+    for(GLint i = 0; i < maxCount; i++)
+    {
+      name = 0;
+      m_Real->glGetIntegeri_v(eGL_SHADER_STORAGE_BUFFER_BINDING, i, (GLint *)&name);
+
+      if(name)
+        manager->MarkDirtyResource(BufferRes(ctx, name));
+    }
   }
 
   m_Real->glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &maxCount);
