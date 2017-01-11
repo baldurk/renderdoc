@@ -196,7 +196,8 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 
   // AMD throws an error if we try to copy the mips that are smaller than 4x4,
   if(gl.glGetError && gl.glGenTextures && gl.glBindTexture && gl.glCopyImageSubData &&
-     gl.glTexStorage2D && gl.glTexSubImage2D && gl.glTexParameteri && gl.glDeleteTextures)
+     gl.glTexStorage2D && gl.glTexSubImage2D && gl.glTexParameteri && gl.glDeleteTextures &&
+     (GLCoreVersion >= 43 || ExtensionSupported[GLExt_ARB_copy_image]))
   {
     GLuint texs[2];
     gl.glGenTextures(2, texs);
@@ -303,7 +304,9 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
   }
 
   if(gl.glGetError && gl.glGenProgramPipelines && gl.glDeleteProgramPipelines &&
-     gl.glGetProgramPipelineiv)
+     gl.glGetProgramPipelineiv &&
+     (ExtensionSupported[GLExt_ARB_compute_shader] || GLCoreVersion >= 43) &&
+     (ExtensionSupported[GLExt_ARB_program_interface_query] || GLCoreVersion >= 43))
   {
     GLuint pipe = 0;
     gl.glGenProgramPipelines(1, &pipe);
