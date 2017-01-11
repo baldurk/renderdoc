@@ -498,11 +498,13 @@ public:
       PFNGLXISDIRECTPROC glXIsDirectProc = (PFNGLXISDIRECTPROC)dlsym(RTLD_NEXT, "glXIsDirect");
       PFNGLXCHOOSEFBCONFIGPROC glXChooseFBConfigProc =
           (PFNGLXCHOOSEFBCONFIGPROC)dlsym(RTLD_NEXT, "glXChooseFBConfig");
+      PFNGLXCREATEPBUFFERPROC glXCreatePbufferProc =
+          (PFNGLXCREATEPBUFFERPROC)dlsym(RTLD_NEXT, "glXCreatePbuffer");
 
       if(glXIsDirectProc)
         is_direct = glXIsDirectProc(share.dpy, share.ctx);
 
-      if(glXChooseFBConfigProc)
+      if(glXChooseFBConfigProc && glXCreatePbufferProc)
       {
         // don't need to care about the fb config as we won't be using the default framebuffer
         // (backbuffer)
@@ -511,8 +513,12 @@ public:
         GLXFBConfig *fbcfg =
             glXChooseFBConfigProc(share.dpy, DefaultScreen(share.dpy), visAttribs, &numCfgs);
 
+        // don't care about pbuffer properties as we won't render directly to this
+        int pbAttribs[] = {GLX_PBUFFER_WIDTH, 32, GLX_PBUFFER_HEIGHT, 32, 0};
+
         if(fbcfg)
         {
+          ret.wnd = glXCreatePbufferProc(share.dpy, fbcfg[0], pbAttribs);
           ret.dpy = share.dpy;
           ret.ctx =
               glXCreateContextAttribsARB_real(share.dpy, fbcfg[0], share.ctx, is_direct, attribs);
@@ -524,6 +530,12 @@ public:
 
   void DeleteContext(GLWindowingData context)
   {
+    PFNGLXDESTROYPBUFFERPROC glXDestroyPbufferProc =
+        (PFNGLXDESTROYPBUFFERPROC)dlsym(RTLD_NEXT, "glXDestroyPbuffer");
+
+    if(context.wnd && glXDestroyPbufferProc)
+      glXDestroyPbufferProc(context.dpy, context.wnd);
+
     if(context.ctx && glXDestroyContext_real)
       glXDestroyContext_real(context.dpy, context.ctx);
   }
