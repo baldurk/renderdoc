@@ -1301,6 +1301,10 @@ string ToStrHelper<false, VkPipelineStageFlagBits>::Get(const VkPipelineStageFla
     ret += " | VK_PIPELINE_STAGE_TRANSFER_BIT";
   if(el & VK_PIPELINE_STAGE_HOST_BIT)
     ret += " | VK_PIPELINE_STAGE_HOST_BIT";
+  if(el & VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT)
+    ret += " | VK_PIPELINE_STAGE_ALL_GRAPHICS_BIT";
+  if(el & VK_PIPELINE_STAGE_ALL_COMMANDS_BIT)
+    ret += " | VK_PIPELINE_STAGE_ALL_COMMANDS_BIT";
 
   if(!ret.empty())
     ret = ret.substr(3);
