@@ -30,6 +30,41 @@
 #include "serialise/serialiser.h"
 #include "serialise/string_utils.h"
 
+WrappedID3D11Device *MarkerRegion::device;
+
+MarkerRegion::MarkerRegion(const std::string &marker)
+{
+  if(device == NULL)
+    return;
+
+  ID3DUserDefinedAnnotation *annot = device->GetAnnotations();
+
+  if(annot)
+    annot->BeginEvent(StringFormat::UTF82Wide(marker).c_str());
+}
+
+void MarkerRegion::Set(const std::string &marker)
+{
+  if(device == NULL)
+    return;
+
+  ID3DUserDefinedAnnotation *annot = device->GetAnnotations();
+
+  if(annot)
+    annot->SetMarker(StringFormat::UTF82Wide(marker).c_str());
+}
+
+MarkerRegion::~MarkerRegion()
+{
+  if(device == NULL)
+    return;
+
+  ID3DUserDefinedAnnotation *annot = device->GetAnnotations();
+
+  if(annot)
+    annot->EndEvent();
+}
+
 static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var, uint32_t &offset);
 
 static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type, uint32_t &offset)

@@ -37,6 +37,16 @@
 class WrappedID3D11Device;
 struct D3D11RenderState;
 
+// replay only class for handling marker regions
+struct MarkerRegion
+{
+  MarkerRegion(const std::string &marker);
+  ~MarkerRegion();
+  static void Set(const std::string &marker);
+
+  static WrappedID3D11Device *device;
+};
+
 ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc);
 
 template <class T>

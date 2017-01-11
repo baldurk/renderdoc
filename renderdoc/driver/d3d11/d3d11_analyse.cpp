@@ -4690,6 +4690,10 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
   if(details.texFmt == DXGI_FORMAT_UNKNOWN)
     return history;
 
+  MarkerRegion historyMarker(
+      StringFormat::Fmt("Doing PixelHistory on %llu, (%u,%u) %u, %u, %u over %u events", target, x,
+                        y, slice, mip, sampleIdx, (uint32_t)events.size()));
+
   details.texFmt = GetNonSRGBFormat(details.texFmt);
   details.texFmt = GetTypedFormat(details.texFmt, typeHint);
 
@@ -6427,8 +6431,13 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     if(draw->flags & eDraw_Clear)
       continue;
 
+    MarkerRegion historyData(
+        StringFormat::Fmt("Fetching history data for %u: %s", draw->eventID, draw->name.c_str()));
+
     if(prev != history[h].eventID)
     {
+      MarkerRegion predraw("fetching pre-draw");
+
       m_WrappedDevice->ReplayLog(0, history[h].eventID, eReplay_WithoutDraw);
       prev = history[h].eventID;
 
@@ -6561,6 +6570,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     // if we're not the last modification in our event, need to fetch post fragment value
     if(h + 1 < history.size() && history[h].eventID == history[h + 1].eventID)
     {
+      MarkerRegion middraw("fetching mid-draw");
+
       m_pImmediateContext->OMSetRenderTargets(rtIndex + 1, RTVs, shaddepthOutputDSV);
 
       m_WrappedDevice->ReplayLog(0, history[h].eventID, eReplay_OnlyDraw);
@@ -6583,6 +6594,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
       // fetch shader output value
       {
+        MarkerRegion shadout("fetching shader-out");
+
         ID3D11RenderTargetView *sparseRTVs[8] = {0};
         sparseRTVs[rtIndex] = shadOutputRTV;
         m_pImmediateContext->OMSetRenderTargets(rtIndex + 1, sparseRTVs, shaddepthOutputDSV);
@@ -6603,6 +6616,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
       // fetch primitive ID
       {
+        MarkerRegion primid("fetching prim ID");
+
         m_pImmediateContext->OMSetRenderTargets(1, &shadOutputRTV, shaddepthOutputDSV);
 
         m_pImmediateContext->PSGetShader(&curPS, curInst, &curNumInst);

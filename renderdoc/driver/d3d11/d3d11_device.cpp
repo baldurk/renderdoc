@@ -364,6 +364,8 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
     m_State = READING;
     m_pSerialiser = NULL;
 
+    MarkerRegion::device = this;
+
     string shaderSearchPathString = RenderDoc::Inst().GetConfigSetting("shader.debug.searchPaths");
     split(shaderSearchPathString, m_ShaderSearchPaths, ';');
 
@@ -406,6 +408,11 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
 
   realDevice->QueryInterface(__uuidof(ID3D11InfoQueue), (void **)&m_pInfoQueue);
   realDevice->QueryInterface(__uuidof(ID3D11Debug), (void **)&m_WrappedDebug.m_pDebug);
+
+  // useful for marking regions during replay for self-captures
+  m_RealAnnotations = NULL;
+  m_pImmediateContext->GetReal()->QueryInterface(__uuidof(ID3DUserDefinedAnnotation),
+                                                 (void **)&m_RealAnnotations);
 
   if(m_pInfoQueue)
   {
@@ -473,6 +480,8 @@ WrappedID3D11Device::~WrappedID3D11Device()
   if(m_pCurrentWrappedDevice == this)
     m_pCurrentWrappedDevice = NULL;
 
+  MarkerRegion::device = NULL;
+
   RenderDoc::Inst().RemoveDeviceFrameCapturer((ID3D11Device *)this);
 
   for(auto it = m_CachedStateObjects.begin(); it != m_CachedStateObjects.end(); ++it)
@@ -485,6 +494,8 @@ WrappedID3D11Device::~WrappedID3D11Device()
   SAFE_RELEASE(m_pDevice2);
   SAFE_RELEASE(m_pDevice3);
   SAFE_RELEASE(m_pDevice4);
+
+  SAFE_RELEASE(m_RealAnnotations);
 
   SAFE_RELEASE(m_pImmediateContext);
 
@@ -2448,6 +2459,7 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   if(!partial)
   {
+    MarkerRegion apply("ApplyInitialContents");
     GetResourceManager()->ApplyInitialContents();
     GetResourceManager()->ReleaseInFrameResources();
   }
@@ -2455,13 +2467,27 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
   m_State = EXECUTING;
 
   if(replayType == eReplay_Full)
+  {
+    MarkerRegion exec(
+        StringFormat::Fmt("Replay: Full %u->%u (partial %u)", startEventID, endEventID, partial));
     m_pImmediateContext->ReplayLog(EXECUTING, startEventID, endEventID, partial);
+  }
   else if(replayType == eReplay_WithoutDraw)
+  {
+    MarkerRegion exec(StringFormat::Fmt("Replay: W/O Draw %u->%u (partial %u)", startEventID,
+                                        endEventID, partial));
     m_pImmediateContext->ReplayLog(EXECUTING, startEventID, RDCMAX(1U, endEventID) - 1, partial);
+  }
   else if(replayType == eReplay_OnlyDraw)
+  {
+    MarkerRegion exec(StringFormat::Fmt("Replay: Draw Only %u->%u (partial %u)", startEventID,
+                                        endEventID, partial));
     m_pImmediateContext->ReplayLog(EXECUTING, endEventID, endEventID, partial);
+  }
   else
+  {
     RDCFATAL("Unexpected replay type");
+  }
 }
 
 void WrappedID3D11Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap, UINT QueueCount,
