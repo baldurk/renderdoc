@@ -1198,8 +1198,17 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
       vector<string> vs;
       vector<string> fs;
 
-      GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_text_vert), 420);
-      GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_text_frag), 420);
+      GenerateGLSLShader(vs, eShaderGLSL,
+                         "#extension GL_ARB_shading_language_420pack : require\n"
+                         "#extension GL_ARB_separate_shader_objects : require\n"
+                         "#extension GL_ARB_explicit_attrib_location : require\n",
+                         GetEmbeddedResource(glsl_text_vert), 150);
+
+      GenerateGLSLShader(fs, eShaderGLSL,
+                         "#extension GL_ARB_shading_language_420pack : require\n"
+                         "#extension GL_ARB_separate_shader_objects : require\n"
+                         "#extension GL_ARB_explicit_attrib_location : require\n",
+                         GetEmbeddedResource(glsl_text_frag), 150);
 
       vector<const char *> vsc;
       vsc.reserve(vs.size());
