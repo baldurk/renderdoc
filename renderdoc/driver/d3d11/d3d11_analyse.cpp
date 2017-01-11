@@ -4759,9 +4759,14 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
      details.texFmt == DXGI_FORMAT_D32_FLOAT_S8X24_UINT)
     details.texFmt = DXGI_FORMAT_R32G32B32A32_UINT;
 
-  // define a texture that we can copy before/after results into
+  // define a texture that we can copy before/after results into.
+  // We always allocate at least 2048 slots, to allow for pixel history that only touches a couple
+  // of events still being able to overdraw many times. The idea being that if we're taking the
+  // history over many events, then the events which don't take up any slots or only one will mostly
+  // dominate over those that take more than the average. If we only have one or two candidate
+  // events then at least 2048 slots gives a huge amount of potential overdraw.
   D3D11_TEXTURE2D_DESC pixstoreDesc = {
-      RDCMIN(2048U, AlignUp16(pixstoreSlots)),
+      2048U,
       RDCMAX(1U, (pixstoreSlots / 2048) + 1),
       1U,
       1U,
