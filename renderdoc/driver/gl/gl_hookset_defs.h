@@ -133,10 +133,10 @@
   HookExtension(PFNGLMULTIDRAWELEMENTSPROC, glMultiDrawElements); \
   HookExtension(PFNGLPOINTPARAMETERFPROC, glPointParameterf); \
   HookExtensionAlias(PFNGLPOINTPARAMETERFPROC, glPointParameterf, glPointParameterfARB); \
-  HookExtensionAlias(PFNGLPOINTPARAMETERFPROC, glPointParameterf, aliases glPointParameterfEXT); \
+  HookExtensionAlias(PFNGLPOINTPARAMETERFPROC, glPointParameterf, glPointParameterfEXT); \
   HookExtension(PFNGLPOINTPARAMETERFVPROC, glPointParameterfv); \
   HookExtensionAlias(PFNGLPOINTPARAMETERFVPROC, glPointParameterfv, glPointParameterfvARB); \
-  HookExtensionAlias(PFNGLPOINTPARAMETERFVPROC, glPointParameterfv, aliases glPointParameterfvEXT); \
+  HookExtensionAlias(PFNGLPOINTPARAMETERFVPROC, glPointParameterfv, glPointParameterfvEXT); \
   HookExtension(PFNGLPOINTPARAMETERIPROC, glPointParameteri); \
   HookExtension(PFNGLPOINTPARAMETERIVPROC, glPointParameteriv); \
   HookExtension(PFNGLBLENDCOLORPROC, glBlendColor); \
@@ -2785,8 +2785,6 @@
     HookWrapper3(void, glpixeltransformparameterfvext, GLenum, target, GLenum, pname, const GLfloat *, params); \
     HookWrapper3(void, glgetpixeltransformparameterivext, GLenum, target, GLenum, pname, GLint *, params); \
     HookWrapper3(void, glgetpixeltransformparameterfvext, GLenum, target, GLenum, pname, GLfloat *, params); \
-    HookWrapper2(void, glpointparameterfext, GLenum, pname, GLfloat, param); \
-    HookWrapper2(void, glpointparameterfvext, GLenum, pname, const GLfloat *, params); \
     HookWrapper2(void, glpolygonoffsetext, GLfloat, factor, GLfloat, bias); \
     HookWrapper3(void, glsecondarycolor3bext, GLbyte, red, GLbyte, green, GLbyte, blue); \
     HookWrapper1(void, glsecondarycolor3bvext, const GLbyte *, v); \
@@ -4600,8 +4598,6 @@
     HandleUnsupported(PFNGLPIXELTRANSFORMPARAMETERFVEXTPROC, glpixeltransformparameterfvext); \
     HandleUnsupported(PFNGLGETPIXELTRANSFORMPARAMETERIVEXTPROC, glgetpixeltransformparameterivext); \
     HandleUnsupported(PFNGLGETPIXELTRANSFORMPARAMETERFVEXTPROC, glgetpixeltransformparameterfvext); \
-    HandleUnsupported(PFNGLPOINTPARAMETERFEXTPROC, glpointparameterfext); \
-    HandleUnsupported(PFNGLPOINTPARAMETERFVEXTPROC, glpointparameterfvext); \
     HandleUnsupported(PFNGLPOLYGONOFFSETEXTPROC, glpolygonoffsetext); \
     HandleUnsupported(PFNGLSECONDARYCOLOR3BEXTPROC, glsecondarycolor3bext); \
     HandleUnsupported(PFNGLSECONDARYCOLOR3BVEXTPROC, glsecondarycolor3bvext); \

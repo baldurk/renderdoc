@@ -32,8 +32,8 @@
 struct GLHookSet
 {
   // first we list all the core functions. 1.1 functions are separate under 'dllexport' for
-  // different handling on windows. Extensions come after
-  // Any corefunctions that are semantically identical to extension variants are listed as
+  // different handling on windows. Extensions come after.
+  // Any Core functions that are semantically identical to extension variants are listed as
   // 'aliases' such that if the 'alias' is requested via *GetProcAddress, the core function
   // will be returned and used.
 
@@ -452,8 +452,8 @@ struct GLHookSet
   PFNGLSAMPLERPARAMETERIUIVPROC glSamplerParameterIuiv;
   PFNGLPATCHPARAMETERIPROC glPatchParameteri;
   PFNGLPATCHPARAMETERFVPROC glPatchParameterfv;
-  PFNGLPOINTPARAMETERFPROC glPointParameterf;    // aliases glPointParameterfARB, aliases glPointParameterfEXT
-  PFNGLPOINTPARAMETERFVPROC glPointParameterfv;    // aliases glPointParameterfvARB, aliases glPointParameterfvEXT
+  PFNGLPOINTPARAMETERFPROC glPointParameterf;    // aliases glPointParameterfARB, glPointParameterfEXT
+  PFNGLPOINTPARAMETERFVPROC glPointParameterfv;    // aliases glPointParameterfvARB, glPointParameterfvEXT
   PFNGLPOINTPARAMETERIPROC glPointParameteri;
   PFNGLPOINTPARAMETERIVPROC glPointParameteriv;
   PFNGLDISPATCHCOMPUTEPROC glDispatchCompute;
