@@ -125,8 +125,8 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
     }
   }
 
-  if(gl.glGetIntegerv && gl.glGenTextures && gl.glBindTexture && gl.glTextureStorage2DEXT &&
-     gl.glGetTextureLevelParameterivEXT && gl.glDeleteTextures)
+  if(gl.glGetIntegerv && gl.glGenTextures && gl.glBindTexture && gl.glCompressedTexImage2D &&
+     gl.glGetTexLevelParameteriv && gl.glDeleteTextures)
   {
     // We need to determine if GL_TEXTURE_COMPRESSED_IMAGE_SIZE for a compressed cubemap face target
     // will return the size of the whole cubemap, or just one face. Since we fetch the cubemap
@@ -149,13 +149,23 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
     gl.glGenTextures(1, &dummy);
     gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, dummy);
 
-    gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, prevtex);
-
-    gl.glTextureStorage2DEXT(dummy, eGL_TEXTURE_CUBE_MAP, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 4, 4);
+    byte empty[8] = {};
+    gl.glCompressedTexImage2D(eGL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
+                              4, 4, 0, 8, empty);
+    gl.glCompressedTexImage2D(eGL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
+                              4, 4, 0, 8, empty);
+    gl.glCompressedTexImage2D(eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
+                              4, 4, 0, 8, empty);
+    gl.glCompressedTexImage2D(eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
+                              4, 4, 0, 8, empty);
+    gl.glCompressedTexImage2D(eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
+                              4, 4, 0, 8, empty);
+    gl.glCompressedTexImage2D(eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
+                              4, 4, 0, 8, empty);
 
     GLint compSize = 0;
-    gl.glGetTextureLevelParameterivEXT(dummy, eGL_TEXTURE_CUBE_MAP_POSITIVE_X, 0,
-                                       eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compSize);
+    gl.glGetTexLevelParameteriv(eGL_TEXTURE_CUBE_MAP_POSITIVE_X, 0,
+                                eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compSize);
 
     if(compSize == 8)
     {
@@ -173,6 +183,8 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
     }
 
     gl.glDeleteTextures(1, &dummy);
+
+    gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, prevtex);
   }
 
   if(gl.glGetIntegerv && gl.glGetError)
