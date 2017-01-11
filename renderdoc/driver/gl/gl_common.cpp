@@ -28,7 +28,7 @@
 #include "serialise/string_utils.h"
 #include "gl_driver.h"
 
-bool ExtensionSupported[ExtensionSupported_Count];
+bool ExtensionSupported[GLExt_Count];
 bool VendorCheck[VendorCheck_Count];
 
 int GLCoreVersion = 0;
@@ -71,7 +71,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 
 #define EXT_CHECK(extname)             \
   if(!strcmp(ext, STRINGIZE(extname))) \
-    ExtensionSupported[CONCAT(ExtensionSupported_, extname)] = true;
+    ExtensionSupported[CONCAT(GLExt_, extname)] = true;
 
       EXT_CHECK(ARB_clip_control);
       EXT_CHECK(ARB_enhanced_layouts);
@@ -80,6 +80,12 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
       EXT_CHECK(EXT_raster_multisample);
       EXT_CHECK(ARB_indirect_parameters);
       EXT_CHECK(EXT_depth_bounds_test);
+      EXT_CHECK(ARB_compute_shader);
+      EXT_CHECK(ARB_program_interface_query);
+      EXT_CHECK(ARB_image_load_store);
+      EXT_CHECK(ARB_copy_image);
+      EXT_CHECK(ARB_shader_atomic_counters);
+      EXT_CHECK(ARB_shader_storage_buffer_object);
 
 #undef EXT_CHECK
     }

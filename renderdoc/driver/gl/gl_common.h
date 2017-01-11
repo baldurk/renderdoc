@@ -190,16 +190,22 @@ extern bool GLIsCore;
 // extensions we know we want to check for are precached, indexd by this enum
 enum ExtensionCheckEnum
 {
-  ExtensionSupported_ARB_enhanced_layouts = 0,
-  ExtensionSupported_ARB_clip_control,
-  ExtensionSupported_EXT_polygon_offset_clamp,
-  ExtensionSupported_KHR_blend_equation_advanced_coherent,
-  ExtensionSupported_EXT_raster_multisample,
-  ExtensionSupported_ARB_indirect_parameters,
-  ExtensionSupported_EXT_depth_bounds_test,
-  ExtensionSupported_Count,
+  GLExt_ARB_enhanced_layouts = 0,
+  GLExt_ARB_clip_control,
+  GLExt_EXT_polygon_offset_clamp,
+  GLExt_KHR_blend_equation_advanced_coherent,
+  GLExt_EXT_raster_multisample,
+  GLExt_ARB_indirect_parameters,
+  GLExt_EXT_depth_bounds_test,
+  GLExt_ARB_compute_shader,
+  GLExt_ARB_program_interface_query,
+  GLExt_ARB_image_load_store,
+  GLExt_ARB_copy_image,
+  GLExt_ARB_shader_atomic_counters,
+  GLExt_ARB_shader_storage_buffer_object,
+  GLExt_Count,
 };
-extern bool ExtensionSupported[ExtensionSupported_Count];
+extern bool ExtensionSupported[GLExt_Count];
 
 // for some things we need to know how a specific implementation behaves to work around it
 // or adjust things. We centralise that here (similar to extensions)

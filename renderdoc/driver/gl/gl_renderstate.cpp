@@ -553,21 +553,19 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
     for(GLuint i = 0; i < eEnabled_Count; i++)
     {
       if(pnames[i] == eGL_BLEND_ADVANCED_COHERENT_KHR &&
-         !ExtensionSupported[ExtensionSupported_KHR_blend_equation_advanced_coherent])
+         !ExtensionSupported[GLExt_KHR_blend_equation_advanced_coherent])
       {
         Enabled[i] = true;
         continue;
       }
 
-      if(pnames[i] == eGL_RASTER_MULTISAMPLE_EXT &&
-         !ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
+      if(pnames[i] == eGL_RASTER_MULTISAMPLE_EXT && !ExtensionSupported[GLExt_EXT_raster_multisample])
       {
         Enabled[i] = false;
         continue;
       }
 
-      if(pnames[i] == eGL_DEPTH_BOUNDS_TEST_EXT &&
-         !ExtensionSupported[ExtensionSupported_EXT_depth_bounds_test])
+      if(pnames[i] == eGL_DEPTH_BOUNDS_TEST_EXT && !ExtensionSupported[GLExt_EXT_depth_bounds_test])
       {
         Enabled[i] = false;
         continue;
@@ -640,7 +638,7 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
   m_Real->glGetFloatv(eGL_POINT_SIZE, &PointSize);
 
   m_Real->glGetIntegerv(eGL_PRIMITIVE_RESTART_INDEX, (GLint *)&PrimitiveRestartIndex);
-  if(GLCoreVersion >= 45 || ExtensionSupported[ExtensionSupported_ARB_clip_control])
+  if(GLCoreVersion >= 45 || ExtensionSupported[GLExt_ARB_clip_control])
   {
     m_Real->glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
     m_Real->glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
@@ -694,7 +692,7 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
                         (GLint *)&BufferBindings[eBufIdx_Pixel_Unpack]);
   m_Real->glGetIntegerv(eGL_QUERY_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Query]);
   m_Real->glGetIntegerv(eGL_TEXTURE_BUFFER_BINDING, (GLint *)&BufferBindings[eBufIdx_Texture]);
-  if(ExtensionSupported[ExtensionSupported_ARB_indirect_parameters])
+  if(ExtensionSupported[GLExt_ARB_indirect_parameters])
     m_Real->glGetIntegerv(eGL_PARAMETER_BUFFER_BINDING_ARB,
                           (GLint *)&BufferBindings[eBufIdx_Parameter]);
 
@@ -791,7 +789,7 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
   for(GLuint i = 0; i < (GLuint)ARRAY_COUNT(DepthRanges); i++)
     m_Real->glGetDoublei_v(eGL_DEPTH_RANGE, i, &DepthRanges[i].nearZ);
 
-  if(ExtensionSupported[ExtensionSupported_EXT_depth_bounds_test])
+  if(ExtensionSupported[GLExt_EXT_depth_bounds_test])
   {
     m_Real->glGetDoublev(eGL_DEPTH_BOUNDS_TEST_EXT, &DepthBounds.nearZ);
   }
@@ -840,12 +838,12 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
   SampleCoverageInvert = (boolread != 0);
   m_Real->glGetFloatv(eGL_MIN_SAMPLE_SHADING_VALUE, &MinSampleShading);
 
-  if(ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
+  if(ExtensionSupported[GLExt_EXT_raster_multisample])
     m_Real->glGetIntegerv(eGL_RASTER_SAMPLES_EXT, (GLint *)&RasterSamples);
   else
     RasterSamples = 0;
 
-  if(ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
+  if(ExtensionSupported[GLExt_EXT_raster_multisample])
     m_Real->glGetIntegerv(eGL_RASTER_FIXED_SAMPLE_LOCATIONS_EXT, (GLint *)&RasterFixed);
   else
     RasterFixed = false;
@@ -876,7 +874,7 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 
   m_Real->glGetFloatv(eGL_POLYGON_OFFSET_FACTOR, &PolygonOffset[0]);
   m_Real->glGetFloatv(eGL_POLYGON_OFFSET_UNITS, &PolygonOffset[1]);
-  if(ExtensionSupported[ExtensionSupported_EXT_polygon_offset_clamp])
+  if(ExtensionSupported[GLExt_EXT_polygon_offset_clamp])
     m_Real->glGetFloatv(eGL_POLYGON_OFFSET_CLAMP_EXT, &PolygonOffset[2]);
   else
     PolygonOffset[2] = 0.0f;
@@ -937,15 +935,13 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
     for(GLuint i = 0; i < eEnabled_Count; i++)
     {
       if(pnames[i] == eGL_BLEND_ADVANCED_COHERENT_KHR &&
-         !ExtensionSupported[ExtensionSupported_KHR_blend_equation_advanced_coherent])
+         !ExtensionSupported[GLExt_KHR_blend_equation_advanced_coherent])
         continue;
 
-      if(pnames[i] == eGL_RASTER_MULTISAMPLE_EXT &&
-         !ExtensionSupported[ExtensionSupported_EXT_raster_multisample])
+      if(pnames[i] == eGL_RASTER_MULTISAMPLE_EXT && !ExtensionSupported[GLExt_EXT_raster_multisample])
         continue;
 
-      if(pnames[i] == eGL_DEPTH_BOUNDS_TEST_EXT &&
-         !ExtensionSupported[ExtensionSupported_EXT_depth_bounds_test])
+      if(pnames[i] == eGL_DEPTH_BOUNDS_TEST_EXT && !ExtensionSupported[GLExt_EXT_depth_bounds_test])
         continue;
 
       if(Enabled[i])
@@ -1025,7 +1021,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
   m_Real->glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, BufferBindings[eBufIdx_Pixel_Unpack]);
   m_Real->glBindBuffer(eGL_QUERY_BUFFER, BufferBindings[eBufIdx_Query]);
   m_Real->glBindBuffer(eGL_TEXTURE_BUFFER, BufferBindings[eBufIdx_Texture]);
-  if(ExtensionSupported[ExtensionSupported_ARB_indirect_parameters])
+  if(ExtensionSupported[GLExt_ARB_indirect_parameters])
     m_Real->glBindBuffer(eGL_PARAMETER_BUFFER_ARB, BufferBindings[eBufIdx_Parameter]);
 
   struct
@@ -1186,7 +1182,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
   m_Real->glSampleCoverage(SampleCoverage, SampleCoverageInvert ? GL_TRUE : GL_FALSE);
   m_Real->glMinSampleShading(MinSampleShading);
 
-  if(ExtensionSupported[ExtensionSupported_EXT_raster_multisample] && m_Real->glRasterSamplesEXT)
+  if(ExtensionSupported[GLExt_EXT_raster_multisample] && m_Real->glRasterSamplesEXT)
     m_Real->glRasterSamplesEXT(RasterSamples, RasterFixed);
 
   m_Real->glLogicOp(LogicOp);
@@ -1199,8 +1195,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
   m_Real->glPatchParameterfv(eGL_PATCH_DEFAULT_OUTER_LEVEL, PatchParams.defaultOuterLevel);
 
   m_Real->glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
-  if(ExtensionSupported[ExtensionSupported_EXT_polygon_offset_clamp] &&
-     m_Real->glPolygonOffsetClampEXT)
+  if(ExtensionSupported[GLExt_EXT_polygon_offset_clamp] && m_Real->glPolygonOffsetClampEXT)
     m_Real->glPolygonOffsetClampEXT(PolygonOffset[0], PolygonOffset[1], PolygonOffset[2]);
   else
     m_Real->glPolygonOffset(PolygonOffset[0], PolygonOffset[1]);
