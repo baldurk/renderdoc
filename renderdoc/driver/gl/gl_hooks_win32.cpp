@@ -56,7 +56,8 @@ void EmulateUnsupportedFunctions(GLHookSet *hooks);
 #define HookExtensionAlias(funcPtrType, function, alias) \
   if(!strcmp(func, STRINGIZE(alias)))                    \
   {                                                      \
-    glhooks.GL.function = (funcPtrType)realFunc;         \
+    if(OpenGLHook::glhooks.GL.function == NULL)          \
+      glhooks.GL.function = (funcPtrType)realFunc;       \
     return (PROC)&glhooks.CONCAT(function, _hooked);     \
   }
 

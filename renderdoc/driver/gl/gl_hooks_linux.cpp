@@ -75,7 +75,8 @@ void *libGLdlsymHandle =
 #define HookExtensionAlias(funcPtrType, function, alias)          \
   if(!strcmp(func, STRINGIZE(alias)))                             \
   {                                                               \
-    OpenGLHook::glhooks.GL.function = (funcPtrType)realFunc;      \
+    if(OpenGLHook::glhooks.GL.function == NULL)                   \
+      OpenGLHook::glhooks.GL.function = (funcPtrType)realFunc;    \
     return (__GLXextFuncPtr)&CONCAT(function, _renderdoc_hooked); \
   }
 
