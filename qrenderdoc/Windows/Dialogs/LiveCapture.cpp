@@ -942,6 +942,8 @@ void LiveCapture::connectionThreadEntry()
 
       connectionClosed();
     });
+
+    return;
   }
 
   GUIInvoke::call([this]() {
