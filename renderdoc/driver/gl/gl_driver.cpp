@@ -1821,7 +1821,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     gl.glUseProgram(ctxdata.Program);
 
     // draw string
-    gl.glDrawArraysInstanced(eGL_TRIANGLE_STRIP, 0, 4, (GLsizei)len);
+    gl.glDrawArrays(eGL_TRIANGLES, 0, 6 * (GLsizei)len);
   }
   else
   {

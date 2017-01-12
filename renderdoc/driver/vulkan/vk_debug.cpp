@@ -1072,6 +1072,8 @@ VulkanDebugManager::VulkanDebugManager(WrappedVulkan *driver, VkDevice dev)
       RDCASSERTEQUAL(vkr, VK_SUCCESS);
     }
 
+    ia.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+
     pipeInfo.layout = m_TextPipeLayout;
 
     vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeInfo, NULL,
@@ -2712,7 +2714,7 @@ void VulkanDebugManager::RenderTextInternal(const TextPrintState &textstate, flo
       ->CmdBindDescriptorSets(Unwrap(textstate.cmd), VK_PIPELINE_BIND_POINT_GRAPHICS,
                               Unwrap(m_TextPipeLayout), 0, 1, UnwrapPtr(m_TextDescSet), 2, offsets);
 
-  ObjDisp(textstate.cmd)->CmdDraw(Unwrap(textstate.cmd), 4, (uint32_t)strlen(text), 0, 0);
+  ObjDisp(textstate.cmd)->CmdDraw(Unwrap(textstate.cmd), 6 * (uint32_t)strlen(text), 1, 0, 0);
 }
 
 void VulkanDebugManager::ReplaceResource(ResourceId from, ResourceId to)
