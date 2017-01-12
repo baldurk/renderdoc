@@ -311,22 +311,25 @@ bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
       gl.glGetNamedFramebufferAttachmentParameterivEXT(
           res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
 
-      if(object)
+      a.renderbuffer = (type == eGL_RENDERBUFFER);
+
+      layered = 0;
+      a.level = 0;
+      a.layer = 0;
+
+      if(object && !a.renderbuffer)
       {
-        a.level = 0;
         gl.glGetNamedFramebufferAttachmentParameterivEXT(
             res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &a.level);
         gl.glGetNamedFramebufferAttachmentParameterivEXT(
             res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_LAYERED, &layered);
 
-        a.layer = 0;
         if(layered == 0)
           gl.glGetNamedFramebufferAttachmentParameterivEXT(
               res.name, data->attachmentNames[i], eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LAYER, &a.layer);
       }
 
       a.layered = (layered != 0);
-      a.renderbuffer = (type == eGL_RENDERBUFFER);
       a.obj = GetID(a.renderbuffer ? RenderbufferRes(res.Context, object)
                                    : TextureRes(res.Context, object));
 
