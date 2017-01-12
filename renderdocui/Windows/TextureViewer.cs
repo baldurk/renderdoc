@@ -2079,6 +2079,12 @@ namespace renderdocui.Windows
             bool uintTex = (tex.format.compType == FormatComponentType.UInt);
             bool sintTex = (tex.format.compType == FormatComponentType.SInt);
 
+            if (tex.format.compType == FormatComponentType.None && m_TexDisplay.typeHint == FormatComponentType.UInt)
+                uintTex = true;
+
+            if (tex.format.compType == FormatComponentType.None && m_TexDisplay.typeHint == FormatComponentType.SInt)
+                sintTex = true;
+
             if (m_TexDisplay.overlay == TextureDisplayOverlay.QuadOverdrawPass ||
                 m_TexDisplay.overlay == TextureDisplayOverlay.QuadOverdrawDraw)
             {
