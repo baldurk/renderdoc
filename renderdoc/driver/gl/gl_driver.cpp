@@ -1424,6 +1424,13 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         }
       }
     }
+
+    if(m_State >= WRITING)
+    {
+      m_Internal = m_Real;
+
+      glEmulate::EmulateRequiredExtensions(&m_Real, &m_Internal);
+    }
   }
 }
 

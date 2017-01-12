@@ -481,7 +481,7 @@ void GLReplay::CacheTexture(ResourceId id)
     tex.msQual = 0;
     tex.msSamp = RDCMAX(1, res.samples);
 
-    tex.format = MakeResourceFormat(gl, eGL_TEXTURE_2D, res.internalFormat);
+    tex.format = MakeResourceFormat(gl.GetHookset(), eGL_TEXTURE_2D, res.internalFormat);
 
     if(IsDepthStencilFormat(res.internalFormat))
       tex.creationFlags |= eTextureCreate_DSV;
@@ -636,7 +636,7 @@ void GLReplay::CacheTexture(ResourceId id)
   gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0,
                                      eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
 
-  tex.format = MakeResourceFormat(gl, target, (GLenum)fmt);
+  tex.format = MakeResourceFormat(gl.GetHookset(), target, (GLenum)fmt);
 
   if(tex.format.compType == eCompType_Depth)
     tex.creationFlags |= eTextureCreate_DSV;
@@ -1572,7 +1572,8 @@ void GLReplay::SavePipelineState()
         pipe.Images[i].readAllowed = true;
         pipe.Images[i].writeAllowed = true;
       }
-      pipe.Images[i].Format = MakeResourceFormat(gl, eGL_TEXTURE_2D, rs.Images[i].format);
+      pipe.Images[i].Format =
+          MakeResourceFormat(gl.GetHookset(), eGL_TEXTURE_2D, rs.Images[i].format);
 
       pipe.Images[i].ResType = m_CachedTextures[id].resType;
     }

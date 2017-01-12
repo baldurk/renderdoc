@@ -189,7 +189,7 @@ void Serialiser::Serialise(const char *name, TextureStateInitialData &el)
 
 void GLResourceManager::MarkVAOReferenced(GLResource res, FrameRefType ref, bool allowFake0)
 {
-  const GLHookSet &gl = m_GL->m_Real;
+  const GLHookSet &gl = m_GL->GetInternalHookset();
 
   if(res.name || allowFake0)
   {
@@ -218,7 +218,7 @@ void GLResourceManager::MarkFBOReferenced(GLResource res, FrameRefType ref)
 
   MarkResourceFrameReferenced(res, ref == eFrameRef_Unknown ? eFrameRef_Unknown : eFrameRef_Read);
 
-  const GLHookSet &gl = m_GL->m_Real;
+  const GLHookSet &gl = m_GL->GetInternalHookset();
 
   GLint numCols = 8;
   gl.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
@@ -282,7 +282,7 @@ bool GLResourceManager::Need_InitialStateChunk(GLResource res)
 
 bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
 {
-  const GLHookSet &gl = m_GL->m_Real;
+  const GLHookSet &gl = m_State < WRITING ? m_GL->GetHookset() : m_GL->GetInternalHookset();
 
   if(res.Namespace == eResFramebuffer)
   {
@@ -433,7 +433,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 
   ResourceId Id = GetID(res);
 
-  const GLHookSet &gl = m_GL->m_Real;
+  const GLHookSet &gl = m_State < WRITING ? m_GL->GetHookset() : m_GL->GetInternalHookset();
 
   if(res.Namespace == eResBuffer)
   {
@@ -561,7 +561,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
 void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, ResourceId origid,
                                                       GLResource res)
 {
-  const GLHookSet &gl = m_GL->m_Real;
+  const GLHookSet &gl = m_State < WRITING ? m_GL->GetHookset() : m_GL->GetInternalHookset();
 
   WrappedOpenGL::TextureData &details = m_GL->m_Textures[liveid];
 
@@ -938,7 +938,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
       res = GLResource(MakeNullResource);
   }
 
-  const GLHookSet &gl = m_GL->m_Real;
+  const GLHookSet &gl = m_State < WRITING ? m_GL->GetHookset() : m_GL->GetInternalHookset();
 
   if(res.Namespace == eResBuffer)
   {
@@ -1650,7 +1650,7 @@ void GLResourceManager::Create_InitialState(ResourceId id, GLResource live, bool
 
 void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData initial)
 {
-  const GLHookSet &gl = m_GL->m_Real;
+  const GLHookSet &gl = m_GL->GetHookset();
 
   if(live.Namespace == eResBuffer)
   {

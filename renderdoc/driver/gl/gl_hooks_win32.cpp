@@ -31,11 +31,6 @@
 #include "hooks/hooks.h"
 #include "serialise/string_utils.h"
 
-namespace glEmulate
-{
-void EmulateUnsupportedFunctions(GLHookSet *hooks);
-}
-
 #define DLL_NAME "opengl32.dll"
 
 #define HookInit(function)                                                                          \
@@ -900,9 +895,13 @@ private:
     DLLExportHooks();
     HookCheckGLExtensions();
 
+    CheckExtensions(GL);
+
     // see gl_emulated.cpp
+    glEmulate::EmulateUnsupportedFunctions(&GL);
+
     if(RenderDoc::Inst().IsReplayApp())
-      glEmulate::EmulateUnsupportedFunctions(&GL);
+      glEmulate::EmulateRequiredExtensions(&GL, &GL);
 
     return true;
   }

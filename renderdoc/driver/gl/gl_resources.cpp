@@ -543,7 +543,7 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
   }
 
   GLint red, depth, stencil;
-  if(gl.glGetInternalformativ)
+  if(ExtensionSupported[GLExt_ARB_internalformat_query2] && gl.glGetInternalformativ)
   {
     gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_RED_SIZE, sizeof(GLint),
                              &red);
@@ -937,6 +937,20 @@ GLenum BufferBinding(GLenum target)
     case eGL_TRANSFORM_FEEDBACK_BUFFER: return eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING;
     case eGL_UNIFORM_BUFFER: return eGL_UNIFORM_BUFFER_BINDING;
     case eGL_PARAMETER_BUFFER_ARB: return eGL_PARAMETER_BUFFER_BINDING_ARB;
+    default: break;
+  }
+
+  RDCERR("Unexpected target %s", ToStr::Get(target).c_str());
+  return eGL_NONE;
+}
+
+GLenum FramebufferBinding(GLenum target)
+{
+  switch(target)
+  {
+    case eGL_FRAMEBUFFER: return eGL_FRAMEBUFFER_BINDING;
+    case eGL_DRAW_FRAMEBUFFER: return eGL_DRAW_FRAMEBUFFER_BINDING;
+    case eGL_READ_FRAMEBUFFER: return eGL_READ_FRAMEBUFFER_BINDING;
     default: break;
   }
 

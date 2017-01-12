@@ -40,7 +40,7 @@ void DeleteContext(GLWindowingData context);
 
 void MakeContextCurrent(GLWindowingData data);
 
-void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
+void CheckExtensions(const GLHookSet &gl)
 {
   GLint numExts = 0;
   if(gl.glGetIntegerv)
@@ -69,28 +69,18 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 
       ext += 3;
 
-#define EXT_CHECK(extname)             \
+#undef EXT_TO_CHECK
+#define EXT_TO_CHECK(extname)          \
   if(!strcmp(ext, STRINGIZE(extname))) \
     ExtensionSupported[CONCAT(GLExt_, extname)] = true;
 
-      EXT_CHECK(ARB_clip_control);
-      EXT_CHECK(ARB_enhanced_layouts);
-      EXT_CHECK(EXT_polygon_offset_clamp);
-      EXT_CHECK(KHR_blend_equation_advanced_coherent);
-      EXT_CHECK(EXT_raster_multisample);
-      EXT_CHECK(ARB_indirect_parameters);
-      EXT_CHECK(EXT_depth_bounds_test);
-      EXT_CHECK(ARB_compute_shader);
-      EXT_CHECK(ARB_program_interface_query);
-      EXT_CHECK(ARB_image_load_store);
-      EXT_CHECK(ARB_copy_image);
-      EXT_CHECK(ARB_shader_atomic_counters);
-      EXT_CHECK(ARB_shader_storage_buffer_object);
-
-#undef EXT_CHECK
+      EXTENSION_CHECKS()
     }
   }
+}
 
+void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
+{
   //////////////////////////////////////////////////////////
   // version/driver/vendor specific hacks and checks go here
   // doing these in a central place means they're all documented and
@@ -647,7 +637,7 @@ const char *SamplerString(GLenum smpenum)
   return unknown.c_str();
 }
 
-ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt)
+ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt)
 {
   ResourceFormat ret;
 

@@ -170,7 +170,7 @@ size_t ShaderIdx(GLenum buf);
 GLenum ShaderBit(size_t idx);
 GLenum ShaderEnum(size_t idx);
 
-ResourceFormat MakeResourceFormat(WrappedOpenGL &gl, GLenum target, GLenum fmt);
+ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt);
 GLenum MakeGLFormat(WrappedOpenGL &gl, ResourceFormat fmt);
 PrimitiveTopology MakePrimitiveTopology(const GLHookSet &gl, GLenum Topo);
 GLenum MakeGLPrimitiveTopology(PrimitiveTopology Topo);
@@ -187,23 +187,32 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 extern int GLCoreVersion;
 extern bool GLIsCore;
 
+#define EXTENSION_CHECKS()                           \
+  EXT_TO_CHECK(ARB_enhanced_layouts)                 \
+  EXT_TO_CHECK(ARB_clip_control)                     \
+  EXT_TO_CHECK(EXT_polygon_offset_clamp)             \
+  EXT_TO_CHECK(KHR_blend_equation_advanced_coherent) \
+  EXT_TO_CHECK(EXT_raster_multisample)               \
+  EXT_TO_CHECK(ARB_indirect_parameters)              \
+  EXT_TO_CHECK(EXT_depth_bounds_test)                \
+  EXT_TO_CHECK(ARB_compute_shader)                   \
+  EXT_TO_CHECK(ARB_program_interface_query)          \
+  EXT_TO_CHECK(ARB_image_load_store)                 \
+  EXT_TO_CHECK(ARB_copy_image)                       \
+  EXT_TO_CHECK(ARB_shader_atomic_counters)           \
+  EXT_TO_CHECK(ARB_shader_storage_buffer_object)     \
+  EXT_TO_CHECK(EXT_direct_state_access)              \
+  EXT_TO_CHECK(ARB_clear_buffer_object)              \
+  EXT_TO_CHECK(ARB_internalformat_query2)
+
 // extensions we know we want to check for are precached, indexd by this enum
 enum ExtensionCheckEnum
 {
-  GLExt_ARB_enhanced_layouts = 0,
-  GLExt_ARB_clip_control,
-  GLExt_EXT_polygon_offset_clamp,
-  GLExt_KHR_blend_equation_advanced_coherent,
-  GLExt_EXT_raster_multisample,
-  GLExt_ARB_indirect_parameters,
-  GLExt_EXT_depth_bounds_test,
-  GLExt_ARB_compute_shader,
-  GLExt_ARB_program_interface_query,
-  GLExt_ARB_image_load_store,
-  GLExt_ARB_copy_image,
-  GLExt_ARB_shader_atomic_counters,
-  GLExt_ARB_shader_storage_buffer_object,
-  GLExt_Count,
+#undef EXT_TO_CHECK
+#define EXT_TO_CHECK(ext) CONCAT(GLExt_, ext),
+  EXTENSION_CHECKS()
+
+      GLExt_Count,
 };
 extern bool ExtensionSupported[GLExt_Count];
 
@@ -228,6 +237,13 @@ extern bool VendorCheck[VendorCheck_Count];
 
 // fills out the extension supported array and the version-specific checks above
 void DoVendorChecks(const GLHookSet &gl, GLWindowingData context);
+void CheckExtensions(const GLHookSet &gl);
+
+namespace glEmulate
+{
+void EmulateUnsupportedFunctions(GLHookSet *hooks);
+void EmulateRequiredExtensions(const GLHookSet *real, GLHookSet *hooks);
+};
 
 #include "core/core.h"
 #include "serialise/serialiser.h"
