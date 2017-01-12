@@ -3437,12 +3437,14 @@ bool D3D11DebugManager::RenderTexture(TextureDisplay cfg, bool blendAlpha)
 
   int srvOffset = 0;
 
-  if(IsUIntFormat(details.texFmt))
+  if(IsUIntFormat(details.texFmt) ||
+     (IsTypelessFormat(details.texFmt) && cfg.typeHint == eCompType_UInt))
   {
     pixelData.OutputDisplayFormat |= TEXDISPLAY_UINT_TEX;
     srvOffset = 10;
   }
-  if(IsIntFormat(details.texFmt))
+  if(IsIntFormat(details.texFmt) ||
+     (IsTypelessFormat(details.texFmt) && cfg.typeHint == eCompType_SInt))
   {
     pixelData.OutputDisplayFormat |= TEXDISPLAY_SINT_TEX;
     srvOffset = 20;
