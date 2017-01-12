@@ -793,16 +793,9 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
 
           for(int trg = 0; trg < count; trg++)
           {
-            GLint compSize;
-            gl.glGetTextureLevelParameterivEXT(res.name, targets[trg], i,
-                                               eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compSize);
+            size_t size = GetCompressedByteSize(w, h, d, details.internalFormat, i);
 
-            size_t size = compSize;
-
-            // sometimes cubemaps return the compressed image size for the whole texture, but we
-            // read it face by face
-            if(VendorCheck[VendorCheck_EXT_compressed_cube_size] &&
-               details.curType == eGL_TEXTURE_CUBE_MAP)
+            if(details.curType == eGL_TEXTURE_CUBE_MAP)
               size /= 6;
 
             byte *buf = new byte[size];
@@ -1147,16 +1140,10 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
             for(int trg = 0; trg < count; trg++)
             {
-              GLint compSize;
-              gl.glGetTextureLevelParameterivEXT(tex, targets[trg], i,
-                                                 eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compSize);
+              size_t size = GetCompressedByteSize(details.width, details.height, details.depth,
+                                                  details.internalFormat, i);
 
-              size_t size = compSize;
-
-              // sometimes cubemaps return the compressed image size for the whole texture, but we
-              // read it
-              // face by face
-              if(VendorCheck[VendorCheck_EXT_compressed_cube_size] && t == eGL_TEXTURE_CUBE_MAP)
+              if(t == eGL_TEXTURE_CUBE_MAP)
                 size /= 6;
 
               byte *buf = new byte[size];
@@ -1788,16 +1775,9 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
             for(int trg = 0; trg < count; trg++)
             {
-              GLint compSize;
-              gl.glGetTextureLevelParameterivEXT(tex, targets[trg], i,
-                                                 eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compSize);
+              size_t size = GetCompressedByteSize(w, h, d, details.internalFormat, i);
 
-              size_t size = compSize;
-
-              // sometimes cubemaps return the compressed image size for the whole texture, but we
-              // read it face by face
-              if(VendorCheck[VendorCheck_EXT_compressed_cube_size] &&
-                 details.curType == eGL_TEXTURE_CUBE_MAP)
+              if(details.curType == eGL_TEXTURE_CUBE_MAP)
                 size /= 6;
 
               byte *buf = new byte[size];

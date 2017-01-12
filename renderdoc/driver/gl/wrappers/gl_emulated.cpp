@@ -936,15 +936,9 @@ void APIENTRY _glCopyImageSubData(GLuint srcName, GLenum srcTarget, GLint srcLev
           count = 1;
         }
 
-        GLint compSize;
-        internalGL->glGetTextureLevelParameterivEXT(srcName, targets[0], srcLevel,
-                                                    eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compSize);
+        size_t size = GetCompressedByteSize(srcWidth, srcHeight, srcDepth, fmt, srcLevel);
 
-        size_t size = compSize;
-
-        // sometimes cubemaps return the compressed image size for the whole texture, but we
-        // read it face by face
-        if(VendorCheck[VendorCheck_EXT_compressed_cube_size] && srcTarget == eGL_TEXTURE_CUBE_MAP)
+        if(srcTarget == eGL_TEXTURE_CUBE_MAP)
           size /= 6;
 
         byte *buf = new byte[size];

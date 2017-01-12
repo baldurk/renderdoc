@@ -221,7 +221,6 @@ extern bool ExtensionSupported[GLExt_Count];
 enum VendorCheckEnum
 {
   VendorCheck_AMD_vertex_buffer_query,
-  VendorCheck_EXT_compressed_cube_size,
   VendorCheck_NV_avoid_D32S8_copy,
   VendorCheck_EXT_fbo_shared,
   VendorCheck_EXT_vao_shared,

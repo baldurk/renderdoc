@@ -115,68 +115,6 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
     }
   }
 
-  if(gl.glGetIntegerv && gl.glGenTextures && gl.glBindTexture && gl.glCompressedTexImage2D &&
-     gl.glGetTexLevelParameteriv && gl.glDeleteTextures)
-  {
-    // We need to determine if GL_TEXTURE_COMPRESSED_IMAGE_SIZE for a compressed cubemap face target
-    // will return the size of the whole cubemap, or just one face. Since we fetch the cubemap
-    // data face-by-face the distinction is important.
-    // So we create a 4x4 cubemap with no mips that's DXT1 (BC1) compressed, which is 0.5 bytes per
-    // pixel.
-    // So 4*4*0.5 = 8 bytes per face. If the returned size is 8 or 48 we can determine which result
-    // the
-    // query returns. It's probably safe to assume it's consistent then for all sizes and formats of
-    // cubemaps.
-    // I'm not sure what the correct answer is, intuitively it feels like when you query for the
-    // size of
-    // a single face target, it should give you the size of that face. The spec doesn't seem to say
-    // though
-
-    GLuint prevtex = 0;    // should almost certainly be 0, but let's be careful anyway.
-    gl.glGetIntegerv(eGL_TEXTURE_BINDING_CUBE_MAP, (GLint *)&prevtex);
-
-    GLuint dummy = 0;
-    gl.glGenTextures(1, &dummy);
-    gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, dummy);
-
-    byte empty[8] = {};
-    gl.glCompressedTexImage2D(eGL_TEXTURE_CUBE_MAP_POSITIVE_X, 0, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
-                              4, 4, 0, 8, empty);
-    gl.glCompressedTexImage2D(eGL_TEXTURE_CUBE_MAP_NEGATIVE_X, 0, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
-                              4, 4, 0, 8, empty);
-    gl.glCompressedTexImage2D(eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, 0, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
-                              4, 4, 0, 8, empty);
-    gl.glCompressedTexImage2D(eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y, 0, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
-                              4, 4, 0, 8, empty);
-    gl.glCompressedTexImage2D(eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, 0, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
-                              4, 4, 0, 8, empty);
-    gl.glCompressedTexImage2D(eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z, 0, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT,
-                              4, 4, 0, 8, empty);
-
-    GLint compSize = 0;
-    gl.glGetTexLevelParameteriv(eGL_TEXTURE_CUBE_MAP_POSITIVE_X, 0,
-                                eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compSize);
-
-    if(compSize == 8)
-    {
-      VendorCheck[VendorCheck_EXT_compressed_cube_size] = false;
-    }
-    else if(compSize == 48)
-    {
-      VendorCheck[VendorCheck_EXT_compressed_cube_size] = true;
-      RDCWARN("Compressed cubemap size returns whole cubemap");
-    }
-    else
-    {
-      RDCERR("Unexpected compressed size of +X face of BC1 compressed 4x4 cubemap mip 0! %d",
-             compSize);
-    }
-
-    gl.glDeleteTextures(1, &dummy);
-
-    gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, prevtex);
-  }
-
   if(gl.glGetIntegerv && gl.glGetError)
   {
     // clear all error flags.
