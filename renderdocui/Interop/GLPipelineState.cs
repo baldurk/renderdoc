@@ -336,6 +336,8 @@ namespace renderdoc
                 public ResourceId Obj;
                 public UInt32 Layer;
                 public UInt32 Mip;
+                [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
+                public TextureSwizzle[] Swizzle;
             };
 
             [StructLayout(LayoutKind.Sequential)]
@@ -345,7 +347,9 @@ namespace renderdoc
 
                 [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
                 public Attachment[] Color;
+                [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
                 public Attachment Depth;
+                [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
                 public Attachment Stencil;
 
                 [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]

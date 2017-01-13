@@ -1759,14 +1759,38 @@ void GLReplay::SavePipelineState()
     create_array_uninit(pipe.m_FB.m_DrawFBO.Color, numCols);
     for(GLint i = 0; i < numCols; i++)
     {
-      pipe.m_FB.m_DrawFBO.Color[i].Obj = rm->GetOriginalID(
-          rm->GetID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i])));
+      ResourceId id =
+          rm->GetID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i]));
+
+      pipe.m_FB.m_DrawFBO.Color[i].Obj = rm->GetOriginalID(id);
 
       if(pipe.m_FB.m_DrawFBO.Color[i].Obj != ResourceId() && !rbCol[i])
         GetFramebufferMipAndLayer(gl.GetHookset(), eGL_DRAW_FRAMEBUFFER,
                                   GLenum(eGL_COLOR_ATTACHMENT0 + i),
                                   (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Mip,
                                   (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Layer);
+
+      GLint swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
+      if(!rbCol[i] && id != ResourceId() && (ExtensionSupported[GLExt_ARB_texture_swizzle] ||
+                                             ExtensionSupported[GLExt_EXT_texture_swizzle]))
+      {
+        GLenum target = m_pDriver->m_Textures[id].curType;
+        gl.glGetTextureParameterivEXT(curCol[i], target, eGL_TEXTURE_SWIZZLE_RGBA, swizzles);
+      }
+
+      for(int s = 0; s < 4; s++)
+      {
+        switch(swizzles[s])
+        {
+          default:
+          case GL_ZERO: pipe.m_FB.m_DrawFBO.Color[i].Swizzle[s] = eSwizzle_Zero; break;
+          case GL_ONE: pipe.m_FB.m_DrawFBO.Color[i].Swizzle[s] = eSwizzle_One; break;
+          case eGL_RED: pipe.m_FB.m_DrawFBO.Color[i].Swizzle[s] = eSwizzle_Red; break;
+          case eGL_GREEN: pipe.m_FB.m_DrawFBO.Color[i].Swizzle[s] = eSwizzle_Green; break;
+          case eGL_BLUE: pipe.m_FB.m_DrawFBO.Color[i].Swizzle[s] = eSwizzle_Blue; break;
+          case eGL_ALPHA: pipe.m_FB.m_DrawFBO.Color[i].Swizzle[s] = eSwizzle_Alpha; break;
+        }
+      }
     }
 
     pipe.m_FB.m_DrawFBO.Depth.Obj = rm->GetOriginalID(

@@ -343,10 +343,17 @@ struct GLPipelineState
 
     struct Attachment
     {
-      Attachment() : Obj(), Layer(0), Mip(0) {}
+      Attachment() : Obj(), Layer(0), Mip(0)
+      {
+        Swizzle[0] = eSwizzle_Red;
+        Swizzle[1] = eSwizzle_Green;
+        Swizzle[2] = eSwizzle_Blue;
+        Swizzle[3] = eSwizzle_Alpha;
+      }
       ResourceId Obj;
       uint32_t Layer;
       uint32_t Mip;
+      TextureSwizzle Swizzle[4];
     };
 
     struct FBO

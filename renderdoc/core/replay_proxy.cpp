@@ -903,8 +903,9 @@ void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer::Attac
   Serialise("", el.Obj);
   Serialise("", el.Layer);
   Serialise("", el.Mip);
+  SerialisePODArray<4>("", el.Swizzle);
 
-  SIZE_CHECK(16);
+  SIZE_CHECK(32);
 }
 
 template <>
@@ -929,7 +930,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer &el)
 
   Serialise("", el.m_Blending);
 
-  SIZE_CHECK(200);
+  SIZE_CHECK(264);
 }
 
 template <>
@@ -963,7 +964,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState &el)
 
   Serialise("", el.m_Hints);
 
-  SIZE_CHECK(1952);
+  SIZE_CHECK(2016);
 }
 
 #pragma endregion OpenGL pipeline state

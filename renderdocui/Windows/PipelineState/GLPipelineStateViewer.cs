@@ -1391,8 +1391,13 @@ namespace renderdocui.Windows.PipelineState
                 foreach (var db in state.m_FB.m_DrawFBO.DrawBuffers)
                 {
                     ResourceId p = ResourceId.Null;
+                    GLPipelineState.FrameBuffer.Attachment r = null;
 
-                    if (db >= 0) p = state.m_FB.m_DrawFBO.Color[db].Obj;
+                    if (db >= 0)
+                    {
+                        p = state.m_FB.m_DrawFBO.Color[db].Obj;
+                        r = state.m_FB.m_DrawFBO.Color[db];
+                    }
 
                     if (p != ResourceId.Null || showEmpty.Checked)
                     {
@@ -1427,6 +1432,21 @@ namespace renderdocui.Windows.PipelineState
 
                                 if (texs[t].format.srgbCorrected && !state.m_FB.FramebufferSRGB)
                                     name += " (GL_FRAMEBUFFER_SRGB = 0)";
+
+                                if (r != null)
+                                {
+                                    if (r.Swizzle[0] != TextureSwizzle.Red ||
+                                        r.Swizzle[1] != TextureSwizzle.Green ||
+                                        r.Swizzle[2] != TextureSwizzle.Blue ||
+                                        r.Swizzle[3] != TextureSwizzle.Alpha)
+                                    {
+                                        format += String.Format(" swizzle[{0}{1}{2}{3}]",
+                                            r.Swizzle[0].Str(),
+                                            r.Swizzle[1].Str(),
+                                            r.Swizzle[2].Str(),
+                                            r.Swizzle[3].Str());
+                                    }
+                                }
                             }
                         }
 
