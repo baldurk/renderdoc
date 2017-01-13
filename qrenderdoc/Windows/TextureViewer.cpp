@@ -1715,7 +1715,7 @@ void TextureViewer::texContextItem_triggered()
   QVariant eid = act->property("eid");
   if(eid.isValid())
   {
-    m_Ctx->SetEventID(NULL, eid.toUInt());
+    m_Ctx->SetEventID(NULL, eid.toUInt(), eid.toUInt());
     return;
   }
 
@@ -2479,7 +2479,7 @@ void TextureViewer::OnLogfileLoaded()
 
     RT_UpdateAndDisplay(r);
 
-    GUIInvoke::call([this]() { OnEventSelected(m_Ctx->CurEvent()); });
+    GUIInvoke::call([this]() { OnEventChanged(m_Ctx->CurEvent()); });
   });
 }
 
@@ -2540,7 +2540,7 @@ void TextureViewer::OnLogfileClosed()
   ui->viewTexBuffer->setEnabled(false);
 }
 
-void TextureViewer::OnEventSelected(uint32_t eventID)
+void TextureViewer::OnEventChanged(uint32_t eventID)
 {
   UI_UpdateCachedTexture();
 

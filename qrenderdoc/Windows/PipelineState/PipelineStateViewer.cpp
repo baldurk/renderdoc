@@ -77,10 +77,10 @@ void PipelineStateViewer::OnLogfileClosed()
     m_Current->OnLogfileClosed();
 }
 
-void PipelineStateViewer::OnEventSelected(uint32_t eventID)
+void PipelineStateViewer::OnEventChanged(uint32_t eventID)
 {
   if(m_Current)
-    m_Current->OnEventSelected(eventID);
+    m_Current->OnEventChanged(eventID);
 }
 
 QVariant PipelineStateViewer::persistData()

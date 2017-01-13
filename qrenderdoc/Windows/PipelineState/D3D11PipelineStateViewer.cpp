@@ -44,6 +44,6 @@ void D3D11PipelineStateViewer::OnLogfileClosed()
 {
 }
 
-void D3D11PipelineStateViewer::OnEventSelected(uint32_t eventID)
+void D3D11PipelineStateViewer::OnEventChanged(uint32_t eventID)
 {
 }

@@ -44,6 +44,6 @@ void GLPipelineStateViewer::OnLogfileClosed()
 {
 }
 
-void GLPipelineStateViewer::OnEventSelected(uint32_t eventID)
+void GLPipelineStateViewer::OnEventChanged(uint32_t eventID)
 {
 }

@@ -91,7 +91,7 @@ void ConstantBufferPreviewer::OnLogfileClosed()
   ui->saveCSV->setEnabled(false);
 }
 
-void ConstantBufferPreviewer::OnEventSelected(uint32_t eventID)
+void ConstantBufferPreviewer::OnEventChanged(uint32_t eventID)
 {
   uint64_t offs = 0;
   uint64_t size = 0;
@@ -165,7 +165,7 @@ void ConstantBufferPreviewer::processFormat(const QString &format)
     ui->formatSpecifier->setErrors(errors);
   }
 
-  OnEventSelected(m_Ctx->CurEvent());
+  OnEventChanged(m_Ctx->CurEvent());
 }
 
 void ConstantBufferPreviewer::addVariables(QTreeWidgetItem *root,

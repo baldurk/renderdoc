@@ -366,8 +366,12 @@ void CaptureContext::CloseLogfile()
   }
 }
 
-void CaptureContext::SetEventID(ILogViewerForm *exclude, uint32_t eventID, bool force)
+void CaptureContext::SetEventID(ILogViewerForm *exclude, uint32_t selectedEventID, uint32_t eventID,
+                                bool force)
 {
+  uint32_t prevSelectedEventID = m_SelectedEventID;
+  m_SelectedEventID = selectedEventID;
+  uint32_t prevEventID = m_EventID;
   m_EventID = eventID;
 
   m_Renderer.BlockInvoke([this, eventID, force](IReplayRenderer *r) {
@@ -385,7 +389,10 @@ void CaptureContext::SetEventID(ILogViewerForm *exclude, uint32_t eventID, bool 
     if(logviewer == exclude)
       continue;
 
-    logviewer->OnEventSelected(eventID);
+    if(force || prevSelectedEventID != selectedEventID)
+      logviewer->OnSelectedEventChanged(selectedEventID);
+    if(force || prevEventID != eventID)
+      logviewer->OnEventChanged(eventID);
   }
 }
 

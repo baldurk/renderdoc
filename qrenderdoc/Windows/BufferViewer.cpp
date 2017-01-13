@@ -295,7 +295,7 @@ void BufferViewer::OnLogfileLoaded()
 
     RT_UpdateAndDisplay(r);
 
-    GUIInvoke::call([this]() { OnEventSelected(m_Ctx->CurEvent()); });
+    GUIInvoke::call([this]() { OnEventChanged(m_Ctx->CurEvent()); });
   });
 }
 
@@ -304,7 +304,7 @@ void BufferViewer::OnLogfileClosed()
   Reset();
 }
 
-void BufferViewer::OnEventSelected(uint32_t eventID)
+void BufferViewer::OnEventChanged(uint32_t eventID)
 {
   m_ModelVSIn->beginReset();
   m_ModelVSOut->beginReset();

@@ -37,7 +37,7 @@ enum
   COL_CURRENT,
   COL_FIND,
   COL_BOOKMARK,
-  COL_SELECT_EID,
+  COL_LAST_EID,
 };
 
 EventBrowser::EventBrowser(CaptureContext *ctx, QWidget *parent)
@@ -103,17 +103,17 @@ void EventBrowser::OnLogfileLoaded()
   framestart->setData(COL_CURRENT, Qt::UserRole, QVariant(false));
   framestart->setData(COL_FIND, Qt::UserRole, QVariant(false));
   framestart->setData(COL_BOOKMARK, Qt::UserRole, QVariant(false));
-  framestart->setData(COL_SELECT_EID, Qt::UserRole, QVariant(0));
+  framestart->setData(COL_LAST_EID, Qt::UserRole, QVariant(0));
 
   uint lastEID = AddDrawcalls(frame, m_Ctx->CurDrawcalls());
-  frame->setData(COL_EID, Qt::UserRole, QVariant(lastEID));
-  frame->setData(COL_SELECT_EID, Qt::UserRole, QVariant(lastEID));
+  frame->setData(COL_EID, Qt::UserRole, QVariant(0));
+  frame->setData(COL_LAST_EID, Qt::UserRole, QVariant(lastEID));
 
   ui->events->insertTopLevelItem(0, frame);
 
   ui->events->expandItem(frame);
 
-  m_Ctx->SetEventID(this, lastEID);
+  m_Ctx->SetEventID(this, lastEID, lastEID);
 }
 
 void EventBrowser::OnLogfileClosed()
@@ -121,7 +121,7 @@ void EventBrowser::OnLogfileClosed()
   ui->events->clear();
 }
 
-void EventBrowser::OnEventSelected(uint32_t eventID)
+void EventBrowser::OnEventChanged(uint32_t eventID)
 {
   SelectEvent(eventID);
 }
@@ -145,11 +145,11 @@ uint EventBrowser::AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<Fe
         lastEID = draws[i + 1].eventID;
     }
 
-    child->setData(COL_EID, Qt::UserRole, QVariant(lastEID));
+    child->setData(COL_EID, Qt::UserRole, QVariant(draws[i].eventID));
     child->setData(COL_CURRENT, Qt::UserRole, QVariant(false));
     child->setData(COL_FIND, Qt::UserRole, QVariant(false));
     child->setData(COL_BOOKMARK, Qt::UserRole, QVariant(false));
-    child->setData(COL_SELECT_EID, Qt::UserRole, QVariant(lastEID));
+    child->setData(COL_LAST_EID, Qt::UserRole, QVariant(lastEID));
   }
 
   return lastEID;
@@ -167,7 +167,7 @@ void EventBrowser::SetDrawcallTimes(QTreeWidgetItem *node,
   // look up leaf nodes in the dictionary
   if(node->childCount() == 0)
   {
-    uint eid = node->data(COL_SELECT_EID, Qt::UserRole).toUInt();
+    uint eid = node->data(COL_EID, Qt::UserRole).toUInt();
 
     duration = -1.0;
 
@@ -248,9 +248,10 @@ void EventBrowser::on_events_currentItemChanged(QTreeWidgetItem *current, QTreeW
   current->setData(COL_CURRENT, Qt::UserRole, QVariant(true));
   RefreshIcon(current);
 
-  uint EID = current->data(COL_SELECT_EID, Qt::UserRole).toUInt();
+  uint EID = current->data(COL_EID, Qt::UserRole).toUInt();
+  uint lastEID = current->data(COL_LAST_EID, Qt::UserRole).toUInt();
 
-  m_Ctx->SetEventID(this, EID);
+  m_Ctx->SetEventID(this, EID, lastEID);
 }
 
 void EventBrowser::on_HideFindJump()
@@ -345,8 +346,8 @@ bool EventBrowser::FindEventNode(QTreeWidgetItem *&found, QTreeWidgetItem *paren
   {
     QTreeWidgetItem *n = parent->child(i);
 
-    uint nEID = n->data(COL_SELECT_EID, Qt::UserRole).toUInt();
-    uint fEID = found ? found->data(COL_SELECT_EID, Qt::UserRole).toUInt() : 0;
+    uint nEID = n->data(COL_LAST_EID, Qt::UserRole).toUInt();
+    uint fEID = found ? found->data(COL_LAST_EID, Qt::UserRole).toUInt() : 0;
 
     if(nEID >= eventID && (found == NULL || nEID <= fEID))
       found = n;
@@ -456,7 +457,7 @@ QTreeWidgetItem *EventBrowser::FindNode(QTreeWidgetItem *parent, QString filter,
   {
     QTreeWidgetItem *n = parent->child(i);
 
-    uint eid = n->data(COL_SELECT_EID, Qt::UserRole).toUInt();
+    uint eid = n->data(COL_LAST_EID, Qt::UserRole).toUInt();
 
     if(eid > after && n->text(COL_NAME).contains(filter, Qt::CaseInsensitive))
       return n;
@@ -483,7 +484,7 @@ int EventBrowser::FindEvent(QTreeWidgetItem *parent, QString filter, uint32_t af
   {
     auto n = parent->child(i);
 
-    uint eid = n->data(COL_SELECT_EID, Qt::UserRole).toUInt();
+    uint eid = n->data(COL_LAST_EID, Qt::UserRole).toUInt();
 
     bool matchesAfter = (forward && eid > after) || (!forward && eid < after);
 
@@ -521,7 +522,7 @@ void EventBrowser::Find(bool forward)
 
   uint32_t curEID = m_Ctx->CurEvent();
   if(!ui->events->selectedItems().isEmpty())
-    curEID = ui->events->selectedItems()[0]->data(COL_SELECT_EID, Qt::UserRole).toUInt();
+    curEID = ui->events->selectedItems()[0]->data(COL_LAST_EID, Qt::UserRole).toUInt();
 
   int eid = FindEvent(ui->findEvent->text(), curEID, forward);
   if(eid >= 0)

@@ -52,7 +52,8 @@ public:
 
   void OnLogfileLoaded() override;
   void OnLogfileClosed() override;
-  void OnEventSelected(uint32_t eventID) override;
+  void OnSelectedEventChanged(uint32_t eventID) override {}
+  void OnEventChanged(uint32_t eventID) override;
 
   void setProgress(float val);
   void takeLogOwnership() { m_OwnTempLog = true; }
