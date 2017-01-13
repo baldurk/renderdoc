@@ -600,8 +600,19 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
                                   (GLint *)&state->baseLevel);
     gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL,
                                   (GLint *)&state->maxLevel);
-    gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_SWIZZLE_RGBA,
-                                  (GLint *)&state->swizzle[0]);
+
+    if(ExtensionSupported[GLExt_ARB_texture_swizzle] || ExtensionSupported[GLExt_EXT_texture_swizzle])
+    {
+      gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_SWIZZLE_RGBA,
+                                    (GLint *)&state->swizzle[0]);
+    }
+    else
+    {
+      state->swizzle[0] = eGL_RED;
+      state->swizzle[1] = eGL_GREEN;
+      state->swizzle[2] = eGL_BLUE;
+      state->swizzle[3] = eGL_ALPHA;
+    }
 
     // only non-ms textures have sampler state
     if(!ms)
@@ -1857,7 +1868,8 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
                                  (GLint *)&state->maxLevel);
 
       // assume that emulated (luminance, alpha-only etc) textures are not swizzled
-      if(!details.emulated)
+      if(!details.emulated && (ExtensionSupported[GLExt_ARB_texture_swizzle] ||
+                               ExtensionSupported[GLExt_EXT_texture_swizzle]))
         gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_SWIZZLE_RGBA,
                                    (GLint *)state->swizzle);
 

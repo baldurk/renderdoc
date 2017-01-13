@@ -1364,7 +1364,8 @@ void GLReplay::SavePipelineState()
         }
 
         GLint swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
-        if(target != eGL_TEXTURE_BUFFER)
+        if(target != eGL_TEXTURE_BUFFER && (ExtensionSupported[GLExt_ARB_texture_swizzle] ||
+                                            ExtensionSupported[GLExt_EXT_texture_swizzle]))
           gl.glGetTexParameteriv(target, eGL_TEXTURE_SWIZZLE_RGBA, swizzles);
 
         for(int i = 0; i < 4; i++)
@@ -2880,15 +2881,22 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
 
   if(templateTex.format.bgraOrder && binding != eGL_NONE)
   {
-    GLint bgraSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ALPHA};
-    GLint bgrSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ONE};
+    if(ExtensionSupported[GLExt_ARB_texture_swizzle] || ExtensionSupported[GLExt_EXT_texture_swizzle])
+    {
+      GLint bgraSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ALPHA};
+      GLint bgrSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ONE};
 
-    if(templateTex.format.compCount == 4)
-      gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgraSwizzle);
-    else if(templateTex.format.compCount == 3)
-      gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgrSwizzle);
+      if(templateTex.format.compCount == 4)
+        gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgraSwizzle);
+      else if(templateTex.format.compCount == 3)
+        gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgrSwizzle);
+      else
+        RDCERR("Unexpected component count %d for BGRA order format", templateTex.format.compCount);
+    }
     else
-      RDCERR("Unexpected component count %d for BGRA order format", templateTex.format.compCount);
+    {
+      RDCERR("Can't create a BGRA proxy texture without texture swizzle extension");
+    }
   }
 
   if(templateTex.customName)

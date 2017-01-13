@@ -203,7 +203,9 @@ extern bool GLIsCore;
   EXT_TO_CHECK(ARB_shader_storage_buffer_object)     \
   EXT_TO_CHECK(EXT_direct_state_access)              \
   EXT_TO_CHECK(ARB_clear_buffer_object)              \
-  EXT_TO_CHECK(ARB_internalformat_query2)
+  EXT_TO_CHECK(ARB_internalformat_query2)            \
+  EXT_TO_CHECK(ARB_texture_swizzle)                  \
+  EXT_TO_CHECK(EXT_texture_swizzle)
 
 // extensions we know we want to check for are precached, indexd by this enum
 enum ExtensionCheckEnum

@@ -737,7 +737,16 @@ bool EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLen
   }
 
   if(tex)
-    gl.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_RGBA, (GLint *)swizzle);
+  {
+    if(ExtensionSupported[GLExt_ARB_texture_swizzle] || ExtensionSupported[GLExt_EXT_texture_swizzle])
+    {
+      gl.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_RGBA, (GLint *)swizzle);
+    }
+    else
+    {
+      RDCERR("Cannot emulate luminance format without texture swizzle extension");
+    }
+  }
 
   return true;
 }
