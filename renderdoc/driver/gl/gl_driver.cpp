@@ -759,7 +759,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs) : m_Re
     }
 
     // once GL driver is more tested, this can be disabled
-    if(m_Real.glDebugMessageCallback)
+    if(ExtensionSupported[GLExt_KHR_debug] && m_Real.glDebugMessageCallback)
     {
       m_Real.glDebugMessageCallback(&DebugSnoopStatic, this);
 #if ENABLED(RDOC_DEVEL)
@@ -1347,7 +1347,8 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
       const GLHookSet &gl = m_Real;
 
-      if(gl.glDebugMessageCallback && RenderDoc::Inst().GetCaptureOptions().APIValidation)
+      if(ExtensionSupported[GLExt_KHR_debug] && gl.glDebugMessageCallback &&
+         RenderDoc::Inst().GetCaptureOptions().APIValidation)
       {
         gl.glDebugMessageCallback(&DebugSnoopStatic, this);
         gl.glEnable(eGL_DEBUG_OUTPUT_SYNCHRONOUS);
