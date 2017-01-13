@@ -402,9 +402,9 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   int i = 0;
 
   attribs[i++] = WGL_CONTEXT_MAJOR_VERSION_ARB;
-  attribs[i++] = 4;
-  attribs[i++] = WGL_CONTEXT_MINOR_VERSION_ARB;
   attribs[i++] = 3;
+  attribs[i++] = WGL_CONTEXT_MINOR_VERSION_ARB;
+  attribs[i++] = 2;
   attribs[i++] = WGL_CONTEXT_FLAGS_ARB;
 #if ENABLED(RDOC_DEVEL)
   attribs[i++] = WGL_CONTEXT_DEBUG_BIT_ARB;
@@ -417,7 +417,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   rc = createContextAttribs(dc, NULL, attribs);
   if(rc == NULL)
   {
-    RDCERR("Couldn't create 4.3 RC - RenderDoc requires OpenGL 4.3 availability");
+    RDCERR("Couldn't create 3.2 RC - RenderDoc requires OpenGL 3.2 availability");
     ReleaseDC(w, dc);
     GLReplay::PostContextShutdownCounters();
     return eReplayCreate_APIHardwareUnsupported;
@@ -426,7 +426,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   res = wglMakeCurrentProc(dc, rc);
   if(res == FALSE)
   {
-    RDCERR("Couldn't make 4.3 RC current");
+    RDCERR("Couldn't make 3.2 RC current");
     wglMakeCurrentProc(NULL, NULL);
     wglDeleteRC(rc);
     ReleaseDC(w, dc);
@@ -448,359 +448,30 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     GLReplay::PostContextShutdownCounters();
     return eReplayCreate_APIInitFailed;
   }
-  else
+
+  bool missingExt = CheckReplayContext(getStr, getInt, getStri);
+
+  if(missingExt)
   {
-    // eventually we want to emulate EXT_dsa on replay if it isn't present, but for
-    // now we just require it.
-    bool dsa = false;
-    bool bufstorage = false;
-
-    if(getStr)
-      RDCLOG("Running GL replay on: %s / %s / %s", getStr(eGL_VENDOR), getStr(eGL_RENDERER),
-             getStr(eGL_VERSION));
-
-    GLint numExts = 0;
-    getInt(eGL_NUM_EXTENSIONS, &numExts);
-    for(GLint e = 0; e < numExts; e++)
-    {
-      const char *ext = (const char *)getStri(eGL_EXTENSIONS, (GLuint)e);
-
-      RDCLOG("Extension % 3d: %s", e, ext);
-
-      if(!strcmp(ext, "GL_EXT_direct_state_access"))
-        dsa = true;
-      if(!strcmp(ext, "GL_ARB_buffer_storage"))
-        bufstorage = true;
-    }
-
-    if(!dsa)
-      RDCERR(
-          "RenderDoc requires EXT_direct_state_access availability, and it is not reported. Try "
-          "updating your drivers.");
-
-    if(!bufstorage)
-      RDCERR(
-          "RenderDoc requires ARB_buffer_storage availability, and it is not reported. Try "
-          "updating your drivers.");
-
-    if(!dsa || !bufstorage)
-    {
-      wglMakeCurrentProc(NULL, NULL);
-      wglDeleteRC(rc);
-      ReleaseDC(w, dc);
-      GLReplay::PostContextShutdownCounters();
-      return eReplayCreate_APIHardwareUnsupported;
-    }
+    wglMakeCurrentProc(NULL, NULL);
+    wglDeleteRC(rc);
+    ReleaseDC(w, dc);
+    GLReplay::PostContextShutdownCounters();
+    return eReplayCreate_APIInitFailed;
   }
 
   const GLHookSet &real = GetRealGLFunctions();
 
-  PFNGLGETSTRINGPROC *ptrs = (PFNGLGETSTRINGPROC *)&real;
-  size_t num = sizeof(real) / sizeof(PFNGLGETSTRINGPROC);
+  bool extensionsValidated = ValidateFunctionPointers(real);
 
-  RDCLOG("Function pointers available:");
-  for(size_t ptr = 0; ptr < num;)
+  if(!extensionsValidated)
   {
-    uint64_t ptrmask = 0;
-
-    for(size_t j = 0; j < 64; j++)
-      if(ptr + j < num && ptrs[ptr + j])
-        ptrmask |= 1ULL << (63 - j);
-
-    ptr += 64;
-
-    RDCLOG("%064llb", ptrmask);
+    wglMakeCurrentProc(NULL, NULL);
+    wglDeleteRC(rc);
+    ReleaseDC(w, dc);
+    GLReplay::PostContextShutdownCounters();
+    return eReplayCreate_APIInitFailed;
   }
-
-// check for the presence of GL functions we will call unconditionally as part of the replay
-// process.
-// Other functions that are only called to deserialise are checked for presence separately
-
-#define CHECK_PRESENT(func)                                                            \
-  if(!real.func)                                                                       \
-  {                                                                                    \
-    RDCERR(                                                                            \
-        "Missing function %s, required for replay. RenderDoc requires a 4.3 context, " \
-        "EXT_direct_state_access and ARB_buffer_storage",                              \
-        #func);                                                                        \
-    wglMakeCurrentProc(NULL, NULL);                                                    \
-    wglDeleteRC(rc);                                                                   \
-    ReleaseDC(w, dc);                                                                  \
-    GLReplay::PostContextShutdownCounters();                                           \
-    return eReplayCreate_APIHardwareUnsupported;                                       \
-  }
-
-  // these functions should all be present as part of a 4.3 context, but let's just be extra-careful
-  CHECK_PRESENT(glActiveTexture)
-  CHECK_PRESENT(glAttachShader)
-  CHECK_PRESENT(glBeginQuery)
-  CHECK_PRESENT(glBeginTransformFeedback)
-  CHECK_PRESENT(glBindAttribLocation)
-  CHECK_PRESENT(glBindBuffer)
-  CHECK_PRESENT(glBindBufferBase)
-  CHECK_PRESENT(glBindBufferRange)
-  CHECK_PRESENT(glBindFragDataLocation)
-  CHECK_PRESENT(glBindFramebuffer)
-  CHECK_PRESENT(glBindImageTexture)
-  CHECK_PRESENT(glBindProgramPipeline)
-  CHECK_PRESENT(glBindSampler)
-  CHECK_PRESENT(glBindTexture)
-  CHECK_PRESENT(glBindTransformFeedback)
-  CHECK_PRESENT(glBindVertexArray)
-  CHECK_PRESENT(glBindVertexBuffer)
-  CHECK_PRESENT(glBlendColor)
-  CHECK_PRESENT(glBlendEquationSeparate)
-  CHECK_PRESENT(glBlendEquationSeparatei)
-  CHECK_PRESENT(glBlendFunc)
-  CHECK_PRESENT(glBlendFuncSeparate)
-  CHECK_PRESENT(glBlendFuncSeparatei)
-  CHECK_PRESENT(glBlitFramebuffer)
-  CHECK_PRESENT(glBufferData)
-  CHECK_PRESENT(glBufferSubData)
-  CHECK_PRESENT(glClearBufferData)
-  CHECK_PRESENT(glClearBufferfi)
-  CHECK_PRESENT(glClearBufferfv)
-  CHECK_PRESENT(glClearBufferiv)
-  CHECK_PRESENT(glClearBufferuiv)
-  CHECK_PRESENT(glClearColor)
-  CHECK_PRESENT(glClearDepth)
-  CHECK_PRESENT(glColorMaski)
-  CHECK_PRESENT(glCompileShader)
-  CHECK_PRESENT(glCopyImageSubData)
-  CHECK_PRESENT(glCreateProgram)
-  CHECK_PRESENT(glCreateShader)
-  CHECK_PRESENT(glCreateShaderProgramv)
-  CHECK_PRESENT(glCullFace)
-  CHECK_PRESENT(glDebugMessageCallback)
-  CHECK_PRESENT(glDeleteBuffers)
-  CHECK_PRESENT(glDeleteFramebuffers)
-  CHECK_PRESENT(glDeleteProgram)
-  CHECK_PRESENT(glDeleteProgramPipelines)
-  CHECK_PRESENT(glDeleteQueries)
-  CHECK_PRESENT(glDeleteSamplers)
-  CHECK_PRESENT(glDeleteShader)
-  CHECK_PRESENT(glDeleteTextures)
-  CHECK_PRESENT(glDeleteTransformFeedbacks)
-  CHECK_PRESENT(glDeleteVertexArrays)
-  CHECK_PRESENT(glDepthFunc)
-  CHECK_PRESENT(glDepthMask)
-  CHECK_PRESENT(glDepthRangeArrayv)
-  CHECK_PRESENT(glDetachShader)
-  CHECK_PRESENT(glDisable)
-  CHECK_PRESENT(glDisablei)
-  CHECK_PRESENT(glDisableVertexAttribArray)
-  CHECK_PRESENT(glDispatchCompute)
-  CHECK_PRESENT(glDrawArrays)
-  CHECK_PRESENT(glDrawArraysInstanced)
-  CHECK_PRESENT(glDrawArraysInstancedBaseInstance)
-  CHECK_PRESENT(glDrawBuffers)
-  CHECK_PRESENT(glDrawElements)
-  CHECK_PRESENT(glDrawElementsBaseVertex)
-  CHECK_PRESENT(glDrawElementsInstancedBaseVertexBaseInstance)
-  CHECK_PRESENT(glEnable)
-  CHECK_PRESENT(glEnablei)
-  CHECK_PRESENT(glEnableVertexAttribArray)
-  CHECK_PRESENT(glEndConditionalRender)
-  CHECK_PRESENT(glEndQuery)
-  CHECK_PRESENT(glEndQueryIndexed)
-  CHECK_PRESENT(glEndTransformFeedback)
-  CHECK_PRESENT(glFramebufferTexture)
-  CHECK_PRESENT(glFramebufferTexture2D)
-  CHECK_PRESENT(glFramebufferTexture3D)
-  CHECK_PRESENT(glFramebufferTextureLayer)
-  CHECK_PRESENT(glFrontFace)
-  CHECK_PRESENT(glGenBuffers)
-  CHECK_PRESENT(glGenFramebuffers)
-  CHECK_PRESENT(glGenProgramPipelines)
-  CHECK_PRESENT(glGenQueries)
-  CHECK_PRESENT(glGenSamplers)
-  CHECK_PRESENT(glGenTextures)
-  CHECK_PRESENT(glGenTransformFeedbacks)
-  CHECK_PRESENT(glGenVertexArrays)
-  CHECK_PRESENT(glGetActiveAtomicCounterBufferiv)
-  CHECK_PRESENT(glGetActiveUniformBlockiv)
-  CHECK_PRESENT(glGetAttribLocation)
-  CHECK_PRESENT(glGetBooleani_v)
-  CHECK_PRESENT(glGetBooleanv)
-  CHECK_PRESENT(glGetBufferParameteriv)
-  CHECK_PRESENT(glGetBufferSubData)
-  CHECK_PRESENT(glGetCompressedTexImage)
-  CHECK_PRESENT(glGetDoublei_v)
-  CHECK_PRESENT(glGetDoublev)
-  CHECK_PRESENT(glGetError)
-  CHECK_PRESENT(glGetFloati_v)
-  CHECK_PRESENT(glGetFloatv)
-  CHECK_PRESENT(glGetFragDataLocation)
-  CHECK_PRESENT(glGetFramebufferAttachmentParameteriv)
-  CHECK_PRESENT(glGetInteger64i_v)
-  CHECK_PRESENT(glGetIntegeri_v)
-  CHECK_PRESENT(glGetIntegerv)
-  CHECK_PRESENT(glGetInternalformativ)
-  CHECK_PRESENT(glGetObjectLabel)
-  CHECK_PRESENT(glGetProgramInfoLog)
-  CHECK_PRESENT(glGetProgramInterfaceiv)
-  CHECK_PRESENT(glGetProgramiv)
-  CHECK_PRESENT(glGetProgramPipelineiv)
-  CHECK_PRESENT(glGetProgramResourceIndex)
-  CHECK_PRESENT(glGetProgramResourceiv)
-  CHECK_PRESENT(glGetProgramResourceName)
-  CHECK_PRESENT(glGetProgramStageiv)
-  CHECK_PRESENT(glGetQueryObjectuiv)
-  CHECK_PRESENT(glGetSamplerParameterfv)
-  CHECK_PRESENT(glGetSamplerParameteriv)
-  CHECK_PRESENT(glGetShaderInfoLog)
-  CHECK_PRESENT(glGetShaderiv)
-  CHECK_PRESENT(glGetString)
-  CHECK_PRESENT(glGetStringi)
-  CHECK_PRESENT(glGetTexImage)
-  CHECK_PRESENT(glGetTexLevelParameteriv)
-  CHECK_PRESENT(glGetTexParameterfv)
-  CHECK_PRESENT(glGetTexParameteriv)
-  CHECK_PRESENT(glGetUniformBlockIndex)
-  CHECK_PRESENT(glGetUniformdv)
-  CHECK_PRESENT(glGetUniformfv)
-  CHECK_PRESENT(glGetUniformiv)
-  CHECK_PRESENT(glGetUniformLocation)
-  CHECK_PRESENT(glGetUniformSubroutineuiv)
-  CHECK_PRESENT(glGetUniformuiv)
-  CHECK_PRESENT(glGetVertexAttribfv)
-  CHECK_PRESENT(glGetVertexAttribiv)
-  CHECK_PRESENT(glHint)
-  CHECK_PRESENT(glIsEnabled)
-  CHECK_PRESENT(glIsEnabledi)
-  CHECK_PRESENT(glLineWidth)
-  CHECK_PRESENT(glLinkProgram)
-  CHECK_PRESENT(glLogicOp)
-  CHECK_PRESENT(glMapBufferRange)
-  CHECK_PRESENT(glMinSampleShading)
-  CHECK_PRESENT(glObjectLabel)
-  CHECK_PRESENT(glPatchParameterfv)
-  CHECK_PRESENT(glPatchParameteri)
-  CHECK_PRESENT(glPixelStorei)
-  CHECK_PRESENT(glPointParameterf)
-  CHECK_PRESENT(glPointParameteri)
-  CHECK_PRESENT(glPointSize)
-  CHECK_PRESENT(glPolygonMode)
-  CHECK_PRESENT(glPolygonOffset)
-  CHECK_PRESENT(glPrimitiveRestartIndex)
-  CHECK_PRESENT(glProgramParameteri)
-  CHECK_PRESENT(glProgramUniform1dv)
-  CHECK_PRESENT(glProgramUniform1fv)
-  CHECK_PRESENT(glProgramUniform1iv)
-  CHECK_PRESENT(glProgramUniform1ui)
-  CHECK_PRESENT(glProgramUniform1uiv)
-  CHECK_PRESENT(glProgramUniform2dv)
-  CHECK_PRESENT(glProgramUniform2fv)
-  CHECK_PRESENT(glProgramUniform2iv)
-  CHECK_PRESENT(glProgramUniform2uiv)
-  CHECK_PRESENT(glProgramUniform3dv)
-  CHECK_PRESENT(glProgramUniform3fv)
-  CHECK_PRESENT(glProgramUniform3iv)
-  CHECK_PRESENT(glProgramUniform3uiv)
-  CHECK_PRESENT(glProgramUniform4dv)
-  CHECK_PRESENT(glProgramUniform4fv)
-  CHECK_PRESENT(glProgramUniform4iv)
-  CHECK_PRESENT(glProgramUniform4ui)
-  CHECK_PRESENT(glProgramUniform4uiv)
-  CHECK_PRESENT(glProgramUniformMatrix2dv)
-  CHECK_PRESENT(glProgramUniformMatrix2fv)
-  CHECK_PRESENT(glProgramUniformMatrix2x3dv)
-  CHECK_PRESENT(glProgramUniformMatrix2x3fv)
-  CHECK_PRESENT(glProgramUniformMatrix2x4dv)
-  CHECK_PRESENT(glProgramUniformMatrix2x4fv)
-  CHECK_PRESENT(glProgramUniformMatrix3dv)
-  CHECK_PRESENT(glProgramUniformMatrix3fv)
-  CHECK_PRESENT(glProgramUniformMatrix3x2dv)
-  CHECK_PRESENT(glProgramUniformMatrix3x2fv)
-  CHECK_PRESENT(glProgramUniformMatrix3x4dv)
-  CHECK_PRESENT(glProgramUniformMatrix3x4fv)
-  CHECK_PRESENT(glProgramUniformMatrix4dv)
-  CHECK_PRESENT(glProgramUniformMatrix4fv)
-  CHECK_PRESENT(glProgramUniformMatrix4x2dv)
-  CHECK_PRESENT(glProgramUniformMatrix4x2fv)
-  CHECK_PRESENT(glProgramUniformMatrix4x3dv)
-  CHECK_PRESENT(glProgramUniformMatrix4x3fv)
-  CHECK_PRESENT(glProvokingVertex)
-  CHECK_PRESENT(glReadBuffer)
-  CHECK_PRESENT(glReadPixels)
-  CHECK_PRESENT(glSampleCoverage)
-  CHECK_PRESENT(glSampleMaski)
-  CHECK_PRESENT(glSamplerParameteri)
-  CHECK_PRESENT(glScissorIndexedv)
-  CHECK_PRESENT(glShaderSource)
-  CHECK_PRESENT(glShaderStorageBlockBinding)
-  CHECK_PRESENT(glStencilFuncSeparate)
-  CHECK_PRESENT(glStencilMask)
-  CHECK_PRESENT(glStencilMaskSeparate)
-  CHECK_PRESENT(glStencilOpSeparate)
-  CHECK_PRESENT(glTexImage2D)
-  CHECK_PRESENT(glTexParameteri)
-  CHECK_PRESENT(glTexStorage2D)
-  CHECK_PRESENT(glTextureView)
-  CHECK_PRESENT(glTransformFeedbackVaryings)
-  CHECK_PRESENT(glUniform1i)
-  CHECK_PRESENT(glUniform1ui)
-  CHECK_PRESENT(glUniform2f)
-  CHECK_PRESENT(glUniform2fv)
-  CHECK_PRESENT(glUniform4fv)
-  CHECK_PRESENT(glUniformBlockBinding)
-  CHECK_PRESENT(glUniformMatrix4fv)
-  CHECK_PRESENT(glUniformSubroutinesuiv)
-  CHECK_PRESENT(glUnmapBuffer)
-  CHECK_PRESENT(glUseProgram)
-  CHECK_PRESENT(glUseProgramStages)
-  CHECK_PRESENT(glVertexAttrib4fv)
-  CHECK_PRESENT(glVertexAttribBinding)
-  CHECK_PRESENT(glVertexAttribFormat)
-  CHECK_PRESENT(glVertexAttribIFormat)
-  CHECK_PRESENT(glVertexAttribLFormat)
-  CHECK_PRESENT(glVertexAttribPointer)
-  CHECK_PRESENT(glVertexBindingDivisor)
-  CHECK_PRESENT(glViewport)
-  CHECK_PRESENT(glViewportArrayv)
-  CHECK_PRESENT(glViewportIndexedf)
-
-  // these functions should be present as part of EXT_direct_state_access,
-  // and ARB_buffer_storage. Let's verify
-  CHECK_PRESENT(glCompressedTextureImage1DEXT)
-  CHECK_PRESENT(glCompressedTextureImage2DEXT)
-  CHECK_PRESENT(glCompressedTextureImage3DEXT)
-  CHECK_PRESENT(glCompressedTextureSubImage1DEXT)
-  CHECK_PRESENT(glCompressedTextureSubImage2DEXT)
-  CHECK_PRESENT(glCompressedTextureSubImage3DEXT)
-  CHECK_PRESENT(glGetCompressedTextureImageEXT)
-  CHECK_PRESENT(glGetNamedBufferParameterivEXT)
-  CHECK_PRESENT(glGetNamedBufferSubDataEXT)
-  CHECK_PRESENT(glGetNamedFramebufferAttachmentParameterivEXT)
-  CHECK_PRESENT(glGetTextureLevelParameterivEXT)
-  CHECK_PRESENT(glGetTextureParameterfvEXT)
-  CHECK_PRESENT(glGetTextureParameterivEXT)
-  CHECK_PRESENT(glMapNamedBufferEXT)
-  CHECK_PRESENT(glNamedBufferDataEXT)
-  CHECK_PRESENT(glNamedBufferStorageEXT)    // needs ARB_buffer_storage as well
-  CHECK_PRESENT(glNamedBufferSubDataEXT)
-  CHECK_PRESENT(glNamedFramebufferRenderbufferEXT)
-  CHECK_PRESENT(glNamedFramebufferTextureEXT)
-  CHECK_PRESENT(glNamedFramebufferTextureLayerEXT)
-  CHECK_PRESENT(glTextureImage1DEXT)
-  CHECK_PRESENT(glTextureImage2DEXT)
-  CHECK_PRESENT(glTextureImage3DEXT)
-  CHECK_PRESENT(glTextureParameterfvEXT)
-  CHECK_PRESENT(glTextureParameterivEXT)
-  CHECK_PRESENT(glTextureStorage1DEXT)
-  CHECK_PRESENT(glTextureStorage2DEXT)
-  CHECK_PRESENT(glTextureStorage2DMultisampleEXT)
-  CHECK_PRESENT(glTextureStorage3DEXT)
-  CHECK_PRESENT(glTextureStorage3DMultisampleEXT)
-  CHECK_PRESENT(glTextureSubImage1DEXT)
-  CHECK_PRESENT(glTextureSubImage2DEXT)
-  CHECK_PRESENT(glTextureSubImage3DEXT)
-  CHECK_PRESENT(glUnmapNamedBufferEXT)
-
-  // other functions are either checked for presence explicitly (like
-  // depth bounds or polygon offset clamp EXT functions), or they are
-  // only called when such a call is serialised from the logfile, and
-  // so they are checked for validity separately.
 
   WrappedOpenGL *gl = new WrappedOpenGL(logfile, real);
   gl->Initialise(initParams);

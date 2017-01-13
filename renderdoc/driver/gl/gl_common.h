@@ -205,7 +205,13 @@ extern bool GLIsCore;
   EXT_TO_CHECK(ARB_clear_buffer_object)              \
   EXT_TO_CHECK(ARB_internalformat_query2)            \
   EXT_TO_CHECK(ARB_texture_swizzle)                  \
-  EXT_TO_CHECK(EXT_texture_swizzle)
+  EXT_TO_CHECK(EXT_texture_swizzle)                  \
+  EXT_TO_CHECK(ARB_shading_language_420pack)         \
+  EXT_TO_CHECK(ARB_separate_shader_objects)          \
+  EXT_TO_CHECK(ARB_explicit_attrib_location)         \
+  EXT_TO_CHECK(ARB_vertex_attrib_binding)            \
+  EXT_TO_CHECK(ARB_sampler_objects)                  \
+  EXT_TO_CHECK(KHR_debug)
 
 // extensions we know we want to check for are precached, indexd by this enum
 enum ExtensionCheckEnum
@@ -239,6 +245,11 @@ extern bool VendorCheck[VendorCheck_Count];
 // fills out the extension supported array and the version-specific checks above
 void DoVendorChecks(const GLHookSet &gl, GLWindowingData context);
 void CheckExtensions(const GLHookSet &gl);
+
+// verify that we got a replay context that we can work with
+bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
+                        PFNGLGETSTRINGIPROC getStri);
+bool ValidateFunctionPointers(const GLHookSet &real);
 
 namespace glEmulate
 {

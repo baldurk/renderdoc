@@ -40,6 +40,344 @@ void DeleteContext(GLWindowingData context);
 
 void MakeContextCurrent(GLWindowingData data);
 
+bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
+                        PFNGLGETSTRINGIPROC getStri)
+{
+// we can't do without these extensions, but they should be present on any reasonable driver
+// as they should have minimal or no hardware requirement. They were present on mesa 10.6
+// for all drivers which dates to mid 2015.
+#undef EXT_TO_CHECK
+#define EXT_TO_CHECK(ext) CONCAT(GLExt_, ext),
+  enum
+  {
+    EXTENSION_CHECKS() ext_count,
+  };
+  bool exts[ext_count] = {};
+
+  if(getStr)
+    RDCLOG("Running GL replay on: %s / %s / %s", getStr(eGL_VENDOR), getStr(eGL_RENDERER),
+           getStr(eGL_VERSION));
+
+  string extensionString = "";
+
+  GLint numExts = 0;
+  getInt(eGL_NUM_EXTENSIONS, &numExts);
+  for(GLint e = 0; e < numExts; e++)
+  {
+    const char *ext = (const char *)getStri(eGL_EXTENSIONS, (GLuint)e);
+
+    extensionString += StringFormat::Fmt("[%d]: %s, ", e, ext);
+
+    if(e > 0 && (e % 100) == 0)
+    {
+      RDCLOG("%s", extensionString.c_str());
+      extensionString = "";
+    }
+
+    // skip the "GL_"
+    ext += 3;
+
+#undef EXT_TO_CHECK
+#define EXT_TO_CHECK(extname)          \
+  if(!strcmp(ext, STRINGIZE(extname))) \
+    exts[CONCAT(GLExt_, extname)] = true;
+
+    EXTENSION_CHECKS()
+  }
+
+  if(!extensionString.empty())
+    RDCLOG("%s", extensionString.c_str());
+
+  bool missingExt = false;
+
+#define REQUIRE_EXTENSION(extname)                                                                                                              \
+  if(!exts[CONCAT(GLExt_, extname)])                                                                                                            \
+  {                                                                                                                                             \
+    missingExt = true;                                                                                                                          \
+    RDCERR( \
+      "RenderDoc requires " STRINGIZE(extname) " availability, and it is not reported. Try " \
+      "updating your drivers."); \
+  }
+
+  // we require the below extensions on top of a 3.2 context. Some of these we could in theory
+  // do without, but support for them is so widespread it's not worthwhile
+
+  // used for reflecting out vertex bindings with most generality and remapping from old-style
+  // Pointer functions
+  // Should be possible to remove by falling back to reflecting vertex bindings the old way only and
+  // remapping to 'fake' new-style bindings for representing in the UI
+  REQUIRE_EXTENSION(ARB_vertex_attrib_binding);
+  // for program introspection, needed for shader reflection.
+  // Possible to remove by compiling shaders to SPIR-V and reflecting ourselves.
+  REQUIRE_EXTENSION(ARB_program_interface_query);
+  // strangely, this is the extension needed for layout(binding = X) on uniforms, textures, etc.
+  // Possible to remove by #defining out the layout specifiers and manually setting the uniform
+  // values.
+  REQUIRE_EXTENSION(ARB_shading_language_420pack);
+  // needed for program pipelines, glProgramUniform*, and reflecting shaders on their own
+  // Possible to remove this with self-compiled SPIR-V for reflection - see above. Likewise
+  // convenience for our own pipelines when replacing single shaders or such.
+  REQUIRE_EXTENSION(ARB_separate_shader_objects);
+  // needed for layout(location = X) on fragment shader outputs
+  // similar to ARB_shading_language_420pack we could do without this by assigning locations in code
+  REQUIRE_EXTENSION(ARB_explicit_attrib_location);
+  // adds sampler objects so we can swap sampling behaviour when sampling from the capture's
+  // textures
+  // Possible to remove by manually pushing and popping all of the sampler state that we're
+  // interested in on each texture instead of binding sampler objects.
+  REQUIRE_EXTENSION(ARB_sampler_objects);
+
+  return missingExt;
+}
+
+bool ValidateFunctionPointers(const GLHookSet &real)
+{
+  PFNGLGETSTRINGPROC *ptrs = (PFNGLGETSTRINGPROC *)&real;
+  size_t num = sizeof(real) / sizeof(PFNGLGETSTRINGPROC);
+
+  RDCLOG("Function pointers available:");
+  for(size_t ptr = 0; ptr < num;)
+  {
+    uint64_t ptrmask = 0;
+
+    for(size_t j = 0; j < 64; j++)
+      if(ptr + j < num && ptrs[ptr + j])
+        ptrmask |= 1ULL << (63 - j);
+
+    ptr += 64;
+
+    RDCLOG("%064llb", ptrmask);
+  }
+
+  // check for the presence of GL functions we will call unconditionally as part of the replay
+  // process.
+  // Other functions that are only called to deserialise are checked for presence separately
+
+  bool ret = true;
+
+#define CHECK_PRESENT(func)                                                            \
+  if(!real.func)                                                                       \
+  {                                                                                    \
+    RDCERR(                                                                            \
+        "Missing function %s, required for replay. RenderDoc requires a 3.2 context, " \
+        "and a handful of extensions, see the Documentation.",                         \
+        #func);                                                                        \
+    ret = false;                                                                       \
+  }
+
+  // these functions should all be present as part of a 3.2 context plus the extensions we require,
+  // but let's just be extra-careful
+  CHECK_PRESENT(glActiveTexture)
+  CHECK_PRESENT(glAttachShader)
+  CHECK_PRESENT(glBeginQuery)
+  CHECK_PRESENT(glBeginTransformFeedback)
+  CHECK_PRESENT(glBindAttribLocation)
+  CHECK_PRESENT(glBindBuffer)
+  CHECK_PRESENT(glBindBufferBase)
+  CHECK_PRESENT(glBindBufferRange)
+  CHECK_PRESENT(glBindFragDataLocation)
+  CHECK_PRESENT(glBindFramebuffer)
+  CHECK_PRESENT(glBindProgramPipeline)
+  CHECK_PRESENT(glBindSampler)
+  CHECK_PRESENT(glBindTexture)
+  CHECK_PRESENT(glBindTransformFeedback)
+  CHECK_PRESENT(glBindVertexArray)
+  CHECK_PRESENT(glBindVertexBuffer)
+  CHECK_PRESENT(glBlendColor)
+  CHECK_PRESENT(glBlendEquationSeparate)
+  CHECK_PRESENT(glBlendFunc)
+  CHECK_PRESENT(glBlendFuncSeparate)
+  CHECK_PRESENT(glBlitFramebuffer)
+  CHECK_PRESENT(glBufferData)
+  CHECK_PRESENT(glBufferSubData)
+  CHECK_PRESENT(glClearBufferData)
+  CHECK_PRESENT(glClearBufferfi)
+  CHECK_PRESENT(glClearBufferfv)
+  CHECK_PRESENT(glClearBufferiv)
+  CHECK_PRESENT(glClearBufferuiv)
+  CHECK_PRESENT(glClearColor)
+  CHECK_PRESENT(glClearDepth)
+  CHECK_PRESENT(glColorMaski)
+  CHECK_PRESENT(glCompileShader)
+  CHECK_PRESENT(glCopyImageSubData)
+  CHECK_PRESENT(glCreateProgram)
+  CHECK_PRESENT(glCreateShader)
+  CHECK_PRESENT(glCreateShaderProgramv)
+  CHECK_PRESENT(glCullFace)
+  CHECK_PRESENT(glDeleteBuffers)
+  CHECK_PRESENT(glDeleteFramebuffers)
+  CHECK_PRESENT(glDeleteProgram)
+  CHECK_PRESENT(glDeleteProgramPipelines)
+  CHECK_PRESENT(glDeleteQueries)
+  CHECK_PRESENT(glDeleteSamplers)
+  CHECK_PRESENT(glDeleteShader)
+  CHECK_PRESENT(glDeleteTextures)
+  CHECK_PRESENT(glDeleteTransformFeedbacks)
+  CHECK_PRESENT(glDeleteVertexArrays)
+  CHECK_PRESENT(glDepthFunc)
+  CHECK_PRESENT(glDepthMask)
+  CHECK_PRESENT(glDetachShader)
+  CHECK_PRESENT(glDisable)
+  CHECK_PRESENT(glDisablei)
+  CHECK_PRESENT(glDisableVertexAttribArray)
+  CHECK_PRESENT(glDrawArrays)
+  CHECK_PRESENT(glDrawArraysInstanced)
+  CHECK_PRESENT(glDrawBuffers)
+  CHECK_PRESENT(glDrawElements)
+  CHECK_PRESENT(glDrawElementsBaseVertex)
+  CHECK_PRESENT(glEnable)
+  CHECK_PRESENT(glEnablei)
+  CHECK_PRESENT(glEnableVertexAttribArray)
+  CHECK_PRESENT(glEndConditionalRender)
+  CHECK_PRESENT(glEndQuery)
+  CHECK_PRESENT(glEndTransformFeedback)
+  CHECK_PRESENT(glFramebufferTexture)
+  CHECK_PRESENT(glFramebufferTexture2D)
+  CHECK_PRESENT(glFramebufferTexture3D)
+  CHECK_PRESENT(glFramebufferTextureLayer)
+  CHECK_PRESENT(glFrontFace)
+  CHECK_PRESENT(glGenBuffers)
+  CHECK_PRESENT(glGenFramebuffers)
+  CHECK_PRESENT(glGenProgramPipelines)
+  CHECK_PRESENT(glGenQueries)
+  CHECK_PRESENT(glGenSamplers)
+  CHECK_PRESENT(glGenTextures)
+  CHECK_PRESENT(glGenTransformFeedbacks)
+  CHECK_PRESENT(glGenVertexArrays)
+  CHECK_PRESENT(glGetActiveUniformBlockiv)
+  CHECK_PRESENT(glGetAttribLocation)
+  CHECK_PRESENT(glGetBooleani_v)
+  CHECK_PRESENT(glGetBooleanv)
+  CHECK_PRESENT(glGetBufferParameteriv)
+  CHECK_PRESENT(glGetBufferSubData)
+  CHECK_PRESENT(glGetCompressedTexImage)
+  CHECK_PRESENT(glGetDoublev)
+  CHECK_PRESENT(glGetError)
+  CHECK_PRESENT(glGetFloatv)
+  CHECK_PRESENT(glGetFragDataLocation)
+  CHECK_PRESENT(glGetFramebufferAttachmentParameteriv)
+  CHECK_PRESENT(glGetInteger64i_v)
+  CHECK_PRESENT(glGetIntegeri_v)
+  CHECK_PRESENT(glGetIntegerv)
+  CHECK_PRESENT(glGetInternalformativ)
+  CHECK_PRESENT(glGetProgramInfoLog)
+  CHECK_PRESENT(glGetProgramInterfaceiv)
+  CHECK_PRESENT(glGetProgramiv)
+  CHECK_PRESENT(glGetProgramPipelineiv)
+  CHECK_PRESENT(glGetProgramResourceIndex)
+  CHECK_PRESENT(glGetProgramResourceiv)
+  CHECK_PRESENT(glGetProgramResourceName)
+  CHECK_PRESENT(glGetQueryObjectuiv)
+  CHECK_PRESENT(glGetSamplerParameterfv)
+  CHECK_PRESENT(glGetSamplerParameteriv)
+  CHECK_PRESENT(glGetShaderInfoLog)
+  CHECK_PRESENT(glGetShaderiv)
+  CHECK_PRESENT(glGetString)
+  CHECK_PRESENT(glGetStringi)
+  CHECK_PRESENT(glGetTexImage)
+  CHECK_PRESENT(glGetTexLevelParameteriv)
+  CHECK_PRESENT(glGetTexParameterfv)
+  CHECK_PRESENT(glGetTexParameteriv)
+  CHECK_PRESENT(glGetUniformBlockIndex)
+  CHECK_PRESENT(glGetUniformdv)
+  CHECK_PRESENT(glGetUniformfv)
+  CHECK_PRESENT(glGetUniformiv)
+  CHECK_PRESENT(glGetUniformLocation)
+  CHECK_PRESENT(glGetUniformuiv)
+  CHECK_PRESENT(glGetVertexAttribfv)
+  CHECK_PRESENT(glGetVertexAttribiv)
+  CHECK_PRESENT(glHint)
+  CHECK_PRESENT(glIsEnabled)
+  CHECK_PRESENT(glIsEnabledi)
+  CHECK_PRESENT(glLineWidth)
+  CHECK_PRESENT(glLinkProgram)
+  CHECK_PRESENT(glLogicOp)
+  CHECK_PRESENT(glMapBufferRange)
+  CHECK_PRESENT(glPixelStorei)
+  CHECK_PRESENT(glPointParameterf)
+  CHECK_PRESENT(glPointParameteri)
+  CHECK_PRESENT(glPointSize)
+  CHECK_PRESENT(glPolygonMode)
+  CHECK_PRESENT(glPolygonOffset)
+  CHECK_PRESENT(glPrimitiveRestartIndex)
+  CHECK_PRESENT(glProgramParameteri)
+  CHECK_PRESENT(glProgramUniform1dv)
+  CHECK_PRESENT(glProgramUniform1fv)
+  CHECK_PRESENT(glProgramUniform1iv)
+  CHECK_PRESENT(glProgramUniform1ui)
+  CHECK_PRESENT(glProgramUniform1uiv)
+  CHECK_PRESENT(glProgramUniform2dv)
+  CHECK_PRESENT(glProgramUniform2fv)
+  CHECK_PRESENT(glProgramUniform2iv)
+  CHECK_PRESENT(glProgramUniform2uiv)
+  CHECK_PRESENT(glProgramUniform3dv)
+  CHECK_PRESENT(glProgramUniform3fv)
+  CHECK_PRESENT(glProgramUniform3iv)
+  CHECK_PRESENT(glProgramUniform3uiv)
+  CHECK_PRESENT(glProgramUniform4dv)
+  CHECK_PRESENT(glProgramUniform4fv)
+  CHECK_PRESENT(glProgramUniform4iv)
+  CHECK_PRESENT(glProgramUniform4ui)
+  CHECK_PRESENT(glProgramUniform4uiv)
+  CHECK_PRESENT(glProgramUniformMatrix2dv)
+  CHECK_PRESENT(glProgramUniformMatrix2fv)
+  CHECK_PRESENT(glProgramUniformMatrix2x3dv)
+  CHECK_PRESENT(glProgramUniformMatrix2x3fv)
+  CHECK_PRESENT(glProgramUniformMatrix2x4dv)
+  CHECK_PRESENT(glProgramUniformMatrix2x4fv)
+  CHECK_PRESENT(glProgramUniformMatrix3dv)
+  CHECK_PRESENT(glProgramUniformMatrix3fv)
+  CHECK_PRESENT(glProgramUniformMatrix3x2dv)
+  CHECK_PRESENT(glProgramUniformMatrix3x2fv)
+  CHECK_PRESENT(glProgramUniformMatrix3x4dv)
+  CHECK_PRESENT(glProgramUniformMatrix3x4fv)
+  CHECK_PRESENT(glProgramUniformMatrix4dv)
+  CHECK_PRESENT(glProgramUniformMatrix4fv)
+  CHECK_PRESENT(glProgramUniformMatrix4x2dv)
+  CHECK_PRESENT(glProgramUniformMatrix4x2fv)
+  CHECK_PRESENT(glProgramUniformMatrix4x3dv)
+  CHECK_PRESENT(glProgramUniformMatrix4x3fv)
+  CHECK_PRESENT(glProvokingVertex)
+  CHECK_PRESENT(glReadBuffer)
+  CHECK_PRESENT(glReadPixels)
+  CHECK_PRESENT(glSampleCoverage)
+  CHECK_PRESENT(glSampleMaski)
+  CHECK_PRESENT(glSamplerParameteri)
+  CHECK_PRESENT(glShaderSource)
+  CHECK_PRESENT(glStencilFuncSeparate)
+  CHECK_PRESENT(glStencilMask)
+  CHECK_PRESENT(glStencilMaskSeparate)
+  CHECK_PRESENT(glStencilOpSeparate)
+  CHECK_PRESENT(glTexImage2D)
+  CHECK_PRESENT(glTexParameteri)
+  CHECK_PRESENT(glTransformFeedbackVaryings)
+  CHECK_PRESENT(glUniform1i)
+  CHECK_PRESENT(glUniform1ui)
+  CHECK_PRESENT(glUniform2f)
+  CHECK_PRESENT(glUniform2fv)
+  CHECK_PRESENT(glUniform4fv)
+  CHECK_PRESENT(glUniformBlockBinding)
+  CHECK_PRESENT(glUniformMatrix4fv)
+  CHECK_PRESENT(glUnmapBuffer)
+  CHECK_PRESENT(glUseProgram)
+  CHECK_PRESENT(glUseProgramStages)
+  CHECK_PRESENT(glVertexAttrib4fv)
+  CHECK_PRESENT(glVertexAttribBinding)
+  CHECK_PRESENT(glVertexAttribFormat)
+  CHECK_PRESENT(glVertexAttribIFormat)
+  CHECK_PRESENT(glVertexAttribLFormat)
+  CHECK_PRESENT(glVertexAttribPointer)
+  CHECK_PRESENT(glVertexBindingDivisor)
+  CHECK_PRESENT(glViewport)
+
+  // other functions are either checked for presence explicitly (like
+  // depth bounds or polygon offset clamp EXT functions), or they are
+  // only called when such a call is serialised from the logfile, and
+  // so they are checked for validity separately.
+
+  return ret;
+}
+
 void CheckExtensions(const GLHookSet &gl)
 {
   GLint numExts = 0;

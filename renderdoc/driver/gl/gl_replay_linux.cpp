@@ -247,6 +247,17 @@ bool GLReplay::IsOutputWindowVisible(uint64_t id)
 
 const GLHookSet &GetRealGLFunctions();
 
+static bool X11ErrorSeen = false;
+
+int NonFatalX11ErrorHandler(Display *display, XErrorEvent *error)
+{
+  X11ErrorSeen = true;
+
+  return 0;
+}
+
+typedef int (*X11ErrorHandler)(Display *display, XErrorEvent *error);
+
 ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   RDCDEBUG("Creating an OpenGL replay device");
@@ -302,9 +313,9 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   GLReplay::PreContextInitCounters();
 
   attribs[i++] = GLX_CONTEXT_MAJOR_VERSION_ARB;
-  attribs[i++] = 4;
-  attribs[i++] = GLX_CONTEXT_MINOR_VERSION_ARB;
   attribs[i++] = 3;
+  attribs[i++] = GLX_CONTEXT_MINOR_VERSION_ARB;
+  attribs[i++] = 2;
   attribs[i++] = GLX_CONTEXT_FLAGS_ARB;
 #if ENABLED(RDOC_DEVEL)
   attribs[i++] = GLX_CONTEXT_DEBUG_BIT_ARB;
@@ -336,14 +347,24 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     return eReplayCreate_APIInitFailed;
   }
 
-  GLXContext ctx = glXCreateContextAttribsProc(dpy, fbcfg[0], 0, true, attribs);
+  GLXContext ctx = NULL;
 
-  if(ctx == NULL)
+  {
+    X11ErrorHandler prev = XSetErrorHandler(&NonFatalX11ErrorHandler);
+
+    X11ErrorSeen = false;
+
+    ctx = glXCreateContextAttribsProc(dpy, fbcfg[0], 0, true, attribs);
+
+    XSetErrorHandler(prev);
+  }
+
+  if(ctx == NULL || X11ErrorSeen)
   {
     XFree(fbcfg);
     XCloseDisplay(dpy);
     GLReplay::PostContextShutdownCounters();
-    RDCERR("Couldn't create 4.3 context - RenderDoc requires OpenGL 4.3 availability");
+    RDCERR("Couldn't create 3.2 context - RenderDoc requires OpenGL 3.2 availability");
     return eReplayCreate_APIHardwareUnsupported;
   }
 
@@ -384,53 +405,35 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     GLReplay::PostContextShutdownCounters();
     return eReplayCreate_APIInitFailed;
   }
-  else
+
+  const GLHookSet &real = GetRealGLFunctions();
+
+  bool missingExt = CheckReplayContext(getStr, getInt, getStri);
+
+  if(missingExt)
   {
-    // eventually we want to emulate EXT_dsa on replay if it isn't present, but for
-    // now we just require it.
-    bool dsa = false;
-    bool bufstorage = false;
-
-    if(getStr)
-      RDCLOG("Running GL replay on: %s / %s / %s", getStr(eGL_VENDOR), getStr(eGL_RENDERER),
-             getStr(eGL_VERSION));
-
-    GLint numExts = 0;
-    getInt(eGL_NUM_EXTENSIONS, &numExts);
-    for(GLint e = 0; e < numExts; e++)
-    {
-      const char *ext = (const char *)getStri(eGL_EXTENSIONS, (GLuint)e);
-
-      RDCLOG("Extension % 3d: %s", e, ext);
-
-      if(!strcmp(ext, "GL_EXT_direct_state_access"))
-        dsa = true;
-      if(!strcmp(ext, "GL_ARB_buffer_storage"))
-        bufstorage = true;
-    }
-
-    if(!dsa)
-      RDCERR(
-          "RenderDoc requires EXT_direct_state_access availability, and it is not reported. Try "
-          "updating your drivers.");
-
-    if(!bufstorage)
-      RDCERR(
-          "RenderDoc requires ARB_buffer_storage availability, and it is not reported. Try "
-          "updating your drivers.");
-
-    if(!dsa || !bufstorage)
-    {
-      glXDestroyPbufferProc(dpy, pbuffer);
-      glXDestroyCtxProc(dpy, ctx);
-      XFree(fbcfg);
-      XCloseDisplay(dpy);
-      GLReplay::PostContextShutdownCounters();
-      return eReplayCreate_APIHardwareUnsupported;
-    }
+    exit(0);
+    glXDestroyPbufferProc(dpy, pbuffer);
+    glXDestroyCtxProc(dpy, ctx);
+    XFree(fbcfg);
+    XCloseDisplay(dpy);
+    GLReplay::PostContextShutdownCounters();
+    return eReplayCreate_APIHardwareUnsupported;
   }
 
-  WrappedOpenGL *gl = new WrappedOpenGL(logfile, GetRealGLFunctions());
+  bool extensionsValidated = ValidateFunctionPointers(real);
+
+  if(!extensionsValidated)
+  {
+    glXDestroyPbufferProc(dpy, pbuffer);
+    glXDestroyCtxProc(dpy, ctx);
+    XFree(fbcfg);
+    XCloseDisplay(dpy);
+    GLReplay::PostContextShutdownCounters();
+    return eReplayCreate_APIHardwareUnsupported;
+  }
+
+  WrappedOpenGL *gl = new WrappedOpenGL(logfile, real);
   gl->Initialise(initParams);
 
   if(gl->GetSerialiser()->HasError())
