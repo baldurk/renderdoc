@@ -543,7 +543,7 @@ GLenum GetSizedFormat(const GLHookSet &gl, GLenum target, GLenum internalFormat)
   }
 
   GLint red, depth, stencil;
-  if(ExtensionSupported[GLExt_ARB_internalformat_query2] && gl.glGetInternalformativ)
+  if(HasExt[ARB_internalformat_query2] && gl.glGetInternalformativ)
   {
     gl.glGetInternalformativ(target, internalFormat, eGL_INTERNALFORMAT_RED_SIZE, sizeof(GLint),
                              &red);
@@ -738,7 +738,7 @@ bool EmulateLuminanceFormat(const GLHookSet &gl, GLuint tex, GLenum target, GLen
 
   if(tex)
   {
-    if(ExtensionSupported[GLExt_ARB_texture_swizzle] || ExtensionSupported[GLExt_EXT_texture_swizzle])
+    if(HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle])
     {
       gl.glTextureParameterivEXT(tex, target, eGL_TEXTURE_SWIZZLE_RGBA, (GLint *)swizzle);
     }

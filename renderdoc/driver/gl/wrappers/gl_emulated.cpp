@@ -1163,14 +1163,14 @@ void EmulateRequiredExtensions(const GLHookSet *real, GLHookSet *hooks)
   // this one is more complex as we need to implement the copy ourselves by creating FBOs and doing
   // a blit. Obviously this is going to be slower, but if we're emulating the extension then
   // performance is not the top priority.
-  if(!ExtensionSupported[GLExt_ARB_copy_image])
+  if(!HasExt[ARB_copy_image])
   {
     RDCLOG("Emulating ARB_copy_image");
     EMULATE_FUNC(glCopyImageSubData);
   }
 
   // this we implement as Map + memset + Unmap
-  if(!ExtensionSupported[GLExt_ARB_clear_buffer_object])
+  if(!HasExt[ARB_clear_buffer_object])
   {
     RDCLOG("Emulating ARB_clear_buffer_object");
     EMULATE_FUNC(glClearBufferData);
@@ -1178,7 +1178,7 @@ void EmulateRequiredExtensions(const GLHookSet *real, GLHookSet *hooks)
   }
 
   // we manually implement these queries
-  if(!ExtensionSupported[GLExt_ARB_internalformat_query2])
+  if(!HasExt[ARB_internalformat_query2])
   {
     RDCLOG("Emulating ARB_internalformat_query2");
     EMULATE_FUNC(glGetInternalformativ);
@@ -1191,7 +1191,7 @@ void EmulateRequiredExtensions(const GLHookSet *real, GLHookSet *hooks)
   // MultiTex functions, texture storage, etc don't need to be emulated because the only time
   // they'll be called is if the application uses them - and then we assume the extension to be
   // present.
-  if(!ExtensionSupported[GLExt_EXT_direct_state_access])
+  if(!HasExt[EXT_direct_state_access])
   {
     RDCLOG("Emulating EXT_direct_state_access");
     EMULATE_FUNC(glCompressedTextureImage1DEXT);

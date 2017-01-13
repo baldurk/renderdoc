@@ -212,18 +212,28 @@ extern bool GLIsCore;
   EXT_TO_CHECK(ARB_vertex_attrib_binding)            \
   EXT_TO_CHECK(ARB_sampler_objects)                  \
   EXT_TO_CHECK(KHR_debug)                            \
-  EXT_TO_CHECK(ARB_sample_shading)
+  EXT_TO_CHECK(ARB_sample_shading)                   \
+  EXT_TO_CHECK(ARB_texture_cube_map_array)           \
+  EXT_TO_CHECK(ARB_shader_image_load_store)          \
+  EXT_TO_CHECK(ARB_tessellation_shader)              \
+  EXT_TO_CHECK(ARB_shader_subroutine)                \
+  EXT_TO_CHECK(ARB_draw_indirect)                    \
+  EXT_TO_CHECK(ARB_query_buffer_object)              \
+  EXT_TO_CHECK(ARB_draw_buffers_blend)               \
+  EXT_TO_CHECK(ARB_viewport_array)                   \
+  EXT_TO_CHECK(ARB_ES3_compatibility)                \
+  EXT_TO_CHECK(ARB_transform_feedback2)
 
 // extensions we know we want to check for are precached, indexd by this enum
 enum ExtensionCheckEnum
 {
 #undef EXT_TO_CHECK
-#define EXT_TO_CHECK(ext) CONCAT(GLExt_, ext),
+#define EXT_TO_CHECK(ext) ext,
   EXTENSION_CHECKS()
 
-      GLExt_Count,
+      GLExtension_Count,
 };
-extern bool ExtensionSupported[GLExt_Count];
+extern bool HasExt[GLExtension_Count];
 
 // for some things we need to know how a specific implementation behaves to work around it
 // or adjust things. We centralise that here (similar to extensions)

@@ -200,6 +200,11 @@ struct GLRenderState
     bool enabled;
   } Scissors[16];
 
+  struct
+  {
+    double nearZ, farZ;
+  } DepthRanges[16];
+
   GLuint ReadFBO, DrawFBO;
 
   // these refer to the states on the default framebuffer.
@@ -220,10 +225,6 @@ struct GLRenderState
   uint8_t DepthWriteMask;
   float DepthClearValue;
   GLenum DepthFunc;
-  struct
-  {
-    double nearZ, farZ;
-  } DepthRanges[16];
 
   struct
   {

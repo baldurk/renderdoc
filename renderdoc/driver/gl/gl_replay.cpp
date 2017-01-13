@@ -1364,8 +1364,8 @@ void GLReplay::SavePipelineState()
         }
 
         GLint swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
-        if(target != eGL_TEXTURE_BUFFER && (ExtensionSupported[GLExt_ARB_texture_swizzle] ||
-                                            ExtensionSupported[GLExt_EXT_texture_swizzle]))
+        if(target != eGL_TEXTURE_BUFFER &&
+           (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
           gl.glGetTexParameteriv(target, eGL_TEXTURE_SWIZZLE_RGBA, swizzles);
 
         for(int i = 0; i < 4; i++)
@@ -1771,8 +1771,8 @@ void GLReplay::SavePipelineState()
                                   (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Layer);
 
       GLint swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
-      if(!rbCol[i] && id != ResourceId() && (ExtensionSupported[GLExt_ARB_texture_swizzle] ||
-                                             ExtensionSupported[GLExt_EXT_texture_swizzle]))
+      if(!rbCol[i] && id != ResourceId() &&
+         (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
       {
         GLenum target = m_pDriver->m_Textures[id].curType;
         gl.glGetTextureParameterivEXT(curCol[i], target, eGL_TEXTURE_SWIZZLE_RGBA, swizzles);
@@ -2905,7 +2905,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
 
   if(templateTex.format.bgraOrder && binding != eGL_NONE)
   {
-    if(ExtensionSupported[GLExt_ARB_texture_swizzle] || ExtensionSupported[GLExt_EXT_texture_swizzle])
+    if(HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle])
     {
       GLint bgraSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ALPHA};
       GLint bgrSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ONE};

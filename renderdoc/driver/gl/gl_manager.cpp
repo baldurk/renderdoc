@@ -601,7 +601,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
     gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_MAX_LEVEL,
                                   (GLint *)&state->maxLevel);
 
-    if(ExtensionSupported[GLExt_ARB_texture_swizzle] || ExtensionSupported[GLExt_EXT_texture_swizzle])
+    if(HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle])
     {
       gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_SWIZZLE_RGBA,
                                     (GLint *)&state->swizzle[0]);
@@ -1868,8 +1868,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
                                  (GLint *)&state->maxLevel);
 
       // assume that emulated (luminance, alpha-only etc) textures are not swizzled
-      if(!details.emulated && (ExtensionSupported[GLExt_ARB_texture_swizzle] ||
-                               ExtensionSupported[GLExt_EXT_texture_swizzle]))
+      if(!details.emulated && (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
         gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_SWIZZLE_RGBA,
                                    (GLint *)state->swizzle);
 

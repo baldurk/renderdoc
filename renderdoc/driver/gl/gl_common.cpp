@@ -28,7 +28,7 @@
 #include "serialise/string_utils.h"
 #include "gl_driver.h"
 
-bool ExtensionSupported[GLExt_Count];
+bool HasExt[GLExtension_Count];
 bool VendorCheck[VendorCheck_Count];
 
 int GLCoreVersion = 0;
@@ -47,7 +47,7 @@ bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
 // as they should have minimal or no hardware requirement. They were present on mesa 10.6
 // for all drivers which dates to mid 2015.
 #undef EXT_TO_CHECK
-#define EXT_TO_CHECK(ext) CONCAT(GLExt_, ext),
+#define EXT_TO_CHECK(ext) ext,
   enum
   {
     EXTENSION_CHECKS() ext_count,
@@ -80,7 +80,7 @@ bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
 #undef EXT_TO_CHECK
 #define EXT_TO_CHECK(extname)          \
   if(!strcmp(ext, STRINGIZE(extname))) \
-    exts[CONCAT(GLExt_, extname)] = true;
+    exts[extname] = true;
 
     EXTENSION_CHECKS()
   }
@@ -91,7 +91,7 @@ bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
   bool missingExt = false;
 
 #define REQUIRE_EXTENSION(extname)                                                                                                              \
-  if(!exts[CONCAT(GLExt_, extname)])                                                                                                            \
+  if(!exts[extname])                                                                                                                            \
   {                                                                                                                                             \
     missingExt = true;                                                                                                                          \
     RDCERR( \
@@ -170,7 +170,6 @@ bool ValidateFunctionPointers(const GLHookSet &real)
   CHECK_PRESENT(glActiveTexture)
   CHECK_PRESENT(glAttachShader)
   CHECK_PRESENT(glBeginQuery)
-  CHECK_PRESENT(glBeginTransformFeedback)
   CHECK_PRESENT(glBindAttribLocation)
   CHECK_PRESENT(glBindBuffer)
   CHECK_PRESENT(glBindBufferBase)
@@ -180,7 +179,6 @@ bool ValidateFunctionPointers(const GLHookSet &real)
   CHECK_PRESENT(glBindProgramPipeline)
   CHECK_PRESENT(glBindSampler)
   CHECK_PRESENT(glBindTexture)
-  CHECK_PRESENT(glBindTransformFeedback)
   CHECK_PRESENT(glBindVertexArray)
   CHECK_PRESENT(glBindVertexBuffer)
   CHECK_PRESENT(glBlendColor)
@@ -212,7 +210,6 @@ bool ValidateFunctionPointers(const GLHookSet &real)
   CHECK_PRESENT(glDeleteSamplers)
   CHECK_PRESENT(glDeleteShader)
   CHECK_PRESENT(glDeleteTextures)
-  CHECK_PRESENT(glDeleteTransformFeedbacks)
   CHECK_PRESENT(glDeleteVertexArrays)
   CHECK_PRESENT(glDepthFunc)
   CHECK_PRESENT(glDepthMask)
@@ -230,7 +227,6 @@ bool ValidateFunctionPointers(const GLHookSet &real)
   CHECK_PRESENT(glEnableVertexAttribArray)
   CHECK_PRESENT(glEndConditionalRender)
   CHECK_PRESENT(glEndQuery)
-  CHECK_PRESENT(glEndTransformFeedback)
   CHECK_PRESENT(glFramebufferTexture)
   CHECK_PRESENT(glFramebufferTexture2D)
   CHECK_PRESENT(glFramebufferTexture3D)
@@ -242,7 +238,6 @@ bool ValidateFunctionPointers(const GLHookSet &real)
   CHECK_PRESENT(glGenQueries)
   CHECK_PRESENT(glGenSamplers)
   CHECK_PRESENT(glGenTextures)
-  CHECK_PRESENT(glGenTransformFeedbacks)
   CHECK_PRESENT(glGenVertexArrays)
   CHECK_PRESENT(glGetActiveUniformBlockiv)
   CHECK_PRESENT(glGetAttribLocation)
@@ -350,7 +345,6 @@ bool ValidateFunctionPointers(const GLHookSet &real)
   CHECK_PRESENT(glStencilOpSeparate)
   CHECK_PRESENT(glTexImage2D)
   CHECK_PRESENT(glTexParameteri)
-  CHECK_PRESENT(glTransformFeedbackVaryings)
   CHECK_PRESENT(glUniform1i)
   CHECK_PRESENT(glUniform1ui)
   CHECK_PRESENT(glUniform2f)
@@ -384,7 +378,7 @@ void CheckExtensions(const GLHookSet &gl)
   if(gl.glGetIntegerv)
     gl.glGetIntegerv(eGL_NUM_EXTENSIONS, &numExts);
 
-  RDCEraseEl(ExtensionSupported);
+  RDCEraseEl(HasExt);
   RDCEraseEl(VendorCheck);
 
   if(gl.glGetString)
@@ -410,7 +404,7 @@ void CheckExtensions(const GLHookSet &gl)
 #undef EXT_TO_CHECK
 #define EXT_TO_CHECK(extname)          \
   if(!strcmp(ext, STRINGIZE(extname))) \
-    ExtensionSupported[CONCAT(GLExt_, extname)] = true;
+    HasExt[extname] = true;
 
       EXTENSION_CHECKS()
     }
@@ -475,7 +469,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
   // AMD throws an error if we try to copy the mips that are smaller than 4x4,
   if(gl.glGetError && gl.glGenTextures && gl.glBindTexture && gl.glCopyImageSubData &&
      gl.glTexStorage2D && gl.glTexSubImage2D && gl.glTexParameteri && gl.glDeleteTextures &&
-     (GLCoreVersion >= 43 || ExtensionSupported[GLExt_ARB_copy_image]))
+     (GLCoreVersion >= 43 || HasExt[ARB_copy_image]))
   {
     GLuint texs[2];
     gl.glGenTextures(2, texs);
@@ -582,9 +576,8 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
   }
 
   if(gl.glGetError && gl.glGenProgramPipelines && gl.glDeleteProgramPipelines &&
-     gl.glGetProgramPipelineiv &&
-     (ExtensionSupported[GLExt_ARB_compute_shader] || GLCoreVersion >= 43) &&
-     (ExtensionSupported[GLExt_ARB_program_interface_query] || GLCoreVersion >= 43))
+     gl.glGetProgramPipelineiv && (HasExt[ARB_compute_shader] || GLCoreVersion >= 43) &&
+     (HasExt[ARB_program_interface_query] || GLCoreVersion >= 43))
   {
     GLuint pipe = 0;
     gl.glGenProgramPipelines(1, &pipe);

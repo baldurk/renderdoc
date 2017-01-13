@@ -759,7 +759,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs) : m_Re
     }
 
     // once GL driver is more tested, this can be disabled
-    if(ExtensionSupported[GLExt_KHR_debug] && m_Real.glDebugMessageCallback)
+    if(HasExt[KHR_debug] && m_Real.glDebugMessageCallback)
     {
       m_Real.glDebugMessageCallback(&DebugSnoopStatic, this);
 #if ENABLED(RDOC_DEVEL)
@@ -1347,7 +1347,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
 
       const GLHookSet &gl = m_Real;
 
-      if(ExtensionSupported[GLExt_KHR_debug] && gl.glDebugMessageCallback &&
+      if(HasExt[KHR_debug] && gl.glDebugMessageCallback &&
          RenderDoc::Inst().GetCaptureOptions().APIValidation)
       {
         gl.glDebugMessageCallback(&DebugSnoopStatic, this);
@@ -1481,8 +1481,16 @@ struct RenderTextState
     if(modern)
     {
       enableBits[3] = gl.glIsEnabled(eGL_DEPTH_CLAMP) != 0;
-      enableBits[4] = gl.glIsEnabledi(eGL_BLEND, 0) != 0;
-      enableBits[5] = gl.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
+
+      if(HasExt[ARB_draw_buffers_blend])
+        enableBits[4] = gl.glIsEnabledi(eGL_BLEND, 0) != 0;
+      else
+        enableBits[4] = gl.glIsEnabled(eGL_BLEND) != 0;
+
+      if(HasExt[ARB_viewport_array])
+        enableBits[5] = gl.glIsEnabledi(eGL_SCISSOR_TEST, 0) != 0;
+      else
+        enableBits[5] = gl.glIsEnabled(eGL_SCISSOR_TEST) != 0;
     }
     else
     {
@@ -1493,7 +1501,7 @@ struct RenderTextState
       enableBits[7] = gl.glIsEnabled(eGL_ALPHA_TEST) != 0;
     }
 
-    if(modern && (GLCoreVersion >= 45 || ExtensionSupported[GLExt_ARB_clip_control]))
+    if(modern && (GLCoreVersion >= 45 || HasExt[ARB_clip_control]))
     {
       gl.glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
       gl.glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
@@ -1504,7 +1512,7 @@ struct RenderTextState
       ClipDepth = eGL_NEGATIVE_ONE_TO_ONE;
     }
 
-    if(modern)
+    if(modern && HasExt[ARB_draw_buffers_blend])
     {
       gl.glGetIntegeri_v(eGL_BLEND_EQUATION_RGB, 0, (GLint *)&EquationRGB);
       gl.glGetIntegeri_v(eGL_BLEND_EQUATION_ALPHA, 0, (GLint *)&EquationAlpha);
@@ -1541,7 +1549,7 @@ struct RenderTextState
       PolygonMode = eGL_FILL;
     }
 
-    if(modern)
+    if(modern && HasExt[ARB_viewport_array])
       gl.glGetFloati_v(eGL_VIEWPORT, 0, &Viewportf[0]);
     else
       gl.glGetIntegerv(eGL_VIEWPORT, &Viewport[0]);
@@ -1552,7 +1560,8 @@ struct RenderTextState
 
     // we get the current program but only try to restore it if it's non-0
     prog = 0;
-    gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
+    if(modern)
+      gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&prog);
 
     drawFBO = 0;
     gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&drawFBO);
@@ -1560,7 +1569,8 @@ struct RenderTextState
     // since we will use the fixed function pipeline, also need to check for
     // program pipeline bindings (if we weren't, our program would override)
     pipe = 0;
-    gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
+    if(modern && HasExt[ARB_separate_shader_objects])
+      gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&pipe);
 
     if(modern)
     {
@@ -1593,14 +1603,36 @@ struct RenderTextState
         gl.glEnable(eGL_DEPTH_CLAMP);
       else
         gl.glDisable(eGL_DEPTH_CLAMP);
-      if(enableBits[4])
-        gl.glEnablei(eGL_BLEND, 0);
+
+      if(HasExt[ARB_draw_buffers_blend])
+      {
+        if(enableBits[4])
+          gl.glEnablei(eGL_BLEND, 0);
+        else
+          gl.glDisablei(eGL_BLEND, 0);
+      }
       else
-        gl.glDisablei(eGL_BLEND, 0);
-      if(enableBits[5])
-        gl.glEnablei(eGL_SCISSOR_TEST, 0);
+      {
+        if(enableBits[4])
+          gl.glEnable(eGL_BLEND);
+        else
+          gl.glDisable(eGL_BLEND);
+      }
+
+      if(HasExt[ARB_viewport_array])
+      {
+        if(enableBits[5])
+          gl.glEnablei(eGL_SCISSOR_TEST, 0);
+        else
+          gl.glDisablei(eGL_SCISSOR_TEST, 0);
+      }
       else
-        gl.glDisablei(eGL_SCISSOR_TEST, 0);
+      {
+        if(enableBits[5])
+          gl.glEnable(eGL_SCISSOR_TEST);
+        else
+          gl.glDisable(eGL_SCISSOR_TEST);
+      }
     }
     else
     {
@@ -1627,11 +1659,10 @@ struct RenderTextState
     }
 
     if(modern && gl.glClipControl &&
-       (GLCoreVersion >= 45 ||
-        ExtensionSupported[GLExt_ARB_clip_control]))    // only available in 4.5+
+       (GLCoreVersion >= 45 || HasExt[ARB_clip_control]))    // only available in 4.5+
       gl.glClipControl(ClipOrigin, ClipDepth);
 
-    if(modern)
+    if(modern && HasExt[ARB_draw_buffers_blend])
     {
       gl.glBlendFuncSeparatei(0, SourceRGB, DestinationRGB, SourceAlpha, DestinationAlpha);
       gl.glBlendEquationSeparatei(0, EquationRGB, EquationAlpha);
@@ -1644,7 +1675,7 @@ struct RenderTextState
 
     gl.glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
 
-    if(modern)
+    if(modern && HasExt[ARB_viewport_array])
       gl.glViewportIndexedf(0, Viewportf[0], Viewportf[1], Viewportf[2], Viewportf[3]);
     else
       gl.glViewport(Viewport[0], Viewport[1], (GLsizei)Viewport[2], (GLsizei)Viewport[3]);
@@ -1784,9 +1815,19 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     // and pop functions above (RenderTextState)
 
     // set blend state
-    gl.glEnablei(eGL_BLEND, 0);
-    gl.glBlendFuncSeparatei(0, eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA, eGL_SRC_ALPHA, eGL_SRC_ALPHA);
-    gl.glBlendEquationSeparatei(0, eGL_FUNC_ADD, eGL_FUNC_ADD);
+    if(HasExt[ARB_draw_buffers_blend])
+    {
+      gl.glEnablei(eGL_BLEND, 0);
+      gl.glBlendFuncSeparatei(0, eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA, eGL_SRC_ALPHA,
+                              eGL_SRC_ALPHA);
+      gl.glBlendEquationSeparatei(0, eGL_FUNC_ADD, eGL_FUNC_ADD);
+    }
+    else
+    {
+      gl.glEnable(eGL_BLEND);
+      gl.glBlendFuncSeparate(eGL_SRC_ALPHA, eGL_ONE_MINUS_SRC_ALPHA, eGL_SRC_ALPHA, eGL_SRC_ALPHA);
+      gl.glBlendEquationSeparate(eGL_FUNC_ADD, eGL_FUNC_ADD);
+    }
 
     // set depth & stencil
     gl.glDisable(eGL_DEPTH_TEST);
@@ -1797,13 +1838,20 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
 
     // set viewport & scissor
-    gl.glViewportIndexedf(0, 0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
-    gl.glDisablei(eGL_SCISSOR_TEST, 0);
+    if(HasExt[ARB_viewport_array])
+    {
+      gl.glViewportIndexedf(0, 0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
+      gl.glDisablei(eGL_SCISSOR_TEST, 0);
+    }
+    else
+    {
+      gl.glViewport(0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
+      gl.glDisable(eGL_SCISSOR_TEST);
+    }
     gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
     if(gl.glClipControl &&
-       (GLCoreVersion >= 45 ||
-        ExtensionSupported[GLExt_ARB_clip_control]))    // only available in 4.5+
+       (GLCoreVersion >= 45 || HasExt[ARB_clip_control]))    // only available in 4.5+
       gl.glClipControl(eGL_LOWER_LEFT, eGL_NEGATIVE_ONE_TO_ONE);
 
     // bind UBOs
@@ -1859,7 +1907,8 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     gl.glBindTexture(eGL_TEXTURE_2D, ctxdata.GlyphTexture);
     gl.glEnable(eGL_TEXTURE_2D);
 
-    gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
+    if(gl.glBindFramebuffer)
+      gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, 0);
 
     // just in case, try to disable the programmable pipeline
     if(gl.glUseProgram)
