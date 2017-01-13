@@ -584,6 +584,12 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
         continue;
       }
 
+      if(pnames[i] == eGL_SAMPLE_SHADING && !ExtensionSupported[GLExt_ARB_sample_shading])
+      {
+        Enabled[i] = false;
+        continue;
+      }
+
       Enabled[i] = (m_Real->glIsEnabled(pnames[i]) == GL_TRUE);
     }
   }
@@ -957,6 +963,9 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
       if(pnames[i] == eGL_DEPTH_BOUNDS_TEST_EXT && !ExtensionSupported[GLExt_EXT_depth_bounds_test])
         continue;
 
+      if(pnames[i] == eGL_SAMPLE_SHADING && !ExtensionSupported[GLExt_ARB_sample_shading])
+        continue;
+
       if(Enabled[i])
         m_Real->glEnable(pnames[i]);
       else
@@ -1168,7 +1177,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
     m_Real->glDepthRangeArrayv(i, 1, v);
   }
 
-  if(m_Real->glDepthBoundsEXT)    // extension, not always available
+  if(ExtensionSupported[GLExt_EXT_depth_bounds_test] && m_Real->glDepthBoundsEXT)
     m_Real->glDepthBoundsEXT(DepthBounds.nearZ, DepthBounds.farZ);
 
   {

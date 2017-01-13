@@ -211,7 +211,8 @@ extern bool GLIsCore;
   EXT_TO_CHECK(ARB_explicit_attrib_location)         \
   EXT_TO_CHECK(ARB_vertex_attrib_binding)            \
   EXT_TO_CHECK(ARB_sampler_objects)                  \
-  EXT_TO_CHECK(KHR_debug)
+  EXT_TO_CHECK(KHR_debug)                            \
+  EXT_TO_CHECK(ARB_sample_shading)
 
 // extensions we know we want to check for are precached, indexd by this enum
 enum ExtensionCheckEnum
