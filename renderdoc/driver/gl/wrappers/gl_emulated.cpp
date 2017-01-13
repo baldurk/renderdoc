@@ -1193,7 +1193,7 @@ void EmulateRequiredExtensions(const GLHookSet *real, GLHookSet *hooks)
   // present.
   if(!ExtensionSupported[GLExt_EXT_direct_state_access])
   {
-    RDCLOG("Emulating ARB_direct_state_access");
+    RDCLOG("Emulating EXT_direct_state_access");
     EMULATE_FUNC(glCompressedTextureImage1DEXT);
     EMULATE_FUNC(glCompressedTextureImage2DEXT);
     EMULATE_FUNC(glCompressedTextureImage3DEXT);
