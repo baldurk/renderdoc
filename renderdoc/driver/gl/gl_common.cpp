@@ -2035,7 +2035,7 @@ static void ForAllProgramUniforms(const GLHookSet &gl, Serialiser *ser, GLuint p
   }
 
   GLint numSSBOs = 0;
-  if(CheckConstParam(ReadSourceProgram))
+  if(CheckConstParam(ReadSourceProgram) && HasExt[ARB_shader_storage_buffer_object])
     gl.glGetProgramInterfaceiv(progSrc, eGL_SHADER_STORAGE_BLOCK, eGL_ACTIVE_RESOURCES, &numSSBOs);
 
   if(CheckConstParam(SerialiseUniforms))
