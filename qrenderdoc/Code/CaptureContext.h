@@ -42,7 +42,17 @@ struct ILogViewerForm
 {
   virtual void OnLogfileLoaded() = 0;
   virtual void OnLogfileClosed() = 0;
-  virtual void OnEventSelected(uint32_t eventID) = 0;
+
+  // These 2 functions distinguish between the event which is actually
+  // selected and the event which the displayed state should be taken from. In
+  // the case of an event with children, OnSelectedEventChanged receives the
+  // ID of the event itself, whereas OnEventChanged receives that of the last
+  // child. This means that selecting an event with children displays the
+  // state after all of its children have completed, the exception being that
+  // the API inspector uses the selected event ID to display the API calls of
+  // that event rather than of the last child.
+  virtual void OnSelectedEventChanged(uint32_t eventID) = 0;
+  virtual void OnEventChanged(uint32_t eventID) = 0;
 };
 
 class MainWindow;
@@ -73,8 +83,9 @@ public:
   void LoadLogfile(const QString &logFile, const QString &origFilename, bool temporary, bool local);
   void CloseLogfile();
 
-  void SetEventID(ILogViewerForm *exclude, uint32_t eventID, bool force = false);
-  void RefreshStatus() { SetEventID(NULL, m_EventID, true); }
+  void SetEventID(ILogViewerForm *exclude, uint32_t selectedEventID, uint32_t eventID,
+                  bool force = false);
+  void RefreshStatus() { SetEventID(NULL, m_SelectedEventID, m_EventID, true); }
   void AddLogViewer(ILogViewerForm *f)
   {
     m_LogViewers.push_back(f);
@@ -82,7 +93,7 @@ public:
     if(LogLoaded())
     {
       f->OnLogfileLoaded();
-      f->OnEventSelected(CurEvent());
+      f->OnEventChanged(CurEvent());
     }
   }
 
@@ -97,7 +108,9 @@ public:
   QString LogFilename() { return m_LogFile; }
   const FetchFrameInfo &FrameInfo() { return m_FrameInfo; }
   const APIProperties &APIProps() { return m_APIProps; }
+  uint32_t CurSelectedEvent() { return m_SelectedEventID; }
   uint32_t CurEvent() { return m_EventID; }
+  const FetchDrawcall *CurSelectedDrawcall() { return GetDrawcall(CurSelectedEvent()); }
   const FetchDrawcall *CurDrawcall() { return GetDrawcall(CurEvent()); }
   const rdctype::array<FetchDrawcall> &CurDrawcalls() { return m_Drawcalls; }
   FetchTexture *GetTexture(ResourceId id) { return m_Textures[id]; }
@@ -161,6 +174,7 @@ private:
   void LoadLogfileThreaded(const QString &logFile, const QString &origFilename, bool temporary,
                            bool local);
 
+  uint32_t m_SelectedEventID;
   uint32_t m_EventID;
 
   const FetchDrawcall *GetDrawcall(const rdctype::array<FetchDrawcall> &draws, uint32_t eventID)

@@ -49,7 +49,8 @@ public:
 
   void OnLogfileLoaded();
   void OnLogfileClosed();
-  void OnEventSelected(uint32_t eventID);
+  void OnSelectedEventChanged(uint32_t eventID) {}
+  void OnEventChanged(uint32_t eventID);
 
   QVariant persistData();
   void setPersistData(const QVariant &persistData);

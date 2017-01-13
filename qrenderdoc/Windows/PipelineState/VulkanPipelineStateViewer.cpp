@@ -288,7 +288,7 @@ VulkanPipelineStateViewer::~VulkanPipelineStateViewer()
 
 void VulkanPipelineStateViewer::OnLogfileLoaded()
 {
-  OnEventSelected(m_Ctx->CurEvent());
+  OnEventChanged(m_Ctx->CurEvent());
 }
 
 void VulkanPipelineStateViewer::OnLogfileClosed()
@@ -296,7 +296,7 @@ void VulkanPipelineStateViewer::OnLogfileClosed()
   clearState();
 }
 
-void VulkanPipelineStateViewer::OnEventSelected(uint32_t eventID)
+void VulkanPipelineStateViewer::OnEventChanged(uint32_t eventID)
 {
   setState();
 }

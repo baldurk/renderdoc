@@ -59,7 +59,7 @@ void APIInspector::OnLogfileClosed()
   ui->callstack->clear();
 }
 
-void APIInspector::OnEventSelected(uint32_t eventID)
+void APIInspector::OnSelectedEventChanged(uint32_t eventID)
 {
   ui->apiEvents->clearSelection();
 
@@ -116,7 +116,7 @@ void APIInspector::fillAPIView()
   QRegularExpression rgxopen("^\\s*{");
   QRegularExpression rgxclose("^\\s*}");
 
-  const FetchDrawcall *draw = m_Ctx->CurDrawcall();
+  const FetchDrawcall *draw = m_Ctx->CurSelectedDrawcall();
 
   if(draw != NULL && draw->events.count > 0)
   {

@@ -936,7 +936,7 @@ void MainWindow::OnLogfileClosed()
   */
 }
 
-void MainWindow::OnEventSelected(uint32_t eventID)
+void MainWindow::OnEventChanged(uint32_t eventID)
 {
 }
 
