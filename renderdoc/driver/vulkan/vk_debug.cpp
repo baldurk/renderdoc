@@ -2741,24 +2741,43 @@ void VulkanDebugManager::ReplaceResource(ResourceId from, ResourceId to)
 
     if(refdShader)
     {
-      VkGraphicsPipelineCreateInfo pipeCreateInfo;
-      MakeGraphicsPipelineInfo(pipeCreateInfo, it->first);
-
-      // replace the relevant module
-      for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
-      {
-        VkPipelineShaderStageCreateInfo &sh =
-            (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
-
-        if(sh.module == srcShaderModule)
-          sh.module = dstShaderModule;
-      }
-
-      // create the new pipeline
       VkPipeline pipe = VK_NULL_HANDLE;
-      VkResult vkr =
-          m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeCreateInfo, NULL, &pipe);
-      RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      const VulkanCreationInfo::Pipeline &pipeInfo = m_pDriver->m_CreationInfo.m_Pipeline[it->first];
+      if(pipeInfo.renderpass != ResourceId())    // check if this is a graphics or compute pipeline
+      {
+        VkGraphicsPipelineCreateInfo pipeCreateInfo;
+        MakeGraphicsPipelineInfo(pipeCreateInfo, it->first);
+
+        // replace the relevant module
+        for(uint32_t i = 0; i < pipeCreateInfo.stageCount; i++)
+        {
+          VkPipelineShaderStageCreateInfo &sh =
+              (VkPipelineShaderStageCreateInfo &)pipeCreateInfo.pStages[i];
+
+          if(sh.module == srcShaderModule)
+            sh.module = dstShaderModule;
+        }
+
+        // create the new graphics pipeline
+        VkResult vkr = m_pDriver->vkCreateGraphicsPipelines(dev, VK_NULL_HANDLE, 1, &pipeCreateInfo,
+                                                            NULL, &pipe);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      }
+      else
+      {
+        VkComputePipelineCreateInfo pipeCreateInfo;
+        MakeComputePipelineInfo(pipeCreateInfo, it->first);
+
+        // replace the relevant module
+        VkPipelineShaderStageCreateInfo &sh = pipeCreateInfo.stage;
+        RDCASSERT(sh.module == srcShaderModule);
+        sh.module = dstShaderModule;
+
+        // create the new compute pipeline
+        VkResult vkr = m_pDriver->vkCreateComputePipelines(dev, VK_NULL_HANDLE, 1, &pipeCreateInfo,
+                                                           NULL, &pipe);
+        RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      }
 
       // remove the replacements
       GetResourceManager()->ReplaceResource(it->first, GetResID(pipe));
@@ -4473,7 +4492,7 @@ void VulkanDebugManager::GetBufferData(ResourceId buff, uint64_t offset, uint64_
 void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &pipeCreateInfo,
                                                   ResourceId pipeline)
 {
-  VulkanCreationInfo::Pipeline &pipeInfo = m_pDriver->m_CreationInfo.m_Pipeline[pipeline];
+  const VulkanCreationInfo::Pipeline &pipeInfo = m_pDriver->m_CreationInfo.m_Pipeline[pipeline];
 
   static VkPipelineShaderStageCreateInfo stages[6];
   static VkSpecializationInfo specInfo[6];
@@ -4694,6 +4713,76 @@ void VulkanDebugManager::MakeGraphicsPipelineInfo(VkGraphicsPipelineCreateInfo &
       GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeInfo.layout),
       GetResourceManager()->GetCurrentHandle<VkRenderPass>(pipeInfo.renderpass),
       pipeInfo.subpass,
+      VK_NULL_HANDLE,    // base pipeline handle
+      0,                 // base pipeline index
+  };
+
+  pipeCreateInfo = ret;
+}
+
+void VulkanDebugManager::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pipeCreateInfo,
+                                                 ResourceId pipeline)
+{
+  const VulkanCreationInfo::Pipeline &pipeInfo = m_pDriver->m_CreationInfo.m_Pipeline[pipeline];
+
+  VkPipelineShaderStageCreateInfo stage;    // Returned by value
+  static VkSpecializationInfo specInfo;
+  static vector<VkSpecializationMapEntry> specMapEntries;
+
+  const uint32_t i = 5;    // Compute stage
+  RDCASSERT(pipeInfo.shaders[i].module != ResourceId());
+
+  size_t specEntries = 0;
+  if(!pipeInfo.shaders[i].specialization.empty())
+    specEntries += pipeInfo.shaders[i].specialization.size();
+
+  specMapEntries.resize(specEntries);
+  VkSpecializationMapEntry *entry = &specMapEntries[0];
+
+  stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+  stage.stage = (VkShaderStageFlagBits)(1 << i);
+  stage.module = GetResourceManager()->GetCurrentHandle<VkShaderModule>(pipeInfo.shaders[i].module);
+  stage.pName = pipeInfo.shaders[i].entryPoint.c_str();
+  stage.pNext = NULL;
+  stage.pSpecializationInfo = NULL;
+
+  if(!pipeInfo.shaders[i].specialization.empty())
+  {
+    stage.pSpecializationInfo = &specInfo;
+    specInfo.pMapEntries = entry;
+    specInfo.mapEntryCount = (uint32_t)pipeInfo.shaders[i].specialization.size();
+
+    byte *minDataPtr = NULL;
+    byte *maxDataPtr = NULL;
+
+    for(size_t s = 0; s < pipeInfo.shaders[i].specialization.size(); s++)
+    {
+      entry[s].constantID = pipeInfo.shaders[i].specialization[s].specID;
+      entry[s].size = pipeInfo.shaders[i].specialization[s].size;
+
+      if(minDataPtr == NULL)
+        minDataPtr = pipeInfo.shaders[i].specialization[s].data;
+      else
+        minDataPtr = RDCMIN(minDataPtr, pipeInfo.shaders[i].specialization[s].data);
+
+      maxDataPtr = RDCMAX(minDataPtr, pipeInfo.shaders[i].specialization[s].data + entry[s].size);
+    }
+
+    for(size_t s = 0; s < pipeInfo.shaders[i].specialization.size(); s++)
+      entry[s].offset = (uint32_t)(pipeInfo.shaders[i].specialization[s].data - minDataPtr);
+
+    specInfo.dataSize = (maxDataPtr - minDataPtr);
+    specInfo.pData = (const void *)minDataPtr;
+
+    entry += specInfo.mapEntryCount;
+  }
+
+  VkComputePipelineCreateInfo ret = {
+      VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO,
+      NULL,
+      pipeInfo.flags,
+      stage,
+      GetResourceManager()->GetCurrentHandle<VkPipelineLayout>(pipeInfo.layout),
       VK_NULL_HANDLE,    // base pipeline handle
       0,                 // base pipeline index
   };
