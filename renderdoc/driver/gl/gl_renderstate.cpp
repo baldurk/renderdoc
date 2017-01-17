@@ -1154,7 +1154,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
   m_Real->glPointSize(PointSize);
 
   m_Real->glPrimitiveRestartIndex(PrimitiveRestartIndex);
-  if(m_Real->glClipControl)    // only available in 4.5+
+  if(m_Real->glClipControl && HasExt[ARB_clip_control])
     m_Real->glClipControl(ClipOrigin, ClipDepth);
   m_Real->glProvokingVertex(ProvokingVertex);
 

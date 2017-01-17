@@ -1665,8 +1665,7 @@ struct RenderTextState
         gl.glDisable(eGL_ALPHA_TEST);
     }
 
-    if(modern && gl.glClipControl &&
-       (GLCoreVersion >= 45 || HasExt[ARB_clip_control]))    // only available in 4.5+
+    if(modern && gl.glClipControl && (GLCoreVersion >= 45 || HasExt[ARB_clip_control]))
       gl.glClipControl(ClipOrigin, ClipDepth);
 
     if(modern && HasExt[ARB_draw_buffers_blend])
@@ -1857,8 +1856,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     }
     gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
-    if(gl.glClipControl &&
-       (GLCoreVersion >= 45 || HasExt[ARB_clip_control]))    // only available in 4.5+
+    if(gl.glClipControl && (GLCoreVersion >= 45 || HasExt[ARB_clip_control]))
       gl.glClipControl(eGL_LOWER_LEFT, eGL_NEGATIVE_ONE_TO_ONE);
 
     // bind UBOs
