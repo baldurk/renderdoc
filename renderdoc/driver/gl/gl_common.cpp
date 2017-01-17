@@ -88,16 +88,11 @@ bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
   if(!extensionString.empty())
     RDCLOG("%s", extensionString.c_str());
 
-  bool missingExt = false;
+  string missingExts = "";
 
-#define REQUIRE_EXTENSION(extname)                                                                                                              \
-  if(!exts[extname])                                                                                                                            \
-  {                                                                                                                                             \
-    missingExt = true;                                                                                                                          \
-    RDCERR( \
-      "RenderDoc requires " STRINGIZE(extname) " availability, and it is not reported. Try " \
-      "updating your drivers."); \
-  }
+#define REQUIRE_EXTENSION(extname) \
+  if(!exts[extname])               \
+    missingExts += STRINGIZE(extname) " ";
 
   // we require the below extensions on top of a 3.2 context. Some of these we could in theory
   // do without, but support for them is so widespread it's not worthwhile
@@ -127,7 +122,14 @@ bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
   // interested in on each texture instead of binding sampler objects.
   REQUIRE_EXTENSION(ARB_sampler_objects);
 
-  return missingExt;
+  if(!missingExts.empty())
+  {
+    RDCERR("RenderDoc requires these missing extensions: %s. Try updating your drivers.",
+           missingExts.c_str());
+    return true;
+  }
+
+  return false;
 }
 
 bool ValidateFunctionPointers(const GLHookSet &real)
