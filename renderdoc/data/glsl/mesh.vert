@@ -45,7 +45,7 @@ void main(void)
 	};
 
 	vec4 pos = position;
-	if(Mesh.homogenousInput == 0)
+	if(Mesh.homogenousInput == 0u)
 	{
 		pos = vec4(position.xyz, 1);
 	}

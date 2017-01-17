@@ -262,7 +262,7 @@ void GLReplay::InitDebugData()
   vector<string> gs;
   vector<string> cs;
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 150);
 
   DebugData.texDisplayVSProg = CreateShaderProgram(vs, empty);
 
@@ -271,7 +271,7 @@ void GLReplay::InitDebugData()
     string defines = string("#define UINT_TEX ") + (i == 1 ? "1" : "0") + "\n";
     defines += string("#define SINT_TEX ") + (i == 2 ? "1" : "0") + "\n";
 
-    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_texdisplay_frag), 420);
+    GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_texdisplay_frag), 150);
 
     DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
   }
@@ -302,7 +302,8 @@ void GLReplay::InitDebugData()
   DebugData.glslVersion = glslVersion;
 
   RDCLOG("GLSL version %d", glslVersion);
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
+
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 150);
 
   if(HasExt[ARB_shader_image_load_store])
   {
@@ -326,7 +327,7 @@ void GLReplay::InitDebugData()
 
     DebugData.quadoverdrawFSProg = CreateShaderProgram(empty, fs);
 
-    GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_quadresolve_frag), 420);
+    GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_quadresolve_frag), 150);
 
     DebugData.quadoverdrawResolveProg = CreateShaderProgram(vs, fs);
   }
@@ -340,22 +341,22 @@ void GLReplay::InitDebugData()
     DebugData.quadoverdrawResolveProg = 0;
   }
 
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_checkerboard_frag), 420);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_checkerboard_frag), 150);
   DebugData.checkerProg = CreateShaderProgram(vs, fs);
 
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_fixedcol_frag), 420);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_fixedcol_frag), 150);
 
   DebugData.fixedcolFSProg = CreateShaderProgram(empty, fs);
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_vert), 420);
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_frag), 420);
-  GenerateGLSLShader(gs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_geom), 420);
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_vert), 150);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_frag), 150);
+  GenerateGLSLShader(gs, eShaderGLSL, "", GetEmbeddedResource(glsl_mesh_geom), 150);
 
   DebugData.meshProg = CreateShaderProgram(vs, fs);
   DebugData.meshgsProg = CreateShaderProgram(vs, fs, gs);
 
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_trisize_frag), 420);
-  GenerateGLSLShader(gs, eShaderGLSL, "", GetEmbeddedResource(glsl_trisize_geom), 420);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_trisize_frag), 150);
+  GenerateGLSLShader(gs, eShaderGLSL, "", GetEmbeddedResource(glsl_trisize_geom), 150);
 
   DebugData.trisizeProg = CreateShaderProgram(vs, fs, gs);
 
@@ -624,8 +625,8 @@ void GLReplay::InitDebugData()
   gl.glVertexAttribPointer(0, 4, eGL_FLOAT, GL_FALSE, sizeof(Vec4f), NULL);
   gl.glEnableVertexAttribArray(0);
 
-  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
-  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_outline_frag), 420);
+  GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 150);
+  GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_outline_frag), 150);
 
   DebugData.outlineQuadProg = CreateShaderProgram(vs, fs);
 
@@ -1496,6 +1497,24 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 
   gl.glReadPixels(0, 0, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)pixel);
 
+  if(!HasExt[ARB_gpu_shader5])
+  {
+    for(int i = 0; i < 4; i++)
+    {
+      // if negative, cast via int
+      if(pixel[i] < 0.0f)
+      {
+        int casted = (int)pixel[i];
+        memcpy(&pixel[i], &casted, sizeof(casted));
+      }
+      else
+      {
+        uint32_t casted = (uint32_t)pixel[i];
+        memcpy(&pixel[i], &casted, sizeof(casted));
+      }
+    }
+  }
+
   {
     auto &texDetails = m_pDriver->m_Textures[texture];
 
@@ -1511,6 +1530,16 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 
       uint32_t stencilpixel[4];
       gl.glReadPixels(0, 0, 1, 1, eGL_RGBA, eGL_FLOAT, (void *)stencilpixel);
+
+      if(!HasExt[ARB_gpu_shader5])
+      {
+        // bits weren't aliased, so re-cast back to uint.
+        float fpix[4];
+        memcpy(fpix, stencilpixel, sizeof(fpix));
+
+        stencilpixel[0] = (uint32_t)fpix[0];
+        stencilpixel[1] = (uint32_t)fpix[1];
+      }
 
       // not sure whether [0] or [1] will return stencil values, so use
       // max of two because other channel should be 0

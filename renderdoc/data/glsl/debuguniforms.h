@@ -61,6 +61,11 @@ struct Vec4u
 // so it's added in code
 //#version 430 core
 
+// we require these extensions to be able to set explicit layout bindings, etc
+//#extension GL_ARB_shading_language_420pack : require
+//#extension GL_ARB_separate_shader_objects : require
+//#extension GL_ARB_explicit_attrib_location : require
+
 #ifdef VULKAN
 
 #define BINDING(b) layout(set = 0, binding = b, std140)
@@ -103,7 +108,7 @@ BINDING(0) uniform MeshUBOData
   mat4 mvp;
   mat4 invProj;
   vec4 color;
-  uint displayFormat;
+  int displayFormat;
   uint homogenousInput;
   vec2 pointSpriteSize;
   uint rawoutput;

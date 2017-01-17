@@ -32,23 +32,6 @@ void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
   sources.resize(4);
   sources[0] = StringFormat::Fmt("#version %d core\n", version);
 
-  // hoist up any #extension directives
-  size_t extsearch = 0;
-  do
-  {
-    extsearch = shader.find("#extension", extsearch);
-
-    if(extsearch == string::npos)
-      break;
-
-    size_t begin = extsearch;
-    extsearch = shader.find('\n', extsearch);
-
-    sources[0] += shader.substr(begin, extsearch - begin + 1);
-  } while(extsearch != string::npos);
-
-  sources[0] += "\n" + defines + "\n";
-
   if(uniforms)
     sources[1] = GetEmbeddedResource(glsl_debuguniforms_h);
   else
@@ -69,4 +52,24 @@ void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
   }
 
   sources[3] = shader;
+
+  for(int i = 0; i < 4; i++)
+  {
+    // hoist up any #extension directives
+    size_t extsearch = 0;
+    do
+    {
+      extsearch = sources[i].find("#extension", extsearch);
+
+      if(extsearch == string::npos)
+        break;
+
+      size_t begin = extsearch;
+      extsearch = sources[i].find('\n', extsearch);
+
+      sources[0] += sources[i].substr(begin, extsearch - begin + 1);
+    } while(extsearch != string::npos);
+  }
+
+  sources[0] += "\n" + defines + "\n";
 }

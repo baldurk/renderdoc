@@ -29,7 +29,7 @@ layout (location = 0) out vec4 color_out;
 
 void main(void)
 {
-	uint type = Mesh.displayFormat;
+	int type = Mesh.displayFormat;
 	
 	if(type == MESHDISPLAY_SECONDARY)
 	{

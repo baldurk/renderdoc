@@ -43,6 +43,10 @@ vec3 CalcCubeCoord(vec2 uv, int face)
   return coord;
 }
 
+// enable these extensions if possible
+//#extension GL_ARB_texture_cube_map_array : enable
+//#extension GL_ARB_texture_multisample : enable
+
 #if UINT_TEX
 
 // these bindings are defined based on the RESTYPE_ defines in debuguniforms.h
@@ -56,7 +60,9 @@ layout(binding = 6) uniform usampler2DArray texUInt2DArray;
 // cube array = 7
 layout(binding = 8) uniform usampler2DRect texUInt2DRect;
 layout(binding = 9) uniform usamplerBuffer texUIntBuffer;
+#ifdef GL_ARB_texture_multisample
 layout(binding = 10) uniform usampler2DMS texUInt2DMS;
+#endif
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
@@ -88,10 +94,14 @@ uvec4 SampleTextureUInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX2DMS)
   {
+#ifdef GL_ARB_texture_multisample
     if(sampleIdx < 0)
       sampleIdx = 0;
 
     col = texelFetch(texUInt2DMS, ivec2(pos * texRes.xy), sampleIdx);
+#else
+    col = uvec4(0u, 0u, 0u, 0u);
+#endif
   }
   else if(type == RESTYPE_TEX2DARRAY)
   {
@@ -123,7 +133,9 @@ layout(binding = 6) uniform isampler2DArray texSInt2DArray;
 // cube array = 7
 layout(binding = 8) uniform isampler2DRect texSInt2DRect;
 layout(binding = 9) uniform isamplerBuffer texSIntBuffer;
+#ifdef GL_ARB_texture_multisample
 layout(binding = 10) uniform isampler2DMS texSInt2DMS;
+#endif
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
@@ -160,10 +172,14 @@ ivec4 SampleTextureSInt4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX2DMS)
   {
+#ifdef GL_ARB_texture_multisample
     if(sampleIdx < 0)
       sampleIdx = 0;
 
     col = texelFetch(texSInt2DMS, ivec2(pos * texRes.xy), sampleIdx);
+#else
+    col = ivec4(0, 0, 0, 0);
+#endif
   }
   else if(type == RESTYPE_TEX2DARRAY)
   {
@@ -187,10 +203,14 @@ layout(binding = 3) uniform sampler3D tex3D;
 layout(binding = 4) uniform samplerCube texCube;
 layout(binding = 5) uniform sampler1DArray tex1DArray;
 layout(binding = 6) uniform sampler2DArray tex2DArray;
+#ifdef GL_ARB_texture_cube_map_array
 layout(binding = 7) uniform samplerCubeArray texCubeArray;
+#endif
 layout(binding = 8) uniform sampler2DRect tex2DRect;
 layout(binding = 9) uniform samplerBuffer texBuffer;
+#ifdef GL_ARB_texture_multisample
 layout(binding = 10) uniform sampler2DMS tex2DMS;
+#endif
 
 vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int sampleIdx, vec3 texRes)
 {
@@ -217,6 +237,7 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else if(type == RESTYPE_TEX2DMS)
   {
+#ifdef GL_ARB_texture_multisample
     if(sampleIdx < 0)
     {
       int sampleCount = -sampleIdx;
@@ -271,6 +292,9 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
     {
       col = texelFetch(tex2DMS, ivec2(pos * texRes.xy), sampleIdx);
     }
+#else
+    col = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+#endif
   }
   else if(type == RESTYPE_TEX2DARRAY)
   {
@@ -288,10 +312,14 @@ vec4 SampleTextureFloat4(int type, vec2 pos, float slice, int mipLevel, int samp
   }
   else    // type == RESTYPE_TEXCUBEARRAY
   {
+#ifdef GL_ARB_texture_cube_map_array
     vec3 cubeCoord = CalcCubeCoord(pos, int(slice) % 6);
     vec4 arrayCoord = vec4(cubeCoord, int(slice) / 6);
 
     col = textureLod(texCubeArray, arrayCoord, float(mipLevel));
+#else
+    col = vec4(0.0f, 0.0f, 0.0f, 0.0f);
+#endif
   }
 
   return col;

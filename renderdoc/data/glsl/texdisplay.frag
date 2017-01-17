@@ -24,6 +24,8 @@
 
 layout (location = 0) out vec4 color_out;
 
+//#extension GL_ARB_gpu_shader5 : enable
+
 //#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
 
 float ConvertSRGBToLinear(float srgb)
@@ -122,12 +124,23 @@ void main(void)
 	
 	if(texdisplay.RawOutput != 0)
 	{
+#ifdef GL_ARB_gpu_shader5
 		if (uintTex)
 			color_out = uintBitsToFloat(ucol);
 		else if (sintTex)
 			color_out = intBitsToFloat(scol);
 		else
 			color_out = col;
+#else
+		// without being able to alias bits, we won't get accurate results.
+		// a cast is better than nothing though
+		if (uintTex)
+			color_out = vec4(ucol);
+		else if (sintTex)
+			color_out = vec4(scol);
+		else
+			color_out = col;
+#endif
 		return;
 	}
 

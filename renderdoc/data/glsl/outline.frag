@@ -38,7 +38,7 @@ void main(void)
 			(ab.x > 16 && ab.y > 16)
 		);
 
-	if(outline.Scissor == 0)
+	if(outline.Scissor == 0u)
 	{
 		if(rectPos.x < 3.0f || rectPos.x > rectSize.x - 3.0f ||
 		   rectPos.y < 3.0f || rectPos.y > rectSize.y - 3.0f)

@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-layout(triangles, invocations = 1) in;
+layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
 layout (location = 0) in vec4 IN_secondary[3];
