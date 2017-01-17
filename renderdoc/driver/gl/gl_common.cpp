@@ -469,7 +469,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
   // AMD throws an error if we try to copy the mips that are smaller than 4x4,
   if(gl.glGetError && gl.glGenTextures && gl.glBindTexture && gl.glCopyImageSubData &&
      gl.glTexStorage2D && gl.glTexSubImage2D && gl.glTexParameteri && gl.glDeleteTextures &&
-     (GLCoreVersion >= 43 || HasExt[ARB_copy_image]))
+     (GLCoreVersion >= 43 || HasExt[ARB_copy_image]) && HasExt[ARB_texture_storage])
   {
     GLuint texs[2];
     gl.glGenTextures(2, texs);
