@@ -365,12 +365,12 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   {
     X11ErrorHandler prev = XSetErrorHandler(&NonFatalX11ErrorHandler);
 
-    for(size_t i = 0; i < ARRAY_COUNT(versions); i++)
+    for(size_t v = 0; v < ARRAY_COUNT(versions); v++)
     {
       X11ErrorSeen = false;
 
-      major = versions[i].major;
-      minor = versions[i].minor;
+      major = versions[v].major;
+      minor = versions[v].minor;
       ctx = glXCreateContextAttribsProc(dpy, fbcfg[0], 0, true, attribs);
 
       if(ctx && !X11ErrorSeen)

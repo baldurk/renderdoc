@@ -429,10 +429,10 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 
   rc = NULL;
 
-  for(size_t i = 0; i < ARRAY_COUNT(versions); i++)
+  for(size_t v = 0; v < ARRAY_COUNT(versions); v++)
   {
-    major = versions[i].major;
-    minor = versions[i].minor;
+    major = versions[v].major;
+    minor = versions[v].minor;
     rc = createContextAttribs(dc, NULL, attribs);
 
     if(rc)
