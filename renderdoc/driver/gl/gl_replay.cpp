@@ -493,10 +493,14 @@ void GLReplay::CacheTexture(ResourceId id)
     tex.byteSize = (tex.width * tex.height) * (tex.format.compByteWidth * tex.format.compCount);
 
     string str = "";
-    char name[128] = {0};
-    gl.glGetObjectLabel(eGL_RENDERBUFFER, res.resource.name, 127, NULL, name);
-    str = name;
-    tex.customName = true;
+
+    if(HasExt[KHR_debug])
+    {
+      char name[128] = {0};
+      gl.glGetObjectLabel(eGL_RENDERBUFFER, res.resource.name, 127, NULL, name);
+      str = name;
+      tex.customName = true;
+    }
 
     if(str == "")
     {
@@ -646,10 +650,13 @@ void GLReplay::CacheTexture(ResourceId id)
     tex.creationFlags |= eTextureCreate_DSV;
 
   string str = "";
-  char name[128] = {0};
-  gl.glGetObjectLabel(eGL_TEXTURE, res.resource.name, 127, NULL, name);
-  str = name;
-  tex.customName = true;
+  if(HasExt[KHR_debug])
+  {
+    char name[128] = {0};
+    gl.glGetObjectLabel(eGL_TEXTURE, res.resource.name, 127, NULL, name);
+    str = name;
+    tex.customName = true;
+  }
 
   if(str == "")
   {
@@ -810,10 +817,13 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
   }
 
   string str = "";
-  char name[128] = {0};
-  gl.glGetObjectLabel(eGL_BUFFER, res.resource.name, 127, NULL, name);
-  str = name;
-  ret.customName = true;
+  if(HasExt[KHR_debug])
+  {
+    char name[128] = {0};
+    gl.glGetObjectLabel(eGL_BUFFER, res.resource.name, 127, NULL, name);
+    str = name;
+    ret.customName = true;
+  }
 
   if(str == "")
   {
@@ -3025,7 +3035,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
   }
 
-  if(templateTex.customName)
+  if(templateTex.customName && HasExt[KHR_debug])
     gl.glObjectLabel(eGL_TEXTURE, tex, -1, templateTex.name.elems);
 
   return m_pDriver->GetResourceManager()->GetID(TextureRes(m_pDriver->GetCtx(), tex));
@@ -3187,7 +3197,7 @@ ResourceId GLReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)
   gl.glBindBuffer(target, buf);
   gl.glNamedBufferDataEXT(buf, (GLsizeiptr)templateBuf.length, NULL, eGL_DYNAMIC_DRAW);
 
-  if(templateBuf.customName)
+  if(templateBuf.customName && HasExt[KHR_debug])
     gl.glObjectLabel(eGL_BUFFER, buf, -1, templateBuf.name.elems);
 
   return m_pDriver->GetResourceManager()->GetID(BufferRes(m_pDriver->GetCtx(), buf));

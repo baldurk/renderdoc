@@ -227,7 +227,8 @@ extern bool GLIsCore;
   EXT_TO_CHECK(ARB_gpu_shader5)                      \
   EXT_TO_CHECK(ARB_texture_view)                     \
   EXT_TO_CHECK(ARB_seamless_cubemap_per_texture)     \
-  EXT_TO_CHECK(ARB_stencil_texturing)
+  EXT_TO_CHECK(ARB_stencil_texturing)                \
+  EXT_TO_CHECK(ARB_base_instance)
 
 // extensions we know we want to check for are precached, indexd by this enum
 enum ExtensionCheckEnum

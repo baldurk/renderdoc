@@ -2275,8 +2275,12 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
 
     gl.glDisablei(eGL_SCISSOR_TEST, 0);
 
-    gl.glViewportIndexedf(0, rs.Viewports[0].x, rs.Viewports[0].y, rs.Viewports[0].width,
-                          rs.Viewports[0].height);
+    if(HasExt[ARB_viewport_array])
+      gl.glViewportIndexedf(0, rs.Viewports[0].x, rs.Viewports[0].y, rs.Viewports[0].width,
+                            rs.Viewports[0].height);
+    else
+      gl.glViewport((GLint)rs.Viewports[0].x, (GLint)rs.Viewports[0].y,
+                    (GLsizei)rs.Viewports[0].width, (GLsizei)rs.Viewports[0].height);
 
     gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, DebugData.UBOs[0]);
     OutlineUBOData *cdata =
@@ -2298,7 +2302,11 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
       Vec4f scissor((float)rs.Scissors[0].x, (float)rs.Scissors[0].y, (float)rs.Scissors[0].width,
                     (float)rs.Scissors[0].height);
 
-      gl.glViewportIndexedf(0, scissor.x, scissor.y, scissor.z, scissor.w);
+      if(HasExt[ARB_viewport_array])
+        gl.glViewportIndexedf(0, scissor.x, scissor.y, scissor.z, scissor.w);
+      else
+        gl.glViewport(rs.Scissors[0].x, rs.Scissors[0].y, rs.Scissors[0].width,
+                      rs.Scissors[0].height);
 
       cdata = (OutlineUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(OutlineUBOData),
                                                     GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
@@ -3467,10 +3475,22 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
   if((drawcall->flags & eDraw_UseIBuffer) == 0)
   {
     if(drawcall->flags & eDraw_Instanced)
-      gl.glDrawArraysInstancedBaseInstance(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices,
-                                           drawcall->numInstances, drawcall->instanceOffset);
+    {
+      if(HasExt[ARB_base_instance])
+      {
+        gl.glDrawArraysInstancedBaseInstance(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices,
+                                             drawcall->numInstances, drawcall->instanceOffset);
+      }
+      else
+      {
+        gl.glDrawArraysInstanced(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices,
+                                 drawcall->numInstances);
+      }
+    }
     else
+    {
       gl.glDrawArrays(eGL_POINTS, drawcall->vertexOffset, drawcall->numIndices);
+    }
   }
   else    // drawcall is indexed
   {
@@ -3544,9 +3564,17 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
 
     if(drawcall->flags & eDraw_Instanced)
     {
-      gl.glDrawElementsInstancedBaseVertexBaseInstance(
-          eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL, drawcall->numInstances,
-          drawcall->baseVertex, drawcall->instanceOffset);
+      if(HasExt[ARB_base_instance])
+      {
+        gl.glDrawElementsInstancedBaseVertexBaseInstance(
+            eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT, NULL, drawcall->numInstances,
+            drawcall->baseVertex, drawcall->instanceOffset);
+      }
+      else
+      {
+        gl.glDrawElementsInstancedBaseVertex(eGL_POINTS, (GLsizei)indices.size(), eGL_UNSIGNED_INT,
+                                             NULL, drawcall->numInstances, drawcall->baseVertex);
+      }
     }
     else
     {
@@ -3952,10 +3980,23 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
       if((drawcall->flags & eDraw_UseIBuffer) == 0)
       {
         if(drawcall->flags & eDraw_Instanced)
-          gl.glDrawArraysInstancedBaseInstance(drawtopo, drawcall->vertexOffset, drawcall->numIndices,
-                                               drawcall->numInstances, drawcall->instanceOffset);
+        {
+          if(HasExt[ARB_base_instance])
+          {
+            gl.glDrawArraysInstancedBaseInstance(drawtopo, drawcall->vertexOffset,
+                                                 drawcall->numIndices, drawcall->numInstances,
+                                                 drawcall->instanceOffset);
+          }
+          else
+          {
+            gl.glDrawArraysInstanced(drawtopo, drawcall->vertexOffset, drawcall->numIndices,
+                                     drawcall->numInstances);
+          }
+        }
         else
+        {
           gl.glDrawArrays(drawtopo, drawcall->vertexOffset, drawcall->numIndices);
+        }
       }
       else    // drawcall is indexed
       {
@@ -3967,10 +4008,20 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
 
         if(drawcall->flags & eDraw_Instanced)
         {
-          gl.glDrawElementsInstancedBaseVertexBaseInstance(
-              drawtopo, drawcall->numIndices, idxType,
-              (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
-              drawcall->numInstances, drawcall->baseVertex, drawcall->instanceOffset);
+          if(HasExt[ARB_base_instance])
+          {
+            gl.glDrawElementsInstancedBaseVertexBaseInstance(
+                drawtopo, drawcall->numIndices, idxType,
+                (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
+                drawcall->numInstances, drawcall->baseVertex, drawcall->instanceOffset);
+          }
+          else
+          {
+            gl.glDrawElementsInstancedBaseVertex(
+                drawtopo, drawcall->numIndices, idxType,
+                (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
+                drawcall->numInstances, drawcall->baseVertex);
+          }
         }
         else
         {
