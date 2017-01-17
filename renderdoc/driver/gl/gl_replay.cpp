@@ -2851,6 +2851,14 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
 
   GLenum binding = eGL_NONE;
 
+  GLenum baseFormat = eGL_RGBA;
+  GLenum dataType = eGL_UNSIGNED_BYTE;
+  if(!IsCompressedFormat(intFormat))
+  {
+    baseFormat = GetBaseFormat(intFormat);
+    dataType = GetDataType(intFormat);
+  }
+
   switch(templateTex.resType)
   {
     case eResType_None: break;
@@ -2862,8 +2870,8 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
       uint32_t w = templateTex.width;
       for(uint32_t i = 0; i < templateTex.mips; i++)
       {
-        m_pDriver->glTextureImage1DEXT(tex, eGL_TEXTURE_1D, i, intFormat, w, 0,
-                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+        m_pDriver->glTextureImage1DEXT(tex, eGL_TEXTURE_1D, i, intFormat, w, 0, baseFormat,
+                                       dataType, NULL);
         w = RDCMAX(1U, w >> 1);
       }
       break;
@@ -2876,8 +2884,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
       for(uint32_t i = 0; i < templateTex.mips; i++)
       {
         m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_1D_ARRAY, i, intFormat, w,
-                                       templateTex.arraysize, 0, GetBaseFormat(intFormat),
-                                       GetDataType(intFormat), NULL);
+                                       templateTex.arraysize, 0, baseFormat, dataType, NULL);
         w = RDCMAX(1U, w >> 1);
       }
       break;
@@ -2891,8 +2898,8 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
       uint32_t h = templateTex.height;
       for(uint32_t i = 0; i < templateTex.mips; i++)
       {
-        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_2D, i, intFormat, w, h, 0,
-                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_2D, i, intFormat, w, h, 0, baseFormat,
+                                       dataType, NULL);
         w = RDCMAX(1U, w >> 1);
         h = RDCMAX(1U, h >> 1);
       }
@@ -2907,8 +2914,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
       for(uint32_t i = 0; i < templateTex.mips; i++)
       {
         m_pDriver->glTextureImage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, i, intFormat, w, h,
-                                       templateTex.arraysize, 0, GetBaseFormat(intFormat),
-                                       GetDataType(intFormat), NULL);
+                                       templateTex.arraysize, 0, baseFormat, dataType, NULL);
         w = RDCMAX(1U, w >> 1);
         h = RDCMAX(1U, h >> 1);
       }
@@ -2940,8 +2946,8 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
       uint32_t d = templateTex.depth;
       for(uint32_t i = 0; i < templateTex.mips; i++)
       {
-        m_pDriver->glTextureImage3DEXT(tex, eGL_TEXTURE_3D, i, intFormat, w, h, d, 0,
-                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+        m_pDriver->glTextureImage3DEXT(tex, eGL_TEXTURE_3D, i, intFormat, w, h, d, 0, baseFormat,
+                                       dataType, NULL);
         w = RDCMAX(1U, w >> 1);
         h = RDCMAX(1U, h >> 1);
         d = RDCMAX(1U, d >> 1);
@@ -2957,17 +2963,17 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
       for(uint32_t i = 0; i < templateTex.mips; i++)
       {
         m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_POSITIVE_X, i, intFormat, w, h, 0,
-                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+                                       baseFormat, dataType, NULL);
         m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X, i, intFormat, w, h, 0,
-                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+                                       baseFormat, dataType, NULL);
         m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, i, intFormat, w, h, 0,
-                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+                                       baseFormat, dataType, NULL);
         m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y, i, intFormat, w, h, 0,
-                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+                                       baseFormat, dataType, NULL);
         m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, i, intFormat, w, h, 0,
-                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+                                       baseFormat, dataType, NULL);
         m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z, i, intFormat, w, h, 0,
-                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+                                       baseFormat, dataType, NULL);
         w = RDCMAX(1U, w >> 1);
         h = RDCMAX(1U, h >> 1);
       }
@@ -2982,8 +2988,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
       for(uint32_t i = 0; i < templateTex.mips; i++)
       {
         m_pDriver->glTextureImage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, i, intFormat, w, h,
-                                       templateTex.arraysize, 0, GetBaseFormat(intFormat),
-                                       GetDataType(intFormat), NULL);
+                                       templateTex.arraysize, 0, baseFormat, dataType, NULL);
         w = RDCMAX(1U, w >> 1);
         h = RDCMAX(1U, h >> 1);
       }

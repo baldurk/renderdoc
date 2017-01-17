@@ -675,6 +675,14 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       int mips =
           GetNumMips(gl, details.curType, res.name, details.width, details.height, details.depth);
 
+      GLenum baseFormat = eGL_RGBA;
+      GLenum dataType = eGL_UNSIGNED_BYTE;
+      if(!IsCompressedFormat(details.internalFormat))
+      {
+        baseFormat = GetBaseFormat(details.internalFormat);
+        dataType = GetDataType(details.internalFormat);
+      }
+
       // create texture of identical format/size to store initial contents
       if(details.curType == eGL_TEXTURE_2D_MULTISAMPLE)
       {
@@ -697,9 +705,8 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         int w = details.width;
         for(int i = 0; i < mips; i++)
         {
-          gl.glTextureImage1DEXT(tex, details.curType, i, details.internalFormat, w, 0,
-                                 GetBaseFormat(details.internalFormat),
-                                 GetDataType(details.internalFormat), NULL);
+          gl.glTextureImage1DEXT(tex, details.curType, i, details.internalFormat, w, 0, baseFormat,
+                                 dataType, NULL);
           w = RDCMAX(1, w >> 1);
         }
       }
@@ -712,8 +719,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         for(int i = 0; i < mips; i++)
         {
           gl.glTextureImage2DEXT(tex, details.curType, i, details.internalFormat, w, h, 0,
-                                 GetBaseFormat(details.internalFormat),
-                                 GetDataType(details.internalFormat), NULL);
+                                 baseFormat, dataType, NULL);
           w = RDCMAX(1, w >> 1);
           if(details.curType != eGL_TEXTURE_1D_ARRAY)
             h = RDCMAX(1, h >> 1);
@@ -729,8 +735,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
         for(int i = 0; i < mips; i++)
         {
           gl.glTextureImage3DEXT(tex, details.curType, i, details.internalFormat, w, h, d, 0,
-                                 GetBaseFormat(details.internalFormat),
-                                 GetDataType(details.internalFormat), NULL);
+                                 baseFormat, dataType, NULL);
           w = RDCMAX(1, w >> 1);
           h = RDCMAX(1, h >> 1);
           if(details.curType == eGL_TEXTURE_3D)
@@ -1428,6 +1433,14 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         GLenum dummy;
         EmulateLuminanceFormat(gl, tex, textype, internalformat, dummy);
 
+        GLenum baseFormat = eGL_RGBA;
+        GLenum dataType = eGL_UNSIGNED_BYTE;
+        if(!IsCompressedFormat(internalformat))
+        {
+          baseFormat = GetBaseFormat(internalformat);
+          dataType = GetDataType(internalformat);
+        }
+
         // create texture of identical format/size to store initial contents
         if(textype == eGL_TEXTURE_BUFFER || details.view)
         {
@@ -1452,8 +1465,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
           int w = width;
           for(int i = 0; i < mips; i++)
           {
-            gl.glTextureImage1DEXT(tex, textype, i, internalformat, w, 0,
-                                   GetBaseFormat(internalformat), GetDataType(internalformat), NULL);
+            gl.glTextureImage1DEXT(tex, textype, i, internalformat, w, 0, baseFormat, dataType, NULL);
             w = RDCMAX(1, w >> 1);
           }
         }
@@ -1465,8 +1477,8 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
           int h = height;
           for(int i = 0; i < mips; i++)
           {
-            gl.glTextureImage2DEXT(tex, textype, i, internalformat, w, h, 0,
-                                   GetBaseFormat(internalformat), GetDataType(internalformat), NULL);
+            gl.glTextureImage2DEXT(tex, textype, i, internalformat, w, h, 0, baseFormat, dataType,
+                                   NULL);
             w = RDCMAX(1, w >> 1);
             if(textype != eGL_TEXTURE_1D_ARRAY)
               h = RDCMAX(1, h >> 1);
@@ -1481,8 +1493,8 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
           int d = depth;
           for(int i = 0; i < mips; i++)
           {
-            gl.glTextureImage3DEXT(tex, textype, i, internalformat, w, h, d, 0,
-                                   GetBaseFormat(internalformat), GetDataType(internalformat), NULL);
+            gl.glTextureImage3DEXT(tex, textype, i, internalformat, w, h, d, 0, baseFormat,
+                                   dataType, NULL);
             w = RDCMAX(1, w >> 1);
             h = RDCMAX(1, h >> 1);
             if(textype == eGL_TEXTURE_3D)
