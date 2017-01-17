@@ -21,6 +21,8 @@
  * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
  * THE SOFTWARE.
  ******************************************************************************/
+
+//#extension GL_ARB_shader_image_load_store : require
  
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Below shaders courtesy of Stephen Hill (@self_shadow), converted to glsl trivially
