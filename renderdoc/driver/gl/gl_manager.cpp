@@ -588,8 +588,13 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
 
     state->depthMode = eGL_NONE;
     if(IsDepthStencilFormat(details.internalFormat))
-      gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE,
-                                    (GLint *)&state->depthMode);
+    {
+      if(HasExt[ARB_stencil_texturing])
+        gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE,
+                                      (GLint *)&state->depthMode);
+      else
+        state->depthMode = eGL_DEPTH_COMPONENT;
+    }
 
     state->seamless = GL_FALSE;
     if(details.curType == eGL_TEXTURE_CUBE_MAP || details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY)
@@ -1919,7 +1924,8 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
       bool ms = (details.curType == eGL_TEXTURE_2D_MULTISAMPLE ||
                  details.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY);
 
-      if(state->depthMode == eGL_DEPTH_COMPONENT || state->depthMode == eGL_STENCIL_INDEX)
+      if((state->depthMode == eGL_DEPTH_COMPONENT || state->depthMode == eGL_STENCIL_INDEX) &&
+         HasExt[ARB_stencil_texturing])
         gl.glTextureParameterivEXT(live.name, details.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE,
                                    (GLint *)&state->depthMode);
 

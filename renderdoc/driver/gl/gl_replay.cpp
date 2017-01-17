@@ -1101,6 +1101,7 @@ void GLReplay::SavePipelineState()
       auto &pipeDetails = m_pDriver->m_Pipelines[id];
 
       string pipelineName;
+      if(HasExt[KHR_debug])
       {
         char name[128] = {0};
         gl.glGetObjectLabel(eGL_PROGRAM_PIPELINE, curProg, 127, NULL, name);
@@ -1122,6 +1123,7 @@ void GLReplay::SavePipelineState()
                               stages[i]->BindpointMapping);
           mappings[i] = &stages[i]->BindpointMapping;
 
+          if(HasExt[KHR_debug])
           {
             char name[128] = {0};
             gl.glGetObjectLabel(eGL_PROGRAM, curProg, 127, NULL, name);
@@ -1129,6 +1131,7 @@ void GLReplay::SavePipelineState()
             stages[i]->customProgramName = (name[0] != 0);
           }
 
+          if(HasExt[KHR_debug])
           {
             char name[128] = {0};
             gl.glGetObjectLabel(eGL_SHADER, rm->GetCurrentResource(pipeDetails.stageShaders[i]).name,
@@ -1149,6 +1152,7 @@ void GLReplay::SavePipelineState()
     auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(ctx, curProg))];
 
     string programName;
+    if(HasExt[KHR_debug])
     {
       char name[128] = {0};
       gl.glGetObjectLabel(eGL_PROGRAM, curProg, 127, NULL, name);
@@ -1167,6 +1171,7 @@ void GLReplay::SavePipelineState()
         GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i], stages[i]->BindpointMapping);
         mappings[i] = &stages[i]->BindpointMapping;
 
+        if(HasExt[KHR_debug])
         {
           char name[128] = {0};
           gl.glGetObjectLabel(eGL_SHADER, rm->GetCurrentResource(progDetails.stageShaders[i]).name,
@@ -1180,31 +1185,35 @@ void GLReplay::SavePipelineState()
 
   RDCEraseEl(pipe.m_Feedback);
 
-  GLuint feedback = 0;
-  gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&feedback);
-
-  if(feedback != 0)
-    pipe.m_Feedback.Obj = rm->GetOriginalID(rm->GetID(FeedbackRes(ctx, feedback)));
-
-  GLint maxCount = 0;
-  gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
-
-  for(int i = 0; i < (int)ARRAY_COUNT(pipe.m_Feedback.BufferBinding) && i < maxCount; i++)
+  if(HasExt[ARB_transform_feedback2])
   {
-    GLuint buffer = 0;
-    gl.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint *)&buffer);
-    pipe.m_Feedback.BufferBinding[i] = rm->GetOriginalID(rm->GetID(BufferRes(ctx, buffer)));
-    gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_START, i,
-                         (GLint64 *)&pipe.m_Feedback.Offset[i]);
-    gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_SIZE, i, (GLint64 *)&pipe.m_Feedback.Size[i]);
+    GLuint feedback = 0;
+    gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&feedback);
+
+    if(feedback != 0)
+      pipe.m_Feedback.Obj = rm->GetOriginalID(rm->GetID(FeedbackRes(ctx, feedback)));
+
+    GLint maxCount = 0;
+    gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
+
+    for(int i = 0; i < (int)ARRAY_COUNT(pipe.m_Feedback.BufferBinding) && i < maxCount; i++)
+    {
+      GLuint buffer = 0;
+      gl.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint *)&buffer);
+      pipe.m_Feedback.BufferBinding[i] = rm->GetOriginalID(rm->GetID(BufferRes(ctx, buffer)));
+      gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_START, i,
+                           (GLint64 *)&pipe.m_Feedback.Offset[i]);
+      gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_SIZE, i,
+                           (GLint64 *)&pipe.m_Feedback.Size[i]);
+    }
+
+    GLint p = 0;
+    gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_PAUSED, &p);
+    pipe.m_Feedback.Paused = (p != 0);
+
+    gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_ACTIVE, &p);
+    pipe.m_Feedback.Active = (p != 0);
   }
-
-  GLint p = 0;
-  gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_PAUSED, &p);
-  pipe.m_Feedback.Paused = (p != 0);
-
-  gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_ACTIVE, &p);
-  pipe.m_Feedback.Active = (p != 0);
 
   for(int i = 0; i < 6; i++)
   {
@@ -1302,8 +1311,12 @@ void GLReplay::SavePipelineState()
     {
       gl.glActiveTexture(GLenum(eGL_TEXTURE0 + unit));
 
-      GLuint tex;
-      gl.glGetIntegerv(binding, (GLint *)&tex);
+      GLuint tex = 0;
+
+      if(binding == eGL_TEXTURE_CUBE_MAP_ARRAY && !HasExt[ARB_texture_cube_map_array])
+        tex = 0;
+      else
+        gl.glGetIntegerv(binding, (GLint *)&tex);
 
       if(tex == 0)
       {
@@ -1336,7 +1349,7 @@ void GLReplay::SavePipelineState()
         // very bespoke/specific
         GLint firstSlice = 0, firstMip = 0;
 
-        if(target != eGL_TEXTURE_BUFFER)
+        if(target != eGL_TEXTURE_BUFFER && HasExt[ARB_texture_view])
         {
           gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstMip);
           gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LAYER, &firstSlice);
@@ -1356,8 +1369,10 @@ void GLReplay::SavePipelineState()
         fmt = GetSizedFormat(gl.GetHookset(), target, fmt);
         if(IsDepthStencilFormat(fmt))
         {
-          GLint depthMode;
-          gl.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &depthMode);
+          GLint depthMode = eGL_DEPTH_COMPONENT;
+
+          if(HasExt[ARB_stencil_texturing])
+            gl.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &depthMode);
 
           if(depthMode == eGL_DEPTH_COMPONENT)
             pipe.Textures[unit].DepthReadChannel = 0;
@@ -1384,8 +1399,9 @@ void GLReplay::SavePipelineState()
           }
         }
 
-        GLuint samp;
-        gl.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&samp);
+        GLuint samp = 0;
+        if(HasExt[ARB_sampler_objects])
+          gl.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&samp);
 
         pipe.Samplers[unit].Samp = rm->GetOriginalID(rm->GetID(SamplerRes(ctx, samp)));
 
@@ -1427,10 +1443,13 @@ void GLReplay::SavePipelineState()
           pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
 
           v = 0;
-          if(samp != 0)
-            gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
-          else
-            gl.glGetTexParameteriv(target, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
+          if(HasExt[ARB_seamless_cubemap_per_texture])
+          {
+            if(samp != 0)
+              gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
+            else
+              gl.glGetTexParameteriv(target, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
+          }
           pipe.Samplers[unit].SeamlessCube =
               (v != 0 || rs.Enabled[GLRenderState::eEnabled_TexCubeSeamless]);
 

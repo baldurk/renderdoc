@@ -543,17 +543,6 @@ void GLReplay::InitDebugData()
                                "GL_ARB_compute_shader not supported, disabling mesh picking.");
   }
 
-  if(!HasExt[ARB_gpu_shader5])
-  {
-    RDCWARN(
-        "ARB_gpu_shader5 not supported, pixel picking and saving of integer textures may be "
-        "inaccurate.");
-    m_pDriver->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_Medium,
-                               eDbgSource_RuntimeWarning,
-                               "ARB_gpu_shader5 not supported, pixel picking and saving of integer "
-                               "textures may be inaccurate.");
-  }
-
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.8f);
 
   DebugData.pickResultBuf = 0;
@@ -647,6 +636,25 @@ void GLReplay::InitDebugData()
   gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, 0);
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 1.0f);
+
+  if(!HasExt[ARB_gpu_shader5])
+  {
+    RDCWARN(
+        "ARB_gpu_shader5 not supported, pixel picking and saving of integer textures may be "
+        "inaccurate.");
+    m_pDriver->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_Medium,
+                               eDbgSource_RuntimeWarning,
+                               "ARB_gpu_shader5 not supported, pixel picking and saving of integer "
+                               "textures may be inaccurate.");
+  }
+
+  if(!HasExt[ARB_stencil_texturing])
+  {
+    RDCWARN("ARB_stencil_texturing not supported, stencil values will not be displayed or picked.");
+    m_pDriver->AddDebugMessage(
+        eDbgCategory_Portability, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
+        "ARB_stencil_texturing not supported, stencil values will not be displayed or picked.");
+  }
 }
 
 void GLReplay::DeleteDebugData()
@@ -1800,7 +1808,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   gl.glBindTexture(target, texname);
 
   GLint origDSTexMode = eGL_DEPTH_COMPONENT;
-  if(dsTexMode != eGL_NONE)
+  if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
   {
     gl.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &origDSTexMode);
     gl.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, dsTexMode);
@@ -1960,7 +1968,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
 
   gl.glBindSampler(0, 0);
 
-  if(dsTexMode != eGL_NONE)
+  if(dsTexMode != eGL_NONE && HasExt[ARB_stencil_texturing])
     gl.glTexParameteri(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, origDSTexMode);
 
   return true;
