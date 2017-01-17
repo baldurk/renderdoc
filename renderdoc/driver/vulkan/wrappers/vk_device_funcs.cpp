@@ -66,6 +66,14 @@ static void StripUnwantedLayers(vector<string> &Layers)
       continue;
     }
 
+    // also remove the framerate monitor layer as it's buggy and doesn't do anything
+    // in our case
+    if(*it == "VK_LAYER_LUNARG_monitor")
+    {
+      it = Layers.erase(it);
+      continue;
+    }
+
     // filter out validation layers
     if(*it == "VK_LAYER_LUNARG_standard_validation" || *it == "VK_LAYER_LUNARG_core_validation" ||
        *it == "VK_LAYER_LUNARG_device_limits" || *it == "VK_LAYER_LUNARG_image" ||
