@@ -222,7 +222,11 @@ extern bool GLIsCore;
   EXT_TO_CHECK(ARB_draw_buffers_blend)               \
   EXT_TO_CHECK(ARB_viewport_array)                   \
   EXT_TO_CHECK(ARB_ES3_compatibility)                \
-  EXT_TO_CHECK(ARB_transform_feedback2)
+  EXT_TO_CHECK(ARB_transform_feedback2)              \
+  EXT_TO_CHECK(ARB_texture_storage)                  \
+  EXT_TO_CHECK(ARB_texture_storage_multisample)      \
+  EXT_TO_CHECK(ARB_gpu_shader5)                      \
+  EXT_TO_CHECK(ARB_texture_view)
 
 // extensions we know we want to check for are precached, indexd by this enum
 enum ExtensionCheckEnum

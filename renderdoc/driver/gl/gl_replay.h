@@ -348,8 +348,6 @@ private:
 
     GLuint UBOs[3];
 
-    GLuint readFBO;
-
     GLuint emptyVAO;
   } DebugData;
 

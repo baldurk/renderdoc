@@ -1492,6 +1492,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
   uint32_t ssboMembers = 0;
 
   GLint numSSBOs = 0;
+  if(HasExt[ARB_shader_storage_buffer_object])
   {
     gl.glGetProgramInterfaceiv(sepProg, eGL_SHADER_STORAGE_BLOCK, eGL_ACTIVE_RESOURCES, &numSSBOs);
 

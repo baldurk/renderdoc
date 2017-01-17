@@ -304,6 +304,7 @@ void GLReplay::InitDebugData()
   RDCLOG("GLSL version %d", glslVersion);
   GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
 
+  if(HasExt[ARB_shader_image_load_store])
   {
     string defines = "";
 
@@ -328,6 +329,15 @@ void GLReplay::InitDebugData()
     GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_quadresolve_frag), 420);
 
     DebugData.quadoverdrawResolveProg = CreateShaderProgram(vs, fs);
+  }
+  else
+  {
+    RDCWARN("GL_ARB_shader_image_load_store not supported, disabling quad overdraw feature.");
+    m_pDriver->AddDebugMessage(
+        eDbgCategory_Portability, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
+        "GL_ARB_shader_image_load_store not supported, disabling quad overdraw feature.");
+    DebugData.quadoverdrawFSProg = 0;
+    DebugData.quadoverdrawResolveProg = 0;
   }
 
   GenerateGLSLShader(fs, eShaderGLSL, "", GetEmbeddedResource(glsl_checkerboard_frag), 420);
@@ -423,7 +433,7 @@ void GLReplay::InitDebugData()
         "#extension GL_ARB_compute_shader : require\n"
         "#extension GL_ARB_shader_storage_buffer_object : require\n";
 
-    for(int t = 1; t <= RESTYPE_TEXTYPEMAX; t++)
+    for(int t = 1; HasExt[ARB_compute_shader] && t <= RESTYPE_TEXTYPEMAX; t++)
     {
       // float, uint, sint
       for(int i = 0; i < 3; i++)
@@ -472,6 +482,14 @@ void GLReplay::InitDebugData()
       }
     }
 
+    if(!HasExt[ARB_compute_shader])
+    {
+      RDCWARN("GL_ARB_compute_shader not supported, disabling min/max and histogram features.");
+      m_pDriver->AddDebugMessage(
+          eDbgCategory_Portability, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
+          "GL_ARB_compute_shader not supported, disabling min/max and histogram features.");
+    }
+
     gl.glGenBuffers(1, &DebugData.minmaxTileResult);
     gl.glGenBuffers(1, &DebugData.minmaxResult);
     gl.glGenBuffers(1, &DebugData.histogramBuf);
@@ -489,6 +507,7 @@ void GLReplay::InitDebugData()
                             eGL_DYNAMIC_READ);
   }
 
+  if(HasExt[ARB_compute_shader])
   {
     GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_ms2array_comp), 420);
     DebugData.MS2Array = CreateCShaderProgram(cs);
@@ -496,7 +515,17 @@ void GLReplay::InitDebugData()
     GenerateGLSLShader(cs, eShaderGLSL, "", GetEmbeddedResource(glsl_array2ms_comp), 420);
     DebugData.Array2MS = CreateCShaderProgram(cs);
   }
+  else
+  {
+    DebugData.MS2Array = 0;
+    DebugData.Array2MS = 0;
+    RDCWARN("GL_ARB_compute_shader not supported, disabling 2DMS save/load.");
+    m_pDriver->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_Medium,
+                               eDbgSource_RuntimeWarning,
+                               "GL_ARB_compute_shader not supported, disabling 2DMS save/load.");
+  }
 
+  if(HasExt[ARB_compute_shader])
   {
     string defines =
         "#extension GL_ARB_compute_shader : require\n"
@@ -504,9 +533,31 @@ void GLReplay::InitDebugData()
     GenerateGLSLShader(cs, eShaderGLSL, defines, GetEmbeddedResource(glsl_mesh_comp), 420);
     DebugData.meshPickProgram = CreateCShaderProgram(cs);
   }
+  else
+  {
+    DebugData.meshPickProgram = 0;
+    RDCWARN("GL_ARB_compute_shader not supported, disabling mesh picking.");
+    m_pDriver->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_Medium,
+                               eDbgSource_RuntimeWarning,
+                               "GL_ARB_compute_shader not supported, disabling mesh picking.");
+  }
+
+  if(!HasExt[ARB_gpu_shader5])
+  {
+    RDCWARN(
+        "ARB_gpu_shader5 not supported, pixel picking and saving of integer textures may be "
+        "inaccurate.");
+    m_pDriver->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_Medium,
+                               eDbgSource_RuntimeWarning,
+                               "ARB_gpu_shader5 not supported, pixel picking and saving of integer "
+                               "textures may be inaccurate.");
+  }
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.8f);
 
+  DebugData.pickResultBuf = 0;
+
+  if(DebugData.meshPickProgram)
   {
     gl.glGenBuffers(1, &DebugData.pickResultBuf);
     gl.glBindBuffer(eGL_SHADER_STORAGE_BUFFER, DebugData.pickResultBuf);
@@ -621,17 +672,11 @@ void GLReplay::DeleteDebugData()
 
   m_PostVSData.clear();
 
-  if(DebugData.overlayFBO)
-  {
-    gl.glDeleteFramebuffers(1, &DebugData.overlayFBO);
-    gl.glDeleteTextures(1, &DebugData.overlayTex);
-  }
+  gl.glDeleteFramebuffers(1, &DebugData.overlayFBO);
+  gl.glDeleteTextures(1, &DebugData.overlayTex);
 
-  if(DebugData.quadoverdrawFSProg)
-  {
-    gl.glDeleteProgram(DebugData.quadoverdrawFSProg);
-    gl.glDeleteProgram(DebugData.quadoverdrawResolveProg);
-  }
+  gl.glDeleteProgram(DebugData.quadoverdrawFSProg);
+  gl.glDeleteProgram(DebugData.quadoverdrawResolveProg);
 
   gl.glDeleteProgram(DebugData.texDisplayVSProg);
   for(int i = 0; i < 3; i++)
@@ -652,9 +697,10 @@ void GLReplay::DeleteDebugData()
   gl.glDeleteFramebuffers(1, &DebugData.pickPixelFBO);
   gl.glDeleteTextures(1, &DebugData.pickPixelTex);
 
+  gl.glDeleteBuffers(1, &DebugData.genericUBO);
+
   gl.glDeleteFramebuffers(1, &DebugData.customFBO);
-  if(DebugData.customTex != 0)
-    gl.glDeleteTextures(1, &DebugData.customTex);
+  gl.glDeleteTextures(1, &DebugData.customTex);
 
   gl.glDeleteVertexArrays(1, &DebugData.emptyVAO);
 
@@ -672,10 +718,14 @@ void GLReplay::DeleteDebugData()
       gl.glDeleteProgram(DebugData.minmaxTileProgram[idx]);
       gl.glDeleteProgram(DebugData.histogramProgram[idx]);
 
-      if(t == 1)
-        gl.glDeleteProgram(DebugData.minmaxResultProgram[i]);
+      gl.glDeleteProgram(DebugData.minmaxResultProgram[i]);
     }
   }
+
+  gl.glDeleteProgram(DebugData.meshPickProgram);
+  gl.glDeleteBuffers(1, &DebugData.pickIBBuf);
+  gl.glDeleteBuffers(1, &DebugData.pickVBBuf);
+  gl.glDeleteBuffers(1, &DebugData.pickResultBuf);
 
   gl.glDeleteProgram(DebugData.Array2MS);
   gl.glDeleteProgram(DebugData.MS2Array);
@@ -699,6 +749,9 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
                          FormatComponentType typeHint, float *minval, float *maxval)
 {
   if(texid == ResourceId() || m_pDriver->m_Textures.find(texid) == m_pDriver->m_Textures.end())
+    return false;
+
+  if(!HasExt[ARB_compute_shader])
     return false;
 
   auto &texDetails = m_pDriver->m_Textures[texid];
@@ -870,6 +923,9 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
     return false;
 
   if(m_pDriver->m_Textures.find(texid) == m_pDriver->m_Textures.end())
+    return false;
+
+  if(!HasExt[ARB_compute_shader])
     return false;
 
   auto &texDetails = m_pDriver->m_Textures[texid];
@@ -1044,6 +1100,9 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 uint32_t GLReplay::PickVertex(uint32_t eventID, const MeshDisplay &cfg, uint32_t x, uint32_t y)
 {
   WrappedOpenGL &gl = *m_pDriver;
+
+  if(!HasExt[ARB_compute_shader])
+    return ~0U;
 
   MakeCurrentReplayContext(m_DebugCtx);
 
@@ -1472,6 +1531,15 @@ void GLReplay::CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, G
                                   GLint arraySize, GLint samples, GLenum intFormat)
 {
   WrappedOpenGL &gl = *m_pDriver;
+
+  if(!HasExt[ARB_compute_shader])
+    return;
+
+  if(!HasExt[ARB_texture_view])
+  {
+    RDCWARN("Can't copy multisampled texture to array for serialisation without ARB_texture_view.");
+    return;
+  }
 
   GLRenderState rs(&gl.GetHookset(), NULL, READING);
   rs.FetchState(m_pDriver->GetCtx(), m_pDriver);
@@ -2781,6 +2849,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
   }
   else if(overlay == eTexOverlay_QuadOverdrawDraw || overlay == eTexOverlay_QuadOverdrawPass)
   {
+    if(DebugData.quadoverdrawFSProg)
     {
       SCOPED_TIMER("Quad Overdraw");
 
