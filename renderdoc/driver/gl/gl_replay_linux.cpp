@@ -148,9 +148,9 @@ uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool dep
   int i = 0;
 
   attribs[i++] = GLX_CONTEXT_MAJOR_VERSION_ARB;
-  attribs[i++] = 4;
+  attribs[i++] = GLCoreVersion / 10;
   attribs[i++] = GLX_CONTEXT_MINOR_VERSION_ARB;
-  attribs[i++] = 3;
+  attribs[i++] = GLCoreVersion % 10;
   attribs[i++] = GLX_CONTEXT_FLAGS_ARB;
 #if ENABLED(RDOC_DEVEL)
   attribs[i++] = GLX_CONTEXT_DEBUG_BIT_ARB;
@@ -313,9 +313,11 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   GLReplay::PreContextInitCounters();
 
   attribs[i++] = GLX_CONTEXT_MAJOR_VERSION_ARB;
-  attribs[i++] = 3;
+  int &major = attribs[i];
+  attribs[i++] = 0;
   attribs[i++] = GLX_CONTEXT_MINOR_VERSION_ARB;
-  attribs[i++] = 2;
+  int &minor = attribs[i];
+  attribs[i++] = 0;
   attribs[i++] = GLX_CONTEXT_FLAGS_ARB;
 #if ENABLED(RDOC_DEVEL)
   attribs[i++] = GLX_CONTEXT_DEBUG_BIT_ARB;
@@ -349,12 +351,30 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
 
   GLXContext ctx = NULL;
 
+  // try to create all versions from 4.5 down to 3.2 in order to get the
+  // highest versioned context we can
+  struct
+  {
+    int major;
+    int minor;
+  } versions[] = {
+      {4, 5}, {4, 4}, {4, 3}, {4, 2}, {4, 1}, {4, 0}, {3, 3}, {3, 2},
+  };
+
   {
     X11ErrorHandler prev = XSetErrorHandler(&NonFatalX11ErrorHandler);
 
-    X11ErrorSeen = false;
+    for(size_t i = 0; i < ARRAY_COUNT(versions); i++)
+    {
+      X11ErrorSeen = false;
 
-    ctx = glXCreateContextAttribsProc(dpy, fbcfg[0], 0, true, attribs);
+      major = versions[i].major;
+      minor = versions[i].minor;
+      ctx = glXCreateContextAttribsProc(dpy, fbcfg[0], 0, true, attribs);
+
+      if(ctx && !X11ErrorSeen)
+        break;
+    }
 
     XSetErrorHandler(prev);
   }
@@ -367,6 +387,8 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     RDCERR("Couldn't create 3.2 context - RenderDoc requires OpenGL 3.2 availability");
     return eReplayCreate_APIHardwareUnsupported;
   }
+
+  GLCoreVersion = major * 10 + minor;
 
   // don't care about pbuffer properties for same reason as backbuffer
   int pbAttribs[] = {GLX_PBUFFER_WIDTH, 32, GLX_PBUFFER_HEIGHT, 32, 0};

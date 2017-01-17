@@ -165,9 +165,9 @@ uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool dep
   int i = 0;
 
   attribs[i++] = WGL_CONTEXT_MAJOR_VERSION_ARB;
-  attribs[i++] = 4;
+  attribs[i++] = GLCoreVersion / 10;
   attribs[i++] = WGL_CONTEXT_MINOR_VERSION_ARB;
-  attribs[i++] = 3;
+  attribs[i++] = GLCoreVersion % 10;
   attribs[i++] = WGL_CONTEXT_FLAGS_ARB;
 #if ENABLED(RDOC_DEVEL)
   attribs[i++] = WGL_CONTEXT_DEBUG_BIT_ARB;
@@ -402,9 +402,11 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   int i = 0;
 
   attribs[i++] = WGL_CONTEXT_MAJOR_VERSION_ARB;
-  attribs[i++] = 3;
+  int &major = attribs[i];
+  attribs[i++] = 0;
   attribs[i++] = WGL_CONTEXT_MINOR_VERSION_ARB;
-  attribs[i++] = 2;
+  int &minor = attribs[i];
+  attribs[i++] = 0;
   attribs[i++] = WGL_CONTEXT_FLAGS_ARB;
 #if ENABLED(RDOC_DEVEL)
   attribs[i++] = WGL_CONTEXT_DEBUG_BIT_ARB;
@@ -414,7 +416,27 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   attribs[i++] = WGL_CONTEXT_PROFILE_MASK_ARB;
   attribs[i++] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
 
-  rc = createContextAttribs(dc, NULL, attribs);
+  // try to create all versions from 4.5 down to 3.2 in order to get the
+  // highest versioned context we can
+  struct
+  {
+    int major;
+    int minor;
+  } versions[] = {
+      {4, 5}, {4, 4}, {4, 3}, {4, 2}, {4, 1}, {4, 0}, {3, 3}, {3, 2},
+  };
+
+  rc = NULL;
+
+  for(size_t i = 0; i < ARRAY_COUNT(versions); i++)
+  {
+    major = versions[i].major;
+    minor = versions[i].minor;
+    rc = createContextAttribs(dc, NULL, attribs);
+
+    if(rc)
+      break;
+  }
   if(rc == NULL)
   {
     RDCERR("Couldn't create 3.2 RC - RenderDoc requires OpenGL 3.2 availability");
@@ -422,6 +444,8 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     GLReplay::PostContextShutdownCounters();
     return eReplayCreate_APIHardwareUnsupported;
   }
+
+  GLCoreVersion = major * 10 + minor;
 
   res = wglMakeCurrentProc(dc, rc);
   if(res == FALSE)
