@@ -1845,7 +1845,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     }
     else
     {
-      gl.glViewport(0.0f, 0.0f, (float)m_InitParams.width, (float)m_InitParams.height);
+      gl.glViewport(0, 0, m_InitParams.width, m_InitParams.height);
       gl.glDisable(eGL_SCISSOR_TEST);
     }
     gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);

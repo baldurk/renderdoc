@@ -1294,7 +1294,8 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
   }
   else
   {
-    m_Real->glViewport(Viewports[0].x, Viewports[0].y, Viewports[0].width, Viewports[0].height);
+    m_Real->glViewport((GLint)Viewports[0].x, (GLint)Viewports[0].y, (GLsizei)Viewports[0].width,
+                       (GLsizei)Viewports[0].height);
 
     m_Real->glScissor(Scissors[0].x, Scissors[0].y, Scissors[0].width, Scissors[0].height);
 
