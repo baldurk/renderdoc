@@ -211,6 +211,29 @@ GLuint GLReplay::CreateShaderProgram(const vector<string> &vsSources,
   return ret;
 }
 
+void GLReplay::CheckGLSLVersion(const char *sl, int &glslVersion)
+{
+  if(sl[0] >= '0' && sl[0] <= '9' && sl[1] == '.' && sl[2] >= '0' && sl[2] <= '9')
+  {
+    int major = int(sl[0] - '0');
+    int minor = int(sl[2] - '0');
+    int ver = major * 100 + minor * 10;
+
+    if(ver > glslVersion)
+      glslVersion = ver;
+  }
+
+  if(sl[0] >= '0' && sl[0] <= '9' && sl[1] >= '0' && sl[1] <= '9' && sl[2] == '0')
+  {
+    int major = int(sl[0] - '0');
+    int minor = int(sl[1] - '0');
+    int ver = major * 100 + minor * 10;
+
+    if(ver > glslVersion)
+      glslVersion = ver;
+  }
+}
+
 void GLReplay::InitDebugData()
 {
   if(m_pDriver == NULL)
@@ -253,50 +276,52 @@ void GLReplay::InitDebugData()
     DebugData.texDisplayProg[i] = CreateShaderProgram(empty, fs);
   }
 
-  GLint numsl = 0;
-  gl.glGetIntegerv(eGL_NUM_SHADING_LANGUAGE_VERSIONS, &numsl);
-
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
 
-  bool support450 = false;
-  for(GLint i = 0; i < numsl; i++)
+  int glslVersion = 150;
+
+  if(GLCoreVersion >= 43)
   {
-    const char *sl = (const char *)gl.glGetStringi(eGL_SHADING_LANGUAGE_VERSION, (GLuint)i);
+    GLint numsl = 0;
+    gl.glGetIntegerv(eGL_NUM_SHADING_LANGUAGE_VERSIONS, &numsl);
 
-    if(sl[0] == '4' && sl[1] == '5' && sl[2] == '0')
-      support450 = true;
-    if(sl[0] == '4' && sl[1] == '.' && sl[2] == '5')
-      support450 = true;
+    for(GLint i = 0; i < numsl; i++)
+    {
+      const char *sl = (const char *)gl.glGetStringi(eGL_SHADING_LANGUAGE_VERSION, (GLuint)i);
 
-    if(support450)
-      break;
+      CheckGLSLVersion(sl, glslVersion);
+    }
+  }
+  else
+  {
+    const char *sl = (const char *)gl.glGetString(eGL_SHADING_LANGUAGE_VERSION);
+
+    CheckGLSLVersion(sl, glslVersion);
   }
 
-  DebugData.quadoverdraw420 = !support450;
+  DebugData.glslVersion = glslVersion;
 
+  RDCLOG("GLSL version %d", glslVersion);
   GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 420);
 
   {
     string defines = "";
 
-    if(!support450)
+    if(glslVersion < 450)
     {
       // dFdx fine functions not available before GLSL 450. Use normal dFdx, which might be coarse,
       // so won't show quad overdraw properly
       defines += "#define dFdxFine dFdx\n\n";
       defines += "#define dFdyFine dFdy\n\n";
+
+      RDCWARN("Quad overdraw requires GLSL 4.50 for dFd(xy)fine, using possibly coarse dFd(xy).");
+      m_pDriver->AddDebugMessage(
+          eDbgCategory_Portability, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
+          "Quad overdraw requires GLSL 4.50 for dFd(xy)fine, using possibly coarse dFd(xy).");
     }
 
     GenerateGLSLShader(fs, eShaderGLSL, defines, GetEmbeddedResource(glsl_quadwrite_frag),
-                       support450 ? 450 : 420);
-
-    if(!support450)
-    {
-      // remove derivative control extension
-      size_t offs = fs[0].find("#extension GL_ARB_derivative_control");
-      if(offs != string::npos)
-        fs[0].insert(offs, "//");
-    }
+                       RDCMIN(450, glslVersion));
 
     DebugData.quadoverdrawFSProg = CreateShaderProgram(empty, fs);
 
@@ -2756,14 +2781,6 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
   }
   else if(overlay == eTexOverlay_QuadOverdrawDraw || overlay == eTexOverlay_QuadOverdrawPass)
   {
-    if(DebugData.quadoverdraw420)
-    {
-      RDCWARN("Quad overdraw requires GLSL 4.50 for dFd(xy)fine, using possibly coarse dFd(xy).");
-      m_pDriver->AddDebugMessage(
-          eDbgCategory_Portability, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
-          "Quad overdraw requires GLSL 4.50 for dFd(xy)fine, using possibly coarse dFd(xy).");
-    }
-
     {
       SCOPED_TIMER("Quad Overdraw");
 

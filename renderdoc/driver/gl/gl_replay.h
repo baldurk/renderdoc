@@ -278,6 +278,8 @@ private:
   {
     float outWidth, outHeight;
 
+    int glslVersion;
+
     // min/max data
     GLuint minmaxTileResult;          // tile result buffer
     GLuint minmaxResult;              // Vec4f[2] final result buffer
@@ -338,7 +340,6 @@ private:
 
     GLuint quadoverdrawFSProg;
     GLuint quadoverdrawResolveProg;
-    bool quadoverdraw420;
 
     GLuint overlayTex;
     GLuint overlayFBO;
@@ -376,6 +377,8 @@ private:
 
   void InitDebugData();
   void DeleteDebugData();
+
+  void CheckGLSLVersion(const char *sl, int &glslVersion);
 
   // called after the context is created, to init any counters
   void PostContextInitCounters();
