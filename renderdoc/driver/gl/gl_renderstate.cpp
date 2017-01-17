@@ -399,7 +399,7 @@ void GLRenderState::MarkDirty(WrappedOpenGL *gl)
   GLint maxCount = 0;
   GLuint name = 0;
 
-  if(GLCoreVersion >= 40 || HasExt[ARB_transform_feedback2])
+  if(HasExt[ARB_transform_feedback2])
   {
     m_Real->glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
 
@@ -413,7 +413,7 @@ void GLRenderState::MarkDirty(WrappedOpenGL *gl)
     }
   }
 
-  if(GLCoreVersion >= 42 || HasExt[ARB_shader_image_load_store])
+  if(HasExt[ARB_shader_image_load_store])
   {
     m_Real->glGetIntegerv(eGL_MAX_IMAGE_UNITS, &maxCount);
 
@@ -427,7 +427,7 @@ void GLRenderState::MarkDirty(WrappedOpenGL *gl)
     }
   }
 
-  if(GLCoreVersion >= 42 || HasExt[ARB_shader_atomic_counters])
+  if(HasExt[ARB_shader_atomic_counters])
   {
     m_Real->glGetIntegerv(eGL_MAX_ATOMIC_COUNTER_BUFFER_BINDINGS, &maxCount);
 
@@ -441,7 +441,7 @@ void GLRenderState::MarkDirty(WrappedOpenGL *gl)
     }
   }
 
-  if(GLCoreVersion >= 43 || HasExt[ARB_shader_storage_buffer_object])
+  if(HasExt[ARB_shader_storage_buffer_object])
   {
     m_Real->glGetIntegerv(eGL_MAX_SHADER_STORAGE_BUFFER_BINDINGS, &maxCount);
 
@@ -661,7 +661,7 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
 
   m_Real->glGetIntegerv(eGL_VERTEX_ARRAY_BINDING, (GLint *)&VAO);
 
-  if(GLCoreVersion >= 40 || HasExt[ARB_transform_feedback2])
+  if(HasExt[ARB_transform_feedback2])
     m_Real->glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&FeedbackObj);
 
   // the spec says that you can only query for the format that was previously set, or you get
@@ -680,7 +680,7 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
   m_Real->glGetFloatv(eGL_POINT_SIZE, &PointSize);
 
   m_Real->glGetIntegerv(eGL_PRIMITIVE_RESTART_INDEX, (GLint *)&PrimitiveRestartIndex);
-  if(GLCoreVersion >= 45 || HasExt[ARB_clip_control])
+  if(HasExt[ARB_clip_control])
   {
     m_Real->glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
     m_Real->glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
@@ -1138,7 +1138,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
   m_Real->glActiveTexture(ActiveTexture);
 
   m_Real->glBindVertexArray(VAO);
-  if(GLCoreVersion >= 40 || HasExt[ARB_transform_feedback2])
+  if(HasExt[ARB_transform_feedback2])
     m_Real->glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, FeedbackObj);
 
   // See FetchState(). The spec says that you have to SET the right format for the shader too,

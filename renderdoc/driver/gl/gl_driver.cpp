@@ -1504,7 +1504,7 @@ struct RenderTextState
       enableBits[7] = gl.glIsEnabled(eGL_ALPHA_TEST) != 0;
     }
 
-    if(modern && (GLCoreVersion >= 45 || HasExt[ARB_clip_control]))
+    if(modern && HasExt[ARB_clip_control])
     {
       gl.glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
       gl.glGetIntegerv(eGL_CLIP_DEPTH_MODE, (GLint *)&ClipDepth);
@@ -1661,7 +1661,7 @@ struct RenderTextState
         gl.glDisable(eGL_ALPHA_TEST);
     }
 
-    if(modern && gl.glClipControl && (GLCoreVersion >= 45 || HasExt[ARB_clip_control]))
+    if(modern && gl.glClipControl && HasExt[ARB_clip_control])
       gl.glClipControl(ClipOrigin, ClipDepth);
 
     if(modern && HasExt[ARB_draw_buffers_blend])
@@ -1852,7 +1852,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
     }
     gl.glPolygonMode(eGL_FRONT_AND_BACK, eGL_FILL);
 
-    if(gl.glClipControl && (GLCoreVersion >= 45 || HasExt[ARB_clip_control]))
+    if(gl.glClipControl && HasExt[ARB_clip_control])
       gl.glClipControl(eGL_LOWER_LEFT, eGL_NEGATIVE_ONE_TO_ONE);
 
     // bind UBOs

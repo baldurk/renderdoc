@@ -187,54 +187,57 @@ void GetBindpointMapping(const GLHookSet &gl, GLuint curProg, int shadIdx, Shade
 extern int GLCoreVersion;
 extern bool GLIsCore;
 
+// list of extensions and the version when they became core
+// 99 means the extension never became core, so you can easily
+// just do a check of CoreVersion >= NN and they will always fail.
 #define EXTENSION_CHECKS()                           \
-  EXT_TO_CHECK(ARB_enhanced_layouts)                 \
-  EXT_TO_CHECK(ARB_clip_control)                     \
-  EXT_TO_CHECK(EXT_polygon_offset_clamp)             \
-  EXT_TO_CHECK(KHR_blend_equation_advanced_coherent) \
-  EXT_TO_CHECK(EXT_raster_multisample)               \
-  EXT_TO_CHECK(ARB_indirect_parameters)              \
-  EXT_TO_CHECK(EXT_depth_bounds_test)                \
-  EXT_TO_CHECK(ARB_compute_shader)                   \
-  EXT_TO_CHECK(ARB_program_interface_query)          \
-  EXT_TO_CHECK(ARB_copy_image)                       \
-  EXT_TO_CHECK(ARB_shader_atomic_counters)           \
-  EXT_TO_CHECK(ARB_shader_storage_buffer_object)     \
-  EXT_TO_CHECK(EXT_direct_state_access)              \
-  EXT_TO_CHECK(ARB_clear_buffer_object)              \
-  EXT_TO_CHECK(ARB_internalformat_query2)            \
-  EXT_TO_CHECK(ARB_texture_swizzle)                  \
-  EXT_TO_CHECK(EXT_texture_swizzle)                  \
-  EXT_TO_CHECK(ARB_shading_language_420pack)         \
-  EXT_TO_CHECK(ARB_separate_shader_objects)          \
-  EXT_TO_CHECK(ARB_explicit_attrib_location)         \
-  EXT_TO_CHECK(ARB_vertex_attrib_binding)            \
-  EXT_TO_CHECK(ARB_sampler_objects)                  \
-  EXT_TO_CHECK(KHR_debug)                            \
-  EXT_TO_CHECK(ARB_sample_shading)                   \
-  EXT_TO_CHECK(ARB_texture_cube_map_array)           \
-  EXT_TO_CHECK(ARB_shader_image_load_store)          \
-  EXT_TO_CHECK(ARB_tessellation_shader)              \
-  EXT_TO_CHECK(ARB_shader_subroutine)                \
-  EXT_TO_CHECK(ARB_draw_indirect)                    \
-  EXT_TO_CHECK(ARB_query_buffer_object)              \
-  EXT_TO_CHECK(ARB_draw_buffers_blend)               \
-  EXT_TO_CHECK(ARB_viewport_array)                   \
-  EXT_TO_CHECK(ARB_ES3_compatibility)                \
-  EXT_TO_CHECK(ARB_transform_feedback2)              \
-  EXT_TO_CHECK(ARB_texture_storage)                  \
-  EXT_TO_CHECK(ARB_texture_storage_multisample)      \
-  EXT_TO_CHECK(ARB_gpu_shader5)                      \
-  EXT_TO_CHECK(ARB_texture_view)                     \
-  EXT_TO_CHECK(ARB_seamless_cubemap_per_texture)     \
-  EXT_TO_CHECK(ARB_stencil_texturing)                \
-  EXT_TO_CHECK(ARB_base_instance)
+  EXT_TO_CHECK(33, ARB_explicit_attrib_location)     \
+  EXT_TO_CHECK(33, ARB_sampler_objects)              \
+  EXT_TO_CHECK(33, ARB_texture_swizzle)              \
+  EXT_TO_CHECK(40, ARB_draw_buffers_blend)           \
+  EXT_TO_CHECK(40, ARB_draw_indirect)                \
+  EXT_TO_CHECK(40, ARB_gpu_shader5)                  \
+  EXT_TO_CHECK(40, ARB_sample_shading)               \
+  EXT_TO_CHECK(40, ARB_shader_subroutine)            \
+  EXT_TO_CHECK(40, ARB_tessellation_shader)          \
+  EXT_TO_CHECK(40, ARB_texture_cube_map_array)       \
+  EXT_TO_CHECK(40, ARB_transform_feedback2)          \
+  EXT_TO_CHECK(41, ARB_separate_shader_objects)      \
+  EXT_TO_CHECK(41, ARB_viewport_array)               \
+  EXT_TO_CHECK(42, ARB_base_instance)                \
+  EXT_TO_CHECK(42, ARB_shader_atomic_counters)       \
+  EXT_TO_CHECK(42, ARB_shader_image_load_store)      \
+  EXT_TO_CHECK(42, ARB_shading_language_420pack)     \
+  EXT_TO_CHECK(42, ARB_texture_storage)              \
+  EXT_TO_CHECK(43, ARB_clear_buffer_object)          \
+  EXT_TO_CHECK(43, ARB_compute_shader)               \
+  EXT_TO_CHECK(43, ARB_copy_image)                   \
+  EXT_TO_CHECK(43, ARB_ES3_compatibility)            \
+  EXT_TO_CHECK(43, ARB_internalformat_query2)        \
+  EXT_TO_CHECK(43, ARB_program_interface_query)      \
+  EXT_TO_CHECK(43, ARB_shader_storage_buffer_object) \
+  EXT_TO_CHECK(43, ARB_stencil_texturing)            \
+  EXT_TO_CHECK(43, ARB_texture_storage_multisample)  \
+  EXT_TO_CHECK(43, ARB_texture_view)                 \
+  EXT_TO_CHECK(43, ARB_vertex_attrib_binding)        \
+  EXT_TO_CHECK(43, KHR_debug)                        \
+  EXT_TO_CHECK(44, ARB_enhanced_layouts)             \
+  EXT_TO_CHECK(44, ARB_query_buffer_object)          \
+  EXT_TO_CHECK(45, ARB_clip_control)                 \
+  EXT_TO_CHECK(99, ARB_indirect_parameters)          \
+  EXT_TO_CHECK(99, ARB_seamless_cubemap_per_texture) \
+  EXT_TO_CHECK(99, EXT_depth_bounds_test)            \
+  EXT_TO_CHECK(99, EXT_direct_state_access)          \
+  EXT_TO_CHECK(99, EXT_polygon_offset_clamp)         \
+  EXT_TO_CHECK(99, EXT_raster_multisample)           \
+  EXT_TO_CHECK(99, EXT_texture_swizzle)              \
+  EXT_TO_CHECK(99, KHR_blend_equation_advanced_coherent)
 
 // extensions we know we want to check for are precached, indexd by this enum
 enum ExtensionCheckEnum
 {
 #undef EXT_TO_CHECK
-#define EXT_TO_CHECK(ext) ext,
+#define EXT_TO_CHECK(ver, ext) ext,
   EXTENSION_CHECKS()
 
       GLExtension_Count,

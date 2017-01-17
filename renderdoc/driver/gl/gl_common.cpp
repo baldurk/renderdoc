@@ -47,7 +47,7 @@ bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
 // as they should have minimal or no hardware requirement. They were present on mesa 10.6
 // for all drivers which dates to mid 2015.
 #undef EXT_TO_CHECK
-#define EXT_TO_CHECK(ext) ext,
+#define EXT_TO_CHECK(ver, ext) ext,
   enum
   {
     EXTENSION_CHECKS() ext_count,
@@ -78,8 +78,8 @@ bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
     ext += 3;
 
 #undef EXT_TO_CHECK
-#define EXT_TO_CHECK(extname)          \
-  if(!strcmp(ext, STRINGIZE(extname))) \
+#define EXT_TO_CHECK(ver, extname)                             \
+  if(GLCoreVersion >= ver || !strcmp(ext, STRINGIZE(extname))) \
     exts[extname] = true;
 
     EXTENSION_CHECKS()
@@ -402,8 +402,8 @@ void CheckExtensions(const GLHookSet &gl)
       ext += 3;
 
 #undef EXT_TO_CHECK
-#define EXT_TO_CHECK(extname)          \
-  if(!strcmp(ext, STRINGIZE(extname))) \
+#define EXT_TO_CHECK(ver, extname)                             \
+  if(GLCoreVersion >= ver || !strcmp(ext, STRINGIZE(extname))) \
     HasExt[extname] = true;
 
       EXTENSION_CHECKS()
@@ -469,7 +469,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
   // AMD throws an error if we try to copy the mips that are smaller than 4x4,
   if(gl.glGetError && gl.glGenTextures && gl.glBindTexture && gl.glCopyImageSubData &&
      gl.glTexStorage2D && gl.glTexSubImage2D && gl.glTexParameteri && gl.glDeleteTextures &&
-     (GLCoreVersion >= 43 || HasExt[ARB_copy_image]) && HasExt[ARB_texture_storage])
+     HasExt[ARB_copy_image] && HasExt[ARB_texture_storage])
   {
     GLuint texs[2];
     gl.glGenTextures(2, texs);
@@ -576,8 +576,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
   }
 
   if(gl.glGetError && gl.glGenProgramPipelines && gl.glDeleteProgramPipelines &&
-     gl.glGetProgramPipelineiv && (HasExt[ARB_compute_shader] || GLCoreVersion >= 43) &&
-     (HasExt[ARB_program_interface_query] || GLCoreVersion >= 43))
+     gl.glGetProgramPipelineiv && HasExt[ARB_compute_shader] && HasExt[ARB_program_interface_query])
   {
     GLuint pipe = 0;
     gl.glGenProgramPipelines(1, &pipe);
