@@ -1507,19 +1507,23 @@ void GLReplay::PickPixel(ResourceId texture, uint32_t x, uint32_t y, uint32_t sl
 
   if(!HasExt[ARB_gpu_shader5])
   {
-    for(int i = 0; i < 4; i++)
+    auto &texDetails = m_pDriver->m_Textures[texDisplay.texid];
+
+    if(IsSIntFormat(texDetails.internalFormat))
     {
-      // if negative, cast via int
-      if(pixel[i] < 0.0f)
-      {
-        int casted = (int)pixel[i];
-        memcpy(&pixel[i], &casted, sizeof(casted));
-      }
-      else
-      {
-        uint32_t casted = (uint32_t)pixel[i];
-        memcpy(&pixel[i], &casted, sizeof(casted));
-      }
+      int32_t casted[4] = {
+          (int32_t)pixel[0], (int32_t)pixel[1], (int32_t)pixel[2], (int32_t)pixel[3],
+      };
+
+      memcpy(pixel, casted, sizeof(casted));
+    }
+    else if(IsUIntFormat(texDetails.internalFormat))
+    {
+      uint32_t casted[4] = {
+          (uint32_t)pixel[0], (uint32_t)pixel[1], (uint32_t)pixel[2], (uint32_t)pixel[3],
+      };
+
+      memcpy(pixel, casted, sizeof(casted));
     }
   }
 
