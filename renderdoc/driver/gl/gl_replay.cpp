@@ -204,8 +204,9 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
   gl.glGenTextures(1, &outwin.BlitData.backbuffer);
   gl.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.backbuffer);
 
-  gl.glTextureStorage2DEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, 1, eGL_SRGB8, outwin.width,
-                           outwin.height);
+  gl.glTextureImage2DEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, 0, eGL_SRGB8, outwin.width,
+                         outwin.height, 0, eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
+  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -217,8 +218,9 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
     gl.glGenTextures(1, &outwin.BlitData.depthstencil);
     gl.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.depthstencil);
 
-    gl.glTextureStorage2DEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, 1, eGL_DEPTH_COMPONENT24,
-                             outwin.width, outwin.height);
+    gl.glTextureImage2DEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, 0, eGL_DEPTH_COMPONENT24,
+                           outwin.width, outwin.height, 0, eGL_DEPTH_COMPONENT, eGL_FLOAT, NULL);
+    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
     gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
     gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
     gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -2265,9 +2267,12 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     gl.glGenTextures(1, &tempTex);
     gl.glBindTexture(newtarget, tempTex);
     if(newtarget == eGL_TEXTURE_3D)
-      gl.glTextureStorage3DEXT(tempTex, newtarget, 1, finalFormat, width, height, depth);
+      gl.glTextureImage3DEXT(tempTex, newtarget, 0, finalFormat, width, height, depth, 0,
+                             GetBaseFormat(finalFormat), GetDataType(finalFormat), NULL);
     else
-      gl.glTextureStorage2DEXT(tempTex, newtarget, 1, finalFormat, width, height);
+      gl.glTextureImage2DEXT(tempTex, newtarget, 0, finalFormat, width, height, 0,
+                             GetBaseFormat(finalFormat), GetDataType(finalFormat), NULL);
+    gl.glTexParameteri(newtarget, eGL_TEXTURE_MAX_LEVEL, 1);
 
     // create temp framebuffer
     GLuint fbo = 0;
@@ -2356,7 +2361,9 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     // create temporary texture of width/height in same format to render to
     gl.glGenTextures(1, &tempTex);
     gl.glBindTexture(eGL_TEXTURE_2D, tempTex);
-    gl.glTextureStorage2DEXT(tempTex, eGL_TEXTURE_2D, 1, intFormat, width, height);
+    gl.glTextureImage2DEXT(tempTex, eGL_TEXTURE_2D, 0, intFormat, width, height, 0,
+                           GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
 
     // create temp framebuffers
     GLuint fbos[2] = {0};
@@ -2400,8 +2407,10 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     // with the same number of array slices as multi samples.
     gl.glGenTextures(1, &tempTex);
     gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, tempTex);
-    gl.glTextureStorage3DEXT(tempTex, eGL_TEXTURE_2D_ARRAY, 1, intFormat, width, height,
-                             arraysize * samples);
+    gl.glTextureImage3DEXT(tempTex, eGL_TEXTURE_2D_ARRAY, 0, intFormat, width, height,
+                           arraysize * samples, 0, GetBaseFormat(intFormat), GetDataType(intFormat),
+                           NULL);
+    gl.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 1);
 
     // copy multisampled texture to an array
     CopyTex2DMSToArray(tempTex, texname, width, height, arraysize, samples, intFormat);
@@ -2710,8 +2719,12 @@ void GLReplay::CreateCustomShaderTex(uint32_t w, uint32_t h)
 
   m_pDriver->glGenTextures(1, &DebugData.customTex);
   m_pDriver->glBindTexture(eGL_TEXTURE_2D, DebugData.customTex);
-  m_pDriver->glTextureStorage2DEXT(DebugData.customTex, eGL_TEXTURE_2D, mips, eGL_RGBA16F,
-                                   (GLsizei)w, (GLsizei)h);
+  for(uint32_t i = 0; i < mips; i++)
+  {
+    m_pDriver->glTextureImage2DEXT(DebugData.customTex, eGL_TEXTURE_2D, i, eGL_RGBA16F,
+                                   (GLsizei)RDCMAX(1U, w >> i), (GLsizei)RDCMAX(1U, h >> i), 0,
+                                   eGL_RGBA, eGL_FLOAT, NULL);
+  }
   m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
   m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
   m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_BASE_LEVEL, 0);
@@ -2827,15 +2840,27 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     {
       binding = eGL_TEXTURE_1D;
       gl.glBindTexture(eGL_TEXTURE_1D, tex);
-      gl.glTextureStorage1DEXT(tex, eGL_TEXTURE_1D, templateTex.mips, intFormat, templateTex.width);
+      uint32_t w = templateTex.width;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage1DEXT(tex, eGL_TEXTURE_1D, i, intFormat, w, 0,
+                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+        w = RDCMAX(1U, w >> 1);
+      }
       break;
     }
     case eResType_Texture1DArray:
     {
       binding = eGL_TEXTURE_1D_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_1D_ARRAY, tex);
-      gl.glTextureStorage2DEXT(tex, eGL_TEXTURE_1D_ARRAY, templateTex.mips, intFormat,
-                               templateTex.width, templateTex.arraysize);
+      uint32_t w = templateTex.width;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_1D_ARRAY, i, intFormat, w,
+                                       templateTex.arraysize, 0, GetBaseFormat(intFormat),
+                                       GetDataType(intFormat), NULL);
+        w = RDCMAX(1U, w >> 1);
+      }
       break;
     }
     case eResType_TextureRect:
@@ -2843,16 +2868,31 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     {
       binding = eGL_TEXTURE_2D;
       gl.glBindTexture(eGL_TEXTURE_2D, tex);
-      gl.glTextureStorage2DEXT(tex, eGL_TEXTURE_2D, templateTex.mips, intFormat, templateTex.width,
-                               templateTex.height);
+      uint32_t w = templateTex.width;
+      uint32_t h = templateTex.height;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_2D, i, intFormat, w, h, 0,
+                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+        w = RDCMAX(1U, w >> 1);
+        h = RDCMAX(1U, h >> 1);
+      }
       break;
     }
     case eResType_Texture2DArray:
     {
       binding = eGL_TEXTURE_2D_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, tex);
-      gl.glTextureStorage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, templateTex.mips, intFormat,
-                               templateTex.width, templateTex.height, templateTex.arraysize);
+      uint32_t w = templateTex.width;
+      uint32_t h = templateTex.height;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, i, intFormat, w, h,
+                                       templateTex.arraysize, 0, GetBaseFormat(intFormat),
+                                       GetDataType(intFormat), NULL);
+        w = RDCMAX(1U, w >> 1);
+        h = RDCMAX(1U, h >> 1);
+      }
       break;
     }
     case eResType_Texture2DMS:
@@ -2876,24 +2916,58 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     {
       binding = eGL_TEXTURE_3D;
       gl.glBindTexture(eGL_TEXTURE_3D, tex);
-      gl.glTextureStorage3DEXT(tex, eGL_TEXTURE_3D, templateTex.mips, intFormat, templateTex.width,
-                               templateTex.height, templateTex.depth);
+      uint32_t w = templateTex.width;
+      uint32_t h = templateTex.height;
+      uint32_t d = templateTex.depth;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage3DEXT(tex, eGL_TEXTURE_3D, i, intFormat, w, h, d, 0,
+                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+        w = RDCMAX(1U, w >> 1);
+        h = RDCMAX(1U, h >> 1);
+        d = RDCMAX(1U, d >> 1);
+      }
       break;
     }
     case eResType_TextureCube:
     {
       binding = eGL_TEXTURE_CUBE_MAP;
       gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, tex);
-      gl.glTextureStorage2DEXT(tex, eGL_TEXTURE_CUBE_MAP, templateTex.mips, intFormat,
-                               templateTex.width, templateTex.height);
+      uint32_t w = templateTex.width;
+      uint32_t h = templateTex.height;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_POSITIVE_X, i, intFormat, w, h, 0,
+                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X, i, intFormat, w, h, 0,
+                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, i, intFormat, w, h, 0,
+                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y, i, intFormat, w, h, 0,
+                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, i, intFormat, w, h, 0,
+                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z, i, intFormat, w, h, 0,
+                                       GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+        w = RDCMAX(1U, w >> 1);
+        h = RDCMAX(1U, h >> 1);
+      }
       break;
     }
     case eResType_TextureCubeArray:
     {
       binding = eGL_TEXTURE_CUBE_MAP_ARRAY;
       gl.glBindTexture(eGL_TEXTURE_CUBE_MAP_ARRAY, tex);
-      gl.glTextureStorage3DEXT(tex, eGL_TEXTURE_CUBE_MAP_ARRAY, templateTex.mips, intFormat,
-                               templateTex.width, templateTex.height, templateTex.arraysize);
+      uint32_t w = templateTex.width;
+      uint32_t h = templateTex.height;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, i, intFormat, w, h,
+                                       templateTex.arraysize, 0, GetBaseFormat(intFormat),
+                                       GetDataType(intFormat), NULL);
+        w = RDCMAX(1U, w >> 1);
+        h = RDCMAX(1U, h >> 1);
+      }
       break;
     }
     case eResType_Count:
@@ -2902,6 +2976,8 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
       break;
     }
   }
+
+  gl.glTexParameteri(binding, eGL_TEXTURE_MAX_LEVEL, templateTex.mips);
 
   if(templateTex.format.bgraOrder && binding != eGL_NONE)
   {
@@ -3083,8 +3159,7 @@ ResourceId GLReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)
   GLuint buf = 0;
   gl.glGenBuffers(1, &buf);
   gl.glBindBuffer(target, buf);
-  gl.glNamedBufferStorageEXT(buf, (GLsizeiptr)templateBuf.length, NULL,
-                             GL_DYNAMIC_STORAGE_BIT | GL_MAP_READ_BIT);
+  gl.glNamedBufferDataEXT(buf, (GLsizeiptr)templateBuf.length, NULL, eGL_DYNAMIC_DRAW);
 
   if(templateBuf.customName)
     gl.glObjectLabel(eGL_BUFFER, buf, -1, templateBuf.name.elems);

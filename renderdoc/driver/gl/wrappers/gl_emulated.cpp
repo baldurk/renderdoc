@@ -515,6 +515,48 @@ void APIENTRY _glTextureImage3DEXT(GLuint texture, GLenum target, GLint level, G
                            type, pixels);
 }
 
+// these two functions are a big hack. Internally we want to be using DSA functions for everything
+// since then we don't have to track current bindings during replay for non-serialised calls.
+// However, there are *no* DSA equivalents of the non-storage multisampled allocation functions.
+// To get around this, we will emulate these functions whether or not ARB_texture_storage is
+// present, and if it isn't just forward to the non-storage version which is equivalent
+
+void APIENTRY _glTextureStorage2DMultisampleEXT(GLuint texture, GLenum target, GLsizei samples,
+                                                GLenum internalformat, GLsizei width,
+                                                GLsizei height, GLboolean fixedsamplelocations)
+{
+  PushPopTexture(target, texture);
+  if(HasExt[ARB_texture_storage] && HasExt[ARB_texture_storage_multisample] &&
+     internalGL->glTexStorage2DMultisample)
+  {
+    internalGL->glTexStorage2DMultisample(target, samples, internalformat, width, height,
+                                          fixedsamplelocations);
+  }
+  else
+  {
+    internalGL->glTexImage2DMultisample(target, samples, internalformat, width, height,
+                                        fixedsamplelocations);
+  }
+}
+
+void APIENTRY _glTextureStorage3DMultisampleEXT(GLuint texture, GLenum target, GLsizei samples,
+                                                GLenum internalformat, GLsizei width, GLsizei height,
+                                                GLsizei depth, GLboolean fixedsamplelocations)
+{
+  PushPopTexture(target, texture);
+  if(HasExt[ARB_texture_storage] && HasExt[ARB_texture_storage_multisample] &&
+     internalGL->glTexStorage3DMultisample)
+  {
+    internalGL->glTexStorage3DMultisample(target, samples, internalformat, width, height, depth,
+                                          fixedsamplelocations);
+  }
+  else
+  {
+    internalGL->glTexImage3DMultisample(target, samples, internalformat, width, height, depth,
+                                        fixedsamplelocations);
+  }
+}
+
 void APIENTRY _glTextureParameterfEXT(GLuint texture, GLenum target, GLenum pname, GLfloat param)
 {
   PushPopTexture(target, texture);
@@ -1236,6 +1278,8 @@ void EmulateRequiredExtensions(const GLHookSet *real, GLHookSet *hooks)
     EMULATE_FUNC(glTextureImage1DEXT);
     EMULATE_FUNC(glTextureImage2DEXT);
     EMULATE_FUNC(glTextureImage3DEXT);
+    EMULATE_FUNC(glTextureStorage2DMultisampleEXT);
+    EMULATE_FUNC(glTextureStorage3DMultisampleEXT);
     EMULATE_FUNC(glTextureParameterfEXT);
     EMULATE_FUNC(glTextureParameterfvEXT);
     EMULATE_FUNC(glTextureParameteriEXT);

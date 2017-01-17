@@ -453,7 +453,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     GLuint buf = 0;
     gl.glGenBuffers(1, &buf);
     gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, buf);
-    gl.glBufferStorage(eGL_COPY_WRITE_BUFFER, (GLsizeiptr)length, NULL, GL_MAP_READ_BIT);
+    gl.glNamedBufferData(buf, (GLsizeiptr)length, NULL, eGL_STATIC_READ);
 
     // bind the live buffer for copying
     gl.glBindBuffer(eGL_COPY_READ_BUFFER, res.name);
@@ -687,17 +687,50 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       }
       else if(details.dimension == 1)
       {
-        gl.glTextureStorage1DEXT(tex, details.curType, mips, details.internalFormat, details.width);
+        gl.glTextureParameteriEXT(tex, details.curType, eGL_TEXTURE_MAX_LEVEL, mips);
+
+        int w = details.width;
+        for(int i = 0; i < mips; i++)
+        {
+          gl.glTextureImage1DEXT(tex, details.curType, i, details.internalFormat, w, 0,
+                                 GetBaseFormat(details.internalFormat),
+                                 GetDataType(details.internalFormat), NULL);
+          w = RDCMAX(1, w >> 1);
+        }
       }
       else if(details.dimension == 2)
       {
-        gl.glTextureStorage2DEXT(tex, details.curType, mips, details.internalFormat, details.width,
-                                 details.height);
+        gl.glTextureParameteriEXT(tex, details.curType, eGL_TEXTURE_MAX_LEVEL, mips);
+
+        int w = details.width;
+        int h = details.height;
+        for(int i = 0; i < mips; i++)
+        {
+          gl.glTextureImage2DEXT(tex, details.curType, i, details.internalFormat, w, h, 0,
+                                 GetBaseFormat(details.internalFormat),
+                                 GetDataType(details.internalFormat), NULL);
+          w = RDCMAX(1, w >> 1);
+          if(details.curType != eGL_TEXTURE_1D_ARRAY)
+            h = RDCMAX(1, h >> 1);
+        }
       }
       else if(details.dimension == 3)
       {
-        gl.glTextureStorage3DEXT(tex, details.curType, mips, details.internalFormat, details.width,
-                                 details.height, details.depth);
+        gl.glTextureParameteriEXT(tex, details.curType, eGL_TEXTURE_MAX_LEVEL, mips);
+
+        int w = details.width;
+        int h = details.height;
+        int d = details.depth;
+        for(int i = 0; i < mips; i++)
+        {
+          gl.glTextureImage3DEXT(tex, details.curType, i, details.internalFormat, w, h, d, 0,
+                                 GetBaseFormat(details.internalFormat),
+                                 GetDataType(details.internalFormat), NULL);
+          w = RDCMAX(1, w >> 1);
+          h = RDCMAX(1, h >> 1);
+          if(details.curType == eGL_TEXTURE_3D)
+            d = RDCMAX(1, d >> 1);
+        }
       }
 
       // we need to set maxlevel appropriately for number of mips to force the texture to be
@@ -1005,7 +1038,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
       GLuint buf = 0;
       gl.glGenBuffers(1, &buf);
       gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, buf);
-      gl.glBufferStorage(eGL_COPY_WRITE_BUFFER, (GLsizeiptr)len, data, 0);
+      gl.glNamedBufferData(buf, (GLsizeiptr)len, data, eGL_STATIC_DRAW);
 
       SAFE_DELETE_ARRAY(data);
 
@@ -1409,15 +1442,47 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         }
         else if(dim == 1)
         {
-          gl.glTextureStorage1DEXT(tex, textype, mips, internalformat, width);
+          gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips);
+
+          int w = width;
+          for(int i = 0; i < mips; i++)
+          {
+            gl.glTextureImage1DEXT(tex, textype, i, internalformat, w, 0,
+                                   GetBaseFormat(internalformat), GetDataType(internalformat), NULL);
+            w = RDCMAX(1, w >> 1);
+          }
         }
         else if(dim == 2)
         {
-          gl.glTextureStorage2DEXT(tex, textype, mips, internalformat, width, height);
+          gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips);
+
+          int w = width;
+          int h = height;
+          for(int i = 0; i < mips; i++)
+          {
+            gl.glTextureImage2DEXT(tex, textype, i, internalformat, w, h, 0,
+                                   GetBaseFormat(internalformat), GetDataType(internalformat), NULL);
+            w = RDCMAX(1, w >> 1);
+            if(textype != eGL_TEXTURE_1D_ARRAY)
+              h = RDCMAX(1, h >> 1);
+          }
         }
         else if(dim == 3)
         {
-          gl.glTextureStorage3DEXT(tex, textype, mips, internalformat, width, height, depth);
+          gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips);
+
+          int w = width;
+          int h = height;
+          int d = depth;
+          for(int i = 0; i < mips; i++)
+          {
+            gl.glTextureImage3DEXT(tex, textype, i, internalformat, w, h, d, 0,
+                                   GetBaseFormat(internalformat), GetDataType(internalformat), NULL);
+            w = RDCMAX(1, w >> 1);
+            h = RDCMAX(1, h >> 1);
+            if(textype == eGL_TEXTURE_3D)
+              d = RDCMAX(1, d >> 1);
+          }
         }
 
         if(textype == eGL_TEXTURE_BUFFER || details.view)

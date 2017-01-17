@@ -850,7 +850,7 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
   gl.glGenBuffers(1, &m_FakeIdxBuf);
   gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, m_FakeIdxBuf);
   m_FakeIdxSize = 1024 * 1024;    // this buffer is resized up as needed
-  gl.glNamedBufferStorageEXT(m_FakeIdxBuf, m_FakeIdxSize, NULL, GL_DYNAMIC_STORAGE_BIT);
+  gl.glNamedBufferDataEXT(m_FakeIdxBuf, m_FakeIdxSize, NULL, eGL_DYNAMIC_DRAW);
   gl.glBindBuffer(eGL_ELEMENT_ARRAY_BUFFER, 0);
 
   gl.glGenFramebuffers(1, &m_FakeBB_FBO);
@@ -881,7 +881,9 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
   }
   else
   {
-    gl.glTextureStorage2DEXT(m_FakeBB_Color, target, 1, colfmt, params.width, params.height);
+    gl.glTextureImage2DEXT(m_FakeBB_Color, target, 0, colfmt, params.width, params.height, 0,
+                           GetBaseFormat(colfmt), GetDataType(colfmt), NULL);
+    gl.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 1);
     gl.glTexParameteri(target, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
     gl.glTexParameteri(target, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
     gl.glTexParameteri(target, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -932,11 +934,16 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
       gl.glObjectLabel(eGL_TEXTURE, m_FakeBB_DepthStencil, -1, "Backbuffer Depth");
 
     if(params.multiSamples > 1)
+    {
       gl.glTextureStorage2DMultisampleEXT(m_FakeBB_DepthStencil, target, params.multiSamples,
                                           depthfmt, params.width, params.height, true);
+    }
     else
-      gl.glTextureStorage2DEXT(m_FakeBB_DepthStencil, target, 1, depthfmt, params.width,
-                               params.height);
+    {
+      gl.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 1);
+      gl.glTextureImage2DEXT(m_FakeBB_DepthStencil, target, 0, depthfmt, params.width,
+                             params.height, 0, GetBaseFormat(depthfmt), GetDataType(depthfmt), NULL);
+    }
 
     if(stencil)
       gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, m_FakeBB_DepthStencil,
