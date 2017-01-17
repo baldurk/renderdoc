@@ -165,7 +165,8 @@ uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool dep
   if(ctx == NULL)
   {
     XCloseDisplay(dpy);
-    RDCERR("Couldn't create 4.3 context - RenderDoc requires OpenGL 4.3 availability");
+    RDCERR("Couldn't create %d.%d context - something changed since creation", GLCoreVersion / 10,
+           GLCoreVersion % 10);
     return 0;
   }
 
