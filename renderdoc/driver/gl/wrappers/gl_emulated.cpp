@@ -1174,7 +1174,7 @@ void APIENTRY _glClearBufferSubData(GLenum target, GLenum internalformat, GLintp
 
     size_t stride = compCount * compByteWidth;
 
-    RDCASSERT(size % stride == 0, size, stride);
+    RDCASSERT(size % stride == 0, uint64_t(size), uint64_t(stride));
 
     // copy without conversion
     for(GLsizeiptr i = 0; i < size; i += stride)
