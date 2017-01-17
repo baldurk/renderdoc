@@ -197,7 +197,6 @@ extern bool GLIsCore;
   EXT_TO_CHECK(EXT_depth_bounds_test)                \
   EXT_TO_CHECK(ARB_compute_shader)                   \
   EXT_TO_CHECK(ARB_program_interface_query)          \
-  EXT_TO_CHECK(ARB_image_load_store)                 \
   EXT_TO_CHECK(ARB_copy_image)                       \
   EXT_TO_CHECK(ARB_shader_atomic_counters)           \
   EXT_TO_CHECK(ARB_shader_storage_buffer_object)     \

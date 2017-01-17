@@ -646,6 +646,8 @@ void GLReplay::InitDebugData()
                                eDbgSource_RuntimeWarning,
                                "ARB_gpu_shader5 not supported, pixel picking and saving of integer "
                                "textures may be inaccurate.");
+
+    m_Degraded = true;
   }
 
   if(!HasExt[ARB_stencil_texturing])
@@ -654,6 +656,13 @@ void GLReplay::InitDebugData()
     m_pDriver->AddDebugMessage(
         eDbgCategory_Portability, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
         "ARB_stencil_texturing not supported, stencil values will not be displayed or picked.");
+
+    m_Degraded = true;
+  }
+
+  if(!HasExt[ARB_shader_image_load_store] || !HasExt[ARB_compute_shader])
+  {
+    m_Degraded = true;
   }
 }
 

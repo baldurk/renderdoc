@@ -36,6 +36,8 @@ GLReplay::GLReplay()
   m_pDriver = NULL;
   m_Proxy = false;
 
+  m_Degraded = false;
+
   RDCEraseEl(m_ReplayCtx);
   m_DebugCtx = NULL;
 
@@ -122,7 +124,7 @@ APIProperties GLReplay::GetAPIProperties()
 
   ret.pipelineType = eGraphicsAPI_OpenGL;
   ret.localRenderer = eGraphicsAPI_OpenGL;
-  ret.degraded = false;
+  ret.degraded = m_Degraded;
 
   return ret;
 }

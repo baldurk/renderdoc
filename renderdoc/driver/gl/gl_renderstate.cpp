@@ -413,7 +413,7 @@ void GLRenderState::MarkDirty(WrappedOpenGL *gl)
     }
   }
 
-  if(GLCoreVersion >= 42 || HasExt[ARB_image_load_store])
+  if(GLCoreVersion >= 42 || HasExt[ARB_shader_image_load_store])
   {
     m_Real->glGetIntegerv(eGL_MAX_IMAGE_UNITS, &maxCount);
 

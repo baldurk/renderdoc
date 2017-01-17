@@ -351,6 +351,8 @@ private:
     GLuint emptyVAO;
   } DebugData;
 
+  bool m_Degraded;
+
   FloatVector InterpretVertex(byte *data, uint32_t vert, const MeshDisplay &cfg, byte *end,
                               bool useidx, bool &valid);
 
