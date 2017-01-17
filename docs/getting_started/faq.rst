@@ -81,7 +81,7 @@ What are the requirements for RenderDoc?
 
 Currently RenderDoc expects Feature Level 11.0 hardware and above for D3D11. Lower levels will capture successfully, but on replay RenderDoc will fall back to WARP software emulation which will run quite slowly.
 
-For OpenGL RenderDoc will only capture core profile applications, in general, and expects to be able to create a core 4.3 context which includes ``EXT_direct_state_access`` and ``ARB_buffer_storage``. For more details see :doc:`../behind_scenes/opengl_support`.
+For OpenGL RenderDoc will only capture core profile applications, in general, and expects at minimum to be able to create a core 3.2 context which includes a few key extensions. For more details see :doc:`../behind_scenes/opengl_support`.
 
 With Vulkan, RenderDoc should fully support any Vulkan application. However replaying a Vulkan log may not work if the hardware used to capture it is different - portability of captures between hardware is not guaranteed.
 
