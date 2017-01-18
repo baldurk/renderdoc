@@ -179,6 +179,7 @@ FetchTexture D3D12Replay::GetTexture(ResourceId id)
   ret.byteSize = 0;
   for(uint32_t i = 0; i < ret.mips; i++)
     ret.byteSize += GetByteSize(ret.width, ret.height, ret.depth, desc.Format, i);
+  ret.byteSize *= ret.arraysize;
 
   switch(ret.dimension)
   {
