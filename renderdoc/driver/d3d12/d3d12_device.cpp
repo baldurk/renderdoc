@@ -893,18 +893,18 @@ bool WrappedID3D12Device::Serialise_MapDataWrite(Serialiser *localSerialiser,
       // during reading, fill out the buffer itself
       if(m_State == READING)
       {
-        D3D12_RANGE range = {0, 0};
+        D3D12_RANGE maprange = {0, 0};
         void *dst = NULL;
-        HRESULT hr = uploadBuf->Map(sub, &range, &dst);
+        HRESULT hr = uploadBuf->Map(sub, &maprange, &dst);
 
         if(SUCCEEDED(hr))
         {
-          memcpy(dst, data, end - begin);
+          maprange.Begin = 0;
+          maprange.End = SIZE_T(end - begin);
 
-          range.Begin = 0;
-          range.End = end - begin;
+          memcpy(dst, data, maprange.End);
 
-          uploadBuf->Unmap(sub, &range);
+          uploadBuf->Unmap(sub, &maprange);
         }
         else
         {
