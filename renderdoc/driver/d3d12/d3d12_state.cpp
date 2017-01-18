@@ -165,17 +165,21 @@ void D3D12RenderState::ApplyState(ID3D12GraphicsCommandList *cmd) const
   for(size_t i = 0; i < vbuffers.size(); i++)
   {
     D3D12_VERTEX_BUFFER_VIEW vb;
+    vb.BufferLocation = 0;
 
-    ID3D12Resource *res = GetResourceManager()->GetCurrentAs<ID3D12Resource>(vbuffers[i].buf);
-    if(res)
-      vb.BufferLocation = res->GetGPUVirtualAddress() + vbuffers[i].offs;
-    else
-      vb.BufferLocation = 0;
+    if(vbuffers[i].buf != ResourceId())
+    {
+      ID3D12Resource *res = GetResourceManager()->GetCurrentAs<ID3D12Resource>(vbuffers[i].buf);
+      if(res)
+        vb.BufferLocation = res->GetGPUVirtualAddress() + vbuffers[i].offs;
+      else
+        vb.BufferLocation = 0;
 
-    vb.StrideInBytes = vbuffers[i].stride;
-    vb.SizeInBytes = vbuffers[i].size;
+      vb.StrideInBytes = vbuffers[i].stride;
+      vb.SizeInBytes = vbuffers[i].size;
 
-    cmd->IASetVertexBuffers((UINT)i, 1, &vb);
+      cmd->IASetVertexBuffers((UINT)i, 1, &vb);
+    }
   }
 
   std::vector<ID3D12DescriptorHeap *> descHeaps;
