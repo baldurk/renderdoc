@@ -249,6 +249,9 @@ private:
   D3D12Replay m_Replay;
   D3D12DebugManager *m_DebugManager;
 
+  set<ResourceId> m_UploadResourceIds;
+  map<uint64_t, ID3D12Resource *> m_UploadBuffers;
+
   Threading::CriticalSection m_MapsLock;
   vector<MapState> m_Maps;
 
@@ -427,6 +430,7 @@ public:
   ID3D12GraphicsCommandList *GetNewList();
   ID3D12GraphicsCommandList *GetInitialStateList();
   void CloseInitialStateList();
+  ID3D12Resource *GetUploadBuffer(uint64_t chunkOffset, uint64_t byteSize);
   void ApplyInitialContents();
 
   void ExecuteList(ID3D12GraphicsCommandList *list, ID3D12CommandQueue *queue = NULL);

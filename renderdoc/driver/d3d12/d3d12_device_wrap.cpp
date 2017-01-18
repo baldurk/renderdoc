@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "d3d12_device.h"
+#include "driver/dxgi/dxgi_common.h"
 #include "d3d12_command_list.h"
 #include "d3d12_command_queue.h"
 #include "d3d12_resources.h"
@@ -934,6 +935,19 @@ bool WrappedID3D12Device::Serialise_CreateCommittedResource(
   if(m_State == READING)
   {
     pOptimizedClearValue = HasClearValue ? &clearVal : NULL;
+
+    if(props.Type == D3D12_HEAP_TYPE_UPLOAD && desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
+    {
+      // place large resources in local memory so that initial contents and maps can
+      // be cached and copied on the GPU instead of memcpy'd from the CPU every time.
+      // smaller resources it's better to just leave them as upload and map into them
+      if(desc.Width >= 1024 * 1024)
+      {
+        RDCLOG("Remapping committed resource %llu from upload to default for efficient replay", Res);
+        props.Type = D3D12_HEAP_TYPE_DEFAULT;
+        m_UploadResourceIds.insert(Res);
+      }
+    }
 
     if(desc.Dimension == D3D12_RESOURCE_DIMENSION_BUFFER)
     {
