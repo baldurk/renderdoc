@@ -311,6 +311,11 @@ WrappedID3D12Device::WrappedID3D12Device(ID3D12Device *realDevice, D3D12InitPara
           // message about a NULL range to map for reading/writing the whole resource
           // which is "inefficient" but for our use cases it's almost always what we mean.
           D3D12_MESSAGE_ID_MAP_INVALID_NULLRANGE,
+
+          // D3D12_MESSAGE_ID_COMMAND_LIST_STATIC_DESCRIPTOR_RESOURCE_DIMENSION_MISMATCH
+          // message about mismatched SRV dimensions, which it seems to get wrong with the
+          // dummy NULL descriptors on the texture sampling code
+          (D3D12_MESSAGE_ID)1023,
       };
 
       D3D12_INFO_QUEUE_FILTER filter = {};
