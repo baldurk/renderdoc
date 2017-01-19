@@ -170,7 +170,7 @@ struct IReplayOutput
   virtual ResourceId GetCustomShaderTexID() = 0;
   virtual bool PickPixel(ResourceId texID, bool customShader, uint32_t x, uint32_t y,
                          uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val) = 0;
-  virtual uint32_t PickVertex(uint32_t eventID, uint32_t x, uint32_t y) = 0;
+  virtual uint32_t PickVertex(uint32_t eventID, uint32_t x, uint32_t y, uint32_t *pickedInstance) = 0;
 };
 
 #endif
@@ -224,7 +224,8 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_PickPixel(
     uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val);
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC ReplayOutput_PickVertex(ReplayOutput *output,
                                                                        uint32_t eventID, uint32_t x,
-                                                                       uint32_t y);
+                                                                       uint32_t y,
+                                                                       uint32_t *pickedInstance);
 
 // for C++ expose the interface as a virtual interface
 #ifdef __cplusplus

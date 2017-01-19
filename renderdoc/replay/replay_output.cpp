@@ -421,7 +421,7 @@ bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint
   return true;
 }
 
-uint32_t ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y)
+uint32_t ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y, uint32_t *pickedInstance)
 {
   FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(eventID);
 
@@ -442,7 +442,39 @@ uint32_t ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y)
   cfg.second.buf = m_pDevice->GetLiveID(cfg.second.buf);
   cfg.second.idxbuf = m_pDevice->GetLiveID(cfg.second.idxbuf);
 
-  return m_pDevice->PickVertex(m_EventID, cfg, x, y);
+  *pickedInstance = 0;
+
+  if(draw->flags & eDraw_Instanced)
+  {
+    uint32_t maxInst = 0;
+    if(m_RenderData.meshDisplay.showPrevInstances)
+      maxInst = RDCMAX(1U, m_RenderData.meshDisplay.curInstance);
+    if(m_RenderData.meshDisplay.showAllInstances)
+      maxInst = RDCMAX(1U, draw->numInstances);
+
+    for(uint32_t inst = 0; inst < maxInst; inst++)
+    {
+      // get the 'most final' stage
+      MeshFormat fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, eMeshDataStage_GSOut);
+      if(fmt.buf == ResourceId())
+        fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, eMeshDataStage_VSOut);
+
+      cfg.position = fmt;
+
+      uint32_t ret = m_pDevice->PickVertex(m_EventID, cfg, x, y);
+      if(ret != ~0U)
+      {
+        *pickedInstance = inst;
+        return ret;
+      }
+    }
+
+    return ~0U;
+  }
+  else
+  {
+    return m_pDevice->PickVertex(m_EventID, cfg, x, y);
+  }
 }
 
 bool ReplayOutput::SetPixelContextLocation(uint32_t x, uint32_t y)
@@ -898,7 +930,8 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_PickPixel(
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC ReplayOutput_PickVertex(ReplayOutput *output,
                                                                        uint32_t eventID, uint32_t x,
-                                                                       uint32_t y)
+                                                                       uint32_t y,
+                                                                       uint32_t *pickedInstance)
 {
-  return output->PickVertex(eventID, x, y);
+  return output->PickVertex(eventID, x, y, pickedInstance);
 }

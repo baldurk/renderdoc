@@ -2379,12 +2379,21 @@ namespace renderdocui.Windows
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
-                UInt32 vertSelected = m_Output.PickVertex(m_Core.CurEvent, (UInt32)p.X, (UInt32)p.Y);
+                UInt32 instanceSelected = 0;
+                UInt32 vertSelected = m_Output.PickVertex(m_Core.CurEvent, (UInt32)p.X, (UInt32)p.Y, out instanceSelected);
 
                 if (vertSelected != UInt32.MaxValue)
                 {
                     this.BeginInvoke(new Action(() =>
                     {
+                        if (instanceSelected != m_MeshDisplay.curInstance)
+                        {
+                            m_MeshDisplay.curInstance = instanceSelected;
+                            instanceIdx.Text = instanceSelected.ToString();
+                            instanceIdxToolitem.Text = instanceIdx.Text;
+                            OnEventSelected(m_Core.CurEvent);
+                        }
+
                         var ui = GetUIState(m_MeshDisplay.type);
 
                         int row = (int)vertSelected;
@@ -2401,6 +2410,7 @@ namespace renderdocui.Windows
 
                             SyncViews(ui.m_GridView, true, true);
                         }
+
                     }));
                 }
             });
