@@ -739,8 +739,9 @@ void BufferViewer::render_clicked(QMouseEvent *e)
   if((e->buttons() & Qt::RightButton) && m_Output)
   {
     m_Ctx->Renderer()->AsyncInvoke([this, curpos](IReplayRenderer *r) {
-      uint32_t vertSelected =
-          m_Output->PickVertex(m_Ctx->CurEvent(), (uint32_t)curpos.x(), (uint32_t)curpos.y());
+      uint32_t instanceSelected = 0;
+      uint32_t vertSelected = m_Output->PickVertex(m_Ctx->CurEvent(), (uint32_t)curpos.x(),
+                                                   (uint32_t)curpos.y(), &instanceSelected);
 
       if(vertSelected != ~0U)
       {

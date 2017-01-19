@@ -60,7 +60,7 @@ public:
   ResourceId GetCustomShaderTexID() { return m_CustomShaderResourceId; }
   bool PickPixel(ResourceId texID, bool customShader, uint32_t x, uint32_t y, uint32_t sliceFace,
                  uint32_t mip, uint32_t sample, PixelValue *val);
-  uint32_t PickVertex(uint32_t eventID, uint32_t x, uint32_t y);
+  uint32_t PickVertex(uint32_t eventID, uint32_t x, uint32_t y, uint32_t *pickedInstance);
 
 private:
   ReplayOutput(ReplayRenderer *parent, WindowingSystem system, void *data, OutputType type);
