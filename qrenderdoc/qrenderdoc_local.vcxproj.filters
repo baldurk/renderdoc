@@ -44,6 +44,33 @@
     <Filter Include="Windows\PipelineState">
       <UniqueIdentifier>{7ba076e7-3417-4e91-be51-9e7f17a19c24}</UniqueIdentifier>
     </Filter>
+    <Filter Include="3rdparty\Scintilla">
+      <UniqueIdentifier>{6c0de148-de6a-4ab3-91ad-fae4a5278c03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\Scintilla\lexlib">
+      <UniqueIdentifier>{e0300f3d-d087-46c8-9a35-b9d709a212d8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\Scintilla\lexers">
+      <UniqueIdentifier>{bd9a022f-7925-4f17-acc3-8d4688b8c0d6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\Scintilla\src">
+      <UniqueIdentifier>{92b9dc0e-7bb4-402a-bd5e-799d5ccdaa36}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\Scintilla\qt">
+      <UniqueIdentifier>{2b0fab33-f1b9-4488-bc9c-f3b65b0e955c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\Scintilla\include">
+      <UniqueIdentifier>{3dcd3970-3ccb-448b-b596-93c1a272b0fd}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\Scintilla\include\qt">
+      <UniqueIdentifier>{28c1a078-8722-4949-bed4-a1bed6c26082}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\Scintilla\qt\ScintillaEdit">
+      <UniqueIdentifier>{e7b5de50-ab5a-4a91-a53f-a524ea51641c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\Scintilla\qt\ScintillaEditBase">
+      <UniqueIdentifier>{4a14bfec-662c-410a-8d94-dccf5ba6cb0b}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="generated\moc_EventBrowser.cpp">
@@ -265,6 +292,171 @@
     <ClCompile Include="generated\moc_RDTableView.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\Accessor.cxx">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\CharacterCategory.cxx">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\CharacterSet.cxx">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\LexerBase.cxx">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\LexerModule.cxx">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\LexerNoExceptions.cxx">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\LexerSimple.cxx">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\PropSetSimple.cxx">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\StyleContext.cxx">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\WordList.cxx">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexCPP.cxx">
+      <Filter>3rdparty\Scintilla\lexers</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexDiff.cxx">
+      <Filter>3rdparty\Scintilla\lexers</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexErrorList.cxx">
+      <Filter>3rdparty\Scintilla\lexers</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexHTML.cxx">
+      <Filter>3rdparty\Scintilla\lexers</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexJSON.cxx">
+      <Filter>3rdparty\Scintilla\lexers</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexNull.cxx">
+      <Filter>3rdparty\Scintilla\lexers</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexPython.cxx">
+      <Filter>3rdparty\Scintilla\lexers</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexRust.cxx">
+      <Filter>3rdparty\Scintilla\lexers</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\qt\ScintillaEditBase\PlatQt.cpp">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEditBase</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaEditBase.cpp">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEditBase</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaQt.cpp">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEditBase</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaDocument.cpp">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEdit</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\AutoComplete.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\CallTip.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\CaseConvert.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\CaseFolder.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Catalogue.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\CellBuffer.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\CharClassify.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\ContractionState.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Decoration.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Document.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\EditModel.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Editor.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\EditView.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\ExternalLexer.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Indicator.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\KeyMap.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\LineMarker.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\MarginView.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\PerLine.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\PositionCache.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\RESearch.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\RunStyles.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\ScintillaBase.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Selection.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Style.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\UniConversion.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\ViewStyle.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\XPM.cxx">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_ScintillaDocument.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_ScintillaEditBase.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_ScintillaQt.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaEdit.cpp">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEdit</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_ScintillaEdit.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -425,6 +617,195 @@
     </ClInclude>
     <ClInclude Include="Widgets\Extended\RDTableView.h">
       <Filter>Widgets\Extended</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\Accessor.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\CharacterCategory.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\CharacterSet.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\LexAccessor.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\LexerBase.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\LexerModule.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\LexerNoExceptions.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\LexerSimple.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\OptionSet.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\PropSetSimple.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\SparseState.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\StringCopy.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\StyleContext.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\SubStyles.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\lexlib\WordList.h">
+      <Filter>3rdparty\Scintilla\lexlib</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\include\qt\ScintillaDocument.h">
+      <Filter>3rdparty\Scintilla\include\qt</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\include\qt\ScintillaEdit.h">
+      <Filter>3rdparty\Scintilla\include\qt</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\include\qt\ScintillaEditBase.h">
+      <Filter>3rdparty\Scintilla\include\qt</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\include\ILexer.h">
+      <Filter>3rdparty\Scintilla\include</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\include\Platform.h">
+      <Filter>3rdparty\Scintilla\include</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\include\Sci_Position.h">
+      <Filter>3rdparty\Scintilla\include</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\include\SciLexer.h">
+      <Filter>3rdparty\Scintilla\include</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\include\Scintilla.h">
+      <Filter>3rdparty\Scintilla\include</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\include\ScintillaWidget.h">
+      <Filter>3rdparty\Scintilla\include</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEditBase\PlatQt.h">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEditBase</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaEditBase.h">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEditBase</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaQt.h">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEditBase</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaDocument.h">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEdit</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\AutoComplete.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\CallTip.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\CaseConvert.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\CaseFolder.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\Catalogue.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\CellBuffer.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\CharClassify.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\ContractionState.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\Decoration.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\Document.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\EditModel.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\Editor.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\EditView.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\ExternalLexer.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\FontQuality.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\Indicator.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\KeyMap.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\LineMarker.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\MarginView.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\Partitioning.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\PerLine.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\Position.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\PositionCache.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\RESearch.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\RunStyles.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\ScintillaBase.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\Selection.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\SparseVector.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\SplitVector.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\Style.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\UnicodeFromUTF8.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\UniConversion.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\ViewStyle.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\src\XPM.h">
+      <Filter>3rdparty\Scintilla\src</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaEdit.h">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEdit</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

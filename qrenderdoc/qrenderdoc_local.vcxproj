@@ -103,8 +103,8 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(Platform)\$(Configuration)\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -112,7 +112,7 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <ObjectFileName>$(Platform)\$(Configuration)\</ObjectFileName>
       <Optimization>MaxSpeed</Optimization>
-      <PreprocessorDefinitions>_WINDOWS;RELEASE;UNICODE;WIN32;WIN64;RENDERDOC_PLATFORM_WIN32;QT_MESSAGELOGCONTEXT;QT_NO_DEBUG;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;RELEASE;UNICODE;WIN32;WIN64;RENDERDOC_PLATFORM_WIN32;SCINTILLA_QT=1;MAKING_LIBRARY=1;SCI_LEXER=1;QT_MESSAGELOGCONTEXT;QT_NO_DEBUG;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessToFile>false</PreprocessToFile>
       <ProgramDataBaseFileName>
       </ProgramDataBaseFileName>
@@ -149,8 +149,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(Platform)\$(Configuration)\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -158,7 +158,7 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <ObjectFileName>$(Platform)\$(Configuration)\</ObjectFileName>
       <Optimization>MaxSpeed</Optimization>
-      <PreprocessorDefinitions>_WINDOWS;RELEASE;UNICODE;WIN32;RENDERDOC_PLATFORM_WIN32;QT_MESSAGELOGCONTEXT;QT_NO_DEBUG;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;RELEASE;UNICODE;WIN32;RENDERDOC_PLATFORM_WIN32;SCINTILLA_QT=1;MAKING_LIBRARY=1;SCI_LEXER=1;QT_MESSAGELOGCONTEXT;QT_NO_DEBUG;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessToFile>false</PreprocessToFile>
       <ProgramDataBaseFileName>
       </ProgramDataBaseFileName>
@@ -195,8 +195,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(Platform)\$(Configuration)\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -204,7 +204,7 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <ObjectFileName>$(Platform)\$(Configuration)\</ObjectFileName>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;WIN64;RENDERDOC_PLATFORM_WIN32;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;WIN64;RENDERDOC_PLATFORM_WIN32;SCINTILLA_QT=1;MAKING_LIBRARY=1;SCI_LEXER=1;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessToFile>false</PreprocessToFile>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -238,8 +238,8 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 -w44458 %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(Platform)\$(Configuration)\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -247,7 +247,7 @@
       <ExceptionHandling>Sync</ExceptionHandling>
       <ObjectFileName>$(Platform)\$(Configuration)\</ObjectFileName>
       <Optimization>Disabled</Optimization>
-      <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;RENDERDOC_PLATFORM_WIN32;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>_WINDOWS;UNICODE;WIN32;RENDERDOC_PLATFORM_WIN32;SCINTILLA_QT=1;MAKING_LIBRARY=1;SCI_LEXER=1;QT_WIDGETS_LIB;QT_GUI_LIB;QT_CORE_LIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <PreprocessToFile>false</PreprocessToFile>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <RuntimeTypeInfo>true</RuntimeTypeInfo>
@@ -280,6 +280,210 @@
     </ResourceCompile>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexCPP.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexDiff.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexErrorList.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexHTML.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexJSON.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexNull.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexPython.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexers\LexRust.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\Accessor.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\CharacterCategory.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\CharacterSet.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\LexerBase.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\LexerModule.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\LexerNoExceptions.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\LexerSimple.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\PropSetSimple.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\StyleContext.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\lexlib\WordList.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\qt\ScintillaEditBase\PlatQt.cpp">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaEditBase.cpp">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaQt.cpp">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaDocument.cpp">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaEdit.cpp">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\AutoComplete.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\CallTip.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\CaseConvert.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\CaseFolder.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Catalogue.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\CellBuffer.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\CharClassify.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\ContractionState.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Decoration.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Document.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\EditModel.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Editor.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\EditView.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\ExternalLexer.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Indicator.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\KeyMap.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\LineMarker.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\MarginView.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\PerLine.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\PositionCache.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\RESearch.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\RunStyles.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\ScintillaBase.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Selection.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\Style.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\UniConversion.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\ViewStyle.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
+    <ClCompile Include="3rdparty\scintilla\src\XPM.cxx">
+      <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+    </ClCompile>
     <ClCompile Include="Code\CommonPipelineState.cpp" />
     <ClCompile Include="Code\FormatElement.cpp" />
     <ClCompile Include="Code\PersistantConfig.cpp" />
@@ -309,6 +513,10 @@
     <ClCompile Include="generated\moc_RDTableView.cpp" />
     <ClCompile Include="generated\moc_RDTreeWidget.cpp" />
     <ClCompile Include="generated\moc_ResourcePreview.cpp" />
+    <ClCompile Include="generated\moc_ScintillaDocument.cpp" />
+    <ClCompile Include="generated\moc_ScintillaEdit.cpp" />
+    <ClCompile Include="generated\moc_ScintillaEditBase.cpp" />
+    <ClCompile Include="generated\moc_ScintillaQt.cpp" />
     <ClCompile Include="generated\moc_TextureGoto.cpp" />
     <ClCompile Include="generated\moc_TextureSaveDialog.cpp" />
     <ClCompile Include="generated\moc_TextureViewer.cpp" />
@@ -363,6 +571,69 @@
     <ClCompile Include="Code\qrenderdoc.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="3rdparty\scintilla\include\ILexer.h" />
+    <ClInclude Include="3rdparty\scintilla\include\Platform.h" />
+    <ClInclude Include="3rdparty\scintilla\include\qt\ScintillaDocument.h" />
+    <ClInclude Include="3rdparty\scintilla\include\qt\ScintillaEdit.h" />
+    <ClInclude Include="3rdparty\scintilla\include\qt\ScintillaEditBase.h" />
+    <ClInclude Include="3rdparty\scintilla\include\SciLexer.h" />
+    <ClInclude Include="3rdparty\scintilla\include\Scintilla.h" />
+    <ClInclude Include="3rdparty\scintilla\include\ScintillaWidget.h" />
+    <ClInclude Include="3rdparty\scintilla\include\Sci_Position.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\Accessor.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\CharacterCategory.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\CharacterSet.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\LexAccessor.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\LexerBase.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\LexerModule.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\LexerNoExceptions.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\LexerSimple.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\OptionSet.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\PropSetSimple.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\SparseState.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\StringCopy.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\StyleContext.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\SubStyles.h" />
+    <ClInclude Include="3rdparty\scintilla\lexlib\WordList.h" />
+    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEditBase\PlatQt.h" />
+    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaEditBase.h" />
+    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaQt.h" />
+    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaDocument.h" />
+    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaEdit.h" />
+    <ClInclude Include="3rdparty\scintilla\src\AutoComplete.h" />
+    <ClInclude Include="3rdparty\scintilla\src\CallTip.h" />
+    <ClInclude Include="3rdparty\scintilla\src\CaseConvert.h" />
+    <ClInclude Include="3rdparty\scintilla\src\CaseFolder.h" />
+    <ClInclude Include="3rdparty\scintilla\src\Catalogue.h" />
+    <ClInclude Include="3rdparty\scintilla\src\CellBuffer.h" />
+    <ClInclude Include="3rdparty\scintilla\src\CharClassify.h" />
+    <ClInclude Include="3rdparty\scintilla\src\ContractionState.h" />
+    <ClInclude Include="3rdparty\scintilla\src\Decoration.h" />
+    <ClInclude Include="3rdparty\scintilla\src\Document.h" />
+    <ClInclude Include="3rdparty\scintilla\src\EditModel.h" />
+    <ClInclude Include="3rdparty\scintilla\src\Editor.h" />
+    <ClInclude Include="3rdparty\scintilla\src\EditView.h" />
+    <ClInclude Include="3rdparty\scintilla\src\ExternalLexer.h" />
+    <ClInclude Include="3rdparty\scintilla\src\FontQuality.h" />
+    <ClInclude Include="3rdparty\scintilla\src\Indicator.h" />
+    <ClInclude Include="3rdparty\scintilla\src\KeyMap.h" />
+    <ClInclude Include="3rdparty\scintilla\src\LineMarker.h" />
+    <ClInclude Include="3rdparty\scintilla\src\MarginView.h" />
+    <ClInclude Include="3rdparty\scintilla\src\Partitioning.h" />
+    <ClInclude Include="3rdparty\scintilla\src\PerLine.h" />
+    <ClInclude Include="3rdparty\scintilla\src\Position.h" />
+    <ClInclude Include="3rdparty\scintilla\src\PositionCache.h" />
+    <ClInclude Include="3rdparty\scintilla\src\RESearch.h" />
+    <ClInclude Include="3rdparty\scintilla\src\RunStyles.h" />
+    <ClInclude Include="3rdparty\scintilla\src\ScintillaBase.h" />
+    <ClInclude Include="3rdparty\scintilla\src\Selection.h" />
+    <ClInclude Include="3rdparty\scintilla\src\SparseVector.h" />
+    <ClInclude Include="3rdparty\scintilla\src\SplitVector.h" />
+    <ClInclude Include="3rdparty\scintilla\src\Style.h" />
+    <ClInclude Include="3rdparty\scintilla\src\UnicodeFromUTF8.h" />
+    <ClInclude Include="3rdparty\scintilla\src\UniConversion.h" />
+    <ClInclude Include="3rdparty\scintilla\src\ViewStyle.h" />
+    <ClInclude Include="3rdparty\scintilla\src\XPM.h" />
     <ClInclude Include="Code\CommonPipelineState.h" />
     <ClInclude Include="Code\PersistantConfig.h" />
     <ClInclude Include="Code\qprocessinfo.h" />

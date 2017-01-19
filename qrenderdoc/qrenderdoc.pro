@@ -23,6 +23,9 @@ INCLUDEPATH += $$_PRO_FILE_PWD_/
 INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/toolwindowmanager
 # For FlowLayout
 INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/flowlayout
+# For Scintilla
+INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/include/qt
+INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/include
 
 # Different output folders per platform
 win32 {
@@ -90,11 +93,42 @@ win32 {
 	}
 }
 
+# Add Scintilla
+
+# Needed for building
+DEFINES += SCINTILLA_QT=1 MAKING_LIBRARY=1 SCI_LEXER=1
+INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/src
+INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib
+
+SOURCES += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/*.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexers/*.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/*.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEdit/*.cpp \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/*.cpp
+
+HEADERS += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/*.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/*.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEdit/*.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/*.h
+
+# Add ToolWindowManager
+
 SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
-    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp \
-    3rdparty/flowlayout/FlowLayout.cpp \
-    Code/qrenderdoc.cpp \
+    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp
+
+HEADERS += 3rdparty/toolwindowmanager/ToolWindowManager.h \
+    3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
+    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h
+
+# Add FlowLayout
+
+SOURCES += 3rdparty/flowlayout/FlowLayout.cpp
+HEADERS += 3rdparty/flowlayout/FlowLayout.h
+
+# Add our sources
+
+SOURCES += Code/qrenderdoc.cpp \
     Code/qprocessinfo.cpp \
     Code/RenderManager.cpp \
     Code/CommonPipelineState.cpp \
@@ -131,11 +165,7 @@ SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
     Windows/BufferViewer.cpp \
     Widgets/Extended/RDTableView.cpp
 
-HEADERS  += 3rdparty/toolwindowmanager/ToolWindowManager.h \
-    3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
-    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h \
-    3rdparty/flowlayout/FlowLayout.h \
-    Code/CaptureContext.h \
+HEADERS += Code/CaptureContext.h \
     Code/qprocessinfo.h \
     Code/RenderManager.h \
     Code/PersistantConfig.h \
@@ -189,5 +219,4 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Widgets/BufferFormatSpecifier.ui \
     Windows/BufferViewer.ui
 
-RESOURCES += \
-    resources.qrc
+RESOURCES += resources.qrc
