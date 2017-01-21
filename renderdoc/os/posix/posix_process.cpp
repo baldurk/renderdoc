@@ -89,6 +89,12 @@ static map<string, string> EnvStringToEnvMap(const char **envstring)
   {
     const char *equals = strchr(*e, '=');
 
+    if(equals == NULL)
+    {
+      e++;
+      continue;
+    }
+
     string name;
     string value;
 
