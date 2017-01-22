@@ -75,14 +75,6 @@ struct array
 
   T &operator[](size_t i) { return elems[i]; }
   const T &operator[](size_t i) const { return elems[i]; }
-  array(const T *const in)
-  {
-    elems = 0;
-    count = 0;
-    *this = in;
-  }
-  array &operator=(const T *const in);
-
   array(const std::vector<T> &in)
   {
     elems = 0;
