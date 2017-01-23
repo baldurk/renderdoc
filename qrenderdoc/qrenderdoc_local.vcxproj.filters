@@ -457,6 +457,15 @@
     <ClCompile Include="generated\moc_ScintillaEdit.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\ShaderViewer.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_ShaderViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\ScintillaSyntax.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -807,6 +816,15 @@
     <ClInclude Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaEdit.h">
       <Filter>3rdparty\Scintilla\qt\ScintillaEdit</Filter>
     </ClInclude>
+    <ClInclude Include="Windows\ShaderViewer.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_ShaderViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\ScintillaSyntax.h">
+      <Filter>Code</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resources.qrc">
@@ -1038,6 +1056,9 @@
       <Filter>Widgets</Filter>
     </None>
     <None Include="Windows\BufferViewer.ui">
+      <Filter>Windows</Filter>
+    </None>
+    <None Include="Windows\ShaderViewer.ui">
       <Filter>Windows</Filter>
     </None>
   </ItemGroup>

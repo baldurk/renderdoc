@@ -29,6 +29,7 @@
 #include "Windows/BufferViewer.h"
 #include "Windows/ConstantBufferPreviewer.h"
 #include "Windows/MainWindow.h"
+#include "Windows/ShaderViewer.h"
 #include "Windows/TextureViewer.h"
 #include "ui_VulkanPipelineStateViewer.h"
 
@@ -94,6 +95,10 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(CaptureContext *ctx, QWidge
 {
   ui->setupUi(this);
 
+  RDLabel *shaderLabels[] = {
+      ui->vsShader, ui->tcsShader, ui->tesShader, ui->gsShader, ui->fsShader, ui->csShader,
+  };
+
   QToolButton *viewButtons[] = {
       ui->vsShaderViewButton, ui->tcsShaderViewButton, ui->tesShaderViewButton,
       ui->gsShaderViewButton, ui->fsShaderViewButton,  ui->csShaderViewButton,
@@ -120,6 +125,9 @@ VulkanPipelineStateViewer::VulkanPipelineStateViewer(CaptureContext *ctx, QWidge
 
   for(QToolButton *b : viewButtons)
     QObject::connect(b, &QToolButton::clicked, this, &VulkanPipelineStateViewer::shaderView_clicked);
+
+  for(RDLabel *b : shaderLabels)
+    QObject::connect(b, &RDLabel::clicked, this, &VulkanPipelineStateViewer::shaderView_clicked);
 
   for(QToolButton *b : editButtons)
     QObject::connect(b, &QToolButton::clicked, this, &VulkanPipelineStateViewer::shaderEdit_clicked);
@@ -2146,6 +2154,8 @@ void VulkanPipelineStateViewer::ubo_itemActivated(QTreeWidgetItem *item, int col
   ConstantBufferPreviewer *prev =
       new ConstantBufferPreviewer(m_Ctx, stage->stage, cb.slotIdx, cb.arrayIdx, m_Ctx->mainWindow());
 
+  m_Ctx->setupDockWindow(prev);
+
   ToolWindowManager *manager = ToolWindowManager::managerOf(this);
 
   ToolWindowManager::AreaReference ref(ToolWindowManager::RightOf, manager->areaOf(this), 0.3f);
@@ -2278,6 +2288,22 @@ void VulkanPipelineStateViewer::vertex_leave(QEvent *e)
 
 void VulkanPipelineStateViewer::shaderView_clicked()
 {
+  const VulkanPipelineState::ShaderStage *stage =
+      stageForSender(qobject_cast<QWidget *>(QObject::sender()));
+
+  if(stage == NULL || stage->Shader == ResourceId())
+    return;
+
+  ShaderReflection *shaderDetails = stage->ShaderDetails;
+
+  ShaderViewer *shad = new ShaderViewer(m_Ctx, shaderDetails, stage->stage, NULL, "");
+
+  m_Ctx->setupDockWindow(shad);
+
+  ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+  ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+  manager->addToolWindow(shad, ref);
 }
 
 void VulkanPipelineStateViewer::shaderEdit_clicked()

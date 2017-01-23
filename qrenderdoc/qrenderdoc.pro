@@ -93,40 +93,7 @@ win32 {
 	}
 }
 
-# Add Scintilla
-
-# Needed for building
-DEFINES += SCINTILLA_QT=1 MAKING_LIBRARY=1 SCI_LEXER=1
-INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/src
-INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib
-
-SOURCES += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/*.cxx \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexers/*.cxx \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/*.cxx \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEdit/*.cpp \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/*.cpp
-
-HEADERS += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/*.h \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/*.h \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEdit/*.h \
-    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/*.h
-
-# Add ToolWindowManager
-
-SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
-    3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
-    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp
-
-HEADERS += 3rdparty/toolwindowmanager/ToolWindowManager.h \
-    3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
-    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h
-
-# Add FlowLayout
-
-SOURCES += 3rdparty/flowlayout/FlowLayout.cpp
-HEADERS += 3rdparty/flowlayout/FlowLayout.h
-
-# Add our sources
+# Add our sources first so Qt Creator adds new files here
 
 SOURCES += Code/qrenderdoc.cpp \
     Code/qprocessinfo.cpp \
@@ -134,6 +101,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Code/CommonPipelineState.cpp \
     Code/PersistantConfig.cpp \
     Code/CaptureContext.cpp \
+    Code/ScintillaSyntax.cpp \
     Windows/Dialogs/AboutDialog.cpp \
     Windows/MainWindow.cpp \
     Windows/EventBrowser.cpp \
@@ -170,6 +138,7 @@ HEADERS += Code/CaptureContext.h \
     Code/RenderManager.h \
     Code/PersistantConfig.h \
     Code/CommonPipelineState.h \
+    Code/ScintillaSyntax.h \
     Windows/Dialogs/AboutDialog.h \
     Windows/MainWindow.h \
     Windows/EventBrowser.h \
@@ -217,6 +186,43 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/PipelineState/GLPipelineStateViewer.ui \
     Windows/ConstantBufferPreviewer.ui \
     Widgets/BufferFormatSpecifier.ui \
-    Windows/BufferViewer.ui
+    Windows/BufferViewer.ui \
+    Windows/ShaderViewer.ui
 
 RESOURCES += resources.qrc
+
+# Add ToolWindowManager
+
+SOURCES += 3rdparty/toolwindowmanager/ToolWindowManager.cpp \
+    3rdparty/toolwindowmanager/ToolWindowManagerArea.cpp \
+    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.cpp
+
+HEADERS += 3rdparty/toolwindowmanager/ToolWindowManager.h \
+    3rdparty/toolwindowmanager/ToolWindowManagerArea.h \
+    3rdparty/toolwindowmanager/ToolWindowManagerWrapper.h
+
+# Add FlowLayout
+
+SOURCES += 3rdparty/flowlayout/FlowLayout.cpp
+HEADERS += 3rdparty/flowlayout/FlowLayout.h
+
+# Add Scintilla last as it has extra search paths
+
+# Needed for building
+DEFINES += SCINTILLA_QT=1 MAKING_LIBRARY=1 SCI_LEXER=1
+INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/src
+INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib
+
+SOURCES += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/*.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/lexers/*.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/*.cxx \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEdit/*.cpp \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/*.cpp \
+    Windows/ShaderViewer.cpp
+
+HEADERS += $$_PRO_FILE_PWD_/3rdparty/scintilla/lexlib/*.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/src/*.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEdit/*.h \
+    $$_PRO_FILE_PWD_/3rdparty/scintilla/qt/ScintillaEditBase/*.h \
+    Windows/ShaderViewer.h
+

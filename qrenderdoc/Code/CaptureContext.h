@@ -138,6 +138,7 @@ public:
   BufferViewer *meshPreview();
   PipelineStateViewer *pipelineViewer();
   CaptureDialog *captureDialog();
+  void setupDockWindow(QWidget *shad);
 
   bool hasEventBrowser() { return m_EventBrowser != NULL; }
   bool hasAPIInspector() { return m_APIInspector != NULL; }

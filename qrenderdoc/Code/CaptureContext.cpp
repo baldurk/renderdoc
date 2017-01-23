@@ -438,7 +438,7 @@ EventBrowser *CaptureContext::eventBrowser()
 
   m_EventBrowser = new EventBrowser(this, m_MainWindow);
   m_EventBrowser->setObjectName("eventBrowser");
-  m_EventBrowser->setWindowIcon(*m_Icon);
+  setupDockWindow(m_EventBrowser);
 
   return m_EventBrowser;
 }
@@ -450,7 +450,7 @@ APIInspector *CaptureContext::apiInspector()
 
   m_APIInspector = new APIInspector(this, m_MainWindow);
   m_APIInspector->setObjectName("apiInspector");
-  m_APIInspector->setWindowIcon(*m_Icon);
+  setupDockWindow(m_APIInspector);
 
   return m_APIInspector;
 }
@@ -462,7 +462,7 @@ TextureViewer *CaptureContext::textureViewer()
 
   m_TextureViewer = new TextureViewer(this, m_MainWindow);
   m_TextureViewer->setObjectName("textureViewer");
-  m_TextureViewer->setWindowIcon(*m_Icon);
+  setupDockWindow(m_TextureViewer);
 
   return m_TextureViewer;
 }
@@ -474,7 +474,7 @@ BufferViewer *CaptureContext::meshPreview()
 
   m_MeshPreview = new BufferViewer(this, m_MainWindow);
   m_MeshPreview->setObjectName("meshPreview");
-  m_MeshPreview->setWindowIcon(*m_Icon);
+  setupDockWindow(m_MeshPreview);
 
   return m_MeshPreview;
 }
@@ -486,7 +486,7 @@ PipelineStateViewer *CaptureContext::pipelineViewer()
 
   m_PipelineViewer = new PipelineStateViewer(this, m_MainWindow);
   m_PipelineViewer->setObjectName("pipelineViewer");
-  m_PipelineViewer->setWindowIcon(*m_Icon);
+  setupDockWindow(m_PipelineViewer);
 
   return m_PipelineViewer;
 }
@@ -587,4 +587,9 @@ void CaptureContext::windowClosed(QWidget *window)
     m_MeshPreview = NULL;
   else
     qCritical() << "Unrecognised window being closed: " << window;
+}
+
+void CaptureContext::setupDockWindow(QWidget *shad)
+{
+  shad->setWindowIcon(*m_Icon);
 }

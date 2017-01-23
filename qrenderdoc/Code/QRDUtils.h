@@ -252,6 +252,45 @@ struct ToStr
     return "Unknown";
   }
 
+  static std::string Get(const SystemAttribute &el)
+  {
+    switch(el)
+    {
+      case eAttr_None: return "None";
+      case eAttr_Position: return "Position";
+      case eAttr_PointSize: return "Point Size";
+      case eAttr_ClipDistance: return "Clip Distance";
+      case eAttr_CullDistance: return "Cull Distance";
+      case eAttr_RTIndex: return "RT Index";
+      case eAttr_ViewportIndex: return "Viewport Index";
+      case eAttr_VertexIndex: return "Vertex Index";
+      case eAttr_PrimitiveIndex: return "Primitive Index";
+      case eAttr_InstanceIndex: return "Instance Index";
+      case eAttr_InvocationIndex: return "Invocation Index";
+      case eAttr_DispatchSize: return "Dispatch Size";
+      case eAttr_DispatchThreadIndex: return "Dispatch Thread Index";
+      case eAttr_GroupIndex: return "Group Index";
+      case eAttr_GroupFlatIndex: return "Group Flat Index";
+      case eAttr_GroupThreadIndex: return "Group Thread Index";
+      case eAttr_GSInstanceIndex: return "GS Instance Index";
+      case eAttr_OutputControlPointIndex: return "Output Control Point Index";
+      case eAttr_DomainLocation: return "Domain Location";
+      case eAttr_IsFrontFace: return "Is FrontFace";
+      case eAttr_MSAACoverage: return "MSAA Coverage";
+      case eAttr_MSAASamplePosition: return "MSAA Sample Position";
+      case eAttr_MSAASampleIndex: return "MSAA Sample Index";
+      case eAttr_PatchNumVertices: return "Patch NumVertices";
+      case eAttr_OuterTessFactor: return "Outer TessFactor";
+      case eAttr_InsideTessFactor: return "Inside TessFactor";
+      case eAttr_ColourOutput: return "Colour Output";
+      case eAttr_DepthOutput: return "Depth Output";
+      case eAttr_DepthOutputGreaterEqual: return "Depth Output (GEqual)";
+      case eAttr_DepthOutputLessEqual: return "Depth Output (LEqual)";
+      default: break;
+    }
+    return "Unknown";
+  }
+
   static std::string Get(const ShaderBindType &el)
   {
     switch(el)
@@ -352,6 +391,10 @@ QString TypeString(const ShaderVariable &v);
 QString RowString(const ShaderVariable &v, uint32_t row);
 QString VarString(const ShaderVariable &v);
 QString RowTypeString(const ShaderVariable &v);
+
+QString TypeString(const SigParameter &sig);
+QString D3DSemanticString(const SigParameter &sig);
+QString GetComponentString(byte mask);
 
 struct Formatter
 {

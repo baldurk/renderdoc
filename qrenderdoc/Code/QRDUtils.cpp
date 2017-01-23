@@ -178,6 +178,60 @@ QString ToQStr(const ShaderStageType stage, const GraphicsAPI apitype)
   return "Unknown";
 }
 
+QString TypeString(const SigParameter &sig)
+{
+  QString ret = "";
+
+  if(sig.compType == eCompType_Float)
+    ret += "float";
+  else if(sig.compType == eCompType_UInt || sig.compType == eCompType_UScaled)
+    ret += "uint";
+  else if(sig.compType == eCompType_SInt || sig.compType == eCompType_SScaled)
+    ret += "int";
+  else if(sig.compType == eCompType_UNorm)
+    ret += "unorm float";
+  else if(sig.compType == eCompType_SNorm)
+    ret += "snorm float";
+  else if(sig.compType == eCompType_Depth)
+    ret += "float";
+
+  if(sig.compCount > 1)
+    ret += QString::number(sig.compCount);
+
+  return ret;
+}
+
+QString D3DSemanticString(const SigParameter &sig)
+{
+  if(sig.systemValue == eAttr_None)
+    return ToQStr(sig.semanticIdxName);
+
+  QString ret = ToQStr(sig.systemValue);
+
+  // need to include the index if it's a system value semantic that's numbered
+  if(sig.systemValue == eAttr_ColourOutput || sig.systemValue == eAttr_CullDistance ||
+     sig.systemValue == eAttr_ClipDistance)
+    ret += QString::number(sig.semanticIndex);
+
+  return ret;
+}
+
+QString GetComponentString(byte mask)
+{
+  QString ret = "";
+
+  if((mask & 0x1) > 0)
+    ret += "R";
+  if((mask & 0x2) > 0)
+    ret += "G";
+  if((mask & 0x4) > 0)
+    ret += "B";
+  if((mask & 0x8) > 0)
+    ret += "A";
+
+  return ret;
+}
+
 bool SaveToJSON(QVariantMap &data, QIODevice &f, const char *magicIdentifier, uint32_t magicVersion)
 {
   // marker that this data is valid
