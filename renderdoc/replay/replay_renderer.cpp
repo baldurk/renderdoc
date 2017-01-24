@@ -142,6 +142,8 @@ ReplayRenderer::ReplayRenderer()
 
 ReplayRenderer::~ReplayRenderer()
 {
+  RDCLOG("Shutting down replay renderer");
+
   for(size_t i = 0; i < m_Outputs.size(); i++)
     SAFE_DELETE(m_Outputs[i]);
 
