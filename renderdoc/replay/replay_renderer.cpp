@@ -1121,6 +1121,9 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
             srcData += td.format.compCount * td.format.compByteWidth;
           }
 
+          if(td.format.bgraOrder)
+            std::swap(r, b);
+
           // HDR can't represent negative values
           if(sd.destType == eFileType_HDR)
           {
