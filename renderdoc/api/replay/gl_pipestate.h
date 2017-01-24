@@ -225,19 +225,12 @@ struct GLPipelineState
     struct Viewport
     {
       Viewport()
-          : Left(0.0f),
-            Bottom(0.0f),
-            Width(0.0f),
-            Height(0.0f),
-            MinDepth(0.0f),
-            MaxDepth(0.0f),
-            Enabled(true)
+          : Left(0.0f), Bottom(0.0f), Width(0.0f), Height(0.0f), MinDepth(0.0f), MaxDepth(0.0f)
       {
       }
       float Left, Bottom;
       float Width, Height;
       double MinDepth, MaxDepth;
-      bool32 Enabled;
     };
     rdctype::array<Viewport> Viewports;
 

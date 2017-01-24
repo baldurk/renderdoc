@@ -32,6 +32,9 @@ namespace Ui
 class GLPipelineStateViewer;
 }
 
+class RDTreeWidget;
+class QTreeWidgetItem;
+
 class GLPipelineStateViewer : public QFrame, public ILogViewerForm
 {
   Q_OBJECT
@@ -45,7 +48,63 @@ public:
   void OnSelectedEventChanged(uint32_t eventID) {}
   void OnEventChanged(uint32_t eventID);
 
+private slots:
+  // automatic slots
+  void on_showDisabled_toggled(bool checked);
+  void on_showEmpty_toggled(bool checked);
+  void on_exportHTML_clicked();
+  void on_meshView_clicked();
+  void on_viAttrs_itemActivated(QTreeWidgetItem *item, int column);
+  void on_viBuffers_itemActivated(QTreeWidgetItem *item, int column);
+  void on_viAttrs_mouseMove(QMouseEvent *event);
+  void on_viBuffers_mouseMove(QMouseEvent *event);
+
+  // manual slots
+  void shaderView_clicked();
+  void shaderEdit_clicked();
+  void shaderSave_clicked();
+  void resource_itemActivated(QTreeWidgetItem *item, int column);
+  void ubo_itemActivated(QTreeWidgetItem *item, int column);
+  void vertex_leave(QEvent *e);
+
 private:
   Ui::GLPipelineStateViewer *ui;
   CaptureContext *m_Ctx;
+
+  enum class GLReadWriteType
+  {
+    Atomic,
+    SSBO,
+    Image,
+  };
+
+  QString MakeGenericValueString(uint32_t compCount, FormatComponentType compType,
+                                 const GLPipelineState::VertexInput::VertexAttribute &val);
+  GLReadWriteType GetGLReadWriteType(ShaderResource res);
+
+  void setShaderState(const GLPipelineState::ShaderStage &stage, QLabel *shader, RDTreeWidget *tex,
+                      RDTreeWidget *samp, RDTreeWidget *ubo, RDTreeWidget *sub, RDTreeWidget *rw);
+  void clearShaderState(QLabel *shader, RDTreeWidget *tex, RDTreeWidget *samp, RDTreeWidget *ubo,
+                        RDTreeWidget *sub, RDTreeWidget *rw);
+  void setState();
+  void clearState();
+
+  void setInactiveRow(QTreeWidgetItem *node);
+  void setEmptyRow(QTreeWidgetItem *node);
+  void highlightIABind(int slot);
+
+  QString formatMembers(int indent, const QString &nameprefix,
+                        const rdctype::array<ShaderConstant> &vars);
+  const GLPipelineState::ShaderStage *stageForSender(QWidget *widget);
+
+  template <typename viewType>
+  void setViewDetails(QTreeWidgetItem *node, const viewType &view, FetchTexture *tex);
+
+  template <typename viewType>
+  void setViewDetails(QTreeWidgetItem *node, const viewType &view, FetchBuffer *buf);
+
+  bool showNode(bool usedSlot, bool filledSlot);
+
+  // keep track of the VB nodes (we want to be able to highlight them easily on hover)
+  QList<QTreeWidgetItem *> m_VBNodes;
 };

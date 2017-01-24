@@ -1563,8 +1563,9 @@ void VulkanPipelineStateViewer::setState()
         length = buf->length;
       }
 
-      QTreeWidgetItem *node = makeTreeNode({"Index", name, "Index", (qulonglong)state.IA.ibuffer.offs,
-                                            draw->indexByteWidth, (qulonglong)length, ""});
+      QTreeWidgetItem *node =
+          makeTreeNode({"Index", name, "Index", (qulonglong)state.IA.ibuffer.offs,
+                        draw != NULL ? draw->indexByteWidth : 0, (qulonglong)length, ""});
 
       ui->viBuffers->setHoverIcons(node, action, action_hover);
 

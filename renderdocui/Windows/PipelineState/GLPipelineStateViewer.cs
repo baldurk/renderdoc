@@ -3138,12 +3138,12 @@ namespace renderdocui.Windows.PipelineState
                 int i = 0;
                 foreach (var v in rs.Viewports)
                 {
-                    rows.Add(new object[] { i, v.Enabled, v.Left, v.Bottom, v.Width, v.Height, v.MinDepth, v.MaxDepth });
+                    rows.Add(new object[] { i, v.Left, v.Bottom, v.Width, v.Height, v.MinDepth, v.MaxDepth });
 
                     i++;
                 }
 
-                ExportHTMLTable(writer, new string[] { "Slot", "Enabled", "Left", "Bottom", "Width", "Height", "Min Depth", "Max Depth" }, rows.ToArray());
+                ExportHTMLTable(writer, new string[] { "Slot", "Left", "Bottom", "Width", "Height", "Min Depth", "Max Depth" }, rows.ToArray());
             }
 
             {
