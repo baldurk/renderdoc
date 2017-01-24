@@ -305,7 +305,7 @@ void GLReplay::InitDebugData()
 
   GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_blit_vert), 150);
 
-  if(HasExt[ARB_shader_image_load_store])
+  if(HasExt[ARB_shader_image_load_store] && HasExt[ARB_gpu_shader5])
   {
     string defines = "";
 
@@ -333,10 +333,13 @@ void GLReplay::InitDebugData()
   }
   else
   {
-    RDCWARN("GL_ARB_shader_image_load_store not supported, disabling quad overdraw feature.");
-    m_pDriver->AddDebugMessage(
-        eDbgCategory_Portability, eDbgSeverity_Medium, eDbgSource_RuntimeWarning,
-        "GL_ARB_shader_image_load_store not supported, disabling quad overdraw feature.");
+    RDCWARN(
+        "GL_ARB_shader_image_load_store/GL_ARB_gpu_shader5 not supported, disabling quad overdraw "
+        "feature.");
+    m_pDriver->AddDebugMessage(eDbgCategory_Portability, eDbgSeverity_Medium,
+                               eDbgSource_RuntimeWarning,
+                               "GL_ARB_shader_image_load_store/GL_ARB_gpu_shader5 not supported, "
+                               "disabling quad overdraw feature.");
     DebugData.quadoverdrawFSProg = 0;
     DebugData.quadoverdrawResolveProg = 0;
   }
