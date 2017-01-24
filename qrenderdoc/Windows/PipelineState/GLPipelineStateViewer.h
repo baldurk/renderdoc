@@ -97,12 +97,6 @@ private:
                         const rdctype::array<ShaderConstant> &vars);
   const GLPipelineState::ShaderStage *stageForSender(QWidget *widget);
 
-  template <typename viewType>
-  void setViewDetails(QTreeWidgetItem *node, const viewType &view, FetchTexture *tex);
-
-  template <typename viewType>
-  void setViewDetails(QTreeWidgetItem *node, const viewType &view, FetchBuffer *buf);
-
   bool showNode(bool usedSlot, bool filledSlot);
 
   // keep track of the VB nodes (we want to be able to highlight them easily on hover)

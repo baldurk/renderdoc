@@ -371,80 +371,6 @@ void GLPipelineStateViewer::setEmptyRow(QTreeWidgetItem *node)
     node->setBackgroundColor(i, QColor(255, 70, 70));
 }
 
-template <typename bindType>
-void GLPipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const bindType &view,
-                                           FetchTexture *tex)
-{
-  if(tex == NULL)
-    return;
-
-  QString text;
-
-  bool viewdetails = false;
-
-  {
-    for(const GLPipelineState::ImageData &im : m_Ctx->CurGLPipelineState.images)
-    {
-      if(im.image == tex->ID)
-      {
-        text += tr("Texture is in the '%1' layout\n\n").arg(ToQStr(im.layouts[0].name));
-        break;
-      }
-    }
-
-    if(view.viewfmt != tex->format)
-    {
-      text += tr("The texture is format %1, the view treats it as %2.\n")
-                  .arg(ToQStr(tex->format.strname))
-                  .arg(ToQStr(view.viewfmt.strname));
-
-      viewdetails = true;
-    }
-
-    if(tex->mips > 1 && (tex->mips != view.numMip || view.baseMip > 0))
-    {
-      if(view.numMip == 1)
-        text +=
-            tr("The texture has %1 mips, the view covers mip %2.\n").arg(tex->mips).arg(view.baseMip);
-      else
-        text += tr("The texture has %1 mips, the view covers mips %2-%3.\n")
-                    .arg(tex->mips)
-                    .arg(view.baseMip)
-                    .arg(view.baseMip + view.numMip - 1);
-
-      viewdetails = true;
-    }
-
-    if(tex->arraysize > 1 && (tex->arraysize != view.numLayer || view.baseLayer > 0))
-    {
-      if(view.numLayer == 1)
-        text += tr("The texture has %1 array slices, the view covers slice %2.\n")
-                    .arg(tex->arraysize)
-                    .arg(view.baseLayer);
-      else
-        text += tr("The texture has %1 array slices, the view covers slices %2-%3.\n")
-                    .arg(tex->arraysize)
-                    .arg(view.baseLayer)
-                    .arg(view.baseLayer + view.numLayer);
-
-      viewdetails = true;
-    }
-  }
-
-  text = text.trimmed();
-
-  for(int i = 0; i < node->columnCount(); i++)
-  {
-    node->setToolTip(i, text);
-
-    if(viewdetails)
-    {
-      node->setBackgroundColor(i, QColor(127, 255, 212));
-      node->setForeground(i, QBrush(QColor(0, 0, 0)));
-    }
-  }
-}
-
 bool GLPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 {
   const bool showDisabled = ui->showDisabled->isChecked();
@@ -773,7 +699,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::ShaderStage &s
           addressing += s.SeamlessCube ? " Seamless" : " Non-Seamless";
         }
 
-        QString minfilter = s.MinFilter;
+        QString minfilter = ToQStr(s.MinFilter);
 
         if(s.MaxAniso > 1)
           minfilter += QString(" Aniso%1x").arg(s.MaxAniso);
@@ -1375,7 +1301,7 @@ void GLPipelineStateViewer::setState()
   if(state.m_Feedback.Active)
   {
     ui->xfbPaused->setPixmap(state.m_Feedback.Paused ? tick : cross);
-    for(int i = 0; i < ARRAY_COUNT(state.m_Feedback.BufferBinding); i++)
+    for(int i = 0; i < (int)ARRAY_COUNT(state.m_Feedback.BufferBinding); i++)
     {
       bool filledSlot = (state.m_Feedback.BufferBinding[i] != ResourceId());
       bool usedSlot = (filledSlot);
@@ -1600,7 +1526,7 @@ void GLPipelineStateViewer::setState()
   QString clipDistances = "";
 
   int numDist = 0;
-  for(int i = 0; i < ARRAY_COUNT(state.m_VtxProcess.clipPlanes); i++)
+  for(int i = 0; i < (int)ARRAY_COUNT(state.m_VtxProcess.clipPlanes); i++)
   {
     if(state.m_VtxProcess.clipPlanes[i])
     {
