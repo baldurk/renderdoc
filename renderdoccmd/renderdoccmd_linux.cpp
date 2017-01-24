@@ -718,7 +718,7 @@ void sig_handler(int signo)
 
 int main(int argc, char *argv[])
 {
-  std::setlocale(LC_CTYPE, "");
+  setlocale(LC_CTYPE, "");
 
 #if defined(RENDERDOC_SUPPORT_GL)
 
