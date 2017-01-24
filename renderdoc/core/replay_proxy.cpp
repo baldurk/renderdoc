@@ -1237,12 +1237,12 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState &el)
   Serialise("", el.IA);
   Serialise("", el.VI);
 
-  Serialise("", el.VS);
-  Serialise("", el.TCS);
-  Serialise("", el.TES);
-  Serialise("", el.GS);
-  Serialise("", el.FS);
-  Serialise("", el.CS);
+  Serialise("", el.m_VS);
+  Serialise("", el.m_TCS);
+  Serialise("", el.m_TES);
+  Serialise("", el.m_GS);
+  Serialise("", el.m_FS);
+  Serialise("", el.m_CS);
 
   Serialise("", el.Tess);
 

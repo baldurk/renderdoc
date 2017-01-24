@@ -135,7 +135,7 @@ public:
         return m_GL != NULL && m_GL->m_TES.Shader != ResourceId();
 
       if(IsLogVK())
-        return m_Vulkan != NULL && m_Vulkan->TES.Shader != ResourceId();
+        return m_Vulkan != NULL && m_Vulkan->m_TES.Shader != ResourceId();
     }
 
     return false;
@@ -237,19 +237,19 @@ private:
   const VulkanPipelineState::ShaderStage &GetVulkanStage(ShaderStageType stage)
   {
     if(stage == eShaderStage_Vertex)
-      return m_Vulkan->VS;
+      return m_Vulkan->m_VS;
     if(stage == eShaderStage_Tess_Control)
-      return m_Vulkan->TCS;
+      return m_Vulkan->m_TCS;
     if(stage == eShaderStage_Tess_Eval)
-      return m_Vulkan->TES;
+      return m_Vulkan->m_TES;
     if(stage == eShaderStage_Geometry)
-      return m_Vulkan->GS;
+      return m_Vulkan->m_GS;
     if(stage == eShaderStage_Fragment)
-      return m_Vulkan->FS;
+      return m_Vulkan->m_FS;
     if(stage == eShaderStage_Compute)
-      return m_Vulkan->CS;
+      return m_Vulkan->m_CS;
 
     qCritical() << "Error - invalid stage " << (int)stage;
-    return m_Vulkan->CS;
+    return m_Vulkan->m_CS;
   }
 };

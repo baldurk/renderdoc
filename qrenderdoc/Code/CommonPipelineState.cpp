@@ -175,12 +175,12 @@ ShaderBindpointMapping CommonPipelineState::GetBindpointMapping(ShaderStageType 
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_Vulkan->VS.BindpointMapping;
-        case eShaderStage_Tess_Control: return m_Vulkan->TCS.BindpointMapping;
-        case eShaderStage_Tess_Eval: return m_Vulkan->TES.BindpointMapping;
-        case eShaderStage_Geometry: return m_Vulkan->GS.BindpointMapping;
-        case eShaderStage_Fragment: return m_Vulkan->FS.BindpointMapping;
-        case eShaderStage_Compute: return m_Vulkan->CS.BindpointMapping;
+        case eShaderStage_Vertex: return m_Vulkan->m_VS.BindpointMapping;
+        case eShaderStage_Tess_Control: return m_Vulkan->m_TCS.BindpointMapping;
+        case eShaderStage_Tess_Eval: return m_Vulkan->m_TES.BindpointMapping;
+        case eShaderStage_Geometry: return m_Vulkan->m_GS.BindpointMapping;
+        case eShaderStage_Fragment: return m_Vulkan->m_FS.BindpointMapping;
+        case eShaderStage_Compute: return m_Vulkan->m_CS.BindpointMapping;
         default: break;
       }
     }
@@ -236,12 +236,12 @@ ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStageType stage
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_Vulkan->VS.ShaderDetails;
-        case eShaderStage_Tess_Control: return m_Vulkan->TCS.ShaderDetails;
-        case eShaderStage_Tess_Eval: return m_Vulkan->TES.ShaderDetails;
-        case eShaderStage_Geometry: return m_Vulkan->GS.ShaderDetails;
-        case eShaderStage_Fragment: return m_Vulkan->FS.ShaderDetails;
-        case eShaderStage_Compute: return m_Vulkan->CS.ShaderDetails;
+        case eShaderStage_Vertex: return m_Vulkan->m_VS.ShaderDetails;
+        case eShaderStage_Tess_Control: return m_Vulkan->m_TCS.ShaderDetails;
+        case eShaderStage_Tess_Eval: return m_Vulkan->m_TES.ShaderDetails;
+        case eShaderStage_Geometry: return m_Vulkan->m_GS.ShaderDetails;
+        case eShaderStage_Fragment: return m_Vulkan->m_FS.ShaderDetails;
+        case eShaderStage_Compute: return m_Vulkan->m_CS.ShaderDetails;
         default: break;
       }
     }
@@ -258,12 +258,12 @@ QString CommonPipelineState::GetShaderEntryPoint(ShaderStageType stage)
   {
     switch(stage)
     {
-      case eShaderStage_Vertex: ret = m_Vulkan->VS.entryPoint; break;
-      case eShaderStage_Tess_Control: ret = m_Vulkan->TCS.entryPoint; break;
-      case eShaderStage_Tess_Eval: ret = m_Vulkan->TES.entryPoint; break;
-      case eShaderStage_Geometry: ret = m_Vulkan->GS.entryPoint; break;
-      case eShaderStage_Fragment: ret = m_Vulkan->FS.entryPoint; break;
-      case eShaderStage_Compute: ret = m_Vulkan->CS.entryPoint; break;
+      case eShaderStage_Vertex: ret = m_Vulkan->m_VS.entryPoint; break;
+      case eShaderStage_Tess_Control: ret = m_Vulkan->m_TCS.entryPoint; break;
+      case eShaderStage_Tess_Eval: ret = m_Vulkan->m_TES.entryPoint; break;
+      case eShaderStage_Geometry: ret = m_Vulkan->m_GS.entryPoint; break;
+      case eShaderStage_Fragment: ret = m_Vulkan->m_FS.entryPoint; break;
+      case eShaderStage_Compute: ret = m_Vulkan->m_CS.entryPoint; break;
       default: break;
     }
   }
@@ -318,12 +318,12 @@ ResourceId CommonPipelineState::GetShader(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: return m_Vulkan->VS.Shader;
-        case eShaderStage_Tess_Control: return m_Vulkan->TCS.Shader;
-        case eShaderStage_Tess_Eval: return m_Vulkan->TES.Shader;
-        case eShaderStage_Geometry: return m_Vulkan->GS.Shader;
-        case eShaderStage_Fragment: return m_Vulkan->FS.Shader;
-        case eShaderStage_Compute: return m_Vulkan->CS.Shader;
+        case eShaderStage_Vertex: return m_Vulkan->m_VS.Shader;
+        case eShaderStage_Tess_Control: return m_Vulkan->m_TCS.Shader;
+        case eShaderStage_Tess_Eval: return m_Vulkan->m_TES.Shader;
+        case eShaderStage_Geometry: return m_Vulkan->m_GS.Shader;
+        case eShaderStage_Fragment: return m_Vulkan->m_FS.Shader;
+        case eShaderStage_Compute: return m_Vulkan->m_CS.Shader;
         default: break;
       }
     }
@@ -381,12 +381,12 @@ QString CommonPipelineState::GetShaderName(ShaderStageType stage)
     {
       switch(stage)
       {
-        case eShaderStage_Vertex: ret = m_Vulkan->VS.ShaderName; break;
-        case eShaderStage_Domain: ret = m_Vulkan->TCS.ShaderName; break;
-        case eShaderStage_Hull: ret = m_Vulkan->TES.ShaderName; break;
-        case eShaderStage_Geometry: ret = m_Vulkan->GS.ShaderName; break;
-        case eShaderStage_Pixel: ret = m_Vulkan->FS.ShaderName; break;
-        case eShaderStage_Compute: ret = m_Vulkan->CS.ShaderName; break;
+        case eShaderStage_Vertex: ret = m_Vulkan->m_VS.ShaderName; break;
+        case eShaderStage_Domain: ret = m_Vulkan->m_TCS.ShaderName; break;
+        case eShaderStage_Hull: ret = m_Vulkan->m_TES.ShaderName; break;
+        case eShaderStage_Geometry: ret = m_Vulkan->m_GS.ShaderName; break;
+        case eShaderStage_Pixel: ret = m_Vulkan->m_FS.ShaderName; break;
+        case eShaderStage_Compute: ret = m_Vulkan->m_CS.ShaderName; break;
         default: break;
       }
     }
@@ -736,10 +736,10 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
       for(int i = 0; i < attrs.count; i++)
       {
         int attrib = -1;
-        if(m_Vulkan->VS.ShaderDetails != NULL)
+        if(m_Vulkan->m_VS.ShaderDetails != NULL)
         {
-          if(attrs[i].location < (uint32_t)m_Vulkan->VS.BindpointMapping.InputAttributes.count)
-            attrib = m_Vulkan->VS.BindpointMapping.InputAttributes[attrs[i].location];
+          if(attrs[i].location < (uint32_t)m_Vulkan->m_VS.BindpointMapping.InputAttributes.count)
+            attrib = m_Vulkan->m_VS.BindpointMapping.InputAttributes[attrs[i].location];
         }
         else
           attrib = i;
@@ -763,15 +763,15 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
         ret[a].Format = attrs[i].format;
         ret[a].Used = true;
 
-        if(m_Vulkan->VS.ShaderDetails != NULL)
+        if(m_Vulkan->m_VS.ShaderDetails != NULL)
         {
           int attrib = -1;
 
-          if(attrs[i].location < (uint32_t)m_Vulkan->VS.BindpointMapping.InputAttributes.count)
-            attrib = m_Vulkan->VS.BindpointMapping.InputAttributes[attrs[i].location];
+          if(attrs[i].location < (uint32_t)m_Vulkan->m_VS.BindpointMapping.InputAttributes.count)
+            attrib = m_Vulkan->m_VS.BindpointMapping.InputAttributes[attrs[i].location];
 
-          if(attrib >= 0 && attrib < m_Vulkan->VS.ShaderDetails->InputSig.count)
-            ret[a].Name = m_Vulkan->VS.ShaderDetails->InputSig[attrib].varName;
+          if(attrib >= 0 && attrib < m_Vulkan->m_VS.ShaderDetails->InputSig.count)
+            ret[a].Name = m_Vulkan->m_VS.ShaderDetails->InputSig[attrib].varName;
 
           if(attrib == -1)
             continue;

@@ -3184,7 +3184,7 @@ void VulkanReplay::SavePipelineState()
 
       m_VulkanPipelineState.compute.flags = p.flags;
 
-      VulkanPipelineState::ShaderStage &stage = m_VulkanPipelineState.CS;
+      VulkanPipelineState::ShaderStage &stage = m_VulkanPipelineState.m_CS;
 
       int i = 5;    // 5 is the CS idx (VS, TCS, TES, GS, FS, CS)
       {
@@ -3252,8 +3252,8 @@ void VulkanReplay::SavePipelineState()
 
       // Shader Stages
       VulkanPipelineState::ShaderStage *stages[] = {
-          &m_VulkanPipelineState.VS, &m_VulkanPipelineState.TCS, &m_VulkanPipelineState.TES,
-          &m_VulkanPipelineState.GS, &m_VulkanPipelineState.FS,
+          &m_VulkanPipelineState.m_VS, &m_VulkanPipelineState.m_TCS, &m_VulkanPipelineState.m_TES,
+          &m_VulkanPipelineState.m_GS, &m_VulkanPipelineState.m_FS,
       };
 
       for(size_t i = 0; i < ARRAY_COUNT(stages); i++)

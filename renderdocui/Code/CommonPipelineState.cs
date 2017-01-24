@@ -149,7 +149,7 @@ namespace renderdocui.Code
                         return m_GL != null && m_GL.m_TES.Shader != ResourceId.Null;
 
                     if (IsLogVK)
-                        return m_Vulkan != null && m_Vulkan.TES.Shader != ResourceId.Null;
+                        return m_Vulkan != null && m_Vulkan.m_TES.Shader != ResourceId.Null;
                 }
 
                 return false;
@@ -330,12 +330,12 @@ namespace renderdocui.Code
                 {
                     switch (stage)
                     {
-                        case ShaderStageType.Vertex: return m_Vulkan.VS.BindpointMapping;
-                        case ShaderStageType.Tess_Control: return m_Vulkan.TCS.BindpointMapping;
-                        case ShaderStageType.Tess_Eval: return m_Vulkan.TES.BindpointMapping;
-                        case ShaderStageType.Geometry: return m_Vulkan.GS.BindpointMapping;
-                        case ShaderStageType.Fragment: return m_Vulkan.FS.BindpointMapping;
-                        case ShaderStageType.Compute: return m_Vulkan.CS.BindpointMapping;
+                        case ShaderStageType.Vertex: return m_Vulkan.m_VS.BindpointMapping;
+                        case ShaderStageType.Tess_Control: return m_Vulkan.m_TCS.BindpointMapping;
+                        case ShaderStageType.Tess_Eval: return m_Vulkan.m_TES.BindpointMapping;
+                        case ShaderStageType.Geometry: return m_Vulkan.m_GS.BindpointMapping;
+                        case ShaderStageType.Fragment: return m_Vulkan.m_FS.BindpointMapping;
+                        case ShaderStageType.Compute: return m_Vulkan.m_CS.BindpointMapping;
                     }
                 }
             }
@@ -387,12 +387,12 @@ namespace renderdocui.Code
                 {
                     switch (stage)
                     {
-                        case ShaderStageType.Vertex: return m_Vulkan.VS.ShaderDetails;
-                        case ShaderStageType.Tess_Control: return m_Vulkan.TCS.ShaderDetails;
-                        case ShaderStageType.Tess_Eval: return m_Vulkan.TES.ShaderDetails;
-                        case ShaderStageType.Geometry: return m_Vulkan.GS.ShaderDetails;
-                        case ShaderStageType.Fragment: return m_Vulkan.FS.ShaderDetails;
-                        case ShaderStageType.Compute: return m_Vulkan.CS.ShaderDetails;
+                        case ShaderStageType.Vertex: return m_Vulkan.m_VS.ShaderDetails;
+                        case ShaderStageType.Tess_Control: return m_Vulkan.m_TCS.ShaderDetails;
+                        case ShaderStageType.Tess_Eval: return m_Vulkan.m_TES.ShaderDetails;
+                        case ShaderStageType.Geometry: return m_Vulkan.m_GS.ShaderDetails;
+                        case ShaderStageType.Fragment: return m_Vulkan.m_FS.ShaderDetails;
+                        case ShaderStageType.Compute: return m_Vulkan.m_CS.ShaderDetails;
                     }
                 }
             }
@@ -406,12 +406,12 @@ namespace renderdocui.Code
             {
                 switch (stage)
                 {
-                    case ShaderStageType.Vertex: return m_Vulkan.VS.entryPoint;
-                    case ShaderStageType.Tess_Control: return m_Vulkan.TCS.entryPoint;
-                    case ShaderStageType.Tess_Eval: return m_Vulkan.TES.entryPoint;
-                    case ShaderStageType.Geometry: return m_Vulkan.GS.entryPoint;
-                    case ShaderStageType.Fragment: return m_Vulkan.FS.entryPoint;
-                    case ShaderStageType.Compute: return m_Vulkan.CS.entryPoint;
+                    case ShaderStageType.Vertex: return m_Vulkan.m_VS.entryPoint;
+                    case ShaderStageType.Tess_Control: return m_Vulkan.m_TCS.entryPoint;
+                    case ShaderStageType.Tess_Eval: return m_Vulkan.m_TES.entryPoint;
+                    case ShaderStageType.Geometry: return m_Vulkan.m_GS.entryPoint;
+                    case ShaderStageType.Fragment: return m_Vulkan.m_FS.entryPoint;
+                    case ShaderStageType.Compute: return m_Vulkan.m_CS.entryPoint;
                 }
             }
 
@@ -462,12 +462,12 @@ namespace renderdocui.Code
                 {
                     switch (stage)
                     {
-                        case ShaderStageType.Vertex: return m_Vulkan.VS.Shader;
-                        case ShaderStageType.Tess_Control: return m_Vulkan.TCS.Shader;
-                        case ShaderStageType.Tess_Eval: return m_Vulkan.TES.Shader;
-                        case ShaderStageType.Geometry: return m_Vulkan.GS.Shader;
-                        case ShaderStageType.Fragment: return m_Vulkan.FS.Shader;
-                        case ShaderStageType.Compute: return m_Vulkan.CS.Shader;
+                        case ShaderStageType.Vertex: return m_Vulkan.m_VS.Shader;
+                        case ShaderStageType.Tess_Control: return m_Vulkan.m_TCS.Shader;
+                        case ShaderStageType.Tess_Eval: return m_Vulkan.m_TES.Shader;
+                        case ShaderStageType.Geometry: return m_Vulkan.m_GS.Shader;
+                        case ShaderStageType.Fragment: return m_Vulkan.m_FS.Shader;
+                        case ShaderStageType.Compute: return m_Vulkan.m_CS.Shader;
                     }
                 }
             }
@@ -519,12 +519,12 @@ namespace renderdocui.Code
                 {
                     switch (stage)
                     {
-                        case ShaderStageType.Vertex: return m_Vulkan.VS.ShaderName;
-                        case ShaderStageType.Domain: return m_Vulkan.TCS.ShaderName;
-                        case ShaderStageType.Hull: return m_Vulkan.TES.ShaderName;
-                        case ShaderStageType.Geometry: return m_Vulkan.GS.ShaderName;
-                        case ShaderStageType.Pixel: return m_Vulkan.FS.ShaderName;
-                        case ShaderStageType.Compute: return m_Vulkan.CS.ShaderName;
+                        case ShaderStageType.Vertex: return m_Vulkan.m_VS.ShaderName;
+                        case ShaderStageType.Domain: return m_Vulkan.m_TCS.ShaderName;
+                        case ShaderStageType.Hull: return m_Vulkan.m_TES.ShaderName;
+                        case ShaderStageType.Geometry: return m_Vulkan.m_GS.ShaderName;
+                        case ShaderStageType.Pixel: return m_Vulkan.m_FS.ShaderName;
+                        case ShaderStageType.Compute: return m_Vulkan.m_CS.ShaderName;
                     }
                 }
             }
@@ -875,10 +875,10 @@ namespace renderdocui.Code
                     for (int i = 0; i < attrs.Length; i++)
                     {
                         int attrib = -1;
-                        if (m_Vulkan.VS.BindpointMapping != null && m_Vulkan.VS.ShaderDetails != null)
+                        if (m_Vulkan.m_VS.BindpointMapping != null && m_Vulkan.m_VS.ShaderDetails != null)
                         {
-                            if(attrs[i].location < m_Vulkan.VS.BindpointMapping.InputAttributes.Length)
-                                attrib = m_Vulkan.VS.BindpointMapping.InputAttributes[attrs[i].location];
+                            if(attrs[i].location < m_Vulkan.m_VS.BindpointMapping.InputAttributes.Length)
+                                attrib = m_Vulkan.m_VS.BindpointMapping.InputAttributes[attrs[i].location];
                         }
                         else
                             attrib = i;
@@ -902,15 +902,15 @@ namespace renderdocui.Code
                         ret[a].Format = attrs[i].format;
                         ret[a].Used = true;
 
-                        if (m_Vulkan.VS.BindpointMapping != null && m_Vulkan.VS.ShaderDetails != null)
+                        if (m_Vulkan.m_VS.BindpointMapping != null && m_Vulkan.m_VS.ShaderDetails != null)
                         {
                             int attrib = -1;
 
-                            if (attrs[i].location < m_Vulkan.VS.BindpointMapping.InputAttributes.Length)
-                                attrib = m_Vulkan.VS.BindpointMapping.InputAttributes[attrs[i].location];
+                            if (attrs[i].location < m_Vulkan.m_VS.BindpointMapping.InputAttributes.Length)
+                                attrib = m_Vulkan.m_VS.BindpointMapping.InputAttributes[attrs[i].location];
 
-                            if (attrib >= 0 && attrib < m_Vulkan.VS.ShaderDetails.InputSig.Length)
-                                ret[a].Name = m_Vulkan.VS.ShaderDetails.InputSig[attrib].varName;
+                            if (attrib >= 0 && attrib < m_Vulkan.m_VS.ShaderDetails.InputSig.Length)
+                                ret[a].Name = m_Vulkan.m_VS.ShaderDetails.InputSig[attrib].varName;
 
                             if (attrib == -1) continue;
                         }
@@ -1035,12 +1035,12 @@ namespace renderdocui.Code
 
                     switch (stage)
                     {
-                        case ShaderStageType.Vertex: s = m_Vulkan.VS; break;
-                        case ShaderStageType.Tess_Control: s = m_Vulkan.TCS; break;
-                        case ShaderStageType.Tess_Eval: s = m_Vulkan.TES; break;
-                        case ShaderStageType.Geometry: s = m_Vulkan.GS; break;
-                        case ShaderStageType.Fragment: s = m_Vulkan.FS; break;
-                        case ShaderStageType.Compute: s = m_Vulkan.CS; break;
+                        case ShaderStageType.Vertex: s = m_Vulkan.m_VS; break;
+                        case ShaderStageType.Tess_Control: s = m_Vulkan.m_TCS; break;
+                        case ShaderStageType.Tess_Eval: s = m_Vulkan.m_TES; break;
+                        case ShaderStageType.Geometry: s = m_Vulkan.m_GS; break;
+                        case ShaderStageType.Fragment: s = m_Vulkan.m_FS; break;
+                        case ShaderStageType.Compute: s = m_Vulkan.m_CS; break;
                     }
 
                     if (s.ShaderDetails != null && BufIdx < s.ShaderDetails.ConstantBlocks.Length)

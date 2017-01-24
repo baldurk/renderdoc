@@ -208,7 +208,7 @@ namespace renderdoc
             SpecInfo[] specialization;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-        public ShaderStage VS, TCS, TES, GS, FS, CS;
+        public ShaderStage m_VS, m_TCS, m_TES, m_GS, m_FS, m_CS;
 
         [StructLayout(LayoutKind.Sequential)]
         public class Tessellation

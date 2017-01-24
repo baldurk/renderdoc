@@ -466,23 +466,23 @@ const VulkanPipelineState::ShaderStage *VulkanPipelineStateViewer::stageForSende
   while(widget)
   {
     if(widget == ui->stagesTabs->widget(0))
-      return &m_Ctx->CurVulkanPipelineState.VS;
+      return &m_Ctx->CurVulkanPipelineState.m_VS;
     if(widget == ui->stagesTabs->widget(1))
-      return &m_Ctx->CurVulkanPipelineState.VS;
+      return &m_Ctx->CurVulkanPipelineState.m_VS;
     if(widget == ui->stagesTabs->widget(2))
-      return &m_Ctx->CurVulkanPipelineState.TCS;
+      return &m_Ctx->CurVulkanPipelineState.m_TCS;
     if(widget == ui->stagesTabs->widget(3))
-      return &m_Ctx->CurVulkanPipelineState.TES;
+      return &m_Ctx->CurVulkanPipelineState.m_TES;
     if(widget == ui->stagesTabs->widget(4))
-      return &m_Ctx->CurVulkanPipelineState.GS;
+      return &m_Ctx->CurVulkanPipelineState.m_GS;
     if(widget == ui->stagesTabs->widget(5))
-      return &m_Ctx->CurVulkanPipelineState.FS;
+      return &m_Ctx->CurVulkanPipelineState.m_FS;
     if(widget == ui->stagesTabs->widget(6))
-      return &m_Ctx->CurVulkanPipelineState.FS;
+      return &m_Ctx->CurVulkanPipelineState.m_FS;
     if(widget == ui->stagesTabs->widget(7))
-      return &m_Ctx->CurVulkanPipelineState.FS;
+      return &m_Ctx->CurVulkanPipelineState.m_FS;
     if(widget == ui->stagesTabs->widget(8))
-      return &m_Ctx->CurVulkanPipelineState.CS;
+      return &m_Ctx->CurVulkanPipelineState.m_CS;
 
     widget = widget->parentWidget();
   }
@@ -1443,15 +1443,15 @@ void VulkanPipelineStateViewer::setState()
 
       QString name = tr("Attribute %1").arg(i);
 
-      if(state.VS.Shader != ResourceId())
+      if(state.m_VS.Shader != ResourceId())
       {
         int attrib = -1;
-        if((int32_t)a.location < state.VS.BindpointMapping.InputAttributes.count)
-          attrib = state.VS.BindpointMapping.InputAttributes[a.location];
+        if((int32_t)a.location < state.m_VS.BindpointMapping.InputAttributes.count)
+          attrib = state.m_VS.BindpointMapping.InputAttributes[a.location];
 
-        if(attrib >= 0 && attrib < state.VS.ShaderDetails->InputSig.count)
+        if(attrib >= 0 && attrib < state.m_VS.ShaderDetails->InputSig.count)
         {
-          name = state.VS.ShaderDetails->InputSig[attrib].varName;
+          name = state.m_VS.ShaderDetails->InputSig[attrib].varName;
           usedSlot = true;
         }
       }
@@ -1702,12 +1702,12 @@ void VulkanPipelineStateViewer::setState()
   ui->viBuffers->setUpdatesEnabled(true);
   ui->viBuffers->verticalScrollBar()->setValue(vs);
 
-  setShaderState(state.VS, state.graphics, ui->vsShader, ui->vsResources, ui->vsUBOs);
-  setShaderState(state.GS, state.graphics, ui->gsShader, ui->gsResources, ui->gsUBOs);
-  setShaderState(state.TCS, state.graphics, ui->tcsShader, ui->tcsResources, ui->tcsUBOs);
-  setShaderState(state.TES, state.graphics, ui->tesShader, ui->tesResources, ui->tesUBOs);
-  setShaderState(state.FS, state.graphics, ui->fsShader, ui->fsResources, ui->fsUBOs);
-  setShaderState(state.CS, state.compute, ui->csShader, ui->csResources, ui->csUBOs);
+  setShaderState(state.m_VS, state.graphics, ui->vsShader, ui->vsResources, ui->vsUBOs);
+  setShaderState(state.m_GS, state.graphics, ui->gsShader, ui->gsResources, ui->gsUBOs);
+  setShaderState(state.m_TCS, state.graphics, ui->tcsShader, ui->tcsResources, ui->tcsUBOs);
+  setShaderState(state.m_TES, state.graphics, ui->tesShader, ui->tesResources, ui->tesUBOs);
+  setShaderState(state.m_FS, state.graphics, ui->fsShader, ui->fsResources, ui->fsUBOs);
+  setShaderState(state.m_CS, state.compute, ui->csShader, ui->csResources, ui->csUBOs);
 
   ////////////////////////////////////////////////
   // Rasterizer
@@ -1825,15 +1825,15 @@ void VulkanPipelineStateViewer::setState()
           name = tex->name;
           typeName = ToQStr(tex->resType);
 
-          if(!tex->customName && state.FS.ShaderDetails != NULL)
+          if(!tex->customName && state.m_FS.ShaderDetails != NULL)
           {
-            for(int s = 0; s < state.FS.ShaderDetails->OutputSig.count; s++)
+            for(int s = 0; s < state.m_FS.ShaderDetails->OutputSig.count; s++)
             {
-              if(state.FS.ShaderDetails->OutputSig[s].regIndex == (uint32_t)colIdx &&
-                 (state.FS.ShaderDetails->OutputSig[s].systemValue == eAttr_None ||
-                  state.FS.ShaderDetails->OutputSig[s].systemValue == eAttr_ColourOutput))
+              if(state.m_FS.ShaderDetails->OutputSig[s].regIndex == (uint32_t)colIdx &&
+                 (state.m_FS.ShaderDetails->OutputSig[s].systemValue == eAttr_None ||
+                  state.m_FS.ShaderDetails->OutputSig[s].systemValue == eAttr_ColourOutput))
               {
-                name = QString("<%1>").arg(ToQStr(state.FS.ShaderDetails->OutputSig[s].varName));
+                name = QString("<%1>").arg(ToQStr(state.m_FS.ShaderDetails->OutputSig[s].varName));
               }
             }
           }

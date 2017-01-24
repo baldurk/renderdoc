@@ -175,7 +175,7 @@ struct VulkanPipelineState
       rdctype::array<byte> data;
     };
     rdctype::array<SpecInfo> specialization;
-  } VS, TCS, TES, GS, FS, CS;
+  } m_VS, m_TCS, m_TES, m_GS, m_FS, m_CS;
 
   struct Tessellation
   {

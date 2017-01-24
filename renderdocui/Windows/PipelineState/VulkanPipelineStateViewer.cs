@@ -1217,15 +1217,15 @@ namespace renderdocui.Windows.PipelineState
 
                     string name = String.Format("Attribute {0}", i);
 
-                    if (state.VS.Shader != ResourceId.Null)
+                    if (state.m_VS.Shader != ResourceId.Null)
                     {
                         int attrib = -1;
-                        if(a.location < state.VS.BindpointMapping.InputAttributes.Length)
-                            attrib = state.VS.BindpointMapping.InputAttributes[a.location];
+                        if(a.location < state.m_VS.BindpointMapping.InputAttributes.Length)
+                            attrib = state.m_VS.BindpointMapping.InputAttributes[a.location];
 
-                        if (attrib >= 0 && attrib < state.VS.ShaderDetails.InputSig.Length)
+                        if (attrib >= 0 && attrib < state.m_VS.ShaderDetails.InputSig.Length)
                         {
-                            name = state.VS.ShaderDetails.InputSig[attrib].varName;
+                            name = state.m_VS.ShaderDetails.InputSig[attrib].varName;
                             usedSlot = true;
                         }
                     }
@@ -1460,12 +1460,12 @@ namespace renderdocui.Windows.PipelineState
             viBuffers.EndUpdate();
             viBuffers.SetVScrollValue(vs);
 
-            SetShaderState(texs, bufs, state.VS, state.graphics, vsShader, vsResources, vsCBuffers);
-            SetShaderState(texs, bufs, state.GS, state.graphics, gsShader, gsResources, gsCBuffers);
-            SetShaderState(texs, bufs, state.TCS, state.graphics, hsShader, hsResources, hsCBuffers);
-            SetShaderState(texs, bufs, state.TES, state.graphics, dsShader, dsResources, dsCBuffers);
-            SetShaderState(texs, bufs, state.FS, state.graphics, psShader, psResources, psCBuffers);
-            SetShaderState(texs, bufs, state.CS, state.compute, csShader, csResources, csCBuffers);
+            SetShaderState(texs, bufs, state.m_VS, state.graphics, vsShader, vsResources, vsCBuffers);
+            SetShaderState(texs, bufs, state.m_GS, state.graphics, gsShader, gsResources, gsCBuffers);
+            SetShaderState(texs, bufs, state.m_TCS, state.graphics, hsShader, hsResources, hsCBuffers);
+            SetShaderState(texs, bufs, state.m_TES, state.graphics, dsShader, dsResources, dsCBuffers);
+            SetShaderState(texs, bufs, state.m_FS, state.graphics, psShader, psResources, psCBuffers);
+            SetShaderState(texs, bufs, state.m_CS, state.compute, csShader, csResources, csCBuffers);
 
             ////////////////////////////////////////////////
             // Rasterizer
@@ -1587,15 +1587,15 @@ namespace renderdocui.Windows.PipelineState
                                 name = texs[t].name;
                                 typename = texs[t].resType.Str();
 
-                                if (!texs[t].customName && state.FS.ShaderDetails != null)
+                                if (!texs[t].customName && state.m_FS.ShaderDetails != null)
                                 {
-                                    for(int s=0; s < state.FS.ShaderDetails.OutputSig.Length; s++)
+                                    for(int s=0; s < state.m_FS.ShaderDetails.OutputSig.Length; s++)
                                     {
-                                        if(state.FS.ShaderDetails.OutputSig[s].regIndex == colIdx &&
-                                            (state.FS.ShaderDetails.OutputSig[s].systemValue == SystemAttribute.None ||
-                                            state.FS.ShaderDetails.OutputSig[s].systemValue == SystemAttribute.ColourOutput))
+                                        if(state.m_FS.ShaderDetails.OutputSig[s].regIndex == colIdx &&
+                                            (state.m_FS.ShaderDetails.OutputSig[s].systemValue == SystemAttribute.None ||
+                                            state.m_FS.ShaderDetails.OutputSig[s].systemValue == SystemAttribute.ColourOutput))
                                         {
-                                            name = String.Format("<{0}>", state.FS.ShaderDetails.OutputSig[s].varName);
+                                            name = String.Format("<{0}>", state.m_FS.ShaderDetails.OutputSig[s].varName);
                                         }
                                     }
                                 }
@@ -1756,11 +1756,11 @@ namespace renderdocui.Windows.PipelineState
                 pipeFlow.SetStagesEnabled(new bool[] {
                     true,
                     true,
-                    state.TCS.Shader != ResourceId.Null,
-                    state.TES.Shader != ResourceId.Null,
-                    state.GS.Shader != ResourceId.Null,
+                    state.m_TCS.Shader != ResourceId.Null,
+                    state.m_TES.Shader != ResourceId.Null,
+                    state.m_GS.Shader != ResourceId.Null,
                     true,
-                    state.FS.Shader != ResourceId.Null,
+                    state.m_FS.Shader != ResourceId.Null,
                     true,
                     false
                 });
@@ -2112,19 +2112,19 @@ namespace renderdocui.Windows.PipelineState
             while (cur is Control)
             {
                 if (cur == tabVS)
-                    stage = m_Core.CurVulkanPipelineState.VS;
+                    stage = m_Core.CurVulkanPipelineState.m_VS;
                 else if (cur == tabGS)
-                    stage = m_Core.CurVulkanPipelineState.GS;
+                    stage = m_Core.CurVulkanPipelineState.m_GS;
                 else if (cur == tabHS)
-                    stage = m_Core.CurVulkanPipelineState.TCS;
+                    stage = m_Core.CurVulkanPipelineState.m_TCS;
                 else if (cur == tabDS)
-                    stage = m_Core.CurVulkanPipelineState.TES;
+                    stage = m_Core.CurVulkanPipelineState.m_TES;
                 else if (cur == tabPS)
-                    stage = m_Core.CurVulkanPipelineState.FS;
+                    stage = m_Core.CurVulkanPipelineState.m_FS;
                 else if (cur == tabCS)
-                    stage = m_Core.CurVulkanPipelineState.CS;
+                    stage = m_Core.CurVulkanPipelineState.m_CS;
                 else if (cur == tabOM)
-                    stage = m_Core.CurVulkanPipelineState.FS;
+                    stage = m_Core.CurVulkanPipelineState.m_FS;
 
                 if (stage != null)
                     return stage;
@@ -3584,16 +3584,16 @@ div.stage table tr td { border-right: 1px solid #AAAAAA; background-color: #EEEE
                             {
                                 case 0:  ExportHTML(writer, m_Core.CurVulkanPipelineState.IA); break;
                                 case 1:  ExportHTML(writer, m_Core.CurVulkanPipelineState.VI); break;
-                                case 2:  ExportHTML(writer, m_Core.CurVulkanPipelineState.VS); break;
-                                case 3:  ExportHTML(writer, m_Core.CurVulkanPipelineState.TCS); break;
-                                case 4:  ExportHTML(writer, m_Core.CurVulkanPipelineState.TES); break;
-                                case 5:  ExportHTML(writer, m_Core.CurVulkanPipelineState.GS); break;
+                                case 2:  ExportHTML(writer, m_Core.CurVulkanPipelineState.m_VS); break;
+                                case 3:  ExportHTML(writer, m_Core.CurVulkanPipelineState.m_TCS); break;
+                                case 4:  ExportHTML(writer, m_Core.CurVulkanPipelineState.m_TES); break;
+                                case 5:  ExportHTML(writer, m_Core.CurVulkanPipelineState.m_GS); break;
                                 case 6:  ExportHTML(writer, m_Core.CurVulkanPipelineState.RS); break;
-                                case 7:  ExportHTML(writer, m_Core.CurVulkanPipelineState.FS); break;
+                                case 7:  ExportHTML(writer, m_Core.CurVulkanPipelineState.m_FS); break;
                                 case 8:  ExportHTML(writer, m_Core.CurVulkanPipelineState.CB); break;
                                 case 9:  ExportHTML(writer, m_Core.CurVulkanPipelineState.DS); break;
                                 case 10: ExportHTML(writer, m_Core.CurVulkanPipelineState.Pass); break;
-                                case 11: ExportHTML(writer, m_Core.CurVulkanPipelineState.CS); break;
+                                case 11: ExportHTML(writer, m_Core.CurVulkanPipelineState.m_CS); break;
                             }
 
                             writer.WriteEndElement();

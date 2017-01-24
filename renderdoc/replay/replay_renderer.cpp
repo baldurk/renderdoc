@@ -1646,8 +1646,8 @@ void ReplayRenderer::FetchPipelineState()
 
   {
     VulkanPipelineState::ShaderStage *stages[] = {
-        &m_VulkanPipelineState.VS, &m_VulkanPipelineState.TCS, &m_VulkanPipelineState.TES,
-        &m_VulkanPipelineState.GS, &m_VulkanPipelineState.FS,  &m_VulkanPipelineState.CS,
+        &m_VulkanPipelineState.m_VS, &m_VulkanPipelineState.m_TCS, &m_VulkanPipelineState.m_TES,
+        &m_VulkanPipelineState.m_GS, &m_VulkanPipelineState.m_FS,  &m_VulkanPipelineState.m_CS,
     };
 
     for(int i = 0; i < 6; i++)
