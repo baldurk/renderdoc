@@ -508,8 +508,6 @@ void addGridLines(QGridLayout *grid)
     for(int x = 0; x < grid->columnCount(); x++)
     {
       QLayoutItem *item = grid->itemAtPosition(y, x);
-      QLayoutItem *east = grid->itemAtPosition(y, x + 1);
-      QLayoutItem *south = grid->itemAtPosition(y + 1, x);
 
       if(item == NULL)
         continue;
@@ -519,16 +517,12 @@ void addGridLines(QGridLayout *grid)
       if(w == NULL)
         continue;
 
-      QString name = w->objectName();
+      QString style = "border: solid black; border-bottom-width: 1px; border-right-width: 1px;";
 
-      QString style;
-
-      style += "border: solid black; border-top-width: 1px; border-left-width: 1px;";
-
-      if(!east || !east->widget())
-        style += "border-right-width: 1px;";
-      if(!south || !south->widget())
-        style += "border-bottom-width: 1px;";
+      if(x == 0)
+        style += "border-left-width: 1px;";
+      if(y == 0)
+        style += "border-top-width: 1px;";
 
       w->setStyleSheet(style);
     }
