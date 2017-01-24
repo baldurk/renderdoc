@@ -894,7 +894,7 @@ padding: 0px;</string>
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Read/Write Bindngs</string>
+          <string>Read/Write Bindings</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_5">
           <property name="leftMargin">
@@ -1462,7 +1462,7 @@ padding: 0px;</string>
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Read/Write Bindngs</string>
+          <string>Read/Write Bindings</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_27">
           <property name="leftMargin">
@@ -2030,7 +2030,7 @@ padding: 0px;</string>
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Read/Write Bindngs</string>
+          <string>Read/Write Bindings</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_15">
           <property name="leftMargin">
@@ -2725,7 +2725,7 @@ padding: 0px;</string>
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Read/Write Bindngs</string>
+          <string>Read/Write Bindings</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_29">
           <property name="leftMargin">
@@ -4177,7 +4177,7 @@ padding: 0px;</string>
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Read/Write Bindngs</string>
+          <string>Read/Write Bindings</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_34">
           <property name="leftMargin">
@@ -5320,7 +5320,7 @@ padding: 0px;</string>
           </sizepolicy>
          </property>
          <property name="title">
-          <string>Read/Write Bindngs</string>
+          <string>Read/Write Bindings</string>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_39">
           <property name="leftMargin">
