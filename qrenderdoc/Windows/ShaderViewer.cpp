@@ -94,6 +94,7 @@ ShaderViewer::ShaderViewer(CaptureContext *ctx, ShaderReflection *shader, Shader
 
       ScintillaEdit *scintilla = MakeEditor("scintilla" + name, text, true);
       scintilla->setReadOnly(true);
+      scintilla->setWindowTitle(name);
       ((QWidget *)scintilla)->setProperty("name", name);
 
       QObject::connect(scintilla, &ScintillaEdit::keyPressed, this,
