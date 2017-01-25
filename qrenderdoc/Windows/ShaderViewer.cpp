@@ -89,7 +89,7 @@ ShaderViewer::ShaderViewer(CaptureContext *ctx, ShaderReflection *shader, Shader
     QWidget *sel = m_DisassemblyView;
     for(auto &f : shader->DebugInfo.files)
     {
-      QString name = ToQStr(f.first);
+      QString name = QFileInfo(ToQStr(f.first)).fileName();
       QString text = ToQStr(f.second);
 
       ScintillaEdit *scintilla = MakeEditor("scintilla" + name, text, true);

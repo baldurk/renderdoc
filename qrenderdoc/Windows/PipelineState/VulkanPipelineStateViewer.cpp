@@ -1232,7 +1232,7 @@ void VulkanPipelineStateViewer::setShaderState(const VulkanPipelineState::Shader
       if(entryFile < 0 || entryFile >= shaderDetails->DebugInfo.files.count)
         entryFile = 0;
 
-      shaderfn = ToQStr(shaderDetails->DebugInfo.files[entryFile].first);
+      shaderfn = QFileInfo(ToQStr(shaderDetails->DebugInfo.files[entryFile].first)).fileName();
 
       shader->setText(entryFunc + "() - " + shaderfn);
     }
