@@ -360,7 +360,7 @@ namespace renderdocui.Windows.PipelineState
 
             TreelistView.NodeCollection parent = list.Nodes;
 
-            string rootel = r.Immediate ? String.Format("#{0} Direct", r.RootElement) : rootel = String.Format("#{0} Table[{1}]", r.RootElement, r.TableIndex);
+            string rootel = r.Immediate ? String.Format("#{0} Direct", r.RootElement) : String.Format("#{0} Table[{1}]", r.RootElement, r.TableIndex);
 
             bool filledSlot = r.Resource != ResourceId.Null;
             bool usedSlot = (bind != null && bind.used);
@@ -1371,7 +1371,7 @@ namespace renderdocui.Windows.PipelineState
                             format = "Viewed as " + state.m_OM.DepthTarget.Format.ToString();
                         }
 
-                        if (HasImportantViewParams(state.m_OM.DepthTarget, texs[t]))
+                        if (HasImportantViewParams(state.m_OM.DepthTarget, texs[t]) || state.m_OM.DepthReadOnly || state.m_OM.StencilReadOnly)
                             viewDetails = true;
 
                         tag = new ViewTexTag(state.m_OM.DepthTarget, texs[t], false, null);
@@ -1588,6 +1588,14 @@ namespace renderdocui.Windows.PipelineState
                         if (tex.tex.format != tex.view.Format)
                             text += String.Format("The texture is format {0}, the view treats it as {1}.\n",
                                 tex.tex.format, tex.view.Format);
+
+                        if (m_Core.CurD3D12PipelineState.m_OM.DepthTarget.Resource == tex.tex.ID)
+                        {
+                            if(m_Core.CurD3D12PipelineState.m_OM.DepthReadOnly)
+                                text += "Depth component is read-only\n";
+                            if (m_Core.CurD3D12PipelineState.m_OM.StencilReadOnly)
+                                text += "Stencil component is read-only\n";
+                        }
 
                         if (tex.tex.mips > 1 && (tex.tex.mips != tex.view.NumMipLevels || tex.view.HighestMip > 0))
                         {

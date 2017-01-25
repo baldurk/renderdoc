@@ -32,6 +32,10 @@ namespace Ui
 class D3D12PipelineStateViewer;
 }
 
+class RDTreeWidget;
+class QTreeWidgetItem;
+struct ViewTag;
+
 class D3D12PipelineStateViewer : public QFrame, public ILogViewerForm
 {
   Q_OBJECT
@@ -45,7 +49,63 @@ public:
   void OnSelectedEventChanged(uint32_t eventID) {}
   void OnEventChanged(uint32_t eventID);
 
+private slots:
+  // automatic slots
+  void on_showDisabled_toggled(bool checked);
+  void on_showEmpty_toggled(bool checked);
+  void on_exportHTML_clicked();
+  void on_meshView_clicked();
+  void on_iaLayouts_itemActivated(QTreeWidgetItem *item, int column);
+  void on_iaBuffers_itemActivated(QTreeWidgetItem *item, int column);
+  void on_iaLayouts_mouseMove(QMouseEvent *event);
+  void on_iaBuffers_mouseMove(QMouseEvent *event);
+
+  // manual slots
+  void shaderView_clicked();
+  void shaderEdit_clicked();
+  void shaderSave_clicked();
+  void resource_itemActivated(QTreeWidgetItem *item, int column);
+  void cbuffer_itemActivated(QTreeWidgetItem *item, int column);
+  void vertex_leave(QEvent *e);
+
 private:
   Ui::D3D12PipelineStateViewer *ui;
   CaptureContext *m_Ctx;
+
+  enum D3DBufferViewFlags
+  {
+    RawBuffer = 0x1,
+    AppendBuffer = 0x2,
+    CounterBuffer = 0x4,
+  };
+
+  void setShaderState(const D3D12PipelineState::ShaderStage &stage, QLabel *shader, RDTreeWidget *tex,
+                      RDTreeWidget *samp, RDTreeWidget *cbuffer, RDTreeWidget *uavs);
+
+  void addResourceRow(const ViewTag &view, const D3D12PipelineState::ShaderStage *stage,
+                      RDTreeWidget *resources);
+
+  void clearShaderState(QLabel *shader, RDTreeWidget *tex, RDTreeWidget *samp,
+                        RDTreeWidget *cbuffer, RDTreeWidget *uavs);
+  void setState();
+  void clearState();
+
+  void setInactiveRow(QTreeWidgetItem *node);
+  void setEmptyRow(QTreeWidgetItem *node);
+  void highlightIABind(int slot);
+
+  QString formatMembers(int indent, const QString &nameprefix,
+                        const rdctype::array<ShaderConstant> &vars);
+  const D3D12PipelineState::ShaderStage *stageForSender(QWidget *widget);
+
+  bool HasImportantViewParams(const D3D12PipelineState::ResourceView &view, FetchTexture *tex);
+  bool HasImportantViewParams(const D3D12PipelineState::ResourceView &view, FetchBuffer *buf);
+
+  void setViewDetails(QTreeWidgetItem *node, const ViewTag &view, FetchTexture *tex);
+  void setViewDetails(QTreeWidgetItem *node, const ViewTag &view, FetchBuffer *buf);
+
+  bool showNode(bool usedSlot, bool filledSlot);
+
+  // keep track of the VB nodes (we want to be able to highlight them easily on hover)
+  QList<QTreeWidgetItem *> m_VBNodes;
 };
