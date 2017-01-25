@@ -2446,201 +2446,167 @@ void WrappedID3D12GraphicsCommandList::SetPredication(ID3D12Resource *pBuffer,
   }
 }
 
-// from PIXEventsCommon.h from MS
+// from PIXEventsCommon.h of winpixeventruntime
 enum PIXEventType
 {
-    ePIXEvent_EndEvent = 0x000,
-    ePIXEvent_BeginEvent_VarArgs = 0x001,
-    ePIXEvent_BeginEvent_NoArgs = 0x002,
-    ePIXEvent_SetMarker_VarArgs = 0x007,
-    ePIXEvent_SetMarker_NoArgs = 0x008,
+  ePIXEvent_EndEvent = 0x000,
+  ePIXEvent_BeginEvent_VarArgs = 0x001,
+  ePIXEvent_BeginEvent_NoArgs = 0x002,
+  ePIXEvent_SetMarker_VarArgs = 0x007,
+  ePIXEvent_SetMarker_NoArgs = 0x008,
 
-    ePIXEvent_EndEvent_OnContext = 0x010,
-    ePIXEvent_BeginEvent_OnContext_VarArgs = 0x011,
-    ePIXEvent_BeginEvent_OnContext_NoArgs = 0x012,
-    ePIXEvent_SetMarker_OnContext_VarArgs = 0x017,
-    ePIXEvent_SetMarker_OnContext_NoArgs = 0x018,
+  ePIXEvent_EndEvent_OnContext = 0x010,
+  ePIXEvent_BeginEvent_OnContext_VarArgs = 0x011,
+  ePIXEvent_BeginEvent_OnContext_NoArgs = 0x012,
+  ePIXEvent_SetMarker_OnContext_VarArgs = 0x017,
+  ePIXEvent_SetMarker_OnContext_NoArgs = 0x018,
 };
 
-static const UINT PIX_EVENT_UNICODE_VERSION  = 0;
-static const UINT PIX_EVENT_ANSI_VERSION     = 1;
+static const UINT PIX_EVENT_UNICODE_VERSION = 0;
+static const UINT PIX_EVENT_ANSI_VERSION = 1;
 static const UINT PIX_EVENT_PIX3BLOB_VERSION = 2;
 
-inline void PIX3DecodeEventInfo(const UINT64 blobData, UINT64& timestamp, PIXEventType& eventType)
+inline void PIX3DecodeEventInfo(const UINT64 BlobData, UINT64& Timestamp, PIXEventType& EventType)
 {
-    static const UINT64 PIXEventsBlockEndMarker = 0x00000000000FFF80;
+  static const UINT64 PIXEventsBlockEndMarker = 0x00000000000FFF80;
 
-    static const UINT64 PIXEventsTypeReadMask = 0x00000000000FFC00;
-    static const UINT64 PIXEventsTypeWriteMask = 0x00000000000003FF;
-    static const UINT64 PIXEventsTypeBitShift = 10;
+  static const UINT64 PIXEventsTypeReadMask = 0x00000000000FFC00;
+  static const UINT64 PIXEventsTypeWriteMask = 0x00000000000003FF;
+  static const UINT64 PIXEventsTypeBitShift = 10;
 
-    static const UINT64 PIXEventsTimestampReadMask = 0xFFFFFFFFFFF00000;
-    static const UINT64 PIXEventsTimestampWriteMask = 0x00000FFFFFFFFFFF;
-    static const UINT64 PIXEventsTimestampBitShift = 20;
+  static const UINT64 PIXEventsTimestampReadMask = 0xFFFFFFFFFFF00000;
+  static const UINT64 PIXEventsTimestampWriteMask = 0x00000FFFFFFFFFFF;
+  static const UINT64 PIXEventsTimestampBitShift = 20;
 
-    timestamp = (blobData >> PIXEventsTimestampBitShift) & PIXEventsTimestampWriteMask;
-    eventType = PIXEventType((blobData >> PIXEventsTypeBitShift) & PIXEventsTypeWriteMask);
+  Timestamp = (BlobData >> PIXEventsTimestampBitShift) & PIXEventsTimestampWriteMask;
+  EventType = PIXEventType((BlobData >> PIXEventsTypeBitShift) & PIXEventsTypeWriteMask);
 }
 
-inline void PIX3DecodeStringInfo(const UINT64 blobData, UINT64& alignment, UINT64& copyChunkSize, BOOL& isANSI, BOOL& isShortcut)
+inline void PIX3DecodeStringInfo(const UINT64 BlobData, UINT64& Alignment, UINT64& CopyChunkSize, bool& IsANSI, bool& IsShortcut)
 {
-    static const UINT64 PIXEventsStringAlignmentWriteMask = 0x000000000000000F;
-    static const UINT64 PIXEventsStringAlignmentReadMask = 0xF000000000000000;
-    static const UINT64 PIXEventsStringAlignmentBitShift = 60;
+  static const UINT64 PIXEventsStringAlignmentWriteMask = 0x000000000000000F;
+  static const UINT64 PIXEventsStringAlignmentReadMask = 0xF000000000000000;
+  static const UINT64 PIXEventsStringAlignmentBitShift = 60;
 
-    static const UINT64 PIXEventsStringCopyChunkSizeWriteMask = 0x000000000000001F;
-    static const UINT64 PIXEventsStringCopyChunkSizeReadMask = 0x0F80000000000000;
-    static const UINT64 PIXEventsStringCopyChunkSizeBitShift = 55;
+  static const UINT64 PIXEventsStringCopyChunkSizeWriteMask = 0x000000000000001F;
+  static const UINT64 PIXEventsStringCopyChunkSizeReadMask = 0x0F80000000000000;
+  static const UINT64 PIXEventsStringCopyChunkSizeBitShift = 55;
 
-    static const UINT64 PIXEventsStringIsANSIWriteMask = 0x0000000000000001;
-    static const UINT64 PIXEventsStringIsANSIReadMask = 0x0040000000000000;
-    static const UINT64 PIXEventsStringIsANSIBitShift = 54;
+  static const UINT64 PIXEventsStringIsANSIWriteMask = 0x0000000000000001;
+  static const UINT64 PIXEventsStringIsANSIReadMask = 0x0040000000000000;
+  static const UINT64 PIXEventsStringIsANSIBitShift = 54;
 
-    static const UINT64 PIXEventsStringIsShortcutWriteMask = 0x0000000000000001;
-    static const UINT64 PIXEventsStringIsShortcutReadMask = 0x0020000000000000;
-    static const UINT64 PIXEventsStringIsShortcutBitShift = 53;
+  static const UINT64 PIXEventsStringIsShortcutWriteMask = 0x0000000000000001;
+  static const UINT64 PIXEventsStringIsShortcutReadMask = 0x0020000000000000;
+  static const UINT64 PIXEventsStringIsShortcutBitShift = 53;
 
-    alignment = (blobData >> PIXEventsStringAlignmentBitShift) & PIXEventsStringAlignmentWriteMask;
-    copyChunkSize = (blobData >> PIXEventsStringCopyChunkSizeBitShift) & PIXEventsStringCopyChunkSizeWriteMask;
-    isANSI = (blobData >> PIXEventsStringIsANSIBitShift) & PIXEventsStringIsANSIWriteMask;
-    isShortcut = (blobData >> PIXEventsStringIsShortcutBitShift) & PIXEventsStringIsShortcutWriteMask;
+  Alignment = (BlobData >> PIXEventsStringAlignmentBitShift) & PIXEventsStringAlignmentWriteMask;
+  CopyChunkSize = (BlobData >> PIXEventsStringCopyChunkSizeBitShift) & PIXEventsStringCopyChunkSizeWriteMask;
+  IsANSI = (BlobData >> PIXEventsStringIsANSIBitShift) & PIXEventsStringIsANSIWriteMask;
+  IsShortcut = (BlobData >> PIXEventsStringIsShortcutBitShift) & PIXEventsStringIsShortcutWriteMask;
 }
-
-UINT PIX3GetStringParamByteCount(const UINT64* pData)
-{
-    static const UINT64 PIXEventsReservedRecordSpaceQwords = 64;
-    static const UINT64 PIXEventsReservedTailSpaceQwords = 2;
-    static const UINT64 PIXEventsSafeFastCopySpaceQwords = PIXEventsReservedRecordSpaceQwords - PIXEventsReservedTailSpaceQwords;
-
-    UINT lengthInBytes = 0;
-    for (const UINT64* stringData = pData; lengthInBytes < PIXEventsSafeFastCopySpaceQwords*8; lengthInBytes += 8)
-    {
-        UINT64 qword = *stringData++;
-        if (!(qword & 0xFF))
-            return (lengthInBytes + 8);
-        if (!(qword & 0xFF00))
-            return (lengthInBytes + 7);
-        if (!(qword & 0xFF0000))
-            return (lengthInBytes + 6);
-        if (!(qword & 0xFF000000))
-            return (lengthInBytes + 5);
-        if (!(qword & 0xFF00000000))
-            return (lengthInBytes + 4);
-        if (!(qword & 0xFF0000000000))
-            return (lengthInBytes + 3);
-        if (!(qword & 0xFF000000000000))
-            return (lengthInBytes + 2);
-        if (!(qword & 0xFF00000000000000))
-            return (lengthInBytes + 1);
-    }
-    return lengthInBytes;
-};
 
 const UINT64* PIX3DecodeStringParam(const UINT64* pData, string& DecodedString)
 {
-    const UINT64* pBlobData = pData;
+  UINT64 alignment;
+  UINT64 copyChunkSize;
+  bool isANSI;
+  bool isShortcut;
+  PIX3DecodeStringInfo(*pData, alignment, copyChunkSize, isANSI, isShortcut);
+  ++pData;
 
-    UINT64 alignment;
-    UINT64 copyChunkSize;
-    BOOL isANSI;
-    BOOL isShortcut;
-    PIX3DecodeStringInfo(*pBlobData, alignment, copyChunkSize, isANSI, isShortcut);
-    ++pBlobData;
+  UINT formatStringByteCount = isANSI ? UINT(strlen((const char*)pData)) : UINT(wcslen((const wchar_t*)pData)*2);
+  if (isANSI)
+  {
+    const char *c = (const char *)pData;
+    DecodedString = string(c, c + formatStringByteCount);
+  }
+  else
+  {
+    const wchar_t *w = (const wchar_t *)pData;
+    DecodedString = StringFormat::Wide2UTF8(std::wstring(w, w + formatStringByteCount / sizeof(wchar_t)));
+  }
+  
+  UINT64 byteChunks = ((formatStringByteCount + copyChunkSize - 1) / copyChunkSize) * copyChunkSize;
+  UINT64 stringQWordCount = (byteChunks + 7) / 8;
+  pData += stringQWordCount;
 
-    UINT formatStringByteCount = PIX3GetStringParamByteCount(pBlobData);
-    if (isANSI)
-    {
-        const char *c = (const char *)pBlobData;
-        DecodedString = string(c, c + formatStringByteCount);
-    }
-    else
-    {
-        const wchar_t *w = (const wchar_t *)pBlobData;
-        DecodedString = StringFormat::Wide2UTF8(std::wstring(w, w + formatStringByteCount / sizeof(wchar_t)));
-    }
-
-    UINT stringQWordCount = (formatStringByteCount + 9) / 8;
-    pBlobData += stringQWordCount;
-
-    return pBlobData;
+  return pData;
 }
 
 string PIX3SprintfParams(const string& Format, const UINT64* pData)
 {
-    std::string finalString;
-    std::string formatPart;
-    size_t lastFind = 0;
+  string finalString;
+  string formatPart;
+  size_t lastFind = 0;
 
-    const UINT64* currentBlobParam = pData;
-    for (size_t found = Format.find_first_of("%"); found != std::string::npos; )
+  for (size_t found = Format.find_first_of("%"); found != string::npos; )
+  {
+    finalString += Format.substr(lastFind, found - lastFind);
+
+    size_t endOfFormat = Format.find_first_of("%diufFeEgGxXoscpaAn", found + 1);
+    if (endOfFormat == string::npos)
     {
-        finalString += Format.substr(lastFind, found - lastFind);
-
-        size_t endOfFormat = Format.find_first_of("%diufFeEgGxXoscpaAn", found + 1);
-        if (endOfFormat == std::string::npos)
-        {
-            finalString += "<ERROR>";
-            break;
-        }
-
-        formatPart = Format.substr(found, (endOfFormat - found) + 1);
-
-        // strings
-        if (formatPart.back() == 's')
-        {
-            string stringParam;
-            currentBlobParam = PIX3DecodeStringParam(currentBlobParam, stringParam);
-            finalString += stringParam;
-        }
-        // numerical values
-        else
-        {
-            static const UINT MAX_CHARACTERS_FOR_VALUE = 32;
-            char formattedValue[MAX_CHARACTERS_FOR_VALUE];
-            snprintf(formattedValue, MAX_CHARACTERS_FOR_VALUE, formatPart.c_str(), *currentBlobParam);
-            finalString += formattedValue;
-            ++currentBlobParam;
-        }
-
-        lastFind = endOfFormat + 1;
-        found = Format.find_first_of("%", lastFind);
+      finalString += "<FORMAT_ERROR>";
+      break;
     }
 
-    finalString += Format.substr(lastFind);
+    formatPart = Format.substr(found, (endOfFormat - found) + 1);
 
-    return finalString;
+    // strings
+    if (formatPart.back() == 's')
+    {
+      string stringParam;
+      pData = PIX3DecodeStringParam(pData, stringParam);
+      finalString += stringParam;
+    }
+    // numerical values
+    else
+    {
+      static const UINT MAX_CHARACTERS_FOR_VALUE = 32;
+      char formattedValue[MAX_CHARACTERS_FOR_VALUE];
+      snprintf(formattedValue, MAX_CHARACTERS_FOR_VALUE, formatPart.c_str(), *pData);
+      finalString += formattedValue;
+      ++pData;
+    }
+
+    lastFind = endOfFormat + 1;
+    found = Format.find_first_of("%", lastFind);
+  }
+
+  finalString += Format.substr(lastFind);
+
+  return finalString;
 }
 
 inline string PIX3DecodeEventString(const UINT64* pData)
 {
-    const UINT64* blobData = pData;
+  // event header
+  UINT64 timestamp;
+  PIXEventType eventType;
+  PIX3DecodeEventInfo(*pData, timestamp, eventType);
+  ++pData;
 
-    // event header
-    UINT64 timestamp;
-    PIXEventType eventType;
-    PIX3DecodeEventInfo(*blobData, timestamp, eventType);
-    ++blobData;
+  if (eventType != ePIXEvent_BeginEvent_NoArgs &&  eventType != ePIXEvent_BeginEvent_VarArgs)
+  {
+    RDCERR("Unexpected/unsupported PIX3Event %u type in PIXDecodeMarkerEventString", eventType);
+    return "";
+  }
 
-    if (eventType != ePIXEvent_BeginEvent_NoArgs &&  eventType != ePIXEvent_BeginEvent_VarArgs)
-    {
-        RDCERR("Unexpected/unsupported PIX3Event %u type in PIXDecodeMarkerEventString", eventType);
-        return "";
-    }
+  // color
+  //UINT64 color = *pData;
+  ++pData;
 
-    // color
-    //UINT64 color = *blobData;
-    ++blobData;
+  // format string
+  string formatString;
+  pData = PIX3DecodeStringParam(pData, formatString);
 
-    // format string
-    string formatString;
-    blobData = PIX3DecodeStringParam(blobData, formatString);
-
-    if (eventType == ePIXEvent_BeginEvent_NoArgs)
-        return formatString;
-
-    // sprintf remaining args
-    formatString = PIX3SprintfParams(formatString, blobData);
+  if (eventType == ePIXEvent_BeginEvent_NoArgs)
     return formatString;
+
+  // sprintf remaining args
+  formatString = PIX3SprintfParams(formatString, pData);
+  return formatString;
 }
 
 bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(UINT Metadata, const void *pData, UINT Size)
