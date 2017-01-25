@@ -2466,7 +2466,7 @@ static const UINT PIX_EVENT_UNICODE_VERSION = 0;
 static const UINT PIX_EVENT_ANSI_VERSION = 1;
 static const UINT PIX_EVENT_PIX3BLOB_VERSION = 2;
 
-inline void PIX3DecodeEventInfo(const UINT64 BlobData, UINT64& Timestamp, PIXEventType& EventType)
+inline void PIX3DecodeEventInfo(const UINT64 BlobData, UINT64 &Timestamp, PIXEventType &EventType)
 {
   static const UINT64 PIXEventsBlockEndMarker = 0x00000000000FFF80;
 
@@ -2482,7 +2482,8 @@ inline void PIX3DecodeEventInfo(const UINT64 BlobData, UINT64& Timestamp, PIXEve
   EventType = PIXEventType((BlobData >> PIXEventsTypeBitShift) & PIXEventsTypeWriteMask);
 }
 
-inline void PIX3DecodeStringInfo(const UINT64 BlobData, UINT64& Alignment, UINT64& CopyChunkSize, bool& IsANSI, bool& IsShortcut)
+inline void PIX3DecodeStringInfo(const UINT64 BlobData, UINT64 &Alignment, UINT64 &CopyChunkSize,
+                                 bool &IsANSI, bool &IsShortcut)
 {
   static const UINT64 PIXEventsStringAlignmentWriteMask = 0x000000000000000F;
   static const UINT64 PIXEventsStringAlignmentReadMask = 0xF000000000000000;
@@ -2501,12 +2502,13 @@ inline void PIX3DecodeStringInfo(const UINT64 BlobData, UINT64& Alignment, UINT6
   static const UINT64 PIXEventsStringIsShortcutBitShift = 53;
 
   Alignment = (BlobData >> PIXEventsStringAlignmentBitShift) & PIXEventsStringAlignmentWriteMask;
-  CopyChunkSize = (BlobData >> PIXEventsStringCopyChunkSizeBitShift) & PIXEventsStringCopyChunkSizeWriteMask;
+  CopyChunkSize =
+      (BlobData >> PIXEventsStringCopyChunkSizeBitShift) & PIXEventsStringCopyChunkSizeWriteMask;
   IsANSI = (BlobData >> PIXEventsStringIsANSIBitShift) & PIXEventsStringIsANSIWriteMask;
   IsShortcut = (BlobData >> PIXEventsStringIsShortcutBitShift) & PIXEventsStringIsShortcutWriteMask;
 }
 
-const UINT64* PIX3DecodeStringParam(const UINT64* pData, string& DecodedString)
+const UINT64 *PIX3DecodeStringParam(const UINT64 *pData, string &DecodedString)
 {
   UINT64 alignment;
   UINT64 copyChunkSize;
@@ -2515,8 +2517,9 @@ const UINT64* PIX3DecodeStringParam(const UINT64* pData, string& DecodedString)
   PIX3DecodeStringInfo(*pData, alignment, copyChunkSize, isANSI, isShortcut);
   ++pData;
 
-  UINT formatStringByteCount = isANSI ? UINT(strlen((const char*)pData)) : UINT(wcslen((const wchar_t*)pData)*2);
-  if (isANSI)
+  UINT formatStringByteCount =
+      isANSI ? UINT(strlen((const char *)pData)) : UINT(wcslen((const wchar_t *)pData) * 2);
+  if(isANSI)
   {
     const char *c = (const char *)pData;
     DecodedString = string(c, c + formatStringByteCount);
@@ -2524,9 +2527,10 @@ const UINT64* PIX3DecodeStringParam(const UINT64* pData, string& DecodedString)
   else
   {
     const wchar_t *w = (const wchar_t *)pData;
-    DecodedString = StringFormat::Wide2UTF8(std::wstring(w, w + formatStringByteCount / sizeof(wchar_t)));
+    DecodedString =
+        StringFormat::Wide2UTF8(std::wstring(w, w + formatStringByteCount / sizeof(wchar_t)));
   }
-  
+
   UINT64 byteChunks = ((formatStringByteCount + copyChunkSize - 1) / copyChunkSize) * copyChunkSize;
   UINT64 stringQWordCount = (byteChunks + 7) / 8;
   pData += stringQWordCount;
@@ -2534,18 +2538,18 @@ const UINT64* PIX3DecodeStringParam(const UINT64* pData, string& DecodedString)
   return pData;
 }
 
-string PIX3SprintfParams(const string& Format, const UINT64* pData)
+string PIX3SprintfParams(const string &Format, const UINT64 *pData)
 {
   string finalString;
   string formatPart;
   size_t lastFind = 0;
 
-  for (size_t found = Format.find_first_of("%"); found != string::npos; )
+  for(size_t found = Format.find_first_of("%"); found != string::npos;)
   {
     finalString += Format.substr(lastFind, found - lastFind);
 
     size_t endOfFormat = Format.find_first_of("%diufFeEgGxXoscpaAn", found + 1);
-    if (endOfFormat == string::npos)
+    if(endOfFormat == string::npos)
     {
       finalString += "<FORMAT_ERROR>";
       break;
@@ -2554,7 +2558,7 @@ string PIX3SprintfParams(const string& Format, const UINT64* pData)
     formatPart = Format.substr(found, (endOfFormat - found) + 1);
 
     // strings
-    if (formatPart.back() == 's')
+    if(formatPart.back() == 's')
     {
       string stringParam;
       pData = PIX3DecodeStringParam(pData, stringParam);
@@ -2579,7 +2583,7 @@ string PIX3SprintfParams(const string& Format, const UINT64* pData)
   return finalString;
 }
 
-inline string PIX3DecodeEventString(const UINT64* pData)
+inline string PIX3DecodeEventString(const UINT64 *pData)
 {
   // event header
   UINT64 timestamp;
@@ -2587,21 +2591,21 @@ inline string PIX3DecodeEventString(const UINT64* pData)
   PIX3DecodeEventInfo(*pData, timestamp, eventType);
   ++pData;
 
-  if (eventType != ePIXEvent_BeginEvent_NoArgs &&  eventType != ePIXEvent_BeginEvent_VarArgs)
+  if(eventType != ePIXEvent_BeginEvent_NoArgs && eventType != ePIXEvent_BeginEvent_VarArgs)
   {
     RDCERR("Unexpected/unsupported PIX3Event %u type in PIXDecodeMarkerEventString", eventType);
     return "";
   }
 
   // color
-  //UINT64 color = *pData;
+  // UINT64 color = *pData;
   ++pData;
 
   // format string
   string formatString;
   pData = PIX3DecodeStringParam(pData, formatString);
 
-  if (eventType == ePIXEvent_BeginEvent_NoArgs)
+  if(eventType == ePIXEvent_BeginEvent_NoArgs)
     return formatString;
 
   // sprintf remaining args
@@ -2625,9 +2629,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(UINT Metadata, const 
       const char *c = (const char *)pData;
       markerText = string(c, c + Size);
     }
-    else if (Metadata == PIX_EVENT_PIX3BLOB_VERSION)
+    else if(Metadata == PIX_EVENT_PIX3BLOB_VERSION)
     {
-        markerText = PIX3DecodeEventString((UINT64*)pData);
+      markerText = PIX3DecodeEventString((UINT64 *)pData);
     }
     else
     {
@@ -2683,9 +2687,9 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(UINT Metadata, const
       const char *c = (const char *)pData;
       markerText = string(c, c + Size);
     }
-    else if (Metadata == PIX_EVENT_PIX3BLOB_VERSION)
+    else if(Metadata == PIX_EVENT_PIX3BLOB_VERSION)
     {
-      markerText = PIX3DecodeEventString((UINT64*)pData);
+      markerText = PIX3DecodeEventString((UINT64 *)pData);
     }
     else
     {
