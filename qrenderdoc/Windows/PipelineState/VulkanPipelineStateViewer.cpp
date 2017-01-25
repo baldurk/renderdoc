@@ -422,7 +422,7 @@ void VulkanPipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const bind
   {
     text += tr("The view covers bytes %1-%2.\nThe buffer is %3 bytes in length.")
                 .arg(view.offset)
-                .arg(view.size)
+                .arg(view.offset + view.size)
                 .arg(buf->length);
   }
   else
