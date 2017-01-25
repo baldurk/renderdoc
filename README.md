@@ -38,7 +38,7 @@ API Support
 
 * D3D11 has full feature support and is stable & tested. Feature Level 11 hardware is assumed - Radeon 4000/5000+, GeForce 400+, Intel Ivy Bridge, falling back to WARP software emulation if this hardware isn't present.
 * \*OpenGL is only explicitly supported for the core profile 3.2+ subset of features, check the [OpenGL wiki page](https://github.com/baldurk/renderdoc/wiki/OpenGL) for details.
-* \*\*A Qt UI [is in progress](qrenderdoc), with some [implementation notes on the wiki](https://github.com/baldurk/renderdoc/wiki/QRenderDoc-Notes).
+* \*\*A Qt UI [is in progress](qrenderdoc), with some [implementation notes on the wiki](https://github.com/baldurk/renderdoc/wiki/QRenderDoc-Notes) and a [TODO list of remaining work](https://github.com/baldurk/renderdoc/issues/494)
 
 Downloads
 --------------
