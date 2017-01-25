@@ -79,6 +79,9 @@ void PipelineStateViewer::OnLogfileClosed()
 
 void PipelineStateViewer::OnEventChanged(uint32_t eventID)
 {
+  if(m_Ctx->CurPipelineState.DefaultType != m_Ctx->APIProps().pipelineType)
+    OnLogfileLoaded();
+
   if(m_Current)
     m_Current->OnEventChanged(eventID);
 }
