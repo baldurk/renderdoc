@@ -1120,7 +1120,7 @@ void GLPipelineStateViewer::setState()
     ui->primRestart->setVisible(true);
     if(state.m_VtxIn.primitiveRestart)
       ui->primRestart->setText(
-          QString("Restart Idx: 0x%1").arg(state.m_VtxIn.restartIndex, 8, 16, QChar('0')));
+          QString("Restart Idx: 0x%1").arg(state.m_VtxIn.restartIndex, 8, 16, QChar('0')).toUpper());
     else
       ui->primRestart->setText("Restart Idx: Disabled");
   }
@@ -1445,8 +1445,8 @@ void GLPipelineStateViewer::setState()
           else
             indexstring = QString::number(prev);
 
-          QTreeWidgetItem *node =
-              makeTreeNode({indexstring, s1.Left, s1.Bottom, s1.Width, s1.Height, s1.Enabled});
+          QTreeWidgetItem *node = makeTreeNode({indexstring, s1.Left, s1.Bottom, s1.Width,
+                                                s1.Height, s1.Enabled ? tr("True") : tr("False")});
 
           if(s1.Width == 0 || s1.Height == 0)
             setEmptyRow(node);
@@ -1476,8 +1476,8 @@ void GLPipelineStateViewer::setState()
         else
           indexstring = QString::number(prev);
 
-        QTreeWidgetItem *node =
-            makeTreeNode({indexstring, s1.Left, s1.Bottom, s1.Width, s1.Height, s1.Enabled});
+        QTreeWidgetItem *node = makeTreeNode({indexstring, s1.Left, s1.Bottom, s1.Width, s1.Height,
+                                              s1.Enabled ? tr("True") : tr("False")});
 
         if(s1.Width == 0 || s1.Height == 0)
           setEmptyRow(node);
@@ -1582,7 +1582,7 @@ void GLPipelineStateViewer::setState()
   if(state.m_Rasterizer.m_State.SampleMask)
   {
     ui->sampleMask->setText(
-        QString("%1").arg(state.m_Rasterizer.m_State.SampleMaskValue, 8, 16, QChar('0')));
+        QString("%1").arg(state.m_Rasterizer.m_State.SampleMaskValue, 8, 16, QChar('0')).toUpper());
     ui->sampleMask->setPixmap(QPixmap());
   }
   else
@@ -1785,7 +1785,7 @@ void GLPipelineStateViewer::setState()
 
         if(i == 0 && logic)
         {
-          node = makeTreeNode({i, true,
+          node = makeTreeNode({i, tr("True"),
 
                                "-", "-", ToQStr(blend.LogicOp),
 
@@ -1799,7 +1799,7 @@ void GLPipelineStateViewer::setState()
         }
         else
         {
-          node = makeTreeNode({i, blend.Enabled,
+          node = makeTreeNode({i, blend.Enabled ? tr("True") : tr("False"),
 
                                ToQStr(blend.m_Blend.Source), ToQStr(blend.m_Blend.Destination),
                                ToQStr(blend.m_Blend.Operation),
@@ -1863,17 +1863,17 @@ void GLPipelineStateViewer::setState()
               ToQStr(state.m_StencilState.m_FrontFace.FailOp),
               ToQStr(state.m_StencilState.m_FrontFace.DepthFailOp),
               ToQStr(state.m_StencilState.m_FrontFace.PassOp),
-              QString("%1").arg(state.m_StencilState.m_FrontFace.WriteMask, 2, 16, QChar('0')),
-              QString("%1").arg(state.m_StencilState.m_FrontFace.ValueMask, 2, 16, QChar('0')),
-              QString("%1").arg(state.m_StencilState.m_FrontFace.Ref, 2, 16, QChar('0'))}),
+              QString("%1").arg(state.m_StencilState.m_FrontFace.WriteMask, 2, 16, QChar('0')).toUpper(),
+              QString("%1").arg(state.m_StencilState.m_FrontFace.ValueMask, 2, 16, QChar('0')).toUpper(),
+              QString("%1").arg(state.m_StencilState.m_FrontFace.Ref, 2, 16, QChar('0')).toUpper()}),
          makeTreeNode(
              {"Back", ToQStr(state.m_StencilState.m_BackFace.Func),
               ToQStr(state.m_StencilState.m_BackFace.FailOp),
               ToQStr(state.m_StencilState.m_BackFace.DepthFailOp),
               ToQStr(state.m_StencilState.m_BackFace.PassOp),
-              QString("%1").arg(state.m_StencilState.m_BackFace.WriteMask, 2, 16, QChar('0')),
-              QString("%1").arg(state.m_StencilState.m_BackFace.ValueMask, 2, 16, QChar('0')),
-              QString("%1").arg(state.m_StencilState.m_BackFace.Ref, 2, 16, QChar('0'))})});
+              QString("%1").arg(state.m_StencilState.m_BackFace.WriteMask, 2, 16, QChar('0')).toUpper(),
+              QString("%1").arg(state.m_StencilState.m_BackFace.ValueMask, 2, 16, QChar('0')).toUpper(),
+              QString("%1").arg(state.m_StencilState.m_BackFace.Ref, 2, 16, QChar('0')).toUpper()})});
   }
   else
   {

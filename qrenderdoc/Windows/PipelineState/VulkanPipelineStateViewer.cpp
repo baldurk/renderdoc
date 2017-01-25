@@ -1772,7 +1772,7 @@ void VulkanPipelineStateViewer::setState()
   ui->sampleCount->setText(QString::number(state.MSAA.rasterSamples));
   ui->sampleShading->setPixmap(state.MSAA.sampleShadingEnable ? tick : cross);
   ui->minSampleShading->setText(Formatter::Format(state.MSAA.minSampleShading));
-  ui->sampleMask->setText(QString("%1").arg(state.MSAA.sampleMask, 8, 16, QChar('0')));
+  ui->sampleMask->setText(QString("%1").arg(state.MSAA.sampleMask, 8, 16, QChar('0')).toUpper());
 
   ////////////////////////////////////////////////
   // Output Merger
@@ -1896,7 +1896,7 @@ void VulkanPipelineStateViewer::setState()
       if(showNode(usedSlot, filledSlot))
       {
         QTreeWidgetItem *node =
-            makeTreeNode({i, blend.blendEnable,
+            makeTreeNode({i, blend.blendEnable ? tr("True") : tr("False"),
 
                           ToQStr(blend.blend.Source), ToQStr(blend.blend.Destination),
                           ToQStr(blend.blend.Operation),
@@ -1957,14 +1957,14 @@ void VulkanPipelineStateViewer::setState()
     ui->stencils->addTopLevelItems(
         {makeTreeNode({"Front", ToQStr(state.DS.front.func), ToQStr(state.DS.front.failOp),
                        ToQStr(state.DS.front.depthFailOp), ToQStr(state.DS.front.passOp),
-                       QString("%1").arg(state.DS.front.writeMask, 2, 16, QChar('0')),
-                       QString("%1").arg(state.DS.front.compareMask, 2, 16, QChar('0')),
-                       QString("%1").arg(state.DS.front.ref, 2, 16, QChar('0'))}),
+                       QString("%1").arg(state.DS.front.writeMask, 2, 16, QChar('0')).toUpper(),
+                       QString("%1").arg(state.DS.front.compareMask, 2, 16, QChar('0')).toUpper(),
+                       QString("%1").arg(state.DS.front.ref, 2, 16, QChar('0')).toUpper()}),
          makeTreeNode({"Back", ToQStr(state.DS.back.func), ToQStr(state.DS.back.failOp),
                        ToQStr(state.DS.back.depthFailOp), ToQStr(state.DS.back.passOp),
-                       QString("%1").arg(state.DS.back.writeMask, 2, 16, QChar('0')),
-                       QString("%1").arg(state.DS.back.compareMask, 2, 16, QChar('0')),
-                       QString("%1").arg(state.DS.back.ref, 2, 16, QChar('0'))})});
+                       QString("%1").arg(state.DS.back.writeMask, 2, 16, QChar('0')).toUpper(),
+                       QString("%1").arg(state.DS.back.compareMask, 2, 16, QChar('0')).toUpper(),
+                       QString("%1").arg(state.DS.back.ref, 2, 16, QChar('0')).toUpper()})});
   }
   else
   {
