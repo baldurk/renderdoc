@@ -478,11 +478,11 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 
     gl.glBindTexture(eGL_TEXTURE_2D, texs[0]);
     gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 1, 1);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
+    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
 
     gl.glBindTexture(eGL_TEXTURE_2D, texs[1]);
     gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, 1, 1);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
+    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
 
     // clear all error flags.
     GLenum err = eGL_NONE;
@@ -517,7 +517,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 
     gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[0]);
     gl.glTexStorage2D(eGL_TEXTURE_CUBE_MAP, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, dim, dim);
-    gl.glTexParameteri(eGL_TEXTURE_CUBE_MAP, eGL_TEXTURE_MAX_LEVEL, 1);
+    gl.glTexParameteri(eGL_TEXTURE_CUBE_MAP, eGL_TEXTURE_MAX_LEVEL, 0);
 
     for(int i = 0; i < 6; i++)
     {
@@ -528,7 +528,7 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
 
     gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, texs[1]);
     gl.glTexStorage2D(eGL_TEXTURE_CUBE_MAP, 1, eGL_COMPRESSED_RGBA_S3TC_DXT1_EXT, dim, dim);
-    gl.glTexParameteri(eGL_TEXTURE_CUBE_MAP, eGL_TEXTURE_MAX_LEVEL, 1);
+    gl.glTexParameteri(eGL_TEXTURE_CUBE_MAP, eGL_TEXTURE_MAX_LEVEL, 0);
 
     gl.glCopyImageSubData(texs[0], eGL_TEXTURE_CUBE_MAP, 0, 0, 0, 0, texs[1], eGL_TEXTURE_CUBE_MAP,
                           0, 0, 0, 0, dim, dim, 6);

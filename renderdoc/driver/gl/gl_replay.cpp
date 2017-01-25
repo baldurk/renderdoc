@@ -208,7 +208,7 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
 
   gl.glTextureImage2DEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, 0, eGL_SRGB8, outwin.width,
                          outwin.height, 0, eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
-  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
+  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -222,7 +222,7 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
 
     gl.glTextureImage2DEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, 0, eGL_DEPTH_COMPONENT24,
                            outwin.width, outwin.height, 0, eGL_DEPTH_COMPONENT, eGL_FLOAT, NULL);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
+    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
     gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
     gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
     gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -2303,7 +2303,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     else
       gl.glTextureImage2DEXT(tempTex, newtarget, 0, finalFormat, width, height, 0,
                              GetBaseFormat(finalFormat), GetDataType(finalFormat), NULL);
-    gl.glTexParameteri(newtarget, eGL_TEXTURE_MAX_LEVEL, 1);
+    gl.glTexParameteri(newtarget, eGL_TEXTURE_MAX_LEVEL, 0);
 
     // create temp framebuffer
     GLuint fbo = 0;
@@ -2394,7 +2394,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     gl.glBindTexture(eGL_TEXTURE_2D, tempTex);
     gl.glTextureImage2DEXT(tempTex, eGL_TEXTURE_2D, 0, intFormat, width, height, 0,
                            GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
-    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
+    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
 
     // create temp framebuffers
     GLuint fbos[2] = {0};
@@ -2441,7 +2441,7 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
     gl.glTextureImage3DEXT(tempTex, eGL_TEXTURE_2D_ARRAY, 0, intFormat, width, height,
                            arraysize * samples, 0, GetBaseFormat(intFormat), GetDataType(intFormat),
                            NULL);
-    gl.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 1);
+    gl.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
     // copy multisampled texture to an array
     CopyTex2DMSToArray(tempTex, texname, width, height, arraysize, samples, intFormat);
@@ -2759,7 +2759,7 @@ void GLReplay::CreateCustomShaderTex(uint32_t w, uint32_t h)
   m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
   m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
   m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_BASE_LEVEL, 0);
-  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, mips);
+  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, mips - 1);
   m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
   m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
 
@@ -3013,7 +3013,7 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
   }
 
-  gl.glTexParameteri(binding, eGL_TEXTURE_MAX_LEVEL, templateTex.mips);
+  gl.glTexParameteri(binding, eGL_TEXTURE_MAX_LEVEL, templateTex.mips - 1);
 
   if(templateTex.format.bgraOrder && binding != eGL_NONE)
   {

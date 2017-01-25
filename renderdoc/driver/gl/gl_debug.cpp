@@ -411,7 +411,7 @@ void GLReplay::InitDebugData()
 
   gl.glTextureImage2DEXT(DebugData.pickPixelTex, eGL_TEXTURE_2D, 0, eGL_RGBA32F, 1, 1, 0, eGL_RGBA,
                          eGL_FLOAT, NULL);
-  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
+  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -1631,7 +1631,7 @@ void GLReplay::CopyTex2DMSToArray(GLuint destArray, GLuint srcMS, GLint width, G
   gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, texs[1]);
   gl.glBindSampler(0, DebugData.pointNoMipSampler);
   gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_BASE_LEVEL, 0);
-  gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 1);
+  gl.glTexParameteri(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
   gl.glUseProgram(DebugData.MS2Array);
 
@@ -2213,7 +2213,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
     {
       gl.glTextureImage2DEXT(DebugData.overlayTex, texBindingEnum, 0, eGL_RGBA16, texDetails.width,
                              texDetails.height, 0, eGL_RGBA, eGL_FLOAT, NULL);
-      gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, 1);
+      gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
       gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
       gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
       gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -2376,7 +2376,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
         gl.glTextureImage2DEXT(depthCopy, texBindingEnum, 0, fmt, DebugData.overlayTexWidth,
                                DebugData.overlayTexHeight, 0, GetBaseFormat(fmt), GetDataType(fmt),
                                NULL);
-        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, 1);
+        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
         gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
         gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
         gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -2409,7 +2409,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
         gl.glTextureImage2DEXT(stencilCopy, texBindingEnum, 0, fmt, DebugData.overlayTexWidth,
                                DebugData.overlayTexHeight, 0, GetBaseFormat(fmt), GetDataType(fmt),
                                NULL);
-        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, 1);
+        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
         gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
         gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
         gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -2940,7 +2940,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
         gl.glTextureImage3DEXT(quadtexs[2], eGL_TEXTURE_2D_ARRAY, 0, eGL_R32UI,
                                RDCMAX(1, texDetails.width >> 1), RDCMAX(1, texDetails.height >> 1),
                                4, 0, eGL_RED_INTEGER, eGL_UNSIGNED_INT, NULL);
-        gl.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 1);
+        gl.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
 
         // temporarily attach to FBO to clear it
         GLint zero[4] = {0};
@@ -2956,7 +2956,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
         gl.glBindTexture(eGL_TEXTURE_2D, quadtexs[0]);
         gl.glTextureImage2DEXT(quadtexs[0], eGL_TEXTURE_2D, 0, eGL_RGBA8, texDetails.width,
                                texDetails.height, 0, eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
-        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
+        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
@@ -2993,7 +2993,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
         gl.glBindTexture(eGL_TEXTURE_2D, quadtexs[1]);
         gl.glTextureImage2DEXT(quadtexs[1], eGL_TEXTURE_2D, 0, fmt, texDetails.width,
                                texDetails.height, 0, GetBaseFormat(fmt), GetDataType(fmt), NULL);
-        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 1);
+        gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
         gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);

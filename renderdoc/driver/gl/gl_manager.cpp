@@ -700,7 +700,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       }
       else if(details.dimension == 1)
       {
-        gl.glTextureParameteriEXT(tex, details.curType, eGL_TEXTURE_MAX_LEVEL, mips);
+        gl.glTextureParameteriEXT(tex, details.curType, eGL_TEXTURE_MAX_LEVEL, mips - 1);
 
         int w = details.width;
         for(int i = 0; i < mips; i++)
@@ -712,7 +712,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       }
       else if(details.dimension == 2)
       {
-        gl.glTextureParameteriEXT(tex, details.curType, eGL_TEXTURE_MAX_LEVEL, mips);
+        gl.glTextureParameteriEXT(tex, details.curType, eGL_TEXTURE_MAX_LEVEL, mips - 1);
 
         int w = details.width;
         int h = details.height;
@@ -727,7 +727,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       }
       else if(details.dimension == 3)
       {
-        gl.glTextureParameteriEXT(tex, details.curType, eGL_TEXTURE_MAX_LEVEL, mips);
+        gl.glTextureParameteriEXT(tex, details.curType, eGL_TEXTURE_MAX_LEVEL, mips - 1);
 
         int w = details.width;
         int h = details.height;
@@ -1460,7 +1460,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         }
         else if(dim == 1)
         {
-          gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips);
+          gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips - 1);
 
           int w = width;
           for(int i = 0; i < mips; i++)
@@ -1471,7 +1471,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         }
         else if(dim == 2)
         {
-          gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips);
+          gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips - 1);
 
           int w = width;
           int h = height;
@@ -1486,7 +1486,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         }
         else if(dim == 3)
         {
-          gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips);
+          gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips - 1);
 
           int w = width;
           int h = height;
