@@ -1008,7 +1008,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12PipelineState::ShaderSt
         if(s.UseBorder)
           addressing += QString("<%1>").arg(borderColor);
 
-        QString filter = s.Filter;
+        QString filter = ToQStr(s.Filter);
 
         if(s.MaxAniso > 1)
           filter += QString(" %1x").arg(s.MaxAniso);
@@ -1131,8 +1131,8 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12PipelineState::ShaderSt
         if(length < bytesize)
           filledSlot = false;
 
-        QTreeWidgetItem *node =
-            makeTreeNode({rootel, (uint64_t)space, regname, name, offset, sizestr, ""});
+        QTreeWidgetItem *node = makeTreeNode(
+            {rootel, (qulonglong)space, regname, name, (qulonglong)offset, sizestr, ""});
 
         node->setData(0, Qt::UserRole, tag);
 
@@ -1316,8 +1316,9 @@ void D3D12PipelineStateViewer::setState()
         length = buf->length;
       }
 
-      QTreeWidgetItem *node = makeTreeNode({"Index", name, draw ? draw->indexByteWidth : 0,
-                                            state.m_IA.ibuffer.Offset, (qulonglong)length, ""});
+      QTreeWidgetItem *node =
+          makeTreeNode({"Index", name, draw ? draw->indexByteWidth : 0,
+                        (qulonglong)state.m_IA.ibuffer.Offset, (qulonglong)length, ""});
 
       ui->iaBuffers->setHoverIcons(node, action, action_hover);
 
@@ -1365,7 +1366,7 @@ void D3D12PipelineStateViewer::setState()
     if(showNode(usedSlot, filledSlot))
     {
       QString name = "Buffer " + ToQStr(v.Buffer);
-      uint64_t length = 1;
+      qulonglong length = 1;
 
       if(!filledSlot)
       {
@@ -1383,7 +1384,7 @@ void D3D12PipelineStateViewer::setState()
       QTreeWidgetItem *node = NULL;
 
       if(filledSlot)
-        node = makeTreeNode({i, name, v.Stride, v.Offset, length, ""});
+        node = makeTreeNode({i, name, v.Stride, (qulonglong)v.Offset, length, ""});
       else
         node = makeTreeNode({i, "No Buffer Set", "-", "-", "-", ""});
 
@@ -1433,7 +1434,7 @@ void D3D12PipelineStateViewer::setState()
     if(showNode(usedSlot, filledSlot))
     {
       QString name = "Buffer " + ToQStr(s.Buffer);
-      uint64_t length = 0;
+      qulonglong length = 0;
 
       if(!filledSlot)
       {
@@ -1449,7 +1450,7 @@ void D3D12PipelineStateViewer::setState()
           length = buf->length;
       }
 
-      QTreeWidgetItem *node = makeTreeNode({i, name, length, s.Offset, ""});
+      QTreeWidgetItem *node = makeTreeNode({i, name, length, (qulonglong)s.Offset, ""});
 
       ui->gsStreamOut->setHoverIcons(node, action, action_hover);
 

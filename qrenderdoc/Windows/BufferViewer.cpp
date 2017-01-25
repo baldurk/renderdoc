@@ -31,6 +31,7 @@
 class CameraWrapper
 {
 public:
+  virtual ~CameraWrapper() {}
   virtual bool Update(QRect winSize) = 0;
   virtual Camera *camera() = 0;
 
@@ -116,7 +117,7 @@ class ArcballWrapper : public CameraWrapper
 {
 public:
   ArcballWrapper() { m_Cam = Camera_InitArcball(); }
-  ~ArcballWrapper() { Camera_Shutdown(m_Cam); }
+  virtual ~ArcballWrapper() { Camera_Shutdown(m_Cam); }
   Camera *camera() override { return m_Cam; }
   void Reset(FloatVector pos, float dist)
   {
@@ -223,7 +224,7 @@ class FlycamWrapper : public CameraWrapper
 {
 public:
   FlycamWrapper() { m_Cam = Camera_InitFPSLook(); }
-  ~FlycamWrapper() { Camera_Shutdown(m_Cam); }
+  virtual ~FlycamWrapper() { Camera_Shutdown(m_Cam); }
   Camera *camera() override { return m_Cam; }
   void Reset(FloatVector pos)
   {
@@ -651,7 +652,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       qMax(m_ModelVSIn->componentWidth, Formatter::Format(123456.7890123456789).length());
 
   m_ModelVSOut->componentWidth = m_ModelVSIn->componentWidth;
-  // m_ModelGSOut->componentWidth = m_ModelVSIn->componentWidth;
+  m_ModelGSOut->componentWidth = m_ModelVSIn->componentWidth;
 
   QVector<VertexInputAttribute> vinputs = m_Ctx->CurPipelineState.GetVertexInputs();
 

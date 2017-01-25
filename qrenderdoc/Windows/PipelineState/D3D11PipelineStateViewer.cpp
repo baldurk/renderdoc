@@ -889,7 +889,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11PipelineState::ShaderSt
       if(s.UseBorder)
         addressing += QString("<%1>").arg(borderColor);
 
-      QString filter = s.Filter;
+      QString filter = ToQStr(s.Filter);
 
       if(s.MaxAniso > 1)
         filter += QString(" %1x").arg(s.MaxAniso);
@@ -1324,7 +1324,7 @@ void D3D11PipelineStateViewer::setState()
     if(showNode(usedSlot, filledSlot))
     {
       QString name = "Buffer " + ToQStr(v.Buffer);
-      uint64_t length = 1;
+      qulonglong length = 1;
 
       if(!filledSlot)
       {
@@ -1417,7 +1417,7 @@ void D3D11PipelineStateViewer::setState()
     if(showNode(usedSlot, filledSlot))
     {
       QString name = "Buffer " + ToQStr(s.Buffer);
-      uint64_t length = 0;
+      qulonglong length = 0;
 
       if(!filledSlot)
       {
