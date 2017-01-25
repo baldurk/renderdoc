@@ -58,6 +58,7 @@ signals:
   void resize(QResizeEvent *e);
   void mouseWheel(QWheelEvent *e);
   void keyPress(QKeyEvent *e);
+  void keyRelease(QKeyEvent *e);
 
 private:
   void mousePressEvent(QMouseEvent *e) override;
@@ -66,6 +67,7 @@ private:
   void wheelEvent(QWheelEvent *e) override;
   void resizeEvent(QResizeEvent *e) override;
   void keyPressEvent(QKeyEvent *e) override;
+  void keyReleaseEvent(QKeyEvent *e) override;
 
 public slots:
 

@@ -25,7 +25,277 @@
 #include "BufferViewer.h"
 #include <QFontDatabase>
 #include <QMouseEvent>
+#include <QTimer>
 #include "ui_BufferViewer.h"
+
+class CameraWrapper
+{
+public:
+  virtual bool Update(QRect winSize) = 0;
+  virtual Camera *camera() = 0;
+
+  virtual void MouseWheel(QWheelEvent *e) = 0;
+
+  virtual void MouseClick(QMouseEvent *e) { m_DragStartPos = e->pos(); }
+  virtual void MouseMove(QMouseEvent *e)
+  {
+    if(e->buttons() & Qt::LeftButton)
+    {
+      if(m_DragStartPos.x() < 0)
+      {
+        m_DragStartPos = e->pos();
+      }
+
+      m_DragStartPos = e->pos();
+    }
+    else
+    {
+      m_DragStartPos = QPoint(-1, -1);
+    }
+  }
+
+  virtual void KeyUp(QKeyEvent *e)
+  {
+    if(e->key() == Qt::Key_A || e->key() == Qt::Key_D)
+      setMove(Direction::Horiz, 0);
+    if(e->key() == Qt::Key_Q || e->key() == Qt::Key_E)
+      setMove(Direction::Vert, 0);
+    if(e->key() == Qt::Key_W || e->key() == Qt::Key_S)
+      setMove(Direction::Fwd, 0);
+
+    if(e->modifiers() && Qt::ShiftModifier)
+      m_CurrentSpeed = 3.0f;
+    else
+      m_CurrentSpeed = 1.0f;
+  }
+
+  virtual void KeyDown(QKeyEvent *e)
+  {
+    if(e->key() == Qt::Key_W)
+      setMove(Direction::Fwd, 1);
+    if(e->key() == Qt::Key_S)
+      setMove(Direction::Fwd, -1);
+    if(e->key() == Qt::Key_Q)
+      setMove(Direction::Vert, 1);
+    if(e->key() == Qt::Key_E)
+      setMove(Direction::Vert, -1);
+    if(e->key() == Qt::Key_D)
+      setMove(Direction::Horiz, 1);
+    if(e->key() == Qt::Key_A)
+      setMove(Direction::Horiz, -1);
+
+    if(e->modifiers() && Qt::ShiftModifier)
+      m_CurrentSpeed = 3.0f;
+    else
+      m_CurrentSpeed = 1.0f;
+  }
+
+  float SpeedMultiplier = 0.05f;
+
+protected:
+  enum class Direction
+  {
+    Fwd,
+    Horiz,
+    Vert,
+    Num
+  };
+
+  int move(Direction dir) { return m_CurrentMove[(int)dir]; }
+  float currentSpeed() { return m_CurrentSpeed * SpeedMultiplier; }
+  QPoint dragStartPos() { return m_DragStartPos; }
+private:
+  float m_CurrentSpeed = 1.0f;
+  int m_CurrentMove[(int)Direction::Num] = {0, 0, 0};
+
+  void setMove(Direction dir, int val) { m_CurrentMove[(int)dir] = val; }
+  QPoint m_DragStartPos = QPoint(-1, -1);
+};
+
+class ArcballWrapper : public CameraWrapper
+{
+public:
+  ArcballWrapper() { m_Cam = Camera_InitArcball(); }
+  ~ArcballWrapper() { Camera_Shutdown(m_Cam); }
+  Camera *camera() override { return m_Cam; }
+  void Reset(FloatVector pos, float dist)
+  {
+    Camera_ResetArcball(m_Cam);
+
+    setLookAtPos(pos);
+    SetDistance(dist);
+  }
+
+  void SetDistance(float dist)
+  {
+    m_Distance = qAbs(dist);
+    Camera_SetArcballDistance(m_Cam, m_Distance);
+  }
+
+  bool Update(QRect size) override
+  {
+    m_WinSize = size;
+    return false;
+  }
+
+  void MouseWheel(QWheelEvent *e) override
+  {
+    float mod = (1.0f - e->delta() / 2500.0f);
+
+    SetDistance(qMax(1e-6f, m_Distance * mod));
+  }
+
+  void MouseMove(QMouseEvent *e) override
+  {
+    if(dragStartPos().x() > 0)
+    {
+      if(e->buttons() == Qt::MiddleButton ||
+         (e->buttons() == Qt::LeftButton && e->modifiers() & Qt::AltModifier))
+      {
+        float xdelta = (float)(e->pos().x() - dragStartPos().x()) / 300.0f;
+        float ydelta = (float)(e->pos().y() - dragStartPos().y()) / 300.0f;
+
+        xdelta *= qMax(1.0f, m_Distance);
+        ydelta *= qMax(1.0f, m_Distance);
+
+        FloatVector pos, fwd, right, up;
+        Camera_GetBasis(m_Cam, &pos, &fwd, &right, &up);
+
+        m_LookAt.x -= right.x * xdelta;
+        m_LookAt.y -= right.y * xdelta;
+        m_LookAt.z -= right.z * xdelta;
+
+        m_LookAt.x += up.x * ydelta;
+        m_LookAt.y += up.y * ydelta;
+        m_LookAt.z += up.z * ydelta;
+
+        Camera_SetPosition(m_Cam, m_LookAt.x, m_LookAt.y, m_LookAt.z);
+      }
+      else if(e->buttons() == Qt::LeftButton)
+      {
+        RotateArcball(dragStartPos(), e->pos());
+      }
+    }
+
+    CameraWrapper::MouseMove(e);
+  }
+
+  FloatVector lookAtPos() { return m_LookAt; }
+  void setLookAtPos(const FloatVector &v)
+  {
+    m_LookAt = v;
+    Camera_SetPosition(m_Cam, v.x, v.y, v.z);
+  }
+
+private:
+  Camera *m_Cam;
+
+  QRect m_WinSize;
+
+  float m_Distance = 10.0f;
+  FloatVector m_LookAt;
+
+  void RotateArcball(QPoint from, QPoint to)
+  {
+    float ax = ((float)from.x() / (float)m_WinSize.width()) * 2.0f - 1.0f;
+    float ay = ((float)from.y() / (float)m_WinSize.height()) * 2.0f - 1.0f;
+    float bx = ((float)to.x() / (float)m_WinSize.width()) * 2.0f - 1.0f;
+    float by = ((float)to.y() / (float)m_WinSize.height()) * 2.0f - 1.0f;
+
+    // this isn't a 'true arcball' but it handles extreme aspect ratios
+    // better. We basically 'centre' around the from point always being
+    // 0,0 (straight out of the screen) as if you're always dragging
+    // the arcball from the middle, and just use the relative movement
+    int minDimension = qMin(m_WinSize.width(), m_WinSize.height());
+
+    ax = ay = 0;
+    bx = ((float)(to.x() - from.x()) / (float)minDimension) * 2.0f;
+    by = ((float)(to.y() - from.y()) / (float)minDimension) * 2.0f;
+
+    ay = -ay;
+    by = -by;
+
+    Camera_RotateArcball(m_Cam, ax, ay, bx, by);
+  }
+};
+
+class FlycamWrapper : public CameraWrapper
+{
+public:
+  FlycamWrapper() { m_Cam = Camera_InitFPSLook(); }
+  ~FlycamWrapper() { Camera_Shutdown(m_Cam); }
+  Camera *camera() override { return m_Cam; }
+  void Reset(FloatVector pos)
+  {
+    m_Position = pos;
+    m_Rotation = FloatVector();
+
+    Camera_SetPosition(m_Cam, m_Position.x, m_Position.y, m_Position.z);
+    Camera_SetFPSRotation(m_Cam, m_Rotation.x, m_Rotation.y, m_Rotation.z);
+  }
+
+  bool Update(QRect size) override
+  {
+    FloatVector pos, fwd, right, up;
+    Camera_GetBasis(m_Cam, &pos, &fwd, &right, &up);
+
+    float speed = currentSpeed();
+
+    int horizMove = move(CameraWrapper::Direction::Horiz);
+    if(horizMove)
+    {
+      m_Position.x += right.x * speed * (float)horizMove;
+      m_Position.y += right.y * speed * (float)horizMove;
+      m_Position.z += right.z * speed * (float)horizMove;
+    }
+
+    int vertMove = move(CameraWrapper::Direction::Vert);
+    if(vertMove)
+    {
+      // this makes less intuitive sense, instead go 'absolute' up
+      // m_Position.x += up.x * speed * (float)vertMove;
+      // m_Position.y += up.y * speed * (float)vertMove;
+      // m_Position.z += up.z * speed * (float)vertMove;
+
+      m_Position.y += speed * (float)vertMove;
+    }
+
+    int fwdMove = move(CameraWrapper::Direction::Fwd);
+    if(fwdMove)
+    {
+      m_Position.x += fwd.x * speed * (float)fwdMove;
+      m_Position.y += fwd.y * speed * (float)fwdMove;
+      m_Position.z += fwd.z * speed * (float)fwdMove;
+    }
+
+    if(horizMove || vertMove || fwdMove)
+    {
+      Camera_SetPosition(m_Cam, m_Position.x, m_Position.y, m_Position.z);
+      return true;
+    }
+
+    return false;
+  }
+
+  void MouseWheel(QWheelEvent *e) override {}
+  void MouseMove(QMouseEvent *e) override
+  {
+    if(dragStartPos().x() > 0 && e->buttons() == Qt::LeftButton)
+    {
+      m_Rotation.y -= (float)(e->pos().x() - dragStartPos().x()) / 300.0f;
+      m_Rotation.x -= (float)(e->pos().y() - dragStartPos().y()) / 300.0f;
+
+      Camera_SetFPSRotation(m_Cam, m_Rotation.x, m_Rotation.y, m_Rotation.z);
+    }
+
+    CameraWrapper::MouseMove(e);
+  }
+
+private:
+  Camera *m_Cam;
+
+  FloatVector m_Position, m_Rotation;
+};
 
 struct BufferData
 {
@@ -224,13 +494,68 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
 
   ui->vsinData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
   ui->vsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+  ui->gsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
+
+  ui->formatSpecifier->setVisible(false);
+  ui->cameraControlsGroup->setVisible(false);
+
+  ui->outputTabs->setWindowTitle(tr("Preview"));
+  ui->dockarea->addToolWindow(ui->outputTabs, ToolWindowManager::EmptySpace);
+  ui->dockarea->setToolWindowProperties(ui->outputTabs, ToolWindowManager::HideCloseButton);
+
+  ui->vsinData->setWindowTitle(tr("VS Input"));
+  ui->dockarea->addToolWindow(
+      ui->vsinData, ToolWindowManager::AreaReference(ToolWindowManager::TopOf,
+                                                     ui->dockarea->areaOf(ui->outputTabs), 0.5f));
+  ui->dockarea->setToolWindowProperties(ui->vsinData, ToolWindowManager::HideCloseButton);
+
+  ui->vsoutData->setWindowTitle(tr("VS Output"));
+  ui->dockarea->addToolWindow(
+      ui->vsoutData, ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
+                                                      ui->dockarea->areaOf(ui->vsinData), 0.5f));
+  ui->dockarea->setToolWindowProperties(ui->vsoutData, ToolWindowManager::HideCloseButton);
+
+  ui->gsoutData->setWindowTitle(tr("GS/DS Output"));
+  ui->dockarea->addToolWindow(
+      ui->gsoutData, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
+                                                      ui->dockarea->areaOf(ui->vsoutData), 0.5f));
+  ui->dockarea->setToolWindowProperties(ui->gsoutData, ToolWindowManager::HideCloseButton);
+
+  ToolWindowManager::raiseToolWindow(ui->vsoutData);
+
+  ui->dockarea->setAllowFloatingWindow(false);
+  ui->dockarea->setRubberBandLineWidth(50);
+
+  QVBoxLayout *vertical = new QVBoxLayout(this);
+
+  vertical->setSpacing(3);
+  vertical->setContentsMargins(0, 0, 0, 0);
+
+  vertical->addWidget(ui->meshToolbar);
+  vertical->addWidget(ui->dockarea);
+
+  ui->controlType->addItems({tr("Arcball"), tr("WASD")});
+  ui->controlType->adjustSize();
+
+  ui->drawRange->addItems({tr("Only this draw"), tr("Show previous instances"),
+                           tr("Show all instances"), tr("Show whole pass")});
+  ui->drawRange->adjustSize();
+
+  ui->solidShading->addItems({tr("None"), tr("Solid Colour"), tr("Flat Shaded"), tr("Secondary")});
+  ui->solidShading->adjustSize();
 
   m_ModelVSIn = new BufferItemModel(ui->vsinData, this);
   m_ModelVSOut = new BufferItemModel(ui->vsoutData, this);
-  // m_ModelGSOut = new BufferItemModel(ui->gsoutData, this);
+  m_ModelGSOut = new BufferItemModel(ui->gsoutData, this);
+
+  m_Flycam = new FlycamWrapper();
+  m_Arcball = new ArcballWrapper();
+  m_CurrentCamera = m_Arcball;
+
+  m_Arcball->Reset(FloatVector(), 10.0f);
+  m_Flycam->Reset(FloatVector());
 
   m_ConfigVSIn.type = eMeshDataStage_VSIn;
-  m_ConfigVSIn.cam = Camera_InitArcball();
   m_ConfigVSIn.ortho = false;
   m_ConfigVSIn.showPrevInstances = false;
   m_ConfigVSIn.showAllInstances = false;
@@ -242,15 +567,9 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
   memset(&m_ConfigVSIn.position, 0, sizeof(m_ConfigVSIn.position));
   memset(&m_ConfigVSIn.second, 0, sizeof(m_ConfigVSIn.second));
 
-  m_CamDist = 10.0f;
-
-  Camera_SetArcballDistance(m_ConfigVSIn.cam, m_CamDist);
-
   m_ConfigVSIn.position.showAlpha = false;
 
   m_ConfigVSOut = m_ConfigVSIn;
-
-  m_ConfigVSOut.cam = Camera_InitFPSLook();
 
   m_curConfig = &m_ConfigVSIn;
   ui->outputTabs->setCurrentIndex(0);
@@ -259,6 +578,12 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
                    &BufferViewer::data_selected);
   QObject::connect(ui->vsoutData->selectionModel(), &QItemSelectionModel::selectionChanged, this,
                    &BufferViewer::data_selected);
+
+  QTimer *renderTimer = new QTimer(this);
+  QObject::connect(renderTimer, &QTimer::timeout, this, &BufferViewer::render_timer);
+  renderTimer->setSingleShot(false);
+  renderTimer->setInterval(1000);
+  renderTimer->start();
 
   Reset();
 }
@@ -270,8 +595,8 @@ BufferViewer::~BufferViewer()
   for(auto vb : m_ModelVSIn->buffers)
     delete[] vb.data;
 
-  Camera_Shutdown(m_ConfigVSIn.cam);
-  Camera_Shutdown(m_ConfigVSOut.cam);
+  delete m_Arcball;
+  delete m_Flycam;
 
   m_Ctx->windowClosed(this);
   m_Ctx->RemoveLogViewer(this);
@@ -308,7 +633,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
 {
   m_ModelVSIn->beginReset();
   m_ModelVSOut->beginReset();
-  // m_ModelGSOut->beginReset();
+  m_ModelGSOut->beginReset();
 
   // this doesn't account for sign characters
   m_ModelVSIn->componentWidth = 0;
@@ -367,11 +692,6 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   ResourceId ib;
   uint64_t ioffset = 0;
   m_Ctx->CurPipelineState.GetIBuffer(ib, ioffset);
-
-  m_CamDist = 10.0f;
-
-  Camera_ResetArcball(m_ConfigVSIn.cam);
-  Camera_SetArcballDistance(m_ConfigVSIn.cam, m_CamDist);
 
   m_ConfigVSIn.fov = 90.0f;
   m_ConfigVSIn.aspect =
@@ -481,11 +801,6 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   m_ConfigVSOut.fov = m_ConfigVSIn.fov;
   m_ConfigVSOut.aspect = m_ConfigVSIn.aspect;
   m_ConfigVSOut.highlightVert = m_ConfigVSIn.highlightVert;
-
-  Camera_SetPosition(m_ConfigVSOut.cam, 0.0f, 0.0f, 0.0f);
-  Camera_SetFPSRotation(m_ConfigVSOut.cam, 0.0f, 0.0f, 0.0f);
-  m_pos = FloatVector();
-  m_rot = FloatVector();
 
   m_Ctx->Renderer()->AsyncInvoke([this, draw, vbs, ib, ioffset](IReplayRenderer *r) {
 
@@ -650,16 +965,16 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
     GUIInvoke::call([this] {
       m_ModelVSIn->endReset();
       m_ModelVSOut->endReset();
-      ui->vsinData->resizeColumnsToContents();
-      ui->vsoutData->resizeColumnsToContents();
+      // ui->vsinData->resizeColumnsToContents();
+      // ui->vsoutData->resizeColumnsToContents();
     });
   });
 }
 
 void BufferViewer::on_outputTabs_currentChanged(int index)
 {
-  ui->render->parentWidget()->layout()->removeWidget(ui->render);
-  ui->outputTabs->widget(index)->layout()->addWidget(ui->render);
+  ui->renderContainer->parentWidget()->layout()->removeWidget(ui->renderContainer);
+  ui->outputTabs->widget(index)->layout()->addWidget(ui->renderContainer);
 
   if(index == 0)
     m_curConfig = &m_ConfigVSIn;
@@ -674,55 +989,11 @@ void BufferViewer::render_mouseMove(QMouseEvent *e)
   if(!m_Ctx->LogLoaded())
     return;
 
-  QPoint curpos = e->pos();
-
-  if(e->buttons() & Qt::LeftButton)
-  {
-    if(m_PrevPos != QPoint())
-    {
-      if(m_curConfig == &m_ConfigVSIn)
-      {
-        float ax = ((float)m_PrevPos.x() / (float)ui->render->rect().width()) * 2.0f - 1.0f;
-        float ay = ((float)m_PrevPos.y() / (float)ui->render->rect().height()) * 2.0f - 1.0f;
-        float bx = ((float)curpos.x() / (float)ui->render->rect().width()) * 2.0f - 1.0f;
-        float by = ((float)curpos.y() / (float)ui->render->rect().height()) * 2.0f - 1.0f;
-
-        // this isn't a 'true arcball' but it handles extreme aspect ratios
-        // better. We basically 'centre' around the from point always being
-        // 0,0 (straight out of the screen) as if you're always dragging
-        // the arcball from the middle, and just use the relative movement
-        int minDimension = qMin(ui->render->rect().width(), ui->render->rect().height());
-
-        ax = ay = 0;
-        bx = ((float)(curpos.x() - m_PrevPos.x()) / (float)minDimension) * 2.0f;
-        by = ((float)(curpos.y() - m_PrevPos.y()) / (float)minDimension) * 2.0f;
-
-        ay = -ay;
-        by = -by;
-
-        Camera_RotateArcball(m_curConfig->cam, ax, ay, bx, by);
-      }
-      else
-      {
-        m_rot.y -= (float)(curpos.x() - m_PrevPos.x()) / 300.0f;
-        m_rot.x -= (float)(curpos.y() - m_PrevPos.y()) / 300.0f;
-
-        Camera_SetFPSRotation(m_curConfig->cam, m_rot.x, m_rot.y, m_rot.z);
-      }
-    }
-
-    m_PrevPos = curpos;
-  }
-  else
-  {
-    m_PrevPos = QPoint();
-  }
+  if(m_CurrentCamera)
+    m_CurrentCamera->MouseMove(e);
 
   if(e->buttons() & Qt::RightButton)
-  {
     render_clicked(e);
-    return;
-  }
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
@@ -731,8 +1002,6 @@ void BufferViewer::render_clicked(QMouseEvent *e)
 {
   if(!m_Ctx->LogLoaded())
     return;
-
-  ui->render->setFocus();
 
   QPoint curpos = e->pos();
 
@@ -765,62 +1034,43 @@ void BufferViewer::render_clicked(QMouseEvent *e)
     });
   }
 
+  if(m_CurrentCamera)
+    m_CurrentCamera->MouseClick(e);
+
+  ui->render->setFocus();
+
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
 void BufferViewer::render_mouseWheel(QWheelEvent *e)
 {
-  float mod = (1.0f - e->delta() / 2500.0f);
-
-  m_CamDist = qMax(1e-6f, m_CamDist * mod);
-
-  Camera_SetArcballDistance(m_ConfigVSIn.cam, m_CamDist);
+  if(m_CurrentCamera)
+    m_CurrentCamera->MouseWheel(e);
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
 void BufferViewer::render_keyPress(QKeyEvent *e)
 {
-  if(m_curConfig != &m_ConfigVSIn)
-  {
-    FloatVector pos, fwd, right, up;
-    Camera_GetBasis(m_curConfig->cam, &pos, &fwd, &right, &up);
+  m_CurrentCamera->KeyDown(e);
+}
 
-    if(e->key() == Qt::Key_W)
-    {
-      m_pos.x += fwd.x * 0.1f;
-      m_pos.y += fwd.y * 0.1f;
-      m_pos.z += fwd.z * 0.1f;
-    }
-    if(e->key() == Qt::Key_S)
-    {
-      m_pos.x -= fwd.x * 0.1f;
-      m_pos.y -= fwd.y * 0.1f;
-      m_pos.z -= fwd.z * 0.1f;
-    }
-    if(e->key() == Qt::Key_A)
-    {
-      m_pos.x -= right.x * 0.1f;
-      m_pos.y -= right.y * 0.1f;
-      m_pos.z -= right.z * 0.1f;
-    }
-    if(e->key() == Qt::Key_D)
-    {
-      m_pos.x += right.x * 0.1f;
-      m_pos.y += right.y * 0.1f;
-      m_pos.z += right.z * 0.1f;
-    }
+void BufferViewer::render_keyRelease(QKeyEvent *e)
+{
+  m_CurrentCamera->KeyUp(e);
+}
 
-    Camera_SetPosition(m_curConfig->cam, m_pos.x, m_pos.y, m_pos.z);
-  }
-
-  INVOKE_MEMFN(RT_UpdateAndDisplay);
+void BufferViewer::render_timer()
+{
+  if(m_CurrentCamera && m_CurrentCamera->Update(ui->render->rect()))
+    INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
 void BufferViewer::RT_UpdateAndDisplay(IReplayRenderer *)
 {
   if(m_Output)
   {
+    m_curConfig->cam = m_CurrentCamera->camera();
     m_Output->SetMeshDisplay(*m_curConfig);
     m_Output->Display();
   }
@@ -854,12 +1104,14 @@ void BufferViewer::Reset()
     render->setSizePolicy(ui->render->sizePolicy());
     delete ui->render;
     ui->render = render;
-    ui->outputTabs->currentWidget()->layout()->addWidget(ui->render);
+    ui->renderContainerGridLayout->addWidget(ui->render, 1, 1, 1, 1);
   }
 
   QObject::connect(ui->render, &CustomPaintWidget::mouseMove, this, &BufferViewer::render_mouseMove);
   QObject::connect(ui->render, &CustomPaintWidget::clicked, this, &BufferViewer::render_clicked);
   QObject::connect(ui->render, &CustomPaintWidget::keyPress, this, &BufferViewer::render_keyPress);
+  QObject::connect(ui->render, &CustomPaintWidget::keyRelease, this,
+                   &BufferViewer::render_keyRelease);
   QObject::connect(ui->render, &CustomPaintWidget::mouseWheel, this,
                    &BufferViewer::render_mouseWheel);
 
@@ -881,4 +1133,9 @@ void BufferViewer::data_selected(const QItemSelection &selected, const QItemSele
 
     INVOKE_MEMFN(RT_UpdateAndDisplay);
   }
+}
+
+void BufferViewer::on_toggleControls_toggled(bool checked)
+{
+  ui->cameraControlsGroup->setVisible(checked);
 }

@@ -80,6 +80,11 @@ void CustomPaintWidget::keyPressEvent(QKeyEvent *e)
   emit keyPress(e);
 }
 
+void CustomPaintWidget::keyReleaseEvent(QKeyEvent *e)
+{
+  emit keyRelease(e);
+}
+
 void CustomPaintWidget::paintEvent(QPaintEvent *e)
 {
   if(m_Ctx)

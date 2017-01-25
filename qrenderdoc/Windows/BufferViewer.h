@@ -33,6 +33,9 @@ class BufferViewer;
 }
 
 class BufferItemModel;
+class CameraWrapper;
+class ArcballWrapper;
+class FlycamWrapper;
 
 class BufferViewer : public QFrame, public ILogViewerForm
 {
@@ -50,12 +53,15 @@ public:
 private slots:
   // automatic slots
   void on_outputTabs_currentChanged(int index);
+  void on_toggleControls_toggled(bool checked);
 
   // manual slots
   void render_mouseMove(QMouseEvent *e);
   void render_clicked(QMouseEvent *e);
   void render_mouseWheel(QWheelEvent *e);
   void render_keyPress(QKeyEvent *e);
+  void render_keyRelease(QKeyEvent *e);
+  void render_timer();
   void data_selected(const QItemSelection &selected, const QItemSelection &deselected);
 
 private:
@@ -70,13 +76,13 @@ private:
   MeshDisplay m_ConfigVSOut;
   MeshDisplay *m_curConfig;
 
-  QPoint m_PrevPos;
-  FloatVector m_pos, m_rot;
-  float m_CamDist;
+  CameraWrapper *m_CurrentCamera = NULL;
+  ArcballWrapper *m_Arcball = NULL;
+  FlycamWrapper *m_Flycam = NULL;
 
   BufferItemModel *m_ModelVSIn;
   BufferItemModel *m_ModelVSOut;
-  // BufferItemModel *m_ModelGSOut;
+  BufferItemModel *m_ModelGSOut;
 
   void Reset();
 };
