@@ -242,7 +242,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QLabel" name="instanceLabel_2">
+            <widget class="QLabel" name="solidShadingLabel">
              <property name="text">
               <string>Solid Shading</string>
              </property>

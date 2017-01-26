@@ -54,12 +54,23 @@ public:
 private slots:
   // automatic slots
   void on_outputTabs_currentChanged(int index);
+  void on_resetCamera_clicked();
+  void on_autofitCamera_clicked();
   void on_toggleControls_toggled(bool checked);
   void on_syncViews_toggled(bool checked);
+  void on_highlightVerts_toggled(bool checked);
+  void on_wireframeRender_toggled(bool checked);
+  void on_solidShading_currentIndexChanged(int index);
+  void on_drawRange_currentIndexChanged(int index);
+  void on_controlType_currentIndexChanged(int index);
+  void on_camSpeed_valueChanged(double value);
+  void on_instance_valueChanged(int arg1);
+  void on_rowOffset_valueChanged(int arg1);
 
   // manual slots
   void render_mouseMove(QMouseEvent *e);
   void render_clicked(QMouseEvent *e);
+
   void render_mouseWheel(QWheelEvent *e);
   void render_keyPress(QKeyEvent *e);
   void render_keyRelease(QKeyEvent *e);
@@ -67,6 +78,7 @@ private slots:
 
   void data_selected(const QItemSelection &selected, const QItemSelection &deselected);
   void data_scrolled(int scroll);
+  void camGuess_changed(double value);
 
 private:
   Ui::BufferViewer *ui;
@@ -94,13 +106,20 @@ private:
   int m_IdxColWidth;
   int m_DataColWidth;
 
+  RDTableView *currentTable();
+  BufferItemModel *currentBufferModel();
+  bool isCurrentRasterOut();
+
   void Reset();
   void ClearModels();
 
   void UpdateMeshConfig();
+  void EnableCameraGuessControls();
 
   void CalcColumnWidth();
   void ApplyColumnWidths(int numColumns, RDTableView *view);
 
   void SyncViews(RDTableView *primary, bool selection, bool scroll);
+  void UpdateHighlightVerts();
+  void ScrollToRow(BufferItemModel *model, int row);
 };

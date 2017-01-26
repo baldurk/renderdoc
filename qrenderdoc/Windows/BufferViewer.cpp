@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "BufferViewer.h"
+#include <QDoubleSpinBox>
 #include <QFontDatabase>
 #include <QMouseEvent>
 #include <QScrollBar>
@@ -406,26 +407,35 @@ public:
           if(col == 0)
             return row;
 
+          uint32_t idx = row;
+
           if(indices.data)
           {
-            byte *idx = indices.data + row * sizeof(uint32_t);
-            if(idx + 1 > indices.end)
+            byte *idxData = indices.data + row * sizeof(uint32_t);
+            if(idxData + 1 > indices.end)
               return QVariant();
 
-            row = *(uint32_t *)idx;
+            idx = *(uint32_t *)idxData;
           }
 
           if(col == 1)
-            return row;
+            return idx;
 
           const FormatElement &el = columnForIndex(col);
+
+          uint32_t instIdx = 0;
+          if(el.instancerate > 0)
+            instIdx = curInstance / el.instancerate;
 
           if(el.buffer < buffers.size())
           {
             const byte *data = buffers[el.buffer].data;
             const byte *end = buffers[el.buffer].end;
 
-            data += buffers[el.buffer].stride * row;
+            if(!el.perinstance)
+              data += buffers[el.buffer].stride * idx;
+            else
+              data += buffers[el.buffer].stride * instIdx;
 
             data += el.offset;
 
@@ -498,6 +508,7 @@ public:
 
   RDTableView *view = NULL;
 
+  uint32_t curInstance = 0;
   uint32_t numRows = 0;
   BufferData indices;
   QList<FormatElement> columns;
@@ -569,6 +580,29 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
+  m_ModelVSIn = new BufferItemModel(ui->vsinData, this);
+  m_ModelVSOut = new BufferItemModel(ui->vsoutData, this);
+  m_ModelGSOut = new BufferItemModel(ui->gsoutData, this);
+
+  m_Flycam = new FlycamWrapper();
+  m_Arcball = new ArcballWrapper();
+  m_CurrentCamera = m_Arcball;
+
+  m_Config.type = eMeshDataStage_VSIn;
+  m_Config.ortho = false;
+  m_Config.showPrevInstances = false;
+  m_Config.showAllInstances = false;
+  m_Config.showWholePass = false;
+  m_Config.curInstance = 0;
+  m_Config.showBBox = false;
+  m_Config.solidShadeMode = eShade_None;
+  m_Config.wireframeDraw = true;
+  memset(&m_Config.position, 0, sizeof(m_Config.position));
+  memset(&m_Config.second, 0, sizeof(m_Config.second));
+
+  ui->outputTabs->setCurrentIndex(0);
+  m_CurStage = eMeshDataStage_VSIn;
+
   ui->vsinData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
   ui->vsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
   ui->gsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
@@ -617,37 +651,18 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
   ui->drawRange->addItems({tr("Only this draw"), tr("Show previous instances"),
                            tr("Show all instances"), tr("Show whole pass")});
   ui->drawRange->adjustSize();
+  ui->drawRange->setCurrentIndex(0);
 
   ui->solidShading->addItems({tr("None"), tr("Solid Colour"), tr("Flat Shaded"), tr("Secondary")});
   ui->solidShading->adjustSize();
+  ui->solidShading->setCurrentIndex(0);
+
+  // wireframe only available on solid shaded options
+  ui->wireframeRender->setEnabled(false);
 
   ui->fovGuess->setValue(90.0);
 
-  m_ModelVSIn = new BufferItemModel(ui->vsinData, this);
-  m_ModelVSOut = new BufferItemModel(ui->vsoutData, this);
-  m_ModelGSOut = new BufferItemModel(ui->gsoutData, this);
-
-  m_Flycam = new FlycamWrapper();
-  m_Arcball = new ArcballWrapper();
-  m_CurrentCamera = m_Arcball;
-
-  m_Arcball->Reset(FloatVector(), 10.0f);
-  m_Flycam->Reset(FloatVector());
-
-  m_Config.type = eMeshDataStage_VSIn;
-  m_Config.ortho = false;
-  m_Config.showPrevInstances = false;
-  m_Config.showAllInstances = false;
-  m_Config.showWholePass = false;
-  m_Config.curInstance = 0;
-  m_Config.showBBox = false;
-  m_Config.solidShadeMode = eShade_None;
-  m_Config.wireframeDraw = true;
-  memset(&m_Config.position, 0, sizeof(m_Config.position));
-  memset(&m_Config.second, 0, sizeof(m_Config.second));
-
-  ui->outputTabs->setCurrentIndex(0);
-  m_CurStage = eMeshDataStage_VSIn;
+  on_controlType_currentIndexChanged(0);
 
   QObject::connect(ui->vsinData->selectionModel(), &QItemSelectionModel::selectionChanged, this,
                    &BufferViewer::data_selected);
@@ -663,10 +678,21 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
   QObject::connect(ui->gsoutData->verticalScrollBar(), &QScrollBar::valueChanged, this,
                    &BufferViewer::data_scrolled);
 
+  QObject::connect(ui->fovGuess, OverloadedSlot<double>::of(&QDoubleSpinBox::valueChanged), this,
+                   &BufferViewer::camGuess_changed);
+  QObject::connect(ui->aspectGuess, OverloadedSlot<double>::of(&QDoubleSpinBox::valueChanged), this,
+                   &BufferViewer::camGuess_changed);
+  QObject::connect(ui->nearGuess, OverloadedSlot<double>::of(&QDoubleSpinBox::valueChanged), this,
+                   &BufferViewer::camGuess_changed);
+  QObject::connect(ui->farGuess, OverloadedSlot<double>::of(&QDoubleSpinBox::valueChanged), this,
+                   &BufferViewer::camGuess_changed);
+  QObject::connect(ui->matrixType, OverloadedSlot<int>::of(&QComboBox::currentIndexChanged),
+                   [this](int) { camGuess_changed(0.0); });
+
   QTimer *renderTimer = new QTimer(this);
   QObject::connect(renderTimer, &QTimer::timeout, this, &BufferViewer::render_timer);
   renderTimer->setSingleShot(false);
-  renderTimer->setInterval(1000);
+  renderTimer->setInterval(10);
   renderTimer->start();
 
   Reset();
@@ -730,6 +756,12 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
 
   ClearModels();
 
+  EnableCameraGuessControls();
+
+  m_ModelVSIn->curInstance = m_Config.curInstance;
+  m_ModelVSOut->curInstance = m_Config.curInstance;
+  m_ModelGSOut->curInstance = m_Config.curInstance;
+
   m_ModelVSIn->beginReset();
   m_ModelVSOut->beginReset();
   m_ModelGSOut->beginReset();
@@ -737,6 +769,12 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   const FetchDrawcall *draw = m_Ctx->CurDrawcall();
 
   QVector<VertexInputAttribute> vinputs = m_Ctx->CurPipelineState.GetVertexInputs();
+
+  ui->instance->setEnabled(draw && draw->numInstances > 1);
+  if(!ui->instance->isEnabled())
+    ui->instance->setValue(0);
+
+  ui->instance->setMaximum(qMax(0, int(draw->numInstances) - 1));
 
   m_ModelVSIn->columns.reserve(vinputs.count());
 
@@ -892,6 +930,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
 
     if(idata.count > 0)
     {
+      maxIndex = 0;
       if(draw->indexByteWidth == 1)
       {
         for(size_t i = 0; i < (size_t)idata.count && (uint32_t)i < draw->numIndices; i++)
@@ -979,7 +1018,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       m_ModelVSIn->buffers.push_back(buf);
     }
 
-    r->GetPostVSData(0, eMeshDataStage_VSOut, &m_PostVS);
+    r->GetPostVSData(m_Config.curInstance, eMeshDataStage_VSOut, &m_PostVS);
 
     m_ModelVSOut->numRows = m_PostVS.numVerts;
 
@@ -1020,7 +1059,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
     {
       BufferData postvs = {};
       rdctype::array<byte> data;
-      r->GetBufferData(m_PostVS.buf, 0, 0, &data);
+      r->GetBufferData(m_PostVS.buf, m_PostVS.offset, 0, &data);
 
       postvs.data = new byte[data.count];
       memcpy(postvs.data, data.elems, data.count);
@@ -1040,6 +1079,14 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       ApplyColumnWidths(m_ModelVSIn->columnCount(), ui->vsinData);
       ApplyColumnWidths(m_ModelVSOut->columnCount(), ui->vsoutData);
       ApplyColumnWidths(m_ModelGSOut->columnCount(), ui->gsoutData);
+
+      int numRows = qMax(qMax(m_ModelVSIn->numRows, m_ModelVSOut->numRows), m_ModelGSOut->numRows);
+
+      ui->rowOffset->setMaximum(qMax(0, numRows - 1));
+
+      ScrollToRow(m_ModelVSIn, ui->rowOffset->value());
+      ScrollToRow(m_ModelVSOut, ui->rowOffset->value());
+      ScrollToRow(m_ModelGSOut, ui->rowOffset->value());
     });
   });
 }
@@ -1055,6 +1102,7 @@ void BufferViewer::ApplyColumnWidths(int numColumns, RDTableView *view)
 
 void BufferViewer::UpdateMeshConfig()
 {
+  m_Config.type = m_CurStage;
   switch(m_CurStage)
   {
     case eMeshDataStage_VSIn: m_Config.position = m_VSIn; break;
@@ -1062,23 +1110,6 @@ void BufferViewer::UpdateMeshConfig()
     case eMeshDataStage_GSOut: m_Config.position = m_PostGS; break;
     default: break;
   }
-}
-
-void BufferViewer::on_outputTabs_currentChanged(int index)
-{
-  ui->renderContainer->parentWidget()->layout()->removeWidget(ui->renderContainer);
-  ui->outputTabs->widget(index)->layout()->addWidget(ui->renderContainer);
-
-  if(index == 0)
-    m_CurStage = eMeshDataStage_VSIn;
-  else if(index == 1)
-    m_CurStage = eMeshDataStage_VSOut;
-  else if(index == 2)
-    m_CurStage = eMeshDataStage_GSOut;
-
-  UpdateMeshConfig();
-
-  INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
 void BufferViewer::render_mouseMove(QMouseEvent *e)
@@ -1111,36 +1142,18 @@ void BufferViewer::render_clicked(QMouseEvent *e)
 
       if(vertSelected != ~0U)
       {
-        GUIInvoke::call([this, vertSelected] {
+        GUIInvoke::call([this, vertSelected, instanceSelected] {
           int row = (int)vertSelected;
 
-          BufferItemModel *model = NULL;
-          RDTableView *table = NULL;
+          if(instanceSelected != m_Config.curInstance)
+            ui->instance->setValue(instanceSelected);
 
-          if(m_CurStage == eMeshDataStage_VSIn)
-          {
-            model = m_ModelVSIn;
-            table = ui->vsinData;
-          }
-          else if(m_CurStage == eMeshDataStage_VSOut)
-          {
-            model = m_ModelVSOut;
-            table = ui->vsoutData;
-          }
-          else if(m_CurStage == eMeshDataStage_GSOut)
-          {
-            model = m_ModelGSOut;
-            table = ui->gsoutData;
-          }
+          BufferItemModel *model = currentBufferModel();
 
           if(model && row >= 0 && row < model->rowCount())
-          {
-            model->view->scrollTo(model->index(row, 0));
-            model->view->clearSelection();
-            model->view->selectRow(row);
-          }
+            ScrollToRow(model, row);
 
-          SyncViews(table, true, true);
+          SyncViews(currentTable(), true, true);
         });
       }
     });
@@ -1152,6 +1165,13 @@ void BufferViewer::render_clicked(QMouseEvent *e)
   ui->render->setFocus();
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
+void BufferViewer::ScrollToRow(BufferItemModel *model, int row)
+{
+  model->view->scrollTo(model->index(row, 0), QAbstractItemView::PositionAtTop);
+  model->view->clearSelection();
+  model->view->selectRow(row);
 }
 
 void BufferViewer::render_mouseWheel(QWheelEvent *e)
@@ -1186,6 +1206,51 @@ void BufferViewer::RT_UpdateAndDisplay(IReplayRenderer *)
     m_Output->SetMeshDisplay(m_Config);
     m_Output->Display();
   }
+}
+
+RDTableView *BufferViewer::currentTable()
+{
+  if(m_CurStage == eMeshDataStage_VSIn)
+    return ui->vsinData;
+  else if(m_CurStage == eMeshDataStage_VSOut)
+    return ui->vsoutData;
+  else if(m_CurStage == eMeshDataStage_GSOut)
+    return ui->gsoutData;
+
+  return NULL;
+}
+
+BufferItemModel *BufferViewer::currentBufferModel()
+{
+  if(m_CurStage == eMeshDataStage_VSIn)
+    return m_ModelVSIn;
+  else if(m_CurStage == eMeshDataStage_VSOut)
+    return m_ModelVSOut;
+  else if(m_CurStage == eMeshDataStage_GSOut)
+    return m_ModelGSOut;
+
+  return NULL;
+}
+
+bool BufferViewer::isCurrentRasterOut()
+{
+  if(m_CurStage == eMeshDataStage_VSIn)
+  {
+    return false;
+  }
+  else if(m_CurStage == eMeshDataStage_VSOut)
+  {
+    if(m_Ctx->LogLoaded() && m_Ctx->CurPipelineState.IsTessellationEnabled())
+      return false;
+
+    return true;
+  }
+  else if(m_CurStage == eMeshDataStage_GSOut)
+  {
+    return true;
+  }
+
+  return false;
 }
 
 void BufferViewer::Reset()
@@ -1336,7 +1401,7 @@ void BufferViewer::data_selected(const QItemSelection &selected, const QItemSele
 {
   if(selected.count() > 0)
   {
-    m_Config.highlightVert = selected[0].indexes()[0].row();
+    UpdateHighlightVerts();
 
     SyncViews(qobject_cast<RDTableView *>(QObject::sender()), true, false);
 
@@ -1347,6 +1412,49 @@ void BufferViewer::data_selected(const QItemSelection &selected, const QItemSele
 void BufferViewer::data_scrolled(int scrollvalue)
 {
   SyncViews(qobject_cast<RDTableView *>(QObject::sender()), false, true);
+}
+
+void BufferViewer::camGuess_changed(double value)
+{
+  m_Config.ortho = (ui->matrixType->currentIndex() == 1);
+
+  m_Config.fov = ui->fovGuess->value();
+
+  m_Config.aspect = 1.0f;
+
+  // take a guess for the aspect ratio, for if the user hasn't overridden it
+  Viewport vp = m_Ctx->CurPipelineState.GetViewport(0);
+  m_Config.aspect = vp.width / vp.height;
+
+  if(ui->aspectGuess->value() > 0.0)
+    m_Config.aspect = ui->aspectGuess->value();
+
+  // use estimates from post vs data (calculated from vertex position data) if the user
+  // hasn't overridden the values
+  m_Config.position.nearPlane = 0.1f;
+
+  if(m_CurStage == eMeshDataStage_VSOut)
+    m_Config.position.nearPlane = m_PostVS.nearPlane;
+  else if(m_CurStage == eMeshDataStage_GSOut)
+    m_Config.position.nearPlane = m_PostGS.nearPlane;
+
+  if(ui->nearGuess->value() > 0.0)
+    m_Config.position.nearPlane = ui->nearGuess->value();
+
+  m_Config.position.farPlane = 100.0f;
+
+  if(m_CurStage == eMeshDataStage_VSOut)
+    m_Config.position.farPlane = m_PostVS.farPlane;
+  else if(m_CurStage == eMeshDataStage_GSOut)
+    m_Config.position.farPlane = m_PostGS.farPlane;
+
+  if(ui->nearGuess->value() > 0.0)
+    m_Config.position.farPlane = ui->nearGuess->value();
+
+  if(ui->farGuess->value() > 0.0)
+    m_Config.position.nearPlane = ui->farGuess->value();
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
 void BufferViewer::SyncViews(RDTableView *primary, bool selection, bool scroll)
@@ -1388,12 +1496,165 @@ void BufferViewer::SyncViews(RDTableView *primary, bool selection, bool scroll)
   }
 }
 
+void BufferViewer::UpdateHighlightVerts()
+{
+  m_Config.highlightVert = ~0U;
+
+  if(!ui->highlightVerts->isChecked())
+    return;
+
+  RDTableView *table = currentTable();
+
+  if(!table)
+    return;
+
+  QModelIndexList selected = table->selectionModel()->selectedRows();
+
+  if(selected.empty())
+    return;
+
+  m_Config.highlightVert = selected[0].row();
+}
+
+void BufferViewer::EnableCameraGuessControls()
+{
+  ui->aspectGuess->setEnabled(isCurrentRasterOut());
+  ui->nearGuess->setEnabled(isCurrentRasterOut());
+  ui->farGuess->setEnabled(isCurrentRasterOut());
+}
+
+void BufferViewer::on_outputTabs_currentChanged(int index)
+{
+  ui->renderContainer->parentWidget()->layout()->removeWidget(ui->renderContainer);
+  ui->outputTabs->widget(index)->layout()->addWidget(ui->renderContainer);
+
+  if(index == 0)
+    m_CurStage = eMeshDataStage_VSIn;
+  else if(index == 1)
+    m_CurStage = eMeshDataStage_VSOut;
+  else if(index == 2)
+    m_CurStage = eMeshDataStage_GSOut;
+
+  ui->drawRange->setEnabled(index > 0);
+
+  on_resetCamera_clicked();
+  ui->autofitCamera->setEnabled(!isCurrentRasterOut());
+
+  EnableCameraGuessControls();
+
+  UpdateMeshConfig();
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
 void BufferViewer::on_toggleControls_toggled(bool checked)
 {
   ui->cameraControlsGroup->setVisible(checked);
+
+  EnableCameraGuessControls();
 }
 
 void BufferViewer::on_syncViews_toggled(bool checked)
 {
   SyncViews(NULL, true, true);
+}
+
+void BufferViewer::on_highlightVerts_toggled(bool checked)
+{
+  UpdateHighlightVerts();
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
+void BufferViewer::on_wireframeRender_toggled(bool checked)
+{
+  m_Config.wireframeDraw = checked;
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
+void BufferViewer::on_solidShading_currentIndexChanged(int index)
+{
+  ui->wireframeRender->setEnabled(index > 0);
+
+  if(!ui->wireframeRender->isEnabled())
+  {
+    ui->wireframeRender->setChecked(true);
+    m_Config.wireframeDraw = true;
+  }
+
+  m_Config.solidShadeMode = (SolidShadeMode)index;
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
+void BufferViewer::on_drawRange_currentIndexChanged(int index)
+{
+  /*
+  "Only this draw",
+  "Show previous instances",
+  "Show all instances",
+  "Show whole pass"
+   */
+
+  m_Config.showPrevInstances = (index >= 1);
+  m_Config.showAllInstances = (index >= 2);
+  m_Config.showWholePass = (index >= 3);
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
+void BufferViewer::on_controlType_currentIndexChanged(int index)
+{
+  m_Arcball->Reset(FloatVector(), 10.0f);
+  m_Flycam->Reset(FloatVector());
+
+  if(index == 0)
+  {
+    m_CurrentCamera = m_Arcball;
+  }
+  else
+  {
+    m_CurrentCamera = m_Flycam;
+    if(isCurrentRasterOut())
+      m_Flycam->Reset(FloatVector(0.0f, 0.0f, 0.0f, 0.0f));
+    else
+      m_Flycam->Reset(FloatVector(0.0f, 0.0f, -10.0f, 0.0f));
+  }
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
+}
+
+void BufferViewer::on_resetCamera_clicked()
+{
+  if(isCurrentRasterOut())
+    ui->controlType->setCurrentIndex(1);
+  else
+    ui->controlType->setCurrentIndex(0);
+
+  // make sure callback is called even if we're re-selecting same
+  // camera type
+  on_controlType_currentIndexChanged(ui->controlType->currentIndex());
+}
+
+void BufferViewer::on_camSpeed_valueChanged(double value)
+{
+  m_Arcball->SpeedMultiplier = m_Flycam->SpeedMultiplier = value;
+}
+
+void BufferViewer::on_instance_valueChanged(int value)
+{
+  m_Config.curInstance = value;
+  OnEventChanged(m_Ctx->CurEvent());
+}
+
+void BufferViewer::on_rowOffset_valueChanged(int value)
+{
+  ScrollToRow(m_ModelVSIn, value);
+  ScrollToRow(m_ModelVSOut, value);
+  ScrollToRow(m_ModelGSOut, value);
+}
+
+void BufferViewer::on_autofitCamera_clicked()
+{
 }
