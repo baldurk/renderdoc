@@ -646,6 +646,7 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
   memset(&m_Config.second, 0, sizeof(m_Config.second));
 
   ui->outputTabs->setCurrentIndex(0);
+  m_CurStage = eMeshDataStage_VSIn;
 
   QObject::connect(ui->vsinData->selectionModel(), &QItemSelectionModel::selectionChanged, this,
                    &BufferViewer::data_selected);
@@ -1066,6 +1067,8 @@ void BufferViewer::on_outputTabs_currentChanged(int index)
     m_CurStage = eMeshDataStage_VSOut;
   else if(index == 2)
     m_CurStage = eMeshDataStage_GSOut;
+
+  UpdateMeshConfig();
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
