@@ -567,7 +567,6 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::BufferViewer), m_Ctx(ctx)
 {
   ui->setupUi(this);
-  m_Ctx->AddLogViewer(this);
 
   ui->vsinData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
   ui->vsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
@@ -662,6 +661,8 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
   renderTimer->start();
 
   Reset();
+
+  m_Ctx->AddLogViewer(this);
 }
 
 BufferViewer::~BufferViewer()
