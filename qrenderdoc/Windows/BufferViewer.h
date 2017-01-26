@@ -55,6 +55,7 @@ private slots:
   // automatic slots
   void on_outputTabs_currentChanged(int index);
   void on_toggleControls_toggled(bool checked);
+  void on_syncViews_toggled(bool checked);
 
   // manual slots
   void render_mouseMove(QMouseEvent *e);
@@ -63,7 +64,9 @@ private slots:
   void render_keyPress(QKeyEvent *e);
   void render_keyRelease(QKeyEvent *e);
   void render_timer();
+
   void data_selected(const QItemSelection &selected, const QItemSelection &deselected);
+  void data_scrolled(int scroll);
 
 private:
   Ui::BufferViewer *ui;
@@ -98,4 +101,6 @@ private:
 
   void CalcColumnWidth();
   void ApplyColumnWidths(int numColumns, RDTableView *view);
+
+  void SyncViews(RDTableView *primary, bool selection, bool scroll);
 };

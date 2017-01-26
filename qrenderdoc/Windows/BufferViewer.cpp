@@ -25,6 +25,7 @@
 #include "BufferViewer.h"
 #include <QFontDatabase>
 #include <QMouseEvent>
+#include <QScrollBar>
 #include <QTimer>
 #include "ui_BufferViewer.h"
 
@@ -655,6 +656,13 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
   QObject::connect(ui->gsoutData->selectionModel(), &QItemSelectionModel::selectionChanged, this,
                    &BufferViewer::data_selected);
 
+  QObject::connect(ui->vsinData->verticalScrollBar(), &QScrollBar::valueChanged, this,
+                   &BufferViewer::data_scrolled);
+  QObject::connect(ui->vsoutData->verticalScrollBar(), &QScrollBar::valueChanged, this,
+                   &BufferViewer::data_scrolled);
+  QObject::connect(ui->gsoutData->verticalScrollBar(), &QScrollBar::valueChanged, this,
+                   &BufferViewer::data_scrolled);
+
   QTimer *renderTimer = new QTimer(this);
   QObject::connect(renderTimer, &QTimer::timeout, this, &BufferViewer::render_timer);
   renderTimer->setSingleShot(false);
@@ -1107,10 +1115,23 @@ void BufferViewer::render_clicked(QMouseEvent *e)
           int row = (int)vertSelected;
 
           BufferItemModel *model = NULL;
-          if(ui->outputTabs->currentIndex() == 0)
+          RDTableView *table = NULL;
+
+          if(m_CurStage == eMeshDataStage_VSIn)
+          {
             model = m_ModelVSIn;
-          else if(ui->outputTabs->currentIndex() == 1)
+            table = ui->vsinData;
+          }
+          else if(m_CurStage == eMeshDataStage_VSOut)
+          {
             model = m_ModelVSOut;
+            table = ui->vsoutData;
+          }
+          else if(m_CurStage == eMeshDataStage_GSOut)
+          {
+            model = m_ModelGSOut;
+            table = ui->gsoutData;
+          }
 
           if(model && row >= 0 && row < model->rowCount())
           {
@@ -1118,6 +1139,8 @@ void BufferViewer::render_clicked(QMouseEvent *e)
             model->view->clearSelection();
             model->view->selectRow(row);
           }
+
+          SyncViews(table, true, true);
         });
       }
     });
@@ -1315,11 +1338,62 @@ void BufferViewer::data_selected(const QItemSelection &selected, const QItemSele
   {
     m_Config.highlightVert = selected[0].indexes()[0].row();
 
+    SyncViews(qobject_cast<RDTableView *>(QObject::sender()), true, false);
+
     INVOKE_MEMFN(RT_UpdateAndDisplay);
+  }
+}
+
+void BufferViewer::data_scrolled(int scrollvalue)
+{
+  SyncViews(qobject_cast<RDTableView *>(QObject::sender()), false, true);
+}
+
+void BufferViewer::SyncViews(RDTableView *primary, bool selection, bool scroll)
+{
+  if(!ui->syncViews->isChecked())
+    return;
+
+  RDTableView *views[] = {ui->vsinData, ui->vsoutData, ui->gsoutData};
+
+  if(primary == NULL)
+  {
+    for(RDTableView *table : views)
+    {
+      if(table->hasFocus())
+      {
+        primary = table;
+        break;
+      }
+    }
+  }
+
+  if(primary == NULL)
+    primary = views[0];
+
+  for(RDTableView *table : views)
+  {
+    if(table == primary)
+      continue;
+
+    if(selection)
+    {
+      QModelIndexList selected = primary->selectionModel()->selectedRows();
+      if(!selected.empty())
+        table->selectRow(selected[0].row());
+    }
+
+    if(scroll)
+      table->verticalScrollBar()->setValue(primary->verticalScrollBar()->value());
   }
 }
 
 void BufferViewer::on_toggleControls_toggled(bool checked)
 {
   ui->cameraControlsGroup->setVisible(checked);
+}
+
+void BufferViewer::on_syncViews_toggled(bool checked)
+{
+  SyncViews(NULL, true, true);
 }
