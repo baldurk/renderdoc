@@ -362,8 +362,8 @@ QString ToQStr(const ShaderStageType stage, const GraphicsAPI apitype);
 struct FormatElement
 {
   FormatElement();
-  FormatElement(const QString &Name, int buf, uint offs, bool pi, int ir, bool rowMat, uint matDim,
-                ResourceFormat f, bool h);
+  FormatElement(const QString &Name, int buf, uint offs, bool perInst, int instRate, bool rowMat,
+                uint matDim, ResourceFormat f, bool hexDisplay);
 
   static QList<FormatElement> ParseFormatString(const QString &formatString, uint64_t maxLen,
                                                 bool tightPacking, QString &errors);

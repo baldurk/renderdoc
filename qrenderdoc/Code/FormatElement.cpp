@@ -123,18 +123,18 @@ FormatElement::FormatElement()
   systemValue = eAttr_None;
 }
 
-FormatElement::FormatElement(const QString &Name, int buf, uint offs, bool pi, int ir, bool rowMat,
-                             uint matDim, ResourceFormat f, bool h)
+FormatElement::FormatElement(const QString &Name, int buf, uint offs, bool perInst, int instRate,
+                             bool rowMat, uint matDim, ResourceFormat f, bool hexDisplay)
 {
   name = Name;
   buffer = buf;
   offset = offs;
   format = f;
-  perinstance = pi;
-  instancerate = ir;
+  perinstance = perInst;
+  instancerate = instRate;
   rowmajor = rowMat;
   matrixdim = matDim;
-  hex = h;
+  hex = hexDisplay;
   systemValue = eAttr_None;
 }
 

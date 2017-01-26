@@ -320,7 +320,11 @@ public:
     view->setModel(this);
   }
   void beginReset() { emit beginResetModel(); }
-  void endReset() { emit endResetModel(); }
+  void endReset()
+  {
+    cacheColumns();
+    emit endResetModel();
+  }
   QModelIndex index(int row, int column, const QModelIndex &parent = QModelIndex()) const override
   {
     if(row < 0 || row >= rowCount())
@@ -333,7 +337,7 @@ public:
   int rowCount(const QModelIndex &parent = QModelIndex()) const override { return numRows; }
   int columnCount(const QModelIndex &parent = QModelIndex()) const override
   {
-    return columns.count() + 2;
+    return columnLookup.count() + 2;
   }
   Qt::ItemFlags flags(const QModelIndex &index) const override
   {
@@ -348,11 +352,24 @@ public:
     if(section < columnCount() && orientation == Qt::Horizontal && role == Qt::DisplayRole)
     {
       if(section == 0)
+      {
         return "VTX";
+      }
       else if(section == 1)
+      {
         return "IDX";
+      }
       else
-        return columns[section - 2].name;
+      {
+        const FormatElement &el = columnForIndex(section);
+
+        if(el.format.compCount == 1)
+          return el.name;
+
+        QChar comps[] = {'x', 'y', 'z', 'w'};
+
+        return QString("%1.%2").arg(el.name).arg(comps[componentForIndex(section)]);
+      }
     }
 
     return QVariant();
@@ -400,9 +417,7 @@ public:
           if(col == 1)
             return row;
 
-          col -= 2;
-
-          const FormatElement &el = columns[col];
+          const FormatElement &el = columnForIndex(col);
 
           if(el.buffer < buffers.size())
           {
@@ -413,13 +428,17 @@ public:
 
             data += el.offset;
 
+            // only slightly wasteful, we need to fetch all variants together
+            // since some formats are packed and can't be read individually
             QVariantList list = el.GetVariants(data, end);
 
-            QString ret;
+            int comp = componentForIndex(col);
 
-            for(QVariant &v : list)
+            if(comp < list.count())
             {
-              QString comp;
+              QVariant &v = list[comp];
+
+              QString ret;
 
               QMetaType::Type vt = (QMetaType::Type)v.type();
 
@@ -428,48 +447,46 @@ public:
                 double d = v.toDouble();
                 // pad with space on left if sign is missing, to better align
                 if(d < 0.0)
-                  comp = Formatter::Format(d);
+                  ret = Formatter::Format(d);
                 else if(d > 0.0)
-                  comp = " " + Formatter::Format(d);
+                  ret = " " + Formatter::Format(d);
                 else if(qIsNaN(d))
-                  comp = " NaN";
+                  ret = " NaN";
                 else
                   // force negative and positive 0 together
-                  comp = " " + Formatter::Format(0.0);
+                  ret = " " + Formatter::Format(0.0);
               }
               else if(vt == QMetaType::Float)
               {
                 float f = v.toFloat();
                 // pad with space on left if sign is missing, to better align
                 if(f < 0.0)
-                  comp = Formatter::Format(f);
+                  ret = Formatter::Format(f);
                 else if(f > 0.0)
-                  comp = " " + Formatter::Format(f);
+                  ret = " " + Formatter::Format(f);
                 else if(qIsNaN(f))
-                  comp = " NaN";
+                  ret = " NaN";
                 else
                   // force negative and positive 0 together
-                  comp = " " + Formatter::Format(0.0);
+                  ret = " " + Formatter::Format(0.0);
               }
               else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
               {
-                comp = Formatter::Format(v.toUInt(), el.hex);
+                ret = Formatter::Format(v.toUInt(), el.hex);
               }
               else if(vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
               {
                 int i = v.toInt();
                 if(i > 0)
-                  comp = " " + Formatter::Format(i);
+                  ret = " " + Formatter::Format(i);
                 else
-                  comp = Formatter::Format(i);
+                  ret = Formatter::Format(i);
               }
               else
-                comp = v.toString();
+                ret = v.toString();
 
-              ret += QString("%1 ").arg(comp, -componentWidth);
+              return ret;
             }
-
-            return ret;
           }
         }
       }
@@ -480,11 +497,70 @@ public:
 
   RDTableView *view = NULL;
 
-  int componentWidth = 0;
   uint32_t numRows = 0;
   BufferData indices;
   QList<FormatElement> columns;
   QList<BufferData> buffers;
+
+private:
+  // maps from column number (0-based from data, so excluding VTX/IDX columns)
+  // to the column element in the columns list, and lists its component.
+  //
+  // So a float4, float3, int set of columns would be:
+  // { 0, 0, 0, 0, 1, 1, 1, 2 };
+  // { 0, 1, 2, 3, 0, 1, 2, 0 };
+  QVector<int> columnLookup;
+  QVector<int> componentLookup;
+
+  const FormatElement &columnForIndex(int col) const { return columns[columnLookup[col - 2]]; }
+  int componentForIndex(int col) const { return componentLookup[col - 2]; }
+  void cacheColumns()
+  {
+    columnLookup.clear();
+    columnLookup.reserve(columns.count() * 4);
+    componentLookup.clear();
+    componentLookup.reserve(columns.count() * 4);
+
+    for(int i = 0; i < columns.count(); i++)
+    {
+      FormatElement &fmt = columns[i];
+
+      uint32_t compCount;
+
+      switch(fmt.format.specialFormat)
+      {
+        case eSpecial_BC6:
+        case eSpecial_ETC2:
+        case eSpecial_R11G11B10:
+        case eSpecial_R5G6B5:
+        case eSpecial_R9G9B9E5: compCount = 3; break;
+        case eSpecial_BC1:
+        case eSpecial_BC7:
+        case eSpecial_BC3:
+        case eSpecial_BC2:
+        case eSpecial_R10G10B10A2:
+        case eSpecial_R5G5B5A1:
+        case eSpecial_R4G4B4A4:
+        case eSpecial_ASTC: compCount = 4; break;
+        case eSpecial_BC5:
+        case eSpecial_R4G4:
+        case eSpecial_D16S8:
+        case eSpecial_D24S8:
+        case eSpecial_D32S8: compCount = 2; break;
+        case eSpecial_BC4:
+        case eSpecial_S8: compCount = 1; break;
+        case eSpecial_YUV:
+        case eSpecial_EAC:
+        default: compCount = fmt.format.compCount;
+      }
+
+      for(uint32_t c = 0; c < compCount; c++)
+      {
+        columnLookup.push_back(i);
+        componentLookup.push_back((int)c);
+      }
+    }
+  }
 };
 
 BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
@@ -545,6 +621,8 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
   ui->solidShading->addItems({tr("None"), tr("Solid Colour"), tr("Flat Shaded"), tr("Secondary")});
   ui->solidShading->adjustSize();
 
+  ui->fovGuess->setValue(90.0);
+
   m_ModelVSIn = new BufferItemModel(ui->vsinData, this);
   m_ModelVSOut = new BufferItemModel(ui->vsoutData, this);
   m_ModelGSOut = new BufferItemModel(ui->gsoutData, this);
@@ -556,28 +634,25 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
   m_Arcball->Reset(FloatVector(), 10.0f);
   m_Flycam->Reset(FloatVector());
 
-  m_ConfigVSIn.type = eMeshDataStage_VSIn;
-  m_ConfigVSIn.ortho = false;
-  m_ConfigVSIn.showPrevInstances = false;
-  m_ConfigVSIn.showAllInstances = false;
-  m_ConfigVSIn.showWholePass = false;
-  m_ConfigVSIn.curInstance = 0;
-  m_ConfigVSIn.showBBox = false;
-  m_ConfigVSIn.solidShadeMode = eShade_None;
-  m_ConfigVSIn.wireframeDraw = true;
-  memset(&m_ConfigVSIn.position, 0, sizeof(m_ConfigVSIn.position));
-  memset(&m_ConfigVSIn.second, 0, sizeof(m_ConfigVSIn.second));
+  m_Config.type = eMeshDataStage_VSIn;
+  m_Config.ortho = false;
+  m_Config.showPrevInstances = false;
+  m_Config.showAllInstances = false;
+  m_Config.showWholePass = false;
+  m_Config.curInstance = 0;
+  m_Config.showBBox = false;
+  m_Config.solidShadeMode = eShade_None;
+  m_Config.wireframeDraw = true;
+  memset(&m_Config.position, 0, sizeof(m_Config.position));
+  memset(&m_Config.second, 0, sizeof(m_Config.second));
 
-  m_ConfigVSIn.position.showAlpha = false;
-
-  m_ConfigVSOut = m_ConfigVSIn;
-
-  m_curConfig = &m_ConfigVSIn;
   ui->outputTabs->setCurrentIndex(0);
 
   QObject::connect(ui->vsinData->selectionModel(), &QItemSelectionModel::selectionChanged, this,
                    &BufferViewer::data_selected);
   QObject::connect(ui->vsoutData->selectionModel(), &QItemSelectionModel::selectionChanged, this,
+                   &BufferViewer::data_selected);
+  QObject::connect(ui->gsoutData->selectionModel(), &QItemSelectionModel::selectionChanged, this,
                    &BufferViewer::data_selected);
 
   QTimer *renderTimer = new QTimer(this);
@@ -594,6 +669,11 @@ BufferViewer::~BufferViewer()
   delete[] m_ModelVSIn->indices.data;
 
   for(auto vb : m_ModelVSIn->buffers)
+    delete[] vb.data;
+
+  delete[] m_ModelVSOut->indices.data;
+
+  for(auto vb : m_ModelVSOut->buffers)
     delete[] vb.data;
 
   delete m_Arcball;
@@ -620,8 +700,6 @@ void BufferViewer::OnLogfileLoaded()
     m_Output->SetOutputConfig(c);
 
     RT_UpdateAndDisplay(r);
-
-    GUIInvoke::call([this]() { OnEventChanged(m_Ctx->CurEvent()); });
   });
 }
 
@@ -632,31 +710,24 @@ void BufferViewer::OnLogfileClosed()
 
 void BufferViewer::OnEventChanged(uint32_t eventID)
 {
+  ClearModels();
+
+  memset(&m_VSIn, 0, sizeof(m_VSIn));
+  memset(&m_PostVS, 0, sizeof(m_PostVS));
+  memset(&m_PostGS, 0, sizeof(m_PostGS));
+
+  CalcColumnWidth();
+
+  ClearModels();
+
   m_ModelVSIn->beginReset();
   m_ModelVSOut->beginReset();
   m_ModelGSOut->beginReset();
 
-  // this doesn't account for sign characters
-  m_ModelVSIn->componentWidth = 0;
-
-  // maximum width for a 32-bit integer
-  m_ModelVSIn->componentWidth =
-      qMax(m_ModelVSIn->componentWidth, Formatter::Format(0xffffffff).length());
-
-  // maximum width for a few floats that are either very small or large or long,
-  // to make a good estimate of how much to pad columns to
-  m_ModelVSIn->componentWidth = qMax(m_ModelVSIn->componentWidth, Formatter::Format(1.0).length());
-  m_ModelVSIn->componentWidth =
-      qMax(m_ModelVSIn->componentWidth, Formatter::Format(1.2345e-200).length());
-  m_ModelVSIn->componentWidth =
-      qMax(m_ModelVSIn->componentWidth, Formatter::Format(123456.7890123456789).length());
-
-  m_ModelVSOut->componentWidth = m_ModelVSIn->componentWidth;
-  m_ModelGSOut->componentWidth = m_ModelVSIn->componentWidth;
+  const FetchDrawcall *draw = m_Ctx->CurDrawcall();
 
   QVector<VertexInputAttribute> vinputs = m_Ctx->CurPipelineState.GetVertexInputs();
 
-  m_ModelVSIn->columns.clear();
   m_ModelVSIn->columns.reserve(vinputs.count());
 
   for(const VertexInputAttribute &a : vinputs)
@@ -672,17 +743,6 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
     m_ModelVSIn->columns.push_back(f);
   }
 
-  delete[] m_ModelVSIn->indices.data;
-
-  m_ModelVSIn->indices = BufferData();
-
-  for(auto vb : m_ModelVSIn->buffers)
-    delete[] vb.data;
-
-  m_ModelVSIn->buffers.clear();
-
-  const FetchDrawcall *draw = m_Ctx->CurDrawcall();
-
   if(draw == NULL)
     m_ModelVSIn->numRows = 0;
   else
@@ -694,39 +754,49 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   uint64_t ioffset = 0;
   m_Ctx->CurPipelineState.GetIBuffer(ib, ioffset);
 
-  m_ConfigVSIn.fov = 90.0f;
-  m_ConfigVSIn.aspect =
-      m_Ctx->CurPipelineState.GetViewport(0).width / m_Ctx->CurPipelineState.GetViewport(0).height;
-  m_ConfigVSIn.highlightVert = 0;
+  Viewport vp = m_Ctx->CurPipelineState.GetViewport(0);
+
+  m_Config.fov = ui->fovGuess->value();
+  m_Config.aspect = vp.width / vp.height;
+  m_Config.highlightVert = 0;
+
+  if(ui->aspectGuess->value() > 0.0)
+    m_Config.aspect = ui->aspectGuess->value();
+
+  if(ui->nearGuess->value() > 0.0)
+    m_PostVS.nearPlane = m_PostGS.nearPlane = ui->nearGuess->value();
+
+  if(ui->farGuess->value() > 0.0)
+    m_PostVS.farPlane = m_PostGS.farPlane = ui->farGuess->value();
 
   if(draw == NULL)
   {
-    m_ConfigVSIn.position.numVerts = 0;
-    m_ConfigVSIn.position.topo = eTopology_TriangleList;
-    m_ConfigVSIn.position.idxbuf = ResourceId();
-    m_ConfigVSIn.position.idxoffs = 0;
-    m_ConfigVSIn.position.idxByteWidth = 4;
-    m_ConfigVSIn.position.baseVertex = 0;
+    m_VSIn.numVerts = 0;
+    m_VSIn.topo = eTopology_TriangleList;
+    m_VSIn.idxbuf = ResourceId();
+    m_VSIn.idxoffs = 0;
+    m_VSIn.idxByteWidth = 4;
+    m_VSIn.baseVertex = 0;
   }
   else
   {
-    m_ConfigVSIn.position.numVerts = draw->numIndices;
-    m_ConfigVSIn.position.topo = draw->topology;
-    m_ConfigVSIn.position.idxbuf = ib;
-    m_ConfigVSIn.position.idxoffs = ioffset;
-    m_ConfigVSIn.position.idxByteWidth = draw->indexByteWidth;
-    m_ConfigVSIn.position.baseVertex = draw->baseVertex;
+    m_VSIn.numVerts = draw->numIndices;
+    m_VSIn.topo = draw->topology;
+    m_VSIn.idxbuf = ib;
+    m_VSIn.idxoffs = ioffset;
+    m_VSIn.idxByteWidth = draw->indexByteWidth;
+    m_VSIn.baseVertex = draw->baseVertex;
   }
 
   if(!vinputs.empty())
   {
-    m_ConfigVSIn.position.buf = vbs[vinputs[0].VertexBuffer].Buffer;
-    m_ConfigVSIn.position.offset = vbs[vinputs[0].VertexBuffer].ByteOffset;
-    m_ConfigVSIn.position.stride = vbs[vinputs[0].VertexBuffer].ByteStride;
+    m_VSIn.buf = vbs[vinputs[0].VertexBuffer].Buffer;
+    m_VSIn.offset = vbs[vinputs[0].VertexBuffer].ByteOffset;
+    m_VSIn.stride = vbs[vinputs[0].VertexBuffer].ByteStride;
 
-    m_ConfigVSIn.position.compCount = vinputs[0].Format.compCount;
-    m_ConfigVSIn.position.compByteWidth = vinputs[0].Format.compByteWidth;
-    m_ConfigVSIn.position.compType = vinputs[0].Format.compType;
+    m_VSIn.compCount = vinputs[0].Format.compCount;
+    m_VSIn.compByteWidth = vinputs[0].Format.compByteWidth;
+    m_VSIn.compType = vinputs[0].Format.compType;
   }
 
   ShaderReflection *vs = m_Ctx->CurPipelineState.GetShaderReflection(eShaderStage_Vertex);
@@ -791,17 +861,6 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       m_ModelVSOut->columns.insert(0, m_ModelVSOut->columns.takeAt(posidx));
     }
   }
-
-  delete[] m_ModelVSOut->indices.data;
-
-  for(auto vb : m_ModelVSOut->buffers)
-    delete[] vb.data;
-
-  m_ModelVSOut->buffers.clear();
-
-  m_ConfigVSOut.fov = m_ConfigVSIn.fov;
-  m_ConfigVSOut.aspect = m_ConfigVSIn.aspect;
-  m_ConfigVSOut.highlightVert = m_ConfigVSIn.highlightVert;
 
   m_Ctx->Renderer()->AsyncInvoke([this, draw, vbs, ib, ioffset](IReplayRenderer *r) {
 
@@ -910,13 +969,12 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       m_ModelVSIn->buffers.push_back(buf);
     }
 
-    r->GetPostVSData(0, eMeshDataStage_VSOut, &m_ConfigVSOut.position);
+    r->GetPostVSData(0, eMeshDataStage_VSOut, &m_PostVS);
 
-    m_ModelVSOut->numRows = m_ConfigVSOut.position.numVerts;
+    m_ModelVSOut->numRows = m_PostVS.numVerts;
 
-    if(m_ConfigVSOut.position.idxbuf != ResourceId())
-      r->GetBufferData(m_ConfigVSOut.position.idxbuf,
-                       ioffset + draw->indexOffset * draw->indexByteWidth,
+    if(m_PostVS.idxbuf != ResourceId())
+      r->GetBufferData(m_PostVS.idxbuf, ioffset + draw->indexOffset * draw->indexByteWidth,
                        draw->numIndices * draw->indexByteWidth, &idata);
 
     indices = NULL;
@@ -948,28 +1006,52 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       }
     }
 
-    if(m_ConfigVSOut.position.buf != ResourceId())
+    if(m_PostVS.buf != ResourceId())
     {
       BufferData postvs = {};
       rdctype::array<byte> data;
-      r->GetBufferData(m_ConfigVSOut.position.buf, 0, 0, &data);
+      r->GetBufferData(m_PostVS.buf, 0, 0, &data);
 
       postvs.data = new byte[data.count];
       memcpy(postvs.data, data.elems, data.count);
       postvs.end = postvs.data + data.count;
-      postvs.stride = m_ConfigVSOut.position.stride;
+      postvs.stride = m_PostVS.stride;
       m_ModelVSOut->buffers.push_back(postvs);
     }
+
+    UpdateMeshConfig();
 
     RT_UpdateAndDisplay(r);
 
     GUIInvoke::call([this] {
       m_ModelVSIn->endReset();
       m_ModelVSOut->endReset();
-      // ui->vsinData->resizeColumnsToContents();
-      // ui->vsoutData->resizeColumnsToContents();
+
+      ApplyColumnWidths(m_ModelVSIn->columnCount(), ui->vsinData);
+      ApplyColumnWidths(m_ModelVSOut->columnCount(), ui->vsoutData);
+      ApplyColumnWidths(m_ModelGSOut->columnCount(), ui->gsoutData);
     });
   });
+}
+
+void BufferViewer::ApplyColumnWidths(int numColumns, RDTableView *view)
+{
+  view->setColumnWidth(0, m_IdxColWidth);
+  view->setColumnWidth(1, m_IdxColWidth);
+
+  for(int i = 2; i < numColumns; i++)
+    view->setColumnWidth(i, m_DataColWidth);
+}
+
+void BufferViewer::UpdateMeshConfig()
+{
+  switch(m_CurStage)
+  {
+    case eMeshDataStage_VSIn: m_Config.position = m_VSIn; break;
+    case eMeshDataStage_VSOut: m_Config.position = m_PostVS; break;
+    case eMeshDataStage_GSOut: m_Config.position = m_PostGS; break;
+    default: break;
+  }
 }
 
 void BufferViewer::on_outputTabs_currentChanged(int index)
@@ -978,9 +1060,11 @@ void BufferViewer::on_outputTabs_currentChanged(int index)
   ui->outputTabs->widget(index)->layout()->addWidget(ui->renderContainer);
 
   if(index == 0)
-    m_curConfig = &m_ConfigVSIn;
+    m_CurStage = eMeshDataStage_VSIn;
   else if(index == 1)
-    m_curConfig = &m_ConfigVSOut;
+    m_CurStage = eMeshDataStage_VSOut;
+  else if(index == 2)
+    m_CurStage = eMeshDataStage_GSOut;
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
@@ -1071,8 +1155,8 @@ void BufferViewer::RT_UpdateAndDisplay(IReplayRenderer *)
 {
   if(m_Output)
   {
-    m_curConfig->cam = m_CurrentCamera->camera();
-    m_Output->SetMeshDisplay(*m_curConfig);
+    m_Config.cam = m_CurrentCamera->camera();
+    m_Output->SetMeshDisplay(m_Config);
     m_Output->Display();
   }
 }
@@ -1081,17 +1165,7 @@ void BufferViewer::Reset()
 {
   m_Output = NULL;
 
-  if(m_ModelVSIn)
-  {
-    for(auto vb : m_ModelVSIn->buffers)
-      delete[] vb.data;
-
-    m_ModelVSIn->buffers.clear();
-
-    m_ModelVSIn->columns.clear();
-
-    m_ModelVSIn->numRows = 0;
-  }
+  ClearModels();
 
   CaptureContext *ctx = m_Ctx;
 
@@ -1120,17 +1194,122 @@ void BufferViewer::Reset()
                          QColor::fromRgbF(0.81f, 0.81f, 0.81f, 1.0f));
 }
 
+void BufferViewer::ClearModels()
+{
+  BufferItemModel *models[] = {m_ModelVSIn, m_ModelVSOut, m_ModelGSOut};
+
+  for(BufferItemModel *m : models)
+  {
+    if(!m)
+      continue;
+
+    m->beginReset();
+
+    delete[] m->indices.data;
+
+    m->indices = BufferData();
+
+    for(auto vb : m->buffers)
+      delete[] vb.data;
+
+    m->buffers.clear();
+    m->columns.clear();
+    m->numRows = 0;
+
+    m->endReset();
+  }
+}
+
+void BufferViewer::CalcColumnWidth()
+{
+  m_ModelVSIn->beginReset();
+
+  ResourceFormat floatFmt;
+  floatFmt.compByteWidth = 4;
+  floatFmt.compType = eCompType_Float;
+  floatFmt.compCount = 1;
+
+  ResourceFormat intFmt;
+  floatFmt.compByteWidth = 4;
+  floatFmt.compType = eCompType_UInt;
+  floatFmt.compCount = 1;
+
+  FormatElement floatEl("ColumnSizeTest", 0, 0, false, 1, false, 1, floatFmt, false);
+  FormatElement xintEl("ColumnSizeTest", 1, 0, false, 1, false, 1, intFmt, true);
+  FormatElement uintEl("ColumnSizeTest", 2, 0, false, 1, false, 1, intFmt, false);
+
+  m_ModelVSIn->columns.clear();
+  m_ModelVSIn->columns.push_back(floatEl);
+  m_ModelVSIn->columns.push_back(xintEl);
+  m_ModelVSIn->columns.push_back(uintEl);
+
+  m_ModelVSIn->numRows = 4;
+
+  m_ModelVSIn->indices.stride = sizeof(uint32_t);
+  m_ModelVSIn->indices.data = new byte[sizeof(uint32_t) * 4];
+  m_ModelVSIn->indices.end = m_ModelVSIn->indices.data + sizeof(uint32_t) * 4;
+
+  uint32_t *indices = (uint32_t *)m_ModelVSIn->indices.data;
+  indices[0] = 0;
+  indices[1] = 1;
+  indices[2] = 2;
+  indices[3] = 1000000;
+
+  m_ModelVSIn->buffers.clear();
+
+  BufferData bufdata;
+  bufdata.stride = sizeof(float);
+  bufdata.data = new byte[sizeof(float) * 3];
+  bufdata.end = m_ModelVSIn->indices.data + sizeof(float) * 3;
+  m_ModelVSIn->buffers.push_back(bufdata);
+
+  float *floats = (float *)bufdata.data;
+
+  floats[0] = 1.0f;
+  floats[1] = 1.2345e-20f;
+  floats[2] = 123456.7890123456789f;
+
+  bufdata.stride = sizeof(uint32_t);
+  bufdata.data = new byte[sizeof(uint32_t) * 3];
+  bufdata.end = m_ModelVSIn->indices.data + sizeof(uint32_t) * 3;
+  m_ModelVSIn->buffers.push_back(bufdata);
+
+  uint32_t *xints = (uint32_t *)bufdata.data;
+
+  xints[0] = 0;
+  xints[1] = 0x12345678;
+  xints[2] = 0xffffffff;
+
+  bufdata.stride = sizeof(uint32_t);
+  bufdata.data = new byte[sizeof(uint32_t) * 3];
+  bufdata.end = m_ModelVSIn->indices.data + sizeof(uint32_t) * 3;
+  m_ModelVSIn->buffers.push_back(bufdata);
+
+  uint32_t *uints = (uint32_t *)bufdata.data;
+
+  uints[0] = 0;
+  uints[1] = 0x12345678;
+  uints[2] = 0xffffffff;
+
+  m_ModelVSIn->endReset();
+
+  // measure this data so we can use this as column widths
+  ui->vsinData->resizeColumnsToContents();
+
+  // index column
+  m_IdxColWidth = ui->vsinData->columnWidth(1);
+
+  int floatColWidth = ui->vsinData->columnWidth(2);
+  int xintColWidth = ui->vsinData->columnWidth(2);
+  int uintColWidth = ui->vsinData->columnWidth(3);
+  m_DataColWidth = qMax(floatColWidth, qMax(xintColWidth, uintColWidth));
+}
+
 void BufferViewer::data_selected(const QItemSelection &selected, const QItemSelection &deselected)
 {
-  if(QObject::sender() == (QObject *)ui->vsinData->selectionModel() && selected.count() > 0)
+  if(selected.count() > 0)
   {
-    m_ConfigVSIn.highlightVert = selected[0].indexes()[0].row();
-
-    INVOKE_MEMFN(RT_UpdateAndDisplay);
-  }
-  else if(QObject::sender() == (QObject *)ui->vsoutData->selectionModel() && selected.count() > 0)
-  {
-    m_ConfigVSOut.highlightVert = selected[0].indexes()[0].row();
+    m_Config.highlightVert = selected[0].indexes()[0].row();
 
     INVOKE_MEMFN(RT_UpdateAndDisplay);
   }

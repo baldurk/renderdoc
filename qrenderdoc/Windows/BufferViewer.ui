@@ -422,14 +422,7 @@
             <widget class="QLabel" name="guessInstructions">
              <property name="text">
               <string>Manually set auto-guessed values
-Blank to use automatic value</string>
-             </property>
-            </widget>
-           </item>
-           <item row="3" column="1">
-            <widget class="QLineEdit" name="fovGuess">
-             <property name="inputMask">
-              <string extracomment="Positive integer (&lt; 180)">D00</string>
+0.0 to use automatic value</string>
              </property>
             </widget>
            </item>
@@ -452,6 +445,19 @@ Blank to use automatic value</string>
               </size>
              </property>
             </spacer>
+           </item>
+           <item row="3" column="1">
+            <widget class="QDoubleSpinBox" name="fovGuess">
+             <property name="minimum">
+              <double>1.000000000000000</double>
+             </property>
+             <property name="maximum">
+              <double>180.000000000000000</double>
+             </property>
+             <property name="value">
+              <double>90.000000000000000</double>
+             </property>
+            </widget>
            </item>
           </layout>
          </widget>

@@ -32,6 +32,7 @@ namespace Ui
 class BufferViewer;
 }
 
+class RDTableView;
 class BufferItemModel;
 class CameraWrapper;
 class ArcballWrapper;
@@ -72,9 +73,12 @@ private:
 
   void RT_UpdateAndDisplay(IReplayRenderer *);
 
-  MeshDisplay m_ConfigVSIn;
-  MeshDisplay m_ConfigVSOut;
-  MeshDisplay *m_curConfig;
+  MeshDisplay m_Config;
+
+  MeshDataStage m_CurStage;
+  MeshFormat m_VSIn;
+  MeshFormat m_PostVS;
+  MeshFormat m_PostGS;
 
   CameraWrapper *m_CurrentCamera = NULL;
   ArcballWrapper *m_Arcball = NULL;
@@ -84,5 +88,14 @@ private:
   BufferItemModel *m_ModelVSOut;
   BufferItemModel *m_ModelGSOut;
 
+  int m_IdxColWidth;
+  int m_DataColWidth;
+
   void Reset();
+  void ClearModels();
+
+  void UpdateMeshConfig();
+
+  void CalcColumnWidth();
+  void ApplyColumnWidths(int numColumns, RDTableView *view);
 };
