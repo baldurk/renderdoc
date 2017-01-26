@@ -196,7 +196,7 @@ void CaptureDialog::setInjectMode(bool inject)
 
     fillProcessList();
 
-    ui->capture->setText("Inject");
+    ui->launch->setText("Inject");
     this->setWindowTitle("Inject into Process");
   }
   else
@@ -209,7 +209,7 @@ void CaptureDialog::setInjectMode(bool inject)
 
     ui->globalGroup->setVisible(m_Ctx->Config.AllowGlobalHook);
 
-    ui->capture->setText("Capture");
+    ui->launch->setText("Launch");
     this->setWindowTitle("Capture Executable");
   }
 }
@@ -382,7 +382,7 @@ void CaptureDialog::on_loadSettings_clicked()
   }
 }
 
-void CaptureDialog::on_capture_clicked()
+void CaptureDialog::on_launch_clicked()
 {
   triggerCapture();
 }

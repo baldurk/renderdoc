@@ -64,7 +64,7 @@
             this.load = new System.Windows.Forms.Button();
             this.save = new System.Windows.Forms.Button();
             this.close = new System.Windows.Forms.Button();
-            this.capture = new System.Windows.Forms.Button();
+            this.launch = new System.Windows.Forms.Button();
             this.exeBrowser = new System.Windows.Forms.OpenFileDialog();
             this.workDirBrowser = new System.Windows.Forms.FolderBrowserDialog();
             this.saveDialog = new System.Windows.Forms.SaveFileDialog();
@@ -472,7 +472,7 @@
             this.panel2.Controls.Add(this.load);
             this.panel2.Controls.Add(this.save);
             this.panel2.Controls.Add(this.close);
-            this.panel2.Controls.Add(this.capture);
+            this.panel2.Controls.Add(this.launch);
             this.panel2.Location = new System.Drawing.Point(3, 709);
             this.panel2.Name = "panel2";
             this.panel2.Size = new System.Drawing.Size(209, 26);
@@ -516,16 +516,16 @@
             // 
             // capture
             // 
-            this.capture.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
-            this.capture.Location = new System.Drawing.Point(104, 3);
-            this.capture.Margin = new System.Windows.Forms.Padding(0);
-            this.capture.Name = "capture";
-            this.capture.Size = new System.Drawing.Size(52, 23);
-            this.capture.TabIndex = 21;
-            this.capture.Text = "Capture";
-            this.toolTip.SetToolTip(this.capture, "Trigger a capture of the selected program");
-            this.capture.UseVisualStyleBackColor = true;
-            this.capture.Click += new System.EventHandler(this.capture_Click);
+            this.launch.Anchor = ((System.Windows.Forms.AnchorStyles)((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Right)));
+            this.launch.Location = new System.Drawing.Point(104, 3);
+            this.launch.Margin = new System.Windows.Forms.Padding(0);
+            this.launch.Name = "capture";
+            this.launch.Size = new System.Drawing.Size(52, 23);
+            this.launch.TabIndex = 21;
+            this.launch.Text = "Launch";
+            this.toolTip.SetToolTip(this.launch, "Trigger a capture of the selected program");
+            this.launch.UseVisualStyleBackColor = true;
+            this.launch.Click += new System.EventHandler(this.launch_Click);
             // 
             // exeBrowser
             // 
@@ -819,7 +819,7 @@
 
         #endregion
 
-        private System.Windows.Forms.Button capture;
+        private System.Windows.Forms.Button launch;
         private System.Windows.Forms.Button close;
         private System.Windows.Forms.CheckBox AllowVSync;
         private System.Windows.Forms.CheckBox APIValidation;

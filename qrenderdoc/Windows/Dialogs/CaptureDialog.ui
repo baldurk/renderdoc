@@ -696,9 +696,9 @@ Click here to set up Vulkan capture.</string>
        </spacer>
       </item>
       <item>
-       <widget class="QPushButton" name="capture">
+       <widget class="QPushButton" name="launch">
         <property name="text">
-         <string>Capture</string>
+         <string>Launch</string>
         </property>
        </widget>
       </item>

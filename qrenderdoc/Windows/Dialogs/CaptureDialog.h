@@ -87,7 +87,7 @@ private slots:
   void on_saveSettings_clicked();
   void on_loadSettings_clicked();
 
-  void on_capture_clicked();
+  void on_launch_clicked();
   void on_close_clicked();
 
   void on_toggleGlobal_clicked();

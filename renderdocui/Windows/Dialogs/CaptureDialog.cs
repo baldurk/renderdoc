@@ -197,7 +197,7 @@ namespace renderdocui.Windows.Dialogs
                     mainTableLayout.RowStyles[1].SizeType = SizeType.Percent;
                     mainTableLayout.RowStyles[1].Height = 100.0f;
 
-                    capture.Text = "Inject";
+                    launch.Text = "Inject";
 
                     FillProcessList();
                     
@@ -213,7 +213,7 @@ namespace renderdocui.Windows.Dialogs
 
                     globalGroup.Visible = m_Core.Config.AllowGlobalHook;
 
-                    capture.Text = "Capture";
+                    launch.Text = "Launch";
                     
                     Text = "Capture Executable";
                 }
@@ -633,7 +633,7 @@ namespace renderdocui.Windows.Dialogs
                 workDirBrowser.SelectedPath = workDirPath.Text;
         }
 
-        private void capture_Click(object sender, EventArgs e)
+        private void launch_Click(object sender, EventArgs e)
         {
             TriggerCapture();
         }
@@ -975,7 +975,7 @@ namespace renderdocui.Windows.Dialogs
                 exePath.Enabled = exeBrowse.Enabled =
                     workDirPath.Enabled = workDirBrowse.Enabled =
                     cmdline.Enabled =
-                    capture.Enabled = save.Enabled = load.Enabled = false;
+                    launch.Enabled = save.Enabled = load.Enabled = false;
 
                 foreach (Control c in capOptsFlow.Controls)
                     c.Enabled = false;
@@ -1047,7 +1047,7 @@ namespace renderdocui.Windows.Dialogs
                     exePath.Enabled = exeBrowse.Enabled =
                         workDirPath.Enabled = workDirBrowse.Enabled =
                         cmdline.Enabled =
-                        capture.Enabled = save.Enabled = load.Enabled = true;
+                        launch.Enabled = save.Enabled = load.Enabled = true;
 
                     foreach (Control c in capOptsFlow.Controls)
                         c.Enabled = true;
@@ -1082,7 +1082,7 @@ namespace renderdocui.Windows.Dialogs
                     exePath.Enabled = exeBrowse.Enabled =
                         workDirPath.Enabled = workDirBrowse.Enabled =
                         cmdline.Enabled =
-                        capture.Enabled = save.Enabled = load.Enabled = true;
+                        launch.Enabled = save.Enabled = load.Enabled = true;
 
                     foreach (Control c in capOptsFlow.Controls)
                         c.Enabled = true;
@@ -1136,7 +1136,7 @@ namespace renderdocui.Windows.Dialogs
                 exePath.Enabled = exeBrowse.Enabled =
                     workDirPath.Enabled = workDirBrowse.Enabled =
                     cmdline.Enabled =
-                    capture.Enabled = save.Enabled = load.Enabled = true;
+                    launch.Enabled = save.Enabled = load.Enabled = true;
 
                 foreach (Control c in capOptsFlow.Controls)
                     c.Enabled = true;
