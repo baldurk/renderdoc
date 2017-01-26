@@ -748,6 +748,10 @@ void BufferViewer::OnLogfileClosed()
 
 void BufferViewer::OnEventChanged(uint32_t eventID)
 {
+  int vsinHoriz = ui->vsinData->horizontalScrollBar()->value();
+  int vsoutHoriz = ui->vsoutData->horizontalScrollBar()->value();
+  int gsoutHoriz = ui->gsoutData->horizontalScrollBar()->value();
+
   ClearModels();
 
   memset(&m_VSIn, 0, sizeof(m_VSIn));
@@ -912,7 +916,8 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
     }
   }
 
-  m_Ctx->Renderer()->AsyncInvoke([this, draw, vbs, ib, ioffset](IReplayRenderer *r) {
+  m_Ctx->Renderer()->AsyncInvoke([this, draw, vbs, ib, ioffset, vsinHoriz, vsoutHoriz,
+                                  gsoutHoriz](IReplayRenderer *r) {
 
     rdctype::array<byte> idata;
     if(ib != ResourceId() && draw)
@@ -1074,7 +1079,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
 
     RT_UpdateAndDisplay(r);
 
-    GUIInvoke::call([this] {
+    GUIInvoke::call([this, vsinHoriz, vsoutHoriz, gsoutHoriz] {
       m_ModelVSIn->endReset();
       m_ModelVSOut->endReset();
 
@@ -1089,6 +1094,10 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       ScrollToRow(m_ModelVSIn, ui->rowOffset->value());
       ScrollToRow(m_ModelVSOut, ui->rowOffset->value());
       ScrollToRow(m_ModelGSOut, ui->rowOffset->value());
+
+      ui->vsinData->horizontalScrollBar()->setValue(vsinHoriz);
+      ui->vsoutData->horizontalScrollBar()->setValue(vsoutHoriz);
+      ui->gsoutData->horizontalScrollBar()->setValue(gsoutHoriz);
     });
   });
 }
