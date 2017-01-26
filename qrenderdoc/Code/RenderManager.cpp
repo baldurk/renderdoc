@@ -177,7 +177,7 @@ void RenderManager::run()
   if(renderer == NULL)
     return;
 
-  qInfo() << QString("QRenderDoc - renderer created for %1").arg(m_Logfile);
+  qInfo() << "QRenderDoc - renderer created for" << m_Logfile;
 
   m_Running = true;
 
