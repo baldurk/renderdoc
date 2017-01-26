@@ -1983,6 +1983,8 @@ void D3D11PipelineStateViewer::highlightIABind(int slot)
 
   QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f, 0.95f);
 
+  ui->iaLayouts->model()->blockSignals(true);
+  ui->iaBuffers->model()->blockSignals(true);
   if(slot < m_VBNodes.count())
   {
     QTreeWidgetItem *item = m_VBNodes[(int)slot];
@@ -2008,6 +2010,20 @@ void D3D11PipelineStateViewer::highlightIABind(int slot)
       item->setBackground(c, itemBrush);
       item->setForeground(c, QBrush(QColor(0, 0, 0)));
     }
+  }
+  ui->iaLayouts->model()->blockSignals(false);
+  ui->iaBuffers->model()->blockSignals(false);
+
+  if(ui->iaLayouts->topLevelItemCount() > 0)
+  {
+    ui->iaLayouts->topLevelItem(0)->setDisabled(true);
+    ui->iaLayouts->topLevelItem(0)->setDisabled(false);
+  }
+
+  if(ui->iaBuffers->topLevelItemCount() > 0)
+  {
+    ui->iaBuffers->topLevelItem(0)->setDisabled(true);
+    ui->iaBuffers->topLevelItem(0)->setDisabled(false);
   }
 }
 
@@ -2042,6 +2058,8 @@ void D3D11PipelineStateViewer::on_iaBuffers_mouseMove(QMouseEvent *e)
 
   vertex_leave(NULL);
 
+  ui->iaLayouts->model()->blockSignals(true);
+  ui->iaBuffers->model()->blockSignals(true);
   if(item)
   {
     int idx = m_VBNodes.indexOf(item);
@@ -2058,10 +2076,26 @@ void D3D11PipelineStateViewer::on_iaBuffers_mouseMove(QMouseEvent *e)
       }
     }
   }
+  ui->iaLayouts->model()->blockSignals(false);
+  ui->iaBuffers->model()->blockSignals(false);
+
+  if(ui->iaLayouts->topLevelItemCount() > 0)
+  {
+    ui->iaLayouts->topLevelItem(0)->setDisabled(true);
+    ui->iaLayouts->topLevelItem(0)->setDisabled(false);
+  }
+
+  if(ui->iaBuffers->topLevelItemCount() > 0)
+  {
+    ui->iaBuffers->topLevelItem(0)->setDisabled(true);
+    ui->iaBuffers->topLevelItem(0)->setDisabled(false);
+  }
 }
 
 void D3D11PipelineStateViewer::vertex_leave(QEvent *e)
 {
+  ui->iaLayouts->model()->blockSignals(true);
+  ui->iaBuffers->model()->blockSignals(true);
   for(int i = 0; i < ui->iaLayouts->topLevelItemCount(); i++)
   {
     QTreeWidgetItem *item = ui->iaLayouts->topLevelItem(i);
@@ -2080,6 +2114,20 @@ void D3D11PipelineStateViewer::vertex_leave(QEvent *e)
       item->setBackground(c, QBrush());
       item->setForeground(c, QBrush());
     }
+  }
+  ui->iaLayouts->model()->blockSignals(false);
+  ui->iaBuffers->model()->blockSignals(false);
+
+  if(ui->iaLayouts->topLevelItemCount() > 0)
+  {
+    ui->iaLayouts->topLevelItem(0)->setDisabled(true);
+    ui->iaLayouts->topLevelItem(0)->setDisabled(false);
+  }
+
+  if(ui->iaBuffers->topLevelItemCount() > 0)
+  {
+    ui->iaBuffers->topLevelItem(0)->setDisabled(true);
+    ui->iaBuffers->topLevelItem(0)->setDisabled(false);
   }
 }
 

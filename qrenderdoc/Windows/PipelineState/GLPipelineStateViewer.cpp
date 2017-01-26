@@ -2100,6 +2100,8 @@ void GLPipelineStateViewer::highlightIABind(int slot)
 
   QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f, 0.95f);
 
+  ui->viAttrs->model()->blockSignals(true);
+  ui->viBuffers->model()->blockSignals(true);
   if(slot < m_VBNodes.count())
   {
     QTreeWidgetItem *item = m_VBNodes[(int)slot];
@@ -2119,6 +2121,20 @@ void GLPipelineStateViewer::highlightIABind(int slot)
 
     for(int c = 0; c < item->columnCount(); c++)
       item->setBackground(c, itemBrush);
+  }
+  ui->viAttrs->model()->blockSignals(false);
+  ui->viBuffers->model()->blockSignals(false);
+
+  if(ui->viAttrs->topLevelItemCount() > 0)
+  {
+    ui->viAttrs->topLevelItem(0)->setDisabled(true);
+    ui->viAttrs->topLevelItem(0)->setDisabled(false);
+  }
+
+  if(ui->viBuffers->topLevelItemCount() > 0)
+  {
+    ui->viBuffers->topLevelItem(0)->setDisabled(true);
+    ui->viBuffers->topLevelItem(0)->setDisabled(false);
   }
 }
 
@@ -2153,6 +2169,8 @@ void GLPipelineStateViewer::on_viBuffers_mouseMove(QMouseEvent *e)
 
   vertex_leave(NULL);
 
+  ui->viAttrs->model()->blockSignals(true);
+  ui->viBuffers->model()->blockSignals(true);
   if(item)
   {
     int idx = m_VBNodes.indexOf(item);
@@ -2166,10 +2184,26 @@ void GLPipelineStateViewer::on_viBuffers_mouseMove(QMouseEvent *e)
         item->setBackground(c, QBrush(ui->viBuffers->palette().color(QPalette::Window)));
     }
   }
+  ui->viAttrs->model()->blockSignals(false);
+  ui->viBuffers->model()->blockSignals(false);
+
+  if(ui->viAttrs->topLevelItemCount() > 0)
+  {
+    ui->viAttrs->topLevelItem(0)->setDisabled(true);
+    ui->viAttrs->topLevelItem(0)->setDisabled(false);
+  }
+
+  if(ui->viBuffers->topLevelItemCount() > 0)
+  {
+    ui->viBuffers->topLevelItem(0)->setDisabled(true);
+    ui->viBuffers->topLevelItem(0)->setDisabled(false);
+  }
 }
 
 void GLPipelineStateViewer::vertex_leave(QEvent *e)
 {
+  ui->viAttrs->model()->blockSignals(true);
+  ui->viBuffers->model()->blockSignals(true);
   for(int i = 0; i < ui->viAttrs->topLevelItemCount(); i++)
   {
     QTreeWidgetItem *item = ui->viAttrs->topLevelItem(i);
@@ -2182,6 +2216,20 @@ void GLPipelineStateViewer::vertex_leave(QEvent *e)
     QTreeWidgetItem *item = ui->viBuffers->topLevelItem(i);
     for(int c = 0; c < item->columnCount(); c++)
       item->setBackground(c, QBrush());
+  }
+  ui->viAttrs->model()->blockSignals(false);
+  ui->viBuffers->model()->blockSignals(false);
+
+  if(ui->viAttrs->topLevelItemCount() > 0)
+  {
+    ui->viAttrs->topLevelItem(0)->setDisabled(true);
+    ui->viAttrs->topLevelItem(0)->setDisabled(false);
+  }
+
+  if(ui->viBuffers->topLevelItemCount() > 0)
+  {
+    ui->viBuffers->topLevelItem(0)->setDisabled(true);
+    ui->viBuffers->topLevelItem(0)->setDisabled(false);
   }
 }
 
