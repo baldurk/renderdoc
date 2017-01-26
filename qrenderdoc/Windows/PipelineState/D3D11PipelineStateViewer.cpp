@@ -1747,10 +1747,16 @@ void D3D11PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
   {
     if(tex->resType == eResType_Buffer)
     {
-      // TODO Buffer viewer
-      // var viewer = new BufferViewer(m_Core, false);
-      // viewer.ViewRawBuffer(false, 0, ulong.MaxValue, tex.ID);
-      // viewer.Show(m_DockContent.DockPanel);
+      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+
+      viewer->ViewTexture(0, 0, tex->ID);
+
+      m_Ctx->setupDockWindow(viewer);
+
+      ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+      ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+      manager->addToolWindow(viewer, ref);
     }
     else
     {
@@ -1822,7 +1828,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
       {
         format = QString("// struct %1\n{\n%2}")
                      .arg(ToQStr(res.variableType.descriptor.name))
-                     .arg(formatMembers(1, "", res.variableType.members.back().type.members));
+                     .arg(formatMembers(1, "", res.variableType.members));
       }
       else
       {
@@ -1838,7 +1844,7 @@ void D3D11PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
           if(desc.rows > 1 && desc.cols > 1)
             format += QString("%1x%2").arg(desc.rows).arg(desc.cols);
           else if(desc.cols > 1)
-            format += desc.cols;
+            format += QString::number(desc.cols);
 
           if(!desc.name.empty())
             format += " " + ToQStr(desc.name);
@@ -1905,17 +1911,23 @@ void D3D11PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
             if(view.res.Flags & RawBuffer)
               format = "xint";
 
-            format += fmt.compCount;
+            format += QString::number(fmt.compCount);
           }
         }
       }
     }
 
     {
-      // TODO Buffer viewer
-      // var viewer = new BufferViewer(m_Core, false);
-      // viewer.ViewRawBuffer(true, buf.offset, buf.size, buf.ID, format);
-      // viewer.Show(m_DockContent.DockPanel);
+      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+
+      viewer->ViewBuffer(offs, size, view.res.Resource, format);
+
+      m_Ctx->setupDockWindow(viewer);
+
+      ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+      ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+      manager->addToolWindow(viewer, ref);
     }
   }
 }
@@ -1967,10 +1979,16 @@ void D3D11PipelineStateViewer::on_iaBuffers_itemActivated(QTreeWidgetItem *item,
 
     if(buf.id != ResourceId())
     {
-      // TODO Buffer Viewer
-      // var viewer = new BufferViewer(m_Core, false);
-      // viewer.ViewRawBuffer(true, buf.offset, ulong.MaxValue, buf.id);
-      // viewer.Show(m_DockContent.DockPanel);
+      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+
+      viewer->ViewBuffer(buf.offset, UINT64_MAX, buf.id);
+
+      m_Ctx->setupDockWindow(viewer);
+
+      ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+      ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+      manager->addToolWindow(viewer, ref);
     }
   }
 }

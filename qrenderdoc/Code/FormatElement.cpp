@@ -759,7 +759,7 @@ ShaderVariable FormatElement::GetShaderVar(const byte *&data, const byte *end) c
   return ret;
 }
 
-uint32_t FormatElement::byteSize()
+uint32_t FormatElement::byteSize() const
 {
   uint32_t vecSize = format.compByteWidth * format.compCount;
 

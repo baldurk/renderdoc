@@ -1810,7 +1810,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
       {
         format = QString("// struct %1\n{\n%2}")
                      .arg(ToQStr(res.variableType.descriptor.name))
-                     .arg(formatMembers(1, "", res.variableType.members.back().type.members));
+                     .arg(formatMembers(1, "", res.variableType.members));
       }
       else
       {

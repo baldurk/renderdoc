@@ -39,7 +39,9 @@
 #include "Dialogs/TextureSaveDialog.h"
 #include "Widgets/ResourcePreview.h"
 #include "Widgets/TextureGoto.h"
+#include "BufferViewer.h"
 #include "FlowLayout.h"
+#include "MainWindow.h"
 #include "ui_TextureViewer.h"
 
 float area(const QSizeF &s)
@@ -1704,7 +1706,16 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
   FetchBuffer *buf = m_Ctx->GetBuffer(ID);
   if(buf)
   {
-    // load in BufferViewer
+    BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+
+    viewer->ViewTexture(0, 0, ID);
+
+    m_Ctx->setupDockWindow(viewer);
+
+    ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+    ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+    manager->addToolWindow(viewer, ref);
   }
 }
 
@@ -3168,6 +3179,21 @@ void TextureViewer::ShowGotoPopup()
 
 void TextureViewer::on_viewTexBuffer_clicked()
 {
+  FetchTexture *texptr = GetCurrentTexture();
+
+  if(texptr)
+  {
+    BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+
+    viewer->ViewTexture(m_TexDisplay.sliceFace, m_TexDisplay.mip, texptr->ID);
+
+    m_Ctx->setupDockWindow(viewer);
+
+    ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+    ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+    manager->addToolWindow(viewer, ref);
+  }
 }
 
 void TextureViewer::on_saveTex_clicked()

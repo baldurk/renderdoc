@@ -373,7 +373,7 @@ struct FormatElement
 
   QString ElementString(const QVariant &var);
 
-  uint32_t byteSize();
+  uint32_t byteSize() const;
 
   QString name;
   int buffer;

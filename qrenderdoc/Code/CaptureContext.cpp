@@ -472,7 +472,7 @@ BufferViewer *CaptureContext::meshPreview()
   if(m_MeshPreview)
     return m_MeshPreview;
 
-  m_MeshPreview = new BufferViewer(this, m_MainWindow);
+  m_MeshPreview = new BufferViewer(this, true, m_MainWindow);
   m_MeshPreview->setObjectName("meshPreview");
   setupDockWindow(m_MeshPreview);
 

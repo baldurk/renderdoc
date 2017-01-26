@@ -610,7 +610,7 @@
      </widget>
     </item>
     <item>
-     <widget class="Line" name="line">
+     <widget class="Line" name="controlsLine">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
@@ -666,7 +666,7 @@
      </widget>
     </item>
     <item>
-     <widget class="Line" name="line_2">
+     <widget class="Line" name="offsetLine">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
@@ -686,13 +686,6 @@
       </property>
       <property name="maximum">
        <number>1000000</number>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="Line" name="line_3">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
       </property>
      </widget>
     </item>

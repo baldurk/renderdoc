@@ -43,13 +43,18 @@ class BufferViewer : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit BufferViewer(CaptureContext *ctx, QWidget *parent = 0);
+  explicit BufferViewer(CaptureContext *ctx, bool meshview, QWidget *parent = 0);
   ~BufferViewer();
+
+  void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id, const QString &format = "");
+  void ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, const QString &format = "");
 
   void OnLogfileLoaded();
   void OnLogfileClosed();
   void OnSelectedEventChanged(uint32_t eventID) {}
   void OnEventChanged(uint32_t eventID);
+
+  void RT_FetchMeshData(IReplayRenderer *r);
 
 private slots:
   // automatic slots
@@ -80,6 +85,8 @@ private slots:
   void data_scrolled(int scroll);
   void camGuess_changed(double value);
 
+  void processFormat(const QString &format);
+
 private:
   Ui::BufferViewer *ui;
   CaptureContext *m_Ctx;
@@ -91,13 +98,25 @@ private:
   MeshDisplay m_Config;
 
   MeshDataStage m_CurStage;
+
+  // data from mesh pipeline
   MeshFormat m_VSIn;
   MeshFormat m_PostVS;
   MeshFormat m_PostGS;
 
+  // data from raw buffer view
+  bool m_IsBuffer = true;
+  uint32_t m_TexArrayIdx = 0;
+  uint32_t m_TexMip = 0;
+  uint64_t m_ByteOffset = 0;
+  uint64_t m_ByteSize = UINT64_MAX;
+  ResourceId m_BufferID;
+
   CameraWrapper *m_CurrentCamera = NULL;
   ArcballWrapper *m_Arcball = NULL;
   FlycamWrapper *m_Flycam = NULL;
+
+  bool m_MeshView;
 
   BufferItemModel *m_ModelVSIn;
   BufferItemModel *m_ModelVSOut;
@@ -110,8 +129,13 @@ private:
   BufferItemModel *currentBufferModel();
   bool isCurrentRasterOut();
 
+  void SetupMeshView();
+  void SetupRawView();
+
   void Reset();
   void ClearModels();
+
+  void ConfigureMeshColumns();
 
   void UpdateMeshConfig();
   void EnableCameraGuessControls();
