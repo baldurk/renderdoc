@@ -607,6 +607,8 @@ BufferViewer::BufferViewer(CaptureContext *ctx, QWidget *parent)
   ui->vsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
   ui->gsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
+  setWindowTitle(tr("Mesh Output"));
+
   ui->formatSpecifier->setVisible(false);
   ui->cameraControlsGroup->setVisible(false);
 
