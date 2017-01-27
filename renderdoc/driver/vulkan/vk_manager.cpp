@@ -333,7 +333,7 @@ void VulkanResourceManager::SerialiseImageStates(map<ResourceId, ImageLayouts> &
     ImageLayouts &layouts = it->second;
 
     if(layouts.subresourceStates.size() > 1 &&
-       layouts.subresourceStates.size() == layouts.layerCount * layouts.levelCount)
+       layouts.subresourceStates.size() == size_t(layouts.layerCount * layouts.levelCount))
     {
       VkImageLayout layout = layouts.subresourceStates[0].newLayout;
 
