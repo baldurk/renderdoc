@@ -748,7 +748,7 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
   }
 
   // Let the app pickup the setprop before we turn it back off for replaying.
-  adbExecCommand("shell setprop debug.vulkan.layers \\\"\\\"");
+  adbExecCommand("shell setprop debug.vulkan.layers :");
 
   return ret;
 }
@@ -786,7 +786,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer()
 {
   adbExecCommand("shell am force-stop org.renderdoc.renderdoccmd");
   adbForwardPorts();
-  adbExecCommand("shell setprop debug.vulkan.layers \\\"\\\"");
+  adbExecCommand("shell setprop debug.vulkan.layers :");
   adbExecCommand(
       "shell am start -n org.renderdoc.renderdoccmd/.Loader -e renderdoccmd remoteserver");
 }
