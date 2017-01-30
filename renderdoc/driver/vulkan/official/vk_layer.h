@@ -35,6 +35,41 @@
 #define VK_LAYER_EXPORT
 #endif
 
+#define MAX_NUM_UNKNOWN_EXTS 250
+
+ // Loader-Layer version negotiation API.  Versions add the following features:
+ //   Versions 0/1 - Initial.  Doesn't support vk_layerGetPhysicalDeviceProcAddr
+ //                  or vk_icdNegotiateLoaderLayerInterfaceVersion.
+ //   Version 2    - Add support for vk_layerGetPhysicalDeviceProcAddr and
+ //                  vk_icdNegotiateLoaderLayerInterfaceVersion.
+#define CURRENT_LOADER_LAYER_INTERFACE_VERSION 2
+#define MIN_SUPPORTED_LOADER_LAYER_INTERFACE_VERSION 1
+
+ // Internal function
+typedef PFN_vkVoidFunction (VKAPI_PTR *PFN_GetPhysicalDeviceProcAddr)(VkInstance instance, const char* pName);
+
+// Version negotiation values
+typedef enum VkNegotiateLayerStructType {
+    LAYER_NEGOTIATE_UNINTIALIZED = 0,
+    LAYER_NEGOTIATE_INTERFACE_STRUCT = 1,
+} VkNegotiateLayerStructType;
+
+// Version negotiation structures
+typedef struct VkNegotiateLayerInterface {
+    VkNegotiateLayerStructType sType;
+    void *pNext;
+    uint32_t loaderLayerInterfaceVersion;
+    PFN_vkGetInstanceProcAddr pfnGetInstanceProcAddr;
+    PFN_vkGetDeviceProcAddr pfnGetDeviceProcAddr;
+    PFN_GetPhysicalDeviceProcAddr pfnGetPhysicalDeviceProcAddr;
+} VkNegotiateLayerInterface;
+
+// Version negotiation functions
+typedef VkResult (VKAPI_PTR *PFN_vkNegotiateLoaderLayerInterfaceVersion)(VkNegotiateLayerInterface *pVersionStruct);
+
+// Function prototype for unknown physical device extension command
+typedef VkResult(VKAPI_PTR *PFN_PhysDevExt)(VkPhysicalDevice phys_device, ...);
+
 typedef struct VkLayerDispatchTable_ {
     PFN_vkGetDeviceProcAddr GetDeviceProcAddr;
     PFN_vkDestroyDevice DestroyDevice;
@@ -162,11 +197,38 @@ typedef struct VkLayerDispatchTable_ {
     PFN_vkGetSwapchainImagesKHR GetSwapchainImagesKHR;
     PFN_vkAcquireNextImageKHR AcquireNextImageKHR;
     PFN_vkQueuePresentKHR QueuePresentKHR;
+    PFN_vkCmdDrawIndirectCountAMD CmdDrawIndirectCountAMD;
+    PFN_vkCmdDrawIndexedIndirectCountAMD CmdDrawIndexedIndirectCountAMD;
+#ifdef VK_USE_PLATFORM_WIN32_KHR
+    PFN_vkGetMemoryWin32HandleNV GetMemoryWin32HandleNV;
+#endif
     PFN_vkCreateSharedSwapchainsKHR CreateSharedSwapchainsKHR;
+    PFN_vkDebugMarkerSetObjectTagEXT DebugMarkerSetObjectTagEXT;
+    PFN_vkDebugMarkerSetObjectNameEXT DebugMarkerSetObjectNameEXT;
+    PFN_vkCmdDebugMarkerBeginEXT CmdDebugMarkerBeginEXT;
+    PFN_vkCmdDebugMarkerEndEXT CmdDebugMarkerEndEXT;
+    PFN_vkCmdDebugMarkerInsertEXT CmdDebugMarkerInsertEXT;
+    // KHR_maintenance1
+    PFN_vkTrimCommandPoolKHR TrimCommandPoolKHR;
+    // EXT_display_control
+    PFN_vkDisplayPowerControlEXT DisplayPowerControlEXT;
+    PFN_vkRegisterDeviceEventEXT RegisterDeviceEventEXT;
+    PFN_vkRegisterDisplayEventEXT RegisterDisplayEventEXT;
+    PFN_vkGetSwapchainCounterEXT GetSwapchainCounterEXT;
+    // NVX_device_generated_commands
+    PFN_vkCmdProcessCommandsNVX CmdProcessCommandsNVX;
+    PFN_vkCmdReserveSpaceForCommandsNVX CmdReserveSpaceForCommandsNVX;
+    PFN_vkCreateIndirectCommandsLayoutNVX CreateIndirectCommandsLayoutNVX;
+    PFN_vkDestroyIndirectCommandsLayoutNVX DestroyIndirectCommandsLayoutNVX;
+    PFN_vkCreateObjectTableNVX CreateObjectTableNVX;
+    PFN_vkDestroyObjectTableNVX DestroyObjectTableNVX;
+    PFN_vkRegisterObjectsNVX RegisterObjectsNVX;
+    PFN_vkUnregisterObjectsNVX UnregisterObjectsNVX;
 } VkLayerDispatchTable;
 
 typedef struct VkLayerInstanceDispatchTable_ {
     PFN_vkGetInstanceProcAddr GetInstanceProcAddr;
+    PFN_GetPhysicalDeviceProcAddr GetPhysicalDeviceProcAddr;
     PFN_vkDestroyInstance DestroyInstance;
     PFN_vkEnumeratePhysicalDevices EnumeratePhysicalDevices;
     PFN_vkGetPhysicalDeviceFeatures GetPhysicalDeviceFeatures;
@@ -188,9 +250,6 @@ typedef struct VkLayerInstanceDispatchTable_ {
     PFN_vkGetPhysicalDeviceSurfaceFormatsKHR GetPhysicalDeviceSurfaceFormatsKHR;
     PFN_vkGetPhysicalDeviceSurfacePresentModesKHR
         GetPhysicalDeviceSurfacePresentModesKHR;
-    PFN_vkCreateDebugReportCallbackEXT CreateDebugReportCallbackEXT;
-    PFN_vkDestroyDebugReportCallbackEXT DestroyDebugReportCallbackEXT;
-    PFN_vkDebugReportMessageEXT DebugReportMessageEXT;
 #ifdef VK_USE_PLATFORM_MIR_KHR
     PFN_vkCreateMirSurfaceKHR CreateMirSurfaceKHR;
     PFN_vkGetPhysicalDeviceMirPresentationSupportKHR
@@ -233,24 +292,40 @@ typedef struct VkLayerInstanceDispatchTable_ {
         GetDisplayPlaneCapabilitiesKHR;
     PFN_vkCreateDisplayPlaneSurfaceKHR
         CreateDisplayPlaneSurfaceKHR;
+    // KHR_get_physical_device_properties2
+    PFN_vkGetPhysicalDeviceFeatures2KHR GetPhysicalDeviceFeatures2KHR;
+    PFN_vkGetPhysicalDeviceProperties2KHR GetPhysicalDeviceProperties2KHR;
+    PFN_vkGetPhysicalDeviceFormatProperties2KHR
+        GetPhysicalDeviceFormatProperties2KHR;
+    PFN_vkGetPhysicalDeviceImageFormatProperties2KHR
+        GetPhysicalDeviceImageFormatProperties2KHR;
+    PFN_vkGetPhysicalDeviceQueueFamilyProperties2KHR
+        GetPhysicalDeviceQueueFamilyProperties2KHR;
+    PFN_vkGetPhysicalDeviceMemoryProperties2KHR
+        GetPhysicalDeviceMemoryProperties2KHR;
+    PFN_vkGetPhysicalDeviceSparseImageFormatProperties2KHR
+        GetPhysicalDeviceSparseImageFormatProperties2KHR;
+#ifdef VK_USE_PLATFORM_XLIB_XRANDR_EXT
+    // EXT_acquire_xlib_display
+    PFN_vkAcquireXlibDisplayEXT AcquireXlibDisplayEXT;
+    PFN_vkGetRandROutputDisplayEXT GetRandROutputDisplayEXT;
+#endif
+    // EXT_debug_report
+    PFN_vkCreateDebugReportCallbackEXT CreateDebugReportCallbackEXT;
+    PFN_vkDestroyDebugReportCallbackEXT DestroyDebugReportCallbackEXT;
+    PFN_vkDebugReportMessageEXT DebugReportMessageEXT;
+    // EXT_direct_mode_display
+    PFN_vkReleaseDisplayEXT ReleaseDisplayEXT;
+    // EXT_display_surface_counter
+    PFN_vkGetPhysicalDeviceSurfaceCapabilities2EXT
+        GetPhysicalDeviceSurfaceCapabilities2EXT;
+    // NV_external_memory_capabilities
+    PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV
+        GetPhysicalDeviceExternalImageFormatPropertiesNV;
+    // NVX_device_generated_commands (phys dev commands)
+    PFN_vkGetPhysicalDeviceGeneratedCommandsPropertiesNVX
+        GetPhysicalDeviceGeneratedCommandsPropertiesNVX;
 } VkLayerInstanceDispatchTable;
-
-// LL node for tree of dbg callback functions
-typedef struct VkLayerDbgFunctionNode_ {
-    VkDebugReportCallbackEXT msgCallback;
-    PFN_vkDebugReportCallbackEXT pfnMsgCallback;
-    VkFlags msgFlags;
-    void *pUserData;
-    struct VkLayerDbgFunctionNode_ *pNext;
-} VkLayerDbgFunctionNode;
-
-typedef enum VkLayerDbgAction_ {
-    VK_DBG_LAYER_ACTION_IGNORE = 0x0,
-    VK_DBG_LAYER_ACTION_CALLBACK = 0x1,
-    VK_DBG_LAYER_ACTION_LOG_MSG = 0x2,
-    VK_DBG_LAYER_ACTION_BREAK = 0x4,
-    VK_DBG_LAYER_ACTION_DEBUG_OUTPUT = 0x8,
-} VkLayerDbgAction;
 
 // ------------------------------------------------------------------------------------------------
 // CreateInstance and CreateDevice support structures
@@ -268,6 +343,7 @@ typedef enum VkLayerFunction_ {
 typedef struct VkLayerInstanceLink_ {
     struct VkLayerInstanceLink_ *pNext;
     PFN_vkGetInstanceProcAddr pfnNextGetInstanceProcAddr;
+    PFN_GetPhysicalDeviceProcAddr pfnNextGetPhysicalDeviceProcAddr;
 } VkLayerInstanceLink;
 
 /*
