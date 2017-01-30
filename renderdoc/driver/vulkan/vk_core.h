@@ -1403,4 +1403,8 @@ public:
       VkImageUsageFlags usage, VkImageCreateFlags flags,
       VkExternalMemoryHandleTypeFlagsNV externalHandleType,
       VkExternalImageFormatPropertiesNV *pExternalImageFormatProperties);
+
+  // VK_KHR_maintenance1
+  void vkTrimCommandPoolKHR(VkDevice device, VkCommandPool commandPool,
+                            VkCommandPoolTrimFlagsKHR flags);
 };

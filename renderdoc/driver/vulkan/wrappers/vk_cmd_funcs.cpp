@@ -377,6 +377,12 @@ VkResult WrappedVulkan::vkResetCommandPool(VkDevice device, VkCommandPool cmdPoo
   return ObjDisp(device)->ResetCommandPool(Unwrap(device), Unwrap(cmdPool), flags);
 }
 
+void WrappedVulkan::vkTrimCommandPoolKHR(VkDevice device, VkCommandPool commandPool,
+                                         VkCommandPoolTrimFlagsKHR flags)
+{
+  return ObjDisp(device)->TrimCommandPoolKHR(Unwrap(device), Unwrap(commandPool), flags);
+}
+
 // Command buffer functions
 
 VkResult WrappedVulkan::vkAllocateCommandBuffers(VkDevice device,

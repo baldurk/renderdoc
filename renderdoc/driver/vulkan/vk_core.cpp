@@ -725,6 +725,9 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
 #endif
     {
+        VK_KHR_MAINTENANCE1_EXTENSION_NAME, VK_KHR_MAINTENANCE1_SPEC_VERSION,
+    },
+    {
         VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_EXTENSION_NAME,
         VK_KHR_SAMPLER_MIRROR_CLAMP_TO_EDGE_SPEC_VERSION,
     },

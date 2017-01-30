@@ -265,7 +265,8 @@
   CheckExt(VK_KHR_display_swapchain);    \
   CheckExt(VK_NV_external_memory);       \
   CheckExt(VK_NV_external_memory_win32); \
-  CheckExt(VK_NV_win32_keyed_mutex);
+  CheckExt(VK_NV_win32_keyed_mutex);     \
+  CheckExt(VK_KHR_maintenance1);
 
 #define HookInitVulkanInstanceExts()                                             \
   HookInitExtension(VK_KHR_surface, DestroySurfaceKHR);                          \
@@ -299,6 +300,7 @@
   HookInitExtension(VK_KHR_swapchain, AcquireNextImageKHR);               \
   HookInitExtension(VK_KHR_swapchain, QueuePresentKHR);                   \
   HookInitExtension(VK_KHR_display_swapchain, CreateSharedSwapchainsKHR); \
+  HookInitExtension(VK_KHR_maintenance1, TrimCommandPoolKHR);             \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -651,6 +653,8 @@
               VkImageUsageFlags, usage, VkImageCreateFlags, flags,                                   \
               VkExternalMemoryHandleTypeFlagsNV, externalHandleType,                                 \
               VkExternalImageFormatPropertiesNV *, pExternalImageFormatProperties);                  \
+  HookDefine3(void, vkTrimCommandPoolKHR, VkDevice, device, VkCommandPool, commandPool,              \
+              VkCommandPoolTrimFlagsKHR, flags);                                                     \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable
