@@ -25,8 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "official/vk_layer.h"
-
 #include "api/replay/version.h"
 #include "common/common.h"
 #include "common/threading.h"

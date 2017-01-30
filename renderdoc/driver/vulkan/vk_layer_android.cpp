@@ -25,8 +25,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "official/vk_layer.h"
-
 // RenderDoc Includes
 
 #include "vk_common.h"

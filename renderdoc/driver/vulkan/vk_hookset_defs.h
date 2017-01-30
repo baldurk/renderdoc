@@ -24,6 +24,8 @@
 
 #pragma once
 
+#include "official/vk_layer.h"
+
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
 
 #define HookInitInstance_PlatformSpecific()                       \
@@ -651,11 +653,6 @@
               VkExternalImageFormatPropertiesNV *, pExternalImageFormatProperties);                  \
   HookDefine_PlatformSpecific()
 
-// define function pointers for other platforms to make things easier
-#ifndef VK_NV_external_memory_win32
-#define PFN_vkGetMemoryWin32HandleNV PFN_vkVoidFunction
-#endif
-
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable
 {
   // for consistency & ease, we declare the CreateInstance pointer here
@@ -665,9 +662,6 @@ struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable
   // we need to use these before we have a dispatch table
   PFN_vkEnumerateInstanceExtensionProperties EnumerateInstanceExtensionProperties;
   PFN_vkEnumerateInstanceLayerProperties EnumerateInstanceLayerProperties;
-
-  // VK_NV_external_memory_capabilities
-  PFN_vkGetPhysicalDeviceExternalImageFormatPropertiesNV GetPhysicalDeviceExternalImageFormatPropertiesNV;
 };
 
 struct VkLayerDispatchTableExtended : VkLayerDispatchTable
@@ -675,14 +669,4 @@ struct VkLayerDispatchTableExtended : VkLayerDispatchTable
   // for consistency & ease, we declare the CreateDevice pointer here
   // even though it won't actually ever get used
   PFN_vkCreateDevice CreateDevice;
-
-  // VK_EXT_debug_marker
-  PFN_vkDebugMarkerSetObjectTagEXT DebugMarkerSetObjectTagEXT;
-  PFN_vkDebugMarkerSetObjectNameEXT DebugMarkerSetObjectNameEXT;
-  PFN_vkCmdDebugMarkerBeginEXT CmdDebugMarkerBeginEXT;
-  PFN_vkCmdDebugMarkerEndEXT CmdDebugMarkerEndEXT;
-  PFN_vkCmdDebugMarkerInsertEXT CmdDebugMarkerInsertEXT;
-
-  // VK_NV_external_memory_win32
-  PFN_vkGetMemoryWin32HandleNV GetMemoryWin32HandleNV;
 };
