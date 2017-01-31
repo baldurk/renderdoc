@@ -525,7 +525,7 @@ private:
   // { 0, 1, 2, 3, 0, 1, 2, 0 };
   QVector<int> columnLookup;
   QVector<int> componentLookup;
-  int m_ColumnCount;
+  int m_ColumnCount = 0;
 
   int reservedColumnCount() const { return (meshView ? 2 : 0); }
   const FormatElement &columnForIndex(int col) const
