@@ -1407,4 +1407,22 @@ public:
   // VK_KHR_maintenance1
   void vkTrimCommandPoolKHR(VkDevice device, VkCommandPool commandPool,
                             VkCommandPoolTrimFlagsKHR flags);
+
+  // VK_KHR_get_physical_device_properties2
+  void vkGetPhysicalDeviceFeatures2KHR(VkPhysicalDevice physicalDevice,
+                                       VkPhysicalDeviceFeatures2KHR *pFeatures);
+  void vkGetPhysicalDeviceProperties2KHR(VkPhysicalDevice physicalDevice,
+                                         VkPhysicalDeviceProperties2KHR *pProperties);
+  void vkGetPhysicalDeviceFormatProperties2KHR(VkPhysicalDevice physicalDevice, VkFormat format,
+                                               VkFormatProperties2KHR *pFormatProperties);
+  VkResult vkGetPhysicalDeviceImageFormatProperties2KHR(
+      VkPhysicalDevice physicalDevice, const VkPhysicalDeviceImageFormatInfo2KHR *pImageFormatInfo,
+      VkImageFormatProperties2KHR *pImageFormatProperties);
+  void vkGetPhysicalDeviceQueueFamilyProperties2KHR(VkPhysicalDevice physicalDevice, uint32_t *pCount,
+                                                    VkQueueFamilyProperties2KHR *pQueueFamilyProperties);
+  void vkGetPhysicalDeviceMemoryProperties2KHR(VkPhysicalDevice physicalDevice,
+                                               VkPhysicalDeviceMemoryProperties2KHR *pMemoryProperties);
+  void vkGetPhysicalDeviceSparseImageFormatProperties2KHR(
+      VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSparseImageFormatInfo2KHR *pFormatInfo,
+      uint32_t *pPropertyCount, VkSparseImageFormatProperties2KHR *pProperties);
 };
