@@ -1324,6 +1324,7 @@ public:
                            const VkAllocationCallbacks *pAllocator);
 
 #if defined(VK_USE_PLATFORM_WIN32_KHR)
+  // VK_KHR_win32_surface
   VkResult vkCreateWin32SurfaceKHR(VkInstance instance,
                                    const VkWin32SurfaceCreateInfoKHR *pCreateInfo,
                                    const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
@@ -1337,12 +1338,14 @@ public:
 #endif
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
+  // VK_KHR_android_surface
   VkResult vkCreateAndroidSurfaceKHR(VkInstance instance,
                                      const VkAndroidSurfaceCreateInfoKHR *pCreateInfo,
                                      const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
 #endif
 
 #if defined(VK_USE_PLATFORM_XCB_KHR)
+  // VK_KHR_xcb_surface
   VkResult vkCreateXcbSurfaceKHR(VkInstance instance, const VkXcbSurfaceCreateInfoKHR *pCreateInfo,
                                  const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
 
@@ -1353,12 +1356,20 @@ public:
 #endif
 
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
+  // VK_KHR_xlib_surface
   VkResult vkCreateXlibSurfaceKHR(VkInstance instance, const VkXlibSurfaceCreateInfoKHR *pCreateInfo,
                                   const VkAllocationCallbacks *pAllocator, VkSurfaceKHR *pSurface);
 
   VkBool32 vkGetPhysicalDeviceXlibPresentationSupportKHR(VkPhysicalDevice physicalDevice,
                                                          uint32_t queueFamilyIndex, Display *dpy,
                                                          VisualID visualID);
+
+  // VK_EXT_acquire_xlib_display
+  VkResult vkAcquireXlibDisplayEXT(VkPhysicalDevice physicalDevice, Display *dpy,
+                                   VkDisplayKHR display);
+  VkResult vkGetRandROutputDisplayEXT(VkPhysicalDevice physicalDevice, Display *dpy,
+                                      RROutput rrOutput, VkDisplayKHR *pDisplay);
+
 #endif
 
   // VK_KHR_display and VK_KHR_display_swapchain. These have no library or include dependencies so
@@ -1441,4 +1452,7 @@ public:
                                      const VkAllocationCallbacks *pAllocator, VkFence *pFence);
   VkResult vkGetSwapchainCounterEXT(VkDevice device, VkSwapchainKHR swapchain,
                                     VkSurfaceCounterFlagBitsEXT counter, uint64_t *pCounterValue);
+
+  // VK_EXT_direct_mode_display
+  VkResult vkReleaseDisplayEXT(VkPhysicalDevice physicalDevice, VkDisplayKHR display);
 };

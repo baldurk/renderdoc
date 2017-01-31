@@ -55,7 +55,7 @@ elseif(UNIX)
     list(APPEND sources vk_posix.cpp vk_linux.cpp)
 
     if(ENABLE_XLIB)
-        add_definitions(-DVK_USE_PLATFORM_XLIB_KHR)
+        add_definitions(-DVK_USE_PLATFORM_XLIB_KHR -DVK_USE_PLATFORM_XLIB_XRANDR_EXT)
     endif()
 
     if(ENABLE_XCB)

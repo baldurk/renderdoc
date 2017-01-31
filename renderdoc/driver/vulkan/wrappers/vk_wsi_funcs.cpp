@@ -869,3 +869,9 @@ VkResult WrappedVulkan::vkCreateSharedSwapchainsKHR(VkDevice device, uint32_t sw
 
   return ret;
 }
+
+VkResult WrappedVulkan::vkReleaseDisplayEXT(VkPhysicalDevice physicalDevice, VkDisplayKHR display)
+{
+  // displays are not wrapped
+  return ObjDisp(physicalDevice)->ReleaseDisplayEXT(Unwrap(physicalDevice), display);
+}

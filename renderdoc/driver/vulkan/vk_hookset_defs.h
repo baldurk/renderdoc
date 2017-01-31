@@ -81,16 +81,22 @@
 
 #if defined(VK_USE_PLATFORM_XLIB_KHR)
 
-#define HookInitInstance_PlatformSpecific_Xlib()                \
-  HookInitExtension(VK_KHR_xlib_surface, CreateXlibSurfaceKHR); \
-  HookInitExtension(VK_KHR_xlib_surface, GetPhysicalDeviceXlibPresentationSupportKHR);
+#define HookInitInstance_PlatformSpecific_Xlib()                                       \
+  HookInitExtension(VK_KHR_xlib_surface, CreateXlibSurfaceKHR);                        \
+  HookInitExtension(VK_KHR_xlib_surface, GetPhysicalDeviceXlibPresentationSupportKHR); \
+  HookInitExtension(VK_EXT_acquire_xlib_display, AcquireXlibDisplayEXT);               \
+  HookInitExtension(VK_EXT_acquire_xlib_display, GetRandROutputDisplayEXT);
 
-#define HookDefine_PlatformSpecific_Xlib()                                                    \
-  HookDefine4(VkResult, vkCreateXlibSurfaceKHR, VkInstance, instance,                         \
-              const VkXlibSurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *, \
-              pAllocator, VkSurfaceKHR *, pSurface);                                          \
-  HookDefine4(VkBool32, vkGetPhysicalDeviceXlibPresentationSupportKHR, VkPhysicalDevice,      \
-              physicalDevice, uint32_t, queueFamilyIndex, Display *, dpy, VisualID, visualID);
+#define HookDefine_PlatformSpecific_Xlib()                                                         \
+  HookDefine4(VkResult, vkCreateXlibSurfaceKHR, VkInstance, instance,                              \
+              const VkXlibSurfaceCreateInfoKHR *, pCreateInfo, const VkAllocationCallbacks *,      \
+              pAllocator, VkSurfaceKHR *, pSurface);                                               \
+  HookDefine4(VkBool32, vkGetPhysicalDeviceXlibPresentationSupportKHR, VkPhysicalDevice,           \
+              physicalDevice, uint32_t, queueFamilyIndex, Display *, dpy, VisualID, visualID);     \
+  HookDefine3(VkResult, vkAcquireXlibDisplayEXT, VkPhysicalDevice, physicalDevice, Display *, dpy, \
+              VkDisplayKHR, display);                                                              \
+  HookDefine4(VkResult, vkGetRandROutputDisplayEXT, VkPhysicalDevice, physicalDevice, Display *,   \
+              dpy, RROutput, rrOutput, VkDisplayKHR *, pDisplay);
 
 #else
 
@@ -259,7 +265,9 @@
   CheckExt(VK_KHR_display);                         \
   CheckExt(VK_NV_external_memory_capabilities);     \
   CheckExt(VK_KHR_get_physical_device_properties2); \
-  CheckExt(VK_EXT_display_surface_counter);
+  CheckExt(VK_EXT_display_surface_counter);         \
+  CheckExt(VK_EXT_direct_mode_display);             \
+  CheckExt(VK_EXT_acquire_xlib_display);
 
 #define CheckDeviceExts()                \
   CheckExt(VK_EXT_debug_marker);         \
@@ -700,6 +708,8 @@
               pAllocator, VkFence *, pFence);                                                        \
   HookDefine4(VkResult, vkGetSwapchainCounterEXT, VkDevice, device, VkSwapchainKHR, swapchain,       \
               VkSurfaceCounterFlagBitsEXT, counter, uint64_t *, pCounterValue);                      \
+  HookDefine2(VkResult, vkReleaseDisplayEXT, VkPhysicalDevice, physicalDevice, VkDisplayKHR,         \
+              display);                                                                              \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable

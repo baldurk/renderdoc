@@ -226,6 +226,21 @@ VkResult WrappedVulkan::vkCreateXlibSurfaceKHR(VkInstance instance,
   return ret;
 }
 
+VkResult WrappedVulkan::vkAcquireXlibDisplayEXT(VkPhysicalDevice physicalDevice, Display *dpy,
+                                                VkDisplayKHR display)
+{
+  // display is not wrapped so we can pass straight through
+  return ObjDisp(physicalDevice)->AcquireXlibDisplayEXT(Unwrap(physicalDevice), dpy, display);
+}
+
+VkResult WrappedVulkan::vkGetRandROutputDisplayEXT(VkPhysicalDevice physicalDevice, Display *dpy,
+                                                   RROutput rrOutput, VkDisplayKHR *pDisplay)
+{
+  // display is not wrapped so we can pass straight through
+  return ObjDisp(physicalDevice)
+      ->GetRandROutputDisplayEXT(Unwrap(physicalDevice), dpy, rrOutput, pDisplay);
+}
+
 #endif
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
