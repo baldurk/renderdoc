@@ -4,6 +4,7 @@ get_git_hash(GIT_COMMIT_HASH)
 string(STRIP ${GIT_COMMIT_HASH} GIT_COMMIT_HASH)
 
 option(STATIC_QRENDERDOC "Compile qrenderdoc as static" OFF)
+option(QRENDERDOC_NO_CXX11_REGEX "Disable C++11 regex in scintilla" OFF)
 
 set(QMAKE_CONFIG "debug")
 set(QMAKE_LDFLAGS "")
@@ -13,12 +14,18 @@ if(STATIC_QRENDERDOC)
     set(QMAKE_LDFLAGS "-static-libstdc++")
 endif()
 
+set(QMAKE_CXXFLAGS "")
+
+if(QRENDERDOC_NO_CXX11_REGEX)
+    set(QMAKE_CXXFLAGS "-DNO_CXX11_REGEX=1")
+endif()
+
 # The case here is deliberately not matching the executable name
 # This means the custom command doesn't create this output file,
 # which causes CMake to rerun this target every time so that Qt
 # can do dependency checking and rebuild anything necessary.
 add_custom_command(OUTPUT QRenderDoc
-	COMMAND qmake "CONFIG+=${QMAKE_CONFIG}" "QMAKE_CC=${CMAKE_C_COMPILER}" "QMAKE_CXX=${CMAKE_CXX_COMPILER}" "QMAKE_LINK=${CMAKE_CXX_COMPILER}" "QMAKE_CXXFLAGS+=${warning_flags}" "QMAKE_LFLAGS+=${QMAKE_LDFLAGS}" "DEFINES+=GIT_COMMIT_HASH_LITERAL=${GIT_COMMIT_HASH}" "DESTDIR=${output_dir}" ${CMAKE_CURRENT_SOURCE_DIR}
+	COMMAND qmake "CONFIG+=${QMAKE_CONFIG}" "QMAKE_CC=${CMAKE_C_COMPILER}" "QMAKE_CXX=${CMAKE_CXX_COMPILER}" "QMAKE_LINK=${CMAKE_CXX_COMPILER}" "QMAKE_CXXFLAGS+=${warning_flags}" "QMAKE_CXXFLAGS+=${QMAKE_CXXFLAGS}" "QMAKE_LFLAGS+=${QMAKE_LDFLAGS}" "DEFINES+=GIT_COMMIT_HASH_LITERAL=${GIT_COMMIT_HASH}" "DESTDIR=${output_dir}" ${CMAKE_CURRENT_SOURCE_DIR}
 	COMMAND MAKEFLAGS= make --no-print-directory)
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc)
 
