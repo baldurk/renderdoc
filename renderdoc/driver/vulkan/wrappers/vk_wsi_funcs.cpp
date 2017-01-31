@@ -67,6 +67,116 @@ VkResult WrappedVulkan::vkGetPhysicalDeviceSurfacePresentModesKHR(VkPhysicalDevi
                                                 pPresentModeCount, pPresentModes);
 }
 
+VkResult WrappedVulkan::vkGetPhysicalDeviceSurfaceCapabilities2EXT(
+    VkPhysicalDevice physicalDevice, VkSurfaceKHR surface,
+    VkSurfaceCapabilities2EXT *pSurfaceCapabilities)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceSurfaceCapabilities2EXT(Unwrap(physicalDevice), Unwrap(surface),
+                                                 pSurfaceCapabilities);
+}
+
+VkResult WrappedVulkan::vkDisplayPowerControlEXT(VkDevice device, VkDisplayKHR display,
+                                                 const VkDisplayPowerInfoEXT *pDisplayPowerInfo)
+{
+  // displays are not wrapped
+  return ObjDisp(device)->DisplayPowerControlEXT(Unwrap(device), display, pDisplayPowerInfo);
+}
+
+VkResult WrappedVulkan::vkGetSwapchainCounterEXT(VkDevice device, VkSwapchainKHR swapchain,
+                                                 VkSurfaceCounterFlagBitsEXT counter,
+                                                 uint64_t *pCounterValue)
+{
+  return ObjDisp(device)->GetSwapchainCounterEXT(Unwrap(device), Unwrap(swapchain), counter,
+                                                 pCounterValue);
+}
+
+VkResult WrappedVulkan::vkRegisterDeviceEventEXT(VkDevice device,
+                                                 const VkDeviceEventInfoEXT *pDeviceEventInfo,
+                                                 const VkAllocationCallbacks *pAllocator,
+                                                 VkFence *pFence)
+{
+  // for now we emulate this on replay as just a regular fence create, since we don't faithfully
+  // replay sync events anyway.
+  VkResult ret =
+      ObjDisp(device)->RegisterDeviceEventEXT(Unwrap(device), pDeviceEventInfo, pAllocator, pFence);
+
+  if(ret == VK_SUCCESS)
+  {
+    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pFence);
+
+    if(m_State >= WRITING)
+    {
+      Chunk *chunk = NULL;
+
+      {
+        CACHE_THREAD_SERIALISER();
+
+        VkFenceCreateInfo createInfo = {
+            VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, NULL, VK_FENCE_CREATE_SIGNALED_BIT,
+        };
+
+        SCOPED_SERIALISE_CONTEXT(CREATE_FENCE);
+        Serialise_vkCreateFence(localSerialiser, device, &createInfo, NULL, pFence);
+
+        chunk = scope.Get();
+      }
+
+      VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pFence);
+      record->AddChunk(chunk);
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(id, *pFence);
+    }
+  }
+
+  return ret;
+}
+
+VkResult WrappedVulkan::vkRegisterDisplayEventEXT(VkDevice device, VkDisplayKHR display,
+                                                  const VkDisplayEventInfoEXT *pDisplayEventInfo,
+                                                  const VkAllocationCallbacks *pAllocator,
+                                                  VkFence *pFence)
+{
+  // for now we emulate this on replay as just a regular fence create, since we don't faithfully
+  // replay sync events anyway.
+  VkResult ret = ObjDisp(device)->RegisterDisplayEventEXT(Unwrap(device), display,
+                                                          pDisplayEventInfo, pAllocator, pFence);
+
+  if(ret == VK_SUCCESS)
+  {
+    ResourceId id = GetResourceManager()->WrapResource(Unwrap(device), *pFence);
+
+    if(m_State >= WRITING)
+    {
+      Chunk *chunk = NULL;
+
+      {
+        CACHE_THREAD_SERIALISER();
+
+        VkFenceCreateInfo createInfo = {
+            VK_STRUCTURE_TYPE_FENCE_CREATE_INFO, NULL, VK_FENCE_CREATE_SIGNALED_BIT,
+        };
+
+        SCOPED_SERIALISE_CONTEXT(CREATE_FENCE);
+        Serialise_vkCreateFence(localSerialiser, device, &createInfo, NULL, pFence);
+
+        chunk = scope.Get();
+      }
+
+      VkResourceRecord *record = GetResourceManager()->AddResourceRecord(*pFence);
+      record->AddChunk(chunk);
+    }
+    else
+    {
+      GetResourceManager()->AddLiveResource(id, *pFence);
+    }
+  }
+
+  return ret;
+}
+
 bool WrappedVulkan::Serialise_vkGetSwapchainImagesKHR(Serialiser *localSerialiser, VkDevice device,
                                                       VkSwapchainKHR swapchain, uint32_t *pCount,
                                                       VkImage *pSwapchainImages)

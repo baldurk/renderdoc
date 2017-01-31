@@ -1425,4 +1425,20 @@ public:
   void vkGetPhysicalDeviceSparseImageFormatProperties2KHR(
       VkPhysicalDevice physicalDevice, const VkPhysicalDeviceSparseImageFormatInfo2KHR *pFormatInfo,
       uint32_t *pPropertyCount, VkSparseImageFormatProperties2KHR *pProperties);
+
+  // VK_EXT_display_surface_counter
+  VkResult vkGetPhysicalDeviceSurfaceCapabilities2EXT(VkPhysicalDevice physicalDevice,
+                                                      VkSurfaceKHR surface,
+                                                      VkSurfaceCapabilities2EXT *pSurfaceCapabilities);
+
+  // VK_EXT_display_control
+  VkResult vkDisplayPowerControlEXT(VkDevice device, VkDisplayKHR display,
+                                    const VkDisplayPowerInfoEXT *pDisplayPowerInfo);
+  VkResult vkRegisterDeviceEventEXT(VkDevice device, const VkDeviceEventInfoEXT *pDeviceEventInfo,
+                                    const VkAllocationCallbacks *pAllocator, VkFence *pFence);
+  VkResult vkRegisterDisplayEventEXT(VkDevice device, VkDisplayKHR display,
+                                     const VkDisplayEventInfoEXT *pDisplayEventInfo,
+                                     const VkAllocationCallbacks *pAllocator, VkFence *pFence);
+  VkResult vkGetSwapchainCounterEXT(VkDevice device, VkSwapchainKHR swapchain,
+                                    VkSurfaceCounterFlagBitsEXT counter, uint64_t *pCounterValue);
 };

@@ -2840,6 +2840,11 @@ static void SerialiseNext(Serialiser *ser, VkStructureType &sType, const void *&
       {
         // do nothing
       }
+      // likewise we don't create real swapchains, so we can ignore surface counters
+      else if(next->sType == VK_STRUCTURE_TYPE_SWAPCHAIN_COUNTER_CREATE_INFO_EXT)
+      {
+        // do nothing
+      }
       else
       {
         RDCERR("Unrecognised extension structure type %d", next->sType);

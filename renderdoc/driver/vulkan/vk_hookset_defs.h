@@ -249,16 +249,17 @@
 
 // for simplicity and since the check itself is platform agnostic,
 // these aren't protected in platform defines
-#define CheckInstanceExts()                     \
-  CheckExt(VK_KHR_xlib_surface);                \
-  CheckExt(VK_KHR_xcb_surface);                 \
-  CheckExt(VK_KHR_win32_surface);               \
-  CheckExt(VK_KHR_android_surface);             \
-  CheckExt(VK_KHR_surface);                     \
-  CheckExt(VK_EXT_debug_report);                \
-  CheckExt(VK_KHR_display);                     \
-  CheckExt(VK_NV_external_memory_capabilities); \
-  CheckExt(VK_KHR_get_physical_device_properties2);
+#define CheckInstanceExts()                         \
+  CheckExt(VK_KHR_xlib_surface);                    \
+  CheckExt(VK_KHR_xcb_surface);                     \
+  CheckExt(VK_KHR_win32_surface);                   \
+  CheckExt(VK_KHR_android_surface);                 \
+  CheckExt(VK_KHR_surface);                         \
+  CheckExt(VK_EXT_debug_report);                    \
+  CheckExt(VK_KHR_display);                         \
+  CheckExt(VK_NV_external_memory_capabilities);     \
+  CheckExt(VK_KHR_get_physical_device_properties2); \
+  CheckExt(VK_EXT_display_surface_counter);
 
 #define CheckDeviceExts()                \
   CheckExt(VK_EXT_debug_marker);         \
@@ -267,7 +268,8 @@
   CheckExt(VK_NV_external_memory);       \
   CheckExt(VK_NV_external_memory_win32); \
   CheckExt(VK_NV_win32_keyed_mutex);     \
-  CheckExt(VK_KHR_maintenance1);
+  CheckExt(VK_KHR_maintenance1);         \
+  CheckExt(VK_EXT_display_control);
 
 #define HookInitVulkanInstanceExts()                                                                \
   HookInitExtension(VK_KHR_surface, DestroySurfaceKHR);                                             \
@@ -296,6 +298,7 @@
                     GetPhysicalDeviceQueueFamilyProperties2KHR);                                    \
   HookInitExtension(VK_KHR_get_physical_device_properties2,                                         \
                     GetPhysicalDeviceSparseImageFormatProperties2KHR);                              \
+  HookInitExtension(VK_EXT_display_surface_counter, GetPhysicalDeviceSurfaceCapabilities2EXT);      \
   HookInitInstance_PlatformSpecific()
 
 #define HookInitVulkanDeviceExts()                                        \
@@ -311,6 +314,10 @@
   HookInitExtension(VK_KHR_swapchain, QueuePresentKHR);                   \
   HookInitExtension(VK_KHR_display_swapchain, CreateSharedSwapchainsKHR); \
   HookInitExtension(VK_KHR_maintenance1, TrimCommandPoolKHR);             \
+  HookInitExtension(VK_EXT_display_control, DisplayPowerControlEXT);      \
+  HookInitExtension(VK_EXT_display_control, RegisterDeviceEventEXT);      \
+  HookInitExtension(VK_EXT_display_control, RegisterDisplayEventEXT);     \
+  HookInitExtension(VK_EXT_display_control, GetSwapchainCounterEXT);      \
   HookInitDevice_PlatformSpecific()
 
 #define DefineHooks()                                                                                \
@@ -681,6 +688,18 @@
   HookDefine4(void, vkGetPhysicalDeviceSparseImageFormatProperties2KHR, VkPhysicalDevice,            \
               physicalDevice, const VkPhysicalDeviceSparseImageFormatInfo2KHR *, pFormatInfo,        \
               uint32_t *, pPropertyCount, VkSparseImageFormatProperties2KHR *, pProperties);         \
+  HookDefine3(VkResult, vkGetPhysicalDeviceSurfaceCapabilities2EXT, VkPhysicalDevice,                \
+              physicalDevice, VkSurfaceKHR, surface, VkSurfaceCapabilities2EXT *,                    \
+              pSurfaceCapabilities);                                                                 \
+  HookDefine3(VkResult, vkDisplayPowerControlEXT, VkDevice, device, VkDisplayKHR, display,           \
+              const VkDisplayPowerInfoEXT *, pDisplayPowerInfo);                                     \
+  HookDefine4(VkResult, vkRegisterDeviceEventEXT, VkDevice, device, const VkDeviceEventInfoEXT *,    \
+              pDeviceEventInfo, const VkAllocationCallbacks *, pAllocator, VkFence *, pFence);       \
+  HookDefine5(VkResult, vkRegisterDisplayEventEXT, VkDevice, device, VkDisplayKHR, display,          \
+              const VkDisplayEventInfoEXT *, pDisplayEventInfo, const VkAllocationCallbacks *,       \
+              pAllocator, VkFence *, pFence);                                                        \
+  HookDefine4(VkResult, vkGetSwapchainCounterEXT, VkDevice, device, VkSwapchainKHR, swapchain,       \
+              VkSurfaceCounterFlagBitsEXT, counter, uint64_t *, pCounterValue);                      \
   HookDefine_PlatformSpecific()
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable
