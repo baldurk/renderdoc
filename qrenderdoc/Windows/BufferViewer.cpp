@@ -834,7 +834,8 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   if(!ui->instance->isEnabled())
     ui->instance->setValue(0);
 
-  ui->instance->setMaximum(qMax(0, int(draw->numInstances) - 1));
+  if(draw)
+    ui->instance->setMaximum(qMax(0, int(draw->numInstances) - 1));
 
   if(m_MeshView)
     ConfigureMeshColumns();
@@ -930,9 +931,11 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
     m_ModelVSIn->indices.end = (byte *)(indices + draw->numIndices);
   }
 
-  uint32_t maxIndex = qMax(1U, draw->numIndices) - 1;
+  uint32_t maxIndex = 0;
+  if(draw)
+    maxIndex = qMax(1U, draw->numIndices) - 1;
 
-  if(idata.count > 0)
+  if(draw && idata.count > 0)
   {
     maxIndex = 0;
     if(draw->indexByteWidth == 1)
@@ -1026,7 +1029,7 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
 
   m_ModelVSOut->numRows = m_PostVS.numVerts;
 
-  if(m_PostVS.idxbuf != ResourceId())
+  if(draw && m_PostVS.idxbuf != ResourceId())
     r->GetBufferData(m_PostVS.idxbuf, ioffset + draw->indexOffset * draw->indexByteWidth,
                      draw->numIndices * draw->indexByteWidth, &idata);
 
@@ -1039,7 +1042,7 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
     m_ModelVSOut->indices.end = (byte *)(indices + draw->numIndices);
   }
 
-  if(idata.count > 0)
+  if(draw && idata.count > 0)
   {
     if(draw->indexByteWidth == 1)
     {
