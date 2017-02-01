@@ -713,6 +713,21 @@ VkResult WrappedVulkan::vkCreateDisplayPlaneSurfaceKHR(VkInstance instance,
     // we must wrap surfaces to be consistent with the rest of the code and surface handling,
     // but there's nothing actually to do here - no meaningful data we care about here.
     GetResourceManager()->WrapResource(Unwrap(instance), *pSurface);
+
+    WrappedVkSurfaceKHR *wrapped = GetWrapped(*pSurface);
+
+    // we don't have an actual OS handle to identify this window. Instead construct something
+    // that should be unique and hopefully not clashing/overlapping with other window handles
+    // in use.
+    uintptr_t fakeWindowHandle;
+    fakeWindowHandle = (uintptr_t)NON_DISP_TO_UINT64(pCreateInfo->displayMode);
+    fakeWindowHandle += pCreateInfo->planeIndex;
+    fakeWindowHandle += pCreateInfo->planeStackIndex << 4;
+
+    // since there's no point in allocating a full resource record and storing the window
+    // handle under there somewhere, we just cast. We won't use the resource record for anything
+
+    wrapped->record = (VkResourceRecord *)fakeWindowHandle;
   }
 
   return ret;
