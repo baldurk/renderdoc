@@ -3131,7 +3131,7 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargets(
       pDepthStencilView = (ID3D11DepthStencilView *)m_pDevice->GetResourceManager()->GetLiveResource(
           DepthStencilView);
 
-    if(m_CurrentPipelineState->ValidOutputMerger(RenderTargetViews, pDepthStencilView))
+    if(m_CurrentPipelineState->ValidOutputMerger(RenderTargetViews, pDepthStencilView, NULL))
     {
       m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.RenderTargets,
                                              RenderTargetViews, 0,
@@ -3183,7 +3183,7 @@ void WrappedID3D11DeviceContext::OMSetRenderTargets(UINT NumViews,
     RTs[i] = ppRenderTargetViews[i];
 
   // this function always sets all render targets
-  if(m_CurrentPipelineState->ValidOutputMerger(RTs, pDepthStencilView))
+  if(m_CurrentPipelineState->ValidOutputMerger(RTs, pDepthStencilView, NULL))
   {
     m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.RenderTargets, RTs, 0,
                                            D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
@@ -3320,7 +3320,11 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargetsAndUnorderedAccessV
 
     if(NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
     {
-      if(m_CurrentPipelineState->ValidOutputMerger(RenderTargetViews, pDepthStencilView))
+      ID3D11UnorderedAccessView **srcUAVs = NumUAVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS
+                                                ? UnorderedAccessViews
+                                                : m_CurrentPipelineState->OM.UAVs;
+
+      if(m_CurrentPipelineState->ValidOutputMerger(RenderTargetViews, pDepthStencilView, srcUAVs))
       {
         m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.RenderTargets,
                                                RenderTargetViews, 0,
@@ -3332,9 +3336,21 @@ bool WrappedID3D11DeviceContext::Serialise_OMSetRenderTargetsAndUnorderedAccessV
 
     if(NumUAVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS)
     {
-      m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UnorderedAccessViews,
-                                             0, D3D11_1_UAV_SLOT_COUNT);
-      m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.UAVStartSlot, UAVStartSlot);
+      bool valid = false;
+      if(NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
+        valid = m_CurrentPipelineState->ValidOutputMerger(RenderTargetViews, pDepthStencilView,
+                                                          UnorderedAccessViews);
+      else
+        valid = m_CurrentPipelineState->ValidOutputMerger(m_CurrentPipelineState->OM.RenderTargets,
+                                                          m_CurrentPipelineState->OM.DepthView,
+                                                          UnorderedAccessViews);
+
+      if(valid)
+      {
+        m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs,
+                                               UnorderedAccessViews, 0, D3D11_1_UAV_SLOT_COUNT);
+        m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.UAVStartSlot, UAVStartSlot);
+      }
     }
 
     for(UINT i = 0; i < NumRTVs && NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL; i++)
@@ -3403,7 +3419,10 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
 
   if(NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
   {
-    if(m_CurrentPipelineState->ValidOutputMerger(RTs, pDepthStencilView))
+    ID3D11UnorderedAccessView **srcUAVs =
+        NumUAVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS ? UAVs : m_CurrentPipelineState->OM.UAVs;
+
+    if(m_CurrentPipelineState->ValidOutputMerger(RTs, pDepthStencilView, srcUAVs))
     {
       m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.RenderTargets, RTs, 0,
                                              D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
@@ -3439,9 +3458,19 @@ void WrappedID3D11DeviceContext::OMSetRenderTargetsAndUnorderedAccessViews(
 
   if(NumUAVs != D3D11_KEEP_UNORDERED_ACCESS_VIEWS)
   {
-    m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UAVs, 0,
-                                           D3D11_1_UAV_SLOT_COUNT);
-    m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.UAVStartSlot, UAVStartSlot);
+    bool valid = false;
+    if(NumRTVs != D3D11_KEEP_RENDER_TARGETS_AND_DEPTH_STENCIL)
+      valid = m_CurrentPipelineState->ValidOutputMerger(RTs, pDepthStencilView, UAVs);
+    else
+      valid = m_CurrentPipelineState->ValidOutputMerger(m_CurrentPipelineState->OM.RenderTargets,
+                                                        m_CurrentPipelineState->OM.DepthView, UAVs);
+
+    if(valid)
+    {
+      m_CurrentPipelineState->ChangeRefWrite(m_CurrentPipelineState->OM.UAVs, UAVs, 0,
+                                             D3D11_1_UAV_SLOT_COUNT);
+      m_CurrentPipelineState->Change(m_CurrentPipelineState->OM.UAVStartSlot, UAVStartSlot);
+    }
   }
 
   // invalid case where UAV/RTV overlap, UAV seems to take precedence

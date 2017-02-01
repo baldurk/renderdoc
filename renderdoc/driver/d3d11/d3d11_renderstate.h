@@ -58,6 +58,8 @@ struct D3D11RenderState
 
   struct ResourceRange
   {
+    static ResourceRange Null;
+
     ResourceRange(ID3D11Buffer *res)
     {
       resource = res;
@@ -116,6 +118,7 @@ struct D3D11RenderState
       return false;
     }
 
+    bool IsNull() const { return resource == NULL; }
   private:
     ResourceRange();
 
@@ -339,6 +342,44 @@ struct D3D11RenderState
     UnbindIUnknownForRead(ResourceRange(uav), false, false);
   }
 
+  template <typename T>
+  void UnbindForWrite(T *resource);
+
+  template <>
+  void UnbindForWrite(ID3D11Buffer *buffer)
+  {
+    if(buffer == NULL)
+      return;
+    UnbindIUnknownForWrite(ResourceRange(buffer));
+  }
+
+  template <>
+  void UnbindForWrite(ID3D11RenderTargetView *rtv)
+  {
+    if(rtv == NULL)
+      return;
+
+    UnbindIUnknownForWrite(ResourceRange(rtv));
+  }
+
+  template <>
+  void UnbindForWrite(ID3D11DepthStencilView *dsv)
+  {
+    if(dsv == NULL)
+      return;
+
+    UnbindIUnknownForWrite(ResourceRange(dsv));
+  }
+
+  template <>
+  void UnbindForWrite(ID3D11UnorderedAccessView *uav)
+  {
+    if(uav == NULL)
+      return;
+
+    UnbindIUnknownForWrite(ResourceRange(uav));
+  }
+
   /////////////////////////////////////////////////////////////////////////
   // Utility functions to swap resources around, removing and adding refs
 
@@ -382,7 +423,11 @@ struct D3D11RenderState
       ReleaseRef(old);
 
       if(newArray[i])
+      {
         UnbindForRead(newArray[i]);
+        // when binding something for write, all other write slots are NULL'd too
+        UnbindForWrite(newArray[i]);
+      }
       stateArray[offset + i] = newArray[i];
       TakeRef(stateArray[offset + i]);
     }
@@ -442,7 +487,8 @@ struct D3D11RenderState
   // that might not be obvious/intended.
 
   // validate an output merger combination of render targets and depth view
-  bool ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11DepthStencilView *depth);
+  bool ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11DepthStencilView *depth,
+                         ID3D11UnorderedAccessView **uavs);
 
   struct inputassembler
   {
