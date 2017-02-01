@@ -113,7 +113,7 @@ void EventBrowser::OnLogfileLoaded()
 
   ui->events->expandItem(frame);
 
-  m_Ctx->SetEventID(this, lastEID, lastEID);
+  m_Ctx->SetEventID({this}, lastEID, lastEID);
 }
 
 void EventBrowser::OnLogfileClosed()
@@ -251,7 +251,7 @@ void EventBrowser::on_events_currentItemChanged(QTreeWidgetItem *current, QTreeW
   uint EID = current->data(COL_EID, Qt::UserRole).toUInt();
   uint lastEID = current->data(COL_LAST_EID, Qt::UserRole).toUInt();
 
-  m_Ctx->SetEventID(this, EID, lastEID);
+  m_Ctx->SetEventID({this}, EID, lastEID);
 }
 
 void EventBrowser::on_HideFindJump()

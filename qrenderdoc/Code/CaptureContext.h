@@ -83,9 +83,9 @@ public:
   void LoadLogfile(const QString &logFile, const QString &origFilename, bool temporary, bool local);
   void CloseLogfile();
 
-  void SetEventID(ILogViewerForm *exclude, uint32_t selectedEventID, uint32_t eventID,
-                  bool force = false);
-  void RefreshStatus() { SetEventID(NULL, m_SelectedEventID, m_EventID, true); }
+  void SetEventID(const QVector<ILogViewerForm *> &exclude, uint32_t selectedEventID,
+                  uint32_t eventID, bool force = false);
+  void RefreshStatus() { SetEventID({}, m_SelectedEventID, m_EventID, true); }
   void AddLogViewer(ILogViewerForm *f)
   {
     m_LogViewers.push_back(f);

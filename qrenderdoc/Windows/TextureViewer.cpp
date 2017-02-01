@@ -1726,7 +1726,7 @@ void TextureViewer::texContextItem_triggered()
   QVariant eid = act->property("eid");
   if(eid.isValid())
   {
-    m_Ctx->SetEventID(NULL, eid.toUInt(), eid.toUInt());
+    m_Ctx->SetEventID({}, eid.toUInt(), eid.toUInt());
     return;
   }
 

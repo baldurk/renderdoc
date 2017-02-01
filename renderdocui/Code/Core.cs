@@ -613,6 +613,13 @@ namespace renderdocui.Code
             List<ILogViewerForm> logviewers = new List<ILogViewerForm>();
             logviewers.AddRange(m_LogViewers);
 
+            // make sure we're on a consistent event before invoking log viewer forms
+            FetchDrawcall draw = m_DrawCalls.Last();
+            while (draw.children != null && draw.children.Length > 0)
+                draw = draw.children.Last();
+
+            SetEventID(logviewers.ToArray(), draw.eventID, true);
+
             // notify all the registers log viewers that a log has been loaded
             foreach (var logviewer in logviewers)
             {
@@ -893,15 +900,15 @@ namespace renderdocui.Code
 
         public void RefreshStatus()
         {
-            SetEventID(null, m_EventID, true);
+            SetEventID(new ILogViewerForm[] { }, m_EventID, true);
         }
 
         public void SetEventID(ILogViewerForm exclude, UInt32 eventID)
         {
-            SetEventID(exclude, eventID, false);
+            SetEventID(new ILogViewerForm[] { exclude }, eventID, false);
         }
 
-        private void SetEventID(ILogViewerForm exclude, UInt32 eventID, bool force)
+        private void SetEventID(ILogViewerForm[] exclude, UInt32 eventID, bool force)
         {
             m_EventID = eventID;
 
@@ -917,7 +924,7 @@ namespace renderdocui.Code
 
             foreach (var logviewer in m_LogViewers)
             {
-                if(logviewer == exclude)
+                if(exclude.Contains(logviewer))
                     continue;
 
                 Control c = (Control)logviewer;
