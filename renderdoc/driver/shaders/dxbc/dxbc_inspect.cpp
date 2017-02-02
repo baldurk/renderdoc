@@ -1846,9 +1846,9 @@ SPDBChunk::SPDBChunk(void *chunk)
                 if(value[i] >= '0' && value[i] <= '9')
                   digit = (uint32_t)(value[i] - '0');
                 if(value[i] >= 'a' && value[i] <= 'f')
-                  digit = (uint32_t)(value[i] - 'a');
+                  digit = 0xa + (uint32_t)(value[i] - 'a');
                 if(value[i] >= 'A' && value[i] <= 'F')
-                  digit = (uint32_t)(value[i] - 'A');
+                  digit = 0xa + (uint32_t)(value[i] - 'A');
 
                 m_ShaderFlags <<= 4;
                 m_ShaderFlags |= digit;
