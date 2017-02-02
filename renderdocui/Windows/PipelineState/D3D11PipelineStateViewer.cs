@@ -2551,7 +2551,7 @@ namespace renderdocui.Windows.PipelineState
                         // if not, try and find the same filename (this is not proper include handling!)
                         foreach (var k in updatedfiles.Keys)
                         {
-                            if (renderdocui.Code.Helpers.SafeGetFileName(k) == search)
+                            if (String.Compare(renderdocui.Code.Helpers.SafeGetFileName(k), search, true) == 0)
                             {
                                 fileText = updatedfiles[k];
                                 break;
