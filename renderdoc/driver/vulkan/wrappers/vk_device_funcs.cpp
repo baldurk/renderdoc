@@ -115,7 +115,7 @@ ReplayCreateStatus WrappedVulkan::Initialise(VkInitParams &params)
   {
     if(*it == "VK_KHR_xlib_surface" || *it == "VK_KHR_xcb_surface" ||
        *it == "VK_KHR_wayland_surface" || *it == "VK_KHR_mir_surface" ||
-       *it == "VK_KHR_android_surface" || *it == "VK_KHR_win32_surface")
+       *it == "VK_KHR_android_surface" || *it == "VK_KHR_win32_surface" || *it == "VK_KHR_display")
     {
       it = params.Extensions.erase(it);
     }
@@ -793,7 +793,13 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
     {
       // don't include the debug marker extension
       if(strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_DEBUG_MARKER_EXTENSION_NAME))
-        Extensions.push_back(createInfo.ppEnabledExtensionNames[i]);
+        continue;
+
+      // don't include direct-display WSI extensions
+      if(strcmp(createInfo.ppEnabledExtensionNames[i], VK_KHR_DISPLAY_SWAPCHAIN_EXTENSION_NAME))
+        continue;
+
+      Extensions.push_back(createInfo.ppEnabledExtensionNames[i]);
     }
 
     if(std::find(Extensions.begin(), Extensions.end(),
