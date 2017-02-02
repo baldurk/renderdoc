@@ -1095,7 +1095,6 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
   if(outw.swap == VK_NULL_HANDLE)
     return false;
 
-  VkClearValue clearval = {};
   VkRenderPassBeginInfo rpbegin = {
       VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       NULL,
@@ -1105,8 +1104,8 @@ bool VulkanReplay::RenderTexture(TextureDisplay cfg)
            0, 0,
        },
        {m_DebugWidth, m_DebugHeight}},
-      1,
-      &clearval,
+      0,
+      NULL,
   };
 
   return RenderTextureInternal(cfg, rpbegin, eTexDisplay_MipShift | eTexDisplay_BlendAlpha);
@@ -1534,7 +1533,6 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
   GetDebugManager()->m_CheckerboardUBO.Unmap();
 
   {
-    VkClearValue clearval = {};
     VkRenderPassBeginInfo rpbegin = {
         VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         NULL,
@@ -1544,8 +1542,8 @@ void VulkanReplay::RenderCheckerboard(Vec3f light, Vec3f dark)
              0, 0,
          },
          {m_DebugWidth, m_DebugHeight}},
-        1,
-        &clearval,
+        0,
+        NULL,
     };
     vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -1596,7 +1594,6 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
   {
-    VkClearValue clearval = {};
     VkRenderPassBeginInfo rpbegin = {
         VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
         NULL,
@@ -1606,8 +1603,8 @@ void VulkanReplay::RenderHighlightBox(float w, float h, float scale)
              0, 0,
          },
          {m_DebugWidth, m_DebugHeight}},
-        1,
-        &clearval,
+        0,
+        NULL,
     };
     vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
@@ -1728,7 +1725,6 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
   vkr = vt->BeginCommandBuffer(Unwrap(cmd), &beginInfo);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  VkClearValue clearval = {};
   VkRenderPassBeginInfo rpbegin = {
       VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO,
       NULL,
@@ -1738,8 +1734,8 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
            0, 0,
        },
        {m_DebugWidth, m_DebugHeight}},
-      1,
-      &clearval,
+      0,
+      NULL,
   };
   vt->CmdBeginRenderPass(Unwrap(cmd), &rpbegin, VK_SUBPASS_CONTENTS_INLINE);
 
