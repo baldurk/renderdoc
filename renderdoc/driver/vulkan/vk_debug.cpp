@@ -4749,6 +4749,7 @@ void VulkanDebugManager::MakeComputePipelineInfo(VkComputePipelineCreateInfo &pi
   stage.pName = pipeInfo.shaders[i].entryPoint.c_str();
   stage.pNext = NULL;
   stage.pSpecializationInfo = NULL;
+  stage.flags = VK_SHADER_STAGE_COMPUTE_BIT;
 
   if(!pipeInfo.shaders[i].specialization.empty())
   {
