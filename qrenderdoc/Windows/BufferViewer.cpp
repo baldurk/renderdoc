@@ -1530,7 +1530,7 @@ void BufferViewer::CalcColumnWidth()
   BufferData bufdata;
   bufdata.stride = sizeof(TestData);
   bufdata.data = new byte[sizeof(TestData)];
-  bufdata.end = m_ModelVSIn->indices.data + sizeof(TestData);
+  bufdata.end = bufdata.data + sizeof(TestData);
   m_ModelVSIn->buffers.push_back(bufdata);
 
   TestData *test = (TestData *)bufdata.data;
