@@ -172,7 +172,8 @@ void AppendShaderStatistics(CaptureContext *ctx, QString &statisticsLog,
                             const FetchFrameInfo &frameInfo)
 {
   const FetchFrameShaderStats *shaders = frameInfo.stats.shaders;
-  FetchFrameShaderStats totalShadersPerStage = {};
+  FetchFrameShaderStats totalShadersPerStage;
+  memset(&totalShadersPerStage, 0, sizeof(totalShadersPerStage));
   for(int s = eShaderStage_First; s < eShaderStage_Count; s++)
   {
     totalShadersPerStage.calls += shaders[s].calls;
@@ -214,7 +215,8 @@ void AppendConstantBindStatistics(CaptureContext *ctx, QString &statisticsLog,
   // structure for a given type with known integral types (or arrays
   // thereof), but given we're heading for a Qt/C++ rewrite of the UI
   // perhaps best not to dwell too long on that
-  FetchFrameConstantBindStats totalConstantsPerStage[eShaderStage_Count] = {};
+  FetchFrameConstantBindStats totalConstantsPerStage[eShaderStage_Count];
+  memset(&totalConstantsPerStage, 0, sizeof(totalConstantsPerStage));
   for(int s = eShaderStage_First; s < eShaderStage_Count; s++)
   {
     totalConstantsPerStage[s].bindslots.create(reference.bindslots.count);
@@ -237,7 +239,8 @@ void AppendConstantBindStatistics(CaptureContext *ctx, QString &statisticsLog,
     }
   }
 
-  FetchFrameConstantBindStats totalConstantsForAllStages = {};
+  FetchFrameConstantBindStats totalConstantsForAllStages;
+  memset(&totalConstantsForAllStages, 0, sizeof(totalConstantsForAllStages));
   totalConstantsForAllStages.bindslots.create(totalConstantsPerStage[0].bindslots.count);
   totalConstantsForAllStages.sizes.create(totalConstantsPerStage[0].sizes.count);
 
@@ -302,7 +305,8 @@ void AppendSamplerBindStatistics(CaptureContext *ctx, QString &statisticsLog,
   // #mivance see AppendConstantBindStatistics
   const FetchFrameSamplerBindStats &reference = frameInfo.stats.samplers[0];
 
-  FetchFrameSamplerBindStats totalSamplersPerStage[eShaderStage_Count] = {};
+  FetchFrameSamplerBindStats totalSamplersPerStage[eShaderStage_Count];
+  memset(&totalSamplersPerStage, 0, sizeof(totalSamplersPerStage));
   for(int s = eShaderStage_First; s < eShaderStage_Count; s++)
   {
     totalSamplersPerStage[s].bindslots.create(reference.bindslots.count);
@@ -323,7 +327,8 @@ void AppendSamplerBindStatistics(CaptureContext *ctx, QString &statisticsLog,
     }
   }
 
-  FetchFrameSamplerBindStats totalSamplersForAllStages = {};
+  FetchFrameSamplerBindStats totalSamplersForAllStages;
+  memset(&totalSamplersForAllStages, 0, sizeof(totalSamplersForAllStages));
   totalSamplersForAllStages.bindslots.create(totalSamplersPerStage[0].bindslots.count);
 
   for(int s = eShaderStage_First; s < eShaderStage_Count; s++)
@@ -365,7 +370,8 @@ void AppendResourceBindStatistics(CaptureContext *ctx, QString &statisticsLog,
   // #mivance see AppendConstantBindStatistics
   const FetchFrameResourceBindStats &reference = frameInfo.stats.resources[0];
 
-  FetchFrameResourceBindStats totalResourcesPerStage[eShaderStage_Count] = {};
+  FetchFrameResourceBindStats totalResourcesPerStage[eShaderStage_Count];
+  memset(&totalResourcesPerStage, 0, sizeof(totalResourcesPerStage));
   for(int s = eShaderStage_First; s < eShaderStage_Count; s++)
   {
     totalResourcesPerStage[s].types.create(reference.types.count);
@@ -392,7 +398,8 @@ void AppendResourceBindStatistics(CaptureContext *ctx, QString &statisticsLog,
     }
   }
 
-  FetchFrameResourceBindStats totalResourcesForAllStages = {};
+  FetchFrameResourceBindStats totalResourcesForAllStages;
+  memset(&totalResourcesForAllStages, 0, sizeof(totalResourcesForAllStages));
   totalResourcesForAllStages.types.create(totalResourcesPerStage[0].types.count);
   totalResourcesForAllStages.bindslots.create(totalResourcesPerStage[0].bindslots.count);
 
@@ -459,7 +466,8 @@ void AppendUpdateStatistics(QString &statisticsLog, const FetchFrameInfo &frameI
   // #mivance see AppendConstantBindStatistics
   const FetchFrameUpdateStats &reference = frameInfo.stats.updates;
 
-  FetchFrameUpdateStats totalUpdates = {};
+  FetchFrameUpdateStats totalUpdates;
+  memset(&totalUpdates, 0, sizeof(totalUpdates));
   totalUpdates.types.create(reference.types.count);
   totalUpdates.sizes.create(reference.sizes.count);
 
