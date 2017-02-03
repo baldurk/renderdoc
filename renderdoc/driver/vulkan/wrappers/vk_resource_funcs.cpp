@@ -822,7 +822,13 @@ bool WrappedVulkan::Serialise_vkCreateBuffer(Serialiser *localSerialiser, VkDevi
 VkResult WrappedVulkan::vkCreateBuffer(VkDevice device, const VkBufferCreateInfo *pCreateInfo,
                                        const VkAllocationCallbacks *pAllocator, VkBuffer *pBuffer)
 {
-  VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), pCreateInfo, pAllocator, pBuffer);
+  VkBufferCreateInfo adjusted_info = *pCreateInfo;
+
+  // TEMP HACK: Until we define a portable fake hardware, need to match the requirements for usage
+  // on replay, so that the memory requirements are the same
+  adjusted_info.usage |= VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+
+  VkResult ret = ObjDisp(device)->CreateBuffer(Unwrap(device), &adjusted_info, pAllocator, pBuffer);
 
   // SHARING: pCreateInfo sharingMode, queueFamilyCount, pQueueFamilyIndices
 
@@ -1053,10 +1059,20 @@ VkResult WrappedVulkan::vkCreateImage(VkDevice device, const VkImageCreateInfo *
 
   createInfo_adjusted.usage |= VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
 
+  // TEMP HACK: Until we define a portable fake hardware, need to match the requirements for usage
+  // on replay, so that the memory requirements are the same
+  createInfo_adjusted.usage |= VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
   if(createInfo_adjusted.samples != VK_SAMPLE_COUNT_1_BIT)
   {
     createInfo_adjusted.usage |= VK_IMAGE_USAGE_SAMPLED_BIT;
     createInfo_adjusted.flags |= VK_IMAGE_CREATE_MUTABLE_FORMAT_BIT;
+
+    // TEMP HACK: matching replay requirements
+    if(!IsDepthOrStencilFormat(createInfo_adjusted.format))
+      createInfo_adjusted.usage |= VK_IMAGE_USAGE_STORAGE_BIT;
+    else
+      createInfo_adjusted.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
   }
 
   VkResult ret =
