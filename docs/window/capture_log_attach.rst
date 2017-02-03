@@ -184,6 +184,10 @@ The shim dll will load, create a thread that checks to see if the process matche
 
 RenderDoc implements this behaviour by modifying the `AppInit_DLLs <http://support2.microsoft.com/kb/197571>`_ registry key to reference RenderDoc's dlls. This is not a particularly safe method but it's the only reliable method to do what we want. The shim dll is deliberately made as small and thin as possible, referencing only ``kernel32.dll``, to minimise any risks.
 
+.. note::
+
+  If you have 'secure boot' enabled in Windows, the AppInit_DLLs registry key will not work. To use the global process hook you must disable secure boot.
+
 If RenderDoc crashes or something otherwise goes wrong while these registry keys are modified, the shim dll will continue to be injected into every process which is certainly not desireable. Should anything go wrong, RenderDoc writes a ``.reg`` file that restores the registry to its previous state in ``%TEMP%``.
 
 Again, **this method should be a last resort**. Given the risks you should always try to capture directly in some way before trying this.
