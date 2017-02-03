@@ -97,6 +97,7 @@ private slots:
   void on_action_Statistics_Viewer_triggered();
   void on_action_Inject_into_Process_triggered();
   void on_action_Resolve_Symbols_triggered();
+  void on_action_Settings_triggered();
 
   // manual slots
   void saveLayout_triggered();

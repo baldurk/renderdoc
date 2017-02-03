@@ -90,6 +90,8 @@ bool PersistantConfig::Deserialize(QString filename)
 {
   QFile f(filename);
 
+  m_Filename = filename;
+
   // silently allow missing configs
   if(!f.exists())
     return true;
@@ -115,13 +117,16 @@ bool PersistantConfig::Deserialize(QString filename)
 
 bool PersistantConfig::Serialize(QString filename)
 {
+  if(filename != "")
+    m_Filename = filename;
+
   QVariantMap values = storeValues();
 
-  QFile f(filename);
+  QFile f(m_Filename);
   if(f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text))
     return SaveToJSON(values, f, JSON_ID, JSON_VER);
 
-  qWarning() << "Couldn't write to " << filename << " " << f.errorString();
+  qWarning() << "Couldn't write to " << m_Filename << " " << f.errorString();
 
   return false;
 }

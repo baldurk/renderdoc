@@ -478,6 +478,12 @@
     <ClCompile Include="Windows\StatisticsViewer.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\Dialogs\SettingsDialog.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_SettingsDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -849,6 +855,12 @@
     <ClInclude Include="Windows\StatisticsViewer.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+    <ClInclude Include="Windows\Dialogs\SettingsDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_SettingsDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resources.qrc">
@@ -1087,6 +1099,9 @@
     </None>
     <None Include="Windows\DebugMessageView.ui" />
     <None Include="Windows\StatisticsViewer.ui" />
+    <None Include="Windows\Dialogs\SettingsDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="generated\ui_AboutDialog.h">

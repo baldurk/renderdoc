@@ -71,6 +71,8 @@ typedef QMap<QString, QString> QStringMap;
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideEmpty, false)                    \
                                                                                            \
+  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideAPICalls, false)                 \
+                                                                                           \
   CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ApplyColours, true)                  \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ColourEventRow, true)                \
@@ -84,6 +86,10 @@ typedef QMap<QString, QString> QStringMap;
   CONFIG_SETTING_VAL(public, int, int, Formatter_PosExp, 7)                                \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, Font_PreferMonospaced, false)                     \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, QString, QString, Android_AdbExecutablePath, "")              \
+                                                                                           \
+  CONFIG_SETTING_VAL(public, int, int, Android_MaxConnectTimeout, 30)                      \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, CheckUpdate_AllowChecks, true)                    \
                                                                                            \
@@ -112,6 +118,7 @@ public:
     Milliseconds,
     Microseconds,
     Nanoseconds,
+    Count,
   };
 
   CONFIG_SETTINGS()
@@ -119,7 +126,7 @@ public:
 public:
   PersistantConfig() {}
   bool Deserialize(QString filename);
-  bool Serialize(QString filename);
+  bool Serialize(QString filename = "");
 
   void SetupFormatting();
 
@@ -145,4 +152,6 @@ public:
 private:
   QVariantMap storeValues() const;
   void applyValues(const QVariantMap &values);
+
+  QString m_Filename;
 };

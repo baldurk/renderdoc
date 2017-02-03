@@ -36,6 +36,7 @@
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
+#include "Windows/Dialogs/SettingsDialog.h"
 #include "APIInspector.h"
 #include "BufferViewer.h"
 #include "ConstantBufferPreviewer.h"
@@ -1119,6 +1120,12 @@ void MainWindow::on_action_Resolve_Symbols_triggered()
   });
   thread->selfDelete(true);
   thread->start();
+}
+
+void MainWindow::on_action_Settings_triggered()
+{
+  SettingsDialog about(m_Ctx, this);
+  RDDialog::show(&about);
 }
 
 void MainWindow::saveLayout_triggered()

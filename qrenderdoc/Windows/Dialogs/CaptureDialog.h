@@ -74,6 +74,8 @@ public:
   void setExecutableFilename(QString filename);
   void loadSettings(QString filename);
 
+  void updateGlobalHook();
+
 private slots:
   // automatic slots
   void on_exePathBrowse_clicked();
@@ -105,7 +107,6 @@ private:
   OnCaptureMethod m_CaptureCallback;
   OnInjectMethod m_InjectCallback;
 
-  void updateGlobalHook();
   void setEnvironmentModifications(const QList<EnvironmentModification> &modifications);
   void triggerCapture();
 

@@ -519,6 +519,7 @@
     <ClCompile Include="generated\moc_ScintillaEdit.cpp" />
     <ClCompile Include="generated\moc_ScintillaEditBase.cpp" />
     <ClCompile Include="generated\moc_ScintillaQt.cpp" />
+    <ClCompile Include="generated\moc_SettingsDialog.cpp" />
     <ClCompile Include="generated\moc_ShaderViewer.cpp" />
     <ClCompile Include="generated\moc_StatisticsViewer.cpp" />
     <ClCompile Include="generated\moc_TextureGoto.cpp" />
@@ -550,6 +551,7 @@
     <ClCompile Include="Windows\Dialogs\AboutDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\LiveCapture.cpp" />
+    <ClCompile Include="Windows\Dialogs\SettingsDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\TextureSaveDialog.cpp" />
     <ClCompile Include="Windows\EventBrowser.cpp" />
     <ClCompile Include="3rdparty\flowlayout\FlowLayout.cpp">
@@ -661,6 +663,7 @@
     <ClInclude Include="generated\ui_MainWindow.h" />
     <ClInclude Include="generated\ui_PipelineStateViewer.h" />
     <ClInclude Include="generated\ui_ResourcePreview.h" />
+    <ClInclude Include="generated\ui_SettingsDialog.h" />
     <ClInclude Include="generated\ui_ShaderViewer.h" />
     <ClInclude Include="generated\ui_StatisticsViewer.h" />
     <ClInclude Include="generated\ui_TextureSaveDialog.h" />
@@ -688,6 +691,7 @@
     <ClInclude Include="Windows\Dialogs\AboutDialog.h" />
     <ClInclude Include="Windows\Dialogs\CaptureDialog.h" />
     <ClInclude Include="Windows\Dialogs\LiveCapture.h" />
+    <ClInclude Include="Windows\Dialogs\SettingsDialog.h" />
     <ClInclude Include="Windows\Dialogs\TextureSaveDialog.h" />
     <ClInclude Include="Windows\EventBrowser.h" />
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h" />
@@ -717,6 +721,7 @@
     <None Include="Windows\Dialogs\AboutDialog.ui" />
     <None Include="Windows\Dialogs\CaptureDialog.ui" />
     <None Include="Windows\Dialogs\LiveCapture.ui" />
+    <None Include="Windows\Dialogs\SettingsDialog.ui" />
     <None Include="Windows\Dialogs\TextureSaveDialog.ui" />
     <None Include="Windows\EventBrowser.ui" />
     <None Include="Windows\MainWindow.ui" />

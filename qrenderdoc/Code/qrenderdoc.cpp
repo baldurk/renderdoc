@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
       QCoreApplication::sendPostedEvents();
     }
 
-    config.Serialize(configFilename);
+    config.Serialize();
   }
 
   delete[] argv_mod;
