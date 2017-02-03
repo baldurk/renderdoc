@@ -35,7 +35,7 @@ namespace Ui
 class MainWindow;
 }
 
-class QLabel;
+class RDLabel;
 class QMimeData;
 class QProgressBar;
 class CaptureDialog;
@@ -78,6 +78,7 @@ public:
   void showTextureViewer() { on_action_Texture_Viewer_triggered(); }
   void showPipelineViewer() { on_action_Pipeline_State_triggered(); }
   void showCaptureDialog() { on_action_Capture_Log_triggered(); }
+  void showDebugMessageView() { on_action_Errors_and_Warnings_triggered(); }
 private slots:
   // automatic slots
   void on_action_Exit_triggered();
@@ -91,6 +92,7 @@ private slots:
   void on_action_Texture_Viewer_triggered();
   void on_action_Pipeline_State_triggered();
   void on_action_Capture_Log_triggered();
+  void on_action_Errors_and_Warnings_triggered();
   void on_action_Inject_into_Process_triggered();
   void on_action_Resolve_Symbols_triggered();
 
@@ -98,6 +100,7 @@ private slots:
   void saveLayout_triggered();
   void loadLayout_triggered();
   void messageCheck();
+  void statusDoubleClicked();
 
 private:
   void closeEvent(QCloseEvent *event) override;
@@ -115,8 +118,8 @@ private:
 
   QList<LiveCapture *> m_LiveCaptures;
 
-  QLabel *statusIcon;
-  QLabel *statusText;
+  RDLabel *statusIcon;
+  RDLabel *statusText;
   QProgressBar *statusProgress;
 
   QTimer m_MessageTick;

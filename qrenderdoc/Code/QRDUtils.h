@@ -310,6 +310,59 @@ struct ToStr
     return "Unknown";
   }
 
+  static std::string Get(const DebugMessageSource &el)
+  {
+    switch(el)
+    {
+      case eDbgSource_API: return "API";
+      case eDbgSource_RedundantAPIUse: return "Redundant API Use";
+      case eDbgSource_IncorrectAPIUse: return "Incorrect API Use";
+      case eDbgSource_GeneralPerformance: return "General Performance";
+      case eDbgSource_GCNPerformance: return "GCN Performance";
+      case eDbgSource_RuntimeWarning: return "Runtime Warning";
+      case eDbgSoruce_UnsupportedConfiguration: return "Unsupported Configuration";
+      default: break;
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const DebugMessageSeverity &el)
+  {
+    switch(el)
+    {
+      case eDbgSeverity_High: return "High";
+      case eDbgSeverity_Medium: return "Medium";
+      case eDbgSeverity_Low: return "Low";
+      case eDbgSeverity_Info: return "Info";
+      default: break;
+    }
+    return "Unknown";
+  }
+
+  static std::string Get(const DebugMessageCategory &el)
+  {
+    switch(el)
+    {
+      case eDbgCategory_Application_Defined: return "Application Defined";
+      case eDbgCategory_Miscellaneous: return "Miscellaneous";
+      case eDbgCategory_Initialization: return "Initialization";
+      case eDbgCategory_Cleanup: return "Cleanup";
+      case eDbgCategory_Compilation: return "Compilation";
+      case eDbgCategory_State_Creation: return "State Creation";
+      case eDbgCategory_State_Setting: return "State Setting";
+      case eDbgCategory_State_Getting: return "State Getting";
+      case eDbgCategory_Resource_Manipulation: return "Resource Manipulation";
+      case eDbgCategory_Execution: return "Execution";
+      case eDbgCategory_Shaders: return "Shaders";
+      case eDbgCategory_Deprecated: return "Deprecated";
+      case eDbgCategory_Undefined: return "Undefined";
+      case eDbgCategory_Portability: return "Portability";
+      case eDbgCategory_Performance: return "Performance";
+      default: break;
+    }
+    return "Unknown";
+  }
+
   static std::string Get(const TextureSwizzle &el)
   {
     switch(el)

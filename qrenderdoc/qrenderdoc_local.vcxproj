@@ -499,6 +499,7 @@
     <ClCompile Include="generated\moc_CustomPaintWidget.cpp" />
     <ClCompile Include="generated\moc_D3D11PipelineStateViewer.cpp" />
     <ClCompile Include="generated\moc_D3D12PipelineStateViewer.cpp" />
+    <ClCompile Include="generated\moc_DebugMessageView.cpp" />
     <ClCompile Include="generated\moc_EventBrowser.cpp" />
     <ClCompile Include="generated\moc_GLPipelineStateViewer.cpp" />
     <ClCompile Include="generated\moc_LiveCapture.cpp" />
@@ -544,6 +545,7 @@
     <ClCompile Include="Windows\APIInspector.cpp" />
     <ClCompile Include="Windows\BufferViewer.cpp" />
     <ClCompile Include="Windows\ConstantBufferPreviewer.cpp" />
+    <ClCompile Include="Windows\DebugMessageView.cpp" />
     <ClCompile Include="Windows\Dialogs\AboutDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\LiveCapture.cpp" />
@@ -650,6 +652,7 @@
     <ClInclude Include="generated\ui_ConstantBufferPreviewer.h" />
     <ClInclude Include="generated\ui_D3D11PipelineStateViewer.h" />
     <ClInclude Include="generated\ui_D3D12PipelineStateViewer.h" />
+    <ClInclude Include="generated\ui_DebugMessageView.h" />
     <ClInclude Include="generated\ui_EventBrowser.h" />
     <ClInclude Include="generated\ui_GLPipelineStateViewer.h" />
     <ClInclude Include="generated\ui_LiveCapture.h" />
@@ -678,6 +681,7 @@
     <ClInclude Include="Windows\APIInspector.h" />
     <ClInclude Include="Windows\BufferViewer.h" />
     <ClInclude Include="Windows\ConstantBufferPreviewer.h" />
+    <ClInclude Include="Windows\DebugMessageView.h" />
     <ClInclude Include="Windows\Dialogs\AboutDialog.h" />
     <ClInclude Include="Windows\Dialogs\CaptureDialog.h" />
     <ClInclude Include="Windows\Dialogs\LiveCapture.h" />
@@ -705,6 +709,7 @@
     <None Include="Windows\APIInspector.ui" />
     <None Include="Windows\BufferViewer.ui" />
     <None Include="Windows\ConstantBufferPreviewer.ui" />
+    <None Include="Windows\DebugMessageView.ui" />
     <None Include="Windows\Dialogs\AboutDialog.ui" />
     <None Include="Windows\Dialogs\CaptureDialog.ui" />
     <None Include="Windows\Dialogs\LiveCapture.ui" />

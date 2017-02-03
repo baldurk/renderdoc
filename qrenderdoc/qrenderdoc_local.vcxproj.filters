@@ -466,6 +466,12 @@
     <ClCompile Include="Code\ScintillaSyntax.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\DebugMessageView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_DebugMessageView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -825,6 +831,12 @@
     <ClInclude Include="Code\ScintillaSyntax.h">
       <Filter>Code</Filter>
     </ClInclude>
+    <ClInclude Include="Windows\DebugMessageView.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_DebugMessageView.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resources.qrc">
@@ -1061,6 +1073,7 @@
     <None Include="Windows\ShaderViewer.ui">
       <Filter>Windows</Filter>
     </None>
+    <None Include="Windows\DebugMessageView.ui" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="generated\ui_AboutDialog.h">

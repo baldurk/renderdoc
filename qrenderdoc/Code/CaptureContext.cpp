@@ -35,6 +35,7 @@
 #include <QTimer>
 #include "Windows/APIInspector.h"
 #include "Windows/BufferViewer.h"
+#include "Windows/DebugMessageView.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/EventBrowser.h"
@@ -518,6 +519,18 @@ CaptureDialog *CaptureContext::captureDialog()
   return m_CaptureDialog;
 }
 
+DebugMessageView *CaptureContext::debugMessageView()
+{
+  if(m_DebugMessageView)
+    return m_DebugMessageView;
+
+  m_DebugMessageView = new DebugMessageView(this, m_MainWindow);
+  m_DebugMessageView->setObjectName("debugMessageView");
+  setupDockWindow(m_DebugMessageView);
+
+  return m_DebugMessageView;
+}
+
 void CaptureContext::showEventBrowser()
 {
   m_MainWindow->showEventBrowser();
@@ -548,6 +561,11 @@ void CaptureContext::showCaptureDialog()
   m_MainWindow->showCaptureDialog();
 }
 
+void CaptureContext::showDebugMessageView()
+{
+  m_MainWindow->showDebugMessageView();
+}
+
 QWidget *CaptureContext::createToolWindow(const QString &objectName)
 {
   if(objectName == "textureViewer")
@@ -574,6 +592,10 @@ QWidget *CaptureContext::createToolWindow(const QString &objectName)
   {
     return captureDialog();
   }
+  else if(objectName == "debugMessageView")
+  {
+    return debugMessageView();
+  }
 
   return NULL;
 }
@@ -592,6 +614,8 @@ void CaptureContext::windowClosed(QWidget *window)
     m_PipelineViewer = NULL;
   else if((QWidget *)m_MeshPreview == window)
     m_MeshPreview = NULL;
+  else if((QWidget *)m_DebugMessageView == window)
+    m_DebugMessageView = NULL;
   else
     qCritical() << "Unrecognised window being closed: " << window;
 }

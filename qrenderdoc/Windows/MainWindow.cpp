@@ -32,12 +32,14 @@
 #include "Code/QRDUtils.h"
 #include "PipelineState/PipelineStateViewer.h"
 #include "Resources/resource.h"
+#include "Widgets/Extended/RDLabel.h"
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
 #include "APIInspector.h"
 #include "BufferViewer.h"
 #include "ConstantBufferPreviewer.h"
+#include "DebugMessageView.h"
 #include "EventBrowser.h"
 #include "TextureViewer.h"
 #include "ui_MainWindow.h"
@@ -96,10 +98,10 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
   QObject::connect(ui->action_Save_Layout_6, &QAction::triggered, this,
                    &MainWindow::saveLayout_triggered);
 
-  statusIcon = new QLabel(this);
+  statusIcon = new RDLabel(this);
   ui->statusBar->addWidget(statusIcon);
 
-  statusText = new QLabel(this);
+  statusText = new RDLabel(this);
   ui->statusBar->addWidget(statusText);
 
   statusProgress = new QProgressBar(this);
@@ -113,6 +115,9 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
   statusIcon->setText("");
   statusIcon->setPixmap(QPixmap());
   statusText->setText("");
+
+  QObject::connect(statusIcon, &RDLabel::doubleClicked, this, &MainWindow::statusDoubleClicked);
+  QObject::connect(statusText, &RDLabel::doubleClicked, this, &MainWindow::statusDoubleClicked);
 
   QObject::connect(&m_MessageTick, &QTimer::timeout, this, &MainWindow::messageCheck);
   m_MessageTick.setSingleShot(false);
@@ -883,6 +888,11 @@ void MainWindow::messageCheck()
   }
 }
 
+void MainWindow::statusDoubleClicked()
+{
+  showDebugMessageView();
+}
+
 void MainWindow::OnLogfileLoaded()
 {
   // TODO Remote
@@ -1043,6 +1053,16 @@ void MainWindow::on_action_Inject_into_Process_triggered()
     ToolWindowManager::raiseToolWindow(capDialog);
   else
     ui->toolWindowManager->addToolWindow(capDialog, mainToolArea());
+}
+
+void MainWindow::on_action_Errors_and_Warnings_triggered()
+{
+  DebugMessageView *debugMessages = m_Ctx->debugMessageView();
+
+  if(ui->toolWindowManager->toolWindows().contains(debugMessages))
+    ToolWindowManager::raiseToolWindow(debugMessages);
+  else
+    ui->toolWindowManager->addToolWindow(debugMessages, mainToolArea());
 }
 
 void MainWindow::on_action_Resolve_Symbols_triggered()
