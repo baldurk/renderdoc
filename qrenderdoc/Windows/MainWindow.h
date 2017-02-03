@@ -83,6 +83,7 @@ private slots:
   void on_action_Exit_triggered();
   void on_action_About_triggered();
   void on_action_Open_Log_triggered();
+  void on_action_Save_Log_triggered();
   void on_action_Close_Log_triggered();
   void on_action_Mesh_Output_triggered();
   void on_action_API_Inspector_triggered();

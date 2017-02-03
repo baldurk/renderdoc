@@ -945,6 +945,11 @@ void MainWindow::on_action_Close_Log_triggered()
   PromptCloseLog();
 }
 
+void MainWindow::on_action_Save_Log_triggered()
+{
+  PromptSaveLog();
+}
+
 void MainWindow::on_action_About_triggered()
 {
   AboutDialog about(this);
