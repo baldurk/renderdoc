@@ -1303,11 +1303,8 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
         continue;
 
       // does it match any other RTV?
-      for(int j = 0; j < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; j++)
+      for(int j = i + 1; j < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; j++)
       {
-        if(i == j)
-          continue;
-
         if(rtvRanges[i].Intersects(rtvRanges[j]))
         {
           valid = false;
@@ -1357,11 +1354,8 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
       }
 
       // or another UAV?
-      for(int j = 0; j < numUAVs; j++)
+      for(int j = i + 1; j < numUAVs; j++)
       {
-        if(i == j)
-          continue;
-
         if(uavRanges[i].Intersects(uavRanges[j]))
         {
           valid = false;
