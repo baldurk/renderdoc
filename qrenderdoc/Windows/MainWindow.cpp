@@ -808,7 +808,9 @@ void MainWindow::setLogHasErrors(bool errors)
   if(errors)
   {
     QPixmap icon(QString::fromUtf8(":/Resources/delete.png"));
-    statusIcon->setPixmap(m_messageAlternate ? QPixmap(icon.width(), icon.height()) : icon);
+    QPixmap empty(icon.width(), icon.height());
+    empty.fill(Qt::transparent);
+    statusIcon->setPixmap(m_messageAlternate ? empty : icon);
 
     QString text;
     text = tr("%1 loaded. Log has %2 errors, warnings or performance notes. "
