@@ -127,6 +127,7 @@
     <addaction name="action_Mesh_Output"/>
     <addaction name="action_Errors_and_Warnings"/>
     <addaction name="action_Timeline"/>
+    <addaction name="action_Statistics_Viewer"/>
    </widget>
    <widget class="QMenu" name="menu_Help">
     <property name="title">
@@ -381,6 +382,11 @@
   <action name="action_Clear_Capture_History">
    <property name="text">
     <string>Clear History</string>
+   </property>
+  </action>
+  <action name="action_Statistics_Viewer">
+   <property name="text">
+    <string>Statisti&amp;cs Viewer</string>
    </property>
   </action>
  </widget>

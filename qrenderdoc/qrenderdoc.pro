@@ -132,7 +132,8 @@ SOURCES += Code/qrenderdoc.cpp \
     Code/FormatElement.cpp \
     Windows/BufferViewer.cpp \
     Widgets/Extended/RDTableView.cpp \
-    Windows/DebugMessageView.cpp
+    Windows/DebugMessageView.cpp \
+    Windows/StatisticsViewer.cpp
 
 HEADERS += Code/CaptureContext.h \
     Code/qprocessinfo.h \
@@ -169,7 +170,8 @@ HEADERS += Code/CaptureContext.h \
     Widgets/BufferFormatSpecifier.h \
     Windows/BufferViewer.h \
     Widgets/Extended/RDTableView.h \
-    Windows/DebugMessageView.h
+    Windows/DebugMessageView.h \
+    Windows/StatisticsViewer.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
@@ -190,7 +192,8 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Widgets/BufferFormatSpecifier.ui \
     Windows/BufferViewer.ui \
     Windows/ShaderViewer.ui \
-    Windows/DebugMessageView.ui
+    Windows/DebugMessageView.ui \
+    Windows/StatisticsViewer.ui
 
 RESOURCES += resources.qrc
 

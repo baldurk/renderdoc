@@ -41,6 +41,7 @@
 #include "ConstantBufferPreviewer.h"
 #include "DebugMessageView.h"
 #include "EventBrowser.h"
+#include "StatisticsViewer.h"
 #include "TextureViewer.h"
 #include "ui_MainWindow.h"
 #include "version.h"
@@ -1063,6 +1064,16 @@ void MainWindow::on_action_Errors_and_Warnings_triggered()
     ToolWindowManager::raiseToolWindow(debugMessages);
   else
     ui->toolWindowManager->addToolWindow(debugMessages, mainToolArea());
+}
+
+void MainWindow::on_action_Statistics_Viewer_triggered()
+{
+  StatisticsViewer *stats = m_Ctx->statisticsViewer();
+
+  if(ui->toolWindowManager->toolWindows().contains(stats))
+    ToolWindowManager::raiseToolWindow(stats);
+  else
+    ui->toolWindowManager->addToolWindow(stats, mainToolArea());
 }
 
 void MainWindow::on_action_Resolve_Symbols_triggered()

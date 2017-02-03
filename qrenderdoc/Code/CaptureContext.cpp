@@ -41,6 +41,7 @@
 #include "Windows/EventBrowser.h"
 #include "Windows/MainWindow.h"
 #include "Windows/PipelineState/PipelineStateViewer.h"
+#include "Windows/StatisticsViewer.h"
 #include "Windows/TextureViewer.h"
 #include "QRDUtils.h"
 
@@ -531,6 +532,18 @@ DebugMessageView *CaptureContext::debugMessageView()
   return m_DebugMessageView;
 }
 
+StatisticsViewer *CaptureContext::statisticsViewer()
+{
+  if(m_StatisticsViewer)
+    return m_StatisticsViewer;
+
+  m_StatisticsViewer = new StatisticsViewer(this, m_MainWindow);
+  m_StatisticsViewer->setObjectName("statisticsViewer");
+  setupDockWindow(m_StatisticsViewer);
+
+  return m_StatisticsViewer;
+}
+
 void CaptureContext::showEventBrowser()
 {
   m_MainWindow->showEventBrowser();
@@ -566,6 +579,11 @@ void CaptureContext::showDebugMessageView()
   m_MainWindow->showDebugMessageView();
 }
 
+void CaptureContext::showStatisticsViewer()
+{
+  m_MainWindow->showStatisticsViewer();
+}
+
 QWidget *CaptureContext::createToolWindow(const QString &objectName)
 {
   if(objectName == "textureViewer")
@@ -596,6 +614,10 @@ QWidget *CaptureContext::createToolWindow(const QString &objectName)
   {
     return debugMessageView();
   }
+  else if(objectName == "statisticsViewer")
+  {
+    return statisticsViewer();
+  }
 
   return NULL;
 }
@@ -616,6 +638,8 @@ void CaptureContext::windowClosed(QWidget *window)
     m_MeshPreview = NULL;
   else if((QWidget *)m_DebugMessageView == window)
     m_DebugMessageView = NULL;
+  else if((QWidget *)m_StatisticsViewer == window)
+    m_StatisticsViewer = NULL;
   else
     qCritical() << "Unrecognised window being closed: " << window;
 }

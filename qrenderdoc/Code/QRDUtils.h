@@ -242,7 +242,7 @@ struct ToStr
       case eResType_Texture2D: return "Texture 2D";
       case eResType_TextureRect: return "Texture Rect";
       case eResType_Texture2DArray: return "Texture 2D Array";
-      case eResType_Texture2DMS: return "Texture 2D MS Array";
+      case eResType_Texture2DMS: return "Texture 2D MS";
       case eResType_Texture2DMSArray: return "Texture 2D MS Array";
       case eResType_Texture3D: return "Texture 3D";
       case eResType_TextureCube: return "Texture Cube";
@@ -454,13 +454,17 @@ struct Formatter
   static void setParams(int minFigures, int maxFigures, int expNegCutoff, int expPosCutoff);
 
   static QString Format(double f, bool hex = false);
+  static QString Format(uint64_t u, bool hex = false)
+  {
+    return QString("%1").arg(u, hex ? 16 : 0, hex ? 16 : 10, QChar('0'));
+  }
   static QString Format(uint32_t u, bool hex = false)
   {
     return QString("%1").arg(u, hex ? 8 : 0, hex ? 16 : 10, QChar('0'));
   }
   static QString Format(uint16_t u, bool hex = false)
   {
-    return QString("%1").arg(u, hex ? 8 : 0, hex ? 16 : 10, QChar('0'));
+    return QString("%1").arg(u, hex ? 4 : 0, hex ? 16 : 10, QChar('0'));
   }
   static QString Format(int32_t i, bool hex = false) { return QString::number(i); }
 private:

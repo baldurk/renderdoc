@@ -63,6 +63,7 @@ class BufferViewer;
 class TextureViewer;
 class CaptureDialog;
 class DebugMessageView;
+class StatisticsViewer;
 class QProgressDialog;
 
 class CaptureContext
@@ -140,6 +141,7 @@ public:
   PipelineStateViewer *pipelineViewer();
   CaptureDialog *captureDialog();
   DebugMessageView *debugMessageView();
+  StatisticsViewer *statisticsViewer();
   void setupDockWindow(QWidget *shad);
 
   bool hasEventBrowser() { return m_EventBrowser != NULL; }
@@ -149,6 +151,7 @@ public:
   bool hasMeshPreview() { return m_MeshPreview != NULL; }
   bool hasCaptureDialog() { return m_CaptureDialog != NULL; }
   bool hasDebugMessageView() { return m_DebugMessageView != NULL; }
+  bool hasStatisticsViewer() { return m_StatisticsViewer != NULL; }
   void showEventBrowser();
   void showAPIInspector();
   void showTextureViewer();
@@ -156,6 +159,7 @@ public:
   void showPipelineViewer();
   void showCaptureDialog();
   void showDebugMessageView();
+  void showStatisticsViewer();
 
   QWidget *createToolWindow(const QString &objectName);
   void windowClosed(QWidget *window);
@@ -229,4 +233,5 @@ private:
   PipelineStateViewer *m_PipelineViewer = NULL;
   CaptureDialog *m_CaptureDialog = NULL;
   DebugMessageView *m_DebugMessageView = NULL;
+  StatisticsViewer *m_StatisticsViewer = NULL;
 };

@@ -520,6 +520,7 @@
     <ClCompile Include="generated\moc_ScintillaEditBase.cpp" />
     <ClCompile Include="generated\moc_ScintillaQt.cpp" />
     <ClCompile Include="generated\moc_ShaderViewer.cpp" />
+    <ClCompile Include="generated\moc_StatisticsViewer.cpp" />
     <ClCompile Include="generated\moc_TextureGoto.cpp" />
     <ClCompile Include="generated\moc_TextureSaveDialog.cpp" />
     <ClCompile Include="generated\moc_TextureViewer.cpp" />
@@ -563,6 +564,7 @@
     <ClCompile Include="Windows\PipelineState\PipelineStateViewer.cpp" />
     <ClCompile Include="Windows\PipelineState\VulkanPipelineStateViewer.cpp" />
     <ClCompile Include="Windows\ShaderViewer.cpp" />
+    <ClCompile Include="Windows\StatisticsViewer.cpp" />
     <ClCompile Include="Windows\TextureViewer.cpp" />
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManager.cpp">
       <WarningLevel>Level3</WarningLevel>
@@ -660,6 +662,7 @@
     <ClInclude Include="generated\ui_PipelineStateViewer.h" />
     <ClInclude Include="generated\ui_ResourcePreview.h" />
     <ClInclude Include="generated\ui_ShaderViewer.h" />
+    <ClInclude Include="generated\ui_StatisticsViewer.h" />
     <ClInclude Include="generated\ui_TextureSaveDialog.h" />
     <ClInclude Include="generated\ui_TextureViewer.h" />
     <ClInclude Include="generated\ui_ThumbnailStrip.h" />
@@ -697,6 +700,7 @@
     <ClInclude Include="Windows\PipelineState\PipelineStateViewer.h" />
     <ClInclude Include="Windows\PipelineState\VulkanPipelineStateViewer.h" />
     <ClInclude Include="Windows\ShaderViewer.h" />
+    <ClInclude Include="Windows\StatisticsViewer.h" />
     <ClInclude Include="Windows\TextureViewer.h" />
     <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManager.h" />
     <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManagerArea.h" />
@@ -722,6 +726,7 @@
     <None Include="Windows\PipelineState\PipelineStateViewer.ui" />
     <None Include="Windows\PipelineState\VulkanPipelineStateViewer.ui" />
     <None Include="Windows\ShaderViewer.ui" />
+    <None Include="Windows\StatisticsViewer.ui" />
     <None Include="Windows\TextureViewer.ui" />
   </ItemGroup>
   <ItemGroup>

@@ -79,6 +79,7 @@ public:
   void showPipelineViewer() { on_action_Pipeline_State_triggered(); }
   void showCaptureDialog() { on_action_Capture_Log_triggered(); }
   void showDebugMessageView() { on_action_Errors_and_Warnings_triggered(); }
+  void showStatisticsViewer() { on_action_Statistics_Viewer_triggered(); }
 private slots:
   // automatic slots
   void on_action_Exit_triggered();
@@ -93,6 +94,7 @@ private slots:
   void on_action_Pipeline_State_triggered();
   void on_action_Capture_Log_triggered();
   void on_action_Errors_and_Warnings_triggered();
+  void on_action_Statistics_Viewer_triggered();
   void on_action_Inject_into_Process_triggered();
   void on_action_Resolve_Symbols_triggered();
 

@@ -126,6 +126,21 @@ struct array
     return *this;
   }
 
+  void create(int sz)
+  {
+    Delete();
+    count = sz;
+    if(sz == 0)
+    {
+      elems = 0;
+    }
+    else
+    {
+      elems = (T *)allocate(sizeof(T) * count);
+      memset(elems, 0, sizeof(T) * count);
+    }
+  }
+
   // provide some of the familiar stl interface
   size_t size() const { return (size_t)count; }
   void clear() { Delete(); }
