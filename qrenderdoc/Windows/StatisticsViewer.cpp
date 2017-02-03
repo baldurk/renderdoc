@@ -22,8 +22,6 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#pragma once
-
 #include "StatisticsViewer.h"
 #include <QFontDatabase>
 #include "ui_StatisticsViewer.h"

@@ -60,7 +60,7 @@ private slots:
   void messages_toggled();
 
 private:
-  void paintEvent(QPaintEvent *e) override;
+  void paintEvent(QPaintEvent *e);
   Ui::DebugMessageView *ui;
   CaptureContext *m_Ctx;
 
