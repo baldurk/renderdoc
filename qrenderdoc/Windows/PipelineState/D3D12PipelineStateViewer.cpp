@@ -1730,10 +1730,16 @@ void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
   {
     if(tex->resType == eResType_Buffer)
     {
-      // TODO Buffer viewer
-      // var viewer = new BufferViewer(m_Core, false);
-      // viewer.ViewRawBuffer(false, 0, ulong.MaxValue, tex.ID);
-      // viewer.Show(m_DockContent.DockPanel);
+      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+
+      viewer->ViewTexture(0, 0, tex->ID);
+
+      m_Ctx->setupDockWindow(viewer);
+
+      ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+      ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+      manager->addToolWindow(viewer, ref);
     }
     else
     {
@@ -1900,10 +1906,16 @@ void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
     }
 
     {
-      // TODO Buffer viewer
-      // var viewer = new BufferViewer(m_Core, false);
-      // viewer.ViewRawBuffer(true, buf.offset, buf.size, buf.ID, format);
-      // viewer.Show(m_DockContent.DockPanel);
+      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+
+      viewer->ViewBuffer(offs, size, view.res.Resource, format);
+
+      m_Ctx->setupDockWindow(viewer);
+
+      ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+      ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+      manager->addToolWindow(viewer, ref);
     }
   }
 }
@@ -1925,12 +1937,18 @@ void D3D12PipelineStateViewer::cbuffer_itemActivated(QTreeWidgetItem *item, int 
   if(cb.idx == ~0U)
   {
     // unused cbuffer, open regular buffer viewer
-    // TODO Buffer Viewer
-    // var viewer = new BufferViewer(m_Core, false);
+    BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
 
-    // var buf = stage.Spaces[tag.space].ConstantBuffers[tag.reg];
-    // viewer.ViewRawBuffer(true, buf.Offset, buf.ByteSize, buf.Buffer);
-    // viewer.Show(m_DockContent.DockPanel);
+    const D3D12PipelineState::CBuffer &buf = stage->Spaces[cb.space].ConstantBuffers[cb.reg];
+
+    viewer->ViewBuffer(buf.Offset, buf.ByteSize, buf.Buffer);
+
+    m_Ctx->setupDockWindow(viewer);
+
+    ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+    ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+    manager->addToolWindow(viewer, ref);
 
     return;
   }
@@ -1968,10 +1986,16 @@ void D3D12PipelineStateViewer::on_iaBuffers_itemActivated(QTreeWidgetItem *item,
 
     if(buf.id != ResourceId())
     {
-      // TODO Buffer Viewer
-      // var viewer = new BufferViewer(m_Core, false);
-      // viewer.ViewRawBuffer(true, buf.offset, ulong.MaxValue, buf.id);
-      // viewer.Show(m_DockContent.DockPanel);
+      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+
+      viewer->ViewBuffer(buf.offset, UINT64_MAX, buf.id);
+
+      m_Ctx->setupDockWindow(viewer);
+
+      ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+      ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+      manager->addToolWindow(viewer, ref);
     }
   }
 }

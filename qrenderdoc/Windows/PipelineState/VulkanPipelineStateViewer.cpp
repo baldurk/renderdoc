@@ -2059,10 +2059,16 @@ void VulkanPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, in
     {
       if(tex->resType == eResType_Buffer)
       {
-        // TODO Buffer viewer
-        // var viewer = new BufferViewer(m_Core, false);
-        // viewer.ViewRawBuffer(false, 0, ulong.MaxValue, tex.ID);
-        // viewer.Show(m_DockContent.DockPanel);
+        BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+
+        viewer->ViewTexture(0, 0, tex->ID);
+
+        m_Ctx->setupDockWindow(viewer);
+
+        ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+        ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+        manager->addToolWindow(viewer, ref);
       }
       else
       {
@@ -2122,10 +2128,16 @@ void VulkanPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, in
 
     if(buf.ID != ResourceId())
     {
-      // TODO Buffer viewer
-      // var viewer = new BufferViewer(m_Core, false);
-      // viewer.ViewRawBuffer(true, buf.offset, buf.size, buf.ID, format);
-      // viewer.Show(m_DockContent.DockPanel);
+      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+
+      viewer->ViewBuffer(buf.offset, buf.size, buf.ID, format);
+
+      m_Ctx->setupDockWindow(viewer);
+
+      ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+      ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+      manager->addToolWindow(viewer, ref);
     }
   }
 }
@@ -2178,10 +2190,16 @@ void VulkanPipelineStateViewer::on_viBuffers_itemActivated(QTreeWidgetItem *item
 
     if(buf.id != ResourceId())
     {
-      // TODO Buffer Viewer
-      // var viewer = new BufferViewer(m_Core, false);
-      // viewer.ViewRawBuffer(true, buf.offset, ulong.MaxValue, buf.id);
-      // viewer.Show(m_DockContent.DockPanel);
+      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+
+      viewer->ViewBuffer(buf.offset, UINT64_MAX, buf.id);
+
+      m_Ctx->setupDockWindow(viewer);
+
+      ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+      ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+      manager->addToolWindow(viewer, ref);
     }
   }
 }
