@@ -875,8 +875,7 @@ void MainWindow::messageCheck()
         if(!msgs.empty())
         {
           m_Ctx->AddMessages(msgs);
-          // TODO Debug messages
-          // m_Ctx->debugmessages().RefreshMessageList();
+          m_Ctx->debugMessageView()->RefreshMessageList();
         }
 
         if(m_Ctx->UnreadMessageCount > 0)
