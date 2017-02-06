@@ -503,6 +503,7 @@
     <ClCompile Include="generated\moc_EventBrowser.cpp" />
     <ClCompile Include="generated\moc_GLPipelineStateViewer.cpp" />
     <ClCompile Include="generated\moc_LiveCapture.cpp" />
+    <ClCompile Include="generated\moc_OrderedListEditor.cpp" />
     <ClCompile Include="generated\moc_PipelineStateViewer.cpp" />
     <ClCompile Include="generated\moc_QRDUtils.cpp" />
     <ClCompile Include="generated\moc_RangeHistogram.cpp" />
@@ -553,6 +554,7 @@
     <ClCompile Include="Windows\Dialogs\AboutDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\LiveCapture.cpp" />
+    <ClCompile Include="Windows\Dialogs\OrderedListEditor.cpp" />
     <ClCompile Include="Windows\Dialogs\SettingsDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\TextureSaveDialog.cpp" />
     <ClCompile Include="Windows\EventBrowser.cpp" />
@@ -663,6 +665,7 @@
     <ClInclude Include="generated\ui_GLPipelineStateViewer.h" />
     <ClInclude Include="generated\ui_LiveCapture.h" />
     <ClInclude Include="generated\ui_MainWindow.h" />
+    <ClInclude Include="generated\ui_OrderedListEditor.h" />
     <ClInclude Include="generated\ui_PipelineStateViewer.h" />
     <ClInclude Include="generated\ui_ResourcePreview.h" />
     <ClInclude Include="generated\ui_SettingsDialog.h" />
@@ -694,6 +697,7 @@
     <ClInclude Include="Windows\Dialogs\AboutDialog.h" />
     <ClInclude Include="Windows\Dialogs\CaptureDialog.h" />
     <ClInclude Include="Windows\Dialogs\LiveCapture.h" />
+    <ClInclude Include="Windows\Dialogs\OrderedListEditor.h" />
     <ClInclude Include="Windows\Dialogs\SettingsDialog.h" />
     <ClInclude Include="Windows\Dialogs\TextureSaveDialog.h" />
     <ClInclude Include="Windows\EventBrowser.h" />
@@ -724,6 +728,7 @@
     <None Include="Windows\Dialogs\AboutDialog.ui" />
     <None Include="Windows\Dialogs\CaptureDialog.ui" />
     <None Include="Windows\Dialogs\LiveCapture.ui" />
+    <None Include="Windows\Dialogs\OrderedListEditor.ui" />
     <None Include="Windows\Dialogs\SettingsDialog.ui" />
     <None Include="Windows\Dialogs\TextureSaveDialog.ui" />
     <None Include="Windows\EventBrowser.ui" />

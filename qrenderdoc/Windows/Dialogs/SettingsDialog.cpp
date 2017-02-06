@@ -26,6 +26,7 @@
 #include "Code/CaptureContext.h"
 #include "Code/PersistantConfig.h"
 #include "Code/QRDUtils.h"
+#include "Windows/Dialogs/OrderedListEditor.h"
 #include "CaptureDialog.h"
 #include "ui_SettingsDialog.h"
 
@@ -203,7 +204,16 @@ void SettingsDialog::on_AlwaysReplayLocally_toggled(bool checked)
 // core
 void SettingsDialog::on_chooseSearchPaths_clicked()
 {
-  // TODO ordered list editor
+  OrderedListEditor listEd(tr("Shader debug info search paths"), tr("Search Path"),
+                           BrowseMode::Folder, this);
+
+  listEd.setItems(m_Ctx->Config.GetConfigSetting("shader.debug.searchPaths")
+                      .split(QChar(';'), QString::SkipEmptyParts));
+
+  int res = RDDialog::show(&listEd);
+
+  if(res)
+    m_Ctx->Config.SetConfigSetting("shader.debug.searchPaths", listEd.getItems().join(QChar(';')));
 }
 
 // texture viewer
@@ -320,7 +330,7 @@ void SettingsDialog::on_browseAdbPath_clicked()
   m_Ctx->Config.Serialize();
 }
 
-void SettingsDialog::on_MaxConnectTimeout_valueChanged(double timeout)
+void SettingsDialog::on_Android_MaxConnectTimeout_valueChanged(double timeout)
 {
   m_Ctx->Config.Android_MaxConnectTimeout = ui->Android_MaxConnectTimeout->value();
 

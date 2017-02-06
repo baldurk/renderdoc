@@ -84,7 +84,7 @@ private slots:
   // android
   void on_browseTempCaptureDirectory_clicked();
   void on_browseAdbPath_clicked();
-  void on_MaxConnectTimeout_valueChanged(double timeout);
+  void on_Android_MaxConnectTimeout_valueChanged(double timeout);
   void on_Android_AdbExecutablePath_textEdited(const QString &path);
 
   // manual slots

@@ -135,6 +135,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/DebugMessageView.cpp \
     Windows/StatisticsViewer.cpp \
     Windows/Dialogs/SettingsDialog.cpp \
+    Windows/Dialogs/OrderedListEditor.cpp \
     Widgets/Extended/RDTableWidget.cpp
 
 HEADERS += Code/CaptureContext.h \
@@ -175,6 +176,7 @@ HEADERS += Code/CaptureContext.h \
     Windows/DebugMessageView.h \
     Windows/StatisticsViewer.h \
     Windows/Dialogs/SettingsDialog.h \
+    Windows/Dialogs/OrderedListEditor.h \
     Widgets/Extended/RDTableWidget.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
@@ -198,7 +200,8 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/ShaderViewer.ui \
     Windows/DebugMessageView.ui \
     Windows/StatisticsViewer.ui \
-    Windows/Dialogs/SettingsDialog.ui
+    Windows/Dialogs/SettingsDialog.ui \
+    Windows/Dialogs/OrderedListEditor.ui
 
 RESOURCES += resources.qrc
 

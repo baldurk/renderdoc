@@ -484,6 +484,12 @@
     <ClCompile Include="generated\moc_SettingsDialog.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\Dialogs\OrderedListEditor.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_OrderedListEditor.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
     <ClCompile Include="Widgets\Extended\RDTableWidget.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
@@ -867,6 +873,12 @@
     <ClInclude Include="generated\ui_SettingsDialog.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+    <ClInclude Include="Windows\Dialogs\OrderedListEditor.h">
+      <Filter>Windows\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_OrderedListEditor.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
     <ClInclude Include="Widgets\Extended\RDTableWidget.h">
       <Filter>Widgets\Extended</Filter>
     </ClInclude>
@@ -1109,6 +1121,9 @@
     <None Include="Windows\DebugMessageView.ui" />
     <None Include="Windows\StatisticsViewer.ui" />
     <None Include="Windows\Dialogs\SettingsDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </None>
+    <None Include="Windows\Dialogs\OrderedListEditor.ui">
       <Filter>Windows\Dialogs</Filter>
     </None>
   </ItemGroup>
