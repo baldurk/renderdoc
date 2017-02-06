@@ -36,6 +36,10 @@ make -C build
 
 Configuration is available for cmake, [documented elsewhere](https://cmake.org/documentation/). You can override the compiler with environment variables `CC` and `CXX`, and there are some options you can toggle in the root CMakeLists files such as `cmake -DENABLE_GL=OFF`.
 
+### Mac
+
+Mac support is pretty early and while it will compile, it's not usable for debugging yet. Builds happen with cmake the same way as Linux.
+
 # Code of Conduct
 
 I want to ensure that anyone can contribute to RenderDoc with only the next bug to worry about. For that reason the project has adopted the [contributor covenent](CODE_OF_CONDUCT.md) as a code of conduct to be enforced for anyone taking part in RenderDoc development. If you have any queries in this regard you can get in touch with me [directly over email](mailto:baldurk@baldurk.org).
@@ -121,6 +125,15 @@ sudo pacman -S libx11 libxcb xcb-util-keysyms mesa libgl qt5-base qt5-x11extras 
 ```
 
 If you know the required packages for another distribution, please share (or pull request this file!)
+
+### Mac
+
+Mac requires a recent version of CMake, and the same Qt version as the other platforms (at least 5.6.2). If you're using [homebrew](http://brew.sh) then this will do the trick:
+
+```
+brew install cmake qt5
+brew link qt5 --force
+```
 
 # Where to Start
 
