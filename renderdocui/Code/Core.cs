@@ -602,12 +602,19 @@ namespace renderdocui.Code
 
             if (local)
             {
-                m_LogWatcher = new FileSystemWatcher(Path.GetDirectoryName(m_LogFile), Path.GetFileName(m_LogFile));
-                m_LogWatcher.EnableRaisingEvents = true;
-                m_LogWatcher.NotifyFilter = NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.LastAccess | NotifyFilters.LastWrite;
-                m_LogWatcher.Created += new FileSystemEventHandler(OnLogfileChanged);
-                m_LogWatcher.Changed += new FileSystemEventHandler(OnLogfileChanged);
-                m_LogWatcher.SynchronizingObject = m_MainWindow; // callbacks on UI thread please
+                try
+                {
+                    m_LogWatcher = new FileSystemWatcher(Path.GetDirectoryName(m_LogFile), Path.GetFileName(m_LogFile));
+                    m_LogWatcher.EnableRaisingEvents = true;
+                    m_LogWatcher.NotifyFilter = NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.LastAccess | NotifyFilters.LastWrite;
+                    m_LogWatcher.Created += new FileSystemEventHandler(OnLogfileChanged);
+                    m_LogWatcher.Changed += new FileSystemEventHandler(OnLogfileChanged);
+                    m_LogWatcher.SynchronizingObject = m_MainWindow; // callbacks on UI thread please
+                }
+                catch (ArgumentException)
+                {
+                    // likely an "invalid" directory name - FileSystemWatcher doesn't support UNC paths properly
+                }
             }
 
             List<ILogViewerForm> logviewers = new List<ILogViewerForm>();
