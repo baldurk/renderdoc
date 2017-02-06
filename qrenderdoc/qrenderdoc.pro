@@ -134,7 +134,8 @@ SOURCES += Code/qrenderdoc.cpp \
     Widgets/Extended/RDTableView.cpp \
     Windows/DebugMessageView.cpp \
     Windows/StatisticsViewer.cpp \
-    Windows/Dialogs/SettingsDialog.cpp
+    Windows/Dialogs/SettingsDialog.cpp \
+    Widgets/Extended/RDTableWidget.cpp
 
 HEADERS += Code/CaptureContext.h \
     Code/qprocessinfo.h \
@@ -173,7 +174,8 @@ HEADERS += Code/CaptureContext.h \
     Widgets/Extended/RDTableView.h \
     Windows/DebugMessageView.h \
     Windows/StatisticsViewer.h \
-    Windows/Dialogs/SettingsDialog.h
+    Windows/Dialogs/SettingsDialog.h \
+    Widgets/Extended/RDTableWidget.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \

@@ -484,6 +484,12 @@
     <ClCompile Include="generated\moc_SettingsDialog.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\Extended\RDTableWidget.cpp">
+      <Filter>Widgets\Extended</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_RDTableWidget.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -860,6 +866,9 @@
     </ClInclude>
     <ClInclude Include="generated\ui_SettingsDialog.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Widgets\Extended\RDTableWidget.h">
+      <Filter>Widgets\Extended</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

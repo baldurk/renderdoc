@@ -513,6 +513,7 @@
     <ClCompile Include="generated\moc_RDListView.cpp" />
     <ClCompile Include="generated\moc_RDListWidget.cpp" />
     <ClCompile Include="generated\moc_RDTableView.cpp" />
+    <ClCompile Include="generated\moc_RDTableWidget.cpp" />
     <ClCompile Include="generated\moc_RDTreeWidget.cpp" />
     <ClCompile Include="generated\moc_ResourcePreview.cpp" />
     <ClCompile Include="generated\moc_ScintillaDocument.cpp" />
@@ -534,6 +535,7 @@
     <ClCompile Include="Widgets\BufferFormatSpecifier.cpp" />
     <ClCompile Include="Widgets\Extended\RDListWidget.cpp" />
     <ClCompile Include="Widgets\Extended\RDTableView.cpp" />
+    <ClCompile Include="Widgets\Extended\RDTableWidget.cpp" />
     <ClCompile Include="Widgets\Extended\RDTreeWidget.cpp" />
     <ClCompile Include="Widgets\RangeHistogram.cpp" />
     <ClCompile Include="Widgets\Extended\RDDoubleSpinBox.cpp" />
@@ -674,6 +676,7 @@
     <ClInclude Include="Widgets\BufferFormatSpecifier.h" />
     <ClInclude Include="Widgets\Extended\RDListWidget.h" />
     <ClInclude Include="Widgets\Extended\RDTableView.h" />
+    <ClInclude Include="Widgets\Extended\RDTableWidget.h" />
     <ClInclude Include="Widgets\Extended\RDTreeWidget.h" />
     <ClInclude Include="Widgets\RangeHistogram.h" />
     <ClInclude Include="Widgets\Extended\RDDoubleSpinBox.h" />
