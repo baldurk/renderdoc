@@ -29,6 +29,7 @@
 #include <QMap>
 #include <QString>
 #include <QVariant>
+#include "RemoteHost.h"
 
 typedef QMap<QString, QString> QStringMap;
 
@@ -65,7 +66,7 @@ typedef QMap<QString, QString> QStringMap;
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, AlwaysReplayLocally, false)                       \
                                                                                            \
-  CONFIG_SETTING_VAL(public, int, int, LocalProxy, 0)                                      \
+  CONFIG_SETTING_VAL(public, int, int, LocalProxyAPI, -1)                                  \
                                                                                            \
   CONFIG_SETTING_VAL(public, int, TimeUnit, EventBrowser_TimeUnit, TimeUnit::Microseconds) \
                                                                                            \
@@ -107,7 +108,9 @@ typedef QMap<QString, QString> QStringMap;
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, AllowGlobalHook, false)                           \
                                                                                            \
-  CONFIG_SETTING(private, QVariantMap, QStringMap, ConfigSettings)
+  CONFIG_SETTING(private, QVariantMap, QStringMap, ConfigSettings)                         \
+                                                                                           \
+  CONFIG_SETTING(private, QVariantList, QList<RemoteHost>, RemoteHostList)
 
 class PersistantConfig
 {
@@ -121,10 +124,16 @@ public:
     Count,
   };
 
+  // Runtime list of dynamically allocated hosts.
+  // Saved to/from private RemoteHostList in CONFIG_SETTINGS()
+  QList<RemoteHost *> RemoteHosts;
+  void AddAndroidHosts();
+
   CONFIG_SETTINGS()
 
 public:
   PersistantConfig() {}
+  ~PersistantConfig();
   bool Deserialize(QString filename);
   bool Serialize(QString filename = "");
 

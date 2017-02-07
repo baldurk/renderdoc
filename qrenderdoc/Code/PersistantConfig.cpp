@@ -26,6 +26,7 @@
 #include <QDebug>
 #include <QDir>
 #include "QRDUtils.h"
+#include "RemoteHost.h"
 #include "renderdoc_replay.h"
 
 #define JSON_ID "rdocConfigData"
@@ -59,6 +60,16 @@ QVariantList convertToVariant(const QList<QString> &val)
   return ret;
 }
 
+template <>
+QVariantList convertToVariant(const QList<RemoteHost> &val)
+{
+  QVariantList ret;
+  ret.reserve(val.count());
+  for(const RemoteHost &s : val)
+    ret.push_back(s);
+  return ret;
+}
+
 template <typename origType, typename variantType>
 origType convertFromVariant(const variantType &val)
 {
@@ -86,7 +97,17 @@ QList<QString> convertFromVariant(const QVariantList &val)
   return ret;
 }
 
-bool PersistantConfig::Deserialize(QString filename)
+template <>
+QList<RemoteHost> convertFromVariant(const QVariantList &val)
+{
+  QList<RemoteHost> ret;
+  ret.reserve(val.count());
+  for(const QVariant &s : val)
+    ret.push_back(RemoteHost(s));
+  return ret;
+}
+
+bool PersistantConfig::Deserialize(const QString &filename)
 {
   QFile f(filename);
 
@@ -161,6 +182,38 @@ void PersistantConfig::applyValues(const QVariantMap &values)
     name = convertFromVariant<type>(values[#name].value<variantType>());
 
   CONFIG_SETTINGS()
+}
+
+void PersistantConfig::AddAndroidHosts()
+{
+  for(int i = RemoteHosts.count() - 1; i >= 0; i--)
+  {
+    if(RemoteHosts[i]->Hostname.startsWith("adb:"))
+      delete RemoteHosts.takeAt(i);
+  }
+
+  QString adbExePath = QFile::exists(Android_AdbExecutablePath) ? Android_AdbExecutablePath : "";
+
+  // Set the config setting as it will be reused when we start the remoteserver etc.
+  SetConfigSetting("adbExePath", adbExePath);
+
+  if(adbExePath.isEmpty())
+    return;    // adb path must be non-empty in the Options dialog.
+
+  rdctype::str androidHosts;
+  RENDERDOC_EnumerateAndroidDevices(&androidHosts);
+  for(const QString &hostName : ToQStr(androidHosts).split(',', QString::SkipEmptyParts))
+  {
+    RemoteHost *host = new RemoteHost();
+    host->Hostname = "adb:" + hostName;
+    RemoteHosts.push_back(host);
+  }
+}
+
+PersistantConfig::~PersistantConfig()
+{
+  for(RemoteHost *h : RemoteHosts)
+    delete h;
 }
 
 void PersistantConfig::SetupFormatting()
