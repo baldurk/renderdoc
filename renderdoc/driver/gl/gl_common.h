@@ -56,11 +56,17 @@ struct GLWindowingData
 };
 
 #elif ENABLED(RDOC_LINUX)
+
+#ifdef RENDERDOC_SUPPORT_GL
 // cheeky way to prevent GL/gl.h from being included, as we want to use
 // glcorearb.h from above
 #define __gl_h_
 #include <GL/glx.h>
 #include "official/glxext.h"
+#elif RENDERDOC_SUPPORT_GLES
+#include "official/egl.h"
+#include "official/eglext.h"
+#endif
 
 struct GLWindowingData
 {
@@ -71,10 +77,17 @@ struct GLWindowingData
     wnd = 0;
   }
 
+#if defined(RENDERDOC_SUPPORT_GL)
   void SetCtx(void *c) { ctx = (GLXContext)c; }
   Display *dpy;
   GLXContext ctx;
   GLXDrawable wnd;
+#elif defined(RENDERDOC_SUPPORT_GLES)
+  void SetCtx(void *c) { ctx = (EGLContext)c; }
+  EGLDisplay dpy;
+  EGLContext ctx;
+  EGLSurface wnd;
+#endif
 };
 
 #elif ENABLED(RDOC_APPLE)

@@ -276,7 +276,7 @@ endif()
 
 set(renderdoc_objects)
 
-if(ENABLE_GL)
+if(ENABLE_GL OR ENABLE_GLES)
     add_subdirectory(driver/gl)
     list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_gl>)
 endif()

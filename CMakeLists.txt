@@ -47,6 +47,7 @@ endfunction(get_git_hash)
 project(RenderDoc CXX C)
 
 option(ENABLE_GL "Enable GL driver" ON)
+option(ENABLE_GLES "Enable GL ES driver" OFF)
 option(ENABLE_VULKAN "Enable Vulkan driver" ON)
 option(ENABLE_RENDERDOCCMD "Enable renderdoccmd" ON)
 option(ENABLE_QRENDERDOC "Enable qrenderdoc" ON)
@@ -64,8 +65,11 @@ if(APPLE)
 endif()
 
 if(ANDROID)
-    message(STATUS "Disabling GL driver on android - no support for EGL/GLES")
+    if(ENABLE_GL)
+        message(STATUS "Disabling GL driver on android and enabling GLES")
+    endif()
     set(ENABLE_GL OFF CACHE BOOL "" FORCE)
+    set(ENABLE_GLES ON CACHE BOOL "" FORCE)
 
     # Android doesn't support the Qt UI for obvious reasons
     message(STATUS "Disabling qrenderdoc for android build")
@@ -95,6 +99,10 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
 
 if(ENABLE_GL)
     add_definitions(-DRENDERDOC_SUPPORT_GL)
+endif()
+
+if(ENABLE_GLES)
+    add_definitions(-DRENDERDOC_SUPPORT_GLES)
 endif()
 
 if(ENABLE_VULKAN)
