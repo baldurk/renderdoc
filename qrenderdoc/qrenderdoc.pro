@@ -102,6 +102,9 @@ SOURCES += Code/qrenderdoc.cpp \
     Code/PersistantConfig.cpp \
     Code/CaptureContext.cpp \
     Code/ScintillaSyntax.cpp \
+    Code/QRDUtils.cpp \
+    Code/FormatElement.cpp \
+    Code/RemoteHost.cpp \
     Windows/Dialogs/AboutDialog.cpp \
     Windows/MainWindow.cpp \
     Windows/EventBrowser.cpp \
@@ -117,7 +120,6 @@ SOURCES += Code/qrenderdoc.cpp \
     Widgets/RangeHistogram.cpp \
     Windows/Dialogs/TextureSaveDialog.cpp \
     Windows/Dialogs/CaptureDialog.cpp \
-    Code/QRDUtils.cpp \
     Windows/Dialogs/LiveCapture.cpp \
     Widgets/Extended/RDListWidget.cpp \
     Windows/APIInspector.cpp \
@@ -129,7 +131,6 @@ SOURCES += Code/qrenderdoc.cpp \
     Widgets/Extended/RDTreeWidget.cpp \
     Windows/ConstantBufferPreviewer.cpp \
     Widgets/BufferFormatSpecifier.cpp \
-    Code/FormatElement.cpp \
     Windows/BufferViewer.cpp \
     Widgets/Extended/RDTableView.cpp \
     Windows/DebugMessageView.cpp \
@@ -144,6 +145,8 @@ HEADERS += Code/CaptureContext.h \
     Code/PersistantConfig.h \
     Code/CommonPipelineState.h \
     Code/ScintillaSyntax.h \
+    Code/RemoteHost.h \
+    Code/QRDUtils.h \
     Windows/Dialogs/AboutDialog.h \
     Windows/MainWindow.h \
     Windows/EventBrowser.h \
@@ -159,7 +162,6 @@ HEADERS += Code/CaptureContext.h \
     Widgets/RangeHistogram.h \
     Windows/Dialogs/TextureSaveDialog.h \
     Windows/Dialogs/CaptureDialog.h \
-    Code/QRDUtils.h \
     Windows/Dialogs/LiveCapture.h \
     Widgets/Extended/RDListWidget.h \
     Windows/APIInspector.h \

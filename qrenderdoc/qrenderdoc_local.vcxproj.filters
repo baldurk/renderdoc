@@ -496,6 +496,9 @@
     <ClCompile Include="generated\moc_RDTableWidget.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Code\RemoteHost.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -881,6 +884,9 @@
     </ClInclude>
     <ClInclude Include="Widgets\Extended\RDTableWidget.h">
       <Filter>Widgets\Extended</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\RemoteHost.h">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

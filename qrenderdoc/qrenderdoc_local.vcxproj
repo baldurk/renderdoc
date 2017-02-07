@@ -489,6 +489,7 @@
     <ClCompile Include="Code\PersistantConfig.cpp" />
     <ClCompile Include="Code\qprocessinfo.cpp" />
     <ClCompile Include="Code\QRDUtils.cpp" />
+    <ClCompile Include="Code\RemoteHost.cpp" />
     <ClCompile Include="Code\ScintillaSyntax.cpp" />
     <ClCompile Include="generated\moc_AboutDialog.cpp" />
     <ClCompile Include="generated\moc_APIInspector.cpp" />
@@ -651,6 +652,7 @@
     <ClInclude Include="Code\PersistantConfig.h" />
     <ClInclude Include="Code\qprocessinfo.h" />
     <ClInclude Include="Code\QRDUtils.h" />
+    <ClInclude Include="Code\RemoteHost.h" />
     <ClInclude Include="Code\ScintillaSyntax.h" />
     <ClInclude Include="generated\ui_AboutDialog.h" />
     <ClInclude Include="generated\ui_APIInspector.h" />
