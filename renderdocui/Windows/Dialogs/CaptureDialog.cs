@@ -729,6 +729,13 @@ namespace renderdocui.Windows.Dialogs
 
         private void exePath_TextChanged(object sender, EventArgs e)
         {
+            // This is likely due to someone pasting a full path copied using
+            // copy path. Removing the quotes is safe in any case
+            if (exePath.Text.StartsWith ("\"") && exePath.Text.EndsWith ("\"") && exePath.Text.Length > 2)
+            {
+                exePath.Text = exePath.Text.Substring(1, exePath.Text.Length - 2);
+            }
+
             UpdateWorkDirHint();
             UpdateGlobalHook();
         }
