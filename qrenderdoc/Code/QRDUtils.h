@@ -560,6 +560,8 @@ public:
       return m_Thread->wait(time);
     return true;
   }
+
+  bool isCurrentThread() { return QThread::currentThread() == m_Thread; }
 };
 
 class QFileFilterModel : public QSortFilterProxyModel
