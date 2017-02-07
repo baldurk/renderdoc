@@ -23,12 +23,16 @@
  ******************************************************************************/
 
 #include "QRDUtils.h"
+#include <QApplication>
 #include <QFileSystemModel>
 #include <QGridLayout>
 #include <QGuiApplication>
 #include <QJsonDocument>
+#include <QKeyEvent>
+#include <QLabel>
 #include <QMenu>
 #include <QMetaMethod>
+#include <QProgressDialog>
 #include <QTreeWidget>
 #include <QtMath>
 
@@ -591,4 +595,105 @@ QString Formatter::Format(double f, bool)
   }
 
   return ret;
+}
+
+class RDProgressDialog : public QProgressDialog
+{
+public:
+  RDProgressDialog(const QString &labelText, QWidget *parent)
+      // we add 1 so that the progress value never hits maximum until we are actually finished
+      : QProgressDialog(labelText, QString(), 0, maxProgress + 1, parent),
+        m_Label(this)
+  {
+    setWindowTitle(tr("Please Wait"));
+    setWindowFlags(Qt::CustomizeWindowHint | Qt::Dialog | Qt::WindowTitleHint);
+    setWindowIcon(QIcon());
+    setMinimumSize(QSize(250, 0));
+    setMaximumSize(QSize(250, 10000));
+    setCancelButton(NULL);
+    setMinimumDuration(0);
+    setWindowModality(Qt::ApplicationModal);
+    setValue(0);
+
+    m_Label.setText(labelText);
+    m_Label.setAlignment(Qt::AlignCenter);
+    m_Label.setWordWrap(true);
+
+    setLabel(&m_Label);
+  }
+
+  void setPercentage(float percent) { setValue(int(maxProgress * percent)); }
+  void setInfinite(bool infinite)
+  {
+    if(infinite)
+    {
+      setMinimum(0);
+      setMaximum(0);
+      setValue(0);
+    }
+    else
+    {
+      setMinimum(0);
+      setMaximum(maxProgress + 1);
+      setValue(0);
+    }
+  }
+
+  void closeAndReset()
+  {
+    setValue(maxProgress);
+    hide();
+    reset();
+  }
+
+protected:
+  void keyPressEvent(QKeyEvent *e) override
+  {
+    if(e->key() == Qt::Key_Escape)
+      return;
+
+    QProgressDialog::keyPressEvent(e);
+  }
+
+  QLabel m_Label;
+
+  static const int maxProgress = 1000;
+};
+
+void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinishedMethod finished,
+                        ProgressUpdateMethod update)
+{
+  RDProgressDialog dialog(labelText, window);
+
+  // if we don't have an update function, set the progress display to be 'infinite spinner'
+  dialog.setInfinite(!update);
+
+  QSemaphore tickerSemaphore(1);
+
+  // start a lambda thread to tick our functions and close the progress dialog when we're done.
+  LambdaThread progressTickerThread([finished, update, &dialog, &tickerSemaphore]() {
+    while(tickerSemaphore.available())
+    {
+      QThread::msleep(30);
+
+      if(update)
+        GUIInvoke::call([update, &dialog]() { dialog.setPercentage(update()); });
+
+      GUIInvoke::call([finished, &tickerSemaphore]() {
+        if(finished())
+          tickerSemaphore.tryAcquire();
+      });
+    }
+
+    GUIInvoke::call([&dialog]() { dialog.closeAndReset(); });
+  });
+  progressTickerThread.start();
+
+  // show the dialog
+  RDDialog::show(&dialog);
+
+  // signal the thread to exit if somehow we got here without it finishing, then wait for it thread
+  // to clean itself up
+  tickerSemaphore.tryAcquire();
+  progressTickerThread.wait();
 }

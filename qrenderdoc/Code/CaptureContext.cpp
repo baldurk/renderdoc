@@ -123,74 +123,65 @@ QString CaptureContext::TempLogFilename(QString appname)
 void CaptureContext::LoadLogfile(const QString &logFile, const QString &origFilename,
                                  bool temporary, bool local)
 {
-  m_Progress = new QProgressDialog(QString("Loading Log"), QString(), 0, 1000, m_MainWindow);
-  m_Progress->setWindowTitle("Please Wait");
-  m_Progress->setWindowFlags(Qt::CustomizeWindowHint | Qt::Dialog | Qt::WindowTitleHint);
-  m_Progress->setWindowIcon(QIcon());
-  m_Progress->setMinimumSize(QSize(250, 0));
-  m_Progress->setMaximumSize(QSize(250, 10000));
-  m_Progress->setCancelButton(NULL);
-  m_Progress->setMinimumDuration(0);
-  m_Progress->setWindowModality(Qt::ApplicationModal);
-  m_Progress->setValue(0);
-
-  QLabel *label = new QLabel(m_Progress);
-
-  label->setText(QString("Loading Log: %1").arg(origFilename));
-  label->setAlignment(Qt::AlignCenter);
-  label->setWordWrap(true);
-
-  m_Progress->setLabel(label);
+  m_LoadInProgress = true;
 
   LambdaThread *thread = new LambdaThread([this, logFile, origFilename, temporary, local]() {
     LoadLogfileThreaded(logFile, origFilename, temporary, local);
-
-    GUIInvoke::call([this, origFilename]() {
-      delete m_Progress;
-      m_Progress = NULL;
-    });
   });
   thread->selfDelete(true);
   thread->start();
+
+  ShowProgressDialog(
+      m_MainWindow, QApplication::translate("CaptureContext", "Loading Log: %1").arg(origFilename),
+      [this]() { return !m_LoadInProgress; }, [this]() { return UpdateLoadProgress(); });
+
+  m_MainWindow->setProgress(-1.0f);
+
+  if(m_LogLoaded)
+  {
+    QVector<ILogViewerForm *> logviewers(m_LogViewers);
+
+    // make sure we're on a consistent event before invoking log viewer forms
+    const FetchDrawcall *draw = &m_Drawcalls.back();
+    while(!draw->children.empty())
+      draw = &draw->children.back();
+
+    SetEventID(logviewers, draw->eventID, true);
+
+    GUIInvoke::blockcall([&logviewers]() {
+      // notify all the registers log viewers that a log has been loaded
+      for(ILogViewerForm *logviewer : logviewers)
+      {
+        if(logviewer)
+          logviewer->OnLogfileLoaded();
+      }
+    });
+  }
+}
+
+float CaptureContext::UpdateLoadProgress()
+{
+  float val = 0.8f * m_LoadProgress + 0.19f * m_PostloadProgress + 0.01f;
+
+  m_MainWindow->setProgress(val);
+
+  return val;
 }
 
 void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &origFilename,
                                          bool temporary, bool local)
 {
-  QFileInfo fi(ConfigFile("UI.config"));
-
   m_LogFile = origFilename;
 
   m_LogLocal = local;
 
-  m_LoadInProgress = true;
+  Config.Serialize();
 
-  if(fi.exists())
-    Config.Serialize(fi.absoluteFilePath());
-
-  float loadProgress = 0.0f;
-  float postloadProgress = 0.0f;
-
-  QSemaphore progressThread(1);
-
-  LambdaThread progressTickerThread([this, &progressThread, &loadProgress, &postloadProgress]() {
-    while(progressThread.available())
-    {
-      QThread::msleep(30);
-
-      float val = 0.8f * loadProgress + 0.19f * postloadProgress + 0.01f;
-
-      GUIInvoke::call([this, val]() {
-        m_Progress->setValue(val * 1000);
-        m_MainWindow->setProgress(val);
-      });
-    }
-    GUIInvoke::call([this]() { m_Progress->setValue(1000); });
-  });
-  progressTickerThread.start();
+  m_LoadProgress = 0.0f;
+  m_PostloadProgress = 0.0f;
 
   // this function call will block until the log is either loaded, or there's some failure
-  m_Renderer.OpenCapture(logFile, &loadProgress);
+  m_Renderer.OpenCapture(logFile, &m_LoadProgress);
 
   // if the renderer isn't running, we hit a failure case so display an error message
   if(!m_Renderer.IsRunning())
@@ -198,23 +189,13 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
     QString errmsg = "Unknown error message";
     errmsg = ToQStr(m_Renderer.GetCreateStatus());
 
-    progressThread.acquire();
-    progressTickerThread.wait();
-
     RDDialog::critical(NULL, "Error opening log",
                        QString("%1\nFailed to open logfile for replay: %2.\n\n"
                                "Check diagnostic log in Help menu for more details.")
                            .arg(logFile)
                            .arg(errmsg));
 
-    GUIInvoke::call([this]() {
-      m_Progress->setValue(1000);
-      m_MainWindow->setProgress(-1.0f);
-      m_Progress->hide();
-    });
-
     m_LoadInProgress = false;
-
     return;
   }
 
@@ -222,23 +203,22 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
   {
     PersistantConfig::AddRecentFile(Config.RecentLogFiles, origFilename, 10);
 
-    if(fi.exists())
-      Config.Serialize(fi.absoluteFilePath());
+    Config.Serialize();
   }
 
   m_EventID = 0;
 
   // fetch initial data like drawcalls, textures and buffers
-  m_Renderer.BlockInvoke([this, &postloadProgress](IReplayRenderer *r) {
+  m_Renderer.BlockInvoke([this](IReplayRenderer *r) {
     r->GetFrameInfo(&m_FrameInfo);
 
     m_APIProps = r->GetAPIProperties();
 
-    postloadProgress = 0.2f;
+    m_PostloadProgress = 0.2f;
 
     r->GetDrawcalls(&m_Drawcalls);
 
-    postloadProgress = 0.4f;
+    m_PostloadProgress = 0.4f;
 
     r->GetSupportedWindowSystems(&m_WinSystems);
 
@@ -267,13 +247,13 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
     for(FetchBuffer &b : m_BufferList)
       m_Buffers[b.ID] = &b;
 
-    postloadProgress = 0.8f;
+    m_PostloadProgress = 0.8f;
 
     r->GetTextures(&m_TextureList);
     for(FetchTexture &t : m_TextureList)
       m_Textures[t.ID] = &t;
 
-    postloadProgress = 0.9f;
+    m_PostloadProgress = 0.9f;
 
     r->GetD3D11PipelineState(&CurD3D11PipelineState);
     r->GetD3D12PipelineState(&CurD3D12PipelineState);
@@ -285,7 +265,7 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
     UnreadMessageCount = 0;
     AddMessages(m_FrameInfo.debugMessages);
 
-    postloadProgress = 1.0f;
+    m_PostloadProgress = 1.0f;
   });
 
   QThread::msleep(20);
@@ -307,36 +287,8 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
             .arg(origFilename));
   }
 
-  m_LogLoaded = true;
-
-  progressThread.acquire();
-  progressTickerThread.wait();
-
-  QVector<ILogViewerForm *> logviewers(m_LogViewers);
-
-  // make sure we're on a consistent event before invoking log viewer forms
-  const FetchDrawcall *draw = &m_Drawcalls.back();
-  while(!draw->children.empty())
-    draw = &draw->children.back();
-
-  SetEventID(logviewers, draw->eventID, true);
-
-  GUIInvoke::blockcall([&logviewers]() {
-    // notify all the registers log viewers that a log has been loaded
-    for(ILogViewerForm *logviewer : logviewers)
-    {
-      if(logviewer)
-        logviewer->OnLogfileLoaded();
-    }
-  });
-
   m_LoadInProgress = false;
-
-  GUIInvoke::call([this]() {
-    m_Progress->setValue(1000);
-    m_MainWindow->setProgress(1.0f);
-    m_Progress->hide();
-  });
+  m_LogLoaded = true;
 }
 
 void CaptureContext::CloseLogfile()

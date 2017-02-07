@@ -64,7 +64,6 @@ class TextureViewer;
 class CaptureDialog;
 class DebugMessageView;
 class StatisticsViewer;
-class QProgressDialog;
 
 class CaptureContext
 {
@@ -83,6 +82,7 @@ public:
   // Control functions
 
   void LoadLogfile(const QString &logFile, const QString &origFilename, bool temporary, bool local);
+
   void CloseLogfile();
 
   void SetEventID(const QVector<ILogViewerForm *> &exclude, uint32_t selectedEventID,
@@ -180,6 +180,10 @@ private:
   bool m_LogLoaded, m_LoadInProgress, m_LogLocal;
   QString m_LogFile;
 
+  float m_LoadProgress = 0.0f;
+  float m_PostloadProgress = 0.0f;
+  float UpdateLoadProgress();
+
   void LoadLogfileThreaded(const QString &logFile, const QString &origFilename, bool temporary,
                            bool local);
 
@@ -224,7 +228,6 @@ private:
   QIcon *m_Icon;
 
   // Windows
-  QProgressDialog *m_Progress;
   MainWindow *m_MainWindow = NULL;
   EventBrowser *m_EventBrowser = NULL;
   APIInspector *m_APIInspector = NULL;

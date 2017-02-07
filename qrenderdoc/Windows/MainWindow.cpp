@@ -1080,45 +1080,15 @@ void MainWindow::on_action_Resolve_Symbols_triggered()
 {
   m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) { r->InitResolver(); });
 
-  QProgressDialog *m_Progress =
-      new QProgressDialog(tr("Please Wait - Resolving Symbols"), QString(), 0, 0, this);
-  m_Progress->setWindowTitle("Please Wait");
-  m_Progress->setWindowFlags(Qt::CustomizeWindowHint | Qt::Dialog | Qt::WindowTitleHint);
-  m_Progress->setWindowIcon(QIcon());
-  m_Progress->setMinimumSize(QSize(250, 0));
-  m_Progress->setMaximumSize(QSize(250, 10000));
-  m_Progress->setCancelButton(NULL);
-  m_Progress->setMinimumDuration(0);
-  m_Progress->setWindowModality(Qt::ApplicationModal);
-  m_Progress->setValue(0);
-
-  QLabel *label = new QLabel(m_Progress);
-
-  label->setText(tr("Please Wait - Resolving Symbols"));
-  label->setAlignment(Qt::AlignCenter);
-  label->setWordWrap(true);
-
-  m_Progress->setLabel(label);
-
-  LambdaThread *thread = new LambdaThread([this, m_Progress]() {
+  ShowProgressDialog(this, tr("Please Wait - Resolving Symbols"), [this]() {
     bool running = true;
-
-    while(running)
-    {
-      // just bail if we managed to get here without a resolver.
-      m_Ctx->Renderer()->BlockInvoke(
-          [&running](IReplayRenderer *r) { running = r->HasCallstacks() && !r->InitResolver(); });
-    }
-
-    GUIInvoke::call([this, m_Progress]() {
-      m_Progress->hide();
-      delete m_Progress;
-      if(m_Ctx->hasAPIInspector())
-        m_Ctx->apiInspector()->on_apiEvents_itemSelectionChanged();
-    });
+    m_Ctx->Renderer()->BlockInvoke(
+        [&running](IReplayRenderer *r) { running = r->HasCallstacks() && !r->InitResolver(); });
+    return !running;
   });
-  thread->selfDelete(true);
-  thread->start();
+
+  if(m_Ctx->hasAPIInspector())
+    m_Ctx->apiInspector()->on_apiEvents_itemSelectionChanged();
 }
 
 void MainWindow::on_action_Settings_triggered()

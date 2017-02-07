@@ -669,3 +669,11 @@ class QTreeWidgetItem;
 
 QTreeWidgetItem *makeTreeNode(const std::initializer_list<QVariant> &values);
 QTreeWidgetItem *makeTreeNode(const QVariantList &values);
+
+class QProgressDialog;
+
+typedef std::function<float()> ProgressUpdateMethod;
+typedef std::function<bool()> ProgressFinishedMethod;
+
+void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinishedMethod finished,
+                        ProgressUpdateMethod update = ProgressUpdateMethod());
