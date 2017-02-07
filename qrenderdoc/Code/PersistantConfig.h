@@ -155,8 +155,8 @@ public:
 
   static void AddRecentFile(QList<QString> &recentList, const QString &file, int maxItems);
 
-  void SetConfigSetting(QString name, QString value);
-  QString GetConfigSetting(QString name);
+  void SetConfigSetting(const QString &name, const QString &value);
+  QString GetConfigSetting(const QString &name);
 
 private:
   bool Deserialize(const QString &filename);

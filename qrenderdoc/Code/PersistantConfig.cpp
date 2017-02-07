@@ -288,13 +288,16 @@ void PersistantConfig::AddRecentFile(QList<QString> &recentList, const QString &
   }
 }
 
-void PersistantConfig::SetConfigSetting(QString name, QString value)
+void PersistantConfig::SetConfigSetting(const QString &name, const QString &value)
 {
+  if(name.isEmpty())
+    return;
+
   ConfigSettings[name] = value;
   RENDERDOC_SetConfigSetting(name.toUtf8().data(), value.toUtf8().data());
 }
 
-QString PersistantConfig::GetConfigSetting(QString name)
+QString PersistantConfig::GetConfigSetting(const QString &name)
 {
   if(ConfigSettings.contains(name))
     return ConfigSettings[name];
