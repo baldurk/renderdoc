@@ -525,6 +525,7 @@
     <ClCompile Include="generated\moc_SettingsDialog.cpp" />
     <ClCompile Include="generated\moc_ShaderViewer.cpp" />
     <ClCompile Include="generated\moc_StatisticsViewer.cpp" />
+    <ClCompile Include="generated\moc_SuggestRemoteDialog.cpp" />
     <ClCompile Include="generated\moc_TextureGoto.cpp" />
     <ClCompile Include="generated\moc_TextureSaveDialog.cpp" />
     <ClCompile Include="generated\moc_TextureViewer.cpp" />
@@ -557,6 +558,7 @@
     <ClCompile Include="Windows\Dialogs\LiveCapture.cpp" />
     <ClCompile Include="Windows\Dialogs\OrderedListEditor.cpp" />
     <ClCompile Include="Windows\Dialogs\SettingsDialog.cpp" />
+    <ClCompile Include="Windows\Dialogs\SuggestRemoteDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\TextureSaveDialog.cpp" />
     <ClCompile Include="Windows\EventBrowser.cpp" />
     <ClCompile Include="3rdparty\flowlayout\FlowLayout.cpp">
@@ -673,6 +675,7 @@
     <ClInclude Include="generated\ui_SettingsDialog.h" />
     <ClInclude Include="generated\ui_ShaderViewer.h" />
     <ClInclude Include="generated\ui_StatisticsViewer.h" />
+    <ClInclude Include="generated\ui_SuggestRemoteDialog.h" />
     <ClInclude Include="generated\ui_TextureSaveDialog.h" />
     <ClInclude Include="generated\ui_TextureViewer.h" />
     <ClInclude Include="generated\ui_ThumbnailStrip.h" />
@@ -701,6 +704,7 @@
     <ClInclude Include="Windows\Dialogs\LiveCapture.h" />
     <ClInclude Include="Windows\Dialogs\OrderedListEditor.h" />
     <ClInclude Include="Windows\Dialogs\SettingsDialog.h" />
+    <ClInclude Include="Windows\Dialogs\SuggestRemoteDialog.h" />
     <ClInclude Include="Windows\Dialogs\TextureSaveDialog.h" />
     <ClInclude Include="Windows\EventBrowser.h" />
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h" />
@@ -732,6 +736,7 @@
     <None Include="Windows\Dialogs\LiveCapture.ui" />
     <None Include="Windows\Dialogs\OrderedListEditor.ui" />
     <None Include="Windows\Dialogs\SettingsDialog.ui" />
+    <None Include="Windows\Dialogs\SuggestRemoteDialog.ui" />
     <None Include="Windows\Dialogs\TextureSaveDialog.ui" />
     <None Include="Windows\EventBrowser.ui" />
     <None Include="Windows\MainWindow.ui" />

@@ -499,6 +499,12 @@
     <ClCompile Include="Code\RemoteHost.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\Dialogs\SuggestRemoteDialog.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_SuggestRemoteDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -888,6 +894,12 @@
     <ClInclude Include="Code\RemoteHost.h">
       <Filter>Code</Filter>
     </ClInclude>
+    <ClInclude Include="Windows\Dialogs\SuggestRemoteDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_SuggestRemoteDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resources.qrc">
@@ -1130,6 +1142,9 @@
       <Filter>Windows\Dialogs</Filter>
     </None>
     <None Include="Windows\Dialogs\OrderedListEditor.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </None>
+    <None Include="Windows\Dialogs\SuggestRemoteDialog.ui">
       <Filter>Windows\Dialogs</Filter>
     </None>
   </ItemGroup>

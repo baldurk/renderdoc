@@ -137,7 +137,8 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/StatisticsViewer.cpp \
     Windows/Dialogs/SettingsDialog.cpp \
     Windows/Dialogs/OrderedListEditor.cpp \
-    Widgets/Extended/RDTableWidget.cpp
+    Widgets/Extended/RDTableWidget.cpp \
+    Windows/Dialogs/SuggestRemoteDialog.cpp
 
 HEADERS += Code/CaptureContext.h \
     Code/qprocessinfo.h \
@@ -179,7 +180,8 @@ HEADERS += Code/CaptureContext.h \
     Windows/StatisticsViewer.h \
     Windows/Dialogs/SettingsDialog.h \
     Windows/Dialogs/OrderedListEditor.h \
-    Widgets/Extended/RDTableWidget.h
+    Widgets/Extended/RDTableWidget.h \
+    Windows/Dialogs/SuggestRemoteDialog.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
@@ -203,7 +205,8 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/DebugMessageView.ui \
     Windows/StatisticsViewer.ui \
     Windows/Dialogs/SettingsDialog.ui \
-    Windows/Dialogs/OrderedListEditor.ui
+    Windows/Dialogs/OrderedListEditor.ui \
+    Windows/Dialogs/SuggestRemoteDialog.ui
 
 RESOURCES += resources.qrc
 
