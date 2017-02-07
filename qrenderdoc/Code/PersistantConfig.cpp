@@ -136,7 +136,7 @@ bool PersistantConfig::Deserialize(const QString &filename)
   return false;
 }
 
-bool PersistantConfig::Serialize(QString filename)
+bool PersistantConfig::Serialize(const QString &filename)
 {
   if(filename != "")
     m_Filename = filename;
@@ -214,6 +214,48 @@ PersistantConfig::~PersistantConfig()
 {
   for(RemoteHost *h : RemoteHosts)
     delete h;
+}
+
+bool PersistantConfig::Load(const QString &filename)
+{
+  bool ret = Deserialize(filename);
+
+  // perform some sanitisation to make sure config is always in sensible state
+  for(const QString &key : ConfigSettings.keys())
+  {
+    // redundantly set each setting so it is flushed to the core dll
+    SetConfigSetting(key, ConfigSettings[key]);
+  }
+
+  // localhost should always be available as a remote host
+  bool foundLocalhost = false;
+
+  for(RemoteHost host : RemoteHostList)
+  {
+    RemoteHosts.push_back(new RemoteHost(host));
+
+    if(host.Hostname == "localhost")
+      foundLocalhost = true;
+  }
+
+  if(!foundLocalhost)
+  {
+    RemoteHost *host = new RemoteHost();
+    host->Hostname = "localhost";
+    RemoteHosts.insert(RemoteHosts.begin(), host);
+  }
+
+  return ret;
+}
+
+bool PersistantConfig::Save()
+{
+  // update serialize list
+  RemoteHostList.clear();
+  for(RemoteHost *host : RemoteHosts)
+    RemoteHostList.push_back(*host);
+
+  return Serialize(m_Filename);
 }
 
 void PersistantConfig::SetupFormatting()

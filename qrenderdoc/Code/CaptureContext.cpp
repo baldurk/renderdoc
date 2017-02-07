@@ -175,7 +175,7 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
 
   m_LogLocal = local;
 
-  Config.Serialize();
+  Config.Save();
 
   m_LoadProgress = 0.0f;
   m_PostloadProgress = 0.0f;
@@ -203,7 +203,7 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
   {
     PersistantConfig::AddRecentFile(Config.RecentLogFiles, origFilename, 10);
 
-    Config.Serialize();
+    Config.Save();
   }
 
   m_EventID = 0;

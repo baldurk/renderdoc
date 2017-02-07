@@ -136,7 +136,7 @@ void SettingsDialog::formatter_valueChanged(int val)
 
   m_Ctx->Config.SetupFormatting();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_tempDirectory_textEdited(const QString &dir)
@@ -146,7 +146,7 @@ void SettingsDialog::on_tempDirectory_textEdited(const QString &dir)
   else
     m_Ctx->Config.TemporaryCaptureDirectory = "";
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_saveDirectory_textEdited(const QString &dir)
@@ -154,7 +154,7 @@ void SettingsDialog::on_saveDirectory_textEdited(const QString &dir)
   if(QDir(dir).exists() || dir == "")
     m_Ctx->Config.DefaultCaptureSaveDirectory = dir;
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_browseSaveCaptureDirectory_clicked()
@@ -165,14 +165,14 @@ void SettingsDialog::on_browseSaveCaptureDirectory_clicked()
   if(dir != "")
     m_Ctx->Config.DefaultCaptureSaveDirectory = dir;
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_AllowGlobalHook_toggled(bool checked)
 {
   m_Ctx->Config.AllowGlobalHook = ui->AllowGlobalHook->isChecked();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 
   if(m_Ctx->hasCaptureDialog())
     m_Ctx->captureDialog()->updateGlobalHook();
@@ -182,7 +182,7 @@ void SettingsDialog::on_CheckUpdate_AllowChecks_toggled(bool checked)
 {
   m_Ctx->Config.CheckUpdate_AllowChecks = ui->CheckUpdate_AllowChecks->isChecked();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_Font_PreferMonospaced_toggled(bool checked)
@@ -191,14 +191,14 @@ void SettingsDialog::on_Font_PreferMonospaced_toggled(bool checked)
 
   m_Ctx->Config.SetupFormatting();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_AlwaysReplayLocally_toggled(bool checked)
 {
   m_Ctx->Config.AlwaysReplayLocally = ui->AlwaysReplayLocally->isChecked();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 // core
@@ -221,14 +221,14 @@ void SettingsDialog::on_TextureViewer_PerTexSettings_toggled(bool checked)
 {
   m_Ctx->Config.TextureViewer_PerTexSettings = ui->TextureViewer_PerTexSettings->isChecked();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_TextureViewer_ResetRange_toggled(bool checked)
 {
   m_Ctx->Config.TextureViewer_ResetRange = ui->TextureViewer_ResetRange->isChecked();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 // shader viewer
@@ -236,7 +236,7 @@ void SettingsDialog::on_ShaderViewer_FriendlyNaming_toggled(bool checked)
 {
   m_Ctx->Config.ShaderViewer_FriendlyNaming = ui->ShaderViewer_FriendlyNaming->isChecked();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_ExternalDisassemblerEnabled_toggled(bool checked)
@@ -244,7 +244,7 @@ void SettingsDialog::on_ExternalDisassemblerEnabled_toggled(bool checked)
   // TODO external disassembler
   // m_Ctx->Config.ExternalDisassemblerEnabled = ui->ExternalDisassemblerEnabled->isChecked();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_browseExtDisasemble_clicked()
@@ -256,14 +256,14 @@ void SettingsDialog::on_externalDisassemblePath_textEdited(const QString &disasm
 {
   // TODO external disassembler
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_externalDisassemblerArgs_textEdited(const QString &args)
 {
   // TODO external disassembler
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 // event browser
@@ -275,35 +275,35 @@ void SettingsDialog::on_EventBrowser_TimeUnit_currentIndexChanged(int index)
   m_Ctx->Config.EventBrowser_TimeUnit =
       (PersistantConfig::TimeUnit)ui->EventBrowser_TimeUnit->currentIndex();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_EventBrowser_HideEmpty_toggled(bool checked)
 {
   m_Ctx->Config.EventBrowser_HideEmpty = ui->EventBrowser_HideEmpty->isChecked();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_EventBrowser_HideAPICalls_toggled(bool checked)
 {
   m_Ctx->Config.EventBrowser_HideAPICalls = ui->EventBrowser_HideAPICalls->isChecked();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_EventBrowser_ApplyColours_toggled(bool checked)
 {
   m_Ctx->Config.EventBrowser_ApplyColours = ui->EventBrowser_ApplyColours->isChecked();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_EventBrowser_ColourEventRow_toggled(bool checked)
 {
   m_Ctx->Config.EventBrowser_ColourEventRow = ui->EventBrowser_ColourEventRow->isChecked();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 // android
@@ -315,7 +315,7 @@ void SettingsDialog::on_browseTempCaptureDirectory_clicked()
   if(dir != "")
     m_Ctx->Config.TemporaryCaptureDirectory = dir;
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_browseAdbPath_clicked()
@@ -327,14 +327,14 @@ void SettingsDialog::on_browseAdbPath_clicked()
   if(adb != "")
     m_Ctx->Config.Android_AdbExecutablePath = adb;
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_Android_MaxConnectTimeout_valueChanged(double timeout)
 {
   m_Ctx->Config.Android_MaxConnectTimeout = ui->Android_MaxConnectTimeout->value();
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }
 
 void SettingsDialog::on_Android_AdbExecutablePath_textEdited(const QString &adb)
@@ -342,5 +342,5 @@ void SettingsDialog::on_Android_AdbExecutablePath_textEdited(const QString &adb)
   if(QFileInfo::exists(adb))
     m_Ctx->Config.Android_AdbExecutablePath = adb;
 
-  m_Ctx->Config.Serialize();
+  m_Ctx->Config.Save();
 }

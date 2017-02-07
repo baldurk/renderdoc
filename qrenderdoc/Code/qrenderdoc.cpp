@@ -130,7 +130,7 @@ int main(int argc, char *argv[])
 
     QString configFilename = CaptureContext::ConfigFile("UI.config");
 
-    if(!config.Deserialize(configFilename))
+    if(!config.Load(configFilename))
     {
       RDDialog::critical(
           NULL, "Error loading config",
@@ -151,7 +151,7 @@ int main(int argc, char *argv[])
       QCoreApplication::sendPostedEvents();
     }
 
-    config.Serialize();
+    config.Save();
   }
 
   delete[] argv_mod;

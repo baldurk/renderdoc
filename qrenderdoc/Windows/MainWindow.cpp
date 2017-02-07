@@ -385,7 +385,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
           {
             m_Core.Config.AlwaysReplayLocally = true;
 
-            m_Core.Config.Serialize(Core.ConfigFilename);
+            m_Ctx->Config.Save();
           }
         }
         */

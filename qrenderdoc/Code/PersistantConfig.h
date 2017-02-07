@@ -134,8 +134,8 @@ public:
 public:
   PersistantConfig() {}
   ~PersistantConfig();
-  bool Deserialize(QString filename);
-  bool Serialize(QString filename = "");
+  bool Load(const QString &filename);
+  bool Save();
 
   void SetupFormatting();
 
@@ -159,6 +159,8 @@ public:
   QString GetConfigSetting(QString name);
 
 private:
+  bool Deserialize(const QString &filename);
+  bool Serialize(const QString &filename);
   QVariantMap storeValues() const;
   void applyValues(const QVariantMap &values);
 
