@@ -628,7 +628,8 @@ struct RDDialog
 
   static QString getExistingDirectory(QWidget *parent = NULL, const QString &caption = QString(),
                                       const QString &dir = QString(),
-                                      QFileDialog::Options options = QFileDialog::ShowDirsOnly);
+                                      QFileDialog::Options options = QFileDialog::ShowDirsOnly,
+                                      QAbstractProxyModel *proxy = NULL);
 
   static QString getOpenFileName(QWidget *parent = NULL, const QString &caption = QString(),
                                  const QString &dir = QString(), const QString &filter = QString(),
@@ -637,7 +638,8 @@ struct RDDialog
 
   static QString getExecutableFileName(QWidget *parent = NULL, const QString &caption = QString(),
                                        const QString &dir = QString(),
-                                       QFileDialog::Options options = QFileDialog::Options());
+                                       QFileDialog::Options options = QFileDialog::Options(),
+                                       QAbstractProxyModel *proxy = NULL);
 
   static QString getSaveFileName(QWidget *parent = NULL, const QString &caption = QString(),
                                  const QString &dir = QString(), const QString &filter = QString(),

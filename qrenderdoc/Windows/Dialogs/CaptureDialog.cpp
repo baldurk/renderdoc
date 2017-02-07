@@ -244,9 +244,21 @@ void CaptureDialog::on_exePath_textChanged(const QString &exe)
   bool valid = dir.makeAbsolute();
 
   if(valid && f.isAbsolute())
-    ui->workDirPath->setPlaceholderText(QDir::toNativeSeparators(dir.absolutePath()));
+  {
+    QString path = QDir::toNativeSeparators(dir.absolutePath());
+
+    // match the path separators from the path
+    if(exe.count(QChar('/')) > exe.count(QChar('\\')))
+      path = path.replace('\\', '/');
+    else
+      path = path.replace('/', '\\');
+
+    ui->workDirPath->setPlaceholderText(path);
+  }
   else if(exe == "")
+  {
     ui->workDirPath->setPlaceholderText("");
+  }
 
   updateGlobalHook();
 }
@@ -279,24 +291,20 @@ void CaptureDialog::on_exePathBrowse_clicked()
       file = m_Ctx->Config.LastCaptureExe;
   }
 
-  // TODO Remote
+  QAbstractProxyModel *proxy = NULL;
+  QFileDialog::Options options;
 
-  // if(m_Core.Renderer.Remote == null)
+  if(m_Ctx->Renderer()->remote())
   {
-    QString filename = RDDialog::getExecutableFileName(this, tr("Choose executable"), initDir);
-
-    if(filename != "")
-      setExecutableFilename(filename);
+    // proxy = new RemoteFileProxy(m_Ctx->Renderer());
+    options = QFileDialog::DontUseNativeDialog;
   }
-  /*
-  else
-  {
-    VirtualOpenFileDialog remoteBrowser = new VirtualOpenFileDialog(m_Core.Renderer);
-    remoteBrowser.Opened += new EventHandler<FileOpenedEventArgs>(this.virtualExeBrowser_Opened);
 
-    remoteBrowser.ShowDialog(this);
-  }
-  */
+  QString filename =
+      RDDialog::getExecutableFileName(this, tr("Choose executable"), initDir, options, proxy);
+
+  if(filename != "")
+    setExecutableFilename(filename);
 }
 
 void CaptureDialog::on_workDirBrowse_clicked()
@@ -316,27 +324,20 @@ void CaptureDialog::on_workDirBrowse_clicked()
       initDir = m_Ctx->Config.LastCapturePath;
   }
 
-  // TODO Remote
+  QAbstractProxyModel *proxy = NULL;
+  QFileDialog::Options options = QFileDialog::ShowDirsOnly;
 
-  // if(m_Core.Renderer.Remote == null)
+  if(m_Ctx->Renderer()->remote())
   {
-    QString dir = RDDialog::getExistingDirectory(this, "Choose working directory", initDir);
-
-    if(dir != "")
-      ui->workDirPath->setText(dir);
+    // proxy = new RemoteFileProxy(m_Ctx->Renderer());
+    options |= QFileDialog::DontUseNativeDialog;
   }
-  /*
-  else
-  {
-    VirtualOpenFileDialog remoteBrowser = new VirtualOpenFileDialog(m_Core.Renderer);
-    remoteBrowser.Opened += new
-  EventHandler<FileOpenedEventArgs>(this.virtualWorkDirBrowser_Opened);
 
-    remoteBrowser.DirectoryBrowse = true;
+  QString dir =
+      RDDialog::getExistingDirectory(this, "Choose working directory", initDir, options, proxy);
 
-    remoteBrowser.ShowDialog(this);
-  }
-  */
+  if(dir != "")
+    ui->workDirPath->setText(dir);
 }
 
 void CaptureDialog::on_envVarEdit_clicked()
@@ -584,10 +585,8 @@ void CaptureDialog::triggerCapture()
   {
     QString exe = ui->exePath->text();
 
-    // TODO Remote
-
     // for non-remote captures, check the executable locally
-    // if(m_Core.Renderer.Remote == null)
+    if(!m_Ctx->Renderer()->remote())
     {
       if(!QFileInfo::exists(exe))
       {
@@ -599,20 +598,16 @@ void CaptureDialog::triggerCapture()
 
     QString workingDir = "";
 
-    // TODO Remote
-
     // for non-remote captures, check the directory locally
-    // if(m_Core.Renderer.Remote == null)
+    if(m_Ctx->Renderer()->remote())
+    {
+      workingDir = ui->workDirPath->text();
+    }
+    else
     {
       if(QDir(ui->workDirPath->text()).exists())
         workingDir = ui->workDirPath->text();
     }
-    /*
-    else
-    {
-      workingDir = RealWorkDir;
-    }
-    */
 
     QString cmdLine = ui->cmdline->text();
 

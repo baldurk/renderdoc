@@ -371,7 +371,7 @@ void DebugMessageView::messages_contextMenu(const QPoint &pos)
 
     m_ContextMessage = msg;
 
-    m_ContextMenu->exec(ui->messages->viewport()->mapToGlobal(pos));
+    RDDialog::show(m_ContextMenu, ui->messages->viewport()->mapToGlobal(pos));
   }
 }
 

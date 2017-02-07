@@ -33,10 +33,12 @@
 #include <QWaitCondition>
 #include <functional>
 #include "QRDUtils.h"
+#include "RemoteHost.h"
 #include "renderdoc_replay.h"
 
 struct IReplayRenderer;
 class LambdaThread;
+class RemoteHost;
 
 // simple helper for the common case of 'we just need to run this on the render thread
 #define INVOKE_MEMFN(function) \
@@ -119,6 +121,7 @@ class RenderManager
 {
 public:
   typedef std::function<void(IReplayRenderer *)> InvokeMethod;
+  typedef std::function<void(const char *, const rdctype::array<DirectoryFile> &)> DirectoryBrowseMethod;
 
   RenderManager();
   ~RenderManager();
@@ -133,9 +136,21 @@ public:
 
   void CloseThread();
 
+  ReplayCreateStatus ConnectToRemoteServer(RemoteHost *host);
+  void DisconnectFromRemoteServer();
+  void ShutdownServer();
+  void PingRemote();
+
+  const RemoteHost *remote() { return m_RemoteHost; }
   uint32_t ExecuteAndInject(const QString &exe, const QString &workingDir, const QString &cmdLine,
                             const QList<EnvironmentModification> &env, const QString &logfile,
                             CaptureOptions opts);
+
+  QStringList GetRemoteSupport();
+  void GetHomeFolder(DirectoryBrowseMethod cb);
+  bool ListFolder(QString path, DirectoryBrowseMethod cb);
+  QString CopyCaptureToRemote(const QString &localpath, QWidget *window);
+  void CopyCaptureFromRemote(const QString &remotepath, const QString &localpath, QWidget *window);
 
 private:
   struct InvokeHandle
@@ -163,6 +178,10 @@ private:
   QString m_ReplayHost;
   QString m_Logfile;
   float *m_Progress;
+
+  QMutex m_RemoteLock;
+  RemoteHost *m_RemoteHost = NULL;
+  IRemoteServer *m_Remote = NULL;
 
   volatile bool m_Running;
   LambdaThread *m_Thread;

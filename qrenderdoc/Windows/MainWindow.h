@@ -38,6 +38,7 @@ class MainWindow;
 class RDLabel;
 class QMimeData;
 class QProgressBar;
+class QToolButton;
 class CaptureDialog;
 class LiveCapture;
 
@@ -97,13 +98,17 @@ private slots:
   void on_action_Statistics_Viewer_triggered();
   void on_action_Inject_into_Process_triggered();
   void on_action_Resolve_Symbols_triggered();
+  void on_action_Start_Android_Remote_Server_triggered();
   void on_action_Settings_triggered();
 
   // manual slots
   void saveLayout_triggered();
   void loadLayout_triggered();
   void messageCheck();
+  void remoteProbe();
   void statusDoubleClicked();
+  void switchContext();
+  void contextChooser_menuShowing();
 
 private:
   void closeEvent(QCloseEvent *event) override;
@@ -124,8 +129,11 @@ private:
   RDLabel *statusIcon;
   RDLabel *statusText;
   QProgressBar *statusProgress;
+  QMenu *contextChooserMenu;
+  QToolButton *contextChooser;
 
   QTimer m_MessageTick;
+  QTimer m_RemoteProbe;
 
   bool m_messageAlternate = false;
 
@@ -155,4 +163,6 @@ private:
   void LoadSaveLayout(QAction *action, bool save);
   bool LoadLayout(int layout);
   bool SaveLayout(int layout);
+
+  void FillRemotesMenu(QMenu *menu, bool includeLocalhost);
 };

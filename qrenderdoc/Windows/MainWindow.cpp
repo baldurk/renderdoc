@@ -28,6 +28,7 @@
 #include <QMimeData>
 #include <QProgressBar>
 #include <QProgressDialog>
+#include <QToolButton>
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
 #include "PipelineState/PipelineStateViewer.h"
@@ -37,6 +38,7 @@
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/Dialogs/SettingsDialog.h"
+#include "Windows/Dialogs/SuggestRemoteDialog.h"
 #include "APIInspector.h"
 #include "BufferViewer.h"
 #include "ConstantBufferPreviewer.h"
@@ -100,6 +102,24 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
   QObject::connect(ui->action_Save_Layout_6, &QAction::triggered, this,
                    &MainWindow::saveLayout_triggered);
 
+  contextChooserMenu = new QMenu(this);
+
+  FillRemotesMenu(contextChooserMenu, true);
+
+  contextChooser = new QToolButton(this);
+  contextChooser->setText(tr("Replay Context: %1").arg("Local"));
+  contextChooser->setIcon(QIcon(QPixmap(QString::fromUtf8(":/Resources/house.png"))));
+  contextChooser->setAutoRaise(true);
+  contextChooser->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
+  contextChooser->setPopupMode(QToolButton::InstantPopup);
+  contextChooser->setMenu(contextChooserMenu);
+  contextChooser->setStyleSheet("QToolButton::menu-indicator { image: none; }");
+  contextChooser->setContextMenuPolicy(Qt::DefaultContextMenu);
+  QObject::connect(contextChooserMenu, &QMenu::aboutToShow, this,
+                   &MainWindow::contextChooser_menuShowing);
+
+  ui->statusBar->addWidget(contextChooser);
+
   statusIcon = new RDLabel(this);
   ui->statusBar->addWidget(statusIcon);
 
@@ -126,6 +146,11 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
   m_MessageTick.setInterval(500);
   m_MessageTick.start();
 
+  QObject::connect(&m_RemoteProbe, &QTimer::timeout, this, &MainWindow::remoteProbe);
+  m_RemoteProbe.setSingleShot(false);
+  m_RemoteProbe.setInterval(7500);
+  m_RemoteProbe.start();
+
   ui->statusBar->setStyleSheet("QStatusBar::item { border: 0px }");
 
   SetTitle();
@@ -142,6 +167,14 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
   ui->action_Resolve_Symbols->setText(tr("Resolve Symbols"));
 
   bool loaded = LoadLayout(0);
+
+  LambdaThread *th = new LambdaThread([this]() {
+    m_Ctx->Config.AddAndroidHosts();
+    for(RemoteHost *host : m_Ctx->Config.RemoteHosts)
+      host->CheckStatus();
+  });
+  th->selfDelete(true);
+  th->start();
 
   // create default layout if layout failed to load
   if(!loaded)
@@ -265,9 +298,9 @@ LiveCapture *MainWindow::OnCaptureTrigger(const QString &exe, const QString &wor
     return NULL;
   }
 
-  // TODO Remote
-  // m_Core.Renderer.Remote == NULL ? "" : m_Core.Renderer.Remote.Hostname
-  LiveCapture *live = new LiveCapture(m_Ctx, "", ret, this, this);
+  LiveCapture *live = new LiveCapture(
+      m_Ctx, m_Ctx->Renderer()->remote() ? m_Ctx->Renderer()->remote()->Hostname : "", ret, this,
+      this);
   ShowLiveCapture(live);
   return live;
 }
@@ -315,36 +348,32 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
     rdctype::str machineIdent;
     ReplaySupport support = eReplaySupport_Unsupported;
 
-    // TODO Remote
-
     bool remoteReplay =
-        !local /*|| (m_Core.Renderer.Remote != null && m_Core.Renderer.Remote.Connected)*/;
+        !local || (m_Ctx->Renderer()->remote() && m_Ctx->Renderer()->remote()->Connected);
 
     if(local)
     {
       support = RENDERDOC_SupportLocalReplay(filename.toUtf8().data(), &driver, &machineIdent);
 
       // if the return value suggests remote replay, and it's not already selected, AND the user
-      // hasn't
-      // previously chosen to always replay locally without being prompted, ask if they'd prefer to
-      // switch to a remote context for replaying.
+      // hasn't previously chosen to always replay locally without being prompted, ask if they'd
+      // prefer to switch to a remote context for replaying.
       if(support == eReplaySupport_SuggestRemote && !remoteReplay &&
          !m_Ctx->Config.AlwaysReplayLocally)
       {
-        RDDialog::information(NULL, tr("Not Implemented"),
-                              tr("Can't suggest a remote host, replaying locally"));
-        /*
-        var dialog = new Dialogs.SuggestRemoteDialog(driver, machineIdent);
+        SuggestRemoteDialog dialog(ToQStr(driver), ToQStr(machineIdent), this);
 
-        FillRemotesToolStrip(dialog.RemoteItems, false);
+        FillRemotesMenu(dialog.remotesMenu(), false);
 
-        dialog.ShowDialog();
+        dialog.remotesAdded();
 
-        if(dialog.Result == Dialogs.SuggestRemoteDialog.SuggestRemoteResult.Cancel)
+        RDDialog::show(&dialog);
+
+        if(dialog.choice() == SuggestRemoteDialog::Cancel)
         {
           return;
         }
-        else if(dialog.Result == Dialogs.SuggestRemoteDialog.SuggestRemoteResult.Remote)
+        else if(dialog.choice() == SuggestRemoteDialog::Remote)
         {
           // we only get back here from the dialog once the context switch has begun,
           // so contextChooser will have been disabled.
@@ -352,27 +381,21 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
           // it has finished already. Otherwise pop up a waiting dialog until it completes
           // one way or another, then process the result.
 
-          if(!contextChooser.Enabled)
+          if(!contextChooser->isEnabled())
           {
-            ProgressPopup modal = new ProgressPopup((ModalCloseCallback)delegate
-            {
-              return contextChooser.Enabled;
-            }, false);
-            modal.SetModalText("Please Wait - Checking remote connection...");
-
-            modal.ShowDialog();
+            ShowProgressDialog(this, tr("Please Wait - Checking remote connection..."),
+                               [this]() { return contextChooser->isEnabled(); });
           }
 
-          remoteReplay = (m_Core.Renderer.Remote != null && m_Core.Renderer.Remote.Connected);
+          remoteReplay = (m_Ctx->Renderer()->remote() && m_Ctx->Renderer()->remote()->Connected);
 
           if(!remoteReplay)
           {
-            string remoteMessage = "Failed to make a connection to the remote server.\n\n";
+            QString remoteMessage = tr("Failed to make a connection to the remote server.\n\n");
 
-            remoteMessage += "More information may be available in the status bar.";
+            remoteMessage += tr("More information may be available in the status bar.");
 
-            MessageBox.Show(remoteMessage, "Couldn't connect to remote server",
-        MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            RDDialog::information(this, tr("Couldn't connect to remote server"), remoteMessage);
             return;
           }
         }
@@ -381,14 +404,13 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
           // nothing to do - we just continue replaying locally
           // however we need to check if the user selected 'always replay locally' and
           // set that bit as sticky in the config
-          if(dialog.AlwaysReplayLocally)
+          if(dialog.alwaysReplayLocally())
           {
-            m_Core.Config.AlwaysReplayLocally = true;
+            m_Ctx->Config.AlwaysReplayLocally = true;
 
             m_Ctx->Config.Save();
           }
         }
-        */
       }
 
       if(remoteReplay)
@@ -436,34 +458,24 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
     }
     else
     {
+      QString fileToLoad = filename;
+
       if(remoteReplay && local)
       {
-        RDDialog::critical(NULL, tr("Not Implemented"), tr("Not Implemented"));
-        return;
+        fileToLoad = m_Ctx->Renderer()->CopyCaptureToRemote(filename, this);
 
-        // TODO Remote
-        /*
-        try
+        // deliberately leave local as true so that we keep referring to the locally saved log
+
+        // some error
+        if(fileToLoad == "")
         {
-          filename = m_Ctx->Renderer.CopyCaptureToRemote(filename, this);
-
-          // deliberately leave local as true so that we keep referring to the locally saved log
-
-          // some error
-          if(filename == "")
-            throw new ApplicationException();
-        }
-        catch(Exception)
-        {
-          MessageBox.Show("Couldn't copy " + filename + " to remote host for replaying", "Error
-        copying to remote",
-            MessageBoxButtons.OK, MessageBoxIcon.Error);
+          RDDialog::critical(NULL, tr("Error copying to remote"),
+                             tr("Couldn't copy %1 to remote host for replaying").arg(filename));
           return;
         }
-        */
       }
 
-      m_Ctx->LoadLogfile(filename, origFilename, temporary, local);
+      m_Ctx->LoadLogfile(fileToLoad, origFilename, temporary, local);
     }
 
     if(!remoteReplay)
@@ -529,6 +541,7 @@ bool MainWindow::PromptSaveLog()
     }
 
     bool success = false;
+    QString error;
 
     if(m_Ctx->IsLogLocal())
     {
@@ -536,16 +549,20 @@ bool MainWindow::PromptSaveLog()
       // the original path.
       // This ensures that if the user deletes the saved path we can still open or re-save it.
       success = QFile::copy(m_Ctx->LogFilename(), saveFilename);
+
+      error = tr("Couldn't save to %1").arg(saveFilename);
     }
     else
     {
-      // TODO Remote
-      // m_Core.Renderer.CopyCaptureFromRemote(m_Core.LogFileName, saveFilename, this);
+      m_Ctx->Renderer()->CopyCaptureFromRemote(m_Ctx->LogFilename(), saveFilename, this);
+      success = QFile::exists(saveFilename);
+
+      error = tr("File couldn't be transferred from remote host");
     }
 
     if(!success)
     {
-      RDDialog::critical(NULL, tr("File not found"), tr("Couldn't save to %1").arg(saveFilename));
+      RDDialog::critical(NULL, tr("Error Saving"), error);
       return false;
     }
 
@@ -623,7 +640,7 @@ void MainWindow::SetTitle(const QString &filename)
 {
   QString prefix = "";
 
-  if(m_Ctx != NULL && m_Ctx->LogLoaded())
+  if(m_Ctx && m_Ctx->LogLoaded())
   {
     prefix = QFileInfo(filename).fileName();
     if(m_Ctx->APIProps().degraded)
@@ -631,9 +648,8 @@ void MainWindow::SetTitle(const QString &filename)
     prefix += " - ";
   }
 
-  // TODO Remote
-  // if(m_Ctx != NULL && m_Ctx->Renderer.Remote != null)
-  // prefix += String.Format("Remote: {0} - ", m_Core.Renderer.Remote.Hostname);
+  if(m_Ctx && m_Ctx->Renderer()->remote())
+    prefix += tr("Remote: %1 - ").arg(m_Ctx->Renderer()->remote()->Hostname);
 
   QString text = prefix + "RenderDoc ";
 
@@ -835,6 +851,21 @@ void MainWindow::setLogHasErrors(bool errors)
   }
 }
 
+void MainWindow::remoteProbe()
+{
+  if(!m_Ctx->LogLoaded() && !m_Ctx->LogLoading())
+  {
+    for(RemoteHost *host : m_Ctx->Config.RemoteHosts)
+    {
+      // don't mess with a host we're connected to - this is handled anyway
+      if(host->Connected)
+        continue;
+
+      host->CheckStatus();
+    }
+  }
+}
+
 void MainWindow::messageCheck()
 {
   if(m_Ctx->LogLoaded())
@@ -845,17 +876,15 @@ void MainWindow::messageCheck()
 
       bool disconnected = false;
 
-      // TODO Remote
-      /*
-      if(me.m_Core.Renderer.Remote != null)
+      if(m_Ctx->Renderer()->remote())
       {
-        bool prev = me.m_Core.Renderer.Remote.ServerRunning;
+        bool prev = m_Ctx->Renderer()->remote()->ServerRunning;
 
-        me.m_Core.Renderer.PingRemote();
+        m_Ctx->Renderer()->PingRemote();
 
-        if(prev != me.m_Core.Renderer.Remote.ServerRunning)
+        if(prev != m_Ctx->Renderer()->remote()->ServerRunning)
           disconnected = true;
-      }*/
+      }
 
       GUIInvoke::call([this, disconnected, msgs] {
         // if we just got disconnected while replaying a log, alert the user.
@@ -868,9 +897,8 @@ void MainWindow::messageCheck()
                                 "RenderDoc to reconnect and load the capture again"));
         }
 
-        // TODO Remote
-        // if(me.m_Core.Renderer.Remote != null && !me.m_Core.Renderer.Remote.ServerRunning)
-        // me.contextChooser.Image = global::renderdocui.Properties.Resources.cross;
+        if(m_Ctx->Renderer()->remote() && !m_Ctx->Renderer()->remote()->ServerRunning)
+          contextChooser->setIcon(QIcon(QPixmap(QString::fromUtf8(":/Resources/cross.png"))));
 
         if(!msgs.empty())
         {
@@ -887,6 +915,217 @@ void MainWindow::messageCheck()
       });
     });
   }
+  else if(!m_Ctx->LogLoaded() && !m_Ctx->LogLoading())
+  {
+    if(m_Ctx->Renderer()->remote())
+      m_Ctx->Renderer()->PingRemote();
+
+    GUIInvoke::call([this]() {
+      if(m_Ctx->Renderer()->remote() && !m_Ctx->Renderer()->remote()->ServerRunning)
+      {
+        contextChooser->setIcon(QIcon(QPixmap(QString::fromUtf8(":/Resources/cross.png"))));
+        contextChooser->setText(tr("Replay Context: %1").arg("Local"));
+        statusText->setText(
+            tr("Remote server disconnected. To attempt to reconnect please select it again."));
+
+        m_Ctx->Renderer()->DisconnectFromRemoteServer();
+      }
+    });
+  }
+}
+
+void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
+{
+  menu->clear();
+
+  QIcon tick(QPixmap(QString::fromUtf8(":/Resources/tick.png")));
+  QIcon cross(QPixmap(QString::fromUtf8(":/Resources/cross.png")));
+
+  for(int i = 0; i < m_Ctx->Config.RemoteHosts.count(); i++)
+  {
+    RemoteHost *host = m_Ctx->Config.RemoteHosts[i];
+
+    // add localhost at the end
+    if(host->Hostname == "localhost")
+      continue;
+
+    QAction *action = new QAction(menu);
+
+    action->setIcon(host->ServerRunning && !host->VersionMismatch ? tick : cross);
+    if(host->Connected)
+      action->setText(tr("%1 (Connected)").arg(host->Hostname));
+    else if(host->ServerRunning && host->VersionMismatch)
+      action->setText(tr("%1 (Bad Version)").arg(host->Hostname));
+    else if(host->ServerRunning && host->Busy)
+      action->setText(tr("%1 (Busy)").arg(host->Hostname));
+    else if(host->ServerRunning)
+      action->setText(tr("%1 (Online)").arg(host->Hostname));
+    else
+      action->setText(tr("%1 (Offline)").arg(host->Hostname));
+    QObject::connect(action, &QAction::triggered, this, &MainWindow::switchContext);
+    action->setData(i);
+
+    // don't allow switching to the connected host
+    if(host->Connected)
+      action->setEnabled(false);
+
+    menu->addAction(action);
+  }
+
+  if(includeLocalhost)
+  {
+    QAction *localContext = new QAction(menu);
+
+    localContext->setText("Local");
+    localContext->setIcon(QIcon(QPixmap(QString::fromUtf8(":/Resources/house.png"))));
+
+    QObject::connect(localContext, &QAction::triggered, this, &MainWindow::switchContext);
+    localContext->setData(-1);
+
+    menu->addAction(localContext);
+  }
+}
+
+void MainWindow::switchContext()
+{
+  QAction *item = qobject_cast<QAction *>(QObject::sender());
+
+  if(!item)
+    return;
+
+  bool ok = false;
+  int hostIdx = item->data().toInt(&ok);
+
+  if(!ok)
+    return;
+
+  RemoteHost *host = NULL;
+
+  if(hostIdx >= 0 && hostIdx < m_Ctx->Config.RemoteHosts.count())
+  {
+    host = m_Ctx->Config.RemoteHosts[hostIdx];
+  }
+
+  for(LiveCapture *live : m_LiveCaptures)
+  {
+    // allow live captures to this host to stay open, that way
+    // we can connect to a live capture, then switch into that
+    // context
+    if(host && live->hostname() == host->Hostname)
+      continue;
+
+    if(!live->checkAllowClose())
+      return;
+  }
+
+  if(!PromptCloseLog())
+    return;
+
+  for(LiveCapture *live : m_LiveCaptures)
+  {
+    // allow live captures to this host to stay open, that way
+    // we can connect to a live capture, then switch into that
+    // context
+    if(host && live->hostname() == host->Hostname)
+      continue;
+
+    live->cleanItems();
+    live->close();
+  }
+
+  m_Ctx->Renderer()->DisconnectFromRemoteServer();
+
+  if(!host)
+  {
+    contextChooser->setIcon(QIcon(QPixmap(QString::fromUtf8(":/Resources/house.png"))));
+    contextChooser->setText(tr("Replay Context: %1").arg("Local"));
+
+    ui->action_Inject_into_Process->setEnabled(true);
+
+    statusText->setText("");
+
+    SetTitle();
+  }
+  else
+  {
+    contextChooser->setText(tr("Replay Context: %1").arg(host->Hostname));
+    contextChooser->setIcon(host->ServerRunning
+                                ? QIcon(QPixmap(QString::fromUtf8(":/Resources/connect.png")))
+                                : QIcon(QPixmap(QString::fromUtf8(":/Resources/disconnect.png"))));
+
+    // disable until checking is done
+    contextChooser->setEnabled(false);
+
+    ui->action_Inject_into_Process->setEnabled(false);
+
+    SetTitle();
+
+    statusText->setText(tr("Checking remote server status..."));
+
+    LambdaThread *th = new LambdaThread([this, host]() {
+      // see if the server is up
+      host->CheckStatus();
+
+      if(!host->ServerRunning && host->RunCommand != "")
+      {
+        GUIInvoke::call([this]() { statusText->setText(tr("Running remote server command...")); });
+
+        host->Launch();
+
+        // check if it's running now
+        host->CheckStatus();
+      }
+
+      ReplayCreateStatus status = eReplayCreate_Success;
+
+      if(host->ServerRunning && !host->Busy)
+      {
+        status = m_Ctx->Renderer()->ConnectToRemoteServer(host);
+      }
+
+      GUIInvoke::call([this, host, status]() {
+        contextChooser->setIcon(
+            host->ServerRunning && !host->Busy
+                ? QIcon(QPixmap(QString::fromUtf8(":/Resources/connect.png")))
+                : QIcon(QPixmap(QString::fromUtf8(":/Resources/disconnect.png"))));
+
+        if(status != eReplayCreate_Success)
+        {
+          contextChooser->setIcon(QIcon(QPixmap(QString::fromUtf8(":/Resources/cross.png"))));
+          contextChooser->setText(tr("Replay Context: %1").arg("Local"));
+          statusText->setText(tr("Connection failed: %1").arg(ToQStr(status)));
+        }
+        else if(host->VersionMismatch)
+        {
+          statusText->setText(tr("Remote server is not running RenderDoc %1").arg(Version::string()));
+        }
+        else if(host->Busy)
+        {
+          statusText->setText(tr("Remote server in use elsewhere"));
+        }
+        else if(host->ServerRunning)
+        {
+          statusText->setText(tr("Remote server ready"));
+        }
+        else
+        {
+          if(host->RunCommand != "")
+            statusText->setText(tr("Remote server not running or failed to start"));
+          else
+            statusText->setText(tr("Remote server not running - no start command configured"));
+        }
+
+        contextChooser->setEnabled(true);
+      });
+    });
+    th->selfDelete(true);
+    th->start();
+  }
+}
+
+void MainWindow::contextChooser_menuShowing()
+{
+  FillRemotesMenu(contextChooserMenu, true);
 }
 
 void MainWindow::statusDoubleClicked()
@@ -896,9 +1135,8 @@ void MainWindow::statusDoubleClicked()
 
 void MainWindow::OnLogfileLoaded()
 {
-  // TODO Remote
   // don't allow changing context while log is open
-  // contextChooser.Enabled = false;
+  contextChooser->setEnabled(false);
 
   statusProgress->setVisible(false);
 
@@ -925,8 +1163,7 @@ void MainWindow::OnLogfileLoaded()
 
 void MainWindow::OnLogfileClosed()
 {
-  // TODO Remote
-  // contextChooser.Enabled = true;
+  contextChooser->setEnabled(true);
 
   statusText->setText("");
   statusIcon->setPixmap(QPixmap());
@@ -938,15 +1175,13 @@ void MainWindow::OnLogfileClosed()
   SetTitle();
 
   // if the remote sever disconnected during log replay, resort back to a 'disconnected' state
-  // TODO Remote
-  /*
-  if(m_Core.Renderer.Remote != null && !m_Core.Renderer.Remote.ServerRunning)
+  if(m_Ctx->Renderer()->remote() && !m_Ctx->Renderer()->remote()->ServerRunning)
   {
-    statusText.Text = "Remote server disconnected. To attempt to reconnect please select it again.";
-    contextChooser.Text = "Replay Context: Local";
-    m_Core.Renderer.DisconnectFromRemoteServer();
+    statusText->setText(
+        tr("Remote server disconnected. To attempt to reconnect please select it again."));
+    contextChooser->setText(tr("Replay Context: %1").arg("Local"));
+    m_Ctx->Renderer()->DisconnectFromRemoteServer();
   }
-  */
 }
 
 void MainWindow::OnEventChanged(uint32_t eventID)
@@ -1089,6 +1324,11 @@ void MainWindow::on_action_Resolve_Symbols_triggered()
 
   if(m_Ctx->hasAPIInspector())
     m_Ctx->apiInspector()->on_apiEvents_itemSelectionChanged();
+}
+
+void MainWindow::on_action_Start_Android_Remote_Server_triggered()
+{
+  RENDERDOC_StartAndroidRemoteServer();
 }
 
 void MainWindow::on_action_Settings_triggered()

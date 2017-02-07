@@ -560,38 +560,35 @@ bool LiveCapture::checkAllowClose()
       return false;
     }
 
-    // TODO Remote
-
     // we either have to save or delete the log. Make sure that if it's remote that we are able
     // to by having an active connection or replay context on that host.
-    /*
     if(suppressRemoteWarning == false && (m_Connection == NULL || !m_Connection->Connected()) &&
-    !log->local &&
-      (m_Core.Renderer.Remote == null ||
-        m_Core.Renderer.Remote.Hostname != m_Host ||
-        !m_Core.Renderer.Remote.Connected)
-      )
+       !log->local &&
+       (m_Ctx->Renderer()->remote() == NULL || m_Ctx->Renderer()->remote()->Hostname != m_Hostname ||
+        !m_Ctx->Renderer()->remote()->Connected))
     {
-      DialogResult res2 = MessageBox.Show(
-        String.Format("This capture is on remote host {0} and there is no active replay context on
-    that host.\n", m_Host) +
-        "Without an active replay context the capture cannot be " + (res == DialogResult.Yes ?
-    "saved.\n\n" : "deleted.\n\n") +
-        "Would you like to continue and discard this capture and any others, to be left in the
-    temporary folder on the remote machine?",
-        "No active replay context", MessageBoxButtons.YesNoCancel);
+      QMessageBox::StandardButton res2 = RDDialog::question(
+          this, tr("No active replay context"),
+          tr("This capture is on remote host %1 and there is no active replay context on that "
+             "host.\n")
+                  .arg(m_Hostname) +
+              tr("Without an active replay context the capture cannot be %1.\n\n")
+                  .arg(tr(res == QMessageBox::Yes ? "saved" : "deleted")) +
+              tr("Would you like to continue and discard this capture and any others, to be left "
+                 "in the temporary folder on the remote machine?"),
+          RDDialog::YesNoCancel);
 
-      if(res2 == DialogResult.Yes)
+      if(res2 == QMessageBox::Yes)
       {
         suppressRemoteWarning = true;
-        res = DialogResult.No;
+        res = QMessageBox::No;
       }
       else
       {
         m_IgnoreThreadClosed = false;
         return false;
       }
-    }*/
+    }
 
     if(res == QMessageBox::Yes)
     {
@@ -613,22 +610,18 @@ void LiveCapture::openCapture(CaptureLog *log)
 {
   log->opened = true;
 
-  // TODO Remote
-  /*
   if(!log->local &&
-    (m_Core.Renderer.Remote == null ||
-      m_Core.Renderer.Remote.Hostname != m_Host ||
-      !m_Core.Renderer.Remote.Connected)
-    )
+     (m_Ctx->Renderer()->remote() == NULL || m_Ctx->Renderer()->remote()->Hostname != m_Hostname ||
+      !m_Ctx->Renderer()->remote()->Connected))
   {
-    RDDialog::critical(this,
-      tr("No active replay context"),
-      tr("This capture is on remote host %1 and there is no active replay context on that host.\n" \
-        "You can either save the log locally, or switch to a replay context on
-  %1.").arg(m_Hostname));
+    RDDialog::critical(
+        this, tr("No active replay context"),
+        tr("This capture is on remote host %1 and there is no active replay context on that "
+           "host.\n") +
+            tr("You can either save the log locally, or switch to a replay context on %1.")
+                .arg(m_Hostname));
     return;
   }
-  */
 
   m_Main->LoadLogfile(log->path, !log->saved, log->local);
 }
@@ -672,24 +665,28 @@ bool LiveCapture::saveCapture(CaptureLog *log)
     }
     else
     {
-      // TODO Remote
-      /*
-      if(m_Core.Renderer.Remote == null ||
-        m_Core.Renderer.Remote.Hostname != m_Host ||
-        !m_Core.Renderer.Remote.Connected)
+      if(m_Ctx->Renderer()->remote() == NULL || m_Ctx->Renderer()->remote()->Hostname != m_Hostname ||
+         !m_Ctx->Renderer()->remote()->Connected)
       {
-        MessageBox.Show(
-          String.Format("This capture is on remote host {0} and there is no active replay context on
-      that host.\n" +
-            "Without an active replay context the capture cannot be saved, try switching to a replay
-      context on {0}.\n\n", m_Host),
-          "No active replay context", MessageBoxButtons.OK);
+        RDDialog::critical(this, tr("No active replay context"),
+                           tr("This capture is on remote host %1 and there is no active replay "
+                              "context on that host.\n") +
+                               tr("Without an active replay context the capture cannot be saved, "
+                                  "try switching to a replay context on %1.")
+                                   .arg(m_Hostname));
         return false;
       }
 
-      m_Core.Renderer.CopyCaptureFromRemote(log.path, path, this);
-      m_Core.Renderer.DeleteCapture(log.path, false);
-      */
+      m_Ctx->Renderer()->CopyCaptureFromRemote(log->path, path, this);
+
+      if(!QFile::exists(path))
+      {
+        RDDialog::critical(this, tr("Cannot save"),
+                           tr("File couldn't be transferred from remote host"));
+        return false;
+      }
+
+      m_Ctx->Renderer()->DeleteCapture(log->path, false);
     }
 
     log->saved = true;
@@ -874,18 +871,15 @@ void LiveCapture::connectionClosed()
     {
       CaptureLog *log = GetLog(ui->captures->item(0));
 
-      // TODO Remote
-
       // only auto-open a non-local log if we are successfully connected
       // to this machine as a remote context
-      /*
       if(!log->local)
       {
-        if(m_Core.Renderer.Remote == null ||
-          m_Host != m_Core.Renderer.Remote.Hostname ||
-          !m_Core.Renderer.Remote.Connected)
+        if(m_Ctx->Renderer()->remote() == NULL ||
+           m_Ctx->Renderer()->remote()->Hostname != m_Hostname ||
+           !m_Ctx->Renderer()->remote()->Connected)
           return;
-      }*/
+      }
 
       if(log->opened)
         return;

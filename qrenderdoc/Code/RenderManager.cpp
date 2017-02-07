@@ -23,7 +23,9 @@
  ******************************************************************************/
 
 #include "RenderManager.h"
+#include <QApplication>
 #include <QMutexLocker>
+#include <QProgressDialog>
 #include "CaptureContext.h"
 #include "QRDUtils.h"
 
@@ -71,9 +73,148 @@ void RenderManager::DeleteCapture(const QString &logfile, bool local)
   }
   else
   {
-    // TODO Remote
-    // m_Remote.TakeOwnershipCapture(logfile);
+    // this will be cleaned up automatically when the remote connection
+    // is closed.
+    if(m_Remote)
+    {
+      QMutexLocker autolock(&m_RemoteLock);
+      m_Remote->TakeOwnershipCapture(logfile.toUtf8().data());
+    }
   }
+}
+
+QStringList RenderManager::GetRemoteSupport()
+{
+  QStringList ret;
+
+  if(m_Remote && !IsRunning())
+  {
+    QMutexLocker autolock(&m_RemoteLock);
+
+    rdctype::array<rdctype::str> supported;
+    m_Remote->RemoteSupportedReplays(&supported);
+    for(rdctype::str &s : supported)
+      ret << ToQStr(s);
+  }
+
+  return ret;
+}
+
+void RenderManager::GetHomeFolder(DirectoryBrowseMethod cb)
+{
+  if(!m_Remote)
+    return;
+
+  if(IsRunning() && m_Thread->isCurrentThread())
+  {
+    AsyncInvoke([cb, this](IReplayRenderer *r) {
+      cb(m_Remote->GetHomeFolder().c_str(), rdctype::array<DirectoryFile>());
+    });
+    return;
+  }
+
+  rdctype::str home;
+
+  {
+    QMutexLocker autolock(&m_RemoteLock);
+    home = m_Remote->GetHomeFolder();
+  }
+
+  cb(home.c_str(), rdctype::array<DirectoryFile>());
+}
+
+bool RenderManager::ListFolder(QString path, DirectoryBrowseMethod cb)
+{
+  if(!m_Remote)
+    return false;
+
+  if(IsRunning() && m_Thread->isCurrentThread())
+  {
+    AsyncInvoke([cb, path, this](IReplayRenderer *r) {
+      const char *pathstr = path.toUtf8().data();
+      cb(pathstr, m_Remote->ListFolder(pathstr));
+    });
+    return true;
+  }
+
+  rdctype::array<DirectoryFile> contents;
+
+  const char *pathstr = path.toUtf8().data();
+
+  // prevent pings while fetching remote FS data
+  {
+    QMutexLocker autolock(&m_RemoteLock);
+    contents = m_Remote->ListFolder(pathstr);
+  }
+
+  cb(pathstr, contents);
+
+  return true;
+}
+
+QString RenderManager::CopyCaptureToRemote(const QString &localpath, QWidget *window)
+{
+  if(!m_Remote)
+    return "";
+
+  QString remotepath = "";
+
+  bool copied = false;
+  float progress = 0.0f;
+
+  auto lambda = [this, localpath, &remotepath, &progress, &copied](IReplayRenderer *r) {
+    QMutexLocker autolock(&m_RemoteLock);
+    remotepath = m_Remote->CopyCaptureToRemote(localpath.toUtf8().data(), &progress);
+    copied = true;
+  };
+
+  // we should never have the thread running at this point, but let's be safe.
+  if(IsRunning())
+  {
+    AsyncInvoke(lambda);
+  }
+  else
+  {
+    LambdaThread *thread = new LambdaThread([&lambda]() { lambda(NULL); });
+    thread->selfDelete(true);
+    thread->start();
+  }
+
+  ShowProgressDialog(window, QApplication::translate("RenderManager", "Transferring..."),
+                     [&copied]() { return !copied; }, [&progress]() { return progress; });
+
+  return remotepath;
+}
+
+void RenderManager::CopyCaptureFromRemote(const QString &remotepath, const QString &localpath,
+                                          QWidget *window)
+{
+  if(!m_Remote)
+    return;
+
+  bool copied = false;
+  float progress = 0.0f;
+
+  auto lambda = [this, localpath, remotepath, &progress, &copied](IReplayRenderer *r) {
+    QMutexLocker autolock(&m_RemoteLock);
+    m_Remote->CopyCaptureFromRemote(remotepath.toUtf8().data(), localpath.toUtf8().data(), &progress);
+    copied = true;
+  };
+
+  // we should never have the thread running at this point, but let's be safe.
+  if(IsRunning())
+  {
+    AsyncInvoke(lambda);
+  }
+  else
+  {
+    LambdaThread *thread = new LambdaThread([&lambda]() { lambda(NULL); });
+    thread->selfDelete(true);
+    thread->start();
+  }
+
+  ShowProgressDialog(window, QApplication::translate("RenderManager", "Transferring..."),
+                     [&copied]() { return !copied; }, [&progress]() { return progress; });
 }
 
 bool RenderManager::IsRunning()
@@ -122,33 +263,90 @@ void RenderManager::CloseThread()
   m_Thread = NULL;
 }
 
+ReplayCreateStatus RenderManager::ConnectToRemoteServer(RemoteHost *host)
+{
+  ReplayCreateStatus status =
+      RENDERDOC_CreateRemoteServerConnection(host->Hostname.toUtf8().data(), 0, &m_Remote);
+
+  m_RemoteHost = host;
+
+  if(status == eReplayCreate_Success)
+  {
+    m_RemoteHost->Connected = true;
+    return status;
+  }
+
+  return status;
+}
+
+void RenderManager::DisconnectFromRemoteServer()
+{
+  if(m_Remote)
+  {
+    QMutexLocker autolock(&m_RemoteLock);
+    m_Remote->ShutdownConnection();
+  }
+
+  m_RemoteHost = NULL;
+  m_Remote = NULL;
+}
+
+void RenderManager::ShutdownServer()
+{
+  if(m_Remote)
+  {
+    QMutexLocker autolock(&m_RemoteLock);
+    m_Remote->ShutdownServerAndConnection();
+  }
+
+  m_Remote = NULL;
+}
+
+void RenderManager::PingRemote()
+{
+  if(!m_Remote)
+    return;
+
+  if(m_RemoteLock.tryLock(0))
+  {
+    if(!IsRunning() || m_Thread->isCurrentThread())
+    {
+      if(!m_Remote->Ping())
+        m_RemoteHost->ServerRunning = false;
+    }
+    m_RemoteLock.unlock();
+  }
+}
+
 uint32_t RenderManager::ExecuteAndInject(const QString &exe, const QString &workingDir,
                                          const QString &cmdLine,
                                          const QList<EnvironmentModification> &env,
                                          const QString &logfile, CaptureOptions opts)
 {
-  // if (m_Remote == null)
+  void *envList = RENDERDOC_MakeEnvironmentModificationList(env.size());
+
+  for(int i = 0; i < env.size(); i++)
+    RENDERDOC_SetEnvironmentModification(envList, i, env[i].variable.toUtf8().data(),
+                                         env[i].value.toUtf8().data(), env[i].type, env[i].separator);
+
+  uint32_t ret = 0;
+
+  if(m_Remote)
   {
-    void *envList = RENDERDOC_MakeEnvironmentModificationList(env.size());
-
-    for(int i = 0; i < env.size(); i++)
-      RENDERDOC_SetEnvironmentModification(envList, i, env[i].variable.toUtf8().data(),
-                                           env[i].value.toUtf8().data(), env[i].type,
-                                           env[i].separator);
-
-    uint32_t ret = RENDERDOC_ExecuteAndInject(exe.toUtf8().data(), workingDir.toUtf8().data(),
-                                              cmdLine.toUtf8().data(), envList,
-                                              logfile.toUtf8().data(), &opts, false);
-
-    RENDERDOC_FreeEnvironmentModificationList(envList);
-
-    return ret;
+    QMutexLocker autolock(&m_RemoteLock);
+    ret = m_Remote->ExecuteAndInject(exe.toUtf8().data(), workingDir.toUtf8().data(),
+                                     cmdLine.toUtf8().data(), envList, &opts);
   }
-  /*
   else
   {
+    ret = RENDERDOC_ExecuteAndInject(exe.toUtf8().data(), workingDir.toUtf8().data(),
+                                     cmdLine.toUtf8().data(), envList, logfile.toUtf8().data(),
+                                     &opts, false);
   }
-  */
+
+  RENDERDOC_FreeEnvironmentModificationList(envList);
+
+  return ret;
 }
 
 void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
@@ -162,17 +360,19 @@ void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
     return;
   }
 
-  m_RenderLock.lock();
+  QMutexLocker autolock(&m_RenderLock);
   m_RenderQueue.push_back(cmd);
   m_RenderCondition.wakeAll();
-  m_RenderLock.unlock();
 }
 
 void RenderManager::run()
 {
   IReplayRenderer *renderer = NULL;
 
-  m_CreateStatus = RENDERDOC_CreateReplayRenderer(m_Logfile.toUtf8(), m_Progress, &renderer);
+  if(m_Remote)
+    m_CreateStatus = m_Remote->OpenCapture(~0U, m_Logfile.toUtf8().data(), m_Progress, &renderer);
+  else
+    m_CreateStatus = RENDERDOC_CreateReplayRenderer(m_Logfile.toUtf8().data(), m_Progress, &renderer);
 
   if(renderer == NULL)
     return;
@@ -189,10 +389,9 @@ void RenderManager::run()
     // wait for the condition to be woken, grab current queue,
     // unlock again.
     {
-      m_RenderLock.lock();
+      QMutexLocker autolock(&m_RenderLock);
       m_RenderCondition.wait(&m_RenderLock, 10);
       m_RenderQueue.swap(queue);
-      m_RenderLock.unlock();
     }
 
     // process all the commands
@@ -216,9 +415,10 @@ void RenderManager::run()
   {
     QQueue<InvokeHandle *> queue;
 
-    m_RenderLock.lock();
-    m_RenderQueue.swap(queue);
-    m_RenderLock.unlock();
+    {
+      QMutexLocker autolock(&m_RenderLock);
+      m_RenderQueue.swap(queue);
+    }
 
     for(InvokeHandle *cmd : queue)
     {
@@ -233,5 +433,8 @@ void RenderManager::run()
   }
 
   // close the core renderer
-  renderer->Shutdown();
+  if(m_Remote)
+    m_Remote->CloseCapture(renderer);
+  else
+    renderer->Shutdown();
 }

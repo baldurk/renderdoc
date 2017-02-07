@@ -378,12 +378,14 @@ QMessageBox::StandardButton RDDialog::messageBox(QMessageBox::Icon icon, QWidget
 }
 
 QString RDDialog::getExistingDirectory(QWidget *parent, const QString &caption, const QString &dir,
-                                       QFileDialog::Options options)
+                                       QFileDialog::Options options, QAbstractProxyModel *proxy)
 {
   QFileDialog fd(parent, caption, dir, QString());
   fd.setAcceptMode(QFileDialog::AcceptOpen);
   fd.setFileMode(QFileDialog::DirectoryOnly);
   fd.setOptions(options);
+  if(proxy)
+    fd.setProxyModel(proxy);
   show(&fd);
 
   if(fd.result() == QFileDialog::Accepted)
@@ -420,7 +422,7 @@ QString RDDialog::getOpenFileName(QWidget *parent, const QString &caption, const
 }
 
 QString RDDialog::getExecutableFileName(QWidget *parent, const QString &caption, const QString &dir,
-                                        QFileDialog::Options options)
+                                        QFileDialog::Options options, QAbstractProxyModel *proxy)
 {
   QString filter;
 
@@ -433,8 +435,12 @@ QString RDDialog::getExecutableFileName(QWidget *parent, const QString &caption,
   fd.setOptions(options);
   fd.setAcceptMode(QFileDialog::AcceptOpen);
   fd.setFileMode(QFileDialog::ExistingFile);
-  QFileFilterModel *proxy = new QFileFilterModel(parent);
-  proxy->setRequirePermissions(QDir::Executable);
+  if(!proxy)
+  {
+    QFileFilterModel *fileProxy = new QFileFilterModel(parent);
+    fileProxy->setRequirePermissions(QDir::Executable);
+    proxy = fileProxy;
+  }
   fd.setProxyModel(proxy);
   show(&fd);
 
