@@ -32,6 +32,8 @@ SuggestRemoteDialog::SuggestRemoteDialog(const QString &driver, const QString &m
 {
   ui->setupUi(this);
 
+  setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
   m_WarningStart = tr("This %1 capture was originally created on a\n '%2' machine.\n\n")
                        .arg(driver)
                        .arg(machineIdent.trimmed());

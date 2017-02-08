@@ -555,6 +555,8 @@ VirtualFileDialog::VirtualFileDialog(CaptureContext *ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
+  setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
   m_Model = new RemoteFileModel(ctx->Renderer(), this);
 
   m_DirProxy = new RemoteFileProxy(this);

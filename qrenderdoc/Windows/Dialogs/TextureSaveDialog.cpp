@@ -35,6 +35,8 @@ TextureSaveDialog::TextureSaveDialog(const FetchTexture &t, const TextureSave &s
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
   ui->setupUi(this);
 
+  setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
   QObject::connect(&typingTimer, &QTimer::timeout, [this] { SetFiletypeFromFilename(); });
 
   ui->fileFormat->clear();

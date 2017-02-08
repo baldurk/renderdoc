@@ -34,6 +34,8 @@ OrderedListEditor::OrderedListEditor(const QString &windowName, const QString &i
 {
   ui->setupUi(this);
 
+  setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
   m_BrowseMode = browse;
 
   setWindowTitle(windowName);

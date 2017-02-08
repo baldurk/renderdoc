@@ -37,6 +37,8 @@ SettingsDialog::SettingsDialog(CaptureContext *ctx, QWidget *parent)
 
   ui->setupUi(this);
 
+  setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
+
   ui->tabWidget->tabBar()->setVisible(false);
 
   for(int i = 0; i < ui->tabWidget->count(); i++)
