@@ -305,7 +305,12 @@ vector<FoundFile> GetFilesInDirectory(const char *path)
     if(ent->d_name[0] == '.')
       flags |= eFileProp_Hidden;
 
-    ret.push_back(FoundFile(ent->d_name, flags));
+    FoundFile f(ent->d_name, flags);
+
+    f.lastmod = (uint32_t)st.st_mtime;
+    f.size = (uint64_t)st.st_size;
+
+    ret.push_back(f);
   }
 
   // don't care if we hit an error or enumerated all files, just finish

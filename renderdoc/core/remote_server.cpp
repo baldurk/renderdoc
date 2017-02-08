@@ -49,6 +49,8 @@ void Serialiser::Serialise(const char *name, DirectoryFile &el)
 
   Serialise("filename", el.filename);
   Serialise("flags", el.flags);
+  Serialise("lastmod", el.lastmod);
+  Serialise("size", el.size);
 }
 
 template <>
@@ -290,6 +292,8 @@ static void ActiveRemoteClientThread(void *data)
         {
           DirectoryFile df;
           df.filename = files[i].filename;
+          df.lastmod = files[i].lastmod;
+          df.size = files[i].size;
           df.flags = files[i].flags;
           sendSer.Serialise("", df);
         }
@@ -844,6 +848,8 @@ public:
         {
           DirectoryFile package;
           package.filename = trim(tokens[1]);
+          package.size = 0;
+          package.lastmod = 0;
           package.flags = eFileProp_Executable;
           packages.push_back(package);
         }

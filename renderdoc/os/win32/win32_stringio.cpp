@@ -432,7 +432,20 @@ vector<FoundFile> GetFilesInDirectory(const char *path)
         flags |= eFileProp_Executable;
       }
 
-      ret.push_back(FoundFile(StringFormat::Wide2UTF8(findData.cFileName), flags));
+      FoundFile f(StringFormat::Wide2UTF8(findData.cFileName), flags);
+
+      uint64_t nanosecondsSinceWindowsEpoch = uint64_t(findData.ftLastWriteTime.dwHighDateTime) << 8 |
+                                              uint64_t(findData.ftLastWriteTime.dwLowDateTime);
+
+      uint64_t secondsSinceWindowsEpoch = nanosecondsSinceWindowsEpoch / 10000000;
+
+      // this constant is the number of seconds between Jan 1 1601 and Jan 1 1970
+      uint64_t secondsSinceUnixEpoch = secondsSinceWindowsEpoch - 11644473600;
+
+      f.lastmod = uint32_t(secondsSinceUnixEpoch);
+      f.size = uint64_t(findData.nFileSizeHigh) << 8 | uint64_t(findData.nFileSizeLow);
+
+      ret.push_back(f);
     }
   } while(FindNextFile(find, &findData) != FALSE);
 

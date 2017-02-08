@@ -286,9 +286,11 @@ enum
 struct FoundFile
 {
   FoundFile() : flags(0) {}
-  FoundFile(string fn, uint32_t f) : filename(fn), flags(f) {}
+  FoundFile(string fn, uint32_t f) : filename(fn), flags(f), lastmod(0), size(0) {}
   string filename;
   uint32_t flags;
+  uint32_t lastmod;
+  uint64_t size;
 };
 
 vector<FoundFile> GetFilesInDirectory(const char *path);

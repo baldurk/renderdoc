@@ -38,6 +38,8 @@ struct DirectoryFile
 {
   rdctype::str filename;
   uint32_t flags;
+  uint32_t lastmod;
+  uint64_t size;
 };
 
 struct ResourceFormat
