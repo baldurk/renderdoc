@@ -151,12 +151,6 @@
     <ClCompile Include="Code\CaptureContext.cpp">
       <Filter>Code</Filter>
     </ClCompile>
-    <ClCompile Include="Code\CommonPipelineState.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Code\PersistantConfig.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Widgets\TextureGoto.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
@@ -275,9 +269,6 @@
       <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="generated\moc_ConstantBufferPreviewer.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Code\FormatElement.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="generated\moc_BufferViewer.cpp">
@@ -466,16 +457,10 @@
     <ClCompile Include="Code\ScintillaSyntax.cpp">
       <Filter>Code</Filter>
     </ClCompile>
-    <ClCompile Include="Windows\DebugMessageView.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="generated\moc_DebugMessageView.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="generated\moc_StatisticsViewer.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="Windows\StatisticsViewer.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="Windows\Dialogs\SettingsDialog.cpp">
@@ -510,6 +495,21 @@
     </ClCompile>
     <ClCompile Include="generated\moc_VirtualFileDialog.cpp">
       <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\CommonPipelineState.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\FormatElement.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\DebugMessageView.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\StatisticsViewer.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="Code\PersistantConfig.cpp">
+      <Filter>Code</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -558,9 +558,6 @@
     <ClInclude Include="Code\CommonPipelineState.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="Code\PersistantConfig.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
     <ClInclude Include="Widgets\TextureGoto.h">
       <Filter>Widgets</Filter>
     </ClInclude>
@@ -596,9 +593,6 @@
     </ClInclude>
     <ClInclude Include="Code\QRDUtils.h">
       <Filter>Code</Filter>
-    </ClInclude>
-    <ClInclude Include="Resources\resource.h">
-      <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="Code\qprocessinfo.h">
       <Filter>Code</Filter>
@@ -870,16 +864,10 @@
     <ClInclude Include="Code\ScintillaSyntax.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="Windows\DebugMessageView.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
     <ClInclude Include="generated\ui_DebugMessageView.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="generated\ui_StatisticsViewer.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\StatisticsViewer.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="Windows\Dialogs\SettingsDialog.h">
@@ -911,6 +899,18 @@
     </ClInclude>
     <ClInclude Include="generated\ui_VirtualFileDialog.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\DebugMessageView.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Windows\StatisticsViewer.h">
+      <Filter>Windows</Filter>
+    </ClInclude>
+    <ClInclude Include="Resources\resource.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\PersistantConfig.h">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1148,8 +1148,6 @@
     <None Include="Windows\ShaderViewer.ui">
       <Filter>Windows</Filter>
     </None>
-    <None Include="Windows\DebugMessageView.ui" />
-    <None Include="Windows\StatisticsViewer.ui" />
     <None Include="Windows\Dialogs\SettingsDialog.ui">
       <Filter>Windows\Dialogs</Filter>
     </None>
@@ -1161,6 +1159,12 @@
     </None>
     <None Include="Windows\Dialogs\VirtualFileDialog.ui">
       <Filter>Windows\Dialogs</Filter>
+    </None>
+    <None Include="Windows\StatisticsViewer.ui">
+      <Filter>Windows</Filter>
+    </None>
+    <None Include="Windows\DebugMessageView.ui">
+      <Filter>Windows</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
