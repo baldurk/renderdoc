@@ -77,11 +77,9 @@ EventBrowser::EventBrowser(CaptureContext *ctx, QWidget *parent)
   ui->findStrip->hide();
   ui->bookmarkStrip->hide();
 
-  m_CurrentIcon.addFile(QStringLiteral(":/Resources/flag_green.png"), QSize(), QIcon::Normal,
-                        QIcon::Off);
-  m_FindIcon.addFile(QStringLiteral(":/Resources/find.png"), QSize(), QIcon::Normal, QIcon::Off);
-  m_BookmarkIcon.addFile(QStringLiteral(":/Resources/asterisk_orange.png"), QSize(), QIcon::Normal,
-                         QIcon::Off);
+  m_CurrentIcon.addFile(QStringLiteral(":/flag_green.png"), QSize(), QIcon::Normal, QIcon::Off);
+  m_FindIcon.addFile(QStringLiteral(":/find.png"), QSize(), QIcon::Normal, QIcon::Off);
+  m_BookmarkIcon.addFile(QStringLiteral(":/asterisk_orange.png"), QSize(), QIcon::Normal, QIcon::Off);
 }
 
 EventBrowser::~EventBrowser()

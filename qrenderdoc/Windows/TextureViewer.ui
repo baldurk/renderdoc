@@ -142,8 +142,8 @@
        <string/>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/zoom.png</normaloff>:/Resources/zoom.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/zoom.png</normaloff>:/zoom.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -162,8 +162,8 @@
        <string/>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/wand.png</normaloff>:/Resources/wand.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/wand.png</normaloff>:/wand.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -182,8 +182,8 @@
        <string>...</string>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/arrow_undo.png</normaloff>:/Resources/arrow_undo.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/arrow_undo.png</normaloff>:/arrow_undo.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -202,8 +202,8 @@
        <string>...</string>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/chart_curve.png</normaloff>:/Resources/chart_curve.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/chart_curve.png</normaloff>:/chart_curve.png</iconset>
       </property>
       <property name="checkable">
        <bool>true</bool>
@@ -343,8 +343,8 @@
        <string>Fit</string>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/fit_window.png</normaloff>:/Resources/fit_window.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/fit_window.png</normaloff>:/fit_window.png</iconset>
       </property>
       <property name="checkable">
        <bool>true</bool>
@@ -382,8 +382,8 @@
        <string/>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/flip_y.png</normaloff>:/Resources/flip_y.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/flip_y.png</normaloff>:/flip_y.png</iconset>
       </property>
       <property name="checkable">
        <bool>true</bool>
@@ -445,8 +445,8 @@
        <string/>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/save.png</normaloff>:/Resources/save.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/save.png</normaloff>:/save.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -459,8 +459,8 @@
        <string/>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/page_white_link.png</normaloff>:/Resources/page_white_link.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/page_white_link.png</normaloff>:/page_white_link.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -473,8 +473,8 @@
        <string/>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/page_white_code.png</normaloff>:/Resources/page_white_code.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/page_white_code.png</normaloff>:/page_white_code.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -487,8 +487,8 @@
        <string/>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/find.png</normaloff>:/Resources/find.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/find.png</normaloff>:/find.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -800,8 +800,8 @@
        <string/>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/add.png</normaloff>:/Resources/add.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/add.png</normaloff>:/add.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -814,8 +814,8 @@
        <string/>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/page_white_edit.png</normaloff>:/Resources/page_white_edit.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -828,8 +828,8 @@
        <string/>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/delete.png</normaloff>:/Resources/delete.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/delete.png</normaloff>:/delete.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>
@@ -842,8 +842,8 @@
        <string/>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/color_wheel.png</normaloff>:/Resources/color_wheel.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/color_wheel.png</normaloff>:/color_wheel.png</iconset>
       </property>
       <property name="checkable">
        <bool>true</bool>
@@ -859,8 +859,8 @@
        <string/>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/crosshatch.png</normaloff>:/Resources/crosshatch.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/crosshatch.png</normaloff>:/crosshatch.png</iconset>
       </property>
       <property name="checkable">
        <bool>true</bool>
@@ -1160,8 +1160,8 @@
          <string/>
         </property>
         <property name="icon">
-         <iconset resource="../resources.qrc">
-          <normaloff>:/Resources/cross.png</normaloff>:/Resources/cross.png</iconset>
+         <iconset resource="../Resources/resources.qrc">
+          <normaloff>:/cross.png</normaloff>:/cross.png</iconset>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
@@ -1236,7 +1236,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../resources.qrc"/>
+  <include location="../Resources/resources.qrc"/>
  </resources>
  <connections/>
 </ui>

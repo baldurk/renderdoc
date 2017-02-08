@@ -74,7 +74,7 @@ LiveCapture::LiveCapture(CaptureContext *ctx, const QString &hostname, uint32_t 
 
   setTitle(tr("Connecting.."));
   ui->connectionStatus->setText(tr("Connecting.."));
-  ui->connectionIcon->setPixmap(QPixmap(QString::fromUtf8(":/Resources/hourglass.png")));
+  ui->connectionIcon->setPixmap(QPixmap(QString::fromUtf8(":/hourglass.png")));
 
   {
     QToolBar *bottomTools = new QToolBar(this);
@@ -932,7 +932,7 @@ void LiveCapture::connectionThreadEntry()
     GUIInvoke::call([this]() {
       setTitle("Connection failed");
       ui->connectionStatus->setText(tr("Connection failed"));
-      ui->connectionIcon->setPixmap(QPixmap(QString::fromUtf8(":/Resources/delete.png")));
+      ui->connectionIcon->setPixmap(QPixmap(QString::fromUtf8(":/delete.png")));
 
       connectionClosed();
     });
@@ -959,7 +959,7 @@ void LiveCapture::connectionThreadEntry()
           tr("Connection established to %1 [PID %2] (%3)").arg(target).arg(pid).arg(api));
       setTitle(QString("%1 [PID %2]").arg(target).arg(pid));
     }
-    ui->connectionIcon->setPixmap(QPixmap(QString::fromUtf8(":/Resources/connect.png")));
+    ui->connectionIcon->setPixmap(QPixmap(QString::fromUtf8(":/connect.png")));
   });
 
   while(m_Connection && m_Connection->Connected())
@@ -1021,7 +1021,7 @@ void LiveCapture::connectionThreadEntry()
               tr("Connection established to %1 [PID %2] (%3)").arg(target).arg(pid).arg(api));
           setTitle(QString("%1 [PID %2]").arg(target).arg(pid));
         }
-        ui->connectionIcon->setPixmap(QPixmap(QString::fromUtf8(":/Resources/connect.png")));
+        ui->connectionIcon->setPixmap(QPixmap(QString::fromUtf8(":/connect.png")));
       });
     }
 
@@ -1068,7 +1068,7 @@ void LiveCapture::connectionThreadEntry()
 
   GUIInvoke::call([this]() {
     ui->connectionStatus->setText(tr("Connection closed"));
-    ui->connectionIcon->setPixmap(QPixmap(QString::fromUtf8(":/Resources/disconnect.png")));
+    ui->connectionIcon->setPixmap(QPixmap(QString::fromUtf8(":/disconnect.png")));
 
     ui->numFrames->setEnabled(false);
     ui->captureDelay->setEnabled(false);

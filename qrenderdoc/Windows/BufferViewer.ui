@@ -173,8 +173,8 @@
               <bool>true</bool>
              </property>
              <property name="icon">
-              <iconset resource="../resources.qrc">
-               <normaloff>:/Resources/cog.png</normaloff>:/Resources/cog.png</iconset>
+              <iconset resource="../Resources/resources.qrc">
+               <normaloff>:/cog.png</normaloff>:/cog.png</iconset>
              </property>
              <property name="checkable">
               <bool>true</bool>
@@ -196,8 +196,8 @@
               <string/>
              </property>
              <property name="icon">
-              <iconset resource="../resources.qrc">
-               <normaloff>:/Resources/arrow_undo.png</normaloff>:/Resources/arrow_undo.png</iconset>
+              <iconset resource="../Resources/resources.qrc">
+               <normaloff>:/arrow_undo.png</normaloff>:/arrow_undo.png</iconset>
              </property>
              <property name="autoRaise">
               <bool>true</bool>
@@ -213,8 +213,8 @@
               <string/>
              </property>
              <property name="icon">
-              <iconset resource="../resources.qrc">
-               <normaloff>:/Resources/wand.png</normaloff>:/Resources/wand.png</iconset>
+              <iconset resource="../Resources/resources.qrc">
+               <normaloff>:/wand.png</normaloff>:/wand.png</iconset>
              </property>
              <property name="autoRaise">
               <bool>true</bool>
@@ -294,8 +294,8 @@
               <string>Highlight Vertices</string>
              </property>
              <property name="icon">
-              <iconset resource="../resources.qrc">
-               <normaloff>:/Resources/asterisk_orange.png</normaloff>:/Resources/asterisk_orange.png</iconset>
+              <iconset resource="../Resources/resources.qrc">
+               <normaloff>:/asterisk_orange.png</normaloff>:/asterisk_orange.png</iconset>
              </property>
              <property name="checkable">
               <bool>true</bool>
@@ -622,8 +622,8 @@
        <bool>true</bool>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/save.png</normaloff>:/Resources/save.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/save.png</normaloff>:/save.png</iconset>
       </property>
       <property name="checkable">
        <bool>false</bool>
@@ -648,8 +648,8 @@
        <string>Sync Views</string>
       </property>
       <property name="icon">
-       <iconset resource="../resources.qrc">
-        <normaloff>:/Resources/arrow_join.png</normaloff>:/Resources/arrow_join.png</iconset>
+       <iconset resource="../Resources/resources.qrc">
+        <normaloff>:/arrow_join.png</normaloff>:/arrow_join.png</iconset>
       </property>
       <property name="checkable">
        <bool>true</bool>
@@ -784,7 +784,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../resources.qrc"/>
+  <include location="../Resources/resources.qrc"/>
  </resources>
  <connections/>
 </ui>

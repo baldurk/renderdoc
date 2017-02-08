@@ -459,8 +459,8 @@ void GLPipelineStateViewer::clearState()
   clearShaderState(ui->csShader, ui->csTextures, ui->csSamplers, ui->csUBOs, ui->csSubroutines,
                    ui->csReadWrite);
 
-  QPixmap tick(QString::fromUtf8(":/Resources/tick.png"));
-  QPixmap cross(QString::fromUtf8(":/Resources/cross.png"));
+  QPixmap tick(QString::fromUtf8(":/tick.png"));
+  QPixmap cross(QString::fromUtf8(":/cross.png"));
 
   ui->fillMode->setText(tr("Solid", "Fill Mode"));
   ui->cullMode->setText(tr("Front", "Cull Mode"));
@@ -520,8 +520,8 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::ShaderStage &s
   const ShaderBindpointMapping &mapping = stage.BindpointMapping;
   const GLPipelineState &state = m_Ctx->CurGLPipelineState;
 
-  QIcon action(QPixmap(QString::fromUtf8(":/Resources/action.png")));
-  QIcon action_hover(QPixmap(QString::fromUtf8(":/Resources/action_hover.png")));
+  QIcon action(QPixmap(QString::fromUtf8(":/action.png")));
+  QIcon action_hover(QPixmap(QString::fromUtf8(":/action_hover.png")));
 
   if(stage.Shader == ResourceId())
   {
@@ -1031,11 +1031,11 @@ void GLPipelineStateViewer::setState()
   bool showDisabled = ui->showDisabled->isChecked();
   bool showEmpty = ui->showEmpty->isChecked();
 
-  QPixmap tick(QString::fromUtf8(":/Resources/tick.png"));
-  QPixmap cross(QString::fromUtf8(":/Resources/cross.png"));
+  QPixmap tick(QString::fromUtf8(":/tick.png"));
+  QPixmap cross(QString::fromUtf8(":/cross.png"));
 
-  QIcon action(QPixmap(QString::fromUtf8(":/Resources/action.png")));
-  QIcon action_hover(QPixmap(QString::fromUtf8(":/Resources/action_hover.png")));
+  QIcon action(QPixmap(QString::fromUtf8(":/action.png")));
+  QIcon action_hover(QPixmap(QString::fromUtf8(":/action_hover.png")));
 
   bool usedBindings[128] = {};
 
@@ -1132,44 +1132,38 @@ void GLPipelineStateViewer::setState()
   switch(topo)
   {
     case eTopology_PointList:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_pointlist.png")));
+      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_pointlist.png")));
       break;
     case eTopology_LineList:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_linelist.png")));
+      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_linelist.png")));
       break;
     case eTopology_LineStrip:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_linestrip.png")));
+      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_linestrip.png")));
       break;
     case eTopology_TriangleList:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_trilist.png")));
+      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_trilist.png")));
       break;
     case eTopology_TriangleStrip:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_tristrip.png")));
+      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_tristrip.png")));
       break;
     case eTopology_LineList_Adj:
       ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_linelist_adj.png")));
+          QPixmap(QString::fromUtf8(":/topologies/topo_linelist_adj.png")));
       break;
     case eTopology_LineStrip_Adj:
       ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_linestrip_adj.png")));
+          QPixmap(QString::fromUtf8(":/topologies/topo_linestrip_adj.png")));
       break;
     case eTopology_TriangleList_Adj:
       ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_trilist_adj.png")));
+          QPixmap(QString::fromUtf8(":/topologies/topo_trilist_adj.png")));
       break;
     case eTopology_TriangleStrip_Adj:
       ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_tristrip_adj.png")));
+          QPixmap(QString::fromUtf8(":/topologies/topo_tristrip_adj.png")));
       break;
     default:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_patch.png")));
+      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_patch.png")));
       break;
   }
 

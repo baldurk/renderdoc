@@ -73,8 +73,8 @@
          <string>Show Disabled Items</string>
         </property>
         <property name="icon">
-         <iconset resource="../../resources.qrc">
-          <normaloff>:/Resources/page_white_delete.png</normaloff>:/Resources/page_white_delete.png</iconset>
+         <iconset resource="../../Resources/resources.qrc">
+          <normaloff>:/page_white_delete.png</normaloff>:/page_white_delete.png</iconset>
         </property>
         <property name="checkable">
          <bool>true</bool>
@@ -93,8 +93,8 @@
          <string>Show Empty Items</string>
         </property>
         <property name="icon">
-         <iconset resource="../../resources.qrc">
-          <normaloff>:/Resources/page_white_database.png</normaloff>:/Resources/page_white_database.png</iconset>
+         <iconset resource="../../Resources/resources.qrc">
+          <normaloff>:/page_white_database.png</normaloff>:/page_white_database.png</iconset>
         </property>
         <property name="checkable">
          <bool>true</bool>
@@ -113,8 +113,8 @@
          <string>Export</string>
         </property>
         <property name="icon">
-         <iconset resource="../../resources.qrc">
-          <normaloff>:/Resources/save.png</normaloff>:/Resources/save.png</iconset>
+         <iconset resource="../../Resources/resources.qrc">
+          <normaloff>:/save.png</normaloff>:/save.png</iconset>
         </property>
         <property name="checkable">
          <bool>false</bool>
@@ -390,8 +390,8 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/wireframe_mesh.png</normaloff>:/Resources/wireframe_mesh.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/wireframe_mesh.png</normaloff>:/wireframe_mesh.png</iconset>
             </property>
             <property name="iconSize">
              <size>
@@ -452,7 +452,7 @@
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../resources.qrc">:/Resources/topologies/topo_trilist.png</pixmap>
+             <pixmap resource="../../Resources/resources.qrc">:/topologies/topo_trilist.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -553,8 +553,8 @@ padding: 0px;</string>
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/action.png</normaloff>:/Resources/action.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -573,8 +573,8 @@ padding: 0px;</string>
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/page_white_edit.png</normaloff>:/Resources/page_white_edit.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -593,8 +593,8 @@ padding: 0px;</string>
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/save.png</normaloff>:/Resources/save.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -1121,8 +1121,8 @@ padding: 0px;</string>
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/action.png</normaloff>:/Resources/action.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -1141,8 +1141,8 @@ padding: 0px;</string>
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/page_white_edit.png</normaloff>:/Resources/page_white_edit.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -1161,8 +1161,8 @@ padding: 0px;</string>
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/save.png</normaloff>:/Resources/save.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -1689,8 +1689,8 @@ padding: 0px;</string>
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/action.png</normaloff>:/Resources/action.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -1709,8 +1709,8 @@ padding: 0px;</string>
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/page_white_edit.png</normaloff>:/Resources/page_white_edit.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -1729,8 +1729,8 @@ padding: 0px;</string>
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/save.png</normaloff>:/Resources/save.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -2257,8 +2257,8 @@ padding: 0px;</string>
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/action.png</normaloff>:/Resources/action.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -2277,8 +2277,8 @@ padding: 0px;</string>
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/page_white_edit.png</normaloff>:/Resources/page_white_edit.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -2297,8 +2297,8 @@ padding: 0px;</string>
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/save.png</normaloff>:/Resources/save.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -2633,7 +2633,7 @@ padding: 0px;</string>
                  <string/>
                 </property>
                 <property name="pixmap">
-                 <pixmap resource="../../resources.qrc">:/Resources/tick.png</pixmap>
+                 <pixmap resource="../../Resources/resources.qrc">:/tick.png</pixmap>
                 </property>
                 <property name="alignment">
                  <set>Qt::AlignCenter</set>
@@ -3058,7 +3058,7 @@ padding: 0px;</string>
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../resources.qrc">:/Resources/cross.png</pixmap>
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -3246,7 +3246,7 @@ padding: 0px;</string>
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../resources.qrc">:/Resources/cross.png</pixmap>
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -3318,7 +3318,7 @@ padding: 0px;</string>
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../resources.qrc">:/Resources/cross.png</pixmap>
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -3372,7 +3372,7 @@ padding: 0px;</string>
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../resources.qrc">:/Resources/cross.png</pixmap>
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -3595,7 +3595,7 @@ padding: 0px;</string>
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../resources.qrc">:/Resources/cross.png</pixmap>
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -3621,7 +3621,7 @@ padding: 0px;</string>
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../resources.qrc">:/Resources/cross.png</pixmap>
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -3675,7 +3675,7 @@ padding: 0px;</string>
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../resources.qrc">:/Resources/cross.png</pixmap>
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -3737,7 +3737,7 @@ padding: 0px;</string>
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../resources.qrc">:/Resources/cross.png</pixmap>
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -3836,8 +3836,8 @@ padding: 0px;</string>
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/action.png</normaloff>:/Resources/action.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -3856,8 +3856,8 @@ padding: 0px;</string>
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/page_white_edit.png</normaloff>:/Resources/page_white_edit.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -3876,8 +3876,8 @@ padding: 0px;</string>
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/save.png</normaloff>:/Resources/save.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -4682,7 +4682,7 @@ padding: 0px;</string>
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../resources.qrc">:/Resources/cross.png</pixmap>
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -4708,7 +4708,7 @@ padding: 0px;</string>
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../resources.qrc">:/Resources/cross.png</pixmap>
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -4734,7 +4734,7 @@ padding: 0px;</string>
              <string/>
             </property>
             <property name="pixmap">
-             <pixmap resource="../../resources.qrc">:/Resources/cross.png</pixmap>
+             <pixmap resource="../../Resources/resources.qrc">:/cross.png</pixmap>
             </property>
             <property name="alignment">
              <set>Qt::AlignCenter</set>
@@ -4979,8 +4979,8 @@ padding: 0px;</string>
              <string>View</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/action.png</normaloff>:/Resources/action.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/action.png</normaloff>:/action.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -4999,8 +4999,8 @@ padding: 0px;</string>
              <string>Edit</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/page_white_edit.png</normaloff>:/Resources/page_white_edit.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/page_white_edit.png</normaloff>:/page_white_edit.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -5019,8 +5019,8 @@ padding: 0px;</string>
              <string>Save</string>
             </property>
             <property name="icon">
-             <iconset resource="../../resources.qrc">
-              <normaloff>:/Resources/save.png</normaloff>:/Resources/save.png</iconset>
+             <iconset resource="../../Resources/resources.qrc">
+              <normaloff>:/save.png</normaloff>:/save.png</iconset>
             </property>
             <property name="toolButtonStyle">
              <enum>Qt::ToolButtonTextBesideIcon</enum>
@@ -5490,7 +5490,7 @@ padding: 0px;</string>
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../../resources.qrc"/>
+  <include location="../../Resources/resources.qrc"/>
  </resources>
  <connections/>
 </ui>

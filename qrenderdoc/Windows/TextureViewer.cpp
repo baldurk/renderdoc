@@ -401,9 +401,8 @@ public:
       if(role == Qt::DecorationRole)
       {
         QIcon goArrow;
-        goArrow.addFile(QStringLiteral(":/Resources/action.png"), QSize(), QIcon::Normal, QIcon::Off);
-        goArrow.addFile(QStringLiteral(":/Resources/action_hover.png"), QSize(), QIcon::Active,
-                        QIcon::Off);
+        goArrow.addFile(QStringLiteral(":/action.png"), QSize(), QIcon::Normal, QIcon::Off);
+        goArrow.addFile(QStringLiteral(":/action_hover.png"), QSize(), QIcon::Active, QIcon::Off);
         return QVariant(goArrow);
       }
     }
@@ -1513,7 +1512,7 @@ void TextureViewer::SetupTextureTabs()
   ToolWindowManagerArea *textureTabs = ui->dockarea->areaOf(ui->renderContainer);
 
   QIcon tabIcon;
-  tabIcon.addFile(QStringLiteral(":/Resources/icon.ico"), QSize(), QIcon::Normal, QIcon::Off);
+  tabIcon.addFile(QStringLiteral(":/icon.ico"), QSize(), QIcon::Normal, QIcon::Off);
 
   textureTabs->setTabIcon(0, tabIcon);
 
@@ -1682,8 +1681,7 @@ void TextureViewer::ViewTexture(ResourceId ID, bool focus)
     lockedContainer->setLayout(ui->renderLayout);
 
     QIcon lockedIcon;
-    lockedIcon.addFile(QStringLiteral(":/Resources/page_white_link.png"), QSize(), QIcon::Normal,
-                       QIcon::Off);
+    lockedIcon.addFile(QStringLiteral(":/page_white_link.png"), QSize(), QIcon::Normal, QIcon::Off);
 
     int idx = textureTabs->indexOf(lockedContainer);
 
@@ -1784,7 +1782,7 @@ void TextureViewer::OpenResourceContextMenu(ResourceId id, const rdctype::array<
   QAction imageLayout(this);
 
   QIcon goArrow;
-  goArrow.addFile(QStringLiteral(":/Resources/action_hover.png"), QSize(), QIcon::Normal, QIcon::Off);
+  goArrow.addFile(QStringLiteral(":/action_hover.png"), QSize(), QIcon::Normal, QIcon::Off);
   openLockedTab.setIcon(goArrow);
 
   showDisabled.setChecked(m_ShowDisabled);

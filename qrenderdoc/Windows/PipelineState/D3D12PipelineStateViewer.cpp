@@ -564,8 +564,8 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view,
                                               const D3D12PipelineState::ShaderStage *stage,
                                               RDTreeWidget *resources)
 {
-  QIcon action(QPixmap(QString::fromUtf8(":/Resources/action.png")));
-  QIcon action_hover(QPixmap(QString::fromUtf8(":/Resources/action_hover.png")));
+  QIcon action(QPixmap(QString::fromUtf8(":/action.png")));
+  QIcon action_hover(QPixmap(QString::fromUtf8(":/action_hover.png")));
 
   const D3D12PipelineState::ResourceView &r = view.res;
   bool uav = view.type == ViewTag::UAV;
@@ -815,8 +815,8 @@ void D3D12PipelineStateViewer::clearState()
   clearShaderState(ui->psShader, ui->psResources, ui->psSamplers, ui->psCBuffers, ui->psUAVs);
   clearShaderState(ui->csShader, ui->csResources, ui->csSamplers, ui->csCBuffers, ui->csUAVs);
 
-  QPixmap tick(QString::fromUtf8(":/Resources/tick.png"));
-  QPixmap cross(QString::fromUtf8(":/Resources/cross.png"));
+  QPixmap tick(QString::fromUtf8(":/tick.png"));
+  QPixmap cross(QString::fromUtf8(":/cross.png"));
 
   ui->fillMode->setText(tr("Solid", "Fill Mode"));
   ui->cullMode->setText(tr("Front", "Cull Mode"));
@@ -864,8 +864,8 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12PipelineState::ShaderSt
   ShaderReflection *shaderDetails = stage.ShaderDetails;
   const D3D12PipelineState &state = m_Ctx->CurD3D12PipelineState;
 
-  QIcon action(QPixmap(QString::fromUtf8(":/Resources/action.png")));
-  QIcon action_hover(QPixmap(QString::fromUtf8(":/Resources/action_hover.png")));
+  QIcon action(QPixmap(QString::fromUtf8(":/action.png")));
+  QIcon action_hover(QPixmap(QString::fromUtf8(":/action_hover.png")));
 
   if(stage.Shader == ResourceId())
     shader->setText(tr("Unbound Shader"));
@@ -1162,11 +1162,11 @@ void D3D12PipelineStateViewer::setState()
   const D3D12PipelineState &state = m_Ctx->CurD3D12PipelineState;
   const FetchDrawcall *draw = m_Ctx->CurDrawcall();
 
-  QPixmap tick(QString::fromUtf8(":/Resources/tick.png"));
-  QPixmap cross(QString::fromUtf8(":/Resources/cross.png"));
+  QPixmap tick(QString::fromUtf8(":/tick.png"));
+  QPixmap cross(QString::fromUtf8(":/cross.png"));
 
-  QIcon action(QPixmap(QString::fromUtf8(":/Resources/action.png")));
-  QIcon action_hover(QPixmap(QString::fromUtf8(":/Resources/action_hover.png")));
+  QIcon action(QPixmap(QString::fromUtf8(":/action.png")));
+  QIcon action_hover(QPixmap(QString::fromUtf8(":/action_hover.png")));
 
   ////////////////////////////////////////////////
   // Vertex Input
@@ -1251,44 +1251,38 @@ void D3D12PipelineStateViewer::setState()
   switch(topo)
   {
     case eTopology_PointList:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_pointlist.png")));
+      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_pointlist.png")));
       break;
     case eTopology_LineList:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_linelist.png")));
+      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_linelist.png")));
       break;
     case eTopology_LineStrip:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_linestrip.png")));
+      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_linestrip.png")));
       break;
     case eTopology_TriangleList:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_trilist.png")));
+      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_trilist.png")));
       break;
     case eTopology_TriangleStrip:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_tristrip.png")));
+      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_tristrip.png")));
       break;
     case eTopology_LineList_Adj:
       ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_linelist_adj.png")));
+          QPixmap(QString::fromUtf8(":/topologies/topo_linelist_adj.png")));
       break;
     case eTopology_LineStrip_Adj:
       ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_linestrip_adj.png")));
+          QPixmap(QString::fromUtf8(":/topologies/topo_linestrip_adj.png")));
       break;
     case eTopology_TriangleList_Adj:
       ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_trilist_adj.png")));
+          QPixmap(QString::fromUtf8(":/topologies/topo_trilist_adj.png")));
       break;
     case eTopology_TriangleStrip_Adj:
       ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_tristrip_adj.png")));
+          QPixmap(QString::fromUtf8(":/topologies/topo_tristrip_adj.png")));
       break;
     default:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/Resources/topologies/topo_patch.png")));
+      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_patch.png")));
       break;
   }
 

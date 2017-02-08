@@ -322,8 +322,8 @@
 Click here to set up Vulkan capture.</string>
      </property>
      <property name="icon">
-      <iconset resource="../../resources.qrc">
-       <normaloff>:/Resources/information.png</normaloff>:/Resources/information.png</iconset>
+      <iconset resource="../../Resources/resources.qrc">
+       <normaloff>:/information.png</normaloff>:/information.png</iconset>
      </property>
      <property name="popupMode">
       <enum>QToolButton::DelayedPopup</enum>
@@ -728,7 +728,7 @@ Click here to set up Vulkan capture.</string>
   </layout>
  </widget>
  <resources>
-  <include location="../../resources.qrc"/>
+  <include location="../../Resources/resources.qrc"/>
  </resources>
  <connections/>
 </ui>

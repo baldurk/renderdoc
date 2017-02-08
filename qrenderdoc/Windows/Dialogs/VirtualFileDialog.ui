@@ -22,8 +22,8 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset resource="../../resources.qrc">
-         <normaloff>:/Resources/back.png</normaloff>:/Resources/back.png</iconset>
+        <iconset resource="../../Resources/resources.qrc">
+         <normaloff>:/back.png</normaloff>:/back.png</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -42,8 +42,8 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset resource="../../resources.qrc">
-         <normaloff>:/Resources/forward.png</normaloff>:/Resources/forward.png</iconset>
+        <iconset resource="../../Resources/resources.qrc">
+         <normaloff>:/forward.png</normaloff>:/forward.png</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -69,8 +69,8 @@
         <string>...</string>
        </property>
        <property name="icon">
-        <iconset resource="../../resources.qrc">
-         <normaloff>:/Resources/upfolder.png</normaloff>:/Resources/upfolder.png</iconset>
+        <iconset resource="../../Resources/resources.qrc">
+         <normaloff>:/upfolder.png</normaloff>:/upfolder.png</iconset>
        </property>
        <property name="iconSize">
         <size>
@@ -249,7 +249,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../../resources.qrc"/>
+  <include location="../../Resources/resources.qrc"/>
  </resources>
  <connections>
   <connection>

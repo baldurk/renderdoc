@@ -67,7 +67,7 @@ void SuggestRemoteDialog::remotesAdded()
                        tr("the capture locally?"));
 
   ui->remote->setEnabled(true);
-  ui->remote->setIcon(QIcon(QPixmap(QString::fromUtf8(":/Resources/down_arrow.png"))));
+  ui->remote->setIcon(QIcon(QPixmap(QString::fromUtf8(":/down_arrow.png"))));
   ui->remote->setText("Remote");
 }
 

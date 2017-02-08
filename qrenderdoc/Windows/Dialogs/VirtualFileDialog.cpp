@@ -50,9 +50,9 @@ public:
   RemoteFileModel(RenderManager *r, QObject *parent = NULL)
       : Renderer(*r), QAbstractItemModel(parent)
   {
-    makeIconStates(fileIcon, QString::fromUtf8(":/Resources/page_white_database.png"));
-    makeIconStates(exeIcon, QString::fromUtf8(":/Resources/page_white_code.png"));
-    makeIconStates(dirIcon, QString::fromUtf8(":/Resources/folder_page.png"));
+    makeIconStates(fileIcon, QString::fromUtf8(":/page_white_database.png"));
+    makeIconStates(exeIcon, QString::fromUtf8(":/page_white_code.png"));
+    makeIconStates(dirIcon, QString::fromUtf8(":/folder_page.png"));
 
     Renderer.GetHomeFolder(true, [this](const char *path, const rdctype::array<DirectoryFile> &files) {
       QString homeDir = QString::fromUtf8(path);

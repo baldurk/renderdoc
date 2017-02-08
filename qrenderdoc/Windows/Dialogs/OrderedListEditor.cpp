@@ -67,7 +67,7 @@ QToolButton *OrderedListEditor::makeBrowseButton()
 {
   QToolButton *ret = new QToolButton(this);
 
-  ret->setIcon(QIcon(QPixmap(QString::fromUtf8(":/Resources/folder_page.png"))));
+  ret->setIcon(QIcon(QPixmap(QString::fromUtf8(":/folder_page.png"))));
   ret->setAutoRaise(true);
 
   QObject::connect(ret, &QToolButton::clicked, this, &OrderedListEditor::browse_clicked);

@@ -211,7 +211,7 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/Dialogs/SuggestRemoteDialog.ui \
     Windows/Dialogs/VirtualFileDialog.ui
 
-RESOURCES += resources.qrc
+RESOURCES += Resources/resources.qrc
 
 # Add ToolWindowManager
 

@@ -75,8 +75,8 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="../resources.qrc">
-         <normaloff>:/Resources/find.png</normaloff>:/Resources/find.png</iconset>
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/find.png</normaloff>:/find.png</iconset>
        </property>
        <property name="checkable">
         <bool>false</bool>
@@ -95,8 +95,8 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="../resources.qrc">
-         <normaloff>:/Resources/flag_green.png</normaloff>:/Resources/flag_green.png</iconset>
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/flag_green.png</normaloff>:/flag_green.png</iconset>
        </property>
        <property name="autoRaise">
         <bool>true</bool>
@@ -109,8 +109,8 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="../resources.qrc">
-         <normaloff>:/Resources/time.png</normaloff>:/Resources/time.png</iconset>
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/time.png</normaloff>:/time.png</iconset>
        </property>
        <property name="autoRaise">
         <bool>true</bool>
@@ -123,8 +123,8 @@
         <string/>
        </property>
        <property name="icon">
-        <iconset resource="../resources.qrc">
-         <normaloff>:/Resources/asterisk_orange.png</normaloff>:/Resources/asterisk_orange.png</iconset>
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/asterisk_orange.png</normaloff>:/asterisk_orange.png</iconset>
        </property>
        <property name="autoRaise">
         <bool>true</bool>
@@ -170,7 +170,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap resource="../resources.qrc">:/Resources/flag_green.png</pixmap>
+         <pixmap resource="../Resources/resources.qrc">:/flag_green.png</pixmap>
         </property>
        </widget>
       </item>
@@ -254,8 +254,8 @@
          <string/>
         </property>
         <property name="icon">
-         <iconset resource="../resources.qrc">
-          <normaloff>:/Resources/cross.png</normaloff>:/Resources/cross.png</iconset>
+         <iconset resource="../Resources/resources.qrc">
+          <normaloff>:/cross.png</normaloff>:/cross.png</iconset>
         </property>
         <property name="shortcut">
          <string>Esc</string>
@@ -292,7 +292,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap resource="../resources.qrc">:/Resources/find.png</pixmap>
+         <pixmap resource="../Resources/resources.qrc">:/find.png</pixmap>
         </property>
        </widget>
       </item>
@@ -367,8 +367,8 @@
          <string/>
         </property>
         <property name="icon">
-         <iconset resource="../resources.qrc">
-          <normaloff>:/Resources/cross.png</normaloff>:/Resources/cross.png</iconset>
+         <iconset resource="../Resources/resources.qrc">
+          <normaloff>:/cross.png</normaloff>:/cross.png</iconset>
         </property>
         <property name="shortcut">
          <string>Esc</string>
@@ -384,8 +384,8 @@
          <string/>
         </property>
         <property name="icon">
-         <iconset resource="../resources.qrc">
-          <normaloff>:/Resources/stepnext.png</normaloff>:/Resources/stepnext.png</iconset>
+         <iconset resource="../Resources/resources.qrc">
+          <normaloff>:/stepnext.png</normaloff>:/stepnext.png</iconset>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
@@ -398,8 +398,8 @@
          <string/>
         </property>
         <property name="icon">
-         <iconset resource="../resources.qrc">
-          <normaloff>:/Resources/stepprev.png</normaloff>:/Resources/stepprev.png</iconset>
+         <iconset resource="../Resources/resources.qrc">
+          <normaloff>:/stepprev.png</normaloff>:/stepprev.png</iconset>
         </property>
         <property name="autoRaise">
          <bool>true</bool>
@@ -433,7 +433,7 @@
          <string/>
         </property>
         <property name="pixmap">
-         <pixmap resource="../resources.qrc">:/Resources/asterisk_orange.png</pixmap>
+         <pixmap resource="../Resources/resources.qrc">:/asterisk_orange.png</pixmap>
         </property>
        </widget>
       </item>
@@ -553,7 +553,7 @@
   </customwidget>
  </customwidgets>
  <resources>
-  <include location="../resources.qrc"/>
+  <include location="../Resources/resources.qrc"/>
  </resources>
  <connections/>
 </ui>
