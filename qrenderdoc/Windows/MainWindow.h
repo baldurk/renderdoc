@@ -27,8 +27,8 @@
 #include <stdint.h>
 #include <QMainWindow>
 #include <QTimer>
+#include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/CaptureContext.h"
-#include "ToolWindowManager.h"
 
 namespace Ui
 {

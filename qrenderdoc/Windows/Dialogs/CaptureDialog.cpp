@@ -25,12 +25,12 @@
 #include "CaptureDialog.h"
 #include <QSortFilterProxyModel>
 #include <QStandardItemModel>
+#include "3rdparty/flowlayout/FlowLayout.h"
+#include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/QRDUtils.h"
 #include "Code/qprocessinfo.h"
 #include "Windows/Dialogs/VirtualFileDialog.h"
-#include "FlowLayout.h"
 #include "LiveCapture.h"
-#include "ToolWindowManager.h"
 #include "ui_CaptureDialog.h"
 
 #define JSON_ID "rdocCaptureSettings"

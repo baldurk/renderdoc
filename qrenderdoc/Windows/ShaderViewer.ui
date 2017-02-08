@@ -190,7 +190,7 @@
   <customwidget>
    <class>ToolWindowManager</class>
    <extends>QWidget</extends>
-   <header>ToolWindowManager.h</header>
+   <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
   </customwidget>
  </customwidgets>
  <resources/>

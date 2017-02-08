@@ -23,8 +23,8 @@
  ******************************************************************************/
 
 #include "ScintillaSyntax.h"
-#include "SciLexer.h"
-#include "ScintillaEdit.h"
+#include "3rdparty/scintilla/include/SciLexer.h"
+#include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
 
 static const char *hlsl_keywords[2] = {
     // keyword set 0:

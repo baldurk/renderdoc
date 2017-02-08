@@ -30,10 +30,10 @@
 #include <QScrollBar>
 #include <QToolBar>
 #include <QToolButton>
+#include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/qprocessinfo.h"
 #include "Widgets/Extended/RDLabel.h"
 #include "Windows/MainWindow.h"
-#include "ToolWindowManager.h"
 #include "ui_LiveCapture.h"
 
 static const int PIDRole = Qt::UserRole + 1;

@@ -24,10 +24,10 @@
 
 #include "ShaderViewer.h"
 #include <QHBoxLayout>
+#include "3rdparty/scintilla/include/SciLexer.h"
+#include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/ScintillaSyntax.h"
-#include "SciLexer.h"
-#include "ScintillaEdit.h"
 #include "ui_ShaderViewer.h"
 
 ShaderViewer::ShaderViewer(CaptureContext *ctx, ShaderReflection *shader, ShaderStageType stage,

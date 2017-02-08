@@ -33,6 +33,7 @@
 #include <QMenu>
 #include <QPainter>
 #include <QStyledItemDelegate>
+#include "3rdparty/flowlayout/FlowLayout.h"
 #include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
@@ -40,7 +41,6 @@
 #include "Widgets/ResourcePreview.h"
 #include "Widgets/TextureGoto.h"
 #include "BufferViewer.h"
-#include "FlowLayout.h"
 #include "MainWindow.h"
 #include "ui_TextureViewer.h"
 

@@ -12,8 +12,8 @@
 #ifndef SCINTILLAEDITBASE_H
 #define SCINTILLAEDITBASE_H
 
-#include "Platform.h"
-#include "Scintilla.h"
+#include "../Platform.h"
+#include "../Scintilla.h"
 
 #include <QAbstractScrollArea>
 #include <QMimeData>
