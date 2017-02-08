@@ -519,33 +519,6 @@
     <ClInclude Include="Code\RenderManager.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="Widgets\CustomPaintWidget.h">
-      <Filter>Widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\EventBrowser.h">
-      <Filter>Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\MainWindow.h">
-      <Filter>Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\TextureViewer.h">
-      <Filter>Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManager.h">
-      <Filter>3rdparty\ToolWindowManager</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManagerArea.h">
-      <Filter>3rdparty\ToolWindowManager</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManagerWrapper.h">
-      <Filter>3rdparty\ToolWindowManager</Filter>
-    </ClInclude>
-    <ClInclude Include="Widgets\ResourcePreview.h">
-      <Filter>Widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="Widgets\ThumbnailStrip.h">
-      <Filter>Widgets</Filter>
-    </ClInclude>
     <ClInclude Include="generated\ui_ResourcePreview.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
@@ -558,59 +531,20 @@
     <ClInclude Include="Code\CommonPipelineState.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="Widgets\TextureGoto.h">
-      <Filter>Widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="Widgets\RangeHistogram.h">
-      <Filter>Widgets</Filter>
-    </ClInclude>
-    <ClInclude Include="Widgets\Extended\RDDoubleSpinBox.h">
-      <Filter>Widgets\Extended</Filter>
-    </ClInclude>
-    <ClInclude Include="Widgets\Extended\RDLabel.h">
-      <Filter>Widgets\Extended</Filter>
-    </ClInclude>
-    <ClInclude Include="Widgets\Extended\RDLineEdit.h">
-      <Filter>Widgets\Extended</Filter>
-    </ClInclude>
-    <ClInclude Include="Widgets\Extended\RDListView.h">
-      <Filter>Widgets\Extended</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\Dialogs\AboutDialog.h">
-      <Filter>Windows\Dialogs</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\Dialogs\TextureSaveDialog.h">
-      <Filter>Windows\Dialogs</Filter>
-    </ClInclude>
     <ClInclude Include="generated\ui_TextureSaveDialog.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="generated\ui_CaptureDialog.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-    <ClInclude Include="Windows\Dialogs\CaptureDialog.h">
-      <Filter>Windows\Dialogs</Filter>
-    </ClInclude>
-    <ClInclude Include="Code\QRDUtils.h">
-      <Filter>Code</Filter>
-    </ClInclude>
     <ClInclude Include="Code\qprocessinfo.h">
       <Filter>Code</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\Dialogs\LiveCapture.h">
-      <Filter>Windows\Dialogs</Filter>
     </ClInclude>
     <ClInclude Include="generated\ui_LiveCapture.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-    <ClInclude Include="Widgets\Extended\RDListWidget.h">
-      <Filter>Widgets\Extended</Filter>
-    </ClInclude>
     <ClInclude Include="generated\ui_APIInspector.h">
       <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\APIInspector.h">
-      <Filter>Windows</Filter>
     </ClInclude>
     <ClInclude Include="generated\ui_D3D11PipelineStateViewer.h">
       <Filter>Generated Files</Filter>
@@ -627,30 +561,6 @@
     <ClInclude Include="generated\ui_VulkanPipelineStateViewer.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-    <ClInclude Include="Windows\PipelineState\D3D11PipelineStateViewer.h">
-      <Filter>Windows\PipelineState</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\PipelineState\D3D12PipelineStateViewer.h">
-      <Filter>Windows\PipelineState</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\PipelineState\GLPipelineStateViewer.h">
-      <Filter>Windows\PipelineState</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\PipelineState\PipelineStateViewer.h">
-      <Filter>Windows\PipelineState</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\PipelineState\VulkanPipelineStateViewer.h">
-      <Filter>Windows\PipelineState</Filter>
-    </ClInclude>
-    <ClInclude Include="Widgets\Extended\RDTreeWidget.h">
-      <Filter>Widgets\Extended</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\ConstantBufferPreviewer.h">
-      <Filter>Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="Widgets\BufferFormatSpecifier.h">
-      <Filter>Widgets</Filter>
-    </ClInclude>
     <ClInclude Include="generated\ui_ConstantBufferPreviewer.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
@@ -659,12 +569,6 @@
     </ClInclude>
     <ClInclude Include="generated\ui_BufferViewer.h">
       <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\BufferViewer.h">
-      <Filter>Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="Widgets\Extended\RDTableView.h">
-      <Filter>Widgets\Extended</Filter>
     </ClInclude>
     <ClInclude Include="3rdparty\scintilla\lexlib\Accessor.h">
       <Filter>3rdparty\Scintilla\lexlib</Filter>
@@ -740,15 +644,6 @@
     </ClInclude>
     <ClInclude Include="3rdparty\scintilla\qt\ScintillaEditBase\PlatQt.h">
       <Filter>3rdparty\Scintilla\qt\ScintillaEditBase</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaEditBase.h">
-      <Filter>3rdparty\Scintilla\qt\ScintillaEditBase</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaQt.h">
-      <Filter>3rdparty\Scintilla\qt\ScintillaEditBase</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaDocument.h">
-      <Filter>3rdparty\Scintilla\qt\ScintillaEdit</Filter>
     </ClInclude>
     <ClInclude Include="3rdparty\scintilla\src\AutoComplete.h">
       <Filter>3rdparty\Scintilla\src</Filter>
@@ -852,12 +747,6 @@
     <ClInclude Include="3rdparty\scintilla\src\XPM.h">
       <Filter>3rdparty\Scintilla\src</Filter>
     </ClInclude>
-    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaEdit.h">
-      <Filter>3rdparty\Scintilla\qt\ScintillaEdit</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\ShaderViewer.h">
-      <Filter>Windows</Filter>
-    </ClInclude>
     <ClInclude Include="generated\ui_ShaderViewer.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
@@ -870,41 +759,20 @@
     <ClInclude Include="generated\ui_StatisticsViewer.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-    <ClInclude Include="Windows\Dialogs\SettingsDialog.h">
-      <Filter>Windows\Dialogs</Filter>
-    </ClInclude>
     <ClInclude Include="generated\ui_SettingsDialog.h">
       <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\Dialogs\OrderedListEditor.h">
-      <Filter>Windows\Dialogs</Filter>
     </ClInclude>
     <ClInclude Include="generated\ui_OrderedListEditor.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-    <ClInclude Include="Widgets\Extended\RDTableWidget.h">
-      <Filter>Widgets\Extended</Filter>
-    </ClInclude>
     <ClInclude Include="Code\RemoteHost.h">
       <Filter>Code</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\Dialogs\SuggestRemoteDialog.h">
-      <Filter>Windows\Dialogs</Filter>
     </ClInclude>
     <ClInclude Include="generated\ui_SuggestRemoteDialog.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
-    <ClInclude Include="Windows\Dialogs\VirtualFileDialog.h">
-      <Filter>Windows\Dialogs</Filter>
-    </ClInclude>
     <ClInclude Include="generated\ui_VirtualFileDialog.h">
       <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\DebugMessageView.h">
-      <Filter>Windows</Filter>
-    </ClInclude>
-    <ClInclude Include="Windows\StatisticsViewer.h">
-      <Filter>Windows</Filter>
     </ClInclude>
     <ClInclude Include="Resources\resource.h">
       <Filter>Resources</Filter>
@@ -914,9 +782,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <None Include="resources.qrc">
-      <Filter>Resources</Filter>
-    </None>
     <None Include="Resources\128.png">
       <Filter>Resources\Files</Filter>
     </None>
@@ -1085,86 +950,11 @@
     <None Include="Resources\zoom.png">
       <Filter>Resources\Files</Filter>
     </None>
-    <None Include="Windows\EventBrowser.ui">
-      <Filter>Windows</Filter>
-    </None>
-    <None Include="Windows\MainWindow.ui">
-      <Filter>Windows</Filter>
-    </None>
-    <None Include="Windows\TextureViewer.ui">
-      <Filter>Windows</Filter>
-    </None>
-    <None Include="Widgets\ResourcePreview.ui">
-      <Filter>Widgets</Filter>
-    </None>
-    <None Include="Widgets\ThumbnailStrip.ui">
-      <Filter>Widgets</Filter>
-    </None>
-    <None Include="Windows\Dialogs\AboutDialog.ui">
-      <Filter>Windows\Dialogs</Filter>
-    </None>
-    <None Include="Windows\Dialogs\TextureSaveDialog.ui">
-      <Filter>Windows\Dialogs</Filter>
-    </None>
-    <None Include="Windows\Dialogs\CaptureDialog.ui">
-      <Filter>Windows\Dialogs</Filter>
-    </None>
-    <None Include="Windows\Dialogs\LiveCapture.ui">
-      <Filter>Windows\Dialogs</Filter>
-    </None>
-    <None Include="Windows\APIInspector.ui">
-      <Filter>Windows</Filter>
-    </None>
-    <None Include="Windows\PipelineState\D3D11PipelineStateViewer.ui">
-      <Filter>Windows\PipelineState</Filter>
-    </None>
-    <None Include="Windows\PipelineState\D3D12PipelineStateViewer.ui">
-      <Filter>Windows\PipelineState</Filter>
-    </None>
-    <None Include="Windows\PipelineState\GLPipelineStateViewer.ui">
-      <Filter>Windows\PipelineState</Filter>
-    </None>
-    <None Include="Windows\PipelineState\PipelineStateViewer.ui">
-      <Filter>Windows\PipelineState</Filter>
-    </None>
-    <None Include="Windows\PipelineState\VulkanPipelineStateViewer.ui">
-      <Filter>Windows\PipelineState</Filter>
-    </None>
     <None Include="Resources\action_hover.png">
       <Filter>Resources\Files</Filter>
     </None>
     <None Include="Resources\action.png">
       <Filter>Resources\Files</Filter>
-    </None>
-    <None Include="Windows\ConstantBufferPreviewer.ui">
-      <Filter>Windows</Filter>
-    </None>
-    <None Include="Widgets\BufferFormatSpecifier.ui">
-      <Filter>Widgets</Filter>
-    </None>
-    <None Include="Windows\BufferViewer.ui">
-      <Filter>Windows</Filter>
-    </None>
-    <None Include="Windows\ShaderViewer.ui">
-      <Filter>Windows</Filter>
-    </None>
-    <None Include="Windows\Dialogs\SettingsDialog.ui">
-      <Filter>Windows\Dialogs</Filter>
-    </None>
-    <None Include="Windows\Dialogs\OrderedListEditor.ui">
-      <Filter>Windows\Dialogs</Filter>
-    </None>
-    <None Include="Windows\Dialogs\SuggestRemoteDialog.ui">
-      <Filter>Windows\Dialogs</Filter>
-    </None>
-    <None Include="Windows\Dialogs\VirtualFileDialog.ui">
-      <Filter>Windows\Dialogs</Filter>
-    </None>
-    <None Include="Windows\StatisticsViewer.ui">
-      <Filter>Windows</Filter>
-    </None>
-    <None Include="Windows\DebugMessageView.ui">
-      <Filter>Windows</Filter>
     </None>
   </ItemGroup>
   <ItemGroup>
@@ -1185,5 +975,217 @@
     <ResourceCompile Include="Resources\qrenderdoc.rc">
       <Filter>Resources</Filter>
     </ResourceCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="Windows\APIInspector.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\BufferViewer.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ConstantBufferPreviewer.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\DebugMessageView.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\EventBrowser.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\MainWindow.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ShaderViewer.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\StatisticsViewer.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\TextureViewer.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\D3D11PipelineStateViewer.ui">
+      <Filter>Windows\PipelineState</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\D3D12PipelineStateViewer.ui">
+      <Filter>Windows\PipelineState</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\GLPipelineStateViewer.ui">
+      <Filter>Windows\PipelineState</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\PipelineStateViewer.ui">
+      <Filter>Windows\PipelineState</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\VulkanPipelineStateViewer.ui">
+      <Filter>Windows\PipelineState</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\BufferFormatSpecifier.ui">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\ResourcePreview.ui">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\ThumbnailStrip.ui">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\OrderedListEditor.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\SettingsDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AboutDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\CaptureDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\LiveCapture.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\SuggestRemoteDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\VirtualFileDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\TextureSaveDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Resources\resources.qrc">
+      <Filter>Resources</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\TextureViewer.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\MainWindow.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\APIInspector.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\BufferViewer.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ConstantBufferPreviewer.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\DebugMessageView.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\EventBrowser.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ShaderViewer.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\StatisticsViewer.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDDoubleSpinBox.h">
+      <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDLabel.h">
+      <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDLineEdit.h">
+      <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDListView.h">
+      <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDListWidget.h">
+      <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDTableView.h">
+      <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDTableWidget.h">
+      <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDTreeWidget.h">
+      <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\BufferFormatSpecifier.h">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\CustomPaintWidget.h">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\RangeHistogram.h">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\ResourcePreview.h">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\TextureGoto.h">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AboutDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\CaptureDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\LiveCapture.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\OrderedListEditor.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\PipelineStateViewer.h">
+      <Filter>Windows\PipelineState</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\SettingsDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\TextureSaveDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\SuggestRemoteDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\VirtualFileDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\VulkanPipelineStateViewer.h">
+      <Filter>Windows\PipelineState</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\D3D11PipelineStateViewer.h">
+      <Filter>Windows\PipelineState</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\D3D12PipelineStateViewer.h">
+      <Filter>Windows\PipelineState</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\GLPipelineStateViewer.h">
+      <Filter>Windows\PipelineState</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Code\QRDUtils.h">
+      <Filter>Code</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\ThumbnailStrip.h">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\toolwindowmanager\ToolWindowManagerWrapper.h">
+      <Filter>3rdparty\ToolWindowManager</Filter>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\toolwindowmanager\ToolWindowManagerArea.h">
+      <Filter>3rdparty\ToolWindowManager</Filter>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\toolwindowmanager\ToolWindowManager.h">
+      <Filter>3rdparty\ToolWindowManager</Filter>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaDocument.h">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEdit</Filter>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaEdit.h">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEdit</Filter>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaEditBase.h">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEditBase</Filter>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaQt.h">
+      <Filter>3rdparty\Scintilla\qt\ScintillaEditBase</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>

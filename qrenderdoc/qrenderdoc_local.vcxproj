@@ -104,7 +104,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\qt\$(Platform)\include;3rdparty\qt\$(Platform)\include\QtWidgets;3rdparty\qt\$(Platform)\include\QtGui;3rdparty\qt\$(Platform)\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(Platform)\$(Configuration)\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -127,7 +127,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>qtmain.lib;shell32.lib;Qt5Widgets.lib;Qt5Gui.lib;Qt5Core.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>3rdparty\Qt\lib64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>3rdparty\qt\$(Platform)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
       <DataExecutionPrevention>true</DataExecutionPrevention>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -150,7 +150,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\qt\$(Platform)\include;3rdparty\qt\$(Platform)\include\QtWidgets;3rdparty\qt\$(Platform)\include\QtGui;3rdparty\qt\$(Platform)\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(Platform)\$(Configuration)\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -173,7 +173,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>qtmain.lib;shell32.lib;Qt5Widgets.lib;Qt5Gui.lib;Qt5Core.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>3rdparty\Qt\lib32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>3rdparty\qt\$(Platform)\lib;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
       <DataExecutionPrevention>true</DataExecutionPrevention>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -196,7 +196,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\qt\$(Platform)\include;3rdparty\qt\$(Platform)\include\QtWidgets;3rdparty\qt\$(Platform)\include\QtGui;3rdparty\qt\$(Platform)\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(Platform)\$(Configuration)\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -217,7 +217,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>qtmain.lib;shell32.lib;Qt5Widgets.lib;Qt5Gui.lib;Qt5Core.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>3rdparty\Qt\lib64;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>3rdparty\qt\$(Platform)\lib%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
       <DataExecutionPrevention>true</DataExecutionPrevention>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -239,7 +239,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Development|Win32'">
     <ClCompile>
-      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;3rdparty\toolwindowmanager;3rdparty\flowlayout;3rdparty\Qt\include;3rdparty\Qt\include\QtWidgets;3rdparty\Qt\include\QtGui;3rdparty\Qt\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);generated\;$(SolutionDir)\renderdoc\api\replay;3rdparty\qt\$(Platform)\include;3rdparty\qt\$(Platform)\include\QtWidgets;3rdparty\qt\$(Platform)\include\QtGui;3rdparty\qt\$(Platform)\include\QtCore;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4718 /wd4127 /wd4714 /wd4100 /wd4512 -Zc:strictStrings -Zc:throwingNew -w34189 -w44996 -w44456 -w44457 %(AdditionalOptions)</AdditionalOptions>
       <AssemblerListingLocation>$(Platform)\$(Configuration)\</AssemblerListingLocation>
       <BrowseInformation>false</BrowseInformation>
@@ -260,7 +260,7 @@
     </ClCompile>
     <Link>
       <AdditionalDependencies>qtmain.lib;shell32.lib;Qt5Widgets.lib;Qt5Gui.lib;Qt5Core.lib;%(AdditionalDependencies)</AdditionalDependencies>
-      <AdditionalLibraryDirectories>3rdparty\Qt\lib32;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>3rdparty\qt\$(Platform)\lib%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalOptions>"/MANIFESTDEPENDENCY:type='win32' name='Microsoft.Windows.Common-Controls' version='6.0.0.0' publicKeyToken='6595b64144ccf1df' language='*' processorArchitecture='*'" %(AdditionalOptions)</AdditionalOptions>
       <DataExecutionPrevention>true</DataExecutionPrevention>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -282,206 +282,257 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="3rdparty\scintilla\lexers\LexCPP.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexers\LexDiff.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexers\LexErrorList.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexers\LexHTML.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexers\LexJSON.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexers\LexNull.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexers\LexPython.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexers\LexRust.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexlib\Accessor.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexlib\CharacterCategory.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexlib\CharacterSet.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexlib\LexerBase.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexlib\LexerModule.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexlib\LexerNoExceptions.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexlib\LexerSimple.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexlib\PropSetSimple.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexlib\StyleContext.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexlib\WordList.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\qt\ScintillaEditBase\PlatQt.cpp">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaEditBase.cpp">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaQt.cpp">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaDocument.cpp">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaEdit.cpp">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\AutoComplete.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\CallTip.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\CaseConvert.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\CaseFolder.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\Catalogue.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\CellBuffer.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\CharClassify.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\ContractionState.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\Decoration.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\Document.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\EditModel.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\Editor.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\EditView.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\ExternalLexer.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\Indicator.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\KeyMap.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\LineMarker.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\MarginView.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\PerLine.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\PositionCache.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\RESearch.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\RunStyles.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\ScintillaBase.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\Selection.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\Style.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\UniConversion.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\ViewStyle.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\src\XPM.cxx">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <DisableSpecificWarnings>4458;%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PreprocessorDefinitions>_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ClCompile>
@@ -519,10 +570,18 @@
     <ClCompile Include="generated\moc_RDTableWidget.cpp" />
     <ClCompile Include="generated\moc_RDTreeWidget.cpp" />
     <ClCompile Include="generated\moc_ResourcePreview.cpp" />
-    <ClCompile Include="generated\moc_ScintillaDocument.cpp" />
-    <ClCompile Include="generated\moc_ScintillaEdit.cpp" />
-    <ClCompile Include="generated\moc_ScintillaEditBase.cpp" />
-    <ClCompile Include="generated\moc_ScintillaQt.cpp" />
+    <ClCompile Include="generated\moc_ScintillaDocument.cpp">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="generated\moc_ScintillaEdit.cpp">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="generated\moc_ScintillaEditBase.cpp">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <ClCompile Include="generated\moc_ScintillaQt.cpp">
+      <AdditionalIncludeDirectories>3rdparty\scintilla\include;3rdparty\scintilla\include\qt;3rdparty\scintilla\src;3rdparty\scintilla\lexlib;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
     <ClCompile Include="generated\moc_SettingsDialog.cpp" />
     <ClCompile Include="generated\moc_ShaderViewer.cpp" />
     <ClCompile Include="generated\moc_StatisticsViewer.cpp" />
@@ -615,10 +674,30 @@
     <ClInclude Include="3rdparty\scintilla\lexlib\SubStyles.h" />
     <ClInclude Include="3rdparty\scintilla\lexlib\WordList.h" />
     <ClInclude Include="3rdparty\scintilla\qt\ScintillaEditBase\PlatQt.h" />
-    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaEditBase.h" />
-    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaQt.h" />
-    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaDocument.h" />
-    <ClInclude Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaEdit.h" />
+    <CustomBuild Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaEditBase.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaQt.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaDocument.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaEdit.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
     <ClInclude Include="3rdparty\scintilla\src\AutoComplete.h" />
     <ClInclude Include="3rdparty\scintilla\src\CallTip.h" />
     <ClInclude Include="3rdparty\scintilla\src\CaseConvert.h" />
@@ -653,12 +732,25 @@
     <ClInclude Include="3rdparty\scintilla\src\UniConversion.h" />
     <ClInclude Include="3rdparty\scintilla\src\ViewStyle.h" />
     <ClInclude Include="3rdparty\scintilla\src\XPM.h" />
-    <ClInclude Include="Code\CommonPipelineState.h" />
-    <ClInclude Include="Code\PersistantConfig.h" />
-    <ClInclude Include="Code\qprocessinfo.h" />
-    <ClInclude Include="Code\QRDUtils.h" />
-    <ClInclude Include="Code\RemoteHost.h" />
-    <ClInclude Include="Code\ScintillaSyntax.h" />
+    <CustomBuild Include="3rdparty\toolwindowmanager\ToolWindowManager.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\toolwindowmanager\ToolWindowManagerArea.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="3rdparty\toolwindowmanager\ToolWindowManagerWrapper.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <ClInclude Include="3rdparty\flowlayout\FlowLayout.h" />
     <ClInclude Include="generated\ui_AboutDialog.h" />
     <ClInclude Include="generated\ui_APIInspector.h" />
     <ClInclude Include="generated\ui_BufferFormatSpecifier.h" />
@@ -685,75 +777,390 @@
     <ClInclude Include="generated\ui_VirtualFileDialog.h" />
     <ClInclude Include="generated\ui_VulkanPipelineStateViewer.h" />
     <ClInclude Include="Resources\resource.h" />
-    <ClInclude Include="Widgets\BufferFormatSpecifier.h" />
-    <ClInclude Include="Widgets\Extended\RDListWidget.h" />
-    <ClInclude Include="Widgets\Extended\RDTableView.h" />
-    <ClInclude Include="Widgets\Extended\RDTableWidget.h" />
-    <ClInclude Include="Widgets\Extended\RDTreeWidget.h" />
-    <ClInclude Include="Widgets\RangeHistogram.h" />
-    <ClInclude Include="Widgets\Extended\RDDoubleSpinBox.h" />
-    <ClInclude Include="Widgets\Extended\RDLabel.h" />
-    <ClInclude Include="Widgets\Extended\RDListView.h" />
-    <ClInclude Include="Widgets\ResourcePreview.h" />
-    <ClInclude Include="Widgets\TextureGoto.h" />
-    <ClInclude Include="Widgets\ThumbnailStrip.h" />
     <ClInclude Include="Code\CaptureContext.h" />
-    <ClInclude Include="Widgets\CustomPaintWidget.h" />
-    <ClInclude Include="Windows\APIInspector.h" />
-    <ClInclude Include="Windows\BufferViewer.h" />
-    <ClInclude Include="Windows\ConstantBufferPreviewer.h" />
-    <ClInclude Include="Windows\DebugMessageView.h" />
-    <ClInclude Include="Windows\Dialogs\AboutDialog.h" />
-    <ClInclude Include="Windows\Dialogs\CaptureDialog.h" />
-    <ClInclude Include="Windows\Dialogs\LiveCapture.h" />
-    <ClInclude Include="Windows\Dialogs\OrderedListEditor.h" />
-    <ClInclude Include="Windows\Dialogs\SettingsDialog.h" />
-    <ClInclude Include="Windows\Dialogs\SuggestRemoteDialog.h" />
-    <ClInclude Include="Windows\Dialogs\TextureSaveDialog.h" />
-    <ClInclude Include="Windows\Dialogs\VirtualFileDialog.h" />
-    <ClInclude Include="Windows\EventBrowser.h" />
-    <ClInclude Include="3rdparty\flowlayout\FlowLayout.h" />
-    <ClInclude Include="Widgets\Extended\RDLineEdit.h" />
-    <ClInclude Include="Windows\MainWindow.h" />
+    <ClInclude Include="Code\CommonPipelineState.h" />
+    <ClInclude Include="Code\PersistantConfig.h" />
+    <ClInclude Include="Code\qprocessinfo.h" />
+    <CustomBuild Include="Code\QRDUtils.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <ClInclude Include="Code\RemoteHost.h" />
     <ClInclude Include="Code\RenderManager.h" />
-    <ClInclude Include="Windows\PipelineState\D3D11PipelineStateViewer.h" />
-    <ClInclude Include="Windows\PipelineState\D3D12PipelineStateViewer.h" />
-    <ClInclude Include="Windows\PipelineState\GLPipelineStateViewer.h" />
-    <ClInclude Include="Windows\PipelineState\PipelineStateViewer.h" />
-    <ClInclude Include="Windows\PipelineState\VulkanPipelineStateViewer.h" />
-    <ClInclude Include="Windows\ShaderViewer.h" />
-    <ClInclude Include="Windows\StatisticsViewer.h" />
-    <ClInclude Include="Windows\TextureViewer.h" />
-    <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManager.h" />
-    <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManagerArea.h" />
-    <ClInclude Include="3rdparty\toolwindowmanager\ToolWindowManagerWrapper.h" />
+    <ClInclude Include="Code\ScintillaSyntax.h" />
+    <CustomBuild Include="Widgets\BufferFormatSpecifier.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\CustomPaintWidget.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDDoubleSpinBox.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDLabel.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDLineEdit.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDListView.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDListWidget.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDTableView.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDTableWidget.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDTreeWidget.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\RangeHistogram.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\ResourcePreview.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\TextureGoto.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\ThumbnailStrip.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\APIInspector.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\BufferViewer.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ConstantBufferPreviewer.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\DebugMessageView.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AboutDialog.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\CaptureDialog.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\LiveCapture.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\OrderedListEditor.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\SettingsDialog.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\SuggestRemoteDialog.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\TextureSaveDialog.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\VirtualFileDialog.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\EventBrowser.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\MainWindow.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\D3D11PipelineStateViewer.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\D3D12PipelineStateViewer.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\GLPipelineStateViewer.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\PipelineStateViewer.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\VulkanPipelineStateViewer.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ShaderViewer.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\StatisticsViewer.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\TextureViewer.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
-    <None Include="Widgets\BufferFormatSpecifier.ui" />
-    <None Include="Widgets\ResourcePreview.ui" />
-    <None Include="Widgets\ThumbnailStrip.ui" />
-    <None Include="Windows\APIInspector.ui" />
-    <None Include="Windows\BufferViewer.ui" />
-    <None Include="Windows\ConstantBufferPreviewer.ui" />
-    <None Include="Windows\DebugMessageView.ui" />
-    <None Include="Windows\Dialogs\AboutDialog.ui" />
-    <None Include="Windows\Dialogs\CaptureDialog.ui" />
-    <None Include="Windows\Dialogs\LiveCapture.ui" />
-    <None Include="Windows\Dialogs\OrderedListEditor.ui" />
-    <None Include="Windows\Dialogs\SettingsDialog.ui" />
-    <None Include="Windows\Dialogs\SuggestRemoteDialog.ui" />
-    <None Include="Windows\Dialogs\TextureSaveDialog.ui" />
-    <None Include="Windows\Dialogs\VirtualFileDialog.ui" />
-    <None Include="Windows\EventBrowser.ui" />
-    <None Include="Windows\MainWindow.ui" />
-    <None Include="Windows\PipelineState\D3D11PipelineStateViewer.ui" />
-    <None Include="Windows\PipelineState\D3D12PipelineStateViewer.ui" />
-    <None Include="Windows\PipelineState\GLPipelineStateViewer.ui" />
-    <None Include="Windows\PipelineState\PipelineStateViewer.ui" />
-    <None Include="Windows\PipelineState\VulkanPipelineStateViewer.ui" />
-    <None Include="Windows\ShaderViewer.ui" />
-    <None Include="Windows\StatisticsViewer.ui" />
-    <None Include="Windows\TextureViewer.ui" />
+    <CustomBuild Include="Widgets\BufferFormatSpecifier.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\ResourcePreview.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\ThumbnailStrip.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\APIInspector.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\BufferViewer.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ConstantBufferPreviewer.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\DebugMessageView.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\AboutDialog.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\CaptureDialog.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\LiveCapture.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+      <SubType>Designer</SubType>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\OrderedListEditor.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\SettingsDialog.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\SuggestRemoteDialog.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\TextureSaveDialog.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\VirtualFileDialog.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\EventBrowser.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\MainWindow.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\D3D11PipelineStateViewer.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\D3D12PipelineStateViewer.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\GLPipelineStateViewer.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+      <SubType>Designer</SubType>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\PipelineStateViewer.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PipelineState\VulkanPipelineStateViewer.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\ShaderViewer.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\StatisticsViewer.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\TextureViewer.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+      <SubType>Designer</SubType>
+    </CustomBuild>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\128.png" />
@@ -789,7 +1196,12 @@
     <None Include="Resources\page_white_link.png" />
     <None Include="Resources\plugin_add.png" />
     <None Include="Resources\red_x_16.png" />
-    <None Include="resources.qrc" />
+    <CustomBuild Include="Resources\resources.qrc">
+      <AdditionalInputs>Resources\resources.qrc;$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\rcc.exe -name resources Resources\resources.qrc -o $(ProjectDir)generated\qrc_resources.cpp</Command>
+      <Message>RCC resources.qrc</Message>
+      <Outputs>generated\qrc_resources.cpp</Outputs>
+    </CustomBuild>
     <None Include="Resources\runback.png" />
     <None Include="Resources\runcursor.png" />
     <None Include="Resources\runfwd.png" />
@@ -816,51 +1228,23 @@
     <None Include="Resources\action.png" />
     <None Include="Resources\action_hover.png" />
   </ItemGroup>
-  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Development|Win32' Or '$(Configuration)|$(Platform)'=='Release|Win32'">
-    <None Include="3rdparty\Qt\bin32\qwindows.dll" />
-    <None Include="3rdparty\Qt\bin32\Qt5Core.dll" />
-    <None Include="3rdparty\Qt\bin32\Qt5Gui.dll" />
-    <None Include="3rdparty\Qt\bin32\Qt5Widgets.dll" />
-  </ItemGroup>
-  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Development|Win32' Or '$(Configuration)|$(Platform)'=='Release|Win32'">
-    <Content Include="3rdparty\Qt\bin32\qwindows.dll" Condition="Exists('3rdparty\Qt\bin32\qwindows.dll')">
+  <ItemGroup>
+    <Content Include="3rdparty\qt\$(Platform)\plugins\platforms\qwindows.dll">
       <Link>qwindows.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\Qt\bin32\Qt5Core.dll" Condition="Exists('3rdparty\Qt\bin32\Qt5Core.dll')">
+    <Content Include="3rdparty\qt\$(Platform)\bin\Qt5Core.dll">
       <Link>Qt5Core.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>False</Visible>
     </Content>
-    <Content Include="3rdparty\Qt\bin32\Qt5Gui.dll" Condition="Exists('3rdparty\Qt\bin32\Qt5Gui.dll')">
+    <Content Include="3rdparty\qt\$(Platform)\bin\Qt5Gui.dll">
       <Link>Qt5Gui.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
-    <Content Include="3rdparty\Qt\bin32\Qt5Widgets.dll" Condition="Exists('3rdparty\Qt\bin32\Qt5Widgets.dll')">
-      <Link>Qt5Widgets.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-  </ItemGroup>
-  <ItemGroup Condition="'$(Configuration)|$(Platform)'=='Development|x64' Or '$(Configuration)|$(Platform)'=='Release|x64'">
-    <Content Include="3rdparty\Qt\bin64\qwindows.dll" Condition="Exists('3rdparty\Qt\bin64\qwindows.dll')">
-      <Link>qwindows.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-    <Content Include="3rdparty\Qt\bin64\Qt5Core.dll" Condition="Exists('3rdparty\Qt\bin64\Qt5Core.dll')">
-      <Link>Qt5Core.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-    <Content Include="3rdparty\Qt\bin64\Qt5Gui.dll" Condition="Exists('3rdparty\Qt\bin64\Qt5Gui.dll')">
-      <Link>Qt5Gui.dll</Link>
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <Visible>false</Visible>
-    </Content>
-    <Content Include="3rdparty\Qt\bin64\Qt5Widgets.dll" Condition="Exists('3rdparty\Qt\bin64\Qt5Widgets.dll')">
+    <Content Include="3rdparty\qt\$(Platform)\bin\Qt5Widgets.dll">
       <Link>Qt5Widgets.dll</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>

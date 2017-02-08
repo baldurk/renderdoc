@@ -35,9 +35,9 @@ win32 {
 
 	# it is fine to alias these across targets, because the output
 	# is identical on all targets
-	MOC_DIR = $$_PRO_FILE_PWD_/generated
-	UI_DIR = $$_PRO_FILE_PWD_/generated
-	RCC_DIR = $$_PRO_FILE_PWD_/generated
+	MOC_DIR = $$_PRO_FILE_PWD_/obj/generated
+	UI_DIR = $$_PRO_FILE_PWD_/obj/generated
+	RCC_DIR = $$_PRO_FILE_PWD_/obj/generated
 
 	# generate pdb files even in release
 	QMAKE_LFLAGS_RELEASE+=/MAP
@@ -48,8 +48,8 @@ win32 {
 		Debug:DESTDIR = $$_PRO_FILE_PWD_/../Win32/Development
 		Release:DESTDIR = $$_PRO_FILE_PWD_/../Win32/Release
 
-		Debug:OBJECTS_DIR = $$_PRO_FILE_PWD_/Win32/Development
-		Release:OBJECTS_DIR = $$_PRO_FILE_PWD_/Win32/Release
+		Debug:OBJECTS_DIR = $$_PRO_FILE_PWD_/obj/Win32/Development
+		Release:OBJECTS_DIR = $$_PRO_FILE_PWD_/obj/Win32/Release
 
 	} else {
 		Debug:DESTDIR = $$_PRO_FILE_PWD_/../x64/Development
