@@ -100,16 +100,21 @@ QStringList RenderManager::GetRemoteSupport()
   return ret;
 }
 
-void RenderManager::GetHomeFolder(DirectoryBrowseMethod cb)
+void RenderManager::GetHomeFolder(bool synchronous, DirectoryBrowseMethod cb)
 {
   if(!m_Remote)
     return;
 
   if(IsRunning() && m_Thread->isCurrentThread())
   {
-    AsyncInvoke([cb, this](IReplayRenderer *r) {
+    auto lambda = [cb, this](IReplayRenderer *r) {
       cb(m_Remote->GetHomeFolder().c_str(), rdctype::array<DirectoryFile>());
-    });
+    };
+
+    if(synchronous)
+      BlockInvoke(lambda);
+    else
+      AsyncInvoke(lambda);
     return;
   }
 
@@ -123,31 +128,35 @@ void RenderManager::GetHomeFolder(DirectoryBrowseMethod cb)
   cb(home.c_str(), rdctype::array<DirectoryFile>());
 }
 
-bool RenderManager::ListFolder(QString path, DirectoryBrowseMethod cb)
+bool RenderManager::ListFolder(QString path, bool synchronous, DirectoryBrowseMethod cb)
 {
   if(!m_Remote)
     return false;
 
+  QByteArray pathUTF8 = path.toUtf8();
+
   if(IsRunning() && m_Thread->isCurrentThread())
   {
-    AsyncInvoke([cb, path, this](IReplayRenderer *r) {
-      const char *pathstr = path.toUtf8().data();
-      cb(pathstr, m_Remote->ListFolder(pathstr));
-    });
+    auto lambda = [cb, pathUTF8, this](IReplayRenderer *r) {
+      cb(pathUTF8.data(), m_Remote->ListFolder(pathUTF8.data()));
+    };
+
+    if(synchronous)
+      BlockInvoke(lambda);
+    else
+      AsyncInvoke(lambda);
     return true;
   }
 
   rdctype::array<DirectoryFile> contents;
 
-  const char *pathstr = path.toUtf8().data();
-
   // prevent pings while fetching remote FS data
   {
     QMutexLocker autolock(&m_RemoteLock);
-    contents = m_Remote->ListFolder(pathstr);
+    contents = m_Remote->ListFolder(pathUTF8.data());
   }
 
-  cb(pathstr, contents);
+  cb(pathUTF8.data(), contents);
 
   return true;
 }
@@ -281,6 +290,9 @@ ReplayCreateStatus RenderManager::ConnectToRemoteServer(RemoteHost *host)
 
 void RenderManager::DisconnectFromRemoteServer()
 {
+  if(m_RemoteHost)
+    m_RemoteHost->Connected = false;
+
   if(m_Remote)
   {
     QMutexLocker autolock(&m_RemoteLock);

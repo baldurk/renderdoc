@@ -27,6 +27,7 @@
 #include <QStandardItemModel>
 #include "Code/QRDUtils.h"
 #include "Code/qprocessinfo.h"
+#include "Windows/Dialogs/VirtualFileDialog.h"
 #include "FlowLayout.h"
 #include "LiveCapture.h"
 #include "ToolWindowManager.h"
@@ -237,15 +238,29 @@ void CaptureDialog::on_processFilter_textChanged(const QString &filter)
   model->setFilterFixedString(filter);
 }
 
-void CaptureDialog::on_exePath_textChanged(const QString &exe)
+void CaptureDialog::on_exePath_textChanged(const QString &text)
 {
+  QString exe = text;
+
+  // This is likely due to someone pasting a full path copied using copy path. Removing the quotes
+  // is safe in any case
+  if(exe.startsWith(QChar('"')) && exe.endsWith(QChar('"')) && exe.count() > 2)
+  {
+    exe = exe.mid(1, exe.count() - 2);
+    ui->exePath->setText(exe);
+    return;
+  }
+
   QFileInfo f(exe);
   QDir dir = f.dir();
   bool valid = dir.makeAbsolute();
 
   if(valid && f.isAbsolute())
   {
-    QString path = QDir::toNativeSeparators(dir.absolutePath());
+    QString path = dir.absolutePath();
+
+    if(!m_Ctx->Renderer()->remote())
+      path = QDir::toNativeSeparators(path);
 
     // match the path separators from the path
     if(exe.count(QChar('/')) > exe.count(QChar('\\')))
@@ -291,17 +306,18 @@ void CaptureDialog::on_exePathBrowse_clicked()
       file = m_Ctx->Config.LastCaptureExe;
   }
 
-  QAbstractProxyModel *proxy = NULL;
-  QFileDialog::Options options;
+  QString filename;
 
   if(m_Ctx->Renderer()->remote())
   {
-    // proxy = new RemoteFileProxy(m_Ctx->Renderer());
-    options = QFileDialog::DontUseNativeDialog;
+    VirtualFileDialog vfd(m_Ctx, this);
+    RDDialog::show(&vfd);
+    filename = vfd.chosenPath();
   }
-
-  QString filename =
-      RDDialog::getExecutableFileName(this, tr("Choose executable"), initDir, options, proxy);
+  else
+  {
+    filename = RDDialog::getExecutableFileName(this, tr("Choose executable"), initDir);
+  }
 
   if(filename != "")
     setExecutableFilename(filename);
@@ -324,17 +340,19 @@ void CaptureDialog::on_workDirBrowse_clicked()
       initDir = m_Ctx->Config.LastCapturePath;
   }
 
-  QAbstractProxyModel *proxy = NULL;
-  QFileDialog::Options options = QFileDialog::ShowDirsOnly;
+  QString dir;
 
   if(m_Ctx->Renderer()->remote())
   {
-    // proxy = new RemoteFileProxy(m_Ctx->Renderer());
-    options |= QFileDialog::DontUseNativeDialog;
+    VirtualFileDialog vfd(m_Ctx, this);
+    vfd.setDirBrowse();
+    RDDialog::show(&vfd);
+    dir = vfd.chosenPath();
   }
-
-  QString dir =
-      RDDialog::getExistingDirectory(this, "Choose working directory", initDir, options, proxy);
+  else
+  {
+    dir = RDDialog::getExistingDirectory(this, "Choose working directory", initDir);
+  }
 
   if(dir != "")
     ui->workDirPath->setText(dir);
@@ -487,11 +505,16 @@ void CaptureDialog::fillProcessList()
 
 void CaptureDialog::setExecutableFilename(QString filename)
 {
-  filename = QDir::toNativeSeparators(QFileInfo(filename).absoluteFilePath());
+  if(!m_Ctx->Renderer()->remote())
+    filename = QDir::toNativeSeparators(QFileInfo(filename).absoluteFilePath());
+
   ui->exePath->setText(filename);
 
-  m_Ctx->Config.LastCapturePath = QFileInfo(filename).absolutePath();
-  m_Ctx->Config.LastCaptureExe = QFileInfo(filename).completeBaseName();
+  if(!m_Ctx->Renderer()->remote())
+  {
+    m_Ctx->Config.LastCapturePath = QFileInfo(filename).absolutePath();
+    m_Ctx->Config.LastCaptureExe = QFileInfo(filename).completeBaseName();
+  }
 }
 
 void CaptureDialog::loadSettings(QString filename)

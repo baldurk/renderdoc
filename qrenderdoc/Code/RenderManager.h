@@ -147,8 +147,8 @@ public:
                             CaptureOptions opts);
 
   QStringList GetRemoteSupport();
-  void GetHomeFolder(DirectoryBrowseMethod cb);
-  bool ListFolder(QString path, DirectoryBrowseMethod cb);
+  void GetHomeFolder(bool synchronous, DirectoryBrowseMethod cb);
+  bool ListFolder(QString path, bool synchronous, DirectoryBrowseMethod cb);
   QString CopyCaptureToRemote(const QString &localpath, QWidget *window);
   void CopyCaptureFromRemote(const QString &remotepath, const QString &localpath, QWidget *window);
 

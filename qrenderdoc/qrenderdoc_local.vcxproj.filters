@@ -505,6 +505,12 @@
     <ClCompile Include="generated\moc_SuggestRemoteDialog.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\Dialogs\VirtualFileDialog.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_VirtualFileDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -900,6 +906,12 @@
     <ClInclude Include="generated\ui_SuggestRemoteDialog.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+    <ClInclude Include="Windows\Dialogs\VirtualFileDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_VirtualFileDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="resources.qrc">
@@ -1145,6 +1157,9 @@
       <Filter>Windows\Dialogs</Filter>
     </None>
     <None Include="Windows\Dialogs\SuggestRemoteDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </None>
+    <None Include="Windows\Dialogs\VirtualFileDialog.ui">
       <Filter>Windows\Dialogs</Filter>
     </None>
   </ItemGroup>

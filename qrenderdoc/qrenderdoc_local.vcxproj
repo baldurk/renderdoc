@@ -533,6 +533,7 @@
     <ClCompile Include="generated\moc_ToolWindowManager.cpp" />
     <ClCompile Include="generated\moc_ToolWindowManagerArea.cpp" />
     <ClCompile Include="generated\moc_ToolWindowManagerWrapper.cpp" />
+    <ClCompile Include="generated\moc_VirtualFileDialog.cpp" />
     <ClCompile Include="generated\moc_VulkanPipelineStateViewer.cpp" />
     <ClCompile Include="generated\qrc_resources.cpp" />
     <ClCompile Include="Widgets\BufferFormatSpecifier.cpp" />
@@ -560,6 +561,7 @@
     <ClCompile Include="Windows\Dialogs\SettingsDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\SuggestRemoteDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\TextureSaveDialog.cpp" />
+    <ClCompile Include="Windows\Dialogs\VirtualFileDialog.cpp" />
     <ClCompile Include="Windows\EventBrowser.cpp" />
     <ClCompile Include="3rdparty\flowlayout\FlowLayout.cpp">
       <WarningLevel>Level3</WarningLevel>
@@ -679,6 +681,7 @@
     <ClInclude Include="generated\ui_TextureSaveDialog.h" />
     <ClInclude Include="generated\ui_TextureViewer.h" />
     <ClInclude Include="generated\ui_ThumbnailStrip.h" />
+    <ClInclude Include="generated\ui_VirtualFileDialog.h" />
     <ClInclude Include="generated\ui_VulkanPipelineStateViewer.h" />
     <ClInclude Include="Resources\resource.h" />
     <ClInclude Include="Widgets\BufferFormatSpecifier.h" />
@@ -706,6 +709,7 @@
     <ClInclude Include="Windows\Dialogs\SettingsDialog.h" />
     <ClInclude Include="Windows\Dialogs\SuggestRemoteDialog.h" />
     <ClInclude Include="Windows\Dialogs\TextureSaveDialog.h" />
+    <ClInclude Include="Windows\Dialogs\VirtualFileDialog.h" />
     <ClInclude Include="Windows\EventBrowser.h" />
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h" />
     <ClInclude Include="Widgets\Extended\RDLineEdit.h" />
@@ -738,6 +742,7 @@
     <None Include="Windows\Dialogs\SettingsDialog.ui" />
     <None Include="Windows\Dialogs\SuggestRemoteDialog.ui" />
     <None Include="Windows\Dialogs\TextureSaveDialog.ui" />
+    <None Include="Windows\Dialogs\VirtualFileDialog.ui" />
     <None Include="Windows\EventBrowser.ui" />
     <None Include="Windows\MainWindow.ui" />
     <None Include="Windows\PipelineState\D3D11PipelineStateViewer.ui" />
