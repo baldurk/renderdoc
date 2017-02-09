@@ -84,9 +84,6 @@
        </spacer>
       </item>
      </layout>
-     <zorder>connectionIcon</zorder>
-     <zorder>connectionStatus</zorder>
-     <zorder>connectionSpacer</zorder>
     </widget>
    </item>
    <item>

@@ -731,7 +731,7 @@ padding: 0px;</string>
          <property name="title">
           <string>Samplers</string>
          </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_5">
+         <layout class="QHBoxLayout" name="horizontalLayout_1">
           <property name="leftMargin">
            <number>2</number>
           </property>
@@ -896,7 +896,7 @@ padding: 0px;</string>
          <property name="title">
           <string>Read/Write Bindings</string>
          </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_5">
+         <layout class="QHBoxLayout" name="horizontalLayout_17">
           <property name="leftMargin">
            <number>2</number>
           </property>
@@ -986,7 +986,7 @@ padding: 0px;</string>
          <property name="title">
           <string>Shader Subroutines</string>
          </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_5">
+         <layout class="QHBoxLayout" name="horizontalLayout_40">
           <property name="leftMargin">
            <number>2</number>
           </property>
@@ -2522,7 +2522,7 @@ padding: 0px;</string>
            <property name="title">
             <string>Uniforms and UBOs</string>
            </property>
-           <layout class="QHBoxLayout" name="horizontalLayout_17">
+           <layout class="QHBoxLayout" name="horizontalLayout_41">
             <property name="leftMargin">
              <number>2</number>
             </property>
