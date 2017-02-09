@@ -23,19 +23,30 @@
  ******************************************************************************/
 
 #include "CommonPipelineState.h"
+#include "QRDUtils.h"
 
 QString CommonPipelineState::GetImageLayout(ResourceId id)
 {
-  /*
-  if (LogLoaded)
+  if(LogLoaded())
   {
-    if (IsLogVK && m_Vulkan->Images.ContainsKey(id))
-      return m_Vulkan->Images[id].layouts[0].name;
+    if(IsLogVK())
+    {
+      for(const VulkanPipelineState::ImageData &i : m_Vulkan->images)
+      {
+        if(i.image == id)
+          return ToQStr(i.layouts[0].name);
+      }
+    }
 
-    if (IsLogD3D12 && m_D3D12->Resources.ContainsKey(id))
-      return m_D3D12->Resources[id].states[0].name;
+    if(IsLogD3D12())
+    {
+      for(const D3D12PipelineState::ResourceData &r : m_D3D12->Resources)
+      {
+        if(r.id == id)
+          return ToQStr(r.states[0].name);
+      }
+    }
   }
-  */
 
   return "Unknown";
 }
