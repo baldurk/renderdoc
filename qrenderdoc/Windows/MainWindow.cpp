@@ -146,10 +146,15 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
   m_MessageTick.setInterval(500);
   m_MessageTick.start();
 
-  QObject::connect(&m_RemoteProbe, &QTimer::timeout, this, &MainWindow::remoteProbe);
-  m_RemoteProbe.setSingleShot(false);
-  m_RemoteProbe.setInterval(7500);
-  m_RemoteProbe.start();
+  m_RemoteProbeSemaphore.release();
+  m_RemoteProbe = new LambdaThread([this]() {
+    while(m_RemoteProbeSemaphore.available())
+    {
+      remoteProbe();
+      QThread::msleep(7500);
+    }
+  });
+  m_RemoteProbe->start();
 
   ui->statusBar->setStyleSheet("QStatusBar::item { border: 0px }");
 
@@ -221,6 +226,9 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
 
 MainWindow::~MainWindow()
 {
+  m_RemoteProbeSemaphore.acquire();
+  m_RemoteProbe->wait();
+  m_RemoteProbe->deleteLater();
   delete ui;
 }
 

@@ -133,7 +133,8 @@ private:
   QToolButton *contextChooser;
 
   QTimer m_MessageTick;
-  QTimer m_RemoteProbe;
+  QSemaphore m_RemoteProbeSemaphore;
+  LambdaThread *m_RemoteProbe;
 
   bool m_messageAlternate = false;
 
