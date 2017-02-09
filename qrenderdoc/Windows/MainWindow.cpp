@@ -151,8 +151,14 @@ MainWindow::MainWindow(CaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Main
   m_RemoteProbe = new LambdaThread([this]() {
     while(m_RemoteProbeSemaphore.available())
     {
+      // do several small sleeps so we can respond quicker when we need to shut down
+      for(int i = 0; i < 50; i++)
+      {
+        QThread::msleep(150);
+        if(!m_RemoteProbeSemaphore.available())
+          return;
+      }
       remoteProbe();
-      QThread::msleep(7500);
     }
   });
   m_RemoteProbe->start();
@@ -864,6 +870,10 @@ void MainWindow::remoteProbe()
         continue;
 
       host->CheckStatus();
+
+      // bail as soon as we notice that we're done
+      if(!m_RemoteProbeSemaphore.available())
+        return;
     }
   }
 }
