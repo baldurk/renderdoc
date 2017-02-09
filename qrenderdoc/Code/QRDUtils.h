@@ -535,7 +535,6 @@ public slots:
   {
     m_func();
     m_Thread->quit();
-    m_Thread->deleteLater();
     m_Thread = NULL;
     if(m_SelfDelete)
       deleteLater();
@@ -551,6 +550,7 @@ public:
     m_func = f;
     moveToThread(m_Thread);
     QObject::connect(m_Thread, &QThread::started, this, &LambdaThread::process);
+    QObject::connect(m_Thread, &QThread::finished, m_Thread, &QThread::deleteLater);
   }
 
   void start(QThread::Priority prio = QThread::InheritPriority) { m_Thread->start(prio); }
