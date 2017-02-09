@@ -26,7 +26,7 @@ endif()
 # can do dependency checking and rebuild anything necessary.
 add_custom_command(OUTPUT QRenderDoc
 	COMMAND qmake "CONFIG+=${QMAKE_CONFIG}" "QMAKE_CC=${CMAKE_C_COMPILER}" "QMAKE_CXX=${CMAKE_CXX_COMPILER}" "QMAKE_LINK=${CMAKE_CXX_COMPILER}" "QMAKE_CXXFLAGS+=${warning_flags}" "QMAKE_CXXFLAGS+=${QMAKE_CXXFLAGS}" "QMAKE_LFLAGS+=${QMAKE_LDFLAGS}" "DEFINES+=GIT_COMMIT_HASH_LITERAL=${GIT_COMMIT_HASH}" "DESTDIR=${output_dir}" ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND MAKEFLAGS= make --no-print-directory)
+	COMMAND $(MAKE))
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc)
 
 install (PROGRAMS ${output_dir}/qrenderdoc DESTINATION bin)

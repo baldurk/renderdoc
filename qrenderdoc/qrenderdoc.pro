@@ -6,6 +6,8 @@
 
 QT       += core gui widgets
 
+CONFIG   += silent
+
 lessThan(QT_MAJOR_VERSION, 5): error("requires Qt 5")
 
 equals(QT_MAJOR_VERSION, 5): lessThan(QT_MINOR_VERSION, 6): error("requires Qt 5.6")
