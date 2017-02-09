@@ -142,7 +142,8 @@ SOURCES += Code/qrenderdoc.cpp \
     Widgets/Extended/RDTableWidget.cpp \
     Windows/Dialogs/SuggestRemoteDialog.cpp \
     Windows/Dialogs/VirtualFileDialog.cpp \
-    Windows/Dialogs/RemoteManager.cpp
+    Windows/Dialogs/RemoteManager.cpp \
+    Windows/PixelHistoryView.cpp
 
 HEADERS += Code/CaptureContext.h \
     Code/qprocessinfo.h \
@@ -187,7 +188,8 @@ HEADERS += Code/CaptureContext.h \
     Widgets/Extended/RDTableWidget.h \
     Windows/Dialogs/SuggestRemoteDialog.h \
     Windows/Dialogs/VirtualFileDialog.h \
-    Windows/Dialogs/RemoteManager.h
+    Windows/Dialogs/RemoteManager.h \
+    Windows/PixelHistoryView.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
@@ -214,7 +216,8 @@ FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/Dialogs/OrderedListEditor.ui \
     Windows/Dialogs/SuggestRemoteDialog.ui \
     Windows/Dialogs/VirtualFileDialog.ui \
-    Windows/Dialogs/RemoteManager.ui
+    Windows/Dialogs/RemoteManager.ui \
+    Windows/PixelHistoryView.ui
 
 RESOURCES += Resources/resources.qrc
 

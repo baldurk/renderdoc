@@ -510,6 +510,18 @@
     <ClCompile Include="Windows\Dialogs\RemoteManager.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
+    <ClCompile Include="generated\moc_PixelHistoryView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\PixelHistoryView.cpp">
+      <Filter>Windows</Filter>
+    </ClCompile>
+    <ClCompile Include="generated\moc_RDTreeView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Extended\RDTreeView.cpp">
+      <Filter>Widgets\Extended</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -780,6 +792,9 @@
       <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="generated\ui_RemoteManager.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_PixelHistoryView.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1194,6 +1209,15 @@
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\RemoteManager.h">
       <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PixelHistoryView.ui">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PixelHistoryView.h">
+      <Filter>Windows</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDTreeView.h">
+      <Filter>Widgets\Extended</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>

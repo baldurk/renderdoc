@@ -669,6 +669,7 @@
     <ClCompile Include="generated\moc_RDListWidget.cpp" />
     <ClCompile Include="generated\moc_RDTableView.cpp" />
     <ClCompile Include="generated\moc_RDTableWidget.cpp" />
+    <ClCompile Include="generated\moc_RDTreeView.cpp" />
     <ClCompile Include="generated\moc_RDTreeWidget.cpp" />
     <ClCompile Include="generated\moc_ResourcePreview.cpp" />
     <ClCompile Include="generated\moc_ScintillaDocument.cpp">
@@ -685,6 +686,7 @@
     </ClCompile>
     <ClCompile Include="generated\moc_SettingsDialog.cpp" />
     <ClCompile Include="generated\moc_ShaderViewer.cpp" />
+    <ClCompile Include="generated\moc_PixelHistoryView.cpp" />
     <ClCompile Include="generated\moc_StatisticsViewer.cpp" />
     <ClCompile Include="generated\moc_SuggestRemoteDialog.cpp" />
     <ClCompile Include="generated\moc_TextureGoto.cpp" />
@@ -701,6 +703,7 @@
     <ClCompile Include="Widgets\Extended\RDListWidget.cpp" />
     <ClCompile Include="Widgets\Extended\RDTableView.cpp" />
     <ClCompile Include="Widgets\Extended\RDTableWidget.cpp" />
+    <ClCompile Include="Widgets\Extended\RDTreeView.cpp" />
     <ClCompile Include="Widgets\Extended\RDTreeWidget.cpp" />
     <ClCompile Include="Widgets\RangeHistogram.cpp" />
     <ClCompile Include="Widgets\Extended\RDDoubleSpinBox.cpp" />
@@ -737,6 +740,7 @@
     <ClCompile Include="Windows\PipelineState\PipelineStateViewer.cpp" />
     <ClCompile Include="Windows\PipelineState\VulkanPipelineStateViewer.cpp" />
     <ClCompile Include="Windows\ShaderViewer.cpp" />
+    <ClCompile Include="Windows\PixelHistoryView.cpp" />
     <ClCompile Include="Windows\StatisticsViewer.cpp" />
     <ClCompile Include="Windows\TextureViewer.cpp" />
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManager.cpp">
@@ -872,6 +876,7 @@
     <ClInclude Include="generated\ui_ResourcePreview.h" />
     <ClInclude Include="generated\ui_SettingsDialog.h" />
     <ClInclude Include="generated\ui_ShaderViewer.h" />
+    <ClInclude Include="generated\ui_PixelHistoryView.h" />
     <ClInclude Include="generated\ui_StatisticsViewer.h" />
     <ClInclude Include="generated\ui_SuggestRemoteDialog.h" />
     <ClInclude Include="generated\ui_TextureSaveDialog.h" />
@@ -942,6 +947,12 @@
       <Outputs>generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
     <CustomBuild Include="Widgets\Extended\RDTableWidget.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDTreeView.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
       <Message>MOC %(Filename).h</Message>
@@ -1092,6 +1103,12 @@
       <Outputs>generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
     <CustomBuild Include="Windows\PipelineState\VulkanPipelineStateViewer.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PixelHistoryView.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
       <Message>MOC %(Filename).h</Message>
@@ -1252,6 +1269,12 @@
       <Outputs>generated\ui_%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="Windows\PipelineState\VulkanPipelineStateViewer.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\PixelHistoryView.ui">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(ProjectDir)generated\ui_%(Filename).h</Command>
       <Message>UIC %(Filename).ui</Message>

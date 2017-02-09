@@ -54,7 +54,15 @@ public:
   void OnSelectedEventChanged(uint32_t eventID) {}
   void OnEventChanged(uint32_t eventID);
 
-  void RT_FetchMeshData(IReplayRenderer *r);
+  void ScrollToRow(int row, MeshDataStage stage = eMeshDataStage_VSIn)
+  {
+    if(stage == eMeshDataStage_VSOut)
+      ScrollToRow(m_ModelVSOut, row);
+    else if(stage == eMeshDataStage_GSOut)
+      ScrollToRow(m_ModelGSOut, row);
+    else
+      ScrollToRow(m_ModelVSIn, row);
+  }
 
 private slots:
   // automatic slots
@@ -94,6 +102,7 @@ private:
   IReplayOutput *m_Output;
 
   void RT_UpdateAndDisplay(IReplayRenderer *);
+  void RT_FetchMeshData(IReplayRenderer *r);
 
   MeshDisplay m_Config;
 

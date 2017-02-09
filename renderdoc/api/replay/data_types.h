@@ -515,4 +515,10 @@ struct PixelModification
   bool32 shaderDiscarded;
   bool32 depthTestFailed;
   bool32 stencilTestFailed;
+
+  bool passed() const
+  {
+    return !sampleMasked && !backfaceCulled && !depthClipped && !viewClipped && !scissorClipped &&
+           !shaderDiscarded && !depthTestFailed && !stencilTestFailed;
+  }
 };

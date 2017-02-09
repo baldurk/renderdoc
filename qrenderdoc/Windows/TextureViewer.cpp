@@ -42,6 +42,7 @@
 #include "Widgets/TextureGoto.h"
 #include "BufferViewer.h"
 #include "MainWindow.h"
+#include "PixelHistoryView.h"
 #include "ui_TextureViewer.h"
 
 float area(const QSizeF &s)
@@ -3262,6 +3263,45 @@ void TextureViewer::on_saveTex_clicked()
           tr("Error saving texture %1.\n\nCheck diagnostic log in Help menu for more details.").arg(fn));
     }
   }
+}
+
+void TextureViewer::on_pixelHistory_clicked()
+{
+  FetchTexture *texptr = GetCurrentTexture();
+
+  if(!texptr || !m_Output)
+    return;
+
+  int x = m_PickedPoint.x() >> (int)m_TexDisplay.mip;
+  int y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
+
+  PixelHistoryView *hist =
+      new PixelHistoryView(m_Ctx, texptr->ID, QPoint(x, y), m_TexDisplay, m_Ctx.mainWindow());
+
+  m_Ctx.setupDockWindow(hist);
+
+  ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+  ToolWindowManager::AreaReference ref(ToolWindowManager::RightOf, manager->areaOf(this), 0.2f);
+  manager->addToolWindow(hist, ref);
+
+  // add a short delay so that controls repainting after a new panel appears can get at the
+  // render thread before we insert the long blocking pixel history task
+  LambdaThread *thread = new LambdaThread([this, texptr, x, y, hist]() {
+    QThread::msleep(150);
+    m_Ctx.Renderer().AsyncInvoke([this, texptr, x, y, hist](IReplayRenderer *r) {
+      rdctype::array<PixelModification> *history = new rdctype::array<PixelModification>();
+      r->PixelHistory(texptr->ID, (uint32_t)x, (int32_t)y, m_TexDisplay.sliceFace, m_TexDisplay.mip,
+                      m_TexDisplay.sampleIdx, m_TexDisplay.typeHint, history);
+
+      GUIInvoke::call([hist, history] {
+        hist->setHistory(*history);
+        delete history;
+      });
+    });
+  });
+  thread->selfDelete(true);
+  thread->start();
 }
 
 void TextureViewer::on_texListShow_clicked()
