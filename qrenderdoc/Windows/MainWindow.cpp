@@ -426,7 +426,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
       {
         support = eReplaySupport_Unsupported;
 
-        QVector<QString> remoteDrivers = {};    // m_Ctx->Renderer.GetRemoteSupport();
+        QStringList remoteDrivers = m_Ctx->Renderer()->GetRemoteSupport();
 
         for(const QString &d : remoteDrivers)
         {
@@ -447,7 +447,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
         QString remoteMessage =
             tr("This log was captured with %1 and cannot be replayed on %2.\n\n")
                 .arg(driver.c_str())
-                .arg("localhost" /*m_Ctx->Renderer.Remote.Hostname*/);
+                .arg(m_Ctx->Renderer()->remote()->Hostname);
 
         remoteMessage += "Try selecting a different remote context in the status bar.";
 
