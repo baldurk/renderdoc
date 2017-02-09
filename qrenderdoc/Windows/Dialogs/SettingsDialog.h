@@ -40,7 +40,7 @@ class SettingsDialog : public QDialog
   Q_OBJECT
 
 public:
-  explicit SettingsDialog(CaptureContext *ctx, QWidget *parent = 0);
+  explicit SettingsDialog(CaptureContext &ctx, QWidget *parent = 0);
   ~SettingsDialog();
 
 private slots:
@@ -93,6 +93,6 @@ private slots:
 private:
   Ui::SettingsDialog *ui;
 
-  CaptureContext *m_Ctx;
+  CaptureContext &m_Ctx;
   bool m_Init = false;
 };

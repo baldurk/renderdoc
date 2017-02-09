@@ -103,7 +103,7 @@ public:
   //////////////////////////////////////////////////////////////////////////////
   // Accessors
 
-  RenderManager *Renderer() { return &m_Renderer; }
+  RenderManager &Renderer() { return m_Renderer; }
   bool LogLoaded() { return m_LogLoaded; }
   bool IsLogLocal() { return m_LogLocal; }
   bool LogLoading() { return m_LoadInProgress; }

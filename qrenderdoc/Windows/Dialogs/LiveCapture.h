@@ -47,7 +47,7 @@ class LiveCapture : public QFrame
   Q_OBJECT
 
 public:
-  explicit LiveCapture(CaptureContext *ctx, const QString &hostname, uint32_t ident,
+  explicit LiveCapture(CaptureContext &ctx, const QString &runCommand, uint32_t ident,
                        MainWindow *main, QWidget *parent = 0);
 
   ~LiveCapture();
@@ -129,7 +129,7 @@ private:
   void deleteCaptureUnprompted(QListWidgetItem *item);
 
   Ui::LiveCapture *ui;
-  CaptureContext *m_Ctx = NULL;
+  CaptureContext &m_Ctx;
   QString m_Hostname;
   uint32_t m_RemoteIdent;
   MainWindow *m_Main;

@@ -28,7 +28,7 @@
 
 Q_DECLARE_METATYPE(FetchAPIEvent);
 
-APIInspector::APIInspector(CaptureContext *ctx, QWidget *parent)
+APIInspector::APIInspector(CaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::APIInspector), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -39,13 +39,13 @@ APIInspector::APIInspector(CaptureContext *ctx, QWidget *parent)
   ui->splitter->setCollapsible(1, true);
   ui->splitter->setSizes({1, 0});
 
-  m_Ctx->AddLogViewer(this);
+  m_Ctx.AddLogViewer(this);
 }
 
 APIInspector::~APIInspector()
 {
-  m_Ctx->windowClosed(this);
-  m_Ctx->RemoveLogViewer(this);
+  m_Ctx.windowClosed(this);
+  m_Ctx.RemoveLogViewer(this);
   delete ui;
 }
 
@@ -92,7 +92,7 @@ void APIInspector::on_apiEvents_itemSelectionChanged()
 
   if(ev.callstack.count > 0)
   {
-    m_Ctx->Renderer()->AsyncInvoke([this, ev](IReplayRenderer *r) {
+    m_Ctx.Renderer().AsyncInvoke([this, ev](IReplayRenderer *r) {
       rdctype::array<rdctype::str> trace;
       r->GetResolve(ev.callstack.elems, ev.callstack.count, &trace);
 
@@ -116,7 +116,7 @@ void APIInspector::fillAPIView()
   QRegularExpression rgxopen("^\\s*{");
   QRegularExpression rgxclose("^\\s*}");
 
-  const FetchDrawcall *draw = m_Ctx->CurSelectedDrawcall();
+  const FetchDrawcall *draw = m_Ctx.CurSelectedDrawcall();
 
   if(draw != NULL && draw->events.count > 0)
   {

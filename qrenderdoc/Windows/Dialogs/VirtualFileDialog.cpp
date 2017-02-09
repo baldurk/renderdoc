@@ -47,8 +47,8 @@ public:
     FileNameRole,
   };
 
-  RemoteFileModel(RenderManager *r, QObject *parent = NULL)
-      : Renderer(*r), QAbstractItemModel(parent)
+  RemoteFileModel(RenderManager &r, QObject *parent = NULL)
+      : Renderer(r), QAbstractItemModel(parent)
   {
     makeIconStates(fileIcon, QString::fromUtf8(":/page_white_database.png"));
     makeIconStates(exeIcon, QString::fromUtf8(":/page_white_code.png"));
@@ -550,14 +550,14 @@ protected:
   }
 };
 
-VirtualFileDialog::VirtualFileDialog(CaptureContext *ctx, QWidget *parent)
+VirtualFileDialog::VirtualFileDialog(CaptureContext &ctx, QWidget *parent)
     : QDialog(parent), ui(new Ui::VirtualFileDialog)
 {
   ui->setupUi(this);
 
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);
 
-  m_Model = new RemoteFileModel(ctx->Renderer(), this);
+  m_Model = new RemoteFileModel(ctx.Renderer(), this);
 
   m_DirProxy = new RemoteFileProxy(this);
   m_DirProxy->setSourceModel(m_Model);

@@ -26,12 +26,12 @@
 #include <QMouseEvent>
 #include "ui_ResourcePreview.h"
 
-ResourcePreview::ResourcePreview(CaptureContext *c, IReplayOutput *output, QWidget *parent)
+ResourcePreview::ResourcePreview(CaptureContext &c, IReplayOutput *output, QWidget *parent)
     : QFrame(parent), ui(new Ui::ResourcePreview)
 {
   ui->setupUi(this);
 
-  CustomPaintWidget *thumb = new CustomPaintWidget(c, this);
+  CustomPaintWidget *thumb = new CustomPaintWidget(&c, this);
   thumb->setOutput(output);
   thumb->setObjectName(ui->thumbnail->objectName());
   thumb->setSizePolicy(ui->thumbnail->sizePolicy());

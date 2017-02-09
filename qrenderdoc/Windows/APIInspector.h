@@ -37,7 +37,7 @@ class APIInspector : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit APIInspector(CaptureContext *ctx, QWidget *parent = 0);
+  explicit APIInspector(CaptureContext &ctx, QWidget *parent = 0);
   ~APIInspector();
 
   void OnLogfileLoaded();
@@ -49,7 +49,7 @@ public slots:
 
 private:
   Ui::APIInspector *ui;
-  CaptureContext *m_Ctx = NULL;
+  CaptureContext &m_Ctx;
 
   void addCallstack(rdctype::array<rdctype::str> calls);
   void fillAPIView();

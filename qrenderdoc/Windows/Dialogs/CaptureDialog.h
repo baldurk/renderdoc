@@ -64,7 +64,7 @@ public:
                                       const QString &name, CaptureOptions opts)>
       OnInjectMethod;
 
-  explicit CaptureDialog(CaptureContext *ctx, OnCaptureMethod captureCallback,
+  explicit CaptureDialog(CaptureContext &ctx, OnCaptureMethod captureCallback,
                          OnInjectMethod injectCallback, QWidget *parent = 0);
   ~CaptureDialog();
 
@@ -100,7 +100,7 @@ private slots:
 
 private:
   Ui::CaptureDialog *ui;
-  CaptureContext *m_Ctx;
+  CaptureContext &m_Ctx;
 
   QStandardItemModel *m_ProcessModel;
 

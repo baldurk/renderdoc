@@ -48,7 +48,7 @@ private:
   Q_OBJECT
 
 public:
-  explicit MainWindow(CaptureContext *ctx);
+  explicit MainWindow(CaptureContext &ctx);
   ~MainWindow();
 
   void OnLogfileLoaded() override;
@@ -124,7 +124,7 @@ private:
   ToolWindowManager::AreaReference leftToolArea();
 
   Ui::MainWindow *ui;
-  CaptureContext *m_Ctx;
+  CaptureContext &m_Ctx;
 
   QList<LiveCapture *> m_LiveCaptures;
 

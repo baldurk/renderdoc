@@ -72,7 +72,7 @@ struct ReadWriteTag
 
 Q_DECLARE_METATYPE(ReadWriteTag);
 
-GLPipelineStateViewer::GLPipelineStateViewer(CaptureContext *ctx, QWidget *parent)
+GLPipelineStateViewer::GLPipelineStateViewer(CaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::GLPipelineStateViewer), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -332,7 +332,7 @@ GLPipelineStateViewer::~GLPipelineStateViewer()
 
 void GLPipelineStateViewer::OnLogfileLoaded()
 {
-  OnEventChanged(m_Ctx->CurEvent());
+  OnEventChanged(m_Ctx.CurEvent());
 }
 
 void GLPipelineStateViewer::OnLogfileClosed()
@@ -393,29 +393,29 @@ bool GLPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 
 const GLPipelineState::ShaderStage *GLPipelineStateViewer::stageForSender(QWidget *widget)
 {
-  if(!m_Ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
     return NULL;
 
   while(widget)
   {
     if(widget == ui->stagesTabs->widget(0))
-      return &m_Ctx->CurGLPipelineState.m_VS;
+      return &m_Ctx.CurGLPipelineState.m_VS;
     if(widget == ui->stagesTabs->widget(1))
-      return &m_Ctx->CurGLPipelineState.m_VS;
+      return &m_Ctx.CurGLPipelineState.m_VS;
     if(widget == ui->stagesTabs->widget(2))
-      return &m_Ctx->CurGLPipelineState.m_TCS;
+      return &m_Ctx.CurGLPipelineState.m_TCS;
     if(widget == ui->stagesTabs->widget(3))
-      return &m_Ctx->CurGLPipelineState.m_TES;
+      return &m_Ctx.CurGLPipelineState.m_TES;
     if(widget == ui->stagesTabs->widget(4))
-      return &m_Ctx->CurGLPipelineState.m_GS;
+      return &m_Ctx.CurGLPipelineState.m_GS;
     if(widget == ui->stagesTabs->widget(5))
-      return &m_Ctx->CurGLPipelineState.m_FS;
+      return &m_Ctx.CurGLPipelineState.m_FS;
     if(widget == ui->stagesTabs->widget(6))
-      return &m_Ctx->CurGLPipelineState.m_FS;
+      return &m_Ctx.CurGLPipelineState.m_FS;
     if(widget == ui->stagesTabs->widget(7))
-      return &m_Ctx->CurGLPipelineState.m_FS;
+      return &m_Ctx.CurGLPipelineState.m_FS;
     if(widget == ui->stagesTabs->widget(8))
-      return &m_Ctx->CurGLPipelineState.m_CS;
+      return &m_Ctx.CurGLPipelineState.m_CS;
 
     widget = widget->parentWidget();
   }
@@ -518,7 +518,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::ShaderStage &s
 {
   ShaderReflection *shaderDetails = stage.ShaderDetails;
   const ShaderBindpointMapping &mapping = stage.BindpointMapping;
-  const GLPipelineState &state = m_Ctx->CurGLPipelineState;
+  const GLPipelineState &state = m_Ctx.CurGLPipelineState;
 
   QIcon action(QPixmap(QString::fromUtf8(":/action.png")));
   QIcon action_hover(QPixmap(QString::fromUtf8(":/action_hover.png")));
@@ -607,7 +607,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::ShaderStage &s
           w = h = d = a = 0;
         }
 
-        FetchTexture *tex = m_Ctx->GetTexture(r.Resource);
+        FetchTexture *tex = m_Ctx.GetTexture(r.Resource);
 
         if(tex)
         {
@@ -772,7 +772,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::ShaderStage &s
         offset = b->Offset;
         length = b->Size;
 
-        FetchBuffer *buf = m_Ctx->GetBuffer(b->Resource);
+        FetchBuffer *buf = m_Ctx.GetBuffer(b->Resource);
         if(buf)
         {
           name = buf->name;
@@ -881,7 +881,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::ShaderStage &s
 
       QVariant tag;
 
-      FetchTexture *tex = m_Ctx->GetTexture(id);
+      FetchTexture *tex = m_Ctx.GetTexture(id);
 
       if(tex)
       {
@@ -909,7 +909,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::ShaderStage &s
         tag = QVariant::fromValue(id);
       }
 
-      FetchBuffer *buf = m_Ctx->GetBuffer(id);
+      FetchBuffer *buf = m_Ctx.GetBuffer(id);
 
       if(buf)
       {
@@ -1019,14 +1019,14 @@ GLPipelineStateViewer::GLReadWriteType GLPipelineStateViewer::GetGLReadWriteType
 
 void GLPipelineStateViewer::setState()
 {
-  if(!m_Ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
   {
     clearState();
     return;
   }
 
-  const GLPipelineState &state = m_Ctx->CurGLPipelineState;
-  const FetchDrawcall *draw = m_Ctx->CurDrawcall();
+  const GLPipelineState &state = m_Ctx.CurGLPipelineState;
+  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
 
   bool showDisabled = ui->showDisabled->isChecked();
   bool showEmpty = ui->showEmpty->isChecked();
@@ -1181,7 +1181,7 @@ void GLPipelineStateViewer::setState()
       if(!ibufferUsed)
         length = 0;
 
-      FetchBuffer *buf = m_Ctx->GetBuffer(state.m_VtxIn.ibuffer);
+      FetchBuffer *buf = m_Ctx.GetBuffer(state.m_VtxIn.ibuffer);
 
       if(buf)
       {
@@ -1247,7 +1247,7 @@ void GLPipelineStateViewer::setState()
         length = 0;
       }
 
-      FetchBuffer *buf = m_Ctx->GetBuffer(v.Buffer);
+      FetchBuffer *buf = m_Ctx.GetBuffer(v.Buffer);
       if(buf)
       {
         name = buf->name;
@@ -1310,7 +1310,7 @@ void GLPipelineStateViewer::setState()
           name = "Empty";
         }
 
-        FetchBuffer *buf = m_Ctx->GetBuffer(state.m_Feedback.BufferBinding[i]);
+        FetchBuffer *buf = m_Ctx.GetBuffer(state.m_Feedback.BufferBinding[i]);
 
         if(buf)
         {
@@ -1625,7 +1625,7 @@ void GLPipelineStateViewer::setState()
           w = h = d = a = 0;
         }
 
-        FetchTexture *tex = m_Ctx->GetTexture(p);
+        FetchTexture *tex = m_Ctx.GetTexture(p);
         if(tex)
         {
           w = tex->width;
@@ -1710,7 +1710,7 @@ void GLPipelineStateViewer::setState()
           w = h = d = a = 0;
         }
 
-        FetchTexture *tex = m_Ctx->GetTexture(ds);
+        FetchTexture *tex = m_Ctx.GetTexture(ds);
         if(tex)
         {
           w = tex->width;
@@ -1956,17 +1956,17 @@ void GLPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int co
 
   if(tag.canConvert<ResourceId>())
   {
-    FetchTexture *tex = m_Ctx->GetTexture(tag.value<ResourceId>());
+    FetchTexture *tex = m_Ctx.GetTexture(tag.value<ResourceId>());
 
     if(tex)
     {
       if(tex->resType == eResType_Buffer)
       {
-        BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+        BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
 
         viewer->ViewTexture(0, 0, tex->ID);
 
-        m_Ctx->setupDockWindow(viewer);
+        m_Ctx.setupDockWindow(viewer);
 
         ToolWindowManager *manager = ToolWindowManager::managerOf(this);
 
@@ -1975,9 +1975,9 @@ void GLPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int co
       }
       else
       {
-        if(!m_Ctx->hasTextureViewer())
-          m_Ctx->showTextureViewer();
-        TextureViewer *viewer = m_Ctx->textureViewer();
+        if(!m_Ctx.hasTextureViewer())
+          m_Ctx.showTextureViewer();
+        TextureViewer *viewer = m_Ctx.textureViewer();
         viewer->ViewTexture(tex->ID, true);
       }
 
@@ -2029,11 +2029,11 @@ void GLPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int co
 
     if(buf.ID != ResourceId())
     {
-      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
 
       viewer->ViewBuffer(buf.offset, buf.size, buf.ID, format);
 
-      m_Ctx->setupDockWindow(viewer);
+      m_Ctx.setupDockWindow(viewer);
 
       ToolWindowManager *manager = ToolWindowManager::managerOf(this);
 
@@ -2065,9 +2065,9 @@ void GLPipelineStateViewer::ubo_itemActivated(QTreeWidgetItem *item, int column)
   }
 
   ConstantBufferPreviewer *prev =
-      new ConstantBufferPreviewer(m_Ctx, stage->stage, cb, 0, m_Ctx->mainWindow());
+      new ConstantBufferPreviewer(m_Ctx, stage->stage, cb, 0, m_Ctx.mainWindow());
 
-  m_Ctx->setupDockWindow(prev);
+  m_Ctx.setupDockWindow(prev);
 
   ToolWindowManager *manager = ToolWindowManager::managerOf(this);
 
@@ -2090,11 +2090,11 @@ void GLPipelineStateViewer::on_viBuffers_itemActivated(QTreeWidgetItem *item, in
 
     if(buf.id != ResourceId())
     {
-      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
 
       viewer->ViewBuffer(buf.offset, UINT64_MAX, buf.id);
 
-      m_Ctx->setupDockWindow(viewer);
+      m_Ctx.setupDockWindow(viewer);
 
       ToolWindowManager *manager = ToolWindowManager::managerOf(this);
 
@@ -2108,7 +2108,7 @@ void GLPipelineStateViewer::highlightIABind(int slot)
 {
   int idx = ((slot + 1) * 21) % 32;    // space neighbouring colours reasonably distinctly
 
-  const GLPipelineState::VertexInput &VI = m_Ctx->CurGLPipelineState.m_VtxIn;
+  const GLPipelineState::VertexInput &VI = m_Ctx.CurGLPipelineState.m_VtxIn;
 
   QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f, 0.95f);
 
@@ -2152,14 +2152,14 @@ void GLPipelineStateViewer::highlightIABind(int slot)
 
 void GLPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
 {
-  if(!m_Ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
     return;
 
   QModelIndex idx = ui->viAttrs->indexAt(e->pos());
 
   vertex_leave(NULL);
 
-  const GLPipelineState::VertexInput &VI = m_Ctx->CurGLPipelineState.m_VtxIn;
+  const GLPipelineState::VertexInput &VI = m_Ctx.CurGLPipelineState.m_VtxIn;
 
   if(idx.isValid())
   {
@@ -2174,7 +2174,7 @@ void GLPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
 
 void GLPipelineStateViewer::on_viBuffers_mouseMove(QMouseEvent *e)
 {
-  if(!m_Ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
     return;
 
   QTreeWidgetItem *item = ui->viBuffers->itemAt(e->pos());
@@ -2257,7 +2257,7 @@ void GLPipelineStateViewer::shaderView_clicked()
 
   ShaderViewer *shad = new ShaderViewer(m_Ctx, shaderDetails, stage->stage, NULL, "");
 
-  m_Ctx->setupDockWindow(shad);
+  m_Ctx.setupDockWindow(shad);
 
   ToolWindowManager *manager = ToolWindowManager::managerOf(this);
 
@@ -2316,7 +2316,7 @@ void GLPipelineStateViewer::on_exportHTML_clicked()
 
 void GLPipelineStateViewer::on_meshView_clicked()
 {
-  if(!m_Ctx->hasMeshPreview())
-    m_Ctx->showMeshPreview();
-  ToolWindowManager::raiseToolWindow(m_Ctx->meshPreview());
+  if(!m_Ctx.hasMeshPreview())
+    m_Ctx.showMeshPreview();
+  ToolWindowManager::raiseToolWindow(m_Ctx.meshPreview());
 }

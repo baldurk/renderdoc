@@ -42,7 +42,7 @@ class RemoteHost;
 
 // simple helper for the common case of 'we just need to run this on the render thread
 #define INVOKE_MEMFN(function) \
-  m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) { function(r); });
+  m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) { function(r); });
 
 struct EnvironmentModification
 {

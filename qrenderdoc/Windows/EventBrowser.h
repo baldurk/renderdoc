@@ -43,7 +43,7 @@ private:
   Q_OBJECT
 
 public:
-  explicit EventBrowser(CaptureContext *ctx, QWidget *parent = 0);
+  explicit EventBrowser(CaptureContext &ctx, QWidget *parent = 0);
   ~EventBrowser();
 
   void OnLogfileLoaded();
@@ -98,5 +98,5 @@ private:
   void RefreshIcon(QTreeWidgetItem *item);
 
   Ui::EventBrowser *ui;
-  CaptureContext *m_Ctx;
+  CaptureContext &m_Ctx;
 };

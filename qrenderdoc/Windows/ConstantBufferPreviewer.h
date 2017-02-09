@@ -39,7 +39,7 @@ class ConstantBufferPreviewer : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit ConstantBufferPreviewer(CaptureContext *ctx, const ShaderStageType stage, uint32_t slot,
+  explicit ConstantBufferPreviewer(CaptureContext &ctx, const ShaderStageType stage, uint32_t slot,
                                    uint32_t idx, QWidget *parent = 0);
   ~ConstantBufferPreviewer();
 
@@ -60,7 +60,7 @@ private slots:
 
 private:
   Ui::ConstantBufferPreviewer *ui;
-  CaptureContext *m_Ctx = NULL;
+  CaptureContext &m_Ctx;
 
   ResourceId m_cbuffer;
   ResourceId m_shader;

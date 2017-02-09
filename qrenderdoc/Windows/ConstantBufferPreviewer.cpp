@@ -28,7 +28,7 @@
 
 QList<ConstantBufferPreviewer *> ConstantBufferPreviewer::m_Previews;
 
-ConstantBufferPreviewer::ConstantBufferPreviewer(CaptureContext *ctx, const ShaderStageType stage,
+ConstantBufferPreviewer::ConstantBufferPreviewer(CaptureContext &ctx, const ShaderStageType stage,
                                                  uint32_t slot, uint32_t idx, QWidget *parent)
     : QFrame(parent), ui(new Ui::ConstantBufferPreviewer), m_Ctx(ctx)
 {
@@ -57,12 +57,12 @@ ConstantBufferPreviewer::ConstantBufferPreviewer(CaptureContext *ctx, const Shad
   ui->variables->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
   m_Previews.push_back(this);
-  m_Ctx->AddLogViewer(this);
+  m_Ctx.AddLogViewer(this);
 }
 
 ConstantBufferPreviewer::~ConstantBufferPreviewer()
 {
-  m_Ctx->RemoveLogViewer(this);
+  m_Ctx.RemoveLogViewer(this);
   m_Previews.removeOne(this);
   delete ui;
 }
@@ -95,11 +95,11 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventID)
 {
   uint64_t offs = 0;
   uint64_t size = 0;
-  m_Ctx->CurPipelineState.GetConstantBuffer(m_stage, m_slot, m_arrayIdx, m_cbuffer, offs, size);
+  m_Ctx.CurPipelineState.GetConstantBuffer(m_stage, m_slot, m_arrayIdx, m_cbuffer, offs, size);
 
-  m_shader = m_Ctx->CurPipelineState.GetShader(m_stage);
-  QString entryPoint = m_Ctx->CurPipelineState.GetShaderEntryPoint(m_stage);
-  ShaderReflection *reflection = m_Ctx->CurPipelineState.GetShaderReflection(m_stage);
+  m_shader = m_Ctx.CurPipelineState.GetShader(m_stage);
+  QString entryPoint = m_Ctx.CurPipelineState.GetShaderEntryPoint(m_stage);
+  ShaderReflection *reflection = m_Ctx.CurPipelineState.GetShaderReflection(m_stage);
 
   updateLabels();
 
@@ -111,7 +111,7 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventID)
 
   if(!m_formatOverride.empty())
   {
-    m_Ctx->Renderer()->AsyncInvoke([this, offs, size](IReplayRenderer *r) {
+    m_Ctx.Renderer().AsyncInvoke([this, offs, size](IReplayRenderer *r) {
       rdctype::array<byte> data;
       r->GetBufferData(m_cbuffer, offs, size, &data);
       rdctype::array<ShaderVariable> vars = applyFormatOverride(data);
@@ -120,7 +120,7 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventID)
   }
   else
   {
-    m_Ctx->Renderer()->AsyncInvoke([this, entryPoint, offs](IReplayRenderer *r) {
+    m_Ctx.Renderer().AsyncInvoke([this, entryPoint, offs](IReplayRenderer *r) {
       rdctype::array<ShaderVariable> vars;
       r->GetCBufferVariableContents(m_shader, entryPoint.toUtf8().data(), m_slot, m_cbuffer, offs,
                                     &vars);
@@ -165,7 +165,7 @@ void ConstantBufferPreviewer::processFormat(const QString &format)
     ui->formatSpecifier->setErrors(errors);
   }
 
-  OnEventChanged(m_Ctx->CurEvent());
+  OnEventChanged(m_Ctx.CurEvent());
 }
 
 void ConstantBufferPreviewer::addVariables(QTreeWidgetItem *root,
@@ -211,7 +211,7 @@ void ConstantBufferPreviewer::updateLabels()
 
   bool needName = true;
 
-  FetchBuffer *buf = m_Ctx ? m_Ctx->GetBuffer(m_cbuffer) : NULL;
+  FetchBuffer *buf = m_Ctx.GetBuffer(m_cbuffer);
   if(buf)
   {
     bufName = buf->name;
@@ -219,7 +219,7 @@ void ConstantBufferPreviewer::updateLabels()
       needName = false;
   }
 
-  ShaderReflection *reflection = m_Ctx ? m_Ctx->CurPipelineState.GetShaderReflection(m_stage) : NULL;
+  ShaderReflection *reflection = m_Ctx.CurPipelineState.GetShaderReflection(m_stage);
 
   if(reflection != NULL)
   {
@@ -230,14 +230,12 @@ void ConstantBufferPreviewer::updateLabels()
 
   ui->nameLabel->setText(bufName);
 
-  GraphicsAPI pipeType = eGraphicsAPI_D3D11;
-  if(m_Ctx != NULL)
-    pipeType = m_Ctx->APIProps().pipelineType;
+  GraphicsAPI pipeType = m_Ctx.APIProps().pipelineType;
 
   QString title =
       QString("%1 %2 %3").arg(ToQStr(m_stage, pipeType)).arg(IsD3D(pipeType) ? "CB" : "UBO").arg(m_slot);
 
-  if(m_Ctx != NULL && m_Ctx->CurPipelineState.SupportsResourceArrays())
+  if(m_Ctx.CurPipelineState.SupportsResourceArrays())
     title += QString(" [%1]").arg(m_arrayIdx);
 
   ui->slotLabel->setText(title);

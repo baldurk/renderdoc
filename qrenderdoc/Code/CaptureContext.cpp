@@ -61,13 +61,13 @@ CaptureContext::CaptureContext(QString paramFilename, QString remoteHost, uint32
   m_Icon = new QIcon();
   m_Icon->addFile(QStringLiteral(":/icon.ico"), QSize(), QIcon::Normal, QIcon::Off);
 
-  m_MainWindow = new MainWindow(this);
+  m_MainWindow = new MainWindow(*this);
   m_MainWindow->show();
 
   if(remoteIdent != 0)
   {
     m_MainWindow->ShowLiveCapture(
-        new LiveCapture(this, remoteHost, remoteIdent, m_MainWindow, m_MainWindow));
+        new LiveCapture(*this, remoteHost, remoteIdent, m_MainWindow, m_MainWindow));
   }
 
   if(!paramFilename.isEmpty())
@@ -397,7 +397,7 @@ EventBrowser *CaptureContext::eventBrowser()
   if(m_EventBrowser)
     return m_EventBrowser;
 
-  m_EventBrowser = new EventBrowser(this, m_MainWindow);
+  m_EventBrowser = new EventBrowser(*this, m_MainWindow);
   m_EventBrowser->setObjectName("eventBrowser");
   setupDockWindow(m_EventBrowser);
 
@@ -409,7 +409,7 @@ APIInspector *CaptureContext::apiInspector()
   if(m_APIInspector)
     return m_APIInspector;
 
-  m_APIInspector = new APIInspector(this, m_MainWindow);
+  m_APIInspector = new APIInspector(*this, m_MainWindow);
   m_APIInspector->setObjectName("apiInspector");
   setupDockWindow(m_APIInspector);
 
@@ -421,7 +421,7 @@ TextureViewer *CaptureContext::textureViewer()
   if(m_TextureViewer)
     return m_TextureViewer;
 
-  m_TextureViewer = new TextureViewer(this, m_MainWindow);
+  m_TextureViewer = new TextureViewer(*this, m_MainWindow);
   m_TextureViewer->setObjectName("textureViewer");
   setupDockWindow(m_TextureViewer);
 
@@ -433,7 +433,7 @@ BufferViewer *CaptureContext::meshPreview()
   if(m_MeshPreview)
     return m_MeshPreview;
 
-  m_MeshPreview = new BufferViewer(this, true, m_MainWindow);
+  m_MeshPreview = new BufferViewer(*this, true, m_MainWindow);
   m_MeshPreview->setObjectName("meshPreview");
   setupDockWindow(m_MeshPreview);
 
@@ -445,7 +445,7 @@ PipelineStateViewer *CaptureContext::pipelineViewer()
   if(m_PipelineViewer)
     return m_PipelineViewer;
 
-  m_PipelineViewer = new PipelineStateViewer(this, m_MainWindow);
+  m_PipelineViewer = new PipelineStateViewer(*this, m_MainWindow);
   m_PipelineViewer->setObjectName("pipelineViewer");
   setupDockWindow(m_PipelineViewer);
 
@@ -458,7 +458,7 @@ CaptureDialog *CaptureContext::captureDialog()
     return m_CaptureDialog;
 
   m_CaptureDialog = new CaptureDialog(
-      this,
+      *this,
       [this](const QString &exe, const QString &workingDir, const QString &cmdLine,
              const QList<EnvironmentModification> &env, CaptureOptions opts) {
         return m_MainWindow->OnCaptureTrigger(exe, workingDir, cmdLine, env, opts);
@@ -477,7 +477,7 @@ DebugMessageView *CaptureContext::debugMessageView()
   if(m_DebugMessageView)
     return m_DebugMessageView;
 
-  m_DebugMessageView = new DebugMessageView(this, m_MainWindow);
+  m_DebugMessageView = new DebugMessageView(*this, m_MainWindow);
   m_DebugMessageView->setObjectName("debugMessageView");
   setupDockWindow(m_DebugMessageView);
 
@@ -489,7 +489,7 @@ StatisticsViewer *CaptureContext::statisticsViewer()
   if(m_StatisticsViewer)
     return m_StatisticsViewer;
 
-  m_StatisticsViewer = new StatisticsViewer(this, m_MainWindow);
+  m_StatisticsViewer = new StatisticsViewer(*this, m_MainWindow);
   m_StatisticsViewer->setObjectName("statisticsViewer");
   setupDockWindow(m_StatisticsViewer);
 

@@ -44,7 +44,7 @@ class PipelineStateViewer : public QFrame, public ILogViewerForm
   Q_PROPERTY(QVariant persistData READ persistData WRITE setPersistData DESIGNABLE false SCRIPTABLE false)
 
 public:
-  explicit PipelineStateViewer(CaptureContext *ctx, QWidget *parent = 0);
+  explicit PipelineStateViewer(CaptureContext &ctx, QWidget *parent = 0);
   ~PipelineStateViewer();
 
   void OnLogfileLoaded();
@@ -57,7 +57,7 @@ public:
 
 private:
   Ui::PipelineStateViewer *ui;
-  CaptureContext *m_Ctx;
+  CaptureContext &m_Ctx;
 
   void setToD3D11();
   void setToD3D12();

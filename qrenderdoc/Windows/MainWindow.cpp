@@ -67,7 +67,7 @@ struct Version
   static bool isMismatched() { return RENDERDOC_GetVersionString() != bareString(); }
 };
 
-MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::MainWindow), m_Ctx(ctx)
+MainWindow::MainWindow(CaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::MainWindow), m_Ctx(ctx)
 {
   ui->setupUi(this);
 
@@ -165,9 +165,8 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
   PopulateRecentCaptures();
 
   ui->toolWindowManager->setRubberBandLineWidth(50);
-  ui->toolWindowManager->setToolWindowCreateCallback([this](const QString &objectName) -> QWidget * {
-    return m_Ctx->createToolWindow(objectName);
-  });
+  ui->toolWindowManager->setToolWindowCreateCallback(
+      [this](const QString &objectName) -> QWidget * { return m_Ctx.createToolWindow(objectName); });
 
   ui->action_Resolve_Symbols->setEnabled(false);
   ui->action_Resolve_Symbols->setText(tr("Resolve Symbols"));
@@ -175,8 +174,8 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
   bool loaded = LoadLayout(0);
 
   LambdaThread *th = new LambdaThread([this]() {
-    m_Ctx->Config.AddAndroidHosts();
-    for(RemoteHost *host : m_Ctx->Config.RemoteHosts)
+    m_Ctx.Config.AddAndroidHosts();
+    for(RemoteHost *host : m_Ctx.Config.RemoteHosts)
       host->CheckStatus();
   });
   th->selfDelete(true);
@@ -185,36 +184,36 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
   // create default layout if layout failed to load
   if(!loaded)
   {
-    EventBrowser *eventBrowser = m_Ctx->eventBrowser();
+    EventBrowser *eventBrowser = m_Ctx.eventBrowser();
 
     ui->toolWindowManager->addToolWindow(eventBrowser, ToolWindowManager::EmptySpace);
 
-    TextureViewer *textureViewer = m_Ctx->textureViewer();
+    TextureViewer *textureViewer = m_Ctx.textureViewer();
 
     ui->toolWindowManager->addToolWindow(
         textureViewer,
         ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
                                          ui->toolWindowManager->areaOf(eventBrowser), 0.75f));
 
-    PipelineStateViewer *pipe = m_Ctx->pipelineViewer();
+    PipelineStateViewer *pipe = m_Ctx.pipelineViewer();
 
     ui->toolWindowManager->addToolWindow(
         pipe, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
                                                ui->toolWindowManager->areaOf(textureViewer)));
 
-    BufferViewer *mesh = m_Ctx->meshPreview();
+    BufferViewer *mesh = m_Ctx.meshPreview();
 
     ui->toolWindowManager->addToolWindow(
         mesh, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
                                                ui->toolWindowManager->areaOf(textureViewer)));
 
-    CaptureDialog *capDialog = m_Ctx->captureDialog();
+    CaptureDialog *capDialog = m_Ctx.captureDialog();
 
     ui->toolWindowManager->addToolWindow(
         capDialog, ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
                                                     ui->toolWindowManager->areaOf(textureViewer)));
 
-    APIInspector *apiInspector = m_Ctx->apiInspector();
+    APIInspector *apiInspector = m_Ctx.apiInspector();
 
     ui->toolWindowManager->addToolWindow(
         apiInspector,
@@ -222,7 +221,7 @@ MainWindow::MainWindow(CaptureContext *ctx) : QMainWindow(NULL), ui(new Ui::Main
                                          ui->toolWindowManager->areaOf(eventBrowser), 0.3f));
   }
 
-  m_Ctx->AddLogViewer(this);
+  m_Ctx.AddLogViewer(this);
 }
 
 MainWindow::~MainWindow()
@@ -240,7 +239,7 @@ QString MainWindow::GetLayoutPath(int layout)
   if(layout > 0)
     filename = QString("Layout%1.config").arg(layout);
 
-  return m_Ctx->ConfigFile(filename);
+  return m_Ctx.ConfigFile(filename);
 }
 
 void MainWindow::on_action_Exit_triggered()
@@ -254,7 +253,7 @@ void MainWindow::on_action_Open_Log_triggered()
     return;
 
   QString filename =
-      RDDialog::getOpenFileName(this, "Select Logfile to open", m_Ctx->Config.LastLogPath,
+      RDDialog::getOpenFileName(this, "Select Logfile to open", m_Ctx.Config.LastLogPath,
                                 "Log Files (*.rdc);;Image Files (*.dds *.hdr *.exr *.bmp *.jpg "
                                 "*.jpeg *.png *.tga *.gif *.psd;;All Files (*.*)");
 
@@ -294,9 +293,9 @@ LiveCapture *MainWindow::OnCaptureTrigger(const QString &exe, const QString &wor
   if(!PromptCloseLog())
     return NULL;
 
-  QString logfile = m_Ctx->TempLogFilename(QFileInfo(exe).baseName());
+  QString logfile = m_Ctx.TempLogFilename(QFileInfo(exe).baseName());
 
-  uint32_t ret = m_Ctx->Renderer()->ExecuteAndInject(exe, workingDir, cmdLine, env, logfile, opts);
+  uint32_t ret = m_Ctx.Renderer().ExecuteAndInject(exe, workingDir, cmdLine, env, logfile, opts);
 
   if(ret == 0)
   {
@@ -308,8 +307,7 @@ LiveCapture *MainWindow::OnCaptureTrigger(const QString &exe, const QString &wor
   }
 
   LiveCapture *live = new LiveCapture(
-      m_Ctx, m_Ctx->Renderer()->remote() ? m_Ctx->Renderer()->remote()->Hostname : "", ret, this,
-      this);
+      m_Ctx, m_Ctx.Renderer().remote() ? m_Ctx.Renderer().remote()->Hostname : "", ret, this, this);
   ShowLiveCapture(live);
   return live;
 }
@@ -320,7 +318,7 @@ LiveCapture *MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentMo
   if(!PromptCloseLog())
     return NULL;
 
-  QString logfile = m_Ctx->TempLogFilename(name);
+  QString logfile = m_Ctx.TempLogFilename(name);
 
   void *envList = RENDERDOC_MakeEnvironmentModificationList(env.size());
 
@@ -350,15 +348,14 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
 {
   if(PromptCloseLog())
   {
-    if(m_Ctx->LogLoading())
+    if(m_Ctx.LogLoading())
       return;
 
     rdctype::str driver;
     rdctype::str machineIdent;
     ReplaySupport support = eReplaySupport_Unsupported;
 
-    bool remoteReplay =
-        !local || (m_Ctx->Renderer()->remote() && m_Ctx->Renderer()->remote()->Connected);
+    bool remoteReplay = !local || (m_Ctx.Renderer().remote() && m_Ctx.Renderer().remote()->Connected);
 
     if(local)
     {
@@ -367,8 +364,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
       // if the return value suggests remote replay, and it's not already selected, AND the user
       // hasn't previously chosen to always replay locally without being prompted, ask if they'd
       // prefer to switch to a remote context for replaying.
-      if(support == eReplaySupport_SuggestRemote && !remoteReplay &&
-         !m_Ctx->Config.AlwaysReplayLocally)
+      if(support == eReplaySupport_SuggestRemote && !remoteReplay && !m_Ctx.Config.AlwaysReplayLocally)
       {
         SuggestRemoteDialog dialog(ToQStr(driver), ToQStr(machineIdent), this);
 
@@ -396,7 +392,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
                                [this]() { return contextChooser->isEnabled(); });
           }
 
-          remoteReplay = (m_Ctx->Renderer()->remote() && m_Ctx->Renderer()->remote()->Connected);
+          remoteReplay = (m_Ctx.Renderer().remote() && m_Ctx.Renderer().remote()->Connected);
 
           if(!remoteReplay)
           {
@@ -415,9 +411,9 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
           // set that bit as sticky in the config
           if(dialog.alwaysReplayLocally())
           {
-            m_Ctx->Config.AlwaysReplayLocally = true;
+            m_Ctx.Config.AlwaysReplayLocally = true;
 
-            m_Ctx->Config.Save();
+            m_Ctx.Config.Save();
           }
         }
       }
@@ -426,7 +422,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
       {
         support = eReplaySupport_Unsupported;
 
-        QStringList remoteDrivers = m_Ctx->Renderer()->GetRemoteSupport();
+        QStringList remoteDrivers = m_Ctx.Renderer().GetRemoteSupport();
 
         for(const QString &d : remoteDrivers)
         {
@@ -447,7 +443,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
         QString remoteMessage =
             tr("This log was captured with %1 and cannot be replayed on %2.\n\n")
                 .arg(driver.c_str())
-                .arg(m_Ctx->Renderer()->remote()->Hostname);
+                .arg(m_Ctx.Renderer().remote()->Hostname);
 
         remoteMessage += "Try selecting a different remote context in the status bar.";
 
@@ -471,7 +467,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
 
       if(remoteReplay && local)
       {
-        fileToLoad = m_Ctx->Renderer()->CopyCaptureToRemote(filename, this);
+        fileToLoad = m_Ctx.Renderer().CopyCaptureToRemote(filename, this);
 
         // deliberately leave local as true so that we keep referring to the locally saved log
 
@@ -484,12 +480,12 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
         }
       }
 
-      m_Ctx->LoadLogfile(fileToLoad, origFilename, temporary, local);
+      m_Ctx.LoadLogfile(fileToLoad, origFilename, temporary, local);
     }
 
     if(!remoteReplay)
     {
-      m_Ctx->Config.LastLogPath = QFileInfo(filename).absolutePath();
+      m_Ctx.Config.LastLogPath = QFileInfo(filename).absolutePath();
     }
 
     statusText->setText(tr("Loading ") + origFilename + "...");
@@ -498,7 +494,7 @@ void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local
 
 void MainWindow::OpenCaptureConfigFile(const QString &filename, bool exe)
 {
-  CaptureDialog *capDialog = m_Ctx->captureDialog();
+  CaptureDialog *capDialog = m_Ctx.captureDialog();
 
   if(exe)
     capDialog->setExecutableFilename(filename);
@@ -513,10 +509,10 @@ QString MainWindow::GetSavePath()
 {
   QString dir;
 
-  if(m_Ctx->Config.DefaultCaptureSaveDirectory != "")
+  if(m_Ctx.Config.DefaultCaptureSaveDirectory != "")
   {
     if(m_LastSaveCapturePath == "")
-      dir = m_Ctx->Config.DefaultCaptureSaveDirectory;
+      dir = m_Ctx.Config.DefaultCaptureSaveDirectory;
     else
       dir = m_LastSaveCapturePath;
   }
@@ -542,28 +538,28 @@ bool MainWindow::PromptSaveLog()
 
   if(saveFilename != "")
   {
-    if(m_Ctx->IsLogLocal() && !QFileInfo(m_Ctx->LogFilename()).exists())
+    if(m_Ctx.IsLogLocal() && !QFileInfo(m_Ctx.LogFilename()).exists())
     {
       RDDialog::critical(NULL, tr("File not found"),
-                         tr("Logfile %1 couldn't be found, cannot save.").arg(m_Ctx->LogFilename()));
+                         tr("Logfile %1 couldn't be found, cannot save.").arg(m_Ctx.LogFilename()));
       return false;
     }
 
     bool success = false;
     QString error;
 
-    if(m_Ctx->IsLogLocal())
+    if(m_Ctx.IsLogLocal())
     {
       // we copy the (possibly) temp log to the desired path, but the log item remains referring to
       // the original path.
       // This ensures that if the user deletes the saved path we can still open or re-save it.
-      success = QFile::copy(m_Ctx->LogFilename(), saveFilename);
+      success = QFile::copy(m_Ctx.LogFilename(), saveFilename);
 
       error = tr("Couldn't save to %1").arg(saveFilename);
     }
     else
     {
-      m_Ctx->Renderer()->CopyCaptureFromRemote(m_Ctx->LogFilename(), saveFilename, this);
+      m_Ctx.Renderer().CopyCaptureFromRemote(m_Ctx.LogFilename(), saveFilename, this);
       success = QFile::exists(saveFilename);
 
       error = tr("File couldn't be transferred from remote host");
@@ -575,7 +571,7 @@ bool MainWindow::PromptSaveLog()
       return false;
     }
 
-    PersistantConfig::AddRecentFile(m_Ctx->Config.RecentLogFiles, saveFilename, 10);
+    PersistantConfig::AddRecentFile(m_Ctx.Config.RecentLogFiles, saveFilename, 10);
     PopulateRecentFiles();
     SetTitle(saveFilename);
 
@@ -591,7 +587,7 @@ bool MainWindow::PromptSaveLog()
 
 bool MainWindow::PromptCloseLog()
 {
-  if(!m_Ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
     return true;
 
   QString deletepath = "";
@@ -599,8 +595,8 @@ bool MainWindow::PromptCloseLog()
 
   if(m_OwnTempLog)
   {
-    QString temppath = m_Ctx->LogFilename();
-    loglocal = m_Ctx->IsLogLocal();
+    QString temppath = m_Ctx.LogFilename();
+    loglocal = m_Ctx.IsLogLocal();
 
     QMessageBox::StandardButton res = QMessageBox::No;
 
@@ -624,7 +620,7 @@ bool MainWindow::PromptCloseLog()
       }
     }
 
-    if(temppath != m_Ctx->LogFilename() || res == QMessageBox::No)
+    if(temppath != m_Ctx.LogFilename() || res == QMessageBox::No)
       deletepath = temppath;
     m_OwnTempLog = false;
     m_SavedTempLog = false;
@@ -633,14 +629,14 @@ bool MainWindow::PromptCloseLog()
   CloseLogfile();
 
   if(!deletepath.isEmpty())
-    m_Ctx->Renderer()->DeleteCapture(deletepath, loglocal);
+    m_Ctx.Renderer().DeleteCapture(deletepath, loglocal);
 
   return true;
 }
 
 void MainWindow::CloseLogfile()
 {
-  m_Ctx->CloseLogfile();
+  m_Ctx.CloseLogfile();
 
   ui->action_Save_Log->setEnabled(false);
 }
@@ -649,16 +645,16 @@ void MainWindow::SetTitle(const QString &filename)
 {
   QString prefix = "";
 
-  if(m_Ctx && m_Ctx->LogLoaded())
+  if(m_Ctx.LogLoaded())
   {
     prefix = QFileInfo(filename).fileName();
-    if(m_Ctx->APIProps().degraded)
+    if(m_Ctx.APIProps().degraded)
       prefix += " !DEGRADED PERFORMANCE!";
     prefix += " - ";
   }
 
-  if(m_Ctx && m_Ctx->Renderer()->remote())
-    prefix += tr("Remote: %1 - ").arg(m_Ctx->Renderer()->remote()->Hostname);
+  if(m_Ctx.Renderer().remote())
+    prefix += tr("Remote: %1 - ").arg(m_Ctx.Renderer().remote()->Hostname);
 
   QString text = prefix + "RenderDoc ";
 
@@ -677,7 +673,7 @@ void MainWindow::SetTitle(const QString &filename)
 
 void MainWindow::SetTitle()
 {
-  SetTitle(m_Ctx != NULL ? m_Ctx->LogFilename() : "");
+  SetTitle(m_Ctx.LogFilename());
 }
 
 void MainWindow::PopulateRecentFiles()
@@ -687,9 +683,9 @@ void MainWindow::PopulateRecentFiles()
   ui->menu_Recent_Logs->setEnabled(false);
 
   int idx = 1;
-  for(int i = m_Ctx->Config.RecentLogFiles.size() - 1; i >= 0; i--)
+  for(int i = m_Ctx.Config.RecentLogFiles.size() - 1; i >= 0; i--)
   {
-    const QString &filename = m_Ctx->Config.RecentLogFiles[i];
+    const QString &filename = m_Ctx.Config.RecentLogFiles[i];
     ui->menu_Recent_Logs->addAction("&" + QString::number(idx) + " " + filename,
                                     [this, filename] { recentLog(filename); });
     idx++;
@@ -708,9 +704,9 @@ void MainWindow::PopulateRecentCaptures()
   ui->menu_Recent_Capture_Settings->setEnabled(false);
 
   int idx = 1;
-  for(int i = m_Ctx->Config.RecentCaptureSettings.size() - 1; i >= 0; i--)
+  for(int i = m_Ctx.Config.RecentCaptureSettings.size() - 1; i >= 0; i--)
   {
-    const QString &filename = m_Ctx->Config.RecentCaptureSettings[i];
+    const QString &filename = m_Ctx.Config.RecentCaptureSettings[i];
     ui->menu_Recent_Capture_Settings->addAction("&" + QString::number(idx) + " " + filename,
                                                 [this, filename] { recentCapture(filename); });
     idx++;
@@ -724,7 +720,7 @@ void MainWindow::PopulateRecentCaptures()
 
 void MainWindow::ShowLiveCapture(LiveCapture *live)
 {
-  live->setWindowIcon(m_Ctx->winIcon());
+  live->setWindowIcon(m_Ctx.winIcon());
   m_LiveCaptures.push_back(live);
   ui->toolWindowManager->addToolWindow(live, mainToolArea());
 }
@@ -739,22 +735,20 @@ ToolWindowManager::AreaReference MainWindow::mainToolArea()
   // bit of a hack. Maybe the ToolWindowManager should track this?
   // Try and identify where to add new windows, by searching a
   // priority list of other windows to use their area
-  if(m_Ctx->hasTextureViewer() &&
-     ui->toolWindowManager->toolWindows().contains(m_Ctx->textureViewer()))
+  if(m_Ctx.hasTextureViewer() && ui->toolWindowManager->toolWindows().contains(m_Ctx.textureViewer()))
     return ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
-                                            ui->toolWindowManager->areaOf(m_Ctx->textureViewer()));
-  else if(m_Ctx->hasPipelineViewer() &&
-          ui->toolWindowManager->toolWindows().contains(m_Ctx->pipelineViewer()))
+                                            ui->toolWindowManager->areaOf(m_Ctx.textureViewer()));
+  else if(m_Ctx.hasPipelineViewer() &&
+          ui->toolWindowManager->toolWindows().contains(m_Ctx.pipelineViewer()))
     return ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
-                                            ui->toolWindowManager->areaOf(m_Ctx->pipelineViewer()));
-  else if(m_Ctx->hasMeshPreview() &&
-          ui->toolWindowManager->toolWindows().contains(m_Ctx->meshPreview()))
+                                            ui->toolWindowManager->areaOf(m_Ctx.pipelineViewer()));
+  else if(m_Ctx.hasMeshPreview() && ui->toolWindowManager->toolWindows().contains(m_Ctx.meshPreview()))
     return ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
-                                            ui->toolWindowManager->areaOf(m_Ctx->meshPreview()));
-  else if(m_Ctx->hasCaptureDialog() &&
-          ui->toolWindowManager->toolWindows().contains(m_Ctx->captureDialog()))
+                                            ui->toolWindowManager->areaOf(m_Ctx.meshPreview()));
+  else if(m_Ctx.hasCaptureDialog() &&
+          ui->toolWindowManager->toolWindows().contains(m_Ctx.captureDialog()))
     return ToolWindowManager::AreaReference(ToolWindowManager::AddTo,
-                                            ui->toolWindowManager->areaOf(m_Ctx->captureDialog()));
+                                            ui->toolWindowManager->areaOf(m_Ctx.captureDialog()));
 
   // if all else fails just add to the last place we placed something.
   return ToolWindowManager::AreaReference(ToolWindowManager::LastUsedArea);
@@ -763,18 +757,17 @@ ToolWindowManager::AreaReference MainWindow::mainToolArea()
 ToolWindowManager::AreaReference MainWindow::leftToolArea()
 {
   // see mainToolArea()
-  if(m_Ctx->hasTextureViewer() &&
-     ui->toolWindowManager->toolWindows().contains(m_Ctx->textureViewer()))
+  if(m_Ctx.hasTextureViewer() && ui->toolWindowManager->toolWindows().contains(m_Ctx.textureViewer()))
     return ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
-                                            ui->toolWindowManager->areaOf(m_Ctx->textureViewer()));
-  else if(m_Ctx->hasPipelineViewer() &&
-          ui->toolWindowManager->toolWindows().contains(m_Ctx->pipelineViewer()))
+                                            ui->toolWindowManager->areaOf(m_Ctx.textureViewer()));
+  else if(m_Ctx.hasPipelineViewer() &&
+          ui->toolWindowManager->toolWindows().contains(m_Ctx.pipelineViewer()))
     return ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
-                                            ui->toolWindowManager->areaOf(m_Ctx->pipelineViewer()));
-  else if(m_Ctx->hasCaptureDialog() &&
-          ui->toolWindowManager->toolWindows().contains(m_Ctx->captureDialog()))
+                                            ui->toolWindowManager->areaOf(m_Ctx.pipelineViewer()));
+  else if(m_Ctx.hasCaptureDialog() &&
+          ui->toolWindowManager->toolWindows().contains(m_Ctx.captureDialog()))
     return ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
-                                            ui->toolWindowManager->areaOf(m_Ctx->captureDialog()));
+                                            ui->toolWindowManager->areaOf(m_Ctx.captureDialog()));
 
   return ToolWindowManager::AreaReference(ToolWindowManager::LastUsedArea);
 }
@@ -793,7 +786,7 @@ void MainWindow::recentLog(const QString &filename)
 
     if(res == QMessageBox::Yes)
     {
-      m_Ctx->Config.RecentLogFiles.removeOne(filename);
+      m_Ctx.Config.RecentLogFiles.removeOne(filename);
 
       PopulateRecentFiles();
     }
@@ -814,7 +807,7 @@ void MainWindow::recentCapture(const QString &filename)
 
     if(res == QMessageBox::Yes)
     {
-      m_Ctx->Config.RecentLogFiles.removeOne(filename);
+      m_Ctx.Config.RecentLogFiles.removeOne(filename);
 
       PopulateRecentFiles();
     }
@@ -836,7 +829,7 @@ void MainWindow::setProgress(float val)
 
 void MainWindow::setLogHasErrors(bool errors)
 {
-  QString filename = QFileInfo(m_Ctx->LogFilename()).fileName();
+  QString filename = QFileInfo(m_Ctx.LogFilename()).fileName();
   if(errors)
   {
     QPixmap icon(QString::fromUtf8(":/delete.png"));
@@ -848,9 +841,9 @@ void MainWindow::setLogHasErrors(bool errors)
     text = tr("%1 loaded. Log has %2 errors, warnings or performance notes. "
               "See the 'Log Errors and Warnings' window.")
                .arg(filename)
-               .arg(m_Ctx->DebugMessages.size());
-    if(m_Ctx->UnreadMessageCount > 0)
-      text += tr(" %1 Unread.").arg(m_Ctx->UnreadMessageCount);
+               .arg(m_Ctx.DebugMessages.size());
+    if(m_Ctx.UnreadMessageCount > 0)
+      text += tr(" %1 Unread.").arg(m_Ctx.UnreadMessageCount);
     statusText->setText(text);
   }
   else
@@ -862,9 +855,9 @@ void MainWindow::setLogHasErrors(bool errors)
 
 void MainWindow::remoteProbe()
 {
-  if(!m_Ctx->LogLoaded() && !m_Ctx->LogLoading())
+  if(!m_Ctx.LogLoaded() && !m_Ctx.LogLoading())
   {
-    for(RemoteHost *host : m_Ctx->Config.RemoteHosts)
+    for(RemoteHost *host : m_Ctx.Config.RemoteHosts)
     {
       // don't mess with a host we're connected to - this is handled anyway
       if(host->Connected)
@@ -877,21 +870,21 @@ void MainWindow::remoteProbe()
 
 void MainWindow::messageCheck()
 {
-  if(m_Ctx->LogLoaded())
+  if(m_Ctx.LogLoaded())
   {
-    m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) {
+    m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) {
       rdctype::array<DebugMessage> msgs;
       r->GetDebugMessages(&msgs);
 
       bool disconnected = false;
 
-      if(m_Ctx->Renderer()->remote())
+      if(m_Ctx.Renderer().remote())
       {
-        bool prev = m_Ctx->Renderer()->remote()->ServerRunning;
+        bool prev = m_Ctx.Renderer().remote()->ServerRunning;
 
-        m_Ctx->Renderer()->PingRemote();
+        m_Ctx.Renderer().PingRemote();
 
-        if(prev != m_Ctx->Renderer()->remote()->ServerRunning)
+        if(prev != m_Ctx.Renderer().remote()->ServerRunning)
           disconnected = true;
       }
 
@@ -906,38 +899,38 @@ void MainWindow::messageCheck()
                                 "RenderDoc to reconnect and load the capture again"));
         }
 
-        if(m_Ctx->Renderer()->remote() && !m_Ctx->Renderer()->remote()->ServerRunning)
+        if(m_Ctx.Renderer().remote() && !m_Ctx.Renderer().remote()->ServerRunning)
           contextChooser->setIcon(QIcon(QPixmap(QString::fromUtf8(":/cross.png"))));
 
         if(!msgs.empty())
         {
-          m_Ctx->AddMessages(msgs);
-          m_Ctx->debugMessageView()->RefreshMessageList();
+          m_Ctx.AddMessages(msgs);
+          m_Ctx.debugMessageView()->RefreshMessageList();
         }
 
-        if(m_Ctx->UnreadMessageCount > 0)
+        if(m_Ctx.UnreadMessageCount > 0)
           m_messageAlternate = !m_messageAlternate;
         else
           m_messageAlternate = false;
 
-        setLogHasErrors(!m_Ctx->DebugMessages.empty());
+        setLogHasErrors(!m_Ctx.DebugMessages.empty());
       });
     });
   }
-  else if(!m_Ctx->LogLoaded() && !m_Ctx->LogLoading())
+  else if(!m_Ctx.LogLoaded() && !m_Ctx.LogLoading())
   {
-    if(m_Ctx->Renderer()->remote())
-      m_Ctx->Renderer()->PingRemote();
+    if(m_Ctx.Renderer().remote())
+      m_Ctx.Renderer().PingRemote();
 
     GUIInvoke::call([this]() {
-      if(m_Ctx->Renderer()->remote() && !m_Ctx->Renderer()->remote()->ServerRunning)
+      if(m_Ctx.Renderer().remote() && !m_Ctx.Renderer().remote()->ServerRunning)
       {
         contextChooser->setIcon(QIcon(QPixmap(QString::fromUtf8(":/cross.png"))));
         contextChooser->setText(tr("Replay Context: %1").arg("Local"));
         statusText->setText(
             tr("Remote server disconnected. To attempt to reconnect please select it again."));
 
-        m_Ctx->Renderer()->DisconnectFromRemoteServer();
+        m_Ctx.Renderer().DisconnectFromRemoteServer();
       }
     });
   }
@@ -950,9 +943,9 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
   QIcon tick(QPixmap(QString::fromUtf8(":/tick.png")));
   QIcon cross(QPixmap(QString::fromUtf8(":/cross.png")));
 
-  for(int i = 0; i < m_Ctx->Config.RemoteHosts.count(); i++)
+  for(int i = 0; i < m_Ctx.Config.RemoteHosts.count(); i++)
   {
-    RemoteHost *host = m_Ctx->Config.RemoteHosts[i];
+    RemoteHost *host = m_Ctx.Config.RemoteHosts[i];
 
     // add localhost at the end
     if(host->Hostname == "localhost")
@@ -1010,9 +1003,9 @@ void MainWindow::switchContext()
 
   RemoteHost *host = NULL;
 
-  if(hostIdx >= 0 && hostIdx < m_Ctx->Config.RemoteHosts.count())
+  if(hostIdx >= 0 && hostIdx < m_Ctx.Config.RemoteHosts.count())
   {
-    host = m_Ctx->Config.RemoteHosts[hostIdx];
+    host = m_Ctx.Config.RemoteHosts[hostIdx];
   }
 
   for(LiveCapture *live : m_LiveCaptures)
@@ -1042,7 +1035,7 @@ void MainWindow::switchContext()
     live->close();
   }
 
-  m_Ctx->Renderer()->DisconnectFromRemoteServer();
+  m_Ctx.Renderer().DisconnectFromRemoteServer();
 
   if(!host)
   {
@@ -1089,7 +1082,7 @@ void MainWindow::switchContext()
 
       if(host->ServerRunning && !host->Busy)
       {
-        status = m_Ctx->Renderer()->ConnectToRemoteServer(host);
+        status = m_Ctx.Renderer().ConnectToRemoteServer(host);
       }
 
       GUIInvoke::call([this, host, status]() {
@@ -1148,9 +1141,9 @@ void MainWindow::OnLogfileLoaded()
 
   statusProgress->setVisible(false);
 
-  setLogHasErrors(!m_Ctx->DebugMessages.empty());
+  setLogHasErrors(!m_Ctx.DebugMessages.empty());
 
-  m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) {
+  m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) {
     bool hasResolver = r->HasCallstacks();
 
     GUIInvoke::call([this, hasResolver]() {
@@ -1166,7 +1159,7 @@ void MainWindow::OnLogfileLoaded()
 
   PopulateRecentFiles();
 
-  ToolWindowManager::raiseToolWindow(m_Ctx->eventBrowser());
+  ToolWindowManager::raiseToolWindow(m_Ctx.eventBrowser());
 }
 
 void MainWindow::OnLogfileClosed()
@@ -1183,12 +1176,12 @@ void MainWindow::OnLogfileClosed()
   SetTitle();
 
   // if the remote sever disconnected during log replay, resort back to a 'disconnected' state
-  if(m_Ctx->Renderer()->remote() && !m_Ctx->Renderer()->remote()->ServerRunning)
+  if(m_Ctx.Renderer().remote() && !m_Ctx.Renderer().remote()->ServerRunning)
   {
     statusText->setText(
         tr("Remote server disconnected. To attempt to reconnect please select it again."));
     contextChooser->setText(tr("Replay Context: %1").arg("Local"));
-    m_Ctx->Renderer()->DisconnectFromRemoteServer();
+    m_Ctx.Renderer().DisconnectFromRemoteServer();
   }
 }
 
@@ -1214,7 +1207,7 @@ void MainWindow::on_action_About_triggered()
 
 void MainWindow::on_action_Mesh_Output_triggered()
 {
-  BufferViewer *meshPreview = m_Ctx->meshPreview();
+  BufferViewer *meshPreview = m_Ctx.meshPreview();
 
   if(ui->toolWindowManager->toolWindows().contains(meshPreview))
     ToolWindowManager::raiseToolWindow(meshPreview);
@@ -1224,7 +1217,7 @@ void MainWindow::on_action_Mesh_Output_triggered()
 
 void MainWindow::on_action_API_Inspector_triggered()
 {
-  APIInspector *apiInspector = m_Ctx->apiInspector();
+  APIInspector *apiInspector = m_Ctx.apiInspector();
 
   if(ui->toolWindowManager->toolWindows().contains(apiInspector))
   {
@@ -1232,10 +1225,10 @@ void MainWindow::on_action_API_Inspector_triggered()
   }
   else
   {
-    if(m_Ctx->hasEventBrowser())
+    if(m_Ctx.hasEventBrowser())
     {
       ToolWindowManager::AreaReference ref(ToolWindowManager::BottomOf,
-                                           ui->toolWindowManager->areaOf(m_Ctx->eventBrowser()));
+                                           ui->toolWindowManager->areaOf(m_Ctx.eventBrowser()));
       ui->toolWindowManager->addToolWindow(apiInspector, ref);
     }
     else
@@ -1247,7 +1240,7 @@ void MainWindow::on_action_API_Inspector_triggered()
 
 void MainWindow::on_action_Event_Browser_triggered()
 {
-  EventBrowser *eventBrowser = m_Ctx->eventBrowser();
+  EventBrowser *eventBrowser = m_Ctx.eventBrowser();
 
   if(ui->toolWindowManager->toolWindows().contains(eventBrowser))
     ToolWindowManager::raiseToolWindow(eventBrowser);
@@ -1257,7 +1250,7 @@ void MainWindow::on_action_Event_Browser_triggered()
 
 void MainWindow::on_action_Texture_Viewer_triggered()
 {
-  TextureViewer *textureViewer = m_Ctx->textureViewer();
+  TextureViewer *textureViewer = m_Ctx.textureViewer();
 
   if(ui->toolWindowManager->toolWindows().contains(textureViewer))
     ToolWindowManager::raiseToolWindow(textureViewer);
@@ -1267,7 +1260,7 @@ void MainWindow::on_action_Texture_Viewer_triggered()
 
 void MainWindow::on_action_Pipeline_State_triggered()
 {
-  PipelineStateViewer *pipelineViewer = m_Ctx->pipelineViewer();
+  PipelineStateViewer *pipelineViewer = m_Ctx.pipelineViewer();
 
   if(ui->toolWindowManager->toolWindows().contains(pipelineViewer))
     ToolWindowManager::raiseToolWindow(pipelineViewer);
@@ -1277,7 +1270,7 @@ void MainWindow::on_action_Pipeline_State_triggered()
 
 void MainWindow::on_action_Capture_Log_triggered()
 {
-  CaptureDialog *capDialog = m_Ctx->captureDialog();
+  CaptureDialog *capDialog = m_Ctx.captureDialog();
 
   capDialog->setInjectMode(false);
 
@@ -1289,7 +1282,7 @@ void MainWindow::on_action_Capture_Log_triggered()
 
 void MainWindow::on_action_Inject_into_Process_triggered()
 {
-  CaptureDialog *capDialog = m_Ctx->captureDialog();
+  CaptureDialog *capDialog = m_Ctx.captureDialog();
 
   capDialog->setInjectMode(true);
 
@@ -1301,7 +1294,7 @@ void MainWindow::on_action_Inject_into_Process_triggered()
 
 void MainWindow::on_action_Errors_and_Warnings_triggered()
 {
-  DebugMessageView *debugMessages = m_Ctx->debugMessageView();
+  DebugMessageView *debugMessages = m_Ctx.debugMessageView();
 
   if(ui->toolWindowManager->toolWindows().contains(debugMessages))
     ToolWindowManager::raiseToolWindow(debugMessages);
@@ -1311,7 +1304,7 @@ void MainWindow::on_action_Errors_and_Warnings_triggered()
 
 void MainWindow::on_action_Statistics_Viewer_triggered()
 {
-  StatisticsViewer *stats = m_Ctx->statisticsViewer();
+  StatisticsViewer *stats = m_Ctx.statisticsViewer();
 
   if(ui->toolWindowManager->toolWindows().contains(stats))
     ToolWindowManager::raiseToolWindow(stats);
@@ -1321,17 +1314,17 @@ void MainWindow::on_action_Statistics_Viewer_triggered()
 
 void MainWindow::on_action_Resolve_Symbols_triggered()
 {
-  m_Ctx->Renderer()->AsyncInvoke([this](IReplayRenderer *r) { r->InitResolver(); });
+  m_Ctx.Renderer().AsyncInvoke([this](IReplayRenderer *r) { r->InitResolver(); });
 
   ShowProgressDialog(this, tr("Please Wait - Resolving Symbols"), [this]() {
     bool running = true;
-    m_Ctx->Renderer()->BlockInvoke(
+    m_Ctx.Renderer().BlockInvoke(
         [&running](IReplayRenderer *r) { running = r->HasCallstacks() && !r->InitResolver(); });
     return !running;
   });
 
-  if(m_Ctx->hasAPIInspector())
-    m_Ctx->apiInspector()->on_apiEvents_itemSelectionChanged();
+  if(m_Ctx.hasAPIInspector())
+    m_Ctx.apiInspector()->on_apiEvents_itemSelectionChanged();
 }
 
 void MainWindow::on_action_Attach_to_Running_Instance_triggered()

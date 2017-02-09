@@ -110,7 +110,7 @@ void CaptureSettings::fromJSON(const QVariantMap &data)
   Options.DebugOutputMute = opts["DebugOutputMute"].toBool();
 }
 
-CaptureDialog::CaptureDialog(CaptureContext *ctx, OnCaptureMethod captureCallback,
+CaptureDialog::CaptureDialog(CaptureContext &ctx, OnCaptureMethod captureCallback,
                              OnInjectMethod injectCallback, QWidget *parent)
     : QFrame(parent), ui(new Ui::CaptureDialog), m_Ctx(ctx)
 {
@@ -170,7 +170,7 @@ CaptureDialog::CaptureDialog(CaptureContext *ctx, OnCaptureMethod captureCallbac
 
 CaptureDialog::~CaptureDialog()
 {
-  m_Ctx->windowClosed(this);
+  m_Ctx.windowClosed(this);
 
   if(ui->toggleGlobal->isChecked())
   {
@@ -208,7 +208,7 @@ void CaptureDialog::setInjectMode(bool inject)
                                                     QSizePolicy::Expanding);
     ui->verticalLayout->invalidate();
 
-    ui->globalGroup->setVisible(m_Ctx->Config.AllowGlobalHook);
+    ui->globalGroup->setVisible(m_Ctx.Config.AllowGlobalHook);
 
     ui->launch->setText("Launch");
     this->setWindowTitle("Capture Executable");
@@ -259,7 +259,7 @@ void CaptureDialog::on_exePath_textChanged(const QString &text)
   {
     QString path = dir.absolutePath();
 
-    if(!m_Ctx->Renderer()->remote())
+    if(!m_Ctx.Renderer().remote())
       path = QDir::toNativeSeparators(path);
 
     // match the path separators from the path
@@ -299,16 +299,16 @@ void CaptureDialog::on_exePathBrowse_clicked()
   {
     initDir = dir.absolutePath();
   }
-  else if(m_Ctx->Config.LastCapturePath != "")
+  else if(m_Ctx.Config.LastCapturePath != "")
   {
-    initDir = m_Ctx->Config.LastCapturePath;
-    if(m_Ctx->Config.LastCaptureExe != "")
-      file = m_Ctx->Config.LastCaptureExe;
+    initDir = m_Ctx.Config.LastCapturePath;
+    if(m_Ctx.Config.LastCaptureExe != "")
+      file = m_Ctx.Config.LastCaptureExe;
   }
 
   QString filename;
 
-  if(m_Ctx->Renderer()->remote())
+  if(m_Ctx.Renderer().remote())
   {
     VirtualFileDialog vfd(m_Ctx, this);
     RDDialog::show(&vfd);
@@ -336,13 +336,13 @@ void CaptureDialog::on_workDirBrowse_clicked()
     QDir dir = QFileInfo(ui->exePath->text()).dir();
     if(dir.exists())
       initDir = dir.absolutePath();
-    else if(m_Ctx->Config.LastCapturePath != "")
-      initDir = m_Ctx->Config.LastCapturePath;
+    else if(m_Ctx.Config.LastCapturePath != "")
+      initDir = m_Ctx.Config.LastCapturePath;
   }
 
   QString dir;
 
-  if(m_Ctx->Renderer()->remote())
+  if(m_Ctx.Renderer().remote())
   {
     VirtualFileDialog vfd(m_Ctx, this);
     vfd.setDirBrowse();
@@ -384,7 +384,7 @@ void CaptureDialog::on_saveSettings_clicked()
     if(dirinfo.exists())
     {
       saveSettings(filename);
-      PersistantConfig::AddRecentFile(m_Ctx->Config.RecentCaptureSettings, filename, 10);
+      PersistantConfig::AddRecentFile(m_Ctx.Config.RecentCaptureSettings, filename, 10);
     }
   }
 }
@@ -397,7 +397,7 @@ void CaptureDialog::on_loadSettings_clicked()
   if(filename != "" && QFileInfo::exists(filename))
   {
     loadSettings(filename);
-    PersistantConfig::AddRecentFile(m_Ctx->Config.RecentCaptureSettings, filename, 10);
+    PersistantConfig::AddRecentFile(m_Ctx.Config.RecentCaptureSettings, filename, 10);
   }
 }
 
@@ -505,15 +505,15 @@ void CaptureDialog::fillProcessList()
 
 void CaptureDialog::setExecutableFilename(QString filename)
 {
-  if(!m_Ctx->Renderer()->remote())
+  if(!m_Ctx.Renderer().remote())
     filename = QDir::toNativeSeparators(QFileInfo(filename).absoluteFilePath());
 
   ui->exePath->setText(filename);
 
-  if(!m_Ctx->Renderer()->remote())
+  if(!m_Ctx.Renderer().remote())
   {
-    m_Ctx->Config.LastCapturePath = QFileInfo(filename).absolutePath();
-    m_Ctx->Config.LastCaptureExe = QFileInfo(filename).completeBaseName();
+    m_Ctx.Config.LastCapturePath = QFileInfo(filename).absolutePath();
+    m_Ctx.Config.LastCaptureExe = QFileInfo(filename).completeBaseName();
   }
 }
 
@@ -546,7 +546,7 @@ void CaptureDialog::loadSettings(QString filename)
 
 void CaptureDialog::updateGlobalHook()
 {
-  ui->globalGroup->setVisible(!injectMode() && m_Ctx->Config.AllowGlobalHook);
+  ui->globalGroup->setVisible(!injectMode() && m_Ctx.Config.AllowGlobalHook);
 
   if(ui->exePath->text().length() >= 4)
   {
@@ -609,7 +609,7 @@ void CaptureDialog::triggerCapture()
     QString exe = ui->exePath->text();
 
     // for non-remote captures, check the executable locally
-    if(!m_Ctx->Renderer()->remote())
+    if(!m_Ctx.Renderer().remote())
     {
       if(!QFileInfo::exists(exe))
       {
@@ -622,7 +622,7 @@ void CaptureDialog::triggerCapture()
     QString workingDir = "";
 
     // for non-remote captures, check the directory locally
-    if(m_Ctx->Renderer()->remote())
+    if(m_Ctx.Renderer().remote())
     {
       workingDir = ui->workDirPath->text();
     }

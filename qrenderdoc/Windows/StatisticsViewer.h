@@ -37,7 +37,7 @@ class StatisticsViewer : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit StatisticsViewer(CaptureContext *ctx, QWidget *parent = 0);
+  explicit StatisticsViewer(CaptureContext &ctx, QWidget *parent = 0);
   ~StatisticsViewer();
 
   void OnLogfileLoaded();
@@ -46,5 +46,5 @@ public:
   void OnEventChanged(uint32_t eventID) {}
 private:
   Ui::StatisticsViewer *ui;
-  CaptureContext *m_Ctx;
+  CaptureContext &m_Ctx;
 };

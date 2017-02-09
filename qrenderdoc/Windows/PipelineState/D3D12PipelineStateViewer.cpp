@@ -97,7 +97,7 @@ struct ViewTag
 
 Q_DECLARE_METATYPE(ViewTag);
 
-D3D12PipelineStateViewer::D3D12PipelineStateViewer(CaptureContext *ctx, QWidget *parent)
+D3D12PipelineStateViewer::D3D12PipelineStateViewer(CaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::D3D12PipelineStateViewer), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -362,7 +362,7 @@ D3D12PipelineStateViewer::~D3D12PipelineStateViewer()
 
 void D3D12PipelineStateViewer::OnLogfileLoaded()
 {
-  OnEventChanged(m_Ctx->CurEvent());
+  OnEventChanged(m_Ctx.CurEvent());
 }
 
 void D3D12PipelineStateViewer::OnLogfileClosed()
@@ -443,7 +443,7 @@ void D3D12PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewT
 
   bool viewdetails = false;
 
-  for(const D3D12PipelineState::ResourceData &im : m_Ctx->CurD3D12PipelineState.Resources)
+  for(const D3D12PipelineState::ResourceData &im : m_Ctx.CurD3D12PipelineState.Resources)
   {
     if(im.id == tex->ID)
     {
@@ -463,9 +463,9 @@ void D3D12PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewT
 
   if(view.space == ViewTag::OMDepth)
   {
-    if(m_Ctx->CurD3D12PipelineState.m_OM.DepthReadOnly)
+    if(m_Ctx.CurD3D12PipelineState.m_OM.DepthReadOnly)
       text += tr("Depth component is read-only\n");
-    if(m_Ctx->CurD3D12PipelineState.m_OM.StencilReadOnly)
+    if(m_Ctx.CurD3D12PipelineState.m_OM.StencilReadOnly)
       text += tr("Stencil component is read-only\n");
   }
 
@@ -522,7 +522,7 @@ void D3D12PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewT
 
   const D3D12PipelineState::ResourceView &res = view.res;
 
-  for(const D3D12PipelineState::ResourceData &im : m_Ctx->CurD3D12PipelineState.Resources)
+  for(const D3D12PipelineState::ResourceData &im : m_Ctx.CurD3D12PipelineState.Resources)
   {
     if(im.id == buf->ID)
     {
@@ -606,8 +606,8 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view,
   bool viewDetails = false;
 
   if(view.space == ViewTag::OMDepth)
-    viewDetails = m_Ctx->CurD3D12PipelineState.m_OM.DepthReadOnly ||
-                  m_Ctx->CurD3D12PipelineState.m_OM.StencilReadOnly;
+    viewDetails = m_Ctx.CurD3D12PipelineState.m_OM.DepthReadOnly ||
+                  m_Ctx.CurD3D12PipelineState.m_OM.StencilReadOnly;
 
   QString rootel = r.Immediate ? QString("#%1 Direct").arg(r.RootElement)
                                : QString("#%1 Table[%2]").arg(r.RootElement).arg(r.TableIndex);
@@ -643,7 +643,7 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view,
       w = h = d = a = 0;
     }
 
-    FetchTexture *tex = m_Ctx->GetTexture(r.Resource);
+    FetchTexture *tex = m_Ctx.GetTexture(r.Resource);
 
     if(tex)
     {
@@ -667,7 +667,7 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view,
         viewDetails = true;
     }
 
-    FetchBuffer *buf = m_Ctx->GetBuffer(r.Resource);
+    FetchBuffer *buf = m_Ctx.GetBuffer(r.Resource);
 
     if(buf)
     {
@@ -757,29 +757,29 @@ bool D3D12PipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
 
 const D3D12PipelineState::ShaderStage *D3D12PipelineStateViewer::stageForSender(QWidget *widget)
 {
-  if(!m_Ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
     return NULL;
 
   while(widget)
   {
     if(widget == ui->stagesTabs->widget(0))
-      return &m_Ctx->CurD3D12PipelineState.m_VS;
+      return &m_Ctx.CurD3D12PipelineState.m_VS;
     if(widget == ui->stagesTabs->widget(1))
-      return &m_Ctx->CurD3D12PipelineState.m_VS;
+      return &m_Ctx.CurD3D12PipelineState.m_VS;
     if(widget == ui->stagesTabs->widget(2))
-      return &m_Ctx->CurD3D12PipelineState.m_HS;
+      return &m_Ctx.CurD3D12PipelineState.m_HS;
     if(widget == ui->stagesTabs->widget(3))
-      return &m_Ctx->CurD3D12PipelineState.m_DS;
+      return &m_Ctx.CurD3D12PipelineState.m_DS;
     if(widget == ui->stagesTabs->widget(4))
-      return &m_Ctx->CurD3D12PipelineState.m_GS;
+      return &m_Ctx.CurD3D12PipelineState.m_GS;
     if(widget == ui->stagesTabs->widget(5))
-      return &m_Ctx->CurD3D12PipelineState.m_PS;
+      return &m_Ctx.CurD3D12PipelineState.m_PS;
     if(widget == ui->stagesTabs->widget(6))
-      return &m_Ctx->CurD3D12PipelineState.m_PS;
+      return &m_Ctx.CurD3D12PipelineState.m_PS;
     if(widget == ui->stagesTabs->widget(7))
-      return &m_Ctx->CurD3D12PipelineState.m_PS;
+      return &m_Ctx.CurD3D12PipelineState.m_PS;
     if(widget == ui->stagesTabs->widget(8))
-      return &m_Ctx->CurD3D12PipelineState.m_CS;
+      return &m_Ctx.CurD3D12PipelineState.m_CS;
 
     widget = widget->parentWidget();
   }
@@ -862,7 +862,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12PipelineState::ShaderSt
                                               RDTreeWidget *uavs)
 {
   ShaderReflection *shaderDetails = stage.ShaderDetails;
-  const D3D12PipelineState &state = m_Ctx->CurD3D12PipelineState;
+  const D3D12PipelineState &state = m_Ctx.CurD3D12PipelineState;
 
   QIcon action(QPixmap(QString::fromUtf8(":/action.png")));
   QIcon action_hover(QPixmap(QString::fromUtf8(":/action_hover.png")));
@@ -870,7 +870,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12PipelineState::ShaderSt
   if(stage.Shader == ResourceId())
     shader->setText(tr("Unbound Shader"));
   else if(state.customName)
-    shader->setText(ToQStr(state.PipelineName) + " - " + m_Ctx->CurPipelineState.Abbrev(stage.stage));
+    shader->setText(ToQStr(state.PipelineName) + " - " + m_Ctx.CurPipelineState.Abbrev(stage.stage));
   else
     shader->setText(ToQStr(state.PipelineName) + " - " + ToQStr(stage.stage, eGraphicsAPI_D3D12) +
                     " Shader");
@@ -1111,7 +1111,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12PipelineState::ShaderSt
         if(!filledSlot)
           name = "Empty";
 
-        FetchBuffer *buf = m_Ctx->GetBuffer(b.Buffer);
+        FetchBuffer *buf = m_Ctx.GetBuffer(b.Buffer);
 
         if(buf)
           name = buf->name;
@@ -1153,14 +1153,14 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12PipelineState::ShaderSt
 
 void D3D12PipelineStateViewer::setState()
 {
-  if(!m_Ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
   {
     clearState();
     return;
   }
 
-  const D3D12PipelineState &state = m_Ctx->CurD3D12PipelineState;
-  const FetchDrawcall *draw = m_Ctx->CurDrawcall();
+  const D3D12PipelineState &state = m_Ctx.CurD3D12PipelineState;
+  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
 
   QPixmap tick(QString::fromUtf8(":/tick.png"));
   QPixmap cross(QString::fromUtf8(":/cross.png"));
@@ -1302,7 +1302,7 @@ void D3D12PipelineStateViewer::setState()
       if(!ibufferUsed)
         length = 0;
 
-      FetchBuffer *buf = m_Ctx->GetBuffer(state.m_IA.ibuffer.Buffer);
+      FetchBuffer *buf = m_Ctx.GetBuffer(state.m_IA.ibuffer.Buffer);
 
       if(buf)
       {
@@ -1368,7 +1368,7 @@ void D3D12PipelineStateViewer::setState()
         length = 0;
       }
 
-      FetchBuffer *buf = m_Ctx->GetBuffer(v.Buffer);
+      FetchBuffer *buf = m_Ctx.GetBuffer(v.Buffer);
       if(buf)
       {
         name = buf->name;
@@ -1435,7 +1435,7 @@ void D3D12PipelineStateViewer::setState()
         name = "Empty";
       }
 
-      FetchBuffer *buf = m_Ctx->GetBuffer(s.Buffer);
+      FetchBuffer *buf = m_Ctx.GetBuffer(s.Buffer);
 
       if(buf)
       {
@@ -1710,25 +1710,25 @@ void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
   if(tag.canConvert<ResourceId>())
   {
     ResourceId id = tag.value<ResourceId>();
-    tex = m_Ctx->GetTexture(id);
-    buf = m_Ctx->GetBuffer(id);
+    tex = m_Ctx.GetTexture(id);
+    buf = m_Ctx.GetBuffer(id);
   }
   else if(tag.canConvert<ViewTag>())
   {
     ViewTag view = tag.value<ViewTag>();
-    tex = m_Ctx->GetTexture(view.res.Resource);
-    buf = m_Ctx->GetBuffer(view.res.Resource);
+    tex = m_Ctx.GetTexture(view.res.Resource);
+    buf = m_Ctx.GetBuffer(view.res.Resource);
   }
 
   if(tex)
   {
     if(tex->resType == eResType_Buffer)
     {
-      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
 
       viewer->ViewTexture(0, 0, tex->ID);
 
-      m_Ctx->setupDockWindow(viewer);
+      m_Ctx.setupDockWindow(viewer);
 
       ToolWindowManager *manager = ToolWindowManager::managerOf(this);
 
@@ -1737,9 +1737,9 @@ void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
     }
     else
     {
-      if(!m_Ctx->hasTextureViewer())
-        m_Ctx->showTextureViewer();
-      TextureViewer *viewer = m_Ctx->textureViewer();
+      if(!m_Ctx.hasTextureViewer())
+        m_Ctx.showTextureViewer();
+      TextureViewer *viewer = m_Ctx.textureViewer();
       viewer->ViewTexture(tex->ID, true);
     }
 
@@ -1763,14 +1763,14 @@ void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
     {
       // last thing, see if it's a streamout buffer
 
-      if(stage == &m_Ctx->CurD3D12PipelineState.m_GS)
+      if(stage == &m_Ctx.CurD3D12PipelineState.m_GS)
       {
-        for(int i = 0; i < m_Ctx->CurD3D12PipelineState.m_SO.Outputs.count; i++)
+        for(int i = 0; i < m_Ctx.CurD3D12PipelineState.m_SO.Outputs.count; i++)
         {
-          if(buf->ID == m_Ctx->CurD3D12PipelineState.m_SO.Outputs[i].Buffer)
+          if(buf->ID == m_Ctx.CurD3D12PipelineState.m_SO.Outputs[i].Buffer)
           {
-            size -= m_Ctx->CurD3D12PipelineState.m_SO.Outputs[i].Offset;
-            offs += m_Ctx->CurD3D12PipelineState.m_SO.Outputs[i].Offset;
+            size -= m_Ctx.CurD3D12PipelineState.m_SO.Outputs[i].Offset;
+            offs += m_Ctx.CurD3D12PipelineState.m_SO.Outputs[i].Offset;
             break;
           }
         }
@@ -1900,11 +1900,11 @@ void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
     }
 
     {
-      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
 
       viewer->ViewBuffer(offs, size, view.res.Resource, format);
 
-      m_Ctx->setupDockWindow(viewer);
+      m_Ctx.setupDockWindow(viewer);
 
       ToolWindowManager *manager = ToolWindowManager::managerOf(this);
 
@@ -1931,13 +1931,13 @@ void D3D12PipelineStateViewer::cbuffer_itemActivated(QTreeWidgetItem *item, int 
   if(cb.idx == ~0U)
   {
     // unused cbuffer, open regular buffer viewer
-    BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+    BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
 
     const D3D12PipelineState::CBuffer &buf = stage->Spaces[cb.space].ConstantBuffers[cb.reg];
 
     viewer->ViewBuffer(buf.Offset, buf.ByteSize, buf.Buffer);
 
-    m_Ctx->setupDockWindow(viewer);
+    m_Ctx.setupDockWindow(viewer);
 
     ToolWindowManager *manager = ToolWindowManager::managerOf(this);
 
@@ -1955,9 +1955,9 @@ void D3D12PipelineStateViewer::cbuffer_itemActivated(QTreeWidgetItem *item, int 
   }
 
   ConstantBufferPreviewer *prev =
-      new ConstantBufferPreviewer(m_Ctx, stage->stage, cb.idx, 0, m_Ctx->mainWindow());
+      new ConstantBufferPreviewer(m_Ctx, stage->stage, cb.idx, 0, m_Ctx.mainWindow());
 
-  m_Ctx->setupDockWindow(prev);
+  m_Ctx.setupDockWindow(prev);
 
   ToolWindowManager *manager = ToolWindowManager::managerOf(this);
 
@@ -1980,11 +1980,11 @@ void D3D12PipelineStateViewer::on_iaBuffers_itemActivated(QTreeWidgetItem *item,
 
     if(buf.id != ResourceId())
     {
-      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx->mainWindow());
+      BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
 
       viewer->ViewBuffer(buf.offset, UINT64_MAX, buf.id);
 
-      m_Ctx->setupDockWindow(viewer);
+      m_Ctx.setupDockWindow(viewer);
 
       ToolWindowManager *manager = ToolWindowManager::managerOf(this);
 
@@ -1998,7 +1998,7 @@ void D3D12PipelineStateViewer::highlightIABind(int slot)
 {
   int idx = ((slot + 1) * 21) % 32;    // space neighbouring colours reasonably distinctly
 
-  const D3D12PipelineState::InputAssembler &IA = m_Ctx->CurD3D12PipelineState.m_IA;
+  const D3D12PipelineState::InputAssembler &IA = m_Ctx.CurD3D12PipelineState.m_IA;
 
   QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f, 0.95f);
 
@@ -2048,14 +2048,14 @@ void D3D12PipelineStateViewer::highlightIABind(int slot)
 
 void D3D12PipelineStateViewer::on_iaLayouts_mouseMove(QMouseEvent *e)
 {
-  if(!m_Ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
     return;
 
   QModelIndex idx = ui->iaLayouts->indexAt(e->pos());
 
   vertex_leave(NULL);
 
-  const D3D12PipelineState::InputAssembler &IA = m_Ctx->CurD3D12PipelineState.m_IA;
+  const D3D12PipelineState::InputAssembler &IA = m_Ctx.CurD3D12PipelineState.m_IA;
 
   if(idx.isValid())
   {
@@ -2070,7 +2070,7 @@ void D3D12PipelineStateViewer::on_iaLayouts_mouseMove(QMouseEvent *e)
 
 void D3D12PipelineStateViewer::on_iaBuffers_mouseMove(QMouseEvent *e)
 {
-  if(!m_Ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
     return;
 
   QTreeWidgetItem *item = ui->iaBuffers->itemAt(e->pos());
@@ -2160,7 +2160,7 @@ void D3D12PipelineStateViewer::shaderView_clicked()
 
   ShaderViewer *shad = new ShaderViewer(m_Ctx, stage->ShaderDetails, stage->stage, NULL, "");
 
-  m_Ctx->setupDockWindow(shad);
+  m_Ctx.setupDockWindow(shad);
 
   ToolWindowManager *manager = ToolWindowManager::managerOf(this);
 
@@ -2219,7 +2219,7 @@ void D3D12PipelineStateViewer::on_exportHTML_clicked()
 
 void D3D12PipelineStateViewer::on_meshView_clicked()
 {
-  if(!m_Ctx->hasMeshPreview())
-    m_Ctx->showMeshPreview();
-  ToolWindowManager::raiseToolWindow(m_Ctx->meshPreview());
+  if(!m_Ctx.hasMeshPreview())
+    m_Ctx.showMeshPreview();
+  ToolWindowManager::raiseToolWindow(m_Ctx.meshPreview());
 }

@@ -42,7 +42,7 @@ class ShaderViewer : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit ShaderViewer(CaptureContext *ctx, ShaderReflection *shader, ShaderStageType stage,
+  explicit ShaderViewer(CaptureContext &ctx, ShaderReflection *shader, ShaderStageType stage,
                         ShaderDebugTrace *trace, const QString &debugContext, QWidget *parent = 0);
   ~ShaderViewer();
 
@@ -58,7 +58,7 @@ private slots:
 
 private:
   Ui::ShaderViewer *ui;
-  CaptureContext *m_Ctx;
+  CaptureContext &m_Ctx;
   ShaderDebugTrace *m_Trace;
   ShaderReflection *m_ShaderDetails;
   ScintillaEdit *m_DisassemblyView;

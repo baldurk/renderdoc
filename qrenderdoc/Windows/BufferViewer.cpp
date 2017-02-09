@@ -582,7 +582,7 @@ private:
   }
 };
 
-BufferViewer::BufferViewer(CaptureContext *ctx, bool meshview, QWidget *parent)
+BufferViewer::BufferViewer(CaptureContext &ctx, bool meshview, QWidget *parent)
     : QFrame(parent), ui(new Ui::BufferViewer), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -664,7 +664,7 @@ BufferViewer::BufferViewer(CaptureContext *ctx, bool meshview, QWidget *parent)
 
   Reset();
 
-  m_Ctx->AddLogViewer(this);
+  m_Ctx.AddLogViewer(this);
 }
 
 void BufferViewer::SetupRawView()
@@ -766,9 +766,9 @@ BufferViewer::~BufferViewer()
   delete m_Flycam;
 
   if(m_MeshView)
-    m_Ctx->windowClosed(this);
+    m_Ctx.windowClosed(this);
 
-  m_Ctx->RemoveLogViewer(this);
+  m_Ctx.RemoveLogViewer(this);
   delete ui;
 }
 
@@ -781,8 +781,8 @@ void BufferViewer::OnLogfileLoaded()
 
   WId renderID = ui->render->winId();
 
-  m_Ctx->Renderer()->BlockInvoke([renderID, this](IReplayRenderer *r) {
-    m_Output = r->CreateOutput(m_Ctx->m_CurWinSystem, m_Ctx->FillWindowingData(renderID),
+  m_Ctx.Renderer().BlockInvoke([renderID, this](IReplayRenderer *r) {
+    m_Output = r->CreateOutput(m_Ctx.m_CurWinSystem, m_Ctx.FillWindowingData(renderID),
                                eOutputType_MeshDisplay);
 
     ui->render->setOutput(m_Output);
@@ -828,7 +828,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   m_ModelVSOut->beginReset();
   m_ModelGSOut->beginReset();
 
-  const FetchDrawcall *draw = m_Ctx->CurDrawcall();
+  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
 
   ui->instance->setEnabled(draw && draw->numInstances > 1);
   if(!ui->instance->isEnabled())
@@ -840,7 +840,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   if(m_MeshView)
     ConfigureMeshColumns();
 
-  m_Ctx->Renderer()->AsyncInvoke([this, vsinHoriz, vsoutHoriz, gsoutHoriz](IReplayRenderer *r) {
+  m_Ctx.Renderer().AsyncInvoke([this, vsinHoriz, vsoutHoriz, gsoutHoriz](IReplayRenderer *r) {
 
     if(m_MeshView)
     {
@@ -909,13 +909,13 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
 
 void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
 {
-  const FetchDrawcall *draw = m_Ctx->CurDrawcall();
+  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
 
   ResourceId ib;
   uint64_t ioffset = 0;
-  m_Ctx->CurPipelineState.GetIBuffer(ib, ioffset);
+  m_Ctx.CurPipelineState.GetIBuffer(ib, ioffset);
 
-  QVector<BoundVBuffer> vbs = m_Ctx->CurPipelineState.GetVBuffers();
+  QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState.GetVBuffers();
 
   rdctype::array<byte> idata;
   if(ib != ResourceId() && draw)
@@ -1078,9 +1078,9 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
 
 void BufferViewer::ConfigureMeshColumns()
 {
-  const FetchDrawcall *draw = m_Ctx->CurDrawcall();
+  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
 
-  QVector<VertexInputAttribute> vinputs = m_Ctx->CurPipelineState.GetVertexInputs();
+  QVector<VertexInputAttribute> vinputs = m_Ctx.CurPipelineState.GetVertexInputs();
 
   m_ModelVSIn->columns.reserve(vinputs.count());
 
@@ -1102,13 +1102,13 @@ void BufferViewer::ConfigureMeshColumns()
   else
     m_ModelVSIn->numRows = draw->numIndices;
 
-  QVector<BoundVBuffer> vbs = m_Ctx->CurPipelineState.GetVBuffers();
+  QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState.GetVBuffers();
 
   ResourceId ib;
   uint64_t ioffset = 0;
-  m_Ctx->CurPipelineState.GetIBuffer(ib, ioffset);
+  m_Ctx.CurPipelineState.GetIBuffer(ib, ioffset);
 
-  Viewport vp = m_Ctx->CurPipelineState.GetViewport(0);
+  Viewport vp = m_Ctx.CurPipelineState.GetViewport(0);
 
   m_Config.fov = ui->fovGuess->value();
   m_Config.aspect = vp.width / vp.height;
@@ -1153,7 +1153,7 @@ void BufferViewer::ConfigureMeshColumns()
     m_VSIn.compType = vinputs[0].Format.compType;
   }
 
-  ShaderReflection *vs = m_Ctx->CurPipelineState.GetShaderReflection(eShaderStage_Vertex);
+  ShaderReflection *vs = m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Vertex);
 
   m_ModelVSOut->columns.clear();
 
@@ -1194,7 +1194,7 @@ void BufferViewer::ConfigureMeshColumns()
       uint numComps = sig.compCount;
       uint elemSize = sig.compType == eCompType_Double ? 8U : 4U;
 
-      if(m_Ctx->CurPipelineState.HasAlignedPostVSData())
+      if(m_Ctx.CurPipelineState.HasAlignedPostVSData())
       {
         if(numComps == 2)
           offset = AlignUp(offset, 2U * elemSize);
@@ -1246,7 +1246,7 @@ void BufferViewer::UpdateMeshConfig()
 
 void BufferViewer::render_mouseMove(QMouseEvent *e)
 {
-  if(!m_Ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
     return;
 
   if(m_CurrentCamera)
@@ -1260,16 +1260,16 @@ void BufferViewer::render_mouseMove(QMouseEvent *e)
 
 void BufferViewer::render_clicked(QMouseEvent *e)
 {
-  if(!m_Ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
     return;
 
   QPoint curpos = e->pos();
 
   if((e->buttons() & Qt::RightButton) && m_Output)
   {
-    m_Ctx->Renderer()->AsyncInvoke([this, curpos](IReplayRenderer *r) {
+    m_Ctx.Renderer().AsyncInvoke([this, curpos](IReplayRenderer *r) {
       uint32_t instanceSelected = 0;
-      uint32_t vertSelected = m_Output->PickVertex(m_Ctx->CurEvent(), (uint32_t)curpos.x(),
+      uint32_t vertSelected = m_Output->PickVertex(m_Ctx.CurEvent(), (uint32_t)curpos.x(),
                                                    (uint32_t)curpos.y(), &instanceSelected);
 
       if(vertSelected != ~0U)
@@ -1309,7 +1309,7 @@ void BufferViewer::ScrollToRow(BufferItemModel *model, int row)
 void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id,
                               const QString &format)
 {
-  if(!m_Ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
     return;
 
   m_IsBuffer = true;
@@ -1317,7 +1317,7 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
   m_ByteSize = byteSize;
   m_BufferID = id;
 
-  FetchBuffer *buf = m_Ctx->GetBuffer(id);
+  FetchBuffer *buf = m_Ctx.GetBuffer(id);
   if(buf)
     setWindowTitle(ToQStr(buf->name) + " - Contents");
 
@@ -1326,7 +1326,7 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
 
 void BufferViewer::ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, const QString &format)
 {
-  if(!m_Ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
     return;
 
   m_IsBuffer = false;
@@ -1334,7 +1334,7 @@ void BufferViewer::ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, c
   m_TexMip = mip;
   m_BufferID = id;
 
-  FetchTexture *tex = m_Ctx->GetTexture(id);
+  FetchTexture *tex = m_Ctx.GetTexture(id);
   if(tex)
     setWindowTitle(ToQStr(tex->name) + " - Contents");
 
@@ -1407,7 +1407,7 @@ bool BufferViewer::isCurrentRasterOut()
   }
   else if(m_CurStage == eMeshDataStage_VSOut)
   {
-    if(m_Ctx->LogLoaded() && m_Ctx->CurPipelineState.IsTessellationEnabled())
+    if(m_Ctx.LogLoaded() && m_Ctx.CurPipelineState.IsTessellationEnabled())
       return false;
 
     return true;
@@ -1426,10 +1426,10 @@ void BufferViewer::Reset()
 
   ClearModels();
 
-  CaptureContext *ctx = m_Ctx;
+  CaptureContext *ctx = &m_Ctx;
 
   // while a log is loaded, pass NULL into the widget
-  if(!ctx->LogLoaded())
+  if(!m_Ctx.LogLoaded())
     ctx = NULL;
 
   {
@@ -1589,7 +1589,7 @@ void BufferViewer::camGuess_changed(double value)
   m_Config.aspect = 1.0f;
 
   // take a guess for the aspect ratio, for if the user hasn't overridden it
-  Viewport vp = m_Ctx->CurPipelineState.GetViewport(0);
+  Viewport vp = m_Ctx.CurPipelineState.GetViewport(0);
   m_Config.aspect = vp.width / vp.height;
 
   if(ui->aspectGuess->value() > 0.0)
@@ -1637,7 +1637,7 @@ void BufferViewer::processFormat(const QString &format)
 
   ui->formatSpecifier->setErrors(errors);
 
-  OnEventChanged(m_Ctx->CurEvent());
+  OnEventChanged(m_Ctx.CurEvent());
 }
 
 void BufferViewer::SyncViews(RDTableView *primary, bool selection, bool scroll)
@@ -1828,7 +1828,7 @@ void BufferViewer::on_camSpeed_valueChanged(double value)
 void BufferViewer::on_instance_valueChanged(int value)
 {
   m_Config.curInstance = value;
-  OnEventChanged(m_Ctx->CurEvent());
+  OnEventChanged(m_Ctx.CurEvent());
 }
 
 void BufferViewer::on_rowOffset_valueChanged(int value)

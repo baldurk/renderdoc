@@ -61,34 +61,34 @@ struct Following
 
   bool operator==(const Following &o);
   bool operator!=(const Following &o);
-  static void GetDrawContext(CaptureContext *ctx, bool &copy, bool &compute);
+  static void GetDrawContext(CaptureContext &ctx, bool &copy, bool &compute);
 
-  int GetHighestMip(CaptureContext *ctx);
-  int GetFirstArraySlice(CaptureContext *ctx);
-  FormatComponentType GetTypeHint(CaptureContext *ctx);
+  int GetHighestMip(CaptureContext &ctx);
+  int GetFirstArraySlice(CaptureContext &ctx);
+  FormatComponentType GetTypeHint(CaptureContext &ctx);
 
-  ResourceId GetResourceId(CaptureContext *ctx);
-  BoundResource GetBoundResource(CaptureContext *ctx, int arrayIdx);
+  ResourceId GetResourceId(CaptureContext &ctx);
+  BoundResource GetBoundResource(CaptureContext &ctx, int arrayIdx);
 
-  static QVector<BoundResource> GetOutputTargets(CaptureContext *ctx);
+  static QVector<BoundResource> GetOutputTargets(CaptureContext &ctx);
 
-  static BoundResource GetDepthTarget(CaptureContext *ctx);
+  static BoundResource GetDepthTarget(CaptureContext &ctx);
 
-  QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext *ctx);
+  QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext &ctx);
 
-  static QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext *ctx,
+  static QMap<BindpointMap, QVector<BoundResource>> GetReadWriteResources(CaptureContext &ctx,
                                                                           ShaderStageType stage);
 
-  QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext *ctx);
+  QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext &ctx);
 
-  static QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext *ctx,
+  static QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext &ctx,
                                                                          ShaderStageType stage);
 
-  ShaderReflection *GetReflection(CaptureContext *ctx);
-  static ShaderReflection *GetReflection(CaptureContext *ctx, ShaderStageType stage);
+  ShaderReflection *GetReflection(CaptureContext &ctx);
+  static ShaderReflection *GetReflection(CaptureContext &ctx, ShaderStageType stage);
 
-  ShaderBindpointMapping GetMapping(CaptureContext *ctx);
-  static ShaderBindpointMapping GetMapping(CaptureContext *ctx, ShaderStageType stage);
+  ShaderBindpointMapping GetMapping(CaptureContext &ctx);
+  static ShaderBindpointMapping GetMapping(CaptureContext &ctx, ShaderStageType stage);
 };
 
 struct TexSettings
@@ -121,7 +121,7 @@ private:
   Q_PROPERTY(QVariant persistData READ persistData WRITE setPersistData DESIGNABLE false SCRIPTABLE false)
 
 public:
-  explicit TextureViewer(CaptureContext *ctx, QWidget *parent = 0);
+  explicit TextureViewer(CaptureContext &ctx, QWidget *parent = 0);
   ~TextureViewer();
 
   void OnLogfileLoaded();
@@ -287,7 +287,7 @@ private:
   TextureGoto *m_Goto;
 
   Ui::TextureViewer *ui;
-  CaptureContext *m_Ctx = NULL;
+  CaptureContext &m_Ctx;
   IReplayOutput *m_Output = NULL;
 
   FetchTexture *m_CachedTexture;

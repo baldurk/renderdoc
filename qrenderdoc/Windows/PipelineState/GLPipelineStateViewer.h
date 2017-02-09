@@ -40,7 +40,7 @@ class GLPipelineStateViewer : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit GLPipelineStateViewer(CaptureContext *ctx, QWidget *parent = 0);
+  explicit GLPipelineStateViewer(CaptureContext &ctx, QWidget *parent = 0);
   ~GLPipelineStateViewer();
 
   void OnLogfileLoaded();
@@ -69,7 +69,7 @@ private slots:
 
 private:
   Ui::GLPipelineStateViewer *ui;
-  CaptureContext *m_Ctx;
+  CaptureContext &m_Ctx;
 
   enum class GLReadWriteType
   {

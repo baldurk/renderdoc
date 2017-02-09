@@ -40,7 +40,7 @@ static const int PIDRole = Qt::UserRole + 1;
 static const int IdentRole = Qt::UserRole + 2;
 static const int LogPtrRole = Qt::UserRole + 3;
 
-LiveCapture::LiveCapture(CaptureContext *ctx, const QString &hostname, uint32_t ident,
+LiveCapture::LiveCapture(CaptureContext &ctx, const QString &hostname, uint32_t ident,
                          MainWindow *main, QWidget *parent)
     : QFrame(parent),
       ui(new Ui::LiveCapture),
@@ -141,7 +141,7 @@ void LiveCapture::QueueCapture(int frameNumber)
 
 void LiveCapture::showEvent(QShowEvent *event)
 {
-  if(m_ConnectThread == NULL)
+  if(!m_ConnectThread)
   {
     m_ConnectThread = new LambdaThread([this]() { this->connectionThreadEntry(); });
     m_ConnectThread->start();
@@ -244,7 +244,7 @@ void LiveCapture::openNewWindow_triggered()
   {
     CaptureLog *log = GetLog(ui->captures->selectedItems()[0]);
 
-    QString temppath = m_Ctx->TempLogFilename(log->exe);
+    QString temppath = m_Ctx.TempLogFilename(log->exe);
 
     if(!log->local)
     {
@@ -289,7 +289,7 @@ void LiveCapture::deleteCapture_triggered()
 
     if(!log->saved)
     {
-      if(log->path == m_Ctx->LogFilename())
+      if(log->path == m_Ctx.LogFilename())
       {
         m_Main->takeLogOwnership();
         m_Main->CloseLogfile();
@@ -304,7 +304,7 @@ void LiveCapture::deleteCapture_triggered()
         }
         else
         {
-          m_Ctx->Renderer()->DeleteCapture(log->path, log->local);
+          m_Ctx.Renderer().DeleteCapture(log->path, log->local);
         }
       }
     }
@@ -562,10 +562,10 @@ bool LiveCapture::checkAllowClose()
 
     // we either have to save or delete the log. Make sure that if it's remote that we are able
     // to by having an active connection or replay context on that host.
-    if(suppressRemoteWarning == false && (m_Connection == NULL || !m_Connection->Connected()) &&
+    if(suppressRemoteWarning == false && (!m_Connection || !m_Connection->Connected()) &&
        !log->local &&
-       (m_Ctx->Renderer()->remote() == NULL || m_Ctx->Renderer()->remote()->Hostname != m_Hostname ||
-        !m_Ctx->Renderer()->remote()->Connected))
+       (!m_Ctx.Renderer().remote() || m_Ctx.Renderer().remote()->Hostname != m_Hostname ||
+        !m_Ctx.Renderer().remote()->Connected))
     {
       QMessageBox::StandardButton res2 = RDDialog::question(
           this, tr("No active replay context"),
@@ -610,9 +610,8 @@ void LiveCapture::openCapture(CaptureLog *log)
 {
   log->opened = true;
 
-  if(!log->local &&
-     (m_Ctx->Renderer()->remote() == NULL || m_Ctx->Renderer()->remote()->Hostname != m_Hostname ||
-      !m_Ctx->Renderer()->remote()->Connected))
+  if(!log->local && (!m_Ctx.Renderer().remote() || m_Ctx.Renderer().remote()->Hostname != m_Hostname ||
+                     !m_Ctx.Renderer().remote()->Connected))
   {
     RDDialog::critical(
         this, tr("No active replay context"),
@@ -665,8 +664,8 @@ bool LiveCapture::saveCapture(CaptureLog *log)
     }
     else
     {
-      if(m_Ctx->Renderer()->remote() == NULL || m_Ctx->Renderer()->remote()->Hostname != m_Hostname ||
-         !m_Ctx->Renderer()->remote()->Connected)
+      if(!m_Ctx.Renderer().remote() || m_Ctx.Renderer().remote()->Hostname != m_Hostname ||
+         !m_Ctx.Renderer().remote()->Connected)
       {
         RDDialog::critical(this, tr("No active replay context"),
                            tr("This capture is on remote host %1 and there is no active replay "
@@ -677,7 +676,7 @@ bool LiveCapture::saveCapture(CaptureLog *log)
         return false;
       }
 
-      m_Ctx->Renderer()->CopyCaptureFromRemote(log->path, path, this);
+      m_Ctx.Renderer().CopyCaptureFromRemote(log->path, path, this);
 
       if(!QFile::exists(path))
       {
@@ -686,12 +685,12 @@ bool LiveCapture::saveCapture(CaptureLog *log)
         return false;
       }
 
-      m_Ctx->Renderer()->DeleteCapture(log->path, false);
+      m_Ctx.Renderer().DeleteCapture(log->path, false);
     }
 
     log->saved = true;
     log->path = path;
-    PersistantConfig::AddRecentFile(m_Ctx->Config.RecentLogFiles, path, 10);
+    PersistantConfig::AddRecentFile(m_Ctx.Config.RecentLogFiles, path, 10);
     m_Main->PopulateRecentFiles();
     return true;
   }
@@ -707,7 +706,7 @@ void LiveCapture::cleanItems()
 
     if(!log->saved)
     {
-      if(log->path == m_Ctx->LogFilename())
+      if(log->path == m_Ctx.LogFilename())
       {
         m_Main->takeLogOwnership();
       }
@@ -721,7 +720,7 @@ void LiveCapture::cleanItems()
         }
         else
         {
-          m_Ctx->Renderer()->DeleteCapture(log->path, log->local);
+          m_Ctx.Renderer().DeleteCapture(log->path, log->local);
         }
       }
     }
@@ -819,7 +818,7 @@ void LiveCapture::captureCopied(uint32_t ID, const QString &localPath)
     QListWidgetItem *item = ui->captures->item(i);
     CaptureLog *log = GetLog(ui->captures->item(i));
 
-    if(log != NULL && log->remoteID == ID)
+    if(log && log->remoteID == ID)
     {
       log->local = true;
       log->path = localPath;
@@ -875,9 +874,8 @@ void LiveCapture::connectionClosed()
       // to this machine as a remote context
       if(!log->local)
       {
-        if(m_Ctx->Renderer()->remote() == NULL ||
-           m_Ctx->Renderer()->remote()->Hostname != m_Hostname ||
-           !m_Ctx->Renderer()->remote()->Connected)
+        if(!m_Ctx.Renderer().remote() || m_Ctx.Renderer().remote()->Hostname != m_Hostname ||
+           !m_Ctx.Renderer().remote()->Connected)
           return;
       }
 
@@ -919,7 +917,7 @@ void LiveCapture::connectionThreadEntry()
   m_Connection = RENDERDOC_CreateTargetControl(m_Hostname.toUtf8().data(), m_RemoteIdent,
                                                GetSystemUsername().toUtf8().data(), true);
 
-  if(m_Connection == NULL || !m_Connection->Connected())
+  if(!m_Connection || !m_Connection->Connected())
   {
     GUIInvoke::call([this]() {
       setTitle("Connection failed");

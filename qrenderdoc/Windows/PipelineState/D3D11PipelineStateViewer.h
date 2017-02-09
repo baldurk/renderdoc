@@ -41,7 +41,7 @@ class D3D11PipelineStateViewer : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit D3D11PipelineStateViewer(CaptureContext *ctx, QWidget *parent = 0);
+  explicit D3D11PipelineStateViewer(CaptureContext &ctx, QWidget *parent = 0);
   ~D3D11PipelineStateViewer();
 
   void OnLogfileLoaded();
@@ -70,7 +70,7 @@ private slots:
 
 private:
   Ui::D3D11PipelineStateViewer *ui;
-  CaptureContext *m_Ctx;
+  CaptureContext &m_Ctx;
 
   enum D3DBufferViewFlags
   {

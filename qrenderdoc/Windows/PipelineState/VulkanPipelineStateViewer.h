@@ -47,7 +47,7 @@ class VulkanPipelineStateViewer : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit VulkanPipelineStateViewer(CaptureContext *ctx, QWidget *parent = 0);
+  explicit VulkanPipelineStateViewer(CaptureContext &ctx, QWidget *parent = 0);
   ~VulkanPipelineStateViewer();
 
   void OnLogfileLoaded();
@@ -76,7 +76,7 @@ private slots:
 
 private:
   Ui::VulkanPipelineStateViewer *ui;
-  CaptureContext *m_Ctx;
+  CaptureContext &m_Ctx;
 
   QVariantList makeSampler(
       const QString &bindset, const QString &slotname,

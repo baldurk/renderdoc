@@ -42,7 +42,7 @@ class DebugMessageView : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit DebugMessageView(CaptureContext *ctx, QWidget *parent = 0);
+  explicit DebugMessageView(CaptureContext &ctx, QWidget *parent = 0);
   ~DebugMessageView();
 
   void OnLogfileLoaded();
@@ -62,7 +62,7 @@ private slots:
 private:
   void paintEvent(QPaintEvent *e);
   Ui::DebugMessageView *ui;
-  CaptureContext *m_Ctx;
+  CaptureContext &m_Ctx;
 
   QVector<DebugMessage> m_Messages;
   DebugMessageItemModel *m_ItemModel;

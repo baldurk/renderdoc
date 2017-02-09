@@ -43,7 +43,7 @@ class BufferViewer : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit BufferViewer(CaptureContext *ctx, bool meshview, QWidget *parent = 0);
+  explicit BufferViewer(CaptureContext &ctx, bool meshview, QWidget *parent = 0);
   ~BufferViewer();
 
   void ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId id, const QString &format = "");
@@ -89,7 +89,7 @@ private slots:
 
 private:
   Ui::BufferViewer *ui;
-  CaptureContext *m_Ctx;
+  CaptureContext &m_Ctx;
 
   IReplayOutput *m_Output;
 

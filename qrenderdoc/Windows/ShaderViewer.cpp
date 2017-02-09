@@ -30,7 +30,7 @@
 #include "Code/ScintillaSyntax.h"
 #include "ui_ShaderViewer.h"
 
-ShaderViewer::ShaderViewer(CaptureContext *ctx, ShaderReflection *shader, ShaderStageType stage,
+ShaderViewer::ShaderViewer(CaptureContext &ctx, ShaderReflection *shader, ShaderStageType stage,
                            ShaderDebugTrace *trace, const QString &debugContext, QWidget *parent)
     : QFrame(parent), ui(new Ui::ShaderViewer), m_Ctx(ctx)
 {
@@ -41,15 +41,15 @@ ShaderViewer::ShaderViewer(CaptureContext *ctx, ShaderReflection *shader, Shader
 
   if(trace != NULL)
     setWindowTitle(
-        QString("Debugging %1 - %2").arg(m_Ctx->CurPipelineState.GetShaderName(stage)).arg(debugContext));
+        QString("Debugging %1 - %2").arg(m_Ctx.CurPipelineState.GetShaderName(stage)).arg(debugContext));
   else
-    setWindowTitle(m_Ctx->CurPipelineState.GetShaderName(stage));
+    setWindowTitle(m_Ctx.CurPipelineState.GetShaderName(stage));
 
   QString disasm = shader != NULL ? ToQStr(shader->Disassembly) : "";
 
   {
     m_DisassemblyView = MakeEditor("scintillaDisassem", disasm,
-                                   m_Ctx->APIProps().pipelineType == eGraphicsAPI_Vulkan);
+                                   m_Ctx.APIProps().pipelineType == eGraphicsAPI_Vulkan);
     m_DisassemblyView->setReadOnly(true);
     m_DisassemblyView->setWindowTitle(tr("Disassembly"));
 
@@ -197,12 +197,12 @@ ShaderViewer::ShaderViewer(CaptureContext *ctx, ShaderReflection *shader, Shader
   QHBoxLayout *layout = new QHBoxLayout(this);
   layout->addWidget(ui->docking);
 
-  m_Ctx->AddLogViewer(this);
+  m_Ctx.AddLogViewer(this);
 }
 
 ShaderViewer::~ShaderViewer()
 {
-  m_Ctx->RemoveLogViewer(this);
+  m_Ctx.RemoveLogViewer(this);
   delete ui;
 }
 
@@ -252,7 +252,7 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
   ret->indicSetStyle(4, INDIC_ROUNDBOX);
 
   ConfigureSyntax(ret,
-                  m_Ctx->APIProps().localRenderer == eGraphicsAPI_OpenGL ? SCLEX_GLSL : SCLEX_HLSL);
+                  m_Ctx.APIProps().localRenderer == eGraphicsAPI_OpenGL ? SCLEX_GLSL : SCLEX_HLSL);
 
   ret->setTabWidth(4);
 

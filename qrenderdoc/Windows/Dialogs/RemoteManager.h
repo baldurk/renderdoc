@@ -42,7 +42,7 @@ class RemoteManager : public QDialog
   Q_OBJECT
 
 public:
-  explicit RemoteManager(CaptureContext *ctx, MainWindow *main);
+  explicit RemoteManager(CaptureContext &ctx, MainWindow *main);
   ~RemoteManager();
 
 private slots:
@@ -61,7 +61,7 @@ private slots:
 
 private:
   Ui::RemoteManager *ui;
-  CaptureContext *m_Ctx;
+  CaptureContext &m_Ctx;
   MainWindow *m_Main;
   QWidget *lookupsProgressFlow;
 
