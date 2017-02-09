@@ -190,7 +190,7 @@ QString RenderManager::CopyCaptureToRemote(const QString &localpath, QWidget *wi
   }
 
   ShowProgressDialog(window, QApplication::translate("RenderManager", "Transferring..."),
-                     [&copied]() { return !copied; }, [&progress]() { return progress; });
+                     [&copied]() { return copied; }, [&progress]() { return progress; });
 
   return remotepath;
 }
@@ -223,7 +223,7 @@ void RenderManager::CopyCaptureFromRemote(const QString &remotepath, const QStri
   }
 
   ShowProgressDialog(window, QApplication::translate("RenderManager", "Transferring..."),
-                     [&copied]() { return !copied; }, [&progress]() { return progress; });
+                     [&copied]() { return copied; }, [&progress]() { return progress; });
 }
 
 bool RenderManager::IsRunning()
