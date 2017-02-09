@@ -37,6 +37,7 @@
 #include "Windows/Dialogs/AboutDialog.h"
 #include "Windows/Dialogs/CaptureDialog.h"
 #include "Windows/Dialogs/LiveCapture.h"
+#include "Windows/Dialogs/RemoteManager.h"
 #include "Windows/Dialogs/SettingsDialog.h"
 #include "Windows/Dialogs/SuggestRemoteDialog.h"
 #include "APIInspector.h"
@@ -1331,6 +1332,17 @@ void MainWindow::on_action_Resolve_Symbols_triggered()
 
   if(m_Ctx->hasAPIInspector())
     m_Ctx->apiInspector()->on_apiEvents_itemSelectionChanged();
+}
+
+void MainWindow::on_action_Attach_to_Running_Instance_triggered()
+{
+  on_action_Manage_Remote_Servers_triggered();
+}
+
+void MainWindow::on_action_Manage_Remote_Servers_triggered()
+{
+  // the manager deletes itself when all lookups terminate
+  RDDialog::show(new RemoteManager(m_Ctx, this));
 }
 
 void MainWindow::on_action_Start_Android_Remote_Server_triggered()

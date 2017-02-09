@@ -120,7 +120,8 @@ void RDTreeWidget::leaveEvent(QEvent *e)
 
 void RDTreeWidget::focusOutEvent(QFocusEvent *event)
 {
-  clearSelection();
+  if(m_clearSelectionOnFocusLoss)
+    clearSelection();
 
   QTreeWidget::focusOutEvent(event);
 }

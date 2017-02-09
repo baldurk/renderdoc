@@ -27,6 +27,7 @@
 #include <QDebug>
 #include <QFileDialog>
 #include <QMessageBox>
+#include <QProcess>
 #include <QSemaphore>
 #include <QSortFilterProxyModel>
 #include "renderdoc_replay.h"
@@ -564,6 +565,13 @@ public:
   bool isCurrentThread() { return QThread::currentThread() == m_Thread; }
 };
 
+class RDProcess : public QProcess
+{
+public:
+  RDProcess(QObject *parent = NULL) : QProcess(parent) {}
+  void detach() { setProcessState(QProcess::NotRunning); }
+};
+
 class QFileFilterModel : public QSortFilterProxyModel
 {
   Q_OBJECT
@@ -671,6 +679,7 @@ class QTreeWidgetItem;
 
 QTreeWidgetItem *makeTreeNode(const std::initializer_list<QVariant> &values);
 QTreeWidgetItem *makeTreeNode(const QVariantList &values);
+void deleteChildren(QTreeWidgetItem *item);
 
 class QProgressDialog;
 
@@ -679,3 +688,5 @@ typedef std::function<bool()> ProgressFinishedMethod;
 
 void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinishedMethod finished,
                         ProgressUpdateMethod update = ProgressUpdateMethod());
+
+QString GetSystemUsername();

@@ -32,6 +32,7 @@
 #include <QLabel>
 #include <QMenu>
 #include <QMetaMethod>
+#include <QProcess>
 #include <QProgressDialog>
 #include <QTreeWidget>
 #include <QtMath>
@@ -557,6 +558,16 @@ QTreeWidgetItem *makeTreeNode(const QVariantList &values)
   return ret;
 }
 
+void deleteChildren(QTreeWidgetItem *item)
+{
+  while(item->childCount() > 0)
+  {
+    QTreeWidgetItem *child = item->takeChild(0);
+    deleteChildren(child);
+    delete child;
+  }
+}
+
 int Formatter::m_minFigures = 2, Formatter::m_maxFigures = 5, Formatter::m_expNegCutoff = 5,
     Formatter::m_expPosCutoff = 7;
 double Formatter::m_expNegValue = 0.00001;       // 10^(-5)
@@ -698,4 +709,17 @@ void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinis
   // to clean itself up
   tickerSemaphore.tryAcquire();
   progressTickerThread.wait();
+}
+
+QString GetSystemUsername()
+{
+  QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+
+  QString username = env.value("USER");
+  if(username == QString())
+    username = env.value("USERNAME");
+  if(username == QString())
+    username = "Unknown_User";
+
+  return username;
 }

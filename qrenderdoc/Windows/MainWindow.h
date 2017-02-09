@@ -98,6 +98,8 @@ private slots:
   void on_action_Statistics_Viewer_triggered();
   void on_action_Inject_into_Process_triggered();
   void on_action_Resolve_Symbols_triggered();
+  void on_action_Attach_to_Running_Instance_triggered();
+  void on_action_Manage_Remote_Servers_triggered();
   void on_action_Start_Android_Remote_Server_triggered();
   void on_action_Settings_triggered();
 

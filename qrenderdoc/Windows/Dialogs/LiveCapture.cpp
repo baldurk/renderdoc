@@ -916,16 +916,8 @@ void LiveCapture::connectionClosed()
 
 void LiveCapture::connectionThreadEntry()
 {
-  QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
-
-  QString username = env.value("USER");
-  if(username == QString())
-    username = env.value("USERNAME");
-  if(username == QString())
-    username = "Unknown_User";
-
   m_Connection = RENDERDOC_CreateTargetControl(m_Hostname.toUtf8().data(), m_RemoteIdent,
-                                               username.toUtf8().data(), true);
+                                               GetSystemUsername().toUtf8().data(), true);
 
   if(m_Connection == NULL || !m_Connection->Connected())
   {

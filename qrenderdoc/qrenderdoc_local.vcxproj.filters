@@ -504,6 +504,12 @@
     <ClCompile Include="Code\PersistantConfig.cpp">
       <Filter>Code</Filter>
     </ClCompile>
+    <ClCompile Include="generated\moc_RemoteManager.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\Dialogs\RemoteManager.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -772,6 +778,9 @@
     </ClInclude>
     <ClInclude Include="Code\PersistantConfig.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="generated\ui_RemoteManager.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -1179,6 +1188,12 @@
     </CustomBuild>
     <CustomBuild Include="3rdparty\scintilla\qt\ScintillaEditBase\ScintillaQt.h">
       <Filter>3rdparty\Scintilla\qt\ScintillaEditBase</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\RemoteManager.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\RemoteManager.h">
+      <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>

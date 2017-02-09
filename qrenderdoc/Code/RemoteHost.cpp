@@ -25,6 +25,7 @@
 #include "RemoteHost.h"
 #include <QProcess>
 #include <QThread>
+#include "Code/QRDUtils.h"
 #include "renderdoc_replay.h"
 
 RemoteHost::RemoteHost()
@@ -102,7 +103,8 @@ void RemoteHost::CheckStatus()
 
 void RemoteHost::Launch()
 {
-  QProcess process;
+  RDProcess process;
   process.start(RunCommand);
   process.waitForFinished(2000);
+  process.detach();
 }
