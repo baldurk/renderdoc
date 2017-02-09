@@ -1482,6 +1482,8 @@ void TextureViewer::UI_UpdateChannels()
     m_TexDisplay.HDRMul = -1.0f;
 
     m_TexDisplay.CustomShader = ResourceId();
+
+    // TODO Custom shaders
     /*
     if (m_CustomShaders.ContainsKey(customShader.Text.ToUpperInvariant()))
     {
