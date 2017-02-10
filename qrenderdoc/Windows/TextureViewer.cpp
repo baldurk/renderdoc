@@ -271,7 +271,7 @@ QMap<BindpointMap, QVector<BoundResource>> Following::GetReadOnlyResources(Captu
   return GetReadOnlyResources(ctx, Stage);
 }
 
-ShaderReflection *Following::GetReflection(CaptureContext &ctx, ShaderStageType stage)
+const ShaderReflection *Following::GetReflection(CaptureContext &ctx, ShaderStageType stage)
 {
   bool copy = false, compute = false;
   GetDrawContext(ctx, copy, compute);
@@ -284,23 +284,25 @@ ShaderReflection *Following::GetReflection(CaptureContext &ctx, ShaderStageType 
     return ctx.CurPipelineState.GetShaderReflection(stage);
 }
 
-ShaderReflection *Following::GetReflection(CaptureContext &ctx)
+const ShaderReflection *Following::GetReflection(CaptureContext &ctx)
 {
   return GetReflection(ctx, Stage);
 }
 
-ShaderBindpointMapping Following::GetMapping(CaptureContext &ctx, ShaderStageType stage)
+const ShaderBindpointMapping &Following::GetMapping(CaptureContext &ctx, ShaderStageType stage)
 {
   bool copy = false, compute = false;
   GetDrawContext(ctx, copy, compute);
 
   if(copy)
   {
-    ShaderBindpointMapping mapping;
+    static ShaderBindpointMapping mapping;
 
     // for PS only add a single mapping to get the copy source
     if(stage == eShaderStage_Pixel)
       mapping.ReadOnlyResources = {BindpointMap(0, 0)};
+    else
+      mapping.ReadOnlyResources.clear();
 
     return mapping;
   }
@@ -314,7 +316,7 @@ ShaderBindpointMapping Following::GetMapping(CaptureContext &ctx, ShaderStageTyp
   }
 }
 
-ShaderBindpointMapping Following::GetMapping(CaptureContext &ctx)
+const ShaderBindpointMapping &Following::GetMapping(CaptureContext &ctx)
 {
   return GetMapping(ctx, Stage);
 }
@@ -2632,8 +2634,8 @@ void TextureViewer::OnEventChanged(uint32_t eventID)
     QMap<BindpointMap, QVector<BoundResource>> RWs = Following::GetReadWriteResources(m_Ctx, stage);
     QMap<BindpointMap, QVector<BoundResource>> ROs = Following::GetReadOnlyResources(m_Ctx, stage);
 
-    ShaderReflection *details = Following::GetReflection(m_Ctx, stage);
-    ShaderBindpointMapping mapping = Following::GetMapping(m_Ctx, stage);
+    const ShaderReflection *details = Following::GetReflection(m_Ctx, stage);
+    const ShaderBindpointMapping &mapping = Following::GetMapping(m_Ctx, stage);
 
     InitStageResourcePreviews(stage, details != NULL ? details->ReadWriteResources : empty,
                               mapping.ReadWriteResources, RWs, ui->outputThumbs, outIndex, copy,

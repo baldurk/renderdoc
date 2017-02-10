@@ -99,7 +99,7 @@ void ConstantBufferPreviewer::OnEventChanged(uint32_t eventID)
 
   m_shader = m_Ctx.CurPipelineState.GetShader(m_stage);
   QString entryPoint = m_Ctx.CurPipelineState.GetShaderEntryPoint(m_stage);
-  ShaderReflection *reflection = m_Ctx.CurPipelineState.GetShaderReflection(m_stage);
+  const ShaderReflection *reflection = m_Ctx.CurPipelineState.GetShaderReflection(m_stage);
 
   updateLabels();
 
@@ -219,7 +219,7 @@ void ConstantBufferPreviewer::updateLabels()
       needName = false;
   }
 
-  ShaderReflection *reflection = m_Ctx.CurPipelineState.GetShaderReflection(m_stage);
+  const ShaderReflection *reflection = m_Ctx.CurPipelineState.GetShaderReflection(m_stage);
 
   if(reflection != NULL)
   {

@@ -84,11 +84,11 @@ struct Following
   static QMap<BindpointMap, QVector<BoundResource>> GetReadOnlyResources(CaptureContext &ctx,
                                                                          ShaderStageType stage);
 
-  ShaderReflection *GetReflection(CaptureContext &ctx);
-  static ShaderReflection *GetReflection(CaptureContext &ctx, ShaderStageType stage);
+  const ShaderReflection *GetReflection(CaptureContext &ctx);
+  static const ShaderReflection *GetReflection(CaptureContext &ctx, ShaderStageType stage);
 
-  ShaderBindpointMapping GetMapping(CaptureContext &ctx);
-  static ShaderBindpointMapping GetMapping(CaptureContext &ctx, ShaderStageType stage);
+  const ShaderBindpointMapping &GetMapping(CaptureContext &ctx);
+  static const ShaderBindpointMapping &GetMapping(CaptureContext &ctx, ShaderStageType stage);
 };
 
 struct TexSettings

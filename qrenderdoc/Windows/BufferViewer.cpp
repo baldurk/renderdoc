@@ -1153,7 +1153,7 @@ void BufferViewer::ConfigureMeshColumns()
     m_VSIn.compType = vinputs[0].Format.compType;
   }
 
-  ShaderReflection *vs = m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Vertex);
+  const ShaderReflection *vs = m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Vertex);
 
   m_ModelVSOut->columns.clear();
 

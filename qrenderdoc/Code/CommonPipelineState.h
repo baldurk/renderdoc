@@ -153,8 +153,8 @@ public:
   QString OutputAbbrev();
 
   Viewport GetViewport(int index);
-  ShaderBindpointMapping GetBindpointMapping(ShaderStageType stage);
-  ShaderReflection *GetShaderReflection(ShaderStageType stage);
+  const ShaderBindpointMapping &GetBindpointMapping(ShaderStageType stage);
+  const ShaderReflection *GetShaderReflection(ShaderStageType stage);
   QString GetShaderEntryPoint(ShaderStageType stage);
   ResourceId GetShader(ShaderStageType stage);
   QString GetShaderName(ShaderStageType stage);

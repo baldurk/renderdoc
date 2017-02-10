@@ -139,7 +139,7 @@ Viewport CommonPipelineState::GetViewport(int index)
   return ret;
 }
 
-ShaderBindpointMapping CommonPipelineState::GetBindpointMapping(ShaderStageType stage)
+const ShaderBindpointMapping &CommonPipelineState::GetBindpointMapping(ShaderStageType stage)
 {
   if(LogLoaded())
   {
@@ -197,10 +197,12 @@ ShaderBindpointMapping CommonPipelineState::GetBindpointMapping(ShaderStageType 
     }
   }
 
-  return ShaderBindpointMapping();
+  static ShaderBindpointMapping empty;
+
+  return empty;
 }
 
-ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStageType stage)
+const ShaderReflection *CommonPipelineState::GetShaderReflection(ShaderStageType stage)
 {
   if(LogLoaded())
   {
