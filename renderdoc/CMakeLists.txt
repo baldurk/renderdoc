@@ -303,6 +303,9 @@ target_link_libraries(renderdoc ${RDOC_LIBRARIES})
 
 install (TARGETS renderdoc DESTINATION lib)
 
+# Copy in application API header to include
+install (FILES api/app/renderdoc_app.h DESTINATION include RENAME renderdoc.h)
+
 add_custom_command(TARGET renderdoc POST_BUILD
 	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/bin/)
 add_custom_command(TARGET renderdoc POST_BUILD

@@ -164,3 +164,7 @@ endif()
 if(ENABLE_QRENDERDOC)
     add_subdirectory(qrenderdoc)
 endif()
+
+# install documentation files
+install (FILES scripts/LINUX_DIST_README DESTINATION share/doc/renderdoc RENAME README)
+install (FILES LICENSE.md DESTINATION share/doc/renderdoc)
