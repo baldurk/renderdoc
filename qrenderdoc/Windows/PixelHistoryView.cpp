@@ -23,6 +23,8 @@
  ******************************************************************************/
 
 #include "PixelHistoryView.h"
+#include <float.h>
+#include <math.h>
 #include <QAction>
 #include <QMenu>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
