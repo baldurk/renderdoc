@@ -441,10 +441,11 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
   if(logfile == NULL)
     logfile = "";
 
-  string libpath;
+  string binpath, libpath;
   {
-    FileIO::GetExecutableFilename(libpath);
-    libpath = dirname(libpath);
+    FileIO::GetExecutableFilename(binpath);
+    binpath = dirname(binpath);
+    libpath = binpath + "/../lib";
   }
 
   string optstr;
@@ -458,6 +459,8 @@ uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workin
     }
   }
 
+  modifications.push_back(
+      EnvironmentModification(eEnvModification_AppendPlatform, "LD_LIBRARY_PATH", binpath.c_str()));
   modifications.push_back(
       EnvironmentModification(eEnvModification_AppendPlatform, "LD_LIBRARY_PATH", libpath.c_str()));
   modifications.push_back(
