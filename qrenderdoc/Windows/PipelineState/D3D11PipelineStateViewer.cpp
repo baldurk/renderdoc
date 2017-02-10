@@ -2149,11 +2149,13 @@ void D3D11PipelineStateViewer::shaderView_clicked()
 {
   ShaderStageType shaderStage = eShaderStage_Vertex;
   ShaderReflection *shaderDetails = NULL;
+  const ShaderBindpointMapping *bindMap = NULL;
 
   QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
   if(sender == ui->iaBytecode || sender == ui->iaBytecodeViewButton)
   {
     shaderDetails = m_Ctx.CurD3D11PipelineState.m_IA.Bytecode;
+    bindMap = NULL;
   }
   else
   {
@@ -2162,11 +2164,13 @@ void D3D11PipelineStateViewer::shaderView_clicked()
     if(stage == NULL || stage->Shader == ResourceId())
       return;
 
+    bindMap = &stage->BindpointMapping;
     shaderDetails = stage->ShaderDetails;
     shaderStage = stage->stage;
   }
 
-  ShaderViewer *shad = new ShaderViewer(m_Ctx, shaderDetails, shaderStage, NULL, "");
+  ShaderViewer *shad =
+      ShaderViewer::viewShader(m_Ctx, bindMap, shaderDetails, shaderStage, m_Ctx.mainWindow());
 
   m_Ctx.setupDockWindow(shad);
 
@@ -2178,6 +2182,38 @@ void D3D11PipelineStateViewer::shaderView_clicked()
 
 void D3D11PipelineStateViewer::shaderEdit_clicked()
 {
+  QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
+  const D3D11PipelineState::ShaderStage *stage = stageForSender(sender);
+
+  if(!stage || stage->Shader == ResourceId())
+    return;
+
+  const ShaderReflection *shaderDetails = stage->ShaderDetails;
+
+  if(!shaderDetails)
+    return;
+
+  QString entryFunc = QString("EditedShader%1S").arg(ToQStr(stage->stage, eGraphicsAPI_D3D11)[0]);
+
+  QString mainfile = "";
+
+  QStringMap files;
+
+  bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files, mainfile);
+
+  if(!hasOrigSource)
+  {
+    QString hlsl = "// TODO - generate stub HLSL";
+
+    mainfile = "generated.hlsl";
+
+    files[mainfile] = hlsl;
+  }
+
+  if(files.empty())
+    return;
+
+  m_Common.EditShader(stage->stage, stage->Shader, shaderDetails, entryFunc, files, mainfile);
 }
 
 void D3D11PipelineStateViewer::shaderSave_clicked()

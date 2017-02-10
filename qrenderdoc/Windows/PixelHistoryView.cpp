@@ -29,6 +29,7 @@
 #include <QMenu>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Windows/BufferViewer.h"
+#include "Windows/ShaderViewer.h"
 #include "ui_PixelHistoryView.h"
 
 struct EventTag
@@ -635,7 +636,42 @@ void PixelHistoryView::setHistory(const rdctype::array<PixelModification> &histo
 void PixelHistoryView::startDebug(EventTag tag)
 {
   m_Ctx.SetEventID({this}, tag.eventID, tag.eventID);
-  // TODO Shader debugging
+
+  ShaderDebugTrace *trace = new ShaderDebugTrace;
+
+  bool success = false;
+
+  m_Ctx.Renderer().BlockInvoke([this, &success, trace](IReplayRenderer *r) {
+    success =
+        r->DebugPixel((uint32_t)m_Pixel.x(), (uint32_t)m_Pixel.y(), m_Display.sampleIdx, ~0U, trace);
+  });
+
+  if(!success || trace->states.count == 0)
+  {
+    RDDialog::critical(this, tr("Debug Error"), tr("Error debugging pixel."));
+    delete trace;
+    return;
+  }
+
+  GUIInvoke::call([this, trace]() {
+    QString debugContext = QString("Pixel %1,%2").arg(m_Pixel.x()).arg(m_Pixel.y());
+
+    const ShaderReflection *shaderDetails =
+        m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Pixel);
+    const ShaderBindpointMapping &bindMapping =
+        m_Ctx.CurPipelineState.GetBindpointMapping(eShaderStage_Pixel);
+
+    // viewer takes ownership of the trace
+    ShaderViewer *s = ShaderViewer::debugShader(m_Ctx, &bindMapping, shaderDetails,
+                                                eShaderStage_Pixel, trace, debugContext, this);
+
+    m_Ctx.setupDockWindow(s);
+
+    ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+    ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+    manager->addToolWindow(s, ref);
+  });
 }
 
 void PixelHistoryView::jumpToPrimitive(EventTag tag)

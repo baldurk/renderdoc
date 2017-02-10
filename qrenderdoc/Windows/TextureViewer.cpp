@@ -43,6 +43,7 @@
 #include "BufferViewer.h"
 #include "MainWindow.h"
 #include "PixelHistoryView.h"
+#include "ShaderViewer.h"
 #include "ui_TextureViewer.h"
 
 float area(const QSizeF &s)
@@ -3265,6 +3266,52 @@ void TextureViewer::on_saveTex_clicked()
           tr("Error saving texture %1.\n\nCheck diagnostic log in Help menu for more details.").arg(fn));
     }
   }
+}
+
+void TextureViewer::on_debugPixelContext_clicked()
+{
+  ShaderDebugTrace *trace = new ShaderDebugTrace;
+
+  if(m_PickedPoint.x() < 0 || m_PickedPoint.y() < 0)
+    return;
+
+  int x = m_PickedPoint.x() >> (int)m_TexDisplay.mip;
+  int y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
+
+  bool success = false;
+
+  m_Ctx.Renderer().BlockInvoke([this, x, y, &success, trace](IReplayRenderer *r) {
+    success = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.sampleIdx, ~0U, trace);
+  });
+
+  if(!success || trace->states.count == 0)
+  {
+    delete trace;
+
+    // if we couldn't debug the pixel on this event, open up a pixel history
+    on_pixelHistory_clicked();
+    return;
+  }
+
+  GUIInvoke::call([this, x, y, trace]() {
+    QString debugContext = tr("Pixel %1,%2").arg(x).arg(y);
+
+    const ShaderReflection *shaderDetails =
+        m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Pixel);
+    const ShaderBindpointMapping &bindMapping =
+        m_Ctx.CurPipelineState.GetBindpointMapping(eShaderStage_Pixel);
+
+    // viewer takes ownership of the trace
+    ShaderViewer *s = ShaderViewer::debugShader(m_Ctx, &bindMapping, shaderDetails,
+                                                eShaderStage_Pixel, trace, debugContext, this);
+
+    m_Ctx.setupDockWindow(s);
+
+    ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+    ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+    manager->addToolWindow(s, ref);
+  });
 }
 
 void TextureViewer::on_pixelHistory_clicked()

@@ -2359,7 +2359,8 @@ void VulkanPipelineStateViewer::shaderView_clicked()
 
   ShaderReflection *shaderDetails = stage->ShaderDetails;
 
-  ShaderViewer *shad = new ShaderViewer(m_Ctx, shaderDetails, stage->stage, NULL, "");
+  ShaderViewer *shad = ShaderViewer::viewShader(m_Ctx, &stage->BindpointMapping, shaderDetails,
+                                                stage->stage, m_Ctx.mainWindow());
 
   m_Ctx.setupDockWindow(shad);
 
@@ -2371,6 +2372,38 @@ void VulkanPipelineStateViewer::shaderView_clicked()
 
 void VulkanPipelineStateViewer::shaderEdit_clicked()
 {
+  QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
+  const VulkanPipelineState::ShaderStage *stage = stageForSender(sender);
+
+  if(!stage || stage->Shader == ResourceId())
+    return;
+
+  const ShaderReflection *shaderDetails = stage->ShaderDetails;
+
+  if(!shaderDetails)
+    return;
+
+  QString entryFunc = QString("EditedShader%1S").arg(ToQStr(stage->stage, eGraphicsAPI_Vulkan)[0]);
+
+  QString mainfile = "";
+
+  QStringMap files;
+
+  bool hasOrigSource = m_Common.PrepareShaderEditing(shaderDetails, entryFunc, files, mainfile);
+
+  if(!hasOrigSource)
+  {
+    QString glsl = "// TODO - disassemble SPIR-V";
+
+    mainfile = "generated.glsl";
+
+    files[mainfile] = glsl;
+  }
+
+  if(files.empty())
+    return;
+
+  m_Common.EditShader(stage->stage, stage->Shader, shaderDetails, entryFunc, files, mainfile);
 }
 
 void VulkanPipelineStateViewer::shaderSave_clicked()
