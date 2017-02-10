@@ -592,13 +592,13 @@ void State::AssignValue(ShaderVariable &dst, uint32_t dstIndex, const ShaderVari
   {
     float ft = src.value.fv[srcIndex];
     if(!_finite(ft) || _isnan(ft))
-      flags |= eShaderDebugStateFlags_GeneratedNanOrInf;
+      flags |= eShaderDbg_GeneratedNanOrInf;
   }
   else if(src.type == eVar_Double)
   {
     double dt = src.value.dv[srcIndex];
     if(!_finite(dt) || _isnan(dt))
-      flags |= eShaderDebugStateFlags_GeneratedNanOrInf;
+      flags |= eShaderDbg_GeneratedNanOrInf;
   }
 
   dst.value.uv[dstIndex] = src.value.uv[srcIndex];
@@ -2368,7 +2368,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       }
 
       if(load)
-        s.flags = eShaderDebugStateFlags_SampleLoadGather;
+        s.flags = eShaderDbg_SampleLoadGather;
 
       if(op.operation == OPCODE_LD_STRUCTURED || op.operation == OPCODE_STORE_STRUCTURED)
       {
@@ -3434,7 +3434,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
 
       if(op.operation != OPCODE_LOD)
       {
-        s.flags = eShaderDebugStateFlags_SampleLoadGather;
+        s.flags = eShaderDbg_SampleLoadGather;
       }
 
       if(op.operation == OPCODE_SAMPLE_C || op.operation == OPCODE_SAMPLE_C_LZ ||

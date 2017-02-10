@@ -347,8 +347,9 @@ enum ShaderStageBits
 
 enum ShaderDebugStateFlags
 {
-  eShaderDebugStateFlags_SampleLoadGather = 0x1,
-  eShaderDebugStateFlags_GeneratedNanOrInf = 0x2,
+  eShaderDbg_None = 0,
+  eShaderDbg_SampleLoadGather = 0x1,
+  eShaderDbg_GeneratedNanOrInf = 0x2,
 };
 
 enum DebugMessageCategory
