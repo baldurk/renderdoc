@@ -386,6 +386,7 @@ struct ToStr
       case eVar_Int: return "int";
       case eVar_UInt: return "uint";
       case eVar_Double: return "double";
+      case eVar_Unknown: break;
     }
     return "Unknown";
   }
@@ -442,7 +443,7 @@ struct FormatElement
 };
 
 QString TypeString(const ShaderVariable &v);
-QString RowString(const ShaderVariable &v, uint32_t row);
+QString RowString(const ShaderVariable &v, uint32_t row, VarType type = eVar_Unknown);
 QString VarString(const ShaderVariable &v);
 QString RowTypeString(const ShaderVariable &v);
 

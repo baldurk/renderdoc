@@ -813,17 +813,20 @@ static QString RowValuesToString(int cols, el x, el y, el z, el w)
            Formatter::Format(w);
 }
 
-QString RowString(const ShaderVariable &v, uint32_t row)
+QString RowString(const ShaderVariable &v, uint32_t row, VarType type)
 {
-  if(v.type == eVar_Double)
+  if(type == eVar_Unknown)
+    type = v.type;
+
+  if(type == eVar_Double)
     return RowValuesToString((int)v.columns, v.value.dv[row * v.columns + 0],
                              v.value.dv[row * v.columns + 1], v.value.dv[row * v.columns + 2],
                              v.value.dv[row * v.columns + 3]);
-  else if(v.type == eVar_Int)
+  else if(type == eVar_Int)
     return RowValuesToString((int)v.columns, v.value.iv[row * v.columns + 0],
                              v.value.iv[row * v.columns + 1], v.value.iv[row * v.columns + 2],
                              v.value.iv[row * v.columns + 3]);
-  else if(v.type == eVar_UInt)
+  else if(type == eVar_UInt)
     return RowValuesToString((int)v.columns, v.value.uv[row * v.columns + 0],
                              v.value.uv[row * v.columns + 1], v.value.uv[row * v.columns + 2],
                              v.value.uv[row * v.columns + 3]);

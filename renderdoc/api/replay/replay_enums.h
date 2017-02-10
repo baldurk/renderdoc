@@ -40,6 +40,7 @@ enum DirectoryFileProperty
 
 enum VarType
 {
+  eVar_Unknown = -1,
   eVar_Float = 0,
   eVar_Int,
   eVar_UInt,

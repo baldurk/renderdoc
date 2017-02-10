@@ -2045,6 +2045,7 @@ void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacke
   {
     switch(outVar.type)
     {
+      case eVar_Unknown:
       case eVar_Float: gl.glGetUniformfv(prog, offs, outVar.value.fv); break;
       case eVar_Int: gl.glGetUniformiv(prog, offs, outVar.value.iv); break;
       case eVar_UInt: gl.glGetUniformuiv(prog, offs, outVar.value.uv); break;
