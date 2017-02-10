@@ -51,7 +51,7 @@ Right click to debug an event, hide failed events, or jump to the modification's
    <item>
     <widget class="RDTreeView" name="events">
      <property name="contextMenuPolicy">
-      <enum>Qt::PreventContextMenu</enum>
+      <enum>Qt::CustomContextMenu</enum>
      </property>
      <attribute name="headerMinimumSectionSize">
       <number>16</number>
