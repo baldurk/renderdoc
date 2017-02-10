@@ -35,7 +35,7 @@ if(ANDROID)
 else()
     set(CMAKE_SKIP_BUILD_RPATH TRUE)
     set(CMAKE_BUILD_WITH_INSTALL_RPATH TRUE)
-    set(CMAKE_INSTALL_RPATH "$ORIGIN/")
+    set(CMAKE_INSTALL_RPATH "$ORIGIN/:$ORIGIN/../lib/")
 
     add_executable(renderdoccmd ${sources})
 endif()

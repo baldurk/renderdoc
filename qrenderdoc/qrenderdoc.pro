@@ -80,7 +80,7 @@ win32 {
 
 	# Link against the core library
 	LIBS += -L$$DESTDIR -lrenderdoc
-	QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN\''
+	QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN\',-rpath,\'\$$ORIGIN/../lib\''
 
 	CONFIG += warn_off
 	CONFIG += c++11
