@@ -140,7 +140,7 @@ void PipelineStateViewer::setToD3D11()
 
   reset();
 
-  m_D3D11 = new D3D11PipelineStateViewer(m_Ctx, this);
+  m_D3D11 = new D3D11PipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_D3D11);
   m_Current = m_D3D11;
   m_Ctx.CurPipelineState.DefaultType = eGraphicsAPI_D3D11;
@@ -153,7 +153,7 @@ void PipelineStateViewer::setToD3D12()
 
   reset();
 
-  m_D3D12 = new D3D12PipelineStateViewer(m_Ctx, this);
+  m_D3D12 = new D3D12PipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_D3D12);
   m_Current = m_D3D12;
   m_Ctx.CurPipelineState.DefaultType = eGraphicsAPI_D3D12;
@@ -166,7 +166,7 @@ void PipelineStateViewer::setToGL()
 
   reset();
 
-  m_GL = new GLPipelineStateViewer(m_Ctx, this);
+  m_GL = new GLPipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_GL);
   m_Current = m_GL;
   m_Ctx.CurPipelineState.DefaultType = eGraphicsAPI_OpenGL;
@@ -179,8 +179,58 @@ void PipelineStateViewer::setToVulkan()
 
   reset();
 
-  m_Vulkan = new VulkanPipelineStateViewer(m_Ctx, this);
+  m_Vulkan = new VulkanPipelineStateViewer(m_Ctx, *this, this);
   ui->layout->addWidget(m_Vulkan);
   m_Current = m_Vulkan;
   m_Ctx.CurPipelineState.DefaultType = eGraphicsAPI_Vulkan;
+
+bool PipelineStateViewer::SaveShaderFile(const ShaderReflection *shader)
+{
+  if(!shader)
+    return false;
+
+  QString filter;
+
+  if(m_Ctx.CurPipelineState.IsLogD3D11() || m_Ctx.CurPipelineState.IsLogD3D12())
+  {
+    filter = tr("DXBC Shader files (*.dxbc)");
+  }
+  else if(m_Ctx.CurPipelineState.IsLogGL())
+  {
+    filter = tr("GLSL files (*.glsl)");
+  }
+  else if(m_Ctx.CurPipelineState.IsLogVK())
+  {
+    filter = tr("SPIR-V files (*.spv)");
+  }
+
+  QString filename = RDDialog::getSaveFileName(this, tr("Save Shader As"), QString(), filter);
+
+  if(filename != "")
+  {
+    QDir dirinfo = QFileInfo(filename).dir();
+    if(dirinfo.exists())
+    {
+      QFile f(filename);
+      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate))
+      {
+        f.write((const char *)shader->RawBytes.elems, (qint64)shader->RawBytes.count);
+      }
+      else
+      {
+        RDDialog::critical(
+            this, tr("Error saving shader"),
+            tr("Couldn't open path %1 for write.\n%2").arg(filename).arg(f.errorString()));
+        return false;
+      }
+    }
+    else
+    {
+      RDDialog::critical(this, tr("Invalid directory"),
+                         tr("Cannot find target directory to save to"));
+      return false;
+    }
+  }
+
+  return true;
 }

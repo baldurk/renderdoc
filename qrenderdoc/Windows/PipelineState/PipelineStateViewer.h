@@ -55,6 +55,8 @@ public:
   QVariant persistData();
   void setPersistData(const QVariant &persistData);
 
+  bool SaveShaderFile(const ShaderReflection *shader);
+
 private:
   Ui::PipelineStateViewer *ui;
   CaptureContext &m_Ctx;

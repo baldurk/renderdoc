@@ -35,13 +35,15 @@ class D3D12PipelineStateViewer;
 class RDTreeWidget;
 class QTreeWidgetItem;
 struct ViewTag;
+class PipelineStateViewer;
 
 class D3D12PipelineStateViewer : public QFrame, public ILogViewerForm
 {
   Q_OBJECT
 
 public:
-  explicit D3D12PipelineStateViewer(CaptureContext &ctx, QWidget *parent = 0);
+  explicit D3D12PipelineStateViewer(CaptureContext &ctx, PipelineStateViewer &common,
+                                    QWidget *parent = 0);
   ~D3D12PipelineStateViewer();
 
   void OnLogfileLoaded();
@@ -71,6 +73,7 @@ private slots:
 private:
   Ui::D3D12PipelineStateViewer *ui;
   CaptureContext &m_Ctx;
+  PipelineStateViewer &m_Common;
 
   enum D3DBufferViewFlags
   {

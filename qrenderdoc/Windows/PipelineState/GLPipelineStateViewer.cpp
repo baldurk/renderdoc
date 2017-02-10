@@ -31,6 +31,7 @@
 #include "Windows/MainWindow.h"
 #include "Windows/ShaderViewer.h"
 #include "Windows/TextureViewer.h"
+#include "PipelineStateViewer.h"
 #include "ui_GLPipelineStateViewer.h"
 
 Q_DECLARE_METATYPE(ResourceId);
@@ -72,8 +73,9 @@ struct ReadWriteTag
 
 Q_DECLARE_METATYPE(ReadWriteTag);
 
-GLPipelineStateViewer::GLPipelineStateViewer(CaptureContext &ctx, QWidget *parent)
-    : QFrame(parent), ui(new Ui::GLPipelineStateViewer), m_Ctx(ctx)
+GLPipelineStateViewer::GLPipelineStateViewer(CaptureContext &ctx, PipelineStateViewer &common,
+                                             QWidget *parent)
+    : QFrame(parent), ui(new Ui::GLPipelineStateViewer), m_Ctx(ctx), m_Common(common)
 {
   ui->setupUi(this);
 
@@ -2282,32 +2284,7 @@ void GLPipelineStateViewer::shaderSave_clicked()
   if(stage->Shader == ResourceId())
     return;
 
-  QString filename =
-      RDDialog::getSaveFileName(this, tr("Save Shader As"), QString(), "GLSL files (*.glsl)");
-
-  if(filename != "")
-  {
-    QDir dirinfo = QFileInfo(filename).dir();
-    if(dirinfo.exists())
-    {
-      QFile f(filename);
-      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate))
-      {
-        f.write((const char *)shaderDetails->RawBytes.elems, (qint64)shaderDetails->RawBytes.count);
-      }
-      else
-      {
-        RDDialog::critical(
-            this, tr("Error saving shader"),
-            tr("Couldn't open path %1 for write.\n%2").arg(filename).arg(f.errorString()));
-      }
-    }
-    else
-    {
-      RDDialog::critical(this, tr("Invalid directory"),
-                         tr("Cannot find target directory to save to"));
-    }
-  }
+  m_Common.SaveShaderFile(shaderDetails);
 }
 
 void GLPipelineStateViewer::on_exportHTML_clicked()

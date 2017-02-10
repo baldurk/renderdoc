@@ -34,13 +34,15 @@ class GLPipelineStateViewer;
 
 class RDTreeWidget;
 class QTreeWidgetItem;
+class PipelineStateViewer;
 
 class GLPipelineStateViewer : public QFrame, public ILogViewerForm
 {
   Q_OBJECT
 
 public:
-  explicit GLPipelineStateViewer(CaptureContext &ctx, QWidget *parent = 0);
+  explicit GLPipelineStateViewer(CaptureContext &ctx, PipelineStateViewer &common,
+                                 QWidget *parent = 0);
   ~GLPipelineStateViewer();
 
   void OnLogfileLoaded();
@@ -70,6 +72,7 @@ private slots:
 private:
   Ui::GLPipelineStateViewer *ui;
   CaptureContext &m_Ctx;
+  PipelineStateViewer &m_Common;
 
   enum class GLReadWriteType
   {

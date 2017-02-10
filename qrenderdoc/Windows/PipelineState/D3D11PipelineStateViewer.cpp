@@ -31,6 +31,7 @@
 #include "Windows/MainWindow.h"
 #include "Windows/ShaderViewer.h"
 #include "Windows/TextureViewer.h"
+#include "PipelineStateViewer.h"
 #include "ui_D3D11PipelineStateViewer.h"
 
 Q_DECLARE_METATYPE(ResourceId);
@@ -73,8 +74,9 @@ struct ViewTag
 
 Q_DECLARE_METATYPE(ViewTag);
 
-D3D11PipelineStateViewer::D3D11PipelineStateViewer(CaptureContext &ctx, QWidget *parent)
-    : QFrame(parent), ui(new Ui::D3D11PipelineStateViewer), m_Ctx(ctx)
+D3D11PipelineStateViewer::D3D11PipelineStateViewer(CaptureContext &ctx, PipelineStateViewer &common,
+                                                   QWidget *parent)
+    : QFrame(parent), ui(new Ui::D3D11PipelineStateViewer), m_Ctx(ctx), m_Common(common)
 {
   ui->setupUi(this);
 
@@ -2191,32 +2193,7 @@ void D3D11PipelineStateViewer::shaderSave_clicked()
   if(stage->Shader == ResourceId())
     return;
 
-  QString filename = RDDialog::getSaveFileName(this, tr("Save Shader As"), QString(),
-                                               "DXBC Shader files (*.dxbc)");
-
-  if(filename != "")
-  {
-    QDir dirinfo = QFileInfo(filename).dir();
-    if(dirinfo.exists())
-    {
-      QFile f(filename);
-      if(f.open(QIODevice::WriteOnly | QIODevice::Truncate))
-      {
-        f.write((const char *)shaderDetails->RawBytes.elems, (qint64)shaderDetails->RawBytes.count);
-      }
-      else
-      {
-        RDDialog::critical(
-            this, tr("Error saving shader"),
-            tr("Couldn't open path %1 for write.\n%2").arg(filename).arg(f.errorString()));
-      }
-    }
-    else
-    {
-      RDDialog::critical(this, tr("Invalid directory"),
-                         tr("Cannot find target directory to save to"));
-    }
-  }
+  m_Common.SaveShaderFile(shaderDetails);
 }
 
 void D3D11PipelineStateViewer::on_exportHTML_clicked()

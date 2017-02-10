@@ -34,6 +34,7 @@ class VulkanPipelineStateViewer;
 
 class RDTreeWidget;
 class QTreeWidgetItem;
+class PipelineStateViewer;
 
 struct SamplerData
 {
@@ -47,7 +48,8 @@ class VulkanPipelineStateViewer : public QFrame, public ILogViewerForm
   Q_OBJECT
 
 public:
-  explicit VulkanPipelineStateViewer(CaptureContext &ctx, QWidget *parent = 0);
+  explicit VulkanPipelineStateViewer(CaptureContext &ctx, PipelineStateViewer &common,
+                                     QWidget *parent = 0);
   ~VulkanPipelineStateViewer();
 
   void OnLogfileLoaded();
@@ -77,6 +79,7 @@ private slots:
 private:
   Ui::VulkanPipelineStateViewer *ui;
   CaptureContext &m_Ctx;
+  PipelineStateViewer &m_Common;
 
   QVariantList makeSampler(
       const QString &bindset, const QString &slotname,

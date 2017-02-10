@@ -35,13 +35,15 @@ class D3D11PipelineStateViewer;
 class RDTreeWidget;
 class QTreeWidgetItem;
 struct ViewTag;
+class PipelineStateViewer;
 
 class D3D11PipelineStateViewer : public QFrame, public ILogViewerForm
 {
   Q_OBJECT
 
 public:
-  explicit D3D11PipelineStateViewer(CaptureContext &ctx, QWidget *parent = 0);
+  explicit D3D11PipelineStateViewer(CaptureContext &ctx, PipelineStateViewer &common,
+                                    QWidget *parent = 0);
   ~D3D11PipelineStateViewer();
 
   void OnLogfileLoaded();
@@ -63,6 +65,7 @@ private slots:
   // manual slots
   void shaderView_clicked();
   void shaderEdit_clicked();
+
   void shaderSave_clicked();
   void resource_itemActivated(QTreeWidgetItem *item, int column);
   void cbuffer_itemActivated(QTreeWidgetItem *item, int column);
@@ -71,6 +74,7 @@ private slots:
 private:
   Ui::D3D11PipelineStateViewer *ui;
   CaptureContext &m_Ctx;
+  PipelineStateViewer &m_Common;
 
   enum D3DBufferViewFlags
   {
