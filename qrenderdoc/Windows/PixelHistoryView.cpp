@@ -438,10 +438,10 @@ private:
     else
     {
       // modification
-      if(row > modRowMask)
+      if(quintptr(row) > modRowMask)
         qCritical() << "Packing failure - more than 255 modifications in one event";
 
-      return ((parent.internalId() & eventRowMask) << modRowBits) | (row & modRowMask);
+      return ((parent.internalId() & eventRowMask) << modRowBits) | (quintptr(row) & modRowMask);
     }
   }
 
