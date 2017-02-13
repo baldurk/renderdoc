@@ -52,7 +52,7 @@ EventBrowser::EventBrowser(CaptureContext &ctx, QWidget *parent)
 
   clearBookmarks();
 
-  ui->events->header()->resizeSection(COL_EID, 45);
+  ui->events->header()->resizeSection(COL_EID, 80);
 
   ui->events->header()->setSectionResizeMode(COL_NAME, QHeaderView::Stretch);
   ui->events->header()->setSectionResizeMode(COL_EID, QHeaderView::Interactive);
@@ -172,6 +172,9 @@ uint EventBrowser::AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<Fe
         parent, QStringList{QString(draws[i].name), QString("%1").arg(draws[i].eventID), "0.0"});
 
     lastEID = AddDrawcalls(child, draws[i].children);
+
+    if(lastEID > draws[i].eventID)
+      child->setText(COL_EID, QString("%1-%2").arg(draws[i].eventID).arg(lastEID));
 
     if(lastEID == 0)
     {
