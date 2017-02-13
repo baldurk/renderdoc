@@ -142,6 +142,9 @@ static bool InitDbgHelp()
   // can't reliably co-exist with dbghelp already being used in the process
   if(GetModuleHandleA("dbghelp.dll") != NULL)
   {
+    RDCLOG(
+        "dbghelp.dll is already loaded, can't guarantee thread-safety against application use. "
+        "Callstack collection disabled");
     ret = false;
     return false;
   }
