@@ -675,20 +675,25 @@ private:
 
     DWORD err = GetLastError();
 
-    if(rc && glhooks.m_HaveContextCreation && glhooks.m_Contexts.find(rc) == glhooks.m_Contexts.end())
     {
-      glhooks.m_Contexts.insert(rc);
+      SCOPED_LOCK(glLock);
 
-      glhooks.PopulateHooks();
+      if(rc && glhooks.m_HaveContextCreation &&
+         glhooks.m_Contexts.find(rc) == glhooks.m_Contexts.end())
+      {
+        glhooks.m_Contexts.insert(rc);
+
+        glhooks.PopulateHooks();
+      }
+
+      GLWindowingData data;
+      data.DC = dc;
+      data.wnd = WindowFromDC(dc);
+      data.ctx = rc;
+
+      if(glhooks.m_HaveContextCreation)
+        glhooks.GetDriver()->ActivateContext(data);
     }
-
-    GLWindowingData data;
-    data.DC = dc;
-    data.wnd = WindowFromDC(dc);
-    data.ctx = rc;
-
-    if(glhooks.m_HaveContextCreation)
-      glhooks.GetDriver()->ActivateContext(data);
 
     SetLastError(err);
 

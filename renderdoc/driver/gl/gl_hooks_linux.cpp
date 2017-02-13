@@ -949,7 +949,10 @@ __attribute__((visibility("default"))) GLXContext glXCreateContext(Display *dpy,
   data.wnd = (GLXDrawable)NULL;
   data.ctx = ret;
 
-  OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init, false, false);
+  {
+    SCOPED_LOCK(glLock);
+    OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init, false, false);
+  }
 
   return ret;
 }
@@ -959,7 +962,10 @@ __attribute__((visibility("default"))) void glXDestroyContext(Display *dpy, GLXC
   if(OpenGLHook::glhooks.glXDestroyContext_real == NULL)
     OpenGLHook::glhooks.SetupExportedFunctions();
 
-  OpenGLHook::glhooks.GetDriver()->DeleteContext(ctx);
+  {
+    SCOPED_LOCK(glLock);
+    OpenGLHook::glhooks.GetDriver()->DeleteContext(ctx);
+  }
 
   OpenGLHook::glhooks.glXDestroyContext_real(dpy, ctx);
 }
@@ -1065,7 +1071,10 @@ __attribute__((visibility("default"))) GLXContext glXCreateContextAttribsARB(
   data.wnd = (GLXDrawable)NULL;
   data.ctx = ret;
 
-  OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init, core, true);
+  {
+    SCOPED_LOCK(glLock);
+    OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareList, init, core, true);
+  }
 
   return ret;
 }
@@ -1077,6 +1086,8 @@ __attribute__((visibility("default"))) Bool glXMakeCurrent(Display *dpy, GLXDraw
     OpenGLHook::glhooks.SetupExportedFunctions();
 
   Bool ret = OpenGLHook::glhooks.glXMakeCurrent_real(dpy, drawable, ctx);
+
+  SCOPED_LOCK(glLock);
 
   if(ctx && OpenGLHook::glhooks.m_Contexts.find(ctx) == OpenGLHook::glhooks.m_Contexts.end())
   {
@@ -1102,6 +1113,8 @@ __attribute__((visibility("default"))) Bool glXMakeContextCurrent(Display *dpy, 
     OpenGLHook::glhooks.SetupExportedFunctions();
 
   Bool ret = OpenGLHook::glhooks.glXMakeContextCurrent_real(dpy, draw, read, ctx);
+
+  SCOPED_LOCK(glLock);
 
   if(ctx && OpenGLHook::glhooks.m_Contexts.find(ctx) == OpenGLHook::glhooks.m_Contexts.end())
   {
@@ -1220,7 +1233,10 @@ __attribute__((visibility("default"))) GLXWindow glXCreateWindow(Display *dpy, G
 
   GLXWindow ret = OpenGLHook::glhooks.glXCreateWindow_real(dpy, config, win, attribList);
 
-  OpenGLHook::glhooks.AddGLXWindow(ret, win);
+  {
+    SCOPED_LOCK(glLock);
+    OpenGLHook::glhooks.AddGLXWindow(ret, win);
+  }
 
   return ret;
 }
@@ -1230,7 +1246,10 @@ __attribute__((visibility("default"))) void glXDestroyWindow(Display *dpy, GLXWi
   if(OpenGLHook::glhooks.glXDestroyWindow_real == NULL)
     OpenGLHook::glhooks.SetupExportedFunctions();
 
-  OpenGLHook::glhooks.RemoveGLXWindow(window);
+  {
+    SCOPED_LOCK(glLock);
+    OpenGLHook::glhooks.RemoveGLXWindow(window);
+  }
 
   return OpenGLHook::glhooks.glXDestroyWindow_real(dpy, window);
 }

@@ -958,7 +958,10 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
   data.wnd = (EGLSurface)NULL;
   data.ctx = ret;
 
-  OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareContext, init, true, true);
+  {
+    SCOPED_LOCK(glLock);
+    OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareContext, init, true, true);
+  }
 
   return ret;
 }
@@ -968,7 +971,11 @@ __attribute__((visibility("default"))) EGLBoolean eglDestroyContext(EGLDisplay d
   if(OpenGLHook::glhooks.eglDestroyContext_real == NULL)
     OpenGLHook::glhooks.SetupExportedFunctions();
 
-  OpenGLHook::glhooks.GetDriver()->DeleteContext(ctx);
+  {
+    SCOPED_LOCK(glLock);
+    OpenGLHook::glhooks.GetDriver()->DeleteContext(ctx);
+  }
+
   return OpenGLHook::glhooks.eglDestroyContext_real(dpy, ctx);
 }
 
@@ -979,6 +986,8 @@ __attribute__((visibility("default"))) EGLBoolean eglMakeCurrent(EGLDisplay disp
     OpenGLHook::glhooks.SetupExportedFunctions();
 
   EGLBoolean ret = OpenGLHook::glhooks.eglMakeCurrent_real(display, draw, read, ctx);
+
+  SCOPED_LOCK(glLock);
 
   if(ctx && OpenGLHook::glhooks.m_Contexts.find(ctx) == OpenGLHook::glhooks.m_Contexts.end())
   {
