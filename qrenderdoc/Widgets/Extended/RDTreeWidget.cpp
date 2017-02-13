@@ -126,6 +126,12 @@ void RDTreeWidget::focusOutEvent(QFocusEvent *event)
   QTreeWidget::focusOutEvent(event);
 }
 
+void RDTreeWidget::keyPressEvent(QKeyEvent *e)
+{
+  emit(keyPress(e));
+  QTreeWidget::keyPressEvent(e);
+}
+
 void RDTreeWidget::clearHovers(QTreeWidgetItem *root, QTreeWidgetItem *exception)
 {
   for(int i = 0; i < root->childCount(); i++)

@@ -70,6 +70,7 @@ private slots:
 
   // manual slots
   void findHighlight_timeout();
+  void events_keyPress(QKeyEvent *event);
 
 public slots:
   void clearBookmarks();

@@ -23,6 +23,8 @@
  ******************************************************************************/
 
 #include "EventBrowser.h"
+#include <QKeyEvent>
+#include <QShortcut>
 #include <QTimer>
 #include "3rdparty/flowlayout/FlowLayout.h"
 #include "Code/CaptureContext.h"
@@ -76,6 +78,7 @@ EventBrowser::EventBrowser(CaptureContext &ctx, QWidget *parent)
   QObject::connect(ui->closeJump, &QToolButton::clicked, this, &EventBrowser::on_HideFindJump);
   QObject::connect(ui->jumpToEID, &RDLineEdit::leave, this, &EventBrowser::on_HideFindJump);
   QObject::connect(ui->findEvent, &RDLineEdit::leave, this, &EventBrowser::on_HideFindJump);
+  QObject::connect(ui->events, &RDTreeWidget::keyPress, this, &EventBrowser::events_keyPress);
   ui->jumpStrip->hide();
   ui->findStrip->hide();
   ui->bookmarkStrip->hide();
@@ -90,6 +93,42 @@ EventBrowser::EventBrowser(CaptureContext &ctx, QWidget *parent)
   m_CurrentIcon.addFile(QStringLiteral(":/flag_green.png"), QSize(), QIcon::Normal, QIcon::Off);
   m_FindIcon.addFile(QStringLiteral(":/find.png"), QSize(), QIcon::Normal, QIcon::Off);
   m_BookmarkIcon.addFile(QStringLiteral(":/asterisk_orange.png"), QSize(), QIcon::Normal, QIcon::Off);
+
+  Qt::Key keys[] = {
+      Qt::Key_1, Qt::Key_2, Qt::Key_3, Qt::Key_4, Qt::Key_5,
+      Qt::Key_6, Qt::Key_7, Qt::Key_8, Qt::Key_9, Qt::Key_0,
+  };
+  for(int i = 0; i < 10; i++)
+  {
+    QShortcut *sc = new QShortcut(QKeySequence(keys[i] | Qt::ControlModifier), this);
+    QObject::connect(sc, &QShortcut::activated, [this, i]() { jumpToBookmark(i); });
+  }
+
+  {
+    QShortcut *sc = new QShortcut(QKeySequence(Qt::Key_Left | Qt::ControlModifier), this);
+    QObject::connect(sc, &QShortcut::activated, [this]() {
+      if(!m_Ctx.LogLoaded())
+        return;
+
+      const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+
+      if(draw && draw->previous >= 0)
+        SelectEvent(draw->previous);
+    });
+  }
+
+  {
+    QShortcut *sc = new QShortcut(QKeySequence(Qt::Key_Right | Qt::ControlModifier), this);
+    QObject::connect(sc, &QShortcut::activated, [this]() {
+      if(!m_Ctx.LogLoaded())
+        return;
+
+      const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+
+      if(draw && draw->next >= 0)
+        SelectEvent(draw->next);
+    });
+  }
 }
 
 EventBrowser::~EventBrowser()
@@ -342,6 +381,43 @@ void EventBrowser::on_findPrev_clicked()
   Find(false);
 }
 
+void EventBrowser::events_keyPress(QKeyEvent *event)
+{
+  if(!m_Ctx.LogLoaded())
+    return;
+
+  if(event->key() == Qt::Key_F3)
+  {
+    if(event->modifiers() == Qt::ShiftModifier)
+      Find(false);
+    else
+      Find(true);
+  }
+
+  if(event->modifiers() == Qt::ControlModifier)
+  {
+    if(event->key() == Qt::Key_F)
+    {
+      on_find_clicked();
+      event->accept();
+    }
+    else if(event->key() == Qt::Key_G)
+    {
+      on_gotoEID_clicked();
+      event->accept();
+    }
+    else if(event->key() == Qt::Key_B)
+    {
+      on_bookmark_clicked();
+      event->accept();
+    }
+    else if(event->key() == Qt::Key_T)
+    {
+      on_timeDraws_clicked();
+      event->accept();
+    }
+  }
+}
 
 void EventBrowser::clearBookmarks()
 {
