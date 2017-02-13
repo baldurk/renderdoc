@@ -649,6 +649,7 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_TriggerExceptionHandler(void *exceptionPtrs,
                                                                              bool32 crashed);
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_SetDebugLogFile(const char *filename);
+extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetLogFile();
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogText(const char *text);
 extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogMessageType type,
                                                                 const char *project, const char *file,

@@ -134,14 +134,14 @@
     <property name="title">
      <string>&amp;Help</string>
     </property>
-    <addaction name="actionView_Documentation"/>
-    <addaction name="actionView_Diagnostic_Log_File"/>
-    <addaction name="actionSend_Error_Report"/>
+    <addaction name="action_View_Documentation"/>
+    <addaction name="action_View_Diagnostic_Log_File"/>
+    <addaction name="action_Send_Error_Report"/>
     <addaction name="separator"/>
     <addaction name="actionUpdate_available"/>
     <addaction name="separator"/>
-    <addaction name="actionSource_on_github"/>
-    <addaction name="actionBuild_Release_downloads"/>
+    <addaction name="action_Source_on_github"/>
+    <addaction name="action_Build_Release_downloads"/>
     <addaction name="action_About"/>
    </widget>
    <addaction name="menu_File"/>
@@ -340,17 +340,17 @@
     <string>&amp;Manage Remote Servers</string>
    </property>
   </action>
-  <action name="actionView_Documentation">
+  <action name="action_View_Documentation">
    <property name="text">
     <string>View &amp;Documentation</string>
    </property>
   </action>
-  <action name="actionView_Diagnostic_Log_File">
+  <action name="action_View_Diagnostic_Log_File">
    <property name="text">
     <string>View Diagnostic &amp;Log File</string>
    </property>
   </action>
-  <action name="actionSend_Error_Report">
+  <action name="action_Send_Error_Report">
    <property name="text">
     <string>Send &amp;Error Report</string>
    </property>
@@ -360,12 +360,12 @@
     <string>Update available</string>
    </property>
   </action>
-  <action name="actionSource_on_github">
+  <action name="action_Source_on_github">
    <property name="text">
     <string>Source on github</string>
    </property>
   </action>
-  <action name="actionBuild_Release_downloads">
+  <action name="action_Build_Release_downloads">
    <property name="text">
     <string>Build/Release downloads</string>
    </property>

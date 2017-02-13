@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "MainWindow.h"
+#include <QDesktopServices>
 #include <QFileDialog>
 #include <QFileInfo>
 #include <QMimeData>
@@ -1351,6 +1352,35 @@ void MainWindow::on_action_Settings_triggered()
 {
   SettingsDialog about(m_Ctx, this);
   RDDialog::show(&about);
+}
+
+void MainWindow::on_action_View_Documentation_triggered()
+{
+  QFileInfo fi(QGuiApplication::applicationFilePath());
+  QDir curDir = QFileInfo(QGuiApplication::applicationFilePath()).absoluteDir();
+
+  if(fi.absoluteDir().exists("renderdoc.chm"))
+    QDesktopServices::openUrl(
+        QUrl::fromLocalFile(fi.absoluteDir().absoluteFilePath("renderdoc.chm")));
+  else
+    QDesktopServices::openUrl(QUrl::fromUserInput("https://renderdoc.org/docs"));
+}
+
+void MainWindow::on_action_View_Diagnostic_Log_File_triggered()
+{
+  QString logPath = QString::fromUtf8(RENDERDOC_GetLogFile());
+  if(QFileInfo::exists(logPath))
+    QDesktopServices::openUrl(QUrl::fromLocalFile(logPath));
+}
+
+void MainWindow::on_action_Source_on_github_triggered()
+{
+  QDesktopServices::openUrl(QUrl::fromUserInput("https://github.com/baldurk/renderdoc"));
+}
+
+void MainWindow::on_action_Build_Release_downloads_triggered()
+{
+  QDesktopServices::openUrl(QUrl::fromUserInput("https://renderdoc.org/builds"));
 }
 
 void MainWindow::saveLayout_triggered()
