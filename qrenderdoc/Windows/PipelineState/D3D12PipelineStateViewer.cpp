@@ -354,6 +354,21 @@ D3D12PipelineStateViewer::D3D12PipelineStateViewer(CaptureContext &ctx, Pipeline
   // this is often changed just because we're changing some tab in the designer.
   ui->stagesTabs->setCurrentIndex(0);
 
+  ui->stagesTabs->tabBar()->setVisible(false);
+
+  ui->pipeFlow->setStages(
+      {
+          "IA", "VS", "HS", "DS", "GS", "RS", "PS", "OM", "CS",
+      },
+      {
+          "Input Assembler", "Vertex Shader", "Hull Shader", "Domain Shader", "Geometry Shader",
+          "Rasterizer", "Pixel Shader", "Output Merger", "Compute Shader",
+      });
+
+  ui->pipeFlow->setIsolatedStage(8);    // compute shader isolated
+
+  ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
+
   // reset everything back to defaults
   clearState();
 }
@@ -370,6 +385,8 @@ void D3D12PipelineStateViewer::OnLogfileLoaded()
 
 void D3D12PipelineStateViewer::OnLogfileClosed()
 {
+  ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
+
   clearState();
 }
 
@@ -1611,37 +1628,21 @@ void D3D12PipelineStateViewer::setState()
   ui->stencils->clearSelection();
   ui->stencils->setUpdatesEnabled(true);
 
-// highlight the appropriate stages in the flowchart
-#if 0
-  if(draw == null)
+  // highlight the appropriate stages in the flowchart
+  if(draw == NULL)
   {
-    pipeFlow.SetStagesEnabled(new bool[] { true, true, true, true, true, true, true, true, true });
+    ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
   }
-  else if((draw.flags & DrawcallFlags.Dispatch) != 0)
+  else if(draw->flags & eDraw_Dispatch)
   {
-    pipeFlow.SetStagesEnabled(new bool[] { false, false, false, false, false, false, false, false, true });
+    ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
   }
   else
   {
-    pipeFlow.SetStagesEnabled(new bool[] {
-      true,
-        true,
-        state.HS.Shader != ResourceId(),
-        state.DS.Shader != ResourceId(),
-        state.GS.Shader != ResourceId(),
-        true,
-        state.PS.Shader != ResourceId(),
-        true,
-        false
-    });
-
-    // if(streamout only)
-    //{
-    //    pipeFlow.Rasterizer = false;
-    //    pipeFlow.OutputMerger = false;
-    //}
+    ui->pipeFlow->setStagesEnabled(
+        {true, true, state.m_HS.Shader != ResourceId(), state.m_DS.Shader != ResourceId(),
+         state.m_GS.Shader != ResourceId(), true, state.m_PS.Shader != ResourceId(), true, false});
   }
-#endif
 }
 
 QString D3D12PipelineStateViewer::formatMembers(int indent, const QString &nameprefix,
@@ -2132,6 +2133,11 @@ void D3D12PipelineStateViewer::vertex_leave(QEvent *e)
     ui->iaBuffers->topLevelItem(0)->setDisabled(true);
     ui->iaBuffers->topLevelItem(0)->setDisabled(false);
   }
+}
+
+void D3D12PipelineStateViewer::on_pipeFlow_stageSelected(int index)
+{
+  ui->stagesTabs->setCurrentIndex(index);
 }
 
 void D3D12PipelineStateViewer::shaderView_clicked()

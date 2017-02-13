@@ -145,7 +145,8 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/Dialogs/SuggestRemoteDialog.cpp \
     Windows/Dialogs/VirtualFileDialog.cpp \
     Windows/Dialogs/RemoteManager.cpp \
-    Windows/PixelHistoryView.cpp
+    Windows/PixelHistoryView.cpp \
+    Widgets/PipelineFlowChart.cpp
 
 HEADERS += Code/CaptureContext.h \
     Code/qprocessinfo.h \
@@ -193,7 +194,8 @@ HEADERS += Code/CaptureContext.h \
     Windows/Dialogs/SuggestRemoteDialog.h \
     Windows/Dialogs/VirtualFileDialog.h \
     Windows/Dialogs/RemoteManager.h \
-    Windows/PixelHistoryView.h
+    Windows/PixelHistoryView.h \
+    Widgets/PipelineFlowChart.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \

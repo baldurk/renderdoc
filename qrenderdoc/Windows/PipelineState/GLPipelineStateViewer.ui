@@ -144,6 +144,28 @@
     </widget>
    </item>
    <item>
+    <widget class="PipelineFlowChart" name="pipeFlow">
+     <property name="sizePolicy">
+      <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+       <horstretch>0</horstretch>
+       <verstretch>0</verstretch>
+      </sizepolicy>
+     </property>
+     <property name="minimumSize">
+      <size>
+       <width>0</width>
+       <height>60</height>
+      </size>
+     </property>
+     <property name="maximumSize">
+      <size>
+       <width>16777215</width>
+       <height>75</height>
+      </size>
+     </property>
+    </widget>
+   </item>
+   <item>
     <widget class="QTabWidget" name="stagesTabs">
      <property name="currentIndex">
       <number>7</number>
@@ -5487,6 +5509,12 @@ padding: 0px;</string>
    <class>RDLabel</class>
    <extends>QLabel</extends>
    <header>Widgets/Extended/RDLabel.h</header>
+  </customwidget>
+  <customwidget>
+   <class>PipelineFlowChart</class>
+   <extends>QFrame</extends>
+   <header>Widgets/PipelineFlowChart.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources>

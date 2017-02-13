@@ -661,6 +661,7 @@
     <ClCompile Include="generated\moc_RemoteManager.cpp" />
     <ClCompile Include="generated\moc_PipelineStateViewer.cpp" />
     <ClCompile Include="generated\moc_QRDUtils.cpp" />
+    <ClCompile Include="generated\moc_PipelineFlowChart.cpp" />
     <ClCompile Include="generated\moc_RangeHistogram.cpp" />
     <ClCompile Include="generated\moc_RDDoubleSpinBox.cpp" />
     <ClCompile Include="generated\moc_RDLabel.cpp" />
@@ -706,6 +707,7 @@
     <ClCompile Include="Widgets\Extended\RDTableWidget.cpp" />
     <ClCompile Include="Widgets\Extended\RDTreeView.cpp" />
     <ClCompile Include="Widgets\Extended\RDTreeWidget.cpp" />
+    <ClCompile Include="Widgets\PipelineFlowChart.cpp" />
     <ClCompile Include="Widgets\RangeHistogram.cpp" />
     <ClCompile Include="Widgets\Extended\RDDoubleSpinBox.cpp" />
     <ClCompile Include="Widgets\Extended\RDLabel.cpp" />
@@ -961,6 +963,12 @@
       <Outputs>generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
     <CustomBuild Include="Widgets\Extended\RDTreeWidget.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\PipelineFlowChart.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(ProjectDir)generated\moc_%(Filename).cpp</Command>
       <Message>MOC %(Filename).h</Message>

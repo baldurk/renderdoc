@@ -324,6 +324,22 @@ GLPipelineStateViewer::GLPipelineStateViewer(CaptureContext &ctx, PipelineStateV
   // this is often changed just because we're changing some tab in the designer.
   ui->stagesTabs->setCurrentIndex(0);
 
+  ui->stagesTabs->tabBar()->setVisible(false);
+
+  ui->pipeFlow->setStages(
+      {
+          "VTX", "VS", "TCS", "TES", "GS", "RS", "FS", "FB", "CS",
+      },
+      {
+          "Vertex Input", "Vertex Shader", "Tess. Control Shader", "Tess. Eval. Shader",
+          "Geometry Shader", "Rasterizer", "Fragment Shader", "Framebuffer Output",
+          "Compute Shader",
+      });
+
+  ui->pipeFlow->setIsolatedStage(8);    // compute shader isolated
+
+  ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
+
   // reset everything back to defaults
   clearState();
 }
@@ -340,6 +356,8 @@ void GLPipelineStateViewer::OnLogfileLoaded()
 
 void GLPipelineStateViewer::OnLogfileClosed()
 {
+  ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
+
   clearState();
 }
 
@@ -1864,37 +1882,21 @@ void GLPipelineStateViewer::setState()
   ui->stencils->clearSelection();
   ui->stencils->setUpdatesEnabled(true);
 
-// highlight the appropriate stages in the flowchart
-#if 0
-  if(draw == null)
+  // highlight the appropriate stages in the flowchart
+  if(draw == NULL)
   {
-    pipeFlow.SetStagesEnabled(new bool[] { true, true, true, true, true, true, true, true, true });
+    ui->pipeFlow->setStagesEnabled({true, true, true, true, true, true, true, true, true});
   }
-  else if((draw.flags & DrawcallFlags.Dispatch) != 0)
+  else if(draw->flags & eDraw_Dispatch)
   {
-    pipeFlow.SetStagesEnabled(new bool[] { false, false, false, false, false, false, false, false, true });
+    ui->pipeFlow->setStagesEnabled({false, false, false, false, false, false, false, false, true});
   }
   else
   {
-    pipeFlow.SetStagesEnabled(new bool[] {
-      true,
-        true,
-        state.TCS.Shader != ResourceId(),
-        state.TES.Shader != ResourceId(),
-        state.GS.Shader != ResourceId(),
-        true,
-        state.FS.Shader != ResourceId(),
-        true,
-        false
-    });
-
-    // if(streamout only)
-    //{
-    //    pipeFlow.Rasterizer = false;
-    //    pipeFlow.OutputMerger = false;
-    //}
+    ui->pipeFlow->setStagesEnabled(
+        {true, true, state.m_TCS.Shader != ResourceId(), state.m_TES.Shader != ResourceId(),
+         state.m_GS.Shader != ResourceId(), true, state.m_FS.Shader != ResourceId(), true, false});
   }
-#endif
 }
 
 QString GLPipelineStateViewer::formatMembers(int indent, const QString &nameprefix,
@@ -2230,6 +2232,11 @@ void GLPipelineStateViewer::vertex_leave(QEvent *e)
     ui->viBuffers->topLevelItem(0)->setDisabled(true);
     ui->viBuffers->topLevelItem(0)->setDisabled(false);
   }
+}
+
+void GLPipelineStateViewer::on_pipeFlow_stageSelected(int index)
+{
+  ui->stagesTabs->setCurrentIndex(index);
 }
 
 void GLPipelineStateViewer::shaderView_clicked()

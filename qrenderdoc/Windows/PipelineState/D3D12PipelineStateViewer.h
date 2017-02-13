@@ -61,6 +61,7 @@ private slots:
   void on_iaBuffers_itemActivated(QTreeWidgetItem *item, int column);
   void on_iaLayouts_mouseMove(QMouseEvent *event);
   void on_iaBuffers_mouseMove(QMouseEvent *event);
+  void on_pipeFlow_stageSelected(int index);
 
   // manual slots
   void shaderView_clicked();
