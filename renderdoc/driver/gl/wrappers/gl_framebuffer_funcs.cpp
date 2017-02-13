@@ -1812,8 +1812,11 @@ bool WrappedOpenGL::Serialise_glNamedRenderbufferStorageEXT(GLuint renderbuffer,
     // create read-from texture for displaying this render buffer
     m_Real.glGenTextures(1, &texDetails.renderbufferReadTex);
     m_Real.glBindTexture(eGL_TEXTURE_2D, texDetails.renderbufferReadTex);
-    m_Real.glTextureStorage2DEXT(texDetails.renderbufferReadTex, eGL_TEXTURE_2D, 1, Format, Width,
-                                 Height);
+    m_Real.glTexImage2D(eGL_TEXTURE_2D, 0, Format, Width, Height, 0, GetBaseFormat(Format),
+                        GetDataType(Format), NULL);
+    m_Real.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+    m_Real.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_LINEAR);
+    m_Real.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_LINEAR);
 
     m_Real.glGenFramebuffers(2, texDetails.renderbufferFBOs);
     m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
