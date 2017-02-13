@@ -267,8 +267,7 @@ void EventBrowser::on_timeDraws_clicked()
     rdctype::array<CounterResult> results;
     r->FetchCounters(counters, 1, &results);
 
-    GUIInvoke::blockcall(
-        [this, results]() { SetDrawcallTimes(ui->events->topLevelItem(0), results); });
+    GUIInvoke::call([this, results]() { SetDrawcallTimes(ui->events->topLevelItem(0), results); });
   });
 }
 
