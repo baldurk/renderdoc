@@ -106,28 +106,12 @@ EventBrowser::EventBrowser(CaptureContext &ctx, QWidget *parent)
 
   {
     QShortcut *sc = new QShortcut(QKeySequence(Qt::Key_Left | Qt::ControlModifier), this);
-    QObject::connect(sc, &QShortcut::activated, [this]() {
-      if(!m_Ctx.LogLoaded())
-        return;
-
-      const FetchDrawcall *draw = m_Ctx.CurDrawcall();
-
-      if(draw && draw->previous >= 0)
-        SelectEvent(draw->previous);
-    });
+    QObject::connect(sc, &QShortcut::activated, this, &EventBrowser::on_stepPrev_clicked);
   }
 
   {
     QShortcut *sc = new QShortcut(QKeySequence(Qt::Key_Right | Qt::ControlModifier), this);
-    QObject::connect(sc, &QShortcut::activated, [this]() {
-      if(!m_Ctx.LogLoaded())
-        return;
-
-      const FetchDrawcall *draw = m_Ctx.CurDrawcall();
-
-      if(draw && draw->next >= 0)
-        SelectEvent(draw->next);
-    });
+    QObject::connect(sc, &QShortcut::activated, this, &EventBrowser::on_stepNext_clicked);
   }
 }
 
@@ -379,6 +363,28 @@ void EventBrowser::on_findNext_clicked()
 void EventBrowser::on_findPrev_clicked()
 {
   Find(false);
+}
+
+void EventBrowser::on_stepNext_clicked()
+{
+  if(!m_Ctx.LogLoaded())
+    return;
+
+  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+
+  if(draw && draw->next > 0)
+    SelectEvent(draw->next);
+}
+
+void EventBrowser::on_stepPrev_clicked()
+{
+  if(!m_Ctx.LogLoaded())
+    return;
+
+  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+
+  if(draw && draw->previous > 0)
+    SelectEvent(draw->previous);
 }
 
 void EventBrowser::events_keyPress(QKeyEvent *event)

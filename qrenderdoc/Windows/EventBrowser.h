@@ -67,6 +67,8 @@ private slots:
   void on_events_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
   void on_findNext_clicked();
   void on_findPrev_clicked();
+  void on_stepNext_clicked();
+  void on_stepPrev_clicked();
 
   // manual slots
   void findHighlight_timeout();

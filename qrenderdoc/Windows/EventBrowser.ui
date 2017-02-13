@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>662</width>
-    <height>590</height>
+    <width>275</width>
+    <height>298</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -59,6 +59,35 @@
        </property>
        <property name="text">
         <string>Controls</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="Line" name="line_2">
+       <property name="orientation">
+        <enum>Qt::Vertical</enum>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="stepPrev">
+       <property name="icon">
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/back.png</normaloff>:/back.png</iconset>
+       </property>
+       <property name="autoRaise">
+        <bool>true</bool>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QToolButton" name="stepNext">
+       <property name="icon">
+        <iconset resource="../Resources/resources.qrc">
+         <normaloff>:/forward.png</normaloff>:/forward.png</iconset>
+       </property>
+       <property name="autoRaise">
+        <bool>true</bool>
        </property>
       </widget>
      </item>
