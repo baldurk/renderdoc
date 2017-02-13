@@ -76,8 +76,6 @@ EventBrowser::EventBrowser(CaptureContext &ctx, QWidget *parent)
 
   QObject::connect(ui->closeFind, &QToolButton::clicked, this, &EventBrowser::on_HideFindJump);
   QObject::connect(ui->closeJump, &QToolButton::clicked, this, &EventBrowser::on_HideFindJump);
-  QObject::connect(ui->jumpToEID, &RDLineEdit::leave, this, &EventBrowser::on_HideFindJump);
-  QObject::connect(ui->findEvent, &RDLineEdit::leave, this, &EventBrowser::on_HideFindJump);
   QObject::connect(ui->events, &RDTreeWidget::keyPress, this, &EventBrowser::events_keyPress);
   ui->jumpStrip->hide();
   ui->findStrip->hide();
@@ -301,7 +299,6 @@ void EventBrowser::on_HideFindJump()
   ui->jumpToEID->setText("");
 
   ClearFindIcons();
-  ui->findEvent->setText("");
   ui->findEvent->setStyleSheet("");
 }
 
@@ -344,16 +341,30 @@ void EventBrowser::on_findEvent_textEdited(const QString &arg1)
 
 void EventBrowser::on_findEvent_returnPressed()
 {
+  // stop the timer, we'll manually fire it instantly
   if(m_FindHighlight->isActive())
-  {
-    // manually fire it instantly
     m_FindHighlight->stop();
-    findHighlight_timeout();
-  }
 
   if(!ui->findEvent->text().isEmpty())
-  {
     Find(true);
+
+  findHighlight_timeout();
+}
+
+void EventBrowser::on_findEvent_keyPress(QKeyEvent *event)
+{
+  if(event->key() == Qt::Key_F3)
+  {
+    // stop the timer, we'll manually fire it instantly
+    if(m_FindHighlight->isActive())
+      m_FindHighlight->stop();
+
+    if(!ui->findEvent->text().isEmpty())
+      Find(event->modifiers() & Qt::ShiftModifier ? false : true);
+
+    findHighlight_timeout();
+
+    event->accept();
   }
 }
 

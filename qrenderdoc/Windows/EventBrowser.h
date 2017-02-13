@@ -63,6 +63,7 @@ private slots:
   void on_HideFindJump();
   void on_jumpToEID_returnPressed();
   void on_findEvent_returnPressed();
+  void on_findEvent_keyPress(QKeyEvent *event);
   void on_findEvent_textEdited(const QString &arg1);
   void on_events_currentItemChanged(QTreeWidgetItem *current, QTreeWidgetItem *previous);
   void on_findNext_clicked();
