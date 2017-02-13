@@ -32,10 +32,32 @@
 
 // SHARING - as above, for handling resource sharing between queues
 
+#include "common/common.h"
+
 #define VK_NO_PROTOTYPES
 
+#if ENABLED(RDOC_X64)
+
+#define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
+
+#else
+
+// make handles typed even on 32-bit, by relying on C++
+#define VK_DEFINE_NON_DISPATCHABLE_HANDLE(obj)                                 \
+  struct obj                                                                   \
+  {                                                                            \
+    obj() : handle(0) {}                                                       \
+    obj(uint64_t x) : handle(x) {}                                             \
+    bool operator==(const obj &other) const { return handle == other.handle; } \
+    bool operator<(const obj &other) const { return handle < other.handle; }   \
+    bool operator!=(const obj &other) const { return handle != other.handle; } \
+    uint64_t handle;                                                           \
+  };
+#define VK_NON_DISPATCHABLE_WRAPPER_STRUCT
+
+#endif
+
 #include "api/replay/renderdoc_replay.h"
-#include "common/common.h"
 #include "core/core.h"
 #include "official/vulkan.h"
 #include "serialise/serialiser.h"
