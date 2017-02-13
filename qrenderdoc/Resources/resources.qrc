@@ -1,6 +1,5 @@
 <RCC>
     <qresource prefix="/">
-        <file>logo128.png</file>
         <file>accept.png</file>
         <file>add.png</file>
         <file>arrow_in.png</file>
@@ -30,6 +29,7 @@
         <file>house.png</file>
         <file>icon.ico</file>
         <file>information.png</file>
+        <file>logo.svg</file>
         <file>new_window.png</file>
         <file>page_white_code.png</file>
         <file>page_white_database.png</file>

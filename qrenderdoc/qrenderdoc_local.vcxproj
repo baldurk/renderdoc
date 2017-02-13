@@ -1389,6 +1389,11 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
+    <Content Include="3rdparty\qt\$(Platform)\bin\Qt5Svg.dll">
+      <Link>Qt5Svg.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\renderdoc\renderdoc.vcxproj">
