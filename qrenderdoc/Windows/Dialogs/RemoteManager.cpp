@@ -26,6 +26,7 @@
 #include <QKeyEvent>
 #include "3rdparty/flowlayout/FlowLayout.h"
 #include "Code/RemoteHost.h"
+#include "Code/Resources.h"
 #include "Windows/Dialogs/LiveCapture.h"
 #include "Windows/MainWindow.h"
 #include "ui_RemoteManager.h"
@@ -165,7 +166,7 @@ void RemoteManager::addHost(RemoteHost *host)
   QTreeWidgetItem *node = makeTreeNode({host->Hostname, "..."});
 
   setItalic(node, true);
-  node->setIcon(0, QIcon(QPixmap(QString::fromUtf8(":/hourglass.png"))));
+  node->setIcon(0, Icons::hourglass());
   setRemoteHost(node, host);
 
   ui->hosts->addTopLevelItem(node);
@@ -540,7 +541,7 @@ void RemoteManager::on_refreshAll_clicked()
 
     deleteChildren(n);
     setItalic(n, true);
-    n->setIcon(0, QIcon(QPixmap(QString::fromUtf8(":/hourglass.png"))));
+    n->setIcon(0, Icons::hourglass());
 
     refreshHost(n);
   }
@@ -560,7 +561,7 @@ void RemoteManager::on_refreshOne_clicked()
   {
     deleteChildren(n);
     setItalic(n, true);
-    n->setIcon(0, QIcon(QPixmap(QString::fromUtf8(":/hourglass.png"))));
+    n->setIcon(0, Icons::hourglass());
 
     refreshHost(n);
   }

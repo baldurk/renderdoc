@@ -522,6 +522,9 @@
     <ClCompile Include="Widgets\Extended\RDTreeView.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
+    <ClCompile Include="Code\Resources.cpp">
+      <Filter>Code</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -796,6 +799,9 @@
     </ClInclude>
     <ClInclude Include="generated\ui_PixelHistoryView.h">
       <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="Code\Resources.h">
+      <Filter>Code</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

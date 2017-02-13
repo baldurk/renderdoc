@@ -26,6 +26,7 @@
 #include <QKeyEvent>
 #include <QToolButton>
 #include "Code/QRDUtils.h"
+#include "Code/Resources.h"
 #include "ui_OrderedListEditor.h"
 
 OrderedListEditor::OrderedListEditor(const QString &windowName, const QString &itemName,
@@ -69,7 +70,7 @@ QToolButton *OrderedListEditor::makeBrowseButton()
 {
   QToolButton *ret = new QToolButton(this);
 
-  ret->setIcon(QIcon(QPixmap(QString::fromUtf8(":/folder_page.png"))));
+  ret->setIcon(Icons::folder_page());
   ret->setAutoRaise(true);
 
   QObject::connect(ret, &QToolButton::clicked, this, &OrderedListEditor::browse_clicked);

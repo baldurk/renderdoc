@@ -31,6 +31,7 @@
 #include <QSortFilterProxyModel>
 #include "Code/CaptureContext.h"
 #include "Code/RenderManager.h"
+#include "Code/Resources.h"
 #include "ui_VirtualFileDialog.h"
 
 class RemoteFileModel : public QAbstractItemModel
@@ -50,9 +51,9 @@ public:
   RemoteFileModel(RenderManager &r, QObject *parent = NULL)
       : Renderer(r), QAbstractItemModel(parent)
   {
-    makeIconStates(fileIcon, QString::fromUtf8(":/page_white_database.png"));
-    makeIconStates(exeIcon, QString::fromUtf8(":/page_white_code.png"));
-    makeIconStates(dirIcon, QString::fromUtf8(":/folder_page.png"));
+    makeIconStates(fileIcon, Pixmaps::page_white_database());
+    makeIconStates(exeIcon, Pixmaps::page_white_code());
+    makeIconStates(dirIcon, Pixmaps::folder_page());
 
     Renderer.GetHomeFolder(true, [this](const char *path, const rdctype::array<DirectoryFile> &files) {
       QString homeDir = QString::fromUtf8(path);
@@ -365,9 +366,8 @@ private:
   QIcon exeIcon[2];
   QIcon fileIcon[2];
 
-  void makeIconStates(QIcon *icon, const QString &iconSource)
+  void makeIconStates(QIcon *icon, const QPixmap &normalPixmap)
   {
-    QPixmap normalPixmap(iconSource);
     QPixmap disabledPixmap(normalPixmap.size());
     disabledPixmap.fill(Qt::transparent);
     QPainter p(&disabledPixmap);

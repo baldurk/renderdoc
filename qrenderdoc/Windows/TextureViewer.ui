@@ -829,7 +829,7 @@
       </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
-        <normaloff>:/delete.png</normaloff>:/delete.png</iconset>
+        <normaloff>:/del.png</normaloff>:/del.png</iconset>
       </property>
       <property name="autoRaise">
        <bool>true</bool>

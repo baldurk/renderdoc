@@ -26,6 +26,7 @@
 #include <float.h>
 #include <QScrollBar>
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
+#include "Code/Resources.h"
 #include "Windows/BufferViewer.h"
 #include "Windows/ConstantBufferPreviewer.h"
 #include "Windows/MainWindow.h"
@@ -520,7 +521,7 @@ void VulkanPipelineStateViewer::clearState()
   clearShaderState(ui->fsShader, ui->fsResources, ui->fsUBOs);
   clearShaderState(ui->csShader, ui->csResources, ui->csUBOs);
 
-  QPixmap tick(QString::fromUtf8(":/tick.png"));
+  const QPixmap &tick = Pixmaps::tick();
 
   ui->fillMode->setText(tr("Solid", "Fill Mode"));
   ui->cullMode->setText(tr("Front", "Cull Mode"));
@@ -654,8 +655,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
   const ShaderResource *shaderRes = NULL;
   const BindpointMap *bindMap = NULL;
 
-  QIcon action(QPixmap(QString::fromUtf8(":/action.png")));
-  QIcon action_hover(QPixmap(QString::fromUtf8(":/action_hover.png")));
+  const QIcon &action = Icons::action();
+  const QIcon &action_hover = Icons::action_hover();
 
   bool isrw = false;
   uint bindPoint = 0;
@@ -1034,8 +1035,8 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   const ConstantBlock *cblock = NULL;
   const BindpointMap *bindMap = NULL;
 
-  QIcon action(QPixmap(QString::fromUtf8(":/action.png")));
-  QIcon action_hover(QPixmap(QString::fromUtf8(":/action_hover.png")));
+  const QIcon &action = Icons::action();
+  const QIcon &action_hover = Icons::action_hover();
 
   uint32_t slot = ~0U;
   if(shaderDetails != NULL)
@@ -1212,8 +1213,8 @@ void VulkanPipelineStateViewer::setShaderState(const VulkanPipelineState::Shader
 {
   ShaderReflection *shaderDetails = stage.ShaderDetails;
 
-  QIcon action(QPixmap(QString::fromUtf8(":/action.png")));
-  QIcon action_hover(QPixmap(QString::fromUtf8(":/action_hover.png")));
+  const QIcon &action = Icons::action();
+  const QIcon &action_hover = Icons::action_hover();
 
   if(stage.Shader == ResourceId())
     shader->setText(tr("Unbound Shader"));
@@ -1420,11 +1421,11 @@ void VulkanPipelineStateViewer::setState()
   bool showDisabled = ui->showDisabled->isChecked();
   bool showEmpty = ui->showEmpty->isChecked();
 
-  QPixmap tick(QString::fromUtf8(":/tick.png"));
-  QPixmap cross(QString::fromUtf8(":/cross.png"));
+  const QPixmap &tick = Pixmaps::tick();
+  const QPixmap &cross = Pixmaps::cross();
 
-  QIcon action(QPixmap(QString::fromUtf8(":/action.png")));
-  QIcon action_hover(QPixmap(QString::fromUtf8(":/action_hover.png")));
+  const QIcon &action = Icons::action();
+  const QIcon &action_hover = Icons::action_hover();
 
   bool usedBindings[128] = {};
 
@@ -1499,40 +1500,24 @@ void VulkanPipelineStateViewer::setState()
 
   switch(topo)
   {
-    case eTopology_PointList:
-      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_pointlist.png")));
-      break;
-    case eTopology_LineList:
-      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_linelist.png")));
-      break;
-    case eTopology_LineStrip:
-      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_linestrip.png")));
-      break;
-    case eTopology_TriangleList:
-      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_trilist.png")));
-      break;
-    case eTopology_TriangleStrip:
-      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_tristrip.png")));
-      break;
+    case eTopology_PointList: ui->topologyDiagram->setPixmap(Pixmaps::topo_pointlist()); break;
+    case eTopology_LineList: ui->topologyDiagram->setPixmap(Pixmaps::topo_linelist()); break;
+    case eTopology_LineStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_linestrip()); break;
+    case eTopology_TriangleList: ui->topologyDiagram->setPixmap(Pixmaps::topo_trilist()); break;
+    case eTopology_TriangleStrip: ui->topologyDiagram->setPixmap(Pixmaps::topo_tristrip()); break;
     case eTopology_LineList_Adj:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/topologies/topo_linelist_adj.png")));
+      ui->topologyDiagram->setPixmap(Pixmaps::topo_linelist_adj());
       break;
     case eTopology_LineStrip_Adj:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/topologies/topo_linestrip_adj.png")));
+      ui->topologyDiagram->setPixmap(Pixmaps::topo_linestrip_adj());
       break;
     case eTopology_TriangleList_Adj:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/topologies/topo_trilist_adj.png")));
+      ui->topologyDiagram->setPixmap(Pixmaps::topo_trilist_adj());
       break;
     case eTopology_TriangleStrip_Adj:
-      ui->topologyDiagram->setPixmap(
-          QPixmap(QString::fromUtf8(":/topologies/topo_tristrip_adj.png")));
+      ui->topologyDiagram->setPixmap(Pixmaps::topo_tristrip_adj());
       break;
-    default:
-      ui->topologyDiagram->setPixmap(QPixmap(QString::fromUtf8(":/topologies/topo_patch.png")));
-      break;
+    default: ui->topologyDiagram->setPixmap(Pixmaps::topo_patch()); break;
   }
 
   vs = ui->viBuffers->verticalScrollBar()->value();

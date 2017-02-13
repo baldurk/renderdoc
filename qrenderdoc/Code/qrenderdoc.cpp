@@ -30,6 +30,7 @@
 #include <QStandardPaths>
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
+#include "Code/Resources.h"
 #include "Windows/MainWindow.h"
 
 void sharedLogOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
@@ -140,6 +141,8 @@ int main(int argc, char *argv[])
     }
 
     config.SetupFormatting();
+
+    Resources::Initialise();
 
     GUIInvoke::init();
 

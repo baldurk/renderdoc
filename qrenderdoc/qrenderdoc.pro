@@ -107,6 +107,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Code/QRDUtils.cpp \
     Code/FormatElement.cpp \
     Code/RemoteHost.cpp \
+    Code/Resources.cpp \
     Windows/Dialogs/AboutDialog.cpp \
     Windows/MainWindow.cpp \
     Windows/EventBrowser.cpp \
@@ -154,6 +155,7 @@ HEADERS += Code/CaptureContext.h \
     Code/ScintillaSyntax.h \
     Code/RemoteHost.h \
     Code/QRDUtils.h \
+    Code/Resources.h \
     Windows/Dialogs/AboutDialog.h \
     Windows/MainWindow.h \
     Windows/EventBrowser.h \

@@ -24,6 +24,7 @@
 
 #include "SuggestRemoteDialog.h"
 #include <QMenu>
+#include "Code/Resources.h"
 #include "ui_SuggestRemoteDialog.h"
 
 SuggestRemoteDialog::SuggestRemoteDialog(const QString &driver, const QString &machineIdent,
@@ -69,7 +70,7 @@ void SuggestRemoteDialog::remotesAdded()
                        tr("the capture locally?"));
 
   ui->remote->setEnabled(true);
-  ui->remote->setIcon(QIcon(QPixmap(QString::fromUtf8(":/down_arrow.png"))));
+  ui->remote->setIcon(Icons::down_arrow());
   ui->remote->setText("Remote");
 }
 

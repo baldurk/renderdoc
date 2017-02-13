@@ -1,6 +1,6 @@
 <RCC>
     <qresource prefix="/">
-        <file>128.png</file>
+        <file>logo128.png</file>
         <file>accept.png</file>
         <file>add.png</file>
         <file>arrow_in.png</file>
@@ -15,7 +15,7 @@
         <file>connect.png</file>
         <file>cross.png</file>
         <file>crosshatch.png</file>
-        <file>delete.png</file>
+        <file>del.png</file>
         <file>disconnect.png</file>
         <file>down_arrow.png</file>
         <file>find.png</file>

@@ -31,6 +31,7 @@
 #include <QToolButton>
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
+#include "Code/Resources.h"
 #include "PipelineState/PipelineStateViewer.h"
 #include "Resources/resource.h"
 #include "Widgets/Extended/RDLabel.h"
@@ -109,7 +110,7 @@ MainWindow::MainWindow(CaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Main
 
   contextChooser = new QToolButton(this);
   contextChooser->setText(tr("Replay Context: %1").arg("Local"));
-  contextChooser->setIcon(QIcon(QPixmap(QString::fromUtf8(":/house.png"))));
+  contextChooser->setIcon(Icons::house());
   contextChooser->setAutoRaise(true);
   contextChooser->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
   contextChooser->setPopupMode(QToolButton::InstantPopup);
@@ -838,10 +839,9 @@ void MainWindow::setLogHasErrors(bool errors)
   QString filename = QFileInfo(m_Ctx.LogFilename()).fileName();
   if(errors)
   {
-    QPixmap icon(QString::fromUtf8(":/delete.png"));
-    QPixmap empty(icon.width(), icon.height());
+    QPixmap empty(Pixmaps::del().width(), Pixmaps::del().height());
     empty.fill(Qt::transparent);
-    statusIcon->setPixmap(m_messageAlternate ? empty : icon);
+    statusIcon->setPixmap(m_messageAlternate ? empty : Pixmaps::del());
 
     QString text;
     text = tr("%1 loaded. Log has %2 errors, warnings or performance notes. "
@@ -854,7 +854,7 @@ void MainWindow::setLogHasErrors(bool errors)
   }
   else
   {
-    statusIcon->setPixmap(QPixmap(QString::fromUtf8(":/tick.png")));
+    statusIcon->setPixmap(Pixmaps::tick());
     statusText->setText(tr("%1 loaded. No problems detected.").arg(filename));
   }
 }
@@ -910,7 +910,7 @@ void MainWindow::messageCheck()
         }
 
         if(m_Ctx.Renderer().remote() && !m_Ctx.Renderer().remote()->ServerRunning)
-          contextChooser->setIcon(QIcon(QPixmap(QString::fromUtf8(":/cross.png"))));
+          contextChooser->setIcon(Icons::cross());
 
         if(!msgs.empty())
         {
@@ -935,7 +935,7 @@ void MainWindow::messageCheck()
     GUIInvoke::call([this]() {
       if(m_Ctx.Renderer().remote() && !m_Ctx.Renderer().remote()->ServerRunning)
       {
-        contextChooser->setIcon(QIcon(QPixmap(QString::fromUtf8(":/cross.png"))));
+        contextChooser->setIcon(Icons::cross());
         contextChooser->setText(tr("Replay Context: %1").arg("Local"));
         statusText->setText(
             tr("Remote server disconnected. To attempt to reconnect please select it again."));
@@ -950,9 +950,6 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
 {
   menu->clear();
 
-  QIcon tick(QPixmap(QString::fromUtf8(":/tick.png")));
-  QIcon cross(QPixmap(QString::fromUtf8(":/cross.png")));
-
   for(int i = 0; i < m_Ctx.Config.RemoteHosts.count(); i++)
   {
     RemoteHost *host = m_Ctx.Config.RemoteHosts[i];
@@ -963,7 +960,7 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
 
     QAction *action = new QAction(menu);
 
-    action->setIcon(host->ServerRunning && !host->VersionMismatch ? tick : cross);
+    action->setIcon(host->ServerRunning && !host->VersionMismatch ? Icons::tick() : Icons::cross());
     if(host->Connected)
       action->setText(tr("%1 (Connected)").arg(host->Hostname));
     else if(host->ServerRunning && host->VersionMismatch)
@@ -989,7 +986,7 @@ void MainWindow::FillRemotesMenu(QMenu *menu, bool includeLocalhost)
     QAction *localContext = new QAction(menu);
 
     localContext->setText("Local");
-    localContext->setIcon(QIcon(QPixmap(QString::fromUtf8(":/house.png"))));
+    localContext->setIcon(Icons::house());
 
     QObject::connect(localContext, &QAction::triggered, this, &MainWindow::switchContext);
     localContext->setData(-1);
@@ -1049,7 +1046,7 @@ void MainWindow::switchContext()
 
   if(!host)
   {
-    contextChooser->setIcon(QIcon(QPixmap(QString::fromUtf8(":/house.png"))));
+    contextChooser->setIcon(Icons::house());
     contextChooser->setText(tr("Replay Context: %1").arg("Local"));
 
     ui->action_Inject_into_Process->setEnabled(true);
@@ -1061,9 +1058,7 @@ void MainWindow::switchContext()
   else
   {
     contextChooser->setText(tr("Replay Context: %1").arg(host->Hostname));
-    contextChooser->setIcon(host->ServerRunning
-                                ? QIcon(QPixmap(QString::fromUtf8(":/connect.png")))
-                                : QIcon(QPixmap(QString::fromUtf8(":/disconnect.png"))));
+    contextChooser->setIcon(host->ServerRunning ? Icons::connect() : Icons::disconnect());
 
     // disable until checking is done
     contextChooser->setEnabled(false);
@@ -1096,13 +1091,12 @@ void MainWindow::switchContext()
       }
 
       GUIInvoke::call([this, host, status]() {
-        contextChooser->setIcon(host->ServerRunning && !host->Busy
-                                    ? QIcon(QPixmap(QString::fromUtf8(":/connect.png")))
-                                    : QIcon(QPixmap(QString::fromUtf8(":/disconnect.png"))));
+        contextChooser->setIcon(host->ServerRunning && !host->Busy ? Icons::connect()
+                                                                   : Icons::disconnect());
 
         if(status != eReplayCreate_Success)
         {
-          contextChooser->setIcon(QIcon(QPixmap(QString::fromUtf8(":/cross.png"))));
+          contextChooser->setIcon(Icons::cross());
           contextChooser->setText(tr("Replay Context: %1").arg("Local"));
           statusText->setText(tr("Connection failed: %1").arg(ToQStr(status)));
         }

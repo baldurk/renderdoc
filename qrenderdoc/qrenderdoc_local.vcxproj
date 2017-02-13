@@ -642,6 +642,7 @@
     <ClCompile Include="Code\qprocessinfo.cpp" />
     <ClCompile Include="Code\QRDUtils.cpp" />
     <ClCompile Include="Code\RemoteHost.cpp" />
+    <ClCompile Include="Code\Resources.cpp" />
     <ClCompile Include="Code\ScintillaSyntax.cpp" />
     <ClCompile Include="generated\moc_AboutDialog.cpp" />
     <ClCompile Include="generated\moc_APIInspector.cpp" />
@@ -857,6 +858,7 @@
       <Outputs>generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h" />
+    <ClInclude Include="Code\Resources.h" />
     <ClInclude Include="generated\ui_AboutDialog.h" />
     <ClInclude Include="generated\ui_APIInspector.h" />
     <ClInclude Include="generated\ui_BufferFormatSpecifier.h" />
