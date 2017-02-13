@@ -24,7 +24,7 @@
 
 //#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
 
-layout(binding=0, std140) writeonly buffer minmaxresultdest
+layout(binding=0, std140) buffer minmaxresultdest
 {
 	uvec4 result[HGRAM_NUM_BUCKETS];
 } dest;
