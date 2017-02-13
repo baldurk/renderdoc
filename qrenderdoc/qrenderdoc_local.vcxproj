@@ -1394,6 +1394,26 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </Content>
+    <Content Include="3rdparty\qt\$(Platform)\bin\Qt5Cored.dll" Condition="$(Configuration)==QTDebug">
+      <Link>Qt5Cored.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>False</Visible>
+    </Content>
+    <Content Include="3rdparty\qt\$(Platform)\bin\Qt5Guid.dll" Condition="$(Configuration)==QTDebug">
+      <Link>Qt5Guid.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="3rdparty\qt\$(Platform)\bin\Qt5Widgetsd.dll" Condition="$(Configuration)==QTDebug">
+      <Link>Qt5Widgetsd.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="3rdparty\qt\$(Platform)\bin\Qt5Svgd.dll" Condition="$(Configuration)==QTDebug">
+      <Link>Qt5Svgd.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\renderdoc\renderdoc.vcxproj">
