@@ -24,6 +24,7 @@
 
 #include "EventBrowser.h"
 #include <QTimer>
+#include "3rdparty/flowlayout/FlowLayout.h"
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
 #include "ui_EventBrowser.h"
@@ -46,6 +47,8 @@ EventBrowser::EventBrowser(CaptureContext &ctx, QWidget *parent)
   ui->setupUi(this);
 
   m_Ctx.AddLogViewer(this);
+
+  clearBookmarks();
 
   ui->events->header()->resizeSection(COL_EID, 45);
 
@@ -77,6 +80,13 @@ EventBrowser::EventBrowser(CaptureContext &ctx, QWidget *parent)
   ui->findStrip->hide();
   ui->bookmarkStrip->hide();
 
+  m_BookmarkStripLayout = new FlowLayout(ui->bookmarkStrip, 0, 3, 3);
+  m_BookmarkSpacer = new QSpacerItem(40, 20, QSizePolicy::Expanding, QSizePolicy::Minimum);
+
+  ui->bookmarkStrip->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
+  m_BookmarkStripLayout->addWidget(ui->bookmarkStripHeader);
+  m_BookmarkStripLayout->addItem(m_BookmarkSpacer);
+
   m_CurrentIcon.addFile(QStringLiteral(":/flag_green.png"), QSize(), QIcon::Normal, QIcon::Off);
   m_FindIcon.addFile(QStringLiteral(":/find.png"), QSize(), QIcon::Normal, QIcon::Off);
   m_BookmarkIcon.addFile(QStringLiteral(":/asterisk_orange.png"), QSize(), QIcon::Normal, QIcon::Off);
@@ -95,6 +105,8 @@ void EventBrowser::OnLogfileLoaded()
   QTreeWidgetItem *frame = new QTreeWidgetItem(
       (QTreeWidget *)NULL,
       QStringList{QString("Frame #%1").arg(m_Ctx.FrameInfo().frameNumber), "", ""});
+
+  clearBookmarks();
 
   QTreeWidgetItem *framestart = new QTreeWidgetItem(frame, QStringList{"Frame Start", "0", ""});
   framestart->setData(COL_EID, Qt::UserRole, QVariant(0));
@@ -116,12 +128,15 @@ void EventBrowser::OnLogfileLoaded()
 
 void EventBrowser::OnLogfileClosed()
 {
+  clearBookmarks();
+
   ui->events->clear();
 }
 
 void EventBrowser::OnEventChanged(uint32_t eventID)
 {
   SelectEvent(eventID);
+  highlightBookmarks();
 }
 
 uint EventBrowser::AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<FetchDrawcall> &draws)
@@ -199,7 +214,6 @@ void EventBrowser::on_find_clicked()
 {
   ui->jumpStrip->hide();
   ui->findStrip->show();
-  ui->bookmarkStrip->hide();
   ui->findEvent->setFocus();
 }
 
@@ -207,15 +221,15 @@ void EventBrowser::on_gotoEID_clicked()
 {
   ui->jumpStrip->show();
   ui->findStrip->hide();
-  ui->bookmarkStrip->hide();
   ui->jumpToEID->setFocus();
 }
 
-void EventBrowser::on_toolButton_clicked()
+void EventBrowser::on_bookmark_clicked()
 {
-  ui->jumpStrip->hide();
-  ui->findStrip->hide();
-  ui->bookmarkStrip->show();
+  QTreeWidgetItem *n = ui->events->currentItem();
+
+  if(n)
+    toggleBookmark(n->data(COL_LAST_EID, Qt::UserRole).toUInt());
 }
 
 void EventBrowser::on_timeDraws_clicked()
@@ -250,6 +264,8 @@ void EventBrowser::on_events_currentItemChanged(QTreeWidgetItem *current, QTreeW
   uint lastEID = current->data(COL_LAST_EID, Qt::UserRole).toUInt();
 
   m_Ctx.SetEventID({this}, EID, lastEID);
+
+  highlightBookmarks();
 }
 
 void EventBrowser::on_HideFindJump()
@@ -326,21 +342,119 @@ void EventBrowser::on_findPrev_clicked()
   Find(false);
 }
 
+
+void EventBrowser::clearBookmarks()
+{
+  for(QToolButton *b : m_BookmarkButtons)
+    delete b;
+
+  m_Bookmarks.clear();
+  m_BookmarkButtons.clear();
+
+  ui->bookmarkStrip->setVisible(false);
+}
+
+void EventBrowser::toggleBookmark(uint32_t EID)
+{
+  int index = m_Bookmarks.indexOf(EID);
+
+  QTreeWidgetItem *found = NULL;
+  FindEventNode(found, ui->events->topLevelItem(0), EID);
+
+  if(index >= 0)
+  {
+    delete m_BookmarkButtons.takeAt(index);
+    m_Bookmarks.removeAt(index);
+
+    if(found)
+    {
+      found->setData(COL_BOOKMARK, Qt::UserRole, QVariant(false));
+      RefreshIcon(found);
+    }
+  }
+  else
+  {
+    QToolButton *but = new QToolButton(this);
+
+    but->setText(QString::number(EID));
+    but->setCheckable(true);
+    but->setAutoRaise(true);
+    but->setProperty("eid", EID);
+    QObject::connect(but, &QToolButton::clicked, [this, but, EID]() {
+      but->setChecked(true);
+      SelectEvent(EID);
+      highlightBookmarks();
+    });
+
+    m_BookmarkButtons.push_back(but);
+    m_Bookmarks.push_back(EID);
+
+    highlightBookmarks();
+
+    if(found)
+    {
+      found->setData(COL_BOOKMARK, Qt::UserRole, QVariant(true));
+      RefreshIcon(found);
+    }
+
+    m_BookmarkStripLayout->removeItem(m_BookmarkSpacer);
+    m_BookmarkStripLayout->addWidget(but);
+    m_BookmarkStripLayout->addItem(m_BookmarkSpacer);
+  }
+
+  ui->bookmarkStrip->setVisible(!m_BookmarkButtons.isEmpty());
+}
+
+void EventBrowser::jumpToBookmark(int idx)
+{
+  if(idx < 0 || idx >= m_Bookmarks.count() || !m_Ctx.LogLoaded())
+    return;
+
+  // don't exclude ourselves, so we're updated as normal
+  SelectEvent(m_Bookmarks[idx]);
+}
+
+void EventBrowser::highlightBookmarks()
+{
+  for(QToolButton *b : m_BookmarkButtons)
+  {
+    if(b->property("eid").toUInt() == m_Ctx.CurEvent())
+      b->setChecked(true);
+    else
+      b->setChecked(false);
+  }
+}
+
+bool EventBrowser::hasBookmark(QTreeWidgetItem *node)
+{
+  if(node)
+    return hasBookmark(node->data(COL_EID, Qt::UserRole).toUInt());
+
+  return false;
+}
+
+bool EventBrowser::hasBookmark(uint32_t EID)
+{
+  return m_Bookmarks.contains(EID);
+}
+
 void EventBrowser::RefreshIcon(QTreeWidgetItem *item)
 {
   if(item->data(COL_CURRENT, Qt::UserRole).toBool())
     item->setIcon(COL_NAME, m_CurrentIcon);
-  else if(item->data(COL_FIND, Qt::UserRole).toBool())
-    item->setIcon(COL_NAME, m_FindIcon);
   else if(item->data(COL_BOOKMARK, Qt::UserRole).toBool())
     item->setIcon(COL_NAME, m_BookmarkIcon);
+  else if(item->data(COL_FIND, Qt::UserRole).toBool())
+    item->setIcon(COL_NAME, m_FindIcon);
   else
     item->setIcon(COL_NAME, QIcon());
 }
 
 bool EventBrowser::FindEventNode(QTreeWidgetItem *&found, QTreeWidgetItem *parent, uint32_t eventID)
 {
-  for(int i = 0; i < parent->childCount(); i++)
+  // do a reverse search to find the last match (in case of 'set' markers that
+  // inherit the event of the next real draw).
+  for(int i = parent->childCount() - 1; i >= 0; i--)
   {
     QTreeWidgetItem *n = parent->child(i);
 

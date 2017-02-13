@@ -33,8 +33,11 @@ namespace Ui
 class EventBrowser;
 }
 
+class QSpacerItem;
+class QToolButton;
 class QTreeWidgetItem;
 class QTimer;
+class FlowLayout;
 class SizeDelegate;
 
 class EventBrowser : public QFrame, public ILogViewerForm
@@ -56,7 +59,7 @@ private slots:
   void on_find_clicked();
   void on_gotoEID_clicked();
   void on_timeDraws_clicked();
-  void on_toolButton_clicked();
+  void on_bookmark_clicked();
   void on_HideFindJump();
   void on_jumpToEID_returnPressed();
   void on_findEvent_returnPressed();
@@ -67,6 +70,12 @@ private slots:
 
   // manual slots
   void findHighlight_timeout();
+
+public slots:
+  void clearBookmarks();
+  bool hasBookmark(uint32_t EID);
+  void toggleBookmark(uint32_t EID);
+  void jumpToBookmark(int idx);
 
 private:
   uint AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<FetchDrawcall> &draws);
@@ -83,6 +92,9 @@ private:
   int SetFindIcons(QTreeWidgetItem *parent, QString filter);
   int SetFindIcons(QString filter);
 
+  void highlightBookmarks();
+  bool hasBookmark(QTreeWidgetItem *node);
+
   QTreeWidgetItem *FindNode(QTreeWidgetItem *parent, QString filter, uint32_t after);
   int FindEvent(QTreeWidgetItem *parent, QString filter, uint32_t after, bool forward);
   int FindEvent(QString filter, uint32_t after, bool forward);
@@ -94,6 +106,11 @@ private:
 
   SizeDelegate *m_SizeDelegate;
   QTimer *m_FindHighlight;
+
+  FlowLayout *m_BookmarkStripLayout;
+  QSpacerItem *m_BookmarkSpacer;
+  QList<int> m_Bookmarks;
+  QList<QToolButton *> m_BookmarkButtons;
 
   void RefreshIcon(QTreeWidgetItem *item);
 
