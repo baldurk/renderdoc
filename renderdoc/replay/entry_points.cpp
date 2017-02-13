@@ -304,6 +304,14 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_LogMessage(LogMessageType t
       (int)eLogType_First == (int)RDCLog_First && (int)eLogType_NumTypes == (int)eLogType_NumTypes,
       "Log type enum is out of sync");
   rdclog_int((LogType)type, project ? project : "UNK?", file ? file : "unknown", line, "%s", text);
+
+#if ENABLED(DEBUGBREAK_ON_ERROR_LOG)
+  if(type == eLogType_Error)
+    RDCBREAK();
+#endif
+
+  if(type == eLogType_Fatal)
+    RDCDUMP();
 }
 
 extern "C" RENDERDOC_API const char *RENDERDOC_CC RENDERDOC_GetLogFile()
