@@ -720,6 +720,7 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs) : m_Re
   m_Replay.SetDriver(this);
 
   m_FrameCounter = 0;
+  m_NoCtxFrames = 0;
   m_FailedFrame = 0;
   m_FailedReason = CaptureSucceeded;
   m_Failures = 0;
@@ -2227,7 +2228,20 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
 
   // don't do anything if no context is active.
   if(GetCtx() == NULL)
+  {
+    m_NoCtxFrames++;
+    if(m_NoCtxFrames == 100)
+    {
+      RDCERR(
+          "Seen 100 frames with no context current. RenderDoc requires a context to be current "
+          "during the call to SwapBuffers to display its overlay and start/stop captures on "
+          "default keys.\nIf your GL use is elsewhere, consider using the in-application API to "
+          "trigger captures manually");
+    }
     return;
+  }
+
+  m_NoCtxFrames = 0;
 
   m_FrameCounter++;    // first present becomes frame #1, this function is at the end of the frame
 

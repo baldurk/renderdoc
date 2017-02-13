@@ -186,6 +186,7 @@ private:
   GLResourceManager *m_ResourceManager;
 
   uint32_t m_FrameCounter;
+  uint32_t m_NoCtxFrames;
   uint32_t m_FailedFrame;
   CaptureFailReason m_FailedReason;
   uint32_t m_Failures;
