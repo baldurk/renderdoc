@@ -180,6 +180,10 @@ private:
   bool m_LogLoaded, m_LoadInProgress, m_LogLocal;
   QString m_LogFile;
 
+  bool PassEquivalent(const FetchDrawcall &a, const FetchDrawcall &b);
+  bool ContainsMarker(const rdctype::array<FetchDrawcall> &m_Drawcalls);
+  void AddFakeProfileMarkers();
+
   float m_LoadProgress = 0.0f;
   float m_PostloadProgress = 0.0f;
   float UpdateLoadProgress();

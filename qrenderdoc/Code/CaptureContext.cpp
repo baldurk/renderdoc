@@ -218,6 +218,8 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
 
     r->GetDrawcalls(&m_Drawcalls);
 
+    AddFakeProfileMarkers();
+
     m_PostloadProgress = 0.4f;
 
     r->GetSupportedWindowSystems(&m_WinSystems);
@@ -289,6 +291,229 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
 
   m_LoadInProgress = false;
   m_LogLoaded = true;
+}
+
+bool CaptureContext::PassEquivalent(const FetchDrawcall &a, const FetchDrawcall &b)
+{
+  // executing command lists can have children
+  if(!a.children.empty() || !b.children.empty())
+    return false;
+
+  // don't group draws and compute executes
+  if((a.flags & eDraw_Dispatch) != (b.flags & eDraw_Dispatch))
+    return false;
+
+  // don't group present with anything
+  if((a.flags & eDraw_Present) != (b.flags & eDraw_Present))
+    return false;
+
+  // don't group things with different depth outputs
+  if(a.depthOut != b.depthOut)
+    return false;
+
+  int numAOuts = 0, numBOuts = 0;
+  for(int i = 0; i < 8; i++)
+  {
+    if(a.outputs[i] != ResourceId())
+      numAOuts++;
+    if(b.outputs[i] != ResourceId())
+      numBOuts++;
+  }
+
+  int numSame = 0;
+
+  if(a.depthOut != ResourceId())
+  {
+    numAOuts++;
+    numBOuts++;
+    numSame++;
+  }
+
+  for(int i = 0; i < 8; i++)
+  {
+    if(a.outputs[i] != ResourceId())
+    {
+      for(int j = 0; j < 8; j++)
+      {
+        if(a.outputs[i] == b.outputs[j])
+        {
+          numSame++;
+          break;
+        }
+      }
+    }
+    else if(b.outputs[i] != ResourceId())
+    {
+      for(int j = 0; j < 8; j++)
+      {
+        if(a.outputs[j] == b.outputs[i])
+        {
+          numSame++;
+          break;
+        }
+      }
+    }
+  }
+
+  // use a kind of heuristic to group together passes where the outputs are similar enough.
+  // could be useful for example if you're rendering to a gbuffer and sometimes you render
+  // without one target, but the draws are still batched up.
+  if(numSame > qMax(numAOuts, numBOuts) / 2 && qMax(numAOuts, numBOuts) > 1)
+    return true;
+
+  if(numSame == qMax(numAOuts, numBOuts))
+    return true;
+
+  return false;
+}
+
+bool CaptureContext::ContainsMarker(const rdctype::array<FetchDrawcall> &draws)
+{
+  bool ret = false;
+
+  for(const FetchDrawcall &d : draws)
+  {
+    ret |= (d.flags & eDraw_PushMarker) && !(d.flags & eDraw_CmdList) && !d.children.empty();
+    ret |= ContainsMarker(d.children);
+
+    if(ret)
+      break;
+  }
+
+  return ret;
+}
+
+void CaptureContext::AddFakeProfileMarkers()
+{
+  rdctype::array<FetchDrawcall> &draws = m_Drawcalls;
+
+  if(ContainsMarker(draws))
+    return;
+
+  QList<FetchDrawcall> ret;
+
+  int depthpassID = 1;
+  int copypassID = 1;
+  int computepassID = 1;
+  int passID = 1;
+
+  int start = 0;
+  int refdraw = 0;
+
+  uint32_t drawFlags = eDraw_Copy | eDraw_Resolve | eDraw_SetMarker | eDraw_CmdList;
+
+  for(int i = 1; i < draws.count; i++)
+  {
+    if(draws[refdraw].flags & drawFlags)
+    {
+      refdraw = i;
+      continue;
+    }
+
+    if(draws[i].flags & drawFlags)
+      continue;
+
+    if(PassEquivalent(draws[i], draws[refdraw]))
+      continue;
+
+    int end = i - 1;
+
+    if(end - start < 2 || !draws[i].children.empty() || !draws[refdraw].children.empty())
+    {
+      for(int j = start; j <= end; j++)
+        ret.push_back(draws[j]);
+
+      start = i;
+      refdraw = i;
+      continue;
+    }
+
+    int minOutCount = 100;
+    int maxOutCount = 0;
+    bool copyOnly = true;
+
+    for(int j = start; j <= end; j++)
+    {
+      int outCount = 0;
+
+      if(!(draws[j].flags & (eDraw_Copy | eDraw_Resolve | eDraw_Clear)))
+        copyOnly = false;
+
+      for(ResourceId o : draws[j].outputs)
+        if(o != ResourceId())
+          outCount++;
+      minOutCount = qMin(minOutCount, outCount);
+      maxOutCount = qMax(maxOutCount, outCount);
+    }
+
+    FetchDrawcall mark;
+
+    mark.eventID = draws[start].eventID;
+    mark.drawcallID = draws[start].drawcallID;
+
+    mark.flags = eDraw_PushMarker;
+    memcpy(mark.outputs, draws[end].outputs, sizeof(mark.outputs));
+    mark.depthOut = draws[end].depthOut;
+
+    mark.name = "Guessed Pass";
+
+    minOutCount = qMax(1, minOutCount);
+
+    if(copyOnly)
+      mark.name = QApplication::translate("CaptureContext", "Copy/Clear Pass #%1")
+                      .arg(copypassID++)
+                      .toUtf8()
+                      .data();
+    else if(draws[refdraw].flags & eDraw_Dispatch)
+      mark.name = QApplication::translate("CaptureContext", "Compute Pass #%1")
+                      .arg(computepassID++)
+                      .toUtf8()
+                      .data();
+    else if(maxOutCount == 0)
+      mark.name = QApplication::translate("CaptureContext", "Depth-only Pass #%1")
+                      .arg(depthpassID++)
+                      .toUtf8()
+                      .data();
+    else if(minOutCount == maxOutCount)
+      mark.name = QApplication::translate("CaptureContext", "Colour Pass #%1 (%2 Targets%3)")
+                      .arg(passID++)
+                      .arg(minOutCount)
+                      .arg(draws[end].depthOut == ResourceId() ? "" : " + Depth")
+                      .toUtf8()
+                      .data();
+    else
+      mark.name = QApplication::translate("CaptureContext", "Colour Pass #%1 (%2-%3 Targets%4)")
+                      .arg(passID++)
+                      .arg(minOutCount)
+                      .arg(maxOutCount)
+                      .arg(draws[end].depthOut == ResourceId() ? "" : " + Depth")
+                      .toUtf8()
+                      .data();
+
+    mark.children.create(end - start + 1);
+
+    for(int j = start; j <= end; j++)
+    {
+      mark.children[j - start] = draws[j];
+      draws[j].parent = mark.eventID;
+    }
+
+    ret.push_back(mark);
+
+    start = i;
+    refdraw = i;
+  }
+
+  if(start < draws.count)
+  {
+    for(int j = start; j < draws.count; j++)
+      ret.push_back(draws[j]);
+  }
+
+  m_Drawcalls.clear();
+  m_Drawcalls.create(ret.count());
+  for(int i = 0; i < ret.count(); i++)
+    m_Drawcalls[i] = ret[i];
 }
 
 void CaptureContext::CloseLogfile()
