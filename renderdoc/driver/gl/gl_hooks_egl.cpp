@@ -27,16 +27,9 @@
 #include "common/threading.h"
 #include "driver/gl/gl_common.h"
 #include "driver/gl/gl_driver.h"
-#include "driver/gl/gl_hookset.h"
-#include "driver/gl/gl_hookset_defs.h"
 #include "hooks/hooks.h"
 #include "serialise/string_utils.h"
-
-// bit of a hack
-namespace Keyboard
-{
-void CloneDisplay(Display *dpy);
-}
+#include "gl_hooks_linux_shared.h"
 
 typedef __eglMustCastToProperFunctionPointerType (*PFN_eglGetProcAddress)(const char *procname);
 typedef EGLBoolean (*PFN_eglGetConfigAttrib)(EGLDisplay dpy, EGLConfig config, EGLint attribute,
@@ -56,340 +49,10 @@ typedef EGLBoolean (*PFN_eglMakeCurrent)(EGLDisplay dpy, EGLSurface draw, EGLSur
 typedef EGLBoolean (*PFN_eglSwapBuffers)(EGLDisplay dpy, EGLSurface surface);
 typedef EGLDisplay (*PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
 
-void *libGLdlsymHandle =
-    RTLD_NEXT;    // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libEGL
-
-#define HookInit(function)                                                                 \
-  if(!strcmp(func, STRINGIZE(function)))                                                   \
-  {                                                                                        \
-    OpenGLHook::glhooks.GL.function = (CONCAT(function, _hooktype))realFunc;               \
-    return (__eglMustCastToProperFunctionPointerType)&CONCAT(function, _renderdoc_hooked); \
-  }
-
-#define HookExtension(funcPtrType, function)                                               \
-  if(!strcmp(func, STRINGIZE(function)))                                                   \
-  {                                                                                        \
-    OpenGLHook::glhooks.GL.function = (funcPtrType)realFunc;                               \
-    return (__eglMustCastToProperFunctionPointerType)&CONCAT(function, _renderdoc_hooked); \
-  }
-
-#define HookExtensionAlias(funcPtrType, function, alias)                                   \
-  if(!strcmp(func, STRINGIZE(alias)))                                                      \
-  {                                                                                        \
-    if(OpenGLHook::glhooks.GL.function == NULL)                                            \
-      OpenGLHook::glhooks.GL.function = (funcPtrType)realFunc;                             \
-    return (__eglMustCastToProperFunctionPointerType)&CONCAT(function, _renderdoc_hooked); \
-  }
-
-#if 0    // debug print for each unsupported function requested (but not used)
-#define HandleUnsupported(funcPtrType, function)                                           \
-  if(lowername == STRINGIZE(function))                                                     \
-  {                                                                                        \
-    CONCAT(unsupported_real_, function) = (CONCAT(function, _hooktype))realFunc;           \
-    RDCDEBUG("Requesting function pointer for unsupported function " STRINGIZE(function)); \
-    return (__eglMustCastToProperFunctionPointerType)&CONCAT(function, _renderdoc_hooked); \
-  }
-#else
-#define HandleUnsupported(funcPtrType, function)                                           \
-  if(lowername == STRINGIZE(function))                                                     \
-  {                                                                                        \
-    CONCAT(unsupported_real_, function) = (CONCAT(function, _hooktype))realFunc;           \
-    return (__eglMustCastToProperFunctionPointerType)&CONCAT(function, _renderdoc_hooked); \
-  }
-#endif
-
-/*
-  in bash:
-
-    function HookWrapper()
-    {
-        N=$1;
-        echo -n "#define HookWrapper$N(ret, function";
-            for I in `seq 1 $N`; do echo -n ", t$I, p$I"; done;
-        echo ") \\";
-
-        echo -en "\ttypedef ret (*CONCAT(function, _hooktype)) (";
-            for I in `seq 1 $N`; do echo -n "t$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
-        echo "); \\";
-
-        echo -e "\textern \"C\" __attribute__ ((visibility (\"default\"))) \\";
-
-        echo -en "\tret function(";
-            for I in `seq 1 $N`; do echo -n "t$I p$I"; if [ $I -ne $N ]; then echo -n ", "; fi;
-  done;
-        echo ") \\";
-
-        echo -en "\t{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(";
-            for I in `seq 1 $N`; do echo -n "p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
-        echo "); } \\";
-
-        echo -en "\tret CONCAT(function,_renderdoc_hooked)(";
-            for I in `seq 1 $N`; do echo -n "t$I p$I"; if [ $I -ne $N ]; then echo -n ", "; fi;
-  done;
-        echo ") \\";
-
-        echo -en "\t{ SCOPED_LOCK(glLock); return OpenGLHook::glhooks.GetDriver()->function(";
-            for I in `seq 1 $N`; do echo -n "p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
-        echo -n "); }";
-    }
-
-  for I in `seq 0 15`; do HookWrapper $I; echo; done
-
-  */
-
-// don't want these definitions, the only place we'll use these is as parameter/variable names
-#ifdef near
-#undef near
-#endif
-
-#ifdef far
-#undef far
-#endif
-
-// the _renderdoc_hooked variants are to make sure we always have a function symbol
-// exported that we can return from glXGetProcAddress. If another library (or the app)
-// creates a symbol called 'glEnable' we'll return the address of that, and break
-// badly. Instead we leave the 'naked' versions for applications trying to import those
-// symbols, and declare the _renderdoc_hooked for returning as a func pointer.
-
-#define HookWrapper0(ret, function)                                \
-  typedef ret (*CONCAT(function, _hooktype))();                    \
-  extern "C" __attribute__((visibility("default"))) ret function() \
-  {                                                                \
-    SCOPED_LOCK(glLock);                                           \
-    return OpenGLHook::glhooks.GetDriver()->function();            \
-  }                                                                \
-  ret CONCAT(function, _renderdoc_hooked)()                        \
-  {                                                                \
-    SCOPED_LOCK(glLock);                                           \
-    return OpenGLHook::glhooks.GetDriver()->function();            \
-  }
-#define HookWrapper1(ret, function, t1, p1)                             \
-  typedef ret (*CONCAT(function, _hooktype))(t1);                       \
-  extern "C" __attribute__((visibility("default"))) ret function(t1 p1) \
-  {                                                                     \
-    SCOPED_LOCK(glLock);                                                \
-    return OpenGLHook::glhooks.GetDriver()->function(p1);               \
-  }                                                                     \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1)                        \
-  {                                                                     \
-    SCOPED_LOCK(glLock);                                                \
-    return OpenGLHook::glhooks.GetDriver()->function(p1);               \
-  }
-#define HookWrapper2(ret, function, t1, p1, t2, p2)                            \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2);                          \
-  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2) \
-  {                                                                            \
-    SCOPED_LOCK(glLock);                                                       \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2);                  \
-  }                                                                            \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2)                        \
-  {                                                                            \
-    SCOPED_LOCK(glLock);                                                       \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2);                  \
-  }
-#define HookWrapper3(ret, function, t1, p1, t2, p2, t3, p3)                           \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3);                             \
-  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3) \
-  {                                                                                   \
-    SCOPED_LOCK(glLock);                                                              \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3);                     \
-  }                                                                                   \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3)                        \
-  {                                                                                   \
-    SCOPED_LOCK(glLock);                                                              \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3);                     \
-  }
-#define HookWrapper4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4)                          \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);                                \
-  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4) \
-  {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4);                        \
-  }                                                                                          \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4)                        \
-  {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4);                        \
-  }
-#define HookWrapper5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5)                         \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);                                   \
-  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5) \
-  {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5);                           \
-  }                                                                                                 \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)                        \
-  {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5);                           \
-  }
-#define HookWrapper6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6)          \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6);                        \
-  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, \
-                                                                 t5 p5, t6 p6)               \
-  {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6);                \
-  }                                                                                          \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6)          \
-  {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6);                \
-  }
-#define HookWrapper7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7)  \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7);                    \
-  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4, \
-                                                                 t5 p5, t6 p6, t7 p7)        \
-  {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7);            \
-  }                                                                                          \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7)   \
-  {                                                                                          \
-    SCOPED_LOCK(glLock);                                                                     \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7);            \
-  }
-#define HookWrapper8(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8) \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8);                       \
-  extern "C" __attribute__((visibility("default"))) ret function(t1 p1, t2 p2, t3 p3, t4 p4,        \
-                                                                 t5 p5, t6 p6, t7 p7, t8 p8)        \
-  {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8);               \
-  }                                                                                                 \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8)   \
-  {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8);               \
-  }
-#define HookWrapper9(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
-                     p8, t9, p9)                                                                  \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9);                 \
-  extern "C" __attribute__((visibility("default"))) ret function(                                 \
-      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9)                              \
-  {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9);         \
-  }                                                                                               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
-                                          t9 p9)                                                  \
-  {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9);         \
-  }
-#define HookWrapper10(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,  \
-                      p8, t9, p9, t10, p10)                                                       \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10);            \
-  extern "C" __attribute__((visibility("default"))) ret function(                                 \
-      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10)                     \
-  {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);    \
-  }                                                                                               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
-                                          t9 p9, t10 p10)                                         \
-  {                                                                                               \
-    SCOPED_LOCK(glLock);                                                                          \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);    \
-  }
-#define HookWrapper11(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,    \
-                      p8, t9, p9, t10, p10, t11, p11)                                               \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11);         \
-  extern "C" __attribute__((visibility("default"))) ret function(                                   \
-      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11)              \
-  {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); \
-  }                                                                                                 \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,   \
-                                          t9 p9, t10 p10, t11 p11)                                  \
-  {                                                                                                 \
-    SCOPED_LOCK(glLock);                                                                            \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11); \
-  }
-#define HookWrapper12(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
-                      p8, t9, p9, t10, p10, t11, p11, t12, p12)                                    \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12);   \
-  extern "C" __attribute__((visibility("default"))) ret function(                                  \
-      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12)    \
-  {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
-                                                     p12);                                         \
-  }                                                                                                \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,  \
-                                          t9 p9, t10 p10, t11 p11, t12 p12)                        \
-  {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
-                                                     p12);                                         \
-  }
-#define HookWrapper13(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
-                      p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13)                          \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12,    \
-                                             t13);                                                 \
-  extern "C" __attribute__((visibility("default"))) ret function(                                  \
-      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,    \
-      t13 p13)                                                                                     \
-  {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
-                                                     p12, p13);                                    \
-  }                                                                                                \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,  \
-                                          t9 p9, t10 p10, t11 p11, t12 p12, t13 p13)               \
-  {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
-                                                     p12, p13);                                    \
-  }
-#define HookWrapper14(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
-                      p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14)                \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12,    \
-                                             t13, t14);                                            \
-  extern "C" __attribute__((visibility("default"))) ret function(                                  \
-      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,    \
-      t13 p13, t14 p14)                                                                            \
-  {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
-                                                     p12, p13, p14);                               \
-  }                                                                                                \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,  \
-                                          t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14)      \
-  {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
-                                                     p12, p13, p14);                               \
-  }
-#define HookWrapper15(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
-                      p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14, t15, p15)      \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12,    \
-                                             t13, t14, t15);                                       \
-  extern "C" __attribute__((visibility("default"))) ret function(                                  \
-      t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, t9 p9, t10 p10, t11 p11, t12 p12,    \
-      t13 p13, t14 p14, t15 p15)                                                                   \
-  {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
-                                                     p12, p13, p14, p15);                          \
-  }                                                                                                \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,  \
-                                          t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14,      \
-                                          t15 p15)                                                 \
-  {                                                                                                \
-    SCOPED_LOCK(glLock);                                                                           \
-    return OpenGLHook::glhooks.GetDriver()->function(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, \
-                                                     p12, p13, p14, p15);                          \
-  }
-
-Threading::CriticalSection glLock;
-
-class OpenGLHook : LibraryHook
+class EGLHook : LibraryHook
 {
 public:
-  OpenGLHook()
+  EGLHook()
   {
     LibraryHooks::GetInstance().RegisterHook("libEGL.so", this);
 
@@ -402,11 +65,11 @@ public:
     m_EnabledHooks = true;
     m_PopulatedHooks = false;
   }
-  ~OpenGLHook() { delete m_GLDriver; }
+  ~EGLHook() { delete m_GLDriver; }
   static void libHooked(void *realLib)
   {
     libGLdlsymHandle = realLib;
-    OpenGLHook::glhooks.CreateHooks(NULL);
+    EGLHook::glhooks.CreateHooks(NULL);
   }
 
   bool CreateHooks(const char *libName)
@@ -417,7 +80,7 @@ public:
     if(libName)
       PosixHookLibrary("libEGL.so", &libHooked);
 
-    bool success = SetupHooks(GL);
+    bool success = SetupHooks();
 
     if(!success)
       return false;
@@ -429,7 +92,7 @@ public:
 
   void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
-  static OpenGLHook glhooks;
+  static EGLHook glhooks;
 
   const GLHookSet &GetRealGLFunctions()
   {
@@ -444,13 +107,13 @@ public:
     // functions like glXCreateContext etc have the 'real' pointers to call into, otherwise even the
     // replay app will resolve to our hooks first before the real libGL and call in.
     if(RenderDoc::Inst().IsReplayApp())
-      SetupHooks(GL);
+      SetupHooks();
   }
 
   void MakeContextCurrent(GLWindowingData data)
   {
     if(eglMakeCurrent_real)
-      eglMakeCurrent_real(data.dpy, data.wnd, data.wnd, data.ctx);
+      eglMakeCurrent_real(data.egl_dpy, data.egl_wnd, data.egl_wnd, data.egl_ctx);
   }
 
   GLWindowingData MakeContext(GLWindowingData share)
@@ -491,9 +154,9 @@ public:
         if(configFound)
         {
           const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
-          ret.wnd = eglCreatePbufferSurface(share.dpy, config, pbAttribs);
-          ret.dpy = share.dpy;
-          ret.ctx = eglCreateContext_real(share.dpy, config, share.ctx, ctxAttribs);
+          ret.egl_wnd = eglCreatePbufferSurface(share.dpy, config, pbAttribs);
+          ret.egl_dpy = share.dpy;
+          ret.egl_ctx = eglCreateContext_real(share.dpy, config, share.ctx, ctxAttribs);
         }
       }
     }
@@ -507,10 +170,10 @@ public:
         (PFN_eglDestroySurface)dlsym(RTLD_NEXT, "eglDestroySurface");
 
     if(context.wnd && eglDestroySurface)
-      eglDestroySurface(context.dpy, context.wnd);
+      eglDestroySurface(context.egl_dpy, context.egl_wnd);
 
     if(context.ctx && eglDestroyContext_real)
-      eglDestroyContext_real(context.dpy, context.ctx);
+      eglDestroyContext_real(context.egl_dpy, context.egl_ctx);
   }
 
   WrappedOpenGL *GetDriver()
@@ -532,15 +195,13 @@ public:
 
   WrappedOpenGL *m_GLDriver;
 
-  GLHookSet GL;
-
   set<EGLContext> m_Contexts;
 
   bool m_PopulatedHooks;
   bool m_HasHooks;
   bool m_EnabledHooks;
 
-  bool SetupHooks(GLHookSet &GL)
+  bool SetupHooks()
   {
     bool success = true;
 
@@ -568,318 +229,17 @@ public:
   bool PopulateHooks();
 };
 
-DefineDLLExportHooks();
-DefineGLExtensionHooks();
-
-/*
-  in bash:
-
-    function HookWrapper()
-    {
-        N=$1;
-        echo "#undef HookWrapper$N";
-        echo -n "#define HookWrapper$N(ret, function";
-            for I in `seq 1 $N`; do echo -n ", t$I, p$I"; done;
-        echo ") \\";
-
-        echo -en "\ttypedef ret (*CONCAT(function, _hooktype)) (";
-            for I in `seq 1 $N`; do echo -n "t$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
-        echo "); \\";
-
-        echo -en "\tCONCAT(function, _hooktype) CONCAT(unsupported_real_,function) = NULL;";
-
-        echo -en "\tret CONCAT(function,_renderdoc_hooked)(";
-            for I in `seq 1 $N`; do echo -n "t$I p$I"; if [ $I -ne $N ]; then echo -n ", "; fi;
-  done;
-        echo ") \\";
-
-        echo -e "\t{ \\";
-        echo -e "\tstatic bool hit = false; if(hit == false) { RDCERR(\"Function \"
-  STRINGIZE(function) \" not supported - capture may be broken\"); hit = true; } \\";
-        echo -en "\treturn CONCAT(unsupported_real_,function)(";
-            for I in `seq 1 $N`; do echo -n "p$I"; if [ $I -ne $N ]; then echo -n ", "; fi; done;
-        echo -e "); \\";
-        echo -e "\t}";
-    }
-
-  for I in `seq 0 15`; do HookWrapper $I; echo; done
-
-  */
-
-#undef HookWrapper0
-#define HookWrapper0(ret, function)                                                     \
-  typedef ret (*CONCAT(function, _hooktype))();                                         \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
-  ret CONCAT(function, _renderdoc_hooked)()                                             \
-  {                                                                                     \
-    static bool hit = false;                                                            \
-    if(hit == false)                                                                    \
-    {                                                                                   \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
-      hit = true;                                                                       \
-    }                                                                                   \
-    return CONCAT(unsupported_real_, function)();                                       \
-  }
-
-#undef HookWrapper1
-#define HookWrapper1(ret, function, t1, p1)                                             \
-  typedef ret (*CONCAT(function, _hooktype))(t1);                                       \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1)                                        \
-  {                                                                                     \
-    static bool hit = false;                                                            \
-    if(hit == false)                                                                    \
-    {                                                                                   \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
-      hit = true;                                                                       \
-    }                                                                                   \
-    return CONCAT(unsupported_real_, function)(p1);                                     \
-  }
-
-#undef HookWrapper2
-#define HookWrapper2(ret, function, t1, p1, t2, p2)                                     \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2);                                   \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2)                                 \
-  {                                                                                     \
-    static bool hit = false;                                                            \
-    if(hit == false)                                                                    \
-    {                                                                                   \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
-      hit = true;                                                                       \
-    }                                                                                   \
-    return CONCAT(unsupported_real_, function)(p1, p2);                                 \
-  }
-
-#undef HookWrapper3
-#define HookWrapper3(ret, function, t1, p1, t2, p2, t3, p3)                             \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3);                               \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3)                          \
-  {                                                                                     \
-    static bool hit = false;                                                            \
-    if(hit == false)                                                                    \
-    {                                                                                   \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
-      hit = true;                                                                       \
-    }                                                                                   \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3);                             \
-  }
-
-#undef HookWrapper4
-#define HookWrapper4(ret, function, t1, p1, t2, p2, t3, p3, t4, p4)                     \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4);                           \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4)                   \
-  {                                                                                     \
-    static bool hit = false;                                                            \
-    if(hit == false)                                                                    \
-    {                                                                                   \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
-      hit = true;                                                                       \
-    }                                                                                   \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4);                         \
-  }
-
-#undef HookWrapper5
-#define HookWrapper5(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5)             \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5);                       \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5)            \
-  {                                                                                     \
-    static bool hit = false;                                                            \
-    if(hit == false)                                                                    \
-    {                                                                                   \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
-      hit = true;                                                                       \
-    }                                                                                   \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5);                     \
-  }
-
-#undef HookWrapper6
-#define HookWrapper6(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6)     \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6);                   \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;               \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6)     \
-  {                                                                                     \
-    static bool hit = false;                                                            \
-    if(hit == false)                                                                    \
-    {                                                                                   \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken"); \
-      hit = true;                                                                       \
-    }                                                                                   \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6);                 \
-  }
-
-#undef HookWrapper7
-#define HookWrapper7(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7) \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7);                   \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                   \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7)  \
-  {                                                                                         \
-    static bool hit = false;                                                                \
-    if(hit == false)                                                                        \
-    {                                                                                       \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");     \
-      hit = true;                                                                           \
-    }                                                                                       \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7);                 \
-  }
-
-#undef HookWrapper8
-#define HookWrapper8(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8, p8) \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8);                       \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                           \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8)   \
-  {                                                                                                 \
-    static bool hit = false;                                                                        \
-    if(hit == false)                                                                                \
-    {                                                                                               \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");             \
-      hit = true;                                                                                   \
-    }                                                                                               \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8);                     \
-  }
-
-#undef HookWrapper9
-#define HookWrapper9(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
-                     p8, t9, p9)                                                                  \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9);                 \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
-                                          t9 p9)                                                  \
-  {                                                                                               \
-    static bool hit = false;                                                                      \
-    if(hit == false)                                                                              \
-    {                                                                                             \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");           \
-      hit = true;                                                                                 \
-    }                                                                                             \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9);               \
-  }
-
-#undef HookWrapper10
-#define HookWrapper10(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,  \
-                      p8, t9, p9, t10, p10)                                                       \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10);            \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
-                                          t9 p9, t10 p10)                                         \
-  {                                                                                               \
-    static bool hit = false;                                                                      \
-    if(hit == false)                                                                              \
-    {                                                                                             \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");           \
-      hit = true;                                                                                 \
-    }                                                                                             \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10);          \
-  }
-
-#undef HookWrapper11
-#define HookWrapper11(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,  \
-                      p8, t9, p9, t10, p10, t11, p11)                                             \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11);       \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
-                                          t9 p9, t10 p10, t11 p11)                                \
-  {                                                                                               \
-    static bool hit = false;                                                                      \
-    if(hit == false)                                                                              \
-    {                                                                                             \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");           \
-      hit = true;                                                                                 \
-    }                                                                                             \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11);     \
-  }
-
-#undef HookWrapper12
-#define HookWrapper12(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,   \
-                      p8, t9, p9, t10, p10, t11, p11, t12, p12)                                    \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12);   \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                          \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8,  \
-                                          t9 p9, t10 p10, t11 p11, t12 p12)                        \
-  {                                                                                                \
-    static bool hit = false;                                                                       \
-    if(hit == false)                                                                               \
-    {                                                                                              \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");            \
-      hit = true;                                                                                  \
-    }                                                                                              \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12); \
-  }
-
-#undef HookWrapper13
-#define HookWrapper13(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,  \
-                      p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13)                         \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12,   \
-                                             t13);                                                \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
-                                          t9 p9, t10 p10, t11 p11, t12 p12, t13 p13)              \
-  {                                                                                               \
-    static bool hit = false;                                                                      \
-    if(hit == false)                                                                              \
-    {                                                                                             \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");           \
-      hit = true;                                                                                 \
-    }                                                                                             \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, \
-                                               p13);                                              \
-  }
-
-#undef HookWrapper14
-#define HookWrapper14(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,  \
-                      p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14)               \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12,   \
-                                             t13, t14);                                           \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
-                                          t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14)     \
-  {                                                                                               \
-    static bool hit = false;                                                                      \
-    if(hit == false)                                                                              \
-    {                                                                                             \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");           \
-      hit = true;                                                                                 \
-    }                                                                                             \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, \
-                                               p13, p14);                                         \
-  }
-
-#undef HookWrapper15
-#define HookWrapper15(ret, function, t1, p1, t2, p2, t3, p3, t4, p4, t5, p5, t6, p6, t7, p7, t8,  \
-                      p8, t9, p9, t10, p10, t11, p11, t12, p12, t13, p13, t14, p14, t15, p15)     \
-  typedef ret (*CONCAT(function, _hooktype))(t1, t2, t3, t4, t5, t6, t7, t8, t9, t10, t11, t12,   \
-                                             t13, t14, t15);                                      \
-  CONCAT(function, _hooktype) CONCAT(unsupported_real_, function) = NULL;                         \
-  ret CONCAT(function, _renderdoc_hooked)(t1 p1, t2 p2, t3 p3, t4 p4, t5 p5, t6 p6, t7 p7, t8 p8, \
-                                          t9 p9, t10 p10, t11 p11, t12 p12, t13 p13, t14 p14,     \
-                                          t15 p15)                                                \
-  {                                                                                               \
-    static bool hit = false;                                                                      \
-    if(hit == false)                                                                              \
-    {                                                                                             \
-      RDCERR("Function " STRINGIZE(function) " not supported - capture may be broken");           \
-      hit = true;                                                                                 \
-    }                                                                                             \
-    return CONCAT(unsupported_real_, function)(p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, \
-                                               p13, p14, p15);                                    \
-  }
-
-DefineUnsupportedDummies();
-
 // everything below here needs to have C linkage
 extern "C" {
 
 __attribute__((visibility("default"))) EGLDisplay eglGetDisplay(EGLNativeDisplayType display)
 {
-  if(OpenGLHook::glhooks.eglGetDisplay_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(EGLHook::glhooks.eglGetDisplay_real == NULL)
+    EGLHook::glhooks.SetupExportedFunctions();
 
   Keyboard::CloneDisplay(display);
 
-  return OpenGLHook::glhooks.eglGetDisplay_real(display);
+  return EGLHook::glhooks.eglGetDisplay_real(display);
 }
 
 __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay display,
@@ -929,10 +289,10 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
     attribs = &attribVec[0];
   }
 
-  if(OpenGLHook::glhooks.eglCreateContext_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(EGLHook::glhooks.eglCreateContext_real == NULL)
+    EGLHook::glhooks.SetupExportedFunctions();
 
-  EGLContext ret = OpenGLHook::glhooks.eglCreateContext_real(display, config, shareContext, attribs);
+  EGLContext ret = EGLHook::glhooks.eglCreateContext_real(display, config, shareContext, attribs);
 
   // don't continue if context creation failed
   if(!ret)
@@ -944,23 +304,23 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
   init.height = 0;
 
   EGLint value;
-  OpenGLHook::glhooks.eglGetConfigAttrib_real(display, config, EGL_BUFFER_SIZE, &value);
+  EGLHook::glhooks.eglGetConfigAttrib_real(display, config, EGL_BUFFER_SIZE, &value);
   init.colorBits = value;
-  OpenGLHook::glhooks.eglGetConfigAttrib_real(display, config, EGL_DEPTH_SIZE, &value);
+  EGLHook::glhooks.eglGetConfigAttrib_real(display, config, EGL_DEPTH_SIZE, &value);
   init.depthBits = value;
-  OpenGLHook::glhooks.eglGetConfigAttrib_real(display, config, EGL_STENCIL_SIZE, &value);
+  EGLHook::glhooks.eglGetConfigAttrib_real(display, config, EGL_STENCIL_SIZE, &value);
   init.stencilBits = value;
   // TODO: how to detect this?
   init.isSRGB = 1;
 
   GLWindowingData data;
-  data.dpy = display;
-  data.wnd = (EGLSurface)NULL;
-  data.ctx = ret;
+  data.egl_dpy = display;
+  data.egl_wnd = (EGLSurface)NULL;
+  data.egl_ctx = ret;
 
   {
     SCOPED_LOCK(glLock);
-    OpenGLHook::glhooks.GetDriver()->CreateContext(data, shareContext, init, true, true);
+    GetDriver()->CreateContext(data, shareContext, init, true, true);
   }
 
   return ret;
@@ -968,69 +328,68 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
 
 __attribute__((visibility("default"))) EGLBoolean eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
 {
-  if(OpenGLHook::glhooks.eglDestroyContext_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(EGLHook::glhooks.eglDestroyContext_real == NULL)
+    EGLHook::glhooks.SetupExportedFunctions();
 
   {
     SCOPED_LOCK(glLock);
-    OpenGLHook::glhooks.GetDriver()->DeleteContext(ctx);
+    GetDriver()->DeleteContext(ctx);
   }
 
-  return OpenGLHook::glhooks.eglDestroyContext_real(dpy, ctx);
+  return EGLHook::glhooks.eglDestroyContext_real(dpy, ctx);
 }
 
 __attribute__((visibility("default"))) EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw,
                                                                  EGLSurface read, EGLContext ctx)
 {
-  if(OpenGLHook::glhooks.eglMakeCurrent_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(EGLHook::glhooks.eglMakeCurrent_real == NULL)
+    EGLHook::glhooks.SetupExportedFunctions();
 
-  EGLBoolean ret = OpenGLHook::glhooks.eglMakeCurrent_real(display, draw, read, ctx);
+  EGLBoolean ret = EGLHook::glhooks.eglMakeCurrent_real(display, draw, read, ctx);
 
   SCOPED_LOCK(glLock);
 
-  if(ctx && OpenGLHook::glhooks.m_Contexts.find(ctx) == OpenGLHook::glhooks.m_Contexts.end())
+  if(ctx && EGLHook::glhooks.m_Contexts.find(ctx) == EGLHook::glhooks.m_Contexts.end())
   {
-    OpenGLHook::glhooks.m_Contexts.insert(ctx);
+    EGLHook::glhooks.m_Contexts.insert(ctx);
 
-    OpenGLHook::glhooks.PopulateHooks();
+    EGLHook::glhooks.PopulateHooks();
   }
 
   GLWindowingData data;
-  data.dpy = display;
-  data.wnd = draw;
-  data.ctx = ctx;
+  data.egl_dpy = display;
+  data.egl_wnd = draw;
+  data.egl_ctx = ctx;
 
-  OpenGLHook::glhooks.GetDriver()->ActivateContext(data);
+  GetDriver()->ActivateContext(data);
 
   return ret;
 }
 
 __attribute__((visibility("default"))) EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
 {
-  if(OpenGLHook::glhooks.eglSwapBuffers_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(EGLHook::glhooks.eglSwapBuffers_real == NULL)
+    EGLHook::glhooks.SetupExportedFunctions();
 
   SCOPED_LOCK(glLock);
 
   int height, width;
-  OpenGLHook::glhooks.eglQuerySurface_real(dpy, surface, EGL_HEIGHT, &height);
-  OpenGLHook::glhooks.eglQuerySurface_real(dpy, surface, EGL_WIDTH, &width);
+  EGLHook::glhooks.eglQuerySurface_real(dpy, surface, EGL_HEIGHT, &height);
+  EGLHook::glhooks.eglQuerySurface_real(dpy, surface, EGL_WIDTH, &width);
 
-  OpenGLHook::glhooks.GetDriver()->WindowSize(surface, width, height);
-  OpenGLHook::glhooks.GetDriver()->SwapBuffers(surface);
+  GetDriver()->WindowSize(surface, width, height);
+  GetDriver()->SwapBuffers(surface);
 
-  return OpenGLHook::glhooks.eglSwapBuffers_real(dpy, surface);
+  return EGLHook::glhooks.eglSwapBuffers_real(dpy, surface);
 }
 
 __attribute__((visibility("default"))) __eglMustCastToProperFunctionPointerType eglGetProcAddress(
     const char *func)
 {
-  if(OpenGLHook::glhooks.eglGetProcAddress_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(EGLHook::glhooks.eglGetProcAddress_real == NULL)
+    EGLHook::glhooks.SetupExportedFunctions();
 
-  __eglMustCastToProperFunctionPointerType realFunc =
-      OpenGLHook::glhooks.eglGetProcAddress_real(func);
+  __eglMustCastToProperFunctionPointerType realFunc = EGLHook::glhooks.eglGetProcAddress_real(func);
 
   if(!strcmp(func, "eglCreateContext"))
     return (__eglMustCastToProperFunctionPointerType)&eglCreateContext;
@@ -1049,86 +408,44 @@ __attribute__((visibility("default"))) __eglMustCastToProperFunctionPointerType 
   if(realFunc == NULL)
     return realFunc;
 
-  DLLExportHooks();
-  HookCheckGLExtensions();
-
-  // at the moment the unsupported functions are all lowercase (as their name is generated from the
-  // typedef name).
-  string lowername = strlower(string(func));
-
-  CheckUnsupported();
-
-  // for any other function, if it's not a core or extension function we know about,
-  // just return NULL
-  return NULL;
+  return (__eglMustCastToProperFunctionPointerType)SharedLookupFuncPtr(func, (void *)realFunc);
 }
 
 };    // extern "C"
 
-bool OpenGLHook::PopulateHooks()
+bool EGLHook::PopulateHooks()
 {
-  bool success = true;
+  SetupHooks();
 
-  SetupHooks(GL);
-
-  if(eglGetProcAddress_real == NULL)
-    eglGetProcAddress_real = (PFN_eglGetProcAddress)dlsym(libGLdlsymHandle, "eglGetProcAddress");
-
-#undef HookInit
-#define HookInit(function)                                                                   \
-  if(GL.function == NULL)                                                                    \
-  {                                                                                          \
-    GL.function = (CONCAT(function, _hooktype))dlsym(libGLdlsymHandle, STRINGIZE(function)); \
-    eglGetProcAddress((const char *)STRINGIZE(function));                                    \
-  }
-
-// cheeky
-#undef HookExtension
-#define HookExtension(funcPtrType, function) eglGetProcAddress((const char *)STRINGIZE(function))
-#undef HookExtensionAlias
-#define HookExtensionAlias(funcPtrType, function, alias)
-
-  DLLExportHooks();
-  HookCheckGLExtensions();
-
-  CheckExtensions(GL);
-
-  // see gl_emulated.cpp
-  glEmulate::EmulateUnsupportedFunctions(&GL);
-
-  if(RenderDoc::Inst().IsReplayApp())
-    glEmulate::EmulateRequiredExtensions(&GL, &GL);
-
-  return true;
+  return SharedPopulateHooks([](const char *funcName) { return (void *)eglGetProcAddress(funcName); });
 }
 
-OpenGLHook OpenGLHook::glhooks;
-
-const GLHookSet &GetRealGLFunctions()
+const GLHookSet &GetRealGLFunctionsEGL()
 {
-  return OpenGLHook::glhooks.GetRealGLFunctions();
+  return EGLHook::glhooks.GetRealGLFunctions();
 }
 
-Threading::CriticalSection &GetGLLock()
-{
-  return glLock;
-}
+EGLHook EGLHook::glhooks;
 
+#ifndef RENDERDOC_SUPPORT_GL    // FIXME
 void MakeContextCurrent(GLWindowingData data)
 {
-  OpenGLHook::glhooks.MakeContextCurrent(data);
+  EGLHook::glhooks.MakeContextCurrent(data);
 }
 
 GLWindowingData MakeContext(GLWindowingData share)
 {
-  return OpenGLHook::glhooks.MakeContext(share);
+  return EGLHook::glhooks.MakeContext(share);
 }
 
 void DeleteContext(GLWindowingData context)
 {
-  OpenGLHook::glhooks.DeleteContext(context);
+  EGLHook::glhooks.DeleteContext(context);
 }
+#endif
 
+// FIXME: Combine both sets of immediate* functions in the same build of GL and GLES
+#ifndef RENDERDOC_SUPPORT_GL
 // All old style things are disabled in EGL mode
 bool immediateBegin(GLenum mode, float width, float height)
 {
@@ -1142,3 +459,4 @@ void immediateVert(float x, float y, float u, float v)
 void immediateEnd()
 {
 }
+#endif

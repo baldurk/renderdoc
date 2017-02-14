@@ -88,7 +88,7 @@ bool GLReplay::IsOutputWindowVisible(uint64_t id)
   return true;
 }
 
-const GLHookSet &GetRealGLFunctions();
+const GLHookSet &GetRealGLFunctionsEGL();
 
 ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
