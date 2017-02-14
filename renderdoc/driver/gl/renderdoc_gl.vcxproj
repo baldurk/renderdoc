@@ -24,6 +24,7 @@
     <ClInclude Include="gl_enum.h" />
     <ClInclude Include="gl_hookset.h" />
     <ClInclude Include="gl_hookset_defs.h" />
+    <ClInclude Include="gl_hooks_linux_shared.h" />
     <ClInclude Include="gl_manager.h" />
     <ClInclude Include="gl_renderstate.h" />
     <ClInclude Include="gl_replay.h" />
@@ -48,6 +49,9 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="gl_hooks_linux.cpp">
+      <ExcludedFromBuild>true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="gl_hooks_linux_shared.cpp">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="gl_hooks_win32.cpp" />

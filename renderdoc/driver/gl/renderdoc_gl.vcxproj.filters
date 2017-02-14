@@ -60,6 +60,9 @@
     <ClInclude Include="gl_hookset.h">
       <Filter>Hookset</Filter>
     </ClInclude>
+    <ClInclude Include="gl_hooks_linux_shared.h">
+      <Filter>OS\Linux</Filter>
+    </ClInclude>
     <ClInclude Include="gl_resources.h">
       <Filter>Util</Filter>
     </ClInclude>
@@ -123,6 +126,9 @@
       <Filter>OS\Win32</Filter>
     </ClCompile>
     <ClCompile Include="gl_hooks_linux.cpp">
+      <Filter>OS\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_hooks_linux_shared.cpp">
       <Filter>OS\Linux</Filter>
     </ClCompile>
     <ClCompile Include="gl_replay_linux.cpp">
