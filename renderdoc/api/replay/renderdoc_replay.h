@@ -643,6 +643,14 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(
     uint32_t pid, void *env, const char *logfile, const CaptureOptions *opts, bool32 waitForExit);
 
 //////////////////////////////////////////////////////////////////////////
+// Vulkan layer handling
+//////////////////////////////////////////////////////////////////////////
+
+extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_NeedVulkanLayerRegistration(
+    uint32_t *flags, rdctype::array<rdctype::str> *myJSONs, rdctype::array<rdctype::str> *otherJSONs);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateVulkanLayerRegistration(bool elevate);
+
+//////////////////////////////////////////////////////////////////////////
 // Miscellaneous!
 //////////////////////////////////////////////////////////////////////////
 

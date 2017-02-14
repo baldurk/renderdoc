@@ -34,6 +34,7 @@
 #include <QMetaMethod>
 #include <QProcess>
 #include <QProgressDialog>
+#include <QStandardPaths>
 #include <QTreeWidget>
 #include <QtMath>
 
@@ -672,6 +673,138 @@ protected:
 
   static const int maxProgress = 1000;
 };
+
+#if defined(Q_OS_WIN32)
+#include <shellapi.h>
+#include <windows.h>
+#endif
+
+bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &params,
+                       std::function<void()> finishedCallback)
+{
+#if defined(Q_OS_WIN32)
+
+  std::wstring wideExe = fullExecutablePath.toStdWString();
+  std::wstring wideParams = params.join(QChar(' ')).toStdWString();
+
+  SHELLEXECUTEINFOW info = {};
+  info.cbSize = sizeof(info);
+  info.fMask = SEE_MASK_NOCLOSEPROCESS;
+  info.lpVerb = L"runas";
+  info.lpFile = wideExe.c_str();
+  info.lpParameters = wideParams.c_str();
+  info.nShow = SW_SHOWNORMAL;
+
+  ShellExecuteExW(&info);
+
+  if((uintptr_t)info.hInstApp > 32 && info.hProcess != NULL)
+  {
+    if(finishedCallback)
+    {
+      HANDLE h = info.hProcess;
+
+      // do the wait on another thread
+      LambdaThread *thread = new LambdaThread([h, finishedCallback]() {
+        WaitForSingleObject(h, 30000);
+        CloseHandle(h);
+        GUIInvoke::call(finishedCallback);
+      });
+      thread->selfDelete(true);
+      thread->start();
+    }
+    else
+    {
+      CloseHandle(info.hProcess);
+    }
+
+    return true;
+  }
+
+  return false;
+
+#else
+  // try to find a way to run the application elevated.
+  const QString graphicalSudo[] = {
+      "pkexec", "kdesudo", "gksudo", "beesu",
+  };
+
+  // if none of the graphical options, then look for sudo and either
+  const QString termEmulator[] = {
+      "x-terminal-emulator", "gnome-terminal", "knosole", "xterm",
+  };
+
+  for(const QString &sudo : graphicalSudo)
+  {
+    QString inPath = QStandardPaths::findExecutable(sudo);
+
+    // can't find in path
+    if(inPath.isEmpty())
+      continue;
+
+    QProcess *process = new QProcess;
+
+    QStringList sudoParams;
+    sudoParams << fullExecutablePath;
+    for(const QString &p : params)
+      sudoParams << p;
+
+    qInfo() << "Running" << sudo << "with params" << sudoParams;
+
+    // run with sudo
+    process->start(sudo, sudoParams);
+
+    // when the process exits, call the callback and delete
+    QObject::connect(process, OverloadedSlot<int>::of(&QProcess::finished),
+                     [process, finishedCallback](int exitCode) {
+                       process->deleteLater();
+                       GUIInvoke::call(finishedCallback);
+                     });
+
+    return true;
+  }
+
+  QString sudo = QStandardPaths::findExecutable("sudo");
+
+  if(sudo.isEmpty())
+  {
+    qCritical() << "Couldn't find graphical or terminal sudo program!\n"
+                << "Please run " << fullExecutablePath << "with args" << params << "manually.";
+    return false;
+  }
+
+  for(const QString &term : termEmulator)
+  {
+    QString inPath = QStandardPaths::findExecutable(term);
+
+    // can't find in path
+    if(inPath.isEmpty())
+      continue;
+
+    QProcess *process = new QProcess;
+
+    // run terminal sudo with emulator
+    QStringList termParams;
+    termParams << "-e"
+               << QString("bash -c 'sudo %1 %2'").arg(fullExecutablePath).arg(params.join(QChar(' ')));
+
+    process->start(term, termParams);
+
+    // when the process exits, call the callback and delete
+    QObject::connect(process, OverloadedSlot<int>::of(&QProcess::finished),
+                     [process, finishedCallback](int exitCode) {
+                       process->deleteLater();
+                       GUIInvoke::call(finishedCallback);
+                     });
+
+    return true;
+  }
+
+  qCritical() << "Couldn't find graphical or terminal emulator to launch sudo.\n"
+              << "Please run " << fullExecutablePath << "with args" << params << "manually.";
+
+  return false;
+#endif
+}
 
 void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinishedMethod finished,
                         ProgressUpdateMethod update)

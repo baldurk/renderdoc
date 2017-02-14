@@ -64,12 +64,24 @@ int main(int argc, char *argv[])
       temp = true;
   }
 
+  for(int i = 0; i < argc; i++)
+  {
+    if(!QString::compare(argv[i], "--install_vulkan_layer") && i + 1 < argc)
+    {
+      if(!QString::compare(argv[i + 1], "root"))
+        RENDERDOC_UpdateVulkanLayerRegistration(true);
+      else
+        RENDERDOC_UpdateVulkanLayerRegistration(false);
+      return 0;
+    }
+  }
+
   QString remoteHost = "";
   uint remoteIdent = 0;
 
   for(int i = 0; i + 1 < argc; i++)
   {
-    if(!QString::compare(argv[i], "--REMOTEACCESS", Qt::CaseInsensitive))
+    if(!QString::compare(argv[i], "--remoteaccess", Qt::CaseInsensitive))
     {
       QRegularExpression regexp("^([a-zA-Z0-9_-]+:)?([0-9]+)$");
 

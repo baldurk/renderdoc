@@ -601,3 +601,13 @@ enum LogMessageType
   eLogType_Fatal,
   eLogType_NumTypes,
 };
+
+enum VulkanFlags
+{
+  eVulkan_OtherInstallsRegistered = 0x1,
+  eVulkan_ThisInstallRegistered = 0x2,
+  eVulkan_NeedElevation = 0x4,
+  eVulkan_CouldElevate = 0x8,
+  eVulkan_RegisterAll = 0x10,
+  eVulkan_UpdateAllowed = 0x20,
+};

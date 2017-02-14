@@ -157,8 +157,7 @@ CaptureDialog::CaptureDialog(CaptureContext &ctx, OnCaptureMethod captureCallbac
   // sort by PID by default
   ui->processList->sortByColumn(1, Qt::AscendingOrder);
 
-  // TODO Vulkan Layer
-  ui->vulkanLayerWarn->setVisible(false);
+  ui->vulkanLayerWarn->setVisible(RENDERDOC_NeedVulkanLayerRegistration(NULL, NULL, NULL));
 
   m_CaptureCallback = captureCallback;
   m_InjectCallback = injectCallback;
@@ -280,7 +279,133 @@ void CaptureDialog::on_exePath_textChanged(const QString &text)
 
 void CaptureDialog::on_vulkanLayerWarn_clicked()
 {
-  // TODO Vulkan Layer
+  QString caption = tr("Configure Vulkan layer settings in registry?");
+
+  uint32_t flags = 0;
+  rdctype::array<rdctype::str> myJSONs;
+  rdctype::array<rdctype::str> otherJSONs;
+
+  RENDERDOC_NeedVulkanLayerRegistration(&flags, &myJSONs, &otherJSONs);
+
+  const bool hasOtherJSON = (flags & eVulkan_OtherInstallsRegistered);
+  const bool thisRegistered = (flags & eVulkan_ThisInstallRegistered);
+  const bool needElevation = (flags & eVulkan_NeedElevation);
+  const bool couldElevate = (flags & eVulkan_CouldElevate);
+  const bool registerAll = (flags & eVulkan_RegisterAll);
+  const bool updateAllowed = (flags & eVulkan_UpdateAllowed);
+
+  QString msg =
+      tr("Vulkan capture happens through the API's layer mechanism. RenderDoc has detected that ");
+
+  if(hasOtherJSON)
+  {
+    if(otherJSONs.count > 1)
+      msg +=
+          tr("there are other RenderDoc builds registered already. They must be disabled so that "
+             "capture can happen without nasty clashes.");
+    else
+      msg +=
+          tr("there is another RenderDoc build registered already. It must be disabled so that "
+             "capture can happen without nasty clashes.");
+
+    if(!thisRegistered)
+      msg += tr(" Also ");
+  }
+
+  if(!thisRegistered)
+  {
+    msg +=
+        tr("the layer for this installation is not yet registered. This could be due to an "
+           "upgrade from a version that didn't support Vulkan, or if this version is just a loose "
+           "unzip/dev build.");
+  }
+
+  msg += tr("\n\nWould you like to proceed with the following changes?\n\n");
+
+  if(hasOtherJSON)
+  {
+    for(const rdctype::str &j : otherJSONs)
+      msg += (updateAllowed ? tr("Unregister/update: %1\n") : tr("Unregister: %1\n")).arg(ToQStr(j));
+
+    msg += "\n";
+  }
+
+  if(!thisRegistered)
+  {
+    if(registerAll)
+    {
+      for(const rdctype::str &j : myJSONs)
+        msg += (updateAllowed ? tr("Register/update: %1\n") : tr("Register: %1\n")).arg(ToQStr(j));
+    }
+    else
+    {
+      msg += updateAllowed ? tr("Register one of:\n") : tr("Register/update one of:\n");
+      for(const rdctype::str &j : myJSONs)
+        msg += tr("  -- %1\n").arg(ToQStr(j));
+    }
+
+    msg += "\n";
+  }
+
+  msg += tr("This is a one-off change, it won't be needed again unless the installation moves.");
+
+  QMessageBox::StandardButton install = RDDialog::question(this, caption, msg, RDDialog::YesNoCancel);
+
+  if(install == QMessageBox::Yes)
+  {
+    bool run = false;
+    bool admin = false;
+
+    // if we need to elevate, just try it.
+    if(needElevation)
+    {
+      admin = run = true;
+    }
+    // if we could elevate, ask the user
+    else if(couldElevate)
+    {
+      QMessageBox::StandardButton elevate = RDDialog::question(
+          this, tr("System layer install"),
+          tr("Do you want to elevate permissions to install the layer at a system level?"),
+          RDDialog::YesNoCancel);
+
+      if(elevate == QMessageBox::Yes)
+        admin = true;
+      else if(elevate == QMessageBox::No)
+        admin = false;
+
+      run = (elevate != QMessageBox::Cancel);
+    }
+    // otherwise run non-elevated
+    else
+    {
+      run = true;
+    }
+
+    if(run)
+    {
+      if(admin)
+      {
+        RunProcessAsAdmin(qApp->applicationFilePath(), QStringList() << "--install_vulkan_layer"
+                                                                     << "root",
+                          [this]() {
+                            // ui->vulkanLayerWarn->setVisible(RENDERDOC_NeedVulkanLayerRegistration(NULL,
+                            // NULL, NULL));
+                            ui->vulkanLayerWarn->setVisible(false);
+                          });
+        return;
+      }
+      else
+      {
+        QProcess process;
+        process.start(qApp->applicationFilePath(), QStringList() << "--install_vulkan_layer"
+                                                                 << "user");
+        process.waitForFinished(300);
+      }
+    }
+
+    ui->vulkanLayerWarn->setVisible(RENDERDOC_NeedVulkanLayerRegistration(NULL, NULL, NULL));
+  }
 }
 
 void CaptureDialog::on_processRefesh_clicked()

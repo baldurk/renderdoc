@@ -687,6 +687,9 @@ class QProgressDialog;
 typedef std::function<float()> ProgressUpdateMethod;
 typedef std::function<bool()> ProgressFinishedMethod;
 
+bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &params,
+                       std::function<void()> finishedCallback = std::function<void()>());
+
 void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinishedMethod finished,
                         ProgressUpdateMethod update = ProgressUpdateMethod());
 
