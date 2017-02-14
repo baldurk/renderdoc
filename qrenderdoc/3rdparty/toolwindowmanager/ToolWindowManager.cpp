@@ -812,7 +812,17 @@ void ToolWindowManager::finishDrag() {
   }
   if (m_suggestions.isEmpty()) {
     if (m_allowFloatingWindow)
+    {
+      QRect r;
+      for(QWidget *w : m_draggedToolWindows)
+        r = r.united(w->rect());
+
       moveToolWindows(m_draggedToolWindows, NewFloatingArea);
+
+      ToolWindowManagerArea *area = areaOf(m_draggedToolWindows[0]);
+
+      area->parentWidget()->resize(r.size());
+    }
   } else {
     if (m_dropCurrentSuggestionIndex >= m_suggestions.count()) {
       qWarning("invalid m_dropCurrentSuggestionIndex");
