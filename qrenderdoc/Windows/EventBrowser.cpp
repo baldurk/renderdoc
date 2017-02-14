@@ -52,6 +52,8 @@ EventBrowser::EventBrowser(CaptureContext &ctx, QWidget *parent)
 
   clearBookmarks();
 
+  ui->events->setClearSelectionOnFocusLoss(false);
+
   ui->events->header()->resizeSection(COL_EID, 80);
 
   ui->events->header()->setSectionResizeMode(COL_NAME, QHeaderView::Stretch);
