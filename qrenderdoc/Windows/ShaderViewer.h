@@ -137,6 +137,8 @@ private:
   static const int BREAKPOINT_MARKER = 2;
   static const int FINISHED_MARKER = 4;
 
+  void addFileList();
+
   ScintillaEdit *MakeEditor(const QString &name, const QString &text, bool src);
   ScintillaEdit *AddFileScintilla(const QString &name, const QString &text);
 

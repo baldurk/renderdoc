@@ -24,6 +24,7 @@
 
 #include "ShaderViewer.h"
 #include <QHBoxLayout>
+#include <QListWidget>
 #include <QShortcut>
 #include "3rdparty/scintilla/include/SciLexer.h"
 #include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
@@ -160,9 +161,8 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
 
   setWindowTitle(title);
 
-  // TODO File list
-  // if(files.count() > 2)
-  // addFileList();
+  if(files.count() > 2)
+    addFileList();
 
   m_Errors = MakeEditor("errors", "", false);
   m_Errors->setReadOnly(true);
@@ -246,9 +246,8 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     if(trace)
       sel = m_DisassemblyView;
 
-    // TODO File list
-    // if(shader->DebugInfo.files.count > 2)
-    // addFileList();
+    if(shader->DebugInfo.files.count > 2)
+      addFileList();
 
     ToolWindowManager::raiseToolWindow(sel);
   }
@@ -681,6 +680,24 @@ QTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, ui
   {
     return makeTreeNode({regname + name, "Resource", "unknown"});
   }
+}
+
+void ShaderViewer::addFileList()
+{
+  QListWidget *list = new QListWidget(this);
+  list->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+  list->setSelectionMode(QAbstractItemView::SingleSelection);
+  QObject::connect(list, &QListWidget::currentRowChanged,
+                   [this](int idx) { ToolWindowManager::raiseToolWindow(m_Scintillas[idx]); });
+  list->setWindowTitle(tr("File List"));
+
+  for(ScintillaEdit *s : m_Scintillas)
+    list->addItem(s->windowTitle());
+
+  ui->docking->addToolWindow(
+      list, ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
+                                             ui->docking->areaOf(m_Scintillas.front()), 0.2f));
+  ui->docking->setToolWindowProperties(list, ToolWindowManager::HideCloseButton);
 }
 
 void ShaderViewer::updateDebugging()
