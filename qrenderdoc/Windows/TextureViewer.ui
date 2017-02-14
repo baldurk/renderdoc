@@ -595,7 +595,7 @@
     <rect>
      <x>3</x>
      <y>3</y>
-     <width>701</width>
+     <width>696</width>
      <height>28</height>
     </rect>
    </property>
@@ -648,7 +648,7 @@
      </widget>
     </item>
     <item>
-     <widget class="Line" name="depthStencilSep">
+     <widget class="Line" name="line_2">
       <property name="orientation">
        <enum>Qt::Vertical</enum>
       </property>
@@ -754,13 +754,6 @@
       </property>
       <property name="insertPolicy">
        <enum>QComboBox::NoInsert</enum>
-      </property>
-     </widget>
-    </item>
-    <item>
-     <widget class="Line" name="line_2">
-      <property name="orientation">
-       <enum>Qt::Vertical</enum>
       </property>
      </widget>
     </item>

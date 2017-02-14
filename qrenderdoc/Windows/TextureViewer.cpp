@@ -1365,7 +1365,6 @@ void TextureViewer::UI_UpdateChannels()
     HIDE(ui->customCreate);
     HIDE(ui->customEdit);
     HIDE(ui->customDelete);
-    SHOW(ui->depthStencilSep);
     SHOW(ui->depthDisplay);
     SHOW(ui->stencilDisplay);
 
@@ -1403,7 +1402,6 @@ void TextureViewer::UI_UpdateChannels()
     HIDE(ui->customCreate);
     HIDE(ui->customEdit);
     HIDE(ui->customDelete);
-    HIDE(ui->depthStencilSep);
     HIDE(ui->depthDisplay);
     HIDE(ui->stencilDisplay);
 
@@ -1435,7 +1433,6 @@ void TextureViewer::UI_UpdateChannels()
     HIDE(ui->customCreate);
     HIDE(ui->customEdit);
     HIDE(ui->customDelete);
-    HIDE(ui->depthStencilSep);
     HIDE(ui->depthDisplay);
     HIDE(ui->stencilDisplay);
 
@@ -1476,7 +1473,6 @@ void TextureViewer::UI_UpdateChannels()
     SHOW(ui->customCreate);
     SHOW(ui->customEdit);
     SHOW(ui->customDelete);
-    HIDE(ui->depthStencilSep);
     HIDE(ui->depthDisplay);
     HIDE(ui->stencilDisplay);
 
