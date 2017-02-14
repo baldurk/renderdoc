@@ -65,6 +65,12 @@ struct GLWindowingData
 #include "official/glxext.h"
 #endif
 #if RENDERDOC_SUPPORT_GLES
+
+// force include the elgplatform.h, as we want to use
+// our own because the system one could be a bit older and
+// propably not suitable for the given egl.h
+#include "official/eglplatform.h"
+
 #include "official/egl.h"
 #include "official/eglext.h"
 #endif

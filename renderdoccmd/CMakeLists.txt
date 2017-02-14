@@ -17,6 +17,10 @@ elseif(UNIX)
         list(APPEND libraries PRIVATE ${OPENGL_gl_LIBRARY})
     endif()
 
+    if(ENABLE_GLES)
+        list(APPEND libraries PRIVATE -lEGL)
+    endif()
+
     if(ENABLE_XLIB)
         list(APPEND libraries PRIVATE -lX11)
     endif()

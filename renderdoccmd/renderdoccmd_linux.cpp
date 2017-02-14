@@ -708,6 +708,14 @@ extern "C" void glXWaitX();
 
 #endif
 
+#if defined(RENDERDOC_SUPPORT_GLES)
+
+// symbol defined in libEGL but not in librenderdoc.
+// Forces link of libEGL.
+extern "C" int eglWaitGL(void);
+
+#endif
+
 void sig_handler(int signo)
 {
   if(usingKillSignal)
@@ -725,6 +733,14 @@ int main(int argc, char *argv[])
   volatile bool never_run = false;
   if(never_run)
     glXWaitX();
+
+#endif
+
+#if defined(RENDERDOC_SUPPORT_GLES)
+
+  volatile bool never_run = false;
+  if(never_run)
+    eglWaitGL();
 
 #endif
 
@@ -747,6 +763,11 @@ int main(int argc, char *argv[])
 
 #if defined(RENDERDOC_SUPPORT_GL)
     support += "GL, ";
+    count++;
+#endif
+
+#if defined(RENDERDOC_SUPPORT_GLES)
+    support += "GLES, ";
     count++;
 #endif
 
