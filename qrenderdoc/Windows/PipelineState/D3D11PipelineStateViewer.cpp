@@ -499,7 +499,7 @@ void D3D11PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewT
 
   if((res.FirstElement * res.ElementSize) > 0 || (res.NumElements * res.ElementSize) < buf->length)
   {
-    text += tr("The view covers bytes %1-%2 (%3 elements).\nThe buffer is %3 bytes in length (%5 "
+    text += tr("The view covers bytes %1-%2 (%3 elements).\nThe buffer is %4 bytes in length (%5 "
                "elements).")
                 .arg(res.FirstElement * res.ElementSize)
                 .arg((res.FirstElement + res.NumElements) * res.ElementSize)
