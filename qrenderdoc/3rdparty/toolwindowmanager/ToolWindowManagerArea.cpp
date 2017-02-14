@@ -128,7 +128,18 @@ bool ToolWindowManagerArea::eventFilter(QObject *object, QEvent *event) {
       } else {
         m_dragCanStart = true;
       }
+    } else if (event->type() == QEvent::MouseButtonPress &&
+        qApp->mouseButtons() == Qt::MiddleButton) {
 
+      int tabIndex = tabBar()->tabAt(static_cast<QMouseEvent*>(event)->pos());
+
+      if(tabIndex >= 0) {
+        QWidget *w = widget(tabIndex);
+
+        if(!(m_manager->toolWindowProperties(w) & ToolWindowManager::HideCloseButton)) {
+          m_manager->removeToolWindow(w);
+        }
+      }
     } else if (event->type() == QEvent::MouseButtonRelease) {
       m_tabDragCanStart = false;
       m_dragCanStart = false;
