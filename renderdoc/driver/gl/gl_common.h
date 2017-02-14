@@ -63,7 +63,8 @@ struct GLWindowingData
 #define __gl_h_
 #include <GL/glx.h>
 #include "official/glxext.h"
-#elif RENDERDOC_SUPPORT_GLES
+#endif
+#if RENDERDOC_SUPPORT_GLES
 #include "official/egl.h"
 #include "official/eglext.h"
 #endif
@@ -77,17 +78,43 @@ struct GLWindowingData
     wnd = 0;
   }
 
+  void SetCtx(void *c) { ctx = (GLContextPtr)c; }
+
 #if defined(RENDERDOC_SUPPORT_GL)
-  void SetCtx(void *c) { ctx = (GLXContext)c; }
-  Display *dpy;
-  GLXContext ctx;
-  GLXDrawable wnd;
-#elif defined(RENDERDOC_SUPPORT_GLES)
-  void SetCtx(void *c) { ctx = (EGLContext)c; }
-  EGLDisplay dpy;
-  EGLContext ctx;
-  EGLSurface wnd;
+  typedef Display *GLDisplayPtr;
+  typedef GLXContext GLContextPtr;
+  typedef GLXDrawable GLWindowPtr;
+#else
+  typedef void *GLDisplayPtr;
+  typedef void *GLContextPtr;
+  typedef void *GLWindowPtr;
 #endif
+
+#if defined(RENDERDOC_SUPPORT_GLES)
+  typedef EGLDisplay GLESDisplayPtr;
+  typedef EGLContext GLESContextPtr;
+  typedef EGLSurface GLESWindowPtr;
+#else
+  typedef void *GLESDisplayPtr;
+  typedef void *GLESContextPtr;
+  typedef void *GLESWindowPtr;
+#endif
+
+  union
+  {
+    GLDisplayPtr dpy;
+    GLESDisplayPtr egl_dpy;
+  };
+  union
+  {
+    GLContextPtr ctx;
+    GLESContextPtr egl_ctx;
+  };
+  union
+  {
+    GLWindowPtr wnd;
+    GLESWindowPtr egl_wnd;
+  };
 };
 
 #elif ENABLED(RDOC_APPLE)

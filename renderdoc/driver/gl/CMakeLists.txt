@@ -43,6 +43,9 @@ elseif(APPLE)
         gl_replay_apple.cpp
         gl_hooks_apple.cpp)
 elseif(UNIX)
+    list(APPEND sources
+        gl_hooks_linux_shared.cpp)
+
     if(ENABLE_GL)
         list(APPEND sources
             official/glxext.h
@@ -52,7 +55,10 @@ elseif(UNIX)
             gl_hooks_linux.cpp)
     elseif(ENABLE_GLES)
         list(APPEND sources
-            gl_replay_egl.cpp
+            gl_replay_egl.cpp)
+    endif()
+    if(ENABLE_GLES)
+        list(APPEND sources
             gl_hooks_egl.cpp)
     endif()
 endif()
