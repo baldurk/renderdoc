@@ -37,25 +37,31 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+  </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release64|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(VSInstallDir)\DIA SDK\include;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)x64\Release\pdblocate\</OutDir>
+    <IntDir>$(SolutionDir)x64\Release\obj\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release32|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(VSInstallDir)\DIA SDK\include;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)Win32\Release\pdblocate\</OutDir>
+    <IntDir>$(SolutionDir)Win32\Release\obj\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development64|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(VSInstallDir)\DIA SDK\include;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)x64\Development\pdblocate\</OutDir>
+    <IntDir>$(SolutionDir)x64\Development\obj\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Development32|Win32'">
     <LinkIncremental>false</LinkIncremental>
     <IncludePath>$(VSInstallDir)\DIA SDK\include;$(IncludePath)</IncludePath>
     <OutDir>$(SolutionDir)Win32\Development\pdblocate\</OutDir>
+    <IntDir>$(SolutionDir)Win32\Development\obj\$(ProjectName)\</IntDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release64|Win32'">
     <ClCompile>
