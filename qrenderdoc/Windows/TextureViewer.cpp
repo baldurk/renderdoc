@@ -2549,6 +2549,15 @@ void TextureViewer::Reset()
   ui->channels->setCurrentIndex(0);
   ui->overlay->setCurrentIndex(0);
 
+  {
+    QPalette Pal(palette());
+
+    Pal.setColor(QPalette::Background, Qt::black);
+
+    ui->pickSwatch->setAutoFillBackground(true);
+    ui->pickSwatch->setPalette(Pal);
+  }
+
   ui->customShader->clear();
 
   UI_RecreatePanels();
