@@ -27,6 +27,7 @@
 #include <math.h>
 #include <QClipboard>
 #include <QColorDialog>
+#include <QFileSystemWatcher>
 #include <QFontDatabase>
 #include <QItemDelegate>
 #include <QJsonDocument>
@@ -512,6 +513,7 @@ TextureViewer::TextureViewer(CaptureContext &ctx, QWidget *parent)
                    &TextureViewer::channelsWidget_selected);
   QObject::connect(ui->customShader, OverloadedSlot<int>::of(&QComboBox::currentIndexChanged), this,
                    &TextureViewer::channelsWidget_selected);
+  QObject::connect(ui->customShader, &QComboBox::currentTextChanged, [this] { UI_UpdateChannels(); });
   QObject::connect(ui->rangeHistogram, &RangeHistogram::rangeUpdated, this,
                    &TextureViewer::range_rangeUpdated);
   QObject::connect(ui->rangeBlack, &RDLineEdit::textChanged, this,
@@ -1487,19 +1489,25 @@ void TextureViewer::UI_UpdateChannels()
 
     m_TexDisplay.CustomShader = ResourceId();
 
-    // TODO Custom shaders
-    /*
-    if (m_CustomShaders.ContainsKey(customShader.Text.ToUpperInvariant()))
+    QString shaderName = ui->customShader->currentText().toUpper();
+
+    if(m_CustomShaders.contains(shaderName))
     {
-      if (m_TexDisplay.CustomShader == ResourceId.Null) { m_CurPixelValue = null; m_CurRealValue =
-  null; UI_UpdateStatusText(); }
-      m_TexDisplay.CustomShader = m_CustomShaders[customShader.Text.ToUpperInvariant()];
-      customDelete.Enabled = customEdit.Enabled = true;
+      if(m_TexDisplay.CustomShader == ResourceId())
+      {
+        memset(m_CurPixelValue.value_f, 0, sizeof(float) * 4);
+        memset(m_CurRealValue.value_f, 0, sizeof(float) * 4);
+        UI_UpdateStatusText();
+      }
+      m_TexDisplay.CustomShader = m_CustomShaders[shaderName];
+      ui->customDelete->setEnabled(true);
+      ui->customEdit->setEnabled(true);
     }
     else
     {
-      customDelete.Enabled = customEdit.Enabled = false;
-    }*/
+      ui->customDelete->setEnabled(false);
+      ui->customEdit->setEnabled(false);
+    }
   }
 
 #undef HIDE
@@ -2496,6 +2504,14 @@ void TextureViewer::OnLogfileLoaded()
 
     GUIInvoke::call([this]() { OnEventChanged(m_Ctx.CurEvent()); });
   });
+
+  m_Watcher = new QFileSystemWatcher({m_Ctx.ConfigFile("")}, this);
+
+  QObject::connect(m_Watcher, &QFileSystemWatcher::fileChanged, this,
+                   &TextureViewer::customShaderModified);
+  QObject::connect(m_Watcher, &QFileSystemWatcher::directoryChanged, this,
+                   &TextureViewer::customShaderModified);
+  reloadCustomShaders("");
 }
 
 void TextureViewer::Reset()
@@ -2548,7 +2564,13 @@ void TextureViewer::OnLogfileClosed()
 {
   Reset();
 
+  delete m_Watcher;
+  m_Watcher = NULL;
+
   m_LockedTabs.clear();
+
+  ui->customShader->clear();
+  m_CustomShaders.clear();
 
   ui->saveTex->setEnabled(false);
   ui->locationGoto->setEnabled(false);
@@ -3404,4 +3426,298 @@ void TextureViewer::on_textureList_clicked(const QModelIndex &index)
 {
   ResourceId id = index.model()->data(index, Qt::UserRole).value<ResourceId>();
   ViewTexture(id, false);
+}
+
+void TextureViewer::reloadCustomShaders(const QString &filter)
+{
+  if(!m_Ctx.LogLoaded())
+    return;
+
+  if(filter.isEmpty())
+  {
+    QString prevtext = ui->customShader->currentText();
+
+    QList<ResourceId> shaders = m_CustomShaders.values();
+
+    m_Ctx.Renderer().AsyncInvoke([shaders](IReplayRenderer *r) {
+      for(ResourceId s : shaders)
+        r->FreeCustomShader(s);
+    });
+
+    ui->customShader->clear();
+    m_CustomShaders.clear();
+
+    ui->customShader->setCurrentText(prevtext);
+  }
+  else
+  {
+    QString fn = QFileInfo(filter).baseName();
+    QString key = fn.toUpper();
+
+    if(m_CustomShaders.contains(key))
+    {
+      if(m_CustomShadersBusy.contains(key))
+        return;
+
+      ResourceId freed = m_CustomShaders[key];
+      m_Ctx.Renderer().AsyncInvoke([freed](IReplayRenderer *r) { r->FreeCustomShader(freed); });
+
+      m_CustomShaders.remove(key);
+
+      QString text = ui->customShader->currentText();
+
+      for(int i = 0; i < ui->customShader->count(); i++)
+      {
+        if(ui->customShader->itemText(i).compare(fn, Qt::CaseInsensitive) == 0)
+        {
+          ui->customShader->removeItem(i);
+          break;
+        }
+      }
+
+      ui->customShader->setCurrentText(text);
+    }
+  }
+
+  QStringList files =
+      QDir(m_Ctx.ConfigFile(""))
+          .entryList({QString("*.%1").arg(m_Ctx.CurPipelineState.GetShaderExtension())},
+                     QDir::Files | QDir::NoDotAndDotDot, QDir::Name | QDir::IgnoreCase);
+
+  QStringList watchedFiles = m_Watcher->files();
+  m_Watcher->removePaths(watchedFiles);
+
+  for(const QString &f : files)
+  {
+    QString fn = QFileInfo(f).baseName();
+    QString key = fn.toUpper();
+
+    m_Watcher->addPath(m_Ctx.ConfigFile(f));
+
+    if(!m_CustomShaders.contains(key) && !m_CustomShadersBusy.contains(key))
+    {
+      QFile fileHandle(m_Ctx.ConfigFile(f));
+      if(fileHandle.open(QFile::ReadOnly | QFile::Text))
+      {
+        QTextStream stream(&fileHandle);
+        QString source = stream.readAll();
+
+        fileHandle.close();
+
+        m_CustomShaders[key] = ResourceId();
+        m_CustomShadersBusy.push_back(key);
+        m_Ctx.Renderer().AsyncInvoke([this, fn, key, source](IReplayRenderer *r) {
+          rdctype::str errors;
+
+          ResourceId id =
+              r->BuildCustomShader("main", source.toUtf8().data(), 0, eShaderStage_Pixel, &errors);
+
+          if(m_CustomShaderEditor.contains(key))
+          {
+            ShaderViewer *editor = m_CustomShaderEditor[key];
+            GUIInvoke::call([editor, errors]() { editor->showErrors(ToQStr(errors)); });
+          }
+
+          GUIInvoke::call([this, fn, key, id]() {
+            QString prevtext = ui->customShader->currentText();
+            ui->customShader->addItem(fn);
+            ui->customShader->setCurrentText(prevtext);
+
+            m_CustomShaders[key] = id;
+            m_CustomShadersBusy.removeOne(key);
+
+            UI_UpdateChannels();
+          });
+        });
+      }
+    }
+  }
+}
+
+void TextureViewer::on_customCreate_clicked()
+{
+  QString filename = ui->customShader->currentText();
+
+  if(filename.isEmpty())
+  {
+    RDDialog::critical(this, tr("Error Creating Shader"),
+                       tr("No shader name specified.\nEnter a new name in the textbox"));
+    return;
+  }
+
+  if(m_CustomShaders.contains(filename.toUpper()))
+  {
+    RDDialog::critical(this, tr("Error Creating Shader"),
+                       tr("Selected shader already exists.\nEnter a new name in the textbox."));
+    ui->customShader->setCurrentText("");
+    UI_UpdateChannels();
+    return;
+  }
+
+  QString path = m_Ctx.ConfigFile(filename + "." + m_Ctx.CurPipelineState.GetShaderExtension());
+
+  QString src;
+
+  if(IsD3D(m_Ctx.APIProps().pipelineType))
+  {
+    src =
+        "float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0) : SV_Target0\n"
+        "{\n"
+        "    return float4(0,0,0,1);\n"
+        "}\n";
+  }
+  else
+  {
+    src =
+        "#version 420 core\n\n"
+        "layout (location = 0) in vec2 uv;\n\n"
+        "layout (location = 0) out vec4 color_out;\n\n"
+        "void main()\n"
+        "{\n"
+        "    color_out = vec4(0,0,0,1);\n"
+        "}\n";
+  }
+
+  QFile fileHandle(path);
+  if(fileHandle.open(QFile::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+  {
+    fileHandle.write(src.toUtf8());
+    fileHandle.close();
+  }
+  else
+  {
+    RDDialog::critical(
+        this, tr("Cannot create shader"),
+        tr("Couldn't create file for shader %1\n%2").arg(filename).arg(fileHandle.errorString()));
+  }
+
+  // auto-open edit window
+  on_customEdit_clicked();
+
+  reloadCustomShaders(filename);
+}
+
+void TextureViewer::on_customEdit_clicked()
+{
+  QString filename = ui->customShader->currentText();
+  QString key = filename.toUpper();
+
+  if(filename.isEmpty())
+  {
+    RDDialog::critical(this, tr("Error Editing Shader"),
+                       tr("No shader selected.\nSelect a custom shader from the drop-down"));
+    return;
+  }
+
+  QString path = m_Ctx.ConfigFile(filename + "." + m_Ctx.CurPipelineState.GetShaderExtension());
+
+  QString src;
+
+  QFile fileHandle(path);
+  if(fileHandle.open(QFile::ReadOnly | QFile::Text))
+  {
+    QTextStream stream(&fileHandle);
+    src = stream.readAll();
+    fileHandle.close();
+  }
+  else
+  {
+    RDDialog::critical(
+        this, tr("Cannot open shader"),
+        tr("Couldn't open file for shader %1\n%2").arg(filename).arg(fileHandle.errorString()));
+    return;
+  }
+
+  QStringMap files;
+  files[filename] = src;
+
+  ShaderViewer *s = ShaderViewer::editShader(
+      m_Ctx, true, "main", files,
+      // Save Callback
+      [this, key, filename, path](CaptureContext *ctx, ShaderViewer *viewer,
+                                  const QStringMap &updatedfiles) {
+        {
+          QFile fileHandle(path);
+          if(fileHandle.open(QFile::WriteOnly | QIODevice::Truncate | QIODevice::Text))
+          {
+            fileHandle.write(updatedfiles[filename].toUtf8());
+            fileHandle.close();
+
+            // watcher doesn't trigger on internal modifications
+            reloadCustomShaders(filename);
+          }
+          else
+          {
+            RDDialog::critical(
+                this, tr("Cannot save shader"),
+                tr("Couldn't save file for shader %1\n%2").arg(filename).arg(fileHandle.errorString()));
+          }
+        }
+      },
+
+      [this, key](CaptureContext *ctx) { m_CustomShaderEditor.remove(key); }, m_Ctx.mainWindow());
+
+  m_CustomShaderEditor[key] = s;
+
+  m_Ctx.setupDockWindow(s);
+
+  ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+  ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+  manager->addToolWindow(s, ref);
+}
+
+void TextureViewer::on_customDelete_clicked()
+{
+  QString shaderName = ui->customShader->currentText();
+
+  if(shaderName.isEmpty())
+  {
+    RDDialog::critical(this, tr("Error Deleting Shader"),
+                       tr("No shader selected.\nSelect a custom shader from the drop-down"));
+    return;
+  }
+
+  if(!m_CustomShaders.contains(shaderName.toUpper()))
+  {
+    RDDialog::critical(
+        this, tr("Error Deleting Shader"),
+        tr("Selected shader doesn't exist.\nSelect a custom shader from the drop-down"));
+    return;
+  }
+
+  QMessageBox::StandardButton res =
+      RDDialog::question(this, tr("Deleting Custom Shader"),
+                         tr("Really delete %1?").arg(shaderName), RDDialog::YesNoCancel);
+
+  if(res == QMessageBox::Yes)
+  {
+    QString path = m_Ctx.ConfigFile(shaderName + "." + m_Ctx.CurPipelineState.GetShaderExtension());
+    if(!QFileInfo::exists(path))
+    {
+      RDDialog::critical(
+          this, tr("Error Deleting Shader"),
+          tr("Shader file %1 can't be found.\nSelect a custom shader from the drop-down")
+              .arg(shaderName));
+      return;
+    }
+
+    if(!QFile::remove(path))
+    {
+      RDDialog::critical(this, tr("Error Deleting Shader"),
+                         tr("Error deleting shader %1 from disk").arg(shaderName));
+      return;
+    }
+
+    ui->customShader->setCurrentText("");
+    UI_UpdateChannels();
+  }
+}
+
+void TextureViewer::customShaderModified(const QString &path)
+{
+  // allow time for modifications to finish
+  QThread::msleep(15);
+
+  reloadCustomShaders("");
 }

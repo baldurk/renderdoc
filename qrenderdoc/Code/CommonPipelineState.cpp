@@ -96,6 +96,17 @@ QString CommonPipelineState::OutputAbbrev()
   return "RT";
 }
 
+QString CommonPipelineState::GetShaderExtension()
+{
+  if(IsLogGL() || (!LogLoaded() && DefaultType == eGraphicsAPI_OpenGL) || IsLogVK() ||
+     (!LogLoaded() && DefaultType == eGraphicsAPI_Vulkan))
+  {
+    return "glsl";
+  }
+
+  return "hlsl";
+}
+
 Viewport CommonPipelineState::GetViewport(int index)
 {
   Viewport ret;

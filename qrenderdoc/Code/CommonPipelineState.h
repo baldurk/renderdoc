@@ -252,4 +252,7 @@ private:
     qCritical() << "Error - invalid stage " << (int)stage;
     return m_Vulkan->m_CS;
   }
+
+public:
+  QString GetShaderExtension();
 };

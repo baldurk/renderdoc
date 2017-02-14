@@ -792,6 +792,12 @@
         <height>0</height>
        </size>
       </property>
+      <property name="editable">
+       <bool>true</bool>
+      </property>
+      <property name="insertPolicy">
+       <enum>QComboBox::NoInsert</enum>
+      </property>
      </widget>
     </item>
     <item>
@@ -1203,6 +1209,11 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>RDLineEdit</class>
+   <extends>QLineEdit</extends>
+   <header>Widgets/Extended/RDLineEdit.h</header>
+  </customwidget>
+  <customwidget>
    <class>ToolWindowManager</class>
    <extends>QWidget</extends>
    <header>3rdparty/toolwindowmanager/ToolWindowManager.h</header>
@@ -1217,11 +1228,6 @@
    <extends>QWidget</extends>
    <header>Widgets/ThumbnailStrip.h</header>
    <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>RDLineEdit</class>
-   <extends>QLineEdit</extends>
-   <header>Widgets/Extended/RDLineEdit.h</header>
   </customwidget>
   <customwidget>
    <class>RDListView</class>

@@ -989,7 +989,7 @@ void ShaderViewer::on_save_clicked()
     for(ScintillaEdit *s : m_Scintillas)
     {
       QWidget *w = (QWidget *)s;
-      files[w->property("filename").toString()] = QString::fromUtf8(s->getText(s->textLength()));
+      files[w->property("filename").toString()] = QString::fromUtf8(s->getText(s->textLength() + 1));
     }
     m_SaveCallback(&m_Ctx, this, files);
   }

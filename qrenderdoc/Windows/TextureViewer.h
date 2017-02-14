@@ -35,8 +35,10 @@ class TextureViewer;
 }
 
 class ResourcePreview;
+class ShaderViewer;
 class ThumbnailStrip;
 class TextureGoto;
+class QFileSystemWatcher;
 
 enum struct FollowType
 {
@@ -162,6 +164,10 @@ private slots:
   void on_debugPixelContext_clicked();
   void on_pixelHistory_clicked();
 
+  void on_customCreate_clicked();
+  void on_customEdit_clicked();
+  void on_customDelete_clicked();
+
   void on_cancelTextureListFilter_clicked();
   void on_textureListFilter_editTextChanged(const QString &text);
   void on_textureListFilter_currentIndexChanged(int index);
@@ -189,6 +195,8 @@ private slots:
   void rangePoint_textChanged(QString text);
   void rangePoint_leave();
   void rangePoint_keyPress(QKeyEvent *e);
+
+  void customShaderModified(const QString &path);
 
   void channelsWidget_toggled(bool checked) { UI_UpdateChannels(); }
   void channelsWidget_selected(int index) { UI_UpdateChannels(); }
@@ -295,6 +303,13 @@ private:
   FetchTexture *m_CachedTexture;
   Following m_Following = Following::Default;
   QMap<ResourceId, TexSettings> m_TextureSettings;
+
+  QFileSystemWatcher *m_Watcher = NULL;
+  QStringList m_CustomShadersBusy;
+  QMap<QString, ResourceId> m_CustomShaders;
+  QMap<QString, ShaderViewer *> m_CustomShaderEditor;
+
+  void reloadCustomShaders(const QString &filter);
 
   TextureDisplay m_TexDisplay;
 };
