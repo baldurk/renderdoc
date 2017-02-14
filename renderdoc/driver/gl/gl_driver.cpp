@@ -873,7 +873,8 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
   gl.glGenTextures(1, &m_FakeBB_Color);
   gl.glBindTexture(target, m_FakeBB_Color);
 
-  gl.glObjectLabel(eGL_TEXTURE, m_FakeBB_Color, -1, "Backbuffer Color");
+  GetResourceManager()->SetName(GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_Color)),
+                                "Backbuffer Color");
 
   if(params.multiSamples > 1)
   {
@@ -929,10 +930,9 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
     else
       RDCERR("Unexpected # stencil bits: %d", params.stencilBits);
 
-    if(stencil)
-      gl.glObjectLabel(eGL_TEXTURE, m_FakeBB_DepthStencil, -1, "Backbuffer Depth-stencil");
-    else
-      gl.glObjectLabel(eGL_TEXTURE, m_FakeBB_DepthStencil, -1, "Backbuffer Depth");
+    GetResourceManager()->SetName(
+        GetResourceManager()->GetID(TextureRes(GetCtx(), m_FakeBB_DepthStencil)),
+        stencil ? "Backbuffer Depth-stencil" : "Backbuffer Depth");
 
     if(params.multiSamples > 1)
     {

@@ -492,15 +492,8 @@ void GLReplay::CacheTexture(ResourceId id)
 
     tex.byteSize = (tex.width * tex.height) * (tex.format.compByteWidth * tex.format.compCount);
 
-    string str = "";
-
-    if(HasExt[KHR_debug])
-    {
-      char name[128] = {0};
-      gl.glGetObjectLabel(eGL_RENDERBUFFER, res.resource.name, 127, NULL, name);
-      str = name;
-      tex.customName = true;
-    }
+    string str = m_pDriver->GetResourceManager()->GetName(tex.ID);
+    tex.customName = true;
 
     if(str == "")
     {
@@ -649,14 +642,8 @@ void GLReplay::CacheTexture(ResourceId id)
   if(tex.format.compType == eCompType_Depth)
     tex.creationFlags |= eTextureCreate_DSV;
 
-  string str = "";
-  if(HasExt[KHR_debug])
-  {
-    char name[128] = {0};
-    gl.glGetObjectLabel(eGL_TEXTURE, res.resource.name, 127, NULL, name);
-    str = name;
-    tex.customName = true;
-  }
+  string str = m_pDriver->GetResourceManager()->GetName(tex.ID);
+  tex.customName = true;
 
   if(str == "")
   {
@@ -816,14 +803,8 @@ FetchBuffer GLReplay::GetBuffer(ResourceId id)
     res.size = ret.length;
   }
 
-  string str = "";
-  if(HasExt[KHR_debug])
-  {
-    char name[128] = {0};
-    gl.glGetObjectLabel(eGL_BUFFER, res.resource.name, 127, NULL, name);
-    str = name;
-    ret.customName = true;
-  }
+  string str = m_pDriver->GetResourceManager()->GetName(ret.ID);
+  ret.customName = true;
 
   if(str == "")
   {
@@ -1112,13 +1093,7 @@ void GLReplay::SavePipelineState()
       ResourceId id = rm->GetID(ProgramPipeRes(ctx, curProg));
       auto &pipeDetails = m_pDriver->m_Pipelines[id];
 
-      string pipelineName;
-      if(HasExt[KHR_debug])
-      {
-        char name[128] = {0};
-        gl.glGetObjectLabel(eGL_PROGRAM_PIPELINE, curProg, 127, NULL, name);
-        pipelineName = name;
-      }
+      string pipelineName = rm->GetName(rm->GetOriginalID(id));
 
       for(size_t i = 0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
       {
@@ -1135,22 +1110,11 @@ void GLReplay::SavePipelineState()
                               stages[i]->BindpointMapping);
           mappings[i] = &stages[i]->BindpointMapping;
 
-          if(HasExt[KHR_debug])
-          {
-            char name[128] = {0};
-            gl.glGetObjectLabel(eGL_PROGRAM, curProg, 127, NULL, name);
-            stages[i]->ProgramName = name;
-            stages[i]->customProgramName = (name[0] != 0);
-          }
+          stages[i]->ProgramName = rm->GetName(rm->GetOriginalID(pipeDetails.stagePrograms[i]));
+          stages[i]->customProgramName = !stages[i]->ProgramName.empty();
 
-          if(HasExt[KHR_debug])
-          {
-            char name[128] = {0};
-            gl.glGetObjectLabel(eGL_SHADER, rm->GetCurrentResource(pipeDetails.stageShaders[i]).name,
-                                127, NULL, name);
-            stages[i]->ShaderName = name;
-            stages[i]->customShaderName = (name[0] != 0);
-          }
+          stages[i]->ShaderName = rm->GetName(rm->GetOriginalID(pipeDetails.stageShaders[i]));
+          stages[i]->customShaderName = !stages[i]->ShaderName.empty();
         }
         else
         {
@@ -1161,15 +1125,10 @@ void GLReplay::SavePipelineState()
   }
   else
   {
-    auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(ctx, curProg))];
+    ResourceId id = rm->GetID(ProgramRes(ctx, curProg));
+    auto &progDetails = m_pDriver->m_Programs[id];
 
-    string programName;
-    if(HasExt[KHR_debug])
-    {
-      char name[128] = {0};
-      gl.glGetObjectLabel(eGL_PROGRAM, curProg, 127, NULL, name);
-      programName = name;
-    }
+    string programName = rm->GetName(rm->GetOriginalID(id));
 
     for(size_t i = 0; i < ARRAY_COUNT(progDetails.stageShaders); i++)
     {
@@ -1183,14 +1142,8 @@ void GLReplay::SavePipelineState()
         GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i], stages[i]->BindpointMapping);
         mappings[i] = &stages[i]->BindpointMapping;
 
-        if(HasExt[KHR_debug])
-        {
-          char name[128] = {0};
-          gl.glGetObjectLabel(eGL_SHADER, rm->GetCurrentResource(progDetails.stageShaders[i]).name,
-                              127, NULL, name);
-          stages[i]->ShaderName = name;
-          stages[i]->customShaderName = (name[0] != 0);
-        }
+        stages[i]->ShaderName = rm->GetName(rm->GetOriginalID(progDetails.stageShaders[i]));
+        stages[i]->customShaderName = !stages[i]->ShaderName.empty();
       }
     }
   }
@@ -3036,10 +2989,12 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
     }
   }
 
-  if(templateTex.customName && HasExt[KHR_debug])
-    gl.glObjectLabel(eGL_TEXTURE, tex, -1, templateTex.name.elems);
+  ResourceId id = m_pDriver->GetResourceManager()->GetID(TextureRes(m_pDriver->GetCtx(), tex));
 
-  return m_pDriver->GetResourceManager()->GetID(TextureRes(m_pDriver->GetCtx(), tex));
+  if(templateTex.customName)
+    m_pDriver->GetResourceManager()->SetName(id, templateTex.name.c_str());
+
+  return id;
 }
 
 void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
@@ -3198,10 +3153,12 @@ ResourceId GLReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)
   gl.glBindBuffer(target, buf);
   gl.glNamedBufferDataEXT(buf, (GLsizeiptr)templateBuf.length, NULL, eGL_DYNAMIC_DRAW);
 
-  if(templateBuf.customName && HasExt[KHR_debug])
-    gl.glObjectLabel(eGL_BUFFER, buf, -1, templateBuf.name.elems);
+  ResourceId id = m_pDriver->GetResourceManager()->GetID(BufferRes(m_pDriver->GetCtx(), buf));
 
-  return m_pDriver->GetResourceManager()->GetID(BufferRes(m_pDriver->GetCtx(), buf));
+  if(templateBuf.customName)
+    m_pDriver->GetResourceManager()->SetName(id, templateBuf.name.c_str());
+
+  return id;
 }
 
 void GLReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
