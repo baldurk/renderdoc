@@ -51,124 +51,15 @@ void Daemonise()
   daemon(1, 0);
 }
 
-// this is exported from vk_linux.cpp
-
-#if defined(RENDERDOC_SUPPORT_VULKAN)
-
-extern "C" void RENDERDOC_GetLayerJSON(char **txt, int *len);
-
-#else
-
-// just for ease of compiling, define a dummy function
-
-void RENDERDOC_GetLayerJSON(char **txt, int *len)
-{
-  static char dummy[] = "";
-  *txt = dummy;
-  *len = 0;
-}
-
-#endif
-
-static string GenerateJSON(const string &sopath)
-{
-  char *txt = NULL;
-  int len = 0;
-
-  RENDERDOC_GetLayerJSON(&txt, &len);
-
-  if(len <= 0)
-    return "";
-
-  string json = string(txt, txt + len);
-
-  const char dllPathString[] = ".\\\\renderdoc.dll";
-
-  size_t idx = json.find(dllPathString);
-
-  return json.substr(0, idx) + sopath + json.substr(idx + sizeof(dllPathString) - 1);
-}
-
-static bool FileExists(const string &path)
-{
-  FILE *f = fopen(path.c_str(), "r");
-
-  if(f)
-  {
-    fclose(f);
-    return true;
-  }
-
-  return false;
-}
-
-static string GetSOFromJSON(const string &json)
-{
-  char *json_string = new char[1024];
-  memset(json_string, 0, 1024);
-
-  FILE *f = fopen(json.c_str(), "r");
-
-  if(f)
-  {
-    fread(json_string, 1, 1024, f);
-
-    fclose(f);
-  }
-
-  string ret = "";
-
-  // The line is:
-  // "library_path": "/foo/bar/librenderdoc.so",
-  char *c = strstr(json_string, "library_path");
-
-  if(c)
-  {
-    c += sizeof("library_path\": \"") - 1;
-
-    char *quote = strchr(c, '"');
-
-    if(quote)
-    {
-      *quote = 0;
-      ret = c;
-    }
-  }
-
-  delete[] json_string;
-
-  return ret;
-}
-
-enum
-{
-  USR,
-  ETC,
-  HOME,
-  COUNT
-};
-
-string layerRegistrationPath[COUNT] = {
-    "/usr/share/vulkan/implicit_layer.d/renderdoc_capture.json",
-    "/etc/vulkan/implicit_layer.d/renderdoc_capture.json",
-    string(getenv("HOME")) + "/.local/share/vulkan/implicit_layer.d/renderdoc_capture.json"};
-
 struct VulkanRegisterCommand : public Command
 {
-  VulkanRegisterCommand(bool layer_exists[COUNT], const string &path)
-  {
-    etcExists = layer_exists[ETC];
-    homeExists = layer_exists[HOME];
-    libPath = path;
-  }
-
+  VulkanRegisterCommand() {}
   virtual void AddOptions(cmdline::parser &parser)
   {
     parser.add("ignore", 'i', "Do nothing and don't warn about Vulkan layer issues.");
     parser.add(
         "system", '\0',
         "Install layer registration to /etc instead of $HOME/.local (requires root privileges)");
-    parser.add("dry-run", 'n', "Don't perform any actions, instead print what would happen.");
   }
   virtual const char *Description()
   {
@@ -208,233 +99,24 @@ struct VulkanRegisterCommand : public Command
       return 0;
     }
 
-    bool system = (parser.exist("system"));
-    bool dryrun = (parser.exist("dry-run"));
-
-    // if we want to install to the system and there's a registration in $HOME, delete it
-    if(system && homeExists)
-    {
-      std::cout << "Removing '" << layerRegistrationPath[HOME] << "'" << std::endl;
-
-      if(!dryrun)
-      {
-        int ret = unlink(layerRegistrationPath[HOME].c_str());
-
-        if(ret < 0)
-        {
-          const char *const errtext = strerror(errno);
-          std::cout << "Error - " << errtext << std::endl;
-        }
-      }
-    }
-
-    // and vice-versa
-    if(!system && etcExists)
-    {
-      std::cout << "Removing '" << layerRegistrationPath[ETC] << "'" << std::endl;
-
-      if(!dryrun)
-      {
-        int ret = unlink(layerRegistrationPath[ETC].c_str());
-
-        if(ret < 0)
-        {
-          const char *const errtext = strerror(errno);
-          std::cout << "Error - " << errtext << std::endl;
-        }
-      }
-    }
-
-    int idx = system ? ETC : HOME;
-
-    string path = GetSOFromJSON(layerRegistrationPath[idx]);
-
-    if(path != libPath)
-    {
-      if((system && !etcExists) || (!system && !homeExists))
-      {
-        std::cout << "Registering '" << layerRegistrationPath[idx] << "'" << std::endl;
-      }
-      else
-      {
-        std::cout << "Updating '" << layerRegistrationPath[idx] << "'" << std::endl;
-        if(path == "")
-        {
-          std::cout << "  JSON is corrupt or unrecognised, replacing with valid JSON pointing"
-                    << std::endl;
-          std::cout << "  to '" << libPath << "'" << std::endl;
-        }
-        else
-        {
-          std::cout << "  Repointing from '" << path << "'" << std::endl;
-          std::cout << "  to '" << libPath << "'" << std::endl;
-        }
-      }
-
-      if(!dryrun)
-      {
-        FILE *f = fopen(layerRegistrationPath[idx].c_str(), "w");
-
-        if(f)
-        {
-          fputs(GenerateJSON(libPath).c_str(), f);
-
-          fclose(f);
-        }
-        else
-        {
-          const char *const errtext = strerror(errno);
-          std::cout << "Error - " << errtext << std::endl;
-        }
-      }
-    }
+    RENDERDOC_UpdateVulkanLayerRegistration(parser.exist("system"));
 
     return 0;
   }
-
-  bool etcExists;
-  bool homeExists;
-  string libPath;
 };
 
 void VerifyVulkanLayer(int argc, char *argv[])
 {
-  // see if the user has suppressed all this checking as a "I know what I'm doing" measure
+  uint32_t flags = 0;
+  rdctype::array<rdctype::str> myJSONs;
+  rdctype::array<rdctype::str> otherJSONs;
 
-  string ignorePath = string(getenv("HOME")) + "/.renderdoc/ignore_vulkan_layer_issues";
-  if(FileExists(ignorePath))
-    return;
+  bool needUpdate = RENDERDOC_NeedVulkanLayerRegistration(&flags, &myJSONs, &otherJSONs);
 
-  ////////////////////////////////////////////////////////////////////////////////////////
-  // check that there's only one layer registered, and it points to the same .so file that
-  // we are running with in this instance of renderdoccmd
-
-  // this is a hack, but the only reliable way to find the absolute path to the library.
-  // dladdr would be fine but it returns the wrong result for symbols in the library
-  string librenderdoc_path;
-
+  if(!needUpdate)
   {
-    FILE *f = fopen("/proc/self/maps", "r");
-
-    if(f)
-    {
-      // read the whole thing in one go. There's no need to try and be tight with
-      // this allocation, so just make sure we can read everything.
-      char *map_string = new char[1024 * 1024];
-      memset(map_string, 0, 1024 * 1024);
-
-      fread(map_string, 1, 1024 * 1024, f);
-
-      fclose(f);
-
-      char *c = strstr(map_string, "/librenderdoc.so");
-
-      if(c)
-      {
-        // walk backwards until we hit the start of the line
-        while(c > map_string)
-        {
-          c--;
-
-          if(c[0] == '\n')
-          {
-            c++;
-            break;
-          }
-        }
-
-        // walk forwards across the address range (00400000-0040c000)
-        while(isalnum(c[0]) || c[0] == '-')
-          c++;
-
-        // whitespace
-        while(c[0] == ' ')
-          c++;
-
-        // permissions (r-xp)
-        while(isalpha(c[0]) || c[0] == '-')
-          c++;
-
-        // whitespace
-        while(c[0] == ' ')
-          c++;
-
-        // offset (0000b000)
-        while(isalnum(c[0]) || c[0] == '-')
-          c++;
-
-        // whitespace
-        while(c[0] == ' ')
-          c++;
-
-        // dev
-        while(isdigit(c[0]) || c[0] == ':')
-          c++;
-
-        // whitespace
-        while(c[0] == ' ')
-          c++;
-
-        // inode
-        while(isdigit(c[0]))
-          c++;
-
-        // whitespace
-        while(c[0] == ' ')
-          c++;
-
-        // FINALLY we are at the start of the actual path
-        char *end = strchr(c, '\n');
-
-        if(end)
-        {
-          librenderdoc_path = string(c, end - c);
-        }
-      }
-
-      delete[] map_string;
-    }
-  }
-
-  // it's impractical to determine whether the currently running RenderDoc build is just a loose
-  // extract of a tarball or a distribution that decided to put all the files in the same folder,
-  // and whether or not the library is in ld's searchpath.
-  //
-  // Instead we just make the requirement that renderdoc.json will always contain an absolute path
-  // to the matching librenderdoc.so, so that we can check if it points to this build or another
-  // build etc.
-  //
-  // Note there are three places to register layers - /usr, /etc and /home. The first is reserved
-  // for distribution packages, so if it conflicts or needs to be deleted for this install to run,
-  // we can't do that and have to just prompt the user. /etc we can mess with since that's for
-  // non-distribution packages, but it will need root permissions.
-
-  bool exist[COUNT];
-  bool match[COUNT];
-
-  int numExist = 0;
-  int numMatch = 0;
-
-  for(int i = 0; i < COUNT; i++)
-  {
-    exist[i] = FileExists(layerRegistrationPath[i]);
-    match[i] = (GetSOFromJSON(layerRegistrationPath[i]) == librenderdoc_path);
-
-    if(exist[i])
-      numExist++;
-
-    if(match[i])
-      numMatch++;
-  }
-
-  // if we only have one registration, check that it points to us. If so, we're good
-  if(numExist == 1 && numMatch == 1)
-    return;
-
-  // if we're about to execute the command, don't print all this explanatory text.
-  if(argc > 1 && !strcmp(argv[1], "vulkanregister"))
-  {
-    add_command("vulkanregister", new VulkanRegisterCommand(exist, librenderdoc_path));
+    if(!(flags & eVulkan_Unfixable))
+      add_command("vulkanregister", new VulkanRegisterCommand());
     return;
   }
 
@@ -443,60 +125,40 @@ void VerifyVulkanLayer(int argc, char *argv[])
   std::cerr << "**          Warning: Vulkan capture possibly not configured.           **"
             << std::endl;
   std::cerr << std::endl;
-  if(numExist > 1)
+
+  if(flags & eVulkan_OtherInstallsRegistered)
     std::cerr << "Multiple RenderDoc layers are registered, possibly from different builds."
               << std::endl;
-  else if(numExist < 0)
-    std::cerr << "RenderDoc layer is not registered." << std::endl;
-  else
-    std::cerr << "RenderDoc layer is registered, but to a different library." << std::endl;
+
+  if(!(flags & eVulkan_ThisInstallRegistered))
+    std::cerr << "This build's RenderDoc layer is not registered." << std::endl;
+
   std::cerr << "To fix this, the following actions must take place: " << std::endl << std::endl;
 
-  bool printed = false;
+  const bool registerAll = (flags & eVulkan_RegisterAll);
+  const bool updateAllowed = (flags & eVulkan_UpdateAllowed);
 
-  if(exist[USR] && !match[USR])
-  {
-    std::cerr << "* Unregister: '" << layerRegistrationPath[USR] << "'" << std::endl;
-    printed = true;
-  }
+  for(const rdctype::str &j : otherJSONs)
+    std::cerr << (updateAllowed ? "Unregister/update: " : "Unregister: ") << j.c_str() << std::endl;
 
-  if(exist[ETC] && !match[ETC])
+  if(!(flags & eVulkan_ThisInstallRegistered))
   {
-    std::cerr << "* Unregister or update: '" << layerRegistrationPath[ETC] << "'" << std::endl;
-    printed = true;
-  }
-
-  if(exist[HOME] && !match[HOME])
-  {
-    std::cerr << "* Unregister or update: '" << layerRegistrationPath[HOME] << "'" << std::endl;
-    printed = true;
-  }
-
-  if(printed)
-    std::cerr << std::endl;
-
-  if(exist[USR] && match[USR])
-  {
-    // just need to unregister others
-  }
-  else
-  {
-    if(!exist[ETC] && !exist[HOME])
+    if(registerAll)
     {
-      std::cerr << "* Register either: '" << layerRegistrationPath[ETC] << "'" << std::endl;
-      std::cerr << "               or: '" << layerRegistrationPath[HOME] << "'" << std::endl;
+      for(const rdctype::str &j : myJSONs)
+        std::cerr << (updateAllowed ? "Register/update: " : "Register: ") << j.c_str() << std::endl;
     }
     else
     {
-      std::cerr << "* Update or register either: '" << layerRegistrationPath[ETC] << "'" << std::endl;
-      std::cerr << "                         or: '" << layerRegistrationPath[HOME] << "'"
-                << std::endl;
+      std::cerr << (updateAllowed ? "Register one of:" : "Register/update one of:") << std::endl;
+      for(const rdctype::str &j : myJSONs)
+        std::cerr << "  -- " << j.c_str() << "\n";
     }
-
-    std::cerr << std::endl;
   }
 
-  if(exist[USR] && !match[USR])
+  std::cerr << std::endl;
+
+  if(flags & eVulkan_Unfixable)
   {
     std::cerr << "NOTE: The renderdoc layer registered in /usr is reserved for distribution"
               << std::endl;
@@ -535,7 +197,7 @@ void VerifyVulkanLayer(int argc, char *argv[])
             << std::endl;
   std::cerr << std::endl;
 
-  add_command("vulkanregister", new VulkanRegisterCommand(exist, librenderdoc_path));
+  add_command("vulkanregister", new VulkanRegisterCommand());
 }
 
 void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,

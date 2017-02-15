@@ -294,6 +294,19 @@ void CaptureDialog::on_vulkanLayerWarn_clicked()
   const bool registerAll = (flags & eVulkan_RegisterAll);
   const bool updateAllowed = (flags & eVulkan_UpdateAllowed);
 
+  if(flags & eVulkan_Unfixable)
+  {
+    QString msg =
+        tr("There is an unfixable problem with your vulkan layer configuration. Please consult the "
+           "RenderDoc documentation, or package/distribution documentation on linux\n\n");
+
+    for(const rdctype::str &j : otherJSONs)
+      msg += ToQStr(j) + "\n";
+
+    RDDialog::critical(this, tr("Unfixable vulkan layer configuration"), msg);
+    return;
+  }
+
   QString msg =
       tr("Vulkan capture happens through the API's layer mechanism. RenderDoc has detected that ");
 

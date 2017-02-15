@@ -171,6 +171,10 @@ class IReplayDriver;
 typedef ReplayCreateStatus (*RemoteDriverProvider)(const char *logfile, IRemoteDriver **driver);
 typedef ReplayCreateStatus (*ReplayDriverProvider)(const char *logfile, IReplayDriver **driver);
 
+typedef bool (*VulkanLayerCheck)(uint32_t &flags, std::vector<std::string> &myJSONs,
+                                 std::vector<std::string> &otherJSONs);
+typedef void (*VulkanLayerInstall)(bool systemLevel);
+
 typedef void (*ShutdownFunction)();
 
 // this class mediates everything and owns any 'global' resources such as the crash handler.
@@ -239,6 +243,23 @@ public:
 
   void RegisterReplayProvider(RDCDriver driver, const char *name, ReplayDriverProvider provider);
   void RegisterRemoteProvider(RDCDriver driver, const char *name, RemoteDriverProvider provider);
+
+  void SetVulkanLayerCheck(VulkanLayerCheck callback) { m_VulkanCheck = callback; }
+  void SetVulkanLayerInstall(VulkanLayerInstall callback) { m_VulkanInstall = callback; }
+  bool NeedVulkanLayerRegistration(uint32_t &flags, std::vector<std::string> &myJSONs,
+                                   std::vector<std::string> &otherJSONs)
+  {
+    if(m_VulkanCheck)
+      return m_VulkanCheck(flags, myJSONs, otherJSONs);
+
+    return false;
+  }
+
+  void UpdateVulkanLayerRegistration(bool systemLevel)
+  {
+    if(m_VulkanInstall)
+      m_VulkanInstall(systemLevel);
+  }
 
   ReplayCreateStatus CreateReplayDriver(RDCDriver driverType, const char *logfile,
                                         IReplayDriver **driver);
@@ -354,6 +375,9 @@ private:
   map<RDCDriver, string> m_DriverNames;
   map<RDCDriver, ReplayDriverProvider> m_ReplayDriverProviders;
   map<RDCDriver, RemoteDriverProvider> m_RemoteDriverProviders;
+
+  VulkanLayerCheck m_VulkanCheck;
+  VulkanLayerInstall m_VulkanInstall;
 
   set<ShutdownFunction> m_ShutdownFunctions;
 

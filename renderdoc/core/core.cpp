@@ -237,6 +237,9 @@ RenderDoc::RenderDoc()
 
   m_Overlay = eRENDERDOC_Overlay_Default;
 
+  m_VulkanCheck = NULL;
+  m_VulkanInstall = NULL;
+
   m_TargetControlThreadShutdown = false;
   m_ControlClientThreadShutdown = false;
 }

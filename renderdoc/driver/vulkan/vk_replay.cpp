@@ -5630,4 +5630,14 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
   return eReplayCreate_Success;
 }
 
-static DriverRegistration VkDriverRegistration(RDC_Vulkan, "Vulkan", &Vulkan_CreateReplayDevice);
+struct VulkanDriverRegistration
+{
+  VulkanDriverRegistration()
+  {
+    RenderDoc::Inst().RegisterReplayProvider(RDC_Vulkan, "Vulkan", &Vulkan_CreateReplayDevice);
+    RenderDoc::Inst().SetVulkanLayerCheck(&VulkanReplay::CheckVulkanLayer);
+    RenderDoc::Inst().SetVulkanLayerInstall(&VulkanReplay::InstallVulkanLayer);
+  }
+};
+
+static VulkanDriverRegistration VkDriverRegistration;

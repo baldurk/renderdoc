@@ -610,4 +610,5 @@ enum VulkanFlags
   eVulkan_CouldElevate = 0x8,
   eVulkan_RegisterAll = 0x10,
   eVulkan_UpdateAllowed = 0x20,
+  eVulkan_Unfixable = 0x40,
 };

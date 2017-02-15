@@ -799,15 +799,37 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartAndroidRemoteServer()
       "shell am start -n org.renderdoc.renderdoccmd/.Loader -e renderdoccmd remoteserver");
 }
 
-extern "C" RENDERDOC_API bool RENDERDOC_CC RENDERDOC_NeedVulkanLayerRegistration(
-    uint32_t *flags, rdctype::array<rdctype::str> *myJSONs, rdctype::array<rdctype::str> *otherJSONs)
+extern "C" RENDERDOC_API bool RENDERDOC_CC
+RENDERDOC_NeedVulkanLayerRegistration(uint32_t *flagsPtr, rdctype::array<rdctype::str> *myJSONsPtr,
+                                      rdctype::array<rdctype::str> *otherJSONsPtr)
 {
-  // stub
+  uint32_t flags = 0;
+  std::vector<std::string> myJSONs;
+  std::vector<std::string> otherJSONs;
 
-  return false;
+  bool ret = RenderDoc::Inst().NeedVulkanLayerRegistration(flags, myJSONs, otherJSONs);
+
+  if(flagsPtr)
+    *flagsPtr = flags;
+
+  if(myJSONsPtr)
+  {
+    create_array(*myJSONsPtr, myJSONs.size());
+    for(size_t i = 0; i < myJSONs.size(); i++)
+      (*myJSONsPtr)[i] = myJSONs[i];
+  }
+
+  if(otherJSONsPtr)
+  {
+    create_array(*otherJSONsPtr, otherJSONs.size());
+    for(size_t i = 0; i < otherJSONs.size(); i++)
+      (*otherJSONsPtr)[i] = otherJSONs[i];
+  }
+
+  return ret;
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateVulkanLayerRegistration(bool elevate)
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_UpdateVulkanLayerRegistration(bool systemLevel)
 {
-  // stub
+  RenderDoc::Inst().UpdateVulkanLayerRegistration(systemLevel);
 }

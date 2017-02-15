@@ -258,6 +258,14 @@ public:
   // called before the VkDevice is destroyed, to shutdown any counters
   void PreDeviceShutdownCounters();
 
+  // used for vulkan layer bookkeeping. Ideally this should all be handled by installers/packages,
+  // but for developers running builds locally or just in case, we need to be able to update the
+  // layer registration ourselves.
+  // These functions are defined in vk_<platform>.cpp
+  static bool CheckVulkanLayer(uint32_t &flags, std::vector<std::string> &myJSONs,
+                               std::vector<std::string> &otherJSONs);
+  static void InstallVulkanLayer(bool systemLevel);
+
 private:
   struct OutputWindow
   {
