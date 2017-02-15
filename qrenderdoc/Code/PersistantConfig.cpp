@@ -39,6 +39,16 @@ variantType convertToVariant(const origType &val)
   return variantType(val);
 }
 
+template <typename variantType, typename innerType>
+variantType convertToVariant(const QList<innerType> &val)
+{
+  variantType ret;
+  ret.reserve(val.count());
+  for(const innerType &s : val)
+    ret.push_back(s);
+  return ret;
+}
+
 template <>
 QVariantMap convertToVariant(const QStringMap &val)
 {
@@ -50,30 +60,26 @@ QVariantMap convertToVariant(const QStringMap &val)
   return ret;
 }
 
-template <>
-QVariantList convertToVariant(const QList<QString> &val)
-{
-  QVariantList ret;
-  ret.reserve(val.count());
-  for(const QString &s : val)
-    ret.push_back(s);
-  return ret;
-}
-
-template <>
-QVariantList convertToVariant(const QList<RemoteHost> &val)
-{
-  QVariantList ret;
-  ret.reserve(val.count());
-  for(const RemoteHost &s : val)
-    ret.push_back(s);
-  return ret;
-}
-
 template <typename origType, typename variantType>
 origType convertFromVariant(const variantType &val)
 {
   return origType(val);
+}
+
+template <>
+QString convertFromVariant(const QVariant &val)
+{
+  return val.toString();
+}
+
+template <typename listType>
+listType convertFromVariant(const QList<QVariant> &val)
+{
+  listType ret;
+  ret.reserve(val.count());
+  for(const QVariant &s : val)
+    ret.push_back(convertFromVariant<decltype(ret.value(0))>(s));
+  return ret;
 }
 
 template <>
@@ -84,26 +90,6 @@ QStringMap convertFromVariant(const QVariantMap &val)
   {
     ret[k] = val[k].toString();
   }
-  return ret;
-}
-
-template <>
-QList<QString> convertFromVariant(const QVariantList &val)
-{
-  QList<QString> ret;
-  ret.reserve(val.count());
-  for(const QVariant &s : val)
-    ret.push_back(s.toString());
-  return ret;
-}
-
-template <>
-QList<RemoteHost> convertFromVariant(const QVariantList &val)
-{
-  QList<RemoteHost> ret;
-  ret.reserve(val.count());
-  for(const QVariant &s : val)
-    ret.push_back(RemoteHost(s));
   return ret;
 }
 

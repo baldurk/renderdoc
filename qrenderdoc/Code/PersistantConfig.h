@@ -33,6 +33,36 @@
 
 typedef QMap<QString, QString> QStringMap;
 
+struct SPIRVDisassembler
+{
+  SPIRVDisassembler() {}
+  SPIRVDisassembler(const QVariant &var)
+  {
+    QVariantMap map = var.toMap();
+    if(map.contains("name"))
+      name = map["name"].toString();
+    if(map.contains("executable"))
+      executable = map["executable"].toString();
+    if(map.contains("args"))
+      args = map["args"].toString();
+  }
+
+  operator QVariant() const
+  {
+    QVariantMap map;
+
+    map["name"] = name;
+    map["executable"] = executable;
+    map["args"] = args;
+
+    return map;
+  }
+
+  QString name;
+  QString executable;
+  QString args;
+};
+
 #define CONFIG_SETTING_VAL(access, variantType, type, name, defaultValue) \
   access:                                                                 \
   type name = defaultValue;
@@ -107,6 +137,8 @@ typedef QMap<QString, QString> QStringMap;
   CONFIG_SETTING_VAL(public, bool, bool, Tips_SeenFirst, false)                            \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, AllowGlobalHook, false)                           \
+                                                                                           \
+  CONFIG_SETTING(public, QVariantList, QList<SPIRVDisassembler>, SPIRVDisassemblers)       \
                                                                                            \
   CONFIG_SETTING(private, QVariantMap, QStringMap, ConfigSettings)                         \
                                                                                            \

@@ -69,7 +69,6 @@ private slots:
   // shader viewer
   void on_ShaderViewer_FriendlyNaming_toggled(bool checked);
 
-  void on_ExternalDisassemblerEnabled_toggled(bool checked);
   void on_browseExtDisasemble_clicked();
   void on_externalDisassemblePath_textEdited(const QString &path);
   void on_externalDisassemblerArgs_textEdited(const QString &args);

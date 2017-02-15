@@ -72,6 +72,7 @@ private slots:
   // manual slots
   void shaderView_clicked();
   void shaderEdit_clicked();
+
   void shaderSave_clicked();
   void resource_itemActivated(QTreeWidgetItem *item, int column);
   void ubo_itemActivated(QTreeWidgetItem *item, int column);
@@ -106,6 +107,8 @@ private:
   QString formatMembers(int indent, const QString &nameprefix,
                         const rdctype::array<ShaderConstant> &vars);
   const VulkanPipelineState::ShaderStage *stageForSender(QWidget *widget);
+
+  QString disassembleSPIRV(const ShaderReflection *shaderDetails);
 
   template <typename viewType>
   void setViewDetails(QTreeWidgetItem *node, const viewType &view, FetchTexture *tex);

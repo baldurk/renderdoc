@@ -56,12 +56,11 @@ SettingsDialog::SettingsDialog(CaptureContext &ctx, QWidget *parent)
   ui->saveDirectory->setText(m_Ctx.Config.DefaultCaptureSaveDirectory);
   ui->tempDirectory->setText(m_Ctx.Config.TemporaryCaptureDirectory);
 
-  // TODO external disassembler
-  /*
-  ui->ExternalDisassemblerEnabled->setChecked(m_Ctx.Config.ExternalDisassemblerEnabled);
-  ui->externalDisassemblerArgs->setText(m_Ctx.Config.GetDefaultExternalDisassembler().args);
-  ui->externalDisassemblePath->setText(m_Ctx.Config.GetDefaultExternalDisassembler().executable);
-  */
+  if(!m_Ctx.Config.SPIRVDisassemblers.isEmpty())
+  {
+    ui->externalDisassemblerArgs->setText(m_Ctx.Config.SPIRVDisassemblers[0].args);
+    ui->externalDisassemblePath->setText(m_Ctx.Config.SPIRVDisassemblers[0].executable);
+  }
   ui->Android_AdbExecutablePath->setText(m_Ctx.Config.Android_AdbExecutablePath);
   ui->Android_MaxConnectTimeout->setValue(m_Ctx.Config.Android_MaxConnectTimeout);
 
@@ -239,29 +238,40 @@ void SettingsDialog::on_ShaderViewer_FriendlyNaming_toggled(bool checked)
   m_Ctx.Config.Save();
 }
 
-void SettingsDialog::on_ExternalDisassemblerEnabled_toggled(bool checked)
-{
-  // TODO external disassembler
-  // m_Ctx.Config.ExternalDisassemblerEnabled = ui->ExternalDisassemblerEnabled->isChecked();
-
-  m_Ctx.Config.Save();
-}
-
 void SettingsDialog::on_browseExtDisasemble_clicked()
 {
   // TODO external disassembler
+  QString filePath = RDDialog::getExecutableFileName(this, "Locate SPIR-V disassembler");
+
+  if(!filePath.isEmpty())
+  {
+    ui->externalDisassemblePath->setText(filePath);
+    on_externalDisassemblePath_textEdited(filePath);
+  }
 }
 
-void SettingsDialog::on_externalDisassemblePath_textEdited(const QString &disasm)
+void SettingsDialog::on_externalDisassemblePath_textEdited(const QString &path)
 {
-  // TODO external disassembler
+  if(m_Ctx.Config.SPIRVDisassemblers.isEmpty())
+  {
+    m_Ctx.Config.SPIRVDisassemblers.push_back(SPIRVDisassembler());
+    m_Ctx.Config.SPIRVDisassemblers.back().name = "Unknown";
+  }
+
+  m_Ctx.Config.SPIRVDisassemblers.back().executable = path;
 
   m_Ctx.Config.Save();
 }
 
 void SettingsDialog::on_externalDisassemblerArgs_textEdited(const QString &args)
 {
-  // TODO external disassembler
+  if(m_Ctx.Config.SPIRVDisassemblers.isEmpty())
+  {
+    m_Ctx.Config.SPIRVDisassemblers.push_back(SPIRVDisassembler());
+    m_Ctx.Config.SPIRVDisassemblers.back().name = "Unknown";
+  }
+
+  m_Ctx.Config.SPIRVDisassemblers.back().args = args;
 
   m_Ctx.Config.Save();
 }

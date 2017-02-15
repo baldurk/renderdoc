@@ -807,6 +807,103 @@ bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &par
 #endif
 }
 
+QStringList ParseArgsList(const QString &args)
+{
+  QStringList ret;
+
+  if(args.isEmpty())
+    return ret;
+
+// on windows just use the function provided by the system
+#if defined(Q_OS_WIN32)
+  std::wstring wargs = args.toStdWString();
+
+  int argc = 0;
+  wchar_t **argv = CommandLineToArgvW(wargs.c_str(), &argc);
+
+  for(int i = 0; i < argc; i++)
+    ret << QString::fromWCharArray(argv[i]);
+
+  LocalFree(argv);
+#else
+  std::string argString = args.toStdString();
+
+  // perform some kind of sane parsing
+  bool dquot = false, squot = false;    // are we inside ''s or ""s
+
+  // current character
+  char *c = &argString[0];
+
+  // current argument we're building
+  std::string a;
+
+  while(*c)
+  {
+    if(!dquot && !squot && (*c == ' ' || *c == '\t'))
+    {
+      if(!a.empty())
+        ret << QString::fromStdString(a);
+
+      a = "";
+    }
+    else if(!dquot && *c == '"')
+    {
+      dquot = true;
+    }
+    else if(!squot && *c == '\'')
+    {
+      squot = true;
+    }
+    else if(dquot && *c == '"')
+    {
+      dquot = false;
+    }
+    else if(squot && *c == '\'')
+    {
+      squot = false;
+    }
+    else if(squot)
+    {
+      // single quotes don't escape, just copy literally until we leave single quote mode
+      a.push_back(*c);
+    }
+    else if(dquot)
+    {
+      // handle escaping
+      if(*c == '\\')
+      {
+        c++;
+        if(*c)
+        {
+          a.push_back(*c);
+        }
+        else
+        {
+          qCritical() << "Malformed args list:" << args;
+          return ret;
+        }
+      }
+      else
+      {
+        a.push_back(*c);
+      }
+    }
+    else
+    {
+      a.push_back(*c);
+    }
+
+    c++;
+  }
+
+  // if we were building an argument when we hit the end of the string
+  if(!a.empty())
+    ret << QString::fromStdString(a);
+#endif
+
+  return ret;
+}
+
 void ShowProgressDialog(QWidget *window, const QString &labelText, ProgressFinishedMethod finished,
                         ProgressUpdateMethod update)
 {
