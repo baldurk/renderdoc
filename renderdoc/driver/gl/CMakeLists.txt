@@ -53,13 +53,11 @@ elseif(UNIX)
             gl_replay_linux.cpp
             glx_hooks_linux.cpp
             gl_hooks_linux.cpp)
-    elseif(ENABLE_GLES)
-        list(APPEND sources
-            gl_replay_egl.cpp)
     endif()
     if(ENABLE_GLES)
         list(APPEND sources
-            gl_hooks_egl.cpp)
+            gl_hooks_egl.cpp
+            gl_replay_egl.cpp)
     endif()
 endif()
 

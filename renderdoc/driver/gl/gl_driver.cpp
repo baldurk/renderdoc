@@ -717,6 +717,9 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs) : m_Re
   // sorts are identical so we can do the intersection easily
   std::sort(globalExts.begin(), globalExts.end());
 
+  // by default we assume OpenGL driver
+  SetDriverType(RDC_OpenGL);
+
   m_Replay.SetDriver(this);
 
   m_FrameCounter = 0;
@@ -2307,7 +2310,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
       int flags = activeWindow ? RenderDoc::eOverlay_ActiveWindow : 0;
       if(ctxdata.Legacy())
         flags |= RenderDoc::eOverlay_CaptureDisabled;
-      string overlayText = RenderDoc::Inst().GetOverlayText(RDC_OpenGL, m_FrameCounter, flags);
+      string overlayText = RenderDoc::Inst().GetOverlayText(GetDriverType(), m_FrameCounter, flags);
 
       if(ctxdata.Legacy())
       {
@@ -2353,7 +2356,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
   if(!activeWindow)
     return;
 
-  RenderDoc::Inst().SetCurrentDriver(RDC_OpenGL);
+  RenderDoc::Inst().SetCurrentDriver(GetDriverType());
 
   // only allow capturing on 'modern' created contexts
   if(ctxdata.Legacy())
@@ -2416,7 +2419,7 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 
   SCOPED_LOCK(GetGLLock());
 
-  RenderDoc::Inst().SetCurrentDriver(RDC_OpenGL);
+  RenderDoc::Inst().SetCurrentDriver(GetDriverType());
 
   m_State = WRITING_CAPFRAME;
 

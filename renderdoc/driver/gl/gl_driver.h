@@ -155,6 +155,7 @@ private:
   bool m_AppControlledCapture;
 
   GLReplay m_Replay;
+  RDCDriver m_DriverType;
 
   GLInitParams m_InitParams;
 
@@ -500,6 +501,9 @@ public:
   ResourceId GetDeviceResourceID() { return m_DeviceResourceID; }
   ResourceId GetContextResourceID() { return m_ContextResourceID; }
   GLReplay *GetReplay() { return &m_Replay; }
+  void SetDriverType(RDCDriver type) { m_DriverType = type; }
+  bool isGLESMode() { return m_DriverType == RDC_OpenGLES; }
+  RDCDriver GetDriverType() { return m_DriverType; }
   void *GetCtx();
 
   void SetFetchCounters(bool in) { m_FetchCounters = in; };

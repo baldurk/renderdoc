@@ -218,7 +218,7 @@ bool GLReplay::IsOutputWindowVisible(uint64_t id)
 
 const GLHookSet &GetRealGLFunctionsEGL();
 
-ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
+ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   RDCDEBUG("Creating an OpenGL ES replay device");
 
@@ -255,8 +255,8 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   }
 
   GLInitParams initParams;
-  RDCDriver driverType = RDC_OpenGL;
-  string driverName = "OpenGL";
+  RDCDriver driverType = RDC_OpenGLES;
+  string driverName = "OpenGLES";
   uint64_t machineIdent = 0;
 
   if(logfile)
@@ -358,6 +358,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
   }
 
   WrappedOpenGL *gl = new WrappedOpenGL(logfile, real);
+  gl->SetDriverType(RDC_OpenGLES);
   gl->Initialise(initParams);
 
   if(gl->GetSerialiser()->HasError())

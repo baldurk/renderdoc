@@ -3205,7 +3205,20 @@ ShaderDebugTrace GLReplay::DebugThread(uint32_t eventID, uint32_t groupid[3], ui
 
 const GLHookSet &GetRealGLFunctions();
 
+#if defined(RENDERDOC_SUPPORT_GL)
+
 // defined in gl_replay_<platform>.cpp
 ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
 
 static DriverRegistration GLDriverRegistration(RDC_OpenGL, "OpenGL", &GL_CreateReplayDevice);
+
+#endif
+
+#if defined(RENDERDOC_SUPPORT_GLES)
+
+// defined in gl_replay_egl.cpp
+ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
+
+static DriverRegistration GLESDriverRegistration(RDC_OpenGLES, "OpenGLES", &GLES_CreateReplayDevice);
+
+#endif

@@ -61,6 +61,7 @@ string ToStrHelper<false, RDCDriver>::Get(const RDCDriver &el)
   {
     case RDC_Unknown: return "Unknown";
     case RDC_OpenGL: return "OpenGL";
+    case RDC_OpenGLES: return "OpenGLES";
     case RDC_Mantle: return "Mantle";
     case RDC_D3D12: return "D3D12";
     case RDC_D3D11: return "D3D11";
