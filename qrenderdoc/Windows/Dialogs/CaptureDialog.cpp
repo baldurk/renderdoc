@@ -29,6 +29,7 @@
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
 #include "Code/QRDUtils.h"
 #include "Code/qprocessinfo.h"
+#include "Windows/Dialogs/EnvironmentEditor.h"
 #include "Windows/Dialogs/VirtualFileDialog.h"
 #include "LiveCapture.h"
 #include "ui_CaptureDialog.h"
@@ -498,7 +499,15 @@ void CaptureDialog::on_workDirBrowse_clicked()
 
 void CaptureDialog::on_envVarEdit_clicked()
 {
-  // TODO Env Editor
+  EnvironmentEditor envEditor(this);
+
+  for(const EnvironmentModification &mod : m_EnvModifications)
+    envEditor.addModification(mod, true);
+
+  int res = RDDialog::show(&envEditor);
+
+  if(res)
+    setEnvironmentModifications(envEditor.modifications());
 }
 
 void CaptureDialog::on_toggleGlobal_clicked()

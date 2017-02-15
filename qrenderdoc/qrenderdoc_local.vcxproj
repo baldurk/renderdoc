@@ -641,6 +641,7 @@
     <ClCompile Include="$(IntDir)generated\moc_EventBrowser.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_GLPipelineStateViewer.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_LiveCapture.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_EnvironmentEditor.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_OrderedListEditor.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_RemoteManager.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_PipelineStateViewer.cpp" />
@@ -708,6 +709,7 @@
     <ClCompile Include="Windows\Dialogs\AboutDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp" />
     <ClCompile Include="Windows\Dialogs\LiveCapture.cpp" />
+    <ClCompile Include="Windows\Dialogs\EnvironmentEditor.cpp" />
     <ClCompile Include="Windows\Dialogs\OrderedListEditor.cpp" />
     <ClCompile Include="Windows\Dialogs\RemoteManager.cpp" />
     <ClCompile Include="Windows\Dialogs\SettingsDialog.cpp" />
@@ -858,6 +860,7 @@
     <ClInclude Include="$(IntDir)generated\ui_GLPipelineStateViewer.h" />
     <ClInclude Include="$(IntDir)generated\ui_LiveCapture.h" />
     <ClInclude Include="$(IntDir)generated\ui_MainWindow.h" />
+    <ClInclude Include="$(IntDir)generated\ui_EnvironmentEditor.h" />
     <ClInclude Include="$(IntDir)generated\ui_OrderedListEditor.h" />
     <ClInclude Include="$(IntDir)generated\ui_RemoteManager.h" />
     <ClInclude Include="$(IntDir)generated\ui_PipelineStateViewer.h" />
@@ -1019,6 +1022,12 @@
       <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\LiveCapture.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(IntDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\EnvironmentEditor.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(IntDir)generated\moc_%(Filename).cpp</Command>
       <Message>MOC %(Filename).h</Message>
@@ -1188,6 +1197,12 @@
       <Message>UIC %(Filename).ui</Message>
       <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
       <SubType>Designer</SubType>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\EnvironmentEditor.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(IntDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\OrderedListEditor.ui">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>

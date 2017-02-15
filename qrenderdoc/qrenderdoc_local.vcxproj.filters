@@ -531,6 +531,12 @@
     <ClCompile Include="$(IntDir)generated\qrc_resources.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_EnvironmentEditor.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Windows\Dialogs\EnvironmentEditor.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1234,6 +1240,12 @@
     </CustomBuild>
     <CustomBuild Include="Widgets\PipelineFlowChart.h">
       <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\EnvironmentEditor.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\EnvironmentEditor.h">
+      <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>
