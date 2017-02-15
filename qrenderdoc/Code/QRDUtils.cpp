@@ -675,8 +675,9 @@ protected:
 };
 
 #if defined(Q_OS_WIN32)
-#include <shellapi.h>
 #include <windows.h>
+
+#include <shellapi.h>
 #endif
 
 bool RunProcessAsAdmin(const QString &fullExecutablePath, const QStringList &params,
