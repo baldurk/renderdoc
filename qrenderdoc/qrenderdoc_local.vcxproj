@@ -98,7 +98,7 @@
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
-	<PropertyGroup>
+  <PropertyGroup>
     <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\obj\$(ProjectName)\</IntDir>
     <IntDir Condition="$(Configuration)==QTDebug">$(SolutionDir)$(Platform)\Development\obj\$(ProjectName)\</IntDir>
     <IntermediateDirectory>$(IntDir)</IntermediateDirectory>

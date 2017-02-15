@@ -66,36 +66,6 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="generated\moc_EventBrowser.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_RDLineEdit.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_MainWindow.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_TextureViewer.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_ToolWindowManager.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_ToolWindowManagerArea.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_ToolWindowManagerWrapper.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\qrc_resources.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_AboutDialog.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_CustomPaintWidget.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="3rdparty\toolwindowmanager\ToolWindowManager.cpp">
       <Filter>3rdparty\ToolWindowManager</Filter>
     </ClCompile>
@@ -129,17 +99,8 @@
     <ClCompile Include="Widgets\ResourcePreview.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_ResourcePreview.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_RDLabel.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Widgets\ThumbnailStrip.cpp">
       <Filter>Widgets</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_ThumbnailStrip.cpp">
-      <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="Code\CaptureContext.cpp">
       <Filter>Code</Filter>
@@ -147,20 +108,8 @@
     <ClCompile Include="Widgets\TextureGoto.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_TextureGoto.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_RDDoubleSpinBox.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_RDListView.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Widgets\RangeHistogram.cpp">
       <Filter>Widgets</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_RangeHistogram.cpp">
-      <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="Widgets\Extended\RDDoubleSpinBox.cpp">
       <Filter>Widgets\Extended</Filter>
@@ -180,20 +129,11 @@
     <ClCompile Include="Windows\Dialogs\TextureSaveDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_TextureSaveDialog.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_CaptureDialog.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
     <ClCompile Include="Code\QRDUtils.cpp">
       <Filter>Code</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_QRDUtils.cpp">
-      <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="Code\qprocessinfo.cpp">
       <Filter>Code</Filter>
@@ -201,35 +141,11 @@
     <ClCompile Include="Windows\Dialogs\LiveCapture.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_LiveCapture.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Widgets\Extended\RDListWidget.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_RDListWidget.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_APIInspector.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Windows\APIInspector.cpp">
       <Filter>Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_D3D11PipelineStateViewer.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_D3D12PipelineStateViewer.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_GLPipelineStateViewer.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_PipelineStateViewer.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_VulkanPipelineStateViewer.cpp">
-      <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="Windows\PipelineState\D3D11PipelineStateViewer.cpp">
       <Filter>Windows\PipelineState</Filter>
@@ -249,32 +165,17 @@
     <ClCompile Include="Widgets\Extended\RDTreeWidget.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_RDTreeWidget.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Windows\ConstantBufferPreviewer.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
     <ClCompile Include="Widgets\BufferFormatSpecifier.cpp">
       <Filter>Widgets</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_BufferFormatSpecifier.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_ConstantBufferPreviewer.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_BufferViewer.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Windows\BufferViewer.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
     <ClCompile Include="Widgets\Extended\RDTableView.cpp">
       <Filter>Widgets\Extended</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_RDTableView.cpp">
-      <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="3rdparty\scintilla\lexlib\Accessor.cxx">
       <Filter>3rdparty\Scintilla\lexlib</Filter>
@@ -426,53 +327,23 @@
     <ClCompile Include="3rdparty\scintilla\src\XPM.cxx">
       <Filter>3rdparty\Scintilla\src</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_ScintillaDocument.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_ScintillaEditBase.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_ScintillaQt.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="3rdparty\scintilla\qt\ScintillaEdit\ScintillaEdit.cpp">
       <Filter>3rdparty\Scintilla\qt\ScintillaEdit</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_ScintillaEdit.cpp">
-      <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="Windows\ShaderViewer.cpp">
       <Filter>Windows</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_ShaderViewer.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Code\ScintillaSyntax.cpp">
       <Filter>Code</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_DebugMessageView.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_StatisticsViewer.cpp">
-      <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="Windows\Dialogs\SettingsDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_SettingsDialog.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Windows\Dialogs\OrderedListEditor.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_OrderedListEditor.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Widgets\Extended\RDTableWidget.cpp">
       <Filter>Widgets\Extended</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_RDTableWidget.cpp">
-      <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="Code\RemoteHost.cpp">
       <Filter>Code</Filter>
@@ -480,14 +351,8 @@
     <ClCompile Include="Windows\Dialogs\SuggestRemoteDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_SuggestRemoteDialog.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Windows\Dialogs\VirtualFileDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_VirtualFileDialog.cpp">
-      <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="Code\CommonPipelineState.cpp">
       <Filter>Code</Filter>
@@ -504,26 +369,167 @@
     <ClCompile Include="Code\PersistantConfig.cpp">
       <Filter>Code</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_RemoteManager.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Windows\Dialogs\RemoteManager.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
-    <ClCompile Include="generated\moc_PixelHistoryView.cpp">
-      <Filter>Generated Files</Filter>
-    </ClCompile>
     <ClCompile Include="Windows\PixelHistoryView.cpp">
       <Filter>Windows</Filter>
-    </ClCompile>
-    <ClCompile Include="generated\moc_RDTreeView.cpp">
-      <Filter>Generated Files</Filter>
     </ClCompile>
     <ClCompile Include="Widgets\Extended\RDTreeView.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
     <ClCompile Include="Code\Resources.cpp">
       <Filter>Code</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\PipelineFlowChart.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_AboutDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_APIInspector.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_BufferFormatSpecifier.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_BufferViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_CaptureDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ConstantBufferPreviewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_CustomPaintWidget.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_D3D11PipelineStateViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_D3D12PipelineStateViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_DebugMessageView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_EventBrowser.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_GLPipelineStateViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_LiveCapture.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_MainWindow.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_OrderedListEditor.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_PipelineFlowChart.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_PipelineStateViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_PixelHistoryView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_QRDUtils.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RangeHistogram.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDDoubleSpinBox.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDLabel.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDLineEdit.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDListView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDListWidget.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDTableView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDTableWidget.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDTreeView.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDTreeWidget.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RemoteManager.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ResourcePreview.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ScintillaDocument.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ScintillaEdit.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ScintillaEditBase.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ScintillaQt.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_SettingsDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ShaderViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_StatisticsViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_SuggestRemoteDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_TextureGoto.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_TextureSaveDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_TextureViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ThumbnailStrip.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ToolWindowManager.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ToolWindowManagerArea.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_ToolWindowManagerWrapper.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_VirtualFileDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_VulkanPipelineStateViewer.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\qrc_resources.cpp">
+      <Filter>Generated Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -533,56 +539,14 @@
     <ClInclude Include="Code\RenderManager.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="generated\ui_ResourcePreview.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_ThumbnailStrip.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
     <ClInclude Include="Code\CaptureContext.h">
       <Filter>Code</Filter>
     </ClInclude>
     <ClInclude Include="Code\CommonPipelineState.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="generated\ui_TextureSaveDialog.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_CaptureDialog.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
     <ClInclude Include="Code\qprocessinfo.h">
       <Filter>Code</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_LiveCapture.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_APIInspector.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_D3D11PipelineStateViewer.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_D3D12PipelineStateViewer.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_GLPipelineStateViewer.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_PipelineStateViewer.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_VulkanPipelineStateViewer.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_ConstantBufferPreviewer.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_BufferFormatSpecifier.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_BufferViewer.h">
-      <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="3rdparty\scintilla\lexlib\Accessor.h">
       <Filter>3rdparty\Scintilla\lexlib</Filter>
@@ -761,32 +725,11 @@
     <ClInclude Include="3rdparty\scintilla\src\XPM.h">
       <Filter>3rdparty\Scintilla\src</Filter>
     </ClInclude>
-    <ClInclude Include="generated\ui_ShaderViewer.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
     <ClInclude Include="Code\ScintillaSyntax.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="generated\ui_DebugMessageView.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_StatisticsViewer.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_SettingsDialog.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_OrderedListEditor.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
     <ClInclude Include="Code\RemoteHost.h">
       <Filter>Code</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_SuggestRemoteDialog.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_VirtualFileDialog.h">
-      <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="Resources\resource.h">
       <Filter>Resources</Filter>
@@ -794,14 +737,92 @@
     <ClInclude Include="Code\PersistantConfig.h">
       <Filter>Code</Filter>
     </ClInclude>
-    <ClInclude Include="generated\ui_RemoteManager.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_PixelHistoryView.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
     <ClInclude Include="Code\Resources.h">
       <Filter>Code</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_AboutDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_APIInspector.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_BufferFormatSpecifier.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_BufferViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_CaptureDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_ConstantBufferPreviewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_D3D11PipelineStateViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_D3D12PipelineStateViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_DebugMessageView.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_EnvironmentEditor.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_EventBrowser.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_GLPipelineStateViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_LiveCapture.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_MainWindow.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_OrderedListEditor.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_PipelineStateViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_PixelHistoryView.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_RemoteManager.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_ResourcePreview.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_SettingsDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_ShaderViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_StatisticsViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_SuggestRemoteDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_TextureSaveDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_TextureViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_ThumbnailStrip.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_VirtualFileDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_VulkanPipelineStateViewer.h">
+      <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -979,20 +1000,6 @@
     <None Include="Resources\action.png">
       <Filter>Resources\Files</Filter>
     </None>
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="generated\ui_AboutDialog.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_EventBrowser.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_MainWindow.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
-    <ClInclude Include="generated\ui_TextureViewer.h">
-      <Filter>Generated Files</Filter>
-    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources\qrenderdoc.rc">
@@ -1224,6 +1231,9 @@
     </CustomBuild>
     <CustomBuild Include="Widgets\Extended\RDTreeView.h">
       <Filter>Widgets\Extended</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\PipelineFlowChart.h">
+      <Filter>Widgets</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>
