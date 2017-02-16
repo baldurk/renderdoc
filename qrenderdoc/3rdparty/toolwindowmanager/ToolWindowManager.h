@@ -115,6 +115,8 @@ public:
     DisableDraggableTab = 0x4,
     //! When the tool window is closed, hide it instead of removing it
     HideOnClose = 0x8,
+    //! Don't allow this tool window to be floated
+    DisallowFloatWindow = 0x10,
   };
 
   //! Type of AreaReference.

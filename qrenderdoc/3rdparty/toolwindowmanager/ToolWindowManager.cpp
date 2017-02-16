@@ -811,6 +811,11 @@ void ToolWindowManager::finishDrag() {
     return;
   }
   if (m_suggestions.isEmpty()) {
+    bool allowFloat = m_allowFloatingWindow;
+
+    for(QWidget *w : m_draggedToolWindows)
+      allowFloat &= !(toolWindowProperties(w) & DisallowFloatWindow);
+
     if (m_allowFloatingWindow)
     {
       QRect r;
