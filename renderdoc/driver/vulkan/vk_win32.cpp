@@ -329,7 +329,7 @@ void VulkanReplay::InstallVulkanLayer(bool systemLevel)
 // if we're a 64-bit process, update the 32-bit key
 #if ENABLED(RDOC_X64)
   {
-    HKEY key = GetImplicitLayersKey(true, true);
+    key = GetImplicitLayersKey(true, true);
 
     if(key)
     {
