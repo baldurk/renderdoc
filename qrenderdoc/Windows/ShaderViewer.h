@@ -107,6 +107,14 @@ private slots:
   void performReplace();
   void performReplaceAll();
 
+  void snippet_textureDimensions();
+  void snippet_selectedMip();
+  void snippet_selectedSlice();
+  void snippet_selectedSample();
+  void snippet_selectedType();
+  void snippet_samplers();
+  void snippet_resources();
+
 public slots:
   bool stepBack();
   bool stepNext();
@@ -171,6 +179,9 @@ private:
 
   ScintillaEdit *currentScintilla();
   ScintillaEdit *nextScintilla(ScintillaEdit *cur);
+
+  int snippetPos();
+  void insertVulkanUBO();
 
   int instructionForLine(sptr_t line);
 

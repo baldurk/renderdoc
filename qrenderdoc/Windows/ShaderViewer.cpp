@@ -25,6 +25,7 @@
 #include "ShaderViewer.h"
 #include <QHBoxLayout>
 #include <QListWidget>
+#include <QMenu>
 #include <QShortcut>
 #include "3rdparty/scintilla/include/SciLexer.h"
 #include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
@@ -123,6 +124,37 @@ ShaderViewer::ShaderViewer(CaptureContext &ctx, QWidget *parent)
 
   ui->docking->setRubberBandLineWidth(50);
 
+  {
+    QMenu *snippetsMenu = new QMenu(this);
+
+    QAction *dim = new QAction(tr("Texture Dimensions Global"), this);
+    QAction *mip = new QAction(tr("Selected Mip Global"), this);
+    QAction *slice = new QAction(tr("Seleted Array Slice / Cubemap Face Global"), this);
+    QAction *sample = new QAction(tr("Selected Sample Global"), this);
+    QAction *type = new QAction(tr("Texture Type Global"), this);
+    QAction *samplers = new QAction(tr("Point && Linear Samplers"), this);
+    QAction *resources = new QAction(tr("Texture Resources"), this);
+
+    snippetsMenu->addAction(dim);
+    snippetsMenu->addAction(mip);
+    snippetsMenu->addAction(slice);
+    snippetsMenu->addAction(sample);
+    snippetsMenu->addAction(type);
+    snippetsMenu->addSeparator();
+    snippetsMenu->addAction(samplers);
+    snippetsMenu->addAction(resources);
+
+    QObject::connect(dim, &QAction::triggered, this, &ShaderViewer::snippet_textureDimensions);
+    QObject::connect(mip, &QAction::triggered, this, &ShaderViewer::snippet_selectedMip);
+    QObject::connect(slice, &QAction::triggered, this, &ShaderViewer::snippet_selectedSlice);
+    QObject::connect(sample, &QAction::triggered, this, &ShaderViewer::snippet_selectedSample);
+    QObject::connect(type, &QAction::triggered, this, &ShaderViewer::snippet_selectedType);
+    QObject::connect(samplers, &QAction::triggered, this, &ShaderViewer::snippet_samplers);
+    QObject::connect(resources, &QAction::triggered, this, &ShaderViewer::snippet_resources);
+
+    ui->snippets->setMenu(snippetsMenu);
+  }
+
   QVBoxLayout *layout = new QVBoxLayout(this);
   layout->setSpacing(0);
   layout->setMargin(0);
@@ -141,6 +173,8 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
   ui->watch->hide();
   ui->variables->hide();
   ui->constants->hide();
+
+  ui->snippets->setVisible(customShader);
 
   // hide debugging toolbar buttons
   ui->stepBack->hide();
@@ -1054,6 +1088,296 @@ void ShaderViewer::showErrors(const QString &errors)
     m_Errors->setText(errors.toUtf8().data());
     m_Errors->setReadOnly(true);
   }
+}
+
+int ShaderViewer::snippetPos()
+{
+  if(IsD3D(m_Ctx.APIProps().pipelineType))
+    return 0;
+
+  if(m_Scintillas.isEmpty())
+    return 0;
+
+  QPair<int, int> ver =
+      m_Scintillas[0]->findText(SCFIND_REGEXP, "#version.*", 0, m_Scintillas[0]->length());
+
+  if(ver.first < 0)
+    return 0;
+
+  return ver.second + 1;
+}
+
+void ShaderViewer::insertVulkanUBO()
+{
+  if(m_Scintillas.isEmpty())
+    return;
+
+  m_Scintillas[0]->insertText(snippetPos(),
+                              "layout(binding = 0, std140) uniform RENDERDOC_Uniforms\n"
+                              "{\n"
+                              "    uvec4 TexDim;\n"
+                              "    uint SelectedMip;\n"
+                              "    int TextureType;\n"
+                              "    uint SelectedSliceFace;\n"
+                              "    int SelectedSample;\n"
+                              "} RENDERDOC;\n\n");
+}
+
+void ShaderViewer::snippet_textureDimensions()
+{
+  if(m_Scintillas.isEmpty())
+    return;
+
+  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
+
+  if(IsD3D(api))
+  {
+    m_Scintillas[0]->insertText(snippetPos(),
+                                "// xyz == width, height, depth. w == # mips\n"
+                                "uint4 RENDERDOC_TexDim; \n\n");
+  }
+  else if(api == eGraphicsAPI_OpenGL)
+  {
+    m_Scintillas[0]->insertText(snippetPos(),
+                                "// xyz == width, height, depth. w == # mips\n"
+                                "uniform uvec4 RENDERDOC_TexDim;\n\n");
+  }
+  else if(api == eGraphicsAPI_Vulkan)
+  {
+    insertVulkanUBO();
+  }
+
+  m_Scintillas[0]->setSelection(0, 0);
+}
+
+void ShaderViewer::snippet_selectedMip()
+{
+  if(m_Scintillas.isEmpty())
+    return;
+
+  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
+
+  if(IsD3D(api))
+  {
+    m_Scintillas[0]->insertText(snippetPos(),
+                                "// selected mip in UI\n"
+                                "uint RENDERDOC_SelectedMip;\n\n");
+  }
+  else if(api == eGraphicsAPI_OpenGL)
+  {
+    m_Scintillas[0]->insertText(snippetPos(),
+                                "// selected mip in UI\n"
+                                "uniform uint RENDERDOC_SelectedMip;\n\n");
+  }
+  else if(api == eGraphicsAPI_Vulkan)
+  {
+    insertVulkanUBO();
+  }
+
+  m_Scintillas[0]->setSelection(0, 0);
+}
+
+void ShaderViewer::snippet_selectedSlice()
+{
+  if(m_Scintillas.isEmpty())
+    return;
+
+  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
+
+  if(IsD3D(api))
+  {
+    m_Scintillas[0]->insertText(snippetPos(),
+                                "// selected array slice or cubemap face in UI\n"
+                                "uint RENDERDOC_SelectedSliceFace;\n\n");
+  }
+  else if(api == eGraphicsAPI_OpenGL)
+  {
+    m_Scintillas[0]->insertText(snippetPos(),
+                                "// selected array slice or cubemap face in UI\n"
+                                "uniform uint RENDERDOC_SelectedSliceFace;\n\n");
+  }
+  else if(api == eGraphicsAPI_Vulkan)
+  {
+    insertVulkanUBO();
+  }
+
+  m_Scintillas[0]->setSelection(0, 0);
+}
+
+void ShaderViewer::snippet_selectedSample()
+{
+  if(m_Scintillas.isEmpty())
+    return;
+
+  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
+
+  if(IsD3D(api))
+  {
+    m_Scintillas[0]->insertText(snippetPos(),
+                                "// selected MSAA sample or -numSamples for resolve. See docs\n"
+                                "int RENDERDOC_SelectedSample;\n\n");
+  }
+  else if(api == eGraphicsAPI_OpenGL)
+  {
+    m_Scintillas[0]->insertText(snippetPos(),
+                                "// selected MSAA sample or -numSamples for resolve. See docs\n"
+                                "uniform int RENDERDOC_SelectedSample;\n\n");
+  }
+  else if(api == eGraphicsAPI_Vulkan)
+  {
+    insertVulkanUBO();
+  }
+
+  m_Scintillas[0]->setSelection(0, 0);
+}
+
+void ShaderViewer::snippet_selectedType()
+{
+  if(m_Scintillas.isEmpty())
+    return;
+
+  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
+
+  if(IsD3D(api))
+  {
+    m_Scintillas[0]->insertText(snippetPos(),
+                                "// 1 = 1D, 2 = 2D, 3 = 3D, 4 = Depth, 5 = Depth + Stencil\n"
+                                "// 6 = Depth (MS), 7 = Depth + Stencil (MS)\n"
+                                "uint RENDERDOC_TextureType;\n\n");
+  }
+  else if(api == eGraphicsAPI_OpenGL)
+  {
+    m_Scintillas[0]->insertText(snippetPos(),
+                                "// 1 = 1D, 2 = 2D, 3 = 3D, 4 = Cube\n"
+                                "// 5 = 1DArray, 6 = 2DArray, 7 = CubeArray\n"
+                                "// 8 = Rect, 9 = Buffer, 10 = 2DMS\n"
+                                "uniform uint RENDERDOC_TextureType;\n\n");
+  }
+  else if(api == eGraphicsAPI_Vulkan)
+  {
+    insertVulkanUBO();
+  }
+
+  m_Scintillas[0]->setSelection(0, 0);
+}
+
+void ShaderViewer::snippet_samplers()
+{
+  if(m_Scintillas.isEmpty())
+    return;
+
+  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
+
+  if(IsD3D(api))
+  {
+    m_Scintillas[0]->insertText(snippetPos(),
+                                "// Samplers\n"
+                                "SamplerState pointSampler : register(s0);\n"
+                                "SamplerState linearSampler : register(s1);\n"
+                                "// End Samplers\n\n");
+
+    m_Scintillas[0]->setSelection(0, 0);
+  }
+}
+
+void ShaderViewer::snippet_resources()
+{
+  if(m_Scintillas.isEmpty())
+    return;
+
+  GraphicsAPI api = m_Ctx.APIProps().pipelineType;
+
+  if(IsD3D(api))
+  {
+    m_Scintillas[0]->insertText(
+        snippetPos(),
+        "// Textures\n"
+        "Texture1DArray<float4> texDisplayTex1DArray : register(t1);\n"
+        "Texture2DArray<float4> texDisplayTex2DArray : register(t2);\n"
+        "Texture3D<float4> texDisplayTex3D : register(t3);\n"
+        "Texture2DArray<float2> texDisplayTexDepthArray : register(t4);\n"
+        "Texture2DArray<uint2> texDisplayTexStencilArray : register(t5);\n"
+        "Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);\n"
+        "Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);\n"
+        "Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);\n"
+        "\n"
+        "Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);\n"
+        "Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);\n"
+        "Texture3D<uint4> texDisplayUIntTex3D : register(t13);\n"
+        "Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t19);\n"
+        "\n"
+        "Texture1DArray<int4> texDisplayIntTex1DArray : register(t21);\n"
+        "Texture2DArray<int4> texDisplayIntTex2DArray : register(t22);\n"
+        "Texture3D<int4> texDisplayIntTex3D : register(t23);\n"
+        "Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(t29);\n"
+        "// End Textures\n\n\n");
+  }
+  else if(api == eGraphicsAPI_OpenGL)
+  {
+    m_Scintillas[0]->insertText(snippetPos(),
+                                "// Textures\n"
+                                "// Unsigned int samplers\n"
+                                "layout (binding = 1) uniform usampler1D texUInt1D;\n"
+                                "layout (binding = 2) uniform usampler2D texUInt2D;\n"
+                                "layout (binding = 3) uniform usampler3D texUInt3D;\n"
+                                "// cube = 4\n"
+                                "layout (binding = 5) uniform usampler1DArray texUInt1DArray;\n"
+                                "layout (binding = 6) uniform usampler2DArray texUInt2DArray;\n"
+                                "// cube array = 7\n"
+                                "layout (binding = 8) uniform usampler2DRect texUInt2DRect;\n"
+                                "layout (binding = 9) uniform usamplerBuffer texUIntBuffer;\n"
+                                "layout (binding = 10) uniform usampler2DMS texUInt2DMS;\n"
+                                "\n"
+                                "// Int samplers\n"
+                                "layout (binding = 1) uniform isampler1D texSInt1D;\n"
+                                "layout (binding = 2) uniform isampler2D texSInt2D;\n"
+                                "layout (binding = 3) uniform isampler3D texSInt3D;\n"
+                                "// cube = 4\n"
+                                "layout (binding = 5) uniform isampler1DArray texSInt1DArray;\n"
+                                "layout (binding = 6) uniform isampler2DArray texSInt2DArray;\n"
+                                "// cube array = 7\n"
+                                "layout (binding = 8) uniform isampler2DRect texSInt2DRect;\n"
+                                "layout (binding = 9) uniform isamplerBuffer texSIntBuffer;\n"
+                                "layout (binding = 10) uniform isampler2DMS texSInt2DMS;\n"
+                                "\n"
+                                "// Floating point samplers\n"
+                                "layout (binding = 1) uniform sampler1D tex1D;\n"
+                                "layout (binding = 2) uniform sampler2D tex2D;\n"
+                                "layout (binding = 3) uniform sampler3D tex3D;\n"
+                                "layout (binding = 4) uniform samplerCube texCube;\n"
+                                "layout (binding = 5) uniform sampler1DArray tex1DArray;\n"
+                                "layout (binding = 6) uniform sampler2DArray tex2DArray;\n"
+                                "layout (binding = 7) uniform samplerCubeArray texCubeArray;\n"
+                                "layout (binding = 8) uniform sampler2DRect tex2DRect;\n"
+                                "layout (binding = 9) uniform samplerBuffer texBuffer;\n"
+                                "layout (binding = 10) uniform sampler2DMS tex2DMS;\n"
+                                "// End Textures\n\n\n");
+  }
+  else if(api == eGraphicsAPI_Vulkan)
+  {
+    m_Scintillas[0]->insertText(snippetPos(),
+                                "// Textures\n"
+                                "// Floating point samplers\n"
+                                "layout(binding = 6) uniform sampler1DArray tex1DArray;\n"
+                                "layout(binding = 7) uniform sampler2DArray tex2DArray;\n"
+                                "layout(binding = 8) uniform sampler3D tex3D;\n"
+                                "layout(binding = 9) uniform sampler2DMS tex2DMS;\n"
+                                "\n"
+                                "// Unsigned int samplers\n"
+                                "layout(binding = 11) uniform usampler1DArray texUInt1DArray;\n"
+                                "layout(binding = 12) uniform usampler2DArray texUInt2DArray;\n"
+                                "layout(binding = 13) uniform usampler3D texUInt3D;\n"
+                                "layout(binding = 14) uniform usampler2DMS texUInt2DMS;\n"
+                                "\n"
+                                "// Int samplers\n"
+                                "layout(binding = 16) uniform isampler1DArray texSInt1DArray;\n"
+                                "layout(binding = 17) uniform isampler2DArray texSInt2DArray;\n"
+                                "layout(binding = 18) uniform isampler3D texSInt3D;\n"
+                                "layout(binding = 19) uniform isampler2DMS texSInt2DMS;\n"
+                                "// End Textures\n\n\n");
+  }
+
+  m_Scintillas[0]->setSelection(0, 0);
 }
 
 void ShaderViewer::on_findReplace_clicked()
