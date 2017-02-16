@@ -3297,47 +3297,45 @@ void TextureViewer::on_saveTex_clicked()
 
 void TextureViewer::on_debugPixelContext_clicked()
 {
-  ShaderDebugTrace *trace = new ShaderDebugTrace;
-
   if(m_PickedPoint.x() < 0 || m_PickedPoint.y() < 0)
     return;
 
   int x = m_PickedPoint.x() >> (int)m_TexDisplay.mip;
   int y = m_PickedPoint.y() >> (int)m_TexDisplay.mip;
 
-  bool success = false;
+  m_Ctx.Renderer().AsyncInvoke([this, x, y](IReplayRenderer *r) {
+    ShaderDebugTrace *trace = new ShaderDebugTrace;
 
-  m_Ctx.Renderer().BlockInvoke([this, x, y, &success, trace](IReplayRenderer *r) {
-    success = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.sampleIdx, ~0U, trace);
-  });
+    bool success = r->DebugPixel((uint32_t)x, (uint32_t)y, m_TexDisplay.sampleIdx, ~0U, trace);
 
-  if(!success || trace->states.count == 0)
-  {
-    delete trace;
+    if(!success || trace->states.count == 0)
+    {
+      delete trace;
 
-    // if we couldn't debug the pixel on this event, open up a pixel history
-    on_pixelHistory_clicked();
-    return;
-  }
+      // if we couldn't debug the pixel on this event, open up a pixel history
+      GUIInvoke::call([this]() { on_pixelHistory_clicked(); });
+      return;
+    }
 
-  GUIInvoke::call([this, x, y, trace]() {
-    QString debugContext = tr("Pixel %1,%2").arg(x).arg(y);
+    GUIInvoke::call([this, x, y, trace]() {
+      QString debugContext = tr("Pixel %1,%2").arg(x).arg(y);
 
-    const ShaderReflection *shaderDetails =
-        m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Pixel);
-    const ShaderBindpointMapping &bindMapping =
-        m_Ctx.CurPipelineState.GetBindpointMapping(eShaderStage_Pixel);
+      const ShaderReflection *shaderDetails =
+          m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Pixel);
+      const ShaderBindpointMapping &bindMapping =
+          m_Ctx.CurPipelineState.GetBindpointMapping(eShaderStage_Pixel);
 
-    // viewer takes ownership of the trace
-    ShaderViewer *s = ShaderViewer::debugShader(m_Ctx, &bindMapping, shaderDetails,
-                                                eShaderStage_Pixel, trace, debugContext, this);
+      // viewer takes ownership of the trace
+      ShaderViewer *s = ShaderViewer::debugShader(m_Ctx, &bindMapping, shaderDetails,
+                                                  eShaderStage_Pixel, trace, debugContext, this);
 
-    m_Ctx.setupDockWindow(s);
+      m_Ctx.setupDockWindow(s);
 
-    ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+      ToolWindowManager *manager = ToolWindowManager::managerOf(this);
 
-    ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
-    manager->addToolWindow(s, ref);
+      ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+      manager->addToolWindow(s, ref);
+    });
   });
 }
 

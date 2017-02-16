@@ -38,6 +38,19 @@ class CameraWrapper;
 class ArcballWrapper;
 class FlycamWrapper;
 
+struct BufferExport
+{
+  enum ExportFormat
+  {
+    CSV,
+    RawBytes,
+  };
+
+  ExportFormat format;
+
+  BufferExport(ExportFormat f) : format(f) {}
+};
+
 class BufferViewer : public QFrame, public ILogViewerForm
 {
   Q_OBJECT
@@ -95,6 +108,9 @@ private slots:
 
   void processFormat(const QString &format);
 
+  void exportData(const BufferExport &params);
+  void debugVertex();
+
 private:
   Ui::BufferViewer *ui;
   CaptureContext &m_Ctx;
@@ -130,6 +146,8 @@ private:
   BufferItemModel *m_ModelVSIn;
   BufferItemModel *m_ModelVSOut;
   BufferItemModel *m_ModelGSOut;
+
+  RDTableView *m_CurView = NULL;
 
   int m_IdxColWidth;
   int m_DataColWidth;

@@ -25,9 +25,12 @@
 #include "BufferViewer.h"
 #include <QDoubleSpinBox>
 #include <QFontDatabase>
+#include <QMenu>
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QTimer>
+#include "Code/Resources.h"
+#include "Windows/ShaderViewer.h"
 #include "ui_BufferViewer.h"
 
 class CameraWrapper
@@ -364,7 +367,7 @@ public:
       }
       else
       {
-        const FormatElement &el = columnForIndex(section);
+        const FormatElement &el = elementForColumn(section);
 
         if(el.format.compCount == 1)
           return el.name;
@@ -422,7 +425,7 @@ public:
           if(col == 1 && meshView)
             return idx;
 
-          const FormatElement &el = columnForIndex(col);
+          const FormatElement &el = elementForColumn(col);
 
           uint32_t instIdx = 0;
           if(el.instancerate > 0)
@@ -528,7 +531,7 @@ private:
   int m_ColumnCount = 0;
 
   int reservedColumnCount() const { return (meshView ? 2 : 0); }
-  const FormatElement &columnForIndex(int col) const
+  const FormatElement &elementForColumn(int col) const
   {
     return columns[columnLookup[col - reservedColumnCount()]];
   }
@@ -615,6 +618,80 @@ BufferViewer::BufferViewer(CaptureContext &ctx, bool meshview, QWidget *parent)
   else
     SetupRawView();
 
+  QMenu *exportMenu = new QMenu(this);
+
+  QAction *csv = new QAction(tr("Export to &CSV"), this);
+  csv->setIcon(Icons::save());
+  exportMenu->addAction(csv);
+  QAction *bytes = new QAction(tr("Export to &Bytes"), this);
+  bytes->setIcon(Icons::save());
+  exportMenu->addAction(bytes);
+
+  QAction *debug = new QAction(tr("&Debug this Vertex"), this);
+  debug->setIcon(Icons::wrench());
+
+  ui->exportDrop->setMenu(exportMenu);
+
+  QObject::connect(csv, &QAction::triggered, [this] { exportData(BufferExport(BufferExport::CSV)); });
+  QObject::connect(bytes, &QAction::triggered,
+                   [this] { exportData(BufferExport(BufferExport::RawBytes)); });
+  QObject::connect(debug, &QAction::triggered, this, &BufferViewer::debugVertex);
+
+  QObject::connect(ui->exportDrop, &QToolButton::clicked,
+                   [this] { exportData(BufferExport(BufferExport::CSV)); });
+
+  ui->vsinData->setContextMenuPolicy(Qt::CustomContextMenu);
+  ui->vsoutData->setContextMenuPolicy(Qt::CustomContextMenu);
+  ui->gsoutData->setContextMenuPolicy(Qt::CustomContextMenu);
+
+  QObject::connect(ui->vsinData, &RDTableView::customContextMenuRequested,
+                   [this, debug, csv, bytes](const QPoint &pos) {
+                     m_CurView = ui->vsinData;
+
+                     QMenu *menu = new QMenu(this);
+
+                     if(m_MeshView)
+                     {
+                       menu->addAction(debug);
+                       menu->addSeparator();
+                     }
+
+                     menu->addAction(csv);
+                     menu->addAction(bytes);
+
+                     menu->popup(ui->vsinData->viewport()->mapToGlobal(pos));
+                   });
+
+  QObject::connect(ui->vsoutData, &RDTableView::customContextMenuRequested,
+                   [this, debug, csv, bytes](const QPoint &pos) {
+                     m_CurView = ui->vsoutData;
+
+                     QMenu *menu = new QMenu(this);
+
+                     if(m_MeshView)
+                     {
+                       menu->addAction(debug);
+                       menu->addSeparator();
+                     }
+
+                     menu->addAction(csv);
+                     menu->addAction(bytes);
+
+                     menu->popup(ui->vsoutData->viewport()->mapToGlobal(pos));
+                   });
+
+  QObject::connect(ui->gsoutData, &RDTableView::customContextMenuRequested,
+                   [this, csv, bytes](const QPoint &pos) {
+                     m_CurView = ui->gsoutData;
+
+                     QMenu *menu = new QMenu(this);
+
+                     menu->addAction(csv);
+                     menu->addAction(bytes);
+
+                     menu->popup(ui->gsoutData->viewport()->mapToGlobal(pos));
+                   });
+
   ui->dockarea->setAllowFloatingWindow(false);
   ui->dockarea->setRubberBandLineWidth(50);
 
@@ -643,6 +720,10 @@ BufferViewer::BufferViewer(CaptureContext &ctx, bool meshview, QWidget *parent)
                    &BufferViewer::data_selected);
   QObject::connect(ui->gsoutData->selectionModel(), &QItemSelectionModel::selectionChanged, this,
                    &BufferViewer::data_selected);
+
+  QObject::connect(ui->vsinData, &RDTableView::clicked, [this]() { m_CurView = ui->vsinData; });
+  QObject::connect(ui->vsoutData, &RDTableView::clicked, [this]() { m_CurView = ui->vsoutData; });
+  QObject::connect(ui->gsoutData, &RDTableView::clicked, [this]() { m_CurView = ui->gsoutData; });
 
   QObject::connect(ui->vsinData->verticalScrollBar(), &QScrollBar::valueChanged, this,
                    &BufferViewer::data_scrolled);
@@ -1565,6 +1646,8 @@ void BufferViewer::CalcColumnWidth()
 
 void BufferViewer::data_selected(const QItemSelection &selected, const QItemSelection &deselected)
 {
+  m_CurView = qobject_cast<RDTableView *>(QObject::sender());
+
   if(selected.count() > 0)
   {
     UpdateHighlightVerts();
@@ -1638,6 +1721,242 @@ void BufferViewer::processFormat(const QString &format)
   ui->formatSpecifier->setErrors(errors);
 
   OnEventChanged(m_Ctx.CurEvent());
+}
+
+void BufferViewer::exportData(const BufferExport &params)
+{
+  if(!m_Ctx.LogLoaded())
+    return;
+
+  if(!m_Ctx.CurDrawcall())
+    return;
+
+  if(!m_CurView)
+    return;
+
+  QString filter;
+  if(params.format == BufferExport::CSV)
+    filter = "CSV Files (*.csv)";
+  else if(params.format == BufferExport::RawBytes)
+    filter = "Binary Files (*.bin)";
+
+  QString filename = RDDialog::getSaveFileName(this, tr("Export buffer to bytes"), QString(),
+                                               QString("%1;;All files (*.*)").arg(filter));
+
+  if(filename.isEmpty())
+    return;
+
+  QFile *f = new QFile(filename);
+
+  if(!f->open(QIODevice::WriteOnly | QFile::Truncate))
+  {
+    delete f;
+    RDDialog::critical(this, tr("Error exporting file"),
+                       tr("Couldn't open file '%1' for writing").arg(filename));
+    return;
+  }
+
+  BufferItemModel *model = (BufferItemModel *)m_CurView->model();
+
+  LambdaThread *exportThread = new LambdaThread([this, params, model, f]() {
+    if(params.format == BufferExport::RawBytes)
+    {
+      if(!m_MeshView)
+      {
+        // this is the simplest possible case, we just dump the contents of the first buffer, as
+        // it's tightly packed
+        f->write((const char *)model->buffers[0].data,
+                 int(model->buffers[0].end - model->buffers[0].data));
+      }
+      else
+      {
+        // cache column data for the inner loop
+        struct CachedElData
+        {
+          const FormatElement *el = NULL;
+
+          const char *data = NULL;
+          const char *end = NULL;
+
+          size_t stride;
+          int byteSize;
+          uint32_t instIdx = 0;
+
+          QByteArray nulls;
+        };
+        QVector<CachedElData> cache;
+        cache.reserve(model->columns.count());
+
+        for(int col = 0; col < model->columns.count(); col++)
+        {
+          const FormatElement &el = model->columns[col];
+
+          CachedElData d;
+
+          d.el = &el;
+
+          d.byteSize = el.byteSize();
+          d.nulls = QByteArray(d.byteSize, '\0');
+
+          if(el.instancerate > 0)
+            d.instIdx = model->curInstance / el.instancerate;
+
+          if(el.buffer < model->buffers.size())
+          {
+            d.data = (const char *)model->buffers[el.buffer].data;
+            d.end = (const char *)model->buffers[el.buffer].end;
+
+            d.stride = model->buffers[el.buffer].stride;
+
+            d.data += el.offset;
+
+            if(el.perinstance)
+              d.data += d.stride * d.instIdx;
+          }
+
+          cache.push_back(d);
+        }
+
+        // go row by row, finding the start of the row and dumping out the elements using their
+        // offset and sizes
+        for(int i = 0; i < model->rowCount(); i++)
+        {
+          uint32_t idx = model->data(model->index(i, 1), Qt::DisplayRole).toUInt();
+
+          for(int col = 0; col < cache.count(); col++)
+          {
+            const CachedElData &d = cache[col];
+            const FormatElement *el = d.el;
+
+            if(d.data)
+            {
+              const char *bytes = d.data;
+
+              if(!el->perinstance)
+                bytes += d.stride * idx;
+
+              if(bytes + d.byteSize <= d.end)
+                f->write(bytes, d.byteSize);
+            }
+
+            // if we didn't continue above, something was wrong, so write nulls
+            f->write(d.nulls);
+          }
+        }
+      }
+    }
+    else if(params.format == BufferExport::CSV)
+    {
+      // this works identically no matter whether we're mesh view or what, we just iterate the
+      // elements and call the model's data()
+
+      QTextStream s(f);
+
+      for(int i = 0; i < model->columnCount(); i++)
+      {
+        s << model->headerData(i, Qt::Horizontal, Qt::DisplayRole).toString();
+
+        if(i + 1 < model->columnCount())
+          s << ", ";
+      }
+
+      s << "\n";
+
+      for(int row = 0; row < model->rowCount(); row++)
+      {
+        for(int col = 0; col < model->columnCount(); col++)
+        {
+          s << model->data(model->index(row, col), Qt::DisplayRole).toString();
+
+          if(col + 1 < model->columnCount())
+            s << ", ";
+        }
+
+        s << "\n";
+      }
+    }
+
+    f->close();
+
+    delete f;
+  });
+  exportThread->start();
+
+  ShowProgressDialog(this, tr("Exporting data"),
+                     [exportThread]() { return !exportThread->isRunning(); });
+
+  exportThread->deleteLater();
+}
+
+void BufferViewer::debugVertex()
+{
+  if(!m_Ctx.LogLoaded())
+    return;
+
+  if(!m_Ctx.CurDrawcall())
+    return;
+
+  if(!m_CurView)
+    return;
+
+  QModelIndex idx = m_CurView->selectionModel()->currentIndex();
+
+  if(!idx.isValid())
+  {
+    GUIInvoke::call([this]() {
+      RDDialog::critical(this, tr("Error debugging"),
+                         tr("Error debugging vertex - make sure a valid vertex is selected"));
+    });
+    return;
+  }
+
+  uint32_t vertid =
+      m_CurView->model()->data(m_CurView->model()->index(idx.row(), 0), Qt::DisplayRole).toUInt();
+  uint32_t index =
+      m_CurView->model()->data(m_CurView->model()->index(idx.row(), 1), Qt::DisplayRole).toUInt();
+
+  m_Ctx.Renderer().AsyncInvoke([this, vertid, index](IReplayRenderer *r) {
+    ShaderDebugTrace *trace = new ShaderDebugTrace;
+
+    bool success =
+        r->DebugVertex(vertid, m_Config.curInstance, index, m_Ctx.CurDrawcall()->instanceOffset,
+                       m_Ctx.CurDrawcall()->vertexOffset, trace);
+
+    if(!success || trace->states.count == 0)
+    {
+      delete trace;
+
+      // if we couldn't debug the pixel on this event, open up a pixel history
+      GUIInvoke::call([this]() {
+        RDDialog::critical(this, tr("Error debugging"),
+                           tr("Error debugging vertex - make sure a valid vertex is selected"));
+      });
+      return;
+    }
+
+    GUIInvoke::call([this, vertid, trace]() {
+      QString debugContext = tr("Vertex %1").arg(vertid);
+
+      if(m_Ctx.CurDrawcall()->numInstances > 1)
+        debugContext += tr(", Instance %1").arg(m_Config.curInstance);
+
+      const ShaderReflection *shaderDetails =
+          m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Pixel);
+      const ShaderBindpointMapping &bindMapping =
+          m_Ctx.CurPipelineState.GetBindpointMapping(eShaderStage_Pixel);
+
+      // viewer takes ownership of the trace
+      ShaderViewer *s = ShaderViewer::debugShader(m_Ctx, &bindMapping, shaderDetails,
+                                                  eShaderStage_Pixel, trace, debugContext, this);
+
+      m_Ctx.setupDockWindow(s);
+
+      ToolWindowManager *manager = ToolWindowManager::managerOf(this);
+
+      ToolWindowManager::AreaReference ref(ToolWindowManager::AddTo, manager->areaOf(this));
+      manager->addToolWindow(s, ref);
+    });
+  });
 }
 
 void BufferViewer::SyncViews(RDTableView *primary, bool selection, bool scroll)
