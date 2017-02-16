@@ -631,6 +631,7 @@
     <ClCompile Include="$(IntDir)generated\moc_AboutDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_APIInspector.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_BufferFormatSpecifier.cpp" />
+    <ClCompile Include="$(IntDir)generated\moc_FindReplace.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_BufferViewer.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_CaptureDialog.cpp" />
     <ClCompile Include="$(IntDir)generated\moc_ConstantBufferPreviewer.cpp" />
@@ -687,6 +688,7 @@
     <ClCompile Include="$(IntDir)generated\moc_VulkanPipelineStateViewer.cpp" />
     <ClCompile Include="$(IntDir)generated\qrc_resources.cpp" />
     <ClCompile Include="Widgets\BufferFormatSpecifier.cpp" />
+    <ClCompile Include="Widgets\FindReplace.cpp" />
     <ClCompile Include="Widgets\Extended\RDListWidget.cpp" />
     <ClCompile Include="Widgets\Extended\RDTableView.cpp" />
     <ClCompile Include="Widgets\Extended\RDTableWidget.cpp" />
@@ -850,6 +852,7 @@
     <ClInclude Include="$(IntDir)generated\ui_AboutDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_APIInspector.h" />
     <ClInclude Include="$(IntDir)generated\ui_BufferFormatSpecifier.h" />
+    <ClInclude Include="$(IntDir)generated\ui_FindReplace.h" />
     <ClInclude Include="$(IntDir)generated\ui_BufferViewer.h" />
     <ClInclude Include="$(IntDir)generated\ui_CaptureDialog.h" />
     <ClInclude Include="$(IntDir)generated\ui_ConstantBufferPreviewer.h" />
@@ -890,6 +893,12 @@
     <ClInclude Include="Code\RenderManager.h" />
     <ClInclude Include="Code\ScintillaSyntax.h" />
     <CustomBuild Include="Widgets\BufferFormatSpecifier.h">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(IntDir)generated\moc_%(Filename).cpp</Command>
+      <Message>MOC %(Filename).h</Message>
+      <Outputs>$(IntDir)generated\moc_%(Filename).cpp</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\FindReplace.h">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\moc.exe -DUNICODE -DWIN32 -DWIN64 -D_WIN32 -D_WIN64 -DRENDERDOC_PLATFORM_WIN32 -DSCINTILLA_QT=1 -DSCI_LEXER=1 -DQT_NO_DEBUG -DQT_WIDGETS_LIB -DQT_GUI_LIB -DQT_CORE_LIB -D_MSC_VER=1900 -I$(ProjectDir) -I$(SolutionDir)\renderdoc\api\replay -I$(ProjectDir)3rdparty\qt\$(Platform)\mkspecs/win32-msvc2015 -I$(ProjectDir)3rdparty\qt\$(Platform)\include -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtWidgets -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtGui -I$(ProjectDir)3rdparty\qt\$(Platform)\include\QtCore %(Fullpath) -o $(IntDir)generated\moc_%(Filename).cpp</Command>
       <Message>MOC %(Filename).h</Message>
@@ -1138,6 +1147,12 @@
   </ItemGroup>
   <ItemGroup>
     <CustomBuild Include="Widgets\BufferFormatSpecifier.ui">
+      <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(IntDir)generated\ui_%(Filename).h</Command>
+      <Message>UIC %(Filename).ui</Message>
+      <Outputs>$(IntDir)generated\ui_%(Filename).h</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\FindReplace.ui">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(IntDir)generated\ui_%(Filename).h</Command>
       <Message>UIC %(Filename).ui</Message>

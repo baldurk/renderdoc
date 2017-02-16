@@ -537,6 +537,12 @@
     <ClCompile Include="Windows\Dialogs\EnvironmentEditor.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
+    <ClCompile Include="Widgets\FindReplace.cpp">
+      <Filter>Widgets</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_FindReplace.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -828,6 +834,9 @@
       <Filter>Generated Files</Filter>
     </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_VulkanPipelineStateViewer.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_FindReplace.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -1246,6 +1255,12 @@
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\EnvironmentEditor.h">
       <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\FindReplace.ui">
+      <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\FindReplace.h">
+      <Filter>Widgets</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>

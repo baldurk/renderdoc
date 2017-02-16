@@ -29,7 +29,9 @@
 #include "3rdparty/scintilla/include/SciLexer.h"
 #include "3rdparty/scintilla/include/qt/ScintillaEdit.h"
 #include "3rdparty/toolwindowmanager/ToolWindowManager.h"
+#include "3rdparty/toolwindowmanager/ToolWindowManagerArea.h"
 #include "Code/ScintillaSyntax.h"
+#include "Widgets/FindReplace.h"
 #include "Windows/PipelineState/PipelineStateViewer.h"
 #include "ui_ShaderViewer.h"
 
@@ -57,9 +59,34 @@ ShaderViewer::ShaderViewer(CaptureContext &ctx, QWidget *parent)
 {
   ui->setupUi(this);
 
+  // we create this up front so its state stays persistent as much as possible.
+  m_FindReplace = new FindReplace(this);
+
+  m_FindResults = MakeEditor("findresults", "", SCLEX_NULL);
+  m_FindResults->setReadOnly(true);
+  m_FindResults->setWindowTitle("Find Results");
+
+  // remove margins
+  m_FindResults->setMarginWidthN(0, 0);
+  m_FindResults->setMarginWidthN(1, 0);
+  m_FindResults->setMarginWidthN(2, 0);
+
+  QObject::connect(m_FindReplace, &FindReplace::performFind, this, &ShaderViewer::performFind);
+  QObject::connect(m_FindReplace, &FindReplace::performFindAll, this, &ShaderViewer::performFindAll);
+  QObject::connect(m_FindReplace, &FindReplace::performReplace, this, &ShaderViewer::performReplace);
+  QObject::connect(m_FindReplace, &FindReplace::performReplaceAll, this,
+                   &ShaderViewer::performReplaceAll);
+
+  ui->docking->addToolWindow(m_FindReplace, ToolWindowManager::NoArea);
+  ui->docking->setToolWindowProperties(m_FindReplace, ToolWindowManager::HideOnClose);
+
+  ui->docking->addToolWindow(m_FindResults, ToolWindowManager::NoArea);
+  ui->docking->setToolWindowProperties(m_FindResults, ToolWindowManager::HideOnClose);
+
   {
     m_DisassemblyView =
-        MakeEditor("scintillaDisassem", "", m_Ctx.APIProps().pipelineType == eGraphicsAPI_Vulkan);
+        MakeEditor("scintillaDisassem", "",
+                   m_Ctx.APIProps().pipelineType == eGraphicsAPI_Vulkan ? SCLEX_GLSL : SCLEX_HLSL);
     m_DisassemblyView->setReadOnly(true);
     m_DisassemblyView->setWindowTitle(tr("Disassembly"));
 
@@ -89,10 +116,11 @@ ShaderViewer::ShaderViewer(CaptureContext &ctx, QWidget *parent)
     m_Scintillas.push_back(m_DisassemblyView);
 
     ui->docking->addToolWindow(m_DisassemblyView, ToolWindowManager::EmptySpace);
-    ui->docking->setToolWindowProperties(m_DisassemblyView, ToolWindowManager::HideCloseButton);
+    ui->docking->setToolWindowProperties(
+        m_DisassemblyView,
+        ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
   }
 
-  ui->docking->setAllowFloatingWindow(false);
   ui->docking->setRubberBandLineWidth(50);
 
   QVBoxLayout *layout = new QVBoxLayout(this);
@@ -139,8 +167,13 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
     ScintillaEdit *scintilla = AddFileScintilla(name, text);
 
     scintilla->setReadOnly(false);
-    QObject::connect(m_DisassemblyView, &ScintillaEdit::keyPressed, this,
-                     &ShaderViewer::editable_keyPressed);
+    QObject::connect(scintilla, &ScintillaEdit::keyPressed, this, &ShaderViewer::editable_keyPressed);
+
+    QObject::connect(scintilla, &ScintillaEdit::modified, [this](int type, int, int, int,
+                                                                 const QByteArray &, int, int, int) {
+      if(type & (SC_MOD_INSERTTEXT | SC_MOD_DELETETEXT | SC_MOD_BEFOREINSERT | SC_MOD_BEFOREDELETE))
+        m_FindState = FindState();
+    });
 
     // TODO - shortcuts
     QObject::connect(new QShortcut(QKeySequence(Qt::Key_S | Qt::ControlModifier), scintilla),
@@ -164,7 +197,7 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
   if(files.count() > 2)
     addFileList();
 
-  m_Errors = MakeEditor("errors", "", false);
+  m_Errors = MakeEditor("errors", "", SCLEX_NULL);
   m_Errors->setReadOnly(true);
   m_Errors->setWindowTitle("Errors");
 
@@ -178,7 +211,8 @@ void ShaderViewer::editShader(bool customShader, const QString &entryPoint, cons
   ui->docking->addToolWindow(
       m_Errors, ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
                                                  ui->docking->areaOf(m_Scintillas.front()), 0.2f));
-  ui->docking->setToolWindowProperties(m_Errors, ToolWindowManager::HideCloseButton);
+  ui->docking->setToolWindowProperties(
+      m_Errors, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 }
 
 void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderReflection *shader,
@@ -189,6 +223,9 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
   m_ShaderDetails = shader;
   m_Trace = trace;
   m_Stage = stage;
+
+  // no replacing allowed, stay in find mode
+  m_FindReplace->allowUserModeChange(false);
 
   if(!shader || !bind)
     m_Trace = NULL;
@@ -272,19 +309,22 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->docking->addToolWindow(
         ui->watch, ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
                                                     ui->docking->areaOf(m_DisassemblyView), 0.25f));
-    ui->docking->setToolWindowProperties(ui->watch, ToolWindowManager::HideCloseButton);
+    ui->docking->setToolWindowProperties(
+        ui->watch, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
     ui->variables->setWindowTitle(tr("Variables"));
     ui->docking->addToolWindow(
         ui->variables,
         ToolWindowManager::AreaReference(ToolWindowManager::AddTo, ui->docking->areaOf(ui->watch)));
-    ui->docking->setToolWindowProperties(ui->variables, ToolWindowManager::HideCloseButton);
+    ui->docking->setToolWindowProperties(
+        ui->variables, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
     ui->constants->setWindowTitle(tr("Constants && Resources"));
     ui->docking->addToolWindow(
         ui->constants, ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
                                                         ui->docking->areaOf(ui->variables), 0.5f));
-    ui->docking->setToolWindowProperties(ui->constants, ToolWindowManager::HideCloseButton);
+    ui->docking->setToolWindowProperties(
+        ui->constants, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
     m_DisassemblyView->setMarginWidthN(1, 20);
 
@@ -390,13 +430,15 @@ void ShaderViewer::debugShader(const ShaderBindpointMapping *bind, const ShaderR
     ui->docking->addToolWindow(ui->inputSig, ToolWindowManager::AreaReference(
                                                  ToolWindowManager::BottomOf,
                                                  ui->docking->areaOf(m_DisassemblyView), 0.2f));
-    ui->docking->setToolWindowProperties(ui->inputSig, ToolWindowManager::HideCloseButton);
+    ui->docking->setToolWindowProperties(
+        ui->inputSig, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
     ui->outputSig->setWindowTitle(tr("Output Signature"));
     ui->docking->addToolWindow(
         ui->outputSig, ToolWindowManager::AreaReference(ToolWindowManager::RightOf,
                                                         ui->docking->areaOf(ui->inputSig), 0.5f));
-    ui->docking->setToolWindowProperties(ui->outputSig, ToolWindowManager::HideCloseButton);
+    ui->docking->setToolWindowProperties(
+        ui->outputSig, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
   }
 }
 
@@ -426,7 +468,9 @@ void ShaderViewer::OnEventChanged(uint32_t eventID)
 
 ScintillaEdit *ShaderViewer::AddFileScintilla(const QString &name, const QString &text)
 {
-  ScintillaEdit *scintilla = MakeEditor("scintilla" + name, text, true);
+  ScintillaEdit *scintilla =
+      MakeEditor("scintilla" + name, text,
+                 m_Ctx.APIProps().localRenderer == eGraphicsAPI_OpenGL ? SCLEX_GLSL : SCLEX_HLSL);
   scintilla->setReadOnly(true);
   scintilla->setWindowTitle(name);
   ((QWidget *)scintilla)->setProperty("name", name);
@@ -440,14 +484,15 @@ ScintillaEdit *ShaderViewer::AddFileScintilla(const QString &name, const QString
                                            ui->docking->areaOf(m_Scintillas[0]));
 
   ui->docking->addToolWindow(scintilla, ref);
-  ui->docking->setToolWindowProperties(scintilla, ToolWindowManager::HideCloseButton);
+  ui->docking->setToolWindowProperties(
+      scintilla, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 
   m_Scintillas.push_back(scintilla);
 
   return scintilla;
 }
 
-ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text, bool src)
+ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text, int lang)
 {
   ScintillaEdit *ret = new ScintillaEdit(this);
 
@@ -468,11 +513,16 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
   ret->setObjectName(name);
 
   // C# DarkGreen
-  ret->indicSetFore(4, SCINTILLA_COLOUR(0, 100, 0));
-  ret->indicSetStyle(4, INDIC_ROUNDBOX);
+  ret->indicSetFore(INDICATOR_REGHIGHLIGHT, SCINTILLA_COLOUR(0, 100, 0));
+  ret->indicSetStyle(INDICATOR_REGHIGHLIGHT, INDIC_ROUNDBOX);
 
-  ConfigureSyntax(ret,
-                  m_Ctx.APIProps().localRenderer == eGraphicsAPI_OpenGL ? SCLEX_GLSL : SCLEX_HLSL);
+  // set up find result highlight style
+  ret->indicSetFore(INDICATOR_FINDRESULT, SCINTILLA_COLOUR(200, 200, 127));
+  ret->indicSetStyle(INDICATOR_FINDRESULT, INDIC_FULLBOX);
+  ret->indicSetAlpha(INDICATOR_FINDRESULT, 50);
+  ret->indicSetOutlineAlpha(INDICATOR_FINDRESULT, 80);
+
+  ConfigureSyntax(ret, lang);
 
   ret->setTabWidth(4);
 
@@ -488,12 +538,25 @@ ScintillaEdit *ShaderViewer::MakeEditor(const QString &name, const QString &text
 
 void ShaderViewer::readonly_keyPressed(QKeyEvent *event)
 {
-  // TODO find
+  if(event->key() == Qt::Key_F && (event->modifiers() & Qt::ControlModifier))
+  {
+    m_FindReplace->setReplaceMode(false);
+    on_findReplace_clicked();
+  }
+
+  if(event->key() == Qt::Key_F3)
+  {
+    find((event->modifiers() & Qt::ShiftModifier) == 0);
+  }
 }
 
 void ShaderViewer::editable_keyPressed(QKeyEvent *event)
 {
-  // TODO replace
+  if(event->key() == Qt::Key_H && (event->modifiers() & Qt::ControlModifier))
+  {
+    m_FindReplace->setReplaceMode(true);
+    on_findReplace_clicked();
+  }
 }
 
 void ShaderViewer::disassembly_buttonReleased(QMouseEvent *event)
@@ -697,7 +760,8 @@ void ShaderViewer::addFileList()
   ui->docking->addToolWindow(
       list, ToolWindowManager::AreaReference(ToolWindowManager::LeftOf,
                                              ui->docking->areaOf(m_Scintillas.front()), 0.2f));
-  ui->docking->setToolWindowProperties(list, ToolWindowManager::HideCloseButton);
+  ui->docking->setToolWindowProperties(
+      list, ToolWindowManager::HideCloseButton | ToolWindowManager::DisallowFloatWindow);
 }
 
 void ShaderViewer::updateDebugging()
@@ -733,12 +797,7 @@ void ShaderViewer::updateDebugging()
       int pos = m_DisassemblyView->positionFromLine(i);
       m_DisassemblyView->setSelection(pos, pos);
 
-      int firstLine = m_DisassemblyView->firstVisibleLine();
-      int linesVisible = m_DisassemblyView->linesOnScreen();
-
-      if(m_DisassemblyView->isVisible() && (i < firstLine || i > (firstLine + linesVisible)))
-        m_DisassemblyView->scrollCaret();
-
+      ensureLineScrolled(m_DisassemblyView, i);
       break;
     }
   }
@@ -907,6 +966,15 @@ void ShaderViewer::updateDebugging()
   // TODO watch registers
 }
 
+void ShaderViewer::ensureLineScrolled(ScintillaEdit *s, int line)
+{
+  int firstLine = s->firstVisibleLine();
+  int linesVisible = s->linesOnScreen();
+
+  if(s->isVisible() && (line < firstLine || line > (firstLine + linesVisible)))
+    s->scrollCaret();
+}
+
 int ShaderViewer::currentStep()
 {
   return m_CurrentStep;
@@ -990,6 +1058,18 @@ void ShaderViewer::showErrors(const QString &errors)
 
 void ShaderViewer::on_findReplace_clicked()
 {
+  if(m_FindReplace->isVisible())
+  {
+    ToolWindowManager::raiseToolWindow(m_FindReplace);
+  }
+  else
+  {
+    ui->docking->moveToolWindow(
+        m_FindReplace, ToolWindowManager::AreaReference(ToolWindowManager::NewFloatingArea));
+    ui->docking->setToolWindowProperties(m_FindReplace, ToolWindowManager::HideOnClose);
+  }
+  ui->docking->areaOf(m_FindReplace)->parentWidget()->activateWindow();
+  m_FindReplace->takeFocus();
 }
 
 void ShaderViewer::on_save_clicked()
@@ -1026,4 +1106,382 @@ void ShaderViewer::on_floatView_clicked()
   ui->intView->setChecked(false);
 
   updateDebugging();
+}
+
+ScintillaEdit *ShaderViewer::currentScintilla()
+{
+  ScintillaEdit *cur = qobject_cast<ScintillaEdit *>(QApplication::focusWidget());
+
+  if(cur == NULL)
+  {
+    for(ScintillaEdit *s : m_Scintillas)
+    {
+      if(s->isVisible())
+      {
+        cur = s;
+        break;
+      }
+    }
+  }
+
+  return cur;
+}
+
+ScintillaEdit *ShaderViewer::nextScintilla(ScintillaEdit *cur)
+{
+  for(int i = 0; i < m_Scintillas.count(); i++)
+  {
+    if(m_Scintillas[i] == cur)
+    {
+      if(i + 1 < m_Scintillas.count())
+        return m_Scintillas[i + 1];
+
+      return m_Scintillas[0];
+    }
+  }
+
+  if(!m_Scintillas.isEmpty())
+    return m_Scintillas[0];
+
+  return NULL;
+}
+
+void ShaderViewer::find(bool down)
+{
+  ScintillaEdit *cur = currentScintilla();
+
+  if(!cur)
+    return;
+
+  QString find = m_FindReplace->findText();
+
+  sptr_t flags = 0;
+
+  if(m_FindReplace->matchCase())
+    flags |= SCFIND_MATCHCASE;
+  if(m_FindReplace->matchWord())
+    flags |= SCFIND_WHOLEWORD;
+  if(m_FindReplace->regexp())
+    flags |= SCFIND_REGEXP | SCFIND_POSIX;
+
+  FindReplace::SearchContext context = m_FindReplace->context();
+
+  QString findHash = QString("%1%2%3").arg(find).arg(flags).arg((int)context);
+
+  if(findHash != m_FindState.hash)
+  {
+    m_FindState.hash = findHash;
+    m_FindState.start = 0;
+    m_FindState.end = cur->length();
+    m_FindState.offset = cur->currentPos();
+  }
+
+  int start = m_FindState.start + m_FindState.offset;
+  int end = m_FindState.end;
+
+  if(!down)
+    end = m_FindState.start;
+
+  QPair<int, int> result = cur->findText(flags, find.toUtf8().data(), start, end);
+
+  m_FindState.prevResult = result;
+
+  if(result.first == -1)
+  {
+    sptr_t maxOffset = down ? 0 : m_FindState.end;
+
+    // if we're at offset 0 searching down, there are no results. Same for offset max and searching
+    // up
+    if(m_FindState.offset == maxOffset)
+      return;
+
+    // otherwise, we can wrap the search around
+
+    if(context == FindReplace::AllFiles)
+    {
+      cur = nextScintilla(cur);
+      ToolWindowManager::raiseToolWindow(cur);
+      cur->activateWindow();
+      cur->QWidget::setFocus();
+    }
+
+    m_FindState.offset = maxOffset;
+
+    start = m_FindState.start + m_FindState.offset;
+    end = m_FindState.end;
+
+    if(!down)
+      end = m_FindState.start;
+
+    result = cur->findText(flags, find.toUtf8().data(), start, end);
+
+    m_FindState.prevResult = result;
+
+    if(result.first == -1)
+      return;
+  }
+
+  cur->setSelection(result.first, result.second);
+
+  ensureLineScrolled(cur, cur->lineFromPosition(result.first));
+
+  if(down)
+    m_FindState.offset = result.second - m_FindState.start;
+  else
+    m_FindState.offset = result.first - m_FindState.start;
+}
+
+void ShaderViewer::performFind()
+{
+  find(m_FindReplace->direction() == FindReplace::Down);
+}
+
+void ShaderViewer::performFindAll()
+{
+  ScintillaEdit *cur = currentScintilla();
+
+  if(!cur)
+    return;
+
+  QString find = m_FindReplace->findText();
+
+  sptr_t flags = 0;
+
+  QString results = tr("Find all \"%1\"").arg(find);
+
+  if(m_FindReplace->matchCase())
+  {
+    flags |= SCFIND_MATCHCASE;
+    results += tr(", Match case");
+  }
+
+  if(m_FindReplace->matchWord())
+  {
+    flags |= SCFIND_WHOLEWORD;
+    results += tr(", Match whole word");
+  }
+
+  if(m_FindReplace->regexp())
+  {
+    flags |= SCFIND_REGEXP | SCFIND_POSIX;
+    results += tr(", with Regular Expressions");
+  }
+
+  FindReplace::SearchContext context = m_FindReplace->context();
+
+  if(context == FindReplace::File)
+    results += tr(", in current file\n");
+  else
+    results += tr(", in all files\n");
+
+  // trash the find state for any incremental finds
+  m_FindState = FindState();
+
+  QList<ScintillaEdit *> scintillas = m_Scintillas;
+
+  if(context == FindReplace::File)
+    scintillas = {cur};
+
+  QList<QPair<int, int>> resultList;
+
+  QByteArray findUtf8 = find.toUtf8();
+
+  for(ScintillaEdit *s : scintillas)
+  {
+    sptr_t start = 0;
+    sptr_t end = s->length();
+
+    s->setIndicatorCurrent(INDICATOR_FINDRESULT);
+    s->indicatorClearRange(start, end);
+
+    if(findUtf8.isEmpty())
+      continue;
+
+    QPair<int, int> result;
+
+    do
+    {
+      result = s->findText(flags, findUtf8.data(), start, end);
+
+      if(result.first >= 0)
+      {
+        int line = s->lineFromPosition(result.first);
+        sptr_t lineStart = s->positionFromLine(line);
+        sptr_t lineEnd = s->lineEndPosition(line);
+
+        s->indicatorFillRange(result.first, result.second - result.first);
+
+        QString lineText = QString::fromUtf8(s->textRange(lineStart, lineEnd));
+
+        results += QString("  %1(%2): ").arg(s->windowTitle()).arg(line, 4);
+        int startPos = results.length();
+
+        results += lineText;
+        results += "\n";
+
+        resultList.push_back(
+            qMakePair(result.first - lineStart + startPos, result.second - lineStart + startPos));
+      }
+
+      start = result.second;
+
+    } while(result.first >= 0);
+  }
+
+  if(findUtf8.isEmpty())
+    return;
+
+  results += tr("Matching lines: %1").arg(resultList.count());
+
+  m_FindResults->setReadOnly(false);
+  m_FindResults->setText(results.toUtf8().data());
+
+  m_FindResults->setIndicatorCurrent(INDICATOR_FINDRESULT);
+
+  for(QPair<int, int> r : resultList)
+    m_FindResults->indicatorFillRange(r.first, r.second - r.first);
+
+  m_FindResults->setReadOnly(true);
+
+  if(m_FindResults->isVisible())
+  {
+    ToolWindowManager::raiseToolWindow(m_FindResults);
+  }
+  else
+  {
+    ui->docking->moveToolWindow(m_FindResults,
+                                ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
+                                                                 ui->docking->areaOf(cur), 0.2f));
+    ui->docking->setToolWindowProperties(m_FindResults, ToolWindowManager::HideOnClose);
+  }
+}
+
+void ShaderViewer::performReplace()
+{
+  ScintillaEdit *cur = currentScintilla();
+
+  if(!cur)
+    return;
+
+  QString find = m_FindReplace->findText();
+
+  if(find.isEmpty())
+    return;
+
+  sptr_t flags = 0;
+
+  if(m_FindReplace->matchCase())
+    flags |= SCFIND_MATCHCASE;
+  if(m_FindReplace->matchWord())
+    flags |= SCFIND_WHOLEWORD;
+  if(m_FindReplace->regexp())
+    flags |= SCFIND_REGEXP | SCFIND_POSIX;
+
+  FindReplace::SearchContext context = m_FindReplace->context();
+
+  QString findHash = QString("%1%2%3").arg(find).arg(flags).arg((int)context);
+
+  // if we didn't have a valid previous find, just do a find and bail
+  if(findHash != m_FindState.hash)
+  {
+    performFind();
+    return;
+  }
+
+  if(m_FindState.prevResult.first == -1)
+    return;
+
+  cur->setTargetRange(m_FindState.prevResult.first, m_FindState.prevResult.second);
+
+  FindState save = m_FindState;
+
+  QString replaceText = m_FindReplace->replaceText();
+
+  // otherwise we have a valid previous find. Do the replace now
+  // note this will invalidate the find state (as most user operations would), so we save/restore
+  // the state
+  if(m_FindReplace->regexp())
+    cur->replaceTargetRE(-1, replaceText.toUtf8().data());
+  else
+    cur->replaceTarget(-1, replaceText.toUtf8().data());
+
+  m_FindState = save;
+
+  // adjust the offset if we replaced text and it went up or down in size
+  m_FindState.offset += (replaceText.count() - find.count());
+
+  // move to the next result
+  performFind();
+}
+
+void ShaderViewer::performReplaceAll()
+{
+  ScintillaEdit *cur = currentScintilla();
+
+  if(!cur)
+    return;
+
+  QString find = m_FindReplace->findText();
+  QString replace = m_FindReplace->replaceText();
+
+  if(find.isEmpty())
+    return;
+
+  sptr_t flags = 0;
+
+  if(m_FindReplace->matchCase())
+    flags |= SCFIND_MATCHCASE;
+  if(m_FindReplace->matchWord())
+    flags |= SCFIND_WHOLEWORD;
+  if(m_FindReplace->regexp())
+    flags |= SCFIND_REGEXP | SCFIND_POSIX;
+
+  FindReplace::SearchContext context = m_FindReplace->context();
+
+  (void)context;
+
+  // trash the find state for any incremental finds
+  m_FindState = FindState();
+
+  QList<ScintillaEdit *> scintillas = m_Scintillas;
+
+  if(context == FindReplace::File)
+    scintillas = {cur};
+
+  int numReplacements = 1;
+
+  for(ScintillaEdit *s : scintillas)
+  {
+    sptr_t start = 0;
+    sptr_t end = s->length();
+
+    QPair<int, int> result;
+
+    QByteArray findUtf8 = find.toUtf8();
+    QByteArray replaceUtf8 = replace.toUtf8();
+
+    do
+    {
+      result = s->findText(flags, findUtf8.data(), start, end);
+
+      if(result.first >= 0)
+      {
+        s->setTargetRange(result.first, result.second);
+
+        if(m_FindReplace->regexp())
+          s->replaceTargetRE(-1, replaceUtf8.data());
+        else
+          s->replaceTarget(-1, replaceUtf8.data());
+
+        numReplacements++;
+      }
+
+      start = result.second + (replaceUtf8.count() - findUtf8.count());
+
+    } while(result.first >= 0);
+  }
+
+  RDDialog::information(
+      this, tr("Replace all"),
+      tr("%1 replacements made in %2 files").arg(numReplacements).arg(scintillas.count()));
 }
