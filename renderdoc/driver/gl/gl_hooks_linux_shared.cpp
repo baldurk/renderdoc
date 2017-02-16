@@ -38,11 +38,18 @@ Threading::CriticalSection glLock;
 void *libGLdlsymHandle =
     RTLD_NEXT;    // default to RTLD_NEXT, but overwritten if app calls dlopen() on real libGL
 
-WrappedOpenGL *GetDriver()
+void InitDriver(RDCDriver type)
 {
   if(m_GLDriver == NULL)
+  {
     m_GLDriver = new WrappedOpenGL("", GL);
+    m_GLDriver->SetDriverType(type);
+  }
+}
 
+WrappedOpenGL *GetDriver()
+{
+  InitDriver(RDC_OpenGL);
   return m_GLDriver;
 }
 

@@ -70,6 +70,7 @@ public:
   {
     libGLdlsymHandle = realLib;
     EGLHook::glhooks.CreateHooks(NULL);
+    ::GetDriver()->SetDriverType(RDC_OpenGLES);
   }
 
   bool CreateHooks(const char *libName)
@@ -179,7 +180,10 @@ public:
   WrappedOpenGL *GetDriver()
   {
     if(m_GLDriver == NULL)
+    {
       m_GLDriver = new WrappedOpenGL("", GL);
+      m_GLDriver->SetDriverType(RDC_OpenGLES);
+    }
 
     return m_GLDriver;
   }
@@ -318,6 +322,7 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
   data.egl_wnd = (EGLSurface)NULL;
   data.egl_ctx = ret;
 
+  InitDriver(RDC_OpenGLES);
   {
     SCOPED_LOCK(glLock);
     GetDriver()->CreateContext(data, shareContext, init, true, true);
@@ -331,6 +336,7 @@ __attribute__((visibility("default"))) EGLBoolean eglDestroyContext(EGLDisplay d
   if(EGLHook::glhooks.eglDestroyContext_real == NULL)
     EGLHook::glhooks.SetupExportedFunctions();
 
+  InitDriver(RDC_OpenGLES);
   {
     SCOPED_LOCK(glLock);
     GetDriver()->DeleteContext(ctx);
@@ -361,6 +367,7 @@ __attribute__((visibility("default"))) EGLBoolean eglMakeCurrent(EGLDisplay disp
   data.egl_wnd = draw;
   data.egl_ctx = ctx;
 
+  InitDriver(RDC_OpenGLES);
   GetDriver()->ActivateContext(data);
 
   return ret;
@@ -377,6 +384,7 @@ __attribute__((visibility("default"))) EGLBoolean eglSwapBuffers(EGLDisplay dpy,
   EGLHook::glhooks.eglQuerySurface_real(dpy, surface, EGL_HEIGHT, &height);
   EGLHook::glhooks.eglQuerySurface_real(dpy, surface, EGL_WIDTH, &width);
 
+  InitDriver(RDC_OpenGLES);
   GetDriver()->WindowSize(surface, width, height);
   GetDriver()->SwapBuffers(surface);
 
