@@ -1391,12 +1391,20 @@ void BufferViewer::ConfigureMeshColumns()
       i++;
     }
 
+    // shift position attribute up to first, keeping order otherwise
+    // the same
+    if(posidx > 0)
+    {
+      FormatElement pos = m_ModelVSOut->columns[posidx];
+      m_ModelVSOut->columns.insert(0, m_ModelVSOut->columns.takeAt(posidx));
+    }
+
     i = 0;
     uint32_t offset = 0;
-    for(const SigParameter &sig : vs->OutputSig)
+    for(const FormatElement &sig : m_ModelVSOut->columns)
     {
-      uint numComps = sig.compCount;
-      uint elemSize = sig.compType == eCompType_Double ? 8U : 4U;
+      uint numComps = sig.format.compCount;
+      uint elemSize = sig.format.compType == eCompType_Double ? 8U : 4U;
 
       if(m_Ctx.CurPipelineState.HasAlignedPostVSData())
       {
