@@ -401,11 +401,48 @@ public:
         return style->sizeFromContents(QStyle::CT_ItemViewItem, &opt, QSize(), opt.widget);
       }
 
+      uint32_t row = index.row();
+      int col = index.column();
+
+      if((role == Qt::BackgroundRole || role == Qt::ForegroundRole) && col >= reservedColumnCount())
+      {
+        int elIdx = columnLookup[col - reservedColumnCount()];
+        int compIdx = componentForIndex(col);
+        if(elIdx == positionEl)
+        {
+          if(role == Qt::ForegroundRole)
+            return QBrush(Qt::black);
+
+          if(compIdx != 3 || !meshInput)
+          {
+            // C# SkyBlue
+            return QBrush(QColor::fromRgb(135, 206, 235));
+          }
+          else
+          {
+            // C# LightCyan
+            return QBrush(QColor::fromRgb(224, 255, 255));
+          }
+        }
+        else if(elIdx == secondaryEl)
+        {
+          if(role == Qt::ForegroundRole)
+            return QBrush(Qt::black);
+
+          if((secondaryElAlpha && compIdx == 3) || (!secondaryElAlpha && compIdx != 3))
+          {
+            // C# LightGreen
+            return QBrush(QColor::fromRgb(144, 238, 144));
+          }
+          else
+          {
+            return QBrush(QColor::fromRgb(200, 238, 200));
+          }
+        }
+      }
+
       if(role == Qt::DisplayRole)
       {
-        uint32_t row = index.row();
-        int col = index.column();
-
         if(col >= 0 && col < m_ColumnCount && row < numRows)
         {
           if(col == 0 && meshView)
@@ -515,9 +552,64 @@ public:
   uint32_t curInstance = 0;
   uint32_t numRows = 0;
   bool meshView = true;
+  bool meshInput = false;
   BufferData indices;
   QList<FormatElement> columns;
   QList<BufferData> buffers;
+
+  void setPosColumn(int pos)
+  {
+    QVector<int> roles = {Qt::BackgroundRole, Qt::ForegroundRole};
+
+    if(positionEl != pos)
+    {
+      if(positionEl >= 0)
+        emit dataChanged(index(0, firstColumnForElement(positionEl)),
+                         index(rowCount() - 1, lastColumnForElement(positionEl)), roles);
+
+      if(pos >= 0)
+        emit dataChanged(index(0, firstColumnForElement(pos)),
+                         index(rowCount() - 1, lastColumnForElement(pos)), roles);
+    }
+
+    positionEl = pos;
+  }
+
+  int posColumn() { return positionEl; }
+  void setSecondaryColumn(int sec, bool secEnabled, bool secAlpha)
+  {
+    QVector<int> roles = {Qt::BackgroundRole, Qt::ForegroundRole};
+
+    if(secondaryEl != sec || secondaryElAlpha != secAlpha || secondaryEnabled != secEnabled)
+    {
+      if(secondaryEl >= 0)
+        emit dataChanged(index(0, firstColumnForElement(secondaryEl)),
+                         index(rowCount() - 1, lastColumnForElement(secondaryEl)), roles);
+
+      if(sec >= 0 && secondaryEl != sec)
+        emit dataChanged(index(0, firstColumnForElement(sec)),
+                         index(rowCount() - 1, lastColumnForElement(sec)), roles);
+    }
+
+    secondaryEl = sec;
+    secondaryElAlpha = secAlpha;
+    secondaryEnabled = secEnabled;
+  }
+
+  int secondaryColumn() { return secondaryEl; }
+  bool secondaryAlpha() { return secondaryElAlpha; }
+  int elementIndexForColumn(int col) const
+  {
+    if(col < reservedColumnCount())
+      return -1;
+
+    return columnLookup[col - reservedColumnCount()];
+  }
+
+  const FormatElement &elementForColumn(int col) const
+  {
+    return columns[columnLookup[col - reservedColumnCount()]];
+  }
 
 private:
   // maps from column number (0-based from data, so excluding VTX/IDX columns)
@@ -530,12 +622,35 @@ private:
   QVector<int> componentLookup;
   int m_ColumnCount = 0;
 
+  int positionEl = -1;
+  int secondaryEl = -1;
+  bool secondaryElAlpha = false;
+  bool secondaryEnabled = false;
+
   int reservedColumnCount() const { return (meshView ? 2 : 0); }
-  const FormatElement &elementForColumn(int col) const
-  {
-    return columns[columnLookup[col - reservedColumnCount()]];
-  }
   int componentForIndex(int col) const { return componentLookup[col - reservedColumnCount()]; }
+  int firstColumnForElement(int el) const
+  {
+    for(int i = 0; i < columnLookup.count(); i++)
+    {
+      if(columnLookup[i] == el)
+        return reservedColumnCount() + i;
+    }
+
+    return 0;
+  }
+
+  int lastColumnForElement(int el) const
+  {
+    for(int i = columnLookup.count() - 1; i >= 0; i--)
+    {
+      if(columnLookup[i] == el)
+        return reservedColumnCount() + i;
+    }
+
+    return columnCount() - 1;
+  }
+
   void cacheColumns()
   {
     columnLookup.clear();
@@ -612,6 +727,8 @@ BufferViewer::BufferViewer(CaptureContext &ctx, bool meshview, QWidget *parent)
   ui->gsoutData->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
 
   m_ModelVSIn->meshView = m_ModelVSOut->meshView = m_ModelGSOut->meshView = m_MeshView = meshview;
+
+  m_ModelVSIn->meshInput = true;
 
   if(meshview)
     SetupMeshView();
