@@ -25,6 +25,7 @@
 #include "api/replay/renderdoc_replay.h"
 #include "serialise/string_utils.h"
 
+#include <errno.h>
 #include <sys/stat.h>
 #include <unistd.h>
 
