@@ -1278,6 +1278,26 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
     postvs.stride = m_PostVS.stride;
     m_ModelVSOut->buffers.push_back(postvs);
   }
+
+  r->GetPostVSData(m_Config.curInstance, eMeshDataStage_GSOut, &m_PostGS);
+
+  m_ModelGSOut->numRows = m_PostGS.numVerts;
+
+  indices = NULL;
+  m_ModelGSOut->indices = BufferData();
+
+  if(m_PostGS.buf != ResourceId())
+  {
+    BufferData postgs = {};
+    rdctype::array<byte> bufdata;
+    r->GetBufferData(m_PostGS.buf, m_PostGS.offset, 0, &bufdata);
+
+    postgs.data = new byte[bufdata.count];
+    memcpy(postgs.data, bufdata.elems, bufdata.count);
+    postgs.end = postgs.data + bufdata.count;
+    postgs.stride = m_PostGS.stride;
+    m_ModelGSOut->buffers.push_back(postgs);
+  }
 }
 
 void BufferViewer::ConfigureMeshColumns()
@@ -1418,13 +1438,73 @@ void BufferViewer::ConfigureMeshColumns()
 
       offset += numComps * elemSize;
     }
+  }
 
-    // shift position attribute up to first, keeping order otherwise
-    // the same
-    if(posidx > 0)
+  m_ModelGSOut->columns.clear();
+
+  if(draw)
+  {
+    const ShaderReflection *last = m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Geometry);
+    if(last == NULL)
+      last = m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Domain);
+
+    if(last)
     {
-      FormatElement pos = m_ModelVSOut->columns[posidx];
-      m_ModelVSOut->columns.insert(0, m_ModelVSOut->columns.takeAt(posidx));
+      m_ModelGSOut->columns.reserve(last->OutputSig.count);
+
+      int i = 0, posidx = -1;
+      for(const SigParameter &sig : last->OutputSig)
+      {
+        FormatElement f;
+
+        f.buffer = 0;
+        f.name = sig.varName.count > 0 ? ToQStr(sig.varName) : ToQStr(sig.semanticIdxName);
+        f.format.compByteWidth = sizeof(float);
+        f.format.compCount = sig.compCount;
+        f.format.compType = sig.compType;
+        f.format.special = false;
+        f.format.rawType = 0;
+        f.perinstance = false;
+        f.instancerate = 1;
+        f.rowmajor = false;
+        f.matrixdim = 1;
+        f.systemValue = sig.systemValue;
+
+        if(f.systemValue == eAttr_Position)
+          posidx = i;
+
+        m_ModelGSOut->columns.push_back(f);
+
+        i++;
+      }
+
+      // shift position attribute up to first, keeping order otherwise
+      // the same
+      if(posidx > 0)
+      {
+        FormatElement pos = m_ModelGSOut->columns[posidx];
+        m_ModelGSOut->columns.insert(0, m_ModelGSOut->columns.takeAt(posidx));
+      }
+
+      i = 0;
+      uint32_t offset = 0;
+      for(const FormatElement &sig : m_ModelGSOut->columns)
+      {
+        uint numComps = sig.format.compCount;
+        uint elemSize = sig.format.compType == eCompType_Double ? 8U : 4U;
+
+        if(m_Ctx.CurPipelineState.HasAlignedPostVSData())
+        {
+          if(numComps == 2)
+            offset = AlignUp(offset, 2U * elemSize);
+          else if(numComps > 2)
+            offset = AlignUp(offset, 4U * elemSize);
+        }
+
+        m_ModelGSOut->columns[i++].offset = offset;
+
+        offset += numComps * elemSize;
+      }
     }
   }
 }
