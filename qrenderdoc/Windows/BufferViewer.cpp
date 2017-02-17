@@ -761,52 +761,58 @@ BufferViewer::BufferViewer(CaptureContext &ctx, bool meshview, QWidget *parent)
   ui->vsoutData->setContextMenuPolicy(Qt::CustomContextMenu);
   ui->gsoutData->setContextMenuPolicy(Qt::CustomContextMenu);
 
+  QMenu *vsinMenu = new QMenu(this);
+
   QObject::connect(ui->vsinData, &RDTableView::customContextMenuRequested,
-                   [this, debug, csv, bytes](const QPoint &pos) {
+                   [this, vsinMenu, debug, csv, bytes](const QPoint &pos) {
                      m_CurView = ui->vsinData;
 
-                     QMenu *menu = new QMenu(this);
+                     vsinMenu->clear();
 
                      if(m_MeshView)
                      {
-                       menu->addAction(debug);
-                       menu->addSeparator();
+                       vsinMenu->addAction(debug);
+                       vsinMenu->addSeparator();
                      }
 
-                     menu->addAction(csv);
-                     menu->addAction(bytes);
+                     vsinMenu->addAction(csv);
+                     vsinMenu->addAction(bytes);
 
-                     menu->popup(ui->vsinData->viewport()->mapToGlobal(pos));
+                     vsinMenu->popup(ui->vsinData->viewport()->mapToGlobal(pos));
                    });
+
+  QMenu *vsoutMenu = new QMenu(this);
 
   QObject::connect(ui->vsoutData, &RDTableView::customContextMenuRequested,
-                   [this, debug, csv, bytes](const QPoint &pos) {
+                   [this, vsoutMenu, debug, csv, bytes](const QPoint &pos) {
                      m_CurView = ui->vsoutData;
 
-                     QMenu *menu = new QMenu(this);
+                     vsoutMenu->clear();
 
                      if(m_MeshView)
                      {
-                       menu->addAction(debug);
-                       menu->addSeparator();
+                       vsoutMenu->addAction(debug);
+                       vsoutMenu->addSeparator();
                      }
 
-                     menu->addAction(csv);
-                     menu->addAction(bytes);
+                     vsoutMenu->addAction(csv);
+                     vsoutMenu->addAction(bytes);
 
-                     menu->popup(ui->vsoutData->viewport()->mapToGlobal(pos));
+                     vsoutMenu->popup(ui->vsoutData->viewport()->mapToGlobal(pos));
                    });
 
+  QMenu *gsoutMenu = new QMenu(this);
+
   QObject::connect(ui->gsoutData, &RDTableView::customContextMenuRequested,
-                   [this, csv, bytes](const QPoint &pos) {
+                   [this, gsoutMenu, csv, bytes](const QPoint &pos) {
                      m_CurView = ui->gsoutData;
 
-                     QMenu *menu = new QMenu(this);
+                     gsoutMenu->clear();
 
-                     menu->addAction(csv);
-                     menu->addAction(bytes);
+                     gsoutMenu->addAction(csv);
+                     gsoutMenu->addAction(bytes);
 
-                     menu->popup(ui->gsoutData->viewport()->mapToGlobal(pos));
+                     gsoutMenu->popup(ui->gsoutData->viewport()->mapToGlobal(pos));
                    });
 
   ui->dockarea->setAllowFloatingWindow(false);
