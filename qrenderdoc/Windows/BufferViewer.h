@@ -37,6 +37,7 @@ class BufferItemModel;
 class CameraWrapper;
 class ArcballWrapper;
 class FlycamWrapper;
+struct BufferData;
 
 struct BufferExport
 {
@@ -132,6 +133,38 @@ private:
   MeshFormat m_VSInPosition, m_VSInSecondary;
   MeshFormat m_PostVSPosition, m_PostVSSecondary;
   MeshFormat m_PostGSPosition, m_PostGSSecondary;
+
+  struct BBoxData
+  {
+    struct
+    {
+      QList<FloatVector> Min;
+      QList<FloatVector> Max;
+    } bounds[3];
+  };
+
+  struct CalcBoundingBoxData
+  {
+    uint32_t eventID;
+    uint32_t inst;
+    int32_t baseVertex;
+
+    struct StageData
+    {
+      QList<FormatElement> elements;
+      uint32_t count;
+      BufferData *indices = NULL;
+      QList<BufferData *> buffers;
+    } input[3];
+
+    BBoxData output;
+  };
+
+  QMutex m_BBoxLock;
+  QMap<uint32_t, BBoxData> m_BBoxes;
+
+  void calcBoundingData(CalcBoundingBoxData &bbox);
+  void updateBoundingBox(const CalcBoundingBoxData &bbox);
 
   // data from raw buffer view
   bool m_IsBuffer = true;

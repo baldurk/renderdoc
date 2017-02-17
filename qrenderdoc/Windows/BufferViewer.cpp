@@ -23,6 +23,7 @@
  ******************************************************************************/
 
 #include "BufferViewer.h"
+#include <float.h>
 #include <QDoubleSpinBox>
 #include <QFontDatabase>
 #include <QMenu>
@@ -755,6 +756,56 @@ private:
   }
 };
 
+struct CachedElData
+{
+  const FormatElement *el = NULL;
+
+  const byte *data = NULL;
+  const byte *end = NULL;
+
+  size_t stride;
+  int byteSize;
+  uint32_t instIdx = 0;
+
+  QByteArray nulls;
+};
+
+void CacheDataForIteration(QVector<CachedElData> &cache, const QList<FormatElement> &columns,
+                           const QList<BufferData *> buffers, uint32_t inst)
+{
+  cache.reserve(columns.count());
+
+  for(int col = 0; col < columns.count(); col++)
+  {
+    const FormatElement &el = columns[col];
+
+    CachedElData d;
+
+    d.el = &el;
+
+    d.byteSize = el.byteSize();
+    d.nulls = QByteArray(d.byteSize, '\0');
+
+    if(el.instancerate > 0)
+      d.instIdx = inst / el.instancerate;
+
+    if(el.buffer < buffers.size())
+    {
+      d.data = buffers[el.buffer]->data;
+      d.end = buffers[el.buffer]->end;
+
+      d.stride = buffers[el.buffer]->stride;
+
+      d.data += el.offset;
+
+      if(el.perinstance)
+        d.data += d.stride * d.instIdx;
+    }
+
+    cache.push_back(d);
+  }
+}
+
 BufferViewer::BufferViewer(CaptureContext &ctx, bool meshview, QWidget *parent)
     : QFrame(parent), ui(new Ui::BufferViewer), m_Ctx(ctx)
 {
@@ -1479,6 +1530,171 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
     // ref passes to model
     m_ModelGSOut->buffers.push_back(postgs);
   }
+
+  if(!draw)
+    return;
+
+  uint32_t eventID = draw->eventID;
+  bool calcNeeded = false;
+
+  {
+    QMutexLocker autolock(&m_BBoxLock);
+    calcNeeded = !m_BBoxes.contains(eventID);
+  }
+
+  if(!calcNeeded)
+    return;
+
+  {
+    QMutexLocker autolock(&m_BBoxLock);
+    m_BBoxes.insert(eventID, BBoxData());
+  }
+
+  CalcBoundingBoxData *bbox = new CalcBoundingBoxData;
+
+  BufferItemModel *models[] = {m_ModelVSIn, m_ModelVSOut, m_ModelGSOut};
+
+  bbox->inst = m_ModelVSIn->curInstance;
+  bbox->baseVertex = draw->baseVertex;
+  bbox->eventID = eventID;
+
+  for(size_t i = 0; i < ARRAY_COUNT(bbox->input); i++)
+  {
+    bbox->input[i].elements = models[i]->columns;
+    bbox->input[i].buffers = models[i]->buffers;
+    bbox->input[i].indices = models[i]->indices;
+
+    bbox->input[i].count = models[i]->numRows;
+
+    // add ref all this buffer data
+
+    if(bbox->input[i].indices)
+      bbox->input[i].indices->ref();
+
+    for(int j = 0; j < bbox->input[i].buffers.count(); j++)
+      if(bbox->input[i].buffers[j])
+        bbox->input[i].buffers[j]->ref();
+  }
+
+  // fire up a thread to calculate the bounding box
+  LambdaThread *thread = new LambdaThread([this, bbox] {
+    calcBoundingData(*bbox);
+
+    GUIInvoke::call([this, bbox]() { updateBoundingBox(*bbox); });
+  });
+  thread->selfDelete(true);
+  thread->start();
+}
+
+void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
+{
+  for(size_t stage = 0; stage < ARRAY_COUNT(bbox.input); stage++)
+  {
+    const CalcBoundingBoxData::StageData &s = bbox.input[stage];
+
+    QList<FloatVector> &minOutputList = bbox.output.bounds[stage].Min;
+    QList<FloatVector> &maxOutputList = bbox.output.bounds[stage].Max;
+
+    minOutputList.reserve(s.elements.count());
+    maxOutputList.reserve(s.elements.count());
+
+    for(int i = 0; i < s.elements.count(); i++)
+    {
+      minOutputList.push_back(FloatVector(FLT_MAX, FLT_MAX, FLT_MAX, FLT_MAX));
+      maxOutputList.push_back(FloatVector(-FLT_MAX, -FLT_MAX, -FLT_MAX, -FLT_MAX));
+    }
+
+    QVector<CachedElData> cache;
+
+    CacheDataForIteration(cache, s.elements, s.buffers, bbox.inst);
+
+    // possible optimisation here if this shows up as a hot spot - sort and unique the indices and
+    // iterate in ascending order, to be more cache friendly
+
+    for(uint32_t row = 0; row < s.count; row++)
+    {
+      uint32_t idx = row;
+
+      if(s.indices && s.indices->data)
+      {
+        idx = CalcIndex(s.indices, row, bbox.baseVertex);
+
+        if(idx == ~0U)
+          continue;
+      }
+
+      for(int col = 0; col < s.elements.count(); col++)
+      {
+        const CachedElData &d = cache[col];
+        const FormatElement *el = d.el;
+
+        float *minOut = (float *)&minOutputList[col];
+        float *maxOut = (float *)&maxOutputList[col];
+
+        if(d.data)
+        {
+          const byte *bytes = d.data;
+
+          if(!el->perinstance)
+            bytes += d.stride * idx;
+
+          QVariantList list = el->GetVariants(bytes, d.end);
+
+          for(int comp = 0; comp < list.count(); comp++)
+          {
+            const QVariant &v = list[comp];
+
+            QMetaType::Type vt = (QMetaType::Type)v.type();
+
+            float fval = 0.0f;
+
+            if(vt == QMetaType::Double)
+              fval = (float)v.toDouble();
+            else if(vt == QMetaType::Float)
+              fval = v.toFloat();
+            else if(vt == QMetaType::UInt || vt == QMetaType::UShort || vt == QMetaType::UChar)
+              fval = (float)v.toUInt();
+            else if(vt == QMetaType::Int || vt == QMetaType::Short || vt == QMetaType::SChar)
+              fval = (float)v.toInt();
+            else
+              continue;
+
+            if(qIsFinite(fval))
+            {
+              minOut[comp] = qMin(minOut[comp], fval);
+              maxOut[comp] = qMax(maxOut[comp], fval);
+            }
+          }
+        }
+      }
+    }
+  }
+}
+
+void BufferViewer::updateBoundingBox(const CalcBoundingBoxData &bbox)
+{
+  {
+    QMutexLocker autolock(&m_BBoxLock);
+    m_BBoxes[bbox.eventID] = bbox.output;
+  }
+
+  if(m_Ctx.CurEvent() == bbox.eventID)
+    UpdateMeshConfig();
+
+  // TODO update camera from bounding box
+
+  for(size_t i = 0; i < ARRAY_COUNT(bbox.input); i++)
+  {
+    if(bbox.input[i].indices)
+      bbox.input[i].indices->deref();
+
+    for(int j = 0; j < bbox.input[i].buffers.count(); j++)
+      if(bbox.input[i].buffers[j])
+        bbox.input[i].buffers[j]->ref();
+  }
+  delete &bbox;
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
 
 void BufferViewer::guessPositionColumn(BufferItemModel *model)
@@ -1906,22 +2122,55 @@ void BufferViewer::ApplyColumnWidths(int numColumns, RDTableView *view)
 
 void BufferViewer::UpdateMeshConfig()
 {
+  BBoxData bbox;
+
+  uint32_t eventID = m_Ctx.CurEvent();
+
+  {
+    QMutexLocker autolocker(&m_BBoxLock);
+    if(m_BBoxes.contains(eventID))
+      bbox = m_BBoxes[eventID];
+  }
+
+  BufferItemModel *model = NULL;
+
+  int stage = 0;
+
   m_Config.type = m_CurStage;
   switch(m_CurStage)
   {
     case eMeshDataStage_VSIn:
       m_Config.position = m_VSInPosition;
       m_Config.second = m_VSInSecondary;
+      model = m_ModelVSIn;
+      stage = 0;
       break;
     case eMeshDataStage_VSOut:
       m_Config.position = m_PostVSPosition;
       m_Config.second = m_PostVSSecondary;
+      model = m_ModelVSOut;
+      stage = 1;
       break;
     case eMeshDataStage_GSOut:
       m_Config.position = m_PostGSPosition;
       m_Config.second = m_PostGSSecondary;
+      model = m_ModelGSOut;
+      stage = 2;
       break;
     default: break;
+  }
+
+  m_Config.showBBox = false;
+
+  if(model)
+  {
+    int posEl = model->posColumn();
+    if(posEl >= 0 && posEl < model->columns.count() && posEl < bbox.bounds[stage].Min.count())
+    {
+      m_Config.minBounds = bbox.bounds[stage].Min[posEl];
+      m_Config.maxBounds = bbox.bounds[stage].Max[posEl];
+      m_Config.showBBox = true;
+    }
   }
 }
 
@@ -2106,6 +2355,8 @@ void BufferViewer::Reset()
   m_Output = NULL;
 
   ClearModels();
+
+  m_BBoxes.clear();
 
   CaptureContext *ctx = &m_Ctx;
 
@@ -2375,51 +2626,9 @@ void BufferViewer::exportData(const BufferExport &params)
       else
       {
         // cache column data for the inner loop
-        struct CachedElData
-        {
-          const FormatElement *el = NULL;
-
-          const char *data = NULL;
-          const char *end = NULL;
-
-          size_t stride;
-          int byteSize;
-          uint32_t instIdx = 0;
-
-          QByteArray nulls;
-        };
         QVector<CachedElData> cache;
-        cache.reserve(model->columns.count());
 
-        for(int col = 0; col < model->columns.count(); col++)
-        {
-          const FormatElement &el = model->columns[col];
-
-          CachedElData d;
-
-          d.el = &el;
-
-          d.byteSize = el.byteSize();
-          d.nulls = QByteArray(d.byteSize, '\0');
-
-          if(el.instancerate > 0)
-            d.instIdx = model->curInstance / el.instancerate;
-
-          if(el.buffer < model->buffers.size())
-          {
-            d.data = (const char *)model->buffers[el.buffer]->data;
-            d.end = (const char *)model->buffers[el.buffer]->end;
-
-            d.stride = model->buffers[el.buffer]->stride;
-
-            d.data += el.offset;
-
-            if(el.perinstance)
-              d.data += d.stride * d.instIdx;
-          }
-
-          cache.push_back(d);
-        }
+        CacheDataForIteration(cache, model->columns, model->buffers, model->curInstance);
 
         // go row by row, finding the start of the row and dumping out the elements using their
         // offset and sizes
@@ -2434,12 +2643,12 @@ void BufferViewer::exportData(const BufferExport &params)
 
             if(d.data)
             {
-              const char *bytes = d.data;
+              const char *bytes = (const char *)d.data;
 
               if(!el->perinstance)
                 bytes += d.stride * idx;
 
-              if(bytes + d.byteSize <= d.end)
+              if(bytes + d.byteSize <= (const char *)d.end)
                 f->write(bytes, d.byteSize);
             }
 
@@ -2773,4 +2982,5 @@ void BufferViewer::on_rowOffset_valueChanged(int value)
 
 void BufferViewer::on_autofitCamera_clicked()
 {
+  // TODO wait for bounding box data (if necessary) and autofit
 }
