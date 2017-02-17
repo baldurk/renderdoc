@@ -240,7 +240,6 @@ void SettingsDialog::on_ShaderViewer_FriendlyNaming_toggled(bool checked)
 
 void SettingsDialog::on_browseExtDisasemble_clicked()
 {
-  // TODO external disassembler
   QString filePath = RDDialog::getExecutableFileName(this, "Locate SPIR-V disassembler");
 
   if(!filePath.isEmpty())
