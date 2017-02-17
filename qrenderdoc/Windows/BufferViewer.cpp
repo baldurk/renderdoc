@@ -330,6 +330,32 @@ struct BufferData
   size_t stride;
 };
 
+uint32_t CalcIndex(BufferData *data, uint32_t vertID, int32_t baseVertex)
+{
+  byte *idxData = data->data + vertID * sizeof(uint32_t);
+  if(idxData + sizeof(uint32_t) > data->end)
+    return ~0U;
+
+  uint32_t idx = *(uint32_t *)idxData;
+
+  // apply base vertex but clamp to 0 if subtracting
+  if(baseVertex < 0)
+  {
+    uint32_t subtract = (uint32_t)(-baseVertex);
+
+    if(idx < subtract)
+      idx = 0;
+    else
+      idx -= subtract;
+  }
+  else if(baseVertex > 0)
+  {
+    idx += (uint32_t)baseVertex;
+  }
+
+  return idx;
+}
+
 class BufferItemModel : public QAbstractItemModel
 {
 public:
@@ -466,11 +492,10 @@ public:
 
           if(indices && indices->data)
           {
-            byte *idxData = indices->data + row * sizeof(uint32_t);
-            if(idxData + 1 > indices->end)
-              return QVariant();
+            idx = CalcIndex(indices, row, baseVertex);
 
-            idx = *(uint32_t *)idxData;
+            if(idx == ~0U)
+              return QVariant();
           }
 
           if(col == 1 && meshView)
@@ -563,6 +588,7 @@ public:
 
   RDTableView *view = NULL;
 
+  int32_t baseVertex = 0;
   uint32_t curInstance = 0;
   uint32_t numRows = 0;
   bool meshView = true;
@@ -1159,6 +1185,10 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   m_ModelGSOut->beginReset();
 
   const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+
+  m_ModelVSIn->baseVertex = draw ? draw->baseVertex : 0;
+  m_ModelVSOut->baseVertex = draw ? draw->baseVertex : 0;
+  m_ModelGSOut->baseVertex = draw ? draw->baseVertex : 0;
 
   ui->instance->setEnabled(draw && draw->numInstances > 1);
   if(!ui->instance->isEnabled())
