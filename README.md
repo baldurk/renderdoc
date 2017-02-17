@@ -26,19 +26,19 @@ Screenshots
 API Support
 --------------
 
-|                            | Status                                 | Windows                  | Linux                           |
-| -------------------------- | -------------------------------------- | ------------------------ | ------------------------------- |
-| D3D11                      | Well supported, all features.          | :heavy_check_mark:       | :heavy_multiplication_x:        |
-| OpenGL 3.2 core+           | Well supported, most features.\*       | :heavy_check_mark:       | :heavy_check_mark: WIP UI\*\*   |
-| Vulkan                     | Well supported, most features.         | :heavy_check_mark:       | :heavy_check_mark: WIP UI\*\*   |
-| D3D12                      | Well supported, most features.         | :heavy_check_mark:       | :heavy_multiplication_x:        |
-| OpenGL Compatibility, GLES | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
-| D3D9 & 10                  | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
-| Metal                      | No immediate plans                     | :heavy_multiplication_x: | :heavy_multiplication_x:        |
+|                            | Status                           | Windows                  | Linux                    |
+| -------------------------- | -------------------------------- | ------------------------ | ------------------------ |
+| D3D11                      | Well supported, all features.    | :heavy_check_mark:       | :heavy_multiplication_x: |
+| OpenGL 3.2 core+           | Well supported, most features.\* | :heavy_check_mark:       | :heavy_check_mark:       |
+| Vulkan                     | Well supported, most features.   | :heavy_check_mark:       | :heavy_check_mark:       |
+| D3D12                      | Well supported, most features.   | :heavy_check_mark:       | :heavy_multiplication_x: |
+| OpenGL Compatibility, GLES | No immediate plans               | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| D3D9 & 10                  | No immediate plans               | :heavy_multiplication_x: | :heavy_multiplication_x: |
+| Metal                      | No immediate plans               | :heavy_multiplication_x: | :heavy_multiplication_x: |
 
 * D3D11 has full feature support and is stable & tested. Feature Level 11 hardware is assumed - Radeon 4000/5000+, GeForce 400+, Intel Ivy Bridge, falling back to WARP software emulation if this hardware isn't present.
 * \*OpenGL is only explicitly supported for the core profile 3.2+ subset of features, check the [OpenGL wiki page](https://github.com/baldurk/renderdoc/wiki/OpenGL) for details.
-* \*\*A Qt UI [is in progress](qrenderdoc), with some [implementation notes on the wiki](https://github.com/baldurk/renderdoc/wiki/QRenderDoc-Notes) and a [TODO list of remaining work](https://github.com/baldurk/renderdoc/issues/494).
+* Currently [the Qt UI](qrenderdoc) is only used on linux. It is working well with a [TODO list of remaining work](https://github.com/baldurk/renderdoc/issues/494). Work is on-going for it to replace the .NET UI on windows.
 
 Downloads
 --------------
