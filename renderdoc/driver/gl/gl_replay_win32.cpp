@@ -249,8 +249,6 @@ bool GLReplay::IsOutputWindowVisible(uint64_t id)
   return (IsWindowVisible(m_OutputWindows[id].wnd) == TRUE);
 }
 
-const GLHookSet &GetRealGLFunctions();
-
 ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   RDCDEBUG("Creating an OpenGL replay device");
@@ -498,7 +496,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     return eReplayCreate_APIInitFailed;
   }
 
-  WrappedOpenGL *gl = new WrappedOpenGL(logfile, real);
+  WrappedOpenGL *gl = new WrappedOpenGL(logfile, real, GetGLPlatform());
   gl->Initialise(initParams);
 
   if(gl->GetSerialiser()->HasError())

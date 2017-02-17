@@ -417,3 +417,6 @@ private:
 
   GLPipelineState m_CurPipelineState;
 };
+
+const GLHookSet &GetRealGLFunctions();
+GLPlatform &GetGLPlatform();

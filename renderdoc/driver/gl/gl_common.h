@@ -26,6 +26,7 @@
 #pragma once
 
 #include "common/common.h"
+#include "maths/vec.h"
 
 // typed enum so that templates will pick up specialisations
 // header must be included before the official headers, so we/
@@ -159,6 +160,17 @@ struct GLWindowingData
 #else
 #error "Unknown platform"
 #endif
+
+struct GLPlatform
+{
+  // simple wrapper for OS functions to make/delete a context
+  virtual GLWindowingData MakeContext(GLWindowingData share) = 0;
+  virtual void DeleteContext(GLWindowingData context) = 0;
+  virtual void MakeContextCurrent(GLWindowingData data) = 0;
+
+  // for 'backwards compatible' overlay rendering
+  virtual bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) = 0;
+};
 
 // define stubs so other platforms can define these functions, but empty
 #if DISABLED(RDOC_WIN32)
@@ -309,7 +321,7 @@ enum VendorCheckEnum
 extern bool VendorCheck[VendorCheck_Count];
 
 // fills out the extension supported array and the version-specific checks above
-void DoVendorChecks(const GLHookSet &gl, GLWindowingData context);
+void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData context);
 void CheckExtensions(const GLHookSet &gl);
 
 // verify that we got a replay context that we can work with

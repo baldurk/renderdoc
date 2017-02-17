@@ -246,8 +246,6 @@ bool GLReplay::IsOutputWindowVisible(uint64_t id)
   return true;
 }
 
-const GLHookSet &GetRealGLFunctions();
-
 static bool X11ErrorSeen = false;
 
 int NonFatalX11ErrorHandler(Display *display, XErrorEvent *error)
@@ -456,7 +454,7 @@ ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **dr
     return eReplayCreate_APIHardwareUnsupported;
   }
 
-  WrappedOpenGL *gl = new WrappedOpenGL(logfile, real);
+  WrappedOpenGL *gl = new WrappedOpenGL(logfile, real, GetGLPlatform());
   gl->Initialise(initParams);
 
   if(gl->GetSerialiser()->HasError())

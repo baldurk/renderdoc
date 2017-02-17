@@ -3203,8 +3203,6 @@ ShaderDebugTrace GLReplay::DebugThread(uint32_t eventID, uint32_t groupid[3], ui
   return ShaderDebugTrace();
 }
 
-const GLHookSet &GetRealGLFunctions();
-
 #if defined(RENDERDOC_SUPPORT_GL)
 
 // defined in gl_replay_<platform>.cpp

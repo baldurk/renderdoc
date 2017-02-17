@@ -383,7 +383,8 @@ ReplayCreateStatus GLInitParams::Serialise()
   return eReplayCreate_Success;
 }
 
-WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs) : m_Real(funcs)
+WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs, GLPlatform &platform)
+    : m_Real(funcs), m_Platform(platform)
 {
   if(RenderDoc::Inst().GetCrashHandler())
     RenderDoc::Inst().GetCrashHandler()->RegisterMemoryRegion(this, sizeof(WrappedOpenGL));
@@ -1044,12 +1045,6 @@ WrappedOpenGL::ContextData &WrappedOpenGL::GetCtxData()
 
 // defined in gl_<platform>_hooks.cpp
 Threading::CriticalSection &GetGLLock();
-void MakeContextCurrent(GLWindowingData data);
-
-// for 'backwards compatible' overlay rendering
-bool immediateBegin(GLenum mode, float width, float height);
-void immediateVert(float x, float y, float u, float v);
-void immediateEnd();
 
 ////////////////////////////////////////////////////////////////
 // Windowing/setup/etc
@@ -1428,7 +1423,7 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
         {
           GLCoreVersion = ver;
           GLIsCore = ctxdata.isCore;
-          DoVendorChecks(gl, winData);
+          DoVendorChecks(gl, m_Platform, winData);
         }
       }
     }
@@ -1922,7 +1917,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
       gl.glBindProgramPipeline(0);
 
     // draw string (based on sample code from stb_truetype.h)
-    if(immediateBegin(eGL_QUADS, (float)m_InitParams.width, (float)m_InitParams.height))
+    vector<Vec4f> vertices;
     {
       y += 1.0f;
       y *= charPixelHeight;
@@ -1960,10 +1955,11 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
       y = starty;
 
       // draw black bar behind text
-      immediateVert(minx, maxy, 0.0f, 0.0f);
-      immediateVert(maxx, maxy, 0.0f, 0.0f);
-      immediateVert(maxx, miny, 0.0f, 0.0f);
-      immediateVert(minx, miny, 0.0f, 0.0f);
+
+      vertices.push_back(Vec4f(minx, maxy, 0.0f, 0.0f));
+      vertices.push_back(Vec4f(maxx, maxy, 0.0f, 0.0f));
+      vertices.push_back(Vec4f(maxx, miny, 0.0f, 0.0f));
+      vertices.push_back(Vec4f(minx, miny, 0.0f, 0.0f));
 
       while(*text)
       {
@@ -1972,10 +1968,10 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
         {
           stbtt_GetBakedQuad(chardata, FONT_TEX_WIDTH, FONT_TEX_HEIGHT, c - firstChar, &x, &y, &q, 1);
 
-          immediateVert(q.x0, q.y0, q.s0, q.t0);
-          immediateVert(q.x1, q.y0, q.s1, q.t0);
-          immediateVert(q.x1, q.y1, q.s1, q.t1);
-          immediateVert(q.x0, q.y1, q.s0, q.t1);
+          vertices.push_back(Vec4f(q.x0, q.y0, q.s0, q.t0));
+          vertices.push_back(Vec4f(q.x1, q.y0, q.s1, q.t0));
+          vertices.push_back(Vec4f(q.x1, q.y1, q.s1, q.t1));
+          vertices.push_back(Vec4f(q.x0, q.y1, q.s0, q.t1));
 
           maxx = RDCMAX(maxx, RDCMAX(q.x0, q.x1));
           maxy = RDCMAX(maxy, RDCMAX(q.y0, q.y1));
@@ -1986,9 +1982,8 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
         }
         ++text;
       }
-
-      immediateEnd();
     }
+    m_Platform.DrawQuads((float)m_InitParams.width, (float)m_InitParams.height, vertices);
   }
 }
 
@@ -2408,7 +2403,7 @@ void WrappedOpenGL::MakeValidContextCurrent(GLWindowingData &prevctx, void *favo
     }
 
     m_ActiveContexts[Threading::GetCurrentID()] = prevctx;
-    MakeContextCurrent(prevctx);
+    m_Platform.MakeContextCurrent(prevctx);
   }
 }
 
@@ -2463,7 +2458,7 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 
   if(switchctx.ctx != prevctx.ctx)
   {
-    MakeContextCurrent(prevctx);
+    m_Platform.MakeContextCurrent(prevctx);
     m_ActiveContexts[Threading::GetCurrentID()] = prevctx;
   }
 
@@ -2580,7 +2575,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
     if(switchctx.ctx != prevctx.ctx)
     {
-      MakeContextCurrent(prevctx);
+      m_Platform.MakeContextCurrent(prevctx);
       m_ActiveContexts[Threading::GetCurrentID()] = prevctx;
     }
 
@@ -2654,7 +2649,7 @@ bool WrappedOpenGL::EndFrameCapture(void *dev, void *wnd)
 
     if(switchctx.ctx != prevctx.ctx)
     {
-      MakeContextCurrent(prevctx);
+      m_Platform.MakeContextCurrent(prevctx);
       m_ActiveContexts[Threading::GetCurrentID()] = prevctx;
     }
 
