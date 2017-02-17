@@ -984,34 +984,37 @@ QString GLPipelineStateViewer::MakeGenericValueString(
     uint32_t compCount, FormatComponentType compType,
     const GLPipelineState::VertexInput::VertexAttribute &val)
 {
-  QString fmtstr = "";
+  QString ret = "";
   if(compCount == 1)
-    fmtstr = "<%1>";
+    ret = "<%1>";
   else if(compCount == 2)
-    fmtstr = "<%1, %2>";
+    ret = "<%1, %2>";
   else if(compCount == 3)
-    fmtstr = "<%1, %2, %3>";
+    ret = "<%1, %2, %3>";
   else if(compCount == 4)
-    fmtstr = "<%1, %2, %3, %4>";
+    ret = "<%1, %2, %3, %4>";
 
   if(compType == eCompType_UInt)
-    return QString(fmtstr)
-        .arg(val.GenericValue.u[0])
-        .arg(val.GenericValue.u[1])
-        .arg(val.GenericValue.u[2])
-        .arg(val.GenericValue.u[3]);
+  {
+    for(uint32_t i = 0; i < compCount; i++)
+      ret = ret.arg(val.GenericValue.u[i]);
+
+    return ret;
+  }
   else if(compType == eCompType_SInt)
-    return QString(fmtstr)
-        .arg(val.GenericValue.i[0])
-        .arg(val.GenericValue.i[1])
-        .arg(val.GenericValue.i[2])
-        .arg(val.GenericValue.i[3]);
+  {
+    for(uint32_t i = 0; i < compCount; i++)
+      ret = ret.arg(val.GenericValue.i[i]);
+
+    return ret;
+  }
   else
-    return QString(fmtstr)
-        .arg(val.GenericValue.f[0])
-        .arg(val.GenericValue.f[1])
-        .arg(val.GenericValue.f[2])
-        .arg(val.GenericValue.f[3]);
+  {
+    for(uint32_t i = 0; i < compCount; i++)
+      ret = ret.arg(val.GenericValue.f[i]);
+
+    return ret;
+  }
 }
 
 GLPipelineStateViewer::GLReadWriteType GLPipelineStateViewer::GetGLReadWriteType(ShaderResource res)
