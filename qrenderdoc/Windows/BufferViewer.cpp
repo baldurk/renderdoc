@@ -307,10 +307,24 @@ struct BufferData
 {
   BufferData()
   {
+    refcount.store(1);
     data = end = NULL;
     stride = 0;
   }
 
+  void ref() { refcount.ref(); }
+  void deref()
+  {
+    bool alive = refcount.deref();
+
+    if(!alive)
+    {
+      delete[] data;
+      delete this;
+    }
+  }
+
+  QAtomicInteger<uint32_t> refcount;
   byte *data;
   byte *end;
   size_t stride;
@@ -450,10 +464,10 @@ public:
 
           uint32_t idx = row;
 
-          if(indices.data)
+          if(indices && indices->data)
           {
-            byte *idxData = indices.data + row * sizeof(uint32_t);
-            if(idxData + 1 > indices.end)
+            byte *idxData = indices->data + row * sizeof(uint32_t);
+            if(idxData + 1 > indices->end)
               return QVariant();
 
             idx = *(uint32_t *)idxData;
@@ -470,13 +484,13 @@ public:
 
           if(el.buffer < buffers.size())
           {
-            const byte *data = buffers[el.buffer].data;
-            const byte *end = buffers[el.buffer].end;
+            const byte *data = buffers[el.buffer]->data;
+            const byte *end = buffers[el.buffer]->end;
 
             if(!el.perinstance)
-              data += buffers[el.buffer].stride * idx;
+              data += buffers[el.buffer]->stride * idx;
             else
-              data += buffers[el.buffer].stride * instIdx;
+              data += buffers[el.buffer]->stride * instIdx;
 
             data += el.offset;
 
@@ -553,9 +567,9 @@ public:
   uint32_t numRows = 0;
   bool meshView = true;
   bool meshInput = false;
-  BufferData indices;
+  BufferData *indices = NULL;
   QList<FormatElement> columns;
-  QList<BufferData> buffers;
+  QList<BufferData *> buffers;
 
   void setPosColumn(int pos)
   {
@@ -1062,15 +1076,20 @@ void BufferViewer::SetupMeshView()
 
 BufferViewer::~BufferViewer()
 {
-  delete[] m_ModelVSIn->indices.data;
+  if(m_ModelVSIn->indices)
+    m_ModelVSIn->indices->deref();
 
   for(auto vb : m_ModelVSIn->buffers)
-    delete[] vb.data;
+    vb->deref();
 
-  delete[] m_ModelVSOut->indices.data;
+  if(m_ModelVSOut->indices)
+    m_ModelVSOut->indices->deref();
 
   for(auto vb : m_ModelVSOut->buffers)
-    delete[] vb.data;
+    vb->deref();
+
+  for(auto vb : m_ModelGSOut->buffers)
+    vb->deref();
 
   delete m_Arcball;
   delete m_Flycam;
@@ -1174,7 +1193,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
     }
     else
     {
-      BufferData buf = {};
+      BufferData *buf = new BufferData;
       rdctype::array<byte> data;
       if(m_IsBuffer)
       {
@@ -1189,19 +1208,20 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
         r->GetTextureData(m_BufferID, m_TexArrayIdx, m_TexMip, &data);
       }
 
-      buf.data = new byte[data.count];
-      memcpy(buf.data, data.elems, data.count);
-      buf.end = buf.data + data.count;
+      buf->data = new byte[data.count];
+      memcpy(buf->data, data.elems, data.count);
+      buf->end = buf->data + data.count;
 
       // calculate tight stride
-      buf.stride = 0;
+      buf->stride = 0;
       for(const FormatElement &el : m_ModelVSIn->columns)
-        buf.stride += el.byteSize();
+        buf->stride += el.byteSize();
 
-      buf.stride = qMax((size_t)1, buf.stride);
+      buf->stride = qMax((size_t)1, buf->stride);
 
-      m_ModelVSIn->numRows = uint32_t((data.count + buf.stride - 1) / buf.stride);
+      m_ModelVSIn->numRows = uint32_t((data.count + buf->stride - 1) / buf->stride);
 
+      // ownership passes to model
       m_ModelVSIn->buffers.push_back(buf);
     }
 
@@ -1249,12 +1269,14 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
                      draw->numIndices * draw->indexByteWidth, &idata);
 
   uint32_t *indices = NULL;
-  m_ModelVSIn->indices = BufferData();
+  if(m_ModelVSIn->indices)
+    m_ModelVSIn->indices->deref();
+  m_ModelVSIn->indices = new BufferData();
   if(draw && draw->indexByteWidth != 0 && idata.count != 0)
   {
     indices = new uint32_t[draw->numIndices];
-    m_ModelVSIn->indices.data = (byte *)indices;
-    m_ModelVSIn->indices.end = (byte *)(indices + draw->numIndices);
+    m_ModelVSIn->indices->data = (byte *)indices;
+    m_ModelVSIn->indices->end = (byte *)(indices + draw->numIndices);
   }
 
   uint32_t maxIndex = 0;
@@ -1336,18 +1358,19 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
         qCritical() << "Buffer used for both instance and vertex rendering!";
     }
 
-    BufferData buf = {};
+    BufferData *buf = new BufferData;
     if(used)
     {
       rdctype::array<byte> bufdata;
       r->GetBufferData(vb.Buffer, vb.ByteOffset + offset * vb.ByteStride,
                        (maxIdx + 1) * vb.ByteStride, &bufdata);
 
-      buf.data = new byte[bufdata.count];
-      memcpy(buf.data, bufdata.elems, bufdata.count);
-      buf.end = buf.data + bufdata.count;
-      buf.stride = vb.ByteStride;
+      buf->data = new byte[bufdata.count];
+      memcpy(buf->data, bufdata.elems, bufdata.count);
+      buf->end = buf->data + bufdata.count;
+      buf->stride = vb.ByteStride;
     }
+    // ref passes to model
     m_ModelVSIn->buffers.push_back(buf);
   }
 
@@ -1360,12 +1383,14 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
                      draw->numIndices * draw->indexByteWidth, &idata);
 
   indices = NULL;
-  m_ModelVSOut->indices = BufferData();
+  if(m_ModelVSOut->indices)
+    m_ModelVSOut->indices->deref();
+  m_ModelVSOut->indices = new BufferData();
   if(draw && draw->indexByteWidth != 0 && idata.count != 0)
   {
     indices = new uint32_t[draw->numIndices];
-    m_ModelVSOut->indices.data = (byte *)indices;
-    m_ModelVSOut->indices.end = (byte *)(indices + draw->numIndices);
+    m_ModelVSOut->indices->data = (byte *)indices;
+    m_ModelVSOut->indices->end = (byte *)(indices + draw->numIndices);
   }
 
   if(draw && idata.count > 0)
@@ -1390,14 +1415,16 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
 
   if(m_PostVS.buf != ResourceId())
   {
-    BufferData postvs = {};
+    BufferData *postvs = new BufferData;
     rdctype::array<byte> bufdata;
     r->GetBufferData(m_PostVS.buf, m_PostVS.offset, 0, &bufdata);
 
-    postvs.data = new byte[bufdata.count];
-    memcpy(postvs.data, bufdata.elems, bufdata.count);
-    postvs.end = postvs.data + bufdata.count;
-    postvs.stride = m_PostVS.stride;
+    postvs->data = new byte[bufdata.count];
+    memcpy(postvs->data, bufdata.elems, bufdata.count);
+    postvs->end = postvs->data + bufdata.count;
+    postvs->stride = m_PostVS.stride;
+
+    // ref passes to model
     m_ModelVSOut->buffers.push_back(postvs);
   }
 
@@ -1406,18 +1433,20 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
   m_ModelGSOut->numRows = m_PostGS.numVerts;
 
   indices = NULL;
-  m_ModelGSOut->indices = BufferData();
+  m_ModelGSOut->indices = NULL;
 
   if(m_PostGS.buf != ResourceId())
   {
-    BufferData postgs = {};
+    BufferData *postgs = new BufferData;
     rdctype::array<byte> bufdata;
     r->GetBufferData(m_PostGS.buf, m_PostGS.offset, 0, &bufdata);
 
-    postgs.data = new byte[bufdata.count];
-    memcpy(postgs.data, bufdata.elems, bufdata.count);
-    postgs.end = postgs.data + bufdata.count;
-    postgs.stride = m_PostGS.stride;
+    postgs->data = new byte[bufdata.count];
+    memcpy(postgs->data, bufdata.elems, bufdata.count);
+    postgs->end = postgs->data + bufdata.count;
+    postgs->stride = m_PostGS.stride;
+
+    // ref passes to model
     m_ModelGSOut->buffers.push_back(postgs);
   }
 }
@@ -2086,12 +2115,12 @@ void BufferViewer::ClearModels()
 
     m->beginReset();
 
-    delete[] m->indices.data;
-
-    m->indices = BufferData();
+    if(m->indices)
+      m->indices->deref();
+    m->indices = NULL;
 
     for(auto vb : m->buffers)
-      delete[] vb.data;
+      vb->deref();
 
     m->buffers.clear();
     m->columns.clear();
@@ -2133,11 +2162,15 @@ void BufferViewer::CalcColumnWidth()
 
   m_ModelVSIn->numRows = 2;
 
-  m_ModelVSIn->indices.stride = sizeof(uint32_t);
-  m_ModelVSIn->indices.data = new byte[sizeof(uint32_t) * 2];
-  m_ModelVSIn->indices.end = m_ModelVSIn->indices.data + sizeof(uint32_t) * 2;
+  if(m_ModelVSIn->indices)
+    m_ModelVSIn->indices->deref();
 
-  uint32_t *indices = (uint32_t *)m_ModelVSIn->indices.data;
+  m_ModelVSIn->indices = new BufferData;
+  m_ModelVSIn->indices->stride = sizeof(uint32_t);
+  m_ModelVSIn->indices->data = new byte[sizeof(uint32_t) * 2];
+  m_ModelVSIn->indices->end = m_ModelVSIn->indices->data + sizeof(uint32_t) * 2;
+
+  uint32_t *indices = (uint32_t *)m_ModelVSIn->indices->data;
   indices[0] = 0;
   indices[1] = 1000000;
 
@@ -2149,13 +2182,13 @@ void BufferViewer::CalcColumnWidth()
     uint32_t ui[3];
   };
 
-  BufferData bufdata;
-  bufdata.stride = sizeof(TestData);
-  bufdata.data = new byte[sizeof(TestData)];
-  bufdata.end = bufdata.data + sizeof(TestData);
+  BufferData *bufdata = new BufferData;
+  bufdata->stride = sizeof(TestData);
+  bufdata->data = new byte[sizeof(TestData)];
+  bufdata->end = bufdata->data + sizeof(TestData);
   m_ModelVSIn->buffers.push_back(bufdata);
 
-  TestData *test = (TestData *)bufdata.data;
+  TestData *test = (TestData *)bufdata->data;
 
   test->f[0] = 1.0f;
   test->f[1] = 1.2345e-20f;
@@ -2306,8 +2339,8 @@ void BufferViewer::exportData(const BufferExport &params)
       {
         // this is the simplest possible case, we just dump the contents of the first buffer, as
         // it's tightly packed
-        f->write((const char *)model->buffers[0].data,
-                 int(model->buffers[0].end - model->buffers[0].data));
+        f->write((const char *)model->buffers[0]->data,
+                 int(model->buffers[0]->end - model->buffers[0]->data));
       }
       else
       {
@@ -2344,10 +2377,10 @@ void BufferViewer::exportData(const BufferExport &params)
 
           if(el.buffer < model->buffers.size())
           {
-            d.data = (const char *)model->buffers[el.buffer].data;
-            d.end = (const char *)model->buffers[el.buffer].end;
+            d.data = (const char *)model->buffers[el.buffer]->data;
+            d.end = (const char *)model->buffers[el.buffer]->end;
 
-            d.stride = model->buffers[el.buffer].stride;
+            d.stride = model->buffers[el.buffer]->stride;
 
             d.data += el.offset;
 
