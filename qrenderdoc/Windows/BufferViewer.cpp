@@ -1122,7 +1122,7 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
   QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState.GetVBuffers();
 
   rdctype::array<byte> idata;
-  if(ib != ResourceId() && draw)
+  if(ib != ResourceId() && draw && (draw->flags & eDraw_UseIBuffer))
     r->GetBufferData(ib, ioffset + draw->indexOffset * draw->indexByteWidth,
                      draw->numIndices * draw->indexByteWidth, &idata);
 
@@ -1233,7 +1233,7 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
 
   m_ModelVSOut->numRows = m_PostVS.numVerts;
 
-  if(draw && m_PostVS.idxbuf != ResourceId())
+  if(draw && m_PostVS.idxbuf != ResourceId() && (draw->flags & eDraw_UseIBuffer))
     r->GetBufferData(m_PostVS.idxbuf, ioffset + draw->indexOffset * draw->indexByteWidth,
                      draw->numIndices * draw->indexByteWidth, &idata);
 
