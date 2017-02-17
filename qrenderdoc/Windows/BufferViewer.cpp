@@ -424,7 +424,7 @@ public:
             return QBrush(QColor::fromRgb(224, 255, 255));
           }
         }
-        else if(elIdx == secondaryEl)
+        else if(secondaryEnabled && elIdx == secondaryEl)
         {
           if(role == Qt::ForegroundRole)
             return QBrush(Qt::black);
@@ -576,17 +576,25 @@ public:
   }
 
   int posColumn() { return positionEl; }
+  QString posName()
+  {
+    if(positionEl >= 0 && positionEl < columns.count())
+      return columns[positionEl].name;
+
+    return "";
+  }
+
   void setSecondaryColumn(int sec, bool secEnabled, bool secAlpha)
   {
     QVector<int> roles = {Qt::BackgroundRole, Qt::ForegroundRole};
 
     if(secondaryEl != sec || secondaryElAlpha != secAlpha || secondaryEnabled != secEnabled)
     {
-      if(secondaryEl >= 0)
+      if(secondaryEl >= 0 && secondaryEl != sec)
         emit dataChanged(index(0, firstColumnForElement(secondaryEl)),
                          index(rowCount() - 1, lastColumnForElement(secondaryEl)), roles);
 
-      if(sec >= 0 && secondaryEl != sec)
+      if(sec >= 0)
         emit dataChanged(index(0, firstColumnForElement(sec)),
                          index(rowCount() - 1, lastColumnForElement(sec)), roles);
     }
@@ -598,6 +606,13 @@ public:
 
   int secondaryColumn() { return secondaryEl; }
   bool secondaryAlpha() { return secondaryElAlpha; }
+  QString secondaryName()
+  {
+    if(secondaryEl >= 0 && secondaryEl < columns.count())
+      return columns[secondaryEl].name;
+
+    return "";
+  }
   int elementIndexForColumn(int col) const
   {
     if(col < reservedColumnCount())
@@ -939,6 +954,97 @@ void BufferViewer::SetupMeshView()
 
   ToolWindowManager::raiseToolWindow(ui->vsoutData);
 
+  QMenu *headerMenu = new QMenu(this);
+
+  QAction *resetColSel = new QAction(tr("Reset Selected Columns"), this);
+  QAction *selPos = new QAction(tr("Select as Position"), this);
+  QAction *selSec = new QAction(tr("Select as Secondary"), this);
+  QAction *selSecAlpha = new QAction(tr("Select Alpha as Secondary"), this);
+
+  headerMenu->addAction(resetColSel);
+  headerMenu->addSeparator();
+  headerMenu->addAction(selPos);
+  headerMenu->addAction(selSec);
+  headerMenu->addAction(selSecAlpha);
+
+  QObject::connect(resetColSel, &QAction::triggered, [this]() {
+    guessPositionColumn((BufferItemModel *)m_CurView->model());
+    guessSecondaryColumn((BufferItemModel *)m_CurView->model());
+    updatePreviewColumns();
+    INVOKE_MEMFN(RT_UpdateAndDisplay);
+  });
+  QObject::connect(selPos, &QAction::triggered, [this]() {
+    BufferItemModel *model = (BufferItemModel *)m_CurView->model();
+
+    model->setPosColumn(m_ContextColumn);
+    updatePreviewColumns();
+    INVOKE_MEMFN(RT_UpdateAndDisplay);
+  });
+  QObject::connect(selSec, &QAction::triggered, [this]() {
+    BufferItemModel *model = (BufferItemModel *)m_CurView->model();
+
+    model->setSecondaryColumn(m_ContextColumn, m_Config.solidShadeMode == eShade_Secondary, false);
+    updatePreviewColumns();
+    INVOKE_MEMFN(RT_UpdateAndDisplay);
+  });
+  QObject::connect(selSecAlpha, &QAction::triggered, [this]() {
+    BufferItemModel *model = (BufferItemModel *)m_CurView->model();
+
+    model->setSecondaryColumn(m_ContextColumn, m_Config.solidShadeMode == eShade_Secondary, true);
+    updatePreviewColumns();
+    INVOKE_MEMFN(RT_UpdateAndDisplay);
+  });
+
+  ui->vsinData->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
+  ui->vsoutData->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
+  ui->gsoutData->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
+
+  QObject::connect(
+      ui->vsinData->horizontalHeader(), &QHeaderView::customContextMenuRequested,
+      [this, headerMenu, selSecAlpha](const QPoint &pos) {
+        int col = ui->vsinData->horizontalHeader()->logicalIndexAt(pos);
+
+        if(col < 2)
+          return;
+
+        m_CurView = ui->vsinData;
+        m_ContextColumn = m_ModelVSIn->elementIndexForColumn(col);
+
+        selSecAlpha->setEnabled(m_ModelVSIn->elementForColumn(col).format.compCount == 4);
+
+        headerMenu->popup(ui->vsinData->horizontalHeader()->mapToGlobal(pos));
+      });
+  QObject::connect(
+      ui->vsoutData->horizontalHeader(), &QHeaderView::customContextMenuRequested,
+      [this, headerMenu, selSecAlpha](const QPoint &pos) {
+        int col = ui->vsoutData->horizontalHeader()->logicalIndexAt(pos);
+
+        if(col < 2)
+          return;
+
+        m_CurView = ui->vsoutData;
+        m_ContextColumn = m_ModelVSOut->elementIndexForColumn(col);
+
+        selSecAlpha->setEnabled(m_ModelVSOut->elementForColumn(col).format.compCount == 4);
+
+        headerMenu->popup(ui->vsoutData->horizontalHeader()->mapToGlobal(pos));
+      });
+  QObject::connect(
+      ui->gsoutData->horizontalHeader(), &QHeaderView::customContextMenuRequested,
+      [this, headerMenu, selSecAlpha](const QPoint &pos) {
+        int col = ui->gsoutData->horizontalHeader()->logicalIndexAt(pos);
+
+        if(col < 2)
+          return;
+
+        m_CurView = ui->gsoutData;
+        m_ContextColumn = m_ModelGSOut->elementIndexForColumn(col);
+
+        selSecAlpha->setEnabled(m_ModelGSOut->elementForColumn(col).format.compCount == 4);
+
+        headerMenu->popup(ui->gsoutData->horizontalHeader()->mapToGlobal(pos));
+      });
+
   QVBoxLayout *vertical = new QVBoxLayout(this);
 
   vertical->setSpacing(3);
@@ -1009,13 +1115,14 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   int vsoutHoriz = ui->vsoutData->horizontalScrollBar()->value();
   int gsoutHoriz = ui->gsoutData->horizontalScrollBar()->value();
 
+  QString highlightNames[6] = {
+      m_ModelVSIn->posName(),        m_ModelVSIn->secondaryName(), m_ModelVSOut->posName(),
+      m_ModelVSOut->secondaryName(), m_ModelGSOut->posName(),      m_ModelGSOut->secondaryName(),
+  };
+
   if(m_MeshView)
   {
     ClearModels();
-
-    memset(&m_VSIn, 0, sizeof(m_VSIn));
-    memset(&m_PostVS, 0, sizeof(m_PostVS));
-    memset(&m_PostGS, 0, sizeof(m_PostGS));
 
     CalcColumnWidth();
 
@@ -1042,7 +1149,22 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
     ui->instance->setMaximum(qMax(0, int(draw->numInstances) - 1));
 
   if(m_MeshView)
-    ConfigureMeshColumns();
+  {
+    configureMeshColumns();
+
+    if(m_ModelVSIn->posColumn() == -1 || highlightNames[0] != m_ModelVSIn->posName())
+      guessPositionColumn(m_ModelVSIn);
+    if(m_ModelVSIn->secondaryColumn() == -1 || highlightNames[1] != m_ModelVSIn->secondaryName())
+      guessSecondaryColumn(m_ModelVSIn);
+    if(m_ModelVSOut->posColumn() == -1 || highlightNames[2] != m_ModelVSOut->posName())
+      guessSecondaryColumn(m_ModelVSOut);
+    if(m_ModelVSOut->secondaryColumn() == -1 || highlightNames[3] != m_ModelVSOut->secondaryName())
+      guessPositionColumn(m_ModelVSOut);
+    if(m_ModelGSOut->posColumn() == -1 || highlightNames[4] != m_ModelGSOut->posName())
+      guessPositionColumn(m_ModelGSOut);
+    if(m_ModelGSOut->secondaryColumn() == -1 || highlightNames[5] != m_ModelGSOut->secondaryName())
+      guessSecondaryColumn(m_ModelGSOut);
+  }
 
   m_Ctx.Renderer().AsyncInvoke([this, vsinHoriz, vsoutHoriz, gsoutHoriz](IReplayRenderer *r) {
 
@@ -1083,7 +1205,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
       m_ModelVSIn->buffers.push_back(buf);
     }
 
-    UpdateMeshConfig();
+    updatePreviewColumns();
 
     RT_UpdateAndDisplay(r);
 
@@ -1300,7 +1422,240 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
   }
 }
 
-void BufferViewer::ConfigureMeshColumns()
+void BufferViewer::guessPositionColumn(BufferItemModel *model)
+{
+  int posEl = -1;
+
+  if(!model->columns.empty())
+  {
+    // prioritise system value over general "POSITION" string matching
+    for(int i = 0; i < model->columns.count(); i++)
+    {
+      const FormatElement &el = model->columns[i];
+
+      if(el.systemValue == eAttr_Position)
+      {
+        posEl = i;
+        break;
+      }
+    }
+
+    // look for an exact match
+    for(int i = 0; posEl == -1 && i < model->columns.count(); i++)
+    {
+      const FormatElement &el = model->columns[i];
+
+      if(el.name.compare("POSITION", Qt::CaseInsensitive) == 0 ||
+         el.name.compare("POSITION0", Qt::CaseInsensitive) == 0 ||
+         el.name.compare("POS", Qt::CaseInsensitive) == 0 ||
+         el.name.compare("POS0", Qt::CaseInsensitive) == 0)
+      {
+        posEl = i;
+        break;
+      }
+    }
+
+    // try anything containing position
+    for(int i = 0; posEl == -1 && i < model->columns.count(); i++)
+    {
+      const FormatElement &el = model->columns[i];
+
+      if(el.name.contains("POSITION", Qt::CaseInsensitive))
+      {
+        posEl = i;
+        break;
+      }
+    }
+
+    // OK last resort, just look for 'pos'
+    for(int i = 0; posEl == -1 && i < model->columns.count(); i++)
+    {
+      const FormatElement &el = model->columns[i];
+
+      if(el.name.contains("POS", Qt::CaseInsensitive))
+      {
+        posEl = i;
+        break;
+      }
+    }
+
+    // if we still have absolutely nothing, just use the first available element
+    if(posEl == -1)
+    {
+      posEl = 0;
+    }
+  }
+
+  model->setPosColumn(posEl);
+}
+
+void BufferViewer::guessSecondaryColumn(BufferItemModel *model)
+{
+  int secondEl = -1;
+
+  if(!model->columns.empty())
+  {
+    // prioritise TEXCOORD over general COLOR
+    for(int i = 0; i < model->columns.count(); i++)
+    {
+      const FormatElement &el = model->columns[i];
+
+      if(el.name.compare("TEXCOORD", Qt::CaseInsensitive) == 0 ||
+         el.name.compare("TEXCOORD0", Qt::CaseInsensitive) == 0 ||
+         el.name.compare("TEX", Qt::CaseInsensitive) == 0 ||
+         el.name.compare("TEX0", Qt::CaseInsensitive) == 0 ||
+         el.name.compare("UV", Qt::CaseInsensitive) == 0 ||
+         el.name.compare("UV0", Qt::CaseInsensitive) == 0)
+      {
+        secondEl = i;
+        break;
+      }
+    }
+
+    for(int i = 0; secondEl == -1 && i < model->columns.count(); i++)
+    {
+      const FormatElement &el = model->columns[i];
+
+      if(el.name.compare("COLOR", Qt::CaseInsensitive) == 0 ||
+         el.name.compare("COLOR0", Qt::CaseInsensitive) == 0 ||
+         el.name.compare("COL", Qt::CaseInsensitive) == 0 ||
+         el.name.compare("COL0", Qt::CaseInsensitive) == 0)
+      {
+        secondEl = i;
+        break;
+      }
+    }
+  }
+
+  model->setSecondaryColumn(secondEl, m_Config.solidShadeMode == eShade_Secondary, false);
+}
+
+void BufferViewer::updatePreviewColumns()
+{
+  QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState.GetVBuffers();
+  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+
+  if(draw)
+  {
+    m_VSInPosition = MeshFormat();
+    m_VSInSecondary = MeshFormat();
+
+    if(!m_ModelVSIn->columns.empty())
+    {
+      int elIdx = m_ModelVSIn->posColumn();
+      if(elIdx < 0 || elIdx >= m_ModelVSIn->columns.count())
+        elIdx = 0;
+
+      m_VSInPosition.numVerts = draw->numIndices;
+      m_VSInPosition.topo = draw->topology;
+      m_VSInPosition.idxByteWidth = draw->indexByteWidth;
+      m_VSInPosition.baseVertex = draw->baseVertex;
+      m_Ctx.CurPipelineState.GetIBuffer(m_VSInPosition.idxbuf, m_VSInPosition.idxoffs);
+
+      {
+        const FormatElement &el = m_ModelVSIn->columns[elIdx];
+
+        m_VSInPosition.buf = vbs[el.buffer].Buffer;
+        m_VSInPosition.stride = vbs[el.buffer].ByteStride;
+        m_VSInPosition.offset =
+            vbs[el.buffer].ByteOffset + el.offset + draw->vertexOffset * m_VSInPosition.stride;
+
+        m_VSInPosition.compCount = el.format.compCount;
+        m_VSInPosition.compByteWidth = el.format.compByteWidth;
+        m_VSInPosition.compType = el.format.compType;
+        m_VSInPosition.bgraOrder = el.format.bgraOrder;
+        m_VSInPosition.specialFormat = el.format.special ? el.format.specialFormat : eSpecial_Unknown;
+      }
+
+      elIdx = m_ModelVSIn->secondaryColumn();
+
+      if(elIdx >= 0 && elIdx < m_ModelVSIn->columns.count())
+      {
+        const FormatElement &el = m_ModelVSIn->columns[elIdx];
+
+        m_VSInSecondary.buf = vbs[el.buffer].Buffer;
+        m_VSInSecondary.stride = vbs[el.buffer].ByteStride;
+        m_VSInSecondary.offset =
+            vbs[el.buffer].ByteOffset + el.offset + draw->vertexOffset * m_VSInPosition.stride;
+
+        m_VSInSecondary.compCount = el.format.compCount;
+        m_VSInSecondary.compByteWidth = el.format.compByteWidth;
+        m_VSInSecondary.compType = el.format.compType;
+        m_VSInSecondary.bgraOrder = el.format.bgraOrder;
+        m_VSInSecondary.specialFormat =
+            el.format.special ? el.format.specialFormat : eSpecial_Unknown;
+        m_VSInSecondary.showAlpha = m_ModelVSIn->secondaryAlpha();
+      }
+    }
+
+    m_PostVSPosition = MeshFormat();
+    m_PostVSSecondary = MeshFormat();
+
+    if(!m_ModelVSOut->columns.empty())
+    {
+      int elIdx = m_ModelVSOut->posColumn();
+      if(elIdx < 0 || elIdx >= m_ModelVSOut->columns.count())
+        elIdx = 0;
+
+      m_PostVSPosition = m_PostVS;
+      m_PostVSPosition.offset += m_ModelVSOut->columns[elIdx].offset;
+
+      elIdx = m_ModelVSOut->secondaryColumn();
+
+      if(elIdx >= 0 && elIdx < m_ModelVSOut->columns.count())
+      {
+        m_PostVSSecondary = m_PostVS;
+        m_PostVSSecondary.offset += m_ModelVSOut->columns[elIdx].offset;
+        m_PostVSSecondary.showAlpha = m_ModelVSOut->secondaryAlpha();
+      }
+    }
+
+    m_PostGSPosition = MeshFormat();
+    m_PostGSSecondary = MeshFormat();
+
+    if(!m_ModelGSOut->columns.empty())
+    {
+      int elIdx = m_ModelGSOut->posColumn();
+      if(elIdx < 0 || elIdx >= m_ModelGSOut->columns.count())
+        elIdx = 0;
+
+      m_PostGSPosition = m_PostGS;
+      m_PostGSPosition.offset += m_ModelGSOut->columns[elIdx].offset;
+
+      elIdx = m_ModelGSOut->secondaryColumn();
+
+      if(elIdx >= 0 && elIdx < m_ModelGSOut->columns.count())
+      {
+        m_PostGSSecondary = m_PostGS;
+        m_PostGSSecondary.offset += m_ModelGSOut->columns[elIdx].offset;
+        m_PostGSSecondary.showAlpha = m_ModelGSOut->secondaryAlpha();
+      }
+    }
+
+    m_PostGSPosition.idxByteWidth = 0;
+
+    if(!(draw->flags & eDraw_UseIBuffer))
+      m_PostVSPosition.idxByteWidth = m_VSInPosition.idxByteWidth = 0;
+
+    m_PostGSPosition.unproject = true;
+    m_PostVSPosition.unproject = !m_Ctx.CurPipelineState.IsTessellationEnabled();
+  }
+  else
+  {
+    m_VSInPosition = MeshFormat();
+    m_VSInSecondary = MeshFormat();
+
+    m_PostVSPosition = MeshFormat();
+    m_PostVSSecondary = MeshFormat();
+
+    m_PostGSPosition = MeshFormat();
+    m_PostGSSecondary = MeshFormat();
+  }
+
+  UpdateMeshConfig();
+}
+
+void BufferViewer::configureMeshColumns()
 {
   const FetchDrawcall *draw = m_Ctx.CurDrawcall();
 
@@ -1328,10 +1683,6 @@ void BufferViewer::ConfigureMeshColumns()
 
   QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState.GetVBuffers();
 
-  ResourceId ib;
-  uint64_t ioffset = 0;
-  m_Ctx.CurPipelineState.GetIBuffer(ib, ioffset);
-
   Viewport vp = m_Ctx.CurPipelineState.GetViewport(0);
 
   m_Config.fov = ui->fovGuess->value();
@@ -1346,36 +1697,6 @@ void BufferViewer::ConfigureMeshColumns()
 
   if(ui->farGuess->value() > 0.0)
     m_PostVS.farPlane = m_PostGS.farPlane = ui->farGuess->value();
-
-  if(draw == NULL)
-  {
-    m_VSIn.numVerts = 0;
-    m_VSIn.topo = eTopology_TriangleList;
-    m_VSIn.idxbuf = ResourceId();
-    m_VSIn.idxoffs = 0;
-    m_VSIn.idxByteWidth = 4;
-    m_VSIn.baseVertex = 0;
-  }
-  else
-  {
-    m_VSIn.numVerts = draw->numIndices;
-    m_VSIn.topo = draw->topology;
-    m_VSIn.idxbuf = ib;
-    m_VSIn.idxoffs = ioffset;
-    m_VSIn.idxByteWidth = draw->indexByteWidth;
-    m_VSIn.baseVertex = draw->baseVertex;
-  }
-
-  if(!vinputs.empty())
-  {
-    m_VSIn.buf = vbs[vinputs[0].VertexBuffer].Buffer;
-    m_VSIn.offset = vbs[vinputs[0].VertexBuffer].ByteOffset;
-    m_VSIn.stride = vbs[vinputs[0].VertexBuffer].ByteStride;
-
-    m_VSIn.compCount = vinputs[0].Format.compCount;
-    m_VSIn.compByteWidth = vinputs[0].Format.compByteWidth;
-    m_VSIn.compType = vinputs[0].Format.compType;
-  }
 
   const ShaderReflection *vs = m_Ctx.CurPipelineState.GetShaderReflection(eShaderStage_Vertex);
 
@@ -1529,9 +1850,18 @@ void BufferViewer::UpdateMeshConfig()
   m_Config.type = m_CurStage;
   switch(m_CurStage)
   {
-    case eMeshDataStage_VSIn: m_Config.position = m_VSIn; break;
-    case eMeshDataStage_VSOut: m_Config.position = m_PostVS; break;
-    case eMeshDataStage_GSOut: m_Config.position = m_PostGS; break;
+    case eMeshDataStage_VSIn:
+      m_Config.position = m_VSInPosition;
+      m_Config.second = m_VSInSecondary;
+      break;
+    case eMeshDataStage_VSOut:
+      m_Config.position = m_PostVSPosition;
+      m_Config.second = m_PostVSSecondary;
+      break;
+    case eMeshDataStage_GSOut:
+      m_Config.position = m_PostGSPosition;
+      m_Config.second = m_PostGSSecondary;
+      break;
     default: break;
   }
 }
@@ -2297,6 +2627,16 @@ void BufferViewer::on_solidShading_currentIndexChanged(int index)
   }
 
   m_Config.solidShadeMode = (SolidShadeMode)index;
+
+  m_ModelVSIn->setSecondaryColumn(m_ModelVSIn->secondaryColumn(),
+                                  m_Config.solidShadeMode == eShade_Secondary,
+                                  m_ModelVSIn->secondaryAlpha());
+  m_ModelVSOut->setSecondaryColumn(m_ModelVSOut->secondaryColumn(),
+                                   m_Config.solidShadeMode == eShade_Secondary,
+                                   m_ModelVSOut->secondaryAlpha());
+  m_ModelGSOut->setSecondaryColumn(m_ModelGSOut->secondaryColumn(),
+                                   m_Config.solidShadeMode == eShade_Secondary,
+                                   m_ModelGSOut->secondaryAlpha());
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }

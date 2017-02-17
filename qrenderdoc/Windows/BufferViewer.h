@@ -124,10 +124,14 @@ private:
 
   MeshDataStage m_CurStage;
 
-  // data from mesh pipeline
-  MeshFormat m_VSIn;
+  // data from mesh output
   MeshFormat m_PostVS;
   MeshFormat m_PostGS;
+
+  // the configurations for 3D preview
+  MeshFormat m_VSInPosition, m_VSInSecondary;
+  MeshFormat m_PostVSPosition, m_PostVSSecondary;
+  MeshFormat m_PostGSPosition, m_PostGSSecondary;
 
   // data from raw buffer view
   bool m_IsBuffer = true;
@@ -148,6 +152,7 @@ private:
   BufferItemModel *m_ModelGSOut;
 
   RDTableView *m_CurView = NULL;
+  int m_ContextColumn = -1;
 
   int m_IdxColWidth;
   int m_DataColWidth;
@@ -162,7 +167,10 @@ private:
   void Reset();
   void ClearModels();
 
-  void ConfigureMeshColumns();
+  void guessPositionColumn(BufferItemModel *model);
+  void guessSecondaryColumn(BufferItemModel *model);
+  void updatePreviewColumns();
+  void configureMeshColumns();
 
   void UpdateMeshConfig();
   void EnableCameraGuessControls();
