@@ -390,7 +390,10 @@ bool ReplayRenderer::GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFor
   RDCEraseEl(ret);
 
   if(draw == NULL || (draw->flags & eDraw_Drawcall) == 0)
+  {
+    *data = MeshFormat();
     return false;
+  }
 
   instID = RDCMIN(instID, draw->numInstances - 1);
 
