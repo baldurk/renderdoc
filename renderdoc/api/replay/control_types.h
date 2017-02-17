@@ -35,6 +35,25 @@ struct OutputConfig
 
 struct MeshFormat
 {
+  MeshFormat()
+  {
+    idxoffs = 0;
+    idxByteWidth = 0;
+    baseVertex = 0;
+    offset = 0;
+    stride = 0;
+    compCount = 0;
+    compByteWidth = 0;
+    compType = eCompType_None;
+    bgraOrder = false;
+    specialFormat = eSpecial_Unknown;
+    showAlpha = false;
+    topo = eTopology_Unknown;
+    numVerts = 0;
+    unproject = false;
+    nearPlane = farPlane = 0.0f;
+  }
+
   ResourceId idxbuf;
   uint64_t idxoffs;
   uint32_t idxByteWidth;

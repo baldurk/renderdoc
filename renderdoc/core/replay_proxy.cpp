@@ -2727,7 +2727,7 @@ void ReplayProxy::InitPostVSBuffers(const vector<uint32_t> &events)
 
 MeshFormat ReplayProxy::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDataStage stage)
 {
-  MeshFormat ret = {};
+  MeshFormat ret;
 
   m_ToReplaySerialiser->Serialise("", eventID);
   m_ToReplaySerialiser->Serialise("", instID);
