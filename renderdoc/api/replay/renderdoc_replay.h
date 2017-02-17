@@ -642,6 +642,9 @@ RENDERDOC_ExecuteAndInject(const char *app, const char *workingDir, const char *
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC RENDERDOC_InjectIntoProcess(
     uint32_t pid, void *env, const char *logfile, const CaptureOptions *opts, bool32 waitForExit);
 
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_StartSelfHostCapture(const char *dllname);
+extern "C" RENDERDOC_API void RENDERDOC_CC RENDERDOC_EndSelfHostCapture(const char *dllname);
+
 //////////////////////////////////////////////////////////////////////////
 // Vulkan layer handling
 //////////////////////////////////////////////////////////////////////////

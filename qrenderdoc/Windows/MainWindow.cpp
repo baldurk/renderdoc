@@ -69,6 +69,10 @@ struct Version
   static bool isMismatched() { return RENDERDOC_GetVersionString() != bareString(); }
 };
 
+#if defined(Q_OS_WIN32)
+extern "C" void *GetModuleHandleA(const char *);
+#endif
+
 MainWindow::MainWindow(CaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::MainWindow), m_Ctx(ctx)
 {
   ui->setupUi(this);
@@ -228,6 +232,33 @@ MainWindow::MainWindow(CaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::Main
         ToolWindowManager::AreaReference(ToolWindowManager::BottomOf,
                                          ui->toolWindowManager->areaOf(eventBrowser), 0.3f));
   }
+
+#if defined(Q_OS_WIN32)
+  if(GetModuleHandleA("rdocself.dll"))
+  {
+    QAction *begin = new QAction(tr("Start Self-hosted Capture"), this);
+    QAction *end = new QAction(tr("End Self-hosted Capture"), this);
+    end->setEnabled(false);
+
+    QObject::connect(begin, &QAction::triggered, [begin, end]() {
+      begin->setEnabled(false);
+      end->setEnabled(true);
+
+      RENDERDOC_StartSelfHostCapture("rdocself.dll");
+    });
+
+    QObject::connect(end, &QAction::triggered, [begin, end]() {
+      begin->setEnabled(true);
+      end->setEnabled(false);
+
+      RENDERDOC_EndSelfHostCapture("rdocself.dll");
+    });
+
+    ui->menu_Tools->addSeparator();
+    ui->menu_Tools->addAction(begin);
+    ui->menu_Tools->addAction(end);
+  }
+#endif
 
   m_Ctx.AddLogViewer(this);
 }
