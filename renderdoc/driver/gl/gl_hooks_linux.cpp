@@ -43,7 +43,7 @@ typedef int (*PFNGLXGETCONFIGPROC)(Display *dpy, XVisualInfo *vis, int attrib, i
 typedef Bool (*PFNGLXQUERYEXTENSIONPROC)(Display *dpy, int *errorBase, int *eventBase);
 typedef Bool (*PFNGLXISDIRECTPROC)(Display *dpy, GLXContext ctx);
 
-class OpenGLHook : LibraryHook
+class OpenGLHook : LibraryHook, public GLPlatform
 {
 public:
   OpenGLHook()
@@ -59,12 +59,12 @@ public:
     m_EnabledHooks = true;
     m_PopulatedHooks = false;
   }
-  ~OpenGLHook() { delete m_GLDriver; }
-  static void libHooked(void *realLib)
+  ~OpenGLHook()
   {
-    libGLdlsymHandle = realLib;
-    OpenGLHook::glhooks.CreateHooks(NULL);
+    delete m_GLDriver;
+    m_GLDriver = NULL;
   }
+  static void libHooked(void *realLib);
 
   bool CreateHooks(const char *libName)
   {
@@ -86,8 +86,6 @@ public:
 
   void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
-  static OpenGLHook glhooks;
-
   // see callsite in glXSwapBuffers for explanation of why this is necessary
   XID UnwrapGLXWindow(XID id)
   {
@@ -199,6 +197,16 @@ public:
       glXDestroyContext_real(context.dpy, context.ctx);
   }
 
+  bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices);
+
+  WrappedOpenGL *GetDriver()
+  {
+    if(m_GLDriver == NULL)
+      m_GLDriver = new WrappedOpenGL("", GL, *this);
+
+    return m_GLDriver;
+  }
+
   PFNGLXCREATECONTEXTPROC glXCreateContext_real;
   PFNGLXDESTROYCONTEXTPROC glXDestroyContext_real;
   PFNGLXCREATECONTEXTATTRIBSARBPROC glXCreateContextAttribsARB_real;
@@ -255,7 +263,13 @@ public:
   }
 
   bool PopulateHooks();
-};
+} glhooks;
+
+void OpenGLHook::libHooked(void *realLib)
+{
+  libGLdlsymHandle = realLib;
+  glhooks.CreateHooks(NULL);
+}
 
 // everything below here needs to have C linkage
 extern "C" {
@@ -263,10 +277,10 @@ extern "C" {
 __attribute__((visibility("default"))) GLXContext glXCreateContext(Display *dpy, XVisualInfo *vis,
                                                                    GLXContext shareList, Bool direct)
 {
-  if(OpenGLHook::glhooks.glXCreateContext_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(glhooks.glXCreateContext_real == NULL)
+    glhooks.SetupExportedFunctions();
 
-  GLXContext ret = OpenGLHook::glhooks.glXCreateContext_real(dpy, vis, shareList, direct);
+  GLXContext ret = glhooks.glXCreateContext_real(dpy, vis, shareList, direct);
 
   // don't continue if context creation failed
   if(!ret)
@@ -281,17 +295,17 @@ __attribute__((visibility("default"))) GLXContext glXCreateContext(Display *dpy,
 
   Keyboard::CloneDisplay(dpy);
 
-  OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_BUFFER_SIZE, &value);
+  glhooks.glXGetConfig_real(dpy, vis, GLX_BUFFER_SIZE, &value);
   init.colorBits = value;
-  OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_DEPTH_SIZE, &value);
+  glhooks.glXGetConfig_real(dpy, vis, GLX_DEPTH_SIZE, &value);
   init.depthBits = value;
-  OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_STENCIL_SIZE, &value);
+  glhooks.glXGetConfig_real(dpy, vis, GLX_STENCIL_SIZE, &value);
   init.stencilBits = value;
   value = 1;    // default to srgb
-  OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, &value);
+  glhooks.glXGetConfig_real(dpy, vis, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, &value);
   init.isSRGB = value;
   value = 1;
-  OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_SAMPLES_ARB, &value);
+  glhooks.glXGetConfig_real(dpy, vis, GLX_SAMPLES_ARB, &value);
   init.isSRGB = RDCMAX(1, value);
 
   GLWindowingData data;
@@ -301,7 +315,7 @@ __attribute__((visibility("default"))) GLXContext glXCreateContext(Display *dpy,
 
   {
     SCOPED_LOCK(glLock);
-    GetDriver()->CreateContext(data, shareList, init, false, false);
+    glhooks.GetDriver()->CreateContext(data, shareList, init, false, false);
   }
 
   return ret;
@@ -309,15 +323,15 @@ __attribute__((visibility("default"))) GLXContext glXCreateContext(Display *dpy,
 
 __attribute__((visibility("default"))) void glXDestroyContext(Display *dpy, GLXContext ctx)
 {
-  if(OpenGLHook::glhooks.glXDestroyContext_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(glhooks.glXDestroyContext_real == NULL)
+    glhooks.SetupExportedFunctions();
 
   {
     SCOPED_LOCK(glLock);
-    GetDriver()->DeleteContext(ctx);
+    glhooks.GetDriver()->DeleteContext(ctx);
   }
 
-  OpenGLHook::glhooks.glXDestroyContext_real(dpy, ctx);
+  glhooks.glXDestroyContext_real(dpy, ctx);
 }
 
 __attribute__((visibility("default"))) GLXContext glXCreateContextAttribsARB(
@@ -380,17 +394,16 @@ __attribute__((visibility("default"))) GLXContext glXCreateContextAttribsARB(
     a += 2;
   }
 
-  if(OpenGLHook::glhooks.glXCreateContextAttribsARB_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(glhooks.glXCreateContextAttribsARB_real == NULL)
+    glhooks.SetupExportedFunctions();
 
-  GLXContext ret =
-      OpenGLHook::glhooks.glXCreateContextAttribsARB_real(dpy, config, shareList, direct, attribs);
+  GLXContext ret = glhooks.glXCreateContextAttribsARB_real(dpy, config, shareList, direct, attribs);
 
   // don't continue if context creation failed
   if(!ret)
     return ret;
 
-  XVisualInfo *vis = OpenGLHook::glhooks.glXGetVisualFromFBConfig_real(dpy, config);
+  XVisualInfo *vis = glhooks.glXGetVisualFromFBConfig_real(dpy, config);
 
   GLInitParams init;
 
@@ -401,17 +414,17 @@ __attribute__((visibility("default"))) GLXContext glXCreateContextAttribsARB(
 
   Keyboard::CloneDisplay(dpy);
 
-  OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_BUFFER_SIZE, &value);
+  glhooks.glXGetConfig_real(dpy, vis, GLX_BUFFER_SIZE, &value);
   init.colorBits = value;
-  OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_DEPTH_SIZE, &value);
+  glhooks.glXGetConfig_real(dpy, vis, GLX_DEPTH_SIZE, &value);
   init.depthBits = value;
-  OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_STENCIL_SIZE, &value);
+  glhooks.glXGetConfig_real(dpy, vis, GLX_STENCIL_SIZE, &value);
   init.stencilBits = value;
   value = 1;    // default to srgb
-  OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, &value);
+  glhooks.glXGetConfig_real(dpy, vis, GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB, &value);
   init.isSRGB = value;
   value = 1;
-  OpenGLHook::glhooks.glXGetConfig_real(dpy, vis, GLX_SAMPLES_ARB, &value);
+  glhooks.glXGetConfig_real(dpy, vis, GLX_SAMPLES_ARB, &value);
   init.isSRGB = RDCMAX(1, value);
 
   XFree(vis);
@@ -423,7 +436,7 @@ __attribute__((visibility("default"))) GLXContext glXCreateContextAttribsARB(
 
   {
     SCOPED_LOCK(glLock);
-    GetDriver()->CreateContext(data, shareList, init, core, true);
+    glhooks.GetDriver()->CreateContext(data, shareList, init, core, true);
   }
 
   return ret;
@@ -432,18 +445,18 @@ __attribute__((visibility("default"))) GLXContext glXCreateContextAttribsARB(
 __attribute__((visibility("default"))) Bool glXMakeCurrent(Display *dpy, GLXDrawable drawable,
                                                            GLXContext ctx)
 {
-  if(OpenGLHook::glhooks.glXMakeCurrent_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(glhooks.glXMakeCurrent_real == NULL)
+    glhooks.SetupExportedFunctions();
 
-  Bool ret = OpenGLHook::glhooks.glXMakeCurrent_real(dpy, drawable, ctx);
+  Bool ret = glhooks.glXMakeCurrent_real(dpy, drawable, ctx);
 
   SCOPED_LOCK(glLock);
 
-  if(ctx && OpenGLHook::glhooks.m_Contexts.find(ctx) == OpenGLHook::glhooks.m_Contexts.end())
+  if(ctx && glhooks.m_Contexts.find(ctx) == glhooks.m_Contexts.end())
   {
-    OpenGLHook::glhooks.m_Contexts.insert(ctx);
+    glhooks.m_Contexts.insert(ctx);
 
-    OpenGLHook::glhooks.PopulateHooks();
+    glhooks.PopulateHooks();
   }
 
   GLWindowingData data;
@@ -451,7 +464,7 @@ __attribute__((visibility("default"))) Bool glXMakeCurrent(Display *dpy, GLXDraw
   data.wnd = drawable;
   data.ctx = ctx;
 
-  GetDriver()->ActivateContext(data);
+  glhooks.GetDriver()->ActivateContext(data);
 
   return ret;
 }
@@ -459,18 +472,18 @@ __attribute__((visibility("default"))) Bool glXMakeCurrent(Display *dpy, GLXDraw
 __attribute__((visibility("default"))) Bool glXMakeContextCurrent(Display *dpy, GLXDrawable draw,
                                                                   GLXDrawable read, GLXContext ctx)
 {
-  if(OpenGLHook::glhooks.glXMakeContextCurrent_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(glhooks.glXMakeContextCurrent_real == NULL)
+    glhooks.SetupExportedFunctions();
 
-  Bool ret = OpenGLHook::glhooks.glXMakeContextCurrent_real(dpy, draw, read, ctx);
+  Bool ret = glhooks.glXMakeContextCurrent_real(dpy, draw, read, ctx);
 
   SCOPED_LOCK(glLock);
 
-  if(ctx && OpenGLHook::glhooks.m_Contexts.find(ctx) == OpenGLHook::glhooks.m_Contexts.end())
+  if(ctx && glhooks.m_Contexts.find(ctx) == glhooks.m_Contexts.end())
   {
-    OpenGLHook::glhooks.m_Contexts.insert(ctx);
+    glhooks.m_Contexts.insert(ctx);
 
-    OpenGLHook::glhooks.PopulateHooks();
+    glhooks.PopulateHooks();
   }
 
   GLWindowingData data;
@@ -478,15 +491,15 @@ __attribute__((visibility("default"))) Bool glXMakeContextCurrent(Display *dpy, 
   data.wnd = draw;
   data.ctx = ctx;
 
-  GetDriver()->ActivateContext(data);
+  glhooks.GetDriver()->ActivateContext(data);
 
   return ret;
 }
 
 __attribute__((visibility("default"))) void glXSwapBuffers(Display *dpy, GLXDrawable drawable)
 {
-  if(OpenGLHook::glhooks.glXSwapBuffers_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(glhooks.glXSwapBuffers_real == NULL)
+    glhooks.SetupExportedFunctions();
 
   SCOPED_LOCK(glLock);
 
@@ -496,26 +509,26 @@ __attribute__((visibility("default"))) void glXSwapBuffers(Display *dpy, GLXDraw
   // created from to use that.
   // If the drawable didn't come through there, it just passes through unscathed
   // through this function
-  Drawable d = OpenGLHook::glhooks.UnwrapGLXWindow(drawable);
+  Drawable d = glhooks.UnwrapGLXWindow(drawable);
 
   Window root;
   int x, y;
   unsigned int width, height, border_width, depth;
   XGetGeometry(dpy, d, &root, &x, &y, &width, &height, &border_width, &depth);
 
-  GetDriver()->WindowSize((void *)drawable, width, height);
+  glhooks.GetDriver()->WindowSize((void *)drawable, width, height);
 
-  GetDriver()->SwapBuffers((void *)drawable);
+  glhooks.GetDriver()->SwapBuffers((void *)drawable);
 
-  OpenGLHook::glhooks.glXSwapBuffers_real(dpy, drawable);
+  glhooks.glXSwapBuffers_real(dpy, drawable);
 }
 
 __attribute__((visibility("default"))) __GLXextFuncPtr glXGetProcAddress(const GLubyte *f)
 {
-  if(OpenGLHook::glhooks.glXGetProcAddress_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(glhooks.glXGetProcAddress_real == NULL)
+    glhooks.SetupExportedFunctions();
 
-  __GLXextFuncPtr realFunc = OpenGLHook::glhooks.glXGetProcAddress_real(f);
+  __GLXextFuncPtr realFunc = glhooks.glXGetProcAddress_real(f);
   const char *func = (const char *)f;
 
   // if the client code did dlopen on libGL then tried to fetch some functions
@@ -531,9 +544,8 @@ __attribute__((visibility("default"))) __GLXextFuncPtr glXGetProcAddress(const G
   }
 
   // this might not be dlsym exported, so if it's GPA'd, record the real pointer for oureslves
-  if(!strcmp(func, "glXCreateContextAttribsARB") &&
-     OpenGLHook::glhooks.glXCreateContextAttribsARB_real == NULL)
-    OpenGLHook::glhooks.glXCreateContextAttribsARB_real = (PFNGLXCREATECONTEXTATTRIBSARBPROC)realFunc;
+  if(!strcmp(func, "glXCreateContextAttribsARB") && glhooks.glXCreateContextAttribsARB_real == NULL)
+    glhooks.glXCreateContextAttribsARB_real = (PFNGLXCREATECONTEXTATTRIBSARBPROC)realFunc;
 
   // handle a few functions that we only export as real functions, just
   // in case
@@ -567,14 +579,14 @@ __attribute__((visibility("default"))) __GLXextFuncPtr glXGetProcAddressARB(cons
 __attribute__((visibility("default"))) GLXWindow glXCreateWindow(Display *dpy, GLXFBConfig config,
                                                                  Window win, const int *attribList)
 {
-  if(OpenGLHook::glhooks.glXCreateWindow_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(glhooks.glXCreateWindow_real == NULL)
+    glhooks.SetupExportedFunctions();
 
-  GLXWindow ret = OpenGLHook::glhooks.glXCreateWindow_real(dpy, config, win, attribList);
+  GLXWindow ret = glhooks.glXCreateWindow_real(dpy, config, win, attribList);
 
   {
     SCOPED_LOCK(glLock);
-    OpenGLHook::glhooks.AddGLXWindow(ret, win);
+    glhooks.AddGLXWindow(ret, win);
   }
 
   return ret;
@@ -582,15 +594,15 @@ __attribute__((visibility("default"))) GLXWindow glXCreateWindow(Display *dpy, G
 
 __attribute__((visibility("default"))) void glXDestroyWindow(Display *dpy, GLXWindow window)
 {
-  if(OpenGLHook::glhooks.glXDestroyWindow_real == NULL)
-    OpenGLHook::glhooks.SetupExportedFunctions();
+  if(glhooks.glXDestroyWindow_real == NULL)
+    glhooks.SetupExportedFunctions();
 
   {
     SCOPED_LOCK(glLock);
-    OpenGLHook::glhooks.RemoveGLXWindow(window);
+    glhooks.RemoveGLXWindow(window);
   }
 
-  return OpenGLHook::glhooks.glXDestroyWindow_real(dpy, window);
+  return glhooks.glXDestroyWindow_real(dpy, window);
 }
 
 };    // extern "C"
@@ -607,24 +619,12 @@ bool OpenGLHook::PopulateHooks()
 
 const GLHookSet &GetRealGLFunctions()
 {
-  return OpenGLHook::glhooks.GetRealGLFunctions();
+  return glhooks.GetRealGLFunctions();
 }
 
-OpenGLHook OpenGLHook::glhooks;
-
-void MakeContextCurrent(GLWindowingData data)
+GLPlatform &GetGLPlatform()
 {
-  OpenGLHook::glhooks.MakeContextCurrent(data);
-}
-
-GLWindowingData MakeContext(GLWindowingData share)
-{
-  return OpenGLHook::glhooks.MakeContext(share);
-}
-
-void DeleteContext(GLWindowingData context)
-{
-  OpenGLHook::glhooks.DeleteContext(context);
+  return glhooks;
 }
 
 // dirty immediate mode rendering functions for backwards compatible
@@ -657,7 +657,7 @@ const GLenum MAT_PROJ = (GLenum)0x1701;
 
 static bool immediateInited = false;
 
-bool immediateBegin(GLenum mode, float width, float height)
+bool OpenGLHook::DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)
 {
   if(!immediateInited)
   {
@@ -709,22 +709,16 @@ bool immediateBegin(GLenum mode, float width, float height)
 
   matMode(prevMatMode);
 
-  begin(mode);
+  begin(eGL_QUADS);
 
-  return true;
-}
+  for(size_t i = 0; i < vertices.size(); i++)
+  {
+    t2f(vertices[i].z, vertices[i].w);
+    v2f(vertices[i].x, vertices[i].y);
+  }
 
-void immediateVert(float x, float y, float u, float v)
-{
-  t2f(u, v);
-  v2f(x, y);
-}
-
-void immediateEnd()
-{
   end();
 
-  GLenum prevMatMode = eGL_NONE;
   getInt(MAT_MODE, (GLint *)&prevMatMode);
 
   matMode(MAT_PROJ);
@@ -733,4 +727,6 @@ void immediateEnd()
   popm();
 
   matMode(prevMatMode);
+
+  return true;
 }

@@ -217,6 +217,7 @@ bool GLReplay::IsOutputWindowVisible(uint64_t id)
 }
 
 const GLHookSet &GetRealGLFunctionsEGL();
+GLPlatform &GetGLPlatformEGL();
 
 ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
@@ -357,7 +358,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
     return eReplayCreate_APIHardwareUnsupported;
   }
 
-  WrappedOpenGL *gl = new WrappedOpenGL(logfile, real);
+  WrappedOpenGL *gl = new WrappedOpenGL(logfile, real, GetGLPlatformEGL());
   gl->SetDriverType(RDC_OpenGLES);
   gl->Initialise(initParams);
 

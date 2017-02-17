@@ -34,12 +34,6 @@ bool VendorCheck[VendorCheck_Count];
 int GLCoreVersion = 0;
 bool GLIsCore = false;
 
-// simple wrapper for OS functions to make/delete a context
-GLWindowingData MakeContext(GLWindowingData share);
-void DeleteContext(GLWindowingData context);
-
-void MakeContextCurrent(GLWindowingData data);
-
 bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
                         PFNGLGETSTRINGIPROC getStri)
 {
@@ -413,7 +407,7 @@ void CheckExtensions(const GLHookSet &gl)
   }
 }
 
-void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
+void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData context)
 {
   //////////////////////////////////////////////////////////
   // version/driver/vendor specific hacks and checks go here
@@ -618,12 +612,12 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
     gl.glBindVertexArray(vao);
 
     // make a context that shares with the current one, and switch to it
-    GLWindowingData child = MakeContext(context);
+    GLWindowingData child = platform.MakeContext(context);
 
     if(child.ctx)
     {
       // switch to child
-      MakeContextCurrent(child);
+      platform.MakeContextCurrent(child);
 
       // these shouldn't be visible
       VendorCheck[VendorCheck_EXT_fbo_shared] = (gl.glIsFramebuffer(fbo) != GL_FALSE);
@@ -635,9 +629,9 @@ void DoVendorChecks(const GLHookSet &gl, GLWindowingData context)
         RDCWARN("VAOs are shared on this implementation");
 
       // switch back to context
-      MakeContextCurrent(context);
+      platform.MakeContextCurrent(context);
 
-      DeleteContext(child);
+      platform.DeleteContext(child);
     }
 
     gl.glDeleteFramebuffers(1, &fbo);

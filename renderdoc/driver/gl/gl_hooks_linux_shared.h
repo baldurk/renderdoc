@@ -30,8 +30,6 @@ void CloneDisplay(Display *dpy);
 
 void *SharedLookupFuncPtr(const char *func, void *realFunc);
 bool SharedPopulateHooks(void *(*lookupFunc)(const char *));
-void InitDriver(RDCDriver type);
-WrappedOpenGL *GetDriver();
 
 extern GLHookSet GL;
 extern WrappedOpenGL *m_GLDriver;

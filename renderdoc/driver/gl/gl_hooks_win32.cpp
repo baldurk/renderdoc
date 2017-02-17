@@ -305,7 +305,7 @@
 
 Threading::CriticalSection glLock;
 
-class OpenGLHook : LibraryHook
+class OpenGLHook : LibraryHook, public GLPlatform
 {
 public:
   OpenGLHook()
@@ -391,11 +391,13 @@ public:
       wglDeleteContext_hook()(context.ctx);
   }
 
+  bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices);
+
 private:
   WrappedOpenGL *GetDriver()
   {
     if(m_GLDriver == NULL)
-      m_GLDriver = new WrappedOpenGL("", GL);
+      m_GLDriver = new WrappedOpenGL("", GL, *this);
 
     return m_GLDriver;
   }
@@ -1314,24 +1316,14 @@ const GLHookSet &GetRealGLFunctions()
   return OpenGLHook::glhooks.GetRealGLFunctions();
 }
 
+GLPlatform &GetGLPlatform()
+{
+  return OpenGLHook::glhooks;
+}
+
 Threading::CriticalSection &GetGLLock()
 {
   return glLock;
-}
-
-void MakeContextCurrent(GLWindowingData data)
-{
-  OpenGLHook::glhooks.MakeContextCurrent(data);
-}
-
-GLWindowingData MakeContext(GLWindowingData share)
-{
-  return OpenGLHook::glhooks.MakeContext(share);
-}
-
-void DeleteContext(GLWindowingData context)
-{
-  OpenGLHook::glhooks.DeleteContext(context);
 }
 
 // dirty immediate mode rendering functions for backwards compatible
@@ -1364,7 +1356,7 @@ const GLenum MAT_PROJ = (GLenum)0x1701;
 
 static bool immediateInited = false;
 
-bool immediateBegin(GLenum mode, float width, float height)
+bool OpenGLHook::DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)
 {
   if(!immediateInited)
   {
@@ -1421,22 +1413,16 @@ bool immediateBegin(GLenum mode, float width, float height)
 
   matMode(prevMatMode);
 
-  begin(mode);
+  begin(eGL_QUADS);
 
-  return true;
-}
+  for(size_t i = 0; i < vertices.size(); i++)
+  {
+    t2f(vertices[i].z, vertices[i].w);
+    v2f(vertices[i].x, vertices[i].y);
+  }
 
-void immediateVert(float x, float y, float u, float v)
-{
-  t2f(u, v);
-  v2f(x, y);
-}
-
-void immediateEnd()
-{
   end();
 
-  GLenum prevMatMode = eGL_NONE;
   getInt(MAT_MODE, (GLint *)&prevMatMode);
 
   matMode(MAT_PROJ);
@@ -1445,4 +1431,6 @@ void immediateEnd()
   popm();
 
   matMode(prevMatMode);
+
+  return true;
 }
