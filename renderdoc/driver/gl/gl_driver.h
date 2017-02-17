@@ -110,6 +110,7 @@ class WrappedOpenGL : public IFrameCapturer
 {
 private:
   const GLHookSet &m_Real;
+  GLPlatform &m_Platform;
 
   // Used to clarify when we're making an internal call that isn't just part of
   // forwarding the capture, and allows us to emulate extensions like EXT_direct_state_access
@@ -493,7 +494,7 @@ private:
   WrappedOpenGL &operator=(const WrappedOpenGL &);
 
 public:
-  WrappedOpenGL(const char *logfile, const GLHookSet &funcs);
+  WrappedOpenGL(const char *logfile, const GLHookSet &funcs, GLPlatform &platform);
   virtual ~WrappedOpenGL();
 
   static const char *GetChunkName(uint32_t idx);

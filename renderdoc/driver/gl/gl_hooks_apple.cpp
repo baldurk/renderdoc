@@ -43,6 +43,18 @@ public:
   bool CreateHooks(const char *libName) { return false; }
   void EnableHooks(const char *libName, bool enable) {}
   void OptionsUpdated(const char *libName) {}
+  virtual GLWindowingData MakeContext(GLWindowingData share)
+  {
+    RDCUNIMPLEMENTED("MakeContext");
+    return GLWindowingData();
+  }
+  virtual void DeleteContext(GLWindowingData context) { RDCUNIMPLEMENTED("DeleteContext"); }
+  virtual void MakeContextCurrent(GLWindowingData data) { RDCUNIMPLEMENTED("MakeContextCurrent"); }
+  virtual bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)
+  {
+    RDCUNIMPLEMENTED("DrawQuads");
+    return false;
+  }
 };
 
 const GLHookSet &GetRealGLFunctions()
@@ -52,39 +64,7 @@ const GLHookSet &GetRealGLFunctions()
   return dummyHookset;
 }
 
-void MakeContextCurrent(GLWindowingData data)
-{
-  RDCUNIMPLEMENTED("MakeContextCurrent");
-}
-
-GLWindowingData MakeContext(GLWindowingData share)
-{
-  RDCUNIMPLEMENTED("MakeContext");
-  return GLWindowingData();
-}
-
 Threading::CriticalSection &GetGLLock()
 {
   return glLock;
-}
-
-void DeleteContext(GLWindowingData context)
-{
-  RDCUNIMPLEMENTED("DeleteContext");
-}
-
-bool immediateBegin(GLenum mode, float width, float height)
-{
-  RDCUNIMPLEMENTED("immediateBegin");
-  return false;
-}
-
-void immediateVert(float x, float y, float u, float v)
-{
-  RDCUNIMPLEMENTED("immediateVert");
-}
-
-void immediateEnd()
-{
-  RDCUNIMPLEMENTED("immediateEnd");
 }

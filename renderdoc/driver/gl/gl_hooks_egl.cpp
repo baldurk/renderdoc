@@ -49,7 +49,7 @@ typedef EGLBoolean (*PFN_eglMakeCurrent)(EGLDisplay dpy, EGLSurface draw, EGLSur
 typedef EGLBoolean (*PFN_eglSwapBuffers)(EGLDisplay dpy, EGLSurface surface);
 typedef EGLDisplay (*PFN_eglGetDisplay)(EGLNativeDisplayType display_id);
 
-class EGLHook : LibraryHook
+class EGLHook : LibraryHook, public GLPlatform
 {
 public:
   EGLHook()
@@ -65,12 +65,12 @@ public:
     m_EnabledHooks = true;
     m_PopulatedHooks = false;
   }
-  ~EGLHook() { delete m_GLDriver; }
-  static void libHooked(void *realLib)
+  ~EGLHook()
   {
-    libGLdlsymHandle = realLib;
-    EGLHook::glhooks.CreateHooks(NULL);
+    delete m_GLDriver;
+    m_GLDriver = NULL;
   }
+  static void libHooked(void *realLib);
 
   bool CreateHooks(const char *libName)
   {
@@ -92,8 +92,6 @@ public:
 
   void EnableHooks(const char *libName, bool enable) { m_EnabledHooks = enable; }
   void OptionsUpdated(const char *libName) {}
-  static EGLHook glhooks;
-
   const GLHookSet &GetRealGLFunctions()
   {
     if(!m_PopulatedHooks)
@@ -176,10 +174,12 @@ public:
       eglDestroyContext_real(context.egl_dpy, context.egl_ctx);
   }
 
+  bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices);
+
   WrappedOpenGL *GetDriver()
   {
     if(m_GLDriver == NULL)
-      m_GLDriver = new WrappedOpenGL("", GL);
+      m_GLDriver = new WrappedOpenGL("", GL, *this);
 
     return m_GLDriver;
   }
@@ -192,8 +192,6 @@ public:
   PFN_eglQuerySurface eglQuerySurface_real;
   PFN_eglGetConfigAttrib eglGetConfigAttrib_real;
   PFN_eglGetDisplay eglGetDisplay_real;
-
-  WrappedOpenGL *m_GLDriver;
 
   set<EGLContext> m_Contexts;
 
@@ -227,19 +225,25 @@ public:
   }
 
   bool PopulateHooks();
-};
+} eglhooks;
+
+void EGLHook::libHooked(void *realLib)
+{
+  libGLdlsymHandle = realLib;
+  eglhooks.CreateHooks(NULL);
+}
 
 // everything below here needs to have C linkage
 extern "C" {
 
 __attribute__((visibility("default"))) EGLDisplay eglGetDisplay(EGLNativeDisplayType display)
 {
-  if(EGLHook::glhooks.eglGetDisplay_real == NULL)
-    EGLHook::glhooks.SetupExportedFunctions();
+  if(eglhooks.eglGetDisplay_real == NULL)
+    eglhooks.SetupExportedFunctions();
 
   Keyboard::CloneDisplay(display);
 
-  return EGLHook::glhooks.eglGetDisplay_real(display);
+  return eglhooks.eglGetDisplay_real(display);
 }
 
 __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay display,
@@ -289,10 +293,10 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
     attribs = &attribVec[0];
   }
 
-  if(EGLHook::glhooks.eglCreateContext_real == NULL)
-    EGLHook::glhooks.SetupExportedFunctions();
+  if(eglhooks.eglCreateContext_real == NULL)
+    eglhooks.SetupExportedFunctions();
 
-  EGLContext ret = EGLHook::glhooks.eglCreateContext_real(display, config, shareContext, attribs);
+  EGLContext ret = eglhooks.eglCreateContext_real(display, config, shareContext, attribs);
 
   // don't continue if context creation failed
   if(!ret)
@@ -304,11 +308,11 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
   init.height = 0;
 
   EGLint value;
-  EGLHook::glhooks.eglGetConfigAttrib_real(display, config, EGL_BUFFER_SIZE, &value);
+  eglhooks.eglGetConfigAttrib_real(display, config, EGL_BUFFER_SIZE, &value);
   init.colorBits = value;
-  EGLHook::glhooks.eglGetConfigAttrib_real(display, config, EGL_DEPTH_SIZE, &value);
+  eglhooks.eglGetConfigAttrib_real(display, config, EGL_DEPTH_SIZE, &value);
   init.depthBits = value;
-  EGLHook::glhooks.eglGetConfigAttrib_real(display, config, EGL_STENCIL_SIZE, &value);
+  eglhooks.eglGetConfigAttrib_real(display, config, EGL_STENCIL_SIZE, &value);
   init.stencilBits = value;
   // TODO: how to detect this?
   init.isSRGB = 1;
@@ -320,7 +324,7 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
 
   {
     SCOPED_LOCK(glLock);
-    GetDriver()->CreateContext(data, shareContext, init, true, true);
+    eglhooks.GetDriver()->CreateContext(data, shareContext, init, true, true);
   }
 
   return ret;
@@ -328,32 +332,32 @@ __attribute__((visibility("default"))) EGLContext eglCreateContext(EGLDisplay di
 
 __attribute__((visibility("default"))) EGLBoolean eglDestroyContext(EGLDisplay dpy, EGLContext ctx)
 {
-  if(EGLHook::glhooks.eglDestroyContext_real == NULL)
-    EGLHook::glhooks.SetupExportedFunctions();
+  if(eglhooks.eglDestroyContext_real == NULL)
+    eglhooks.SetupExportedFunctions();
 
   {
     SCOPED_LOCK(glLock);
-    GetDriver()->DeleteContext(ctx);
+    eglhooks.GetDriver()->DeleteContext(ctx);
   }
 
-  return EGLHook::glhooks.eglDestroyContext_real(dpy, ctx);
+  return eglhooks.eglDestroyContext_real(dpy, ctx);
 }
 
 __attribute__((visibility("default"))) EGLBoolean eglMakeCurrent(EGLDisplay display, EGLSurface draw,
                                                                  EGLSurface read, EGLContext ctx)
 {
-  if(EGLHook::glhooks.eglMakeCurrent_real == NULL)
-    EGLHook::glhooks.SetupExportedFunctions();
+  if(eglhooks.eglMakeCurrent_real == NULL)
+    eglhooks.SetupExportedFunctions();
 
-  EGLBoolean ret = EGLHook::glhooks.eglMakeCurrent_real(display, draw, read, ctx);
+  EGLBoolean ret = eglhooks.eglMakeCurrent_real(display, draw, read, ctx);
 
   SCOPED_LOCK(glLock);
 
-  if(ctx && EGLHook::glhooks.m_Contexts.find(ctx) == EGLHook::glhooks.m_Contexts.end())
+  if(ctx && eglhooks.m_Contexts.find(ctx) == eglhooks.m_Contexts.end())
   {
-    EGLHook::glhooks.m_Contexts.insert(ctx);
+    eglhooks.m_Contexts.insert(ctx);
 
-    EGLHook::glhooks.PopulateHooks();
+    eglhooks.PopulateHooks();
   }
 
   GLWindowingData data;
@@ -361,35 +365,35 @@ __attribute__((visibility("default"))) EGLBoolean eglMakeCurrent(EGLDisplay disp
   data.egl_wnd = draw;
   data.egl_ctx = ctx;
 
-  GetDriver()->ActivateContext(data);
+  eglhooks.GetDriver()->ActivateContext(data);
 
   return ret;
 }
 
 __attribute__((visibility("default"))) EGLBoolean eglSwapBuffers(EGLDisplay dpy, EGLSurface surface)
 {
-  if(EGLHook::glhooks.eglSwapBuffers_real == NULL)
-    EGLHook::glhooks.SetupExportedFunctions();
+  if(eglhooks.eglSwapBuffers_real == NULL)
+    eglhooks.SetupExportedFunctions();
 
   SCOPED_LOCK(glLock);
 
   int height, width;
-  EGLHook::glhooks.eglQuerySurface_real(dpy, surface, EGL_HEIGHT, &height);
-  EGLHook::glhooks.eglQuerySurface_real(dpy, surface, EGL_WIDTH, &width);
+  eglhooks.eglQuerySurface_real(dpy, surface, EGL_HEIGHT, &height);
+  eglhooks.eglQuerySurface_real(dpy, surface, EGL_WIDTH, &width);
 
-  GetDriver()->WindowSize(surface, width, height);
-  GetDriver()->SwapBuffers(surface);
+  eglhooks.GetDriver()->WindowSize(surface, width, height);
+  eglhooks.GetDriver()->SwapBuffers(surface);
 
-  return EGLHook::glhooks.eglSwapBuffers_real(dpy, surface);
+  return eglhooks.eglSwapBuffers_real(dpy, surface);
 }
 
 __attribute__((visibility("default"))) __eglMustCastToProperFunctionPointerType eglGetProcAddress(
     const char *func)
 {
-  if(EGLHook::glhooks.eglGetProcAddress_real == NULL)
-    EGLHook::glhooks.SetupExportedFunctions();
+  if(eglhooks.eglGetProcAddress_real == NULL)
+    eglhooks.SetupExportedFunctions();
 
-  __eglMustCastToProperFunctionPointerType realFunc = EGLHook::glhooks.eglGetProcAddress_real(func);
+  __eglMustCastToProperFunctionPointerType realFunc = eglhooks.eglGetProcAddress_real(func);
 
   if(!strcmp(func, "eglCreateContext"))
     return (__eglMustCastToProperFunctionPointerType)&eglCreateContext;
@@ -422,41 +426,16 @@ bool EGLHook::PopulateHooks()
 
 const GLHookSet &GetRealGLFunctionsEGL()
 {
-  return EGLHook::glhooks.GetRealGLFunctions();
+  return eglhooks.GetRealGLFunctions();
 }
 
-EGLHook EGLHook::glhooks;
-
-#ifndef RENDERDOC_SUPPORT_GL    // FIXME
-void MakeContextCurrent(GLWindowingData data)
+GLPlatform &GetGLPlatformEGL()
 {
-  EGLHook::glhooks.MakeContextCurrent(data);
+  return eglhooks;
 }
 
-GLWindowingData MakeContext(GLWindowingData share)
-{
-  return EGLHook::glhooks.MakeContext(share);
-}
-
-void DeleteContext(GLWindowingData context)
-{
-  EGLHook::glhooks.DeleteContext(context);
-}
-#endif
-
-// FIXME: Combine both sets of immediate* functions in the same build of GL and GLES
-#ifndef RENDERDOC_SUPPORT_GL
 // All old style things are disabled in EGL mode
-bool immediateBegin(GLenum mode, float width, float height)
+bool EGLHook::DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)
 {
   return false;
 }
-
-void immediateVert(float x, float y, float u, float v)
-{
-}
-
-void immediateEnd()
-{
-}
-#endif
