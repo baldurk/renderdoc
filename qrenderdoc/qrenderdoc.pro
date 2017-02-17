@@ -89,6 +89,10 @@ win32 {
 
 	macx: {
 		DEFINES += RENDERDOC_PLATFORM_POSIX RENDERDOC_PLATFORM_APPLE
+		ICON = $$OSX_ICONFILE
+
+		INFO_PLIST_PATH = $$shell_quote($${DESTDIR}/$${TARGET}.app/Contents/Info.plist)
+		QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Add :CFBundleShortVersionString string $${RENDERDOC_VERSION}.0\" -c \"Set :CFBundleIdentifier org.renderdoc.qrenderdoc\" $${INFO_PLIST_PATH}
 	} else {
 		QT += x11extras
 		DEFINES += RENDERDOC_PLATFORM_POSIX RENDERDOC_PLATFORM_LINUX RENDERDOC_WINDOWING_XLIB RENDERDOC_WINDOWING_XCB

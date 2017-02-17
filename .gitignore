@@ -40,3 +40,4 @@ renderdoc/driver/vulkan/renderdoc_capture.json
 renderdocui/3rdparty/ironpython/pythonlibs.zip
 qrenderdoc/generated/
 qrenderdoc/3rdparty/qt
+.DS_Store

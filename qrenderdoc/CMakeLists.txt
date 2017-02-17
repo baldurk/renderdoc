@@ -20,13 +20,35 @@ if(QRENDERDOC_NO_CXX11_REGEX)
     set(QMAKE_CXXFLAGS "-DNO_CXX11_REGEX=1")
 endif()
 
+if(APPLE)
+    add_custom_command(OUTPUT RenderDoc.icns
+	COMMAND echo Creating OS X Icon
+        COMMAND mkdir -p RenderDoc.iconset
+        COMMAND qlmanage -t -s 1024 -o . ${CMAKE_CURRENT_SOURCE_DIR}/Resources/logo.svg
+        COMMAND sips -z 16 16     logo.svg.png --out RenderDoc.iconset/icon_16x16.png
+        COMMAND sips -z 32 32     logo.svg.png --out RenderDoc.iconset/icon_16x16@2x.png
+        COMMAND sips -z 32 32     logo.svg.png --out RenderDoc.iconset/icon_32x32.png
+        COMMAND sips -z 64 64     logo.svg.png --out RenderDoc.iconset/icon_32x32@2x.png
+        COMMAND sips -z 128 128   logo.svg.png --out RenderDoc.iconset/icon_128x128.png
+        COMMAND sips -z 256 256   logo.svg.png --out RenderDoc.iconset/icon_128x128@2x.png
+        COMMAND sips -z 256 256   logo.svg.png --out RenderDoc.iconset/icon_256x256.png
+        COMMAND sips -z 512 512   logo.svg.png --out RenderDoc.iconset/icon_256x256@2x.png
+        COMMAND sips -z 512 512   logo.svg.png --out RenderDoc.iconset/icon_512x512.png
+        COMMAND sips -z 1024 1024 logo.svg.png --out RenderDoc.iconset/icon_512x512@2x.png
+        COMMAND iconutil -c icns RenderDoc.iconset
+        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Resources/logo.svg)
+else()
+    add_custom_command(OUTPUT RenderDoc.icns COMMAND touch RenderDoc.icns)
+endif()
+
 # The case here is deliberately not matching the executable name
 # This means the custom command doesn't create this output file,
 # which causes CMake to rerun this target every time so that Qt
 # can do dependency checking and rebuild anything necessary.
 add_custom_command(OUTPUT QRenderDoc
-	COMMAND qmake "CONFIG+=${QMAKE_CONFIG}" "QMAKE_CC=${CMAKE_C_COMPILER}" "QMAKE_CXX=${CMAKE_CXX_COMPILER}" "QMAKE_LINK=${CMAKE_CXX_COMPILER}" "QMAKE_CXXFLAGS+=${warning_flags}" "QMAKE_CXXFLAGS+=${QMAKE_CXXFLAGS}" "QMAKE_LFLAGS+=${QMAKE_LDFLAGS}" "DEFINES+=GIT_COMMIT_HASH_LITERAL=${GIT_COMMIT_HASH}" "DESTDIR=${output_dir}" ${CMAKE_CURRENT_SOURCE_DIR}
-	COMMAND $(MAKE))
+	COMMAND qmake "CONFIG+=${QMAKE_CONFIG}" "QMAKE_CC=${CMAKE_C_COMPILER}" "QMAKE_CXX=${CMAKE_CXX_COMPILER}" "QMAKE_LINK=${CMAKE_CXX_COMPILER}" "QMAKE_CXXFLAGS+=${warning_flags}" "QMAKE_CXXFLAGS+=${QMAKE_CXXFLAGS}" "QMAKE_LFLAGS+=${QMAKE_LDFLAGS}" "DEFINES+=GIT_COMMIT_HASH_LITERAL=${GIT_COMMIT_HASH}" "RENDERDOC_VERSION=${RENDERDOC_VERSION}" "DESTDIR=${output_dir}" "OSX_ICONFILE=${CMAKE_CURRENT_BINARY_DIR}/RenderDoc.icns" ${CMAKE_CURRENT_SOURCE_DIR}
+	COMMAND $(MAKE)
+	DEPENDS RenderDoc.icns)
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc)
 
 install (PROGRAMS ${output_dir}/qrenderdoc DESTINATION bin)

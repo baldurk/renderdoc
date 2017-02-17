@@ -59,6 +59,26 @@ if(WIN32)
     message(FATAL_ERROR "CMake is not needed on Windows, just open and build renderdoc.sln")
 endif()
 
+message(STATUS "Calculating version")
+
+execute_process(
+    COMMAND awk "{ if (/_MAJOR [0-9]/) { print $3 } }" renderdoc/api/replay/version.h
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE RENDERDOC_VERSION_MAJOR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+
+execute_process(
+    COMMAND awk "{ if (/_MINOR [0-9]/) { print $3 } }" renderdoc/api/replay/version.h
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE RENDERDOC_VERSION_MINOR
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+  )
+
+set(RENDERDOC_VERSION "${RENDERDOC_VERSION_MAJOR}.${RENDERDOC_VERSION_MINOR}")
+
+message(STATUS "Building RenderDoc version ${RENDERDOC_VERSION}")
+
 if(APPLE)
     message(STATUS "Disabling Vulkan driver on apple")
 	set(ENABLE_VULKAN OFF CACHE BOOL "" FORCE)
