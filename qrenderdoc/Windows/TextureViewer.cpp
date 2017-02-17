@@ -2185,11 +2185,13 @@ void TextureViewer::render_mouseMove(QMouseEvent *e)
         m_PickedPoint.setX(qBound(0, m_PickedPoint.x(), (int)texptr->width - 1));
         m_PickedPoint.setY(qBound(0, m_PickedPoint.y(), (int)texptr->height - 1));
 
-        INVOKE_MEMFN(RT_PickPixelsAndUpdate);
+        m_Ctx.Renderer().AsyncInvoke("PickPixelClick",
+                                     [this](IReplayRenderer *r) { RT_PickPixelsAndUpdate(r); });
       }
       else if(e->buttons() == Qt::NoButton)
       {
-        INVOKE_MEMFN(RT_PickHoverAndUpdate);
+        m_Ctx.Renderer().AsyncInvoke("PickPixelHover",
+                                     [this](IReplayRenderer *r) { RT_PickHoverAndUpdate(r); });
       }
     }
   }

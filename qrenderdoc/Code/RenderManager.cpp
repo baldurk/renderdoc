@@ -231,6 +231,31 @@ bool RenderManager::IsRunning()
   return m_Thread && m_Thread->isRunning() && m_Running;
 }
 
+void RenderManager::AsyncInvoke(const QString &tag, RenderManager::InvokeMethod m)
+{
+  {
+    QMutexLocker autolock(&m_RenderLock);
+    for(int i = 0; i < m_RenderQueue.count();)
+    {
+      if(m_RenderQueue[i]->tag == tag)
+      {
+        InvokeHandle *cmd = m_RenderQueue.takeAt(i);
+        if(cmd->selfdelete)
+          delete cmd;
+      }
+      else
+      {
+        i++;
+      }
+    }
+  }
+
+  InvokeHandle *cmd = new InvokeHandle(m, tag);
+  cmd->selfdelete = true;
+
+  PushInvoke(cmd);
+}
+
 void RenderManager::AsyncInvoke(RenderManager::InvokeMethod m)
 {
   InvokeHandle *cmd = new InvokeHandle(m);
@@ -373,7 +398,7 @@ void RenderManager::PushInvoke(RenderManager::InvokeHandle *cmd)
   }
 
   QMutexLocker autolock(&m_RenderLock);
-  m_RenderQueue.push_back(cmd);
+  m_RenderQueue.enqueue(cmd);
   m_RenderCondition.wakeAll();
 }
 
@@ -396,31 +421,30 @@ void RenderManager::run()
   // main render command loop
   while(m_Running)
   {
-    QQueue<InvokeHandle *> queue;
+    InvokeHandle *cmd = NULL;
 
-    // wait for the condition to be woken, grab current queue,
+    // wait for the condition to be woken, grab top of current queue,
     // unlock again.
     {
       QMutexLocker autolock(&m_RenderLock);
-      m_RenderCondition.wait(&m_RenderLock, 10);
-      m_RenderQueue.swap(queue);
+      if(m_RenderQueue.isEmpty())
+        m_RenderCondition.wait(&m_RenderLock, 10);
+
+      if(!m_RenderQueue.isEmpty())
+        cmd = m_RenderQueue.dequeue();
     }
 
-    // process all the commands
-    for(InvokeHandle *cmd : queue)
-    {
-      if(cmd == NULL)
-        continue;
+    if(cmd == NULL)
+      continue;
 
-      if(cmd->method != NULL)
-        cmd->method(renderer);
+    if(cmd->method != NULL)
+      cmd->method(renderer);
 
-      // if it's a throwaway command, delete it
-      if(cmd->selfdelete)
-        delete cmd;
-      else
-        cmd->processed.release();
-    }
+    // if it's a throwaway command, delete it
+    if(cmd->selfdelete)
+      delete cmd;
+    else
+      cmd->processed.release();
   }
 
   // clean up anything left in the queue

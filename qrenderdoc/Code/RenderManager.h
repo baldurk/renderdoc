@@ -131,6 +131,13 @@ public:
 
   bool IsRunning();
   ReplayCreateStatus GetCreateStatus() { return m_CreateStatus; }
+  // this tagged version is for cases when we might send a request - e.g. to pick a vertex or pixel
+  // - and want to pre-empt it with a new request before the first has returned. Either because some
+  // other work is taking a while or because we're sending requests faster than they can be
+  // processed.
+  // the manager processes only the request on the top of the queue, so when a new tagged invoke
+  // comes in, we remove any other requests in the queue before it that have the same tag
+  void AsyncInvoke(const QString &tag, InvokeMethod m);
   void AsyncInvoke(InvokeMethod m);
   void BlockInvoke(InvokeMethod m);
 
@@ -155,12 +162,14 @@ public:
 private:
   struct InvokeHandle
   {
-    InvokeHandle(InvokeMethod m)
+    InvokeHandle(InvokeMethod m, const QString &t = QString())
     {
+      tag = t;
       method = m;
       selfdelete = false;
     }
 
+    QString tag;
     InvokeMethod method;
     QSemaphore processed;
     bool selfdelete;
