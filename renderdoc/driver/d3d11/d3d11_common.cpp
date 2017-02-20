@@ -30,9 +30,9 @@
 #include "serialise/serialiser.h"
 #include "serialise/string_utils.h"
 
-WrappedID3D11Device *MarkerRegion::device;
+WrappedID3D11Device *D3D11MarkerRegion::device;
 
-MarkerRegion::MarkerRegion(const std::string &marker)
+D3D11MarkerRegion::D3D11MarkerRegion(const std::string &marker)
 {
   if(device == NULL)
     return;
@@ -43,7 +43,7 @@ MarkerRegion::MarkerRegion(const std::string &marker)
     annot->BeginEvent(StringFormat::UTF82Wide(marker).c_str());
 }
 
-void MarkerRegion::Set(const std::string &marker)
+void D3D11MarkerRegion::Set(const std::string &marker)
 {
   if(device == NULL)
     return;
@@ -54,7 +54,7 @@ void MarkerRegion::Set(const std::string &marker)
     annot->SetMarker(StringFormat::UTF82Wide(marker).c_str());
 }
 
-MarkerRegion::~MarkerRegion()
+D3D11MarkerRegion::~D3D11MarkerRegion()
 {
   if(device == NULL)
     return;

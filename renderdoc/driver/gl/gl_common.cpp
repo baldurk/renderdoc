@@ -657,6 +657,33 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
   VendorCheck[VendorCheck_AMD_vertex_array_elem_buffer_query] = true;
 }
 
+const GLHookSet *GLMarkerRegion::gl;
+
+GLMarkerRegion::GLMarkerRegion(const std::string &marker)
+{
+  if(gl == NULL || !HasExt[KHR_debug] || !gl->glPushDebugGroup)
+    return;
+
+  gl->glPushDebugGroup(eGL_DEBUG_SOURCE_APPLICATION, 0, -1, marker.c_str());
+}
+
+void GLMarkerRegion::Set(const std::string &marker)
+{
+  if(gl == NULL || !HasExt[KHR_debug] || !gl->glDebugMessageInsert)
+    return;
+
+  gl->glDebugMessageInsert(eGL_DEBUG_SOURCE_APPLICATION, eGL_DEBUG_TYPE_MARKER, 0,
+                           eGL_DEBUG_SEVERITY_NOTIFICATION, -1, marker.c_str());
+}
+
+GLMarkerRegion::~GLMarkerRegion()
+{
+  if(gl == NULL || !HasExt[KHR_debug] || !gl->glPopDebugGroup)
+    return;
+
+  gl->glPopDebugGroup();
+}
+
 size_t BufferIdx(GLenum buf)
 {
   switch(buf)

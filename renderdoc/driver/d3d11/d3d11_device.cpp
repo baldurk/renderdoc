@@ -364,7 +364,7 @@ WrappedID3D11Device::WrappedID3D11Device(ID3D11Device *realDevice, D3D11InitPara
     m_State = READING;
     m_pSerialiser = NULL;
 
-    MarkerRegion::device = this;
+    D3D11MarkerRegion::device = this;
 
     string shaderSearchPathString = RenderDoc::Inst().GetConfigSetting("shader.debug.searchPaths");
     split(shaderSearchPathString, m_ShaderSearchPaths, ';');
@@ -480,7 +480,7 @@ WrappedID3D11Device::~WrappedID3D11Device()
   if(m_pCurrentWrappedDevice == this)
     m_pCurrentWrappedDevice = NULL;
 
-  MarkerRegion::device = NULL;
+  D3D11MarkerRegion::device = NULL;
 
   RenderDoc::Inst().RemoveDeviceFrameCapturer((ID3D11Device *)this);
 
@@ -2459,7 +2459,7 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   if(!partial)
   {
-    MarkerRegion apply("ApplyInitialContents");
+    D3D11MarkerRegion apply("ApplyInitialContents");
     GetResourceManager()->ApplyInitialContents();
     GetResourceManager()->ReleaseInFrameResources();
   }
@@ -2468,20 +2468,20 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   if(replayType == eReplay_Full)
   {
-    MarkerRegion exec(
+    D3D11MarkerRegion exec(
         StringFormat::Fmt("Replay: Full %u->%u (partial %u)", startEventID, endEventID, partial));
     m_pImmediateContext->ReplayLog(EXECUTING, startEventID, endEventID, partial);
   }
   else if(replayType == eReplay_WithoutDraw)
   {
-    MarkerRegion exec(StringFormat::Fmt("Replay: W/O Draw %u->%u (partial %u)", startEventID,
-                                        endEventID, partial));
+    D3D11MarkerRegion exec(StringFormat::Fmt("Replay: W/O Draw %u->%u (partial %u)", startEventID,
+                                             endEventID, partial));
     m_pImmediateContext->ReplayLog(EXECUTING, startEventID, RDCMAX(1U, endEventID) - 1, partial);
   }
   else if(replayType == eReplay_OnlyDraw)
   {
-    MarkerRegion exec(StringFormat::Fmt("Replay: Draw Only %u->%u (partial %u)", startEventID,
-                                        endEventID, partial));
+    D3D11MarkerRegion exec(StringFormat::Fmt("Replay: Draw Only %u->%u (partial %u)", endEventID,
+                                             endEventID, partial));
     m_pImmediateContext->ReplayLog(EXECUTING, endEventID, endEventID, partial);
   }
   else

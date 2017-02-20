@@ -763,6 +763,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs, GLPlat
       m_pSerialiser = new Serialiser(4, dummy, false);
     }
 
+    GLMarkerRegion::gl = &m_Real;
+
     // once GL driver is more tested, this can be disabled
     if(HasExt[KHR_debug] && m_Real.glDebugMessageCallback)
     {
@@ -4213,18 +4215,31 @@ void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
   if(!partial)
   {
+    GLMarkerRegion apply("ApplyInitialContents");
     GetResourceManager()->ApplyInitialContents();
     GetResourceManager()->ReleaseInFrameResources();
   }
 
+  if(replayType == eReplay_Full)
   {
-    if(replayType == eReplay_Full)
-      ContextReplayLog(EXECUTING, startEventID, endEventID, partial);
-    else if(replayType == eReplay_WithoutDraw)
-      ContextReplayLog(EXECUTING, startEventID, RDCMAX(1U, endEventID) - 1, partial);
-    else if(replayType == eReplay_OnlyDraw)
-      ContextReplayLog(EXECUTING, endEventID, endEventID, partial);
-    else
-      RDCFATAL("Unexpected replay type");
+    GLMarkerRegion exec(
+        StringFormat::Fmt("Replay: Full %u->%u (partial %u)", startEventID, endEventID, partial));
+    ContextReplayLog(EXECUTING, startEventID, endEventID, partial);
+  }
+  else if(replayType == eReplay_WithoutDraw)
+  {
+    GLMarkerRegion exec(StringFormat::Fmt("Replay: W/O Draw %u->%u (partial %u)", startEventID,
+                                          endEventID, partial));
+    ContextReplayLog(EXECUTING, startEventID, RDCMAX(1U, endEventID) - 1, partial);
+  }
+  else if(replayType == eReplay_OnlyDraw)
+  {
+    GLMarkerRegion exec(StringFormat::Fmt("Replay: Draw Only %u->%u (partial %u)", endEventID,
+                                          endEventID, partial));
+    ContextReplayLog(EXECUTING, endEventID, endEventID, partial);
+  }
+  else
+  {
+    RDCFATAL("Unexpected replay type");
   }
 }

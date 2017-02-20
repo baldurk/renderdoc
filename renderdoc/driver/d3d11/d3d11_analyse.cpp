@@ -4692,7 +4692,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
   if(details.texFmt == DXGI_FORMAT_UNKNOWN)
     return history;
 
-  MarkerRegion historyMarker(
+  D3D11MarkerRegion historyMarker(
       StringFormat::Fmt("Doing PixelHistory on %llu, (%u,%u) %u, %u, %u over %u events", target, x,
                         y, slice, mip, sampleIdx, (uint32_t)events.size()));
 
@@ -6435,12 +6435,12 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     if(draw->flags & eDraw_Clear)
       continue;
 
-    MarkerRegion historyData(
+    D3D11MarkerRegion historyData(
         StringFormat::Fmt("Fetching history data for %u: %s", draw->eventID, draw->name.c_str()));
 
     if(prev != history[h].eventID)
     {
-      MarkerRegion predraw("fetching pre-draw");
+      D3D11MarkerRegion predraw("fetching pre-draw");
 
       m_WrappedDevice->ReplayLog(0, history[h].eventID, eReplay_WithoutDraw);
       prev = history[h].eventID;
@@ -6574,7 +6574,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     // if we're not the last modification in our event, need to fetch post fragment value
     if(h + 1 < history.size() && history[h].eventID == history[h + 1].eventID)
     {
-      MarkerRegion middraw("fetching mid-draw");
+      D3D11MarkerRegion middraw("fetching mid-draw");
 
       m_pImmediateContext->OMSetRenderTargets(rtIndex + 1, RTVs, shaddepthOutputDSV);
 
@@ -6598,7 +6598,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
       // fetch shader output value
       {
-        MarkerRegion shadout("fetching shader-out");
+        D3D11MarkerRegion shadout("fetching shader-out");
 
         ID3D11RenderTargetView *sparseRTVs[8] = {0};
         sparseRTVs[rtIndex] = shadOutputRTV;
@@ -6620,7 +6620,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
       // fetch primitive ID
       {
-        MarkerRegion primid("fetching prim ID");
+        D3D11MarkerRegion primid("fetching prim ID");
 
         m_pImmediateContext->OMSetRenderTargets(1, &shadOutputRTV, shaddepthOutputDSV);
 

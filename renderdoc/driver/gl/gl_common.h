@@ -218,6 +218,16 @@ const GLenum eGL_ONE = (GLenum)1;
 class WrappedOpenGL;
 struct GLHookSet;
 
+// replay only class for handling marker regions
+struct GLMarkerRegion
+{
+  GLMarkerRegion(const std::string &marker);
+  ~GLMarkerRegion();
+  static void Set(const std::string &marker);
+
+  static const GLHookSet *gl;
+};
+
 size_t BufferIdx(GLenum buf);
 GLenum BufferEnum(size_t idx);
 

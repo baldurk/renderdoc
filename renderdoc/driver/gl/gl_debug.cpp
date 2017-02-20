@@ -2154,6 +2154,8 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
+  GLMarkerRegion renderoverlay(StringFormat::Fmt("RenderOverlay %d", overlay));
+
   void *ctx = m_ReplayCtx.ctx;
 
   GLRenderState rs(&gl.GetHookset(), NULL, READING);

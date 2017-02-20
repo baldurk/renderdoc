@@ -38,10 +38,10 @@ class WrappedID3D11Device;
 struct D3D11RenderState;
 
 // replay only class for handling marker regions
-struct MarkerRegion
+struct D3D11MarkerRegion
 {
-  MarkerRegion(const std::string &marker);
-  ~MarkerRegion();
+  D3D11MarkerRegion(const std::string &marker);
+  ~D3D11MarkerRegion();
   static void Set(const std::string &marker);
 
   static WrappedID3D11Device *device;
