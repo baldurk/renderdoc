@@ -80,6 +80,8 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string filename;
         public DirectoryFileProperty flags;
+        public UInt32 lastmod;
+        public UInt64 size;
 
         public override string ToString()
         {
