@@ -177,7 +177,7 @@ struct GPUQueries
   uint32_t eventID;
 };
 
-struct CounterContext
+struct GLCounterContext
 {
   uint32_t eventStart;
   vector<GPUQueries> queries;
@@ -201,7 +201,7 @@ GLenum glCounters[] = {
     eGL_COMPUTE_SHADER_INVOCATIONS_ARB             // eCounter_CSInvocations
 };
 
-void GLReplay::FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode,
+void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallTreeNode &drawnode,
                           const vector<uint32_t> &counters)
 {
   if(drawnode.children.empty())
@@ -276,7 +276,7 @@ vector<CounterResult> GLReplay::FetchCounters(const vector<uint32_t> &counters)
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
-  CounterContext ctx;
+  GLCounterContext ctx;
 
   for(int loop = 0; loop < 1; loop++)
   {

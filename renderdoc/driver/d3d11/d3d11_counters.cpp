@@ -183,14 +183,14 @@ struct GPUTimer
   uint32_t eventID;
 };
 
-struct CounterContext
+struct D3D11CounterContext
 {
   uint32_t eventStart;
   vector<GPUTimer> timers;
   int reuseIdx;
 };
 
-void D3D11DebugManager::FillTimers(CounterContext &ctx, const DrawcallTreeNode &drawnode)
+void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallTreeNode &drawnode)
 {
   const D3D11_QUERY_DESC qtimedesc = {D3D11_QUERY_TIMESTAMP, 0};
   const D3D11_QUERY_DESC qstatsdesc = {D3D11_QUERY_PIPELINE_STATISTICS, 0};
@@ -291,7 +291,7 @@ vector<CounterResult> D3D11DebugManager::FetchCounters(const vector<uint32_t> &c
     return ret;
   }
 
-  CounterContext ctx;
+  D3D11CounterContext ctx;
 
   for(int loop = 0; loop < 1; loop++)
   {
