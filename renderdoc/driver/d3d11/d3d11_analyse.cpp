@@ -921,6 +921,9 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
   using namespace DXBC;
   using namespace ShaderDebug;
 
+  D3D11MarkerRegion debugpixRegion(
+      StringFormat::Fmt("DebugVertex @ %u of (%u,%u,%u)", eventID, vertid, instid, idx));
+
   ShaderDebugTrace empty;
 
   D3D11RenderStateTracker tracker(m_WrappedContext);
@@ -1237,6 +1240,8 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
 
   states.push_back((State)initialState);
 
+  D3D11MarkerRegion simloop("Simulation Loop");
+
   for(int cycleCounter = 0;; cycleCounter++)
   {
     if(initialState.Finished())
@@ -1263,6 +1268,9 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
 {
   using namespace DXBC;
   using namespace ShaderDebug;
+
+  D3D11MarkerRegion debugpixRegion(
+      StringFormat::Fmt("DebugPixel @ %u of (%u,%u) %u / %u", eventID, x, y, sample, primitive));
 
   ShaderDebugTrace empty;
 
@@ -2059,6 +2067,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
 
   int cycleCounter = 0;
 
+  D3D11MarkerRegion simloop("Simulation Loop");
+
   // simulate lockstep until all threads are finished
   bool finished = true;
   do
@@ -2177,6 +2187,10 @@ ShaderDebugTrace D3D11DebugManager::DebugThread(uint32_t eventID, uint32_t group
 {
   using namespace DXBC;
   using namespace ShaderDebug;
+
+  D3D11MarkerRegion simloop(StringFormat::Fmt("DebugThread @ %u: [%u, %u, %u] (%u, %u, %u)",
+                                              eventID, groupid[0], groupid[1], groupid[2],
+                                              threadid[0], threadid[1], threadid[2]));
 
   ShaderDebugTrace empty;
 
