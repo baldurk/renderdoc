@@ -1521,6 +1521,31 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
         arrayLength = 1;
     }
 
+    // The compiler is also really annoying and will go to great lengths to rearrange elements
+    // and screw up our declaration, to pack things together. E.g.:
+    // float2 a : TEXCOORD1;
+    // float4 b : TEXCOORD2;
+    // float4 c : TEXCOORD3;
+    // float2 d : TEXCOORD4;
+    // the compiler will move d up and pack it into the last two components of a.
+    // To prevent this, we look forward and backward to check that we aren't expecting to pack
+    // with anything, and if not then we just make it a 1-length array to ensure no packing.
+    // Note the regChannelMask & 0x1 means it is using .x, so it's not the tail-end of a pack
+    if(included && arrayLength == 0 && numCols <= 2 && (dxbc->m_InputSig[i].regChannelMask & 0x1))
+    {
+      if(i == dxbc->m_InputSig.size() - 1)
+      {
+        // the last element is never packed
+        arrayLength = 1;
+      }
+      else
+      {
+        // if the next reg is using .x, it wasn't packed with us
+        if(dxbc->m_InputSig[i + 1].regChannelMask & 0x1)
+          arrayLength = 1;
+      }
+    }
+
     extractHlsl += ToStr::Get((uint32_t)numCols) + " input_" + name;
     if(arrayLength > 0)
       extractHlsl += "[" + ToStr::Get(arrayLength) + "]";
