@@ -1807,10 +1807,10 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 
     m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
-    m_CurEventID++;
-
     for(uint32_t i = 0; i < Count; i++)
     {
+      m_CurEventID++;
+
       FetchDrawcall multidraw;
       multidraw.numIndices = countArray[i];
       multidraw.vertexOffset = firstArray[i];
@@ -1824,15 +1824,13 @@ bool WrappedOpenGL::Serialise_glMultiDrawArrays(GLenum mode, const GLint *first,
 
       AddEvent(desc);
       AddDrawcall(multidraw, true);
-
-      m_CurEventID++;
     }
 
     m_DrawcallStack.pop_back();
   }
   else
   {
-    m_CurEventID += Count + 1;
+    m_CurEventID += Count;
   }
 
   SAFE_DELETE_ARRAY(firstArray);
@@ -1967,10 +1965,10 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 
     m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
-    m_CurEventID++;
-
     for(uint32_t i = 0; i < Count; i++)
     {
+      m_CurEventID++;
+
       FetchDrawcall multidraw;
       multidraw.numIndices = countArray[i];
       multidraw.indexOffset = (uint32_t)uint64_t(idxOffsArray[i]) & 0xFFFFFFFF;
@@ -1987,15 +1985,13 @@ bool WrappedOpenGL::Serialise_glMultiDrawElements(GLenum mode, const GLsizei *co
 
       AddEvent(desc);
       AddDrawcall(multidraw, true);
-
-      m_CurEventID++;
     }
 
     m_DrawcallStack.pop_back();
   }
   else
   {
-    m_CurEventID += Count + 1;
+    m_CurEventID += Count;
   }
 
   SAFE_DELETE_ARRAY(countArray);
@@ -2133,10 +2129,10 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 
     m_DrawcallStack.push_back(&m_DrawcallStack.back()->children.back());
 
-    m_CurEventID++;
-
     for(uint32_t i = 0; i < Count; i++)
     {
+      m_CurEventID++;
+
       FetchDrawcall multidraw;
       multidraw.numIndices = countArray[i];
       multidraw.indexOffset = (uint32_t)uint64_t(idxOffsArray[i]) & 0xFFFFFFFF;
@@ -2154,15 +2150,13 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsBaseVertex(GLenum mode, const G
 
       AddEvent(desc);
       AddDrawcall(multidraw, true);
-
-      m_CurEventID++;
     }
 
     m_DrawcallStack.pop_back();
   }
   else
   {
-    m_CurEventID += Count + 1;
+    m_CurEventID += Count;
   }
 
   SAFE_DELETE_ARRAY(countArray);
@@ -2290,12 +2284,12 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
           EventUsage(m_CurEventID, eUsage_Indirect));
     }
 
-    m_CurEventID++;
-
     GLintptr offs = (GLintptr)Offset;
 
     for(uint32_t i = 0; i < Count; i++)
     {
+      m_CurEventID++;
+
       DrawArraysIndirectCommand params;
 
       m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
@@ -2321,15 +2315,13 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirect(GLenum mode, const void 
 
       AddEvent(desc);
       AddDrawcall(multidraw, true);
-
-      m_CurEventID++;
     }
 
     m_DrawcallStack.pop_back();
   }
   else
   {
-    m_CurEventID += Count + 1;
+    m_CurEventID += Count;
   }
 
   return true;
@@ -2460,12 +2452,12 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
           EventUsage(m_CurEventID, eUsage_Indirect));
     }
 
-    m_CurEventID++;
-
     GLintptr offs = (GLintptr)Offset;
 
     for(uint32_t i = 0; i < Count; i++)
     {
+      m_CurEventID++;
+
       DrawElementsIndirectCommand params;
 
       m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
@@ -2493,15 +2485,13 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirect(GLenum mode, GLenum ty
 
       AddEvent(desc);
       AddDrawcall(multidraw, true);
-
-      m_CurEventID++;
     }
 
     m_DrawcallStack.pop_back();
   }
   else
   {
-    m_CurEventID += Count + 1;
+    m_CurEventID += Count;
   }
 
   return true;
@@ -2637,12 +2627,12 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
           EventUsage(m_CurEventID, eUsage_Indirect));
     }
 
-    m_CurEventID++;
-
     GLintptr offs = (GLintptr)Offset;
 
     for(uint32_t i = 0; i < realdrawcount; i++)
     {
+      m_CurEventID++;
+
       DrawArraysIndirectCommand params;
 
       m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
@@ -2668,15 +2658,13 @@ bool WrappedOpenGL::Serialise_glMultiDrawArraysIndirectCountARB(GLenum mode, GLi
 
       AddEvent(desc);
       AddDrawcall(multidraw, true);
-
-      m_CurEventID++;
     }
 
     m_DrawcallStack.pop_back();
   }
   else
   {
-    m_CurEventID += realdrawcount + 1;
+    m_CurEventID += realdrawcount;
   }
 
   return true;
@@ -2823,12 +2811,12 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
           EventUsage(m_CurEventID, eUsage_Indirect));
     }
 
-    m_CurEventID++;
-
     GLintptr offs = (GLintptr)Offset;
 
     for(uint32_t i = 0; i < realdrawcount; i++)
     {
+      m_CurEventID++;
+
       DrawElementsIndirectCommand params;
 
       m_Real.glGetBufferSubData(eGL_DRAW_INDIRECT_BUFFER, offs, sizeof(params), &params);
@@ -2856,15 +2844,13 @@ bool WrappedOpenGL::Serialise_glMultiDrawElementsIndirectCountARB(GLenum mode, G
 
       AddEvent(desc);
       AddDrawcall(multidraw, true);
-
-      m_CurEventID++;
     }
 
     m_DrawcallStack.pop_back();
   }
   else
   {
-    m_CurEventID += realdrawcount + 1;
+    m_CurEventID += realdrawcount;
   }
 
   return true;
