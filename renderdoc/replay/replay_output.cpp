@@ -444,22 +444,39 @@ uint32_t ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y, uint
 
   *pickedInstance = 0;
 
-  if(draw->flags & eDraw_Instanced)
+  // input data either doesn't vary with instance, or is trivial (all verts the same for that
+  // element), so only care about fetching the right instance for post-VS stages
+  if((draw->flags & eDraw_Instanced) && m_RenderData.meshDisplay.type != eMeshDataStage_VSIn)
   {
-    uint32_t maxInst = 0;
+    // if no special options are enabled, just look at the current instance
+    uint32_t firstInst = m_RenderData.meshDisplay.curInstance;
+    uint32_t maxInst = m_RenderData.meshDisplay.curInstance + 1;
+
     if(m_RenderData.meshDisplay.showPrevInstances)
-      maxInst = RDCMAX(1U, m_RenderData.meshDisplay.curInstance);
-    if(m_RenderData.meshDisplay.showAllInstances)
-      maxInst = RDCMAX(1U, draw->numInstances);
-
-    for(uint32_t inst = 0; inst < maxInst; inst++)
     {
-      // get the 'most final' stage
-      MeshFormat fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, eMeshDataStage_GSOut);
-      if(fmt.buf == ResourceId())
-        fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, eMeshDataStage_VSOut);
+      firstInst = 0;
+      maxInst = RDCMAX(1U, m_RenderData.meshDisplay.curInstance);
+    }
 
-      cfg.position = fmt;
+    if(m_RenderData.meshDisplay.showAllInstances)
+    {
+      firstInst = 0;
+      maxInst = RDCMAX(1U, draw->numInstances);
+    }
+
+    // used for post-VS output, calculate the offset of the element we're using as position,
+    // relative to 0
+    MeshFormat fmt = m_pDevice->GetPostVSBuffers(
+        draw->eventID, m_RenderData.meshDisplay.curInstance, m_RenderData.meshDisplay.type);
+    uint64_t elemOffset = cfg.position.offset - fmt.offset;
+
+    for(uint32_t inst = firstInst; inst < maxInst; inst++)
+    {
+      // find the start of this buffer, and apply the element offset, then pick in that instance
+      MeshFormat fmt =
+          m_pDevice->GetPostVSBuffers(draw->eventID, inst, m_RenderData.meshDisplay.type);
+      if(fmt.buf != ResourceId())
+        cfg.position.offset = fmt.offset + elemOffset;
 
       uint32_t ret = m_pDevice->PickVertex(m_EventID, cfg, x, y);
       if(ret != ~0U)

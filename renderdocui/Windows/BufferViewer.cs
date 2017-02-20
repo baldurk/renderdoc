@@ -1858,6 +1858,7 @@ namespace renderdocui.Windows
             state.m_DataParseThread = th;
         }
 
+        private int m_QueuedRowSelect = -1;
         private bool SuppressCaching = false;
 
         private void UI_ShowRows(UIState state, int horizScroll)
@@ -1880,6 +1881,18 @@ namespace renderdocui.Windows
                     largeBufferWarning.Visible = true;
 
                 ScrollToRow(bufView, RowOffset);
+
+                if (m_QueuedRowSelect != -1)
+                {
+                    ScrollToRow(bufView, m_QueuedRowSelect);
+
+                    bufView.ClearSelection();
+                    bufView.Rows[m_QueuedRowSelect].Selected = true;
+
+                    SyncViews(bufView, true, true);
+
+                    m_QueuedRowSelect = -1;
+                }
 
                 SuppressCaching = false;
 
@@ -2392,23 +2405,26 @@ namespace renderdocui.Windows
                             instanceIdx.Text = instanceSelected.ToString();
                             instanceIdxToolitem.Text = instanceIdx.Text;
                             OnEventSelected(m_Core.CurEvent);
+                            m_QueuedRowSelect = (int)vertSelected;
                         }
-
-                        var ui = GetUIState(m_MeshDisplay.type);
-
-                        int row = (int)vertSelected;
-
-                        if (row >= 0 && row < ui.m_GridView.RowCount)
+                        else
                         {
-                            if (ui.m_GridView.SelectedRows.Count == 0 || ui.m_GridView.SelectedRows[0] != ui.m_GridView.Rows[row])
+                            var ui = GetUIState(m_MeshDisplay.type);
+
+                            int row = (int)vertSelected;
+
+                            if (row >= 0 && row < ui.m_GridView.RowCount)
                             {
-                                ScrollToRow(ui.m_GridView, row);
+                                if (ui.m_GridView.SelectedRows.Count == 0 || ui.m_GridView.SelectedRows[0] != ui.m_GridView.Rows[row])
+                                {
+                                    ScrollToRow(ui.m_GridView, row);
 
-                                ui.m_GridView.ClearSelection();
-                                ui.m_GridView.Rows[row].Selected = true;
+                                    ui.m_GridView.ClearSelection();
+                                    ui.m_GridView.Rows[row].Selected = true;
+                                }
+
+                                SyncViews(ui.m_GridView, true, true);
                             }
-
-                            SyncViews(ui.m_GridView, true, true);
                         }
 
                     }));
