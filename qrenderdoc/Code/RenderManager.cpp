@@ -270,11 +270,7 @@ void RenderManager::BlockInvoke(RenderManager::InvokeMethod m)
 
   PushInvoke(cmd);
 
-  for(;;)
-  {
-    if(cmd->processed.tryAcquire())
-      break;
-  }
+  cmd->processed.acquire();
 
   delete cmd;
 }
