@@ -2129,8 +2129,7 @@ void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint frag
 
         gl.glUseProgramStages(DebugData.overlayPipe, ShaderBit(i), progdst);
 
-        CopyProgramUniforms(gl.GetHookset(), Program, progdst);
-
+        // we have to link the program first, as this trashes all uniform values
         if(i == 0)
         {
           CopyProgramAttribBindings(gl.GetHookset(), Program, progdst,
@@ -2138,6 +2137,8 @@ void GLReplay::SetupOverlayPipeline(GLuint Program, GLuint Pipeline, GLuint frag
 
           gl.glLinkProgram(progdst);
         }
+
+        CopyProgramUniforms(gl.GetHookset(), Program, progdst);
       }
     }
   }
