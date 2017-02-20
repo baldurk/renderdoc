@@ -842,24 +842,26 @@ BufferViewer::BufferViewer(CaptureContext &ctx, bool meshview, QWidget *parent)
   else
     SetupRawView();
 
-  QMenu *exportMenu = new QMenu(this);
+  m_ExportMenu = new QMenu(this);
 
-  QAction *csv = new QAction(tr("Export to &CSV"), this);
-  csv->setIcon(Icons::save());
-  exportMenu->addAction(csv);
-  QAction *bytes = new QAction(tr("Export to &Bytes"), this);
-  bytes->setIcon(Icons::save());
-  exportMenu->addAction(bytes);
+  m_ExportCSV = new QAction(tr("Export to &CSV"), this);
+  m_ExportCSV->setIcon(Icons::save());
+  m_ExportBytes = new QAction(tr("Export to &Bytes"), this);
+  m_ExportBytes->setIcon(Icons::save());
 
-  QAction *debug = new QAction(tr("&Debug this Vertex"), this);
-  debug->setIcon(Icons::wrench());
+  m_ExportMenu->addAction(m_ExportCSV);
+  m_ExportMenu->addAction(m_ExportBytes);
 
-  ui->exportDrop->setMenu(exportMenu);
+  m_DebugVert = new QAction(tr("&Debug this Vertex"), this);
+  m_DebugVert->setIcon(Icons::wrench());
 
-  QObject::connect(csv, &QAction::triggered, [this] { exportData(BufferExport(BufferExport::CSV)); });
-  QObject::connect(bytes, &QAction::triggered,
+  ui->exportDrop->setMenu(m_ExportMenu);
+
+  QObject::connect(m_ExportCSV, &QAction::triggered,
+                   [this] { exportData(BufferExport(BufferExport::CSV)); });
+  QObject::connect(m_ExportBytes, &QAction::triggered,
                    [this] { exportData(BufferExport(BufferExport::RawBytes)); });
-  QObject::connect(debug, &QAction::triggered, this, &BufferViewer::debugVertex);
+  QObject::connect(m_DebugVert, &QAction::triggered, this, &BufferViewer::debugVertex);
 
   QObject::connect(ui->exportDrop, &QToolButton::clicked,
                    [this] { exportData(BufferExport(BufferExport::CSV)); });
@@ -868,59 +870,22 @@ BufferViewer::BufferViewer(CaptureContext &ctx, bool meshview, QWidget *parent)
   ui->vsoutData->setContextMenuPolicy(Qt::CustomContextMenu);
   ui->gsoutData->setContextMenuPolicy(Qt::CustomContextMenu);
 
-  QMenu *vsinMenu = new QMenu(this);
+  QMenu *menu = new QMenu(this);
 
   QObject::connect(ui->vsinData, &RDTableView::customContextMenuRequested,
-                   [this, vsinMenu, debug, csv, bytes](const QPoint &pos) {
-                     m_CurView = ui->vsinData;
+                   [this, menu](const QPoint &pos) { stageRowMenu(eMeshDataStage_VSIn, menu, pos); });
 
-                     vsinMenu->clear();
+  menu = new QMenu(this);
 
-                     if(m_MeshView)
-                     {
-                       vsinMenu->addAction(debug);
-                       vsinMenu->addSeparator();
-                     }
+  QObject::connect(
+      ui->vsoutData, &RDTableView::customContextMenuRequested,
+      [this, menu](const QPoint &pos) { stageRowMenu(eMeshDataStage_VSOut, menu, pos); });
 
-                     vsinMenu->addAction(csv);
-                     vsinMenu->addAction(bytes);
+  menu = new QMenu(this);
 
-                     vsinMenu->popup(ui->vsinData->viewport()->mapToGlobal(pos));
-                   });
-
-  QMenu *vsoutMenu = new QMenu(this);
-
-  QObject::connect(ui->vsoutData, &RDTableView::customContextMenuRequested,
-                   [this, vsoutMenu, debug, csv, bytes](const QPoint &pos) {
-                     m_CurView = ui->vsoutData;
-
-                     vsoutMenu->clear();
-
-                     if(m_MeshView)
-                     {
-                       vsoutMenu->addAction(debug);
-                       vsoutMenu->addSeparator();
-                     }
-
-                     vsoutMenu->addAction(csv);
-                     vsoutMenu->addAction(bytes);
-
-                     vsoutMenu->popup(ui->vsoutData->viewport()->mapToGlobal(pos));
-                   });
-
-  QMenu *gsoutMenu = new QMenu(this);
-
-  QObject::connect(ui->gsoutData, &RDTableView::customContextMenuRequested,
-                   [this, gsoutMenu, csv, bytes](const QPoint &pos) {
-                     m_CurView = ui->gsoutData;
-
-                     gsoutMenu->clear();
-
-                     gsoutMenu->addAction(csv);
-                     gsoutMenu->addAction(bytes);
-
-                     gsoutMenu->popup(ui->gsoutData->viewport()->mapToGlobal(pos));
-                   });
+  QObject::connect(
+      ui->gsoutData, &RDTableView::customContextMenuRequested,
+      [this, menu](const QPoint &pos) { stageRowMenu(eMeshDataStage_GSOut, menu, pos); });
 
   ui->dockarea->setAllowFloatingWindow(false);
   ui->dockarea->setRubberBandLineWidth(50);
@@ -1046,40 +1011,40 @@ void BufferViewer::SetupMeshView()
 
   ToolWindowManager::raiseToolWindow(ui->vsoutData);
 
-  QMenu *headerMenu = new QMenu(this);
+  m_HeaderMenu = new QMenu(this);
 
-  QAction *resetColSel = new QAction(tr("Reset Selected Columns"), this);
-  QAction *selPos = new QAction(tr("Select as Position"), this);
-  QAction *selSec = new QAction(tr("Select as Secondary"), this);
-  QAction *selSecAlpha = new QAction(tr("Select Alpha as Secondary"), this);
+  m_ResetColumnSel = new QAction(tr("Reset Selected Columns"), this);
+  m_SelectPosColumn = new QAction(tr("Select as Position"), this);
+  m_SelectSecondColumn = new QAction(tr("Select as Secondary"), this);
+  m_SelectSecondAlphaColumn = new QAction(tr("Select Alpha as Secondary"), this);
 
-  headerMenu->addAction(resetColSel);
-  headerMenu->addSeparator();
-  headerMenu->addAction(selPos);
-  headerMenu->addAction(selSec);
-  headerMenu->addAction(selSecAlpha);
+  m_HeaderMenu->addAction(m_ResetColumnSel);
+  m_HeaderMenu->addSeparator();
+  m_HeaderMenu->addAction(m_SelectPosColumn);
+  m_HeaderMenu->addAction(m_SelectSecondColumn);
+  m_HeaderMenu->addAction(m_SelectSecondAlphaColumn);
 
-  QObject::connect(resetColSel, &QAction::triggered, [this]() {
+  QObject::connect(m_ResetColumnSel, &QAction::triggered, [this]() {
     guessPositionColumn((BufferItemModel *)m_CurView->model());
     guessSecondaryColumn((BufferItemModel *)m_CurView->model());
     updatePreviewColumns();
     INVOKE_MEMFN(RT_UpdateAndDisplay);
   });
-  QObject::connect(selPos, &QAction::triggered, [this]() {
+  QObject::connect(m_SelectPosColumn, &QAction::triggered, [this]() {
     BufferItemModel *model = (BufferItemModel *)m_CurView->model();
 
     model->setPosColumn(m_ContextColumn);
     updatePreviewColumns();
     INVOKE_MEMFN(RT_UpdateAndDisplay);
   });
-  QObject::connect(selSec, &QAction::triggered, [this]() {
+  QObject::connect(m_SelectSecondColumn, &QAction::triggered, [this]() {
     BufferItemModel *model = (BufferItemModel *)m_CurView->model();
 
     model->setSecondaryColumn(m_ContextColumn, m_Config.solidShadeMode == eShade_Secondary, false);
     updatePreviewColumns();
     INVOKE_MEMFN(RT_UpdateAndDisplay);
   });
-  QObject::connect(selSecAlpha, &QAction::triggered, [this]() {
+  QObject::connect(m_SelectSecondAlphaColumn, &QAction::triggered, [this]() {
     BufferItemModel *model = (BufferItemModel *)m_CurView->model();
 
     model->setSecondaryColumn(m_ContextColumn, m_Config.solidShadeMode == eShade_Secondary, true);
@@ -1091,51 +1056,12 @@ void BufferViewer::SetupMeshView()
   ui->vsoutData->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
   ui->gsoutData->horizontalHeader()->setContextMenuPolicy(Qt::CustomContextMenu);
 
-  QObject::connect(
-      ui->vsinData->horizontalHeader(), &QHeaderView::customContextMenuRequested,
-      [this, headerMenu, selSecAlpha](const QPoint &pos) {
-        int col = ui->vsinData->horizontalHeader()->logicalIndexAt(pos);
-
-        if(col < 2)
-          return;
-
-        m_CurView = ui->vsinData;
-        m_ContextColumn = m_ModelVSIn->elementIndexForColumn(col);
-
-        selSecAlpha->setEnabled(m_ModelVSIn->elementForColumn(col).format.compCount == 4);
-
-        headerMenu->popup(ui->vsinData->horizontalHeader()->mapToGlobal(pos));
-      });
-  QObject::connect(
-      ui->vsoutData->horizontalHeader(), &QHeaderView::customContextMenuRequested,
-      [this, headerMenu, selSecAlpha](const QPoint &pos) {
-        int col = ui->vsoutData->horizontalHeader()->logicalIndexAt(pos);
-
-        if(col < 2)
-          return;
-
-        m_CurView = ui->vsoutData;
-        m_ContextColumn = m_ModelVSOut->elementIndexForColumn(col);
-
-        selSecAlpha->setEnabled(m_ModelVSOut->elementForColumn(col).format.compCount == 4);
-
-        headerMenu->popup(ui->vsoutData->horizontalHeader()->mapToGlobal(pos));
-      });
-  QObject::connect(
-      ui->gsoutData->horizontalHeader(), &QHeaderView::customContextMenuRequested,
-      [this, headerMenu, selSecAlpha](const QPoint &pos) {
-        int col = ui->gsoutData->horizontalHeader()->logicalIndexAt(pos);
-
-        if(col < 2)
-          return;
-
-        m_CurView = ui->gsoutData;
-        m_ContextColumn = m_ModelGSOut->elementIndexForColumn(col);
-
-        selSecAlpha->setEnabled(m_ModelGSOut->elementForColumn(col).format.compCount == 4);
-
-        headerMenu->popup(ui->gsoutData->horizontalHeader()->mapToGlobal(pos));
-      });
+  QObject::connect(ui->vsinData->horizontalHeader(), &QHeaderView::customContextMenuRequested,
+                   [this](const QPoint &pos) { meshHeaderMenu(eMeshDataStage_VSIn, pos); });
+  QObject::connect(ui->vsoutData->horizontalHeader(), &QHeaderView::customContextMenuRequested,
+                   [this](const QPoint &pos) { meshHeaderMenu(eMeshDataStage_VSOut, pos); });
+  QObject::connect(ui->gsoutData->horizontalHeader(), &QHeaderView::customContextMenuRequested,
+                   [this](const QPoint &pos) { meshHeaderMenu(eMeshDataStage_GSOut, pos); });
 
   QVBoxLayout *vertical = new QVBoxLayout(this);
 
@@ -1150,6 +1076,40 @@ void BufferViewer::SetupMeshView()
   renderTimer->setSingleShot(false);
   renderTimer->setInterval(10);
   renderTimer->start();
+}
+
+void BufferViewer::meshHeaderMenu(MeshDataStage stage, const QPoint &pos)
+{
+  int col = tableForStage(stage)->horizontalHeader()->logicalIndexAt(pos);
+
+  if(col < 2)
+    return;
+
+  m_CurView = tableForStage(stage);
+  m_ContextColumn = modelForStage(stage)->elementIndexForColumn(col);
+
+  m_SelectSecondAlphaColumn->setEnabled(
+      modelForStage(stage)->elementForColumn(col).format.compCount == 4);
+
+  m_HeaderMenu->popup(tableForStage(stage)->horizontalHeader()->mapToGlobal(pos));
+}
+
+void BufferViewer::stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &pos)
+{
+  m_CurView = tableForStage(stage);
+
+  menu->clear();
+
+  if(m_MeshView && stage != eMeshDataStage_GSOut)
+  {
+    menu->addAction(m_DebugVert);
+    menu->addSeparator();
+  }
+
+  menu->addAction(m_ExportCSV);
+  menu->addAction(m_ExportBytes);
+
+  menu->popup(m_CurView->viewport()->mapToGlobal(pos));
 }
 
 BufferViewer::~BufferViewer()
@@ -1709,25 +1669,8 @@ void BufferViewer::resetArcball()
     bbox = m_BBoxes[m_Ctx.CurEvent()];
   }
 
-  BufferItemModel *model = NULL;
-  int stage = 0;
-
-  switch(m_CurStage)
-  {
-    case eMeshDataStage_VSIn:
-      model = m_ModelVSIn;
-      stage = 0;
-      break;
-    case eMeshDataStage_VSOut:
-      model = m_ModelVSOut;
-      stage = 1;
-      break;
-    case eMeshDataStage_GSOut:
-      model = m_ModelGSOut;
-      stage = 2;
-      break;
-    default: break;
-  }
+  BufferItemModel *model = currentBufferModel();
+  int stage = currentStageIndex();
 
   if(model)
   {
@@ -2193,33 +2136,26 @@ void BufferViewer::UpdateMeshConfig()
       bbox = m_BBoxes[eventID];
   }
 
-  BufferItemModel *model = NULL;
-
-  int stage = 0;
-
   m_Config.type = m_CurStage;
   switch(m_CurStage)
   {
     case eMeshDataStage_VSIn:
       m_Config.position = m_VSInPosition;
       m_Config.second = m_VSInSecondary;
-      model = m_ModelVSIn;
-      stage = 0;
       break;
     case eMeshDataStage_VSOut:
       m_Config.position = m_PostVSPosition;
       m_Config.second = m_PostVSSecondary;
-      model = m_ModelVSOut;
-      stage = 1;
       break;
     case eMeshDataStage_GSOut:
       m_Config.position = m_PostGSPosition;
       m_Config.second = m_PostGSSecondary;
-      model = m_ModelGSOut;
-      stage = 2;
       break;
     default: break;
   }
+
+  BufferItemModel *model = currentBufferModel();
+  int stage = currentStageIndex();
 
   m_Config.showBBox = false;
 
@@ -2366,25 +2302,25 @@ void BufferViewer::RT_UpdateAndDisplay(IReplayRenderer *)
   }
 }
 
-RDTableView *BufferViewer::currentTable()
+RDTableView *BufferViewer::tableForStage(MeshDataStage stage)
 {
-  if(m_CurStage == eMeshDataStage_VSIn)
+  if(stage == eMeshDataStage_VSIn)
     return ui->vsinData;
-  else if(m_CurStage == eMeshDataStage_VSOut)
+  else if(stage == eMeshDataStage_VSOut)
     return ui->vsoutData;
-  else if(m_CurStage == eMeshDataStage_GSOut)
+  else if(stage == eMeshDataStage_GSOut)
     return ui->gsoutData;
 
   return NULL;
 }
 
-BufferItemModel *BufferViewer::currentBufferModel()
+BufferItemModel *BufferViewer::modelForStage(MeshDataStage stage)
 {
-  if(m_CurStage == eMeshDataStage_VSIn)
+  if(stage == eMeshDataStage_VSIn)
     return m_ModelVSIn;
-  else if(m_CurStage == eMeshDataStage_VSOut)
+  else if(stage == eMeshDataStage_VSOut)
     return m_ModelVSOut;
-  else if(m_CurStage == eMeshDataStage_GSOut)
+  else if(stage == eMeshDataStage_GSOut)
     return m_ModelGSOut;
 
   return NULL;
@@ -2409,6 +2345,18 @@ bool BufferViewer::isCurrentRasterOut()
   }
 
   return false;
+}
+
+int BufferViewer::currentStageIndex()
+{
+  if(m_CurStage == eMeshDataStage_VSIn)
+    return 0;
+  else if(m_CurStage == eMeshDataStage_VSOut)
+    return 1;
+  else if(m_CurStage == eMeshDataStage_GSOut)
+    return 2;
+
+  return 0;
 }
 
 void BufferViewer::Reset()

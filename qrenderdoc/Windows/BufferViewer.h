@@ -192,12 +192,32 @@ private:
   int m_IdxColWidth;
   int m_DataColWidth;
 
-  RDTableView *currentTable();
-  BufferItemModel *currentBufferModel();
+  QMenu *m_HeaderMenu = NULL;
+
+  QAction *m_ResetColumnSel = NULL;
+  QAction *m_SelectPosColumn = NULL;
+  QAction *m_SelectSecondColumn = NULL;
+  QAction *m_SelectSecondAlphaColumn = NULL;
+
+  QMenu *m_ExportMenu = NULL;
+
+  QAction *m_ExportCSV = NULL;
+  QAction *m_ExportBytes = NULL;
+  QAction *m_DebugVert = NULL;
+
+  RDTableView *tableForStage(MeshDataStage stage);
+  BufferItemModel *modelForStage(MeshDataStage stage);
+
+  RDTableView *currentTable() { return tableForStage(m_CurStage); }
+  BufferItemModel *currentBufferModel() { return modelForStage(m_CurStage); }
   bool isCurrentRasterOut();
+  int currentStageIndex();
 
   void SetupMeshView();
   void SetupRawView();
+
+  void stageRowMenu(MeshDataStage stage, QMenu *menu, const QPoint &pos);
+  void meshHeaderMenu(MeshDataStage stage, const QPoint &pos);
 
   void Reset();
   void ClearModels();
