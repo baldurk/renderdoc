@@ -592,6 +592,10 @@ bool MainWindow::PromptSaveLog()
       // we copy the (possibly) temp log to the desired path, but the log item remains referring to
       // the original path.
       // This ensures that if the user deletes the saved path we can still open or re-save it.
+
+      // QFile::copy won't overwrite, so remove the destination first (the save dialog already
+      // prompted for overwrite)
+      QFile::remove(saveFilename);
       success = QFile::copy(m_Ctx.LogFilename(), saveFilename);
 
       error = tr("Couldn't save to %1").arg(saveFilename);
