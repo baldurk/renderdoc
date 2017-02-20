@@ -1750,7 +1750,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
   // if it's reasonably modern context, assume we can use buffers and UBOs
   if(ctxdata.Modern())
   {
-    gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.GeneralUBO);
+    gl.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.GeneralUBO);
 
     FontUBOData *ubo = (FontUBOData *)gl.glMapBufferRange(
         eGL_UNIFORM_BUFFER, 0, sizeof(FontUBOData), GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
@@ -1784,7 +1784,7 @@ void WrappedOpenGL::RenderOverlayStr(float x, float y, const char *text)
       len = FONT_MAX_CHARS;
     }
 
-    gl.glBindBufferBase(eGL_UNIFORM_BUFFER, 0, ctxdata.StringUBO);
+    gl.glBindBuffer(eGL_UNIFORM_BUFFER, ctxdata.StringUBO);
     uint32_t *texs =
         (uint32_t *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, len * 4 * sizeof(uint32_t),
                                         GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
