@@ -712,14 +712,29 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
       }
       else if(details.dimension == 2)
       {
+        GLenum targets[] = {
+            eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+            eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+            eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+        };
+
         gl.glTextureParameteriEXT(tex, details.curType, eGL_TEXTURE_MAX_LEVEL, mips - 1);
 
         int w = details.width;
         int h = details.height;
         for(int i = 0; i < mips; i++)
         {
-          gl.glTextureImage2DEXT(tex, details.curType, i, details.internalFormat, w, h, 0,
-                                 baseFormat, dataType, NULL);
+          if(details.curType != eGL_TEXTURE_CUBE_MAP)
+          {
+            gl.glTextureImage2DEXT(tex, details.curType, i, details.internalFormat, w, h, 0,
+                                   baseFormat, dataType, NULL);
+          }
+          else
+          {
+            for(size_t t = 0; t < ARRAY_COUNT(targets); t++)
+              gl.glTextureImage2DEXT(tex, targets[t], i, details.internalFormat, w, h, 0,
+                                     baseFormat, dataType, NULL);
+          }
           w = RDCMAX(1, w >> 1);
           if(details.curType != eGL_TEXTURE_1D_ARRAY)
             h = RDCMAX(1, h >> 1);
@@ -1471,14 +1486,30 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         }
         else if(dim == 2)
         {
+          GLenum targets[] = {
+              eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+              eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+              eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+          };
+
           gl.glTextureParameteriEXT(tex, textype, eGL_TEXTURE_MAX_LEVEL, mips - 1);
 
           int w = width;
           int h = height;
           for(int i = 0; i < mips; i++)
           {
-            gl.glTextureImage2DEXT(tex, textype, i, internalformat, w, h, 0, baseFormat, dataType,
-                                   NULL);
+            if(textype != eGL_TEXTURE_CUBE_MAP)
+            {
+              gl.glTextureImage2DEXT(tex, textype, i, internalformat, w, h, 0, baseFormat, dataType,
+                                     NULL);
+            }
+            else
+            {
+              for(size_t t = 0; t < ARRAY_COUNT(targets); t++)
+                gl.glTextureImage2DEXT(tex, targets[t], i, internalformat, w, h, 0, baseFormat,
+                                       dataType, NULL);
+            }
+
             w = RDCMAX(1, w >> 1);
             if(textype != eGL_TEXTURE_1D_ARRAY)
               h = RDCMAX(1, h >> 1);
