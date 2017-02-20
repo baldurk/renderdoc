@@ -926,6 +926,8 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
 
   ShaderDebugTrace empty;
 
+  const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(eventID);
+
   D3D11RenderStateTracker tracker(m_WrappedContext);
 
   ID3D11VertexShader *stateVS = NULL;
@@ -950,10 +952,14 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
   set<UINT> vertexbuffers;
   uint32_t trackingOffs[32] = {0};
 
+  UINT MaxStepRate = 1U;
+
   // need special handling for other step rates
   for(size_t i = 0; i < inputlayout.size(); i++)
   {
-    RDCASSERT(inputlayout[i].InstanceDataStepRate <= 1);
+    if(inputlayout[i].InputSlotClass == D3D11_INPUT_PER_INSTANCE_DATA &&
+       inputlayout[i].InstanceDataStepRate < draw->numInstances)
+      MaxStepRate = RDCMAX(inputlayout[i].InstanceDataStepRate, MaxStepRate);
 
     UINT slot =
         RDCCLAMP(inputlayout[i].InputSlot, 0U, UINT(D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT - 1));
@@ -975,7 +981,8 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
   }
 
   vector<byte> vertData[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
-  vector<byte> instData[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+  vector<byte> *instData = new vector<byte>[MaxStepRate * D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
+  vector<byte> staticData[D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT];
 
   for(auto it = vertexbuffers.begin(); it != vertexbuffers.end(); ++it)
   {
@@ -984,8 +991,16 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
     {
       GetBufferData(rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * (vertOffset + idx),
                     rs->IA.Strides[i], vertData[i], true);
-      GetBufferData(rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * (instOffset + instid),
-                    rs->IA.Strides[i], instData[i], true);
+
+      for(UINT isr = 1; isr <= MaxStepRate; isr++)
+      {
+        GetBufferData(rs->IA.VBs[i],
+                      rs->IA.Offsets[i] + rs->IA.Strides[i] * (instOffset + (instid / isr)),
+                      rs->IA.Strides[i], instData[i * MaxStepRate + isr - 1], true);
+      }
+
+      GetBufferData(rs->IA.VBs[i], rs->IA.Offsets[i] + rs->IA.Strides[i] * instOffset,
+                    rs->IA.Strides[i], staticData[i], true);
     }
   }
 
@@ -1047,10 +1062,19 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
       }
       else
       {
-        if(instData[el->InputSlot].size() >= el->AlignedByteOffset)
+        if(el->InstanceDataStepRate >= draw->numInstances)
         {
-          srcData = &instData[el->InputSlot][el->AlignedByteOffset];
-          dataSize = instData[el->InputSlot].size() - el->AlignedByteOffset;
+          srcData = &staticData[el->InputSlot][el->AlignedByteOffset];
+          dataSize = staticData[el->InputSlot].size() - el->AlignedByteOffset;
+        }
+        else
+        {
+          UINT isrIdx = el->InputSlot * MaxStepRate + (el->InstanceDataStepRate - 1);
+          if(instData[isrIdx].size() >= el->AlignedByteOffset)
+          {
+            srcData = &instData[isrIdx][el->AlignedByteOffset];
+            dataSize = instData[isrIdx].size() - el->AlignedByteOffset;
+          }
         }
       }
 
@@ -1207,8 +1231,6 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
     {
       uint32_t sv_vertid = vertid;
 
-      const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(eventID);
-
       if(draw->flags & eDraw_UseIBuffer)
         sv_vertid = idx;
 
@@ -1233,6 +1255,8 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
       RDCERR("Unhandled system value semantic on VS input");
     }
   }
+
+  delete[] instData;
 
   State last;
 
