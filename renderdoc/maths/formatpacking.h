@@ -137,6 +137,6 @@ inline float ConvertFromSRGB8(uint8_t comp)
 }
 
 struct ResourceFormat;
-float ConvertComponent(ResourceFormat fmt, byte *data);
+float ConvertComponent(const ResourceFormat &fmt, byte *data);
 
 #include "half_convert.h"

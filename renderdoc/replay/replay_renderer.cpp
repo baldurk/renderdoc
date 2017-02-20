@@ -37,7 +37,7 @@
 #include "stb/stb_image_write.h"
 #include "tinyexr/tinyexr.h"
 
-float ConvertComponent(ResourceFormat fmt, byte *data)
+float ConvertComponent(const ResourceFormat &fmt, byte *data)
 {
   if(fmt.compByteWidth == 4)
   {
@@ -1075,6 +1075,12 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 
       byte *srcData = subdata[0];
 
+      ResourceFormat saveFmt = td.format;
+      if(saveFmt.compType == eCompType_None)
+        saveFmt.compType = sd.typeHint;
+      if(saveFmt.compType == eCompType_None)
+        saveFmt.compType = saveFmt.compByteWidth == 4 ? eCompType_Float : eCompType_UNorm;
+
       for(uint32_t y = 0; y < td.height; y++)
       {
         for(uint32_t x = 0; x < td.width; x++)
@@ -1084,7 +1090,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
           float b = 0.0f;
           float a = 1.0f;
 
-          if(td.format.special && td.format.specialFormat == eSpecial_R10G10B10A2)
+          if(saveFmt.special && saveFmt.specialFormat == eSpecial_R10G10B10A2)
           {
             uint32_t *u32 = (uint32_t *)srcData;
 
@@ -1097,7 +1103,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 
             srcData += 4;
           }
-          else if(td.format.special && td.format.specialFormat == eSpecial_R11G11B10)
+          else if(saveFmt.special && saveFmt.specialFormat == eSpecial_R11G11B10)
           {
             uint32_t *u32 = (uint32_t *)srcData;
 
@@ -1112,19 +1118,19 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
           }
           else
           {
-            if(td.format.compCount >= 1)
-              r = ConvertComponent(td.format, srcData + td.format.compByteWidth * 0);
-            if(td.format.compCount >= 2)
-              g = ConvertComponent(td.format, srcData + td.format.compByteWidth * 1);
-            if(td.format.compCount >= 3)
-              b = ConvertComponent(td.format, srcData + td.format.compByteWidth * 2);
-            if(td.format.compCount >= 4)
-              a = ConvertComponent(td.format, srcData + td.format.compByteWidth * 3);
+            if(saveFmt.compCount >= 1)
+              r = ConvertComponent(saveFmt, srcData + saveFmt.compByteWidth * 0);
+            if(saveFmt.compCount >= 2)
+              g = ConvertComponent(saveFmt, srcData + saveFmt.compByteWidth * 1);
+            if(saveFmt.compCount >= 3)
+              b = ConvertComponent(saveFmt, srcData + saveFmt.compByteWidth * 2);
+            if(saveFmt.compCount >= 4)
+              a = ConvertComponent(saveFmt, srcData + saveFmt.compByteWidth * 3);
 
-            srcData += td.format.compCount * td.format.compByteWidth;
+            srcData += saveFmt.compCount * saveFmt.compByteWidth;
           }
 
-          if(td.format.bgraOrder)
+          if(saveFmt.bgraOrder)
             std::swap(r, b);
 
           // HDR can't represent negative values
