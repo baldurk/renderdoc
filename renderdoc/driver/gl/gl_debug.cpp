@@ -2348,87 +2348,168 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, FormatComponentType typeHin
                                                      eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
                                                      (GLint *)&curStencil);
 
+    GLenum copyBindingEnum = texBindingEnum;
+    GLenum copyQueryEnum = texQueryEnum;
+
     GLuint depthCopy = 0, stencilCopy = 0;
 
-    // TODO handle non-2D depth/stencil attachments and fetch slice or cubemap face
     GLint mip = 0;
-
-    gl.glGetNamedFramebufferAttachmentParameterivEXT(
-        rs.DrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &mip);
+    GLint layer = 0;
 
     // create matching depth for existing FBO
     if(curDepth != 0)
     {
-      GLuint curTex = 0;
-      gl.glGetIntegerv(texQueryEnum, (GLint *)&curTex);
+      GLint type = 0;
+      gl.glGetNamedFramebufferAttachmentParameterivEXT(
+          rs.DrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &type);
 
       GLenum fmt;
-      gl.glGetTextureLevelParameterivEXT(curDepth, texBindingEnum, mip, eGL_TEXTURE_INTERNAL_FORMAT,
-                                         (GLint *)&fmt);
+
+      if(type != eGL_RENDERBUFFER)
+      {
+        ResourceId id = m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, curDepth));
+        WrappedOpenGL::TextureData &details = m_pDriver->m_Textures[id];
+
+        fmt = details.internalFormat;
+
+        gl.glGetNamedFramebufferAttachmentParameterivEXT(
+            rs.DrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_LEVEL, &mip);
+
+        if(details.curType == eGL_TEXTURE_CUBE_MAP)
+        {
+          GLenum face;
+          gl.glGetNamedFramebufferAttachmentParameterivEXT(
+              rs.DrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
+              (GLint *)&face);
+
+          layer = CubeTargetIndex(face);
+        }
+      }
+      else
+      {
+        ResourceId id = m_pDriver->GetResourceManager()->GetID(RenderbufferRes(ctx, curDepth));
+        WrappedOpenGL::TextureData &details = m_pDriver->m_Textures[id];
+
+        fmt = details.internalFormat;
+      }
+
+      if(copyBindingEnum == eGL_TEXTURE_CUBE_MAP)
+      {
+        copyBindingEnum = eGL_TEXTURE_2D;
+        copyQueryEnum = eGL_TEXTURE_BINDING_2D;
+      }
+
+      GLuint curTex = 0;
+      gl.glGetIntegerv(copyQueryEnum, (GLint *)&curTex);
 
       gl.glGenTextures(1, &depthCopy);
-      gl.glBindTexture(texBindingEnum, depthCopy);
+      gl.glBindTexture(copyBindingEnum, depthCopy);
       if(DebugData.overlayTexSamples > 1)
       {
-        gl.glTextureStorage2DMultisampleEXT(depthCopy, texBindingEnum, DebugData.overlayTexSamples,
+        gl.glTextureStorage2DMultisampleEXT(depthCopy, copyBindingEnum, DebugData.overlayTexSamples,
                                             fmt, DebugData.overlayTexWidth,
                                             DebugData.overlayTexHeight, true);
       }
       else
       {
-        gl.glTextureImage2DEXT(depthCopy, texBindingEnum, 0, fmt, DebugData.overlayTexWidth,
+        gl.glTextureImage2DEXT(depthCopy, copyBindingEnum, 0, fmt, DebugData.overlayTexWidth,
                                DebugData.overlayTexHeight, 0, GetBaseFormat(fmt), GetDataType(fmt),
                                NULL);
-        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
-        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
+        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
       }
 
-      gl.glBindTexture(texBindingEnum, curTex);
+      gl.glBindTexture(copyBindingEnum, curTex);
     }
 
     // create matching separate stencil if relevant
     if(curStencil != curDepth && curStencil != 0)
     {
-      GLuint curTex = 0;
-      gl.glGetIntegerv(texQueryEnum, (GLint *)&curTex);
+      GLint type = 0;
+      gl.glGetNamedFramebufferAttachmentParameterivEXT(
+          rs.DrawFBO, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, &type);
 
       GLenum fmt;
-      gl.glGetTextureLevelParameterivEXT(curStencil, texBindingEnum, mip,
-                                         eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
 
-      gl.glGenTextures(1, &stencilCopy);
-      gl.glBindTexture(texBindingEnum, stencilCopy);
-      if(DebugData.overlayTexSamples > 1)
+      if(type != eGL_RENDERBUFFER)
       {
-        gl.glTextureStorage2DMultisampleEXT(stencilCopy, texBindingEnum, DebugData.overlayTexSamples,
-                                            fmt, DebugData.overlayTexWidth,
-                                            DebugData.overlayTexHeight, true);
+        ResourceId id = m_pDriver->GetResourceManager()->GetID(TextureRes(ctx, curDepth));
+        WrappedOpenGL::TextureData &details = m_pDriver->m_Textures[id];
+
+        fmt = details.internalFormat;
+
+        if(details.curType == eGL_TEXTURE_CUBE_MAP)
+        {
+          GLenum face;
+          gl.glGetNamedFramebufferAttachmentParameterivEXT(
+              rs.DrawFBO, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_TEXTURE_CUBE_MAP_FACE,
+              (GLint *)&face);
+
+          layer = CubeTargetIndex(face);
+        }
       }
       else
       {
-        gl.glTextureImage2DEXT(stencilCopy, texBindingEnum, 0, fmt, DebugData.overlayTexWidth,
-                               DebugData.overlayTexHeight, 0, GetBaseFormat(fmt), GetDataType(fmt),
-                               NULL);
-        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
-        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-        gl.glTexParameteri(texBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+        ResourceId id = m_pDriver->GetResourceManager()->GetID(RenderbufferRes(ctx, curDepth));
+        WrappedOpenGL::TextureData &details = m_pDriver->m_Textures[id];
+
+        fmt = details.internalFormat;
       }
 
-      gl.glBindTexture(texBindingEnum, curTex);
+      GLuint curTex = 0;
+      gl.glGetIntegerv(copyQueryEnum, (GLint *)&curTex);
+
+      gl.glGenTextures(1, &stencilCopy);
+      gl.glBindTexture(copyBindingEnum, stencilCopy);
+      if(DebugData.overlayTexSamples > 1)
+      {
+        gl.glTextureStorage2DMultisampleEXT(
+            stencilCopy, copyBindingEnum, DebugData.overlayTexSamples, fmt,
+            DebugData.overlayTexWidth, DebugData.overlayTexHeight, true);
+      }
+      else
+      {
+        gl.glTextureImage2DEXT(stencilCopy, copyBindingEnum, 0, fmt, DebugData.overlayTexWidth,
+                               DebugData.overlayTexHeight, 0, GetBaseFormat(fmt), GetDataType(fmt),
+                               NULL);
+        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAX_LEVEL, 0);
+        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+        gl.glTexParameteri(copyBindingEnum, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+      }
+
+      gl.glBindTexture(copyBindingEnum, curTex);
     }
 
     // bind depth/stencil to overlay FBO (currently bound to DRAW_FRAMEBUFFER)
     if(curDepth != 0 && curDepth == curStencil)
-      gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, depthCopy, mip);
+    {
+      if(layer == 0)
+        gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, depthCopy, mip);
+      else
+        gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_STENCIL_ATTACHMENT, depthCopy,
+                                     mip, layer);
+    }
     else if(curDepth != 0)
-      gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, depthCopy, mip);
+    {
+      if(layer == 0)
+        gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, depthCopy, mip);
+      else
+        gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, depthCopy, mip,
+                                     layer);
+    }
     else if(curStencil != 0)
-      gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, stencilCopy, mip);
+    {
+      if(layer == 0)
+        gl.glFramebufferTexture(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, stencilCopy, mip);
+      else
+        gl.glFramebufferTextureLayer(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, stencilCopy, mip,
+                                     layer);
+    }
 
     // bind the 'real' fbo to the read framebuffer, so we can blit from it
     gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, rs.DrawFBO);
