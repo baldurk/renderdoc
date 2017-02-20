@@ -49,6 +49,17 @@ bool WrappedID3D11Device::Serialise_CreateBuffer(const D3D11_BUFFER_DESC *pDesc,
   if(m_State >= WRITING || GetLogVersion() >= 0x000007)
     m_pSerialiser->AlignNextBuffer(32);
 
+  // work around an nvidia driver bug, if a buffer is created as IMMUTABLE then it
+  // can't be CopySubresourceRegion'd with a box offset, the data that's read is
+  // wrong.
+  if(m_State < WRITING && Descriptor.Usage == D3D11_USAGE_IMMUTABLE)
+  {
+    Descriptor.Usage = D3D11_USAGE_DEFAULT;
+    // paranoid - I don't know what requirements might change, so set some sane default
+    if(Descriptor.BindFlags == 0)
+      Descriptor.BindFlags = D3D11_BIND_VERTEX_BUFFER;
+  }
+
   SERIALISE_ELEMENT_BUF(byte *, InitialData, pInitialData->pSysMem, Descriptor.ByteWidth);
 
   uint64_t offs = m_pSerialiser->GetOffset() - Descriptor.ByteWidth;
