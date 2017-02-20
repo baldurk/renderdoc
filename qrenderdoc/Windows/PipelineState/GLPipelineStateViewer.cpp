@@ -1640,6 +1640,7 @@ void GLPipelineStateViewer::setState()
           h = tex->height;
           d = tex->depth;
           a = tex->arraysize;
+          format = ToQStr(tex->format.strname);
           name = tex->name;
           typeName = ToQStr(tex->resType);
 
@@ -1701,7 +1702,7 @@ void GLPipelineStateViewer::setState()
       ResourceId ds = dsObjects[dsIdx];
 
       bool filledSlot = (ds != ResourceId());
-      bool usedSlot = true;
+      bool usedSlot = filledSlot;
       if(showNode(usedSlot, filledSlot))
       {
         uint32_t w = 1, h = 1, d = 1;
@@ -1725,6 +1726,7 @@ void GLPipelineStateViewer::setState()
           h = tex->height;
           d = tex->depth;
           a = tex->arraysize;
+          format = ToQStr(tex->format.strname);
           name = tex->name;
           typeName = ToQStr(tex->resType);
         }
