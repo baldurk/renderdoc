@@ -1239,8 +1239,6 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   const FetchDrawcall *draw = m_Ctx.CurDrawcall();
 
   m_ModelVSIn->baseVertex = draw ? draw->baseVertex : 0;
-  m_ModelVSOut->baseVertex = draw ? draw->baseVertex : 0;
-  m_ModelGSOut->baseVertex = draw ? draw->baseVertex : 0;
 
   ui->instance->setEnabled(draw && draw->numInstances > 1);
   if(!ui->instance->isEnabled())
