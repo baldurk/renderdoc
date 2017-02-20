@@ -4824,6 +4824,8 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
      details.texFmt == DXGI_FORMAT_D16_UNORM ||
 
+     details.texFmt == DXGI_FORMAT_D32_FLOAT ||
+
      details.texFmt == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS ||
      details.texFmt == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT ||
      details.texFmt == DXGI_FORMAT_R32G8X24_TYPELESS ||
