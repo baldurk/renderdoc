@@ -28,8 +28,8 @@
 #include "serialise/string_utils.h"
 #include "gl_driver.h"
 
-bool HasExt[GLExtension_Count];
-bool VendorCheck[VendorCheck_Count];
+bool HasExt[GLExtension_Count] = {};
+bool VendorCheck[VendorCheck_Count] = {};
 
 int GLCoreVersion = 0;
 bool GLIsCore = false;
@@ -375,7 +375,6 @@ void CheckExtensions(const GLHookSet &gl)
     gl.glGetIntegerv(eGL_NUM_EXTENSIONS, &numExts);
 
   RDCEraseEl(HasExt);
-  RDCEraseEl(VendorCheck);
 
   if(gl.glGetString)
   {
@@ -423,6 +422,8 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
   // the i'th
   // vertex buffer which is exactly what we wanted from GL_VERTEX_BINDING_BUFFER!
   // see: http://devgurus.amd.com/message/1306745#1306745
+
+  RDCEraseEl(VendorCheck);
 
   if(gl.glGetError && gl.glGetIntegeri_v)
   {
