@@ -30,6 +30,7 @@
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QTimer>
+#include <QtMath>
 #include "Code/Resources.h"
 #include "Windows/ShaderViewer.h"
 #include "ui_BufferViewer.h"
@@ -1543,7 +1544,10 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
   }
 
   if(!calcNeeded)
+  {
+    resetArcball();
     return;
+  }
 
   {
     QMutexLocker autolock(&m_BBoxLock);
@@ -1584,6 +1588,9 @@ void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
   });
   thread->selfDelete(true);
   thread->start();
+
+  // give the thread a few ms to finish, so we don't get a tiny flicker on small/fast meshes
+  thread->wait(10);
 }
 
 void BufferViewer::calcBoundingData(CalcBoundingBoxData &bbox)
@@ -1681,7 +1688,7 @@ void BufferViewer::updateBoundingBox(const CalcBoundingBoxData &bbox)
   if(m_Ctx.CurEvent() == bbox.eventID)
     UpdateMeshConfig();
 
-  // TODO update camera from bounding box
+  resetArcball();
 
   for(size_t i = 0; i < ARRAY_COUNT(bbox.input); i++)
   {
@@ -1693,6 +1700,62 @@ void BufferViewer::updateBoundingBox(const CalcBoundingBoxData &bbox)
         bbox.input[i].buffers[j]->ref();
   }
   delete &bbox;
+}
+
+void BufferViewer::resetArcball()
+{
+  BBoxData bbox;
+
+  {
+    QMutexLocker autolock(&m_BBoxLock);
+    bbox = m_BBoxes[m_Ctx.CurEvent()];
+  }
+
+  BufferItemModel *model = NULL;
+  int stage = 0;
+
+  switch(m_CurStage)
+  {
+    case eMeshDataStage_VSIn:
+      model = m_ModelVSIn;
+      stage = 0;
+      break;
+    case eMeshDataStage_VSOut:
+      model = m_ModelVSOut;
+      stage = 1;
+      break;
+    case eMeshDataStage_GSOut:
+      model = m_ModelGSOut;
+      stage = 2;
+      break;
+    default: break;
+  }
+
+  if(model)
+  {
+    int posEl = model->posColumn();
+    if(posEl >= 0 && posEl < model->columns.count() && posEl < bbox.bounds[stage].Min.count())
+    {
+      FloatVector diag;
+      diag.x = bbox.bounds[stage].Max[posEl].x - bbox.bounds[stage].Min[posEl].x;
+      diag.y = bbox.bounds[stage].Max[posEl].y - bbox.bounds[stage].Min[posEl].y;
+      diag.z = bbox.bounds[stage].Max[posEl].z - bbox.bounds[stage].Min[posEl].z;
+
+      float len = qSqrt(diag.x * diag.x + diag.y * diag.y + diag.z * diag.z);
+
+      if(diag.x >= 0.0f && diag.y >= 0.0f && diag.z >= 0.0f && len >= 1.0e-6f && len <= 1.0e+10f)
+      {
+        FloatVector mid;
+        mid.x = bbox.bounds[stage].Min[posEl].x + diag.x * 0.5f;
+        mid.y = bbox.bounds[stage].Min[posEl].y + diag.y * 0.5f;
+        mid.z = bbox.bounds[stage].Min[posEl].z + diag.z * 0.5f;
+
+        m_Arcball->Reset(mid, len * 0.7f);
+
+        GUIInvoke::call([this, len]() { ui->camSpeed->setValue(len / 200.0f); });
+      }
+    }
+  }
 
   INVOKE_MEMFN(RT_UpdateAndDisplay);
 }
@@ -2982,5 +3045,67 @@ void BufferViewer::on_rowOffset_valueChanged(int value)
 
 void BufferViewer::on_autofitCamera_clicked()
 {
-  // TODO wait for bounding box data (if necessary) and autofit
+  if(m_CurStage != eMeshDataStage_VSIn)
+    return;
+
+  ui->controlType->setCurrentIndex(1);
+
+  BBoxData bbox;
+
+  {
+    QMutexLocker autolock(&m_BBoxLock);
+    bbox = m_BBoxes[m_Ctx.CurEvent()];
+  }
+
+  BufferItemModel *model = NULL;
+  int stage = 0;
+
+  switch(m_CurStage)
+  {
+    case eMeshDataStage_VSIn:
+      model = m_ModelVSIn;
+      stage = 0;
+      break;
+    case eMeshDataStage_VSOut:
+      model = m_ModelVSOut;
+      stage = 1;
+      break;
+    case eMeshDataStage_GSOut:
+      model = m_ModelGSOut;
+      stage = 2;
+      break;
+    default: break;
+  }
+
+  if(bbox.bounds[stage].Min.isEmpty())
+    return;
+
+  if(!model)
+    return;
+
+  int posEl = model->posColumn();
+
+  if(posEl < 0 || posEl >= bbox.bounds[stage].Min.count())
+    return;
+
+  FloatVector diag;
+  diag.x = bbox.bounds[stage].Max[posEl].x - bbox.bounds[stage].Min[posEl].x;
+  diag.y = bbox.bounds[stage].Max[posEl].y - bbox.bounds[stage].Min[posEl].y;
+  diag.z = bbox.bounds[stage].Max[posEl].z - bbox.bounds[stage].Min[posEl].z;
+
+  float len = qSqrt(diag.x * diag.x + diag.y * diag.y + diag.z * diag.z);
+
+  if(diag.x >= 0.0f && diag.y >= 0.0f && diag.z >= 0.0f && len >= 1.0e-6f && len <= 1.0e+10f)
+  {
+    FloatVector mid;
+    mid.x = bbox.bounds[stage].Min[posEl].x + diag.x * 0.5f;
+    mid.y = bbox.bounds[stage].Min[posEl].y + diag.y * 0.5f;
+    mid.z = bbox.bounds[stage].Min[posEl].z + diag.z * 0.5f;
+
+    mid.z -= len;
+
+    m_Flycam->Reset(mid);
+  }
+
+  INVOKE_MEMFN(RT_UpdateAndDisplay);
 }

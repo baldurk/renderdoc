@@ -166,6 +166,8 @@ private:
   void calcBoundingData(CalcBoundingBoxData &bbox);
   void updateBoundingBox(const CalcBoundingBoxData &bbox);
 
+  void resetArcball();
+
   // data from raw buffer view
   bool m_IsBuffer = true;
   uint32_t m_TexArrayIdx = 0;
