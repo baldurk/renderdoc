@@ -266,10 +266,17 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
         memSize += sizeof(VkDedicatedAllocationMemoryAllocateInfoNV);
       else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_NV)
         memSize += sizeof(VkExportMemoryAllocateInfoNV);
+#ifdef VK_NV_external_memory_win32
       else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV)
         memSize += sizeof(VkExportMemoryWin32HandleInfoNV);
       else if(next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV)
         memSize += sizeof(VkImportMemoryWin32HandleInfoNV);
+#else
+      else if(next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV)
+        RDCERR("Support for VK_NV_external_memory_win32 not compiled in");
+      else if(next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV)
+        RDCERR("Support for VK_NV_external_memory_win32 not compiled in");
+#endif
 
       next = next->pNext;
     }
@@ -324,6 +331,7 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
       }
       else if(nextInput->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV)
       {
+#ifdef VK_NV_external_memory_win32
         const VkExportMemoryWin32HandleInfoNV *instruct =
             (const VkExportMemoryWin32HandleInfoNV *)nextInput;
         VkExportMemoryWin32HandleInfoNV *outstruct = (VkExportMemoryWin32HandleInfoNV *)tempMem;
@@ -339,9 +347,13 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
         // append this onto the chain
         nextChainTail->pNext = (const VkGenericStruct *)outstruct;
         nextChainTail = (VkGenericStruct *)outstruct;
+#else
+        RDCERR("Support for VK_NV_external_memory_win32 not compiled in");
+#endif
       }
       else if(nextInput->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV)
       {
+#ifdef VK_NV_external_memory_win32
         const VkImportMemoryWin32HandleInfoNV *instruct =
             (const VkImportMemoryWin32HandleInfoNV *)nextInput;
         VkImportMemoryWin32HandleInfoNV *outstruct = (VkImportMemoryWin32HandleInfoNV *)tempMem;
@@ -357,6 +369,9 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
         // append this onto the chain
         nextChainTail->pNext = (const VkGenericStruct *)outstruct;
         nextChainTail = (VkGenericStruct *)outstruct;
+#else
+        RDCERR("Support for VK_NV_external_memory_win32 not compiled in");
+#endif
       }
       else
       {
