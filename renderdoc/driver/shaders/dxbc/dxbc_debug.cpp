@@ -2601,7 +2601,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           for(int i = 0; i < 4; i++)
           {
             uint8_t comp = op.operands[srcIdx + 1].comps[i];
-            if(op.operands[srcIdx + 1].comps[i] == 0xff || i >= maxIndex)
+            if(op.operands[srcIdx + 1].comps[i] == 0xff || comp >= maxIndex)
               comp = 0;
 
             fetch.value.uv[i] = datau32[comp];
@@ -2622,7 +2622,7 @@ State State::GetNext(GlobalState &global, State quad[4]) const
           {
             uint8_t comp = op.operands[0].comps[i];
             // masks must be contiguous from x, if we reach the 'end' we're done
-            if(comp == 0xff || i >= maxIndex)
+            if(comp == 0xff || comp >= maxIndex)
               break;
 
             datau32[i] = srcOpers[srcIdx].value.uv[i];
