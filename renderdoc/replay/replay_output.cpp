@@ -473,8 +473,7 @@ uint32_t ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y, uint
     for(uint32_t inst = firstInst; inst < maxInst; inst++)
     {
       // find the start of this buffer, and apply the element offset, then pick in that instance
-      MeshFormat fmt =
-          m_pDevice->GetPostVSBuffers(draw->eventID, inst, m_RenderData.meshDisplay.type);
+      fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, m_RenderData.meshDisplay.type);
       if(fmt.buf != ResourceId())
         cfg.position.offset = fmt.offset + elemOffset;
 
