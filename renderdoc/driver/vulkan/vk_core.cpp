@@ -793,6 +793,9 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
 #endif
     {
+        VK_NV_DEDICATED_ALLOCATION_EXTENSION_NAME, VK_NV_DEDICATED_ALLOCATION_SPEC_VERSION,
+    },
+    {
         VK_NV_EXTERNAL_MEMORY_EXTENSION_NAME, VK_NV_EXTERNAL_MEMORY_SPEC_VERSION,
     },
     {

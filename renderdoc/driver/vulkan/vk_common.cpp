@@ -2845,6 +2845,15 @@ static void SerialiseNext(Serialiser *ser, VkStructureType &sType, const void *&
       {
         // do nothing
       }
+      // for now we don't serialise dedicated memory on replay as it's only a performance hint,
+      // and is only required in conjunction with shared memory (which we don't replay). In future
+      // it might be helpful to serialise this for informational purposes.
+      else if(next->sType == VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV ||
+              next->sType == VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_IMAGE_CREATE_INFO_NV ||
+              next->sType == VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_BUFFER_CREATE_INFO_NV)
+      {
+        // do nothing
+      }
       else
       {
         RDCERR("Unrecognised extension structure type %d", next->sType);

@@ -252,6 +252,34 @@ VkResult WrappedVulkan::vkAllocateMemory(VkDevice device, const VkMemoryAllocate
     ObjDisp(device)->DestroyBuffer(Unwrap(device), buf, NULL);
   }
 
+  VkDedicatedAllocationMemoryAllocateInfoNV unwrappedDedicated;
+  unwrappedDedicated.sType = VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV;
+
+  VkGenericStruct *curStruct = (VkGenericStruct *)&info;
+  const void *next = info.pNext;
+  while(next)
+  {
+    const VkGenericStruct *nextStruct = (const VkGenericStruct *)next;
+
+    // unwrap and replace the dedicated allocation struct in the chain
+    if(nextStruct->sType == VK_STRUCTURE_TYPE_DEDICATED_ALLOCATION_MEMORY_ALLOCATE_INFO_NV)
+    {
+      const VkDedicatedAllocationMemoryAllocateInfoNV *dedicated =
+          (const VkDedicatedAllocationMemoryAllocateInfoNV *)nextStruct;
+      unwrappedDedicated.pNext = nextStruct->pNext;
+      unwrappedDedicated.buffer = Unwrap(dedicated->buffer);
+      unwrappedDedicated.image = Unwrap(dedicated->image);
+      curStruct->pNext = (const VkGenericStruct *)&unwrappedDedicated;
+      curStruct = (VkGenericStruct *)&unwrappedDedicated;
+    }
+    else
+    {
+      break;
+    }
+
+    next = nextStruct->pNext;
+  }
+
   VkResult ret = ObjDisp(device)->AllocateMemory(Unwrap(device), &info, pAllocator, pMemory);
 
   // restore the memoryTypeIndex to the original, as that's what we want to serialise,
