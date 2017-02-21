@@ -70,6 +70,11 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
   static const GUID Unknown_uuid = {
       0x79d2046c, 0x22ef, 0x451b, {0x9e, 0x74, 0x22, 0x45, 0xd9, 0xc7, 0x60, 0xea}};
 
+  // ditto
+  // {9B7E4C04-342C-4106-A19F-4F2704F689F0}
+  static const GUID ID3D10Texture2D_uuid = {
+      0x9b7e4c04, 0x342c, 0x4106, {0xa1, 0x9f, 0x4f, 0x27, 0x04, 0xf6, 0x89, 0xf0}};
+
   if(riid == __uuidof(IDXGIDevice))
   {
     // should have been handled elsewhere, so we can properly create this device
@@ -147,6 +152,16 @@ bool RefCountDXGIObject::HandleWrap(REFIID riid, void **ppvObject)
     IDXGIFactory5 *real = (IDXGIFactory5 *)(*ppvObject);
     *ppvObject = (IDXGIFactory5 *)(new WrappedIDXGIFactory5(real));
     return true;
+  }
+  else if(riid == ID3D10Texture2D_uuid)
+  {
+    static bool printed = false;
+    if(!printed)
+    {
+      printed = true;
+      RDCWARN("Querying IDXGIObject for unsupported D3D10 interface: %s", ToStr::Get(riid).c_str());
+    }
+    return false;
   }
   else if(riid == Unknown_uuid)
   {
