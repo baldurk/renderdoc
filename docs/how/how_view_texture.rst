@@ -8,7 +8,7 @@ Annotating resources with names
 
 It is much easier to browse and debug frames when the resources are given meaningful names - along with including :doc:`debugging information in shaders <how_debug_shader>` and marking up the frame with :doc:`hierarchical user-defined regions <../window/event_browser>`.
 
-The way this is done varies by API. In D3D11 the resource is named in this way:
+The way this is done varies by API. In D3D11 the resource is named using the ``SetPrivateData`` function:
 
 .. highlight:: c++
 .. code:: c++
@@ -18,11 +18,52 @@ The way this is done varies by API. In D3D11 the resource is named in this way:
 	d3dDevice->CreateTexture2D(&descriptor, NULL, &tex2d);
 
 	// Give the buffer a useful name
-	tex2d->SetPrivateData(WKPDID_D3DDebugObjectName, "Example Texture", sizeof("Example Texture"));
+	tex2d->SetPrivateData(WKPDID_D3DDebugObjectName, sizeof("Example Texture"), "Example Texture");
+
+With D3D12 you can use the ``SetName`` function:
+
+.. highlight:: c++
+.. code:: c++
+
+	// Creating an example resource - a 2D Texture.
+	ID3D12Resource *tex2d = NULL;
+	d3dDevice->CreateCommittedResource(&heapProps, heapFlags, &descriptor, initState, &clearValue, __uuidof(ID3D12Resource), (void **)&tex2d);
+
+	// Give the buffer a useful name
+	tex2d->SetName(L"Example Texture");
 
 In OpenGL this can be done with ``GL_KHR_debug`` - ``glObjectLabel``.
 
-In Vulkan you can enable the ``VK_EXT_debug_marker`` extension, which is provided by RenderDoc, and use the ``vkDebugMarkerSetObjectName`` function.
+.. highlight:: c++
+.. code:: c++
+
+  // Creating an example resource - a 2D Texture.
+  GLuint tex2d = 0;
+  glGenTextures(1, &tex2d);
+  glBindTexture(GL_TEXTURE_2D, tex2d);
+
+  // apply the name, -1 means NULL terminated
+  glObjectLabel(GL_TEXTURE, tex2d, -1, "Example Texture");
+
+In Vulkan you can enable the ``VK_EXT_debug_marker`` extension, which is provided by RenderDoc, and use the ``vkDebugMarkerSetObjectNameEXT`` function.
+
+.. highlight:: c++
+.. code:: c++
+
+  // At creation time, request the VK_EXT_debug_marker extension and
+  // use vkGetInstanceProcAddr to obtain vkDebugMarkerSetObjectNameEXT
+
+  // create the image
+  VkImage tex2d;
+  vkCreateImage(device, &createInfo, NULL, &tex2d);
+
+  // set the name
+  VkDebugMarkerObjectNameInfoEXT nameInfo = {};
+  nameInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_OBJECT_NAME_INFO_EXT;
+  nameInfo.objectType = VK_DEBUG_REPORT_OBJECT_TYPE_IMAGE_EXT;
+  nameInfo.object = (uint64_t)tex2d; // this cast may vary by platform/compiler
+  nameInfo.pObjectName = "Example Texture";
+  vkDebugMarkerSetObjectNameEXT(device, &nameInfo);
 
 When this texture is bound to the pipeline it will be listed like so:
 
