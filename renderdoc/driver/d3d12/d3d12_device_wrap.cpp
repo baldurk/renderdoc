@@ -447,7 +447,15 @@ bool WrappedID3D12Device::Serialise_CreateDescriptorHeap(
     // while patching, because DX12 has a stupid limitation to not be able
     // to set multiple descriptor heaps at once of the same type
     if(Descriptor.Type == D3D12_DESCRIPTOR_HEAP_TYPE_CBV_SRV_UAV)
-      Descriptor.NumDescriptors += 16;
+    {
+      if(m_D3D12Opts.ResourceBindingTier == D3D12_RESOURCE_BINDING_TIER_3 ||
+         Descriptor.NumDescriptors + 16 <= 1000000)
+        Descriptor.NumDescriptors += 16;
+      else
+        RDCERR(
+            "RenderDoc needs extra descriptors for patching during analysis,"
+            "but heap is already at binding tier limit");
+    }
 
     ID3D12DescriptorHeap *ret = NULL;
     HRESULT hr = m_pDevice->CreateDescriptorHeap(&Descriptor, guid, (void **)&ret);
