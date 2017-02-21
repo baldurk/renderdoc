@@ -35,6 +35,9 @@ mkdir -p dist/Release{32,64}
 cp -R x64/Release/* dist/Release64/
 cp -R Win32/Release/* dist/Release32/
 
+rm -rf dist/Release64/obj/
+rm -rf dist/Release32/obj/
+
 cp renderdocui/3rdparty/ironpython/pythonlibs.zip dist/Release64/
 cp renderdocui/3rdparty/ironpython/pythonlibs.zip dist/Release32/
 
