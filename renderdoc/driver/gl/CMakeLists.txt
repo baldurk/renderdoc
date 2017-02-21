@@ -34,15 +34,11 @@ set(sources
     wrappers/gl_texture_funcs.cpp
     wrappers/gl_uniform_funcs.cpp)
 
-if(ANDROID)
-    list(APPEND sources
-        gl_replay_android.cpp
-        gl_hooks_android.cpp)
-elseif(APPLE)
+if(APPLE)
     list(APPEND sources
         gl_replay_apple.cpp
         gl_hooks_apple.cpp)
-elseif(UNIX)
+else()
     list(APPEND sources
         gl_hooks_linux_shared.cpp)
 
