@@ -1521,13 +1521,6 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       break;
     }
 
-    case OPCODE_ISHL:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", srcOpers[0].value.i.x << (srcOpers[1].value.u.x & 0x1f),
-                              srcOpers[0].value.i.y << (srcOpers[1].value.u.x & 0x1f),
-                              srcOpers[0].value.i.z << (srcOpers[1].value.u.x & 0x1f),
-                              srcOpers[0].value.i.w << (srcOpers[1].value.u.x & 0x1f)));
-      break;
     case OPCODE_IBFE:
     {
       // bottom 5 bits
@@ -1617,20 +1610,63 @@ State State::GetNext(GlobalState &global, State quad[4]) const
       s.SetDst(op.operands[0], op, dest);
       break;
     }
+    case OPCODE_ISHL:
+    {
+      uint32_t shifts[] = {
+          srcOpers[1].value.u.x & 0x1f, srcOpers[1].value.u.y & 0x1f, srcOpers[1].value.u.z & 0x1f,
+          srcOpers[1].value.u.w & 0x1f,
+      };
+
+      // if we were only given a single component, it's the form that shifts all components
+      // by the same amount
+      if(op.operands[2].numComponents == NUMCOMPS_1 ||
+         (op.operands[2].comps[2] < 4 && op.operands[2].comps[2] == 0xff))
+        shifts[3] = shifts[2] = shifts[1] = shifts[0];
+
+      s.SetDst(
+          op.operands[0], op,
+          ShaderVariable("", srcOpers[0].value.i.x << shifts[0], srcOpers[0].value.i.y << shifts[1],
+                         srcOpers[0].value.i.z << shifts[2], srcOpers[0].value.i.w << shifts[3]));
+      break;
+    }
     case OPCODE_USHR:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", srcOpers[0].value.u.x >> (srcOpers[1].value.u.x & 0x1f),
-                              srcOpers[0].value.u.y >> (srcOpers[1].value.u.x & 0x1f),
-                              srcOpers[0].value.u.z >> (srcOpers[1].value.u.x & 0x1f),
-                              srcOpers[0].value.u.w >> (srcOpers[1].value.u.x & 0x1f)));
+    {
+      uint32_t shifts[] = {
+          srcOpers[1].value.u.x & 0x1f, srcOpers[1].value.u.y & 0x1f, srcOpers[1].value.u.z & 0x1f,
+          srcOpers[1].value.u.w & 0x1f,
+      };
+
+      // if we were only given a single component, it's the form that shifts all components
+      // by the same amount
+      if(op.operands[2].numComponents == NUMCOMPS_1 ||
+         (op.operands[2].comps[2] < 4 && op.operands[2].comps[2] == 0xff))
+        shifts[3] = shifts[2] = shifts[1] = shifts[0];
+
+      s.SetDst(
+          op.operands[0], op,
+          ShaderVariable("", srcOpers[0].value.u.x >> shifts[0], srcOpers[0].value.u.y >> shifts[1],
+                         srcOpers[0].value.u.z >> shifts[2], srcOpers[0].value.u.w >> shifts[3]));
       break;
+    }
     case OPCODE_ISHR:
-      s.SetDst(op.operands[0], op,
-               ShaderVariable("", srcOpers[0].value.i.x >> (srcOpers[1].value.u.x & 0x1f),
-                              srcOpers[0].value.i.y >> (srcOpers[1].value.u.x & 0x1f),
-                              srcOpers[0].value.i.z >> (srcOpers[1].value.u.x & 0x1f),
-                              srcOpers[0].value.i.w >> (srcOpers[1].value.u.x & 0x1f)));
+    {
+      uint32_t shifts[] = {
+          srcOpers[1].value.u.x & 0x1f, srcOpers[1].value.u.y & 0x1f, srcOpers[1].value.u.z & 0x1f,
+          srcOpers[1].value.u.w & 0x1f,
+      };
+
+      // if we were only given a single component, it's the form that shifts all components
+      // by the same amount
+      if(op.operands[2].numComponents == NUMCOMPS_1 ||
+         (op.operands[2].comps[2] < 4 && op.operands[2].comps[2] == 0xff))
+        shifts[3] = shifts[2] = shifts[1] = shifts[0];
+
+      s.SetDst(
+          op.operands[0], op,
+          ShaderVariable("", srcOpers[0].value.i.x >> shifts[0], srcOpers[0].value.i.y >> shifts[1],
+                         srcOpers[0].value.i.z >> shifts[2], srcOpers[0].value.i.w >> shifts[3]));
       break;
+    }
     case OPCODE_AND:
       s.SetDst(op.operands[0], op, ShaderVariable("", srcOpers[0].value.i.x & srcOpers[1].value.i.x,
                                                   srcOpers[0].value.i.y & srcOpers[1].value.i.y,
