@@ -286,7 +286,7 @@ if(ENABLE_VULKAN)
     list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_vulkan>)
 endif()
 
-if(ENABLE_GL OR ENABLE_VULKAN)
+if(ENABLE_GL OR ENABLE_GLES OR ENABLE_VULKAN)
     add_subdirectory(driver/shaders/spirv)
     list(APPEND renderdoc_objects $<TARGET_OBJECTS:rdoc_spirv>)
 endif()
