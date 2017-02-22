@@ -161,12 +161,20 @@ struct GLWindowingData
 #error "Unknown platform"
 #endif
 
+#include "api/replay/renderdoc_replay.h"
+
 struct GLPlatform
 {
   // simple wrapper for OS functions to make/delete a context
   virtual GLWindowingData MakeContext(GLWindowingData share) = 0;
   virtual void DeleteContext(GLWindowingData context) = 0;
+  virtual void DeleteReplayContext(GLWindowingData context) = 0;
   virtual void MakeContextCurrent(GLWindowingData data) = 0;
+  virtual void SwapBuffers(GLWindowingData context) = 0;
+  virtual void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h) = 0;
+  virtual bool IsOutputWindowVisible(GLWindowingData context) = 0;
+  virtual GLWindowingData MakeOutputWindow(WindowingSystem system, void *data, bool depth,
+                                           GLWindowingData share_context) = 0;
 
   // for 'backwards compatible' overlay rendering
   virtual bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices) = 0;

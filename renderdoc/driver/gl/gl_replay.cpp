@@ -3203,6 +3203,83 @@ ShaderDebugTrace GLReplay::DebugThread(uint32_t eventID, uint32_t groupid[3], ui
   return ShaderDebugTrace();
 }
 
+void GLReplay::MakeCurrentReplayContext(GLWindowingData *ctx)
+{
+  static GLWindowingData *prev = NULL;
+
+  if(ctx && ctx != prev)
+  {
+    m_pDriver->m_Platform.MakeContextCurrent(*ctx);
+    prev = ctx;
+    m_pDriver->ActivateContext(*ctx);
+  }
+}
+
+void GLReplay::SwapBuffers(GLWindowingData *ctx)
+{
+  m_pDriver->m_Platform.SwapBuffers(*ctx);
+}
+
+void GLReplay::CloseReplayContext()
+{
+  m_pDriver->m_Platform.DeleteReplayContext(m_ReplayCtx);
+}
+
+uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
+{
+  OutputWindow win = m_pDriver->m_Platform.MakeOutputWindow(system, data, depth, m_ReplayCtx);
+  if(!win.wnd)
+    return eReplayCreate_APIInitFailed;
+
+  m_pDriver->m_Platform.GetOutputWindowDimensions(win, win.width, win.height);
+
+  MakeCurrentReplayContext(&win);
+  InitOutputWindow(win);
+  CreateOutputWindowBackbuffer(win, depth);
+
+  uint64_t ret = m_OutputWindowID++;
+
+  m_OutputWindows[ret] = win;
+
+  return ret;
+}
+
+void GLReplay::DestroyOutputWindow(uint64_t id)
+{
+  auto it = m_OutputWindows.find(id);
+  if(id == 0 || it == m_OutputWindows.end())
+    return;
+
+  OutputWindow &outw = it->second;
+
+  MakeCurrentReplayContext(&outw);
+
+  WrappedOpenGL &gl = *m_pDriver;
+  gl.glDeleteFramebuffers(1, &outw.BlitData.readFBO);
+
+  m_pDriver->m_Platform.DeleteReplayContext(outw);
+
+  m_OutputWindows.erase(it);
+}
+
+void GLReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
+{
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return;
+
+  OutputWindow &outw = m_OutputWindows[id];
+
+  m_pDriver->m_Platform.GetOutputWindowDimensions(outw, w, h);
+}
+
+bool GLReplay::IsOutputWindowVisible(uint64_t id)
+{
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return false;
+
+  return m_pDriver->m_Platform.IsOutputWindowVisible(m_OutputWindows[id]);
+}
+
 #if defined(RENDERDOC_SUPPORT_GL)
 
 // defined in gl_replay_<platform>.cpp

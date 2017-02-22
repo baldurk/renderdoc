@@ -389,10 +389,10 @@ void sig_handler(int signo)
 int main(int argc, char *argv[])
 {
   setlocale(LC_CTYPE, "");
+  volatile bool never_run = false;
 
 #if defined(RENDERDOC_SUPPORT_GL)
 
-  volatile bool never_run = false;
   if(never_run)
     glXWaitX();
 
@@ -400,7 +400,6 @@ int main(int argc, char *argv[])
 
 #if defined(RENDERDOC_SUPPORT_GLES)
 
-  volatile bool never_run = false;
   if(never_run)
     eglWaitGL();
 

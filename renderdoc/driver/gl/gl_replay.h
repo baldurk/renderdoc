@@ -243,6 +243,8 @@ private:
 
   struct OutputWindow : public GLWindowingData
   {
+    OutputWindow(const GLWindowingData &data) : GLWindowingData(data) {}
+    OutputWindow() {}
     struct
     {
       // used to blit from defined FBO (VAOs not shared)

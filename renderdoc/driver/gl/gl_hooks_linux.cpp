@@ -153,22 +153,20 @@ public:
       bool is_direct = false;
 
       PFNGLXISDIRECTPROC glXIsDirectProc = (PFNGLXISDIRECTPROC)dlsym(RTLD_NEXT, "glXIsDirect");
-      PFNGLXCHOOSEFBCONFIGPROC glXChooseFBConfigProc =
-          (PFNGLXCHOOSEFBCONFIGPROC)dlsym(RTLD_NEXT, "glXChooseFBConfig");
       PFNGLXCREATEPBUFFERPROC glXCreatePbufferProc =
           (PFNGLXCREATEPBUFFERPROC)dlsym(RTLD_NEXT, "glXCreatePbuffer");
 
       if(glXIsDirectProc)
         is_direct = glXIsDirectProc(share.dpy, share.ctx);
 
-      if(glXChooseFBConfigProc && glXCreatePbufferProc)
+      if(glXChooseFBConfig_real && glXCreatePbufferProc)
       {
         // don't need to care about the fb config as we won't be using the default framebuffer
         // (backbuffer)
         int visAttribs[] = {0};
         int numCfgs = 0;
         GLXFBConfig *fbcfg =
-            glXChooseFBConfigProc(share.dpy, DefaultScreen(share.dpy), visAttribs, &numCfgs);
+            glXChooseFBConfig_real(share.dpy, DefaultScreen(share.dpy), visAttribs, &numCfgs);
 
         // don't care about pbuffer properties as we won't render directly to this
         int pbAttribs[] = {GLX_PBUFFER_WIDTH, 32, GLX_PBUFFER_HEIGHT, 32, 0};
@@ -197,6 +195,157 @@ public:
       glXDestroyContext_real(context.dpy, context.ctx);
   }
 
+  void DeleteReplayContext(GLWindowingData context)
+  {
+    if(glXDestroyContext_real)
+    {
+      glXMakeContextCurrent_real(context.dpy, 0L, 0L, NULL);
+      glXDestroyContext_real(context.dpy, context.ctx);
+    }
+  }
+
+  void SwapBuffers(GLWindowingData context) { glXSwapBuffers_real(context.dpy, context.wnd); }
+  void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h)
+  {
+    glXQueryDrawable_real(context.dpy, context.wnd, GLX_WIDTH, (unsigned int *)&w);
+    glXQueryDrawable_real(context.dpy, context.wnd, GLX_HEIGHT, (unsigned int *)&h);
+  }
+
+  bool IsOutputWindowVisible(GLWindowingData context)
+  {
+    GLNOTIMP("Optimisation missing - output window always returning true");
+
+    return true;
+  }
+
+  GLWindowingData MakeOutputWindow(WindowingSystem system, void *data, bool depth,
+                                   GLWindowingData share_context)
+  {
+    GLWindowingData ret;
+
+    Display *dpy = NULL;
+    Drawable draw = 0;
+
+    if(system == eWindowingSystem_Xlib)
+    {
+#if ENABLED(RDOC_XLIB)
+      XlibWindowData *xlib = (XlibWindowData *)data;
+
+      dpy = xlib->display;
+      draw = xlib->window;
+#else
+      RDCERR(
+          "Xlib windowing system data passed in, but support is not compiled in. GL must have xlib "
+          "support compiled in");
+#endif
+    }
+    else if(system == eWindowingSystem_Unknown)
+    {
+      // allow undefined so that internally we can create a window-less context
+      dpy = XOpenDisplay(NULL);
+
+      if(dpy == NULL)
+        return ret;
+    }
+    else
+    {
+      RDCERR("Unexpected window system %u", system);
+    }
+
+    static int visAttribs[] = {GLX_X_RENDERABLE,
+                               True,
+                               GLX_DRAWABLE_TYPE,
+                               GLX_WINDOW_BIT,
+                               GLX_RENDER_TYPE,
+                               GLX_RGBA_BIT,
+                               GLX_X_VISUAL_TYPE,
+                               GLX_TRUE_COLOR,
+                               GLX_RED_SIZE,
+                               8,
+                               GLX_GREEN_SIZE,
+                               8,
+                               GLX_BLUE_SIZE,
+                               8,
+                               GLX_DOUBLEBUFFER,
+                               True,
+                               GLX_FRAMEBUFFER_SRGB_CAPABLE_ARB,
+                               True,
+                               0};
+    int numCfgs = 0;
+    GLXFBConfig *fbcfg = glXChooseFBConfig_real(dpy, DefaultScreen(dpy), visAttribs, &numCfgs);
+
+    if(fbcfg == NULL)
+    {
+      XCloseDisplay(dpy);
+      RDCERR("Couldn't choose default framebuffer config");
+      return ret;
+    }
+
+    if(draw != 0)
+    {
+      // Choose FB config with a GLX_VISUAL_ID that matches the X screen.
+      VisualID visualid_correct = DefaultVisual(dpy, DefaultScreen(dpy))->visualid;
+      for(int i = 0; i < numCfgs; i++)
+      {
+        int visualid;
+        glXGetFBConfigAttrib(dpy, fbcfg[i], GLX_VISUAL_ID, &visualid);
+        if((VisualID)visualid == visualid_correct)
+        {
+          fbcfg[0] = fbcfg[i];
+          break;
+        }
+      }
+    }
+
+    int attribs[64] = {0};
+    int i = 0;
+
+    attribs[i++] = GLX_CONTEXT_MAJOR_VERSION_ARB;
+    attribs[i++] = GLCoreVersion / 10;
+    attribs[i++] = GLX_CONTEXT_MINOR_VERSION_ARB;
+    attribs[i++] = GLCoreVersion % 10;
+    attribs[i++] = GLX_CONTEXT_FLAGS_ARB;
+#if ENABLED(RDOC_DEVEL)
+    attribs[i++] = GLX_CONTEXT_DEBUG_BIT_ARB;
+#else
+    attribs[i++] = 0;
+#endif
+    attribs[i++] = GLX_CONTEXT_PROFILE_MASK_ARB;
+    attribs[i++] = GLX_CONTEXT_CORE_PROFILE_BIT_ARB;
+
+    GLXContext ctx = glXCreateContextAttribsARB_real(dpy, fbcfg[0], share_context.ctx, true, attribs);
+
+    if(ctx == NULL)
+    {
+      XCloseDisplay(dpy);
+      RDCERR("Couldn't create %d.%d context - something changed since creation", GLCoreVersion / 10,
+             GLCoreVersion % 10);
+      return ret;
+    }
+
+    GLXDrawable wnd = 0;
+
+    if(draw == 0)
+    {
+      // don't care about pbuffer properties as we won't render directly to this
+      int pbAttribs[] = {GLX_PBUFFER_WIDTH, 32, GLX_PBUFFER_HEIGHT, 32, 0};
+
+      wnd = glXCreatePbuffer(dpy, fbcfg[0], pbAttribs);
+    }
+    else
+    {
+      wnd = glXCreateWindow(dpy, fbcfg[0], draw, 0);
+    }
+
+    XFree(fbcfg);
+
+    ret.dpy = dpy;
+    ret.ctx = ctx;
+    ret.wnd = wnd;
+
+    return ret;
+  }
+
   bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices);
 
   WrappedOpenGL *GetDriver()
@@ -218,6 +367,8 @@ public:
   PFNGLXGETVISUALFROMFBCONFIGPROC glXGetVisualFromFBConfig_real;
   PFNGLXCREATEWINDOWPROC glXCreateWindow_real;
   PFNGLXDESTROYWINDOWPROC glXDestroyWindow_real;
+  PFNGLXCHOOSEFBCONFIGPROC glXChooseFBConfig_real;
+  PFNGLXQUERYDRAWABLEPROC glXQueryDrawable_real;
 
   set<GLXContext> m_Contexts;
 
@@ -258,6 +409,11 @@ public:
       glXCreateWindow_real = (PFNGLXCREATEWINDOWPROC)dlsym(libGLdlsymHandle, "glXCreateWindow");
     if(glXDestroyWindow_real == NULL)
       glXDestroyWindow_real = (PFNGLXDESTROYWINDOWPROC)dlsym(libGLdlsymHandle, "glXDestroyWindow");
+    if(glXChooseFBConfig_real == NULL)
+      glXChooseFBConfig_real =
+          (PFNGLXCHOOSEFBCONFIGPROC)dlsym(libGLdlsymHandle, "glXChooseFBConfig");
+    if(glXQueryDrawable_real == NULL)
+      glXQueryDrawable_real = (PFNGLXQUERYDRAWABLEPROC)dlsym(RTLD_NEXT, "glXQueryDrawable");
 
     return success;
   }

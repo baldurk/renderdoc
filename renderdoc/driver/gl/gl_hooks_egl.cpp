@@ -41,6 +41,8 @@ typedef EGLContext (*PFN_eglCreateContext)(EGLDisplay dpy, EGLConfig config,
 typedef EGLBoolean (*PFN_eglDestroyContext)(EGLDisplay dpy, EGLContext ctx);
 typedef EGLSurface (*PFN_eglCreatePbufferSurface)(EGLDisplay dpy, EGLConfig config,
                                                   const EGLint *attrib_list);
+typedef EGLSurface (*PFN_eglCreateWindowSurface)(EGLDisplay dpy, EGLConfig config,
+                                                 EGLNativeWindowType win, const EGLint *attrib_list);
 typedef EGLBoolean (*PFN_eglQuerySurface)(EGLDisplay dpy, EGLSurface surface, EGLint attribute,
                                           EGLint *value);
 typedef EGLBoolean (*PFN_eglDestroySurface)(EGLDisplay dpy, EGLSurface surface);
@@ -172,6 +174,110 @@ public:
 
     if(context.ctx && eglDestroyContext_real)
       eglDestroyContext_real(context.egl_dpy, context.egl_ctx);
+  }
+
+  void DeleteReplayContext(GLWindowingData context)
+  {
+    if(eglDestroyContext_real)
+    {
+      eglMakeCurrent_real(context.egl_dpy, 0L, 0L, NULL);
+      eglDestroyContext_real(context.egl_dpy, context.egl_ctx);
+    }
+  }
+
+  void SwapBuffers(GLWindowingData context)
+  {
+    eglSwapBuffers_real(context.egl_dpy, context.egl_wnd);
+  }
+
+  void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h)
+  {
+    eglQuerySurface_real(context.egl_dpy, context.egl_wnd, EGL_WIDTH, &w);
+    eglQuerySurface_real(context.egl_dpy, context.egl_wnd, EGL_HEIGHT, &h);
+  }
+
+  bool IsOutputWindowVisible(GLWindowingData context) { return true; }
+  GLWindowingData MakeOutputWindow(WindowingSystem system, void *data, bool depth,
+                                   GLWindowingData share_context)
+  {
+    GLWindowingData ret;
+    EGLNativeWindowType window = 0;
+
+    if(system == eWindowingSystem_Xlib)
+    {
+      XlibWindowData *xlib = (XlibWindowData *)data;
+      window = (EGLNativeWindowType)xlib->window;
+    }
+    else if(system == eWindowingSystem_Unknown)
+    {
+      // allow undefined so that internally we can create a window-less context
+      Display *dpy = XOpenDisplay(NULL);
+
+      if(dpy == NULL)
+        return ret;
+    }
+    else
+    {
+      RDCERR("Unexpected window system %u", system);
+    }
+
+    EGLDisplay eglDisplay = eglGetDisplay_real(EGL_DEFAULT_DISPLAY);
+    RDCASSERT(eglDisplay);
+
+    static const EGLint configAttribs[] = {EGL_RED_SIZE,
+                                           8,
+                                           EGL_GREEN_SIZE,
+                                           8,
+                                           EGL_BLUE_SIZE,
+                                           8,
+                                           EGL_RENDERABLE_TYPE,
+                                           EGL_OPENGL_ES3_BIT,
+                                           EGL_SURFACE_TYPE,
+                                           EGL_PBUFFER_BIT | EGL_WINDOW_BIT,
+                                           EGL_NONE};
+
+    PFN_eglChooseConfig eglChooseConfig = (PFN_eglChooseConfig)dlsym(RTLD_NEXT, "eglChooseConfig");
+    PFN_eglCreateWindowSurface eglCreateWindowSurface =
+        (PFN_eglCreateWindowSurface)dlsym(RTLD_NEXT, "eglCreateWindowSurfaceProc");
+    PFN_eglCreatePbufferSurface eglCreatePbufferSurface =
+        (PFN_eglCreatePbufferSurface)dlsym(RTLD_NEXT, "eglCreatePbufferSurface");
+
+    EGLint numConfigs;
+    EGLConfig config;
+    if(!eglChooseConfig(eglDisplay, configAttribs, &config, 1, &numConfigs))
+    {
+      RDCERR("Couldn't find a suitable EGL config");
+      return ret;
+    }
+
+    static const EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_CONTEXT_FLAGS_KHR,
+                                        EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL_NONE};
+
+    EGLContext ctx = eglCreateContext_real(eglDisplay, config, EGL_NO_CONTEXT, ctxAttribs);
+
+    if(ctx == NULL)
+    {
+      RDCERR("Couldn't create GL ES context");
+      return ret;
+    }
+
+    EGLSurface surface = 0;
+
+    if(window != 0)
+    {
+      surface = eglCreateWindowSurface(eglDisplay, config, window, NULL);
+    }
+    else
+    {
+      static const EGLint pbAttribs[] = {EGL_WIDTH, 32, EGL_HEIGHT, 32, EGL_NONE};
+      surface = eglCreatePbufferSurface(eglDisplay, config, pbAttribs);
+    }
+
+    ret.egl_dpy = eglDisplay;
+    ret.egl_ctx = ctx;
+    ret.egl_wnd = surface;
+
+    return ret;
   }
 
   bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices);
