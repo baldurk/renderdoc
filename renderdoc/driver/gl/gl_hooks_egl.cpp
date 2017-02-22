@@ -253,7 +253,7 @@ public:
     static const EGLint ctxAttribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_CONTEXT_FLAGS_KHR,
                                         EGL_CONTEXT_OPENGL_DEBUG_BIT_KHR, EGL_NONE};
 
-    EGLContext ctx = eglCreateContext_real(eglDisplay, config, EGL_NO_CONTEXT, ctxAttribs);
+    EGLContext ctx = eglCreateContext_real(eglDisplay, config, share_context.ctx, ctxAttribs);
 
     if(ctx == NULL)
     {
