@@ -1341,6 +1341,9 @@ bool D3D11RenderState::ValidOutputMerger(ID3D11RenderTargetView **RTs, ID3D11Dep
 
     for(int i = 0; valid && i < numUAVs; i++)
     {
+      if(uavRanges[i].IsNull())
+        continue;
+
       // don't have to check RTVs, that's the reflection of the above check
 
       // does it match depth?
