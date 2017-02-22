@@ -305,6 +305,9 @@
 
 Threading::CriticalSection glLock;
 
+extern PFNWGLCREATECONTEXTATTRIBSARBPROC createContextAttribs;
+extern PFNWGLGETPIXELFORMATATTRIBIVARBPROC getPixelFormatAttrib;
+
 class OpenGLHook : LibraryHook, public GLPlatform
 {
 public:
@@ -389,6 +392,159 @@ public:
   {
     if(context.ctx && wglDeleteContext_hook())
       wglDeleteContext_hook()(context.ctx);
+  }
+
+  void DeleteReplayContext(GLWindowingData context)
+  {
+    if(wglDeleteContext_hook())
+    {
+      wglMakeCurrent_hook()(NULL, NULL);
+      wglDeleteContext_hook()(context.ctx);
+      ReleaseDC(context.wnd, context.DC);
+      ::DestroyWindow(context.wnd);
+    }
+  }
+
+  void SwapBuffers(GLWindowingData context) { ::SwapBuffers(context.DC); }
+  void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h)
+  {
+    RECT rect = {0};
+    GetClientRect(context.wnd, &rect);
+    w = rect.right - rect.left;
+    h = rect.bottom - rect.top;
+  }
+
+  bool IsOutputWindowVisible(GLWindowingData context)
+  {
+    return (IsWindowVisible(context.wnd) == TRUE);
+  }
+
+  GLWindowingData GLPlatform::MakeOutputWindow(WindowingSystem system, void *data, bool depth,
+                                               GLWindowingData share_context)
+  {
+    GLWindowingData ret;
+
+    RDCASSERT(system == eWindowingSystem_Win32 || system == eWindowingSystem_Unknown, system);
+
+    HWND w = (HWND)data;
+
+    if(w == NULL)
+      w = CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdocGLclass", L"", WS_OVERLAPPEDWINDOW,
+                         CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, CW_USEDEFAULT, NULL, NULL,
+                         GetModuleHandle(NULL), NULL);
+
+    HDC DC = GetDC(w);
+
+    PIXELFORMATDESCRIPTOR pfd = {0};
+
+    int attrib = eWGL_NUMBER_PIXEL_FORMATS_ARB;
+    int value = 1;
+
+    getPixelFormatAttrib(DC, 1, 0, 1, &attrib, &value);
+
+    int pf = 0;
+
+    int numpfs = value;
+    for(int i = 1; i <= numpfs; i++)
+    {
+      // verify that we have the properties we want
+      attrib = eWGL_DRAW_TO_WINDOW_ARB;
+      getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+      if(value == 0)
+        continue;
+
+      attrib = eWGL_ACCELERATION_ARB;
+      getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+      if(value == eWGL_NO_ACCELERATION_ARB)
+        continue;
+
+      attrib = eWGL_SUPPORT_OPENGL_ARB;
+      getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+      if(value == 0)
+        continue;
+
+      attrib = eWGL_DOUBLE_BUFFER_ARB;
+      getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+      if(value == 0)
+        continue;
+
+      attrib = eWGL_PIXEL_TYPE_ARB;
+      getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+      if(value != eWGL_TYPE_RGBA_ARB)
+        continue;
+
+      // we have an opengl-capable accelerated RGBA context.
+      // we use internal framebuffers to do almost all rendering, so we just need
+      // RGB (color bits > 24) and SRGB buffer.
+
+      attrib = eWGL_COLOR_BITS_ARB;
+      getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+      if(value < 24)
+        continue;
+
+      attrib = WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB;
+      getPixelFormatAttrib(DC, i, 0, 1, &attrib, &value);
+      if(value == 0)
+        continue;
+
+      // this one suits our needs, choose it
+      pf = i;
+      break;
+    }
+
+    if(pf == 0)
+    {
+      ReleaseDC(w, DC);
+      RDCERR("Couldn't choose pixel format");
+      return ret;
+    }
+
+    BOOL res = DescribePixelFormat(DC, pf, sizeof(pfd), &pfd);
+    if(res == FALSE)
+    {
+      ReleaseDC(w, DC);
+      RDCERR("Couldn't describe pixel format");
+      return ret;
+    }
+
+    res = SetPixelFormat(DC, pf, &pfd);
+    if(res == FALSE)
+    {
+      ReleaseDC(w, DC);
+      RDCERR("Couldn't set pixel format");
+      return ret;
+    }
+
+    int attribs[64] = {0};
+    int i = 0;
+
+    attribs[i++] = WGL_CONTEXT_MAJOR_VERSION_ARB;
+    attribs[i++] = GLCoreVersion / 10;
+    attribs[i++] = WGL_CONTEXT_MINOR_VERSION_ARB;
+    attribs[i++] = GLCoreVersion % 10;
+    attribs[i++] = WGL_CONTEXT_FLAGS_ARB;
+#if ENABLED(RDOC_DEVEL)
+    attribs[i++] = WGL_CONTEXT_DEBUG_BIT_ARB;
+#else
+    attribs[i++] = 0;
+#endif
+    attribs[i++] = WGL_CONTEXT_PROFILE_MASK_ARB;
+    attribs[i++] = WGL_CONTEXT_CORE_PROFILE_BIT_ARB;
+
+    HGLRC rc = createContextAttribs(DC, share_context.ctx, attribs);
+    if(rc == NULL)
+    {
+      ReleaseDC(w, DC);
+      RDCERR("Couldn't create %d.%d context - something changed since creation", GLCoreVersion / 10,
+             GLCoreVersion % 10);
+      return ret;
+    }
+
+    ret.DC = DC;
+    ret.ctx = rc;
+    ret.wnd = w;
+
+    return ret;
   }
 
   bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices);

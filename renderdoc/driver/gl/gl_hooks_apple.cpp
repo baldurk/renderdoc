@@ -49,7 +49,28 @@ public:
     return GLWindowingData();
   }
   virtual void DeleteContext(GLWindowingData context) { RDCUNIMPLEMENTED("DeleteContext"); }
+  virtual void DeleteReplayContext(GLWindowingData context)
+  {
+    RDCUNIMPLEMENTED("DeleteReplayContext");
+  }
   virtual void MakeContextCurrent(GLWindowingData data) { RDCUNIMPLEMENTED("MakeContextCurrent"); }
+  virtual void SwapBuffers(GLWindowingData context) { RDCUNIMPLEMENTED("SwapBuffers"); }
+  virtual void GetOutputWindowDimensions(GLWindowingData context, int32_t &w, int32_t &h)
+  {
+    RDCUNIMPLEMENTED("GetOutputWindowDimensions");
+  }
+  virtual bool IsOutputWindowVisible(GLWindowingData context)
+  {
+    RDCUNIMPLEMENTED("IsOutputWindowVisible");
+    return true;
+  }
+  virtual GLWindowingData MakeOutputWindow(WindowingSystem system, void *data, bool depth,
+                                           GLWindowingData share_context)
+  {
+    RDCUNIMPLEMENTED("MakeOutputWindow");
+    return GLWindowingData();
+  }
+
   virtual bool DrawQuads(float width, float height, const std::vector<Vec4f> &vertices)
   {
     RDCUNIMPLEMENTED("DrawQuads");

@@ -26,43 +26,6 @@
 #include "gl_driver.h"
 #include "gl_resources.h"
 
-void GLReplay::MakeCurrentReplayContext(GLWindowingData *ctx)
-{
-  RDCUNIMPLEMENTED("GLReplay::MakeCurrentReplayContext");
-}
-
-void GLReplay::SwapBuffers(GLWindowingData *ctx)
-{
-  RDCUNIMPLEMENTED("GLReplay::SwapBuffers");
-}
-
-void GLReplay::CloseReplayContext()
-{
-  RDCUNIMPLEMENTED("GLReplay::CloseReplayContext");
-}
-
-uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
-{
-  RDCUNIMPLEMENTED("GLReplay::MakeOutputWindow");
-  return 0;
-}
-
-void GLReplay::DestroyOutputWindow(uint64_t id)
-{
-  RDCUNIMPLEMENTED("GLReplay::DestroyOutputWindow");
-}
-
-void GLReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
-{
-  RDCUNIMPLEMENTED("GLReplay::GetOutputWindowDimensions");
-}
-
-bool GLReplay::IsOutputWindowVisible(uint64_t id)
-{
-  RDCUNIMPLEMENTED("GLReplay::IsOutputWindowVisible");
-  return false;
-}
-
 ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
 {
   RDCUNIMPLEMENTED("GL_CreateReplayDevice");
