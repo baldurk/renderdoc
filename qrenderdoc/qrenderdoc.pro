@@ -96,6 +96,16 @@ win32 {
 	} else {
 		QT += x11extras
 		DEFINES += RENDERDOC_PLATFORM_POSIX RENDERDOC_PLATFORM_LINUX RENDERDOC_WINDOWING_XLIB RENDERDOC_WINDOWING_XCB
+
+		contains(QMAKE_CXXFLAGS, "-DRENDERDOC_SUPPORT_GL") {
+			# Link against GL
+			LIBS += -lGL
+		}
+
+		contains(QMAKE_CXXFLAGS, "-DRENDERDOC_SUPPORT_GLES") {
+			# Link against EGL
+			LIBS += -lEGL
+		}
 	}
 }
 
