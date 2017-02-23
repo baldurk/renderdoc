@@ -334,7 +334,12 @@ public:
     }
     else
     {
-      wnd = glXCreateWindow(dpy, fbcfg[0], draw, 0);
+      // on NV and AMD creating this window causes problems rendering to any widgets in Qt, with the
+      // width/height queries failing to return any values and the framebuffer blitting not working.
+      // For the moment, we use the passed-in drawable directly as this works in testing on
+      // renderdoccmd and qrenderdoc
+      wnd = draw;
+      // glXCreateWindow(dpy, fbcfg[0], draw, 0);
     }
 
     XFree(fbcfg);
