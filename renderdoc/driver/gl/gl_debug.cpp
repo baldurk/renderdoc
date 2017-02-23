@@ -740,6 +740,7 @@ void GLReplay::DeleteDebugData()
       gl.glDeleteProgram(DebugData.histogramProgram[idx]);
 
       gl.glDeleteProgram(DebugData.minmaxResultProgram[i]);
+      DebugData.minmaxResultProgram[i] = 0;
     }
   }
 
