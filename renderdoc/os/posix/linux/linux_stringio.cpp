@@ -342,9 +342,15 @@ namespace OSUtility
 void WriteOutput(int channel, const char *str)
 {
   if(channel == OSUtility::Output_StdOut)
+  {
     fprintf(stdout, "%s", str);
+    fflush(stdout);
+  }
   else if(channel == OSUtility::Output_StdErr)
+  {
     fprintf(stderr, "%s", str);
+    fflush(stderr);
+  }
 }
 
 uint64_t GetMachineIdent()
