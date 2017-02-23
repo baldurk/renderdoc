@@ -65,6 +65,8 @@ From here you can save these captures out - as currently they are only temporary
 
 Double clicking on any capture will close any current open capture in the RenderDoc UI, and open up that capture for inspection. You may also right click or use the drop-down menu on the open button to launch a new instance of RenderDoc for viewing the log. This is mostly useful if you want to compare two captures side-by-side easily.
 
+You can press F2 or single click on a selected capture (not double click) to rename the default label given to each capture. This can be useful if you're changing something as you go or toggling an option and you want to remember which capture is which.
+
 .. figure:: ../imgs/Screenshots/OpenCapNewInstance.png
 
 	New instance: Launch new RenderDoc instance to open this capture.
