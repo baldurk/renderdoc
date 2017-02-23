@@ -38,7 +38,7 @@ There are several places where OpenGL is not yet at feature parity with D3D11.
 Linux and OS X
 --------------
 
-Linux and OS X support follows naturally when thinking about OpenGL support. Currently there is full support for capturing and replaying on linux, however the Qt UI is still work in progress. The recommended method is to capture on linux, and then replay on windows. For more information on this see :doc:`../how/how_network_capture_replay`.
+Linux and OS X support follows naturally when thinking about OpenGL support. There is full support for capturing and replaying on linux, with the UI based on Qt. It is also possible to capture on linux, and then replay on windows. For more information on this see :doc:`../how/how_network_capture_replay`.
 
 See Also
 --------

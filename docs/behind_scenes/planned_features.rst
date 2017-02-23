@@ -15,8 +15,7 @@ Planned features
 * Mesh display after HS stage.
 * Perfkit/PerfHUD integration for vendor-specific detailed performance timers.
 * Multiple frames in a single capture/logfile.
-* D3D12 support.
-* Further work on Qt UI.
+* Replacing .NET UI with the Qt UI.
 * Diffing events in a given frame.
 * Modifying the pipeline on the fly to change state.
 * Highlighting redundant state-setting.
