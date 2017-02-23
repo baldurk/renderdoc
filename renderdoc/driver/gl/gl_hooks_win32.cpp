@@ -305,8 +305,13 @@
 
 Threading::CriticalSection glLock;
 
+typedef BOOL(WINAPI *WGLMAKECURRENTPROC)(HDC, HGLRC);
+typedef BOOL(WINAPI *WGLDELETECONTEXTPROC)(HGLRC);
+
 extern PFNWGLCREATECONTEXTATTRIBSARBPROC createContextAttribs;
 extern PFNWGLGETPIXELFORMATATTRIBIVARBPROC getPixelFormatAttrib;
+extern WGLMAKECURRENTPROC wglMakeCurrentProc;
+extern WGLDELETECONTEXTPROC wglDeleteRC;
 
 class OpenGLHook : LibraryHook, public GLPlatform
 {
@@ -361,6 +366,8 @@ public:
   {
     if(wglMakeCurrent_hook())
       wglMakeCurrent_hook()(data.DC, data.ctx);
+    else if(wglMakeCurrentProc)
+      wglMakeCurrentProc(data.DC, data.ctx);
   }
 
   GLWindowingData MakeContext(GLWindowingData share)
@@ -396,10 +403,10 @@ public:
 
   void DeleteReplayContext(GLWindowingData context)
   {
-    if(wglDeleteContext_hook())
+    if(wglDeleteRC)
     {
-      wglMakeCurrent_hook()(NULL, NULL);
-      wglDeleteContext_hook()(context.ctx);
+      wglMakeCurrentProc(NULL, NULL);
+      wglDeleteRC(context.ctx);
       ReleaseDC(context.wnd, context.DC);
       ::DestroyWindow(context.wnd);
     }
