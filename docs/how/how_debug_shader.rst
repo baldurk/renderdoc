@@ -72,6 +72,14 @@ The keyboard shortcuts for these controls are :kbd:`F5` and :kbd:`Shift-F5` resp
 
 You can set a breakpoint by pressing :kbd:`F9` (this will also remove a breakpoint that is already there). When running in each direction or to cursor (see below) if execution hits a breakpoint it will stop.
 
+.. |runsample| image:: ../imgs/icons/runsample.png
+
+This button will run to the next texture load, gather or sample operation, and stop as if a breakpoint had been placed on that instruction.
+
+.. |runnaninf| image:: ../imgs/icons/runnaninf.png
+
+This button will run to the next operation that generates either a NaN or infinity value instead of a floating point value. This will not apply to operations that produce integer results which may be NaN/infinity when interpreted as float.
+
 .. |stepnext| image:: ../imgs/icons/stepnext.png
 .. |stepprev| image:: ../imgs/icons/stepprev.png
 
