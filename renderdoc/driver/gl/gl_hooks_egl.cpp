@@ -238,7 +238,7 @@ public:
 
     PFN_eglChooseConfig eglChooseConfig = (PFN_eglChooseConfig)dlsym(RTLD_NEXT, "eglChooseConfig");
     PFN_eglCreateWindowSurface eglCreateWindowSurface =
-        (PFN_eglCreateWindowSurface)dlsym(RTLD_NEXT, "eglCreateWindowSurfaceProc");
+        (PFN_eglCreateWindowSurface)dlsym(RTLD_NEXT, "eglCreateWindowSurface");
     PFN_eglCreatePbufferSurface eglCreatePbufferSurface =
         (PFN_eglCreatePbufferSurface)dlsym(RTLD_NEXT, "eglCreatePbufferSurface");
 
