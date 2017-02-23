@@ -19,9 +19,9 @@ If you have any questions, suggestions or problems or you can [create an issue](
 Screenshots
 --------------
 
-| [ ![Texture view](https://cloud.githubusercontent.com/assets/661798/9667117/3650453a-527a-11e5-9845-cebb26109b49.png) ](https://cloud.githubusercontent.com/assets/661798/8890997/634bf0f8-3316-11e5-9eb7-75d74e3a9356.png) | [ ![Pixel history & shader debug](https://cloud.githubusercontent.com/assets/661798/9667120/38e6d070-527a-11e5-884d-c7f11ca3e0da.png) ](https://cloud.githubusercontent.com/assets/661798/8891006/c7ad2670-3316-11e5-99e8-80f1f720f6f9.png) |
+| [ ![Texture view](https://renderdoc.org/fp/ts_screen1.jpg) ](https://renderdoc.org/fp/screen1.jpg) | [ ![Pixel history & shader debug](https://renderdoc.org/fp/ts_screen2.jpg) ](https://renderdoc.org/fp/screen2.png) |
 | --- | --- |
-| [ ![Mesh viewer](https://cloud.githubusercontent.com/assets/661798/9667125/3ad817b8-527a-11e5-81d7-244b397092f0.png) ](https://cloud.githubusercontent.com/assets/661798/8891021/64ab5c9e-3317-11e5-827a-24002d174efc.png) | [ ![Pipeline viewer & constants](https://cloud.githubusercontent.com/assets/661798/9667129/3c5b143c-527a-11e5-9864-41ae50f74043.png) ](https://cloud.githubusercontent.com/assets/661798/8891033/ef5668ac-3317-11e5-82ff-adb97b040db1.png) |
+| [ ![Mesh viewer](https://renderdoc.org/fp/ts_screen3.jpg) ](https://renderdoc.org/fp/screen3.png) | [ ![Pipeline viewer & constants](https://renderdoc.org/fp/ts_screen4.jpg) ](https://renderdoc.org/fp/screen4.png) |
 
 API Support
 --------------
