@@ -208,7 +208,7 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
   gl.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.backbuffer);
 
   gl.glTextureImage2DEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, 0, eGL_SRGB8, outwin.width,
-                         outwin.height, 0, eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
+                         outwin.height, 0, eGL_RGB, eGL_UNSIGNED_BYTE, NULL);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
   gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
@@ -222,7 +222,8 @@ void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
     gl.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.depthstencil);
 
     gl.glTextureImage2DEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, 0, eGL_DEPTH_COMPONENT24,
-                           outwin.width, outwin.height, 0, eGL_DEPTH_COMPONENT, eGL_FLOAT, NULL);
+                           outwin.width, outwin.height, 0, eGL_DEPTH_COMPONENT, eGL_UNSIGNED_INT,
+                           NULL);
     gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
     gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
     gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
