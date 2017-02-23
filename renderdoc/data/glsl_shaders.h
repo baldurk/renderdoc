@@ -25,6 +25,7 @@
 enum ShaderType
 {
   eShaderGLSL,
+  eShaderGLSLES,
   eShaderVulkan
 };
 

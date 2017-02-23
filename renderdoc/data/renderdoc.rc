@@ -137,6 +137,7 @@ RESOURCE_glsl_trisize_geom      TYPE_EMBED   "glsl/trisize.geom"
 RESOURCE_glsl_trisize_frag      TYPE_EMBED   "glsl/trisize.frag"
 RESOURCE_glsl_deptharr2ms_frag  TYPE_EMBED   "glsl/deptharr2ms.frag"
 RESOURCE_glsl_depthms2arr_frag  TYPE_EMBED   "glsl/depthms2arr.frag"
+RESOURCE_glsl_gles_texsample_h  TYPE_EMBED   "glsl/gles_texsample.h"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

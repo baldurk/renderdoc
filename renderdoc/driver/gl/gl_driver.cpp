@@ -29,6 +29,7 @@
 #include "data/glsl_shaders.h"
 #include "driver/shaders/spirv/spirv_common.h"
 #include "jpeg-compressor/jpge.h"
+#include "maths/matrix.h"
 #include "maths/vec.h"
 #include "replay/type_helpers.h"
 #include "serialise/string_utils.h"
@@ -1103,7 +1104,7 @@ void WrappedOpenGL::ContextData::AssociateWindow(WrappedOpenGL *gl, void *wndHan
   windows[wndHandle] = Timing::GetUnixTimestamp();
 }
 
-void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
+void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl, const bool isGLESMode)
 {
   // to let us display the overlay on old GL contexts, use as simple a subset of functionality as
   // possible
@@ -1206,13 +1207,29 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
       vector<string> vs;
       vector<string> fs;
 
-      GenerateGLSLShader(vs, eShaderGLSL, "", GetEmbeddedResource(glsl_text_vert), 150);
+      ShaderType shaderType;
+      int glslVersion;
+      string fragDefines;
 
-      GenerateGLSLShader(fs, eShaderGLSL,
-                         "#extension GL_ARB_shading_language_420pack : require\n"
-                         "#extension GL_ARB_separate_shader_objects : require\n"
-                         "#extension GL_ARB_explicit_attrib_location : require\n",
-                         GetEmbeddedResource(glsl_text_frag), 150);
+      if(isGLESMode)
+      {
+        shaderType = eShaderGLSLES;
+        glslVersion = 310;
+        fragDefines = "";
+      }
+      else
+      {
+        shaderType = eShaderGLSL;
+        glslVersion = 150;
+        fragDefines =
+            "#extension GL_ARB_shading_language_420pack : require\n"
+            "#extension GL_ARB_separate_shader_objects : require\n"
+            "#extension GL_ARB_explicit_attrib_location : require\n";
+      }
+
+      GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_text_vert), glslVersion);
+      GenerateGLSLShader(fs, shaderType, fragDefines, GetEmbeddedResource(glsl_text_frag),
+                         glslVersion);
 
       vector<const char *> vsc;
       vsc.reserve(vs.size());
@@ -2270,7 +2287,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
   // that might be shared later (wglShareLists requires contexts to be
   // pristine, so can't create this from wglMakeCurrent)
   if(!ctxdata.ready)
-    ctxdata.CreateDebugData(m_Real);
+    ctxdata.CreateDebugData(m_Real, isGLESMode());
 
   bool activeWindow = RenderDoc::Inst().IsActiveWindow(ctxdata.ctx, windowHandle);
 

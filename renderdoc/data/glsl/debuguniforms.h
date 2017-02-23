@@ -26,9 +26,11 @@
 // classes that represent a whole cbuffer
 #if defined(__cplusplus)
 
-#include "common/common.h"
-#include "maths/matrix.h"
-#include "maths/vec.h"
+// The Android GL ES shader compiler does not supports the " character.
+// The includes should be before this file is included!
+//#include "common/common.h"
+//#include "maths/matrix.h"
+//#include "maths/vec.h"
 
 #define uniform struct
 #define vec2 Vec2f
@@ -48,23 +50,19 @@ struct Vec4u
 #define uvec4 Vec4u
 
 #if !defined(VULKAN) && !defined(OPENGL)
-#error "Must define VULKAN or OPENGL before including debuguniforms.h"
+#error Must define VULKAN or OPENGL before including debuguniforms.h
 #endif
 
 #if defined(VULKAN) && defined(OPENGL)
-#error "Only one of VULKAN and OPENGL must be defined in debuguniforms.h"
+#error Only one of VULKAN and OPENGL must be defined in debuguniforms.h
 #endif
 
 #else
 
-// this has to happen above even any pre-processor definitions,
-// so it's added in code
-//#version 430 core
-
 // we require these extensions to be able to set explicit layout bindings, etc
-//#extension GL_ARB_shading_language_420pack : require
-//#extension GL_ARB_separate_shader_objects : require
-//#extension GL_ARB_explicit_attrib_location : require
+//#extension_nongles GL_ARB_shading_language_420pack : require
+//#extension_nongles GL_ARB_separate_shader_objects : require
+//#extension_nongles GL_ARB_explicit_attrib_location : require
 
 #ifdef VULKAN
 
@@ -76,6 +74,10 @@ struct Vec4u
 
 #define OPENGL 1
 
+#ifdef GL_ES
+#define OPENGL_ES 1
+#endif
+
 #define BINDING(b) layout(binding = b, std140)
 #define VERTEX_ID gl_VertexID
 #define INSTANCE_ID gl_InstanceID
@@ -83,6 +85,13 @@ struct Vec4u
 #endif
 
 #define INST_NAME(name) name
+
+#ifndef OPENGL_ES
+#define PRECISION
+#else
+#define PRECISION mediump
+precision PRECISION float;
+#endif
 
 #endif
 
@@ -269,9 +278,34 @@ INST_NAME(texdisplay);
 
 #define HGRAM_NUM_BUCKETS 256u
 
-#define MESH_OTHER 0    // this covers points and lines, logic is the same
-#define MESH_TRIANGLE_LIST 1
-#define MESH_TRIANGLE_STRIP 2
-#define MESH_TRIANGLE_FAN 3
-#define MESH_TRIANGLE_LIST_ADJ 4
-#define MESH_TRIANGLE_STRIP_ADJ 5
+#define MESH_OTHER 0u    // this covers points and lines, logic is the same
+#define MESH_TRIANGLE_LIST 1u
+#define MESH_TRIANGLE_STRIP 2u
+#define MESH_TRIANGLE_FAN 3u
+#define MESH_TRIANGLE_LIST_ADJ 4u
+#define MESH_TRIANGLE_STRIP_ADJ 5u
+
+#if !defined(__cplusplus)
+
+vec3 CalcCubeCoord(vec2 uv, int face)
+{
+  // From table 8.19 in GL4.5 spec
+  // Map UVs to [-0.5, 0.5] and rotate
+  uv -= vec2(0.5);
+  vec3 coord;
+  if(face == CUBEMAP_FACE_POS_X)
+    coord = vec3(0.5, -uv.y, -uv.x);
+  else if(face == CUBEMAP_FACE_NEG_X)
+    coord = vec3(-0.5, -uv.y, uv.x);
+  else if(face == CUBEMAP_FACE_POS_Y)
+    coord = vec3(uv.x, 0.5, uv.y);
+  else if(face == CUBEMAP_FACE_NEG_Y)
+    coord = vec3(uv.x, -0.5, -uv.y);
+  else if(face == CUBEMAP_FACE_POS_Z)
+    coord = vec3(uv.x, -uv.y, 0.5);
+  else    // face == CUBEMAP_FACE_NEG_Z
+    coord = vec3(-uv.x, -uv.y, -0.5);
+  return coord;
+}
+
+#endif

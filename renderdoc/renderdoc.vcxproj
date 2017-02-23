@@ -260,6 +260,7 @@
     <ClInclude Include="data\embedded_files.h" />
     <ClInclude Include="data\glsl\debuguniforms.h" />
     <ClInclude Include="data\glsl\gl_texsample.h" />
+    <ClInclude Include="data\glsl\gles_texsample.h" />
     <ClInclude Include="data\glsl\vk_texsample.h" />
     <ClInclude Include="data\glsl_shaders.h" />
     <ClInclude Include="data\hlsl\debugcbuffers.h" />

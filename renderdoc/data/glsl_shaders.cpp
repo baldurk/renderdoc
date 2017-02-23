@@ -30,7 +30,8 @@ void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
                         bool uniforms)
 {
   sources.resize(4);
-  sources[0] = StringFormat::Fmt("#version %d core\n", version);
+  sources[0] =
+      StringFormat::Fmt("#version %d %s\n", version, type == eShaderGLSLES ? "es" : "core");
 
   if(uniforms)
     sources[1] = GetEmbeddedResource(glsl_debuguniforms_h);
@@ -43,6 +44,8 @@ void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
       sources[2] = GetEmbeddedResource(glsl_vk_texsample_h);
     else if(type == eShaderGLSL)
       sources[2] = GetEmbeddedResource(glsl_gl_texsample_h);
+    else if(type == eShaderGLSLES)
+      sources[2] = GetEmbeddedResource(glsl_gles_texsample_h);
     else
       RDCERR("Unknown type! %d", type);
   }
@@ -67,7 +70,24 @@ void GenerateGLSLShader(std::vector<std::string> &sources, ShaderType type,
       size_t begin = extsearch;
       extsearch = sources[i].find('\n', extsearch);
 
-      sources[0] += sources[i].substr(begin, extsearch - begin + 1);
+      string ext = sources[i].substr(begin, extsearch - begin + 1);
+
+      if(ext.find("#extension_gles") == 0)
+      {
+        if(type != eShaderGLSLES)
+          continue;
+
+        ext.erase(ext.find("_gles"), 5);
+      }
+      else if(ext.find("#extension_nongles") == 0)
+      {
+        if(type == eShaderGLSLES)
+          continue;
+
+        ext.erase(ext.find("_nongles"), 8);
+      }
+
+      sources[0] += ext;
     } while(extsearch != string::npos);
   }
 
