@@ -59,8 +59,8 @@ using System.Resources;
 // You can specify all the values or you can default the Build and Revision Numbers 
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.33.0.0")]
-[assembly: AssemblyFileVersion("0.33.0.0")]
+[assembly: AssemblyVersion("0.34.0.0")]
+[assembly: AssemblyFileVersion("0.34.0.0")]
 
 // this can be replaced with the git hash of the commit being built from e.g. in a script
 [assembly: AssemblyInformationalVersion("NO_GIT_COMMIT_HASH_DEFINED")]
