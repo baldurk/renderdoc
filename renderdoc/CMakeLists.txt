@@ -96,6 +96,7 @@ set(sources
     data/glsl/debuguniforms.h
     data/glsl/vk_texsample.h
     data/glsl/gl_texsample.h
+    data/glsl/gles_texsample.h
     data/glsl_shaders.cpp
     data/glsl_shaders.h
     hooks/hooks.cpp
@@ -227,6 +228,7 @@ set(data
     data/glsl/quadwrite.frag
     data/glsl/texdisplay.frag
     data/glsl/gl_texsample.h
+    data/glsl/gles_texsample.h
     data/glsl/vk_texsample.h
     data/glsl/text.frag
     data/glsl/text.vert

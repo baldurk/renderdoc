@@ -22,6 +22,10 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+//#extension_gles GL_EXT_geometry_shader : enable
+//#extension_gles GL_OES_geometry_shader : enable
+//#extension_gles GL_EXT_geometry_point_size : enable
+
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 3) out;
 
@@ -31,6 +35,7 @@ layout (location = 1) in vec4 IN_norm[3];
 layout (location = 0) out vec4 OUT_secondary;
 layout (location = 1) out vec4 OUT_norm;
 
+#ifndef OPENGL_ES
 in gl_PerVertex
 {
   vec4 gl_Position;
@@ -42,6 +47,7 @@ out gl_PerVertex
 	vec4 gl_Position;
 	float gl_PointSize;
 };
+#endif
 
 void main()
 {

@@ -87,7 +87,7 @@ BEGIN
             VALUE "FileDescription", "Core DLL for RenderDoc - https://renderdoc.org/"
             VALUE "FileVersion", RENDERDOC_VERSION_STRING ".0.0"
             VALUE "InternalName", "renderdoc.dll"
-            VALUE "LegalCopyright", "Copyright © 2016 Baldur Karlsson"
+            VALUE "LegalCopyright", "Copyright ï¿½ 2016 Baldur Karlsson"
             VALUE "OriginalFilename", "renderdoc.dll"
             VALUE "ProductName", "RenderDoc"
             VALUE "ProductVersion", RENDERDOC_VERSION_STRING "-" GIT_COMMIT_HASH
@@ -137,6 +137,7 @@ RESOURCE_glsl_trisize_geom      TYPE_EMBED   "glsl/trisize.geom"
 RESOURCE_glsl_trisize_frag      TYPE_EMBED   "glsl/trisize.frag"
 RESOURCE_glsl_deptharr2ms_frag  TYPE_EMBED   "glsl/deptharr2ms.frag"
 RESOURCE_glsl_depthms2arr_frag  TYPE_EMBED   "glsl/depthms2arr.frag"
+RESOURCE_glsl_gles_texsample_h  TYPE_EMBED   "glsl/gles_texsample.h"
 
 #ifndef APSTUDIO_INVOKED
 /////////////////////////////////////////////////////////////////////////////

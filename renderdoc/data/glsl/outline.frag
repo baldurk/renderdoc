@@ -31,11 +31,11 @@ void main(void)
 	vec2 rectPos = gl_FragCoord.xy - outline.ViewRect.xy;
 	vec2 rectSize = outline.ViewRect.zw;
  
-	vec2 ab = mod(rectPos.xy, 32.0f.xx);
+	vec2 ab = mod(rectPos.xy, vec2(32.0f));
 
 	bool checkerVariant = (
-			(ab.x < 16 && ab.y < 16) ||
-			(ab.x > 16 && ab.y > 16)
+			(ab.x < 16.0f && ab.y < 16.0f) ||
+			(ab.x > 16.0f && ab.y > 16.0f)
 		);
 
 	if(outline.Scissor == 0u)

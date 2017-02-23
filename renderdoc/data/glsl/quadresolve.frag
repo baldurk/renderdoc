@@ -22,7 +22,7 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-//#extension GL_ARB_shader_image_load_store : require
+//#extension_nongles GL_ARB_shader_image_load_store : require
  
 ////////////////////////////////////////////////////////////////////////////////////////////
 // Below shaders courtesy of Stephen Hill (@self_shadow), converted to glsl trivially
@@ -31,7 +31,7 @@
 // https://github.com/selfshadow/demos/blob/master/QuadShading/QuadShading.fx
 ////////////////////////////////////////////////////////////////////////////////////////////
 
-layout(binding = 0, r32ui) uniform coherent uimage2DArray overdrawImage;
+layout(binding = 0, r32ui) uniform PRECISION coherent uimage2DArray overdrawImage;
 
 #define NUM_RAMP_COLOURS 128
 

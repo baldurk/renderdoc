@@ -22,11 +22,13 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
+#ifndef OPENGL_ES
 out gl_PerVertex
 {
 	vec4 gl_Position;
 	float gl_PointSize;
 };
+#endif
 
 layout (location = 0) out vec4 tex;
 layout (location = 1) out vec2 glyphuv;
@@ -46,7 +48,7 @@ void main(void)
 	vec3 pos = verts[vert];
 	uint strindex = uint(VERTEX_ID)/6u;
 	
-	vec2 charPos = vec2(strindex + pos.x + general.TextPosition.x, pos.y + general.TextPosition.y);
+	vec2 charPos = vec2(float(strindex) + pos.x + general.TextPosition.x, pos.y + general.TextPosition.y);
 
 	FontGlyphData G = glyphs.data[ str.chars[strindex].x ];
 	

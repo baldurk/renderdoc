@@ -249,6 +249,9 @@
     <ClInclude Include="data\glsl\gl_texsample.h">
       <Filter>Resources\glsl</Filter>
     </ClInclude>
+    <ClInclude Include="data\glsl\gles_texsample.h">
+      <Filter>Resources\glsl</Filter>
+    </ClInclude>
     <ClInclude Include="data\glsl\vk_texsample.h">
       <Filter>Resources\glsl</Filter>
     </ClInclude>

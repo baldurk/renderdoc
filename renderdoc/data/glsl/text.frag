@@ -34,7 +34,7 @@ layout (location = 1) in vec2 glyphuv;
 
 void main(void)
 {
-	float text = 0;
+	float text = 0.0f;
 
 	if(glyphuv.x >= 0.0f && glyphuv.x <= 1.0f &&
 	   glyphuv.y >= 0.0f && glyphuv.y <= 1.0f)
@@ -45,5 +45,5 @@ void main(void)
 		text = texture(tex0, uv.xy).x;
 	}
 
-	color_out = vec4(text.xxx, clamp(text + 0.5f, 0.0f, 1.0f));
+	color_out = vec4(vec3(text), clamp(text + 0.5f, 0.0f, 1.0f));
 }
