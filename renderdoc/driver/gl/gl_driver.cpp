@@ -891,7 +891,7 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
   else
   {
     gl.glTextureImage2DEXT(m_FakeBB_Color, target, 0, colfmt, params.width, params.height, 0,
-                           eGL_RGBA, eGL_UNSIGNED_BYTE, NULL);
+                           GetBaseFormat(colfmt), GetDataType(colfmt), NULL);
     gl.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
     gl.glTexParameteri(target, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
     gl.glTexParameteri(target, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
@@ -950,7 +950,7 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
     {
       gl.glTexParameteri(target, eGL_TEXTURE_MAX_LEVEL, 0);
       gl.glTextureImage2DEXT(m_FakeBB_DepthStencil, target, 0, depthfmt, params.width,
-                             params.height, 0, eGL_DEPTH_COMPONENT, eGL_UNSIGNED_BYTE, NULL);
+                             params.height, 0, GetBaseFormat(depthfmt), GetDataType(depthfmt), NULL);
     }
 
     if(stencil)
