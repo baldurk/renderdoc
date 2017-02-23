@@ -867,9 +867,6 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
           {
             size_t size = GetCompressedByteSize(w, h, d, details.internalFormat, i);
 
-            if(details.curType == eGL_TEXTURE_CUBE_MAP)
-              size /= 6;
-
             byte *buf = new byte[size];
 
             // read to CPU
@@ -1214,9 +1211,6 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
             {
               size_t size = GetCompressedByteSize(details.width, details.height, details.depth,
                                                   details.internalFormat, i);
-
-              if(t == eGL_TEXTURE_CUBE_MAP)
-                size /= 6;
 
               byte *buf = new byte[size];
 
