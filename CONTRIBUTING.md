@@ -124,6 +124,16 @@ For Archlinux (as of 2016.10.03) you'll need:
 sudo pacman -S libx11 libxcb xcb-util-keysyms mesa libgl qt5-base qt5-x11extras cmake
 ```
 
+For Gentoo (as of 2017.02.24), you'll need:
+
+```
+sudo emerge --ask x11-libs/libX11 x11-libs/libxcb x11-libs/xcb-util-keysyms dev-util/cmake dev-qt/qtcore dev-qt/qtgui dev-qt/qtwidgets dev-qt/qtsvg dev-qt/qtx11extras
+```
+
+Checking that at least Qt 5.6 installs.
+
+On any distribution if you find qmake isn't available under its default name, or if `qmake -v` lists a Qt4 version, make sure you have qtchooser installed in your package manager and use it to select Qt5. This might be done by exporting `QT_SELECT=qt5`, but check with your distribution for details.
+
 If you know the required packages for another distribution, please share (or pull request this file!)
 
 ### Mac
