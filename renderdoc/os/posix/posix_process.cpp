@@ -350,7 +350,7 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   }
 
   // don't care about child processes, just ignore them
-  signal(SIGCHLD, SIG_IGN);
+  // signal(SIGCHLD, SIG_IGN);
 
   pid_t childPid = fork();
   if(childPid == 0)
