@@ -472,7 +472,7 @@ public:
                                        UINT buffer, IUnknown *realSurface);
   HRESULT Present(WrappedIDXGISwapChain4 *swap, UINT SyncInterval, UINT Flags);
 
-  void NewSwapchainBuffer(IUnknown *backbuffer) {}
+  void NewSwapchainBuffer(IUnknown *backbuffer);
   void ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap, UINT QueueCount,
                                  IUnknown *const *ppPresentQueue, IUnknown **unwrappedQueues);
 

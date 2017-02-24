@@ -648,7 +648,13 @@ void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap
 
   for(int i = 0; i < swap->GetNumBackbuffers(); i++)
   {
-    WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)swap->GetBackbuffers()[i];
+    ID3D12Resource *res = (ID3D12Resource *)swap->GetBackbuffers()[i];
+
+    if(!res)
+      continue;
+
+    WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)res;
+    wrapped->ReleaseInternalRef();
     SAFE_RELEASE(wrapped);
   }
 
@@ -668,6 +674,17 @@ void WrappedID3D12Device::ReleaseSwapchainResources(WrappedIDXGISwapChain4 *swap
       GetDebugManager()->FreeRTV(it->second.rtvs[i]);
 
     m_SwapChains.erase(it);
+  }
+}
+
+void WrappedID3D12Device::NewSwapchainBuffer(IUnknown *backbuffer)
+{
+  ID3D12Resource *pRes = (ID3D12Resource *)backbuffer;
+
+  if(pRes)
+  {
+    WrappedID3D12Resource *wrapped = (WrappedID3D12Resource *)pRes;
+    wrapped->AddInternalRef();
   }
 }
 

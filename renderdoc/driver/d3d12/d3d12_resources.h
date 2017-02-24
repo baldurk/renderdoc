@@ -56,10 +56,13 @@ class WrappedDeviceChild12 : public RefCounter12<NestedType>,
 {
 protected:
   WrappedID3D12Device *m_pDevice;
+  ULONG m_InternalRefcount;
 
   WrappedDeviceChild12(NestedType *real, WrappedID3D12Device *device)
       : RefCounter12(real), m_pDevice(device)
   {
+    m_InternalRefcount = 0;
+
     m_pDevice->SoftRef();
 
     if(real)
@@ -93,9 +96,31 @@ protected:
 public:
   typedef NestedType InnerType;
 
+  // some applications wrongly check refcount return values and expect them to
+  // match D3D's values. When we have some internal refs we need to hide, we
+  // add them here and they're subtracted from return values
+  void AddInternalRef() { InterlockedIncrement(&m_InternalRefcount); }
+  void ReleaseInternalRef() { InterlockedDecrement(&m_InternalRefcount); }
   NestedType *GetReal() { return m_pReal; }
-  ULONG STDMETHODCALLTYPE AddRef() { return RefCounter12::SoftRef(m_pDevice); }
-  ULONG STDMETHODCALLTYPE Release() { return RefCounter12::SoftRelease(m_pDevice); }
+  ULONG STDMETHODCALLTYPE AddRef()
+  {
+    ULONG ret = RefCounter12::SoftRef(m_pDevice);
+
+    if(ret >= m_InternalRefcount)
+      ret -= m_InternalRefcount;
+
+    return ret;
+  }
+  ULONG STDMETHODCALLTYPE Release()
+  {
+    ULONG ret = RefCounter12::SoftRelease(m_pDevice);
+
+    if(ret >= m_InternalRefcount)
+      ret -= m_InternalRefcount;
+
+    return ret;
+  }
+
   HRESULT STDMETHODCALLTYPE QueryInterface(REFIID riid, void **ppvObject)
   {
     if(riid == __uuidof(IUnknown))
@@ -722,7 +747,7 @@ class WrappedID3D12Resource : public WrappedDeviceChild12<ID3D12Resource>
 
 public:
   static const int AllocPoolCount = 16384;
-  static const int AllocMaxByteSize = 1024 * 1024;
+  static const int AllocMaxByteSize = 1536 * 1024;
   ALLOCATE_WITH_WRAPPED_POOL(WrappedID3D12Resource, AllocPoolCount, AllocMaxByteSize, false);
 
   static std::map<ResourceId, WrappedID3D12Resource *> *m_List;
