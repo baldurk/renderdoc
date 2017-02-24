@@ -220,7 +220,8 @@ void Process::ApplyEnvironmentModification()
   modifications.clear();
 }
 
-static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char **envp)
+static pid_t RunProcess(const char *app, const char *workingDir, const char *cmdLine, char **envp,
+                        int stdoutPipe[2] = NULL, int stderrPipe[2] = NULL)
 {
   if(!app)
     return (pid_t)0;
@@ -355,6 +356,16 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
   pid_t childPid = fork();
   if(childPid == 0)
   {
+    if(stdoutPipe)
+    {
+      // Redirect stdout & stderr write ends.
+      dup2(stdoutPipe[1], STDOUT_FILENO);
+      dup2(stderrPipe[1], STDERR_FILENO);
+
+      // Close read ends, as the child will write.
+      close(stdoutPipe[0]);
+      close(stderrPipe[0]);
+    }
     const string appPath(GetAbsoluteAppPathFromName(appName));
     if(!appPath.empty())
     {
@@ -368,6 +379,13 @@ static pid_t RunProcess(const char *app, const char *workingDir, const char *cmd
       RDCERR("Failed to execute '%s' Executable not found", appName.c_str());
     }
     exit(0);
+  }
+
+  if(stdoutPipe)
+  {
+    // Close write ends, as parent will read.
+    close(stdoutPipe[1]);
+    close(stderrPipe[1]);
   }
 
   char **argv_delete = argv;
@@ -402,8 +420,44 @@ uint32_t Process::LaunchProcess(const char *app, const char *workingDir, const c
     return 0;
   }
 
+  int stdoutPipe[2], stderrPipe[2];
+  if(result)
+  {
+    if(pipe(stdoutPipe) == -1)
+      RDCERR("Could not create stdout pipe");
+    if(pipe(stderrPipe) == -1)
+      RDCERR("Could not create stderr pipe");
+  }
+
   char **currentEnvironment = GetCurrentEnvironment();
-  return (uint32_t)RunProcess(app, workingDir, cmdLine, currentEnvironment);
+  uint32_t ret = (uint32_t)RunProcess(app, workingDir, cmdLine, currentEnvironment,
+                                      result ? stdoutPipe : NULL, result ? stderrPipe : NULL);
+
+  if(result)
+  {
+    result->strStdout = "";
+    result->strStderror = "";
+
+    ssize_t stdoutRead, stderrRead;
+    do
+    {
+      char chBuf[1000];
+      stdoutRead = read(stdoutPipe[0], chBuf, sizeof(chBuf));
+      if(stdoutRead > 0)
+        result->strStdout += string(chBuf, stdoutRead);
+
+      stderrRead = read(stderrPipe[0], chBuf, sizeof(chBuf));
+      if(stderrRead > 0)
+        result->strStderror += string(chBuf, stderrRead);
+
+    } while(stdoutRead > 0 || stderrRead > 0);
+
+    // Close read ends.
+    close(stdoutPipe[0]);
+    close(stderrPipe[0]);
+  }
+
+  return ret;
 }
 
 uint32_t Process::LaunchAndInjectIntoProcess(const char *app, const char *workingDir,
