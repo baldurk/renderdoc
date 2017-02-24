@@ -897,6 +897,10 @@ public:
   uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine, void *env,
                             const CaptureOptions *opts)
   {
+    const char *host = hostname().c_str();
+    if(Android::IsHostADB(host))
+      return Android::StartAndroidPackageForCapture(host, app);
+
     CaptureOptions capopts = opts ? *opts : CaptureOptions();
 
     string appstr = app && app[0] ? app : "";
@@ -1176,10 +1180,6 @@ extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
 RemoteServer_ExecuteAndInject(RemoteServer *remote, const char *app, const char *workingDir,
                               const char *cmdLine, void *env, const CaptureOptions *opts)
 {
-  const char *host = remote->hostname().c_str();
-  if(Android::IsHostADB(host))
-    return Android::StartAndroidPackageForCapture(host, app);
-
   return remote->ExecuteAndInject(app, workingDir, cmdLine, env, opts);
 }
 
