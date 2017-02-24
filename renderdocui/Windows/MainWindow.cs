@@ -1019,48 +1019,90 @@ namespace renderdocui.Windows
             return "";
         }
 
-        private LiveCapture OnCaptureTrigger(string exe, string workingDir, string cmdLine, EnvironmentModification[] env, CaptureOptions opts)
+        private void OnCaptureTrigger(string exe, string workingDir, string cmdLine, EnvironmentModification[] env, CaptureOptions opts, Dialogs.CaptureDialog.OnConnectionEstablishedMethod callback)
         {
             if (!PromptCloseLog())
-                return null;
+                return;
 
             string logfile = m_Core.TempLogFilename(Path.GetFileNameWithoutExtension(exe));
 
             StaticExports.SetConfigSetting("MaxConnectTimeout", m_Core.Config.MaxConnectTimeout.ToString());
 
-            UInt32 ret = m_Core.Renderer.ExecuteAndInject(exe, workingDir, cmdLine, env, logfile, opts);
-
-            if (ret == 0)
+            Thread th = Helpers.NewThread(new ThreadStart(() =>
             {
-                MessageBox.Show(string.Format("Error launching {0} for capture.\n\nCheck diagnostic log in Help menu for more details.", exe),
-                                   "Error kicking capture", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return null;
-            }
+                UInt32 ret = m_Core.Renderer.ExecuteAndInject(exe, workingDir, cmdLine, env, logfile, opts);
 
-            var live = new LiveCapture(m_Core, m_Core.Renderer.Remote == null ? "" : m_Core.Renderer.Remote.Hostname, ret, this);
-            ShowLiveCapture(live);
-            return live;
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (ret == 0)
+                    {
+                        MessageBox.Show(string.Format("Error launching {0} for capture.\n\nCheck diagnostic log in Help menu for more details.", exe),
+                                           "Error kicking capture", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    var live = new LiveCapture(m_Core, m_Core.Renderer.Remote == null ? "" : m_Core.Renderer.Remote.Hostname, ret, this);
+                    ShowLiveCapture(live);
+                    callback(live);
+                }));
+            }));
+            th.Start();
+
+            // wait a few ms before popping up a progress bar
+            th.Join(500);
+
+            if (th.IsAlive)
+            {
+                ProgressPopup modal = new ProgressPopup((ModalCloseCallback)delegate
+                {
+                    return !th.IsAlive;
+                }, false);
+                modal.SetModalText(String.Format("Launching {0}, please wait...", exe));
+
+                modal.ShowDialog();
+            }
         }
 
-        private LiveCapture OnInjectTrigger(UInt32 PID, EnvironmentModification[] env, string name, CaptureOptions opts)
+        private void OnInjectTrigger(UInt32 PID, EnvironmentModification[] env, string name, CaptureOptions opts, Dialogs.CaptureDialog.OnConnectionEstablishedMethod callback)
         {
             if (!PromptCloseLog())
-                return null;
+                return;
 
             string logfile = m_Core.TempLogFilename(name);
 
-            UInt32 ret = StaticExports.InjectIntoProcess(PID, env, logfile, opts);
-
-            if (ret == 0)
+            Thread th = Helpers.NewThread(new ThreadStart(() =>
             {
-                MessageBox.Show(string.Format("Error injecting into process {0} for capture.\n\nCheck diagnostic log in Help menu for more details.", PID),
-                                   "Error kicking capture", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                return null;
-            }
+                UInt32 ret = StaticExports.InjectIntoProcess(PID, env, logfile, opts);
 
-            var live = new LiveCapture(m_Core, "", ret, this);
-            ShowLiveCapture(live);
-            return live;
+                this.BeginInvoke(new Action(() =>
+                {
+                    if (ret == 0)
+                    {
+                        MessageBox.Show(string.Format("Error injecting into process {0} for capture.\n\nCheck diagnostic log in Help menu for more details.", PID),
+                                           "Error kicking capture", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
+
+                    var live = new LiveCapture(m_Core, m_Core.Renderer.Remote == null ? "" : m_Core.Renderer.Remote.Hostname, ret, this);
+                    ShowLiveCapture(live);
+                    callback(live);
+                }));
+            }));
+            th.Start();
+
+            // wait a few ms before popping up a progress bar
+            th.Join(500);
+
+            if (th.IsAlive)
+            {
+                ProgressPopup modal = new ProgressPopup((ModalCloseCallback)delegate
+                {
+                    return !th.IsAlive;
+                }, false);
+                modal.SetModalText(String.Format("Injecting into {0}, please wait...", PID));
+
+                modal.ShowDialog();
+            }
         }
 
         private void captureLogToolStripMenuItem_Click(object sender, EventArgs e)

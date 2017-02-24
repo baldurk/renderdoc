@@ -324,63 +324,91 @@ void MainWindow::LoadFromFilename(const QString &filename)
   }
 }
 
-LiveCapture *MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
-                                          const QString &cmdLine,
-                                          const QList<EnvironmentModification> &env,
-                                          CaptureOptions opts)
+void MainWindow::OnCaptureTrigger(const QString &exe, const QString &workingDir,
+                                  const QString &cmdLine, const QList<EnvironmentModification> &env,
+                                  CaptureOptions opts, std::function<void(LiveCapture *)> callback)
 {
   if(!PromptCloseLog())
-    return NULL;
+    return;
 
-  QString logfile = m_Ctx.TempLogFilename(QFileInfo(exe).baseName());
+  LambdaThread *th = new LambdaThread([this, exe, workingDir, cmdLine, env, opts, callback]() {
+    QString logfile = m_Ctx.TempLogFilename(QFileInfo(exe).baseName());
 
-  uint32_t ret = m_Ctx.Renderer().ExecuteAndInject(exe, workingDir, cmdLine, env, logfile, opts);
+    uint32_t ret = m_Ctx.Renderer().ExecuteAndInject(exe, workingDir, cmdLine, env, logfile, opts);
 
-  if(ret == 0)
+    GUIInvoke::call([this, exe, ret, callback]() {
+      if(ret == 0)
+      {
+        RDDialog::critical(this, tr("Error kicking capture"),
+                           tr("Error launching %1 for capture.\n\nCheck diagnostic log in Help "
+                              "menu for more details.")
+                               .arg(exe));
+        return;
+      }
+
+      LiveCapture *live = new LiveCapture(
+          m_Ctx, m_Ctx.Renderer().remote() ? m_Ctx.Renderer().remote()->Hostname : "", ret, this,
+          this);
+      ShowLiveCapture(live);
+      callback(live);
+    });
+  });
+  th->start();
+  // wait a few ms before popping up a progress bar
+  th->wait(500);
+  if(th->isRunning())
   {
-    RDDialog::critical(
-        this, tr("Error kicking capture"),
-        tr("Error launching %1 for capture.\n\nCheck diagnostic log in Help menu for more details.")
-            .arg(exe));
-    return NULL;
+    ShowProgressDialog(this, tr("Launching %1, please wait...").arg(exe),
+                       [th]() { return !th->isRunning(); });
   }
-
-  LiveCapture *live = new LiveCapture(
-      m_Ctx, m_Ctx.Renderer().remote() ? m_Ctx.Renderer().remote()->Hostname : "", ret, this, this);
-  ShowLiveCapture(live);
-  return live;
+  th->deleteLater();
 }
 
-LiveCapture *MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentModification> &env,
-                                         const QString &name, CaptureOptions opts)
+void MainWindow::OnInjectTrigger(uint32_t PID, const QList<EnvironmentModification> &env,
+                                 const QString &name, CaptureOptions opts,
+                                 std::function<void(LiveCapture *)> callback)
 {
   if(!PromptCloseLog())
-    return NULL;
+    return;
 
-  QString logfile = m_Ctx.TempLogFilename(name);
+  LambdaThread *th = new LambdaThread([this, PID, env, name, opts, callback]() {
+    QString logfile = m_Ctx.TempLogFilename(name);
 
-  void *envList = RENDERDOC_MakeEnvironmentModificationList(env.size());
+    void *envList = RENDERDOC_MakeEnvironmentModificationList(env.size());
 
-  for(int i = 0; i < env.size(); i++)
-    RENDERDOC_SetEnvironmentModification(envList, i, env[i].variable.toUtf8().data(),
-                                         env[i].value.toUtf8().data(), env[i].type, env[i].separator);
+    for(int i = 0; i < env.size(); i++)
+      RENDERDOC_SetEnvironmentModification(envList, i, env[i].variable.toUtf8().data(),
+                                           env[i].value.toUtf8().data(), env[i].type,
+                                           env[i].separator);
 
-  uint32_t ret = RENDERDOC_InjectIntoProcess(PID, envList, logfile.toUtf8().data(), &opts, false);
+    uint32_t ret = RENDERDOC_InjectIntoProcess(PID, envList, logfile.toUtf8().data(), &opts, false);
 
-  RENDERDOC_FreeEnvironmentModificationList(envList);
+    RENDERDOC_FreeEnvironmentModificationList(envList);
 
-  if(ret == 0)
+    GUIInvoke::call([this, PID, ret, callback]() {
+      if(ret == 0)
+      {
+        RDDialog::critical(
+            this, tr("Error kicking capture"),
+            tr("Error injecting into process %1 for capture.\n\nCheck diagnostic log in "
+               "Help menu for more details.")
+                .arg(PID));
+        return;
+      }
+
+      LiveCapture *live = new LiveCapture(m_Ctx, "", ret, this, this);
+      ShowLiveCapture(live);
+    });
+  });
+  th->start();
+  // wait a few ms before popping up a progress bar
+  th->wait(500);
+  if(th->isRunning())
   {
-    RDDialog::critical(this, tr("Error kicking capture"),
-                       tr("Error injecting into process %1 for capture.\n\nCheck diagnostic log in "
-                          "Help menu for more details.")
-                           .arg(PID));
-    return NULL;
+    ShowProgressDialog(this, tr("Injecting into %1, please wait...").arg(PID),
+                       [th]() { return !th->isRunning(); });
   }
-
-  LiveCapture *live = new LiveCapture(m_Ctx, "", ret, this, this);
-  ShowLiveCapture(live);
-  return live;
+  th->deleteLater();
 }
 
 void MainWindow::LoadLogfile(const QString &filename, bool temporary, bool local)

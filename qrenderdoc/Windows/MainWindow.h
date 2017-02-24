@@ -63,10 +63,11 @@ public:
   void CloseLogfile();
   QString GetSavePath();
 
-  LiveCapture *OnCaptureTrigger(const QString &exe, const QString &workingDir, const QString &cmdLine,
-                                const QList<EnvironmentModification> &env, CaptureOptions opts);
-  LiveCapture *OnInjectTrigger(uint32_t PID, const QList<EnvironmentModification> &env,
-                               const QString &name, CaptureOptions opts);
+  void OnCaptureTrigger(const QString &exe, const QString &workingDir, const QString &cmdLine,
+                        const QList<EnvironmentModification> &env, CaptureOptions opts,
+                        std::function<void(LiveCapture *)> callback);
+  void OnInjectTrigger(uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
+                       CaptureOptions opts, std::function<void(LiveCapture *)> callback);
 
   void PopulateRecentFiles();
 

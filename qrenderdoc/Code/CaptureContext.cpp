@@ -685,11 +685,14 @@ CaptureDialog *CaptureContext::captureDialog()
   m_CaptureDialog = new CaptureDialog(
       *this,
       [this](const QString &exe, const QString &workingDir, const QString &cmdLine,
-             const QList<EnvironmentModification> &env, CaptureOptions opts) {
-        return m_MainWindow->OnCaptureTrigger(exe, workingDir, cmdLine, env, opts);
+             const QList<EnvironmentModification> &env, CaptureOptions opts,
+             std::function<void(LiveCapture *)> callback) {
+        return m_MainWindow->OnCaptureTrigger(exe, workingDir, cmdLine, env, opts, callback);
       },
       [this](uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
-             CaptureOptions opts) { return m_MainWindow->OnInjectTrigger(PID, env, name, opts); },
+             CaptureOptions opts, std::function<void(LiveCapture *)> callback) {
+        return m_MainWindow->OnInjectTrigger(PID, env, name, opts, callback);
+      },
       m_MainWindow);
   m_CaptureDialog->setObjectName("capDialog");
   m_CaptureDialog->setWindowIcon(*m_Icon);

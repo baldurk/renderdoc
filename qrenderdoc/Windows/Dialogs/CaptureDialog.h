@@ -57,11 +57,12 @@ class CaptureDialog : public QFrame
   Q_OBJECT
 
 public:
-  typedef std::function<LiveCapture *(const QString &exe, const QString &workingDir, const QString &cmdLine,
-                                      const QList<EnvironmentModification> &env, CaptureOptions opts)>
+  typedef std::function<void(const QString &exe, const QString &workingDir, const QString &cmdLine,
+                             const QList<EnvironmentModification> &env, CaptureOptions opts,
+                             std::function<void(LiveCapture *)> callback)>
       OnCaptureMethod;
-  typedef std::function<LiveCapture *(uint32_t PID, const QList<EnvironmentModification> &env,
-                                      const QString &name, CaptureOptions opts)>
+  typedef std::function<void(uint32_t PID, const QList<EnvironmentModification> &env, const QString &name,
+                             CaptureOptions opts, std::function<void(LiveCapture *)> callback)>
       OnInjectMethod;
 
   explicit CaptureDialog(CaptureContext &ctx, OnCaptureMethod captureCallback,

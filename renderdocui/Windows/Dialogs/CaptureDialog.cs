@@ -259,8 +259,10 @@ namespace renderdocui.Windows.Dialogs
 
         #region Callbacks
 
-        public delegate LiveCapture OnCaptureMethod(string exe, string workingDir, string cmdLine, EnvironmentModification[] env, CaptureOptions opts);
-        public delegate LiveCapture OnInjectMethod(UInt32 PID, EnvironmentModification[] env, string name, CaptureOptions opts);
+        public delegate void OnConnectionEstablishedMethod(LiveCapture live);
+
+        public delegate void OnCaptureMethod(string exe, string workingDir, string cmdLine, EnvironmentModification[] env, CaptureOptions opts, OnConnectionEstablishedMethod cb);
+        public delegate void OnInjectMethod(UInt32 PID, EnvironmentModification[] env, string name, CaptureOptions opts, OnConnectionEstablishedMethod cb);
 
         private OnCaptureMethod m_CaptureCallback = null;
         private OnInjectMethod m_InjectCallback = null;
@@ -430,10 +432,11 @@ namespace renderdocui.Windows.Dialogs
 
             string cmdLine = cmdline.Text;
 
-            var live = m_CaptureCallback(exe, workingDir, cmdLine, GetSettings().Environment, GetSettings().Options);
-
-            if (queueFrameCap.Checked && live != null)
-                live.QueueCapture((int)queuedCapFrame.Value);
+            m_CaptureCallback(exe, workingDir, cmdLine, GetSettings().Environment, GetSettings().Options, (LiveCapture live) =>
+            {
+                if (queueFrameCap.Checked)
+                    live.QueueCapture((int)queuedCapFrame.Value);
+            });
         }
 
         private void OnInject()
@@ -445,10 +448,11 @@ namespace renderdocui.Windows.Dialogs
                 string name = item.SubItems[1].Text;
                 UInt32 PID = (UInt32)item.Tag;
 
-                var live = m_InjectCallback(PID, GetSettings().Environment, name, GetSettings().Options);
-
-                if (queueFrameCap.Checked && live != null)
-                    live.QueueCapture((int)queuedCapFrame.Value);
+                m_InjectCallback(PID, GetSettings().Environment, name, GetSettings().Options, (LiveCapture live) =>
+                {
+                    if (queueFrameCap.Checked)
+                        live.QueueCapture((int)queuedCapFrame.Value);
+                });
             }
         }
 

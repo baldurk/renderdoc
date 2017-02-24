@@ -745,10 +745,11 @@ void CaptureDialog::triggerCapture()
       QString name = m_ProcessModel->data(m_ProcessModel->index(item.row(), 0)).toString();
       uint32_t PID = m_ProcessModel->data(m_ProcessModel->index(item.row(), 1)).toUInt();
 
-      LiveCapture *live = m_InjectCallback(PID, settings().Environment, name, settings().Options);
-
-      if(ui->queueFrameCap->isChecked() && live != NULL)
-        live->QueueCapture((int)ui->queuedFrame->value());
+      m_InjectCallback(PID, settings().Environment, name, settings().Options,
+                       [this](LiveCapture *live) {
+                         if(ui->queueFrameCap->isChecked())
+                           live->QueueCapture((int)ui->queuedFrame->value());
+                       });
     }
   }
   else
@@ -781,10 +782,10 @@ void CaptureDialog::triggerCapture()
 
     QString cmdLine = ui->cmdline->text();
 
-    LiveCapture *live =
-        m_CaptureCallback(exe, workingDir, cmdLine, settings().Environment, settings().Options);
-
-    if(ui->queueFrameCap->isChecked() && live != NULL)
-      live->QueueCapture((int)ui->queuedFrame->value());
+    m_CaptureCallback(exe, workingDir, cmdLine, settings().Environment, settings().Options,
+                      [this](LiveCapture *live) {
+                        if(ui->queueFrameCap->isChecked())
+                          live->QueueCapture((int)ui->queuedFrame->value());
+                      });
   }
 }
