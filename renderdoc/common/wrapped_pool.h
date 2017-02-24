@@ -272,7 +272,7 @@ private:
   template <>                                                                             \
   const size_t a::PoolType::AllocByteSize = sizeof(a);                                    \
   RDCCOMPILE_ASSERT(a::PoolType::AllocCount * sizeof(a) <= a::PoolType::AllocMaxByteSize, \
-                    "Pool is bigger than max pool size cap for " #a);                     \
+                    "Pool is bigger than max pool size cap for " STRINGIZE(a));           \
   RDCCOMPILE_ASSERT(a::PoolType::AllocCount > 2,                                          \
                     "Pool isn't greater than 2 in size. Bad parameters?");                \
   DECL_TYPENAME(a);
