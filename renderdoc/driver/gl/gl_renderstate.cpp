@@ -1374,7 +1374,7 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
   }
 
   m_Real->glDepthMask(DepthWriteMask);
-  m_Real->glClearDepth(DepthClearValue);
+  m_Real->glClearDepthf(DepthClearValue);
   m_Real->glDepthFunc(DepthFunc);
 
   if(HasExt[EXT_depth_bounds_test] && m_Real->glDepthBoundsEXT)
