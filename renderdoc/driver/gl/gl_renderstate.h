@@ -282,4 +282,5 @@ private:
   const GLHookSet *m_Real;
 
   Serialiser *GetSerialiser() { return m_pSerialiser; }
+  bool CheckEnableDisableParam(GLenum pname);
 };

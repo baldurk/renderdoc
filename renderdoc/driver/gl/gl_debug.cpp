@@ -213,6 +213,12 @@ GLuint GLReplay::CreateShaderProgram(const vector<string> &vsSources,
 
 void GLReplay::CheckGLSLVersion(const char *sl, int &glslVersion)
 {
+  // GL_SHADING_LANGUAGE_VERSION for OpenGL ES:
+  //   "OpenGL ES GLSL ES N.M vendor-specific information"
+  static const char *const GLSL_ES_STR = "OpenGL ES GLSL ES";
+  if(strncmp(sl, GLSL_ES_STR, 17) == 0)
+    sl += 18;
+
   if(sl[0] >= '0' && sl[0] <= '9' && sl[1] == '.' && sl[2] >= '0' && sl[2] <= '9')
   {
     int major = int(sl[0] - '0');
@@ -267,7 +273,7 @@ void GLReplay::InitDebugData()
   int glslCSVer;    // compute shader
   ShaderType shaderType;
 
-  if(m_pDriver->isGLESMode())
+  if(IsGLES)
   {
     glslVersion = glslBaseVer = glslCSVer = 310;
     shaderType = eShaderGLSLES;
@@ -299,7 +305,7 @@ void GLReplay::InitDebugData()
 
   RenderDoc::Inst().SetProgress(DebugManagerInit, 0.2f);
 
-  if(GLCoreVersion >= 43 && !m_pDriver->isGLESMode())    // TODO gles
+  if(GLCoreVersion >= 43 && !IsGLES)
   {
     GLint numsl = 0;
     gl.glGetIntegerv(eGL_NUM_SHADING_LANGUAGE_VERSIONS, &numsl);
