@@ -1104,7 +1104,7 @@ void WrappedOpenGL::ContextData::AssociateWindow(WrappedOpenGL *gl, void *wndHan
   windows[wndHandle] = Timing::GetUnixTimestamp();
 }
 
-void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl, const bool isGLESMode)
+void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl)
 {
   // to let us display the overlay on old GL contexts, use as simple a subset of functionality as
   // possible
@@ -1211,7 +1211,7 @@ void WrappedOpenGL::ContextData::CreateDebugData(const GLHookSet &gl, const bool
       int glslVersion;
       string fragDefines;
 
-      if(isGLESMode)
+      if(IsGLES)
       {
         shaderType = eShaderGLSLES;
         glslVersion = 310;
@@ -1556,7 +1556,7 @@ struct RenderTextState
       gl.glGetIntegerv(eGL_BLEND_DST_ALPHA, (GLint *)&DestinationAlpha);
     }
 
-    if(!VendorCheck[VendorCheck_AMD_polygon_mode_query])
+    if(!VendorCheck[VendorCheck_AMD_polygon_mode_query] && !IsGLES)
     {
       GLenum dummy[2] = {eGL_FILL, eGL_FILL};
       // docs suggest this is enumeration[2] even though polygon mode can't be set independently for
@@ -2287,7 +2287,7 @@ void WrappedOpenGL::SwapBuffers(void *windowHandle)
   // that might be shared later (wglShareLists requires contexts to be
   // pristine, so can't create this from wglMakeCurrent)
   if(!ctxdata.ready)
-    ctxdata.CreateDebugData(m_Real, isGLESMode());
+    ctxdata.CreateDebugData(m_Real);
 
   bool activeWindow = RenderDoc::Inst().IsActiveWindow(ctxdata.ctx, windowHandle);
 

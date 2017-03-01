@@ -413,7 +413,7 @@ private:
     void UnassociateWindow(void *wndHandle);
     void AssociateWindow(WrappedOpenGL *gl, void *wndHandle);
 
-    void CreateDebugData(const GLHookSet &gl, const bool isGLESMode);
+    void CreateDebugData(const GLHookSet &gl);
 
     bool Legacy() { return !attribsCreate || version < 32; }
     bool Modern() { return !Legacy(); }

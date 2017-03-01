@@ -33,6 +33,7 @@ bool VendorCheck[VendorCheck_Count] = {};
 
 int GLCoreVersion = 0;
 bool GLIsCore = false;
+bool IsGLES = false;
 
 bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
                         PFNGLGETSTRINGIPROC getStri)
@@ -383,6 +384,12 @@ void CheckExtensions(const GLHookSet &gl)
     const char *version = (const char *)gl.glGetString(eGL_VERSION);
 
     RDCLOG("Vendor checks for %u (%s / %s / %s)", GLCoreVersion, vendor, renderer, version);
+
+    // check whether we are using OpenGL ES
+    // GL_VERSION for OpenGL ES:
+    //   "OpenGL ES N.M vendor-specific information"
+    if(strncmp(version, "OpenGL ES", 9) == 0)
+      IsGLES = true;
   }
 
   if(gl.glGetStringi)
@@ -444,8 +451,12 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
     }
   }
 
-  if(gl.glGetIntegerv && gl.glGetError)
+  if(gl.glGetIntegerv && gl.glGetError && !IsGLES)
   {
+    // NOTE: in case of OpenGL ES the GL_NV_polygon_mode extension can be used, however even if the
+    // driver reports that the extension is supported, it always throws errors when we try to use it
+    // (at least with the current NVIDIA driver)
+
     // clear all error flags.
     GLenum err = eGL_NONE;
     ClearGLErrors(gl);
