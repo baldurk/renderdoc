@@ -182,6 +182,11 @@ void APIENTRY _glVertexArrayVertexBuffers(GLuint vaobj, GLuint first, GLsizei co
   hookset->glBindVertexBuffers(first, count, buffers, offsets, strides);
 }
 
+void APIENTRY _glClearDepthf(GLfloat d)
+{
+  hookset->glClearDepth(d);
+}
+
 void EmulateUnsupportedFunctions(GLHookSet *hooks)
 {
   hookset = hooks;
@@ -199,6 +204,10 @@ void EmulateUnsupportedFunctions(GLHookSet *hooks)
   EMULATE_UNSUPPORTED(glBlitNamedFramebuffer)
   EMULATE_UNSUPPORTED(glVertexArrayElementBuffer);
   EMULATE_UNSUPPORTED(glVertexArrayVertexBuffers)
+
+  // internally glClearDepthf is used instead of glClearDepth (because OpenGL ES does support the
+  // non-f version), however glClearDepthf is not available before OpenGL 4.1
+  EMULATE_UNSUPPORTED(glClearDepthf)
 
   // workaround for nvidia bug, which complains that GL_DEPTH_STENCIL is an invalid draw buffer.
   // also some issues with 32-bit implementation of this entry point.

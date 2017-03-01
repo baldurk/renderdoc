@@ -966,7 +966,7 @@ void WrappedOpenGL::Initialise(GLInitParams &params)
 
   if(params.depthBits > 0)
   {
-    gl.glClearDepth(1.0f);
+    gl.glClearDepthf(1.0f);
     gl.glClear(GL_DEPTH_BUFFER_BIT);
   }
 
