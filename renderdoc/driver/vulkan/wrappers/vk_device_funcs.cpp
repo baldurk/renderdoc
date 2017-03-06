@@ -108,14 +108,16 @@ ReplayCreateStatus WrappedVulkan::Initialise(VkInitParams &params)
   params.Extensions.push_back("VK_EXT_debug_report");
 #endif
 
-  // strip out any WSI extensions. We'll add the ones we want for creating windows
+  // strip out any WSI/direct display extensions. We'll add the ones we want for creating windows
   // on the current platforms below, and we don't replay any of the WSI functionality
   // directly so these extensions aren't needed
   for(auto it = params.Extensions.begin(); it != params.Extensions.end();)
   {
     if(*it == "VK_KHR_xlib_surface" || *it == "VK_KHR_xcb_surface" ||
        *it == "VK_KHR_wayland_surface" || *it == "VK_KHR_mir_surface" ||
-       *it == "VK_KHR_android_surface" || *it == "VK_KHR_win32_surface" || *it == "VK_KHR_display")
+       *it == "VK_KHR_android_surface" || *it == "VK_KHR_win32_surface" ||
+       *it == "VK_KHR_display" || *it == "VK_EXT_direct_mode_display" ||
+       *it == "VK_EXT_acquire_xlib_display" || *it == "VK_EXT_display_surface_counter")
     {
       it = params.Extensions.erase(it);
     }
@@ -796,7 +798,9 @@ bool WrappedVulkan::Serialise_vkCreateDevice(Serialiser *localSerialiser,
         continue;
 
       // don't include direct-display WSI extensions
-      if(strcmp(createInfo.ppEnabledExtensionNames[i], VK_KHR_DISPLAY_SWAPCHAIN_EXTENSION_NAME))
+      if(strcmp(createInfo.ppEnabledExtensionNames[i], VK_KHR_DISPLAY_SWAPCHAIN_EXTENSION_NAME) ||
+         strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_DISPLAY_CONTROL_EXTENSION_NAME) ||
+         strcmp(createInfo.ppEnabledExtensionNames[i], VK_EXT_DISPLAY_CONTROL_EXTENSION_NAME))
         continue;
 
       Extensions.push_back(createInfo.ppEnabledExtensionNames[i]);
