@@ -1416,10 +1416,21 @@ struct SPVInstruction
 
 #if USE_CANONICAL_EXT_INST_NAMES
         ret += op->arguments[0]->ext->setname + "::";
-        ret += op->arguments[0]->ext->canonicalNames[op->literals[0]];
+        const char **names = op->arguments[0]->ext->canonicalNames;
 #else
-        ret += op->arguments[0]->ext->friendlyNames[op->literals[0]];
+        const char **names = op->arguments[0]->ext->friendlyNames;
 #endif
+        if(names)
+        {
+          ret += names[op->literals[0]];
+        }
+        else
+        {
+#if !USE_CANONICAL_EXT_INST_NAMES
+          ret += op->arguments[0]->ext->setname + "::";
+#endif
+          ret += StringFormat::Fmt("op%u", op->literals[0]);
+        }
 
         ret += "(";
 
