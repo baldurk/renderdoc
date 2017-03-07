@@ -374,6 +374,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   // VS CBV
   param.ShaderVisibility = D3D12_SHADER_VISIBILITY_VERTEX;
   param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+  param.Descriptor.RegisterSpace = 0;
   param.Descriptor.ShaderRegister = 0;
   param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
 
@@ -458,6 +459,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   // 0: CBV
   param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
   param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+  param.Descriptor.RegisterSpace = 0;
   param.Descriptor.ShaderRegister = 0;
   param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
 
@@ -506,6 +508,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   // 0: CBV
   param.ShaderVisibility = D3D12_SHADER_VISIBILITY_PIXEL;
   param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+  param.Descriptor.RegisterSpace = 0;
   param.Descriptor.ShaderRegister = 0;
   param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
 
@@ -535,6 +538,7 @@ D3D12DebugManager::D3D12DebugManager(WrappedID3D12Device *wrapper)
   // 0: CBV
   param.ShaderVisibility = D3D12_SHADER_VISIBILITY_ALL;
   param.ParameterType = D3D12_ROOT_PARAMETER_TYPE_CBV;
+  param.Descriptor.RegisterSpace = 0;
   param.Descriptor.ShaderRegister = 0;
   param.Descriptor.Flags = D3D12_ROOT_DESCRIPTOR_FLAG_NONE;
 
