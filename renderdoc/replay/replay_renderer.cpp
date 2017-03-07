@@ -172,12 +172,12 @@ bool ReplayRenderer::SetFrameEvent(uint32_t eventID, bool force)
 
     m_pDevice->ReplayLog(eventID, eReplay_WithoutDraw);
 
-    FetchPipelineState();
-
     for(size_t i = 0; i < m_Outputs.size(); i++)
       m_Outputs[i]->SetFrameEvent(eventID);
 
     m_pDevice->ReplayLog(eventID, eReplay_OnlyDraw);
+
+    FetchPipelineState();
   }
 
   return true;
