@@ -3240,9 +3240,22 @@ void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el)
   Serialise("usage", (VkBufferUsageFlagBits &)el.usage);
   Serialise("sharingMode", el.sharingMode);
   if(m_Mode == READING)
+  {
     el.pQueueFamilyIndices = NULL;
-  SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)el.pQueueFamilyIndices,
-                    el.queueFamilyIndexCount);
+    el.queueFamilyIndexCount = 0;
+  }
+  if(el.sharingMode == VK_SHARING_MODE_CONCURRENT)
+  {
+    SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)el.pQueueFamilyIndices,
+                      el.queueFamilyIndexCount);
+  }
+  else
+  {
+    // for backwards compatibility with captures, ignore the family count and serialise empty array
+    uint32_t zero = 0;
+    uint32_t empty[1] = {0};
+    SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)empty, zero);
+  }
 }
 
 template <>
@@ -3289,9 +3302,22 @@ void Serialiser::Serialise(const char *name, VkImageCreateInfo &el)
   Serialise("usage", (VkImageUsageFlagBits &)el.usage);
   Serialise("sharingMode", el.sharingMode);
   if(m_Mode == READING)
+  {
     el.pQueueFamilyIndices = NULL;
-  SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)el.pQueueFamilyIndices,
-                    el.queueFamilyIndexCount);
+    el.queueFamilyIndexCount = 0;
+  }
+  if(el.sharingMode == VK_SHARING_MODE_CONCURRENT)
+  {
+    SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)el.pQueueFamilyIndices,
+                      el.queueFamilyIndexCount);
+  }
+  else
+  {
+    // for backwards compatibility with captures, ignore the family count and serialise empty array
+    uint32_t zero = 0;
+    uint32_t empty[1] = {0};
+    SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)empty, zero);
+  }
   Serialise("initialLayout", el.initialLayout);
 }
 
