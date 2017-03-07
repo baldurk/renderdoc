@@ -274,7 +274,7 @@ string GetThisLibPath()
         c++;
 
       // dev
-      while(isdigit(c[0]) || c[0] == ':')
+      while(isalnum(c[0]) || c[0] == ':')
         c++;
 
       // whitespace
