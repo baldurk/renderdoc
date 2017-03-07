@@ -105,6 +105,9 @@ struct DllHookset
 {
   DllHookset() : module(NULL), OrdinalBase(0) {}
   HMODULE module;
+  // if we have multiple copies of the dll loaded (unlikely), the other module handles will be
+  // stored here
+  vector<HMODULE> altmodules;
   vector<FunctionHook> FunctionHooks;
   DWORD OrdinalBase;
   vector<string> OrdinalNames;
@@ -208,9 +211,43 @@ struct CachedHookData
           it->second.module = module;
           it->second.FetchOrdinalNames();
         }
-        else
+        else if(it->second.module != module)
         {
-          it->second.module = module;
+          // if it's already in altmodules, bail
+          bool already = false;
+
+          for(size_t i = 0; i < it->second.altmodules.size(); i++)
+          {
+            if(it->second.altmodules[i] == module)
+            {
+              already = true;
+              break;
+            }
+          }
+
+          if(already)
+            break;
+
+          // check if the previous module is still valid
+          SetLastError(0);
+          char filename[MAX_PATH] = {};
+          GetModuleFileNameA(it->second.module, filename, MAX_PATH - 1);
+          DWORD err = GetLastError();
+          char *slash = strrchr(filename, L'\\');
+
+          string basename = slash ? strlower(string(slash + 1)) : "";
+
+          if(err == 0 && basename == it->first)
+          {
+            // previous module is still loaded, add this to the alt modules list
+            it->second.altmodules.push_back(module);
+          }
+          else
+          {
+            // previous module is no longer loaded or there's a new file there now, add this as the
+            // new location
+            it->second.module = module;
+          }
         }
       }
     }
@@ -592,7 +629,15 @@ FARPROC WINAPI Hooked_GetProcAddress(HMODULE mod, LPCSTR func)
     if(it->second.module == NULL)
       it->second.module = GetModuleHandleA(it->first.c_str());
 
-    if(mod == it->second.module)
+    bool match = (mod == it->second.module);
+
+    if(!match && !it->second.altmodules.empty())
+    {
+      for(size_t i = 0; !match && i < it->second.altmodules.size(); i++)
+        match = (mod == it->second.altmodules[i]);
+    }
+
+    if(match)
     {
 #if ENABLED(VERBOSE_DEBUG_HOOK)
       RDCDEBUG("Located module %s", it->first.c_str());
