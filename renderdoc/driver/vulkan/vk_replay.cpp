@@ -3413,7 +3413,10 @@ void VulkanReplay::SavePipelineState()
       m_VulkanPipelineState.DS.back.ref = state.back.ref;
       m_VulkanPipelineState.DS.back.compareMask = state.back.compare;
       m_VulkanPipelineState.DS.back.writeMask = state.back.write;
+    }
 
+    if(state.renderPass != ResourceId())
+    {
       // Renderpass
       m_VulkanPipelineState.Pass.renderpass.obj = rm->GetOriginalID(state.renderPass);
       if(state.renderPass != ResourceId())
