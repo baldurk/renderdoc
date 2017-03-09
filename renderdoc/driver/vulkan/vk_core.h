@@ -77,21 +77,34 @@ struct VulkanDrawcallTreeNode
   void InsertAndUpdateIDs(const VulkanDrawcallTreeNode &child, uint32_t baseEventID,
                           uint32_t baseDrawID)
   {
+    resourceUsage.reserve(child.resourceUsage.size());
     for(size_t i = 0; i < child.resourceUsage.size(); i++)
     {
       resourceUsage.push_back(child.resourceUsage[i]);
       resourceUsage.back().second.eventID += baseEventID;
     }
 
+    children.reserve(child.children.size());
     for(size_t i = 0; i < child.children.size(); i++)
     {
       children.push_back(child.children[i]);
-      children.back().draw.eventID += baseEventID;
-      children.back().draw.drawcallID += baseDrawID;
-
-      for(int32_t e = 0; e < children.back().draw.events.count; e++)
-        children.back().draw.events[e].eventID += baseEventID;
+      children.back().UpdateIDs(baseEventID, baseDrawID);
     }
+  }
+
+  void UpdateIDs(uint32_t baseEventID, uint32_t baseDrawID)
+  {
+    draw.eventID += baseEventID;
+    draw.drawcallID += baseDrawID;
+
+    for(int32_t i = 0; i < draw.events.count; i++)
+      draw.events[i].eventID += baseEventID;
+
+    for(size_t i = 0; i < resourceUsage.size(); i++)
+      resourceUsage[i].second.eventID += baseEventID;
+
+    for(size_t i = 0; i < children.size(); i++)
+      children[i].UpdateIDs(baseEventID, baseDrawID);
   }
 
   vector<FetchDrawcall> Bake()
