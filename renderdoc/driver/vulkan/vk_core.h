@@ -1348,6 +1348,21 @@ public:
   // VK_NV_external_memory_win32
   VkResult vkGetMemoryWin32HandleNV(VkDevice device, VkDeviceMemory memory,
                                     VkExternalMemoryHandleTypeFlagsNV handleType, HANDLE *pHandle);
+
+  // VK_KHX_external_memory_win32
+  VkResult vkGetMemoryWin32HandleKHX(VkDevice device, VkDeviceMemory memory,
+                                     VkExternalMemoryHandleTypeFlagBitsKHX handleType,
+                                     HANDLE *pHandle);
+  VkResult vkGetMemoryWin32HandlePropertiesKHX(
+      VkDevice device, VkExternalMemoryHandleTypeFlagBitsKHX handleType, HANDLE handle,
+      VkMemoryWin32HandlePropertiesKHX *pMemoryWin32HandleProperties);
+
+  // VK_KHX_external_semaphore_win32
+  VkResult vkImportSemaphoreWin32HandleKHX(
+      VkDevice device, const VkImportSemaphoreWin32HandleInfoKHX *pImportSemaphoreWin32HandleInfo);
+  VkResult vkGetSemaphoreWin32HandleKHX(VkDevice device, VkSemaphore semaphore,
+                                        VkExternalSemaphoreHandleTypeFlagBitsKHX handleType,
+                                        HANDLE *pHandle);
 #endif
 
 #if defined(VK_USE_PLATFORM_ANDROID_KHR)
@@ -1468,4 +1483,29 @@ public:
 
   // VK_EXT_direct_mode_display
   VkResult vkReleaseDisplayEXT(VkPhysicalDevice physicalDevice, VkDisplayKHR display);
+
+  // VK_KHX_external_memory_capabilities
+  void vkGetPhysicalDeviceExternalBufferPropertiesKHX(
+      VkPhysicalDevice physicalDevice,
+      const VkPhysicalDeviceExternalBufferInfoKHX *pExternalBufferInfo,
+      VkExternalBufferPropertiesKHX *pExternalBufferProperties);
+
+  // VK_KHX_external_memory_fd
+  VkResult vkGetMemoryFdKHX(VkDevice device, VkDeviceMemory memory,
+                            VkExternalMemoryHandleTypeFlagBitsKHX handleType, int *pFd);
+  VkResult vkGetMemoryFdPropertiesKHX(VkDevice device,
+                                      VkExternalMemoryHandleTypeFlagBitsKHX handleType, int fd,
+                                      VkMemoryFdPropertiesKHX *pMemoryFdProperties);
+
+  // VK_KHX_external_semaphore_capabilities
+  void vkGetPhysicalDeviceExternalSemaphorePropertiesKHX(
+      VkPhysicalDevice physicalDevice,
+      const VkPhysicalDeviceExternalSemaphoreInfoKHX *pExternalSemaphoreInfo,
+      VkExternalSemaphorePropertiesKHX *pExternalSemaphoreProperties);
+
+  // VK_KHX_external_semaphore_fd
+  VkResult vkImportSemaphoreFdKHX(VkDevice device,
+                                  const VkImportSemaphoreFdInfoKHX *pImportSemaphoreFdInfo);
+  VkResult vkGetSemaphoreFdKHX(VkDevice device, VkSemaphore semaphore,
+                               VkExternalSemaphoreHandleTypeFlagBitsKHX handleType, int *pFd);
 };

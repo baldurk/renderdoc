@@ -790,6 +790,41 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
 #endif
     {
+        VK_KHX_EXTERNAL_MEMORY_EXTENSION_NAME, VK_KHX_EXTERNAL_MEMORY_SPEC_VERSION,
+    },
+    {
+        VK_KHX_EXTERNAL_MEMORY_CAPABILITIES_EXTENSION_NAME,
+        VK_KHX_EXTERNAL_MEMORY_CAPABILITIES_SPEC_VERSION,
+    },
+    {
+        VK_KHX_EXTERNAL_MEMORY_FD_EXTENSION_NAME, VK_KHX_EXTERNAL_MEMORY_FD_SPEC_VERSION,
+    },
+#ifdef VK_KHX_external_memory_win32
+    {
+        VK_KHX_EXTERNAL_MEMORY_WIN32_EXTENSION_NAME, VK_KHX_EXTERNAL_MEMORY_WIN32_SPEC_VERSION,
+    },
+#endif
+    {
+        VK_KHX_EXTERNAL_SEMAPHORE_EXTENSION_NAME, VK_KHX_EXTERNAL_SEMAPHORE_SPEC_VERSION,
+    },
+    {
+        VK_KHX_EXTERNAL_SEMAPHORE_CAPABILITIES_EXTENSION_NAME,
+        VK_KHX_EXTERNAL_SEMAPHORE_CAPABILITIES_SPEC_VERSION,
+    },
+    {
+        VK_KHX_EXTERNAL_SEMAPHORE_FD_EXTENSION_NAME, VK_KHX_EXTERNAL_SEMAPHORE_FD_SPEC_VERSION,
+    },
+#ifdef VK_KHX_external_semaphore_win32
+    {
+        VK_KHX_EXTERNAL_SEMAPHORE_WIN32_EXTENSION_NAME, VK_KHX_EXTERNAL_SEMAPHORE_WIN32_SPEC_VERSION,
+    },
+#endif
+#ifdef VK_KHX_win32_keyed_mutex
+    {
+        VK_KHX_WIN32_KEYED_MUTEX_EXTENSION_NAME, VK_KHX_WIN32_KEYED_MUTEX_SPEC_VERSION,
+    },
+#endif
+    {
         VK_NV_DEDICATED_ALLOCATION_EXTENSION_NAME, VK_NV_DEDICATED_ALLOCATION_SPEC_VERSION,
     },
     {
@@ -810,6 +845,24 @@ static const VkExtensionProperties supportedExtensions[] = {
     },
 #endif
 };
+
+static void ValidateSupportedExtensionList()
+{
+// this should be a unit test
+#if DISABLED(RDOC_RELEASE)
+  std::vector<VkExtensionProperties> unsorted;
+  unsorted.insert(unsorted.begin(), &supportedExtensions[0],
+                  &supportedExtensions[ARRAY_COUNT(supportedExtensions)]);
+
+  std::vector<VkExtensionProperties> sorted = unsorted;
+
+  std::sort(sorted.begin(), sorted.end());
+
+  for(size_t i = 0; i < unsorted.size(); i++)
+    if(strcmp(unsorted[i].extensionName, sorted[i].extensionName))
+      RDCFATAL("supportedExtensions list is not sorted");
+#endif
+}
 
 // this is the list of extensions we provide - regardless of whether the ICD supports them
 static const VkExtensionProperties renderdocProvidedExtensions[] = {
@@ -852,6 +905,8 @@ VkResult WrappedVulkan::FilterDeviceExtensionProperties(VkPhysicalDevice physDev
 
   std::vector<VkExtensionProperties> filtered;
   filtered.reserve(exts.size());
+
+  ValidateSupportedExtensionList();
 
   // now we can step through both lists with two pointers,
   // instead of doing an O(N*M) lookup searching through each
@@ -1544,6 +1599,8 @@ void WrappedVulkan::ReadLogInitialisation()
 {
   uint64_t lastFrame = 0;
   uint64_t firstFrame = 0;
+
+  ValidateSupportedExtensionList();
 
   m_pSerialiser->SetDebugText(true);
 

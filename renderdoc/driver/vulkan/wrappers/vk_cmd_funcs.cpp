@@ -1865,6 +1865,9 @@ bool WrappedVulkan::Serialise_vkCmdPipelineBarrier(
         imgBarriers.push_back(imgMemBarriers[i]);
         ReplacePresentableImageLayout(imgBarriers.back().oldLayout);
         ReplacePresentableImageLayout(imgBarriers.back().newLayout);
+
+        ReplaceExternalQueueFamily(imgBarriers.back().srcQueueFamilyIndex,
+                                   imgBarriers.back().dstQueueFamilyIndex);
       }
     }
   }

@@ -253,7 +253,57 @@ VkResult WrappedVulkan::vkGetMemoryWin32HandleNV(VkDevice device, VkDeviceMemory
 {
   return ObjDisp(device)->GetMemoryWin32HandleNV(Unwrap(device), Unwrap(memory), handleType, pHandle);
 }
+
+VkResult WrappedVulkan::vkGetMemoryWin32HandleKHX(VkDevice device, VkDeviceMemory memory,
+                                                  VkExternalMemoryHandleTypeFlagBitsKHX handleType,
+                                                  HANDLE *pHandle)
+{
+  return ObjDisp(device)->GetMemoryWin32HandleKHX(Unwrap(device), Unwrap(memory), handleType,
+                                                  pHandle);
+}
+
+VkResult WrappedVulkan::vkGetMemoryWin32HandlePropertiesKHX(
+    VkDevice device, VkExternalMemoryHandleTypeFlagBitsKHX handleType, HANDLE handle,
+    VkMemoryWin32HandlePropertiesKHX *pMemoryWin32HandleProperties)
+{
+  return ObjDisp(device)->GetMemoryWin32HandlePropertiesKHX(Unwrap(device), handleType, handle,
+                                                            pMemoryWin32HandleProperties);
+}
 #endif
+
+VkResult WrappedVulkan::vkGetMemoryFdKHX(VkDevice device, VkDeviceMemory memory,
+                                         VkExternalMemoryHandleTypeFlagBitsKHX handleType, int *pFd)
+{
+  return ObjDisp(device)->GetMemoryFdKHX(Unwrap(device), Unwrap(memory), handleType, pFd);
+}
+
+VkResult WrappedVulkan::vkGetMemoryFdPropertiesKHX(VkDevice device,
+                                                   VkExternalMemoryHandleTypeFlagBitsKHX handleType,
+                                                   int fd,
+                                                   VkMemoryFdPropertiesKHX *pMemoryFdProperties)
+{
+  return ObjDisp(device)->GetMemoryFdPropertiesKHX(Unwrap(device), handleType, fd,
+                                                   pMemoryFdProperties);
+}
+
+void WrappedVulkan::vkGetPhysicalDeviceExternalBufferPropertiesKHX(
+    VkPhysicalDevice physicalDevice, const VkPhysicalDeviceExternalBufferInfoKHX *pExternalBufferInfo,
+    VkExternalBufferPropertiesKHX *pExternalBufferProperties)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceExternalBufferPropertiesKHX(Unwrap(physicalDevice), pExternalBufferInfo,
+                                                     pExternalBufferProperties);
+}
+
+void WrappedVulkan::vkGetPhysicalDeviceExternalSemaphorePropertiesKHX(
+    VkPhysicalDevice physicalDevice,
+    const VkPhysicalDeviceExternalSemaphoreInfoKHX *pExternalSemaphoreInfo,
+    VkExternalSemaphorePropertiesKHX *pExternalSemaphoreProperties)
+{
+  return ObjDisp(physicalDevice)
+      ->GetPhysicalDeviceExternalSemaphorePropertiesKHX(
+          Unwrap(physicalDevice), pExternalSemaphoreInfo, pExternalSemaphoreProperties);
+}
 
 void WrappedVulkan::vkGetPhysicalDeviceFeatures2KHR(VkPhysicalDevice physicalDevice,
                                                     VkPhysicalDeviceFeatures2KHR *pFeatures)

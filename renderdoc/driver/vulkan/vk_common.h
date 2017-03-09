@@ -36,6 +36,10 @@
 
 #define VK_NO_PROTOTYPES
 
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+#define VK_USE_PLATFORM_WIN32_KHX 1
+#endif
+
 #if ENABLED(RDOC_X64)
 
 #define VK_DEFINE_NON_DISPATCHABLE_HANDLE(object) typedef struct object##_T *object;
@@ -85,6 +89,7 @@ VkPrimitiveTopology MakeVkPrimitiveTopology(PrimitiveTopology Topo);
 VkAccessFlags MakeAccessMask(VkImageLayout layout);
 
 void ReplacePresentableImageLayout(VkImageLayout &layout);
+void ReplaceExternalQueueFamily(uint32_t &srcQueueFamily, uint32_t &dstQueueFamily);
 
 void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkImageMemoryBarrier *barriers);
 void DoPipelineBarrier(VkCommandBuffer cmd, uint32_t count, VkBufferMemoryBarrier *barriers);

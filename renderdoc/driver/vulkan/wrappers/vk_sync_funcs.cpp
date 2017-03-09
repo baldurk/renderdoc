@@ -700,6 +700,9 @@ bool WrappedVulkan::Serialise_vkCmdWaitEvents(
         imgBarriers.push_back(imgMemBarriers[i]);
         ReplacePresentableImageLayout(imgBarriers.back().oldLayout);
         ReplacePresentableImageLayout(imgBarriers.back().newLayout);
+
+        ReplaceExternalQueueFamily(imgBarriers.back().srcQueueFamilyIndex,
+                                   imgBarriers.back().dstQueueFamilyIndex);
       }
     }
   }
@@ -834,3 +837,40 @@ void WrappedVulkan::vkCmdWaitEvents(VkCommandBuffer cmdBuffer, uint32_t eventCou
       record->MarkResourceFrameReferenced(GetResID(pEvents[i]), eFrameRef_Read);
   }
 }
+
+VkResult WrappedVulkan::vkImportSemaphoreFdKHX(VkDevice device,
+                                               const VkImportSemaphoreFdInfoKHX *pImportSemaphoreFdInfo)
+{
+  VkImportSemaphoreFdInfoKHX unwrappedInfo = *pImportSemaphoreFdInfo;
+  unwrappedInfo.semaphore = Unwrap(unwrappedInfo.semaphore);
+
+  return ObjDisp(device)->ImportSemaphoreFdKHX(Unwrap(device), &unwrappedInfo);
+}
+
+VkResult WrappedVulkan::vkGetSemaphoreFdKHX(VkDevice device, VkSemaphore semaphore,
+                                            VkExternalSemaphoreHandleTypeFlagBitsKHX handleType,
+                                            int *pFd)
+{
+  return ObjDisp(device)->GetSemaphoreFdKHX(Unwrap(device), Unwrap(semaphore), handleType, pFd);
+}
+
+#if defined(VK_USE_PLATFORM_WIN32_KHR)
+
+VkResult WrappedVulkan::vkImportSemaphoreWin32HandleKHX(
+    VkDevice device, const VkImportSemaphoreWin32HandleInfoKHX *pImportSemaphoreWin32HandleInfo)
+{
+  VkImportSemaphoreWin32HandleInfoKHX unwrappedInfo = *pImportSemaphoreWin32HandleInfo;
+  unwrappedInfo.semaphore = Unwrap(unwrappedInfo.semaphore);
+
+  return ObjDisp(device)->ImportSemaphoreWin32HandleKHX(Unwrap(device), &unwrappedInfo);
+}
+
+VkResult WrappedVulkan::vkGetSemaphoreWin32HandleKHX(VkDevice device, VkSemaphore semaphore,
+                                                     VkExternalSemaphoreHandleTypeFlagBitsKHX handleType,
+                                                     HANDLE *pHandle)
+{
+  return ObjDisp(device)->GetSemaphoreWin32HandleKHX(Unwrap(device), Unwrap(semaphore), handleType,
+                                                     pHandle);
+}
+
+#endif

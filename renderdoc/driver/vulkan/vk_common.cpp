@@ -57,6 +57,16 @@ void ReplacePresentableImageLayout(VkImageLayout &layout)
     layout = VK_IMAGE_LAYOUT_GENERAL;
 }
 
+void ReplaceExternalQueueFamily(uint32_t &srcQueueFamily, uint32_t &dstQueueFamily)
+{
+  if(srcQueueFamily == VK_QUEUE_FAMILY_EXTERNAL_KHX || dstQueueFamily == VK_QUEUE_FAMILY_EXTERNAL_KHX)
+  {
+    // we should ignore this family transition since we're not synchronising with an
+    // external access.
+    srcQueueFamily = dstQueueFamily = VK_QUEUE_FAMILY_IGNORED;
+  }
+}
+
 int SampleCount(VkSampleCountFlagBits countFlag)
 {
   switch(countFlag)
@@ -2850,7 +2860,16 @@ static void SerialiseNext(Serialiser *ser, VkStructureType &sType, const void *&
          next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_NV ||
          next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_NV ||
          next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_NV ||
-         next->sType == VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV)
+         next->sType == VK_STRUCTURE_TYPE_WIN32_KEYED_MUTEX_ACQUIRE_RELEASE_INFO_NV ||
+
+         next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_ALLOCATE_INFO_KHX ||
+         next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_IMAGE_CREATE_INFO_KHX ||
+         next->sType == VK_STRUCTURE_TYPE_EXTERNAL_MEMORY_BUFFER_CREATE_INFO_KHX ||
+         next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_WIN32_HANDLE_INFO_KHX ||
+         next->sType == VK_STRUCTURE_TYPE_EXPORT_MEMORY_WIN32_HANDLE_INFO_KHX ||
+         next->sType == VK_STRUCTURE_TYPE_IMPORT_MEMORY_FD_INFO_KHX ||
+         next->sType == VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_CREATE_INFO_KHX ||
+         next->sType == VK_STRUCTURE_TYPE_EXPORT_SEMAPHORE_WIN32_HANDLE_INFO_KHX)
       {
         // do nothing
       }
