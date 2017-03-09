@@ -87,7 +87,7 @@ BEGIN
             VALUE "FileDescription", "Core DLL for RenderDoc - https://renderdoc.org/"
             VALUE "FileVersion", RENDERDOC_VERSION_STRING ".0.0"
             VALUE "InternalName", "renderdoc.dll"
-            VALUE "LegalCopyright", "Copyright © 2016 Baldur Karlsson"
+            VALUE "LegalCopyright", "Copyright ï¿½ 2016 Baldur Karlsson"
             VALUE "OriginalFilename", "renderdoc.dll"
             VALUE "ProductName", "RenderDoc"
             VALUE "ProductVersion", RENDERDOC_VERSION_STRING "-" GIT_COMMIT_HASH
