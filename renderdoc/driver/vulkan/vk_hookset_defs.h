@@ -714,18 +714,11 @@
 
 struct VkLayerInstanceDispatchTableExtended : VkLayerInstanceDispatchTable
 {
-  // for consistency & ease, we declare the CreateInstance pointer here
-  // even though it won't actually ever get used
-  PFN_vkCreateInstance CreateInstance;
-
-  // we need to use these before we have a dispatch table
-  PFN_vkEnumerateInstanceExtensionProperties EnumerateInstanceExtensionProperties;
-  PFN_vkEnumerateInstanceLayerProperties EnumerateInstanceLayerProperties;
 };
 
 struct VkLayerDispatchTableExtended : VkLayerDispatchTable
 {
   // for consistency & ease, we declare the CreateDevice pointer here
-  // even though it won't actually ever get used
+  // even though it won't actually ever get used and is on the instance dispatch chain
   PFN_vkCreateDevice CreateDevice;
 };
