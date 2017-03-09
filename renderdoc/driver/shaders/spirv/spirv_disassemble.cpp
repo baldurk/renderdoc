@@ -44,6 +44,14 @@ using std::make_pair;
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
 #include "3rdparty/glslang/glslang/Public/ShaderLang.h"
 
+// need to manually put these headers in the spv namespace
+namespace spv
+{
+#include "3rdparty/glslang/SPIRV/GLSL.ext.AMD.h"
+#include "3rdparty/glslang/SPIRV/GLSL.ext.KHR.h"
+#include "3rdparty/glslang/SPIRV/GLSL.ext.NV.h"
+};
+
 // I'm not sure yet if this makes things clearer or worse. On the one hand
 // it is explicit about stores/loads through pointers, but on the other it
 // produces a lot of noise.
@@ -6261,6 +6269,26 @@ string ToStrHelper<false, spv::Op>::Get(const spv::Op &el)
     case spv::OpAtomicFlagTestAndSet: return "AtomicFlagTestAndSet";
     case spv::OpAtomicFlagClear: return "AtomicFlagClear";
     case spv::OpImageSparseRead: return "ImageSparseRead";
+    case spv::OpSubgroupBallotKHR: return "ImageSparseRead";
+    case spv::OpSubgroupFirstInvocationKHR: return "SubgroupFirstInvocationKHR";
+    case spv::OpSubgroupAllKHR: return "SubgroupAllKHR";
+    case spv::OpSubgroupAnyKHR: return "SubgroupAnyKHR";
+    case spv::OpSubgroupAllEqualKHR: return "SubgroupAllEqualKHR";
+    case spv::OpSubgroupReadInvocationKHR: return "SubgroupReadInvocationKHR";
+    case spv::OpMax: break;
+  }
+
+  // VS doesn't like case statements for values not declared in the original enum
+  switch((int)el)
+  {
+    case spv::OpGroupIAddNonUniformAMD: return "GroupIAddNonUniformAMD";
+    case spv::OpGroupFAddNonUniformAMD: return "GroupFAddNonUniformAMD";
+    case spv::OpGroupFMinNonUniformAMD: return "GroupFMinNonUniformAMD";
+    case spv::OpGroupUMinNonUniformAMD: return "GroupUMinNonUniformAMD";
+    case spv::OpGroupSMinNonUniformAMD: return "GroupSMinNonUniformAMD";
+    case spv::OpGroupFMaxNonUniformAMD: return "GroupFMaxNonUniformAMD";
+    case spv::OpGroupUMaxNonUniformAMD: return "GroupUMaxNonUniformAMD";
+    case spv::OpGroupSMaxNonUniformAMD: return "GroupSMaxNonUniformAMD";
     default: break;
   }
 
@@ -6278,7 +6306,7 @@ string ToStrHelper<false, spv::SourceLanguage>::Get(const spv::SourceLanguage &e
     case spv::SourceLanguageOpenCL_C: return "OpenCL C";
     case spv::SourceLanguageOpenCL_CPP: return "OpenCL C++";
     case spv::SourceLanguageHLSL: return "HLSL";
-    default: break;
+    case spv::SourceLanguageMax: break;
   }
 
   return StringFormat::Fmt("UnrecognisedLanguage{%u}", (uint32_t)el);
@@ -6347,7 +6375,22 @@ string ToStrHelper<false, spv::Capability>::Get(const spv::Capability &el)
     case spv::CapabilityStorageImageReadWithoutFormat: return "StorageImageReadWithoutFormat";
     case spv::CapabilityStorageImageWriteWithoutFormat: return "StorageImageWriteWithoutFormat";
     case spv::CapabilityMultiViewport: return "MultiViewport";
-    default: break;
+    case spv::CapabilitySubgroupBallotKHR: return "SubgroupBallotKHR";
+    case spv::CapabilityDrawParameters: return "DrawParameters";
+    case spv::CapabilitySubgroupVoteKHR: return "SubgroupVoteKHR";
+    case spv::CapabilityStorageUniformBufferBlock16: return "StorageUniformBufferBlock16";
+    case spv::CapabilityStorageUniform16: return "StorageUniform16";
+    case spv::CapabilityStoragePushConstant16: return "StoragePushConstant16";
+    case spv::CapabilityStorageInputOutput16: return "StorageInputOutput16";
+    case spv::CapabilityDeviceGroup: return "DeviceGroup";
+    case spv::CapabilityMultiView: return "MultiView";
+    case spv::CapabilitySampleMaskOverrideCoverageNV: return "SampleMaskOverrideCoverageNV";
+    case spv::CapabilityGeometryShaderPassthroughNV: return "GeometryShaderPassthroughNV";
+    case spv::CapabilityShaderViewportIndexLayerNV: return "ShaderViewportIndexLayerNV";
+    case spv::CapabilityShaderViewportMaskNV: return "ShaderViewportMaskNV";
+    case spv::CapabilityShaderStereoViewNV: return "ShaderStereoViewNV";
+    case spv::CapabilityPerViewAttributesNV: return "PerViewAttributesNV";
+    case spv::CapabilityMax: break;
   }
 
   return StringFormat::Fmt("UnrecognisedCap{%u}", (uint32_t)el);
@@ -6389,7 +6432,7 @@ string ToStrHelper<false, spv::ExecutionMode>::Get(const spv::ExecutionMode &el)
     case spv::ExecutionModeOutputTriangleStrip: return "OutputTriangleStrip";
     case spv::ExecutionModeVecTypeHint: return "VecTypeHint";
     case spv::ExecutionModeContractionOff: return "ContractionOff";
-    default: break;
+    case spv::ExecutionModeMax: break;
   }
 
   return StringFormat::Fmt("UnrecognisedMode{%u}", (uint32_t)el);
@@ -6403,7 +6446,7 @@ string ToStrHelper<false, spv::AddressingModel>::Get(const spv::AddressingModel 
     case spv::AddressingModelLogical: return "Logical";
     case spv::AddressingModelPhysical32: return "Physical (32-bit)";
     case spv::AddressingModelPhysical64: return "Physical (64-bit)";
-    default: break;
+    case spv::AddressingModelMax: break;
   }
 
   return StringFormat::Fmt("UnrecognisedModel{%u}", (uint32_t)el);
@@ -6417,7 +6460,7 @@ string ToStrHelper<false, spv::MemoryModel>::Get(const spv::MemoryModel &el)
     case spv::MemoryModelSimple: return "Simple";
     case spv::MemoryModelGLSL450: return "GLSL450";
     case spv::MemoryModelOpenCL: return "OpenCL";
-    default: break;
+    case spv::MemoryModelMax: break;
   }
 
   return StringFormat::Fmt("UnrecognisedModel{%u}", (uint32_t)el);
@@ -6435,7 +6478,7 @@ string ToStrHelper<false, spv::ExecutionModel>::Get(const spv::ExecutionModel &e
     case spv::ExecutionModelFragment: return "Fragment Shader";
     case spv::ExecutionModelGLCompute: return "Compute Shader";
     case spv::ExecutionModelKernel: return "Kernel";
-    default: break;
+    case spv::ExecutionModelMax: break;
   }
 
   return StringFormat::Fmt("UnrecognisedModel{%u}", (uint32_t)el);
@@ -6489,6 +6532,17 @@ string ToStrHelper<false, spv::Decoration>::Get(const spv::Decoration &el)
     case spv::DecorationNoContraction: return "NoContraction";
     case spv::DecorationInputAttachmentIndex: return "InputAttachmentIndex";
     case spv::DecorationAlignment: return "Alignment";
+    case spv::DecorationOverrideCoverageNV: return "OverrideCoverageNV";
+    case spv::DecorationPassthroughNV: return "PassthroughNV";
+    case spv::DecorationViewportRelativeNV: return "ViewportRelativeNV";
+    case spv::DecorationSecondaryViewportRelativeNV: return "SecondaryViewportRelativeNV";
+    case spv::DecorationMax: break;
+  }
+
+  // VS doesn't like case statements for values not declared in the original enum
+  switch((int)el)
+  {
+    case spv::DecorationExplicitInterpAMD: return "ExplicitInterpAMD";
     default: break;
   }
 
@@ -6507,7 +6561,7 @@ string ToStrHelper<false, spv::Dim>::Get(const spv::Dim &el)
     case spv::DimRect: return "Rect";
     case spv::DimBuffer: return "Buffer";
     case spv::DimSubpassData: return "Subpass Data";
-    default: break;
+    case spv::DimMax: break;
   }
 
   return StringFormat::Fmt("{%u}D", (uint32_t)el);
@@ -6530,7 +6584,7 @@ string ToStrHelper<false, spv::StorageClass>::Get(const spv::StorageClass &el)
     case spv::StorageClassPushConstant: return "PushConstant";
     case spv::StorageClassAtomicCounter: return "AtomicCounter";
     case spv::StorageClassImage: return "Image";
-    default: break;
+    case spv::StorageClassMax: break;
   }
 
   return StringFormat::Fmt("UnrecognisedClass{%u}", (uint32_t)el);
@@ -6581,7 +6635,7 @@ string ToStrHelper<false, spv::ImageFormat>::Get(const spv::ImageFormat &el)
     case spv::ImageFormatRg8ui: return "RG8UI";
     case spv::ImageFormatR16ui: return "R16UI";
     case spv::ImageFormatR8ui: return "R8UI";
-    default: break;
+    case spv::ImageFormatMax: break;
   }
 
   return StringFormat::Fmt("UnrecognisedFormat{%u}", (uint32_t)el);
@@ -6633,6 +6687,34 @@ string ToStrHelper<false, spv::BuiltIn>::Get(const spv::BuiltIn &el)
     case spv::BuiltInSubgroupLocalInvocationId: return "SubgroupLocalInvocationId";
     case spv::BuiltInVertexIndex: return "VertexIndex";
     case spv::BuiltInInstanceIndex: return "InstanceIndex";
+    case spv::BuiltInSubgroupEqMaskKHR: return "SubgroupEqMaskKHR";
+    case spv::BuiltInSubgroupGeMaskKHR: return "SubgroupGeMaskKHR";
+    case spv::BuiltInSubgroupGtMaskKHR: return "SubgroupGtMaskKHR";
+    case spv::BuiltInSubgroupLeMaskKHR: return "SubgroupLeMaskKHR";
+    case spv::BuiltInSubgroupLtMaskKHR: return "SubgroupLtMaskKHR";
+    case spv::BuiltInBaseVertex: return "BaseVertex";
+    case spv::BuiltInBaseInstance: return "BaseInstance";
+    case spv::BuiltInDrawIndex: return "DrawIndex";
+    case spv::BuiltInDeviceIndex: return "DeviceIndex";
+    case spv::BuiltInViewIndex: return "ViewIndex";
+    case spv::BuiltInViewportMaskNV: return "ViewportMaskNV";
+    case spv::BuiltInSecondaryPositionNV: return "SecondaryPositionNV";
+    case spv::BuiltInSecondaryViewportMaskNV: return "SecondaryViewportMaskNV";
+    case spv::BuiltInPositionPerViewNV: return "PositionPerViewNV";
+    case spv::BuiltInViewportMaskPerViewNV: return "ViewportMaskPerViewNV";
+    case spv::BuiltInMax: break;
+  }
+
+  // VS doesn't like case statements for values not declared in the original enum
+  switch((int)el)
+  {
+    case spv::BuiltInBaryCoordNoPerspAMD: return "BaryCoordNoPerspAMD";
+    case spv::BuiltInBaryCoordNoPerspCentroidAMD: return "BaryCoordNoPerspCentroidAMD";
+    case spv::BuiltInBaryCoordNoPerspSampleAMD: return "BaryCoordNoPerspSampleAMD";
+    case spv::BuiltInBaryCoordSmoothAMD: return "BaryCoordSmoothAMD";
+    case spv::BuiltInBaryCoordSmoothCentroidAMD: return "BaryCoordSmoothCentroidAMD";
+    case spv::BuiltInBaryCoordSmoothSampleAMD: return "BaryCoordSmoothSampleAMD";
+    case spv::BuiltInBaryCoordPullModelAMD: return "BaryCoordPullModelAMD";
     default: break;
   }
 
@@ -6649,7 +6731,7 @@ string ToStrHelper<false, spv::Scope>::Get(const spv::Scope &el)
     case spv::ScopeWorkgroup: return "Workgroup";
     case spv::ScopeSubgroup: return "Subgroup";
     case spv::ScopeInvocation: return "Invocation";
-    default: break;
+    case spv::ScopeMax: break;
   }
 
   return StringFormat::Fmt("UnrecognisedScope{%u}", (uint32_t)el);
