@@ -291,5 +291,11 @@
     <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.ext.KHR.h">
       <Filter>3rdparty\glslang</Filter>
     </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.ext.AMD.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\..\3rdparty\glslang\SPIRV\GLSL.ext.NV.h">
+      <Filter>3rdparty\glslang</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

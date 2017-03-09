@@ -5,6 +5,9 @@ set(glslang_sources
     ${glslang_dir}/SPIRV/GlslangToSpv.cpp
     ${glslang_dir}/SPIRV/GlslangToSpv.h
     ${glslang_dir}/SPIRV/GLSL.std.450.h
+    ${glslang_dir}/SPIRV/GLSL.ext.AMD.h
+    ${glslang_dir}/SPIRV/GLSL.ext.KHR.h
+    ${glslang_dir}/SPIRV/GLSL.ext.NV.h
     ${glslang_dir}/SPIRV/hex_float.h
     ${glslang_dir}/SPIRV/InReadableOrder.cpp
     ${glslang_dir}/SPIRV/Logger.cpp

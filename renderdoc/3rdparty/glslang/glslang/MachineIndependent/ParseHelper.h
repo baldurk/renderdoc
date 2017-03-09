@@ -1,12 +1,12 @@
 //
-//Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
-//Copyright (C) 2012-2013 LunarG, Inc.
+// Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
+// Copyright (C) 2012-2013 LunarG, Inc.
 //
-//All rights reserved.
+// All rights reserved.
 //
-//Redistribution and use in source and binary forms, with or without
-//modification, are permitted provided that the following conditions
-//are met:
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
 //
 //    Redistributions of source code must retain the above copyright
 //    notice, this list of conditions and the following disclaimer.
@@ -20,18 +20,18 @@
 //    contributors may be used to endorse or promote products derived
 //    from this software without specific prior written permission.
 //
-//THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-//"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-//LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-//FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-//COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-//INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-//BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-//LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-//CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-//LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-//ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-//POSSIBILITY OF SUCH DAMAGE.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+// COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
 //
 
 //
@@ -49,8 +49,7 @@
 #include "SymbolTable.h"
 #include "localintermediate.h"
 #include "Scan.h"
-#include <functional>
-
+#include <cstdarg>
 #include <functional>
 
 namespace glslang {
@@ -73,13 +72,14 @@ typedef std::set<int> TIdSetType;
 //
 class TParseContextBase : public TParseVersions {
 public:
-    TParseContextBase(TSymbolTable& symbolTable, TIntermediate& interm, int version,
+    TParseContextBase(TSymbolTable& symbolTable, TIntermediate& interm, bool parsingBuiltins, int version,
                       EProfile profile, const SpvVersion& spvVersion, EShLanguage language,
                       TInfoSink& infoSink, bool forwardCompatible, EShMessages messages)
           : TParseVersions(interm, version, profile, spvVersion, language, infoSink, forwardCompatible, messages),
             symbolTable(symbolTable),
-            linkage(nullptr), scanContext(nullptr), ppContext(nullptr),
-            globalUniformBlock(nullptr) { }
+            parsingBuiltins(parsingBuiltins), scanContext(nullptr), ppContext(nullptr),
+            globalUniformBlock(nullptr)
+    { }
     virtual ~TParseContextBase() { }
 
     virtual void C_DECL   error(const TSourceLoc&, const char* szReason, const char* szToken,
@@ -94,7 +94,6 @@ public:
     virtual void setLimits(const TBuiltInResource&) = 0;
 
     EShLanguage getLanguage() const { return language; }
-    TIntermAggregate*& getLinkage() { return linkage; }
     void setScanContext(TScanContext* c) { scanContext = c; }
     TScanContext* getScanContext() const { return scanContext; }
     void setPpContext(TPpContext* c) { ppContext = c; }
@@ -140,7 +139,7 @@ public:
     // TODO: This could perhaps get its own object, but the current design doesn't work
     // yet when new uniform variables are declared between function definitions, so
     // this is pending getting a fully functional design.
-    virtual void growGlobalUniformBlock(TSourceLoc&, TType&, TString& memberName);
+    virtual void growGlobalUniformBlock(TSourceLoc&, TType&, TString& memberName, TTypeList* typeList = nullptr);
     virtual bool insertGlobalUniformBlock();
 
     virtual bool lValueErrorCheck(const TSourceLoc&, const char* op, TIntermTyped*);
@@ -150,7 +149,8 @@ protected:
     TParseContextBase(TParseContextBase&);
     TParseContextBase& operator=(TParseContextBase&);
 
-    TIntermAggregate* linkage;   // aggregate node of objects the linker may need, if not referenced by the rest of the AST
+    const bool parsingBuiltins;       // true if parsing built-in symbols/functions
+    TVector<TSymbol*> linkageSymbols; // these need to be transferred to 'linkage', after all editing is done
     TScanContext* scanContext;
     TPpContext* ppContext;
 
@@ -164,9 +164,12 @@ protected:
 
     // see implementation for detail
     const TFunction* selectFunction(const TVector<const TFunction*>, const TFunction&,
-        std::function<bool(const TType&, const TType&)>,
+        std::function<bool(const TType&, const TType&, TOperator, int arg)>,
         std::function<bool(const TType&, const TType&, const TType&)>,
         /* output */ bool& tie);
+
+    virtual void parseSwizzleSelector(const TSourceLoc&, const TString&, int size,
+                                      TSwizzleSelectors<TVectorSelector>&);
 
     // Manage the global uniform block (default uniforms in GLSL, $Global in HLSL)
     TVariable* globalUniformBlock;   // the actual block, inserted into the symbol table
@@ -177,8 +180,10 @@ protected:
     virtual void outputMessage(const TSourceLoc&, const char* szReason, const char* szToken,
                                const char* szExtraInfoFormat, TPrefixType prefix,
                                va_list args);
+    virtual void trackLinkage(TSymbol& symbol);
     virtual void makeEditable(TSymbol*&);
     virtual TVariable* getEditableVariable(const char* name);
+    virtual void finish();
 };
 
 //
@@ -229,23 +234,23 @@ public:
     bool obeyPrecisionQualifiers() const { return precisionManager.respectingPrecisionQualifiers(); };
     void setPrecisionDefaults();
 
-    void setLimits(const TBuiltInResource&);
-    bool parseShaderStrings(TPpContext&, TInputScanner& input, bool versionWillBeError = false);
+    void setLimits(const TBuiltInResource&) override;
+    bool parseShaderStrings(TPpContext&, TInputScanner& input, bool versionWillBeError = false) override;
     void parserError(const char* s);     // for bison's yyerror
 
     void reservedErrorCheck(const TSourceLoc&, const TString&);
-    void reservedPpErrorCheck(const TSourceLoc&, const char* name, const char* op);
-    bool lineContinuationCheck(const TSourceLoc&, bool endOfComment);
-    bool lineDirectiveShouldSetNextLine() const;
+    void reservedPpErrorCheck(const TSourceLoc&, const char* name, const char* op) override;
+    bool lineContinuationCheck(const TSourceLoc&, bool endOfComment) override;
+    bool lineDirectiveShouldSetNextLine() const override;
     bool builtInName(const TString&);
 
-    void handlePragma(const TSourceLoc&, const TVector<TString>&);
+    void handlePragma(const TSourceLoc&, const TVector<TString>&) override;
     TIntermTyped* handleVariable(const TSourceLoc&, TSymbol* symbol, const TString* string);
     TIntermTyped* handleBracketDereference(const TSourceLoc&, TIntermTyped* base, TIntermTyped* index);
     void checkIndex(const TSourceLoc&, const TType&, int& index);
     void handleIndexLimits(const TSourceLoc&, TIntermTyped* base, TIntermTyped* index);
 
-    void makeEditable(TSymbol*&);
+    void makeEditable(TSymbol*&) override;
     bool isIoResizeArray(const TType&) const;
     void fixIoArraySize(const TSourceLoc&, TType&);
     void ioArrayCheck(const TSourceLoc&, const TType&, const TString& identifier);
@@ -276,7 +281,6 @@ public:
     void handlePrecisionQualifier(const TSourceLoc&, TQualifier&, TPrecisionQualifier);
     void checkPrecisionQualifier(const TSourceLoc&, TPrecisionQualifier);
 
-    bool parseVectorFields(const TSourceLoc&, const TString&, int vecSize, TVectorFields&);
     void assignError(const TSourceLoc&, const char* op, TString left, TString right);
     void unaryOpError(const TSourceLoc&, const char* op, TString operand);
     void binaryOpError(const TSourceLoc&, const char* op, TString left, TString right);
@@ -314,7 +318,7 @@ public:
     void precisionQualifierCheck(const TSourceLoc&, TBasicType, TQualifier&);
     void parameterTypeCheck(const TSourceLoc&, TStorageQualifier qualifier, const TType& type);
     bool containsFieldWithBasicType(const TType& type ,TBasicType basicType);
-    TSymbol* redeclareBuiltinVariable(const TSourceLoc&, const TString&, const TQualifier&, const TShaderQualifiers&, bool& newDeclaration);
+    TSymbol* redeclareBuiltinVariable(const TSourceLoc&, const TString&, const TQualifier&, const TShaderQualifiers&);
     void redeclareBuiltinBlock(const TSourceLoc&, TTypeList& typeList, const TString& blockName, const TString* instanceName, TArraySizes* arraySizes);
     void paramCheckFix(const TSourceLoc&, const TStorageQualifier&, TType& type);
     void paramCheckFix(const TSourceLoc&, const TQualifier&, TType& type);
@@ -368,11 +372,11 @@ protected:
     void nonInitConstCheck(const TSourceLoc&, TString& identifier, TType& type);
     void inheritGlobalDefaults(TQualifier& dst) const;
     TVariable* makeInternalVariable(const char* name, const TType&) const;
-    TVariable* declareNonArray(const TSourceLoc&, TString& identifier, TType&, bool& newDeclaration);
-    void declareArray(const TSourceLoc&, TString& identifier, const TType&, TSymbol*&, bool& newDeclaration);
+    TVariable* declareNonArray(const TSourceLoc&, TString& identifier, TType&);
+    void declareArray(const TSourceLoc&, TString& identifier, const TType&, TSymbol*&);
     TIntermNode* executeInitializer(const TSourceLoc&, TIntermTyped* initializer, TVariable* variable);
     TIntermTyped* convertInitializerList(const TSourceLoc&, const TType&, TIntermTyped* initializer);
-    void finalErrorCheck();
+    void finish() override;
 
 public:
     //
@@ -401,7 +405,6 @@ protected:
     TParseContext(TParseContext&);
     TParseContext& operator=(TParseContext&);
 
-    const bool parsingBuiltins;        // true if parsing built-in symbols/functions
     static const int maxSamplerIndex = EsdNumDims * (EbtNumTypes * (2 * 2 * 2 * 2 * 2)); // see computeSamplerTypeIndex()
     TPrecisionQualifier defaultSamplerPrecision[maxSamplerIndex];
     TPrecisionManager precisionManager;
@@ -441,7 +444,7 @@ protected:
     //     * note, that appropriately gives an error if redeclaring a block that
     //       was already used and hence already copied-up
     //
-    //  - on seeing a layout declaration that sizes the array, fix everything in the 
+    //  - on seeing a layout declaration that sizes the array, fix everything in the
     //    resize-list, giving errors for mismatch
     //
     //  - on seeing an array size declaration, give errors on mismatch between it and previous

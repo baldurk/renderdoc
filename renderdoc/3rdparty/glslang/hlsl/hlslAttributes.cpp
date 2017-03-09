@@ -1,11 +1,11 @@
 //
-//Copyright (C) 2016 LunarG, Inc.
+// Copyright (C) 2016 LunarG, Inc.
 //
-//All rights reserved.
+// All rights reserved.
 //
-//Redistribution and use in source and binary forms, with or without
-//modification, are permitted provided that the following conditions
-//are met:
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
 //
 //    Redistributions of source code must retain the above copyright
 //    notice, this list of conditions and the following disclaimer.
@@ -19,18 +19,18 @@
 //    contributors may be used to endorse or promote products derived
 //    from this software without specific prior written permission.
 //
-//THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-//"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-//LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-//FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-//COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-//INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-//BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-//LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-//CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-//LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-//ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-//POSSIBILITY OF SUCH DAMAGE.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+// COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
 //
 
 #include "hlslAttributes.h"
@@ -55,27 +55,29 @@ namespace glslang {
         else if (lowername == "domain")
             return EatDomain;
         else if (lowername == "earlydepthstencil")
-            return EatEarlydepthstencil;
+            return EatEarlyDepthStencil;
         else if (lowername == "fastopt")
-            return EatFastopt;
+            return EatFastOpt;
         else if (lowername == "flatten")
             return EatFlatten;
         else if (lowername == "forcecase")
-            return EatForcecase;
+            return EatForceCase;
         else if (lowername == "instance")
             return EatInstance;
         else if (lowername == "maxtessfactor")
-            return EatMaxtessfactor;
+            return EatMaxTessFactor;
+        else if (lowername == "maxvertexcount")
+            return EatMaxVertexCount;
         else if (lowername == "numthreads")
-            return EatNumthreads;
+            return EatNumThreads;
         else if (lowername == "outputcontrolpoints")
-            return EatOutputcontrolpoints;
+            return EatOutputControlPoints;
         else if (lowername == "outputtopology")
-            return EatOutputtopology;
+            return EatOutputTopology;
         else if (lowername == "partitioning")
             return EatPartitioning;
         else if (lowername == "patchconstantfunc")
-            return EatPatchconstantfunc;
+            return EatPatchConstantFunc;
         else if (lowername == "unroll")
             return EatUnroll;
         else
@@ -93,7 +95,7 @@ namespace glslang {
 
         if (attr != EatNone)
             attributes[attr] = value;
- 
+
         return attr;
     }
 
@@ -104,5 +106,5 @@ namespace glslang {
 
         return (entry == attributes.end()) ? nullptr : entry->second;
     }
-    
+
 } // end namespace glslang

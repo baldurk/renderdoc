@@ -1,11 +1,11 @@
 //
-//Copyright (C) 2016 LunarG, Inc.
+// Copyright (C) 2016 LunarG, Inc.
 //
-//All rights reserved.
+// All rights reserved.
 //
-//Redistribution and use in source and binary forms, with or without
-//modification, are permitted provided that the following conditions
-//are met:
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
 //
 //    Redistributions of source code must retain the above copyright
 //    notice, this list of conditions and the following disclaimer.
@@ -19,18 +19,18 @@
 //    contributors may be used to endorse or promote products derived
 //    from this software without specific prior written permission.
 //
-//THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-//"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-//LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-//FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-//COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-//INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-//BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-//LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-//CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-//LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-//ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-//POSSIBILITY OF SUCH DAMAGE.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+// COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
 //
 
 #include "../Include/Common.h"
@@ -122,7 +122,7 @@ public:
 
     virtual void visitSymbol(TIntermSymbol* base)
     {
-        if (base->getQualifier().storage == EvqUniform) {
+        if (base->getType().getQualifier().isUniformOrBuffer()) {
             TVarEntryInfo ent = { base->getId(), base, !traverseAll };
             TVarLiveMap::iterator at = std::lower_bound(varLiveList.begin(), varLiveList.end(), ent, TVarEntryInfo::TOrderById());
             if (at != varLiveList.end() && at->id == ent.id)
@@ -168,8 +168,8 @@ public:
 struct TResolverAdaptor
 {
     TResolverAdaptor(EShLanguage s, TIoMapResolver& r, TInfoSink& i, bool& e)
-      : resolver(r)
-      , stage(s)
+      : stage(s)
+      , resolver(r)
       , infoSink(i)
       , error(e)
     {
@@ -209,6 +209,9 @@ struct TResolverAdaptor
     TIoMapResolver& resolver;
     TInfoSink&      infoSink;
     bool&           error;
+
+private:
+    TResolverAdaptor& operator=(TResolverAdaptor&);
 };
 
 /*
@@ -222,7 +225,9 @@ struct TDefaultIoResolver : public glslang::TIoMapResolver
 {
     int baseSamplerBinding;
     int baseTextureBinding;
+    int baseImageBinding;
     int baseUboBinding;
+    int baseSsboBinding;
     bool doAutoMapping;
     typedef std::vector<int> TSlotSet;
     typedef std::unordered_map<int, TSlotSet> TSlotSetMap;
@@ -277,8 +282,11 @@ struct TDefaultIoResolver : public glslang::TIoMapResolver
                     return checkEmpty(set, baseTextureBinding + type.getQualifier().layoutBinding);
             }
 
-            if (type.getQualifier().isUniformOrBuffer())
+            if (type.getQualifier().storage == EvqUniform)
                 return checkEmpty(set, baseUboBinding + type.getQualifier().layoutBinding);
+
+            if (type.getQualifier().storage == EvqBuffer)
+                return checkEmpty(set, baseSsboBinding + type.getQualifier().layoutBinding);
         }
         return true;
     }
@@ -294,6 +302,9 @@ struct TDefaultIoResolver : public glslang::TIoMapResolver
         if (type.getQualifier().hasBinding()) {
             if (type.getBasicType() == glslang::EbtSampler) {
                 const glslang::TSampler& sampler = type.getSampler();
+                if (sampler.isImage())
+                    return reserveSlot(set, baseImageBinding + type.getQualifier().layoutBinding);
+
                 if (sampler.isPureSampler())
                     return reserveSlot(set, baseSamplerBinding + type.getQualifier().layoutBinding);
 
@@ -301,13 +312,19 @@ struct TDefaultIoResolver : public glslang::TIoMapResolver
                     return reserveSlot(set, baseTextureBinding + type.getQualifier().layoutBinding);
             }
 
-            if (type.getQualifier().isUniformOrBuffer())
+            if (type.getQualifier().storage == EvqUniform)
                 return reserveSlot(set, baseUboBinding + type.getQualifier().layoutBinding);
+
+            if (type.getQualifier().storage == EvqBuffer)
+                return reserveSlot(set, baseSsboBinding + type.getQualifier().layoutBinding);
         } else if (is_live && doAutoMapping) {
             // find free slot, the caller did make sure it passes all vars with binding
             // first and now all are passed that do not have a binding and needs one
             if (type.getBasicType() == glslang::EbtSampler) {
                 const glslang::TSampler& sampler = type.getSampler();
+                if (sampler.isImage())
+                    return getFreeSlot(set, baseImageBinding);
+
                 if (sampler.isPureSampler())
                     return getFreeSlot(set, baseSamplerBinding);
 
@@ -315,8 +332,11 @@ struct TDefaultIoResolver : public glslang::TIoMapResolver
                     return getFreeSlot(set, baseTextureBinding);
             }
 
-            if (type.getQualifier().isUniformOrBuffer())
+            if (type.getQualifier().storage == EvqUniform)
                 return getFreeSlot(set, baseUboBinding);
+
+            if (type.getQualifier().storage == EvqBuffer)
+                return getFreeSlot(set, baseSsboBinding);
         }
 
         return -1;
@@ -339,9 +359,11 @@ bool TIoMapper::addStage(EShLanguage stage, TIntermediate &intermediate, TInfoSi
     // Trivial return if there is nothing to do.
     if (intermediate.getShiftSamplerBinding() == 0 &&
         intermediate.getShiftTextureBinding() == 0 &&
+        intermediate.getShiftImageBinding() == 0 &&
         intermediate.getShiftUboBinding() == 0 &&
+        intermediate.getShiftSsboBinding() == 0 &&
         intermediate.getAutoMapBindings() == false &&
-        resolver == NULL)
+        resolver == nullptr)
         return true;
 
     if (intermediate.getNumEntryPoints() != 1 || intermediate.isRecursive())
@@ -353,10 +375,12 @@ bool TIoMapper::addStage(EShLanguage stage, TIntermediate &intermediate, TInfoSi
 
     // if no resolver is provided, use the default resolver with the given shifts and auto map settings
     TDefaultIoResolver defaultResolver;
-    if (resolver == NULL) {
+    if (resolver == nullptr) {
         defaultResolver.baseSamplerBinding = intermediate.getShiftSamplerBinding();
         defaultResolver.baseTextureBinding = intermediate.getShiftTextureBinding();
+        defaultResolver.baseImageBinding = intermediate.getShiftImageBinding();
         defaultResolver.baseUboBinding = intermediate.getShiftUboBinding();
+        defaultResolver.baseSsboBinding = intermediate.getShiftSsboBinding();
         defaultResolver.doAutoMapping = intermediate.getAutoMapBindings();
 
         resolver = &defaultResolver;

@@ -1,5 +1,5 @@
 /*
-** Copyright (c) 2014-2016 The Khronos Group Inc.
+** Copyright (c) 2014-2017 The Khronos Group Inc.
 **
 ** Permission is hereby granted, free of charge, to any person obtaining a copy
 ** of this software and/or associated documentation files (the "Materials"),
@@ -24,20 +24,31 @@
 ** IN THE MATERIALS.
 */
 
-#ifndef GLSLextKHR_H
-#define GLSLextKHR_H
+#ifndef GLSLextNV_H
+#define GLSLextNV_H
 
 enum BuiltIn;
+enum Decoration;
 enum Op;
 enum Capability;
 
-static const int GLSLextKHRVersion = 100;
-static const int GLSLextKHRRevision = 1;
+static const int GLSLextNVVersion = 100;
+static const int GLSLextNVRevision = 5;
 
-static const char* const E_SPV_KHR_shader_ballot          = "SPV_KHR_shader_ballot";
-static const char* const E_SPV_KHR_subgroup_vote          = "SPV_KHR_subgroup_vote";
-static const char* const E_SPV_KHR_device_group           = "SPV_KHR_device_group";
-static const char* const E_SPV_KHR_multiview              = "SPV_KHR_multiview";
-static const char* const E_SPV_KHR_shader_draw_parameters = "SPV_KHR_shader_draw_parameters";
+//SPV_NV_sample_mask_override_coverage
+const char* const E_SPV_NV_sample_mask_override_coverage = "SPV_NV_sample_mask_override_coverage";
 
-#endif  // #ifndef GLSLextKHR_H
+//SPV_NV_geometry_shader_passthrough
+const char* const E_SPV_NV_geometry_shader_passthrough = "SPV_NV_geometry_shader_passthrough";
+
+//SPV_NV_viewport_array2
+const char* const E_SPV_NV_viewport_array2 = "SPV_NV_viewport_array2";
+const char* const E_ARB_shader_viewport_layer_array = "SPV_ARB_shader_viewport_layer_array";
+
+//SPV_NV_stereo_view_rendering
+const char* const E_SPV_NV_stereo_view_rendering = "SPV_NV_stereo_view_rendering";
+
+//SPV_NVX_multiview_per_view_attributes
+const char* const E_SPV_NVX_multiview_per_view_attributes = "SPV_NVX_multiview_per_view_attributes";
+
+#endif  // #ifndef GLSLextNV_H

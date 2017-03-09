@@ -1,13 +1,13 @@
 //
-//Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
-//Copyright (C) 2012-2016 LunarG, Inc.
-//Copyright (C) 2015-2016 Google, Inc.
+// Copyright (C) 2002-2005  3Dlabs Inc. Ltd.
+// Copyright (C) 2012-2016 LunarG, Inc.
+// Copyright (C) 2015-2016 Google, Inc.
 //
-//All rights reserved.
+// All rights reserved.
 //
-//Redistribution and use in source and binary forms, with or without
-//modification, are permitted provided that the following conditions
-//are met:
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
 //
 //    Redistributions of source code must retain the above copyright
 //    notice, this list of conditions and the following disclaimer.
@@ -21,22 +21,22 @@
 //    contributors may be used to endorse or promote products derived
 //    from this software without specific prior written permission.
 //
-//THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-//"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-//LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-//FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-//COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-//INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-//BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-//LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-//CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-//LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-//ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-//POSSIBILITY OF SUCH DAMAGE.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+// COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
 //
 
 //
-// Create strings that declare built-in definitions, add built-ins programmatically 
+// Create strings that declare built-in definitions, add built-ins programmatically
 // that cannot be expressed in the strings, and establish mappings between
 // built-in functions and operators.
 //
@@ -85,6 +85,8 @@ TBuiltIns::TBuiltIns()
     prefixes[EbtFloat] =  "";
     prefixes[EbtInt]   = "i";
     prefixes[EbtUint]  = "u";
+    prefixes[EbtInt64]  = "i64";
+    prefixes[EbtUint64] = "u64";
     postfixes[2] = "2";
     postfixes[3] = "3";
     postfixes[4] = "4";
@@ -128,47 +130,47 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         "vec2  radians(vec2  degrees);"
         "vec3  radians(vec3  degrees);"
         "vec4  radians(vec4  degrees);"
-                 
+
         "float degrees(float radians);"
         "vec2  degrees(vec2  radians);"
         "vec3  degrees(vec3  radians);"
         "vec4  degrees(vec4  radians);"
-                 
+
         "float sin(float angle);"
         "vec2  sin(vec2  angle);"
         "vec3  sin(vec3  angle);"
         "vec4  sin(vec4  angle);"
-                 
+
         "float cos(float angle);"
         "vec2  cos(vec2  angle);"
         "vec3  cos(vec3  angle);"
         "vec4  cos(vec4  angle);"
-                 
+
         "float tan(float angle);"
         "vec2  tan(vec2  angle);"
         "vec3  tan(vec3  angle);"
         "vec4  tan(vec4  angle);"
-                 
+
         "float asin(float x);"
         "vec2  asin(vec2  x);"
         "vec3  asin(vec3  x);"
         "vec4  asin(vec4  x);"
-                 
+
         "float acos(float x);"
         "vec2  acos(vec2  x);"
         "vec3  acos(vec3  x);"
         "vec4  acos(vec4  x);"
-                 
+
         "float atan(float y, float x);"
         "vec2  atan(vec2  y, vec2  x);"
         "vec3  atan(vec3  y, vec3  x);"
         "vec4  atan(vec4  y, vec4  x);"
-                 
+
         "float atan(float y_over_x);"
         "vec2  atan(vec2  y_over_x);"
         "vec3  atan(vec3  y_over_x);"
         "vec4  atan(vec4  y_over_x);"
-            
+
         "\n");
 
     if (version >= 130) {
@@ -177,32 +179,32 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "vec2  sinh(vec2  angle);"
             "vec3  sinh(vec3  angle);"
             "vec4  sinh(vec4  angle);"
-                 
+
             "float cosh(float angle);"
             "vec2  cosh(vec2  angle);"
             "vec3  cosh(vec3  angle);"
             "vec4  cosh(vec4  angle);"
-                 
+
             "float tanh(float angle);"
             "vec2  tanh(vec2  angle);"
             "vec3  tanh(vec3  angle);"
             "vec4  tanh(vec4  angle);"
-                 
+
             "float asinh(float x);"
             "vec2  asinh(vec2  x);"
             "vec3  asinh(vec3  x);"
             "vec4  asinh(vec4  x);"
-                 
+
             "float acosh(float x);"
             "vec2  acosh(vec2  x);"
             "vec3  acosh(vec3  x);"
             "vec4  acosh(vec4  x);"
-                 
+
             "float atanh(float y_over_x);"
             "vec2  atanh(vec2  y_over_x);"
             "vec3  atanh(vec3  y_over_x);"
             "vec4  atanh(vec4  y_over_x);"
-            
+
             "\n");
     }
 
@@ -214,37 +216,37 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         "vec2  pow(vec2  x, vec2  y);"
         "vec3  pow(vec3  x, vec3  y);"
         "vec4  pow(vec4  x, vec4  y);"
-                 
+
         "float exp(float x);"
         "vec2  exp(vec2  x);"
         "vec3  exp(vec3  x);"
         "vec4  exp(vec4  x);"
-                 
+
         "float log(float x);"
         "vec2  log(vec2  x);"
         "vec3  log(vec3  x);"
         "vec4  log(vec4  x);"
-                 
+
         "float exp2(float x);"
         "vec2  exp2(vec2  x);"
         "vec3  exp2(vec3  x);"
         "vec4  exp2(vec4  x);"
-                 
+
         "float log2(float x);"
         "vec2  log2(vec2  x);"
         "vec3  log2(vec3  x);"
         "vec4  log2(vec4  x);"
-                 
+
         "float sqrt(float x);"
         "vec2  sqrt(vec2  x);"
         "vec3  sqrt(vec3  x);"
         "vec4  sqrt(vec4  x);"
-                 
+
         "float inversesqrt(float x);"
         "vec2  inversesqrt(vec2  x);"
         "vec3  inversesqrt(vec3  x);"
         "vec4  inversesqrt(vec4  x);"
-            
+
         "\n");
 
     //
@@ -255,27 +257,27 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         "vec2  abs(vec2  x);"
         "vec3  abs(vec3  x);"
         "vec4  abs(vec4  x);"
-                 
+
         "float sign(float x);"
         "vec2  sign(vec2  x);"
         "vec3  sign(vec3  x);"
         "vec4  sign(vec4  x);"
-                 
+
         "float floor(float x);"
         "vec2  floor(vec2  x);"
         "vec3  floor(vec3  x);"
         "vec4  floor(vec4  x);"
-                 
+
         "float ceil(float x);"
         "vec2  ceil(vec2  x);"
         "vec3  ceil(vec3  x);"
         "vec4  ceil(vec4  x);"
-                 
+
         "float fract(float x);"
         "vec2  fract(vec2  x);"
         "vec3  fract(vec3  x);"
         "vec4  fract(vec4  x);"
-                 
+
         "float mod(float x, float y);"
         "vec2  mod(vec2  x, float y);"
         "vec3  mod(vec3  x, float y);"
@@ -283,7 +285,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         "vec2  mod(vec2  x, vec2  y);"
         "vec3  mod(vec3  x, vec3  y);"
         "vec4  mod(vec4  x, vec4  y);"
-                 
+
         "float min(float x, float y);"
         "vec2  min(vec2  x, float y);"
         "vec3  min(vec3  x, float y);"
@@ -291,7 +293,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         "vec2  min(vec2  x, vec2  y);"
         "vec3  min(vec3  x, vec3  y);"
         "vec4  min(vec4  x, vec4  y);"
-                 
+
         "float max(float x, float y);"
         "vec2  max(vec2  x, float y);"
         "vec3  max(vec3  x, float y);"
@@ -299,7 +301,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         "vec2  max(vec2  x, vec2  y);"
         "vec3  max(vec3  x, vec3  y);"
         "vec4  max(vec4  x, vec4  y);"
-                 
+
         "float clamp(float x, float minVal, float maxVal);"
         "vec2  clamp(vec2  x, float minVal, float maxVal);"
         "vec3  clamp(vec3  x, float minVal, float maxVal);"
@@ -307,7 +309,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         "vec2  clamp(vec2  x, vec2  minVal, vec2  maxVal);"
         "vec3  clamp(vec3  x, vec3  minVal, vec3  maxVal);"
         "vec4  clamp(vec4  x, vec4  minVal, vec4  maxVal);"
-                 
+
         "float mix(float x, float y, float a);"
         "vec2  mix(vec2  x, vec2  y, float a);"
         "vec3  mix(vec3  x, vec3  y, float a);"
@@ -323,7 +325,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         "vec2  step(float edge, vec2  x);"
         "vec3  step(float edge, vec3  x);"
         "vec4  step(float edge, vec4  x);"
-                 
+
         "float smoothstep(float edge0, float edge1, float x);"
         "vec2  smoothstep(vec2  edge0, vec2  edge1, vec2  x);"
         "vec3  smoothstep(vec3  edge0, vec3  edge1, vec3  x);"
@@ -331,7 +333,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         "vec2  smoothstep(float edge0, float edge1, vec2  x);"
         "vec3  smoothstep(float edge0, float edge1, vec3  x);"
         "vec4  smoothstep(float edge0, float edge1, vec4  x);"
-            
+
         "\n");
 
     if (version >= 130) {
@@ -350,22 +352,22 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "vec2  trunc(vec2  x);"
             "vec3  trunc(vec3  x);"
             "vec4  trunc(vec4  x);"
-                     
+
             "float round(float x);"
             "vec2  round(vec2  x);"
             "vec3  round(vec3  x);"
             "vec4  round(vec4  x);"
-                     
+
             "float roundEven(float x);"
             "vec2  roundEven(vec2  x);"
             "vec3  roundEven(vec3  x);"
             "vec4  roundEven(vec4  x);"
-                     
+
             "float modf(float, out float);"
             "vec2  modf(vec2,  out vec2 );"
             "vec3  modf(vec3,  out vec3 );"
             "vec4  modf(vec4,  out vec4 );"
-                     
+
             "  int min(int    x, int y);"
             "ivec2 min(ivec2  x, int y);"
             "ivec3 min(ivec3  x, int y);"
@@ -373,7 +375,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "ivec2 min(ivec2  x, ivec2  y);"
             "ivec3 min(ivec3  x, ivec3  y);"
             "ivec4 min(ivec4  x, ivec4  y);"
-                     
+
             " uint min(uint   x, uint y);"
             "uvec2 min(uvec2  x, uint y);"
             "uvec3 min(uvec3  x, uint y);"
@@ -381,7 +383,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "uvec2 min(uvec2  x, uvec2  y);"
             "uvec3 min(uvec3  x, uvec3  y);"
             "uvec4 min(uvec4  x, uvec4  y);"
-                     
+
             "  int max(int    x, int y);"
             "ivec2 max(ivec2  x, int y);"
             "ivec3 max(ivec3  x, int y);"
@@ -589,12 +591,12 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "dvec2  faceforward(dvec2,  dvec2,  dvec2);"
             "dvec3  faceforward(dvec3,  dvec3,  dvec3);"
             "dvec4  faceforward(dvec4,  dvec4,  dvec4);"
-                 
+
             "double reflect(double, double);"
             "dvec2  reflect(dvec2 , dvec2 );"
             "dvec3  reflect(dvec3 , dvec3 );"
             "dvec4  reflect(dvec4 , dvec4 );"
-                 
+
             "double refract(double, double, double);"
             "dvec2  refract(dvec2 , dvec2 , double);"
             "dvec3  refract(dvec3 , dvec3 , double);"
@@ -1079,38 +1081,38 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         "float length(vec2  x);"
         "float length(vec3  x);"
         "float length(vec4  x);"
-                 
+
         "float distance(float p0, float p1);"
         "float distance(vec2  p0, vec2  p1);"
         "float distance(vec3  p0, vec3  p1);"
         "float distance(vec4  p0, vec4  p1);"
-                 
+
         "float dot(float x, float y);"
         "float dot(vec2  x, vec2  y);"
         "float dot(vec3  x, vec3  y);"
         "float dot(vec4  x, vec4  y);"
-                 
+
         "vec3 cross(vec3 x, vec3 y);"
         "float normalize(float x);"
         "vec2  normalize(vec2  x);"
         "vec3  normalize(vec3  x);"
         "vec4  normalize(vec4  x);"
-                 
+
         "float faceforward(float N, float I, float Nref);"
         "vec2  faceforward(vec2  N, vec2  I, vec2  Nref);"
         "vec3  faceforward(vec3  N, vec3  I, vec3  Nref);"
         "vec4  faceforward(vec4  N, vec4  I, vec4  Nref);"
-                 
+
         "float reflect(float I, float N);"
         "vec2  reflect(vec2  I, vec2  N);"
         "vec3  reflect(vec3  I, vec3  N);"
         "vec4  reflect(vec4  I, vec4  N);"
-                 
+
         "float refract(float I, float N, float eta);"
         "vec2  refract(vec2  I, vec2  N, float eta);"
         "vec3  refract(vec3  I, vec3  N, float eta);"
         "vec4  refract(vec4  I, vec4  N, float eta);"
-            
+
         "\n");
 
     //
@@ -1120,7 +1122,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         "mat2 matrixCompMult(mat2 x, mat2 y);"
         "mat3 matrixCompMult(mat3 x, mat3 y);"
         "mat4 matrixCompMult(mat4 x, mat4 y);"
-            
+
         "\n");
 
     // 120 is correct for both ES and desktop
@@ -1135,7 +1137,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "mat4x2 outerProduct(vec2 c, vec4 r);"
             "mat3x4 outerProduct(vec4 c, vec3 r);"
             "mat4x3 outerProduct(vec3 c, vec4 r);"
-                     
+
             "mat2   transpose(mat2   m);"
             "mat3   transpose(mat3   m);"
             "mat4   transpose(mat4   m);"
@@ -1151,8 +1153,8 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "mat3x2 matrixCompMult(mat3x2, mat3x2);"
             "mat3x4 matrixCompMult(mat3x4, mat3x4);"
             "mat4x2 matrixCompMult(mat4x2, mat4x2);"
-            "mat4x3 matrixCompMult(mat4x3, mat4x3);"          
-            
+            "mat4x3 matrixCompMult(mat4x3, mat4x3);"
+
             "\n");
 
         // 150 is correct for both ES and desktop
@@ -1161,11 +1163,11 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                 "float determinant(mat2 m);"
                 "float determinant(mat3 m);"
                 "float determinant(mat4 m);"
-                         
+
                 "mat2 inverse(mat2 m);"
                 "mat3 inverse(mat3 m);"
                 "mat4 inverse(mat4 m);"
-            
+
                 "\n");
         }
     }
@@ -1177,71 +1179,71 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         "bvec2 lessThan(vec2 x, vec2 y);"
         "bvec3 lessThan(vec3 x, vec3 y);"
         "bvec4 lessThan(vec4 x, vec4 y);"
-                 
+
         "bvec2 lessThan(ivec2 x, ivec2 y);"
         "bvec3 lessThan(ivec3 x, ivec3 y);"
         "bvec4 lessThan(ivec4 x, ivec4 y);"
-                 
+
         "bvec2 lessThanEqual(vec2 x, vec2 y);"
         "bvec3 lessThanEqual(vec3 x, vec3 y);"
         "bvec4 lessThanEqual(vec4 x, vec4 y);"
-                 
+
         "bvec2 lessThanEqual(ivec2 x, ivec2 y);"
         "bvec3 lessThanEqual(ivec3 x, ivec3 y);"
         "bvec4 lessThanEqual(ivec4 x, ivec4 y);"
-                 
+
         "bvec2 greaterThan(vec2 x, vec2 y);"
         "bvec3 greaterThan(vec3 x, vec3 y);"
         "bvec4 greaterThan(vec4 x, vec4 y);"
-                 
+
         "bvec2 greaterThan(ivec2 x, ivec2 y);"
         "bvec3 greaterThan(ivec3 x, ivec3 y);"
         "bvec4 greaterThan(ivec4 x, ivec4 y);"
-                 
+
         "bvec2 greaterThanEqual(vec2 x, vec2 y);"
         "bvec3 greaterThanEqual(vec3 x, vec3 y);"
         "bvec4 greaterThanEqual(vec4 x, vec4 y);"
-                 
+
         "bvec2 greaterThanEqual(ivec2 x, ivec2 y);"
         "bvec3 greaterThanEqual(ivec3 x, ivec3 y);"
         "bvec4 greaterThanEqual(ivec4 x, ivec4 y);"
-                 
+
         "bvec2 equal(vec2 x, vec2 y);"
         "bvec3 equal(vec3 x, vec3 y);"
         "bvec4 equal(vec4 x, vec4 y);"
-                 
+
         "bvec2 equal(ivec2 x, ivec2 y);"
         "bvec3 equal(ivec3 x, ivec3 y);"
         "bvec4 equal(ivec4 x, ivec4 y);"
-                 
+
         "bvec2 equal(bvec2 x, bvec2 y);"
         "bvec3 equal(bvec3 x, bvec3 y);"
         "bvec4 equal(bvec4 x, bvec4 y);"
-                 
+
         "bvec2 notEqual(vec2 x, vec2 y);"
         "bvec3 notEqual(vec3 x, vec3 y);"
         "bvec4 notEqual(vec4 x, vec4 y);"
-                 
+
         "bvec2 notEqual(ivec2 x, ivec2 y);"
         "bvec3 notEqual(ivec3 x, ivec3 y);"
         "bvec4 notEqual(ivec4 x, ivec4 y);"
-                 
+
         "bvec2 notEqual(bvec2 x, bvec2 y);"
         "bvec3 notEqual(bvec3 x, bvec3 y);"
         "bvec4 notEqual(bvec4 x, bvec4 y);"
-                 
+
         "bool any(bvec2 x);"
         "bool any(bvec3 x);"
         "bool any(bvec4 x);"
-                 
+
         "bool all(bvec2 x);"
         "bool all(bvec3 x);"
         "bool all(bvec4 x);"
-                 
+
         "bvec2 not(bvec2 x);"
         "bvec3 not(bvec3 x);"
         "bvec4 not(bvec4 x);"
-                 
+
         "\n");
 
     if (version >= 130) {
@@ -1249,27 +1251,27 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "bvec2 lessThan(uvec2 x, uvec2 y);"
             "bvec3 lessThan(uvec3 x, uvec3 y);"
             "bvec4 lessThan(uvec4 x, uvec4 y);"
-                 
+
             "bvec2 lessThanEqual(uvec2 x, uvec2 y);"
             "bvec3 lessThanEqual(uvec3 x, uvec3 y);"
             "bvec4 lessThanEqual(uvec4 x, uvec4 y);"
-                 
+
             "bvec2 greaterThan(uvec2 x, uvec2 y);"
             "bvec3 greaterThan(uvec3 x, uvec3 y);"
             "bvec4 greaterThan(uvec4 x, uvec4 y);"
-                 
+
             "bvec2 greaterThanEqual(uvec2 x, uvec2 y);"
             "bvec3 greaterThanEqual(uvec3 x, uvec3 y);"
             "bvec4 greaterThanEqual(uvec4 x, uvec4 y);"
-                 
+
             "bvec2 equal(uvec2 x, uvec2 y);"
             "bvec3 equal(uvec3 x, uvec3 y);"
             "bvec4 equal(uvec4 x, uvec4 y);"
 
             "bvec2 notEqual(uvec2 x, uvec2 y);"
             "bvec3 notEqual(uvec3 x, uvec3 y);"
-            "bvec4 notEqual(uvec4 x, uvec4 y);"                 
-            
+            "bvec4 notEqual(uvec4 x, uvec4 y);"
+
             "\n");
     }
 
@@ -1292,7 +1294,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                 "vec4 texture3DProj(sampler3D, vec4);" // OES_texture_3D, but caught by keyword check
 
                 "vec4 textureCube(samplerCube, vec3);"
-            
+
                 "\n");
         }
     }
@@ -1306,7 +1308,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
 
                 "vec4 texture1DProj(sampler1D, vec2);"
                 "vec4 texture1DProj(sampler1D, vec4);"
-                     
+
                 "vec4 shadow1D(sampler1DShadow, vec3);"
                 "vec4 shadow2D(sampler2DShadow, vec3);"
                 "vec4 shadow1DProj(sampler1DShadow, vec4);"
@@ -1346,22 +1348,22 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "float noise1(vec2  x);"
             "float noise1(vec3  x);"
             "float noise1(vec4  x);"
-                     
+
             "vec2 noise2(float x);"
             "vec2 noise2(vec2  x);"
             "vec2 noise2(vec3  x);"
             "vec2 noise2(vec4  x);"
-                     
+
             "vec3 noise3(float x);"
             "vec3 noise3(vec2  x);"
             "vec3 noise3(vec3  x);"
             "vec3 noise3(vec4  x);"
-                     
+
             "vec4 noise4(float x);"
             "vec4 noise4(vec2  x);"
             "vec4 noise4(vec3  x);"
             "vec4 noise4(vec4  x);"
-                     
+
             "\n");
     }
 
@@ -1517,7 +1519,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "lowp ivec2 findMSB(highp uvec2);"
             "lowp ivec3 findMSB(highp uvec3);"
             "lowp ivec4 findMSB(highp uvec4);"
-            
+
             "\n");
     }
 
@@ -1588,6 +1590,96 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "uvec3 minInvocationsAMD(uvec3);"
             "uvec4 minInvocationsAMD(uvec4);"
 
+            "double minInvocationsAMD(double);"
+            "dvec2  minInvocationsAMD(dvec2);"
+            "dvec3  minInvocationsAMD(dvec3);"
+            "dvec4  minInvocationsAMD(dvec4);"
+
+            "int64_t minInvocationsAMD(int64_t);"
+            "i64vec2 minInvocationsAMD(i64vec2);"
+            "i64vec3 minInvocationsAMD(i64vec3);"
+            "i64vec4 minInvocationsAMD(i64vec4);"
+
+            "uint64_t minInvocationsAMD(uint64_t);"
+            "u64vec2  minInvocationsAMD(u64vec2);"
+            "u64vec3  minInvocationsAMD(u64vec3);"
+            "u64vec4  minInvocationsAMD(u64vec4);"
+
+            "float16_t minInvocationsAMD(float16_t);"
+            "f16vec2   minInvocationsAMD(f16vec2);"
+            "f16vec3   minInvocationsAMD(f16vec3);"
+            "f16vec4   minInvocationsAMD(f16vec4);"
+
+            "float minInvocationsInclusiveScanAMD(float);"
+            "vec2  minInvocationsInclusiveScanAMD(vec2);"
+            "vec3  minInvocationsInclusiveScanAMD(vec3);"
+            "vec4  minInvocationsInclusiveScanAMD(vec4);"
+
+            "int   minInvocationsInclusiveScanAMD(int);"
+            "ivec2 minInvocationsInclusiveScanAMD(ivec2);"
+            "ivec3 minInvocationsInclusiveScanAMD(ivec3);"
+            "ivec4 minInvocationsInclusiveScanAMD(ivec4);"
+
+            "uint  minInvocationsInclusiveScanAMD(uint);"
+            "uvec2 minInvocationsInclusiveScanAMD(uvec2);"
+            "uvec3 minInvocationsInclusiveScanAMD(uvec3);"
+            "uvec4 minInvocationsInclusiveScanAMD(uvec4);"
+
+            "double minInvocationsInclusiveScanAMD(double);"
+            "dvec2  minInvocationsInclusiveScanAMD(dvec2);"
+            "dvec3  minInvocationsInclusiveScanAMD(dvec3);"
+            "dvec4  minInvocationsInclusiveScanAMD(dvec4);"
+
+            "int64_t minInvocationsInclusiveScanAMD(int64_t);"
+            "i64vec2 minInvocationsInclusiveScanAMD(i64vec2);"
+            "i64vec3 minInvocationsInclusiveScanAMD(i64vec3);"
+            "i64vec4 minInvocationsInclusiveScanAMD(i64vec4);"
+
+            "uint64_t minInvocationsInclusiveScanAMD(uint64_t);"
+            "u64vec2  minInvocationsInclusiveScanAMD(u64vec2);"
+            "u64vec3  minInvocationsInclusiveScanAMD(u64vec3);"
+            "u64vec4  minInvocationsInclusiveScanAMD(u64vec4);"
+
+            "float16_t minInvocationsInclusiveScanAMD(float16_t);"
+            "f16vec2   minInvocationsInclusiveScanAMD(f16vec2);"
+            "f16vec3   minInvocationsInclusiveScanAMD(f16vec3);"
+            "f16vec4   minInvocationsInclusiveScanAMD(f16vec4);"
+
+            "float minInvocationsExclusiveScanAMD(float);"
+            "vec2  minInvocationsExclusiveScanAMD(vec2);"
+            "vec3  minInvocationsExclusiveScanAMD(vec3);"
+            "vec4  minInvocationsExclusiveScanAMD(vec4);"
+
+            "int   minInvocationsExclusiveScanAMD(int);"
+            "ivec2 minInvocationsExclusiveScanAMD(ivec2);"
+            "ivec3 minInvocationsExclusiveScanAMD(ivec3);"
+            "ivec4 minInvocationsExclusiveScanAMD(ivec4);"
+
+            "uint  minInvocationsExclusiveScanAMD(uint);"
+            "uvec2 minInvocationsExclusiveScanAMD(uvec2);"
+            "uvec3 minInvocationsExclusiveScanAMD(uvec3);"
+            "uvec4 minInvocationsExclusiveScanAMD(uvec4);"
+
+            "double minInvocationsExclusiveScanAMD(double);"
+            "dvec2  minInvocationsExclusiveScanAMD(dvec2);"
+            "dvec3  minInvocationsExclusiveScanAMD(dvec3);"
+            "dvec4  minInvocationsExclusiveScanAMD(dvec4);"
+
+            "int64_t minInvocationsExclusiveScanAMD(int64_t);"
+            "i64vec2 minInvocationsExclusiveScanAMD(i64vec2);"
+            "i64vec3 minInvocationsExclusiveScanAMD(i64vec3);"
+            "i64vec4 minInvocationsExclusiveScanAMD(i64vec4);"
+
+            "uint64_t minInvocationsExclusiveScanAMD(uint64_t);"
+            "u64vec2  minInvocationsExclusiveScanAMD(u64vec2);"
+            "u64vec3  minInvocationsExclusiveScanAMD(u64vec3);"
+            "u64vec4  minInvocationsExclusiveScanAMD(u64vec4);"
+
+            "float16_t minInvocationsExclusiveScanAMD(float16_t);"
+            "f16vec2   minInvocationsExclusiveScanAMD(f16vec2);"
+            "f16vec3   minInvocationsExclusiveScanAMD(f16vec3);"
+            "f16vec4   minInvocationsExclusiveScanAMD(f16vec4);"
+
             "float maxInvocationsAMD(float);"
             "vec2  maxInvocationsAMD(vec2);"
             "vec3  maxInvocationsAMD(vec3);"
@@ -1602,6 +1694,96 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "uvec2 maxInvocationsAMD(uvec2);"
             "uvec3 maxInvocationsAMD(uvec3);"
             "uvec4 maxInvocationsAMD(uvec4);"
+
+            "double maxInvocationsAMD(double);"
+            "dvec2  maxInvocationsAMD(dvec2);"
+            "dvec3  maxInvocationsAMD(dvec3);"
+            "dvec4  maxInvocationsAMD(dvec4);"
+
+            "int64_t maxInvocationsAMD(int64_t);"
+            "i64vec2 maxInvocationsAMD(i64vec2);"
+            "i64vec3 maxInvocationsAMD(i64vec3);"
+            "i64vec4 maxInvocationsAMD(i64vec4);"
+
+            "uint64_t maxInvocationsAMD(uint64_t);"
+            "u64vec2  maxInvocationsAMD(u64vec2);"
+            "u64vec3  maxInvocationsAMD(u64vec3);"
+            "u64vec4  maxInvocationsAMD(u64vec4);"
+
+            "float16_t maxInvocationsAMD(float16_t);"
+            "f16vec2   maxInvocationsAMD(f16vec2);"
+            "f16vec3   maxInvocationsAMD(f16vec3);"
+            "f16vec4   maxInvocationsAMD(f16vec4);"
+
+            "float maxInvocationsInclusiveScanAMD(float);"
+            "vec2  maxInvocationsInclusiveScanAMD(vec2);"
+            "vec3  maxInvocationsInclusiveScanAMD(vec3);"
+            "vec4  maxInvocationsInclusiveScanAMD(vec4);"
+
+            "int   maxInvocationsInclusiveScanAMD(int);"
+            "ivec2 maxInvocationsInclusiveScanAMD(ivec2);"
+            "ivec3 maxInvocationsInclusiveScanAMD(ivec3);"
+            "ivec4 maxInvocationsInclusiveScanAMD(ivec4);"
+
+            "uint  maxInvocationsInclusiveScanAMD(uint);"
+            "uvec2 maxInvocationsInclusiveScanAMD(uvec2);"
+            "uvec3 maxInvocationsInclusiveScanAMD(uvec3);"
+            "uvec4 maxInvocationsInclusiveScanAMD(uvec4);"
+
+            "double maxInvocationsInclusiveScanAMD(double);"
+            "dvec2  maxInvocationsInclusiveScanAMD(dvec2);"
+            "dvec3  maxInvocationsInclusiveScanAMD(dvec3);"
+            "dvec4  maxInvocationsInclusiveScanAMD(dvec4);"
+
+            "int64_t maxInvocationsInclusiveScanAMD(int64_t);"
+            "i64vec2 maxInvocationsInclusiveScanAMD(i64vec2);"
+            "i64vec3 maxInvocationsInclusiveScanAMD(i64vec3);"
+            "i64vec4 maxInvocationsInclusiveScanAMD(i64vec4);"
+
+            "uint64_t maxInvocationsInclusiveScanAMD(uint64_t);"
+            "u64vec2  maxInvocationsInclusiveScanAMD(u64vec2);"
+            "u64vec3  maxInvocationsInclusiveScanAMD(u64vec3);"
+            "u64vec4  maxInvocationsInclusiveScanAMD(u64vec4);"
+
+            "float16_t maxInvocationsInclusiveScanAMD(float16_t);"
+            "f16vec2   maxInvocationsInclusiveScanAMD(f16vec2);"
+            "f16vec3   maxInvocationsInclusiveScanAMD(f16vec3);"
+            "f16vec4   maxInvocationsInclusiveScanAMD(f16vec4);"
+
+            "float maxInvocationsExclusiveScanAMD(float);"
+            "vec2  maxInvocationsExclusiveScanAMD(vec2);"
+            "vec3  maxInvocationsExclusiveScanAMD(vec3);"
+            "vec4  maxInvocationsExclusiveScanAMD(vec4);"
+
+            "int   maxInvocationsExclusiveScanAMD(int);"
+            "ivec2 maxInvocationsExclusiveScanAMD(ivec2);"
+            "ivec3 maxInvocationsExclusiveScanAMD(ivec3);"
+            "ivec4 maxInvocationsExclusiveScanAMD(ivec4);"
+
+            "uint  maxInvocationsExclusiveScanAMD(uint);"
+            "uvec2 maxInvocationsExclusiveScanAMD(uvec2);"
+            "uvec3 maxInvocationsExclusiveScanAMD(uvec3);"
+            "uvec4 maxInvocationsExclusiveScanAMD(uvec4);"
+
+            "double maxInvocationsExclusiveScanAMD(double);"
+            "dvec2  maxInvocationsExclusiveScanAMD(dvec2);"
+            "dvec3  maxInvocationsExclusiveScanAMD(dvec3);"
+            "dvec4  maxInvocationsExclusiveScanAMD(dvec4);"
+
+            "int64_t maxInvocationsExclusiveScanAMD(int64_t);"
+            "i64vec2 maxInvocationsExclusiveScanAMD(i64vec2);"
+            "i64vec3 maxInvocationsExclusiveScanAMD(i64vec3);"
+            "i64vec4 maxInvocationsExclusiveScanAMD(i64vec4);"
+
+            "uint64_t maxInvocationsExclusiveScanAMD(uint64_t);"
+            "u64vec2  maxInvocationsExclusiveScanAMD(u64vec2);"
+            "u64vec3  maxInvocationsExclusiveScanAMD(u64vec3);"
+            "u64vec4  maxInvocationsExclusiveScanAMD(u64vec4);"
+
+            "float16_t maxInvocationsExclusiveScanAMD(float16_t);"
+            "f16vec2   maxInvocationsExclusiveScanAMD(f16vec2);"
+            "f16vec3   maxInvocationsExclusiveScanAMD(f16vec3);"
+            "f16vec4   maxInvocationsExclusiveScanAMD(f16vec4);"
 
             "float addInvocationsAMD(float);"
             "vec2  addInvocationsAMD(vec2);"
@@ -1618,6 +1800,96 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "uvec3 addInvocationsAMD(uvec3);"
             "uvec4 addInvocationsAMD(uvec4);"
 
+            "double  addInvocationsAMD(double);"
+            "dvec2   addInvocationsAMD(dvec2);"
+            "dvec3   addInvocationsAMD(dvec3);"
+            "dvec4   addInvocationsAMD(dvec4);"
+
+            "int64_t addInvocationsAMD(int64_t);"
+            "i64vec2 addInvocationsAMD(i64vec2);"
+            "i64vec3 addInvocationsAMD(i64vec3);"
+            "i64vec4 addInvocationsAMD(i64vec4);"
+
+            "uint64_t addInvocationsAMD(uint64_t);"
+            "u64vec2  addInvocationsAMD(u64vec2);"
+            "u64vec3  addInvocationsAMD(u64vec3);"
+            "u64vec4  addInvocationsAMD(u64vec4);"
+
+            "float16_t addInvocationsAMD(float16_t);"
+            "f16vec2   addInvocationsAMD(f16vec2);"
+            "f16vec3   addInvocationsAMD(f16vec3);"
+            "f16vec4   addInvocationsAMD(f16vec4);"
+
+            "float addInvocationsInclusiveScanAMD(float);"
+            "vec2  addInvocationsInclusiveScanAMD(vec2);"
+            "vec3  addInvocationsInclusiveScanAMD(vec3);"
+            "vec4  addInvocationsInclusiveScanAMD(vec4);"
+
+            "int   addInvocationsInclusiveScanAMD(int);"
+            "ivec2 addInvocationsInclusiveScanAMD(ivec2);"
+            "ivec3 addInvocationsInclusiveScanAMD(ivec3);"
+            "ivec4 addInvocationsInclusiveScanAMD(ivec4);"
+
+            "uint  addInvocationsInclusiveScanAMD(uint);"
+            "uvec2 addInvocationsInclusiveScanAMD(uvec2);"
+            "uvec3 addInvocationsInclusiveScanAMD(uvec3);"
+            "uvec4 addInvocationsInclusiveScanAMD(uvec4);"
+
+            "double  addInvocationsInclusiveScanAMD(double);"
+            "dvec2   addInvocationsInclusiveScanAMD(dvec2);"
+            "dvec3   addInvocationsInclusiveScanAMD(dvec3);"
+            "dvec4   addInvocationsInclusiveScanAMD(dvec4);"
+
+            "int64_t addInvocationsInclusiveScanAMD(int64_t);"
+            "i64vec2 addInvocationsInclusiveScanAMD(i64vec2);"
+            "i64vec3 addInvocationsInclusiveScanAMD(i64vec3);"
+            "i64vec4 addInvocationsInclusiveScanAMD(i64vec4);"
+
+            "uint64_t addInvocationsInclusiveScanAMD(uint64_t);"
+            "u64vec2  addInvocationsInclusiveScanAMD(u64vec2);"
+            "u64vec3  addInvocationsInclusiveScanAMD(u64vec3);"
+            "u64vec4  addInvocationsInclusiveScanAMD(u64vec4);"
+
+            "float16_t addInvocationsInclusiveScanAMD(float16_t);"
+            "f16vec2   addInvocationsInclusiveScanAMD(f16vec2);"
+            "f16vec3   addInvocationsInclusiveScanAMD(f16vec3);"
+            "f16vec4   addInvocationsInclusiveScanAMD(f16vec4);"
+
+            "float addInvocationsExclusiveScanAMD(float);"
+            "vec2  addInvocationsExclusiveScanAMD(vec2);"
+            "vec3  addInvocationsExclusiveScanAMD(vec3);"
+            "vec4  addInvocationsExclusiveScanAMD(vec4);"
+
+            "int   addInvocationsExclusiveScanAMD(int);"
+            "ivec2 addInvocationsExclusiveScanAMD(ivec2);"
+            "ivec3 addInvocationsExclusiveScanAMD(ivec3);"
+            "ivec4 addInvocationsExclusiveScanAMD(ivec4);"
+
+            "uint  addInvocationsExclusiveScanAMD(uint);"
+            "uvec2 addInvocationsExclusiveScanAMD(uvec2);"
+            "uvec3 addInvocationsExclusiveScanAMD(uvec3);"
+            "uvec4 addInvocationsExclusiveScanAMD(uvec4);"
+
+            "double  addInvocationsExclusiveScanAMD(double);"
+            "dvec2   addInvocationsExclusiveScanAMD(dvec2);"
+            "dvec3   addInvocationsExclusiveScanAMD(dvec3);"
+            "dvec4   addInvocationsExclusiveScanAMD(dvec4);"
+
+            "int64_t addInvocationsExclusiveScanAMD(int64_t);"
+            "i64vec2 addInvocationsExclusiveScanAMD(i64vec2);"
+            "i64vec3 addInvocationsExclusiveScanAMD(i64vec3);"
+            "i64vec4 addInvocationsExclusiveScanAMD(i64vec4);"
+
+            "uint64_t addInvocationsExclusiveScanAMD(uint64_t);"
+            "u64vec2  addInvocationsExclusiveScanAMD(u64vec2);"
+            "u64vec3  addInvocationsExclusiveScanAMD(u64vec3);"
+            "u64vec4  addInvocationsExclusiveScanAMD(u64vec4);"
+
+            "float16_t addInvocationsExclusiveScanAMD(float16_t);"
+            "f16vec2   addInvocationsExclusiveScanAMD(f16vec2);"
+            "f16vec3   addInvocationsExclusiveScanAMD(f16vec3);"
+            "f16vec4   addInvocationsExclusiveScanAMD(f16vec4);"
+
             "float minInvocationsNonUniformAMD(float);"
             "vec2  minInvocationsNonUniformAMD(vec2);"
             "vec3  minInvocationsNonUniformAMD(vec3);"
@@ -1632,6 +1904,96 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "uvec2 minInvocationsNonUniformAMD(uvec2);"
             "uvec3 minInvocationsNonUniformAMD(uvec3);"
             "uvec4 minInvocationsNonUniformAMD(uvec4);"
+
+            "double minInvocationsNonUniformAMD(double);"
+            "dvec2  minInvocationsNonUniformAMD(dvec2);"
+            "dvec3  minInvocationsNonUniformAMD(dvec3);"
+            "dvec4  minInvocationsNonUniformAMD(dvec4);"
+
+            "int64_t minInvocationsNonUniformAMD(int64_t);"
+            "i64vec2 minInvocationsNonUniformAMD(i64vec2);"
+            "i64vec3 minInvocationsNonUniformAMD(i64vec3);"
+            "i64vec4 minInvocationsNonUniformAMD(i64vec4);"
+
+            "uint64_t minInvocationsNonUniformAMD(uint64_t);"
+            "u64vec2  minInvocationsNonUniformAMD(u64vec2);"
+            "u64vec3  minInvocationsNonUniformAMD(u64vec3);"
+            "u64vec4  minInvocationsNonUniformAMD(u64vec4);"
+
+            "float16_t minInvocationsNonUniformAMD(float16_t);"
+            "f16vec2   minInvocationsNonUniformAMD(f16vec2);"
+            "f16vec3   minInvocationsNonUniformAMD(f16vec3);"
+            "f16vec4   minInvocationsNonUniformAMD(f16vec4);"
+
+            "float minInvocationsInclusiveScanNonUniformAMD(float);"
+            "vec2  minInvocationsInclusiveScanNonUniformAMD(vec2);"
+            "vec3  minInvocationsInclusiveScanNonUniformAMD(vec3);"
+            "vec4  minInvocationsInclusiveScanNonUniformAMD(vec4);"
+
+            "int   minInvocationsInclusiveScanNonUniformAMD(int);"
+            "ivec2 minInvocationsInclusiveScanNonUniformAMD(ivec2);"
+            "ivec3 minInvocationsInclusiveScanNonUniformAMD(ivec3);"
+            "ivec4 minInvocationsInclusiveScanNonUniformAMD(ivec4);"
+
+            "uint  minInvocationsInclusiveScanNonUniformAMD(uint);"
+            "uvec2 minInvocationsInclusiveScanNonUniformAMD(uvec2);"
+            "uvec3 minInvocationsInclusiveScanNonUniformAMD(uvec3);"
+            "uvec4 minInvocationsInclusiveScanNonUniformAMD(uvec4);"
+
+            "double minInvocationsInclusiveScanNonUniformAMD(double);"
+            "dvec2  minInvocationsInclusiveScanNonUniformAMD(dvec2);"
+            "dvec3  minInvocationsInclusiveScanNonUniformAMD(dvec3);"
+            "dvec4  minInvocationsInclusiveScanNonUniformAMD(dvec4);"
+
+            "int64_t minInvocationsInclusiveScanNonUniformAMD(int64_t);"
+            "i64vec2 minInvocationsInclusiveScanNonUniformAMD(i64vec2);"
+            "i64vec3 minInvocationsInclusiveScanNonUniformAMD(i64vec3);"
+            "i64vec4 minInvocationsInclusiveScanNonUniformAMD(i64vec4);"
+
+            "uint64_t minInvocationsInclusiveScanNonUniformAMD(uint64_t);"
+            "u64vec2  minInvocationsInclusiveScanNonUniformAMD(u64vec2);"
+            "u64vec3  minInvocationsInclusiveScanNonUniformAMD(u64vec3);"
+            "u64vec4  minInvocationsInclusiveScanNonUniformAMD(u64vec4);"
+
+            "float16_t minInvocationsInclusiveScanNonUniformAMD(float16_t);"
+            "f16vec2   minInvocationsInclusiveScanNonUniformAMD(f16vec2);"
+            "f16vec3   minInvocationsInclusiveScanNonUniformAMD(f16vec3);"
+            "f16vec4   minInvocationsInclusiveScanNonUniformAMD(f16vec4);"
+
+            "float minInvocationsExclusiveScanNonUniformAMD(float);"
+            "vec2  minInvocationsExclusiveScanNonUniformAMD(vec2);"
+            "vec3  minInvocationsExclusiveScanNonUniformAMD(vec3);"
+            "vec4  minInvocationsExclusiveScanNonUniformAMD(vec4);"
+
+            "int   minInvocationsExclusiveScanNonUniformAMD(int);"
+            "ivec2 minInvocationsExclusiveScanNonUniformAMD(ivec2);"
+            "ivec3 minInvocationsExclusiveScanNonUniformAMD(ivec3);"
+            "ivec4 minInvocationsExclusiveScanNonUniformAMD(ivec4);"
+
+            "uint  minInvocationsExclusiveScanNonUniformAMD(uint);"
+            "uvec2 minInvocationsExclusiveScanNonUniformAMD(uvec2);"
+            "uvec3 minInvocationsExclusiveScanNonUniformAMD(uvec3);"
+            "uvec4 minInvocationsExclusiveScanNonUniformAMD(uvec4);"
+
+            "double minInvocationsExclusiveScanNonUniformAMD(double);"
+            "dvec2  minInvocationsExclusiveScanNonUniformAMD(dvec2);"
+            "dvec3  minInvocationsExclusiveScanNonUniformAMD(dvec3);"
+            "dvec4  minInvocationsExclusiveScanNonUniformAMD(dvec4);"
+
+            "int64_t minInvocationsExclusiveScanNonUniformAMD(int64_t);"
+            "i64vec2 minInvocationsExclusiveScanNonUniformAMD(i64vec2);"
+            "i64vec3 minInvocationsExclusiveScanNonUniformAMD(i64vec3);"
+            "i64vec4 minInvocationsExclusiveScanNonUniformAMD(i64vec4);"
+
+            "uint64_t minInvocationsExclusiveScanNonUniformAMD(uint64_t);"
+            "u64vec2  minInvocationsExclusiveScanNonUniformAMD(u64vec2);"
+            "u64vec3  minInvocationsExclusiveScanNonUniformAMD(u64vec3);"
+            "u64vec4  minInvocationsExclusiveScanNonUniformAMD(u64vec4);"
+
+            "float16_t minInvocationsExclusiveScanNonUniformAMD(float16_t);"
+            "f16vec2   minInvocationsExclusiveScanNonUniformAMD(f16vec2);"
+            "f16vec3   minInvocationsExclusiveScanNonUniformAMD(f16vec3);"
+            "f16vec4   minInvocationsExclusiveScanNonUniformAMD(f16vec4);"
 
             "float maxInvocationsNonUniformAMD(float);"
             "vec2  maxInvocationsNonUniformAMD(vec2);"
@@ -1648,6 +2010,96 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "uvec3 maxInvocationsNonUniformAMD(uvec3);"
             "uvec4 maxInvocationsNonUniformAMD(uvec4);"
 
+            "double maxInvocationsNonUniformAMD(double);"
+            "dvec2  maxInvocationsNonUniformAMD(dvec2);"
+            "dvec3  maxInvocationsNonUniformAMD(dvec3);"
+            "dvec4  maxInvocationsNonUniformAMD(dvec4);"
+
+            "int64_t maxInvocationsNonUniformAMD(int64_t);"
+            "i64vec2 maxInvocationsNonUniformAMD(i64vec2);"
+            "i64vec3 maxInvocationsNonUniformAMD(i64vec3);"
+            "i64vec4 maxInvocationsNonUniformAMD(i64vec4);"
+
+            "uint64_t maxInvocationsNonUniformAMD(uint64_t);"
+            "u64vec2  maxInvocationsNonUniformAMD(u64vec2);"
+            "u64vec3  maxInvocationsNonUniformAMD(u64vec3);"
+            "u64vec4  maxInvocationsNonUniformAMD(u64vec4);"
+
+            "float16_t maxInvocationsNonUniformAMD(float16_t);"
+            "f16vec2   maxInvocationsNonUniformAMD(f16vec2);"
+            "f16vec3   maxInvocationsNonUniformAMD(f16vec3);"
+            "f16vec4   maxInvocationsNonUniformAMD(f16vec4);"
+
+            "float maxInvocationsInclusiveScanNonUniformAMD(float);"
+            "vec2  maxInvocationsInclusiveScanNonUniformAMD(vec2);"
+            "vec3  maxInvocationsInclusiveScanNonUniformAMD(vec3);"
+            "vec4  maxInvocationsInclusiveScanNonUniformAMD(vec4);"
+
+            "int   maxInvocationsInclusiveScanNonUniformAMD(int);"
+            "ivec2 maxInvocationsInclusiveScanNonUniformAMD(ivec2);"
+            "ivec3 maxInvocationsInclusiveScanNonUniformAMD(ivec3);"
+            "ivec4 maxInvocationsInclusiveScanNonUniformAMD(ivec4);"
+
+            "uint  maxInvocationsInclusiveScanNonUniformAMD(uint);"
+            "uvec2 maxInvocationsInclusiveScanNonUniformAMD(uvec2);"
+            "uvec3 maxInvocationsInclusiveScanNonUniformAMD(uvec3);"
+            "uvec4 maxInvocationsInclusiveScanNonUniformAMD(uvec4);"
+
+            "double maxInvocationsInclusiveScanNonUniformAMD(double);"
+            "dvec2  maxInvocationsInclusiveScanNonUniformAMD(dvec2);"
+            "dvec3  maxInvocationsInclusiveScanNonUniformAMD(dvec3);"
+            "dvec4  maxInvocationsInclusiveScanNonUniformAMD(dvec4);"
+
+            "int64_t maxInvocationsInclusiveScanNonUniformAMD(int64_t);"
+            "i64vec2 maxInvocationsInclusiveScanNonUniformAMD(i64vec2);"
+            "i64vec3 maxInvocationsInclusiveScanNonUniformAMD(i64vec3);"
+            "i64vec4 maxInvocationsInclusiveScanNonUniformAMD(i64vec4);"
+
+            "uint64_t maxInvocationsInclusiveScanNonUniformAMD(uint64_t);"
+            "u64vec2  maxInvocationsInclusiveScanNonUniformAMD(u64vec2);"
+            "u64vec3  maxInvocationsInclusiveScanNonUniformAMD(u64vec3);"
+            "u64vec4  maxInvocationsInclusiveScanNonUniformAMD(u64vec4);"
+
+            "float16_t maxInvocationsInclusiveScanNonUniformAMD(float16_t);"
+            "f16vec2   maxInvocationsInclusiveScanNonUniformAMD(f16vec2);"
+            "f16vec3   maxInvocationsInclusiveScanNonUniformAMD(f16vec3);"
+            "f16vec4   maxInvocationsInclusiveScanNonUniformAMD(f16vec4);"
+
+            "float maxInvocationsExclusiveScanNonUniformAMD(float);"
+            "vec2  maxInvocationsExclusiveScanNonUniformAMD(vec2);"
+            "vec3  maxInvocationsExclusiveScanNonUniformAMD(vec3);"
+            "vec4  maxInvocationsExclusiveScanNonUniformAMD(vec4);"
+
+            "int   maxInvocationsExclusiveScanNonUniformAMD(int);"
+            "ivec2 maxInvocationsExclusiveScanNonUniformAMD(ivec2);"
+            "ivec3 maxInvocationsExclusiveScanNonUniformAMD(ivec3);"
+            "ivec4 maxInvocationsExclusiveScanNonUniformAMD(ivec4);"
+
+            "uint  maxInvocationsExclusiveScanNonUniformAMD(uint);"
+            "uvec2 maxInvocationsExclusiveScanNonUniformAMD(uvec2);"
+            "uvec3 maxInvocationsExclusiveScanNonUniformAMD(uvec3);"
+            "uvec4 maxInvocationsExclusiveScanNonUniformAMD(uvec4);"
+
+            "double maxInvocationsExclusiveScanNonUniformAMD(double);"
+            "dvec2  maxInvocationsExclusiveScanNonUniformAMD(dvec2);"
+            "dvec3  maxInvocationsExclusiveScanNonUniformAMD(dvec3);"
+            "dvec4  maxInvocationsExclusiveScanNonUniformAMD(dvec4);"
+
+            "int64_t maxInvocationsExclusiveScanNonUniformAMD(int64_t);"
+            "i64vec2 maxInvocationsExclusiveScanNonUniformAMD(i64vec2);"
+            "i64vec3 maxInvocationsExclusiveScanNonUniformAMD(i64vec3);"
+            "i64vec4 maxInvocationsExclusiveScanNonUniformAMD(i64vec4);"
+
+            "uint64_t maxInvocationsExclusiveScanNonUniformAMD(uint64_t);"
+            "u64vec2  maxInvocationsExclusiveScanNonUniformAMD(u64vec2);"
+            "u64vec3  maxInvocationsExclusiveScanNonUniformAMD(u64vec3);"
+            "u64vec4  maxInvocationsExclusiveScanNonUniformAMD(u64vec4);"
+
+            "float16_t maxInvocationsExclusiveScanNonUniformAMD(float16_t);"
+            "f16vec2   maxInvocationsExclusiveScanNonUniformAMD(f16vec2);"
+            "f16vec3   maxInvocationsExclusiveScanNonUniformAMD(f16vec3);"
+            "f16vec4   maxInvocationsExclusiveScanNonUniformAMD(f16vec4);"
+
             "float addInvocationsNonUniformAMD(float);"
             "vec2  addInvocationsNonUniformAMD(vec2);"
             "vec3  addInvocationsNonUniformAMD(vec3);"
@@ -1662,6 +2114,96 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "uvec2 addInvocationsNonUniformAMD(uvec2);"
             "uvec3 addInvocationsNonUniformAMD(uvec3);"
             "uvec4 addInvocationsNonUniformAMD(uvec4);"
+
+            "double addInvocationsNonUniformAMD(double);"
+            "dvec2  addInvocationsNonUniformAMD(dvec2);"
+            "dvec3  addInvocationsNonUniformAMD(dvec3);"
+            "dvec4  addInvocationsNonUniformAMD(dvec4);"
+
+            "int64_t addInvocationsNonUniformAMD(int64_t);"
+            "i64vec2 addInvocationsNonUniformAMD(i64vec2);"
+            "i64vec3 addInvocationsNonUniformAMD(i64vec3);"
+            "i64vec4 addInvocationsNonUniformAMD(i64vec4);"
+
+            "uint64_t addInvocationsNonUniformAMD(uint64_t);"
+            "u64vec2  addInvocationsNonUniformAMD(u64vec2);"
+            "u64vec3  addInvocationsNonUniformAMD(u64vec3);"
+            "u64vec4  addInvocationsNonUniformAMD(u64vec4);"
+
+            "float16_t addInvocationsNonUniformAMD(float16_t);"
+            "f16vec2   addInvocationsNonUniformAMD(f16vec2);"
+            "f16vec3   addInvocationsNonUniformAMD(f16vec3);"
+            "f16vec4   addInvocationsNonUniformAMD(f16vec4);"
+
+            "float addInvocationsInclusiveScanNonUniformAMD(float);"
+            "vec2  addInvocationsInclusiveScanNonUniformAMD(vec2);"
+            "vec3  addInvocationsInclusiveScanNonUniformAMD(vec3);"
+            "vec4  addInvocationsInclusiveScanNonUniformAMD(vec4);"
+
+            "int   addInvocationsInclusiveScanNonUniformAMD(int);"
+            "ivec2 addInvocationsInclusiveScanNonUniformAMD(ivec2);"
+            "ivec3 addInvocationsInclusiveScanNonUniformAMD(ivec3);"
+            "ivec4 addInvocationsInclusiveScanNonUniformAMD(ivec4);"
+
+            "uint  addInvocationsInclusiveScanNonUniformAMD(uint);"
+            "uvec2 addInvocationsInclusiveScanNonUniformAMD(uvec2);"
+            "uvec3 addInvocationsInclusiveScanNonUniformAMD(uvec3);"
+            "uvec4 addInvocationsInclusiveScanNonUniformAMD(uvec4);"
+
+            "double addInvocationsInclusiveScanNonUniformAMD(double);"
+            "dvec2  addInvocationsInclusiveScanNonUniformAMD(dvec2);"
+            "dvec3  addInvocationsInclusiveScanNonUniformAMD(dvec3);"
+            "dvec4  addInvocationsInclusiveScanNonUniformAMD(dvec4);"
+
+            "int64_t addInvocationsInclusiveScanNonUniformAMD(int64_t);"
+            "i64vec2 addInvocationsInclusiveScanNonUniformAMD(i64vec2);"
+            "i64vec3 addInvocationsInclusiveScanNonUniformAMD(i64vec3);"
+            "i64vec4 addInvocationsInclusiveScanNonUniformAMD(i64vec4);"
+
+            "uint64_t addInvocationsInclusiveScanNonUniformAMD(uint64_t);"
+            "u64vec2  addInvocationsInclusiveScanNonUniformAMD(u64vec2);"
+            "u64vec3  addInvocationsInclusiveScanNonUniformAMD(u64vec3);"
+            "u64vec4  addInvocationsInclusiveScanNonUniformAMD(u64vec4);"
+
+            "float16_t addInvocationsInclusiveScanNonUniformAMD(float16_t);"
+            "f16vec2   addInvocationsInclusiveScanNonUniformAMD(f16vec2);"
+            "f16vec3   addInvocationsInclusiveScanNonUniformAMD(f16vec3);"
+            "f16vec4   addInvocationsInclusiveScanNonUniformAMD(f16vec4);"
+
+            "float addInvocationsExclusiveScanNonUniformAMD(float);"
+            "vec2  addInvocationsExclusiveScanNonUniformAMD(vec2);"
+            "vec3  addInvocationsExclusiveScanNonUniformAMD(vec3);"
+            "vec4  addInvocationsExclusiveScanNonUniformAMD(vec4);"
+
+            "int   addInvocationsExclusiveScanNonUniformAMD(int);"
+            "ivec2 addInvocationsExclusiveScanNonUniformAMD(ivec2);"
+            "ivec3 addInvocationsExclusiveScanNonUniformAMD(ivec3);"
+            "ivec4 addInvocationsExclusiveScanNonUniformAMD(ivec4);"
+
+            "uint  addInvocationsExclusiveScanNonUniformAMD(uint);"
+            "uvec2 addInvocationsExclusiveScanNonUniformAMD(uvec2);"
+            "uvec3 addInvocationsExclusiveScanNonUniformAMD(uvec3);"
+            "uvec4 addInvocationsExclusiveScanNonUniformAMD(uvec4);"
+
+            "double addInvocationsExclusiveScanNonUniformAMD(double);"
+            "dvec2  addInvocationsExclusiveScanNonUniformAMD(dvec2);"
+            "dvec3  addInvocationsExclusiveScanNonUniformAMD(dvec3);"
+            "dvec4  addInvocationsExclusiveScanNonUniformAMD(dvec4);"
+
+            "int64_t addInvocationsExclusiveScanNonUniformAMD(int64_t);"
+            "i64vec2 addInvocationsExclusiveScanNonUniformAMD(i64vec2);"
+            "i64vec3 addInvocationsExclusiveScanNonUniformAMD(i64vec3);"
+            "i64vec4 addInvocationsExclusiveScanNonUniformAMD(i64vec4);"
+
+            "uint64_t addInvocationsExclusiveScanNonUniformAMD(uint64_t);"
+            "u64vec2  addInvocationsExclusiveScanNonUniformAMD(u64vec2);"
+            "u64vec3  addInvocationsExclusiveScanNonUniformAMD(u64vec3);"
+            "u64vec4  addInvocationsExclusiveScanNonUniformAMD(u64vec4);"
+
+            "float16_t addInvocationsExclusiveScanNonUniformAMD(float16_t);"
+            "f16vec2   addInvocationsExclusiveScanNonUniformAMD(f16vec2);"
+            "f16vec3   addInvocationsExclusiveScanNonUniformAMD(f16vec3);"
+            "f16vec4   addInvocationsExclusiveScanNonUniformAMD(f16vec4);"
 
             "float swizzleInvocationsAMD(float, uvec4);"
             "vec2  swizzleInvocationsAMD(vec2,  uvec4);"
@@ -2243,7 +2785,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         "vec2  dFdx(vec2  p);"
         "vec3  dFdx(vec3  p);"
         "vec4  dFdx(vec4  p);"
-                 
+
         "float dFdy(float p);"
         "vec2  dFdy(vec2  p);"
         "vec3  dFdy(vec3  p);"
@@ -2286,12 +2828,12 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "vec2  dFdyCoarse(vec2  p);"
             "vec3  dFdyCoarse(vec3  p);"
             "vec4  dFdyCoarse(vec4  p);"
-                 
+
             "float fwidthCoarse(float p);"
             "vec2  fwidthCoarse(vec2  p);"
             "vec3  fwidthCoarse(vec3  p);"
             "vec4  fwidthCoarse(vec4  p);"
-            
+
             "\n");
     }
 
@@ -2462,11 +3004,11 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "uniform mat4  gl_ModelViewMatrixInverse;"
             "uniform mat4  gl_ProjectionMatrixInverse;"
             "uniform mat4  gl_ModelViewProjectionMatrixInverse;"
-                     
+
             "uniform mat4  gl_ModelViewMatrixTranspose;"
             "uniform mat4  gl_ProjectionMatrixTranspose;"
             "uniform mat4  gl_ModelViewProjectionMatrixTranspose;"
-                     
+
             "uniform mat4  gl_ModelViewMatrixInverseTranspose;"
             "uniform mat4  gl_ProjectionMatrixInverseTranspose;"
             "uniform mat4  gl_ModelViewProjectionMatrixInverseTranspose;"
@@ -2524,7 +3066,6 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                 "float quadraticAttenuation;"// K2
             "};"
 
-
             "struct gl_LightModelParameters {"
                 "vec4  ambient;"       // Acs
             "};"
@@ -2559,7 +3100,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "};"
 
             "uniform gl_FogParameters gl_Fog;"
-            
+
             "\n");
     }
 
@@ -2589,7 +3130,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
     // Define the interface to the vertex shader.
     //
     //============================================================================
-    
+
     if (profile != EEsProfile) {
         if (version < 130) {
             stageBuiltins[EShLangVertex].append(
@@ -2621,7 +3162,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                 "in vec4  gl_MultiTexCoord5;"
                 "in vec4  gl_MultiTexCoord6;"
                 "in vec4  gl_MultiTexCoord7;"
-                "in float gl_FogCoord;"            
+                "in float gl_FogCoord;"
                 "\n");
         }
 
@@ -2663,7 +3204,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                     "vec4 gl_Position;"     // needs qualifier fixed later
                     "float gl_PointSize;"   // needs qualifier fixed later
                     "float gl_ClipDistance[];"
-                    );            
+                    );
             if (IncludeLegacy(version, profile, spvVersion))
                 stageBuiltins[EShLangVertex].append(
                     "vec4 gl_ClipVertex;"   // needs qualifier fixed later
@@ -2702,6 +3243,20 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                 "in int gl_DrawIDARB;"
                 );
         }
+
+#ifdef NV_EXTENSIONS
+        if (version >= 450)
+            stageBuiltins[EShLangVertex].append(
+                "out int gl_ViewportIndex;"
+                "out int gl_Layer;"
+                "out int gl_ViewportMask[];"
+                "out int gl_SecondaryViewportMaskNV[];"
+                "out vec4 gl_SecondaryPositionNV;"
+                "out vec4 gl_PositionPerViewNV[];"
+                "out int  gl_ViewportMaskPerViewNV[];"
+                );
+#endif
+
     } else {
         // ES profile
         if (version == 100) {
@@ -2761,6 +3316,10 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         if (version >= 450)
             stageBuiltins[EShLangGeometry].append(
                 "float gl_CullDistance[];"
+#ifdef NV_EXTENSIONS
+                "vec4 gl_SecondaryPositionNV;"
+                "vec4 gl_PositionPerViewNV[];"
+#endif
                 );
         stageBuiltins[EShLangGeometry].append(
             "} gl_in[];"
@@ -2805,6 +3364,18 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             stageBuiltins[EShLangGeometry].append(
             "out int gl_ViewportIndex;"
             );
+
+#ifdef NV_EXTENSIONS
+        if (version >= 450)
+            stageBuiltins[EShLangGeometry].append(
+                "out int gl_ViewportMask[];"
+                "out int gl_SecondaryViewportMaskNV[];"
+                "out vec4 gl_SecondaryPositionNV;"
+                "out vec4 gl_PositionPerViewNV[];"
+                "out int  gl_ViewportMaskPerViewNV[];"
+            );
+#endif
+
         stageBuiltins[EShLangGeometry].append("\n");
     } else if (profile == EEsProfile && version >= 310) {
         stageBuiltins[EShLangGeometry].append(
@@ -2826,7 +3397,6 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "\n"
             );
     }
-
 
     //============================================================================
     //
@@ -2861,6 +3431,15 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         if (version >= 450)
             stageBuiltins[EShLangTessControl].append(
                 "float gl_CullDistance[];"
+#ifdef NV_EXTENSIONS
+                "int  gl_ViewportIndex;"
+                "int  gl_Layer;"
+                "int  gl_ViewportMask[];"
+                "vec4 gl_SecondaryPositionNV;"
+                "int  gl_SecondaryViewportMaskNV[];"
+                "vec4 gl_PositionPerViewNV[];"
+                "int  gl_ViewportMaskPerViewNV[];"
+#endif
                 );
         stageBuiltins[EShLangTessControl].append(
             "} gl_out[];"
@@ -2907,7 +3486,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
 
             "patch in float gl_TessLevelOuter[4];"
             "patch in float gl_TessLevelInner[2];"
-                
+
             "out gl_PerVertex {"
                 "vec4 gl_Position;"
                 "float gl_PointSize;"
@@ -2930,6 +3509,20 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
         stageBuiltins[EShLangTessEvaluation].append(
             "};"
             "\n");
+
+#ifdef NV_EXTENSIONS
+        if (version >= 450)
+            stageBuiltins[EShLangTessEvaluation].append(
+                "out int  gl_ViewportIndex;"
+                "out int  gl_Layer;"
+                "out int  gl_ViewportMask[];"
+                "out vec4 gl_SecondaryPositionNV;"
+                "out int  gl_SecondaryViewportMaskNV[];"
+                "out vec4 gl_PositionPerViewNV[];"
+                "out int  gl_ViewportMaskPerViewNV[];"
+                );
+#endif
+
     } else if (profile == EEsProfile && version >= 310) {
         // Note:  "in gl_PerVertex {...} gl_in[gl_MaxPatchVertices];" is declared in initialize() below,
         // as it depends on the resource sizing of gl_MaxPatchVertices.
@@ -2941,7 +3534,7 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
 
             "patch in highp float gl_TessLevelOuter[4];"
             "patch in highp float gl_TessLevelInner[2];"
-                
+
             "out gl_PerVertex {"
                 "highp vec4 gl_Position;"
                 "highp float gl_PointSize;"
@@ -3010,14 +3603,18 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                 "flat in int gl_PrimitiveID;"
                 );
 
-        if (version >= 400)
+        if (version >= 400) {
             stageBuiltins[EShLangFragment].append(
                 "flat in  int  gl_SampleID;"
                 "     in  vec2 gl_SamplePosition;"
                 "flat in  int  gl_SampleMaskIn[];"
                 "     out int  gl_SampleMask[];"
-                "uniform int gl_NumSamples;"
                 );
+            if (spvVersion.spv == 0)
+                stageBuiltins[EShLangFragment].append(
+                    "uniform int gl_NumSamples;"
+                    );
+        }
 
         if (version >= 430)
             stageBuiltins[EShLangFragment].append(
@@ -3074,8 +3671,11 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
                 "      in mediump vec2 gl_SamplePosition;"
                 "flat  in highp    int gl_SampleMaskIn[];"
                 "     out highp    int gl_SampleMask[];"
-                "uniform lowp int gl_NumSamples;"
                 );
+            if (spvVersion.spv == 0)
+                stageBuiltins[EShLangFragment].append(  // GL_OES_sample_variables
+                    "uniform lowp int gl_NumSamples;"
+                    );
         }
         stageBuiltins[EShLangFragment].append(
             "highp float gl_FragDepthEXT;"       // GL_EXT_frag_depth
@@ -3101,12 +3701,17 @@ void TBuiltIns::initialize(int version, EProfile profile, const SpvVersion& spvV
             "\n");
     }
 
-    //printf("%s\n", commonBuiltins.c_str());
-    //printf("%s\n", stageBuiltins[EShLangFragment].c_str());
+    if (profile != EEsProfile) {
+        commonBuiltins.append("uniform int gl_ViewIndex;");
+        commonBuiltins.append("uniform int gl_DeviceIndex;");  // GL_EXT_device_group
+    }
+
+    // printf("%s\n", commonBuiltins.c_str());
+    // printf("%s\n", stageBuiltins[EShLangFragment].c_str());
 }
 
 //
-// Helper function for initialize(), to add the second set of names for texturing, 
+// Helper function for initialize(), to add the second set of names for texturing,
 // when adding context-independent built-in functions.
 //
 void TBuiltIns::add2ndGenerationSamplingImaging(int version, EProfile profile, const SpvVersion& spvVersion)
@@ -3214,7 +3819,7 @@ void TBuiltIns::add2ndGenerationSamplingImaging(int version, EProfile profile, c
 }
 
 //
-// Helper function for add2ndGenerationSamplingImaging(), 
+// Helper function for add2ndGenerationSamplingImaging(),
 // when adding context-independent built-in functions.
 //
 // Add all the query functions for the given type.
@@ -3291,7 +3896,7 @@ void TBuiltIns::addQueryFunctions(TSampler sampler, TString& typeName, int versi
 }
 
 //
-// Helper function for add2ndGenerationSamplingImaging(), 
+// Helper function for add2ndGenerationSamplingImaging(),
 // when adding context-independent built-in functions.
 //
 // Add all the image access functions for the given type.
@@ -3350,7 +3955,7 @@ void TBuiltIns::addImageFunctions(TSampler sampler, TString& typeName, int versi
                 " imageAtomicOr(volatile coherent ",
                 " imageAtomicXor(volatile coherent ",
                 " imageAtomicExchange(volatile coherent "
-            }; 
+            };
 
             for (size_t i = 0; i < numBuiltins; ++i) {
                 commonBuiltins.append(dataType);
@@ -3401,7 +4006,7 @@ void TBuiltIns::addSubpassSampling(TSampler sampler, TString& typeName, int /*ve
 }
 
 //
-// Helper function for add2ndGenerationSamplingImaging(), 
+// Helper function for add2ndGenerationSamplingImaging(),
 // when adding context-independent built-in functions.
 //
 // Add all the texture lookup functions for the given type.
@@ -3615,7 +4220,7 @@ void TBuiltIns::addSamplingFunctions(TSampler sampler, TString& typeName, int ve
 
                                         // Add to the per-language set of built-ins
 
-                                        if (bias)
+                                        if (bias || lodClamp)
                                             stageBuiltins[EShLangFragment].append(s);
                                         else
                                             commonBuiltins.append(s);
@@ -3630,9 +4235,8 @@ void TBuiltIns::addSamplingFunctions(TSampler sampler, TString& typeName, int ve
     }
 }
 
-
 //
-// Helper function for add2ndGenerationSamplingImaging(), 
+// Helper function for add2ndGenerationSamplingImaging(),
 // when adding context-independent built-in functions.
 //
 // Add all the texture gather functions for the given type.
@@ -3833,7 +4437,7 @@ void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProf
             s.append(builtInConstant);
             snprintf(builtInConstant, maxSize, "const int gl_MaxTessControlTotalOutputComponents = %d;", resources.maxTessControlTotalOutputComponents);
             s.append(builtInConstant);
-                
+
             snprintf(builtInConstant, maxSize, "const int gl_MaxTessEvaluationInputComponents = %d;", resources.maxTessEvaluationInputComponents);
             s.append(builtInConstant);
             snprintf(builtInConstant, maxSize, "const int gl_MaxTessEvaluationOutputComponents = %d;", resources.maxTessEvaluationOutputComponents);
@@ -3842,7 +4446,7 @@ void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProf
             s.append(builtInConstant);
             snprintf(builtInConstant, maxSize, "const int gl_MaxTessEvaluationUniformComponents = %d;", resources.maxTessEvaluationUniformComponents);
             s.append(builtInConstant);
-                
+
             snprintf(builtInConstant, maxSize, "const int gl_MaxTessPatchComponents = %d;", resources.maxTessPatchComponents);
             s.append(builtInConstant);
 
@@ -3857,6 +4461,10 @@ void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProf
                     "in gl_PerVertex {"
                         "highp vec4 gl_Position;"
                         "highp float gl_PointSize;"
+#ifdef NV_EXTENSIONS
+                        "highp vec4 gl_SecondaryPositionNV;"
+                        "highp vec4 gl_PositionPerViewNV[];"
+#endif
                     "} gl_in[gl_MaxPatchVertices];"
                     "\n");
             }
@@ -4005,7 +4613,7 @@ void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProf
             s.append(builtInConstant);
             snprintf(builtInConstant, maxSize, "const int gl_MaxTessControlTotalOutputComponents = %d;", resources.maxTessControlTotalOutputComponents);
             s.append(builtInConstant);
-                
+
             snprintf(builtInConstant, maxSize, "const int gl_MaxTessEvaluationInputComponents = %d;", resources.maxTessEvaluationInputComponents);
             s.append(builtInConstant);
             snprintf(builtInConstant, maxSize, "const int gl_MaxTessEvaluationOutputComponents = %d;", resources.maxTessEvaluationOutputComponents);
@@ -4014,7 +4622,7 @@ void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProf
             s.append(builtInConstant);
             snprintf(builtInConstant, maxSize, "const int gl_MaxTessEvaluationUniformComponents = %d;", resources.maxTessEvaluationUniformComponents);
             s.append(builtInConstant);
-                
+
             snprintf(builtInConstant, maxSize, "const int gl_MaxTessPatchComponents = %d;", resources.maxTessPatchComponents);
             s.append(builtInConstant);
             snprintf(builtInConstant, maxSize, "const int gl_MaxTessGenLevel = %d;", resources.maxTessGenLevel);
@@ -4043,6 +4651,10 @@ void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProf
                 if (profile != EEsProfile && version >= 450)
                     s.append(
                         "float gl_CullDistance[];"
+#ifdef NV_EXTENSIONS
+                        "vec4 gl_SecondaryPositionNV;"
+                        "vec4 gl_PositionPerViewNV[];"
+#endif
                        );
                 s.append(
                     "} gl_in[gl_MaxPatchVertices];"
@@ -4079,7 +4691,7 @@ void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProf
     }
 
     // images (some in compute below)
-    if ((profile == EEsProfile && version >= 310) || 
+    if ((profile == EEsProfile && version >= 310) ||
         (profile != EEsProfile && version >= 130)) {
         snprintf(builtInConstant, maxSize, "const int gl_MaxImageUnits = %d;", resources.maxImageUnits);
         s.append(builtInConstant);
@@ -4094,7 +4706,7 @@ void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProf
     }
 
     // atomic counters (some in compute below)
-    if ((profile == EEsProfile && version >= 310) || 
+    if ((profile == EEsProfile && version >= 310) ||
         (profile != EEsProfile && version >= 420)) {
         snprintf(builtInConstant, maxSize, "const int gl_MaxVertexAtomicCounters = %d;", resources.               maxVertexAtomicCounters);
         s.append(builtInConstant);
@@ -4130,12 +4742,11 @@ void TBuiltIns::initialize(const TBuiltInResource &resources, int version, EProf
         s.append("\n");
     }
 
-
     // compute
     if ((profile == EEsProfile && version >= 310) || (profile != EEsProfile && version >= 420)) {
         snprintf(builtInConstant, maxSize, "const ivec3 gl_MaxComputeWorkGroupCount = ivec3(%d,%d,%d);", resources.maxComputeWorkGroupCountX,
                                                                                                          resources.maxComputeWorkGroupCountY,
-                                                                                                         resources.maxComputeWorkGroupCountZ);                
+                                                                                                         resources.maxComputeWorkGroupCountZ);
         s.append(builtInConstant);
         snprintf(builtInConstant, maxSize, "const ivec3 gl_MaxComputeWorkGroupSize = ivec3(%d,%d,%d);", resources.maxComputeWorkGroupSizeX,
                                                                                                         resources.maxComputeWorkGroupSizeY,
@@ -4265,7 +4876,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
     // N.B.: a symbol should only be tagged once, and this function is called multiple times, once
     // per stage that's used for this profile.  So
     //  - generally, stick common ones in the fragment stage to ensure they are tagged exactly once
-    //  - for ES, which has different precisions for different stages, the coarsest-grained tagging 
+    //  - for ES, which has different precisions for different stages, the coarsest-grained tagging
     //    for a built-in used in many stages needs to be once for the fragment stage and once for
     //    the vertex stage
 
@@ -4322,6 +4933,19 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.setFunctionExtensions("swizzleInvocationsWithPatternAMD", 1, &E_GL_AMD_shader_ballot);
             symbolTable.setFunctionExtensions("writeInvocationAMD",               1, &E_GL_AMD_shader_ballot);
             symbolTable.setFunctionExtensions("mbcntAMD",                         1, &E_GL_AMD_shader_ballot);
+
+            symbolTable.setFunctionExtensions("minInvocationsInclusiveScanAMD",             1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("maxInvocationsInclusiveScanAMD",             1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("addInvocationsInclusiveScanAMD",             1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("minInvocationsInclusiveScanNonUniformAMD",   1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("maxInvocationsInclusiveScanNonUniformAMD",   1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("addInvocationsInclusiveScanNonUniformAMD",   1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("minInvocationsExclusiveScanAMD",             1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("maxInvocationsExclusiveScanAMD",             1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("addInvocationsExclusiveScanAMD",             1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("minInvocationsExclusiveScanNonUniformAMD",   1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("maxInvocationsExclusiveScanNonUniformAMD",   1, &E_GL_AMD_shader_ballot);
+            symbolTable.setFunctionExtensions("addInvocationsExclusiveScanNonUniformAMD",   1, &E_GL_AMD_shader_ballot);
         }
 
         if (profile != EEsProfile) {
@@ -4419,6 +5043,37 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
         BuiltInVariable("gl_InvocationID",    EbvInvocationId,   symbolTable);
         BuiltInVariable("gl_Layer",           EbvLayer,          symbolTable);
         BuiltInVariable("gl_ViewportIndex",   EbvViewportIndex,  symbolTable);
+
+#ifdef NV_EXTENSIONS
+        if (language != EShLangGeometry) {
+            symbolTable.setVariableExtensions("gl_Layer",         Num_viewportEXTs, viewportEXTs);
+            symbolTable.setVariableExtensions("gl_ViewportIndex", Num_viewportEXTs, viewportEXTs);
+        }
+        symbolTable.setVariableExtensions("gl_ViewportMask",            1, &E_GL_NV_viewport_array2);
+        symbolTable.setVariableExtensions("gl_SecondaryPositionNV",     1, &E_GL_NV_stereo_view_rendering);
+        symbolTable.setVariableExtensions("gl_SecondaryViewportMaskNV", 1, &E_GL_NV_stereo_view_rendering);
+        symbolTable.setVariableExtensions("gl_PositionPerViewNV",       1, &E_GL_NVX_multiview_per_view_attributes);
+        symbolTable.setVariableExtensions("gl_ViewportMaskPerViewNV",   1, &E_GL_NVX_multiview_per_view_attributes);
+
+        BuiltInVariable("gl_ViewportMask",              EbvViewportMaskNV,          symbolTable);
+        BuiltInVariable("gl_SecondaryPositionNV",       EbvSecondaryPositionNV,     symbolTable);
+        BuiltInVariable("gl_SecondaryViewportMaskNV",   EbvSecondaryViewportMaskNV, symbolTable);
+        BuiltInVariable("gl_PositionPerViewNV",         EbvPositionPerViewNV,       symbolTable);
+        BuiltInVariable("gl_ViewportMaskPerViewNV",     EbvViewportMaskPerViewNV,   symbolTable);
+
+        if (language != EShLangVertex) {
+            BuiltInVariable("gl_in", "gl_SecondaryPositionNV", EbvSecondaryPositionNV, symbolTable);
+            BuiltInVariable("gl_in", "gl_PositionPerViewNV",   EbvPositionPerViewNV,   symbolTable);
+        }
+        BuiltInVariable("gl_out", "gl_Layer",                   EbvLayer,                   symbolTable);
+        BuiltInVariable("gl_out", "gl_ViewportIndex",           EbvViewportIndex,           symbolTable);
+        BuiltInVariable("gl_out", "gl_ViewportMask",            EbvViewportMaskNV,          symbolTable);
+        BuiltInVariable("gl_out", "gl_SecondaryPositionNV",     EbvSecondaryPositionNV,     symbolTable);
+        BuiltInVariable("gl_out", "gl_SecondaryViewportMaskNV", EbvSecondaryViewportMaskNV, symbolTable);
+        BuiltInVariable("gl_out", "gl_PositionPerViewNV",       EbvPositionPerViewNV,       symbolTable);
+        BuiltInVariable("gl_out", "gl_ViewportMaskPerViewNV",   EbvViewportMaskPerViewNV,   symbolTable);
+#endif
+
         BuiltInVariable("gl_PatchVerticesIn", EbvPatchVertices,  symbolTable);
         BuiltInVariable("gl_TessLevelOuter",  EbvTessLevelOuter, symbolTable);
         BuiltInVariable("gl_TessLevelInner",  EbvTessLevelInner, symbolTable);
@@ -4458,7 +5113,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
         // However, the current automatic extension scheme does not work per block member,
         // so for now check when parsing.
         //
-        //if (profile == EEsProfile) {
+        // if (profile == EEsProfile) {
         //    if (language == EShLangGeometry)
         //        symbolTable.setVariableExtensions("gl_PointSize", Num_AEP_geometry_point_size, AEP_geometry_point_size);
         //    else if (language == EShLangTessEvaluation || language == EShLangTessControl)
@@ -4494,7 +5149,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
                 symbolTable.setVariableExtensions("gl_NumSamples",     1, &E_GL_OES_sample_variables);
             }
         }
-        
+
         BuiltInVariable("gl_Layer",           EbvLayer,          symbolTable);
         BuiltInVariable("gl_ViewportIndex",   EbvViewportIndex,  symbolTable);
 
@@ -4660,6 +5315,13 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.setFunctionExtensions("imageAtomicXor",      1, &E_GL_OES_shader_image_atomic);
             symbolTable.setFunctionExtensions("imageAtomicExchange", 1, &E_GL_OES_shader_image_atomic);
             symbolTable.setFunctionExtensions("imageAtomicCompSwap", 1, &E_GL_OES_shader_image_atomic);
+        }
+
+        if (profile != EEsProfile) {
+            symbolTable.setFunctionExtensions("gl_DeviceIndex",  1, &E_GL_EXT_device_group);
+            BuiltInVariable("gl_DeviceIndex", EbvDeviceIndex, symbolTable);
+            symbolTable.setFunctionExtensions("gl_ViewIndex", 1, &E_GL_EXT_multiview);
+            BuiltInVariable("gl_ViewIndex", EbvViewIndex, symbolTable);
         }
         break;
 
@@ -4984,16 +5646,28 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
             symbolTable.relateToOperator("allInvocationsEqualARB",          EOpAllInvocationsEqual);
 
 #ifdef AMD_EXTENSIONS
-            symbolTable.relateToOperator("minInvocationsAMD",               EOpMinInvocations);
-            symbolTable.relateToOperator("maxInvocationsAMD",               EOpMaxInvocations);
-            symbolTable.relateToOperator("addInvocationsAMD",               EOpAddInvocations);
-            symbolTable.relateToOperator("minInvocationsNonUniformAMD",     EOpMinInvocationsNonUniform);
-            symbolTable.relateToOperator("maxInvocationsNonUniformAMD",     EOpMaxInvocationsNonUniform);
-            symbolTable.relateToOperator("addInvocationsNonUniformAMD",     EOpAddInvocationsNonUniform);
-            symbolTable.relateToOperator("swizzleInvocationsAMD",           EOpSwizzleInvocations);
-            symbolTable.relateToOperator("swizzleInvocationsMaskedAMD",     EOpSwizzleInvocationsMasked);
-            symbolTable.relateToOperator("writeInvocationAMD",              EOpWriteInvocation);
-            symbolTable.relateToOperator("mbcntAMD",                        EOpMbcnt);
+            symbolTable.relateToOperator("minInvocationsAMD",                           EOpMinInvocations);
+            symbolTable.relateToOperator("maxInvocationsAMD",                           EOpMaxInvocations);
+            symbolTable.relateToOperator("addInvocationsAMD",                           EOpAddInvocations);
+            symbolTable.relateToOperator("minInvocationsNonUniformAMD",                 EOpMinInvocationsNonUniform);
+            symbolTable.relateToOperator("maxInvocationsNonUniformAMD",                 EOpMaxInvocationsNonUniform);
+            symbolTable.relateToOperator("addInvocationsNonUniformAMD",                 EOpAddInvocationsNonUniform);
+            symbolTable.relateToOperator("minInvocationsInclusiveScanAMD",              EOpMinInvocationsInclusiveScan);
+            symbolTable.relateToOperator("maxInvocationsInclusiveScanAMD",              EOpMaxInvocationsInclusiveScan);
+            symbolTable.relateToOperator("addInvocationsInclusiveScanAMD",              EOpAddInvocationsInclusiveScan);
+            symbolTable.relateToOperator("minInvocationsInclusiveScanNonUniformAMD",    EOpMinInvocationsInclusiveScanNonUniform);
+            symbolTable.relateToOperator("maxInvocationsInclusiveScanNonUniformAMD",    EOpMaxInvocationsInclusiveScanNonUniform);
+            symbolTable.relateToOperator("addInvocationsInclusiveScanNonUniformAMD",    EOpAddInvocationsInclusiveScanNonUniform);
+            symbolTable.relateToOperator("minInvocationsExclusiveScanAMD",              EOpMinInvocationsExclusiveScan);
+            symbolTable.relateToOperator("maxInvocationsExclusiveScanAMD",              EOpMaxInvocationsExclusiveScan);
+            symbolTable.relateToOperator("addInvocationsExclusiveScanAMD",              EOpAddInvocationsExclusiveScan);
+            symbolTable.relateToOperator("minInvocationsExclusiveScanNonUniformAMD",    EOpMinInvocationsExclusiveScanNonUniform);
+            symbolTable.relateToOperator("maxInvocationsExclusiveScanNonUniformAMD",    EOpMaxInvocationsExclusiveScanNonUniform);
+            symbolTable.relateToOperator("addInvocationsExclusiveScanNonUniformAMD",    EOpAddInvocationsExclusiveScanNonUniform);
+            symbolTable.relateToOperator("swizzleInvocationsAMD",                       EOpSwizzleInvocations);
+            symbolTable.relateToOperator("swizzleInvocationsMaskedAMD",                 EOpSwizzleInvocationsMasked);
+            symbolTable.relateToOperator("writeInvocationAMD",                          EOpWriteInvocation);
+            symbolTable.relateToOperator("mbcntAMD",                                    EOpMbcnt);
 
             symbolTable.relateToOperator("min3",    EOpMin3);
             symbolTable.relateToOperator("max3",    EOpMax3);
@@ -5055,7 +5729,7 @@ void TBuiltIns::identifyBuiltIns(int version, EProfile profile, const SpvVersion
 
 //
 // Add context-dependent (resource-specific) built-ins not handled by the above.  These
-// would be ones that need to be programmatically added because they cannot 
+// would be ones that need to be programmatically added because they cannot
 // be added by simple text strings.  For these, also
 // 1) Map built-in functions to operators, for those that will turn into an operation node
 //    instead of remaining a function call.

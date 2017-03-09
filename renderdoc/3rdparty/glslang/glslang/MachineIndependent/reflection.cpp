@@ -1,11 +1,11 @@
 //
-//Copyright (C) 2013-2016 LunarG, Inc.
+// Copyright (C) 2013-2016 LunarG, Inc.
 //
-//All rights reserved.
+// All rights reserved.
 //
-//Redistribution and use in source and binary forms, with or without
-//modification, are permitted provided that the following conditions
-//are met:
+// Redistribution and use in source and binary forms, with or without
+// modification, are permitted provided that the following conditions
+// are met:
 //
 //    Redistributions of source code must retain the above copyright
 //    notice, this list of conditions and the following disclaimer.
@@ -19,18 +19,18 @@
 //    contributors may be used to endorse or promote products derived
 //    from this software without specific prior written permission.
 //
-//THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-//"AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-//LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-//FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-//COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-//INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-//BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-//LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-//CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-//LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-//ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-//POSSIBILITY OF SUCH DAMAGE.
+// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
+// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
+// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
+// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
+// COPYRIGHT HOLDERS OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
+// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
+// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
+// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
+// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
+// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
+// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+// POSSIBILITY OF SUCH DAMAGE.
 //
 
 #include "../Include/Common.h"
@@ -63,7 +63,6 @@
 // there wasn't exactly one entry point.
 //
 
-   
 namespace glslang {
 
 //
@@ -354,7 +353,6 @@ public:
 
         return blockIndex;
     }
-
 
     // Are we at a level in a dereference chain at which individual active uniform queries are made?
     bool isReflectionGranularity(const TType& type)
@@ -694,18 +692,30 @@ void TReflectionTraverser::visitSymbol(TIntermSymbol* base)
         addAttribute(*base);
 }
 
-
 //
 // Implement TReflection methods.
 //
 
+// Track any required attribute reflection, such as compute shader numthreads.
+//
+void TReflection::buildAttributeReflection(EShLanguage stage, const TIntermediate& intermediate)
+{
+    if (stage == EShLangCompute) {
+        // Remember thread dimensions
+        for (int dim=0; dim<3; ++dim)
+            localSize[dim] = intermediate.getLocalSize(dim);
+    }
+}
+
 // Merge live symbols from 'intermediate' into the existing reflection database.
 //
 // Returns false if the input is too malformed to do this.
-bool TReflection::addStage(EShLanguage, const TIntermediate& intermediate)
+bool TReflection::addStage(EShLanguage stage, const TIntermediate& intermediate)
 {
     if (intermediate.getNumEntryPoints() != 1 || intermediate.isRecursive())
         return false;
+
+    buildAttributeReflection(stage, intermediate);
 
     TReflectionTraverser it(intermediate, *this);
 
@@ -739,10 +749,20 @@ void TReflection::dump()
         indexToAttribute[i].dump();
     printf("\n");
 
-    //printf("Live names\n");
-    //for (TNameToIndex::const_iterator it = nameToIndex.begin(); it != nameToIndex.end(); ++it)
+    if (getLocalSize(0) > 1) {
+        static const char* axis[] = { "X", "Y", "Z" };
+
+        for (int dim=0; dim<3; ++dim)
+            if (getLocalSize(dim) > 1)
+                printf("Local size %s: %d\n", axis[dim], getLocalSize(dim));
+
+        printf("\n");
+    }
+
+    // printf("Live names\n");
+    // for (TNameToIndex::const_iterator it = nameToIndex.begin(); it != nameToIndex.end(); ++it)
     //    printf("%s: %d\n", it->first.c_str(), it->second);
-    //printf("\n");
+    // printf("\n");
 }
 
 } // end namespace glslang
