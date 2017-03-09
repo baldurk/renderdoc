@@ -165,6 +165,45 @@ struct VkGenericStruct
   const VkGenericStruct *pNext;
 };
 
+// utility function for when we're modifying one struct in a pNext chain, this
+// lets us just copy across a struct unmodified into some temporary memory and
+// append it onto a pNext chain we're building
+template <typename VkStruct>
+void CopyNextChainedStruct(byte *&tempMem, const VkGenericStruct *nextInput,
+                           VkGenericStruct *&nextChainTail)
+{
+  const VkStruct *instruct = (const VkStruct *)nextInput;
+  VkStruct *outstruct = (VkStruct *)tempMem;
+
+  tempMem = (byte *)(outstruct + 1);
+
+  // copy the struct, nothing to unwrap
+  *outstruct = *instruct;
+
+  // default to NULL. It will be overwritten next time if there is a next object
+  outstruct->pNext = NULL;
+
+  // append this onto the chain
+  nextChainTail->pNext = (const VkGenericStruct *)outstruct;
+  nextChainTail = (VkGenericStruct *)outstruct;
+}
+
+// this is similar to the above function, but for use after we've modified a struct locally
+// e.g. to unwrap some members or patch flags, etc.
+template <typename VkStruct>
+void AppendModifiedChainedStruct(byte *&tempMem, VkStruct *outputStruct,
+                                 VkGenericStruct *&nextChainTail)
+{
+  tempMem = (byte *)(outputStruct + 1);
+
+  // default to NULL. It will be overwritten in the next step if there is a next object
+  outputStruct->pNext = NULL;
+
+  // append this onto the chain
+  nextChainTail->pNext = (const VkGenericStruct *)outputStruct;
+  nextChainTail = (VkGenericStruct *)outputStruct;
+}
+
 #define RENDERDOC_LAYER_NAME "VK_LAYER_RENDERDOC_Capture"
 
 #define IMPLEMENT_FUNCTION_SERIALISED(ret, func, ...) \
