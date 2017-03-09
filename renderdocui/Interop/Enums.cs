@@ -947,5 +947,100 @@ namespace renderdoc
 
             return "Unknown";
         }
+        
+        public static string Str(this BufferCreationFlags creationFlags)
+        {
+            string str = "";
+            bool first = true;
+            if ((creationFlags & BufferCreationFlags.VB) == BufferCreationFlags.VB)
+            {
+                str = str + "Vertex Buffer";
+                first = false;
+            }
+            if ((creationFlags & BufferCreationFlags.CB) == BufferCreationFlags.CB)
+            {
+                if (!first)
+                    str += ", ";
+                else
+                    first = false;
+                str = str + "Constat Buffer";
+            }
+            if ((creationFlags & BufferCreationFlags.IB) == BufferCreationFlags.IB)
+            {
+                if (!first)
+                    str += ", ";
+                else
+                    first = false;
+                str = str + "Index Buffer";
+            }
+            if ((creationFlags & BufferCreationFlags.UAV) == BufferCreationFlags.UAV)
+            {
+                if (!first)
+                    str += ", ";
+                else
+                    first = false;
+                str = str + "UAV";
+            }
+            if ((creationFlags & BufferCreationFlags.Indirect) == BufferCreationFlags.Indirect)
+            {
+                if (!first)
+                    str += ", ";
+                else
+                    first = false;
+                str = str + "Indirect";
+            }
+
+            if (str == "")
+                str = "Undefined";
+
+            return str;
+        }
+
+        public static string Str(this TextureCreationFlags creationFlags)
+        {
+            string str = "";
+            bool first = true;
+            if ((creationFlags & TextureCreationFlags.SRV) == TextureCreationFlags.SRV)
+            { 
+                str += "Shader Resource View";
+                first = false;
+            }
+            if ((creationFlags & TextureCreationFlags.RTV) == TextureCreationFlags.RTV)
+            {
+                if (!first)
+                    str += ", ";
+                else
+                    first = false;
+                str += "Render Target View";
+            }
+            if ((creationFlags & TextureCreationFlags.DSV) == TextureCreationFlags.DSV)
+            {
+                if (!first)
+                    str += ", ";
+                else
+                    first = false;
+                str += "Depth Stencil View";
+            }
+            if ((creationFlags & TextureCreationFlags.UAV) == TextureCreationFlags.UAV)
+            {
+                if (!first)
+                    str += ", ";
+                else
+                    first = false;
+                str += "UAV View ";
+            }
+            if ((creationFlags & TextureCreationFlags.SwapBuffer) == TextureCreationFlags.SwapBuffer)
+            {
+                if (!first)
+                    str += ", ";
+                else
+                    first = false;
+                str += "Swap Buffer";
+            }
+
+            if (str == "")
+                str = "Undefined";
+            return str;
+        }
     }
 }

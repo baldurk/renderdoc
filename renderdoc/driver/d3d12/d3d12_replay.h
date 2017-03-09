@@ -65,6 +65,24 @@ public:
   D3D12PipelineState GetD3D12PipelineState() { return m_PipelineState; }
   GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
   VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
+  void CaptureDrawCallsPipelineState() {}
+  vector<DrawcallPipelineState<D3D11PipelineState>> GetDrawCallsD3D11PipelineState()
+  {
+    return vector<DrawcallPipelineState<D3D11PipelineState>>();
+  }
+  vector<DrawcallPipelineState<D3D12PipelineState>> GetDrawCallsD3D12PipelineState()
+  {
+    return m_DrawcallsPipelineState;
+  }
+  vector<DrawcallPipelineState<GLPipelineState>> GetDrawCallsGLPipelineState()
+  {
+    return vector<DrawcallPipelineState<GLPipelineState>>();
+  }
+  vector<DrawcallPipelineState<VulkanPipelineState>> GetDrawCallsVulkanPipelineState()
+  {
+    return vector<DrawcallPipelineState<VulkanPipelineState>>();
+  }
+
   void FreeTargetResource(ResourceId id);
   void FreeCustomShader(ResourceId id);
 
@@ -186,6 +204,7 @@ private:
   vector<ID3D12Resource *> m_ProxyResources;
 
   D3D12PipelineState m_PipelineState;
+  vector<DrawcallPipelineState<D3D12PipelineState>> m_DrawcallsPipelineState;
 
   WrappedID3D12Device *m_pDevice;
 };

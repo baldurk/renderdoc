@@ -29,6 +29,7 @@
 #include "core/core.h"
 #include "replay/replay_driver.h"
 #include "d3d11_common.h"
+#include "d3d11_context.h"
 
 class WrappedID3D11Device;
 
@@ -67,6 +68,24 @@ public:
   D3D12PipelineState GetD3D12PipelineState() { return D3D12PipelineState(); }
   GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
   VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
+  void CaptureDrawCallsPipelineState();
+  vector<DrawcallPipelineState<D3D11PipelineState>> GetDrawCallsD3D11PipelineState()
+  {
+    return m_DrawcallsPipelineState;
+  };
+  vector<DrawcallPipelineState<D3D12PipelineState>> GetDrawCallsD3D12PipelineState()
+  {
+    return vector<DrawcallPipelineState<D3D12PipelineState>>();
+  };
+  vector<DrawcallPipelineState<GLPipelineState>> GetDrawCallsGLPipelineState()
+  {
+    return vector<DrawcallPipelineState<GLPipelineState>>();
+  };
+  vector<DrawcallPipelineState<VulkanPipelineState>> GetDrawCallsVulkanPipelineState()
+  {
+    return vector<DrawcallPipelineState<VulkanPipelineState>>();
+  };
+
   void FreeTargetResource(ResourceId id);
   void FreeCustomShader(ResourceId id);
 
@@ -168,6 +187,8 @@ public:
 private:
   D3D11PipelineState MakePipelineState();
 
+  void CaptureDrawCallPipelineState(const DrawcallTreeNode &drawnode, uint32_t &eventStart);
+
   bool m_WARP;
   bool m_Proxy;
 
@@ -176,4 +197,5 @@ private:
   WrappedID3D11Device *m_pDevice;
 
   D3D11PipelineState m_CurPipelineState;
+  vector<DrawcallPipelineState<D3D11PipelineState>> m_DrawcallsPipelineState;
 };

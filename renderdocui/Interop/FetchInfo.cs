@@ -544,6 +544,7 @@ namespace renderdoc
     {
         public UInt32 eventID;
         public ResourceUsage usage;
+        public UInt32 slot;
         public ResourceId view;
     };
 
@@ -626,6 +627,9 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 8)]
         public ResourceId[] outputs;
         public ResourceId depthOut;
+
+        [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 6)]
+        public ResourceId[] shaders;
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public FetchAPIEvent[] events;
@@ -817,6 +821,14 @@ namespace renderdoc
 
         [CustomMarshalAs(CustomUnmanagedType.Union)]
         public ValueUnion value;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class DrawCallD3D11PipelineState
+    {
+        public UInt32 eventID;
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public D3D11PipelineState pipelineState;
     };
 
     [StructLayout(LayoutKind.Sequential)]

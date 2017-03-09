@@ -180,6 +180,23 @@ public:
   {
     return vector<CounterResult>();
   }
+  void CaptureDrawCallsPipelineState() {}
+  vector<DrawcallPipelineState<D3D11PipelineState>> GetDrawCallsD3D11PipelineState()
+  {
+    return vector<DrawcallPipelineState<D3D11PipelineState>>();
+  }
+  vector<DrawcallPipelineState<D3D12PipelineState>> GetDrawCallsD3D12PipelineState()
+  {
+    return vector<DrawcallPipelineState<D3D12PipelineState>>();
+  }
+  vector<DrawcallPipelineState<GLPipelineState>> GetDrawCallsGLPipelineState()
+  {
+    return vector<DrawcallPipelineState<GLPipelineState>>();
+  }
+  vector<DrawcallPipelineState<VulkanPipelineState>> GetDrawCallsVulkanPipelineState()
+  {
+    return vector<DrawcallPipelineState<VulkanPipelineState>>();
+  }
   void FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
                             vector<ShaderVariable> &outvars, const vector<byte> &data)
   {
