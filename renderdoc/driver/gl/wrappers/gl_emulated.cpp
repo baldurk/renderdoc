@@ -318,16 +318,30 @@ void APIENTRY _glGetNamedBufferParameterivEXT(GLuint buffer, GLenum pname, GLint
   internalGL->glGetBufferParameteriv(eGL_COPY_READ_BUFFER, pname, params);
 }
 
+void APIENTRY _glGetBufferSubData(GLenum target, GLintptr offset, GLsizeiptr size, void *data)
+{
+  void *bufData = internalGL->glMapBufferRange(target, offset, size, eGL_MAP_READ_BIT);
+  if(!bufData)
+  {
+    RDCERR("glMapBufferRange failed to map buffer.");
+    return;
+  }
+  memcpy(data, bufData, (size_t)size);
+  internalGL->glUnmapBuffer(target);
+}
+
 void APIENTRY _glGetNamedBufferSubDataEXT(GLuint buffer, GLintptr offset, GLsizeiptr size, void *data)
 {
   PushPopBuffer(eGL_COPY_READ_BUFFER, buffer);
-  internalGL->glGetBufferSubData(eGL_COPY_READ_BUFFER, offset, size, data);
+  _glGetBufferSubData(eGL_COPY_READ_BUFFER, offset, size, data);
 }
 
 void *APIENTRY _glMapNamedBufferEXT(GLuint buffer, GLenum access)
 {
   PushPopBuffer(eGL_COPY_READ_BUFFER, buffer);
-  return internalGL->glMapBuffer(eGL_COPY_READ_BUFFER, access);
+  GLint size;
+  internalGL->glGetBufferParameteriv(eGL_COPY_READ_BUFFER, eGL_BUFFER_SIZE, &size);
+  return internalGL->glMapBufferRange(eGL_COPY_READ_BUFFER, 0, size, eGL_MAP_READ_BIT);
 }
 
 void *APIENTRY _glMapNamedBufferRangeEXT(GLuint buffer, GLintptr offset, GLsizeiptr length,
@@ -1233,6 +1247,12 @@ void EmulateRequiredExtensions(const GLHookSet *real, GLHookSet *hooks)
   {
     RDCLOG("Emulating ARB_internalformat_query2");
     EMULATE_FUNC(glGetInternalformativ);
+  }
+
+  // APIs that are not available at all in GLES.
+  if(IsGLES)
+  {
+    EMULATE_FUNC(glGetBufferSubData);
   }
 
   // Emulate the EXT_dsa functions that we'll need.
