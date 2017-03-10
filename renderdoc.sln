@@ -1,6 +1,8 @@
 ﻿
-Microsoft Visual Studio Solution File, Format Version 11.00
-# Visual Studio 2010
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 14
+VisualStudioVersion = 14.0.25420.1
+MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "renderdoc", "renderdoc\renderdoc.vcxproj", "{E2B46D67-90E2-40B6-9597-72930E7845E5}"
 	ProjectSection(ProjectDependencies) = postProject
 		{7893E300-3ED0-7F4C-158F-67EA63934C57} = {7893E300-3ED0-7F4C-158F-67EA63934C57}

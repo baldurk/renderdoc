@@ -21,7 +21,7 @@ On the other hand regular contributors or if you have a larger amount of code th
 
 ### Windows
 
-The main [renderdoc.sln](renderdoc.sln) is a VS2010 solution. It should also compile in newer versions like the [free VS2015 community](https://www.visualstudio.com/en-us/downloads/download-visual-studio-vs.aspx), just select to update the compilers.
+The main [renderdoc.sln](renderdoc.sln) is a VS2015 solution, as of March 2017. It should also compile in VS2017, just select to update the compilers if you don't have the 2015 compilers available.
 
 There are no external dependencies, all libraries/headers needed to build are included in the git checkout. On windows, the `Development` configuration is recommended for day-to-day dev. It's debuggable but not too slow. The `Release` configuration is then obviously what you should compile for any builds you'll send out to people or if you want to evaluate performance.
 
@@ -66,7 +66,7 @@ To make things easier for everyone, I've adopted clang-format for keeping code c
 
 Do not make any intermediate commits which don't follow the formatting conventions. Having several intermediate commits with mismatched formatting then a single 'reformatted code' commit at the end makes history and blames harder to read, which is an important tool for others to understand your code. It is much easier to enforce proper formatting on each commit as you go along, than to try and rebase and merge formatting changes in after the fact.
 
-Since it's not covered by a pure formatting check, be careful not to use overly modern C++. At the time of writing (January 2017) VS2010 is still a supported compiler, so many modern constructs are not supported. This is also partly a stylistic thing, as some modern C++ constructs do not fit with the style of the rest of the code.
+Since it's not covered by a pure formatting check, don't use overly modern C++ unnecessarily. Although the minimum compiler spec is now higher than it was in the past (as of March 2017) and modern features may be supported, some modern C++ constructs do not fit with the style of the rest of the code.
 
 ### Branch history
 
@@ -157,7 +157,7 @@ There are [several pages](https://github.com/baldurk/renderdoc/wiki/Code-Dives) 
 
     renderdoc/ 
         CMakeLists.txt                  ; The cmake file, will recurse into subdirectories to build them
-        renderdoc.sln                   ; VS2010 solution for windows building
+        renderdoc.sln                   ; VS2015 solution for windows building
         renderdoc/
             3rdparty/                   ; third party utilities & libraries included
             drivers/                    ; API-specific back-ends, can be individually skipped/removed
