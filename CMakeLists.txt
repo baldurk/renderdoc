@@ -29,6 +29,8 @@ if(CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR)
     message(FATAL_ERROR "In-source builds not allowed")
 endif()
 
+set(BUILD_VERSION_HASH "" CACHE STRING "The current git commit hash, possibly with suffixes to indicate build type")
+
 function(get_git_hash _git_hash)
   if(EXISTS "${CMAKE_SOURCE_DIR}/.git")
     execute_process(
@@ -40,6 +42,9 @@ function(get_git_hash _git_hash)
   endif()
   if(NOT GIT_HASH)
     set(GIT_HASH "NO_GIT_COMMIT_HASH_DEFINED")
+  endif()
+  if(BUILD_VERSION_HASH)
+    set(GIT_HASH "${BUILD_VERSION_HASH}")
   endif()
   set(${_git_hash} "${GIT_HASH}" PARENT_SCOPE)
 endfunction(get_git_hash)
