@@ -453,7 +453,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res)
     GLuint buf = 0;
     gl.glGenBuffers(1, &buf);
     gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, buf);
-    gl.glNamedBufferData(buf, (GLsizeiptr)length, NULL, eGL_STATIC_READ);
+    gl.glNamedBufferDataEXT(buf, (GLsizeiptr)length, NULL, eGL_STATIC_READ);
 
     // bind the live buffer for copying
     gl.glBindBuffer(eGL_COPY_READ_BUFFER, res.name);
@@ -1060,7 +1060,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
       GLuint buf = 0;
       gl.glGenBuffers(1, &buf);
       gl.glBindBuffer(eGL_COPY_WRITE_BUFFER, buf);
-      gl.glNamedBufferData(buf, (GLsizeiptr)len, data, eGL_STATIC_DRAW);
+      gl.glNamedBufferDataEXT(buf, (GLsizeiptr)len, data, eGL_STATIC_DRAW);
 
       SAFE_DELETE_ARRAY(data);
 
