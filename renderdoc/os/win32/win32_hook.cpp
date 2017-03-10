@@ -255,9 +255,11 @@ struct CachedHookData
     // for safety (and because we don't need to), ignore these modules
     if(!_stricmp(modName, "kernel32.dll") || !_stricmp(modName, "powrprof.dll") ||
        !_stricmp(modName, "opengl32.dll") || !_stricmp(modName, "gdi32.dll") ||
+       !_stricmp(modName, "nvoglv32.dll") || !_stricmp(modName, "nvoglv64.dll") ||
        strstr(lowername, "msvcr") == lowername || strstr(lowername, "msvcp") == lowername ||
        strstr(lowername, "nv-vk") == lowername || strstr(lowername, "amdvlk") == lowername ||
-       strstr(lowername, "igvk") == lowername || strstr(lowername, "nvopencl") == lowername)
+       strstr(lowername, "igvk") == lowername || strstr(lowername, "nvopencl") == lowername ||
+       strstr(lowername, "nvapi") == lowername)
       return;
 
     byte *baseAddress = (byte *)module;
