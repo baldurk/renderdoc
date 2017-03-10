@@ -50,6 +50,30 @@ int vsnprintf(char *str, size_t bufSize, const char *format, va_list args)
   return ::utf8printf(str, bufSize, format, args);
 }
 
+string Fmt(const char *format, ...)
+{
+  va_list args;
+  va_start(args, format);
+
+  va_list args2;
+  va_copy(args2, args);
+
+  int size = StringFormat::vsnprintf(NULL, 0, format, args2);
+
+  char *buf = new char[size + 1];
+  StringFormat::vsnprintf(buf, size + 1, format, args);
+  buf[size] = 0;
+
+  va_end(args);
+  va_end(args2);
+
+  string ret = buf;
+
+  delete[] buf;
+
+  return ret;
+}
+
 int Wide2UTF8(wchar_t chr, char mbchr[4])
 {
   // U+00000 -> U+00007F 1 byte  0xxxxxxx

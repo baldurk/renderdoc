@@ -409,28 +409,4 @@ void sntimef(char *str, size_t bufSize, const char *format)
 
   strftime(str, bufSize, format, tmv);
 }
-
-string Fmt(const char *format, ...)
-{
-  va_list args;
-  va_start(args, format);
-
-  va_list args2;
-  va_copy(args2, args);
-
-  int size = StringFormat::vsnprintf(NULL, 0, format, args2);
-
-  char *buf = new char[size + 1];
-  StringFormat::vsnprintf(buf, size + 1, format, args);
-  buf[size] = 0;
-
-  va_end(args);
-  va_end(args2);
-
-  string ret = buf;
-
-  delete[] buf;
-
-  return ret;
-}
 };

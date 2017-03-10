@@ -363,9 +363,6 @@ namespace StringFormat
 {
 void sntimef(char *str, size_t bufSize, const char *format);
 
-// forwards to vsnprintf below, needed to be here due to va_copy differences
-string Fmt(const char *format, ...);
-
 string Wide2UTF8(const std::wstring &s);
 };
 
@@ -375,6 +372,8 @@ namespace StringFormat
 {
 int vsnprintf(char *str, size_t bufSize, const char *format, va_list v);
 int snprintf(char *str, size_t bufSize, const char *format, ...);
+
+string Fmt(const char *format, ...);
 
 int Wide2UTF8(wchar_t chr, char mbchr[4]);
 };

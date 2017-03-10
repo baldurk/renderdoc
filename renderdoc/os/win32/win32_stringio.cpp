@@ -563,33 +563,6 @@ void sntimef(char *str, size_t bufSize, const char *format)
   }
 }
 
-// this function is only platform specific because va_copy isn't implemented
-// on MSVC
-string Fmt(const char *format, ...)
-{
-  va_list args;
-  va_start(args, format);
-
-  va_list args2;
-  // va_copy(args2, args); // not implemented on VS2010
-  args2 = args;
-
-  int size = StringFormat::vsnprintf(NULL, 0, format, args2);
-
-  char *buf = new char[size + 1];
-  StringFormat::vsnprintf(buf, size + 1, format, args);
-  buf[size] = 0;
-
-  va_end(args);
-  va_end(args2);
-
-  string ret = buf;
-
-  delete[] buf;
-
-  return ret;
-}
-
 string Wide2UTF8(const wstring &s)
 {
   int bytes_required = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, NULL, 0, NULL, NULL);
