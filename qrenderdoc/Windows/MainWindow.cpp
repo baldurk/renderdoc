@@ -63,7 +63,12 @@ struct Version
   static QString string() { return "v" RENDERDOC_VERSION_STRING; }
   static QString gitCommitHash()
   {
-    return QString(GIT_COMMIT_HASH).replace("-official", "").replace("-beta", "");
+    QString hash(GIT_COMMIT_HASH);
+    int dash = hash.indexOf(QChar('-'));
+    if(dash < 0)
+      return hash;
+    else
+      return hash.left(dash);
   }
 
   static bool isMismatched() { return RENDERDOC_GetVersionString() != bareString(); }
