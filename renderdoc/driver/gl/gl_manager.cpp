@@ -1191,6 +1191,10 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
         }
         else if(isCompressed)
         {
+          GLint w = details.width;
+          GLint h = details.height;
+          GLint d = details.depth;
+
           for(int i = 0; i < mips; i++)
           {
             GLenum targets[] = {
@@ -1209,8 +1213,7 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
             for(int trg = 0; trg < count; trg++)
             {
-              size_t size = GetCompressedByteSize(details.width, details.height, details.depth,
-                                                  details.internalFormat, i);
+              size_t size = GetCompressedByteSize(w, h, d, details.internalFormat, i);
 
               byte *buf = new byte[size];
 
@@ -1220,6 +1223,13 @@ bool GLResourceManager::Serialise_InitialState(ResourceId resid, GLResource res)
 
               delete[] buf;
             }
+
+            if(w > 0)
+              w = RDCMAX(1, w >> 1);
+            if(h > 0)
+              h = RDCMAX(1, h >> 1);
+            if(d > 0)
+              d = RDCMAX(1, d >> 1);
           }
         }
         else if(samples > 1)
