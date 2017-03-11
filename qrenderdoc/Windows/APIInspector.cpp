@@ -39,6 +39,11 @@ APIInspector::APIInspector(CaptureContext &ctx, QWidget *parent)
   ui->splitter->setCollapsible(1, true);
   ui->splitter->setSizes({1, 0});
 
+  RDSplitterHandle *handle = (RDSplitterHandle *)ui->splitter->handle(1);
+  handle->setTitle("Callstack");
+  handle->setIndex(1);
+  handle->setCollapsed(true);
+
   m_Ctx.AddLogViewer(this);
 }
 
