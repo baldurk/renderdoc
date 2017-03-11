@@ -4,7 +4,6 @@
 #include <QPaintEvent>
 #include <QApplication>
 
-#include <QDebug>
 
 RDSplitterDoubleClickEvent::RDSplitterDoubleClickEvent(int index)
     :QEvent(staticType()), m_index(index)
