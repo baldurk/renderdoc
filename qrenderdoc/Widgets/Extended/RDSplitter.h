@@ -1,32 +1,34 @@
-#ifndef RDSPLITTER_H
-#define RDSPLITTER_H
+/******************************************************************************
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2017 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
 
-#include <QEvent>
+#pragma once
+
 #include <QSplitter>
 #include <QString>
 
-// A custom event class the is posted by a QSplitter handle
-// when double clicking on it
-// it contains the index of the handle or -1 of the handle
-// does not know its index
-class RDSplitterDoubleClickEvent : public QEvent
-{
-public:
-  RDSplitterDoubleClickEvent(int index);
-
-  // returns the index of the handle that posted the event
-  // or -1 if the handle does not know its index
-  int index() const;
-
-  // registers the event in the Qt Event system
-  static QEvent::Type staticType();
-
-protected:
-  int m_index;
-};
-
 // a splitter handle.
-// it draws a text as the title and "..." if it's collapsed
+// it draws a text as the title and an arrow indicating if it's collapsed
 // You need to set a title and its index.
 class RDSplitterHandle : public QSplitterHandle
 {
@@ -51,6 +53,7 @@ protected:
   QString m_title;
   int m_index;
   bool m_isCollapsed;
+  QPoint m_arrowPoints[3];
 };
 
 // A Splitter that contains RDSplitterHandles
@@ -64,14 +67,12 @@ public:
   RDSplitter(QWidget *parent = 0);
   RDSplitter(Qt::Orientation orientation, QWidget *parent = 0);
 
+  void handleDoubleClicked(int index);
+
 protected slots:
   void setHandleCollapsed(int pos, int index);
 
 protected:
   void initialize();
   virtual QSplitterHandle *createHandle();
-
-  virtual bool event(QEvent *event);
 };
-
-#endif    // RDSPLITTER_H
