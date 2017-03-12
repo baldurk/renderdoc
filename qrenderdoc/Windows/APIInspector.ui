@@ -35,7 +35,7 @@
       <enum>Qt::Vertical</enum>
      </property>
      <property name="handleWidth">
-      <number>16</number>
+      <number>27</number>
      </property>
      <widget class="QTreeWidget" name="apiEvents">
       <property name="editTriggers">
