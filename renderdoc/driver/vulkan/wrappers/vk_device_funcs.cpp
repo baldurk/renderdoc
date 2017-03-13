@@ -1247,6 +1247,16 @@ VkResult WrappedVulkan::vkCreateDevice(VkPhysicalDevice physicalDevice,
         "sampleRateShading = false, save/load from depth 2DMS textures will not be "
         "possible");
 
+  if(availFeatures.occlusionQueryPrecise)
+    enabledFeatures.occlusionQueryPrecise = true;
+  else
+    RDCWARN("occlusionQueryPrecise = false, samples written counter will not work");
+
+  if(availFeatures.pipelineStatisticsQuery)
+    enabledFeatures.pipelineStatisticsQuery = true;
+  else
+    RDCWARN("pipelineStatisticsQuery = false, pipeline counters will not work");
+
   createInfo.pEnabledFeatures = &enabledFeatures;
 
   VkResult ret = createFunc(Unwrap(physicalDevice), &createInfo, pAllocator, pDevice);
