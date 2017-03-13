@@ -3,6 +3,14 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 14
 VisualStudioVersion = 14.0.25420.1
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UI", "UI", "{89059266-9C4E-4637-AB1D-BFF1DC15096B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "renderdocui", "renderdocui\renderdocui.csproj", "{5504BAC8-287E-4083-A57F-5EE172EDDAEB}"
+	ProjectSection(ProjectDependencies) = postProject
+		{6DEE3F12-F2F8-42CA-865A-578D0FD11387} = {6DEE3F12-F2F8-42CA-865A-578D0FD11387}
+		{E2B46D67-90E2-40B6-9597-72930E7845E5} = {E2B46D67-90E2-40B6-9597-72930E7845E5}
+	EndProjectSection
+EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "renderdoc", "renderdoc\renderdoc.vcxproj", "{E2B46D67-90E2-40B6-9597-72930E7845E5}"
 	ProjectSection(ProjectDependencies) = postProject
 		{7893E300-3ED0-7F4C-158F-67EA63934C57} = {7893E300-3ED0-7F4C-158F-67EA63934C57}
@@ -13,17 +21,9 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "renderdoc", "renderdoc\rend
 		{EA1242CF-BB42-B1AC-9B6A-A508D96D1CB7} = {EA1242CF-BB42-B1AC-9B6A-A508D96D1CB7}
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "renderdocui", "renderdocui\renderdocui.csproj", "{5504BAC8-287E-4083-A57F-5EE172EDDAEB}"
-	ProjectSection(ProjectDependencies) = postProject
-		{6DEE3F12-F2F8-42CA-865A-578D0FD11387} = {6DEE3F12-F2F8-42CA-865A-578D0FD11387}
-		{E2B46D67-90E2-40B6-9597-72930E7845E5} = {E2B46D67-90E2-40B6-9597-72930E7845E5}
-	EndProjectSection
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WinFormsUI", "renderdocui\3rdparty\WinFormsUI\WinFormsUI.csproj", "{C75532C4-765B-418E-B09B-46D36B2ABDB1}"
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DLL", "DLL", "{B1FB29A4-9C48-4D47-BAEF-CF14CB2A40A3}"
-EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "UI", "UI", "{89059266-9C4E-4637-AB1D-BFF1DC15096B}"
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "renderdoccmd", "renderdoccmd\renderdoccmd.vcxproj", "{D03DF2F9-513C-4084-BBDD-1DEE8D9250D7}"
 	ProjectSection(ProjectDependencies) = postProject
