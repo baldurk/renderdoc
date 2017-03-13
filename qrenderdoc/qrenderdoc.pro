@@ -162,7 +162,8 @@ SOURCES += Code/qrenderdoc.cpp \
     Windows/PixelHistoryView.cpp \
     Widgets/PipelineFlowChart.cpp \
     Windows/Dialogs/EnvironmentEditor.cpp \
-    Widgets/FindReplace.cpp
+    Widgets/FindReplace.cpp \
+    Widgets/Extended/RDSplitter.cpp
 
 HEADERS += Code/CaptureContext.h \
     Code/qprocessinfo.h \
@@ -213,7 +214,8 @@ HEADERS += Code/CaptureContext.h \
     Windows/PixelHistoryView.h \
     Widgets/PipelineFlowChart.h \
     Windows/Dialogs/EnvironmentEditor.h \
-    Widgets/FindReplace.h
+    Widgets/FindReplace.h \
+    Widgets/Extended/RDSplitter.h
 
 FORMS    += Windows/Dialogs/AboutDialog.ui \
     Windows/MainWindow.ui \
