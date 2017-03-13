@@ -500,7 +500,7 @@ struct ReplayCommand : public Command
       float progress = 0.0f;
       rdctype::str remotePath = remote->CopyCaptureToRemote(filename.c_str(), &progress);
 
-      ReplayRenderer *renderer = NULL;
+      IReplayRenderer *renderer = NULL;
       status = remote->OpenCapture(~0U, remotePath.elems, &progress, &renderer);
 
       if(status == eReplayCreate_Success)
@@ -522,7 +522,7 @@ struct ReplayCommand : public Command
       std::cout << "Replaying '" << filename << "' locally.." << std::endl;
 
       float progress = 0.0f;
-      ReplayRenderer *renderer = NULL;
+      IReplayRenderer *renderer = NULL;
       ReplayCreateStatus status =
           RENDERDOC_CreateReplayRenderer(filename.c_str(), &progress, &renderer);
 
