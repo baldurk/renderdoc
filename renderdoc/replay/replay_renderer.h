@@ -191,7 +191,7 @@ public:
 
   ReplayOutput *CreateOutput(WindowingSystem, void *data, OutputType type);
 
-  void ShutdownOutput(ReplayOutput *output);
+  void ShutdownOutput(IReplayOutput *output);
   void Shutdown();
 
 private:

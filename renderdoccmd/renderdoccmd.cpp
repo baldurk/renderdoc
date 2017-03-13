@@ -45,7 +45,7 @@ void readCapOpts(const std::string &str, CaptureOptions *opts)
     *(b++) = (byte(str[i * 2 + 0] - 'a') << 4) | byte(str[i * 2 + 1] - 'a');
 }
 
-void DisplayRendererPreview(ReplayRenderer *renderer, uint32_t width, uint32_t height)
+void DisplayRendererPreview(IReplayRenderer *renderer, uint32_t width, uint32_t height)
 {
   if(renderer == NULL)
     return;
@@ -482,7 +482,7 @@ struct ReplayCommand : public Command
       std::cout << "Replaying '" << filename << "' on " << parser.get<string>("remote-host") << ":"
                 << parser.get<uint32_t>("remote-port") << "." << std::endl;
 
-      RemoteServer *remote = NULL;
+      IRemoteServer *remote = NULL;
       ReplayCreateStatus status = RENDERDOC_CreateRemoteServerConnection(
           parser.get<string>("remote-host").c_str(), parser.get<uint32_t>("remote-port"), &remote);
 

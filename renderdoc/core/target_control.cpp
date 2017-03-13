@@ -644,58 +644,58 @@ private:
   }
 };
 
-extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_Shutdown(TargetControl *control)
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_Shutdown(ITargetControl *control)
 {
   control->Shutdown();
 }
 
-extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetTarget(TargetControl *control)
+extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetTarget(ITargetControl *control)
 {
   return control->GetTarget();
 }
-extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetAPI(TargetControl *control)
+extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetAPI(ITargetControl *control)
 {
   return control->GetAPI();
 }
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC TargetControl_GetPID(TargetControl *control)
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC TargetControl_GetPID(ITargetControl *control)
 {
   return control->GetPID();
 }
-extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetBusyClient(TargetControl *control)
+extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetBusyClient(ITargetControl *control)
 {
   return control->GetBusyClient();
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_TriggerCapture(TargetControl *control,
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_TriggerCapture(ITargetControl *control,
                                                                         uint32_t numFrames)
 {
   control->TriggerCapture(numFrames);
 }
-extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_QueueCapture(TargetControl *control,
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_QueueCapture(ITargetControl *control,
                                                                       uint32_t frameNumber)
 {
   control->QueueCapture(frameNumber);
 }
-extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_CopyCapture(TargetControl *control,
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_CopyCapture(ITargetControl *control,
                                                                      uint32_t remoteID,
                                                                      const char *localpath)
 {
   control->CopyCapture(remoteID, localpath);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_DeleteCapture(TargetControl *control,
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_DeleteCapture(ITargetControl *control,
                                                                        uint32_t remoteID)
 {
   control->DeleteCapture(remoteID);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_ReceiveMessage(TargetControl *control,
+extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_ReceiveMessage(ITargetControl *control,
                                                                         TargetControlMessage *msg)
 {
   control->ReceiveMessage(msg);
 }
 
-extern "C" RENDERDOC_API TargetControl *RENDERDOC_CC RENDERDOC_CreateTargetControl(
+extern "C" RENDERDOC_API ITargetControl *RENDERDOC_CC RENDERDOC_CreateTargetControl(
     const char *host, uint32_t ident, const char *clientName, bool32 forceConnection)
 {
   string s = "localhost";

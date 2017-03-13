@@ -235,7 +235,7 @@ void RemoteManager::refreshHost(QTreeWidgetItem *node)
       if(nextIdent == ~0U || prevIdent >= nextIdent)
         break;
 
-      TargetControl *conn =
+      ITargetControl *conn =
           RENDERDOC_CreateTargetControl(hostnameBytes.data(), nextIdent, username.data(), false);
 
       if(conn)
@@ -603,7 +603,7 @@ void RemoteManager::on_connect_clicked()
       }
       else
       {
-        RemoteServer *server = NULL;
+        IRemoteServer *server = NULL;
         ReplayCreateStatus status =
             RENDERDOC_CreateRemoteServerConnection(host->Hostname.toUtf8().data(), 0, &server);
         if(server)

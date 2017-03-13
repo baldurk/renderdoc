@@ -867,27 +867,27 @@ void ReplayOutput::DisplayMesh()
   m_pDevice->RenderMesh(m_EventID, secondaryDraws, mesh);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetOutputConfig(ReplayOutput *output,
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetOutputConfig(IReplayOutput *output,
                                                                           const OutputConfig &o)
 {
   return output->SetOutputConfig(o);
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetTextureDisplay(ReplayOutput *output,
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetTextureDisplay(IReplayOutput *output,
                                                                             const TextureDisplay &o)
 {
   return output->SetTextureDisplay(o);
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetMeshDisplay(ReplayOutput *output,
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetMeshDisplay(IReplayOutput *output,
                                                                          const MeshDisplay &o)
 {
   return output->SetMeshDisplay(o);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_ClearThumbnails(ReplayOutput *output)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_ClearThumbnails(IReplayOutput *output)
 {
   return output->ClearThumbnails();
 }
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_AddThumbnail(ReplayOutput *output,
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_AddThumbnail(IReplayOutput *output,
                                                                        WindowingSystem system,
                                                                        void *data, ResourceId texID,
                                                                        FormatComponentType typeHint)
@@ -895,42 +895,42 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_AddThumbnail(ReplayOut
   return output->AddThumbnail(system, data, texID, typeHint);
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_Display(ReplayOutput *output)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_Display(IReplayOutput *output)
 {
   return output->Display();
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetPixelContext(ReplayOutput *output,
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetPixelContext(IReplayOutput *output,
                                                                           WindowingSystem system,
                                                                           void *data)
 {
   return output->SetPixelContext(system, data);
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayOutput_SetPixelContextLocation(ReplayOutput *output, uint32_t x, uint32_t y)
+ReplayOutput_SetPixelContextLocation(IReplayOutput *output, uint32_t x, uint32_t y)
 {
   return output->SetPixelContextLocation(x, y);
 }
-extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_DisablePixelContext(ReplayOutput *output)
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_DisablePixelContext(IReplayOutput *output)
 {
   output->DisablePixelContext();
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_GetCustomShaderTexID(ReplayOutput *output,
+extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_GetCustomShaderTexID(IReplayOutput *output,
                                                                              ResourceId *id)
 {
   if(id)
     *id = output->GetCustomShaderTexID();
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_GetMinMax(ReplayOutput *output,
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_GetMinMax(IReplayOutput *output,
                                                                     PixelValue *minval,
                                                                     PixelValue *maxval)
 {
   return output->GetMinMax(minval, maxval);
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayOutput_GetHistogram(ReplayOutput *output, float minval, float maxval, bool32 channels[4],
+ReplayOutput_GetHistogram(IReplayOutput *output, float minval, float maxval, bool32 channels[4],
                           rdctype::array<uint32_t> *histogram)
 {
   bool chans[4] = {channels[0] != 0, channels[1] != 0, channels[2] != 0, channels[3] != 0};
@@ -938,13 +938,13 @@ ReplayOutput_GetHistogram(ReplayOutput *output, float minval, float maxval, bool
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_PickPixel(
-    ReplayOutput *output, ResourceId texID, bool32 customShader, uint32_t x, uint32_t y,
+    IReplayOutput *output, ResourceId texID, bool32 customShader, uint32_t x, uint32_t y,
     uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val)
 {
   return output->PickPixel(texID, customShader != 0, x, y, sliceFace, mip, sample, val);
 }
 
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC ReplayOutput_PickVertex(ReplayOutput *output,
+extern "C" RENDERDOC_API uint32_t RENDERDOC_CC ReplayOutput_PickVertex(IReplayOutput *output,
                                                                        uint32_t eventID, uint32_t x,
                                                                        uint32_t y,
                                                                        uint32_t *pickedInstance)

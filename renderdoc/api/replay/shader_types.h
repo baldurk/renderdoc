@@ -267,7 +267,6 @@ struct ShaderReflection
 
 struct BindpointMap
 {
-#ifdef __cplusplus
   BindpointMap()
   {
     bindset = 0;
@@ -290,7 +289,6 @@ struct BindpointMap
       return bindset < o.bindset;
     return bind < o.bind;
   }
-#endif
 
   int32_t bindset;
   int32_t bind;

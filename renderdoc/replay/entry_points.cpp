@@ -380,7 +380,7 @@ extern "C" RENDERDOC_API ReplaySupport RENDERDOC_CC RENDERDOC_SupportLocalReplay
 }
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
-RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, ReplayRenderer **rend)
+RENDERDOC_CreateReplayRenderer(const char *logfile, float *progress, IReplayRenderer **rend)
 {
   if(rend == NULL)
     return eReplayCreate_InternalError;
@@ -744,7 +744,7 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
   while(elapsed < timeout)
   {
     // Check if the target app has started yet and we can connect to it.
-    TargetControl *control = RENDERDOC_CreateTargetControl(host, ret, "testConnection", false);
+    ITargetControl *control = RENDERDOC_CreateTargetControl(host, ret, "testConnection", false);
     if(control)
     {
       TargetControl_Shutdown(control);

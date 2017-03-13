@@ -62,7 +62,7 @@ void RemoteHost::CheckStatus()
     return;
   }
 
-  RemoteServer *rend = NULL;
+  IRemoteServer *rend = NULL;
   ReplayCreateStatus status =
       RENDERDOC_CreateRemoteServerConnection(Hostname.toUtf8().data(), 0, &rend);
 

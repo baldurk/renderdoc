@@ -28,13 +28,7 @@
 
 struct CaptureOptions;
 struct TextureDisplay;
-
-#ifdef __cplusplus
 struct IReplayRenderer;
-typedef IReplayRenderer ReplayRenderer;
-#else
-struct ReplayRenderer
-#endif
 
 struct Command
 {
@@ -61,6 +55,6 @@ int renderdoccmd(std::vector<std::string> &argv);
 void readCapOpts(const std::string &str, CaptureOptions *opts);
 
 // these must be defined in platform .cpps
-void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
+void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height);
 void Daemonise();

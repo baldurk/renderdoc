@@ -200,7 +200,7 @@ void VerifyVulkanLayer(int argc, char *argv[])
   add_command("vulkanregister", new VulkanRegisterCommand());
 }
 
-void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
+void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {
 // we only have the preview implemented for platforms that have xlib & xcb. It's unlikely
@@ -279,7 +279,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg
       xcb = true;
   }
 
-  ReplayOutput *out = NULL;
+  IReplayOutput *out = NULL;
 
   // prefer xcb
   if(xcb)

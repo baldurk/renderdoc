@@ -233,7 +233,7 @@ void Daemonise()
   // nothing really to do, windows version of renderdoccmd is already 'detached'
 }
 
-void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
+void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCfg, uint32_t width,
                             uint32_t height)
 {
   RECT wr = {0, 0, (LONG)width, (LONG)height};
@@ -249,7 +249,7 @@ void DisplayRendererPreview(ReplayRenderer *renderer, TextureDisplay &displayCfg
   ShowWindow(wnd, SW_SHOW);
   UpdateWindow(wnd);
 
-  ReplayOutput *out =
+  IReplayOutput *out =
       ReplayRenderer_CreateOutput(renderer, eWindowingSystem_Win32, wnd, eOutputType_TexDisplay);
 
   OutputConfig c = {eOutputType_TexDisplay};

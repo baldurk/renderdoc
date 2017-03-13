@@ -1016,7 +1016,7 @@ public:
   }
 
   ReplayCreateStatus OpenCapture(uint32_t proxyid, const char *filename, float *progress,
-                                 ReplayRenderer **rend)
+                                 IReplayRenderer **rend)
   {
     if(rend == NULL)
       return eReplayCreate_InternalError;
@@ -1101,7 +1101,7 @@ public:
     return eReplayCreate_Success;
   }
 
-  void CloseCapture(ReplayRenderer *rend)
+  void CloseCapture(IReplayRenderer *rend)
   {
     Serialiser sendData("", Serialiser::WRITING, false);
     Send(eRemoteServer_CloseLog, sendData);
@@ -1133,28 +1133,28 @@ private:
   vector<pair<RDCDriver, string> > m_Proxies;
 };
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ShutdownConnection(RemoteServer *remote)
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ShutdownConnection(IRemoteServer *remote)
 {
   remote->ShutdownConnection();
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ShutdownServerAndConnection(RemoteServer *remote)
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ShutdownServerAndConnection(IRemoteServer *remote)
 {
   remote->ShutdownServerAndConnection();
 }
 
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RemoteServer_Ping(RemoteServer *remote)
+extern "C" RENDERDOC_API bool32 RENDERDOC_CC RemoteServer_Ping(IRemoteServer *remote)
 {
   return remote->Ping();
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-RemoteServer_LocalProxies(RemoteServer *remote, rdctype::array<rdctype::str> *out)
+RemoteServer_LocalProxies(IRemoteServer *remote, rdctype::array<rdctype::str> *out)
 {
   return remote->LocalProxies(out);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_GetHomeFolder(RemoteServer *remote,
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_GetHomeFolder(IRemoteServer *remote,
                                                                       rdctype::str *home)
 {
   rdctype::str path = remote->GetHomeFolder();
@@ -1163,7 +1163,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_GetHomeFolder(RemoteServ
 }
 
 extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ListFolder(
-    RemoteServer *remote, const char *path, rdctype::array<DirectoryFile> *dirlist)
+    IRemoteServer *remote, const char *path, rdctype::array<DirectoryFile> *dirlist)
 {
   rdctype::array<DirectoryFile> files = remote->ListFolder(path);
   if(dirlist)
@@ -1171,25 +1171,25 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ListFolder(
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-RemoteServer_RemoteSupportedReplays(RemoteServer *remote, rdctype::array<rdctype::str> *out)
+RemoteServer_RemoteSupportedReplays(IRemoteServer *remote, rdctype::array<rdctype::str> *out)
 {
   return remote->RemoteSupportedReplays(out);
 }
 
 extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
-RemoteServer_ExecuteAndInject(RemoteServer *remote, const char *app, const char *workingDir,
+RemoteServer_ExecuteAndInject(IRemoteServer *remote, const char *app, const char *workingDir,
                               const char *cmdLine, void *env, const CaptureOptions *opts)
 {
   return remote->ExecuteAndInject(app, workingDir, cmdLine, env, opts);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_TakeOwnershipCapture(RemoteServer *remote,
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_TakeOwnershipCapture(IRemoteServer *remote,
                                                                              const char *filename)
 {
   remote->TakeOwnershipCapture(filename);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCaptureToRemote(RemoteServer *remote,
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCaptureToRemote(IRemoteServer *remote,
                                                                             const char *filename,
                                                                             float *progress,
                                                                             rdctype::str *remotepath)
@@ -1199,7 +1199,7 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCaptureToRemote(Remo
     *remotepath = path;
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCaptureFromRemote(RemoteServer *remote,
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCaptureFromRemote(IRemoteServer *remote,
                                                                               const char *remotepath,
                                                                               const char *localpath,
                                                                               float *progress)
@@ -1208,20 +1208,20 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCaptureFromRemote(Re
 }
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
-RemoteServer_OpenCapture(RemoteServer *remote, uint32_t proxyid, const char *logfile,
-                         float *progress, ReplayRenderer **rend)
+RemoteServer_OpenCapture(IRemoteServer *remote, uint32_t proxyid, const char *logfile,
+                         float *progress, IReplayRenderer **rend)
 {
   return remote->OpenCapture(proxyid, logfile, progress, rend);
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CloseCapture(RemoteServer *remote,
-                                                                     ReplayRenderer *rend)
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CloseCapture(IRemoteServer *remote,
+                                                                     IReplayRenderer *rend)
 {
   return remote->CloseCapture(rend);
 }
 
 extern "C" RENDERDOC_API ReplayCreateStatus RENDERDOC_CC
-RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, RemoteServer **rend)
+RENDERDOC_CreateRemoteServerConnection(const char *host, uint32_t port, IRemoteServer **rend)
 {
   if(rend == NULL)
     return eReplayCreate_InternalError;
