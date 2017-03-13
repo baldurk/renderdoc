@@ -167,8 +167,6 @@ There are [several pages](https://github.com/baldurk/renderdoc/wiki/Code-Dives) 
         renderdocui/                    ; The .NET UI layer built on top of renderdoc/
             3rdparty/                   ; third party utilities & libraries included
         qrenderdoc/                     ; The Qt UI layer built on top of renderdoc/
-        pdblocate/                      ; a simple stub program to invoke DIA to look up symbols/pdbs
-                                        ; for callstack resolution on windows
         docs/                           ; source documentation for the .chm file or http://docs.renderdoc.org/
                                         ; in the Sandcastle help file builder
         scripts/                        ; folder for small scripts - e.g. for CI, installers, distribution

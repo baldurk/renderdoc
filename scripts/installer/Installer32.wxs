@@ -85,6 +85,9 @@
             <File Id='RenderDocJSON' Name='renderdoc.json' DiskId='1' Source='dist/Release32/renderdoc.json' />
             <File Id='D3DCompiler47' Name='d3dcompiler_47.dll' DiskId='1' Source='dist/Release32/d3dcompiler_47.dll' />
             <File Id='RenderDocSHIM' Name='renderdocshim32.dll' DiskId='1' Source='dist/Release32/renderdocshim32.dll' />
+            <File Id='dbghelpDLL' Name='dbghelp.dll' DiskId='1' Source='dist/Release32/dbghelp.dll' />
+            <File Id='symsrvDLL' Name='symsrv.dll' DiskId='1' Source='dist/Release32/symsrv.dll' />
+            <File Id='symsrvYES' Name='symsrv.yes' DiskId='1' Source='dist/Release32/symsrv.yes' />
 
             <File Id='RenderDocAPIheader' Name='renderdoc_app.h' DiskId='1' Source='dist/Release32/renderdoc_app.h' />
             
@@ -137,23 +140,6 @@
             </File>
           </Component>
 
-          <Directory Id='pdblocate' Name='pdblocate'>
-
-            <Component Id='pdblocateEXE' Guid='733FCA6A-EC84-4E96-BFD2-F2A9A62DEAEB'>
-              <File Id='pdblocateEXE' Name='pdblocate.exe' DiskId='1' Source='dist/Release32/pdblocate/pdblocate.exe' KeyPath='yes' />
-            </Component>
-
-            <Directory Id='pdblocateDeps32' Name='x86'>
-
-              <Component Id='pdblocateDeps' Guid='CC83B1BB-8E47-4415-9308-5BEF2A7242A0'>
-                <File Id='dbghelpDLL' Name='dbghelp.dll' DiskId='1' Source='dist/Release32/pdblocate/x86/dbghelp.dll' KeyPath='yes' />
-                <File Id='symsrvDLL' Name='symsrv.dll' DiskId='1' Source='dist/Release32/pdblocate/x86/symsrv.dll' />
-                <File Id='symsrvYES' Name='symsrv.yes' DiskId='1' Source='dist/Release32/pdblocate/x86/symsrv.yes' />
-              </Component>
-
-            </Directory>
-
-          </Directory>
         </Directory>
       </Directory>
 
@@ -259,9 +245,6 @@
         <ComponentRef Id='IronPython' />
 
         <ComponentRef Id='LICENSE' />
-
-        <ComponentRef Id='pdblocateEXE' />
-        <ComponentRef Id='pdblocateDeps' />
 
         <ComponentRef Id='Scintilla' />
         <ComponentRef Id='DockingUI' />

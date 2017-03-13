@@ -270,6 +270,9 @@
     <ClInclude Include="3rdparty\tinyfiledialogs\tinyfiledialogs.h">
       <Filter>3rdparty\tinyfiledialogs</Filter>
     </ClInclude>
+    <ClInclude Include="os\win32\dia2_stubs.h">
+      <Filter>OS\Win32</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="maths\camera.cpp">

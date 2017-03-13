@@ -12,7 +12,7 @@ sudo apt-get install --allow-unauthenticated -y -qq libx11-dev mesa-common-dev l
 # changes in formatting even without any rule changes, we have to fix on a
 # single version.
 
-clang-format-3.8 -i -style=file $(find pdblocate/ qrenderdoc/ renderdoc/ renderdoccmd/ renderdocshim/ -type f -regex '.*\(/3rdparty/\|/official/\|resource.h\).*' -prune -o -regex '.*\.\(c\|cpp\|h\)$' -print)
+clang-format-3.8 -i -style=file $(find qrenderdoc/ renderdoc/ renderdoccmd/ renderdocshim/ -type f -regex '.*\(/3rdparty/\|/official/\|resource.h\).*' -prune -o -regex '.*\.\(c\|cpp\|h\)$' -print)
 
 git clean -f
 

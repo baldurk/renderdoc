@@ -283,6 +283,7 @@
     <ClInclude Include="os\posix\posix_specific.h">
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClInclude>
+    <ClInclude Include="os\win32\dia2_stubs.h" />
     <ClInclude Include="os\win32\win32_hook.h" />
     <ClInclude Include="os\win32\win32_specific.h" />
     <ClInclude Include="replay\replay_driver.h" />
@@ -483,6 +484,12 @@
   </ImportGroup>
   <Target Name="AfterBuild" AfterTargets="Build">
     <Copy SourceFiles="$(ProjectDir)api\app\renderdoc_app.h" DestinationFolder="$(OutDir)">
+    </Copy>
+    <Copy SourceFiles="$(ProjectDir)3rdparty\dbghelp\$(Platform)\symsrv.dll" DestinationFolder="$(OutDir)">
+    </Copy>
+    <Copy SourceFiles="$(ProjectDir)3rdparty\dbghelp\$(Platform)\symsrv.yes" DestinationFolder="$(OutDir)">
+    </Copy>
+    <Copy SourceFiles="$(ProjectDir)3rdparty\dbghelp\$(Platform)\dbghelp.dll" DestinationFolder="$(OutDir)">
     </Copy>
   </Target>
 </Project>

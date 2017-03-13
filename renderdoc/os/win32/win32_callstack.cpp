@@ -34,9 +34,308 @@
 #include <algorithm>
 #include <string>
 #include <vector>
+#include "core/core.h"
 #include "dbghelp/dbghelp.h"
 #include "os/os_specific.h"
 #include "serialise/string_utils.h"
+
+#include "dia2_stubs.h"
+
+struct AddrInfo
+{
+  wchar_t funcName[127];
+  wchar_t fileName[127];
+  unsigned long lineNum;
+};
+
+typedef BOOL(CALLBACK *PSYM_ENUMMODULES_CALLBACK64W)(__in PCWSTR ModuleName, __in DWORD64 BaseOfDll,
+                                                     __in_opt PVOID UserContext);
+
+typedef BOOL(WINAPI *PSYMINITIALIZEW)(HANDLE, PCTSTR, BOOL);
+typedef BOOL(WINAPI *PSYMREFRESHMODULELIST)(HANDLE);
+typedef BOOL(WINAPI *PSYMENUMERATEMODULES64W)(HANDLE, PSYM_ENUMMODULES_CALLBACK64W, PVOID);
+typedef BOOL(WINAPI *PSYMGETMODULEINFO64W)(HANDLE, DWORD64, PIMAGEHLP_MODULEW64);
+typedef BOOL(WINAPI *PSYMFINDFILEINPATHW)(__in HANDLE hprocess, __in_opt PCWSTR SearchPath,
+                                          __in PCWSTR FileName, __in_opt PVOID id, __in DWORD two,
+                                          __in DWORD three, __in DWORD flags,
+                                          __out_ecount(MAX_PATH + 1) PWSTR FoundFile,
+                                          __in_opt PFINDFILEINPATHCALLBACKW callback,
+                                          __in_opt PVOID context);
+
+PSYMINITIALIZEW dynSymInitializeW = NULL;
+PSYMREFRESHMODULELIST dynSymRefreshModuleList = NULL;
+PSYMENUMERATEMODULES64W dynSymEnumerateModules64W = NULL;
+PSYMGETMODULEINFO64W dynSymGetModuleInfo64W = NULL;
+PSYMFINDFILEINPATHW dynSymFindFileInPathW = NULL;
+
+namespace DIA2
+{
+struct Module
+{
+  Module(IDiaDataSource *src, IDiaSession *sess) : pSource(src), pSession(sess) {}
+  IDiaDataSource *pSource;
+  IDiaSession *pSession;
+};
+
+vector<Module> modules;
+
+wstring GetSymSearchPath()
+{
+  PWSTR appDataPath;
+  SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_SIMPLE_IDLIST | KF_FLAG_DONT_UNEXPAND, NULL,
+                       &appDataPath);
+  wstring appdata = appDataPath;
+  CoTaskMemFree(appDataPath);
+
+  wstring sympath = L".;";
+  sympath += appdata;
+  sympath += L"\\renderdoc\\symbols;SRV*";
+  sympath += appdata;
+  sympath += L"\\renderdoc\\symbols\\symsrv*http://msdl.microsoft.com/download/symbols";
+
+  return sympath;
+}
+
+wstring LookupModule(const wchar_t *modName, GUID guid, DWORD age)
+{
+  wstring ret = modName;
+
+  wchar_t *pdbName = &ret[0];
+
+  if(wcsrchr(pdbName, L'\\'))
+    pdbName = wcsrchr(pdbName, L'\\') + 1;
+
+  if(wcsrchr(pdbName, L'/'))
+    pdbName = wcsrchr(pdbName, L'/') + 1;
+
+  if(wcsstr(pdbName, L".pdb") == NULL && wcsstr(pdbName, L".PDB") == NULL)
+  {
+    wchar_t *ext = wcsrchr(pdbName, L'.');
+
+    if(ext)
+    {
+      ext[1] = L'p';
+      ext[2] = L'd';
+      ext[3] = L'b';
+    }
+  }
+
+  if(dynSymFindFileInPathW != NULL)
+  {
+    wstring sympath = GetSymSearchPath();
+
+    wchar_t path[MAX_PATH + 1] = {0};
+    BOOL found = dynSymFindFileInPathW(GetCurrentProcess(), sympath.c_str(), pdbName, &guid, age, 0,
+                                       SSRVOPT_GUIDPTR, path, NULL, NULL);
+    DWORD err = GetLastError();
+    (void)err;    // for debugging only
+
+    if(found == TRUE && path[0] != 0)
+      ret = path;
+  }
+
+  return ret;
+}
+
+uint32_t GetModule(const wchar_t *pdbName, GUID guid, DWORD age)
+{
+  Module m(NULL, NULL);
+
+  HRESULT hr = CoCreateInstance(__uuidof(DiaSource), NULL, CLSCTX_INPROC_SERVER,
+                                __uuidof(IDiaDataSource), (void **)&m.pSource);
+
+  if(FAILED(hr))
+  {
+    return 0;
+  }
+
+  // check this pdb is the one we expected from our chunk
+  if(guid.Data1 == 0 && guid.Data2 == 0)
+  {
+    hr = m.pSource->loadDataFromPdb(pdbName);
+  }
+  else
+  {
+    hr = m.pSource->loadAndValidateDataFromPdb(pdbName, &guid, 0, age);
+  }
+
+  if(SUCCEEDED(hr))
+  {
+    // open the session
+    hr = m.pSource->openSession(&m.pSession);
+    if(FAILED(hr))
+    {
+      m.pSource->Release();
+      return 0;
+    }
+
+    modules.push_back(m);
+
+    return uint32_t(modules.size());
+  }
+
+  m.pSource->Release();
+
+  return 0;
+}
+
+void SetBaseAddress(uint32_t module, uint64_t addr)
+{
+  if(module > 0 && module <= modules.size())
+    modules[module - 1].pSession->put_loadAddress(addr);
+}
+
+AddrInfo GetAddr(uint32_t module, uint64_t addr)
+{
+  AddrInfo ret;
+  ZeroMemory(&ret, sizeof(ret));
+
+  if(module > 0 && module <= modules.size())
+  {
+    SymTagEnum tag = SymTagFunction;
+    IDiaSymbol *pFunc = NULL;
+    HRESULT hr = modules[module - 1].pSession->findSymbolByVA(addr, tag, &pFunc);
+
+    if(hr != S_OK)
+    {
+      if(pFunc)
+        pFunc->Release();
+
+      // try again looking for public symbols
+      tag = SymTagPublicSymbol;
+      hr = modules[module - 1].pSession->findSymbolByVA(addr, tag, &pFunc);
+
+      if(hr != S_OK)
+      {
+        if(pFunc)
+          pFunc->Release();
+        return ret;
+      }
+    }
+
+    DWORD opts = 0;
+    opts |= UNDNAME_NO_LEADING_UNDERSCORES;
+    opts |= UNDNAME_NO_MS_KEYWORDS;
+    opts |= UNDNAME_NO_FUNCTION_RETURNS;
+    opts |= UNDNAME_NO_ALLOCATION_MODEL;
+    opts |= UNDNAME_NO_ALLOCATION_LANGUAGE;
+    opts |= UNDNAME_NO_THISTYPE;
+    opts |= UNDNAME_NO_ACCESS_SPECIFIERS;
+    opts |= UNDNAME_NO_THROW_SIGNATURES;
+    opts |= UNDNAME_NO_MEMBER_TYPE;
+    opts |= UNDNAME_NO_RETURN_UDT_MODEL;
+    opts |= UNDNAME_32_BIT_DECODE;
+    opts |= UNDNAME_NO_LEADING_UNDERSCORES;
+
+    // first try undecorated name
+    BSTR file;
+    hr = pFunc->get_undecoratedNameEx(opts, &file);
+
+    // if not, just try name
+    if(hr != S_OK)
+    {
+      hr = pFunc->get_name(&file);
+
+      if(hr != S_OK)
+      {
+        pFunc->Release();
+        SysFreeString(file);
+        return ret;
+      }
+
+      wcsncpy_s(ret.funcName, file, 126);
+    }
+    else
+    {
+      wcsncpy_s(ret.funcName, file, 126);
+
+      wchar_t *voidparam = wcsstr(ret.funcName, L"(void)");
+
+      // remove stupid (void) for empty parameters
+      if(voidparam != NULL)
+      {
+        *(voidparam + 1) = L')';
+        *(voidparam + 2) = 0;
+      }
+    }
+
+    pFunc->Release();
+    pFunc = NULL;
+
+    SysFreeString(file);
+
+    // find the line numbers touched by this address.
+    IDiaEnumLineNumbers *lines = NULL;
+    hr = modules[module - 1].pSession->findLinesByVA(addr, DWORD(4), &lines);
+    if(FAILED(hr))
+    {
+      if(lines)
+        lines->Release();
+      return ret;
+    }
+
+    IDiaLineNumber *line = NULL;
+    ULONG count = 0;
+
+    // just take the first one
+    if(SUCCEEDED(lines->Next(1, &line, &count)) && count == 1)
+    {
+      IDiaSourceFile *dia_source = NULL;
+      hr = line->get_sourceFile(&dia_source);
+      if(FAILED(hr))
+      {
+        line->Release();
+        lines->Release();
+        if(dia_source)
+          dia_source->Release();
+        return ret;
+      }
+
+      hr = dia_source->get_fileName(&file);
+      if(FAILED(hr))
+      {
+        line->Release();
+        lines->Release();
+        dia_source->Release();
+        return ret;
+      }
+
+      wcsncpy_s(ret.fileName, file, 126);
+
+      SysFreeString(file);
+
+      dia_source->Release();
+      dia_source = NULL;
+
+      DWORD line_num = 0;
+      hr = line->get_lineNumber(&line_num);
+      if(FAILED(hr))
+      {
+        line->Release();
+        lines->Release();
+        return ret;
+      }
+
+      ret.lineNum = line_num;
+
+      line->Release();
+    }
+
+    lines->Release();
+  }
+
+  return ret;
+}
+
+void Init()
+{
+  CoInitialize(NULL);
+
+  if(dynSymInitializeW)
+    dynSymInitializeW(GetCurrentProcess(), GetSymSearchPath().c_str(), TRUE);
+}
+
+};    // namespace DIA2
 
 class Win32Callstack : public Callstack::Stackwalk
 {
@@ -67,25 +366,7 @@ public:
   Callstack::AddressDetails GetAddr(uint64_t addr);
 
 private:
-  // must match definition in pdblocate.cpp
-  struct AddrInfo
-  {
-    wchar_t funcName[127];
-    wchar_t fileName[127];
-    unsigned long lineNum;
-
-    wchar_t *formattedString(const char *commonPath = NULL);
-  };
-
   wstring pdbBrowse(wstring startingPoint);
-  wstring LookupModule(wchar_t *modName, GUID guid, DWORD age);
-
-  void *SendRecvPipeMessage(wstring message);
-
-  void OpenPdblocateHandle();
-  uint32_t GetModuleID(wstring pdbName, GUID guid, DWORD age);
-  void SetModuleBaseAddress(uint32_t moduleId, DWORD64 base);
-  AddrInfo GetAddrInfoForModule(uint32_t moduleId, DWORD64 addr);
 
   struct Module
   {
@@ -96,9 +377,6 @@ private:
     uint32_t moduleId;
   };
 
-  HANDLE pdblocateProcess;
-  HANDLE pdblocatePipe;
-
   vector<wstring> pdbRememberedPaths;
   vector<wstring> pdbIgnores;
   vector<Module> modules;
@@ -107,19 +385,6 @@ private:
 };
 
 ///////////////////////////////////////////////////
-
-typedef BOOL(CALLBACK *PSYM_ENUMMODULES_CALLBACK64W)(__in PCWSTR ModuleName, __in DWORD64 BaseOfDll,
-                                                     __in_opt PVOID UserContext);
-
-typedef BOOL(WINAPI *PSYMINITIALIZEW)(HANDLE, PCTSTR, BOOL);
-typedef BOOL(WINAPI *PSYMREFRESHMODULELIST)(HANDLE);
-typedef BOOL(WINAPI *PSYMENUMERATEMODULES64W)(HANDLE, PSYM_ENUMMODULES_CALLBACK64W, PVOID);
-typedef BOOL(WINAPI *PSYMGETMODULEINFO64W)(HANDLE, DWORD64, PIMAGEHLP_MODULEW64);
-
-PSYMINITIALIZEW dynSymInitializeW = NULL;
-PSYMREFRESHMODULELIST dynSymRefreshModuleList = NULL;
-PSYMENUMERATEMODULES64W dynSymEnumerateModules64W = NULL;
-PSYMGETMODULEINFO64W dynSymGetModuleInfo64W = NULL;
 
 void *renderdocBase = NULL;
 uint32_t renderdocSize = 0;
@@ -173,9 +438,9 @@ static bool InitDbgHelp()
     }
 
 #if ENABLED(RDOC_X64)
-    wcscat_s(path, L"/pdblocate/x64/dbghelp.dll");
+    wcscat_s(path, L"/dbghelp.dll");
 #else
-    wcscat_s(path, L"/pdblocate/x86/dbghelp.dll");
+    wcscat_s(path, L"/dbghelp.dll");
 #endif
 
     module = LoadLibraryW(path);
@@ -193,6 +458,7 @@ static bool InitDbgHelp()
       (PSYMENUMERATEMODULES64W)GetProcAddress(module, "SymEnumerateModulesW64");
   dynSymRefreshModuleList = (PSYMREFRESHMODULELIST)GetProcAddress(module, "SymRefreshModuleList");
   dynSymGetModuleInfo64W = (PSYMGETMODULEINFO64W)GetProcAddress(module, "SymGetModuleInfoW64");
+  dynSymFindFileInPathW = (PSYMFINDFILEINPATHW)GetProcAddress(module, "SymFindFileInPathW");
 
   if(!dynSymInitializeW || !dynSymRefreshModuleList || !dynSymEnumerateModules64W ||
      !dynSymGetModuleInfo64W)
@@ -220,6 +486,11 @@ static bool InitDbgHelp()
       renderdocBase = modinfo.lpBaseOfDll;
       renderdocSize = modinfo.SizeOfImage;
     }
+  }
+
+  if(RenderDoc::Inst().IsReplayApp())
+  {
+    DIA2::Init();
   }
 
   ret = true;
@@ -395,135 +666,6 @@ wstring Win32CallstackResolver::pdbBrowse(wstring startingPoint)
   return outBuf;
 }
 
-void Win32CallstackResolver::OpenPdblocateHandle()
-{
-  STARTUPINFOW si;
-  RDCEraseEl(si);
-
-  PROCESS_INFORMATION pi;
-  RDCEraseEl(pi);
-
-  wchar_t locateCmd[128] = {0};
-
-  wcscpy_s(locateCmd, L"\".\\pdblocate\\pdblocate.exe\"");
-
-  BOOL success = CreateProcessW(NULL, locateCmd, NULL, NULL, FALSE, 0, NULL, NULL, &si, &pi);
-
-  if(!success)
-    return;
-
-  Sleep(100);
-
-  CloseHandle(pi.hThread);
-
-  pdblocateProcess = pi.hProcess;
-
-  pdblocatePipe = CreateFileW(L"\\\\.\\pipe\\RenderDoc.pdblocate", GENERIC_READ | GENERIC_WRITE, 0,
-                              NULL, OPEN_EXISTING, 0, NULL);
-
-  if(pdblocatePipe == INVALID_HANDLE_VALUE)
-  {
-    RDCERR("Couldn't open pdblocate pipe");
-    CloseHandle(pdblocatePipe);
-    pdblocatePipe = NULL;
-    return;
-  }
-
-  DWORD mode = PIPE_READMODE_MESSAGE;
-  success = SetNamedPipeHandleState(pdblocatePipe, &mode, NULL, NULL);
-
-  if(!success)
-  {
-    RDCERR("Couldn't set pdblocate pipe to message mode");
-    CloseHandle(pdblocatePipe);
-    pdblocatePipe = NULL;
-    return;
-  }
-}
-
-void *Win32CallstackResolver::SendRecvPipeMessage(wstring message)
-{
-  if(pdblocatePipe == NULL)
-    return NULL;
-
-  DWORD written = 0;
-  DWORD msgLen = (DWORD)message.length() * sizeof(wchar_t);
-  BOOL success = WriteFile(pdblocatePipe, message.c_str(), msgLen, &written, NULL);
-
-  if(!success || written != msgLen)
-    return NULL;
-
-  byte *bufPtr = (byte *)pipeMessageBuf;
-  DWORD bufSize = sizeof(pipeMessageBuf);
-
-  do
-  {
-    DWORD read = 0;
-    success = ReadFile(pdblocatePipe, bufPtr, bufSize, &read, NULL);
-
-    RDCDEBUG("'%ls' -> %lu", message.c_str(), read);
-
-    DWORD err = GetLastError();
-    if(!success && err != ERROR_MORE_DATA)
-    {
-      break;
-    }
-
-    bufPtr += read;
-    bufSize -= read;
-  } while(!success);
-
-  RDCDEBUG("buf: %02x %02x %02x %02x", bufPtr[0], bufPtr[1], bufPtr[2], bufPtr[3]);
-
-  return pipeMessageBuf;
-}
-
-std::wstring Win32CallstackResolver::LookupModule(wchar_t *modName, GUID guid, DWORD age)
-{
-  wchar_t msg[1024] = {0};
-  swprintf_s(msg, L"lookup %d  %d %d %d  %d %d %d %d %d %d %d %d  %ls", age, guid.Data1, guid.Data2,
-             guid.Data3, guid.Data4[0], guid.Data4[1], guid.Data4[2], guid.Data4[3], guid.Data4[4],
-             guid.Data4[5], guid.Data4[6], guid.Data4[7], modName);
-
-  wchar_t *ret = (wchar_t *)SendRecvPipeMessage(msg);
-
-  wstring result = (ret == NULL ? L"" : ret);
-
-  if(result == L"Not Found")
-    result = L"";
-
-  return result;
-}
-
-void Win32CallstackResolver::SetModuleBaseAddress(uint32_t moduleId, DWORD64 base)
-{
-  wchar_t msg[1024];
-  swprintf_s(msg, L"baseaddr %d %llu", moduleId, base);
-  SendRecvPipeMessage(msg);
-}
-
-uint32_t Win32CallstackResolver::GetModuleID(wstring pdbName, GUID guid, DWORD age)
-{
-  wchar_t msg[1024] = {0};
-  swprintf_s(msg, L"getmodule %d  %d %d %d  %d %d %d %d %d %d %d %d  %ls", age, guid.Data1,
-             guid.Data2, guid.Data3, guid.Data4[0], guid.Data4[1], guid.Data4[2], guid.Data4[3],
-             guid.Data4[4], guid.Data4[5], guid.Data4[6], guid.Data4[7], pdbName.c_str());
-
-  uint32_t *modID = (uint32_t *)SendRecvPipeMessage(msg);
-
-  return modID == NULL ? 0 : *modID;
-}
-
-Win32CallstackResolver::AddrInfo Win32CallstackResolver::GetAddrInfoForModule(uint32_t moduleId,
-                                                                              DWORD64 addr)
-{
-  wchar_t msg[1024];
-  swprintf_s(msg, L"getaddr %d %llu", moduleId, addr);
-
-  AddrInfo *info = (AddrInfo *)SendRecvPipeMessage(msg);
-  return info == NULL ? AddrInfo() : *info;
-}
-
 Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, string pdbSearchPaths,
                                                volatile bool *killSignal)
 {
@@ -563,11 +705,6 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
 
   split(widepdbsearch, pdbRememberedPaths, L';');
 
-  pdblocateProcess = NULL;
-  pdblocatePipe = NULL;
-
-  OpenPdblocateHandle();
-
   if(memcmp(moduleDB, "WN32CALL", 8))
   {
     RDCWARN("Can't load callstack resolve for this log. Possibly from another platform?");
@@ -579,9 +716,6 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
 
   EnumModChunk *chunk = (EnumModChunk *)(chunks);
   WCHAR *modName = (WCHAR *)(chunks + sizeof(EnumModChunk));
-
-  if(pdblocatePipe == NULL)
-    return;
 
   // loop over all our modules
   for(; chunks < end; chunks += sizeof(EnumModChunk) + (chunk->imageNameLen) * sizeof(WCHAR))
@@ -608,8 +742,8 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
     }
 
     // get default pdb (this also looks up symbol server etc)
-    // relies on pdblocate. Always done in unicode
-    std::wstring defaultPdb = LookupModule(modName, chunk->guid, chunk->age);
+    // Always done in unicode
+    std::wstring defaultPdb = DIA2::LookupModule(modName, chunk->guid, chunk->age);
 
     // strip newline
     if(defaultPdb != L"" && defaultPdb[defaultPdb.length() - 1] == '\n')
@@ -674,7 +808,7 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
         failed = false;
       }
 
-      m.moduleId = GetModuleID(pdbName, chunk->guid, chunk->age);
+      m.moduleId = DIA2::GetModule(pdbName.c_str(), chunk->guid, chunk->age);
 
       if(m.moduleId == 0)
       {
@@ -701,8 +835,10 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
 
       RDCWARN("Couldn't get symbols for %ls", m.name.c_str());
 
-      // silently ignore renderdoc.dll and dbghelp.dll without asking to permanently ignore
-      if(m.name.find(L"renderdoc") != wstring::npos || m.name.find(L"dbghelp") != wstring::npos)
+      // silently ignore renderdoc.dll, dbghelp.dll, and symsrv.dll without asking to permanently
+      // ignore
+      if(m.name.find(L"renderdoc.") != wstring::npos || m.name.find(L"dbghelp.") != wstring::npos ||
+         m.name.find(L"symsrv.") != wstring::npos)
         continue;
 
       wchar_t text[1024];
@@ -716,7 +852,7 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
       continue;
     }
 
-    SetModuleBaseAddress(m.moduleId, chunk->base);
+    DIA2::SetBaseAddress(m.moduleId, chunk->base);
 
     RDCLOG("Loaded Symbols for %ls", m.name.c_str());
 
@@ -731,10 +867,6 @@ Win32CallstackResolver::Win32CallstackResolver(char *moduleDB, size_t DBSize, st
 
 Win32CallstackResolver::~Win32CallstackResolver()
 {
-  if(pdblocatePipe != NULL)
-    CloseHandle(pdblocatePipe);
-  if(pdblocateProcess != NULL)
-    TerminateProcess(pdblocateProcess, 0);
 }
 
 Callstack::AddressDetails Win32CallstackResolver::GetAddr(DWORD64 addr)
@@ -755,7 +887,7 @@ Callstack::AddressDetails Win32CallstackResolver::GetAddr(DWORD64 addr)
     if(addr > base && addr < base + size)
     {
       if(modules[i].moduleId != 0)
-        info = GetAddrInfoForModule(modules[i].moduleId, addr);
+        info = DIA2::GetAddr(modules[i].moduleId, addr);
 
       // if we didn't get a filename, default to the module name
       if(modules[i].moduleId == 0 || info.fileName[0] == 0)

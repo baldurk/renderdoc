@@ -75,6 +75,9 @@
 						<File Id='RenderDocJSON' Name='renderdoc.json' DiskId='1' Source='dist/Release64/renderdoc.json' />
 						<File Id='D3DCompiler47DLL64' Name='d3dcompiler_47.dll' DiskId='1' Source='dist/Release64/d3dcompiler_47.dll' />
 						<File Id='RenderDocSHIM' Name='renderdocshim64.dll' DiskId='1' Source='dist/Release64/renderdocshim64.dll' />
+						<File Id='dbghelpDLL' Name='dbghelp.dll' DiskId='1' Source='dist/Release64/dbghelp.dll' />
+						<File Id='symsrvDLL' Name='symsrv.dll' DiskId='1' Source='dist/Release64/symsrv.dll' />
+						<File Id='symsrvYES' Name='symsrv.yes' DiskId='1' Source='dist/Release64/symsrv.yes' />
 						
 						<File Id='RenderDocAPIheader' Name='renderdoc_app.h' DiskId='1' Source='dist/Release32/renderdoc_app.h' />
             
@@ -126,34 +129,15 @@
 						</File>
 					</Component>
 
-					<Directory Id='pdblocate' Name='pdblocate'>
-						<Component Id='pdblocateEXE' Win64="yes" Guid='ED392DDC-7B3A-424D-A9F2-2F8DAA0C4AC3'>
-							<File Id='pdblocateEXE' Name='pdblocate.exe' DiskId='1' Source='dist/Release64/pdblocate/pdblocate.exe' KeyPath='yes' />
-						</Component>
-
-						<Directory Id='pdblocateDeps64' Name='x64'>
-							<Component Id='pdblocateDeps' Win64="yes" Guid='8AFD0EC4-04FE-4843-9DA3-9E23B806604A'>
-								<File Id='dbghelpDLL' Name='dbghelp.dll' DiskId='1' Source='dist/Release64/pdblocate/x64/dbghelp.dll' KeyPath='yes' />
-								<File Id='symsrvDLL' Name='symsrv.dll' DiskId='1' Source='dist/Release64/pdblocate/x64/symsrv.dll' />
-								<File Id='symsrvYES' Name='symsrv.yes' DiskId='1' Source='dist/Release64/pdblocate/x64/symsrv.yes' />
-							</Component>
-						</Directory>
-
-						<Directory Id='pdblocateDeps32bit' Name='x86'>
-							<Component Id='pdblocateDeps32' Win64="yes" Guid='15CE068A-56D9-4B9C-BA5E-DAC25E235E2E'>
-								<File Id='dbghelp32DLL' Name='dbghelp.dll' DiskId='1' Source='dist/Release64/pdblocate/x86/dbghelp.dll' KeyPath='yes' />
-								<File Id='symsrv32DLL' Name='symsrv.dll' DiskId='1' Source='dist/Release64/pdblocate/x86/symsrv.dll' />
-								<File Id='symsrv32YES' Name='symsrv.yes' DiskId='1' Source='dist/Release64/pdblocate/x86/symsrv.yes' />
-							</Component>
-						</Directory>
-					</Directory>
-
 					<Directory Id='renderdocX86' Name='x86'>
 						<Component Id='renderdocX86Bins' Win64="yes" Guid='EB58A048-899A-4239-B229-DA9781C431F8'>
 							<File Id='renderdocX86DLL' Name='renderdoc.dll' DiskId='1' Source='dist/Release64/x86/renderdoc.dll' KeyPath='yes' />
 							<File Id='renderdocX86JSON' Name='renderdoc.json' DiskId='1' Source='dist/Release64/x86/renderdoc.json' />
 							<File Id='renderdocshimX86DLL' Name='renderdocshim32.dll' DiskId='1' Source='dist/Release64/x86/renderdocshim32.dll' />
 							<File Id='renderdocX86CMD' Name='renderdoccmd.exe' DiskId='1' Source='dist/Release64/x86/renderdoccmd.exe' />
+							<File Id='dbghelp32DLL' Name='dbghelp.dll' DiskId='1' Source='dist/Release64/x86/dbghelp.dll' />
+							<File Id='symsrv32DLL' Name='symsrv.dll' DiskId='1' Source='dist/Release64/x86/symsrv.dll' />
+							<File Id='symsrv32YES' Name='symsrv.yes' DiskId='1' Source='dist/Release64/x86/symsrv.yes' />
 
 							<File Id='D3DCompiler47DLL32' Name='d3dcompiler_47.dll' DiskId='1' Source='dist/Release64/x86/d3dcompiler_47.dll' />
 								
@@ -173,20 +157,6 @@
 								Type="integer" />
 
 						</Component>
-
-						<Directory Id='pdblocateX86' Name='pdblocate'>
-							<Component Id='pdblocateX86EXE' Win64="yes" Guid='1E7B3F86-D477-413F-9BAE-9C4BB96877C5'>
-								<File Id='pdblocateX86EXE' Name='pdblocate.exe' DiskId='1' Source='dist/Release64/x86/pdblocate/pdblocate.exe' KeyPath='yes' />
-							</Component>
-
-							<Directory Id='pdblocateX86Deps32' Name='x86'>
-								<Component Id='pdblocateX86Deps' Win64="yes" Guid='146A8E15-B6CC-4CA0-8CAA-BA8A76BC29B2'>
-									<File Id='dbghelpX86DLL' Name='dbghelp.dll' DiskId='1' Source='dist/Release64/x86/pdblocate/x86/dbghelp.dll' KeyPath='yes' />
-									<File Id='symsrvX86DLL' Name='symsrv.dll' DiskId='1' Source='dist/Release64/x86/pdblocate/x86/symsrv.dll' />
-									<File Id='symsrvX86YES' Name='symsrv.yes' DiskId='1' Source='dist/Release64/x86/pdblocate/x86/symsrv.yes' />
-                </Component>
-              </Directory>
-            </Directory>
 
           </Directory>
 
@@ -294,13 +264,7 @@
 
         <ComponentRef Id='LICENSE' />
 
-        <ComponentRef Id='pdblocateEXE' />
-        <ComponentRef Id='pdblocateDeps' />
-        <ComponentRef Id='pdblocateDeps32' />
-
         <ComponentRef Id='renderdocX86Bins' />
-        <ComponentRef Id='pdblocateX86EXE' />
-        <ComponentRef Id='pdblocateX86Deps' />
 
         <ComponentRef Id='Scintilla' />
         <ComponentRef Id='DockingUI' />
