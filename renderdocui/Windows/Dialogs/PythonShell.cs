@@ -63,8 +63,6 @@ namespace renderdocui.Windows.Dialogs
             scriptEditor.KeyDown += new KeyEventHandler(scriptEditor_KeyDown);
             scriptEditor.TextChanged += new EventHandler(scriptEditor_TextChanged);
 
-            newScript.PerformClick();
-
             scriptEditor.Scrolling.HorizontalWidth = 1;
 
             const uint SCI_SETSCROLLWIDTHTRACKING = 2516;
@@ -77,6 +75,8 @@ namespace renderdocui.Windows.Dialogs
             pythonengine = NewEngine();
 
             mode_Changed(shellMode, null);
+
+            newScript.PerformClick();
 
             clearCmd_Click(null, null);
 
