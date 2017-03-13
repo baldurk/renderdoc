@@ -367,7 +367,6 @@ private:
   vector<VkDeviceMemory> m_CleanupMems;
   vector<VkEvent> m_CleanupEvents;
 
-  const VkPhysicalDeviceFeatures &GetDeviceFeatures() { return m_PhysicalDeviceData.features; }
   const VkPhysicalDeviceProperties &GetDeviceProps() { return m_PhysicalDeviceData.props; }
   VkDriverInfo GetDriverVersion() { return VkDriverInfo(m_PhysicalDeviceData.props); }
   const VkFormatProperties &GetFormatProperties(VkFormat f)
@@ -740,6 +739,7 @@ public:
   static VkResult GetProvidedExtensionProperties(uint32_t *pPropertyCount,
                                                  VkExtensionProperties *pProperties);
 
+  const VkPhysicalDeviceFeatures &GetDeviceFeatures() { return m_PhysicalDeviceData.features; }
   // Device initialization
 
   IMPLEMENT_FUNCTION_SERIALISED(VkResult, vkCreateInstance, const VkInstanceCreateInfo *pCreateInfo,
