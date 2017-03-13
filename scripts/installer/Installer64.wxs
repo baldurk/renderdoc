@@ -280,8 +280,8 @@
     </Directory>
 
     <DirectoryRef Id="TARGETDIR">
-      <Merge Id="VCRedist32" DiskId="1" Language="0" SourceFile="C:\Program Files (x86)\Common Files\Merge Modules\Microsoft_VC100_CRT_x64.msm"/>
-      <Merge Id="VCRedist64" DiskId="1" Language="0" SourceFile="C:\Program Files (x86)\Common Files\Merge Modules\Microsoft_VC100_CRT_x86.msm"/>
+      <Merge Id="VCRedist32" DiskId="1" Language="0" SourceFile="C:\Program Files (x86)\Common Files\Merge Modules\Microsoft_VC140_CRT_x64.msm"/>
+      <Merge Id="VCRedist64" DiskId="1" Language="0" SourceFile="C:\Program Files (x86)\Common Files\Merge Modules\Microsoft_VC140_CRT_x86.msm"/>
     </DirectoryRef>
 
     <Feature Id='Complete' Title='RenderDoc' Description='Everything included.' AllowAdvertise='no' Absent='disallow' Display='expand' Level='1' ConfigurableDirectory='INSTALLDIR'>
