@@ -30,12 +30,12 @@
     <number>0</number>
    </property>
    <item>
-    <widget class="QSplitter" name="splitter">
+    <widget class="RDSplitter" name="splitter">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
      </property>
      <property name="handleWidth">
-      <number>16</number>
+      <number>27</number>
      </property>
      <widget class="QTreeWidget" name="apiEvents">
       <property name="editTriggers">
@@ -85,6 +85,14 @@
    </item>
   </layout>
  </widget>
+ <customwidgets>
+  <customwidget>
+   <class>RDSplitter</class>
+   <extends>QSplitter</extends>
+   <header>Widgets/Extended/RDSplitter.h</header>
+   <container>1</container>
+  </customwidget>
+ </customwidgets>
  <resources/>
  <connections/>
 </ui>
