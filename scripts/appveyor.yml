@@ -11,7 +11,7 @@ configuration:
   - Release
 
 platform:
-  - Win32
+  - x86
   - x64
 
 clone_depth: 1
@@ -26,10 +26,10 @@ environment:
 matrix:
   allow_failures:
     - configuration: Development
-      platform: Win32
+      platform: x86
 
 init:
-  - if "%PLATFORM%" EQU "Win32" ( if "%CONFIGURATION%"=="Development" (echo "Skipping Win32 Development" && exit /b 1 ) )
+  - if "%PLATFORM%" EQU "x86" ( if "%CONFIGURATION%"=="Development" (echo "Skipping x86 Development" && exit /b 1 ) )
 
 install:
 - ps: $env:PATH = 'C:\MinGW\bin;C:\MinGW\mingw32\bin;C:\MinGW\msys\1.0\bin;' + $env:PATH
