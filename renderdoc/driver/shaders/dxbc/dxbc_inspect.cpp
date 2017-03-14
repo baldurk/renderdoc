@@ -2355,7 +2355,7 @@ SPDBChunk::SPDBChunk(void *chunk)
         {
           // some kind of control bytes? they have n file mappings following but I'm not sure what
           // they mean
-          if(calls[0] <= 0xf)
+          if(calls[0] <= 0xfff)
           {
             calls += 1 + calls[0];
           }
