@@ -137,7 +137,7 @@ public:
 
   void FetchPipelineState();
 
-  bool GetD3D11PipelineState(D3D11PipelineState *state);
+  bool GetD3D11PipelineState(D3D11Pipe::State *state);
   bool GetD3D12PipelineState(D3D12PipelineState *state);
   bool GetGLPipelineState(GLPipelineState *state);
   bool GetVulkanPipelineState(VulkanPipelineState *state);
@@ -209,7 +209,7 @@ private:
 
   uint32_t m_EventID;
 
-  D3D11PipelineState m_D3D11PipelineState;
+  D3D11Pipe::State m_D3D11PipelineState;
   D3D12PipelineState m_D3D12PipelineState;
   GLPipelineState m_GLPipelineState;
   VulkanPipelineState m_VulkanPipelineState;

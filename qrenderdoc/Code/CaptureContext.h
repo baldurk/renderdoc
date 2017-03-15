@@ -164,7 +164,7 @@ public:
   QWidget *createToolWindow(const QString &objectName);
   void windowClosed(QWidget *window);
 
-  D3D11PipelineState CurD3D11PipelineState;
+  D3D11Pipe::State CurD3D11PipelineState;
   D3D12PipelineState CurD3D12PipelineState;
   GLPipelineState CurGLPipelineState;
   VulkanPipelineState CurVulkanPipelineState;

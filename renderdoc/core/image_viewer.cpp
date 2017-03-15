@@ -147,7 +147,7 @@ public:
   // handle a couple of operations ourselves to return a simple fake log
   APIProperties GetAPIProperties() { return m_Props; }
   FetchFrameRecord GetFrameRecord() { return m_FrameRecord; }
-  D3D11PipelineState GetD3D11PipelineState() { return m_PipelineState; }
+  D3D11Pipe::State GetD3D11PipelineState() { return m_PipelineState; }
   // other operations are dropped/ignored, to avoid confusion
   void ReadLogInitialisation() {}
   void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg)
@@ -265,7 +265,7 @@ private:
 
   APIProperties m_Props;
   FetchFrameRecord m_FrameRecord;
-  D3D11PipelineState m_PipelineState;
+  D3D11Pipe::State m_PipelineState;
   IReplayDriver *m_Proxy;
   string m_Filename;
   ResourceId m_TextureID;

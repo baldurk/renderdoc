@@ -439,11 +439,11 @@ vector<ResourceId> D3D11Replay::GetTextures()
   return ret;
 }
 
-D3D11PipelineState D3D11Replay::MakePipelineState()
+D3D11Pipe::State D3D11Replay::MakePipelineState()
 {
   D3D11RenderState *rs = m_pDevice->GetImmediateContext()->GetCurrentPipelineState();
 
-  D3D11PipelineState ret;
+  D3D11Pipe::State ret;
 
   /////////////////////////////////////////////////
   // Input Assembler
@@ -477,7 +477,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
     for(size_t i = 0; i < vec.size(); i++)
     {
-      D3D11PipelineState::InputAssembler::LayoutInput &l = ret.m_IA.layouts[i];
+      D3D11Pipe::Layout &l = ret.m_IA.layouts[i];
 
       l.ByteOffset = vec[i].AlignedByteOffset;
       l.Format = MakeResourceFormat(vec[i].Format);
@@ -493,7 +493,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
   for(size_t i = 0; i < ARRAY_COUNT(rs->IA.VBs); i++)
   {
-    D3D11PipelineState::InputAssembler::VertexBuffer &vb = ret.m_IA.vbuffers[i];
+    D3D11Pipe::VB &vb = ret.m_IA.vbuffers[i];
 
     vb.Buffer = rm->GetOriginalID(GetIDForResource(rs->IA.VBs[i]));
     vb.Offset = rs->IA.Offsets[i];
@@ -508,8 +508,8 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
   /////////////////////////////////////////////////
 
   {
-    D3D11PipelineState::Shader *dstArr[] = {&ret.m_VS, &ret.m_HS, &ret.m_DS,
-                                            &ret.m_GS, &ret.m_PS, &ret.m_CS};
+    D3D11Pipe::Shader *dstArr[] = {&ret.m_VS, &ret.m_HS, &ret.m_DS,
+                                   &ret.m_GS, &ret.m_PS, &ret.m_CS};
     const D3D11RenderState::shader *srcArr[] = {&rs->VS, &rs->HS, &rs->DS,
                                                 &rs->GS, &rs->PS, &rs->CS};
 
@@ -517,7 +517,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
 
     for(size_t stage = 0; stage < 6; stage++)
     {
-      D3D11PipelineState::Shader &dst = *dstArr[stage];
+      D3D11Pipe::Shader &dst = *dstArr[stage];
       const D3D11RenderState::shader &src = *srcArr[stage];
 
       dst.stage = (ShaderStage)stage;
@@ -611,7 +611,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
       create_array_uninit(dst.Samplers, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT);
       for(size_t s = 0; s < D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT; s++)
       {
-        D3D11PipelineState::Shader::Sampler &samp = dst.Samplers[s];
+        D3D11Pipe::Sampler &samp = dst.Samplers[s];
 
         samp.Samp = rm->GetOriginalID(GetIDForResource(src.Samplers[s]));
 
@@ -657,11 +657,11 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
       create_array_uninit(dst.SRVs, D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT);
       for(size_t s = 0; s < D3D11_COMMONSHADER_INPUT_RESOURCE_SLOT_COUNT; s++)
       {
-        D3D11PipelineState::Shader::ResourceView &view = dst.SRVs[s];
+        D3D11Pipe::View &view = dst.SRVs[s];
 
-        view.View = rm->GetOriginalID(GetIDForResource(src.SRVs[s]));
+        view.Object = rm->GetOriginalID(GetIDForResource(src.SRVs[s]));
 
-        if(view.View != ResourceId())
+        if(view.Object != ResourceId())
         {
           D3D11_SHADER_RESOURCE_VIEW_DESC desc;
           src.SRVs[s]->GetDesc(&desc);
@@ -760,11 +760,11 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
       create_array(dst.UAVs, D3D11_1_UAV_SLOT_COUNT);
       for(size_t s = 0; dst.stage == ShaderStage::Compute && s < D3D11_1_UAV_SLOT_COUNT; s++)
       {
-        D3D11PipelineState::Shader::ResourceView &view = dst.UAVs[s];
+        D3D11Pipe::View &view = dst.UAVs[s];
 
-        view.View = rm->GetOriginalID(GetIDForResource(rs->CSUAVs[s]));
+        view.Object = rm->GetOriginalID(GetIDForResource(rs->CSUAVs[s]));
 
-        if(view.View != ResourceId())
+        if(view.Object != ResourceId())
         {
           D3D11_UNORDERED_ACCESS_VIEW_DESC desc;
           rs->CSUAVs[s]->GetDesc(&desc);
@@ -943,22 +943,22 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
     size_t i = 0;
     create_array_uninit(ret.m_RS.Scissors, D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
     for(i = 0; i < rs->RS.NumScissors; i++)
-      ret.m_RS.Scissors[i] = D3D11PipelineState::Rasterizer::Scissor(
-          rs->RS.Scissors[i].left, rs->RS.Scissors[i].top, rs->RS.Scissors[i].right,
-          rs->RS.Scissors[i].bottom, true);
+      ret.m_RS.Scissors[i] =
+          D3D11Pipe::Scissor(rs->RS.Scissors[i].left, rs->RS.Scissors[i].top,
+                             rs->RS.Scissors[i].right, rs->RS.Scissors[i].bottom, true);
 
     for(; i < D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE; i++)
-      ret.m_RS.Scissors[i] = D3D11PipelineState::Rasterizer::Scissor(0, 0, 0, 0, false);
+      ret.m_RS.Scissors[i] = D3D11Pipe::Scissor(0, 0, 0, 0, false);
 
     create_array_uninit(ret.m_RS.Viewports, D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE);
     for(i = 0; i < rs->RS.NumViews; i++)
-      ret.m_RS.Viewports[i] = D3D11PipelineState::Rasterizer::Viewport(
-          rs->RS.Viewports[i].TopLeftX, rs->RS.Viewports[i].TopLeftY, rs->RS.Viewports[i].Width,
-          rs->RS.Viewports[i].Height, rs->RS.Viewports[i].MinDepth, rs->RS.Viewports[i].MaxDepth,
-          true);
+      ret.m_RS.Viewports[i] =
+          D3D11Pipe::Viewport(rs->RS.Viewports[i].TopLeftX, rs->RS.Viewports[i].TopLeftY,
+                              rs->RS.Viewports[i].Width, rs->RS.Viewports[i].Height,
+                              rs->RS.Viewports[i].MinDepth, rs->RS.Viewports[i].MaxDepth, true);
 
     for(; i < D3D11_VIEWPORT_AND_SCISSORRECT_OBJECT_COUNT_PER_PIPELINE; i++)
-      ret.m_RS.Viewports[i] = D3D11PipelineState::Rasterizer::Viewport(0, 0, 0, 0, 0, 0, false);
+      ret.m_RS.Viewports[i] = D3D11Pipe::Viewport(0, 0, 0, 0, 0, 0, false);
   }
 
   /////////////////////////////////////////////////
@@ -969,11 +969,11 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
     create_array_uninit(ret.m_OM.RenderTargets, D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT);
     for(size_t i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
     {
-      D3D11PipelineState::Shader::ResourceView &view = ret.m_OM.RenderTargets[i];
+      D3D11Pipe::View &view = ret.m_OM.RenderTargets[i];
 
-      view.View = rm->GetOriginalID(GetIDForResource(rs->OM.RenderTargets[i]));
+      view.Object = rm->GetOriginalID(GetIDForResource(rs->OM.RenderTargets[i]));
 
-      if(view.View != ResourceId())
+      if(view.Object != ResourceId())
       {
         D3D11_RENDER_TARGET_VIEW_DESC desc;
         rs->OM.RenderTargets[i]->GetDesc(&desc);
@@ -1037,11 +1037,11 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
     create_array_uninit(ret.m_OM.UAVs, D3D11_1_UAV_SLOT_COUNT);
     for(size_t s = 0; s < D3D11_1_UAV_SLOT_COUNT; s++)
     {
-      D3D11PipelineState::Shader::ResourceView view;
+      D3D11Pipe::View view;
 
-      view.View = rm->GetOriginalID(GetIDForResource(rs->OM.UAVs[s]));
+      view.Object = rm->GetOriginalID(GetIDForResource(rs->OM.UAVs[s]));
 
-      if(view.View != ResourceId())
+      if(view.Object != ResourceId())
       {
         D3D11_UNORDERED_ACCESS_VIEW_DESC desc;
         rs->OM.UAVs[s]->GetDesc(&desc);
@@ -1117,11 +1117,11 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
     }
 
     {
-      D3D11PipelineState::Shader::ResourceView &view = ret.m_OM.DepthTarget;
+      D3D11Pipe::View &view = ret.m_OM.DepthTarget;
 
-      view.View = rm->GetOriginalID(GetIDForResource(rs->OM.DepthView));
+      view.Object = rm->GetOriginalID(GetIDForResource(rs->OM.DepthView));
 
-      if(view.View != ResourceId())
+      if(view.Object != ResourceId())
       {
         D3D11_DEPTH_STENCIL_VIEW_DESC desc;
         rs->OM.DepthView->GetDesc(&desc);
@@ -1204,8 +1204,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
       create_array_uninit(ret.m_OM.m_BlendState.Blends, 8);
       for(size_t i = 0; i < 8; i++)
       {
-        D3D11PipelineState::OutputMerger::BlendState::RTBlend &blend =
-            ret.m_OM.m_BlendState.Blends[i];
+        D3D11Pipe::Blend &blend = ret.m_OM.m_BlendState.Blends[i];
 
         blend.Enabled = desc.RenderTarget[i].BlendEnable == TRUE;
 
@@ -1230,7 +1229,7 @@ D3D11PipelineState D3D11Replay::MakePipelineState()
       ret.m_OM.m_BlendState.AlphaToCoverage = false;
       ret.m_OM.m_BlendState.IndependentBlend = false;
 
-      D3D11PipelineState::OutputMerger::BlendState::RTBlend blend;
+      D3D11Pipe::Blend blend;
 
       blend.Enabled = false;
 
@@ -1585,12 +1584,12 @@ bool D3D11Replay::IsRenderOutput(ResourceId id)
 {
   for(size_t i = 0; i < D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT; i++)
   {
-    if(m_CurPipelineState.m_OM.RenderTargets[i].View == id ||
+    if(m_CurPipelineState.m_OM.RenderTargets[i].Object == id ||
        m_CurPipelineState.m_OM.RenderTargets[i].Resource == id)
       return true;
   }
 
-  if(m_CurPipelineState.m_OM.DepthTarget.View == id ||
+  if(m_CurPipelineState.m_OM.DepthTarget.Object == id ||
      m_CurPipelineState.m_OM.DepthTarget.Resource == id)
     return true;
 

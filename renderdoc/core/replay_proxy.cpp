@@ -300,7 +300,7 @@ void Serialiser::Serialise(const char *name, ShaderDebugTrace &el)
 #pragma region D3D11 pipeline state
 
 template <>
-void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler::LayoutInput &el)
+void Serialiser::Serialise(const char *name, D3D11Pipe::Layout &el)
 {
   Serialise("", el.SemanticName);
   Serialise("", el.SemanticIndex);
@@ -314,7 +314,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler:
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler &el)
+void Serialiser::Serialise(const char *name, D3D11Pipe::IA &el)
 {
   Serialise("", el.ibuffer.Buffer);
   Serialise("", el.ibuffer.Offset);
@@ -329,9 +329,9 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::InputAssembler 
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D11PipelineState::Shader::ResourceView &el)
+void Serialiser::Serialise(const char *name, D3D11Pipe::View &el)
 {
-  Serialise("", el.View);
+  Serialise("", el.Object);
   Serialise("", el.Resource);
   Serialise("", el.Type);
   Serialise("", el.Format);
@@ -353,7 +353,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::Shader::Resourc
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D11PipelineState::Shader::Sampler &el)
+void Serialiser::Serialise(const char *name, D3D11Pipe::Sampler &el)
 {
   Serialise("", el.Samp);
   Serialise("", el.SamplerName);
@@ -375,7 +375,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::Shader::Sampler
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D11PipelineState::Shader &el)
+void Serialiser::Serialise(const char *name, D3D11Pipe::Shader &el)
 {
   Serialise("", el.Object);
   Serialise("", el.stage);
@@ -397,7 +397,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::Shader &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D11PipelineState::Rasterizer &el)
+void Serialiser::Serialise(const char *name, D3D11Pipe::Rasterizer &el)
 {
   Serialise("", el.m_State);
   Serialise("", el.Scissors);
@@ -407,7 +407,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::Rasterizer &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D11PipelineState::OutputMerger::BlendState::RTBlend &el)
+void Serialiser::Serialise(const char *name, D3D11Pipe::Blend &el)
 {
   Serialise("", el.m_Blend.Source);
   Serialise("", el.m_Blend.Destination);
@@ -427,7 +427,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::OutputMerger::B
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D11PipelineState::OutputMerger &el)
+void Serialiser::Serialise(const char *name, D3D11Pipe::OM &el)
 {
   {
     Serialise("", el.m_State.State);
@@ -472,7 +472,7 @@ void Serialiser::Serialise(const char *name, D3D11PipelineState::OutputMerger &e
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D11PipelineState &el)
+void Serialiser::Serialise(const char *name, D3D11Pipe::State &el)
 {
   Serialise("", el.m_IA);
 
@@ -1778,38 +1778,32 @@ string ToStrHelper<false, GraphicsAPI>::Get(const GraphicsAPI &el)
 
 // these structures we can just serialise as a blob, since they're POD.
 template <>
-string ToStrHelper<false, D3D11PipelineState::InputAssembler::VertexBuffer>::Get(
-    const D3D11PipelineState::InputAssembler::VertexBuffer &el)
+string ToStrHelper<false, D3D11Pipe::VB>::Get(const D3D11Pipe::VB &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D11PipelineState::Rasterizer::RasterizerState>::Get(
-    const D3D11PipelineState::Rasterizer::RasterizerState &el)
+string ToStrHelper<false, D3D11Pipe::RasterizerState>::Get(const D3D11Pipe::RasterizerState &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D11PipelineState::Shader::CBuffer>::Get(
-    const D3D11PipelineState::Shader::CBuffer &el)
+string ToStrHelper<false, D3D11Pipe::CBuffer>::Get(const D3D11Pipe::CBuffer &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D11PipelineState::Rasterizer::Scissor>::Get(
-    const D3D11PipelineState::Rasterizer::Scissor &el)
+string ToStrHelper<false, D3D11Pipe::Scissor>::Get(const D3D11Pipe::Scissor &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D11PipelineState::Rasterizer::Viewport>::Get(
-    const D3D11PipelineState::Rasterizer::Viewport &el)
+string ToStrHelper<false, D3D11Pipe::Viewport>::Get(const D3D11Pipe::Viewport &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D11PipelineState::Streamout::Output>::Get(
-    const D3D11PipelineState::Streamout::Output &el)
+string ToStrHelper<false, D3D11Pipe::SOBind>::Get(const D3D11Pipe::SOBind &el)
 {
   return "<...>";
 }
@@ -2398,7 +2392,7 @@ void ReplayProxy::SavePipelineState()
     if(!SendReplayCommand(eReplayProxy_SavePipelineState))
       return;
 
-    m_D3D11PipelineState = D3D11PipelineState();
+    m_D3D11PipelineState = D3D11Pipe::State();
     m_D3D12PipelineState = D3D12PipelineState();
     m_GLPipelineState = GLPipelineState();
     m_VulkanPipelineState = VulkanPipelineState();

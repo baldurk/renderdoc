@@ -150,7 +150,7 @@ public:
   vector<DebugMessage> GetDebugMessages();
 
   void SavePipelineState();
-  D3D11PipelineState GetD3D11PipelineState() { return D3D11PipelineState(); }
+  D3D11Pipe::State GetD3D11PipelineState() { return D3D11Pipe::State(); }
   D3D12PipelineState GetD3D12PipelineState() { return D3D12PipelineState(); }
   GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
   VulkanPipelineState GetVulkanPipelineState() { return m_VulkanPipelineState; }

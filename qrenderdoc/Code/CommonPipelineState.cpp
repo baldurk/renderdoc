@@ -818,7 +818,7 @@ void CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, 
   {
     if(IsLogD3D11())
     {
-      const D3D11PipelineState::Shader &s = GetD3D11Stage(stage);
+      const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
 
       if(BufIdx < (uint32_t)s.ConstantBuffers.count)
       {
@@ -923,7 +923,7 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
   {
     if(IsLogD3D11())
     {
-      const D3D11PipelineState::Shader &s = GetD3D11Stage(stage);
+      const D3D11Pipe::Shader &s = GetD3D11Stage(stage);
 
       for(int i = 0; i < s.SRVs.count; i++)
       {

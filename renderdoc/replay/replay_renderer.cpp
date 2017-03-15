@@ -183,7 +183,7 @@ bool ReplayRenderer::SetFrameEvent(uint32_t eventID, bool force)
   return true;
 }
 
-bool ReplayRenderer::GetD3D11PipelineState(D3D11PipelineState *state)
+bool ReplayRenderer::GetD3D11PipelineState(D3D11Pipe::State *state)
 {
   if(state)
   {
@@ -1625,7 +1625,7 @@ void ReplayRenderer::FetchPipelineState()
   m_VulkanPipelineState = m_pDevice->GetVulkanPipelineState();
 
   {
-    D3D11PipelineState::Shader *stages[] = {
+    D3D11Pipe::Shader *stages[] = {
         &m_D3D11PipelineState.m_VS, &m_D3D11PipelineState.m_HS, &m_D3D11PipelineState.m_DS,
         &m_D3D11PipelineState.m_GS, &m_D3D11PipelineState.m_PS, &m_D3D11PipelineState.m_CS,
     };
@@ -1719,7 +1719,7 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetFrameEvent(IRepla
   return rend->SetFrameEvent(eventID, force != 0);
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetD3D11PipelineState(IReplayRenderer *rend, D3D11PipelineState *state)
+ReplayRenderer_GetD3D11PipelineState(IReplayRenderer *rend, D3D11Pipe::State *state)
 {
   return rend->GetD3D11PipelineState(state);
 }

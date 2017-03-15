@@ -222,7 +222,7 @@ struct IReplayRenderer
   virtual bool InitResolver() = 0;
 
   virtual bool SetFrameEvent(uint32_t eventID, bool force) = 0;
-  virtual bool GetD3D11PipelineState(D3D11PipelineState *state) = 0;
+  virtual bool GetD3D11PipelineState(D3D11Pipe::State *state) = 0;
   virtual bool GetD3D12PipelineState(D3D12PipelineState *state) = 0;
   virtual bool GetGLPipelineState(GLPipelineState *state) = 0;
   virtual bool GetVulkanPipelineState(VulkanPipelineState *state) = 0;
@@ -298,7 +298,7 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetFrameEvent(IRepla
                                                                           uint32_t eventID,
                                                                           bool32 force);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetD3D11PipelineState(IReplayRenderer *rend, D3D11PipelineState *state);
+ReplayRenderer_GetD3D11PipelineState(IReplayRenderer *rend, D3D11Pipe::State *state);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
 ReplayRenderer_GetD3D12PipelineState(IReplayRenderer *rend, D3D12PipelineState *state);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetGLPipelineState(IReplayRenderer *rend,

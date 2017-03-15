@@ -63,7 +63,7 @@ public:
   FetchFrameRecord GetFrameRecord();
 
   void SavePipelineState() { m_CurPipelineState = MakePipelineState(); }
-  D3D11PipelineState GetD3D11PipelineState() { return m_CurPipelineState; }
+  D3D11Pipe::State GetD3D11PipelineState() { return m_CurPipelineState; }
   D3D12PipelineState GetD3D12PipelineState() { return D3D12PipelineState(); }
   GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
   VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
@@ -165,7 +165,7 @@ public:
   Callstack::StackResolver *GetCallstackResolver();
 
 private:
-  D3D11PipelineState MakePipelineState();
+  D3D11Pipe::State MakePipelineState();
 
   bool m_WARP;
   bool m_Proxy;
@@ -174,5 +174,5 @@ private:
 
   WrappedID3D11Device *m_pDevice;
 
-  D3D11PipelineState m_CurPipelineState;
+  D3D11Pipe::State m_CurPipelineState;
 };

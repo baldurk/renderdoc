@@ -534,7 +534,7 @@ void CaptureContext::CloseLogfile()
   m_Textures.clear();
   m_TextureList.clear();
 
-  CurD3D11PipelineState = D3D11PipelineState();
+  CurD3D11PipelineState = D3D11Pipe::State();
   CurD3D12PipelineState = D3D12PipelineState();
   CurGLPipelineState = GLPipelineState();
   CurVulkanPipelineState = VulkanPipelineState();
