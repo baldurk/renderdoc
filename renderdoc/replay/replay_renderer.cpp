@@ -216,7 +216,7 @@ bool ReplayRenderer::GetGLPipelineState(GLPipe::State *state)
   return false;
 }
 
-bool ReplayRenderer::GetVulkanPipelineState(VulkanPipelineState *state)
+bool ReplayRenderer::GetVulkanPipelineState(VKPipe::State *state)
 {
   if(state)
   {
@@ -1658,7 +1658,7 @@ void ReplayRenderer::FetchPipelineState()
   }
 
   {
-    VulkanPipelineState::Shader *stages[] = {
+    VKPipe::Shader *stages[] = {
         &m_VulkanPipelineState.m_VS, &m_VulkanPipelineState.m_TCS, &m_VulkanPipelineState.m_TES,
         &m_VulkanPipelineState.m_GS, &m_VulkanPipelineState.m_FS,  &m_VulkanPipelineState.m_CS,
     };
@@ -1734,7 +1734,7 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetGLPipelineState(I
   return rend->GetGLPipelineState(state);
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetVulkanPipelineState(IReplayRenderer *rend, VulkanPipelineState *state)
+ReplayRenderer_GetVulkanPipelineState(IReplayRenderer *rend, VKPipe::State *state)
 {
   return rend->GetVulkanPipelineState(state);
 }

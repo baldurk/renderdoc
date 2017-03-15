@@ -99,7 +99,7 @@ public:
   virtual D3D11Pipe::State GetD3D11PipelineState() = 0;
   virtual D3D12PipelineState GetD3D12PipelineState() = 0;
   virtual GLPipe::State GetGLPipelineState() = 0;
-  virtual VulkanPipelineState GetVulkanPipelineState() = 0;
+  virtual VKPipe::State GetVulkanPipelineState() = 0;
 
   virtual FetchFrameRecord GetFrameRecord() = 0;
 

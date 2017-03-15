@@ -140,7 +140,7 @@ public:
   bool GetD3D11PipelineState(D3D11Pipe::State *state);
   bool GetD3D12PipelineState(D3D12PipelineState *state);
   bool GetGLPipelineState(GLPipe::State *state);
-  bool GetVulkanPipelineState(VulkanPipelineState *state);
+  bool GetVulkanPipelineState(VKPipe::State *state);
 
   ResourceId BuildCustomShader(const char *entry, const char *source, const uint32_t compileFlags,
                                ShaderStage type, rdctype::str *errors);
@@ -212,7 +212,7 @@ private:
   D3D11Pipe::State m_D3D11PipelineState;
   D3D12PipelineState m_D3D12PipelineState;
   GLPipe::State m_GLPipelineState;
-  VulkanPipelineState m_VulkanPipelineState;
+  VKPipe::State m_VulkanPipelineState;
 
   std::vector<ReplayOutput *> m_Outputs;
 

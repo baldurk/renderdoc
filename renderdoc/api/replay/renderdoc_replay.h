@@ -225,7 +225,7 @@ struct IReplayRenderer
   virtual bool GetD3D11PipelineState(D3D11Pipe::State *state) = 0;
   virtual bool GetD3D12PipelineState(D3D12PipelineState *state) = 0;
   virtual bool GetGLPipelineState(GLPipe::State *state) = 0;
-  virtual bool GetVulkanPipelineState(VulkanPipelineState *state) = 0;
+  virtual bool GetVulkanPipelineState(VKPipe::State *state) = 0;
 
   virtual ResourceId BuildCustomShader(const char *entry, const char *source,
                                        const uint32_t compileFlags, ShaderStage type,
@@ -304,7 +304,7 @@ ReplayRenderer_GetD3D12PipelineState(IReplayRenderer *rend, D3D12PipelineState *
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetGLPipelineState(IReplayRenderer *rend,
                                                                                GLPipe::State *state);
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetVulkanPipelineState(IReplayRenderer *rend, VulkanPipelineState *state);
+ReplayRenderer_GetVulkanPipelineState(IReplayRenderer *rend, VKPipe::State *state);
 
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildCustomShader(
     IReplayRenderer *rend, const char *entry, const char *source, const uint32_t compileFlags,

@@ -24,344 +24,386 @@
 
 #pragma once
 
-struct VulkanPipelineState
+namespace VKPipe
 {
-  struct Pipeline
+struct BindingElement
+{
+  BindingElement()
+      : immutableSampler(false),
+        customSamplerName(false),
+        baseMip(0),
+        baseLayer(0),
+        offset(0),
+        size(0),
+        mipBias(0.0f),
+        maxAniso(0.0f),
+        compareEnable(false),
+        minlod(0.0f),
+        maxlod(0.0f),
+        borderEnable(false),
+        unnormalized(false)
   {
-    Pipeline() : flags(0) {}
-    ResourceId obj;
-    uint32_t flags;
+    swizzle[0] = TextureSwizzle::Red;
+    swizzle[1] = TextureSwizzle::Green;
+    swizzle[2] = TextureSwizzle::Blue;
+    swizzle[3] = TextureSwizzle::Alpha;
+  }
 
-    struct DescriptorSet
-    {
-      ResourceId layout;
-      ResourceId descset;
+  ResourceId view;    // bufferview, imageview, attachmentview
+  ResourceId res;     // buffer, image, attachment
+  ResourceId sampler;
+  bool32 immutableSampler;
 
-      struct DescriptorBinding
-      {
-        uint32_t descriptorCount;
-        BindType type;
-        ShaderStageMask stageFlags;
+  rdctype::str SamplerName;
+  bool32 customSamplerName;
 
-        struct BindingElement
-        {
-          BindingElement()
-              : immutableSampler(false),
-                customSamplerName(false),
-                baseMip(0),
-                baseLayer(0),
-                offset(0),
-                size(0),
-                mipBias(0.0f),
-                maxAniso(0.0f),
-                compareEnable(false),
-                minlod(0.0f),
-                maxlod(0.0f),
-                borderEnable(false),
-                unnormalized(false)
-          {
-            swizzle[0] = TextureSwizzle::Red;
-            swizzle[1] = TextureSwizzle::Green;
-            swizzle[2] = TextureSwizzle::Blue;
-            swizzle[3] = TextureSwizzle::Alpha;
-          }
+  // image views
+  ResourceFormat viewfmt;
+  TextureSwizzle swizzle[4];
+  uint32_t baseMip;
+  uint32_t baseLayer;
+  uint32_t numMip;
+  uint32_t numLayer;
 
-          ResourceId view;    // bufferview, imageview, attachmentview
-          ResourceId res;     // buffer, image, attachment
-          ResourceId sampler;
-          bool32 immutableSampler;
+  // buffers
+  uint64_t offset;
+  uint64_t size;
 
-          rdctype::str SamplerName;
-          bool32 customSamplerName;
+  // sampler info
+  rdctype::str mag, min, mip;
+  rdctype::str addrU, addrV, addrW;
+  float mipBias;
+  float maxAniso;
+  bool32 compareEnable;
+  rdctype::str comparison;
+  float minlod, maxlod;
+  bool32 borderEnable;
+  rdctype::str border;
+  bool32 unnormalized;
+};
 
-          // image views
-          ResourceFormat viewfmt;
-          TextureSwizzle swizzle[4];
-          uint32_t baseMip;
-          uint32_t baseLayer;
-          uint32_t numMip;
-          uint32_t numLayer;
+struct DescriptorBinding
+{
+  uint32_t descriptorCount;
+  BindType type;
+  ShaderStageMask stageFlags;
 
-          // buffers
-          uint64_t offset;
-          uint64_t size;
+  // may only be one element if not an array
+  rdctype::array<BindingElement> binds;
+};
 
-          // sampler info
-          rdctype::str mag, min, mip;
-          rdctype::str addrU, addrV, addrW;
-          float mipBias;
-          float maxAniso;
-          bool32 compareEnable;
-          rdctype::str comparison;
-          float minlod, maxlod;
-          bool32 borderEnable;
-          rdctype::str border;
-          bool32 unnormalized;
-        };
+struct DescriptorSet
+{
+  ResourceId layout;
+  ResourceId descset;
 
-        // may only be one element if not an array
-        rdctype::array<BindingElement> binds;
-      };
-      rdctype::array<DescriptorBinding> bindings;
-    };
+  rdctype::array<DescriptorBinding> bindings;
+};
 
-    rdctype::array<DescriptorSet> DescSets;
-  } compute, graphics;
+struct Pipeline
+{
+  Pipeline() : flags(0) {}
+  ResourceId obj;
+  uint32_t flags;
 
-  struct InputAssembly
+  rdctype::array<DescriptorSet> DescSets;
+};
+
+struct IB
+{
+  IB() : offs(0) {}
+  ResourceId buf;
+  uint64_t offs;
+};
+
+struct InputAssembly
+{
+  InputAssembly() : primitiveRestartEnable(false) {}
+  bool32 primitiveRestartEnable;
+
+  IB ibuffer;
+};
+
+struct VertexAttribute
+{
+  VertexAttribute() : location(0), binding(0), format(), byteoffset(0) {}
+  uint32_t location;
+  uint32_t binding;
+  ResourceFormat format;
+  uint32_t byteoffset;
+};
+
+struct VertexBinding
+{
+  VertexBinding() : vbufferBinding(0), bytestride(0), perInstance(false) {}
+  uint32_t vbufferBinding;
+  uint32_t bytestride;
+  bool32 perInstance;
+};
+
+struct VB
+{
+  VB() : offset(0) {}
+  ResourceId buffer;
+  uint64_t offset;
+};
+
+struct VertexInput
+{
+  rdctype::array<VertexAttribute> attrs;
+  rdctype::array<VertexBinding> binds;
+  rdctype::array<VB> vbuffers;
+};
+
+struct SpecInfo
+{
+  SpecInfo() : specID(0) {}
+  uint32_t specID;
+  rdctype::array<byte> data;
+};
+
+struct Shader
+{
+  Shader() : Object(), customName(false), ShaderDetails(NULL), stage(ShaderStage::Vertex) {}
+  ResourceId Object;
+  rdctype::str entryPoint;
+
+  rdctype::str ShaderName;
+  bool32 customName;
+  ShaderReflection *ShaderDetails;
+
+  // this is no longer dynamic, like GL, but it's also not trivial, like D3D11.
+  // this contains the mapping between the shader objects in the reflection data
+  // and the descriptor set and binding that they use
+  ShaderBindpointMapping BindpointMapping;
+
+  ShaderStage stage;
+
+  rdctype::array<SpecInfo> specialization;
+};
+
+struct Tessellation
+{
+  Tessellation() : numControlPoints(0) {}
+  uint32_t numControlPoints;
+};
+
+struct Viewport
+{
+  Viewport() : x(0), y(0), width(0), height(0), minDepth(0), maxDepth(0) {}
+  float x, y, width, height, minDepth, maxDepth;
+};
+
+struct Scissor
+{
+  Scissor() : x(0), y(0), width(0), height(0) {}
+  int32_t x, y, width, height;
+};
+
+struct ViewportScissor
+{
+  Viewport vp;
+  Scissor scissor;
+};
+
+struct ViewState
+{
+  rdctype::array<ViewportScissor> viewportScissors;
+};
+
+struct Raster
+{
+  Raster()
+      : depthClampEnable(false),
+        rasterizerDiscardEnable(false),
+        FrontCCW(false),
+        fillMode(FillMode::Solid),
+        cullMode(CullMode::NoCull),
+        depthBias(0),
+        depthBiasClamp(0),
+        slopeScaledDepthBias(0),
+        lineWidth(0)
   {
-    InputAssembly() : primitiveRestartEnable(false) {}
-    bool32 primitiveRestartEnable;
+  }
 
-    struct IndexBuffer
-    {
-      IndexBuffer() : offs(0) {}
-      ResourceId buf;
-      uint64_t offs;
-    } ibuffer;
-  } IA;
+  bool32 depthClampEnable, rasterizerDiscardEnable, FrontCCW;
+  FillMode fillMode;
+  CullMode cullMode;
 
-  struct VertexInput
+  // dynamic
+  float depthBias, depthBiasClamp, slopeScaledDepthBias, lineWidth;
+};
+
+struct MultiSample
+{
+  MultiSample() : rasterSamples(0), sampleShadingEnable(false), minSampleShading(0), sampleMask(~0U)
   {
-    struct Attribute
-    {
-      Attribute() : location(0), binding(0), format(), byteoffset(0) {}
-      uint32_t location;
-      uint32_t binding;
-      ResourceFormat format;
-      uint32_t byteoffset;
-    };
-    rdctype::array<Attribute> attrs;
+  }
+  uint32_t rasterSamples;
+  bool32 sampleShadingEnable;
+  float minSampleShading;
+  uint32_t sampleMask;
+};
 
-    struct Binding
-    {
-      Binding() : vbufferBinding(0), bytestride(0), perInstance(false) {}
-      uint32_t vbufferBinding;
-      uint32_t bytestride;
-      bool32 perInstance;
-    };
-    rdctype::array<Binding> binds;
+struct BlendOp
+{
+  rdctype::str Source;
+  rdctype::str Destination;
+  rdctype::str Operation;
+};
 
-    struct VertexBuffer
-    {
-      VertexBuffer() : offset(0) {}
-      ResourceId buffer;
-      uint64_t offset;
-    };
-    rdctype::array<VertexBuffer> vbuffers;
-  } VI;
+struct Blend
+{
+  Blend() : blendEnable(false), writeMask(0) {}
+  bool32 blendEnable;
 
-  struct Shader
+  BlendOp blend, alphaBlend;
+
+  uint8_t writeMask;
+};
+
+struct ColorBlend
+{
+  ColorBlend() : alphaToCoverageEnable(false), alphaToOneEnable(false), logicOpEnable(false)
   {
-    Shader() : Object(), customName(false), ShaderDetails(NULL), stage(ShaderStage::Vertex) {}
-    ResourceId Object;
-    rdctype::str entryPoint;
+    blendConst[0] = blendConst[1] = blendConst[2] = blendConst[3] = 0.0f;
+  }
 
-    rdctype::str ShaderName;
-    bool32 customName;
-    ShaderReflection *ShaderDetails;
+  bool32 alphaToCoverageEnable, alphaToOneEnable, logicOpEnable;
+  rdctype::str logicOp;
 
-    // this is no longer dynamic, like GL, but it's also not trivial, like D3D11.
-    // this contains the mapping between the shader objects in the reflection data
-    // and the descriptor set and binding that they use
-    ShaderBindpointMapping BindpointMapping;
+  rdctype::array<Blend> attachments;
 
-    ShaderStage stage;
+  // dynamic
+  float blendConst[4];
+};
 
-    struct SpecInfo
-    {
-      SpecInfo() : specID(0) {}
-      uint32_t specID;
-      rdctype::array<byte> data;
-    };
-    rdctype::array<SpecInfo> specialization;
-  } m_VS, m_TCS, m_TES, m_GS, m_FS, m_CS;
+struct StencilOp
+{
+  StencilOp() : ref(0), compareMask(0xff), writeMask(0xff) {}
+  rdctype::str failOp;
+  rdctype::str depthFailOp;
+  rdctype::str passOp;
+  rdctype::str func;
 
-  struct Tessellation
+  // dynamic
+  uint32_t ref, compareMask, writeMask;
+};
+
+struct DepthStencil
+{
+  DepthStencil()
+      : depthTestEnable(false),
+        depthWriteEnable(false),
+        depthBoundsEnable(false),
+        stencilTestEnable(false),
+        minDepthBounds(0),
+        maxDepthBounds(0)
   {
-    Tessellation() : numControlPoints(0) {}
-    uint32_t numControlPoints;
-  } Tess;
+  }
 
-  struct ViewState
+  bool32 depthTestEnable, depthWriteEnable, depthBoundsEnable;
+  rdctype::str depthCompareOp;
+
+  bool32 stencilTestEnable;
+
+  StencilOp front, back;
+
+  // dynamic
+  float minDepthBounds, maxDepthBounds;
+};
+
+struct RenderPass
+{
+  RenderPass() : depthstencilAttachment(-1) {}
+  ResourceId obj;
+  // VKTODOMED renderpass and subpass information here
+
+  rdctype::array<uint32_t> inputAttachments;
+  rdctype::array<uint32_t> colorAttachments;
+  int32_t depthstencilAttachment;
+};
+
+struct Attachment
+{
+  Attachment() : baseMip(0), baseLayer(0), numMip(1), numLayer(1)
   {
-    struct ViewportScissor
-    {
-      struct Viewport
-      {
-        Viewport() : x(0), y(0), width(0), height(0), minDepth(0), maxDepth(0) {}
-        float x, y, width, height, minDepth, maxDepth;
-      } vp;
+    swizzle[0] = TextureSwizzle::Red;
+    swizzle[1] = TextureSwizzle::Green;
+    swizzle[2] = TextureSwizzle::Blue;
+    swizzle[3] = TextureSwizzle::Alpha;
+  }
+  ResourceId view;
+  ResourceId img;
 
-      struct Scissor
-      {
-        Scissor() : x(0), y(0), width(0), height(0) {}
-        int32_t x, y, width, height;
-      } scissor;
-    };
+  ResourceFormat viewfmt;
+  TextureSwizzle swizzle[4];
+  uint32_t baseMip;
+  uint32_t baseLayer;
+  uint32_t numMip;
+  uint32_t numLayer;
+};
 
-    rdctype::array<ViewportScissor> viewportScissors;
-  } VP;
+struct Framebuffer
+{
+  Framebuffer() : width(0), height(0), layers(0) {}
+  ResourceId obj;
 
-  struct Raster
-  {
-    Raster()
-        : depthClampEnable(false),
-          rasterizerDiscardEnable(false),
-          FrontCCW(false),
-          fillMode(FillMode::Solid),
-          cullMode(CullMode::NoCull),
-          depthBias(0),
-          depthBiasClamp(0),
-          slopeScaledDepthBias(0),
-          lineWidth(0)
-    {
-    }
+  rdctype::array<Attachment> attachments;
 
-    bool32 depthClampEnable, rasterizerDiscardEnable, FrontCCW;
-    FillMode fillMode;
-    CullMode cullMode;
+  uint32_t width, height, layers;
+};
 
-    // dynamic
-    float depthBias, depthBiasClamp, slopeScaledDepthBias, lineWidth;
-  } RS;
+struct RenderArea
+{
+  RenderArea() : x(0), y(0), width(0), height(0) {}
+  int32_t x, y, width, height;
+};
 
-  struct MultiSample
-  {
-    MultiSample()
-        : rasterSamples(0), sampleShadingEnable(false), minSampleShading(0), sampleMask(~0U)
-    {
-    }
-    uint32_t rasterSamples;
-    bool32 sampleShadingEnable;
-    float minSampleShading;
-    uint32_t sampleMask;
-  } MSAA;
+struct CurrentPass
+{
+  RenderPass renderpass;
+  Framebuffer framebuffer;
+  RenderArea renderArea;
+};
 
-  struct ColorBlend
-  {
-    ColorBlend() : alphaToCoverageEnable(false), alphaToOneEnable(false), logicOpEnable(false)
-    {
-      blendConst[0] = blendConst[1] = blendConst[2] = blendConst[3] = 0.0f;
-    }
+struct ImageLayout
+{
+  uint32_t baseMip;
+  uint32_t baseLayer;
+  uint32_t numMip;
+  uint32_t numLayer;
+  rdctype::str name;
+};
 
-    bool32 alphaToCoverageEnable, alphaToOneEnable, logicOpEnable;
-    rdctype::str logicOp;
+struct ImageData
+{
+  ResourceId image;
 
-    struct Attachment
-    {
-      Attachment() : blendEnable(false), writeMask(0) {}
-      bool32 blendEnable;
+  rdctype::array<ImageLayout> layouts;
+};
 
-      struct BlendOp
-      {
-        rdctype::str Source;
-        rdctype::str Destination;
-        rdctype::str Operation;
-      } blend, alphaBlend;
+struct State
+{
+  Pipeline compute, graphics;
 
-      uint8_t writeMask;
-    };
-    rdctype::array<Attachment> attachments;
+  InputAssembly IA;
+  VertexInput VI;
 
-    // dynamic
-    float blendConst[4];
-  } CB;
+  Shader m_VS, m_TCS, m_TES, m_GS, m_FS, m_CS;
 
-  struct DepthStencil
-  {
-    DepthStencil()
-        : depthTestEnable(false),
-          depthWriteEnable(false),
-          depthBoundsEnable(false),
-          stencilTestEnable(false),
-          minDepthBounds(0),
-          maxDepthBounds(0)
-    {
-    }
+  Tessellation Tess;
 
-    bool32 depthTestEnable, depthWriteEnable, depthBoundsEnable;
-    rdctype::str depthCompareOp;
+  ViewState VP;
+  Raster RS;
 
-    bool32 stencilTestEnable;
-    struct StencilOp
-    {
-      StencilOp() : ref(0), compareMask(0xff), writeMask(0xff) {}
-      rdctype::str failOp;
-      rdctype::str depthFailOp;
-      rdctype::str passOp;
-      rdctype::str func;
+  MultiSample MSAA;
+  ColorBlend CB;
+  DepthStencil DS;
 
-      // dynamic
-      uint32_t ref, compareMask, writeMask;
-    } front, back;
+  CurrentPass Pass;
 
-    // dynamic
-    float minDepthBounds, maxDepthBounds;
-  } DS;
-
-  struct CurrentPass
-  {
-    struct RenderPass
-    {
-      RenderPass() : depthstencilAttachment(-1) {}
-      ResourceId obj;
-      // VKTODOMED renderpass and subpass information here
-
-      rdctype::array<uint32_t> inputAttachments;
-      rdctype::array<uint32_t> colorAttachments;
-      int32_t depthstencilAttachment;
-    } renderpass;
-
-    struct Framebuffer
-    {
-      Framebuffer() : width(0), height(0), layers(0) {}
-      ResourceId obj;
-
-      struct Attachment
-      {
-        Attachment() : baseMip(0), baseLayer(0), numMip(1), numLayer(1)
-        {
-          swizzle[0] = TextureSwizzle::Red;
-          swizzle[1] = TextureSwizzle::Green;
-          swizzle[2] = TextureSwizzle::Blue;
-          swizzle[3] = TextureSwizzle::Alpha;
-        }
-        ResourceId view;
-        ResourceId img;
-
-        ResourceFormat viewfmt;
-        TextureSwizzle swizzle[4];
-        uint32_t baseMip;
-        uint32_t baseLayer;
-        uint32_t numMip;
-        uint32_t numLayer;
-      };
-      rdctype::array<Attachment> attachments;
-
-      uint32_t width, height, layers;
-    } framebuffer;
-
-    struct RenderArea
-    {
-      RenderArea() : x(0), y(0), width(0), height(0) {}
-      int32_t x, y, width, height;
-    } renderArea;
-  } Pass;
-
-  struct ImageData
-  {
-    ResourceId image;
-
-    struct ImageLayout
-    {
-      uint32_t baseMip;
-      uint32_t baseLayer;
-      uint32_t numMip;
-      uint32_t numLayer;
-      rdctype::str name;
-    };
-    rdctype::array<ImageLayout> layouts;
-  };
   rdctype::array<ImageData> images;
 };
+
+};    // namespace VKPipe

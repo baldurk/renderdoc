@@ -111,7 +111,7 @@ public:
   D3D11Pipe::State GetD3D11PipelineState() { return D3D11Pipe::State(); }
   D3D12PipelineState GetD3D12PipelineState() { return D3D12PipelineState(); }
   GLPipe::State GetGLPipelineState() { return m_CurPipelineState; }
-  VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
+  VKPipe::State GetVulkanPipelineState() { return VKPipe::State(); }
   void FreeTargetResource(ResourceId id);
 
   void ReadLogInitialisation();

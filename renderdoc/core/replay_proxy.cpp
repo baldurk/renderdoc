@@ -972,9 +972,7 @@ void Serialiser::Serialise(const char *name, GLPipe::State &el)
 #pragma region Vulkan pipeline state
 
 template <>
-void Serialiser::Serialise(
-    const char *name,
-    VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement &el)
+void Serialiser::Serialise(const char *name, VKPipe::BindingElement &el)
 {
   Serialise("", el.view);
   Serialise("", el.res);
@@ -1014,8 +1012,7 @@ void Serialiser::Serialise(
 };
 
 template <>
-void Serialiser::Serialise(const char *name,
-                           VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding &el)
+void Serialiser::Serialise(const char *name, VKPipe::DescriptorBinding &el)
 {
   Serialise("", el.descriptorCount);
   Serialise("", el.type);
@@ -1027,7 +1024,7 @@ void Serialiser::Serialise(const char *name,
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::Pipeline::DescriptorSet &el)
+void Serialiser::Serialise(const char *name, VKPipe::DescriptorSet &el)
 {
   Serialise("", el.layout);
   Serialise("", el.descset);
@@ -1038,7 +1035,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::Pipeline::Desc
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::Pipeline &el)
+void Serialiser::Serialise(const char *name, VKPipe::Pipeline &el)
 {
   Serialise("", el.obj);
   Serialise("", el.flags);
@@ -1049,7 +1046,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::Pipeline &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::VertexInput::Attribute &el)
+void Serialiser::Serialise(const char *name, VKPipe::VertexAttribute &el)
 {
   Serialise("", el.location);
   Serialise("", el.binding);
@@ -1060,7 +1057,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::VertexInput::A
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::VertexInput &el)
+void Serialiser::Serialise(const char *name, VKPipe::VertexInput &el)
 {
   Serialise("", el.attrs);
   Serialise("", el.binds);
@@ -1070,7 +1067,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::VertexInput &e
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::Shader::SpecInfo &el)
+void Serialiser::Serialise(const char *name, VKPipe::SpecInfo &el)
 {
   Serialise("", el.specID);
   Serialise("", el.data);
@@ -1079,7 +1076,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::Shader::SpecIn
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::Shader &el)
+void Serialiser::Serialise(const char *name, VKPipe::Shader &el)
 {
   Serialise("", el.Object);
   Serialise("", el.entryPoint);
@@ -1098,7 +1095,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::Shader &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::ViewState &el)
+void Serialiser::Serialise(const char *name, VKPipe::ViewState &el)
 {
   Serialise("", el.viewportScissors);
 
@@ -1106,7 +1103,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::ViewState &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::ColorBlend::Attachment &el)
+void Serialiser::Serialise(const char *name, VKPipe::Blend &el)
 {
   Serialise("", el.blendEnable);
 
@@ -1124,7 +1121,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::ColorBlend::At
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::ColorBlend &el)
+void Serialiser::Serialise(const char *name, VKPipe::ColorBlend &el)
 {
   Serialise("", el.alphaToCoverageEnable);
   Serialise("", el.alphaToOneEnable);
@@ -1139,8 +1136,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::ColorBlend &el
 }
 
 template <>
-void Serialiser::Serialise(const char *name,
-                           VulkanPipelineState::CurrentPass::Framebuffer::Attachment &el)
+void Serialiser::Serialise(const char *name, VKPipe::Attachment &el)
 {
   Serialise("", el.view);
   Serialise("", el.img);
@@ -1157,7 +1153,7 @@ void Serialiser::Serialise(const char *name,
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::DepthStencil &el)
+void Serialiser::Serialise(const char *name, VKPipe::DepthStencil &el)
 {
   Serialise("", el.depthTestEnable);
   Serialise("", el.depthWriteEnable);
@@ -1189,7 +1185,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::DepthStencil &
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::CurrentPass &el)
+void Serialiser::Serialise(const char *name, VKPipe::CurrentPass &el)
 {
   Serialise("", el.renderpass.obj);
   Serialise("", el.renderpass.inputAttachments);
@@ -1208,7 +1204,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::CurrentPass &e
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::ImageData::ImageLayout &el)
+void Serialiser::Serialise(const char *name, VKPipe::ImageLayout &el)
 {
   Serialise("", el.baseMip);
   Serialise("", el.baseLayer);
@@ -1220,7 +1216,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::ImageData::Ima
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState::ImageData &el)
+void Serialiser::Serialise(const char *name, VKPipe::ImageData &el)
 {
   Serialise("", el.image);
   Serialise("", el.layouts);
@@ -1229,7 +1225,7 @@ void Serialiser::Serialise(const char *name, VulkanPipelineState::ImageData &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, VulkanPipelineState &el)
+void Serialiser::Serialise(const char *name, VKPipe::State &el)
 {
   Serialise("", el.compute);
   Serialise("", el.graphics);
@@ -1883,55 +1879,47 @@ string ToStrHelper<false, GLPipe::Hints>::Get(const GLPipe::Hints &el)
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VulkanPipelineState::CurrentPass::RenderArea>::Get(
-    const VulkanPipelineState::CurrentPass::RenderArea &el)
+string ToStrHelper<false, VKPipe::RenderArea>::Get(const VKPipe::RenderArea &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VulkanPipelineState::InputAssembly>::Get(
-    const VulkanPipelineState::InputAssembly &el)
+string ToStrHelper<false, VKPipe::InputAssembly>::Get(const VKPipe::InputAssembly &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VulkanPipelineState::Tessellation>::Get(
-    const VulkanPipelineState::Tessellation &el)
+string ToStrHelper<false, VKPipe::Tessellation>::Get(const VKPipe::Tessellation &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VulkanPipelineState::Raster>::Get(const VulkanPipelineState::Raster &el)
+string ToStrHelper<false, VKPipe::Raster>::Get(const VKPipe::Raster &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VulkanPipelineState::MultiSample>::Get(
-    const VulkanPipelineState::MultiSample &el)
+string ToStrHelper<false, VKPipe::MultiSample>::Get(const VKPipe::MultiSample &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement>::Get(
-    const VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement &el)
+string ToStrHelper<false, VKPipe::BindingElement>::Get(const VKPipe::BindingElement &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VulkanPipelineState::VertexInput::Binding>::Get(
-    const VulkanPipelineState::VertexInput::Binding &el)
+string ToStrHelper<false, VKPipe::VertexBinding>::Get(const VKPipe::VertexBinding &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VulkanPipelineState::VertexInput::VertexBuffer>::Get(
-    const VulkanPipelineState::VertexInput::VertexBuffer &el)
+string ToStrHelper<false, VKPipe::VB>::Get(const VKPipe::VB &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, VulkanPipelineState::ViewState::ViewportScissor>::Get(
-    const VulkanPipelineState::ViewState::ViewportScissor &el)
+string ToStrHelper<false, VKPipe::ViewportScissor>::Get(const VKPipe::ViewportScissor &el)
 {
   return "<...>";
 }
@@ -2390,7 +2378,7 @@ void ReplayProxy::SavePipelineState()
     m_D3D11PipelineState = D3D11Pipe::State();
     m_D3D12PipelineState = D3D12PipelineState();
     m_GLPipelineState = GLPipe::State();
-    m_VulkanPipelineState = VulkanPipelineState();
+    m_VulkanPipelineState = VKPipe::State();
   }
 
   m_FromReplaySerialiser->Serialise("", m_D3D11PipelineState);

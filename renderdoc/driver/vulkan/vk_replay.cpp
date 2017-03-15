@@ -3167,7 +3167,7 @@ void VulkanReplay::SavePipelineState()
 
     VulkanResourceManager *rm = m_pDriver->GetResourceManager();
 
-    m_VulkanPipelineState = VulkanPipelineState();
+    m_VulkanPipelineState = VKPipe::State();
 
     // General pipeline properties
     m_VulkanPipelineState.compute.obj = rm->GetOriginalID(state.compute.pipeline);
@@ -3179,7 +3179,7 @@ void VulkanReplay::SavePipelineState()
 
       m_VulkanPipelineState.compute.flags = p.flags;
 
-      VulkanPipelineState::Shader &stage = m_VulkanPipelineState.m_CS;
+      VKPipe::Shader &stage = m_VulkanPipelineState.m_CS;
 
       int i = 5;    // 5 is the CS idx (VS, TCS, TES, GS, FS, CS)
       {
@@ -3246,7 +3246,7 @@ void VulkanReplay::SavePipelineState()
       }
 
       // Shader Stages
-      VulkanPipelineState::Shader *stages[] = {
+      VKPipe::Shader *stages[] = {
           &m_VulkanPipelineState.m_VS, &m_VulkanPipelineState.m_TCS, &m_VulkanPipelineState.m_TES,
           &m_VulkanPipelineState.m_GS, &m_VulkanPipelineState.m_FS,
       };
@@ -3492,7 +3492,7 @@ void VulkanReplay::SavePipelineState()
     create_array_uninit(m_VulkanPipelineState.compute.DescSets, state.compute.descSets.size());
 
     {
-      rdctype::array<VulkanPipelineState::Pipeline::DescriptorSet> *dsts[] = {
+      rdctype::array<VKPipe::DescriptorSet> *dsts[] = {
           &m_VulkanPipelineState.graphics.DescSets, &m_VulkanPipelineState.compute.DescSets,
       };
 
@@ -3505,7 +3505,7 @@ void VulkanReplay::SavePipelineState()
         for(size_t i = 0; i < srcs[p]->size(); i++)
         {
           ResourceId src = (*srcs[p])[i].descSet;
-          VulkanPipelineState::Pipeline::DescriptorSet &dst = (*dsts[p])[i];
+          VKPipe::DescriptorSet &dst = (*dsts[p])[i];
 
           ResourceId layoutId = m_pDriver->m_DescriptorSetState[src].layout;
 
@@ -3581,8 +3581,7 @@ void VulkanReplay::SavePipelineState()
 
                 if(dst.bindings[b].binds[a].sampler != ResourceId())
                 {
-                  VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement &el =
-                      dst.bindings[b].binds[a];
+                  VKPipe::BindingElement &el = dst.bindings[b].binds[a];
                   const VulkanCreationInfo::Sampler &sampl = c.m_Sampler[el.sampler];
 
                   ResourceId liveId = el.sampler;
@@ -3731,7 +3730,7 @@ void VulkanReplay::SavePipelineState()
       size_t i = 0;
       for(auto it = m_pDriver->m_ImageLayouts.begin(); it != m_pDriver->m_ImageLayouts.end(); ++it)
       {
-        VulkanPipelineState::ImageData &img = m_VulkanPipelineState.images[i];
+        VKPipe::ImageData &img = m_VulkanPipelineState.images[i];
 
         img.image = rm->GetOriginalID(it->first);
 

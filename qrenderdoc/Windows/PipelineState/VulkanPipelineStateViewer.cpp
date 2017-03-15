@@ -368,7 +368,7 @@ void VulkanPipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const bind
   bool viewdetails = false;
 
   {
-    for(const VulkanPipelineState::ImageData &im : m_Ctx.CurVulkanPipelineState.images)
+    for(const VKPipe::ImageData &im : m_Ctx.CurVulkanPipelineState.images)
     {
       if(im.image == tex->ID)
       {
@@ -479,7 +479,7 @@ bool VulkanPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
   return false;
 }
 
-const VulkanPipelineState::Shader *VulkanPipelineStateViewer::stageForSender(QWidget *widget)
+const VKPipe::Shader *VulkanPipelineStateViewer::stageForSender(QWidget *widget)
 {
   if(!m_Ctx.LogLoaded())
     return NULL;
@@ -578,9 +578,8 @@ void VulkanPipelineStateViewer::clearState()
   ui->stencils->clear();
 }
 
-QVariantList VulkanPipelineStateViewer::makeSampler(
-    const QString &bindset, const QString &slotname,
-    const VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement &descriptor)
+QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, const QString &slotname,
+                                                    const VKPipe::BindingElement &descriptor)
 {
   QString addressing = "";
   QString addPrefix = "";
@@ -664,9 +663,8 @@ QVariantList VulkanPipelineStateViewer::makeSampler(
 }
 
 void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
-                                               const VulkanPipelineState::Shader &stage, int bindset,
-                                               int bind, const VulkanPipelineState::Pipeline &pipe,
-                                               RDTreeWidget *resources,
+                                               const VKPipe::Shader &stage, int bindset, int bind,
+                                               const VKPipe::Pipeline &pipe, RDTreeWidget *resources,
                                                QMap<ResourceId, SamplerData> &samplers)
 {
   const ShaderResource *shaderRes = NULL;
@@ -708,8 +706,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
     }
   }
 
-  const rdctype::array<VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement>
-      *slotBinds = NULL;
+  const rdctype::array<VKPipe::BindingElement> *slotBinds = NULL;
   BindType bindType = BindType::Unknown;
   ShaderStageMask stageBits = ShaderStageMask::Unknown;
 
@@ -793,8 +790,7 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 
     for(int idx = 0; idx < arrayLength; idx++)
     {
-      const VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement *descriptorBind =
-          NULL;
+      const VKPipe::BindingElement *descriptorBind = NULL;
       if(slotBinds != NULL)
         descriptorBind = &(*slotBinds)[idx];
 
@@ -1044,9 +1040,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
 }
 
 void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDetails,
-                                                    const VulkanPipelineState::Shader &stage,
-                                                    int bindset, int bind,
-                                                    const VulkanPipelineState::Pipeline &pipe,
+                                                    const VKPipe::Shader &stage, int bindset,
+                                                    int bind, const VKPipe::Pipeline &pipe,
                                                     RDTreeWidget *ubos)
 {
   const ConstantBlock *cblock = NULL;
@@ -1074,8 +1069,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
       slot = ~0U;
   }
 
-  const rdctype::array<VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement>
-      *slotBinds = NULL;
+  const rdctype::array<VKPipe::BindingElement> *slotBinds = NULL;
   BindType bindType = BindType::ConstantBuffer;
   ShaderStageMask stageBits = ShaderStageMask::Unknown;
 
@@ -1140,8 +1134,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
 
     for(int idx = 0; idx < arrayLength; idx++)
     {
-      const VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement *descriptorBind =
-          NULL;
+      const VKPipe::BindingElement *descriptorBind = NULL;
       if(slotBinds != NULL)
         descriptorBind = &(*slotBinds)[idx];
 
@@ -1223,10 +1216,9 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
   }
 }
 
-void VulkanPipelineStateViewer::setShaderState(const VulkanPipelineState::Shader &stage,
-                                               const VulkanPipelineState::Pipeline &pipe,
-                                               QLabel *shader, RDTreeWidget *resources,
-                                               RDTreeWidget *ubos)
+void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
+                                               const VKPipe::Pipeline &pipe, QLabel *shader,
+                                               RDTreeWidget *resources, RDTreeWidget *ubos)
 {
   ShaderReflection *shaderDetails = stage.ShaderDetails;
 
@@ -1432,7 +1424,7 @@ void VulkanPipelineStateViewer::setState()
 
   m_CombinedImageSamplers.clear();
 
-  const VulkanPipelineState &state = m_Ctx.CurVulkanPipelineState;
+  const VKPipe::State &state = m_Ctx.CurVulkanPipelineState;
   const FetchDrawcall *draw = m_Ctx.CurDrawcall();
 
   bool showDisabled = ui->showDisabled->isChecked();
@@ -1456,7 +1448,7 @@ void VulkanPipelineStateViewer::setState()
   ui->viAttrs->clear();
   {
     int i = 0;
-    for(const VulkanPipelineState::VertexInput::Attribute &a : state.VI.attrs)
+    for(const VKPipe::VertexAttribute &a : state.VI.attrs)
     {
       bool filledSlot = true;
       bool usedSlot = false;
@@ -1607,9 +1599,8 @@ void VulkanPipelineStateViewer::setState()
     int i = 0;
     for(; i < qMax(state.VI.vbuffers.count, state.VI.binds.count); i++)
     {
-      const VulkanPipelineState::VertexInput::VertexBuffer *vbuff =
-          (i < state.VI.vbuffers.count ? &state.VI.vbuffers[i] : NULL);
-      const VulkanPipelineState::VertexInput::Binding *bind = NULL;
+      const VKPipe::VB *vbuff = (i < state.VI.vbuffers.count ? &state.VI.vbuffers[i] : NULL);
+      const VKPipe::VertexBinding *bind = NULL;
 
       for(int b = 0; b < state.VI.binds.count; b++)
       {
@@ -1727,7 +1718,7 @@ void VulkanPipelineStateViewer::setState()
 
   {
     int i = 0;
-    for(const VulkanPipelineState::ViewState::ViewportScissor &v : state.VP.viewportScissors)
+    for(const VKPipe::ViewportScissor &v : state.VP.viewportScissors)
     {
       QTreeWidgetItem *node =
           makeTreeNode({i, v.vp.x, v.vp.y, v.vp.width, v.vp.height, v.vp.minDepth, v.vp.maxDepth});
@@ -1781,8 +1772,7 @@ void VulkanPipelineStateViewer::setState()
   ui->framebuffer->clear();
   {
     int i = 0;
-    for(const VulkanPipelineState::CurrentPass::Framebuffer::Attachment &p :
-        state.Pass.framebuffer.attachments)
+    for(const VKPipe::Attachment &p : state.Pass.framebuffer.attachments)
     {
       int colIdx = -1;
       for(int c = 0; c < state.Pass.renderpass.colorAttachments.count; c++)
@@ -1885,7 +1875,7 @@ void VulkanPipelineStateViewer::setState()
   ui->blends->clear();
   {
     int i = 0;
-    for(const VulkanPipelineState::ColorBlend::Attachment &blend : state.CB.attachments)
+    for(const VKPipe::Blend &blend : state.CB.attachments)
     {
       bool filledSlot = true;
       bool usedSlot = (targets[i]);
@@ -2025,7 +2015,7 @@ QString VulkanPipelineStateViewer::formatMembers(int indent, const QString &name
 
 void VulkanPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int column)
 {
-  const VulkanPipelineState::Shader *stage = stageForSender(item->treeWidget());
+  const VKPipe::Shader *stage = stageForSender(item->treeWidget());
 
   if(stage == NULL)
     return;
@@ -2125,7 +2115,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, in
 
 void VulkanPipelineStateViewer::ubo_itemActivated(QTreeWidgetItem *item, int column)
 {
-  const VulkanPipelineState::Shader *stage = stageForSender(item->treeWidget());
+  const VKPipe::Shader *stage = stageForSender(item->treeWidget());
 
   if(stage == NULL)
     return;
@@ -2189,7 +2179,7 @@ void VulkanPipelineStateViewer::highlightIABind(int slot)
 {
   int idx = ((slot + 1) * 21) % 32;    // space neighbouring colours reasonably distinctly
 
-  const VulkanPipelineState::VertexInput &VI = m_Ctx.CurVulkanPipelineState.VI;
+  const VKPipe::VertexInput &VI = m_Ctx.CurVulkanPipelineState.VI;
 
   QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f, 0.95f);
 
@@ -2248,7 +2238,7 @@ void VulkanPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
 
   vertex_leave(NULL);
 
-  const VulkanPipelineState::VertexInput &VI = m_Ctx.CurVulkanPipelineState.VI;
+  const VKPipe::VertexInput &VI = m_Ctx.CurVulkanPipelineState.VI;
 
   if(idx.isValid())
   {
@@ -2341,8 +2331,7 @@ void VulkanPipelineStateViewer::on_pipeFlow_stageSelected(int index)
 
 void VulkanPipelineStateViewer::shaderView_clicked()
 {
-  const VulkanPipelineState::Shader *stage =
-      stageForSender(qobject_cast<QWidget *>(QObject::sender()));
+  const VKPipe::Shader *stage = stageForSender(qobject_cast<QWidget *>(QObject::sender()));
 
   if(stage == NULL || stage->Object == ResourceId())
     return;
@@ -2363,7 +2352,7 @@ void VulkanPipelineStateViewer::shaderView_clicked()
 void VulkanPipelineStateViewer::shaderEdit_clicked()
 {
   QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
-  const VulkanPipelineState::Shader *stage = stageForSender(sender);
+  const VKPipe::Shader *stage = stageForSender(sender);
 
   if(!stage || stage->Object == ResourceId())
     return;
@@ -2488,8 +2477,7 @@ QString VulkanPipelineStateViewer::disassembleSPIRV(const ShaderReflection *shad
 
 void VulkanPipelineStateViewer::shaderSave_clicked()
 {
-  const VulkanPipelineState::Shader *stage =
-      stageForSender(qobject_cast<QWidget *>(QObject::sender()));
+  const VKPipe::Shader *stage = stageForSender(qobject_cast<QWidget *>(QObject::sender()));
 
   if(stage == NULL)
     return;

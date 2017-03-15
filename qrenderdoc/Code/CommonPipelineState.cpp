@@ -31,7 +31,7 @@ QString CommonPipelineState::GetImageLayout(ResourceId id)
   {
     if(IsLogVK())
     {
-      for(const VulkanPipelineState::ImageData &i : m_Vulkan->images)
+      for(const VKPipe::ImageData &i : m_Vulkan->images)
       {
         if(i.image == id)
           return ToQStr(i.layouts[0].name);
@@ -881,9 +881,8 @@ void CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, 
     }
     else if(IsLogVK())
     {
-      VulkanPipelineState::Pipeline &pipe =
-          stage == ShaderStage::Compute ? m_Vulkan->compute : m_Vulkan->graphics;
-      const VulkanPipelineState::Shader &s = GetVulkanStage(stage);
+      VKPipe::Pipeline &pipe = stage == ShaderStage::Compute ? m_Vulkan->compute : m_Vulkan->graphics;
+      const VKPipe::Shader &s = GetVulkanStage(stage);
 
       if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count)
       {

@@ -400,7 +400,7 @@ public:
   D3D11Pipe::State GetD3D11PipelineState() { return m_D3D11PipelineState; }
   D3D12PipelineState GetD3D12PipelineState() { return m_D3D12PipelineState; }
   GLPipe::State GetGLPipelineState() { return m_GLPipelineState; }
-  VulkanPipelineState GetVulkanPipelineState() { return m_VulkanPipelineState; }
+  VKPipe::State GetVulkanPipelineState() { return m_VulkanPipelineState; }
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
 
   vector<uint32_t> GetPassEvents(uint32_t eventID);
@@ -554,5 +554,5 @@ private:
   D3D11Pipe::State m_D3D11PipelineState;
   D3D12PipelineState m_D3D12PipelineState;
   GLPipe::State m_GLPipelineState;
-  VulkanPipelineState m_VulkanPipelineState;
+  VKPipe::State m_VulkanPipelineState;
 };

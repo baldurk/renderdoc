@@ -153,7 +153,7 @@ public:
   D3D11Pipe::State GetD3D11PipelineState() { return D3D11Pipe::State(); }
   D3D12PipelineState GetD3D12PipelineState() { return D3D12PipelineState(); }
   GLPipe::State GetGLPipelineState() { return GLPipe::State(); }
-  VulkanPipelineState GetVulkanPipelineState() { return m_VulkanPipelineState; }
+  VKPipe::State GetVulkanPipelineState() { return m_VulkanPipelineState; }
   void FreeTargetResource(ResourceId id);
 
   void ReadLogInitialisation();
@@ -315,7 +315,7 @@ private:
     VulkanResourceManager *m_ResourceManager;
   };
 
-  VulkanPipelineState m_VulkanPipelineState;
+  VKPipe::State m_VulkanPipelineState;
 
   map<uint64_t, OutputWindow> m_OutputWindows;
   uint64_t m_OutputWinID;

@@ -83,19 +83,16 @@ private:
   CaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
 
-  QVariantList makeSampler(
-      const QString &bindset, const QString &slotname,
-      const VulkanPipelineState::Pipeline::DescriptorSet::DescriptorBinding::BindingElement &descriptor);
-  void addResourceRow(ShaderReflection *shaderDetails, const VulkanPipelineState::Shader &stage,
-                      int bindset, int bind, const VulkanPipelineState::Pipeline &pipe,
-                      RDTreeWidget *resources, QMap<ResourceId, SamplerData> &samplers);
-  void addConstantBlockRow(ShaderReflection *shaderDetails,
-                           const VulkanPipelineState::Shader &stage, int bindset, int bind,
-                           const VulkanPipelineState::Pipeline &pipe, RDTreeWidget *ubos);
+  QVariantList makeSampler(const QString &bindset, const QString &slotname,
+                           const VKPipe::BindingElement &descriptor);
+  void addResourceRow(ShaderReflection *shaderDetails, const VKPipe::Shader &stage, int bindset,
+                      int bind, const VKPipe::Pipeline &pipe, RDTreeWidget *resources,
+                      QMap<ResourceId, SamplerData> &samplers);
+  void addConstantBlockRow(ShaderReflection *shaderDetails, const VKPipe::Shader &stage,
+                           int bindset, int bind, const VKPipe::Pipeline &pipe, RDTreeWidget *ubos);
 
-  void setShaderState(const VulkanPipelineState::Shader &stage,
-                      const VulkanPipelineState::Pipeline &pipe, QLabel *shader, RDTreeWidget *res,
-                      RDTreeWidget *ubo);
+  void setShaderState(const VKPipe::Shader &stage, const VKPipe::Pipeline &pipe, QLabel *shader,
+                      RDTreeWidget *res, RDTreeWidget *ubo);
   void clearShaderState(QLabel *shader, RDTreeWidget *res, RDTreeWidget *ubo);
   void setState();
   void clearState();
@@ -106,7 +103,7 @@ private:
 
   QString formatMembers(int indent, const QString &nameprefix,
                         const rdctype::array<ShaderConstant> &vars);
-  const VulkanPipelineState::Shader *stageForSender(QWidget *widget);
+  const VKPipe::Shader *stageForSender(QWidget *widget);
 
   QString disassembleSPIRV(const ShaderReflection *shaderDetails);
 
