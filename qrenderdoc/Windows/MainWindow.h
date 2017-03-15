@@ -107,6 +107,7 @@ private slots:
   void on_action_View_Diagnostic_Log_File_triggered();
   void on_action_Source_on_github_triggered();
   void on_action_Build_Release_downloads_triggered();
+  void on_actionShow_Tips_triggered();
 
   // manual slots
   void saveLayout_triggered();

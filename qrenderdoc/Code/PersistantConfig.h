@@ -134,7 +134,7 @@ struct SPIRVDisassembler
   CONFIG_SETTING_VAL(public, QDateTime, QDateTime, DegradedLog_LastUpdate,                 \
                      QDateTime(QDate(2015, 01, 01), QTime(0, 0, 0)))                       \
                                                                                            \
-  CONFIG_SETTING_VAL(public, bool, bool, Tips_SeenFirst, false)                            \
+  CONFIG_SETTING_VAL(public, bool, bool, Tips_HasSeenFirst, false)                         \
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, AllowGlobalHook, false)                           \
                                                                                            \
