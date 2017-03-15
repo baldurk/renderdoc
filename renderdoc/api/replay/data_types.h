@@ -424,6 +424,14 @@ struct CounterDescription
   CounterUnit unit;
 };
 
+union CounterValue
+{
+  float f;
+  double d;
+  uint32_t u32;
+  uint64_t u64;
+};
+
 struct CounterResult
 {
   CounterResult() : eventID(0), counterID(GPUCounter::EventGPUDuration) { value.u64 = 0; }
@@ -463,24 +471,15 @@ struct CounterResult
 
   uint32_t eventID;
   GPUCounter counterID;
-  union
-  {
-    float f;
-    double d;
-    uint32_t u32;
-    uint64_t u64;
-  } value;
+  CounterValue value;
 };
 
-struct PixelValue
+union PixelValue
 {
-  union
-  {
-    float value_f[4];
-    uint32_t value_u[4];
-    int32_t value_i[4];
-    uint16_t value_u16[4];
-  };
+  float value_f[4];
+  uint32_t value_u[4];
+  int32_t value_i[4];
+  uint16_t value_u16[4];
 };
 
 struct ModificationValue

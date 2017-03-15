@@ -129,6 +129,63 @@ struct TextureDisplay
   DebugOverlay overlay;
 };
 
+// some dependent structs for TextureSave
+struct TextureComponentMapping
+{
+  float blackPoint;
+  float whitePoint;
+};
+
+struct TextureSampleMapping
+{
+  // if true, texture acts like an array, each slice being
+  // the corresponding sample, and below sample index is ignored.
+  // Later options for handling slices/faces then control how
+  // a texture array is mapped to the file.
+  bool32 mapToArray;
+
+  // if the above mapToArray is false, this selects the sample
+  // index to treat as a normal 2D image. If this is ~0U a default
+  // unweighted average resolve is performed instead.
+  // resolve only available for uncompressed simple formats.
+  uint32_t sampleIndex;
+};
+
+struct TextureSliceMapping
+{
+  // select the (depth/array) slice to save.
+  // If this is -1, writes out all slices as detailed below
+  // this is only supported in formats that don't support
+  // slices natively, and will be done in RGBA8 space.
+  int32_t sliceIndex;
+
+  // write out the slices as a 2D grid, with the below
+  // width. Any empty slices are writted as (0,0,0,0)
+  bool32 slicesAsGrid;
+
+  int32_t sliceGridWidth;
+
+  // write out 6 slices in the cruciform:
+  /*
+         +---+
+         |+y |
+         |   |
+     +---+---+---+---+
+     |-x |+z |+x |-z |
+     |   |   |   |   |
+     +---+---+---+---+
+         |-y |
+         |   |
+         +---+
+  */
+  // with the gaps filled with (0,0,0,0)
+  bool32 cubeCruciform;
+
+  // if sliceIndex is -1, cubeCruciform == slicesAsGrid == false
+  // and file format doesn't support saving all slices, only
+  // slice 0 is saved
+};
+
 struct TextureSave
 {
   ResourceId id;
@@ -143,65 +200,15 @@ struct TextureSave
 
   // for output formats that are 8bit unorm srgb, values are mapped using
   // the following black/white points.
-  struct ComponentMapping
-  {
-    float blackPoint;
-    float whitePoint;
-  } comp;
+  TextureComponentMapping comp;
 
   // what to do for multisampled textures (ignored otherwise)
-  struct SampleMapping
-  {
-    // if true, texture acts like an array, each slice being
-    // the corresponding sample, and below sample index is ignored.
-    // Later options for handling slices/faces then control how
-    // a texture array is mapped to the file.
-    bool32 mapToArray;
-
-    // if the above mapToArray is false, this selects the sample
-    // index to treat as a normal 2D image. If this is ~0U a default
-    // unweighted average resolve is performed instead.
-    // resolve only available for uncompressed simple formats.
-    uint32_t sampleIndex;
-  } sample;
+  TextureSampleMapping sample;
 
   // how to select/save depth/array slices or cubemap faces
   // if invalid options are specified, slice index 0 is written
   // alone
-  struct SliceMapping
-  {
-    // select the (depth/array) slice to save.
-    // If this is -1, writes out all slices as detailed below
-    // this is only supported in formats that don't support
-    // slices natively, and will be done in RGBA8 space.
-    int32_t sliceIndex;
-
-    // write out the slices as a 2D grid, with the below
-    // width. Any empty slices are writted as (0,0,0,0)
-    bool32 slicesAsGrid;
-
-    int32_t sliceGridWidth;
-
-    // write out 6 slices in the cruciform:
-    /*
-           +---+
-           |+y |
-           |   |
-       +---+---+---+---+
-       |-x |+z |+x |-z |
-       |   |   |   |   |
-       +---+---+---+---+
-           |-y |
-           |   |
-           +---+
-    */
-    // with the gaps filled with (0,0,0,0)
-    bool32 cubeCruciform;
-
-    // if sliceIndex is -1, cubeCruciform == slicesAsGrid == false
-    // and file format doesn't support saving all slices, only
-    // slice 0 is saved
-  } slice;
+  TextureSliceMapping slice;
 
   int channelExtract;
 
@@ -215,33 +222,39 @@ struct TextureSave
   int jpegQuality;
 };
 
+// dependent structs for TargetControlMessage
+struct NewCaptureData
+{
+  uint32_t ID;
+  uint64_t timestamp;
+  rdctype::array<byte> thumbnail;
+  rdctype::str path;
+  bool32 local;
+};
+
+struct RegisterAPIData
+{
+  rdctype::str APIName;
+};
+
+struct BusyData
+{
+  rdctype::str ClientName;
+};
+
+struct NewChildData
+{
+  uint32_t PID;
+  uint32_t ident;
+};
+
 struct TargetControlMessage
 {
   TargetControlMessage() {}
   TargetControlMessageType Type;
 
-  struct NewCaptureData
-  {
-    uint32_t ID;
-    uint64_t timestamp;
-    rdctype::array<byte> thumbnail;
-    rdctype::str path;
-    bool32 local;
-  } NewCapture;
-
-  struct RegisterAPIData
-  {
-    rdctype::str APIName;
-  } RegisterAPI;
-
-  struct BusyData
-  {
-    rdctype::str ClientName;
-  } Busy;
-
-  struct NewChildData
-  {
-    uint32_t PID;
-    uint32_t ident;
-  } NewChild;
+  NewCaptureData NewCapture;
+  RegisterAPIData RegisterAPI;
+  BusyData Busy;
+  NewChildData NewChild;
 };

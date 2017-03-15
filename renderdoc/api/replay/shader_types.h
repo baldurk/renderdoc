@@ -32,6 +32,41 @@
 typedef uint8_t byte;
 typedef uint32_t bool32;
 
+struct FloatVecVal
+{
+  float x, y, z, w;
+};
+
+struct DoubleVecVal
+{
+  double x, y, z, w;
+};
+
+struct IntVecVal
+{
+  int32_t x, y, z, w;
+};
+
+struct UIntVecVal
+{
+  uint32_t x, y, z, w;
+};
+
+union ShaderValue
+{
+  FloatVecVal f;
+  float fv[16];
+
+  IntVecVal i;
+  int32_t iv[16];
+
+  UIntVecVal u;
+  uint32_t uv[16];
+
+  DoubleVecVal d;
+  double dv[16];
+};
+
 struct ShaderVariable
 {
   ShaderVariable()
@@ -93,32 +128,7 @@ struct ShaderVariable
 
   bool32 displayAsHex;
 
-  union
-  {
-    struct
-    {
-      float x, y, z, w;
-    } f;
-    float fv[16];
-
-    struct
-    {
-      int32_t x, y, z, w;
-    } i;
-    int32_t iv[16];
-
-    struct
-    {
-      uint32_t x, y, z, w;
-    } u;
-    uint32_t uv[16];
-
-    struct
-    {
-      double x, y, z, w;
-    } d;
-    double dv[16];
-  } value;
+  ShaderValue value;
 
   bool32 isStruct;
 
@@ -182,30 +192,34 @@ struct SigParameter
 
 struct ShaderConstant;
 
+struct ShaderVariableDescriptor
+{
+  VarType type;
+  uint32_t rows;
+  uint32_t cols;
+  uint32_t elements;
+  bool32 rowMajorStorage;
+  uint32_t arrayStride;
+  rdctype::str name;
+};
+
 struct ShaderVariableType
 {
-  struct
-  {
-    VarType type;
-    uint32_t rows;
-    uint32_t cols;
-    uint32_t elements;
-    bool32 rowMajorStorage;
-    uint32_t arrayStride;
-    rdctype::str name;
-  } descriptor;
+  ShaderVariableDescriptor descriptor;
 
   rdctype::array<ShaderConstant> members;
+};
+
+struct ShaderRegister
+{
+  uint32_t vec;
+  uint32_t comp;
 };
 
 struct ShaderConstant
 {
   rdctype::str name;
-  struct
-  {
-    uint32_t vec;
-    uint32_t comp;
-  } reg;
+  ShaderRegister reg;
   uint64_t defaultValue;
   ShaderVariableType type;
 };
