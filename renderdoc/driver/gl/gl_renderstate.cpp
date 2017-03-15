@@ -181,20 +181,7 @@ byte *PixelUnpackState::Unpack(byte *pixels, GLsizei width, GLsizei height, GLsi
   size_t destrowstride = pixelSize * width;
   size_t destimgstride = destrowstride * height;
 
-  size_t elemSize = 1;
-  switch(basetype)
-  {
-    case eGL_UNSIGNED_BYTE:
-    case eGL_BYTE: elemSize = 1; break;
-    case eGL_UNSIGNED_SHORT:
-    case eGL_SHORT:
-    case eGL_HALF_FLOAT: elemSize = 2; break;
-    case eGL_UNSIGNED_INT:
-    case eGL_INT:
-    case eGL_FLOAT: elemSize = 4; break;
-    case eGL_DOUBLE: elemSize = 8; break;
-    default: break;
-  }
+  size_t elemSize = GLTypeSize(basetype);
 
   size_t allocsize = width * RDCMAX(1, height) * RDCMAX(1, depth) * pixelSize;
   byte *ret = new byte[allocsize];

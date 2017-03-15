@@ -284,14 +284,14 @@ vector<CounterResult> VulkanReplay::FetchCounters(const vector<uint32_t> &counte
       ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &timeStampPoolCreateInfo, NULL, &timeStampPool);
   RDCASSERTEQUAL(vkr, VK_SUCCESS);
 
-  VkQueryPool occlusionPool = NULL;
+  VkQueryPool occlusionPool = VK_NULL_HANDLE;
   if(availableFeatures.occlusionQueryPrecise)
   {
     vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &occlusionPoolCreateInfo, NULL, &occlusionPool);
     RDCASSERTEQUAL(vkr, VK_SUCCESS);
   }
 
-  VkQueryPool pipeStatsPool = NULL;
+  VkQueryPool pipeStatsPool = VK_NULL_HANDLE;
   if(availableFeatures.pipelineStatisticsQuery)
   {
     vkr = ObjDisp(dev)->CreateQueryPool(Unwrap(dev), &pipeStatsPoolCreateInfo, NULL, &pipeStatsPool);

@@ -818,6 +818,8 @@ WrappedOpenGL::WrappedOpenGL(const char *logfile, const GLHookSet &funcs, GLPlat
     RenderDoc::Inst().RegisterShutdownFunction(&ShutdownSPIRVCompiler);
   }
 
+  m_TempClientVAO = 0;
+
   m_FakeBB_FBO = 0;
   m_FakeBB_Color = 0;
   m_FakeBB_DepthStencil = 0;

@@ -806,6 +806,24 @@ GLenum QueryEnum(size_t idx)
   return eGL_NONE;
 }
 
+size_t GLTypeSize(GLenum type)
+{
+  switch(type)
+  {
+    case eGL_UNSIGNED_BYTE:
+    case eGL_BYTE: return 1;
+    case eGL_UNSIGNED_SHORT:
+    case eGL_SHORT:
+    case eGL_HALF_FLOAT: return 2;
+    case eGL_UNSIGNED_INT:
+    case eGL_INT:
+    case eGL_FLOAT: return 4;
+    case eGL_DOUBLE: return 8;
+    default: RDCWARN("Unhandled element type %s", ToStr::Get(type).c_str());
+  }
+  return 0;
+}
+
 size_t ShaderIdx(GLenum buf)
 {
   switch(buf)
