@@ -536,7 +536,7 @@ void CaptureContext::CloseLogfile()
 
   CurD3D11PipelineState = D3D11Pipe::State();
   CurD3D12PipelineState = D3D12PipelineState();
-  CurGLPipelineState = GLPipelineState();
+  CurGLPipelineState = GLPipe::State();
   CurVulkanPipelineState = VulkanPipelineState();
   CurPipelineState.SetStates(m_APIProps, NULL, NULL, NULL, NULL);
 

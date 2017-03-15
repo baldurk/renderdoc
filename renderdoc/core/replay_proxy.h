@@ -399,7 +399,7 @@ public:
   void SavePipelineState();
   D3D11Pipe::State GetD3D11PipelineState() { return m_D3D11PipelineState; }
   D3D12PipelineState GetD3D12PipelineState() { return m_D3D12PipelineState; }
-  GLPipelineState GetGLPipelineState() { return m_GLPipelineState; }
+  GLPipe::State GetGLPipelineState() { return m_GLPipelineState; }
   VulkanPipelineState GetVulkanPipelineState() { return m_VulkanPipelineState; }
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType);
 
@@ -553,6 +553,6 @@ private:
 
   D3D11Pipe::State m_D3D11PipelineState;
   D3D12PipelineState m_D3D12PipelineState;
-  GLPipelineState m_GLPipelineState;
+  GLPipe::State m_GLPipelineState;
   VulkanPipelineState m_VulkanPipelineState;
 };

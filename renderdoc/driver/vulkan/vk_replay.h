@@ -152,7 +152,7 @@ public:
   void SavePipelineState();
   D3D11Pipe::State GetD3D11PipelineState() { return D3D11Pipe::State(); }
   D3D12PipelineState GetD3D12PipelineState() { return D3D12PipelineState(); }
-  GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
+  GLPipe::State GetGLPipelineState() { return GLPipe::State(); }
   VulkanPipelineState GetVulkanPipelineState() { return m_VulkanPipelineState; }
   void FreeTargetResource(ResourceId id);
 

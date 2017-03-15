@@ -166,7 +166,7 @@ public:
 
   D3D11Pipe::State CurD3D11PipelineState;
   D3D12PipelineState CurD3D12PipelineState;
-  GLPipelineState CurGLPipelineState;
+  GLPipe::State CurGLPipelineState;
   VulkanPipelineState CurVulkanPipelineState;
   CommonPipelineState CurPipelineState;
 

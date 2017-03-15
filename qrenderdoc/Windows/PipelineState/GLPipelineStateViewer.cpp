@@ -412,7 +412,7 @@ bool GLPipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
   return false;
 }
 
-const GLPipelineState::Shader *GLPipelineStateViewer::stageForSender(QWidget *widget)
+const GLPipe::Shader *GLPipelineStateViewer::stageForSender(QWidget *widget)
 {
   if(!m_Ctx.LogLoaded())
     return NULL;
@@ -532,14 +532,14 @@ void GLPipelineStateViewer::clearState()
   ui->stencils->clear();
 }
 
-void GLPipelineStateViewer::setShaderState(const GLPipelineState::Shader &stage, QLabel *shader,
+void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *shader,
                                            RDTreeWidget *textures, RDTreeWidget *samplers,
                                            RDTreeWidget *ubos, RDTreeWidget *subs,
                                            RDTreeWidget *readwrites)
 {
   ShaderReflection *shaderDetails = stage.ShaderDetails;
   const ShaderBindpointMapping &mapping = stage.BindpointMapping;
-  const GLPipelineState &state = m_Ctx.CurGLPipelineState;
+  const GLPipe::State &state = m_Ctx.CurGLPipelineState;
 
   const QIcon &action = Icons::action();
   const QIcon &action_hover = Icons::action_hover();
@@ -584,8 +584,8 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::Shader &stage,
 
   for(int i = 0; i < state.Textures.count; i++)
   {
-    const GLPipelineState::Texture &r = state.Textures[i];
-    const GLPipelineState::Sampler &s = state.Samplers[i];
+    const GLPipe::Texture &r = state.Textures[i];
+    const GLPipe::Sampler &s = state.Samplers[i];
 
     const ShaderResource *shaderInput = NULL;
     const BindpointMap *map = NULL;
@@ -760,7 +760,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::Shader &stage,
     const ConstantBlock &shaderCBuf = shaderDetails->ConstantBlocks[i];
     int bindPoint = stage.BindpointMapping.ConstantBlocks[i].bind;
 
-    const GLPipelineState::Buffer *b = NULL;
+    const GLPipe::Buffer *b = NULL;
 
     if(bindPoint >= 0 && bindPoint < state.UniformBuffers.count)
       b = &state.UniformBuffers[bindPoint];
@@ -851,8 +851,8 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::Shader &stage,
 
     GLReadWriteType readWriteType = GetGLReadWriteType(res);
 
-    const GLPipelineState::Buffer *bf = NULL;
-    const GLPipelineState::ImageLoadStore *im = NULL;
+    const GLPipe::Buffer *bf = NULL;
+    const GLPipe::ImageLoadStore *im = NULL;
     ResourceId id;
 
     if(readWriteType == GLReadWriteType::Image && bindPoint >= 0 && bindPoint < state.Images.count)
@@ -980,8 +980,8 @@ void GLPipelineStateViewer::setShaderState(const GLPipelineState::Shader &stage,
   readwrites->parentWidget()->setVisible(!stage.Subroutines.empty());
 }
 
-QString GLPipelineStateViewer::MakeGenericValueString(
-    uint32_t compCount, CompType compType, const GLPipelineState::VertexInput::VertexAttribute &val)
+QString GLPipelineStateViewer::MakeGenericValueString(uint32_t compCount, CompType compType,
+                                                      const GLPipe::VertexAttribute &val)
 {
   QString ret = "";
   if(compCount == 1)
@@ -996,21 +996,21 @@ QString GLPipelineStateViewer::MakeGenericValueString(
   if(compType == CompType::UInt)
   {
     for(uint32_t i = 0; i < compCount; i++)
-      ret = ret.arg(val.GenericValue.u[i]);
+      ret = ret.arg(val.GenericValue.value_u[i]);
 
     return ret;
   }
   else if(compType == CompType::SInt)
   {
     for(uint32_t i = 0; i < compCount; i++)
-      ret = ret.arg(val.GenericValue.i[i]);
+      ret = ret.arg(val.GenericValue.value_i[i]);
 
     return ret;
   }
   else
   {
     for(uint32_t i = 0; i < compCount; i++)
-      ret = ret.arg(val.GenericValue.f[i]);
+      ret = ret.arg(val.GenericValue.value_f[i]);
 
     return ret;
   }
@@ -1048,7 +1048,7 @@ void GLPipelineStateViewer::setState()
     return;
   }
 
-  const GLPipelineState &state = m_Ctx.CurGLPipelineState;
+  const GLPipe::State &state = m_Ctx.CurGLPipelineState;
   const FetchDrawcall *draw = m_Ctx.CurDrawcall();
 
   bool showDisabled = ui->showDisabled->isChecked();
@@ -1072,7 +1072,7 @@ void GLPipelineStateViewer::setState()
   ui->viAttrs->clear();
   {
     int i = 0;
-    for(const GLPipelineState::VertexInput::VertexAttribute &a : state.m_VtxIn.attributes)
+    for(const GLPipe::VertexAttribute &a : state.m_VtxIn.attributes)
     {
       bool filledSlot = true;
       bool usedSlot = false;
@@ -1236,7 +1236,7 @@ void GLPipelineStateViewer::setState()
 
   for(int i = 0; i < state.m_VtxIn.vbuffers.count; i++)
   {
-    const GLPipelineState::VertexInput::VertexBuffer &v = state.m_VtxIn.vbuffers[i];
+    const GLPipe::VB &v = state.m_VtxIn.vbuffers[i];
 
     bool filledSlot = (v.Buffer != ResourceId());
     bool usedSlot = (usedBindings[i]);
@@ -1361,8 +1361,8 @@ void GLPipelineStateViewer::setState()
     int prev = 0;
     for(int i = 0; i < state.m_Rasterizer.Viewports.count; i++)
     {
-      const GLPipelineState::Rasterizer::Viewport &v1 = state.m_Rasterizer.Viewports[prev];
-      const GLPipelineState::Rasterizer::Viewport &v2 = state.m_Rasterizer.Viewports[i];
+      const GLPipe::Viewport &v1 = state.m_Rasterizer.Viewports[prev];
+      const GLPipe::Viewport &v2 = state.m_Rasterizer.Viewports[i];
 
       if(v1.Width != v2.Width || v1.Height != v2.Height || v1.Left != v2.Left ||
          v1.Bottom != v2.Bottom || v1.MinDepth != v2.MinDepth || v1.MaxDepth != v2.MaxDepth)
@@ -1392,7 +1392,7 @@ void GLPipelineStateViewer::setState()
     // handle the last batch (the loop above leaves the last batch un-added)
     if(prev < state.m_Rasterizer.Viewports.count)
     {
-      const GLPipelineState::Rasterizer::Viewport &v1 = state.m_Rasterizer.Viewports[prev];
+      const GLPipe::Viewport &v1 = state.m_Rasterizer.Viewports[prev];
 
       // must display at least one viewport - otherwise if they are
       // all empty we get an empty list - we want a nice obvious
@@ -1431,8 +1431,8 @@ void GLPipelineStateViewer::setState()
     int prev = 0;
     for(int i = 0; i < state.m_Rasterizer.Scissors.count; i++)
     {
-      const GLPipelineState::Rasterizer::Scissor &s1 = state.m_Rasterizer.Scissors[prev];
-      const GLPipelineState::Rasterizer::Scissor &s2 = state.m_Rasterizer.Scissors[i];
+      const GLPipe::Scissor &s1 = state.m_Rasterizer.Scissors[prev];
+      const GLPipe::Scissor &s2 = state.m_Rasterizer.Scissors[i];
 
       if(s1.Width != s2.Width || s1.Height != s2.Height || s1.Left != s2.Left ||
          s1.Bottom != s2.Bottom || s1.Enabled != s2.Enabled)
@@ -1466,7 +1466,7 @@ void GLPipelineStateViewer::setState()
     // handle the last batch (the loop above leaves the last batch un-added)
     if(prev < state.m_Rasterizer.Scissors.count)
     {
-      const GLPipelineState::Rasterizer::Scissor &s1 = state.m_Rasterizer.Scissors[prev];
+      const GLPipe::Scissor &s1 = state.m_Rasterizer.Scissors[prev];
 
       if(s1.Enabled || ui->showEmpty->isChecked())
       {
@@ -1604,7 +1604,7 @@ void GLPipelineStateViewer::setState()
     for(int db : state.m_FB.m_DrawFBO.DrawBuffers)
     {
       ResourceId p;
-      const GLPipelineState::FrameBuffer::Attachment *r = NULL;
+      const GLPipe::Attachment *r = NULL;
 
       if(db >= 0 && db < state.m_FB.m_DrawFBO.Color.count)
       {
@@ -1772,7 +1772,7 @@ void GLPipelineStateViewer::setState()
     bool logic = !state.m_FB.m_Blending.Blends[0].LogicOp.empty();
 
     int i = 0;
-    for(const GLPipelineState::FrameBuffer::BlendState::RTBlend &blend : state.m_FB.m_Blending.Blends)
+    for(const GLPipe::Blend &blend : state.m_FB.m_Blending.Blends)
     {
       bool filledSlot = (blend.Enabled || targets[i]);
       bool usedSlot = (targets[i]);
@@ -1939,7 +1939,7 @@ QString GLPipelineStateViewer::formatMembers(int indent, const QString &namepref
 
 void GLPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int column)
 {
-  const GLPipelineState::Shader *stage = stageForSender(item->treeWidget());
+  const GLPipe::Shader *stage = stageForSender(item->treeWidget());
 
   if(stage == NULL)
     return;
@@ -2037,7 +2037,7 @@ void GLPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int co
 
 void GLPipelineStateViewer::ubo_itemActivated(QTreeWidgetItem *item, int column)
 {
-  const GLPipelineState::Shader *stage = stageForSender(item->treeWidget());
+  const GLPipe::Shader *stage = stageForSender(item->treeWidget());
 
   if(stage == NULL)
     return;
@@ -2100,7 +2100,7 @@ void GLPipelineStateViewer::highlightIABind(int slot)
 {
   int idx = ((slot + 1) * 21) % 32;    // space neighbouring colours reasonably distinctly
 
-  const GLPipelineState::VertexInput &VI = m_Ctx.CurGLPipelineState.m_VtxIn;
+  const GLPipe::VertexInput &VI = m_Ctx.CurGLPipelineState.m_VtxIn;
 
   QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f, 0.95f);
 
@@ -2151,7 +2151,7 @@ void GLPipelineStateViewer::on_viAttrs_mouseMove(QMouseEvent *e)
 
   vertex_leave(NULL);
 
-  const GLPipelineState::VertexInput &VI = m_Ctx.CurGLPipelineState.m_VtxIn;
+  const GLPipe::VertexInput &VI = m_Ctx.CurGLPipelineState.m_VtxIn;
 
   if(idx.isValid())
   {
@@ -2244,7 +2244,7 @@ void GLPipelineStateViewer::on_pipeFlow_stageSelected(int index)
 
 void GLPipelineStateViewer::shaderView_clicked()
 {
-  const GLPipelineState::Shader *stage = stageForSender(qobject_cast<QWidget *>(QObject::sender()));
+  const GLPipe::Shader *stage = stageForSender(qobject_cast<QWidget *>(QObject::sender()));
 
   if(stage == NULL || stage->Object == ResourceId())
     return;
@@ -2265,7 +2265,7 @@ void GLPipelineStateViewer::shaderView_clicked()
 void GLPipelineStateViewer::shaderEdit_clicked()
 {
   QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
-  const GLPipelineState::Shader *stage = stageForSender(sender);
+  const GLPipe::Shader *stage = stageForSender(sender);
 
   if(!stage || stage->Object == ResourceId())
     return;
@@ -2300,7 +2300,7 @@ void GLPipelineStateViewer::shaderEdit_clicked()
 
 void GLPipelineStateViewer::shaderSave_clicked()
 {
-  const GLPipelineState::Shader *stage = stageForSender(qobject_cast<QWidget *>(QObject::sender()));
+  const GLPipe::Shader *stage = stageForSender(qobject_cast<QWidget *>(QObject::sender()));
 
   if(stage == NULL)
     return;

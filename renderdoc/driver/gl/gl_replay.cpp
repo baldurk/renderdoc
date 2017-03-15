@@ -842,7 +842,7 @@ ShaderReflection *GLReplay::GetShader(ResourceId shader, string entryPoint)
 
 void GLReplay::SavePipelineState()
 {
-  GLPipelineState &pipe = m_CurPipelineState;
+  GLPipe::State &pipe = m_CurPipelineState;
   WrappedOpenGL &gl = *m_pDriver;
   GLResourceManager *rm = m_pDriver->GetResourceManager();
 
@@ -904,7 +904,8 @@ void GLReplay::SavePipelineState()
     gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_INTEGER, &integer);
 
     RDCEraseEl(pipe.m_VtxIn.attributes[i].GenericValue);
-    gl.glGetVertexAttribfv(i, eGL_CURRENT_VERTEX_ATTRIB, pipe.m_VtxIn.attributes[i].GenericValue.f);
+    gl.glGetVertexAttribfv(i, eGL_CURRENT_VERTEX_ATTRIB,
+                           pipe.m_VtxIn.attributes[i].GenericValue.value_f);
 
     ResourceFormat fmt;
 
@@ -1063,7 +1064,7 @@ void GLReplay::SavePipelineState()
   GLuint curProg = 0;
   gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&curProg);
 
-  GLPipelineState::Shader *stages[6] = {
+  GLPipe::Shader *stages[6] = {
       &pipe.m_VS, &pipe.m_TCS, &pipe.m_TES, &pipe.m_GS, &pipe.m_FS, &pipe.m_CS,
   };
   ShaderReflection *refls[6] = {NULL};

@@ -63,7 +63,7 @@ public:
   void SavePipelineState() { MakePipelineState(); }
   D3D11Pipe::State GetD3D11PipelineState() { return D3D11Pipe::State(); }
   D3D12PipelineState GetD3D12PipelineState() { return m_PipelineState; }
-  GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
+  GLPipe::State GetGLPipelineState() { return GLPipe::State(); }
   VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
   void FreeTargetResource(ResourceId id);
   void FreeCustomShader(ResourceId id);

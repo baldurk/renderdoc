@@ -726,15 +726,15 @@ QVector<VertexInputAttribute> CommonPipelineState::GetVertexInputs()
             for(uint32_t c = 0; c < compCount; c++)
             {
               if(compType == CompType::Float)
-                ret[a].GenericValue.value_f[c] = attrs[i].GenericValue.f[c];
+                ret[a].GenericValue.value_f[c] = attrs[i].GenericValue.value_f[c];
               else if(compType == CompType::UInt)
-                ret[a].GenericValue.value_u[c] = attrs[i].GenericValue.u[c];
+                ret[a].GenericValue.value_u[c] = attrs[i].GenericValue.value_u[c];
               else if(compType == CompType::SInt)
-                ret[a].GenericValue.value_i[c] = attrs[i].GenericValue.i[c];
+                ret[a].GenericValue.value_i[c] = attrs[i].GenericValue.value_i[c];
               else if(compType == CompType::UScaled)
-                ret[a].GenericValue.value_f[c] = (float)attrs[i].GenericValue.u[c];
+                ret[a].GenericValue.value_f[c] = (float)attrs[i].GenericValue.value_u[c];
               else if(compType == CompType::SScaled)
-                ret[a].GenericValue.value_f[c] = (float)attrs[i].GenericValue.i[c];
+                ret[a].GenericValue.value_f[c] = (float)attrs[i].GenericValue.value_i[c];
             }
 
             ret[a].PerInstance = false;
@@ -858,7 +858,7 @@ void CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, 
     }
     else if(IsLogGL())
     {
-      const GLPipelineState::Shader &s = GetGLStage(stage);
+      const GLPipe::Shader &s = GetGLStage(stage);
 
       if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count)
       {
@@ -868,7 +868,7 @@ void CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, 
               s.BindpointMapping.ConstantBlocks[s.ShaderDetails->ConstantBlocks[BufIdx].bindPoint].bind;
           if(uboIdx >= 0 && uboIdx < m_GL->UniformBuffers.count)
           {
-            GLPipelineState::Buffer &b = m_GL->UniformBuffers[uboIdx];
+            GLPipe::Buffer &b = m_GL->UniformBuffers[uboIdx];
 
             buf = b.Resource;
             ByteOffset = b.Offset;

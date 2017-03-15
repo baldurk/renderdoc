@@ -205,7 +205,7 @@ bool ReplayRenderer::GetD3D12PipelineState(D3D12PipelineState *state)
   return false;
 }
 
-bool ReplayRenderer::GetGLPipelineState(GLPipelineState *state)
+bool ReplayRenderer::GetGLPipelineState(GLPipe::State *state)
 {
   if(state)
   {
@@ -1647,7 +1647,7 @@ void ReplayRenderer::FetchPipelineState()
   }
 
   {
-    GLPipelineState::Shader *stages[] = {
+    GLPipe::Shader *stages[] = {
         &m_GLPipelineState.m_VS, &m_GLPipelineState.m_TCS, &m_GLPipelineState.m_TES,
         &m_GLPipelineState.m_GS, &m_GLPipelineState.m_FS,  &m_GLPipelineState.m_CS,
     };
@@ -1729,7 +1729,7 @@ ReplayRenderer_GetD3D12PipelineState(IReplayRenderer *rend, D3D12PipelineState *
   return rend->GetD3D12PipelineState(state);
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetGLPipelineState(IReplayRenderer *rend,
-                                                                               GLPipelineState *state)
+                                                                               GLPipe::State *state)
 {
   return rend->GetGLPipelineState(state);
 }

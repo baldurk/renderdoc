@@ -110,7 +110,7 @@ public:
   void SavePipelineState();
   D3D11Pipe::State GetD3D11PipelineState() { return D3D11Pipe::State(); }
   D3D12PipelineState GetD3D12PipelineState() { return D3D12PipelineState(); }
-  GLPipelineState GetGLPipelineState() { return m_CurPipelineState; }
+  GLPipe::State GetGLPipelineState() { return m_CurPipelineState; }
   VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
   void FreeTargetResource(ResourceId id);
 
@@ -421,7 +421,7 @@ private:
 
   WrappedOpenGL *m_pDriver;
 
-  GLPipelineState m_CurPipelineState;
+  GLPipe::State m_CurPipelineState;
 };
 
 const GLHookSet &GetRealGLFunctions();

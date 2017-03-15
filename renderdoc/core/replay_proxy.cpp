@@ -737,11 +737,11 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState &el)
 #pragma region OpenGL pipeline state
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::VertexAttribute &el)
+void Serialiser::Serialise(const char *name, GLPipe::VertexAttribute &el)
 {
   Serialise("", el.Enabled);
   Serialise("", el.Format);
-  SerialisePODArray<4>("", el.GenericValue.f);
+  SerialisePODArray<4>("", el.GenericValue.value_f);
   Serialise("", el.BufferSlot);
   Serialise("", el.RelativeOffset);
 
@@ -749,7 +749,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput::Verte
 }
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput &el)
+void Serialiser::Serialise(const char *name, GLPipe::VertexInput &el)
 {
   Serialise("", el.attributes);
   Serialise("", el.vbuffers);
@@ -762,7 +762,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::VertexInput &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState::Shader &el)
+void Serialiser::Serialise(const char *name, GLPipe::Shader &el)
 {
   Serialise("", el.Object);
 
@@ -787,7 +787,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::Shader &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState::Sampler &el)
+void Serialiser::Serialise(const char *name, GLPipe::Sampler &el)
 {
   Serialise("", el.Samp);
   Serialise("", el.AddressS);
@@ -809,7 +809,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::Sampler &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState::ImageLoadStore &el)
+void Serialiser::Serialise(const char *name, GLPipe::ImageLoadStore &el)
 {
   Serialise("", el.Resource);
   Serialise("", el.Level);
@@ -824,7 +824,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::ImageLoadStore &el
 }
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState::Rasterizer &el)
+void Serialiser::Serialise(const char *name, GLPipe::Rasterizer &el)
 {
   Serialise("", el.Viewports);
   Serialise("", el.Scissors);
@@ -834,7 +834,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::Rasterizer &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState::DepthState &el)
+void Serialiser::Serialise(const char *name, GLPipe::DepthState &el)
 {
   Serialise("", el.DepthEnable);
   Serialise("", el.DepthFunc);
@@ -847,7 +847,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::DepthState &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState::StencilState &el)
+void Serialiser::Serialise(const char *name, GLPipe::StencilState &el)
 {
   Serialise("", el.StencilEnable);
 
@@ -871,7 +871,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::StencilState &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer::BlendState::RTBlend &el)
+void Serialiser::Serialise(const char *name, GLPipe::Blend &el)
 {
   Serialise("", el.Enabled);
   Serialise("", el.WriteMask);
@@ -889,7 +889,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer::Blend
 }
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer::BlendState &el)
+void Serialiser::Serialise(const char *name, GLPipe::BlendState &el)
 {
   SerialisePODArray<4>("", el.BlendFactor);
   Serialise("", el.Blends);
@@ -898,7 +898,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer::Blend
 }
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer::Attachment &el)
+void Serialiser::Serialise(const char *name, GLPipe::Attachment &el)
 {
   Serialise("", el.Obj);
   Serialise("", el.Layer);
@@ -909,7 +909,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer::Attac
 }
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer &el)
+void Serialiser::Serialise(const char *name, GLPipe::FrameBuffer &el)
 {
   Serialise("", el.FramebufferSRGB);
   Serialise("", el.Dither);
@@ -934,7 +934,7 @@ void Serialiser::Serialise(const char *name, GLPipelineState::FrameBuffer &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, GLPipelineState &el)
+void Serialiser::Serialise(const char *name, GLPipe::State &el)
 {
   Serialise("", el.m_VtxIn);
 
@@ -1838,52 +1838,47 @@ string ToStrHelper<false, D3D12PipelineState::Rasterizer::RasterizerState>::Get(
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipelineState::VertexInput::VertexBuffer>::Get(
-    const GLPipelineState::VertexInput::VertexBuffer &el)
+string ToStrHelper<false, GLPipe::VB>::Get(const GLPipe::VB &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipelineState::FixedVertexProcessing>::Get(
-    const GLPipelineState::FixedVertexProcessing &el)
+string ToStrHelper<false, GLPipe::FixedVertexProcessing>::Get(const GLPipe::FixedVertexProcessing &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipelineState::Texture>::Get(const GLPipelineState::Texture &el)
+string ToStrHelper<false, GLPipe::Texture>::Get(const GLPipe::Texture &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipelineState::Buffer>::Get(const GLPipelineState::Buffer &el)
+string ToStrHelper<false, GLPipe::Buffer>::Get(const GLPipe::Buffer &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipelineState::Feedback>::Get(const GLPipelineState::Feedback &el)
+string ToStrHelper<false, GLPipe::Feedback>::Get(const GLPipe::Feedback &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipelineState::Rasterizer::Viewport>::Get(
-    const GLPipelineState::Rasterizer::Viewport &el)
+string ToStrHelper<false, GLPipe::Viewport>::Get(const GLPipe::Viewport &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipelineState::Rasterizer::Scissor>::Get(
-    const GLPipelineState::Rasterizer::Scissor &el)
+string ToStrHelper<false, GLPipe::Scissor>::Get(const GLPipe::Scissor &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipelineState::Rasterizer::RasterizerState>::Get(
-    const GLPipelineState::Rasterizer::RasterizerState &el)
+string ToStrHelper<false, GLPipe::RasterizerState>::Get(const GLPipe::RasterizerState &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, GLPipelineState::Hints>::Get(const GLPipelineState::Hints &el)
+string ToStrHelper<false, GLPipe::Hints>::Get(const GLPipe::Hints &el)
 {
   return "<...>";
 }
@@ -2394,7 +2389,7 @@ void ReplayProxy::SavePipelineState()
 
     m_D3D11PipelineState = D3D11Pipe::State();
     m_D3D12PipelineState = D3D12PipelineState();
-    m_GLPipelineState = GLPipelineState();
+    m_GLPipelineState = GLPipe::State();
     m_VulkanPipelineState = VulkanPipelineState();
   }
 

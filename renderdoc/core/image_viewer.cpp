@@ -163,7 +163,7 @@ public:
   }
   void SavePipelineState() {}
   D3D12PipelineState GetD3D12PipelineState() { return D3D12PipelineState(); }
-  GLPipelineState GetGLPipelineState() { return GLPipelineState(); }
+  GLPipe::State GetGLPipelineState() { return GLPipe::State(); }
   VulkanPipelineState GetVulkanPipelineState() { return VulkanPipelineState(); }
   void ReplayLog(uint32_t endEventID, ReplayLogType replayType) {}
   vector<uint32_t> GetPassEvents(uint32_t eventID) { return vector<uint32_t>(); }
