@@ -42,7 +42,7 @@
      <x>0</x>
      <y>0</y>
      <width>1200</width>
-     <height>18</height>
+     <height>26</height>
     </rect>
    </property>
    <widget class="QMenu" name="menu_Tools">
@@ -136,6 +136,8 @@
     </property>
     <addaction name="action_View_Documentation"/>
     <addaction name="action_View_Diagnostic_Log_File"/>
+    <addaction name="actionShow_Tips"/>
+    <addaction name="separator"/>
     <addaction name="action_Send_Error_Report"/>
     <addaction name="separator"/>
     <addaction name="actionUpdate_available"/>
@@ -393,6 +395,11 @@
   <action name="action_Start_Android_Remote_Server">
    <property name="text">
     <string>Start &amp;Android Remote Server</string>
+   </property>
+  </action>
+  <action name="actionShow_Tips">
+   <property name="text">
+    <string>Show Tips</string>
    </property>
   </action>
  </widget>

@@ -129,6 +129,9 @@
     <ClCompile Include="Windows\Dialogs\TextureSaveDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
+    <ClCompile Include="Windows\Dialogs\TipsDialog.cpp">
+      <Filter>Windows\Dialogs</Filter>
+    </ClCompile>
     <ClCompile Include="Windows\Dialogs\CaptureDialog.cpp">
       <Filter>Windows\Dialogs</Filter>
     </ClCompile>
@@ -507,6 +510,9 @@
     <ClCompile Include="$(IntDir)generated\moc_TextureSaveDialog.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_TipsDialog.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_TextureViewer.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
@@ -830,6 +836,9 @@
     <ClInclude Include="$(IntDir)generated\ui_TextureSaveDialog.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
+    <ClInclude Include="$(IntDir)generated\ui_TipsDialog.h">
+      <Filter>Generated Files</Filter>
+    </ClInclude>
     <ClInclude Include="$(IntDir)generated\ui_TextureViewer.h">
       <Filter>Generated Files</Filter>
     </ClInclude>
@@ -1103,6 +1112,9 @@
     <CustomBuild Include="Windows\Dialogs\TextureSaveDialog.ui">
       <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\TipsDialog.ui">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
     <CustomBuild Include="Resources\resources.qrc">
       <Filter>Resources</Filter>
     </CustomBuild>
@@ -1191,6 +1203,9 @@
       <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\TextureSaveDialog.h">
+      <Filter>Windows\Dialogs</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Windows\Dialogs\TipsDialog.h">
       <Filter>Windows\Dialogs</Filter>
     </CustomBuild>
     <CustomBuild Include="Windows\Dialogs\SuggestRemoteDialog.h">

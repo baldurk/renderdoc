@@ -42,6 +42,7 @@
 #include "Windows/Dialogs/RemoteManager.h"
 #include "Windows/Dialogs/SettingsDialog.h"
 #include "Windows/Dialogs/SuggestRemoteDialog.h"
+#include "Windows/Dialogs/TipsDialog.h"
 #include "APIInspector.h"
 #include "BufferViewer.h"
 #include "ConstantBufferPreviewer.h"
@@ -1449,6 +1450,12 @@ void MainWindow::on_action_Source_on_github_triggered()
 void MainWindow::on_action_Build_Release_downloads_triggered()
 {
   QDesktopServices::openUrl(QUrl::fromUserInput("https://renderdoc.org/builds"));
+}
+
+void MainWindow::on_actionShow_Tips_triggered()
+{
+  TipsDialog tipsDialog(m_Ctx, this);
+  RDDialog::show(&tipsDialog);
 }
 
 void MainWindow::saveLayout_triggered()
