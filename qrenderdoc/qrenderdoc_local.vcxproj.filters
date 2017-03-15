@@ -543,6 +543,12 @@
     <ClCompile Include="$(IntDir)generated\moc_FindReplace.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_RDSplitter.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
+    <ClCompile Include="Widgets\Extended\RDSplitter.cpp">
+      <Filter>Widgets\Extended</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1261,6 +1267,9 @@
     </CustomBuild>
     <CustomBuild Include="Widgets\FindReplace.h">
       <Filter>Widgets</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Widgets\Extended\RDSplitter.h">
+      <Filter>Widgets\Extended</Filter>
     </CustomBuild>
   </ItemGroup>
 </Project>
