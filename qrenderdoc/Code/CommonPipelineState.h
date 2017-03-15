@@ -81,7 +81,7 @@ class CommonPipelineState
 {
 public:
   CommonPipelineState() {}
-  void SetStates(APIProperties props, D3D11Pipe::State *d3d11, D3D12PipelineState *d3d12,
+  void SetStates(APIProperties props, D3D11Pipe::State *d3d11, D3D12Pipe::State *d3d12,
                  GLPipe::State *gl, VKPipe::State *vk)
   {
     m_APIProps = props;
@@ -172,7 +172,7 @@ public:
 
 private:
   D3D11Pipe::State *m_D3D11 = NULL;
-  D3D12PipelineState *m_D3D12 = NULL;
+  D3D12Pipe::State *m_D3D12 = NULL;
   GLPipe::State *m_GL = NULL;
   VKPipe::State *m_Vulkan = NULL;
   APIProperties m_APIProps;
@@ -196,7 +196,7 @@ private:
     return m_D3D11->m_CS;
   }
 
-  const D3D12PipelineState::Shader &GetD3D12Stage(ShaderStage stage)
+  const D3D12Pipe::Shader &GetD3D12Stage(ShaderStage stage)
   {
     if(stage == ShaderStage::Vertex)
       return m_D3D12->m_VS;

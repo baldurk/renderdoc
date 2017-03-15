@@ -76,11 +76,10 @@ private:
   CaptureContext &m_Ctx;
   PipelineStateViewer &m_Common;
 
-  void setShaderState(const D3D12PipelineState::Shader &stage, QLabel *shader, RDTreeWidget *tex,
+  void setShaderState(const D3D12Pipe::Shader &stage, QLabel *shader, RDTreeWidget *tex,
                       RDTreeWidget *samp, RDTreeWidget *cbuffer, RDTreeWidget *uavs);
 
-  void addResourceRow(const ViewTag &view, const D3D12PipelineState::Shader *stage,
-                      RDTreeWidget *resources);
+  void addResourceRow(const ViewTag &view, const D3D12Pipe::Shader *stage, RDTreeWidget *resources);
 
   void clearShaderState(QLabel *shader, RDTreeWidget *tex, RDTreeWidget *samp,
                         RDTreeWidget *cbuffer, RDTreeWidget *uavs);
@@ -93,10 +92,10 @@ private:
 
   QString formatMembers(int indent, const QString &nameprefix,
                         const rdctype::array<ShaderConstant> &vars);
-  const D3D12PipelineState::Shader *stageForSender(QWidget *widget);
+  const D3D12Pipe::Shader *stageForSender(QWidget *widget);
 
-  bool HasImportantViewParams(const D3D12PipelineState::ResourceView &view, FetchTexture *tex);
-  bool HasImportantViewParams(const D3D12PipelineState::ResourceView &view, FetchBuffer *buf);
+  bool HasImportantViewParams(const D3D12Pipe::View &view, FetchTexture *tex);
+  bool HasImportantViewParams(const D3D12Pipe::View &view, FetchBuffer *buf);
 
   void setViewDetails(QTreeWidgetItem *node, const ViewTag &view, FetchTexture *tex);
   void setViewDetails(QTreeWidgetItem *node, const ViewTag &view, FetchBuffer *buf);

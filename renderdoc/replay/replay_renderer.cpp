@@ -194,7 +194,7 @@ bool ReplayRenderer::GetD3D11PipelineState(D3D11Pipe::State *state)
   return false;
 }
 
-bool ReplayRenderer::GetD3D12PipelineState(D3D12PipelineState *state)
+bool ReplayRenderer::GetD3D12PipelineState(D3D12Pipe::State *state)
 {
   if(state)
   {
@@ -1636,7 +1636,7 @@ void ReplayRenderer::FetchPipelineState()
   }
 
   {
-    D3D12PipelineState::Shader *stages[] = {
+    D3D12Pipe::Shader *stages[] = {
         &m_D3D12PipelineState.m_VS, &m_D3D12PipelineState.m_HS, &m_D3D12PipelineState.m_DS,
         &m_D3D12PipelineState.m_GS, &m_D3D12PipelineState.m_PS, &m_D3D12PipelineState.m_CS,
     };
@@ -1724,7 +1724,7 @@ ReplayRenderer_GetD3D11PipelineState(IReplayRenderer *rend, D3D11Pipe::State *st
   return rend->GetD3D11PipelineState(state);
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetD3D12PipelineState(IReplayRenderer *rend, D3D12PipelineState *state)
+ReplayRenderer_GetD3D12PipelineState(IReplayRenderer *rend, D3D12Pipe::State *state)
 {
   return rend->GetD3D12PipelineState(state);
 }

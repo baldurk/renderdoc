@@ -87,14 +87,13 @@ struct ViewTag
   };
 
   ViewTag() {}
-  ViewTag(ResType t, int s, int r, const D3D12PipelineState::ResourceView &rs)
-      : type(t), space(s), reg(r), res(rs)
+  ViewTag(ResType t, int s, int r, const D3D12Pipe::View &rs) : type(t), space(s), reg(r), res(rs)
   {
   }
 
   ResType type;
   int space, reg;
-  D3D12PipelineState::ResourceView res;
+  D3D12Pipe::View res;
 };
 
 Q_DECLARE_METATYPE(ViewTag);
@@ -421,8 +420,7 @@ void D3D12PipelineStateViewer::setEmptyRow(QTreeWidgetItem *node)
     node->setBackgroundColor(i, QColor(255, 70, 70));
 }
 
-bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12PipelineState::ResourceView &view,
-                                                      FetchTexture *tex)
+bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12Pipe::View &view, FetchTexture *tex)
 {
   // we don't count 'upgrade typeless to typed' as important, we just display the typed format
   // in the row since there's no real hidden important information there. The formats can't be
@@ -442,8 +440,7 @@ bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12PipelineState::
   return false;
 }
 
-bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12PipelineState::ResourceView &view,
-                                                      FetchBuffer *buf)
+bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12Pipe::View &view, FetchBuffer *buf)
 {
   if(view.FirstElement > 0 || view.NumElements * view.ElementSize < buf->length)
     return true;
@@ -459,11 +456,11 @@ void D3D12PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewT
 
   QString text;
 
-  const D3D12PipelineState::ResourceView &res = view.res;
+  const D3D12Pipe::View &res = view.res;
 
   bool viewdetails = false;
 
-  for(const D3D12PipelineState::ResourceData &im : m_Ctx.CurD3D12PipelineState.Resources)
+  for(const D3D12Pipe::ResourceData &im : m_Ctx.CurD3D12PipelineState.Resources)
   {
     if(im.id == tex->ID)
     {
@@ -540,9 +537,9 @@ void D3D12PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewT
 
   QString text;
 
-  const D3D12PipelineState::ResourceView &res = view.res;
+  const D3D12Pipe::View &res = view.res;
 
-  for(const D3D12PipelineState::ResourceData &im : m_Ctx.CurD3D12PipelineState.Resources)
+  for(const D3D12Pipe::ResourceData &im : m_Ctx.CurD3D12PipelineState.Resources)
   {
     if(im.id == buf->ID)
     {
@@ -580,14 +577,13 @@ void D3D12PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewT
   }
 }
 
-void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view,
-                                              const D3D12PipelineState::Shader *stage,
+void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view, const D3D12Pipe::Shader *stage,
                                               RDTreeWidget *resources)
 {
   const QIcon &action = Icons::action();
   const QIcon &action_hover = Icons::action_hover();
 
-  const D3D12PipelineState::ResourceView &r = view.res;
+  const D3D12Pipe::View &r = view.res;
   bool uav = view.type == ViewTag::UAV;
 
   // consider this register to not exist - it's in a gap defined by sparse root signature elements
@@ -775,7 +771,7 @@ bool D3D12PipelineStateViewer::showNode(bool usedSlot, bool filledSlot)
   return false;
 }
 
-const D3D12PipelineState::Shader *D3D12PipelineStateViewer::stageForSender(QWidget *widget)
+const D3D12Pipe::Shader *D3D12PipelineStateViewer::stageForSender(QWidget *widget)
 {
   if(!m_Ctx.LogLoaded())
     return NULL;
@@ -876,12 +872,12 @@ void D3D12PipelineStateViewer::clearState()
   ui->stencils->clear();
 }
 
-void D3D12PipelineStateViewer::setShaderState(const D3D12PipelineState::Shader &stage, QLabel *shader,
+void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QLabel *shader,
                                               RDTreeWidget *resources, RDTreeWidget *samplers,
                                               RDTreeWidget *cbuffers, RDTreeWidget *uavs)
 {
   ShaderReflection *shaderDetails = stage.ShaderDetails;
-  const D3D12PipelineState &state = m_Ctx.CurD3D12PipelineState;
+  const D3D12Pipe::State &state = m_Ctx.CurD3D12PipelineState;
 
   if(stage.Object == ResourceId())
     shader->setText(tr("Unbound Shader"));
@@ -943,7 +939,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12PipelineState::Shader &
   {
     for(int reg = 0; reg < stage.Spaces[space].Samplers.count; reg++)
     {
-      const D3D12PipelineState::Sampler &s = stage.Spaces[space].Samplers[reg];
+      const D3D12Pipe::Sampler &s = stage.Spaces[space].Samplers[reg];
 
       // consider this register to not exist - it's in a gap defined by sparse root signature
       // elements
@@ -1059,7 +1055,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12PipelineState::Shader &
   {
     for(int reg = 0; reg < stage.Spaces[space].ConstantBuffers.count; reg++)
     {
-      const D3D12PipelineState::CBuffer &b = stage.Spaces[space].ConstantBuffers[reg];
+      const D3D12Pipe::CBuffer &b = stage.Spaces[space].ConstantBuffers[reg];
 
       QVariant tag;
 
@@ -1175,7 +1171,7 @@ void D3D12PipelineStateViewer::setState()
     return;
   }
 
-  const D3D12PipelineState &state = m_Ctx.CurD3D12PipelineState;
+  const D3D12Pipe::State &state = m_Ctx.CurD3D12PipelineState;
   const FetchDrawcall *draw = m_Ctx.CurDrawcall();
 
   const QPixmap &tick = Pixmaps::tick();
@@ -1197,7 +1193,7 @@ void D3D12PipelineStateViewer::setState()
   ui->iaLayouts->clear();
   {
     int i = 0;
-    for(const D3D12PipelineState::InputAssembler::LayoutInput &l : state.m_IA.layouts)
+    for(const D3D12Pipe::Layout &l : state.m_IA.layouts)
     {
       QString byteOffs = QString::number(l.ByteOffset);
 
@@ -1351,7 +1347,7 @@ void D3D12PipelineStateViewer::setState()
 
   for(int i = 0; i < state.m_IA.vbuffers.count; i++)
   {
-    const D3D12PipelineState::InputAssembler::VertexBuffer &v = state.m_IA.vbuffers[i];
+    const D3D12Pipe::VB &v = state.m_IA.vbuffers[i];
 
     bool filledSlot = (v.Buffer != ResourceId());
     bool usedSlot = (usedVBuffers[i]);
@@ -1419,7 +1415,7 @@ void D3D12PipelineStateViewer::setState()
   ui->gsStreamOut->clear();
   for(int i = 0; i < state.m_SO.Outputs.count; i++)
   {
-    const D3D12PipelineState::Streamout::Output &s = state.m_SO.Outputs[i];
+    const D3D12Pipe::SOBind &s = state.m_SO.Outputs[i];
 
     bool filledSlot = (s.Buffer != ResourceId());
     bool usedSlot = (filledSlot);
@@ -1473,7 +1469,7 @@ void D3D12PipelineStateViewer::setState()
   ui->viewports->clear();
   for(int i = 0; i < state.m_RS.Viewports.count; i++)
   {
-    const D3D12PipelineState::Rasterizer::Viewport &v = state.m_RS.Viewports[i];
+    const D3D12Pipe::Viewport &v = state.m_RS.Viewports[i];
 
     QTreeWidgetItem *node =
         makeTreeNode({i, v.TopLeft[0], v.TopLeft[1], v.Width, v.Height, v.MinDepth, v.MaxDepth});
@@ -1492,7 +1488,7 @@ void D3D12PipelineStateViewer::setState()
   ui->scissors->clear();
   for(int i = 0; i < state.m_RS.Scissors.count; i++)
   {
-    const D3D12PipelineState::Rasterizer::Scissor &s = state.m_RS.Scissors[i];
+    const D3D12Pipe::Scissor &s = state.m_RS.Scissors[i];
 
     QTreeWidgetItem *node = makeTreeNode({i, s.left, s.top, s.right - s.left, s.bottom - s.top});
 
@@ -1548,8 +1544,7 @@ void D3D12PipelineStateViewer::setState()
   ui->blends->clear();
   {
     int i = 0;
-    for(const D3D12PipelineState::OutputMerger::BlendState::RTBlend &blend :
-        state.m_OM.m_BlendState.Blends)
+    for(const D3D12Pipe::Blend &blend : state.m_OM.m_BlendState.Blends)
     {
       bool filledSlot = (blend.Enabled || targets[i]);
       bool usedSlot = (targets[i]);
@@ -1680,7 +1675,7 @@ QString D3D12PipelineStateViewer::formatMembers(int indent, const QString &namep
 
 void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int column)
 {
-  const D3D12PipelineState::Shader *stage = stageForSender(item->treeWidget());
+  const D3D12Pipe::Shader *stage = stageForSender(item->treeWidget());
 
   if(stage == NULL)
     return;
@@ -1906,7 +1901,7 @@ void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
 
 void D3D12PipelineStateViewer::cbuffer_itemActivated(QTreeWidgetItem *item, int column)
 {
-  const D3D12PipelineState::Shader *stage = stageForSender(item->treeWidget());
+  const D3D12Pipe::Shader *stage = stageForSender(item->treeWidget());
 
   if(stage == NULL)
     return;
@@ -1923,7 +1918,7 @@ void D3D12PipelineStateViewer::cbuffer_itemActivated(QTreeWidgetItem *item, int 
     // unused cbuffer, open regular buffer viewer
     BufferViewer *viewer = new BufferViewer(m_Ctx, false, m_Ctx.mainWindow());
 
-    const D3D12PipelineState::CBuffer &buf = stage->Spaces[cb.space].ConstantBuffers[cb.reg];
+    const D3D12Pipe::CBuffer &buf = stage->Spaces[cb.space].ConstantBuffers[cb.reg];
 
     viewer->ViewBuffer(buf.Offset, buf.ByteSize, buf.Buffer);
 
@@ -1988,7 +1983,7 @@ void D3D12PipelineStateViewer::highlightIABind(int slot)
 {
   int idx = ((slot + 1) * 21) % 32;    // space neighbouring colours reasonably distinctly
 
-  const D3D12PipelineState::InputAssembler &IA = m_Ctx.CurD3D12PipelineState.m_IA;
+  const D3D12Pipe::IA &IA = m_Ctx.CurD3D12PipelineState.m_IA;
 
   QColor col = QColor::fromHslF(float(idx) / 32.0f, 1.0f, 0.95f);
 
@@ -2045,7 +2040,7 @@ void D3D12PipelineStateViewer::on_iaLayouts_mouseMove(QMouseEvent *e)
 
   vertex_leave(NULL);
 
-  const D3D12PipelineState::InputAssembler &IA = m_Ctx.CurD3D12PipelineState.m_IA;
+  const D3D12Pipe::IA &IA = m_Ctx.CurD3D12PipelineState.m_IA;
 
   if(idx.isValid())
   {
@@ -2148,7 +2143,7 @@ void D3D12PipelineStateViewer::on_pipeFlow_stageSelected(int index)
 void D3D12PipelineStateViewer::shaderView_clicked()
 {
   QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
-  const D3D12PipelineState::Shader *stage = stageForSender(sender);
+  const D3D12Pipe::Shader *stage = stageForSender(sender);
 
   if(stage == NULL || stage->Object == ResourceId())
     return;
@@ -2167,7 +2162,7 @@ void D3D12PipelineStateViewer::shaderView_clicked()
 void D3D12PipelineStateViewer::shaderEdit_clicked()
 {
   QWidget *sender = qobject_cast<QWidget *>(QObject::sender());
-  const D3D12PipelineState::Shader *stage = stageForSender(sender);
+  const D3D12Pipe::Shader *stage = stageForSender(sender);
 
   if(!stage || stage->Object == ResourceId())
     return;
@@ -2202,8 +2197,7 @@ void D3D12PipelineStateViewer::shaderEdit_clicked()
 
 void D3D12PipelineStateViewer::shaderSave_clicked()
 {
-  const D3D12PipelineState::Shader *stage =
-      stageForSender(qobject_cast<QWidget *>(QObject::sender()));
+  const D3D12Pipe::Shader *stage = stageForSender(qobject_cast<QWidget *>(QObject::sender()));
 
   if(stage == NULL)
     return;

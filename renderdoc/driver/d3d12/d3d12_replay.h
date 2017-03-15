@@ -62,7 +62,7 @@ public:
 
   void SavePipelineState() { MakePipelineState(); }
   D3D11Pipe::State GetD3D11PipelineState() { return D3D11Pipe::State(); }
-  D3D12PipelineState GetD3D12PipelineState() { return m_PipelineState; }
+  D3D12Pipe::State GetD3D12PipelineState() { return m_PipelineState; }
   GLPipe::State GetGLPipelineState() { return GLPipe::State(); }
   VKPipe::State GetVulkanPipelineState() { return VKPipe::State(); }
   void FreeTargetResource(ResourceId id);
@@ -176,15 +176,15 @@ private:
   void MakePipelineState();
 
   void FillRegisterSpaces(const D3D12RenderState::RootSignature &rootSig,
-                          rdctype::array<D3D12PipelineState::Shader::RegisterSpace> &spaces,
+                          rdctype::array<D3D12Pipe::RegisterSpace> &spaces,
                           D3D12_SHADER_VISIBILITY visibility);
-  void FillResourceView(D3D12PipelineState::ResourceView &view, D3D12Descriptor *desc);
+  void FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc);
 
   bool m_Proxy;
 
   vector<ID3D12Resource *> m_ProxyResources;
 
-  D3D12PipelineState m_PipelineState;
+  D3D12Pipe::State m_PipelineState;
 
   WrappedID3D12Device *m_pDevice;
 };

@@ -290,7 +290,7 @@ vector<EventUsage> D3D12Replay::GetUsage(ResourceId id)
   return m_pDevice->GetQueue()->GetUsage(id);
 }
 
-void D3D12Replay::FillResourceView(D3D12PipelineState::ResourceView &view, D3D12Descriptor *desc)
+void D3D12Replay::FillResourceView(D3D12Pipe::View &view, D3D12Descriptor *desc)
 {
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
 
@@ -524,7 +524,7 @@ void D3D12Replay::FillResourceView(D3D12PipelineState::ResourceView &view, D3D12
 }
 
 void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &rootSig,
-                                     rdctype::array<D3D12PipelineState::Shader::RegisterSpace> &dstSpaces,
+                                     rdctype::array<D3D12Pipe::RegisterSpace> &dstSpaces,
                                      D3D12_SHADER_VISIBILITY visibility)
 {
   D3D12ResourceManager *rm = m_pDevice->GetResourceManager();
@@ -534,10 +534,10 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
   struct Space
   {
-    vector<D3D12PipelineState::CBuffer> cbuffers;
-    vector<D3D12PipelineState::Sampler> samplers;
-    vector<D3D12PipelineState::ResourceView> srvs;
-    vector<D3D12PipelineState::ResourceView> uavs;
+    vector<D3D12Pipe::CBuffer> cbuffers;
+    vector<D3D12Pipe::Sampler> samplers;
+    vector<D3D12Pipe::View> srvs;
+    vector<D3D12Pipe::View> uavs;
   };
 
   Space *spaces = new Space[sig->sig.numSpaces];
@@ -552,7 +552,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
     if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_32BIT_CONSTANTS)
     {
-      D3D12PipelineState::CBuffer &cb =
+      D3D12Pipe::CBuffer &cb =
           resize_and_add(spaces[p.Constants.RegisterSpace].cbuffers, p.Constants.ShaderRegister);
       cb.Immediate = true;
       cb.RootElement = (uint32_t)rootEl;
@@ -571,7 +571,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_CBV)
     {
-      D3D12PipelineState::CBuffer &cb =
+      D3D12Pipe::CBuffer &cb =
           resize_and_add(spaces[p.Descriptor.RegisterSpace].cbuffers, p.Descriptor.ShaderRegister);
       cb.Immediate = true;
       cb.RootElement = (uint32_t)rootEl;
@@ -591,7 +591,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_SRV)
     {
-      D3D12PipelineState::ResourceView &view =
+      D3D12Pipe::View &view =
           resize_and_add(spaces[p.Descriptor.RegisterSpace].srvs, p.Descriptor.ShaderRegister);
       view.Immediate = true;
       view.RootElement = (uint32_t)rootEl;
@@ -616,7 +616,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
     }
     else if(p.ParameterType == D3D12_ROOT_PARAMETER_TYPE_UAV)
     {
-      D3D12PipelineState::ResourceView &view =
+      D3D12Pipe::View &view =
           resize_and_add(spaces[p.Descriptor.RegisterSpace].uavs, p.Descriptor.ShaderRegister);
       view.Immediate = true;
       view.RootElement = (uint32_t)rootEl;
@@ -684,7 +684,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
           for(UINT i = 0; i < range.NumDescriptors; i++, shaderReg++)
           {
-            D3D12PipelineState::Sampler &samp = spaces[regSpace].samplers[shaderReg];
+            D3D12Pipe::Sampler &samp = spaces[regSpace].samplers[shaderReg];
             samp.Immediate = false;
             samp.RootElement = (uint32_t)rootEl;
             samp.TableIndex = offset + i;
@@ -728,7 +728,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
           for(UINT i = 0; i < range.NumDescriptors; i++, shaderReg++)
           {
-            D3D12PipelineState::CBuffer &cb = spaces[regSpace].cbuffers[shaderReg];
+            D3D12Pipe::CBuffer &cb = spaces[regSpace].cbuffers[shaderReg];
             cb.Immediate = false;
             cb.RootElement = (uint32_t)rootEl;
             cb.TableIndex = offset + i;
@@ -752,7 +752,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
           for(UINT i = 0; i < range.NumDescriptors; i++, shaderReg++)
           {
-            D3D12PipelineState::ResourceView &view = spaces[regSpace].srvs[shaderReg];
+            D3D12Pipe::View &view = spaces[regSpace].srvs[shaderReg];
             view.Immediate = false;
             view.RootElement = (uint32_t)rootEl;
             view.TableIndex = offset + i;
@@ -773,7 +773,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
 
           for(UINT i = 0; i < range.NumDescriptors; i++, shaderReg++)
           {
-            D3D12PipelineState::ResourceView &view = spaces[regSpace].uavs[shaderReg];
+            D3D12Pipe::View &view = spaces[regSpace].uavs[shaderReg];
             view.Immediate = false;
             view.RootElement = (uint32_t)rootEl;
             view.TableIndex = offset + i;
@@ -798,7 +798,7 @@ void D3D12Replay::FillRegisterSpaces(const D3D12RenderState::RootSignature &root
        sampDesc.ShaderVisibility != visibility)
       continue;
 
-    D3D12PipelineState::Sampler &samp =
+    D3D12Pipe::Sampler &samp =
         resize_and_add(spaces[sampDesc.RegisterSpace].samplers, sampDesc.ShaderRegister);
     samp.Immediate = true;
     samp.RootElement = (uint32_t)i;
@@ -866,7 +866,7 @@ void D3D12Replay::MakePipelineState()
 {
   const D3D12RenderState &rs = m_pDevice->GetQueue()->GetCommandData()->m_RenderState;
 
-  D3D12PipelineState state;
+  D3D12Pipe::State state;
 
   /////////////////////////////////////////////////
   // Input Assembler
@@ -905,7 +905,7 @@ void D3D12Replay::MakePipelineState()
     create_array_uninit(state.m_IA.layouts, numInput);
     for(UINT i = 0; i < numInput; i++)
     {
-      D3D12PipelineState::InputAssembler::LayoutInput &l = state.m_IA.layouts[i];
+      D3D12Pipe::Layout &l = state.m_IA.layouts[i];
 
       l.ByteOffset = inputEl[i].AlignedByteOffset;
       l.Format = MakeResourceFormat(inputEl[i].Format);
@@ -929,7 +929,7 @@ void D3D12Replay::MakePipelineState()
     create_array_uninit(state.m_IA.vbuffers, rs.vbuffers.size());
     for(size_t i = 0; i < rs.vbuffers.size(); i++)
     {
-      D3D12PipelineState::InputAssembler::VertexBuffer &vb = state.m_IA.vbuffers[i];
+      D3D12Pipe::VB &vb = state.m_IA.vbuffers[i];
 
       vb.Buffer = rm->GetOriginalID(rs.vbuffers[i].buf);
       vb.Offset = rs.vbuffers[i].offs;
@@ -961,8 +961,7 @@ void D3D12Replay::MakePipelineState()
   }
   else if(pipe)
   {
-    D3D12PipelineState::Shader *dstArr[] = {&state.m_VS, &state.m_HS, &state.m_DS, &state.m_GS,
-                                            &state.m_PS};
+    D3D12Pipe::Shader *dstArr[] = {&state.m_VS, &state.m_HS, &state.m_DS, &state.m_GS, &state.m_PS};
 
     D3D12_SHADER_BYTECODE *srcArr[] = {&pipe->graphics->VS, &pipe->graphics->HS, &pipe->graphics->DS,
                                        &pipe->graphics->GS, &pipe->graphics->PS};
@@ -973,7 +972,7 @@ void D3D12Replay::MakePipelineState()
 
     for(size_t stage = 0; stage < 5; stage++)
     {
-      D3D12PipelineState::Shader &dst = *dstArr[stage];
+      D3D12Pipe::Shader &dst = *dstArr[stage];
       D3D12_SHADER_BYTECODE &src = *srcArr[stage];
 
       dst.stage = (ShaderStage)stage;
@@ -1017,7 +1016,7 @@ void D3D12Replay::MakePipelineState()
     state.m_RS.SampleMask = pipe->graphics->SampleMask;
 
     {
-      D3D12PipelineState::Rasterizer::RasterizerState &dst = state.m_RS.m_State;
+      D3D12Pipe::RasterizerState &dst = state.m_RS.m_State;
       D3D12_RASTERIZER_DESC &src = pipe->graphics->RasterizerState;
 
       dst.AntialiasedLineEnable = src.AntialiasedLineEnable == TRUE;
@@ -1045,14 +1044,14 @@ void D3D12Replay::MakePipelineState()
 
     create_array_uninit(state.m_RS.Scissors, rs.scissors.size());
     for(size_t i = 0; i < rs.scissors.size(); i++)
-      state.m_RS.Scissors[i] = D3D12PipelineState::Rasterizer::Scissor(
-          rs.scissors[i].left, rs.scissors[i].top, rs.scissors[i].right, rs.scissors[i].bottom);
+      state.m_RS.Scissors[i] = D3D12Pipe::Scissor(rs.scissors[i].left, rs.scissors[i].top,
+                                                  rs.scissors[i].right, rs.scissors[i].bottom);
 
     create_array_uninit(state.m_RS.Viewports, rs.views.size());
     for(size_t i = 0; i < rs.views.size(); i++)
-      state.m_RS.Viewports[i] = D3D12PipelineState::Rasterizer::Viewport(
-          rs.views[i].TopLeftX, rs.views[i].TopLeftY, rs.views[i].Width, rs.views[i].Height,
-          rs.views[i].MinDepth, rs.views[i].MaxDepth);
+      state.m_RS.Viewports[i] =
+          D3D12Pipe::Viewport(rs.views[i].TopLeftX, rs.views[i].TopLeftY, rs.views[i].Width,
+                              rs.views[i].Height, rs.views[i].MinDepth, rs.views[i].MaxDepth);
 
     /////////////////////////////////////////////////
     // Output Merger
@@ -1061,7 +1060,7 @@ void D3D12Replay::MakePipelineState()
     create_array(state.m_OM.RenderTargets, rs.rts.size());
     for(size_t i = 0; i < rs.rts.size(); i++)
     {
-      D3D12PipelineState::ResourceView &view = state.m_OM.RenderTargets[i];
+      D3D12Pipe::View &view = state.m_OM.RenderTargets[i];
 
       PortableHandle h = rs.rtSingle ? rs.rts[0] : rs.rts[i];
 
@@ -1080,7 +1079,7 @@ void D3D12Replay::MakePipelineState()
     }
 
     {
-      D3D12PipelineState::ResourceView &view = state.m_OM.DepthTarget;
+      D3D12Pipe::View &view = state.m_OM.DepthTarget;
 
       if(rs.dsv.heap != ResourceId())
       {
@@ -1104,8 +1103,7 @@ void D3D12Replay::MakePipelineState()
       create_array_uninit(state.m_OM.m_BlendState.Blends, 8);
       for(size_t i = 0; i < 8; i++)
       {
-        D3D12PipelineState::OutputMerger::BlendState::RTBlend &blend =
-            state.m_OM.m_BlendState.Blends[i];
+        D3D12Pipe::Blend &blend = state.m_OM.m_BlendState.Blends[i];
 
         blend.Enabled = src.RenderTarget[i].BlendEnable == TRUE;
 
@@ -1154,7 +1152,7 @@ void D3D12Replay::MakePipelineState()
     size_t i = 0;
     for(auto it = states.begin(); it != states.end(); ++it)
     {
-      D3D12PipelineState::ResourceData &res = state.Resources[i];
+      D3D12Pipe::ResourceData &res = state.Resources[i];
 
       res.id = rm->GetOriginalID(it->first);
 

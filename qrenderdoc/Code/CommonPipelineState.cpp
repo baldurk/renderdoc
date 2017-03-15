@@ -40,7 +40,7 @@ QString CommonPipelineState::GetImageLayout(ResourceId id)
 
     if(IsLogD3D12())
     {
-      for(const D3D12PipelineState::ResourceData &r : m_D3D12->Resources)
+      for(const D3D12Pipe::ResourceData &r : m_D3D12->Resources)
       {
         if(r.id == id)
           return ToQStr(r.states[0].name);
@@ -831,7 +831,7 @@ void CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, 
     }
     else if(IsLogD3D12())
     {
-      const D3D12PipelineState::Shader &s = GetD3D12Stage(stage);
+      const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
       if(s.ShaderDetails != NULL && BufIdx < (uint32_t)s.ShaderDetails->ConstantBlocks.count)
       {
@@ -846,8 +846,7 @@ void CommonPipelineState::GetConstantBuffer(ShaderStage stage, uint32_t BufIdx, 
           return;
         }
 
-        const D3D12PipelineState::CBuffer &descriptor =
-            s.Spaces[bind.bindset].ConstantBuffers[bind.bind];
+        const D3D12Pipe::CBuffer &descriptor = s.Spaces[bind.bindset].ConstantBuffers[bind.bind];
 
         buf = descriptor.Buffer;
         ByteOffset = descriptor.Offset;
@@ -941,13 +940,13 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadOnlyResou
     }
     else if(IsLogD3D12())
     {
-      const D3D12PipelineState::Shader &s = GetD3D12Stage(stage);
+      const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
       for(int space = 0; space < s.Spaces.count; space++)
       {
         for(int reg = 0; reg < s.Spaces[space].SRVs.count; reg++)
         {
-          const D3D12PipelineState::ResourceView &bind = s.Spaces[space].SRVs[reg];
+          const D3D12Pipe::View &bind = s.Spaces[space].SRVs[reg];
           BindpointMap key(space, reg);
           BoundResource val;
 
@@ -1071,13 +1070,13 @@ QMap<BindpointMap, QVector<BoundResource>> CommonPipelineState::GetReadWriteReso
     }
     else if(IsLogD3D12())
     {
-      const D3D12PipelineState::Shader &s = GetD3D12Stage(stage);
+      const D3D12Pipe::Shader &s = GetD3D12Stage(stage);
 
       for(int space = 0; space < s.Spaces.count; space++)
       {
         for(int reg = 0; reg < s.Spaces[space].UAVs.count; reg++)
         {
-          const D3D12PipelineState::ResourceView &bind = s.Spaces[space].UAVs[reg];
+          const D3D12Pipe::View &bind = s.Spaces[space].UAVs[reg];
           BindpointMap key(space, reg);
           BoundResource val;
 

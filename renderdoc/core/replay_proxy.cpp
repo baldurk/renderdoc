@@ -496,7 +496,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::State &el)
 #pragma region D3D12 pipeline state
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::InputAssembler::LayoutInput &el)
+void Serialiser::Serialise(const char *name, D3D12Pipe::Layout &el)
 {
   Serialise("", el.SemanticName);
   Serialise("", el.SemanticIndex);
@@ -510,7 +510,7 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::InputAssembler:
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::InputAssembler &el)
+void Serialiser::Serialise(const char *name, D3D12Pipe::IA &el)
 {
   Serialise("", el.ibuffer.Buffer);
   Serialise("", el.ibuffer.Offset);
@@ -525,7 +525,7 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::InputAssembler 
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::CBuffer &el)
+void Serialiser::Serialise(const char *name, D3D12Pipe::CBuffer &el)
 {
   Serialise("", el.Immediate);
   Serialise("", el.RootElement);
@@ -539,7 +539,7 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::CBuffer &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::Sampler &el)
+void Serialiser::Serialise(const char *name, D3D12Pipe::Sampler &el)
 {
   Serialise("", el.Immediate);
   Serialise("", el.RootElement);
@@ -561,7 +561,7 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::Sampler &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::ResourceView &el)
+void Serialiser::Serialise(const char *name, D3D12Pipe::View &el)
 {
   Serialise("", el.Immediate);
   Serialise("", el.RootElement);
@@ -592,7 +592,7 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::ResourceView &e
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::Shader::RegisterSpace &el)
+void Serialiser::Serialise(const char *name, D3D12Pipe::RegisterSpace &el)
 {
   Serialise("", el.ConstantBuffers);
   Serialise("", el.Samplers);
@@ -603,7 +603,7 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::Shader::Registe
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::Shader &el)
+void Serialiser::Serialise(const char *name, D3D12Pipe::Shader &el)
 {
   Serialise("", el.Object);
   Serialise("", el.BindpointMapping);
@@ -614,7 +614,7 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::Shader &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::Rasterizer &el)
+void Serialiser::Serialise(const char *name, D3D12Pipe::Rasterizer &el)
 {
   Serialise("", el.SampleMask);
   Serialise("", el.Scissors);
@@ -625,7 +625,7 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::Rasterizer &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::OutputMerger::BlendState::RTBlend &el)
+void Serialiser::Serialise(const char *name, D3D12Pipe::Blend &el)
 {
   Serialise("", el.m_Blend.Source);
   Serialise("", el.m_Blend.Destination);
@@ -645,7 +645,7 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::OutputMerger::B
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::OutputMerger &el)
+void Serialiser::Serialise(const char *name, D3D12Pipe::OM &el)
 {
   {
     Serialise("", el.m_State.DepthEnable);
@@ -687,7 +687,7 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::OutputMerger &e
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::ResourceData::ResourceState &el)
+void Serialiser::Serialise(const char *name, D3D12Pipe::ResourceState &el)
 {
   Serialise("", el.name);
 
@@ -695,7 +695,7 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::ResourceData::R
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState::ResourceData &el)
+void Serialiser::Serialise(const char *name, D3D12Pipe::ResourceData &el)
 {
   Serialise("", el.id);
   Serialise("", el.states);
@@ -704,7 +704,7 @@ void Serialiser::Serialise(const char *name, D3D12PipelineState::ResourceData &e
 }
 
 template <>
-void Serialiser::Serialise(const char *name, D3D12PipelineState &el)
+void Serialiser::Serialise(const char *name, D3D12Pipe::State &el)
 {
   Serialise("", el.pipeline);
   Serialise("", el.customName);
@@ -1804,32 +1804,27 @@ string ToStrHelper<false, D3D11Pipe::SOBind>::Get(const D3D11Pipe::SOBind &el)
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D12PipelineState::InputAssembler::VertexBuffer>::Get(
-    const D3D12PipelineState::InputAssembler::VertexBuffer &el)
+string ToStrHelper<false, D3D12Pipe::VB>::Get(const D3D12Pipe::VB &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D12PipelineState::Streamout::Output>::Get(
-    const D3D12PipelineState::Streamout::Output &el)
+string ToStrHelper<false, D3D12Pipe::SOBind>::Get(const D3D12Pipe::SOBind &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D12PipelineState::Rasterizer::Scissor>::Get(
-    const D3D12PipelineState::Rasterizer::Scissor &el)
+string ToStrHelper<false, D3D12Pipe::Scissor>::Get(const D3D12Pipe::Scissor &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D12PipelineState::Rasterizer::Viewport>::Get(
-    const D3D12PipelineState::Rasterizer::Viewport &el)
+string ToStrHelper<false, D3D12Pipe::Viewport>::Get(const D3D12Pipe::Viewport &el)
 {
   return "<...>";
 }
 template <>
-string ToStrHelper<false, D3D12PipelineState::Rasterizer::RasterizerState>::Get(
-    const D3D12PipelineState::Rasterizer::RasterizerState &el)
+string ToStrHelper<false, D3D12Pipe::RasterizerState>::Get(const D3D12Pipe::RasterizerState &el)
 {
   return "<...>";
 }
@@ -2376,7 +2371,7 @@ void ReplayProxy::SavePipelineState()
       return;
 
     m_D3D11PipelineState = D3D11Pipe::State();
-    m_D3D12PipelineState = D3D12PipelineState();
+    m_D3D12PipelineState = D3D12Pipe::State();
     m_GLPipelineState = GLPipe::State();
     m_VulkanPipelineState = VKPipe::State();
   }

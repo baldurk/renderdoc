@@ -535,7 +535,7 @@ void CaptureContext::CloseLogfile()
   m_TextureList.clear();
 
   CurD3D11PipelineState = D3D11Pipe::State();
-  CurD3D12PipelineState = D3D12PipelineState();
+  CurD3D12PipelineState = D3D12Pipe::State();
   CurGLPipelineState = GLPipe::State();
   CurVulkanPipelineState = VKPipe::State();
   CurPipelineState.SetStates(m_APIProps, NULL, NULL, NULL, NULL);
