@@ -547,4 +547,7 @@
       <Filter>Resources</Filter>
     </ResourceCompile>
   </ItemGroup>
+  <ItemGroup>
+    <Natvis Include="renderdoc.natvis" />
+  </ItemGroup>
 </Project>

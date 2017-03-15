@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="rdctype::str">
+    <DisplayString>{elems,s}</DisplayString>
+    <Expand>
+      <Item Name="[size]" ExcludeView="simple">count</Item>
+      <ArrayItems>
+        <Size>count</Size>
+        <ValuePointer>elems</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+  <Type Name="rdctype::array&lt;*&gt;">
+    <DisplayString>{{ size={count} }}</DisplayString>
+    <Expand>
+      <Item Name="[size]" ExcludeView="simple">count</Item>
+      <ArrayItems>
+        <Size>count</Size>
+        <ValuePointer>elems</ValuePointer>
+      </ArrayItems>
+    </Expand>
+  </Type>
+</AutoVisualizer>
