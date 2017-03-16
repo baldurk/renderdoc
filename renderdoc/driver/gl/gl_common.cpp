@@ -667,6 +667,23 @@ void DoVendorChecks(const GLHookSet &gl, GLPlatform &platform, GLWindowingData c
   // I'm not sure if that's correct (weird) behaviour or buggy, but we can work around it just by
   // avoiding use of the DSA function and always doing our emulated version.
   VendorCheck[VendorCheck_AMD_vertex_array_elem_buffer_query] = true;
+
+  if(IsGLES)
+  {
+    // Check whether reading from the depth, stencil and depth-stencil buffers using glReadPixels is
+    // supported or not.
+    if(!HasExt[NV_read_depth])
+      RDCWARN(
+          "Reading from the depth buffer using glReadPixels is not supported (GL_NV_read_depth)");
+    if(!HasExt[NV_read_stencil])
+      RDCWARN(
+          "Reading from the stencil buffer using glReadPixels is not supported "
+          "(GL_NV_read_stencil)");
+    if(!HasExt[NV_read_depth_stencil])
+      RDCWARN(
+          "Reading from the packed depth-stencil buffers using glReadPixels is not supported "
+          "(GL_NV_read_depth_stencil)");
+  }
 }
 
 const GLHookSet *GLMarkerRegion::gl;
