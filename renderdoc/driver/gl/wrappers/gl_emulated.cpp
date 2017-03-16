@@ -1218,6 +1218,91 @@ void APIENTRY _glClearBufferData(GLenum target, GLenum internalformat, GLenum fo
 
 #pragma endregion
 
+#pragma region GLES Compatibility
+
+void APIENTRY _glGetTexImage(GLenum target, GLint level, GLenum format, GLenum type, void *pixels)
+{
+  if((format == eGL_DEPTH_COMPONENT && !HasExt[NV_read_depth]) ||
+     (format == eGL_STENCIL && !HasExt[NV_read_stencil]) ||
+     (format == eGL_DEPTH_STENCIL && !HasExt[NV_read_depth_stencil]))
+  {
+    // TODO create a workaround for this
+    // return silently, check was made during startup
+    return;
+  }
+
+  switch(target)
+  {
+    case eGL_TEXTURE_1D:
+    case eGL_TEXTURE_1D_ARRAY:
+      RDCWARN("1d and 1d array textures are not supported by GLES");
+      return;
+
+    case eGL_TEXTURE_BUFFER:
+      // TODO implement this
+      GLNOTIMP("Reading pixels from texture buffer");
+      return;
+
+    default: break;
+  }
+
+  GLint width = 0, height = 0, depth = 0;
+  internalGL->glGetTexLevelParameteriv(target, level, eGL_TEXTURE_WIDTH, &width);
+  internalGL->glGetTexLevelParameteriv(target, level, eGL_TEXTURE_HEIGHT, &height);
+  internalGL->glGetTexLevelParameteriv(target, level, eGL_TEXTURE_DEPTH, &depth);
+
+  GLint texture = 0;
+  internalGL->glGetIntegerv(TextureBinding(target), (GLint *)&texture);
+
+  GLenum attachment = eGL_COLOR_ATTACHMENT0;
+  if(format == eGL_DEPTH_COMPONENT)
+    attachment = eGL_DEPTH_ATTACHMENT;
+  else if(format == eGL_STENCIL)
+    attachment = eGL_STENCIL_ATTACHMENT;
+  else if(format == eGL_DEPTH_STENCIL)
+    attachment = eGL_DEPTH_STENCIL_ATTACHMENT;
+
+  GLuint fbo = 0;
+  internalGL->glGenFramebuffers(1, &fbo);
+
+  PushPopFramebuffer(eGL_FRAMEBUFFER, fbo);
+
+  size_t sliceSize = GetByteSize(width, height, 1, format, type);
+
+  for(GLint d = 0; d < depth; ++d)
+  {
+    switch(target)
+    {
+      case eGL_TEXTURE_3D:
+      case eGL_TEXTURE_2D_ARRAY:
+      case eGL_TEXTURE_CUBE_MAP_ARRAY:
+      case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+        internalGL->glFramebufferTextureLayer(eGL_FRAMEBUFFER, attachment, texture, level, d);
+        break;
+
+      case eGL_TEXTURE_CUBE_MAP:
+      case eGL_TEXTURE_CUBE_MAP_POSITIVE_X:
+      case eGL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+      case eGL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+      case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+      case eGL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+      case eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+      case eGL_TEXTURE_2D:
+      case eGL_TEXTURE_2D_MULTISAMPLE:
+      default:
+        internalGL->glFramebufferTexture2D(eGL_FRAMEBUFFER, attachment, target, texture, level);
+        break;
+    }
+
+    byte *dst = (byte *)pixels + d * sliceSize;
+    internalGL->glReadPixels(0, 0, width, height, format, type, (void *)dst);
+  }
+
+  internalGL->glDeleteFramebuffers(1, &fbo);
+}
+
+#pragma endregion
+
 void EmulateRequiredExtensions(const GLHookSet *real, GLHookSet *hooks)
 {
 #define EMULATE_FUNC(func) hooks->func = &CONCAT(_, func);
@@ -1253,6 +1338,7 @@ void EmulateRequiredExtensions(const GLHookSet *real, GLHookSet *hooks)
   if(IsGLES)
   {
     EMULATE_FUNC(glGetBufferSubData);
+    EMULATE_FUNC(glGetTexImage);
   }
 
   // Emulate the EXT_dsa functions that we'll need.
