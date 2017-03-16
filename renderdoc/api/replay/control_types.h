@@ -76,6 +76,8 @@ struct MeshFormat
   float farPlane;
 };
 
+DECLARE_REFLECTION_STRUCT(MeshFormat);
+
 class Camera;
 
 struct MeshDisplay
@@ -104,6 +106,8 @@ struct MeshDisplay
   bool32 wireframeDraw;
 };
 
+DECLARE_REFLECTION_STRUCT(MeshDisplay);
+
 struct TextureDisplay
 {
   ResourceId texid;
@@ -129,12 +133,16 @@ struct TextureDisplay
   DebugOverlay overlay;
 };
 
+DECLARE_REFLECTION_STRUCT(TextureDisplay);
+
 // some dependent structs for TextureSave
 struct TextureComponentMapping
 {
   float blackPoint;
   float whitePoint;
 };
+
+DECLARE_REFLECTION_STRUCT(TextureComponentMapping);
 
 struct TextureSampleMapping
 {
@@ -150,6 +158,8 @@ struct TextureSampleMapping
   // resolve only available for uncompressed simple formats.
   uint32_t sampleIndex;
 };
+
+DECLARE_REFLECTION_STRUCT(TextureSampleMapping);
 
 struct TextureSliceMapping
 {
@@ -185,6 +195,8 @@ struct TextureSliceMapping
   // and file format doesn't support saving all slices, only
   // slice 0 is saved
 };
+
+DECLARE_REFLECTION_STRUCT(TextureSliceMapping);
 
 struct TextureSave
 {
@@ -222,6 +234,8 @@ struct TextureSave
   int jpegQuality;
 };
 
+DECLARE_REFLECTION_STRUCT(TextureSave);
+
 // dependent structs for TargetControlMessage
 struct NewCaptureData
 {
@@ -232,21 +246,29 @@ struct NewCaptureData
   bool32 local;
 };
 
+DECLARE_REFLECTION_STRUCT(NewCaptureData);
+
 struct RegisterAPIData
 {
   rdctype::str APIName;
 };
+
+DECLARE_REFLECTION_STRUCT(RegisterAPIData);
 
 struct BusyData
 {
   rdctype::str ClientName;
 };
 
+DECLARE_REFLECTION_STRUCT(BusyData);
+
 struct NewChildData
 {
   uint32_t PID;
   uint32_t ident;
 };
+
+DECLARE_REFLECTION_STRUCT(NewChildData);
 
 struct TargetControlMessage
 {
@@ -258,3 +280,5 @@ struct TargetControlMessage
   BusyData Busy;
   NewChildData NewChild;
 };
+
+DECLARE_REFLECTION_STRUCT(TargetControlMessage);

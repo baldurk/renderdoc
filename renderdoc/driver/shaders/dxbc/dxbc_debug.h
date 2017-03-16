@@ -25,7 +25,7 @@
 
 #pragma once
 
-#include "api/replay/shader_types.h"
+#include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 #include "dxbc_disassemble.h"
 

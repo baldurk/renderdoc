@@ -34,6 +34,8 @@ struct FloatVector
   float x, y, z, w;
 };
 
+DECLARE_REFLECTION_STRUCT(FloatVector);
+
 struct DirectoryFile
 {
   rdctype::str filename;
@@ -41,6 +43,8 @@ struct DirectoryFile
   uint32_t lastmod;
   uint64_t size;
 };
+
+DECLARE_REFLECTION_STRUCT(DirectoryFile);
 
 struct ResourceFormat
 {
@@ -81,6 +85,8 @@ struct ResourceFormat
   bool32 srgbCorrected;
 };
 
+DECLARE_REFLECTION_STRUCT(ResourceFormat);
+
 struct FetchBuffer
 {
   ResourceId ID;
@@ -89,6 +95,8 @@ struct FetchBuffer
   BufferCategory creationFlags;
   uint64_t length;
 };
+
+DECLARE_REFLECTION_STRUCT(FetchBuffer);
 
 struct FetchTexture
 {
@@ -107,6 +115,8 @@ struct FetchTexture
   uint64_t byteSize;
 };
 
+DECLARE_REFLECTION_STRUCT(FetchTexture);
+
 struct FetchAPIEvent
 {
   uint32_t eventID;
@@ -118,6 +128,8 @@ struct FetchAPIEvent
   uint64_t fileOffset;
 };
 
+DECLARE_REFLECTION_STRUCT(FetchAPIEvent);
+
 struct DebugMessage
 {
   uint32_t eventID;
@@ -127,6 +139,8 @@ struct DebugMessage
   uint32_t messageID;
   rdctype::str description;
 };
+
+DECLARE_REFLECTION_STRUCT(DebugMessage);
 
 enum BucketRecordType
 {
@@ -150,6 +164,8 @@ struct FetchFrameConstantBindStats
   rdctype::array<uint32_t> sizes;
 };
 
+DECLARE_REFLECTION_STRUCT(FetchFrameConstantBindStats);
+
 struct FetchFrameSamplerBindStats
 {
   uint32_t calls;
@@ -157,6 +173,8 @@ struct FetchFrameSamplerBindStats
   uint32_t nulls;
   rdctype::array<uint32_t> bindslots;
 };
+
+DECLARE_REFLECTION_STRUCT(FetchFrameSamplerBindStats);
 
 struct FetchFrameResourceBindStats
 {
@@ -166,6 +184,8 @@ struct FetchFrameResourceBindStats
   rdctype::array<uint32_t> types;
   rdctype::array<uint32_t> bindslots;
 };
+
+DECLARE_REFLECTION_STRUCT(FetchFrameResourceBindStats);
 
 struct FetchFrameUpdateStats
 {
@@ -181,6 +201,8 @@ struct FetchFrameUpdateStats
   rdctype::array<uint32_t> sizes;
 };
 
+DECLARE_REFLECTION_STRUCT(FetchFrameUpdateStats);
+
 struct FetchFrameDrawStats
 {
   enum Constants
@@ -195,11 +217,15 @@ struct FetchFrameDrawStats
   rdctype::array<uint32_t> counts;
 };
 
+DECLARE_REFLECTION_STRUCT(FetchFrameDrawStats);
+
 struct FetchFrameDispatchStats
 {
   uint32_t calls;
   uint32_t indirect;
 };
+
+DECLARE_REFLECTION_STRUCT(FetchFrameDispatchStats);
 
 struct FetchFrameIndexBindStats
 {
@@ -207,6 +233,8 @@ struct FetchFrameIndexBindStats
   uint32_t sets;
   uint32_t nulls;
 };
+
+DECLARE_REFLECTION_STRUCT(FetchFrameIndexBindStats);
 
 struct FetchFrameVertexBindStats
 {
@@ -216,12 +244,16 @@ struct FetchFrameVertexBindStats
   rdctype::array<uint32_t> bindslots;
 };
 
+DECLARE_REFLECTION_STRUCT(FetchFrameVertexBindStats);
+
 struct FetchFrameLayoutBindStats
 {
   uint32_t calls;
   uint32_t sets;
   uint32_t nulls;
 };
+
+DECLARE_REFLECTION_STRUCT(FetchFrameLayoutBindStats);
 
 struct FetchFrameShaderStats
 {
@@ -231,6 +263,8 @@ struct FetchFrameShaderStats
   uint32_t redundants;
 };
 
+DECLARE_REFLECTION_STRUCT(FetchFrameShaderStats);
+
 struct FetchFrameBlendStats
 {
   uint32_t calls;
@@ -239,6 +273,8 @@ struct FetchFrameBlendStats
   uint32_t redundants;
 };
 
+DECLARE_REFLECTION_STRUCT(FetchFrameBlendStats);
+
 struct FetchFrameDepthStencilStats
 {
   uint32_t calls;
@@ -246,6 +282,8 @@ struct FetchFrameDepthStencilStats
   uint32_t nulls;
   uint32_t redundants;
 };
+
+DECLARE_REFLECTION_STRUCT(FetchFrameDepthStencilStats);
 
 struct FetchFrameRasterizationStats
 {
@@ -257,6 +295,8 @@ struct FetchFrameRasterizationStats
   rdctype::array<uint32_t> rects;
 };
 
+DECLARE_REFLECTION_STRUCT(FetchFrameRasterizationStats);
+
 struct FetchFrameOutputStats
 {
   uint32_t calls;
@@ -264,6 +304,8 @@ struct FetchFrameOutputStats
   uint32_t nulls;
   rdctype::array<uint32_t> bindslots;
 };
+
+DECLARE_REFLECTION_STRUCT(FetchFrameOutputStats);
 
 struct FetchFrameStatistics
 {
@@ -283,6 +325,8 @@ struct FetchFrameStatistics
   FetchFrameRasterizationStats rasters;
   FetchFrameOutputStats outputs;
 };
+
+DECLARE_REFLECTION_STRUCT(FetchFrameStatistics);
 
 struct FetchFrameInfo
 {
@@ -308,6 +352,8 @@ struct FetchFrameInfo
   rdctype::array<DebugMessage> debugMessages;
 };
 
+DECLARE_REFLECTION_STRUCT(FetchFrameInfo);
+
 struct EventUsage
 {
   EventUsage() : eventID(0), usage(ResourceUsage::Unused) {}
@@ -325,6 +371,8 @@ struct EventUsage
   ResourceUsage usage;
   ResourceId view;
 };
+
+DECLARE_REFLECTION_STRUCT(EventUsage);
 
 struct FetchDrawcall
 {
@@ -396,6 +444,8 @@ struct FetchDrawcall
   rdctype::array<FetchDrawcall> children;
 };
 
+DECLARE_REFLECTION_STRUCT(FetchDrawcall);
+
 struct APIProperties
 {
   // the pipeline type of the actual log/capture
@@ -407,6 +457,8 @@ struct APIProperties
   bool32 degraded;
 };
 
+DECLARE_REFLECTION_STRUCT(APIProperties);
+
 struct CounterDescription
 {
   GPUCounter counterID;
@@ -416,6 +468,8 @@ struct CounterDescription
   uint32_t resultByteWidth;
   CounterUnit unit;
 };
+
+DECLARE_REFLECTION_STRUCT(CounterDescription);
 
 union CounterValue
 {
@@ -467,6 +521,8 @@ struct CounterResult
   CounterValue value;
 };
 
+DECLARE_REFLECTION_STRUCT(CounterResult);
+
 union PixelValue
 {
   float value_f[4];
@@ -481,6 +537,8 @@ struct ModificationValue
   float depth;
   int32_t stencil;
 };
+
+DECLARE_REFLECTION_STRUCT(ModificationValue);
 
 struct PixelModification
 {
@@ -511,3 +569,5 @@ struct PixelModification
            !shaderDiscarded && !depthTestFailed && !stencilTestFailed;
   }
 };
+
+DECLARE_REFLECTION_STRUCT(PixelModification);

@@ -27,6 +27,16 @@
 
 #include <stdint.h>
 
+template <typename T>
+inline const char *TypeName();
+
+#define DECLARE_REFLECTION_STRUCT(type) \
+  template <>                           \
+  inline const char *TypeName<type>()   \
+  {                                     \
+    return #type;                       \
+  }
+
 typedef uint8_t byte;
 typedef uint32_t bool32;
 
@@ -145,6 +155,8 @@ private:
   friend ResourceId ResourceIDGen::GetNewUniqueID();
 #endif
 };
+
+DECLARE_REFLECTION_STRUCT(ResourceId);
 
 #include "capture_options.h"
 #include "control_types.h"
@@ -289,6 +301,8 @@ struct IReplayRenderer
   virtual bool GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                               rdctype::array<byte> *data) = 0;
 };
+
+DECLARE_REFLECTION_STRUCT(IReplayRenderer);
 
 // deprecated C interface, for renderdocui only
 extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetAPIProperties(IReplayRenderer *rend,

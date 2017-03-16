@@ -135,6 +135,8 @@ struct ShaderVariable
   rdctype::array<ShaderVariable> members;
 };
 
+DECLARE_REFLECTION_STRUCT(ShaderVariable);
+
 struct ShaderDebugState
 {
   rdctype::array<ShaderVariable> registers;
@@ -146,6 +148,8 @@ struct ShaderDebugState
   ShaderEvents flags;
 };
 
+DECLARE_REFLECTION_STRUCT(ShaderDebugState);
+
 struct ShaderDebugTrace
 {
   rdctype::array<ShaderVariable> inputs;
@@ -153,6 +157,8 @@ struct ShaderDebugTrace
 
   rdctype::array<ShaderDebugState> states;
 };
+
+DECLARE_REFLECTION_STRUCT(ShaderDebugTrace);
 
 struct SigParameter
 {
@@ -190,6 +196,8 @@ struct SigParameter
   uint32_t arrayIndex;
 };
 
+DECLARE_REFLECTION_STRUCT(SigParameter);
+
 struct ShaderConstant;
 
 struct ShaderVariableDescriptor
@@ -203,6 +211,8 @@ struct ShaderVariableDescriptor
   rdctype::str name;
 };
 
+DECLARE_REFLECTION_STRUCT(ShaderVariableDescriptor);
+
 struct ShaderVariableType
 {
   ShaderVariableDescriptor descriptor;
@@ -210,11 +220,15 @@ struct ShaderVariableType
   rdctype::array<ShaderConstant> members;
 };
 
+DECLARE_REFLECTION_STRUCT(ShaderVariableType);
+
 struct ShaderRegister
 {
   uint32_t vec;
   uint32_t comp;
 };
+
+DECLARE_REFLECTION_STRUCT(ShaderRegister);
 
 struct ShaderConstant
 {
@@ -224,6 +238,8 @@ struct ShaderConstant
   ShaderVariableType type;
 };
 
+DECLARE_REFLECTION_STRUCT(ShaderConstant);
+
 struct ConstantBlock
 {
   rdctype::str name;
@@ -232,6 +248,8 @@ struct ConstantBlock
   int32_t bindPoint;
   uint32_t byteSize;
 };
+
+DECLARE_REFLECTION_STRUCT(ConstantBlock);
 
 struct ShaderResource
 {
@@ -246,6 +264,8 @@ struct ShaderResource
   int32_t bindPoint;
 };
 
+DECLARE_REFLECTION_STRUCT(ShaderResource);
+
 struct ShaderDebugChunk
 {
   ShaderDebugChunk() : compileFlags(0), entryFile(0) {}
@@ -257,6 +277,8 @@ struct ShaderDebugChunk
 
   int32_t entryFile;    // index in above array of 'main' file with entry point
 };
+
+DECLARE_REFLECTION_STRUCT(ShaderDebugChunk);
 
 struct ShaderReflection
 {
@@ -278,6 +300,8 @@ struct ShaderReflection
   // TODO expand this to encompass shader subroutines.
   rdctype::array<rdctype::str> Interfaces;
 };
+
+DECLARE_REFLECTION_STRUCT(ShaderReflection);
 
 struct BindpointMap
 {
@@ -310,6 +334,8 @@ struct BindpointMap
   uint32_t arraySize;
 };
 
+DECLARE_REFLECTION_STRUCT(BindpointMap);
+
 struct ShaderBindpointMapping
 {
   rdctype::array<int> InputAttributes;
@@ -317,3 +343,5 @@ struct ShaderBindpointMapping
   rdctype::array<BindpointMap> ReadOnlyResources;
   rdctype::array<BindpointMap> ReadWriteResources;
 };
+
+DECLARE_REFLECTION_STRUCT(ShaderBindpointMapping);
