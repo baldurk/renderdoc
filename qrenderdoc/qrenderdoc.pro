@@ -35,12 +35,6 @@ win32 {
 	RC_INCLUDEPATH = $$_PRO_FILE_PWD_/../renderdoc/api/replay
 	RC_FILE = Resources/qrenderdoc.rc
 
-	# it is fine to alias these across targets, because the output
-	# is identical on all targets
-	MOC_DIR = $$_PRO_FILE_PWD_/obj/generated
-	UI_DIR = $$_PRO_FILE_PWD_/obj/generated
-	RCC_DIR = $$_PRO_FILE_PWD_/obj/generated
-
 	# generate pdb files even in release
 	QMAKE_LFLAGS_RELEASE+=/MAP
 	QMAKE_CFLAGS_RELEASE += /Zi
@@ -49,16 +43,9 @@ win32 {
 	!contains(QMAKE_TARGET.arch, x86_64) {
 		Debug:DESTDIR = $$_PRO_FILE_PWD_/../Win32/Development
 		Release:DESTDIR = $$_PRO_FILE_PWD_/../Win32/Release
-
-		Debug:OBJECTS_DIR = $$_PRO_FILE_PWD_/obj/Win32/Development
-		Release:OBJECTS_DIR = $$_PRO_FILE_PWD_/obj/Win32/Release
-
 	} else {
 		Debug:DESTDIR = $$_PRO_FILE_PWD_/../x64/Development
 		Release:DESTDIR = $$_PRO_FILE_PWD_/../x64/Release
-
-		Debug:OBJECTS_DIR = $$_PRO_FILE_PWD_/obj/x64/Development
-		Release:OBJECTS_DIR = $$_PRO_FILE_PWD_/obj/x64/Release
 	}
 
 	# Link against the core library
