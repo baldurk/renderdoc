@@ -1,0 +1,505 @@
+/******************************************************************************
+ * The MIT License (MIT)
+ *
+ * Copyright (c) 2017 Baldur Karlsson
+ *
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
+
+// must be included first
+#include <Python.h>
+#include <frameobject.h>
+
+#include <QApplication>
+#include <QDebug>
+#include <QFile>
+#include <QThread>
+#include "PythonContext.h"
+#include "renderdoc_replay.h"
+
+// defined in SWIG-generated renderdoc_python.cpp
+extern "C" PyObject *PyInit__renderdoc(void);
+extern "C" PyObject *PassObjectToPython(const char *type, void *obj);
+
+#ifdef WIN32
+
+// on Win32 the renderdoc.py is compiled in as a windows resource. Extract and return
+#include <windows.h>
+#include "Resources/resource.h"
+
+QByteArray GetWrapperModule()
+{
+  HRSRC res = FindResource(NULL, MAKEINTRESOURCE(renderdoc_py_module), MAKEINTRESOURCE(TYPE_EMBED));
+  HGLOBAL data = LoadResource(NULL, res);
+
+  if(!data)
+    return QByteArray();
+
+  DWORD resSize = SizeofResource(NULL, res);
+  const char *resData = (const char *)LockResource(data);
+
+  return QByteArray(resData, (int)resSize);
+}
+
+#else
+
+// Otherwise it's compiled in via include-bin which converts to a .c with extern array
+extern unsigned char renderdoc_py[];
+extern unsigned int renderdoc_py_len;
+
+QByteArray GetWrapperModule()
+{
+  return QByteArray((const char *)renderdoc_py, (int)renderdoc_py_len);
+}
+
+#endif
+
+// little utility function to convert a PyObject * that we know is a string to a QString
+static inline QString ToQStr(PyObject *value)
+{
+  if(value)
+  {
+    PyObject *repr = PyObject_Str(value);
+    if(repr == NULL)
+      return "";
+
+    PyObject *decoded = PyUnicode_AsUTF8String(repr);
+    if(decoded == NULL)
+      return "";
+
+    QString ret = PyBytes_AsString(decoded);
+
+    Py_DecRef(decoded);
+    Py_DecRef(repr);
+
+    return ret;
+  }
+
+  return "";
+}
+
+static wchar_t program_name[] = L"qrenderdoc";
+
+struct OutputRedirector
+{
+  PyObject_HEAD;
+  union
+  {
+    // we union with a uint64_t to ensure it's always a ulonglong even on 32-bit
+    uint64_t dummy;
+    PythonContext *context;
+  };
+  int isStdError;
+};
+
+static PyTypeObject OutputRedirectorType = {PyVarObject_HEAD_INIT(NULL, 0)};
+
+static PyMethodDef OutputRedirector_methods[] = {
+    {"write", NULL, METH_VARARGS, "Writes to the output window"},
+    {"flush", NULL, METH_NOARGS, "Does nothing - only provided for compatibility"},
+    {NULL}};
+
+PyObject *PythonContext::renderdoc_py_compiled = NULL;
+PyThreadState *PythonContext::mainThread = NULL;
+
+void PythonContext::GlobalInit()
+{
+  // must happen on the UI thread
+  if(qApp->thread() != QThread::currentThread())
+  {
+    qFatal("PythonContext::GlobalInit MUST be called from the UI thread");
+    return;
+  }
+
+  PyImport_AppendInittab("_renderdoc", &PyInit__renderdoc);
+
+  Py_SetProgramName(program_name);
+
+  Py_Initialize();
+
+  PyEval_InitThreads();
+
+  QByteArray module_src = GetWrapperModule();
+
+  if(module_src.isEmpty())
+  {
+    qCritical() << "renderdoc.py wrapper is corrupt/empty. Check build configuration to ensure "
+                   "SWIG compiled properly with python support.";
+    return;
+  }
+
+  renderdoc_py_compiled = Py_CompileString(module_src.data(), "renderdoc.py", Py_file_input);
+
+  if(!renderdoc_py_compiled)
+  {
+    qCritical() << "Failed to compile renderdoc.py wrapper, python will not be available";
+    return;
+  }
+
+  OutputRedirectorType.tp_name = "renderdoc_output_redirector";
+  OutputRedirectorType.tp_basicsize = sizeof(OutputRedirector);
+  OutputRedirectorType.tp_flags = Py_TPFLAGS_DEFAULT;
+  OutputRedirectorType.tp_doc =
+      "Output redirector, to be able to catch output to stdout and stderr";
+  OutputRedirectorType.tp_new = PyType_GenericNew;
+  OutputRedirectorType.tp_methods = OutputRedirector_methods;
+
+  OutputRedirector_methods[0].ml_meth = &PythonContext::outstream_write;
+  OutputRedirector_methods[1].ml_meth = &PythonContext::outstream_flush;
+
+  // release GIL so that python work can now happen on any thread
+  mainThread = PyEval_SaveThread();
+}
+
+bool PythonContext::initialised()
+{
+  return renderdoc_py_compiled != NULL;
+}
+
+PythonContext::PythonContext(QObject *parent) : QObject(parent)
+{
+  if(!initialised())
+    return;
+
+  // acquire the GIL and make sure this thread is init'd
+  PyGILState_STATE gil = PyGILState_Ensure();
+
+  // save the current thread state as the PyGILState requires we don't mess with it
+  PyThreadState *prevThreadState = PyThreadState_Get();
+
+  // create the interpreter
+  interpreter = Py_NewInterpreter();
+
+  // remembere which thread created the interpreter
+  interpreterThread = QThread::currentThread();
+
+  main_module = PyImport_AddModule("__main__");
+  PyObject *maindict = PyModule_GetDict(main_module);
+
+  PyObject *rdoc_module = PyImport_ExecCodeModule("renderdoc", renderdoc_py_compiled);
+
+  PyModule_AddObject(main_module, "renderdoc", rdoc_module);
+
+  // import sys
+  PyModule_AddObject(main_module, "sys", PyImport_ImportModule("sys"));
+
+  // sysobj = sys
+  PyObject *sysobj = PyDict_GetItemString(maindict, "sys");
+
+  // sysobj.stdout = renderdoc_output_redirector()
+  // sysobj.stderr = renderdoc_output_redirector()
+  if(PyType_Ready(&OutputRedirectorType) >= 0)
+  {
+    // currently we redirect both to the same place. We could always
+    // pass a flag to the constructor that tells us what type it is
+    PyObject *redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, "");
+    PyObject_SetAttrString(sysobj, "stdout", redirector);
+
+    OutputRedirector *output = (OutputRedirector *)redirector;
+    output->isStdError = 0;
+    output->context = this;
+
+    redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, "");
+    PyObject_SetAttrString(sysobj, "stderr", redirector);
+
+    output = (OutputRedirector *)redirector;
+    output->isStdError = 1;
+    output->context = this;
+  }
+
+  // restore previous thread state
+  PyThreadState_Swap(prevThreadState);
+
+  // release the GIL again
+  PyGILState_Release(gil);
+}
+
+PythonContext::~PythonContext()
+{
+}
+
+void PythonContext::GlobalShutdown()
+{
+  // must happen on the UI thread
+  if(qApp->thread() != QThread::currentThread())
+  {
+    qFatal("PythonContext::GlobalShutdown MUST be called from the UI thread");
+    return;
+  }
+
+  // go back onto the main thread and acquire the GIL, so we can shut down
+  PyEval_RestoreThread(mainThread);
+
+  Py_XDECREF(renderdoc_py_compiled);
+  Py_Finalize();
+}
+
+void PythonContext::executeString(const QString &filename, const QString &source)
+{
+  if(!initialised())
+  {
+    emit exception(
+        "SystemError",
+        "Python integration failed to initialise, see diagnostic log for more information.", {});
+    return;
+  }
+
+  location.file = filename;
+  location.line = 1;
+
+  GILContext *ctx = PythonInterpStart();
+
+  PyObject *maindict = PyModule_GetDict(main_module);
+  PyObject *compiled =
+      Py_CompileString(source.toUtf8().data(), filename.toUtf8().data(), Py_file_input);
+
+  PyObject *ret = NULL;
+
+  if(compiled)
+  {
+    PyObject *traceContext = PyDict_New();
+
+    uintptr_t thisint = (uintptr_t) this;
+    uint64_t thisuint64 = (uint64_t)thisint;
+    PyObject *thisobj = PyLong_FromUnsignedLongLong(thisuint64);
+
+    PyDict_SetItemString(traceContext, "thisobj", thisobj);
+    PyDict_SetItemString(traceContext, "compiled", compiled);
+
+    PyEval_SetTrace(&PythonContext::traceEvent, traceContext);
+
+    ret = PyEval_EvalCode(compiled, maindict, maindict);
+
+    Py_XDECREF(thisobj);
+    Py_XDECREF(traceContext);
+  }
+
+  Py_DecRef(compiled);
+
+  QString typeStr;
+  QString valueStr = "";
+  QList<QString> frames;
+  bool caughtException = (ret == NULL);
+
+  if(caughtException)
+  {
+    PyObject *exObj = NULL, *valueObj = NULL, *tracebackObj = NULL;
+
+    PyErr_Fetch(&exObj, &valueObj, &tracebackObj);
+
+    PyErr_NormalizeException(&exObj, &valueObj, &tracebackObj);
+
+    if(exObj && PyType_Check(exObj))
+    {
+      PyTypeObject *type = (PyTypeObject *)exObj;
+
+      typeStr = QString::fromUtf8(type->tp_name);
+    }
+    else
+    {
+      typeStr = tr("Unknown Exception");
+    }
+
+    if(valueObj)
+      valueStr = ToQStr(valueObj);
+
+    if(tracebackObj)
+    {
+      PyObject *tracebackModule = PyImport_ImportModule("traceback");
+
+      if(tracebackModule)
+      {
+        PyObject *func = PyObject_GetAttrString(tracebackModule, "format_tb");
+
+        if(func && PyCallable_Check(func))
+        {
+          PyObject *args = Py_BuildValue("(N)", tracebackObj);
+          PyObject *formattedTB = PyObject_CallObject(func, args);
+
+          if(formattedTB)
+          {
+            Py_ssize_t size = PyList_Size(formattedTB);
+            for(Py_ssize_t i = 0; i < size; i++)
+            {
+              PyObject *el = PyList_GetItem(formattedTB, i);
+
+              frames << ToQStr(el);
+            }
+
+            Py_DecRef(formattedTB);
+          }
+
+          Py_DecRef(args);
+        }
+      }
+    }
+
+    Py_DecRef(exObj);
+    Py_DecRef(valueObj);
+    Py_DecRef(tracebackObj);
+  }
+
+  Py_XDECREF(ret);
+
+  PythonInterpEnd(ctx);
+
+  if(caughtException)
+    emit exception(typeStr, valueStr, frames);
+}
+
+void PythonContext::executeString(const QString &source)
+{
+  executeString("<interactive.py>", source);
+}
+
+struct GILContext
+{
+  PyGILState_STATE gil;
+  PyThreadState *prevTS;
+  PyThreadState *interpTS;
+};
+
+GILContext *PythonContext::PythonInterpStart()
+{
+  GILContext *ctx = new GILContext();
+
+  // acquire the GIL and make sure this thread is init'd
+  ctx->gil = PyGILState_Ensure();
+
+  // save the current thread state as the PyGILState requires we don't mess with it
+  ctx->prevTS = PyThreadState_Get();
+
+  ctx->interpTS = NULL;
+
+  // do we need a new thread state?
+  if(interpreterThread != QThread::currentThread())
+  {
+    ctx->interpTS = PyThreadState_New(interpreter->interp);
+
+    PyThreadState_Swap(ctx->interpTS);
+  }
+  else
+  {
+    PyThreadState_Swap(interpreter);
+  }
+
+  return ctx;
+}
+
+void PythonContext::PythonInterpEnd(GILContext *ctx)
+{
+  // restore previous thread state
+  PyThreadState_Swap(ctx->prevTS);
+
+  // did we need a new thread state? delete it then
+  if(ctx->interpTS)
+  {
+    PyThreadState_Clear(ctx->interpTS);
+    PyThreadState_Delete(ctx->interpTS);
+  }
+
+  // release the GIL again
+  PyGILState_Release(ctx->gil);
+
+  delete ctx;
+}
+
+void PythonContext::executeFile(const QString &filename)
+{
+  QFile f(filename);
+
+  if(!f.exists())
+  {
+    emit exception("FileNotFoundError", QString("No such file or directory: %1").arg(filename), {});
+    return;
+  }
+
+  if(f.open(QIODevice::ReadOnly | QIODevice::Text))
+  {
+    QByteArray py = f.readAll();
+
+    executeString(filename, QString::fromUtf8(py));
+  }
+  else
+  {
+    emit exception("IOError", QString("%1: %2").arg(f.errorString()).arg(filename), {});
+  }
+}
+
+void PythonContext::setGlobal(const char *varName, const char *typeName, void *object)
+{
+  GILContext *ctx = PythonInterpStart();
+
+  PyObject *obj = PassObjectToPython(typeName, object);
+
+  if(obj)
+  {
+    int ret = PyModule_AddObject(main_module, varName, obj);
+    if(ret == 0)
+    {
+      PythonInterpEnd(ctx);
+      return;
+    }
+  }
+
+  PythonInterpEnd(ctx);
+
+  emit exception("RuntimeError",
+                 QString("Failed to set variable '%1' of type '%2'").arg(varName).arg(typeName), {});
+}
+
+PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
+{
+  const char *text = NULL;
+
+  if(!PyArg_ParseTuple(args, "z:write", &text))
+    return NULL;
+
+  OutputRedirector *redirector = (OutputRedirector *)self;
+
+  if(redirector)
+  {
+    emit redirector->context->textOutput(redirector->isStdError ? true : false,
+                                         QString::fromUtf8(text));
+  }
+
+  Py_RETURN_NONE;
+}
+
+PyObject *PythonContext::outstream_flush(PyObject *self, PyObject *args)
+{
+  Py_RETURN_NONE;
+}
+
+int PythonContext::traceEvent(PyObject *obj, PyFrameObject *frame, int what, PyObject *arg)
+{
+  PyObject *compiled = PyDict_GetItemString(obj, "compiled");
+  if(compiled == (PyObject *)frame->f_code && what == PyTrace_LINE)
+  {
+    PyObject *thisobj = PyDict_GetItemString(obj, "thisobj");
+
+    uint64_t thisuint64 = PyLong_AsUnsignedLongLong(thisobj);
+    uintptr_t thisint = (uintptr_t)thisuint64;
+    PythonContext *context = (PythonContext *)thisint;
+
+    emit context->traceLine(context->location.file, context->location.line);
+  }
+
+  return 0;
+}

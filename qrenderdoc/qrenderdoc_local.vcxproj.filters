@@ -561,6 +561,12 @@
     <ClCompile Include="Widgets\Extended\RDSplitter.cpp">
       <Filter>Widgets\Extended</Filter>
     </ClCompile>
+    <ClCompile Include="Code\pyrenderdoc\PythonContext.cpp">
+      <Filter>Code\pyrenderdoc</Filter>
+    </ClCompile>
+    <ClCompile Include="$(IntDir)generated\moc_PythonContext.cpp">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="3rdparty\flowlayout\FlowLayout.h">
@@ -1296,6 +1302,9 @@
       <Filter>Widgets\Extended</Filter>
     </CustomBuild>
     <CustomBuild Include="Code\pyrenderdoc\renderdoc.i">
+      <Filter>Code\pyrenderdoc</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Code\pyrenderdoc\PythonContext.h">
       <Filter>Code\pyrenderdoc</Filter>
     </CustomBuild>
   </ItemGroup>

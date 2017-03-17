@@ -141,6 +141,7 @@ SOURCES += Code/qrenderdoc.cpp \
     Code/FormatElement.cpp \
     Code/RemoteHost.cpp \
     Code/Resources.cpp \
+    Code/pyrenderdoc/PythonContext.cpp \
     Windows/Dialogs/AboutDialog.cpp \
     Windows/MainWindow.cpp \
     Windows/EventBrowser.cpp \
@@ -193,6 +194,7 @@ HEADERS += Code/CaptureContext.h \
     Code/RemoteHost.h \
     Code/QRDUtils.h \
     Code/Resources.h \
+    Code/pyrenderdoc/PythonContext.h \
     Windows/Dialogs/AboutDialog.h \
     Windows/MainWindow.h \
     Windows/EventBrowser.h \

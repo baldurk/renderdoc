@@ -31,6 +31,7 @@
 #include "Code/CaptureContext.h"
 #include "Code/QRDUtils.h"
 #include "Code/Resources.h"
+#include "Code/pyrenderdoc/PythonContext.h"
 #include "Windows/MainWindow.h"
 
 void sharedLogOutput(QtMsgType type, const QMessageLogContext &context, const QString &msg)
@@ -160,11 +161,15 @@ int main(int argc, char *argv[])
 
     CaptureContext ctx(filename, remoteHost, remoteIdent, temp, config);
 
+    PythonContext::GlobalInit();
+
     while(ctx.isRunning())
     {
       application.processEvents(QEventLoop::WaitForMoreEvents);
       QCoreApplication::sendPostedEvents();
     }
+
+    PythonContext::GlobalShutdown();
 
     config.Save();
   }
