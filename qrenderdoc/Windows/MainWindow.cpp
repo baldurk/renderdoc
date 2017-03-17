@@ -76,7 +76,7 @@ struct Version
 };
 
 #if defined(Q_OS_WIN32)
-extern "C" void *GetModuleHandleA(const char *);
+extern "C" void *__stdcall GetModuleHandleA(const char *);
 #endif
 
 MainWindow::MainWindow(CaptureContext &ctx) : QMainWindow(NULL), ui(new Ui::MainWindow), m_Ctx(ctx)
