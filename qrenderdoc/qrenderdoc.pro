@@ -68,9 +68,13 @@ win32 {
 	DEFINES += RENDERDOC_PLATFORM_WIN32
 
 } else {
-	isEmpty(DESTDIR) {
-		DESTDIR = $$_PRO_FILE_PWD_/../bin
+	isEmpty(CMAKE_DIR) {
+		error("When run from outside CMake, please set the Build Environment Variable CMAKE_DIR to point to your CMake build root. In Qt Creator add CMAKE_DIR=/path/to/renderdoc/build under 'Additional arguments' in the qmake Build Step. If running qmake directly, add CMAKE_DIR=/path/to/renderdoc/build/ to the command line.")
 	}
+
+	DESTDIR=$$CMAKE_DIR/bin
+
+	include($$CMAKE_DIR/qrenderdoc/qrenderdoc_cmake.pri)
 
 	# Temp files into .obj
 	MOC_DIR = .obj
@@ -79,7 +83,7 @@ win32 {
 	OBJECTS_DIR = .obj
 
 	# Link against the core library
-	LIBS += -L$$DESTDIR -lrenderdoc
+	LIBS += -lrenderdoc
 	QMAKE_LFLAGS += '-Wl,-rpath,\'\$$ORIGIN\',-rpath,\'\$$ORIGIN/../lib\''
 
 	CONFIG += warn_off
@@ -91,7 +95,7 @@ win32 {
 		DEFINES += RENDERDOC_PLATFORM_POSIX RENDERDOC_PLATFORM_APPLE
 		ICON = $$OSX_ICONFILE
 
-		INFO_PLIST_PATH = $$shell_quote($${DESTDIR}/$${TARGET}.app/Contents/Info.plist)
+		INFO_PLIST_PATH = $$shell_quote($$DESTDIR/$${TARGET}.app/Contents/Info.plist)
 		QMAKE_POST_LINK += /usr/libexec/PlistBuddy -c \"Add :CFBundleShortVersionString string $${RENDERDOC_VERSION}.0\" -c \"Set :CFBundleIdentifier org.renderdoc.qrenderdoc\" $${INFO_PLIST_PATH}
 	} else {
 		QT += x11extras

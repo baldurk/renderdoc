@@ -1,5 +1,3 @@
-set(output_dir ${CMAKE_BINARY_DIR}/bin)
-
 get_git_hash(GIT_COMMIT_HASH)
 string(STRIP ${GIT_COMMIT_HASH} GIT_COMMIT_HASH)
 
@@ -53,17 +51,39 @@ else()
     add_custom_command(OUTPUT RenderDoc.icns COMMAND touch RenderDoc.icns)
 endif()
 
+# Output our configuration for qmake. We output this to a separate file so that
+# the user can then open the qrenderdoc.pro in qt creator and be able to build
+# with these configuration entries propagated for e.g. linking against libraries
+# and finding dependencies from the cmake build
+file(WRITE
+     ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+     "CONFIG+=${QMAKE_CONFIG}\n"
+     "\n"
+     "QMAKE_CC=${CMAKE_C_COMPILER}\n"
+     "QMAKE_CXX=${CMAKE_CXX_COMPILER}\n"
+     "QMAKE_LINK=${CMAKE_CXX_COMPILER}\n"
+     "QMAKE_CXXFLAGS+=${warning_flags}\n"
+     "QMAKE_CXXFLAGS+=${QMAKE_CXXFLAGS}\n"
+     "QMAKE_LFLAGS+=${QMAKE_LDFLAGS}\n"
+     "\n"
+     # search for -lrenderdoc here
+     "LIBS+=-L${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\n"
+     "DEFINES+=GIT_COMMIT_HASH_LITERAL=${GIT_COMMIT_HASH}\n"
+     "\n"
+     "RENDERDOC_VERSION=${RENDERDOC_VERSION}\n"
+     "\n"
+     "OSX_ICONFILE=${CMAKE_CURRENT_BINARY_DIR}/RenderDoc.icns\n")
 # The case here is deliberately not matching the executable name
 # This means the custom command doesn't create this output file,
 # which causes CMake to rerun this target every time so that Qt
 # can do dependency checking and rebuild anything necessary.
 add_custom_command(OUTPUT QRenderDoc
-	COMMAND qmake "CONFIG+=${QMAKE_CONFIG}" "QMAKE_CC=${CMAKE_C_COMPILER}" "QMAKE_CXX=${CMAKE_CXX_COMPILER}" "QMAKE_LINK=${CMAKE_CXX_COMPILER}" "QMAKE_CXXFLAGS+=${warning_flags}" "QMAKE_CXXFLAGS+=${QMAKE_CXXFLAGS}" "QMAKE_LFLAGS+=${QMAKE_LDFLAGS}" "DEFINES+=GIT_COMMIT_HASH_LITERAL=${GIT_COMMIT_HASH}" "RENDERDOC_VERSION=${RENDERDOC_VERSION}" "DESTDIR=${output_dir}" "OSX_ICONFILE=${CMAKE_CURRENT_BINARY_DIR}/RenderDoc.icns" ${CMAKE_CURRENT_SOURCE_DIR}
+	COMMAND qmake "CMAKE_DIR=${CMAKE_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}
 	COMMAND $(MAKE)
 	DEPENDS RenderDoc.icns)
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc)
 
-install (PROGRAMS ${output_dir}/qrenderdoc DESTINATION bin)
+install (PROGRAMS ${CMAKE_BINARY_DIR}/bin/qrenderdoc DESTINATION bin)
 
 # Install supporting files for file associations etc
 install (FILES share/application-x-renderdoc-capture.svg DESTINATION share/icons/hicolor/scalable/mimetypes/)

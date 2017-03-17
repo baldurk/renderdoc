@@ -56,11 +56,6 @@ target_link_libraries(renderdoccmd ${libraries})
 
 install (TARGETS renderdoccmd DESTINATION bin)
 
-add_custom_command(TARGET renderdoccmd POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_SOURCE_DIR}/bin/)
-add_custom_command(TARGET renderdoccmd POST_BUILD
-	COMMAND ${CMAKE_COMMAND} -E copy $<TARGET_FILE:renderdoccmd> ${CMAKE_SOURCE_DIR}/bin/)
-
 if(ANDROID)
     set(APK_TARGET_ID "1" CACHE STRING "The Target ID to build the APK for, use <android list targets> to choose another one.")
 
