@@ -93,7 +93,7 @@ win32 {
 	SOURCES += $$CMAKE_DIR/qrenderdoc/renderdoc.py.c
 
 	CONFIG += warn_off
-	CONFIG += c++11
+	CONFIG += c++14
 	QMAKE_CFLAGS_WARN_OFF -= -w
 	QMAKE_CXXFLAGS_WARN_OFF -= -w
 

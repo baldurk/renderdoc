@@ -220,6 +220,16 @@
   $result = Convert($1);
 }
 
+%typemap(in, fragment="pyconvert") std::function {
+  PyObject *func = $input;
+  failed$argnum = false;
+  $1 = ConvertFunc<$1_ltype>("$symname", func, failed$argnum);
+}
+
+%typemap(argout) std::function (bool failed) {
+  if(failed) SWIG_fail;
+}
+
 // ignore some operators SWIG doesn't have to worry about
 %ignore rdctype::array::operator=;
 %ignore rdctype::array::operator[];

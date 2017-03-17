@@ -65,11 +65,55 @@ struct TypeConversion
       return NULL;
 
     T *pyCopy = new T(in);
-    return SWIG_InternalNewPointerObj((void *)pyCopy, type_info, 0);
+    return SWIG_InternalNewPointerObj((void *)pyCopy, type_info, SWIG_BUILTIN_INIT);
   }
 };
 
-// specialisations for integers
+// specialisations for pointer types (opaque handles to be moved not copied)
+template <typename Opaque>
+struct TypeConversion<Opaque *, false>
+{
+  static swig_type_info *GetTypeInfo()
+  {
+    static swig_type_info *cached_type_info = NULL;
+
+    if(cached_type_info)
+      return cached_type_info;
+
+    std::string baseTypeName = TypeName<Opaque>();
+    baseTypeName += " *";
+    cached_type_info = SWIG_TypeQuery(baseTypeName.c_str());
+
+    return cached_type_info;
+  }
+
+  static int Convert(PyObject *in, Opaque *&out)
+  {
+    swig_type_info *type_info = GetTypeInfo();
+    if(type_info == NULL)
+      return SWIG_ERROR;
+
+    Opaque *ptr = NULL;
+    int res = SWIG_ConvertPtr(in, (void **)&ptr, type_info, 0);
+    if(SWIG_IsOK(res))
+      out = ptr;
+
+    return res;
+  }
+
+  static PyObject *Convert(const Opaque *&in)
+  {
+    swig_type_info *type_info = GetTypeInfo();
+    if(type_info == NULL)
+      return NULL;
+
+    return SWIG_InternalNewPointerObj((void *)in, type_info, 0);
+  }
+
+  static PyObject *Convert(Opaque *in) { return Convert((const Opaque *&)in); }
+};
+
+// specialisations for basic types
 template <>
 struct TypeConversion<uint8_t, false>
 {
@@ -146,6 +190,44 @@ struct TypeConversion<uint64_t, false>
   }
 
   static PyObject *Convert(const uint64_t &in) { return PyLong_FromUnsignedLongLong(in); }
+};
+
+template <>
+struct TypeConversion<float, false>
+{
+  static int Convert(PyObject *in, float &out)
+  {
+    if(!PyFloat_Check(in))
+      return SWIG_TypeError;
+
+    out = (float)PyFloat_AsDouble(in);
+
+    if(PyErr_Occurred())
+      return SWIG_OverflowError;
+
+    return SWIG_OK;
+  }
+
+  static PyObject *Convert(const float &in) { return PyFloat_FromDouble(in); }
+};
+
+template <>
+struct TypeConversion<double, false>
+{
+  static int Convert(PyObject *in, double &out)
+  {
+    if(!PyFloat_Check(in))
+      return SWIG_TypeError;
+
+    out = PyFloat_AsDouble(in);
+
+    if(PyErr_Occurred())
+      return SWIG_OverflowError;
+
+    return SWIG_OK;
+  }
+
+  static PyObject *Convert(const double &in) { return PyFloat_FromDouble(in); }
 };
 
 // partial specialisation for enums, we just convert as their underlying type,
@@ -345,4 +427,97 @@ template <typename T>
 PyObject *Convert(const T &in)
 {
   return TypeConversion<T>::Convert(in);
+}
+
+template <typename T>
+T get_return(const char *funcname, PyObject *result, bool &failflag)
+{
+  T val = T();
+
+  int res = Convert(result, val);
+
+  if(!SWIG_IsOK(res))
+  {
+    failflag = true;
+
+    PyErr_Format(PyExc_TypeError, "Expected a '%s' for return value of callback in %s",
+                 TypeName<T>(), funcname);
+  }
+
+  Py_XDECREF(result);
+
+  return val;
+}
+
+template <>
+void get_return(const char *funcname, PyObject *result, bool &failflag)
+{
+  Py_XDECREF(result);
+}
+
+template <typename rettype, typename... paramTypes>
+struct varfunc
+{
+  varfunc(const char *funcname, paramTypes... params)
+  {
+    args = PyTuple_New(sizeof...(paramTypes));
+
+    currentarg = 0;
+
+    using expand_type = int[];
+    (void)expand_type{0, (push_arg(funcname, params), 0)...};
+  }
+
+  template <typename T>
+  void push_arg(const char *funcname, const T &arg)
+  {
+    if(!args)
+      return;
+
+    PyObject *obj = Convert(arg);
+
+    if(!obj)
+    {
+      Py_DecRef(args);
+      args = NULL;
+
+      PyErr_Format(PyExc_TypeError, "Expected a '%s' for arg %d of callback in %s",
+                   TypeName<typename std::remove_pointer<T>::type>(), currentarg + 1, funcname);
+
+      return;
+    }
+
+    PyTuple_SetItem(args, currentarg++, obj);
+  }
+
+  ~varfunc() { Py_XDECREF(args); }
+  rettype call(const char *funcname, PyObject *func, bool &failflag)
+  {
+    if(!func || func == Py_None || !PyCallable_Check(func) || !args)
+    {
+      failflag = true;
+      return rettype();
+    }
+
+    PyObject *result = PyObject_Call(func, args, 0);
+
+    if(result == NULL)
+      failflag = true;
+
+    Py_DECREF(args);
+
+    return get_return<rettype>(funcname, result, failflag);
+  }
+
+  int currentarg = 0;
+  PyObject *args;
+};
+
+template <typename funcType>
+funcType ConvertFunc(const char *funcname, PyObject *func, bool &failflag)
+{
+  return [funcname, func, &failflag](auto... param) {
+    varfunc<typename funcType::result_type, decltype(param)...> f(funcname, param...);
+    return f.call(funcname, func, failflag);
+  };
 }
