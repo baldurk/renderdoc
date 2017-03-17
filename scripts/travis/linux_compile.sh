@@ -7,6 +7,12 @@ set +e
 
 set -e
 
+# Switch to the gcc version we want
+if [ $CC == "gcc" ]; then
+	export CC=gcc-6;
+	export CXX=g++-6;
+fi
+
 mkdir build
 cd build
 cmake -DCMAKE_BUILD_TYPE=Debug ..

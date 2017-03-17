@@ -27,7 +27,7 @@ There are no external dependencies, all libraries/headers needed to build are in
 
 ### Linux
 
-Currently linux supports gcc-4.8 and clang-3.5, as these are the compilers used in CI builds. Once the linux port is more mature, more compilers can be supported, although only within reason. Distribution packages should be built with the `Release` CMake build type so that warnings do not trigger errors. To build just run:
+Currently linux should work with gcc 5+ and clang 3.4+ as it requires C++14 compiler support. The Travis CI builds with gcc-6.0 and clang-3.5. Within reason other compilers will be supported if the required patches are minimal. Distribution packages should be built with the `Release` CMake build type so that warnings do not trigger errors. To build just run:
 
 ```
 cmake -DCMAKE_BUILD_TYPE=Debug -Bbuild -H.

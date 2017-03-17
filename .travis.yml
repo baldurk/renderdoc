@@ -3,6 +3,8 @@ language: cpp
 branches:
   only:
     - master
+    # having another branch lets us force-push tests here without spamming master
+    - travis-test
 
 env:
   global:
