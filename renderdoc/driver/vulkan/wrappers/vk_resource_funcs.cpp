@@ -644,8 +644,8 @@ void WrappedVulkan::vkUnmapMemory(VkDevice device, VkDeviceMemory mem)
       auto it = std::find(m_CoherentMaps.begin(), m_CoherentMaps.end(), memrecord);
       if(it == m_CoherentMaps.end())
         RDCERR("vkUnmapMemory for memory handle that's not currently mapped");
-
-      m_CoherentMaps.erase(it);
+      else
+        m_CoherentMaps.erase(it);
     }
   }
 
