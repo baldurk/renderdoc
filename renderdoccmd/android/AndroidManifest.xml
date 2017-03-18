@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<!-- BEGIN_INCLUDE(manifest) -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" package="org.renderdoc.renderdoccmd" android:versionCode="1" android:versionName="1.0">
+
+  <!-- This is the platform API where NativeActivity was introduced. -->
+  <uses-sdk android:minSdkVersion="23" android:targetSdkVersion="23"/>
+
+  <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+  <uses-permission android:name="android.permission.INTERNET" />
+
+  <application android:label="RenderDocCmd" android:hasCode="true">
+    <activity android:name=".Loader" android:label="RenderDocCmdLoader" android:exported="true" android:configChanges="orientation|keyboardHidden">
+      <meta-data android:name="android.app.lib_name" android:value="renderdoccmd"/>
+    </activity>
+
+  </application>
+</manifest>
+<!-- END_INCLUDE(manifest) -->

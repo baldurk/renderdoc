@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -105,9 +106,9 @@ namespace renderdocui.Controls
                     SplitterDistance = Panel1MinSize;
                 else if (m_Collapsed && !Panel1Collapse)
                 {
-                    if(Orientation == Orientation.Vertical)
+                    if (Orientation == Orientation.Horizontal)
                         SplitterDistance = Height - Panel2MinSize;
-                    else if(Orientation == Orientation.Horizontal)
+                    else if(Orientation == Orientation.Vertical)
                         SplitterDistance = Width - Panel2MinSize;
                 }
             }

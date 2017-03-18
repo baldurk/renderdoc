@@ -1,18 +1,19 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,1294 +23,3279 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
 #include "gl_replay.h"
+#include "maths/matrix.h"
+#include "serialise/string_utils.h"
 #include "gl_driver.h"
 #include "gl_resources.h"
 
-#include "common/string_utils.h"
+#define OPENGL 1
+#include "data/glsl/debuguniforms.h"
 
 GLReplay::GLReplay()
 {
-	m_pDriver = NULL;
-	m_Proxy = false;
+  m_pDriver = NULL;
+  m_Proxy = false;
 
-	RDCEraseEl(m_ReplayCtx);
-	m_DebugCtx = NULL;
+  m_Degraded = false;
 
-	m_OutputWindowID = 1;
+  RDCEraseEl(m_ReplayCtx);
+  m_DebugCtx = NULL;
+
+  m_DebugID = 0;
+
+  m_OutputWindowID = 1;
 }
 
 void GLReplay::Shutdown()
 {
-	delete m_pDriver;
+  PreContextShutdownCounters();
 
-	CloseReplayContext();
+  DeleteDebugData();
+
+  DestroyOutputWindow(m_DebugID);
+
+  CloseReplayContext();
+
+  delete m_pDriver;
+
+  GLReplay::PostContextShutdownCounters();
 }
 
 #pragma region Implemented
 
 void GLReplay::ReadLogInitialisation()
 {
-	MakeCurrentReplayContext(&m_ReplayCtx);
-	m_pDriver->ReadLogInitialisation();
+  MakeCurrentReplayContext(&m_ReplayCtx);
+  m_pDriver->ReadLogInitialisation();
 }
 
-void GLReplay::ReplayLog(uint32_t frameID, uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType)
+void GLReplay::ReplayLog(uint32_t endEventID, ReplayLogType replayType)
 {
-	MakeCurrentReplayContext(&m_ReplayCtx);
-	m_pDriver->ReplayLog(frameID, startEventID, endEventID, replayType);
+  MakeCurrentReplayContext(&m_ReplayCtx);
+  m_pDriver->ReplayLog(0, endEventID, replayType);
 }
 
-vector<FetchFrameRecord> GLReplay::GetFrameRecord()
+vector<uint32_t> GLReplay::GetPassEvents(uint32_t eventID)
 {
-	return m_pDriver->GetFrameRecord();
+  vector<uint32_t> passEvents;
+
+  const FetchDrawcall *draw = m_pDriver->GetDrawcall(eventID);
+
+  const FetchDrawcall *start = draw;
+  while(start && start->previous != 0 &&
+        (m_pDriver->GetDrawcall((uint32_t)start->previous)->flags & eDraw_Clear) == 0)
+  {
+    const FetchDrawcall *prev = m_pDriver->GetDrawcall((uint32_t)start->previous);
+
+    if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) ||
+       start->depthOut != prev->depthOut)
+      break;
+
+    start = prev;
+  }
+
+  while(start)
+  {
+    if(start == draw)
+      break;
+
+    if(start->flags & eDraw_Drawcall)
+      passEvents.push_back(start->eventID);
+
+    start = m_pDriver->GetDrawcall((uint32_t)start->next);
+  }
+
+  return passEvents;
+}
+
+FetchFrameRecord GLReplay::GetFrameRecord()
+{
+  return m_pDriver->GetFrameRecord();
 }
 
 ResourceId GLReplay::GetLiveID(ResourceId id)
 {
-	return m_pDriver->GetResourceManager()->GetLiveID(id);
+  return m_pDriver->GetResourceManager()->GetLiveID(id);
 }
 
 APIProperties GLReplay::GetAPIProperties()
 {
-	APIProperties ret;
+  APIProperties ret;
 
-	ret.pipelineType = ePipelineState_OpenGL;
+  ret.pipelineType = eGraphicsAPI_OpenGL;
+  ret.localRenderer = eGraphicsAPI_OpenGL;
+  ret.degraded = m_Degraded;
 
-	return ret;
+  return ret;
 }
 
 vector<ResourceId> GLReplay::GetBuffers()
 {
-	vector<ResourceId> ret;
-	
-	for(auto it=m_pDriver->m_Buffers.begin(); it != m_pDriver->m_Buffers.end(); ++it)
-		ret.push_back(it->first);
+  vector<ResourceId> ret;
 
-	return ret;
+  for(auto it = m_pDriver->m_Buffers.begin(); it != m_pDriver->m_Buffers.end(); ++it)
+    ret.push_back(it->first);
+
+  return ret;
 }
 
 vector<ResourceId> GLReplay::GetTextures()
 {
-	vector<ResourceId> ret;
-	
-	for(auto it=m_pDriver->m_Textures.begin(); it != m_pDriver->m_Textures.end(); ++it)
-		ret.push_back(it->first);
+  vector<ResourceId> ret;
+  ret.reserve(m_pDriver->m_Textures.size());
 
-	return ret;
+  for(auto it = m_pDriver->m_Textures.begin(); it != m_pDriver->m_Textures.end(); ++it)
+  {
+    auto &res = m_pDriver->m_Textures[it->first];
+
+    // skip textures that aren't from the log (except the 'default backbuffer' textures)
+    if(res.resource.name != m_pDriver->m_FakeBB_Color &&
+       res.resource.name != m_pDriver->m_FakeBB_DepthStencil &&
+       m_pDriver->GetResourceManager()->GetOriginalID(it->first) == it->first)
+      continue;
+
+    ret.push_back(it->first);
+    CacheTexture(it->first);
+  }
+
+  return ret;
 }
 
 void GLReplay::SetReplayData(GLWindowingData data)
 {
-	m_ReplayCtx = data;
-	
-	InitDebugData();
+  m_ReplayCtx = data;
+  if(m_pDriver != NULL)
+    m_pDriver->RegisterContext(m_ReplayCtx, NULL, true, true);
+
+  InitDebugData();
+
+  PostContextInitCounters();
 }
 
 void GLReplay::InitCallstackResolver()
 {
-	m_pDriver->GetSerialiser()->InitCallstackResolver();
+  m_pDriver->GetSerialiser()->InitCallstackResolver();
 }
 
 bool GLReplay::HasCallstacks()
 {
-	return m_pDriver->GetSerialiser()->HasCallstacks();
+  return m_pDriver->GetSerialiser()->HasCallstacks();
 }
 
 Callstack::StackResolver *GLReplay::GetCallstackResolver()
 {
-	return m_pDriver->GetSerialiser()->GetCallstackResolver();
+  return m_pDriver->GetSerialiser()->GetCallstackResolver();
 }
 
-void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin)
+void GLReplay::CreateOutputWindowBackbuffer(OutputWindow &outwin, bool depth)
 {
-	if(m_pDriver == NULL) return;
-	
-	MakeCurrentReplayContext(m_DebugCtx);
-	
-	WrappedOpenGL &gl = *m_pDriver;
-	
-	// create fake backbuffer for this output window.
-	// We'll make an FBO for this backbuffer on the replay context, so we can
-	// use the replay context to do the hard work of rendering to it, then just
-	// blit across to the real default framebuffer on the output window context
-	gl.glGenFramebuffers(1, &outwin.BlitData.windowFBO);
-	gl.glBindFramebuffer(eGL_FRAMEBUFFER, outwin.BlitData.windowFBO);
+  if(m_pDriver == NULL)
+    return;
 
-	gl.glGenTextures(1, &outwin.BlitData.backbuffer);
-	gl.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.backbuffer);
-	
-	gl.glTexStorage2D(eGL_TEXTURE_2D, 1, eGL_RGB8, outwin.width, outwin.height); 
-	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
-	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
-	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
-	gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
-	gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, outwin.BlitData.backbuffer, 0);
+  MakeCurrentReplayContext(m_DebugCtx);
 
-	outwin.BlitData.replayFBO = 0;
+  WrappedOpenGL &gl = *m_pDriver;
+
+  // create fake backbuffer for this output window.
+  // We'll make an FBO for this backbuffer on the replay context, so we can
+  // use the replay context to do the hard work of rendering to it, then just
+  // blit across to the real default framebuffer on the output window context
+  gl.glGenFramebuffers(1, &outwin.BlitData.windowFBO);
+  gl.glBindFramebuffer(eGL_FRAMEBUFFER, outwin.BlitData.windowFBO);
+
+  gl.glGenTextures(1, &outwin.BlitData.backbuffer);
+  gl.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.backbuffer);
+
+  gl.glTextureImage2DEXT(outwin.BlitData.backbuffer, eGL_TEXTURE_2D, 0, eGL_SRGB8, outwin.width,
+                         outwin.height, 0, eGL_RGB, eGL_UNSIGNED_BYTE, NULL);
+  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+  gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+  gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, outwin.BlitData.backbuffer, 0);
+
+  if(depth)
+  {
+    gl.glGenTextures(1, &outwin.BlitData.depthstencil);
+    gl.glBindTexture(eGL_TEXTURE_2D, outwin.BlitData.depthstencil);
+
+    gl.glTextureImage2DEXT(outwin.BlitData.depthstencil, eGL_TEXTURE_2D, 0, eGL_DEPTH_COMPONENT24,
+                           outwin.width, outwin.height, 0, eGL_DEPTH_COMPONENT, eGL_UNSIGNED_INT,
+                           NULL);
+    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+  }
+  else
+  {
+    outwin.BlitData.depthstencil = 0;
+  }
+
+  outwin.BlitData.replayFBO = 0;
 }
 
 void GLReplay::InitOutputWindow(OutputWindow &outwin)
 {
-	if(m_pDriver == NULL) return;
-	
-	MakeCurrentReplayContext(&outwin);
-	
-	WrappedOpenGL &gl = *m_pDriver;
+  if(m_pDriver == NULL)
+    return;
 
-	gl.glGenVertexArrays(1, &outwin.BlitData.emptyVAO);
-	gl.glBindVertexArray(outwin.BlitData.emptyVAO);
+  MakeCurrentReplayContext(&outwin);
+
+  WrappedOpenGL &gl = *m_pDriver;
+
+  gl.glGenVertexArrays(1, &outwin.BlitData.emptyVAO);
+  gl.glBindVertexArray(outwin.BlitData.emptyVAO);
+
+  gl.glGenFramebuffers(1, &outwin.BlitData.readFBO);
+  gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, outwin.BlitData.readFBO);
+  gl.glReadBuffer(eGL_COLOR_ATTACHMENT0);
 }
 
 bool GLReplay::CheckResizeOutputWindow(uint64_t id)
 {
-	if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
-		return false;
-	
-	OutputWindow &outw = m_OutputWindows[id];
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return false;
 
-	if(outw.wnd == 0)
-		return false;
+  OutputWindow &outw = m_OutputWindows[id];
 
-	int32_t w, h;
-	GetOutputWindowDimensions(id, w, h);
+  if(outw.wnd == 0)
+    return false;
 
-	if(w != outw.width || h != outw.height)
-	{
-		outw.width = w;
-		outw.height = h;
-		
-		MakeCurrentReplayContext(m_DebugCtx);
-		
-		WrappedOpenGL &gl = *m_pDriver;
-	
-		gl.glDeleteTextures(1, &outw.BlitData.backbuffer);
-		gl.glDeleteFramebuffers(1, &outw.BlitData.windowFBO);
+  int32_t w, h;
+  GetOutputWindowDimensions(id, w, h);
 
-		CreateOutputWindowBackbuffer(outw);
+  if(w != outw.width || h != outw.height)
+  {
+    outw.width = w;
+    outw.height = h;
 
-		return true;
-	}
+    MakeCurrentReplayContext(m_DebugCtx);
 
-	return false;
+    WrappedOpenGL &gl = *m_pDriver;
+
+    bool haddepth = false;
+
+    gl.glDeleteTextures(1, &outw.BlitData.backbuffer);
+    if(outw.BlitData.depthstencil)
+    {
+      haddepth = true;
+      gl.glDeleteTextures(1, &outw.BlitData.depthstencil);
+    }
+    gl.glDeleteFramebuffers(1, &outw.BlitData.windowFBO);
+
+    CreateOutputWindowBackbuffer(outw, haddepth);
+
+    return true;
+  }
+
+  return false;
 }
 
 void GLReplay::BindOutputWindow(uint64_t id, bool depth)
 {
-	if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
-		return;
-	
-	OutputWindow &outw = m_OutputWindows[id];
-	
-	MakeCurrentReplayContext(m_DebugCtx);
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return;
 
-	m_pDriver->glBindFramebuffer(eGL_FRAMEBUFFER, outw.BlitData.windowFBO);
-	m_pDriver->glViewport(0, 0, outw.width, outw.height);
+  OutputWindow &outw = m_OutputWindows[id];
 
-	DebugData.outWidth = float(outw.width); DebugData.outHeight = float(outw.height);
+  MakeCurrentReplayContext(m_DebugCtx);
+
+  m_pDriver->glBindFramebuffer(eGL_FRAMEBUFFER, outw.BlitData.windowFBO);
+  m_pDriver->glViewport(0, 0, outw.width, outw.height);
+
+  m_pDriver->glFramebufferTexture(
+      eGL_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+      depth && outw.BlitData.depthstencil ? outw.BlitData.depthstencil : 0, 0);
+
+  DebugData.outWidth = float(outw.width);
+  DebugData.outHeight = float(outw.height);
 }
 
 void GLReplay::ClearOutputWindowColour(uint64_t id, float col[4])
 {
-	if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
-		return;
-	
-	OutputWindow &outw = m_OutputWindows[id];
-	
-	MakeCurrentReplayContext(m_DebugCtx);
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return;
 
-	m_pDriver->glClearBufferfv(eGL_COLOR, 0, col);
+  MakeCurrentReplayContext(m_DebugCtx);
+
+  m_pDriver->glClearBufferfv(eGL_COLOR, 0, col);
 }
 
 void GLReplay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
 {
-	if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
-		return;
-	
-	OutputWindow &outw = m_OutputWindows[id];
-	
-	MakeCurrentReplayContext(&outw);
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return;
 
-	m_pDriver->glClearBufferfv(eGL_DEPTH, 0, &depth);
+  MakeCurrentReplayContext(m_DebugCtx);
+
+  m_pDriver->glClearBufferfi(eGL_DEPTH_STENCIL, 0, depth, (GLint)stencil);
 }
 
 void GLReplay::FlipOutputWindow(uint64_t id)
 {
-	if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
-		return;
-	
-	OutputWindow &outw = m_OutputWindows[id];
-	
-	MakeCurrentReplayContext(&outw);
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return;
 
-	WrappedOpenGL &gl = *m_pDriver;
+  OutputWindow &outw = m_OutputWindows[id];
 
-	gl.glBindFramebuffer(eGL_FRAMEBUFFER, 0);
-	gl.glViewport(0, 0, outw.width, outw.height);
-	
-	gl.glUseProgram(DebugData.blitProg);
+  MakeCurrentReplayContext(&outw);
 
-	gl.glActiveTexture(eGL_TEXTURE0);
-	gl.glBindTexture(eGL_TEXTURE_2D, outw.BlitData.backbuffer);
-	
-	gl.glBindVertexArray(outw.BlitData.emptyVAO);
-	gl.glDrawArrays(eGL_TRIANGLE_STRIP, 0, 4);
+  WrappedOpenGL &gl = *m_pDriver;
 
-	SwapBuffers(&outw);
+  // go directly to real function so we don't try to bind the 'fake' backbuffer FBO.
+  gl.m_Real.glBindFramebuffer(eGL_FRAMEBUFFER, 0);
+  gl.glViewport(0, 0, outw.width, outw.height);
+
+  gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, outw.BlitData.readFBO);
+
+  gl.glFramebufferTexture2D(eGL_READ_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                            outw.BlitData.backbuffer, 0);
+  gl.glReadBuffer(eGL_COLOR_ATTACHMENT0);
+
+  gl.glEnable(eGL_FRAMEBUFFER_SRGB);
+
+  gl.glBlitFramebuffer(0, 0, outw.width, outw.height, 0, 0, outw.width, outw.height,
+                       GL_COLOR_BUFFER_BIT, eGL_NEAREST);
+
+  SwapBuffers(&outw);
 }
 
-vector<byte> GLReplay::GetBufferData(ResourceId buff, uint32_t offset, uint32_t len)
+void GLReplay::GetBufferData(ResourceId buff, uint64_t offset, uint64_t len, vector<byte> &ret)
 {
-	vector<byte> ret;
+  if(m_pDriver->m_Buffers.find(buff) == m_pDriver->m_Buffers.end())
+  {
+    RDCWARN("Requesting data for non-existant buffer %llu", buff);
+    return;
+  }
 
-	if(m_pDriver->m_Buffers.find(buff) == m_pDriver->m_Buffers.end())
-	{
-		RDCWARN("Requesting data for non-existant buffer %llu", buff);
-		return ret;
-	}
+  auto &buf = m_pDriver->m_Buffers[buff];
 
-	auto &buf = m_pDriver->m_Buffers[buff];
-	
-	if(len > 0 && offset+len > buf.size)
-	{
-		RDCWARN("Attempting to read off the end of the array. Will be clamped");
-		len = RDCMIN(len, uint32_t(buf.size-offset));
-	}
-	else if(len == 0)
-	{
-		len = (uint32_t)buf.size;
-	}
-	
-	ret.resize(len);
-	
-	WrappedOpenGL &gl = *m_pDriver;
-	
-	MakeCurrentReplayContext(m_DebugCtx);
+  uint64_t bufsize = buf.size;
 
-	gl.glBindBuffer(eGL_COPY_READ_BUFFER, buf.resource.name);
+  if(len > 0 && offset + len > bufsize)
+  {
+    RDCWARN("Attempting to read off the end of the buffer (%llu %llu). Will be clamped (%llu)",
+            offset, len, bufsize);
 
-	gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, (GLintptr)offset, (GLsizeiptr)len, &ret[0]);
+    if(offset < bufsize)
+      len = ~0ULL;    // min below will clamp to max size
+    else
+      return;    // offset past buffer size, return empty array
+  }
+  else if(len == 0)
+  {
+    len = bufsize;
+  }
 
-	return ret;
+  // need to ensure len+offset doesn't overrun buffer or the glGetBufferSubData call
+  // will fail.
+  len = RDCMIN(len, bufsize - offset);
+
+  if(len == 0)
+    return;
+
+  ret.resize((size_t)len);
+
+  WrappedOpenGL &gl = *m_pDriver;
+
+  GLuint oldbuf = 0;
+  gl.glGetIntegerv(eGL_COPY_READ_BUFFER_BINDING, (GLint *)&oldbuf);
+
+  gl.glBindBuffer(eGL_COPY_READ_BUFFER, buf.resource.name);
+
+  gl.glGetBufferSubData(eGL_COPY_READ_BUFFER, (GLintptr)offset, (GLsizeiptr)len, &ret[0]);
+
+  gl.glBindBuffer(eGL_COPY_READ_BUFFER, oldbuf);
 }
 
 bool GLReplay::IsRenderOutput(ResourceId id)
 {
-	for(int32_t i=0; i < m_CurPipelineState.m_FB.Color.count; i++)
-	{
-		if(m_CurPipelineState.m_FB.Color[i] == id)
-				return true;
-	}
-	
-	if(m_CurPipelineState.m_FB.Depth == id ||
-		 m_CurPipelineState.m_FB.Stencil == id)
-			return true;
+  for(int32_t i = 0; i < m_CurPipelineState.m_FB.m_DrawFBO.Color.count; i++)
+  {
+    if(m_CurPipelineState.m_FB.m_DrawFBO.Color[i].Obj == id)
+      return true;
+  }
 
-	return false;
+  if(m_CurPipelineState.m_FB.m_DrawFBO.Depth.Obj == id ||
+     m_CurPipelineState.m_FB.m_DrawFBO.Stencil.Obj == id)
+    return true;
+
+  return false;
 }
-
-#pragma endregion
-
-#pragma region Mostly Implemented
 
 FetchTexture GLReplay::GetTexture(ResourceId id)
 {
-	FetchTexture tex;
-	
-	MakeCurrentReplayContext(&m_ReplayCtx);
-	
-	auto &res = m_pDriver->m_Textures[id];
+  auto it = m_CachedTextures.find(id);
+  if(it == m_CachedTextures.end())
+  {
+    CacheTexture(id);
+    return m_CachedTextures[id];
+  }
 
-	if(res.resource.Namespace == eResUnknown)
-	{
-		RDCERR("Details for invalid texture id %llu requested", id);
-		RDCEraseEl(tex);
-		return tex;
-	}
-	
-	WrappedOpenGL &gl = *m_pDriver;
-	
-	tex.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
+  return it->second;
+}
 
-	gl.glBindTexture(res.curType, res.resource.name);
+void GLReplay::CacheTexture(ResourceId id)
+{
+  FetchTexture tex;
 
-	// if I call this for levels 1, 2, .. etc. Can I get sizes that aren't mip dimensions?
-	GLint width = 1, height = 1, depth = 1, samples=1;
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_WIDTH, &width);
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_HEIGHT, &height);
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_DEPTH, &depth);
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_SAMPLES, &samples);
+  MakeCurrentReplayContext(&m_ReplayCtx);
 
-	if(res.width == 0)
-	{
-		RDCWARN("TextureData::width didn't get filled out, setting at last minute");
-		res.width = width;
-	}
-	if(res.height == 0)
-	{
-		RDCWARN("TextureData::height didn't get filled out, setting at last minute");
-		res.height = height;
-	}
-	if(res.depth == 0)
-	{
-		RDCWARN("TextureData::depth didn't get filled out, setting at last minute");
-		res.depth = depth;
-	}
+  auto &res = m_pDriver->m_Textures[id];
+  WrappedOpenGL &gl = *m_pDriver;
 
-	// reasonably common defaults
-	tex.msQual = 0;
-	tex.msSamp = 1;
-	tex.width = tex.height = tex.depth = tex.arraysize = 1;
-	tex.cubemap = false;
+  tex.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 
-	switch(res.curType)
-	{
-		case eGL_TEXTURE_1D:
-		case eGL_TEXTURE_BUFFER:
-			tex.dimension = 1;
-			tex.width = (uint32_t)width;
-			break;
-		case eGL_TEXTURE_1D_ARRAY:
-			tex.dimension = 1;
-			tex.width = (uint32_t)width;
-			tex.arraysize = depth;
-			break;
-		case eGL_TEXTURE_2D:
-		case eGL_TEXTURE_RECTANGLE:
-		case eGL_TEXTURE_2D_MULTISAMPLE:
-		case eGL_TEXTURE_CUBE_MAP:
-			tex.dimension = 2;
-			tex.width = (uint32_t)width;
-			tex.height = (uint32_t)height;
-			tex.cubemap = (res.curType == eGL_TEXTURE_CUBE_MAP);
-			tex.msSamp = (res.curType == eGL_TEXTURE_2D_MULTISAMPLE ? samples : 1);
-			break;
-		case eGL_TEXTURE_2D_ARRAY:
-		case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY:
-		case eGL_TEXTURE_CUBE_MAP_ARRAY:
-			tex.dimension = 2;
-			tex.width = (uint32_t)width;
-			tex.height = (uint32_t)height;
-			tex.arraysize = depth;
-			tex.cubemap = (res.curType == eGL_TEXTURE_CUBE_MAP_ARRAY);
-			tex.msSamp = (res.curType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ? samples : 1);
-			break;
-		case eGL_TEXTURE_3D:
-			tex.dimension = 3;
-			tex.width = (uint32_t)width;
-			tex.height = (uint32_t)height;
-			tex.depth = (uint32_t)depth;
-			break;
+  if(res.resource.Namespace == eResUnknown || res.curType == eGL_NONE)
+  {
+    if(res.resource.Namespace == eResUnknown)
+      RDCERR("Details for invalid texture id %llu requested", id);
 
-		default:
-			tex.dimension = 2;
-			RDCERR("Unexpected texture enum %hs", ToStr::Get(res.curType).c_str());
-	}
-	
-	GLint immut = 0;
-	gl.glGetTexParameteriv(res.curType, eGL_TEXTURE_IMMUTABLE_FORMAT, &immut);
-	
-	if(immut)
-	{
-		gl.glGetTexParameteriv(res.curType, eGL_TEXTURE_IMMUTABLE_LEVELS, &immut);
-		tex.mips = (uint32_t)immut;
-	}
-	else
-	{
-		// assuming complete texture
-		GLint mips = 1;
-		gl.glGetTexParameteriv(res.curType, eGL_TEXTURE_MAX_LEVEL, &mips);
-		tex.mips = (uint32_t)mips;
-	}
+    tex.name = "<Uninitialised Texture>";
+    tex.customName = true;
+    tex.format = ResourceFormat();
+    tex.dimension = 1;
+    tex.resType = eResType_None;
+    tex.width = tex.height = tex.depth = 1;
+    tex.cubemap = false;
+    tex.mips = 1;
+    tex.arraysize = 1;
+    tex.creationFlags = 0;
+    tex.msQual = 0;
+    tex.msSamp = 1;
+    tex.byteSize = 1;
 
-	tex.numSubresources = tex.mips*tex.arraysize;
-	
-	// surely this will be the same for each level... right? that would be insane if it wasn't
-	GLint fmt = 0;
-	gl.glGetTexLevelParameteriv(res.curType, 0, eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
+    m_CachedTextures[id] = tex;
+    return;
+  }
 
-	tex.format = MakeResourceFormat(gl, res.curType, (GLenum)fmt);
-	
-	string str = "";
-	char name[128] = {0};
-	gl.glGetObjectLabel(eGL_TEXTURE, res.resource.name, 127, NULL, name);
-	str = name;
-	tex.customName = true;
+  if(res.resource.Namespace == eResRenderbuffer || res.curType == eGL_RENDERBUFFER)
+  {
+    tex.dimension = 2;
+    tex.resType = eResType_Texture2D;
+    tex.width = res.width;
+    tex.height = res.height;
+    tex.depth = 1;
+    tex.cubemap = false;
+    tex.mips = 1;
+    tex.arraysize = 1;
+    tex.creationFlags = eTextureCreate_RTV;
+    tex.msQual = 0;
+    tex.msSamp = RDCMAX(1, res.samples);
 
-	if(str == "")
-	{
-		tex.customName = false;
-		str = StringFormat::Fmt("Texture%dD %llu", tex.dimension, tex.ID);
-	}
+    tex.format = MakeResourceFormat(gl.GetHookset(), eGL_TEXTURE_2D, res.internalFormat);
 
-	tex.name = widen(str);
+    if(IsDepthStencilFormat(res.internalFormat))
+      tex.creationFlags |= eTextureCreate_DSV;
 
-	tex.creationFlags = eTextureCreate_SRV;
-	if(tex.format.compType == eCompType_Depth)
-		tex.creationFlags |= eTextureCreate_DSV;
-	GLNOTIMP("creationFlags are not calculated yet");
+    tex.byteSize = (tex.width * tex.height) * (tex.format.compByteWidth * tex.format.compCount);
 
-	tex.byteSize = 0;
-	GLNOTIMP("Not calculating bytesize");
+    string str = m_pDriver->GetResourceManager()->GetName(tex.ID);
+    tex.customName = true;
 
-	return tex;
+    if(str == "")
+    {
+      const char *suffix = "";
+      const char *ms = "";
+
+      if(tex.msSamp > 1)
+        ms = "MS";
+
+      if(tex.creationFlags & eTextureCreate_RTV)
+        suffix = " RTV";
+      if(tex.creationFlags & eTextureCreate_DSV)
+        suffix = " DSV";
+
+      tex.customName = false;
+
+      str = StringFormat::Fmt("Renderbuffer%s%s %llu", ms, suffix, tex.ID);
+    }
+
+    tex.name = str;
+
+    m_CachedTextures[id] = tex;
+    return;
+  }
+
+  GLenum target = TextureTarget(res.curType);
+
+  GLenum levelQueryType = target;
+  if(levelQueryType == eGL_TEXTURE_CUBE_MAP)
+    levelQueryType = eGL_TEXTURE_CUBE_MAP_POSITIVE_X;
+
+  GLint width = 1, height = 1, depth = 1, samples = 1;
+  gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_WIDTH, &width);
+  gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_HEIGHT,
+                                     &height);
+  gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_DEPTH, &depth);
+  gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_SAMPLES,
+                                     &samples);
+
+  // the above queries sometimes come back 0, if we have dimensions from creation functions, use
+  // those
+  if(width == 0 && res.width > 0)
+    width = res.width;
+  if(height == 0 && res.height > 0)
+    height = res.height;
+  if(depth == 0 && res.depth > 0)
+    depth = res.depth;
+
+  if(res.width == 0 && width > 0)
+  {
+    RDCWARN("TextureData::width didn't get filled out, setting at last minute");
+    res.width = width;
+  }
+  if(res.height == 0 && height > 0)
+  {
+    RDCWARN("TextureData::height didn't get filled out, setting at last minute");
+    res.height = height;
+  }
+  if(res.depth == 0 && depth > 0)
+  {
+    RDCWARN("TextureData::depth didn't get filled out, setting at last minute");
+    res.depth = depth;
+  }
+
+  // reasonably common defaults
+  tex.msQual = 0;
+  tex.msSamp = 1;
+  tex.width = tex.height = tex.depth = tex.arraysize = 1;
+  tex.cubemap = false;
+
+  switch(target)
+  {
+    case eGL_TEXTURE_BUFFER: tex.resType = eResType_Buffer; break;
+    case eGL_TEXTURE_1D: tex.resType = eResType_Texture1D; break;
+    case eGL_TEXTURE_2D: tex.resType = eResType_Texture2D; break;
+    case eGL_TEXTURE_3D: tex.resType = eResType_Texture3D; break;
+    case eGL_TEXTURE_1D_ARRAY: tex.resType = eResType_Texture1DArray; break;
+    case eGL_TEXTURE_2D_ARRAY: tex.resType = eResType_Texture2DArray; break;
+    case eGL_TEXTURE_RECTANGLE: tex.resType = eResType_TextureRect; break;
+    case eGL_TEXTURE_2D_MULTISAMPLE: tex.resType = eResType_Texture2DMS; break;
+    case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY: tex.resType = eResType_Texture2DMSArray; break;
+    case eGL_TEXTURE_CUBE_MAP: tex.resType = eResType_TextureCube; break;
+    case eGL_TEXTURE_CUBE_MAP_ARRAY: tex.resType = eResType_TextureCubeArray; break;
+
+    default:
+      tex.resType = eResType_None;
+      RDCERR("Unexpected texture enum %s", ToStr::Get(target).c_str());
+  }
+
+  switch(target)
+  {
+    case eGL_TEXTURE_1D:
+    case eGL_TEXTURE_BUFFER:
+      tex.dimension = 1;
+      tex.width = (uint32_t)width;
+      break;
+    case eGL_TEXTURE_1D_ARRAY:
+      tex.dimension = 1;
+      tex.width = (uint32_t)width;
+      tex.arraysize = depth;
+      break;
+    case eGL_TEXTURE_2D:
+    case eGL_TEXTURE_RECTANGLE:
+    case eGL_TEXTURE_2D_MULTISAMPLE:
+    case eGL_TEXTURE_CUBE_MAP:
+      tex.dimension = 2;
+      tex.width = (uint32_t)width;
+      tex.height = (uint32_t)height;
+      tex.depth = 1;
+      tex.arraysize = (target == eGL_TEXTURE_CUBE_MAP ? 6 : 1);
+      tex.cubemap = (target == eGL_TEXTURE_CUBE_MAP);
+      tex.msSamp = RDCMAX(1, target == eGL_TEXTURE_2D_MULTISAMPLE ? samples : 1);
+      break;
+    case eGL_TEXTURE_2D_ARRAY:
+    case eGL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+    case eGL_TEXTURE_CUBE_MAP_ARRAY:
+      tex.dimension = 2;
+      tex.width = (uint32_t)width;
+      tex.height = (uint32_t)height;
+      tex.depth = 1;
+      tex.arraysize = depth;
+      tex.cubemap = (target == eGL_TEXTURE_CUBE_MAP_ARRAY);
+      tex.msSamp = RDCMAX(1, target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ? samples : 1);
+      break;
+    case eGL_TEXTURE_3D:
+      tex.dimension = 3;
+      tex.width = (uint32_t)width;
+      tex.height = (uint32_t)height;
+      tex.depth = (uint32_t)depth;
+      break;
+
+    default: tex.dimension = 2; RDCERR("Unexpected texture enum %s", ToStr::Get(target).c_str());
+  }
+
+  tex.creationFlags = res.creationFlags;
+  if(res.resource.name == gl.m_FakeBB_Color || res.resource.name == gl.m_FakeBB_DepthStencil)
+    tex.creationFlags |= eTextureCreate_SwapBuffer;
+
+  // surely this will be the same for each level... right? that would be insane if it wasn't
+  GLint fmt = 0;
+  gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0,
+                                     eGL_TEXTURE_INTERNAL_FORMAT, &fmt);
+
+  tex.format = MakeResourceFormat(gl.GetHookset(), target, (GLenum)fmt);
+
+  if(tex.format.compType == eCompType_Depth)
+    tex.creationFlags |= eTextureCreate_DSV;
+
+  string str = m_pDriver->GetResourceManager()->GetName(tex.ID);
+  tex.customName = true;
+
+  if(str == "")
+  {
+    const char *suffix = "";
+    const char *ms = "";
+
+    if(tex.msSamp > 1)
+      ms = "MS";
+
+    if(tex.creationFlags & eTextureCreate_RTV)
+      suffix = " RTV";
+    if(tex.creationFlags & eTextureCreate_DSV)
+      suffix = " DSV";
+
+    tex.customName = false;
+
+    if(tex.cubemap)
+    {
+      if(tex.arraysize > 6)
+        str = StringFormat::Fmt("TextureCube%sArray%s %llu", ms, suffix, tex.ID);
+      else
+        str = StringFormat::Fmt("TextureCube%s%s %llu", ms, suffix, tex.ID);
+    }
+    else
+    {
+      if(tex.arraysize > 1)
+        str = StringFormat::Fmt("Texture%dD%sArray%s %llu", tex.dimension, ms, suffix, tex.ID);
+      else
+        str = StringFormat::Fmt("Texture%dD%s%s %llu", tex.dimension, ms, suffix, tex.ID);
+    }
+  }
+
+  tex.name = str;
+
+  if(target == eGL_TEXTURE_BUFFER)
+  {
+    tex.dimension = 1;
+    tex.width = tex.height = tex.depth = 1;
+    tex.cubemap = false;
+    tex.mips = 1;
+    tex.arraysize = 1;
+    tex.creationFlags = eTextureCreate_SRV;
+    tex.msQual = 0;
+    tex.msSamp = 1;
+    tex.byteSize = 0;
+
+    gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0,
+                                       eGL_TEXTURE_BUFFER_SIZE, (GLint *)&tex.byteSize);
+    tex.width = uint32_t(tex.byteSize / (tex.format.compByteWidth * tex.format.compCount));
+
+    m_CachedTextures[id] = tex;
+    return;
+  }
+
+  tex.mips = GetNumMips(gl.m_Real, target, res.resource.name, tex.width, tex.height, tex.depth);
+
+  GLint compressed;
+  gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, 0, eGL_TEXTURE_COMPRESSED,
+                                     &compressed);
+  tex.byteSize = 0;
+  for(uint32_t a = 0; a < tex.arraysize; a++)
+  {
+    for(uint32_t m = 0; m < tex.mips; m++)
+    {
+      if(compressed)
+      {
+        gl.glGetTextureLevelParameterivEXT(res.resource.name, levelQueryType, m,
+                                           eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, &compressed);
+        tex.byteSize += compressed;
+      }
+      else if(tex.format.special)
+      {
+        tex.byteSize += GetByteSize(RDCMAX(1U, tex.width >> m), RDCMAX(1U, tex.height >> m),
+                                    RDCMAX(1U, tex.depth >> m), GetBaseFormat((GLenum)fmt),
+                                    GetDataType((GLenum)fmt));
+      }
+      else
+      {
+        tex.byteSize += RDCMAX(1U, tex.width >> m) * RDCMAX(1U, tex.height >> m) *
+                        RDCMAX(1U, tex.depth >> m) * tex.format.compByteWidth * tex.format.compCount;
+      }
+    }
+  }
+
+  m_CachedTextures[id] = tex;
 }
 
 FetchBuffer GLReplay::GetBuffer(ResourceId id)
 {
-	FetchBuffer ret;
-	
-	MakeCurrentReplayContext(&m_ReplayCtx);
-	
-	auto &res = m_pDriver->m_Buffers[id];
+  FetchBuffer ret;
 
-	if(res.resource.Namespace == eResUnknown)
-	{
-		RDCERR("Details for invalid buffer id %llu requested", id);
-		RDCEraseEl(ret);
-		return ret;
-	}
-	
-	WrappedOpenGL &gl = *m_pDriver;
-	
-	ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
+  MakeCurrentReplayContext(&m_ReplayCtx);
 
-	gl.glBindBuffer(res.curType, res.resource.name);
+  auto &res = m_pDriver->m_Buffers[id];
 
-	ret.structureSize = 0;
-	GLNOTIMP("Not fetching structure size (if there's an equivalent)");
+  if(res.resource.Namespace == eResUnknown)
+  {
+    RDCERR("Details for invalid buffer id %llu requested", id);
+    RDCEraseEl(ret);
+    return ret;
+  }
 
-	ret.creationFlags = 0;
-	switch(res.curType)
-	{
-		case eGL_ARRAY_BUFFER:
-			ret.creationFlags = eBufferCreate_VB;
-			break;
-		case eGL_ELEMENT_ARRAY_BUFFER:
-			ret.creationFlags = eBufferCreate_IB;
-			break;
-		default:
-			RDCERR("Unexpected buffer type %hs", ToStr::Get(res.curType).c_str());
-	}
+  WrappedOpenGL &gl = *m_pDriver;
 
-	GLint size;
-	gl.glGetBufferParameteriv(res.curType, eGL_BUFFER_SIZE, &size);
+  ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
 
-	ret.byteSize = ret.length = (uint32_t)size;
-	
-	if(res.size == 0)
-	{
-		RDCWARN("BufferData::size didn't get filled out, setting at last minute");
-		res.size = ret.byteSize;
-	}
+  GLint prevBind = 0;
+  if(res.curType != eGL_NONE)
+  {
+    gl.glGetIntegerv(BufferBinding(res.curType), &prevBind);
 
-	string str = "";
-	char name[128] = {0};
-	gl.glGetObjectLabel(eGL_BUFFER, res.resource.name, 127, NULL, name);
-	str = name;
-	ret.customName = true;
+    gl.glBindBuffer(res.curType, res.resource.name);
+  }
 
-	if(str == "")
-	{
-		ret.customName = false;
-		str = StringFormat::Fmt("Buffer %llu", ret.ID);
-	}
+  ret.creationFlags = 0;
+  switch(res.curType)
+  {
+    case eGL_ARRAY_BUFFER: ret.creationFlags = eBufferCreate_VB; break;
+    case eGL_ELEMENT_ARRAY_BUFFER: ret.creationFlags = eBufferCreate_IB; break;
+    case eGL_UNIFORM_BUFFER: ret.creationFlags = eBufferCreate_CB; break;
+    case eGL_SHADER_STORAGE_BUFFER: ret.creationFlags = eBufferCreate_UAV; break;
+    case eGL_DRAW_INDIRECT_BUFFER:
+    case eGL_DISPATCH_INDIRECT_BUFFER:
+    case eGL_PARAMETER_BUFFER_ARB: ret.creationFlags = eBufferCreate_Indirect; break;
+    case eGL_PIXEL_PACK_BUFFER:
+    case eGL_PIXEL_UNPACK_BUFFER:
+    case eGL_COPY_WRITE_BUFFER:
+    case eGL_COPY_READ_BUFFER:
+    case eGL_QUERY_BUFFER:
+    case eGL_TEXTURE_BUFFER:
+    case eGL_TRANSFORM_FEEDBACK_BUFFER:
+    case eGL_ATOMIC_COUNTER_BUFFER: break;
+    case eGL_NONE:
+      break;    // could be from a 'create' DSA call which didn't ever bind the buffer to an
+                // explicit type
+    default: RDCERR("Unexpected buffer type %s", ToStr::Get(res.curType).c_str()); break;
+  }
 
-	ret.name = widen(str);
+  GLint size = 0;
+  // if the type is NONE it's probably a DSA created buffer
+  if(res.curType == eGL_NONE)
+  {
+    // if we have the DSA entry point
+    if(gl.GetHookset().glGetNamedBufferParameterivEXT)
+      gl.glGetNamedBufferParameterivEXT(res.resource.name, eGL_BUFFER_SIZE, &size);
+  }
+  else
+  {
+    gl.glGetBufferParameteriv(res.curType, eGL_BUFFER_SIZE, &size);
+  }
 
-	return ret;
+  ret.length = size;
+
+  if(res.size == 0)
+  {
+    RDCWARN("BufferData::size didn't get filled out, setting at last minute");
+    res.size = ret.length;
+  }
+
+  string str = m_pDriver->GetResourceManager()->GetName(ret.ID);
+  ret.customName = true;
+
+  if(str == "")
+  {
+    ret.customName = false;
+    str = StringFormat::Fmt("Buffer %llu", ret.ID);
+  }
+
+  ret.name = str;
+
+  if(res.curType != eGL_NONE)
+    gl.glBindBuffer(res.curType, prevBind);
+
+  return ret;
 }
 
-ShaderReflection *GLReplay::GetShader(ResourceId id)
+vector<DebugMessage> GLReplay::GetDebugMessages()
 {
-	WrappedOpenGL &gl = *m_pDriver;
-	
-	MakeCurrentReplayContext(&m_ReplayCtx);
-	
-	GLuint curProg = 0;
-	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
-	
-	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(curProg))];
-	auto &shaderDetails = m_pDriver->m_Shaders[id];
+  return m_pDriver->GetDebugMessages();
+}
 
-	auto &refl = shaderDetails.reflection;
+ShaderReflection *GLReplay::GetShader(ResourceId shader, string entryPoint)
+{
+  auto &shaderDetails = m_pDriver->m_Shaders[shader];
 
-	// initialise reflection data
-	// TODO: do this earlier. In glLinkProgram?
-	if(refl.DebugInfo.files.count == 0)
-	{
-		refl.DebugInfo.entryFunc = "main";
-		refl.DebugInfo.compileFlags = 0;
-		create_array_uninit(refl.DebugInfo.files, shaderDetails.sources.size());
-		for(size_t i=0; i < shaderDetails.sources.size(); i++)
-		{
-			refl.DebugInfo.files[i].first = StringFormat::Fmt("source%u.glsl", (uint32_t)i);
-			refl.DebugInfo.files[i].second = shaderDetails.sources[i];
-		}
+  if(shaderDetails.prog == 0)
+  {
+    RDCERR("Can't get shader details without separable program");
+    return NULL;
+  }
 
-		refl.Disassembly = "";
-
-		vector<ShaderResource> resources;
-
-		GLint numUniforms = 0;
-		gl.glGetProgramInterfaceiv(curProg, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
-
-		const size_t numProps = 6;
-
-		GLenum resProps[numProps] = {
-			eGL_REFERENCED_BY_VERTEX_SHADER,
-			
-			eGL_TYPE, eGL_NAME_LENGTH, eGL_LOCATION, eGL_BLOCK_INDEX, eGL_ARRAY_SIZE,
-		};
-
-		if(shaderDetails.type == eGL_VERTEX_SHADER)          resProps[0] = eGL_REFERENCED_BY_VERTEX_SHADER;
-		if(shaderDetails.type == eGL_TESS_CONTROL_SHADER)    resProps[0] = eGL_REFERENCED_BY_TESS_CONTROL_SHADER;
-		if(shaderDetails.type == eGL_TESS_EVALUATION_SHADER) resProps[0] = eGL_REFERENCED_BY_TESS_EVALUATION_SHADER;
-		if(shaderDetails.type == eGL_GEOMETRY_SHADER)        resProps[0] = eGL_REFERENCED_BY_GEOMETRY_SHADER;
-		if(shaderDetails.type == eGL_FRAGMENT_SHADER)        resProps[0] = eGL_REFERENCED_BY_FRAGMENT_SHADER;
-		if(shaderDetails.type == eGL_COMPUTE_SHADER)         resProps[0] = eGL_REFERENCED_BY_COMPUTE_SHADER;
-		
-		for(GLint u=0; u < numUniforms; u++)
-		{
-			GLint values[numProps];
-			gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
-
-			// skip if unused by this stage
-			if(values[0] == GL_FALSE)
-				continue;
-			
-			ShaderResource res;
-			res.IsSampler = false; // no separate sampler objects in GL
-
-			if(values[1] == GL_SAMPLER_2D)
-			{
-				res.IsSRV = true;
-				res.IsTexture = true;
-				res.IsUAV = false;
-				res.resType = eResType_Texture2D;
-				res.variableType.descriptor.name = "sampler2D";
-				res.variableType.descriptor.rows = 1;
-				res.variableType.descriptor.cols = 4;
-				res.variableType.descriptor.elements = 1;
-			}
-			else if(values[1] == GL_INT_SAMPLER_1D)
-			{
-				res.IsSRV = true;
-				res.IsTexture = true;
-				res.IsUAV = false;
-				res.resType = eResType_Texture1D;
-				res.variableType.descriptor.name = "isampler1D";
-				res.variableType.descriptor.rows = 1;
-				res.variableType.descriptor.cols = 4;
-				res.variableType.descriptor.elements = 1;
-			}
-			else
-			{
-				// fill in more sampler types
-				continue;
-			}
-
-			res.variableAddress = values[3];
-
-			create_array_uninit(res.name, values[2]+1);
-			gl.glGetProgramResourceName(curProg, eGL_UNIFORM, u, values[2]+1, NULL, res.name.elems);
-			res.name.count--; // trim off trailing null
-
-			resources.push_back(res);
-		}
-
-		refl.Resources = resources;
-
-		vector<ShaderConstant> globalUniforms;
-
-		for(GLint u=0; u < numUniforms; u++)
-		{
-			GLint values[numProps];
-			gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
-			
-			// skip if unused by this stage
-			if(values[0] == GL_FALSE)
-				continue;
-
-			// don't look at block uniforms just yet
-			if(values[4] != -1)
-			{
-				GLNOTIMP("Not fetching uniforms in UBOs (should become their own ConstantBlocks)");
-				continue;
-			}
-			
-			ShaderConstant var;
-			
-			if(values[1] == GL_FLOAT_VEC4)
-			{
-				var.type.descriptor.name = "vec4";
-				var.type.descriptor.rows = 1;
-				var.type.descriptor.cols = 4;
-				var.type.descriptor.elements = values[5];
-			}
-			else if(values[1] == GL_FLOAT_VEC3)
-			{
-				var.type.descriptor.name = "vec3";
-				var.type.descriptor.rows = 1;
-				var.type.descriptor.cols = 3;
-				var.type.descriptor.elements = values[5];
-			}
-			else if(values[1] == GL_FLOAT_MAT4)
-			{
-				var.type.descriptor.name = "mat4";
-				var.type.descriptor.rows = 4;
-				var.type.descriptor.cols = 4;
-				var.type.descriptor.elements = values[5];
-			}
-			else
-			{
-				// fill in more uniform types
-				continue;
-			}
-
-			var.reg.vec = values[3];
-			var.reg.comp = 0;
-
-			create_array_uninit(var.name, values[2]+1);
-			gl.glGetProgramResourceName(curProg, eGL_UNIFORM, u, values[2]+1, NULL, var.name.elems);
-			var.name.count--; // trim off trailing null
-
-			if(strchr(var.name.elems, '.'))
-			{
-				GLNOTIMP("Variable contains . - structure not reconstructed");
-			}
-
-			globalUniforms.push_back(var);
-		}
-
-		vector<ConstantBlock> cbuffers;
-
-		if(!globalUniforms.empty())
-		{
-			ConstantBlock globals;
-			globals.name = "Globals";
-			globals.bufferAddress = -1;
-			globals.variables = globalUniforms;
-
-			cbuffers.push_back(globals);
-		}
-
-		// here we would iterate over UNIFORM_BLOCKs or similar
-
-		// TODO: fill in Interfaces with shader subroutines?
-		// TODO: find a way of generating input/output signature.
-		//       The only way I can think of doing this is to generate separable programs for each
-		//       shader stage, but that requires modifying the glsl to redeclare built-in blocks if necessary.
-
-		refl.ConstantBlocks = cbuffers;
-	}
-
-	// update samplers with latest uniform values
-	for(int32_t i=0; i < refl.Resources.count; i++)
-	{
-		if(refl.Resources.elems[i].IsSRV && refl.Resources.elems[i].IsTexture)
-			gl.glGetUniformiv(curProg, refl.Resources.elems[i].variableAddress, (GLint *)&refl.Resources.elems[i].bindPoint);
-	}
-
-	return &refl;
+  return &shaderDetails.reflection;
 }
 
 void GLReplay::SavePipelineState()
 {
-	GLPipelineState &pipe = m_CurPipelineState;
-	WrappedOpenGL &gl = *m_pDriver;
-	GLResourceManager *rm = m_pDriver->GetResourceManager();
+  GLPipelineState &pipe = m_CurPipelineState;
+  WrappedOpenGL &gl = *m_pDriver;
+  GLResourceManager *rm = m_pDriver->GetResourceManager();
 
-	MakeCurrentReplayContext(&m_ReplayCtx);
+  MakeCurrentReplayContext(&m_ReplayCtx);
 
-	// Index buffer
+  GLRenderState rs(&gl.GetHookset(), NULL, READING);
+  rs.FetchState(m_ReplayCtx.ctx, &gl);
 
-	pipe.m_VtxIn.ibuffer.Offset = m_pDriver->m_LastIndexOffset;
-	
-	pipe.m_VtxIn.ibuffer.Format = ResourceFormat();
-	pipe.m_VtxIn.ibuffer.Format.special = false;
-	pipe.m_VtxIn.ibuffer.Format.compCount = 1;
-	pipe.m_VtxIn.ibuffer.Format.compType = eCompType_UInt;
-	switch(m_pDriver->m_LastIndexSize)
-	{
-		default:
-			break;
-		case eGL_UNSIGNED_BYTE:
-			pipe.m_VtxIn.ibuffer.Format.compByteWidth = 1;
-			pipe.m_VtxIn.ibuffer.Format.strname = L"GL_UNSIGNED_BYTE";
-			break;
-		case eGL_UNSIGNED_SHORT:
-			pipe.m_VtxIn.ibuffer.Format.compByteWidth = 2;
-			pipe.m_VtxIn.ibuffer.Format.strname = L"GL_UNSIGNED_SHORT";
-			break;
-		case eGL_UNSIGNED_INT:
-			pipe.m_VtxIn.ibuffer.Format.compByteWidth = 4;
-			pipe.m_VtxIn.ibuffer.Format.strname = L"GL_UNSIGNED_INT";
-			break;
-	}
+  // Index buffer
 
-	GLint curIdxBuf = 0;
-	gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, &curIdxBuf);
+  void *ctx = m_ReplayCtx.ctx;
 
-	pipe.m_VtxIn.ibuffer.Buffer = rm->GetOriginalID(rm->GetID(BufferRes(curIdxBuf)));
+  GLuint ibuffer = 0;
+  gl.glGetIntegerv(eGL_ELEMENT_ARRAY_BUFFER_BINDING, (GLint *)&ibuffer);
+  pipe.m_VtxIn.ibuffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, ibuffer)));
 
-	// Vertex buffers and attributes
-	GLint numVBufferBindings = 16;
-	gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numVBufferBindings);
-	
-	GLint numVAttribBindings = 16;
-	gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &numVAttribBindings);
+  pipe.m_VtxIn.primitiveRestart = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestart];
+  pipe.m_VtxIn.restartIndex = rs.Enabled[GLRenderState::eEnabled_PrimitiveRestartFixedIndex]
+                                  ? ~0U
+                                  : rs.PrimitiveRestartIndex;
 
-	create_array_uninit(pipe.m_VtxIn.vbuffers, numVBufferBindings);
-	create_array_uninit(pipe.m_VtxIn.attributes, numVAttribBindings);
+  // Vertex buffers and attributes
+  GLint numVBufferBindings = 16;
+  gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIB_BINDINGS, &numVBufferBindings);
 
-	for(GLuint i=0; i < (GLuint)numVBufferBindings; i++)
-	{
-		GLint vb = 0;
-		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_BUFFER, i, &vb);
-		pipe.m_VtxIn.vbuffers[i].Buffer = rm->GetOriginalID(rm->GetID(BufferRes(vb)));
+  GLint numVAttribBindings = 16;
+  gl.glGetIntegerv(eGL_MAX_VERTEX_ATTRIBS, &numVAttribBindings);
 
-		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Stride);
-		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Offset);
-		gl.glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Divisor);
-		pipe.m_VtxIn.vbuffers[i].PerInstance = (pipe.m_VtxIn.vbuffers[i].Divisor != 0);
-	}
-	
-	for(GLuint i=0; i < (GLuint)numVAttribBindings; i++)
-	{
-		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_ENABLED, (GLint *)&pipe.m_VtxIn.attributes[i].Enabled);
-		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_BINDING, (GLint *)&pipe.m_VtxIn.attributes[i].BufferSlot);
-		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_RELATIVE_OFFSET, (GLint*)&pipe.m_VtxIn.attributes[i].RelativeOffset);
+  create_array_uninit(pipe.m_VtxIn.vbuffers, numVBufferBindings);
+  create_array_uninit(pipe.m_VtxIn.attributes, numVAttribBindings);
 
-		GLenum type = eGL_FLOAT;
-		GLint normalized = 0;
-		
-		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_TYPE, (GLint *)&type);
-		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
+  for(GLuint i = 0; i < (GLuint)numVBufferBindings; i++)
+  {
+    GLuint buffer = GetBoundVertexBuffer(gl.m_Real, i);
 
-		ResourceFormat fmt;
+    pipe.m_VtxIn.vbuffers[i].Buffer = rm->GetOriginalID(rm->GetID(BufferRes(ctx, buffer)));
 
-		fmt.special = false;
-		fmt.compCount = 4;
-		gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, (GLint *)&fmt.compCount);
-		
-		switch(type)
-		{
-			default:
-			case eGL_BYTE:
-				fmt.compByteWidth = 1;
-				fmt.compType = normalized ? eCompType_SInt : eCompType_SNorm;
-				fmt.strname = StringFormat::WFmt(L"GL_BYTE%d", fmt.compCount) + (normalized ? L"" : L"_SNORM");
-				break;
-			case eGL_UNSIGNED_BYTE:
-				fmt.compByteWidth = 1;
-				fmt.compType = normalized ? eCompType_UInt : eCompType_UNorm;
-				fmt.strname = StringFormat::WFmt(L"GL_UNSIGNED_BYTE%d", fmt.compCount) + (normalized ? L"" : L"_UNORM");
-				break;
-			case eGL_SHORT:
-				fmt.compByteWidth = 2;
-				fmt.compType = normalized ? eCompType_SInt : eCompType_SNorm;
-				fmt.strname = StringFormat::WFmt(L"GL_SHORT%d", fmt.compCount) + (normalized ? L"" : L"_SNORM");
-				break;
-			case eGL_UNSIGNED_SHORT:
-				fmt.compByteWidth = 2;
-				fmt.compType = normalized ? eCompType_UInt : eCompType_UNorm;
-				fmt.strname = StringFormat::WFmt(L"GL_UNSIGNED_SHORT%d", fmt.compCount) + (normalized ? L"" : L"_UNORM");
-				break;
-			case eGL_INT:
-				fmt.compByteWidth = 4;
-				fmt.compType = normalized ? eCompType_SInt : eCompType_SNorm;
-				fmt.strname = StringFormat::WFmt(L"GL_INT%d", fmt.compCount) + (normalized ? L"" : L"_SNORM");
-				break;
-			case eGL_UNSIGNED_INT:
-				fmt.compByteWidth = 4;
-				fmt.compType = normalized ? eCompType_UInt : eCompType_UNorm;
-				fmt.strname = StringFormat::WFmt(L"GL_UNSIGNED_INT%d", fmt.compCount) + (normalized ? L"" : L"_UNORM");
-				break;
-			case eGL_FLOAT:
-				fmt.compByteWidth = 4;
-				fmt.compType = eCompType_Float;
-				fmt.strname = StringFormat::WFmt(L"GL_FLOAT%d", fmt.compCount);
-				break;
-			case eGL_DOUBLE:
-				fmt.compByteWidth = 8;
-				fmt.compType = eCompType_Double;
-				fmt.strname = StringFormat::WFmt(L"GL_DOUBLE%d", fmt.compCount);
-				break;
-			case eGL_HALF_FLOAT:
-				fmt.compByteWidth = 2;
-				fmt.compType = eCompType_Float;
-				fmt.strname = StringFormat::WFmt(L"GL_HALF_FLOAT%d", fmt.compCount);
-				break;
-			case eGL_INT_2_10_10_10_REV:
-				fmt.special = true;
-				fmt.specialFormat = eSpecial_R10G10B10A2;
-				fmt.compCount = 4;
-				fmt.compType = eCompType_UInt;
-				fmt.strname = L"GL_INT_2_10_10_10_REV";
-				break;
-			case eGL_UNSIGNED_INT_2_10_10_10_REV:
-				fmt.special = true;
-				fmt.specialFormat = eSpecial_R10G10B10A2;
-				fmt.compCount = 4;
-				fmt.compType = eCompType_SInt;
-				fmt.strname = L"eGL_UNSIGNED_INT_2_10_10_10_REV";
-				break;
-			case eGL_UNSIGNED_INT_10F_11F_11F_REV:
-				fmt.special = true;
-				fmt.specialFormat = eSpecial_R11G11B10;
-				fmt.compCount = 3;
-				fmt.compType = eCompType_SInt;
-				fmt.strname = L"eGL_UNSIGNED_INT_10F_11F_11F_REV";
-				break;
-		}
+    gl.glGetIntegeri_v(eGL_VERTEX_BINDING_STRIDE, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Stride);
+    gl.glGetIntegeri_v(eGL_VERTEX_BINDING_OFFSET, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Offset);
+    gl.glGetIntegeri_v(eGL_VERTEX_BINDING_DIVISOR, i, (GLint *)&pipe.m_VtxIn.vbuffers[i].Divisor);
+  }
 
-		pipe.m_VtxIn.attributes[i].Format = fmt;
-	}
+  for(GLuint i = 0; i < (GLuint)numVAttribBindings; i++)
+  {
+    gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_ENABLED,
+                           (GLint *)&pipe.m_VtxIn.attributes[i].Enabled);
+    gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_BINDING,
+                           (GLint *)&pipe.m_VtxIn.attributes[i].BufferSlot);
+    gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_RELATIVE_OFFSET,
+                           (GLint *)&pipe.m_VtxIn.attributes[i].RelativeOffset);
 
-	switch(m_pDriver->m_LastDrawMode)
-	{
-		default:
-			pipe.m_VtxIn.Topology = eTopology_Unknown;
-			break;
-		case GL_POINTS:
-			pipe.m_VtxIn.Topology = eTopology_PointList;
-			break;
-		case GL_LINE_STRIP:
-			pipe.m_VtxIn.Topology = eTopology_LineStrip;
-			break;
-		case GL_LINE_LOOP:
-			pipe.m_VtxIn.Topology = eTopology_LineLoop;
-			break;
-		case GL_LINES:
-			pipe.m_VtxIn.Topology = eTopology_LineList;
-			break;
-		case GL_LINE_STRIP_ADJACENCY:
-			pipe.m_VtxIn.Topology = eTopology_LineStrip_Adj;
-			break;
-		case GL_LINES_ADJACENCY:
-			pipe.m_VtxIn.Topology = eTopology_LineList_Adj;
-			break;
-		case GL_TRIANGLE_STRIP:
-			pipe.m_VtxIn.Topology = eTopology_TriangleStrip;
-			break;
-		case GL_TRIANGLE_FAN:
-			pipe.m_VtxIn.Topology = eTopology_TriangleFan;
-			break;
-		case GL_TRIANGLES:
-			pipe.m_VtxIn.Topology = eTopology_TriangleList;
-			break;
-		case GL_TRIANGLE_STRIP_ADJACENCY:
-			pipe.m_VtxIn.Topology = eTopology_TriangleStrip_Adj;
-			break;
-		case GL_TRIANGLES_ADJACENCY:
-			pipe.m_VtxIn.Topology = eTopology_TriangleList_Adj;
-			break;
-		case GL_PATCHES:
-		{
-			GLint patchCount = 3;
-			gl.glGetIntegerv(eGL_PATCH_VERTICES, &patchCount);
-			pipe.m_VtxIn.Topology = PrimitiveTopology(eTopology_PatchList_1CPs+patchCount);
-			break;
-		}
-	}
+    GLenum type = eGL_FLOAT;
+    GLint normalized = 0;
 
-	// Shader stages
-	
-	GLuint curProg = 0;
-	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
-	
-	auto &progDetails = m_pDriver->m_Programs[rm->GetID(ProgramRes(curProg))];
+    gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_TYPE, (GLint *)&type);
+    gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_NORMALIZED, &normalized);
 
-	RDCASSERT(progDetails.shaders.size());
+    GLint integer = 0;
+    gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_INTEGER, &integer);
 
-	for(size_t i=0; i < progDetails.shaders.size(); i++)
-	{
-		if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_VERTEX_SHADER)
-			pipe.m_VS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
-		else if(m_pDriver->m_Shaders[ progDetails.shaders[i] ].type == eGL_FRAGMENT_SHADER)
-			pipe.m_FS.Shader = rm->GetOriginalID(progDetails.shaders[i]);
-	}
-	
-	pipe.m_VS.stage = eShaderStage_Vertex;
-	pipe.m_TCS.stage = eShaderStage_Tess_Control;
-	pipe.m_TES.stage = eShaderStage_Tess_Eval;
-	pipe.m_GS.stage = eShaderStage_Geometry;
-	pipe.m_FS.stage = eShaderStage_Fragment;
-	pipe.m_CS.stage = eShaderStage_Compute;
+    RDCEraseEl(pipe.m_VtxIn.attributes[i].GenericValue);
+    gl.glGetVertexAttribfv(i, eGL_CURRENT_VERTEX_ATTRIB, pipe.m_VtxIn.attributes[i].GenericValue.f);
 
-	// Textures
-	
-	GLint numTexUnits = 8;
-	gl.glGetIntegerv(eGL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &numTexUnits);
-	create_array_uninit(pipe.Textures, numTexUnits);
+    ResourceFormat fmt;
 
-	GLenum activeTexture = eGL_TEXTURE0;
-	gl.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint*)&activeTexture);
+    fmt.special = false;
+    fmt.compCount = 4;
+    gl.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, (GLint *)&fmt.compCount);
 
-	// GL is ass-backwards in its handling of texture units. When a shader is active
-	// the types in the glsl samplers inform which targets are used from which texture units
-	//
-	// So texture unit 5 can have a 2D bound (texture 52) and a Cube bound (texture 77).
-	// * if a uniform sampler2D has value 5 then the 2D texture is used, and we sample from 52
-	// * if a uniform samplerCube has value 5 then the Cube texture is used, and we sample from 77
-	// It's illegal for both a sampler2D and samplerCube to both have the same value (or any two
-	// different types). It makes it all rather pointless and needlessly complex.
-	//
-	// What we have to do then, is consider the program, look at the values of the uniforms, and
-	// then get the appropriate current binding based on the uniform type. We can warn/alert the
-	// user if we hit the illegal case of two uniforms with different types but the same value
-	//
-	// Handling is different if no shaders are active, but we don't consider that case.
+    bool intComponent = !normalized || integer;
 
+    switch(type)
+    {
+      default:
+      case eGL_BYTE:
+        fmt.compByteWidth = 1;
+        fmt.compType = intComponent ? eCompType_SInt : eCompType_SNorm;
+        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_BYTE%d", fmt.compCount)
+                                         : string("GL_BYTE")) +
+                      (intComponent ? "" : "_SNORM");
+        break;
+      case eGL_UNSIGNED_BYTE:
+        fmt.compByteWidth = 1;
+        fmt.compType = intComponent ? eCompType_UInt : eCompType_UNorm;
+        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_UNSIGNED_BYTE%d", fmt.compCount)
+                                         : string("GL_UNSIGNED_BYTE")) +
+                      (intComponent ? "" : "_UNORM");
+        break;
+      case eGL_SHORT:
+        fmt.compByteWidth = 2;
+        fmt.compType = intComponent ? eCompType_SInt : eCompType_SNorm;
+        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_SHORT%d", fmt.compCount)
+                                         : string("GL_SHORT")) +
+                      (intComponent ? "" : "_SNORM");
+        break;
+      case eGL_UNSIGNED_SHORT:
+        fmt.compByteWidth = 2;
+        fmt.compType = intComponent ? eCompType_UInt : eCompType_UNorm;
+        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_UNSIGNED_SHORT%d", fmt.compCount)
+                                         : string("GL_UNSIGNED_SHORT")) +
+                      (intComponent ? "" : "_UNORM");
+        break;
+      case eGL_INT:
+        fmt.compByteWidth = 4;
+        fmt.compType = intComponent ? eCompType_SInt : eCompType_SNorm;
+        fmt.strname =
+            (fmt.compCount > 1 ? StringFormat::Fmt("GL_INT%d", fmt.compCount) : string("GL_INT")) +
+            (intComponent ? "" : "_SNORM");
+        break;
+      case eGL_UNSIGNED_INT:
+        fmt.compByteWidth = 4;
+        fmt.compType = intComponent ? eCompType_UInt : eCompType_UNorm;
+        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_UNSIGNED_INT%d", fmt.compCount)
+                                         : string("GL_UNSIGNED_INT")) +
+                      (intComponent ? "" : "_UNORM");
+        break;
+      case eGL_FLOAT:
+        fmt.compByteWidth = 4;
+        fmt.compType = eCompType_Float;
+        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_FLOAT%d", fmt.compCount)
+                                         : string("GL_FLOAT"));
+        break;
+      case eGL_DOUBLE:
+        fmt.compByteWidth = 8;
+        fmt.compType = eCompType_Double;
+        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_DOUBLE%d", fmt.compCount)
+                                         : string("GL_DOUBLE"));
+        break;
+      case eGL_HALF_FLOAT:
+        fmt.compByteWidth = 2;
+        fmt.compType = eCompType_Float;
+        fmt.strname = (fmt.compCount > 1 ? StringFormat::Fmt("GL_HALF_FLOAT%d", fmt.compCount)
+                                         : string("GL_HALF_FLOAT"));
+        break;
+      case eGL_INT_2_10_10_10_REV:
+        fmt.special = true;
+        fmt.specialFormat = eSpecial_R10G10B10A2;
+        fmt.compCount = 4;
+        fmt.compType = eCompType_UInt;
+        fmt.strname = "GL_INT_2_10_10_10_REV";
+        break;
+      case eGL_UNSIGNED_INT_2_10_10_10_REV:
+        fmt.special = true;
+        fmt.specialFormat = eSpecial_R10G10B10A2;
+        fmt.compCount = 4;
+        fmt.compType = eCompType_SInt;
+        fmt.strname = "GL_UNSIGNED_INT_2_10_10_10_REV";
+        break;
+      case eGL_UNSIGNED_INT_10F_11F_11F_REV:
+        fmt.special = true;
+        fmt.specialFormat = eSpecial_R11G11B10;
+        fmt.compCount = 3;
+        fmt.compType = eCompType_Float;
+        fmt.strname = "GL_UNSIGNED_INT_10F_11F_11F_REV";
+        break;
+    }
 
-	// prefetch uniform values in GetShader()
-	ShaderReflection *refls[6];
-	for(size_t s=0; s < progDetails.shaders.size(); s++)
-		refls[s] = GetShader(progDetails.shaders[s]);
+    if(fmt.compCount == eGL_BGRA)
+    {
+      fmt.compByteWidth = 1;
+      fmt.compCount = 4;
+      fmt.bgraOrder = true;
+      fmt.compType = eCompType_UNorm;
 
-	for(GLint unit=0; unit < numTexUnits; unit++)
-	{
-		GLenum binding = eGL_UNKNOWN_ENUM;
-		GLenum target = eGL_UNKNOWN_ENUM;
-		
-		for(size_t s=0; s < progDetails.shaders.size(); s++)
-		{
-			if(refls[s] == NULL) continue;
+      if(type == eGL_UNSIGNED_BYTE)
+      {
+        fmt.strname = "GL_BGRA8";
+      }
+      else if(type == eGL_UNSIGNED_INT_2_10_10_10_REV || type == eGL_INT_2_10_10_10_REV)
+      {
+        fmt.specialFormat = eSpecial_R10G10B10A2;
+        fmt.compType = type == eGL_UNSIGNED_INT_2_10_10_10_REV ? eCompType_UInt : eCompType_SInt;
+        fmt.strname = type == eGL_UNSIGNED_INT_2_10_10_10_REV ? "GL_UNSIGNED_INT_2_10_10_10_REV"
+                                                              : "GL_INT_2_10_10_10_REV";
+      }
+      else
+      {
+        RDCERR("Unexpected BGRA type");
+      }
 
-			for(int32_t r=0; r < refls[s]->Resources.count; r++)
-			{
-				// bindPoint is the uniform value for this sampler
-				if(refls[s]->Resources[r].bindPoint == (uint32_t)unit)
-				{
-					GLenum t = eGL_UNKNOWN_ENUM;
+      // haven't checked the other cases work properly
+      RDCASSERT(type == eGL_UNSIGNED_BYTE);
+    }
 
-					switch(refls[s]->Resources[r].resType)
-					{
-						case eResType_None:
-							t = eGL_UNKNOWN_ENUM;
-							break;
-						case eResType_Buffer:
-							t = eGL_TEXTURE_BINDING_BUFFER;
-							break;
-						case eResType_Texture1D:
-							t = eGL_TEXTURE_BINDING_1D;
-							target = eGL_TEXTURE_1D;
-							break;
-						case eResType_Texture1DArray:
-							t = eGL_TEXTURE_BINDING_1D_ARRAY;
-							target = eGL_TEXTURE_1D_ARRAY;
-							break;
-						case eResType_Texture2D:
-							t = eGL_TEXTURE_BINDING_2D;
-							target = eGL_TEXTURE_2D;
-							break;
-						case eResType_Texture2DArray:
-							t = eGL_TEXTURE_BINDING_2D_ARRAY;
-							target = eGL_TEXTURE_2D_ARRAY;
-							break;
-						case eResType_Texture2DMS:
-							t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE;
-							target = eGL_TEXTURE_2D_MULTISAMPLE;
-							break;
-						case eResType_Texture2DMSArray:
-							t = eGL_TEXTURE_BINDING_2D_MULTISAMPLE_ARRAY;
-							target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
-							break;
-						case eResType_Texture3D:
-							t = eGL_TEXTURE_BINDING_3D;
-							target = eGL_TEXTURE_3D;
-							break;
-						case eResType_TextureCube:
-							t = eGL_TEXTURE_BINDING_CUBE_MAP;
-							target = eGL_TEXTURE_CUBE_MAP;
-							break;
-						case eResType_TextureCubeArray:
-							t = eGL_TEXTURE_BINDING_CUBE_MAP_ARRAY;
-							target = eGL_TEXTURE_CUBE_MAP_ARRAY;
-							break;
-					}
+    pipe.m_VtxIn.attributes[i].Format = fmt;
+  }
 
-					if(binding == eGL_UNKNOWN_ENUM)
-					{
-						binding = t;
-					}
-					else if(binding == t)
-					{
-						// two uniforms with the same type pointing to the same slot is fine
-						binding = t;
-					}
-					else if(binding != t)
-					{
-						RDCWARN("Two uniforms pointing to texture unit %d with types %s and %s", unit, ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
-					}
-				}
-			}
-		}
+  pipe.m_VtxIn.provokingVertexLast = (rs.ProvokingVertex != eGL_FIRST_VERTEX_CONVENTION);
 
-		if(binding != eGL_UNKNOWN_ENUM)
-		{
-			gl.glActiveTexture(GLenum(eGL_TEXTURE0+unit));
+  memcpy(pipe.m_VtxProcess.defaultInnerLevel, rs.PatchParams.defaultInnerLevel,
+         sizeof(rs.PatchParams.defaultInnerLevel));
+  memcpy(pipe.m_VtxProcess.defaultOuterLevel, rs.PatchParams.defaultOuterLevel,
+         sizeof(rs.PatchParams.defaultOuterLevel));
 
-			GLuint tex;
-			gl.glGetIntegerv(binding, (GLint *)&tex);
+  pipe.m_VtxProcess.discard = rs.Enabled[GLRenderState::eEnabled_RasterizerDiscard];
+  pipe.m_VtxProcess.clipOriginLowerLeft = (rs.ClipOrigin != eGL_UPPER_LEFT);
+  pipe.m_VtxProcess.clipNegativeOneToOne = (rs.ClipDepth != eGL_ZERO_TO_ONE);
+  for(int i = 0; i < 8; i++)
+    pipe.m_VtxProcess.clipPlanes[i] = rs.Enabled[GLRenderState::eEnabled_ClipDistance0 + i];
 
-			// very bespoke/specific
-			GLint firstSlice = 0;
-			gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstSlice);
+  // Shader stages & Textures
 
-			pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(tex)));
-			pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
-		}
-		else
-		{
-			// what should we do in this case? there could be something bound just not used,
-			// it'd be nice to return that
-		}
-	}
+  GLint numTexUnits = 8;
+  gl.glGetIntegerv(eGL_MAX_COMBINED_TEXTURE_IMAGE_UNITS, &numTexUnits);
+  create_array_uninit(pipe.Textures, numTexUnits);
+  create_array_uninit(pipe.Samplers, numTexUnits);
 
-	gl.glActiveTexture(activeTexture);
+  GLenum activeTexture = eGL_TEXTURE0;
+  gl.glGetIntegerv(eGL_ACTIVE_TEXTURE, (GLint *)&activeTexture);
 
-	GLuint curFBO = 0;
-	gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint*)&curFBO);
-	
-	GLint numCols = 8;
-	gl.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+  pipe.m_VS.stage = eShaderStage_Vertex;
+  pipe.m_TCS.stage = eShaderStage_Tess_Control;
+  pipe.m_TES.stage = eShaderStage_Tess_Eval;
+  pipe.m_GS.stage = eShaderStage_Geometry;
+  pipe.m_FS.stage = eShaderStage_Fragment;
+  pipe.m_CS.stage = eShaderStage_Compute;
 
-	GLuint curCol[32] = { 0 };
-	GLuint curDepth = 0;
-	GLuint curStencil = 0;
+  GLuint curProg = 0;
+  gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&curProg);
 
-	RDCASSERT(numCols <= 32);
+  GLPipelineState::ShaderStage *stages[6] = {
+      &pipe.m_VS, &pipe.m_TCS, &pipe.m_TES, &pipe.m_GS, &pipe.m_FS, &pipe.m_CS,
+  };
+  ShaderReflection *refls[6] = {NULL};
+  ShaderBindpointMapping *mappings[6] = {NULL};
 
-	// we should never bind the true default framebuffer - if the app did, we will have our fake bound
-	RDCASSERT(curFBO != 0);
+  for(int i = 0; i < 6; i++)
+  {
+    stages[i]->Shader = ResourceId();
+    stages[i]->ShaderDetails = NULL;
+    stages[i]->BindpointMapping.ConstantBlocks.Delete();
+    stages[i]->BindpointMapping.ReadOnlyResources.Delete();
+    stages[i]->BindpointMapping.ReadWriteResources.Delete();
+  }
 
-	{
-		for(GLint i=0; i < numCols; i++)
-			gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0+i), eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curCol[i]);
-		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curDepth);
-		gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT, eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint*)&curStencil);
-	}
+  if(curProg == 0)
+  {
+    gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&curProg);
 
-	pipe.m_FB.FBO = rm->GetOriginalID(rm->GetID(FramebufferRes(curFBO)));
-	create_array_uninit(pipe.m_FB.Color, numCols);
-	for(GLint i=0; i < numCols; i++)
-		pipe.m_FB.Color[i] = rm->GetOriginalID(rm->GetID(TextureRes(curCol[i])));
+    if(curProg == 0)
+    {
+      for(GLint unit = 0; unit < numTexUnits; unit++)
+      {
+        RDCEraseEl(pipe.Textures[unit]);
+        RDCEraseEl(pipe.Samplers[unit]);
+      }
+    }
+    else
+    {
+      ResourceId id = rm->GetID(ProgramPipeRes(ctx, curProg));
+      auto &pipeDetails = m_pDriver->m_Pipelines[id];
 
-	pipe.m_FB.Depth = rm->GetOriginalID(rm->GetID(TextureRes(curDepth)));
-	pipe.m_FB.Stencil = rm->GetOriginalID(rm->GetID(TextureRes(curStencil)));
+      string pipelineName = rm->GetName(rm->GetOriginalID(id));
+
+      for(size_t i = 0; i < ARRAY_COUNT(pipeDetails.stageShaders); i++)
+      {
+        stages[i]->PipelineActive = true;
+        stages[i]->PipelineName = pipelineName;
+        stages[i]->customPipelineName = (pipelineName != "");
+
+        if(pipeDetails.stageShaders[i] != ResourceId())
+        {
+          curProg = rm->GetCurrentResource(pipeDetails.stagePrograms[i]).name;
+          stages[i]->Shader = rm->GetOriginalID(pipeDetails.stageShaders[i]);
+          refls[i] = GetShader(pipeDetails.stageShaders[i], "");
+          GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i],
+                              stages[i]->BindpointMapping);
+          mappings[i] = &stages[i]->BindpointMapping;
+
+          stages[i]->ProgramName = rm->GetName(rm->GetOriginalID(pipeDetails.stagePrograms[i]));
+          stages[i]->customProgramName = !stages[i]->ProgramName.empty();
+
+          stages[i]->ShaderName = rm->GetName(rm->GetOriginalID(pipeDetails.stageShaders[i]));
+          stages[i]->customShaderName = !stages[i]->ShaderName.empty();
+        }
+        else
+        {
+          stages[i]->Shader = ResourceId();
+        }
+      }
+    }
+  }
+  else
+  {
+    ResourceId id = rm->GetID(ProgramRes(ctx, curProg));
+    auto &progDetails = m_pDriver->m_Programs[id];
+
+    string programName = rm->GetName(rm->GetOriginalID(id));
+
+    for(size_t i = 0; i < ARRAY_COUNT(progDetails.stageShaders); i++)
+    {
+      if(progDetails.stageShaders[i] != ResourceId())
+      {
+        stages[i]->ProgramName = programName;
+        stages[i]->customProgramName = (programName != "");
+
+        stages[i]->Shader = rm->GetOriginalID(progDetails.stageShaders[i]);
+        refls[i] = GetShader(progDetails.stageShaders[i], "");
+        GetBindpointMapping(gl.GetHookset(), curProg, (int)i, refls[i], stages[i]->BindpointMapping);
+        mappings[i] = &stages[i]->BindpointMapping;
+
+        stages[i]->ShaderName = rm->GetName(rm->GetOriginalID(progDetails.stageShaders[i]));
+        stages[i]->customShaderName = !stages[i]->ShaderName.empty();
+      }
+    }
+  }
+
+  RDCEraseEl(pipe.m_Feedback);
+
+  if(HasExt[ARB_transform_feedback2])
+  {
+    GLuint feedback = 0;
+    gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&feedback);
+
+    if(feedback != 0)
+      pipe.m_Feedback.Obj = rm->GetOriginalID(rm->GetID(FeedbackRes(ctx, feedback)));
+
+    GLint maxCount = 0;
+    gl.glGetIntegerv(eGL_MAX_TRANSFORM_FEEDBACK_SEPARATE_ATTRIBS, &maxCount);
+
+    for(int i = 0; i < (int)ARRAY_COUNT(pipe.m_Feedback.BufferBinding) && i < maxCount; i++)
+    {
+      GLuint buffer = 0;
+      gl.glGetIntegeri_v(eGL_TRANSFORM_FEEDBACK_BUFFER_BINDING, i, (GLint *)&buffer);
+      pipe.m_Feedback.BufferBinding[i] = rm->GetOriginalID(rm->GetID(BufferRes(ctx, buffer)));
+      gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_START, i,
+                           (GLint64 *)&pipe.m_Feedback.Offset[i]);
+      gl.glGetInteger64i_v(eGL_TRANSFORM_FEEDBACK_BUFFER_SIZE, i,
+                           (GLint64 *)&pipe.m_Feedback.Size[i]);
+    }
+
+    GLint p = 0;
+    gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_PAUSED, &p);
+    pipe.m_Feedback.Paused = (p != 0);
+
+    gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BUFFER_ACTIVE, &p);
+    pipe.m_Feedback.Active = (p != 0);
+  }
+
+  for(int i = 0; i < 6; i++)
+  {
+    size_t num = RDCMIN(128, rs.Subroutines[i].numSubroutines);
+    if(num == 0)
+    {
+      RDCEraseEl(stages[i]->Subroutines);
+    }
+    else
+    {
+      create_array_uninit(stages[i]->Subroutines, num);
+      memcpy(stages[i]->Subroutines.elems, rs.Subroutines[i].Values, num);
+    }
+  }
+
+  // GL is ass-backwards in its handling of texture units. When a shader is active
+  // the types in the glsl samplers inform which targets are used from which texture units
+  //
+  // So texture unit 5 can have a 2D bound (texture 52) and a Cube bound (texture 77).
+  // * if a uniform sampler2D has value 5 then the 2D texture is used, and we sample from 52
+  // * if a uniform samplerCube has value 5 then the Cube texture is used, and we sample from 77
+  // It's illegal for both a sampler2D and samplerCube to both have the same value (or any two
+  // different types). It makes it all rather pointless and needlessly complex.
+  //
+  // What we have to do then, is consider the program, look at the values of the uniforms, and
+  // then get the appropriate current binding based on the uniform type. We can warn/alert the
+  // user if we hit the illegal case of two uniforms with different types but the same value
+  //
+  // Handling is different if no shaders are active, but we don't consider that case.
+
+  for(GLint unit = 0; unit < numTexUnits; unit++)
+  {
+    GLenum binding = eGL_NONE;
+    GLenum target = eGL_NONE;
+    ShaderResourceType resType = eResType_None;
+
+    bool shadow = false;
+
+    for(size_t s = 0; s < ARRAY_COUNT(refls); s++)
+    {
+      if(refls[s] == NULL)
+        continue;
+
+      for(int32_t r = 0; r < refls[s]->ReadOnlyResources.count; r++)
+      {
+        // bindPoint is the uniform value for this sampler
+        if(mappings[s]->ReadOnlyResources[refls[s]->ReadOnlyResources[r].bindPoint].bind == unit)
+        {
+          GLenum t = eGL_NONE;
+
+          if(strstr(refls[s]->ReadOnlyResources[r].variableType.descriptor.name.elems, "Shadow"))
+            shadow = true;
+
+          switch(refls[s]->ReadOnlyResources[r].resType)
+          {
+            case eResType_None: target = eGL_NONE; break;
+            case eResType_Buffer: target = eGL_TEXTURE_BUFFER; break;
+            case eResType_Texture1D: target = eGL_TEXTURE_1D; break;
+            case eResType_Texture1DArray: target = eGL_TEXTURE_1D_ARRAY; break;
+            case eResType_Texture2D: target = eGL_TEXTURE_2D; break;
+            case eResType_TextureRect: target = eGL_TEXTURE_RECTANGLE; break;
+            case eResType_Texture2DArray: target = eGL_TEXTURE_2D_ARRAY; break;
+            case eResType_Texture2DMS: target = eGL_TEXTURE_2D_MULTISAMPLE; break;
+            case eResType_Texture2DMSArray: target = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY; break;
+            case eResType_Texture3D: target = eGL_TEXTURE_3D; break;
+            case eResType_TextureCube: target = eGL_TEXTURE_CUBE_MAP; break;
+            case eResType_TextureCubeArray: target = eGL_TEXTURE_CUBE_MAP_ARRAY; break;
+            case eResType_Count: RDCERR("Invalid shader resource type"); break;
+          }
+
+          if(target != eGL_NONE)
+            t = TextureBinding(target);
+
+          resType = refls[s]->ReadOnlyResources[r].resType;
+
+          if(binding == eGL_NONE)
+          {
+            binding = t;
+          }
+          else if(binding == t)
+          {
+            // two uniforms with the same type pointing to the same slot is fine
+            binding = t;
+          }
+          else if(binding != t)
+          {
+            RDCWARN("Two uniforms pointing to texture unit %d with types %s and %s", unit,
+                    ToStr::Get(binding).c_str(), ToStr::Get(t).c_str());
+          }
+        }
+      }
+    }
+
+    if(binding != eGL_NONE)
+    {
+      gl.glActiveTexture(GLenum(eGL_TEXTURE0 + unit));
+
+      GLuint tex = 0;
+
+      if(binding == eGL_TEXTURE_CUBE_MAP_ARRAY && !HasExt[ARB_texture_cube_map_array])
+        tex = 0;
+      else
+        gl.glGetIntegerv(binding, (GLint *)&tex);
+
+      if(tex == 0)
+      {
+        pipe.Textures[unit].Resource = ResourceId();
+        pipe.Textures[unit].FirstSlice = 0;
+        pipe.Textures[unit].ResType = eResType_None;
+        pipe.Textures[unit].DepthReadChannel = -1;
+        pipe.Textures[unit].Swizzle[0] = eSwizzle_Red;
+        pipe.Textures[unit].Swizzle[1] = eSwizzle_Green;
+        pipe.Textures[unit].Swizzle[2] = eSwizzle_Blue;
+        pipe.Textures[unit].Swizzle[3] = eSwizzle_Alpha;
+
+        RDCEraseEl(pipe.Samplers[unit].BorderColor);
+        pipe.Samplers[unit].AddressS = "";
+        pipe.Samplers[unit].AddressT = "";
+        pipe.Samplers[unit].AddressR = "";
+        pipe.Samplers[unit].Comparison = "";
+        pipe.Samplers[unit].MinFilter = "";
+        pipe.Samplers[unit].MagFilter = "";
+        pipe.Samplers[unit].UseBorder = false;
+        pipe.Samplers[unit].UseComparison = false;
+        pipe.Samplers[unit].SeamlessCube = false;
+        pipe.Samplers[unit].MaxAniso = 0.0f;
+        pipe.Samplers[unit].MaxLOD = 0.0f;
+        pipe.Samplers[unit].MinLOD = 0.0f;
+        pipe.Samplers[unit].MipLODBias = 0.0f;
+      }
+      else
+      {
+        // very bespoke/specific
+        GLint firstSlice = 0, firstMip = 0;
+
+        if(target != eGL_TEXTURE_BUFFER && HasExt[ARB_texture_view])
+        {
+          gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LEVEL, &firstMip);
+          gl.glGetTexParameteriv(target, eGL_TEXTURE_VIEW_MIN_LAYER, &firstSlice);
+        }
+
+        pipe.Textures[unit].Resource = rm->GetOriginalID(rm->GetID(TextureRes(ctx, tex)));
+        pipe.Textures[unit].HighestMip = (uint32_t)firstMip;
+        pipe.Textures[unit].FirstSlice = (uint32_t)firstSlice;
+        pipe.Textures[unit].ResType = resType;
+
+        pipe.Textures[unit].DepthReadChannel = -1;
+
+        GLenum levelQueryType =
+            target == eGL_TEXTURE_CUBE_MAP ? eGL_TEXTURE_CUBE_MAP_POSITIVE_X : target;
+        GLenum fmt = eGL_NONE;
+        gl.glGetTexLevelParameteriv(levelQueryType, 0, eGL_TEXTURE_INTERNAL_FORMAT, (GLint *)&fmt);
+        fmt = GetSizedFormat(gl.GetHookset(), target, fmt);
+        if(IsDepthStencilFormat(fmt))
+        {
+          GLint depthMode = eGL_DEPTH_COMPONENT;
+
+          if(HasExt[ARB_stencil_texturing])
+            gl.glGetTexParameteriv(target, eGL_DEPTH_STENCIL_TEXTURE_MODE, &depthMode);
+
+          if(depthMode == eGL_DEPTH_COMPONENT)
+            pipe.Textures[unit].DepthReadChannel = 0;
+          else if(depthMode == eGL_STENCIL_INDEX)
+            pipe.Textures[unit].DepthReadChannel = 1;
+        }
+
+        GLint swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
+        if(target != eGL_TEXTURE_BUFFER &&
+           (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
+          gl.glGetTexParameteriv(target, eGL_TEXTURE_SWIZZLE_RGBA, swizzles);
+
+        for(int i = 0; i < 4; i++)
+        {
+          switch(swizzles[i])
+          {
+            default:
+            case GL_ZERO: pipe.Textures[unit].Swizzle[i] = eSwizzle_Zero; break;
+            case GL_ONE: pipe.Textures[unit].Swizzle[i] = eSwizzle_One; break;
+            case eGL_RED: pipe.Textures[unit].Swizzle[i] = eSwizzle_Red; break;
+            case eGL_GREEN: pipe.Textures[unit].Swizzle[i] = eSwizzle_Green; break;
+            case eGL_BLUE: pipe.Textures[unit].Swizzle[i] = eSwizzle_Blue; break;
+            case eGL_ALPHA: pipe.Textures[unit].Swizzle[i] = eSwizzle_Alpha; break;
+          }
+        }
+
+        GLuint samp = 0;
+        if(HasExt[ARB_sampler_objects])
+          gl.glGetIntegerv(eGL_SAMPLER_BINDING, (GLint *)&samp);
+
+        pipe.Samplers[unit].Samp = rm->GetOriginalID(rm->GetID(SamplerRes(ctx, samp)));
+
+        if(target != eGL_TEXTURE_BUFFER)
+        {
+          if(samp != 0)
+            gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_BORDER_COLOR,
+                                       &pipe.Samplers[unit].BorderColor[0]);
+          else
+            gl.glGetTexParameterfv(target, eGL_TEXTURE_BORDER_COLOR,
+                                   &pipe.Samplers[unit].BorderColor[0]);
+
+          pipe.Samplers[unit].UseBorder = false;
+          pipe.Samplers[unit].UseComparison = shadow;
+
+          GLint v;
+          v = 0;
+          if(samp != 0)
+            gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_S, &v);
+          else
+            gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_S, &v);
+          pipe.Samplers[unit].AddressS = SamplerString((GLenum)v);
+          pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+
+          v = 0;
+          if(samp != 0)
+            gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_T, &v);
+          else
+            gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_T, &v);
+          pipe.Samplers[unit].AddressT = SamplerString((GLenum)v);
+          pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+
+          v = 0;
+          if(samp != 0)
+            gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_WRAP_R, &v);
+          else
+            gl.glGetTexParameteriv(target, eGL_TEXTURE_WRAP_R, &v);
+          pipe.Samplers[unit].AddressR = SamplerString((GLenum)v);
+          pipe.Samplers[unit].UseBorder |= (v == eGL_CLAMP_TO_BORDER);
+
+          v = 0;
+          if(HasExt[ARB_seamless_cubemap_per_texture])
+          {
+            if(samp != 0)
+              gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
+            else
+              gl.glGetTexParameteriv(target, eGL_TEXTURE_CUBE_MAP_SEAMLESS, &v);
+          }
+          pipe.Samplers[unit].SeamlessCube =
+              (v != 0 || rs.Enabled[GLRenderState::eEnabled_TexCubeSeamless]);
+
+          v = 0;
+          if(samp != 0)
+            gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_COMPARE_FUNC, &v);
+          else
+            gl.glGetTexParameteriv(target, eGL_TEXTURE_COMPARE_FUNC, &v);
+          pipe.Samplers[unit].Comparison = ToStr::Get((GLenum)v).substr(3).c_str();
+
+          v = 0;
+          if(samp != 0)
+            gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MIN_FILTER, &v);
+          else
+            gl.glGetTexParameteriv(target, eGL_TEXTURE_MIN_FILTER, &v);
+          pipe.Samplers[unit].MinFilter = SamplerString((GLenum)v);
+
+          v = 0;
+          if(samp != 0)
+            gl.glGetSamplerParameteriv(samp, eGL_TEXTURE_MAG_FILTER, &v);
+          else
+            gl.glGetTexParameteriv(target, eGL_TEXTURE_MAG_FILTER, &v);
+          pipe.Samplers[unit].MagFilter = SamplerString((GLenum)v);
+
+          if(samp != 0)
+            gl.glGetSamplerParameterfv(samp, eGL_TEXTURE_MAX_ANISOTROPY_EXT,
+                                       &pipe.Samplers[unit].MaxAniso);
+          else
+            gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_ANISOTROPY_EXT,
+                                   &pipe.Samplers[unit].MaxAniso);
+
+          gl.glGetTexParameterfv(target, eGL_TEXTURE_MAX_LOD, &pipe.Samplers[unit].MaxLOD);
+          gl.glGetTexParameterfv(target, eGL_TEXTURE_MIN_LOD, &pipe.Samplers[unit].MinLOD);
+          gl.glGetTexParameterfv(target, eGL_TEXTURE_LOD_BIAS, &pipe.Samplers[unit].MipLODBias);
+        }
+        else
+        {
+          // texture buffers don't support sampling
+          RDCEraseEl(pipe.Samplers[unit].BorderColor);
+          pipe.Samplers[unit].AddressS = "";
+          pipe.Samplers[unit].AddressT = "";
+          pipe.Samplers[unit].AddressR = "";
+          pipe.Samplers[unit].Comparison = "";
+          pipe.Samplers[unit].MinFilter = "";
+          pipe.Samplers[unit].MagFilter = "";
+          pipe.Samplers[unit].UseBorder = false;
+          pipe.Samplers[unit].UseComparison = false;
+          pipe.Samplers[unit].SeamlessCube = false;
+          pipe.Samplers[unit].MaxAniso = 0.0f;
+          pipe.Samplers[unit].MaxLOD = 0.0f;
+          pipe.Samplers[unit].MinLOD = 0.0f;
+          pipe.Samplers[unit].MipLODBias = 0.0f;
+        }
+      }
+    }
+    else
+    {
+      // what should we do in this case? there could be something bound just not used,
+      // it'd be nice to return that
+    }
+  }
+
+  gl.glActiveTexture(activeTexture);
+
+  create_array_uninit(pipe.UniformBuffers, ARRAY_COUNT(rs.UniformBinding));
+  for(int32_t b = 0; b < pipe.UniformBuffers.count; b++)
+  {
+    if(rs.UniformBinding[b].name == 0)
+    {
+      pipe.UniformBuffers[b].Resource = ResourceId();
+      pipe.UniformBuffers[b].Offset = pipe.UniformBuffers[b].Size = 0;
+    }
+    else
+    {
+      pipe.UniformBuffers[b].Resource =
+          rm->GetOriginalID(rm->GetID(BufferRes(ctx, rs.UniformBinding[b].name)));
+      pipe.UniformBuffers[b].Offset = rs.UniformBinding[b].start;
+      pipe.UniformBuffers[b].Size = rs.UniformBinding[b].size;
+    }
+  }
+
+  create_array_uninit(pipe.AtomicBuffers, ARRAY_COUNT(rs.AtomicCounter));
+  for(int32_t b = 0; b < pipe.AtomicBuffers.count; b++)
+  {
+    if(rs.AtomicCounter[b].name == 0)
+    {
+      pipe.AtomicBuffers[b].Resource = ResourceId();
+      pipe.AtomicBuffers[b].Offset = pipe.AtomicBuffers[b].Size = 0;
+    }
+    else
+    {
+      pipe.AtomicBuffers[b].Resource =
+          rm->GetOriginalID(rm->GetID(BufferRes(ctx, rs.AtomicCounter[b].name)));
+      pipe.AtomicBuffers[b].Offset = rs.AtomicCounter[b].start;
+      pipe.AtomicBuffers[b].Size = rs.AtomicCounter[b].size;
+    }
+  }
+
+  create_array_uninit(pipe.ShaderStorageBuffers, ARRAY_COUNT(rs.ShaderStorage));
+  for(int32_t b = 0; b < pipe.ShaderStorageBuffers.count; b++)
+  {
+    if(rs.ShaderStorage[b].name == 0)
+    {
+      pipe.ShaderStorageBuffers[b].Resource = ResourceId();
+      pipe.ShaderStorageBuffers[b].Offset = pipe.ShaderStorageBuffers[b].Size = 0;
+    }
+    else
+    {
+      pipe.ShaderStorageBuffers[b].Resource =
+          rm->GetOriginalID(rm->GetID(BufferRes(ctx, rs.ShaderStorage[b].name)));
+      pipe.ShaderStorageBuffers[b].Offset = rs.ShaderStorage[b].start;
+      pipe.ShaderStorageBuffers[b].Size = rs.ShaderStorage[b].size;
+    }
+  }
+
+  create_array_uninit(pipe.Images, ARRAY_COUNT(rs.Images));
+  for(int32_t i = 0; i < pipe.Images.count; i++)
+  {
+    if(rs.Images[i].name == 0)
+    {
+      RDCEraseEl(pipe.Images[i]);
+    }
+    else
+    {
+      ResourceId id = rm->GetID(TextureRes(ctx, rs.Images[i].name));
+      pipe.Images[i].Resource = rm->GetOriginalID(id);
+      pipe.Images[i].Level = rs.Images[i].level;
+      pipe.Images[i].Layered = rs.Images[i].layered;
+      pipe.Images[i].Layer = rs.Images[i].layer;
+      if(rs.Images[i].access == eGL_READ_ONLY)
+      {
+        pipe.Images[i].readAllowed = true;
+        pipe.Images[i].writeAllowed = false;
+      }
+      else if(rs.Images[i].access == eGL_WRITE_ONLY)
+      {
+        pipe.Images[i].readAllowed = false;
+        pipe.Images[i].writeAllowed = true;
+      }
+      else
+      {
+        pipe.Images[i].readAllowed = true;
+        pipe.Images[i].writeAllowed = true;
+      }
+      pipe.Images[i].Format =
+          MakeResourceFormat(gl.GetHookset(), eGL_TEXTURE_2D, rs.Images[i].format);
+
+      pipe.Images[i].ResType = m_CachedTextures[id].resType;
+    }
+  }
+
+  // Vertex post processing and rasterization
+
+  RDCCOMPILE_ASSERT(ARRAY_COUNT(rs.Viewports) == ARRAY_COUNT(rs.DepthRanges),
+                    "GL Viewport count does not match depth ranges count");
+  create_array_uninit(pipe.m_Rasterizer.Viewports, ARRAY_COUNT(rs.Viewports));
+  for(int32_t v = 0; v < pipe.m_Rasterizer.Viewports.count; ++v)
+  {
+    pipe.m_Rasterizer.Viewports[v].Left = rs.Viewports[v].x;
+    pipe.m_Rasterizer.Viewports[v].Bottom = rs.Viewports[v].y;
+    pipe.m_Rasterizer.Viewports[v].Width = rs.Viewports[v].width;
+    pipe.m_Rasterizer.Viewports[v].Height = rs.Viewports[v].height;
+    pipe.m_Rasterizer.Viewports[v].MinDepth = rs.DepthRanges[v].nearZ;
+    pipe.m_Rasterizer.Viewports[v].MaxDepth = rs.DepthRanges[v].farZ;
+  }
+
+  create_array_uninit(pipe.m_Rasterizer.Scissors, ARRAY_COUNT(rs.Scissors));
+  for(int32_t s = 0; s < pipe.m_Rasterizer.Scissors.count; ++s)
+  {
+    pipe.m_Rasterizer.Scissors[s].Left = rs.Scissors[s].x;
+    pipe.m_Rasterizer.Scissors[s].Bottom = rs.Scissors[s].y;
+    pipe.m_Rasterizer.Scissors[s].Width = rs.Scissors[s].width;
+    pipe.m_Rasterizer.Scissors[s].Height = rs.Scissors[s].height;
+    pipe.m_Rasterizer.Scissors[s].Enabled = rs.Scissors[s].enabled;
+  }
+
+  int polygonOffsetEnableEnum;
+  switch(rs.PolygonMode)
+  {
+    default:
+      RDCWARN("Unexpected value for POLYGON_MODE %x", rs.PolygonMode);
+    // fall through
+    case eGL_FILL:
+      pipe.m_Rasterizer.m_State.FillMode = eFill_Solid;
+      polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetFill;
+      break;
+    case eGL_LINE:
+      pipe.m_Rasterizer.m_State.FillMode = eFill_Wireframe;
+      polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetLine;
+      break;
+    case eGL_POINT:
+      pipe.m_Rasterizer.m_State.FillMode = eFill_Point;
+      polygonOffsetEnableEnum = GLRenderState::eEnabled_PolyOffsetPoint;
+      break;
+  }
+  if(rs.Enabled[polygonOffsetEnableEnum])
+  {
+    pipe.m_Rasterizer.m_State.DepthBias = rs.PolygonOffset[1];
+    pipe.m_Rasterizer.m_State.SlopeScaledDepthBias = rs.PolygonOffset[0];
+    pipe.m_Rasterizer.m_State.OffsetClamp = rs.PolygonOffset[2];
+  }
+  else
+  {
+    pipe.m_Rasterizer.m_State.DepthBias = 0.0f;
+    pipe.m_Rasterizer.m_State.SlopeScaledDepthBias = 0.0f;
+    pipe.m_Rasterizer.m_State.OffsetClamp = 0.0f;
+  }
+
+  if(rs.Enabled[GLRenderState::eEnabled_CullFace])
+  {
+    switch(rs.CullFace)
+    {
+      default:
+        RDCWARN("Unexpected value for CULL_FACE %x", rs.CullFace);
+      // fall through
+      case eGL_BACK: pipe.m_Rasterizer.m_State.CullMode = eCull_Back; break;
+      case eGL_FRONT: pipe.m_Rasterizer.m_State.CullMode = eCull_Front; break;
+      case eGL_FRONT_AND_BACK: pipe.m_Rasterizer.m_State.CullMode = eCull_FrontAndBack; break;
+    }
+  }
+  else
+  {
+    pipe.m_Rasterizer.m_State.CullMode = eCull_None;
+  }
+
+  RDCASSERT(rs.FrontFace == eGL_CCW || rs.FrontFace == eGL_CW);
+  pipe.m_Rasterizer.m_State.FrontCCW = rs.FrontFace == eGL_CCW;
+  pipe.m_Rasterizer.m_State.DepthClamp = rs.Enabled[GLRenderState::eEnabled_DepthClamp];
+
+  pipe.m_Rasterizer.m_State.MultisampleEnable = rs.Enabled[GLRenderState::eEnabled_Multisample];
+  pipe.m_Rasterizer.m_State.SampleShading = rs.Enabled[GLRenderState::eEnabled_SampleShading];
+  pipe.m_Rasterizer.m_State.SampleMask = rs.Enabled[GLRenderState::eEnabled_SampleMask];
+  pipe.m_Rasterizer.m_State.SampleMaskValue =
+      rs.SampleMask[0];    // assume number of samples is less than 32
+  pipe.m_Rasterizer.m_State.SampleCoverage = rs.Enabled[GLRenderState::eEnabled_SampleCoverage];
+  pipe.m_Rasterizer.m_State.SampleCoverageInvert = rs.SampleCoverageInvert;
+  pipe.m_Rasterizer.m_State.SampleCoverageValue = rs.SampleCoverage;
+  pipe.m_Rasterizer.m_State.SampleAlphaToCoverage =
+      rs.Enabled[GLRenderState::eEnabled_SampleAlphaToCoverage];
+  pipe.m_Rasterizer.m_State.SampleAlphaToOne = rs.Enabled[GLRenderState::eEnabled_SampleAlphaToOne];
+  pipe.m_Rasterizer.m_State.MinSampleShadingRate = rs.MinSampleShading;
+
+  pipe.m_Rasterizer.m_State.ProgrammablePointSize = rs.Enabled[rs.eEnabled_ProgramPointSize];
+  pipe.m_Rasterizer.m_State.PointSize = rs.PointSize;
+  pipe.m_Rasterizer.m_State.LineWidth = rs.LineWidth;
+  pipe.m_Rasterizer.m_State.PointFadeThreshold = rs.PointFadeThresholdSize;
+  pipe.m_Rasterizer.m_State.PointOriginUpperLeft = (rs.PointSpriteOrigin != eGL_LOWER_LEFT);
+
+  // depth and stencil states
+
+  pipe.m_DepthState.DepthEnable = rs.Enabled[GLRenderState::eEnabled_DepthTest];
+  pipe.m_DepthState.DepthWrites = rs.DepthWriteMask != 0;
+  pipe.m_DepthState.DepthFunc = ToStr::Get(rs.DepthFunc).substr(3);
+
+  pipe.m_DepthState.DepthBounds = rs.Enabled[GLRenderState::eEnabled_DepthBoundsEXT];
+  pipe.m_DepthState.NearBound = rs.DepthBounds.nearZ;
+  pipe.m_DepthState.FarBound = rs.DepthBounds.farZ;
+
+  pipe.m_StencilState.StencilEnable = rs.Enabled[GLRenderState::eEnabled_StencilTest];
+  pipe.m_StencilState.m_FrontFace.ValueMask = rs.StencilFront.valuemask;
+  pipe.m_StencilState.m_FrontFace.WriteMask = rs.StencilFront.writemask;
+  pipe.m_StencilState.m_FrontFace.Ref = rs.StencilFront.ref;
+  pipe.m_StencilState.m_FrontFace.Func = ToStr::Get(rs.StencilFront.func).substr(3);
+  pipe.m_StencilState.m_FrontFace.PassOp = ToStr::Get(rs.StencilFront.pass).substr(3);
+  pipe.m_StencilState.m_FrontFace.FailOp = ToStr::Get(rs.StencilFront.stencilFail).substr(3);
+  pipe.m_StencilState.m_FrontFace.DepthFailOp = ToStr::Get(rs.StencilFront.depthFail).substr(3);
+  pipe.m_StencilState.m_BackFace.ValueMask = rs.StencilBack.valuemask;
+  pipe.m_StencilState.m_BackFace.WriteMask = rs.StencilBack.writemask;
+  pipe.m_StencilState.m_BackFace.Ref = rs.StencilBack.ref;
+  pipe.m_StencilState.m_BackFace.Func = ToStr::Get(rs.StencilBack.func).substr(3);
+  pipe.m_StencilState.m_BackFace.PassOp = ToStr::Get(rs.StencilBack.pass).substr(3);
+  pipe.m_StencilState.m_BackFace.FailOp = ToStr::Get(rs.StencilBack.stencilFail).substr(3);
+  pipe.m_StencilState.m_BackFace.DepthFailOp = ToStr::Get(rs.StencilBack.depthFail).substr(3);
+
+  // Frame buffer
+
+  GLuint curDrawFBO = 0;
+  gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
+  GLuint curReadFBO = 0;
+  gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&curReadFBO);
+
+  GLint numCols = 8;
+  gl.glGetIntegerv(eGL_MAX_COLOR_ATTACHMENTS, &numCols);
+
+  bool rbCol[32] = {false};
+  bool rbDepth = false;
+  bool rbStencil = false;
+  GLuint curCol[32] = {0};
+  GLuint curDepth = 0;
+  GLuint curStencil = 0;
+
+  RDCASSERT(numCols <= 32);
+
+  // we should never bind the true default framebuffer - if the app did, we will have our fake bound
+  RDCASSERT(curDrawFBO != 0);
+  RDCASSERT(curReadFBO != 0);
+
+  {
+    GLenum type = eGL_TEXTURE;
+    for(GLint i = 0; i < numCols; i++)
+    {
+      gl.glGetFramebufferAttachmentParameteriv(
+          eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
+          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&curCol[i]);
+      gl.glGetFramebufferAttachmentParameteriv(
+          eGL_DRAW_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
+          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+      if(type == eGL_RENDERBUFFER)
+        rbCol[i] = true;
+    }
+
+    gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                             (GLint *)&curDepth);
+    gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+    if(type == eGL_RENDERBUFFER)
+      rbDepth = true;
+    gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                             (GLint *)&curStencil);
+    gl.glGetFramebufferAttachmentParameteriv(eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+    if(type == eGL_RENDERBUFFER)
+      rbStencil = true;
+
+    pipe.m_FB.m_DrawFBO.Obj = rm->GetOriginalID(rm->GetID(FramebufferRes(ctx, curDrawFBO)));
+    create_array_uninit(pipe.m_FB.m_DrawFBO.Color, numCols);
+    for(GLint i = 0; i < numCols; i++)
+    {
+      ResourceId id =
+          rm->GetID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i]));
+
+      pipe.m_FB.m_DrawFBO.Color[i].Obj = rm->GetOriginalID(id);
+
+      if(pipe.m_FB.m_DrawFBO.Color[i].Obj != ResourceId() && !rbCol[i])
+        GetFramebufferMipAndLayer(gl.GetHookset(), eGL_DRAW_FRAMEBUFFER,
+                                  GLenum(eGL_COLOR_ATTACHMENT0 + i),
+                                  (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Mip,
+                                  (GLint *)&pipe.m_FB.m_DrawFBO.Color[i].Layer);
+
+      GLint swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
+      if(!rbCol[i] && id != ResourceId() &&
+         (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
+      {
+        GLenum target = m_pDriver->m_Textures[id].curType;
+        gl.glGetTextureParameterivEXT(curCol[i], target, eGL_TEXTURE_SWIZZLE_RGBA, swizzles);
+      }
+
+      for(int s = 0; s < 4; s++)
+      {
+        switch(swizzles[s])
+        {
+          default:
+          case GL_ZERO: pipe.m_FB.m_DrawFBO.Color[i].Swizzle[s] = eSwizzle_Zero; break;
+          case GL_ONE: pipe.m_FB.m_DrawFBO.Color[i].Swizzle[s] = eSwizzle_One; break;
+          case eGL_RED: pipe.m_FB.m_DrawFBO.Color[i].Swizzle[s] = eSwizzle_Red; break;
+          case eGL_GREEN: pipe.m_FB.m_DrawFBO.Color[i].Swizzle[s] = eSwizzle_Green; break;
+          case eGL_BLUE: pipe.m_FB.m_DrawFBO.Color[i].Swizzle[s] = eSwizzle_Blue; break;
+          case eGL_ALPHA: pipe.m_FB.m_DrawFBO.Color[i].Swizzle[s] = eSwizzle_Alpha; break;
+        }
+      }
+    }
+
+    pipe.m_FB.m_DrawFBO.Depth.Obj = rm->GetOriginalID(
+        rm->GetID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth)));
+    pipe.m_FB.m_DrawFBO.Stencil.Obj = rm->GetOriginalID(
+        rm->GetID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
+
+    if(pipe.m_FB.m_DrawFBO.Depth.Obj != ResourceId() && !rbDepth)
+      GetFramebufferMipAndLayer(gl.GetHookset(), eGL_DRAW_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                (GLint *)&pipe.m_FB.m_DrawFBO.Depth.Mip,
+                                (GLint *)&pipe.m_FB.m_DrawFBO.Depth.Layer);
+
+    if(pipe.m_FB.m_DrawFBO.Stencil.Obj != ResourceId() && !rbStencil)
+      GetFramebufferMipAndLayer(gl.GetHookset(), eGL_DRAW_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Mip,
+                                (GLint *)&pipe.m_FB.m_DrawFBO.Stencil.Layer);
+
+    create_array_uninit(pipe.m_FB.m_DrawFBO.DrawBuffers, numCols);
+    for(GLint i = 0; i < numCols; i++)
+    {
+      GLenum b = eGL_NONE;
+      gl.glGetIntegerv(GLenum(eGL_DRAW_BUFFER0 + i), (GLint *)&b);
+      if(b >= eGL_COLOR_ATTACHMENT0 && b <= GLenum(eGL_COLOR_ATTACHMENT0 + numCols))
+        pipe.m_FB.m_DrawFBO.DrawBuffers[i] = b - eGL_COLOR_ATTACHMENT0;
+      else
+        pipe.m_FB.m_DrawFBO.DrawBuffers[i] = -1;
+    }
+
+    pipe.m_FB.m_DrawFBO.ReadBuffer = -1;
+  }
+
+  {
+    GLenum type = eGL_TEXTURE;
+    for(GLint i = 0; i < numCols; i++)
+    {
+      gl.glGetFramebufferAttachmentParameteriv(
+          eGL_READ_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
+          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME, (GLint *)&curCol[i]);
+      gl.glGetFramebufferAttachmentParameteriv(
+          eGL_READ_FRAMEBUFFER, GLenum(eGL_COLOR_ATTACHMENT0 + i),
+          eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+      if(type == eGL_RENDERBUFFER)
+        rbCol[i] = true;
+    }
+
+    gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                             (GLint *)&curDepth);
+    gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+    if(type == eGL_RENDERBUFFER)
+      rbDepth = true;
+    gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_NAME,
+                                             (GLint *)&curStencil);
+    gl.glGetFramebufferAttachmentParameteriv(eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                             eGL_FRAMEBUFFER_ATTACHMENT_OBJECT_TYPE, (GLint *)&type);
+    if(type == eGL_RENDERBUFFER)
+      rbStencil = true;
+
+    pipe.m_FB.m_ReadFBO.Obj = rm->GetOriginalID(rm->GetID(FramebufferRes(ctx, curReadFBO)));
+    create_array_uninit(pipe.m_FB.m_ReadFBO.Color, numCols);
+    for(GLint i = 0; i < numCols; i++)
+    {
+      pipe.m_FB.m_ReadFBO.Color[i].Obj = rm->GetOriginalID(
+          rm->GetID(rbCol[i] ? RenderbufferRes(ctx, curCol[i]) : TextureRes(ctx, curCol[i])));
+
+      if(pipe.m_FB.m_ReadFBO.Color[i].Obj != ResourceId() && !rbCol[i])
+        GetFramebufferMipAndLayer(gl.GetHookset(), eGL_READ_FRAMEBUFFER,
+                                  GLenum(eGL_COLOR_ATTACHMENT0 + i),
+                                  (GLint *)&pipe.m_FB.m_ReadFBO.Color[i].Mip,
+                                  (GLint *)&pipe.m_FB.m_ReadFBO.Color[i].Layer);
+    }
+
+    pipe.m_FB.m_ReadFBO.Depth.Obj = rm->GetOriginalID(
+        rm->GetID(rbDepth ? RenderbufferRes(ctx, curDepth) : TextureRes(ctx, curDepth)));
+    pipe.m_FB.m_ReadFBO.Stencil.Obj = rm->GetOriginalID(
+        rm->GetID(rbStencil ? RenderbufferRes(ctx, curStencil) : TextureRes(ctx, curStencil)));
+
+    if(pipe.m_FB.m_ReadFBO.Depth.Obj != ResourceId() && !rbDepth)
+      GetFramebufferMipAndLayer(gl.GetHookset(), eGL_READ_FRAMEBUFFER, eGL_DEPTH_ATTACHMENT,
+                                (GLint *)&pipe.m_FB.m_ReadFBO.Depth.Mip,
+                                (GLint *)&pipe.m_FB.m_ReadFBO.Depth.Layer);
+
+    if(pipe.m_FB.m_ReadFBO.Stencil.Obj != ResourceId() && !rbStencil)
+      GetFramebufferMipAndLayer(gl.GetHookset(), eGL_READ_FRAMEBUFFER, eGL_STENCIL_ATTACHMENT,
+                                (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Mip,
+                                (GLint *)&pipe.m_FB.m_ReadFBO.Stencil.Layer);
+
+    create_array_uninit(pipe.m_FB.m_ReadFBO.DrawBuffers, numCols);
+    for(GLint i = 0; i < numCols; i++)
+      pipe.m_FB.m_ReadFBO.DrawBuffers[i] = -1;
+
+    GLenum b = eGL_NONE;
+    gl.glGetIntegerv(eGL_READ_BUFFER, (GLint *)&b);
+    if(b >= eGL_COLOR_ATTACHMENT0 && b <= GLenum(eGL_COLOR_ATTACHMENT0 + numCols))
+      pipe.m_FB.m_DrawFBO.ReadBuffer = b - eGL_COLOR_ATTACHMENT0;
+    else
+      pipe.m_FB.m_DrawFBO.ReadBuffer = -1;
+  }
+
+  memcpy(pipe.m_FB.m_Blending.BlendFactor, rs.BlendColor, sizeof(rs.BlendColor));
+
+  pipe.m_FB.FramebufferSRGB = rs.Enabled[GLRenderState::eEnabled_FramebufferSRGB];
+  pipe.m_FB.Dither = rs.Enabled[GLRenderState::eEnabled_Dither];
+
+  RDCCOMPILE_ASSERT(ARRAY_COUNT(rs.Blends) == ARRAY_COUNT(rs.ColorMasks),
+                    "Color masks and blends mismatched");
+  create_array_uninit(pipe.m_FB.m_Blending.Blends, ARRAY_COUNT(rs.Blends));
+  for(size_t i = 0; i < ARRAY_COUNT(rs.Blends); i++)
+  {
+    pipe.m_FB.m_Blending.Blends[i].Enabled = rs.Blends[i].Enabled;
+    pipe.m_FB.m_Blending.Blends[i].LogicOp = "";
+    if(rs.LogicOp != eGL_NONE && rs.LogicOp != eGL_COPY &&
+       rs.Enabled[GLRenderState::eEnabled_ColorLogicOp])
+      pipe.m_FB.m_Blending.Blends[i].LogicOp =
+          ToStr::Get(rs.LogicOp).substr(3);    // 3 == strlen("GL_")
+
+    pipe.m_FB.m_Blending.Blends[i].m_Blend.Source = BlendString(rs.Blends[i].SourceRGB);
+    pipe.m_FB.m_Blending.Blends[i].m_Blend.Destination = BlendString(rs.Blends[i].DestinationRGB);
+    pipe.m_FB.m_Blending.Blends[i].m_Blend.Operation = BlendString(rs.Blends[i].EquationRGB);
+
+    pipe.m_FB.m_Blending.Blends[i].m_AlphaBlend.Source = BlendString(rs.Blends[i].SourceAlpha);
+    pipe.m_FB.m_Blending.Blends[i].m_AlphaBlend.Destination =
+        BlendString(rs.Blends[i].DestinationAlpha);
+    pipe.m_FB.m_Blending.Blends[i].m_AlphaBlend.Operation = BlendString(rs.Blends[i].EquationAlpha);
+
+    pipe.m_FB.m_Blending.Blends[i].WriteMask = 0;
+    if(rs.ColorMasks[i].red)
+      pipe.m_FB.m_Blending.Blends[i].WriteMask |= 1;
+    if(rs.ColorMasks[i].green)
+      pipe.m_FB.m_Blending.Blends[i].WriteMask |= 2;
+    if(rs.ColorMasks[i].blue)
+      pipe.m_FB.m_Blending.Blends[i].WriteMask |= 4;
+    if(rs.ColorMasks[i].alpha)
+      pipe.m_FB.m_Blending.Blends[i].WriteMask |= 8;
+  }
+
+  switch(rs.Hints.Derivatives)
+  {
+    default:
+    case eGL_DONT_CARE: pipe.m_Hints.Derivatives = eQuality_DontCare; break;
+    case eGL_NICEST: pipe.m_Hints.Derivatives = eQuality_Nicest; break;
+    case eGL_FASTEST: pipe.m_Hints.Derivatives = eQuality_Fastest; break;
+  }
+
+  switch(rs.Hints.LineSmooth)
+  {
+    default:
+    case eGL_DONT_CARE: pipe.m_Hints.LineSmooth = eQuality_DontCare; break;
+    case eGL_NICEST: pipe.m_Hints.LineSmooth = eQuality_Nicest; break;
+    case eGL_FASTEST: pipe.m_Hints.LineSmooth = eQuality_Fastest; break;
+  }
+
+  switch(rs.Hints.PolySmooth)
+  {
+    default:
+    case eGL_DONT_CARE: pipe.m_Hints.PolySmooth = eQuality_DontCare; break;
+    case eGL_NICEST: pipe.m_Hints.PolySmooth = eQuality_Nicest; break;
+    case eGL_FASTEST: pipe.m_Hints.PolySmooth = eQuality_Fastest; break;
+  }
+
+  switch(rs.Hints.TexCompression)
+  {
+    default:
+    case eGL_DONT_CARE: pipe.m_Hints.TexCompression = eQuality_DontCare; break;
+    case eGL_NICEST: pipe.m_Hints.TexCompression = eQuality_Nicest; break;
+    case eGL_FASTEST: pipe.m_Hints.TexCompression = eQuality_Fastest; break;
+  }
+
+  pipe.m_Hints.LineSmoothEnabled = rs.Enabled[GLRenderState::eEnabled_LineSmooth];
+  pipe.m_Hints.PolySmoothEnabled = rs.Enabled[GLRenderState::eEnabled_PolySmooth];
 }
 
-void GLReplay::FillCBufferVariables(ResourceId shader, uint32_t cbufSlot, vector<ShaderVariable> &outvars, const vector<byte> &data)
+void GLReplay::FillCBufferValue(WrappedOpenGL &gl, GLuint prog, bool bufferBacked, bool rowMajor,
+                                uint32_t offs, uint32_t matStride, const vector<byte> &data,
+                                ShaderVariable &outVar)
 {
-	WrappedOpenGL &gl = *m_pDriver;
-	
-	MakeCurrentReplayContext(&m_ReplayCtx);
+  const byte *bufdata = data.empty() ? NULL : &data[offs];
+  size_t datasize = data.size() - offs;
+  if(offs > data.size())
+    datasize = 0;
 
-	GLuint curProg = 0;
-	gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint*)&curProg);
+  if(bufferBacked)
+  {
+    size_t rangelen = outVar.rows * outVar.columns * sizeof(float);
 
-	auto &progDetails = m_pDriver->m_Programs[m_pDriver->GetResourceManager()->GetID(ProgramRes(curProg))];
-	auto &shaderDetails = m_pDriver->m_Shaders[shader];
+    if(outVar.rows > 1 && outVar.columns > 1)
+    {
+      uint32_t *dest = &outVar.value.uv[0];
 
-	GLint numUniforms = 0;
-	gl.glGetProgramInterfaceiv(curProg, eGL_UNIFORM, eGL_ACTIVE_RESOURCES, &numUniforms);
+      uint32_t majorsize = outVar.columns;
+      uint32_t minorsize = outVar.rows;
 
-	const size_t numProps = 6;
+      if(rowMajor)
+      {
+        majorsize = outVar.rows;
+        minorsize = outVar.columns;
+      }
 
-	GLenum resProps[numProps] = {
-		eGL_REFERENCED_BY_VERTEX_SHADER,
+      for(uint32_t c = 0; c < majorsize; c++)
+      {
+        if(bufdata != 0 && datasize > 0)
+          memcpy((byte *)dest, bufdata, RDCMIN(rangelen, minorsize * sizeof(float)));
 
-		eGL_TYPE, eGL_NAME_LENGTH, eGL_LOCATION, eGL_BLOCK_INDEX, eGL_ARRAY_SIZE,
-	};
+        datasize -= RDCMIN(datasize, (size_t)matStride);
+        if(bufdata != 0)
+          bufdata += matStride;
+        dest += minorsize;
+      }
+    }
+    else
+    {
+      if(bufdata != 0 && datasize > 0)
+        memcpy(&outVar.value.uv[0], bufdata, RDCMIN(rangelen, datasize));
+    }
+  }
+  else
+  {
+    switch(outVar.type)
+    {
+      case eVar_Unknown:
+      case eVar_Float: gl.glGetUniformfv(prog, offs, outVar.value.fv); break;
+      case eVar_Int: gl.glGetUniformiv(prog, offs, outVar.value.iv); break;
+      case eVar_UInt: gl.glGetUniformuiv(prog, offs, outVar.value.uv); break;
+      case eVar_Double: gl.glGetUniformdv(prog, offs, outVar.value.dv); break;
+    }
+  }
 
-	if(shaderDetails.type == eGL_VERTEX_SHADER)          resProps[0] = eGL_REFERENCED_BY_VERTEX_SHADER;
-	if(shaderDetails.type == eGL_TESS_CONTROL_SHADER)    resProps[0] = eGL_REFERENCED_BY_TESS_CONTROL_SHADER;
-	if(shaderDetails.type == eGL_TESS_EVALUATION_SHADER) resProps[0] = eGL_REFERENCED_BY_TESS_EVALUATION_SHADER;
-	if(shaderDetails.type == eGL_GEOMETRY_SHADER)        resProps[0] = eGL_REFERENCED_BY_GEOMETRY_SHADER;
-	if(shaderDetails.type == eGL_FRAGMENT_SHADER)        resProps[0] = eGL_REFERENCED_BY_FRAGMENT_SHADER;
-	if(shaderDetails.type == eGL_COMPUTE_SHADER)         resProps[0] = eGL_REFERENCED_BY_COMPUTE_SHADER;
+  if(!rowMajor)
+  {
+    if(outVar.type != eVar_Double)
+    {
+      uint32_t uv[16];
+      memcpy(&uv[0], &outVar.value.uv[0], sizeof(uv));
 
-	for(GLint u=0; u < numUniforms; u++)
-	{
-		GLint values[numProps];
-		gl.glGetProgramResourceiv(curProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
+      for(uint32_t r = 0; r < outVar.rows; r++)
+        for(uint32_t c = 0; c < outVar.columns; c++)
+          outVar.value.uv[r * outVar.columns + c] = uv[c * outVar.rows + r];
+    }
+    else
+    {
+      double dv[16];
+      memcpy(&dv[0], &outVar.value.dv[0], sizeof(dv));
 
-		if(values[0] == GL_FALSE)
-			continue;
-
-		// don't look at block uniforms just yet
-		if(values[4] != -1)
-			continue;
-
-		ShaderVariable var;
-
-		RDCASSERT(values[5] <= 1); // don't handle arrays yet
-
-		if(values[1] == GL_FLOAT_VEC4)
-		{
-			var.type = eVar_Float;
-			var.columns = 4;
-			var.rows = 1;
-
-			gl.glGetUniformfv(curProg, values[3], var.value.fv);
-		}
-		else if(values[1] == GL_FLOAT_VEC3)
-		{
-			var.type = eVar_Float;
-			var.columns = 3;
-			var.rows = 1;
-
-			gl.glGetUniformfv(curProg, values[3], var.value.fv);
-		}
-		else if(values[1] == GL_FLOAT_MAT4)
-		{
-			var.type = eVar_Float;
-			var.columns = 4;
-			var.rows = 4;
-
-			gl.glGetUniformfv(curProg, values[3], var.value.fv);
-		}
-		else
-		{
-			continue;
-		}
-
-		create_array_uninit(var.name, values[2]+1);
-		gl.glGetProgramResourceName(curProg, eGL_UNIFORM, u, values[2]+1, NULL, var.name.elems);
-		var.name.count--; // trim off trailing null
-
-		outvars.push_back(var);
-	}
+      for(uint32_t r = 0; r < outVar.rows; r++)
+        for(uint32_t c = 0; c < outVar.columns; c++)
+          outVar.value.dv[r * outVar.columns + c] = dv[c * outVar.rows + r];
+    }
+  }
 }
 
-#pragma endregion
-
-bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, float *minval, float *maxval)
+void GLReplay::FillCBufferVariables(WrappedOpenGL &gl, GLuint prog, bool bufferBacked,
+                                    string prefix, const rdctype::array<ShaderConstant> &variables,
+                                    vector<ShaderVariable> &outvars, const vector<byte> &data)
 {
-	RDCUNIMPLEMENTED();
-	return false;
+  for(int32_t i = 0; i < variables.count; i++)
+  {
+    auto desc = variables[i].type.descriptor;
+
+    ShaderVariable var;
+    var.name = variables[i].name.elems;
+    var.rows = desc.rows;
+    var.columns = desc.cols;
+    var.type = desc.type;
+
+    if(variables[i].type.members.count > 0)
+    {
+      if(desc.elements == 0)
+      {
+        vector<ShaderVariable> ov;
+        FillCBufferVariables(gl, prog, bufferBacked, prefix + var.name.elems + ".",
+                             variables[i].type.members, ov, data);
+        var.isStruct = true;
+        var.members = ov;
+      }
+      else
+      {
+        vector<ShaderVariable> arrelems;
+        for(uint32_t a = 0; a < desc.elements; a++)
+        {
+          ShaderVariable arrEl = var;
+          arrEl.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
+
+          vector<ShaderVariable> ov;
+          FillCBufferVariables(gl, prog, bufferBacked, prefix + arrEl.name.elems + ".",
+                               variables[i].type.members, ov, data);
+          arrEl.members = ov;
+
+          arrEl.isStruct = true;
+
+          arrelems.push_back(arrEl);
+        }
+        var.members = arrelems;
+        var.isStruct = false;
+        var.rows = var.columns = 0;
+      }
+    }
+    else
+    {
+      RDCEraseEl(var.value);
+
+      // need to query offset and strides as there's no way to know what layout was used
+      // (and if it's not an std layout it's implementation defined :( )
+      string fullname = prefix + var.name.elems;
+
+      GLuint idx = gl.glGetProgramResourceIndex(prog, eGL_UNIFORM, fullname.c_str());
+
+      if(idx == GL_INVALID_INDEX)
+      {
+        RDCERR("Can't find program resource index for %s", fullname.c_str());
+      }
+      else
+      {
+        GLenum props[] = {eGL_OFFSET, eGL_MATRIX_STRIDE, eGL_ARRAY_STRIDE, eGL_LOCATION};
+        GLint values[] = {0, 0, 0, 0};
+
+        gl.glGetProgramResourceiv(prog, eGL_UNIFORM, idx, ARRAY_COUNT(props), props,
+                                  ARRAY_COUNT(props), NULL, values);
+
+        if(!bufferBacked)
+        {
+          values[0] = values[3];
+          values[2] = 1;
+        }
+
+        if(desc.elements == 0)
+        {
+          FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false, values[0],
+                           values[1], data, var);
+        }
+        else
+        {
+          vector<ShaderVariable> elems;
+          for(uint32_t a = 0; a < desc.elements; a++)
+          {
+            ShaderVariable el = var;
+            el.name = StringFormat::Fmt("%s[%u]", var.name.elems, a);
+
+            FillCBufferValue(gl, prog, bufferBacked, desc.rowMajorStorage ? true : false,
+                             values[0] + values[2] * a, values[1], data, el);
+
+            el.isStruct = false;
+
+            elems.push_back(el);
+          }
+
+          var.members = elems;
+          var.isStruct = false;
+          var.rows = var.columns = 0;
+        }
+      }
+    }
+
+    outvars.push_back(var);
+  }
 }
 
-bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, float minval, float maxval, bool channels[4], vector<uint32_t> &histogram)
+void GLReplay::FillCBufferVariables(ResourceId shader, string entryPoint, uint32_t cbufSlot,
+                                    vector<ShaderVariable> &outvars, const vector<byte> &data)
 {
-	RDCUNIMPLEMENTED();
-	return false;
+  WrappedOpenGL &gl = *m_pDriver;
+
+  MakeCurrentReplayContext(&m_ReplayCtx);
+
+  auto &shaderDetails = m_pDriver->m_Shaders[shader];
+
+  if((int32_t)cbufSlot >= shaderDetails.reflection.ConstantBlocks.count)
+  {
+    RDCERR("Requesting invalid constant block");
+    return;
+  }
+
+  GLuint curProg = 0;
+  gl.glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&curProg);
+
+  if(curProg == 0)
+  {
+    gl.glGetIntegerv(eGL_PROGRAM_PIPELINE_BINDING, (GLint *)&curProg);
+
+    if(curProg == 0)
+    {
+      RDCERR("No program or pipeline bound");
+      return;
+    }
+    else
+    {
+      ResourceId id =
+          m_pDriver->GetResourceManager()->GetID(ProgramPipeRes(m_ReplayCtx.ctx, curProg));
+      auto &pipeDetails = m_pDriver->m_Pipelines[id];
+
+      size_t s = ShaderIdx(shaderDetails.type);
+
+      curProg =
+          m_pDriver->GetResourceManager()->GetCurrentResource(pipeDetails.stagePrograms[s]).name;
+    }
+  }
+
+  auto cblock = shaderDetails.reflection.ConstantBlocks.elems[cbufSlot];
+
+  FillCBufferVariables(gl, curProg, cblock.bufferBacked ? true : false, "", cblock.variables,
+                       outvars, data);
 }
 
-void GLReplay::InitPostVSBuffers(uint32_t frameID, uint32_t eventID)
+byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
+                               const GetTextureDataParams &params, size_t &dataSize)
 {
-	GLNOTIMP("GLReplay::InitPostVSBuffers");
+  WrappedOpenGL &gl = *m_pDriver;
+
+  auto &texDetails = m_pDriver->m_Textures[tex];
+
+  byte *ret = NULL;
+
+  GLuint tempTex = 0;
+
+  GLenum texType = texDetails.curType;
+  GLuint texname = texDetails.resource.name;
+  GLenum intFormat = texDetails.internalFormat;
+  GLsizei width = RDCMAX(1, texDetails.width >> mip);
+  GLsizei height = RDCMAX(1, texDetails.height >> mip);
+  GLsizei depth = RDCMAX(1, texDetails.depth >> mip);
+  GLsizei arraysize = 1;
+  GLint samples = texDetails.samples;
+
+  if(texType == eGL_NONE)
+  {
+    RDCERR("Trying to get texture data for unknown ID %llu!", tex);
+    dataSize = 0;
+    return new byte[0];
+  }
+
+  if(texType == eGL_TEXTURE_BUFFER)
+  {
+    GLuint bufName = 0;
+    gl.glGetTextureLevelParameterivEXT(texname, texType, 0, eGL_TEXTURE_BUFFER_DATA_STORE_BINDING,
+                                       (GLint *)&bufName);
+    ResourceId id = m_pDriver->GetResourceManager()->GetID(BufferRes(m_pDriver->GetCtx(), bufName));
+
+    GLuint offs = 0, size = 0;
+    gl.glGetTextureLevelParameterivEXT(texname, texType, 0, eGL_TEXTURE_BUFFER_OFFSET,
+                                       (GLint *)&offs);
+    gl.glGetTextureLevelParameterivEXT(texname, texType, 0, eGL_TEXTURE_BUFFER_SIZE, (GLint *)&size);
+
+    vector<byte> data;
+    GetBufferData(id, offs, size, data);
+
+    dataSize = data.size();
+    ret = new byte[dataSize];
+    memcpy(ret, &data[0], dataSize);
+
+    return ret;
+  }
+
+  if(texType == eGL_TEXTURE_2D_ARRAY || texType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY ||
+     texType == eGL_TEXTURE_1D_ARRAY || texType == eGL_TEXTURE_CUBE_MAP ||
+     texType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+  {
+    // array size doesn't get mip'd down
+    depth = texDetails.depth;
+    arraysize = texDetails.depth;
+  }
+
+  if(params.remap && intFormat != eGL_RGBA8 && intFormat != eGL_SRGB8_ALPHA8)
+  {
+    RDCASSERT(params.remap == eRemap_RGBA8);
+
+    MakeCurrentReplayContext(m_DebugCtx);
+
+    GLenum finalFormat = IsSRGBFormat(intFormat) ? eGL_SRGB8_ALPHA8 : eGL_RGBA8;
+    GLenum newtarget = (texType == eGL_TEXTURE_3D ? eGL_TEXTURE_3D : eGL_TEXTURE_2D);
+
+    // create temporary texture of width/height in RGBA8 format to render to
+    gl.glGenTextures(1, &tempTex);
+    gl.glBindTexture(newtarget, tempTex);
+    if(newtarget == eGL_TEXTURE_3D)
+      gl.glTextureImage3DEXT(tempTex, newtarget, 0, finalFormat, width, height, depth, 0,
+                             GetBaseFormat(finalFormat), GetDataType(finalFormat), NULL);
+    else
+      gl.glTextureImage2DEXT(tempTex, newtarget, 0, finalFormat, width, height, 0,
+                             GetBaseFormat(finalFormat), GetDataType(finalFormat), NULL);
+    gl.glTexParameteri(newtarget, eGL_TEXTURE_MAX_LEVEL, 0);
+
+    // create temp framebuffer
+    GLuint fbo = 0;
+    gl.glGenFramebuffers(1, &fbo);
+    gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbo);
+
+    gl.glTexParameteri(newtarget, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+    gl.glTexParameteri(newtarget, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+    gl.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+    gl.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+    gl.glTexParameteri(newtarget, eGL_TEXTURE_WRAP_R, eGL_CLAMP_TO_EDGE);
+    if(newtarget == eGL_TEXTURE_3D)
+      gl.glFramebufferTexture3D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_3D, tempTex, 0,
+                                0);
+    else
+      gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, tempTex, 0);
+
+    float col[] = {0.3f, 0.6f, 0.9f, 1.0f};
+    gl.glClearBufferfv(eGL_COLOR, 0, col);
+
+    // render to the temp texture to do the downcast
+    float oldW = DebugData.outWidth;
+    float oldH = DebugData.outHeight;
+
+    DebugData.outWidth = float(width);
+    DebugData.outHeight = float(height);
+
+    for(GLsizei d = 0; d < (newtarget == eGL_TEXTURE_3D ? depth : 1); d++)
+    {
+      TextureDisplay texDisplay;
+
+      texDisplay.Red = texDisplay.Green = texDisplay.Blue = texDisplay.Alpha = true;
+      texDisplay.HDRMul = -1.0f;
+      texDisplay.linearDisplayAsGamma = false;
+      texDisplay.overlay = eTexOverlay_None;
+      texDisplay.FlipY = false;
+      texDisplay.mip = mip;
+      texDisplay.sampleIdx = ~0U;
+      texDisplay.CustomShader = ResourceId();
+      texDisplay.sliceFace = arrayIdx;
+      texDisplay.rangemin = params.blackPoint;
+      texDisplay.rangemax = params.whitePoint;
+      texDisplay.scale = 1.0f;
+      texDisplay.texid = tex;
+      texDisplay.typeHint = eCompType_None;
+      texDisplay.rawoutput = false;
+      texDisplay.offx = 0;
+      texDisplay.offy = 0;
+
+      if(newtarget == eGL_TEXTURE_3D)
+      {
+        gl.glFramebufferTexture3D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_3D, tempTex,
+                                  0, (GLint)d);
+        texDisplay.sliceFace = (uint32_t)d;
+      }
+
+      gl.glViewport(0, 0, width, height);
+
+      RenderTextureInternal(texDisplay, 0);
+    }
+
+    DebugData.outWidth = oldW;
+    DebugData.outHeight = oldH;
+
+    // rewrite the variables to temporary texture
+    texType = newtarget;
+    texname = tempTex;
+    intFormat = finalFormat;
+    if(newtarget == eGL_TEXTURE_2D)
+      depth = 1;
+    arraysize = 1;
+    samples = 1;
+    mip = 0;
+
+    gl.glDeleteFramebuffers(1, &fbo);
+  }
+  else if(params.resolve && samples > 1)
+  {
+    MakeCurrentReplayContext(m_DebugCtx);
+
+    GLuint curDrawFBO = 0;
+    GLuint curReadFBO = 0;
+    gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
+    gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&curReadFBO);
+
+    // create temporary texture of width/height in same format to render to
+    gl.glGenTextures(1, &tempTex);
+    gl.glBindTexture(eGL_TEXTURE_2D, tempTex);
+    gl.glTextureImage2DEXT(tempTex, eGL_TEXTURE_2D, 0, intFormat, width, height, 0,
+                           GetBaseFormat(intFormat), GetDataType(intFormat), NULL);
+    gl.glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, 0);
+
+    // create temp framebuffers
+    GLuint fbos[2] = {0};
+    gl.glGenFramebuffers(2, fbos);
+
+    gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbos[0]);
+    gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, tempTex, 0);
+
+    gl.glBindFramebuffer(eGL_FRAMEBUFFER, fbos[1]);
+    if(texType == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+      gl.glFramebufferTextureLayer(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texname, 0, arrayIdx);
+    else
+      gl.glFramebufferTexture(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, texname, 0);
+
+    // do default resolve (framebuffer blit)
+    gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, fbos[0]);
+    gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, fbos[1]);
+
+    float col[] = {0.3f, 0.4f, 0.5f, 1.0f};
+    gl.glClearBufferfv(eGL_COLOR, 0, col);
+
+    gl.glBlitFramebuffer(0, 0, width, height, 0, 0, width, height, GL_COLOR_BUFFER_BIT, eGL_NEAREST);
+
+    // rewrite the variables to temporary texture
+    texType = eGL_TEXTURE_2D;
+    texname = tempTex;
+    depth = 1;
+    arraysize = 1;
+    samples = 1;
+
+    gl.glDeleteFramebuffers(2, fbos);
+
+    gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
+    gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
+  }
+  else if(samples > 1)
+  {
+    MakeCurrentReplayContext(m_DebugCtx);
+
+    // create temporary texture array of width/height in same format to render to,
+    // with the same number of array slices as multi samples.
+    gl.glGenTextures(1, &tempTex);
+    gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, tempTex);
+    gl.glTextureImage3DEXT(tempTex, eGL_TEXTURE_2D_ARRAY, 0, intFormat, width, height,
+                           arraysize * samples, 0, GetBaseFormat(intFormat), GetDataType(intFormat),
+                           NULL);
+    gl.glTexParameteri(eGL_TEXTURE_2D_ARRAY, eGL_TEXTURE_MAX_LEVEL, 0);
+
+    // copy multisampled texture to an array
+    CopyTex2DMSToArray(tempTex, texname, width, height, arraysize, samples, intFormat);
+
+    // rewrite the variables to temporary texture
+    texType = eGL_TEXTURE_2D_ARRAY;
+    texname = tempTex;
+    depth = arraysize * samples;
+    arraysize = arraysize * samples;
+    samples = 1;
+  }
+
+  // fetch and return data now
+  {
+    PixelUnpackState unpack;
+
+    unpack.Fetch(&gl.GetHookset(), true);
+
+    PixelUnpackState identity = {0};
+    identity.alignment = 1;
+
+    identity.Apply(&gl.GetHookset(), true);
+
+    if(texType == eGL_RENDERBUFFER)
+    {
+      // do blit from renderbuffer to texture
+      MakeCurrentReplayContext(&m_ReplayCtx);
+
+      GLuint curDrawFBO = 0;
+      GLuint curReadFBO = 0;
+      gl.glGetIntegerv(eGL_DRAW_FRAMEBUFFER_BINDING, (GLint *)&curDrawFBO);
+      gl.glGetIntegerv(eGL_READ_FRAMEBUFFER_BINDING, (GLint *)&curReadFBO);
+
+      gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, texDetails.renderbufferFBOs[1]);
+      gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, texDetails.renderbufferFBOs[0]);
+
+      GLenum b = GetBaseFormat(texDetails.internalFormat);
+
+      GLbitfield mask = GL_COLOR_BUFFER_BIT;
+
+      if(b == eGL_DEPTH_COMPONENT)
+        mask = GL_DEPTH_BUFFER_BIT;
+      else if(b == eGL_STENCIL)
+        mask = GL_STENCIL_BUFFER_BIT;
+      else if(b == eGL_DEPTH_STENCIL)
+        mask = GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT;
+
+      gl.glBlitFramebuffer(0, 0, texDetails.width, texDetails.height, 0, 0, texDetails.width,
+                           texDetails.height, mask, eGL_NEAREST);
+
+      gl.glBindFramebuffer(eGL_DRAW_FRAMEBUFFER, curDrawFBO);
+      gl.glBindFramebuffer(eGL_READ_FRAMEBUFFER, curReadFBO);
+
+      // then proceed to read from the texture
+      texname = texDetails.renderbufferReadTex;
+      texType = eGL_TEXTURE_2D;
+
+      MakeCurrentReplayContext(m_DebugCtx);
+    }
+
+    GLenum binding = TextureBinding(texType);
+
+    GLuint prevtex = 0;
+    gl.glGetIntegerv(binding, (GLint *)&prevtex);
+
+    gl.glBindTexture(texType, texname);
+
+    GLenum target = texType;
+    if(texType == eGL_TEXTURE_CUBE_MAP)
+    {
+      GLenum targets[] = {
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+      };
+
+      RDCASSERT(arrayIdx < ARRAY_COUNT(targets));
+      target = targets[arrayIdx];
+    }
+
+    if(IsCompressedFormat(intFormat))
+    {
+      GLuint compSize;
+      gl.glGetTexLevelParameteriv(target, mip, eGL_TEXTURE_COMPRESSED_IMAGE_SIZE, (GLint *)&compSize);
+
+      dataSize = compSize;
+
+      ret = new byte[dataSize];
+
+      gl.glGetCompressedTexImage(target, mip, ret);
+    }
+    else
+    {
+      GLenum fmt = GetBaseFormat(intFormat);
+      GLenum type = GetDataType(intFormat);
+
+      dataSize = GetByteSize(width, height, depth, fmt, type);
+      ret = new byte[dataSize];
+
+      m_pDriver->glGetTexImage(target, (GLint)mip, fmt, type, ret);
+
+      // if we're saving to disk we make the decision to vertically flip any non-compressed
+      // images. This is a bit arbitrary, but really origin top-left is common for all disk
+      // formats so we do this flip from bottom-left origin. We only do this for saving to
+      // disk so that if we're transferring over the network etc for remote replay, the image
+      // order is consistent (and we just need to take care to apply an extra vertical flip
+      // for display when proxying).
+
+      if(params.forDiskSave)
+      {
+        // need to vertically flip the image now to get conventional row ordering
+        // we either do this when copying out the slice of interest, or just
+        // on its own
+        size_t rowSize = GetByteSize(width, 1, 1, fmt, type);
+        byte *src, *dst;
+
+        // for arrays just extract the slice we're interested in.
+        if(texType == eGL_TEXTURE_2D_ARRAY || texType == eGL_TEXTURE_1D_ARRAY ||
+           texType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+        {
+          dataSize = GetByteSize(width, height, 1, fmt, type);
+          byte *slice = new byte[dataSize];
+
+          // src points to the last row in the array slice image
+          src = (ret + dataSize * arrayIdx) + (height - 1) * rowSize;
+          dst = slice;
+
+          // we do memcpy + vertical flip
+          // memcpy(slice, ret + dataSize*arrayIdx, dataSize);
+
+          for(GLsizei i = 0; i < height; i++)
+          {
+            memcpy(dst, src, rowSize);
+
+            dst += rowSize;
+            src -= rowSize;
+          }
+
+          delete[] ret;
+
+          ret = slice;
+        }
+        else
+        {
+          byte *row = new byte[rowSize];
+
+          size_t sliceSize = GetByteSize(width, height, 1, fmt, type);
+
+          // invert all slices in a 3D texture
+          for(GLsizei d = 0; d < depth; d++)
+          {
+            dst = ret + d * sliceSize;
+            src = dst + (height - 1) * rowSize;
+
+            for(GLsizei i = 0; i<height>> 1; i++)
+            {
+              memcpy(row, src, rowSize);
+              memcpy(src, dst, rowSize);
+              memcpy(dst, row, rowSize);
+
+              dst += rowSize;
+              src -= rowSize;
+            }
+          }
+
+          delete[] row;
+        }
+      }
+    }
+
+    unpack.Apply(&gl.GetHookset(), true);
+
+    gl.glBindTexture(texType, prevtex);
+  }
+
+  if(tempTex)
+    gl.glDeleteTextures(1, &tempTex);
+
+  return ret;
 }
 
-vector<EventUsage> GLReplay::GetUsage(ResourceId id)
+void GLReplay::BuildCustomShader(string source, string entry, const uint32_t compileFlags,
+                                 ShaderStageType type, ResourceId *id, string *errors)
 {
-	GLNOTIMP("GetUsage");
-	return vector<EventUsage>();
+  if(id == NULL || errors == NULL)
+  {
+    if(id)
+      *id = ResourceId();
+    return;
+  }
+
+  WrappedOpenGL &gl = *m_pDriver;
+
+  MakeCurrentReplayContext(m_DebugCtx);
+
+  GLenum shtype = eGL_VERTEX_SHADER;
+  switch(type)
+  {
+    case eShaderStage_Vertex: shtype = eGL_VERTEX_SHADER; break;
+    case eShaderStage_Tess_Control: shtype = eGL_TESS_CONTROL_SHADER; break;
+    case eShaderStage_Tess_Eval: shtype = eGL_TESS_EVALUATION_SHADER; break;
+    case eShaderStage_Geometry: shtype = eGL_GEOMETRY_SHADER; break;
+    case eShaderStage_Fragment: shtype = eGL_FRAGMENT_SHADER; break;
+    case eShaderStage_Compute: shtype = eGL_COMPUTE_SHADER; break;
+    default:
+    {
+      RDCERR("Unknown shader type %u", type);
+      if(id)
+        *id = ResourceId();
+      return;
+    }
+  }
+
+  const char *src = source.c_str();
+  GLuint shaderprog = gl.glCreateShaderProgramv(shtype, 1, &src);
+
+  GLint status = 0;
+  gl.glGetProgramiv(shaderprog, eGL_LINK_STATUS, &status);
+
+  if(errors)
+  {
+    GLint len = 1024;
+    gl.glGetProgramiv(shaderprog, eGL_INFO_LOG_LENGTH, &len);
+    char *buffer = new char[len + 1];
+    gl.glGetProgramInfoLog(shaderprog, len, NULL, buffer);
+    buffer[len] = 0;
+    *errors = buffer;
+    delete[] buffer;
+  }
+
+  if(status == 0)
+    *id = ResourceId();
+  else
+    *id = m_pDriver->GetResourceManager()->GetID(ProgramRes(m_pDriver->GetCtx(), shaderprog));
 }
 
-void GLReplay::SetContextFilter(ResourceId id, uint32_t firstDefEv, uint32_t lastDefEv)
+ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip,
+                                       uint32_t arrayIdx, uint32_t sampleIdx,
+                                       FormatComponentType typeHint)
 {
-	RDCUNIMPLEMENTED();
+  if(shader == ResourceId() || texid == ResourceId())
+    return ResourceId();
+
+  auto &texDetails = m_pDriver->m_Textures[texid];
+
+  MakeCurrentReplayContext(m_DebugCtx);
+
+  CreateCustomShaderTex(texDetails.width, texDetails.height);
+
+  m_pDriver->glBindFramebuffer(eGL_FRAMEBUFFER, DebugData.customFBO);
+  m_pDriver->glFramebufferTexture2D(eGL_FRAMEBUFFER, eGL_COLOR_ATTACHMENT0, eGL_TEXTURE_2D,
+                                    DebugData.customTex, mip);
+
+  m_pDriver->glViewport(0, 0, RDCMAX(1, texDetails.width >> mip),
+                        RDCMAX(1, texDetails.height >> mip));
+
+  DebugData.outWidth = float(RDCMAX(1, texDetails.width >> mip));
+  DebugData.outHeight = float(RDCMAX(1, texDetails.height >> mip));
+
+  float clr[] = {0.0f, 0.8f, 0.0f, 0.0f};
+  m_pDriver->glClearBufferfv(eGL_COLOR, 0, clr);
+
+  TextureDisplay disp;
+  disp.Red = disp.Green = disp.Blue = disp.Alpha = true;
+  disp.FlipY = false;
+  disp.offx = 0.0f;
+  disp.offy = 0.0f;
+  disp.CustomShader = shader;
+  disp.texid = texid;
+  disp.typeHint = typeHint;
+  disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0, 0, 0, 0);
+  disp.HDRMul = -1.0f;
+  disp.linearDisplayAsGamma = false;
+  disp.mip = mip;
+  disp.sampleIdx = sampleIdx;
+  disp.overlay = eTexOverlay_None;
+  disp.rangemin = 0.0f;
+  disp.rangemax = 1.0f;
+  disp.rawoutput = false;
+  disp.scale = 1.0f;
+  disp.sliceFace = arrayIdx;
+
+  RenderTextureInternal(disp, eTexDisplay_MipShift);
+
+  return DebugData.CustomShaderTexID;
 }
 
-void GLReplay::FreeTargetResource(ResourceId id)
+void GLReplay::CreateCustomShaderTex(uint32_t w, uint32_t h)
 {
-	RDCUNIMPLEMENTED();
+  if(DebugData.customTex)
+  {
+    uint32_t oldw = 0, oldh = 0;
+    m_pDriver->glGetTextureLevelParameterivEXT(DebugData.customTex, eGL_TEXTURE_2D, 0,
+                                               eGL_TEXTURE_WIDTH, (GLint *)&oldw);
+    m_pDriver->glGetTextureLevelParameterivEXT(DebugData.customTex, eGL_TEXTURE_2D, 0,
+                                               eGL_TEXTURE_HEIGHT, (GLint *)&oldh);
+
+    if(oldw == w && oldh == h)
+      return;
+
+    m_pDriver->glDeleteTextures(1, &DebugData.customTex);
+    DebugData.customTex = 0;
+  }
+
+  uint32_t mips = CalcNumMips((int)w, (int)h, 1);
+
+  m_pDriver->glGenTextures(1, &DebugData.customTex);
+  m_pDriver->glBindTexture(eGL_TEXTURE_2D, DebugData.customTex);
+  for(uint32_t i = 0; i < mips; i++)
+  {
+    m_pDriver->glTextureImage2DEXT(DebugData.customTex, eGL_TEXTURE_2D, i, eGL_RGBA16F,
+                                   (GLsizei)RDCMAX(1U, w >> i), (GLsizei)RDCMAX(1U, h >> i), 0,
+                                   eGL_RGBA, eGL_FLOAT, NULL);
+  }
+  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MIN_FILTER, eGL_NEAREST);
+  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAG_FILTER, eGL_NEAREST);
+  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_BASE_LEVEL, 0);
+  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_MAX_LEVEL, mips - 1);
+  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_S, eGL_CLAMP_TO_EDGE);
+  m_pDriver->glTexParameteri(eGL_TEXTURE_2D, eGL_TEXTURE_WRAP_T, eGL_CLAMP_TO_EDGE);
+
+  DebugData.CustomShaderTexID =
+      m_pDriver->GetResourceManager()->GetID(TextureRes(m_pDriver->GetCtx(), DebugData.customTex));
 }
 
 void GLReplay::FreeCustomShader(ResourceId id)
 {
-	RDCUNIMPLEMENTED();
+  if(id == ResourceId())
+    return;
+
+  m_pDriver->glDeleteProgram(m_pDriver->GetResourceManager()->GetCurrentResource(id).name);
 }
 
-PostVSMeshData GLReplay::GetPostVSBuffers(uint32_t frameID, uint32_t eventID, MeshDataStage stage)
+void GLReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags,
+                                 ShaderStageType type, ResourceId *id, string *errors)
 {
-	PostVSMeshData ret;
-	RDCEraseEl(ret);
+  if(id == NULL || errors == NULL)
+  {
+    if(id)
+      *id = ResourceId();
+    return;
+  }
 
-	GLNOTIMP("GLReplay::GetPostVSBuffers");
+  WrappedOpenGL &gl = *m_pDriver;
 
-	return ret;
-}
+  MakeCurrentReplayContext(m_DebugCtx);
 
-byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip, size_t &dataSize)
-{
-	RDCUNIMPLEMENTED();
-	return NULL;
+  GLenum shtype = eGL_VERTEX_SHADER;
+  switch(type)
+  {
+    case eShaderStage_Vertex: shtype = eGL_VERTEX_SHADER; break;
+    case eShaderStage_Tess_Control: shtype = eGL_TESS_CONTROL_SHADER; break;
+    case eShaderStage_Tess_Eval: shtype = eGL_TESS_EVALUATION_SHADER; break;
+    case eShaderStage_Geometry: shtype = eGL_GEOMETRY_SHADER; break;
+    case eShaderStage_Fragment: shtype = eGL_FRAGMENT_SHADER; break;
+    case eShaderStage_Compute: shtype = eGL_COMPUTE_SHADER; break;
+    default:
+    {
+      RDCERR("Unknown shader type %u", type);
+      if(id)
+        *id = ResourceId();
+      return;
+    }
+  }
+
+  const char *src = source.c_str();
+  GLuint shader = gl.glCreateShader(shtype);
+  gl.glShaderSource(shader, 1, &src, NULL);
+  gl.glCompileShader(shader);
+
+  GLint status = 0;
+  gl.glGetShaderiv(shader, eGL_COMPILE_STATUS, &status);
+
+  if(errors)
+  {
+    GLint len = 1024;
+    gl.glGetShaderiv(shader, eGL_INFO_LOG_LENGTH, &len);
+    char *buffer = new char[len + 1];
+    gl.glGetShaderInfoLog(shader, len, NULL, buffer);
+    buffer[len] = 0;
+    *errors = buffer;
+    delete[] buffer;
+  }
+
+  if(status == 0)
+    *id = ResourceId();
+  else
+    *id = m_pDriver->GetResourceManager()->GetID(ShaderRes(m_pDriver->GetCtx(), shader));
 }
 
 void GLReplay::ReplaceResource(ResourceId from, ResourceId to)
 {
-	RDCUNIMPLEMENTED();
+  MakeCurrentReplayContext(&m_ReplayCtx);
+  m_pDriver->ReplaceResource(from, to);
 }
 
 void GLReplay::RemoveReplacement(ResourceId id)
 {
-	RDCUNIMPLEMENTED();
+  MakeCurrentReplayContext(&m_ReplayCtx);
+  m_pDriver->RemoveReplacement(id);
 }
 
-void GLReplay::TimeDrawcalls(rdctype::array<FetchDrawcall> &arr)
+void GLReplay::FreeTargetResource(ResourceId id)
 {
-	RDCUNIMPLEMENTED();
+  MakeCurrentReplayContext(&m_ReplayCtx);
+  m_pDriver->FreeTargetResource(id);
 }
 
-bool GLReplay::SaveTexture(ResourceId tex, uint32_t saveMip, wstring path)
+ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
 {
-	RDCUNIMPLEMENTED();
-	return false;
+  WrappedOpenGL &gl = *m_pDriver;
+
+  MakeCurrentReplayContext(m_DebugCtx);
+
+  GLuint tex = 0;
+  gl.glGenTextures(1, &tex);
+
+  GLenum intFormat = MakeGLFormat(gl, templateTex.format);
+
+  GLenum binding = eGL_NONE;
+
+  GLenum baseFormat = eGL_RGBA;
+  GLenum dataType = eGL_UNSIGNED_BYTE;
+  if(!IsCompressedFormat(intFormat))
+  {
+    baseFormat = GetBaseFormat(intFormat);
+    dataType = GetDataType(intFormat);
+  }
+
+  switch(templateTex.resType)
+  {
+    case eResType_None: break;
+    case eResType_Buffer:
+    case eResType_Texture1D:
+    {
+      binding = eGL_TEXTURE_1D;
+      gl.glBindTexture(eGL_TEXTURE_1D, tex);
+      uint32_t w = templateTex.width;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage1DEXT(tex, eGL_TEXTURE_1D, i, intFormat, w, 0, baseFormat,
+                                       dataType, NULL);
+        w = RDCMAX(1U, w >> 1);
+      }
+      break;
+    }
+    case eResType_Texture1DArray:
+    {
+      binding = eGL_TEXTURE_1D_ARRAY;
+      gl.glBindTexture(eGL_TEXTURE_1D_ARRAY, tex);
+      uint32_t w = templateTex.width;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_1D_ARRAY, i, intFormat, w,
+                                       templateTex.arraysize, 0, baseFormat, dataType, NULL);
+        w = RDCMAX(1U, w >> 1);
+      }
+      break;
+    }
+    case eResType_TextureRect:
+    case eResType_Texture2D:
+    {
+      binding = eGL_TEXTURE_2D;
+      gl.glBindTexture(eGL_TEXTURE_2D, tex);
+      uint32_t w = templateTex.width;
+      uint32_t h = templateTex.height;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_2D, i, intFormat, w, h, 0, baseFormat,
+                                       dataType, NULL);
+        w = RDCMAX(1U, w >> 1);
+        h = RDCMAX(1U, h >> 1);
+      }
+      break;
+    }
+    case eResType_Texture2DArray:
+    {
+      binding = eGL_TEXTURE_2D_ARRAY;
+      gl.glBindTexture(eGL_TEXTURE_2D_ARRAY, tex);
+      uint32_t w = templateTex.width;
+      uint32_t h = templateTex.height;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, i, intFormat, w, h,
+                                       templateTex.arraysize, 0, baseFormat, dataType, NULL);
+        w = RDCMAX(1U, w >> 1);
+        h = RDCMAX(1U, h >> 1);
+      }
+      break;
+    }
+    case eResType_Texture2DMS:
+    {
+      binding = eGL_TEXTURE_2D_MULTISAMPLE;
+      gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE, tex);
+      gl.glTextureStorage2DMultisampleEXT(tex, eGL_TEXTURE_2D_MULTISAMPLE, templateTex.msSamp,
+                                          intFormat, templateTex.width, templateTex.height, GL_TRUE);
+      break;
+    }
+    case eResType_Texture2DMSArray:
+    {
+      binding = eGL_TEXTURE_2D_MULTISAMPLE_ARRAY;
+      gl.glBindTexture(eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, tex);
+      gl.glTextureStorage3DMultisampleEXT(tex, eGL_TEXTURE_2D_MULTISAMPLE_ARRAY, templateTex.msSamp,
+                                          intFormat, templateTex.width, templateTex.height,
+                                          templateTex.arraysize, GL_TRUE);
+      break;
+    }
+    case eResType_Texture3D:
+    {
+      binding = eGL_TEXTURE_3D;
+      gl.glBindTexture(eGL_TEXTURE_3D, tex);
+      uint32_t w = templateTex.width;
+      uint32_t h = templateTex.height;
+      uint32_t d = templateTex.depth;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage3DEXT(tex, eGL_TEXTURE_3D, i, intFormat, w, h, d, 0, baseFormat,
+                                       dataType, NULL);
+        w = RDCMAX(1U, w >> 1);
+        h = RDCMAX(1U, h >> 1);
+        d = RDCMAX(1U, d >> 1);
+      }
+      break;
+    }
+    case eResType_TextureCube:
+    {
+      binding = eGL_TEXTURE_CUBE_MAP;
+      gl.glBindTexture(eGL_TEXTURE_CUBE_MAP, tex);
+      uint32_t w = templateTex.width;
+      uint32_t h = templateTex.height;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_POSITIVE_X, i, intFormat, w, h, 0,
+                                       baseFormat, dataType, NULL);
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X, i, intFormat, w, h, 0,
+                                       baseFormat, dataType, NULL);
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, i, intFormat, w, h, 0,
+                                       baseFormat, dataType, NULL);
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y, i, intFormat, w, h, 0,
+                                       baseFormat, dataType, NULL);
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, i, intFormat, w, h, 0,
+                                       baseFormat, dataType, NULL);
+        m_pDriver->glTextureImage2DEXT(tex, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z, i, intFormat, w, h, 0,
+                                       baseFormat, dataType, NULL);
+        w = RDCMAX(1U, w >> 1);
+        h = RDCMAX(1U, h >> 1);
+      }
+      break;
+    }
+    case eResType_TextureCubeArray:
+    {
+      binding = eGL_TEXTURE_CUBE_MAP_ARRAY;
+      gl.glBindTexture(eGL_TEXTURE_CUBE_MAP_ARRAY, tex);
+      uint32_t w = templateTex.width;
+      uint32_t h = templateTex.height;
+      for(uint32_t i = 0; i < templateTex.mips; i++)
+      {
+        m_pDriver->glTextureImage3DEXT(tex, eGL_TEXTURE_2D_ARRAY, i, intFormat, w, h,
+                                       templateTex.arraysize, 0, baseFormat, dataType, NULL);
+        w = RDCMAX(1U, w >> 1);
+        h = RDCMAX(1U, h >> 1);
+      }
+      break;
+    }
+    case eResType_Count:
+    {
+      RDCERR("Invalid shader resource type");
+      break;
+    }
+  }
+
+  gl.glTexParameteri(binding, eGL_TEXTURE_MAX_LEVEL, templateTex.mips - 1);
+
+  if(templateTex.format.bgraOrder && binding != eGL_NONE)
+  {
+    if(HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle])
+    {
+      GLint bgraSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ALPHA};
+      GLint bgrSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ONE};
+
+      if(templateTex.format.compCount == 4)
+        gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgraSwizzle);
+      else if(templateTex.format.compCount == 3)
+        gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgrSwizzle);
+      else
+        RDCERR("Unexpected component count %d for BGRA order format", templateTex.format.compCount);
+    }
+    else
+    {
+      RDCERR("Can't create a BGRA proxy texture without texture swizzle extension");
+    }
+  }
+
+  ResourceId id = m_pDriver->GetResourceManager()->GetID(TextureRes(m_pDriver->GetCtx(), tex));
+
+  if(templateTex.customName)
+    m_pDriver->GetResourceManager()->SetName(id, templateTex.name.c_str());
+
+  return id;
 }
 
-void GLReplay::BuildTargetShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
+void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
+                                   size_t dataSize)
 {
-	RDCUNIMPLEMENTED();
+  WrappedOpenGL &gl = *m_pDriver;
+
+  GLuint tex = m_pDriver->GetResourceManager()->GetCurrentResource(texid).name;
+
+  auto &texdetails = m_pDriver->m_Textures[texid];
+
+  GLenum fmt = texdetails.internalFormat;
+  GLenum target = texdetails.curType;
+
+  if(IsCompressedFormat(fmt))
+  {
+    if(target == eGL_TEXTURE_1D)
+    {
+      gl.glCompressedTextureSubImage1DEXT(tex, target, (GLint)mip, 0, texdetails.width, fmt,
+                                          (GLsizei)dataSize, data);
+    }
+    else if(target == eGL_TEXTURE_1D_ARRAY)
+    {
+      gl.glCompressedTextureSubImage2DEXT(tex, target, (GLint)mip, 0, (GLint)arrayIdx,
+                                          texdetails.width, 1, fmt, (GLsizei)dataSize, data);
+    }
+    else if(target == eGL_TEXTURE_2D)
+    {
+      gl.glCompressedTextureSubImage2DEXT(tex, target, (GLint)mip, 0, 0, texdetails.width,
+                                          texdetails.height, fmt, (GLsizei)dataSize, data);
+    }
+    else if(target == eGL_TEXTURE_2D_ARRAY || target == eGL_TEXTURE_CUBE_MAP_ARRAY)
+    {
+      gl.glCompressedTextureSubImage3DEXT(tex, target, (GLint)mip, 0, 0, (GLint)arrayIdx,
+                                          texdetails.width, texdetails.height, 1, fmt,
+                                          (GLsizei)dataSize, data);
+    }
+    else if(target == eGL_TEXTURE_3D)
+    {
+      gl.glCompressedTextureSubImage3DEXT(tex, target, (GLint)mip, 0, 0, 0, texdetails.width,
+                                          texdetails.height, texdetails.depth, fmt,
+                                          (GLsizei)dataSize, data);
+    }
+    else if(target == eGL_TEXTURE_CUBE_MAP)
+    {
+      GLenum targets[] = {
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+      };
+
+      RDCASSERT(arrayIdx < ARRAY_COUNT(targets));
+      target = targets[arrayIdx];
+
+      gl.glCompressedTextureSubImage2DEXT(tex, target, (GLint)mip, 0, 0, texdetails.width,
+                                          texdetails.height, fmt, (GLsizei)dataSize, data);
+    }
+    else if(target == eGL_TEXTURE_2D_MULTISAMPLE)
+    {
+      RDCUNIMPLEMENTED("multisampled proxy textures");
+    }
+    else if(target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+    {
+      RDCUNIMPLEMENTED("multisampled proxy textures");
+    }
+  }
+  else
+  {
+    GLenum baseformat = GetBaseFormat(fmt);
+    GLenum datatype = GetDataType(fmt);
+
+    GLint depth = 1;
+    if(target == eGL_TEXTURE_3D)
+      depth = texdetails.depth;
+
+    if(dataSize < GetByteSize(texdetails.width, texdetails.height, depth, baseformat, datatype))
+    {
+      RDCERR("Insufficient data provided to SetProxyTextureData");
+      return;
+    }
+
+    if(target == eGL_TEXTURE_1D)
+    {
+      gl.glTextureSubImage1DEXT(tex, target, (GLint)mip, 0, texdetails.width, baseformat, datatype,
+                                data);
+    }
+    else if(target == eGL_TEXTURE_1D_ARRAY)
+    {
+      gl.glTextureSubImage2DEXT(tex, target, (GLint)mip, 0, (GLint)arrayIdx, texdetails.width, 1,
+                                baseformat, datatype, data);
+    }
+    else if(target == eGL_TEXTURE_2D)
+    {
+      gl.glTextureSubImage2DEXT(tex, target, (GLint)mip, 0, 0, texdetails.width, texdetails.height,
+                                baseformat, datatype, data);
+    }
+    else if(target == eGL_TEXTURE_2D_ARRAY || target == eGL_TEXTURE_CUBE_MAP_ARRAY)
+    {
+      gl.glTextureSubImage3DEXT(tex, target, (GLint)mip, 0, 0, (GLint)arrayIdx, texdetails.width,
+                                texdetails.height, 1, baseformat, datatype, data);
+    }
+    else if(target == eGL_TEXTURE_3D)
+    {
+      gl.glTextureSubImage3DEXT(tex, target, (GLint)mip, 0, 0, 0, texdetails.width,
+                                texdetails.height, texdetails.depth, baseformat, datatype, data);
+    }
+    else if(target == eGL_TEXTURE_CUBE_MAP)
+    {
+      GLenum targets[] = {
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_X, eGL_TEXTURE_CUBE_MAP_NEGATIVE_X,
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_Y, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Y,
+          eGL_TEXTURE_CUBE_MAP_POSITIVE_Z, eGL_TEXTURE_CUBE_MAP_NEGATIVE_Z,
+      };
+
+      RDCASSERT(arrayIdx < ARRAY_COUNT(targets));
+      target = targets[arrayIdx];
+
+      gl.glTextureSubImage2DEXT(tex, target, (GLint)mip, 0, 0, texdetails.width, texdetails.height,
+                                baseformat, datatype, data);
+    }
+    else if(target == eGL_TEXTURE_2D_MULTISAMPLE)
+    {
+      RDCUNIMPLEMENTED("multisampled proxy textures");
+    }
+    else if(target == eGL_TEXTURE_2D_MULTISAMPLE_ARRAY)
+    {
+      RDCUNIMPLEMENTED("multisampled proxy textures");
+    }
+  }
 }
 
-void GLReplay::BuildCustomShader(string source, string entry, const uint32_t compileFlags, ShaderStageType type, ResourceId *id, string *errors)
+bool GLReplay::IsTextureSupported(const ResourceFormat &format)
 {
-	RDCUNIMPLEMENTED();
+  return true;
 }
 
-ShaderDebugTrace GLReplay::DebugVertex(uint32_t frameID, uint32_t eventID, uint32_t vertid, uint32_t instid, uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
+ResourceId GLReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)
 {
-	RDCUNIMPLEMENTED();
-	return ShaderDebugTrace();
+  WrappedOpenGL &gl = *m_pDriver;
+
+  MakeCurrentReplayContext(m_DebugCtx);
+
+  GLenum target = eGL_ARRAY_BUFFER;
+
+  if(templateBuf.creationFlags & eBufferCreate_Indirect)
+    target = eGL_DRAW_INDIRECT_BUFFER;
+  if(templateBuf.creationFlags & eBufferCreate_IB)
+    target = eGL_ELEMENT_ARRAY_BUFFER;
+  if(templateBuf.creationFlags & eBufferCreate_CB)
+    target = eGL_UNIFORM_BUFFER;
+  if(templateBuf.creationFlags & eBufferCreate_UAV)
+    target = eGL_SHADER_STORAGE_BUFFER;
+
+  GLuint buf = 0;
+  gl.glGenBuffers(1, &buf);
+  gl.glBindBuffer(target, buf);
+  gl.glNamedBufferDataEXT(buf, (GLsizeiptr)templateBuf.length, NULL, eGL_DYNAMIC_DRAW);
+
+  ResourceId id = m_pDriver->GetResourceManager()->GetID(BufferRes(m_pDriver->GetCtx(), buf));
+
+  if(templateBuf.customName)
+    m_pDriver->GetResourceManager()->SetName(id, templateBuf.name.c_str());
+
+  return id;
 }
 
-ShaderDebugTrace GLReplay::DebugPixel(uint32_t frameID, uint32_t eventID, uint32_t x, uint32_t y)
+void GLReplay::SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize)
 {
-	RDCUNIMPLEMENTED();
-	return ShaderDebugTrace();
+  GLuint buf = m_pDriver->GetResourceManager()->GetCurrentResource(bufid).name;
+
+  m_pDriver->glNamedBufferSubDataEXT(buf, 0, dataSize, data);
 }
 
-ShaderDebugTrace GLReplay::DebugThread(uint32_t frameID, uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
+vector<EventUsage> GLReplay::GetUsage(ResourceId id)
 {
-	RDCUNIMPLEMENTED();
-	return ShaderDebugTrace();
+  return m_pDriver->GetUsage(id);
 }
 
-ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip)
+#pragma endregion
+
+vector<PixelModification> GLReplay::PixelHistory(vector<EventUsage> events, ResourceId target,
+                                                 uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
+                                                 uint32_t sampleIdx, FormatComponentType typeHint)
 {
-	RDCUNIMPLEMENTED();
-	return ResourceId();
+  GLNOTIMP("GLReplay::PixelHistory");
+  return vector<PixelModification>();
 }
 
-ResourceId GLReplay::CreateProxyTexture( FetchTexture templateTex )
+ShaderDebugTrace GLReplay::DebugVertex(uint32_t eventID, uint32_t vertid, uint32_t instid,
+                                       uint32_t idx, uint32_t instOffset, uint32_t vertOffset)
 {
-	RDCUNIMPLEMENTED();
-	return ResourceId();
+  GLNOTIMP("DebugVertex");
+  return ShaderDebugTrace();
 }
 
-void GLReplay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data, size_t dataSize)
+ShaderDebugTrace GLReplay::DebugPixel(uint32_t eventID, uint32_t x, uint32_t y, uint32_t sample,
+                                      uint32_t primitive)
 {
-	RDCUNIMPLEMENTED();
+  GLNOTIMP("DebugPixel");
+  return ShaderDebugTrace();
 }
 
-const GLHookSet &GetRealFunctions();
+ShaderDebugTrace GLReplay::DebugThread(uint32_t eventID, uint32_t groupid[3], uint32_t threadid[3])
+{
+  GLNOTIMP("DebugThread");
+  return ShaderDebugTrace();
+}
+
+void GLReplay::MakeCurrentReplayContext(GLWindowingData *ctx)
+{
+  static GLWindowingData *prev = NULL;
+
+  if(ctx && ctx != prev)
+  {
+    m_pDriver->m_Platform.MakeContextCurrent(*ctx);
+    prev = ctx;
+    m_pDriver->ActivateContext(*ctx);
+  }
+}
+
+void GLReplay::SwapBuffers(GLWindowingData *ctx)
+{
+  m_pDriver->m_Platform.SwapBuffers(*ctx);
+}
+
+void GLReplay::CloseReplayContext()
+{
+  m_pDriver->m_Platform.DeleteReplayContext(m_ReplayCtx);
+}
+
+uint64_t GLReplay::MakeOutputWindow(WindowingSystem system, void *data, bool depth)
+{
+  OutputWindow win = m_pDriver->m_Platform.MakeOutputWindow(system, data, depth, m_ReplayCtx);
+  if(!win.wnd)
+    return eReplayCreate_APIInitFailed;
+
+  m_pDriver->m_Platform.GetOutputWindowDimensions(win, win.width, win.height);
+
+  MakeCurrentReplayContext(&win);
+  InitOutputWindow(win);
+  CreateOutputWindowBackbuffer(win, depth);
+
+  uint64_t ret = m_OutputWindowID++;
+
+  m_OutputWindows[ret] = win;
+
+  return ret;
+}
+
+void GLReplay::DestroyOutputWindow(uint64_t id)
+{
+  auto it = m_OutputWindows.find(id);
+  if(id == 0 || it == m_OutputWindows.end())
+    return;
+
+  OutputWindow &outw = it->second;
+
+  MakeCurrentReplayContext(&outw);
+
+  WrappedOpenGL &gl = *m_pDriver;
+  gl.glDeleteFramebuffers(1, &outw.BlitData.readFBO);
+
+  m_pDriver->m_Platform.DeleteReplayContext(outw);
+
+  m_OutputWindows.erase(it);
+}
+
+void GLReplay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
+{
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return;
+
+  OutputWindow &outw = m_OutputWindows[id];
+
+  m_pDriver->m_Platform.GetOutputWindowDimensions(outw, w, h);
+}
+
+bool GLReplay::IsOutputWindowVisible(uint64_t id)
+{
+  if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
+    return false;
+
+  return m_pDriver->m_Platform.IsOutputWindowVisible(m_OutputWindows[id]);
+}
+
+#if defined(RENDERDOC_SUPPORT_GL)
 
 // defined in gl_replay_<platform>.cpp
-ReplayCreateStatus GL_CreateReplayDevice(const wchar_t *logfile, IReplayDriver **driver);
+ReplayCreateStatus GL_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
 
-static DriverRegistration GLDriverRegistration(RDC_OpenGL, L"OpenGL", &GL_CreateReplayDevice);
+static DriverRegistration GLDriverRegistration(RDC_OpenGL, "OpenGL", &GL_CreateReplayDevice);
+
+#endif
+
+#if defined(RENDERDOC_SUPPORT_GLES)
+
+// defined in gl_replay_egl.cpp
+ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **driver);
+
+static DriverRegistration GLESDriverRegistration(RDC_OpenGLES, "OpenGLES", &GLES_CreateReplayDevice);
+
+#endif

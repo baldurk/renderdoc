@@ -1,18 +1,19 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,55 +23,107 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
-#include <string.h>
-#include <math.h>
-
 #include "camera.h"
+#include <math.h>
+#include <string.h>
+#include "common/common.h"
 #include "matrix.h"
 
-void Camera::Arcball(float dist, Vec3f rot)
+void Camera::ResetArcball()
 {
-	pos = Vec3f(0.0f, 0.0f, dist);
+  dirty = true;
 
-	order = ORDER_ROT_TRANS;
-
-	angles.x = rot.x;
-	angles.y = rot.y;
+  arcrot = Quatf::AxisAngle(Vec3f(1, 0, 0), 0.0f);
 }
 
-void Camera::fpsLook(Vec3f p, Vec3f rot)
+// https://en.wikibooks.org/wiki/OpenGL_Programming/Modern_OpenGL_Tutorial_Arcball
+void Camera::RotateArcball(const Vec2f &from, const Vec2f &to)
 {
-	pos = -p;
-	
-	angles.x = -rot.x;
-	angles.y = -rot.y;
+  Vec3f a, b;
 
-	order = ORDER_TRANS_ROT;
+  float az = from.x * from.x + from.y * from.y;
+  float bz = to.x * to.x + to.y * to.y;
+
+  // keep the controls stable by rejecting very small movements.
+  if(fabsf(az - bz) < 1e-5f)
+    return;
+
+  if(az < 1.0f)
+  {
+    a = Vec3f(from.x, from.y, sqrt(1.0f - az));
+  }
+  else
+  {
+    a = Vec3f(from.x, from.y, 0.0f);
+    a.Normalise();
+  }
+
+  if(bz < 1.0f)
+  {
+    b = Vec3f(to.x, to.y, sqrt(1.0f - bz));
+  }
+  else
+  {
+    b = Vec3f(to.x, to.y, 0.0f);
+    b.Normalise();
+  }
+
+  float angle = acosf(RDCMIN(1.0f, a.Dot(b)));
+
+  Vec3f axis = a.Cross(b);
+  axis.Normalise();
+
+  dirty = true;
+
+  Quatf delta = Quatf::AxisAngle(axis, angle);
+  arcrot = arcrot * delta;
+}
+
+void Camera::Update()
+{
+  if(!dirty)
+    return;
+
+  if(type == eType_FPSLook)
+  {
+    Matrix4f p = Matrix4f::Translation(-pos);
+    Matrix4f r = Matrix4f::RotationXYZ(-angles);
+
+    mat = r.Mul(p);
+    basis = mat.Transpose();
+  }
+  else
+  {
+    Matrix4f p = Matrix4f::Translation(-pos);
+    Matrix4f r = arcrot.GetMatrix();
+    Matrix4f d = Matrix4f::Translation(Vec3f(0.0f, 0.0f, dist));
+
+    mat = d.Mul(r.Mul(p));
+  }
 }
 
 const Matrix4f Camera::GetMatrix()
 {
-	Matrix4f p = Matrix4f::Translation(pos);
-	Matrix4f r = Matrix4f::RotationXYZ(angles);
-
-	if(order == ORDER_TRANS_ROT)
-		return r.Mul(p);
-
-	return p.Mul(r);
+  Update();
+  return mat;
 }
 
 const Vec3f Camera::GetPosition()
 {
-	return GetMatrix().GetPosition();
+  return pos;
 }
 
 const Vec3f Camera::GetForward()
 {
-	return Matrix4f::RotationZYX(-angles).GetForward();
+  return basis.GetForward();
 }
 
 const Vec3f Camera::GetRight()
 {
-	return Matrix4f::RotationZYX(-angles).GetRight();
+  return basis.GetRight();
+}
+
+const Vec3f Camera::GetUp()
+{
+  return basis.GetUp();
 }

@@ -35,23 +35,26 @@
             System.Windows.Forms.Label label3;
             System.Windows.Forms.Label label5;
             System.ComponentModel.ComponentResourceManager resources = new System.ComponentModel.ComponentResourceManager(typeof(BufferViewer));
-            WeifenLuo.WinFormsUI.Docking.DockPanelSkin dockPanelSkin2 = new WeifenLuo.WinFormsUI.Docking.DockPanelSkin();
-            WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin autoHideStripSkin2 = new WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin();
-            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient4 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient8 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin dockPaneStripSkin2 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin();
-            WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient dockPaneStripGradient2 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient9 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient5 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient10 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient dockPaneStripToolWindowGradient2 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient11 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient12 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient6 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient13 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
-            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient14 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle1 = new System.Windows.Forms.DataGridViewCellStyle();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle2 = new System.Windows.Forms.DataGridViewCellStyle();
+            WeifenLuo.WinFormsUI.Docking.DockPanelSkin dockPanelSkin1 = new WeifenLuo.WinFormsUI.Docking.DockPanelSkin();
+            WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin autoHideStripSkin1 = new WeifenLuo.WinFormsUI.Docking.AutoHideStripSkin();
+            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient1 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient1 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin dockPaneStripSkin1 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripSkin();
+            WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient dockPaneStripGradient1 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient2 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient2 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient3 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient dockPaneStripToolWindowGradient1 = new WeifenLuo.WinFormsUI.Docking.DockPaneStripToolWindowGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient4 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient5 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.DockPanelGradient dockPanelGradient3 = new WeifenLuo.WinFormsUI.Docking.DockPanelGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient6 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            WeifenLuo.WinFormsUI.Docking.TabGradient tabGradient7 = new WeifenLuo.WinFormsUI.Docking.TabGradient();
+            System.Windows.Forms.DataGridViewCellStyle dataGridViewCellStyle3 = new System.Windows.Forms.DataGridViewCellStyle();
             this.previewTable = new System.Windows.Forms.TableLayoutPanel();
-            this.tableLayoutPanel3 = new System.Windows.Forms.TableLayoutPanel();
+            this.renderTable = new System.Windows.Forms.TableLayoutPanel();
             this.render = new renderdocui.Controls.NoScrollPanel();
             this.configCamControls = new System.Windows.Forms.GroupBox();
             this.tableLayoutPanel2 = new System.Windows.Forms.TableLayoutPanel();
@@ -101,6 +104,7 @@
             this.exportToCSVToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.exportRawBytesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.syncViewsToolItem = new System.Windows.Forms.ToolStripButton();
+            this.highlightVerts = new System.Windows.Forms.ToolStripButton();
             this.debugSep = new System.Windows.Forms.ToolStripSeparator();
             this.debugVertexToolItem = new System.Windows.Forms.ToolStripButton();
             this.toolStripSeparator2 = new System.Windows.Forms.ToolStripSeparator();
@@ -108,18 +112,26 @@
             this.rowOffset = new System.Windows.Forms.ToolStripTextBox();
             this.byteOffsLab = new System.Windows.Forms.ToolStripLabel();
             this.byteOffset = new System.Windows.Forms.ToolStripTextBox();
-            this.offsetCancel = new System.Windows.Forms.ToolStripButton();
+            this.rowRangeLab = new System.Windows.Forms.ToolStripLabel();
+            this.rowRange = new System.Windows.Forms.ToolStripTextBox();
             this.instSep = new System.Windows.Forms.ToolStripSeparator();
             this.instLabel = new System.Windows.Forms.ToolStripLabel();
             this.instanceIdxToolitem = new System.Windows.Forms.ToolStripTextBox();
+            this.largeBufferWarning = new System.Windows.Forms.Label();
             this.gsOutBufferView = new System.Windows.Forms.DataGridView();
+            this.columnContextMenu = new System.Windows.Forms.ContextMenuStrip(this.components);
+            this.resetSelectedColumnsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.toolStripSeparator5 = new System.Windows.Forms.ToolStripSeparator();
+            this.selectColumnAsPositionToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.selectColumnAsSecondaryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.selectAlphaAsSecondaryToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             label7 = new System.Windows.Forms.Label();
             label6 = new System.Windows.Forms.Label();
             label1 = new System.Windows.Forms.Label();
             label3 = new System.Windows.Forms.Label();
             label5 = new System.Windows.Forms.Label();
             this.previewTable.SuspendLayout();
-            this.tableLayoutPanel3.SuspendLayout();
+            this.renderTable.SuspendLayout();
             this.configCamControls.SuspendLayout();
             this.tableLayoutPanel2.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.camSpeed)).BeginInit();
@@ -133,6 +145,7 @@
             this.flowLayoutPanel2.SuspendLayout();
             this.toolStrip1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gsOutBufferView)).BeginInit();
+            this.columnContextMenu.SuspendLayout();
             this.SuspendLayout();
             // 
             // label7
@@ -191,7 +204,7 @@
             // 
             this.previewTable.ColumnCount = 1;
             this.previewTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.previewTable.Controls.Add(this.tableLayoutPanel3, 0, 1);
+            this.previewTable.Controls.Add(this.renderTable, 0, 1);
             this.previewTable.Controls.Add(this.toolStrip2, 0, 0);
             this.previewTable.Dock = System.Windows.Forms.DockStyle.Fill;
             this.previewTable.Location = new System.Drawing.Point(3, 3);
@@ -205,25 +218,25 @@
             // 
             // tableLayoutPanel3
             // 
-            this.tableLayoutPanel3.ColumnCount = 2;
-            this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
-            this.tableLayoutPanel3.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel3.Controls.Add(this.render, 1, 0);
-            this.tableLayoutPanel3.Controls.Add(this.configCamControls, 0, 0);
-            this.tableLayoutPanel3.Dock = System.Windows.Forms.DockStyle.Fill;
-            this.tableLayoutPanel3.Location = new System.Drawing.Point(3, 28);
-            this.tableLayoutPanel3.Name = "tableLayoutPanel3";
-            this.tableLayoutPanel3.RowCount = 1;
-            this.tableLayoutPanel3.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
-            this.tableLayoutPanel3.Size = new System.Drawing.Size(539, 250);
-            this.tableLayoutPanel3.TabIndex = 5;
+            this.renderTable.ColumnCount = 2;
+            this.renderTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle());
+            this.renderTable.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.renderTable.Controls.Add(this.render, 1, 0);
+            this.renderTable.Controls.Add(this.configCamControls, 0, 0);
+            this.renderTable.Dock = System.Windows.Forms.DockStyle.Fill;
+            this.renderTable.Location = new System.Drawing.Point(3, 28);
+            this.renderTable.Name = "tableLayoutPanel3";
+            this.renderTable.RowCount = 1;
+            this.renderTable.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
+            this.renderTable.Size = new System.Drawing.Size(539, 250);
+            this.renderTable.TabIndex = 5;
             // 
             // render
             // 
             this.render.BackColor = System.Drawing.Color.Black;
             this.render.Dock = System.Windows.Forms.DockStyle.Fill;
             this.render.Location = new System.Drawing.Point(203, 3);
-            this.render.Name = "render";
+            this.render.Name = "render_SETUP_AT_RUNTIME_SEE_CODE";
             this.render.Size = new System.Drawing.Size(333, 244);
             this.render.TabIndex = 2;
             this.render.Paint += new System.Windows.Forms.PaintEventHandler(this.render_Paint);
@@ -280,18 +293,23 @@
             // camSpeed
             // 
             this.camSpeed.Anchor = System.Windows.Forms.AnchorStyles.Left;
-            this.camSpeed.DecimalPlaces = 2;
+            this.camSpeed.DecimalPlaces = 4;
             this.camSpeed.Increment = new decimal(new int[] {
             1,
             0,
             0,
             65536});
             this.camSpeed.Location = new System.Drawing.Point(97, 3);
+            this.camSpeed.Maximum = new decimal(new int[] {
+            1000,
+            0,
+            0,
+            0});
             this.camSpeed.Minimum = new decimal(new int[] {
             1,
             0,
             0,
-            131072});
+            196608});
             this.camSpeed.Name = "camSpeed";
             this.camSpeed.Size = new System.Drawing.Size(88, 20);
             this.camSpeed.TabIndex = 12;
@@ -445,9 +463,11 @@
             this.drawRange.DropDownStyle = System.Windows.Forms.ComboBoxStyle.DropDownList;
             this.drawRange.Items.AddRange(new object[] {
             "Only this draw",
-            "Since last clear"});
+            "Show previous instances",
+            "Show all instances",
+            "Show whole pass"});
             this.drawRange.Name = "drawRange";
-            this.drawRange.Size = new System.Drawing.Size(121, 25);
+            this.drawRange.Size = new System.Drawing.Size(140, 25);
             this.drawRange.SelectedIndexChanged += new System.EventHandler(this.drawRange_SelectedIndexChanged);
             // 
             // toolStripSeparator4
@@ -468,8 +488,7 @@
             "None",
             "Solid Colour",
             "Flat Shaded",
-            "TEXCOORD0",
-            "COLOR0"});
+            "Secondary"});
             this.solidShading.Name = "solidShading";
             this.solidShading.Size = new System.Drawing.Size(121, 25);
             this.solidShading.SelectedIndexChanged += new System.EventHandler(this.solidShading_SelectedIndexChanged);
@@ -572,7 +591,7 @@
             this.previewTab.SelectedIndex = 0;
             this.previewTab.Size = new System.Drawing.Size(559, 313);
             this.previewTab.TabIndex = 1;
-            this.previewTab.SelectedIndexChanged += new System.EventHandler(this.tabControl1_SelectedIndexChanged);
+            this.previewTab.SelectedIndexChanged += new System.EventHandler(this.meshStageDraw_SelectedIndexChanged);
             // 
             // tabPage1
             // 
@@ -611,8 +630,16 @@
             this.vsInBufferView.AllowUserToDeleteRows = false;
             this.vsInBufferView.AllowUserToResizeRows = false;
             this.vsInBufferView.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.DisplayedCells;
-            this.vsInBufferView.BackgroundColor = System.Drawing.Color.White;
-            this.vsInBufferView.Location = new System.Drawing.Point(12, 41);
+            this.vsInBufferView.BackgroundColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle1.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle1.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle1.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle1.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle1.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle1.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle1.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.vsInBufferView.DefaultCellStyle = dataGridViewCellStyle1;
+            this.vsInBufferView.Location = new System.Drawing.Point(12, 70);
             this.vsInBufferView.Name = "vsInBufferView";
             this.vsInBufferView.ReadOnly = true;
             this.vsInBufferView.RowHeadersVisible = false;
@@ -620,16 +647,18 @@
             this.vsInBufferView.ShowCellErrors = false;
             this.vsInBufferView.ShowCellToolTips = false;
             this.vsInBufferView.ShowEditingIcon = false;
-            this.vsInBufferView.Size = new System.Drawing.Size(246, 85);
+            this.vsInBufferView.Size = new System.Drawing.Size(246, 56);
             this.vsInBufferView.TabIndex = 10;
             this.vsInBufferView.VirtualMode = true;
+            this.vsInBufferView.CellMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_MouseClick);
             this.vsInBufferView.CellValueNeeded += new System.Windows.Forms.DataGridViewCellValueEventHandler(this.bufferView_CellValueNeeded);
+            this.vsInBufferView.ColumnHeaderMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_ColumnHeaderMouseClick);
             this.vsInBufferView.Scroll += new System.Windows.Forms.ScrollEventHandler(this.bufferView_Scroll);
             this.vsInBufferView.SelectionChanged += new System.EventHandler(this.bufferView_SelectionChanged);
+            this.vsInBufferView.CellPainting += new System.Windows.Forms.DataGridViewCellPaintingEventHandler(this.bufferView_CellPaint);
             this.vsInBufferView.Paint += new System.Windows.Forms.PaintEventHandler(this.bufferView_Paint);
             this.vsInBufferView.Enter += new System.EventHandler(this.bufferView_EnterLeave);
             this.vsInBufferView.Leave += new System.EventHandler(this.bufferView_EnterLeave);
-            this.vsInBufferView.MouseClick += new System.Windows.Forms.MouseEventHandler(this.bufferView_MouseClick);
             // 
             // csvSaveDialog
             // 
@@ -649,8 +678,16 @@
             this.vsOutBufferView.AllowUserToDeleteRows = false;
             this.vsOutBufferView.AllowUserToResizeRows = false;
             this.vsOutBufferView.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.DisplayedCells;
-            this.vsOutBufferView.BackgroundColor = System.Drawing.Color.White;
-            this.vsOutBufferView.Location = new System.Drawing.Point(264, 40);
+            this.vsOutBufferView.BackgroundColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle2.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle2.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle2.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle2.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle2.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle2.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle2.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.vsOutBufferView.DefaultCellStyle = dataGridViewCellStyle2;
+            this.vsOutBufferView.Location = new System.Drawing.Point(264, 70);
             this.vsOutBufferView.Name = "vsOutBufferView";
             this.vsOutBufferView.ReadOnly = true;
             this.vsOutBufferView.RowHeadersVisible = false;
@@ -658,16 +695,18 @@
             this.vsOutBufferView.ShowCellErrors = false;
             this.vsOutBufferView.ShowCellToolTips = false;
             this.vsOutBufferView.ShowEditingIcon = false;
-            this.vsOutBufferView.Size = new System.Drawing.Size(206, 85);
+            this.vsOutBufferView.Size = new System.Drawing.Size(206, 55);
             this.vsOutBufferView.TabIndex = 11;
             this.vsOutBufferView.VirtualMode = true;
+            this.vsOutBufferView.CellMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_MouseClick);
             this.vsOutBufferView.CellValueNeeded += new System.Windows.Forms.DataGridViewCellValueEventHandler(this.bufferView_CellValueNeeded);
+            this.vsOutBufferView.ColumnHeaderMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_ColumnHeaderMouseClick);
             this.vsOutBufferView.Scroll += new System.Windows.Forms.ScrollEventHandler(this.bufferView_Scroll);
             this.vsOutBufferView.SelectionChanged += new System.EventHandler(this.bufferView_SelectionChanged);
+            this.vsOutBufferView.CellPainting += new System.Windows.Forms.DataGridViewCellPaintingEventHandler(this.bufferView_CellPaint);
             this.vsOutBufferView.Paint += new System.Windows.Forms.PaintEventHandler(this.bufferView_Paint);
             this.vsOutBufferView.Enter += new System.EventHandler(this.bufferView_EnterLeave);
             this.vsOutBufferView.Leave += new System.EventHandler(this.bufferView_EnterLeave);
-            this.vsOutBufferView.MouseClick += new System.Windows.Forms.MouseEventHandler(this.bufferView_MouseClick);
             // 
             // dockPanel
             // 
@@ -676,55 +715,55 @@
             this.dockPanel.Dock = System.Windows.Forms.DockStyle.Fill;
             this.dockPanel.DockBottomPortion = 0.5D;
             this.dockPanel.DocumentStyle = WeifenLuo.WinFormsUI.Docking.DocumentStyle.DockingWindow;
-            this.dockPanel.Location = new System.Drawing.Point(3, 34);
+            this.dockPanel.Location = new System.Drawing.Point(3, 57);
             this.dockPanel.Name = "dockPanel";
-            this.dockPanel.Size = new System.Drawing.Size(834, 462);
-            dockPanelGradient4.EndColor = System.Drawing.SystemColors.ControlLight;
-            dockPanelGradient4.StartColor = System.Drawing.SystemColors.ControlLight;
-            autoHideStripSkin2.DockStripGradient = dockPanelGradient4;
-            tabGradient8.EndColor = System.Drawing.SystemColors.Control;
-            tabGradient8.StartColor = System.Drawing.SystemColors.Control;
-            tabGradient8.TextColor = System.Drawing.SystemColors.ControlDarkDark;
-            autoHideStripSkin2.TabGradient = tabGradient8;
-            autoHideStripSkin2.TextFont = new System.Drawing.Font("Tahoma", 8.25F);
-            dockPanelSkin2.AutoHideStripSkin = autoHideStripSkin2;
-            tabGradient9.EndColor = System.Drawing.SystemColors.ControlLightLight;
-            tabGradient9.StartColor = System.Drawing.SystemColors.ControlLightLight;
-            tabGradient9.TextColor = System.Drawing.SystemColors.ControlText;
-            dockPaneStripGradient2.ActiveTabGradient = tabGradient9;
-            dockPanelGradient5.EndColor = System.Drawing.SystemColors.Control;
-            dockPanelGradient5.StartColor = System.Drawing.SystemColors.Control;
-            dockPaneStripGradient2.DockStripGradient = dockPanelGradient5;
-            tabGradient10.EndColor = System.Drawing.SystemColors.ControlLight;
-            tabGradient10.StartColor = System.Drawing.SystemColors.ControlLight;
-            tabGradient10.TextColor = System.Drawing.SystemColors.ControlText;
-            dockPaneStripGradient2.InactiveTabGradient = tabGradient10;
-            dockPaneStripSkin2.DocumentGradient = dockPaneStripGradient2;
-            dockPaneStripSkin2.TextFont = new System.Drawing.Font("Tahoma", 8.25F);
-            tabGradient11.EndColor = System.Drawing.SystemColors.ActiveCaption;
-            tabGradient11.LinearGradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
-            tabGradient11.StartColor = System.Drawing.SystemColors.GradientActiveCaption;
-            tabGradient11.TextColor = System.Drawing.SystemColors.ActiveCaptionText;
-            dockPaneStripToolWindowGradient2.ActiveCaptionGradient = tabGradient11;
-            tabGradient12.EndColor = System.Drawing.SystemColors.Control;
-            tabGradient12.StartColor = System.Drawing.SystemColors.Control;
-            tabGradient12.TextColor = System.Drawing.SystemColors.ControlText;
-            dockPaneStripToolWindowGradient2.ActiveTabGradient = tabGradient12;
-            dockPanelGradient6.EndColor = System.Drawing.SystemColors.ControlLight;
-            dockPanelGradient6.StartColor = System.Drawing.SystemColors.ControlLight;
-            dockPaneStripToolWindowGradient2.DockStripGradient = dockPanelGradient6;
-            tabGradient13.EndColor = System.Drawing.SystemColors.InactiveCaption;
-            tabGradient13.LinearGradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
-            tabGradient13.StartColor = System.Drawing.SystemColors.GradientInactiveCaption;
-            tabGradient13.TextColor = System.Drawing.SystemColors.InactiveCaptionText;
-            dockPaneStripToolWindowGradient2.InactiveCaptionGradient = tabGradient13;
-            tabGradient14.EndColor = System.Drawing.Color.Transparent;
-            tabGradient14.StartColor = System.Drawing.Color.Transparent;
-            tabGradient14.TextColor = System.Drawing.SystemColors.ControlDarkDark;
-            dockPaneStripToolWindowGradient2.InactiveTabGradient = tabGradient14;
-            dockPaneStripSkin2.ToolWindowGradient = dockPaneStripToolWindowGradient2;
-            dockPanelSkin2.DockPaneStripSkin = dockPaneStripSkin2;
-            this.dockPanel.Skin = dockPanelSkin2;
+            this.dockPanel.Size = new System.Drawing.Size(834, 439);
+            dockPanelGradient1.EndColor = System.Drawing.SystemColors.ControlLight;
+            dockPanelGradient1.StartColor = System.Drawing.SystemColors.ControlLight;
+            autoHideStripSkin1.DockStripGradient = dockPanelGradient1;
+            tabGradient1.EndColor = System.Drawing.SystemColors.Control;
+            tabGradient1.StartColor = System.Drawing.SystemColors.Control;
+            tabGradient1.TextColor = System.Drawing.SystemColors.ControlDarkDark;
+            autoHideStripSkin1.TabGradient = tabGradient1;
+            autoHideStripSkin1.TextFont = new System.Drawing.Font("Tahoma", 8.25F);
+            dockPanelSkin1.AutoHideStripSkin = autoHideStripSkin1;
+            tabGradient2.EndColor = System.Drawing.SystemColors.ControlLightLight;
+            tabGradient2.StartColor = System.Drawing.SystemColors.ControlLightLight;
+            tabGradient2.TextColor = System.Drawing.SystemColors.ControlText;
+            dockPaneStripGradient1.ActiveTabGradient = tabGradient2;
+            dockPanelGradient2.EndColor = System.Drawing.SystemColors.Control;
+            dockPanelGradient2.StartColor = System.Drawing.SystemColors.Control;
+            dockPaneStripGradient1.DockStripGradient = dockPanelGradient2;
+            tabGradient3.EndColor = System.Drawing.SystemColors.ControlLight;
+            tabGradient3.StartColor = System.Drawing.SystemColors.ControlLight;
+            tabGradient3.TextColor = System.Drawing.SystemColors.ControlText;
+            dockPaneStripGradient1.InactiveTabGradient = tabGradient3;
+            dockPaneStripSkin1.DocumentGradient = dockPaneStripGradient1;
+            dockPaneStripSkin1.TextFont = new System.Drawing.Font("Tahoma", 8.25F);
+            tabGradient4.EndColor = System.Drawing.SystemColors.ActiveCaption;
+            tabGradient4.LinearGradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
+            tabGradient4.StartColor = System.Drawing.SystemColors.GradientActiveCaption;
+            tabGradient4.TextColor = System.Drawing.SystemColors.ActiveCaptionText;
+            dockPaneStripToolWindowGradient1.ActiveCaptionGradient = tabGradient4;
+            tabGradient5.EndColor = System.Drawing.SystemColors.Control;
+            tabGradient5.StartColor = System.Drawing.SystemColors.Control;
+            tabGradient5.TextColor = System.Drawing.SystemColors.ControlText;
+            dockPaneStripToolWindowGradient1.ActiveTabGradient = tabGradient5;
+            dockPanelGradient3.EndColor = System.Drawing.SystemColors.ControlLight;
+            dockPanelGradient3.StartColor = System.Drawing.SystemColors.ControlLight;
+            dockPaneStripToolWindowGradient1.DockStripGradient = dockPanelGradient3;
+            tabGradient6.EndColor = System.Drawing.SystemColors.InactiveCaption;
+            tabGradient6.LinearGradientMode = System.Drawing.Drawing2D.LinearGradientMode.Vertical;
+            tabGradient6.StartColor = System.Drawing.SystemColors.GradientInactiveCaption;
+            tabGradient6.TextColor = System.Drawing.SystemColors.InactiveCaptionText;
+            dockPaneStripToolWindowGradient1.InactiveCaptionGradient = tabGradient6;
+            tabGradient7.EndColor = System.Drawing.Color.Transparent;
+            tabGradient7.StartColor = System.Drawing.Color.Transparent;
+            tabGradient7.TextColor = System.Drawing.SystemColors.ControlDarkDark;
+            dockPaneStripToolWindowGradient1.InactiveTabGradient = tabGradient7;
+            dockPaneStripSkin1.ToolWindowGradient = dockPaneStripToolWindowGradient1;
+            dockPanelSkin1.DockPaneStripSkin = dockPaneStripSkin1;
+            this.dockPanel.Skin = dockPanelSkin1;
             this.dockPanel.TabIndex = 12;
             // 
             // tableLayoutPanel1
@@ -732,11 +771,13 @@
             this.tableLayoutPanel1.ColumnCount = 1;
             this.tableLayoutPanel1.ColumnStyles.Add(new System.Windows.Forms.ColumnStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.Controls.Add(this.flowLayoutPanel2, 0, 0);
-            this.tableLayoutPanel1.Controls.Add(this.dockPanel, 0, 1);
+            this.tableLayoutPanel1.Controls.Add(this.dockPanel, 0, 2);
+            this.tableLayoutPanel1.Controls.Add(this.largeBufferWarning, 0, 1);
             this.tableLayoutPanel1.Dock = System.Windows.Forms.DockStyle.Fill;
             this.tableLayoutPanel1.Location = new System.Drawing.Point(0, 0);
             this.tableLayoutPanel1.Name = "tableLayoutPanel1";
-            this.tableLayoutPanel1.RowCount = 2;
+            this.tableLayoutPanel1.RowCount = 3;
+            this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle());
             this.tableLayoutPanel1.RowStyles.Add(new System.Windows.Forms.RowStyle(System.Windows.Forms.SizeType.Percent, 100F));
             this.tableLayoutPanel1.Size = new System.Drawing.Size(840, 499);
@@ -748,7 +789,7 @@
             this.flowLayoutPanel2.Controls.Add(this.toolStrip1);
             this.flowLayoutPanel2.Location = new System.Drawing.Point(3, 3);
             this.flowLayoutPanel2.Name = "flowLayoutPanel2";
-            this.flowLayoutPanel2.Size = new System.Drawing.Size(619, 25);
+            this.flowLayoutPanel2.Size = new System.Drawing.Size(831, 25);
             this.flowLayoutPanel2.TabIndex = 0;
             // 
             // toolStrip1
@@ -759,6 +800,7 @@
             this.toolStripSeparator1,
             this.exportToolItem,
             this.syncViewsToolItem,
+            this.highlightVerts,
             this.debugSep,
             this.debugVertexToolItem,
             this.toolStripSeparator2,
@@ -766,13 +808,14 @@
             this.rowOffset,
             this.byteOffsLab,
             this.byteOffset,
-            this.offsetCancel,
+            this.rowRangeLab,
+            this.rowRange,
             this.instSep,
             this.instLabel,
             this.instanceIdxToolitem});
             this.toolStrip1.Location = new System.Drawing.Point(0, 0);
             this.toolStrip1.Name = "toolStrip1";
-            this.toolStrip1.Size = new System.Drawing.Size(619, 25);
+            this.toolStrip1.Size = new System.Drawing.Size(831, 25);
             this.toolStrip1.TabIndex = 0;
             this.toolStrip1.Text = "toolStrip1";
             // 
@@ -823,6 +866,18 @@
             this.syncViewsToolItem.Text = "Sync Views";
             this.syncViewsToolItem.Click += new System.EventHandler(this.syncViewsToolItem_Click);
             // 
+            // highlightVerts
+            // 
+            this.highlightVerts.Checked = true;
+            this.highlightVerts.CheckOnClick = true;
+            this.highlightVerts.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.highlightVerts.Image = global::renderdocui.Properties.Resources.asterisk_orange;
+            this.highlightVerts.ImageTransparentColor = System.Drawing.Color.Magenta;
+            this.highlightVerts.Name = "highlightVerts";
+            this.highlightVerts.Size = new System.Drawing.Size(109, 22);
+            this.highlightVerts.Text = "Highlight Vertices";
+            this.highlightVerts.CheckedChanged += new System.EventHandler(this.highlightVerts_CheckedChanged);
+            // 
             // debugSep
             // 
             this.debugSep.Name = "debugSep";
@@ -869,15 +924,17 @@
             this.byteOffset.Size = new System.Drawing.Size(60, 25);
             this.byteOffset.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.byteOffset_KeyPress);
             // 
-            // offsetCancel
+            // rowRangeLab
             // 
-            this.offsetCancel.DisplayStyle = System.Windows.Forms.ToolStripItemDisplayStyle.Image;
-            this.offsetCancel.Image = global::renderdocui.Properties.Resources.red_x_16;
-            this.offsetCancel.ImageTransparentColor = System.Drawing.Color.Magenta;
-            this.offsetCancel.Name = "offsetCancel";
-            this.offsetCancel.Size = new System.Drawing.Size(23, 22);
-            this.offsetCancel.Text = "Reset";
-            this.offsetCancel.Click += new System.EventHandler(this.offsetCancel_Click);
+            this.rowRangeLab.Name = "rowRangeLab";
+            this.rowRangeLab.Size = new System.Drawing.Size(33, 22);
+            this.rowRangeLab.Text = "Rows";
+            // 
+            // rowRange
+            // 
+            this.rowRange.Name = "rowRange";
+            this.rowRange.Size = new System.Drawing.Size(60, 25);
+            this.rowRange.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.rowRange_KeyPress);
             // 
             // instSep
             // 
@@ -897,14 +954,37 @@
             this.instanceIdxToolitem.Text = "0";
             this.instanceIdxToolitem.KeyPress += new System.Windows.Forms.KeyPressEventHandler(this.instanceIdxToolitem_KeyPress);
             // 
+            // largeBufferWarning
+            // 
+            this.largeBufferWarning.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Top | System.Windows.Forms.AnchorStyles.Left) 
+            | System.Windows.Forms.AnchorStyles.Right)));
+            this.largeBufferWarning.AutoSize = true;
+            this.largeBufferWarning.BackColor = System.Drawing.Color.Gold;
+            this.largeBufferWarning.Location = new System.Drawing.Point(3, 31);
+            this.largeBufferWarning.Name = "largeBufferWarning";
+            this.largeBufferWarning.Padding = new System.Windows.Forms.Padding(5);
+            this.largeBufferWarning.Size = new System.Drawing.Size(834, 23);
+            this.largeBufferWarning.TabIndex = 13;
+            this.largeBufferWarning.Text = "This buffer is too large to show, displaying 200,000 rows. Click here to advance " +
+    "to the next part of the buffer.";
+            this.largeBufferWarning.Click += new System.EventHandler(this.largeBufferWarning_Click);
+            // 
             // gsOutBufferView
             // 
             this.gsOutBufferView.AllowUserToAddRows = false;
             this.gsOutBufferView.AllowUserToDeleteRows = false;
             this.gsOutBufferView.AllowUserToResizeRows = false;
             this.gsOutBufferView.AutoSizeRowsMode = System.Windows.Forms.DataGridViewAutoSizeRowsMode.DisplayedCells;
-            this.gsOutBufferView.BackgroundColor = System.Drawing.Color.White;
-            this.gsOutBufferView.Location = new System.Drawing.Point(476, 40);
+            this.gsOutBufferView.BackgroundColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle3.Alignment = System.Windows.Forms.DataGridViewContentAlignment.MiddleLeft;
+            dataGridViewCellStyle3.BackColor = System.Drawing.SystemColors.Window;
+            dataGridViewCellStyle3.Font = new System.Drawing.Font("Consolas", 9F, System.Drawing.FontStyle.Regular, System.Drawing.GraphicsUnit.Point, ((byte)(0)));
+            dataGridViewCellStyle3.ForeColor = System.Drawing.SystemColors.ControlText;
+            dataGridViewCellStyle3.SelectionBackColor = System.Drawing.SystemColors.Highlight;
+            dataGridViewCellStyle3.SelectionForeColor = System.Drawing.SystemColors.HighlightText;
+            dataGridViewCellStyle3.WrapMode = System.Windows.Forms.DataGridViewTriState.False;
+            this.gsOutBufferView.DefaultCellStyle = dataGridViewCellStyle3;
+            this.gsOutBufferView.Location = new System.Drawing.Point(476, 70);
             this.gsOutBufferView.Name = "gsOutBufferView";
             this.gsOutBufferView.ReadOnly = true;
             this.gsOutBufferView.RowHeadersVisible = false;
@@ -912,16 +992,62 @@
             this.gsOutBufferView.ShowCellErrors = false;
             this.gsOutBufferView.ShowCellToolTips = false;
             this.gsOutBufferView.ShowEditingIcon = false;
-            this.gsOutBufferView.Size = new System.Drawing.Size(206, 85);
+            this.gsOutBufferView.Size = new System.Drawing.Size(206, 55);
             this.gsOutBufferView.TabIndex = 14;
             this.gsOutBufferView.VirtualMode = true;
+            this.gsOutBufferView.CellMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_MouseClick);
             this.gsOutBufferView.CellValueNeeded += new System.Windows.Forms.DataGridViewCellValueEventHandler(this.bufferView_CellValueNeeded);
+            this.gsOutBufferView.ColumnHeaderMouseClick += new System.Windows.Forms.DataGridViewCellMouseEventHandler(this.bufferView_ColumnHeaderMouseClick);
             this.gsOutBufferView.Scroll += new System.Windows.Forms.ScrollEventHandler(this.bufferView_Scroll);
             this.gsOutBufferView.SelectionChanged += new System.EventHandler(this.bufferView_SelectionChanged);
+            this.gsOutBufferView.CellPainting += new System.Windows.Forms.DataGridViewCellPaintingEventHandler(this.bufferView_CellPaint);
             this.gsOutBufferView.Paint += new System.Windows.Forms.PaintEventHandler(this.bufferView_Paint);
             this.gsOutBufferView.Enter += new System.EventHandler(this.bufferView_EnterLeave);
             this.gsOutBufferView.Leave += new System.EventHandler(this.bufferView_EnterLeave);
-            this.gsOutBufferView.MouseClick += new System.Windows.Forms.MouseEventHandler(this.bufferView_MouseClick);
+            // 
+            // columnContextMenu
+            // 
+            this.columnContextMenu.Items.AddRange(new System.Windows.Forms.ToolStripItem[] {
+            this.resetSelectedColumnsToolStripMenuItem,
+            this.toolStripSeparator5,
+            this.selectColumnAsPositionToolStripMenuItem,
+            this.selectColumnAsSecondaryToolStripMenuItem,
+            this.selectAlphaAsSecondaryToolStripMenuItem});
+            this.columnContextMenu.Name = "columnContextMenu";
+            this.columnContextMenu.Size = new System.Drawing.Size(202, 98);
+            // 
+            // resetSelectedColumnsToolStripMenuItem
+            // 
+            this.resetSelectedColumnsToolStripMenuItem.Name = "resetSelectedColumnsToolStripMenuItem";
+            this.resetSelectedColumnsToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
+            this.resetSelectedColumnsToolStripMenuItem.Text = "Reset Selected Columns";
+            this.resetSelectedColumnsToolStripMenuItem.Click += new System.EventHandler(this.resetSelectedColumnsToolStripMenuItem_Click);
+            // 
+            // toolStripSeparator5
+            // 
+            this.toolStripSeparator5.Name = "toolStripSeparator5";
+            this.toolStripSeparator5.Size = new System.Drawing.Size(198, 6);
+            // 
+            // selectColumnAsPositionToolStripMenuItem
+            // 
+            this.selectColumnAsPositionToolStripMenuItem.Name = "selectColumnAsPositionToolStripMenuItem";
+            this.selectColumnAsPositionToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
+            this.selectColumnAsPositionToolStripMenuItem.Text = "Select as Position";
+            this.selectColumnAsPositionToolStripMenuItem.Click += new System.EventHandler(this.selectColumnAsPositionToolStripMenuItem_Click);
+            // 
+            // selectColumnAsSecondaryToolStripMenuItem
+            // 
+            this.selectColumnAsSecondaryToolStripMenuItem.Name = "selectColumnAsSecondaryToolStripMenuItem";
+            this.selectColumnAsSecondaryToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
+            this.selectColumnAsSecondaryToolStripMenuItem.Text = "Select as Secondary";
+            this.selectColumnAsSecondaryToolStripMenuItem.Click += new System.EventHandler(this.selectColumnAsSecondaryToolStripMenuItem_Click);
+            // 
+            // selectAlphaAsSecondaryToolStripMenuItem
+            // 
+            this.selectAlphaAsSecondaryToolStripMenuItem.Name = "selectAlphaAsSecondaryToolStripMenuItem";
+            this.selectAlphaAsSecondaryToolStripMenuItem.Size = new System.Drawing.Size(201, 22);
+            this.selectAlphaAsSecondaryToolStripMenuItem.Text = "Select Alpha as Secondary";
+            this.selectAlphaAsSecondaryToolStripMenuItem.Click += new System.EventHandler(this.selectAlphaAsSecondaryToolStripMenuItem_Click);
             // 
             // BufferViewer
             // 
@@ -940,7 +1066,7 @@
             this.Load += new System.EventHandler(this.BufferViewer_Load);
             this.previewTable.ResumeLayout(false);
             this.previewTable.PerformLayout();
-            this.tableLayoutPanel3.ResumeLayout(false);
+            this.renderTable.ResumeLayout(false);
             this.configCamControls.ResumeLayout(false);
             this.tableLayoutPanel2.ResumeLayout(false);
             this.tableLayoutPanel2.PerformLayout();
@@ -959,6 +1085,7 @@
             this.toolStrip1.ResumeLayout(false);
             this.toolStrip1.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.gsOutBufferView)).EndInit();
+            this.columnContextMenu.ResumeLayout(false);
             this.ResumeLayout(false);
 
         }
@@ -997,11 +1124,10 @@
         private System.Windows.Forms.ToolStripSeparator toolStripSeparator2;
         private System.Windows.Forms.ToolStripLabel toolStripLabel2;
         private System.Windows.Forms.ToolStripTextBox rowOffset;
-        private System.Windows.Forms.ToolStripButton offsetCancel;
         private System.Windows.Forms.ToolStripSeparator instSep;
         private System.Windows.Forms.ToolStripLabel instLabel;
         private System.Windows.Forms.ToolStripTextBox instanceIdxToolitem;
-        private System.Windows.Forms.TableLayoutPanel tableLayoutPanel3;
+        private System.Windows.Forms.TableLayoutPanel renderTable;
         private System.Windows.Forms.GroupBox configCamControls;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel2;
         private System.Windows.Forms.TextBox nearGuess;
@@ -1028,6 +1154,16 @@
         private System.Windows.Forms.TabPage tabPage3;
         private System.Windows.Forms.TableLayoutPanel tableLayoutPanel1;
         private System.Windows.Forms.DataGridView gsOutBufferView;
+        private System.Windows.Forms.ToolStripButton highlightVerts;
+        private System.Windows.Forms.ContextMenuStrip columnContextMenu;
+        private System.Windows.Forms.ToolStripMenuItem resetSelectedColumnsToolStripMenuItem;
+        private System.Windows.Forms.ToolStripSeparator toolStripSeparator5;
+        private System.Windows.Forms.ToolStripMenuItem selectColumnAsPositionToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem selectColumnAsSecondaryToolStripMenuItem;
+        private System.Windows.Forms.ToolStripMenuItem selectAlphaAsSecondaryToolStripMenuItem;
+        private System.Windows.Forms.Label largeBufferWarning;
+        private System.Windows.Forms.ToolStripLabel rowRangeLab;
+        private System.Windows.Forms.ToolStripTextBox rowRange;
 
     }
 }

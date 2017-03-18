@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -40,7 +41,8 @@ namespace renderdocui.Controls
     public partial class ResourcePreview : UserControl
     {
         private string m_Name;
-        private UInt32 m_Width, m_Height, m_Depth, m_NumMips;
+        private UInt64 m_Width;
+        private UInt32 m_Height, m_Depth, m_NumMips;
         private Core m_Core;
         private ReplayOutput m_Output;
         private IntPtr m_Handle;
@@ -48,6 +50,8 @@ namespace renderdocui.Controls
         public ResourcePreview(Core core, ReplayOutput output)
         {
             InitializeComponent();
+
+            descriptionLabel.Font = core.Config.PreferredFont;
 
             m_Name = "Unbound";
             m_Width = 1;
@@ -80,7 +84,7 @@ namespace renderdocui.Controls
             thumbnail.Painting = true;
         }
 
-        public void Init(string Name, UInt32 Width, UInt32 Height, UInt32 Depth, UInt32 NumMips)
+        public void Init(string Name, UInt64 Width, UInt32 Height, UInt32 Depth, UInt32 NumMips)
         {
             m_Name = Name;
             m_Width = Width;
@@ -151,7 +155,7 @@ namespace renderdocui.Controls
             }
 
             if (m_Output != null)
-                m_Core.Renderer.Invoke((ReplayRenderer r) => { m_Output.Display(); });
+                m_Core.Renderer.InvokeForPaint((ReplayRenderer r) => { m_Output.Display(); });
         }
 
         public void SetSize(Size s)

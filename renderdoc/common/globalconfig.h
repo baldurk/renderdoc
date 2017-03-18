@@ -1,18 +1,19 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,74 +23,151 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
 #pragma once
+
+/////////////////////////////////////////////////
+// Option macros
+// From: http://www.codersnotes.com/notes/easy-preprocessor-defines/
+
+#define OPTION_ON +
+#define OPTION_OFF -
+#define ENABLED(opt) ((1 opt 1) == 2)
+#define DISABLED(opt) ((1 opt 1) == 0)
+
+/////////////////////////////////////////////////
+// Build/machine configuration
+#if defined(__LP64__) || defined(_WIN64) || defined(__x86_64__) || defined(_M_X64) || \
+    defined(__ia64) || defined(_M_IA64) || defined(__aarch64__) || defined(__powerpc64__)
+#define RDOC_X64 OPTION_ON
+#else
+#define RDOC_X64 OPTION_OFF
+#endif
+
+#if defined(RELEASE) || defined(_RELEASE)
+#define RDOC_RELEASE OPTION_ON
+#define RDOC_DEVEL OPTION_OFF
+#else
+#define RDOC_RELEASE OPTION_OFF
+#define RDOC_DEVEL OPTION_ON
+#endif
+
+#if defined(_MSC_VER)
+#define RDOC_MSVS OPTION_ON
+#else
+#define RDOC_MSVS OPTION_OFF
+#endif
+
+// translate from build system defines, so they don't have to be defined to anything in
+// particular
+#if defined(RENDERDOC_PLATFORM_WIN32)
+
+#define RDOC_WIN32 OPTION_ON
+#define RDOC_ANDROID OPTION_OFF
+#define RDOC_LINUX OPTION_OFF
+#define RDOC_APPLE OPTION_OFF
+#define RDOC_POSIX OPTION_OFF
+
+#elif defined(RENDERDOC_PLATFORM_ANDROID)
+
+#define RDOC_WIN32 OPTION_OFF
+#define RDOC_ANDROID OPTION_ON
+#define RDOC_LINUX OPTION_OFF
+#define RDOC_APPLE OPTION_OFF
+#define RDOC_POSIX OPTION_ON
+
+#elif defined(RENDERDOC_PLATFORM_LINUX)
+
+#define RDOC_WIN32 OPTION_OFF
+#define RDOC_ANDROID OPTION_OFF
+#define RDOC_LINUX OPTION_ON
+#define RDOC_APPLE OPTION_OFF
+#define RDOC_POSIX OPTION_ON
+
+#elif defined(RENDERDOC_PLATFORM_APPLE)
+
+#define RDOC_WIN32 OPTION_OFF
+#define RDOC_ANDROID OPTION_OFF
+#define RDOC_LINUX OPTION_OFF
+#define RDOC_APPLE OPTION_ON
+#define RDOC_POSIX OPTION_ON
+
+#else
+
+#error "No platform configured in build system"
+
+#endif
+
+#if defined(RENDERDOC_WINDOWING_XLIB)
+#define RDOC_XLIB OPTION_ON
+#else
+#define RDOC_XLIB OPTION_OFF
+#endif
+
+#if defined(RENDERDOC_WINDOWING_XCB)
+#define RDOC_XCB OPTION_ON
+#else
+#define RDOC_XCB OPTION_OFF
+#endif
 
 /////////////////////////////////////////////////
 // Global constants
 enum
 {
-	RenderDoc_FirstCaptureNetworkPort = 38920,
-	RenderDoc_LastCaptureNetworkPort = RenderDoc_FirstCaptureNetworkPort + 7,
-	RenderDoc_ReplayNetworkPort = 39920,
+  RenderDoc_FirstTargetControlPort = 38920,
+  RenderDoc_LastTargetControlPort = RenderDoc_FirstTargetControlPort + 7,
+  RenderDoc_RemoteServerPort = 39920,
+  RenderDoc_AndroidPortOffset = 50,
 };
 
 /////////////////////////////////////////////////
 // Debugging features configuration
 
 // remove all logging code
-//#define STRIP_LOG
+#define STRIP_LOG OPTION_OFF
 
 // remove all compile time asserts. Normally done even in release
 // but this would speed up compilation
-//#define STRIP_COMPILE_ASSERTS
+#define STRIP_COMPILE_ASSERTS OPTION_OFF
 
 // force asserts regardless of debug/release mode
-#define FORCE_ASSERTS 
+#define FORCE_ASSERTS OPTION_ON
 
 // force debugbreaks regardless of debug/release mode
-//#define FORCE_DEBUGBREAK
-
-// synchronously (ie. flushed to disk) write out the text-mode only serialised
-// data of ALL serialising. Helps in debugging crashes to know exactly which
-// calls have been made
-//#define DEBUG_TEXT_SERIALISER
+#define FORCE_DEBUGBREAK OPTION_OFF
 
 /////////////////////////////////////////////////
 // Logging configuration
 
 // error logs trigger a breakpoint
-#define DEBUGBREAK_ON_ERROR_LOG
+#define DEBUGBREAK_ON_ERROR_LOG OPTION_ON
 
 // whether to include timestamp on log lines
-#define INCLUDE_TIMESTAMP_IN_LOG
+#define INCLUDE_TIMESTAMP_IN_LOG OPTION_ON
 
 // whether to include file and line on log lines
-#define INCLUDE_LOCATION_IN_LOG
+#define INCLUDE_LOCATION_IN_LOG OPTION_ON
 
 // logs go to stdout/stderr
-#define OUTPUT_LOG_TO_STDOUT
-//#define OUTPUT_LOG_TO_STDERR
+#if ENABLED(RDOC_WIN32)
+
+#define OUTPUT_LOG_TO_STDOUT OPTION_OFF
+#define OUTPUT_LOG_TO_STDERR OPTION_OFF
+
+#else
+
+#define OUTPUT_LOG_TO_STDOUT OPTION_ON
+#define OUTPUT_LOG_TO_STDERR OPTION_OFF
+
+#endif
 
 // logs go to debug output (visual studio output window)
-#define OUTPUT_LOG_TO_DEBUG_OUT
+#define OUTPUT_LOG_TO_DEBUG_OUT OPTION_ON
 
 // logs go to disk
-#define OUTPUT_LOG_TO_DISK
+#define OUTPUT_LOG_TO_DISK OPTION_ON
 
 // normally only in a debug build do we
 // include debug logs. This prints them all the time
-//#define FORCE_DEBUG_LOGS
+#define FORCE_DEBUG_LOGS OPTION_OFF
 // this strips them completely
-//#define STRIP_DEBUG_LOGS
-
-/////////////////////////////////////////////////
-// optional features
-
-#if defined(NVIDIA_PERFKIT_DIR)
-#define ENABLE_NVIDIA_PERFKIT
-#endif
-
-#if defined(AMD_PERFAPI_DIR)
-#define ENABLE_AMD_PERFAPI
-#endif
+#define STRIP_DEBUG_LOGS OPTION_OFF

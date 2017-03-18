@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,83 +22,215 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#version 420 core
-
-layout (binding = 0, std140) uniform texdisplay
-{
-  vec2  Position;
-  float Scale;
-  float HDRMul;
-
-  vec4  Channels;
-
-  float RangeMinimum;
-  float InverseRangeSize;
-  float MipLevel;
-  float dummy2;
-
-  vec3  TextureResolutionPS;
-  int   OutputDisplayFormat;
-
-  vec2  OutputRes;
-  int   RawOutput;
-  float Slice;
-};
-
-layout (binding = 0) uniform sampler2D tex0;
 layout (location = 0) out vec4 color_out;
+#ifdef OPENGL_ES
+// Required otherwise the shader compiler could remove the 'uv' from the vertex shader also.
+layout (location = 0) in vec2 uv;
+#endif
+
+//#extension_gles GL_EXT_texture_cube_map_array : enable
+//#extension_gles GL_EXT_texture_buffer : enable
+//#extension_nongles GL_ARB_gpu_shader5 : enable
+
+//#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
+
+float ConvertSRGBToLinear(float srgb)
+{
+	if (srgb <= 0.04045f)
+		return srgb / 12.92f;
+	else
+		return pow(( clamp(srgb, 0.0f, 1.0f) + 0.055f) / 1.055f, 2.4f);
+}
 
 void main(void)
 {
+#ifdef VULKAN // vulkan combines all three types
+	bool uintTex = (texdisplay.OutputDisplayFormat & TEXDISPLAY_UINT_TEX) != 0;
+	bool sintTex = (texdisplay.OutputDisplayFormat & TEXDISPLAY_SINT_TEX) != 0;
+#else // OPENGL
+
+#if UINT_TEX
+	const bool uintTex = true;
+	const bool sintTex = false;
+#elif SINT_TEX
+	const bool uintTex = false;
+	const bool sintTex = true;
+#else
+	const bool uintTex = false;
+	const bool sintTex = false;
+#endif
+
+#endif
+
+	int texType = (texdisplay.OutputDisplayFormat & TEXDISPLAY_TYPEMASK);
+
+	vec4 col;
+	uvec4 ucol;
+	ivec4 scol;
+
 	// calc screen co-ords with origin top left, modified by Position
-	vec2 scr = vec2(gl_FragCoord.x, OutputRes.y - gl_FragCoord.y) - Position.xy;
+	vec2 scr = gl_FragCoord.xy;
 
-	// calc UVs in texture
-	vec2 uv = scr/(textureSize(tex0,0)*Scale);
+#ifdef OPENGL
+	scr.y = texdisplay.OutputRes.y - scr.y;
+#endif
 
-	// discard if we're rendering outside input texture
-	if(uv.x < 0 || uv.y < 0 || uv.x > 1 || uv.y > 1) discard;
+	scr -= texdisplay.Position.xy;
 
-	// sample the texture.
-	// TODO: handle uint/sint/float textures (OutputDisplayFormat).
-	// TODO: Use MipLevel and Slice parameters
-	// TODO: Sample from a point or linear sampler depending on if we're
-	//       upscaling (point) or downscaling mip 0 (linear)
-	vec4 col = texture(tex0, vec2(uv.x, 1.0f-uv.y));
+	scr /= texdisplay.TextureResolutionPS.xy;
 
-	if(RawOutput != 0)
+	scr /= texdisplay.Scale;
+
+	scr /= vec2(texdisplay.MipShift, texdisplay.MipShift);
+	vec2 scr2 = scr;
+
+#ifdef VULKAN
+	if(texType == RESTYPE_TEX1D)
+#else
+	if(texType == RESTYPE_TEX1D || texType == RESTYPE_TEXBUFFER || texType == RESTYPE_TEX1DARRAY)
+#endif
 	{
-		color_out = col;
+		// by convention display 1D textures as 100 high
+		if(scr2.x < 0.0f || scr2.x > 1.0f || scr2.y < 0.0f || scr2.y > 100.0f)
+		   discard;
+	}
+	else
+	{
+		if(scr2.x < 0.0f || scr2.y < 0.0f ||
+		   scr2.x > 1.0f || scr2.y > 1.0f)
+		{
+			discard;
+		}
+	}
+
+#ifdef VULKAN
+	const int defaultFlipY = 0;
+#else // OPENGL
+	const int defaultFlipY = 1;
+#endif
+
+	if (texdisplay.FlipY != defaultFlipY)
+		scr.y = 1.0f - scr.y;
+
+	if(uintTex)
+	{
+		ucol = SampleTextureUInt4(texType, scr, texdisplay.Slice, texdisplay.MipLevel,
+		                          texdisplay.SampleIdx, texdisplay.TextureResolutionPS);
+	}
+	else if(sintTex)
+	{
+		scol = SampleTextureSInt4(texType, scr, texdisplay.Slice, texdisplay.MipLevel,
+		                          texdisplay.SampleIdx, texdisplay.TextureResolutionPS);
+	}
+	else
+	{
+		col = SampleTextureFloat4(texType, scr, texdisplay.Slice, texdisplay.MipLevel,
+		                          texdisplay.SampleIdx, texdisplay.TextureResolutionPS);
+	}
+	
+	if(texdisplay.RawOutput != 0)
+	{
+#ifdef GL_ARB_gpu_shader5
+		if (uintTex)
+			color_out = uintBitsToFloat(ucol);
+		else if (sintTex)
+			color_out = intBitsToFloat(scol);
+		else
+			color_out = col;
+#else
+		// without being able to alias bits, we won't get accurate results.
+		// a cast is better than nothing though
+		if (uintTex)
+			color_out = vec4(ucol);
+		else if (sintTex)
+			color_out = vec4(scol);
+		else
+			color_out = col;
+#endif
 		return;
 	}
 
 	// RGBM encoding
-	if(HDRMul > 0.0f)
+	if(texdisplay.HDRMul > 0.0f)
 	{
-		col = vec4(col.rgb * col.a * HDRMul, 1.0f);
+		if (uintTex)
+			col = vec4(ucol.rgb * ucol.a * uint(texdisplay.HDRMul), 1.0);
+		else if (sintTex)
+			col = vec4(scol.rgb * scol.a * int(texdisplay.HDRMul), 1.0);
+		else
+			col = vec4(col.rgb * col.a * texdisplay.HDRMul, 1.0);
 	}
+	
+	if (uintTex)
+		col = vec4(ucol);
+	else if (sintTex)
+		col = vec4(scol);
 
-	col = ((col - RangeMinimum)*InverseRangeSize);
+	vec4 pre_range_col = col;
 
-	col = mix(vec4(0,0,0,1), col, Channels);
+	col = ((col - texdisplay.RangeMinimum)*texdisplay.InverseRangeSize);
+	
+	if(texdisplay.Channels.x < 0.5f) col.x = pre_range_col.x = 0.0f;
+	if(texdisplay.Channels.y < 0.5f) col.y = pre_range_col.y = 0.0f;
+	if(texdisplay.Channels.z < 0.5f) col.z = pre_range_col.z = 0.0f;
+	if(texdisplay.Channels.w < 0.5f) col.w = pre_range_col.w = 1.0f;
+	
+	if((texdisplay.OutputDisplayFormat & TEXDISPLAY_NANS) > 0)
+	{
+		if(isnan(pre_range_col.r) || isnan(pre_range_col.g) || isnan(pre_range_col.b) || isnan(pre_range_col.a))
+		{
+		   color_out = vec4(1, 0, 0, 1);
+		   return;
+		}
+		   
+		if(isinf(pre_range_col.r) || isinf(pre_range_col.g) || isinf(pre_range_col.b) || isinf(pre_range_col.a))
+		{
+		   color_out = vec4(0, 1, 0, 1);
+		   return;
+		}
 
-	// TODO: check OutputDisplayFormat to see if we should highlight NaNs or clipping
-	// else
+		if(pre_range_col.r < 0.0f || pre_range_col.g < 0.0f || pre_range_col.b < 0.0f || pre_range_col.a < 0.0f)
+		{
+		   color_out = vec4(0, 0, 1, 1);
+		   return;
+		}
+		
+		col = vec4(vec3(dot(col.xyz, vec3(0.2126, 0.7152, 0.0722))), 1);
+	}
+	else if((texdisplay.OutputDisplayFormat & TEXDISPLAY_CLIPPING) > 0)
+	{
+		if(col.r < 0.0f || col.g < 0.0f || col.b < 0.0f || col.a < 0.0f)
+		{
+		   color_out = vec4(1, 0, 0, 1);
+		   return;
+		}
+
+		if(col.r > (1.0f+FLT_EPSILON) || col.g > (1.0f+FLT_EPSILON) || col.b > (1.0f+FLT_EPSILON) || col.a > (1.0f+FLT_EPSILON))
+		{
+		   color_out = vec4(0, 1, 0, 1);
+		   return;
+		}
+		
+		col = vec4(vec3(dot(col.xyz, vec3(0.2126, 0.7152, 0.0722))), 1);
+	}
+	else
 	{
 		// if only one channel is selected
-		if(dot(Channels, 1.0f.xxxx) == 1.0f.xxxx)
+		if(dot(texdisplay.Channels, vec4(1.0f)) == 1.0f)
 		{
 			// if it's alpha, just move it into rgb
 			// otherwise, select the channel that's on and replicate it across all channels
-			if(Channels.a == 1)
+			if(texdisplay.Channels.a == 1.0f)
 				col = vec4(col.aaa, 1);
 			else
-				col = vec4(dot(col.rgb, 1.0f.xxx).xxx, 1.0f);
+				col = vec4(vec3(dot(col.rgb, vec3(1.0f))), 1.0f);
 		}
 	}
-
-	// TODO: Check OutputDisplayFormat for SRGB handling
-	// TODO: Figure out SRGB in opengl at all :)
+	
+	if((texdisplay.OutputDisplayFormat & TEXDISPLAY_GAMMA_CURVE) > 0)
+	{
+		col.rgb = vec3(ConvertSRGBToLinear(col.r), ConvertSRGBToLinear(col.g), ConvertSRGBToLinear(col.b));
+	}
 
 	color_out = col;
 }

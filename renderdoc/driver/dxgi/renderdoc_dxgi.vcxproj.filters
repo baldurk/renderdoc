@@ -1,0 +1,57 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="dxgi_hooks.cpp">
+      <Filter>Hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="dxgi_wrapped.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="dxgi_common.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\dx\official\dxgi.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\dxgi1_2.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\dxgi1_3.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\dxgi1_4.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\dxgi1_5.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\dxgiformat.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\dxgitype.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="dxgi_wrapped.h">
+      <Filter>Wrapped</Filter>
+    </ClInclude>
+    <ClInclude Include="dxgi_common.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="official">
+      <UniqueIdentifier>{285b6e05-2a6b-4161-9d67-e24933eebb28}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Util">
+      <UniqueIdentifier>{3f3ebf0f-cc7d-47c0-b114-a519e439e6fb}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooks">
+      <UniqueIdentifier>{d6e37369-52fe-45c1-b4c4-9f97a0886fde}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wrapped">
+      <UniqueIdentifier>{846e54d9-08da-4d5a-aac1-250f6be13e33}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

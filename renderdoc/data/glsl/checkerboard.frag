@@ -1,7 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
- * Copyright (c) 2014 Crytek
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,29 +22,27 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#version 420 core
-
 layout (location = 0) out vec4 color_out;
 
-layout (binding = 0, std140) uniform checker
+layout (binding = 0, std140) uniform checkeruniforms
 {
     vec4 lightCol;
     vec4 darkCol;
-};
+} checker;
 
 void main(void)
 {
-	vec2 ab = mod(gl_FragCoord.xy, 128.0f.xx);
+	vec2 ab = mod(gl_FragCoord.xy, vec2(128.0f));
 
 	if(
-		(ab.x < 64 && ab.y < 64) ||
-		(ab.x > 64 && ab.y > 64)
+		(ab.x < 64.0f && ab.y < 64.0f) ||
+		(ab.x > 64.0f && ab.y > 64.0f)
 		)
 	{
-		color_out = vec4(sqrt(lightCol.rgb), 1);
+		color_out = vec4(checker.darkCol.rgb*checker.darkCol.rgb, 1);
 	}
 	else
 	{
-		color_out = vec4(sqrt(darkCol.rgb), 1);
+		color_out = vec4(checker.lightCol.rgb*checker.lightCol.rgb, 1);
 	}
 }

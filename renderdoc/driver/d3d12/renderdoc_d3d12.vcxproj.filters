@@ -1,0 +1,100 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="official">
+      <UniqueIdentifier>{069c5202-e850-427b-9353-250795a60436}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooks">
+      <UniqueIdentifier>{289782b2-c6ba-41f5-b33d-762f96c89f3c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Util">
+      <UniqueIdentifier>{7babebac-14e5-49cf-ad9e-7fec2beeb335}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core IFaces">
+      <UniqueIdentifier>{9064cb3c-1739-4405-8bea-11c5e2feb512}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wrapped">
+      <UniqueIdentifier>{b66407e3-297a-4a8d-bdae-09468c64ca18}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Replay">
+      <UniqueIdentifier>{97a405db-4782-4c62-b6c1-ca6a398c6a60}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\dx\official\d3d12.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\d3d12sdklayers.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12_common.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12_device.h">
+      <Filter>Core IFaces</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12_manager.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12_resources.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12_command_list.h">
+      <Filter>Core IFaces</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12_command_queue.h">
+      <Filter>Core IFaces</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12_replay.h">
+      <Filter>Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12_debug.h">
+      <Filter>Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12_commands.h">
+      <Filter>Core IFaces</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d12_state.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="d3d12_common.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_hooks.cpp">
+      <Filter>Hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_device.cpp">
+      <Filter>Core IFaces</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_manager.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_device_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_resources.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_command_queue_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_command_list_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_commands.cpp">
+      <Filter>Core IFaces</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_replay.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_debug.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_state.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d12_counters.cpp" />
+  </ItemGroup>
+</Project>

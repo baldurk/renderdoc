@@ -1,4 +1,3 @@
-LIBRARY   RENDERDOC
 EXPORTS
    DllGetClassObject PRIVATE
    DllCanUnloadNow PRIVATE

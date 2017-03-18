@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -204,8 +205,8 @@ namespace renderdocui.Controls
                                     (m_Core.CurTextures[i].creationFlags & TextureCreationFlags.DSV) > 0));
                 include |= (Texs && (m_Core.CurTextures[i].creationFlags & TextureCreationFlags.RTV) == 0 &&
                                     (m_Core.CurTextures[i].creationFlags & TextureCreationFlags.DSV) == 0);
-                include |= (filter != "" && (m_Core.CurTextures[i].name.ToLowerInvariant().Contains(filter.ToLowerInvariant())));
-                include |= (!RTs && !Texs && filter == "");
+                include |= (filter.Length > 0 && (m_Core.CurTextures[i].name.ToUpperInvariant().Contains(filter.ToUpperInvariant())));
+                include |= (!RTs && !Texs && filter.Length == 0);
 
                 if (include)
                 {

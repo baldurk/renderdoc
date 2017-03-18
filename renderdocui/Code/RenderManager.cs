@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -51,7 +52,9 @@ namespace renderdocui.Code
             }
 
             public InvokeMethod method;
+            public bool paintInvoke = false;
             volatile public bool processed;
+            public Exception ex = null;
         };
 
         ////////////////////////////////////////////
@@ -59,12 +62,13 @@ namespace renderdocui.Code
 
         private AutoResetEvent m_WakeupEvent = new AutoResetEvent(false);
         private Thread m_Thread;
-        private int m_ProxyRenderer = -1;
-        private string m_ReplayHost;
         private string m_Logfile;
         private bool m_Running;
+        private RemoteHost m_RemoteHost = null;
+        private RemoteServer m_Remote = null;
 
         private List<InvokeHandle> m_renderQueue;
+        private InvokeHandle m_current = null;
 
         ////////////////////////////////////////////
         // Interface
@@ -76,24 +80,255 @@ namespace renderdocui.Code
             m_renderQueue = new List<InvokeHandle>();
         }
 
-        public void Init(int proxyRenderer, string replayHost, string logfile)
+        public void OpenCapture(string logfile)
         {
             if(Running)
                 return;
 
-            m_ProxyRenderer = proxyRenderer;
-            m_ReplayHost = replayHost;
             m_Logfile = logfile;
 
             LoadProgress = 0.0f;
 
             InitException = null;
 
-            m_Thread = new Thread(new ThreadStart(this.RunThread));
+            m_Thread = Helpers.NewThread(new ThreadStart(this.RunThread));
             m_Thread.Priority = ThreadPriority.Highest;
             m_Thread.Start();
 
             while (m_Thread.IsAlive && !Running) ;
+        }
+
+        public UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, EnvironmentModification[] env, string logfile, CaptureOptions opts)
+        {
+            if (m_Remote == null)
+            {
+                return StaticExports.ExecuteAndInject(app, workingDir, cmdLine, env, logfile, opts);
+            }
+            else
+            {
+                UInt32 ret = 0;
+
+                lock (m_Remote)
+                {
+                    ret = m_Remote.ExecuteAndInject(app, workingDir, cmdLine, env, opts);
+                }
+
+                return ret;
+            }
+        }
+
+        public void DeleteCapture(string logfile, bool local)
+        {
+            if (Running)
+            {
+                BeginInvoke((ReplayRenderer r) => { DeleteCapture(logfile, local); });
+                return;
+            }
+
+            if (local)
+            {
+                try
+                {
+                    System.IO.File.Delete(logfile);
+                }
+                catch (Exception)
+                {
+                }
+            }
+            else
+            {
+                // this will be cleaned up automatically when the remote connection
+                // is closed.
+                if (m_Remote != null)
+                    m_Remote.TakeOwnershipCapture(logfile);
+            }
+        }
+
+        public string[] GetRemoteSupport()
+        {
+            string[] ret = new string[0];
+
+            if (m_Remote != null && !Running)
+            {
+                lock (m_Remote)
+                {
+                    ret = m_Remote.RemoteSupportedReplays();
+                }
+            }
+
+            return ret;
+        }
+
+        public delegate void DirectoryBrowseMethod(string path, DirectoryFile[] contents);
+
+        public void GetHomeFolder(DirectoryBrowseMethod cb)
+        {
+            if (m_Remote != null)
+            {
+                if (Running && m_Thread != Thread.CurrentThread)
+                {
+                    BeginInvoke((ReplayRenderer r) => { cb(m_Remote.GetHomeFolder(), null); });
+                    return;
+                }
+
+                string home = "";
+
+                // prevent pings while fetching remote FS data
+                lock (m_Remote)
+                {
+                    home = m_Remote.GetHomeFolder();
+                }
+
+                cb(home, null);
+            }
+        }
+
+        public bool ListFolder(string path, DirectoryBrowseMethod cb)
+        {
+            if (m_Remote != null)
+            {
+                if (Running && m_Thread != Thread.CurrentThread)
+                {
+                    BeginInvoke((ReplayRenderer r) => { cb(path, m_Remote.ListFolder(path)); });
+                    return true;
+                }
+
+                DirectoryFile[] contents = new DirectoryFile[0];
+
+                // prevent pings while fetching remote FS data
+                lock(m_Remote)
+                {
+                    contents = m_Remote.ListFolder(path);
+                }
+
+                cb(path, contents);
+
+                return true;
+            }
+
+            return false;
+        }
+
+        public string CopyCaptureToRemote(string localpath, Form window)
+        {
+            if (m_Remote != null)
+            {
+                bool copied = false;
+                float progress = 0.0f;
+
+                renderdocui.Windows.ProgressPopup modal =
+                    new renderdocui.Windows.ProgressPopup(
+                        (renderdocui.Windows.ModalCloseCallback)(() => { return copied; }),
+                        true);
+                modal.SetModalText("Transferring...");
+
+                Thread progressThread = Helpers.NewThread(new ThreadStart(() =>
+                {
+                    modal.LogfileProgressBegin();
+
+                    while (!copied)
+                    {
+                        Thread.Sleep(2);
+
+                        modal.LogfileProgress(progress);
+                    }
+                }));
+                progressThread.Start();
+
+                string remotepath = "";
+
+                // we should never have the thread running at this point, but let's be safe.
+                if (Running)
+                {
+                    BeginInvoke((ReplayRenderer r) =>
+                    {
+                        remotepath = m_Remote.CopyCaptureToRemote(localpath, ref progress);
+
+                        copied = true;
+                    });
+                }
+                else
+                {
+                    Helpers.NewThread(new ThreadStart(() =>
+                    {
+                        // prevent pings while copying off-thread
+                        lock (m_Remote)
+                        {
+                            remotepath = m_Remote.CopyCaptureToRemote(localpath, ref progress);
+                        }
+
+                        copied = true;
+                    })).Start();
+                }
+
+                modal.ShowDialog(window);
+
+                return remotepath;
+            }
+
+            // if we don't have a remote connection we can't copy
+            throw new ApplicationException();
+        }
+
+        public void CopyCaptureFromRemote(string remotepath, string localpath, Form window)
+        {
+            if (m_Remote != null)
+            {
+                bool copied = false;
+                float progress = 0.0f;
+
+                renderdocui.Windows.ProgressPopup modal =
+                    new renderdocui.Windows.ProgressPopup(
+                        (renderdocui.Windows.ModalCloseCallback)(() => { return copied; }),
+                        true);
+                modal.SetModalText("Transferring...");
+
+                Thread progressThread = Helpers.NewThread(new ThreadStart(() =>
+                {
+                    modal.LogfileProgressBegin();
+
+                    while (!copied)
+                    {
+                        Thread.Sleep(2);
+
+                        modal.LogfileProgress(progress);
+                    }
+                }));
+                progressThread.Start();
+
+                if (Running)
+                {
+                    BeginInvoke((ReplayRenderer r) =>
+                    {
+                        m_Remote.CopyCaptureFromRemote(remotepath, localpath, ref progress);
+
+                        copied = true;
+                    });
+                }
+                else
+                {
+                    Helpers.NewThread(new ThreadStart(() =>
+                    {
+                        // prevent pings while copying off-thread
+                        lock (m_Remote)
+                        {
+                            m_Remote.CopyCaptureFromRemote(remotepath, localpath, ref progress);
+                        }
+
+                        copied = true;
+                    })).Start();
+                }
+
+                modal.ShowDialog(window);
+
+                // if the copy didn't succeed, throw
+                if (!System.IO.File.Exists(localpath))
+                    throw new System.IO.FileNotFoundException("File couldn't be transferred from remote host", remotepath);
+            }
+            else
+            {
+                System.IO.File.Copy(remotepath, localpath, true);
+            }
         }
 
         public bool Running
@@ -102,16 +337,91 @@ namespace renderdocui.Code
             set { m_Running = value; m_WakeupEvent.Set(); }
         }
 
-        public ApplicationException InitException = null;
+        public RemoteHost Remote
+        {
+            get { return m_RemoteHost; }
+        }
+
+        public void ConnectToRemoteServer(RemoteHost host)
+        {
+            InitException = null;
+
+            try
+            {
+                m_Remote = StaticExports.CreateRemoteServer(host.Hostname, 0);
+                m_RemoteHost = host;
+                m_RemoteHost.Connected = true;
+            }
+            catch (ReplayCreateException ex)
+            {
+                InitException = ex;
+            }
+        }
+
+        public void DisconnectFromRemoteServer()
+        {
+            if (m_RemoteHost != null)
+                m_RemoteHost.Connected = false;
+
+            if (m_Remote != null)
+                m_Remote.ShutdownConnection();
+
+            m_RemoteHost = null;
+            m_Remote = null;
+        }
+
+        public void ShutdownServer()
+        {
+            if(m_Remote != null)
+                m_Remote.ShutdownServerAndConnection();
+
+            m_Remote = null;
+        }
+
+        public void PingRemote()
+        {
+            if (m_Remote == null)
+                return;
+
+            if (Monitor.TryEnter(m_Remote))
+            {
+                try
+                {
+                    // must only happen on render thread if running
+                    if ((!Running || m_Thread == Thread.CurrentThread) && m_Remote != null)
+                    {
+                        if (!m_Remote.Ping())
+                            m_RemoteHost.ServerRunning = false;
+                    }
+                }
+                finally
+                {
+                    Monitor.Exit(m_Remote);
+                }
+            }
+        }
+
+        public ReplayCreateException InitException = null;
 
         public void CloseThreadSync()
         {
             Running = false;
 
-            while (m_Thread != null && m_Thread.IsAlive) ; 
+            while (m_Thread != null && m_Thread.IsAlive) ;
+
+            m_renderQueue = new List<InvokeHandle>();
+            m_current = null;
         }
 
         public float LoadProgress;
+
+        [ThreadStatic]
+        private bool CatchExceptions = false;
+
+        public void SetExceptionCatching(bool catching)
+        {
+            CatchExceptions = catching;
+        }
 
         public void BeginInvoke(InvokeMethod m)
         {
@@ -127,6 +437,54 @@ namespace renderdocui.Code
             PushInvoke(cmd);
 
             while (!cmd.processed) ;
+
+            if (cmd.ex != null)
+                throw cmd.ex;
+        }
+
+        public void InvokeForPaint(InvokeMethod m)
+        {
+            if (m_Thread == null || !Running)
+                return;
+
+            // special logic for painting invokes. Normally we want these to
+            // go off immediately, but if we have a remote connection active
+            // there could be slow operations on the pipe or currently being
+            // processed.
+            // So we check to see if the paint is likely to finish soon
+            // (0, or only other paint invokes on the queue, nothing active)
+            // and if so do it synchronously. Otherwise we just append to the
+            // queue and return immediately.
+
+            bool waitable = true;
+
+            InvokeHandle cmd = new InvokeHandle(m);
+            cmd.paintInvoke = true;
+
+            lock (m_renderQueue)
+            {
+                InvokeHandle current = m_current;
+
+                if (current != null && !current.paintInvoke)
+                    waitable = false;
+
+                // any non-painting commands on the queue? can't wait
+                for (int i = 0; waitable && i < m_renderQueue.Count; i++)
+                    if (!m_renderQueue[i].paintInvoke)
+                        waitable = false;
+
+                m_renderQueue.Add(cmd);
+            }
+
+            m_WakeupEvent.Set();
+
+            if (!waitable)
+                return;
+
+            while (!cmd.processed) ;
+
+            if (cmd.ex != null)
+                throw cmd.ex;
         }
 
         private void PushInvoke(InvokeHandle cmd)
@@ -137,84 +495,84 @@ namespace renderdocui.Code
                 return;
             }
 
-            m_WakeupEvent.Set();
-
             lock (m_renderQueue)
             {
                 m_renderQueue.Add(cmd);
             }
+
+            m_WakeupEvent.Set();
         }
 
         ////////////////////////////////////////////
         // Internals
 
-        private void CreateReplayRenderer(ref ReplayRenderer renderer, ref RemoteRenderer remote)
+        private ReplayRenderer CreateReplayRenderer()
         {
-            if (m_ProxyRenderer < 0)
-            {
-                renderer = StaticExports.CreateReplayRenderer(m_Logfile, ref LoadProgress);
-                return;
-            }
+            if (m_Remote != null)
+                return m_Remote.OpenCapture(-1, m_Logfile, ref LoadProgress);
+            else
+                return StaticExports.CreateReplayRenderer(m_Logfile, ref LoadProgress);
+        }
 
-            remote = StaticExports.CreateRemoteReplayConnection(m_ReplayHost);
-
-            if(remote == null)
-            {
-                var e = new System.ApplicationException("Failed to connect to remote replay host");
-                e.Data.Add("status", ReplayCreateStatus.UnknownError);
-                throw e;
-            }
-
-			renderer = remote.CreateProxyRenderer(m_ProxyRenderer, m_Logfile, ref LoadProgress);
-
-            if(renderer == null)
-            {
-                remote.Shutdown();
-
-                var e = new System.ApplicationException("Failed to connect to remote replay host");
-                e.Data.Add("status", ReplayCreateStatus.UnknownError);
-                throw e;
-            }
+        private void DestroyReplayRenderer(ReplayRenderer renderer)
+        {
+            if (m_Remote != null)
+                m_Remote.CloseCapture(renderer);
+            else
+                renderer.Shutdown();
         }
 
         private void RunThread()
         {
             try
             {
-                ReplayRenderer renderer = null;
-                RemoteRenderer remote = null;
-                CreateReplayRenderer(ref renderer, ref remote);
+                ReplayRenderer renderer = CreateReplayRenderer();
                 if(renderer != null)
                 {
                     System.Diagnostics.Debug.WriteLine("Renderer created");
-
-                    DateTime prevTime = DateTime.Now;
-
+                    
                     Running = true;
+
+                    m_current = null;
 
                     while (Running)
                     {
-                        DateTime curTime = DateTime.Now;
-                        long msPassed = (curTime.Ticks - prevTime.Ticks) / TimeSpan.TicksPerMillisecond;
-
-                        List<InvokeHandle> queue = new List<InvokeHandle>();
                         lock (m_renderQueue)
                         {
-                            foreach (var cmd in m_renderQueue)
-                                queue.Add(cmd);
-
-                            m_renderQueue.Clear();
+                            if (m_renderQueue.Count > 0)
+                            {
+                                m_current = m_renderQueue[0];
+                                m_renderQueue.RemoveAt(0);
+                            }
                         }
 
-                        foreach (var cmd in queue)
+                        if(m_current == null)
                         {
-                            if (cmd.method != null)
-                                cmd.method(renderer);
-
-                            cmd.processed = true;
+                            m_WakeupEvent.WaitOne(10);
+                            continue;
                         }
 
-                        m_WakeupEvent.WaitOne(10);
+                        if (m_current.method != null)
+                        {
+                            if (CatchExceptions)
+                            {
+                                try
+                                {
+                                    m_current.method(renderer);
+                                }
+                                catch (Exception ex)
+                                {
+                                    m_current.ex = ex;
+                                }
+                            }
+                            else
+                            {
+                                m_current.method(renderer);
+                            }
+                        }
+
+                        m_current.processed = true;
+                        m_current = null;
                     }
 
                     lock (m_renderQueue)
@@ -225,11 +583,10 @@ namespace renderdocui.Code
                         m_renderQueue.Clear();
                     }
 
-                    renderer.Shutdown();
-                    if (remote != null) remote.Shutdown();
+                    DestroyReplayRenderer(renderer);
                 }
             }
-            catch (ApplicationException ex)
+            catch (ReplayCreateException ex)
             {
                 InitException = ex;
             }

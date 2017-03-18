@@ -1,18 +1,19 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,658 +23,797 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
-#include <winsock2.h>
-#include <Ws2tcpip.h>
-#include <windows.h>
-#include <tchar.h>
+#include "renderdoccmd.h"
+#include <app/renderdoc_app.h>
+#include <replay/renderdoc_replay.h>
 #include <string>
-#include <vector>
-
-#include <renderdoc.h>
-
-#include "resource.h"
-
-// breakpad
-#include "common/windows/http_upload.h"
-#include "client/windows/crash_generation/client_info.h"
-#include "client/windows/crash_generation/crash_generation_server.h"
-
-#include "miniz.h"
 
 using std::string;
 using std::wstring;
-using std::vector;
-using google_breakpad::ClientInfo;
-using google_breakpad::CrashGenerationServer;
 
-bool exitServer = false;
+bool usingKillSignal = false;
+volatile uint32_t killSignal = false;
 
-static HINSTANCE CrashHandlerInst = 0;
-static HWND CrashHandlerWnd = 0;
-
-bool uploadReport = false;
-bool uploadDump = false;
-bool uploadLog = false;
-string reproSteps = "";
-
-wstring dump = L"";
-vector<google_breakpad::CustomInfoEntry> customInfo;
-wstring logpath = L"";
-
-
-INT_PTR CALLBACK CrashHandlerProc(HWND hDlg, UINT message, WPARAM wParam, LPARAM lParam)
+void readCapOpts(const std::string &str, CaptureOptions *opts)
 {
-	switch (message)
-	{
-		case WM_INITDIALOG:
-		{
-			HANDLE hIcon = LoadImage(CrashHandlerInst, MAKEINTRESOURCE(IDI_ICON), IMAGE_ICON, 16, 16, 0);
+  if(str.length() < sizeof(CaptureOptions))
+    return;
 
-			if(hIcon)
-			{
-				SendMessage(hDlg, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
-				SendMessage(hDlg, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
-			}
-
-			SetDlgItemTextW(hDlg, IDC_WELCOMETEXT,
-				L"RenderDoc has encountered an unhandled exception or other similar unrecoverable error.\n\n" \
-				L"If you had captured but not saved a logfile it should still be available in %TEMP% and will not be deleted," \
-				L"you can try loading it again.\n\n" \
-				L"A minidump has been created and the RenderDoc diagnostic log (NOT any capture logfile) is available if you would like " \
-				L"to send them back to be analysed. The path for both is found below if you would like to inspect their contents and censor as appropriate.\n\n" \
-				L"Neither contains any significant private information, the minidump has some internal states and local memory at the time of the " \
-				L"crash & thread stacks, etc. The diagnostic log contains diagnostic messages like warnings and errors.\n\n" \
-				L"The only other information sent is the version of RenderDoc, C# exception callstack, and any notes you include.\n\n" \
-				L"Any repro steps or notes would be helpful to include with the report. If you'd like to be contacted about the bug " \
-				L"e.g. for updates about its status just include your email & name. Thank you!\n\n" \
-				L"Baldur (renderdoc@crytek.com)");
-
-			SetDlgItemTextW(hDlg, IDC_DUMPPATH, dump.c_str());
-			SetDlgItemTextW(hDlg, IDC_LOGPATH, logpath.c_str());
-
-			CheckDlgButton(hDlg, IDC_SENDDUMP, BST_CHECKED);
-			CheckDlgButton(hDlg, IDC_SENDLOG, BST_CHECKED);
-		}
-
-		case WM_SHOWWINDOW:
-		{
-
-			{
-				RECT r;
-				GetClientRect(hDlg, &r);
-
-				int xPos = (GetSystemMetrics(SM_CXSCREEN) - r.right)/2;
-				int yPos = (GetSystemMetrics(SM_CYSCREEN) - r.bottom)/2;
-
-				SetWindowPos(hDlg, NULL, xPos, yPos, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
-			}
-
-			return (INT_PTR)TRUE;
-		}
-
-		case WM_COMMAND:
-		{
-			int ID = LOWORD(wParam);
-
-			if(ID == IDC_DONTSEND)
-			{
-				EndDialog(hDlg, 0);
-				return (INT_PTR)TRUE;
-			}
-			else if(ID == IDC_SEND)
-			{
-				uploadReport = true;
-				uploadDump = (IsDlgButtonChecked(hDlg, IDC_SENDDUMP) != 0);
-				uploadLog = (IsDlgButtonChecked(hDlg, IDC_SENDLOG) != 0);
-
-				char notes[4097] = {0};
-				
-				GetDlgItemTextA(hDlg, IDC_NAME, notes, 4096);
-				notes[4096] = 0;
-
-				reproSteps = "Name: ";
-				reproSteps += notes;
-				reproSteps += "\n";
-
-				memset(notes, 0, 4096);
-				GetDlgItemTextA(hDlg, IDC_EMAIL, notes, 4096);
-				notes[4096] = 0;
-
-				reproSteps += "Email: ";
-				reproSteps += notes;
-				reproSteps += "\n\n";
-				
-				memset(notes, 0, 4096);
-				GetDlgItemTextA(hDlg, IDC_REPRO, notes, 4096);
-				notes[4096] = 0;
-
-				reproSteps += notes;
-
-				EndDialog(hDlg, 0);
-				return (INT_PTR)TRUE;
-			}
-		}
-		break;
-		
-		case WM_QUIT:
-		case WM_DESTROY:
-		case WM_CLOSE:
-		{
-			EndDialog(hDlg, 0);
-			return (INT_PTR)TRUE;
-		}
-	    break;
-	}
-	return (INT_PTR)FALSE;
+  // serialise from string with two chars per byte
+  byte *b = (byte *)opts;
+  for(size_t i = 0; i < sizeof(CaptureOptions); i++)
+    *(b++) = (byte(str[i * 2 + 0] - 'a') << 4) | byte(str[i * 2 + 1] - 'a');
 }
 
-static void _cdecl OnClientCrashed(void* context, const ClientInfo* client_info, const wstring* dump_path)
+void DisplayRendererPreview(IReplayRenderer *renderer, uint32_t width, uint32_t height)
 {
-	if(dump_path)
-	{
-		dump = *dump_path;
+  if(renderer == NULL)
+    return;
 
-		google_breakpad::CustomClientInfo custom = client_info->GetCustomInfo();
+  rdctype::array<FetchTexture> texs;
+  ReplayRenderer_GetTextures(renderer, &texs);
 
-		for(size_t i=0; i < custom.count; i++)
-			customInfo.push_back(custom.entries[i]);
-	}
+  TextureDisplay d;
+  d.mip = 0;
+  d.sampleIdx = ~0U;
+  d.overlay = eTexOverlay_None;
+  d.typeHint = eCompType_None;
+  d.CustomShader = ResourceId();
+  d.HDRMul = -1.0f;
+  d.linearDisplayAsGamma = true;
+  d.FlipY = false;
+  d.rangemin = 0.0f;
+  d.rangemax = 1.0f;
+  d.scale = 1.0f;
+  d.offx = 0.0f;
+  d.offy = 0.0f;
+  d.sliceFace = 0;
+  d.rawoutput = false;
+  d.lightBackgroundColour = FloatVector(0.81f, 0.81f, 0.81f, 1.0f);
+  d.darkBackgroundColour = FloatVector(0.57f, 0.57f, 0.57f, 1.0f);
+  d.Red = d.Green = d.Blue = true;
+  d.Alpha = false;
 
-	exitServer = true;
+  for(int32_t i = 0; i < texs.count; i++)
+  {
+    if(texs[i].creationFlags & eTextureCreate_SwapBuffer)
+    {
+      d.texid = texs[i].ID;
+      break;
+    }
+  }
+
+  rdctype::array<FetchDrawcall> draws;
+  renderer->GetDrawcalls(&draws);
+
+  if(draws.count > 0 && draws[draws.count - 1].flags & eDraw_Present)
+  {
+    ResourceId id = draws[draws.count - 1].copyDestination;
+    if(id != ResourceId())
+      d.texid = id;
+  }
+
+  DisplayRendererPreview(renderer, d, width, height);
 }
 
-static void _cdecl OnClientExited(void* context, const ClientInfo* client_info)
+std::map<std::string, Command *> commands;
+std::map<std::string, std::string> aliases;
+
+void add_command(const std::string &name, Command *cmd)
 {
-	exitServer = true;
+  commands[name] = cmd;
 }
 
-LRESULT CALLBACK WndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
+void add_alias(const std::string &alias, const std::string &command)
 {
-	if(msg == WM_CLOSE)   { DestroyWindow(hwnd); return 0; }
-	if(msg == WM_DESTROY) { PostQuitMessage(0);  return 0; }
-    return DefWindowProc(hwnd, msg, wParam, lParam);
+  aliases[alias] = command;
 }
 
-void DisplayRendererPreview(ReplayRenderer *renderer, HINSTANCE hInstance)
+static void clean_up()
 {
-	if(renderer == NULL) return;
-
-	HWND wnd = 0;
-
-	wnd = CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdoccmd", L"renderdoccmd", WS_OVERLAPPEDWINDOW,
-		CW_USEDEFAULT, CW_USEDEFAULT, 1280, 720,
-		NULL, NULL, hInstance, NULL);
-
-	if(wnd == NULL)
-	{
-		return;
-	}
-
-	ShowWindow(wnd, SW_SHOW);
-	UpdateWindow(wnd);
-
-	rdctype::array<FetchTexture> texs;
-	ReplayRenderer_GetTextures(renderer, &texs);
-
-	ReplayOutput *out = ReplayRenderer_CreateOutput(renderer, wnd);
-
-	ReplayRenderer_SetFrameEvent(renderer, 0, 10000000);
-
-	OutputConfig c;
-	c.m_Type = eOutputType_TexDisplay;
-
-	ReplayOutput_SetOutputConfig(out, c);
-
-	for(int32_t i=0; i < texs.count; i++)
-	{
-		wstring name(texs[i].name.elems, texs[i].name.elems+texs[i].name.count);
-		if(name.find(L"Swap") != wstring::npos)
-		{
-			TextureDisplay d;
-			d.texid = texs[i].ID;
-			d.mip = 0;
-			d.overlay = eTexOverlay_None;
-			d.CustomShader = ResourceId();
-			d.HDRMul = -1.0f;
-			d.rangemin = 0.0f;
-			d.rangemax = 1.0f;
-			d.scale = 1.0f;
-			d.offx = 0.0f;
-			d.offy = 0.0f;
-			d.sliceFace = 0;
-			d.rawoutput = false;
-			d.Red = d.Green = d.Blue = true;
-			d.Alpha = false;
-
-			ReplayOutput_SetTextureDisplay(out, d);
-
-			break;
-		}
-	}
-
-	MSG msg;
-	ZeroMemory(&msg, sizeof(msg));
-	while(true)
-	{
-		// Check to see if any messages are waiting in the queue
-		while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-		{
-			// Translate the message and dispatch it to WindowProc()
-			TranslateMessage(&msg);
-			DispatchMessage(&msg);
-		}
-
-		// If the message is WM_QUIT, exit the while loop
-		if(msg.message == WM_QUIT)
-			break;
-
-		ReplayRenderer_SetFrameEvent(renderer, 0, 10000000+rand()%1000);
-
-		ReplayOutput_SetOutputConfig(out, c);
-
-		ReplayOutput_Display(out);
-
-		Sleep(40);
-	}
+  for(auto it = commands.begin(); it != commands.end(); ++it)
+    delete it->second;
 }
 
-int WINAPI wWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPWSTR lpCmdLine, int nShowCmd )
+static int command_usage(std::string command = "")
 {
-    LPWSTR *argv;
-    int argc;
- 
-	argv = CommandLineToArgvW(GetCommandLine(), &argc);
-
-	WNDCLASSEX wc;
-	wc.cbSize        = sizeof(WNDCLASSEX);
-	wc.style         = 0;
-	wc.lpfnWndProc   = WndProc;
-	wc.cbClsExtra    = 0;
-	wc.cbWndExtra    = 0;
-	wc.hInstance     = hInstance;
-	wc.hIcon         = LoadIcon(NULL, MAKEINTRESOURCE(IDI_ICON));
-	wc.hCursor       = LoadCursor(NULL, IDC_ARROW);
-	wc.hbrBackground = (HBRUSH)(COLOR_WINDOW+1);
-	wc.lpszMenuName  = NULL;
-	wc.lpszClassName = L"renderdoccmd";
-	wc.hIconSm       = LoadIcon(NULL, MAKEINTRESOURCE(IDI_ICON));
-
-	if(!RegisterClassEx(&wc))
-	{
-		return 1;
-	}
-	
-	CrashGenerationServer *crashServer = NULL;
-
-	if(argc == 2 && !_wcsicmp(argv[1], L"crashhandle"))
-	{
-		wchar_t tempPath[MAX_PATH] = {0};
-		GetTempPathW(MAX_PATH-1, tempPath);
-
-		Sleep(100);
-
-		wstring dumpFolder = tempPath;
-		dumpFolder += L"RenderDocDumps";
-
-		CreateDirectoryW(dumpFolder.c_str(), NULL);
-
-		crashServer = new CrashGenerationServer(L"\\\\.\\pipe\\RenderDocBreakpadServer",
-												NULL, NULL, NULL, OnClientCrashed, NULL,
-												OnClientExited, NULL, NULL, NULL, true,
-												&dumpFolder);
-
-		if (!crashServer->Start()) {
-			delete crashServer;
-			crashServer = NULL;
-			return 1;
-		}
-
-		CrashHandlerInst = hInstance;
-		
-		CrashHandlerWnd = CreateWindowEx(WS_EX_CLIENTEDGE, L"renderdoccmd", L"renderdoccmd", WS_OVERLAPPEDWINDOW,
-			CW_USEDEFAULT, CW_USEDEFAULT, 10, 10,
-			NULL, NULL, hInstance, NULL);
-
-		HANDLE hIcon = LoadImage(CrashHandlerInst, MAKEINTRESOURCE(IDI_ICON), IMAGE_ICON, 16, 16, 0);
-
-		if(hIcon)
-		{
-			SendMessage(CrashHandlerWnd, WM_SETICON, ICON_SMALL, (LPARAM)hIcon);
-			SendMessage(CrashHandlerWnd, WM_SETICON, ICON_BIG, (LPARAM)hIcon);
-		}
-
-		ShowWindow(CrashHandlerWnd, SW_HIDE);
-		
-		HANDLE readyEvent = CreateEventA(NULL, TRUE, FALSE, "RENDERDOC_CRASHHANDLE");
-
-		if(readyEvent != NULL)
-		{
-			SetEvent(readyEvent);
-
-			CloseHandle(readyEvent);
-		}
-
-		MSG msg;
-		ZeroMemory(&msg, sizeof(msg));
-		while(!exitServer)
-		{
-			// Check to see if any messages are waiting in the queue
-			while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE))
-			{
-				// Translate the message and dispatch it to WindowProc()
-				TranslateMessage(&msg);
-				DispatchMessage(&msg);
-			}
-
-			// If the message is WM_QUIT, exit the while loop
-			if(msg.message == WM_QUIT)
-				break;
-			
-			Sleep(100);
-		}
-		
-		delete crashServer;
-		crashServer = NULL;
-
-		if(!dump.empty())
-		{
-			logpath = L"";
-
-			string report = "";
-
-			for(size_t i=0; i < customInfo.size(); i++)
-			{
-				wstring name = customInfo[i].name;
-				wstring val = customInfo[i].value;
-
-				if(name == L"logpath")
-				{
-					logpath = val;
-				}
-				else if(name == L"ptime")
-				{
-					// breakpad uptime, ignore.
-				}
-				else
-				{
-					report += string(name.begin(), name.end()) + ": " + string(val.begin(), val.end()) + "\n";
-				}
-			}
-
-			DialogBox(CrashHandlerInst, MAKEINTRESOURCE(IDD_CRASH_HANDLER), CrashHandlerWnd, (DLGPROC)CrashHandlerProc);
-			
-			report += "\n\nRepro steps/Notes:\n\n" + reproSteps;
-
-			{
-				FILE *f = NULL;
-				_wfopen_s(&f, logpath.c_str(), L"r");
-				if(f)
-				{
-					fseek(f, 0, SEEK_END);
-					long filesize = ftell(f);
-					fseek(f, 0, SEEK_SET);
-
-					if(filesize > 10)
-					{
-						char *error_log = new char[filesize+1];
-						memset(error_log, 0, filesize+1);
-
-						fread(error_log, 1, filesize, f);
-
-						char *managed_callstack = strstr(error_log, "--- Begin C# Exception Data ---");
-						if(managed_callstack)
-						{
-							report += managed_callstack;
-							report += "\n\n";
-						}
-
-						delete[] error_log;
-					}
-					
-					fclose(f);
-				}
-			}
-
-			if(uploadReport)
-			{
-				mz_zip_archive zip;
-				ZeroMemory(&zip, sizeof(zip));
-
-				wstring destzip = dumpFolder + L"\\report.zip";
-
-				DeleteFileW(destzip.c_str());
-
-				mz_zip_writer_init_wfile(&zip, destzip.c_str(), 0);
-				mz_zip_writer_add_mem(&zip, "report.txt", report.c_str(), report.length(), MZ_BEST_COMPRESSION);
-
-				if(uploadDump && !dump.empty())
-					mz_zip_writer_add_wfile(&zip, "minidump.dmp", dump.c_str(), NULL, 0, MZ_BEST_COMPRESSION);
-
-				if(uploadLog && !logpath.empty())
-					mz_zip_writer_add_wfile(&zip, "error.log", logpath.c_str(), NULL, 0, MZ_BEST_COMPRESSION);
-
-				mz_zip_writer_finalize_archive(&zip);
-				mz_zip_writer_end(&zip);
-
-				int timeout = 10000;
-				wstring body = L"";
-				int code = 0;
-
-				std::map<wstring, wstring> params;
-
-				google_breakpad::HTTPUpload::SendRequest(L"http://renderdoc.org/bugsubmit", params,
-					dumpFolder + L"\\report.zip", L"report", &timeout, &body, &code);
-
-				DeleteFileW(destzip.c_str());
-			}
-		}
-
-		if(!dump.empty())
-			DeleteFileW(dump.c_str());
-
-		if(!logpath.empty())
-			DeleteFileW(logpath.c_str());
-
-		return 0;
-	}
-
-	HMODULE renderdoc = LoadLibrary(_T("renderdoc.dll"));
-
-	if(!renderdoc)
-	{
-		OutputDebugString(_T("Couldn't load library!"));
-		return 1;
-	}
-	
-	CaptureOptions opts;
-	opts.AllowFullscreen = false;
-	opts.AllowVSync = false;
-	opts.DelayForDebugger = 5;
-	opts.HookIntoChildren = true;
-	
-	if(argc == 2)
-	{
-		// if we were given an exe, inject into it
-		if(wcsstr(argv[1], L".exe") != NULL)
-		{
-			uint32_t ident = RENDERDOC_ExecuteAndInject(argv[1], NULL, NULL, NULL, &opts, false);
-
-			if(ident == 0)
-				printf("Failed to create & inject\n");
-			else
-				printf("Created & injected as %d\n", ident);
-
-			return ident;
-		}
-		// if we were given a logfile, load it and continually replay it.
-		else if(wcsstr(argv[1], L".rdc") != NULL)
-		{
-			float progress = 0.0f;
-			ReplayRenderer *renderer = NULL;
-			auto status = RENDERDOC_CreateReplayRenderer(argv[1], &progress, &renderer);
-
-			if(renderer && status == eReplayCreate_Success)
-				DisplayRendererPreview(renderer, hInstance);
-
-			delete renderer;
-			return 0;
-		}
-		else if(wcsstr(argv[1], L"-replayhost") != NULL)
-		{
-			RENDERDOC_SpawnReplayHost(NULL);
-			return 1;
-		}
-	}
-	else if(argc == 3)
-	{
-		if(!_wcsicmp(argv[1], L"-inject"))
-		{
-			wchar_t *pid = argv[2];
-			while(*pid == L'"' || iswspace(*pid)) pid++;
-
-			DWORD pidNum = (DWORD)_wtoi(pid);
-
-			uint32_t ident = RENDERDOC_InjectIntoProcess(pidNum, NULL, &opts, false);
-
-			if(ident == 0)
-				printf("Failed to inject\n");
-			else
-				printf("Injected as %d\n", ident);
-
-			return ident;
-		}
-		else
-		{
-			uint32_t ident = RENDERDOC_ExecuteAndInject(argv[1], NULL, NULL, argv[2], &opts, false);
-
-			if(ident == 0)
-				printf("Failed to create & inject\n");
-			else
-				printf("Created & injected as %d\n", ident);
-
-			return ident;
-		}
-	}
-	else if(argc == 4)
-	{
-		if(argc == 4 && wcsstr(argv[1], L"-replay") != NULL)
-		{
-			RemoteRenderer *remote = NULL;
-			auto status = RENDERDOC_CreateRemoteReplayConnection(argv[2], &remote);
-
-			if(remote == NULL || status != eReplayCreate_Success)
-				return 1;
-
-			float progress = 0.0f;
-
-			ReplayRenderer *renderer = NULL;
-			status = RemoteRenderer_CreateProxyRenderer(remote, 0, argv[3], &progress, &renderer);
-
-			if(renderer && status == eReplayCreate_Success)
-				DisplayRendererPreview(renderer, hInstance);
-
-			RemoteRenderer_Shutdown(remote);
-			return 0;
-		}
-	}
-	else if(argc == 5)
-	{
-		if(!_wcsicmp(argv[1], L"-cap32for64"))
-		{
-			wchar_t *pid = argv[2];
-			while(*pid == L'"' || iswspace(*pid)) pid++;
-
-			DWORD pidNum = (DWORD)_wtoi(pid);
-			
-			wchar_t *log = argv[3];
-			
-			CaptureOptions cmdopts;
-
-			string optstring(&argv[4][0], &argv[4][0] + wcslen(argv[4]));
-
-			cmdopts.FromString(optstring);
-
-			return RENDERDOC_InjectIntoProcess(pidNum, log, &cmdopts, false);
-		}
-		else if(!_wcsicmp(argv[1], L"-remotecontrol"))
-		{
-			wchar_t *host = argv[2];
-			wchar_t *ident = argv[3];
-			while(*ident == L'"' || iswspace(*ident)) ident++;
-			bool force = argv[4][0] != '0';
-
-			DWORD identNum = (DWORD)_wtoi(ident);
-
-			wchar_t username[256] = {0};
-			DWORD usersize = 255; 
-			GetEnvironmentVariableW(L"renderdoc_username", username, usersize);
-
-			RemoteAccess *access = RENDERDOC_CreateRemoteAccessConnection(host, identNum, username, force);
-
-			if(access == NULL)
-			{
-				printf("Failed to connect\n");
-			}
-			else
-			{
-				printf("Target: %ls, API: %ls, Busy: %ls\n", RemoteAccess_GetTarget(access), RemoteAccess_GetAPI(access), RemoteAccess_GetBusyClient(access));
-
-				fflush(stdout);
-
-				volatile bool run = true;
-
-				while(run)
-				{
-					RemoteMessage msg;
-					RemoteAccess_ReceiveMessage(access, &msg);
-
-					if(msg.Type == eRemoteMsg_Disconnected)
-					{
-						printf("Disconnected\n");
-						RemoteAccess_Shutdown(access);
-						access = NULL;
-						break;
-					}
-					else if(msg.Type == eRemoteMsg_Busy)
-					{
-						printf("Busy: %ls\n", msg.Busy.ClientName.elems);
-						RemoteAccess_Shutdown(access);
-						access = NULL;
-						break;
-					}
-					else if(msg.Type == eRemoteMsg_Noop)
-					{
-					}
-					else if(msg.Type == eRemoteMsg_RegisterAPI)
-					{
-						printf("Updated - Target: %ls, API: %ls\n", RemoteAccess_GetTarget(access), RemoteAccess_GetAPI(access));
-					}
-					else if(msg.Type == eRemoteMsg_NewCapture)
-					{
-						printf("Got capture - %d @ %llu, %d bytes of thumbnail\n", msg.NewCapture.ID, msg.NewCapture.timestamp, msg.NewCapture.thumbnail.count);
-					}
-
-					fflush(stdout);
-				}
-
-				if(access)
-				{
-					RemoteAccess_Shutdown(access);
-					access = NULL;
-				}
-			}
-
-			fflush(stdout);
-
-			return 0;
-		}
-	}
-
-	MessageBoxW(NULL, L"renderdoccmd Usage:\n\n" \
-						L"renderdoccmd.exe \"full path to exe\" [\"path to capture logfile to save to\"]\n" \
-						L"renderdoccmd.exe \"full path to logfile to replay\"\n" \
-						L"renderdoccmd.exe -inject \"Process ID\"\n",
-						L"renderdoccmd", MB_OK);
-	return 1;
+  if(!command.empty())
+    std::cerr << command << " is not a valid command." << std::endl << std::endl;
+
+  std::cerr << "Usage: renderdoccmd <command> [args ...]" << std::endl;
+  std::cerr << "Command line tool for capture & replay with RenderDoc." << std::endl << std::endl;
+
+  std::cerr << "Command can be one of:" << std::endl;
+
+  size_t max_width = 0;
+  for(auto it = commands.begin(); it != commands.end(); ++it)
+  {
+    if(it->second->IsInternalOnly())
+      continue;
+
+    max_width = std::max(max_width, it->first.length());
+  }
+
+  for(auto it = commands.begin(); it != commands.end(); ++it)
+  {
+    if(it->second->IsInternalOnly())
+      continue;
+
+    std::cerr << "  " << it->first;
+    for(size_t n = it->first.length(); n < max_width + 4; n++)
+      std::cerr << ' ';
+    std::cerr << it->second->Description() << std::endl;
+  }
+  std::cerr << std::endl;
+
+  std::cerr << "To see details of any command, see 'renderdoccmd <command> --help'" << std::endl
+            << std::endl;
+
+  std::cerr << "For more information, see <https://renderdoc.org/>." << std::endl;
+
+  return 2;
+}
+
+static std::vector<std::string> version_lines;
+
+struct VersionCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser) {}
+  virtual const char *Description() { return "Print version information"; }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    std::cout << "renderdoccmd " << (sizeof(uintptr_t) == sizeof(uint64_t) ? "x64 " : "x86 ")
+              << RENDERDOC_GetVersionString() << "-" << RENDERDOC_GetCommitHash() << std::endl;
+
+    for(size_t i = 0; i < version_lines.size(); i++)
+      std::cout << version_lines[i] << std::endl;
+
+    return 0;
+  }
+};
+
+void add_version_line(const std::string &str)
+{
+  version_lines.push_back(str);
+}
+
+struct HelpCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser) {}
+  virtual const char *Description() { return "Print this help message"; }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    command_usage();
+    return 0;
+  }
+};
+
+struct ThumbCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.set_footer("<filename.rdc>");
+    parser.add<string>("out", 'o', "The output filename to save the file to", true, "filename.jpg");
+    parser.add<string>("format", 'f',
+                       "The format of the output file. If empty, detected from filename", false, "",
+                       cmdline::oneof<string>("jpg", "png", "bmp", "tga"));
+    parser.add<uint32_t>(
+        "max-size", 's',
+        "The maximum dimension of the thumbnail. Default is 0, which is unlimited.", false, 0);
+  }
+  virtual const char *Description() { return "Saves a capture's embedded thumbnail to disk."; }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    if(parser.rest().empty())
+    {
+      std::cerr << "Error: thumb command requires a capture filename." << std::endl
+                << std::endl
+                << parser.usage();
+      return 0;
+    }
+
+    string filename = parser.rest()[0];
+
+    string outfile = parser.get<string>("out");
+
+    string format = parser.get<string>("format");
+
+    FileType type = eFileType_JPG;
+
+    if(format == "png")
+    {
+      type = eFileType_PNG;
+    }
+    else if(format == "tga")
+    {
+      type = eFileType_TGA;
+    }
+    else if(format == "bmp")
+    {
+      type = eFileType_BMP;
+    }
+    else
+    {
+      const char *dot = strrchr(outfile.c_str(), '.');
+
+      if(dot != NULL && strstr(dot, "png"))
+        type = eFileType_PNG;
+      else if(dot != NULL && strstr(dot, "tga"))
+        type = eFileType_TGA;
+      else if(dot != NULL && strstr(dot, "bmp"))
+        type = eFileType_BMP;
+      else
+        std::cerr << "Couldn't guess format from '" << outfile << "', defaulting to jpg."
+                  << std::endl;
+    }
+
+    rdctype::array<byte> buf;
+    bool32 ret =
+        RENDERDOC_GetThumbnail(filename.c_str(), type, parser.get<uint32_t>("max-size"), &buf);
+
+    if(!ret)
+    {
+      std::cerr << "Couldn't fetch the thumbnail in '" << filename << "'" << std::endl;
+    }
+    else
+    {
+      FILE *f = fopen(outfile.c_str(), "wb");
+
+      if(!f)
+      {
+        std::cerr << "Couldn't open destination file '" << outfile << "'" << std::endl;
+      }
+      else
+      {
+        fwrite(buf.elems, 1, buf.count, f);
+        fclose(f);
+
+        std::cout << "Wrote thumbnail from '" << filename << "' to '" << outfile << "'." << std::endl;
+      }
+    }
+
+    return 0;
+  }
+};
+
+struct CaptureCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.set_footer("<executable> [program arguments]");
+    parser.stop_at_rest(true);
+  }
+  virtual const char *Description() { return "Launches the given executable to capture."; }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return true; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &opts)
+  {
+    if(parser.rest().empty())
+    {
+      std::cerr << "Error: capture command requires an executable to launch." << std::endl
+                << std::endl
+                << parser.usage();
+      return 0;
+    }
+
+    std::string executable = parser.rest()[0];
+    std::string workingDir = parser.get<string>("working-dir");
+    std::string cmdLine;
+    std::string logFile = parser.get<string>("capture-file");
+
+    for(size_t i = 1; i < parser.rest().size(); i++)
+    {
+      if(!cmdLine.empty())
+        cmdLine += ' ';
+
+      cmdLine += EscapeArgument(parser.rest()[i]);
+    }
+
+    std::cout << "Launching '" << executable << "'";
+
+    if(!cmdLine.empty())
+      std::cout << " with params: " << cmdLine;
+
+    std::cout << std::endl;
+
+    uint32_t ident = RENDERDOC_ExecuteAndInject(
+        executable.c_str(), workingDir.empty() ? "" : workingDir.c_str(),
+        cmdLine.empty() ? "" : cmdLine.c_str(), NULL, logFile.empty() ? "" : logFile.c_str(), &opts,
+        parser.exist("wait-for-exit"));
+
+    if(ident == 0)
+    {
+      std::cerr << "Failed to create & inject." << std::endl;
+      return 2;
+    }
+
+    if(parser.exist("wait-for-exit"))
+    {
+      std::cerr << "'" << executable << "' finished executing." << std::endl;
+      ident = 0;
+    }
+    else
+    {
+      std::cerr << "Launched as ID " << ident << std::endl;
+    }
+
+    return ident;
+  }
+
+  std::string EscapeArgument(const std::string &arg)
+  {
+    // nothing to escape or quote
+    if(arg.find_first_of(" \t\r\n\"") == std::string::npos)
+      return arg;
+
+    // return arg in quotes, with any quotation marks escaped
+    std::string ret = arg;
+
+    size_t i = ret.find('\"');
+    while(i != std::string::npos)
+    {
+      ret.insert(ret.begin() + i, '\\');
+
+      i = ret.find('\"', i + 2);
+    }
+
+    return '"' + ret + '"';
+  }
+};
+
+struct InjectCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.add<uint32_t>("PID", 0, "The process ID of the process to inject.", true);
+  }
+  virtual const char *Description() { return "Injects RenderDoc into a given running process."; }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return true; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &opts)
+  {
+    uint32_t PID = parser.get<uint32_t>("PID");
+    std::string workingDir = parser.get<string>("working-dir");
+    std::string logFile = parser.get<string>("capture-file");
+
+    std::cout << "Injecting into PID " << PID << std::endl;
+
+    uint32_t ident = RENDERDOC_InjectIntoProcess(PID, NULL, logFile.empty() ? "" : logFile.c_str(),
+                                                 &opts, parser.exist("wait-for-exit"));
+
+    if(ident == 0)
+    {
+      std::cerr << "Failed to inject." << std::endl;
+      return 2;
+    }
+
+    if(parser.exist("wait-for-exit"))
+    {
+      std::cerr << PID << " finished executing." << std::endl;
+      ident = 0;
+    }
+    else
+    {
+      std::cerr << "Launched as ID " << ident << std::endl;
+    }
+
+    return ident;
+  }
+};
+
+struct RemoteServerCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.add("daemon", 'd', "Go into the background.");
+    parser.add<string>(
+        "host", 'h', "The interface to listen on. By default listens on all interfaces", false, "");
+    parser.add<uint32_t>("port", 'p', "The port to listen on.", false,
+                         RENDERDOC_GetDefaultRemoteServerPort());
+  }
+  virtual const char *Description()
+  {
+    return "Start up a server listening as a host for remote replays.";
+  }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    string host = parser.get<string>("host");
+    uint32_t port = parser.get<uint32_t>("port");
+
+    std::cerr << "Spawning a replay host listening on " << (host.empty() ? "*" : host) << ":"
+              << port << "..." << std::endl;
+
+    if(parser.exist("daemon"))
+    {
+      std::cerr << "Detaching." << std::endl;
+      Daemonise();
+    }
+
+    usingKillSignal = true;
+
+    RENDERDOC_BecomeRemoteServer(host.empty() ? NULL : host.c_str(), port, &killSignal);
+
+    std::cerr << std::endl << "Cleaning up from replay hosting." << std::endl;
+
+    return 0;
+  }
+};
+
+struct ReplayCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.set_footer("<capture.rdc>");
+    parser.add<uint32_t>("width", 'w', "The preview window width.", false, 1280);
+    parser.add<uint32_t>("height", 'h', "The preview window height.", false, 720);
+    parser.add<string>("remote-host", 0,
+                       "Instead of replaying locally, replay on this host over the network.", false);
+    parser.add<uint32_t>("remote-port", 0, "If --remote-host is set, use this port.", false,
+                         RENDERDOC_GetDefaultRemoteServerPort());
+  }
+  virtual const char *Description()
+  {
+    return "Replay the log file and show the backbuffer on a preview window.";
+  }
+  virtual bool IsInternalOnly() { return false; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    if(parser.rest().empty())
+    {
+      std::cerr << "Error: capture command requires a filename to load." << std::endl
+                << std::endl
+                << parser.usage();
+      return 0;
+    }
+
+    string filename = parser.rest()[0];
+
+    if(parser.exist("remote-host"))
+    {
+      std::cout << "Replaying '" << filename << "' on " << parser.get<string>("remote-host") << ":"
+                << parser.get<uint32_t>("remote-port") << "." << std::endl;
+
+      IRemoteServer *remote = NULL;
+      ReplayCreateStatus status = RENDERDOC_CreateRemoteServerConnection(
+          parser.get<string>("remote-host").c_str(), parser.get<uint32_t>("remote-port"), &remote);
+
+      if(remote == NULL || status != eReplayCreate_Success)
+      {
+        std::cerr << "Error: Couldn't connect to " << parser.get<string>("remote-host") << ":"
+                  << parser.get<uint32_t>("remote-port") << "." << std::endl;
+        std::cerr << "       Have you run renderdoccmd remoteserver on '"
+                  << parser.get<string>("remote-host") << "'?" << std::endl;
+        return 1;
+      }
+
+      std::cerr << "Copying capture file to remote server" << std::endl;
+
+      float progress = 0.0f;
+      rdctype::str remotePath = remote->CopyCaptureToRemote(filename.c_str(), &progress);
+
+      IReplayRenderer *renderer = NULL;
+      status = remote->OpenCapture(~0U, remotePath.elems, &progress, &renderer);
+
+      if(status == eReplayCreate_Success)
+      {
+        DisplayRendererPreview(renderer, parser.get<uint32_t>("width"),
+                               parser.get<uint32_t>("height"));
+
+        remote->CloseCapture(renderer);
+      }
+      else
+      {
+        std::cerr << "Couldn't load and replay '" << filename << "'." << std::endl;
+      }
+
+      remote->ShutdownConnection();
+    }
+    else
+    {
+      std::cout << "Replaying '" << filename << "' locally.." << std::endl;
+
+      float progress = 0.0f;
+      IReplayRenderer *renderer = NULL;
+      ReplayCreateStatus status =
+          RENDERDOC_CreateReplayRenderer(filename.c_str(), &progress, &renderer);
+
+      if(status == eReplayCreate_Success)
+      {
+        DisplayRendererPreview(renderer, parser.get<uint32_t>("width"),
+                               parser.get<uint32_t>("height"));
+
+        renderer->Shutdown();
+      }
+      else
+      {
+        std::cerr << "Couldn't load and replay '" << filename << "'." << std::endl;
+      }
+    }
+    return 0;
+  }
+};
+
+struct CapAltBitCommand : public Command
+{
+  virtual void AddOptions(cmdline::parser &parser)
+  {
+    parser.add<uint32_t>("pid", 0, "");
+    parser.add<string>("log", 0, "");
+    parser.add<string>("debuglog", 0, "");
+    parser.add<string>("capopts", 0, "");
+    parser.stop_at_rest(true);
+  }
+  virtual const char *Description() { return "Internal use only!"; }
+  virtual bool IsInternalOnly() { return true; }
+  virtual bool IsCaptureCommand() { return false; }
+  virtual int Execute(cmdline::parser &parser, const CaptureOptions &)
+  {
+    CaptureOptions cmdopts;
+    readCapOpts(parser.get<string>("capopts").c_str(), &cmdopts);
+
+    std::vector<std::string> rest = parser.rest();
+
+    if(rest.size() % 3 != 0)
+    {
+      std::cerr << "Invalid generated capaltbit command rest.size() == " << rest.size() << std::endl;
+      return 0;
+    }
+
+    int numEnvs = int(rest.size() / 3);
+
+    void *env = RENDERDOC_MakeEnvironmentModificationList(numEnvs);
+
+    for(int i = 0; i < numEnvs; i++)
+    {
+      string typeString = rest[i * 3 + 0];
+
+      EnvironmentModificationType type = eEnvMod_Set;
+      EnvironmentSeparator sep = eEnvSep_None;
+
+      if(typeString == "+env-replace")
+      {
+        type = eEnvMod_Set;
+        sep = eEnvSep_None;
+      }
+      else if(typeString == "+env-append-platform")
+      {
+        type = eEnvMod_Append;
+        sep = eEnvSep_Platform;
+      }
+      else if(typeString == "+env-append-semicolon")
+      {
+        type = eEnvMod_Append;
+        sep = eEnvSep_SemiColon;
+      }
+      else if(typeString == "+env-append-colon")
+      {
+        type = eEnvMod_Append;
+        sep = eEnvSep_Colon;
+      }
+      else if(typeString == "+env-append")
+      {
+        type = eEnvMod_Append;
+        sep = eEnvSep_None;
+      }
+      else if(typeString == "+env-prepend-platform")
+      {
+        type = eEnvMod_Prepend;
+        sep = eEnvSep_Platform;
+      }
+      else if(typeString == "+env-prepend-semicolon")
+      {
+        type = eEnvMod_Prepend;
+        sep = eEnvSep_SemiColon;
+      }
+      else if(typeString == "+env-prepend-colon")
+      {
+        type = eEnvMod_Prepend;
+        sep = eEnvSep_Colon;
+      }
+      else if(typeString == "+env-prepend")
+      {
+        type = eEnvMod_Prepend;
+        sep = eEnvSep_None;
+      }
+      else
+      {
+        std::cerr << "Invalid generated capaltbit env '" << rest[i * 3 + 0] << std::endl;
+        RENDERDOC_FreeEnvironmentModificationList(env);
+        return 0;
+      }
+
+      RENDERDOC_SetEnvironmentModification(env, i, rest[i * 3 + 1].c_str(), rest[i * 3 + 2].c_str(),
+                                           type, sep);
+    }
+
+    string debuglog = parser.get<string>("debuglog");
+
+    RENDERDOC_SetDebugLogFile(debuglog.c_str());
+
+    int ret = RENDERDOC_InjectIntoProcess(parser.get<uint32_t>("pid"), env,
+                                          parser.get<string>("log").c_str(), &cmdopts, false);
+
+    RENDERDOC_FreeEnvironmentModificationList(env);
+
+    return ret;
+  }
+};
+
+int renderdoccmd(std::vector<std::string> &argv)
+{
+  try
+  {
+    // add basic commands, and common aliases
+    add_command("version", new VersionCommand());
+
+    add_alias("--version", "version");
+    add_alias("-v", "version");
+    // for windows
+    add_alias("/version", "version");
+    add_alias("/v", "version");
+
+    add_command("help", new HelpCommand());
+
+    add_alias("--help", "help");
+    add_alias("-h", "help");
+    add_alias("-?", "help");
+
+    // for windows
+    add_alias("/help", "help");
+    add_alias("/h", "help");
+    add_alias("/?", "help");
+
+    // add platform agnostic commands
+    add_command("thumb", new ThumbCommand());
+    add_command("capture", new CaptureCommand());
+    add_command("inject", new InjectCommand());
+    add_command("remoteserver", new RemoteServerCommand());
+    add_command("replay", new ReplayCommand());
+    add_command("capaltbit", new CapAltBitCommand());
+
+    if(argv.size() <= 1)
+    {
+      int ret = command_usage();
+      clean_up();
+      return ret;
+    }
+
+    // std::string programName = argv[0];
+
+    argv.erase(argv.begin());
+
+    std::string command = *argv.begin();
+
+    argv.erase(argv.begin());
+
+    auto it = commands.find(command);
+
+    if(it == commands.end())
+    {
+      auto a = aliases.find(command);
+      if(a != aliases.end())
+        it = commands.find(a->second);
+    }
+
+    if(it == commands.end())
+    {
+      int ret = command_usage(command);
+      clean_up();
+      return ret;
+    }
+
+    cmdline::parser cmd;
+
+    cmd.set_program_name("renderdoccmd");
+    cmd.set_header(command);
+
+    it->second->AddOptions(cmd);
+
+    if(it->second->IsCaptureCommand())
+    {
+      cmd.add<string>("working-dir", 'd', "Set the working directory of the program, if launched.",
+                      false);
+      cmd.add<string>("capture-file", 'c',
+                      "Set the filename template for new captures. Frame number will be "
+                      "automatically appended.",
+                      false);
+      cmd.add("wait-for-exit", 'w', "Wait for the target program to exit, before returning.");
+
+      // CaptureOptions
+      cmd.add("opt-disallow-vsync", 0,
+              "Capturing Option: Disallow the application from enabling vsync.");
+      cmd.add("opt-disallow-fullscreen", 0,
+              "Capturing Option: Disallow the application from enabling fullscreen.");
+      cmd.add("opt-api-validation", 0,
+              "Capturing Option: Record API debugging events and messages.");
+      cmd.add("opt-api-validation-unmute", 0,
+              "Capturing Option: Unmutes API debugging output from --opt-api-validation.");
+      cmd.add("opt-capture-callstacks", 0,
+              "Capturing Option: Capture CPU callstacks for API events.");
+      cmd.add("opt-capture-callstacks-only-draws", 0,
+              "Capturing Option: When capturing CPU callstacks, only capture them from drawcalls.");
+      cmd.add<int>("opt-delay-for-debugger", 0,
+                   "Capturing Option: Specify a delay in seconds to wait for a debugger to attach.",
+                   false, 0, cmdline::range(0, 10000));
+      cmd.add("opt-verify-map-writes", 0,
+              "Capturing Option: Verify any writes to mapped buffers, by bounds checking.");
+      cmd.add("opt-hook-children", 0,
+              "Capturing Option: Hooks any system API calls that create child processes.");
+      cmd.add("opt-ref-all-resources", 0,
+              "Capturing Option: Include all live resources, not just those used by a frame.");
+      cmd.add("opt-save-all-initials", 0,
+              "Capturing Option: Save all initial resource contents at frame start.");
+      cmd.add("opt-capture-all-cmd-lists", 0,
+              "Capturing Option: In D3D11, record all command lists from application start.");
+    }
+
+    cmd.parse_check(argv, true);
+
+    CaptureOptions opts;
+    RENDERDOC_GetDefaultCaptureOptions(&opts);
+
+    if(it->second->IsCaptureCommand())
+    {
+      if(cmd.exist("opt-disallow-vsync"))
+        opts.AllowVSync = false;
+      if(cmd.exist("opt-disallow-fullscreen"))
+        opts.AllowFullscreen = false;
+      if(cmd.exist("opt-api-validation"))
+        opts.APIValidation = true;
+      if(cmd.exist("opt-api-validation-unmute"))
+        opts.DebugOutputMute = false;
+      if(cmd.exist("opt-capture-callstacks"))
+        opts.CaptureCallstacks = true;
+      if(cmd.exist("opt-capture-callstacks-only-draws"))
+        opts.CaptureCallstacksOnlyDraws = true;
+      if(cmd.exist("opt-verify-map-writes"))
+        opts.VerifyMapWrites = true;
+      if(cmd.exist("opt-hook-children"))
+        opts.HookIntoChildren = true;
+      if(cmd.exist("opt-ref-all-resources"))
+        opts.RefAllResources = true;
+      if(cmd.exist("opt-save-all-initials"))
+        opts.SaveAllInitials = true;
+      if(cmd.exist("opt-capture-all-cmd-lists"))
+        opts.CaptureAllCmdLists = true;
+
+      opts.DelayForDebugger = (uint32_t)cmd.get<int>("opt-delay-for-debugger");
+    }
+
+    if(cmd.exist("help"))
+    {
+      std::cerr << cmd.usage() << std::endl;
+      clean_up();
+      return 0;
+    }
+
+    int ret = it->second->Execute(cmd, opts);
+    clean_up();
+    return ret;
+  }
+  catch(std::exception e)
+  {
+    fprintf(stderr, "Unexpected exception: %s\n", e.what());
+
+    exit(1);
+  }
+}
+
+int renderdoccmd(int argc, char **c_argv)
+{
+  std::vector<std::string> argv;
+  argv.resize(argc);
+  for(int i = 0; i < argc; i++)
+    argv[i] = c_argv[i];
+
+  return renderdoccmd(argv);
 }

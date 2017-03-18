@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -33,8 +34,13 @@ namespace renderdocui.Controls
     // http://msdn.microsoft.com/en-us/library/ms404304(v=vs.90).aspx
     public class ToolStripSpringTextBox : ToolStripTextBox
     {
+        public bool ResizeToFit = true;
+
         public override Size GetPreferredSize(Size constrainingSize)
         {
+            if (!ResizeToFit)
+                return base.GetPreferredSize(constrainingSize);
+
             // Use the default size if the text box is on the overflow menu 
             // or is on a vertical ToolStrip. 
             if (IsOnOverflow || Owner.Orientation == Orientation.Vertical)

@@ -1,0 +1,42 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="..\..\common\windows\guid_string.cc" />
+    <ClCompile Include="..\..\common\windows\string_utils.cc" />
+    <ClCompile Include="..\..\common\windows\http_upload.cc" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\common\windows\guid_string.h" />
+    <ClInclude Include="..\..\common\windows\http_upload.h" />
+    <ClInclude Include="..\..\common\windows\string_utils-inl.h" />
+    <ClInclude Include="..\..\google_breakpad\common\breakpad_types.h">
+      <Filter>Common includes</Filter>
+    </ClInclude>
+    <ClInclude Include="common\ipc_protocol.h">
+      <Filter>Common includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\google_breakpad\common\minidump_cpu_amd64.h">
+      <Filter>Common includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\google_breakpad\common\minidump_exception_win32.h">
+      <Filter>Common includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\google_breakpad\common\minidump_format.h">
+      <Filter>Common includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\common\scoped_ptr.h">
+      <Filter>Common includes</Filter>
+    </ClInclude>
+    <ClInclude Include="..\..\google_breakpad\common\minidump_cpu_x86.h">
+      <Filter>Common includes</Filter>
+    </ClInclude>
+    <ClInclude Include="common\auto_critical_section.h">
+      <Filter>Common includes</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="Common includes">
+      <UniqueIdentifier>{0ee0db1a-3e13-4e79-8fb0-0d55d8261558}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

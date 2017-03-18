@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -43,6 +44,8 @@ namespace renderdocui.Controls
         {
             if (MouseWheelHandler != null)
                 MouseWheelHandler(this, e);
+
+            base.OnMouseWheel(e);
         }
 
         protected override bool ProcessCmdKey(ref Message msg, Keys keyData)

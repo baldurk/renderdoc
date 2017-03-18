@@ -2,6 +2,8 @@
 // Public domain, Rich Geldreich <richgel99@gmail.com>
 // Alex Evans: Linear memory allocator (taken from jpge.h).
 // v1.04, May. 19, 2012: Code tweaks to fix VS2008 static code analysis warnings (all looked harmless)
+// changes from upstream, May.  5 2014: Fix harmless VC++ warning C4703
+//                        Feb. 24 2015: Suppress VC++ warning C4458 without clear fix
 //
 // Supports progressive and baseline sequential JPEG image files, and the most common chroma subsampling factors: Y, H1V1, H2V1, H1V2, and H2V2.
 //
@@ -17,6 +19,7 @@
 
 #ifdef _MSC_VER
 #pragma warning (disable : 4611) // warning C4611: interaction between '_setjmp' and C++ object destruction is non-portable
+#pragma warning (disable : 4458) // warning C4458: declaration of 'm_block_y_mcu' hides class member in decode_scan()
 #endif
 
 // Set to 1 to enable freq. domain chroma upsampling on images using H2V2 subsampling (0=faster nearest neighbor sampling).
@@ -3088,7 +3091,7 @@ unsigned char *decompress_jpeg_image_from_stream(jpeg_decoder_stream *pStream, i
 
   for (int y = 0; y < image_height; y++)
   {
-    const uint8* pScan_line;
+    const uint8* pScan_line = NULL;
     uint scan_line_len;
     if (decoder.decode((const void**)&pScan_line, &scan_line_len) != JPGD_SUCCESS)
     {

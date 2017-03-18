@@ -1,0 +1,183 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="ARB Headers">
+      <UniqueIdentifier>{e6d2b888-3c78-44e8-afd1-03282c15fd55}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Function Wrappers">
+      <UniqueIdentifier>{73524c0e-b78f-4c76-8ca2-cb7c8f463926}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS">
+      <UniqueIdentifier>{9778b33e-19a1-4b5f-9b25-481e22bef9b1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Win32">
+      <UniqueIdentifier>{e6e9c1bf-7791-4730-8d4c-53063c41bd04}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Linux">
+      <UniqueIdentifier>{8fccaf6f-3a16-480c-afcb-be08f13247ad}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="GLSL">
+      <UniqueIdentifier>{4e767600-d6a0-4f5b-a944-708dafe81a94}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{862ce8f9-fbfc-4b7a-ae48-97d22f5ba8a4}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hookset">
+      <UniqueIdentifier>{6f9a176f-100e-4f47-9f75-0b4a0becc564}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Util">
+      <UniqueIdentifier>{b3dc61e6-0176-4621-b0de-c77cba273f75}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Replay">
+      <UniqueIdentifier>{1122b6ee-006e-418b-9907-8f9d0a8b1f25}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Apple">
+      <UniqueIdentifier>{28fbc354-c414-4647-9ce6-0fcea2cbe845}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\EGL">
+      <UniqueIdentifier>{61304e3c-ff5e-4cb6-8c25-455f37d86b48}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="official\glcorearb.h">
+      <Filter>ARB Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="official\glext.h">
+      <Filter>ARB Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="official\wglext.h">
+      <Filter>ARB Headers</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_shader_refl.h">
+      <Filter>GLSL</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_driver.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_hookset_defs.h">
+      <Filter>Hookset</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_hookset.h">
+      <Filter>Hookset</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_hooks_linux_shared.h">
+      <Filter>OS\Linux</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_resources.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_manager.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_renderstate.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_common.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_enum.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="gl_replay.h">
+      <Filter>Replay</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="wrappers\gl_buffer_funcs.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\gl_debug_funcs.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\gl_draw_funcs.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\gl_emulated.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\gl_framebuffer_funcs.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\gl_get_funcs.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\gl_query_funcs.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\gl_sampler_funcs.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\gl_shader_funcs.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\gl_state_funcs.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\gl_texture_funcs.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\gl_uniform_funcs.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_hooks_win32.cpp">
+      <Filter>OS\Win32</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_replay_win32.cpp">
+      <Filter>OS\Win32</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_hooks_linux.cpp">
+      <Filter>OS\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_hooks_linux_shared.cpp">
+      <Filter>OS\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_replay_linux.cpp">
+      <Filter>OS\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_shader_refl.cpp">
+      <Filter>GLSL</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_driver.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_manager.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_renderstate.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_resources.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_common.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_debug.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_counters.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_replay.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\gl_interop_funcs.cpp">
+      <Filter>Function Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="glx_hooks_linux.cpp">
+      <Filter>OS\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_hooks_apple.cpp">
+      <Filter>OS\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_replay_apple.cpp">
+      <Filter>OS\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_hooks_egl.cpp">
+      <Filter>OS\EGL</Filter>
+    </ClCompile>
+    <ClCompile Include="gl_replay_egl.cpp">
+      <Filter>OS\EGL</Filter>
+    </ClCompile>
+  </ItemGroup>
+</Project>

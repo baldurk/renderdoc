@@ -16,26 +16,8 @@
     <Filter Include="Common\Maths">
       <UniqueIdentifier>{0e2454ca-656b-499c-bb19-07cf1da7e703}</UniqueIdentifier>
     </Filter>
-    <Filter Include="hooks">
-      <UniqueIdentifier>{3e51a921-b167-4794-937d-e77573a928b8}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="hooks\libs">
-      <UniqueIdentifier>{669b3fbf-5c6d-4c5a-b013-4e28ad5a01a7}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Core">
       <UniqueIdentifier>{a9a0e0ca-e0e6-4ebb-a21e-f971943c46ba}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Drivers">
-      <UniqueIdentifier>{358bfcbf-2408-42ff-b4b1-29de135a0fc4}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Drivers\D3D11">
-      <UniqueIdentifier>{a8f3f549-4980-4c2f-8fa4-989c22755f07}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Drivers\D3D11\shaders">
-      <UniqueIdentifier>{fcdcbe00-6b01-4234-9a3b-cc019f88a8ed}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Drivers\DXGI">
-      <UniqueIdentifier>{a9f6ac9b-cc6a-4449-be40-a3fad76a0067}</UniqueIdentifier>
     </Filter>
     <Filter Include="OS">
       <UniqueIdentifier>{ffbf4a4f-115e-415f-a800-b372db445027}</UniqueIdentifier>
@@ -46,32 +28,62 @@
     <Filter Include="3rdparty">
       <UniqueIdentifier>{36ccf267-d6c1-41c9-87c3-92c1dfcbe88b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="3rdparty\mhook">
-      <UniqueIdentifier>{62242fef-51cb-419e-bbe9-3347653ece06}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="3rdparty\jpeg-compressor">
-      <UniqueIdentifier>{880a29ed-1f7d-46f2-9bcd-c4a9b73b7be5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Drivers\OpenGL">
-      <UniqueIdentifier>{dfe56374-9726-4919-8529-123cf5ba6ef5}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Drivers\OpenGL\ARB Headers">
-      <UniqueIdentifier>{92099e5e-bd1b-44f6-9556-4dd01c91c23f}</UniqueIdentifier>
-    </Filter>
     <Filter Include="Core\networking">
       <UniqueIdentifier>{1d17fb69-fd1a-44a6-a530-05642d97ddc6}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="3rdparty\lz4">
-      <UniqueIdentifier>{911d2076-eaea-4783-b0c3-789e5b6eff1f}</UniqueIdentifier>
-    </Filter>
-    <Filter Include="Replay\external interface">
-      <UniqueIdentifier>{e2f5b1f2-ae41-4e3c-999e-5ade627a91d1}</UniqueIdentifier>
     </Filter>
     <Filter Include="Resources\hlsl">
       <UniqueIdentifier>{0ecdcd74-a30b-457e-8b22-92bd58405c56}</UniqueIdentifier>
     </Filter>
+    <Filter Include="API">
+      <UniqueIdentifier>{7d6b0f22-1180-4767-b284-cc87f54ec012}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\Replay">
+      <UniqueIdentifier>{4e047f61-a78b-4a09-abbb-6c839a4fe177}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="API\In-App">
+      <UniqueIdentifier>{188b97fd-b9d4-47a6-a51a-48bc00e6fc5c}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\File Formats">
+      <UniqueIdentifier>{eb0686f4-bcb3-4edd-b488-937b1491909b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\stb">
+      <UniqueIdentifier>{5f5e3b49-5091-4a26-b24b-723ebb95ba78}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\jpeg-compressor">
+      <UniqueIdentifier>{d7a4190d-f68a-4e08-877f-04be35995e03}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\lz4">
+      <UniqueIdentifier>{043f5a32-683e-4b56-bcc6-512444b40d70}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common\Strings">
+      <UniqueIdentifier>{ce0b860f-38b7-48af-b49d-7dcb23378f82}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\tinyexr">
+      <UniqueIdentifier>{aadadb32-abbc-45b3-8f86-026eed994ba9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooks">
+      <UniqueIdentifier>{3e51a921-b167-4794-937d-e77573a928b8}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Posix">
+      <UniqueIdentifier>{410640a4-ebf0-479a-8d08-ae277e2ded84}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Posix\Linux">
+      <UniqueIdentifier>{5168e1dc-8d41-4aff-b99c-1ffa2af33f95}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Posix\Android">
+      <UniqueIdentifier>{16bdcbe1-31de-4732-aaaf-8d77039a26ec}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Posix\Apple">
+      <UniqueIdentifier>{2d03f185-425a-4de5-8eeb-67dce5e56de9}</UniqueIdentifier>
+    </Filter>
     <Filter Include="Resources\glsl">
-      <UniqueIdentifier>{889cc549-e49b-430b-9e9b-5a42e7c26b03}</UniqueIdentifier>
+      <UniqueIdentifier>{188ad934-e74f-4805-b74b-167f8760fab6}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\plthook">
+      <UniqueIdentifier>{1d6900f0-278c-4801-a720-f7deafc63fe9}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="3rdparty\tinyfiledialogs">
+      <UniqueIdentifier>{25fdbb3b-123c-48c3-8ad3-286345771d07}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -91,7 +103,7 @@
       <Filter>Resources</Filter>
     </ClInclude>
     <ClInclude Include="hooks\hooks.h">
-      <Filter>hooks</Filter>
+      <Filter>Hooks</Filter>
     </ClInclude>
     <ClInclude Include="common\common.h">
       <Filter>Common</Filter>
@@ -111,107 +123,14 @@
     <ClInclude Include="common\timing.h">
       <Filter>Common</Filter>
     </ClInclude>
-    <ClInclude Include="driver\d3d11\shaders\dxbc_spdb.h">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\shaders\dxbc_debug.h">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\shaders\dxbc_disassemble.h">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\shaders\dxbc_inspect.h">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\shaders\dxbc_sdbg.h">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_debug.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_device.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_manager.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_renderstate.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_resources.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_common.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_context.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
     <ClInclude Include="os\os_specific.h">
       <Filter>OS</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\d3d11\d3d11_replay.h">
-      <Filter>Drivers\D3D11</Filter>
-    </ClInclude>
-    <ClInclude Include="os\win32_specific.h">
-      <Filter>OS\Win32</Filter>
     </ClInclude>
     <ClInclude Include="core\resource_manager.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="driver\gl\gl_hookset.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_common.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\official\glcorearb.h">
-      <Filter>Drivers\OpenGL\ARB Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\official\glext.h">
-      <Filter>Drivers\OpenGL\ARB Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\official\wglext.h">
-      <Filter>Drivers\OpenGL\ARB Headers</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_manager.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_resources.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_replay.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\mhook\disasm-lib\cpu.h">
-      <Filter>3rdparty\mhook</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\mhook\disasm-lib\disasm.h">
-      <Filter>3rdparty\mhook</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\mhook\disasm-lib\disasm_x86.h">
-      <Filter>3rdparty\mhook</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\mhook\disasm-lib\disasm_x86_tables.h">
-      <Filter>3rdparty\mhook</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\mhook\disasm-lib\misc.h">
-      <Filter>3rdparty\mhook</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\mhook\mhook-lib\mhook.h">
-      <Filter>3rdparty\mhook</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\jpeg-compressor\jpgd.h">
-      <Filter>3rdparty\jpeg-compressor</Filter>
-    </ClInclude>
-    <ClInclude Include="3rdparty\jpeg-compressor\jpge.h">
-      <Filter>3rdparty\jpeg-compressor</Filter>
-    </ClInclude>
     <ClInclude Include="maths\formatpacking.h">
       <Filter>Common\Maths</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_driver.h">
-      <Filter>Drivers\OpenGL</Filter>
     </ClInclude>
     <ClInclude Include="core\socket_helpers.h">
       <Filter>Core\networking</Filter>
@@ -219,38 +138,11 @@
     <ClInclude Include="core\replay_proxy.h">
       <Filter>Core\networking</Filter>
     </ClInclude>
-    <ClInclude Include="3rdparty\lz4\lz4.h">
-      <Filter>3rdparty\lz4</Filter>
-    </ClInclude>
     <ClInclude Include="core\crash_handler.h">
       <Filter>Core</Filter>
     </ClInclude>
-    <ClInclude Include="driver\gl\gl_enum.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\capture_options.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\replay_enums.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\basic_types.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
     <ClInclude Include="replay\type_helpers.h">
       <Filter>Replay</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\control_types.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\data_types.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\shader_types.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
-    <ClInclude Include="replay\d3d11_pipestate.h">
-      <Filter>Replay\external interface</Filter>
     </ClInclude>
     <ClInclude Include="replay\replay_driver.h">
       <Filter>Replay</Filter>
@@ -258,32 +150,128 @@
     <ClInclude Include="replay\replay_renderer.h">
       <Filter>Replay</Filter>
     </ClInclude>
-    <ClInclude Include="driver\dxgi\dxgi_wrapped.h">
-      <Filter>Drivers\DXGI</Filter>
-    </ClInclude>
     <ClInclude Include="core\core.h">
       <Filter>Core</Filter>
     </ClInclude>
     <ClInclude Include="maths\half_convert.h">
       <Filter>Common\Maths</Filter>
     </ClInclude>
-    <ClInclude Include="replay\renderdoc.h">
-      <Filter>Replay\external interface</Filter>
-    </ClInclude>
-    <ClInclude Include="common\string_utils.h">
-      <Filter>Common</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_hookset_defs.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
-    <ClInclude Include="driver\gl\gl_legacy_procs.h">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClInclude>
     <ClInclude Include="data\hlsl\debugcbuffers.h">
       <Filter>Resources\hlsl</Filter>
     </ClInclude>
-    <ClInclude Include="replay\gl_pipestate.h">
-      <Filter>Replay\external interface</Filter>
+    <ClInclude Include="os\win32\win32_hook.h">
+      <Filter>OS\Win32</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\basic_types.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\control_types.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\d3d11_pipestate.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\data_types.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\gl_pipestate.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\replay_enums.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\shader_types.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\app\renderdoc_app.h">
+      <Filter>API\In-App</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\renderdoc_replay.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="common\dds_readwrite.h">
+      <Filter>Common\File Formats</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\jpeg-compressor\jpge.h">
+      <Filter>3rdparty\jpeg-compressor</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\jpeg-compressor\jpgd.h">
+      <Filter>3rdparty\jpeg-compressor</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\lz4\lz4.h">
+      <Filter>3rdparty\lz4</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\stb\stb_image.h">
+      <Filter>3rdparty\stb</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\stb\stb_image_write.h">
+      <Filter>3rdparty\stb</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\stb\stb_truetype.h">
+      <Filter>3rdparty\stb</Filter>
+    </ClInclude>
+    <ClInclude Include="serialise\string_utils.h">
+      <Filter>Common\Strings</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\tinyexr\tinyexr.h">
+      <Filter>3rdparty\tinyexr</Filter>
+    </ClInclude>
+    <ClInclude Include="data\embedded_files.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\capture_options.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\vk_pipestate.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="common\shader_cache.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="common\custom_assert.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="os\win32\win32_specific.h">
+      <Filter>OS\Win32</Filter>
+    </ClInclude>
+    <ClInclude Include="os\posix\posix_hook.h">
+      <Filter>OS\Posix</Filter>
+    </ClInclude>
+    <ClInclude Include="os\posix\posix_specific.h">
+      <Filter>OS\Posix</Filter>
+    </ClInclude>
+    <ClInclude Include="data\glsl_shaders.h">
+      <Filter>Resources</Filter>
+    </ClInclude>
+    <ClInclude Include="data\glsl\debuguniforms.h">
+      <Filter>Resources\glsl</Filter>
+    </ClInclude>
+    <ClInclude Include="data\glsl\gl_texsample.h">
+      <Filter>Resources\glsl</Filter>
+    </ClInclude>
+    <ClInclude Include="data\glsl\gles_texsample.h">
+      <Filter>Resources\glsl</Filter>
+    </ClInclude>
+    <ClInclude Include="data\glsl\vk_texsample.h">
+      <Filter>Resources\glsl</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\d3d12_pipestate.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\plthook\plthook.h">
+      <Filter>3rdparty\plthook</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\stb\stb_image_resize.h">
+      <Filter>3rdparty\stb</Filter>
+    </ClInclude>
+    <ClInclude Include="api\replay\version.h">
+      <Filter>API\Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="3rdparty\tinyfiledialogs\tinyfiledialogs.h">
+      <Filter>3rdparty\tinyfiledialogs</Filter>
+    </ClInclude>
+    <ClInclude Include="os\win32\dia2_stubs.h">
+      <Filter>OS\Win32</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -296,62 +284,11 @@
     <ClCompile Include="serialise\serialiser.cpp">
       <Filter>Common\Serialise</Filter>
     </ClCompile>
-    <ClCompile Include="hooks\d3d9_hooks.cpp">
-      <Filter>hooks\libs</Filter>
-    </ClCompile>
     <ClCompile Include="hooks\hooks.cpp">
-      <Filter>hooks</Filter>
-    </ClCompile>
-    <ClCompile Include="hooks\d3d11_hooks.cpp">
-      <Filter>hooks\libs</Filter>
-    </ClCompile>
-    <ClCompile Include="hooks\dxgi_hooks.cpp">
-      <Filter>hooks\libs</Filter>
-    </ClCompile>
-    <ClCompile Include="hooks\win32_libentry.cpp">
-      <Filter>hooks</Filter>
+      <Filter>Hooks</Filter>
     </ClCompile>
     <ClCompile Include="common\common.cpp">
       <Filter>Common</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\shaders\dxbc_debug.cpp">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\shaders\dxbc_disassemble.cpp">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\shaders\dxbc_inspect.cpp">
-      <Filter>Drivers\D3D11\shaders</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_context_wrap.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_debug.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_device.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_device_wrap.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_manager.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_renderstate.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_resources.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_analyse.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_context.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_common.cpp">
-      <Filter>Drivers\D3D11</Filter>
     </ClCompile>
     <ClCompile Include="os\win32\win32_callstack.cpp">
       <Filter>OS\Win32</Filter>
@@ -362,15 +299,6 @@
     <ClCompile Include="os\os_specific.cpp">
       <Filter>OS</Filter>
     </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_replay.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_context1_wrap.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\d3d11\d3d11_device1_wrap.cpp">
-      <Filter>Drivers\D3D11</Filter>
-    </ClCompile>
     <ClCompile Include="os\win32\win32_threading.cpp">
       <Filter>OS\Win32</Filter>
     </ClCompile>
@@ -380,70 +308,16 @@
     <ClCompile Include="core\resource_manager.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="driver\gl\gl_driver.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_common.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_manager.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
     <ClCompile Include="os\win32\win32_shellext.cpp">
       <Filter>OS\Win32</Filter>
-    </ClCompile>
-    <ClCompile Include="3rdparty\mhook\disasm-lib\cpu.c">
-      <Filter>3rdparty\mhook</Filter>
-    </ClCompile>
-    <ClCompile Include="3rdparty\mhook\disasm-lib\disasm.c">
-      <Filter>3rdparty\mhook</Filter>
-    </ClCompile>
-    <ClCompile Include="3rdparty\mhook\disasm-lib\disasm_x86.c">
-      <Filter>3rdparty\mhook</Filter>
-    </ClCompile>
-    <ClCompile Include="3rdparty\mhook\disasm-lib\misc.c">
-      <Filter>3rdparty\mhook</Filter>
-    </ClCompile>
-    <ClCompile Include="3rdparty\mhook\mhook-lib\mhook.cpp">
-      <Filter>3rdparty\mhook</Filter>
-    </ClCompile>
-    <ClCompile Include="3rdparty\jpeg-compressor\jpgd.cpp">
-      <Filter>3rdparty\jpeg-compressor</Filter>
-    </ClCompile>
-    <ClCompile Include="3rdparty\jpeg-compressor\jpge.cpp">
-      <Filter>3rdparty\jpeg-compressor</Filter>
     </ClCompile>
     <ClCompile Include="os\win32\win32_network.cpp">
       <Filter>OS\Win32</Filter>
     </ClCompile>
-    <ClCompile Include="driver\gl\gl_replay.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_context_driver.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_device_driver.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\gl\gl_resources.cpp">
-      <Filter>Drivers\OpenGL</Filter>
-    </ClCompile>
-    <ClCompile Include="core\remote_access.cpp">
-      <Filter>Core\networking</Filter>
-    </ClCompile>
-    <ClCompile Include="core\remote_replay.cpp">
-      <Filter>Core\networking</Filter>
-    </ClCompile>
     <ClCompile Include="core\replay_proxy.cpp">
       <Filter>Core\networking</Filter>
     </ClCompile>
-    <ClCompile Include="3rdparty\lz4\lz4.c">
-      <Filter>3rdparty\lz4</Filter>
-    </ClCompile>
     <ClCompile Include="replay\type_helpers.cpp">
-      <Filter>Replay</Filter>
-    </ClCompile>
-    <ClCompile Include="replay\basic_types.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
     <ClCompile Include="replay\entry_points.cpp">
@@ -455,23 +329,128 @@
     <ClCompile Include="replay\replay_renderer.cpp">
       <Filter>Replay</Filter>
     </ClCompile>
-    <ClCompile Include="hooks\gl_win32_hooks.cpp">
-      <Filter>hooks\libs</Filter>
-    </ClCompile>
-    <ClCompile Include="driver\dxgi\dxgi_wrapped.cpp">
-      <Filter>Drivers\DXGI</Filter>
-    </ClCompile>
     <ClCompile Include="core\core.cpp">
       <Filter>Core</Filter>
     </ClCompile>
-    <ClCompile Include="hooks\sys_win32_hooks.cpp">
-      <Filter>hooks\libs</Filter>
+    <ClCompile Include="os\win32\win32_hook.cpp">
+      <Filter>OS\Win32</Filter>
     </ClCompile>
-    <ClCompile Include="driver\gl\gl_replay_win32.cpp">
-      <Filter>Drivers\OpenGL</Filter>
+    <ClCompile Include="common\dds_readwrite.cpp">
+      <Filter>Common\File Formats</Filter>
     </ClCompile>
-    <ClCompile Include="driver\gl\gl_debug.cpp">
-      <Filter>Drivers\OpenGL</Filter>
+    <ClCompile Include="3rdparty\jpeg-compressor\jpge.cpp">
+      <Filter>3rdparty\jpeg-compressor</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\jpeg-compressor\jpgd.cpp">
+      <Filter>3rdparty\jpeg-compressor</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\lz4\lz4.c">
+      <Filter>3rdparty\lz4</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\stb\stb_impl.c">
+      <Filter>3rdparty\stb</Filter>
+    </ClCompile>
+    <ClCompile Include="core\image_viewer.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\grisu2.cpp">
+      <Filter>Common\Strings</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\utf8printf.cpp">
+      <Filter>Common\Strings</Filter>
+    </ClCompile>
+    <ClCompile Include="serialise\string_utils.cpp">
+      <Filter>Common\Strings</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\tinyexr\tinyexr.cpp">
+      <Filter>3rdparty\tinyexr</Filter>
+    </ClCompile>
+    <ClCompile Include="os\win32\win32_libentry.cpp">
+      <Filter>OS\Win32</Filter>
+    </ClCompile>
+    <ClCompile Include="os\win32\sys_win32_hooks.cpp">
+      <Filter>OS\Win32</Filter>
+    </ClCompile>
+    <ClCompile Include="replay\app_api.cpp">
+      <Filter>API\In-App</Filter>
+    </ClCompile>
+    <ClCompile Include="replay\capture_options.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\android\android_callstack.cpp">
+      <Filter>OS\Posix\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\android\android_stringio.cpp">
+      <Filter>OS\Posix\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_callstack.cpp">
+      <Filter>OS\Posix\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_stringio.cpp">
+      <Filter>OS\Posix\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\posix_libentry.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\posix_network.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\posix_process.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\posix_stringio.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\posix_threading.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_callstack.cpp">
+      <Filter>OS\Posix\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_process.cpp">
+      <Filter>OS\Posix\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_stringio.cpp">
+      <Filter>OS\Posix\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_threading.cpp">
+      <Filter>OS\Posix\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\android\android_process.cpp">
+      <Filter>OS\Posix\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\android\android_threading.cpp">
+      <Filter>OS\Posix\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_process.cpp">
+      <Filter>OS\Posix\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_threading.cpp">
+      <Filter>OS\Posix\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="data\glsl_shaders.cpp">
+      <Filter>Resources</Filter>
+    </ClCompile>
+    <ClCompile Include="core\remote_server.cpp">
+      <Filter>Core\networking</Filter>
+    </ClCompile>
+    <ClCompile Include="core\target_control.cpp">
+      <Filter>Core\networking</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\plthook\plthook_elf.c">
+      <Filter>3rdparty\plthook</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\linux\linux_hook.cpp">
+      <Filter>OS\Posix\Linux</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\android\android_hook.cpp">
+      <Filter>OS\Posix\Android</Filter>
+    </ClCompile>
+    <ClCompile Include="os\posix\apple\apple_hook.cpp">
+      <Filter>OS\Posix\Apple</Filter>
+    </ClCompile>
+    <ClCompile Include="3rdparty\tinyfiledialogs\tinyfiledialogs.c">
+      <Filter>3rdparty\tinyfiledialogs</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -493,25 +472,73 @@
     <None Include="data\hlsl\multisample.hlsl">
       <Filter>Resources\hlsl</Filter>
     </None>
-    <None Include="data\glsl\blit.frag">
+    <None Include="data\hlsl\mesh.hlsl">
+      <Filter>Resources\hlsl</Filter>
+    </None>
+    <None Include="data\glsl\array2ms.comp">
       <Filter>Resources\glsl</Filter>
     </None>
     <None Include="data\glsl\blit.vert">
       <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\glsl\texdisplay.frag">
-      <Filter>Resources\glsl</Filter>
-    </None>
     <None Include="data\glsl\checkerboard.frag">
       <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\glsl\generic.vert">
+    <None Include="data\glsl\fixedcol.frag">
       <Filter>Resources\glsl</Filter>
     </None>
-    <None Include="data\glsl\generic.frag">
+    <None Include="data\glsl\histogram.comp">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\mesh.comp">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\mesh.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\mesh.geom">
       <Filter>Resources\glsl</Filter>
     </None>
     <None Include="data\glsl\mesh.vert">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\minmaxresult.comp">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\minmaxtile.comp">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\ms2array.comp">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\outline.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\quadresolve.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\quadwrite.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\texdisplay.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\text.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\text.vert">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\trisize.geom">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\trisize.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\deptharr2ms.frag">
+      <Filter>Resources\glsl</Filter>
+    </None>
+    <None Include="data\glsl\depthms2arr.frag">
       <Filter>Resources\glsl</Filter>
     </None>
   </ItemGroup>

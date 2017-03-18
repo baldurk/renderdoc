@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -46,7 +47,7 @@ namespace renderdoc
             [StructLayout(LayoutKind.Sequential)]
             public class LayoutInput
             {
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string SemanticName;
                 public UInt32 SemanticIndex;
                 [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
@@ -62,6 +63,9 @@ namespace renderdoc
             private IntPtr _ptr_Bytecode;
             [CustomMarshalAs(CustomUnmanagedType.Skip)]
             public ShaderReflection Bytecode;
+            public bool customName;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string LayoutName;
 
             [StructLayout(LayoutKind.Sequential)]
             public class VertexBuffer
@@ -77,14 +81,10 @@ namespace renderdoc
             public class IndexBuffer
             {
                 public ResourceId Buffer;
-                [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
-                public ResourceFormat Format;
                 public UInt32 Offset;
             };
             [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
             public IndexBuffer ibuffer;
-
-            public PrimitiveTopology Topology;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public InputAssembler m_IA;
@@ -103,9 +103,14 @@ namespace renderdoc
             }
 
             public ResourceId Shader;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string ShaderName;
+            public bool customName;
             private IntPtr _ptr_ShaderDetails;
             [CustomMarshalAs(CustomUnmanagedType.Skip)]
             public ShaderReflection ShaderDetails;
+            [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+            public ShaderBindpointMapping BindpointMapping;
 
             public ShaderStageType stage;
 
@@ -114,13 +119,14 @@ namespace renderdoc
             {
                 public ResourceId View;
                 public ResourceId Resource;
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string Type;
                 [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
                 public ResourceFormat Format;
 
                 public bool Structured;
                 public UInt32 BufferStructCount;
+                public UInt32 ElementSize;
 
                 // Buffer (SRV)
                 public UInt32 ElementOffset;
@@ -131,13 +137,11 @@ namespace renderdoc
                 public UInt32 NumElements;
 
                 // BufferEx
-                public UInt32 Flags;
+                public D3DBufferViewFlags Flags;
 
                 // Texture
                 public UInt32 HighestMip;
                 public UInt32 NumMipLevels;
-
-                public UInt32 MipSlice;
 
                 // Texture Array
                 public UInt32 ArraySize;
@@ -152,14 +156,21 @@ namespace renderdoc
             public class Sampler
             {
                 public ResourceId Samp;
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+                public string SamplerName;
+                public bool customSamplerName;
+
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string AddressU, AddressV, AddressW;
                 [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 4)]
                 public float[] BorderColor;
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string Comparison;
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string Filter;
+                public bool UseBorder;
+                public bool UseComparison;
                 public UInt32 MaxAniso;
                 public float MaxLOD;
                 public float MinLOD;
@@ -181,7 +192,7 @@ namespace renderdoc
             [StructLayout(LayoutKind.Sequential)]
             public class ClassInstance
             {
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 string name;
             };
 
@@ -216,6 +227,7 @@ namespace renderdoc
                 public float[] TopLeft;
                 public float Width, Height;
                 public float MinDepth, MaxDepth;
+                public bool Enabled;
             };
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public Viewport[] Viewports;
@@ -224,6 +236,7 @@ namespace renderdoc
             public class Scissor
             {
                 public Int32 left, top, right, bottom;
+                public bool Enabled;
             };
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public Scissor[] Scissors;
@@ -243,6 +256,7 @@ namespace renderdoc
                 public bool MultisampleEnable;
                 public bool AntialiasedLineEnable;
                 public UInt32 ForcedSampleCount;
+                public bool ConservativeRasterization;
             };
             [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
             public RasterizerState m_State;
@@ -258,7 +272,7 @@ namespace renderdoc
             {
                 public ResourceId State;
                 public bool DepthEnable;
-                [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                 public string DepthFunc;
                 public bool DepthWrites;
                 public bool StencilEnable;
@@ -268,13 +282,13 @@ namespace renderdoc
                 [StructLayout(LayoutKind.Sequential)]
                 public class StencilOp
                 {
-                    [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                    [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                     public string FailOp;
-                    [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                    [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                     public string DepthFailOp;
-                    [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                    [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                     public string PassOp;
-                    [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                    [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                     public string Func;
                 };
                 [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
@@ -299,17 +313,17 @@ namespace renderdoc
                     [StructLayout(LayoutKind.Sequential)]
                     public class BlendOp
                     {
-                        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                         public string Source;
-                        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                         public string Destination;
-                        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                         public string Operation;
                     };
                     [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
                     public BlendOp m_Blend, m_AlphaBlend;
 
-                    [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+                    [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
                     public string LogicOp;
 
                     public bool Enabled;

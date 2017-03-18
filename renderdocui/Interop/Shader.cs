@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -32,10 +33,12 @@ namespace renderdoc
     {
         public UInt32 rows, columns;
 
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string name;
 
         public VarType type;
+
+        public bool displayAsHex;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct ValueUnion
@@ -49,50 +52,28 @@ namespace renderdoc
             [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 16, FixedType = CustomFixedType.Int32)]
             public Int32[] iv;
 
-            [CustomMarshalAs(CustomUnmanagedType.Skip)]
-            private double[] dv_arr;
-
-            public double[] dv
-            {
-                get
-                {
-                    if (dv_arr == null)
-                    {
-                        UInt64[] ds = { 0, 0 };
-                        ds[0] = uv[1];
-                        ds[1] = uv[3];
-
-                        ds[0] <<= 32;
-                        ds[1] <<= 32;
-
-                        ds[0] |= uv[0];
-                        ds[1] |= uv[2];
-
-                        dv_arr = new double[2];
-                        dv_arr[0] = BitConverter.Int64BitsToDouble(unchecked((long)ds[0]));
-                        dv_arr[1] = BitConverter.Int64BitsToDouble(unchecked((long)ds[1]));
-                    }
-
-                    return dv_arr;
-                }
-            }
+            [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 16, FixedType = CustomFixedType.Double)]
+            public double[] dv;
         };
 
         [CustomMarshalAs(CustomUnmanagedType.Union)]
         public ValueUnion value;
 
+        public bool isStruct;
+        
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public ShaderVariable[] members;
-        
-        public override string ToString()
-		{ 
-			if(members.Length > 0) return String.Format("struct[{0}]", members.Length);
-			if(rows == 1) return Row(0);
-			
+
+		public override string ToString()
+		{
+			if (members.Length > 0)
+				return "";
+			if (rows == 1) return Row(0);
+
 			string ret = "";
-            for (int i = 0; i < (int)rows; i++)
+			for (int i = 0; i < (int)rows; i++)
 			{
-				if(i > 0) ret += ", ";
+				if (i > 0) ret += ", ";
 				ret += "{" + Row(i) + "}";
 			}
 
@@ -101,28 +82,50 @@ namespace renderdoc
 
 		public string RowTypeString()
 		{
-            if (members.Length > 0) return "struct";
+			if (members.Length > 0)
+			{
+				if (isStruct)
+					return "struct";
+				else
+					return "flibbertygibbet";
+			}
 
-			if(rows == 0 && columns == 0)
+			if (rows == 0 && columns == 0)
 				return "-";
 
-			if(columns == 1)
-				return type.Str();
+			string typeStr = type.Str();
 
-            return String.Format("{0}{1}", type.Str(), columns);
+			if(displayAsHex && type == VarType.UInt)
+				typeStr = "xint";
+
+			if (columns == 1)
+				return typeStr;
+
+			return String.Format("{0}{1}", typeStr, columns);
 		}
 
 		public string TypeString()
 		{
-            if (members.Length > 0) return "struct";
+			if (members.Length > 0)
+			{
+				if (isStruct)
+					return "struct";
+				else
+					return String.Format("{0}[{1}]", members[0].TypeString(), members.Length);
+			}
 
-            if (rows == 1 && columns == 1) return type.Str();
-            if (rows == 1) return String.Format("{0}{1}", type.Str(), columns);
-            else return String.Format("{0}{1}x{2}", type.Str(), rows, columns);
+			string typeStr = type.Str();
+
+			if (displayAsHex && type == VarType.UInt)
+				typeStr = "xint";
+
+			if (rows == 1 && columns == 1) return typeStr;
+			if (rows == 1) return String.Format("{0}{1}", typeStr, columns);
+			else return String.Format("{0}{1}x{2}", typeStr, rows, columns);
 		}
 
         public string RowValuesToString(int cols, double x, double y, double z, double w)
-		{
+        {
             if (cols == 1) return Formatter.Format(x);
             else if (cols == 2) return Formatter.Format(x) + ", " + Formatter.Format(y);
             else if (cols == 3) return Formatter.Format(x) + ", " + Formatter.Format(y) + ", " + Formatter.Format(z);
@@ -139,10 +142,10 @@ namespace renderdoc
 
         public string RowValuesToString(int cols, UInt32 x, UInt32 y, UInt32 z, UInt32 w)
         {
-            if (cols == 1) return Formatter.Format(x);
-            else if (cols == 2) return Formatter.Format(x) + ", " + Formatter.Format(y);
-            else if (cols == 3) return Formatter.Format(x) + ", " + Formatter.Format(y) + ", " + Formatter.Format(z);
-            else return Formatter.Format(x) + ", " + Formatter.Format(y) + ", " + Formatter.Format(z) + ", " + Formatter.Format(w);
+            if (cols == 1) return Formatter.Format(x, displayAsHex);
+            else if (cols == 2) return Formatter.Format(x, displayAsHex) + ", " + Formatter.Format(y, displayAsHex);
+            else if (cols == 3) return Formatter.Format(x, displayAsHex) + ", " + Formatter.Format(y, displayAsHex) + ", " + Formatter.Format(z, displayAsHex);
+            else return Formatter.Format(x, displayAsHex) + ", " + Formatter.Format(y, displayAsHex) + ", " + Formatter.Format(z, displayAsHex) + ", " + Formatter.Format(w, displayAsHex);
         }
 
         public string RowValuesToString(int cols, Int32 x, Int32 y, Int32 z, Int32 w)
@@ -156,7 +159,7 @@ namespace renderdoc
 		public string Row(int row, VarType t)
 		{
 			if(t == VarType.Double)
-				return RowValuesToString((int)columns, value.dv[row*columns+0], value.dv[row*columns+1], value.dv[row*columns+2], value.dv[row*columns+3]);
+                return RowValuesToString((int)columns, value.dv[row * columns + 0], value.dv[row * columns + 1], value.dv[row * columns + 2], value.dv[row * columns + 3]);
 			else if(t == VarType.Int)
                 return RowValuesToString((int)columns, value.iv[row * columns + 0], value.iv[row * columns + 1], value.iv[row * columns + 2], value.iv[row * columns + 3]);
 			else if(t == VarType.UInt)
@@ -179,7 +182,17 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public ShaderVariable[] outputs;
 
+        [StructLayout(LayoutKind.Sequential)]
+        public struct IndexableTempArray
+        {
+            [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+            public ShaderVariable[] temps;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public IndexableTempArray[] indexableTemps;
+
         public UInt32 nextInstruction;
+        public ShaderDebugStateFlags flags;
     };
     
     [StructLayout(LayoutKind.Sequential)]
@@ -204,14 +217,14 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public class SigParameter
     {
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string varName;
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string semanticName;
 
         public UInt32 semanticIndex;
 
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string semanticIdxName;
 
         public bool needSemanticIndex;
@@ -225,6 +238,8 @@ namespace renderdoc
         public byte channelUsedMask;
         public UInt32 compCount;
         public UInt32 stream;
+
+        public UInt32 arrayIndex;
         
 		public string TypeString
         {
@@ -234,9 +249,9 @@ namespace renderdoc
 
                 if (compType == FormatComponentType.Float)
                     ret += "float";
-                else if (compType == FormatComponentType.UInt)
+                else if (compType == FormatComponentType.UInt || compType == FormatComponentType.UScaled)
                     ret += "uint";
-                else if (compType == FormatComponentType.SInt)
+                else if (compType == FormatComponentType.SInt || compType == FormatComponentType.SScaled)
                     ret += "int";
                 else if (compType == FormatComponentType.UNorm)
                     ret += "unorm float";
@@ -252,7 +267,7 @@ namespace renderdoc
             }
         }
 
-		public string D3D11SemanticString
+        public string D3DSemanticString
         {
             get
             {
@@ -290,10 +305,13 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public struct ShaderVarDescriptor
         {
+            public VarType type;
             public UInt32 rows;
             public UInt32 cols;
             public UInt32 elements;
-            [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+            public bool rowMajorStorage;
+            public UInt32 arrayStride;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string name;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
@@ -308,7 +326,7 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public class ShaderConstant
     {
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string name;
 
         [StructLayout(LayoutKind.Sequential)]
@@ -320,6 +338,8 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public RegSpan reg;
 
+        public UInt64 defaultValue;
+
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderVariableType type;
     };
@@ -327,13 +347,15 @@ namespace renderdoc
     [StructLayout(LayoutKind.Sequential)]
     public class ConstantBlock
     {
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string name;
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public ShaderConstant[] variables;
 
-        public UInt32 bufferAddress;
+        public bool bufferBacked;
+        public Int32 bindPoint;
+        public UInt32 byteSize;
     };
 
     [StructLayout(LayoutKind.Sequential)]
@@ -342,36 +364,57 @@ namespace renderdoc
         public bool IsSampler;
         public bool IsTexture;
         public bool IsSRV;
-        public bool IsUAV;
 
         public ShaderResourceType resType;
 
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string name;
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderVariableType variableType;
-        public UInt32 variableAddress;
-        public UInt32 bindPoint;
+        public Int32 bindPoint;
     };
 
     [StructLayout(LayoutKind.Sequential)]
     public class ShaderDebugChunk
     {
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string entryFunc;
 
         public UInt32 compileFlags;
 
         public struct DebugFile
         {
-            [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
-            public string filename;
-            [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            private string filename_;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string filetext;
+
+            public string FullFilename
+            {
+                get
+                {
+                    return filename_;
+                }
+            }
+
+            // get filename handling possibly invalid characters
+            public string BaseFilename
+            {
+                get
+                {
+                    return renderdocui.Code.Helpers.SafeGetFileName(filename_);
+                }
+                set
+                {
+                    filename_ = value;
+                }
+            }
         };
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public DebugFile[] files;
+
+        public Int32 entryFile;
     };
     
     [StructLayout(LayoutKind.Sequential)]
@@ -380,8 +423,14 @@ namespace renderdoc
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public ShaderDebugChunk DebugInfo;
 
-        [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+        [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
         public string Disassembly;
+
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public byte[] RawBytes;
+
+        [CustomMarshalAs(CustomUnmanagedType.FixedArray, FixedLength = 3)]
+        public UInt32[] DispatchThreadsDimension;
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public SigParameter[] InputSig;
@@ -389,19 +438,79 @@ namespace renderdoc
         public SigParameter[] OutputSig;
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-        public ConstantBlock[] ConstantBlocks; // sparse - index indicates bind point
+        public ConstantBlock[] ConstantBlocks;
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
-        public ShaderResource[] Resources; // non-sparse, since bind points can overlap.
+        public ShaderResource[] ReadOnlyResources;
+
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public ShaderResource[] ReadWriteResources;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct Interface
         {
-            [CustomMarshalAs(CustomUnmanagedType.AsciiTemplatedString)]
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string Name;
         };
 
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public Interface[] Interfaces;
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class BindpointMap
+    {
+        public Int32 bindset;
+        public Int32 bind;
+        public bool used;
+        public UInt32 arraySize;
+
+        public BindpointMap()
+        {
+        }
+
+        public BindpointMap(Int32 set, Int32 slot)
+        {
+            bindset = set;
+            bind = slot;
+            used = false;
+            arraySize = 1;
+        }
+
+        public override bool Equals(Object obj)
+        {
+            return obj is BindpointMap && this == (BindpointMap)obj;
+        }
+        public override int GetHashCode()
+        {
+            int hash = bindset.GetHashCode() * 17;
+            hash = hash * 17 + bind.GetHashCode();
+            return hash;
+        }
+        public static bool operator ==(BindpointMap x, BindpointMap y)
+        {
+            if ((object)x == null) return (object)y == null;
+            if ((object)y == null) return (object)x == null;
+
+            return x.bindset == y.bindset &&
+                x.bind == y.bind;
+        }
+        public static bool operator !=(BindpointMap x, BindpointMap y)
+        {
+            return !(x == y);
+        }
+    };
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class ShaderBindpointMapping
+    {
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public int[] InputAttributes;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public BindpointMap[] ConstantBlocks;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public BindpointMap[] ReadOnlyResources;
+        [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
+        public BindpointMap[] ReadWriteResources;
     };
 };

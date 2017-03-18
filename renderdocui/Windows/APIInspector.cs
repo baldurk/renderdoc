@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -53,6 +54,10 @@ namespace renderdocui.Windows
 
             m_Core = core;
 
+            callstack.Font =
+                apiEvents.Font =
+                core.Config.PreferredFont;
+
             panelSplitter.Collapsed = true;
         }
 
@@ -79,8 +84,8 @@ namespace renderdocui.Windows
             apiEvents.BeginUpdate();
             apiEvents.Nodes.Clear();
 
-            Regex rgx = new Regex("^\\s*[{}]?");
-            string replacement = "";
+            Regex rgxopen = new Regex("^\\s*{");
+            Regex rgxclose = new Regex("^\\s*}");
 
             FetchDrawcall draw = m_Core.CurDrawcall;
 
@@ -88,26 +93,34 @@ namespace renderdocui.Windows
             {
                 foreach (var ev in draw.events)
                 {
-                    // hack until I have a proper interface. Skip events associated with this draw that
-                    // come from another context (means they will just be completely omitted/invisible).
-                    if (ev.context != draw.context)
-                        continue;
-
                     string[] lines = ev.eventDesc.Split(new string[] { "\r\n", "\n" }, StringSplitOptions.None);
 
-                    TreelistView.Node node = apiEvents.Nodes.Add(new TreelistView.Node(new object[] { ev.eventID, lines[0] }));
+                    TreelistView.Node root = new TreelistView.Node(new object[] { ev.eventID, lines[0] });
 
-                    for (int i = 1; i < lines.Length; i++)
+                    int i=1;
+
+                    if (i < lines.Length && lines[i].Trim() == "{")
+                        i++;
+
+                    List<TreelistView.Node> nodestack = new List<TreelistView.Node>();
+                    nodestack.Add(root);
+
+                    for (; i < lines.Length; i++)
                     {
-                        string l = rgx.Replace(lines[i], replacement);
-                        if (l != "")
-                            node.Nodes.Add(new TreelistView.Node(new object[] { "", l }));
+                        if (rgxopen.IsMatch(lines[i]))
+                            nodestack.Add(nodestack.Last().Nodes.LastNode);
+                        else if (rgxclose.IsMatch(lines[i]))
+                            nodestack.RemoveAt(nodestack.Count - 1);
+                        else if(lines[i].Trim().Length > 0 && nodestack.Count > 0)
+                            nodestack.Last().Nodes.Add(new TreelistView.Node(new object[] { "", lines[i].Trim() }));
                     }
 
                     if (ev.eventID == draw.eventID)
-                        node.Bold = true;
+                        root.Bold = true;
 
-                    node.Tag = (object)ev;
+                    root.Tag = (object)ev;
+
+                    apiEvents.Nodes.Add(root);
                 }
 
                 if (apiEvents.Nodes.Count > 0)
@@ -117,7 +130,7 @@ namespace renderdocui.Windows
             apiEvents.EndUpdate();
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
             FillAPIView();
 
@@ -136,49 +149,20 @@ namespace renderdocui.Windows
                 return;
             }
 
-            String[] filteredCalls = new String[calls.Length];
-
-            /*
-            String commonRoot = calls[0];
-
-            for (int i = 1; i < calls.Length - m_Core.Config.CallstackLevelSkip; i++)
-            {
-                int len = Math.Min(commonRoot.Length, calls[i].Length);
-
-                int commonLen = 0;
-                for (;commonLen < len; commonLen++)
-                {
-                    if (commonRoot[commonLen] != calls[i][commonLen])
-                        break;
-                }
-
-                if (commonLen == 0)
-                {
-                    commonRoot = "";
-                    break;
-                }
-
-                commonRoot = commonRoot.Substring(0, commonLen);
-            }
-            */
-
             callstack.Items.Clear();
 
-            if (calls.Length == 1 && calls[0] == "")
+            if (calls.Length == 1 && calls[0].Length == 0)
             {
                 callstack.Items.Add("Symbols not loaded. Tools -> Resolve Symbols.");
             }
             else
             {
-                for (int i = 0; i < calls.Length - m_Core.Config.CallstackLevelSkip; i++)
-                {
-                    //callstack.Items.Add(calls[i].Substring(commonRoot.Length));
+                for (int i = 0; i < calls.Length; i++)
                     callstack.Items.Add(calls[i]);
-                }
             }
         }
 
-        private void treeView1_AfterSelect(object sender, TreeViewEventArgs e)
+        private void apiEvents_AfterSelect(object sender, TreeViewEventArgs e)
         {
             if (IsDisposed || apiEvents.IsDisposed)
                 return;
@@ -212,71 +196,47 @@ namespace renderdocui.Windows
 
         private void APIEvents_Shown(object sender, EventArgs e)
         {
-            if (m_Core.LogLoaded)
-                OnLogfileLoaded();
-
             panelSplitter.Collapsed = true;
-        }
-
-        private void UpdateSettings()
-        {
-            bool changed = false;
-
-            if (int.TryParse(callSkip.Text, out m_Core.Config.CallstackLevelSkip))
-            {
-                if (m_Core.Config.CallstackLevelSkip < 0)
-                    m_Core.Config.CallstackLevelSkip = 0;
-                callSkip.Text = m_Core.Config.CallstackLevelSkip.ToString();
-                changed = true;
-            }
-
-            if (changed)
-                FillCallstack();
-        }
-
-        private void callstack_MouseUp(object sender, MouseEventArgs e)
-        {
-            if (e.Button == MouseButtons.Right)
-                contextMenu.Show(callstack.PointToScreen(e.Location));
-
-            if (e.Button == MouseButtons.Left && contextMenu.Visible)
-                UpdateSettings();
-        }
-
-        private void callSkip_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            if (e.KeyChar == '\r' || e.KeyChar == '\n')
-            {
-                UpdateSettings();
-                e.Handled = true;
-            }
-        }
-
-        private void dirSkip_KeyPress(object sender, KeyPressEventArgs e)
-        {
-            if (e.KeyChar == '\r' || e.KeyChar == '\n')
-            {
-                UpdateSettings();
-                e.Handled = true;
-            }
         }
 
         private void apiEvents_KeyDown(object sender, KeyEventArgs e)
         {
+            if (!m_Core.LogLoaded) return;
+
             if (e.KeyCode == Keys.C && e.Control)
             {
+                apiEvents.SortNodesSelection();
+
                 string text = "";
                 foreach (var n in apiEvents.NodesSelection)
                 {
                     text += string.Format("{0,-5}  {1}" + Environment.NewLine, n[0].ToString(), n[1].ToString());
                 }
 
-                Clipboard.SetText(text);
+                try
+                {
+                    if (text.Length > 0)
+                        Clipboard.SetText(text);
+                }
+                catch (System.Exception)
+                {
+                    try
+                    {
+                        if (text.Length > 0)
+                            Clipboard.SetDataObject(text);
+                    }
+                    catch (System.Exception)
+                    {
+                        // give up!
+                    }
+                }
             }
         }
 
         private void callstack_KeyDown(object sender, KeyEventArgs e)
         {
+            if (!m_Core.LogLoaded) return;
+
             if (e.KeyCode == Keys.C && e.Control)
             {
                 string text = "";
@@ -285,7 +245,23 @@ namespace renderdocui.Windows
                     text += n.ToString() + Environment.NewLine;
                 }
 
-                Clipboard.SetText(text);
+                try
+                {
+                    if (text.Length > 0)
+                        Clipboard.SetText(text);
+                }
+                catch (System.Exception)
+                {
+                    try
+                    {
+                        if (text.Length > 0)
+                            Clipboard.SetDataObject(text);
+                    }
+                    catch (System.Exception)
+                    {
+                        // give up!
+                    }
+                }
             }
         }
 

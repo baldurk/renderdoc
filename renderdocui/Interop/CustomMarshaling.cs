@@ -1,6 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -23,6 +24,7 @@
  ******************************************************************************/
 
 using System;
+using System.Linq;
 using System.Runtime.InteropServices;
 using System.Reflection;
 using System.Collections.Generic;
@@ -36,21 +38,11 @@ namespace renderdoc
         public IntPtr elems;
         public Int32 count;
     };
-
-    // convenience - for when we want to define an array of strings, this
-    // struct lets us do that
-    [StructLayout(LayoutKind.Sequential)]
-    public struct rdctype_wstr
-    {
-        [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
-        string s;
-    };
     
     public enum CustomUnmanagedType
     {
         TemplatedArray = 0,
-        AsciiTemplatedString,
-        WideTemplatedString,
+        UTF8TemplatedString,
         FixedArray,
         Union,
         Skip,
@@ -65,6 +57,7 @@ namespace renderdoc
         UInt32,
         Int32,
         UInt16,
+        Double,
     }
 
     // custom attribute that we can apply to structures we want to serialise
@@ -116,6 +109,28 @@ namespace renderdoc
             return mem;
         }
 
+        public static IntPtr Alloc(Type T, int arraylen)
+        {
+            IntPtr mem = Marshal.AllocHGlobal(CustomMarshal.SizeOf(T)*arraylen);
+            FillMemory(mem, CustomMarshal.SizeOf(T) * arraylen, 0);
+
+            return mem;
+        }
+
+        public static IntPtr MakeUTF8String(string s)
+        {
+            int len = System.Text.Encoding.UTF8.GetByteCount(s);
+
+            IntPtr mem = Marshal.AllocHGlobal(len + 1);
+            byte[] bytes = new byte[len + 1];
+            bytes[len] = 0; // add NULL terminator
+            System.Text.Encoding.UTF8.GetBytes(s, 0, s.Length, bytes, 0);
+
+            Marshal.Copy(bytes, 0, mem, len+1);
+
+            return mem;
+        }
+
         public static void Free(IntPtr mem)
         {
             Marshal.FreeHGlobal(mem);
@@ -130,8 +145,7 @@ namespace renderdoc
             var cma = GetCustomAttr(field);
 
             if (cma != null &&
-                (cma.CustomType == CustomUnmanagedType.AsciiTemplatedString ||
-                 cma.CustomType == CustomUnmanagedType.WideTemplatedString ||
+                (cma.CustomType == CustomUnmanagedType.UTF8TemplatedString ||
                  cma.CustomType == CustomUnmanagedType.TemplatedArray ||
                  cma.CustomType == CustomUnmanagedType.CustomClassPointer)
                 )
@@ -147,7 +161,7 @@ namespace renderdoc
             // Get instance fields of the structure type. 
             FieldInfo[] fieldInfo = NonArrayType(field.FieldType).GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
 
-            int align = 0;
+            int align = 1;
 
             foreach (FieldInfo f in fieldInfo)
                 align = Math.Max(align, AlignOf(f));
@@ -164,17 +178,20 @@ namespace renderdoc
 
         private static CustomMarshalAsAttribute GetCustomAttr(Type t, FieldInfo[] fields, int fieldIdx)
         {
-            if (!m_CustomAttrCache.ContainsKey(t))
+            lock (m_CustomAttrCache)
             {
-                var arr = new CustomMarshalAsAttribute[fields.Length];
+                if (!m_CustomAttrCache.ContainsKey(t))
+                {
+                    var arr = new CustomMarshalAsAttribute[fields.Length];
 
-                for (int i = 0; i < fields.Length; i++)
-                    arr[i] = GetCustomAttr(fields[i]);
+                    for (int i = 0; i < fields.Length; i++)
+                        arr[i] = GetCustomAttr(fields[i]);
 
-                m_CustomAttrCache.Add(t, arr);
+                    m_CustomAttrCache.Add(t, arr);
+                }
+
+                return m_CustomAttrCache[t][fieldIdx];
             }
-
-            return m_CustomAttrCache[t][fieldIdx];
         }
 
         private static CustomMarshalAsAttribute GetCustomAttr(FieldInfo field)
@@ -231,8 +248,7 @@ namespace renderdoc
                             break;
                         }
                     case CustomUnmanagedType.TemplatedArray:
-                    case CustomUnmanagedType.AsciiTemplatedString:
-                    case CustomUnmanagedType.WideTemplatedString:
+                    case CustomUnmanagedType.UTF8TemplatedString:
                         size += Marshal.SizeOf(typeof(templated_array));
                         break;
                     case CustomUnmanagedType.FixedArray:
@@ -264,28 +280,31 @@ namespace renderdoc
                 (structureType.IsArray && structureType.GetElementType().IsPrimitive))
                 return Marshal.SizeOf(structureType);
 
-            if (m_SizeCache.ContainsKey(structureType))
-                return m_SizeCache[structureType];
-
-            // Get instance fields of the structure type. 
-            FieldInfo[] fieldInfo = structureType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
-
-            long size = 0;
-
-            int a = 0;
-
-            foreach (FieldInfo field in fieldInfo)
+            lock (m_SizeCache)
             {
-                AddFieldSize(field, ref size);
-                a = Math.Max(a, AlignOf(field));
+                if (m_SizeCache.ContainsKey(structureType))
+                    return m_SizeCache[structureType];
+
+                // Get instance fields of the structure type. 
+                FieldInfo[] fieldInfo = structureType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+
+                long size = 0;
+
+                int a = 1;
+
+                foreach (FieldInfo field in fieldInfo)
+                {
+                    AddFieldSize(field, ref size);
+                    a = Math.Max(a, AlignOf(field));
+                }
+
+                int alignment = (int)size % a;
+                if (alignment != 0) size += a - alignment;
+
+                m_SizeCache.Add(structureType, (int)size);
+
+                return (int)size;
             }
-
-            int alignment = (int)size % a;
-            if (alignment != 0) size += a - alignment;
-
-            m_SizeCache.Add(structureType, (int)size);
-
-            return (int)size;
         }
 
         // caching the offset to the nth field from a base pointer to the type
@@ -299,40 +318,43 @@ namespace renderdoc
             if (fieldInfo.Length == 0)
                 return ptr;
 
-            if (!m_OffsetAlignCache.ContainsKey(structureType))
+            lock (m_OffsetCache)
             {
-                Int64[] cacheOffsets = new Int64[fieldInfo.Length];
-                int initialAlign = AlignOf(fieldInfo[0]);
-
-                Int64 p = 0;
-
-                for (int i = 0; i < fieldInfo.Length; i++)
+                if (!m_OffsetAlignCache.ContainsKey(structureType))
                 {
-                    FieldInfo field = fieldInfo[i];
+                    Int64[] cacheOffsets = new Int64[fieldInfo.Length];
+                    int initialAlign = AlignOf(fieldInfo[0]);
 
-                    int a = AlignOf(field);
+                    Int64 p = 0;
+
+                    for (int i = 0; i < fieldInfo.Length; i++)
+                    {
+                        FieldInfo field = fieldInfo[i];
+
+                        int a = AlignOf(field);
+                        int alignment = (int)p % a;
+                        if (alignment != 0) p += a - alignment;
+
+                        cacheOffsets[i] = p;
+
+                        AddFieldSize(field, ref p);
+                    }
+
+                    m_OffsetAlignCache.Add(structureType, initialAlign);
+                    m_OffsetCache.Add(structureType, cacheOffsets);
+                }
+
+                {
+                    var p = ptr.ToInt64();
+
+                    int a = m_OffsetAlignCache[structureType];
                     int alignment = (int)p % a;
                     if (alignment != 0) p += a - alignment;
 
-                    cacheOffsets[i] = p;
+                    p += m_OffsetCache[structureType][idx];
 
-                    AddFieldSize(field, ref p);
+                    return new IntPtr(p);
                 }
-
-                m_OffsetAlignCache.Add(structureType, initialAlign);
-                m_OffsetCache.Add(structureType, cacheOffsets);
-            }
-
-            {
-                var p = ptr.ToInt64();
-
-                int a = m_OffsetAlignCache[structureType];
-                int alignment = (int)p % a;
-                if (alignment != 0) p += a - alignment;
-
-                p += m_OffsetCache[structureType][idx];
-
-                return new IntPtr(p);
             }
         }
 
@@ -352,6 +374,10 @@ namespace renderdoc
                 byte[] val = new byte[arr.count];
                 if(val.Length > 0)
                     Marshal.Copy(arr.elems, val, 0, val.Length);
+
+                if (freeMem)
+                    RENDERDOC_FreeArrayMem(arr.elems);
+
                 return val;
             }
             else
@@ -374,12 +400,27 @@ namespace renderdoc
             }
         }
 
+        public static string PtrToStringUTF8(IntPtr elems, int count)
+        {
+            byte[] buffer = new byte[count];
+            if (count > 0)
+                Marshal.Copy(elems, buffer, 0, buffer.Length);
+            return System.Text.Encoding.UTF8.GetString(buffer);
+        }
+
+        public static string PtrToStringUTF8(IntPtr elems)
+        {
+            int len = 0;
+            while (Marshal.ReadByte(elems, len) != 0) ++len;
+            return PtrToStringUTF8(elems, len);
+        }
+
         // specific versions of the above GetTemplatedArray for convenience.
-        public static string TemplatedArrayToUniString(IntPtr sourcePtr, bool freeMem)
+        public static string TemplatedArrayToString(IntPtr sourcePtr, bool freeMem)
         {
             templated_array arr = (templated_array)Marshal.PtrToStructure(sourcePtr, typeof(templated_array));
 
-            string val = Marshal.PtrToStringUni(arr.elems, arr.count);
+            string val = PtrToStringUTF8(arr.elems, arr.count);
 
             if (freeMem)
                 RENDERDOC_FreeArrayMem(arr.elems);
@@ -387,7 +428,7 @@ namespace renderdoc
             return val;
         }
 
-        public static string[] TemplatedArrayToUniStringArray(IntPtr sourcePtr, bool freeMem)
+        public static string[] TemplatedArrayToStringArray(IntPtr sourcePtr, bool freeMem)
         {
             templated_array arr = (templated_array)Marshal.PtrToStructure(sourcePtr, typeof(templated_array));
 
@@ -398,7 +439,7 @@ namespace renderdoc
             {
                 IntPtr ptr = new IntPtr((arr.elems.ToInt64() + i * arrSize));
 
-                ret[i] = TemplatedArrayToUniString(ptr, freeMem);
+                ret[i] = TemplatedArrayToString(ptr, freeMem);
             }
 
             if (freeMem)
@@ -420,7 +461,8 @@ namespace renderdoc
                 return null;
 
             // Get instance fields of the structure type. 
-            FieldInfo[] fields = structureType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance);
+            FieldInfo[] fields = structureType.GetFields(BindingFlags.NonPublic | BindingFlags.Public | BindingFlags.Instance)
+                .OrderBy(field => field.MetadataToken).ToArray();
 
             object ret = Activator.CreateInstance(structureType);
 
@@ -430,11 +472,7 @@ namespace renderdoc
                 {
                     FieldInfo field = fields[fieldIdx];
 
-                    string name = field.Name;
                     IntPtr fieldPtr = isUnion ? sourcePtr : OffsetPtr(structureType, fields, fieldIdx, sourcePtr);
-
-                    var arrayType = NonArrayType(field.FieldType);
-                    int sizeInBytes = SizeOf(arrayType);
 
                     // no custom attribute, so just use the regular Marshal code
                     var cma = GetCustomAttr(structureType, fields, fieldIdx);
@@ -487,6 +525,12 @@ namespace renderdoc
                                         Marshal.Copy(fieldPtr, val, 0, cma.FixedLength);
                                         field.SetValue(ret, val);
                                     }
+                                    else if (cma.FixedType == CustomFixedType.Double)
+                                    {
+                                        double[] val = new double[cma.FixedLength];
+                                        Marshal.Copy(fieldPtr, val, 0, cma.FixedLength);
+                                        field.SetValue(ret, val);
+                                    }
                                     else if (cma.FixedType == CustomFixedType.UInt32)
                                     {
                                         Int32[] val = new Int32[cma.FixedLength];
@@ -498,6 +542,9 @@ namespace renderdoc
                                     }
                                     else
                                     {
+                                        var arrayType = NonArrayType(field.FieldType);
+                                        int sizeInBytes = SizeOf(arrayType);
+
                                         Array val = Array.CreateInstance(arrayType, cma.FixedLength);
 
                                         for (int i = 0; i < val.Length; i++)
@@ -511,32 +558,7 @@ namespace renderdoc
                                     }
                                     break;
                                 }
-                            case CustomUnmanagedType.AsciiTemplatedString:
-                                {
-                                    // templated_array must be pointer-aligned
-                                    long alignment = fieldPtr.ToInt64() % IntPtr.Size;
-                                    if (alignment != 0)
-                                    {
-                                        fieldPtr = new IntPtr(fieldPtr.ToInt64() + IntPtr.Size - alignment);
-                                    }
-
-                                    templated_array arr = (templated_array)Marshal.PtrToStructure(fieldPtr, typeof(templated_array));
-                                    if (field.FieldType == typeof(string))
-                                    {
-                                        if (arr.elems == IntPtr.Zero)
-                                            field.SetValue(ret, "");
-                                        else
-                                            field.SetValue(ret, Marshal.PtrToStringAnsi(arr.elems, arr.count));
-                                    }
-                                    else
-                                    {
-                                        throw new NotImplementedException("non-string element marked to marshal as AsciiTemplatedString");
-                                    }
-                                    if(freeMem)
-                                        RENDERDOC_FreeArrayMem(arr.elems);
-                                    break;
-                                }
-                            case CustomUnmanagedType.WideTemplatedString:
+                            case CustomUnmanagedType.UTF8TemplatedString:
                             case CustomUnmanagedType.TemplatedArray:
                                 {
                                     // templated_array must be pointer-aligned
@@ -552,10 +574,13 @@ namespace renderdoc
                                         if (arr.elems == IntPtr.Zero)
                                             field.SetValue(ret, "");
                                         else
-                                            field.SetValue(ret, Marshal.PtrToStringUni(arr.elems, arr.count));
+                                            field.SetValue(ret, PtrToStringUTF8(arr.elems, arr.count));
                                     }
                                     else
                                     {
+                                        var arrayType = NonArrayType(field.FieldType);
+                                        int sizeInBytes = SizeOf(arrayType);
+
                                         if (field.FieldType.IsArray && arrayType == typeof(byte))
                                         {
                                             byte[] val = new byte[arr.count];

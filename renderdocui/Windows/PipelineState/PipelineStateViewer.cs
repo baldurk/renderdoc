@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -44,7 +45,9 @@ namespace renderdocui.Windows.PipelineState
     {
         private Core m_Core;
         private D3D11PipelineStateViewer m_D3D11 = null;
+        private D3D12PipelineStateViewer m_D3D12 = null;
         private GLPipelineStateViewer m_GL = null;
+        private VulkanPipelineStateViewer m_Vulkan = null;
         private ILogViewerForm m_Current = null;
 
         public PipelineStateViewer(Core core)
@@ -66,8 +69,12 @@ namespace renderdocui.Windows.PipelineState
         {
             if (m_Current == m_D3D11)
                 return GetType().ToString() + "D3D11";
+            else if (m_Current == m_D3D12)
+                return GetType().ToString() + "D3D12";
             else if (m_Current == m_GL)
                 return GetType().ToString() + "GL";
+            else if (m_Current == m_Vulkan)
+                return GetType().ToString() + "Vulkan";
 
             return GetType().ToString();
         }
@@ -80,11 +87,17 @@ namespace renderdocui.Windows.PipelineState
                 SetToGL();
             else if (type == "D3D11")
                 SetToD3D11();
+            else if (type == "D3D12")
+                SetToD3D12();
+            else if (type == "Vulkan")
+                SetToVulkan();
         }
 
         private void SetToD3D11()
         {
+            m_D3D12 = null;
             m_GL = null;
+            m_Vulkan = null;
 
             if (m_D3D11 == null)
             {
@@ -95,11 +108,32 @@ namespace renderdocui.Windows.PipelineState
             }
 
             m_Current = m_D3D11;
+            m_Core.CurPipelineState.DefaultType = GraphicsAPI.D3D11;
+        }
+
+        private void SetToD3D12()
+        {
+            m_D3D11 = null;
+            m_GL = null;
+            m_Vulkan = null;
+
+            if (m_D3D12 == null)
+            {
+                Controls.Clear();
+                m_D3D12 = new D3D12PipelineStateViewer(m_Core, this);
+                m_D3D12.Dock = DockStyle.Fill;
+                Controls.Add(m_D3D12);
+            }
+
+            m_Current = m_D3D12;
+            m_Core.CurPipelineState.DefaultType = GraphicsAPI.D3D12;
         }
 
         private void SetToGL()
         {
             m_D3D11 = null;
+            m_D3D12 = null;
+            m_Vulkan = null;
 
             if (m_GL == null)
             {
@@ -110,14 +144,37 @@ namespace renderdocui.Windows.PipelineState
             }
 
             m_Current = m_GL;
+            m_Core.CurPipelineState.DefaultType = GraphicsAPI.OpenGL;
+        }
+
+        private void SetToVulkan()
+        {
+            m_GL = null;
+            m_D3D12 = null;
+            m_D3D11 = null;
+
+            if (m_Vulkan == null)
+            {
+                Controls.Clear();
+                m_Vulkan = new VulkanPipelineStateViewer(m_Core, this);
+                m_Vulkan.Dock = DockStyle.Fill;
+                Controls.Add(m_Vulkan);
+            }
+
+            m_Current = m_Vulkan;
+            m_Core.CurPipelineState.DefaultType = GraphicsAPI.Vulkan;
         }
 
         public void OnLogfileLoaded()
         {
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11)
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.D3D11)
                 SetToD3D11();
-            else if (m_Core.APIProps.pipelineType == APIPipelineStateType.OpenGL)
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.D3D12)
+                SetToD3D12();
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
                 SetToGL();
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan)
+                SetToVulkan();
 
             m_Current.OnLogfileLoaded();
         }
@@ -128,10 +185,10 @@ namespace renderdocui.Windows.PipelineState
                 m_Current.OnLogfileClosed();
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
             if(m_Current != null)
-                m_Current.OnEventSelected(frameID, eventID);
+                m_Current.OnEventSelected(eventID);
         }
 
         private void PipelineStateViewer_FormClosed(object sender, FormClosedEventArgs e)

@@ -1,6 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -28,10 +29,49 @@ using System.Collections.Generic;
 
 namespace renderdoc
 {
-    [StructLayout(LayoutKind.Sequential)]
-    public class RemoteMessage
+    // this isn't an Interop struct, since it needs to be passed C# -> C++ and
+    // it's not POD which we don't support. It's here just as a utility container
+    public class EnvironmentModification
     {
-        public RemoteMessageType Type;
+        public string variable;
+        public string value;
+
+        public EnvironmentModificationType type;
+        public EnvironmentSeparator separator;
+
+        public string GetTypeString()
+        {
+            string ret;
+
+            if (type == EnvironmentModificationType.Append)
+                ret = String.Format("Append, {0}", separator.Str());
+            else if (type == EnvironmentModificationType.Prepend)
+                ret = String.Format("Prepend, {0}", separator.Str());
+            else
+                ret = "Set";
+
+            return ret;
+        }
+
+        public string GetDescription()
+        {
+            string ret;
+
+            if (type == EnvironmentModificationType.Append)
+                ret = String.Format("Append {0} with {1} using {2}", variable, value, separator.Str());
+            else if (type == EnvironmentModificationType.Prepend)
+                ret = String.Format("Prepend {0} with {1} using {2}", variable, value, separator.Str());
+            else
+                ret = String.Format("Set {0} to {1}", variable, value);
+
+            return ret;
+        }
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public class TargetControlMessage
+    {
+        public TargetControlMessageType Type;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct NewCaptureData
@@ -40,8 +80,9 @@ namespace renderdoc
             public UInt64 timestamp;
             [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
             public byte[] thumbnail;
-            [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
-            public string localpath;
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
+            public string path;
+            public bool local;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public NewCaptureData NewCapture;
@@ -49,7 +90,7 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public struct RegisterAPIData
         {
-            [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string APIName;
         };
 
@@ -59,11 +100,20 @@ namespace renderdoc
         [StructLayout(LayoutKind.Sequential)]
         public struct BusyData
         {
-            [CustomMarshalAs(CustomUnmanagedType.WideTemplatedString)]
+            [CustomMarshalAs(CustomUnmanagedType.UTF8TemplatedString)]
             public string ClientName;
         };
         [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
         public BusyData Busy;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct NewChildData
+        {
+            public UInt32 PID;
+            public UInt32 ident;
+        };
+        [CustomMarshalAs(CustomUnmanagedType.CustomClass)]
+        public NewChildData NewChild;
     };
 
     public class ReplayOutput
@@ -78,21 +128,31 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_ClearThumbnails(IntPtr real);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayOutput_AddThumbnail(IntPtr real, IntPtr wnd, ResourceId texID);
+        private static extern bool ReplayOutput_AddThumbnail(IntPtr real, UInt32 windowSystem, IntPtr wnd, ResourceId texID, FormatComponentType typeHint);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_Display(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayOutput_SetPixelContext(IntPtr real, IntPtr wnd);
+        private static extern bool ReplayOutput_SetPixelContext(IntPtr real, UInt32 windowSystem, IntPtr wnd);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_SetPixelContextLocation(IntPtr real, UInt32 x, UInt32 y);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void ReplayOutput_DisablePixelContext(IntPtr real);
+        
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void ReplayOutput_GetCustomShaderTexID(IntPtr real, ref ResourceId texid);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayOutput_GetMinMax(IntPtr real, IntPtr outminval, IntPtr outmaxval);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayOutput_GetHistogram(IntPtr real, float minval, float maxval, bool[] channels, IntPtr outhistogram);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayOutput_PickPixel(IntPtr real, ResourceId texID, bool customShader,
-                                                                UInt32 x, UInt32 y, UInt32 sliceFace, UInt32 mip, IntPtr outval);
+                                                                UInt32 x, UInt32 y, UInt32 sliceFace, UInt32 mip, UInt32 sample, IntPtr outval);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern UInt32 ReplayOutput_PickVertex(IntPtr real, UInt32 eventID, UInt32 x, UInt32 y, IntPtr outPickedInstance);
 
         private IntPtr m_Real = IntPtr.Zero;
 
@@ -115,9 +175,10 @@ namespace renderdoc
         {
             return ReplayOutput_ClearThumbnails(m_Real);
         }
-        public bool AddThumbnail(IntPtr wnd, ResourceId texID)
+        public bool AddThumbnail(IntPtr wnd, ResourceId texID, FormatComponentType typeHint)
         {
-            return ReplayOutput_AddThumbnail(m_Real, wnd, texID);
+            // 1 == eWindowingSystem_Win32
+            return ReplayOutput_AddThumbnail(m_Real, 1u, wnd, texID, typeHint);
         }
 
         public bool Display()
@@ -127,7 +188,8 @@ namespace renderdoc
 
         public bool SetPixelContext(IntPtr wnd)
         {
-            return ReplayOutput_SetPixelContext(m_Real, wnd);
+            // 1 == eWindowingSystem_Win32
+            return ReplayOutput_SetPixelContext(m_Real, 1u, wnd);
         }
         public bool SetPixelContextLocation(UInt32 x, UInt32 y)
         {
@@ -138,11 +200,64 @@ namespace renderdoc
             ReplayOutput_DisablePixelContext(m_Real);
         }
 
-        public PixelValue PickPixel(ResourceId texID, bool customShader, UInt32 x, UInt32 y, UInt32 sliceFace, UInt32 mip)
+        public ResourceId GetCustomShaderTexID()
+        {
+            ResourceId ret = ResourceId.Null;
+
+            ReplayOutput_GetCustomShaderTexID(m_Real, ref ret);
+
+            return ret;
+        }
+
+        public bool GetMinMax(out PixelValue minval, out PixelValue maxval)
+        {
+            IntPtr mem1 = CustomMarshal.Alloc(typeof(PixelValue));
+            IntPtr mem2 = CustomMarshal.Alloc(typeof(PixelValue));
+
+            bool success = ReplayOutput_GetMinMax(m_Real, mem1, mem2);
+
+            if (success)
+            {
+                minval = (PixelValue)CustomMarshal.PtrToStructure(mem1, typeof(PixelValue), true);
+                maxval = (PixelValue)CustomMarshal.PtrToStructure(mem2, typeof(PixelValue), true);
+            }
+            else
+            {
+                minval = null;
+                maxval = null;
+            }
+
+            CustomMarshal.Free(mem1);
+            CustomMarshal.Free(mem2);
+
+            return success;
+        }
+
+        public bool GetHistogram(float minval, float maxval,
+                                 bool Red, bool Green, bool Blue, bool Alpha,
+                                 out UInt32[] histogram)
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            bool[] channels = new bool[] { Red, Green, Blue, Alpha };
+
+            bool success = ReplayOutput_GetHistogram(m_Real, minval, maxval, channels, mem);
+
+            histogram = null;
+
+            if (success)
+                histogram = (UInt32[])CustomMarshal.GetTemplatedArray(mem, typeof(UInt32), true);
+
+            CustomMarshal.Free(mem);
+
+            return success;
+        }
+
+        public PixelValue PickPixel(ResourceId texID, bool customShader, UInt32 x, UInt32 y, UInt32 sliceFace, UInt32 mip, UInt32 sample)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(PixelValue));
 
-            bool success = ReplayOutput_PickPixel(m_Real, texID, customShader, x, y, sliceFace, mip, mem);
+            bool success = ReplayOutput_PickPixel(m_Real, texID, customShader, x, y, sliceFace, mip, sample, mem);
 
             PixelValue ret = null;
             
@@ -152,6 +267,18 @@ namespace renderdoc
             CustomMarshal.Free(mem);
 
             return ret;
+        }
+
+        public UInt32 PickVertex(UInt32 eventID, UInt32 x, UInt32 y, out UInt32 pickedInstance)
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(UInt32));
+
+            UInt32 pickedVertex = ReplayOutput_PickVertex(m_Real, eventID,  x, y, mem);
+            pickedInstance = (UInt32)CustomMarshal.PtrToStructure(mem, typeof(UInt32), true);
+
+            CustomMarshal.Free(mem);
+
+            return pickedVertex;
         }
 
     };
@@ -165,9 +292,12 @@ namespace renderdoc
         private static extern void ReplayRenderer_GetAPIProperties(IntPtr real, IntPtr propsOut);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr ReplayRenderer_CreateOutput(IntPtr real, IntPtr WindowHandle);
+        private static extern IntPtr ReplayRenderer_CreateOutput(IntPtr real, UInt32 windowSystem, IntPtr WindowHandle, OutputType type);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern void ReplayRenderer_ShutdownOutput(IntPtr real, IntPtr replayOutput);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void ReplayRenderer_FileChanged(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_HasCallstacks(IntPtr real);
@@ -175,21 +305,23 @@ namespace renderdoc
         private static extern bool ReplayRenderer_InitResolver(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_SetContextFilter(IntPtr real, ResourceId id, UInt32 firstDefEv, UInt32 lastDefEv);
-        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_SetFrameEvent(IntPtr real, UInt32 frameID, UInt32 eventID);
+        private static extern bool ReplayRenderer_SetFrameEvent(IntPtr real, UInt32 eventID, bool force);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetD3D11PipelineState(IntPtr real, IntPtr mem);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_GetD3D12PipelineState(IntPtr real, IntPtr mem);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetGLPipelineState(IntPtr real, IntPtr mem);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_GetVulkanPipelineState(IntPtr real, IntPtr mem);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_BuildCustomShader(IntPtr real, string entry, string source, UInt32 compileFlags, ShaderStageType type, ref ResourceId shaderID, IntPtr errorMem);
+        private static extern void ReplayRenderer_BuildCustomShader(IntPtr real, IntPtr entry, IntPtr source, UInt32 compileFlags, ShaderStageType type, ref ResourceId shaderID, IntPtr errorMem);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_FreeCustomShader(IntPtr real, ResourceId id);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_BuildTargetShader(IntPtr real, string entry, string source, UInt32 compileFlags, ShaderStageType type, ref ResourceId shaderID, IntPtr errorMem);
+        private static extern void ReplayRenderer_BuildTargetShader(IntPtr real, IntPtr entry, IntPtr source, UInt32 compileFlags, ShaderStageType type, ref ResourceId shaderID, IntPtr errorMem);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_ReplaceResource(IntPtr real, ResourceId from, ResourceId to);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -200,7 +332,13 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetFrameInfo(IntPtr real, IntPtr outframe);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetDrawcalls(IntPtr real, UInt32 frameID, bool includeTimes, IntPtr outdraws);
+        private static extern bool ReplayRenderer_GetDrawcalls(IntPtr real, IntPtr outdraws);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_FetchCounters(IntPtr real, IntPtr counters, UInt32 numCounters, IntPtr outresults);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_EnumerateCounters(IntPtr real, IntPtr outcounters);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_DescribeCounter(IntPtr real, UInt32 counter, IntPtr outdesc);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetTextures(IntPtr real, IntPtr outtexs);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
@@ -208,36 +346,37 @@ namespace renderdoc
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetResolve(IntPtr real, UInt64[] callstack, UInt32 callstackLen, IntPtr outtrace);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr ReplayRenderer_GetShaderDetails(IntPtr real, ResourceId shader);
-
+        private static extern bool ReplayRenderer_GetDebugMessages(IntPtr real, IntPtr outmsgs);
+        
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_VSGetDebugStates(IntPtr real, UInt32 vertid, UInt32 instid, UInt32 idx, UInt32 instOffset, UInt32 vertOffset, IntPtr outtrace);
+        private static extern bool ReplayRenderer_PixelHistory(IntPtr real, ResourceId target, UInt32 x, UInt32 y, UInt32 slice, UInt32 mip, UInt32 sampleIdx, FormatComponentType typeHint, IntPtr history);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_PSGetDebugStates(IntPtr real, UInt32 x, UInt32 y, IntPtr outtrace);
+        private static extern bool ReplayRenderer_DebugVertex(IntPtr real, UInt32 vertid, UInt32 instid, UInt32 idx, UInt32 instOffset, UInt32 vertOffset, IntPtr outtrace);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_CSGetDebugStates(IntPtr real, UInt32[] groupid, UInt32[] threadid, IntPtr outtrace);
+        private static extern bool ReplayRenderer_DebugPixel(IntPtr real, UInt32 x, UInt32 y, UInt32 sample, UInt32 primitive, IntPtr outtrace);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool ReplayRenderer_DebugThread(IntPtr real, UInt32[] groupid, UInt32[] threadid, IntPtr outtrace);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
         private static extern bool ReplayRenderer_GetUsage(IntPtr real, ResourceId id, IntPtr outusage);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetCBufferVariableContents(IntPtr real, ResourceId shader, UInt32 cbufslot, ResourceId buffer, UInt32 offs, IntPtr outvars);
+        private static extern bool ReplayRenderer_GetCBufferVariableContents(IntPtr real, ResourceId shader, IntPtr entryPoint, UInt32 cbufslot, ResourceId buffer, UInt64 offs, IntPtr outvars);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_SaveTexture(IntPtr real, ResourceId texID, UInt32 mip, string path);
+        private static extern bool ReplayRenderer_SaveTexture(IntPtr real, TextureSave saveData, IntPtr path);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetPostVSData(IntPtr real, MeshDataStage stage, IntPtr outdata);
+        private static extern bool ReplayRenderer_GetPostVSData(IntPtr real, UInt32 instID, MeshDataStage stage, IntPtr outdata);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetMinMax(IntPtr real, ResourceId tex, UInt32 sliceFace, UInt32 mip, IntPtr outminval, IntPtr outmaxval);
+        private static extern bool ReplayRenderer_GetBufferData(IntPtr real, ResourceId buff, UInt64 offset, UInt64 len, IntPtr outdata);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetHistogram(IntPtr real, ResourceId tex, UInt32 sliceFace, UInt32 mip, float minval, float maxval, bool[] channels, IntPtr outhistogram);
-
-        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool ReplayRenderer_GetBufferData(IntPtr real, ResourceId buff, UInt32 offset, UInt32 len, IntPtr outdata);
+        private static extern bool ReplayRenderer_GetTextureData(IntPtr real, ResourceId tex, UInt32 arrayIdx, UInt32 mip, IntPtr outdata);
 
         private IntPtr m_Real = IntPtr.Zero;
+
+        public IntPtr Real { get { return m_Real; } }
 
         public ReplayRenderer(IntPtr real) { m_Real = real; }
 
@@ -263,9 +402,11 @@ namespace renderdoc
             return ret;
         }
 
-        public ReplayOutput CreateOutput(IntPtr WindowHandle)
+        public ReplayOutput CreateOutput(IntPtr WindowHandle, OutputType type)
         {
-            IntPtr ret = ReplayRenderer_CreateOutput(m_Real, WindowHandle);
+            // 0 == eWindowingSystem_Unknown
+            // 1 == eWindowingSystem_Win32
+            IntPtr ret = ReplayRenderer_CreateOutput(m_Real, WindowHandle == IntPtr.Zero ? 0u : 1u, WindowHandle, type);
 
             if (ret == IntPtr.Zero)
                 return null;
@@ -273,16 +414,17 @@ namespace renderdoc
             return new ReplayOutput(ret);
         }
 
+        public void FileChanged()
+        { ReplayRenderer_FileChanged(m_Real); }
+
         public bool HasCallstacks()
         { return ReplayRenderer_HasCallstacks(m_Real); }
 
         public bool InitResolver()
         { return ReplayRenderer_InitResolver(m_Real); }
 
-        public bool SetContextFilter(ResourceId id, UInt32 firstDefEv, UInt32 lastDefEv)
-        { return ReplayRenderer_SetContextFilter(m_Real, id, firstDefEv, lastDefEv); }
-        public bool SetFrameEvent(UInt32 frameID, UInt32 eventID)
-        { return ReplayRenderer_SetFrameEvent(m_Real, frameID, eventID); }
+        public bool SetFrameEvent(UInt32 eventID, bool force)
+        { return ReplayRenderer_SetFrameEvent(m_Real, eventID, force); }
 
         public GLPipelineState GetGLPipelineState()
         {
@@ -316,18 +458,53 @@ namespace renderdoc
             return ret;
         }
 
+        public D3D12PipelineState GetD3D12PipelineState()
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(D3D12PipelineState));
+
+            bool success = ReplayRenderer_GetD3D12PipelineState(m_Real, mem);
+
+            D3D12PipelineState ret = null;
+
+            if (success)
+                ret = (D3D12PipelineState)CustomMarshal.PtrToStructure(mem, typeof(D3D12PipelineState), true);
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public VulkanPipelineState GetVulkanPipelineState()
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(VulkanPipelineState));
+
+            bool success = ReplayRenderer_GetVulkanPipelineState(m_Real, mem);
+
+            VulkanPipelineState ret = null;
+
+            if (success)
+                ret = (VulkanPipelineState)CustomMarshal.PtrToStructure(mem, typeof(VulkanPipelineState), true);
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
         public ResourceId BuildCustomShader(string entry, string source, UInt32 compileFlags, ShaderStageType type, out string errors)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
 
             ResourceId ret = ResourceId.Null;
 
-            bool success = ReplayRenderer_BuildCustomShader(m_Real, entry, source, compileFlags, type, ref ret, mem);
+            IntPtr entry_mem = CustomMarshal.MakeUTF8String(entry);
+            IntPtr source_mem = CustomMarshal.MakeUTF8String(source);
 
-            if (!success)
-                ret = ResourceId.Null;
+            ReplayRenderer_BuildCustomShader(m_Real, entry_mem, source_mem, compileFlags, type, ref ret, mem);
 
-            errors = CustomMarshal.TemplatedArrayToUniString(mem, true);
+            CustomMarshal.Free(entry_mem);
+            CustomMarshal.Free(source_mem);
+
+            errors = CustomMarshal.TemplatedArrayToString(mem, true);
 
             CustomMarshal.Free(mem);
 
@@ -343,12 +520,15 @@ namespace renderdoc
 
             ResourceId ret = ResourceId.Null;
 
-            bool success = ReplayRenderer_BuildTargetShader(m_Real, entry, source, compileFlags, type, ref ret, mem);
+            IntPtr entry_mem = CustomMarshal.MakeUTF8String(entry);
+            IntPtr source_mem = CustomMarshal.MakeUTF8String(source);
 
-            if (!success)
-                ret = ResourceId.Null;
+            ReplayRenderer_BuildTargetShader(m_Real, entry_mem, source_mem, compileFlags, type, ref ret, mem);
 
-            errors = CustomMarshal.TemplatedArrayToUniString(mem, true);
+            CustomMarshal.Free(entry_mem);
+            CustomMarshal.Free(source_mem);
+
+            errors = CustomMarshal.TemplatedArrayToString(mem, true);
 
             CustomMarshal.Free(mem);
 
@@ -362,16 +542,16 @@ namespace renderdoc
         public bool FreeTargetResource(ResourceId id)
         { return ReplayRenderer_FreeTargetResource(m_Real, id); }
 
-        public FetchFrameInfo[] GetFrameInfo()
+        public FetchFrameInfo GetFrameInfo()
         {
-            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
+            IntPtr mem = CustomMarshal.Alloc(typeof(FetchFrameInfo));
 
             bool success = ReplayRenderer_GetFrameInfo(m_Real, mem);
 
-            FetchFrameInfo[] ret = null;
+            FetchFrameInfo ret = null;
 
             if (success)
-                ret = (FetchFrameInfo[])CustomMarshal.GetTemplatedArray(mem, typeof(FetchFrameInfo), true);
+                ret = (FetchFrameInfo)CustomMarshal.PtrToStructure(mem, typeof(FetchFrameInfo), true);
 
             CustomMarshal.Free(mem);
 
@@ -384,7 +564,7 @@ namespace renderdoc
 
             foreach (var d in draws)
             {
-                map.Add((Int64)d.drawcallID, d);
+                map.Add((Int64)d.eventID, d);
                 PopulateDraws(ref map, d.children);
             }
         }
@@ -403,11 +583,84 @@ namespace renderdoc
             }
         }
 
-        public FetchDrawcall[] GetDrawcalls(UInt32 frameID, bool includeTimes)
+        public Dictionary<uint, List<CounterResult>> FetchCounters(UInt32[] counters)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
 
-            bool success = ReplayRenderer_GetDrawcalls(m_Real, frameID, includeTimes, mem);
+            IntPtr countersmem = CustomMarshal.Alloc(typeof(UInt32), counters.Length);
+
+            // there's no Marshal.Copy for uint[], which is stupid.
+            for (int i = 0; i < counters.Length; i++)
+                Marshal.WriteInt32(countersmem, sizeof(UInt32) * i, (int)counters[i]);
+
+            bool success = ReplayRenderer_FetchCounters(m_Real, countersmem, (uint)counters.Length, mem);
+
+            CustomMarshal.Free(countersmem);
+
+            Dictionary<uint, List<CounterResult>> ret = null;
+
+            if (success)
+            {
+                CounterResult[] resultArray = (CounterResult[])CustomMarshal.GetTemplatedArray(mem, typeof(CounterResult), true);
+
+                // fixup previous/next/parent pointers
+                ret = new Dictionary<uint, List<CounterResult>>();
+
+                foreach (var result in resultArray)
+                {
+                    if (!ret.ContainsKey(result.eventID))
+                        ret.Add(result.eventID, new List<CounterResult>());
+
+                    ret[result.eventID].Add(result);
+                }
+            }
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public UInt32[] EnumerateCounters()
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            bool success = ReplayRenderer_EnumerateCounters(m_Real, mem);
+
+            UInt32[] ret = null;
+
+            if (success)
+            {
+                ret = (UInt32[])CustomMarshal.GetTemplatedArray(mem, typeof(UInt32), true);
+            }
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public CounterDescription DescribeCounter(UInt32 counterID)
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(CounterDescription));
+            
+            bool success = ReplayRenderer_DescribeCounter(m_Real, counterID, mem);
+
+            CounterDescription ret = null;
+
+            if (success)
+            {
+                ret = (CounterDescription)CustomMarshal.PtrToStructure(mem, typeof(CounterDescription), false);
+            }
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public FetchDrawcall[] GetDrawcalls()
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            bool success = ReplayRenderer_GetDrawcalls(m_Real, mem);
 
             FetchDrawcall[] ret = null;
 
@@ -469,30 +722,50 @@ namespace renderdoc
             string[] ret = null;
 
             if (success)
-                ret = CustomMarshal.TemplatedArrayToUniStringArray(mem, true);
+                ret = CustomMarshal.TemplatedArrayToStringArray(mem, true);
 
             CustomMarshal.Free(mem);
 
             return ret;
         }
 
-        public ShaderReflection GetShaderDetails(ResourceId shader)
+        public DebugMessage[] GetDebugMessages()
         {
-            IntPtr mem = ReplayRenderer_GetShaderDetails(m_Real, shader);
+            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
 
-            ShaderReflection ret = null;
+            bool success = ReplayRenderer_GetDebugMessages(m_Real, mem);
 
-            if (mem != IntPtr.Zero)
-                ret = (ShaderReflection)CustomMarshal.PtrToStructure(mem, typeof(ShaderReflection), false);
+            DebugMessage[] ret = null;
+
+            if (success)
+                ret = (DebugMessage[])CustomMarshal.GetTemplatedArray(mem, typeof(DebugMessage), true);
+
+            CustomMarshal.Free(mem);
 
             return ret;
         }
 
-        public ShaderDebugTrace VSGetDebugStates(UInt32 vertid, UInt32 instid, UInt32 idx, UInt32 instOffset, UInt32 vertOffset)
+        public PixelModification[] PixelHistory(ResourceId target, UInt32 x, UInt32 y, UInt32 slice, UInt32 mip, UInt32 sampleIdx, FormatComponentType typeHint)
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            bool success = ReplayRenderer_PixelHistory(m_Real, target, x, y, slice, mip, sampleIdx, typeHint, mem);
+
+            PixelModification[] ret = null;
+
+            if (success)
+                ret = (PixelModification[])CustomMarshal.GetTemplatedArray(mem, typeof(PixelModification), true);
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public ShaderDebugTrace DebugVertex(UInt32 vertid, UInt32 instid, UInt32 idx, UInt32 instOffset, UInt32 vertOffset)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(ShaderDebugTrace));
 
-            bool success = ReplayRenderer_VSGetDebugStates(m_Real, vertid, instid, idx, instOffset, vertOffset, mem);
+            bool success = ReplayRenderer_DebugVertex(m_Real, vertid, instid, idx, instOffset, vertOffset, mem);
 
             ShaderDebugTrace ret = null;
 
@@ -504,11 +777,11 @@ namespace renderdoc
             return ret;
         }
 
-        public ShaderDebugTrace PSGetDebugStates(UInt32 x, UInt32 y)
+        public ShaderDebugTrace DebugPixel(UInt32 x, UInt32 y, UInt32 sample, UInt32 primitive)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(ShaderDebugTrace));
 
-            bool success = ReplayRenderer_PSGetDebugStates(m_Real, x, y, mem);
+            bool success = ReplayRenderer_DebugPixel(m_Real, x, y, sample, primitive, mem);
 
             ShaderDebugTrace ret = null;
 
@@ -520,11 +793,11 @@ namespace renderdoc
             return ret;
         }
 
-        public ShaderDebugTrace CSGetDebugStates(UInt32[] groupid, UInt32[] threadid)
+        public ShaderDebugTrace DebugThread(UInt32[] groupid, UInt32[] threadid)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(ShaderDebugTrace));
 
-            bool success = ReplayRenderer_CSGetDebugStates(m_Real, groupid, threadid, mem);
+            bool success = ReplayRenderer_DebugThread(m_Real, groupid, threadid, mem);
 
             ShaderDebugTrace ret = null;
 
@@ -552,92 +825,76 @@ namespace renderdoc
             return ret;
         }
 
-        public ShaderVariable[] GetCBufferVariableContents(ResourceId shader, UInt32 cbufslot, ResourceId buffer, UInt32 offs)
+        public ShaderVariable[] GetCBufferVariableContents(ResourceId shader, string entryPoint, UInt32 cbufslot, ResourceId buffer, UInt64 offs)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
 
-            bool success = ReplayRenderer_GetCBufferVariableContents(m_Real, shader, cbufslot, buffer, offs, mem);
+            IntPtr entry_mem = CustomMarshal.MakeUTF8String(entryPoint);
+
+            bool success = ReplayRenderer_GetCBufferVariableContents(m_Real, shader, entry_mem, cbufslot, buffer, offs, mem);
 
             ShaderVariable[] ret = null;
 
             if (success)
                 ret = (ShaderVariable[])CustomMarshal.GetTemplatedArray(mem, typeof(ShaderVariable), true);
 
+            CustomMarshal.Free(entry_mem);
             CustomMarshal.Free(mem);
 
             return ret;
         }
 
-        public bool SaveTexture(ResourceId texID, UInt32 mip, string path)
-        { return ReplayRenderer_SaveTexture(m_Real, texID, mip, path); }
-
-        public PostVSMeshData GetPostVSData(MeshDataStage stage)
+        public bool SaveTexture(TextureSave saveData, string path)
         {
-            IntPtr mem = CustomMarshal.Alloc(typeof(PostVSMeshData));
+            IntPtr path_mem = CustomMarshal.MakeUTF8String(path);
 
-            PostVSMeshData ret = null;
+            bool ret = ReplayRenderer_SaveTexture(m_Real, saveData, path_mem);
 
-            bool success = ReplayRenderer_GetPostVSData(m_Real, stage, mem);
+            CustomMarshal.Free(path_mem);
+
+            return ret;
+        }
+
+        public MeshFormat GetPostVSData(UInt32 instID, MeshDataStage stage)
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(MeshFormat));
+
+            MeshFormat ret = new MeshFormat();
+            ret.buf = ResourceId.Null;
+
+            bool success = ReplayRenderer_GetPostVSData(m_Real, instID, stage, mem);
 
             if (success)
-                ret = (PostVSMeshData)CustomMarshal.PtrToStructure(mem, typeof(PostVSMeshData), true);
+                ret = (MeshFormat)CustomMarshal.PtrToStructure(mem, typeof(MeshFormat), true);
 
             CustomMarshal.Free(mem);
 
             return ret;
         }
 
-        public bool GetMinMax(ResourceId tex, UInt32 sliceFace, UInt32 mip, out PixelValue minval, out PixelValue maxval)
-        {
-            IntPtr mem1 = CustomMarshal.Alloc(typeof(PixelValue));
-            IntPtr mem2 = CustomMarshal.Alloc(typeof(PixelValue));
-
-            bool success = ReplayRenderer_GetMinMax(m_Real, tex, sliceFace, mip, mem1, mem2);
-
-            if (success)
-            {
-                minval = (PixelValue)CustomMarshal.PtrToStructure(mem1, typeof(PixelValue), true);
-                maxval = (PixelValue)CustomMarshal.PtrToStructure(mem2, typeof(PixelValue), true);
-            }
-            else
-            {
-                minval = null;
-                maxval = null;
-            }
-
-            CustomMarshal.Free(mem1);
-            CustomMarshal.Free(mem2);
-
-            return success;
-        }
-
-        public bool GetHistogram(ResourceId tex, UInt32 sliceFace, UInt32 mip, float minval, float maxval,
-                                 bool Red, bool Green, bool Blue, bool Alpha,
-                                 out UInt32[] histogram)
-        {
-            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
-
-            bool[] channels = new bool[] { Red, Green, Blue, Alpha };
-
-            bool success = ReplayRenderer_GetHistogram(m_Real, tex, sliceFace, mip, minval, maxval, channels, mem);
-
-            histogram = null;
-
-            if (success)
-                histogram = (UInt32[])CustomMarshal.GetTemplatedArray(mem, typeof(UInt32), true);
-
-            CustomMarshal.Free(mem);
-
-            return success;
-        }
-
-        public byte[] GetBufferData(ResourceId buff, UInt32 offset, UInt32 len)
+        public byte[] GetBufferData(ResourceId buff, UInt64 offset, UInt64 len)
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
 
             bool success = ReplayRenderer_GetBufferData(m_Real, buff, offset, len, mem);
 
-            byte[] ret = null;
+            byte[] ret = new byte[] { };
+
+            if (success)
+                ret = (byte[])CustomMarshal.GetTemplatedArray(mem, typeof(byte), true);
+
+            CustomMarshal.Free(mem);
+
+            return ret;
+        }
+
+        public byte[] GetTextureData(ResourceId tex, UInt32 arrayIdx, UInt32 mip)
+        {
+            IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            bool success = ReplayRenderer_GetTextureData(m_Real, tex, arrayIdx, mip, mem);
+
+            byte[] ret = new byte[] { };
 
             if (success)
                 ret = (byte[])CustomMarshal.GetTemplatedArray(mem, typeof(byte), true);
@@ -648,41 +905,125 @@ namespace renderdoc
         }
     };
 
-    public class RemoteRenderer
+    public class RemoteServer
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteRenderer_Shutdown(IntPtr real);
-        
-        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool RemoteRenderer_LocalProxies(IntPtr real, IntPtr outlist);
-        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern bool RemoteRenderer_RemoteSupportedReplays(IntPtr real, IntPtr outlist);
+        private static extern void RemoteServer_ShutdownConnection(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern ReplayCreateStatus RemoteRenderer_CreateProxyRenderer(IntPtr real, UInt32 proxyid, string logfile, ref float progress, ref IntPtr rendPtr);
+        private static extern void RemoteServer_ShutdownServerAndConnection(IntPtr real);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool RemoteServer_Ping(IntPtr real);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool RemoteServer_LocalProxies(IntPtr real, IntPtr outlist);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern bool RemoteServer_RemoteSupportedReplays(IntPtr real, IntPtr outlist);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RemoteServer_GetHomeFolder(IntPtr real, IntPtr outfolder);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RemoteServer_ListFolder(IntPtr real, IntPtr path, IntPtr outlist);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern UInt32 RemoteServer_ExecuteAndInject(IntPtr real, IntPtr app, IntPtr workingDir, IntPtr cmdLine, IntPtr env, CaptureOptions opts);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RemoteServer_TakeOwnershipCapture(IntPtr real, IntPtr filename);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RemoteServer_CopyCaptureToRemote(IntPtr real, IntPtr filename, ref float progress, IntPtr remotepath);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RemoteServer_CopyCaptureFromRemote(IntPtr real, IntPtr remotepath, IntPtr localpath, ref float progress);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern ReplayCreateStatus RemoteServer_OpenCapture(IntPtr real, UInt32 proxyid, IntPtr logfile, ref float progress, ref IntPtr rendPtr);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RemoteServer_CloseCapture(IntPtr real, IntPtr rendPtr);
+
+        // static exports for lists of environment modifications
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr RENDERDOC_MakeEnvironmentModificationList(int numElems);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RENDERDOC_SetEnvironmentModification(IntPtr mem, int idx, IntPtr variable, IntPtr value,
+                                                                        EnvironmentModificationType type, EnvironmentSeparator separator);
+
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void RENDERDOC_FreeEnvironmentModificationList(IntPtr mem);
 
         private IntPtr m_Real = IntPtr.Zero;
 
-        public RemoteRenderer(IntPtr real) { m_Real = real; }
+        public RemoteServer(IntPtr real) { m_Real = real; }
 
-        public void Shutdown()
+        public void ShutdownConnection()
         {
             if (m_Real != IntPtr.Zero)
             {
-                RemoteRenderer_Shutdown(m_Real);
+                RemoteServer_ShutdownConnection(m_Real);
                 m_Real = IntPtr.Zero;
             }
+        }
+
+        public void ShutdownServerAndConnection()
+        {
+            if (m_Real != IntPtr.Zero)
+            {
+                RemoteServer_ShutdownServerAndConnection(m_Real);
+                m_Real = IntPtr.Zero;
+            }
+        }
+
+        public string GetHomeFolder()
+        {
+            IntPtr homepath_mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            RemoteServer_GetHomeFolder(m_Real, homepath_mem);
+
+            string home = CustomMarshal.TemplatedArrayToString(homepath_mem, true);
+
+            CustomMarshal.Free(homepath_mem);
+
+            // normalise to /s and with no trailing /s
+            home = home.Replace('\\', '/');
+            if (home[home.Length - 1] == '/')
+                home = home.Remove(0, home.Length - 1);
+
+            return home;
+        }
+
+        public DirectoryFile[] ListFolder(string path)
+        {
+            IntPtr path_mem = CustomMarshal.MakeUTF8String(path);
+            IntPtr out_mem = CustomMarshal.Alloc(typeof(templated_array));
+
+            RemoteServer_ListFolder(m_Real, path_mem, out_mem);
+
+            DirectoryFile[] ret = (DirectoryFile[])CustomMarshal.GetTemplatedArray(out_mem, typeof(DirectoryFile), true);
+
+            CustomMarshal.Free(out_mem);
+            CustomMarshal.Free(path_mem);
+
+            Array.Sort(ret);
+
+            return ret;
+        }
+
+        public bool Ping()
+        {
+            return RemoteServer_Ping(m_Real);
         }
 
         public string[] LocalProxies()
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
-            bool success = RemoteRenderer_LocalProxies(m_Real, mem);
+            bool success = RemoteServer_LocalProxies(m_Real, mem);
 
             string[] ret = null;
 
             if (success)
-                ret = CustomMarshal.TemplatedArrayToUniStringArray(mem, true);
+                ret = CustomMarshal.TemplatedArrayToStringArray(mem, true);
 
             CustomMarshal.Free(mem);
 
@@ -692,64 +1033,142 @@ namespace renderdoc
         public string[] RemoteSupportedReplays()
         {
             IntPtr mem = CustomMarshal.Alloc(typeof(templated_array));
-            bool success = RemoteRenderer_RemoteSupportedReplays(m_Real, mem);
+            bool success = RemoteServer_RemoteSupportedReplays(m_Real, mem);
 
             string[] ret = null;
 
             if (success)
-                ret = CustomMarshal.TemplatedArrayToUniStringArray(mem, true);
+                ret = CustomMarshal.TemplatedArrayToStringArray(mem, true);
 
             CustomMarshal.Free(mem);
 
             return ret;
         }
 
-        public ReplayRenderer CreateProxyRenderer(int proxyid, string logfile, ref float progress)
+        public UInt32 ExecuteAndInject(string app, string workingDir, string cmdLine, EnvironmentModification[] env, CaptureOptions opts)
+        {
+            IntPtr app_mem = CustomMarshal.MakeUTF8String(app);
+            IntPtr workingDir_mem = CustomMarshal.MakeUTF8String(workingDir);
+            IntPtr cmdLine_mem = CustomMarshal.MakeUTF8String(cmdLine);
+
+            IntPtr env_mem = RENDERDOC_MakeEnvironmentModificationList(env.Length);
+
+            for (int i = 0; i < env.Length; i++)
+            {
+                IntPtr var_mem = CustomMarshal.MakeUTF8String(env[i].variable);
+                IntPtr val_mem = CustomMarshal.MakeUTF8String(env[i].value);
+
+                RENDERDOC_SetEnvironmentModification(env_mem, i, var_mem, val_mem, env[i].type, env[i].separator);
+
+                CustomMarshal.Free(var_mem);
+                CustomMarshal.Free(val_mem);
+            }
+
+            UInt32 ret = RemoteServer_ExecuteAndInject(m_Real, app_mem, workingDir_mem, cmdLine_mem, env_mem, opts);
+
+            RENDERDOC_FreeEnvironmentModificationList(env_mem);
+
+            CustomMarshal.Free(app_mem);
+            CustomMarshal.Free(workingDir_mem);
+            CustomMarshal.Free(cmdLine_mem);
+
+            return ret;
+        }
+
+        public void TakeOwnershipCapture(string filename)
+        {
+            IntPtr filename_mem = CustomMarshal.MakeUTF8String(filename);
+
+            RemoteServer_TakeOwnershipCapture(m_Real, filename_mem);
+
+            CustomMarshal.Free(filename_mem);
+        }
+
+        public string CopyCaptureToRemote(string filename, ref float progress)
+        {
+            IntPtr remotepath = CustomMarshal.Alloc(typeof(templated_array));
+
+            IntPtr filename_mem = CustomMarshal.MakeUTF8String(filename);
+
+            RemoteServer_CopyCaptureToRemote(m_Real, filename_mem, ref progress, remotepath);
+
+            CustomMarshal.Free(filename_mem);
+
+            string remote = CustomMarshal.TemplatedArrayToString(remotepath, true);
+
+            CustomMarshal.Free(remotepath);
+
+            return remote;
+        }
+
+        public void CopyCaptureFromRemote(string remotepath, string localpath, ref float progress)
+        {
+            IntPtr remotepath_mem = CustomMarshal.MakeUTF8String(remotepath);
+            IntPtr localpath_mem = CustomMarshal.MakeUTF8String(localpath);
+
+            RemoteServer_CopyCaptureFromRemote(m_Real, remotepath_mem, localpath_mem, ref progress);
+
+            CustomMarshal.Free(remotepath_mem);
+            CustomMarshal.Free(localpath_mem);
+        }
+
+        public ReplayRenderer OpenCapture(int proxyid, string logfile, ref float progress)
         {
             IntPtr rendPtr = IntPtr.Zero;
 
-            ReplayCreateStatus ret = RemoteRenderer_CreateProxyRenderer(m_Real, (UInt32)proxyid, logfile, ref progress, ref rendPtr);
+            IntPtr logfile_mem = CustomMarshal.MakeUTF8String(logfile);
+
+            ReplayCreateStatus ret = RemoteServer_OpenCapture(m_Real, proxyid == -1 ? UInt32.MaxValue : (UInt32)proxyid, logfile_mem, ref progress, ref rendPtr);
+
+            CustomMarshal.Free(logfile_mem);
 
             if (rendPtr == IntPtr.Zero || ret != ReplayCreateStatus.Success)
             {
-                var e = new System.ApplicationException("Failed to set up local proxy replay with remote connection");
-                e.Data.Add("status", ret);
-                throw e;
+                throw new ReplayCreateException(ret, "Failed to set up local proxy replay with remote connection");
             }
 
             return new ReplayRenderer(rendPtr);
         }
+
+        public void CloseCapture(ReplayRenderer renderer)
+        {
+            RemoteServer_CloseCapture(m_Real, renderer.Real);
+        }
     };
 
-    public class RemoteAccess
+    public class TargetControl
     {
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteAccess_Shutdown(IntPtr real);
+        private static extern void TargetControl_Shutdown(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr RemoteAccess_GetTarget(IntPtr real);
+        private static extern IntPtr TargetControl_GetTarget(IntPtr real);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr RemoteAccess_GetAPI(IntPtr real);
+        private static extern IntPtr TargetControl_GetAPI(IntPtr real);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern IntPtr RemoteAccess_GetBusyClient(IntPtr real);
+        private static extern UInt32 TargetControl_GetPID(IntPtr real);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern IntPtr TargetControl_GetBusyClient(IntPtr real);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteAccess_TriggerCapture(IntPtr real);
+        private static extern void TargetControl_TriggerCapture(IntPtr real, UInt32 numFrames);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteAccess_QueueCapture(IntPtr real, UInt32 frameNumber);
+        private static extern void TargetControl_QueueCapture(IntPtr real, UInt32 frameNumber);
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteAccess_CopyCapture(IntPtr real, UInt32 remoteID, string localpath);
+        private static extern void TargetControl_CopyCapture(IntPtr real, UInt32 remoteID, IntPtr localpath);
+        [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
+        private static extern void TargetControl_DeleteCapture(IntPtr real, UInt32 remoteID);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern void RemoteAccess_ReceiveMessage(IntPtr real, IntPtr outmsg);
+        private static extern void TargetControl_ReceiveMessage(IntPtr real, IntPtr outmsg);
 
         [DllImport("renderdoc.dll", CharSet = CharSet.Unicode, CallingConvention = CallingConvention.Cdecl)]
-        private static extern UInt32 RENDERDOC_EnumerateRemoteConnections(string host, UInt32[] idents);
+        private static extern UInt32 RENDERDOC_EnumerateRemoteConnections(IntPtr host, UInt32[] idents);
 
         private IntPtr m_Real = IntPtr.Zero;
         private bool m_Connected;
 
-        public RemoteAccess(IntPtr real)
+        public TargetControl(IntPtr real)
         {
             m_Real = real;
 
@@ -763,9 +1182,10 @@ namespace renderdoc
             else
             {
                 m_Connected = true;
-                Target = Marshal.PtrToStringUni(RemoteAccess_GetTarget(m_Real));
-                API = Marshal.PtrToStringUni(RemoteAccess_GetAPI(m_Real));
-                BusyClient = Marshal.PtrToStringUni(RemoteAccess_GetBusyClient(m_Real));
+                Target = CustomMarshal.PtrToStringUTF8(TargetControl_GetTarget(m_Real));
+                API = CustomMarshal.PtrToStringUTF8(TargetControl_GetAPI(m_Real));
+                PID = TargetControl_GetPID(m_Real);
+                BusyClient = CustomMarshal.PtrToStringUTF8(TargetControl_GetBusyClient(m_Real));
             }
 
             CaptureExists = false;
@@ -775,11 +1195,15 @@ namespace renderdoc
 
         public static UInt32[] GetRemoteIdents(string host)
         {
-            UInt32 numIdents = RENDERDOC_EnumerateRemoteConnections("", null);
+            UInt32 numIdents = RENDERDOC_EnumerateRemoteConnections(IntPtr.Zero, null);
 
             UInt32[] idents = new UInt32[numIdents];
 
-            RENDERDOC_EnumerateRemoteConnections(host, idents);
+            IntPtr host_mem = CustomMarshal.MakeUTF8String(host);
+
+            RENDERDOC_EnumerateRemoteConnections(host_mem, idents);
+
+            CustomMarshal.Free(host_mem);
 
             return idents;
         }
@@ -789,67 +1213,80 @@ namespace renderdoc
         public void Shutdown()
         {
             m_Connected = false;
-            if (m_Real != IntPtr.Zero) RemoteAccess_Shutdown(m_Real);
+            if (m_Real != IntPtr.Zero) TargetControl_Shutdown(m_Real);
             m_Real = IntPtr.Zero;
         }
 
-        public void TriggerCapture()
+        public void TriggerCapture(UInt32 numFrames)
         {
-            RemoteAccess_TriggerCapture(m_Real);
+            TargetControl_TriggerCapture(m_Real, numFrames);
         }
 
         public void QueueCapture(UInt32 frameNum)
         {
-            RemoteAccess_QueueCapture(m_Real, frameNum);
+            TargetControl_QueueCapture(m_Real, frameNum);
         }
 
         public void CopyCapture(UInt32 id, string localpath)
         {
-            RemoteAccess_CopyCapture(m_Real, id, localpath);
+            IntPtr localpath_mem = CustomMarshal.MakeUTF8String(localpath);
+
+            TargetControl_CopyCapture(m_Real, id, localpath_mem);
+
+            CustomMarshal.Free(localpath_mem);
+        }
+
+        public void DeleteCapture(UInt32 id)
+        {
+            TargetControl_DeleteCapture(m_Real, id);
         }
 
         public void ReceiveMessage()
         {
             if (m_Real != IntPtr.Zero)
             {
-                RemoteMessage msg = null;
+                TargetControlMessage msg = null;
 
                 {
-                    IntPtr mem = CustomMarshal.Alloc(typeof(RemoteMessage));
+                    IntPtr mem = CustomMarshal.Alloc(typeof(TargetControlMessage));
 
-                    RemoteAccess_ReceiveMessage(m_Real, mem);
+                    TargetControl_ReceiveMessage(m_Real, mem);
 
                     if (mem != IntPtr.Zero)
-                        msg = (RemoteMessage)CustomMarshal.PtrToStructure(mem, typeof(RemoteMessage), true);
+                        msg = (TargetControlMessage)CustomMarshal.PtrToStructure(mem, typeof(TargetControlMessage), true);
 
                     CustomMarshal.Free(mem);
                 }
 
-                if (msg.Type == RemoteMessageType.Disconnected)
+                if (msg == null)
+                    return;
+
+                if (msg.Type == TargetControlMessageType.Disconnected)
                 {
                     m_Connected = false;
-                    RemoteAccess_Shutdown(m_Real);
+                    TargetControl_Shutdown(m_Real);
                     m_Real = IntPtr.Zero;
                 }
-                else if (msg.Type == RemoteMessageType.NewCapture)
+                else if (msg.Type == TargetControlMessageType.NewCapture)
                 {
-                    CaptureFile.ID = msg.NewCapture.ID;
-                    CaptureFile.timestamp = msg.NewCapture.timestamp;
-                    CaptureFile.localpath = msg.NewCapture.localpath;
-                    CaptureFile.thumbnail = msg.NewCapture.thumbnail;
-
+                    CaptureFile = msg.NewCapture;
                     CaptureExists = true;
                 }
-                else if (msg.Type == RemoteMessageType.CaptureCopied)
+                else if (msg.Type == TargetControlMessageType.CaptureCopied)
                 {
                     CaptureFile.ID = msg.NewCapture.ID;
-                    CaptureFile.localpath = msg.NewCapture.localpath;
+                    CaptureFile.path = msg.NewCapture.path;
                     CaptureCopied = true;
                 }
-                else if (msg.Type == RemoteMessageType.RegisterAPI)
+                else if (msg.Type == TargetControlMessageType.RegisterAPI)
                 {
                     API = msg.RegisterAPI.APIName;
                     InfoUpdated = true;
+                }
+                else if (msg.Type == TargetControlMessageType.NewChild)
+                {
+                    NewChild = msg.NewChild;
+                    ChildAdded = true;
                 }
             }
         }
@@ -857,18 +1294,15 @@ namespace renderdoc
         public string BusyClient;
         public string Target;
         public string API;
+        public UInt32 PID;
 
         public bool CaptureExists;
+        public bool ChildAdded;
         public bool CaptureCopied;
         public bool InfoUpdated;
 
-        public struct CaptureInfo
-        {
-            public UInt32 ID;
-            public UInt64 timestamp;
-            public byte[] thumbnail;
-            public string localpath;
-        };
-        public CaptureInfo CaptureFile = new CaptureInfo();
+        public TargetControlMessage.NewCaptureData CaptureFile = new TargetControlMessage.NewCaptureData();
+
+        public TargetControlMessage.NewChildData NewChild = new TargetControlMessage.NewChildData();
     };
 };

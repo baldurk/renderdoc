@@ -29,6 +29,7 @@
     <IsWebBootstrapper>false</IsWebBootstrapper>
     <UseApplicationTrust>false</UseApplicationTrust>
     <BootstrapperEnabled>true</BootstrapperEnabled>
+    <EnableUnmanagedDebugging>true</EnableUnmanagedDebugging>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|x86' ">
     <PlatformTarget>x86</PlatformTarget>
@@ -42,8 +43,8 @@
   <PropertyGroup>
     <ApplicationIcon>Resources\icon.ico</ApplicationIcon>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Profile|x86'">
-    <OutputPath>..\Win32\Profile\</OutputPath>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Development|x86'">
+    <OutputPath>..\Win32\Development\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <Optimize>false</Optimize>
     <DebugType>pdbonly</DebugType>
@@ -63,8 +64,8 @@
     <CodeAnalysisIgnoreBuiltInRuleSets>false</CodeAnalysisIgnoreBuiltInRuleSets>
     <CodeAnalysisIgnoreBuiltInRules>false</CodeAnalysisIgnoreBuiltInRules>
   </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Profile|x64'">
-    <OutputPath>..\x64\Profile\</OutputPath>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)' == 'Development|x64'">
+    <OutputPath>..\x64\Development\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <DebugType>pdbonly</DebugType>
     <PlatformTarget>x64</PlatformTarget>
@@ -72,12 +73,21 @@
     <CodeAnalysisIgnoreBuiltInRuleSets>true</CodeAnalysisIgnoreBuiltInRuleSets>
     <CodeAnalysisIgnoreBuiltInRules>true</CodeAnalysisIgnoreBuiltInRules>
   </PropertyGroup>
-  <PropertyGroup>
-    <RunPostBuildEvent>OnOutputUpdated</RunPostBuildEvent>
-  </PropertyGroup>
   <ItemGroup>
+    <Reference Include="IronPython, Version=2.7.0.40, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>3rdparty\ironpython\IronPython.dll</HintPath>
+    </Reference>
+    <Reference Include="IronPython.Modules, Version=2.7.0.40, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>3rdparty\ironpython\IronPython.Modules.dll</HintPath>
+    </Reference>
+    <Reference Include="Microsoft.Scripting, Version=1.1.0.20, Culture=neutral, PublicKeyToken=7f709c5b713576e1, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>3rdparty\ironpython\Microsoft.Scripting.dll</HintPath>
+    </Reference>
     <Reference Include="ScintillaNET">
-      <HintPath>..\ScintillaNET\ScintillaNET.dll</HintPath>
+      <HintPath>3rdparty\ScintillaNET\ScintillaNET.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -95,7 +105,10 @@
     <Compile Include="Code\AppMain.cs" />
     <Compile Include="Code\Cameras.cs" />
     <Compile Include="Code\CommonPipelineState.cs" />
+    <Compile Include="Code\FormatElement.cs" />
     <Compile Include="Interop\Camera.cs" />
+    <Compile Include="Interop\D3D12PipelineState.cs" />
+    <Compile Include="Interop\VulkanPipelineState.cs" />
     <Compile Include="Interop\Formatter.cs" />
     <Compile Include="Code\Helpers.cs" />
     <Compile Include="Code\LogViewerForm.cs" />
@@ -120,10 +133,10 @@
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Code\Win32PInvoke.cs" />
-    <Compile Include="Controls\ConstantBufferPreviewer.cs">
-      <SubType>UserControl</SubType>
+    <Compile Include="Windows\Dialogs\ConstantBufferPreviewer.cs">
+      <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Controls\ConstantBufferPreviewer.Designer.cs">
+    <Compile Include="Windows\Dialogs\ConstantBufferPreviewer.Designer.cs">
       <DependentUpon>ConstantBufferPreviewer.cs</DependentUpon>
     </Compile>
     <Compile Include="Controls\PipelineFlowchart.cs">
@@ -193,10 +206,10 @@
     <Compile Include="Windows\Dialogs\AboutDialog.Designer.cs">
       <DependentUpon>AboutDialog.cs</DependentUpon>
     </Compile>
-    <Compile Include="Windows\Dialogs\BufferFormatSpecifier.cs">
-      <SubType>Form</SubType>
+    <Compile Include="Controls\BufferFormatSpecifier.cs">
+      <SubType>UserControl</SubType>
     </Compile>
-    <Compile Include="Windows\Dialogs\BufferFormatSpecifier.Designer.cs">
+    <Compile Include="Controls\BufferFormatSpecifier.Designer.cs">
       <DependentUpon>BufferFormatSpecifier.cs</DependentUpon>
     </Compile>
     <Compile Include="Windows\Dialogs\CaptureDialog.cs">
@@ -211,17 +224,35 @@
     <Compile Include="Windows\Dialogs\ColumnSelector.Designer.cs">
       <DependentUpon>ColumnSelector.cs</DependentUpon>
     </Compile>
-    <Compile Include="Windows\Dialogs\RemoteHostSelect.cs">
+    <Compile Include="Windows\Dialogs\EnvironmentEditor.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Windows\Dialogs\RemoteHostSelect.Designer.cs">
-      <DependentUpon>RemoteHostSelect.cs</DependentUpon>
+    <Compile Include="Windows\Dialogs\EnvironmentEditor.Designer.cs">
+      <DependentUpon>EnvironmentEditor.cs</DependentUpon>
     </Compile>
-    <Compile Include="Windows\Dialogs\ReplayHostManager.cs">
+    <Compile Include="Windows\Dialogs\FindAllDialog.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Windows\Dialogs\ReplayHostManager.Designer.cs">
-      <DependentUpon>ReplayHostManager.cs</DependentUpon>
+    <Compile Include="Windows\Dialogs\FindAllDialog.Designer.cs">
+      <DependentUpon>FindAllDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\Dialogs\PythonShell.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\PythonShell.Designer.cs">
+      <DependentUpon>PythonShell.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\Dialogs\RemoteManager.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\RemoteManager.Designer.cs">
+      <DependentUpon>RemoteManager.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\Dialogs\OrderedListEditor.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\OrderedListEditor.Designer.cs">
+      <DependentUpon>OrderedListEditor.cs</DependentUpon>
     </Compile>
     <Compile Include="Windows\Dialogs\SettingsDialog.cs">
       <SubType>Form</SubType>
@@ -229,23 +260,71 @@
     <Compile Include="Windows\Dialogs\SettingsDialog.Designer.cs">
       <DependentUpon>SettingsDialog.cs</DependentUpon>
     </Compile>
+    <Compile Include="Windows\Dialogs\SuggestRemoteDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\SuggestRemoteDialog.Designer.cs">
+      <DependentUpon>SuggestRemoteDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\Dialogs\TextureGoto.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\TextureGoto.Designer.cs">
+      <DependentUpon>TextureGoto.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\Dialogs\TextureSaveDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\TextureSaveDialog.Designer.cs">
+      <DependentUpon>TextureSaveDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\Dialogs\TipsDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\TipsDialog.Designer.cs">
+      <DependentUpon>TipsDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\Dialogs\UpdateDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\UpdateDialog.Designer.cs">
+      <DependentUpon>UpdateDialog.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\Dialogs\VirtualOpenFileDialog.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\Dialogs\VirtualOpenFileDialog.Designer.cs">
+      <DependentUpon>VirtualOpenFileDialog.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\EventBrowser.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Windows\EventBrowser.Designer.cs">
       <DependentUpon>EventBrowser.cs</DependentUpon>
     </Compile>
-    <Compile Include="Windows\Dialogs\ModalPopup.cs">
+    <Compile Include="Windows\Dialogs\ProgressPopup.cs">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="Windows\Dialogs\ModalPopup.Designer.cs">
-      <DependentUpon>ModalPopup.cs</DependentUpon>
+    <Compile Include="Windows\Dialogs\ProgressPopup.Designer.cs">
+      <DependentUpon>ProgressPopup.cs</DependentUpon>
     </Compile>
     <Compile Include="Windows\Dialogs\LiveCapture.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Windows\Dialogs\LiveCapture.Designer.cs">
       <DependentUpon>LiveCapture.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\PipelineState\D3D12PipelineStateViewer.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Windows\PipelineState\D3D12PipelineStateViewer.Designer.cs">
+      <DependentUpon>D3D12PipelineStateViewer.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\PipelineState\VulkanPipelineStateViewer.cs">
+      <SubType>UserControl</SubType>
+    </Compile>
+    <Compile Include="Windows\PipelineState\VulkanPipelineStateViewer.Designer.cs">
+      <DependentUpon>VulkanPipelineStateViewer.cs</DependentUpon>
     </Compile>
     <Compile Include="Windows\PipelineState\GLPipelineStateViewer.cs">
       <SubType>UserControl</SubType>
@@ -265,11 +344,23 @@
     <Compile Include="Windows\PipelineState\PipelineStateViewer.Designer.cs">
       <DependentUpon>PipelineStateViewer.cs</DependentUpon>
     </Compile>
+    <Compile Include="Windows\PixelHistoryView.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\PixelHistoryView.Designer.cs">
+      <DependentUpon>PixelHistoryView.cs</DependentUpon>
+    </Compile>
     <Compile Include="Windows\ShaderViewer.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="Windows\ShaderViewer.Designer.cs">
       <DependentUpon>ShaderViewer.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Windows\StatisticsViewer.cs">
+      <SubType>Form</SubType>
+    </Compile>
+    <Compile Include="Windows\StatisticsViewer.Designer.cs">
+      <DependentUpon>StatisticsViewer.cs</DependentUpon>
     </Compile>
     <Compile Include="Windows\TextureViewer.cs">
       <SubType>Form</SubType>
@@ -292,7 +383,7 @@
     <Compile Include="Windows\TimelineBar.Designer.cs">
       <DependentUpon>TimelineBar.cs</DependentUpon>
     </Compile>
-    <EmbeddedResource Include="Controls\ConstantBufferPreviewer.resx">
+    <EmbeddedResource Include="Windows\Dialogs\ConstantBufferPreviewer.resx">
       <DependentUpon>ConstantBufferPreviewer.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Controls\PipelineFlowchart.resx">
@@ -319,7 +410,7 @@
     <EmbeddedResource Include="Windows\Dialogs\AboutDialog.resx">
       <DependentUpon>AboutDialog.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Windows\Dialogs\BufferFormatSpecifier.resx">
+    <EmbeddedResource Include="Controls\BufferFormatSpecifier.resx">
       <DependentUpon>BufferFormatSpecifier.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\CaptureDialog.resx">
@@ -328,23 +419,57 @@
     <EmbeddedResource Include="Windows\Dialogs\ColumnSelector.resx">
       <DependentUpon>ColumnSelector.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Windows\Dialogs\RemoteHostSelect.resx">
-      <DependentUpon>RemoteHostSelect.cs</DependentUpon>
+    <EmbeddedResource Include="Windows\Dialogs\EnvironmentEditor.resx">
+      <DependentUpon>EnvironmentEditor.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Windows\Dialogs\ReplayHostManager.resx">
-      <DependentUpon>ReplayHostManager.cs</DependentUpon>
+    <EmbeddedResource Include="Windows\Dialogs\FindAllDialog.resx">
+      <DependentUpon>FindAllDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\PythonShell.resx">
+      <DependentUpon>PythonShell.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\OrderedListEditor.resx">
+      <DependentUpon>OrderedListEditor.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\RemoteManager.resx">
+      <DependentUpon>RemoteManager.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\SettingsDialog.resx">
       <DependentUpon>SettingsDialog.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\SuggestRemoteDialog.resx">
+      <DependentUpon>SuggestRemoteDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\TextureGoto.resx">
+      <DependentUpon>TextureGoto.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\TextureSaveDialog.resx">
+      <DependentUpon>TextureSaveDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\TipsDialog.resx">
+      <DependentUpon>TipsDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\UpdateDialog.resx">
+      <DependentUpon>UpdateDialog.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\Dialogs\VirtualOpenFileDialog.resx">
+      <DependentUpon>VirtualOpenFileDialog.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Windows\EventBrowser.resx">
       <DependentUpon>EventBrowser.cs</DependentUpon>
     </EmbeddedResource>
-    <EmbeddedResource Include="Windows\Dialogs\ModalPopup.resx">
-      <DependentUpon>ModalPopup.cs</DependentUpon>
+    <EmbeddedResource Include="Windows\Dialogs\ProgressPopup.resx">
+      <DependentUpon>ProgressPopup.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\Dialogs\LiveCapture.resx">
       <DependentUpon>LiveCapture.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\PipelineState\D3D12PipelineStateViewer.resx">
+      <DependentUpon>D3D12PipelineStateViewer.cs</DependentUpon>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\PipelineState\VulkanPipelineStateViewer.resx">
+      <DependentUpon>VulkanPipelineStateViewer.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\PipelineState\GLPipelineStateViewer.resx">
       <DependentUpon>GLPipelineStateViewer.cs</DependentUpon>
@@ -355,8 +480,14 @@
     <EmbeddedResource Include="Windows\PipelineState\PipelineStateViewer.resx">
       <DependentUpon>PipelineStateViewer.cs</DependentUpon>
     </EmbeddedResource>
+    <EmbeddedResource Include="Windows\PixelHistoryView.resx">
+      <DependentUpon>PixelHistoryView.cs</DependentUpon>
+    </EmbeddedResource>
     <EmbeddedResource Include="Windows\ShaderViewer.resx">
       <DependentUpon>ShaderViewer.cs</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Windows\StatisticsViewer.resx">
+      <DependentUpon>StatisticsViewer.cs</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="Windows\TextureViewer.resx">
       <DependentUpon>TextureViewer.cs</DependentUpon>
@@ -389,7 +520,7 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\WinFormsUI\WinFormsUI.csproj">
+    <ProjectReference Include="3rdparty\WinFormsUI\WinFormsUI.csproj">
       <Project>{C75532C4-765B-418E-B09B-46D36B2ABDB1}</Project>
       <Name>WinFormsUI</Name>
     </ProjectReference>
@@ -417,7 +548,24 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
+    <Content Include="3rdparty\ironpython\pythonlibs.zip" Condition="Exists('3rdparty\ironpython\pythonlibs.zip')">
+      <Link>pythonlibs.zip</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="3rdparty\ScintillaNET\SciLexer.dll">
+      <Link>SciLexer.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
+    <Content Include="3rdparty\ScintillaNET\SciLexer64.dll">
+      <Link>SciLexer64.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </Content>
     <Content Include="Controls\TreeListView\README.txt" />
+    <None Include="Resources\upfolder.png" />
+    <None Include="Resources\up_arrow.png" />
     <None Include="Resources\wireframe_mesh.png" />
     <None Include="Resources\zoom.png" />
     <None Include="Resources\wand.png" />
@@ -442,6 +590,15 @@
     <None Include="Resources\hourglass.png" />
     <None Include="Resources\connect.png" />
     <None Include="Resources\disconnect.png" />
+    <None Include="Resources\flip_y.png" />
+    <None Include="Resources\asterisk_orange.png" />
+    <None Include="Resources\folder_page.png" />
+    <EmbeddedResource Include="Resources\glsl.xml" />
+    <None Include="Resources\page_white_code.png" />
+    <None Include="Resources\down_arrow.png" />
+    <None Include="Resources\house.png" />
+    <None Include="Resources\forward.png" />
+    <None Include="Resources\back.png" />
     <Content Include="Resources\RightArrow_Green_16x16.png" />
     <Content Include="Resources\icon.ico" />
     <None Include="Resources\page_white_delete.png" />
@@ -455,6 +612,8 @@
     <None Include="Resources\stepnext.png" />
     <None Include="Resources\time.png" />
     <None Include="Resources\timeline_marker.png" />
+    <None Include="Resources\runsample.png" />
+    <None Include="Resources\runnaninf.png" />
     <Content Include="Resources\topologies\topo_linelist.png" />
     <Content Include="Resources\topologies\topo_linelist_adj.png" />
     <Content Include="Resources\topologies\topo_linestrip.png" />
@@ -476,8 +635,8 @@
   <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <PropertyGroup>
-    <PostBuildEvent>xcopy /Y /Q $(SolutionDir)\ScintillaNET\SciLexer.dll $(TargetDir) &gt; nul
-xcopy /Y /Q $(SolutionDir)\ScintillaNET\SciLexer64.dll $(TargetDir) &gt; nul</PostBuildEvent>
+    <PostBuildEvent>
+    </PostBuildEvent>
   </PropertyGroup>
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
        Other similar extension points exist, see Microsoft.Common.targets.

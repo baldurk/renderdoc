@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -56,23 +57,27 @@ namespace renderdocui.Code
 
         private PersistantConfig m_Config = null;
 
+        private bool m_LogLocal = false;
         private bool m_LogLoaded = false;
+        private bool m_GlobalHookEnabled = false;
+
+        private FileSystemWatcher m_LogWatcher = null;
 
         private string m_LogFile = "";
 
-        private UInt32 m_FrameID = 0;
         private UInt32 m_EventID = 0;
-        private UInt32 m_DeferredEvent = 0;
 
         private APIProperties m_APIProperties = null;
 
-        private FetchFrameInfo[] m_FrameInfo = null;
-        private FetchDrawcall[][] m_DrawCalls = null;
+        private FetchFrameInfo m_FrameInfo = null;
+        private FetchDrawcall[] m_DrawCalls = null;
         private FetchBuffer[] m_Buffers = null;
         private FetchTexture[] m_Textures = null;
 
         private D3D11PipelineState m_D3D11PipelineState = null;
+        private D3D12PipelineState m_D3D12PipelineState = null;
         private GLPipelineState m_GLPipelineState = null;
+        private VulkanPipelineState m_VulkanPipelineState = null;
         private CommonPipelineState m_PipelineState = new CommonPipelineState();
 
         private List<ILogViewerForm> m_LogViewers = new List<ILogViewerForm>();
@@ -84,7 +89,9 @@ namespace renderdocui.Code
         private DebugMessages m_DebugMessages = null;
         private TimelineBar m_TimelineBar = null;
         private TextureViewer m_TextureViewer = null;
+        private BufferViewer m_MeshViewer = null;
         private PipelineStateViewer m_PipelineStateViewer = null;
+        private StatisticsViewer m_StatisticsViewer = null;
 
         #endregion
 
@@ -111,21 +118,53 @@ namespace renderdocui.Code
         public bool LogLoaded { get { return m_LogLoaded; } }
         public bool LogLoading { get { return m_LogLoadingInProgress; } }
         public string LogFileName { get { return m_LogFile; } set { if (LogLoaded) m_LogFile = value; } }
+        public bool IsLogLocal { get { return m_LogLocal; } set { m_LogLocal = value; } }
 
-        public FetchFrameInfo[] FrameInfo { get { while (m_FrameInfo == null); return m_FrameInfo; } }
+        public bool GlobalHookEnabled { get { return m_GlobalHookEnabled; } set { m_GlobalHookEnabled = value; } }
+
+        public FetchFrameInfo FrameInfo { get { return m_FrameInfo; } }
 
         public APIProperties APIProps { get { return m_APIProperties; } }
 
-        // typically 0 right now as we haven't supported multiple frames in logs for a loooong time.
-        public UInt32 CurFrame { get { return m_FrameID; } }
-        public UInt32 CurEvent { get { return m_DeferredEvent > 0 ? m_DeferredEvent : m_EventID; } }
+        public UInt32 CurEvent { get { return m_EventID; } }
 
-        public FetchDrawcall[] CurDrawcalls { get { return GetDrawcalls(CurFrame); } }
+        public FetchDrawcall[] CurDrawcalls { get { return GetDrawcalls(); } }
 
-        public FetchDrawcall CurDrawcall { get { return GetDrawcall(CurFrame, CurEvent); } }
+        public FetchDrawcall CurDrawcall { get { return GetDrawcall(CurEvent); } }
 
         public FetchTexture[] CurTextures { get { return m_Textures; } }
         public FetchBuffer[] CurBuffers { get { return m_Buffers; } }
+
+        public FetchTexture GetTexture(ResourceId id)
+        {
+            if (id == ResourceId.Null) return null;
+
+            for (int t = 0; t < m_Textures.Length; t++)
+                if (m_Textures[t].ID == id)
+                    return m_Textures[t];
+
+            return null;
+        }
+
+        public FetchBuffer GetBuffer(ResourceId id)
+        {
+            if (id == ResourceId.Null) return null;
+
+            for (int b = 0; b < m_Buffers.Length; b++)
+                if (m_Buffers[b].ID == id)
+                    return m_Buffers[b];
+
+            return null;
+        }
+
+        public List<DebugMessage> DebugMessages = new List<DebugMessage>();
+        public int UnreadMessageCount = 0;
+        public void AddMessages(DebugMessage[] msgs)
+        {
+            UnreadMessageCount += msgs.Length;
+            foreach(var msg in msgs)
+                DebugMessages.Add(msg);
+        }
 
         // the RenderManager can be used when you want to perform an operation, it will let you Invoke or
         // BeginInvoke onto the thread that's used to access the renderdoc project.
@@ -139,20 +178,22 @@ namespace renderdocui.Code
 
         // direct access (note that only one of these will be valid for a log, check APIProps.pipelineType)
         public D3D11PipelineState CurD3D11PipelineState { get { return m_D3D11PipelineState; } }
+        public D3D12PipelineState CurD3D12PipelineState { get { return m_D3D12PipelineState; } }
         public GLPipelineState CurGLPipelineState { get { return m_GLPipelineState; } }
+        public VulkanPipelineState CurVulkanPipelineState { get { return m_VulkanPipelineState; } }
         public CommonPipelineState CurPipelineState { get { return m_PipelineState; } }
 
         #endregion
 
         #region Init and Shutdown
 
-        public Core(string paramFilename, bool temp, PersistantConfig config)
+        public Core(string paramFilename, string remoteHost, uint remoteIdent, bool temp, PersistantConfig config)
         {
             if (!Directory.Exists(ConfigDirectory))
                 Directory.CreateDirectory(ConfigDirectory);
 
             m_Config = config;
-            m_MainWindow = new MainWindow(this, paramFilename, temp);
+            m_MainWindow = new MainWindow(this, paramFilename, remoteHost, remoteIdent, temp);
         }
 
         public void Shutdown()
@@ -186,8 +227,8 @@ namespace renderdocui.Code
             if ((a.flags & DrawcallFlags.Dispatch) != (b.flags & DrawcallFlags.Dispatch))
                 return false;
 
-            // don't group things run on different multithreaded contexts
-            if(a.context != b.context)
+            // don't group present with anything
+            if ((a.flags & DrawcallFlags.Present) != (b.flags & DrawcallFlags.Present))
                 return false;
 
             // don't group things with different depth outputs
@@ -254,7 +295,7 @@ namespace renderdocui.Code
 
             foreach (var d in draws)
             {
-                ret |= (d.flags & (DrawcallFlags.PushMarker | DrawcallFlags.SetMarker)) > 0 && (d.flags & DrawcallFlags.CmdList) == 0;
+                ret |= (d.flags & DrawcallFlags.PushMarker) > 0 && (d.flags & DrawcallFlags.CmdList) == 0 && d.children.Length > 0;
                 ret |= ContainsMarker(d.children);
             }
 
@@ -264,7 +305,7 @@ namespace renderdocui.Code
         // if a log doesn't contain any markers specified at all by the user, then we can
         // fake some up by determining batches of draws that are similar and giving them a
         // pass number
-        private FetchDrawcall[] FakeProfileMarkers(int frameID, FetchDrawcall[] draws)
+        private FetchDrawcall[] FakeProfileMarkers(FetchDrawcall[] draws)
         {
             if (ContainsMarker(draws))
                 return draws;
@@ -276,31 +317,32 @@ namespace renderdocui.Code
             int passID = 1;
 
             int start = 0;
-
-            int counter = 1;
+            int refdraw = 0;
 
             for (int i = 1; i < draws.Length; i++)
             {
-                if (PassEquivalent(draws[i], draws[start]) && i+1 < draws.Length)
+                if ((draws[refdraw].flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve | DrawcallFlags.SetMarker | DrawcallFlags.CmdList)) > 0)
+                {
+                    refdraw = i;
+                    continue;
+                }
+
+                if ((draws[i].flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve | DrawcallFlags.SetMarker | DrawcallFlags.CmdList)) > 0)
                     continue;
 
-                int end = i - 1;
+                if (PassEquivalent(draws[i], draws[refdraw]))
+                    continue;
 
-                if (i == draws.Length - 1)
-                    end = i;
+                int end = i-1;
 
                 if (end - start < 2 ||
-                    draws[i].children.Length > 0 || draws[start].children.Length > 0 ||
-                    draws[i].context != m_FrameInfo[frameID].immContextId ||
-                    draws[start].context != m_FrameInfo[frameID].immContextId)
+                    draws[i].children.Length > 0 || draws[refdraw].children.Length > 0)
                 {
                     for (int j = start; j <= end; j++)
-                    {
                         ret.Add(draws[j]);
-                        counter++;
-                    }
 
                     start = i;
+                    refdraw = i;
                     continue;
                 }
 
@@ -319,21 +361,23 @@ namespace renderdocui.Code
 
                 FetchDrawcall mark = new FetchDrawcall();
                 
-                mark.eventID = draws[end].eventID;
-                mark.drawcallID = draws[end].drawcallID;
+                mark.eventID = draws[start].eventID;
+                mark.drawcallID = draws[start].drawcallID;
+                mark.markerColour = new float[] { 0.0f, 0.0f, 0.0f, 0.0f };
 
-                mark.context = draws[end].context;
                 mark.flags = DrawcallFlags.PushMarker;
                 mark.outputs = draws[end].outputs;
                 mark.depthOut = draws[end].depthOut;
 
                 mark.name = "Guessed Pass";
 
-                if((draws[end].flags & DrawcallFlags.Dispatch) != 0)
+                minOutCount = Math.Max(1, minOutCount);
+
+                if ((draws[refdraw].flags & DrawcallFlags.Dispatch) != 0)
                     mark.name = String.Format("Compute Pass #{0}", computepassID++);
                 else if (maxOutCount == 0)
                     mark.name = String.Format("Depth-only Pass #{0}", depthpassID++);
-                else if(minOutCount == maxOutCount)
+                else if (minOutCount == maxOutCount)
                     mark.name = String.Format("Colour Pass #{0} ({1} Targets{2})", passID++, minOutCount, draws[end].depthOut == ResourceId.Null ? "" : " + Depth");
                 else
                     mark.name = String.Format("Colour Pass #{0} ({1}-{2} Targets{3})", passID++, minOutCount, maxOutCount, draws[end].depthOut == ResourceId.Null ? "" : " + Depth");
@@ -349,28 +393,72 @@ namespace renderdocui.Code
                 ret.Add(mark);
 
                 start = i;
-                counter++;
+                refdraw = i;
+            }
+
+            if (start < draws.Length)
+            {
+                for (int j = start; j < draws.Length; j++)
+                    ret.Add(draws[j]);
             }
 
             return ret.ToArray();
         }
 
-        // loading a local log, no remote replay
-        public void LoadLogfile(string logFile, bool temporary)
+        // because some engines (*cough*unreal*cough*) provide a valid marker colour of
+        // opaque black for every marker, instead of transparent black (i.e. just 0) we
+        // want to check for that case and remove the colors, instead of displaying all
+        // the markers as black which is not what's intended.
+        //
+        // Valid marker colors = has at least one color somewhere that isn't (0.0, 0.0, 0.0, 1.0)
+        //                       or (0.0, 0.0, 0.0, 0.0)
+        //
+        // This will fail if no marker colors are set anyway, but then removing them is
+        // harmless.
+        private bool HasValidMarkerColors(FetchDrawcall[] draws)
         {
-            LoadLogfile(-1, "", logFile, temporary);
+            if (draws.Length == 0)
+                return false;
+
+            foreach (var d in draws)
+            {
+                if (d.markerColour[0] != 0.0f ||
+                     d.markerColour[1] != 0.0f ||
+                     d.markerColour[2] != 0.0f ||
+                     (d.markerColour[3] != 1.0f && d.markerColour[3] != 0.0f))
+                {
+                    return true;
+                }
+
+                if (HasValidMarkerColors(d.children))
+                    return true;
+            }
+
+            return false;
         }
 
-        // when loading a log while replaying remotely, provide the proxy renderer that will be used
-        // as well as the hostname to replay on.
-        public void LoadLogfile(int proxyRenderer, string replayHost, string logFile, bool temporary)
+        private void RemoveMarkerColors(FetchDrawcall[] draws)
         {
-            m_LogFile = logFile;
+            for (int i = 0; i < draws.Length; i++)
+            {
+                draws[i].markerColour[0] = 0.0f;
+                draws[i].markerColour[1] = 0.0f;
+                draws[i].markerColour[2] = 0.0f;
+                draws[i].markerColour[3] = 0.0f;
+
+                RemoveMarkerColors(draws[i].children);
+            }
+        }
+
+        // generally logFile == origFilename, but if the log was transferred remotely then origFilename
+        // is the log locally before being copied we can present to the user in dialogs, etc.
+        public void LoadLogfile(string logFile, string origFilename, bool temporary, bool local)
+        {
+            m_LogFile = origFilename;
+
+            m_LogLocal = local;
 
             m_LogLoadingInProgress = true;
-
-            if(!temporary)
-                m_Config.AddRecentFile(m_Config.RecentLogFiles, logFile, 10);
 
             if (File.Exists(Core.ConfigFilename))
                 m_Config.Serialize(Core.ConfigFilename);
@@ -381,11 +469,11 @@ namespace renderdocui.Code
 
             // start a modal dialog to prevent the user interacting with the form while the log is loading.
             // We'll close it down when log loading finishes (whether it succeeds or fails)
-            ModalPopup modal = new ModalPopup(LogLoadCallback, true);
+            ProgressPopup modal = new ProgressPopup(LogLoadCallback, true);
 
-            Thread modalThread = new Thread(new ThreadStart(() =>
+            Thread modalThread = Helpers.NewThread(new ThreadStart(() =>
             {
-                modal.SetModalText(string.Format("Loading Log {0}.", m_LogFile));
+                modal.SetModalText(string.Format("Loading Log: {0}", origFilename));
 
                 AppWindow.BeginInvoke(new Action(() =>
                 {
@@ -396,7 +484,7 @@ namespace renderdocui.Code
 
             // this thread continually ticks and notifies any threads of the progress, through a float
             // that is updated by the main loading code
-            Thread thread = new Thread(new ThreadStart(() =>
+            Thread thread = Helpers.NewThread(new ThreadStart(() =>
             {
                 modal.LogfileProgressBegin();
 
@@ -407,7 +495,7 @@ namespace renderdocui.Code
                 {
                     Thread.Sleep(2);
 
-                    float progress = 0.5f * m_Renderer.LoadProgress + 0.49f * postloadProgress + 0.01f;
+                    float progress = 0.8f * m_Renderer.LoadProgress + 0.19f * postloadProgress + 0.01f;
 
                     modal.LogfileProgress(progress);
 
@@ -418,22 +506,15 @@ namespace renderdocui.Code
             thread.Start();
 
             // this function call will block until the log is either loaded, or there's some failure
-            m_Renderer.Init(proxyRenderer, replayHost, logFile);
+            m_Renderer.OpenCapture(logFile);
 
             // if the renderer isn't running, we hit a failure case so display an error message
             if (!m_Renderer.Running)
             {
-                string errmsg = "Unknown error message";
-                if (m_Renderer.InitException.Data.Contains("status"))
-                    errmsg = ((ReplayCreateStatus)m_Renderer.InitException.Data["status"]).Str();
+                string errmsg = m_Renderer.InitException.Status.Str();
 
-                if(proxyRenderer >= 0)
-                    MessageBox.Show(String.Format("{0}\nFailed to transfer and replay on remote host {1}: {2}.\n\n" +
-                                                    "Check diagnostic log in Help menu for more details.", logFile, replayHost, errmsg),
-                                    "Error opening log", MessageBoxButtons.OK, MessageBoxIcon.Error);
-                else
-                    MessageBox.Show(String.Format("{0}\nFailed to open logfile for replay: {1}.\n\n" +
-                                                    "Check diagnostic log in Help menu for more details.", logFile, errmsg),
+                MessageBox.Show(String.Format("{0}\nFailed to open file for replay: {1}.\n\n" +
+                                              "Check diagnostic log in Help menu for more details.", origFilename, errmsg),
                                     "Error opening log", MessageBoxButtons.OK, MessageBoxIcon.Error);
 
                 progressThread = false;
@@ -449,7 +530,14 @@ namespace renderdocui.Code
                 return;
             }
 
-            m_FrameID = 0;
+            if (!temporary)
+            {
+                m_Config.AddRecentFile(m_Config.RecentLogFiles, origFilename, 10);
+
+                if (File.Exists(Core.ConfigFilename))
+                    m_Config.Serialize(Core.ConfigFilename);
+            }
+
             m_EventID = 0;
 
             m_FrameInfo = null;
@@ -464,40 +552,86 @@ namespace renderdocui.Code
 
                 postloadProgress = 0.2f;
 
-                m_DrawCalls = new FetchDrawcall[m_FrameInfo.Length][];
+                m_DrawCalls = FakeProfileMarkers(r.GetDrawcalls());
+
+                bool valid = HasValidMarkerColors(m_DrawCalls);
+
+                if (!valid)
+                    RemoveMarkerColors(m_DrawCalls);
 
                 postloadProgress = 0.4f;
 
-                for (int i = 0; i < m_FrameInfo.Length; i++)
-                    m_DrawCalls[i] = FakeProfileMarkers(i, r.GetDrawcalls((UInt32)i, false));
-
-                m_TimedDrawcalls = false;
-
-                postloadProgress = 0.7f;
-
                 m_Buffers = r.GetBuffers();
 
-                postloadProgress = 0.8f;
+                postloadProgress = 0.7f;
                 var texs = new List<FetchTexture>(r.GetTextures());
                 m_Textures = texs.OrderBy(o => o.name).ToArray();
 
                 postloadProgress = 0.9f;
 
                 m_D3D11PipelineState = r.GetD3D11PipelineState();
+                m_D3D12PipelineState = r.GetD3D12PipelineState();
                 m_GLPipelineState = r.GetGLPipelineState();
-                m_PipelineState.SetStates(m_APIProperties, m_D3D11PipelineState, m_GLPipelineState);
+                m_VulkanPipelineState = r.GetVulkanPipelineState();
+                m_PipelineState.SetStates(m_APIProperties, m_D3D11PipelineState, m_D3D12PipelineState, m_GLPipelineState, m_VulkanPipelineState);
+
+                UnreadMessageCount = 0;
+                AddMessages(m_FrameInfo.debugMessages);
 
                 postloadProgress = 1.0f;
             });
 
             Thread.Sleep(20);
 
+            DateTime today = DateTime.Now;
+            DateTime compare = today.AddDays(-21);
+
+            if (compare.CompareTo(Config.DegradedLog_LastUpdate) >= 0 && m_APIProperties.degraded)
+            {
+                Config.DegradedLog_LastUpdate = today;
+
+                MessageBox.Show(String.Format("{0}\nThis log opened with degraded support - " +
+                                                "this could mean missing hardware support caused a fallback to software rendering.\n\n" +
+                                                "This warning will not appear every time this happens, " +
+                                                "check debug errors/warnings window for more details.", origFilename),
+                                "Degraded support of log", MessageBoxButtons.OK, MessageBoxIcon.Exclamation);
+            }
+
             m_LogLoaded = true;
             progressThread = false;
 
-            // notify all the registers log viewers that a log has been loaded
-            foreach (var logviewer in m_LogViewers)
+            if (local)
             {
+                try
+                {
+                    m_LogWatcher = new FileSystemWatcher(Path.GetDirectoryName(m_LogFile), Path.GetFileName(m_LogFile));
+                    m_LogWatcher.EnableRaisingEvents = true;
+                    m_LogWatcher.NotifyFilter = NotifyFilters.Size | NotifyFilters.FileName | NotifyFilters.LastAccess | NotifyFilters.LastWrite;
+                    m_LogWatcher.Created += new FileSystemEventHandler(OnLogfileChanged);
+                    m_LogWatcher.Changed += new FileSystemEventHandler(OnLogfileChanged);
+                    m_LogWatcher.SynchronizingObject = m_MainWindow; // callbacks on UI thread please
+                }
+                catch (ArgumentException)
+                {
+                    // likely an "invalid" directory name - FileSystemWatcher doesn't support UNC paths properly
+                }
+            }
+
+            List<ILogViewerForm> logviewers = new List<ILogViewerForm>();
+            logviewers.AddRange(m_LogViewers);
+
+            // make sure we're on a consistent event before invoking log viewer forms
+            FetchDrawcall draw = m_DrawCalls.Last();
+            while (draw.children != null && draw.children.Length > 0)
+                draw = draw.children.Last();
+
+            SetEventID(logviewers.ToArray(), draw.eventID, true);
+
+            // notify all the registers log viewers that a log has been loaded
+            foreach (var logviewer in logviewers)
+            {
+                if (logviewer == null || !(logviewer is Control)) continue;
+
                 Control c = (Control)logviewer;
                 if (c.InvokeRequired)
                 {
@@ -527,6 +661,17 @@ namespace renderdocui.Code
                 p.LogfileProgress(1.0f);
         }
 
+        void OnLogfileChanged(object sender, FileSystemEventArgs e)
+        {
+            m_Renderer.Invoke((ReplayRenderer r) =>
+            {
+                r.FileChanged();
+                r.SetFrameEvent(m_EventID > 0 ? m_EventID-1 : 1, true);
+            });
+
+            SetEventID(null, CurEvent);
+        }
+
         public void CloseLogfile()
         {
             if (!m_LogLoaded) return;
@@ -534,7 +679,6 @@ namespace renderdocui.Code
             m_LogFile = "";
 
             m_Renderer.CloseThreadSync();
-            m_Renderer = new RenderManager();
 
             m_APIProperties = null;
             m_FrameInfo = null;
@@ -543,10 +687,19 @@ namespace renderdocui.Code
             m_Textures = null;
 
             m_D3D11PipelineState = null;
+            m_D3D12PipelineState = null;
             m_GLPipelineState = null;
-            m_PipelineState.SetStates(null, null, null);
+            m_VulkanPipelineState = null;
+            m_PipelineState.SetStates(null, null,null, null, null);
+
+            DebugMessages.Clear();
+            UnreadMessageCount = 0;
 
             m_LogLoaded = false;
+
+            if (m_LogWatcher != null)
+                m_LogWatcher.EnableRaisingEvents = false;
+            m_LogWatcher = null;
 
             foreach (var logviewer in m_LogViewers)
             {
@@ -560,11 +713,11 @@ namespace renderdocui.Code
 
         public String TempLogFilename(String appname)
         {
-            string folder = Config.CaptureSavePath;
+            string folder = Config.TemporaryCaptureDirectory;
             try
             {
-                if (folder == "" || !Directory.Exists(folder))
-                    folder = Path.GetTempPath();
+                if (folder.Length == 0 || !Directory.Exists(folder))
+                    folder = Path.Combine(Path.GetTempPath(), "RenderDoc");
             }
             catch (ArgumentException)
             {
@@ -578,20 +731,9 @@ namespace renderdocui.Code
 
         #region Log drawcalls
 
-        private bool m_TimedDrawcalls = false;
-        public void TimeDrawcalls(ReplayRenderer r)
+        public FetchDrawcall[] GetDrawcalls()
         {
-            if (m_TimedDrawcalls) return;
-            m_TimedDrawcalls = true;
-
-            for (int i = 0; i < m_FrameInfo.Length; i++)
-                m_DrawCalls[i] = FakeProfileMarkers(i, r.GetDrawcalls((UInt32)i, true));
-        }
-
-        public FetchDrawcall[] GetDrawcalls(UInt32 frameIdx)
-        {
-            if (m_DrawCalls == null) return null;
-            return m_DrawCalls[frameIdx];
+            return m_DrawCalls;
         }
 
         private FetchDrawcall GetDrawcall(FetchDrawcall[] draws, UInt32 eventID)
@@ -611,12 +753,12 @@ namespace renderdocui.Code
             return null;
         }
 
-        public FetchDrawcall GetDrawcall(UInt32 frameID, UInt32 eventID)
+        public FetchDrawcall GetDrawcall(UInt32 eventID)
         {
-            if (frameID < 0 || m_DrawCalls == null || frameID >= m_DrawCalls.Length)
+            if (m_DrawCalls == null)
                 return null;
 
-            return GetDrawcall(m_DrawCalls[frameID], eventID);
+            return GetDrawcall(m_DrawCalls, eventID);
         }
 
         #endregion
@@ -645,6 +787,17 @@ namespace renderdocui.Code
             }
 
             return m_TextureViewer;
+        }
+
+        public BufferViewer GetMeshViewer()
+        {
+            if (m_MeshViewer == null || m_MeshViewer.IsDisposed)
+            {
+                m_MeshViewer = new BufferViewer(this, true);
+                AddLogViewer(m_MeshViewer);
+            }
+
+            return m_MeshViewer;
         }
 
         public PipelineStateViewer GetPipelineStateViewer()
@@ -716,7 +869,18 @@ namespace renderdocui.Code
             return m_TimelineBar;
         }
 
-        public void AddLogProgressListener(ILogLoadProgressListener p)
+        public StatisticsViewer GetStatisticsViewer()
+        {
+            if (m_StatisticsViewer == null || m_StatisticsViewer.IsDisposed)
+            {
+                m_StatisticsViewer = new StatisticsViewer(this);
+                AddLogViewer(m_StatisticsViewer);
+            }
+
+            return m_StatisticsViewer;
+        }
+
+		public void AddLogProgressListener(ILogLoadProgressListener p)
         {
             m_ProgressListeners.Add(p);
         }
@@ -728,7 +892,7 @@ namespace renderdocui.Code
             if (LogLoaded)
             {
                 f.OnLogfileLoaded();
-                f.OnEventSelected(CurFrame, CurEvent);
+                f.OnEventSelected(CurEvent);
             }
         }
 
@@ -741,63 +905,40 @@ namespace renderdocui.Code
 
         #region Log Browsing
 
-        // setting a context filter allows replaying of deferred events. You can set the deferred
-        // events to replay in a context, after replaying up to a given event on the main thread
-        public void SetContextFilter(ILogViewerForm exclude, UInt32 frameID, UInt32 eventID,
-                                     ResourceId ctx, UInt32 firstDeferred, UInt32 lastDeferred)
+        public void RefreshStatus()
         {
-            m_FrameID = frameID;
-            m_EventID = eventID;
-
-            m_DeferredEvent = lastDeferred;
-
-            m_Renderer.Invoke((ReplayRenderer r) => { r.SetContextFilter(ctx, firstDeferred, lastDeferred); });
-            m_Renderer.Invoke((ReplayRenderer r) => {
-                r.SetFrameEvent(m_FrameID, m_EventID);
-                m_D3D11PipelineState = r.GetD3D11PipelineState();
-                m_GLPipelineState = r.GetGLPipelineState();
-                m_PipelineState.SetStates(m_APIProperties, m_D3D11PipelineState, m_GLPipelineState);
-            });
-
-            foreach (var logviewer in m_LogViewers)
-            {
-                if (logviewer == exclude)
-                    continue;
-
-                Control c = (Control)logviewer;
-                if (c.InvokeRequired)
-                    c.BeginInvoke(new Action(() => logviewer.OnEventSelected(frameID, eventID)));
-                else
-                    logviewer.OnEventSelected(frameID, eventID);
-            }
+            SetEventID(new ILogViewerForm[] { }, m_EventID, true);
         }
 
-        public void SetEventID(ILogViewerForm exclude, UInt32 frameID, UInt32 eventID)
+        public void SetEventID(ILogViewerForm exclude, UInt32 eventID)
         {
-            m_FrameID = frameID;
+            SetEventID(new ILogViewerForm[] { exclude }, eventID, false);
+        }
+
+        private void SetEventID(ILogViewerForm[] exclude, UInt32 eventID, bool force)
+        {
             m_EventID = eventID;
 
-            m_DeferredEvent = 0;
-
-            m_Renderer.Invoke((ReplayRenderer r) => { r.SetContextFilter(ResourceId.Null, 0, 0); });
             m_Renderer.Invoke((ReplayRenderer r) =>
             {
-                r.SetFrameEvent(m_FrameID, m_EventID);
+                r.SetFrameEvent(m_EventID, force);
                 m_D3D11PipelineState = r.GetD3D11PipelineState();
+                m_D3D12PipelineState = r.GetD3D12PipelineState();
                 m_GLPipelineState = r.GetGLPipelineState();
-                m_PipelineState.SetStates(m_APIProperties, m_D3D11PipelineState, m_GLPipelineState);
+                m_VulkanPipelineState = r.GetVulkanPipelineState();
+                m_PipelineState.SetStates(m_APIProperties, m_D3D11PipelineState, m_D3D12PipelineState, m_GLPipelineState, m_VulkanPipelineState);
             });
 
             foreach (var logviewer in m_LogViewers)
             {
-                if(logviewer == exclude)
+                if(exclude.Contains(logviewer))
                     continue;
 
                 Control c = (Control)logviewer;
                 if (c.InvokeRequired)
-                    c.BeginInvoke(new Action(() => logviewer.OnEventSelected(frameID, eventID)));
+                    c.Invoke(new Action(() => logviewer.OnEventSelected(eventID)));
                 else
-                    logviewer.OnEventSelected(frameID, eventID);
+                    logviewer.OnEventSelected(eventID);
             }
         }
 

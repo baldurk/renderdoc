@@ -1,18 +1,19 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,78 +23,120 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
 #pragma once
 
 #include <stdint.h>
-
 #include "vec.h"
 
 inline Vec4f ConvertFromR10G10B10A2(uint32_t data)
 {
-	return Vec4f( float((data>> 0) & 0x3ff) / 1023.0f,
-				  float((data>>10) & 0x3ff) / 1023.0f,
-				  float((data>>20) & 0x3ff) / 1023.0f,
-				  float((data>>30) & 0x003) / 3.0f
-				);
+  return Vec4f(float((data >> 0) & 0x3ff) / 1023.0f, float((data >> 10) & 0x3ff) / 1023.0f,
+               float((data >> 20) & 0x3ff) / 1023.0f, float((data >> 30) & 0x003) / 3.0f);
 }
 
 inline uint32_t ConvertToR10G10B10A2(Vec4f data)
 {
-	float x = data.x < 1.0f ? (data.x > 0.0f ? data.x : 0.0f) : 1.0f;
-	float y = data.y < 1.0f ? (data.y > 0.0f ? data.y : 0.0f) : 1.0f;
-	float z = data.z < 1.0f ? (data.z > 0.0f ? data.z : 0.0f) : 1.0f;
-	float w = data.w < 1.0f ? (data.w > 0.0f ? data.w : 0.0f) : 1.0f;
+  float x = data.x < 1.0f ? (data.x > 0.0f ? data.x : 0.0f) : 1.0f;
+  float y = data.y < 1.0f ? (data.y > 0.0f ? data.y : 0.0f) : 1.0f;
+  float z = data.z < 1.0f ? (data.z > 0.0f ? data.z : 0.0f) : 1.0f;
+  float w = data.w < 1.0f ? (data.w > 0.0f ? data.w : 0.0f) : 1.0f;
 
-	return (uint32_t(x*1023)<< 0) |
-		   (uint32_t(y*1023)<<10) |
-		   (uint32_t(z*1023)<<20) |
-		   (uint32_t(w*3)   <<30) ;
+  return (uint32_t(x * 1023) << 0) | (uint32_t(y * 1023) << 10) | (uint32_t(z * 1023) << 20) |
+         (uint32_t(w * 3) << 30);
 }
 
 inline Vec3f ConvertFromR11G11B10(uint32_t data)
 {
-	uint32_t xMantissa = ((data>> 0) & 0x3f);
-	uint32_t xExponent = ((data>> 6) & 0x1f);
-	uint32_t yMantissa = ((data>>11) & 0x3f);
-	uint32_t yExponent = ((data>>17) & 0x1f);
-	uint32_t zMantissa = ((data>>22) & 0x1f);
-	uint32_t zExponent = ((data>>27) & 0x1f);
+  uint32_t mantissas[3] = {
+      (data >> 0) & 0x3f, (data >> 11) & 0x3f, (data >> 22) & 0x1f,
+  };
+  int32_t exponents[3] = {
+      int32_t(data >> 6) & 0x1f, int32_t(data >> 17) & 0x1f, int32_t(data >> 27) & 0x1f,
+  };
 
-	return Vec3f((float(xMantissa)/64.0f)*powf(2.0f, (float)xExponent - 15.0f),
-				 (float(yMantissa)/32.0f)*powf(2.0f, (float)yExponent - 15.0f),
-				 (float(zMantissa)/32.0f)*powf(2.0f, (float)zExponent - 15.0f));
+  Vec3f ret;
+  uint32_t *retu = (uint32_t *)&ret.x;
+
+  // floats have 23 bit mantissa, 8bit exponent
+  // R11G11B10 has 6/6/5 bit mantissas, 5bit exponents
+
+  const int mantissaShift[] = {23 - 6, 23 - 6, 23 - 5};
+
+  for(int i = 0; i < 3; i++)
+  {
+    if(mantissas[i] == 0 && exponents[i] == 0)
+    {
+      retu[i] = 0;
+    }
+    else
+    {
+      if(exponents[i] == 0x1f)
+      {
+        // infinity or nan
+        retu[i] = 0x7f800000 | mantissas[i] << mantissaShift[i];
+      }
+      else if(exponents[i] != 0)
+      {
+        // shift exponent and mantissa to the right range for 32bit floats
+        retu[i] = (exponents[i] + (127 - 15)) << 23 | mantissas[i] << mantissaShift[i];
+      }
+      else if(exponents[i] == 0)
+      {
+        // we know xMantissa isn't 0 also, or it would have been caught above
+
+        exponents[i] = 1;
+
+        // shift until hidden bit is set
+        while((mantissas[i] & 0x40) == 0)
+        {
+          mantissas[i] <<= 1;
+          exponents[i]--;
+        }
+
+        // remove the hidden bit
+        mantissas[i] &= ~0x40;
+
+        retu[i] = (exponents[i] + (127 - 15)) << 23 | mantissas[i] << mantissaShift[i];
+      }
+    }
+  }
+
+  return ret;
 }
 
 /*
 inline uint32_t ConvertToR11G11B10(Vec3f data)
 {
-	return 0;
+  return 0;
 }
 */
 
 inline Vec4f ConvertFromB5G5R5A1(uint16_t data)
 {
-	return Vec4f(  (float)((data >> 0) & 0x1f) / 31.0f,
-				   (float)((data >> 5) & 0x1f) / 31.0f,
-				   (float)((data >> 10) & 0x1f) / 31.0f,
-				   ((data & 0x8000) > 0) ? 1.0f : 0.0f );
+  return Vec4f((float)((data >> 0) & 0x1f) / 31.0f, (float)((data >> 5) & 0x1f) / 31.0f,
+               (float)((data >> 10) & 0x1f) / 31.0f, ((data & 0x8000) > 0) ? 1.0f : 0.0f);
 }
 
 inline Vec3f ConvertFromB5G6R5(uint16_t data)
 {
-	return Vec3f( (float)((data >> 0) & 0x1f) / 31.0f,
-				  (float)((data >> 5) & 0x3f) / 63.0f,
-				  (float)((data >> 11) & 0x1f) / 31.0f );
+  return Vec3f((float)((data >> 0) & 0x1f) / 31.0f, (float)((data >> 5) & 0x3f) / 63.0f,
+               (float)((data >> 11) & 0x1f) / 31.0f);
 }
 
 inline Vec4f ConvertFromB4G4R4A4(uint16_t data)
 {
-	return Vec4f( (float)((data >> 0) & 0xf) / 15.0f,
-				  (float)((data >> 4) & 0xf) / 15.0f,
-				  (float)((data >> 8) & 0xf) / 15.0f,
-				  (float)((data >> 12) & 0xf) / 15.0f );
+  return Vec4f((float)((data >> 0) & 0xf) / 15.0f, (float)((data >> 4) & 0xf) / 15.0f,
+               (float)((data >> 8) & 0xf) / 15.0f, (float)((data >> 12) & 0xf) / 15.0f);
 }
 
-#include "half_convert.h"
+extern float SRGB8_lookuptable[256];
 
+inline float ConvertFromSRGB8(uint8_t comp)
+{
+  return SRGB8_lookuptable[comp];
+}
+
+struct ResourceFormat;
+float ConvertComponent(const ResourceFormat &fmt, byte *data);
+
+#include "half_convert.h"

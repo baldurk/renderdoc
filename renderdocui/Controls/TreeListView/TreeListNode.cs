@@ -19,14 +19,39 @@ namespace TreelistView
 		bool				m_expanded = false;
 		Image				m_image = null;
         Image               m_hoverImage = null;
+        int                 m_treeColumn = -1;
 		int					m_id = -1;
 		object				m_tag = null;
+        bool                m_clippedText = false;
         bool                m_bold = false;
         bool                m_italic = false;
+        float               m_treeLineWidth = 0.0f;
         Color               m_backCol = Color.Transparent;
+        Color               m_foreCol = Color.Transparent;
+        Color               m_treeLineCol = Color.Transparent;
         Color               m_defbackCol = Color.Transparent;
 
-        public TreeListView OwnerView = null;
+        Color[]             m_backCols = null;
+
+        private TreeListView m_ownerview = null;
+        public TreeListView OwnerView
+        {
+            get
+            {
+                if (m_ownerview != null)
+                    return m_ownerview;
+
+                if (m_owner != null)
+                    m_ownerview = m_owner.OwnerView;
+
+                return m_ownerview;
+            }
+
+            set
+            {
+                m_ownerview = value;
+            }
+        }
 
 		public Node Parent
 		{
@@ -58,6 +83,11 @@ namespace TreelistView
 				m_hasChildren = value;
 			}
 		}
+		public bool ClippedText
+		{
+			get { return m_clippedText; }
+			set { m_clippedText = value; }
+		}
 		public Image Image
 		{
 			get { return m_image; }
@@ -68,6 +98,11 @@ namespace TreelistView
             get { return m_hoverImage != null ? m_hoverImage : m_image; }
             set { m_hoverImage = value; }
 		}
+        public int TreeColumn
+        {
+            get { return m_treeColumn; }
+            set { m_treeColumn = value; }
+        }
 		public virtual NodeCollection Owner
 		{
 			get { return m_owner; }
@@ -77,7 +112,10 @@ namespace TreelistView
 			get
 			{
 				if (m_children == null)
+				{
 					m_children = new NodeCollection(this);
+					m_children.OwnerView = OwnerView;
+				}
 				return m_children;
 			}
 		}
@@ -106,6 +144,15 @@ namespace TreelistView
 		public void Collapse()
 		{
 			Expanded = false;
+		}
+		public void CollapseAll()
+		{
+			Expanded = false;
+			if (HasChildren)
+			{
+				foreach (Node node in Nodes)
+					node.CollapseAll();
+			}
 		}
 		public void Expand()
 		{
@@ -136,25 +183,49 @@ namespace TreelistView
             get { return m_bold; }
             set { m_bold = value; }
         }
+        public float TreeLineWidth
+        {
+            get { return m_treeLineWidth; }
+            set { m_treeLineWidth = value; }
+        }
         public Color BackColor
         {
             get { return m_backCol; }
             set { m_backCol = value; }
+        }
+        public Color ForeColor
+        {
+            get { return m_foreCol; }
+            set { m_foreCol = value; }
+        }
+        public Color TreeLineColor
+        {
+            get { return m_treeLineCol; }
+            set { m_treeLineCol = value; }
         }
         public Color DefaultBackColor
         {
             get { return m_defbackCol; }
             set { m_defbackCol = value; }
         }
+        public Color[] IndexedBackColor
+        {
+            get
+            {
+                return m_backCols;
+            }
+        }
 
-		public Node()
-		{
-			m_data = new object[1];
-		}
-		public Node(string text)
-		{
-			m_data = new object[1] {text};
-		}
+        public Node()
+        {
+            m_data = new object[1];
+            m_backCols = new Color[1] { Color.Transparent };
+        }
+        public Node(string text)
+        {
+            m_data = new object[1] { text };
+            m_backCols = new Color[1] { Color.Transparent };
+        }
 		public Node(object[] fields)
 		{
 			SetData(fields);
@@ -175,6 +246,8 @@ namespace TreelistView
 			}
 			set
 			{
+				if (Owner == null)
+					return;
 				this[Owner.FieldIndex(fieldname)] = value;
 			}
 		}
@@ -196,11 +269,14 @@ namespace TreelistView
 		{
 			return m_data;
 		}
-		public void SetData(object[] fields)
-		{
-			m_data = new object[fields.Length];
-			fields.CopyTo(m_data, 0);
-		}
+        public void SetData(object[] fields)
+        {
+            m_data = new object[fields.Length];
+            fields.CopyTo(m_data, 0);
+
+            m_backCols = new Color[fields.Length];
+            for (int i = 0; i < fields.Length; i++) m_backCols[i] = Color.Transparent;
+        }
 		public int VisibleNodeCount
 		{
 			get 
@@ -362,7 +438,25 @@ namespace TreelistView
 		int		m_nextId = 0;
 		int		m_IdDirty = 0;
 
-        public TreeListView OwnerView = null;
+        private TreeListView m_ownerview = null;
+        public TreeListView OwnerView
+        {
+            get
+            {
+                if(m_ownerview != null)
+                    return m_ownerview;
+
+                if(m_owner != null)
+                    m_ownerview = m_owner.OwnerView;
+
+                return m_ownerview;
+            }
+
+            set
+            {
+                m_ownerview = value;
+            }
+        }
 
 		Node[]	m_nodesInternal = null;
 		Node	m_owner = null;
@@ -953,6 +1047,8 @@ namespace TreelistView
 		}
 		public static Node FindNodesBottomLeaf(Node node, bool mustBeVisible)
 		{
+			if (node == null)
+				return node;
 			if (mustBeVisible && node.Expanded == false)
 				return node;
 			if (node.HasChildren == false || node.Nodes.LastNode == null)
@@ -1004,12 +1100,12 @@ namespace TreelistView
 			return m_nodesMap.ContainsKey(node);
 		}
 
-		public IList<Node> GetSortedNodes()
+		public void Sort()
 		{
 			SortedList<string, Node> list = new SortedList<string,Node>();
 			foreach (Node node in m_nodes)
 				list.Add(node.GetId(), node);
-			return list.Values;
+			m_nodes = new List<Node>(list.Values);
 		}
 
 	}

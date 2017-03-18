@@ -1,0 +1,173 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="vk_win32.cpp">
+      <Filter>OS\Win32</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_replay.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_debug.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_resources.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_info.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_common.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_dispatchtables.cpp">
+      <Filter>Layer</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_layer.cpp">
+      <Filter>Layer</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_manager.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_core.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\vk_get_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\vk_wsi_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\vk_resource_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\vk_cmd_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\vk_dynamic_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\vk_descriptor_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\vk_queue_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\vk_shader_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\vk_device_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_memory.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_initstate.cpp">
+      <Filter>Core</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\vk_misc_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\vk_draw_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="wrappers\vk_sync_funcs.cpp">
+      <Filter>Wrappers</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_state.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_counters.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_android.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_posix.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_linux.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_layer_android.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+    <ClCompile Include="vk_apple.cpp">
+      <Filter>OS\Posix</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="vk_replay.h">
+      <Filter>Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="vk_debug.h">
+      <Filter>Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="vk_resources.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="vk_info.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="vk_common.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="vk_hookset_defs.h">
+      <Filter>Layer</Filter>
+    </ClInclude>
+    <ClInclude Include="vk_dispatchtables.h">
+      <Filter>Layer</Filter>
+    </ClInclude>
+    <ClInclude Include="vk_manager.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="vk_core.h">
+      <Filter>Core</Filter>
+    </ClInclude>
+    <ClInclude Include="vk_state.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="official\vk_layer.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\vk_platform.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="official\vulkan.h">
+      <Filter>official</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="OS">
+      <UniqueIdentifier>{0ca21de2-97db-4118-afc5-32b4cd80a437}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Win32">
+      <UniqueIdentifier>{538183db-17ae-4e49-87d6-b8dc88bda2d3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Replay">
+      <UniqueIdentifier>{db137899-cfc0-46db-a65f-936485058fab}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Util">
+      <UniqueIdentifier>{c774a75a-492b-4bb7-b1fd-bf23ab28b1f2}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Layer">
+      <UniqueIdentifier>{b89a941f-a1a8-4786-8b42-ac86c5c5a2f3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Core">
+      <UniqueIdentifier>{01e8492a-3fb3-4bc6-8683-d452e00ed842}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wrappers">
+      <UniqueIdentifier>{346edd99-3a86-4782-8ad5-f6efecf8bb0b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official">
+      <UniqueIdentifier>{9580e52e-f3ab-4ef9-80d1-c673e5f25ef7}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="OS\Posix">
+      <UniqueIdentifier>{c6141a90-0765-4409-afe2-e59d683e5a5e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="renderdoc.json">
+      <Filter>Layer</Filter>
+    </None>
+  </ItemGroup>
+</Project>

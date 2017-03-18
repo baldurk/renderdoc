@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -31,6 +32,7 @@ using System.Data;
 using System.Linq;
 using System.Text;
 using System.Windows.Forms;
+using renderdocui.Code;
 
 namespace renderdocui.Controls
 {
@@ -92,12 +94,34 @@ namespace renderdocui.Controls
         public void SetRange(float min, float max)
         {
             m_RangeMin = min;
-            m_RangeMax = Math.Max((min+float.Epsilon)*(1.0f+m_MinRangeSize), max);
+            if (min < 0.0f)
+                m_RangeMax = Math.Max((min - float.Epsilon) * (1.0f - m_MinRangeSize), max);
+            else
+                m_RangeMax = Math.Max((min + float.Epsilon) * (1.0f + m_MinRangeSize), max);
+
             m_BlackPoint = m_RangeMin;
             m_WhitePoint = m_RangeMax;
 
             Invalidate();
             OnRangeUpdated(new RangeHistogramEventArgs(BlackPoint, WhitePoint));
+        }
+
+        public bool ValidRange
+        {
+            get
+            {
+                if (float.IsInfinity(m_WhitePoint) || float.IsNaN(m_WhitePoint) ||
+                    float.IsInfinity(m_BlackPoint) || float.IsNaN(m_BlackPoint) ||
+                    float.IsInfinity(m_RangeMax) || float.IsNaN(m_RangeMax) ||
+                    float.IsInfinity(m_RangeMin) || float.IsNaN(m_RangeMin) ||
+                    float.IsInfinity(m_RangeMax - m_RangeMin) || float.IsNaN(m_RangeMax - m_RangeMin) ||
+                    float.IsInfinity(m_WhitePoint - m_BlackPoint) || float.IsNaN(m_WhitePoint - m_BlackPoint))
+                {
+                    return false;
+                }
+
+                return true;
+            }
         }
 
         [Browsable(false)]
@@ -162,13 +186,6 @@ namespace renderdocui.Controls
             {
                 return m_RangeMin;
             }
-            set
-            {
-                m_RangeMin = Math.Min(value, m_RangeMax - MinRangeSize);
-
-                Invalidate();
-                OnRangeUpdated(new RangeHistogramEventArgs(BlackPoint, WhitePoint));
-            }
         }
         [Browsable(false)]
         public float RangeMax
@@ -176,13 +193,6 @@ namespace renderdocui.Controls
             get
             {
                 return m_RangeMax;
-            }
-            set
-            {
-                m_RangeMax = Math.Max(value, m_RangeMin + MinRangeSize);
-
-                Invalidate();
-                OnRangeUpdated(new RangeHistogramEventArgs(BlackPoint, WhitePoint));
             }
         }
 
@@ -234,6 +244,7 @@ namespace renderdocui.Controls
         {
             get
             {
+                if (!ValidRange) return 0.0f;
                 return GetDelta(BlackPoint);
             }
             set
@@ -245,6 +256,7 @@ namespace renderdocui.Controls
         {
             get
             {
+                if (!ValidRange) return 1.0f;
                 return GetDelta(WhitePoint);
             }
             set
@@ -289,7 +301,7 @@ namespace renderdocui.Controls
         // grab when you clicked.
         private void RangeHistogram_MouseDown(object sender, MouseEventArgs e)
         {
-            if(e.Button != MouseButtons.Left)
+            if(e.Button != MouseButtons.Left || !ValidRange)
                 return;
 
             Rectangle rect = this.ClientRectangle;
@@ -353,7 +365,7 @@ namespace renderdocui.Controls
 
         private void RangeHistogram_MouseMove(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left && (e.X != m_mousePrev.X || e.Y != m_mousePrev.Y))
+            if (ValidRange && e.Button == MouseButtons.Left && (e.X != m_mousePrev.X || e.Y != m_mousePrev.Y))
             {
                 if (m_DragMode == DraggingMode.WHITE)
                 {
@@ -406,11 +418,11 @@ namespace renderdocui.Controls
 
             rect.Inflate(-m_Margin, -m_Margin);
 
-            e.Graphics.FillRectangle(Brushes.Black, rect);
+            e.Graphics.FillRectangle(SystemBrushes.ControlText, rect);
 
             rect.Inflate(-m_Border, -m_Border);
 
-            e.Graphics.FillRectangle(Brushes.DarkGray, rect);
+            e.Graphics.FillRectangle(ValidRange ? Brushes.DarkGray : Brushes.DarkRed, rect);
 
             int whiteX = (int)(m_WhiteDelta * rect.Width);
             int blackX = (int)(m_BlackDelta * rect.Width);
@@ -420,6 +432,9 @@ namespace renderdocui.Controls
 
             e.Graphics.FillRectangle(Brushes.White, whitePoint);
             e.Graphics.FillRectangle(Brushes.Black, blackPoint);
+
+            if (!ValidRange)
+                return;
 
             if (HistogramData != null)
             {
@@ -438,6 +453,9 @@ namespace renderdocui.Controls
                         maxval = Math.Max(maxval, HistogramData[i]);
                     }
                 }
+
+                if (maxval == 0)
+                    maxval = 1;
 
                 for (int i = 0; i < HistogramData.Length; i++)
                 {

@@ -1,18 +1,19 @@
 /******************************************************************************
  * The MIT License (MIT)
- * 
+ *
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
- * 
+ *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
  * in the Software without restriction, including without limitation the rights
  * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
  * copies of the Software, and to permit persons to whom the Software is
  * furnished to do so, subject to the following conditions:
- * 
+ *
  * The above copyright notice and this permission notice shall be included in
  * all copies or substantial portions of the Software.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
  * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
  * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
@@ -22,342 +23,631 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-
-#include "os/os_specific.h"
-
-#include <time.h>
+#include <shlobj.h>
 #include <stdio.h>
 #include <string.h>
-
-#include <shlobj.h>
 #include <tchar.h>
-
+#include <time.h>
 #include <set>
+#include "api/app/renderdoc_app.h"
+#include "os/os_specific.h"
+#include "serialise/string_utils.h"
+
 using std::set;
+using std::wstring;
 
 // gives us an address to identify this dll with
-static int dllLocator=0;
+static int dllLocator = 0;
 
 string GetEmbeddedResourceWin32(int resource)
 {
-	HMODULE mod = NULL;
-	GetModuleHandleExA(GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS|GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,	(const char *)&dllLocator, &mod);
+  HMODULE mod = NULL;
+  GetModuleHandleExA(
+      GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+      (const char *)&dllLocator, &mod);
 
-	HRSRC res = FindResource(mod, MAKEINTRESOURCE(resource), MAKEINTRESOURCE(TYPE_EMBED));
-	int err = GetLastError();
-	HGLOBAL data = LoadResource(mod, res);
-	DWORD resSize = SizeofResource(mod, res);
-	const char* resData = (const char*)LockResource(data);
+  HRSRC res = FindResource(mod, MAKEINTRESOURCE(resource), MAKEINTRESOURCE(TYPE_EMBED));
 
-	return string(resData, resData+resSize);
+  if(res == NULL)
+  {
+    RDCFATAL("Couldn't find embedded win32 resource");
+  }
+
+  HGLOBAL data = LoadResource(mod, res);
+
+  if(data != NULL)
+  {
+    DWORD resSize = SizeofResource(mod, res);
+    const char *resData = (const char *)LockResource(data);
+
+    if(resData)
+      return string(resData, resData + resSize);
+  }
+
+  return "";
 }
 
 namespace Keyboard
 {
-	void Init()
-	{
-	}
+void Init()
+{
+}
 
-	set<HWND> inputWindows;
+bool PlatformHasKeyInput()
+{
+  return true;
+}
 
-	void AddInputWindow(void *wnd)
-	{
-		inputWindows.insert((HWND)wnd);
-	}
+set<HWND> inputWindows;
 
-	void RemoveInputWindow(void *wnd)
-	{
-		inputWindows.erase((HWND)wnd);
-	}
+void AddInputWindow(void *wnd)
+{
+  inputWindows.insert((HWND)wnd);
+}
 
-	bool GetKeyState(KeyButton key)
-	{
-		int vk = 0;
+void RemoveInputWindow(void *wnd)
+{
+  inputWindows.erase((HWND)wnd);
+}
 
-		switch(key)
-		{
-			case eKey_F11:		 vk = VK_F11; break;
-			case eKey_F12:     vk = VK_F12; break;
-			case eKey_PrtScrn: vk = VK_SNAPSHOT; break;
-			default:
-				return false;
-		}
-		
-		bool keydown = GetAsyncKeyState(vk) != 0;
+bool GetKeyState(int key)
+{
+  int vk = 0;
 
-		if(inputWindows.empty() || !keydown)
-			return keydown;
+  if(key >= eRENDERDOC_Key_A && key <= eRENDERDOC_Key_Z)
+    vk = key;
+  if(key >= eRENDERDOC_Key_0 && key <= eRENDERDOC_Key_9)
+    vk = key;
 
-		for(auto it=inputWindows.begin(); it != inputWindows.end(); ++it)
-		{
-			HWND w = *it;
-			HWND fore = GetForegroundWindow();
+  switch(key)
+  {
+    case eRENDERDOC_Key_Divide: vk = VK_DIVIDE; break;
+    case eRENDERDOC_Key_Multiply: vk = VK_MULTIPLY; break;
+    case eRENDERDOC_Key_Subtract: vk = VK_SUBTRACT; break;
+    case eRENDERDOC_Key_Plus: vk = VK_ADD; break;
+    case eRENDERDOC_Key_F1: vk = VK_F1; break;
+    case eRENDERDOC_Key_F2: vk = VK_F2; break;
+    case eRENDERDOC_Key_F3: vk = VK_F3; break;
+    case eRENDERDOC_Key_F4: vk = VK_F4; break;
+    case eRENDERDOC_Key_F5: vk = VK_F5; break;
+    case eRENDERDOC_Key_F6: vk = VK_F6; break;
+    case eRENDERDOC_Key_F7: vk = VK_F7; break;
+    case eRENDERDOC_Key_F8: vk = VK_F8; break;
+    case eRENDERDOC_Key_F9: vk = VK_F9; break;
+    case eRENDERDOC_Key_F10: vk = VK_F10; break;
+    case eRENDERDOC_Key_F11: vk = VK_F11; break;
+    case eRENDERDOC_Key_F12: vk = VK_F12; break;
+    case eRENDERDOC_Key_Home: vk = VK_HOME; break;
+    case eRENDERDOC_Key_End: vk = VK_END; break;
+    case eRENDERDOC_Key_Insert: vk = VK_INSERT; break;
+    case eRENDERDOC_Key_Delete: vk = VK_DELETE; break;
+    case eRENDERDOC_Key_PageUp: vk = VK_PRIOR; break;
+    case eRENDERDOC_Key_PageDn: vk = VK_NEXT; break;
+    case eRENDERDOC_Key_Backspace: vk = VK_BACK; break;
+    case eRENDERDOC_Key_Tab: vk = VK_TAB; break;
+    case eRENDERDOC_Key_PrtScrn: vk = VK_SNAPSHOT; break;
+    case eRENDERDOC_Key_Pause: vk = VK_PAUSE; break;
+    default: break;
+  }
 
-			while(w)
-			{
-				if(w == fore)
-					return keydown;
+  if(vk == 0)
+    return false;
 
-				w = GetParent(w);
-			}
-		}
+  bool keydown = GetAsyncKeyState(vk) != 0;
 
-		return false;
-	}
+  if(inputWindows.empty() || !keydown)
+    return keydown;
+
+  for(auto it = inputWindows.begin(); it != inputWindows.end(); ++it)
+  {
+    HWND w = *it;
+    HWND fore = GetForegroundWindow();
+
+    while(w)
+    {
+      if(w == fore)
+        return keydown;
+
+      w = GetParent(w);
+    }
+  }
+
+  return false;
+}
 }
 
 namespace FileIO
 {
-	void GetExecutableFilename(wstring &selfName)
-	{
-		wchar_t curFile[512] = {0};
-		GetModuleFileNameW(NULL, curFile, 511);
+void GetExecutableFilename(string &selfName)
+{
+  wchar_t curFile[512] = {0};
+  GetModuleFileNameW(NULL, curFile, 511);
 
-		selfName = curFile;
-	}
+  selfName = StringFormat::Wide2UTF8(wstring(curFile));
+}
 
-	void GetDefaultFiles(const wchar_t *logBaseName, wstring &capture_filename, wstring &logging_filename, wstring &target)
-	{
-		wchar_t temp_filename[MAX_PATH];
+string GetFullPathname(const string &filename)
+{
+  wstring wfn = StringFormat::UTF82Wide(filename);
 
-		GetTempPathW(MAX_PATH, temp_filename);
+  wchar_t path[512] = {0};
+  GetFullPathNameW(wfn.c_str(), ARRAY_COUNT(path) - 1, path, NULL);
 
-		wchar_t curFile[512];
-		GetModuleFileNameW(NULL, curFile, 512);
+  return StringFormat::Wide2UTF8(wstring(path));
+}
 
-		wchar_t fn[MAX_PATH];
-		wcscpy_s(fn, MAX_PATH, curFile);
+void CreateParentDirectory(const string &filename)
+{
+  wstring wfn = StringFormat::UTF82Wide(filename);
 
-		wchar_t *mod = wcsrchr(fn, L'.');
-		if(mod) *mod = 0;
-		mod = wcsrchr(fn, L'/');
-		if(!mod) mod = fn;
-		mod = wcsrchr(mod, L'\\');
+  wfn = dirname(wfn);
 
-		mod++; // now points to base filename without extension
+  // This function needs \\s not /s. So stupid!
+  for(size_t i = 0; i < wfn.size(); i++)
+    if(wfn[i] == L'/')
+      wfn[i] = L'\\';
 
-		target = mod;
+  SHCreateDirectoryExW(NULL, wfn.c_str(), NULL);
+}
 
-		time_t t = time(NULL);
-		tm now;
-		localtime_s(&now, &t);
+string GetReplayAppFilename()
+{
+  HMODULE hModule = NULL;
+  GetModuleHandleEx(
+      GET_MODULE_HANDLE_EX_FLAG_FROM_ADDRESS | GET_MODULE_HANDLE_EX_FLAG_UNCHANGED_REFCOUNT,
+      (LPCTSTR)&dllLocator, &hModule);
+  wchar_t curFile[512] = {0};
+  GetModuleFileNameW(hModule, curFile, 511);
 
-		wchar_t *filename_start = temp_filename+wcslen(temp_filename);
+  string path = StringFormat::Wide2UTF8(wstring(curFile));
+  path = dirname(path);
+  string exe = path + "/renderdocui.exe";
 
-		wsprintf(filename_start, L"%ls_%04d.%02d.%02d_%02d.%02d.rdc", mod, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min);
+  FILE *f = FileIO::fopen(exe.c_str(), "rb");
+  if(f)
+  {
+    FileIO::fclose(f);
+    return exe;
+  }
 
-		capture_filename = temp_filename;
+  // if renderdocui.exe doesn't live in the same dir, we must be in x86/
+  // so look one up the tree.
+  exe = path + "/../renderdocui.exe";
 
-		*filename_start = 0;
+  f = FileIO::fopen(exe.c_str(), "rb");
+  if(f)
+  {
+    FileIO::fclose(f);
+    return exe;
+  }
 
-		wsprintf(filename_start, L"%ls_%04d.%02d.%02d_%02d.%02d.%02d.log", logBaseName, 1900+now.tm_year, now.tm_mon+1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+  // if we didn't find the exe at all, we must not be in a standard
+  // distributed renderdoc package. On windows we can check in the registry
+  // to try and find the installed path.
 
-		logging_filename = temp_filename;
-	}
+  DWORD type = 0;
+  DWORD dataSize = sizeof(curFile);
+  RDCEraseEl(curFile);
+  RegGetValueW(HKEY_CLASSES_ROOT, L"RenderDoc.RDCCapture.1\\DefaultIcon", NULL, RRF_RT_ANY, &type,
+               (void *)curFile, &dataSize);
 
-	wstring GetAppFolderFilename(wstring filename)
-	{
-		PWSTR appDataPath;
-		SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_SIMPLE_IDLIST|KF_FLAG_DONT_UNEXPAND, NULL, &appDataPath);
-		wstring appdata = appDataPath;
-		CoTaskMemFree(appDataPath);
+  if(type == REG_EXPAND_SZ || type == REG_SZ)
+  {
+    return StringFormat::Wide2UTF8(wstring(curFile));
+  }
 
-		if(appdata[appdata.size()-1] == '/' || appdata[appdata.size()-1] == '\\') appdata.pop_back();
+  return "";
+}
 
-		appdata += L"\\renderdoc\\";
+void GetDefaultFiles(const char *logBaseName, string &capture_filename, string &logging_filename,
+                     string &target)
+{
+  wchar_t temp_filename[MAX_PATH];
 
-		CreateDirectoryW(appdata.c_str(), NULL);
+  GetTempPathW(MAX_PATH, temp_filename);
 
-		return appdata + filename;
-	}
+  wchar_t curFile[512];
+  GetModuleFileNameW(NULL, curFile, 512);
 
-	uint64_t GetModifiedTimestamp(const wchar_t *filename)
-	{
-		struct _stat st;
-		int res = _wstat(filename, &st);
+  wchar_t fn[MAX_PATH];
+  wcscpy_s(fn, MAX_PATH, curFile);
 
-		if(res == 0)
-		{
-			return (uint64_t)st.st_mtime;
-		}
-		
-		return 0;
-	}
+  wchar_t *mod = wcsrchr(fn, L'.');
+  if(mod)
+    *mod = 0;
+  mod = wcsrchr(fn, L'/');
+  if(!mod)
+    mod = fn;
+  mod = wcsrchr(mod, L'\\');
 
-	void CopyFileW(const wchar_t *from, const wchar_t *to, bool allowOverwrite)
-	{
-		::CopyFileW(from, to, allowOverwrite == false);
-	}
+  mod++;    // now points to base filename without extension
 
-	void UnlinkFileW(const wchar_t *path)
-	{
-		::DeleteFileW(path);
-	}
+  target = StringFormat::Wide2UTF8(wstring(mod));
 
-	FILE *fopen(const wchar_t *filename, const wchar_t *mode)
-	{
-		FILE *ret = NULL;
-		::_wfopen_s(&ret, filename, mode);
-		return ret;
-	}
+  time_t t = time(NULL);
+  tm now;
+  localtime_s(&now, &t);
 
-	size_t fread(void *buf, size_t elementSize, size_t count, FILE *f) { return ::fread(buf, elementSize, count, f); }
-	size_t fwrite(const void *buf, size_t elementSize, size_t count, FILE *f) { return ::fwrite(buf, elementSize, count, f); }
-	int fprintf(FILE *f, const char *fmt, ...)
-	{
-		va_list args;
-		va_start(args, fmt);
+  wchar_t *filename_start = temp_filename + wcslen(temp_filename);
 
-		int ret = ::fprintf(f, fmt, args);
+  wsprintf(filename_start, L"RenderDoc\\%ls_%04d.%02d.%02d_%02d.%02d.rdc", mod, 1900 + now.tm_year,
+           now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min);
 
-		va_end(args);
+  capture_filename = StringFormat::Wide2UTF8(wstring(temp_filename));
 
-		return ret;
-	}
+  *filename_start = 0;
 
-	uint64_t ftell64(FILE *f) { return ::_ftelli64(f); }
-	void fseek64(FILE *f, uint64_t offset, int origin) { ::_fseeki64(f, offset, origin); }
+  wstring wbase = StringFormat::UTF82Wide(string(logBaseName));
 
-	int fclose(FILE *f) { return ::fclose(f); }
+  wsprintf(filename_start, L"RenderDoc\\%ls_%04d.%02d.%02d_%02d.%02d.%02d.log", wbase.c_str(),
+           1900 + now.tm_year, now.tm_mon + 1, now.tm_mday, now.tm_hour, now.tm_min, now.tm_sec);
+
+  logging_filename = StringFormat::Wide2UTF8(wstring(temp_filename));
+}
+
+string GetHomeFolderFilename()
+{
+  PWSTR docsPath;
+  SHGetKnownFolderPath(FOLDERID_Documents, KF_FLAG_SIMPLE_IDLIST | KF_FLAG_DONT_UNEXPAND, NULL,
+                       &docsPath);
+  wstring documents = docsPath;
+  CoTaskMemFree(docsPath);
+
+  if(documents[documents.size() - 1] == '/' || documents[documents.size() - 1] == '\\')
+    documents.pop_back();
+
+  return StringFormat::Wide2UTF8(documents);
+}
+
+string GetAppFolderFilename(const string &filename)
+{
+  PWSTR appDataPath;
+  SHGetKnownFolderPath(FOLDERID_RoamingAppData, KF_FLAG_SIMPLE_IDLIST | KF_FLAG_DONT_UNEXPAND, NULL,
+                       &appDataPath);
+  wstring appdata = appDataPath;
+  CoTaskMemFree(appDataPath);
+
+  if(appdata[appdata.size() - 1] == '/' || appdata[appdata.size() - 1] == '\\')
+    appdata.pop_back();
+
+  appdata += L"\\renderdoc\\";
+
+  CreateDirectoryW(appdata.c_str(), NULL);
+
+  string ret = StringFormat::Wide2UTF8(appdata) + filename;
+  return ret;
+}
+
+uint64_t GetModifiedTimestamp(const string &filename)
+{
+  wstring wfn = StringFormat::UTF82Wide(filename);
+
+  struct _stat st;
+  int res = _wstat(wfn.c_str(), &st);
+
+  if(res == 0)
+  {
+    return (uint64_t)st.st_mtime;
+  }
+
+  return 0;
+}
+
+void Copy(const char *from, const char *to, bool allowOverwrite)
+{
+  wstring wfrom = StringFormat::UTF82Wide(string(from));
+  wstring wto = StringFormat::UTF82Wide(string(to));
+
+  ::CopyFileW(wfrom.c_str(), wto.c_str(), allowOverwrite == false);
+}
+
+void Delete(const char *path)
+{
+  wstring wpath = StringFormat::UTF82Wide(string(path));
+  ::DeleteFileW(wpath.c_str());
+}
+
+vector<FoundFile> GetFilesInDirectory(const char *path)
+{
+  vector<FoundFile> ret;
+
+  if(path[0] == '/' && path[1] == 0)
+  {
+    DWORD driveMask = GetLogicalDrives();
+
+    for(int i = 0; i < 26; i++)
+    {
+      DWORD mask = (1 << i);
+
+      if(driveMask & mask)
+      {
+        string fn = "A:/";
+        fn[0] = char('A' + i);
+
+        ret.push_back(FoundFile(fn, eFileProp_Directory));
+      }
+    }
+
+    return ret;
+  }
+
+  string pathstr = path;
+
+  // normalise path to windows style
+  for(size_t i = 0; i < pathstr.size(); i++)
+    if(pathstr[i] == '/')
+      pathstr[i] = '\\';
+
+  // remove any trailing slash
+  if(pathstr[pathstr.size() - 1] == '\\')
+    pathstr.resize(pathstr.size() - 1);
+
+  // append '\*' to do the search we want
+  pathstr += "\\*";
+
+  wstring wpath = StringFormat::UTF82Wide(pathstr);
+
+  WIN32_FIND_DATAW findData = {};
+  HANDLE find = FindFirstFileW(wpath.c_str(), &findData);
+
+  if(find == INVALID_HANDLE_VALUE)
+  {
+    DWORD err = GetLastError();
+
+    uint32_t flags = eFileProp_ErrorUnknown;
+
+    if(err == ERROR_FILE_NOT_FOUND)
+      flags = eFileProp_ErrorInvalidPath;
+    else if(err == ERROR_ACCESS_DENIED)
+      flags = eFileProp_ErrorAccessDenied;
+
+    ret.push_back(FoundFile(path, flags));
+    return ret;
+  }
+
+  do
+  {
+    if(findData.cFileName[0] == L'.' && findData.cFileName[1] == 0)
+    {
+      // skip "."
+    }
+    else if(findData.cFileName[0] == L'.' && findData.cFileName[1] == L'.' &&
+            findData.cFileName[2] == 0)
+    {
+      // skip ".."
+    }
+    else
+    {
+      uint32_t flags = 0;
+
+      if(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+        flags |= eFileProp_Directory;
+
+      if(findData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)
+        flags |= eFileProp_Hidden;
+
+      if(wcsstr(findData.cFileName, L".EXE") || wcsstr(findData.cFileName, L".exe") ||
+         wcsstr(findData.cFileName, L".Exe"))
+      {
+        flags |= eFileProp_Executable;
+      }
+
+      FoundFile f(StringFormat::Wide2UTF8(findData.cFileName), flags);
+
+      uint64_t nanosecondsSinceWindowsEpoch = uint64_t(findData.ftLastWriteTime.dwHighDateTime) << 8 |
+                                              uint64_t(findData.ftLastWriteTime.dwLowDateTime);
+
+      uint64_t secondsSinceWindowsEpoch = nanosecondsSinceWindowsEpoch / 10000000;
+
+      // this constant is the number of seconds between Jan 1 1601 and Jan 1 1970
+      uint64_t secondsSinceUnixEpoch = secondsSinceWindowsEpoch - 11644473600;
+
+      f.lastmod = uint32_t(secondsSinceUnixEpoch);
+      f.size = uint64_t(findData.nFileSizeHigh) << 8 | uint64_t(findData.nFileSizeLow);
+
+      ret.push_back(f);
+    }
+  } while(FindNextFile(find, &findData) != FALSE);
+
+  // don't care if we hit an error or enumerated all files, just finish
+
+  FindClose(find);
+
+  return ret;
+}
+
+FILE *fopen(const char *filename, const char *mode)
+{
+  wstring wfn = StringFormat::UTF82Wide(string(filename));
+  wstring wmode = StringFormat::UTF82Wide(string(mode));
+
+  FILE *ret = NULL;
+  ::_wfopen_s(&ret, wfn.c_str(), wmode.c_str());
+  return ret;
+}
+
+string getline(FILE *f)
+{
+  string ret;
+
+  while(!FileIO::feof(f))
+  {
+    char c = (char)::fgetc(f);
+
+    if(FileIO::feof(f))
+      break;
+
+    if(c != 0 && c != '\n')
+      ret.push_back(c);
+    else
+      break;
+  }
+
+  return ret;
+}
+
+size_t fread(void *buf, size_t elementSize, size_t count, FILE *f)
+{
+  return ::fread(buf, elementSize, count, f);
+}
+size_t fwrite(const void *buf, size_t elementSize, size_t count, FILE *f)
+{
+  return ::fwrite(buf, elementSize, count, f);
+}
+
+uint64_t ftell64(FILE *f)
+{
+  return ::_ftelli64(f);
+}
+void fseek64(FILE *f, uint64_t offset, int origin)
+{
+  ::_fseeki64(f, offset, origin);
+}
+
+bool feof(FILE *f)
+{
+  return ::feof(f) != 0;
+}
+
+int fclose(FILE *f)
+{
+  return ::fclose(f);
+}
+
+void *logfile_open(const char *filename)
+{
+  wstring wfn = StringFormat::UTF82Wide(string(filename));
+  return (void *)CreateFileW(wfn.c_str(), FILE_APPEND_DATA, FILE_SHARE_READ | FILE_SHARE_WRITE,
+                             NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+}
+
+void logfile_append(void *handle, const char *msg, size_t length)
+{
+  if(handle)
+  {
+    DWORD bytesWritten = 0;
+    WriteFile((HANDLE)handle, msg, (DWORD)length, &bytesWritten, NULL);
+  }
+}
+
+void logfile_close(void *handle)
+{
+  CloseHandle((HANDLE)handle);
+}
 };
 
 namespace StringFormat
 {
-	int snprintf(char *str, size_t bufSize, const char *fmt, ...)
-	{
-		va_list args;
-		va_start(args, fmt);
+void sntimef(char *str, size_t bufSize, const char *format)
+{
+  time_t tim;
+  time(&tim);
 
-		int ret = vsnprintf(str, bufSize, fmt, args);
+  tm tmv;
+  localtime_s(&tmv, &tim);
 
-		va_end(args);
+  wchar_t *buf = new wchar_t[bufSize + 1];
+  buf[bufSize] = 0;
+  wstring wfmt = StringFormat::UTF82Wide(string(format));
 
-		return ret;
-	}
-	
-	int wsnprintf(wchar_t *str, size_t bufSize, const wchar_t *format, ...)
-	{
-		va_list args;
-		va_start(args, format);
+  wcsftime(buf, bufSize, wfmt.c_str(), &tmv);
 
-		int ret =  ::_vsnwprintf_s(str, bufSize, bufSize, format, args);
+  string result = StringFormat::Wide2UTF8(wstring(buf));
 
-		va_end(args);
+  delete[] buf;
 
-		return ret;
-	}
+  if(result.length() + 1 <= bufSize)
+  {
+    memcpy(str, result.c_str(), result.length());
+    str[result.length()] = 0;
+  }
+}
 
-	int vsnprintf(char *str, size_t bufSize, const char *format, va_list args)
-	{
-		return ::vsprintf_s(str, bufSize, format, args);
-	}
+string Wide2UTF8(const wstring &s)
+{
+  int bytes_required = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, NULL, 0, NULL, NULL);
 
-	void sntimef(char *str, size_t bufSize, const char *format)
-	{
-		time_t tim;
-		time(&tim);
+  if(bytes_required == 0)
+    return "";
 
-		tm tmv;
-		localtime_s(&tmv, &tim);
+  string ret;
+  ret.resize(bytes_required);
 
-		strftime(str, bufSize, format, &tmv);
-	}
+  int res = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, &ret[0], bytes_required, NULL, NULL);
 
-	void wcsncpy(wchar_t *dst, const wchar_t *src, size_t count)
-	{
-		::wcsncpy_s(dst, count, src, count);
-	}
+  if(ret.back() == 0)
+    ret.pop_back();
 
-	string Fmt(const char *format, ...)
-	{
-		va_list args;
-		va_start(args, format);
-
-		int size = _vscprintf(format, args)+1;
-
-		char *buf = new char[size];
-
-		StringFormat::vsnprintf(buf, size, format, args);
-
-		va_end(args);
-
-		string ret = buf;
-
-		delete[] buf;
-		
-		return ret;
-	}
-
-	wstring WFmt(const wchar_t *format, ...)
-	{
-		va_list args;
-		va_start(args, format);
-
-		int size = _vscwprintf(format, args)+1;
-
-		wchar_t *buf = new wchar_t[size];
-
-		::vswprintf_s(buf, size, format, args);
-
-		va_end(args);
-
-		wstring ret = buf;
-
-		delete[] buf;
-		
-		return ret;
-	}
-
-	// save on reallocation, keep a persistent scratch buffer for conversions
-	vector<char> charBuffer;
-	vector<wchar_t> wcharBuffer;
-
-	string Wide2UTF8(const wstring &s)
-	{
-		// include room for null terminator, assuming unicode input (not ucs)
-		// utf-8 characters can be max 4 bytes. We can afford to be generous about
-		// this length as we resize relatively rarely.
-		size_t len = (s.length()+1)*4;
-
-		if(charBuffer.size() < len)
-			charBuffer.resize(len);
-
-		int ret = WideCharToMultiByte(CP_UTF8, 0, s.c_str(), -1, &charBuffer[0], (int)len, NULL, NULL);
-
-		if(ret == 0)
-		{
-#if !defined(_RELEASE)
-			RDCWARN("Failed to convert wstring: \"%ls\"", s.c_str());
+  if(res == 0)
+  {
+#if ENABLED(RDOC_DEVEL)
+    RDCWARN("Failed to convert wstring");    // can't pass string through as this would infinitely
+                                             // recurse
 #endif
-			return "";
-		}
+    return "";
+  }
 
-		// convert to string from null-terminated string - utf-8 never contains
-		// 0 bytes before the null terminator, and this way we don't care if
-		// charBuffer is larger than the string
-		return string(&charBuffer[0]);
-	}
+  return ret;
+}
 
-	wstring UTF82Wide(const string &s)
-	{
-		// Include room for null terminator. Since we're converting from utf-8,
-		// worst case it's ascii and every byte is a character so length is the same
-		size_t len = s.length()+1;
-		
-		if(wcharBuffer.size() < len)
-			wcharBuffer.resize(len);
+wstring UTF82Wide(const string &s)
+{
+  int chars_required = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, NULL, 0);
 
-		int ret = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, &wcharBuffer[0], (int)len);
+  if(chars_required == 0)
+    return L"";
 
-		if(ret == 0)
-		{
-#if !defined(_RELEASE)
-			RDCWARN("Failed to convert utf-8 string: \"%s\"", s.c_str());
+  wstring ret;
+  ret.resize(chars_required);
+
+  int res = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, &ret[0], chars_required);
+
+  if(ret.back() == 0)
+    ret.pop_back();
+
+  if(res == 0)
+  {
+#if ENABLED(RDOC_DEVEL)
+    RDCWARN("Failed to convert utf-8 string");    // can't pass string through as this would
+                                                  // infinitely recurse
 #endif
-			return L"";
-		}
+    return L"";
+  }
 
-		return wstring(&wcharBuffer[0]);
-	}
+  return ret;
+}
 };
 
+namespace OSUtility
+{
+void WriteOutput(int channel, const char *str)
+{
+  wstring wstr = StringFormat::UTF82Wide(string(str));
+
+  if(channel == OSUtility::Output_DebugMon)
+    OutputDebugStringW(wstr.c_str());
+  else if(channel == OSUtility::Output_StdOut)
+    fwprintf(stdout, L"%ls", wstr.c_str());
+  else if(channel == OSUtility::Output_StdErr)
+    fwprintf(stderr, L"%ls", wstr.c_str());
+}
+
+uint64_t GetMachineIdent()
+{
+  uint64_t ret = MachineIdent_Windows;
+
+#if defined(_M_ARM) || defined(__arm__)
+  ret |= MachineIdent_Arch_ARM;
+#else
+  ret |= MachineIdent_Arch_x86;
+#endif
+
+#if ENABLED(RDOC_X64)
+  ret |= MachineIdent_64bit;
+#else
+  ret |= MachineIdent_32bit;
+#endif
+
+  return ret;
+}
+};

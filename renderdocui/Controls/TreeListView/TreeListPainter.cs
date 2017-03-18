@@ -138,7 +138,7 @@ namespace TreelistView
 
 			if (m_owner.NodesSelection.Contains(node) || m_owner.FocusedNode == node)
 			{
-                Color col = m_owner.Focused ? SystemColors.Highlight : SystemColors.ControlLight;
+                Color col = m_owner.Focused ? SystemColors.Highlight : SystemColors.Control;
 
 				if (!Application.RenderWithVisualStyles)
 				{
@@ -160,6 +160,11 @@ namespace TreelistView
             else if (hoverNode == node && m_owner.RowOptions.HoverHighlight)
             {
                 Color col = SystemColors.ControlLight;
+
+                if (SystemInformation.HighContrast)
+                {
+                    col = SystemColors.ButtonHighlight;
+                }
 
                 if (!Application.RenderWithVisualStyles)
                 {
@@ -199,14 +204,17 @@ namespace TreelistView
             if (format.BackColor != Color.Transparent)
                 c = format.BackColor;
 
-            if (node.BackColor != Color.Transparent)
-                c = node.BackColor;
-            
-			if (!m_owner.NodesSelection.Contains(node) && m_owner.FocusedNode != node &&
+            if (!m_owner.NodesSelection.Contains(node) && m_owner.FocusedNode != node &&
                 !(hoverNode == node && m_owner.RowOptions.HoverHighlight) &&
                 node.DefaultBackColor != Color.Transparent)
                 c = node.DefaultBackColor;
 
+            if (node.BackColor != Color.Transparent && !m_owner.NodesSelection.Contains(node) && m_owner.SelectedNode != node)
+                c = node.BackColor;
+
+            if (column.Index < node.IndexedBackColor.Length && node.IndexedBackColor[column.Index] != Color.Transparent)
+                c = node.IndexedBackColor[column.Index];
+            
             if (c != Color.Transparent)
             {
                 Rectangle r = cellRect;
@@ -230,7 +238,9 @@ namespace TreelistView
 				cellRect = AdjustRectangle(cellRect, format.Padding);
 				//dc.DrawRectangle(Pens.Black, cellRect);
 
-				Color color = format.ForeColor;
+                Color color = format.ForeColor;
+                if (node.ForeColor != Color.Transparent)
+                    color = node.ForeColor;
                 if (m_owner.FocusedNode == node && Application.RenderWithVisualStyles == false && m_owner.Focused)
 					color = SystemColors.HighlightText;
 				TextFormatFlags flags= TextFormatFlags.EndEllipsis | format.GetFormattingFlags();
@@ -253,6 +263,15 @@ namespace TreelistView
                     datastring = data.ToString();
 
                 TextRenderer.DrawText(dc, datastring, f, cellRect, color, flags);
+
+                Size sz = TextRenderer.MeasureText(dc, datastring, f, new Size(1000000, 10000), flags);
+
+                int treecolumn = node.TreeColumn;
+                if (treecolumn < 0)
+                    treecolumn = node.OwnerView.TreeColumn;
+
+                if (column.Index == treecolumn)
+                    node.ClippedText = (sz.Width > cellRect.Width || sz.Height > cellRect.Height);
 
                 if (disposefont != null) disposefont.Dispose();
 			}

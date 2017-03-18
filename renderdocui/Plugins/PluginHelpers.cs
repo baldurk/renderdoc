@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -84,8 +85,6 @@ namespace renderdocplugin
             var type = typeof(T);
 
             var ass = m_LoadedPlugins[assemblyName];
-
-            Type pluginType = ass.GetType(assemblyName + "." + type.Name);
 
             return (T)ass.CreateInstance(assemblyName + "." + type.Name);
         }

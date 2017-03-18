@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -41,49 +42,59 @@ namespace renderdocui.Code
         {
             m_Rate = msCount;
             m_Update = up;
-            m_CameraTick = new System.Threading.Timer(TickCB, this as object, m_Rate, System.Threading.Timeout.Infinite);
+            Start();
         }
 
         private int m_Rate;
-        private UpdateMethod m_Update;
+        private UpdateMethod m_Update = null;
         private System.Threading.Timer m_CameraTick = null;
 
         private static void TickCB(object state)
         {
+            if (!(state is TimedUpdate)) return;
+
             var me = (TimedUpdate)state;
-            me.m_Update();
-            me.m_CameraTick.Change(me.m_Rate, System.Threading.Timeout.Infinite);
+
+            if (me.m_Update != null) me.m_Update();
+            if (me.m_CameraTick != null) me.m_CameraTick.Change(me.m_Rate, System.Threading.Timeout.Infinite);
+        }
+
+        public void Start()
+        {
+            m_CameraTick = new System.Threading.Timer(TickCB, this as object, m_Rate, System.Threading.Timeout.Infinite);
+        }
+
+        public void Stop()
+        {
+            m_CameraTick.Dispose();
+            m_CameraTick = null;
         }
     }
 
     abstract class CameraControls
     {
-        protected CameraControls(Camera c)
+        protected CameraControls()
         {
-            m_Camera = c;
         }
+
+        abstract public bool Update();
+
+        abstract public Camera Camera { get; }
 
         abstract public void MouseWheel(object sender, MouseEventArgs e);
 
-        abstract public void Reset(Vec3f pos);
-        abstract public void Update();
-        abstract public void Apply();
-
-        abstract public bool Dirty { get; }
-        abstract public Vec3f Position { get; }
-        abstract public Vec3f Rotation { get; }
-
         virtual public void MouseClick(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left)
-            {
-                m_DragStartPos = e.Location;
-            }
+            m_DragStartPos = e.Location;
         }
 
         virtual public void MouseMove(object sender, MouseEventArgs e)
         {
-            if (e.Button == MouseButtons.Left)
+            if (e.Button == MouseButtons.None)
+            {
+                m_DragStartPos = new Point(-1, -1);
+            }
+            else
             {
                 if (m_DragStartPos.X < 0)
                 {
@@ -91,10 +102,6 @@ namespace renderdocui.Code
                 }
 
                 m_DragStartPos = e.Location;
-            }
-            else
-            {
-                m_DragStartPos = new Point(-1, -1);
             }
         }
 
@@ -144,127 +151,159 @@ namespace renderdocui.Code
 
         private Point m_DragStartPos = new Point(-1, -1);
         protected Point DragStartPos { get { return m_DragStartPos; } }
-
-        protected Camera m_Camera;
     }
 
     class ArcballCamera : CameraControls
     {
-        public ArcballCamera(Camera c)
-            : base(c)
+        private Camera m_Camera = null;
+
+        public override Camera Camera { get { return m_Camera; } }
+
+        public ArcballCamera()
         {
+            m_Camera = Camera.InitArcball();
         }
 
-        public override void Reset(Vec3f dist)
+        public void Reset(Vec3f pos, float dist)
         {
-            m_Distance = Math.Abs(dist.z);
-            m_Rotation = new Vec3f();
+            m_LookAt = pos;
+            m_Distance = Math.Abs(dist);
+
+            m_Camera.ResetArcball();
+            m_Camera.SetPosition(m_LookAt);
+            m_Camera.SetArcballDistance(m_Distance);
         }
 
-        public override void Update()
+        public void SetDistance(float dist)
         {
+            m_Distance = Math.Abs(dist);
+            m_Camera.SetArcballDistance(m_Distance);
         }
 
-        public override void Apply()
+        public override bool Update()
         {
-            m_Camera.Arcball(m_Distance, Rotation);
+            return false;
         }
 
         public override void MouseWheel(object sender, MouseEventArgs e)
         {
             float mod = (1.0f - (float)e.Delta / 2500.0f);
 
-            m_Distance = Math.Max(1.0f, m_Distance * mod);
+            m_Distance = Math.Max(1e-6f, m_Distance * mod);
+
+            m_Camera.SetArcballDistance(m_Distance);
 
             ((HandledMouseEventArgs)e).Handled = true;
-
-            m_Dirty = true;
         }
 
         public override void MouseMove(object sender, MouseEventArgs e)
         {
-            if (DragStartPos.X > 0 && e.Button == MouseButtons.Left)
+            if (DragStartPos.X > 0)
             {
-                m_Rotation.y += (float)(e.X - DragStartPos.X) / 300.0f;
-                m_Rotation.x += (float)(e.Y - DragStartPos.Y) / 300.0f;
+                if (e.Button == MouseButtons.Middle ||
+                    (e.Button == MouseButtons.Left && (Control.ModifierKeys & Keys.Alt) == Keys.Alt)
+                    )
+                {
+                    float xdelta = (float)(e.X - DragStartPos.X) / 300.0f;
+                    float ydelta = (float)(e.Y - DragStartPos.Y) / 300.0f;
 
-                m_Dirty = true;
+                    xdelta *= Math.Max(1.0f, m_Distance);
+                    ydelta *= Math.Max(1.0f, m_Distance);
+
+                    Vec3f pos, fwd, right, up;
+                    m_Camera.GetBasis(out pos, out fwd, out right, out up);
+
+                    m_LookAt.x -= right.x * xdelta;
+                    m_LookAt.y -= right.y * xdelta;
+                    m_LookAt.z -= right.z * xdelta;
+
+                    m_LookAt.x += up.x * ydelta;
+                    m_LookAt.y += up.y * ydelta;
+                    m_LookAt.z += up.z * ydelta;
+
+                    m_Camera.SetPosition(m_LookAt);
+                }
+                else if (e.Button == MouseButtons.Left)
+                {
+                    Control c = sender as Control;
+                    if (c != null)
+                        m_Camera.RotateArcball(DragStartPos, e.Location, c.ClientRectangle.Size);
+                }
             }
 
             base.MouseMove(sender, e);
         }
 
-        bool m_Dirty = false;
-        public override bool Dirty
-        {
-            get
-            {
-                bool ret = m_Dirty;
-                m_Dirty = false;
-                return ret;
-            }
-        }
-
         private float m_Distance = 10.0f;
-        private Vec3f m_Rotation = new Vec3f();
-        public override Vec3f Position { get { return m_Camera.Position; } }
-        public override Vec3f Rotation { get { return m_Rotation; } }
+        private Vec3f m_LookAt = new Vec3f();
+        public Vec3f LookAtPos
+        {
+            get { return m_LookAt; }
+            set { m_LookAt = value; m_Camera.SetPosition(m_LookAt); }
+        }
     }
 
     class FlyCamera : CameraControls
     {
-        public FlyCamera(Camera c)
-            : base(c)
+        private Camera m_Camera = null;
+
+        public override Camera Camera { get { return m_Camera; } }
+
+        public FlyCamera()
         {
+            m_Camera = Camera.InitFPSLook();
         }
 
-        public override void Reset(Vec3f pos)
+        public void Reset(Vec3f position)
         {
-            m_Position = pos;
+            m_Position = position;
             m_Rotation = new Vec3f();
+
+            Camera.SetPosition(m_Position);
+            Camera.SetFPSRotation(m_Rotation);
         }
 
-        public override void Update()
+        public override bool Update()
         {
+            Vec3f pos, fwd, right, up;
+            m_Camera.GetBasis(out pos, out fwd, out right, out up);
+
             if (CurrentMove[0] != 0)
             {
-                Vec3f dir = m_Camera.Right;
+                Vec3f dir = right;
                 dir.Mul((float)CurrentMove[0]);
 
                 m_Position.x += dir.x * CurrentSpeed;
                 m_Position.y += dir.y * CurrentSpeed;
                 m_Position.z += dir.z * CurrentSpeed;
-
-                m_Dirty = true;
             }
             if (CurrentMove[1] != 0)
             {
                 Vec3f dir = new Vec3f(0.0f, 1.0f, 0.0f);
-                //dir = m_Camera.GetUp();
+                //dir = up;
                 dir.Mul((float)CurrentMove[1]);
 
                 m_Position.x += dir.x * CurrentSpeed;
                 m_Position.y += dir.y * CurrentSpeed;
                 m_Position.z += dir.z * CurrentSpeed;
-
-                m_Dirty = true;
             }
             if (CurrentMove[2] != 0)
             {
-                Vec3f dir = m_Camera.Forward;
+                Vec3f dir = fwd;
                 dir.Mul((float)CurrentMove[2]);
 
                 m_Position.x += dir.x * CurrentSpeed;
                 m_Position.y += dir.y * CurrentSpeed;
                 m_Position.z += dir.z * CurrentSpeed;
-
-                m_Dirty = true;
             }
-        }
 
-        public override void Apply()
-        {
-            m_Camera.fpsLook(m_Position, m_Rotation);
+            if (CurrentMove[0] != 0 || CurrentMove[1] != 0 || CurrentMove[2] != 0)
+            {
+                Camera.SetPosition(m_Position);
+                return true;
+            }
+
+            return false;
         }
 
         public override void MouseWheel(object sender, MouseEventArgs e)
@@ -278,26 +317,13 @@ namespace renderdocui.Code
                 m_Rotation.y -= (float)(e.X - DragStartPos.X) / 300.0f;
                 m_Rotation.x -= (float)(e.Y - DragStartPos.Y) / 300.0f;
 
-                m_Dirty = true;
+                Camera.SetFPSRotation(m_Rotation);
             }
 
             base.MouseMove(sender, e);
         }
 
-        bool m_Dirty = false;
-        public override bool Dirty
-        {
-            get
-            {
-                bool ret = m_Dirty;
-                m_Dirty = false;
-                return ret;
-            }
-        }
-
-        private Vec3f m_Position = new Vec3f(),
-                      m_Rotation = new Vec3f();
-        public override Vec3f Position { get { return m_Position; } }
-        public override Vec3f Rotation { get { return m_Rotation; } }
+        private Vec3f m_Position = new Vec3f();
+        private Vec3f m_Rotation = new Vec3f();
     }
 }

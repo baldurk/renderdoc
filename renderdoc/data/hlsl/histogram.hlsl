@@ -1,6 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -37,7 +38,7 @@ void RENDERDOC_TileMinMaxCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID
 
 	uint3 texDim = uint3(HistogramTextureResolution);
 
-	uint blocksX = (int)ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_PIXELS_PER_TILE));
+	uint blocksX = (int)ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
 
 	uint2 topleft = (gid.xy*HGRAM_TILES_PER_BLOCK + tid.xy)*HGRAM_PIXELS_PER_TILE;
 
@@ -55,7 +56,7 @@ void RENDERDOC_TileMinMaxCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
 				uint4 data = SampleTextureUInt4(texType, float2(x, y)/float2(texDim.xy),
-												HistogramSlice, HistogramMip, texDim);
+												HistogramSlice, HistogramMip, HistogramSample, texDim);
 
 				if(i == 0)
 				{
@@ -85,7 +86,7 @@ void RENDERDOC_TileMinMaxCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
 				int4 data = SampleTextureInt4(texType, float2(x, y)/float2(texDim.xy),
-												HistogramSlice, HistogramMip, texDim);
+												HistogramSlice, HistogramMip, HistogramSample, texDim);
 
 				if(i == 0)
 				{
@@ -115,7 +116,7 @@ void RENDERDOC_TileMinMaxCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID
 			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
 			{
 				float4 data = SampleTextureFloat4(texType, false, float2(x, y)/float2(texDim.xy),
-													HistogramSlice, HistogramMip, texDim);
+													HistogramSlice, HistogramMip, HistogramSample, texDim);
 
 				if(i == 0)
 				{
@@ -151,8 +152,8 @@ void RENDERDOC_ResultMinMaxCS()
 {
 	uint3 texDim = uint3(HistogramTextureResolution);
 
-	uint blocksX = (int)ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_PIXELS_PER_TILE));
-	uint blocksY = (int)ceil(float(texDim.y)/float(HGRAM_PIXELS_PER_TILE*HGRAM_PIXELS_PER_TILE));
+	uint blocksX = (int)ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
+	uint blocksY = (int)ceil(float(texDim.y)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK));
 
 #if UINT_TEX
 	uint4 minvalU = MinMaxResultSourceUInt[0];
@@ -176,8 +177,8 @@ void RENDERDOC_ResultMinMaxCS()
 		uint2 tileXY = uint2(tileIdx % HGRAM_TILES_PER_BLOCK, tileIdx / HGRAM_TILES_PER_BLOCK);
 
 		// if this is at least partially within the texture, include it.
-		if(blockXY.x*(HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK) + tileXY.x*HGRAM_PIXELS_PER_TILE < texDim.x &&
-		   blockXY.y*(HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK) + tileXY.y*HGRAM_PIXELS_PER_TILE < texDim.y)
+		if(blockXY.x*(HGRAM_TILES_PER_BLOCK*HGRAM_PIXELS_PER_TILE) + tileXY.x*HGRAM_PIXELS_PER_TILE < texDim.x &&
+		   blockXY.y*(HGRAM_TILES_PER_BLOCK*HGRAM_PIXELS_PER_TILE) + tileXY.y*HGRAM_PIXELS_PER_TILE < texDim.y)
 		{
 #if UINT_TEX
 			minvalU = min(minvalU, MinMaxResultSourceUInt[i*2 + 0]);
@@ -228,7 +229,7 @@ void RENDERDOC_HistogramCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID)
 #if UINT_TEX
 			{
 				uint4 data = SampleTextureUInt4(texType, float2(x, y)/float2(texDim.xy),
-												HistogramSlice, HistogramMip, texDim);
+												HistogramSlice, HistogramMip, HistogramSample, texDim);
 
 				float divisor = 0.0f;
 				uint sum = 0;
@@ -268,7 +269,7 @@ void RENDERDOC_HistogramCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID)
 #elif SINT_TEX
 			{
 				int4 data = SampleTextureInt4(texType, float2(x, y)/float2(texDim.xy),
-												HistogramSlice, HistogramMip, texDim);
+												HistogramSlice, HistogramMip, HistogramSample, texDim);
 
 				float divisor = 0.0f;
 				int sum = 0;
@@ -308,7 +309,7 @@ void RENDERDOC_HistogramCS(uint3 tid : SV_GroupThreadID, uint3 gid : SV_GroupID)
 #else
 			{
 				float4 data = SampleTextureFloat4(texType, false, float2(x, y)/float2(texDim.xy),
-					HistogramSlice, HistogramMip, texDim);
+					HistogramSlice, HistogramMip, HistogramSample, texDim);
 
 				float divisor = 0.0f;
 				float sum = 0.0f;

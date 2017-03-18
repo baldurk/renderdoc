@@ -1,0 +1,144 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Util">
+      <UniqueIdentifier>{8639409f-6306-43bd-994f-3fa77365085b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Wrapped">
+      <UniqueIdentifier>{0f2c9364-8686-4768-9e72-1d4a5e8065af}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Replay">
+      <UniqueIdentifier>{26c251e4-fb96-471f-b0c1-626e3974e22d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Hooks">
+      <UniqueIdentifier>{e8ea7d90-c407-4874-976a-8ddd36598382}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Common">
+      <UniqueIdentifier>{5d657033-628b-4aff-93f9-ce8538be5dd5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official">
+      <UniqueIdentifier>{069c5202-e850-427b-9353-250795a60436}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="official\amd">
+      <UniqueIdentifier>{b92bf274-f255-4c2f-bc1f-dbd1807643a5}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="d3d11_context1_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_context_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_context2_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_device1_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_device_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_replay.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_debug.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_counters.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_analyse.cpp">
+      <Filter>Replay</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_resources.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_renderstate.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_manager.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_context.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_device.cpp">
+      <Filter>Common</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_common.cpp">
+      <Filter>Util</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_hooks.cpp">
+      <Filter>Hooks</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_context3_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_device3_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+    <ClCompile Include="d3d11_device2_wrap.cpp">
+      <Filter>Wrapped</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="d3d11_replay.h">
+      <Filter>Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d11_debug.h">
+      <Filter>Replay</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d11_resources.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d11_renderstate.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d11_manager.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d11_device.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d11_context.h">
+      <Filter>Common</Filter>
+    </ClInclude>
+    <ClInclude Include="d3d11_common.h">
+      <Filter>Util</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\d3d11.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\d3d11_1.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\d3d11_2.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\d3d11_3.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\d3d11_4.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\d3d11sdklayers.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\d3dcommon.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\d3dcompiler.h">
+      <Filter>official</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\amd\AmdDxExtIface.h">
+      <Filter>official\amd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\amd\AmdDxExt.h">
+      <Filter>official\amd</Filter>
+    </ClInclude>
+    <ClInclude Include="..\dx\official\amd\AmdDxExtApi.h">
+      <Filter>official\amd</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

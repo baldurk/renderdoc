@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -34,6 +35,7 @@ using System.Windows.Forms;
 using WeifenLuo.WinFormsUI.Docking;
 using renderdocui.Code;
 using renderdocui.Controls;
+using renderdocui.Windows.Dialogs;
 using renderdoc;
 using System.Threading;
 
@@ -47,6 +49,8 @@ namespace renderdocui.Windows
 
         private ReplayOutput m_Output = null;
 
+        private Dialogs.TextureGoto m_Goto = null;
+
         private TextureDisplay m_TexDisplay = new TextureDisplay();
 
         private ToolStripControlHost depthStencilToolstrip = null;
@@ -56,17 +60,25 @@ namespace renderdocui.Windows
 
         private FileSystemWatcher m_FSWatcher = null;
 
-        public enum FollowType { RT_UAV, Depth, PSResource }
+        private int m_HighWaterStatusLength = 0;
+
+        public enum FollowType { OutputColour, OutputDepth, ReadWrite, ReadOnly }
         struct Following
         {
             public FollowType Type;
+            public ShaderStageType Stage;
             public int index;
+            public int arrayEl;
 
-            public Following(FollowType t, int i) { Type = t; index = i; }
+            public static Following Default = new Following(FollowType.OutputColour, ShaderStageType.Pixel, 0, 0);
+
+            public Following(FollowType t, ShaderStageType s, int i, int a) { Type = t; Stage = s; index = i; arrayEl = a; }
 
             public override int GetHashCode()
             {
-                return Type.GetHashCode() + index.GetHashCode();
+                return Type.GetHashCode() +
+                    Stage.GetHashCode() +
+                    index.GetHashCode();
             }
             public override bool Equals(object obj)
             {
@@ -74,71 +86,283 @@ namespace renderdocui.Windows
             }
             public static bool operator ==(Following s1, Following s2)
             {
-                return s1.Type == s2.Type && s1.index == s2.index;
+                return s1.Type == s2.Type &&
+                    s1.Stage == s2.Stage &&
+                    s1.index == s2.index;
             }
             public static bool operator !=(Following s1, Following s2)
             {
                 return !(s1 == s2);
             }
 
-            public UInt32 GetFirstArraySlice(Core core)
+            public static void GetDrawContext(Core core, out bool copy, out bool compute)
             {
-                // todo, implement this better for GL :(
+                var curDraw = core.CurDrawcall;
+                copy = curDraw != null && (curDraw.flags & (DrawcallFlags.Copy | DrawcallFlags.Resolve | DrawcallFlags.Present)) != 0;
+                compute = curDraw != null && (curDraw.flags & DrawcallFlags.Dispatch) != 0 &&
+                          core.CurPipelineState.GetShader(ShaderStageType.Compute) != ResourceId.Null;
+            }
 
-                if (core.APIProps.pipelineType == APIPipelineStateType.D3D11)
-                {
-                    D3D11PipelineState.ShaderStage.ResourceView view = null;
+            public int GetHighestMip(Core core)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
 
-                    if (Type == FollowType.RT_UAV)
-                    {
-                        view = core.CurD3D11PipelineState.m_OM.RenderTargets[index];
+                return GetBoundResource(core, arrayEl).HighestMip;
+            }
 
-                        if (view.Resource == ResourceId.Null && index >= core.CurD3D11PipelineState.m_OM.UAVStartSlot)
-                            view = core.CurD3D11PipelineState.m_OM.UAVs[index - core.CurD3D11PipelineState.m_OM.UAVStartSlot];
-                    }
-                    else if (Type == FollowType.Depth)
-                    {
-                        view = core.CurD3D11PipelineState.m_OM.DepthTarget;
-                    }
-                    else if (Type == FollowType.PSResource)
-                    {
-                        view = core.CurD3D11PipelineState.m_PS.SRVs[index];
-                    }
+            public int GetFirstArraySlice(Core core)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
 
-                    return view != null ? view.FirstArraySlice : 0;
-                }
-                else
-                {
-                    if (Type == FollowType.PSResource)
-                    {
-                        return core.CurGLPipelineState.Textures[index].FirstSlice;
-                    }
-                }
+                return GetBoundResource(core, arrayEl).FirstSlice;
+            }
 
-                return 0;
+            public FormatComponentType GetTypeHint(Core core)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                return GetBoundResource(core, arrayEl).typeHint;
             }
 
             public ResourceId GetResourceId(Core core)
             {
-                ResourceId id = ResourceId.Null;
+                return GetBoundResource(core, arrayEl).Id;
+            }
 
-                if (Type == FollowType.RT_UAV)
+            public BoundResource GetBoundResource(Core core, int arrayIdx)
+            {
+                BoundResource ret = new BoundResource();
+
+                if (Type == FollowType.OutputColour)
                 {
-                    id = core.CurPipelineState.GetOutputTargets()[index];
+                    var outputs = GetOutputTargets(core);
+
+                    if (index < outputs.Length)
+                        ret = outputs[index];
                 }
-                else if (Type == FollowType.Depth)
+                else if (Type == FollowType.OutputDepth)
                 {
-                    id = core.CurPipelineState.OutputDepth;
+                    ret = GetDepthTarget(core);
                 }
-                else if (Type == FollowType.PSResource)
+                else if (Type == FollowType.ReadWrite)
                 {
-                    id = core.CurPipelineState.GetResources(ShaderStageType.Pixel)[index];
+                    var rw = GetReadWriteResources(core);
+
+                    var mapping = GetMapping(core);
+
+                    if (index < mapping.ReadWriteResources.Length)
+                    {
+                        var key = mapping.ReadWriteResources[index];
+
+                        if (rw.ContainsKey(key))
+                            ret = rw[key][arrayIdx];
+                    }
+                }
+                else if (Type == FollowType.ReadOnly)
+                {
+                    var res = GetReadOnlyResources(core);
+
+                    var mapping = GetMapping(core);
+
+                    if (index < mapping.ReadOnlyResources.Length)
+                    {
+                        var key = mapping.ReadOnlyResources[index];
+
+                        if (res.ContainsKey(key))
+                            ret = res[key][arrayIdx];
+                    }
                 }
 
-                return id;
+                return ret;
+            }
+
+            public static BoundResource[] GetOutputTargets(Core core)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                if (copy)
+                    return new BoundResource[] { new BoundResource(curDraw.copyDestination) };
+                else if(compute)
+                    return new BoundResource[0];
+                else
+                {
+                    var ret = core.CurPipelineState.GetOutputTargets();
+
+                    if (ret.Length == 0 && curDraw != null && (curDraw.flags & DrawcallFlags.Present) != 0)
+                    {
+                        if (curDraw.copyDestination != ResourceId.Null)
+                            return new BoundResource[] { new BoundResource(curDraw.copyDestination) };
+
+                        foreach (var t in core.CurTextures)
+                            if ((t.creationFlags & TextureCreationFlags.SwapBuffer) != 0)
+                                return new BoundResource[] { new BoundResource(t.ID) };
+                    }
+
+                    return ret;
+                }
+            }
+
+            public static BoundResource GetDepthTarget(Core core)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                if (copy || compute)
+                    return new BoundResource(ResourceId.Null);
+                else
+                    return core.CurPipelineState.GetDepthTarget();
+            }
+
+            public Dictionary<BindpointMap, BoundResource[]> GetReadWriteResources(Core core)
+            {
+                return GetReadWriteResources(core, Stage);
+            }
+
+            public static Dictionary<BindpointMap, BoundResource[]> GetReadWriteResources(Core core, ShaderStageType stage)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                if (copy)
+                {
+                    return new Dictionary<BindpointMap, BoundResource[]>();
+                }
+                else if (compute)
+                {
+                    // only return compute resources for one stage
+                    if (stage == ShaderStageType.Pixel || stage == ShaderStageType.Compute)
+                        return core.CurPipelineState.GetReadWriteResources(ShaderStageType.Compute);
+                    else
+                        return new Dictionary<BindpointMap, BoundResource[]>();
+                }
+                else
+                {
+                    return core.CurPipelineState.GetReadWriteResources(stage);
+                }
+            }
+
+            public Dictionary<BindpointMap, BoundResource[]> GetReadOnlyResources(Core core)
+            {
+                return GetReadOnlyResources(core, Stage);
+            }
+
+            public static Dictionary<BindpointMap, BoundResource[]> GetReadOnlyResources(Core core, ShaderStageType stage)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                if (copy)
+                {
+                    var ret = new Dictionary<BindpointMap, BoundResource[]>();
+
+                    // only return copy source for one stage
+                    if(stage == ShaderStageType.Pixel)
+                        ret.Add(new BindpointMap(0, 0), new BoundResource[] { new BoundResource(curDraw.copySource) });
+
+                    return ret;
+                }
+                else if (compute)
+                {
+                    // only return compute resources for one stage
+                    if (stage == ShaderStageType.Pixel || stage == ShaderStageType.Compute)
+                        return core.CurPipelineState.GetReadOnlyResources(ShaderStageType.Compute);
+                    else
+                        return new Dictionary<BindpointMap, BoundResource[]>();
+                }
+                else
+                {
+                    return core.CurPipelineState.GetReadOnlyResources(stage);
+                }
+            }
+
+            public ShaderReflection GetReflection(Core core)
+            {
+                return GetReflection(core, Stage);
+            }
+
+            public static ShaderReflection GetReflection(Core core, ShaderStageType stage)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                if (copy)
+                    return null;
+                else if (compute)
+                    return core.CurPipelineState.GetShaderReflection(ShaderStageType.Compute);
+                else
+                    return core.CurPipelineState.GetShaderReflection(stage);
+            }
+
+            public ShaderBindpointMapping GetMapping(Core core)
+            {
+                return GetMapping(core, Stage);
+            }
+
+            public static ShaderBindpointMapping GetMapping(Core core, ShaderStageType stage)
+            {
+                var curDraw = core.CurDrawcall;
+                bool copy, compute;
+                GetDrawContext(core, out copy, out compute);
+
+                if (copy)
+                {
+                    ShaderBindpointMapping mapping = new ShaderBindpointMapping();
+                    mapping.ConstantBlocks = new BindpointMap[0];
+                    mapping.ReadWriteResources = new BindpointMap[0];
+                    mapping.InputAttributes = new int[0];
+
+                    // for PS only add a single mapping to get the copy source
+                    if (stage == ShaderStageType.Pixel)
+                        mapping.ReadOnlyResources = new BindpointMap[] { new BindpointMap(0, 0) };
+                    else
+                        mapping.ReadOnlyResources = new BindpointMap[0];
+
+                    return mapping;
+                }
+                else if (compute)
+                {
+                    return core.CurPipelineState.GetBindpointMapping(ShaderStageType.Compute);
+                }
+                else
+                {
+                    return core.CurPipelineState.GetBindpointMapping(stage);
+                }
             }
         }
-        private Following m_Following = new Following(FollowType.RT_UAV, 0);
+        private Following m_Following = Following.Default;
+
+        public class TexSettings
+        {
+            public TexSettings()
+            {
+                r = g = b = true; a = false;
+                mip = 0; slice = 0;
+                minrange = 0.0f; maxrange = 1.0f;
+                typeHint = FormatComponentType.None;
+            }
+
+            public int displayType; // RGBA, RGBM, Custom
+            public string customShader;
+            public bool r, g, b, a;
+            public bool depth, stencil;
+            public int mip, slice;
+            public float minrange, maxrange;
+            public FormatComponentType typeHint;
+        }
+
+        private Dictionary<ResourceId, TexSettings> m_TextureSettings = new Dictionary<ResourceId, TexSettings>();
 
         #endregion
 
@@ -147,6 +371,31 @@ namespace renderdocui.Windows
             m_Core = core;
 
             InitializeComponent();
+
+            if (SystemInformation.HighContrast)
+            {
+                dockPanel.Skin = Helpers.MakeHighContrastDockPanelSkin();
+                zoomStrip.Renderer = new ToolStripSystemRenderer();
+                overlayStrip.Renderer = new ToolStripSystemRenderer();
+                subStrip.Renderer = new ToolStripSystemRenderer();
+                rangeStrip.Renderer = new ToolStripSystemRenderer();
+                channelStrip.Renderer = new ToolStripSystemRenderer();
+                actionsStrip.Renderer = new ToolStripSystemRenderer();
+            }
+
+            m_Goto = new Dialogs.TextureGoto(GotoLocation);
+
+            textureList.Font =
+                texturefilter.Font =
+                rangeBlack.Font =
+                rangeWhite.Font =
+                customShader.Font =
+                hdrMul.Font =
+                channels.Font =
+                mipLevel.Font =
+                sliceFace.Font =
+                zoomOption.Font = 
+                core.Config.PreferredFont;
 
             Icon = global::renderdocui.Properties.Resources.icon;
 
@@ -161,23 +410,23 @@ namespace renderdocui.Windows
             mipLevel.Enabled = false;
             sliceFace.Enabled = false;
 
+            rangeBlack.ResizeToFit = false;
+            rangeWhite.ResizeToFit = false;
+
             PixelPicked = false;
 
             mainLayout.Dock = DockStyle.Fill;
 
-            render.Painting = true;
-            pixelContext.Painting = true;
-
-            saveTex.Enabled = false;
+            saveTex.Enabled = gotoLocationButton.Enabled = viewTexBuffer.Enabled = false;
 
             DockHandler.GetPersistStringCallback = PersistString;
 
             renderContainer.MouseWheelHandler = render_MouseWheel;
-            render.MouseWheel += render_MouseWheel;
             renderContainer.MouseDown += render_MouseClick;
             renderContainer.MouseMove += render_MouseMove;
 
-            render.KeyHandler = render_KeyDown;
+            RecreateRenderPanel();
+            RecreateContextPanel();
 
             rangeHistogram.RangeUpdated += new EventHandler<RangeHistogramEventArgs>(rangeHistogram_RangeUpdated);
 
@@ -189,12 +438,9 @@ namespace renderdocui.Windows
 
             FitToWindow = true;
             overlay.SelectedIndex = 0;
-            m_Following = new Following(FollowType.RT_UAV, 0);
+            m_Following = Following.Default;
 
             texturefilter.SelectedIndex = 0;
-
-            if (m_Core.LogLoaded)
-                OnLogfileLoaded();
         }
 
         private void UI_SetupDocks()
@@ -211,7 +457,7 @@ namespace renderdocui.Windows
 
             dockPanel.ActiveDocumentChanged += new EventHandler(dockPanel_ActiveDocumentChanged);
 
-            var w3 = Helpers.WrapDockContent(dockPanel, texPanel, "PS Resources");
+            var w3 = Helpers.WrapDockContent(dockPanel, roPanel, "Inputs");
             w3.DockAreas &= ~DockAreas.Document;
             w3.DockState = DockState.DockRight;
             w3.Show();
@@ -219,7 +465,7 @@ namespace renderdocui.Windows
             w3.CloseButton = false;
             w3.CloseButtonVisible = false;
 
-            var w5 = Helpers.WrapDockContent(dockPanel, rtPanel, "OM Targets");
+            var w5 = Helpers.WrapDockContent(dockPanel, rwPanel, "Outputs");
             w5.DockAreas &= ~DockAreas.Document;
             w5.DockState = DockState.DockRight;
             w5.Show(w3.Pane, w3);
@@ -264,12 +510,16 @@ namespace renderdocui.Windows
             public int persistVersion = currentPersistVersion;
 
             public string panelLayout;
+            public FloatVector darkBack = new FloatVector(0, 0, 0, 0);
+            public FloatVector lightBack = new FloatVector(0, 0, 0, 0);
 
             public static PersistData GetDefaults()
             {
                 PersistData data = new PersistData();
 
                 data.panelLayout = "";
+                data.darkBack = new FloatVector(0, 0, 0, 0);
+                data.lightBack = new FloatVector(0, 0, 0, 0);
 
                 return data;
             }
@@ -304,6 +554,14 @@ namespace renderdocui.Windows
                 data = PersistData.GetDefaults();
             }
 
+            // fixup old incorrect checkerboard colours
+            if (data.lightBack.x != data.darkBack.x)
+            {
+                TextureDisplay defaults = new TextureDisplay();
+                data.lightBack = defaults.lightBackgroundColour;
+                data.darkBack = defaults.darkBackgroundColour;
+            }
+
             ApplyPersistData(data);
         }
 
@@ -311,8 +569,8 @@ namespace renderdocui.Windows
         {
             Control[] persistors = {
                                        renderToolstripContainer,
-                                       texPanel,
-                                       rtPanel,
+                                       roPanel,
+                                       rwPanel,
                                        texlistContainer,
                                        pixelContextPanel
                                    };
@@ -321,24 +579,34 @@ namespace renderdocui.Windows
                 if (persistString == p.Name && p.Parent is IDockContent && (p.Parent as DockContent).DockPanel == null)
                     return p.Parent as IDockContent;
 
+            // backwards compatibilty for rename
+            if(persistString == "texPanel")
+                return roPanel.Parent as IDockContent;
+            if(persistString == "rtPanel")
+                return rwPanel.Parent as IDockContent;
+
             return null;
         }
 
         private string onloadLayout = "";
+        private FloatVector darkBack = new FloatVector(0, 0, 0, 0);
+        private FloatVector lightBack = new FloatVector(0, 0, 0, 0);
 
         private void ApplyPersistData(PersistData data)
         {
             onloadLayout = data.panelLayout;
+            darkBack = data.darkBack;
+            lightBack = data.lightBack;
         }
 
         private void TextureViewer_Load(object sender, EventArgs e)
         {
-            if (onloadLayout != "")
+            if (onloadLayout.Length > 0)
             {
                 Control[] persistors = {
                                        renderToolstripContainer,
-                                       texPanel,
-                                       rtPanel,
+                                       roPanel,
+                                       rwPanel,
                                        texlistContainer,
                                        pixelContextPanel
                                    };
@@ -352,10 +620,33 @@ namespace renderdocui.Windows
                     strm.Flush();
                     strm.Position = 0;
 
-                    dockPanel.LoadFromXml(strm, new DeserializeDockContent(GetContentFromPersistString));
+                    try
+                    {
+                        dockPanel.LoadFromXml(strm, new DeserializeDockContent(GetContentFromPersistString));
+                    }
+                    catch (System.Exception)
+                    {
+                        // on error, go back to default layout
+                        UI_SetupDocks();
+                    }
                 }
 
                 onloadLayout = "";
+            }
+
+            if (darkBack.x != lightBack.x)
+            {
+                backcolorPick.Checked = false;
+                checkerBack.Checked = true;
+            }
+            else
+            {
+                backcolorPick.Checked = true;
+                checkerBack.Checked = false;
+
+                colorDialog.Color = Color.FromArgb((int)(255 * darkBack.x),
+                    (int)(255 * darkBack.y),
+                    (int)(255 * darkBack.z));
             }
         }
 
@@ -372,8 +663,19 @@ namespace renderdocui.Windows
             var enc = new UnicodeEncoding();
             var path = Path.GetTempFileName();
             dockPanel.SaveAsXml(path, "", enc);
-            data.panelLayout = File.ReadAllText(path, enc);
-            File.Delete(path);
+            try
+            {
+                data.panelLayout = File.ReadAllText(path, enc);
+                File.Delete(path);
+            }
+            catch (System.Exception)
+            {
+                // can't recover
+                return writer.ToString();
+            }
+
+            data.darkBack = darkBack;
+            data.lightBack = lightBack;
 
             System.Xml.Serialization.XmlSerializer xs = new System.Xml.Serialization.XmlSerializer(typeof(PersistData));
             xs.Serialize(writer, data);
@@ -381,15 +683,42 @@ namespace renderdocui.Windows
             return writer.ToString();
         }
 
-        private bool DisableThumbnails { get { return m_Core != null && m_Core.Config != null && 
-                                                      m_Core.Config.TextureViewer_DisableThumbnails; } }
-
         #region Public Functions
 
         private Dictionary<ResourceId, DockContent> lockedTabs = new Dictionary<ResourceId, DockContent>();
 
+        public void GotoLocation(int x, int y)
+        {
+            if(!m_Core.LogLoaded || CurrentTexture == null)
+                return;
+
+            m_PickedPoint = new Point(x, y);
+
+            uint mipHeight = Math.Max(1, CurrentTexture.height >> (int)m_TexDisplay.mip);
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
+                m_PickedPoint.Y = (int)(mipHeight - 1) - m_PickedPoint.Y;
+            if (m_TexDisplay.FlipY)
+                m_PickedPoint.Y = (int)(mipHeight - 1) - m_PickedPoint.Y;
+
+            m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+            {
+                if (m_Output != null)
+                    RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+
+                RT_UpdateAndDisplay(r);
+            });
+
+            UI_UpdateStatusText();
+        }
+
         public void ViewTexture(ResourceId ID, bool focus)
         {
+            if (this.InvokeRequired)
+            {
+                this.BeginInvoke(new Action(() => { this.ViewTexture(ID, focus); }));
+                return;
+            }
+
             TextureViewer_Load(null, null);
 
             if (lockedTabs.ContainsKey(ID))
@@ -444,7 +773,7 @@ namespace renderdocui.Windows
                 if (m_Core.CurBuffers[i].ID == ID)
                 {
                     var viewer = new BufferViewer(m_Core, false);
-                    viewer.ViewRawBuffer(ID);
+                    viewer.ViewRawBuffer(true, 0, ulong.MaxValue, ID);
                     viewer.Show(DockPanel);
                     return;
                 }
@@ -463,7 +792,7 @@ namespace renderdocui.Windows
         {
             if (!m_Core.LogLoaded) return;
 
-            if (filter == "")
+            if (filter.Length > 0)
             {
                 var shaders = m_CustomShaders.Values.ToArray();
 
@@ -479,7 +808,7 @@ namespace renderdocui.Windows
             else
             {
                 var fn = Path.GetFileNameWithoutExtension(filter);
-                var key = fn.ToLowerInvariant();
+                var key = fn.ToUpperInvariant();
 
                 if (m_CustomShaders.ContainsKey(key))
                 {
@@ -509,63 +838,105 @@ namespace renderdocui.Windows
                 }
             }
 
-            foreach (var f in Directory.EnumerateFiles(Core.ConfigDirectory, "*.hlsl"))
+            foreach (var f in Directory.EnumerateFiles(Core.ConfigDirectory, "*" + m_Core.APIProps.ShaderExtension))
             {
                 var fn = Path.GetFileNameWithoutExtension(f);
-                var key = fn.ToLowerInvariant();
+                var key = fn.ToUpperInvariant();
 
-                if (!m_CustomShaders.ContainsKey(key))
+                if (!m_CustomShaders.ContainsKey(key) && !m_CustomShadersBusy.Contains(key))
                 {
-                    string source = File.ReadAllText(f);
-
-                    m_CustomShaders.Add(key, ResourceId.Null);
-                    m_CustomShadersBusy.Add(key);
-                    m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                    try
                     {
-                        string errors = "";
+                        string source = File.ReadAllText(f);
 
-                        ResourceId id = r.BuildCustomShader("main", source, 0, ShaderStageType.Pixel, out errors);
-
-                        if (m_CustomShaderEditor.ContainsKey(key))
+                        m_CustomShaders.Add(key, ResourceId.Null);
+                        m_CustomShadersBusy.Add(key);
+                        m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
                         {
+                            string errors = "";
+
+                            ResourceId id = r.BuildCustomShader("main", source, 0, ShaderStageType.Pixel, out errors);
+
+                            if (m_CustomShaderEditor.ContainsKey(key))
+                            {
+                                BeginInvoke((MethodInvoker)delegate
+                                {
+                                    m_CustomShaderEditor[key].ShowErrors(errors);
+                                });
+                            }
+
                             BeginInvoke((MethodInvoker)delegate
                             {
-                                m_CustomShaderEditor[key].ShowErrors(errors);
+                                customShader.Items.Add(fn);
+                                m_CustomShaders[key] = id;
+                                m_CustomShadersBusy.Remove(key);
+
+                                customShader.AutoCompleteSource = AutoCompleteSource.None;
+                                customShader.AutoCompleteSource = AutoCompleteSource.ListItems;
+
+                                UI_UpdateChannels();
                             });
-                        }
-
-                        BeginInvoke((MethodInvoker)delegate
-                        {
-                            customShader.Items.Add(fn);
-                            m_CustomShaders[key] = id;
-                            m_CustomShadersBusy.Remove(key);
-
-                            customShader.AutoCompleteSource = AutoCompleteSource.None;
-                            customShader.AutoCompleteSource = AutoCompleteSource.ListItems;
-
-                            UI_UpdateChannels();
                         });
-                    });
+                    }
+                    catch (System.Exception)
+                    {
+                        // just continue, skip this file
+                    }
                 }
             }
         }
 
         private void customCreate_Click(object sender, EventArgs e)
         {
-            if (customShader.Text == null || customShader.Text == "")
+            if (customShader.Text == null || customShader.Text.Length == 0)
             {
                 MessageBox.Show("No name entered.\nEnter a name in the textbox.", "Error Creating Shader", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (m_CustomShaders.ContainsKey(customShader.Text.ToLowerInvariant()))
+            if (m_CustomShaders.ContainsKey(customShader.Text.ToUpperInvariant()))
             {
                 MessageBox.Show("Selected shader already exists.\nEnter a new name in the textbox.", "Error Creating Shader", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                customShader.Text = "";
+                UI_UpdateChannels();
                 return;
             }
 
-            var path = Path.Combine(Core.ConfigDirectory, customShader.Text + ".hlsl");
-            File.WriteAllText(path, "float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0) : SV_Target0\n{\n\treturn float4(0,0,0,1);\n}\n");
+            var path = Path.Combine(Core.ConfigDirectory, customShader.Text + m_Core.APIProps.ShaderExtension);
+
+            string src = "";
+
+            if (m_Core.APIProps.pipelineType.IsD3D())
+            {
+                src = String.Format(
+                    "float4 main(float4 pos : SV_Position, float4 uv : TEXCOORD0) : SV_Target0{0}" +
+                    "{{{0}" +
+                    "    return float4(0,0,0,1);{0}" +
+                    "}}{0}"
+                    , Environment.NewLine);
+            }
+            else if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL ||
+                m_Core.APIProps.pipelineType == GraphicsAPI.Vulkan)
+            {
+                src = String.Format(
+                    "#version 420 core{0}{0}" +
+                    "layout (location = 0) in vec2 uv;{0}{0}" + 
+                    "layout (location = 0) out vec4 color_out;{0}{0}" + 
+                    "void main(){0}" +
+                    "{{{0}" +
+                    "    color_out = vec4(0,0,0,1);{0}" +
+                    "}}{0}"
+                    , Environment.NewLine);
+            }
+
+            try
+            {
+                File.WriteAllText(path, src);
+            }
+            catch (System.Exception)
+            {
+                // ignore this file
+            }
 
             // auto-open edit window
             customEdit_Click(sender, e);
@@ -574,9 +945,23 @@ namespace renderdocui.Windows
         private void customEdit_Click(object sender, EventArgs e)
         {
             var filename = customShader.Text;
+            var key = filename.ToUpperInvariant();
+
+            string src = "";
+
+            try
+            {
+                src = File.ReadAllText(Path.Combine(Core.ConfigDirectory, filename + m_Core.APIProps.ShaderExtension));
+            }
+            catch (System.Exception ex)
+            {
+                MessageBox.Show("Couldn't open file for shader " + filename + Environment.NewLine + ex.ToString(), "Cannot open shader",
+                                                    MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
 
             var files = new Dictionary<string, string>();
-            files.Add(filename, File.ReadAllText(Path.Combine(Core.ConfigDirectory, filename + ".hlsl")));
+            files.Add(filename, src);
             ShaderViewer s = new ShaderViewer(m_Core, true, "Custom Shader", files,
 
             // Save Callback
@@ -584,31 +969,40 @@ namespace renderdocui.Windows
             {
                 foreach (var f in updatedfiles)
                 {
-                    var path = Path.Combine(Core.ConfigDirectory, f.Key + ".hlsl");
-                    File.WriteAllText(path, f.Value);
+                    var path = Path.Combine(Core.ConfigDirectory, f.Key + m_Core.APIProps.ShaderExtension);
+                    try
+                    {
+                        File.WriteAllText(path, f.Value);
+                    }
+                    catch (System.Exception ex)
+                    {
+                        MessageBox.Show("Couldn't save file for shader " + filename + Environment.NewLine + ex.ToString(), "Cannot save shader",
+                                                            MessageBoxButtons.OK, MessageBoxIcon.Error);
+                        return;
+                    }
                 }
             },
 
             // Close Callback
             () =>
             {
-                m_CustomShaderEditor.Remove(filename);
+                m_CustomShaderEditor.Remove(key);
             });
 
-            m_CustomShaderEditor[customShader.Text] = s;
+            m_CustomShaderEditor[key] = s;
 
             s.Show(this.DockPanel);
         }
 
         private void customDelete_Click(object sender, EventArgs e)
         {
-            if (customShader.Text == null || customShader.Text == "")
+            if (customShader.Text == null || customShader.Text.Length == 0)
             {
                 MessageBox.Show("No shader selected.\nSelect a custom shader from the drop-down", "Error Deleting Shader", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
             }
 
-            if (!m_CustomShaders.ContainsKey(customShader.Text.ToLowerInvariant()))
+            if (!m_CustomShaders.ContainsKey(customShader.Text.ToUpperInvariant()))
             {
                 MessageBox.Show("Selected shader doesn't exist.\nSelect a custom shader from the drop-down", "Error Deleting Shader", MessageBoxButtons.OK, MessageBoxIcon.Error);
                 return;
@@ -618,7 +1012,7 @@ namespace renderdocui.Windows
 
             if (res == DialogResult.Yes)
             {
-                var path = Path.Combine(Core.ConfigDirectory, customShader.Text + ".hlsl");
+                var path = Path.Combine(Core.ConfigDirectory, customShader.Text + m_Core.APIProps.ShaderExtension);
                 if(!File.Exists(path))
                 {
                     MessageBox.Show(String.Format("Shader file {0} can't be found.\nSelect a custom shader from the drop-down", customShader.Text),
@@ -646,27 +1040,83 @@ namespace renderdocui.Windows
 
         #region ILogViewerForm
 
+        void RecreateRenderPanel()
+        {
+            renderContainer.Controls.Clear();
+
+            render.Dispose();
+
+            render = new NoScrollPanel();
+
+            render.Painting = true;
+
+            render.BackColor = Color.Black;
+            render.Dock = DockStyle.Fill;
+            render.Paint += new PaintEventHandler(this.render_Paint);
+            render.Layout += new LayoutEventHandler(this.render_Layout);
+            render.MouseClick += new MouseEventHandler(this.render_MouseClick);
+            render.MouseDown += new MouseEventHandler(this.render_MouseClick);
+            render.MouseLeave += new EventHandler(this.render_MouseLeave);
+            render.MouseMove += new MouseEventHandler(this.render_MouseMove);
+            render.MouseUp += new MouseEventHandler(this.render_MouseUp);
+            render.MouseWheel += render_MouseWheel;
+            render.KeyHandler = render_KeyDown;
+
+            renderContainer.Controls.Add(render);
+        }
+
+        void RecreateContextPanel()
+        {
+            pixelContextPanel.Controls.Clear();
+
+            pixelContext.Dispose();
+
+            pixelContext = new NoScrollPanel();
+
+            pixelContext.Painting = true;
+
+            pixelContext.BackColor = Color.Transparent;
+            pixelContext.Dock = DockStyle.Fill;
+            pixelContext.Paint += new PaintEventHandler(pixelContext_Paint);
+            pixelContext.MouseClick += new MouseEventHandler(pixelContext_MouseClick);
+            pixelContext.KeyHandler = render_KeyDown;
+
+            pixelContextPanel.Controls.Add(pixelContext, 0, 0);
+            pixelContextPanel.Controls.Add(debugPixelContext, 1, 1);
+            pixelContextPanel.Controls.Add(pixelHistory, 0, 1);
+
+            pixelContextPanel.SetColumnSpan(pixelContext, 2);
+        }
+
         public void OnLogfileLoaded()
         {
             var outConfig = new OutputConfig();
             outConfig.m_Type = OutputType.TexDisplay;
 
-            saveTex.Enabled = true;
+            saveTex.Enabled = gotoLocationButton.Enabled = viewTexBuffer.Enabled = true;
 
-            m_Following = new Following(FollowType.RT_UAV, 0);
+            m_Following = Following.Default;
+
+            rwPanel.ClearThumbnails();
+            roPanel.ClearThumbnails();
+
+            RecreateRenderPanel();
+            RecreateContextPanel();
+
+            m_HighWaterStatusLength = 0;
 
             IntPtr contextHandle = pixelContext.Handle;
             IntPtr renderHandle = render.Handle;
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
-                m_Output = r.CreateOutput(renderHandle);
+                m_Output = r.CreateOutput(renderHandle, OutputType.TexDisplay);
                 m_Output.SetPixelContext(contextHandle);
                 m_Output.SetOutputConfig(outConfig);
 
                 this.BeginInvoke(new Action(UI_CreateThumbnails));
             });
 
-            m_FSWatcher = new FileSystemWatcher(Core.ConfigDirectory, "*.hlsl");
+            m_FSWatcher = new FileSystemWatcher(Core.ConfigDirectory, "*" + m_Core.APIProps.ShaderExtension);
             m_FSWatcher.EnableRaisingEvents = true;
             m_FSWatcher.Changed += new FileSystemEventHandler(CustomShaderModified);
             m_FSWatcher.Renamed += new RenamedEventHandler(CustomShaderModified);
@@ -677,6 +1127,11 @@ namespace renderdocui.Windows
             texturefilter.SelectedIndex = 0;
             texturefilter.Text = "";
             textureList.FillTextureList("", true, true);
+
+            m_TexDisplay.darkBackgroundColour = darkBack;
+            m_TexDisplay.lightBackgroundColour = lightBack;
+
+            m_TexDisplay.typeHint = FormatComponentType.None;
 
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
         }
@@ -700,14 +1155,26 @@ namespace renderdocui.Windows
 
             m_Output = null;
 
-            saveTex.Enabled = false;
+            m_TextureSettings.Clear();
 
-            rtPanel.ClearThumbnails();
-            texPanel.ClearThumbnails();
+            m_PrevSize = PointF.Empty;
+            m_HighWaterStatusLength = 0;
+
+            saveTex.Enabled = gotoLocationButton.Enabled = viewTexBuffer.Enabled = false;
+
+            rwPanel.ClearThumbnails();
+            roPanel.ClearThumbnails();
+
+            RecreateRenderPanel();
+            RecreateContextPanel();
 
             texturefilter.SelectedIndex = 0;
 
             m_TexDisplay = new TextureDisplay();
+            m_TexDisplay.darkBackgroundColour = darkBack;
+            m_TexDisplay.lightBackgroundColour = lightBack;
+
+            m_TexDisplay.typeHint = FormatComponentType.None;
 
             PixelPicked = false;
 
@@ -717,11 +1184,6 @@ namespace renderdocui.Windows
             mipLevel.Items.Clear();
             sliceFace.Items.Clear();
             rangeHistogram.SetRange(0.0f, 1.0f);
-
-            checkerBack.Checked = true;
-            backcolorPick.Checked = false;
-
-            checkerBack.Enabled = backcolorPick.Enabled = false;
 
             channels.SelectedIndex = 0;
             overlay.SelectedIndex = 0;
@@ -755,223 +1217,295 @@ namespace renderdocui.Windows
             UI_UpdateChannels();
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        private void InitResourcePreview(ResourcePreview prev, ResourceId id, FormatComponentType typeHint, bool force, Following follow, string bindName, string slotName)
         {
-            if (IsDisposed) return;
-
-            UI_OnTextureSelectionChanged();
-
-            ResourceId[] RTs = m_Core.CurPipelineState.GetOutputTargets();
-            ResourceId Depth = m_Core.CurPipelineState.OutputDepth;
-            ResourceId[] Texs = m_Core.CurPipelineState.GetResources(ShaderStageType.Pixel);
-
-            ShaderReflection details = m_Core.CurPipelineState.GetShaderReflection(ShaderStageType.Pixel);
-
-            uint firstuav = uint.MaxValue;
-
-            if (m_Core.APIProps.pipelineType == APIPipelineStateType.D3D11 &&
-                m_Core.CurD3D11PipelineState != null)
-                firstuav = m_Core.CurD3D11PipelineState.m_OM.UAVStartSlot;
-
-            if (m_Output == null) return;
-
-            int i = 0;
-            foreach (var prev in rtPanel.Thumbnails)
+            if (id != ResourceId.Null || force)
             {
-                if (prev.SlotName == "D" && Depth != ResourceId.Null)
+                FetchTexture tex = null;
+                foreach (var t in m_Core.CurTextures)
+                    if (t.ID == id)
+                        tex = t;
+
+                FetchBuffer buf = null;
+                foreach (var b in m_Core.CurBuffers)
+                    if (b.ID == id)
+                        buf = b;
+
+                if (tex != null)
                 {
-                    FetchTexture tex = null;
-                    foreach (var t in m_Core.CurTextures)
-                        if (t.ID == Depth)
-                            tex = t;
-
-                    FetchBuffer buf = null;
-                    foreach (var b in m_Core.CurBuffers)
-                        if (b.ID == Depth)
-                            buf = b;
-
-                    if (tex != null)
+                    string fullname = bindName;
+                    if (tex.customName)
                     {
-                        prev.Init(tex.name, tex.width, tex.height, tex.depth, tex.mips);
-                        IntPtr handle = prev.ThumbnailHandle;
-                        m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
-                        {
-                            m_Output.AddThumbnail(handle, DisableThumbnails ? ResourceId.Null : Depth);
-                        });
+                        if (fullname.Length > 0)
+                            fullname += " = ";
+                        fullname += tex.name;
                     }
-                    else if (buf != null)
-                    {
-                        prev.Init(buf.name, buf.length, 0, 0, Math.Max(1, buf.structureSize));
-                        IntPtr handle = prev.ThumbnailHandle;
-                        m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
-                        {
-                            m_Output.AddThumbnail(handle, ResourceId.Null);
-                        });
-                    }
-                    else
-                    {
-                        prev.Init();
-                    }
+                    if (fullname.Length == 0)
+                        fullname = tex.name;
 
-                    prev.Tag = new Following(FollowType.Depth, 0);
-                    prev.Visible = true;
+                    prev.Init(fullname, tex.width, tex.height, tex.depth, tex.mips);
+                    IntPtr handle = prev.ThumbnailHandle;
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
+                    {
+                        m_Output.AddThumbnail(handle, id, typeHint);
+                    });
                 }
-                else if (i < RTs.Length && RTs[i] != ResourceId.Null)
+                else if (buf != null)
                 {
-                    FetchTexture tex = null;
+                    string fullname = bindName;
+                    if (buf.customName)
+                    {
+                        if (fullname.Length > 0)
+                            fullname += " = ";
+                        fullname += buf.name;
+                    }
+                    if (fullname.Length == 0)
+                        fullname = buf.name;
+
+                    prev.Init(fullname, buf.length, 0, 0, 1);
+                    IntPtr handle = prev.ThumbnailHandle;
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
+                    {
+                        m_Output.AddThumbnail(handle, ResourceId.Null, FormatComponentType.None);
+                    });
+                }
+                else
+                {
+                    prev.Init();
+                    IntPtr handle = prev.ThumbnailHandle;
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
+                    {
+                        m_Output.AddThumbnail(handle, ResourceId.Null, FormatComponentType.None);
+                    });
+                }
+
+                prev.Tag = follow;
+                prev.SlotName = slotName;
+                prev.Visible = true;
+                prev.Selected = (m_Following == follow);
+            }
+            else if (m_Following == follow)
+            {
+                FetchTexture tex = null;
+
+                if(id != ResourceId.Null)
                     foreach (var t in m_Core.CurTextures)
-                        if (t.ID == RTs[i])
+                        if (t.ID == id)
                             tex = t;
 
-                    FetchBuffer buf = null;
-                    foreach (var b in m_Core.CurBuffers)
-                        if (b.ID == RTs[i])
-                            buf = b;
+                IntPtr handle = prev.ThumbnailHandle;
+                if (id == ResourceId.Null || tex == null)
+                    prev.Init();
+                else
+                    prev.Init("Unused", tex.width, tex.height, tex.depth, tex.mips);
+                prev.Selected = true;
+                m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
+                {
+                    m_Output.AddThumbnail(handle, ResourceId.Null, FormatComponentType.None);
+                });
+            }
+            else
+            {
+                prev.Init();
+                prev.Visible = false;
+            }
+        }
+
+        private void InitStageResourcePreviews(ShaderStageType stage, ShaderResource[] resourceDetails, BindpointMap[] mapping,
+                                               Dictionary<BindpointMap, BoundResource[]> ResList,
+                                               ThumbnailStrip prevs, ref int prevIndex,
+                                               bool copy, bool rw)
+        {
+            for (int idx = 0; idx < mapping.Length; idx++)
+            {
+                var key = mapping[idx];
+
+                BoundResource[] resArray = null;
+
+                if (ResList.ContainsKey(key))
+                    resArray = ResList[key];
+
+                int arrayLen = resArray != null ? resArray.Length : 1;
+
+                for (int arrayIdx = 0; arrayIdx < arrayLen; arrayIdx++)
+                {
+                    ResourceId id = resArray != null ? resArray[arrayIdx].Id : ResourceId.Null;
+                    FormatComponentType typeHint = resArray != null ? resArray[arrayIdx].typeHint : FormatComponentType.None;
+
+                    bool used = key.used;
+                    bool samplerBind = false;
+                    bool otherBind = false;
 
                     string bindName = "";
 
-                    if (details != null && i >= firstuav)
+                    foreach (var bind in resourceDetails)
                     {
-                        foreach (var bind in details.Resources)
+                        if (bind.bindPoint == idx && bind.IsSRV)
                         {
-                            if (bind.bindPoint == i && bind.IsUAV)
-                            {
-                                bindName = "<" + bind.name + ">";
-                            }
+                            bindName = bind.name;
+                            otherBind = true;
+                            break;
+                        }
+
+                        if (bind.bindPoint == idx)
+                        {
+                            if(bind.IsSampler && !bind.IsSRV)
+                                samplerBind = true;
+                            else
+                                otherBind = true;
                         }
                     }
 
-                    if (tex != null)
+                    if (samplerBind && !otherBind)
+                        continue;
+
+                    if (copy)
                     {
-                        prev.Init(!tex.customName && bindName != "" ? bindName : tex.name, tex.width, tex.height, tex.depth, tex.mips);
-                        IntPtr handle = prev.ThumbnailHandle;
-                        ResourceId id = RTs[i];
-                        m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
-                        {
-                            m_Output.AddThumbnail(handle, DisableThumbnails ? ResourceId.Null : id);
-                        });
+                        used = true;
+                        bindName = "Source";
                     }
-                    else if (buf != null)
+
+                    Following follow = new Following(rw ? FollowType.ReadWrite : FollowType.ReadOnly, stage, idx, arrayIdx);
+                    string slotName = String.Format("{0} {1}{2}", m_Core.CurPipelineState.Abbrev(stage), rw ? "RW " : "", idx);
+
+                    if (arrayLen > 1)
+                        slotName += String.Format("[{0}]", arrayIdx);
+
+                    if (copy)
+                        slotName = "SRC";
+
+                    // show if
+                    bool show = (used || // it's referenced by the shader - regardless of empty or not
+                        (showDisabled.Checked && !used && id != ResourceId.Null) || // it's bound, but not referenced, and we have "show disabled"
+                        (showEmpty.Checked && id == ResourceId.Null) // it's empty, and we have "show empty"
+                        );
+
+                    ResourcePreview prev;
+
+                    if (prevIndex < prevs.Thumbnails.Length)
                     {
-                        prev.Init(!buf.customName && bindName != "" ? bindName : buf.name, buf.length, 0, 0, Math.Max(1, buf.structureSize));
-                        IntPtr handle = prev.ThumbnailHandle;
-                        m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
-                        {
-                            m_Output.AddThumbnail(handle, ResourceId.Null);
-                        });
+                        prev = prevs.Thumbnails[prevIndex];
                     }
                     else
                     {
-                        prev.Init();
+                        // don't create it if we're not actually going to show it
+                        if (!show)
+                            continue;
+
+                        prev = UI_CreateThumbnail(prevs);
                     }
 
-                    prev.Tag = new Following(FollowType.RT_UAV, i);
+                    prevIndex++;
 
-                    if (i >= firstuav)
-                        prev.SlotName = "U" + i;
-                    else
-                        prev.SlotName = i.ToString();
-
-                    prev.Visible = true;
+                    InitResourcePreview(prev, show ? id : ResourceId.Null, typeHint, show, follow, bindName, slotName);
                 }
-                else if (prev.Selected)
-                {
-                    prev.Init();
-                    IntPtr handle = prev.ThumbnailHandle;
-                    m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
-                    {
-                        m_Output.AddThumbnail(handle, ResourceId.Null);
-                    });
-                }
-                else
-                {
-                    prev.Init();
-                    prev.Visible = false;
-                }
-
-                i++;
             }
+        }
 
-            rtPanel.RefreshLayout();
+        public void OnEventSelected(UInt32 eventID)
+        {
+            if (IsDisposed) return;
 
-            i = 0;
-            foreach (var prev in texPanel.Thumbnails)
+            if (!CurrentTextureIsLocked || (CurrentTexture != null && m_TexDisplay.texid != CurrentTexture.ID))
+                UI_OnTextureSelectionChanged(true);
+
+            if (m_Output == null) return;
+
+            UI_CreateThumbnails();
+
+            BoundResource[] RTs = Following.GetOutputTargets(m_Core);
+            BoundResource Depth = Following.GetDepthTarget(m_Core);
+
+            int rwIndex = 0;
+            int roIndex = 0;
+
+            var curDraw = m_Core.GetDrawcall(eventID);
+            bool copy = curDraw != null && (curDraw.flags & (DrawcallFlags.Copy|DrawcallFlags.Resolve|DrawcallFlags.Present)) != 0;
+            bool compute = curDraw != null && (curDraw.flags & (DrawcallFlags.Dispatch)) != 0;
+
+            for(int rt=0; rt < RTs.Length; rt++)
             {
-                if (i >= Texs.Length)
-                    break;
+                ResourcePreview prev;
 
-                bool used = false;
-
-                string bindName = "";
-
-                if (details != null)
-                {
-                    foreach (var bind in details.Resources)
-                    {
-                        if (bind.bindPoint == i && bind.IsSRV)
-                        {
-                            used = true;
-                            bindName = "<" + bind.name + ">";
-                        }
-                    }
-                }
-
-                // show if
-                if (used || // it's referenced by the shader - regardless of empty or not
-                    (showDisabled.Checked && !used && Texs[i] != ResourceId.Null) || // it's bound, but not referenced, and we have "show disabled"
-                    (showEmpty.Checked && Texs[i] == ResourceId.Null) // it's empty, and we have "show empty"
-                    )
-                {
-                    FetchTexture tex = null;
-                    foreach (var t in m_Core.CurTextures)
-                        if (t.ID == Texs[i])
-                            tex = t;
-
-                    if (tex != null)
-                    {
-                        prev.Init(!tex.customName && bindName != "" ? bindName : tex.name, tex.width, tex.height, tex.depth, tex.mips);
-                        IntPtr handle = prev.ThumbnailHandle;
-                        ResourceId id = Texs[i];
-                        m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
-                        {
-                            m_Output.AddThumbnail(handle, DisableThumbnails ? ResourceId.Null : id);
-                        });
-                    }
-                    else
-                    {
-                        prev.Init();
-                    }
-
-                    prev.Tag = new Following(FollowType.PSResource, i);
-                    prev.Visible = true;
-                }
-                else if (prev.Selected)
-                {
-                    FetchTexture tex = null;
-                    foreach (var t in m_Core.CurTextures)
-                        if (t.ID == Texs[i])
-                            tex = t;
-
-                    IntPtr handle = prev.ThumbnailHandle;
-                    if (Texs[i] == ResourceId.Null || tex == null)
-                        prev.Init();
-                    else
-                        prev.Init("Unused", tex.width, tex.height, tex.depth, tex.mips);
-                    m_Core.Renderer.BeginInvoke((ReplayRenderer rep) =>
-                    {
-                        m_Output.AddThumbnail(handle, ResourceId.Null);
-                    });
-                }
+                if (rwIndex < rwPanel.Thumbnails.Length)
+                    prev = rwPanel.Thumbnails[rwIndex];
                 else
-                {
-                    prev.Init();
-                    prev.Visible = false;
-                }
+                    prev = UI_CreateThumbnail(rwPanel);
 
-                i++;
+                rwIndex++;
+
+                Following follow = new Following(FollowType.OutputColour, ShaderStageType.Pixel, rt, 0);
+                string bindName = copy ? "Destination" : "";
+                string slotName = copy ? "DST" : String.Format("{0}{1}", m_Core.CurPipelineState.OutputAbbrev(), rt);
+
+                InitResourcePreview(prev, RTs[rt].Id, RTs[rt].typeHint, false, follow, bindName, slotName);
             }
 
-            texPanel.RefreshLayout();
+            // depth
+            {
+                ResourcePreview prev;
+                
+                if (rwIndex < rwPanel.Thumbnails.Length)
+                    prev = rwPanel.Thumbnails[rwIndex];
+                else
+                    prev = UI_CreateThumbnail(rwPanel);
+
+                rwIndex++;
+                
+                Following follow = new Following(FollowType.OutputDepth, ShaderStageType.Pixel, 0, 0);
+
+                InitResourcePreview(prev, Depth.Id, Depth.typeHint, false, follow, "", "DS");
+            }
+
+            ShaderStageType[] stages = new ShaderStageType[] { 
+                ShaderStageType.Vertex,
+                ShaderStageType.Hull,
+                ShaderStageType.Domain,
+                ShaderStageType.Geometry,
+                ShaderStageType.Pixel
+            };
+
+            if (compute) stages = new ShaderStageType[] { ShaderStageType.Compute };
+
+            // display resources used for all stages
+            foreach (ShaderStageType stage in stages)
+            {
+                Dictionary<BindpointMap, BoundResource[]> RWs = Following.GetReadWriteResources(m_Core, stage);
+                Dictionary<BindpointMap, BoundResource[]> ROs = Following.GetReadOnlyResources(m_Core, stage);
+
+                ShaderReflection details = Following.GetReflection(m_Core, stage);
+                ShaderBindpointMapping mapping = Following.GetMapping(m_Core, stage);
+
+                if (mapping == null)
+                    continue;
+
+                InitStageResourcePreviews(stage,
+                    details != null ? details.ReadWriteResources : new ShaderResource[0],
+                    mapping.ReadWriteResources,
+                    RWs, rwPanel, ref rwIndex, copy, true);
+
+                InitStageResourcePreviews(stage,
+                    details != null ? details.ReadOnlyResources : new ShaderResource[0],
+                    mapping.ReadOnlyResources,
+                    ROs, roPanel, ref roIndex, copy, false);
+            }
+
+            // hide others
+            for (; rwIndex < rwPanel.Thumbnails.Length; rwIndex++)
+            {
+                rwPanel.Thumbnails[rwIndex].Init();
+                rwPanel.Thumbnails[rwIndex].Visible = false;
+            }
+
+            rwPanel.RefreshLayout();
+            
+            for (; roIndex < roPanel.Thumbnails.Length; roIndex++)
+            {
+                roPanel.Thumbnails[roIndex].Init();
+                roPanel.Thumbnails[roIndex].Visible = false;
+            }
+
+            roPanel.RefreshLayout();
 
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
 
@@ -983,88 +1517,202 @@ namespace renderdocui.Windows
 
         #region Update UI state
 
+        private ResourcePreview UI_CreateThumbnail(ThumbnailStrip strip)
+        {
+            var prev = new ResourcePreview(m_Core, m_Output);
+            prev.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
+            prev.MouseClick += thumbsLayout_MouseClick;
+            prev.MouseDoubleClick += thumbsLayout_MouseDoubleClick;
+            prev.Visible = false;
+            strip.AddThumbnail(prev);
+            return prev;
+        }
+
         private void UI_CreateThumbnails()
         {
-            rtPanel.SuspendLayout();
-            texPanel.SuspendLayout();
+            if (rwPanel.Thumbnails.Length > 0 || roPanel.Thumbnails.Length > 0) return;
 
-            for (int i = 0; i < 8; i++)
+            rwPanel.SuspendLayout();
+            roPanel.SuspendLayout();
+
+            // these will expand, but we make sure that there is a good set reserved
+            for (int i = 0; i < 9; i++)
             {
-                var prev = new ResourcePreview(m_Core, m_Output);
-                prev.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
-                prev.SlotName = i.ToString();
-                prev.MouseClick += thumbsLayout_MouseClick;
-                prev.MouseDoubleClick += thumbsLayout_MouseDoubleClick;
-                rtPanel.AddThumbnail(prev);
+                var prev = UI_CreateThumbnail(rwPanel);
 
                 if(i == 0)
                     prev.Selected = true;
             }
 
-            {
-                var prev = new ResourcePreview(m_Core, m_Output);
-                prev.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
-                prev.SlotName = "D";
-                prev.MouseClick += thumbsLayout_MouseClick;
-                prev.MouseDoubleClick += thumbsLayout_MouseDoubleClick;
-                rtPanel.AddThumbnail(prev);
-            }
-
             for (int i = 0; i < 128; i++)
-            {
-                var prev = new ResourcePreview(m_Core, m_Output);
-                prev.Anchor = AnchorStyles.Top | AnchorStyles.Bottom;
-                prev.SlotName = i.ToString();
-                prev.MouseClick += thumbsLayout_MouseClick;
-                prev.MouseDoubleClick += thumbsLayout_MouseDoubleClick;
-                texPanel.AddThumbnail(prev);
-            }
+                UI_CreateThumbnail(roPanel);
 
-            foreach (var c in rtPanel.Thumbnails)
-                c.Visible = false;
-
-            foreach (var c in texPanel.Thumbnails)
-                c.Visible = false;
-
-            rtPanel.ResumeLayout();
-            texPanel.ResumeLayout();
+            rwPanel.ResumeLayout();
+            roPanel.ResumeLayout();
         }
 
-        private void UI_OnTextureSelectionChanged()
+        private int prevFirstArraySlice = -1;
+        private int prevHighestMip = -1;
+
+        private PointF m_PrevSize = PointF.Empty;
+
+        private void UI_SetHistogramRange(FetchTexture tex, FormatComponentType typeHint)
+        {
+            if (tex != null && (tex.format.compType == FormatComponentType.SNorm || typeHint == FormatComponentType.SNorm))
+                rangeHistogram.SetRange(-1.0f, 1.0f);
+            else
+                rangeHistogram.SetRange(0.0f, 1.0f);
+        }
+
+        private void UI_OnTextureSelectionChanged(bool newdraw)
         {
             FetchTexture tex = CurrentTexture;
 
+            // reset high-water mark
+            m_HighWaterStatusLength = 0;
+
             if (tex == null) return;
 
-            if (m_TexDisplay.texid != tex.ID &&
-                m_Core.Config.TextureViewer_ResetRange)
+            bool newtex = (m_TexDisplay.texid != tex.ID);
+
+            // save settings for this current texture
+            if (m_Core.Config.TextureViewer_PerTexSettings)
             {
-                rangeHistogram.RangeMin = 0.0f;
-                rangeHistogram.RangeMax = 1.0f;
-                rangeHistogram.BlackPoint = 0.0f;
-                rangeHistogram.WhitePoint = 1.0f;
+                if (!m_TextureSettings.ContainsKey(m_TexDisplay.texid))
+                    m_TextureSettings.Add(m_TexDisplay.texid, new TexSettings());
+
+                m_TextureSettings[m_TexDisplay.texid].r = customRed.Checked;
+                m_TextureSettings[m_TexDisplay.texid].g = customGreen.Checked;
+                m_TextureSettings[m_TexDisplay.texid].b = customBlue.Checked;
+                m_TextureSettings[m_TexDisplay.texid].a = customAlpha.Checked;
+
+                m_TextureSettings[m_TexDisplay.texid].displayType = channels.SelectedIndex;
+                m_TextureSettings[m_TexDisplay.texid].customShader = customShader.Text;
+
+                m_TextureSettings[m_TexDisplay.texid].depth = depthDisplay.Checked;
+                m_TextureSettings[m_TexDisplay.texid].stencil = stencilDisplay.Checked;
+
+                m_TextureSettings[m_TexDisplay.texid].mip = mipLevel.SelectedIndex;
+                m_TextureSettings[m_TexDisplay.texid].slice = sliceFace.SelectedIndex;
+
+                m_TextureSettings[m_TexDisplay.texid].minrange = rangeHistogram.BlackPoint;
+                m_TextureSettings[m_TexDisplay.texid].maxrange = rangeHistogram.WhitePoint;
+
+                m_TextureSettings[m_TexDisplay.texid].typeHint = m_Following.GetTypeHint(m_Core);
             }
 
             m_TexDisplay.texid = tex.ID;
 
-            m_CurPixelValue = null;
-            m_CurRealValue = null;
+            // interpret the texture according to the currently following type.
+            if(!CurrentTextureIsLocked)
+                m_TexDisplay.typeHint = m_Following.GetTypeHint(m_Core);
+            else
+                m_TexDisplay.typeHint = FormatComponentType.None;
 
+            // if there is no such type or it isn't being followed, use the last seen interpretation
+            if (m_TexDisplay.typeHint == FormatComponentType.None && m_TextureSettings.ContainsKey(m_TexDisplay.texid))
+                m_TexDisplay.typeHint = m_TextureSettings[m_TexDisplay.texid].typeHint;
+
+            // try to maintain the pan in the new texture. If the new texture
+            // is approx an integer multiple of the old texture, just changing
+            // the scale will keep everything the same. This is useful for
+            // downsample chains and things where you're flipping back and forth
+            // between overlapping textures, but even in the non-integer case
+            // pan will be kept approximately the same.
+            PointF curSize = new PointF((float)CurrentTexture.width, (float)CurrentTexture.height);
+            float curArea = curSize.Area();
+            float prevArea = m_PrevSize.Area();
+
+            if (prevArea > 0.0f)
+            {
+                float prevX = m_TexDisplay.offx;
+                float prevY = m_TexDisplay.offy;
+                float prevScale = m_TexDisplay.scale;
+
+                // allow slight difference in aspect ratio for rounding errors
+                // in downscales (e.g. 1680x1050 -> 840x525 -> 420x262 in the
+                // last downscale the ratios are 1.6 and 1.603053435).
+                if (Math.Abs(curSize.Aspect() - m_PrevSize.Aspect()) < 0.01f)
+                {
+                    m_TexDisplay.scale *= m_PrevSize.X / curSize.X;
+                    CurrentZoomValue = m_TexDisplay.scale;
+                }
+                else
+                {
+                    // this scale factor is arbitrary really, only intention is to have
+                    // integer scales come out precisely, other 'similar' sizes will be
+                    // similar ish
+                    float scaleFactor = (float)(Math.Sqrt(curArea) / Math.Sqrt(prevArea));
+
+                    m_TexDisplay.offx = prevX * scaleFactor;
+                    m_TexDisplay.offy = prevY * scaleFactor;
+                }
+            }
+
+            m_PrevSize = curSize;
+
+            // refresh scroll position
             ScrollPosition = ScrollPosition;
 
             UI_UpdateStatusText();
 
             mipLevel.Items.Clear();
-            sliceFace.Items.Clear();
 
-            for (int i = 0; i < tex.mips; i++)
-                mipLevel.Items.Add(i + " - " + Math.Max(1, tex.width >> i) + "x" + Math.Max(1, tex.height >> i));
-
-            mipLevel.SelectedIndex = 0;
             m_TexDisplay.mip = 0;
             m_TexDisplay.sliceFace = 0;
 
-            if (tex.mips == 1)
+            bool usemipsettings = true;
+            bool useslicesettings = true;
+
+            if (tex.msSamp > 1)
+            {
+                for (int i = 0; i < tex.msSamp; i++)
+                    mipLevel.Items.Add(String.Format("Sample {0}", i));
+
+                // add an option to display unweighted average resolved value,
+                // to get an idea of how the samples average
+                if(tex.format.compType != FormatComponentType.UInt &&
+                    tex.format.compType != FormatComponentType.SInt &&
+                    tex.format.compType != FormatComponentType.Depth &&
+                    (tex.creationFlags & TextureCreationFlags.DSV) == 0)
+                    mipLevel.Items.Add("Average val");
+
+                mipLevelLabel.Text = "Sample";
+
+                mipLevel.SelectedIndex = 0;
+            }
+            else
+            {
+                for (int i = 0; i < tex.mips; i++)
+                    mipLevel.Items.Add(i + " - " + Math.Max(1, tex.width >> i) + "x" + Math.Max(1, tex.height >> i));
+
+                mipLevelLabel.Text = "Mip";
+
+                int highestMip = -1;
+
+                // only switch to the selected mip for outputs, and when changing drawcall
+                if (!CurrentTextureIsLocked && m_Following.Type != FollowType.ReadOnly && newdraw)
+                    highestMip = m_Following.GetHighestMip(m_Core);
+
+                // assuming we get a valid mip for the highest mip, only switch to it
+                // if we've selected a new texture, or if it's different than the last mip.
+                // This prevents the case where the user has clicked on another mip and
+                // we don't want to snap their view back when stepping between events with the
+                // same mip used. But it does mean that if they are stepping between
+                // events with different mips used, then we will update in that case.
+                if (highestMip >= 0 && (newtex || highestMip != prevHighestMip))
+                {
+                    usemipsettings = false;
+                    mipLevel.SelectedIndex = Helpers.Clamp(highestMip, 0, (int)tex.mips - 1);
+                }
+
+                if (mipLevel.SelectedIndex == -1)
+                    mipLevel.SelectedIndex = Helpers.Clamp(prevHighestMip, 0, (int)tex.mips - 1);
+
+                prevHighestMip = highestMip;
+            }
+
+            if (tex.mips == 1 && tex.msSamp <= 1)
             {
                 mipLevel.Enabled = false;
             }
@@ -1073,7 +1721,9 @@ namespace renderdocui.Windows
                 mipLevel.Enabled = true;
             }
 
-            if (tex.numSubresources == tex.mips && tex.depth <= 1)
+            sliceFace.Items.Clear();
+
+            if (tex.arraysize == 1 && tex.depth <= 1)
             {
                 sliceFace.Enabled = false;
             }
@@ -1085,7 +1735,11 @@ namespace renderdocui.Windows
 
                 String[] cubeFaces = { "X+", "X-", "Y+", "Y-", "Z+", "Z-" };
 
-                UInt32 numSlices = (Math.Max(1, tex.depth) * tex.numSubresources) / tex.mips;
+                UInt32 numSlices = tex.arraysize;
+
+                // for 3D textures, display the number of slices at this mip
+                if(tex.depth > 1)
+                    numSlices = Math.Max(1, tex.depth >> (int)mipLevel.SelectedIndex);
 
                 for (UInt32 i = 0; i < numSlices; i++)
                 {
@@ -1102,17 +1756,94 @@ namespace renderdocui.Windows
                     }
                 }
 
-                sliceFace.SelectedIndex = (int)m_Following.GetFirstArraySlice(m_Core);
+                int firstArraySlice = -1;
+                // only switch to the selected mip for outputs, and when changing drawcall
+                if (!CurrentTextureIsLocked && m_Following.Type != FollowType.ReadOnly && newdraw)
+                    firstArraySlice = m_Following.GetFirstArraySlice(m_Core);
+
+                // see above with highestMip and prevHighestMip for the logic behind this
+                if (firstArraySlice >= 0 && (newtex || firstArraySlice != prevFirstArraySlice))
+                {
+                    useslicesettings = false;
+                    sliceFace.SelectedIndex = Helpers.Clamp(firstArraySlice, 0, (int)numSlices - 1);
+                }
+
+                if (sliceFace.SelectedIndex == -1)
+                    sliceFace.SelectedIndex = Helpers.Clamp(prevFirstArraySlice, 0, (int)numSlices - 1);
+
+                prevFirstArraySlice = firstArraySlice;
+            }
+
+            // because slice and mip are specially set above, we restore any per-tex settings to apply
+            // even if we don't switch to a new texture.
+            // Note that if the slice or mip was changed because that slice or mip is the selected one
+            // at the API level, we leave this alone.
+            if (m_Core.Config.TextureViewer_PerTexSettings && m_TextureSettings.ContainsKey(tex.ID))
+            {
+                if (usemipsettings)
+                    mipLevel.SelectedIndex = m_TextureSettings[tex.ID].mip;
+
+                if (useslicesettings)
+                    sliceFace.SelectedIndex = m_TextureSettings[tex.ID].slice;
+            }
+
+            // handling for if we've switched to a new texture
+            if (newtex)
+            {
+                // if we save certain settings per-texture, restore them (if we have any)
+                if (m_Core.Config.TextureViewer_PerTexSettings && m_TextureSettings.ContainsKey(tex.ID))
+                {
+                    channels.SelectedIndex = m_TextureSettings[tex.ID].displayType;
+
+                    customShader.Text = m_TextureSettings[tex.ID].customShader;
+
+                    customRed.Checked = m_TextureSettings[tex.ID].r;
+                    customGreen.Checked = m_TextureSettings[tex.ID].g;
+                    customBlue.Checked = m_TextureSettings[tex.ID].b;
+                    customAlpha.Checked = m_TextureSettings[tex.ID].a;
+
+                    depthDisplay.Checked = m_TextureSettings[m_TexDisplay.texid].depth;
+                    stencilDisplay.Checked = m_TextureSettings[m_TexDisplay.texid].stencil;
+
+                    norangePaint = true;
+                    rangeHistogram.SetRange(m_TextureSettings[m_TexDisplay.texid].minrange, m_TextureSettings[m_TexDisplay.texid].maxrange);
+                    norangePaint = false;
+                }
+                else if (m_Core.Config.TextureViewer_PerTexSettings)
+                {
+                    // if we are using per-tex settings, reset back to RGB
+                    channels.SelectedIndex = 0;
+
+                    customShader.Text = "";
+
+                    customRed.Checked = true;
+                    customGreen.Checked = true;
+                    customBlue.Checked = true;
+                    customAlpha.Checked = false;
+
+                    stencilDisplay.Checked = false;
+                    depthDisplay.Checked = true;
+
+                    norangePaint = true;
+                    UI_SetHistogramRange(tex, m_TexDisplay.typeHint);
+                    norangePaint = false;
+                }
+
+                // reset the range if desired
+                if (m_Core.Config.TextureViewer_ResetRange)
+                {
+                    UI_SetHistogramRange(tex, m_TexDisplay.typeHint);
+                }
             }
 
             UI_UpdateFittedScale();
 
-            //render.Width = (int)(CurrentTexDisplayWidth * m_TexDisplay.scale);
-            //render.Height = (int)(CurrentTexDisplayHeight * m_TexDisplay.scale);
-
             UI_UpdateTextureDetails();
 
             UI_UpdateChannels();
+
+            if (autoFit.Checked)
+                AutoFitRange();
 
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
@@ -1122,6 +1853,9 @@ namespace renderdocui.Windows
 
                 if (tex.ID != ResourceId.Null)
                 {
+                    if (m_Output != null)
+                        RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+
                     var us = r.GetUsage(tex.ID);
 
                     var tb = m_Core.TimelineBar;
@@ -1133,6 +1867,11 @@ namespace renderdocui.Windows
                             tb.HighlightResource(tex.ID, tex.name, us);
                         }));
                     }
+                }
+                else
+                {
+                    m_CurPixelValue = null;
+                    m_CurRealValue = null;
                 }
             });
         }
@@ -1146,7 +1885,7 @@ namespace renderdocui.Windows
             if (d.Visible)
                 d.Controls.Add(renderToolstripContainer);
 
-            UI_OnTextureSelectionChanged();
+            UI_OnTextureSelectionChanged(false);
         }
 
         void PreviewPanel_FormClosing(object sender, FormClosingEventArgs e)
@@ -1199,32 +1938,67 @@ namespace renderdocui.Windows
             ResourceId followID = m_Following.GetResourceId(m_Core);
 
             {
-                FetchTexture tex = null;
-                foreach (var t in m_Core.CurTextures)
-                    if (t.ID == followID)
-                        tex = t;
+                bool found = false;
 
-                if (tex != null)
+                string name = "";
+
+                foreach (var t in m_Core.CurTextures)
+                {
+                    if (t.ID == followID)
+                    {
+                        name = t.name;
+                        found = true;
+                    }
+                }
+
+                foreach (var b in m_Core.CurBuffers)
+                {
+                    if (b.ID == followID)
+                    {
+                        name = b.name;
+                        found = true;
+                    }
+                }
+
+                if (followID == ResourceId.Null)
+                {
+                    m_PreviewPanel.Text = "Unbound";
+                }
+                else if(found)
                 {
                     switch (m_Following.Type)
                     {
-                        case FollowType.RT_UAV:
-                            m_PreviewPanel.Text = string.Format("Cur OM Target {0} - {1}", m_Following.index, tex.name);
+                        case FollowType.OutputColour:
+                            m_PreviewPanel.Text = string.Format("Cur Output {0} - {1}", m_Following.index, name);
                             break;
-                        case FollowType.Depth:
-                            m_PreviewPanel.Text = string.Format("Cur DSV - {0}", tex.name);
+                        case FollowType.OutputDepth:
+                            m_PreviewPanel.Text = string.Format("Cur Depth Output - {0}", name);
                             break;
-                        case FollowType.PSResource:
-                            m_PreviewPanel.Text = string.Format("Cur PS SRV {0} - {1}", m_Following.index, tex.name);
+                        case FollowType.ReadWrite:
+                            m_PreviewPanel.Text = string.Format("Cur RW Output - {0}", name);
+                            break;
+                        case FollowType.ReadOnly:
+                            m_PreviewPanel.Text = string.Format("Cur Input {0} - {1}", m_Following.index, name);
                             break;
                     }
                 }
                 else
                 {
-                    m_PreviewPanel.Text = "Current";
-
-                    if (followID == ResourceId.Null)
-                        m_PreviewPanel.Text = "Unbound";
+                    switch (m_Following.Type)
+                    {
+                        case FollowType.OutputColour:
+                            m_PreviewPanel.Text = string.Format("Cur Output {0}", m_Following.index);
+                            break;
+                        case FollowType.OutputDepth:
+                            m_PreviewPanel.Text = string.Format("Cur Depth Output");
+                            break;
+                        case FollowType.ReadWrite:
+                            m_PreviewPanel.Text = string.Format("Cur RW Output");
+                            break;
+                        case FollowType.ReadOnly:
+                            m_PreviewPanel.Text = string.Format("Cur Input {0}", m_Following.index);
+                            break;
+                    }
                 }
             }
 
@@ -1246,6 +2020,12 @@ namespace renderdocui.Windows
             texStatusDim.Text += " " + current.mips + " mips";
 
             texStatusDim.Text += " - " + current.format.ToString();
+
+            if (current.format.compType != m_TexDisplay.typeHint &&
+                 m_TexDisplay.typeHint != FormatComponentType.None)
+            {
+                texStatusDim.Text += " Viewed as " + m_TexDisplay.typeHint.Str();
+            }
         }
 
         private bool PixelPicked
@@ -1259,16 +2039,24 @@ namespace renderdocui.Windows
             {
                 if (value == true)
                 {
-                    debugPixel.Enabled = debugPixelContext.Enabled = true;
-                    debugPixel.Text = debugPixelContext.Text = "Debug this Pixel";
+                    debugPixelContext.Enabled = true;
+                    toolTip.RemoveAll();
+                    toolTip.SetToolTip(debugPixelContext, "Debug this pixel");
+                    toolTip.SetToolTip(pixelHistory, "Show history for this pixel");
+
+                    pixelHistory.Enabled = true;
                 }
                 else
                 {
                     m_CurPixelValue = null;
                     m_CurRealValue = null;
 
-                    debugPixel.Enabled = debugPixelContext.Enabled = false;
-                    debugPixel.Text = debugPixelContext.Text = "RMB to Pick";
+                    debugPixelContext.Enabled = false;
+                    toolTip.RemoveAll();
+                    toolTip.SetToolTip(debugPixelContext, "Right Click to choose a pixel");
+                    toolTip.SetToolTip(pixelHistory, "Right Click to choose a pixel");
+
+                    pixelHistory.Enabled = false;
                 }
 
                 pixelContext.Invalidate();
@@ -1287,9 +2075,23 @@ namespace renderdocui.Windows
 
             if (tex == null) return;
 
-            bool dsv = ((tex.creationFlags & TextureCreationFlags.DSV) != 0);
+            bool dsv = ((tex.creationFlags & TextureCreationFlags.DSV) != 0) || (tex.format.compType == FormatComponentType.Depth);
             bool uintTex = (tex.format.compType == FormatComponentType.UInt);
             bool sintTex = (tex.format.compType == FormatComponentType.SInt);
+
+            if (tex.format.compType == FormatComponentType.None && m_TexDisplay.typeHint == FormatComponentType.UInt)
+                uintTex = true;
+
+            if (tex.format.compType == FormatComponentType.None && m_TexDisplay.typeHint == FormatComponentType.SInt)
+                sintTex = true;
+
+            if (m_TexDisplay.overlay == TextureDisplayOverlay.QuadOverdrawPass ||
+                m_TexDisplay.overlay == TextureDisplayOverlay.QuadOverdrawDraw)
+            {
+                dsv = false;
+                uintTex = false;
+                sintTex = true;
+            }
 
             if (m_CurHoverValue != null)
             {
@@ -1314,12 +2116,42 @@ namespace renderdocui.Windows
                 }
             }
 
-            string statusText = "Hover - " + (m_CurHoverPixel.X >> (int)m_TexDisplay.mip) + ", " + (m_CurHoverPixel.Y >> (int)m_TexDisplay.mip);
+            int y = m_CurHoverPixel.Y >> (int)m_TexDisplay.mip;
+
+            uint mipWidth = Math.Max(1, tex.width >> (int)m_TexDisplay.mip);
+            uint mipHeight = Math.Max(1, tex.height >> (int)m_TexDisplay.mip);
+
+            if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
+                y = (int)(mipHeight - 1) - y;
+            if (m_TexDisplay.FlipY)
+                y = (int)(mipHeight - 1) - y;
+
+            y = Math.Max(0, y);
+
+            int x = m_CurHoverPixel.X >> (int)m_TexDisplay.mip;
+            float invWidth = mipWidth > 0 ? 1.0f / mipWidth : 0.0f;
+            float invHeight = mipHeight > 0 ? 1.0f / mipHeight : 0.0f;
+
+            string hoverCoords = String.Format("{0,4}, {1,4} ({2:0.0000}, {3:0.0000})", 
+                x, y, (x * invWidth), (y * invHeight));
+
+            string statusText = "Hover - " + hoverCoords;
+
+            if (m_CurHoverPixel.X > tex.width || m_CurHoverPixel.Y > tex.height || m_CurHoverPixel.X < 0 || m_CurHoverPixel.Y < 0)
+                statusText = "Hover - [" + hoverCoords + "]";
 
             if (m_CurPixelValue != null)
             {
-                statusText += " - Right click - " +
-                                (m_PickedPoint.X >> (int)m_TexDisplay.mip) + "," + (m_PickedPoint.Y >> (int)m_TexDisplay.mip) + ": ";
+                x = m_PickedPoint.X >> (int)m_TexDisplay.mip;
+                y = m_PickedPoint.Y >> (int)m_TexDisplay.mip;
+                if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
+                    y = (int)(mipHeight - 1) - y;
+                if (m_TexDisplay.FlipY)
+                    y = (int)(mipHeight - 1) - y;
+
+                y = Math.Max(0, y);
+
+                statusText += " - Right click - " + String.Format("{0,4}, {1,4}: ", x, y);
 
                 PixelValue val = m_CurPixelValue;
 
@@ -1394,6 +2226,16 @@ namespace renderdocui.Windows
                 PixelPicked = false;
             }
 
+            // try and keep status text consistent by sticking to the high water mark
+            // of length (prevents nasty oscillation when the length of the string is
+            // just popping over/under enough to overflow onto the next line).
+
+            if (statusText.Length > m_HighWaterStatusLength)
+                m_HighWaterStatusLength = statusText.Length;
+
+            if (statusText.Length < m_HighWaterStatusLength)
+                statusText += new String(' ', m_HighWaterStatusLength - statusText.Length);
+
             statusLabel.Text = statusText;
         }
 
@@ -1403,7 +2245,34 @@ namespace renderdocui.Windows
 
             channelStrip.SuspendLayout();
 
-            if (tex != null && (tex.creationFlags & TextureCreationFlags.DSV) > 0 &&
+            if (tex != null && (tex.creationFlags & TextureCreationFlags.SwapBuffer) != 0)
+            {
+                // swapbuffer is always srgb for 8-bit types, linear for 16-bit types
+                gammaDisplay.Enabled = false;
+
+                if (tex.format.compByteWidth == 2 && !tex.format.special)
+                    m_TexDisplay.linearDisplayAsGamma = false;
+                else
+                    m_TexDisplay.linearDisplayAsGamma = true;
+            }
+            else
+            {
+                if (tex != null && !tex.format.srgbCorrected)
+                    gammaDisplay.Enabled = true;
+                else
+                    gammaDisplay.Enabled = false;
+
+                m_TexDisplay.linearDisplayAsGamma = !gammaDisplay.Enabled || gammaDisplay.Checked;
+            }
+
+            if (tex != null && tex.format.srgbCorrected)
+                m_TexDisplay.linearDisplayAsGamma = false;
+
+            bool dsv = false;
+            if(tex != null)
+                dsv = ((tex.creationFlags & TextureCreationFlags.DSV) != 0) || (tex.format.compType == FormatComponentType.Depth);
+
+            if (dsv &&
                 (string)channels.SelectedItem != "Custom")
             {
                 customRed.Visible = false;
@@ -1448,8 +2317,6 @@ namespace renderdocui.Windows
 
                 backcolorPick.Visible = true;
                 checkerBack.Visible = true;
-
-                checkerBack.Enabled = backcolorPick.Enabled = customAlpha.Checked;
 
                 mulSep.Visible = false;
 
@@ -1497,10 +2364,10 @@ namespace renderdocui.Windows
             }
             else if ((string)channels.SelectedItem == "Custom")
             {
-                customRed.Visible = false;
-                customGreen.Visible = false;
-                customBlue.Visible = false;
-                customAlpha.Visible = false;
+                customRed.Visible = true;
+                customGreen.Visible = true;
+                customBlue.Visible = true;
+                customAlpha.Visible = true;
                 mulLabel.Visible = false;
                 hdrMul.Visible = false;
                 customShader.Visible = true;
@@ -1522,19 +2389,19 @@ namespace renderdocui.Windows
                 m_TexDisplay.HDRMul = -1.0f;
 
                 m_TexDisplay.CustomShader = ResourceId.Null;
-                if (m_CustomShaders.ContainsKey(customShader.Text.ToLowerInvariant()))
+                if (m_CustomShaders.ContainsKey(customShader.Text.ToUpperInvariant()))
                 {
                     if (m_TexDisplay.CustomShader == ResourceId.Null) { m_CurPixelValue = null; m_CurRealValue = null; UI_UpdateStatusText(); }
-                    m_TexDisplay.CustomShader = m_CustomShaders[customShader.Text.ToLowerInvariant()];
+                    m_TexDisplay.CustomShader = m_CustomShaders[customShader.Text.ToUpperInvariant()];
                     customDelete.Enabled = customEdit.Enabled = true;
-                    customCreate.Enabled = false;
                 }
                 else
                 {
                     customDelete.Enabled = customEdit.Enabled = false;
-                    customCreate.Enabled = true;
                 }
             }
+
+            m_TexDisplay.FlipY = flip_y.Checked;
 
             channelStrip.ResumeLayout();
 
@@ -1551,15 +2418,41 @@ namespace renderdocui.Windows
             render.Invalidate();
         }
 
+        private void DrawCheckerboard(Graphics g, Rectangle rect)
+        {
+            int numX = (int)Math.Ceiling((float)rect.Width / 64.0f);
+            int numY = (int)Math.Ceiling((float)rect.Height / 64.0f);
+
+            Brush dark = new SolidBrush(Color.FromArgb((int)(255 * darkBack.x),
+                                                       (int)(255 * darkBack.y),
+                                                       (int)(255 * darkBack.z)));
+
+            Brush light = new SolidBrush(Color.FromArgb((int)(255 * lightBack.x),
+                                                        (int)(255 * lightBack.y),
+                                                        (int)(255 * lightBack.z)));
+
+            for (int x = 0; x < numX; x++)
+            {
+                for (int y = 0; y < numY; y++)
+                {
+                    var brush = ((x%2) == (y%2)) ? dark : light;
+                    g.FillRectangle(brush, x * 64, y * 64, 64, 64);
+                }
+            }
+
+            dark.Dispose();
+            light.Dispose();
+        }
+
         private void pixelContext_Paint(object sender, PaintEventArgs e)
         {
-            if (m_Output == null || m_Core.Renderer == null || PixelPicked == false)
+            if (m_Output == null || m_Core.Renderer == null)
             {
-                e.Graphics.Clear(Color.Black);
+                DrawCheckerboard(e.Graphics, pixelContext.DisplayRectangle);
                 return;
             }
 
-            m_Core.Renderer.Invoke((ReplayRenderer r) => { if (m_Output != null) m_Output.Display(); });
+            m_Core.Renderer.InvokeForPaint((ReplayRenderer r) => { if (m_Output != null) m_Output.Display(); });
         }
 
         private void render_Paint(object sender, PaintEventArgs e)
@@ -1567,17 +2460,17 @@ namespace renderdocui.Windows
             renderContainer.Invalidate();
             if (m_Output == null || m_Core.Renderer == null)
             {
-                e.Graphics.Clear(Color.Black);
+                DrawCheckerboard(e.Graphics, render.DisplayRectangle);
                 return;
             }
 
-            foreach (var prev in rtPanel.Thumbnails)
+            foreach (var prev in rwPanel.Thumbnails)
                 if (prev.Unbound) prev.Clear();
 
-            foreach (var prev in texPanel.Thumbnails)
+            foreach (var prev in roPanel.Thumbnails)
                 if (prev.Unbound) prev.Clear();
 
-            m_Core.Renderer.Invoke((ReplayRenderer r) => { if (m_Output != null) m_Output.Display(); });
+            m_Core.Renderer.InvokeForPaint((ReplayRenderer r) => { if (m_Output != null) m_Output.Display(); });
         }
 
         #endregion
@@ -1606,6 +2499,17 @@ namespace renderdocui.Windows
                 return null;
             }
         }
+
+        private bool CurrentTextureIsLocked
+        {
+            get
+            {
+                var dc = renderToolstripContainer.Parent as DockContent;
+
+                return (dc != null && dc.Tag != null);
+            }
+        }
+
         private FetchTexture CurrentTexture
         {
             get
@@ -1668,6 +2572,8 @@ namespace renderdocui.Windows
 
         private float GetFitScale()
         {
+            if (CurrentTexture == null)
+                return 1.0f;
             float xscale = (float)render.Width / (float)CurrentTexDisplayWidth;
             float yscale = (float)render.Height / (float)CurrentTexDisplayHeight;
             return Math.Min(xscale, yscale);
@@ -1686,6 +2592,22 @@ namespace renderdocui.Windows
 
         bool ScrollUpdateScrollbars = true;
 
+        float CurMaxScrollX
+        {
+            get
+            {
+                return render.Width - CurrentTexDisplayWidth * m_TexDisplay.scale;
+            }
+        }
+
+        float CurMaxScrollY
+        {
+            get
+            {
+                return render.Height - CurrentTexDisplayHeight * m_TexDisplay.scale;
+            }
+        }
+
         Point ScrollPosition
         {
             get
@@ -1695,19 +2617,29 @@ namespace renderdocui.Windows
 
             set
             {
-                m_TexDisplay.offx = Math.Max(render.Width - CurrentTexDisplayWidth * m_TexDisplay.scale, value.X);
-                m_TexDisplay.offy = Math.Max(render.Height - CurrentTexDisplayHeight * m_TexDisplay.scale, value.Y);
+                m_TexDisplay.offx = Math.Max(CurMaxScrollX, value.X);
+                m_TexDisplay.offy = Math.Max(CurMaxScrollY, value.Y);
 
                 m_TexDisplay.offx = Math.Min(0.0f, (float)m_TexDisplay.offx);
                 m_TexDisplay.offy = Math.Min(0.0f, (float)m_TexDisplay.offy);
 
                 if (ScrollUpdateScrollbars)
                 {
-                    if(renderHScroll.Enabled)
-                        renderHScroll.Value = (int)Math.Min(renderHScroll.Maximum, (int)-m_TexDisplay.offx);
+                    if (renderHScroll.Enabled)
+                    {
+                        // this is so stupid.
+                        float actualMaximum = (float)(renderHScroll.Maximum - renderHScroll.LargeChange);
+                        float delta = m_TexDisplay.offx / (float)CurMaxScrollX;
+                        renderHScroll.Value = (int)Helpers.Clamp( (int)(delta * actualMaximum), 0, renderHScroll.Maximum);
+                    }
 
                     if (renderVScroll.Enabled)
-                        renderVScroll.Value = (int)Math.Min(renderVScroll.Maximum, (int)-m_TexDisplay.offy);
+                    {
+                        // really. So stupid.
+                        float actualMaximum = (float)(renderVScroll.Maximum - renderVScroll.LargeChange);
+                        float delta = m_TexDisplay.offy / (float)CurMaxScrollY;
+                        renderVScroll.Value = (int)Helpers.Clamp((int)(delta * actualMaximum), 0, renderVScroll.Maximum);
+                    }
                 }
 
                 m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
@@ -1721,23 +2653,7 @@ namespace renderdocui.Windows
 
             float prevScale = m_TexDisplay.scale;
 
-            m_TexDisplay.scale = Math.Max(0.1f, Math.Min(8.0f, s));
-
-            FetchTexture tex = CurrentTexture;
-
-            if (tex == null)
-            {
-                if(m_Core.LogLoaded)
-                    foreach (var t in m_Core.CurTextures)
-                        if (t.ID == m_TexDisplay.texid)
-                            tex = t;
-
-                if(tex == null)
-                    return;
-            }
-
-            //render.Width = Math.Min(500, (int)(tex.width * m_TexDisplay.scale));
-            //render.Height = Math.Min(500, (int)(tex.height * m_TexDisplay.scale));
+            m_TexDisplay.scale = Math.Max(0.1f, Math.Min(256.0f, s));
 
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
 
@@ -1795,11 +2711,11 @@ namespace renderdocui.Windows
 
         #region Mouse movement and scrolling
 
-        private Point m_DragStartScroll;
-        private Point m_DragStartPos;
+        private Point m_DragStartScroll = Point.Empty;
+        private Point m_DragStartPos = Point.Empty;
 
-        private Point m_CurHoverPixel;
-        private Point m_PickedPoint;
+        private Point m_CurHoverPixel = Point.Empty;
+        private Point m_PickedPoint = Point.Empty;
 
         private PixelValue m_CurRealValue = null;
         private PixelValue m_CurPixelValue = null;
@@ -1814,15 +2730,22 @@ namespace renderdocui.Windows
 
         private void RT_PickPixelsAndUpdate(int x, int y, bool ctx)
         {
+            FetchTexture tex = CurrentTexture;
+
+            if (tex == null) return;
+
             if(ctx)
                 m_Output.SetPixelContextLocation((UInt32)x, (UInt32)y);
 
+            if (m_TexDisplay.FlipY)
+                y = (int)(tex.height - 1) - y;
+
             var pickValue = m_Output.PickPixel(m_TexDisplay.texid, true, (UInt32)x, (UInt32)y,
-                                                    m_TexDisplay.sliceFace, m_TexDisplay.mip);
+                                                    m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx);
             PixelValue realValue = null;
             if (m_TexDisplay.CustomShader != ResourceId.Null)
                 realValue = m_Output.PickPixel(m_TexDisplay.texid, false, (UInt32)x, (UInt32)y,
-                                                    m_TexDisplay.sliceFace, m_TexDisplay.mip);
+                                                    m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx);
 
             RT_UpdatePixelColour(pickValue, realValue, false);
         }
@@ -1837,33 +2760,86 @@ namespace renderdocui.Windows
             this.BeginInvoke(new Action(UI_UpdateStatusText));
         }
 
+        private void ShowGotoPopup()
+        {
+            if (CurrentTexture != null)
+            {
+                Point p = m_PickedPoint;
+
+                uint mipHeight = Math.Max(1, CurrentTexture.height >> (int)m_TexDisplay.mip);
+
+                if (m_Core.APIProps.pipelineType == GraphicsAPI.OpenGL)
+                    p.Y = (int)(mipHeight - 1) - p.Y;
+                if (m_TexDisplay.FlipY)
+                    p.Y = (int)(mipHeight - 1) - p.Y;
+
+                m_Goto.Show(render, p);
+            }
+        }
+
         private void render_KeyDown(object sender, KeyEventArgs e)
         {
             bool nudged = false;
 
-            if (e.KeyCode == Keys.Up)
+            FetchTexture tex = CurrentTexture;
+
+            if (tex == null) return;
+            
+            if (e.KeyCode == Keys.C && e.Control)
             {
-                m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y - 1);
+                try
+                {
+                    Clipboard.SetText(texStatusDim.Text + " | " + statusLabel.Text);
+                }
+                catch (System.Exception)
+                {
+                    try
+                    {
+                        Clipboard.SetDataObject(texStatusDim.Text + " | " + statusLabel.Text);
+                    }
+                    catch (System.Exception)
+                    {
+                        // give up!
+                    }
+                }
+            }
+
+            if (!m_Core.LogLoaded) return;
+
+            if (e.KeyCode == Keys.G && e.Control)
+            {
+                ShowGotoPopup();
+
+            }
+
+            int increment = 1 << (int)m_TexDisplay.mip;
+
+            if (e.KeyCode == Keys.Up && m_PickedPoint.Y > 0)
+            {
+                m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y - increment);
                 nudged = true;
             }
-            else if (e.KeyCode == Keys.Down)
+            else if (e.KeyCode == Keys.Down && m_PickedPoint.Y < tex.height-1)
             {
-                m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y + 1);
+                m_PickedPoint = new Point(m_PickedPoint.X, m_PickedPoint.Y + increment);
                 nudged = true;
             }
-            else if (e.KeyCode == Keys.Left)
+            else if (e.KeyCode == Keys.Left && m_PickedPoint.X > 0)
             {
-                m_PickedPoint = new Point(m_PickedPoint.X - 1, m_PickedPoint.Y);
+                m_PickedPoint = new Point(m_PickedPoint.X - increment, m_PickedPoint.Y);
                 nudged = true;
             }
-            else if (e.KeyCode == Keys.Right)
+            else if (e.KeyCode == Keys.Right && m_PickedPoint.X < tex.width - 1)
             {
-                m_PickedPoint = new Point(m_PickedPoint.X + 1, m_PickedPoint.Y);
+                m_PickedPoint = new Point(m_PickedPoint.X + increment, m_PickedPoint.Y);
                 nudged = true;
             }
 
             if(nudged)
             {
+                m_PickedPoint = new Point(
+                    Helpers.Clamp(m_PickedPoint.X, 0, (int)tex.width-1),
+                    Helpers.Clamp(m_PickedPoint.Y, 0, (int)tex.height - 1));
                 e.Handled = true;
 
                 m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
@@ -1883,7 +2859,11 @@ namespace renderdocui.Windows
             ScrollUpdateScrollbars = false;
 
             if (e.Type != ScrollEventType.EndScroll)
-                ScrollPosition = new Point(ScrollPosition.X - (e.NewValue - e.OldValue), ScrollPosition.Y);
+            {
+                float actualMaximum = (float)(renderHScroll.Maximum - renderHScroll.LargeChange);
+                float delta = (float)e.NewValue / actualMaximum;
+                ScrollPosition = new Point((int)(CurMaxScrollX * delta), ScrollPosition.Y);
+            }
 
             ScrollUpdateScrollbars = true;
         }
@@ -1892,8 +2872,12 @@ namespace renderdocui.Windows
         {
             ScrollUpdateScrollbars = false;
 
-            if(e.Type != ScrollEventType.EndScroll)
-                ScrollPosition = new Point(ScrollPosition.X, ScrollPosition.Y - (e.NewValue - e.OldValue));
+            if (e.Type != ScrollEventType.EndScroll)
+            {
+                float actualMaximum = (float)(renderVScroll.Maximum - renderVScroll.LargeChange);
+                float delta = (float)e.NewValue / actualMaximum;
+                ScrollPosition = new Point(ScrollPosition.X, (int)(CurMaxScrollY * delta) );
+            }
 
             ScrollUpdateScrollbars = true;
         }
@@ -1917,26 +2901,43 @@ namespace renderdocui.Windows
 
             if (e.Button == MouseButtons.Right && m_TexDisplay.texid != ResourceId.Null)
             {
-                m_PickedPoint = m_CurHoverPixel;
+                FetchTexture tex = CurrentTexture;
 
-                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                if (tex != null)
                 {
-                    if (m_Output != null)
-                        RT_PickPixelsAndUpdate(m_CurHoverPixel.X, m_CurHoverPixel.Y, true);
-                });
+                    m_PickedPoint = m_CurHoverPixel;
+
+                    m_PickedPoint.X = Helpers.Clamp(m_PickedPoint.X, 0, (int)tex.width - 1);
+                    m_PickedPoint.Y = Helpers.Clamp(m_PickedPoint.Y, 0, (int)tex.height - 1);
+
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                    {
+                        if (m_Output != null)
+                            RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+                    });
+                }
 
                 Cursor = Cursors.Cross;
             }
 
             if (e.Button == MouseButtons.None && m_TexDisplay.texid != ResourceId.Null)
             {
-                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
-                {
-                    if (m_Output != null)
-                        RT_UpdateHoverColour(m_Output.PickPixel(m_TexDisplay.texid, true, (UInt32)m_CurHoverPixel.X, (UInt32)m_CurHoverPixel.Y,
-                                                                  m_TexDisplay.sliceFace, m_TexDisplay.mip));
-                });
+                FetchTexture tex = CurrentTexture;
 
+                if (tex != null)
+                {
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                    {
+                        if (m_Output != null)
+                        {
+                            UInt32 y = (UInt32)m_CurHoverPixel.Y;
+                            if (m_TexDisplay.FlipY)
+                                y = (uint)(tex.height - 1) - y;
+                            RT_UpdateHoverColour(m_Output.PickPixel(m_TexDisplay.texid, true, (UInt32)m_CurHoverPixel.X, y,
+                                                                      m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx));
+                        }
+                    });
+                }
             }
 
             Panel p = renderContainer;
@@ -1963,19 +2964,40 @@ namespace renderdocui.Windows
             UI_UpdateStatusText();
         }
 
+        private void pixelContext_MouseClick(object sender, MouseEventArgs e)
+        {
+            pixelContext.Focus();
+
+            if (!m_Core.LogLoaded)
+                return;
+
+            if (e.Button == MouseButtons.Right)
+            {
+                pixelContextMenu.Show(pixelContext, e.Location);
+            }
+        }
+
         private void render_MouseClick(object sender, MouseEventArgs e)
         {
             render.Focus();
 
             if (e.Button == MouseButtons.Right)
             {
-                m_PickedPoint = m_CurHoverPixel;
+                FetchTexture tex = CurrentTexture;
 
-                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                if (tex != null)
                 {
-                    if (m_Output != null)
-                        RT_PickPixelsAndUpdate(m_CurHoverPixel.X, m_CurHoverPixel.Y, true);
-                });
+                    m_PickedPoint = m_CurHoverPixel;
+
+                    m_PickedPoint.X = Helpers.Clamp(m_PickedPoint.X, 0, (int)tex.width - 1);
+                    m_PickedPoint.Y = Helpers.Clamp(m_PickedPoint.Y, 0, (int)tex.height - 1);
+
+                    m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                    {
+                        if (m_Output != null)
+                            RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+                    });
+                }
 
                 Cursor = Cursors.Cross;
             }
@@ -2085,13 +3107,19 @@ namespace renderdocui.Windows
             UI_UpdateFittedScale();
         }
 
+        private void zoomExactSize_Click(object sender, EventArgs e)
+        {
+            fitToWindow.Checked = false;
+            UI_SetScale(1.0f);
+        }
+
         private void backcolorPick_Click(object sender, EventArgs e)
         {
             var result = colorDialog.ShowDialog();
 
             if (result == DialogResult.OK || result == DialogResult.Yes)
             {
-                m_TexDisplay.darkBackgroundColour =
+                darkBack = lightBack = m_TexDisplay.darkBackgroundColour =
                     m_TexDisplay.lightBackgroundColour = new FloatVector(
                         ((float)colorDialog.Color.R) / 255.0f,
                         ((float)colorDialog.Color.G) / 255.0f,
@@ -2102,26 +3130,80 @@ namespace renderdocui.Windows
             }
 
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
+
+            if (m_Output == null)
+            {
+                render.Invalidate();
+                pixelContext.Invalidate();
+            }
         }
 
         private void checkerBack_Click(object sender, EventArgs e)
         {
             var defaults = new TextureDisplay();
 
-            m_TexDisplay.darkBackgroundColour = defaults.darkBackgroundColour;
-            m_TexDisplay.lightBackgroundColour = defaults.lightBackgroundColour;
+            darkBack = m_TexDisplay.darkBackgroundColour = defaults.darkBackgroundColour;
+            lightBack = m_TexDisplay.lightBackgroundColour = defaults.lightBackgroundColour;
 
             backcolorPick.Checked = false;
             checkerBack.Checked = true;
 
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
+
+            if (m_Output == null)
+            {
+                render.Invalidate();
+                pixelContext.Invalidate();
+            }
         }
         private void mipLevel_SelectedIndexChanged(object sender, EventArgs e)
         {
-            m_TexDisplay.mip = (UInt32)mipLevel.SelectedIndex;
+            if (CurrentTexture == null) return;
+
+            uint prevSlice = m_TexDisplay.sliceFace;
+
+            if (CurrentTexture.mips > 1)
+            {
+                m_TexDisplay.mip = (UInt32)mipLevel.SelectedIndex;
+                m_TexDisplay.sampleIdx = 0;
+            }
+            else
+            {
+                m_TexDisplay.mip = 0;
+                m_TexDisplay.sampleIdx = (UInt32)mipLevel.SelectedIndex;
+                if (mipLevel.SelectedIndex == CurrentTexture.msSamp)
+                    m_TexDisplay.sampleIdx = ~0U;
+            }
+
+            // For 3D textures, update the slice list for this mip
+            if(CurrentTexture.depth > 1)
+            {
+                uint newSlice = prevSlice >> (int)m_TexDisplay.mip;
+
+                UInt32 numSlices = Math.Max(1, CurrentTexture.depth >> (int)m_TexDisplay.mip);
+
+                sliceFace.Items.Clear();
+
+                for (UInt32 i = 0; i < numSlices; i++)
+                    sliceFace.Items.Add("Slice " + i);
+
+                // changing sliceFace index will handle updating range & re-picking
+                sliceFace.SelectedIndex = Helpers.Clamp((int)newSlice, 0, sliceFace.Items.Count-1);
+
+                return;
+            }
 
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
+
+            if (m_Output != null && m_PickedPoint.X >= 0 && m_PickedPoint.Y >= 0)
+            {
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    if (m_Output != null)
+                        RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+                });
+            }
         }
 
         private void overlay_SelectedIndexChanged(object sender, EventArgs e)
@@ -2138,8 +3220,21 @@ namespace renderdocui.Windows
         {
             m_TexDisplay.sliceFace = (UInt32)sliceFace.SelectedIndex;
 
+            if (CurrentTexture.depth > 1)
+                m_TexDisplay.sliceFace = (UInt32)(sliceFace.SelectedIndex << (int)m_TexDisplay.mip);
+
             m_Core.Renderer.BeginInvoke(RT_UpdateAndDisplay);
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
+
+            if (m_Output != null && m_PickedPoint.X >= 0 && m_PickedPoint.Y >= 0)
+            {
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    if (m_Output != null)
+                        RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
+                });
+            }
+
         }
 
         private void updateChannelsHandler(object sender, EventArgs e)
@@ -2151,8 +3246,6 @@ namespace renderdocui.Windows
         {
             if (e.Button == MouseButtons.Right && sender is ToolStripButton)
             {
-                ToolStripButton me = (sender as ToolStripButton);
-
                 bool checkd = false;
 
                 var butts = new ToolStripButton[] { customRed, customGreen, customBlue, customAlpha };
@@ -2173,6 +3266,7 @@ namespace renderdocui.Windows
             }
         }
 
+        bool norangePaint = false;
         Thread rangePaintThread = null;
 
         void rangeHistogram_RangeUpdated(object sender, Controls.RangeHistogramEventArgs e)
@@ -2190,9 +3284,12 @@ namespace renderdocui.Windows
                 return;
             }
 
-            rangePaintThread = new Thread(new ThreadStart(() =>
+            if (norangePaint)
+                return;
+
+            rangePaintThread = Helpers.NewThread(new ThreadStart(() =>
             {
-                m_Core.Renderer.Invoke((ReplayRenderer r) => { RT_UpdateAndDisplay(r); if (m_Output != null) m_Output.Display(); });
+                m_Core.Renderer.InvokeForPaint((ReplayRenderer r) => { RT_UpdateAndDisplay(r); if (m_Output != null) m_Output.Display(); });
                 Thread.Sleep(8);
             }));
             rangePaintThread.Start();
@@ -2209,15 +3306,14 @@ namespace renderdocui.Windows
 
             autoFit.Checked = false;
 
-            rangeHistogram.RangeMin = black;
-            rangeHistogram.RangeMax = white;
+            rangeHistogram.SetRange(black, white);
 
             m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
         }
 
         private void reset01_Click(object sender, EventArgs e)
         {
-            rangeHistogram.SetRange(0.0f, 1.0f);
+            UI_SetHistogramRange(CurrentTexture, m_TexDisplay.typeHint);
 
             autoFit.Checked = false;
 
@@ -2242,10 +3338,14 @@ namespace renderdocui.Windows
 
         private void AutoFitRange()
         {
+            // no log loaded or buffer/empty texture currently being viewed - don't autofit
+            if (!m_Core.LogLoaded || CurrentTexture == null || m_Output == null)
+                return;
+
             m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
             {
                 PixelValue min, max;
-                bool success = r.GetMinMax(m_TexDisplay.texid, m_TexDisplay.sliceFace, m_TexDisplay.mip, out min, out max);
+                bool success = m_Output.GetMinMax(out min, out max);
 
                 if (success)
                 {
@@ -2255,6 +3355,11 @@ namespace renderdocui.Windows
                     bool changeRange = false;
 
                     ResourceFormat fmt = CurrentTexture.format;
+
+                    if (m_TexDisplay.CustomShader != ResourceId.Null)
+                    {
+                        fmt.compType = FormatComponentType.Float;
+                    }
 
                     for (int i = 0; i < 4; i++)
                     {
@@ -2329,15 +3434,17 @@ namespace renderdocui.Windows
 
         private void RT_UpdateVisualRange(ReplayRenderer r)
         {
-            if (!m_Visualise || CurrentTexture == null) return;
+            if (!m_Visualise || CurrentTexture == null || m_Output == null) return;
 
             ResourceFormat fmt = CurrentTexture.format;
+
+            if (m_TexDisplay.CustomShader != ResourceId.Null)
+                fmt.compCount = 4;
 
             bool success = true;
 
             uint[] histogram;
-            success = r.GetHistogram(m_TexDisplay.texid, m_TexDisplay.sliceFace, m_TexDisplay.mip,
-                                     rangeHistogram.BlackPoint, rangeHistogram.WhitePoint,
+            success = m_Output.GetHistogram(rangeHistogram.RangeMin, rangeHistogram.RangeMax,
                                      m_TexDisplay.Red,
                                      m_TexDisplay.Green && fmt.compCount > 1,
                                      m_TexDisplay.Blue && fmt.compCount > 2,
@@ -2348,25 +3455,52 @@ namespace renderdocui.Windows
             {
                 this.BeginInvoke(new Action(() =>
                 {
-                    rangeHistogram.SetHistogramRange(rangeHistogram.BlackPoint, rangeHistogram.WhitePoint);
+                    rangeHistogram.SetHistogramRange(rangeHistogram.RangeMin, rangeHistogram.RangeMax);
                     rangeHistogram.HistogramData = histogram;
                 }));
             }
         }
 
-        private void rangePoint_KeyDown(object sender, KeyEventArgs e)
+        bool rangePoint_Dirty = false;
+
+        private void rangePoint_Changed(object sender, EventArgs e)
         {
-            if (e.KeyCode == Keys.Enter)
+            rangePoint_Dirty = true;
+        }
+
+        private void rangePoint_Update()
+        {
+            float black = rangeHistogram.BlackPoint;
+            float white = rangeHistogram.WhitePoint;
+
+            float.TryParse(rangeBlack.Text, out black);
+            float.TryParse(rangeWhite.Text, out white);
+
+            rangeHistogram.SetRange(black, white);
+
+            m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
+        }
+
+        private void rangePoint_Leave(object sender, EventArgs e)
+        {
+            if (!rangePoint_Dirty) return;
+
+            rangePoint_Update();
+
+            rangePoint_Dirty = false;
+        }
+
+        private void rangePoint_KeyPress(object sender, KeyPressEventArgs e)
+        {
+            // escape key
+            if (e.KeyChar == '\0')
             {
-                float black = rangeHistogram.BlackPoint;
-                float white = rangeHistogram.WhitePoint;
-
-                float.TryParse(rangeBlack.Text, out black);
-                float.TryParse(rangeWhite.Text, out white);
-
-                rangeHistogram.SetRange(black, white);
-
-                m_Core.Renderer.BeginInvoke(RT_UpdateVisualRange);
+                rangePoint_Dirty = false;
+                rangeHistogram.SetRange(rangeHistogram.BlackPoint, rangeHistogram.WhitePoint);
+            }
+            if (e.KeyChar == '\n' || e.KeyChar == '\r')
+            {
+                rangePoint_Update();
             }
         }
 
@@ -2390,8 +3524,6 @@ namespace renderdocui.Windows
         {
             if (tabContextMenu.SourceControl == m_PreviewPanel.Pane.TabStripControl)
             {
-                int idx = m_PreviewPanel.Pane.TabStripControl.Tabs.IndexOf(m_PreviewPanel.Pane.ActiveContent);
-
                 if (m_PreviewPanel.Pane.ActiveContent != m_PreviewPanel)
                 {
                     (m_PreviewPanel.Pane.ActiveContent as DockContent).Close();
@@ -2440,41 +3572,137 @@ namespace renderdocui.Windows
             render.Invalidate();
         }
 
+        private void pixelHistory_Click(object sender, EventArgs e)
+        {
+            PixelModification[] history = null;
+
+            int x = m_PickedPoint.X >> (int)m_TexDisplay.mip;
+            int y = m_PickedPoint.Y >> (int)m_TexDisplay.mip;
+
+            PixelHistoryView hist = new PixelHistoryView(m_Core, CurrentTexture, new Point(x, y), m_TexDisplay.sampleIdx,
+                                                         m_TexDisplay.rangemin, m_TexDisplay.rangemax,
+                                                         new bool[] { m_TexDisplay.Red, m_TexDisplay.Green, m_TexDisplay.Blue, m_TexDisplay.Alpha });
+
+            hist.Show(DockPanel);
+
+            // add a short delay so that controls repainting after a new panel appears can get at the
+            // render thread before we insert the long blocking pixel history task
+            var delayedHistory = new BackgroundWorker();
+            delayedHistory.DoWork += delegate
+            {
+                Thread.Sleep(100);
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                {
+                    history = r.PixelHistory(CurrentTexture.ID,
+                        (UInt32)x, (UInt32)y,
+                        m_TexDisplay.sliceFace, m_TexDisplay.mip, m_TexDisplay.sampleIdx,
+                        m_TexDisplay.typeHint);
+
+                    this.BeginInvoke(new Action(() =>
+                    {
+                        hist.SetHistory(history);
+                    }));
+                });
+            };
+            delayedHistory.RunWorkerAsync();
+        }
+
         private void debugPixel_Click(object sender, EventArgs e)
         {
             ShaderDebugTrace trace = null;
 
             ShaderReflection shaderDetails = m_Core.CurPipelineState.GetShaderReflection(ShaderStageType.Pixel);
 
+            if(m_PickedPoint.X < 0 || m_PickedPoint.Y < 0)
+                return;
+
+            int x = m_PickedPoint.X >> (int)m_TexDisplay.mip;
+            int y = m_PickedPoint.Y >> (int)m_TexDisplay.mip;
+
             m_Core.Renderer.Invoke((ReplayRenderer r) =>
             {
-                trace = r.PSGetDebugStates((UInt32)m_PickedPoint.X, (UInt32)m_PickedPoint.Y);
+                trace = r.DebugPixel((UInt32)x, (UInt32)y, m_TexDisplay.sampleIdx, uint.MaxValue);
             });
 
             if (trace == null || trace.states.Length == 0)
             {
-                MessageBox.Show("Couldn't find pixel to debug.\nEnsure the relevant drawcall is selected for this pixel.", "No Pixel Found",
-                                MessageBoxButtons.OK, MessageBoxIcon.Information);
+                // if we couldn't debug the pixel on this event, open up a pixel history
+                pixelHistory_Click(sender, e);
                 return;
             }
 
             this.BeginInvoke(new Action(() =>
             {
-                ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Pixel, trace);
+                string debugContext = String.Format("Pixel {0},{1}", x, y);
+
+                ShaderViewer s = new ShaderViewer(m_Core, shaderDetails, ShaderStageType.Pixel, trace, debugContext);
 
                 s.Show(this.DockPanel);
             }));
         }
 
+        private void viewTexBuffer_Click(object sender, EventArgs e)
+        {
+            if (CurrentTexture != null)
+            {
+                var viewer = new BufferViewer(m_Core, false);
+                viewer.ViewRawBuffer(false, 0, ulong.MaxValue, CurrentTexture.ID);
+                viewer.Show(this.DockPanel);
+            }
+        }
+
+        private TextureSaveDialog m_SaveDialog = null;
+
         private void saveTex_Click(object sender, EventArgs e)
         {
-            if (saveTextureDialog.ShowDialog() == DialogResult.OK)
+            if(CurrentTexture == null)
+                return;
+
+            if (m_SaveDialog == null)
+                m_SaveDialog = new TextureSaveDialog(m_Core);
+
+            m_SaveDialog.saveData.id = m_TexDisplay.texid;
+            m_SaveDialog.saveData.typeHint = m_TexDisplay.typeHint;
+            m_SaveDialog.saveData.slice.sliceIndex = (int)m_TexDisplay.sliceFace;
+            m_SaveDialog.saveData.mip = (int)m_TexDisplay.mip;
+
+            if(CurrentTexture != null && CurrentTexture.depth > 1)
+                m_SaveDialog.saveData.slice.sliceIndex = (int)m_TexDisplay.sliceFace >> (int)m_TexDisplay.mip;
+
+            m_SaveDialog.saveData.channelExtract = -1;
+            if (m_TexDisplay.Red && !m_TexDisplay.Green && !m_TexDisplay.Blue && !m_TexDisplay.Alpha)
+                m_SaveDialog.saveData.channelExtract = 0;
+            if (!m_TexDisplay.Red && m_TexDisplay.Green && !m_TexDisplay.Blue && !m_TexDisplay.Alpha)
+                m_SaveDialog.saveData.channelExtract = 1;
+            if (!m_TexDisplay.Red && !m_TexDisplay.Green && m_TexDisplay.Blue && !m_TexDisplay.Alpha)
+                m_SaveDialog.saveData.channelExtract = 2;
+            if (!m_TexDisplay.Red && !m_TexDisplay.Green && !m_TexDisplay.Blue && m_TexDisplay.Alpha)
+                m_SaveDialog.saveData.channelExtract = 3;
+
+            m_SaveDialog.saveData.comp.blackPoint = m_TexDisplay.rangemin;
+            m_SaveDialog.saveData.comp.whitePoint = m_TexDisplay.rangemax;
+            m_SaveDialog.saveData.alphaCol = m_TexDisplay.lightBackgroundColour;
+            m_SaveDialog.saveData.alpha = m_TexDisplay.Alpha ? AlphaMapping.Preserve : AlphaMapping.Discard;
+            if (m_TexDisplay.Alpha && !checkerBack.Checked) m_SaveDialog.saveData.alpha = AlphaMapping.BlendToColour;
+            m_SaveDialog.tex = CurrentTexture;
+
+            if (m_TexDisplay.CustomShader != ResourceId.Null)
             {
+                m_Core.Renderer.Invoke((ReplayRenderer r) =>
+                {
+                    ResourceId id = m_Output.GetCustomShaderTexID();
+                    if(id != ResourceId.Null)
+                        m_SaveDialog.saveData.id = id;
+                });
+            }
+
+            if(m_SaveDialog.ShowDialog() == DialogResult.OK)
+            { 
                 bool ret = false;
 
                 m_Core.Renderer.Invoke((ReplayRenderer r) =>
                 {
-                    ret = r.SaveTexture(m_TexDisplay.texid, m_TexDisplay.mip, saveTextureDialog.FileName);
+                    ret = r.SaveTexture(m_SaveDialog.saveData, m_SaveDialog.Filename);
                 });
 
                 if(!ret)
@@ -2540,39 +3768,53 @@ namespace renderdocui.Windows
             ViewTexture(e.ID, false);
         }
 
+        private void gotoLocationButton_Click(object sender, EventArgs e)
+        {
+            ShowGotoPopup();
+        }
+
         #endregion
 
         #region Thumbnail strip
 
-        private void AddResourceUsageEntry(uint start, uint end, ResourceUsage usage)
+        private void AddResourceUsageEntry(List<ToolStripItem> items, uint start, uint end, ResourceUsage usage)
         {
             ToolStripItem item = null;
 
             if (start == end)
-                item = rightclickMenu.Items.Add("EID " + start + ": " + usage.Str());
+                item = new ToolStripMenuItem("EID " + start + ": " + usage.Str(m_Core.APIProps.pipelineType));
             else
-                item = rightclickMenu.Items.Add("EID " + start + "-" + end + ": " + usage.Str());
+                item = new ToolStripMenuItem("EID " + start + "-" + end + ": " + usage.Str(m_Core.APIProps.pipelineType));
 
             item.Click += new EventHandler(resourceContextItem_Click);
             item.Tag = end;
+            item.Size = new System.Drawing.Size(180, 22);
+
+            items.Add(item);
         }
 
         private void OpenResourceContextMenu(ResourceId id, bool thumbStripMenu, Control c, Point p)
         {
+            var menuItems = new List<ToolStripItem>();
+
             int i = 0;
             for (i = 0; i < rightclickMenu.Items.Count; i++)
-                if (rightclickMenu.Items[i] == usedStartLabel)
-                    break;
-
-            while (i != rightclickMenu.Items.Count - 1)
-                rightclickMenu.Items.RemoveAt(i + 1);
-
-            for (i = 0; i < rightclickMenu.Items.Count; i++)
             {
+                menuItems.Add(rightclickMenu.Items[i]);
                 if (rightclickMenu.Items[i] == usedStartLabel)
                     break;
 
-                rightclickMenu.Items[i].Visible = thumbStripMenu;
+                menuItems[i].Visible = thumbStripMenu;
+            }
+
+            if (m_Core.CurPipelineState.SupportsBarriers)
+            {
+                imageInLayoutMenuItem.Visible = true;
+                imageInLayoutMenuItem.Text = "Image is in layout " + m_Core.CurPipelineState.GetImageLayout(id);
+            }
+            else
+            {
+                imageInLayoutMenuItem.Visible = false;
             }
 
             if (id != ResourceId.Null)
@@ -2583,7 +3825,7 @@ namespace renderdocui.Windows
 
                 openNewTab.Tag = id;
 
-                m_Core.Renderer.Invoke((ReplayRenderer r) =>
+                m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
                 {
                     EventUsage[] usage = r.GetUsage(id);
 
@@ -2591,7 +3833,7 @@ namespace renderdocui.Windows
                     {
                         uint start = 0;
                         uint end = 0;
-                        ResourceUsage us = ResourceUsage.IA_IB;
+                        ResourceUsage us = ResourceUsage.IndexBuffer;
 
                         foreach (var u in usage)
                         {
@@ -2602,11 +3844,44 @@ namespace renderdocui.Windows
                                 continue;
                             }
 
-                            var curDraw = m_Core.GetDrawcall(m_Core.CurFrame, u.eventID);
+                            var curDraw = m_Core.GetDrawcall(u.eventID);
 
-                            if (u.usage != us || curDraw.previous == null || curDraw.previous.eventID != end)
+                            bool distinct = false;
+
+                            // if the usage is different from the last, add a new entry,
+                            // or if the previous draw link is broken.
+                            if (u.usage != us || curDraw == null || curDraw.previous == null)
                             {
-                                AddResourceUsageEntry(start, end, us);
+                                distinct = true;
+                            }
+                            else
+                            {
+                                // otherwise search back through real draws, to see if the
+                                // last event was where we were - otherwise it's a new
+                                // distinct set of drawcalls and should have a separate
+                                // entry in the context menu
+                                FetchDrawcall prev = curDraw.previous;
+
+                                while(prev != null && prev.eventID > end)
+                                {
+                                    if((prev.flags & (DrawcallFlags.Dispatch|DrawcallFlags.Drawcall|DrawcallFlags.CmdList)) == 0)
+                                    {
+                                        prev = prev.previous;
+                                    }
+                                    else
+                                    {
+                                        distinct = true;
+                                        break;
+                                    }
+
+                                    if(prev == null)
+                                        distinct = true;
+                                }
+                            }
+
+                            if(distinct)
+                            {
+                                AddResourceUsageEntry(menuItems, start, end, us);
                                 start = end = u.eventID;
                                 us = u.usage;
                             }
@@ -2615,7 +3890,10 @@ namespace renderdocui.Windows
                         }
 
                         if (start != 0)
-                            AddResourceUsageEntry(start, end, us);
+                            AddResourceUsageEntry(menuItems, start, end, us);
+
+                        rightclickMenu.Items.Clear();
+                        rightclickMenu.Items.AddRange(menuItems.ToArray());
 
                         rightclickMenu.Show(c, p);
                     }));
@@ -2635,10 +3913,6 @@ namespace renderdocui.Windows
         {
             if (e.Button == MouseButtons.Left && sender is ResourcePreview)
             {
-                var prev = (ResourcePreview)sender;
-
-                var follow = (Following)prev.Tag;
-
                 var id = m_Following.GetResourceId(m_Core);
 
                 if (id != ResourceId.Null)
@@ -2654,10 +3928,10 @@ namespace renderdocui.Windows
 
                 var follow = (Following)prev.Tag;
 
-                foreach (var p in rtPanel.Thumbnails)
+                foreach (var p in rwPanel.Thumbnails)
                     p.Selected = false;
 
-                foreach (var p in texPanel.Thumbnails)
+                foreach (var p in roPanel.Thumbnails)
                     p.Selected = false;
 
                 m_Following = follow;
@@ -2667,7 +3941,7 @@ namespace renderdocui.Windows
 
                 if (id != ResourceId.Null)
                 {
-                    UI_OnTextureSelectionChanged();
+                    UI_OnTextureSelectionChanged(false);
                     m_PreviewPanel.Show();
                 }
             }
@@ -2706,7 +3980,7 @@ namespace renderdocui.Windows
                 var c = (ToolStripItem)sender;
 
                 if (c.Tag is uint)
-                    m_Core.SetEventID(null, m_Core.CurFrame, (uint)c.Tag);
+                    m_Core.SetEventID(null, (uint)c.Tag);
                 else if (c.Tag is ResourceId)
                     ViewTexture((ResourceId)c.Tag, false);
             }
@@ -2717,7 +3991,7 @@ namespace renderdocui.Windows
             showDisabled.Checked = !showDisabled.Checked;
 
             if (m_Core.LogLoaded)
-                OnEventSelected(m_Core.CurFrame, m_Core.CurEvent);
+                OnEventSelected(m_Core.CurEvent);
         }
 
         private void showEmpty_Click(object sender, EventArgs e)
@@ -2725,14 +3999,14 @@ namespace renderdocui.Windows
             showEmpty.Checked = !showEmpty.Checked;
 
             if (m_Core.LogLoaded)
-                OnEventSelected(m_Core.CurFrame, m_Core.CurEvent);
+                OnEventSelected(m_Core.CurEvent);
         }
-
-        #endregion
 
         private void TextureViewer_FormClosed(object sender, FormClosedEventArgs e)
         {
             m_Core.RemoveLogViewer(this);
         }
+
+        #endregion
    }
 }

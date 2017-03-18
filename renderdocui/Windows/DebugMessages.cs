@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -41,105 +42,82 @@ namespace renderdocui.Windows
     {
         private Core m_Core;
 
-        struct DebugMessage
-        {
-            public DebugMessage(int i, UInt32 e, renderdoc.DebugMessage m) { Index = i; EventID = e; Message = m; }
-            public int Index;
-            public UInt32 EventID;
-            public renderdoc.DebugMessage Message;
-        };
-
-        List<DebugMessage> m_Messages = new List<DebugMessage>();
         List<int> m_VisibleMessages = new List<int>();
+        int m_NumMessages = 0;
 
         public DebugMessages(Core core)
         {
             InitializeComponent();
 
+            if (SystemInformation.HighContrast)
+                toolStrip1.Renderer = new ToolStripSystemRenderer();
+
             Icon = global::renderdocui.Properties.Resources.icon;
 
             m_Core = core;
+
+            messages.Font = core.Config.PreferredFont;
+
+            RefreshMessageList();
         }
 
         public void OnLogfileClosed()
         {
-            m_Messages.Clear();
             m_VisibleMessages.Clear();
+            m_NumMessages = 0;
             messages.RowCount = 0;
-        }
 
-        public void AddDebugMessages(FetchDrawcall[] drawcalls)
-        {
-            foreach (var draw in drawcalls)
-            {
-                if (draw.context != m_Core.FrameInfo[m_Core.CurFrame].immContextId)
-                    continue;
-
-                if(draw.children.Length > 0)
-                    AddDebugMessages(draw.children);
-
-                if (draw.debugMessages != null)
-                {
-                    foreach (var msg in draw.debugMessages)
-                    {
-                        int i = m_Messages.Count;
-                        m_VisibleMessages.Add(i);
-                        m_Messages.Add(new DebugMessage(i, draw.eventID, msg));
-                    }
-                }
-            }
+            RefreshMessageList();
         }
 
         public void OnLogfileLoaded()
         {
-            m_Messages.Clear();
             m_VisibleMessages.Clear();
+            m_NumMessages = 0;
             messages.RowCount = 0;
 
-            messages.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.DisplayedCells;
+            messages.AutoSizeRowsMode = DataGridViewAutoSizeRowsMode.AllCells;
 
-            for (UInt32 f = 0; f < m_Core.FrameInfo.Length; f++)
-            {
-                FetchDrawcall[] drawcalls = m_Core.GetDrawcalls(f);
-
-                AddDebugMessages(m_Core.GetDrawcalls(f));
-            }
-
-            messages.RowCount = m_Messages.Count;
+            RefreshMessageList();
         }
 
-        public void OnEventSelected(UInt32 frameID, UInt32 eventID)
+        public void OnEventSelected(UInt32 eventID)
         {
-        }
-
-        private void DebugMessages_Shown(object sender, EventArgs e)
-        {
-            if (m_Core.LogLoaded)
-                OnLogfileLoaded();
         }
 
         private void messages_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (e.RowIndex < m_VisibleMessages.Count)
-                m_Core.SetEventID(null, 0, m_Messages[m_VisibleMessages[e.RowIndex]].EventID);
+                m_Core.SetEventID(null, m_Core.DebugMessages[m_VisibleMessages[e.RowIndex]].eventID);
         }
 
         private bool m_SuppressRefresh = false;
 
-        void RefreshMessageList()
+        public void RefreshMessageList()
         {
             if (m_SuppressRefresh) return;
+
+            // add any new messages as default visible
+            for (int i = m_NumMessages; i < m_Core.DebugMessages.Count; i++)
+                m_VisibleMessages.Add(i);
+
+            m_NumMessages = m_Core.DebugMessages.Count;
 
             if (displayHidden.Checked)
             {
                 messages.RowCount = 0;
-                messages.RowCount = m_Messages.Count;
+                messages.RowCount = m_Core.DebugMessages.Count;
             }
             else
             {
                 messages.RowCount = 0;
                 messages.RowCount = m_VisibleMessages.Count;
             }
+
+            if (m_Core.UnreadMessageCount > 0)
+                Text = String.Format("({0}) Errors and Warnings", m_Core.UnreadMessageCount);
+            else
+                Text = "Errors and Warnings";
         }
 
         bool IsRowVisible(int row)
@@ -221,22 +199,59 @@ namespace renderdocui.Windows
 
                 int msgIdx = GetMessageIndex(typerow.Index);
 
-                renderdoc.DebugMessage msg = m_Messages[msgIdx].Message;
+                DebugMessage msg = m_Core.DebugMessages[msgIdx];
 
                 bool hiderows = IsRowVisible(msgIdx);
 
                 m_SuppressRefresh = true;
 
-                foreach (var message in m_Messages)
+                for(int i=0; i < m_Core.DebugMessages.Count; i++)
                 {
-                    if (message.Message.category == msg.category &&
-                        message.Message.severity == msg.severity &&
-                        message.Message.messageID == msg.messageID)
+                    var message = m_Core.DebugMessages[i];
+
+                    if (message.category == msg.category &&
+                        message.severity == msg.severity &&
+                        message.messageID == msg.messageID)
                     {
                         if (hiderows)
-                            HideRow(message.Index);
+                            HideRow(i);
                         else
-                            ShowRow(message.Index);
+                            ShowRow(i);
+                    }
+                }
+
+                m_SuppressRefresh = false;
+
+                RefreshMessageList();
+
+                messages.ClearSelection();
+            }
+        }
+
+        private void hideSource_Click(object sender, EventArgs e)
+        {
+            if (messages.SelectedRows.Count == 1)
+            {
+                DataGridViewRow typerow = messages.SelectedRows[0];
+
+                int msgIdx = GetMessageIndex(typerow.Index);
+                
+                DebugMessage msg = m_Core.DebugMessages[msgIdx];
+
+                bool hiderows = IsRowVisible(msgIdx);
+
+                m_SuppressRefresh = true;
+
+                for (int i = 0; i < m_Core.DebugMessages.Count; i++)
+                {
+                    var message = m_Core.DebugMessages[i];
+
+                    if (message.source == msg.source)
+                    {
+                        if (hiderows)
+                            HideRow(i);
+                        else
+                            ShowRow(i);
                     }
                 }
 
@@ -275,13 +290,14 @@ namespace renderdocui.Windows
             int msgIdx = GetMessageIndex(e.RowIndex);
 
             if (e.ColumnIndex < 0 || e.ColumnIndex >= messages.ColumnCount) return;
-            if (msgIdx < 0 || msgIdx >= m_Messages.Count) return;
+            if (msgIdx < 0 || msgIdx >= m_Core.DebugMessages.Count) return;
 
-            if (e.ColumnIndex == 0) e.Value = m_Messages[msgIdx].EventID;
-            if (e.ColumnIndex == 1) e.Value = m_Messages[msgIdx].Message.severity.ToString();
-            if (e.ColumnIndex == 2) e.Value = m_Messages[msgIdx].Message.category.ToString();
-            if (e.ColumnIndex == 3) e.Value = m_Messages[msgIdx].Message.messageID.ToString();
-            if (e.ColumnIndex == 4) e.Value = m_Messages[msgIdx].Message.description;
+            if (e.ColumnIndex == 0) e.Value = m_Core.DebugMessages[msgIdx].eventID;
+            if (e.ColumnIndex == 1) e.Value = m_Core.DebugMessages[msgIdx].source.Str();
+            if (e.ColumnIndex == 2) e.Value = m_Core.DebugMessages[msgIdx].severity.ToString();
+            if (e.ColumnIndex == 3) e.Value = m_Core.DebugMessages[msgIdx].category.ToString();
+            if (e.ColumnIndex == 4) e.Value = m_Core.DebugMessages[msgIdx].messageID.ToString();
+            if (e.ColumnIndex == 5) e.Value = m_Core.DebugMessages[msgIdx].description;
         }
 
         private void messages_CellFormatting(object sender, DataGridViewCellFormattingEventArgs e)
@@ -289,14 +305,30 @@ namespace renderdocui.Windows
             int msgIdx = GetMessageIndex(e.RowIndex);
 
             if (e.ColumnIndex < 0 || e.ColumnIndex >= messages.ColumnCount) return;
-            if (msgIdx < 0 || msgIdx >= m_Messages.Count) return;
+            if (msgIdx < 0 || msgIdx >= m_Core.DebugMessages.Count) return;
 
-            if (!IsRowVisible(msgIdx)) e.CellStyle.BackColor = Color.Salmon;
+            if (!IsRowVisible(msgIdx))
+                e.CellStyle.BackColor = Color.Salmon;
+            else if (m_Core.DebugMessages[msgIdx].source == DebugMessageSource.RuntimeWarning)
+                e.CellStyle.BackColor = Color.Aquamarine;
         }
 
         private void DebugMessages_FormClosed(object sender, FormClosedEventArgs e)
         {
             m_Core.RemoveLogViewer(this);
+        }
+
+        private void messages_CellPainting(object sender, DataGridViewCellPaintingEventArgs e)
+        {
+            // use BeginInvoke so we don't resize the messages mid-paint
+            this.BeginInvoke(new Action(() =>
+            {
+                if (m_Core.UnreadMessageCount > 0)
+                {
+                    m_Core.UnreadMessageCount = 0;
+                    RefreshMessageList();
+                }
+            }));
         }
     }
 }

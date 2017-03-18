@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -29,6 +30,7 @@ using System.Linq;
 using System.Text;
 using System.IO;
 using System.Windows.Forms;
+using System.Text.RegularExpressions;
 using renderdoc;
 
 namespace renderdocui.Code
@@ -59,7 +61,26 @@ namespace renderdocui.Code
                 return;
             }
 
+            if (args.Contains("--registerVKLayer"))
+            {
+                Helpers.RegisterVulkanLayer();
+                return;
+            }
+
             Win32PInvoke.LoadLibrary("renderdoc.dll");
+
+            // clean up any update that just happened
+            string updateFilesPath = Path.Combine(Path.GetTempPath(), "RenderDocUpdate");
+
+            try
+            {
+                if (Directory.Exists(updateFilesPath))
+                    Directory.Delete(updateFilesPath, true);
+            }
+            catch (Exception)
+            {
+                // ignore any exceptions from this
+            }
 
             string filename = "";
 
@@ -70,8 +91,37 @@ namespace renderdocui.Code
             // save it)
             foreach(var a in args)
             {
-                if(a.ToLowerInvariant() == "--tempfile")
+                if(a.ToUpperInvariant() == "--TEMPFILE")
                     temp = true;
+            }
+
+            string remoteHost = "";
+            uint remoteIdent = 0;
+
+            for (int i = 0; i < args.Length; i++)
+            {
+                // accept --remoteaccess for backwards compatibility
+                if (i + 1 < args.Length &&
+                    (args[i].ToUpperInvariant() == "--REMOTEACCESS" ||
+                    args[i].ToUpperInvariant() == "--TARGETCONTROL"))
+                {
+                    var regexp = @"^([a-zA-Z0-9_-]+:)?([0-9]+)$";
+
+                    var match = Regex.Match(args[i+1], regexp);
+
+                    if (match.Success)
+                    {
+                        var host = match.Groups[1].Value;
+                        if (host.Length > 0 && host[host.Length - 1] == ':')
+                            host = host.Substring(0, host.Length - 1);
+                        uint ident = 0;
+                        if (uint.TryParse(match.Groups[2].Value, out ident))
+                        {
+                            remoteHost = host;
+                            remoteIdent = ident;
+                        }
+                    }
+                }
             }
 
             if (args.Length > 0 && File.Exists(args[args.Length - 1]))
@@ -96,12 +146,52 @@ namespace renderdocui.Code
                 {
                     MessageBox.Show(String.Format("Error loading config file\n{0}\nA default config is loaded and will be saved out.", Core.ConfigFilename));
                 }
+                catch (System.IO.IOException ex)
+                {
+                    MessageBox.Show(String.Format("Error loading config file: {1}\n{0}\nA default config is loaded and will be saved out.", Core.ConfigFilename, ex.Message));
+                }
             }
 
             // propogate float formatting settings to the Formatter class used globally to format float values
-            cfg.SetupFormatter();
+            cfg.SetupFormatting();
 
-            var core = new Core(filename, temp, cfg);
+            Application.CurrentCulture = new System.Globalization.CultureInfo("en-GB");
+
+            var core = new Core(filename, remoteHost, remoteIdent, temp, cfg);
+
+            for(int i=0; i < args.Length; i++)
+            {
+                var a = args[i];
+
+                if (a.ToUpperInvariant() == "--UPDATEDONE")
+                {
+                    cfg.CheckUpdate_UpdateAvailable = false;
+                    cfg.CheckUpdate_UpdateResponse = "";
+
+                    bool hasOtherJSON;
+                    bool thisRegistered;
+                    string[] otherJSONs;
+
+                    bool configured = Helpers.CheckVulkanLayerRegistration(out hasOtherJSON, out thisRegistered, out otherJSONs);
+
+                    // if nothing is configured (ie. no other JSON files), then set up our layer
+                    // as part of the update process.
+                    if (!configured && !hasOtherJSON && !thisRegistered)
+                    {
+                        Helpers.RegisterVulkanLayer();
+                    }
+
+                    Helpers.UpdateInstalledVersionNumber();
+                }
+
+                if (a.ToUpperInvariant() == "--UPDATEFAILED")
+                {
+                    if(i < args.Length-1)
+                        MessageBox.Show(String.Format("Error applying update: {0}", args[i+1]), "Error updating", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                    else
+                        MessageBox.Show("Unknown error applying update", "Error updating", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                }
+            }
 
             try
             {
@@ -130,6 +220,7 @@ namespace renderdocui.Code
         {
             // we log out this string, which is matched against in renderdoccmd to pull out the callstack
             // from the log even in the case where the user chooses not to submit the error log
+            StaticExports.LogText("\n\n");
             StaticExports.LogText("--- Begin C# Exception Data ---");
             if (ex != null)
             {

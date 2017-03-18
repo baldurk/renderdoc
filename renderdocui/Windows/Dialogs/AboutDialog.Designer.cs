@@ -76,8 +76,8 @@
             this.label2.Name = "label2";
             this.label2.Size = new System.Drawing.Size(439, 122);
             this.label2.TabIndex = 2;
-            this.label2.Text = "Baldur Karlsson\r\nrenderdoc@crytek.com\r\nhttps://github.com/baldurk/renderdoc\r\nCopy" +
-    "right Crytek 2014";
+            this.label2.Text = "Baldur Karlsson\r\nbaldurk@baldurk.org\r\nhttps://github.com/baldurk/renderdoc\r\nCopy" +
+    "right Baldur Karlsson 2016";
             this.label2.TextAlign = System.Drawing.ContentAlignment.MiddleCenter;
             // 
             // ok
@@ -118,7 +118,6 @@
             this.ShowInTaskbar = false;
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterParent;
             this.Text = "About RenderDoc";
-            this.TopMost = true;
             this.Load += new System.EventHandler(this.AboutDialog_Load);
             this.tableLayoutPanel1.ResumeLayout(false);
             ((System.ComponentModel.ISupportInitialize)(this.logo)).EndInit();

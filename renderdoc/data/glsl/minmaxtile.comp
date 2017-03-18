@@ -1,0 +1,155 @@
+/******************************************************************************
+ * The MIT License (MIT)
+ * 
+ * Copyright (c) 2014-2017 Baldur Karlsson
+ * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
+ ******************************************************************************/
+
+//#include "texsample.h" // while includes aren't supported in glslang, this will be added in code
+
+layout(binding=0, std140) writeonly buffer minmaxtiledest
+{
+#if UINT_TEX
+	uvec4 tiles[];
+#elif SINT_TEX
+	ivec4 tiles[];
+#else
+	vec4 tiles[];
+#endif
+} dest;
+
+layout (local_size_x = HGRAM_TILES_PER_BLOCK, local_size_y = HGRAM_TILES_PER_BLOCK) in;
+
+void main()
+{
+	uvec3 tid = gl_LocalInvocationID;
+	uvec3 gid = gl_WorkGroupID;
+
+	int texType = SHADER_RESTYPE;
+
+	uvec3 texDim = uvec3(histogram_minmax.HistogramTextureResolution);
+
+	uint blocksX = uint(ceil(float(texDim.x)/float(HGRAM_PIXELS_PER_TILE*HGRAM_TILES_PER_BLOCK)));
+
+	uvec2 topleft = (gid.xy*HGRAM_TILES_PER_BLOCK + tid.xy)*HGRAM_PIXELS_PER_TILE;
+
+	uint outIdx = (tid.y*HGRAM_TILES_PER_BLOCK + tid.x) + (gid.y*blocksX + gid.x)*(HGRAM_TILES_PER_BLOCK*HGRAM_TILES_PER_BLOCK);
+
+	int i=0;
+
+#if UINT_TEX
+	{
+		uvec4 minval = uvec4(0,0,0,0);
+		uvec4 maxval = uvec4(0,0,0,0);
+
+		for(uint y=topleft.y; y < min(texDim.y, topleft.y + HGRAM_PIXELS_PER_TILE); y++)
+		{
+			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
+			{
+				uvec4 data = SampleTextureUInt4(texType, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy,
+												histogram_minmax.HistogramSlice,
+												histogram_minmax.HistogramMip,
+												histogram_minmax.HistogramSample,
+												histogram_minmax.HistogramTextureResolution);
+
+				if(i == 0)
+				{
+					minval = maxval = data;
+				}
+				else
+				{
+					minval = min(minval, data);
+					maxval = max(maxval, data);
+				}
+
+				i++;
+			}
+		}
+
+		dest.tiles[outIdx*2+0] = minval;
+		dest.tiles[outIdx*2+1] = maxval;
+	}
+#elif SINT_TEX
+	{
+		ivec4 minval = ivec4(0,0,0,0);
+		ivec4 maxval = ivec4(0,0,0,0);
+
+		for(uint y=topleft.y; y < min(texDim.y, topleft.y + HGRAM_PIXELS_PER_TILE); y++)
+		{
+			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
+			{
+				ivec4 data = SampleTextureSInt4(texType, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy,
+												histogram_minmax.HistogramSlice,
+												histogram_minmax.HistogramMip,
+												histogram_minmax.HistogramSample,
+												histogram_minmax.HistogramTextureResolution);
+
+				if(i == 0)
+				{
+					minval = maxval = data;
+				}
+				else
+				{
+					minval = min(minval, data);
+					maxval = max(maxval, data);
+				}
+
+				i++;
+			}
+		}
+
+		dest.tiles[outIdx*2+0] = minval;
+		dest.tiles[outIdx*2+1] = maxval;
+	}
+#else
+	{
+		vec4 minval = vec4(0,0,0,0);
+		vec4 maxval = vec4(0,0,0,0);
+
+		for(uint y=topleft.y; y < min(texDim.y, topleft.y + HGRAM_PIXELS_PER_TILE); y++)
+		{
+			for(uint x=topleft.x; x < min(texDim.x, topleft.x + HGRAM_PIXELS_PER_TILE); x++)
+			{
+				vec4 data = SampleTextureFloat4(texType, vec2(x, y) / histogram_minmax.HistogramTextureResolution.xy,
+												histogram_minmax.HistogramSlice,
+												histogram_minmax.HistogramMip,
+												histogram_minmax.HistogramSample,
+												histogram_minmax.HistogramTextureResolution);
+
+				if(i == 0)
+				{
+					minval = maxval = data;
+				}
+				else
+				{
+					minval = min(minval, data);
+					maxval = max(maxval, data);
+				}
+
+				i++;
+			}
+		}
+
+		dest.tiles[outIdx*2+0] = minval;
+		dest.tiles[outIdx*2+1] = maxval;
+	}
+#endif
+}
+

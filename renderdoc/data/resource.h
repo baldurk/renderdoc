@@ -10,26 +10,38 @@
 #define RESOURCE_debugcommon_hlsl   104
 #define RESOURCE_histogram_hlsl     105
 #define RESOURCE_multisample_hlsl   106
+#define RESOURCE_mesh_hlsl          107
 
-#define RESOURCE_blit_vert          201
-#define RESOURCE_blit_frag          202
-#define RESOURCE_texdisplay_frag    203
-#define RESOURCE_checkerboard_frag  204
-#define RESOURCE_generic_vert       205
-#define RESOURCE_generic_frag       206
-#define RESOURCE_mesh_vert          207
+#define RESOURCE_sourcecodepro_ttf  301
 
-#if !defined(STRINGIZE)
-#define STRINGIZE2(a) #a
-#define STRINGIZE(a) STRINGIZE2(a)
-#endif
+#define RESOURCE_glsl_blit_vert         401
+#define RESOURCE_glsl_checkerboard_frag 402
+#define RESOURCE_glsl_texdisplay_frag   403
+#define RESOURCE_glsl_text_vert         404
+#define RESOURCE_glsl_text_frag         405
+#define RESOURCE_glsl_fixedcol_frag     408
+#define RESOURCE_glsl_mesh_vert         409
+#define RESOURCE_glsl_mesh_geom         410
+#define RESOURCE_glsl_mesh_frag         411
+#define RESOURCE_glsl_minmaxtile_comp   412
+#define RESOURCE_glsl_minmaxresult_comp 413
+#define RESOURCE_glsl_histogram_comp    414
+#define RESOURCE_glsl_outline_frag      415
+#define RESOURCE_glsl_debuguniforms_h   416
+#define RESOURCE_glsl_gl_texsample_h    417
+#define RESOURCE_glsl_vk_texsample_h    418
+#define RESOURCE_glsl_quadresolve_frag  419
+#define RESOURCE_glsl_quadwrite_frag    420
+#define RESOURCE_glsl_mesh_comp         421
+#define RESOURCE_glsl_array2ms_comp     422
+#define RESOURCE_glsl_ms2array_comp     423
+#define RESOURCE_glsl_trisize_geom      424
+#define RESOURCE_glsl_trisize_frag      425
+#define RESOURCE_glsl_deptharr2ms_frag  426
+#define RESOURCE_glsl_depthms2arr_frag  427
+#define RESOURCE_glsl_gles_texsample_h  428
 
-#define RENDERDOC_VERSION_MAJOR			0
-#define RENDERDOC_VERSION_MINOR			20
-#define GIT_COMMIT_HASH							"NO_GIT_COMMIT_HASH_DEFINED"
 //#define RENDERDOC_OFFICIAL_BUILD // used to determine whether to submit auto crash reports
-#define RENDERDOC_VERSION_STRING		STRINGIZE(RENDERDOC_VERSION_MAJOR) "." STRINGIZE(RENDERDOC_VERSION_MINOR)
-#define RENDERDOC_VERSION_STRING_W		WIDEN(STRINGIZE(RENDERDOC_VERSION_MAJOR)) L"." WIDEN(STRINGIZE(RENDERDOC_VERSION_MINOR))
 
 // Next default values for new objects
 // 
@@ -41,3 +53,5 @@
 #define _APS_NEXT_SYMED_VALUE           101
 #endif
 #endif
+
+#include "api/replay/version.h"

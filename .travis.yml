@@ -1,0 +1,43 @@
+language: cpp
+
+branches:
+  only:
+    - master
+
+env:
+  global:
+    - RENDERDOC_TRAVIS_BUILD=1 RENDERDOC_CI_BUILD=1
+
+matrix:
+  fast_finish: true
+  include:
+# only build docs on linux
+    - os: linux
+      dist: trusty
+      sudo: false
+      env: CODE_BUILD=0 LINUX_BUILD=0 APPLE_BUILD=0 DOCS_BUILD=1
+    - os: linux
+      dist: trusty
+      sudo: required
+      env: CODE_BUILD=1 LINUX_BUILD=1 APPLE_BUILD=0 DOCS_BUILD=0
+      compiler: gcc
+    - os: linux
+      dist: trusty
+      sudo: required
+      env: CODE_BUILD=1 LINUX_BUILD=1 APPLE_BUILD=0 DOCS_BUILD=0
+      compiler: clang
+    - os: osx
+      osx_image: xcode8.2
+      env: CODE_BUILD=1 LINUX_BUILD=0 APPLE_BUILD=1 DOCS_BUILD=0
+      compiler: clang
+
+# install dependencies
+install:
+  - if [[ "$DOCS_BUILD" == "1" ]]; then . ./scripts/travis/docs_setup.sh ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$CODE_BUILD" == "1" ]]; then . ./scripts/travis/linux_setup.sh ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$CODE_BUILD" == "1" ]]; then . ./scripts/travis/osx_setup.sh ; fi
+
+script:
+  - if [[ "$DOCS_BUILD" == "1" ]]; then . ./scripts/travis/docs_compile.sh ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "linux" ]] && [[ "$CODE_BUILD" == "1" ]]; then . ./scripts/travis/linux_compile.sh ; fi
+  - if [[ "$TRAVIS_OS_NAME" == "osx" ]] && [[ "$CODE_BUILD" == "1" ]]; then . ./scripts/travis/osx_compile.sh ; fi

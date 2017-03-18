@@ -1,6 +1,7 @@
 /******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -25,11 +26,6 @@
 // this file provides a couple of functions that, given the basic type, will go and
 // figure out which resource to sample from and load from it then return the value
 
-struct a2v
-{
-	float3 pos : POSITION;
-};
-
 struct v2f
 {
 	float4 pos : SV_Position;
@@ -46,17 +42,19 @@ Texture2DArray<float2> texDisplayTexDepthArray : register(t4);
 Texture2DArray<uint2> texDisplayTexStencilArray : register(t5);
 Texture2DMSArray<float2> texDisplayTexDepthMSArray : register(t6);
 Texture2DMSArray<uint2> texDisplayTexStencilMSArray : register(t7);
-Texture2DArray<float4> texDisplayTexCubeArray : register(t8);
+Texture2DMSArray<float4> texDisplayTex2DMSArray : register(t9);
 
 Texture1DArray<uint4> texDisplayUIntTex1DArray : register(t11);
 Texture2DArray<uint4> texDisplayUIntTex2DArray : register(t12);
 Texture3D<uint4> texDisplayUIntTex3D : register(t13);
+Texture2DMSArray<uint4> texDisplayUIntTex2DMSArray : register(t19);
 
 Texture1DArray<int4> texDisplayIntTex1DArray : register(t21);
 Texture2DArray<int4> texDisplayIntTex2DArray : register(t22);
 Texture3D<int4> texDisplayIntTex3D : register(t23);
+Texture2DMSArray<int4> texDisplayIntTex2DMSArray : register(t29);
 
-uint4 SampleTextureUInt4(uint type, float2 uv, float slice, float mip, float3 texRes)
+uint4 SampleTextureUInt4(uint type, float2 uv, float slice, float mip, int sample, float3 texRes)
 {
 	uint4 col = 0;
 
@@ -66,11 +64,17 @@ uint4 SampleTextureUInt4(uint type, float2 uv, float slice, float mip, float3 te
 		col = texDisplayUIntTex3D.Load(int4(uv.xy*texRes.xy, slice*texRes.z, mip));
 	else if(type == RESTYPE_TEX2D)
 		col = texDisplayUIntTex2DArray.Load(int4(uv.xy*texRes.xy, slice, mip));
+	else if(type == RESTYPE_TEX2D_MS)
+	{
+		if(sample < 0)
+			sample = 0;
+		col = texDisplayUIntTex2DMSArray.Load(int3(uv.xy*texRes.xy, slice), sample);
+	}
 
 	return col;
 }
 
-int4 SampleTextureInt4(uint type, float2 uv, float slice, float mip, float3 texRes)
+int4 SampleTextureInt4(uint type, float2 uv, float slice, float mip, int sample, float3 texRes)
 {
 	int4 col = 0;
 
@@ -80,11 +84,17 @@ int4 SampleTextureInt4(uint type, float2 uv, float slice, float mip, float3 texR
 		col = texDisplayIntTex3D.Load(int4(uv.xy*texRes.xy, slice*texRes.z, mip));
 	else if(type == RESTYPE_TEX2D)
 		col = texDisplayIntTex2DArray.Load(int4(uv.xy*texRes.xy, slice, mip));
+	else if(type == RESTYPE_TEX2D_MS)
+	{
+		if(sample < 0)
+			sample = 0;
+		col = texDisplayIntTex2DMSArray.Load(int3(uv.xy*texRes.xy, slice), sample);
+	}
 
 	return col;
 }
 
-float4 SampleTextureFloat4(uint type, bool linearSample, float2 uv, float slice, float mip, float3 texRes)
+float4 SampleTextureFloat4(uint type, bool linearSample, float2 uv, float slice, float mip, int sample, float3 texRes)
 {
 	float4 col = 0;
 
@@ -115,14 +125,37 @@ float4 SampleTextureFloat4(uint type, bool linearSample, float2 uv, float slice,
 	}
 	else if(type == RESTYPE_DEPTH_MS)
 	{
-		col.r = texDisplayTexDepthMSArray.Load(int3(uv.xy*texRes.xy, slice), 0).r;
+		if(sample < 0)
+			sample = 0;
+
+		col.r = texDisplayTexDepthMSArray.Load(int3(uv.xy*texRes.xy, slice), sample).r;
 		col.gba = float3(0, 0, 1);
 	}
 	else if(type == RESTYPE_DEPTH_STENCIL_MS)
 	{
-		col.r = texDisplayTexDepthMSArray.Load(int3(uv.xy*texRes.xy, slice), 0).r;
-		col.g = texDisplayTexStencilMSArray.Load(int3(uv.xy*texRes.xy, slice), 0).g/255.0f;
+		if(sample < 0)
+			sample = 0;
+
+		col.r = texDisplayTexDepthMSArray.Load(int3(uv.xy*texRes.xy, slice), sample).r;
+		col.g = texDisplayTexStencilMSArray.Load(int3(uv.xy*texRes.xy, slice), sample).g/255.0f;
 		col.ba = float2(0, 1);
+	}
+	else if(type == RESTYPE_TEX2D_MS)
+	{
+		if(sample < 0)
+		{
+			int sampleCount = -sample;
+
+			// worst resolve you've seen in your life
+			for(int i=0; i < sampleCount; i++)
+				col += texDisplayTex2DMSArray.Load(int3(uv.xy*texRes.xy, slice), i);
+
+			col /= float(sampleCount);
+		}
+		else
+		{
+			col = texDisplayTex2DMSArray.Load(int3(uv.xy*texRes.xy, slice), sample);
+		}
 	}
 	else if(type == RESTYPE_TEX2D)
 	{

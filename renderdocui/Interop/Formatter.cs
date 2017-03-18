@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -50,6 +51,11 @@ namespace renderdoc
         public static String Format(UInt32 u)
         {
             return String.Format("{0}", u);
+        }
+
+        public static String Format(UInt32 u, bool hex)
+        {
+            return String.Format(hex ? "{0:X8}" : "{0}", u);
         }
 
         public static String Format(Int32 i)
@@ -141,13 +147,15 @@ namespace renderdoc
 
         private static void UpdateFormatters()
         {
-            m_EFormatter = "{0:" + String.Format("E{0}", m_MaxFigures) + "}";
             m_FFormatter = "{0:0.";
 
             int i = 0;
 
             for (; i < m_MinFigures; i++) m_FFormatter += "0";
             for (; i < m_MaxFigures; i++) m_FFormatter += "#";
+
+            m_EFormatter = m_FFormatter + "e+00}";
+
             m_FFormatter += "}";
         }
     };

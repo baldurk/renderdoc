@@ -1,67 +1,25 @@
-# RenderDoc License
+# The MIT License (MIT)
 
-RenderDoc is licensed under the MIT License:
+Copyright (c) 2015-2017 Baldur Karlsson
 
-> The MIT License (MIT)
-> 
-> Copyright (c) 2014 Crytek
-> 
-> Permission is hereby granted, free of charge, to any person obtaining a copy
-> of this software and associated documentation files (the "Software"), to deal
-> in the Software without restriction, including without limitation the rights
-> to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-> copies of the Software, and to permit persons to whom the Software is
-> furnished to do so, subject to the following conditions:
-> 
-> The above copyright notice and this permission notice shall be included in
-> all copies or substantial portions of the Software.
-> 
-> THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-> IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-> FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-> AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-> LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-> OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-> THE SOFTWARE.
+Copyright (c) 2014 Crytek
 
----
+Copyright (c) 1998-2017 [Third party code and tools](docs/credits_acknowledgements.rst)
 
-RenderDoc also uses several external libraries and components which include their own licenses, linked below:
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
 
-- [mhook](http://codefromthe70s.org/mhook23.aspx)
-  distributed under the MIT license.
-  Copyright Marton Anka 2007-2012, portions Copyright 2007 Matt Conover.
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
 
-- [TreeView with Columns](http://www.codeproject.com/Articles/23746/TreeView-with-Columns)
-  distributed under the [CPOL](http://www.codeproject.com/info/cpol10.aspx) license.
-
-- [Dock Panel Suite](http://dockpanelsuite.com/)
-  distributed under the MIT license.
-  Copyright 2007 Weifen Luo.
-
-- [famfamfam silk icons](http://www.famfamfam.com/lab/icons/silk/)
-  distributed under Creative Commons Attribution 2.5.
-  Authored by Mark James.
-
-- [ScintillaNET (and Scintilla)](http://scintillanet.codeplex.com/)
-  distributed under the MIT license.
-  ScintillaNET Copyright 2002-2006 Garrett Serack,
-  Scintilla Copyright 1998-2006 Neil Hodgson.
-
-- [Google Breakpad](https://code.google.com/p/google-breakpad/)
-  distributed under the New BSD License (3 Clause).
-  Copyright 2006 Google Inc.
-
-- [miniz](https://code.google.com/p/miniz/)
-  released to the Public Domain by Rich Geldreich.
-
-- [ILM's half implementation](https://github.com/openexr/openexr/tree/master/IlmBase/Half)
-  distributed under BSD license.
-  Copyright 2002 Industrial Light & Magic, a division of Lucas Digital Ltd. LLC
-
-- [jpeg-compressor](https://code.google.com/p/jpeg-compressor/)
-  released to the Public Domain by Rich Geldreich.
-
-- [lz4](https://code.google.com/p/lz4/)
-  distributed under the New BSD License (3 Clause).
-  Copyright 2013 Yann Collet.
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.

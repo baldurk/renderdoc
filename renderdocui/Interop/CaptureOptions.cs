@@ -1,6 +1,7 @@
 ﻿/******************************************************************************
  * The MIT License (MIT)
  * 
+ * Copyright (c) 2015-2017 Baldur Karlsson
  * Copyright (c) 2014 Crytek
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -56,9 +57,9 @@ namespace renderdoc
             return !(x == y);
         }
 
-        public static ResourceId Null = new ResourceId(0, true);
+        public static ResourceId Null = new ResourceId(0);
 
-        private ResourceId(UInt64 id, bool explicitConstruct)
+        public ResourceId(UInt64 id)
         {
             m_ID = id;
         }
@@ -69,14 +70,15 @@ namespace renderdoc
     {
         public bool AllowVSync;
         public bool AllowFullscreen;
-        public bool DebugDeviceMode;
+        public bool APIValidation;
         public bool CaptureCallstacks;
         public bool CaptureCallstacksOnlyDraws;
         public UInt32 DelayForDebugger;
-        public bool CacheStateObjects;
+        public bool VerifyMapWrites;
         public bool HookIntoChildren;
         public bool RefAllResources;
         public bool SaveAllInitials;
         public bool CaptureAllCmdLists;
+        public bool DebugOutputMute;
     };
 };
