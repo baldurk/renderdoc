@@ -58,10 +58,16 @@
           <height>20</height>
          </size>
         </property>
+        <property name="toolTip">
+         <string>Browse for an executable file</string>
+        </property>
        </widget>
       </item>
       <item row="0" column="3">
        <widget class="QToolButton" name="exePathBrowse">
+        <property name="toolTip">
+         <string>Browse for an executable file</string>
+        </property>
         <property name="text">
          <string>...</string>
         </property>
@@ -69,6 +75,9 @@
       </item>
       <item row="1" column="0">
        <widget class="QLabel" name="workDirLabel">
+        <property name="toolTip">
+         <string>Browse for a working directory</string>
+        </property>
         <property name="text">
          <string>Working Directory</string>
         </property>
@@ -76,6 +85,9 @@
       </item>
       <item row="1" column="3">
        <widget class="QToolButton" name="workDirBrowse">
+        <property name="toolTip">
+         <string>Browse for a working directory</string>
+        </property>
         <property name="text">
          <string>...</string>
         </property>
@@ -83,6 +95,9 @@
       </item>
       <item row="2" column="0">
        <widget class="QLabel" name="cmdLineLabel">
+        <property name="toolTip">
+         <string>The command-line that will be passed to the executable on launch</string>
+        </property>
         <property name="text">
          <string>Command-line Arguments</string>
         </property>
@@ -90,6 +105,9 @@
       </item>
       <item row="3" column="0">
        <widget class="QLabel" name="envVarLabel">
+        <property name="toolTip">
+         <string>The environment variables for the executable</string>
+        </property>
         <property name="text">
          <string>Environment Variables</string>
         </property>
@@ -97,6 +115,9 @@
       </item>
       <item row="3" column="3">
        <widget class="QToolButton" name="envVarEdit">
+        <property name="toolTip">
+         <string>The environment variables for the executable</string>
+        </property>
         <property name="text">
          <string>...</string>
         </property>
@@ -104,6 +125,9 @@
       </item>
       <item row="0" column="0">
        <widget class="QLabel" name="exePathLabel">
+        <property name="toolTip">
+         <string>Browse for an executable file</string>
+        </property>
         <property name="text">
          <string>Executable Path</string>
         </property>
@@ -117,6 +141,9 @@
           <height>20</height>
          </size>
         </property>
+        <property name="toolTip">
+         <string>Browse for a working directory</string>
+        </property>
        </widget>
       </item>
       <item row="2" column="2" colspan="2">
@@ -127,10 +154,16 @@
           <height>20</height>
          </size>
         </property>
+        <property name="toolTip">
+         <string>The command-line that will be passed to the executable on launch</string>
+        </property>
        </widget>
       </item>
       <item row="3" column="2">
        <widget class="QLineEdit" name="envVar">
+        <property name="toolTip">
+         <string>The environment variables for the executable</string>
+        </property>
         <property name="readOnly">
          <bool>true</bool>
         </property>
@@ -322,6 +355,9 @@ Click here to set up Vulkan capture.</string>
      <layout class="QVBoxLayout" name="verticalLayout_2">
       <item>
        <widget class="QCheckBox" name="AllowFullscreen">
+        <property name="toolTip">
+         <string>Allows the application to switch to full-screen mode</string>
+        </property>
         <property name="text">
          <string>Allow Fullscreen</string>
         </property>
@@ -329,6 +365,9 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="AllowVSync">
+        <property name="toolTip">
+         <string>Allows the application to enable v-sync</string>
+        </property>
         <property name="text">
          <string>Allow VSync</string>
         </property>
@@ -378,6 +417,9 @@ Click here to set up Vulkan capture.</string>
              <height>0</height>
             </size>
            </property>
+           <property name="toolTip">
+            <string>Pauses for N seconds after launching the process, to allow a debugger to attach</string>
+           </property>
            <property name="suffix">
             <string comment="seconds"> secs</string>
            </property>
@@ -400,6 +442,9 @@ Click here to set up Vulkan capture.</string>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
+           <property name="toolTip">
+            <string>Pauses for N seconds after launching the process, to allow a debugger to attach</string>
+           </property>
            <property name="text">
             <string>Debugger Delay</string>
            </property>
@@ -410,6 +455,9 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="CaptureCallstacks">
+        <property name="toolTip">
+         <string>Collect a callstack on every API call</string>
+        </property>
         <property name="text">
          <string>Collect Callstacks</string>
         </property>
@@ -417,6 +465,9 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="CaptureCallstacksOnlyDraws">
+        <property name="toolTip">
+         <string>Only collect callstacks on 'drawcall' level api calls</string>
+        </property>
         <property name="text">
          <string>Only Drawcall stacks</string>
         </property>
@@ -424,6 +475,9 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="APIValidation">
+        <property name="toolTip">
+         <string>Initialise the graphics API with built-in validation enabled - allows capturing and reading of errors and warnings generated by the API's own debugging system</string>
+        </property>
         <property name="text">
          <string>Enable API Validation</string>
         </property>
@@ -431,6 +485,9 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="HookIntoChildren">
+        <property name="toolTip">
+         <string>Hook into child processes - useful with launchers or similar intermediate processes</string>
+        </property>
         <property name="text">
          <string>Hook into Children</string>
         </property>
@@ -438,6 +495,9 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="SaveAllInitials">
+        <property name="toolTip">
+         <string>Save the initial API state of all API resources at the start of each captured frame</string>
+        </property>
         <property name="text">
          <string>Save all Initials</string>
         </property>
@@ -445,6 +505,9 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="RefAllResources">
+        <property name="toolTip">
+         <string>Consider all resources to be included, even if unsued in the capture frame</string>
+        </property>
         <property name="text">
          <string>Ref all Resources</string>
         </property>
@@ -452,6 +515,9 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="CaptureAllCmdLists">
+        <property name="toolTip">
+         <string>When enabled, all deferred command lists will be saved even while idling. This has an overhead but ensures if you hold onto a list it will be captured.</string>
+        </property>
         <property name="text">
          <string>Capture all Cmd Lists</string>
         </property>
@@ -466,6 +532,9 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QCheckBox" name="AutoStart">
+        <property name="toolTip">
+         <string>If these capture settings are saved &amp; run, auto start the capture instantly on load</string>
+        </property>
         <property name="text">
          <string>Auto Start</string>
         </property>
@@ -630,6 +699,9 @@ Click here to set up Vulkan capture.</string>
      <layout class="QHBoxLayout" name="horizontalLayout">
       <item>
        <widget class="QPushButton" name="saveSettings">
+        <property name="toolTip">
+         <string>Save these capture settings to file to load later</string>
+        </property>
         <property name="text">
          <string>Save</string>
         </property>
@@ -642,6 +714,9 @@ Click here to set up Vulkan capture.</string>
           <horstretch>0</horstretch>
           <verstretch>0</verstretch>
          </sizepolicy>
+        </property>
+        <property name="toolTip">
+         <string>Load a saved set of capture settings</string>
         </property>
         <property name="text">
          <string>Load</string>
@@ -666,6 +741,9 @@ Click here to set up Vulkan capture.</string>
       </item>
       <item>
        <widget class="QPushButton" name="launch">
+        <property name="toolTip">
+         <string>Launch the selected program with RenderDoc enabled for capture</string>
+        </property>
         <property name="text">
          <string>Launch</string>
         </property>

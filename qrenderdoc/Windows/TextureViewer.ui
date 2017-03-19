@@ -138,6 +138,9 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
+      <property name="toolTip">
+       <string>Zoom the visible range controls to the current black and white points</string>
+      </property>
       <property name="text">
        <string/>
       </property>
@@ -157,6 +160,9 @@
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
+      </property>
+      <property name="toolTip">
+       <string>Automatically fit the black and white points of the range to the minimum and maximum values contained in the texture</string>
       </property>
       <property name="text">
        <string/>
@@ -178,6 +184,9 @@
         <verstretch>0</verstretch>
        </sizepolicy>
       </property>
+      <property name="toolTip">
+       <string>Reset to [0, 1]</string>
+      </property>
       <property name="text">
        <string>...</string>
       </property>
@@ -197,6 +206,9 @@
         <horstretch>0</horstretch>
         <verstretch>0</verstretch>
        </sizepolicy>
+      </property>
+      <property name="toolTip">
+       <string>Show a histogram with the distribution of values on top of the visible range</string>
       </property>
       <property name="text">
        <string>...</string>
@@ -317,6 +329,9 @@
       <property name="enabled">
        <bool>true</bool>
       </property>
+      <property name="toolTip">
+       <string>Reset the zoom to 100%</string>
+      </property>
       <property name="text">
        <string>1:1</string>
       </property>
@@ -338,6 +353,9 @@
      <widget class="QToolButton" name="fitToWindow">
       <property name="enabled">
        <bool>true</bool>
+      </property>
+      <property name="toolTip">
+       <string>Fit the current texture to the window</string>
       </property>
       <property name="text">
        <string>Fit</string>
@@ -378,6 +396,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="flip_y">
+      <property name="toolTip">
+       <string>Flip the texture in the Y axis</string>
+      </property>
       <property name="text">
        <string/>
       </property>
@@ -441,6 +462,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="saveTex">
+      <property name="toolTip">
+       <string>Save selected Texture</string>
+      </property>
       <property name="text">
        <string/>
       </property>
@@ -455,6 +479,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="texListShow">
+      <property name="toolTip">
+       <string>Open Texture List</string>
+      </property>
       <property name="text">
        <string/>
       </property>
@@ -469,6 +496,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="viewTexBuffer">
+      <property name="toolTip">
+       <string>Open the texture contents in a raw buffer viewer</string>
+      </property>
       <property name="text">
        <string/>
       </property>
@@ -483,6 +513,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="locationGoto">
+      <property name="toolTip">
+       <string>Enter co-ordinates to select a specific pixel location</string>
+      </property>
       <property name="text">
        <string/>
       </property>
@@ -656,6 +689,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="channelRed">
+      <property name="toolTip">
+       <string>Show Red (Right click to toggle solo)</string>
+      </property>
       <property name="text">
        <string>R</string>
       </property>
@@ -672,6 +708,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="channelGreen">
+      <property name="toolTip">
+       <string>Show Green (Right click to toggle solo)</string>
+      </property>
       <property name="text">
        <string>G</string>
       </property>
@@ -688,6 +727,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="channelBlue">
+      <property name="toolTip">
+       <string>Show Blue (Right click to toggle solo)</string>
+      </property>
       <property name="text">
        <string>B</string>
       </property>
@@ -707,6 +749,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="channelAlpha">
+      <property name="toolTip">
+       <string>Show Alpha (Right click to toggle solo)</string>
+      </property>
       <property name="text">
        <string>A</string>
       </property>
@@ -795,6 +840,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="customCreate">
+      <property name="toolTip">
+       <string>Create New Custom Shader</string>
+      </property>
       <property name="text">
        <string/>
       </property>
@@ -809,6 +857,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="customEdit">
+      <property name="toolTip">
+       <string>Edit Selected Shader</string>
+      </property>
       <property name="text">
        <string/>
       </property>
@@ -823,6 +874,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="customDelete">
+      <property name="toolTip">
+       <string>Delete Custom Shader</string>
+      </property>
       <property name="text">
        <string/>
       </property>
@@ -837,6 +891,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="backcolorPick">
+      <property name="toolTip">
+       <string>Alpha: Pick Solid Background Color</string>
+      </property>
       <property name="text">
        <string/>
       </property>
@@ -854,6 +911,9 @@
     </item>
     <item>
      <widget class="QToolButton" name="checkerBack">
+      <property name="toolTip">
+       <string>Alpha: Show Checkerboard Background</string>
+      </property>
       <property name="text">
        <string/>
       </property>
@@ -886,6 +946,11 @@
         <width>23</width>
         <height>22</height>
        </size>
+      </property>
+      <property name="toolTip">
+       <string>Override display of linear data in gamma space
+
+See FAQ on &quot;Gamma display of linear data&quot;</string>
       </property>
       <property name="text">
        <string>γ</string>
