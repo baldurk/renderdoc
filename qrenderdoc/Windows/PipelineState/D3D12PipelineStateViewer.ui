@@ -69,6 +69,9 @@
       </item>
       <item>
        <widget class="QToolButton" name="showDisabled">
+        <property name="toolTip">
+         <string>Show Disabled Items</string>
+        </property>
         <property name="text">
          <string>Show Disabled Items</string>
         </property>
@@ -89,6 +92,9 @@
       </item>
       <item>
        <widget class="QToolButton" name="showEmpty">
+        <property name="toolTip">
+         <string>Show Empty Items</string>
+        </property>
         <property name="text">
          <string>Show Empty Items</string>
         </property>
@@ -109,6 +115,9 @@
       </item>
       <item>
        <widget class="QToolButton" name="exportHTML">
+        <property name="toolTip">
+         <string>Export the current pipeline state to an HTML file</string>
+        </property>
         <property name="text">
          <string>Export</string>
         </property>
@@ -488,6 +497,9 @@
          <layout class="QVBoxLayout" name="verticalLayout_3">
           <item>
            <widget class="QToolButton" name="meshView">
+            <property name="toolTip">
+             <string>View the mesh input data</string>
+            </property>
             <property name="text">
              <string/>
             </property>

@@ -172,6 +172,9 @@
              <property name="enabled">
               <bool>true</bool>
              </property>
+             <property name="toolTip">
+              <string>Configure Camera</string>
+             </property>
              <property name="icon">
               <iconset resource="../Resources/resources.qrc">
                <normaloff>:/cog.png</normaloff>:/cog.png</iconset>
@@ -192,6 +195,9 @@
              <property name="enabled">
               <bool>true</bool>
              </property>
+             <property name="toolTip">
+              <string>Reset Camera Position</string>
+             </property>
              <property name="text">
               <string/>
              </property>
@@ -208,6 +214,9 @@
             <widget class="QToolButton" name="autofitCamera">
              <property name="enabled">
               <bool>true</bool>
+             </property>
+             <property name="toolTip">
+              <string>Fit Camera to Geometry</string>
              </property>
              <property name="text">
               <string/>
@@ -262,6 +271,9 @@
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
+             <property name="toolTip">
+              <string>Wireframe</string>
+             </property>
              <property name="text">
               <string>Wireframe</string>
              </property>
@@ -289,6 +301,9 @@
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
+             </property>
+             <property name="toolTip">
+              <string>Highlight Vertices</string>
              </property>
              <property name="text">
               <string>Highlight Vertices</string>
@@ -621,6 +636,9 @@
       <property name="enabled">
        <bool>true</bool>
       </property>
+      <property name="toolTip">
+       <string>Export to CSV or raw bytes</string>
+      </property>
       <property name="icon">
        <iconset resource="../Resources/resources.qrc">
         <normaloff>:/save.png</normaloff>:/save.png</iconset>
@@ -643,6 +661,9 @@
      <widget class="QToolButton" name="syncViews">
       <property name="enabled">
        <bool>true</bool>
+      </property>
+      <property name="toolTip">
+       <string>Sync Views</string>
       </property>
       <property name="text">
        <string>Sync Views</string>

@@ -158,6 +158,9 @@ RDSplitter::RDSplitter(QWidget *parent) : QSplitter(parent)
 
 void RDSplitter::handleDoubleClicked(int index)
 {
+  if(index < 0 || index >= count())
+    return;
+
   RDSplitterHandle *rdHandle = (RDSplitterHandle *)handle(index);
   QList<int> totalSizes = sizes();
   if(totalSizes[index] > 0)
