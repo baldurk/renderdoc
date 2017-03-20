@@ -33,6 +33,16 @@
 #include "driver/shaders/dxbc/dxbc_compile.h"
 #include "serialise/serialiser.h"
 
+// replay only class for handling marker regions
+struct D3D12MarkerRegion
+{
+  D3D12MarkerRegion(ID3D12GraphicsCommandList *list, const std::string &marker);
+  ~D3D12MarkerRegion();
+  static void Set(ID3D12GraphicsCommandList *list, const std::string &marker);
+
+  ID3D12GraphicsCommandList *list;
+};
+
 void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
                           ShaderBindpointMapping *mapping);
 

@@ -28,6 +28,32 @@
 #include "d3d12_manager.h"
 #include "d3d12_resources.h"
 
+D3D12MarkerRegion::D3D12MarkerRegion(ID3D12GraphicsCommandList *l, const std::string &marker)
+{
+  list = l;
+
+  if(list)
+  {
+    std::wstring text = StringFormat::UTF82Wide(marker);
+    list->BeginEvent(0, text.c_str(), (UINT)text.size());
+  }
+}
+
+void D3D12MarkerRegion::Set(ID3D12GraphicsCommandList *list, const std::string &marker)
+{
+  if(list)
+  {
+    std::wstring text = StringFormat::UTF82Wide(marker);
+    list->SetMarker(0, text.c_str(), (UINT)text.size());
+  }
+}
+
+D3D12MarkerRegion::~D3D12MarkerRegion()
+{
+  if(list)
+    list->EndEvent();
+}
+
 static ShaderConstant MakeConstantBufferVariable(const DXBC::CBufferVariable &var, uint32_t &offset);
 
 static ShaderVariableType MakeShaderVariableType(DXBC::CBufferVariableType type, uint32_t &offset)
