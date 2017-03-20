@@ -125,7 +125,7 @@ Basic types accepted: bool, byte, short, int, half, float, double.
 Unsigned integer types: ubyte, ushort, uint
 Hex-formatted integer types: xbyte, xshort, xint
 
-Additionally special formats: unorm[hb] (half, byte) and snorm[hb], and uintten/unormten (10:10:10:2 packing)
+Additionally special formats: unorm[hb] (half, byte) and snorm[hb], uintten/unormten (10:10:10:2 packing), floateleven (11:11:10F packing)
 
 Vectors (e.g. float4), matrices ([row_major] half3x4) and arrays (float[16]) are supported.</value>
   </data>

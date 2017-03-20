@@ -2042,10 +2042,17 @@ namespace renderdocui.Windows.PipelineState
                             {
                                 if (view != null)
                                 {
-                                    if (view.Format.special && view.Format.specialFormat == SpecialFormat.R10G10B10A2)
+                                    if (view.Format.special)
                                     {
-                                        if (view.Format.compType == FormatComponentType.UInt) format = "uintten";
-                                        if (view.Format.compType == FormatComponentType.UNorm) format = "unormten";
+                                        if (view.Format.specialFormat == SpecialFormat.R10G10B10A2)
+                                        {
+                                            if (view.Format.compType == FormatComponentType.UInt) format = "uintten";
+                                            if (view.Format.compType == FormatComponentType.UNorm) format = "unormten";
+                                        }
+                                        else if (view.Format.specialFormat == SpecialFormat.R11G11B10)
+                                        {
+                                            format = "floateleven";
+                                        }
                                     }
                                     else if (!view.Format.special)
                                     {

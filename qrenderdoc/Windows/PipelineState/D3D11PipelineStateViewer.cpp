@@ -1834,14 +1834,21 @@ void D3D11PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
         else
         {
           const ResourceFormat &fmt = view.res.Format;
-          if(fmt.special && fmt.specialFormat == eSpecial_R10G10B10A2)
+          if(fmt.special)
           {
-            if(fmt.compType == eCompType_UInt)
-              format = "uintten";
-            if(fmt.compType == eCompType_UNorm)
-              format = "unormten";
+            if(fmt.specialFormat == eSpecial_R10G10B10A2)
+            {
+              if(fmt.compType == eCompType_UInt)
+                format = "uintten";
+              if(fmt.compType == eCompType_UNorm)
+                format = "unormten";
+            }
+            else if(fmt.specialFormat == eSpecial_R11G11B10)
+            {
+              format = "floateleven";
+            }
           }
-          else if(!fmt.special)
+          else
           {
             switch(fmt.compByteWidth)
             {

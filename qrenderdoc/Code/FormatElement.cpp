@@ -149,6 +149,7 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
       "^(row_major\\s+)?"    // row_major matrix
       "("
       "uintten|unormten"
+      "|floateleven"
       "|unormh|unormb"
       "|snormh|snormb"
       "|bool"                 // bool is stored as 4-byte int
@@ -336,6 +337,14 @@ QList<FormatElement> FormatElement::ParseFormatString(const QString &formatStrin
         fmt.compByteWidth = 1;
         fmt.special = true;
         fmt.specialFormat = eSpecial_R10G10B10A2;
+      }
+      else if(basetype == "floateleven")
+      {
+        fmt.compType = eCompType_Float;
+        fmt.compCount = 3 * count;
+        fmt.compByteWidth = 1;
+        fmt.special = true;
+        fmt.specialFormat = eSpecial_R11G11B10;
       }
       else
       {
@@ -585,16 +594,50 @@ QVariantList FormatElement::GetVariants(const byte *&data, const byte *end) cons
   {
     uint32_t packed = readObj<uint32_t>(data, end, ok);
 
-    uint32_t xMantissa = ((packed >> 0) & 0x3f);
-    uint32_t xExponent = ((packed >> 6) & 0x1f);
-    uint32_t yMantissa = ((packed >> 11) & 0x3f);
-    uint32_t yExponent = ((packed >> 17) & 0x1f);
-    uint32_t zMantissa = ((packed >> 22) & 0x1f);
-    uint32_t zExponent = ((packed >> 27) & 0x1f);
+    uint32_t mantissas[] = {
+        (packed >> 0) & 0x3f, (packed >> 11) & 0x3f, (packed >> 22) & 0x1f,
+    };
+    int32_t exponents[] = {
+        int32_t(packed >> 6) & 0x1f, int32_t(packed >> 17) & 0x1f, int32_t(packed >> 27) & 0x1f,
+    };
+    static const uint32_t leadbit[] = {
+        0x40, 0x40, 0x20,
+    };
 
-    ret.push_back(((float)(xMantissa) / 64.0f) * qPow(2.0f, (float)xExponent - 15.0f));
-    ret.push_back(((float)(yMantissa) / 32.0f) * qPow(2.0f, (float)yExponent - 15.0f));
-    ret.push_back(((float)(zMantissa) / 32.0f) * qPow(2.0f, (float)zExponent - 15.0f));
+    for(int i = 0; i < 3; i++)
+    {
+      if(mantissas[i] == 0 && exponents[i] == 0)
+      {
+        ret.push_back((float)0.0f);
+      }
+      else
+      {
+        if(exponents[i] == 0x1f)
+        {
+          // no sign bit, can't be negative infinity
+          if(mantissas[i] == 0)
+            ret.push_back((float)qInf());
+          else
+            ret.push_back((float)qQNaN());
+        }
+        else if(exponents[i] != 0)
+        {
+          // normal value, add leading bit
+          uint32_t combined = leadbit[i] | mantissas[i];
+
+          // calculate value
+          ret.push_back(((float)combined / (float)leadbit[i]) *
+                        qPow(2.0f, (float)exponents[i] - 15.0f));
+        }
+        else if(exponents[i] == 0)
+        {
+          // we know xMantissa isn't 0 also, or it would have been caught above so
+          // this is a subnormal value, pretend exponent is 1 and don't add leading bit
+
+          ret.push_back(((float)mantissas[i] / (float)leadbit[i]) * qPow(2.0f, (float)1.0f - 15.0f));
+        }
+      }
+    }
   }
   else
   {

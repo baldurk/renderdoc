@@ -258,16 +258,49 @@ namespace renderdocui.Code
             {
                 uint packed = read.ReadUInt32();
 
-                uint xMantissa = ((packed >> 0) & 0x3f);
-                uint xExponent = ((packed >> 6) & 0x1f);
-                uint yMantissa = ((packed >> 11) & 0x3f);
-                uint yExponent = ((packed >> 17) & 0x1f);
-                uint zMantissa = ((packed >> 22) & 0x1f);
-                uint zExponent = ((packed >> 27) & 0x1f);
+                uint[] mantissas = new uint[] {
+                    (packed >> 0) & 0x3f, (packed >> 11) & 0x3f, (packed >> 22) & 0x1f,
+                };
+                uint[] leadbit = new uint[] {
+                    0x40, 0x40, 0x20,
+                };
+                int[] exponents = new int[]{
+                    (int)(packed >> 6) & 0x1f, (int)(packed >> 17) & 0x1f, (int)(packed >> 27) & 0x1f,
+                };
 
-                ret.Add(((float)(xMantissa) / 64.0f) * Math.Pow(2.0f, (float)xExponent - 15.0f));
-                ret.Add(((float)(yMantissa) / 32.0f) * Math.Pow(2.0f, (float)yExponent - 15.0f));
-                ret.Add(((float)(zMantissa) / 32.0f) * Math.Pow(2.0f, (float)zExponent - 15.0f));
+                for (int i = 0; i < 3; i++)
+                {
+                    if (mantissas[i] == 0 && exponents[i] == 0)
+                    {
+                        ret.Add((float)0.0f);
+                    }
+                    else
+                    {
+                        if (exponents[i] == 0x1f)
+                        {
+                            // no sign bit, can't be negative infinity
+                            if (mantissas[i] == 0)
+                                ret.Add(float.PositiveInfinity);
+                            else
+                                ret.Add(float.NaN);
+                        }
+                        else if (exponents[i] != 0)
+                        {
+                            // normal value, add leading bit
+                            uint combined = leadbit[i] | mantissas[i];
+
+                            // calculate value
+                            ret.Add(((float)combined / (float)leadbit[i]) * Math.Pow(2.0f, (float)exponents[i] - 15.0f));
+                        }
+                        else if (exponents[i] == 0)
+                        {
+                            // we know xMantissa isn't 0 also, or it would have been caught above so
+                            // this is a subnormal value, pretend exponent is 1 and don't add leading bit
+
+                            ret.Add(((float)mantissas[i] / (float)leadbit[i]) * Math.Pow(2.0f, (float)1.0f - 15.0f));
+                        }
+                    }
+                }
             }
             else
             {
@@ -426,6 +459,7 @@ namespace renderdocui.Code
             var regExpr = @"^(row_major\s+)?" + // row_major matrix
                           @"(" +
                           @"uintten|unormten" +
+                          @"|floateleven" +
                           @"|unormh|unormb" +
                           @"|snormh|snormb" +
                           @"|bool" + // bool is stored as 4-byte int
@@ -607,6 +641,12 @@ namespace renderdocui.Code
                         fmt = new ResourceFormat(FormatComponentType.UNorm, 4 * count, 1);
                         fmt.special = true;
                         fmt.specialFormat = SpecialFormat.R10G10B10A2;
+                    }
+                    else if (basetype == "floateleven")
+                    {
+                        fmt = new ResourceFormat(FormatComponentType.Float, 3 * count, 1);
+                        fmt.special = true;
+                        fmt.specialFormat = SpecialFormat.R11G11B10;
                     }
                     else
                     {
