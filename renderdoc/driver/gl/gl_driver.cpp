@@ -2464,7 +2464,7 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 
   m_Real.glBindVertexArray(m_FakeVAO);
 
-  GetResourceManager()->MarkVAOReferenced(VertexArrayRes(GetCtx(), m_FakeVAO), eFrameRef_Write);
+  GetResourceManager()->MarkVAOReferenced(VertexArrayRes(NULL, m_FakeVAO), eFrameRef_Write, true);
 
   m_Real.glBindVertexArray(prevVAO);
 

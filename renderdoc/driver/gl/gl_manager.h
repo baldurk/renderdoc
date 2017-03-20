@@ -175,7 +175,8 @@ public:
 
   void MarkResourceFrameReferenced(GLResource res, FrameRefType refType)
   {
-    if(res.name == 0)
+    // we allow VAO 0 as a special case
+    if(res.name == 0 && res.Namespace != eResVertexArray)
       return;
     ResourceManager::MarkResourceFrameReferenced(GetID(res), refType);
   }
