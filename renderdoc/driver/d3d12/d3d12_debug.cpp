@@ -7231,6 +7231,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       RDCEraseEl(psoDesc.RTVFormats);
       psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
       psoDesc.NumRenderTargets = 1;
+      psoDesc.SampleMask = ~0U;
+      psoDesc.SampleDesc.Count = RDCMAX(1U, psoDesc.SampleDesc.Count);
       psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
       psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
@@ -7304,6 +7306,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       RDCEraseEl(psoDesc.RTVFormats);
       psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
       psoDesc.NumRenderTargets = 1;
+      psoDesc.SampleMask = ~0U;
+      psoDesc.SampleDesc.Count = RDCMAX(1U, psoDesc.SampleDesc.Count);
       psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
       psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_SOLID;
@@ -7398,6 +7402,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       RDCEraseEl(psoDesc.RTVFormats);
       psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
       psoDesc.NumRenderTargets = 1;
+      psoDesc.SampleMask = ~0U;
+      psoDesc.SampleDesc.Count = RDCMAX(1U, psoDesc.SampleDesc.Count);
       psoDesc.DSVFormat = DXGI_FORMAT_UNKNOWN;
 
       psoDesc.RasterizerState.FillMode = D3D12_FILL_MODE_WIREFRAME;
@@ -7915,6 +7921,8 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       RDCEraseEl(psoDesc.RTVFormats);
       psoDesc.RTVFormats[0] = DXGI_FORMAT_R16G16B16A16_UNORM;
       psoDesc.NumRenderTargets = 1;
+      psoDesc.SampleMask = ~0U;
+      psoDesc.SampleDesc.Count = RDCMAX(1U, psoDesc.SampleDesc.Count);
       psoDesc.BlendState.AlphaToCoverageEnable = FALSE;
       psoDesc.BlendState.IndependentBlendEnable = FALSE;
       psoDesc.BlendState.RenderTarget[0].BlendEnable = FALSE;
