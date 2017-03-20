@@ -907,11 +907,6 @@ void WrappedID3D11Device::AddDebugMessage(DebugMessageCategory c, DebugMessageSe
     msg.severity = sv;
     msg.description = d;
 
-    // at runtime we are finding any warnings for the event *after* the current
-    // event ID, as that's the one we just replayed
-    if(src == eDbgSource_RuntimeWarning)
-      msg.eventID++;
-
     m_DebugMessages.push_back(msg);
   }
 }
