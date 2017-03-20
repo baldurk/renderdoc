@@ -2823,7 +2823,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(UINT VertexCountP
     draw.numIndices = vtxCount;
     draw.numInstances = instCount;
     draw.indexOffset = 0;
-    draw.baseVertex = startVtx;
+    draw.vertexOffset = startVtx;
     draw.instanceOffset = startInst;
 
     draw.flags |= eDraw_Drawcall | eDraw_Instanced;
