@@ -7942,6 +7942,9 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
       psoDesc.PS.pShaderBytecode = green->GetBufferPointer();
       psoDesc.PS.BytecodeLength = green->GetBufferSize();
 
+      list->Close();
+      list = NULL;
+
       ID3D12PipelineState *greenPSO = NULL;
       HRESULT hr = m_WrappedDevice->CreateGraphicsPipelineState(
           &psoDesc, __uuidof(ID3D12PipelineState), (void **)&greenPSO);
@@ -7972,9 +7975,6 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, FormatComponentTyp
         SAFE_RELEASE(green);
         return m_OverlayResourceId;
       }
-
-      list->Close();
-      list = NULL;
 
       D3D12RenderState prev = rs;
 
