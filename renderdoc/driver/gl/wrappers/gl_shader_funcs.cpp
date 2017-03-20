@@ -470,6 +470,9 @@ GLuint WrappedOpenGL::glCreateShaderProgramv(GLenum type, GLsizei count, const G
 {
   GLuint real = m_Real.glCreateShaderProgramv(type, count, strings);
 
+  if(real == 0)
+    return real;
+
   GLResource res = ProgramRes(GetCtx(), real);
   ResourceId id = GetResourceManager()->RegisterResource(res);
 
