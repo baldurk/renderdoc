@@ -336,33 +336,37 @@ private:
     ID3D12PipelineState *pipes[ePipe_Count];
   };
 
-  struct PostVSData
+  struct D3D12PostVSData
   {
+    struct InstData
+    {
+      uint32_t numVerts = 0;
+      uint64_t bufOffset = 0;
+    };
+
     struct StageData
     {
-      ID3D12Resource *buf;
-      D3D_PRIMITIVE_TOPOLOGY topo;
+      ID3D12Resource *buf = NULL;
+      D3D_PRIMITIVE_TOPOLOGY topo = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
-      uint32_t numVerts;
-      uint32_t vertStride;
-      uint32_t instStride;
+      uint32_t vertStride = 0;
 
-      bool useIndices;
-      ID3D12Resource *idxBuf;
-      DXGI_FORMAT idxFmt;
+      // simple case - uniform
+      uint32_t numVerts = 0;
+      uint32_t instStride = 0;
 
-      bool hasPosOut;
+      // complex case - expansion per instance
+      std::vector<InstData> instData;
 
-      float nearPlane;
-      float farPlane;
+      bool useIndices = false;
+      ID3D12Resource *idxBuf = NULL;
+      DXGI_FORMAT idxFmt = DXGI_FORMAT_UNKNOWN;
+
+      bool hasPosOut = false;
+
+      float nearPlane = 0.0f;
+      float farPlane = 0.0f;
     } vsin, vsout, gsout;
-
-    PostVSData()
-    {
-      RDCEraseEl(vsin);
-      RDCEraseEl(vsout);
-      RDCEraseEl(gsout);
-    }
 
     const StageData &GetStage(MeshDataStage type)
     {
@@ -396,7 +400,7 @@ private:
   static const int m_SOPatchedIndexBufferSize = m_SOBufferSize / 16;
   ID3D12Resource *m_SOPatchedIndexBuffer;
 
-  map<uint32_t, PostVSData> m_PostVSData;
+  map<uint32_t, D3D12PostVSData> m_PostVSData;
   map<uint32_t, uint32_t> m_PostVSAlias;
 
   ID3D12Resource *m_CustomShaderTex;

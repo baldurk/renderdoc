@@ -4149,7 +4149,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     if(numBytesWritten == 0)
     {
-      m_PostVSData[eventID] = PostVSData();
+      m_PostVSData[eventID] = D3D12PostVSData();
       SAFE_RELEASE(idxBuf);
       SAFE_RELEASE(soSig);
       return;
@@ -4395,19 +4395,57 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
     view.BufferFilledSizeLocation = m_SOBuffer->GetGPUVirtualAddress();
     view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() + 64;
     view.SizeInBytes = m_SOBufferSize;
-    m_DebugList->SOSetTargets(0, 1, &view);
 
-    // because the result is expanded we don't have to remap index buffers or anything
-    if(drawcall->flags & eDraw_UseIBuffer)
+    // draws with multiple instances must be replayed one at a time so we can record the number of
+    // primitives from each drawcall, as due to expansion this can vary per-instance.
+    if(drawcall->numInstances > 1)
     {
-      m_DebugList->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
-                                        drawcall->indexOffset, drawcall->baseVertex,
-                                        drawcall->instanceOffset);
+      // reserve space for enough 'buffer filled size' locations
+      view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() +
+                            AlignUp(drawcall->numInstances * sizeof(UINT64), 64ULL);
+
+      // do incremental draws to get the output size. We have to do this O(N^2) style because
+      // there's no way to replay only a single instance. We have to replay 1, 2, 3, ... N instances
+      // and count the total number of verts each time, then we can see from the difference how much
+      // each instance wrote.
+      for(uint32_t inst = 1; inst <= drawcall->numInstances; inst++)
+      {
+        if(drawcall->flags & eDraw_UseIBuffer)
+        {
+          view.BufferFilledSizeLocation =
+              m_SOBuffer->GetGPUVirtualAddress() + (inst - 1) * sizeof(UINT64);
+          m_DebugList->SOSetTargets(0, 1, &view);
+          m_DebugList->DrawIndexedInstanced(drawcall->numIndices, inst, drawcall->indexOffset,
+                                            drawcall->baseVertex, drawcall->instanceOffset);
+        }
+        else
+        {
+          view.BufferFilledSizeLocation =
+              m_SOBuffer->GetGPUVirtualAddress() + (inst - 1) * sizeof(UINT64);
+          m_DebugList->SOSetTargets(0, 1, &view);
+          m_DebugList->DrawInstanced(drawcall->numIndices, inst, drawcall->vertexOffset,
+                                     drawcall->instanceOffset);
+        }
+      }
+
+      // the last draw will have written the actual data we want into the buffer
     }
     else
     {
-      m_DebugList->DrawInstanced(drawcall->numIndices, drawcall->numInstances,
-                                 drawcall->vertexOffset, drawcall->instanceOffset);
+      m_DebugList->SOSetTargets(0, 1, &view);
+
+      // because the result is expanded we don't have to remap index buffers or anything
+      if(drawcall->flags & eDraw_UseIBuffer)
+      {
+        m_DebugList->DrawIndexedInstanced(drawcall->numIndices, drawcall->numInstances,
+                                          drawcall->indexOffset, drawcall->baseVertex,
+                                          drawcall->instanceOffset);
+      }
+      else
+      {
+        m_DebugList->DrawInstanced(drawcall->numIndices, drawcall->numInstances,
+                                   drawcall->vertexOffset, drawcall->instanceOffset);
+      }
     }
 
     D3D12_RESOURCE_BARRIER sobarr = {};
@@ -4457,7 +4495,32 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     range.End = 0;
 
-    uint64_t numBytesWritten = *(uint64_t *)byteData;
+    uint64_t *counters = (uint64_t *)byteData;
+
+    uint64_t numBytesWritten = 0;
+    std::vector<D3D12PostVSData::InstData> instData;
+    if(drawcall->numInstances > 1)
+    {
+      uint64_t prevByteCount = 0;
+
+      for(uint32_t inst = 0; inst < drawcall->numInstances; inst++)
+      {
+        uint64_t byteCount = counters[inst];
+
+        D3D12PostVSData::InstData d;
+        d.numVerts = uint32_t((byteCount - prevByteCount) / stride);
+        d.bufOffset = prevByteCount;
+        prevByteCount = byteCount;
+
+        instData.push_back(d);
+      }
+
+      numBytesWritten = prevByteCount;
+    }
+    else
+    {
+      numBytesWritten = counters[0];
+    }
 
     if(numBytesWritten == 0)
     {
@@ -4465,8 +4528,8 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
       return;
     }
 
-    // skip past the counter
-    byteData += 64;
+    // skip past the counter(s)
+    byteData += (view.BufferLocation - m_SOBuffer->GetGPUVirtualAddress());
 
     if(numBytesWritten >= m_SOBufferSize)
     {
@@ -4631,6 +4694,8 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
 
     if(drawcall->flags & eDraw_Instanced)
       m_PostVSData[eventID].gsout.numVerts /= RDCMAX(1U, drawcall->numInstances);
+
+    m_PostVSData[eventID].gsout.instData = instData;
   }
 
   SAFE_RELEASE(soSig);
@@ -4642,13 +4707,13 @@ MeshFormat D3D12DebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID
   if(m_PostVSAlias.find(eventID) != m_PostVSAlias.end())
     eventID = m_PostVSAlias[eventID];
 
-  PostVSData postvs;
+  D3D12PostVSData postvs;
   RDCEraseEl(postvs);
 
   if(m_PostVSData.find(eventID) != m_PostVSData.end())
     postvs = m_PostVSData[eventID];
 
-  PostVSData::StageData s = postvs.GetStage(stage);
+  const D3D12PostVSData::StageData &s = postvs.GetStage(stage);
 
   MeshFormat ret;
 
@@ -4687,6 +4752,14 @@ MeshFormat D3D12DebugManager::GetPostVSBuffers(uint32_t eventID, uint32_t instID
   ret.unproject = s.hasPosOut;
   ret.nearPlane = s.nearPlane;
   ret.farPlane = s.farPlane;
+
+  if(instID < s.instData.size())
+  {
+    D3D12PostVSData::InstData inst = s.instData[instID];
+
+    ret.offset = inst.bufOffset;
+    ret.numVerts = inst.numVerts;
+  }
 
   return ret;
 }

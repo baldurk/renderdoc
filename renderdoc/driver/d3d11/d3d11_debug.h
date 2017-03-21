@@ -55,31 +55,35 @@ struct GlobalState;
 
 struct D3D11PostVSData
 {
+  struct InstData
+  {
+    uint32_t numVerts = 0;
+    uint32_t bufOffset = 0;
+  };
+
   struct StageData
   {
-    ID3D11Buffer *buf;
-    D3D11_PRIMITIVE_TOPOLOGY topo;
+    ID3D11Buffer *buf = NULL;
+    D3D11_PRIMITIVE_TOPOLOGY topo = D3D_PRIMITIVE_TOPOLOGY_UNDEFINED;
 
-    uint32_t numVerts;
-    uint32_t vertStride;
-    uint32_t instStride;
+    uint32_t vertStride = 0;
 
-    bool useIndices;
-    ID3D11Buffer *idxBuf;
-    DXGI_FORMAT idxFmt;
+    // simple case - uniform
+    uint32_t numVerts = 0;
+    uint32_t instStride = 0;
 
-    bool hasPosOut;
+    // complex case - expansion per instance
+    std::vector<InstData> instData;
 
-    float nearPlane;
-    float farPlane;
+    bool useIndices = false;
+    ID3D11Buffer *idxBuf = NULL;
+    DXGI_FORMAT idxFmt = DXGI_FORMAT_UNKNOWN;
+
+    bool hasPosOut = false;
+
+    float nearPlane = 0.0f;
+    float farPlane = 0.0f;
   } vsin, vsout, gsout;
-
-  D3D11PostVSData()
-  {
-    RDCEraseEl(vsin);
-    RDCEraseEl(vsout);
-    RDCEraseEl(gsout);
-  }
 
   const StageData &GetStage(MeshDataStage type)
   {
@@ -335,7 +339,7 @@ private:
   static const int m_SOBufferSize = 32 * 1024 * 1024;
   ID3D11Buffer *m_SOBuffer;
   ID3D11Buffer *m_SOStagingBuffer;
-  ID3D11Query *m_SOStatsQuery;
+  std::vector<ID3D11Query *> m_SOStatsQueries;
   // event -> data
   map<uint32_t, D3D11PostVSData> m_PostVSData;
 

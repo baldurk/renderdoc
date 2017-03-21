@@ -656,7 +656,8 @@ void GLReplay::InitDebugData()
 
   gl.glGenTransformFeedbacks(1, &DebugData.feedbackObj);
   gl.glGenBuffers(1, &DebugData.feedbackBuffer);
-  gl.glGenQueries(1, &DebugData.feedbackQuery);
+  DebugData.feedbackQueries.push_back(0);
+  gl.glGenQueries(1, &DebugData.feedbackQueries[0]);
 
   gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, DebugData.feedbackObj);
   gl.glBindBuffer(eGL_TRANSFORM_FEEDBACK_BUFFER, DebugData.feedbackBuffer);
@@ -705,7 +706,7 @@ void GLReplay::DeleteDebugData()
 
   gl.glDeleteTransformFeedbacks(1, &DebugData.feedbackObj);
   gl.glDeleteBuffers(1, &DebugData.feedbackBuffer);
-  gl.glDeleteQueries(1, &DebugData.feedbackQuery);
+  gl.glDeleteQueries((GLsizei)DebugData.feedbackQueries.size(), DebugData.feedbackQueries.data());
 
   MakeCurrentReplayContext(m_DebugCtx);
 
@@ -3585,7 +3586,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
 
   GLuint idxBuf = 0;
 
-  gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQuery);
+  gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
   gl.glBeginTransformFeedback(eGL_POINTS);
 
   if((drawcall->flags & eDraw_UseIBuffer) == 0)
@@ -3741,7 +3742,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
 
   // this should be the same as the draw size
   GLuint primsWritten = 0;
-  gl.glGetQueryObjectuiv(DebugData.feedbackQuery, eGL_QUERY_RESULT, &primsWritten);
+  gl.glGetQueryObjectuiv(DebugData.feedbackQueries[0], eGL_QUERY_RESULT, &primsWritten);
 
   if(primsWritten == 0)
   {
@@ -4088,56 +4089,128 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
           lastOutTopo = eGL_TRIANGLES;
       }
 
-      gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQuery);
-      gl.glBeginTransformFeedback(lastOutTopo);
-
       GLenum drawtopo = MakeGLPrimitiveTopology(drawcall->topology);
 
-      if((drawcall->flags & eDraw_UseIBuffer) == 0)
+      GLenum idxType = eGL_UNSIGNED_BYTE;
+      if(drawcall->indexByteWidth == 2)
+        idxType = eGL_UNSIGNED_SHORT;
+      else if(drawcall->indexByteWidth == 4)
+        idxType = eGL_UNSIGNED_INT;
+
+      // instanced draws must be replayed one at a time so we can record the number of primitives
+      // from
+      // each drawcall, as due to expansion this can vary per-instance.
+      if(drawcall->flags & eDraw_Instanced)
       {
-        if(drawcall->flags & eDraw_Instanced)
+        // if there is only one instance it's a trivial case and we don't need to bother with the
+        // expensive path
+        if(drawcall->numInstances > 1)
         {
-          if(HasExt[ARB_base_instance])
+          // ensure we have enough queries
+          uint32_t curSize = (uint32_t)DebugData.feedbackQueries.size();
+          if(curSize < drawcall->numInstances)
           {
-            gl.glDrawArraysInstancedBaseInstance(drawtopo, drawcall->vertexOffset,
-                                                 drawcall->numIndices, drawcall->numInstances,
-                                                 drawcall->instanceOffset);
+            DebugData.feedbackQueries.resize(drawcall->numInstances);
+            gl.glGenQueries(drawcall->numInstances - curSize,
+                            DebugData.feedbackQueries.data() + curSize);
           }
-          else
+
+          // do incremental draws to get the output size. We have to do this O(N^2) style because
+          // there's no way to replay only a single instance. We have to replay 1, 2, 3, ... N
+          // instances and count the total number of verts each time, then we can see from the
+          // difference how much each instance wrote.
+          for(uint32_t inst = 1; inst <= drawcall->numInstances; inst++)
           {
-            gl.glDrawArraysInstanced(drawtopo, drawcall->vertexOffset, drawcall->numIndices,
-                                     drawcall->numInstances);
+            gl.glBindBufferBase(eGL_TRANSFORM_FEEDBACK_BUFFER, 0, DebugData.feedbackBuffer);
+            gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN,
+                            DebugData.feedbackQueries[inst - 1]);
+            gl.glBeginTransformFeedback(lastOutTopo);
+
+            if((drawcall->flags & eDraw_UseIBuffer) == 0)
+            {
+              if(HasExt[ARB_base_instance])
+              {
+                gl.glDrawArraysInstancedBaseInstance(drawtopo, drawcall->vertexOffset,
+                                                     drawcall->numIndices, inst,
+                                                     drawcall->instanceOffset);
+              }
+              else
+              {
+                gl.glDrawArraysInstanced(drawtopo, drawcall->vertexOffset, drawcall->numIndices,
+                                         inst);
+              }
+            }
+            else
+            {
+              if(HasExt[ARB_base_instance])
+              {
+                gl.glDrawElementsInstancedBaseVertexBaseInstance(
+                    drawtopo, drawcall->numIndices, idxType,
+                    (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth), inst,
+                    drawcall->baseVertex, drawcall->instanceOffset);
+              }
+              else
+              {
+                gl.glDrawElementsInstancedBaseVertex(
+                    drawtopo, drawcall->numIndices, idxType,
+                    (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth), inst,
+                    drawcall->baseVertex);
+              }
+            }
+
+            gl.glEndTransformFeedback();
+            gl.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
           }
         }
         else
         {
-          gl.glDrawArrays(drawtopo, drawcall->vertexOffset, drawcall->numIndices);
-        }
-      }
-      else    // drawcall is indexed
-      {
-        GLenum idxType = eGL_UNSIGNED_BYTE;
-        if(drawcall->indexByteWidth == 2)
-          idxType = eGL_UNSIGNED_SHORT;
-        else if(drawcall->indexByteWidth == 4)
-          idxType = eGL_UNSIGNED_INT;
+          gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
+          gl.glBeginTransformFeedback(lastOutTopo);
 
-        if(drawcall->flags & eDraw_Instanced)
-        {
-          if(HasExt[ARB_base_instance])
+          if((drawcall->flags & eDraw_UseIBuffer) == 0)
           {
-            gl.glDrawElementsInstancedBaseVertexBaseInstance(
-                drawtopo, drawcall->numIndices, idxType,
-                (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
-                drawcall->numInstances, drawcall->baseVertex, drawcall->instanceOffset);
+            if(HasExt[ARB_base_instance])
+            {
+              gl.glDrawArraysInstancedBaseInstance(drawtopo, drawcall->vertexOffset,
+                                                   drawcall->numIndices, drawcall->numInstances,
+                                                   drawcall->instanceOffset);
+            }
+            else
+            {
+              gl.glDrawArraysInstanced(drawtopo, drawcall->vertexOffset, drawcall->numIndices,
+                                       drawcall->numInstances);
+            }
           }
           else
           {
-            gl.glDrawElementsInstancedBaseVertex(
-                drawtopo, drawcall->numIndices, idxType,
-                (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
-                drawcall->numInstances, drawcall->baseVertex);
+            if(HasExt[ARB_base_instance])
+            {
+              gl.glDrawElementsInstancedBaseVertexBaseInstance(
+                  drawtopo, drawcall->numIndices, idxType,
+                  (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
+                  drawcall->numInstances, drawcall->baseVertex, drawcall->instanceOffset);
+            }
+            else
+            {
+              gl.glDrawElementsInstancedBaseVertex(
+                  drawtopo, drawcall->numIndices, idxType,
+                  (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
+                  drawcall->numInstances, drawcall->baseVertex);
+            }
           }
+
+          gl.glEndTransformFeedback();
+          gl.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+        }
+      }
+      else
+      {
+        gl.glBeginQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN, DebugData.feedbackQueries[0]);
+        gl.glBeginTransformFeedback(lastOutTopo);
+
+        if((drawcall->flags & eDraw_UseIBuffer) == 0)
+        {
+          gl.glDrawArrays(drawtopo, drawcall->vertexOffset, drawcall->numIndices);
         }
         else
         {
@@ -4146,13 +4219,36 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
               (const void *)uintptr_t(drawcall->indexOffset * drawcall->indexByteWidth),
               drawcall->baseVertex);
         }
-      }
-      gl.glEndTransformFeedback();
-      gl.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
 
-      // this should be the same as the draw size
-      primsWritten = 0;
-      gl.glGetQueryObjectuiv(DebugData.feedbackQuery, eGL_QUERY_RESULT, &primsWritten);
+        gl.glEndTransformFeedback();
+        gl.glEndQuery(eGL_TRANSFORM_FEEDBACK_PRIMITIVES_WRITTEN);
+      }
+
+      std::vector<GLPostVSData::InstData> instData;
+
+      if((drawcall->flags & eDraw_Instanced) && drawcall->numInstances > 1)
+      {
+        uint64_t prevVertCount = 0;
+
+        for(uint32_t inst = 0; inst < drawcall->numInstances; inst++)
+        {
+          gl.glGetQueryObjectuiv(DebugData.feedbackQueries[inst], eGL_QUERY_RESULT, &primsWritten);
+
+          uint32_t vertCount = 3 * primsWritten;
+
+          GLPostVSData::InstData d;
+          d.numVerts = uint32_t(vertCount - prevVertCount);
+          d.bufOffset = uint32_t(stride * prevVertCount);
+          prevVertCount = vertCount;
+
+          instData.push_back(d);
+        }
+      }
+      else
+      {
+        primsWritten = 0;
+        gl.glGetQueryObjectuiv(DebugData.feedbackQueries[0], eGL_QUERY_RESULT, &primsWritten);
+      }
 
       error = false;
 
@@ -4306,6 +4402,8 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
       m_PostVSData[eventID].gsout.idxByteWidth = 0;
 
       m_PostVSData[eventID].gsout.topo = MakePrimitiveTopology(gl.GetHookset(), lastOutTopo);
+
+      m_PostVSData[eventID].gsout.instData = instData;
     }
 
     // set lastProg back to no varyings, for future use
@@ -4363,7 +4461,7 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDat
   if(m_PostVSData.find(eventID) != m_PostVSData.end())
     postvs = m_PostVSData[eventID];
 
-  GLPostVSData::StageData s = postvs.GetStage(stage);
+  const GLPostVSData::StageData &s = postvs.GetStage(stage);
 
   MeshFormat ret;
 
@@ -4397,6 +4495,14 @@ MeshFormat GLReplay::GetPostVSBuffers(uint32_t eventID, uint32_t instID, MeshDat
   ret.unproject = s.hasPosOut;
   ret.nearPlane = s.nearPlane;
   ret.farPlane = s.farPlane;
+
+  if(instID < s.instData.size())
+  {
+    GLPostVSData::InstData inst = s.instData[instID];
+
+    ret.offset = inst.bufOffset;
+    ret.numVerts = inst.numVerts;
+  }
 
   return ret;
 }

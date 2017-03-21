@@ -39,31 +39,35 @@ struct DrawcallTreeNode;
 
 struct GLPostVSData
 {
+  struct InstData
+  {
+    uint32_t numVerts = 0;
+    uint32_t bufOffset = 0;
+  };
+
   struct StageData
   {
-    GLuint buf;
-    PrimitiveTopology topo;
+    GLuint buf = 0;
+    PrimitiveTopology topo = eTopology_Unknown;
 
-    uint32_t numVerts;
-    uint32_t vertStride;
-    uint32_t instStride;
+    uint32_t vertStride = 0;
 
-    bool useIndices;
-    GLuint idxBuf;
-    uint32_t idxByteWidth;
+    // simple case - uniform
+    uint32_t numVerts = 0;
+    uint32_t instStride = 0;
 
-    bool hasPosOut;
+    // complex case - expansion per instance
+    std::vector<InstData> instData;
 
-    float nearPlane;
-    float farPlane;
+    bool useIndices = false;
+    GLuint idxBuf = 0;
+    uint32_t idxByteWidth = 0;
+
+    bool hasPosOut = false;
+
+    float nearPlane = 0.0f;
+    float farPlane = 0.0f;
   } vsin, vsout, gsout;
-
-  GLPostVSData()
-  {
-    RDCEraseEl(vsin);
-    RDCEraseEl(vsout);
-    RDCEraseEl(gsout);
-  }
 
   const StageData &GetStage(MeshDataStage type)
   {
@@ -334,7 +338,7 @@ private:
     GLuint triHighlightBuffer;
 
     GLuint feedbackObj;
-    GLuint feedbackQuery;
+    std::vector<GLuint> feedbackQueries;
     GLuint feedbackBuffer;
 
     GLuint pickPixelTex;
