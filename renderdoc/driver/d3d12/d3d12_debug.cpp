@@ -4402,7 +4402,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
     {
       // reserve space for enough 'buffer filled size' locations
       view.BufferLocation = m_SOBuffer->GetGPUVirtualAddress() +
-                            AlignUp(drawcall->numInstances * sizeof(UINT64), 64ULL);
+                            AlignUp(uint64_t(drawcall->numInstances * sizeof(UINT64)), 64ULL);
 
       // do incremental draws to get the output size. We have to do this O(N^2) style because
       // there's no way to replay only a single instance. We have to replay 1, 2, 3, ... N instances
