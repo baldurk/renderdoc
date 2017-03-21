@@ -44,7 +44,11 @@ struct VkInitParams : public RDCInitParams
 
   void Set(const VkInstanceCreateInfo *pCreateInfo, ResourceId inst);
 
-  static const uint32_t VK_SERIALISE_VERSION = 0x0000005;
+  static const uint32_t VK_SERIALISE_VERSION = 0x0000006;
+
+  // backwards compatibility for old logs described at the declaration of this array
+  static const uint32_t VK_NUM_SUPPORTED_OLD_VERSIONS = 1;
+  static const uint32_t VK_OLD_VERSIONS[VK_NUM_SUPPORTED_OLD_VERSIONS];
 
   // version number internal to vulkan stream
   uint32_t SerialiseVersion;
@@ -693,6 +697,7 @@ public:
   bool ReleaseResource(WrappedVkRes *res);
 
   ReplayCreateStatus Initialise(VkInitParams &params);
+  uint32_t GetLogVersion() { return m_InitParams.SerialiseVersion; }
   void Shutdown();
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
   void ReadLogInitialisation();

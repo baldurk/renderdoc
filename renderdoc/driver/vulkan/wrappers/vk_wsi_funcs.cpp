@@ -300,6 +300,13 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(Serialiser *localSerialiser, 
   SERIALISE_ELEMENT(uint32_t, numSwapImages, numIms);
   SERIALISE_ELEMENT(VkSharingMode, sharingMode, pCreateInfo->imageSharingMode);
 
+  // default to 0 for old logs, in most cases this doesn't change anything
+  VkImageUsageFlags usage = pCreateInfo ? pCreateInfo->imageUsage : 0;
+  if(m_State >= WRITING || GetLogVersion() >= 0x0000006)
+  {
+    localSerialiser->Serialise("usage", usage);
+  }
+
   if(m_State == READING)
   {
     // use original ID because we don't create a live version of the swapchain
@@ -325,7 +332,7 @@ bool WrappedVulkan::Serialise_vkCreateSwapchainKHR(Serialiser *localSerialiser, 
         VK_SAMPLE_COUNT_1_BIT,
         VK_IMAGE_TILING_OPTIMAL,
         VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT |
-            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT,
+            VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | usage,
         sharingMode,
         0,
         NULL,

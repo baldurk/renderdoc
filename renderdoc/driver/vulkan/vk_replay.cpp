@@ -5606,15 +5606,17 @@ ReplayCreateStatus Vulkan_CreateReplayDevice(const char *logfile, IReplayDriver 
   string driverName = "VulkanReplay";
   uint64_t machineIdent = 0;
   if(logfile)
-    RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
-                                     (RDCInitParams *)&initParams);
-
-  if(initParams.SerialiseVersion != VkInitParams::VK_SERIALISE_VERSION)
   {
-    RDCERR("Incompatible VulkanReplay serialise version, expected %d got %d",
-           VkInitParams::VK_SERIALISE_VERSION, initParams.SerialiseVersion);
-    return eReplayCreate_APIIncompatibleVersion;
+    auto status = RenderDoc::Inst().FillInitParams(logfile, driverType, driverName, machineIdent,
+                                                   (RDCInitParams *)&initParams);
+
+    if(status != eReplayCreate_Success)
+      return status;
   }
+
+  // initParams.SerialiseVersion is guaranteed to be valid/supported since otherwise the
+  // FillInitParams (which calls VkInitParams::Serialise) would have failed above, so no need to
+  // check it here.
 
   InitReplayTables(module);
 

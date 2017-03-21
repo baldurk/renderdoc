@@ -1988,8 +1988,8 @@ ReplayCreateStatus D3D11_CreateReplayDevice(const char *logfile, IReplayDriver *
   }
 
   // initParams.SerialiseVersion is guaranteed to be valid/supported since otherwise the
-  // FillInitParams
-  // (which calls D3D11InitParams::Serialise) would have failed above, so no need to check it here.
+  // FillInitParams (which calls D3D11InitParams::Serialise) would have failed above, so no need to
+  // check it here.
 
   if(initParams.SDKVersion != D3D11_SDK_VERSION)
   {

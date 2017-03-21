@@ -165,6 +165,13 @@ VkInitParams::VkInitParams()
   APIVersion = 0;
 }
 
+// handling for these versions is scattered throughout the code (as relevant to enable/disable bits
+// of serialisation and set some defaults if necessary).
+// Here we list which non-current versions we support, and what changed
+const uint32_t VkInitParams::VK_OLD_VERSIONS[VkInitParams::VK_NUM_SUPPORTED_OLD_VERSIONS] = {
+    0x0000005,    // from 0x5 to 0x6, we added serialisation of the original swapchain's imageUsage
+};
+
 ReplayCreateStatus VkInitParams::Serialise()
 {
   Serialiser *localSerialiser = GetSerialiser();
@@ -174,8 +181,24 @@ ReplayCreateStatus VkInitParams::Serialise()
 
   if(ver != VK_SERIALISE_VERSION)
   {
-    RDCERR("Incompatible Vulkan serialise version, expected %d got %d", VK_SERIALISE_VERSION, ver);
-    return eReplayCreate_APIIncompatibleVersion;
+    bool oldsupported = false;
+    for(uint32_t i = 0; i < VK_NUM_SUPPORTED_OLD_VERSIONS; i++)
+    {
+      if(ver == VK_OLD_VERSIONS[i])
+      {
+        oldsupported = true;
+        RDCWARN(
+            "Old Vulkan serialise version %d, latest is %d. Loading with possibly degraded "
+            "features/support.",
+            ver, VK_SERIALISE_VERSION);
+      }
+    }
+
+    if(!oldsupported)
+    {
+      RDCERR("Incompatible Vulkan serialise version, expected %d got %d", VK_SERIALISE_VERSION, ver);
+      return eReplayCreate_APIIncompatibleVersion;
+    }
   }
 
   localSerialiser->Serialise("AppName", AppName);
