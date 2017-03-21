@@ -1882,12 +1882,13 @@ namespace renderdocui.Windows
 
                 ScrollToRow(bufView, RowOffset);
 
-                if (m_QueuedRowSelect != -1)
+                if (m_QueuedRowSelect != -1 && state.m_Stage == m_MeshDisplay.type)
                 {
                     ScrollToRow(bufView, m_QueuedRowSelect);
 
                     bufView.ClearSelection();
-                    bufView.Rows[m_QueuedRowSelect].Selected = true;
+                    if(m_QueuedRowSelect < bufView.RowCount)
+                        bufView.Rows[m_QueuedRowSelect].Selected = true;
 
                     SyncViews(bufView, true, true);
 
