@@ -3272,8 +3272,9 @@ void Serialiser::Serialise(const char *name, VkBufferCreateInfo &el)
   {
     // for backwards compatibility with captures, ignore the family count and serialise empty array
     uint32_t zero = 0;
-    uint32_t empty[1] = {0};
-    SerialisePODArray("pQueueFamilyIndices", (uint32_t *&)empty, zero);
+    uint32_t *empty = NULL;
+    SerialisePODArray("pQueueFamilyIndices", empty, zero);
+    delete[] empty;
   }
 }
 
