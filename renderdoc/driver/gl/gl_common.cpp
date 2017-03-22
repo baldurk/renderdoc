@@ -42,7 +42,7 @@ bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
 // as they should have minimal or no hardware requirement. They were present on mesa 10.6
 // for all drivers which dates to mid 2015.
 #undef EXT_TO_CHECK
-#define EXT_TO_CHECK(ver, ext) ext,
+#define EXT_TO_CHECK(ver, glesver, ext) ext,
   enum
   {
     EXTENSION_CHECKS() ext_count,
@@ -73,8 +73,9 @@ bool CheckReplayContext(PFNGLGETSTRINGPROC getStr, PFNGLGETINTEGERVPROC getInt,
     ext += 3;
 
 #undef EXT_TO_CHECK
-#define EXT_TO_CHECK(ver, extname)                             \
-  if(GLCoreVersion >= ver || !strcmp(ext, STRINGIZE(extname))) \
+#define EXT_TO_CHECK(ver, glesver, extname)                                       \
+  if((!IsGLES && GLCoreVersion >= ver) || (IsGLES && GLCoreVersion >= glesver) || \
+     !strcmp(ext, STRINGIZE(extname)))                                            \
     exts[extname] = true;
 
     EXTENSION_CHECKS()
@@ -404,11 +405,21 @@ void CheckExtensions(const GLHookSet &gl)
       ext += 3;
 
 #undef EXT_TO_CHECK
-#define EXT_TO_CHECK(ver, extname)                             \
-  if(GLCoreVersion >= ver || !strcmp(ext, STRINGIZE(extname))) \
+#define EXT_TO_CHECK(ver, glesver, extname)                                       \
+  if((!IsGLES && GLCoreVersion >= ver) || (IsGLES && GLCoreVersion >= glesver) || \
+     !strcmp(ext, STRINGIZE(extname)))                                            \
     HasExt[extname] = true;
 
       EXTENSION_CHECKS()
+
+      if(IsGLES)
+      {
+#define EXT_COMP_CHECK(extname, glesextname) \
+  if(!strcmp(ext, STRINGIZE(glesextname)))   \
+    HasExt[extname] = true;
+
+        EXTENSION_COMPATIBILITY_CHECKS()
+      }
     }
   }
 }

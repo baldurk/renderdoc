@@ -576,7 +576,7 @@ bool GLRenderState::CheckEnableDisableParam(GLenum pname)
       case eGL_SAMPLE_ALPHA_TO_ONE:
       case eGL_MULTISAMPLE: return HasExt[EXT_multisample_compatibility];
 
-      case eGL_SAMPLE_SHADING: return HasExt[OES_sample_shading];
+      case eGL_SAMPLE_SHADING: return HasExt[ARB_sample_shading];
 
       default: break;
     }

@@ -597,7 +597,8 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
     }
 
     state->seamless = GL_FALSE;
-    if(details.curType == eGL_TEXTURE_CUBE_MAP || details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+    if((details.curType == eGL_TEXTURE_CUBE_MAP || details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY) &&
+       HasExt[ARB_seamless_cubemap_per_texture])
       gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_CUBE_MAP_SEAMLESS,
                                     (GLint *)&state->seamless);
 
@@ -608,8 +609,7 @@ void GLResourceManager::PrepareTextureInitialContents(ResourceId liveid, Resourc
 
     if(HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle])
     {
-      gl.glGetTextureParameterivEXT(res.name, details.curType, eGL_TEXTURE_SWIZZLE_RGBA,
-                                    (GLint *)&state->swizzle[0]);
+      GetTextureSwizzle(gl, res.name, details.curType, state->swizzle);
     }
     else
     {
@@ -1976,7 +1976,8 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
         gl.glTextureParameterivEXT(live.name, details.curType, eGL_DEPTH_STENCIL_TEXTURE_MODE,
                                    (GLint *)&state->depthMode);
 
-      if(details.curType == eGL_TEXTURE_CUBE_MAP || details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY)
+      if((details.curType == eGL_TEXTURE_CUBE_MAP || details.curType == eGL_TEXTURE_CUBE_MAP_ARRAY) &&
+         HasExt[ARB_seamless_cubemap_per_texture])
         gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_CUBE_MAP_SEAMLESS,
                                    (GLint *)&state->seamless);
 
@@ -1987,8 +1988,9 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
 
       // assume that emulated (luminance, alpha-only etc) textures are not swizzled
       if(!details.emulated && (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
-        gl.glTextureParameterivEXT(live.name, details.curType, eGL_TEXTURE_SWIZZLE_RGBA,
-                                   (GLint *)state->swizzle);
+      {
+        SetTextureSwizzle(gl, live.name, details.curType, state->swizzle);
+      }
 
       if(!ms)
       {
