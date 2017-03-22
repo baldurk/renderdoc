@@ -115,8 +115,7 @@ static PyMethodDef OutputRedirector_methods[] = {
     {"flush", NULL, METH_NOARGS, "Does nothing - only provided for compatibility"},
     {NULL}};
 
-PyObject *PythonContext::renderdoc_py_compiled = NULL;
-PyThreadState *PythonContext::mainThread = NULL;
+PyObject *PythonContext::main_dict = NULL;
 
 void PythonContext::GlobalInit()
 {
@@ -144,7 +143,8 @@ void PythonContext::GlobalInit()
     return;
   }
 
-  renderdoc_py_compiled = Py_CompileString(module_src.data(), "renderdoc.py", Py_file_input);
+  PyObject *renderdoc_py_compiled =
+      Py_CompileString(module_src.data(), "renderdoc.py", Py_file_input);
 
   if(!renderdoc_py_compiled)
   {
@@ -163,13 +163,51 @@ void PythonContext::GlobalInit()
   OutputRedirector_methods[0].ml_meth = &PythonContext::outstream_write;
   OutputRedirector_methods[1].ml_meth = &PythonContext::outstream_flush;
 
+  PyObject *main_module = PyImport_AddModule("__main__");
+
+  PyObject *rdoc_module = PyImport_ExecCodeModule("renderdoc", renderdoc_py_compiled);
+
+  Py_XDECREF(renderdoc_py_compiled);
+
+  PyModule_AddObject(main_module, "renderdoc", rdoc_module);
+
+  main_dict = PyModule_GetDict(main_module);
+
+  // replace sys.stdout and sys.stderr with our own objects. These have a 'this' pointer of NULL,
+  // which then indicates they need to forward to a global object
+
+  // import sys
+  PyDict_SetItemString(main_dict, "sys", PyImport_ImportModule("sys"));
+
+  // sysobj = sys
+  PyObject *sysobj = PyDict_GetItemString(main_dict, "sys");
+
+  // sysobj.stdout = renderdoc_output_redirector()
+  // sysobj.stderr = renderdoc_output_redirector()
+  if(PyType_Ready(&OutputRedirectorType) >= 0)
+  {
+    PyObject *redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, "");
+    PyObject_SetAttrString(sysobj, "stdout", redirector);
+
+    OutputRedirector *output = (OutputRedirector *)redirector;
+    output->isStdError = 0;
+    output->context = NULL;
+
+    redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, "");
+    PyObject_SetAttrString(sysobj, "stderr", redirector);
+
+    output = (OutputRedirector *)redirector;
+    output->isStdError = 1;
+    output->context = NULL;
+  }
+
   // release GIL so that python work can now happen on any thread
-  mainThread = PyEval_SaveThread();
+  PyEval_SaveThread();
 }
 
 bool PythonContext::initialised()
 {
-  return renderdoc_py_compiled != NULL;
+  return main_dict != NULL;
 }
 
 PythonContext::PythonContext(QObject *parent) : QObject(parent)
@@ -180,51 +218,23 @@ PythonContext::PythonContext(QObject *parent) : QObject(parent)
   // acquire the GIL and make sure this thread is init'd
   PyGILState_STATE gil = PyGILState_Ensure();
 
-  // save the current thread state as the PyGILState requires we don't mess with it
-  PyThreadState *prevThreadState = PyThreadState_Get();
+  // clone our own local context
+  context_namespace = PyDict_Copy(main_dict);
 
-  // create the interpreter
-  interpreter = Py_NewInterpreter();
+  QString typeStr;
+  QString valueStr = "";
+  QList<QString> frames;
 
-  // remembere which thread created the interpreter
-  interpreterThread = QThread::currentThread();
-
-  main_module = PyImport_AddModule("__main__");
-  PyObject *maindict = PyModule_GetDict(main_module);
-
-  PyObject *rdoc_module = PyImport_ExecCodeModule("renderdoc", renderdoc_py_compiled);
-
-  PyModule_AddObject(main_module, "renderdoc", rdoc_module);
-
-  // import sys
-  PyModule_AddObject(main_module, "sys", PyImport_ImportModule("sys"));
-
-  // sysobj = sys
-  PyObject *sysobj = PyDict_GetItemString(maindict, "sys");
-
-  // sysobj.stdout = renderdoc_output_redirector()
-  // sysobj.stderr = renderdoc_output_redirector()
-  if(PyType_Ready(&OutputRedirectorType) >= 0)
+  // set global output that point to this
+  PyObject *redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, "");
+  if(redirector)
   {
-    // currently we redirect both to the same place. We could always
-    // pass a flag to the constructor that tells us what type it is
-    PyObject *redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, "");
-    PyObject_SetAttrString(sysobj, "stdout", redirector);
+    PyDict_SetItemString(context_namespace, "renderdoc_output_redirector_context_pointer",
+                         redirector);
 
     OutputRedirector *output = (OutputRedirector *)redirector;
-    output->isStdError = 0;
-    output->context = this;
-
-    redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, "");
-    PyObject_SetAttrString(sysobj, "stderr", redirector);
-
-    output = (OutputRedirector *)redirector;
-    output->isStdError = 1;
     output->context = this;
   }
-
-  // restore previous thread state
-  PyThreadState_Swap(prevThreadState);
 
   // release the GIL again
   PyGILState_Release(gil);
@@ -232,6 +242,11 @@ PythonContext::PythonContext(QObject *parent) : QObject(parent)
 
 PythonContext::~PythonContext()
 {
+  PyGILState_STATE gil = PyGILState_Ensure();
+
+  Py_XDECREF(context_namespace);
+
+  PyGILState_Release(gil);
 }
 
 void PythonContext::GlobalShutdown()
@@ -243,10 +258,9 @@ void PythonContext::GlobalShutdown()
     return;
   }
 
-  // go back onto the main thread and acquire the GIL, so we can shut down
-  PyEval_RestoreThread(mainThread);
+  // acquire the GIL, so we can shut down
+  PyGILState_Ensure();
 
-  Py_XDECREF(renderdoc_py_compiled);
   Py_Finalize();
 }
 
@@ -263,9 +277,8 @@ void PythonContext::executeString(const QString &filename, const QString &source
   location.file = filename;
   location.line = 1;
 
-  GILContext *ctx = PythonInterpStart();
+  PyGILState_STATE gil = PyGILState_Ensure();
 
-  PyObject *maindict = PyModule_GetDict(main_module);
   PyObject *compiled =
       Py_CompileString(source.toUtf8().data(), filename.toUtf8().data(), Py_file_input);
 
@@ -284,7 +297,7 @@ void PythonContext::executeString(const QString &filename, const QString &source
 
     PyEval_SetTrace(&PythonContext::traceEvent, traceContext);
 
-    ret = PyEval_EvalCode(compiled, maindict, maindict);
+    ret = PyEval_EvalCode(compiled, context_namespace, context_namespace);
 
     Py_XDECREF(thisobj);
     Py_XDECREF(traceContext);
@@ -357,7 +370,7 @@ void PythonContext::executeString(const QString &filename, const QString &source
 
   Py_XDECREF(ret);
 
-  PythonInterpEnd(ctx);
+  PyGILState_Release(gil);
 
   if(caughtException)
     emit exception(typeStr, valueStr, frames);
@@ -366,58 +379,6 @@ void PythonContext::executeString(const QString &filename, const QString &source
 void PythonContext::executeString(const QString &source)
 {
   executeString("<interactive.py>", source);
-}
-
-struct GILContext
-{
-  PyGILState_STATE gil;
-  PyThreadState *prevTS;
-  PyThreadState *interpTS;
-};
-
-GILContext *PythonContext::PythonInterpStart()
-{
-  GILContext *ctx = new GILContext();
-
-  // acquire the GIL and make sure this thread is init'd
-  ctx->gil = PyGILState_Ensure();
-
-  // save the current thread state as the PyGILState requires we don't mess with it
-  ctx->prevTS = PyThreadState_Get();
-
-  ctx->interpTS = NULL;
-
-  // do we need a new thread state?
-  if(interpreterThread != QThread::currentThread())
-  {
-    ctx->interpTS = PyThreadState_New(interpreter->interp);
-
-    PyThreadState_Swap(ctx->interpTS);
-  }
-  else
-  {
-    PyThreadState_Swap(interpreter);
-  }
-
-  return ctx;
-}
-
-void PythonContext::PythonInterpEnd(GILContext *ctx)
-{
-  // restore previous thread state
-  PyThreadState_Swap(ctx->prevTS);
-
-  // did we need a new thread state? delete it then
-  if(ctx->interpTS)
-  {
-    PyThreadState_Clear(ctx->interpTS);
-    PyThreadState_Delete(ctx->interpTS);
-  }
-
-  // release the GIL again
-  PyGILState_Release(ctx->gil);
-
-  delete ctx;
 }
 
 void PythonContext::executeFile(const QString &filename)
@@ -444,21 +405,19 @@ void PythonContext::executeFile(const QString &filename)
 
 void PythonContext::setGlobal(const char *varName, const char *typeName, void *object)
 {
-  GILContext *ctx = PythonInterpStart();
+  PyGILState_STATE gil = PyGILState_Ensure();
 
   PyObject *obj = PassObjectToPython(typeName, object);
 
-  if(obj)
-  {
-    int ret = PyModule_AddObject(main_module, varName, obj);
-    if(ret == 0)
-    {
-      PythonInterpEnd(ctx);
-      return;
-    }
-  }
+  int ret = -1;
 
-  PythonInterpEnd(ctx);
+  if(obj)
+    ret = PyDict_SetItemString(context_namespace, varName, obj);
+
+  PyGILState_Release(gil);
+
+  if(ret == 0)
+    return;
 
   emit exception("RuntimeError",
                  QString("Failed to set variable '%1' of type '%2'").arg(varName).arg(typeName), {});
@@ -475,8 +434,25 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
 
   if(redirector)
   {
-    emit redirector->context->textOutput(redirector->isStdError ? true : false,
-                                         QString::fromUtf8(text));
+    PythonContext *context = redirector->context;
+    // most likely this is NULL because the sys.stdout override is static and shared amongst
+    // contexts. So look up the global variable that stores the context
+    if(context == NULL)
+    {
+      PyObject *globals = PyEval_GetGlobals();
+      if(globals)
+      {
+        OutputRedirector *global = (OutputRedirector *)PyDict_GetItemString(
+            globals, "renderdoc_output_redirector_context_pointer");
+        if(global)
+          context = global->context;
+      }
+    }
+
+    if(context)
+    {
+      emit context->textOutput(redirector->isStdError ? true : false, QString::fromUtf8(text));
+    }
   }
 
   Py_RETURN_NONE;
