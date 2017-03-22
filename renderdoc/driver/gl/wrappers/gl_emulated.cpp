@@ -549,7 +549,8 @@ void APIENTRY _glTextureStorage2DMultisampleEXT(GLuint texture, GLenum target, G
                                                 GLsizei height, GLboolean fixedsamplelocations)
 {
   PushPopTexture(target, texture);
-  if(HasExt[ARB_texture_storage] && HasExt[ARB_texture_storage_multisample] &&
+  if(((IsGLES && GLCoreVersion >= 31) ||
+      (!IsGLES && HasExt[ARB_texture_storage] && HasExt[ARB_texture_storage_multisample])) &&
      internalGL->glTexStorage2DMultisample)
   {
     internalGL->glTexStorage2DMultisample(target, samples, internalformat, width, height,
@@ -567,7 +568,8 @@ void APIENTRY _glTextureStorage3DMultisampleEXT(GLuint texture, GLenum target, G
                                                 GLsizei depth, GLboolean fixedsamplelocations)
 {
   PushPopTexture(target, texture);
-  if(HasExt[ARB_texture_storage] && HasExt[ARB_texture_storage_multisample] &&
+  if(((IsGLES && HasExt[OES_texture_storage_multisample_2d_array]) ||
+      (!IsGLES && HasExt[ARB_texture_storage] && HasExt[ARB_texture_storage_multisample])) &&
      internalGL->glTexStorage3DMultisample)
   {
     internalGL->glTexStorage3DMultisample(target, samples, internalformat, width, height, depth,

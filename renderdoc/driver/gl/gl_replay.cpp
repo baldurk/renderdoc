@@ -1350,7 +1350,7 @@ void GLReplay::SavePipelineState()
         GLint swizzles[4] = {eGL_RED, eGL_GREEN, eGL_BLUE, eGL_ALPHA};
         if(target != eGL_TEXTURE_BUFFER &&
            (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
-          gl.glGetTexParameteriv(target, eGL_TEXTURE_SWIZZLE_RGBA, swizzles);
+          GetTextureSwizzle(gl.GetHookset(), tex, target, (GLenum *)swizzles);
 
         for(int i = 0; i < 4; i++)
         {
@@ -1763,7 +1763,7 @@ void GLReplay::SavePipelineState()
          (HasExt[ARB_texture_swizzle] || HasExt[EXT_texture_swizzle]))
       {
         GLenum target = m_pDriver->m_Textures[id].curType;
-        gl.glGetTextureParameterivEXT(curCol[i], target, eGL_TEXTURE_SWIZZLE_RGBA, swizzles);
+        GetTextureSwizzle(gl.GetHookset(), curCol[i], target, (GLenum *)swizzles);
       }
 
       for(int s = 0; s < 4; s++)
@@ -2979,9 +2979,9 @@ ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
       GLint bgrSwizzle[] = {eGL_BLUE, eGL_GREEN, eGL_RED, eGL_ONE};
 
       if(templateTex.format.compCount == 4)
-        gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgraSwizzle);
+        SetTextureSwizzle(gl.GetHookset(), tex, binding, (GLenum *)bgraSwizzle);
       else if(templateTex.format.compCount == 3)
-        gl.glTexParameteriv(binding, eGL_TEXTURE_SWIZZLE_RGBA, bgrSwizzle);
+        SetTextureSwizzle(gl.GetHookset(), tex, binding, (GLenum *)bgrSwizzle);
       else
         RDCERR("Unexpected component count %d for BGRA order format", templateTex.format.compCount);
     }

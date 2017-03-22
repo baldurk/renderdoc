@@ -287,6 +287,7 @@ void GLReplay::InitDebugData()
 
   // TODO In case of GLES some currently unused shaders, which are guarded by HasExt[..] checks,
   // still contain compile errors (e.g. array2ms.comp, ms2array.comp, quad*, etc.).
+  bool glesShadersAreComplete = !IsGLES;
 
   GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_blit_vert), glslBaseVer);
 
@@ -330,7 +331,7 @@ void GLReplay::InitDebugData()
 
   GenerateGLSLShader(vs, shaderType, "", GetEmbeddedResource(glsl_blit_vert), glslBaseVer);
 
-  if(HasExt[ARB_shader_image_load_store] && HasExt[ARB_gpu_shader5])
+  if(glesShadersAreComplete && HasExt[ARB_shader_image_load_store] && HasExt[ARB_gpu_shader5])
   {
     string defines = "";
 
@@ -462,7 +463,8 @@ void GLReplay::InitDebugData()
         "#extension GL_ARB_compute_shader : require\n"
         "#extension GL_ARB_shader_storage_buffer_object : require\n";
 
-    for(int t = 1; HasExt[ARB_compute_shader] && t <= RESTYPE_TEXTYPEMAX; t++)
+    for(int t = 1; glesShadersAreComplete && HasExt[ARB_compute_shader] && t <= RESTYPE_TEXTYPEMAX;
+        t++)
     {
       // float, uint, sint
       for(int i = 0; i < 3; i++)
@@ -537,7 +539,7 @@ void GLReplay::InitDebugData()
                             eGL_DYNAMIC_READ);
   }
 
-  if(HasExt[ARB_compute_shader])
+  if(glesShadersAreComplete && HasExt[ARB_compute_shader])
   {
     GenerateGLSLShader(cs, shaderType, "", GetEmbeddedResource(glsl_ms2array_comp), glslCSVer);
     DebugData.MS2Array = CreateCShaderProgram(cs);
@@ -555,7 +557,7 @@ void GLReplay::InitDebugData()
                                "GL_ARB_compute_shader not supported, disabling 2DMS save/load.");
   }
 
-  if(HasExt[ARB_compute_shader])
+  if(glesShadersAreComplete && HasExt[ARB_compute_shader])
   {
     string defines =
         "#extension GL_ARB_compute_shader : require\n"
