@@ -94,6 +94,10 @@ file(WRITE
      "LIBS+=-L${CMAKE_RUNTIME_OUTPUT_DIRECTORY}\n"
      "DEFINES+=GIT_COMMIT_HASH_LITERAL=${GIT_COMMIT_HASH}\n"
      "\n"
+     # include and link against python
+     "INCLUDEPATH+=${PYTHON_INCLUDE_DIR}\n"
+     "LIBS+=${PYTHON_LIBRARY}\n"
+     "\n"
      "RENDERDOC_VERSION=${RENDERDOC_VERSION}\n"
      "\n"
      "OSX_ICONFILE=${CMAKE_CURRENT_BINARY_DIR}/RenderDoc.icns\n")
