@@ -709,9 +709,74 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
   return true;
 }
 
+WrappedOpenGL::ClientMemoryData *WrappedOpenGL::CopyClientMemoryArrays(GLint first, GLsizei count)
+{
+  ContextData &cd = GetCtxData();
+  GLResourceRecord *varecord = cd.m_VertexArrayRecord;
+  if(m_State != WRITING_CAPFRAME || varecord)    // Early out if VAO bound, as VAOs are VBO-only.
+    return NULL;
+
+  ClientMemoryData *clientMemory = new ClientMemoryData;
+  m_Real.glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&clientMemory->prevArrayBufferBinding);
+
+  for(GLuint i = 0; i < ARRAY_COUNT(cd.m_ClientMemoryVBOs); i++)
+  {
+    GLint enabled = 0;
+    m_Real.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_ENABLED, &enabled);
+    if(!enabled)
+      continue;
+
+    // Check that the attrib is using client-memory.
+    GLuint buffer;
+    m_Real.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_BUFFER_BINDING, (GLint *)&buffer);
+    if(buffer != 0)
+      continue;
+
+    // App initially used client memory, so copy it into the temporary buffer.
+    ClientMemoryData::VertexAttrib attrib;
+    memset(&attrib, 0, sizeof(attrib));
+    attrib.index = i;
+    m_Real.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_SIZE, &attrib.size);
+    m_Real.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_TYPE, (GLint *)&attrib.type);
+    m_Real.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_NORMALIZED, (GLint *)&attrib.normalized);
+    m_Real.glGetVertexAttribiv(i, eGL_VERTEX_ATTRIB_ARRAY_STRIDE, &attrib.stride);
+    m_Real.glGetVertexAttribPointerv(i, eGL_VERTEX_ATTRIB_ARRAY_POINTER, &attrib.pointer);
+
+    GLint totalStride = attrib.stride ? attrib.stride : (GLint)GLTypeSize(attrib.type) * attrib.size;
+    glBindBuffer(eGL_ARRAY_BUFFER, cd.m_ClientMemoryVBOs[i]);
+    // Copy all client memory, and the pointer becomes a zero offset.
+    glBufferData(eGL_ARRAY_BUFFER, (first + count) * totalStride, attrib.pointer, eGL_STATIC_DRAW);
+    glVertexAttribPointer(attrib.index, attrib.size, attrib.type, attrib.normalized, attrib.stride,
+                          NULL);
+
+    clientMemory->attribs.push_back(attrib);
+  }
+
+  return clientMemory;
+}
+
+void WrappedOpenGL::RestoreClientMemoryArrays(ClientMemoryData *clientMemoryArrays)
+{
+  if(!clientMemoryArrays)
+    return;
+
+  // Restore the 0-buffer bindings and attrib pointers.
+  glBindBuffer(eGL_ARRAY_BUFFER, 0);
+  for(const ClientMemoryData::VertexAttrib &attrib : clientMemoryArrays->attribs)
+  {
+    glVertexAttribPointer(attrib.index, attrib.size, attrib.type, attrib.normalized, attrib.stride,
+                          attrib.pointer);
+  }
+  glBindBuffer(eGL_ARRAY_BUFFER, clientMemoryArrays->prevArrayBufferBinding);
+
+  delete clientMemoryArrays;
+}
+
 void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
   CoherentMapImplicitBarrier();
+
+  ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count);
 
   m_Real.glDrawArrays(mode, first, count);
 
@@ -731,6 +796,8 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.MarkDirty(this);
   }
+
+  RestoreClientMemoryArrays(clientMemory);
 }
 
 bool WrappedOpenGL::Serialise_glDrawArraysIndirect(GLenum mode, const void *indirect)
@@ -849,6 +916,8 @@ void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei coun
 {
   CoherentMapImplicitBarrier();
 
+  ClientMemoryData *clientMemory = CopyClientMemoryArrays(first, count);
+
   m_Real.glDrawArraysInstanced(mode, first, count, instancecount);
 
   if(m_State == WRITING_CAPFRAME)
@@ -867,6 +936,8 @@ void WrappedOpenGL::glDrawArraysInstanced(GLenum mode, GLint first, GLsizei coun
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.MarkDirty(this);
   }
+
+  RestoreClientMemoryArrays(clientMemory);
 }
 
 bool WrappedOpenGL::Serialise_glDrawArraysInstancedBaseInstance(GLenum mode, GLint first,

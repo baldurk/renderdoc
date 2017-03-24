@@ -442,7 +442,27 @@ private:
     GLuint m_Program;
 
     GLResourceRecord *GetActiveTexRecord() { return m_TextureRecord[m_TextureUnit]; }
+    // GLES allows drawing from client memory, in which case we will copy to
+    // temporary VBOs so that input mesh data is recorded. See struct ClientMemoryData
+    GLuint m_ClientMemoryVBOs[16];
   };
+
+  struct ClientMemoryData
+  {
+    struct VertexAttrib
+    {
+      GLuint index;
+      GLint size;
+      GLenum type;
+      GLboolean normalized;
+      GLsizei stride;
+      void *pointer;
+    };
+    std::vector<VertexAttrib> attribs;
+    GLuint prevArrayBufferBinding;
+  };
+  ClientMemoryData *CopyClientMemoryArrays(GLint first, GLsizei count);
+  void RestoreClientMemoryArrays(ClientMemoryData *clientMemoryArrays);
 
   map<void *, ContextData> m_ContextData;
 

@@ -1452,6 +1452,15 @@ void WrappedOpenGL::ActivateContext(GLWindowingData winData)
       m_Internal = m_Real;
 
       glEmulate::EmulateRequiredExtensions(&m_Real, &m_Internal);
+
+      // Initialize VBOs used in case we copy from client memory.
+      glGenBuffers(ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs), ctxdata.m_ClientMemoryVBOs);
+      for(size_t i = 0; i < ARRAY_COUNT(ctxdata.m_ClientMemoryVBOs); i++)
+      {
+        glBindBuffer(eGL_ARRAY_BUFFER, ctxdata.m_ClientMemoryVBOs[i]);
+        glBufferData(eGL_ARRAY_BUFFER, 64, NULL, eGL_DYNAMIC_DRAW);
+      }
+      glBindBuffer(eGL_ARRAY_BUFFER, 0);
     }
   }
 }
