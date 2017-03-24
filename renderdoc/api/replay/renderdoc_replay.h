@@ -40,6 +40,10 @@ inline const char *TypeName();
 typedef uint8_t byte;
 typedef uint32_t bool32;
 
+#ifndef DOCUMENT
+#define DOCUMENT(text)
+#endif
+
 #if defined(RENDERDOC_PLATFORM_WIN32)
 
 #ifdef RENDERDOC_EXPORTS

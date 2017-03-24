@@ -18,6 +18,7 @@ Table of Contents
    :maxdepth: 2
 
    introduction
+   python_api/index
    in_application_api
    credits_acknowledgements
    getting_started/index

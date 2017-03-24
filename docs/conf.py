@@ -21,6 +21,15 @@ import os
 # documentation root, use os.path.abspath to make it absolute, like shown here.
 #sys.path.insert(0, os.path.abspath('.'))
 
+import struct
+
+if struct.calcsize("P") == 8:
+	modulepath = '../x64/Development'
+else:
+	modulepath = '../Win32/Development'
+
+sys.path.insert(0, os.path.abspath(modulepath))
+
 # -- General configuration ------------------------------------------------
 
 # If your documentation needs a minimal Sphinx version, state it here.
@@ -29,7 +38,7 @@ import os
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = []
+extensions = ['sphinx.ext.autodoc']
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -301,3 +310,62 @@ html_context = {
 if(tags.has('htmlhelp')):
 	print("**** We require sphinx 1.5 for htmlhelp build to have the fix for issue #2550 ****")
 	needs_sphinx = '1.5'
+
+def maybe_skip_member(app, what, name, obj, skip, options):
+	# Hide these SWIG internals
+	if name == "this" or name == "thisown":
+		return True
+	# Allow hiding free module functions, or only showing free module functions
+	if 'exclude-members' in options and what == "module":
+		if 'free_functions__' in options['exclude-members'] and 'built-in function' in repr(obj):
+			return True
+		if 'non_free_functions__' in options['exclude-members'] and 'built-in function' not in repr(obj):
+			return True
+	# Allow hiding enum constant members (i.e. int constants). These can then be documented explicitly
+	# as we don't have a way in SWIG to attach docstrings to constants directly.
+	if 'exclude-members' in options and 'enum_constants__' in options['exclude-members'] and isinstance(obj, int):
+		return True
+	# Allow arbitrary globbing as a hack to exclude or include members
+	if 'exclude-members' in options:
+		for exclude in options['exclude-members']:
+			# Look for a hack that describes a name match
+			if exclude.startswith('name_match__'):
+				match = exclude.replace('name_match__', '')
+
+				include_only = False
+
+				# see if it wants to include only matches, or exclude matches (default)
+				if match.startswith('include_only__'):
+					match = match.replace('include_only__', '')
+					include_only = True
+
+				objname = ""
+				if '__qualname__' in dir(obj):
+					objname = obj.__qualname__
+				else:
+					try:
+						objname = obj.__name__
+					except AttributeError:
+						objname = obj.__class__.__name__
+				ismatch = False
+
+				# see if we're matching a prefix, or doing just a glob
+				if match.startswith('startswith__'):
+					match = match.replace('startswith__', '')
+					ismatch = objname.startswith(match)
+
+				if match.startswith('in__'):
+					match = match.replace('in__', '')
+					ismatch = match in objname
+
+				# if we want to include only matches and it didn't match, skip this
+				if include_only and not ismatch:
+					return True
+
+				# If we want to exclude matches and it DID match, skip
+				if not include_only and ismatch:
+					return True
+	return None
+
+def setup(app):
+    app.connect('autodoc-skip-member', maybe_skip_member)

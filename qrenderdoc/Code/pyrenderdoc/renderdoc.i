@@ -1,12 +1,15 @@
 %module(docstring="This is the API to RenderDoc's internals.") renderdoc
 
-%feature("autodoc");
+%feature("autodoc", "0");
 
 // just define linux platform to make sure things compile with no extra __declspec attributes
 #define RENDERDOC_PLATFORM_LINUX
 
 // we don't need these for the interface, they just confuse things
 #define NO_ENUM_CLASS_OPERATORS
+
+// use documentation for docstrings
+#define DOCUMENT(text) %feature("docstring") text
 
 // ignore warning about base class rdctype::array<char> methods in rdctype::str
 #pragma SWIG nowarn=401
@@ -126,6 +129,9 @@
 %rename(D3D12_ResourceState) D3D12Pipe::ResourceState;
 %rename(D3D12_ResourceData) D3D12Pipe::ResourceData;
 %rename(D3D12_State) D3D12Pipe::State;
+
+// strip off the RENDERDOC_ namespace prefix, it's unnecessary
+%rename("%(strip:[RENDERDOC_])s") "";
 
 %fragment("pyconvert", "header") {
   static char convert_error[1024] = {};
@@ -279,3 +285,71 @@ PyObject *PassObjectToPython(const char *type, void *obj)
 
 %}
 
+%header %{
+  #include <set>
+%}
+
+%init %{
+  // verify that docstrings aren't duplicated, which is a symptom of missing DOCUMENT()
+  // macros around newly added classes/members.
+  #if !defined(RELEASE)
+  static bool doc_checked = false;
+
+  if(!doc_checked)
+  {
+    doc_checked = true;
+
+    std::set<std::string> docstrings;
+    for(size_t i=0; i < sizeof(swig_type_initial)/sizeof(swig_type_initial[0]); i++)
+    {
+      SwigPyClientData *typeinfo = (SwigPyClientData *)swig_type_initial[i]->clientdata;
+
+      // opaque types have no typeinfo, skip these
+      if(!typeinfo) continue;
+
+      PyTypeObject *typeobj = typeinfo->pytype;
+
+      std::string typedoc = typeobj->tp_doc;
+
+      auto result = docstrings.insert(typedoc);
+
+      if(!result.second)
+      {
+        snprintf(convert_error, sizeof(convert_error)-1, "Duplicate docstring '%s' found on struct '%s' - are you missing a DOCUMENT()?", typedoc.c_str(), typeobj->tp_name);
+        RENDERDOC_LogMessage(LogType::Fatal, "QTRD", __FILE__, __LINE__, convert_error);
+      }
+
+      PyMethodDef *method = typeobj->tp_methods;
+
+      while(method->ml_doc)
+      {
+        std::string typedoc = method->ml_doc;
+
+        size_t i = 0;
+        while(typedoc[i] == '\n')
+          i++;
+
+        // skip the first line as it's autodoc generated
+        i = typedoc.find('\n', i);
+        if(i != std::string::npos)
+        {
+          while(typedoc[i] == '\n')
+            i++;
+
+          typedoc.erase(0, i);
+
+          result = docstrings.insert(typedoc);
+
+          if(!result.second)
+          {
+            snprintf(convert_error, sizeof(convert_error)-1, "Duplicate docstring '%s' found on method '%s' - are you missing a DOCUMENT()?", typedoc.c_str(), method->ml_name);
+            RENDERDOC_LogMessage(LogType::Fatal, "QTRD", __FILE__, __LINE__, convert_error);
+          }
+        }
+
+        method++;
+      }
+    }
+  }
+  #endif
+%}
