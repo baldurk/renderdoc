@@ -23,10 +23,12 @@
  ******************************************************************************/
 
 // bit of a hack
+#if DISABLED(RDOC_ANDROID)
 namespace Keyboard
 {
 void CloneDisplay(Display *dpy);
 }
+#endif
 
 void *SharedLookupFuncPtr(const char *func, void *realFunc);
 bool SharedPopulateHooks(void *(*lookupFunc)(const char *));

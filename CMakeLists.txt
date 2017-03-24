@@ -94,7 +94,7 @@ if(ANDROID)
         message(STATUS "Disabling GL driver on android and enabling GLES")
     endif()
     set(ENABLE_GL OFF CACHE BOOL "" FORCE)
-    set(ENABLE_GLES OFF CACHE BOOL "" FORCE)
+    set(ENABLE_GLES ON CACHE BOOL "" FORCE)
 
     # Android doesn't support the Qt UI for obvious reasons
     message(STATUS "Disabling qrenderdoc for android build")
