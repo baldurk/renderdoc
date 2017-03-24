@@ -75,6 +75,11 @@ ExternalProject_Add(custom_swig
     BUILD_COMMAND $(MAKE) > /dev/null 2>&1
     INSTALL_COMMAND $(MAKE) install > /dev/null 2>&1)
 
+# Lastly find PySide 2, optionally, for Qt5 Python bindings
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}")
+
+find_package(PySide2)
+
 # Output our configuration for qmake. We output this to a separate file so that
 # the user can then open the qrenderdoc.pro in qt creator and be able to build
 # with these configuration entries propagated for e.g. linking against libraries
@@ -101,6 +106,27 @@ file(WRITE
      "RENDERDOC_VERSION=${RENDERDOC_VERSION}\n"
      "\n"
      "OSX_ICONFILE=${CMAKE_CURRENT_BINARY_DIR}/RenderDoc.icns\n")
+
+if(PYSIDE2_FOUND)
+    # Add configuration for PySide2
+    file(APPEND
+         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+         "DEFINES+=PYSIDE2_ENABLED=1\n"
+         "DEFINES+=PYSIDE2_SYS_PATH=${PYSIDE2_PYTHON_PATH}\n"
+         "INCLUDEPATH+=${PYSIDE2_INCLUDE_DIR}/PySide2\n"
+         "INCLUDEPATH+=${PYSIDE2_INCLUDE_DIR}/PySide2/QtCore\n"
+         "INCLUDEPATH+=${PYSIDE2_INCLUDE_DIR}/PySide2/QtGui\n"
+         "INCLUDEPATH+=${PYSIDE2_INCLUDE_DIR}/PySide2/QtWidgets\n"
+         "INCLUDEPATH+=${PYSIDE2_INCLUDE_DIR}/shiboken2\n"
+         "LIBS+=-L${PYSIDE2_LIBRARY_DIR}\n"
+         "LIBS+=-lshiboken2\n")
+else()
+    message(STATUS "PySide2 not found - Qt will not be accessible in python scripting")
+
+    file(APPEND
+         ${CMAKE_BINARY_DIR}/qrenderdoc/qrenderdoc_cmake.pri
+         "DEFINES+=PYSIDE2_ENABLED=0\n")
+endif()
 
 # generate the SWIG interface file
 add_custom_command(OUTPUT renderdoc_python.cxx renderdoc.py

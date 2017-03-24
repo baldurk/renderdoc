@@ -71,6 +71,19 @@ win32 {
 		LIBS += $$_PRO_FILE_PWD_/3rdparty/python/x64/python36.lib
 	}
 
+	# Include and link against PySide2
+	DEFINES += PYSIDE2_ENABLED=1
+	INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/shiboken2
+	INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide2
+	INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide2/QtCore
+	INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide2/QtGui
+	INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/pyside/include/PySide2/QtWidgets
+	!contains(QMAKE_TARGET.arch, x86_64) {
+		LIBS += $$_PRO_FILE_PWD_/3rdparty/pyside/Win32/shiboken2.lib
+	} else {
+		LIBS += $$_PRO_FILE_PWD_/3rdparty/pyside/x64/shiboken2.lib
+	}
+
 	# Link against the core library
 	LIBS += $$DESTDIR/renderdoc.lib
 

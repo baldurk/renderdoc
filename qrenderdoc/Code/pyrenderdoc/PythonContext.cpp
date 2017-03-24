@@ -26,6 +26,19 @@
 #include <Python.h>
 #include <frameobject.h>
 
+#if PYSIDE2_ENABLED
+// PySide Qt integration, must be included before Qt headers
+// warning C4522: 'Shiboken::AutoDecRef': multiple assignment operators specified
+#pragma warning(disable : 4522)
+#include <pyside.h>
+#include <pyside2_qtwidgets_python.h>
+#include <shiboken.h>
+
+PyTypeObject **SbkPySide2_QtCoreTypes = NULL;
+PyTypeObject **SbkPySide2_QtGuiTypes = NULL;
+PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
+#endif
+
 #include <QApplication>
 #include <QDebug>
 #include <QFile>
@@ -200,6 +213,48 @@ void PythonContext::GlobalInit()
     output->isStdError = 1;
     output->context = NULL;
   }
+
+// if we need to append to sys.path to locate PySide2, do that now
+#if defined(PYSIDE2_SYS_PATH)
+  {
+    PyObject *syspath = PyObject_GetAttrString(sysobj, "path");
+
+#ifndef STRINGIZE
+#define STRINGIZE2(a) #a
+#define STRINGIZE(a) STRINGIZE2(a)
+#endif
+
+    PyObject *str = PyUnicode_FromString(STRINGIZE(PYSIDE2_SYS_PATH));
+
+    PyList_Append(syspath, str);
+
+    Py_DecRef(str);
+    Py_DecRef(syspath);
+  }
+#endif
+
+// set up PySide
+#if PYSIDE2_ENABLED
+  {
+    Shiboken::AutoDecRef core(Shiboken::Module::import("PySide2.QtCore"));
+    if(!core.isNull())
+      SbkPySide2_QtCoreTypes = Shiboken::Module::getTypes(core);
+    else
+      qCritical() << "Failed to load PySide2.QtCore";
+
+    Shiboken::AutoDecRef gui(Shiboken::Module::import("PySide2.QtGui"));
+    if(!gui.isNull())
+      SbkPySide2_QtGuiTypes = Shiboken::Module::getTypes(gui);
+    else
+      qCritical() << "Failed to load PySide2.QtGui";
+
+    Shiboken::AutoDecRef widgets(Shiboken::Module::import("PySide2.QtWidgets"));
+    if(!widgets.isNull())
+      SbkPySide2_QtWidgetsTypes = Shiboken::Module::getTypes(widgets);
+    else
+      qCritical() << "Failed to load PySide2.QtWidgets";
+  }
+#endif
 
   // release GIL so that python work can now happen on any thread
   PyEval_SaveThread();
@@ -405,6 +460,14 @@ void PythonContext::executeFile(const QString &filename)
 
 void PythonContext::setGlobal(const char *varName, const char *typeName, void *object)
 {
+  if(!initialised())
+  {
+    emit exception(
+        "SystemError",
+        "Python integration failed to initialise, see diagnostic log for more information.", {});
+    return;
+  }
+
   PyGILState_STATE gil = PyGILState_Ensure();
 
   PyObject *obj = PassObjectToPython(typeName, object);
@@ -416,11 +479,94 @@ void PythonContext::setGlobal(const char *varName, const char *typeName, void *o
 
   PyGILState_Release(gil);
 
+  if(ret != 0)
+  {
+    emit exception("RuntimeError",
+                   QString("Failed to set variable '%1' of type '%2'").arg(varName).arg(typeName),
+                   {});
+    return;
+  }
+
+  setPyGlobal(varName, obj);
+}
+
+template <>
+void PythonContext::setGlobal(const char *varName, PyObject *object)
+{
+  setPyGlobal(varName, object);
+}
+
+template <>
+void PythonContext::setGlobal(const char *varName, QObject *object)
+{
+  setQtGlobal(varName, object);
+}
+
+template <>
+void PythonContext::setGlobal(const char *varName, QWidget *object)
+{
+  setQtGlobal(varName, object);
+}
+
+void PythonContext::setQtGlobal_internal(const char *varName, const char *typeName, QObject *object)
+{
+#if PYSIDE2_ENABLED
+  if(!initialised())
+  {
+    emit exception(
+        "SystemError",
+        "Python integration failed to initialise, see diagnostic log for more information.", {});
+    return;
+  }
+
+  if(!SbkPySide2_QtCoreTypes || !SbkPySide2_QtGuiTypes || !SbkPySide2_QtWidgetsTypes)
+  {
+    emit exception("SystemError",
+                   "PySide Qt library didn't load, see diagnostic log for more information.", {});
+    return;
+  }
+
+  PyObject *obj =
+      Shiboken::Object::newObject(reinterpret_cast<SbkObjectType *>(Shiboken::SbkType<QObject>()),
+                                  object, false, false, typeName);
+
+  if(!obj)
+  {
+    emit exception("RuntimeError",
+                   QString("Failed to set variable '%1' of type '%2'").arg(varName).arg(typeName),
+                   {});
+    return;
+  }
+
+  setPyGlobal(varName, obj);
+#else
+  emit exception("SystemError", "PySide2 was not enabled at build-time, cannot set Qt variable.", {});
+#endif
+}
+
+void PythonContext::setPyGlobal(const char *varName, PyObject *obj)
+{
+  if(!initialised())
+  {
+    emit exception(
+        "SystemError",
+        "Python integration failed to initialise, see diagnostic log for more information.", {});
+    return;
+  }
+
+  int ret = -1;
+
+  PyGILState_STATE gil = PyGILState_Ensure();
+
+  if(obj)
+    ret = PyDict_SetItemString(context_namespace, varName, obj);
+
+  PyGILState_Release(gil);
+
   if(ret == 0)
     return;
 
-  emit exception("RuntimeError",
-                 QString("Failed to set variable '%1' of type '%2'").arg(varName).arg(typeName), {});
+  emit exception("RuntimeError", QString("Failed to set variable '%1'").arg(varName), {});
 }
 
 PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)

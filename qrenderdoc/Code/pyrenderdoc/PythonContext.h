@@ -26,6 +26,8 @@
 
 #include <QObject>
 #include <QString>
+#include <QWidget>
+#include <typeinfo>
 #include "renderdoc_replay.h"
 
 class QThread;
@@ -54,6 +56,13 @@ public:
     setGlobal(varName, baseTypeName.data(), (void *)object);
   }
 
+  template <typename QtObjectType>
+  void setQtGlobal(const char *varName, QtObjectType *object)
+  {
+    // forward non-template part on
+    setQtGlobal_internal(varName, typeid(*const_cast<QtObjectType *>(object)).name(), object);
+  }
+
   QString currentFile() { return location.file; }
   int currentLine() { return location.line; }
 signals:
@@ -66,6 +75,7 @@ public slots:
   void executeString(const QString &filename, const QString &source);
   void executeFile(const QString &filename);
   void setGlobal(const char *varName, const char *typeName, void *object);
+  void setPyGlobal(const char *varName, PyObject *object);
 
 private:
   // this is the dict for __main__ after importing our modules, which is copied for each actual
@@ -84,8 +94,19 @@ private:
     int line = 0;
   } location;
 
+  void setQtGlobal_internal(const char *varName, const char *typeName, QObject *object);
+
   // Python callbacks
   static PyObject *outstream_write(PyObject *self, PyObject *args);
   static PyObject *outstream_flush(PyObject *self, PyObject *args);
   static int traceEvent(PyObject *obj, PyFrameObject *frame, int what, PyObject *arg);
 };
+
+template <>
+void PythonContext::setGlobal(const char *varName, PyObject *object);
+
+template <>
+void PythonContext::setGlobal(const char *varName, QObject *object);
+
+template <>
+void PythonContext::setGlobal(const char *varName, QWidget *object);
