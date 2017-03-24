@@ -141,19 +141,33 @@ struct GLWindowingData
 
 #elif ENABLED(RDOC_ANDROID)
 
-#include "EGL/egl.h"
-#include "EGL/eglext.h"
+// force include the eglplatform.h, as we want to use
+// our own because the system one could be a bit older and
+// propably not suitable for the given egl.h
+#include "official/eglplatform.h"
+
+#include "official/egl.h"
+#include "official/eglext.h"
 
 struct GLWindowingData
 {
   GLWindowingData()
   {
-    ctx = NULL;
+    egl_ctx = 0;
+    egl_dpy = 0;
+    egl_wnd = 0;
     wnd = 0;
   }
 
-  void SetCtx(void *c) { ctx = (void *)c; }
-  EGLContext ctx;
+  void SetCtx(void *c) { egl_ctx = (void *)c; }
+  union
+  {
+    // currently required to allow compatiblity with the driver parts
+    void *ctx;
+    EGLContext egl_ctx;
+  };
+  EGLDisplay egl_dpy;
+  EGLSurface egl_wnd;
   ANativeWindow *wnd;
 };
 

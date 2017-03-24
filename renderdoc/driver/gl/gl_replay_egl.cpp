@@ -113,6 +113,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
       return status;
   }
 
+#if DISABLED(RDOC_ANDROID)
   Display *dpy = XOpenDisplay(NULL);
 
   if(dpy == NULL)
@@ -120,6 +121,7 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
     RDCERR("Couldn't open default X display");
     return eReplayCreate_APIInitFailed;
   }
+#endif
 
   eglBindAPIProc(EGL_OPENGL_ES_API);
 
@@ -161,7 +163,9 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
   EGLContext ctx = eglCreateContextProc(eglDisplay, config, EGL_NO_CONTEXT, ctxAttribs);
   if(ctx == NULL)
   {
+#if DISABLED(RDOC_ANDROID)
     XCloseDisplay(dpy);
+#endif
     GLReplay::PostContextShutdownCounters();
     RDCERR("Couldn't create GL ES 3.x context - RenderDoc requires OpenGL ES 3.x availability");
     return eReplayCreate_APIHardwareUnsupported;
@@ -174,7 +178,9 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
   {
     RDCERR("Couldn't create a suitable PBuffer");
     eglDestroySurfaceProc(eglDisplay, pbuffer);
+#if DISABLED(RDOC_ANDROID)
     XCloseDisplay(dpy);
+#endif
     GLReplay::PostContextShutdownCounters();
     return eReplayCreate_APIInitFailed;
   }
@@ -185,7 +191,9 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
     RDCERR("Couldn't active the created GL ES context");
     eglDestroySurfaceProc(eglDisplay, pbuffer);
     eglDestroyContextProc(eglDisplay, ctx);
+#if DISABLED(RDOC_ANDROID)
     XCloseDisplay(dpy);
+#endif
     GLReplay::PostContextShutdownCounters();
     return eReplayCreate_APIInitFailed;
   }
@@ -198,7 +206,9 @@ ReplayCreateStatus GLES_CreateReplayDevice(const char *logfile, IReplayDriver **
   {
     eglDestroySurfaceProc(eglDisplay, pbuffer);
     eglDestroyContextProc(eglDisplay, ctx);
+#if DISABLED(RDOC_ANDROID)
     XCloseDisplay(dpy);
+#endif
     GLReplay::PostContextShutdownCounters();
     return eReplayCreate_APIHardwareUnsupported;
   }
