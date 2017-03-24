@@ -5,4 +5,5 @@ Python API
 	main_ifaces
 	funcs
 	enums_data
+	pipelines/index
 	qrenderdoc
