@@ -1179,9 +1179,21 @@ void D3D11RenderState::UnbindIUnknownForRead(const ResourceRange &range, bool al
         {
           readStencilOnly = true;
         }
-        if(fmt == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS || fmt == DXGI_FORMAT_R24_UNORM_X8_TYPELESS)
+        else if(fmt == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS ||
+                fmt == DXGI_FORMAT_R24_UNORM_X8_TYPELESS)
         {
           readDepthOnly = true;
+        }
+        else
+        {
+          fmt = GetTypelessFormat(fmt);
+
+          // any format that could be depth-only, treat it as reading depth only.
+          // this only applies for conflicts detected with the depth target.
+          if(fmt == DXGI_FORMAT_R32_TYPELESS || fmt == DXGI_FORMAT_R16_TYPELESS)
+          {
+            readDepthOnly = true;
+          }
         }
 
         SAFE_RELEASE(res);

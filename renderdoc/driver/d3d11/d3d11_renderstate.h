@@ -237,6 +237,8 @@ struct D3D11RenderState
     D3D11_RESOURCE_DIMENSION dim;
     res->GetType(&dim);
 
+    DXGI_FORMAT fmt = DXGI_FORMAT_UNKNOWN;
+
     if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE1D)
     {
       D3D11_TEXTURE1D_DESC d;
@@ -247,16 +249,7 @@ struct D3D11RenderState
         d.Format = srvd.Format;
       }
 
-      if(d.Format == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT ||
-         d.Format == DXGI_FORMAT_X24_TYPELESS_G8_UINT)
-      {
-        readStencilOnly = true;
-      }
-      if(d.Format == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS ||
-         d.Format == DXGI_FORMAT_R24_UNORM_X8_TYPELESS)
-      {
-        readDepthOnly = true;
-      }
+      fmt = d.Format;
     }
     else if(dim == D3D11_RESOURCE_DIMENSION_TEXTURE2D)
     {
@@ -268,13 +261,24 @@ struct D3D11RenderState
         d.Format = srvd.Format;
       }
 
-      if(d.Format == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT ||
-         d.Format == DXGI_FORMAT_X24_TYPELESS_G8_UINT)
-      {
-        readStencilOnly = true;
-      }
-      if(d.Format == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS ||
-         d.Format == DXGI_FORMAT_R24_UNORM_X8_TYPELESS)
+      fmt = d.Format;
+    }
+
+    if(fmt == DXGI_FORMAT_X32_TYPELESS_G8X24_UINT || fmt == DXGI_FORMAT_X24_TYPELESS_G8_UINT)
+    {
+      readStencilOnly = true;
+    }
+    else if(fmt == DXGI_FORMAT_R32_FLOAT_X8X24_TYPELESS || fmt == DXGI_FORMAT_R24_UNORM_X8_TYPELESS)
+    {
+      readDepthOnly = true;
+    }
+    else
+    {
+      fmt = GetTypelessFormat(fmt);
+
+      // any format that could be depth-only, treat it as reading depth only.
+      // this only applies for conflicts detected with the depth target.
+      if(fmt == DXGI_FORMAT_R32_TYPELESS || fmt == DXGI_FORMAT_R16_TYPELESS)
       {
         readDepthOnly = true;
       }
