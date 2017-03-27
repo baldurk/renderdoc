@@ -236,6 +236,8 @@ struct GLMarkerRegion
   static const GLHookSet *gl;
 };
 
+size_t GLTypeSize(GLenum type);
+
 size_t BufferIdx(GLenum buf);
 GLenum BufferEnum(size_t idx);
 

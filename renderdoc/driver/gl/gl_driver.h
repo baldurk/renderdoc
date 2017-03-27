@@ -106,6 +106,19 @@ struct Replacement
   GLResource res;
 };
 
+struct ClientVertexAttrib
+{
+  // GLuint index is the map key.
+  GLint size;
+  GLenum type;
+  GLboolean normalized;
+  GLsizei stride;
+  const void *pointer;
+
+  GLuint currentBuffer;    // GL_ARRAY_BUFFER_BINDING
+  GLuint tempBuffer;       // Create around calls if client memory was used
+};
+
 class WrappedOpenGL : public IFrameCapturer
 {
 private:
@@ -337,6 +350,14 @@ private:
   map<ResourceId, ProgramData> m_Programs;
   map<ResourceId, PipelineData> m_Pipelines;
   vector<pair<ResourceId, Replacement> > m_DependentReplacements;
+
+  // GLES allows drawing from client memory or without an explicit VAO.
+  // In this case we will create a temporary VAO with VBOs if needed so that
+  // input mesh data is recorded.
+  map<GLuint, ClientVertexAttrib> m_ClientVertexAttribs;
+  GLuint m_TempClientVAO;
+  void CreateTemporaryVAO(GLint first, GLsizei count);
+  void DeleteTemporaryVAO();
 
   GLuint m_FakeBB_FBO;
   GLuint m_FakeBB_Color;

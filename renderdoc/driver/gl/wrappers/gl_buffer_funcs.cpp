@@ -3025,6 +3025,13 @@ void WrappedOpenGL::glVertexAttribPointer(GLuint index, GLint size, GLenum type,
         r->AddChunk(scope.Get());
       }
     }
+    else if(IsGLES)
+    {
+      ClientVertexAttrib attrib = {size, type, normalized, stride, pointer};
+
+      glGetIntegerv(eGL_ARRAY_BUFFER_BINDING, (GLint *)&attrib.currentBuffer);
+      m_ClientVertexAttribs[index] = attrib;
+    }
   }
 }
 

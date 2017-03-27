@@ -709,6 +709,74 @@ bool WrappedOpenGL::Serialise_glDrawArrays(GLenum mode, GLint first, GLsizei cou
   return true;
 }
 
+void WrappedOpenGL::CreateTemporaryVAO(GLint first, GLsizei count)
+{
+  RDCASSERT(m_State == WRITING_CAPFRAME);
+
+  if(!m_ClientVertexAttribs.size() || !IsGLES)
+    return;
+
+  ContextData &cd = GetCtxData();
+  GLResourceRecord *varecord = cd.m_VertexArrayRecord;
+  if(varecord)
+    return;    // Already have a non-zero VAO
+
+  glCreateVertexArrays(1, &m_TempClientVAO);
+  glBindVertexArray(m_TempClientVAO);
+
+  for(auto it = m_ClientVertexAttribs.begin(); it != m_ClientVertexAttribs.end(); it++)
+  {
+    GLuint index = it->first;
+    ClientVertexAttrib &attrib = it->second;
+
+    const void *ptr;
+    if(attrib.currentBuffer)
+    {
+      // App used buffers but no VAO.
+      attrib.tempBuffer = 0;
+      glBindBuffer(eGL_ARRAY_BUFFER, attrib.currentBuffer);
+
+      ptr = attrib.pointer;    // Keep its offset
+    }
+    else
+    {
+      // App used client memory, so copy it into a temporary buffer.
+      glCreateBuffers(1, &attrib.tempBuffer);
+      glBindBuffer(eGL_ARRAY_BUFFER, attrib.tempBuffer);
+
+      GLsizei stride = attrib.stride ? attrib.stride : GLTypeSize(attrib.type) * attrib.size;
+      glBufferData(eGL_ARRAY_BUFFER, (first + count) * stride, attrib.pointer, eGL_STATIC_DRAW);
+
+      ptr = nullptr;    // We copied all client memory, so offset is zero
+    }
+
+    glEnableVertexAttribArray(index);
+    glVertexAttribPointer(index, attrib.size, attrib.type, attrib.normalized, attrib.stride, ptr);
+  }
+
+  glBindBuffer(eGL_ARRAY_BUFFER, 0);
+}
+
+void WrappedOpenGL::DeleteTemporaryVAO()
+{
+  if(!m_TempClientVAO)
+    return;
+
+  for(auto it = m_ClientVertexAttribs.begin(); it != m_ClientVertexAttribs.end(); it++)
+  {
+    ClientVertexAttrib &attrib = it->second;
+    if(attrib.tempBuffer)
+    {
+      glDeleteBuffers(1, &attrib.tempBuffer);
+      attrib.tempBuffer = 0;
+    }
+  }
+
+  glBindVertexArray(0);
+  glDeleteVertexArrays(1, &m_TempClientVAO);
+  m_TempClientVAO = 0;
+}
+
 void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 {
   CoherentMapImplicitBarrier();
@@ -717,6 +785,8 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
 
   if(m_State == WRITING_CAPFRAME)
   {
+    CreateTemporaryVAO(first, count);
+
     SCOPED_SERIALISE_CONTEXT(DRAWARRAYS);
     Serialise_glDrawArrays(mode, first, count);
 
@@ -725,6 +795,8 @@ void WrappedOpenGL::glDrawArrays(GLenum mode, GLint first, GLsizei count)
     GLRenderState state(&m_Real, m_pSerialiser, m_State);
     state.FetchState(GetCtx(), this);
     state.MarkReferenced(this, false);
+
+    DeleteTemporaryVAO();
   }
   else if(m_State == WRITING_IDLE)
   {
