@@ -334,7 +334,7 @@ void rdclogprint_int(LogType type, const char *fullMsg, const char *msg)
 #endif
 }
 
-const size_t rdclog_outBufSize = 4 * 1024;
+const int rdclog_outBufSize = 4 * 1024;
 static char rdclog_outputBuffer[rdclog_outBufSize + 1];
 
 void rdclog_int(LogType type, const char *project, const char *file, unsigned int line,
@@ -342,6 +342,10 @@ void rdclog_int(LogType type, const char *project, const char *file, unsigned in
 {
   va_list args;
   va_start(args, fmt);
+
+  // this copy is just for in case we need to print again if the buffer is oversized
+  va_list args2;
+  va_copy(args2, args);
 
   char timestamp[64] = {0};
 #if ENABLED(INCLUDE_TIMESTAMP_IN_LOG)
@@ -368,6 +372,8 @@ void rdclog_int(LogType type, const char *project, const char *file, unsigned in
   char *output = rdclog_outputBuffer;
   size_t available = rdclog_outBufSize;
 
+  const char *base = output;
+
   int numWritten = StringFormat::snprintf(output, available, "% 4s %06u: %s%s%s - ", project,
                                           Process::GetCurrentPID(), timestamp, location,
                                           typestr[(uint32_t)type]);
@@ -375,6 +381,7 @@ void rdclog_int(LogType type, const char *project, const char *file, unsigned in
   if(numWritten < 0)
   {
     va_end(args);
+    va_end(args2);
     return;
   }
 
@@ -384,21 +391,51 @@ void rdclog_int(LogType type, const char *project, const char *file, unsigned in
   // -3 is for the " - " after the type.
   const char *noPrefixOutput = (output - 3 - (sizeof(typestr[(uint32_t)type]) - 1));
 
+  int totalWritten = numWritten;
+
   numWritten = StringFormat::vsnprintf(output, available, fmt, args);
+
+  totalWritten += numWritten;
 
   va_end(args);
 
   if(numWritten < 0)
+  {
+    va_end(args2);
     return;
+  }
 
   output += numWritten;
-  available -= numWritten;
 
-  if(available < 2)
-    return;
+  // we overran the static buffer. This is a 4k buffer so we won't be hitting this case often - just
+  // do the simple thing of allocating a temporary, print again, and re-assigning.
+  char *oversizedBuffer = NULL;
+  if(totalWritten > rdclog_outBufSize)
+  {
+    available = totalWritten + 3;
+    oversizedBuffer = output = new char[available];
+    base = output;
+
+    numWritten = StringFormat::snprintf(output, available, "% 4s %06u: %s%s%s - ", project,
+                                        Process::GetCurrentPID(), timestamp, location,
+                                        typestr[(uint32_t)type]);
+
+    output += numWritten;
+    available -= numWritten;
+
+    noPrefixOutput = (output - 3 - (sizeof(typestr[(uint32_t)type]) - 1));
+
+    numWritten = StringFormat::vsnprintf(output, available, fmt, args2);
+
+    output += numWritten;
+
+    va_end(args2);
+  }
 
   *output = '\n';
   *(output + 1) = 0;
 
-  rdclogprint_int(type, rdclog_outputBuffer, noPrefixOutput);
+  rdclogprint_int(type, base, noPrefixOutput);
+
+  delete[] oversizedBuffer;
 }
