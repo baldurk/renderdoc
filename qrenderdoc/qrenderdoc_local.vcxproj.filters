@@ -1057,6 +1057,12 @@
     <None Include="Code\pyrenderdoc\pyconversion.h">
       <Filter>Code\pyrenderdoc</Filter>
     </None>
+    <None Include="Code\pyrenderdoc\pyconversion.i">
+      <Filter>Code\pyrenderdoc</Filter>
+    </None>
+    <None Include="Code\pyrenderdoc\document_check.i">
+      <Filter>Code\pyrenderdoc</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources\qrenderdoc.rc">

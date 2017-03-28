@@ -1374,7 +1374,9 @@
     </CustomBuild>
   </ItemGroup>
   <ItemGroup>
+    <None Include="Code\pyrenderdoc\document_check.i" />
     <None Include="Code\pyrenderdoc\pyconversion.h" />
+    <None Include="Code\pyrenderdoc\pyconversion.i" />
     <None Include="Resources\128.png" />
     <None Include="Resources\accept.png" />
     <None Include="Resources\add.png" />

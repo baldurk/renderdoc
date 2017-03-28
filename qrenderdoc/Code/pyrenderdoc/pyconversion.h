@@ -879,3 +879,53 @@ funcType ConvertFunc(PyObject *self, const char *funcname, PyObject *func, bool 
     return f.call(funcname, func, global_internal_handle, failflag);
   };
 }
+
+namespace
+{
+template <typename T, bool is_pointer = std::is_pointer<T>::value>
+struct pointer_unwrap;
+
+template <typename T>
+struct pointer_unwrap<T, false>
+{
+  static void tempset(T &ptr, T *tempobj) {}
+  static void tempalloc(T &ptr, unsigned char *tempmem) {}
+  static void tempdealloc(T &ptr) {}
+  static T &indirect(T &ptr) { return ptr; }
+};
+
+template <typename T>
+struct pointer_unwrap<T, true>
+{
+  typedef typename std::remove_pointer<T>::type U;
+
+  static void tempset(U *&ptr, U *tempobj) { ptr = tempobj; }
+  static void tempalloc(U *&ptr, unsigned char *tempmem) { ptr = new(tempmem) U; }
+  static void tempdealloc(U *ptr) { ptr->~U(); }
+  static U &indirect(U *ptr) { return *ptr; }
+};
+};
+
+template <typename T>
+inline void tempalloc(T &ptr, unsigned char *tempmem)
+{
+  pointer_unwrap<T>::tempalloc(ptr, tempmem);
+}
+
+template <typename T, typename U>
+inline void tempset(T &ptr, U *tempobj)
+{
+  pointer_unwrap<T>::tempset(ptr, tempobj);
+}
+
+template <typename T>
+inline void tempdealloc(T ptr)
+{
+  pointer_unwrap<T>::tempdealloc(ptr);
+}
+
+template <typename T>
+inline typename std::remove_pointer<T>::type &indirect(T &ptr)
+{
+  return pointer_unwrap<T>::indirect(ptr);
+}
