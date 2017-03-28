@@ -436,7 +436,7 @@ PyObject *Convert(const T &in)
 }
 
 template <typename T>
-T get_return(const char *funcname, PyObject *result, bool &failflag)
+inline T get_return(const char *funcname, PyObject *result, bool &failflag)
 {
   T val = T();
 
@@ -456,7 +456,7 @@ T get_return(const char *funcname, PyObject *result, bool &failflag)
 }
 
 template <>
-void get_return(const char *funcname, PyObject *result, bool &failflag)
+inline void get_return(const char *funcname, PyObject *result, bool &failflag)
 {
   Py_XDECREF(result);
 }
@@ -487,8 +487,8 @@ struct varfunc
       Py_DecRef(args);
       args = NULL;
 
-      PyErr_Format(PyExc_TypeError, "Expected a '%s' for arg %d of callback in %s",
-                   TypeName<typename std::remove_pointer<T>::type>(), currentarg + 1, funcname);
+      PyErr_Format(PyExc_TypeError, "Unexpected type for arg %d of callback in %s", currentarg + 1,
+                   funcname);
 
       return;
     }
