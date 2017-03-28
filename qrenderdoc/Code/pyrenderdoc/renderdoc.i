@@ -140,15 +140,109 @@
 }
 
 %fragment("tempalloc", "header") {
+  template<typename T, bool is_pointer = std::is_pointer<T>::value>
+  struct pointer_unwrap;
+
   template<typename T>
-  void tempalloc(T *&ptr, unsigned char *tempmem)
+  struct pointer_unwrap<T, false>
   {
-    ptr = new (tempmem) T;
+    static void tempset(T &ptr, T *tempobj)
+    {
+    }
+
+    static void tempalloc(T &ptr, unsigned char *tempmem)
+    {
+    }
+
+    static void tempdealloc(T &ptr)
+    {
+    }
+
+    static T &indirect(T &ptr)
+    {
+      return ptr;
+    }
+  };
+
+  template<typename T>
+  struct pointer_unwrap<T, true>
+  {
+    typedef typename std::remove_pointer<T>::type U;
+
+    static void tempset(U *&ptr, U *tempobj)
+    {
+      ptr = tempobj;
+    }
+
+    static void tempalloc(U *&ptr, unsigned char *tempmem)
+    {
+      ptr = new (tempmem) U;
+    }
+
+    static void tempdealloc(U *ptr)
+    {
+      ptr->~U();
+    }
+
+    static U &indirect(U *ptr)
+    {
+      return *ptr;
+    }
+  };
+
+  template<typename T>
+  void tempalloc(T &ptr, unsigned char *tempmem)
+  {
+    pointer_unwrap<T>::tempalloc(ptr, tempmem);
+  }
+
+  template<typename T, typename U>
+  void tempset(T &ptr, U *tempobj)
+  {
+    pointer_unwrap<T>::tempset(ptr, tempobj);
+  }
+
+  template<typename T>
+  void tempdealloc(T ptr)
+  {
+    pointer_unwrap<T>::tempdealloc(ptr);
+  }
+
+  template<typename T>
+  typename std::remove_pointer<T>::type &indirect(T &ptr)
+  {
+    return pointer_unwrap<T>::indirect(ptr);
   }
 }
 
-%typemap(in, fragment="tempalloc,pyconvert") rdctype::array<T> * (unsigned char tempmem[sizeof(void*)*2]) {
-  static_assert(sizeof(tempmem) >= sizeof(*$1), "sizeof rdctype::array isn't equal");
+%define SIMPLE_TYPEMAPS_VARIANT(BaseType, SimpleType)
+%typemap(in, fragment="tempalloc,pyconvert") SimpleType (BaseType temp) {
+  tempset($1, &temp);
+
+  int res = Convert($input, indirect($1));
+  if(!SWIG_IsOK(res))
+  {
+    SWIG_exception_fail(SWIG_ArgError(res), "in method '$symname' argument $argnum of type '$1_basetype'"); 
+  }
+}
+
+%typemap(out, fragment="tempalloc,pyconvert") SimpleType {
+  $result = Convert(indirect($1));
+}
+%enddef
+
+%define SIMPLE_TYPEMAPS(SimpleType)
+
+SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType)
+SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType *)
+SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType &)
+
+%enddef
+
+%define CONTAINER_TYPEMAPS(ContainerType)
+
+%typemap(in, fragment="tempalloc,pyconvert") ContainerType (unsigned char tempmem[32]) {
+  static_assert(sizeof(tempmem) >= sizeof(std::remove_pointer<decltype($1)>::type), "not enough temp space for $1_basetype");
   
   if(!PyList_Check($input))
   {
@@ -158,7 +252,7 @@
   tempalloc($1, tempmem);
 
   int failIdx = 0;
-  int res = TypeConversion<std::remove_pointer<decltype($1)>::type>::Convert($input, *$1, &failIdx);
+  int res = TypeConversion<std::remove_pointer<decltype($1)>::type>::Convert($input, indirect($1), &failIdx);
 
   if(!SWIG_IsOK(res))
   {
@@ -167,19 +261,26 @@
   }
 }
 
-%typemap(freearg) rdctype::array<T> * {
-  $1->Delete();
+%typemap(freearg, fragment="tempalloc") ContainerType {
+  tempdealloc($1);
 }
 
-%typemap(argout, fragment="pyconvert") rdctype::array<T> * {
+%typemap(argout, fragment="tempalloc,pyconvert") ContainerType {
   // empty the previous contents
-  Py_ssize_t sz = PyList_Size($input);
-  if(sz > 0)
-    PySequence_DelSlice($input, 0, sz);
+  if(PyDict_Check($input))
+  {
+    PyDict_Clear($input);
+  }
+  else
+  {
+    Py_ssize_t sz = PySequence_Size($input);
+    if(sz > 0)
+      PySequence_DelSlice($input, 0, sz);
+  }
 
   // overwrite with array contents
   int failIdx = 0;
-  PyObject *res = TypeConversion<std::remove_pointer<decltype($1)>::type>::ConvertInPlace($input, *$1, &failIdx);
+  PyObject *res = TypeConversion<std::remove_pointer<decltype($1)>::type>::ConvertInPlace($input, indirect($1), &failIdx);
 
   if(!res)
   {
@@ -188,43 +289,21 @@
   }
 }
 
-%typemap(out, fragment="pyconvert") rdctype::array<T> * {
+%typemap(out, fragment="tempalloc,pyconvert") ContainerType {
   int failIdx = 0;
-  $result = TypeConversion<std::remove_pointer<decltype($1)>::type>::Convert(*$1, &failIdx);
-  if(!result)
+  $result = TypeConversion<std::remove_pointer<$1_basetype>::type>::Convert(indirect($1), &failIdx);
+  if(!$result)
   {
     snprintf(convert_error, sizeof(convert_error)-1, "in method '$symname' returning type '$1_basetype', encoding element %d", failIdx);
     SWIG_exception_fail(SWIG_ValueError, convert_error);
   }
 }
 
-%typemap(in, fragment="pyconvert") rdctype::str * {
-  $1 = new rdctype::str;
-  int res = Convert($input, *$1);
-  if(!SWIG_IsOK(res))
-  {
-    SWIG_exception_fail(SWIG_ArgError(res), "in method '$symname' argument $argnum of type '$1_basetype'"); 
-  }
-}
-%typemap(freearg) rdctype::str * {
-  delete $1;
-}
+%enddef
 
-%typemap(in, fragment="pyconvert") rdctype::str {
-  int res = Convert($input, $1);
-  if(!SWIG_IsOK(res))
-  {
-    SWIG_exception_fail(SWIG_ArgError(res), "in method '$symname' argument $argnum of type '$1_basetype'"); 
-  }
-}
+SIMPLE_TYPEMAPS(rdctype::str)
 
-%typemap(out, fragment="pyconvert") rdctype::str * {
-  $result = Convert(*$1);
-}
-
-%typemap(out, fragment="pyconvert") rdctype::str {
-  $result = Convert($1);
-}
+CONTAINER_TYPEMAPS(rdctype::arr)
 
 %typemap(in, fragment="pyconvert") std::function {
   PyObject *func = $input;
