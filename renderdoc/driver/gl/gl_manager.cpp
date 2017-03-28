@@ -364,7 +364,7 @@ bool GLResourceManager::Prepare_InitialState(GLResource res, byte *blob)
     data->valid = true;
 
     GLuint prevfeedback = 0;
-    gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK, (GLint *)&prevfeedback);
+    gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&prevfeedback);
 
     gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, res.name);
 
@@ -2160,7 +2160,7 @@ void GLResourceManager::Apply_InitialState(GLResource live, InitialContentData i
     if(data->valid)
     {
       GLuint prevfeedback = 0;
-      gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK, (GLint *)&prevfeedback);
+      gl.glGetIntegerv(eGL_TRANSFORM_FEEDBACK_BINDING, (GLint *)&prevfeedback);
 
       gl.glBindTransformFeedback(eGL_TRANSFORM_FEEDBACK, live.name);
 
