@@ -30,9 +30,10 @@
 #include "gl_hookset.h"
 #include "gl_manager.h"
 
-struct PixelUnpackState
+struct PixelStorageState
 {
   int32_t swapBytes;
+  int32_t lsbFirst;    // deprecated since OpenGL 4.3 core profile
   int32_t rowlength, imageheight;
   int32_t skipPixels, skipRows, skipImages;
   int32_t alignment;
@@ -40,6 +41,18 @@ struct PixelUnpackState
   int32_t compressedBlockWidth, compressedBlockHeight, compressedBlockDepth;
   int32_t compressedBlockSize;
 
+protected:
+  PixelStorageState();
+};
+
+struct PixelPackState : public PixelStorageState
+{
+  void Fetch(const GLHookSet *funcs, bool compressed);
+  void Apply(const GLHookSet *funcs, bool compressed);
+};
+
+struct PixelUnpackState : public PixelStorageState
+{
   void Fetch(const GLHookSet *funcs, bool compressed);
   void Apply(const GLHookSet *funcs, bool compressed);
 
@@ -51,6 +64,9 @@ struct PixelUnpackState
   byte *UnpackCompressed(byte *pixels, GLsizei width, GLsizei height, GLsizei depth,
                          GLsizei &imageSize);
 };
+
+void ResetPixelPackState(const GLHookSet &gl, bool compressed, GLint alignment);
+void ResetPixelUnpackState(const GLHookSet &gl, bool compressed, GLint alignment);
 
 struct GLRenderState
 {

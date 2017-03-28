@@ -63,10 +63,89 @@ static const GLenum enable_disable_cap[] = {
     eGL_RASTERIZER_DISCARD,
 };
 
+void ResetPixelPackState(const GLHookSet &gl, bool compressed, GLint alignment)
+{
+  PixelPackState empty;
+  empty.alignment = alignment;
+  empty.Apply(&gl, compressed);
+}
+
+void ResetPixelUnpackState(const GLHookSet &gl, bool compressed, GLint alignment)
+{
+  PixelUnpackState empty;
+  empty.alignment = alignment;
+  empty.Apply(&gl, compressed);
+}
+
+PixelStorageState::PixelStorageState()
+    : swapBytes(),
+      lsbFirst(),
+      rowlength(),
+      imageheight(),
+      skipPixels(),
+      skipRows(),
+      skipImages(),
+      alignment(),
+      compressedBlockWidth(),
+      compressedBlockHeight(),
+      compressedBlockDepth(),
+      compressedBlockSize()
+{
+}
+
+void PixelPackState::Fetch(const GLHookSet *funcs, bool compressed)
+{
+  if(!IsGLES)
+  {
+    funcs->glGetIntegerv(eGL_PACK_SWAP_BYTES, &swapBytes);
+    funcs->glGetIntegerv(eGL_PACK_LSB_FIRST, &lsbFirst);
+    funcs->glGetIntegerv(eGL_PACK_IMAGE_HEIGHT, &imageheight);
+    funcs->glGetIntegerv(eGL_PACK_SKIP_IMAGES, &skipImages);
+  }
+  funcs->glGetIntegerv(eGL_PACK_ROW_LENGTH, &rowlength);
+  funcs->glGetIntegerv(eGL_PACK_SKIP_PIXELS, &skipPixels);
+  funcs->glGetIntegerv(eGL_PACK_SKIP_ROWS, &skipRows);
+  funcs->glGetIntegerv(eGL_PACK_ALIGNMENT, &alignment);
+
+  if(!IsGLES && compressed)
+  {
+    funcs->glGetIntegerv(eGL_PACK_COMPRESSED_BLOCK_WIDTH, &compressedBlockWidth);
+    funcs->glGetIntegerv(eGL_PACK_COMPRESSED_BLOCK_HEIGHT, &compressedBlockHeight);
+    funcs->glGetIntegerv(eGL_PACK_COMPRESSED_BLOCK_DEPTH, &compressedBlockDepth);
+    funcs->glGetIntegerv(eGL_PACK_COMPRESSED_BLOCK_SIZE, &compressedBlockSize);
+  }
+}
+
+void PixelPackState::Apply(const GLHookSet *funcs, bool compressed)
+{
+  if(!IsGLES)
+  {
+    funcs->glPixelStorei(eGL_PACK_SWAP_BYTES, swapBytes);
+    funcs->glPixelStorei(eGL_PACK_LSB_FIRST, lsbFirst);
+    funcs->glPixelStorei(eGL_PACK_IMAGE_HEIGHT, imageheight);
+    funcs->glPixelStorei(eGL_PACK_SKIP_IMAGES, skipImages);
+  }
+  funcs->glPixelStorei(eGL_PACK_ROW_LENGTH, rowlength);
+  funcs->glPixelStorei(eGL_PACK_SKIP_PIXELS, skipPixels);
+  funcs->glPixelStorei(eGL_PACK_SKIP_ROWS, skipRows);
+  funcs->glPixelStorei(eGL_PACK_ALIGNMENT, alignment);
+
+  if(!IsGLES && compressed)
+  {
+    funcs->glPixelStorei(eGL_PACK_COMPRESSED_BLOCK_WIDTH, compressedBlockWidth);
+    funcs->glPixelStorei(eGL_PACK_COMPRESSED_BLOCK_HEIGHT, compressedBlockHeight);
+    funcs->glPixelStorei(eGL_PACK_COMPRESSED_BLOCK_DEPTH, compressedBlockDepth);
+    funcs->glPixelStorei(eGL_PACK_COMPRESSED_BLOCK_SIZE, compressedBlockSize);
+  }
+}
+
 void PixelUnpackState::Fetch(const GLHookSet *funcs, bool compressed)
 {
   if(!IsGLES)
+  {
     funcs->glGetIntegerv(eGL_UNPACK_SWAP_BYTES, &swapBytes);
+    funcs->glGetIntegerv(eGL_UNPACK_LSB_FIRST, &lsbFirst);
+  }
   funcs->glGetIntegerv(eGL_UNPACK_ROW_LENGTH, &rowlength);
   funcs->glGetIntegerv(eGL_UNPACK_IMAGE_HEIGHT, &imageheight);
   funcs->glGetIntegerv(eGL_UNPACK_SKIP_PIXELS, &skipPixels);
@@ -86,7 +165,10 @@ void PixelUnpackState::Fetch(const GLHookSet *funcs, bool compressed)
 void PixelUnpackState::Apply(const GLHookSet *funcs, bool compressed)
 {
   if(!IsGLES)
+  {
     funcs->glPixelStorei(eGL_UNPACK_SWAP_BYTES, swapBytes);
+    funcs->glPixelStorei(eGL_UNPACK_LSB_FIRST, lsbFirst);
+  }
   funcs->glPixelStorei(eGL_UNPACK_ROW_LENGTH, rowlength);
   funcs->glPixelStorei(eGL_UNPACK_IMAGE_HEIGHT, imageheight);
   funcs->glPixelStorei(eGL_UNPACK_SKIP_PIXELS, skipPixels);
@@ -1838,6 +1920,7 @@ void GLRenderState::Serialise(LogState state, void *ctx, WrappedOpenGL *gl)
   m_pSerialiser->Serialise("GL_CULL_FACE_MODE", CullFace);
 
   m_pSerialiser->Serialise("GL_UNPACK_SWAP_BYTES", Unpack.swapBytes);
+  // TODO serialise GL_UNPACK_LSB_FIRST?
   m_pSerialiser->Serialise("GL_UNPACK_ROW_LENGTH", Unpack.rowlength);
   m_pSerialiser->Serialise("GL_UNPACK_IMAGE_HEIGHT", Unpack.imageheight);
   m_pSerialiser->Serialise("GL_UNPACK_SKIP_PIXELS", Unpack.skipPixels);

@@ -4339,9 +4339,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage1DEXT(GLuint texture, GLenum targ
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
       unpack.Fetch(&m_Real, false);
-      PixelUnpackState empty = {};
-      empty.alignment = 1;
-      empty.Apply(&m_Real, false);
+      ResetPixelUnpackState(m_Real, false, 1);
     }
 
     if(Format == eGL_LUMINANCE)
@@ -4533,9 +4531,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage2DEXT(GLuint texture, GLenum targ
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
       unpack.Fetch(&m_Real, false);
-      PixelUnpackState empty = {};
-      empty.alignment = 1;
-      empty.Apply(&m_Real, false);
+      ResetPixelUnpackState(m_Real, false, 1);
     }
 
     if(Format == eGL_LUMINANCE)
@@ -4735,9 +4731,7 @@ bool WrappedOpenGL::Serialise_glTextureSubImage3DEXT(GLuint texture, GLenum targ
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
       unpack.Fetch(&m_Real, false);
-      PixelUnpackState empty = {};
-      empty.alignment = 1;
-      empty.Apply(&m_Real, false);
+      ResetPixelUnpackState(m_Real, false, 1);
     }
 
     if(Format == eGL_LUMINANCE)
@@ -4938,9 +4932,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage1DEXT(GLuint texture, G
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
       unpack.Fetch(&m_Real, true);
-      PixelUnpackState empty = {};
-      empty.alignment = 1;
-      empty.Apply(&m_Real, true);
+      ResetPixelUnpackState(m_Real, true, 1);
     }
 
     if(Target != eGL_NONE)
@@ -5123,9 +5115,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage2DEXT(GLuint texture, G
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
       unpack.Fetch(&m_Real, true);
-      PixelUnpackState empty = {};
-      empty.alignment = 1;
-      empty.Apply(&m_Real, true);
+      ResetPixelUnpackState(m_Real, true, 1);
     }
 
     if(Target != eGL_NONE)
@@ -5318,9 +5308,7 @@ bool WrappedOpenGL::Serialise_glCompressedTextureSubImage3DEXT(GLuint texture, G
       m_Real.glBindBuffer(eGL_PIXEL_UNPACK_BUFFER, 0);
 
       unpack.Fetch(&m_Real, true);
-      PixelUnpackState empty = {};
-      empty.alignment = 1;
-      empty.Apply(&m_Real, true);
+      ResetPixelUnpackState(m_Real, true, 1);
     }
 
     if(Target != eGL_NONE)
