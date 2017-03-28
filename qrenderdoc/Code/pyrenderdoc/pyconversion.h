@@ -318,7 +318,7 @@ struct TypeConversion<rdctype::array<U>, false>
   }
 
   static int Convert(PyObject *in, rdctype::array<U> &out) { return Convert(in, out, NULL); }
-  static PyObject *ConvertList(PyObject *list, const rdctype::array<U> &in, int *failIdx)
+  static PyObject *ConvertInPlace(PyObject *list, const rdctype::array<U> &in, int *failIdx)
   {
     for(int i = 0; i < in.count; i++)
     {
@@ -346,7 +346,7 @@ struct TypeConversion<rdctype::array<U>, false>
     if(!list)
       return NULL;
 
-    PyObject *ret = ConvertList(list, in, failIdx);
+    PyObject *ret = ConvertInPlace(list, in, failIdx);
 
     // if a failure happened, don't leak the list we created
     if(!ret)

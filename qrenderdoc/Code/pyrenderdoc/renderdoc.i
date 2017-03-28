@@ -179,7 +179,7 @@
 
   // overwrite with array contents
   int failIdx = 0;
-  PyObject *res = TypeConversion<std::remove_pointer<decltype($1)>::type>::ConvertList($input, *$1, &failIdx);
+  PyObject *res = TypeConversion<std::remove_pointer<decltype($1)>::type>::ConvertInPlace($input, *$1, &failIdx);
 
   if(!res)
   {
