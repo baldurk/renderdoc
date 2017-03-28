@@ -2414,13 +2414,9 @@ byte *GLReplay::GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
   // fetch and return data now
   {
     PixelUnpackState unpack;
-
     unpack.Fetch(&gl.GetHookset(), true);
 
-    PixelUnpackState identity = {0};
-    identity.alignment = 1;
-
-    identity.Apply(&gl.GetHookset(), true);
+    ResetPixelUnpackState(gl.GetHookset(), true, 1);
 
     if(texType == eGL_RENDERBUFFER)
     {
