@@ -1826,7 +1826,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
     loc = gl.glGetUniformLocation(customProg, "RENDERDOC_TexDim");
     if(loc >= 0)
       gl.glProgramUniform4ui(customProg, loc, texDetails.width, texDetails.height, texDetails.depth,
-                             m_CachedTextures[cfg.texid].mips);
+                             texDetails.mips);
 
     loc = gl.glGetUniformLocation(customProg, "RENDERDOC_SelectedMip");
     if(loc >= 0)
@@ -1868,7 +1868,7 @@ bool GLReplay::RenderTextureInternal(TextureDisplay cfg, int flags)
   GLint clampmaxlevel[4] = {};
 
   if(cfg.texid != DebugData.CustomShaderTexID)
-    clampmaxlevel[0] = GLint(m_CachedTextures[cfg.texid].mips - 1);
+    clampmaxlevel[0] = GLint(texDetails.mips - 1);
 
   gl.glGetTextureParameterivEXT(texname, target, eGL_TEXTURE_MAX_LEVEL, maxlevel);
 
