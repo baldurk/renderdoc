@@ -24,6 +24,9 @@ CONTAINER_TYPEMAPS(QMap &)
 CONTAINER_TYPEMAPS(QMap *)
 CONTAINER_TYPEMAPS(QMap)
 
+// need to ignore the original function and add a helper that releases the python GIL while calling
+%ignore IRenderManager::BlockInvoke;
+
 // ignore these functions as we don't map QVariantMap to/from python
 %ignore EnvironmentModification::toJSON;
 %ignore EnvironmentModification::fromJSON;
@@ -52,6 +55,17 @@ CONTAINER_TYPEMAPS(QMap)
 %include "Code/Interface/CommonPipelineState.h"
 %include "Code/Interface/PersistantConfig.h"
 %include "Code/Interface/RemoteHost.h"
+
+// unignore the function from above
+%rename("%s") IRenderManager::BlockInvoke;
+
+%extend IRenderManager {
+  void BlockInvoke(InvokeMethod m) {
+    Py_BEGIN_ALLOW_THREADS
+    $self->BlockInvoke(m);
+    Py_END_ALLOW_THREADS
+  }
+};
 
 %init %{
   PyDateTime_IMPORT;
