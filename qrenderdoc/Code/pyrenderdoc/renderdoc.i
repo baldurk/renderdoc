@@ -327,6 +327,16 @@ CONTAINER_TYPEMAPS(rdctype::arr)
 %ignore ITargetControl::~ITargetControl();
 %ignore IRemoteServer::~IRemoteServer();
 
+// add __str__ functions
+%feature("python:tp_str") ResourceId "resid_str";
+
+%wrapper %{
+static PyObject *resid_str(PyObject *resid)
+{
+  return PyUnicode_FromFormat("<ResourceId %S>", PyObject_GetAttrString(resid, "id"));
+}
+%}
+
 %{
   #include "renderdoc_replay.h"
 %}
@@ -344,11 +354,6 @@ CONTAINER_TYPEMAPS(rdctype::arr)
 %include "replay_enums.h"
 %include "shader_types.h"
 %include "vk_pipestate.h"
-
-// add a built-in __str__ function that will generate string representations in python
-%extend rdctype::str {
-  const char *__str__() const { return $self->c_str(); }
-};
 
 // declare a function for passing external objects into python
 %wrapper %{
