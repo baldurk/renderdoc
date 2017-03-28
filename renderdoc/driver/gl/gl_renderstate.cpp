@@ -717,7 +717,8 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
     m_Real->glGetFloatv(eGL_POINT_SIZE, &PointSize);
   }
 
-  m_Real->glGetIntegerv(eGL_PRIMITIVE_RESTART_INDEX, (GLint *)&PrimitiveRestartIndex);
+  if(!IsGLES)
+    m_Real->glGetIntegerv(eGL_PRIMITIVE_RESTART_INDEX, (GLint *)&PrimitiveRestartIndex);
   if(HasExt[ARB_clip_control])
   {
     m_Real->glGetIntegerv(eGL_CLIP_ORIGIN, (GLint *)&ClipOrigin);
@@ -728,7 +729,8 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
     ClipOrigin = eGL_LOWER_LEFT;
     ClipDepth = eGL_NEGATIVE_ONE_TO_ONE;
   }
-  m_Real->glGetIntegerv(eGL_PROVOKING_VERTEX, (GLint *)&ProvokingVertex);
+  if(!IsGLES)
+    m_Real->glGetIntegerv(eGL_PROVOKING_VERTEX, (GLint *)&ProvokingVertex);
 
   m_Real->glGetIntegerv(eGL_CURRENT_PROGRAM, (GLint *)&Program);
 
@@ -1028,14 +1030,17 @@ void GLRenderState::FetchState(void *ctx, WrappedOpenGL *gl)
   m_Real->glGetFloatv(eGL_COLOR_CLEAR_VALUE, &ColorClearValue.red);
 
   if(HasExt[ARB_tessellation_shader])
-  {
     m_Real->glGetIntegerv(eGL_PATCH_VERTICES, &PatchParams.numVerts);
+  else
+    PatchParams.numVerts = 3;
+
+  if(!IsGLES && HasExt[ARB_tessellation_shader])
+  {
     m_Real->glGetFloatv(eGL_PATCH_DEFAULT_INNER_LEVEL, &PatchParams.defaultInnerLevel[0]);
     m_Real->glGetFloatv(eGL_PATCH_DEFAULT_OUTER_LEVEL, &PatchParams.defaultOuterLevel[0]);
   }
   else
   {
-    PatchParams.numVerts = 3;
     PatchParams.defaultInnerLevel[0] = PatchParams.defaultInnerLevel[1] = 1.0f;
     PatchParams.defaultOuterLevel[0] = PatchParams.defaultOuterLevel[1] =
         PatchParams.defaultOuterLevel[2] = PatchParams.defaultOuterLevel[3] = 1.0f;
@@ -1152,10 +1157,12 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
     m_Real->glPointSize(PointSize);
   }
 
-  m_Real->glPrimitiveRestartIndex(PrimitiveRestartIndex);
+  if(!IsGLES)
+    m_Real->glPrimitiveRestartIndex(PrimitiveRestartIndex);
   if(m_Real->glClipControl && HasExt[ARB_clip_control])
     m_Real->glClipControl(ClipOrigin, ClipDepth);
-  m_Real->glProvokingVertex(ProvokingVertex);
+  if(!IsGLES)
+    m_Real->glProvokingVertex(ProvokingVertex);
 
   m_Real->glUseProgram(Program);
   if(HasExt[ARB_separate_shader_objects])
@@ -1404,8 +1411,11 @@ void GLRenderState::ApplyState(void *ctx, WrappedOpenGL *gl)
   if(HasExt[ARB_tessellation_shader])
   {
     m_Real->glPatchParameteri(eGL_PATCH_VERTICES, PatchParams.numVerts);
-    m_Real->glPatchParameterfv(eGL_PATCH_DEFAULT_INNER_LEVEL, PatchParams.defaultInnerLevel);
-    m_Real->glPatchParameterfv(eGL_PATCH_DEFAULT_OUTER_LEVEL, PatchParams.defaultOuterLevel);
+    if(!IsGLES)
+    {
+      m_Real->glPatchParameterfv(eGL_PATCH_DEFAULT_INNER_LEVEL, PatchParams.defaultInnerLevel);
+      m_Real->glPatchParameterfv(eGL_PATCH_DEFAULT_OUTER_LEVEL, PatchParams.defaultOuterLevel);
+    }
   }
 
   m_Real->glPolygonMode(eGL_FRONT_AND_BACK, PolygonMode);
