@@ -359,8 +359,6 @@ struct TypeConversion<rdctype::array<U>, false>
 };
 
 // specialisation for string
-SWIGINTERN int SWIG_AsCharPtrAndSize(PyObject *obj, char **cptr, size_t *psize, int *alloc);
-
 template <>
 struct TypeConversion<rdctype::str, false>
 {
@@ -378,24 +376,33 @@ struct TypeConversion<rdctype::str, false>
 
   static int Convert(PyObject *in, rdctype::str &out)
   {
-    char *buf = NULL;
-    size_t size = 0;
-    int alloc = SWIG_OLDOBJ;
-
-    if(SWIG_IsOK(SWIG_AsCharPtrAndSize(in, &buf, &size, &alloc)))
+    if(PyUnicode_Check(in))
     {
-      if(!buf)
-        return SWIG_NullReferenceError;
+      PyObject *bytes = PyUnicode_AsUTF8String(in);
 
-      out.count = (int)size - 1;
-      out.elems = (char *)out.allocate(size);
-      memcpy(out.elems, buf, size - 1);
-      out.elems[size] = 0;
+      if(!bytes)
+        return SWIG_ERROR;
 
-      if(alloc == SWIG_NEWOBJ)
-        delete[] buf;
+      char *buf = NULL;
+      Py_ssize_t size = 0;
 
-      return SWIG_OK;
+      int ret = PyBytes_AsStringAndSize(bytes, &buf, &size);
+
+      if(ret == 0)
+      {
+        out.count = (int)size - 1;
+        out.elems = (char *)out.allocate(size);
+        memcpy(out.elems, buf, size - 1);
+        out.elems[size] = 0;
+
+        Py_DecRef(bytes);
+
+        return SWIG_OK;
+      }
+
+      Py_DecRef(bytes);
+
+      return SWIG_ERROR;
     }
 
     swig_type_info *type_info = GetTypeInfo();
@@ -415,7 +422,6 @@ struct TypeConversion<rdctype::str, false>
     return PyUnicode_FromStringAndSize(in.elems, in.count);
   }
 };
-
 // free functions forward to struct
 template <typename T>
 int Convert(PyObject *in, T &out)
