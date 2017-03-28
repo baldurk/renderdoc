@@ -17,121 +17,20 @@
 // ignore warning about redundant declaration of typedef (byte/bool32)
 #pragma SWIG nowarn=322
 
+// strip off the RENDERDOC_ namespace prefix, it's unnecessary. We list this first since we want
+// any other subsequent renames to override it.
+%rename("%(strip:[RENDERDOC_])s") "";
+
 // rename the interfaces to remove the I prefix
 %rename("%(regex:/^I([A-Z].*)/\\1/)s", %$isclass) "";
 
 // Since SWIG will inline all namespaces, and doesn't support nested structs, the namespaces
 // for each pipeline state causes conflicts. We just fall back to a rename with _ as that's
 // still acceptable/intuitive.
-
-%rename(D3D11_Layout) D3D11Pipe::Layout;
-%rename(D3D11_VB) D3D11Pipe::VB;
-%rename(D3D11_IB) D3D11Pipe::IB;
-%rename(D3D11_IA) D3D11Pipe::IA;
-%rename(D3D11_View) D3D11Pipe::View;
-%rename(D3D11_Sampler) D3D11Pipe::Sampler;
-%rename(D3D11_CBuffer) D3D11Pipe::CBuffer;
-%rename(D3D11_Shader) D3D11Pipe::Shader;
-%rename(D3D11_SOBind) D3D11Pipe::SOBind;
-%rename(D3D11_SO) D3D11Pipe::SO;
-%rename(D3D11_Viewport) D3D11Pipe::Viewport;
-%rename(D3D11_Scissor) D3D11Pipe::Scissor;
-%rename(D3D11_RasterizerState) D3D11Pipe::RasterizerState;
-%rename(D3D11_Rasterizer) D3D11Pipe::Rasterizer;
-%rename(D3D11_DepthStencilState) D3D11Pipe::DepthStencilState;
-%rename(D3D11_StencilOp) D3D11Pipe::StencilOp;
-%rename(D3D11_Blend) D3D11Pipe::Blend;
-%rename(D3D11_BlendOp) D3D11Pipe::BlendOp;
-%rename(D3D11_BlendState) D3D11Pipe::BlendState;
-%rename(D3D11_OM) D3D11Pipe::OM;
-%rename(D3D11_State) D3D11Pipe::State;
-
-%rename(GL_VertexAttribute) GLPipe::VertexAttribute;
-%rename(GL_VB) GLPipe::VB;
-%rename(GL_VertexInput) GLPipe::VertexInput;
-%rename(GL_Shader) GLPipe::Shader;
-%rename(GL_FixedVertexProcessing) GLPipe::FixedVertexProcessing;
-%rename(GL_Texture) GLPipe::Texture;
-%rename(GL_Sampler) GLPipe::Sampler;
-%rename(GL_Buffer) GLPipe::Buffer;
-%rename(GL_ImageLoadStore) GLPipe::ImageLoadStore;
-%rename(GL_Feedback) GLPipe::Feedback;
-%rename(GL_Viewport) GLPipe::Viewport;
-%rename(GL_Scissor) GLPipe::Scissor;
-%rename(GL_RasterizerState) GLPipe::RasterizerState;
-%rename(GL_Rasterizer) GLPipe::Rasterizer;
-%rename(GL_DepthState) GLPipe::DepthState;
-%rename(GL_StencilOp) GLPipe::StencilOp;
-%rename(GL_StencilState) GLPipe::StencilState;
-%rename(GL_Attachment) GLPipe::Attachment;
-%rename(GL_FBO) GLPipe::FBO;
-%rename(GL_BlendOp) GLPipe::BlendOp;
-%rename(GL_Blend) GLPipe::Blend;
-%rename(GL_BlendState) GLPipe::BlendState;
-%rename(GL_FrameBuffer) GLPipe::FrameBuffer;
-%rename(GL_Hints) GLPipe::Hints;
-%rename(GL_State) GLPipe::State;
-
-%rename(VK_BindingElement) VKPipe::BindingElement;
-%rename(VK_DescriptorBinding) VKPipe::DescriptorBinding;
-%rename(VK_DescriptorSet) VKPipe::DescriptorSet;
-%rename(VK_Pipeline) VKPipe::Pipeline;
-%rename(VK_IB) VKPipe::IB;
-%rename(VK_InputAssembly) VKPipe::InputAssembly;
-%rename(VK_VertexAttribute) VKPipe::VertexAttribute;
-%rename(VK_VertexBinding) VKPipe::VertexBinding;
-%rename(VK_VB) VKPipe::VB;
-%rename(VK_VertexInput) VKPipe::VertexInput;
-%rename(VK_SpecInfo) VKPipe::SpecInfo;
-%rename(VK_Shader) VKPipe::Shader;
-%rename(VK_Tessellation) VKPipe::Tessellation;
-%rename(VK_Viewport) VKPipe::Viewport;
-%rename(VK_Scissor) VKPipe::Scissor;
-%rename(VK_ViewportScissor) VKPipe::ViewportScissor;
-%rename(VK_ViewState) VKPipe::ViewState;
-%rename(VK_Raster) VKPipe::Raster;
-%rename(VK_MultiSample) VKPipe::MultiSample;
-%rename(VK_BlendOp) VKPipe::BlendOp;
-%rename(VK_Blend) VKPipe::Blend;
-%rename(VK_ColorBlend) VKPipe::ColorBlend;
-%rename(VK_StencilOp) VKPipe::StencilOp;
-%rename(VK_DepthStencil) VKPipe::DepthStencil;
-%rename(VK_RenderPass) VKPipe::RenderPass;
-%rename(VK_Attachment) VKPipe::Attachment;
-%rename(VK_Framebuffer) VKPipe::Framebuffer;
-%rename(VK_RenderArea) VKPipe::RenderArea;
-%rename(VK_CurrentPass) VKPipe::CurrentPass;
-%rename(VK_ImageLayout) VKPipe::ImageLayout;
-%rename(VK_ImageData) VKPipe::ImageData;
-%rename(VK_State) VKPipe::State;
-
-%rename(D3D12_Layout) D3D12Pipe::Layout;
-%rename(D3D12_VB) D3D12Pipe::VB;
-%rename(D3D12_IB) D3D12Pipe::IB;
-%rename(D3D12_IA) D3D12Pipe::IA;
-%rename(D3D12_View) D3D12Pipe::View;
-%rename(D3D12_Sampler) D3D12Pipe::Sampler;
-%rename(D3D12_CBuffer) D3D12Pipe::CBuffer;
-%rename(D3D12_RegisterSpace) D3D12Pipe::RegisterSpace;
-%rename(D3D12_Shader) D3D12Pipe::Shader;
-%rename(D3D12_SOBind) D3D12Pipe::SOBind;
-%rename(D3D12_Streamout) D3D12Pipe::Streamout;
-%rename(D3D12_Viewport) D3D12Pipe::Viewport;
-%rename(D3D12_Scissor) D3D12Pipe::Scissor;
-%rename(D3D12_RasterizerState) D3D12Pipe::RasterizerState;
-%rename(D3D12_Rasterizer) D3D12Pipe::Rasterizer;
-%rename(D3D12_StencilOp) D3D12Pipe::StencilOp;
-%rename(D3D12_DepthStencilState) D3D12Pipe::DepthStencilState;
-%rename(D3D12_BlendOp) D3D12Pipe::BlendOp;
-%rename(D3D12_Blend) D3D12Pipe::Blend;
-%rename(D3D12_BlendState) D3D12Pipe::BlendState;
-%rename(D3D12_OM) D3D12Pipe::OM;
-%rename(D3D12_ResourceState) D3D12Pipe::ResourceState;
-%rename(D3D12_ResourceData) D3D12Pipe::ResourceData;
-%rename(D3D12_State) D3D12Pipe::State;
-
-// strip off the RENDERDOC_ namespace prefix, it's unnecessary
-%rename("%(strip:[RENDERDOC_])s") "";
+%rename("%(regex:/^D3D11Pipe::(.*)/D3D11_\\1/)s", regextarget=1, fullname=1, %$isclass) "D3D11Pipe::.*";
+%rename("%(regex:/^D3D12Pipe::(.*)/D3D12_\\1/)s", regextarget=1, fullname=1, %$isclass) "D3D12Pipe::.*";
+%rename("%(regex:/^GLPipe::(.*)/GL_\\1/)s", regextarget=1, fullname=1, %$isclass) "GLPipe::.*";
+%rename("%(regex:/^VKPipe::(.*)/VK_\\1/)s", regextarget=1, fullname=1, %$isclass) "VKPipe::.*";
 
 %fragment("pyconvert", "header") {
   static char convert_error[1024] = {};
