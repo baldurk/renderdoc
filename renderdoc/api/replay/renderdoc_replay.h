@@ -195,6 +195,10 @@ struct IReplayOutput
   virtual bool PickPixel(ResourceId texID, bool customShader, uint32_t x, uint32_t y,
                          uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val) = 0;
   virtual uint32_t PickVertex(uint32_t eventID, uint32_t x, uint32_t y, uint32_t *pickedInstance) = 0;
+
+protected:
+  IReplayOutput() = default;
+  ~IReplayOutput() = default;
 };
 
 struct IReplayRenderer
@@ -265,6 +269,10 @@ struct IReplayRenderer
                              rdctype::array<byte> *data) = 0;
   virtual bool GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                               rdctype::array<byte> *data) = 0;
+
+protected:
+  IReplayRenderer() = default;
+  ~IReplayRenderer() = default;
 };
 
 DECLARE_REFLECTION_STRUCT(IReplayRenderer);
@@ -286,6 +294,10 @@ struct ITargetControl
   virtual void DeleteCapture(uint32_t remoteID) = 0;
 
   virtual void ReceiveMessage(TargetControlMessage *msg) = 0;
+
+protected:
+  ITargetControl() = default;
+  ~ITargetControl() = default;
 };
 
 struct IRemoteServer
@@ -313,6 +325,10 @@ struct IRemoteServer
   virtual ReplayStatus OpenCapture(uint32_t proxyid, const char *logfile, float *progress,
                                    IReplayRenderer **rend) = 0;
   virtual void CloseCapture(IReplayRenderer *rend) = 0;
+
+protected:
+  IRemoteServer() = default;
+  ~IRemoteServer() = default;
 };
 
 //////////////////////////////////////////////////////////////////////////

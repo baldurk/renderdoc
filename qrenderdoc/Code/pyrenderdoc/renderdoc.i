@@ -60,12 +60,6 @@ CONTAINER_TYPEMAPS(rdctype::array)
 %ignore rdctype::str::operator=;
 %ignore rdctype::str::operator const char *;
 
-// SWIG generates destructor wrappers for these interfaces that we don't want
-%ignore IReplayOutput::~IReplayOutput();
-%ignore IReplayRenderer::~IReplayRenderer();
-%ignore ITargetControl::~ITargetControl();
-%ignore IRemoteServer::~IRemoteServer();
-
 // add __str__ functions
 %feature("python:tp_str") ResourceId "resid_str";
 
