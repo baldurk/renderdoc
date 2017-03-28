@@ -128,18 +128,31 @@ else()
          "DEFINES+=PYSIDE2_ENABLED=0\n")
 endif()
 
-# generate the SWIG interface file
-add_custom_command(OUTPUT renderdoc_python.cxx renderdoc.py
-        COMMAND ${CMAKE_BINARY_DIR}/bin/swig -v -Wextra -Werror -O -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I${CMAKE_SOURCE_DIR}/renderdoc/api/replay -outdir ${CMAKE_CURRENT_BINARY_DIR} -o ${CMAKE_CURRENT_BINARY_DIR}/renderdoc_python.cxx ${CMAKE_CURRENT_SOURCE_DIR}/Code/pyrenderdoc/renderdoc.i
-        DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/Code/pyrenderdoc/renderdoc.i
-        DEPENDS custom_swig
-        DEPENDS renderdoc)
+# generate the SWIG interface files
+set(swig_interfaces
+    Code/pyrenderdoc/renderdoc.i
+    Code/pyrenderdoc/qrenderdoc.i)
 
-add_custom_command(OUTPUT renderdoc.py.c
-        WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-        COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin renderdoc.py renderdoc.py.c
-        DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
-        DEPENDS renderdoc_python.cxx)
+set(swig_output)
+
+foreach(in ${swig_interfaces})
+    get_filename_component(swig_file ${in} NAME_WE)
+
+    add_custom_command(OUTPUT ${swig_file}_python.cxx ${swig_file}.py
+            COMMAND ${CMAKE_BINARY_DIR}/bin/swig -v -Wextra -Werror -O -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I${CMAKE_CURRENT_SOURCE_DIR} -I${CMAKE_SOURCE_DIR}/renderdoc/api/replay -outdir ${CMAKE_CURRENT_BINARY_DIR} -o ${CMAKE_CURRENT_BINARY_DIR}/${swig_file}_python.cxx ${CMAKE_CURRENT_SOURCE_DIR}/${in}
+            DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${in}
+            DEPENDS custom_swig
+            DEPENDS renderdoc)
+
+    add_custom_command(OUTPUT ${swig_file}.py.c
+            WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+            COMMAND ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin ${swig_file}.py ${swig_file}.py.c
+            DEPENDS ${CMAKE_RUNTIME_OUTPUT_DIRECTORY}/include-bin
+            DEPENDS ${swig_file}_python.cxx)
+
+    list(APPEND swig_output ${swig_file}_python.cxx)
+    list(APPEND swig_output ${swig_file}.py.c)
+endforeach()
 
 # The case here is deliberately not matching the executable name
 # This means the custom command doesn't create this output file,
@@ -149,8 +162,7 @@ add_custom_command(OUTPUT QRenderDoc
 	COMMAND qmake "CMAKE_DIR=${CMAKE_BINARY_DIR}" ${CMAKE_CURRENT_SOURCE_DIR}
 	COMMAND $(MAKE)
 	DEPENDS RenderDoc.icns
-	DEPENDS renderdoc_python.cxx
-	DEPENDS renderdoc.py.c)
+	DEPENDS ${swig_output})
 add_custom_target(build-qrenderdoc ALL DEPENDS QRenderDoc DEPENDS renderdoc)
 
 install (PROGRAMS ${CMAKE_BINARY_DIR}/bin/qrenderdoc DESTINATION bin)

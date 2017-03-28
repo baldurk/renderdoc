@@ -689,6 +689,9 @@
     <ClCompile Include="$(IntDir)generated\renderdoc_python.cxx">
       <DisableSpecificWarnings>4127;4456;4459;4701;4244;4706;4101;%(DisableSpecificWarnings)</DisableSpecificWarnings>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\qrenderdoc_python.cxx">
+      <DisableSpecificWarnings>4127;4456;4459;4701;4244;4706;4101;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+    </ClCompile>
     <ClCompile Include="Widgets\BufferFormatSpecifier.cpp" />
     <ClCompile Include="Widgets\FindReplace.cpp" />
     <ClCompile Include="Widgets\Extended\RDListWidget.cpp" />
@@ -1178,6 +1181,14 @@
       <Outputs>$(IntDir)generated\%(Filename).py;$(IntDir)generated\%(Filename)_python.cxx;%(Outputs)</Outputs>
       <LinkObjects>false</LinkObjects>
     </CustomBuild>
+    <CustomBuild Include="Code\pyrenderdoc\qrenderdoc.i">
+      <FileType>Document</FileType>
+      <AdditionalInputs>%(Fullpath);Code\Interface\QRDInterface.h;Code\Interface\CommonPipelineState.h;Code\Interface\PersistantConfig.h;Code\Interface\RemoteHost.h;$(IntDir)generated\renderdoc.py;%(AdditionalInputs)</AdditionalInputs>
+      <Command>$(ProjectDir)3rdparty\swig\swig.exe -v -Wextra -Werror -O -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I$(SolutionDir)renderdoc\api\replay -I$(ProjectDir) -outdir $(IntDir)generated -o $(IntDir)generated\%(Filename)_python.cxx %(FullPath)</Command>
+      <Message>Compiling SWIG interface</Message>
+      <Outputs>$(IntDir)generated\%(Filename).py;$(IntDir)generated\%(Filename)_python.cxx;%(Outputs)</Outputs>
+      <LinkObjects>false</LinkObjects>
+    </CustomBuild>
     <CustomBuild Include="Widgets\BufferFormatSpecifier.ui">
       <AdditionalInputs>%(Fullpath);$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe;%(AdditionalInputs)</AdditionalInputs>
       <Command>$(ProjectDir)3rdparty\qt\$(Platform)\bin\uic.exe %(Fullpath) -o $(IntDir)generated\ui_%(Filename).h</Command>
@@ -1543,7 +1554,7 @@
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="Resources\qrenderdoc.rc">
-      <PreprocessorDefinitions>RENDERDOC_PY_PATH=$(IntDir)\generated\renderdoc.py;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>RENDERDOC_PY_PATH=$(IntDir)\generated\renderdoc.py;QRENDERDOC_PY_PATH=$(IntDir)\generated\qrenderdoc.py;%(PreprocessorDefinitions)</PreprocessorDefinitions>
     </ResourceCompile>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

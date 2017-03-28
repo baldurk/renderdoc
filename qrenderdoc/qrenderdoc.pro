@@ -52,16 +52,18 @@ win32 {
 	swig.name = SWIG ${QMAKE_FILE_IN}
 	swig.input = SWIGSOURCES
 	swig.output = ${QMAKE_FILE_BASE}_python.cxx
-	swig.commands = $$_PRO_FILE_PWD_/3rdparty/swig/swig.exe -v -Wextra -Werror -O -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I$$_PRO_FILE_PWD_/../renderdoc/api/replay -outdir . -o ${QMAKE_FILE_BASE}_python.cxx ${QMAKE_FILE_IN}
+	swig.commands = $$_PRO_FILE_PWD_/3rdparty/swig/swig.exe -v -Wextra -Werror -O -c++ -python -modern -modernargs -enumclass -fastunpack -py3 -builtin -I$$_PRO_FILE_PWD_ -I$$_PRO_FILE_PWD_/../renderdoc/api/replay -outdir . -o ${QMAKE_FILE_BASE}_python.cxx ${QMAKE_FILE_IN}
 	swig.CONFIG += target_predeps
 	swig.variable_out = GENERATED_SOURCES
 	silent:swig.commands = @echo SWIG ${QMAKE_FILE_IN} && $$swig.commands
 	QMAKE_EXTRA_COMPILERS += swig
 
 	SWIGSOURCES += Code/pyrenderdoc/renderdoc.i
+	SWIGSOURCES += Code/pyrenderdoc/qrenderdoc.i
 
-	# Embed renderdoc.py
+	# Embed renderdoc.py and qrenderdoc.py
 	RC_DEFINES = RENDERDOC_PY_PATH=renderdoc.py
+	RC_DEFINES += QRENDERDOC_PY_PATH=qrenderdoc.py
 
 	# Include and link against python
 	INCLUDEPATH += $$_PRO_FILE_PWD_/3rdparty/python/include
@@ -112,6 +114,8 @@ win32 {
 	# Add the SWIG files that were generated in cmake
 	SOURCES += $$CMAKE_DIR/qrenderdoc/renderdoc_python.cxx
 	SOURCES += $$CMAKE_DIR/qrenderdoc/renderdoc.py.c
+	SOURCES += $$CMAKE_DIR/qrenderdoc/qrenderdoc_python.cxx
+	SOURCES += $$CMAKE_DIR/qrenderdoc/qrenderdoc.py.c
 
 	CONFIG += warn_off
 	CONFIG += c++14

@@ -6,6 +6,7 @@
 
 #define TYPE_EMBED 256
 #define renderdoc_py_module 101
+#define qrenderdoc_py_module 102
 
 // Next default values for new objects
 //

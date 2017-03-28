@@ -49,6 +49,8 @@ PyTypeObject **SbkPySide2_QtWidgetsTypes = NULL;
 // defined in SWIG-generated renderdoc_python.cpp
 extern "C" PyObject *PyInit__renderdoc(void);
 extern "C" PyObject *PassObjectToPython(const char *type, void *obj);
+// this one is in qrenderdoc_python.cpp
+extern "C" PyObject *PyInit__qrenderdoc(void);
 
 #ifdef WIN32
 
@@ -56,9 +58,9 @@ extern "C" PyObject *PassObjectToPython(const char *type, void *obj);
 #include <windows.h>
 #include "Resources/resource.h"
 
-QByteArray GetWrapperModule()
+QByteArray GetResourceContents(int resource)
 {
-  HRSRC res = FindResource(NULL, MAKEINTRESOURCE(renderdoc_py_module), MAKEINTRESOURCE(TYPE_EMBED));
+  HRSRC res = FindResource(NULL, MAKEINTRESOURCE(resource), MAKEINTRESOURCE(TYPE_EMBED));
   HGLOBAL data = LoadResource(NULL, res);
 
   if(!data)
@@ -70,16 +72,17 @@ QByteArray GetWrapperModule()
   return QByteArray(resData, (int)resSize);
 }
 
+#define GetWrapperModule(name) GetResourceContents(name##_py_module)
+
 #else
 
 // Otherwise it's compiled in via include-bin which converts to a .c with extern array
 extern unsigned char renderdoc_py[];
 extern unsigned int renderdoc_py_len;
+extern unsigned char qrenderdoc_py[];
+extern unsigned int qrenderdoc_py_len;
 
-QByteArray GetWrapperModule()
-{
-  return QByteArray((const char *)renderdoc_py, (int)renderdoc_py_len);
-}
+#define GetWrapperModule(name) QByteArray((const char *)name##_py, (int)name##_py_len);
 
 #endif
 
@@ -198,6 +201,7 @@ void PythonContext::GlobalInit()
   }
 
   PyImport_AppendInittab("_renderdoc", &PyInit__renderdoc);
+  PyImport_AppendInittab("_qrenderdoc", &PyInit__qrenderdoc);
 
   Py_SetProgramName(program_name);
 
@@ -205,21 +209,40 @@ void PythonContext::GlobalInit()
 
   PyEval_InitThreads();
 
-  QByteArray module_src = GetWrapperModule();
+  QByteArray renderdoc_py_src = GetWrapperModule(renderdoc);
 
-  if(module_src.isEmpty())
+  if(renderdoc_py_src.isEmpty())
   {
     qCritical() << "renderdoc.py wrapper is corrupt/empty. Check build configuration to ensure "
                    "SWIG compiled properly with python support.";
     return;
   }
 
+  QByteArray qrenderdoc_py_src = GetWrapperModule(qrenderdoc);
+
+  if(qrenderdoc_py_src.isEmpty())
+  {
+    qCritical() << "qrenderdoc.py wrapper is corrupt/empty. Check build configuration to ensure "
+                   "SWIG compiled properly with python support.";
+    return;
+  }
+
   PyObject *renderdoc_py_compiled =
-      Py_CompileString(module_src.data(), "renderdoc.py", Py_file_input);
+      Py_CompileString(renderdoc_py_src.data(), "renderdoc.py", Py_file_input);
 
   if(!renderdoc_py_compiled)
   {
     qCritical() << "Failed to compile renderdoc.py wrapper, python will not be available";
+    return;
+  }
+
+  PyObject *qrenderdoc_py_compiled =
+      Py_CompileString(qrenderdoc_py_src.data(), "qrenderdoc.py", Py_file_input);
+
+  if(!qrenderdoc_py_compiled)
+  {
+    Py_DecRef(renderdoc_py_compiled);
+    qCritical() << "Failed to compile qrenderdoc.py wrapper, python will not be available";
     return;
   }
 
@@ -238,10 +261,13 @@ void PythonContext::GlobalInit()
   PyObject *main_module = PyImport_AddModule("__main__");
 
   PyObject *rdoc_module = PyImport_ExecCodeModule("renderdoc", renderdoc_py_compiled);
+  PyObject *qrdoc_module = PyImport_ExecCodeModule("qrenderdoc", qrenderdoc_py_compiled);
 
   Py_XDECREF(renderdoc_py_compiled);
+  Py_XDECREF(qrenderdoc_py_compiled);
 
   PyModule_AddObject(main_module, "renderdoc", rdoc_module);
+  PyModule_AddObject(main_module, "qrenderdoc", qrdoc_module);
 
   main_dict = PyModule_GetDict(main_module);
 
@@ -480,6 +506,7 @@ void PythonContext::setGlobal(const char *varName, const char *typeName, void *o
 
   PyGILState_STATE gil = PyGILState_Ensure();
 
+  // we don't need separate functions for each module, as they share type info
   PyObject *obj = PassObjectToPython(typeName, object);
 
   int ret = -1;

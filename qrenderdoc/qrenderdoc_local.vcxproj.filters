@@ -558,6 +558,9 @@
     <ClCompile Include="Code\pyrenderdoc\PythonContext.cpp">
       <Filter>Code\pyrenderdoc</Filter>
     </ClCompile>
+    <ClCompile Include="$(IntDir)generated\qrenderdoc_python.cxx">
+      <Filter>Generated Files</Filter>
+    </ClCompile>
     <ClCompile Include="$(IntDir)generated\moc_PythonContext.cpp">
       <Filter>Generated Files</Filter>
     </ClCompile>
@@ -1314,6 +1317,9 @@
       <Filter>Code\pyrenderdoc</Filter>
     </CustomBuild>
     <CustomBuild Include="Code\pyrenderdoc\PythonContext.h">
+      <Filter>Code\pyrenderdoc</Filter>
+    </CustomBuild>
+    <CustomBuild Include="Code\pyrenderdoc\qrenderdoc.i">
       <Filter>Code\pyrenderdoc</Filter>
     </CustomBuild>
   </ItemGroup>
