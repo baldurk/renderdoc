@@ -130,6 +130,64 @@ static PyMethodDef OutputRedirector_methods[] = {
 
 PyObject *PythonContext::main_dict = NULL;
 
+void FetchException(QString &typeStr, QString &valueStr, QList<QString> frames)
+{
+  PyObject *exObj = NULL, *valueObj = NULL, *tracebackObj = NULL;
+
+  PyErr_Fetch(&exObj, &valueObj, &tracebackObj);
+
+  PyErr_NormalizeException(&exObj, &valueObj, &tracebackObj);
+
+  if(exObj && PyType_Check(exObj))
+  {
+    PyTypeObject *type = (PyTypeObject *)exObj;
+
+    typeStr = QString::fromUtf8(type->tp_name);
+  }
+  else
+  {
+    typeStr = "";
+  }
+
+  if(valueObj)
+    valueStr = ToQStr(valueObj);
+
+  if(tracebackObj)
+  {
+    PyObject *tracebackModule = PyImport_ImportModule("traceback");
+
+    if(tracebackModule)
+    {
+      PyObject *func = PyObject_GetAttrString(tracebackModule, "format_tb");
+
+      if(func && PyCallable_Check(func))
+      {
+        PyObject *args = Py_BuildValue("(N)", tracebackObj);
+        PyObject *formattedTB = PyObject_CallObject(func, args);
+
+        if(formattedTB)
+        {
+          Py_ssize_t size = PyList_Size(formattedTB);
+          for(Py_ssize_t i = 0; i < size; i++)
+          {
+            PyObject *el = PyList_GetItem(formattedTB, i);
+
+            frames << ToQStr(el);
+          }
+
+          Py_DecRef(formattedTB);
+        }
+
+        Py_DecRef(args);
+      }
+    }
+  }
+
+  Py_DecRef(exObj);
+  Py_DecRef(valueObj);
+  Py_DecRef(tracebackObj);
+}
+
 void PythonContext::GlobalInit()
 {
   // must happen on the UI thread
@@ -167,10 +225,11 @@ void PythonContext::GlobalInit()
 
   OutputRedirectorType.tp_name = "renderdoc_output_redirector";
   OutputRedirectorType.tp_basicsize = sizeof(OutputRedirector);
-  OutputRedirectorType.tp_flags = Py_TPFLAGS_DEFAULT;
+  OutputRedirectorType.tp_flags = Py_TPFLAGS_DEFAULT | Py_TPFLAGS_HAVE_FINALIZE;
   OutputRedirectorType.tp_doc =
       "Output redirector, to be able to catch output to stdout and stderr";
   OutputRedirectorType.tp_new = PyType_GenericNew;
+  OutputRedirectorType.tp_dealloc = &PythonContext::outstream_del;
   OutputRedirectorType.tp_methods = OutputRedirector_methods;
 
   OutputRedirector_methods[0].ml_meth = &PythonContext::outstream_write;
@@ -280,25 +339,27 @@ PythonContext::PythonContext(QObject *parent) : QObject(parent)
   QString valueStr = "";
   QList<QString> frames;
 
-  // set global output that point to this
+  // set global output that point to this context. It is responsible for deleting the context when
+  // it goes out of scope
   PyObject *redirector = PyObject_CallFunction((PyObject *)&OutputRedirectorType, "");
   if(redirector)
   {
-    PyDict_SetItemString(context_namespace, "renderdoc_output_redirector_context_pointer",
-                         redirector);
+    PyDict_SetItemString(context_namespace, "_renderdoc_internal", redirector);
 
     OutputRedirector *output = (OutputRedirector *)redirector;
     output->context = this;
+    Py_DECREF(redirector);
   }
 
   // release the GIL again
   PyGILState_Release(gil);
 }
 
-PythonContext::~PythonContext()
+void PythonContext::Finish()
 {
   PyGILState_STATE gil = PyGILState_Ensure();
 
+  // release our external handle to globals. It'll now only be ref'd from inside
   Py_XDECREF(context_namespace);
 
   PyGILState_Release(gil);
@@ -352,7 +413,11 @@ void PythonContext::executeString(const QString &filename, const QString &source
 
     PyEval_SetTrace(&PythonContext::traceEvent, traceContext);
 
+    m_State = PyGILState_GetThisThreadState();
+
     ret = PyEval_EvalCode(compiled, context_namespace, context_namespace);
+
+    m_State = NULL;
 
     Py_XDECREF(thisobj);
     Py_XDECREF(traceContext);
@@ -366,62 +431,7 @@ void PythonContext::executeString(const QString &filename, const QString &source
   bool caughtException = (ret == NULL);
 
   if(caughtException)
-  {
-    PyObject *exObj = NULL, *valueObj = NULL, *tracebackObj = NULL;
-
-    PyErr_Fetch(&exObj, &valueObj, &tracebackObj);
-
-    PyErr_NormalizeException(&exObj, &valueObj, &tracebackObj);
-
-    if(exObj && PyType_Check(exObj))
-    {
-      PyTypeObject *type = (PyTypeObject *)exObj;
-
-      typeStr = QString::fromUtf8(type->tp_name);
-    }
-    else
-    {
-      typeStr = tr("Unknown Exception");
-    }
-
-    if(valueObj)
-      valueStr = ToQStr(valueObj);
-
-    if(tracebackObj)
-    {
-      PyObject *tracebackModule = PyImport_ImportModule("traceback");
-
-      if(tracebackModule)
-      {
-        PyObject *func = PyObject_GetAttrString(tracebackModule, "format_tb");
-
-        if(func && PyCallable_Check(func))
-        {
-          PyObject *args = Py_BuildValue("(N)", tracebackObj);
-          PyObject *formattedTB = PyObject_CallObject(func, args);
-
-          if(formattedTB)
-          {
-            Py_ssize_t size = PyList_Size(formattedTB);
-            for(Py_ssize_t i = 0; i < size; i++)
-            {
-              PyObject *el = PyList_GetItem(formattedTB, i);
-
-              frames << ToQStr(el);
-            }
-
-            Py_DecRef(formattedTB);
-          }
-
-          Py_DecRef(args);
-        }
-      }
-    }
-
-    Py_DecRef(exObj);
-    Py_DecRef(valueObj);
-    Py_DecRef(tracebackObj);
-  }
+    FetchException(typeStr, valueStr, frames);
 
   Py_XDECREF(ret);
 
@@ -569,6 +579,18 @@ void PythonContext::setPyGlobal(const char *varName, PyObject *obj)
   emit exception("RuntimeError", QString("Failed to set variable '%1'").arg(varName), {});
 }
 
+void PythonContext::outstream_del(PyObject *self)
+{
+  OutputRedirector *redirector = (OutputRedirector *)self;
+
+  if(redirector)
+  {
+    PythonContext *context = redirector->context;
+
+    delete context;
+  }
+}
+
 PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
 {
   const char *text = NULL;
@@ -588,8 +610,8 @@ PyObject *PythonContext::outstream_write(PyObject *self, PyObject *args)
       PyObject *globals = PyEval_GetGlobals();
       if(globals)
       {
-        OutputRedirector *global = (OutputRedirector *)PyDict_GetItemString(
-            globals, "renderdoc_output_redirector_context_pointer");
+        OutputRedirector *global =
+            (OutputRedirector *)PyDict_GetItemString(globals, "_renderdoc_internal");
         if(global)
           context = global->context;
       }
@@ -624,4 +646,26 @@ int PythonContext::traceEvent(PyObject *obj, PyFrameObject *frame, int what, PyO
   }
 
   return 0;
+}
+
+extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle)
+{
+  OutputRedirector *redirector = (OutputRedirector *)global_handle;
+  if(redirector->context)
+    return redirector->context->GetExecutingThreadState();
+
+  return NULL;
+}
+
+extern "C" void HandleException(PyObject *global_handle)
+{
+  QString typeStr;
+  QString valueStr = "";
+  QList<QString> frames;
+
+  FetchException(typeStr, valueStr, frames);
+
+  OutputRedirector *redirector = (OutputRedirector *)global_handle;
+  if(redirector->context)
+    emit redirector->context->exception(typeStr, valueStr, frames);
 }

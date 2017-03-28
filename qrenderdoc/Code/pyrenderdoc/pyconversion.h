@@ -457,8 +457,11 @@ PyObject *ConvertToPy(PyObject *self, const T &in)
   return TypeConversion<T>::ConvertToPy(self, in);
 }
 
+// See renderdoc.i for implementation & explanation
+extern "C" void HandleCallbackFailure(PyObject *global_handle, bool &failflag);
+
 template <typename T>
-inline T get_return(const char *funcname, PyObject *result, bool &failflag)
+inline T get_return(const char *funcname, PyObject *result, PyObject *global_handle, bool &failflag)
 {
   T val = T();
 
@@ -466,7 +469,7 @@ inline T get_return(const char *funcname, PyObject *result, bool &failflag)
 
   if(!SWIG_IsOK(res))
   {
-    failflag = true;
+    HandleCallbackFailure(global_handle, failflag);
 
     PyErr_Format(PyExc_TypeError, "Expected a '%s' for return value of callback in %s",
                  TypeName<T>(), funcname);
@@ -478,7 +481,7 @@ inline T get_return(const char *funcname, PyObject *result, bool &failflag)
 }
 
 template <>
-inline void get_return(const char *funcname, PyObject *result, bool &failflag)
+inline void get_return(const char *funcname, PyObject *result, PyObject *global_handle, bool &failflag)
 {
   Py_XDECREF(result);
 }
@@ -519,33 +522,62 @@ struct varfunc
   }
 
   ~varfunc() { Py_XDECREF(args); }
-  rettype call(const char *funcname, PyObject *func, bool &failflag)
+  rettype call(const char *funcname, PyObject *func, PyObject *global_handle, bool &failflag)
   {
     if(!func || func == Py_None || !PyCallable_Check(func) || !args)
     {
-      failflag = true;
+      HandleCallbackFailure(global_handle, failflag);
       return rettype();
     }
 
     PyObject *result = PyObject_Call(func, args, 0);
 
     if(result == NULL)
-      failflag = true;
+      HandleCallbackFailure(global_handle, failflag);
 
     Py_DECREF(args);
 
-    return get_return<rettype>(funcname, result, failflag);
+    return get_return<rettype>(funcname, result, global_handle, failflag);
   }
 
   int currentarg = 0;
   PyObject *args;
 };
 
+struct ScopedFuncCall
+{
+  ScopedFuncCall(PyObject *h)
+  {
+    handle = h;
+    Py_XINCREF(handle);
+    gil = PyGILState_Ensure();
+  }
+
+  ~ScopedFuncCall()
+  {
+    Py_XDECREF(handle);
+    PyGILState_Release(gil);
+  }
+
+  PyObject *handle;
+  PyGILState_STATE gil;
+};
+
 template <typename funcType>
 funcType ConvertFunc(PyObject *self, const char *funcname, PyObject *func, bool &failflag)
 {
-  return [self, funcname, func, &failflag](auto... param) {
+  // add a reference to the global object so it stays alive while we execute, in case this is an
+  // async call
+  PyObject *global_internal_handle = NULL;
+
+  PyObject *globals = PyEval_GetGlobals();
+  if(globals)
+    global_internal_handle = PyDict_GetItemString(globals, "_renderdoc_internal");
+
+  return [global_internal_handle, self, funcname, func, &failflag](auto... param) {
+    ScopedFuncCall gil(global_internal_handle);
+
     varfunc<typename funcType::result_type, decltype(param)...> f(self, funcname, param...);
-    return f.call(funcname, func, failflag);
+    return f.call(funcname, func, global_internal_handle, failflag);
   };
 }

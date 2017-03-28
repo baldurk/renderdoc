@@ -41,10 +41,15 @@ class PythonContext : public QObject
 private:
   Q_OBJECT
 
+  // don't allow destruction from outside, you must heap-allocate the context and let it delete
+  // itself when all references are done. This handles the case where e.g. some Async work is going
+  // on and needs to finish executing after the external code is done with the context
+  ~PythonContext() {}
 public:
   explicit PythonContext(QObject *parent = NULL);
-  ~PythonContext();
+  void Finish();
 
+  PyThreadState *GetExecutingThreadState() { return m_State; }
   static void GlobalInit();
   static void GlobalShutdown();
 
@@ -88,6 +93,10 @@ private:
   // globals are set into and any scripts execute in
   PyObject *context_namespace = NULL;
 
+  // this is set during an execute, so we can identify when a callback happens within our execute or
+  // not
+  PyThreadState *m_State = NULL;
+
   struct
   {
     QString file;
@@ -97,6 +106,7 @@ private:
   void setQtGlobal_internal(const char *varName, const char *typeName, QObject *object);
 
   // Python callbacks
+  static void outstream_del(PyObject *self);
   static PyObject *outstream_write(PyObject *self, PyObject *args);
   static PyObject *outstream_flush(PyObject *self, PyObject *args);
   static int traceEvent(PyObject *obj, PyFrameObject *frame, int what, PyObject *arg);
@@ -110,3 +120,19 @@ void PythonContext::setGlobal(const char *varName, QObject *object);
 
 template <>
 void PythonContext::setGlobal(const char *varName, QWidget *object);
+
+// helper struct to handle dynamically allocating then calling Finish()
+
+struct PythonContextHandle
+{
+public:
+  PythonContextHandle() { m_ctx = new PythonContext; }
+  ~PythonContextHandle() { m_ctx->Finish(); }
+  // don't allow copying
+  PythonContextHandle(const PythonContextHandle &) = delete;
+  PythonContextHandle &operator=(const PythonContextHandle &) = delete;
+
+  PythonContext &ctx() { return *m_ctx; }
+private:
+  PythonContext *m_ctx;
+};
