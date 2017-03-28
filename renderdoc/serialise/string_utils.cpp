@@ -47,10 +47,21 @@ uint32_t strhash(const char *str, uint32_t seed)
   return hash;
 }
 
+// since tolower is int -> int, this warns below. make a char -> char alternative
+char toclower(char c)
+{
+  return (char)tolower(c);
+}
+
+char tocupper(char c)
+{
+  return (char)toupper(c);
+}
+
 string strlower(const string &str)
 {
   string newstr(str);
-  transform(newstr.begin(), newstr.end(), newstr.begin(), tolower);
+  transform(newstr.begin(), newstr.end(), newstr.begin(), toclower);
   return newstr;
 }
 
@@ -64,7 +75,7 @@ wstring strlower(const wstring &str)
 string strupper(const string &str)
 {
   string newstr(str);
-  transform(newstr.begin(), newstr.end(), newstr.begin(), toupper);
+  transform(newstr.begin(), newstr.end(), newstr.begin(), tocupper);
   return newstr;
 }
 
