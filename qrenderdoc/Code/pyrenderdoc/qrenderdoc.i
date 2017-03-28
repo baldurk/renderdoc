@@ -24,6 +24,15 @@ CONTAINER_TYPEMAPS(QMap &)
 CONTAINER_TYPEMAPS(QMap *)
 CONTAINER_TYPEMAPS(QMap)
 
+// pass QWidget objects to PySide
+%typemap(in) QWidget * {
+  $1 = PythonContext::QWidgetFromPy($input);
+}
+
+%typemap(out) QWidget * {
+  $result = PythonContext::QWidgetToPy($1);
+}
+
 // need to ignore the original function and add a helper that releases the python GIL while calling
 %ignore IRenderManager::BlockInvoke;
 
@@ -47,6 +56,7 @@ CONTAINER_TYPEMAPS(QMap)
   #include "datetime.h"
 
   #include "Code/Interface/QRDInterface.h"
+  #include "Code/pyrenderdoc/PythonContext.h"
 %}
 
 %include <stdint.i>

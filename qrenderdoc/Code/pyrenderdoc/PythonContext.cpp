@@ -545,39 +545,40 @@ void PythonContext::setGlobal(const char *varName, QWidget *object)
   setQtGlobal(varName, object);
 }
 
-void PythonContext::setQtGlobal_internal(const char *varName, const char *typeName, QObject *object)
+QWidget *PythonContext::QWidgetFromPy(PyObject *widget)
 {
 #if PYSIDE2_ENABLED
   if(!initialised())
-  {
-    emit exception(
-        "SystemError",
-        "Python integration failed to initialise, see diagnostic log for more information.", {});
-    return;
-  }
+    return NULL;
 
   if(!SbkPySide2_QtCoreTypes || !SbkPySide2_QtGuiTypes || !SbkPySide2_QtWidgetsTypes)
-  {
-    emit exception("SystemError",
-                   "PySide Qt library didn't load, see diagnostic log for more information.", {});
-    return;
-  }
+    return NULL;
+
+  if(!Shiboken::Object::checkType(widget))
+    return NULL;
+
+  return (QWidget *)Shiboken::Object::cppPointer((SbkObject *)widget, Shiboken::SbkType<QWidget>());
+#else
+  return NULL;
+#endif
+}
+
+PyObject *PythonContext::QtObjectToPython(const char *typeName, QObject *object)
+{
+#if PYSIDE2_ENABLED
+  if(!initialised())
+    return NULL;
+
+  if(!SbkPySide2_QtCoreTypes || !SbkPySide2_QtGuiTypes || !SbkPySide2_QtWidgetsTypes)
+    return NULL;
 
   PyObject *obj =
       Shiboken::Object::newObject(reinterpret_cast<SbkObjectType *>(Shiboken::SbkType<QObject>()),
                                   object, false, false, typeName);
 
-  if(!obj)
-  {
-    emit exception("RuntimeError",
-                   QString("Failed to set variable '%1' of type '%2'").arg(varName).arg(typeName),
-                   {});
-    return;
-  }
-
-  setPyGlobal(varName, obj);
+  return obj;
 #else
-  emit exception("SystemError", "PySide2 was not enabled at build-time, cannot set Qt variable.", {});
+  return NULL;
 #endif
 }
 

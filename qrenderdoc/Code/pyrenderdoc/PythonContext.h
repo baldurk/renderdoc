@@ -64,9 +64,21 @@ public:
   template <typename QtObjectType>
   void setQtGlobal(const char *varName, QtObjectType *object)
   {
+    const char *typeName = typeid(*const_cast<QtObjectType *>(object)).name();
+
     // forward non-template part on
-    setQtGlobal_internal(varName, typeid(*const_cast<QtObjectType *>(object)).name(), object);
+    PyObject *obj = QtObjectToPython(typeName, object);
+
+    if(obj)
+      setPyGlobal(varName, obj);
+    else
+      emit exception("RuntimeError",
+                     QString("Failed to set variable '%1' of type '%2'").arg(varName).arg(typeName),
+                     {});
   }
+
+  static PyObject *QWidgetToPy(QWidget *widget) { return QtObjectToPython("QWidget", widget); }
+  static QWidget *QWidgetFromPy(PyObject *widget);
 
   QString currentFile() { return location.file; }
   int currentLine() { return location.line; }
@@ -103,7 +115,7 @@ private:
     int line = 0;
   } location;
 
-  void setQtGlobal_internal(const char *varName, const char *typeName, QObject *object);
+  static PyObject *QtObjectToPython(const char *typeName, QObject *object);
 
   // Python callbacks
   static void outstream_del(PyObject *self);
