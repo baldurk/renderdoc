@@ -219,7 +219,7 @@
 %typemap(in, fragment="tempalloc,pyconvert") SimpleType (BaseType temp) {
   tempset($1, &temp);
 
-  int res = Convert($input, indirect($1));
+  int res = ConvertFromPy($input, indirect($1));
   if(!SWIG_IsOK(res))
   {
     SWIG_exception_fail(SWIG_ArgError(res), "in method '$symname' argument $argnum of type '$1_basetype'"); 
@@ -227,7 +227,7 @@
 }
 
 %typemap(out, fragment="tempalloc,pyconvert") SimpleType {
-  $result = Convert(indirect($1));
+  $result = ConvertToPy(self, indirect($1));
 }
 %enddef
 
@@ -252,7 +252,7 @@ SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType &)
   tempalloc($1, tempmem);
 
   int failIdx = 0;
-  int res = TypeConversion<std::remove_pointer<decltype($1)>::type>::Convert($input, indirect($1), &failIdx);
+  int res = TypeConversion<std::remove_pointer<decltype($1)>::type>::ConvertFromPy($input, indirect($1), &failIdx);
 
   if(!SWIG_IsOK(res))
   {
@@ -280,7 +280,7 @@ SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType &)
 
   // overwrite with array contents
   int failIdx = 0;
-  PyObject *res = TypeConversion<std::remove_pointer<decltype($1)>::type>::ConvertInPlace($input, indirect($1), &failIdx);
+  PyObject *res = TypeConversion<std::remove_pointer<decltype($1)>::type>::ConvertToPyInPlace(self, $input, indirect($1), &failIdx);
 
   if(!res)
   {
@@ -291,7 +291,7 @@ SIMPLE_TYPEMAPS_VARIANT(SimpleType, SimpleType &)
 
 %typemap(out, fragment="tempalloc,pyconvert") ContainerType {
   int failIdx = 0;
-  $result = TypeConversion<std::remove_pointer<$1_basetype>::type>::Convert(indirect($1), &failIdx);
+  $result = TypeConversion<std::remove_pointer<$1_basetype>::type>::ConvertToPy(self, indirect($1), &failIdx);
   if(!$result)
   {
     snprintf(convert_error, sizeof(convert_error)-1, "in method '$symname' returning type '$1_basetype', encoding element %d", failIdx);
@@ -308,7 +308,7 @@ CONTAINER_TYPEMAPS(rdctype::arr)
 %typemap(in, fragment="pyconvert") std::function {
   PyObject *func = $input;
   failed$argnum = false;
-  $1 = ConvertFunc<$1_ltype>("$symname", func, failed$argnum);
+  $1 = ConvertFunc<$1_ltype>(self, "$symname", func, failed$argnum);
 }
 
 %typemap(argout) std::function (bool failed) {

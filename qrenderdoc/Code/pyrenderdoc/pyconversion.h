@@ -44,7 +44,7 @@ struct TypeConversion
     return cached_type_info;
   }
 
-  static int Convert(PyObject *in, T &out)
+  static int ConvertFromPy(PyObject *in, T &out)
   {
     swig_type_info *type_info = GetTypeInfo();
     if(type_info == NULL)
@@ -58,14 +58,14 @@ struct TypeConversion
     return res;
   }
 
-  static PyObject *Convert(const T &in)
+  static PyObject *ConvertToPy(PyObject *self, const T &in)
   {
     swig_type_info *type_info = GetTypeInfo();
     if(type_info == NULL)
       return NULL;
 
     T *pyCopy = new T(in);
-    return SWIG_InternalNewPointerObj((void *)pyCopy, type_info, SWIG_BUILTIN_INIT);
+    return SWIG_NewPointerObj((void *)pyCopy, type_info, SWIG_BUILTIN_INIT);
   }
 };
 
@@ -87,7 +87,7 @@ struct TypeConversion<Opaque *, false>
     return cached_type_info;
   }
 
-  static int Convert(PyObject *in, Opaque *&out)
+  static int ConvertFromPy(PyObject *in, Opaque *&out)
   {
     swig_type_info *type_info = GetTypeInfo();
     if(type_info == NULL)
@@ -101,7 +101,7 @@ struct TypeConversion<Opaque *, false>
     return res;
   }
 
-  static PyObject *Convert(const Opaque *&in)
+  static PyObject *ConvertToPy(PyObject *self, const Opaque *&in)
   {
     swig_type_info *type_info = GetTypeInfo();
     if(type_info == NULL)
@@ -110,14 +110,17 @@ struct TypeConversion<Opaque *, false>
     return SWIG_InternalNewPointerObj((void *)in, type_info, 0);
   }
 
-  static PyObject *Convert(Opaque *in) { return Convert((const Opaque *&)in); }
+  static PyObject *ConvertToPy(PyObject *self, Opaque *in)
+  {
+    return ConvertToPy(self, (const Opaque *&)in);
+  }
 };
 
 // specialisations for basic types
 template <>
 struct TypeConversion<uint8_t, false>
 {
-  static int Convert(PyObject *in, uint8_t &out)
+  static int ConvertFromPy(PyObject *in, uint8_t &out)
   {
     if(!PyLong_Check(in))
       return SWIG_TypeError;
@@ -132,13 +135,16 @@ struct TypeConversion<uint8_t, false>
     return SWIG_OK;
   }
 
-  static PyObject *Convert(const uint8_t &in) { return PyLong_FromUnsignedLong(in); }
+  static PyObject *ConvertToPy(PyObject *self, const uint8_t &in)
+  {
+    return PyLong_FromUnsignedLong(in);
+  }
 };
 
 template <>
 struct TypeConversion<uint32_t, false>
 {
-  static int Convert(PyObject *in, uint32_t &out)
+  static int ConvertFromPy(PyObject *in, uint32_t &out)
   {
     if(!PyLong_Check(in))
       return SWIG_TypeError;
@@ -151,13 +157,16 @@ struct TypeConversion<uint32_t, false>
     return SWIG_OK;
   }
 
-  static PyObject *Convert(const uint32_t &in) { return PyLong_FromUnsignedLong(in); }
+  static PyObject *ConvertToPy(PyObject *self, const uint32_t &in)
+  {
+    return PyLong_FromUnsignedLong(in);
+  }
 };
 
 template <>
 struct TypeConversion<int32_t, false>
 {
-  static int Convert(PyObject *in, int32_t &out)
+  static int ConvertFromPy(PyObject *in, int32_t &out)
   {
     if(!PyLong_Check(in))
       return SWIG_TypeError;
@@ -170,13 +179,13 @@ struct TypeConversion<int32_t, false>
     return SWIG_OK;
   }
 
-  static PyObject *Convert(const int32_t &in) { return PyLong_FromLong(in); }
+  static PyObject *ConvertToPy(PyObject *self, const int32_t &in) { return PyLong_FromLong(in); }
 };
 
 template <>
 struct TypeConversion<uint64_t, false>
 {
-  static int Convert(PyObject *in, uint64_t &out)
+  static int ConvertFromPy(PyObject *in, uint64_t &out)
   {
     if(!PyLong_Check(in))
       return SWIG_TypeError;
@@ -189,13 +198,16 @@ struct TypeConversion<uint64_t, false>
     return SWIG_OK;
   }
 
-  static PyObject *Convert(const uint64_t &in) { return PyLong_FromUnsignedLongLong(in); }
+  static PyObject *ConvertToPy(PyObject *self, const uint64_t &in)
+  {
+    return PyLong_FromUnsignedLongLong(in);
+  }
 };
 
 template <>
 struct TypeConversion<float, false>
 {
-  static int Convert(PyObject *in, float &out)
+  static int ConvertFromPy(PyObject *in, float &out)
   {
     if(!PyFloat_Check(in))
       return SWIG_TypeError;
@@ -208,13 +220,13 @@ struct TypeConversion<float, false>
     return SWIG_OK;
   }
 
-  static PyObject *Convert(const float &in) { return PyFloat_FromDouble(in); }
+  static PyObject *ConvertToPy(PyObject *self, const float &in) { return PyFloat_FromDouble(in); }
 };
 
 template <>
 struct TypeConversion<double, false>
 {
-  static int Convert(PyObject *in, double &out)
+  static int ConvertFromPy(PyObject *in, double &out)
   {
     if(!PyFloat_Check(in))
       return SWIG_TypeError;
@@ -227,7 +239,7 @@ struct TypeConversion<double, false>
     return SWIG_OK;
   }
 
-  static PyObject *Convert(const double &in) { return PyFloat_FromDouble(in); }
+  static PyObject *ConvertToPy(PyObject *self, const double &in) { return PyFloat_FromDouble(in); }
 };
 
 // partial specialisation for enums, we just convert as their underlying type,
@@ -237,22 +249,25 @@ struct TypeConversion<T, true>
 {
   typedef typename std::underlying_type<T>::type etype;
 
-  static int Convert(PyObject *in, T &out)
+  static int ConvertFromPy(PyObject *in, T &out)
   {
     etype int_out = 0;
-    int ret = TypeConversion<etype>::Convert(in, int_out);
+    int ret = TypeConversion<etype>::ConvertFromPy(in, int_out);
     out = T(int_out);
     return ret;
   }
 
-  static PyObject *Convert(const T &in) { return TypeConversion<etype>::Convert(etype(in)); }
+  static PyObject *ConvertToPy(PyObject *self, const T &in)
+  {
+    return TypeConversion<etype>::ConvertToPy(self, etype(in));
+  }
 };
 
 // specialisation for pair
 template <typename A, typename B>
 struct TypeConversion<rdctype::pair<A, B>, false>
 {
-  static int Convert(PyObject *in, rdctype::pair<A, B> &out)
+  static int ConvertFromPy(PyObject *in, rdctype::pair<A, B> &out)
   {
     if(!PyTuple_Check(in))
       return SWIG_TypeError;
@@ -262,20 +277,20 @@ struct TypeConversion<rdctype::pair<A, B>, false>
     if(size != 2)
       return SWIG_TypeError;
 
-    int ret = TypeConversion<A>::Convert(PyTuple_GetItem(in, 0), out.first);
+    int ret = TypeConversion<A>::ConvertFromPy(PyTuple_GetItem(in, 0), out.first);
     if(SWIG_IsOK(ret))
-      ret = TypeConversion<B>::Convert(PyTuple_GetItem(in, 1), out.second);
+      ret = TypeConversion<B>::ConvertFromPy(PyTuple_GetItem(in, 1), out.second);
 
     return ret;
   }
 
-  static PyObject *Convert(const rdctype::pair<A, B> &in)
+  static PyObject *ConvertToPy(PyObject *self, const rdctype::pair<A, B> &in)
   {
-    PyObject *first = TypeConversion<A>::Convert(in.first);
+    PyObject *first = TypeConversion<A>::ConvertToPy(self, in.first);
     if(!first)
       return NULL;
 
-    PyObject *second = TypeConversion<B>::Convert(in.second);
+    PyObject *second = TypeConversion<B>::ConvertToPy(self, in.second);
     if(!second)
       return NULL;
 
@@ -296,7 +311,7 @@ struct TypeConversion<rdctype::array<U>, false>
 {
   // we add some extra parameters so the typemaps for array can use these to get
   // nicer failure error messages out with the index that failed
-  static int Convert(PyObject *in, rdctype::array<U> &out, int *failIdx)
+  static int ConvertFromPy(PyObject *in, rdctype::array<U> &out, int *failIdx)
   {
     if(!PyList_Check(in))
       return SWIG_TypeError;
@@ -305,7 +320,7 @@ struct TypeConversion<rdctype::array<U>, false>
 
     for(int i = 0; i < out.count; i++)
     {
-      int ret = TypeConversion<U>::Convert(PyList_GetItem(in, i), out.elems[i]);
+      int ret = TypeConversion<U>::ConvertFromPy(PyList_GetItem(in, i), out.elems[i]);
       if(!SWIG_IsOK(ret))
       {
         if(failIdx)
@@ -317,12 +332,16 @@ struct TypeConversion<rdctype::array<U>, false>
     return SWIG_OK;
   }
 
-  static int Convert(PyObject *in, rdctype::array<U> &out) { return Convert(in, out, NULL); }
-  static PyObject *ConvertInPlace(PyObject *list, const rdctype::array<U> &in, int *failIdx)
+  static int ConvertFromPy(PyObject *in, rdctype::array<U> &out)
+  {
+    return ConvertFromPy(in, out, NULL);
+  }
+  static PyObject *ConvertToPyInPlace(PyObject *self, PyObject *list, const rdctype::array<U> &in,
+                                      int *failIdx)
   {
     for(int i = 0; i < in.count; i++)
     {
-      PyObject *elem = TypeConversion<U>::Convert(in.elems[i]);
+      PyObject *elem = TypeConversion<U>::ConvertToPy(self, in.elems[i]);
 
       if(elem)
       {
@@ -340,13 +359,13 @@ struct TypeConversion<rdctype::array<U>, false>
     return list;
   }
 
-  static PyObject *Convert(const rdctype::array<U> &in, int *failIdx)
+  static PyObject *ConvertToPy(PyObject *self, const rdctype::array<U> &in, int *failIdx)
   {
     PyObject *list = PyList_New(0);
     if(!list)
       return NULL;
 
-    PyObject *ret = ConvertInPlace(list, in, failIdx);
+    PyObject *ret = ConvertToPyInPlace(self, list, in, failIdx);
 
     // if a failure happened, don't leak the list we created
     if(!ret)
@@ -355,7 +374,10 @@ struct TypeConversion<rdctype::array<U>, false>
     return ret;
   }
 
-  static PyObject *Convert(const rdctype::array<U> &in) { return Convert(in, NULL); }
+  static PyObject *ConvertToPy(PyObject *self, const rdctype::array<U> &in)
+  {
+    return ConvertToPy(self, in, NULL);
+  }
 };
 
 // specialisation for string
@@ -374,7 +396,7 @@ struct TypeConversion<rdctype::str, false>
     return cached_type_info;
   }
 
-  static int Convert(PyObject *in, rdctype::str &out)
+  static int ConvertFromPy(PyObject *in, rdctype::str &out)
   {
     if(PyUnicode_Check(in))
     {
@@ -417,22 +439,22 @@ struct TypeConversion<rdctype::str, false>
     return res;
   }
 
-  static PyObject *Convert(const rdctype::str &in)
+  static PyObject *ConvertToPy(PyObject *self, const rdctype::str &in)
   {
     return PyUnicode_FromStringAndSize(in.elems, in.count);
   }
 };
 // free functions forward to struct
 template <typename T>
-int Convert(PyObject *in, T &out)
+int ConvertFromPy(PyObject *in, T &out)
 {
-  return TypeConversion<T>::Convert(in, out);
+  return TypeConversion<T>::ConvertFromPy(in, out);
 }
 
 template <typename T>
-PyObject *Convert(const T &in)
+PyObject *ConvertToPy(PyObject *self, const T &in)
 {
-  return TypeConversion<T>::Convert(in);
+  return TypeConversion<T>::ConvertToPy(self, in);
 }
 
 template <typename T>
@@ -440,7 +462,7 @@ inline T get_return(const char *funcname, PyObject *result, bool &failflag)
 {
   T val = T();
 
-  int res = Convert(result, val);
+  int res = ConvertToPy(result, val);
 
   if(!SWIG_IsOK(res))
   {
@@ -464,23 +486,23 @@ inline void get_return(const char *funcname, PyObject *result, bool &failflag)
 template <typename rettype, typename... paramTypes>
 struct varfunc
 {
-  varfunc(const char *funcname, paramTypes... params)
+  varfunc(PyObject *self, const char *funcname, paramTypes... params)
   {
     args = PyTuple_New(sizeof...(paramTypes));
 
     currentarg = 0;
 
     using expand_type = int[];
-    (void)expand_type{0, (push_arg(funcname, params), 0)...};
+    (void)expand_type{0, (push_arg(self, funcname, params), 0)...};
   }
 
   template <typename T>
-  void push_arg(const char *funcname, const T &arg)
+  void push_arg(PyObject *self, const char *funcname, const T &arg)
   {
     if(!args)
       return;
 
-    PyObject *obj = Convert(arg);
+    PyObject *obj = ConvertToPy(self, arg);
 
     if(!obj)
     {
@@ -520,10 +542,10 @@ struct varfunc
 };
 
 template <typename funcType>
-funcType ConvertFunc(const char *funcname, PyObject *func, bool &failflag)
+funcType ConvertFunc(PyObject *self, const char *funcname, PyObject *func, bool &failflag)
 {
-  return [funcname, func, &failflag](auto... param) {
-    varfunc<typename funcType::result_type, decltype(param)...> f(funcname, param...);
+  return [self, funcname, func, &failflag](auto... param) {
+    varfunc<typename funcType::result_type, decltype(param)...> f(self, funcname, param...);
     return f.call(funcname, func, failflag);
   };
 }
