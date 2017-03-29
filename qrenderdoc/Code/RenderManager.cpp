@@ -108,7 +108,7 @@ void RenderManager::GetHomeFolder(bool synchronous, DirectoryBrowseMethod cb)
   if(IsRunning() && m_Thread->isCurrentThread())
   {
     auto lambda = [cb, this](IReplayRenderer *r) {
-      cb(m_Remote->GetHomeFolder().c_str(), rdctype::array<DirectoryFile>());
+      cb(m_Remote->GetHomeFolder().c_str(), rdctype::array<PathEntry>());
     };
 
     if(synchronous)
@@ -125,7 +125,7 @@ void RenderManager::GetHomeFolder(bool synchronous, DirectoryBrowseMethod cb)
     home = m_Remote->GetHomeFolder();
   }
 
-  cb(home.c_str(), rdctype::array<DirectoryFile>());
+  cb(home.c_str(), rdctype::array<PathEntry>());
 }
 
 bool RenderManager::ListFolder(QString path, bool synchronous, DirectoryBrowseMethod cb)
@@ -148,7 +148,7 @@ bool RenderManager::ListFolder(QString path, bool synchronous, DirectoryBrowseMe
     return true;
   }
 
-  rdctype::array<DirectoryFile> contents;
+  rdctype::array<PathEntry> contents;
 
   // prevent pings while fetching remote FS data
   {

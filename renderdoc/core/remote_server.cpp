@@ -37,7 +37,7 @@
 using std::pair;
 
 template <>
-string ToStrHelper<false, FileProperty>::Get(const FileProperty &el)
+string ToStrHelper<false, PathProperty>::Get(const PathProperty &el)
 {
   return "<...>";
 }
@@ -49,7 +49,7 @@ string ToStrHelper<false, CaptureOptions>::Get(const CaptureOptions &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, DirectoryFile &el)
+void Serialiser::Serialise(const char *name, PathEntry &el)
 {
   ScopedContext scope(this, name, "DirectoryFile", 0, true);
 
@@ -296,20 +296,9 @@ static void ActiveRemoteClientThread(void *data)
 
         sendType = eRemoteServer_ListDir;
 
-        vector<FileIO::FoundFile> files = FileIO::GetFilesInDirectory(path.c_str());
+        std::vector<PathEntry> files = FileIO::GetFilesInDirectory(path.c_str());
 
-        uint32_t count = (uint32_t)files.size();
-        sendSer.Serialise("", count);
-
-        for(uint32_t i = 0; i < count; i++)
-        {
-          DirectoryFile df;
-          df.filename = files[i].filename;
-          df.lastmod = files[i].lastmod;
-          df.size = files[i].size;
-          df.flags = files[i].flags;
-          sendSer.Serialise("", df);
-        }
+        sendSer.Serialise("", files);
       }
       else if(type == eRemoteServer_CopyCaptureFromRemote)
       {
@@ -842,9 +831,9 @@ public:
     return ret;
   }
 
-  rdctype::array<DirectoryFile> ListFolder(const char *path)
+  rdctype::array<PathEntry> ListFolder(const char *path)
   {
-    rdctype::array<DirectoryFile> ret;
+    rdctype::array<PathEntry> ret;
 
     if(Android::IsHostADB(m_hostname.c_str()))
     {
@@ -852,18 +841,18 @@ public:
       using namespace std;
       istringstream stdoutStream(adbStdout);
       string line;
-      vector<DirectoryFile> packages;
+      vector<PathEntry> packages;
       while(getline(stdoutStream, line))
       {
         vector<string> tokens;
         split(line, tokens, ':');
         if(tokens.size() == 2 && tokens[0] == "package")
         {
-          DirectoryFile package;
+          PathEntry package;
           package.filename = trim(tokens[1]);
           package.size = 0;
           package.lastmod = 0;
-          package.flags = FileProperty::Executable;
+          package.flags = PathProperty::Executable;
           packages.push_back(package);
         }
       }
@@ -901,7 +890,7 @@ public:
     {
       create_array_uninit(ret, 1);
       ret.elems[0].filename = path;
-      ret.elems[0].flags = FileProperty::ErrorUnknown;
+      ret.elems[0].flags = PathProperty::ErrorUnknown;
     }
 
     return ret;
@@ -1175,10 +1164,11 @@ extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_GetHomeFolder(IRemoteSer
     *home = path;
 }
 
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ListFolder(
-    IRemoteServer *remote, const char *path, rdctype::array<DirectoryFile> *dirlist)
+extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ListFolder(IRemoteServer *remote,
+                                                                   const char *path,
+                                                                   rdctype::array<PathEntry> *dirlist)
 {
-  rdctype::array<DirectoryFile> files = remote->ListFolder(path);
+  rdctype::array<PathEntry> files = remote->ListFolder(path);
   if(dirlist)
     *dirlist = files;
 }

@@ -256,18 +256,7 @@ uint64_t GetModifiedTimestamp(const string &filename);
 
 void Copy(const char *from, const char *to, bool allowOverwrite);
 void Delete(const char *path);
-
-struct FoundFile
-{
-  FoundFile() : flags(FileProperty::NoFlags) {}
-  FoundFile(string fn, FileProperty f) : filename(fn), flags(f), lastmod(0), size(0) {}
-  string filename;
-  FileProperty flags;
-  uint32_t lastmod;
-  uint64_t size;
-};
-
-vector<FoundFile> GetFilesInDirectory(const char *path);
+std::vector<PathEntry> GetFilesInDirectory(const char *path);
 
 FILE *fopen(const char *filename, const char *mode);
 

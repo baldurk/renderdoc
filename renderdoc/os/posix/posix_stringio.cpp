@@ -251,22 +251,22 @@ void Delete(const char *path)
   unlink(path);
 }
 
-vector<FoundFile> GetFilesInDirectory(const char *path)
+std::vector<PathEntry> GetFilesInDirectory(const char *path)
 {
-  vector<FoundFile> ret;
+  std::vector<PathEntry> ret;
 
   DIR *d = opendir(path);
 
   if(d == NULL)
   {
-    FileProperty flags = FileProperty::ErrorUnknown;
+    PathProperty flags = PathProperty::ErrorUnknown;
 
     if(errno == ENOENT)
-      flags = FileProperty::ErrorInvalidPath;
+      flags = PathProperty::ErrorInvalidPath;
     else if(errno == EACCES)
-      flags = FileProperty::ErrorAccessDenied;
+      flags = PathProperty::ErrorAccessDenied;
 
-    ret.push_back(FoundFile(path, flags));
+    ret.push_back(PathEntry(path, flags));
     return ret;
   }
 
@@ -294,18 +294,18 @@ vector<FoundFile> GetFilesInDirectory(const char *path)
     if(res != 0)
       continue;
 
-    FileProperty flags = FileProperty::NoFlags;
+    PathProperty flags = PathProperty::NoFlags;
 
     // make directory/executable mutually exclusive for clarity's sake
     if(S_ISDIR(st.st_mode))
-      flags |= FileProperty::Directory;
+      flags |= PathProperty::Directory;
     else if(st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH))
-      flags |= FileProperty::Executable;
+      flags |= PathProperty::Executable;
 
     if(ent->d_name[0] == '.')
-      flags |= FileProperty::Hidden;
+      flags |= PathProperty::Hidden;
 
-    FoundFile f(ent->d_name, flags);
+    PathEntry f(ent->d_name, flags);
 
     f.lastmod = (uint32_t)st.st_mtime;
     f.size = (uint64_t)st.st_size;

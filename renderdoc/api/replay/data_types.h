@@ -36,15 +36,17 @@ struct FloatVector
 
 DECLARE_REFLECTION_STRUCT(FloatVector);
 
-struct DirectoryFile
+struct PathEntry
 {
+  PathEntry() : flags(PathProperty::NoFlags), lastmod(0), size(0) {}
+  PathEntry(const char *fn, PathProperty f) : filename(fn), flags(f), lastmod(0), size(0) {}
   rdctype::str filename;
-  FileProperty flags;
+  PathProperty flags;
   uint32_t lastmod;
   uint64_t size;
 };
 
-DECLARE_REFLECTION_STRUCT(DirectoryFile);
+DECLARE_REFLECTION_STRUCT(PathEntry);
 
 struct ResourceFormat
 {

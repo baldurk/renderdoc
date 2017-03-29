@@ -296,7 +296,7 @@ struct IRemoteServer
   virtual bool RemoteSupportedReplays(rdctype::array<rdctype::str> *out) = 0;
 
   virtual rdctype::str GetHomeFolder() = 0;
-  virtual rdctype::array<DirectoryFile> ListFolder(const char *path) = 0;
+  virtual rdctype::array<PathEntry> ListFolder(const char *path) = 0;
 
   virtual uint32_t ExecuteAndInject(const char *app, const char *workingDir, const char *cmdLine,
                                     void *env, const CaptureOptions *opts) = 0;

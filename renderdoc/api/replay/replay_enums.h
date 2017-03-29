@@ -163,7 +163,7 @@ inline enum_name operator++(enum_name &a)                                      \
 
 #define ENUM_ARRAY_SIZE(enum_name) size_t(enum_name::Count)
 
-enum class FileProperty : uint32_t
+enum class PathProperty : uint32_t
 {
   NoFlags = 0x0,
   Directory = 0x1,
@@ -175,7 +175,7 @@ enum class FileProperty : uint32_t
   ErrorInvalidPath = 0x8000,
 };
 
-BITMASK_OPERATORS(FileProperty);
+BITMASK_OPERATORS(PathProperty);
 
 // replay_shader.h
 

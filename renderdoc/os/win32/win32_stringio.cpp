@@ -347,9 +347,9 @@ void Delete(const char *path)
   ::DeleteFileW(wpath.c_str());
 }
 
-vector<FoundFile> GetFilesInDirectory(const char *path)
+std::vector<PathEntry> GetFilesInDirectory(const char *path)
 {
-  vector<FoundFile> ret;
+  std::vector<PathEntry> ret;
 
   if(path[0] == '/' && path[1] == 0)
   {
@@ -364,7 +364,7 @@ vector<FoundFile> GetFilesInDirectory(const char *path)
         string fn = "A:/";
         fn[0] = char('A' + i);
 
-        ret.push_back(FoundFile(fn, FileProperty::Directory));
+        ret.push_back(PathEntry(fn.c_str(), PathProperty::Directory));
       }
     }
 
@@ -394,14 +394,14 @@ vector<FoundFile> GetFilesInDirectory(const char *path)
   {
     DWORD err = GetLastError();
 
-    FileProperty flags = FileProperty::ErrorUnknown;
+    PathProperty flags = PathProperty::ErrorUnknown;
 
     if(err == ERROR_FILE_NOT_FOUND)
-      flags = FileProperty::ErrorInvalidPath;
+      flags = PathProperty::ErrorInvalidPath;
     else if(err == ERROR_ACCESS_DENIED)
-      flags = FileProperty::ErrorAccessDenied;
+      flags = PathProperty::ErrorAccessDenied;
 
-    ret.push_back(FoundFile(path, flags));
+    ret.push_back(PathEntry(path, flags));
     return ret;
   }
 
@@ -418,21 +418,21 @@ vector<FoundFile> GetFilesInDirectory(const char *path)
     }
     else
     {
-      FileProperty flags = FileProperty::NoFlags;
+      PathProperty flags = PathProperty::NoFlags;
 
       if(findData.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-        flags |= FileProperty::Directory;
+        flags |= PathProperty::Directory;
 
       if(findData.dwFileAttributes & FILE_ATTRIBUTE_HIDDEN)
-        flags |= FileProperty::Hidden;
+        flags |= PathProperty::Hidden;
 
       if(wcsstr(findData.cFileName, L".EXE") || wcsstr(findData.cFileName, L".exe") ||
          wcsstr(findData.cFileName, L".Exe"))
       {
-        flags |= FileProperty::Executable;
+        flags |= PathProperty::Executable;
       }
 
-      FoundFile f(StringFormat::Wide2UTF8(findData.cFileName), flags);
+      PathEntry f(StringFormat::Wide2UTF8(findData.cFileName).c_str(), flags);
 
       uint64_t nanosecondsSinceWindowsEpoch = uint64_t(findData.ftLastWriteTime.dwHighDateTime) << 8 |
                                               uint64_t(findData.ftLastWriteTime.dwLowDateTime);
