@@ -210,6 +210,8 @@ HEADERS += Code/CaptureContext.h \
     Code/QRDUtils.h \
     Code/Resources.h \
     Code/pyrenderdoc/PythonContext.h \
+    Code/pyrenderdoc/pyconversion.h \
+    Code/pyrenderdoc/document_check.h \
     Code/Interface/QRDInterface.h \
     Code/Interface/CommonPipelineState.h \
     Code/Interface/PersistantConfig.h \

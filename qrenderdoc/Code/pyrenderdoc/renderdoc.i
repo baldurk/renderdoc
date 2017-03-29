@@ -102,4 +102,23 @@ PyObject *PassObjectToPython(const char *type, void *obj)
 
 %}
 
-%include "document_check.i"
+%header %{
+  #include <set>
+  #include "Code/pyrenderdoc/document_check.h"
+%}
+
+%init %{
+  // verify that docstrings aren't duplicated, which is a symptom of missing DOCUMENT()
+  // macros around newly added classes/members.
+  // For enums, verify that all constants are documented in the parent docstring
+  #if !defined(RELEASE)
+  static bool doc_checked = false;
+
+  if(!doc_checked)
+  {
+    doc_checked = true;
+
+    check_docstrings(swig_type_initial, sizeof(swig_type_initial)/sizeof(swig_type_initial[0]));
+  }
+  #endif
+%}

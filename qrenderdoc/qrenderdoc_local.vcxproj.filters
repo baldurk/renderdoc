@@ -878,6 +878,9 @@
     <ClInclude Include="Code\Interface\QRDInterface.h">
       <Filter>Code\Interface</Filter>
     </ClInclude>
+    <ClInclude Include="Code\pyrenderdoc\document_check.h">
+      <Filter>Code\pyrenderdoc</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <None Include="Resources\128.png">
@@ -1058,9 +1061,6 @@
       <Filter>Code\pyrenderdoc</Filter>
     </None>
     <None Include="Code\pyrenderdoc\pyconversion.i">
-      <Filter>Code\pyrenderdoc</Filter>
-    </None>
-    <None Include="Code\pyrenderdoc\document_check.i">
       <Filter>Code\pyrenderdoc</Filter>
     </None>
   </ItemGroup>
