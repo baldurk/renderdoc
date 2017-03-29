@@ -193,45 +193,6 @@ struct IReplayOutput
   virtual uint32_t PickVertex(uint32_t eventID, uint32_t x, uint32_t y, uint32_t *pickedInstance) = 0;
 };
 
-// deprecated C interface, for renderdocui only
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetTextureDisplay(IReplayOutput *output,
-                                                                            const TextureDisplay &o);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetMeshDisplay(IReplayOutput *output,
-                                                                         const MeshDisplay &o);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_ClearThumbnails(IReplayOutput *output);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_AddThumbnail(IReplayOutput *output,
-                                                                       WindowingSystem system,
-                                                                       void *data, ResourceId texID,
-                                                                       CompType typeHint);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_Display(IReplayOutput *output);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_SetPixelContext(IReplayOutput *output,
-                                                                          WindowingSystem system,
-                                                                          void *data);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayOutput_SetPixelContextLocation(IReplayOutput *output, uint32_t x, uint32_t y);
-extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_DisablePixelContext(IReplayOutput *output);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC ReplayOutput_GetCustomShaderTexID(IReplayOutput *output,
-                                                                             ResourceId *id);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_GetMinMax(IReplayOutput *output,
-                                                                    PixelValue *minval,
-                                                                    PixelValue *maxval);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayOutput_GetHistogram(IReplayOutput *output, float minval, float maxval, bool32 channels[4],
-                          rdctype::array<uint32_t> *histogram);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayOutput_PickPixel(
-    IReplayOutput *output, ResourceId texID, bool32 customShader, uint32_t x, uint32_t y,
-    uint32_t sliceFace, uint32_t mip, uint32_t sample, PixelValue *val);
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC ReplayOutput_PickVertex(IReplayOutput *output,
-                                                                       uint32_t eventID, uint32_t x,
-                                                                       uint32_t y,
-                                                                       uint32_t *pickedInstance);
-
 struct IReplayRenderer
 {
   virtual APIProperties GetAPIProperties() = 0;
@@ -304,114 +265,6 @@ struct IReplayRenderer
 
 DECLARE_REFLECTION_STRUCT(IReplayRenderer);
 
-// deprecated C interface, for renderdocui only
-extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetAPIProperties(IReplayRenderer *rend,
-                                                                           APIProperties *props);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_GetSupportedWindowSystems(
-    IReplayRenderer *rend, rdctype::array<WindowingSystem> *systems);
-
-extern "C" RENDERDOC_API IReplayOutput *RENDERDOC_CC ReplayRenderer_CreateOutput(
-    IReplayRenderer *rend, WindowingSystem system, void *data, ReplayOutputType type);
-extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_Shutdown(IReplayRenderer *rend);
-extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_ShutdownOutput(IReplayRenderer *rend,
-                                                                         IReplayOutput *output);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_FileChanged(IReplayRenderer *rend);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_HasCallstacks(IReplayRenderer *rend);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_InitResolver(IReplayRenderer *rend);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SetFrameEvent(IReplayRenderer *rend,
-                                                                          uint32_t eventID,
-                                                                          bool32 force);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetD3D11PipelineState(IReplayRenderer *rend, D3D11Pipe::State *state);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetD3D12PipelineState(IReplayRenderer *rend, D3D12Pipe::State *state);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetGLPipelineState(IReplayRenderer *rend,
-                                                                               GLPipe::State *state);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetVulkanPipelineState(IReplayRenderer *rend, VKPipe::State *state);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildCustomShader(
-    IReplayRenderer *rend, const char *entry, const char *source, const uint32_t compileFlags,
-    ShaderStage type, ResourceId *shaderID, rdctype::str *errors);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FreeCustomShader(IReplayRenderer *rend,
-                                                                             ResourceId id);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC ReplayRenderer_BuildTargetShader(
-    IReplayRenderer *rend, const char *entry, const char *source, const uint32_t compileFlags,
-    ShaderStage type, ResourceId *shaderID, rdctype::str *errors);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_ReplaceResource(IReplayRenderer *rend,
-                                                                            ResourceId from,
-                                                                            ResourceId to);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_RemoveReplacement(IReplayRenderer *rend,
-                                                                              ResourceId id);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FreeTargetResource(IReplayRenderer *rend,
-                                                                               ResourceId id);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetFrameInfo(IReplayRenderer *rend,
-                                                                         FetchFrameInfo *frame);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetDrawcalls(IReplayRenderer *rend, rdctype::array<FetchDrawcall> *draws);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_FetchCounters(IReplayRenderer *rend, GPUCounter *counters, uint32_t numCounters,
-                             rdctype::array<CounterResult> *results);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_EnumerateCounters(IReplayRenderer *rend, rdctype::array<GPUCounter> *counters);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DescribeCounter(IReplayRenderer *rend,
-                                                                            GPUCounter counterID,
-                                                                            CounterDescription *desc);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetTextures(IReplayRenderer *rend, rdctype::array<FetchTexture> *texs);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetBuffers(IReplayRenderer *rend, rdctype::array<FetchBuffer> *bufs);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetResolve(IReplayRenderer *rend, uint64_t *callstack, uint32_t callstackLen,
-                          rdctype::array<rdctype::str> *trace);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetDebugMessages(IReplayRenderer *rend, rdctype::array<DebugMessage> *msgs);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_PixelHistory(
-    IReplayRenderer *rend, ResourceId target, uint32_t x, uint32_t y, uint32_t slice, uint32_t mip,
-    uint32_t sampleIdx, CompType typeHint, rdctype::array<PixelModification> *history);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_DebugVertex(IReplayRenderer *rend, uint32_t vertid, uint32_t instid, uint32_t idx,
-                           uint32_t instOffset, uint32_t vertOffset, ShaderDebugTrace *trace);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DebugPixel(IReplayRenderer *rend,
-                                                                       uint32_t x, uint32_t y,
-                                                                       uint32_t sample,
-                                                                       uint32_t primitive,
-                                                                       ShaderDebugTrace *trace);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DebugThread(IReplayRenderer *rend,
-                                                                        uint32_t groupid[3],
-                                                                        uint32_t threadid[3],
-                                                                        ShaderDebugTrace *trace);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetUsage(IReplayRenderer *rend, ResourceId id, rdctype::array<EventUsage> *usage);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetCBufferVariableContents(
-    IReplayRenderer *rend, ResourceId shader, const char *entryPoint, uint32_t cbufslot,
-    ResourceId buffer, uint64_t offs, rdctype::array<ShaderVariable> *vars);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_SaveTexture(IReplayRenderer *rend,
-                                                                        const TextureSave &saveData,
-                                                                        const char *path);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetPostVSData(IReplayRenderer *rend,
-                                                                          uint32_t instID,
-                                                                          MeshDataStage stage,
-                                                                          MeshFormat *data);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetBufferData(IReplayRenderer *rend, ResourceId buff, uint64_t offset, uint64_t len,
-                             rdctype::array<byte> *data);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetTextureData(IReplayRenderer *rend, ResourceId tex, uint32_t arrayIdx,
-                              uint32_t mip, rdctype::array<byte> *data);
-
 struct ITargetControl
 {
   virtual void Shutdown() = 0;
@@ -430,27 +283,6 @@ struct ITargetControl
 
   virtual void ReceiveMessage(TargetControlMessage *msg) = 0;
 };
-
-// deprecated C interface, for renderdocui only
-extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_Shutdown(ITargetControl *control);
-
-extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetTarget(ITargetControl *control);
-extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetAPI(ITargetControl *control);
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC TargetControl_GetPID(ITargetControl *control);
-extern "C" RENDERDOC_API const char *RENDERDOC_CC TargetControl_GetBusyClient(ITargetControl *control);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_TriggerCapture(ITargetControl *control,
-                                                                        uint32_t numFrames);
-extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_QueueCapture(ITargetControl *control,
-                                                                      uint32_t frameNumber);
-extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_CopyCapture(ITargetControl *control,
-                                                                     uint32_t remoteID,
-                                                                     const char *localpath);
-extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_DeleteCapture(ITargetControl *control,
-                                                                       uint32_t remoteID);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC TargetControl_ReceiveMessage(ITargetControl *control,
-                                                                        TargetControlMessage *msg);
 
 struct IRemoteServer
 {
@@ -478,44 +310,6 @@ struct IRemoteServer
                                    IReplayRenderer **rend) = 0;
   virtual void CloseCapture(IReplayRenderer *rend) = 0;
 };
-
-// deprecated C interface, for renderdocui only
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ShutdownConnection(IRemoteServer *remote);
-extern "C" RENDERDOC_API void RENDERDOC_CC
-RemoteServer_ShutdownServerAndConnection(IRemoteServer *remote);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC RemoteServer_Ping(IRemoteServer *remote);
-
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-RemoteServer_LocalProxies(IRemoteServer *remote, rdctype::array<rdctype::str> *out);
-extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-RemoteServer_RemoteSupportedReplays(IRemoteServer *remote, rdctype::array<rdctype::str> *out);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_GetHomeFolder(IRemoteServer *remote,
-                                                                      rdctype::str *home);
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_ListFolder(
-    IRemoteServer *remote, const char *path, rdctype::array<DirectoryFile> *dirlist);
-
-extern "C" RENDERDOC_API uint32_t RENDERDOC_CC
-RemoteServer_ExecuteAndInject(IRemoteServer *remote, const char *app, const char *workingDir,
-                              const char *cmdLine, void *env, const CaptureOptions *opts);
-
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_TakeOwnershipCapture(IRemoteServer *remote,
-                                                                             const char *filename);
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCaptureToRemote(
-    IRemoteServer *remote, const char *filename, float *progress, rdctype::str *remotepath);
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CopyCaptureFromRemote(IRemoteServer *remote,
-                                                                              const char *remotepath,
-                                                                              const char *localpath,
-                                                                              float *progress);
-
-extern "C" RENDERDOC_API ReplayStatus RENDERDOC_CC RemoteServer_OpenCapture(IRemoteServer *remote,
-                                                                            uint32_t proxyid,
-                                                                            const char *logfile,
-                                                                            float *progress,
-                                                                            IReplayRenderer **rend);
-extern "C" RENDERDOC_API void RENDERDOC_CC RemoteServer_CloseCapture(IRemoteServer *remote,
-                                                                     IReplayRenderer *rend);
 
 //////////////////////////////////////////////////////////////////////////
 // camera

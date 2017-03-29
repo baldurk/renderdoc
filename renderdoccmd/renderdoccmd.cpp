@@ -51,7 +51,7 @@ void DisplayRendererPreview(IReplayRenderer *renderer, uint32_t width, uint32_t 
     return;
 
   rdctype::array<FetchTexture> texs;
-  ReplayRenderer_GetTextures(renderer, &texs);
+  renderer->GetTextures(&texs);
 
   TextureDisplay d;
   d.mip = 0;

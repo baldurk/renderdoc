@@ -53,17 +53,17 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
 {
   ANativeWindow *connectionScreenWindow = android_state->window;
 
-  IReplayOutput *out = ReplayRenderer_CreateOutput(
-      renderer, WindowingSystem::Android, connectionScreenWindow, ReplayOutputType::Texture);
+  IReplayOutput *out = renderer->CreateOutput(WindowingSystem::Android, connectionScreenWindow,
+                                              ReplayOutputType::Texture);
 
-  ReplayOutput_SetTextureDisplay(out, displayCfg);
+  out->SetTextureDisplay(displayCfg);
 
   for(int i = 0; i < 100; i++)
   {
-    ReplayRenderer_SetFrameEvent(renderer, 10000000, true);
+    renderer->SetFrameEvent(10000000, true);
 
     __android_log_print(ANDROID_LOG_INFO, LOGCAT_TAG, "Frame %i", i);
-    ReplayOutput_Display(out);
+    out->Display();
 
     usleep(100000);
   }

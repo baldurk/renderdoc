@@ -736,7 +736,7 @@ uint32_t StartAndroidPackageForCapture(const char *host, const char *package)
     ITargetControl *control = RENDERDOC_CreateTargetControl(host, ret, "testConnection", false);
     if(control)
     {
-      TargetControl_Shutdown(control);
+      control->Shutdown();
       break;
     }
 

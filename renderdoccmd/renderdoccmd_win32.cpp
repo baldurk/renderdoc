@@ -249,10 +249,9 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
   ShowWindow(wnd, SW_SHOW);
   UpdateWindow(wnd);
 
-  IReplayOutput *out =
-      ReplayRenderer_CreateOutput(renderer, WindowingSystem::Win32, wnd, ReplayOutputType::Texture);
+  IReplayOutput *out = renderer->CreateOutput(WindowingSystem::Win32, wnd, ReplayOutputType::Texture);
 
-  ReplayOutput_SetTextureDisplay(out, displayCfg);
+  out->SetTextureDisplay(displayCfg);
 
   MSG msg;
   ZeroMemory(&msg, sizeof(msg));
@@ -271,8 +270,8 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
       break;
 
     // set to random event beyond the end of the frame to ensure output is marked as dirty
-    ReplayRenderer_SetFrameEvent(renderer, 10000000, true);
-    ReplayOutput_Display(out);
+    renderer->SetFrameEvent(10000000, true);
+    out->Display();
 
     Sleep(40);
   }

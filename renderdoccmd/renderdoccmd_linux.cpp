@@ -267,7 +267,7 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
   xcb_map_window(connection, window);
 
   rdctype::array<WindowingSystem> systems;
-  ReplayRenderer_GetSupportedWindowSystems(renderer, &systems);
+  renderer->GetSupportedWindowSystems(&systems);
 
   bool xcb = false, xlib = false;
 
@@ -288,8 +288,7 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
     windowData.connection = connection;
     windowData.window = window;
 
-    out = ReplayRenderer_CreateOutput(renderer, WindowingSystem::XCB, &windowData,
-                                      ReplayOutputType::Texture);
+    out = renderer->CreateOutput(WindowingSystem::XCB, &windowData, ReplayOutputType::Texture);
   }
   else if(xlib)
   {
@@ -297,8 +296,7 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
     windowData.display = display;
     windowData.window = (Drawable)window;    // safe to cast types
 
-    out = ReplayRenderer_CreateOutput(renderer, WindowingSystem::Xlib, &windowData,
-                                      ReplayOutputType::Texture);
+    out = renderer->CreateOutput(WindowingSystem::Xlib, &windowData, ReplayOutputType::Texture);
   }
   else
   {
@@ -310,7 +308,7 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
     return;
   }
 
-  ReplayOutput_SetTextureDisplay(out, displayCfg);
+  out->SetTextureDisplay(displayCfg);
 
   xcb_flush(connection);
 
@@ -325,8 +323,8 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
       switch(event->response_type & 0x7f)
       {
         case XCB_EXPOSE:
-          ReplayRenderer_SetFrameEvent(renderer, 10000000, true);
-          ReplayOutput_Display(out);
+          renderer->SetFrameEvent(10000000, true);
+          out->Display();
           break;
         case XCB_CLIENT_MESSAGE:
           if((*(xcb_client_message_event_t *)event).data.data32[0] == (*atom_wm_delete_window).atom)
@@ -348,8 +346,8 @@ void DisplayRendererPreview(IReplayRenderer *renderer, TextureDisplay &displayCf
       free(event);
     }
 
-    ReplayRenderer_SetFrameEvent(renderer, 10000000, true);
-    ReplayOutput_Display(out);
+    renderer->SetFrameEvent(10000000, true);
+    out->Display();
 
     usleep(100000);
   }
