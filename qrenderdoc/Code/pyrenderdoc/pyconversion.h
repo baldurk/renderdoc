@@ -755,8 +755,39 @@ PyObject *ConvertToPy(PyObject *self, const T &in)
   return TypeConversion<T>::ConvertToPy(self, in);
 }
 
-// See renderdoc.i for implementation & explanation
-extern "C" void HandleCallbackFailure(PyObject *global_handle, bool &failflag);
+// this is defined elsewhere for managing the opaque global_handle object
+extern "C" PyThreadState *GetExecutingThreadState(PyObject *global_handle);
+extern "C" void HandleException(PyObject *global_handle);
+
+// this function handles failures in callback functions. If we're synchronously calling the callback
+// from within an execute scope, then we can assign to failflag and let the error propagate upwards.
+// If we're not, then the callback is being executed on another thread with no knowledge of python,
+// so we need to use the global handle to try and emit the exception through the context. None of
+// this is multi-threaded because we're inside the GIL at all times
+inline void HandleCallbackFailure(PyObject *global_handle, bool &fail_flag)
+{
+  // if there's no global handle assume we are not running in the usual environment, so there are no
+  // external-to-python threads
+  if(!global_handle)
+  {
+    fail_flag = true;
+    return;
+  }
+
+  PyThreadState *current = PyGILState_GetThisThreadState();
+  PyThreadState *executing = GetExecutingThreadState(global_handle);
+
+  // we are executing synchronously, set the flag and return
+  if(current == executing)
+  {
+    fail_flag = true;
+    return;
+  }
+
+  // in this case we are executing asynchronously, and must handle the exception manually as there's
+  // nothing above us that knows about python exceptions
+  HandleException(global_handle);
+}
 
 template <typename T>
 inline T get_return(const char *funcname, PyObject *result, PyObject *global_handle, bool &failflag)
