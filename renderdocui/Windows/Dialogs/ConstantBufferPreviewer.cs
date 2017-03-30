@@ -364,6 +364,10 @@ namespace renderdocui.Controls
                     }
                 }
             }
+            else if(e.KeyCode == Keys.A && e.Control)
+            {
+                variables.SelectAll();
+            }
         }
 
 		private BufferFormatSpecifier m_FormatSpecifier = null;
