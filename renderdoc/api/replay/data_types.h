@@ -374,7 +374,7 @@ struct DrawcallDescription
     eventID = 0;
     drawcallID = 0;
     flags = DrawFlags::NoFlags;
-    markerColour[0] = markerColour[1] = markerColour[2] = markerColour[3] = 0.0f;
+    markerColor[0] = markerColor[1] = markerColor[2] = markerColor[3] = 0.0f;
     numIndices = 0;
     numInstances = 0;
     indexOffset = 0;
@@ -406,7 +406,7 @@ struct DrawcallDescription
 
   DrawFlags flags;
 
-  float markerColour[4];
+  float markerColor[4];
 
   uint32_t numIndices;
   uint32_t numInstances;

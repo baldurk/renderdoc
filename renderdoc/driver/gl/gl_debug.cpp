@@ -4665,8 +4665,7 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
 
       if(fmt.buf != ResourceId())
       {
-        uboParams.color =
-            Vec4f(fmt.meshColour.x, fmt.meshColour.y, fmt.meshColour.z, fmt.meshColour.w);
+        uboParams.color = Vec4f(fmt.meshColor.x, fmt.meshColor.y, fmt.meshColor.z, fmt.meshColor.w);
 
         uboptr = (MeshUBOData *)gl.glMapBufferRange(eGL_UNIFORM_BUFFER, 0, sizeof(MeshUBOData),
                                                     GL_MAP_WRITE_BIT | GL_MAP_INVALIDATE_BUFFER_BIT);
@@ -4875,8 +4874,8 @@ void GLReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryD
   // wireframe render
   if(cfg.solidShadeMode == SolidShade::NoSolid || cfg.wireframeDraw || topo == eGL_PATCHES)
   {
-    uboParams.color = Vec4f(cfg.position.meshColour.x, cfg.position.meshColour.y,
-                            cfg.position.meshColour.z, cfg.position.meshColour.w);
+    uboParams.color = Vec4f(cfg.position.meshColor.x, cfg.position.meshColor.y,
+                            cfg.position.meshColor.z, cfg.position.meshColor.w);
 
     uboParams.displayFormat = MESHDISPLAY_SOLID;
 

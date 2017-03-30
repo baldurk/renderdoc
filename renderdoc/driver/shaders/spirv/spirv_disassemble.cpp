@@ -3733,7 +3733,7 @@ void AddSignatureParameter(ShaderStage stage, uint32_t id, uint32_t childIdx, st
 
   // fragment shader outputs are implicitly colour outputs
   if(stage == ShaderStage::Fragment && type->storage == spv::StorageClassOutput)
-    sig.systemValue = ShaderBuiltin::ColourOutput;
+    sig.systemValue = ShaderBuiltin::ColorOutput;
 
   if(type->type == SPVTypeData::ePointer)
     type = type->baseType;

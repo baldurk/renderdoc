@@ -1040,7 +1040,7 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
     {
       if(rts[i] != ResourceId())
         drawNode.resourceUsage.push_back(
-            std::make_pair(rts[i], EventUsage(e, ResourceUsage::ColourTarget)));
+            std::make_pair(rts[i], EventUsage(e, ResourceUsage::ColorTarget)));
     }
 
     ResourceId id = state.GetDSVID();

@@ -2215,7 +2215,7 @@ void CopyProgramFragDataBindings(const GLHookSet &gl, GLuint progsrc, GLuint pro
   for(int32_t i = 0; i < refl->OutputSig.count; i++)
   {
     // only look at colour outputs (should be the only outputs from fs)
-    if(refl->OutputSig[i].systemValue != ShaderBuiltin::ColourOutput)
+    if(refl->OutputSig[i].systemValue != ShaderBuiltin::ColorOutput)
       continue;
 
     GLint idx = gl.glGetFragDataLocation(progsrc, refl->OutputSig[i].varName.elems);

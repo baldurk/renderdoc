@@ -784,9 +784,9 @@ If {spv_disas} is not used, the tool is expected to output the disassembly on st
            </widget>
           </item>
           <item row="3" column="1">
-           <widget class="QCheckBox" name="EventBrowser_ApplyColours">
+           <widget class="QCheckBox" name="EventBrowser_ApplyColors">
             <property name="toolTip">
-             <string>In the Event Browser and Timeline Bar, marker sections and marker labels will be coloured with an API-specified colour.
+             <string>In the Event Browser and Timeline Bar, marker sections and marker labels will be colored with an API-specified color.
 </string>
             </property>
             <property name="text">
@@ -795,9 +795,9 @@ If {spv_disas} is not used, the tool is expected to output the disassembly on st
            </widget>
           </item>
           <item row="4" column="1">
-           <widget class="QCheckBox" name="EventBrowser_ColourEventRow">
+           <widget class="QCheckBox" name="EventBrowser_ColorEventRow">
             <property name="toolTip">
-             <string>When colouring marker sections in the Event Browser, the whole row of a marker region will be coloured, not just a bar to the left of its children.</string>
+             <string>When coloring marker sections in the Event Browser, the whole row of a marker region will be colored, not just a bar to the left of its children.</string>
             </property>
             <property name="text">
              <string/>
@@ -807,21 +807,21 @@ If {spv_disas} is not used, the tool is expected to output the disassembly on st
           <item row="3" column="0">
            <widget class="QLabel" name="label_22">
             <property name="toolTip">
-             <string>In the Event Browser and Timeline Bar, marker sections and marker labels will be coloured with an API-specified colour.
+             <string>In the Event Browser and Timeline Bar, marker sections and marker labels will be colored with an API-specified color.
 </string>
             </property>
             <property name="text">
-             <string>Apply marker colours (requires file reload)</string>
+             <string>Apply marker colors (requires file reload)</string>
             </property>
            </widget>
           </item>
           <item row="4" column="0">
            <widget class="QLabel" name="label_23">
             <property name="toolTip">
-             <string>When colouring marker sections in the Event Browser, the whole row of a marker region will be coloured, not just a bar to the left of its children.</string>
+             <string>When coloring marker sections in the Event Browser, the whole row of a marker region will be colored, not just a bar to the left of its children.</string>
             </property>
             <property name="text">
-             <string>    - Colourise whole row for marker regions</string>
+             <string>    - Colorise whole row for marker regions</string>
             </property>
            </widget>
           </item>

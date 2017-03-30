@@ -942,7 +942,7 @@ void WrappedID3D11DeviceContext::AddUsage(const DrawcallDescription &d)
       WrappedID3D11RenderTargetView1 *view =
           (WrappedID3D11RenderTargetView1 *)pipe->OM.RenderTargets[i];
       m_ResourceUses[view->GetResourceResID()].push_back(
-          EventUsage(e, ResourceUsage::ColourTarget, view->GetResourceID()));
+          EventUsage(e, ResourceUsage::ColorTarget, view->GetResourceID()));
     }
   }
 }
@@ -1538,7 +1538,7 @@ void WrappedID3D11DeviceContext::ReplayLog(LogState readType, uint32_t startEven
 
           if(u == ResourceUsage::StreamOut ||
              (u >= ResourceUsage::VS_RWResource && u <= ResourceUsage::CS_RWResource) ||
-             u == ResourceUsage::DepthStencilTarget || u == ResourceUsage::ColourTarget)
+             u == ResourceUsage::DepthStencilTarget || u == ResourceUsage::ColorTarget)
           {
             written = true;
             break;

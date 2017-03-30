@@ -2067,7 +2067,7 @@ void D3D12DebugManager::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32
   h = m_OutputWindows[id].height;
 }
 
-void D3D12DebugManager::ClearOutputWindowColour(uint64_t id, float col[4])
+void D3D12DebugManager::ClearOutputWindowColor(uint64_t id, float col[4])
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
@@ -5354,7 +5354,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
       if(fmt.buf != ResourceId())
       {
-        list->SetGraphicsRoot32BitConstants(3, 4, &fmt.meshColour.x, 0);
+        list->SetGraphicsRoot32BitConstants(3, 4, &fmt.meshColor.x, 0);
 
         MeshDisplayPipelines secondaryCache =
             CacheMeshDisplayPipelines(secondaryDraws[i], secondaryDraws[i]);
@@ -5498,7 +5498,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
      cfg.position.topo >= Topology::PatchList)
   {
     Vec4f wireCol =
-        Vec4f(cfg.position.meshColour.x, cfg.position.meshColour.y, cfg.position.meshColour.z, 1.0f);
+        Vec4f(cfg.position.meshColor.x, cfg.position.meshColor.y, cfg.position.meshColor.z, 1.0f);
 
     pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
 
@@ -5509,7 +5509,7 @@ void D3D12DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
     list->SetGraphicsRootConstantBufferView(1, UploadConstants(&pixelData, sizeof(pixelData)));
     list->SetGraphicsRootConstantBufferView(2, vsCB);
 
-    list->SetGraphicsRoot32BitConstants(3, 4, &cfg.position.meshColour.x, 0);
+    list->SetGraphicsRoot32BitConstants(3, 4, &cfg.position.meshColor.x, 0);
 
     if(cfg.position.idxByteWidth && cfg.position.idxbuf != ResourceId())
     {
@@ -7064,7 +7064,7 @@ ResourceId D3D12DebugManager::ApplyCustomShader(ResourceId shader, ResourceId te
   disp.CustomShader = shader;
   disp.texid = texid;
   disp.typeHint = typeHint;
-  disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0, 0, 0, 0);
+  disp.lightBackgroundColor = disp.darkBackgroundColor = FloatVector(0, 0, 0, 0);
   disp.HDRMul = -1.0f;
   disp.linearDisplayAsGamma = false;
   disp.mip = mip;

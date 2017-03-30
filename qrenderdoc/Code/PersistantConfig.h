@@ -104,9 +104,9 @@ struct SPIRVDisassembler
                                                                                            \
   CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_HideAPICalls, false)                 \
                                                                                            \
-  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ApplyColours, true)                  \
+  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ApplyColors, true)                   \
                                                                                            \
-  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ColourEventRow, true)                \
+  CONFIG_SETTING_VAL(public, bool, bool, EventBrowser_ColorEventRow, true)                 \
                                                                                            \
   CONFIG_SETTING_VAL(public, int, int, Formatter_MinFigures, 2)                            \
                                                                                            \

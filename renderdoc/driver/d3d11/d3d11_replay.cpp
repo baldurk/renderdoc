@@ -1364,9 +1364,9 @@ void D3D11Replay::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h)
   m_pDevice->GetDebugManager()->GetOutputWindowDimensions(id, w, h);
 }
 
-void D3D11Replay::ClearOutputWindowColour(uint64_t id, float col[4])
+void D3D11Replay::ClearOutputWindowColor(uint64_t id, float col[4])
 {
-  m_pDevice->GetDebugManager()->ClearOutputWindowColour(id, col);
+  m_pDevice->GetDebugManager()->ClearOutputWindowColor(id, col);
 }
 
 void D3D11Replay::ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)

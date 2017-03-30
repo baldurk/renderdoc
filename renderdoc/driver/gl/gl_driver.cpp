@@ -4113,10 +4113,10 @@ void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
     {
       if(type == eGL_TEXTURE)
         m_ResourceUses[rm->GetID(TextureRes(ctx, attachment))].push_back(
-            EventUsage(e, ResourceUsage::ColourTarget));
+            EventUsage(e, ResourceUsage::ColorTarget));
       else
         m_ResourceUses[rm->GetID(RenderbufferRes(ctx, attachment))].push_back(
-            EventUsage(e, ResourceUsage::ColourTarget));
+            EventUsage(e, ResourceUsage::ColorTarget));
     }
   }
 

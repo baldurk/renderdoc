@@ -123,7 +123,7 @@ struct ToStr
     switch(el)
     {
       case AlphaMapping::Discard: return "Discard";
-      case AlphaMapping::BlendToColour: return "Blend to Colour";
+      case AlphaMapping::BlendToColor: return "Blend to Color";
       case AlphaMapping::BlendToCheckerboard: return "Blend to Checkerboard";
       case AlphaMapping::Preserve: return "Preserve";
       default: break;
@@ -284,7 +284,7 @@ struct ToStr
       case ShaderBuiltin::PatchNumVertices: return "Patch NumVertices";
       case ShaderBuiltin::OuterTessFactor: return "Outer TessFactor";
       case ShaderBuiltin::InsideTessFactor: return "Inside TessFactor";
-      case ShaderBuiltin::ColourOutput: return "Colour Output";
+      case ShaderBuiltin::ColorOutput: return "Color Output";
       case ShaderBuiltin::DepthOutput: return "Depth Output";
       case ShaderBuiltin::DepthOutputGreaterEqual: return "Depth Output (GEqual)";
       case ShaderBuiltin::DepthOutputLessEqual: return "Depth Output (LEqual)";

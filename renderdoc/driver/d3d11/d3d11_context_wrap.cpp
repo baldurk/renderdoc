@@ -64,10 +64,10 @@ bool WrappedID3D11DeviceContext::Serialise_SetMarker(uint32_t col, const wchar_t
     byte green = (colour >> 8) & 0xff;
     byte blue = (colour >> 0) & 0xff;
 
-    draw.markerColour[0] = float(red) / 255.0f;
-    draw.markerColour[1] = float(green) / 255.0f;
-    draw.markerColour[2] = float(blue) / 255.0f;
-    draw.markerColour[3] = float(alpha) / 255.0f;
+    draw.markerColor[0] = float(red) / 255.0f;
+    draw.markerColor[1] = float(green) / 255.0f;
+    draw.markerColor[2] = float(blue) / 255.0f;
+    draw.markerColor[3] = float(alpha) / 255.0f;
 
     AddDrawcall(draw, false);
   }
@@ -100,10 +100,10 @@ bool WrappedID3D11DeviceContext::Serialise_PushEvent(uint32_t col, const wchar_t
     byte green = (colour >> 8) & 0xff;
     byte blue = (colour >> 0) & 0xff;
 
-    draw.markerColour[0] = float(red) / 255.0f;
-    draw.markerColour[1] = float(green) / 255.0f;
-    draw.markerColour[2] = float(blue) / 255.0f;
-    draw.markerColour[3] = float(alpha) / 255.0f;
+    draw.markerColor[0] = float(red) / 255.0f;
+    draw.markerColor[1] = float(green) / 255.0f;
+    draw.markerColor[2] = float(blue) / 255.0f;
+    draw.markerColor[3] = float(alpha) / 255.0f;
 
     AddDrawcall(draw, false);
   }
@@ -6321,7 +6321,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearRenderTargetView(
 
     DrawcallDescription draw;
     draw.name = name;
-    draw.flags |= DrawFlags::Clear | DrawFlags::ClearColour;
+    draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
 
     AddDrawcall(draw, true);
 

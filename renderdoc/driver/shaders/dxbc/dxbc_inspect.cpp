@@ -261,7 +261,7 @@ ShaderBuiltin GetSystemValue(SVSemantic systemValue)
     case SVNAME_FINAL_TRI_INSIDE_TESSFACTOR: return ShaderBuiltin::InsideTessFactor;
     case SVNAME_FINAL_LINE_DETAIL_TESSFACTOR: return ShaderBuiltin::OuterTessFactor;
     case SVNAME_FINAL_LINE_DENSITY_TESSFACTOR: return ShaderBuiltin::InsideTessFactor;
-    case SVNAME_TARGET: return ShaderBuiltin::ColourOutput;
+    case SVNAME_TARGET: return ShaderBuiltin::ColorOutput;
     case SVNAME_DEPTH: return ShaderBuiltin::DepthOutput;
     case SVNAME_COVERAGE: return ShaderBuiltin::MSAACoverage;
     case SVNAME_DEPTH_GREATER_EQUAL: return ShaderBuiltin::DepthOutputGreaterEqual;
@@ -892,7 +892,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
         // pixel shader outputs with registers are always targets
         if(m_Type == D3D11_ShaderType_Pixel && output &&
            desc.systemValue == ShaderBuiltin::Undefined && desc.regIndex >= 0 && desc.regIndex <= 16)
-          desc.systemValue = ShaderBuiltin::ColourOutput;
+          desc.systemValue = ShaderBuiltin::ColorOutput;
 
         // check system value semantics
         if(desc.systemValue == ShaderBuiltin::Undefined)
@@ -936,7 +936,7 @@ DXBCFile::DXBCFile(const void *ByteCode, size_t ByteCodeLength)
           if(!_stricmp(desc.semanticName.elems, "SV_InsideTessFactor"))
             desc.systemValue = ShaderBuiltin::InsideTessFactor;
           if(!_stricmp(desc.semanticName.elems, "SV_Target"))
-            desc.systemValue = ShaderBuiltin::ColourOutput;
+            desc.systemValue = ShaderBuiltin::ColorOutput;
           if(!_stricmp(desc.semanticName.elems, "SV_Depth"))
             desc.systemValue = ShaderBuiltin::DepthOutput;
           if(!_stricmp(desc.semanticName.elems, "SV_Coverage"))

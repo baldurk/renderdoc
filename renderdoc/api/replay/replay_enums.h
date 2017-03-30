@@ -274,7 +274,7 @@ enum class ShaderBuiltin : uint32_t
   PatchNumVertices,
   OuterTessFactor,
   InsideTessFactor,
-  ColourOutput,
+  ColorOutput,
   DepthOutput,
   DepthOutputGreaterEqual,
   DepthOutputLessEqual,
@@ -335,7 +335,7 @@ enum class AlphaMapping : uint32_t
 {
   Discard,
   First = Discard,
-  BlendToColour,
+  BlendToColor,
   BlendToCheckerboard,
   Preserve,
   Count,
@@ -621,7 +621,7 @@ enum class ResourceUsage : uint32_t
   All_RWResource,
 
   InputTarget,
-  ColourTarget,
+  ColorTarget,
   DepthStencilTarget,
 
   Indirect,
@@ -696,7 +696,7 @@ enum class DrawFlags : uint32_t
   Instanced = 0x020000,
   Auto = 0x040000,
   Indirect = 0x080000,
-  ClearColour = 0x100000,
+  ClearColor = 0x100000,
   ClearDepthStencil = 0x200000,
   BeginPass = 0x400000,
   EndPass = 0x800000,

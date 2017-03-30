@@ -73,8 +73,8 @@ QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
       case ResourceUsage::CS_RWResource: return "CS - UAV";
       case ResourceUsage::All_RWResource: return "All - UAV";
 
-      case ResourceUsage::InputTarget: return "Colour Input";
-      case ResourceUsage::ColourTarget: return "Rendertarget";
+      case ResourceUsage::InputTarget: return "Color Input";
+      case ResourceUsage::ColorTarget: return "Rendertarget";
       case ResourceUsage::DepthStencilTarget: return "Depthstencil";
 
       case ResourceUsage::Indirect: return "Indirect argument";
@@ -129,7 +129,7 @@ QString ToQStr(const ResourceUsage usage, const GraphicsAPI apitype)
       case ResourceUsage::All_RWResource: return "All - Image/SSBO";
 
       case ResourceUsage::InputTarget: return "FBO Input";
-      case ResourceUsage::ColourTarget: return "FBO Colour";
+      case ResourceUsage::ColorTarget: return "FBO Color";
       case ResourceUsage::DepthStencilTarget: return "FBO Depthstencil";
 
       case ResourceUsage::Indirect: return "Indirect argument";
@@ -215,7 +215,7 @@ QString D3DSemanticString(const SigParameter &sig)
   QString ret = ToQStr(sig.systemValue);
 
   // need to include the index if it's a system value semantic that's numbered
-  if(sig.systemValue == ShaderBuiltin::ColourOutput ||
+  if(sig.systemValue == ShaderBuiltin::ColorOutput ||
      sig.systemValue == ShaderBuiltin::CullDistance || sig.systemValue == ShaderBuiltin::ClipDistance)
     ret += QString::number(sig.semanticIndex);
 

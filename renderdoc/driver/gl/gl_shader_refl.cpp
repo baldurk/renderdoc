@@ -1912,7 +1912,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
 #undef IS_BUILTIN
         if(shadType == eGL_FRAGMENT_SHADER && sigEnum == eGL_PROGRAM_OUTPUT &&
            sig.systemValue == ShaderBuiltin::Undefined)
-          sig.systemValue = ShaderBuiltin::ColourOutput;
+          sig.systemValue = ShaderBuiltin::ColorOutput;
 
         if(sig.systemValue == ShaderBuiltin::Undefined)
           sig.regIndex = values[2] >= 0 ? values[2] : i;

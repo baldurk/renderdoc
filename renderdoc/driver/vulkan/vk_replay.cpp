@@ -1783,7 +1783,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
         MeshUBOData *data = (MeshUBOData *)GetDebugManager()->m_MeshUBO.Map(&uboOffs);
 
         data->mvp = ModelViewProj;
-        data->color = Vec4f(fmt.meshColour.x, fmt.meshColour.y, fmt.meshColour.z, fmt.meshColour.w);
+        data->color = Vec4f(fmt.meshColor.x, fmt.meshColor.y, fmt.meshColor.z, fmt.meshColor.w);
         data->homogenousInput = cfg.position.unproject;
         data->pointSpriteSize = Vec2f(0.0f, 0.0f);
         data->displayFormat = MESHDISPLAY_SOLID;
@@ -1957,7 +1957,7 @@ void VulkanReplay::RenderMesh(uint32_t eventID, const vector<MeshFormat> &second
      cfg.position.topo >= Topology::PatchList)
   {
     Vec4f wireCol =
-        Vec4f(cfg.position.meshColour.x, cfg.position.meshColour.y, cfg.position.meshColour.z, 1.0f);
+        Vec4f(cfg.position.meshColor.x, cfg.position.meshColor.y, cfg.position.meshColor.z, 1.0f);
 
     uint32_t uboOffs = 0;
     MeshUBOData *data = (MeshUBOData *)GetDebugManager()->m_MeshUBO.Map(&uboOffs);
@@ -2894,7 +2894,7 @@ void VulkanReplay::BindOutputWindow(uint64_t id, bool depth)
 #endif
 }
 
-void VulkanReplay::ClearOutputWindowColour(uint64_t id, float col[4])
+void VulkanReplay::ClearOutputWindowColor(uint64_t id, float col[4])
 {
   auto it = m_OutputWindows.find(id);
   if(id == 0 || it == m_OutputWindows.end())
@@ -5424,7 +5424,7 @@ ResourceId VulkanReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, 
   disp.CustomShader = shader;
   disp.texid = texid;
   disp.typeHint = typeHint;
-  disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0, 0, 0, 0);
+  disp.lightBackgroundColor = disp.darkBackgroundColor = FloatVector(0, 0, 0, 0);
   disp.HDRMul = -1.0f;
   disp.linearDisplayAsGamma = false;
   disp.mip = mip;

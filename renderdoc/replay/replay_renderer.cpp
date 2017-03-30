@@ -1316,7 +1316,7 @@ bool ReplayRenderer::PixelHistory(ResourceId target, uint32_t x, uint32_t y, uin
       case ResourceUsage::PS_RWResource:
       case ResourceUsage::CS_RWResource:
       case ResourceUsage::All_RWResource:
-      case ResourceUsage::ColourTarget:
+      case ResourceUsage::ColorTarget:
       case ResourceUsage::DepthStencilTarget:
       case ResourceUsage::Clear:
       case ResourceUsage::Copy:

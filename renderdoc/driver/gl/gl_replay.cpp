@@ -315,7 +315,7 @@ void GLReplay::BindOutputWindow(uint64_t id, bool depth)
   DebugData.outHeight = float(outw.height);
 }
 
-void GLReplay::ClearOutputWindowColour(uint64_t id, float col[4])
+void GLReplay::ClearOutputWindowColor(uint64_t id, float col[4])
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
@@ -2674,7 +2674,7 @@ ResourceId GLReplay::ApplyCustomShader(ResourceId shader, ResourceId texid, uint
   disp.CustomShader = shader;
   disp.texid = texid;
   disp.typeHint = typeHint;
-  disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector(0, 0, 0, 0);
+  disp.lightBackgroundColor = disp.darkBackgroundColor = FloatVector(0, 0, 0, 0);
   disp.HDRMul = -1.0f;
   disp.linearDisplayAsGamma = false;
   disp.mip = mip;

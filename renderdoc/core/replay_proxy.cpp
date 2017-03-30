@@ -86,7 +86,7 @@ string ToStrHelper<false, ShaderBuiltin>::Get(const ShaderBuiltin &el)
     TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, PatchNumVertices)
     TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, OuterTessFactor)
     TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, InsideTessFactor)
-    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, ColourOutput)
+    TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, ColorOutput)
     TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DepthOutput)
     TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DepthOutputGreaterEqual)
     TOSTR_CASE_STRINGIZE_SCOPED(ShaderBuiltin, DepthOutputLessEqual)
@@ -1335,7 +1335,7 @@ void Serialiser::Serialise(const char *name, DrawcallDescription &el)
 
   Serialise("", el.flags);
 
-  SerialisePODArray<4>("", el.markerColour);
+  SerialisePODArray<4>("", el.markerColor);
 
   Serialise("", el.numIndices);
   Serialise("", el.numInstances);
@@ -1591,7 +1591,7 @@ void Serialiser::Serialise(const char *name, MeshFormat &el)
   Serialise("", el.compType);
   Serialise("", el.bgraOrder);
   Serialise("", el.specialFormat);
-  Serialise("", el.meshColour);
+  Serialise("", el.meshColor);
   Serialise("", el.showAlpha);
   Serialise("", el.topo);
   Serialise("", el.numVerts);

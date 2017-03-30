@@ -149,10 +149,10 @@ public:
     if(m_Proxy)
       return m_Proxy->GetOutputWindowDimensions(id, w, h);
   }
-  void ClearOutputWindowColour(uint64_t id, float col[4])
+  void ClearOutputWindowColor(uint64_t id, float col[4])
   {
     if(m_Proxy)
-      return m_Proxy->ClearOutputWindowColour(id, col);
+      return m_Proxy->ClearOutputWindowColor(id, col);
   }
   void ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil)
   {

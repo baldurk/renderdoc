@@ -3032,7 +3032,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferfv(GLuint framebuffer, GLen
     draw.name = name;
     draw.flags |= DrawFlags::Clear;
     if(buf == eGL_COLOR)
-      draw.flags |= DrawFlags::ClearColour;
+      draw.flags |= DrawFlags::ClearColor;
     else
       draw.flags |= DrawFlags::ClearDepthStencil;
 
@@ -3170,7 +3170,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferiv(GLuint framebuffer, GLen
     draw.name = name;
     draw.flags |= DrawFlags::Clear;
     if(buf == eGL_COLOR)
-      draw.flags |= DrawFlags::ClearColour;
+      draw.flags |= DrawFlags::ClearColor;
     else
       draw.flags |= DrawFlags::ClearDepthStencil;
 
@@ -3285,7 +3285,7 @@ bool WrappedOpenGL::Serialise_glClearNamedFramebufferuiv(GLuint framebuffer, GLe
 
     DrawcallDescription draw;
     draw.name = name;
-    draw.flags |= DrawFlags::Clear | DrawFlags::ClearColour;
+    draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
 
     AddDrawcall(draw, true);
 
@@ -3776,7 +3776,7 @@ bool WrappedOpenGL::Serialise_glClear(GLbitfield mask)
     draw.name = name;
     draw.flags |= DrawFlags::Clear;
     if(Mask & GL_COLOR_BUFFER_BIT)
-      draw.flags |= DrawFlags::ClearColour;
+      draw.flags |= DrawFlags::ClearColor;
     if(Mask & (eGL_DEPTH_BUFFER_BIT | eGL_STENCIL_BUFFER_BIT))
       draw.flags |= DrawFlags::ClearDepthStencil;
 

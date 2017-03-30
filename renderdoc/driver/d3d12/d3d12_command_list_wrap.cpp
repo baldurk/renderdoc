@@ -4219,7 +4219,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
 
       DrawcallDescription draw;
       draw.name = name;
-      draw.flags |= DrawFlags::Clear | DrawFlags::ClearColour;
+      draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
 
       m_Cmd->AddDrawcall(draw, true);
 

@@ -1660,7 +1660,7 @@ void D3D11DebugManager::GetOutputWindowDimensions(uint64_t id, int32_t &w, int32
   h = m_OutputWindows[id].height;
 }
 
-void D3D11DebugManager::ClearOutputWindowColour(uint64_t id, float col[4])
+void D3D11DebugManager::ClearOutputWindowColor(uint64_t id, float col[4])
 {
   if(id == 0 || m_OutputWindows.find(id) == m_OutputWindows.end())
     return;
@@ -4785,7 +4785,7 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
 
         if(fmt.buf != ResourceId())
         {
-          meshColour = Vec4f(fmt.meshColour.x, fmt.meshColour.y, fmt.meshColour.z, 1.0f);
+          meshColour = Vec4f(fmt.meshColor.x, fmt.meshColor.y, fmt.meshColor.z, 1.0f);
           FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
           m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
 
@@ -4908,8 +4908,8 @@ void D3D11DebugManager::RenderMesh(uint32_t eventID, const vector<MeshFormat> &s
       pixelData.OutputDisplayFormat = MESHDISPLAY_SOLID;
       FillCBuffer(m_DebugRender.GenericPSCBuffer, &pixelData, sizeof(DebugPixelCBufferData));
 
-      meshColour = Vec4f(cfg.position.meshColour.x, cfg.position.meshColour.y,
-                         cfg.position.meshColour.z, 1.0f);
+      meshColour =
+          Vec4f(cfg.position.meshColor.x, cfg.position.meshColor.y, cfg.position.meshColor.z, 1.0f);
       FillCBuffer(meshColourBuf, &meshColour, sizeof(meshColour));
       m_pImmediateContext->PSSetConstantBuffers(2, 1, &meshColourBuf);
 

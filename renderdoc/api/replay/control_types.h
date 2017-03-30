@@ -64,7 +64,7 @@ struct MeshFormat
   bool32 bgraOrder;
   SpecialFormat specialFormat;
 
-  FloatVector meshColour;
+  FloatVector meshColor;
 
   bool showAlpha;
 
@@ -127,8 +127,8 @@ struct TextureDisplay
 
   float offx, offy;
 
-  FloatVector lightBackgroundColour;
-  FloatVector darkBackgroundColour;
+  FloatVector lightBackgroundColor;
+  FloatVector darkBackgroundColor;
 
   DebugOverlay overlay;
 };

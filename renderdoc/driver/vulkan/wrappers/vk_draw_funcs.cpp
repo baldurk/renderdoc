@@ -1786,20 +1786,20 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(Serialiser *localSerialiser,
       commandBuffer = RerecordCmdBuf(cmdid);
 
       uint32_t eventID =
-          HandlePreCallback(commandBuffer, DrawFlags(DrawFlags::Clear | DrawFlags::ClearColour));
+          HandlePreCallback(commandBuffer, DrawFlags(DrawFlags::Clear | DrawFlags::ClearColor));
 
       ObjDisp(commandBuffer)
           ->CmdClearColorImage(Unwrap(commandBuffer), Unwrap(image), layout, &col, count, ranges);
 
       if(eventID &&
-         m_DrawcallCallback->PostMisc(eventID, DrawFlags(DrawFlags::Clear | DrawFlags::ClearColour),
+         m_DrawcallCallback->PostMisc(eventID, DrawFlags(DrawFlags::Clear | DrawFlags::ClearColor),
                                       commandBuffer))
       {
         ObjDisp(commandBuffer)
             ->CmdClearColorImage(Unwrap(commandBuffer), Unwrap(image), layout, &col, count, ranges);
 
-        m_DrawcallCallback->PostRemisc(
-            eventID, DrawFlags(DrawFlags::Clear | DrawFlags::ClearColour), commandBuffer);
+        m_DrawcallCallback->PostRemisc(eventID, DrawFlags(DrawFlags::Clear | DrawFlags::ClearColor),
+                                       commandBuffer);
       }
     }
   }
@@ -1819,7 +1819,7 @@ bool WrappedVulkan::Serialise_vkCmdClearColorImage(Serialiser *localSerialiser,
 
       DrawcallDescription draw;
       draw.name = name;
-      draw.flags |= DrawFlags::Clear | DrawFlags::ClearColour;
+      draw.flags |= DrawFlags::Clear | DrawFlags::ClearColor;
 
       AddDrawcall(draw, true);
 
@@ -2027,7 +2027,7 @@ bool WrappedVulkan::Serialise_vkCmdClearAttachments(Serialiser *localSerialiser,
       for(uint32_t a = 0; a < acount; a++)
       {
         if(atts[a].aspectMask & VK_IMAGE_ASPECT_COLOR_BIT)
-          draw.flags |= DrawFlags::ClearColour;
+          draw.flags |= DrawFlags::ClearColor;
         if(atts[a].aspectMask & VK_IMAGE_ASPECT_DEPTH_BIT)
           draw.flags |= DrawFlags::ClearDepthStencil;
       }

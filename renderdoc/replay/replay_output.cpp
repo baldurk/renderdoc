@@ -518,7 +518,7 @@ void ReplayOutput::DisplayContext()
     return;
   }
 
-  m_pDevice->ClearOutputWindowColour(m_PixelContext.outputID, color);
+  m_pDevice->ClearOutputWindowColor(m_PixelContext.outputID, color);
 
   TextureDisplay disp = m_RenderData.texDisplay;
   disp.rawoutput = false;
@@ -598,7 +598,7 @@ bool ReplayOutput::Display()
       m_pDevice->BindOutputWindow(m_Thumbnails[i].outputID, false);
 
       color[0] = 0.4f;
-      m_pDevice->ClearOutputWindowColour(m_Thumbnails[i].outputID, color);
+      m_pDevice->ClearOutputWindowColor(m_Thumbnails[i].outputID, color);
 
       m_pDevice->RenderCheckerboard(Vec3f(0.6f, 0.6f, 0.7f), Vec3f(0.5f, 0.5f, 0.6f));
 
@@ -607,7 +607,7 @@ bool ReplayOutput::Display()
     }
 
     m_pDevice->BindOutputWindow(m_Thumbnails[i].outputID, false);
-    m_pDevice->ClearOutputWindowColour(m_Thumbnails[i].outputID, color);
+    m_pDevice->ClearOutputWindowColor(m_Thumbnails[i].outputID, color);
 
     TextureDisplay disp;
 
@@ -630,7 +630,7 @@ bool ReplayOutput::Display()
     disp.rawoutput = false;
     disp.overlay = DebugOverlay::NoOverlay;
 
-    disp.lightBackgroundColour = disp.darkBackgroundColour = FloatVector();
+    disp.lightBackgroundColor = disp.darkBackgroundColor = FloatVector();
 
     if(m_Thumbnails[i].typeHint == CompType::SNorm)
       disp.rangemin = -1.0f;
@@ -683,7 +683,7 @@ void ReplayOutput::DisplayTex()
   {
     float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
-    m_pDevice->ClearOutputWindowColour(m_MainOutput.outputID, color);
+    m_pDevice->ClearOutputWindowColor(m_MainOutput.outputID, color);
     return;
   }
   if(m_Width <= 0 || m_Height <= 0)
@@ -723,13 +723,13 @@ void ReplayOutput::DisplayTex()
   float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
 
   m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
-  m_pDevice->ClearOutputWindowColour(m_MainOutput.outputID, color);
+  m_pDevice->ClearOutputWindowColor(m_MainOutput.outputID, color);
 
   m_pDevice->RenderCheckerboard(
-      Vec3f(texDisplay.lightBackgroundColour.x, texDisplay.lightBackgroundColour.y,
-            texDisplay.lightBackgroundColour.z),
-      Vec3f(texDisplay.darkBackgroundColour.x, texDisplay.darkBackgroundColour.y,
-            texDisplay.darkBackgroundColour.z));
+      Vec3f(texDisplay.lightBackgroundColor.x, texDisplay.lightBackgroundColor.y,
+            texDisplay.lightBackgroundColor.z),
+      Vec3f(texDisplay.darkBackgroundColor.x, texDisplay.darkBackgroundColor.y,
+            texDisplay.darkBackgroundColor.z));
 
   m_pDevice->RenderTexture(texDisplay);
 
@@ -763,7 +763,7 @@ void ReplayOutput::DisplayMesh()
   {
     float color[4] = {0.0f, 0.0f, 0.0f, 0.0f};
     m_pDevice->BindOutputWindow(m_MainOutput.outputID, false);
-    m_pDevice->ClearOutputWindowColour(m_MainOutput.outputID, color);
+    m_pDevice->ClearOutputWindowColor(m_MainOutput.outputID, color);
     m_pDevice->ClearOutputWindowDepth(m_MainOutput.outputID, 1.0f, 0);
     m_pDevice->RenderCheckerboard(Vec3f(0.81f, 0.81f, 0.81f), Vec3f(0.57f, 0.57f, 0.57f));
 
@@ -821,7 +821,7 @@ void ReplayOutput::DisplayMesh()
           if(fmt.buf == ResourceId())
             fmt = m_pDevice->GetPostVSBuffers(passEvents[i], inst, MeshDataStage::VSOut);
 
-          fmt.meshColour = passDraws;
+          fmt.meshColor = passDraws;
 
           // if unproject is marked, this output had a 'real' system position output
           if(fmt.unproject)
@@ -846,7 +846,7 @@ void ReplayOutput::DisplayMesh()
         if(fmt.buf == ResourceId())
           fmt = m_pDevice->GetPostVSBuffers(draw->eventID, inst, MeshDataStage::VSOut);
 
-        fmt.meshColour = otherInstances;
+        fmt.meshColor = otherInstances;
 
         // if unproject is marked, this output had a 'real' system position output
         if(fmt.unproject)
@@ -855,7 +855,7 @@ void ReplayOutput::DisplayMesh()
     }
   }
 
-  mesh.position.meshColour = drawItself;
+  mesh.position.meshColor = drawItself;
 
   m_pDevice->RenderMesh(m_EventID, secondaryDraws, mesh);
 }

@@ -77,11 +77,11 @@ SettingsDialog::SettingsDialog(CaptureContext &ctx, QWidget *parent)
   ui->EventBrowser_TimeUnit->setCurrentIndex((int)m_Ctx.Config.EventBrowser_TimeUnit);
   ui->EventBrowser_HideEmpty->setChecked(m_Ctx.Config.EventBrowser_HideEmpty);
   ui->EventBrowser_HideAPICalls->setChecked(m_Ctx.Config.EventBrowser_HideAPICalls);
-  ui->EventBrowser_ApplyColours->setChecked(m_Ctx.Config.EventBrowser_ApplyColours);
-  ui->EventBrowser_ColourEventRow->setChecked(m_Ctx.Config.EventBrowser_ColourEventRow);
+  ui->EventBrowser_ApplyColors->setChecked(m_Ctx.Config.EventBrowser_ApplyColors);
+  ui->EventBrowser_ColorEventRow->setChecked(m_Ctx.Config.EventBrowser_ColorEventRow);
 
   // disable sub-checkbox
-  ui->EventBrowser_ColourEventRow->setEnabled(ui->EventBrowser_ApplyColours->isChecked());
+  ui->EventBrowser_ColorEventRow->setEnabled(ui->EventBrowser_ApplyColors->isChecked());
 
   ui->Formatter_MinFigures->setValue(m_Ctx.Config.Formatter_MinFigures);
   ui->Formatter_MaxFigures->setValue(m_Ctx.Config.Formatter_MaxFigures);
@@ -301,16 +301,16 @@ void SettingsDialog::on_EventBrowser_HideAPICalls_toggled(bool checked)
   m_Ctx.Config.Save();
 }
 
-void SettingsDialog::on_EventBrowser_ApplyColours_toggled(bool checked)
+void SettingsDialog::on_EventBrowser_ApplyColors_toggled(bool checked)
 {
-  m_Ctx.Config.EventBrowser_ApplyColours = ui->EventBrowser_ApplyColours->isChecked();
+  m_Ctx.Config.EventBrowser_ApplyColors = ui->EventBrowser_ApplyColors->isChecked();
 
   m_Ctx.Config.Save();
 }
 
-void SettingsDialog::on_EventBrowser_ColourEventRow_toggled(bool checked)
+void SettingsDialog::on_EventBrowser_ColorEventRow_toggled(bool checked)
 {
-  m_Ctx.Config.EventBrowser_ColourEventRow = ui->EventBrowser_ColourEventRow->isChecked();
+  m_Ctx.Config.EventBrowser_ColorEventRow = ui->EventBrowser_ColorEventRow->isChecked();
 
   m_Ctx.Config.Save();
 }

@@ -165,7 +165,7 @@ public:
   virtual void DestroyOutputWindow(uint64_t id) = 0;
   virtual bool CheckResizeOutputWindow(uint64_t id) = 0;
   virtual void GetOutputWindowDimensions(uint64_t id, int32_t &w, int32_t &h) = 0;
-  virtual void ClearOutputWindowColour(uint64_t id, float col[4]) = 0;
+  virtual void ClearOutputWindowColor(uint64_t id, float col[4]) = 0;
   virtual void ClearOutputWindowDepth(uint64_t id, float depth, uint8_t stencil) = 0;
   virtual void BindOutputWindow(uint64_t id, bool depth) = 0;
   virtual bool IsOutputWindowVisible(uint64_t id) = 0;

@@ -1651,7 +1651,7 @@ void GLPipelineStateViewer::setState()
             {
               if(state.m_FS.ShaderDetails->OutputSig[s].regIndex == (uint32_t)db &&
                  (state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::Undefined ||
-                  state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::ColourOutput))
+                  state.m_FS.ShaderDetails->OutputSig[s].systemValue == ShaderBuiltin::ColorOutput))
               {
                 name = QString("<%1>").arg(ToQStr(state.m_FS.ShaderDetails->OutputSig[s].varName));
               }

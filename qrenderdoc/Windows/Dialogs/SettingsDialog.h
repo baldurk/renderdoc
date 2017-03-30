@@ -77,8 +77,8 @@ private slots:
   void on_EventBrowser_TimeUnit_currentIndexChanged(int index);
   void on_EventBrowser_HideEmpty_toggled(bool checked);
   void on_EventBrowser_HideAPICalls_toggled(bool checked);
-  void on_EventBrowser_ApplyColours_toggled(bool checked);
-  void on_EventBrowser_ColourEventRow_toggled(bool checked);
+  void on_EventBrowser_ApplyColors_toggled(bool checked);
+  void on_EventBrowser_ColorEventRow_toggled(bool checked);
 
   // android
   void on_browseTempCaptureDirectory_clicked();

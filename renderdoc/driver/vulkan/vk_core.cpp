@@ -3020,7 +3020,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
         continue;
       drawNode.resourceUsage.push_back(
           std::make_pair(c.m_ImageView[fb.attachments[att].view].image,
-                         EventUsage(e, ResourceUsage::ColourTarget, fb.attachments[att].view)));
+                         EventUsage(e, ResourceUsage::ColorTarget, fb.attachments[att].view)));
     }
 
     if(rp.subpasses[state.subpass].depthstencilAttachment >= 0)

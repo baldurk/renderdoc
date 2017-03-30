@@ -185,7 +185,7 @@ void TextureSaveDialog::on_fileFormat_currentIndexChanged(int index)
 
   ui->alphaMap->setEnabled(tex.format.compCount == 4 && noAlphaFormat);
 
-  ui->alphaCol->setEnabled(saveData.alpha == AlphaMapping::BlendToColour &&
+  ui->alphaCol->setEnabled(saveData.alpha == AlphaMapping::BlendToColor &&
                            tex.format.compCount == 4 && noAlphaFormat);
 
   if(saveData.destType == FileType::DDS)
@@ -472,7 +472,7 @@ void TextureSaveDialog::on_alphaMap_currentIndexChanged(int index)
 {
   saveData.alpha = (AlphaMapping)index;
 
-  ui->alphaCol->setEnabled(saveData.alpha == AlphaMapping::BlendToColour);
+  ui->alphaCol->setEnabled(saveData.alpha == AlphaMapping::BlendToColor);
 }
 
 void TextureSaveDialog::on_blackPoint_textEdited(const QString &arg)
