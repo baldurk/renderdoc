@@ -1845,7 +1845,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         if(IS_BUILTIN("gl_PrimitiveID"))
           sig.systemValue = ShaderBuiltin::PrimitiveIndex;
         if(IS_BUILTIN("gl_InvocationID"))
-          sig.systemValue = ShaderBuiltin::InvocationIndex;
+          sig.systemValue = ShaderBuiltin::OutputControlPointIndex;
 
         // TCS built-in outputs
         if(IS_BUILTIN("gl_TessLevelOuter"))
@@ -1864,8 +1864,8 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
         // GS built-in inputs
         if(IS_BUILTIN("gl_PrimitiveIDIn"))
           sig.systemValue = ShaderBuiltin::PrimitiveIndex;
-        if(IS_BUILTIN("gl_InvocationID"))
-          sig.systemValue = ShaderBuiltin::InvocationIndex;
+        if(IS_BUILTIN("gl_InvocationID") && shadType == eGL_GEOMETRY_SHADER)
+          sig.systemValue = ShaderBuiltin::GSInstanceIndex;
         if(IS_BUILTIN("gl_Layer"))
           sig.systemValue = ShaderBuiltin::RTIndex;
         if(IS_BUILTIN("gl_ViewportIndex"))

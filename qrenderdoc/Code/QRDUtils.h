@@ -269,7 +269,6 @@ struct ToStr
       case ShaderBuiltin::VertexIndex: return "Vertex Index";
       case ShaderBuiltin::PrimitiveIndex: return "Primitive Index";
       case ShaderBuiltin::InstanceIndex: return "Instance Index";
-      case ShaderBuiltin::InvocationIndex: return "Invocation Index";
       case ShaderBuiltin::DispatchSize: return "Dispatch Size";
       case ShaderBuiltin::DispatchThreadIndex: return "Dispatch Thread Index";
       case ShaderBuiltin::GroupIndex: return "Group Index";

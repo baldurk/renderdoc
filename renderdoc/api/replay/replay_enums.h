@@ -259,7 +259,6 @@ enum class ShaderBuiltin : uint32_t
   VertexIndex,
   PrimitiveIndex,
   InstanceIndex,
-  InvocationIndex,
   DispatchSize,
   DispatchThreadIndex,
   GroupIndex,

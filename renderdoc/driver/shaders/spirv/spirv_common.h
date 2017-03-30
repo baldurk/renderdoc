@@ -28,7 +28,6 @@
 #include <string>
 #include <vector>
 #include "3rdparty/glslang/SPIRV/spirv.hpp"
-#include "api/replay/replay_enums.h"
 
 using std::string;
 using std::vector;
@@ -49,6 +48,7 @@ void ShutdownSPIRVCompiler();
 
 struct SPVInstruction;
 
+enum class ShaderStage : uint32_t;
 struct ShaderReflection;
 struct ShaderBindpointMapping;
 

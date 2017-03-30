@@ -3636,7 +3636,7 @@ uint32_t CalculateMinimumByteSize(const rdctype::array<ShaderConstant> &variable
   }
 }
 
-ShaderBuiltin BuiltInToSystemAttribute(const spv::BuiltIn el)
+ShaderBuiltin BuiltInToSystemAttribute(ShaderStage stage, const spv::BuiltIn el)
 {
   // not complete, might need to expand system attribute list
 
@@ -3649,7 +3649,13 @@ ShaderBuiltin BuiltInToSystemAttribute(const spv::BuiltIn el)
     case spv::BuiltInVertexId: return ShaderBuiltin::VertexIndex;
     case spv::BuiltInInstanceId: return ShaderBuiltin::InstanceIndex;
     case spv::BuiltInPrimitiveId: return ShaderBuiltin::PrimitiveIndex;
-    case spv::BuiltInInvocationId: return ShaderBuiltin::InvocationIndex;
+    case spv::BuiltInInvocationId:
+    {
+      if(stage == ShaderStage::Geometry)
+        return ShaderBuiltin::GSInstanceIndex;
+      else
+        return ShaderBuiltin::OutputControlPointIndex;
+    }
     case spv::BuiltInLayer: return ShaderBuiltin::RTIndex;
     case spv::BuiltInViewportIndex: return ShaderBuiltin::ViewportIndex;
     case spv::BuiltInTessLevelOuter: return ShaderBuiltin::OuterTessFactor;
@@ -3718,7 +3724,7 @@ void AddSignatureParameter(ShaderStage stage, uint32_t id, uint32_t childIdx, st
     if(decorations[d].decoration == spv::DecorationLocation)
       sig.regIndex = decorations[d].val;
     else if(decorations[d].decoration == spv::DecorationBuiltIn)
-      sig.systemValue = BuiltInToSystemAttribute((spv::BuiltIn)decorations[d].val);
+      sig.systemValue = BuiltInToSystemAttribute(stage, (spv::BuiltIn)decorations[d].val);
     else if(decorations[d].decoration == spv::DecorationRowMajor)
       rowmajor = true;
     else if(decorations[d].decoration == spv::DecorationColMajor)
@@ -3998,7 +4004,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
 
               if(eliminate)
               {
-                ShaderBuiltin attr = BuiltInToSystemAttribute(checkBuiltin);
+                ShaderBuiltin attr = BuiltInToSystemAttribute(stage, checkBuiltin);
                 // find this builtin in the array, and remove
                 for(auto it = sigarray->begin(); it != sigarray->end(); ++it)
                 {
