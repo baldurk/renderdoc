@@ -41,7 +41,9 @@ string ToStrHelper<false, ResourceId>::Get(const ResourceId &el)
 {
   char tostrBuf[256] = {0};
 
-  StringFormat::snprintf(tostrBuf, 255, "ResID_%llu", el.id);
+  RDCCOMPILE_ASSERT(sizeof(el) == sizeof(uint64_t), "ResourceId is no longer 1:1 with uint64_t");
+
+  StringFormat::snprintf(tostrBuf, 255, "ResID_%llu", (uint64_t &)el);
 
   return tostrBuf;
 }

@@ -53,7 +53,9 @@ struct ToStr
   {
     // super inefficient to convert to qstr then std::string then back to qstr
     // but this is just a temporary measure
-    return QString::number(el.id).toStdString();
+    uint64_t num = 0;
+    memcpy(&num, &el, sizeof(num));
+    return QString::number(num).toStdString();
   }
 
   static std::string Get(const ReplayStatus &el)

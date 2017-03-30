@@ -117,19 +117,33 @@ typedef void *(RENDERDOC_CC *pRENDERDOC_AllocArrayMem)(uint64_t sz);
 
 #include "basic_types.h"
 
+#ifdef RENDERDOC_EXPORTS
+struct ResourceId;
+
+namespace ResourceIDGen
+{
+// the only function allowed access to ResourceId internals, for allocating a new ID
+ResourceId GetNewUniqueID();
+};
+#endif
+
 // We give every resource a globally unique ID so that we can differentiate
 // between two textures allocated in the same memory (after the first is freed)
 //
 // it's a struct around a uint64_t to aid in template selection
 struct ResourceId
 {
-  uint64_t id;
-
   ResourceId() : id() {}
-  ResourceId(uint64_t val, bool) { id = val; }
+  inline static ResourceId Null() { return ResourceId(); }
   bool operator==(const ResourceId u) const { return id == u.id; }
   bool operator!=(const ResourceId u) const { return id != u.id; }
   bool operator<(const ResourceId u) const { return id < u.id; }
+private:
+  uint64_t id;
+
+#ifdef RENDERDOC_EXPORTS
+  friend ResourceId ResourceIDGen::GetNewUniqueID();
+#endif
 };
 
 #include "capture_options.h"

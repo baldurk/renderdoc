@@ -31,7 +31,9 @@ static volatile int64_t globalIDCounter = 1;
 
 ResourceId GetNewUniqueID()
 {
-  return ResourceId(Atomic::Inc64(&globalIDCounter), true);
+  ResourceId ret;
+  ret.id = Atomic::Inc64(&globalIDCounter);
+  return ret;
 }
 
 void SetReplayResourceIDs()
