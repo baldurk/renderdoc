@@ -1729,7 +1729,7 @@ void WrappedID3D11DeviceContext::RecordConstantStats(ShaderStage stage, UINT Num
       D3D11_BUFFER_DESC desc;
       Buffers[i]->GetDesc(&desc);
       uint32_t bufferSize = desc.ByteWidth;
-      size_t bucket = BucketForRecordPow2<ConstantBindStats>(bufferSize);
+      size_t bucket = BucketForRecord<ConstantBindStats>::Get(bufferSize);
       RDCASSERT(bucket < constants.sizes.size());
       constants.sizes[bucket] += 1;
     }
@@ -1830,7 +1830,7 @@ void WrappedID3D11DeviceContext::RecordUpdateStats(ID3D11Resource *res, uint32_t
   // #mivance it might be nice to query the buffer to differentiate
   // between bindings for constant buffers
 
-  size_t bucket = BucketForRecordPow2<ResourceUpdateStats>(Size);
+  size_t bucket = BucketForRecord<ResourceUpdateStats>::Get(Size);
   updates.sizes[bucket] += 1;
 }
 
@@ -1845,7 +1845,7 @@ void WrappedID3D11DeviceContext::RecordDrawStats(bool instanced, bool indirect, 
 
   if(instanced)
   {
-    size_t bucket = BucketForRecordLinear<DrawcallStats>(InstanceCount);
+    size_t bucket = BucketForRecord<DrawcallStats>::Get(InstanceCount);
     RDCASSERT(bucket < draws.counts.size());
     draws.counts[bucket] += 1;
   }

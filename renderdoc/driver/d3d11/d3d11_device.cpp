@@ -1112,7 +1112,7 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
     {
       create_array(stats.constants[stage].bindslots,
                    D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT + 1);
-      create_array(stats.constants[stage].sizes, ConstantBindStats::BUCKET_COUNT);
+      create_array(stats.constants[stage].sizes, ConstantBindStats::BucketCount);
 
       create_array(stats.samplers[stage].bindslots, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT + 1);
 
@@ -1122,9 +1122,9 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
     }
 
     create_array(stats.updates.types, uint32_t(TextureDim::Count));
-    create_array(stats.updates.sizes, ResourceUpdateStats::BUCKET_COUNT);
+    create_array(stats.updates.sizes, ResourceUpdateStats::BucketCount);
 
-    create_array(stats.draws.counts, DrawcallStats::BUCKET_COUNT);
+    create_array(stats.draws.counts, DrawcallStats::BucketCount);
 
     create_array(stats.vertices.bindslots, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT + 1);
 

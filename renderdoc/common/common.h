@@ -163,6 +163,39 @@ uint32_t Log2Floor(uint32_t value);
 uint64_t Log2Floor(uint64_t value);
 #endif
 
+template <typename T, BucketRecordType bucketType = T::BucketType>
+struct BucketForRecord
+{
+  static size_t Get(size_t value);
+};
+
+template <typename T>
+struct BucketForRecord<T, BucketRecordType::Linear>
+{
+  static size_t Get(size_t value)
+  {
+    const size_t size = T::BucketSize;
+    const size_t count = T::BucketCount;
+    const size_t maximum = size * count;
+    const size_t index = (value < maximum) ? (value / size) : (count - 1);
+    return index;
+  }
+};
+
+template <typename T>
+struct BucketForRecord<T, BucketRecordType::Pow2>
+{
+  static size_t Get(size_t value)
+  {
+    const size_t count = T::BucketCount;
+    static_assert(count <= (sizeof(size_t) * 8),
+                  "Unexpected correspondence between bucket size and sizeof(size_t)");
+    const size_t maximum = (size_t)1 << count;
+    const size_t index = (value < maximum) ? (size_t)(Log2Floor(value)) : (count - 1);
+    return index;
+  }
+};
+
 /////////////////////////////////////////////////
 // Debugging features
 

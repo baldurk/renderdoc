@@ -122,31 +122,6 @@ struct DrawcallTreeNode
   }
 };
 
-template <typename T>
-size_t BucketForRecordLinear(size_t value)
-{
-  RDCCOMPILE_ASSERT(T::BUCKET_TYPE == BUCKET_RECORD_TYPE_LINEAR,
-                    "Incorrect bucket type for record query.");
-  const size_t size = T::BUCKET_SIZE;
-  const size_t count = T::BUCKET_COUNT;
-  const size_t maximum = size * count;
-  const size_t index = (value < maximum) ? (value / size) : (count - 1);
-  return index;
-}
-
-template <typename T>
-size_t BucketForRecordPow2(size_t value)
-{
-  RDCCOMPILE_ASSERT(T::BUCKET_TYPE == BUCKET_RECORD_TYPE_POW2,
-                    "Incorrect bucket type for record query.");
-  const size_t count = T::BUCKET_COUNT;
-  RDCCOMPILE_ASSERT(count <= (sizeof(size_t) * 8),
-                    "Unexpected correspondence between bucket size and sizeof(size_t)");
-  const size_t maximum = (size_t)1 << count;
-  const size_t index = (value < maximum) ? (size_t)(Log2Floor(value)) : (count - 1);
-  return index;
-}
-
 class WrappedID3D11DeviceContext : public RefCounter, public ID3D11DeviceContext3
 {
 private:

@@ -142,21 +142,17 @@ struct DebugMessage
 
 DECLARE_REFLECTION_STRUCT(DebugMessage);
 
-enum BucketRecordType
+enum class BucketRecordType : int
 {
-  BUCKET_RECORD_TYPE_LINEAR,
-  BUCKET_RECORD_TYPE_POW2,
-
-  BUCKET_RECORD_TYPE_COUNT,
+  Linear,
+  Pow2,
 };
 
 struct ConstantBindStats
 {
-  enum Constants
-  {
-    BUCKET_TYPE = BUCKET_RECORD_TYPE_POW2,
-    BUCKET_COUNT = 31,
-  };
+  static const BucketRecordType BucketType = BucketRecordType::Pow2;
+  static const size_t BucketCount = 31;
+
   uint32_t calls;
   uint32_t sets;
   uint32_t nulls;
@@ -189,11 +185,9 @@ DECLARE_REFLECTION_STRUCT(ResourceBindStats);
 
 struct ResourceUpdateStats
 {
-  enum Constants
-  {
-    BUCKET_TYPE = BUCKET_RECORD_TYPE_POW2,
-    BUCKET_COUNT = 31,
-  };
+  static const BucketRecordType BucketType = BucketRecordType::Pow2;
+  static const size_t BucketCount = 31;
+
   uint32_t calls;
   uint32_t clients;
   uint32_t servers;
@@ -205,12 +199,10 @@ DECLARE_REFLECTION_STRUCT(ResourceUpdateStats);
 
 struct DrawcallStats
 {
-  enum Constants
-  {
-    BUCKET_TYPE = BUCKET_RECORD_TYPE_LINEAR,
-    BUCKET_SIZE = 1,
-    BUCKET_COUNT = 16,
-  };
+  static const BucketRecordType BucketType = BucketRecordType::Linear;
+  static const size_t BucketSize = 1;
+  static const size_t BucketCount = 16;
+
   uint32_t calls;
   uint32_t instanced;
   uint32_t indirect;
