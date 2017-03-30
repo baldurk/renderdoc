@@ -410,6 +410,17 @@ namespace TreelistView
 			m_nodesSelection.Sort();
 		}
 
+        public void SelectAll()
+        {
+            FocusedNode = null;
+            NodesSelection.Clear();
+            foreach (Node node in NodeCollection.ForwardNodeIterator(m_firstVisibleNode, true))
+            {
+                NodesSelection.Add(node);
+            }
+            Invalidate();
+        }
+
         [Browsable(false)]
         public Node SelectedNode
         {
