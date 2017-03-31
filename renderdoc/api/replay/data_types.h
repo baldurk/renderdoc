@@ -46,7 +46,6 @@ struct ResourceFormat
 {
   ResourceFormat()
   {
-    rawType = 0;
     special = true;
     specialFormat = SpecialFormat::Unknown;
 
@@ -67,8 +66,6 @@ struct ResourceFormat
   }
 
   bool operator!=(const ResourceFormat &r) const { return !(*this == r); }
-  uint32_t rawType;
-
   // indicates it's not a type represented with the members below
   // usually this means non-uniform across components or block compressed
   bool32 special;

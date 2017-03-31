@@ -103,7 +103,6 @@ string ToStrHelper<false, ShaderBuiltin>::Get(const ShaderBuiltin &el)
 template <>
 void Serialiser::Serialise(const char *name, ResourceFormat &el)
 {
-  Serialise("", el.rawType);
   Serialise("", el.special);
   Serialise("", el.specialFormat);
   Serialise("", el.strname);
@@ -113,7 +112,7 @@ void Serialiser::Serialise(const char *name, ResourceFormat &el)
   Serialise("", el.bgraOrder);
   Serialise("", el.srgbCorrected);
 
-  SIZE_CHECK(56);
+  SIZE_CHECK(48);
 }
 
 template <>
@@ -310,7 +309,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::Layout &el)
   Serialise("", el.PerInstance);
   Serialise("", el.InstanceDataStepRate);
 
-  SIZE_CHECK(96);
+  SIZE_CHECK(88);
 }
 
 template <>
@@ -349,7 +348,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::View &el)
   Serialise("", el.ArraySize);
   Serialise("", el.FirstArraySlice);
 
-  SIZE_CHECK(136);
+  SIZE_CHECK(128);
 }
 
 template <>
@@ -468,7 +467,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::OM &el)
   Serialise("", el.DepthReadOnly);
   Serialise("", el.StencilReadOnly);
 
-  SIZE_CHECK(424);
+  SIZE_CHECK(416);
 }
 
 template <>
@@ -488,7 +487,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::State &el)
   Serialise("", el.m_RS);
   Serialise("", el.m_OM);
 
-  SIZE_CHECK(1768);
+  SIZE_CHECK(1760);
 }
 
 #pragma endregion D3D11 pipeline state
@@ -506,7 +505,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::Layout &el)
   Serialise("", el.PerInstance);
   Serialise("", el.InstanceDataStepRate);
 
-  SIZE_CHECK(96);
+  SIZE_CHECK(88);
 }
 
 template <>
@@ -588,7 +587,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::View &el)
 
   Serialise("", el.MinLODClamp);
 
-  SIZE_CHECK(184);
+  SIZE_CHECK(176);
 }
 
 template <>
@@ -683,7 +682,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::OM &el)
   Serialise("", el.multiSampleCount);
   Serialise("", el.multiSampleQuality);
 
-  SIZE_CHECK(424);
+  SIZE_CHECK(416);
 }
 
 template <>
@@ -729,7 +728,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::State &el)
 
   Serialise("", el.Resources);
 
-  SIZE_CHECK(1272);
+  SIZE_CHECK(1264);
 }
 
 #pragma endregion D3D12 pipeline state
@@ -745,7 +744,7 @@ void Serialiser::Serialise(const char *name, GLPipe::VertexAttribute &el)
   Serialise("", el.BufferSlot);
   Serialise("", el.RelativeOffset);
 
-  SIZE_CHECK(88);
+  SIZE_CHECK(80);
 }
 
 template <>
@@ -820,7 +819,7 @@ void Serialiser::Serialise(const char *name, GLPipe::ImageLoadStore &el)
   Serialise("", el.writeAllowed);
   Serialise("", el.Format);
 
-  SIZE_CHECK(88);
+  SIZE_CHECK(80);
 }
 
 template <>
@@ -1008,7 +1007,7 @@ void Serialiser::Serialise(const char *name, VKPipe::BindingElement &el)
   Serialise("", el.border);
   Serialise("", el.unnormalized);
 
-  SIZE_CHECK(328);
+  SIZE_CHECK(320);
 };
 
 template <>
@@ -1053,7 +1052,7 @@ void Serialiser::Serialise(const char *name, VKPipe::VertexAttribute &el)
   Serialise("", el.format);
   Serialise("", el.byteoffset);
 
-  SIZE_CHECK(72);
+  SIZE_CHECK(64);
 }
 
 template <>
@@ -1149,7 +1148,7 @@ void Serialiser::Serialise(const char *name, VKPipe::Attachment &el)
   Serialise("", el.numMip);
   Serialise("", el.numLayer);
 
-  SIZE_CHECK(104);
+  SIZE_CHECK(96);
 }
 
 template <>
@@ -1278,7 +1277,7 @@ void Serialiser::Serialise(const char *name, FetchTexture &el)
   Serialise("", el.msSamp);
   Serialise("", el.byteSize);
 
-  SIZE_CHECK(144);
+  SIZE_CHECK(136);
 }
 
 template <>

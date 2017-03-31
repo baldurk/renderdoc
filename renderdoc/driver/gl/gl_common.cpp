@@ -1013,7 +1013,6 @@ ResourceFormat MakeResourceFormat(const GLHookSet &gl, GLenum target, GLenum fmt
 {
   ResourceFormat ret;
 
-  ret.rawType = (uint32_t)fmt;
   ret.special = false;
   ret.specialFormat = SpecialFormat::Unknown;
   ret.strname = ToStr::Get(fmt).substr(3);    // 3 == strlen("GL_")

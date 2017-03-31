@@ -148,7 +148,6 @@ ResourceFormat MakeResourceFormat(VkFormat fmt)
 {
   ResourceFormat ret;
 
-  ret.rawType = (uint32_t)fmt;
   ret.special = false;
   ret.specialFormat = SpecialFormat::Unknown;
   ret.strname = ToStr::Get(fmt).substr(10);    // 3 == strlen("VK_FORMAT_")

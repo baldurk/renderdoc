@@ -975,7 +975,6 @@ namespace renderdocui.Windows
                     f[i].format.compCount = sig.compCount;
                     f[i].format.compType = sig.compType;
                     f[i].format.special = false;
-                    f[i].format.rawType = 0;
                     f[i].perinstance = false;
                     f[i].instancerate = 1;
                     f[i].rowmajor = false;

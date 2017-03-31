@@ -1996,7 +1996,6 @@ void BufferViewer::configureMeshColumns()
       f.format.compCount = sig.compCount;
       f.format.compType = sig.compType;
       f.format.special = false;
-      f.format.rawType = 0;
       f.perinstance = false;
       f.instancerate = 1;
       f.rowmajor = false;
@@ -2063,7 +2062,6 @@ void BufferViewer::configureMeshColumns()
         f.format.compCount = sig.compCount;
         f.format.compType = sig.compType;
         f.format.special = false;
-        f.format.rawType = 0;
         f.perinstance = false;
         f.instancerate = 1;
         f.rowmajor = false;

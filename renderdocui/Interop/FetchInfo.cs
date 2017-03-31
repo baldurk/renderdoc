@@ -112,7 +112,6 @@ namespace renderdoc
 
         public ResourceFormat()
         {
-            rawType = 0;
             special = false;
             specialFormat = SpecialFormat.Unknown;
 
@@ -127,7 +126,6 @@ namespace renderdoc
 
         public ResourceFormat(FormatComponentType type, UInt32 count, UInt32 byteWidth)
         {
-            rawType = 0;
             special = false;
             specialFormat = SpecialFormat.Unknown;
 
@@ -139,8 +137,6 @@ namespace renderdoc
 
             strname = "";
         }
-
-        public UInt32 rawType;
 
         // indicates it's not a type represented with the members below
         // usually this means non-uniform across components or block compressed
