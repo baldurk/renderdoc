@@ -587,7 +587,7 @@ void AppendOutputStatistics(QString &statisticsLog, const FetchFrameInfo &frameI
 void AppendDetailedInformation(CaptureContext &ctx, QString &statisticsLog,
                                const FetchFrameInfo &frameInfo)
 {
-  if(frameInfo.stats.recorded == 0)
+  if(!frameInfo.stats.recorded)
     return;
 
   AppendDrawStatistics(statisticsLog, frameInfo);
@@ -626,7 +626,7 @@ void CountContributingEvents(const FetchDrawcall &draw, uint32_t &drawCount,
 
 QString AppendAPICallSummary(const FetchFrameInfo &frameInfo, uint numAPICalls)
 {
-  if(frameInfo.stats.recorded == 0)
+  if(!frameInfo.stats.recorded)
     return "";
 
   uint numConstantSets = 0;

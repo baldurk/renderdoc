@@ -267,7 +267,7 @@ struct FetchFrameOutputStats
 
 struct FetchFrameStatistics
 {
-  uint32_t recorded;
+  bool32 recorded;
   FetchFrameConstantBindStats constants[ENUM_ARRAY_SIZE(ShaderStage)];
   FetchFrameSamplerBindStats samplers[ENUM_ARRAY_SIZE(ShaderStage)];
   FetchFrameResourceBindStats resources[ENUM_ARRAY_SIZE(ShaderStage)];

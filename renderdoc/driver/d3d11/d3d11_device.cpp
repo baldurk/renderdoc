@@ -1106,7 +1106,7 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
     RDCEraseEl(stats);
 
     // #mivance GL/Vulkan don't set this so don't get stats in window
-    stats.recorded = 1;
+    stats.recorded = true;
 
     for(uint32_t stage = uint32_t(ShaderStage::First); stage < uint32_t(ShaderStage::Count); stage++)
     {
