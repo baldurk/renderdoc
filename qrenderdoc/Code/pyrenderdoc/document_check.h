@@ -181,6 +181,6 @@ inline void check_docstrings(swig_type_info **swig_types, size_t numTypes)
   }
 
   if(errors_found)
-    RENDERDOC_LogMessage(LogType::Critical, "QTRD", __FILE__, __LINE__,
+    RENDERDOC_LogMessage(LogType::Fatal, "QTRD", __FILE__, __LINE__,
                          "Found errors in python binding docstrings. Please fix!");
 }
