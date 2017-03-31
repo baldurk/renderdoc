@@ -237,7 +237,7 @@ struct ShaderResource
 {
   bool32 IsSampler;
   bool32 IsTexture;
-  bool32 IsSRV;
+  bool32 IsReadOnly;
 
   TextureDim resType;
 

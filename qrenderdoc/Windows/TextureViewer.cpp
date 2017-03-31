@@ -2005,7 +2005,7 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
       for(int b = 0; b < resourceDetails.count; b++)
       {
         const ShaderResource &bind = resourceDetails[b];
-        if(bind.bindPoint == idx && bind.IsSRV)
+        if(bind.bindPoint == idx && bind.IsReadOnly)
         {
           bindName = bind.name;
           otherBind = true;
@@ -2014,7 +2014,7 @@ void TextureViewer::InitStageResourcePreviews(ShaderStage stage,
 
         if(bind.bindPoint == idx)
         {
-          if(bind.IsSampler && !bind.IsSRV)
+          if(bind.IsSampler && !bind.IsReadOnly)
             samplerBind = true;
           else
             otherBind = true;

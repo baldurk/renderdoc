@@ -594,7 +594,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
     {
       for(const ShaderResource &bind : shaderDetails->ReadOnlyResources)
       {
-        if(bind.IsSRV && mapping.ReadOnlyResources[bind.bindPoint].bind == i)
+        if(bind.IsReadOnly && mapping.ReadOnlyResources[bind.bindPoint].bind == i)
         {
           shaderInput = &bind;
           map = &mapping.ReadOnlyResources[bind.bindPoint];

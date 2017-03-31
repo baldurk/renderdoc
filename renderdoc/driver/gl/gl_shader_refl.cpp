@@ -927,11 +927,9 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
     GLint values[numProps];
     gl.glGetProgramResourceiv(sepProg, eGL_UNIFORM, u, numProps, resProps, numProps, NULL, values);
 
-    bool IsReadWrite = false;
-
     ShaderResource res;
     res.IsSampler = false;    // no separate sampler objects in GL
-    res.IsSRV = true;
+    res.IsReadOnly = true;
     res.IsTexture = true;
     res.variableType.descriptor.rows = 1;
     res.variableType.descriptor.cols = 4;
@@ -1182,88 +1180,77 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       res.resType = TextureDim::Buffer;
       res.variableType.descriptor.name = "imageBuffer";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_1D)
     {
       res.resType = TextureDim::Texture1D;
       res.variableType.descriptor.name = "image1D";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_1D_ARRAY)
     {
       res.resType = TextureDim::Texture1DArray;
       res.variableType.descriptor.name = "image1DArray";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D)
     {
       res.resType = TextureDim::Texture2D;
       res.variableType.descriptor.name = "image2D";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D_ARRAY)
     {
       res.resType = TextureDim::Texture2DArray;
       res.variableType.descriptor.name = "image2DArray";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D_RECT)
     {
       res.resType = TextureDim::TextureRect;
       res.variableType.descriptor.name = "image2DRect";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_3D)
     {
       res.resType = TextureDim::Texture3D;
       res.variableType.descriptor.name = "image3D";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_CUBE)
     {
       res.resType = TextureDim::TextureCube;
       res.variableType.descriptor.name = "imageCube";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_CUBE_MAP_ARRAY)
     {
       res.resType = TextureDim::TextureCubeArray;
       res.variableType.descriptor.name = "imageCubeArray";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D_MULTISAMPLE)
     {
       res.resType = TextureDim::Texture2DMS;
       res.variableType.descriptor.name = "image2DMS";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_IMAGE_2D_MULTISAMPLE_ARRAY)
     {
       res.resType = TextureDim::Texture2DMSArray;
       res.variableType.descriptor.name = "image2DMSArray";
       res.variableType.descriptor.type = VarType::Float;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     // int images
     else if(values[0] == eGL_INT_IMAGE_BUFFER)
@@ -1271,88 +1258,77 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       res.resType = TextureDim::Buffer;
       res.variableType.descriptor.name = "iimageBuffer";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_1D)
     {
       res.resType = TextureDim::Texture1D;
       res.variableType.descriptor.name = "iimage1D";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_1D_ARRAY)
     {
       res.resType = TextureDim::Texture1DArray;
       res.variableType.descriptor.name = "iimage1DArray";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D)
     {
       res.resType = TextureDim::Texture2D;
       res.variableType.descriptor.name = "iimage2D";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_ARRAY)
     {
       res.resType = TextureDim::Texture2DArray;
       res.variableType.descriptor.name = "iimage2DArray";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_RECT)
     {
       res.resType = TextureDim::TextureRect;
       res.variableType.descriptor.name = "iimage2DRect";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_3D)
     {
       res.resType = TextureDim::Texture3D;
       res.variableType.descriptor.name = "iimage3D";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_CUBE)
     {
       res.resType = TextureDim::TextureCube;
       res.variableType.descriptor.name = "iimageCube";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_CUBE_MAP_ARRAY)
     {
       res.resType = TextureDim::TextureCubeArray;
       res.variableType.descriptor.name = "iimageCubeArray";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_MULTISAMPLE)
     {
       res.resType = TextureDim::Texture2DMS;
       res.variableType.descriptor.name = "iimage2DMS";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_INT_IMAGE_2D_MULTISAMPLE_ARRAY)
     {
       res.resType = TextureDim::Texture2DMSArray;
       res.variableType.descriptor.name = "iimage2DMSArray";
       res.variableType.descriptor.type = VarType::Int;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     // unsigned int images
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_BUFFER)
@@ -1360,88 +1336,77 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       res.resType = TextureDim::Buffer;
       res.variableType.descriptor.name = "uimageBuffer";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_1D)
     {
       res.resType = TextureDim::Texture1D;
       res.variableType.descriptor.name = "uimage1D";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_1D_ARRAY)
     {
       res.resType = TextureDim::Texture1DArray;
       res.variableType.descriptor.name = "uimage1DArray";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D)
     {
       res.resType = TextureDim::Texture2D;
       res.variableType.descriptor.name = "uimage2D";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_ARRAY)
     {
       res.resType = TextureDim::Texture2DArray;
       res.variableType.descriptor.name = "uimage2DArray";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_RECT)
     {
       res.resType = TextureDim::TextureRect;
       res.variableType.descriptor.name = "uimage2DRect";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_3D)
     {
       res.resType = TextureDim::Texture3D;
       res.variableType.descriptor.name = "uimage3D";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_CUBE)
     {
       res.resType = TextureDim::TextureCube;
       res.variableType.descriptor.name = "uimageCube";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_CUBE_MAP_ARRAY)
     {
       res.resType = TextureDim::TextureCubeArray;
       res.variableType.descriptor.name = "uimageCubeArray";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE)
     {
       res.resType = TextureDim::Texture2DMS;
       res.variableType.descriptor.name = "uimage2DMS";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     else if(values[0] == eGL_UNSIGNED_INT_IMAGE_2D_MULTISAMPLE_ARRAY)
     {
       res.resType = TextureDim::Texture2DMSArray;
       res.variableType.descriptor.name = "uimage2DMSArray";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsSRV = false;
-      IsReadWrite = true;
+      res.IsReadOnly = false;
     }
     // atomic counter
     else if(values[0] == eGL_UNSIGNED_INT_ATOMIC_COUNTER)
@@ -1449,10 +1414,9 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
       res.resType = TextureDim::Buffer;
       res.variableType.descriptor.name = "atomic_uint";
       res.variableType.descriptor.type = VarType::UInt;
-      res.IsSRV = false;
+      res.IsReadOnly = false;
       res.IsTexture = false;
       res.variableType.descriptor.cols = 1;
-      IsReadWrite = true;
     }
     else
     {
@@ -1468,7 +1432,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
 
     res.name = name;
 
-    vector<ShaderResource> &reslist = (IsReadWrite ? rwresources : roresources);
+    vector<ShaderResource> &reslist = (res.IsReadOnly ? roresources : rwresources);
 
     res.bindPoint = (int32_t)reslist.size();
     reslist.push_back(res);
@@ -1508,7 +1472,7 @@ void MakeShaderReflection(const GLHookSet &gl, GLenum shadType, GLuint sepProg,
 
       ShaderResource res;
       res.IsSampler = false;
-      res.IsSRV = false;
+      res.IsReadOnly = false;
       res.IsTexture = false;
       res.resType = TextureDim::Buffer;
       res.variableType.descriptor.rows = 0;

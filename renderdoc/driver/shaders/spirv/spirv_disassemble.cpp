@@ -4075,7 +4075,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
         if(ssbo)
         {
           res.IsSampler = false;
-          res.IsSRV = false;
+          res.IsReadOnly = false;
           res.IsTexture = false;
           res.name = cblock.name;
           res.resType = TextureDim::Buffer;
@@ -4148,14 +4148,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
         res.IsSampler =
             type->type == SPVTypeData::eSampledImage || type->type == SPVTypeData::eSampler;
         res.IsTexture = res.resType != TextureDim::Buffer && type->type != SPVTypeData::eSampler;
-
-        if(type->type == SPVTypeData::eSampler)
-        {
-          res.resType = TextureDim::Unknown;
-          res.IsSRV = false;
-        }
-
-        bool isrw = false;
+        res.IsReadOnly = true;
 
         SPVTypeData *sampledType = type->baseType;
         if(type->type == SPVTypeData::eSampler)
@@ -4165,7 +4158,6 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
         else if(type->texdim == spv::DimSubpassData)
         {
           res.resType = TextureDim::Texture2D;
-          res.IsSRV = true;
 
           if(sampledType->type == SPVTypeData::eFloat)
             res.variableType.descriptor.type = VarType::Float;
@@ -4178,6 +4170,8 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
         }
         else
         {
+          bool isrw = false;
+
           if(sampledType->type == SPVTypeData::eImage)
           {
             isrw = (sampledType->sampled == 2);
@@ -4188,7 +4182,7 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
             isrw = (type->sampled == 2);
           }
 
-          res.IsSRV = !isrw;
+          res.IsReadOnly = !isrw;
 
           if(sampledType->type == SPVTypeData::eFloat)
             res.variableType.descriptor.type = VarType::Float;
@@ -4243,10 +4237,10 @@ void SPVModule::MakeReflection(ShaderStage stage, const string &entryPoint,
         // are used
         RDCASSERT(!bindmap.used || bindmap.bind >= 0);
 
-        if(isrw)
-          rwresources.push_back(shaderrespair(bindmap, res));
-        else
+        if(res.IsReadOnly)
           roresources.push_back(shaderrespair(bindmap, res));
+        else
+          rwresources.push_back(shaderrespair(bindmap, res));
       }
     }
     else if(inst->var->storage == spv::StorageClassPrivate)

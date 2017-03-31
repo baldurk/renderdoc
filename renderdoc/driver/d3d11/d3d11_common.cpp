@@ -207,17 +207,16 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
 
     if(r.type != DXBC::ShaderInputBind::TYPE_CBUFFER)
     {
-      bool IsReadWrite = (r.type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED ||
-                          r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED ||
-                          r.type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS ||
-                          r.type == DXBC::ShaderInputBind::TYPE_UAV_APPEND_STRUCTURED ||
-                          r.type == DXBC::ShaderInputBind::TYPE_UAV_CONSUME_STRUCTURED ||
-                          r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER);
+      bool IsReadOnly = (r.type == DXBC::ShaderInputBind::TYPE_TBUFFER ||
+                         r.type == DXBC::ShaderInputBind::TYPE_TEXTURE ||
+                         r.type == DXBC::ShaderInputBind::TYPE_SAMPLER ||
+                         r.type == DXBC::ShaderInputBind::TYPE_STRUCTURED ||
+                         r.type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS);
 
-      if(IsReadWrite)
-        numRWResources++;
-      else
+      if(IsReadOnly)
         numROResources++;
+      else
+        numRWResources++;
     }
   }
 
@@ -241,16 +240,11 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
                      r.dimension != DXBC::ShaderInputBind::DIM_UNKNOWN &&
                      r.dimension != DXBC::ShaderInputBind::DIM_BUFFER &&
                      r.dimension != DXBC::ShaderInputBind::DIM_BUFFEREX);
-    res.IsSRV = (r.type == DXBC::ShaderInputBind::TYPE_TBUFFER ||
-                 r.type == DXBC::ShaderInputBind::TYPE_TEXTURE ||
-                 r.type == DXBC::ShaderInputBind::TYPE_STRUCTURED ||
-                 r.type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS);
-    bool IsReadWrite = (r.type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED ||
-                        r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED ||
-                        r.type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS ||
-                        r.type == DXBC::ShaderInputBind::TYPE_UAV_APPEND_STRUCTURED ||
-                        r.type == DXBC::ShaderInputBind::TYPE_UAV_CONSUME_STRUCTURED ||
-                        r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER);
+    res.IsReadOnly = (r.type == DXBC::ShaderInputBind::TYPE_TBUFFER ||
+                      r.type == DXBC::ShaderInputBind::TYPE_TEXTURE ||
+                      r.type == DXBC::ShaderInputBind::TYPE_SAMPLER ||
+                      r.type == DXBC::ShaderInputBind::TYPE_STRUCTURED ||
+                      r.type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS);
 
     switch(r.dimension)
     {
@@ -318,10 +312,10 @@ ShaderReflection *MakeShaderReflection(DXBC::DXBCFile *dxbc)
       }
     }
 
-    if(IsReadWrite)
-      ret->ReadWriteResources[rwidx++] = res;
-    else
+    if(res.IsReadOnly)
       ret->ReadOnlyResources[roidx++] = res;
+    else
+      ret->ReadWriteResources[rwidx++] = res;
   }
 
   uint32_t numInterfaces = 0;

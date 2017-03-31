@@ -740,7 +740,7 @@ QTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, ui
 
   QChar regChar('u');
 
-  if(res.IsSRV)
+  if(res.IsReadOnly)
     regChar = QChar('t');
 
   // %1 = reg prefix (t or u for D3D11)

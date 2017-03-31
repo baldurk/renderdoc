@@ -257,16 +257,11 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
                      r.dimension != DXBC::ShaderInputBind::DIM_UNKNOWN &&
                      r.dimension != DXBC::ShaderInputBind::DIM_BUFFER &&
                      r.dimension != DXBC::ShaderInputBind::DIM_BUFFEREX);
-    res.IsSRV = (r.type == DXBC::ShaderInputBind::TYPE_TBUFFER ||
-                 r.type == DXBC::ShaderInputBind::TYPE_TEXTURE ||
-                 r.type == DXBC::ShaderInputBind::TYPE_STRUCTURED ||
-                 r.type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS);
-    bool IsReadWrite = (r.type == DXBC::ShaderInputBind::TYPE_UAV_RWTYPED ||
-                        r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED ||
-                        r.type == DXBC::ShaderInputBind::TYPE_UAV_RWBYTEADDRESS ||
-                        r.type == DXBC::ShaderInputBind::TYPE_UAV_APPEND_STRUCTURED ||
-                        r.type == DXBC::ShaderInputBind::TYPE_UAV_CONSUME_STRUCTURED ||
-                        r.type == DXBC::ShaderInputBind::TYPE_UAV_RWSTRUCTURED_WITH_COUNTER);
+    res.IsReadOnly = (r.type == DXBC::ShaderInputBind::TYPE_TBUFFER ||
+                      r.type == DXBC::ShaderInputBind::TYPE_SAMPLER ||
+                      r.type == DXBC::ShaderInputBind::TYPE_TEXTURE ||
+                      r.type == DXBC::ShaderInputBind::TYPE_STRUCTURED ||
+                      r.type == DXBC::ShaderInputBind::TYPE_BYTEADDRESS);
 
     switch(r.dimension)
     {
@@ -334,7 +329,7 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
       }
     }
 
-    res.bindPoint = IsReadWrite ? rwidx : roidx;
+    res.bindPoint = res.IsReadOnly ? roidx : rwidx;
 
     BindpointMap map;
     map.arraySize = r.bindCount == 0 ? ~0U : r.bindCount;
@@ -342,15 +337,15 @@ void MakeShaderReflection(DXBC::DXBCFile *dxbc, ShaderReflection *refl,
     map.bind = r.reg;
     map.used = true;
 
-    if(IsReadWrite)
-    {
-      mapping->ReadWriteResources[rwidx] = map;
-      refl->ReadWriteResources[rwidx++] = res;
-    }
-    else
+    if(res.IsReadOnly)
     {
       mapping->ReadOnlyResources[roidx] = map;
       refl->ReadOnlyResources[roidx++] = res;
+    }
+    else
+    {
+      mapping->ReadWriteResources[rwidx] = map;
+      refl->ReadWriteResources[rwidx++] = res;
     }
   }
 
