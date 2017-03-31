@@ -22,9 +22,9 @@
  * THE SOFTWARE.
  ******************************************************************************/
 
-#include "api/replay/capture_options.h"
 #include <float.h>
 #include "api/app/renderdoc_app.h"
+#include "api/replay/renderdoc_replay.h"
 #include "common/common.h"
 #include "core/core.h"
 

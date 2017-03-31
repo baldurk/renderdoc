@@ -32,7 +32,6 @@
 #include <sys/wait.h>
 #include <unistd.h>
 #include "api/app/renderdoc_app.h"
-#include "api/replay/capture_options.h"
 #include "os/os_specific.h"
 #include "serialise/string_utils.h"
 
