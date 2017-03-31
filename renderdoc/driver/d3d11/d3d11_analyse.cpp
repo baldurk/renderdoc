@@ -5878,7 +5878,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
       mod.eventID = events[i].eventID;
 
-      mod.uavWrite = uavWrite;
+      mod.directShaderWrite = uavWrite;
       mod.unboundPS = false;
 
       mod.preMod.col.value_u[0] = (uint32_t)i;

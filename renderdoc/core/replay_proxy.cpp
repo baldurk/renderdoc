@@ -1621,7 +1621,7 @@ void Serialiser::Serialise(const char *name, PixelModification &el)
 {
   Serialise("", el.eventID);
 
-  Serialise("", el.uavWrite);
+  Serialise("", el.directShaderWrite);
   Serialise("", el.unboundPS);
 
   Serialise("", el.fragIndex);

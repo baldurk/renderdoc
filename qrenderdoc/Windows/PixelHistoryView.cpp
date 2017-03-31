@@ -231,7 +231,7 @@ public:
             bool passed = true;
             bool uavnowrite = false;
 
-            if(mods.front().uavWrite)
+            if(mods.front().directShaderWrite)
             {
               ret += tr("EID %1\n%2\nBound as UAV or copy - potential modification")
                          .arg(mods.front().eventID)
@@ -265,7 +265,7 @@ public:
           {
             const PixelModification &mod = getMod(index);
 
-            if(mod.uavWrite)
+            if(mod.directShaderWrite)
             {
               QString ret = tr("Potential UAV/Copy write");
 
@@ -303,7 +303,7 @@ public:
             const PixelModification &mod = getMod(index);
             if(mod.unboundPS)
               return tr("No Pixel\nShader\nBound");
-            if(mod.uavWrite)
+            if(mod.directShaderWrite)
               return tr("Tex Before\n\n") + modString(mod.preMod);
             return tr("Shader Out\n\n") + modString(mod.shaderOut);
           }
@@ -350,7 +350,7 @@ public:
           for(const PixelModification &m : mods)
             passed |= m.passed();
 
-          if(mods[0].uavWrite &&
+          if(mods[0].directShaderWrite &&
              memcmp(mods[0].preMod.col.value_u, mods[0].postMod.col.value_u, sizeof(uint32_t) * 4) ==
                  0)
             return QBrush(QColor::fromRgb(235, 235, 235));
@@ -378,7 +378,7 @@ public:
           const PixelModification &mod = getMod(index);
 
           tag.eventID = mod.eventID;
-          if(!mod.uavWrite)
+          if(!mod.directShaderWrite)
             tag.primitive = mod.primitiveID;
         }
 

@@ -486,7 +486,7 @@ struct PixelModification
 {
   uint32_t eventID;
 
-  bool32 uavWrite;
+  bool32 directShaderWrite;
   bool32 unboundPS;
 
   uint32_t fragIndex;
