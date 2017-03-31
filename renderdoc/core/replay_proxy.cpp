@@ -1557,7 +1557,6 @@ template <>
 void Serialiser::Serialise(const char *name, FetchFrameInfo &el)
 {
   Serialise("", el.frameNumber);
-  Serialise("", el.firstEvent);
   Serialise("", el.fileOffset);
   Serialise("", el.uncompressedFileSize);
   Serialise("", el.compressedFileSize);

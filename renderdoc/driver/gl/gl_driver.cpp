@@ -2863,7 +2863,6 @@ void WrappedOpenGL::Serialise_CaptureScope(uint64_t offset)
   else
   {
     m_FrameRecord.frameInfo.fileOffset = offset;
-    m_FrameRecord.frameInfo.firstEvent = 1;    // m_pImmediateContext->GetEventID();
     m_FrameRecord.frameInfo.frameNumber = FrameNumber;
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
 
@@ -4265,7 +4264,7 @@ void WrappedOpenGL::ReplayLog(uint32_t startEventID, uint32_t endEventID, Replay
 
   if(startEventID == 0 && (replayType == eReplay_WithoutDraw || replayType == eReplay_Full))
   {
-    startEventID = m_FrameRecord.frameInfo.firstEvent;
+    startEventID = 1;
     partial = false;
   }
 

@@ -290,7 +290,6 @@ struct FetchFrameInfo
 {
   FetchFrameInfo()
       : frameNumber(0),
-        firstEvent(0),
         fileOffset(0),
         uncompressedFileSize(0),
         compressedFileSize(0),
@@ -301,7 +300,6 @@ struct FetchFrameInfo
   }
 
   uint32_t frameNumber;
-  uint32_t firstEvent;
   uint64_t fileOffset;
   uint64_t uncompressedFileSize;
   uint64_t compressedFileSize;

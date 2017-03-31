@@ -487,7 +487,6 @@ namespace renderdoc
     public class FetchFrameInfo
     {
         public UInt32 frameNumber;
-        public UInt32 firstEvent;
         public UInt64 fileOffset;
         public UInt64 uncompressedFileSize;
         public UInt64 compressedFileSize;

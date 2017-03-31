@@ -44,7 +44,6 @@ public:
     m_Props.degraded = false;
 
     m_FrameRecord.frameInfo.fileOffset = 0;
-    m_FrameRecord.frameInfo.firstEvent = 1;
     m_FrameRecord.frameInfo.frameNumber = 1;
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
 

@@ -1100,7 +1100,6 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
   else
   {
     m_FrameRecord.frameInfo.fileOffset = offset;
-    m_FrameRecord.frameInfo.firstEvent = m_pImmediateContext->GetEventID();
     m_FrameRecord.frameInfo.frameNumber = FrameNumber;
 
     FetchFrameStatistics &stats = m_FrameRecord.frameInfo.stats;
@@ -2450,7 +2449,7 @@ void WrappedID3D11Device::ReplayLog(uint32_t startEventID, uint32_t endEventID,
 
   if(startEventID == 0 && (replayType == eReplay_WithoutDraw || replayType == eReplay_Full))
   {
-    startEventID = m_FrameRecord.frameInfo.firstEvent;
+    startEventID = 1;
     partial = false;
   }
 
