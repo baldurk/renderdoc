@@ -732,8 +732,8 @@ QTreeWidgetItem *ShaderViewer::makeResourceRegister(const BindpointMap &bind, ui
 {
   QString name = QString(" (%1)").arg(ToQStr(res.name));
 
-  const FetchTexture *tex = m_Ctx.GetTexture(bound.Id);
-  const FetchBuffer *buf = m_Ctx.GetBuffer(bound.Id);
+  const TextureDescription *tex = m_Ctx.GetTexture(bound.Id);
+  const BufferDescription *buf = m_Ctx.GetBuffer(bound.Id);
 
   if(res.IsSampler)
     return NULL;

@@ -227,7 +227,7 @@ bool ReplayRenderer::GetVulkanPipelineState(VKPipe::State *state)
   return false;
 }
 
-bool ReplayRenderer::GetFrameInfo(FetchFrameInfo *info)
+bool ReplayRenderer::GetFrameInfo(FrameDescription *info)
 {
   if(info == NULL)
     return false;
@@ -237,7 +237,7 @@ bool ReplayRenderer::GetFrameInfo(FetchFrameInfo *info)
   return true;
 }
 
-FetchDrawcall *ReplayRenderer::GetDrawcallByEID(uint32_t eventID)
+DrawcallDescription *ReplayRenderer::GetDrawcallByEID(uint32_t eventID)
 {
   if(eventID >= m_Drawcalls.size())
     return NULL;
@@ -245,12 +245,12 @@ FetchDrawcall *ReplayRenderer::GetDrawcallByEID(uint32_t eventID)
   return m_Drawcalls[eventID];
 }
 
-bool ReplayRenderer::GetDrawcalls(rdctype::array<FetchDrawcall> *draws)
+bool ReplayRenderer::GetDrawcalls(rdctype::array<DrawcallDescription> *draws)
 {
   if(draws == NULL)
     return false;
 
-  *draws = m_FrameRecord.m_DrawCallList;
+  *draws = m_FrameRecord.drawcallList;
   return true;
 }
 
@@ -290,7 +290,7 @@ bool ReplayRenderer::DescribeCounter(GPUCounter counterID, CounterDescription *d
   return true;
 }
 
-bool ReplayRenderer::GetBuffers(rdctype::array<FetchBuffer> *out)
+bool ReplayRenderer::GetBuffers(rdctype::array<BufferDescription> *out)
 {
   if(m_Buffers.empty())
   {
@@ -311,7 +311,7 @@ bool ReplayRenderer::GetBuffers(rdctype::array<FetchBuffer> *out)
   return false;
 }
 
-bool ReplayRenderer::GetTextures(rdctype::array<FetchTexture> *out)
+bool ReplayRenderer::GetTextures(rdctype::array<TextureDescription> *out)
 {
   if(m_Textures.empty())
   {
@@ -384,7 +384,7 @@ bool ReplayRenderer::GetPostVSData(uint32_t instID, MeshDataStage stage, MeshFor
   if(data == NULL)
     return false;
 
-  FetchDrawcall *draw = GetDrawcallByEID(m_EventID);
+  DrawcallDescription *draw = GetDrawcallByEID(m_EventID);
 
   MeshFormat ret;
   RDCEraseEl(ret);
@@ -455,7 +455,7 @@ bool ReplayRenderer::SaveTexture(const TextureSave &saveData, const char *path)
 {
   TextureSave sd = saveData;    // mutable copy
   ResourceId liveid = m_pDevice->GetLiveID(sd.id);
-  FetchTexture td = m_pDevice->GetTexture(liveid);
+  TextureDescription td = m_pDevice->GetTexture(liveid);
 
   bool success = false;
 
@@ -1585,11 +1585,9 @@ ReplayStatus ReplayRenderer::PostCreateInit(IReplayDriver *device)
 
   FetchPipelineState();
 
-  FetchFrameRecord fr = m_pDevice->GetFrameRecord();
+  m_FrameRecord = m_pDevice->GetFrameRecord();
 
-  m_FrameRecord.frameInfo = fr.frameInfo;
-  m_FrameRecord.m_DrawCallList = fr.drawcallList;
-  SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.m_DrawCallList, NULL, NULL);
+  SetupDrawcallPointers(&m_Drawcalls, m_FrameRecord.drawcallList, NULL, NULL);
 
   return ReplayStatus::Succeeded;
 }
@@ -1781,12 +1779,12 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_FreeTargetResource(I
 }
 
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_GetFrameInfo(IReplayRenderer *rend,
-                                                                         FetchFrameInfo *frame)
+                                                                         FrameDescription *frame)
 {
   return rend->GetFrameInfo(frame);
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetDrawcalls(IReplayRenderer *rend, rdctype::array<FetchDrawcall> *draws)
+ReplayRenderer_GetDrawcalls(IReplayRenderer *rend, rdctype::array<DrawcallDescription> *draws)
 {
   return rend->GetDrawcalls(draws);
 }
@@ -1808,12 +1806,12 @@ extern "C" RENDERDOC_API bool32 RENDERDOC_CC ReplayRenderer_DescribeCounter(IRep
   return rend->DescribeCounter(counterID, desc);
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetTextures(IReplayRenderer *rend, rdctype::array<FetchTexture> *texs)
+ReplayRenderer_GetTextures(IReplayRenderer *rend, rdctype::array<TextureDescription> *texs)
 {
   return rend->GetTextures(texs);
 }
 extern "C" RENDERDOC_API bool32 RENDERDOC_CC
-ReplayRenderer_GetBuffers(IReplayRenderer *rend, rdctype::array<FetchBuffer> *bufs)
+ReplayRenderer_GetBuffers(IReplayRenderer *rend, rdctype::array<BufferDescription> *bufs)
 {
   return rend->GetBuffers(bufs);
 }

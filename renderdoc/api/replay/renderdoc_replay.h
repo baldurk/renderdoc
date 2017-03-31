@@ -226,14 +226,14 @@ struct IReplayRenderer
   virtual bool RemoveReplacement(ResourceId id) = 0;
   virtual bool FreeTargetResource(ResourceId id) = 0;
 
-  virtual bool GetFrameInfo(FetchFrameInfo *frame) = 0;
-  virtual bool GetDrawcalls(rdctype::array<FetchDrawcall> *draws) = 0;
+  virtual bool GetFrameInfo(FrameDescription *frame) = 0;
+  virtual bool GetDrawcalls(rdctype::array<DrawcallDescription> *draws) = 0;
   virtual bool FetchCounters(GPUCounter *counters, uint32_t numCounters,
                              rdctype::array<CounterResult> *results) = 0;
   virtual bool EnumerateCounters(rdctype::array<GPUCounter> *counters) = 0;
   virtual bool DescribeCounter(GPUCounter counterID, CounterDescription *desc) = 0;
-  virtual bool GetTextures(rdctype::array<FetchTexture> *texs) = 0;
-  virtual bool GetBuffers(rdctype::array<FetchBuffer> *bufs) = 0;
+  virtual bool GetTextures(rdctype::array<TextureDescription> *texs) = 0;
+  virtual bool GetBuffers(rdctype::array<BufferDescription> *bufs) = 0;
   virtual bool GetResolve(uint64_t *callstack, uint32_t callstackLen,
                           rdctype::array<rdctype::str> *trace) = 0;
   virtual bool GetDebugMessages(rdctype::array<DebugMessage> *msgs) = 0;

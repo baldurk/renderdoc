@@ -32,15 +32,15 @@
 struct D3D12DrawcallTreeNode
 {
   D3D12DrawcallTreeNode() {}
-  explicit D3D12DrawcallTreeNode(const FetchDrawcall &d) : draw(d) {}
-  FetchDrawcall draw;
+  explicit D3D12DrawcallTreeNode(const DrawcallDescription &d) : draw(d) {}
+  DrawcallDescription draw;
   vector<D3D12DrawcallTreeNode> children;
 
   vector<pair<ResourceId, EventUsage> > resourceUsage;
 
   vector<ResourceId> executedCmds;
 
-  D3D12DrawcallTreeNode &operator=(const FetchDrawcall &d)
+  D3D12DrawcallTreeNode &operator=(const DrawcallDescription &d)
   {
     *this = D3D12DrawcallTreeNode(d);
     return *this;
@@ -66,9 +66,9 @@ struct D3D12DrawcallTreeNode
     }
   }
 
-  vector<FetchDrawcall> Bake()
+  vector<DrawcallDescription> Bake()
   {
-    vector<FetchDrawcall> ret;
+    vector<DrawcallDescription> ret;
     if(children.empty())
       return ret;
 
@@ -177,7 +177,7 @@ struct BakedCmdListInfo
   vector<ID3D12GraphicsCommandList *> crackedLists;
   vector<ExecuteData> executeEvents;
 
-  vector<FetchAPIEvent> curEvents;
+  vector<APIEvent> curEvents;
   vector<DebugMessage> debugMessages;
   std::list<D3D12DrawcallTreeNode *> drawStack;
 
@@ -315,7 +315,7 @@ struct D3D12CommandData
 
   bool m_AddedDrawcall;
 
-  vector<FetchAPIEvent> m_RootEvents, m_Events;
+  vector<APIEvent> m_RootEvents, m_Events;
 
   uint64_t m_CurChunkOffset;
 
@@ -348,7 +348,7 @@ struct D3D12CommandData
   ID3D12GraphicsCommandList *RerecordCmdList(ResourceId cmdid,
                                              PartialReplayIndex partialType = ePartialNum);
 
-  void AddDrawcall(const FetchDrawcall &d, bool hasEvents, bool addUsage = true);
+  void AddDrawcall(const DrawcallDescription &d, bool hasEvents, bool addUsage = true);
   void AddEvent(string description);
   void AddUsage(D3D12DrawcallTreeNode &drawNode);
   void AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, uint32_t EID, ResourceUsage usage);

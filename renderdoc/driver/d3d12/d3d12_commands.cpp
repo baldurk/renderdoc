@@ -253,7 +253,7 @@ void WrappedID3D12CommandQueue::ClearAfterCapture()
   m_QueueRecord->DeleteChunks();
 }
 
-FetchAPIEvent WrappedID3D12CommandQueue::GetEvent(uint32_t eventID)
+APIEvent WrappedID3D12CommandQueue::GetEvent(uint32_t eventID)
 {
   for(size_t i = m_Cmd.m_Events.size() - 1; i > 0; i--)
   {
@@ -414,7 +414,7 @@ void WrappedID3D12CommandQueue::ProcessChunk(uint64_t offset, D3D12ChunkType chu
       {
         m_Cmd.AddEvent("Present()");
 
-        FetchDrawcall draw;
+        DrawcallDescription draw;
         draw.name = "Present()";
         draw.flags |= DrawFlags::Present;
 
@@ -478,7 +478,7 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
 
   if(m_State == EXECUTING)
   {
-    FetchAPIEvent ev = GetEvent(startEventID);
+    APIEvent ev = GetEvent(startEventID);
     m_Cmd.m_RootEventID = ev.eventID;
 
     // if not partial, we need to be sure to replay
@@ -560,10 +560,7 @@ void WrappedID3D12CommandQueue::ReplayLog(LogState readType, uint32_t startEvent
   {
     struct SortEID
     {
-      bool operator()(const FetchAPIEvent &a, const FetchAPIEvent &b)
-      {
-        return a.eventID < b.eventID;
-      }
+      bool operator()(const APIEvent &a, const APIEvent &b) { return a.eventID < b.eventID; }
     };
 
     std::sort(m_Cmd.m_Events.begin(), m_Cmd.m_Events.end(), SortEID());
@@ -866,7 +863,7 @@ uint32_t D3D12CommandData::HandlePreCallback(ID3D12GraphicsCommandList *list, bo
   RDCASSERT(eventID != 0);
 
   // handle all aliases of this drawcall as long as it's not a multidraw
-  const FetchDrawcall *draw = m_pDevice->GetDrawcall(eventID);
+  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventID);
 
   if(draw == NULL || !(draw->flags & DrawFlags::MultiDraw))
   {
@@ -948,7 +945,7 @@ ID3D12GraphicsCommandList *D3D12CommandData::RerecordCmdList(ResourceId cmdid,
 
 void D3D12CommandData::AddEvent(string description)
 {
-  FetchAPIEvent apievent;
+  APIEvent apievent;
 
   apievent.fileOffset = m_CurChunkOffset;
   apievent.eventID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
@@ -997,7 +994,7 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode, ResourceId id, 
 
 void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
 {
-  FetchDrawcall &d = drawNode.draw;
+  DrawcallDescription &d = drawNode.draw;
 
   const D3D12RenderState &state = m_BakedCmdListInfo[m_LastCmdListID].state;
   uint32_t e = d.eventID;
@@ -1154,11 +1151,11 @@ void D3D12CommandData::AddUsage(D3D12DrawcallTreeNode &drawNode)
   }
 }
 
-void D3D12CommandData::AddDrawcall(const FetchDrawcall &d, bool hasEvents, bool addUsage)
+void D3D12CommandData::AddDrawcall(const DrawcallDescription &d, bool hasEvents, bool addUsage)
 {
   m_AddedDrawcall = true;
 
-  FetchDrawcall draw = d;
+  DrawcallDescription draw = d;
   draw.eventID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
                                                  : m_RootEventID;
   draw.drawcallID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].drawCount
@@ -1197,9 +1194,9 @@ void D3D12CommandData::AddDrawcall(const FetchDrawcall &d, bool hasEvents, bool 
 
   if(hasEvents)
   {
-    vector<FetchAPIEvent> &srcEvents = m_LastCmdListID != ResourceId()
-                                           ? m_BakedCmdListInfo[m_LastCmdListID].curEvents
-                                           : m_RootEvents;
+    vector<APIEvent> &srcEvents = m_LastCmdListID != ResourceId()
+                                      ? m_BakedCmdListInfo[m_LastCmdListID].curEvents
+                                      : m_RootEvents;
 
     draw.events = srcEvents;
     srcEvents.clear();

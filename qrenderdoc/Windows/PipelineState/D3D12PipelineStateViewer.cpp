@@ -420,7 +420,8 @@ void D3D12PipelineStateViewer::setEmptyRow(QTreeWidgetItem *node)
     node->setBackgroundColor(i, QColor(255, 70, 70));
 }
 
-bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12Pipe::View &view, FetchTexture *tex)
+bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12Pipe::View &view,
+                                                      TextureDescription *tex)
 {
   // we don't count 'upgrade typeless to typed' as important, we just display the typed format
   // in the row since there's no real hidden important information there. The formats can't be
@@ -440,7 +441,8 @@ bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12Pipe::View &vie
   return false;
 }
 
-bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12Pipe::View &view, FetchBuffer *buf)
+bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12Pipe::View &view,
+                                                      BufferDescription *buf)
 {
   if(view.FirstElement > 0 || view.NumElements * view.ElementSize < buf->length)
     return true;
@@ -449,7 +451,7 @@ bool D3D12PipelineStateViewer::HasImportantViewParams(const D3D12Pipe::View &vie
 }
 
 void D3D12PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewTag &view,
-                                              FetchTexture *tex)
+                                              TextureDescription *tex)
 {
   if(tex == NULL)
     return;
@@ -530,7 +532,7 @@ void D3D12PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewT
 }
 
 void D3D12PipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const ViewTag &view,
-                                              FetchBuffer *buf)
+                                              BufferDescription *buf)
 {
   if(buf == NULL)
     return;
@@ -659,7 +661,7 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view, const D3D12Pi
       w = h = d = a = 0;
     }
 
-    FetchTexture *tex = m_Ctx.GetTexture(r.Resource);
+    TextureDescription *tex = m_Ctx.GetTexture(r.Resource);
 
     if(tex)
     {
@@ -683,7 +685,7 @@ void D3D12PipelineStateViewer::addResourceRow(const ViewTag &view, const D3D12Pi
         viewDetails = true;
     }
 
-    FetchBuffer *buf = m_Ctx.GetBuffer(r.Resource);
+    BufferDescription *buf = m_Ctx.GetBuffer(r.Resource);
 
     if(buf)
     {
@@ -1123,7 +1125,7 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
         if(!filledSlot)
           name = "Empty";
 
-        FetchBuffer *buf = m_Ctx.GetBuffer(b.Buffer);
+        BufferDescription *buf = m_Ctx.GetBuffer(b.Buffer);
 
         if(buf)
           name = buf->name;
@@ -1172,7 +1174,7 @@ void D3D12PipelineStateViewer::setState()
   }
 
   const D3D12Pipe::State &state = m_Ctx.CurD3D12PipelineState;
-  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   const QPixmap &tick = Pixmaps::tick();
   const QPixmap &cross = Pixmaps::cross();
@@ -1297,7 +1299,7 @@ void D3D12PipelineStateViewer::setState()
       if(!ibufferUsed)
         length = 0;
 
-      FetchBuffer *buf = m_Ctx.GetBuffer(state.m_IA.ibuffer.Buffer);
+      BufferDescription *buf = m_Ctx.GetBuffer(state.m_IA.ibuffer.Buffer);
 
       if(buf)
       {
@@ -1363,7 +1365,7 @@ void D3D12PipelineStateViewer::setState()
         length = 0;
       }
 
-      FetchBuffer *buf = m_Ctx.GetBuffer(v.Buffer);
+      BufferDescription *buf = m_Ctx.GetBuffer(v.Buffer);
       if(buf)
       {
         name = buf->name;
@@ -1430,7 +1432,7 @@ void D3D12PipelineStateViewer::setState()
         name = "Empty";
       }
 
-      FetchBuffer *buf = m_Ctx.GetBuffer(s.Buffer);
+      BufferDescription *buf = m_Ctx.GetBuffer(s.Buffer);
 
       if(buf)
       {
@@ -1682,8 +1684,8 @@ void D3D12PipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int
 
   QVariant tag = item->data(0, Qt::UserRole);
 
-  FetchTexture *tex = NULL;
-  FetchBuffer *buf = NULL;
+  TextureDescription *tex = NULL;
+  BufferDescription *buf = NULL;
 
   if(tag.canConvert<ResourceId>())
   {

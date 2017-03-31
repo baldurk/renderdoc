@@ -38,7 +38,7 @@ class TextureSaveDialog : public QDialog
   Q_OBJECT
 
 public:
-  explicit TextureSaveDialog(const FetchTexture &t, const TextureSave &s, QWidget *parent = 0);
+  explicit TextureSaveDialog(const TextureDescription &t, const TextureSave &s, QWidget *parent = 0);
   ~TextureSaveDialog();
 
   QString filename();
@@ -79,7 +79,7 @@ private:
 
   QTimer typingTimer;
 
-  FetchTexture tex;
+  TextureDescription tex;
   TextureSave saveData;
 
   bool m_Recurse = false;

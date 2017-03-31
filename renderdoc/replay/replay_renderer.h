@@ -152,14 +152,14 @@ public:
   bool RemoveReplacement(ResourceId id);
   bool FreeTargetResource(ResourceId id);
 
-  bool GetFrameInfo(FetchFrameInfo *frame);
-  bool GetDrawcalls(rdctype::array<FetchDrawcall> *draws);
+  bool GetFrameInfo(FrameDescription *frame);
+  bool GetDrawcalls(rdctype::array<DrawcallDescription> *draws);
   bool FetchCounters(GPUCounter *counters, uint32_t numCounters,
                      rdctype::array<CounterResult> *results);
   bool EnumerateCounters(rdctype::array<GPUCounter> *counters);
   bool DescribeCounter(GPUCounter counterID, CounterDescription *desc);
-  bool GetTextures(rdctype::array<FetchTexture> *texs);
-  bool GetBuffers(rdctype::array<FetchBuffer> *bufs);
+  bool GetTextures(rdctype::array<TextureDescription> *texs);
+  bool GetBuffers(rdctype::array<BufferDescription> *bufs);
   bool GetResolve(uint64_t *callstack, uint32_t callstackLen, rdctype::array<rdctype::str> *trace);
   bool GetDebugMessages(rdctype::array<DebugMessage> *msgs);
 
@@ -195,17 +195,11 @@ public:
 private:
   ReplayStatus PostCreateInit(IReplayDriver *device);
 
-  FetchDrawcall *GetDrawcallByEID(uint32_t eventID);
+  DrawcallDescription *GetDrawcallByEID(uint32_t eventID);
 
   IReplayDriver *GetDevice() { return m_pDevice; }
-  struct FrameRecord
-  {
-    FetchFrameInfo frameInfo;
-
-    rdctype::array<FetchDrawcall> m_DrawCallList;
-  };
   FrameRecord m_FrameRecord;
-  vector<FetchDrawcall *> m_Drawcalls;
+  vector<DrawcallDescription *> m_Drawcalls;
 
   uint32_t m_EventID;
 
@@ -216,8 +210,8 @@ private:
 
   std::vector<ReplayOutput *> m_Outputs;
 
-  std::vector<FetchBuffer> m_Buffers;
-  std::vector<FetchTexture> m_Textures;
+  std::vector<BufferDescription> m_Buffers;
+  std::vector<TextureDescription> m_Textures;
 
   IReplayDriver *m_pDevice;
 

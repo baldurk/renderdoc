@@ -26,7 +26,7 @@
 #include <QRegularExpression>
 #include "ui_APIInspector.h"
 
-Q_DECLARE_METATYPE(FetchAPIEvent);
+Q_DECLARE_METATYPE(APIEvent);
 
 APIInspector::APIInspector(CaptureContext &ctx, QWidget *parent)
     : QFrame(parent), ui(new Ui::APIInspector), m_Ctx(ctx)
@@ -93,7 +93,7 @@ void APIInspector::on_apiEvents_itemSelectionChanged()
   if(ui->apiEvents->selectedItems().count() == 0)
     return;
 
-  FetchAPIEvent ev = ui->apiEvents->selectedItems()[0]->data(0, Qt::UserRole).value<FetchAPIEvent>();
+  APIEvent ev = ui->apiEvents->selectedItems()[0]->data(0, Qt::UserRole).value<APIEvent>();
 
   if(ev.callstack.count > 0)
   {
@@ -121,12 +121,12 @@ void APIInspector::fillAPIView()
   QRegularExpression rgxopen("^\\s*{");
   QRegularExpression rgxclose("^\\s*}");
 
-  const FetchDrawcall *draw = m_Ctx.CurSelectedDrawcall();
+  const DrawcallDescription *draw = m_Ctx.CurSelectedDrawcall();
 
   if(draw != NULL && draw->events.count > 0)
   {
     int e = 0;
-    for(const FetchAPIEvent &ev : draw->events)
+    for(const APIEvent &ev : draw->events)
     {
       QStringList lines = ToQStr(ev.eventDesc).split("\n", QString::SkipEmptyParts);
 

@@ -1102,7 +1102,7 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
     m_FrameRecord.frameInfo.fileOffset = offset;
     m_FrameRecord.frameInfo.frameNumber = FrameNumber;
 
-    FetchFrameStatistics &stats = m_FrameRecord.frameInfo.stats;
+    FrameStatistics &stats = m_FrameRecord.frameInfo.stats;
     RDCEraseEl(stats);
 
     // #mivance GL/Vulkan don't set this so don't get stats in window
@@ -1112,7 +1112,7 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
     {
       create_array(stats.constants[stage].bindslots,
                    D3D11_COMMONSHADER_CONSTANT_BUFFER_API_SLOT_COUNT + 1);
-      create_array(stats.constants[stage].sizes, FetchFrameConstantBindStats::BUCKET_COUNT);
+      create_array(stats.constants[stage].sizes, ConstantBindStats::BUCKET_COUNT);
 
       create_array(stats.samplers[stage].bindslots, D3D11_COMMONSHADER_SAMPLER_SLOT_COUNT + 1);
 
@@ -1122,9 +1122,9 @@ void WrappedID3D11Device::Serialise_CaptureScope(uint64_t offset)
     }
 
     create_array(stats.updates.types, uint32_t(TextureDim::Count));
-    create_array(stats.updates.sizes, FetchFrameUpdateStats::BUCKET_COUNT);
+    create_array(stats.updates.sizes, ResourceUpdateStats::BUCKET_COUNT);
 
-    create_array(stats.draws.counts, FetchFrameDrawStats::BUCKET_COUNT);
+    create_array(stats.draws.counts, DrawcallStats::BUCKET_COUNT);
 
     create_array(stats.vertices.bindslots, D3D11_IA_VERTEX_INPUT_RESOURCE_SLOT_COUNT + 1);
 
@@ -2720,7 +2720,7 @@ void WrappedID3D11Device::StartFrameCapture(void *dev, void *wnd)
 
   m_FrameCounter = RDCMAX(1 + (uint32_t)m_CapturedFrames.size(), m_FrameCounter);
 
-  FetchFrameInfo frame;
+  FrameDescription frame;
   frame.frameNumber = m_FrameCounter + 1;
   frame.captureTime = Timing::GetUnixTimestamp();
   m_CapturedFrames.push_back(frame);
@@ -3698,7 +3698,7 @@ WrappedID3D11DeviceContext *WrappedID3D11Device::GetDeferredContext(size_t idx)
   return *it;
 }
 
-const FetchDrawcall *WrappedID3D11Device::GetDrawcall(uint32_t eventID)
+const DrawcallDescription *WrappedID3D11Device::GetDrawcall(uint32_t eventID)
 {
   if(eventID >= m_Drawcalls.size())
     return NULL;

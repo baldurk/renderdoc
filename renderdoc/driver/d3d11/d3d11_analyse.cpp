@@ -926,7 +926,7 @@ ShaderDebugTrace D3D11DebugManager::DebugVertex(uint32_t eventID, uint32_t verti
 
   ShaderDebugTrace empty;
 
-  const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(eventID);
+  const DrawcallDescription *draw = m_WrappedDevice->GetDrawcall(eventID);
 
   D3D11RenderStateTracker tracker(m_WrappedContext);
 
@@ -4048,7 +4048,7 @@ ResourceId D3D11DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
       SAFE_RELEASE(ds);
 
-      const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(events[i]);
+      const DrawcallDescription *draw = m_WrappedDevice->GetDrawcall(events[i]);
 
       for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
       {
@@ -5802,7 +5802,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
     D3D11RenderState::ResourceRange resourceRange(targetres, mip, slice);
 
-    const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(events[i].eventID);
+    const DrawcallDescription *draw = m_WrappedDevice->GetDrawcall(events[i].eventID);
 
     bool clear = bool(draw->flags & DrawFlags::Clear);
 
@@ -6501,7 +6501,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
   for(size_t h = 0; h < history.size(); h++)
   {
-    const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(history[h].eventID);
+    const DrawcallDescription *draw = m_WrappedDevice->GetDrawcall(history[h].eventID);
 
     if(draw->flags & DrawFlags::Clear)
       continue;
@@ -6754,7 +6754,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
 
   for(size_t h = 0; h < history.size(); h++)
   {
-    const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(history[h].eventID);
+    const DrawcallDescription *draw = m_WrappedDevice->GetDrawcall(history[h].eventID);
 
     if(draw->flags & DrawFlags::Clear)
       continue;

@@ -142,7 +142,7 @@ void CaptureContext::LoadLogfile(const QString &logFile, const QString &origFile
     QVector<ILogViewerForm *> logviewers(m_LogViewers);
 
     // make sure we're on a consistent event before invoking log viewer forms
-    const FetchDrawcall *draw = &m_Drawcalls.back();
+    const DrawcallDescription *draw = &m_Drawcalls.back();
     while(!draw->children.empty())
       draw = &draw->children.back();
 
@@ -246,13 +246,13 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
 #endif
 
     r->GetBuffers(&m_BufferList);
-    for(FetchBuffer &b : m_BufferList)
+    for(BufferDescription &b : m_BufferList)
       m_Buffers[b.ID] = &b;
 
     m_PostloadProgress = 0.8f;
 
     r->GetTextures(&m_TextureList);
-    for(FetchTexture &t : m_TextureList)
+    for(TextureDescription &t : m_TextureList)
       m_Textures[t.ID] = &t;
 
     m_PostloadProgress = 0.9f;
@@ -293,7 +293,7 @@ void CaptureContext::LoadLogfileThreaded(const QString &logFile, const QString &
   m_LogLoaded = true;
 }
 
-bool CaptureContext::PassEquivalent(const FetchDrawcall &a, const FetchDrawcall &b)
+bool CaptureContext::PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b)
 {
   // executing command lists can have children
   if(!a.children.empty() || !b.children.empty())
@@ -367,11 +367,11 @@ bool CaptureContext::PassEquivalent(const FetchDrawcall &a, const FetchDrawcall 
   return false;
 }
 
-bool CaptureContext::ContainsMarker(const rdctype::array<FetchDrawcall> &draws)
+bool CaptureContext::ContainsMarker(const rdctype::array<DrawcallDescription> &draws)
 {
   bool ret = false;
 
-  for(const FetchDrawcall &d : draws)
+  for(const DrawcallDescription &d : draws)
   {
     ret |=
         (d.flags & DrawFlags::PushMarker) && !(d.flags & DrawFlags::CmdList) && !d.children.empty();
@@ -386,12 +386,12 @@ bool CaptureContext::ContainsMarker(const rdctype::array<FetchDrawcall> &draws)
 
 void CaptureContext::AddFakeProfileMarkers()
 {
-  rdctype::array<FetchDrawcall> &draws = m_Drawcalls;
+  rdctype::array<DrawcallDescription> &draws = m_Drawcalls;
 
   if(ContainsMarker(draws))
     return;
 
-  QList<FetchDrawcall> ret;
+  QList<DrawcallDescription> ret;
 
   int depthpassID = 1;
   int copypassID = 1;
@@ -448,7 +448,7 @@ void CaptureContext::AddFakeProfileMarkers()
       maxOutCount = qMax(maxOutCount, outCount);
     }
 
-    FetchDrawcall mark;
+    DrawcallDescription mark;
 
     mark.eventID = draws[start].eventID;
     mark.drawcallID = draws[start].drawcallID;

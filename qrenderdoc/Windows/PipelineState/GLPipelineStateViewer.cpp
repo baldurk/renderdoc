@@ -628,7 +628,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
           w = h = d = a = 0;
         }
 
-        FetchTexture *tex = m_Ctx.GetTexture(r.Resource);
+        TextureDescription *tex = m_Ctx.GetTexture(r.Resource);
 
         if(tex)
         {
@@ -793,7 +793,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
         offset = b->Offset;
         length = b->Size;
 
-        FetchBuffer *buf = m_Ctx.GetBuffer(b->Resource);
+        BufferDescription *buf = m_Ctx.GetBuffer(b->Resource);
         if(buf)
         {
           name = buf->name;
@@ -902,7 +902,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
 
       QVariant tag;
 
-      FetchTexture *tex = m_Ctx.GetTexture(id);
+      TextureDescription *tex = m_Ctx.GetTexture(id);
 
       if(tex)
       {
@@ -930,7 +930,7 @@ void GLPipelineStateViewer::setShaderState(const GLPipe::Shader &stage, QLabel *
         tag = QVariant::fromValue(id);
       }
 
-      FetchBuffer *buf = m_Ctx.GetBuffer(id);
+      BufferDescription *buf = m_Ctx.GetBuffer(id);
 
       if(buf)
       {
@@ -1049,7 +1049,7 @@ void GLPipelineStateViewer::setState()
   }
 
   const GLPipe::State &state = m_Ctx.CurGLPipelineState;
-  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   bool showDisabled = ui->showDisabled->isChecked();
   bool showEmpty = ui->showEmpty->isChecked();
@@ -1187,7 +1187,7 @@ void GLPipelineStateViewer::setState()
       if(!ibufferUsed)
         length = 0;
 
-      FetchBuffer *buf = m_Ctx.GetBuffer(state.m_VtxIn.ibuffer);
+      BufferDescription *buf = m_Ctx.GetBuffer(state.m_VtxIn.ibuffer);
 
       if(buf)
       {
@@ -1253,7 +1253,7 @@ void GLPipelineStateViewer::setState()
         length = 0;
       }
 
-      FetchBuffer *buf = m_Ctx.GetBuffer(v.Buffer);
+      BufferDescription *buf = m_Ctx.GetBuffer(v.Buffer);
       if(buf)
       {
         name = buf->name;
@@ -1316,7 +1316,7 @@ void GLPipelineStateViewer::setState()
           name = "Empty";
         }
 
-        FetchBuffer *buf = m_Ctx.GetBuffer(state.m_Feedback.BufferBinding[i]);
+        BufferDescription *buf = m_Ctx.GetBuffer(state.m_Feedback.BufferBinding[i]);
 
         if(buf)
         {
@@ -1631,7 +1631,7 @@ void GLPipelineStateViewer::setState()
           w = h = d = a = 0;
         }
 
-        FetchTexture *tex = m_Ctx.GetTexture(p);
+        TextureDescription *tex = m_Ctx.GetTexture(p);
         if(tex)
         {
           w = tex->width;
@@ -1717,7 +1717,7 @@ void GLPipelineStateViewer::setState()
           w = h = d = a = 0;
         }
 
-        FetchTexture *tex = m_Ctx.GetTexture(ds);
+        TextureDescription *tex = m_Ctx.GetTexture(ds);
         if(tex)
         {
           w = tex->width;
@@ -1948,7 +1948,7 @@ void GLPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, int co
 
   if(tag.canConvert<ResourceId>())
   {
-    FetchTexture *tex = m_Ctx.GetTexture(tag.value<ResourceId>());
+    TextureDescription *tex = m_Ctx.GetTexture(tag.value<ResourceId>());
 
     if(tex)
     {

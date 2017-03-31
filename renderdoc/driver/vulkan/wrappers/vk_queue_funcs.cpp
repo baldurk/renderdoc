@@ -213,7 +213,7 @@ bool WrappedVulkan::Serialise_vkQueueSubmit(Serialiser *localSerialiser, VkQueue
                                       ToStr::Get(cmdIds[c]).c_str());
 
       // add a fake marker
-      FetchDrawcall draw;
+      DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::SetMarker;
       AddEvent(name);

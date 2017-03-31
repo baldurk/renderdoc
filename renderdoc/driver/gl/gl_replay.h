@@ -95,17 +95,17 @@ public:
   APIProperties GetAPIProperties();
 
   vector<ResourceId> GetBuffers();
-  FetchBuffer GetBuffer(ResourceId id);
+  BufferDescription GetBuffer(ResourceId id);
 
   vector<ResourceId> GetTextures();
-  FetchTexture GetTexture(ResourceId id);
+  TextureDescription GetTexture(ResourceId id);
   ShaderReflection *GetShader(ResourceId shader, string entryPoint);
 
   vector<DebugMessage> GetDebugMessages();
 
   vector<EventUsage> GetUsage(ResourceId id);
 
-  FetchFrameRecord GetFrameRecord();
+  FrameRecord GetFrameRecord();
 
   void SavePipelineState();
   D3D11Pipe::State GetD3D11PipelineState() { return D3D11Pipe::State(); }
@@ -206,12 +206,12 @@ public:
   ResourceId ApplyCustomShader(ResourceId shader, ResourceId texid, uint32_t mip, uint32_t arrayIdx,
                                uint32_t sampleIdx, CompType typeHint);
 
-  ResourceId CreateProxyTexture(const FetchTexture &templateTex);
+  ResourceId CreateProxyTexture(const TextureDescription &templateTex);
   void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
                            size_t dataSize);
   bool IsTextureSupported(const ResourceFormat &format);
 
-  ResourceId CreateProxyBuffer(const FetchBuffer &templateBuf);
+  ResourceId CreateProxyBuffer(const BufferDescription &templateBuf);
   void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize);
 
   bool IsRenderOutput(ResourceId id);
@@ -417,7 +417,7 @@ private:
 
   void CacheTexture(ResourceId id);
 
-  map<ResourceId, FetchTexture> m_CachedTextures;
+  map<ResourceId, TextureDescription> m_CachedTextures;
 
   WrappedOpenGL *m_pDriver;
 

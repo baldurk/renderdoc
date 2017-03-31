@@ -201,7 +201,7 @@ void D3D11DebugManager::FillTimers(D3D11CounterContext &ctx, const DrawcallTreeN
 
   for(size_t i = 0; i < drawnode.children.size(); i++)
   {
-    const FetchDrawcall &d = drawnode.children[i].draw;
+    const DrawcallDescription &d = drawnode.children[i].draw;
     FillTimers(ctx, drawnode.children[i]);
 
     if(d.events.count == 0)

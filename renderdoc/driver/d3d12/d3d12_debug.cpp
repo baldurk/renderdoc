@@ -3762,7 +3762,7 @@ void D3D12DebugManager::InitPostVSBuffers(uint32_t eventID)
 
   D3D_PRIMITIVE_TOPOLOGY topo = rs.topo;
 
-  const FetchDrawcall *drawcall = m_WrappedDevice->GetDrawcall(eventID);
+  const DrawcallDescription *drawcall = m_WrappedDevice->GetDrawcall(eventID);
 
   if(drawcall->numIndices == 0)
     return;
@@ -7649,7 +7649,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
       while(!events.empty())
       {
-        const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(events[0]);
+        const DrawcallDescription *draw = m_WrappedDevice->GetDrawcall(events[0]);
 
         // remove any non-drawcalls, like the pass boundary.
         if(!(draw->flags & DrawFlags::Drawcall))
@@ -7741,7 +7741,7 @@ ResourceId D3D12DebugManager::RenderOverlay(ResourceId texid, CompType typeHint,
 
       for(size_t i = 0; i < events.size(); i++)
       {
-        const FetchDrawcall *draw = m_WrappedDevice->GetDrawcall(events[i]);
+        const DrawcallDescription *draw = m_WrappedDevice->GetDrawcall(events[i]);
 
         for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
         {

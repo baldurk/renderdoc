@@ -213,7 +213,7 @@ private:
   void UI_UpdateTextureDetails();
   void UI_OnTextureSelectionChanged(bool newdraw);
 
-  void UI_SetHistogramRange(const FetchTexture *tex, CompType typeHint);
+  void UI_SetHistogramRange(const TextureDescription *tex, CompType typeHint);
 
   void UI_UpdateChannels();
 
@@ -254,7 +254,7 @@ private:
   QPoint getScrollPosition();
   void setScrollPosition(const QPoint &pos);
 
-  FetchTexture *GetCurrentTexture();
+  TextureDescription *GetCurrentTexture();
   void UI_UpdateCachedTexture();
 
   void ShowGotoPopup();
@@ -299,7 +299,7 @@ private:
   CaptureContext &m_Ctx;
   IReplayOutput *m_Output = NULL;
 
-  FetchTexture *m_CachedTexture;
+  TextureDescription *m_CachedTexture;
   Following m_Following = Following::Default;
   QMap<ResourceId, TexSettings> m_TextureSettings;
 

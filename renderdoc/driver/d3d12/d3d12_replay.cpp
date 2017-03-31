@@ -105,9 +105,9 @@ vector<ResourceId> D3D12Replay::GetTextures()
   return ret;
 }
 
-FetchBuffer D3D12Replay::GetBuffer(ResourceId id)
+BufferDescription D3D12Replay::GetBuffer(ResourceId id)
 {
-  FetchBuffer ret;
+  BufferDescription ret;
   ret.ID = m_pDevice->GetResourceManager()->GetOriginalID(id);
 
   auto it = WrappedID3D12Resource::GetList().find(id);
@@ -157,9 +157,9 @@ FetchBuffer D3D12Replay::GetBuffer(ResourceId id)
   return ret;
 }
 
-FetchTexture D3D12Replay::GetTexture(ResourceId id)
+TextureDescription D3D12Replay::GetTexture(ResourceId id)
 {
-  FetchTexture ret;
+  TextureDescription ret;
   ret.ID = m_pDevice->GetResourceManager()->GetOriginalID(id);
 
   auto it = WrappedID3D12Resource::GetList().find(id);
@@ -275,7 +275,7 @@ void D3D12Replay::FreeCustomShader(ResourceId id)
   }
 }
 
-FetchFrameRecord D3D12Replay::GetFrameRecord()
+FrameRecord D3D12Replay::GetFrameRecord()
 {
   return m_pDevice->GetFrameRecord();
 }
@@ -1246,13 +1246,13 @@ vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventID)
 {
   vector<uint32_t> passEvents;
 
-  const FetchDrawcall *draw = m_pDevice->GetDrawcall(eventID);
+  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventID);
 
   if(!draw)
     return passEvents;
 
   // for D3D12 a pass == everything writing to the same RTs in a command list.
-  const FetchDrawcall *start = draw;
+  const DrawcallDescription *start = draw;
   while(start)
   {
     // if we've come to the beginning of a list, break out of the loop, we've
@@ -1271,7 +1271,7 @@ vector<uint32_t> D3D12Replay::GetPassEvents(uint32_t eventID)
       return passEvents;
 
     // step back
-    const FetchDrawcall *prev = m_pDevice->GetDrawcall((uint32_t)start->previous);
+    const DrawcallDescription *prev = m_pDevice->GetDrawcall((uint32_t)start->previous);
 
     // something went wrong, start->previous was non-zero but we didn't
     // get a draw. Abort
@@ -1686,7 +1686,7 @@ ShaderDebugTrace D3D12Replay::DebugThread(uint32_t eventID, uint32_t groupid[3],
   return ShaderDebugTrace();
 }
 
-ResourceId D3D12Replay::CreateProxyTexture(const FetchTexture &templateTex)
+ResourceId D3D12Replay::CreateProxyTexture(const TextureDescription &templateTex)
 {
   return ResourceId();
 }
@@ -1696,7 +1696,7 @@ void D3D12Replay::SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint3
 {
 }
 
-ResourceId D3D12Replay::CreateProxyBuffer(const FetchBuffer &templateBuf)
+ResourceId D3D12Replay::CreateProxyBuffer(const BufferDescription &templateBuf)
 {
   return ResourceId();
 }

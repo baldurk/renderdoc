@@ -101,13 +101,13 @@ enum CaptureFailReason
 struct DrawcallTreeNode
 {
   DrawcallTreeNode() {}
-  explicit DrawcallTreeNode(const FetchDrawcall &d) : draw(d) {}
-  FetchDrawcall draw;
+  explicit DrawcallTreeNode(const DrawcallDescription &d) : draw(d) {}
+  DrawcallDescription draw;
   vector<DrawcallTreeNode> children;
 
-  vector<FetchDrawcall> Bake()
+  vector<DrawcallDescription> Bake()
   {
-    vector<FetchDrawcall> ret;
+    vector<DrawcallDescription> ret;
     if(children.empty())
       return ret;
 
@@ -220,7 +220,7 @@ private:
 
   D3D11RenderState *m_DeferredSavedState;
 
-  vector<FetchAPIEvent> m_CurEvents, m_Events;
+  vector<APIEvent> m_CurEvents, m_Events;
   bool m_AddedDrawcall;
 
   WrappedID3DUserDefinedAnnotation m_UserAnnotation;
@@ -256,10 +256,10 @@ private:
 
   void DrainAnnotationQueue();
 
-  void AddUsage(const FetchDrawcall &d);
+  void AddUsage(const DrawcallDescription &d);
 
   void AddEvent(string description);
-  void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
+  void AddDrawcall(const DrawcallDescription &d, bool hasEvents);
 
   void RecordIndexBindStats(ID3D11Buffer *Buffer);
   void RecordVertexBindStats(UINT NumBuffers, ID3D11Buffer *Buffers[]);
@@ -340,7 +340,7 @@ public:
   void ClearMaps();
 
   uint32_t GetEventID() { return m_CurEventID; }
-  FetchAPIEvent GetEvent(uint32_t eventID);
+  APIEvent GetEvent(uint32_t eventID);
 
   const DrawcallTreeNode &GetRootDraw() { return m_ParentDrawcall; }
   void ThreadSafe_SetMarker(uint32_t col, const wchar_t *name);

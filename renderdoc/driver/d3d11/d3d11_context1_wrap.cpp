@@ -474,7 +474,7 @@ bool WrappedID3D11DeviceContext::Serialise_ClearView(ID3D11View *pView, const FL
                   " rects"
                   ")";
 
-    FetchDrawcall draw;
+    DrawcallDescription draw;
 
     draw.name = name;
 
@@ -1707,7 +1707,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardResource(ID3D11Resource *pReso
   {
     AddEvent(desc);
 
-    FetchDrawcall draw;
+    DrawcallDescription draw;
 
     draw.name = "DiscardResource()";
 
@@ -1790,7 +1790,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView(ID3D11View *pResourceView
   {
     AddEvent(desc);
 
-    FetchDrawcall draw;
+    DrawcallDescription draw;
 
     draw.name = "DiscardView()";
 
@@ -1915,7 +1915,7 @@ bool WrappedID3D11DeviceContext::Serialise_DiscardView1(ID3D11View *pResourceVie
     AddEvent(desc);
     string name = "DiscardView1(" + ToStr::Get(numRects) + " rects)";
 
-    FetchDrawcall draw;
+    DrawcallDescription draw;
 
     draw.name = name;
 

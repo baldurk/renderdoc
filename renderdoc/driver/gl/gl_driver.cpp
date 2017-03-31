@@ -2485,7 +2485,7 @@ void WrappedOpenGL::StartFrameCapture(void *dev, void *wnd)
 
   m_FrameCounter = RDCMAX(1 + (uint32_t)m_CapturedFrames.size(), m_FrameCounter);
 
-  FetchFrameInfo frame;
+  FrameDescription frame;
   frame.frameNumber = m_FrameCounter + 1;
   frame.captureTime = Timing::GetUnixTimestamp();
   RDCEraseEl(frame.stats);
@@ -3694,7 +3694,7 @@ void WrappedOpenGL::ProcessChunk(uint64_t offset, GLChunkType context)
       {
         AddEvent("SwapBuffers()");
 
-        FetchDrawcall draw;
+        DrawcallDescription draw;
         draw.name = "SwapBuffers()";
         draw.flags |= DrawFlags::Present;
 
@@ -3772,7 +3772,7 @@ void WrappedOpenGL::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
   if(m_State == EXECUTING)
   {
-    FetchAPIEvent ev = GetEvent(startEventID);
+    APIEvent ev = GetEvent(startEventID);
     m_CurEventID = ev.eventID;
     m_pSerialiser->SetOffset(ev.fileOffset);
     m_FirstEventID = startEventID;
@@ -3872,7 +3872,7 @@ void WrappedOpenGL::ContextProcessChunk(uint64_t offset, GLChunkType chunk)
   m_AddedDrawcall = false;
 }
 
-void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
+void WrappedOpenGL::AddUsage(const DrawcallDescription &d)
 {
   DrawFlags DrawDispatchMask = DrawFlags::Drawcall | DrawFlags::Dispatch;
   if(!(d.flags & DrawDispatchMask))
@@ -4153,13 +4153,13 @@ void WrappedOpenGL::AddUsage(const FetchDrawcall &d)
   }
 }
 
-void WrappedOpenGL::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
+void WrappedOpenGL::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
 {
   m_AddedDrawcall = true;
 
   WrappedOpenGL *context = this;
 
-  FetchDrawcall draw = d;
+  DrawcallDescription draw = d;
   draw.eventID = m_CurEventID;
   draw.drawcallID = m_CurDrawcallID;
 
@@ -4214,7 +4214,7 @@ void WrappedOpenGL::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
 
 void WrappedOpenGL::AddEvent(string description)
 {
-  FetchAPIEvent apievent;
+  APIEvent apievent;
 
   apievent.fileOffset = m_CurChunkOffset;
   apievent.eventID = m_CurEventID;
@@ -4234,7 +4234,7 @@ void WrappedOpenGL::AddEvent(string description)
     m_Events.push_back(apievent);
 }
 
-FetchAPIEvent WrappedOpenGL::GetEvent(uint32_t eventID)
+APIEvent WrappedOpenGL::GetEvent(uint32_t eventID)
 {
   for(size_t i = m_Events.size() - 1; i > 0; i--)
   {
@@ -4245,7 +4245,7 @@ FetchAPIEvent WrappedOpenGL::GetEvent(uint32_t eventID)
   return m_Events[0];
 }
 
-const FetchDrawcall *WrappedOpenGL::GetDrawcall(uint32_t eventID)
+const DrawcallDescription *WrappedOpenGL::GetDrawcall(uint32_t eventID)
 {
   if(eventID >= m_Drawcalls.size())
     return NULL;

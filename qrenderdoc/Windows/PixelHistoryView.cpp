@@ -138,7 +138,7 @@ public:
     if(isEvent(parent))
     {
       const QList<PixelModification> &mods = getMods(parent);
-      const FetchDrawcall *draw = m_Ctx.GetDrawcall(mods.front().eventID);
+      const DrawcallDescription *draw = m_Ctx.GetDrawcall(mods.front().eventID);
 
       if(draw->flags & DrawFlags::Clear)
         return 0;
@@ -198,13 +198,13 @@ public:
           if(isEvent(index))
           {
             const QList<PixelModification> &mods = getMods(index);
-            const FetchDrawcall *drawcall = m_Ctx.GetDrawcall(mods.front().eventID);
+            const DrawcallDescription *drawcall = m_Ctx.GetDrawcall(mods.front().eventID);
             if(!drawcall)
               return QVariant();
 
             QString ret = "";
-            QList<const FetchDrawcall *> drawstack;
-            const FetchDrawcall *parent = m_Ctx.GetDrawcall(drawcall->parent);
+            QList<const DrawcallDescription *> drawstack;
+            const DrawcallDescription *parent = m_Ctx.GetDrawcall(drawcall->parent);
             while(parent)
             {
               drawstack.push_back(parent);
@@ -392,7 +392,7 @@ public:
 private:
   CaptureContext &m_Ctx;
 
-  const FetchTexture *m_Tex;
+  const TextureDescription *m_Tex;
   TextureDisplay m_Display;
   bool m_IsDepth = false, m_IsUint = false, m_IsSint = false, m_IsFloat = true;
 
@@ -564,7 +564,7 @@ PixelHistoryView::PixelHistoryView(CaptureContext &ctx, ResourceId id, QPoint po
   m_Pixel = point;
   m_Display = display;
 
-  FetchTexture *tex = m_Ctx.GetTexture(id);
+  TextureDescription *tex = m_Ctx.GetTexture(id);
 
   QString title =
       tr("Pixel History on %1 for (%2, %3)").arg(ToQStr(tex->name)).arg(point.x()).arg(point.y());
@@ -681,7 +681,7 @@ void PixelHistoryView::jumpToPrimitive(EventTag tag)
 
   BufferViewer *viewer = m_Ctx.meshPreview();
 
-  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   if(draw)
   {

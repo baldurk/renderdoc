@@ -668,14 +668,14 @@ vector<uint32_t> VulkanReplay::GetPassEvents(uint32_t eventID)
 {
   vector<uint32_t> passEvents;
 
-  const FetchDrawcall *draw = m_pDriver->GetDrawcall(eventID);
+  const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventID);
 
   if(!draw)
     return passEvents;
 
   // for vulkan a pass == a renderpass, if we're not inside a
   // renderpass then there are no pass events.
-  const FetchDrawcall *start = draw;
+  const DrawcallDescription *start = draw;
   while(start)
   {
     // if we've come to the beginning of a pass, break out of the loop, we've
@@ -745,7 +745,7 @@ Callstack::StackResolver *VulkanReplay::GetCallstackResolver()
   return m_pDriver->GetMainSerialiser()->GetCallstackResolver();
 }
 
-FetchFrameRecord VulkanReplay::GetFrameRecord()
+FrameRecord VulkanReplay::GetFrameRecord()
 {
   return m_pDriver->GetFrameRecord();
 }
@@ -788,11 +788,11 @@ vector<ResourceId> VulkanReplay::GetBuffers()
   return bufs;
 }
 
-FetchTexture VulkanReplay::GetTexture(ResourceId id)
+TextureDescription VulkanReplay::GetTexture(ResourceId id)
 {
   VulkanCreationInfo::Image &iminfo = m_pDriver->m_CreationInfo.m_Image[id];
 
-  FetchTexture ret;
+  TextureDescription ret;
   ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
   ret.arraysize = iminfo.arrayLayers;
   ret.creationFlags = iminfo.creationFlags;
@@ -870,11 +870,11 @@ FetchTexture VulkanReplay::GetTexture(ResourceId id)
   return ret;
 }
 
-FetchBuffer VulkanReplay::GetBuffer(ResourceId id)
+BufferDescription VulkanReplay::GetBuffer(ResourceId id)
 {
   VulkanCreationInfo::Buffer &bufinfo = m_pDriver->m_CreationInfo.m_Buffer[id];
 
-  FetchBuffer ret;
+  BufferDescription ret;
   ret.ID = m_pDriver->GetResourceManager()->GetOriginalID(id);
   ret.length = bufinfo.size;
 
@@ -5553,7 +5553,7 @@ ShaderDebugTrace VulkanReplay::DebugThread(uint32_t eventID, uint32_t groupid[3]
   return ShaderDebugTrace();
 }
 
-ResourceId VulkanReplay::CreateProxyTexture(const FetchTexture &templateTex)
+ResourceId VulkanReplay::CreateProxyTexture(const TextureDescription &templateTex)
 {
   VULKANNOTIMP("CreateProxyTexture");
   return ResourceId();
@@ -5570,7 +5570,7 @@ bool VulkanReplay::IsTextureSupported(const ResourceFormat &format)
   return true;
 }
 
-ResourceId VulkanReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)
+ResourceId VulkanReplay::CreateProxyBuffer(const BufferDescription &templateBuf)
 {
   VULKANNOTIMP("CreateProxyBuffer");
   return ResourceId();

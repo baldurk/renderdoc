@@ -154,7 +154,7 @@ bool WrappedOpenGL::Serialise_glDebugMessageInsert(GLenum source, GLenum type, G
 
   if(m_State == READING)
   {
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = name;
     draw.flags |= DrawFlags::SetMarker;
 
@@ -236,7 +236,7 @@ bool WrappedOpenGL::Serialise_glPushDebugGroup(GLenum source, GLuint id, GLsizei
 
   if(m_State == READING)
   {
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = name;
     draw.flags |= DrawFlags::PushMarker;
 
@@ -263,7 +263,7 @@ bool WrappedOpenGL::Serialise_glPopDebugGroup()
 {
   if(m_State == READING && !m_CurEvents.empty())
   {
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = "API Calls";
     draw.flags |= DrawFlags::SetMarker | DrawFlags::APICalls;
 

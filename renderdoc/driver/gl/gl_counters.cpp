@@ -209,7 +209,7 @@ void GLReplay::FillTimers(GLCounterContext &ctx, const DrawcallTreeNode &drawnod
 
   for(size_t i = 0; i < drawnode.children.size(); i++)
   {
-    const FetchDrawcall &d = drawnode.children[i].draw;
+    const DrawcallDescription &d = drawnode.children[i].draw;
     FillTimers(ctx, drawnode.children[i], counters);
 
     if(d.events.count == 0)

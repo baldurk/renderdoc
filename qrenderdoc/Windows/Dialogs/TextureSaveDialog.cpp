@@ -29,7 +29,8 @@
 #include "Code/QRDUtils.h"
 #include "ui_TextureSaveDialog.h"
 
-TextureSaveDialog::TextureSaveDialog(const FetchTexture &t, const TextureSave &s, QWidget *parent)
+TextureSaveDialog::TextureSaveDialog(const TextureDescription &t, const TextureSave &s,
+                                     QWidget *parent)
     : QDialog(parent), ui(new Ui::TextureSaveDialog)
 {
   setWindowFlags(windowFlags() & ~Qt::WindowContextHelpButtonHint);

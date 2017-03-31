@@ -807,7 +807,7 @@ bool GLReplay::GetMinMax(ResourceId texid, uint32_t sliceFace, uint32_t mip, uin
 
   auto &texDetails = m_pDriver->m_Textures[texid];
 
-  FetchTexture details = GetTexture(texid);
+  TextureDescription details = GetTexture(texid);
 
   const GLHookSet &gl = m_pDriver->GetHookset();
 
@@ -981,7 +981,7 @@ bool GLReplay::GetHistogram(ResourceId texid, uint32_t sliceFace, uint32_t mip, 
 
   auto &texDetails = m_pDriver->m_Textures[texid];
 
-  FetchTexture details = GetTexture(texid);
+  TextureDescription details = GetTexture(texid);
 
   const GLHookSet &gl = m_pDriver->GetHookset();
 
@@ -2852,7 +2852,7 @@ ResourceId GLReplay::RenderOverlay(ResourceId texid, CompType typeHint, DebugOve
         gl.glUseProgram(DebugData.trisizeProg);
         gl.glBindProgramPipeline(0);
 
-        const FetchDrawcall *draw = m_pDriver->GetDrawcall(events[i]);
+        const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[i]);
 
         for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
         {
@@ -3376,7 +3376,7 @@ void GLReplay::InitPostVSBuffers(uint32_t eventID)
     return;
   }
 
-  const FetchDrawcall *drawcall = m_pDriver->GetDrawcall(eventID);
+  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventID);
 
   if(drawcall->numIndices == 0)
   {
@@ -4447,7 +4447,7 @@ void GLReplay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
       prev = passEvents[i];
     }
 
-    const FetchDrawcall *d = m_pDriver->GetDrawcall(passEvents[i]);
+    const DrawcallDescription *d = m_pDriver->GetDrawcall(passEvents[i]);
 
     if(d)
       InitPostVSBuffers(passEvents[i]);

@@ -395,9 +395,9 @@ private:
 
   vector<DebugMessage> m_DebugMessages;
 
-  vector<FetchFrameInfo> m_CapturedFrames;
-  FetchFrameRecord m_FrameRecord;
-  vector<FetchDrawcall *> m_Drawcalls;
+  vector<FrameDescription> m_CapturedFrames;
+  FrameRecord m_FrameRecord;
+  vector<DrawcallDescription *> m_Drawcalls;
 
 public:
   static const int AllocPoolCount = 4;
@@ -430,9 +430,9 @@ public:
 
   Serialiser *GetSerialiser() { return m_pSerialiser; }
   ResourceId GetResourceID() { return m_ResourceID; }
-  FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
-  FetchFrameStatistics &GetFrameStats() { return m_FrameRecord.frameInfo.stats; }
-  const FetchDrawcall *GetDrawcall(uint32_t eventID);
+  FrameRecord &GetFrameRecord() { return m_FrameRecord; }
+  FrameStatistics &GetFrameStats() { return m_FrameRecord.frameInfo.stats; }
+  const DrawcallDescription *GetDrawcall(uint32_t eventID);
 
   void LockForChunkFlushing();
   void UnlockForChunkFlushing();

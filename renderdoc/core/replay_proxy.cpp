@@ -1258,7 +1258,7 @@ void Serialiser::Serialise(const char *name, VKPipe::State &el)
 #pragma region Data descriptors
 
 template <>
-void Serialiser::Serialise(const char *name, FetchTexture &el)
+void Serialiser::Serialise(const char *name, TextureDescription &el)
 {
   Serialise("", el.name);
   Serialise("", el.customName);
@@ -1281,7 +1281,7 @@ void Serialiser::Serialise(const char *name, FetchTexture &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchBuffer &el)
+void Serialiser::Serialise(const char *name, BufferDescription &el)
 {
   Serialise("", el.ID);
   Serialise("", el.name);
@@ -1316,7 +1316,7 @@ void Serialiser::Serialise(const char *name, DebugMessage &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchAPIEvent &el)
+void Serialiser::Serialise(const char *name, APIEvent &el)
 {
   Serialise("", el.eventID);
   Serialise("", el.callstack);
@@ -1327,7 +1327,7 @@ void Serialiser::Serialise(const char *name, FetchAPIEvent &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchDrawcall &el)
+void Serialiser::Serialise(const char *name, DrawcallDescription &el)
 {
   Serialise("", el.eventID);
   Serialise("", el.drawcallID);
@@ -1368,7 +1368,7 @@ void Serialiser::Serialise(const char *name, FetchDrawcall &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameConstantBindStats &el)
+void Serialiser::Serialise(const char *name, ConstantBindStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.sets);
@@ -1380,7 +1380,7 @@ void Serialiser::Serialise(const char *name, FetchFrameConstantBindStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameSamplerBindStats &el)
+void Serialiser::Serialise(const char *name, SamplerBindStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.sets);
@@ -1391,7 +1391,7 @@ void Serialiser::Serialise(const char *name, FetchFrameSamplerBindStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameResourceBindStats &el)
+void Serialiser::Serialise(const char *name, ResourceBindStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.sets);
@@ -1403,7 +1403,7 @@ void Serialiser::Serialise(const char *name, FetchFrameResourceBindStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameUpdateStats &el)
+void Serialiser::Serialise(const char *name, ResourceUpdateStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.clients);
@@ -1415,7 +1415,7 @@ void Serialiser::Serialise(const char *name, FetchFrameUpdateStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameDrawStats &el)
+void Serialiser::Serialise(const char *name, DrawcallStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.instanced);
@@ -1426,7 +1426,7 @@ void Serialiser::Serialise(const char *name, FetchFrameDrawStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameDispatchStats &el)
+void Serialiser::Serialise(const char *name, DispatchStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.indirect);
@@ -1435,7 +1435,7 @@ void Serialiser::Serialise(const char *name, FetchFrameDispatchStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameIndexBindStats &el)
+void Serialiser::Serialise(const char *name, IndexBindStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.sets);
@@ -1445,7 +1445,7 @@ void Serialiser::Serialise(const char *name, FetchFrameIndexBindStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameVertexBindStats &el)
+void Serialiser::Serialise(const char *name, VertexBindStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.sets);
@@ -1456,7 +1456,7 @@ void Serialiser::Serialise(const char *name, FetchFrameVertexBindStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameLayoutBindStats &el)
+void Serialiser::Serialise(const char *name, LayoutBindStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.sets);
@@ -1466,7 +1466,7 @@ void Serialiser::Serialise(const char *name, FetchFrameLayoutBindStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameShaderStats &el)
+void Serialiser::Serialise(const char *name, ShaderChangeStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.sets);
@@ -1477,7 +1477,7 @@ void Serialiser::Serialise(const char *name, FetchFrameShaderStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameBlendStats &el)
+void Serialiser::Serialise(const char *name, BlendStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.sets);
@@ -1488,7 +1488,7 @@ void Serialiser::Serialise(const char *name, FetchFrameBlendStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameDepthStencilStats &el)
+void Serialiser::Serialise(const char *name, DepthStencilStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.sets);
@@ -1499,7 +1499,7 @@ void Serialiser::Serialise(const char *name, FetchFrameDepthStencilStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameRasterizationStats &el)
+void Serialiser::Serialise(const char *name, RasterizationStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.sets);
@@ -1512,7 +1512,7 @@ void Serialiser::Serialise(const char *name, FetchFrameRasterizationStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameOutputStats &el)
+void Serialiser::Serialise(const char *name, OutputTargetStats &el)
 {
   Serialise("", el.calls);
   Serialise("", el.sets);
@@ -1523,18 +1523,18 @@ void Serialiser::Serialise(const char *name, FetchFrameOutputStats &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameStatistics &el)
+void Serialiser::Serialise(const char *name, FrameStatistics &el)
 {
   Serialise("", el.recorded);
   // #mivance note this is technically error-prone from the perspective
   // that we're passing references to pointers, but as we're really
   // dealing with arrays,t hey'll never be NULL and need to be assigned
   // to, so this is fine
-  FetchFrameConstantBindStats *constants = el.constants;
+  ConstantBindStats *constants = el.constants;
   SerialiseComplexArray<(uint32_t)ShaderStage::Count>("", constants);
-  FetchFrameSamplerBindStats *samplers = el.samplers;
+  SamplerBindStats *samplers = el.samplers;
   SerialiseComplexArray<(uint32_t)ShaderStage::Count>("", samplers);
-  FetchFrameResourceBindStats *resources = el.resources;
+  ResourceBindStats *resources = el.resources;
   SerialiseComplexArray<(uint32_t)ShaderStage::Count>("", resources);
   Serialise("", el.updates);
   Serialise("", el.draws);
@@ -1542,7 +1542,7 @@ void Serialiser::Serialise(const char *name, FetchFrameStatistics &el)
   Serialise("", el.indices);
   Serialise("", el.vertices);
   Serialise("", el.layouts);
-  FetchFrameShaderStats *shaders = el.shaders;
+  ShaderChangeStats *shaders = el.shaders;
   SerialiseComplexArray<(uint32_t)ShaderStage::Count>("", shaders);
   Serialise("", el.blends);
   Serialise("", el.depths);
@@ -1553,7 +1553,7 @@ void Serialiser::Serialise(const char *name, FetchFrameStatistics &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameInfo &el)
+void Serialiser::Serialise(const char *name, FrameDescription &el)
 {
   Serialise("", el.frameNumber);
   Serialise("", el.fileOffset);
@@ -1569,7 +1569,7 @@ void Serialiser::Serialise(const char *name, FetchFrameInfo &el)
 }
 
 template <>
-void Serialiser::Serialise(const char *name, FetchFrameRecord &el)
+void Serialiser::Serialise(const char *name, FrameRecord &el)
 {
   Serialise("", el.frameInfo);
   Serialise("", el.drawcallList);
@@ -2057,7 +2057,7 @@ void ReplayProxy::EnsureTexCached(ResourceId texid, uint32_t arrayIdx, uint32_t 
   {
     if(m_ProxyTextures.find(texid) == m_ProxyTextures.end())
     {
-      FetchTexture tex = GetTexture(texid);
+      TextureDescription tex = GetTexture(texid);
 
       ProxyTextureProperties proxy;
       RemapProxyTextureIfNeeded(tex.format, proxy.params);
@@ -2089,7 +2089,7 @@ void ReplayProxy::EnsureBufCached(ResourceId bufid)
   {
     if(m_ProxyBufferIds.find(bufid) == m_ProxyBufferIds.end())
     {
-      FetchBuffer buf = GetBuffer(bufid);
+      BufferDescription buf = GetBuffer(bufid);
       m_ProxyBufferIds[bufid] = m_Proxy->CreateProxyBuffer(buf);
     }
 
@@ -2291,9 +2291,9 @@ vector<DebugMessage> ReplayProxy::GetDebugMessages()
   return ret;
 }
 
-FetchTexture ReplayProxy::GetTexture(ResourceId id)
+TextureDescription ReplayProxy::GetTexture(ResourceId id)
 {
-  FetchTexture ret = {};
+  TextureDescription ret = {};
 
   m_ToReplaySerialiser->Serialise("", id);
 
@@ -2331,9 +2331,9 @@ vector<ResourceId> ReplayProxy::GetBuffers()
   return ret;
 }
 
-FetchBuffer ReplayProxy::GetBuffer(ResourceId id)
+BufferDescription ReplayProxy::GetBuffer(ResourceId id)
 {
-  FetchBuffer ret = {};
+  BufferDescription ret = {};
 
   m_ToReplaySerialiser->Serialise("", id);
 
@@ -2440,9 +2440,9 @@ vector<EventUsage> ReplayProxy::GetUsage(ResourceId id)
   return ret;
 }
 
-FetchFrameRecord ReplayProxy::GetFrameRecord()
+FrameRecord ReplayProxy::GetFrameRecord()
 {
-  FetchFrameRecord ret;
+  FrameRecord ret;
 
   if(m_RemoteServer)
   {

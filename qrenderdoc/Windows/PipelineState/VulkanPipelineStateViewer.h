@@ -108,10 +108,10 @@ private:
   QString disassembleSPIRV(const ShaderReflection *shaderDetails);
 
   template <typename viewType>
-  void setViewDetails(QTreeWidgetItem *node, const viewType &view, FetchTexture *tex);
+  void setViewDetails(QTreeWidgetItem *node, const viewType &view, TextureDescription *tex);
 
   template <typename viewType>
-  void setViewDetails(QTreeWidgetItem *node, const viewType &view, FetchBuffer *buf);
+  void setViewDetails(QTreeWidgetItem *node, const viewType &view, BufferDescription *buf);
 
   bool showNode(bool usedSlot, bool filledSlot);
 

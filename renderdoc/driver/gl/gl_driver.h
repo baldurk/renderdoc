@@ -72,19 +72,19 @@ enum CaptureFailReason
 struct DrawcallTreeNode
 {
   DrawcallTreeNode() {}
-  explicit DrawcallTreeNode(const FetchDrawcall &d) : draw(d) {}
-  FetchDrawcall draw;
+  explicit DrawcallTreeNode(const DrawcallDescription &d) : draw(d) {}
+  DrawcallDescription draw;
   vector<DrawcallTreeNode> children;
 
-  DrawcallTreeNode &operator=(const FetchDrawcall &d)
+  DrawcallTreeNode &operator=(const DrawcallDescription &d)
   {
     *this = DrawcallTreeNode(d);
     return *this;
   }
 
-  vector<FetchDrawcall> Bake()
+  vector<DrawcallDescription> Bake()
   {
-    vector<FetchDrawcall> ret;
+    vector<DrawcallDescription> ret;
     if(children.empty())
       return ret;
 
@@ -219,13 +219,13 @@ private:
       PersistentMapMemoryBarrier(m_CoherentMaps);
   }
 
-  vector<FetchFrameInfo> m_CapturedFrames;
-  FetchFrameRecord m_FrameRecord;
-  vector<FetchDrawcall *> m_Drawcalls;
+  vector<FrameDescription> m_CapturedFrames;
+  FrameRecord m_FrameRecord;
+  vector<DrawcallDescription *> m_Drawcalls;
 
   // replay
 
-  vector<FetchAPIEvent> m_CurEvents, m_Events;
+  vector<APIEvent> m_CurEvents, m_Events;
   bool m_AddedDrawcall;
 
   uint64_t m_CurChunkOffset;
@@ -351,8 +351,8 @@ private:
   void ProcessChunk(uint64_t offset, GLChunkType context);
   void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
   void ContextProcessChunk(uint64_t offset, GLChunkType chunk);
-  void AddUsage(const FetchDrawcall &d);
-  void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
+  void AddUsage(const DrawcallDescription &d);
+  void AddDrawcall(const DrawcallDescription &d, bool hasEvents);
   void AddEvent(string description);
 
   void Serialise_CaptureScope(uint64_t offset);
@@ -552,11 +552,11 @@ public:
   Serialiser *GetSerialiser() { return m_pSerialiser; }
   GLuint GetFakeBBFBO() { return m_FakeBB_FBO; }
   GLuint GetFakeVAO() { return m_FakeVAO; }
-  FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
-  FetchAPIEvent GetEvent(uint32_t eventID);
+  FrameRecord &GetFrameRecord() { return m_FrameRecord; }
+  APIEvent GetEvent(uint32_t eventID);
 
   const DrawcallTreeNode &GetRootDraw() { return m_ParentDrawcall; }
-  const FetchDrawcall *GetDrawcall(uint32_t eventID);
+  const DrawcallDescription *GetDrawcall(uint32_t eventID);
 
   void SuppressDebugMessages(bool suppress) { m_SuppressDebugMessages = suppress; }
   vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }

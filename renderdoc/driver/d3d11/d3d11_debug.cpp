@@ -3725,7 +3725,7 @@ void D3D11DebugManager::InitPostVSBuffers(uint32_t eventID)
     return;
   }
 
-  const FetchDrawcall *drawcall = m_WrappedDevice->GetDrawcall(eventID);
+  const DrawcallDescription *drawcall = m_WrappedDevice->GetDrawcall(eventID);
 
   if(drawcall->numIndices == 0)
     return;

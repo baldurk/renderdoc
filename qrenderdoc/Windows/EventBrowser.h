@@ -82,7 +82,7 @@ public slots:
   void jumpToBookmark(int idx);
 
 private:
-  uint AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<FetchDrawcall> &draws);
+  uint AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<DrawcallDescription> &draws);
   void SetDrawcallTimes(QTreeWidgetItem *node, const rdctype::array<CounterResult> &results);
 
   void ExpandNode(QTreeWidgetItem *node);

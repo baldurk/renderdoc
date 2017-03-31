@@ -543,7 +543,7 @@ uint32_t WrappedVulkan::HandlePreCallback(VkCommandBuffer commandBuffer, DrawFla
   RDCASSERT(eventID != 0);
 
   // handle all aliases of this drawcall as long as it's not a multidraw
-  const FetchDrawcall *draw = GetDrawcall(eventID);
+  const DrawcallDescription *draw = GetDrawcall(eventID);
 
   if(draw == NULL || !(draw->flags & DrawFlags::MultiDraw))
   {
@@ -1119,7 +1119,7 @@ void WrappedVulkan::StartFrameCapture(void *dev, void *wnd)
 
   m_FrameCounter = RDCMAX(1 + (uint32_t)m_CapturedFrames.size(), m_FrameCounter);
 
-  FetchFrameInfo frame;
+  FrameDescription frame;
   frame.frameNumber = m_FrameCounter + 1;
   frame.captureTime = Timing::GetUnixTimestamp();
   RDCEraseEl(frame.stats);
@@ -1763,7 +1763,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
   if(m_State == EXECUTING)
   {
-    FetchAPIEvent ev = GetEvent(startEventID);
+    APIEvent ev = GetEvent(startEventID);
     m_RootEventID = ev.eventID;
 
     // if not partial, we need to be sure to replay
@@ -1845,10 +1845,7 @@ void WrappedVulkan::ContextReplayLog(LogState readType, uint32_t startEventID, u
 
     struct SortEID
     {
-      bool operator()(const FetchAPIEvent &a, const FetchAPIEvent &b)
-      {
-        return a.eventID < b.eventID;
-      }
+      bool operator()(const APIEvent &a, const APIEvent &b) { return a.eventID < b.eventID; }
     };
 
     std::sort(m_Events.begin(), m_Events.end(), SortEID());
@@ -2301,7 +2298,7 @@ void WrappedVulkan::ProcessChunk(uint64_t offset, VulkanChunkType context)
       {
         AddEvent("vkQueuePresentKHR()");
 
-        FetchDrawcall draw;
+        DrawcallDescription draw;
         draw.name = "vkQueuePresentKHR()";
         draw.flags |= DrawFlags::Present;
 
@@ -2736,11 +2733,11 @@ VkCommandBuffer WrappedVulkan::RerecordCmdBuf(ResourceId cmdid, PartialReplayInd
   return VK_NULL_HANDLE;
 }
 
-void WrappedVulkan::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
+void WrappedVulkan::AddDrawcall(const DrawcallDescription &d, bool hasEvents)
 {
   m_AddedDrawcall = true;
 
-  FetchDrawcall draw = d;
+  DrawcallDescription draw = d;
   draw.eventID = m_LastCmdBufferID != ResourceId()
                      ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID
                      : m_RootEventID;
@@ -2805,9 +2802,9 @@ void WrappedVulkan::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
 
   if(hasEvents)
   {
-    vector<FetchAPIEvent> &srcEvents = m_LastCmdBufferID != ResourceId()
-                                           ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents
-                                           : m_RootEvents;
+    vector<APIEvent> &srcEvents = m_LastCmdBufferID != ResourceId()
+                                      ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEvents
+                                      : m_RootEvents;
 
     draw.events = srcEvents;
     srcEvents.clear();
@@ -2834,7 +2831,7 @@ void WrappedVulkan::AddDrawcall(const FetchDrawcall &d, bool hasEvents)
 
 void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessage> &debugMessages)
 {
-  FetchDrawcall &d = drawNode.draw;
+  DrawcallDescription &d = drawNode.draw;
 
   const BakedCmdBufferInfo::CmdBufferState &state = m_BakedCmdBufferInfo[m_LastCmdBufferID].state;
   VulkanCreationInfo &c = m_CreationInfo;
@@ -3038,7 +3035,7 @@ void WrappedVulkan::AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessa
 
 void WrappedVulkan::AddEvent(string description)
 {
-  FetchAPIEvent apievent;
+  APIEvent apievent;
 
   apievent.fileOffset = m_CurChunkOffset;
   apievent.eventID = m_LastCmdBufferID != ResourceId()
@@ -3076,7 +3073,7 @@ void WrappedVulkan::AddEvent(string description)
   m_EventMessages.clear();
 }
 
-FetchAPIEvent WrappedVulkan::GetEvent(uint32_t eventID)
+APIEvent WrappedVulkan::GetEvent(uint32_t eventID)
 {
   for(size_t i = m_Events.size() - 1; i > 0; i--)
   {
@@ -3087,7 +3084,7 @@ FetchAPIEvent WrappedVulkan::GetEvent(uint32_t eventID)
   return m_Events[0];
 }
 
-const FetchDrawcall *WrappedVulkan::GetDrawcall(uint32_t eventID)
+const DrawcallDescription *WrappedVulkan::GetDrawcall(uint32_t eventID)
 {
   if(eventID >= m_Drawcalls.size())
     return NULL;

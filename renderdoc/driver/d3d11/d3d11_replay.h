@@ -49,10 +49,10 @@ public:
   APIProperties GetAPIProperties();
 
   vector<ResourceId> GetBuffers();
-  FetchBuffer GetBuffer(ResourceId id);
+  BufferDescription GetBuffer(ResourceId id);
 
   vector<ResourceId> GetTextures();
-  FetchTexture GetTexture(ResourceId id);
+  TextureDescription GetTexture(ResourceId id);
 
   vector<DebugMessage> GetDebugMessages();
 
@@ -60,7 +60,7 @@ public:
 
   vector<EventUsage> GetUsage(ResourceId id);
 
-  FetchFrameRecord GetFrameRecord();
+  FrameRecord GetFrameRecord();
 
   void SavePipelineState() { m_CurPipelineState = MakePipelineState(); }
   D3D11Pipe::State GetD3D11PipelineState() { return m_CurPipelineState; }
@@ -118,12 +118,12 @@ public:
   void DescribeCounter(GPUCounter counterID, CounterDescription &desc);
   vector<CounterResult> FetchCounters(const vector<GPUCounter> &counters);
 
-  ResourceId CreateProxyTexture(const FetchTexture &templateTex);
+  ResourceId CreateProxyTexture(const TextureDescription &templateTex);
   void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
                            size_t dataSize);
   bool IsTextureSupported(const ResourceFormat &format);
 
-  ResourceId CreateProxyBuffer(const FetchBuffer &templateBuf);
+  ResourceId CreateProxyBuffer(const BufferDescription &templateBuf);
   void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize);
 
   void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws, const MeshDisplay &cfg);

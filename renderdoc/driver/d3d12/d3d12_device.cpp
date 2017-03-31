@@ -1283,7 +1283,7 @@ void WrappedID3D12Device::StartFrameCapture(void *dev, void *wnd)
 
   m_FrameCounter = RDCMAX(1 + (uint32_t)m_CapturedFrames.size(), m_FrameCounter);
 
-  FetchFrameInfo frame;
+  FrameDescription frame;
   frame.frameNumber = m_FrameCounter + 1;
   frame.captureTime = Timing::GetUnixTimestamp();
   RDCEraseEl(frame.stats);
@@ -2221,7 +2221,7 @@ void WrappedID3D12Device::SetLogFile(const char *logfile)
   m_pSerialiser->SetUserData(m_ResourceManager);
 }
 
-const FetchDrawcall *WrappedID3D12Device::GetDrawcall(uint32_t eventID)
+const DrawcallDescription *WrappedID3D12Device::GetDrawcall(uint32_t eventID)
 {
   if(eventID >= m_Drawcalls.size())
     return NULL;

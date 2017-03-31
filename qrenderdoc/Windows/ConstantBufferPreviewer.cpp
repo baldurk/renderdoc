@@ -210,7 +210,7 @@ void ConstantBufferPreviewer::updateLabels()
 
   bool needName = true;
 
-  FetchBuffer *buf = m_Ctx.GetBuffer(m_cbuffer);
+  BufferDescription *buf = m_Ctx.GetBuffer(m_cbuffer);
   if(buf)
   {
     bufName = buf->name;

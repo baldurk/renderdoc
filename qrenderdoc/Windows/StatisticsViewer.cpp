@@ -92,10 +92,10 @@ QString CreateSimpleIntegerHistogram(const QString &legend, const rdctype::array
   return text;
 }
 
-void AppendDrawStatistics(QString &statisticsLog, const FetchFrameInfo &frameInfo)
+void AppendDrawStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
 {
   // #mivance see AppendConstantBindStatistics
-  const FetchFrameDrawStats &draws = frameInfo.stats.draws;
+  const DrawcallStats &draws = frameInfo.stats.draws;
 
   statisticsLog.append("\n*** Draw Statistics ***\n\n");
 
@@ -131,7 +131,7 @@ void AppendDrawStatistics(QString &statisticsLog, const FetchFrameInfo &frameInf
   }
 }
 
-void AppendDispatchStatistics(QString &statisticsLog, const FetchFrameInfo &frameInfo)
+void AppendDispatchStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
 {
   statisticsLog.append("\n*** Dispatch Statistics ***\n\n");
   statisticsLog.append(QString("Total calls: %1, indirect: %2\n")
@@ -139,12 +139,12 @@ void AppendDispatchStatistics(QString &statisticsLog, const FetchFrameInfo &fram
                            .arg(frameInfo.stats.dispatches.indirect));
 }
 
-void AppendInputAssemblerStatistics(QString &statisticsLog, const FetchFrameInfo &frameInfo)
+void AppendInputAssemblerStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
 {
-  const FetchFrameIndexBindStats &indices = frameInfo.stats.indices;
-  const FetchFrameLayoutBindStats &layouts = frameInfo.stats.layouts;
+  const IndexBindStats &indices = frameInfo.stats.indices;
+  const LayoutBindStats &layouts = frameInfo.stats.layouts;
 
-  const FetchFrameVertexBindStats &vertices = frameInfo.stats.vertices;
+  const VertexBindStats &vertices = frameInfo.stats.vertices;
 
   statisticsLog.append("\n*** Input Assembler Statistics ***\n\n");
 
@@ -169,10 +169,10 @@ void AppendInputAssemblerStatistics(QString &statisticsLog, const FetchFrameInfo
 }
 
 void AppendShaderStatistics(CaptureContext &ctx, QString &statisticsLog,
-                            const FetchFrameInfo &frameInfo)
+                            const FrameDescription &frameInfo)
 {
-  const FetchFrameShaderStats *shaders = frameInfo.stats.shaders;
-  FetchFrameShaderStats totalShadersPerStage;
+  const ShaderChangeStats *shaders = frameInfo.stats.shaders;
+  ShaderChangeStats totalShadersPerStage;
   memset(&totalShadersPerStage, 0, sizeof(totalShadersPerStage));
   for(auto s : indices<ShaderStage>())
   {
@@ -204,18 +204,18 @@ void AppendShaderStatistics(CaptureContext &ctx, QString &statisticsLog,
 }
 
 void AppendConstantBindStatistics(CaptureContext &ctx, QString &statisticsLog,
-                                  const FetchFrameInfo &frameInfo)
+                                  const FrameDescription &frameInfo)
 {
   // #mivance C++-side we guarantee all stages will have the same slots
   // and sizes count, so pattern off of the first frame's first stage
-  const FetchFrameConstantBindStats &reference = frameInfo.stats.constants[0];
+  const ConstantBindStats &reference = frameInfo.stats.constants[0];
 
   // #mivance there is probably a way to iterate the fields via
   // GetType()/GetField() and build a sort of dynamic min/max/average
   // structure for a given type with known integral types (or arrays
   // thereof), but given we're heading for a Qt/C++ rewrite of the UI
   // perhaps best not to dwell too long on that
-  FetchFrameConstantBindStats totalConstantsPerStage[ENUM_ARRAY_SIZE(ShaderStage)];
+  ConstantBindStats totalConstantsPerStage[ENUM_ARRAY_SIZE(ShaderStage)];
   memset(&totalConstantsPerStage, 0, sizeof(totalConstantsPerStage));
   for(auto s : indices<ShaderStage>())
   {
@@ -224,7 +224,7 @@ void AppendConstantBindStatistics(CaptureContext &ctx, QString &statisticsLog,
   }
 
   {
-    const FetchFrameConstantBindStats *constants = frameInfo.stats.constants;
+    const ConstantBindStats *constants = frameInfo.stats.constants;
     for(auto s : indices<ShaderStage>())
     {
       totalConstantsPerStage[s].calls += constants[s].calls;
@@ -239,14 +239,14 @@ void AppendConstantBindStatistics(CaptureContext &ctx, QString &statisticsLog,
     }
   }
 
-  FetchFrameConstantBindStats totalConstantsForAllStages;
+  ConstantBindStats totalConstantsForAllStages;
   memset(&totalConstantsForAllStages, 0, sizeof(totalConstantsForAllStages));
   totalConstantsForAllStages.bindslots.create(totalConstantsPerStage[0].bindslots.count);
   totalConstantsForAllStages.sizes.create(totalConstantsPerStage[0].sizes.count);
 
   for(auto s : indices<ShaderStage>())
   {
-    const FetchFrameConstantBindStats &perStage = totalConstantsPerStage[s];
+    const ConstantBindStats &perStage = totalConstantsPerStage[s];
     totalConstantsForAllStages.calls += perStage.calls;
     totalConstantsForAllStages.sets += perStage.sets;
     totalConstantsForAllStages.nulls += perStage.nulls;
@@ -300,12 +300,12 @@ void AppendConstantBindStatistics(CaptureContext &ctx, QString &statisticsLog,
 }
 
 void AppendSamplerBindStatistics(CaptureContext &ctx, QString &statisticsLog,
-                                 const FetchFrameInfo &frameInfo)
+                                 const FrameDescription &frameInfo)
 {
   // #mivance see AppendConstantBindStatistics
-  const FetchFrameSamplerBindStats &reference = frameInfo.stats.samplers[0];
+  const SamplerBindStats &reference = frameInfo.stats.samplers[0];
 
-  FetchFrameSamplerBindStats totalSamplersPerStage[ENUM_ARRAY_SIZE(ShaderStage)];
+  SamplerBindStats totalSamplersPerStage[ENUM_ARRAY_SIZE(ShaderStage)];
   memset(&totalSamplersPerStage, 0, sizeof(totalSamplersPerStage));
   for(auto s : indices<ShaderStage>())
   {
@@ -313,7 +313,7 @@ void AppendSamplerBindStatistics(CaptureContext &ctx, QString &statisticsLog,
   }
 
   {
-    const FetchFrameSamplerBindStats *samplers = frameInfo.stats.samplers;
+    const SamplerBindStats *samplers = frameInfo.stats.samplers;
     for(auto s : indices<ShaderStage>())
     {
       totalSamplersPerStage[s].calls += samplers[s].calls;
@@ -327,13 +327,13 @@ void AppendSamplerBindStatistics(CaptureContext &ctx, QString &statisticsLog,
     }
   }
 
-  FetchFrameSamplerBindStats totalSamplersForAllStages;
+  SamplerBindStats totalSamplersForAllStages;
   memset(&totalSamplersForAllStages, 0, sizeof(totalSamplersForAllStages));
   totalSamplersForAllStages.bindslots.create(totalSamplersPerStage[0].bindslots.count);
 
   for(auto s : indices<ShaderStage>())
   {
-    FetchFrameSamplerBindStats perStage = totalSamplersPerStage[s];
+    SamplerBindStats perStage = totalSamplersPerStage[s];
     totalSamplersForAllStages.calls += perStage.calls;
     totalSamplersForAllStages.sets += perStage.sets;
     totalSamplersForAllStages.nulls += perStage.nulls;
@@ -365,12 +365,12 @@ void AppendSamplerBindStatistics(CaptureContext &ctx, QString &statisticsLog,
 }
 
 void AppendResourceBindStatistics(CaptureContext &ctx, QString &statisticsLog,
-                                  const FetchFrameInfo &frameInfo)
+                                  const FrameDescription &frameInfo)
 {
   // #mivance see AppendConstantBindStatistics
-  const FetchFrameResourceBindStats &reference = frameInfo.stats.resources[0];
+  const ResourceBindStats &reference = frameInfo.stats.resources[0];
 
-  FetchFrameResourceBindStats totalResourcesPerStage[ENUM_ARRAY_SIZE(ShaderStage)];
+  ResourceBindStats totalResourcesPerStage[ENUM_ARRAY_SIZE(ShaderStage)];
   memset(&totalResourcesPerStage, 0, sizeof(totalResourcesPerStage));
   for(auto s : indices<ShaderStage>())
   {
@@ -379,7 +379,7 @@ void AppendResourceBindStatistics(CaptureContext &ctx, QString &statisticsLog,
   }
 
   {
-    const FetchFrameResourceBindStats *resources = frameInfo.stats.resources;
+    const ResourceBindStats *resources = frameInfo.stats.resources;
     for(auto s : indices<ShaderStage>())
     {
       totalResourcesPerStage[s].calls += resources[s].calls;
@@ -398,14 +398,14 @@ void AppendResourceBindStatistics(CaptureContext &ctx, QString &statisticsLog,
     }
   }
 
-  FetchFrameResourceBindStats totalResourcesForAllStages;
+  ResourceBindStats totalResourcesForAllStages;
   memset(&totalResourcesForAllStages, 0, sizeof(totalResourcesForAllStages));
   totalResourcesForAllStages.types.create(totalResourcesPerStage[0].types.count);
   totalResourcesForAllStages.bindslots.create(totalResourcesPerStage[0].bindslots.count);
 
   for(auto s : indices<ShaderStage>())
   {
-    FetchFrameResourceBindStats perStage = totalResourcesPerStage[s];
+    ResourceBindStats perStage = totalResourcesPerStage[s];
     totalResourcesForAllStages.calls += perStage.calls;
     totalResourcesForAllStages.sets += perStage.sets;
     totalResourcesForAllStages.nulls += perStage.nulls;
@@ -461,18 +461,18 @@ void AppendResourceBindStatistics(CaptureContext &ctx, QString &statisticsLog,
       "Aggregate slot counts per invocation across all stages", totalResourcesForAllStages.bindslots));
 }
 
-void AppendUpdateStatistics(QString &statisticsLog, const FetchFrameInfo &frameInfo)
+void AppendUpdateStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
 {
   // #mivance see AppendConstantBindStatistics
-  const FetchFrameUpdateStats &reference = frameInfo.stats.updates;
+  const ResourceUpdateStats &reference = frameInfo.stats.updates;
 
-  FetchFrameUpdateStats totalUpdates;
+  ResourceUpdateStats totalUpdates;
   memset(&totalUpdates, 0, sizeof(totalUpdates));
   totalUpdates.types.create(reference.types.count);
   totalUpdates.sizes.create(reference.sizes.count);
 
   {
-    FetchFrameUpdateStats updates = frameInfo.stats.updates;
+    ResourceUpdateStats updates = frameInfo.stats.updates;
 
     totalUpdates.calls += updates.calls;
     totalUpdates.clients += updates.clients;
@@ -535,9 +535,9 @@ void AppendUpdateStatistics(QString &statisticsLog, const FetchFrameInfo &frameI
   }
 }
 
-void AppendBlendStatistics(QString &statisticsLog, const FetchFrameInfo &frameInfo)
+void AppendBlendStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
 {
-  FetchFrameBlendStats blends = frameInfo.stats.blends;
+  BlendStats blends = frameInfo.stats.blends;
   statisticsLog.append("\n*** Blend Statistics ***\n");
   statisticsLog.append(
       QString("Blend calls: %1 non-null sets: %2, null (default) sets: %3, redundant sets: %4\n")
@@ -547,9 +547,9 @@ void AppendBlendStatistics(QString &statisticsLog, const FetchFrameInfo &frameIn
           .arg(blends.redundants));
 }
 
-void AppendDepthStencilStatistics(QString &statisticsLog, const FetchFrameInfo &frameInfo)
+void AppendDepthStencilStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
 {
-  FetchFrameDepthStencilStats depths = frameInfo.stats.depths;
+  DepthStencilStats depths = frameInfo.stats.depths;
   statisticsLog.append("\n*** Depth Stencil Statistics ***\n");
   statisticsLog.append(QString("Depth/stencil calls: %1 non-null sets: %2, null (default) sets: "
                                "%3, redundant sets: %4\n")
@@ -559,9 +559,9 @@ void AppendDepthStencilStatistics(QString &statisticsLog, const FetchFrameInfo &
                            .arg(depths.redundants));
 }
 
-void AppendRasterizationStatistics(QString &statisticsLog, const FetchFrameInfo &frameInfo)
+void AppendRasterizationStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
 {
-  FetchFrameRasterizationStats rasters = frameInfo.stats.rasters;
+  RasterizationStats rasters = frameInfo.stats.rasters;
   statisticsLog.append("\n*** Rasterization Statistics ***\n");
   statisticsLog.append(QString("Rasterization calls: %1 non-null sets: %2, null (default) sets: "
                                "%3, redundant sets: %4\n")
@@ -573,9 +573,9 @@ void AppendRasterizationStatistics(QString &statisticsLog, const FetchFrameInfo 
   statisticsLog.append(CreateSimpleIntegerHistogram("Scissors set", rasters.rects));
 }
 
-void AppendOutputStatistics(QString &statisticsLog, const FetchFrameInfo &frameInfo)
+void AppendOutputStatistics(QString &statisticsLog, const FrameDescription &frameInfo)
 {
-  FetchFrameOutputStats outputs = frameInfo.stats.outputs;
+  OutputTargetStats outputs = frameInfo.stats.outputs;
   statisticsLog.append("\n*** Output Statistics ***\n");
   statisticsLog.append(QString("Output calls: %1 non-null sets: %2, null sets: %3\n")
                            .arg(outputs.calls)
@@ -585,7 +585,7 @@ void AppendOutputStatistics(QString &statisticsLog, const FetchFrameInfo &frameI
 }
 
 void AppendDetailedInformation(CaptureContext &ctx, QString &statisticsLog,
-                               const FetchFrameInfo &frameInfo)
+                               const FrameDescription &frameInfo)
 {
   if(!frameInfo.stats.recorded)
     return;
@@ -604,7 +604,7 @@ void AppendDetailedInformation(CaptureContext &ctx, QString &statisticsLog,
   AppendOutputStatistics(statisticsLog, frameInfo);
 }
 
-void CountContributingEvents(const FetchDrawcall &draw, uint32_t &drawCount,
+void CountContributingEvents(const DrawcallDescription &draw, uint32_t &drawCount,
                              uint32_t &dispatchCount, uint32_t &diagnosticCount)
 {
   const DrawFlags diagnosticMask =
@@ -620,11 +620,11 @@ void CountContributingEvents(const FetchDrawcall &draw, uint32_t &drawCount,
   if(draw.flags & DrawFlags::Dispatch)
     dispatchCount += 1;
 
-  for(const FetchDrawcall &c : draw.children)
+  for(const DrawcallDescription &c : draw.children)
     CountContributingEvents(c, drawCount, dispatchCount, diagnosticCount);
 }
 
-QString AppendAPICallSummary(const FetchFrameInfo &frameInfo, uint numAPICalls)
+QString AppendAPICallSummary(const FrameDescription &frameInfo, uint numAPICalls)
 {
   if(!frameInfo.stats.recorded)
     return "";
@@ -669,16 +669,16 @@ QString GenerateReport(CaptureContext &ctx)
 {
   QString statisticsLog;
 
-  const rdctype::array<FetchDrawcall> &curDraws = ctx.CurDrawcalls();
+  const rdctype::array<DrawcallDescription> &curDraws = ctx.CurDrawcalls();
 
-  const FetchDrawcall *lastDraw = &curDraws.back();
+  const DrawcallDescription *lastDraw = &curDraws.back();
   while(!lastDraw->children.empty())
     lastDraw = &lastDraw->children.back();
 
   uint32_t drawCount = 0;
   uint32_t dispatchCount = 0;
   uint32_t diagnosticCount = 0;
-  for(const FetchDrawcall &d : curDraws)
+  for(const DrawcallDescription &d : curDraws)
     CountContributingEvents(d, drawCount, dispatchCount, diagnosticCount);
 
   uint32_t numAPIcalls = lastDraw->eventID - (drawCount + dispatchCount + diagnosticCount);
@@ -689,7 +689,7 @@ QString GenerateReport(CaptureContext &ctx)
   uint64_t IBBytes = 0;
   uint64_t VBBytes = 0;
   uint64_t BufBytes = 0;
-  for(const FetchBuffer &b : ctx.GetBuffers())
+  for(const BufferDescription &b : ctx.GetBuffers())
   {
     BufBytes += b.length;
 
@@ -707,7 +707,7 @@ QString GenerateReport(CaptureContext &ctx)
   float texW = 0, texH = 0;
   float largeTexW = 0, largeTexH = 0;
   int texCount = 0, largeTexCount = 0;
-  for(const FetchTexture &t : ctx.GetTextures())
+  for(const TextureDescription &t : ctx.GetTextures())
   {
     if(t.creationFlags & (TextureCategory::ColorTarget | TextureCategory::DepthTarget))
     {
@@ -740,7 +740,7 @@ QString GenerateReport(CaptureContext &ctx)
   largeTexW /= largeTexCount;
   largeTexH /= largeTexCount;
 
-  const FetchFrameInfo &frameInfo = ctx.FrameInfo();
+  const FrameDescription &frameInfo = ctx.FrameInfo();
 
   float compressedMB = (float)frameInfo.compressedFileSize / (1024.0f * 1024.0f);
   float uncompressedMB = (float)frameInfo.uncompressedFileSize / (1024.0f * 1024.0f);

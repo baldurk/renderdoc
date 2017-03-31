@@ -160,7 +160,7 @@ void ReplayOutput::SetFrameEvent(int eventID)
 
 void ReplayOutput::RefreshOverlay()
 {
-  FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
+  DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
 
   passEvents = m_pDevice->GetPassEvents(m_EventID);
 
@@ -415,7 +415,7 @@ bool ReplayOutput::PickPixel(ResourceId tex, bool customShader, uint32_t x, uint
 
 uint32_t ReplayOutput::PickVertex(uint32_t eventID, uint32_t x, uint32_t y, uint32_t *pickedInstance)
 {
-  FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(eventID);
+  DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(eventID);
 
   if(!draw)
     return ~0U;
@@ -675,7 +675,7 @@ bool ReplayOutput::Display()
 
 void ReplayOutput::DisplayTex()
 {
-  FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
+  DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
 
   if(m_MainOutput.outputID == 0)
     return;
@@ -755,7 +755,7 @@ void ReplayOutput::DisplayTex()
 
 void ReplayOutput::DisplayMesh()
 {
-  FetchDrawcall *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
+  DrawcallDescription *draw = m_pRenderer->GetDrawcallByEID(m_EventID);
 
   if(draw == NULL || m_MainOutput.outputID == 0 || m_Width <= 0 || m_Height <= 0 ||
      (m_RenderData.meshDisplay.type == MeshDataStage::Unknown) ||
@@ -810,7 +810,7 @@ void ReplayOutput::DisplayMesh()
   {
     for(size_t i = 0; m_RenderData.meshDisplay.showWholePass && i < passEvents.size(); i++)
     {
-      FetchDrawcall *d = m_pRenderer->GetDrawcallByEID(passEvents[i]);
+      DrawcallDescription *d = m_pRenderer->GetDrawcallByEID(passEvents[i]);
 
       if(d)
       {

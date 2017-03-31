@@ -87,7 +87,7 @@ struct ResourceFormat
 
 DECLARE_REFLECTION_STRUCT(ResourceFormat);
 
-struct FetchBuffer
+struct BufferDescription
 {
   ResourceId ID;
   rdctype::str name;
@@ -96,9 +96,9 @@ struct FetchBuffer
   uint64_t length;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchBuffer);
+DECLARE_REFLECTION_STRUCT(BufferDescription);
 
-struct FetchTexture
+struct TextureDescription
 {
   rdctype::str name;
   bool32 customName;
@@ -115,9 +115,9 @@ struct FetchTexture
   uint64_t byteSize;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchTexture);
+DECLARE_REFLECTION_STRUCT(TextureDescription);
 
-struct FetchAPIEvent
+struct APIEvent
 {
   uint32_t eventID;
 
@@ -128,7 +128,7 @@ struct FetchAPIEvent
   uint64_t fileOffset;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchAPIEvent);
+DECLARE_REFLECTION_STRUCT(APIEvent);
 
 struct DebugMessage
 {
@@ -150,7 +150,7 @@ enum BucketRecordType
   BUCKET_RECORD_TYPE_COUNT,
 };
 
-struct FetchFrameConstantBindStats
+struct ConstantBindStats
 {
   enum Constants
   {
@@ -164,9 +164,9 @@ struct FetchFrameConstantBindStats
   rdctype::array<uint32_t> sizes;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameConstantBindStats);
+DECLARE_REFLECTION_STRUCT(ConstantBindStats);
 
-struct FetchFrameSamplerBindStats
+struct SamplerBindStats
 {
   uint32_t calls;
   uint32_t sets;
@@ -174,9 +174,9 @@ struct FetchFrameSamplerBindStats
   rdctype::array<uint32_t> bindslots;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameSamplerBindStats);
+DECLARE_REFLECTION_STRUCT(SamplerBindStats);
 
-struct FetchFrameResourceBindStats
+struct ResourceBindStats
 {
   uint32_t calls;
   uint32_t sets;
@@ -185,9 +185,9 @@ struct FetchFrameResourceBindStats
   rdctype::array<uint32_t> bindslots;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameResourceBindStats);
+DECLARE_REFLECTION_STRUCT(ResourceBindStats);
 
-struct FetchFrameUpdateStats
+struct ResourceUpdateStats
 {
   enum Constants
   {
@@ -201,9 +201,9 @@ struct FetchFrameUpdateStats
   rdctype::array<uint32_t> sizes;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameUpdateStats);
+DECLARE_REFLECTION_STRUCT(ResourceUpdateStats);
 
-struct FetchFrameDrawStats
+struct DrawcallStats
 {
   enum Constants
   {
@@ -217,26 +217,26 @@ struct FetchFrameDrawStats
   rdctype::array<uint32_t> counts;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameDrawStats);
+DECLARE_REFLECTION_STRUCT(DrawcallStats);
 
-struct FetchFrameDispatchStats
+struct DispatchStats
 {
   uint32_t calls;
   uint32_t indirect;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameDispatchStats);
+DECLARE_REFLECTION_STRUCT(DispatchStats);
 
-struct FetchFrameIndexBindStats
+struct IndexBindStats
 {
   uint32_t calls;
   uint32_t sets;
   uint32_t nulls;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameIndexBindStats);
+DECLARE_REFLECTION_STRUCT(IndexBindStats);
 
-struct FetchFrameVertexBindStats
+struct VertexBindStats
 {
   uint32_t calls;
   uint32_t sets;
@@ -244,28 +244,18 @@ struct FetchFrameVertexBindStats
   rdctype::array<uint32_t> bindslots;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameVertexBindStats);
+DECLARE_REFLECTION_STRUCT(VertexBindStats);
 
-struct FetchFrameLayoutBindStats
+struct LayoutBindStats
 {
   uint32_t calls;
   uint32_t sets;
   uint32_t nulls;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameLayoutBindStats);
+DECLARE_REFLECTION_STRUCT(LayoutBindStats);
 
-struct FetchFrameShaderStats
-{
-  uint32_t calls;
-  uint32_t sets;
-  uint32_t nulls;
-  uint32_t redundants;
-};
-
-DECLARE_REFLECTION_STRUCT(FetchFrameShaderStats);
-
-struct FetchFrameBlendStats
+struct ShaderChangeStats
 {
   uint32_t calls;
   uint32_t sets;
@@ -273,9 +263,9 @@ struct FetchFrameBlendStats
   uint32_t redundants;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameBlendStats);
+DECLARE_REFLECTION_STRUCT(ShaderChangeStats);
 
-struct FetchFrameDepthStencilStats
+struct BlendStats
 {
   uint32_t calls;
   uint32_t sets;
@@ -283,9 +273,19 @@ struct FetchFrameDepthStencilStats
   uint32_t redundants;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameDepthStencilStats);
+DECLARE_REFLECTION_STRUCT(BlendStats);
 
-struct FetchFrameRasterizationStats
+struct DepthStencilStats
+{
+  uint32_t calls;
+  uint32_t sets;
+  uint32_t nulls;
+  uint32_t redundants;
+};
+
+DECLARE_REFLECTION_STRUCT(DepthStencilStats);
+
+struct RasterizationStats
 {
   uint32_t calls;
   uint32_t sets;
@@ -295,9 +295,9 @@ struct FetchFrameRasterizationStats
   rdctype::array<uint32_t> rects;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameRasterizationStats);
+DECLARE_REFLECTION_STRUCT(RasterizationStats);
 
-struct FetchFrameOutputStats
+struct OutputTargetStats
 {
   uint32_t calls;
   uint32_t sets;
@@ -305,32 +305,32 @@ struct FetchFrameOutputStats
   rdctype::array<uint32_t> bindslots;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameOutputStats);
+DECLARE_REFLECTION_STRUCT(OutputTargetStats);
 
-struct FetchFrameStatistics
+struct FrameStatistics
 {
   bool32 recorded;
-  FetchFrameConstantBindStats constants[ENUM_ARRAY_SIZE(ShaderStage)];
-  FetchFrameSamplerBindStats samplers[ENUM_ARRAY_SIZE(ShaderStage)];
-  FetchFrameResourceBindStats resources[ENUM_ARRAY_SIZE(ShaderStage)];
-  FetchFrameUpdateStats updates;
-  FetchFrameDrawStats draws;
-  FetchFrameDispatchStats dispatches;
-  FetchFrameIndexBindStats indices;
-  FetchFrameVertexBindStats vertices;
-  FetchFrameLayoutBindStats layouts;
-  FetchFrameShaderStats shaders[ENUM_ARRAY_SIZE(ShaderStage)];
-  FetchFrameBlendStats blends;
-  FetchFrameDepthStencilStats depths;
-  FetchFrameRasterizationStats rasters;
-  FetchFrameOutputStats outputs;
+  ConstantBindStats constants[ENUM_ARRAY_SIZE(ShaderStage)];
+  SamplerBindStats samplers[ENUM_ARRAY_SIZE(ShaderStage)];
+  ResourceBindStats resources[ENUM_ARRAY_SIZE(ShaderStage)];
+  ResourceUpdateStats updates;
+  DrawcallStats draws;
+  DispatchStats dispatches;
+  IndexBindStats indices;
+  VertexBindStats vertices;
+  LayoutBindStats layouts;
+  ShaderChangeStats shaders[ENUM_ARRAY_SIZE(ShaderStage)];
+  BlendStats blends;
+  DepthStencilStats depths;
+  RasterizationStats rasters;
+  OutputTargetStats outputs;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameStatistics);
+DECLARE_REFLECTION_STRUCT(FrameStatistics);
 
-struct FetchFrameInfo
+struct FrameDescription
 {
-  FetchFrameInfo()
+  FrameDescription()
       : frameNumber(0),
         fileOffset(0),
         uncompressedFileSize(0),
@@ -348,11 +348,11 @@ struct FetchFrameInfo
   uint64_t persistentSize;
   uint64_t initDataSize;
   uint64_t captureTime;
-  FetchFrameStatistics stats;
+  FrameStatistics stats;
   rdctype::array<DebugMessage> debugMessages;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchFrameInfo);
+DECLARE_REFLECTION_STRUCT(FrameDescription);
 
 struct EventUsage
 {
@@ -374,9 +374,9 @@ struct EventUsage
 
 DECLARE_REFLECTION_STRUCT(EventUsage);
 
-struct FetchDrawcall
+struct DrawcallDescription
 {
-  FetchDrawcall() { Reset(); }
+  DrawcallDescription() { Reset(); }
   void Reset()
   {
     eventID = 0;
@@ -440,11 +440,11 @@ struct FetchDrawcall
   ResourceId outputs[8];
   ResourceId depthOut;
 
-  rdctype::array<FetchAPIEvent> events;
-  rdctype::array<FetchDrawcall> children;
+  rdctype::array<APIEvent> events;
+  rdctype::array<DrawcallDescription> children;
 };
 
-DECLARE_REFLECTION_STRUCT(FetchDrawcall);
+DECLARE_REFLECTION_STRUCT(DrawcallDescription);
 
 struct APIProperties
 {

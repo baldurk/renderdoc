@@ -260,7 +260,7 @@ public:
       if((m_APIProps.pipelineType == GraphicsAPI::OpenGL) !=
          (m_APIProps.localRenderer == GraphicsAPI::OpenGL))
       {
-        FetchTexture tex = m_Proxy->GetTexture(texture);
+        TextureDescription tex = m_Proxy->GetTexture(texture);
         uint32_t mipHeight = RDCMAX(1U, tex.height >> mip);
         y = (mipHeight - 1) - y;
       }
@@ -387,10 +387,10 @@ public:
   bool Tick(int type, Serialiser *incomingPacket);
 
   vector<ResourceId> GetBuffers();
-  FetchBuffer GetBuffer(ResourceId id);
+  BufferDescription GetBuffer(ResourceId id);
 
   vector<ResourceId> GetTextures();
-  FetchTexture GetTexture(ResourceId id);
+  TextureDescription GetTexture(ResourceId id);
 
   APIProperties GetAPIProperties();
 
@@ -406,7 +406,7 @@ public:
   vector<uint32_t> GetPassEvents(uint32_t eventID);
 
   vector<EventUsage> GetUsage(ResourceId id);
-  FetchFrameRecord GetFrameRecord();
+  FrameRecord GetFrameRecord();
 
   bool IsRenderOutput(ResourceId id);
 
@@ -456,7 +456,7 @@ public:
 
   void FileChanged() {}
   // will never be used
-  ResourceId CreateProxyTexture(const FetchTexture &templateTex)
+  ResourceId CreateProxyTexture(const TextureDescription &templateTex)
   {
     RDCERR("Calling proxy-render functions on a proxy serialiser");
     return ResourceId();
@@ -469,7 +469,7 @@ public:
   }
 
   bool IsTextureSupported(const ResourceFormat &format) { return true; }
-  ResourceId CreateProxyBuffer(const FetchBuffer &templateBuf)
+  ResourceId CreateProxyBuffer(const BufferDescription &templateBuf)
   {
     RDCERR("Calling proxy-render functions on a proxy serialiser");
     return ResourceId();

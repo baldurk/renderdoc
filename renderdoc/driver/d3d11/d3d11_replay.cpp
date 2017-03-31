@@ -51,9 +51,9 @@ void D3D11Replay::Shutdown()
   D3D11DebugManager::PostDeviceShutdownCounters();
 }
 
-FetchTexture D3D11Replay::GetTexture(ResourceId id)
+TextureDescription D3D11Replay::GetTexture(ResourceId id)
 {
-  FetchTexture tex;
+  TextureDescription tex;
   tex.ID = ResourceId();
 
   auto it1D = WrappedID3D11Texture1D::m_TextureList.find(id);
@@ -335,7 +335,7 @@ void D3D11Replay::FreeCustomShader(ResourceId id)
   }
 }
 
-FetchFrameRecord D3D11Replay::GetFrameRecord()
+FrameRecord D3D11Replay::GetFrameRecord()
 {
   return m_pDevice->GetFrameRecord();
 }
@@ -374,9 +374,9 @@ vector<ResourceId> D3D11Replay::GetBuffers()
   return ret;
 }
 
-FetchBuffer D3D11Replay::GetBuffer(ResourceId id)
+BufferDescription D3D11Replay::GetBuffer(ResourceId id)
 {
-  FetchBuffer ret;
+  BufferDescription ret;
   ret.ID = ResourceId();
 
   auto it = WrappedID3D11Buffer::m_BufferList.find(id);
@@ -1315,13 +1315,13 @@ vector<uint32_t> D3D11Replay::GetPassEvents(uint32_t eventID)
 {
   vector<uint32_t> passEvents;
 
-  const FetchDrawcall *draw = m_pDevice->GetDrawcall(eventID);
+  const DrawcallDescription *draw = m_pDevice->GetDrawcall(eventID);
 
-  const FetchDrawcall *start = draw;
+  const DrawcallDescription *start = draw;
   while(start && start->previous != 0 &&
         !(m_pDevice->GetDrawcall((uint32_t)start->previous)->flags & DrawFlags::Clear))
   {
-    const FetchDrawcall *prev = m_pDevice->GetDrawcall((uint32_t)start->previous);
+    const DrawcallDescription *prev = m_pDevice->GetDrawcall((uint32_t)start->previous);
 
     if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) ||
        start->depthOut != prev->depthOut)
@@ -1409,7 +1409,7 @@ void D3D11Replay::InitPostVSBuffers(const vector<uint32_t> &passEvents)
       prev = passEvents[i];
     }
 
-    const FetchDrawcall *d = m_pDevice->GetDrawcall(passEvents[i]);
+    const DrawcallDescription *d = m_pDevice->GetDrawcall(passEvents[i]);
 
     if(d)
       m_pDevice->GetDebugManager()->InitPostVSBuffers(passEvents[i]);
@@ -1611,7 +1611,7 @@ Callstack::StackResolver *D3D11Replay::GetCallstackResolver()
   return m_pDevice->GetSerialiser()->GetCallstackResolver();
 }
 
-ResourceId D3D11Replay::CreateProxyTexture(const FetchTexture &templateTex)
+ResourceId D3D11Replay::CreateProxyTexture(const TextureDescription &templateTex)
 {
   ResourceId ret;
 
@@ -1842,7 +1842,7 @@ bool D3D11Replay::IsTextureSupported(const ResourceFormat &format)
   return MakeDXGIFormat(format) != DXGI_FORMAT_UNKNOWN;
 }
 
-ResourceId D3D11Replay::CreateProxyBuffer(const FetchBuffer &templateBuf)
+ResourceId D3D11Replay::CreateProxyBuffer(const BufferDescription &templateBuf)
 {
   ResourceId ret;
 

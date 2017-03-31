@@ -64,15 +64,15 @@ struct VkInitParams : public RDCInitParams
 struct VulkanDrawcallTreeNode
 {
   VulkanDrawcallTreeNode() {}
-  explicit VulkanDrawcallTreeNode(const FetchDrawcall &d) : draw(d) {}
-  FetchDrawcall draw;
+  explicit VulkanDrawcallTreeNode(const DrawcallDescription &d) : draw(d) {}
+  DrawcallDescription draw;
   vector<VulkanDrawcallTreeNode> children;
 
   vector<pair<ResourceId, EventUsage> > resourceUsage;
 
   vector<ResourceId> executedCmds;
 
-  VulkanDrawcallTreeNode &operator=(const FetchDrawcall &d)
+  VulkanDrawcallTreeNode &operator=(const DrawcallDescription &d)
   {
     *this = VulkanDrawcallTreeNode(d);
     return *this;
@@ -111,9 +111,9 @@ struct VulkanDrawcallTreeNode
       children[i].UpdateIDs(baseEventID, baseDrawID);
   }
 
-  vector<FetchDrawcall> Bake()
+  vector<DrawcallDescription> Bake()
   {
-    vector<FetchDrawcall> ret;
+    vector<DrawcallDescription> ret;
     if(children.empty())
       return ret;
 
@@ -270,9 +270,9 @@ private:
 
   uint32_t m_FrameCounter;
 
-  vector<FetchFrameInfo> m_CapturedFrames;
-  FetchFrameRecord m_FrameRecord;
-  vector<FetchDrawcall *> m_Drawcalls;
+  vector<FrameDescription> m_CapturedFrames;
+  FrameRecord m_FrameRecord;
+  vector<DrawcallDescription *> m_Drawcalls;
 
   struct PhysicalDeviceData
   {
@@ -401,7 +401,7 @@ private:
     {
     }
     ~BakedCmdBufferInfo() { SAFE_DELETE(draw); }
-    vector<FetchAPIEvent> curEvents;
+    vector<APIEvent> curEvents;
     vector<DebugMessage> debugMessages;
     list<VulkanDrawcallTreeNode *> drawStack;
 
@@ -632,7 +632,7 @@ private:
 
   void ApplyInitialContents();
 
-  vector<FetchAPIEvent> m_RootEvents, m_Events;
+  vector<APIEvent> m_RootEvents, m_Events;
   bool m_AddedDrawcall;
 
   uint64_t m_CurChunkOffset;
@@ -662,7 +662,7 @@ private:
   void ProcessChunk(uint64_t offset, VulkanChunkType context);
   void ContextReplayLog(LogState readType, uint32_t startEventID, uint32_t endEventID, bool partial);
   void ContextProcessChunk(uint64_t offset, VulkanChunkType chunk);
-  void AddDrawcall(const FetchDrawcall &d, bool hasEvents);
+  void AddDrawcall(const DrawcallDescription &d, bool hasEvents);
   void AddEvent(string description);
 
   void AddUsage(VulkanDrawcallTreeNode &drawNode, vector<DebugMessage> &debugMessages);
@@ -709,10 +709,10 @@ public:
   void ReplayLog(uint32_t startEventID, uint32_t endEventID, ReplayLogType replayType);
   void ReadLogInitialisation();
 
-  FetchFrameRecord &GetFrameRecord() { return m_FrameRecord; }
-  FetchAPIEvent GetEvent(uint32_t eventID);
+  FrameRecord &GetFrameRecord() { return m_FrameRecord; }
+  APIEvent GetEvent(uint32_t eventID);
   uint32_t GetMaxEID() { return m_Events.back().eventID; }
-  const FetchDrawcall *GetDrawcall(uint32_t eventID);
+  const DrawcallDescription *GetDrawcall(uint32_t eventID);
 
   vector<EventUsage> GetUsage(ResourceId id) { return m_ResourceUses[id]; }
   // return the pre-selected device and queue

@@ -5252,7 +5252,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
 
   VkImageSubresourceRange subresourceRange = {VK_IMAGE_ASPECT_COLOR_BIT, 0, 1, 0, 1};
 
-  const FetchDrawcall *mainDraw = m_pDriver->GetDrawcall(eventID);
+  const DrawcallDescription *mainDraw = m_pDriver->GetDrawcall(eventID);
 
   // Secondary commands can't have render passes
   if((mainDraw && !(mainDraw->flags & DrawFlags::Drawcall)) ||
@@ -6108,7 +6108,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
       // in the loop below
       if(overlay == DebugOverlay::ClearBeforePass)
       {
-        const FetchDrawcall *draw = m_pDriver->GetDrawcall(events[0]);
+        const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[0]);
         if(draw && draw->flags & DrawFlags::BeginPass)
         {
           if(events.size() == 1)
@@ -6449,7 +6449,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
 
       while(!events.empty())
       {
-        const FetchDrawcall *draw = m_pDriver->GetDrawcall(events[0]);
+        const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[0]);
 
         // remove any non-drawcalls, like the pass boundary.
         if(!(draw->flags & DrawFlags::Drawcall))
@@ -6689,7 +6689,7 @@ ResourceId VulkanDebugManager::RenderOverlay(ResourceId texid, DebugOverlay over
 
       for(size_t i = 0; i < events.size(); i++)
       {
-        const FetchDrawcall *draw = m_pDriver->GetDrawcall(events[i]);
+        const DrawcallDescription *draw = m_pDriver->GetDrawcall(events[i]);
 
         for(uint32_t inst = 0; draw && inst < RDCMAX(1U, draw->numInstances); inst++)
         {
@@ -7954,7 +7954,7 @@ void VulkanDebugManager::InitPostVSBuffers(uint32_t eventID)
     return;
   }
 
-  const FetchDrawcall *drawcall = m_pDriver->GetDrawcall(eventID);
+  const DrawcallDescription *drawcall = m_pDriver->GetDrawcall(eventID);
 
   if(drawcall == NULL || drawcall->numIndices == 0 || drawcall->numInstances == 0)
     return;

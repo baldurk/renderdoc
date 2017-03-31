@@ -1195,7 +1195,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
   m_ModelVSOut->beginReset();
   m_ModelGSOut->beginReset();
 
-  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   m_ModelVSIn->baseVertex = draw ? draw->baseVertex : 0;
 
@@ -1294,7 +1294,7 @@ void BufferViewer::OnEventChanged(uint32_t eventID)
 
 void BufferViewer::RT_FetchMeshData(IReplayRenderer *r)
 {
-  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   ResourceId ib;
   uint64_t ioffset = 0;
@@ -1811,7 +1811,7 @@ void BufferViewer::guessSecondaryColumn(BufferItemModel *model)
 void BufferViewer::updatePreviewColumns()
 {
   QVector<BoundVBuffer> vbs = m_Ctx.CurPipelineState.GetVBuffers();
-  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   if(draw)
   {
@@ -1936,7 +1936,7 @@ void BufferViewer::updatePreviewColumns()
 
 void BufferViewer::configureMeshColumns()
 {
-  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   QVector<VertexInputAttribute> vinputs = m_Ctx.CurPipelineState.GetVertexInputs();
 
@@ -2242,7 +2242,7 @@ void BufferViewer::ViewBuffer(uint64_t byteOffset, uint64_t byteSize, ResourceId
   m_ByteSize = byteSize;
   m_BufferID = id;
 
-  FetchBuffer *buf = m_Ctx.GetBuffer(id);
+  BufferDescription *buf = m_Ctx.GetBuffer(id);
   if(buf)
     setWindowTitle(ToQStr(buf->name) + " - Contents");
 
@@ -2259,7 +2259,7 @@ void BufferViewer::ViewTexture(uint32_t arrayIdx, uint32_t mip, ResourceId id, c
   m_TexMip = mip;
   m_BufferID = id;
 
-  FetchTexture *tex = m_Ctx.GetTexture(id);
+  TextureDescription *tex = m_Ctx.GetTexture(id);
   if(tex)
     setWindowTitle(ToQStr(tex->name) + " - Contents");
 

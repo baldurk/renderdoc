@@ -48,7 +48,7 @@ public:
     RDCEraseEl(m_FrameRecord.frameInfo.stats);
 
     create_array_uninit(m_FrameRecord.drawcallList, 1);
-    FetchDrawcall &d = m_FrameRecord.drawcallList[0];
+    DrawcallDescription &d = m_FrameRecord.drawcallList[0];
     d.drawcallID = 1;
     d.eventID = 1;
     d.name = filename;
@@ -136,7 +136,7 @@ public:
     return m_Proxy->ApplyCustomShader(shader, m_TextureID, mip, arrayIdx, sampleIdx, typeHint);
   }
   vector<ResourceId> GetTextures() { return m_Proxy->GetTextures(); }
-  FetchTexture GetTexture(ResourceId id) { return m_Proxy->GetTexture(m_TextureID); }
+  TextureDescription GetTexture(ResourceId id) { return m_Proxy->GetTexture(m_TextureID); }
   byte *GetTextureData(ResourceId tex, uint32_t arrayIdx, uint32_t mip,
                        const GetTextureDataParams &params, size_t &dataSize)
   {
@@ -145,7 +145,7 @@ public:
 
   // handle a couple of operations ourselves to return a simple fake log
   APIProperties GetAPIProperties() { return m_Props; }
-  FetchFrameRecord GetFrameRecord() { return m_FrameRecord; }
+  FrameRecord GetFrameRecord() { return m_FrameRecord; }
   D3D11Pipe::State GetD3D11PipelineState() { return m_PipelineState; }
   // other operations are dropped/ignored, to avoid confusion
   void ReadLogInitialisation() {}
@@ -154,9 +154,9 @@ public:
   }
   vector<ResourceId> GetBuffers() { return vector<ResourceId>(); }
   vector<DebugMessage> GetDebugMessages() { return vector<DebugMessage>(); }
-  FetchBuffer GetBuffer(ResourceId id)
+  BufferDescription GetBuffer(ResourceId id)
   {
-    FetchBuffer ret;
+    BufferDescription ret;
     RDCEraseEl(ret);
     return ret;
   }
@@ -235,7 +235,7 @@ public:
   void ReplaceResource(ResourceId from, ResourceId to) {}
   void RemoveReplacement(ResourceId id) {}
   // these are proxy functions, and will never be used
-  ResourceId CreateProxyTexture(const FetchTexture &templateTex)
+  ResourceId CreateProxyTexture(const TextureDescription &templateTex)
   {
     RDCERR("Calling proxy-render functions on an image viewer");
     return ResourceId();
@@ -247,7 +247,7 @@ public:
     RDCERR("Calling proxy-render functions on an image viewer");
   }
   bool IsTextureSupported(const ResourceFormat &format) { return true; }
-  ResourceId CreateProxyBuffer(const FetchBuffer &templateBuf)
+  ResourceId CreateProxyBuffer(const BufferDescription &templateBuf)
   {
     RDCERR("Calling proxy-render functions on an image viewer");
     return ResourceId();
@@ -263,12 +263,12 @@ private:
   void RefreshFile();
 
   APIProperties m_Props;
-  FetchFrameRecord m_FrameRecord;
+  FrameRecord m_FrameRecord;
   D3D11Pipe::State m_PipelineState;
   IReplayDriver *m_Proxy;
   string m_Filename;
   ResourceId m_TextureID;
-  FetchTexture m_TexDetails;
+  TextureDescription m_TexDetails;
 };
 
 ReplayStatus IMG_CreateReplayDevice(const char *logfile, IReplayDriver **driver)
@@ -405,7 +405,7 @@ void ImageViewer::RefreshFile()
     return;
   }
 
-  FetchTexture texDetails;
+  TextureDescription texDetails;
 
   ResourceFormat rgba8_unorm;
   rgba8_unorm.compByteWidth = 1;

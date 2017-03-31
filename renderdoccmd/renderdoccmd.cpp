@@ -50,7 +50,7 @@ void DisplayRendererPreview(IReplayRenderer *renderer, uint32_t width, uint32_t 
   if(renderer == NULL)
     return;
 
-  rdctype::array<FetchTexture> texs;
+  rdctype::array<TextureDescription> texs;
   renderer->GetTextures(&texs);
 
   TextureDisplay d;
@@ -83,7 +83,7 @@ void DisplayRendererPreview(IReplayRenderer *renderer, uint32_t width, uint32_t 
     }
   }
 
-  rdctype::array<FetchDrawcall> draws;
+  rdctype::array<DrawcallDescription> draws;
   renderer->GetDrawcalls(&draws);
 
   if(draws.count > 0 && draws[draws.count - 1].flags & DrawFlags::Present)

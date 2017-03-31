@@ -80,13 +80,13 @@ vector<uint32_t> GLReplay::GetPassEvents(uint32_t eventID)
 {
   vector<uint32_t> passEvents;
 
-  const FetchDrawcall *draw = m_pDriver->GetDrawcall(eventID);
+  const DrawcallDescription *draw = m_pDriver->GetDrawcall(eventID);
 
-  const FetchDrawcall *start = draw;
+  const DrawcallDescription *start = draw;
   while(start && start->previous != 0 &&
         !(m_pDriver->GetDrawcall((uint32_t)start->previous)->flags & DrawFlags::Clear))
   {
-    const FetchDrawcall *prev = m_pDriver->GetDrawcall((uint32_t)start->previous);
+    const DrawcallDescription *prev = m_pDriver->GetDrawcall((uint32_t)start->previous);
 
     if(memcmp(start->outputs, prev->outputs, sizeof(start->outputs)) ||
        start->depthOut != prev->depthOut)
@@ -109,7 +109,7 @@ vector<uint32_t> GLReplay::GetPassEvents(uint32_t eventID)
   return passEvents;
 }
 
-FetchFrameRecord GLReplay::GetFrameRecord()
+FrameRecord GLReplay::GetFrameRecord()
 {
   return m_pDriver->GetFrameRecord();
 }
@@ -427,7 +427,7 @@ bool GLReplay::IsRenderOutput(ResourceId id)
   return false;
 }
 
-FetchTexture GLReplay::GetTexture(ResourceId id)
+TextureDescription GLReplay::GetTexture(ResourceId id)
 {
   auto it = m_CachedTextures.find(id);
   if(it == m_CachedTextures.end())
@@ -441,7 +441,7 @@ FetchTexture GLReplay::GetTexture(ResourceId id)
 
 void GLReplay::CacheTexture(ResourceId id)
 {
-  FetchTexture tex;
+  TextureDescription tex;
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
@@ -733,9 +733,9 @@ void GLReplay::CacheTexture(ResourceId id)
   m_CachedTextures[id] = tex;
 }
 
-FetchBuffer GLReplay::GetBuffer(ResourceId id)
+BufferDescription GLReplay::GetBuffer(ResourceId id)
 {
-  FetchBuffer ret;
+  BufferDescription ret;
 
   MakeCurrentReplayContext(&m_ReplayCtx);
 
@@ -2812,7 +2812,7 @@ void GLReplay::FreeTargetResource(ResourceId id)
   m_pDriver->FreeTargetResource(id);
 }
 
-ResourceId GLReplay::CreateProxyTexture(const FetchTexture &templateTex)
+ResourceId GLReplay::CreateProxyTexture(const TextureDescription &templateTex)
 {
   WrappedOpenGL &gl = *m_pDriver;
 
@@ -3139,7 +3139,7 @@ bool GLReplay::IsTextureSupported(const ResourceFormat &format)
   return true;
 }
 
-ResourceId GLReplay::CreateProxyBuffer(const FetchBuffer &templateBuf)
+ResourceId GLReplay::CreateProxyBuffer(const BufferDescription &templateBuf)
 {
   WrappedOpenGL &gl = *m_pDriver;
 

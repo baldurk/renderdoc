@@ -90,7 +90,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Close()
 
     if(!m_Cmd->m_BakedCmdListInfo[CommandList].curEvents.empty())
     {
-      FetchDrawcall draw;
+      DrawcallDescription draw;
       draw.name = "API Calls";
       draw.flags |= DrawFlags::SetMarker | DrawFlags::APICalls;
 
@@ -2649,7 +2649,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_SetMarker(UINT Metadata, const 
 
   if(m_State == READING)
   {
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = markerText;
     draw.flags |= DrawFlags::SetMarker;
 
@@ -2707,7 +2707,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_BeginEvent(UINT Metadata, const
 
   if(m_State == READING)
   {
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = markerText;
     draw.flags |= DrawFlags::PushMarker;
 
@@ -2739,7 +2739,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent()
 
   if(m_State == READING && !m_Cmd->m_BakedCmdListInfo[CommandList].curEvents.empty())
   {
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = "API Calls";
     draw.flags = DrawFlags::SetMarker | DrawFlags::APICalls;
 
@@ -2750,7 +2750,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_EndEvent()
   {
     // dummy draw that is consumed when this command buffer
     // is being in-lined into the call stream
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = "Pop()";
     draw.flags = DrawFlags::PopMarker;
 
@@ -2818,7 +2818,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawInstanced(UINT VertexCountP
     m_Cmd->AddEvent(desc);
     string name = "DrawInstanced(" + ToStr::Get(vtxCount) + ", " + ToStr::Get(instCount) + ")";
 
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = name;
     draw.numIndices = vtxCount;
     draw.numInstances = instCount;
@@ -2895,7 +2895,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_DrawIndexedInstanced(UINT Index
     string name =
         "DrawIndexedInstanced(" + ToStr::Get(idxCount) + ", " + ToStr::Get(instCount) + ")";
 
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = name;
     draw.numIndices = idxCount;
     draw.numInstances = instCount;
@@ -2969,7 +2969,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_Dispatch(UINT ThreadGroupCountX
     m_Cmd->AddEvent(desc);
     string name = "Dispatch(" + ToStr::Get(x) + ", " + ToStr::Get(y) + ", " + ToStr::Get(z) + ")";
 
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = name;
     draw.dispatchDimension[0] = x;
     draw.dispatchDimension[1] = y;
@@ -3049,7 +3049,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteBundle(ID3D12GraphicsCom
     m_Cmd->AddEvent(desc);
     string name = "ExecuteBundle(" + ToStr::Get(Bundle) + ")";
 
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = name;
 
     draw.flags |= DrawFlags::CmdList;
@@ -3124,7 +3124,7 @@ void WrappedID3D12GraphicsCommandList::ReserveExecuteIndirect(ID3D12GraphicsComm
         case D3D12_INDIRECT_ARGUMENT_TYPE_DRAW:
           // add dummy event and drawcall
           m_Cmd->AddEvent("");
-          m_Cmd->AddDrawcall(FetchDrawcall(), true);
+          m_Cmd->AddDrawcall(DrawcallDescription(), true);
           cmdInfo.curEventID++;
           break;
         case D3D12_INDIRECT_ARGUMENT_TYPE_VERTEX_BUFFER_VIEW:
@@ -3144,7 +3144,7 @@ void WrappedID3D12GraphicsCommandList::ReserveExecuteIndirect(ID3D12GraphicsComm
 
   if(multidraw)
   {
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = "ExecuteIndirect()";
     draw.flags = DrawFlags::PopMarker;
     m_Cmd->AddDrawcall(draw, false);
@@ -3227,7 +3227,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           D3D12_DRAW_ARGUMENTS *args = (D3D12_DRAW_ARGUMENTS *)data;
           data += sizeof(D3D12_DRAW_ARGUMENTS);
 
-          FetchDrawcall &draw = draws[idx].draw;
+          DrawcallDescription &draw = draws[idx].draw;
           draw.numIndices = args->VertexCountPerInstance;
           draw.numInstances = args->InstanceCount;
           draw.vertexOffset = args->StartVertexLocation;
@@ -3252,7 +3252,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           eventStr += StringFormat::Fmt("\tStartInstanceLocation: %u\n", args->StartInstanceLocation);
           eventStr += "}\n";
 
-          FetchAPIEvent &ev = draw.events[draw.events.count - 1];
+          APIEvent &ev = draw.events[draw.events.count - 1];
           ev.eventDesc = eventStr;
 
           RDCASSERT(ev.eventID == eid);
@@ -3270,7 +3270,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           D3D12_DRAW_INDEXED_ARGUMENTS *args = (D3D12_DRAW_INDEXED_ARGUMENTS *)data;
           data += sizeof(D3D12_DRAW_INDEXED_ARGUMENTS);
 
-          FetchDrawcall &draw = draws[idx].draw;
+          DrawcallDescription &draw = draws[idx].draw;
           draw.numIndices = args->IndexCountPerInstance;
           draw.numInstances = args->InstanceCount;
           draw.baseVertex = args->BaseVertexLocation;
@@ -3297,7 +3297,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           eventStr += StringFormat::Fmt("\tStartInstanceLocation: %u\n", args->StartInstanceLocation);
           eventStr += "}\n";
 
-          FetchAPIEvent &ev = draw.events[draw.events.count - 1];
+          APIEvent &ev = draw.events[draw.events.count - 1];
           ev.eventDesc = eventStr;
 
           RDCASSERT(ev.eventID == eid);
@@ -3315,7 +3315,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           D3D12_DISPATCH_ARGUMENTS *args = (D3D12_DISPATCH_ARGUMENTS *)data;
           data += sizeof(D3D12_DISPATCH_ARGUMENTS);
 
-          FetchDrawcall &draw = draws[idx].draw;
+          DrawcallDescription &draw = draws[idx].draw;
           draw.dispatchDimension[0] = args->ThreadGroupCountX;
           draw.dispatchDimension[1] = args->ThreadGroupCountY;
           draw.dispatchDimension[2] = args->ThreadGroupCountZ;
@@ -3338,7 +3338,7 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           eventStr += StringFormat::Fmt("\tThreadGroupCountZ: %u\n", args->ThreadGroupCountZ);
           eventStr += "}\n";
 
-          FetchAPIEvent &ev = draw.events[draw.events.count - 1];
+          APIEvent &ev = draw.events[draw.events.count - 1];
           ev.eventDesc = eventStr;
 
           RDCASSERT(ev.eventID == eid);
@@ -3372,8 +3372,8 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
             name += StringFormat::Fmt("\tvalues[%u]: %u\n", val, values[val]);
           name += "}\n";
 
-          FetchDrawcall &draw = draws[idx].draw;
-          FetchAPIEvent *ev = NULL;
+          DrawcallDescription &draw = draws[idx].draw;
+          APIEvent *ev = NULL;
 
           for(int32_t e = 0; e < draw.events.count; e++)
           {
@@ -3417,8 +3417,8 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           name += StringFormat::Fmt("\tView.StrideInBytes: %u\n", vb->StrideInBytes);
           name += "}\n";
 
-          FetchDrawcall &draw = draws[idx].draw;
-          FetchAPIEvent *ev = NULL;
+          DrawcallDescription &draw = draws[idx].draw;
+          APIEvent *ev = NULL;
 
           for(int32_t e = 0; e < draw.events.count; e++)
           {
@@ -3461,8 +3461,8 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           name += StringFormat::Fmt("\tView.Format: %s\n", ToStr::Get(ib->Format).c_str());
           name += "}\n";
 
-          FetchDrawcall &draw = draws[idx].draw;
-          FetchAPIEvent *ev = NULL;
+          DrawcallDescription &draw = draws[idx].draw;
+          APIEvent *ev = NULL;
 
           for(int32_t e = 0; e < draw.events.count; e++)
           {
@@ -3519,8 +3519,8 @@ void WrappedID3D12GraphicsCommandList::PatchExecuteIndirect(BakedCmdListInfo &in
           name += StringFormat::Fmt("\tBufferLocation_Offset: %llu\n", offs);
           name += "}\n";
 
-          FetchDrawcall &draw = draws[idx].draw;
-          FetchAPIEvent *ev = NULL;
+          DrawcallDescription &draw = draws[idx].draw;
+          APIEvent *ev = NULL;
 
           for(int32_t e = 0; e < draw.events.count; e++)
           {
@@ -3964,7 +3964,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ExecuteIndirect(
 
     m_Cmd->AddEvent(desc);
 
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = "ExecuteIndirect";
 
     draw.flags |= DrawFlags::MultiDraw;
@@ -4130,7 +4130,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearDepthStencilView(
       m_Cmd->AddEvent(desc);
       string name = "ClearDepthStencilView(" + ToStr::Get(d) + "," + ToStr::Get(s) + ")";
 
-      FetchDrawcall draw;
+      DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Clear | DrawFlags::ClearDepthStencil;
 
@@ -4217,7 +4217,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearRenderTargetView(
       string name = "ClearRenderTargetView(" + ToStr::Get(Color[0]) + "," + ToStr::Get(Color[1]) +
                     "," + ToStr::Get(Color[2]) + "," + ToStr::Get(Color[3]) + ")";
 
-      FetchDrawcall draw;
+      DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Clear | DrawFlags::ClearColour;
 
@@ -4315,7 +4315,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewUint(
                     ToStr::Get(vals[1]) + "," + ToStr::Get(vals[2]) + "," + ToStr::Get(vals[3]) +
                     ")";
 
-      FetchDrawcall draw;
+      DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Clear;
 
@@ -4418,7 +4418,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ClearUnorderedAccessViewFloat(
                     ToStr::Get(vals[1]) + "," + ToStr::Get(vals[2]) + "," + ToStr::Get(vals[3]) +
                     ")";
 
-      FetchDrawcall draw;
+      DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Clear;
 
@@ -4557,7 +4557,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyBufferRegion(ID3D12Resource
       m_Cmd->AddEvent(desc);
       string name = "CopyBufferRegion(" + ToStr::Get(src) + "," + ToStr::Get(dst) + ")";
 
-      FetchDrawcall draw;
+      DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Copy;
 
@@ -4645,7 +4645,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyTextureRegion(
 
       string name = "CopyTextureRegion(" + ToStr::Get(origSrc) + "," + ToStr::Get(origDst) + ")";
 
-      FetchDrawcall draw;
+      DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Copy;
 
@@ -4734,7 +4734,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_CopyResource(ID3D12Resource *pD
 
       string name = "CopyResource(" + ToStr::Get(src) + "," + ToStr::Get(dst) + ")";
 
-      FetchDrawcall draw;
+      DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Copy;
 
@@ -4824,7 +4824,7 @@ bool WrappedID3D12GraphicsCommandList::Serialise_ResolveSubresource(ID3D12Resour
 
       string name = "ResolveSubresource(" + ToStr::Get(src) + "," + ToStr::Get(dst) + ")";
 
-      FetchDrawcall draw;
+      DrawcallDescription draw;
       draw.name = name;
       draw.flags |= DrawFlags::Resolve;
 

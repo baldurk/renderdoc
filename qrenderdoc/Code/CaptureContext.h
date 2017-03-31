@@ -108,18 +108,21 @@ public:
   bool IsLogLocal() { return m_LogLocal; }
   bool LogLoading() { return m_LoadInProgress; }
   QString LogFilename() { return m_LogFile; }
-  const FetchFrameInfo &FrameInfo() { return m_FrameInfo; }
+  const FrameDescription &FrameInfo() { return m_FrameInfo; }
   const APIProperties &APIProps() { return m_APIProps; }
   uint32_t CurSelectedEvent() { return m_SelectedEventID; }
   uint32_t CurEvent() { return m_EventID; }
-  const FetchDrawcall *CurSelectedDrawcall() { return GetDrawcall(CurSelectedEvent()); }
-  const FetchDrawcall *CurDrawcall() { return GetDrawcall(CurEvent()); }
-  const rdctype::array<FetchDrawcall> &CurDrawcalls() { return m_Drawcalls; }
-  FetchTexture *GetTexture(ResourceId id) { return m_Textures[id]; }
-  const rdctype::array<FetchTexture> &GetTextures() { return m_TextureList; }
-  FetchBuffer *GetBuffer(ResourceId id) { return m_Buffers[id]; }
-  const rdctype::array<FetchBuffer> &GetBuffers() { return m_BufferList; }
-  QVector<DebugMessage> DebugMessages;
+  const DrawcallDescription *CurSelectedDrawcall()
+  {
+    return GetDrawcall(CurSelectedEvent());
+  }
+  const DrawcallDescription *CurDrawcall() { return GetDrawcall(CurEvent()); }
+  const rdctype::array<DrawcallDescription> &CurDrawcalls() { return m_Drawcalls; }
+  TextureDescription *GetTexture(ResourceId id) { return m_Textures[id]; }
+  const rdctype::array<TextureDescription> &GetTextures() { return m_TextureList; }
+  BufferDescription *GetBuffer(ResourceId id) { return m_Buffers[id]; }
+  const rdctype::array<BufferDescription> &GetBuffers() { return m_BufferList; }
+  const DrawcallDescription *GetDrawcall(uint32_t eventID)
   int UnreadMessageCount;
   void AddMessages(const rdctype::array<DebugMessage> &msgs)
   {
@@ -180,8 +183,8 @@ private:
   bool m_LogLoaded, m_LoadInProgress, m_LogLocal;
   QString m_LogFile;
 
-  bool PassEquivalent(const FetchDrawcall &a, const FetchDrawcall &b);
-  bool ContainsMarker(const rdctype::array<FetchDrawcall> &m_Drawcalls);
+  bool PassEquivalent(const DrawcallDescription &a, const DrawcallDescription &b);
+  bool ContainsMarker(const rdctype::array<DrawcallDescription> &m_Drawcalls);
   void AddFakeProfileMarkers();
 
   float m_LoadProgress = 0.0f;
@@ -194,13 +197,14 @@ private:
   uint32_t m_SelectedEventID;
   uint32_t m_EventID;
 
-  const FetchDrawcall *GetDrawcall(const rdctype::array<FetchDrawcall> &draws, uint32_t eventID)
+  const DrawcallDescription *GetDrawcall(const rdctype::array<DrawcallDescription> &draws,
+                                         uint32_t eventID)
   {
-    for(const FetchDrawcall &d : draws)
+    for(const DrawcallDescription &d : draws)
     {
       if(!d.children.empty())
       {
-        const FetchDrawcall *draw = GetDrawcall(d.children, eventID);
+        const DrawcallDescription *draw = GetDrawcall(d.children, eventID);
         if(draw != NULL)
           return draw;
       }
@@ -212,15 +216,15 @@ private:
     return NULL;
   }
 
-  rdctype::array<FetchDrawcall> m_Drawcalls;
+  rdctype::array<DrawcallDescription> m_Drawcalls;
 
   APIProperties m_APIProps;
-  FetchFrameInfo m_FrameInfo;
+  FrameDescription m_FrameInfo;
 
-  QMap<ResourceId, FetchTexture *> m_Textures;
-  rdctype::array<FetchTexture> m_TextureList;
-  QMap<ResourceId, FetchBuffer *> m_Buffers;
-  rdctype::array<FetchBuffer> m_BufferList;
+  QMap<ResourceId, TextureDescription *> m_Textures;
+  rdctype::array<TextureDescription> m_TextureList;
+  QMap<ResourceId, BufferDescription *> m_Buffers;
+  rdctype::array<BufferDescription> m_BufferList;
 
   rdctype::array<WindowingSystem> m_WinSystems;
 

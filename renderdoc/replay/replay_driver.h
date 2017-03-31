@@ -28,13 +28,12 @@
 #include "api/replay/renderdoc_replay.h"
 #include "core/core.h"
 #include "maths/vec.h"
-#include "replay/replay_driver.h"
 
-struct FetchFrameRecord
+struct FrameRecord
 {
-  FetchFrameInfo frameInfo;
+  FrameDescription frameInfo;
 
-  rdctype::array<FetchDrawcall> drawcallList;
+  rdctype::array<DrawcallDescription> drawcallList;
 };
 
 enum RemapTextureEnum
@@ -84,10 +83,10 @@ public:
   virtual APIProperties GetAPIProperties() = 0;
 
   virtual vector<ResourceId> GetBuffers() = 0;
-  virtual FetchBuffer GetBuffer(ResourceId id) = 0;
+  virtual BufferDescription GetBuffer(ResourceId id) = 0;
 
   virtual vector<ResourceId> GetTextures() = 0;
-  virtual FetchTexture GetTexture(ResourceId id) = 0;
+  virtual TextureDescription GetTexture(ResourceId id) = 0;
 
   virtual vector<DebugMessage> GetDebugMessages() = 0;
 
@@ -101,7 +100,7 @@ public:
   virtual GLPipe::State GetGLPipelineState() = 0;
   virtual VKPipe::State GetVulkanPipelineState() = 0;
 
-  virtual FetchFrameRecord GetFrameRecord() = 0;
+  virtual FrameRecord GetFrameRecord() = 0;
 
   virtual void ReadLogInitialisation() = 0;
   virtual void ReplayLog(uint32_t endEventID, ReplayLogType replayType) = 0;
@@ -178,12 +177,12 @@ public:
                             CompType typeHint, float minval, float maxval, bool channels[4],
                             vector<uint32_t> &histogram) = 0;
 
-  virtual ResourceId CreateProxyTexture(const FetchTexture &templateTex) = 0;
+  virtual ResourceId CreateProxyTexture(const TextureDescription &templateTex) = 0;
   virtual void SetProxyTextureData(ResourceId texid, uint32_t arrayIdx, uint32_t mip, byte *data,
                                    size_t dataSize) = 0;
   virtual bool IsTextureSupported(const ResourceFormat &format) = 0;
 
-  virtual ResourceId CreateProxyBuffer(const FetchBuffer &templateBuf) = 0;
+  virtual ResourceId CreateProxyBuffer(const BufferDescription &templateBuf) = 0;
   virtual void SetProxyBufferData(ResourceId bufid, byte *data, size_t dataSize) = 0;
 
   virtual void RenderMesh(uint32_t eventID, const vector<MeshFormat> &secondaryDraws,
@@ -206,16 +205,16 @@ public:
 };
 
 // utility function useful in any driver implementation
-template <typename FetchDrawcallContainer>
-FetchDrawcall *SetupDrawcallPointers(vector<FetchDrawcall *> *drawcallTable,
-                                     FetchDrawcallContainer &draws, FetchDrawcall *parent,
-                                     FetchDrawcall *previous)
+template <typename DrawcallContainer>
+DrawcallDescription *SetupDrawcallPointers(vector<DrawcallDescription *> *drawcallTable,
+                                           DrawcallContainer &draws, DrawcallDescription *parent,
+                                           DrawcallDescription *previous)
 {
-  FetchDrawcall *ret = NULL;
+  DrawcallDescription *ret = NULL;
 
   for(size_t i = 0; i < draws.size(); i++)
   {
-    FetchDrawcall *draw = &draws[i];
+    DrawcallDescription *draw = &draws[i];
 
     draw->parent = parent ? parent->eventID : 0;
 

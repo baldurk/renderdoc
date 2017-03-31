@@ -96,11 +96,11 @@ private:
                         const rdctype::array<ShaderConstant> &vars);
   const D3D11Pipe::Shader *stageForSender(QWidget *widget);
 
-  bool HasImportantViewParams(const D3D11Pipe::View &view, FetchTexture *tex);
-  bool HasImportantViewParams(const D3D11Pipe::View &view, FetchBuffer *buf);
+  bool HasImportantViewParams(const D3D11Pipe::View &view, TextureDescription *tex);
+  bool HasImportantViewParams(const D3D11Pipe::View &view, BufferDescription *buf);
 
-  void setViewDetails(QTreeWidgetItem *node, const ViewTag &view, FetchTexture *tex);
-  void setViewDetails(QTreeWidgetItem *node, const ViewTag &view, FetchBuffer *buf);
+  void setViewDetails(QTreeWidgetItem *node, const ViewTag &view, TextureDescription *tex);
+  void setViewDetails(QTreeWidgetItem *node, const ViewTag &view, BufferDescription *buf);
 
   bool showNode(bool usedSlot, bool filledSlot);
 

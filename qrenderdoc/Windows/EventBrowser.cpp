@@ -162,7 +162,8 @@ void EventBrowser::OnEventChanged(uint32_t eventID)
   highlightBookmarks();
 }
 
-uint EventBrowser::AddDrawcalls(QTreeWidgetItem *parent, const rdctype::array<FetchDrawcall> &draws)
+uint EventBrowser::AddDrawcalls(QTreeWidgetItem *parent,
+                                const rdctype::array<DrawcallDescription> &draws)
 {
   uint lastEID = 0;
 
@@ -385,7 +386,7 @@ void EventBrowser::on_stepNext_clicked()
   if(!m_Ctx.LogLoaded())
     return;
 
-  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   if(draw && draw->next > 0)
     SelectEvent(draw->next);
@@ -396,7 +397,7 @@ void EventBrowser::on_stepPrev_clicked()
   if(!m_Ctx.LogLoaded())
     return;
 
-  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   if(draw && draw->previous > 0)
     SelectEvent(draw->previous);

@@ -358,7 +358,7 @@ void VulkanPipelineStateViewer::setEmptyRow(QTreeWidgetItem *node)
 
 template <typename bindType>
 void VulkanPipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const bindType &view,
-                                               FetchTexture *tex)
+                                               TextureDescription *tex)
 {
   if(tex == NULL)
     return;
@@ -432,7 +432,7 @@ void VulkanPipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const bind
 
 template <typename bindType>
 void VulkanPipelineStateViewer::setViewDetails(QTreeWidgetItem *node, const bindType &view,
-                                               FetchBuffer *buf)
+                                               BufferDescription *buf)
 {
   if(buf == NULL)
     return;
@@ -812,8 +812,8 @@ void VulkanPipelineStateViewer::addResourceRow(ShaderReflection *shaderDetails,
       TextureDim restype = TextureDim::Unknown;
       QVariant tag;
 
-      FetchTexture *tex = NULL;
-      FetchBuffer *buf = NULL;
+      TextureDescription *tex = NULL;
+      BufferDescription *buf = NULL;
 
       if(filledSlot && descriptorBind != NULL)
       {
@@ -1158,7 +1158,7 @@ void VulkanPipelineStateViewer::addConstantBlockRow(ShaderReflection *shaderDeta
         name = "";
         length = descriptorBind->size;
 
-        FetchBuffer *buf = m_Ctx.GetBuffer(descriptorBind->res);
+        BufferDescription *buf = m_Ctx.GetBuffer(descriptorBind->res);
         if(buf)
         {
           name = buf->name;
@@ -1425,7 +1425,7 @@ void VulkanPipelineStateViewer::setState()
   m_CombinedImageSamplers.clear();
 
   const VKPipe::State &state = m_Ctx.CurVulkanPipelineState;
-  const FetchDrawcall *draw = m_Ctx.CurDrawcall();
+  const DrawcallDescription *draw = m_Ctx.CurDrawcall();
 
   bool showDisabled = ui->showDisabled->isChecked();
   bool showEmpty = ui->showEmpty->isChecked();
@@ -1544,7 +1544,7 @@ void VulkanPipelineStateViewer::setState()
       if(!ibufferUsed)
         length = 0;
 
-      FetchBuffer *buf = m_Ctx.GetBuffer(state.IA.ibuffer.buf);
+      BufferDescription *buf = m_Ctx.GetBuffer(state.IA.ibuffer.buf);
 
       if(buf)
       {
@@ -1624,7 +1624,7 @@ void VulkanPipelineStateViewer::setState()
           name = "Buffer " + ToQStr(vbuff->buffer);
           offset = vbuff->offset;
 
-          FetchBuffer *buf = m_Ctx.GetBuffer(vbuff->buffer);
+          BufferDescription *buf = m_Ctx.GetBuffer(vbuff->buffer);
           if(buf)
           {
             name = buf->name;
@@ -1803,7 +1803,7 @@ void VulkanPipelineStateViewer::setState()
           w = h = d = a = 0;
         }
 
-        FetchTexture *tex = m_Ctx.GetTexture(p.img);
+        TextureDescription *tex = m_Ctx.GetTexture(p.img);
         if(tex)
         {
           w = tex->width;
@@ -2024,7 +2024,7 @@ void VulkanPipelineStateViewer::resource_itemActivated(QTreeWidgetItem *item, in
 
   if(tag.canConvert<ResourceId>())
   {
-    FetchTexture *tex = m_Ctx.GetTexture(tag.value<ResourceId>());
+    TextureDescription *tex = m_Ctx.GetTexture(tag.value<ResourceId>());
 
     if(tex)
     {

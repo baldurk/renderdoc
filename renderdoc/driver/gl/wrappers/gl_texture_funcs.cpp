@@ -723,7 +723,7 @@ bool WrappedOpenGL::Serialise_glGenerateTextureMipmapEXT(GLuint texture, GLenum 
     AddEvent(desc);
     string name = "glGenerateMipmap(" + ToStr::Get(id) + ")";
 
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = name;
     draw.flags |= DrawFlags::GenMips;
 
@@ -859,7 +859,7 @@ bool WrappedOpenGL::Serialise_glCopyImageSubData(GLuint srcName, GLenum srcTarge
     AddEvent(desc);
     string name = "glCopyImageSubData(" + ToStr::Get(srcid) + ", " + ToStr::Get(dstid) + ")";
 
-    FetchDrawcall draw;
+    DrawcallDescription draw;
     draw.name = name;
     draw.flags |= DrawFlags::Copy;
 
