@@ -3040,7 +3040,6 @@ void WrappedVulkan::AddEvent(string description)
 {
   FetchAPIEvent apievent;
 
-  apievent.context = ResourceId();
   apievent.fileOffset = m_CurChunkOffset;
   apievent.eventID = m_LastCmdBufferID != ResourceId()
                          ? m_BakedCmdBufferInfo[m_LastCmdBufferID].curEventID

@@ -1319,12 +1319,11 @@ template <>
 void Serialiser::Serialise(const char *name, FetchAPIEvent &el)
 {
   Serialise("", el.eventID);
-  Serialise("", el.context);
   Serialise("", el.callstack);
   Serialise("", el.eventDesc);
   Serialise("", el.fileOffset);
 
-  SIZE_CHECK(56);
+  SIZE_CHECK(48);
 }
 
 template <>

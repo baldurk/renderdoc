@@ -950,7 +950,6 @@ void D3D12CommandData::AddEvent(string description)
 {
   FetchAPIEvent apievent;
 
-  apievent.context = ResourceId();
   apievent.fileOffset = m_CurChunkOffset;
   apievent.eventID = m_LastCmdListID != ResourceId() ? m_BakedCmdListInfo[m_LastCmdListID].curEventID
                                                      : m_RootEventID;

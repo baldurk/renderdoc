@@ -505,8 +505,6 @@ namespace renderdoc
     {
         public UInt32 eventID;
 
-        public ResourceId context;
-
         [CustomMarshalAs(CustomUnmanagedType.TemplatedArray)]
         public UInt64[] callstack;
 

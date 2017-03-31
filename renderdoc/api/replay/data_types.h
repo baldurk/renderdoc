@@ -111,8 +111,6 @@ struct FetchAPIEvent
 {
   uint32_t eventID;
 
-  ResourceId context;
-
   rdctype::array<uint64_t> callstack;
 
   rdctype::str eventDesc;

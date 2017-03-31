@@ -4216,7 +4216,6 @@ void WrappedOpenGL::AddEvent(string description)
 {
   FetchAPIEvent apievent;
 
-  apievent.context = GetResourceManager()->GetOriginalID(m_ContextResourceID);
   apievent.fileOffset = m_CurChunkOffset;
   apievent.eventID = m_CurEventID;
 
