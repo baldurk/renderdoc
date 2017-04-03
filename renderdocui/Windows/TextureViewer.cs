@@ -2452,7 +2452,7 @@ namespace renderdocui.Windows
                 return;
             }
 
-            m_Core.Renderer.InvokeForPaint((ReplayRenderer r) => { if (m_Output != null) m_Output.Display(); });
+            m_Core.Renderer.InvokeForPaint("contextpaint", (ReplayRenderer r) => { if (m_Output != null) m_Output.Display(); });
         }
 
         private void render_Paint(object sender, PaintEventArgs e)
@@ -2470,7 +2470,7 @@ namespace renderdocui.Windows
             foreach (var prev in roPanel.Thumbnails)
                 if (prev.Unbound) prev.Clear();
 
-            m_Core.Renderer.InvokeForPaint((ReplayRenderer r) => { if (m_Output != null) m_Output.Display(); });
+            m_Core.Renderer.InvokeForPaint("texpaint", (ReplayRenderer r) => { if (m_Output != null) m_Output.Display(); });
         }
 
         #endregion
@@ -2910,7 +2910,7 @@ namespace renderdocui.Windows
                     m_PickedPoint.X = Helpers.Clamp(m_PickedPoint.X, 0, (int)tex.width - 1);
                     m_PickedPoint.Y = Helpers.Clamp(m_PickedPoint.Y, 0, (int)tex.height - 1);
 
-                    m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                    m_Core.Renderer.BeginInvoke("PickPixelClick", (ReplayRenderer r) =>
                     {
                         if (m_Output != null)
                             RT_PickPixelsAndUpdate(m_PickedPoint.X, m_PickedPoint.Y, true);
@@ -2926,7 +2926,7 @@ namespace renderdocui.Windows
 
                 if (tex != null)
                 {
-                    m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+                    m_Core.Renderer.BeginInvoke("PickPixelHover", (ReplayRenderer r) =>
                     {
                         if (m_Output != null)
                         {
@@ -3289,7 +3289,7 @@ namespace renderdocui.Windows
 
             rangePaintThread = Helpers.NewThread(new ThreadStart(() =>
             {
-                m_Core.Renderer.InvokeForPaint((ReplayRenderer r) => { RT_UpdateAndDisplay(r); if (m_Output != null) m_Output.Display(); });
+                m_Core.Renderer.InvokeForPaint("", (ReplayRenderer r) => { RT_UpdateAndDisplay(r); if (m_Output != null) m_Output.Display(); });
                 Thread.Sleep(8);
             }));
             rangePaintThread.Start();

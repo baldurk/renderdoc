@@ -155,7 +155,7 @@ namespace renderdocui.Controls
             }
 
             if (m_Output != null)
-                m_Core.Renderer.InvokeForPaint((ReplayRenderer r) => { m_Output.Display(); });
+                m_Core.Renderer.InvokeForPaint("thumbpaint", (ReplayRenderer r) => { m_Output.Display(); });
         }
 
         public void SetSize(Size s)

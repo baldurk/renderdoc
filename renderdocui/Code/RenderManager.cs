@@ -45,12 +45,21 @@ namespace renderdocui.Code
     {
         private class InvokeHandle
         {
-            public InvokeHandle(InvokeMethod m)
+            public InvokeHandle(string t, InvokeMethod m)
             {
+                tag = t;
                 method = m;
                 processed = false;
             }
 
+            public InvokeHandle(InvokeMethod m)
+            {
+                tag = "";
+                method = m;
+                processed = false;
+            }
+
+            public string tag;
             public InvokeMethod method;
             public bool paintInvoke = false;
             volatile public bool processed;
@@ -423,6 +432,55 @@ namespace renderdocui.Code
             CatchExceptions = catching;
         }
 
+        // this tagged version is for cases when we might send a request - e.g. to pick a vertex or pixel
+        // - and want to pre-empt it with a new request before the first has returned. Either because some
+        // other work is taking a while or because we're sending requests faster than they can be
+        // processed.
+        // the manager processes only the request on the top of the queue, so when a new tagged invoke
+        // comes in, we remove any other requests in the queue before it that have the same tag
+        public void BeginInvoke(string tag, InvokeMethod m)
+        {
+            InvokeHandle cmd = new InvokeHandle(tag, m);
+
+            if (tag != "")
+            {
+                lock (m_renderQueue)
+                {
+                    bool added = false;
+
+                    for (int i = 0; i < m_renderQueue.Count;)
+                    {
+                        if (m_renderQueue[i].tag == tag)
+                        {
+                            m_renderQueue[i].processed = true;
+                            if (!added)
+                            {
+                                m_renderQueue[i] = cmd;
+                                added = true;
+                            }
+                            else
+                            {
+                                m_renderQueue.RemoveAt(i);
+                            }
+                        }
+                        else
+                        {
+                            i++;
+                        }
+                    }
+
+                    if (!added)
+                        m_renderQueue.Add(cmd);
+                }
+
+                m_WakeupEvent.Set();
+            }
+            else
+            {
+                PushInvoke(cmd);
+            }
+        }
+
         public void BeginInvoke(InvokeMethod m)
         {
             InvokeHandle cmd = new InvokeHandle(m);
@@ -442,7 +500,7 @@ namespace renderdocui.Code
                 throw cmd.ex;
         }
 
-        public void InvokeForPaint(InvokeMethod m)
+        public void InvokeForPaint(string tag, InvokeMethod m)
         {
             if (m_Thread == null || !Running)
                 return;
@@ -458,7 +516,7 @@ namespace renderdocui.Code
 
             bool waitable = true;
 
-            InvokeHandle cmd = new InvokeHandle(m);
+            InvokeHandle cmd = new InvokeHandle(tag, m);
             cmd.paintInvoke = true;
 
             lock (m_renderQueue)
@@ -473,7 +531,35 @@ namespace renderdocui.Code
                     if (!m_renderQueue[i].paintInvoke)
                         waitable = false;
 
-                m_renderQueue.Add(cmd);
+                // remove any duplicated paints if we have a tag
+                bool added = false;
+
+                if (tag != "")
+                {
+                    for (int i = 0; i < m_renderQueue.Count;)
+                    {
+                        if (m_renderQueue[i].tag == tag)
+                        {
+                            m_renderQueue[i].processed = true;
+                            if (!added)
+                            {
+                                m_renderQueue[i] = cmd;
+                                added = true;
+                            }
+                            else
+                            {
+                                m_renderQueue.RemoveAt(i);
+                            }
+                        }
+                        else
+                        {
+                            i++;
+                        }
+                    }
+                }
+
+                if (!added)
+                    m_renderQueue.Add(cmd);
             }
 
             m_WakeupEvent.Set();

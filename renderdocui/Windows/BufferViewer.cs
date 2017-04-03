@@ -2391,7 +2391,7 @@ namespace renderdocui.Windows
             if (!m_Core.LogLoaded)
                 return;
 
-            m_Core.Renderer.BeginInvoke((ReplayRenderer r) =>
+            m_Core.Renderer.BeginInvoke("PickVertex", (ReplayRenderer r) =>
             {
                 UInt32 instanceSelected = 0;
                 UInt32 vertSelected = m_Output.PickVertex(m_Core.CurEvent, (UInt32)p.X, (UInt32)p.Y, out instanceSelected);
@@ -2598,7 +2598,7 @@ namespace renderdocui.Windows
                 return;
             }
 
-            m_Core.Renderer.InvokeForPaint((ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
+            m_Core.Renderer.InvokeForPaint("bufferpaint", (ReplayRenderer r) => { RT_UpdateRenderOutput(r); if (m_Output != null) m_Output.Display(); });
         }
 
         private void BufferViewer_Load(object sender, EventArgs e)
