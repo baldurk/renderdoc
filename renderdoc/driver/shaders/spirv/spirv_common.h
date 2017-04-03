@@ -48,6 +48,7 @@ void ShutdownSPIRVCompiler();
 
 struct SPVInstruction;
 
+enum ShaderStageType;
 struct ShaderReflection;
 struct ShaderBindpointMapping;
 
@@ -86,7 +87,7 @@ struct SPVModule
   SPVInstruction *GetByID(uint32_t id);
   string Disassemble(const string &entryPoint);
 
-  void MakeReflection(const string &entryPoint, ShaderReflection *reflection,
+  void MakeReflection(ShaderStageType stage, const string &entryPoint, ShaderReflection *reflection,
                       ShaderBindpointMapping *mapping);
 };
 

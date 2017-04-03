@@ -3696,8 +3696,9 @@ struct bindpair
 typedef bindpair<ConstantBlock> cblockpair;
 typedef bindpair<ShaderResource> shaderrespair;
 
-void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTypeData *type,
-                           const vector<SPVDecoration> &decorations, vector<SigParameter> &sigarray)
+void AddSignatureParameter(ShaderStageType stage, uint32_t id, uint32_t childIdx, string varName,
+                           SPVTypeData *type, const vector<SPVDecoration> &decorations,
+                           vector<SigParameter> &sigarray)
 {
   SigParameter sig;
 
@@ -3723,6 +3724,10 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
     else if(decorations[d].decoration == spv::DecorationColMajor)
       rowmajor = false;
   }
+
+  // fragment shader outputs are implicitly colour outputs
+  if(stage == eShaderStage_Fragment && type->storage == spv::StorageClassOutput)
+    sig.systemValue = eAttr_ColourOutput;
 
   if(type->type == SPVTypeData::ePointer)
     type = type->baseType;
@@ -3785,7 +3790,7 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
 
         string baseName = isArray ? StringFormat::Fmt("%s[%u]", varName.c_str(), a) : varName;
 
-        AddSignatureParameter(id, (uint32_t)c, baseName + "." + type->children[c].second,
+        AddSignatureParameter(stage, id, (uint32_t)c, baseName + "." + type->children[c].second,
                               type->children[c].first, type->childDecorations[c], sigarray);
       }
     }
@@ -3844,8 +3849,8 @@ void AddSignatureParameter(uint32_t id, uint32_t childIdx, string varName, SPVTy
   }
 }
 
-void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *reflection,
-                               ShaderBindpointMapping *mapping)
+void SPVModule::MakeReflection(ShaderStageType stage, const string &entryPoint,
+                               ShaderReflection *reflection, ShaderBindpointMapping *mapping)
 {
   vector<SigParameter> inputs;
   vector<SigParameter> outputs;
@@ -3883,7 +3888,7 @@ void SPVModule::MakeReflection(const string &entryPoint, ShaderReflection *refle
       else
         nm = StringFormat::Fmt("sig%u", inst->id);
 
-      AddSignatureParameter(inst->id, ~0U, nm, inst->var->type, inst->decorations, *sigarray);
+      AddSignatureParameter(stage, inst->id, ~0U, nm, inst->var->type, inst->decorations, *sigarray);
 
       // eliminate any members of gl_PerVertex that are actually unused and just came along
       // for the ride (usually with gl_Position, but maybe declared globally and still unused)

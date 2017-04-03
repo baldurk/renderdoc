@@ -111,8 +111,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     {
       reflData.entryPoint = shad.entryPoint;
       reflData.stage = stageIndex;
-      info.m_ShaderModule[id].spirv.MakeReflection(reflData.entryPoint, &reflData.refl,
-                                                   &reflData.mapping);
+      info.m_ShaderModule[id].spirv.MakeReflection(
+          ShaderStageType(reflData.stage), reflData.entryPoint, &reflData.refl, &reflData.mapping);
     }
 
     if(pCreateInfo->pStages[i].pSpecializationInfo)
@@ -325,8 +325,8 @@ void VulkanCreationInfo::Pipeline::Init(VulkanResourceManager *resourceMan, Vulk
     if(reflData.entryPoint.empty())
     {
       reflData.entryPoint = shad.entryPoint;
-      info.m_ShaderModule[id].spirv.MakeReflection(reflData.entryPoint, &reflData.refl,
-                                                   &reflData.mapping);
+      info.m_ShaderModule[id].spirv.MakeReflection(eShaderStage_Compute, reflData.entryPoint,
+                                                   &reflData.refl, &reflData.mapping);
     }
 
     if(pCreateInfo->stage.pSpecializationInfo)
