@@ -254,6 +254,23 @@ ReplayCreateStatus WrappedVulkan::Initialise(VkInitParams &params)
         ->CreateDebugReportCallbackEXT(Unwrap(m_Instance), &debugInfo, NULL, &m_DbgMsgCallback);
   }
 
+  uint32_t count = 0;
+
+  VkResult vkr = ObjDisp(m_Instance)->EnumeratePhysicalDevices(Unwrap(m_Instance), &count, NULL);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  m_ReplayPhysicalDevices.resize(count);
+  m_ReplayPhysicalDevicesUsed.resize(count);
+  m_OriginalPhysicalDevices.resize(count);
+  m_MemIdxMaps.resize(count);
+
+  vkr = ObjDisp(m_Instance)
+            ->EnumeratePhysicalDevices(Unwrap(m_Instance), &count, &m_ReplayPhysicalDevices[0]);
+  RDCASSERTEQUAL(vkr, VK_SUCCESS);
+
+  for(uint32_t i = 0; i < count; i++)
+    GetResourceManager()->WrapResource(m_Instance, m_ReplayPhysicalDevices[i]);
+
   return eReplayCreate_Success;
 }
 
@@ -421,6 +438,11 @@ void WrappedVulkan::Shutdown()
   }
   m_CleanupMems.clear();
 
+  // destroy the physical devices manually because due to remapping the may have leftover
+  // refcounts
+  for(size_t i = 0; i < m_ReplayPhysicalDevices.size(); i++)
+    GetResourceManager()->ReleaseWrappedResource(m_ReplayPhysicalDevices[i]);
+
   // destroy debug manager and any objects it created
   SAFE_DELETE(m_DebugManager);
 
@@ -445,6 +467,7 @@ void WrappedVulkan::Shutdown()
   m_Device = VK_NULL_HANDLE;
   m_Instance = VK_NULL_HANDLE;
 
+  m_ReplayPhysicalDevices.clear();
   m_PhysicalDevices.clear();
 
   for(size_t i = 0; i < m_QueueFamilies.size(); i++)
@@ -530,74 +553,115 @@ bool WrappedVulkan::Serialise_vkEnumeratePhysicalDevices(Serialiser *localSerial
   }
   else
   {
-    uint32_t count;
-    VkPhysicalDevice *devices;
-
-    instance = GetResourceManager()->GetLiveHandle<VkInstance>(inst);
-    VkResult vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, NULL);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
-
-    if(count <= physIndex)
     {
-      RDCERR(
-          "Capture had more physical devices than available on replay! This will lead to a crash "
-          "if they are used.");
-      return true;
+      VkDriverInfo capturedVersion(physProps);
+
+      RDCLOG("Captured log describes physical device %u:", physIndex);
+      RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", physProps.deviceName,
+             capturedVersion.Major(), capturedVersion.Minor(), capturedVersion.Patch(),
+             physProps.vendorID, physProps.deviceID);
+
+      m_OriginalPhysicalDevices[physIndex].props = physProps;
+      m_OriginalPhysicalDevices[physIndex].memProps = memProps;
+      m_OriginalPhysicalDevices[physIndex].features = physFeatures;
     }
 
-    devices = new VkPhysicalDevice[count];
+    // match up physical devices to those available on replay as best as possible. In general
+    // hopefully the most common case is when there's a precise match, and maybe the order changed.
+    //
+    // If more GPUs were present on replay than during capture, we map many-to-one which might have
+    // bad side-effects as e.g. we have to pick one memidxmap, but this is as good as we can do.
 
-    if(physIndex >= m_PhysicalDevices.size())
+    uint32_t bestIdx = 0;
+    VkPhysicalDeviceProperties bestPhysProps;
+    VkPhysicalDeviceMemoryProperties bestMemProps;
+
+    pd = m_ReplayPhysicalDevices[bestIdx];
+
+    ObjDisp(pd)->GetPhysicalDeviceProperties(Unwrap(pd), &bestPhysProps);
+    ObjDisp(pd)->GetPhysicalDeviceMemoryProperties(Unwrap(pd), &bestMemProps);
+
+    for(uint32_t i = 1; i < (uint32_t)m_ReplayPhysicalDevices.size(); i++)
     {
-      m_PhysicalDevices.resize(physIndex + 1);
-      m_MemIdxMaps.resize(physIndex + 1);
-    }
+      VkPhysicalDeviceProperties compPhysProps;
+      VkPhysicalDeviceMemoryProperties compMemProps;
 
-    vkr = ObjDisp(instance)->EnumeratePhysicalDevices(Unwrap(instance), &count, devices);
-    RDCASSERTEQUAL(vkr, VK_SUCCESS);
+      pd = m_ReplayPhysicalDevices[i];
 
-    // PORTABILITY match up physical devices to those available on replay
+      // find the best possible match for this physical device
+      ObjDisp(pd)->GetPhysicalDeviceProperties(Unwrap(pd), &compPhysProps);
+      ObjDisp(pd)->GetPhysicalDeviceMemoryProperties(Unwrap(pd), &compMemProps);
 
-    pd = devices[physIndex];
-
-    for(size_t i = 0; i < m_PhysicalDevices.size(); i++)
-    {
-      // physical devices might be re-created inside EnumeratePhysicalDevices every time, so
-      // we need to re-wrap any previously enumerated physical devices
-      if(m_PhysicalDevices[i] != VK_NULL_HANDLE)
+      // an exact vendorID match is a better match than not
+      if(compPhysProps.vendorID == physProps.vendorID && bestPhysProps.vendorID != physProps.vendorID)
       {
-        RDCASSERTNOTEQUAL(i, physIndex);
-        GetWrapped(m_PhysicalDevices[i])->RewrapObject(devices[i]);
+        bestIdx = i;
+        bestPhysProps = compPhysProps;
+        bestMemProps = compMemProps;
+        continue;
       }
+      else if(compPhysProps.vendorID != physProps.vendorID)
+      {
+        continue;
+      }
+
+      // ditto deviceID
+      if(compPhysProps.deviceID == physProps.deviceID && bestPhysProps.deviceID != physProps.deviceID)
+      {
+        bestIdx = i;
+        bestPhysProps = compPhysProps;
+        bestMemProps = compMemProps;
+        continue;
+      }
+      else if(compPhysProps.deviceID != physProps.deviceID)
+      {
+        continue;
+      }
+
+      // if we have multiple identical devices, which isn't uncommon, favour the one
+      // that hasn't been assigned
+      if(m_ReplayPhysicalDevicesUsed[bestIdx] && !m_ReplayPhysicalDevicesUsed[i])
+      {
+        bestIdx = i;
+        bestPhysProps = compPhysProps;
+        bestMemProps = compMemProps;
+        continue;
+      }
+
+      // this device isn't any better, ignore it
     }
 
-    SAFE_DELETE_ARRAY(devices);
+    {
+      VkDriverInfo runningVersion(bestPhysProps);
 
-    GetResourceManager()->WrapResource(instance, pd);
+      RDCLOG("Mapping during replay to physical device %u:", bestIdx);
+      RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", bestPhysProps.deviceName,
+             runningVersion.Major(), runningVersion.Minor(), runningVersion.Patch(),
+             bestPhysProps.vendorID, bestPhysProps.deviceID);
+    }
+
+    pd = m_ReplayPhysicalDevices[bestIdx];
+
     GetResourceManager()->AddLiveResource(physId, pd);
 
+    if(physIndex >= m_PhysicalDevices.size())
+      m_PhysicalDevices.resize(physIndex + 1);
     m_PhysicalDevices[physIndex] = pd;
 
-    uint32_t *storedMap = new uint32_t[32];
-    memcpy(storedMap, memIdxMap, sizeof(memIdxMap));
-    m_MemIdxMaps[physIndex] = storedMap;
-
-    VkDriverInfo capturedVersion(physProps);
-
-    RDCLOG("Captured log describes physical device %u:", physIndex);
-    RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", physProps.deviceName,
-           capturedVersion.Major(), capturedVersion.Minor(), capturedVersion.Patch(),
-           physProps.vendorID, physProps.deviceID);
-
-    ObjDisp(pd)->GetPhysicalDeviceProperties(Unwrap(pd), &physProps);
-    ObjDisp(pd)->GetPhysicalDeviceMemoryProperties(Unwrap(pd), &memProps);
-    ObjDisp(pd)->GetPhysicalDeviceFeatures(Unwrap(pd), &physFeatures);
-
-    VkDriverInfo runningVersion(physProps);
-
-    RDCLOG("Replaying on physical device %u:", physIndex);
-    RDCLOG("   - %s (ver %u.%u patch 0x%x) - %04x:%04x", physProps.deviceName, runningVersion.Major(),
-           runningVersion.Minor(), runningVersion.Patch(), physProps.vendorID, physProps.deviceID);
+    if(m_ReplayPhysicalDevicesUsed[bestIdx])
+    {
+      // error if we're remapping multiple physical devices to the same best match
+      RDCERR(
+          "Mappnig multiple capture-time physical devices to a single replay-time physical device."
+          "This means the HW has changed between capture and replay and may cause bugs.");
+    }
+    else
+    {
+      // the first physical device 'wins' for the memory index map
+      uint32_t *storedMap = new uint32_t[32];
+      memcpy(storedMap, memIdxMap, sizeof(memIdxMap));
+      m_MemIdxMaps[physIndex] = storedMap;
+    }
   }
 
   return true;

@@ -319,8 +319,16 @@ private:
       m_QueueFamilyIdx;    // the family index that we've selected in CreateDevice for our queue
   VkQueue m_Queue;         // the queue used for our own command buffer work
 
-  // the physical devices
+  // the physical devices. At capture time this is trivial, just the enumerated devices.
+  // At replay time this is re-ordered from the real list to try and match
   vector<VkPhysicalDevice> m_PhysicalDevices;
+
+  // replay only, information we need for remapping. The original vector keeps information about the
+  // physical devices used at capture time, and the replay vector contains the real unmodified list
+  // of physical devices at replay time.
+  vector<PhysicalDeviceData> m_OriginalPhysicalDevices;
+  vector<VkPhysicalDevice> m_ReplayPhysicalDevices;
+  vector<bool> m_ReplayPhysicalDevicesUsed;
 
   // the single queue family supported for each physical device
   vector<pair<uint32_t, VkQueueFamilyProperties> > m_SupportedQueueFamilies;
