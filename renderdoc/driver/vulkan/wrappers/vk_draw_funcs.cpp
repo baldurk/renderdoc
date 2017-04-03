@@ -550,7 +550,7 @@ bool WrappedVulkan::Serialise_vkCmdDrawIndexedIndirect(Serialiser *localSerialis
     commandBuffer = GetResourceManager()->GetLiveHandle<VkCommandBuffer>(cmdid);
     buffer = GetResourceManager()->GetLiveHandle<VkBuffer>(bufid);
 
-    ObjDisp(commandBuffer)->CmdDrawIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
+    ObjDisp(commandBuffer)->CmdDrawIndexedIndirect(Unwrap(commandBuffer), Unwrap(buffer), offs, cnt, strd);
   }
   else if(m_State == EXECUTING && cnt <= 1)
   {
