@@ -789,7 +789,7 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
   if(stage.Object == ResourceId())
     shader->setText(tr("Unbound Shader"));
   else
-    shader->setText(ToQStr(stage.ShaderName));
+    shader->setText(ToQStr(stage.name));
 
   if(shaderDetails && !shaderDetails->DebugInfo.entryFunc.empty() &&
      !shaderDetails->DebugInfo.files.empty())
@@ -863,8 +863,8 @@ void D3D11PipelineStateViewer::setShaderState(const D3D11Pipe::Shader &stage, QL
       if(shaderInput && !shaderInput->name.empty())
         slotname += ": " + ToQStr(shaderInput->name);
 
-      if(s.customSamplerName)
-        slotname += "(" + ToQStr(s.SamplerName) + ")";
+      if(s.customName)
+        slotname += "(" + ToQStr(s.name) + ")";
 
       QString borderColor =
           QString::number(s.BorderColor[0]) + ", " + QString::number(s.BorderColor[1]) + ", " +
@@ -1049,7 +1049,7 @@ void D3D11PipelineStateViewer::setState()
 
   if(state.m_IA.Bytecode)
   {
-    QString layout = ToQStr(state.m_IA.LayoutName);
+    QString layout = ToQStr(state.m_IA.name);
 
     if(state.m_IA.Bytecode && !state.m_IA.Bytecode->DebugInfo.entryFunc.empty())
       layout += " (" + ToQStr(state.m_IA.Bytecode->DebugInfo.entryFunc) + ")";

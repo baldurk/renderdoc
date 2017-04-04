@@ -3188,11 +3188,11 @@ void VulkanReplay::SavePipelineState()
         stage.ShaderDetails = NULL;
 
         stage.customName = true;
-        stage.ShaderName = m_pDriver->m_CreationInfo.m_Names[p.shaders[i].module];
-        if(stage.ShaderName.count == 0)
+        stage.name = m_pDriver->m_CreationInfo.m_Names[p.shaders[i].module];
+        if(stage.name.count == 0)
         {
           stage.customName = false;
-          stage.ShaderName = StringFormat::Fmt("Shader %llu", stage.Object);
+          stage.name = StringFormat::Fmt("Shader %llu", stage.Object);
         }
 
         stage.stage = ShaderStage::Compute;
@@ -3258,11 +3258,11 @@ void VulkanReplay::SavePipelineState()
         stages[i]->ShaderDetails = NULL;
 
         stages[i]->customName = true;
-        stages[i]->ShaderName = m_pDriver->m_CreationInfo.m_Names[p.shaders[i].module];
-        if(stages[i]->ShaderName.count == 0)
+        stages[i]->name = m_pDriver->m_CreationInfo.m_Names[p.shaders[i].module];
+        if(stages[i]->name.count == 0)
         {
           stages[i]->customName = false;
-          stages[i]->ShaderName = StringFormat::Fmt("Shader %llu", stages[i]->Object);
+          stages[i]->name = StringFormat::Fmt("Shader %llu", stages[i]->Object);
         }
 
         stages[i]->stage = StageFromIndex(i);
@@ -3588,12 +3588,12 @@ void VulkanReplay::SavePipelineState()
 
                   el.sampler = rm->GetOriginalID(el.sampler);
 
-                  el.customSamplerName = true;
-                  el.SamplerName = m_pDriver->m_CreationInfo.m_Names[liveId];
-                  if(el.SamplerName.count == 0)
+                  el.customName = true;
+                  el.name = m_pDriver->m_CreationInfo.m_Names[liveId];
+                  if(el.name.count == 0)
                   {
-                    el.customSamplerName = false;
-                    el.SamplerName = StringFormat::Fmt("Sampler %llu", el.sampler);
+                    el.customName = false;
+                    el.name = StringFormat::Fmt("Sampler %llu", el.sampler);
                   }
 
                   // sampler info

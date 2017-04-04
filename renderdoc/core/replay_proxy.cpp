@@ -318,7 +318,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::IA &el)
   Serialise("", el.ibuffer.Offset);
 
   Serialise("", el.customName);
-  Serialise("", el.LayoutName);
+  Serialise("", el.name);
 
   Serialise("", el.vbuffers);
   Serialise("", el.layouts);
@@ -352,8 +352,8 @@ template <>
 void Serialiser::Serialise(const char *name, D3D11Pipe::Sampler &el)
 {
   Serialise("", el.Samp);
-  Serialise("", el.SamplerName);
-  Serialise("", el.customSamplerName);
+  Serialise("", el.name);
+  Serialise("", el.customName);
   Serialise("", el.AddressU);
   Serialise("", el.AddressV);
   Serialise("", el.AddressW);
@@ -375,7 +375,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::Shader &el)
 {
   Serialise("", el.Object);
   Serialise("", el.stage);
-  Serialise("", el.ShaderName);
+  Serialise("", el.name);
   Serialise("", el.customName);
 
   if(m_Mode == READING)
@@ -704,7 +704,7 @@ void Serialiser::Serialise(const char *name, D3D12Pipe::State &el)
 {
   Serialise("", el.pipeline);
   Serialise("", el.customName);
-  Serialise("", el.PipelineName);
+  Serialise("", el.name);
 
   Serialise("", el.rootSig);
 
@@ -975,8 +975,8 @@ void Serialiser::Serialise(const char *name, VKPipe::BindingElement &el)
   Serialise("", el.sampler);
   Serialise("", el.immutableSampler);
 
-  Serialise("", el.SamplerName);
-  Serialise("", el.customSamplerName);
+  Serialise("", el.name);
+  Serialise("", el.customName);
 
   Serialise("", el.viewfmt);
   SerialisePODArray<4>("", el.swizzle);
@@ -1077,7 +1077,7 @@ void Serialiser::Serialise(const char *name, VKPipe::Shader &el)
   Serialise("", el.Object);
   Serialise("", el.entryPoint);
 
-  Serialise("", el.ShaderName);
+  Serialise("", el.name);
   Serialise("", el.customName);
   Serialise("", el.BindpointMapping);
   Serialise("", el.stage);

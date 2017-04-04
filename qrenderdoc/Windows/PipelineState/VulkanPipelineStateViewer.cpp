@@ -657,7 +657,7 @@ QVariantList VulkanPipelineStateViewer::makeSampler(const QString &bindset, cons
           bindset,
           slotname,
           descriptor.immutableSampler ? "Immutable Sampler" : "Sampler",
-          ToQStr(descriptor.SamplerName),
+          ToQStr(descriptor.name),
           addressing,
           filter + ", " + lod};
 }
@@ -1228,7 +1228,7 @@ void VulkanPipelineStateViewer::setShaderState(const VKPipe::Shader &stage,
   if(stage.Object == ResourceId())
     shader->setText(tr("Unbound Shader"));
   else
-    shader->setText(ToQStr(stage.ShaderName));
+    shader->setText(ToQStr(stage.name));
 
   if(shaderDetails != NULL && shaderDetails->DebugInfo.entryFunc.count > 0)
   {

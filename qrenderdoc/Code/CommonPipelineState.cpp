@@ -366,12 +366,12 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: ret = m_D3D11->m_VS.ShaderName; break;
-        case ShaderStage::Domain: ret = m_D3D11->m_DS.ShaderName; break;
-        case ShaderStage::Hull: ret = m_D3D11->m_HS.ShaderName; break;
-        case ShaderStage::Geometry: ret = m_D3D11->m_GS.ShaderName; break;
-        case ShaderStage::Pixel: ret = m_D3D11->m_PS.ShaderName; break;
-        case ShaderStage::Compute: ret = m_D3D11->m_CS.ShaderName; break;
+        case ShaderStage::Vertex: ret = m_D3D11->m_VS.name; break;
+        case ShaderStage::Domain: ret = m_D3D11->m_DS.name; break;
+        case ShaderStage::Hull: ret = m_D3D11->m_HS.name; break;
+        case ShaderStage::Geometry: ret = m_D3D11->m_GS.name; break;
+        case ShaderStage::Pixel: ret = m_D3D11->m_PS.name; break;
+        case ShaderStage::Compute: ret = m_D3D11->m_CS.name; break;
         default: break;
       }
     }
@@ -379,12 +379,12 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: ret = QString(m_D3D12->PipelineName) + " VS"; break;
-        case ShaderStage::Domain: ret = QString(m_D3D12->PipelineName) + " DS"; break;
-        case ShaderStage::Hull: ret = QString(m_D3D12->PipelineName) + " HS"; break;
-        case ShaderStage::Geometry: ret = QString(m_D3D12->PipelineName) + " GS"; break;
-        case ShaderStage::Pixel: ret = QString(m_D3D12->PipelineName) + " PS"; break;
-        case ShaderStage::Compute: ret = QString(m_D3D12->PipelineName) + " CS"; break;
+        case ShaderStage::Vertex: ret = QString(m_D3D12->name) + " VS"; break;
+        case ShaderStage::Domain: ret = QString(m_D3D12->name) + " DS"; break;
+        case ShaderStage::Hull: ret = QString(m_D3D12->name) + " HS"; break;
+        case ShaderStage::Geometry: ret = QString(m_D3D12->name) + " GS"; break;
+        case ShaderStage::Pixel: ret = QString(m_D3D12->name) + " PS"; break;
+        case ShaderStage::Compute: ret = QString(m_D3D12->name) + " CS"; break;
         default: break;
       }
     }
@@ -405,12 +405,12 @@ QString CommonPipelineState::GetShaderName(ShaderStage stage)
     {
       switch(stage)
       {
-        case ShaderStage::Vertex: ret = m_Vulkan->m_VS.ShaderName; break;
-        case ShaderStage::Domain: ret = m_Vulkan->m_TCS.ShaderName; break;
-        case ShaderStage::Hull: ret = m_Vulkan->m_TES.ShaderName; break;
-        case ShaderStage::Geometry: ret = m_Vulkan->m_GS.ShaderName; break;
-        case ShaderStage::Pixel: ret = m_Vulkan->m_FS.ShaderName; break;
-        case ShaderStage::Compute: ret = m_Vulkan->m_CS.ShaderName; break;
+        case ShaderStage::Vertex: ret = m_Vulkan->m_VS.name; break;
+        case ShaderStage::Domain: ret = m_Vulkan->m_TCS.name; break;
+        case ShaderStage::Hull: ret = m_Vulkan->m_TES.name; break;
+        case ShaderStage::Geometry: ret = m_Vulkan->m_GS.name; break;
+        case ShaderStage::Pixel: ret = m_Vulkan->m_FS.name; break;
+        case ShaderStage::Compute: ret = m_Vulkan->m_CS.name; break;
         default: break;
       }
     }

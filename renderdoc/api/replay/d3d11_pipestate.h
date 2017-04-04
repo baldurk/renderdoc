@@ -66,8 +66,8 @@ struct IA
   ResourceId layout;
   ShaderReflection *Bytecode;
   bool32 customName;
-  rdctype::str LayoutName;
 
+  rdctype::str name;
   rdctype::array<VB> vbuffers;
 
   IB ibuffer;
@@ -121,7 +121,7 @@ struct Sampler
 {
   Sampler()
       : Samp(),
-        customSamplerName(false),
+        customName(false),
         UseBorder(false),
         UseComparison(false),
         MaxAniso(0),
@@ -132,9 +132,11 @@ struct Sampler
     BorderColor[0] = BorderColor[1] = BorderColor[2] = BorderColor[3] = 0.0f;
   }
   ResourceId Samp;
-  rdctype::str SamplerName;
-  bool32 customSamplerName;
-  rdctype::str AddressU, AddressV, AddressW;
+  rdctype::str name;
+  bool32 customName;
+  rdctype::str AddressU;
+  rdctype::str AddressV;
+  rdctype::str AddressW;
   float BorderColor[4];
   rdctype::str Comparison;
   rdctype::str Filter;
@@ -158,7 +160,7 @@ struct Shader
 {
   Shader() : Object(), customName(false), ShaderDetails(NULL), stage(ShaderStage::Vertex) {}
   ResourceId Object;
-  rdctype::str ShaderName;
+  rdctype::str name;
   bool32 customName;
   ShaderReflection *ShaderDetails;
   ShaderBindpointMapping BindpointMapping;

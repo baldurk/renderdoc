@@ -884,9 +884,9 @@ void D3D12PipelineStateViewer::setShaderState(const D3D12Pipe::Shader &stage, QL
   if(stage.Object == ResourceId())
     shader->setText(tr("Unbound Shader"));
   else if(state.customName)
-    shader->setText(ToQStr(state.PipelineName) + " - " + m_Ctx.CurPipelineState.Abbrev(stage.stage));
+    shader->setText(ToQStr(state.name) + " - " + m_Ctx.CurPipelineState.Abbrev(stage.stage));
   else
-    shader->setText(ToQStr(state.PipelineName) + " - " + ToQStr(stage.stage, GraphicsAPI::D3D12) +
+    shader->setText(ToQStr(state.name) + " - " + ToQStr(stage.stage, GraphicsAPI::D3D12) +
                     " Shader");
 
   if(shaderDetails && !shaderDetails->DebugInfo.entryFunc.empty() &&

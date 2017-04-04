@@ -895,7 +895,7 @@ void D3D12Replay::MakePipelineState()
       str = "Unbound";
   }
 
-  state.PipelineName = str;
+  state.name = str;
 
   if(pipe && pipe->IsGraphics())
   {

@@ -30,7 +30,7 @@ struct BindingElement
 {
   BindingElement()
       : immutableSampler(false),
-        customSamplerName(false),
+        customName(false),
         baseMip(0),
         baseLayer(0),
         offset(0),
@@ -54,8 +54,8 @@ struct BindingElement
   ResourceId sampler;
   bool32 immutableSampler;
 
-  rdctype::str SamplerName;
-  bool32 customSamplerName;
+  rdctype::str name;
+  bool32 customName;
 
   // image views
   ResourceFormat viewfmt;
@@ -168,7 +168,7 @@ struct Shader
   ResourceId Object;
   rdctype::str entryPoint;
 
-  rdctype::str ShaderName;
+  rdctype::str name;
   bool32 customName;
   ShaderReflection *ShaderDetails;
 

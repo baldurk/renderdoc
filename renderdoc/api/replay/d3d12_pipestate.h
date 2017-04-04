@@ -381,7 +381,7 @@ struct State
   State() : customName(false) {}
   ResourceId pipeline;
   bool32 customName;
-  rdctype::str PipelineName;
+  rdctype::str name;
 
   ResourceId rootSig;
 

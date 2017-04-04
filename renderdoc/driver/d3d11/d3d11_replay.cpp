@@ -471,7 +471,7 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
       str = StringFormat::Fmt("Input Layout %llu", ret.m_IA.layout);
     }
 
-    ret.m_IA.LayoutName = str;
+    ret.m_IA.name = str;
 
     create_array_uninit(ret.m_IA.layouts, vec.size());
 
@@ -543,7 +543,7 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
         str = StringFormat::Fmt("%s Shader %llu", stageNames[stage], dst.Object);
       }
 
-      dst.ShaderName = str;
+      dst.name = str;
 
       // create identity bindpoint mapping
       create_array_uninit(dst.BindpointMapping.InputAttributes,
@@ -617,13 +617,13 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
 
         if(samp.Samp != ResourceId())
         {
-          samp.SamplerName = GetDebugName(src.Samplers[s]);
-          samp.customSamplerName = true;
+          samp.name = GetDebugName(src.Samplers[s]);
+          samp.customName = true;
 
-          if(samp.SamplerName.count == 0)
+          if(samp.name.count == 0)
           {
-            samp.customSamplerName = false;
-            samp.SamplerName = StringFormat::Fmt("Sampler %llu", samp.Samp);
+            samp.customName = false;
+            samp.name = StringFormat::Fmt("Sampler %llu", samp.Samp);
           }
 
           D3D11_SAMPLER_DESC desc;
