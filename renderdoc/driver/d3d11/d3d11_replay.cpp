@@ -685,8 +685,6 @@ D3D11Pipe::State D3D11Replay::MakePipelineState()
           {
             view.FirstElement = desc.Buffer.FirstElement;
             view.NumElements = desc.Buffer.NumElements;
-            view.ElementOffset = desc.Buffer.ElementOffset;
-            view.ElementWidth = desc.Buffer.ElementWidth;
 
             D3D11_BUFFER_DESC bufdesc;
             ((ID3D11Buffer *)res)->GetDesc(&bufdesc);

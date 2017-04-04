@@ -336,8 +336,6 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::View &el)
 
   Serialise("", el.Structured);
   Serialise("", el.BufferStructCount);
-  Serialise("", el.ElementOffset);
-  Serialise("", el.ElementWidth);
   Serialise("", el.FirstElement);
   Serialise("", el.NumElements);
 
@@ -347,7 +345,7 @@ void Serialiser::Serialise(const char *name, D3D11Pipe::View &el)
   Serialise("", el.ArraySize);
   Serialise("", el.FirstArraySlice);
 
-  SIZE_CHECK(128);
+  SIZE_CHECK(112);
 }
 
 template <>

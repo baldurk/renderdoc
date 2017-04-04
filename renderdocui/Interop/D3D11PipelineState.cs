@@ -128,11 +128,7 @@ namespace renderdoc
                 public UInt32 BufferStructCount;
                 public UInt32 ElementSize;
 
-                // Buffer (SRV)
-                public UInt32 ElementOffset;
-                public UInt32 ElementWidth;
-
-                // Buffer (UAV)
+                // Buffer
                 public UInt32 FirstElement;
                 public UInt32 NumElements;
 

@@ -82,8 +82,6 @@ struct View
         Structured(false),
         BufferStructCount(0),
         ElementSize(0),
-        ElementOffset(0),
-        ElementWidth(0),
         FirstElement(0),
         NumElements(1),
         Flags(D3DBufferViewFlags::NoFlags),
@@ -102,10 +100,6 @@ struct View
   bool32 Structured;
   uint32_t BufferStructCount;
   uint32_t ElementSize;
-
-  // Buffer (SRV)
-  uint32_t ElementOffset;
-  uint32_t ElementWidth;
 
   // Buffer (UAV)
   uint32_t FirstElement;

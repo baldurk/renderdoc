@@ -994,10 +994,8 @@ bool D3D11DebugManager::InitDebugRendering()
     D3D11_SHADER_RESOURCE_VIEW_DESC srvDesc;
     srvDesc.ViewDimension = D3D11_SRV_DIMENSION_BUFFER;
     srvDesc.Format = DXGI_FORMAT_R32G32B32A32_FLOAT;
-    srvDesc.Buffer.ElementOffset = 0;
     srvDesc.Buffer.FirstElement = 0;
-    srvDesc.Buffer.ElementWidth = 4 * sizeof(float);
-    srvDesc.Buffer.NumElements = bDesc.ByteWidth / srvDesc.Buffer.ElementWidth;
+    srvDesc.Buffer.NumElements = bDesc.ByteWidth / sizeof(Vec4f);
 
     hr = m_pDevice->CreateShaderResourceView(m_DebugRender.tileResultBuff, &srvDesc,
                                              &m_DebugRender.tileResultSRV[0]);
