@@ -1742,9 +1742,13 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
   SAFE_RELEASE(rtView);
   SAFE_RELEASE(depthView);
 
-  m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
+  {
+    D3D11MarkerRegion initState("Replaying event for initial states");
 
-  m_pImmediateContext->CopyResource(stageBuf, initialBuf);
+    m_WrappedDevice->ReplayLog(0, eventID, eReplay_OnlyDraw);
+
+    m_pImmediateContext->CopyResource(stageBuf, initialBuf);
+  }
 
   D3D11_MAPPED_SUBRESOURCE mapped;
   hr = m_pImmediateContext->Map(stageBuf, 0, D3D11_MAP_READ, 0, &mapped);
@@ -1767,6 +1771,8 @@ ShaderDebugTrace D3D11DebugManager::DebugPixel(uint32_t eventID, uint32_t x, uin
   SAFE_RELEASE(extract);
 
   DebugHit *buf = (DebugHit *)initialData;
+
+  D3D11MarkerRegion::Set(StringFormat::Fmt("Got %u hits", buf[0].numHits));
 
   if(buf[0].numHits == 0)
   {
