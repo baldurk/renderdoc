@@ -6665,7 +6665,7 @@ vector<PixelModification> D3D11DebugManager::PixelHistory(vector<EventUsage> eve
     {
       m_pImmediateContext->OMGetBlendState(&curBS, blendFactor, &curSample);
 
-      m_pImmediateContext->OMSetBlendState(NULL, blendFactor, sampleMask);
+      m_pImmediateContext->OMSetBlendState(NULL, blendFactor, curSample);
 
       // fetch shader output value
       {
