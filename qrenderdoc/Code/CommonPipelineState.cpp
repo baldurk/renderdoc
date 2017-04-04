@@ -119,15 +119,15 @@ Viewport CommonPipelineState::GetViewport(int index)
   {
     if(IsLogD3D11() && index < m_D3D11->m_RS.Viewports.count)
     {
-      ret.x = m_D3D11->m_RS.Viewports[index].TopLeft[0];
-      ret.y = m_D3D11->m_RS.Viewports[index].TopLeft[1];
+      ret.x = m_D3D11->m_RS.Viewports[index].X;
+      ret.y = m_D3D11->m_RS.Viewports[index].Y;
       ret.width = m_D3D11->m_RS.Viewports[index].Width;
       ret.height = m_D3D11->m_RS.Viewports[index].Height;
     }
     else if(IsLogD3D12() && index < m_D3D12->m_RS.Viewports.count)
     {
-      ret.x = m_D3D12->m_RS.Viewports[index].TopLeft[0];
-      ret.y = m_D3D12->m_RS.Viewports[index].TopLeft[1];
+      ret.x = m_D3D12->m_RS.Viewports[index].X;
+      ret.y = m_D3D12->m_RS.Viewports[index].Y;
       ret.width = m_D3D12->m_RS.Viewports[index].Width;
       ret.height = m_D3D12->m_RS.Viewports[index].Height;
     }

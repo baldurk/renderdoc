@@ -1473,8 +1473,7 @@ void D3D12PipelineStateViewer::setState()
   {
     const D3D12Pipe::Viewport &v = state.m_RS.Viewports[i];
 
-    QTreeWidgetItem *node =
-        makeTreeNode({i, v.TopLeft[0], v.TopLeft[1], v.Width, v.Height, v.MinDepth, v.MaxDepth});
+    QTreeWidgetItem *node = makeTreeNode({i, v.X, v.Y, v.Width, v.Height, v.MinDepth, v.MaxDepth});
 
     if(v.Width == 0 || v.Height == 0 || v.MinDepth == v.MaxDepth)
       setEmptyRow(node);

@@ -220,20 +220,17 @@ struct Streamout
 
 struct Viewport
 {
-  Viewport() : Width(0.0f), Height(0.0f), MinDepth(0.0f), MaxDepth(0.0f)
-  {
-    TopLeft[0] = 0.0f;
-    TopLeft[1] = 0.0f;
-  }
+  Viewport() : X(0.0f), Y(0.0f), Width(0.0f), Height(0.0f), MinDepth(0.0f), MaxDepth(0.0f) {}
   Viewport(float TX, float TY, float W, float H, float MN, float MX)
-      : Width(W), Height(H), MinDepth(MN), MaxDepth(MX)
+      : X(TX), Y(TY), Width(W), Height(H), MinDepth(MN), MaxDepth(MX)
   {
-    TopLeft[0] = TX;
-    TopLeft[1] = TY;
   }
-  float TopLeft[2];
-  float Width, Height;
-  float MinDepth, MaxDepth;
+  float X;
+  float Y;
+  float Width;
+  float Height;
+  float MinDepth;
+  float MaxDepth;
 };
 
 struct Scissor
