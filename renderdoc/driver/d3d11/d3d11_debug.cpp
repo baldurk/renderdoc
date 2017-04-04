@@ -1620,6 +1620,8 @@ bool D3D11DebugManager::CheckResizeOutputWindow(uint64_t id)
     outw.width = w;
     outw.height = h;
 
+    D3D11RenderStateTracker tracker(m_WrappedContext);
+
     m_WrappedContext->OMSetRenderTargets(0, 0, 0);
 
     if(outw.width > 0 && outw.height > 0)
