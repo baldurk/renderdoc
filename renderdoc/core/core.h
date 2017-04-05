@@ -32,8 +32,7 @@
 #include <utility>
 #include <vector>
 #include "api/app/renderdoc_app.h"
-#include "api/replay/capture_options.h"
-#include "api/replay/replay_enums.h"
+#include "api/replay/renderdoc_replay.h"
 #include "common/threading.h"
 #include "common/timing.h"
 #include "os/os_specific.h"

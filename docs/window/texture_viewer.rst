@@ -278,6 +278,8 @@ Flip Y
 
 This button toggles flipping the co-ordinate system in Y - y=0 is at the bottom of the window instead of at the top.
   
+.. _render-overlay:
+
 Render Overlay
 ~~~~~~~~~~~~~~
 

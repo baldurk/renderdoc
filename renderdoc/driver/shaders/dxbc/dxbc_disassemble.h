@@ -28,7 +28,7 @@
 #include <stdint.h>
 #include <string>
 #include <vector>
-#include "api/replay/replay_enums.h"
+#include "api/replay/renderdoc_replay.h"
 
 using std::vector;
 using std::string;

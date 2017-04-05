@@ -28,7 +28,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <stdlib.h>
-#include "api/replay/replay_enums.h"
+#include "api/replay/renderdoc_replay.h"
 #include "globalconfig.h"
 
 /////////////////////////////////////////////////
